@@ -1,6 +1,6 @@
 {
-  "short_name": "React App",
-  "name": "Create React App Sample",
+  "short_name": "Sokuji",
+  "name": "Sokuji - Simultaneous interpretation application",
   "icons": [
     {
       "src": "favicon.ico",

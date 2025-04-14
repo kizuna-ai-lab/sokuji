@@ -1,0 +1,23 @@
+.main-layout {
+  display: flex;
+  height: 100vh;
+  width: 100%;
+  background-color: #1e1e1e;
+  color: white;
+  
+  .main-panel-container {
+    flex: 1;
+    border-right: 1px solid #333;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .settings-panel-container {
+    width: 320px;
+    min-width: 320px;
+    max-width: 320px;
+    overflow: hidden; /* Changed from overflow-y: auto to prevent double scrollbars */
+    padding: 0;
+    background-color: #252525;
+  }
+}

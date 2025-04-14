@@ -1,0 +1,102 @@
+.logs-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  box-sizing: border-box;
+  overflow-x: hidden;
+  
+  .logs-panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    border-bottom: 1px solid #333;
+    box-sizing: border-box;
+    width: 100%;
+    
+    h2 {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 500;
+    }
+    
+    .back-to-settings-button {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: transparent;
+      border: 1px solid #555;
+      border-radius: 4px;
+      color: white;
+      padding: 6px 12px;
+      cursor: pointer;
+      font-size: 14px;
+      
+      &:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+      }
+    }
+  }
+  
+  .logs-content {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 15px;
+    font-family: monospace;
+    font-size: 13px;
+    scrollbar-gutter: stable;
+    box-sizing: border-box;
+    width: 100%;
+    // display: flex;
+    
+    .log-entry {
+      margin-bottom: 8px;
+      display: flex;
+      
+      .log-timestamp {
+        color: #888;
+        margin-right: 10px;
+        flex-shrink: 0;
+      }
+      
+      .log-message {
+        color: #ddd;
+        word-break: break-word;
+      }
+    }
+    
+    .logs-placeholder {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100%;
+      width: 100%;
+      color: #888;
+      font-size: 16px;
+      
+      .placeholder-content {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        
+        .icon-container {
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          width: 48px;
+          height: 48px;
+          background-color: #333;
+          border-radius: 8px;
+          margin-bottom: 16px;
+          
+          svg {
+            color: #888;
+          }
+        }
+      }
+    }
+  }
+}
