@@ -21,20 +21,25 @@
       font-weight: 500;
     }
     
-    .back-to-settings-button {
+    .close-logs-button {
       display: flex;
       align-items: center;
-      gap: 6px;
-      background: transparent;
-      border: 1px solid #555;
-      border-radius: 4px;
-      color: white;
-      padding: 6px 12px;
+      background: none;
+      border: none;
+      color: #aaa;
       cursor: pointer;
-      font-size: 14px;
+      padding: 5px 10px;
+      border-radius: 4px;
+      transition: all 0.2s;
+      
+      span {
+        margin-left: 5px;
+        font-size: 13px;
+      }
       
       &:hover {
         background-color: rgba(255, 255, 255, 0.1);
+        color: white;
       }
     }
   }

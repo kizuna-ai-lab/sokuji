@@ -26,9 +26,9 @@ const LogsPanel: React.FC<LogsPanelProps> = ({ toggleLogs }) => {
     <div className="logs-panel">
       <div className="logs-panel-header">
         <h2>Logs</h2>
-        <button className="back-to-settings-button" onClick={toggleLogs}>
+        <button className="close-logs-button" onClick={toggleLogs}>
           <ArrowRight size={16} />
-          <span>Settings</span>
+          <span>Close</span>
         </button>
       </div>
       <div className="logs-content">

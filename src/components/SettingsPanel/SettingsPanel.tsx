@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { ArrowRight, Settings } from 'react-feather';
 import './SettingsPanel.scss';
 
 type TurnDetectionMode = 'Normal' | 'Semantic' | 'Disabled';
@@ -6,7 +7,11 @@ type SemanticEagerness = 'Auto' | 'Low' | 'Medium' | 'High';
 type NoiseReductionMode = 'None' | 'Near field' | 'Far field';
 type TranscriptModel = 'gpt-4o-mini-transcribe' | 'gpt-4o-transcribe' | 'whisper-1';
 
-const SettingsPanel: React.FC = () => {
+interface SettingsPanelProps {
+  toggleSettings?: () => void;
+}
+
+const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
   const [turnDetectionMode, setTurnDetectionMode] = useState<TurnDetectionMode>('Normal');
   const [threshold, setThreshold] = useState<number>(0.49);
   const [prefixPadding, setPrefixPadding] = useState<number>(0.5);
@@ -19,6 +24,15 @@ const SettingsPanel: React.FC = () => {
 
   return (
     <div className="settings-panel">
+      {toggleSettings && (
+        <div className="settings-panel-header">
+          <h2>Settings</h2>
+          <button className="close-settings-button" onClick={toggleSettings}>
+            <ArrowRight size={16} />
+            <span>Close</span>
+          </button>
+        </div>
+      )}
       <div className="settings-section">
         <h2>System Instructions</h2>
         <textarea 

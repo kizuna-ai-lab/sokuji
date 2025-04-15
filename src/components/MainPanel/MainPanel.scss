@@ -21,7 +21,9 @@
     .header-controls {
       display: flex;
       align-items: center;
+      gap: 8px;
       
+      .settings-button,
       .logs-button {
         display: flex;
         align-items: center;

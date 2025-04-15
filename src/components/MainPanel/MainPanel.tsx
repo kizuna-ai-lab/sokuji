@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Terminal, Check, ChevronDown, Mic, MicOff, PlayCircle, Users } from 'react-feather';
+import { Terminal, Check, ChevronDown, Mic, MicOff, PlayCircle, Users, Settings } from 'react-feather';
 import './MainPanel.scss';
 
 interface MainPanelProps {
   toggleLogs: () => void;
+  toggleSettings: () => void;
 }
 
 interface AudioDevice {
@@ -14,7 +15,7 @@ interface AudioDevice {
 const WAVEFORM_BARS = 5;
 const DOT_SIZE = 3; // px
 
-const MainPanel: React.FC<MainPanelProps> = ({ toggleLogs }) => {
+const MainPanel: React.FC<MainPanelProps> = ({ toggleLogs, toggleSettings }) => {
   const [showDeviceDropdown, setShowDeviceDropdown] = useState(false);
   const [selectedDevice, setSelectedDevice] = useState<AudioDevice>({ deviceId: 'default', label: 'Default' });
   const [isDeviceOn, setIsDeviceOn] = useState(true);
@@ -162,6 +163,10 @@ const MainPanel: React.FC<MainPanelProps> = ({ toggleLogs }) => {
       <header className="main-panel-header">
         <h1>Realtime</h1>
         <div className="header-controls">
+          <button className="settings-button" onClick={toggleSettings}>
+            <Settings size={16} />
+            <span>Settings</span>
+          </button>
           <button className="logs-button" onClick={toggleLogs}>
             <Terminal size={16} />
             <span>Logs</span>

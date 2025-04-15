@@ -7,6 +7,42 @@
   box-sizing: border-box;
   width: 100%;
   
+  .settings-panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    
+    h2 {
+      font-size: 16px;
+      font-weight: 500;
+      color: white;
+      margin: 0;
+    }
+    
+    .close-settings-button {
+      display: flex;
+      align-items: center;
+      background: none;
+      border: none;
+      color: #aaa;
+      cursor: pointer;
+      padding: 5px 10px;
+      border-radius: 4px;
+      transition: all 0.2s;
+      
+      span {
+        margin-left: 5px;
+        font-size: 13px;
+      }
+      
+      &:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+        color: white;
+      }
+    }
+  }
+  
   .settings-section {
     margin-bottom: 20px;
     
