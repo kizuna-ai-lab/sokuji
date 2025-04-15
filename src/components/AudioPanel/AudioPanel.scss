@@ -1,0 +1,199 @@
+.audio-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  box-sizing: border-box;
+  overflow-x: hidden;
+  
+  .audio-panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    border-bottom: 1px solid #333;
+    box-sizing: border-box;
+    width: 100%;
+    
+    h2 {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 500;
+    }
+    
+    .close-audio-button {
+      display: flex;
+      align-items: center;
+      background: none;
+      border: none;
+      color: #aaa;
+      cursor: pointer;
+      padding: 5px 10px;
+      border-radius: 4px;
+      transition: all 0.2s;
+      
+      span {
+        margin-left: 5px;
+        font-size: 13px;
+      }
+      
+      &:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+        color: white;
+      }
+    }
+  }
+  
+  .audio-content {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 15px;
+    scrollbar-gutter: stable;
+    box-sizing: border-box;
+    width: 100%;
+    
+    .audio-section {
+      margin-bottom: 20px;
+      
+      h3 {
+        font-size: 14px;
+        font-weight: 500;
+        margin-bottom: 15px;
+        color: #ccc;
+      }
+      
+      h4 {
+        font-size: 13px;
+        font-weight: 500;
+        margin: 15px 0 10px;
+        color: #aaa;
+      }
+      
+      .device-selector {
+        background-color: #2a2a2a;
+        border-radius: 6px;
+        padding: 12px;
+        margin-bottom: 15px;
+        
+        .device-status {
+          display: flex;
+          align-items: center;
+          margin-bottom: 12px;
+          
+          .device-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background-color: #333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-right: 12px;
+            
+            &.active {
+              background-color: #10a37f;
+              color: white;
+            }
+            
+            &.inactive {
+              background-color: #444;
+              color: #aaa;
+            }
+          }
+          
+          .device-info {
+            flex: 1;
+            
+            .device-name {
+              font-size: 14px;
+              margin-bottom: 5px;
+              white-space: nowrap;
+              overflow: hidden;
+              text-overflow: ellipsis;
+              max-width: 200px;
+            }
+          }
+        }
+        
+        .device-toggle-button {
+          width: 100%;
+          padding: 8px;
+          border-radius: 4px;
+          border: none;
+          font-size: 13px;
+          cursor: pointer;
+          transition: all 0.2s;
+          
+          &.on {
+            background-color: #10a37f;
+            color: white;
+            
+            &:hover {
+              background-color: #0c8c6a;
+            }
+          }
+          
+          &.off {
+            background-color: #444;
+            color: #ddd;
+            
+            &:hover {
+              background-color: #555;
+            }
+          }
+        }
+      }
+      
+      .device-list {
+        .device-option {
+          padding: 10px 12px;
+          background-color: #2a2a2a;
+          border-radius: 4px;
+          margin-bottom: 6px;
+          cursor: pointer;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          transition: background-color 0.2s;
+          
+          span {
+            font-size: 13px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+          }
+          
+          .selected-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: #10a37f;
+          }
+          
+          &:hover {
+            background-color: #333;
+          }
+          
+          &.selected {
+            background-color: #333;
+          }
+        }
+      }
+    }
+  }
+  
+  .audio-waveform {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    height: 16px;
+    
+    .waveform-bar {
+      background-color: #10a37f;
+      width: 3px;
+      border-radius: 1.5px;
+      transition: height 0.1s ease;
+    }
+  }
+}

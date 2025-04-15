@@ -24,6 +24,7 @@
       gap: 8px;
       
       .settings-button,
+      .audio-button,
       .logs-button {
         display: flex;
         align-items: center;
@@ -153,8 +154,8 @@
     left: 50%;
     transform: translateX(-50%);
     display: flex;
-    gap: 8px;
-    z-index: 10;
+    align-items: center;
+    gap: 16px;
     
     .start-session-button {
       display: flex;
@@ -162,154 +163,17 @@
       gap: 8px;
       background-color: #10a37f;
       border: none;
-      border-radius: 4px;
+      border-radius: 6px;
       color: white;
-      padding: 8px 16px;
-      font-size: 14px;
+      padding: 10px 16px;
+      font-size: 15px;
+      font-weight: 500;
       cursor: pointer;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-      
-      svg {
-        color: #fff;
-      }
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+      transition: background-color 0.2s;
       
       &:hover {
-        background-color: #0d8c6d;
-      }
-    }
-    
-    .device-dropdown-container {
-      position: relative;
-      
-      .device-selector-button {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        background-color: #2a2a2a;
-        border: 1px solid #444;
-        border-radius: 4px;
-        color: white;
-        padding: 8px 12px;
-        font-size: 14px;
-        cursor: pointer;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-        
-        .device-icon {
-          font-size: 14px;
-          
-          &.device-off {
-            opacity: 0.5;
-          }
-        }
-        
-        .audio-waveform {
-          display: flex;
-          align-items: center;
-          gap: 4px;
-          height: 16px;
-          margin-left: 8px;
-          margin-right: 4px;
-          
-          .waveform-bar {
-            width: 4px;
-            height: 4px;
-            background-color: #10a37f;
-            border-radius: 50%;
-            transition: height 0.2s ease;
-          }
-        }
-        
-        &:hover {
-          background-color: #333;
-        }
-      }
-      
-      .device-dropdown {
-        position: absolute;
-        bottom: 100%;
-        left: 0;
-        margin-bottom: 8px;
-        background-color: #2a2a2a;
-        border: 1px solid #444;
-        border-radius: 4px;
-        width: 280px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-        overflow: hidden;
-        
-        .device-list {
-          padding: 0;
-          
-          .device-option {
-            display: flex;
-            align-items: center;
-            padding: 10px 12px;
-            cursor: pointer;
-            color: white;
-            transition: background-color 0.2s ease;
-            
-            &:hover {
-              background-color: #3a3a3a;
-            }
-            
-            &.selected {
-              color: #10a37f;
-            }
-            
-            .icon-container {
-              width: 20px;
-              display: flex;
-              justify-content: center;
-              align-items: center;
-              margin-right: 8px;
-              
-              svg {
-                color: #10a37f;
-              }
-            }
-          }
-          
-          .device-state-option {
-            display: flex;
-            align-items: center;
-            padding: 10px 12px;
-            cursor: pointer;
-            color: white;
-            border-top: 1px solid #444;
-            transition: background-color 0.2s ease;
-            
-            &:hover {
-              background-color: #3a3a3a;
-            }
-            
-            .icon-container {
-              width: 20px;
-              display: flex;
-              justify-content: center;
-              align-items: center;
-              margin-right: 8px;
-              
-              svg {
-                color: #fff;
-              }
-            }
-            
-            .audio-waveform {
-              display: flex;
-              align-items: center;
-              gap: 4px;
-              height: 16px;
-              margin-left: auto;
-              
-              .waveform-bar {
-                width: 4px;
-                height: 4px;
-                background-color: #10a37f;
-                border-radius: 50%;
-                transition: height 0.2s ease;
-              }
-            }
-          }
-        }
+        background-color: #0c8c6a;
       }
     }
   }
