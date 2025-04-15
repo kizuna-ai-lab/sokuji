@@ -2,6 +2,12 @@ const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 const url = require('url');
 require('dotenv').config();
+const { 
+  startPipeWireLoopback, 
+  stopPipeWireLoopback, 
+  isPipeWireEnabled, 
+  isPwLoopbackAvailable 
+} = require('./pipewire-utils');
 
 // Keep a global reference of the window object to prevent garbage collection
 let mainWindow;
@@ -39,7 +45,21 @@ function createWindow() {
 }
 
 // Create window when Electron is ready
-app.whenReady().then(createWindow);
+app.whenReady().then(async () => {
+  // Start PipeWire loopback before creating the window
+  try {
+    const loopbackStarted = await startPipeWireLoopback();
+    if (loopbackStarted) {
+      console.log('PipeWire loopback started successfully');
+    } else {
+      console.error('Failed to start PipeWire loopback');
+    }
+  } catch (error) {
+    console.error('Error starting PipeWire loopback:', error);
+  }
+  
+  createWindow();
+});
 
 // Quit when all windows are closed, except on macOS
 app.on('window-all-closed', function () {
@@ -51,4 +71,47 @@ app.on('activate', function () {
   if (mainWindow === null) createWindow();
 });
 
-// IPC handlers will be added here
+// Clean up loopback when app is about to quit
+app.on('will-quit', function() {
+  // Stop PipeWire loopback
+  stopPipeWireLoopback();
+});
+
+// IPC handlers for PipeWire functionality
+ipcMain.handle('check-pipewire', async () => {
+  try {
+    const pipeWireEnabled = await isPipeWireEnabled();
+    const loopbackAvailable = await isPwLoopbackAvailable();
+    return {
+      pipeWireEnabled,
+      loopbackAvailable
+    };
+  } catch (error) {
+    console.error('Error checking PipeWire status:', error);
+    return {
+      pipeWireEnabled: false,
+      loopbackAvailable: false,
+      error: error.message
+    };
+  }
+});
+
+ipcMain.handle('start-loopback', async () => {
+  try {
+    const result = await startPipeWireLoopback();
+    return { success: result };
+  } catch (error) {
+    console.error('Error starting loopback:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('stop-loopback', () => {
+  try {
+    stopPipeWireLoopback();
+    return { success: true };
+  } catch (error) {
+    console.error('Error stopping loopback:', error);
+    return { success: false, error: error.message };
+  }
+});
