@@ -200,6 +200,23 @@
           }
         }
         
+        .audio-waveform {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          height: 16px;
+          margin-left: 8px;
+          margin-right: 4px;
+          
+          .waveform-bar {
+            width: 4px;
+            height: 4px;
+            background-color: #10a37f;
+            border-radius: 50%;
+            transition: height 0.2s ease;
+          }
+        }
+        
         &:hover {
           background-color: #333;
         }
@@ -271,6 +288,22 @@
               
               svg {
                 color: #fff;
+              }
+            }
+            
+            .audio-waveform {
+              display: flex;
+              align-items: center;
+              gap: 4px;
+              height: 16px;
+              margin-left: auto;
+              
+              .waveform-bar {
+                width: 4px;
+                height: 4px;
+                background-color: #10a37f;
+                border-radius: 50%;
+                transition: height 0.2s ease;
               }
             }
           }
