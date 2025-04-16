@@ -15,7 +15,8 @@ interface AudioPanelProps {
   selectOutputDevice: (device: {deviceId: string; label: string}) => void;
   toggleInputDeviceState: () => void;
   toggleOutputDeviceState: () => void;
-  audioHistory: number[];
+  inputAudioHistory: number[];
+  outputAudioHistory: number[];
   refreshDevices: () => void;
 }
 
@@ -34,13 +35,14 @@ const AudioPanel: React.FC<AudioPanelProps> = ({
   selectOutputDevice,
   toggleInputDeviceState,
   toggleOutputDeviceState,
-  audioHistory,
+  inputAudioHistory,
+  outputAudioHistory,
   refreshDevices
 }) => {
   // Audio waveform history: 5 bars, right is newest
-  const AudioWaveform = () => (
+  const InputAudioWaveform = () => (
     <div className="audio-waveform">
-      {audioHistory.map((level, idx) => {
+      {inputAudioHistory.map((level, idx) => {
         // 更适合的阈值和放大倍数
         const threshold = 0.02; // 降低阈值
         const AMPLIFY = 4;     // 减小放大倍数，防止过高
@@ -57,6 +59,33 @@ const AudioPanel: React.FC<AudioPanelProps> = ({
               width: `${DOT_SIZE}px`,
               borderRadius: `${DOT_SIZE / 2}px`,
               opacity: isInputDeviceOn ? 1 : 0.5
+            }}
+          />
+        );
+      })}
+    </div>
+  );
+
+  // Output Audio waveform
+  const OutputAudioWaveform = () => (
+    <div className="audio-waveform">
+      {outputAudioHistory.map((level, idx) => {
+        // 更适合的阈值和放大倍数
+        const threshold = 0.02; // 降低阈值
+        const AMPLIFY = 4;     // 减小放大倍数，防止过高
+        // 非线性提升灵敏度（如开方）
+        const enhancedLevel = Math.sqrt(level); // 让低音量更明显
+        // 限制最大高度为16px
+        const height = enhancedLevel < threshold ? DOT_SIZE : Math.min(16, Math.max(DOT_SIZE, enhancedLevel * AMPLIFY));
+        return (
+          <div
+            key={idx}
+            className="waveform-bar"
+            style={{
+              height: `${height}px`,
+              width: `${DOT_SIZE}px`,
+              borderRadius: `${DOT_SIZE / 2}px`,
+              opacity: isOutputDeviceOn ? 1 : 0.5
             }}
           />
         );
@@ -84,7 +113,7 @@ const AudioPanel: React.FC<AudioPanelProps> = ({
               </div>
               <div className="device-info">
                 <div className="device-name">{isLoading ? 'Loading devices...' : selectedInputDevice.label}</div>
-                <AudioWaveform />
+                <InputAudioWaveform />
               </div>
             </div>
             <button 
@@ -130,6 +159,7 @@ const AudioPanel: React.FC<AudioPanelProps> = ({
               </div>
               <div className="device-info">
                 <div className="device-name">{isLoading ? 'Loading devices...' : selectedOutputDevice.label}</div>
+                <OutputAudioWaveform />
               </div>
             </div>
             <button 

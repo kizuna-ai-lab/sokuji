@@ -23,13 +23,19 @@ const MainLayout: React.FC = () => {
   const [isInputDeviceOn, setIsInputDeviceOn] = useState(true);
   const [isOutputDeviceOn, setIsOutputDeviceOn] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
-  const [audioHistory, setAudioHistory] = useState<number[]>(Array(WAVEFORM_BARS).fill(0));
+  const [inputAudioHistory, setInputAudioHistory] = useState<number[]>(Array(WAVEFORM_BARS).fill(0));
+  const [outputAudioHistory, setOutputAudioHistory] = useState<number[]>(Array(WAVEFORM_BARS).fill(0));
 
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const animationFrameRef = useRef<number | null>(null);
   const lastUpdateTimeRef = useRef<number>(0);
+
+  const outputAudioContextRef = useRef<AudioContext | null>(null);
+  const outputAnalyserRef = useRef<AnalyserNode | null>(null);
+  const outputAnimationFrameRef = useRef<number | null>(null);
+  const outputLastUpdateTimeRef = useRef<number>(0);
 
   const stopAudioVisualization = useCallback(() => {
     if (animationFrameRef.current) {
@@ -49,6 +55,21 @@ const MainLayout: React.FC = () => {
       }
       audioContextRef.current = null;
       analyserRef.current = null;
+    }
+  }, []);
+
+  const stopOutputAudioVisualization = useCallback(() => {
+    if (outputAnimationFrameRef.current) {
+      cancelAnimationFrame(outputAnimationFrameRef.current);
+      outputAnimationFrameRef.current = null;
+    }
+
+    if (outputAudioContextRef.current) {
+      if (outputAudioContextRef.current.state !== 'closed') {
+        outputAudioContextRef.current.close();
+      }
+      outputAudioContextRef.current = null;
+      outputAnalyserRef.current = null;
     }
   }, []);
 
@@ -94,7 +115,7 @@ const MainLayout: React.FC = () => {
         const now = Date.now();
         if (now - lastUpdateTimeRef.current > 100) {
           // Update the audio history array
-          setAudioHistory(prev => {
+          setInputAudioHistory(prev => {
             const newHistory = [...prev];
             newHistory.shift();
             newHistory.push(normalizedValue);
@@ -112,6 +133,72 @@ const MainLayout: React.FC = () => {
       stopAudioVisualization();
     }
   }, [selectedInputDevice, stopAudioVisualization]);
+
+  const startOutputAudioVisualization = useCallback(async () => {
+    try {
+      stopOutputAudioVisualization();
+      
+      const audioContext = new AudioContext();
+      outputAudioContextRef.current = audioContext;
+      
+      // todo: implement output audio visualization
+      // Create oscillator for simulating output audio levels
+      const oscillator = audioContext.createOscillator();
+      oscillator.type = 'sine';
+      oscillator.frequency.setValueAtTime(440, audioContext.currentTime);
+      
+      const analyser = audioContext.createAnalyser();
+      analyser.fftSize = 256;
+      
+      oscillator.connect(analyser);
+      // Don't connect to destination to avoid actual sound
+      
+      outputAnalyserRef.current = analyser;
+      
+      // Start the oscillator
+      oscillator.start();
+      
+      const bufferLength = analyser.frequencyBinCount;
+      const dataArray = new Uint8Array(bufferLength);
+      
+      const updateOutputAudioVisualization = () => {
+        if (!outputAnalyserRef.current) return;
+        
+        outputAnalyserRef.current.getByteFrequencyData(dataArray);
+        
+        // Calculate average volume level (0-255)
+        let sum = 0;
+        for (let i = 0; i < bufferLength; i++) {
+          sum += dataArray[i];
+        }
+        const average = sum / bufferLength;
+        
+        // Normalize to 0-100 scale and add some randomness for visual feedback
+        const randomFactor = Math.random() * 20;
+        const normalizedValue = Math.min(100, Math.round((average / 255) * 50) + randomFactor);
+        
+        // Update at most every 100ms for performance
+        const now = Date.now();
+        if (now - outputLastUpdateTimeRef.current > 100) {
+          // Update the output audio history array
+          setOutputAudioHistory(prev => {
+            const newHistory = [...prev];
+            newHistory.shift();
+            newHistory.push(normalizedValue);
+            return newHistory;
+          });
+          outputLastUpdateTimeRef.current = now;
+        }
+        
+        outputAnimationFrameRef.current = requestAnimationFrame(updateOutputAudioVisualization);
+      };
+      
+      outputAnimationFrameRef.current = requestAnimationFrame(updateOutputAudioVisualization);
+    } catch (error) {
+      console.error('Error starting output audio visualization:', error);
+      stopOutputAudioVisualization();
+    }
+  }, [stopOutputAudioVisualization]);
 
   const fetchAudioDevices = useCallback(async () => {
     try {
@@ -172,16 +259,18 @@ const MainLayout: React.FC = () => {
     
     return () => {
       stopAudioVisualization();
+      stopOutputAudioVisualization();
     };
-  }, [getAudioDevices, stopAudioVisualization]);
+  }, [getAudioDevices, stopAudioVisualization, stopOutputAudioVisualization]);
 
   useEffect(() => {
     navigator.mediaDevices.addEventListener('devicechange', getAudioDevices);
     return () => {
       navigator.mediaDevices.removeEventListener('devicechange', getAudioDevices);
       stopAudioVisualization();
+      stopOutputAudioVisualization();
     };
-  }, [getAudioDevices, stopAudioVisualization]);
+  }, [getAudioDevices, stopAudioVisualization, stopOutputAudioVisualization]);
 
   useEffect(() => {
     if (isInputDeviceOn && selectedInputDevice) {
@@ -217,11 +306,20 @@ const MainLayout: React.FC = () => {
             }
           }
         });
+        
+        // Start output audio visualization
+        startOutputAudioVisualization();
       } catch (error) {
         console.error('Error applying output device selection:', error);
       }
+    } else {
+      stopOutputAudioVisualization();
     }
-  }, [isOutputDeviceOn, selectedOutputDevice]);
+    
+    return () => {
+      stopOutputAudioVisualization();
+    };
+  }, [isOutputDeviceOn, selectedOutputDevice, startOutputAudioVisualization, stopOutputAudioVisualization]);
 
   const toggleAudio = useCallback(() => {
     setShowAudio(!showAudio);
@@ -304,7 +402,8 @@ const MainLayout: React.FC = () => {
               selectOutputDevice={selectOutputDevice}
               toggleInputDeviceState={toggleInputDeviceState}
               toggleOutputDeviceState={toggleOutputDeviceState}
-              audioHistory={audioHistory}
+              inputAudioHistory={inputAudioHistory}
+              outputAudioHistory={outputAudioHistory}
               refreshDevices={refreshDevices}
             />
           )}
