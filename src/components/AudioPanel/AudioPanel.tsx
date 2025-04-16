@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowRight, Volume2, Volume, RefreshCw } from 'react-feather';
+import { ArrowRight, Volume2, Mic, RefreshCw } from 'react-feather';
 import './AudioPanel.scss';
 
 interface AudioPanelProps {
@@ -80,7 +80,7 @@ const AudioPanel: React.FC<AudioPanelProps> = ({
           <div className="device-selector">
             <div className="device-status">
               <div className={`device-icon ${isInputDeviceOn ? 'active' : 'inactive'}`}>
-                <Volume2 size={18} />
+                <Mic size={18} />
               </div>
               <div className="device-info">
                 <div className="device-name">{isLoading ? 'Loading devices...' : selectedInputDevice.label}</div>
@@ -126,7 +126,7 @@ const AudioPanel: React.FC<AudioPanelProps> = ({
           <div className="device-selector">
             <div className="device-status">
               <div className={`device-icon ${isOutputDeviceOn ? 'active' : 'inactive'}`}>
-                <Volume size={18} />
+                <Volume2 size={18} />
               </div>
               <div className="device-info">
                 <div className="device-name">{isLoading ? 'Loading devices...' : selectedOutputDevice.label}</div>
