@@ -24,7 +24,6 @@ const MainLayout: React.FC = () => {
   const [isOutputDeviceOn, setIsOutputDeviceOn] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
   const [inputAudioHistory, setInputAudioHistory] = useState<number[]>(Array(WAVEFORM_BARS).fill(0));
-  const [outputAudioHistory, setOutputAudioHistory] = useState<number[]>(Array(WAVEFORM_BARS).fill(0));
   const [isSessionActive, setIsSessionActive] = useState(false);
 
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -32,11 +31,6 @@ const MainLayout: React.FC = () => {
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const animationFrameRef = useRef<number | null>(null);
   const lastUpdateTimeRef = useRef<number>(0);
-
-  const outputAudioContextRef = useRef<AudioContext | null>(null);
-  const outputAnalyserRef = useRef<AnalyserNode | null>(null);
-  const outputAnimationFrameRef = useRef<number | null>(null);
-  const outputLastUpdateTimeRef = useRef<number>(0);
   
   const testAudioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -58,21 +52,6 @@ const MainLayout: React.FC = () => {
       }
       audioContextRef.current = null;
       analyserRef.current = null;
-    }
-  }, []);
-
-  const stopOutputAudioVisualization = useCallback(() => {
-    if (outputAnimationFrameRef.current) {
-      cancelAnimationFrame(outputAnimationFrameRef.current);
-      outputAnimationFrameRef.current = null;
-    }
-
-    if (outputAudioContextRef.current) {
-      if (outputAudioContextRef.current.state !== 'closed') {
-        outputAudioContextRef.current.close();
-      }
-      outputAudioContextRef.current = null;
-      outputAnalyserRef.current = null;
     }
   }, []);
 
@@ -137,72 +116,6 @@ const MainLayout: React.FC = () => {
     }
   }, [selectedInputDevice, stopAudioVisualization]);
 
-  const startOutputAudioVisualization = useCallback(async () => {
-    try {
-      stopOutputAudioVisualization();
-      
-      const audioContext = new AudioContext();
-      outputAudioContextRef.current = audioContext;
-      
-      // todo: implement output audio visualization
-      // Create oscillator for simulating output audio levels
-      const oscillator = audioContext.createOscillator();
-      oscillator.type = 'sine';
-      oscillator.frequency.setValueAtTime(440, audioContext.currentTime);
-      
-      const analyser = audioContext.createAnalyser();
-      analyser.fftSize = 256;
-      
-      oscillator.connect(analyser);
-      // Don't connect to destination to avoid actual sound
-      
-      outputAnalyserRef.current = analyser;
-      
-      // Start the oscillator
-      oscillator.start();
-      
-      const bufferLength = analyser.frequencyBinCount;
-      const dataArray = new Uint8Array(bufferLength);
-      
-      const updateOutputAudioVisualization = () => {
-        if (!outputAnalyserRef.current) return;
-        
-        outputAnalyserRef.current.getByteFrequencyData(dataArray);
-        
-        // Calculate average volume level (0-255)
-        let sum = 0;
-        for (let i = 0; i < bufferLength; i++) {
-          sum += dataArray[i];
-        }
-        const average = sum / bufferLength;
-        
-        // Normalize to 0-100 scale and add some randomness for visual feedback
-        const randomFactor = Math.random() * 20;
-        const normalizedValue = Math.min(100, Math.round((average / 255) * 50) + randomFactor);
-        
-        // Update at most every 100ms for performance
-        const now = Date.now();
-        if (now - outputLastUpdateTimeRef.current > 100) {
-          // Update the output audio history array
-          setOutputAudioHistory(prev => {
-            const newHistory = [...prev];
-            newHistory.shift();
-            newHistory.push(normalizedValue);
-            return newHistory;
-          });
-          outputLastUpdateTimeRef.current = now;
-        }
-        
-        outputAnimationFrameRef.current = requestAnimationFrame(updateOutputAudioVisualization);
-      };
-      
-      outputAnimationFrameRef.current = requestAnimationFrame(updateOutputAudioVisualization);
-    } catch (error) {
-      console.error('Error starting output audio visualization:', error);
-      stopOutputAudioVisualization();
-    }
-  }, [stopOutputAudioVisualization]);
-
   const fetchAudioDevices = useCallback(async () => {
     try {
       await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -262,18 +175,16 @@ const MainLayout: React.FC = () => {
     
     return () => {
       stopAudioVisualization();
-      stopOutputAudioVisualization();
     };
-  }, [getAudioDevices, stopAudioVisualization, stopOutputAudioVisualization]);
+  }, [getAudioDevices, stopAudioVisualization]);
 
   useEffect(() => {
     navigator.mediaDevices.addEventListener('devicechange', getAudioDevices);
     return () => {
       navigator.mediaDevices.removeEventListener('devicechange', getAudioDevices);
       stopAudioVisualization();
-      stopOutputAudioVisualization();
     };
-  }, [getAudioDevices, stopAudioVisualization, stopOutputAudioVisualization]);
+  }, [getAudioDevices, stopAudioVisualization]);
 
   useEffect(() => {
     if (isInputDeviceOn && selectedInputDevice) {
@@ -287,62 +198,53 @@ const MainLayout: React.FC = () => {
     };
   }, [isInputDeviceOn, selectedInputDevice, startAudioVisualization, stopAudioVisualization]);
 
-  useEffect(() => {
-    const updateOutputDevices = async () => {
-      if (isOutputDeviceOn && selectedOutputDevice) {
-        // Apply output device selection using setSinkId
-        // This is only supported in some browsers (Chrome, Edge)
-        try {
-          // Find all audio elements and set their sink ID
-          const audioElements = document.querySelectorAll('audio');
-          // Convert NodeList to Array before iterating
-          const audioElementsArray = Array.from(audioElements);
-          for (const audioEl of audioElementsArray) {
-            // Check if setSinkId is supported
-            if ('setSinkId' in audioEl) {
-              try {
-                // If 'default' is selected, let the browser use the System Default
-                // Otherwise use the specific device ID
-                if (selectedOutputDevice.deviceId !== 'default') {
-                  await (audioEl as any).setSinkId(selectedOutputDevice.deviceId);
-                  console.log(`Set audio output to: ${selectedOutputDevice.label}`);
-                }
-              } catch (err) {
-                console.error('Error setting audio output device:', err);
+  const updateOutputDevices = useCallback(async () => {
+    if (isOutputDeviceOn && selectedOutputDevice) {
+      // Apply output device selection using setSinkId
+      // This is only supported in some browsers (Chrome, Edge)
+      try {
+        // Find all audio elements and set their sink ID
+        const audioElements = document.querySelectorAll('audio');
+        // Convert NodeList to Array before iterating
+        const audioElementsArray = Array.from(audioElements);
+        for (const audioEl of audioElementsArray) {
+          // Check if setSinkId is supported
+          if ('setSinkId' in audioEl) {
+            try {
+              // If 'default' is selected, let the browser use the System Default
+              // Otherwise use the specific device ID
+              if (selectedOutputDevice.deviceId !== 'default') {
+                await (audioEl as any).setSinkId(selectedOutputDevice.deviceId);
+                console.log(`Set audio output to: ${selectedOutputDevice.label}`);
               }
+            } catch (err) {
+              console.error('Error setting audio output device:', err);
             }
           }
-          
-          // Also update the test audio element if it exists and is playing
-          if (testAudioRef.current) {
-            if ('setSinkId' in testAudioRef.current) {
-              try {
-                if (selectedOutputDevice.deviceId !== 'default') {
-                  await (testAudioRef.current as any).setSinkId(selectedOutputDevice.deviceId);
-                  console.log(`Updated test audio output to: ${selectedOutputDevice.label}`);
-                }
-              } catch (err) {
-                console.error('Error updating test audio output device:', err);
-              }
-            }
-          }
-          
-          // Start output audio visualization
-          startOutputAudioVisualization();
-        } catch (error) {
-          console.error('Error applying output device selection:', error);
         }
-      } else {
-        stopOutputAudioVisualization();
+        
+        // Also update the test audio element if it exists and is playing
+        if (testAudioRef.current) {
+          if ('setSinkId' in testAudioRef.current) {
+            try {
+              if (selectedOutputDevice.deviceId !== 'default') {
+                await (testAudioRef.current as any).setSinkId(selectedOutputDevice.deviceId);
+                console.log(`Updated test audio output to: ${selectedOutputDevice.label}`);
+              }
+            } catch (err) {
+              console.error('Error updating test audio output device:', err);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error applying output device selection:', error);
       }
-    };
-    
+    }
+  }, [isOutputDeviceOn, selectedOutputDevice]);
+
+  useEffect(() => {
     updateOutputDevices();
-    
-    return () => {
-      stopOutputAudioVisualization();
-    };
-  }, [isOutputDeviceOn, selectedOutputDevice, startOutputAudioVisualization, stopOutputAudioVisualization]);
+  }, [updateOutputDevices]);
 
   useEffect(() => {
     // If we have test audio playing and output is turned off, mute it
@@ -473,9 +375,8 @@ const MainLayout: React.FC = () => {
       }
       
       stopAudioVisualization();
-      stopOutputAudioVisualization();
     };
-  }, [stopAudioVisualization, stopOutputAudioVisualization]);
+  }, [stopAudioVisualization]);
 
   return (
     <div className="main-layout">
@@ -507,7 +408,6 @@ const MainLayout: React.FC = () => {
               toggleInputDeviceState={toggleInputDeviceState}
               toggleOutputDeviceState={toggleOutputDeviceState}
               inputAudioHistory={inputAudioHistory}
-              outputAudioHistory={outputAudioHistory}
               refreshDevices={refreshDevices}
             />
           )}
