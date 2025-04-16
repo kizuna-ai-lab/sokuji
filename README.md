@@ -1,4 +1,4 @@
-# Sokuji React
+# Sokuji
 
 A simultaneous interpretation application built with Electron 34 and React, using OpenAI's Realtime API.
 
@@ -9,6 +9,9 @@ A simultaneous interpretation application built with Electron 34 and React, usin
 - Modern React-based UI inspired by OpenAI Realtime interface
 - Automatic turn detection with multiple modes (Normal, Semantic, Disabled)
 - Audio visualization with waveform display
+- Virtual audio device creation and management on Linux (using PulseAudio/PipeWire)
+- Automatic connection between virtual audio devices for seamless audio routing
+- Audio input and output device selection
 - Comprehensive logs for tracking API interactions
 - Customizable model settings (temperature, max tokens)
 - User transcript model selection (gpt-4o-mini-transcribe, gpt-4o-transcribe, whisper-1)
@@ -19,9 +22,20 @@ A simultaneous interpretation application built with Electron 34 and React, usin
 - Left-right split layout:
   - Left panel: Main conversation area with floating controls
   - Right panel: Settings/Logs panel with toggle functionality
+- Audio panel for input/output device selection and virtual device management
 - Settings panel with system instructions, turn detection modes, and model configuration
 - Logs panel for tracking API interactions
 - Floating controls for audio device selection and session management
+
+## Audio Routing
+
+Sokuji creates virtual audio devices to facilitate seamless audio routing:
+
+- **sokuji_virtual_output**: A virtual output sink that receives audio from the application
+- **sokuji_virtual_mic**: A virtual microphone that can be selected as input in other applications
+- Automatic connection between these devices using PipeWire's `pw-link` tool
+- Multi-channel support (stereo audio)
+- Proper cleanup of virtual devices when the application exits
 
 ## Development Setup
 
@@ -29,6 +43,9 @@ A simultaneous interpretation application built with Electron 34 and React, usin
 
 - Node.js (latest LTS version recommended)
 - npm
+- For Linux virtual audio device support:
+  - PulseAudio or PipeWire
+  - PipeWire tools (`pw-link`)
 
 ### Installation
 
@@ -68,12 +85,38 @@ Build the application for production:
 npm run electron:build
 ```
 
+This creates:
+- An AppImage file in the `dist` directory
+- A Debian package (`.deb`) for system-wide installation
+
+## Installation from Packages
+
+### AppImage
+
+1. Make the AppImage executable:
+   ```
+   chmod +x Sokuji-0.1.0.AppImage
+   ```
+
+2. Run the application:
+   ```
+   ./Sokuji-0.1.0.AppImage
+   ```
+
+### Debian Package
+
+Install the Debian package:
+```
+sudo dpkg -i sokuji_0.1.0_amd64.deb
+```
+
 ## Technologies Used
 
 - Electron 34
 - React 18
 - TypeScript
 - OpenAI Realtime API
+- PulseAudio/PipeWire for virtual audio devices
 - SASS for styling
 - React-Feather for icons
 
