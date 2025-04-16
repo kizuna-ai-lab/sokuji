@@ -78,7 +78,7 @@
     "extraMetadata": {
       "main": "electron/main.js"
     },
-    "asar": false,
+    "asar": true,
     "linux": {
       "target": ["AppImage", "deb"],
       "category": "Audio"

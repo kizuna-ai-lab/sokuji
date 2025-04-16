@@ -189,15 +189,33 @@
         }
         
         .device-option {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
           padding: 10px 12px;
           background-color: #2a2a2a;
           border-radius: 4px;
           margin-bottom: 6px;
           cursor: pointer;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
           transition: background-color 0.2s;
+          position: relative;
+          
+          &:hover {
+            background-color: rgba(255, 255, 255, 0.05);
+          }
+          
+          &.selected {
+            background-color: rgba(255, 255, 255, 0.1);
+          }
+          
+          &.virtual-device {
+            border-left: 3px solid #f0ad4e;
+            background-color: rgba(240, 173, 78, 0.05);
+            
+            &:hover {
+              background-color: rgba(240, 173, 78, 0.1);
+            }
+          }
           
           span {
             font-size: 13px;
@@ -210,15 +228,14 @@
             width: 8px;
             height: 8px;
             border-radius: 50%;
-            background-color: #10a37f;
+            background-color: #3498db;
+            margin-left: 10px;
           }
           
-          &:hover {
-            background-color: #333;
-          }
-          
-          &.selected {
-            background-color: #333;
+          .virtual-indicator {
+            margin-left: 8px;
+            display: flex;
+            align-items: center;
           }
         }
       }
@@ -240,6 +257,50 @@
       width: 3px;
       border-radius: 1.5px;
       transition: height 0.1s ease;
+    }
+  }
+  
+  .virtual-mic-warning {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    
+    .warning-icon {
+      margin-bottom: 16px;
+      background-color: rgba(240, 173, 78, 0.1);
+      border-radius: 50%;
+      width: 50px;
+      height: 50px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    p {
+      margin-bottom: 12px;
+      line-height: 1.5;
+      color: #e0e0e0;
+      
+      strong {
+        color: #ffffff;
+      }
+    }
+    
+    .understand-button {
+      margin-top: 16px;
+      padding: 10px 20px;
+      background-color: #3498db;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: background-color 0.2s;
+      
+      &:hover {
+        background-color: #2980b9;
+      }
     }
   }
 }

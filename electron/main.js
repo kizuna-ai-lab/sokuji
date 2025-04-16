@@ -30,10 +30,15 @@ function createWindow() {
   });
 
   // Load the app
-  mainWindow.loadFile(path.join(__dirname, '../build/index.html'));
+  const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
+  if (isDev) {
+    mainWindow.loadURL('http://localhost:3000');
+  } else {
+    mainWindow.loadFile(path.join(__dirname, '../build/index.html'));
+  }
 
   // Open DevTools in development mode
-  if (process.env.NODE_ENV === 'development') {
+  if (isDev) {
     mainWindow.webContents.openDevTools();
   }
 

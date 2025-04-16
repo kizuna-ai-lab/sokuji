@@ -1,6 +1,7 @@
-import React from 'react';
-import { ArrowRight, Volume2, Mic, RefreshCw } from 'react-feather';
+import React, { useState } from 'react';
+import { ArrowRight, Volume2, Mic, RefreshCw, AlertTriangle } from 'react-feather';
 import './AudioPanel.scss';
+import Modal from '../Modal/Modal';
 
 interface AudioPanelProps {
   toggleAudio: () => void;
@@ -37,16 +38,18 @@ const AudioPanel: React.FC<AudioPanelProps> = ({
   inputAudioHistory,
   refreshDevices
 }) => {
+  const [showVirtualMicWarning, setShowVirtualMicWarning] = useState(false);
+
   // Audio waveform history: 5 bars, right is newest
   const InputAudioWaveform = () => (
     <div className="audio-waveform">
       {inputAudioHistory.map((level, idx) => {
-        // 更适合的阈值和放大倍数
-        const threshold = 0.02; // 降低阈值
-        const AMPLIFY = 4;     // 减小放大倍数，防止过高
-        // 非线性提升灵敏度（如开方）
-        const enhancedLevel = Math.sqrt(level); // 让低音量更明显
-        // 限制最大高度为16px
+        // More suitable threshold and amplification factor
+        const threshold = 0.02; // Lower threshold
+        const AMPLIFY = 4;     // Reduce amplification factor to prevent excessive height
+        // Non-linear sensitivity enhancement (e.g., square root)
+        const enhancedLevel = Math.sqrt(level); // Make low volume more visible
+        // Limit maximum height to 16px
         const height = enhancedLevel < threshold ? DOT_SIZE : Math.min(16, Math.max(DOT_SIZE, enhancedLevel * AMPLIFY));
         return (
           <div
@@ -64,8 +67,50 @@ const AudioPanel: React.FC<AudioPanelProps> = ({
     </div>
   );
 
+  // Check if a device is the virtual microphone
+  const isVirtualMic = (device: {deviceId: string; label: string}) => {
+    return device.label.toLowerCase().includes('sokuji_virtual_mic');
+  };
+
+  // Handle input device selection with virtual mic check
+  const handleInputDeviceSelection = (device: {deviceId: string; label: string}) => {
+    if (isVirtualMic(device)) {
+      setShowVirtualMicWarning(true);
+    } else {
+      selectInputDevice(device);
+    }
+  };
+
   return (
     <div className="audio-panel">
+      <Modal 
+        isOpen={showVirtualMicWarning} 
+        onClose={() => setShowVirtualMicWarning(false)}
+        title="Virtual Microphone Notice"
+      >
+        <div className="virtual-mic-warning">
+          <div className="warning-icon">
+            <AlertTriangle size={24} color="#f0ad4e" />
+          </div>
+          <p>
+            <strong>This is a virtual microphone created by Sokuji.</strong>
+          </p>
+          <p>
+            Please do not select this device here. Instead, use this virtual microphone in your video conferencing 
+            applications (like Google Meet, Zoom, Microsoft Teams, etc.) to receive the simultaneous interpretation output.
+          </p>
+          <p>
+            For Sokuji to work properly, please select your actual physical microphone from the list.
+          </p>
+          <button 
+            className="understand-button" 
+            onClick={() => setShowVirtualMicWarning(false)}
+          >
+            I understand
+          </button>
+        </div>
+      </Modal>
+
       <div className="audio-panel-header">
         <h2>Audio Settings</h2>
         <button className="close-audio-button" onClick={toggleAudio}>
@@ -111,9 +156,14 @@ const AudioPanel: React.FC<AudioPanelProps> = ({
               <div 
                 key={index} 
                 className={`device-option ${selectedInputDevice.deviceId === device.deviceId ? 'selected' : ''}`}
-                onClick={() => selectInputDevice(device)}
+                onClick={() => handleInputDeviceSelection(device)}
               >
                 <span>{device.label}</span>
+                {isVirtualMic(device) && (
+                  <div className="virtual-indicator" title="Virtual microphone">
+                    <AlertTriangle size={14} color="#f0ad4e" />
+                  </div>
+                )}
                 {selectedInputDevice.deviceId === device.deviceId && <div className="selected-indicator" />}
               </div>
             ))}
