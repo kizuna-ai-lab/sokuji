@@ -37,6 +37,119 @@ async function createVirtualAudioDevices() {
       return false;
     }
 
+    // Connect sokuji_virtual_mic input to sokuji_virtual_output.monitor
+    try {
+      // Use pw-link to find input and output ports
+      console.log('Finding audio ports using pw-link...');
+      
+      // Get output ports (from sokuji_virtual_output.monitor)
+      const { stdout: outputPorts } = await execPromise('pw-link -o | grep sokuji_virtual_output');
+      console.log('Available output ports:', outputPorts);
+      
+      // Get input ports (from sokuji_virtual_mic)
+      const { stdout: inputPorts } = await execPromise('pw-link -i | grep sokuji_virtual_mic');
+      console.log('Available input ports:', inputPorts);
+      
+      // Get existing links to sokuji_virtual_mic
+      console.log('Checking existing links to sokuji_virtual_mic...');
+      const { stdout: existingLinks } = await execPromise('pw-link -l').catch(() => ({ stdout: '' }));
+      console.log('Checking for existing links to disconnect...');
+      
+      // Parse the output to find links to sokuji_virtual_mic
+      const lines = existingLinks.split('\n');
+      const linksToDisconnect = [];
+      
+      // Process the output to find connections
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+        
+        // Check if this is an input port line for sokuji_virtual_mic
+        if (line.startsWith('input.sokuji_virtual_mic:')) {
+          const inputPort = line;
+          
+          // Look at the next lines for connections (they start with |<-)
+          let j = i + 1;
+          while (j < lines.length && lines[j].trim().startsWith('|<-')) {
+            const outputPortLine = lines[j].trim();
+            const outputPort = outputPortLine.substring(3).trim(); // Remove the '|<-' prefix
+            
+            // Add this connection to our list to disconnect
+            linksToDisconnect.push({
+              output: outputPort,
+              input: inputPort
+            });
+            
+            j++;
+          }
+        }
+        
+        // Also check for output lines that connect to sokuji_virtual_mic
+        if (!line.startsWith('input.sokuji_virtual_mic:') && !line.startsWith('|')) {
+          const outputPort = line;
+          
+          // Look at the next lines for connections (they start with |->)
+          let j = i + 1;
+          while (j < lines.length && lines[j].trim().startsWith('|->')) {
+            const inputPortLine = lines[j].trim();
+            const inputPort = inputPortLine.substring(3).trim(); // Remove the '|->' prefix
+            
+            // Check if this connects to our virtual mic
+            if (inputPort.startsWith('input.sokuji_virtual_mic:')) {
+              // Add this connection to our list to disconnect
+              linksToDisconnect.push({
+                output: outputPort,
+                input: inputPort
+              });
+            }
+            
+            j++;
+          }
+        }
+      }
+      
+      // Disconnect all found links
+      if (linksToDisconnect.length > 0) {
+        console.log(`Found ${linksToDisconnect.length} links to disconnect`);
+        
+        for (const link of linksToDisconnect) {
+          console.log(`Disconnecting: "${link.output}" from "${link.input}"`);
+          try {
+            await execPromise(`pw-link -d "${link.output}" "${link.input}"`);
+            console.log('Link disconnected successfully');
+          } catch (disconnectError) {
+            console.error('Failed to disconnect link:', disconnectError.message);
+          }
+        }
+      } else {
+        console.log('No existing links to sokuji_virtual_mic found');
+      }
+      
+      // Parse the output and input ports into arrays
+      const outputPortList = outputPorts.split('\n').filter(port => port.trim());
+      const inputPortList = inputPorts.split('\n').filter(port => port.trim());
+      
+      console.log(`Found ${outputPortList.length} output ports and ${inputPortList.length} input ports`);
+      
+      // Connect each channel, matching by index (left to left, right to right, etc.)
+      const minChannels = Math.min(outputPortList.length, inputPortList.length);
+      
+      if (minChannels > 0) {
+        for (let i = 0; i < minChannels; i++) {
+          const outputPort = outputPortList[i].trim();
+          const inputPort = inputPortList[i].trim();
+          
+          console.log(`Connecting channel ${i+1}: "${outputPort}" to "${inputPort}"`);
+          await execPromise(`pw-link "${outputPort}" "${inputPort}"`);
+        }
+        console.log(`Successfully connected ${minChannels} channels between virtual audio devices`);
+      } else {
+        console.log('Could not find matching ports. Virtual devices created but not connected.');
+      }
+    } catch (error) {
+      console.error('Failed to connect virtual audio devices:', error);
+      console.log('Virtual devices created but not connected. Manual connection may be required.');
+    }
+
     return true;
   } catch (error) {
     console.error('Failed to create virtual audio devices:', error);
