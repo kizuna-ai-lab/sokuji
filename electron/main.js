@@ -3,11 +3,10 @@ const path = require('path');
 const url = require('url');
 require('dotenv').config();
 const { 
-  startPipeWireLoopback, 
-  stopPipeWireLoopback, 
-  isPipeWireEnabled, 
-  isPwLoopbackAvailable 
-} = require('./pipewire-utils');
+  createVirtualAudioDevices, 
+  removeVirtualAudioDevices, 
+  isPulseAudioAvailable 
+} = require('./pulseaudio-utils');
 
 // Keep a global reference of the window object to prevent garbage collection
 let mainWindow;
@@ -46,16 +45,16 @@ function createWindow() {
 
 // Create window when Electron is ready
 app.whenReady().then(async () => {
-  // Start PipeWire loopback before creating the window
+  // Start virtual audio devices before creating the window
   try {
-    const loopbackStarted = await startPipeWireLoopback();
-    if (loopbackStarted) {
-      console.log('PipeWire loopback started successfully');
+    const devicesCreated = await createVirtualAudioDevices();
+    if (devicesCreated) {
+      console.log('Virtual audio devices created successfully');
     } else {
-      console.error('Failed to start PipeWire loopback');
+      console.error('Failed to create virtual audio devices');
     }
   } catch (error) {
-    console.error('Error starting PipeWire loopback:', error);
+    console.error('Error creating virtual audio devices:', error);
   }
   
   createWindow();
@@ -73,24 +72,21 @@ app.on('activate', function () {
 
 // Clean up loopback when app is about to quit
 app.on('will-quit', function() {
-  // Stop PipeWire loopback
-  stopPipeWireLoopback();
+  // Remove virtual audio devices
+  removeVirtualAudioDevices();
 });
 
-// IPC handlers for PipeWire functionality
-ipcMain.handle('check-pipewire', async () => {
+// IPC handlers for audio functionality
+ipcMain.handle('check-audio-system', async () => {
   try {
-    const pipeWireEnabled = await isPipeWireEnabled();
-    const loopbackAvailable = await isPwLoopbackAvailable();
+    const pulseAudioAvailable = await isPulseAudioAvailable();
     return {
-      pipeWireEnabled,
-      loopbackAvailable
+      pulseAudioAvailable
     };
   } catch (error) {
-    console.error('Error checking PipeWire status:', error);
+    console.error('Error checking audio system status:', error);
     return {
-      pipeWireEnabled: false,
-      loopbackAvailable: false,
+      pulseAudioAvailable: false,
       error: error.message
     };
   }
@@ -98,20 +94,20 @@ ipcMain.handle('check-pipewire', async () => {
 
 ipcMain.handle('start-loopback', async () => {
   try {
-    const result = await startPipeWireLoopback();
+    const result = await createVirtualAudioDevices();
     return { success: result };
   } catch (error) {
-    console.error('Error starting loopback:', error);
+    console.error('Error creating virtual audio devices:', error);
     return { success: false, error: error.message };
   }
 });
 
 ipcMain.handle('stop-loopback', () => {
   try {
-    stopPipeWireLoopback();
+    removeVirtualAudioDevices();
     return { success: true };
   } catch (error) {
-    console.error('Error stopping loopback:', error);
+    console.error('Error removing virtual audio devices:', error);
     return { success: false, error: error.message };
   }
 });

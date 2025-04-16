@@ -7,20 +7,20 @@ contextBridge.exposeInMainWorld(
   {
     send: (channel, data) => {
       // whitelist channels
-      const validChannels = ['toMain', 'pipewire-check', 'pipewire-start', 'pipewire-stop'];
+      const validChannels = ['toMain', 'audio-check', 'audio-start', 'audio-stop'];
       if (validChannels.includes(channel)) {
         ipcRenderer.send(channel, data);
       }
     },
     receive: (channel, func) => {
-      const validChannels = ['fromMain', 'pipewire-status'];
+      const validChannels = ['fromMain', 'audio-status'];
       if (validChannels.includes(channel)) {
         // Deliberately strip event as it includes `sender` 
         ipcRenderer.on(channel, (event, ...args) => func(...args));
       }
     },
     invoke: (channel, data) => {
-      const validChannels = ['invoke-channel', 'check-pipewire', 'start-loopback', 'stop-loopback'];
+      const validChannels = ['invoke-channel', 'check-audio-system', 'start-loopback', 'stop-loopback'];
       if (validChannels.includes(channel)) {
         return ipcRenderer.invoke(channel, data);
       }

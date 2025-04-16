@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowRight, Settings } from 'react-feather';
+import { ArrowRight } from 'react-feather';
 import './SettingsPanel.scss';
 
 type TurnDetectionMode = 'Normal' | 'Semantic' | 'Disabled';
