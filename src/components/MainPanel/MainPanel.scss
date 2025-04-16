@@ -170,10 +170,18 @@
       font-weight: 500;
       cursor: pointer;
       box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
-      transition: background-color 0.2s;
+      transition: background-color 0.2s, transform 0.1s;
       
       &:hover {
         background-color: #0c8c6a;
+      }
+      
+      &.active {
+        background-color: #e74c3c;
+        
+        &:hover {
+          background-color: #c0392b;
+        }
       }
     }
   }

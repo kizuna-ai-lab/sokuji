@@ -1,17 +1,21 @@
 import React from 'react';
-import { Terminal, PlayCircle, Users, Settings, Volume2 } from 'react-feather';
+import { Terminal, PlayCircle, Users, Settings, Volume2, Square } from 'react-feather';
 import './MainPanel.scss';
 
 interface MainPanelProps {
   toggleLogs: () => void;
   toggleSettings: () => void;
   toggleAudio: () => void;
+  toggleSession: () => void;
+  isSessionActive: boolean;
 }
 
 const MainPanel: React.FC<MainPanelProps> = ({ 
   toggleLogs, 
   toggleSettings, 
-  toggleAudio
+  toggleAudio,
+  toggleSession,
+  isSessionActive
 }) => {
   return (
     <div className="main-panel">
@@ -45,9 +49,21 @@ const MainPanel: React.FC<MainPanelProps> = ({
         </div>
       </div>
       <div className="floating-controls">
-        <button className="start-session-button">
-          <PlayCircle size={16} />
-          <span>Start session</span>
+        <button 
+          className={`start-session-button ${isSessionActive ? 'active' : ''}`} 
+          onClick={toggleSession}
+        >
+          {isSessionActive ? (
+            <>
+              <Square size={16} />
+              <span>Stop session</span>
+            </>
+          ) : (
+            <>
+              <PlayCircle size={16} />
+              <span>Start session</span>
+            </>
+          )}
         </button>
       </div>
     </div>

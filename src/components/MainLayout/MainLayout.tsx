@@ -25,6 +25,7 @@ const MainLayout: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [inputAudioHistory, setInputAudioHistory] = useState<number[]>(Array(WAVEFORM_BARS).fill(0));
   const [outputAudioHistory, setOutputAudioHistory] = useState<number[]>(Array(WAVEFORM_BARS).fill(0));
+  const [isSessionActive, setIsSessionActive] = useState(false);
 
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
@@ -36,6 +37,8 @@ const MainLayout: React.FC = () => {
   const outputAnalyserRef = useRef<AnalyserNode | null>(null);
   const outputAnimationFrameRef = useRef<number | null>(null);
   const outputLastUpdateTimeRef = useRef<number>(0);
+  
+  const testAudioRef = useRef<HTMLAudioElement | null>(null);
 
   const stopAudioVisualization = useCallback(() => {
     if (animationFrameRef.current) {
@@ -285,41 +288,78 @@ const MainLayout: React.FC = () => {
   }, [isInputDeviceOn, selectedInputDevice, startAudioVisualization, stopAudioVisualization]);
 
   useEffect(() => {
-    if (isOutputDeviceOn && selectedOutputDevice) {
-      // Apply output device selection using setSinkId
-      // This is only supported in some browsers (Chrome, Edge)
-      try {
-        // Find all audio elements and set their sink ID
-        const audioElements = document.querySelectorAll('audio');
-        audioElements.forEach(async (audioEl) => {
-          // Check if setSinkId is supported
-          if ('setSinkId' in audioEl) {
-            try {
-              // If 'default' is selected, let the browser use the System Default
-              // Otherwise use the specific device ID
-              if (selectedOutputDevice.deviceId !== 'default') {
-                await (audioEl as any).setSinkId(selectedOutputDevice.deviceId);
-                console.log(`Set audio output to: ${selectedOutputDevice.label}`);
+    const updateOutputDevices = async () => {
+      if (isOutputDeviceOn && selectedOutputDevice) {
+        // Apply output device selection using setSinkId
+        // This is only supported in some browsers (Chrome, Edge)
+        try {
+          // Find all audio elements and set their sink ID
+          const audioElements = document.querySelectorAll('audio');
+          // Convert NodeList to Array before iterating
+          const audioElementsArray = Array.from(audioElements);
+          for (const audioEl of audioElementsArray) {
+            // Check if setSinkId is supported
+            if ('setSinkId' in audioEl) {
+              try {
+                // If 'default' is selected, let the browser use the System Default
+                // Otherwise use the specific device ID
+                if (selectedOutputDevice.deviceId !== 'default') {
+                  await (audioEl as any).setSinkId(selectedOutputDevice.deviceId);
+                  console.log(`Set audio output to: ${selectedOutputDevice.label}`);
+                }
+              } catch (err) {
+                console.error('Error setting audio output device:', err);
               }
-            } catch (err) {
-              console.error('Error setting audio output device:', err);
             }
           }
-        });
-        
-        // Start output audio visualization
-        startOutputAudioVisualization();
-      } catch (error) {
-        console.error('Error applying output device selection:', error);
+          
+          // Also update the test audio element if it exists and is playing
+          if (testAudioRef.current) {
+            if ('setSinkId' in testAudioRef.current) {
+              try {
+                if (selectedOutputDevice.deviceId !== 'default') {
+                  await (testAudioRef.current as any).setSinkId(selectedOutputDevice.deviceId);
+                  console.log(`Updated test audio output to: ${selectedOutputDevice.label}`);
+                }
+              } catch (err) {
+                console.error('Error updating test audio output device:', err);
+              }
+            }
+          }
+          
+          // Start output audio visualization
+          startOutputAudioVisualization();
+        } catch (error) {
+          console.error('Error applying output device selection:', error);
+        }
+      } else {
+        stopOutputAudioVisualization();
       }
-    } else {
-      stopOutputAudioVisualization();
-    }
+    };
+    
+    updateOutputDevices();
     
     return () => {
       stopOutputAudioVisualization();
     };
   }, [isOutputDeviceOn, selectedOutputDevice, startOutputAudioVisualization, stopOutputAudioVisualization]);
+
+  useEffect(() => {
+    // If we have test audio playing and output is turned off, mute it
+    if (testAudioRef.current) {
+      if (isOutputDeviceOn) {
+        // If session is active and output is turned on, restore volume
+        if (isSessionActive) {
+          testAudioRef.current.muted = false;
+          console.log('Output device turned on - unmuting test audio');
+        }
+      } else {
+        // If output is turned off, mute the audio
+        testAudioRef.current.muted = true;
+        console.log('Output device turned off - muting test audio');
+      }
+    }
+  }, [isOutputDeviceOn, isSessionActive]);
 
   const toggleAudio = useCallback(() => {
     setShowAudio(!showAudio);
@@ -375,6 +415,68 @@ const MainLayout: React.FC = () => {
     }
   }, [fetchAudioDevices]);
 
+  const toggleSession = useCallback(() => {
+    setIsSessionActive(prevState => {
+      const newState = !prevState;
+      
+      // Play or pause the test audio based on session state
+      if (newState) {
+        // Start session - play the test audio
+        if (!testAudioRef.current) {
+          testAudioRef.current = new Audio('/assets/test-tone.mp3');
+          
+          console.log(`isOutputDeviceOn: ${isOutputDeviceOn}, selectedOutputDevice: ${JSON.stringify(selectedOutputDevice)}`)
+          // Set the audio output device if supported and selected
+          if (isOutputDeviceOn && selectedOutputDevice && 
+              selectedOutputDevice.deviceId !== 'default' && 
+              'setSinkId' in testAudioRef.current) {
+            try {
+              (testAudioRef.current as any).setSinkId(selectedOutputDevice.deviceId)
+                .catch((err: any) => console.error('Error setting audio output device:', err));
+            } catch (err) {
+              console.error('Error setting audio output device:', err);
+            }
+          }
+          
+          // Loop the audio for continuous playback
+          testAudioRef.current.loop = true;
+          
+          // If output is turned off, mute the audio
+          if (!isOutputDeviceOn) {
+            testAudioRef.current.muted = true;
+            console.log('Output device is off - test audio will be muted');
+          }
+        }
+        
+        testAudioRef.current.play()
+          .catch(err => console.error('Error playing test audio:', err));
+        console.log('Session started - playing test audio');
+      } else {
+        // Stop session - pause the test audio
+        if (testAudioRef.current) {
+          testAudioRef.current.pause();
+          console.log('Session stopped - paused test audio');
+        }
+      }
+      
+      return newState;
+    });
+  }, [isOutputDeviceOn, selectedOutputDevice]);
+
+  // Clean up audio when component unmounts
+  useEffect(() => {
+    return () => {
+      // Stop test audio if it's playing
+      if (testAudioRef.current) {
+        testAudioRef.current.pause();
+        testAudioRef.current = null;
+      }
+      
+      stopAudioVisualization();
+      stopOutputAudioVisualization();
+    };
+  }, [stopAudioVisualization, stopOutputAudioVisualization]);
+
   return (
     <div className="main-layout">
       <div className={`main-panel-container ${(showLogs || showSettings || showAudio) ? 'with-panel' : 'full-width'}`}>
@@ -382,6 +484,8 @@ const MainLayout: React.FC = () => {
           toggleLogs={toggleLogs} 
           toggleSettings={toggleSettings} 
           toggleAudio={toggleAudio}
+          toggleSession={toggleSession}
+          isSessionActive={isSessionActive}
         />
       </div>
       {(showLogs || showSettings || showAudio) && (
