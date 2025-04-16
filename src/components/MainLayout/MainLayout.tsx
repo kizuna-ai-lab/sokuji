@@ -16,9 +16,12 @@ const MainLayout: React.FC = () => {
   const [showLogs, setShowLogs] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showAudio, setShowAudio] = useState(false);
-  const [audioDevices, setAudioDevices] = useState<AudioDevice[]>([]);
-  const [selectedDevice, setSelectedDevice] = useState<AudioDevice>({ deviceId: 'default', label: 'Default' });
-  const [isDeviceOn, setIsDeviceOn] = useState(true);
+  const [audioInputDevices, setAudioInputDevices] = useState<AudioDevice[]>([]);
+  const [audioOutputDevices, setAudioOutputDevices] = useState<AudioDevice[]>([]);
+  const [selectedInputDevice, setSelectedInputDevice] = useState<AudioDevice>({ deviceId: 'default', label: 'Default' });
+  const [selectedOutputDevice, setSelectedOutputDevice] = useState<AudioDevice>({ deviceId: 'default', label: 'Default' });
+  const [isInputDeviceOn, setIsInputDeviceOn] = useState(true);
+  const [isOutputDeviceOn, setIsOutputDeviceOn] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
   const [audioHistory, setAudioHistory] = useState<number[]>(Array(WAVEFORM_BARS).fill(0));
 
@@ -33,6 +36,8 @@ const MainLayout: React.FC = () => {
       try {
         await navigator.mediaDevices.getUserMedia({ audio: true });
         const devices = await navigator.mediaDevices.enumerateDevices();
+        
+        // Get audio input devices
         const audioInputs = devices
           .filter(device => device.kind === 'audioinput')
           .map(device => ({
@@ -42,10 +47,24 @@ const MainLayout: React.FC = () => {
         if (!audioInputs.some(device => device.deviceId === 'default')) {
           audioInputs.unshift({ deviceId: 'default', label: 'Default' });
         }
-        setAudioDevices(audioInputs);
+        setAudioInputDevices(audioInputs);
+        
+        // Get audio output devices
+        const audioOutputs = devices
+          .filter(device => device.kind === 'audiooutput')
+          .map(device => ({
+            deviceId: device.deviceId,
+            label: device.label || `Speaker ${device.deviceId.slice(0, 5)}...`
+          }));
+        if (!audioOutputs.some(device => device.deviceId === 'default')) {
+          audioOutputs.unshift({ deviceId: 'default', label: 'Default' });
+        }
+        setAudioOutputDevices(audioOutputs);
+        
         setIsLoading(false);
       } catch (error) {
-        setAudioDevices([{ deviceId: 'default', label: 'Default' }]);
+        setAudioInputDevices([{ deviceId: 'default', label: 'Default' }]);
+        setAudioOutputDevices([{ deviceId: 'default', label: 'Default' }]);
         setIsLoading(false);
       }
     };
@@ -58,7 +77,7 @@ const MainLayout: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (isDeviceOn && selectedDevice) {
+    if (isInputDeviceOn && selectedInputDevice) {
       startAudioVisualization();
     } else {
       stopAudioVisualization();
@@ -67,7 +86,36 @@ const MainLayout: React.FC = () => {
     return () => {
       stopAudioVisualization();
     };
-  }, [isDeviceOn, selectedDevice]);
+  }, [isInputDeviceOn, selectedInputDevice]);
+
+  // Effect to handle output device changes
+  useEffect(() => {
+    if (isOutputDeviceOn && selectedOutputDevice) {
+      // Apply output device selection using setSinkId
+      // This is only supported in some browsers (Chrome, Edge)
+      try {
+        // Find all audio elements and set their sink ID
+        const audioElements = document.querySelectorAll('audio');
+        audioElements.forEach(async (audioEl) => {
+          // Check if setSinkId is supported
+          if ('setSinkId' in audioEl) {
+            try {
+              // If 'default' is selected, let the browser use the System Default
+              // Otherwise use the specific device ID
+              if (selectedOutputDevice.deviceId !== 'default') {
+                await (audioEl as any).setSinkId(selectedOutputDevice.deviceId);
+                console.log(`Set audio output to: ${selectedOutputDevice.label}`);
+              }
+            } catch (err) {
+              console.error('Error setting audio output device:', err);
+            }
+          }
+        });
+      } catch (error) {
+        console.error('Error applying output device selection:', error);
+      }
+    }
+  }, [isOutputDeviceOn, selectedOutputDevice]);
 
   const startAudioVisualization = async () => {
     try {
@@ -76,7 +124,8 @@ const MainLayout: React.FC = () => {
       audioContextRef.current = audioContext;
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
-          deviceId: { exact: selectedDevice.deviceId === 'default' ? undefined : selectedDevice.deviceId }
+          // When deviceId is 'default', we pass undefined to use the System Default Microphone
+          deviceId: selectedInputDevice.deviceId === 'default' ? undefined : { exact: selectedInputDevice.deviceId }
         }
       });
       mediaStreamRef.current = stream;
@@ -150,12 +199,56 @@ const MainLayout: React.FC = () => {
     }
   };
 
-  const selectDevice = (device: AudioDevice) => {
-    setSelectedDevice(device);
+  const selectInputDevice = (device: AudioDevice) => {
+    setSelectedInputDevice(device);
   };
 
-  const toggleDeviceState = () => {
-    setIsDeviceOn(!isDeviceOn);
+  const selectOutputDevice = (device: AudioDevice) => {
+    setSelectedOutputDevice(device);
+  };
+
+  const toggleInputDeviceState = () => {
+    setIsInputDeviceOn(!isInputDeviceOn);
+  };
+
+  const toggleOutputDeviceState = () => {
+    setIsOutputDeviceOn(!isOutputDeviceOn);
+  };
+
+  const refreshDevices = async () => {
+    setIsLoading(true);
+    try {
+      await navigator.mediaDevices.getUserMedia({ audio: true });
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      
+      // Get audio input devices
+      const audioInputs = devices
+        .filter(device => device.kind === 'audioinput')
+        .map(device => ({
+          deviceId: device.deviceId,
+          label: device.label || `Microphone ${device.deviceId.slice(0, 5)}...`
+        }));
+      if (!audioInputs.some(device => device.deviceId === 'default')) {
+        audioInputs.unshift({ deviceId: 'default', label: 'Default' });
+      }
+      setAudioInputDevices(audioInputs);
+      
+      // Get audio output devices
+      const audioOutputs = devices
+        .filter(device => device.kind === 'audiooutput')
+        .map(device => ({
+          deviceId: device.deviceId,
+          label: device.label || `Speaker ${device.deviceId.slice(0, 5)}...`
+        }));
+      if (!audioOutputs.some(device => device.deviceId === 'default')) {
+        audioOutputs.unshift({ deviceId: 'default', label: 'Default' });
+      }
+      setAudioOutputDevices(audioOutputs);
+    } catch (error) {
+      console.error('Error refreshing audio devices:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -174,13 +267,19 @@ const MainLayout: React.FC = () => {
           {showAudio && (
             <AudioPanel 
               toggleAudio={toggleAudio}
-              audioDevices={audioDevices}
-              selectedDevice={selectedDevice}
-              isDeviceOn={isDeviceOn}
+              audioInputDevices={audioInputDevices}
+              audioOutputDevices={audioOutputDevices}
+              selectedInputDevice={selectedInputDevice}
+              selectedOutputDevice={selectedOutputDevice}
+              isInputDeviceOn={isInputDeviceOn}
+              isOutputDeviceOn={isOutputDeviceOn}
               isLoading={isLoading}
-              selectDevice={selectDevice}
-              toggleDeviceState={toggleDeviceState}
+              selectInputDevice={selectInputDevice}
+              selectOutputDevice={selectOutputDevice}
+              toggleInputDeviceState={toggleInputDeviceState}
+              toggleOutputDeviceState={toggleOutputDeviceState}
               audioHistory={audioHistory}
+              refreshDevices={refreshDevices}
             />
           )}
         </div>

@@ -146,6 +146,48 @@
       }
       
       .device-list {
+        .device-list-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin: 15px 0 10px;
+          
+          h4 {
+            font-size: 13px;
+            font-weight: 500;
+            margin: 0;
+            color: #aaa;
+          }
+          
+          .refresh-button {
+            background: none;
+            border: none;
+            color: #aaa;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 4px;
+            border-radius: 4px;
+            transition: all 0.2s;
+            
+            &:hover {
+              background-color: rgba(255, 255, 255, 0.1);
+              color: white;
+            }
+            
+            &:disabled {
+              opacity: 0.5;
+              cursor: not-allowed;
+              
+              &:hover {
+                background: none;
+                color: #aaa;
+              }
+            }
+          }
+        }
+        
         .device-option {
           padding: 10px 12px;
           background-color: #2a2a2a;

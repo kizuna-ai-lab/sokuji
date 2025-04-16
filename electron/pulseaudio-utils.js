@@ -1,4 +1,4 @@
-const { spawn, exec } = require('child_process');
+const { exec } = require('child_process');
 const util = require('util');
 const execPromise = util.promisify(exec);
 
@@ -12,7 +12,7 @@ let virtualSourceModule = null;
 async function createVirtualAudioDevices() {
   try {
     // Create a virtual output sink
-    const sinkResult = await execPromise('pactl load-module module-null-sink sink_name=virtual_output sink_properties=device.description="Virtual_Mic_Speaker"');
+    const sinkResult = await execPromise('pactl load-module module-null-sink sink_name=sokuji_virtual_output sink_properties=device.description="Sokuji_Virtual_Speaker"');
     if (sinkResult && sinkResult.stdout) {
       virtualSinkModule = sinkResult.stdout.trim();
       console.log(`Created virtual sink with module ID: ${virtualSinkModule}`);
@@ -22,7 +22,7 @@ async function createVirtualAudioDevices() {
     }
 
     // Create a virtual microphone source that uses the virtual sink as its monitor
-    const sourceResult = await execPromise('pactl load-module module-remap-source master=virtual_output.monitor source_name=virtual_mic_source source_properties=device.description="Virtual_Mic"');
+    const sourceResult = await execPromise('pactl load-module module-remap-source master=sokuji_virtual_output.monitor source_name=sokuji_virtual_mic source_properties=device.description="Sokuji_Virtual_Mic"');
     if (sourceResult && sourceResult.stdout) {
       virtualSourceModule = sourceResult.stdout.trim();
       console.log(`Created virtual microphone with module ID: ${virtualSourceModule}`);
@@ -95,7 +95,7 @@ function removeVirtualAudioDevices() {
  */
 async function isPulseAudioAvailable() {
   try {
-    const { stdout, stderr } = await execPromise('pactl info');
+    const { stdout } = await execPromise('pactl info');
     return stdout.includes('PulseAudio') || stdout.includes('Server Name');
   } catch (error) {
     console.error('Error checking PulseAudio availability:', error);
