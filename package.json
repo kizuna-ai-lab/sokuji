@@ -1,5 +1,6 @@
 {
-  "name": "sokuji-react",
+  "name": "sokuji",
+  "productName": "Sokuji",
   "version": "0.1.0",
   "private": true,
   "main": "electron/main.js",

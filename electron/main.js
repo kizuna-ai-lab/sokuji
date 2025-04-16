@@ -9,6 +9,11 @@ const {
   cleanupOrphanedDevices
 } = require('./pulseaudio-utils');
 
+// Set application name for PulseAudio
+app.setName('sokuji');
+app.commandLine.appendSwitch('application-name', 'sokuji');
+app.commandLine.appendSwitch('jack-name', 'sokuji');
+
 // Keep a global reference of the window object to prevent garbage collection
 let mainWindow;
 
@@ -17,6 +22,7 @@ function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
+    title: 'Sokuji',
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
