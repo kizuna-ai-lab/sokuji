@@ -325,7 +325,7 @@ const MainLayout: React.FC = () => {
       if (newState) {
         // Start session - play the test audio
         if (!testAudioRef.current) {
-          testAudioRef.current = new Audio('/assets/test-tone.mp3');
+          testAudioRef.current = new Audio('./assets/test-tone.mp3');
           
           console.log(`isOutputDeviceOn: ${isOutputDeviceOn}, selectedOutputDevice: ${JSON.stringify(selectedOutputDevice)}`)
           // Set the audio output device if supported and selected

@@ -1,6 +1,5 @@
 const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
-const url = require('url');
 require('dotenv').config();
 const { 
   createVirtualAudioDevices, 
@@ -31,13 +30,7 @@ function createWindow() {
   });
 
   // Load the app
-  const startUrl = process.env.ELECTRON_START_URL || url.format({
-    pathname: path.join(__dirname, '../build/index.html'),
-    protocol: 'file:',
-    slashes: true
-  });
-  
-  mainWindow.loadURL(startUrl);
+  mainWindow.loadFile(path.join(__dirname, '../build/index.html'));
 
   // Open DevTools in development mode
   if (process.env.NODE_ENV === 'development') {
