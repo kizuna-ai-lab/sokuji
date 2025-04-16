@@ -41,12 +41,13 @@ const AudioPanel: React.FC<AudioPanelProps> = ({
   const AudioWaveform = () => (
     <div className="audio-waveform">
       {audioHistory.map((level, idx) => {
-        // 更灵敏的阈值和放大倍数
+        // 更适合的阈值和放大倍数
         const threshold = 0.02; // 降低阈值
-        const AMPLIFY = 32;     // 增加放大倍数
-        // 可选：非线性提升灵敏度（如开方）
+        const AMPLIFY = 4;     // 减小放大倍数，防止过高
+        // 非线性提升灵敏度（如开方）
         const enhancedLevel = Math.sqrt(level); // 让低音量更明显
-        const height = enhancedLevel < threshold ? DOT_SIZE : Math.max(DOT_SIZE, enhancedLevel * AMPLIFY);
+        // 限制最大高度为16px
+        const height = enhancedLevel < threshold ? DOT_SIZE : Math.min(16, Math.max(DOT_SIZE, enhancedLevel * AMPLIFY));
         return (
           <div
             key={idx}

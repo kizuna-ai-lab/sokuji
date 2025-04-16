@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import MainPanel from '../MainPanel/MainPanel';
 import SettingsPanel from '../SettingsPanel/SettingsPanel';
 import LogsPanel from '../LogsPanel/LogsPanel';
@@ -31,64 +31,170 @@ const MainLayout: React.FC = () => {
   const animationFrameRef = useRef<number | null>(null);
   const lastUpdateTimeRef = useRef<number>(0);
 
-  useEffect(() => {
-    const getAudioDevices = async () => {
-      try {
-        await navigator.mediaDevices.getUserMedia({ audio: true });
-        const devices = await navigator.mediaDevices.enumerateDevices();
-        
-        // Get audio input devices
-        const audioInputs = devices
-          .filter(device => device.kind === 'audioinput')
-          .map(device => ({
-            deviceId: device.deviceId,
-            label: device.label || `Microphone ${device.deviceId.slice(0, 5)}...`
-          }));
-        if (!audioInputs.some(device => device.deviceId === 'default')) {
-          audioInputs.unshift({ deviceId: 'default', label: 'Default' });
-        }
-        setAudioInputDevices(audioInputs);
-        
-        // Get audio output devices
-        const audioOutputs = devices
-          .filter(device => device.kind === 'audiooutput')
-          .map(device => ({
-            deviceId: device.deviceId,
-            label: device.label || `Speaker ${device.deviceId.slice(0, 5)}...`
-          }));
-        if (!audioOutputs.some(device => device.deviceId === 'default')) {
-          audioOutputs.unshift({ deviceId: 'default', label: 'Default' });
-        }
-        setAudioOutputDevices(audioOutputs);
-        
-        setIsLoading(false);
-      } catch (error) {
-        setAudioInputDevices([{ deviceId: 'default', label: 'Default' }]);
-        setAudioOutputDevices([{ deviceId: 'default', label: 'Default' }]);
-        setIsLoading(false);
+  const stopAudioVisualization = useCallback(() => {
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
+    }
+
+    if (mediaStreamRef.current) {
+      const tracks = mediaStreamRef.current.getTracks();
+      tracks.forEach(track => track.stop());
+      mediaStreamRef.current = null;
+    }
+
+    if (audioContextRef.current) {
+      if (audioContextRef.current.state !== 'closed') {
+        audioContextRef.current.close();
       }
+      audioContextRef.current = null;
+      analyserRef.current = null;
+    }
+  }, []);
+
+  const startAudioVisualization = useCallback(async () => {
+    try {
+      stopAudioVisualization();
+      
+      const audioContext = new AudioContext();
+      audioContextRef.current = audioContext;
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          // When deviceId is 'default', we pass undefined to use the System Default Microphone
+          deviceId: selectedInputDevice.deviceId === 'default' ? undefined : { exact: selectedInputDevice.deviceId }
+        }
+      });
+      mediaStreamRef.current = stream;
+      
+      const source = audioContext.createMediaStreamSource(stream);
+      const analyser = audioContext.createAnalyser();
+      analyser.fftSize = 256;
+      source.connect(analyser);
+      analyserRef.current = analyser;
+      
+      const bufferLength = analyser.frequencyBinCount;
+      const dataArray = new Uint8Array(bufferLength);
+      
+      const updateAudioVisualization = () => {
+        if (!analyserRef.current) return;
+        
+        analyserRef.current.getByteFrequencyData(dataArray);
+        
+        // Calculate average volume level (0-255)
+        let sum = 0;
+        for (let i = 0; i < bufferLength; i++) {
+          sum += dataArray[i];
+        }
+        const average = sum / bufferLength;
+        
+        // Normalize to 0-100 scale
+        const normalizedValue = Math.min(100, Math.round((average / 255) * 100));
+        
+        // Update at most every 100ms for performance
+        const now = Date.now();
+        if (now - lastUpdateTimeRef.current > 100) {
+          // Update the audio history array
+          setAudioHistory(prev => {
+            const newHistory = [...prev];
+            newHistory.shift();
+            newHistory.push(normalizedValue);
+            return newHistory;
+          });
+          lastUpdateTimeRef.current = now;
+        }
+        
+        animationFrameRef.current = requestAnimationFrame(updateAudioVisualization);
+      };
+      
+      animationFrameRef.current = requestAnimationFrame(updateAudioVisualization);
+    } catch (error) {
+      console.error('Error starting audio visualization:', error);
+      stopAudioVisualization();
+    }
+  }, [selectedInputDevice, stopAudioVisualization]);
+
+  const fetchAudioDevices = useCallback(async () => {
+    try {
+      await navigator.mediaDevices.getUserMedia({ audio: true });
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      
+      // Get audio input devices
+      const audioInputs = devices
+        .filter(device => device.kind === 'audioinput')
+        .map(device => ({
+          deviceId: device.deviceId,
+          label: device.label || `Microphone ${device.deviceId.slice(0, 5)}...`
+        }));
+      if (!audioInputs.some(device => device.deviceId === 'default')) {
+        audioInputs.unshift({ deviceId: 'default', label: 'Default' });
+      }
+      setAudioInputDevices(audioInputs);
+      
+      // Get audio output devices
+      const audioOutputs = devices
+        .filter(device => device.kind === 'audiooutput')
+        .map(device => ({
+          deviceId: device.deviceId,
+          label: device.label || `Speaker ${device.deviceId.slice(0, 5)}...`
+        }));
+      if (!audioOutputs.some(device => device.deviceId === 'default')) {
+        audioOutputs.unshift({ deviceId: 'default', label: 'Default' });
+      }
+      setAudioOutputDevices(audioOutputs);
+      
+      return true; // Success
+    } catch (error) {
+      return error; // Return the error for handling by the caller
+    }
+  }, []);
+
+  const getAudioDevices = useCallback(async () => {
+    try {
+      const result = await fetchAudioDevices();
+      if (result === true) {
+        setIsLoading(false);
+      } else {
+        throw result; // Re-throw the error to be caught below
+      }
+    } catch (error) {
+      setAudioInputDevices([{ deviceId: 'default', label: 'Default' }]);
+      setAudioOutputDevices([{ deviceId: 'default', label: 'Default' }]);
+      setIsLoading(false);
+    }
+  }, [fetchAudioDevices]);
+
+  useEffect(() => {
+    const initializeAudioDevices = async () => {
+      await getAudioDevices();
     };
-    getAudioDevices();
+    
+    initializeAudioDevices();
+    
+    return () => {
+      stopAudioVisualization();
+    };
+  }, [getAudioDevices, stopAudioVisualization]);
+
+  useEffect(() => {
     navigator.mediaDevices.addEventListener('devicechange', getAudioDevices);
     return () => {
       navigator.mediaDevices.removeEventListener('devicechange', getAudioDevices);
       stopAudioVisualization();
     };
-  }, []);
+  }, [getAudioDevices, stopAudioVisualization]);
 
   useEffect(() => {
     if (isInputDeviceOn && selectedInputDevice) {
       startAudioVisualization();
     } else {
       stopAudioVisualization();
-      setAudioHistory(Array(WAVEFORM_BARS).fill(0));
     }
+
     return () => {
       stopAudioVisualization();
     };
-  }, [isInputDeviceOn, selectedInputDevice]);
+  }, [isInputDeviceOn, selectedInputDevice, startAudioVisualization, stopAudioVisualization]);
 
-  // Effect to handle output device changes
   useEffect(() => {
     if (isOutputDeviceOn && selectedOutputDevice) {
       // Apply output device selection using setSinkId
@@ -117,139 +223,59 @@ const MainLayout: React.FC = () => {
     }
   }, [isOutputDeviceOn, selectedOutputDevice]);
 
-  const startAudioVisualization = async () => {
-    try {
-      stopAudioVisualization();
-      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-      audioContextRef.current = audioContext;
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          // When deviceId is 'default', we pass undefined to use the System Default Microphone
-          deviceId: selectedInputDevice.deviceId === 'default' ? undefined : { exact: selectedInputDevice.deviceId }
-        }
-      });
-      mediaStreamRef.current = stream;
-      const analyser = audioContext.createAnalyser();
-      analyser.fftSize = 256;
-      analyser.smoothingTimeConstant = 0.8;
-      analyserRef.current = analyser;
-      const source = audioContext.createMediaStreamSource(stream);
-      source.connect(analyser);
-      const bufferLength = analyser.frequencyBinCount;
-      const dataArray = new Uint8Array(bufferLength);
-      const updateVisualization = (timestamp: number) => {
-        if (!analyserRef.current) return;
-        if (timestamp - lastUpdateTimeRef.current > 33) { // ~30fps
-          lastUpdateTimeRef.current = timestamp;
-          analyserRef.current.getByteFrequencyData(dataArray);
-          // Average all bands for a single value
-          let sum = 0;
-          for (let i = 0; i < bufferLength; i++) sum += dataArray[i];
-          const avg = sum / bufferLength / 255;
-          setAudioHistory(prev => {
-            const next = prev.slice(1).concat(avg); // shift left, add new to right
-            return next;
-          });
-        }
-        animationFrameRef.current = requestAnimationFrame(updateVisualization);
-      };
-      animationFrameRef.current = requestAnimationFrame(updateVisualization);
-    } catch (error) {
-      // ignore
-    }
-  };
-
-  const stopAudioVisualization = () => {
-    if (animationFrameRef.current) {
-      cancelAnimationFrame(animationFrameRef.current);
-      animationFrameRef.current = null;
-    }
-    if (mediaStreamRef.current) {
-      mediaStreamRef.current.getTracks().forEach(track => track.stop());
-      mediaStreamRef.current = null;
-    }
-    if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
-      audioContextRef.current.close();
-      audioContextRef.current = null;
-    }
-    analyserRef.current = null;
-  };
-
-  const toggleLogs = () => {
-    setShowLogs(!showLogs);
-    if (!showLogs) {
-      setShowSettings(false);
-      setShowAudio(false);
-    }
-  };
-
-  const toggleSettings = () => {
-    setShowSettings(!showSettings);
-    if (!showSettings) {
-      setShowLogs(false);
-      setShowAudio(false);
-    }
-  };
-
-  const toggleAudio = () => {
+  const toggleAudio = useCallback(() => {
     setShowAudio(!showAudio);
     if (!showAudio) {
       setShowLogs(false);
       setShowSettings(false);
     }
-  };
+  }, [showAudio]);
 
-  const selectInputDevice = (device: AudioDevice) => {
+  const toggleLogs = useCallback(() => {
+    setShowLogs(!showLogs);
+    if (!showLogs) {
+      setShowSettings(false);
+      setShowAudio(false);
+    }
+  }, [showLogs]);
+
+  const toggleSettings = useCallback(() => {
+    setShowSettings(!showSettings);
+    if (!showSettings) {
+      setShowLogs(false);
+      setShowAudio(false);
+    }
+  }, [showSettings]);
+
+  const selectInputDevice = useCallback((device: AudioDevice) => {
     setSelectedInputDevice(device);
-  };
+  }, []);
 
-  const selectOutputDevice = (device: AudioDevice) => {
+  const selectOutputDevice = useCallback((device: AudioDevice) => {
     setSelectedOutputDevice(device);
-  };
+  }, []);
 
-  const toggleInputDeviceState = () => {
+  const toggleInputDeviceState = useCallback(() => {
     setIsInputDeviceOn(!isInputDeviceOn);
-  };
+  }, [isInputDeviceOn]);
 
-  const toggleOutputDeviceState = () => {
+  const toggleOutputDeviceState = useCallback(() => {
     setIsOutputDeviceOn(!isOutputDeviceOn);
-  };
+  }, [isOutputDeviceOn]);
 
-  const refreshDevices = async () => {
+  const refreshDevices = useCallback(async () => {
     setIsLoading(true);
     try {
-      await navigator.mediaDevices.getUserMedia({ audio: true });
-      const devices = await navigator.mediaDevices.enumerateDevices();
-      
-      // Get audio input devices
-      const audioInputs = devices
-        .filter(device => device.kind === 'audioinput')
-        .map(device => ({
-          deviceId: device.deviceId,
-          label: device.label || `Microphone ${device.deviceId.slice(0, 5)}...`
-        }));
-      if (!audioInputs.some(device => device.deviceId === 'default')) {
-        audioInputs.unshift({ deviceId: 'default', label: 'Default' });
+      const result = await fetchAudioDevices();
+      if (result !== true) {
+        console.error('Error refreshing audio devices:', result);
       }
-      setAudioInputDevices(audioInputs);
-      
-      // Get audio output devices
-      const audioOutputs = devices
-        .filter(device => device.kind === 'audiooutput')
-        .map(device => ({
-          deviceId: device.deviceId,
-          label: device.label || `Speaker ${device.deviceId.slice(0, 5)}...`
-        }));
-      if (!audioOutputs.some(device => device.deviceId === 'default')) {
-        audioOutputs.unshift({ deviceId: 'default', label: 'Default' });
-      }
-      setAudioOutputDevices(audioOutputs);
     } catch (error) {
       console.error('Error refreshing audio devices:', error);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [fetchAudioDevices]);
 
   return (
     <div className="main-layout">

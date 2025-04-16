@@ -230,6 +230,10 @@
     align-items: center;
     gap: 2px;
     height: 16px;
+    max-width: 45px;
+    min-width: 30px;
+    margin-right: 10px;
+    // overflow: hidden;
     
     .waveform-bar {
       background-color: #10a37f;
