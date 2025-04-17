@@ -22,6 +22,96 @@
       color: white;
     }
     
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      
+      .save-all-button {
+        display: flex;
+        align-items: center;
+        background: none;
+        border: none;
+        color: #aaa;
+        cursor: pointer;
+        padding: 5px 10px;
+        border-radius: 4px;
+        transition: all 0.2s;
+        
+        span {
+          margin-left: 5px;
+          font-size: 13px;
+        }
+        
+        &:hover {
+          background-color: rgba(255, 255, 255, 0.1);
+          color: white;
+        }
+        
+        &:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+      }
+      
+      .status-icon-wrapper {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: help;
+        
+        &.success {
+          color: #10a37f;
+        }
+        
+        &.error {
+          color: #ff4c4c;
+        }
+        
+        &.warning {
+          color: #ffc107;
+        }
+        
+        &.info {
+          color: #4285f4;
+        }
+        
+        .status-icon {
+          transition: transform 0.2s ease;
+        }
+        
+        &:hover .status-icon {
+          transform: scale(1.2);
+        }
+      }
+      
+      .save-message {
+        padding: 5px 10px;
+        border-radius: 4px;
+        font-size: 13px;
+        
+        &.success {
+          background-color: rgba(16, 163, 127, 0.2);
+          color: #10a37f;
+        }
+        
+        &.error {
+          background-color: rgba(255, 76, 76, 0.2);
+          color: #ff4c4c;
+        }
+        
+        &.warning {
+          background-color: rgba(255, 193, 7, 0.2);
+          color: #ffc107;
+        }
+        
+        &.info {
+          background-color: rgba(66, 133, 244, 0.2);
+          color: #4285f4;
+        }
+      }
+    }
+    
     .close-settings-button {
       display: flex;
       align-items: center;
@@ -179,7 +269,186 @@
             }
           }
         }
+        
+        .text-input {
+          width: 100%;
+          padding: 8px 10px;
+          background-color: #333;
+          border: 1px solid #444;
+          border-radius: 4px;
+          color: white;
+          font-size: 14px;
+          box-sizing: border-box;
+          
+          &:focus {
+            outline: none;
+            border-color: #10a37f;
+          }
+          
+          &.api-key-input {
+            width: 100%;
+            max-width: 100%;
+          }
+        }
       }
+      
+      .api-key-config {
+        .config-info {
+          display: flex;
+          align-items: center;
+          margin-bottom: 15px;
+          font-size: 0.9rem;
+          
+          p {
+            margin: 0;
+            flex-grow: 1;
+            color: #aaa;
+          }
+          
+          code {
+            background-color: #333;
+            padding: 2px 5px;
+            border-radius: 3px;
+            font-family: monospace;
+            font-size: 0.85rem;
+            color: #ddd;
+          }
+          
+          .text-button {
+            display: flex;
+            align-items: center;
+            background: none;
+            border: none;
+            color: #10a37f;
+            cursor: pointer;
+            padding: 5px;
+            margin-left: 10px;
+            
+            &:hover {
+              text-decoration: underline;
+            }
+            
+            svg {
+              margin-right: 5px;
+            }
+          }
+        }
+        
+        .api-key-input {
+          position: relative;
+          width: 100%;
+          
+          .api-key-field {
+            width: 100%;
+            padding: 8px 35px 8px 10px;
+            background-color: #333;
+            border: 1px solid #444;
+            border-radius: 4px;
+            color: white;
+            font-size: 14px;
+            
+            &:focus {
+              outline: none;
+              border-color: #10a37f;
+            }
+          }
+          
+          .toggle-visibility {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: #aaa;
+            cursor: pointer;
+            
+            &:hover {
+              color: white;
+            }
+          }
+        }
+        
+        .actions {
+          display: flex;
+          align-items: center;
+          margin: 15px 0;
+          
+          .save-button {
+            display: flex;
+            align-items: center;
+            padding: 8px 15px;
+            background-color: #10a37f;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            
+            &:hover {
+              background-color: #0d8c6d;
+            }
+            
+            &:disabled {
+              background-color: #444;
+              cursor: not-allowed;
+            }
+            
+            svg {
+              margin-right: 5px;
+            }
+          }
+          
+          .save-message {
+            margin-left: 15px;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            
+            &.success {
+              background-color: rgba(16, 163, 127, 0.2);
+              color: #10a37f;
+            }
+            
+            &.error {
+              background-color: rgba(255, 76, 76, 0.2);
+              color: #ff4c4c;
+            }
+            
+            &.warning {
+              background-color: rgba(255, 193, 7, 0.2);
+              color: #ffc107;
+            }
+            
+            &.info {
+              background-color: rgba(66, 133, 244, 0.2);
+              color: #4285f4;
+            }
+          }
+        }
+        
+        .api-key-info {
+          font-size: 0.9rem;
+          color: #aaa;
+          
+          p {
+            margin: 0;
+          }
+          
+          a {
+            color: #10a37f;
+            text-decoration: none;
+            
+            &:hover {
+              text-decoration: underline;
+            }
+          }
+        }
+      }
+    }
+    
+    .settings-footer {
+      display: none;
     }
   }
 }

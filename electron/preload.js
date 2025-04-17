@@ -20,9 +20,35 @@ contextBridge.exposeInMainWorld(
       }
     },
     invoke: (channel, data) => {
-      const validChannels = ['invoke-channel', 'check-audio-system', 'start-loopback', 'stop-loopback'];
+      const validChannels = [
+        'invoke-channel', 
+        'check-audio-system', 
+        'start-loopback', 
+        'stop-loopback',
+        'get-config',
+        'set-config',
+        'get-config-path',
+        'open-directory',
+        'generate-token'
+      ];
       if (validChannels.includes(channel)) {
         return ipcRenderer.invoke(channel, data);
+      }
+    },
+    config: {
+      get: (key, defaultValue) => {
+        return ipcRenderer.invoke('get-config', key, defaultValue);
+      },
+      set: (key, value) => {
+        return ipcRenderer.invoke('set-config', key, value);
+      },
+      getPath: () => {
+        return ipcRenderer.invoke('get-config-path');
+      }
+    },
+    openai: {
+      generateToken: (options) => {
+        return ipcRenderer.invoke('generate-token', options);
       }
     }
   }

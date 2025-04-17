@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Terminal, PlayCircle, Users, Settings, Volume2, Square } from 'react-feather';
 import './MainPanel.scss';
+import TokenGenerator from './TokenGenerator';
 
 interface MainPanelProps {
   toggleLogs: () => void;
@@ -17,6 +18,29 @@ const MainPanel: React.FC<MainPanelProps> = ({
   toggleSession,
   isSessionActive
 }) => {
+  const [voice, setVoice] = useState<string>('alloy');
+  const [model, setModel] = useState<string>('gpt-4o-realtime-preview');
+  
+  // Load voice setting from config
+  useEffect(() => {
+    const loadVoiceSetting = async () => {
+      try {
+        if (window.electron && window.electron.config) {
+          const savedVoice = await window.electron.config.get('settings.voice', 'alloy');
+          if (savedVoice) setVoice(savedVoice);
+          
+          // You could also load model setting if needed
+          // const savedModel = await window.electron.config.get('settings.model', 'gpt-4o-realtime-preview');
+          // if (savedModel) setModel(savedModel);
+        }
+      } catch (error) {
+        console.error('Error loading voice setting:', error);
+      }
+    };
+    
+    loadVoiceSetting();
+  }, []);
+
   return (
     <div className="main-panel">
       <header className="main-panel-header">
@@ -46,6 +70,7 @@ const MainPanel: React.FC<MainPanelProps> = ({
               <span>Conversation will appear here</span>
             </div>
           </div>
+          <TokenGenerator voice={voice} model={model} />
         </div>
       </div>
       <div className="floating-controls">

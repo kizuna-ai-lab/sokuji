@@ -1,12 +1,17 @@
 const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
-require('dotenv').config();
+// Use our custom config utility
+const { getConfig, setConfig, createDefaultConfig, CONFIG_DIR, CONFIG_FILE } = require('./config-utils');
+// Initialize config
+createDefaultConfig();
 const { 
   createVirtualAudioDevices, 
   removeVirtualAudioDevices, 
   isPulseAudioAvailable,
   cleanupOrphanedDevices
 } = require('./pulseaudio-utils');
+// Import API handlers
+const { generateToken } = require('./api-handlers');
 
 // Set application name for PulseAudio
 app.setName('sokuji');
@@ -162,5 +167,55 @@ ipcMain.handle('stop-loopback', () => {
   } catch (error) {
     console.error('Error removing virtual audio devices:', error);
     return { success: false, error: error.message };
+  }
+});
+
+// Configuration IPC handlers
+ipcMain.handle('get-config', (event, key, defaultValue) => {
+  try {
+    return getConfig(key, defaultValue);
+  } catch (error) {
+    console.error('Error getting config:', error);
+    return defaultValue;
+  }
+});
+
+ipcMain.handle('set-config', (event, key, value) => {
+  try {
+    return { success: setConfig(key, value) };
+  } catch (error) {
+    console.error('Error setting config:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('get-config-path', () => {
+  return { configDir: CONFIG_DIR, configFile: CONFIG_FILE };
+});
+
+// Handler to open a directory in the file explorer
+ipcMain.handle('open-directory', (event, dirPath) => {
+  try {
+    // Open the directory using the default file explorer
+    const { shell } = require('electron');
+    shell.openPath(dirPath);
+    return { success: true };
+  } catch (error) {
+    console.error('Error opening directory:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// Handler for OpenAI token generation
+ipcMain.handle('generate-token', async (event, options) => {
+  try {
+    const tokenData = await generateToken(options);
+    return { success: true, data: tokenData };
+  } catch (error) {
+    console.error('Error generating token:', error);
+    return { 
+      success: false, 
+      error: error.message || 'Failed to generate token' 
+    };
   }
 });
