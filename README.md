@@ -68,13 +68,66 @@ Sokuji creates virtual audio devices to facilitate seamless audio routing:
    npm install
    ```
 
-3. Create a `.env` file in the root directory and add your OpenAI API key:
-   ```
-   OPENAI_API_KEY=your_api_key_here
-   ```
-
+3. Launch the application and input your OpenAI API key in the Settings panel
+    - Click the Settings button in the top-right corner
+    - Scroll to the "OpenAI API Key" section
+    - Enter your API key and click "Validate"
+    - Click "Save" to store your API key securely
 ### Running the Application
 
 #### Development Mode
 
 Start the application in development mode:
+
+```
+npm run electron:dev
+```
+
+This will start both the React development server and Electron.
+
+#### Production Build
+
+Build the application for production:
+
+```
+npm run electron:build
+```
+
+This creates:
+- An AppImage file in the `dist` directory
+- A Debian package (`.deb`) for system-wide installation
+
+## Installation from Packages
+
+### AppImage
+
+1. Make the AppImage executable:
+   ```
+   chmod +x Sokuji-0.1.0.AppImage
+   ```
+
+2. Run the application:
+   ```
+   ./Sokuji-0.1.0.AppImage
+   ```
+
+### Debian Package
+
+Install the Debian package:
+```
+sudo dpkg -i sokuji_0.1.0_amd64.deb
+```
+
+## Technologies Used
+
+- Electron 34
+- React 18
+- TypeScript
+- OpenAI Realtime API
+- PulseAudio/PipeWire for virtual audio devices
+- SASS for styling
+- React-Feather for icons
+
+## License
+
+[MIT](LICENSE)
