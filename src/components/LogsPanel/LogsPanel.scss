@@ -21,6 +21,34 @@
       font-weight: 500;
     }
     
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .clear-logs-button {
+      display: flex;
+      align-items: center;
+      background: none;
+      border: none;
+      color: #aaa;
+      cursor: pointer;
+      padding: 5px 10px;
+      border-radius: 4px;
+      transition: all 0.2s;
+      
+      span {
+        margin-left: 5px;
+        font-size: 13px;
+      }
+      
+      &:hover {
+        background-color: rgba(255, 76, 76, 0.1);
+        color: #ff4c4c;
+      }
+    }
+    
     .close-logs-button {
       display: flex;
       align-items: center;
@@ -69,6 +97,37 @@
       .log-message {
         color: #ddd;
         word-break: break-word;
+      }
+      
+      &.info {
+        .log-message {
+          color: #ddd;
+        }
+      }
+      
+      &.success {
+        .log-message {
+          color: #10a37f;
+        }
+      }
+      
+      &.warning {
+        .log-message {
+          color: #ffc107;
+        }
+      }
+      
+      &.error {
+        .log-message {
+          color: #ff4c4c;
+        }
+      }
+      
+      &.token {
+        .log-message {
+          color: #4285f4;
+          font-family: monospace;
+        }
       }
     }
     

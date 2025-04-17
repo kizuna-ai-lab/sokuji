@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import './TokenGenerator.scss';
+import { useLog } from '../../contexts/LogContext';
 
 interface TokenGeneratorProps {
   voice: string;
@@ -9,25 +10,27 @@ interface TokenGeneratorProps {
 interface TokenResponse {
   success: boolean;
   data?: {
-    token: string;
-    expires_at: string;
+    token?: string;
+    expires_at?: number;
+    client_secret?: {
+      value: string;
+      expires_at: number;
+    };
     [key: string]: any;
   };
   error?: string;
 }
 
 const TokenGenerator: React.FC<TokenGeneratorProps> = ({ voice, model }) => {
+  const { addLog } = useLog();
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
-  const [token, setToken] = useState<string>('');
   const [error, setError] = useState<string>('');
-  const [expiresAt, setExpiresAt] = useState<string>('');
-  const [showToken, setShowToken] = useState<boolean>(false);
 
   const generateToken = async () => {
     setIsGenerating(true);
     setError('');
-    setToken('');
-    setExpiresAt('');
+    
+    addLog(`Generating token for model: ${model || 'gpt-4o-realtime-preview'}, voice: ${voice}`, 'info');
 
     try {
       // Use the OpenAI token generation API from Electron preload
@@ -36,48 +39,56 @@ const TokenGenerator: React.FC<TokenGeneratorProps> = ({ voice, model }) => {
         voice
       });
 
+      console.log('Token response:', response);
       if (response.success && response.data) {
-        setToken(response.data.token);
-        setExpiresAt(response.data.expires_at);
+        // Extract the token from client_secret.value
+        if (response.data.client_secret?.value) {
+          const token = response.data.client_secret.value;
+          let expiryInfo = '';
+          
+          // Use client_secret.expires_at for expiration time
+          if (response.data.client_secret.expires_at) {
+            const expiryTimestamp = response.data.client_secret.expires_at;
+            const expiryDate = new Date(expiryTimestamp * 1000); // Convert from Unix timestamp
+            expiryInfo = ` (expires: ${expiryDate.toLocaleString()})`;
+          }
+          
+          // Log the token to the LogsPanel
+          addLog(`Token generated successfully${expiryInfo}`, 'success');
+          addLog(`Token: ${token}`, 'token');
+        } else if (response.data.token) {
+          // Fallback to token if client_secret is not available
+          const token = response.data.token;
+          let expiryInfo = '';
+          
+          if (response.data.expires_at) {
+            const expiryTimestamp = response.data.expires_at;
+            // Only set if it's a valid timestamp (not 0)
+            if (expiryTimestamp > 0) {
+              const expiryDate = new Date(expiryTimestamp * 1000);
+              expiryInfo = ` (expires: ${expiryDate.toLocaleString()})`;
+            }
+          }
+          
+          // Log the token to the LogsPanel
+          addLog(`Token generated successfully${expiryInfo}`, 'success');
+          addLog(`Token: ${token}`, 'token');
+        } else {
+          setError('Token not found in response');
+          addLog('Error: Token not found in response', 'error');
+        }
       } else {
-        setError(response.error || 'Failed to generate token');
+        const errorMessage = response.error || 'Failed to generate token';
+        setError(errorMessage);
+        addLog(`Error: ${errorMessage}`, 'error');
       }
     } catch (err) {
       console.error('Error generating token:', err);
-      setError(err instanceof Error ? err.message : 'An unknown error occurred');
+      const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred';
+      setError(errorMessage);
+      addLog(`Error generating token: ${errorMessage}`, 'error');
     } finally {
       setIsGenerating(false);
-    }
-  };
-
-  const formatExpiryTime = (expiryString: string) => {
-    if (!expiryString) return '';
-    
-    try {
-      const expiryDate = new Date(expiryString);
-      return expiryDate.toLocaleString();
-    } catch (err) {
-      return expiryString;
-    }
-  };
-
-  const copyToClipboard = () => {
-    if (token) {
-      navigator.clipboard.writeText(token)
-        .then(() => {
-          // Show a temporary "Copied!" message
-          const tokenElement = document.getElementById('token-display');
-          if (tokenElement) {
-            const originalText = tokenElement.innerText;
-            tokenElement.innerText = 'Copied!';
-            setTimeout(() => {
-              tokenElement.innerText = originalText;
-            }, 1500);
-          }
-        })
-        .catch(err => {
-          console.error('Failed to copy token:', err);
-        });
     }
   };
 
@@ -91,42 +102,11 @@ const TokenGenerator: React.FC<TokenGeneratorProps> = ({ voice, model }) => {
         >
           {isGenerating ? 'Generating...' : 'Generate Token'}
         </button>
-        
-        {token && (
-          <button 
-            className="copy-button"
-            onClick={copyToClipboard}
-          >
-            Copy Token
-          </button>
-        )}
-        
-        {token && (
-          <button 
-            className="toggle-button"
-            onClick={() => setShowToken(!showToken)}
-          >
-            {showToken ? 'Hide Token' : 'Show Token'}
-          </button>
-        )}
       </div>
       
       {error && (
         <div className="token-error">
           Error: {error}
-        </div>
-      )}
-      
-      {token && (
-        <div className="token-info">
-          <div className="token-display" id="token-display">
-            {showToken ? token : '••••••••••••••••••••••••••••••••'}
-          </div>
-          {expiresAt && (
-            <div className="token-expiry">
-              Expires at: {formatExpiryTime(expiresAt)}
-            </div>
-          )}
         </div>
       )}
     </div>

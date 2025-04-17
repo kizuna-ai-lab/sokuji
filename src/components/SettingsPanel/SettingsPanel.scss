@@ -187,6 +187,77 @@
           }
         }
         
+        .api-key-container {
+          display: flex;
+          gap: 10px;
+          width: 100%;
+          
+          .api-key-input {
+            flex: 1;
+            
+            &.valid {
+              border-color: #10a37f;
+              background-color: rgba(16, 163, 127, 0.05);
+            }
+            
+            &.invalid {
+              border-color: #ff4c4c;
+              background-color: rgba(255, 76, 76, 0.05);
+            }
+          }
+          
+          .validate-key-button {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #333;
+            border: 1px solid #444;
+            border-radius: 4px;
+            color: #ddd;
+            cursor: pointer;
+            padding: 0 12px;
+            transition: all 0.2s;
+            white-space: nowrap;
+            
+            span {
+              margin-left: 5px;
+              font-size: 13px;
+            }
+            
+            &:hover:not(:disabled) {
+              background-color: #444;
+              border-color: #555;
+            }
+            
+            &:disabled {
+              opacity: 0.5;
+              cursor: not-allowed;
+            }
+          }
+        }
+        
+        .api-key-status {
+          margin-top: 8px;
+          padding: 6px 10px;
+          border-radius: 4px;
+          font-size: 12px;
+          
+          &.success {
+            background-color: rgba(16, 163, 127, 0.1);
+            color: #10a37f;
+          }
+          
+          &.error {
+            background-color: rgba(255, 76, 76, 0.1);
+            color: #ff4c4c;
+          }
+          
+          &.info {
+            background-color: rgba(66, 133, 244, 0.1);
+            color: #4285f4;
+          }
+        }
+        
         .select-dropdown {
           width: 100%;
           padding: 8px 10px;

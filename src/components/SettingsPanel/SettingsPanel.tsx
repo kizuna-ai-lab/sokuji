@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowRight, Save, Check, AlertCircle, AlertTriangle, Info } from 'react-feather';
+import { ArrowRight, Save, Check, AlertCircle, AlertTriangle, Info, Key } from 'react-feather';
 import './SettingsPanel.scss';
 
 type TurnDetectionMode = 'Normal' | 'Semantic' | 'Disabled';
@@ -34,6 +34,11 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
   
   // API Key state
   const [apiKey, setApiKey] = useState<string>('');
+  const [apiKeyStatus, setApiKeyStatus] = useState<{
+    valid: boolean | null;
+    message: string;
+    validating: boolean;
+  }>({ valid: null, message: '', validating: false });
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [saveStatus, setSaveStatus] = useState<{
     type: 'success' | 'error' | 'info' | 'warning' | null,
@@ -152,6 +157,52 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
     loadSettings();
   }, [systemInstructions]);
 
+  const validateApiKey = async () => {
+    if (!apiKey || apiKey.trim() === '') {
+      setApiKeyStatus({
+        valid: false,
+        message: 'API key cannot be empty',
+        validating: false
+      });
+      return false;
+    }
+
+    setApiKeyStatus({
+      valid: null,
+      message: 'Validating API key...',
+      validating: true
+    });
+
+    try {
+      const result = await window.electron.openai.validateApiKey(apiKey);
+      
+      if (result.success && result.valid) {
+        const modelCount = result.models?.length || 0;
+        setApiKeyStatus({
+          valid: true,
+          message: `Valid API key. Found ${modelCount} compatible models.`,
+          validating: false
+        });
+        return true;
+      } else {
+        setApiKeyStatus({
+          valid: false,
+          message: result.error || 'Invalid API key',
+          validating: false
+        });
+        return false;
+      }
+    } catch (error) {
+      console.error('Error validating API key:', error);
+      setApiKeyStatus({
+        valid: false,
+        message: error instanceof Error ? error.message : 'Error validating API key',
+        validating: false
+      });
+      return false;
+    }
+  };
+
   const saveAllSettings = async () => {
     setIsSaving(true);
     setSaveStatus({ type: 'info', message: 'Saving settings...' });
@@ -160,6 +211,20 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
       // Check if electron.config is available
       if (!window.electron || !window.electron.config) {
         throw new Error('Electron config API is not available');
+      }
+
+      // Validate API key first if it has changed
+      const currentApiKey = await window.electron.config.get('openai.apiKey', '');
+      if (apiKey !== currentApiKey) {
+        const isValid = await validateApiKey();
+        if (!isValid) {
+          setSaveStatus({ 
+            type: 'error', 
+            message: 'Invalid API key. Settings not saved.'
+          });
+          setIsSaving(false);
+          return;
+        }
       }
 
       // Save all settings
@@ -480,13 +545,40 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
         <div className="settings-section">
           <h2>OpenAI API Key</h2>
           <div className="setting-item">
-            <input
-              type="text"
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
-              placeholder="Enter your OpenAI API key"
-              className="text-input api-key-input"
-            />
+            <div className="api-key-container">
+              <input
+                type="text"
+                value={apiKey}
+                onChange={(e) => {
+                  setApiKey(e.target.value);
+                  // Reset validation status when key changes
+                  if (apiKeyStatus.valid !== null) {
+                    setApiKeyStatus({ valid: null, message: '', validating: false });
+                  }
+                }}
+                placeholder="Enter your OpenAI API key"
+                className={`text-input api-key-input ${
+                  apiKeyStatus.valid === true ? 'valid' : 
+                  apiKeyStatus.valid === false ? 'invalid' : ''
+                }`}
+              />
+              <button 
+                className="validate-key-button"
+                onClick={validateApiKey}
+                disabled={apiKeyStatus.validating || !apiKey}
+              >
+                <Key size={16} />
+                <span>{apiKeyStatus.validating ? 'Validating...' : 'Validate'}</span>
+              </button>
+            </div>
+            {apiKeyStatus.message && (
+              <div className={`api-key-status ${
+                apiKeyStatus.valid === true ? 'success' : 
+                apiKeyStatus.valid === false ? 'error' : 'info'
+              }`}>
+                {apiKeyStatus.message}
+              </div>
+            )}
           </div>
         </div>
       </div>

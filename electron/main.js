@@ -11,7 +11,7 @@ const {
   cleanupOrphanedDevices
 } = require('./pulseaudio-utils');
 // Import API handlers
-const { generateToken } = require('./api-handlers');
+const { generateToken, validateApiKey } = require('./api-handlers');
 
 // Set application name for PulseAudio
 app.setName('sokuji');
@@ -216,6 +216,24 @@ ipcMain.handle('generate-token', async (event, options) => {
     return { 
       success: false, 
       error: error.message || 'Failed to generate token' 
+    };
+  }
+});
+
+// Handler for validating OpenAI API key
+ipcMain.handle('validate-api-key', async (event, apiKey) => {
+  try {
+    const validationResult = await validateApiKey(apiKey);
+    return { 
+      success: true, 
+      ...validationResult 
+    };
+  } catch (error) {
+    console.error('Error validating API key:', error);
+    return { 
+      success: false, 
+      valid: false,
+      error: error.message || 'Failed to validate API key' 
     };
   }
 });

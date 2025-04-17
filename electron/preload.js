@@ -29,7 +29,8 @@ contextBridge.exposeInMainWorld(
         'set-config',
         'get-config-path',
         'open-directory',
-        'generate-token'
+        'generate-token',
+        'validate-api-key'
       ];
       if (validChannels.includes(channel)) {
         return ipcRenderer.invoke(channel, data);
@@ -49,6 +50,9 @@ contextBridge.exposeInMainWorld(
     openai: {
       generateToken: (options) => {
         return ipcRenderer.invoke('generate-token', options);
+      },
+      validateApiKey: (apiKey) => {
+        return ipcRenderer.invoke('validate-api-key', apiKey);
       }
     }
   }

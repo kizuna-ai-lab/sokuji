@@ -1,44 +1,45 @@
 import React from 'react';
-import { ArrowRight, Terminal } from 'react-feather';
+import { ArrowRight, Terminal, Trash2 } from 'react-feather';
 import './LogsPanel.scss';
+import { useLog, LogEntry } from '../../contexts/LogContext';
 
 interface LogsPanelProps {
   toggleLogs: () => void;
 }
 
-// Define the log entry type
-interface LogEntry {
-  timestamp: string;
-  message: string;
-}
-
 const LogsPanel: React.FC<LogsPanelProps> = ({ toggleLogs }) => {
-  // Sample logs data with explicit type
-  const logs: LogEntry[] = [
-    { timestamp: '23:45:32', message: 'Session started' },
-    { timestamp: '23:45:33', message: 'Connecting to OpenAI Realtime API' },
-    { timestamp: '23:45:34', message: 'Using model: gpt-4o-mini-realtime-preview' },
-    { timestamp: '23:45:35', message: 'Audio input device initialized' },
-    { timestamp: '23:45:36', message: 'Ready to process audio' }
-  ];
+  const { logs, clearLogs } = useLog();
+
+  // Function to render log entry with appropriate styling based on type
+  const renderLogEntry = (log: LogEntry, index: number) => {
+    return (
+      <div className={`log-entry ${log.type || ''}`} key={index}>
+        <span className="log-timestamp">{log.timestamp}</span>
+        <span className="log-message">{log.message}</span>
+      </div>
+    );
+  };
 
   return (
     <div className="logs-panel">
       <div className="logs-panel-header">
         <h2>Logs</h2>
-        <button className="close-logs-button" onClick={toggleLogs}>
-          <ArrowRight size={16} />
-          <span>Close</span>
-        </button>
+        <div className="header-actions">
+          {logs.length > 0 && (
+            <button className="clear-logs-button" onClick={clearLogs}>
+              <Trash2 size={16} />
+              <span>Clear</span>
+            </button>
+          )}
+          <button className="close-logs-button" onClick={toggleLogs}>
+            <ArrowRight size={16} />
+            <span>Close</span>
+          </button>
+        </div>
       </div>
       <div className="logs-content">
         {logs.length > 0 ? (
-          logs.map((log, index) => (
-            <div className="log-entry" key={index}>
-              <span className="log-timestamp">{log.timestamp}</span>
-              <span className="log-message">{log.message}</span>
-            </div>
-          ))
+          logs.map(renderLogEntry)
         ) : (
           <div className="logs-placeholder">
             <div className="placeholder-content">

@@ -1,11 +1,14 @@
 import React from 'react';
 import './App.scss';
 import MainLayout from './components/MainLayout/MainLayout';
+import { LogProvider } from './contexts/LogContext';
 
 function App() {
   return (
     <div className="App">
-      <MainLayout />
+      <LogProvider>
+        <MainLayout />
+      </LogProvider>
     </div>
   );
 }
