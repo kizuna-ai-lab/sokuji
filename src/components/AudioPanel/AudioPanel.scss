@@ -237,6 +237,21 @@
             display: flex;
             align-items: center;
           }
+          
+          .default-indicator {
+            margin-left: 8px;
+            display: flex;
+            align-items: center;
+            background-color: #10a37f;
+            border-radius: 3px;
+            padding: 2px 5px;
+            
+            span {
+              font-size: 10px;
+              color: white;
+              font-weight: 500;
+            }
+          }
         }
       }
     }

@@ -5,15 +5,15 @@ import Modal from '../Modal/Modal';
 
 interface AudioPanelProps {
   toggleAudio: () => void;
-  audioInputDevices: Array<{deviceId: string; label: string}>;
-  audioOutputDevices: Array<{deviceId: string; label: string}>;
-  selectedInputDevice: {deviceId: string; label: string};
-  selectedOutputDevice: {deviceId: string; label: string};
+  audioInputDevices: Array<{deviceId: string; label: string; isDefault?: boolean}>;
+  audioOutputDevices: Array<{deviceId: string; label: string; isDefault?: boolean}>;
+  selectedInputDevice: {deviceId: string; label: string; isDefault?: boolean};
+  selectedOutputDevice: {deviceId: string; label: string; isDefault?: boolean};
   isInputDeviceOn: boolean;
   isOutputDeviceOn: boolean;
   isLoading: boolean;
-  selectInputDevice: (device: {deviceId: string; label: string}) => void;
-  selectOutputDevice: (device: {deviceId: string; label: string}) => void;
+  selectInputDevice: (device: {deviceId: string; label: string; isDefault?: boolean}) => void;
+  selectOutputDevice: (device: {deviceId: string; label: string; isDefault?: boolean}) => void;
   toggleInputDeviceState: () => void;
   toggleOutputDeviceState: () => void;
   inputAudioHistory: number[];
@@ -72,8 +72,13 @@ const AudioPanel: React.FC<AudioPanelProps> = ({
     return device.label.toLowerCase().includes('sokuji_virtual_mic');
   };
 
+  // Check if a device is the virtual speaker
+  const isVirtualSpeaker = (device: {deviceId: string; label: string}) => {
+    return device.label.toLowerCase().includes('sokuji_virtual_speaker');
+  };
+
   // Handle input device selection with virtual mic check
-  const handleInputDeviceSelection = (device: {deviceId: string; label: string}) => {
+  const handleInputDeviceSelection = (device: {deviceId: string; label: string; isDefault?: boolean}) => {
     if (isVirtualMic(device)) {
       setShowVirtualMicWarning(true);
     } else {
@@ -209,6 +214,11 @@ const AudioPanel: React.FC<AudioPanelProps> = ({
                 onClick={() => selectOutputDevice(device)}
               >
                 <span>{device.label}</span>
+                {isVirtualSpeaker(device) && (
+                  <div className="virtual-indicator" title="Virtual speaker - do not select">
+                    <AlertTriangle size={14} color="#f0ad4e" />
+                  </div>
+                )}
                 {selectedOutputDevice.deviceId === device.deviceId && <div className="selected-indicator" />}
               </div>
             ))}

@@ -81,23 +81,23 @@ app.whenReady().then(async () => {
       console.log('Virtual audio devices created successfully');
       
       // Connect the virtual speaker to the default output device
-      try {
-        // Use default device info
-        const defaultDeviceInfo = {
-          deviceId: 'default',
-          label: 'Default'
-        };
-        
-        // Connect virtual speaker to default output
-        const connected = await connectVirtualSpeakerToOutput(defaultDeviceInfo);
-        if (connected) {
-          console.log('Successfully connected virtual speaker to default output device');
-        } else {
-          console.error('Failed to connect virtual speaker to default output device');
-        }
-      } catch (connectionError) {
-        console.error('Error connecting virtual speaker to default output:', connectionError);
-      }
+      // try {
+      //   // Use default device info
+      //   const defaultDeviceInfo = {
+      //     deviceId: 'default',
+      //     label: 'Default'
+      //   };
+      //
+      //   // Connect virtual speaker to default output
+      //   const connected = await connectVirtualSpeakerToOutput(defaultDeviceInfo);
+      //   if (connected) {
+      //     console.log('Successfully connected virtual speaker to default output device');
+      //   } else {
+      //     console.error('Failed to connect virtual speaker to default output device');
+      //   }
+      // } catch (connectionError) {
+      //   console.error('Error connecting virtual speaker to default output:', connectionError);
+      // }
     } else {
       console.error('Failed to create virtual audio devices');
     }
