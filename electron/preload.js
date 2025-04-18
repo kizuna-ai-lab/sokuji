@@ -23,14 +23,14 @@ contextBridge.exposeInMainWorld(
       const validChannels = [
         'invoke-channel', 
         'check-audio-system', 
-        'start-loopback', 
-        'stop-loopback',
         'get-config',
         'set-config',
         'get-config-path',
         'open-directory',
         'generate-token',
-        'validate-api-key'
+        'validate-api-key',
+        'connect-virtual-speaker-to-output',
+        'disconnect-virtual-speaker-outputs'
       ];
       if (validChannels.includes(channel)) {
         return ipcRenderer.invoke(channel, data);

@@ -305,9 +305,344 @@ async function cleanupOrphanedDevices() {
       }
     }
     
+    // Check for any orphaned PipeWire loopback modules or connections
+    try {
+      // Clean up any orphaned connections related to our virtual devices
+      console.log('Checking for orphaned PipeWire connections...');
+      
+      // Get existing links
+      const { stdout: existingLinks } = await execPromise('pw-link -l').catch(() => ({ stdout: '' }));
+      
+      if (existingLinks.includes('sokuji_virtual')) {
+        console.log('Found orphaned PipeWire connections, cleaning up...');
+        
+        // Parse the output to find links to disconnect
+        const lines = existingLinks.split('\n');
+        let disconnectedCount = 0;
+        
+        // First pass: Find all connections involving our virtual devices
+        for (let i = 0; i < lines.length; i++) {
+          const line = lines[i].trim();
+          
+          // Check if this line mentions our virtual devices
+          if (line.includes('sokuji_virtual')) {
+            // If it's a port line, check the next lines for connections
+            if (!line.startsWith('|')) {
+              const port = line;
+              
+              // Look at the next lines for connections
+              let j = i + 1;
+              while (j < lines.length && lines[j].trim().startsWith('|')) {
+                const connectionLine = lines[j].trim();
+                let connectedPort;
+                
+                if (connectionLine.startsWith('|->')) {
+                  // This is an output connection
+                  connectedPort = connectionLine.substring(3).trim();
+                  try {
+                    await execPromise(`pw-link -d "${port}" "${connectedPort}"`);
+                    console.log(`Disconnected orphaned link: ${port} -> ${connectedPort}`);
+                    disconnectedCount++;
+                  } catch (disconnectError) {
+                    console.error('Failed to disconnect orphaned link:', disconnectError.message);
+                  }
+                } else if (connectionLine.startsWith('|<-')) {
+                  // This is an input connection
+                  connectedPort = connectionLine.substring(3).trim();
+                  try {
+                    await execPromise(`pw-link -d "${connectedPort}" "${port}"`);
+                    console.log(`Disconnected orphaned link: ${connectedPort} -> ${port}`);
+                    disconnectedCount++;
+                  } catch (disconnectError) {
+                    console.error('Failed to disconnect orphaned link:', disconnectError.message);
+                  }
+                }
+                
+                j++;
+              }
+            }
+          }
+        }
+        
+        console.log(`Cleaned up ${disconnectedCount} orphaned PipeWire connections`);
+      }
+    } catch (error) {
+      console.error('Error cleaning up orphaned PipeWire connections:', error);
+    }
+    
+    // Check for sokuji_virtual_speaker
+    const { stdout: speakerList } = await execPromise('pactl list sinks short');
+    if (speakerList.includes('sokuji_virtual_speaker')) {
+      console.log('Found orphaned virtual speaker, cleaning up...');
+      try {
+        const { stdout: moduleInfo } = await execPromise('pactl list modules short | grep sokuji_virtual_speaker');
+        const moduleId = moduleInfo.split('\t')[0];
+        if (moduleId) {
+          execSync(`pactl unload-module ${moduleId}`);
+          console.log(`Cleaned up orphaned speaker module: ${moduleId}`);
+        }
+      } catch (error) {
+        console.error('Error cleaning up orphaned speaker:', error);
+      }
+    }
+    
     return true;
   } catch (error) {
     console.error('Error checking for orphaned devices:', error);
+    return false;
+  }
+}
+
+/**
+ * Connect the virtual speaker's monitor port to a specific output device
+ * @param {Object} deviceInfo - Information about the output device
+ * @param {string} deviceInfo.deviceId - The device ID from the browser API
+ * @param {string} deviceInfo.label - The human-readable label of the device
+ * @returns {Promise<boolean>} - True if connection successful, false otherwise
+ */
+async function connectVirtualSpeakerToOutput(deviceInfo) {
+  try {
+    console.log(`Connecting Sokuji_Virtual_Speaker monitor to output device: ${deviceInfo.label} (ID: ${deviceInfo.deviceId})`);
+    
+    // First, disconnect any existing connections from the virtual speaker
+    await disconnectVirtualSpeakerFromOutputs();
+    
+    // Find the PipeWire node based on the device description/label
+    // Use grep to search for the node with a matching description
+    const { stdout: nodeList } = await execPromise('pw-cli ls Node');
+    console.log('Searching for matching PipeWire node...');
+    
+    // Parse the node list to find the matching node
+    const lines = nodeList.split('\n');
+    let nodeId = null;
+    let nodeName = null;
+    let nodeDescription = null;
+    let currentId = null;
+    
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+      
+      // Check for node ID line
+      if (line.startsWith('id ') && line.includes('type PipeWire:Interface:Node')) {
+        const idMatch = line.match(/id (\d+)/);
+        if (idMatch) {
+          currentId = idMatch[1];
+        }
+      }
+      
+      // Check for node description that matches our device label
+      if (line.includes('node.description') && currentId) {
+        const descMatch = line.match(/node\.description = "([^"]+)"/);
+        if (descMatch && descMatch[1]) {
+          // Check if this description matches our device label
+          const description = descMatch[1];
+          
+          // Use a fuzzy match to account for slight differences in naming
+          if (description.includes(deviceInfo.label) || deviceInfo.label.includes(description)) {
+            nodeDescription = description;
+            nodeId = currentId;
+            
+            // Now find the node name for this ID
+            for (let j = i; j < Math.min(i + 10, lines.length); j++) {
+              if (lines[j].includes('node.name') && lines[j].includes('=')) {
+                const nameMatch = lines[j].match(/node\.name = "([^"]+)"/);
+                if (nameMatch && nameMatch[1]) {
+                  nodeName = nameMatch[1];
+                  break;
+                }
+              }
+            }
+            
+            if (nodeName) {
+              break; // We found everything we need
+            }
+          }
+        }
+      }
+      
+      // Also check for node name that matches "Default" device
+      if (deviceInfo.deviceId === 'default' && line.includes('node.name') && line.includes('=') && currentId) {
+        // For "Default" device, try to find the default sink
+        // This is typically the first Audio/Sink in the list
+        const nameMatch = line.match(/node\.name = "([^"]+)"/);
+        if (nameMatch && nameMatch[1]) {
+          const potentialNodeName = nameMatch[1];
+          
+          // Check if this is an Audio/Sink in nearby lines
+          for (let j = Math.max(0, i - 5); j < Math.min(i + 5, lines.length); j++) {
+            if (lines[j].includes('media.class') && lines[j].includes('Audio/Sink')) {
+              // This is an Audio/Sink, so it's a potential match for "Default"
+              nodeName = potentialNodeName;
+              nodeId = currentId;
+              nodeDescription = 'Default Audio Sink';
+              break;
+            }
+          }
+          
+          if (nodeName) {
+            break; // We found a default sink
+          }
+        }
+      }
+    }
+    
+    if (!nodeName) {
+      // If we still don't have a node name, try a different approach for finding the node
+      // Look for any sink that has a description or name containing parts of our label
+      console.log('No exact match found, trying alternative matching approach...');
+      
+      // Reset for second pass
+      currentId = null;
+      
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+        
+        // Check for node ID line
+        if (line.startsWith('id ') && line.includes('type PipeWire:Interface:Node')) {
+          const idMatch = line.match(/id (\d+)/);
+          if (idMatch) {
+            currentId = idMatch[1];
+          }
+        }
+        
+        // Check if this is an Audio/Sink
+        if (line.includes('media.class') && line.includes('Audio/Sink') && currentId) {
+          // This is an Audio/Sink, so look for its name and description
+          let tempNodeName = null;
+          let tempNodeDescription = null;
+          
+          // Look at nearby lines for name and description
+          for (let j = Math.max(0, i - 10); j < Math.min(i + 10, lines.length); j++) {
+            if (lines[j].includes('node.name') && lines[j].includes('=')) {
+              const nameMatch = lines[j].match(/node\.name = "([^"]+)"/);
+              if (nameMatch && nameMatch[1]) {
+                tempNodeName = nameMatch[1];
+              }
+            }
+            
+            if (lines[j].includes('node.description') && lines[j].includes('=')) {
+              const descMatch = lines[j].match(/node\.description = "([^"]+)"/);
+              if (descMatch && descMatch[1]) {
+                tempNodeDescription = descMatch[1];
+              }
+            }
+          }
+          
+          // If we found both name and description, check for a partial match
+          if (tempNodeName && tempNodeDescription) {
+            // Split the device label into words for partial matching
+            const labelWords = deviceInfo.label.toLowerCase().split(/\s+/);
+            const descriptionLower = tempNodeDescription.toLowerCase();
+            
+            // Check if any significant word from the label appears in the description
+            const hasMatch = labelWords.some(word => 
+              word.length > 3 && descriptionLower.includes(word.toLowerCase())
+            );
+            
+            if (hasMatch) {
+              nodeName = tempNodeName;
+              nodeId = currentId;
+              nodeDescription = tempNodeDescription;
+              break;
+            }
+          }
+        }
+      }
+    }
+    
+    if (!nodeName) {
+      console.error(`Could not find PipeWire node for device: ${deviceInfo.label}`);
+      return false;
+    }
+    
+    console.log(`Found PipeWire node: ${nodeName} (ID: ${nodeId}, Description: ${nodeDescription})`);
+    
+    // Use the connectAudioPorts function to connect the virtual speaker monitor to the output device
+    // The virtual speaker's monitor output is named "sokuji_virtual_output.monitor"
+    const result = await connectAudioPorts('sokuji_virtual_output.monitor', nodeName);
+    
+    if (result) {
+      console.log(`Successfully connected sokuji_virtual_output.monitor to ${nodeName}`);
+      return true;
+    } else {
+      console.error(`Failed to connect sokuji_virtual_output.monitor to ${nodeName}`);
+      return false;
+    }
+  } catch (error) {
+    console.error('Failed to connect virtual speaker to output device:', error);
+    return false;
+  }
+}
+
+/**
+ * Disconnect any existing connections from the virtual speaker's monitor port,
+ * except for the connection to sokuji_virtual_mic
+ * @returns {Promise<boolean>} - True if disconnection successful, false otherwise
+ */
+async function disconnectVirtualSpeakerFromOutputs() {
+  try {
+    console.log('Disconnecting virtual speaker monitor from output devices (preserving sokuji_virtual_mic connection)...');
+    
+    // Get existing links
+    const { stdout: existingLinks } = await execPromise('pw-link -l').catch(() => ({ stdout: '' }));
+    console.log('Current audio connections:');
+    console.log(existingLinks);
+    
+    // Parse the output to find links to disconnect
+    const lines = existingLinks.split('\n');
+    const linksToDisconnect = [];
+    
+    // Process the output to find connections from sokuji_virtual_output:monitor_*
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+      
+      // Check if this is an output port line for the virtual speaker monitor
+      // Format is like "sokuji_virtual_output:monitor_FL" or "sokuji_virtual_output:monitor_FR"
+      if (line.includes('sokuji_virtual_output:monitor_')) {
+        const outputPort = line;
+        
+        // Look at the next lines for connections (they start with |->)
+        let j = i + 1;
+        while (j < lines.length && lines[j].trim().startsWith('|->')) {
+          const inputPortLine = lines[j].trim();
+          const inputPort = inputPortLine.substring(3).trim(); // Remove the '|->' prefix
+          
+          // Only add to disconnect list if it's NOT connected to sokuji_virtual_mic
+          if (!inputPort.includes('sokuji_virtual_mic')) {
+            // Add this connection to our list to disconnect
+            linksToDisconnect.push({
+              output: outputPort,
+              input: inputPort
+            });
+          } else {
+            console.log(`Preserving connection from ${outputPort} to ${inputPort}`);
+          }
+          
+          j++;
+        }
+      }
+    }
+    
+    // Disconnect all found links (except sokuji_virtual_mic)
+    if (linksToDisconnect.length > 0) {
+      console.log(`Found ${linksToDisconnect.length} links to disconnect (excluding sokuji_virtual_mic)`);
+      
+      for (const link of linksToDisconnect) {
+        console.log(`Disconnecting: "${link.output}" from "${link.input}"`);
+        try {
+          await execPromise(`pw-link -d "${link.output}" "${link.input}"`);
+          console.log('Link disconnected successfully');
+        } catch (disconnectError) {
+          console.error('Failed to disconnect link:', disconnectError.message);
+        }
+      }
+      return true;
+    } else {
+      console.log('No links to disconnect (or only sokuji_virtual_mic connection exists)');
+      return true; // No links to disconnect is still a success
+    }
+  } catch (error) {
+    console.error('Failed to disconnect virtual speaker from outputs:', error);
     return false;
   }
 }
@@ -317,5 +652,7 @@ module.exports = {
   removeVirtualAudioDevices,
   isPulseAudioAvailable,
   cleanupOrphanedDevices,
-  connectAudioPorts  // 导出新的函数，以便其他模块也可以使用它
+  connectAudioPorts,
+  connectVirtualSpeakerToOutput,
+  disconnectVirtualSpeakerFromOutputs
 };

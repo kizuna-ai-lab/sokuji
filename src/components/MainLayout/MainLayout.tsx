@@ -198,58 +198,58 @@ const MainLayout: React.FC = () => {
     };
   }, [isInputDeviceOn, selectedInputDevice, startAudioVisualization, stopAudioVisualization]);
 
-  const updateOutputDevices = useCallback(async () => {
-    if (isOutputDeviceOn && selectedOutputDevice) {
-      // Apply output device selection using setSinkId
-      // This is only supported in some browsers (Chrome, Edge)
-      try {
-        // // Find all audio elements and set their sink ID
-        // const audioElements = document.querySelectorAll('audio');
-        // // Convert NodeList to Array before iterating
-        // const audioElementsArray = Array.from(audioElements);
-        // for (const audioEl of audioElementsArray) {
-        //   // Check if setSinkId is supported
-        //   if ('setSinkId' in audioEl) {
-        //     try {
-        //       // Always set the audio output device
-        //       await (audioEl as any).setSinkId(selectedOutputDevice.deviceId === 'default' ? '' : selectedOutputDevice.deviceId);
-        //       console.log(`Set audio output to: ${selectedOutputDevice.label}`);
-        //     } catch (err) {
-        //       console.error('Error setting audio output device:', err);
-        //     }
-        //   }
-        // }
+  // const updateOutputDevices = useCallback(async () => {
+  //   if (isOutputDeviceOn && selectedOutputDevice) {
+  //     // Apply output device selection using setSinkId
+  //     // This is only supported in some browsers (Chrome, Edge)
+  //     try {
+  //       // // Find all audio elements and set their sink ID
+  //       // const audioElements = document.querySelectorAll('audio');
+  //       // // Convert NodeList to Array before iterating
+  //       // const audioElementsArray = Array.from(audioElements);
+  //       // for (const audioEl of audioElementsArray) {
+  //       //   // Check if setSinkId is supported
+  //       //   if ('setSinkId' in audioEl) {
+  //       //     try {
+  //       //       // Always set the audio output device
+  //       //       await (audioEl as any).setSinkId(selectedOutputDevice.deviceId === 'default' ? '' : selectedOutputDevice.deviceId);
+  //       //       console.log(`Set audio output to: ${selectedOutputDevice.label}`);
+  //       //     } catch (err) {
+  //       //       console.error('Error setting audio output device:', err);
+  //       //     }
+  //       //   }
+  //       // }
         
-        // 对于测试音频元素，始终使用 Sokuji_Virtual_Speaker
-        if (testAudioRef.current) {
-          if ('setSinkId' in testAudioRef.current) {
-            try {
-              // 查找 Sokuji_Virtual_Speaker 设备
-              const virtualSpeaker = audioOutputDevices.find(device => 
-                device.label.includes('Sokuji_Virtual_Speaker'));
+  //       // 对于测试音频元素，始终使用 Sokuji_Virtual_Speaker
+  //       if (testAudioRef.current) {
+  //         if ('setSinkId' in testAudioRef.current) {
+  //           try {
+  //             // 查找 Sokuji_Virtual_Speaker 设备
+  //             const virtualSpeaker = audioOutputDevices.find(device => 
+  //               device.label.includes('Sokuji_Virtual_Speaker'));
 
-              if (virtualSpeaker) {
-                await (testAudioRef.current as any).setSinkId(virtualSpeaker.deviceId);
-                console.log(`Updated test audio output to Sokuji_Virtual_Speaker`);
-              } else {
-                // 如果找不到虚拟扬声器，则使用选定的输出设备（保持原有行为作为后备）
-                await (testAudioRef.current as any).setSinkId(selectedOutputDevice.deviceId === 'default' ? '' : selectedOutputDevice.deviceId);
-                console.log(`Updated test audio output to: ${selectedOutputDevice.label}`);
-              }
-            } catch (err) {
-              console.error('Error updating test audio output device:', err);
-            }
-          }
-        }
-      } catch (error) {
-        console.error('Error applying output device selection:', error);
-      }
-    }
-  }, [isOutputDeviceOn, selectedOutputDevice, audioOutputDevices]);
+  //             if (virtualSpeaker) {
+  //               await (testAudioRef.current as any).setSinkId(virtualSpeaker.deviceId);
+  //               console.log(`Updated test audio output to Sokuji_Virtual_Speaker`);
+  //             } else {
+  //               // 如果找不到虚拟扬声器，则使用选定的输出设备（保持原有行为作为后备）
+  //               await (testAudioRef.current as any).setSinkId(selectedOutputDevice.deviceId === 'default' ? '' : selectedOutputDevice.deviceId);
+  //               console.log(`Updated test audio output to: ${selectedOutputDevice.label}`);
+  //             }
+  //           } catch (err) {
+  //             console.error('Error updating test audio output device:', err);
+  //           }
+  //         }
+  //       }
+  //     } catch (error) {
+  //       console.error('Error applying output device selection:', error);
+  //     }
+  //   }
+  // }, [isOutputDeviceOn, selectedOutputDevice, audioOutputDevices]);
 
-  useEffect(() => {
-    updateOutputDevices();
-  }, [updateOutputDevices]);
+  // useEffect(() => {
+  //   updateOutputDevices();
+  // }, [updateOutputDevices]);
 
   useEffect(() => {
     // If we have test audio playing and output is turned off, mute it
@@ -298,6 +298,31 @@ const MainLayout: React.FC = () => {
 
   const selectOutputDevice = useCallback((device: AudioDevice) => {
     setSelectedOutputDevice(device);
+    console.log(`Selected output device: ${device.label} (${device.deviceId})`);
+    
+    // Connect the virtual speaker's monitor port to the selected output device
+    // This will route the audio from Sokuji_Virtual_Speaker to the selected output device
+    if (device && device.deviceId) {
+      console.log(`Connecting Sokuji_Virtual_Speaker to output device: ${device.label}`);
+      
+      // Call the Electron IPC to connect the virtual speaker to this output device
+      // We're using window.electron which is exposed by the preload script
+      // Send both deviceId and label to help with PipeWire node identification
+      (window as any).electron.invoke('connect-virtual-speaker-to-output', {
+        deviceId: device.deviceId,
+        label: device.label
+      })
+        .then((result: any) => {
+          if (result.success) {
+            console.log('Successfully connected virtual speaker to output device:', result.message);
+          } else {
+            console.error('Failed to connect virtual speaker to output device:', result.error);
+          }
+        })
+        .catch((error: any) => {
+          console.error('Error connecting virtual speaker to output device:', error);
+        });
+    }
   }, []);
 
   const toggleInputDeviceState = useCallback(() => {

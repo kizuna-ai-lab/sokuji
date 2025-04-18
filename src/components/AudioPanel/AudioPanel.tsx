@@ -172,7 +172,7 @@ const AudioPanel: React.FC<AudioPanelProps> = ({
 
         {/* Output Device Section */}
         <div className="audio-section">
-          <h3>Audio Output Device</h3>
+          <h3>Virtual Speaker Monitor Device</h3>
           <div className="device-selector">
             <div className="device-status">
               <div className={`device-icon ${isOutputDeviceOn ? 'active' : 'inactive'}`}>

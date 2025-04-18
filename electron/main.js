@@ -8,7 +8,9 @@ const {
   createVirtualAudioDevices, 
   removeVirtualAudioDevices, 
   isPulseAudioAvailable,
-  cleanupOrphanedDevices
+  cleanupOrphanedDevices,
+  connectVirtualSpeakerToOutput,
+  disconnectVirtualSpeakerFromOutputs
 } = require('./pulseaudio-utils');
 // Import API handlers
 const { generateToken, validateApiKey } = require('./api-handlers');
@@ -77,6 +79,25 @@ app.whenReady().then(async () => {
     const devicesCreated = await createVirtualAudioDevices();
     if (devicesCreated) {
       console.log('Virtual audio devices created successfully');
+      
+      // Connect the virtual speaker to the default output device
+      try {
+        // Use default device info
+        const defaultDeviceInfo = {
+          deviceId: 'default',
+          label: 'Default'
+        };
+        
+        // Connect virtual speaker to default output
+        const connected = await connectVirtualSpeakerToOutput(defaultDeviceInfo);
+        if (connected) {
+          console.log('Successfully connected virtual speaker to default output device');
+        } else {
+          console.error('Failed to connect virtual speaker to default output device');
+        }
+      } catch (connectionError) {
+        console.error('Error connecting virtual speaker to default output:', connectionError);
+      }
     } else {
       console.error('Failed to create virtual audio devices');
     }
@@ -150,26 +171,6 @@ ipcMain.handle('check-audio-system', async () => {
   }
 });
 
-ipcMain.handle('start-loopback', async () => {
-  try {
-    const result = await createVirtualAudioDevices();
-    return { success: result };
-  } catch (error) {
-    console.error('Error creating virtual audio devices:', error);
-    return { success: false, error: error.message };
-  }
-});
-
-ipcMain.handle('stop-loopback', () => {
-  try {
-    removeVirtualAudioDevices();
-    return { success: true };
-  } catch (error) {
-    console.error('Error removing virtual audio devices:', error);
-    return { success: false, error: error.message };
-  }
-});
-
 // Configuration IPC handlers
 ipcMain.handle('get-config', (event, key, defaultValue) => {
   try {
@@ -234,6 +235,45 @@ ipcMain.handle('validate-api-key', async (event, apiKey) => {
       success: false, 
       valid: false,
       error: error.message || 'Failed to validate API key' 
+    };
+  }
+});
+
+// Handler to connect virtual speaker to a specific output device
+ipcMain.handle('connect-virtual-speaker-to-output', async (event, deviceInfo) => {
+  try {
+    // First disconnect any existing connections
+    await disconnectVirtualSpeakerFromOutputs();
+    
+    // Then connect to the new output device
+    // Pass both deviceId and label to help with PipeWire node identification
+    const result = await connectVirtualSpeakerToOutput(deviceInfo);
+    return { 
+      success: result,
+      message: result ? 'Connected virtual speaker to output device' : 'Failed to connect'
+    };
+  } catch (error) {
+    console.error('Error connecting virtual speaker to output:', error);
+    return { 
+      success: false, 
+      error: error.message || 'Failed to connect virtual speaker to output device' 
+    };
+  }
+});
+
+// Handler to disconnect virtual speaker from all outputs
+ipcMain.handle('disconnect-virtual-speaker-outputs', async () => {
+  try {
+    const result = await disconnectVirtualSpeakerFromOutputs();
+    return { 
+      success: result,
+      message: result ? 'Disconnected virtual speaker from all outputs' : 'Failed to disconnect'
+    };
+  } catch (error) {
+    console.error('Error disconnecting virtual speaker:', error);
+    return { 
+      success: false, 
+      error: error.message || 'Failed to disconnect virtual speaker from outputs' 
     };
   }
 });
