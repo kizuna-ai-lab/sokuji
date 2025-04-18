@@ -211,12 +211,9 @@ const MainLayout: React.FC = () => {
           // Check if setSinkId is supported
           if ('setSinkId' in audioEl) {
             try {
-              // If 'default' is selected, let the browser use the System Default
-              // Otherwise use the specific device ID
-              if (selectedOutputDevice.deviceId !== 'default') {
-                await (audioEl as any).setSinkId(selectedOutputDevice.deviceId);
-                console.log(`Set audio output to: ${selectedOutputDevice.label}`);
-              }
+              // Always set the audio output device
+              await (audioEl as any).setSinkId(selectedOutputDevice.deviceId === 'default' ? '' : selectedOutputDevice.deviceId);
+              console.log(`Set audio output to: ${selectedOutputDevice.label}`);
             } catch (err) {
               console.error('Error setting audio output device:', err);
             }
@@ -227,10 +224,8 @@ const MainLayout: React.FC = () => {
         if (testAudioRef.current) {
           if ('setSinkId' in testAudioRef.current) {
             try {
-              if (selectedOutputDevice.deviceId !== 'default') {
-                await (testAudioRef.current as any).setSinkId(selectedOutputDevice.deviceId);
-                console.log(`Updated test audio output to: ${selectedOutputDevice.label}`);
-              }
+              await (testAudioRef.current as any).setSinkId(selectedOutputDevice.deviceId === 'default' ? '' : selectedOutputDevice.deviceId);
+              console.log(`Updated test audio output to: ${selectedOutputDevice.label}`);
             } catch (err) {
               console.error('Error updating test audio output device:', err);
             }
@@ -317,45 +312,39 @@ const MainLayout: React.FC = () => {
     }
   }, [fetchAudioDevices]);
 
+  // 修改 toggleSession 函数
   const toggleSession = useCallback(() => {
     setIsSessionActive(prevState => {
       const newState = !prevState;
       
-      // Play or pause the test audio based on session state
-      if (newState) {
-        // Start session - play the test audio
-        if (!testAudioRef.current) {
-          testAudioRef.current = new Audio('./assets/test-tone.mp3');
+      if (testAudioRef.current) {
+        if (newState) {
+          // 如果是激活会话，设置音频源并播放
+          if (!testAudioRef.current.src || testAudioRef.current.src.indexOf('test-tone.mp3') === -1) {
+            testAudioRef.current.src = './assets/test-tone.mp3';
+          }
           
-          console.log(`isOutputDeviceOn: ${isOutputDeviceOn}, selectedOutputDevice: ${JSON.stringify(selectedOutputDevice)}`)
-          // Set the audio output device if supported and selected
-          if (isOutputDeviceOn && selectedOutputDevice && 
-              selectedOutputDevice.deviceId !== 'default' && 
-              'setSinkId' in testAudioRef.current) {
+          console.log(`isOutputDeviceOn: ${isOutputDeviceOn}, selectedOutputDevice: ${JSON.stringify(selectedOutputDevice)}`);
+          // 设置音频输出设备（如果支持且已选择）
+          if (isOutputDeviceOn && selectedOutputDevice && 'setSinkId' in testAudioRef.current) {
             try {
-              (testAudioRef.current as any).setSinkId(selectedOutputDevice.deviceId)
-                .catch((err: any) => console.error('Error setting audio output device:', err));
+              (testAudioRef.current as any).setSinkId(
+                selectedOutputDevice.deviceId === 'default' ? '' : selectedOutputDevice.deviceId
+              ).catch((err: any) => console.error('Error setting audio output device:', err));
             } catch (err) {
               console.error('Error setting audio output device:', err);
             }
           }
+
+          // 根据输出设备状态设置静音
+          testAudioRef.current.muted = !isOutputDeviceOn;
           
-          // Loop the audio for continuous playback
-          testAudioRef.current.loop = true;
-          
-          // If output is turned off, mute the audio
-          if (!isOutputDeviceOn) {
-            testAudioRef.current.muted = true;
-            console.log('Output device is off - test audio will be muted');
-          }
-        }
-        
-        testAudioRef.current.play()
-          .catch(err => console.error('Error playing test audio:', err));
-        console.log('Session started - playing test audio');
-      } else {
-        // Stop session - pause the test audio
-        if (testAudioRef.current) {
+          // 播放音频
+          testAudioRef.current.play()
+            .catch(err => console.error('Error playing test audio:', err));
+          console.log('Session started - playing test audio');
+        } else {
+          // 如果是停止会话，暂停音频
           testAudioRef.current.pause();
           console.log('Session stopped - paused test audio');
         }
@@ -377,6 +366,22 @@ const MainLayout: React.FC = () => {
       stopAudioVisualization();
     };
   }, [stopAudioVisualization]);
+
+  // 添加初始化 Audio 元素的 useEffect
+  useEffect(() => {
+    // 初始化创建一个空的 Audio 元素
+    testAudioRef.current = new Audio();
+    testAudioRef.current.loop = true;
+    
+    // 组件卸载时清理资源
+    return () => {
+      if (testAudioRef.current) {
+        testAudioRef.current.pause();
+        testAudioRef.current.src = '';
+        testAudioRef.current = null;
+      }
+    };
+  }, []);
 
   return (
     <div className="main-layout">
