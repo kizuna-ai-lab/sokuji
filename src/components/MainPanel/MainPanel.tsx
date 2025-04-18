@@ -18,10 +18,13 @@ const MainPanel: React.FC<MainPanelProps> = ({
   toggleSession,
   isSessionActive
 }) => {
+  // These state variables are required for TokenGenerator component
+  // TokenGenerator needs these values to generate API tokens with the correct voice and model settings
   const [voice, setVoice] = useState<string>('alloy');
   const [model, setModel] = useState<string>('gpt-4o-realtime-preview');
   
-  // Load voice setting from config
+  // Load voice setting from config - this is essential for TokenGenerator to use the user's preferred voice
+  // This ensures TokenGenerator uses the same voice setting across app restarts
   useEffect(() => {
     const loadVoiceSetting = async () => {
       try {
