@@ -32,9 +32,8 @@ const MainPanel: React.FC<MainPanelProps> = ({
           const savedVoice = await window.electron.config.get('settings.voice', 'alloy');
           if (savedVoice) setVoice(savedVoice);
           
-          // You could also load model setting if needed
-          // const savedModel = await window.electron.config.get('settings.model', 'gpt-4o-realtime-preview');
-          // if (savedModel) setModel(savedModel);
+          const savedModel = await window.electron.config.get('settings.model', 'gpt-4o-realtime-preview');
+          if (savedModel) setModel(savedModel);
         }
       } catch (error) {
         console.error('Error loading voice setting:', error);
