@@ -276,9 +276,10 @@ const MainLayout: React.FC = () => {
     setSelectedOutputDevice(device);
     console.log(`Selected output device: ${device.label} (${device.deviceId})`);
     
-    // Connect the virtual speaker's monitor port to the selected output device
-    // This will route the audio from Sokuji_Virtual_Speaker to the selected output device
-    if (device && device.deviceId) {
+    // Only connect the virtual speaker if the output device is turned ON
+    if (isOutputDeviceOn && device && device.deviceId) {
+      // Connect the virtual speaker's monitor port to the selected output device
+      // This will route the audio from Sokuji_Virtual_Speaker to the selected output device
       console.log(`Connecting Sokuji_Virtual_Speaker to output device: ${device.label}`);
       
       // Call the Electron IPC to connect the virtual speaker to this output device
@@ -299,15 +300,50 @@ const MainLayout: React.FC = () => {
           console.error('Error connecting virtual speaker to output device:', error);
         });
     }
-  }, []);
+  }, [isOutputDeviceOn]);
 
   const toggleInputDeviceState = useCallback(() => {
     setIsInputDeviceOn(!isInputDeviceOn);
   }, [isInputDeviceOn]);
 
   const toggleOutputDeviceState = useCallback(() => {
-    setIsOutputDeviceOn(!isOutputDeviceOn);
-  }, [isOutputDeviceOn]);
+    const newState = !isOutputDeviceOn;
+    setIsOutputDeviceOn(newState);
+    
+    // Connect or disconnect the virtual speaker based on the new state
+    if (newState) {
+      // Turn ON - Connect virtual speaker to the selected output device
+      console.log(`Connecting Sokuji_Virtual_Speaker to output device: ${selectedOutputDevice.label}`);
+      (window as any).electron.invoke('connect-virtual-speaker-to-output', {
+        deviceId: selectedOutputDevice.deviceId,
+        label: selectedOutputDevice.label
+      })
+        .then((result: any) => {
+          if (result.success) {
+            console.log('Successfully connected virtual speaker to output device:', result.message);
+          } else {
+            console.error('Failed to connect virtual speaker to output device:', result.error);
+          }
+        })
+        .catch((error: any) => {
+          console.error('Error connecting virtual speaker to output device:', error);
+        });
+    } else {
+      // Turn OFF - Disconnect virtual speaker from all outputs
+      console.log('Disconnecting Sokuji_Virtual_Speaker from all outputs');
+      (window as any).electron.invoke('disconnect-virtual-speaker-outputs')
+        .then((result: any) => {
+          if (result.success) {
+            console.log('Successfully disconnected virtual speaker from outputs:', result.message);
+          } else {
+            console.error('Failed to disconnect virtual speaker from outputs:', result.error);
+          }
+        })
+        .catch((error: any) => {
+          console.error('Error disconnecting virtual speaker from outputs:', error);
+        });
+    }
+  }, [isOutputDeviceOn, selectedOutputDevice]);
 
   const refreshDevices = useCallback(async () => {
     setIsLoading(true);
@@ -356,9 +392,6 @@ const MainLayout: React.FC = () => {
               console.error('Error setting audio output device:', err);
             }
           }
-
-          // Set mute state based on output device status
-          testAudioRef.current.muted = !isOutputDeviceOn;
           
           // Play audio
           testAudioRef.current.play()

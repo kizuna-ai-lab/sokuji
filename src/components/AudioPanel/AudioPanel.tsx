@@ -145,6 +145,9 @@ const AudioPanel: React.FC<AudioPanelProps> = ({
             Connecting your monitor to Sokuji's output device would create an audio feedback loop, causing your input to contain your own monitored output.
           </p>
           <p>
+            The "Turn On" switch connects the virtual speaker to your selected output device, allowing you to hear what's being sent to your conferencing application. The "Turn Off" switch disconnects this monitoring connection.
+          </p>
+          <p>
             For proper operation, please select a different output device (like your headphones or speakers) from the list.
           </p>
           <button 
