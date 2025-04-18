@@ -203,29 +203,39 @@ const MainLayout: React.FC = () => {
       // Apply output device selection using setSinkId
       // This is only supported in some browsers (Chrome, Edge)
       try {
-        // Find all audio elements and set their sink ID
-        const audioElements = document.querySelectorAll('audio');
-        // Convert NodeList to Array before iterating
-        const audioElementsArray = Array.from(audioElements);
-        for (const audioEl of audioElementsArray) {
-          // Check if setSinkId is supported
-          if ('setSinkId' in audioEl) {
-            try {
-              // Always set the audio output device
-              await (audioEl as any).setSinkId(selectedOutputDevice.deviceId === 'default' ? '' : selectedOutputDevice.deviceId);
-              console.log(`Set audio output to: ${selectedOutputDevice.label}`);
-            } catch (err) {
-              console.error('Error setting audio output device:', err);
-            }
-          }
-        }
+        // // Find all audio elements and set their sink ID
+        // const audioElements = document.querySelectorAll('audio');
+        // // Convert NodeList to Array before iterating
+        // const audioElementsArray = Array.from(audioElements);
+        // for (const audioEl of audioElementsArray) {
+        //   // Check if setSinkId is supported
+        //   if ('setSinkId' in audioEl) {
+        //     try {
+        //       // Always set the audio output device
+        //       await (audioEl as any).setSinkId(selectedOutputDevice.deviceId === 'default' ? '' : selectedOutputDevice.deviceId);
+        //       console.log(`Set audio output to: ${selectedOutputDevice.label}`);
+        //     } catch (err) {
+        //       console.error('Error setting audio output device:', err);
+        //     }
+        //   }
+        // }
         
-        // Also update the test audio element if it exists and is playing
+        // 对于测试音频元素，始终使用 Sokuji_Virtual_Speaker
         if (testAudioRef.current) {
           if ('setSinkId' in testAudioRef.current) {
             try {
-              await (testAudioRef.current as any).setSinkId(selectedOutputDevice.deviceId === 'default' ? '' : selectedOutputDevice.deviceId);
-              console.log(`Updated test audio output to: ${selectedOutputDevice.label}`);
+              // 查找 Sokuji_Virtual_Speaker 设备
+              const virtualSpeaker = audioOutputDevices.find(device => 
+                device.label.includes('Sokuji_Virtual_Speaker'));
+
+              if (virtualSpeaker) {
+                await (testAudioRef.current as any).setSinkId(virtualSpeaker.deviceId);
+                console.log(`Updated test audio output to Sokuji_Virtual_Speaker`);
+              } else {
+                // 如果找不到虚拟扬声器，则使用选定的输出设备（保持原有行为作为后备）
+                await (testAudioRef.current as any).setSinkId(selectedOutputDevice.deviceId === 'default' ? '' : selectedOutputDevice.deviceId);
+                console.log(`Updated test audio output to: ${selectedOutputDevice.label}`);
+              }
             } catch (err) {
               console.error('Error updating test audio output device:', err);
             }
@@ -235,7 +245,7 @@ const MainLayout: React.FC = () => {
         console.error('Error applying output device selection:', error);
       }
     }
-  }, [isOutputDeviceOn, selectedOutputDevice]);
+  }, [isOutputDeviceOn, selectedOutputDevice, audioOutputDevices]);
 
   useEffect(() => {
     updateOutputDevices();
@@ -325,12 +335,23 @@ const MainLayout: React.FC = () => {
           }
           
           console.log(`isOutputDeviceOn: ${isOutputDeviceOn}, selectedOutputDevice: ${JSON.stringify(selectedOutputDevice)}`);
-          // 设置音频输出设备（如果支持且已选择）
-          if (isOutputDeviceOn && selectedOutputDevice && 'setSinkId' in testAudioRef.current) {
+          // 始终使用 Sokuji_Virtual_Speaker 作为输出设备
+          if ('setSinkId' in testAudioRef.current) {
             try {
-              (testAudioRef.current as any).setSinkId(
-                selectedOutputDevice.deviceId === 'default' ? '' : selectedOutputDevice.deviceId
-              ).catch((err: any) => console.error('Error setting audio output device:', err));
+              // 查找 Sokuji_Virtual_Speaker 设备
+              const virtualSpeaker = audioOutputDevices.find(device => 
+                device.label.includes('Sokuji_Virtual_Speaker'));
+
+              if (virtualSpeaker) {
+                (testAudioRef.current as any).setSinkId(virtualSpeaker.deviceId)
+                  .catch((err: any) => console.error('Error setting Sokuji_Virtual_Speaker as output device:', err));
+                console.log('Set test audio output to Sokuji_Virtual_Speaker');
+              } else {
+                // 如果找不到虚拟扬声器，则使用选定的输出设备（保持原有行为作为后备）
+                (testAudioRef.current as any).setSinkId(
+                  selectedOutputDevice.deviceId === 'default' ? '' : selectedOutputDevice.deviceId
+                ).catch((err: any) => console.error('Error setting audio output device:', err));
+              }
             } catch (err) {
               console.error('Error setting audio output device:', err);
             }
@@ -352,7 +373,7 @@ const MainLayout: React.FC = () => {
       
       return newState;
     });
-  }, [isOutputDeviceOn, selectedOutputDevice]);
+  }, [isOutputDeviceOn, selectedOutputDevice, audioOutputDevices]);
 
   // Clean up audio when component unmounts
   useEffect(() => {
@@ -373,6 +394,29 @@ const MainLayout: React.FC = () => {
     testAudioRef.current = new Audio();
     testAudioRef.current.loop = true;
     
+    // 尝试设置 Sokuji_Virtual_Speaker 作为默认输出设备
+    if ('setSinkId' in HTMLAudioElement.prototype) {
+      const setVirtualSpeaker = async () => {
+        try {
+          // 等待设备列表加载完成
+          if (audioOutputDevices.length > 0) {
+            // 查找 Sokuji_Virtual_Speaker 设备
+            const virtualSpeaker = audioOutputDevices.find(device => 
+              device.label.includes('Sokuji_Virtual_Speaker'));
+
+            if (virtualSpeaker && testAudioRef.current) {
+              await (testAudioRef.current as any).setSinkId(virtualSpeaker.deviceId);
+              console.log('Set initial test audio output to Sokuji_Virtual_Speaker');
+            }
+          }
+        } catch (err) {
+          console.error('Error setting initial audio output device:', err);
+        }
+      };
+      
+      setVirtualSpeaker();
+    }
+    
     // 组件卸载时清理资源
     return () => {
       if (testAudioRef.current) {
@@ -381,7 +425,7 @@ const MainLayout: React.FC = () => {
         testAudioRef.current = null;
       }
     };
-  }, []);
+  }, [audioOutputDevices]);
 
   return (
     <div className="main-layout">
