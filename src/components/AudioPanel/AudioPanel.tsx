@@ -39,6 +39,7 @@ const AudioPanel: React.FC<AudioPanelProps> = ({
   refreshDevices
 }) => {
   const [showVirtualMicWarning, setShowVirtualMicWarning] = useState(false);
+  const [showVirtualSpeakerWarning, setShowVirtualSpeakerWarning] = useState(false);
 
   // Audio waveform history: 5 bars, right is newest
   const InputAudioWaveform = () => (
@@ -86,6 +87,15 @@ const AudioPanel: React.FC<AudioPanelProps> = ({
     }
   };
 
+  // Handle output device selection with virtual speaker check
+  const handleOutputDeviceSelection = (device: {deviceId: string; label: string; isDefault?: boolean}) => {
+    if (isVirtualSpeaker(device)) {
+      setShowVirtualSpeakerWarning(true);
+    } else {
+      selectOutputDevice(device);
+    }
+  };
+
   return (
     <div className="audio-panel">
       <Modal 
@@ -110,6 +120,36 @@ const AudioPanel: React.FC<AudioPanelProps> = ({
           <button 
             className="understand-button" 
             onClick={() => setShowVirtualMicWarning(false)}
+          >
+            I understand
+          </button>
+        </div>
+      </Modal>
+
+      <Modal 
+        isOpen={showVirtualSpeakerWarning} 
+        onClose={() => setShowVirtualSpeakerWarning(false)}
+        title="Virtual Speaker Notice"
+      >
+        <div className="virtual-mic-warning">
+          <div className="warning-icon">
+            <AlertTriangle size={24} color="#f0ad4e" />
+          </div>
+          <p>
+            <strong>This is a virtual speaker created by Sokuji.</strong>
+          </p>
+          <p>
+            Please do not select this device as your monitor. The Sokuji_Virtual_Speaker is used by Sokuji to output audio to your conferencing applications.
+          </p>
+          <p>
+            Connecting your monitor to Sokuji's output device would create an audio feedback loop, causing your input to contain your own monitored output.
+          </p>
+          <p>
+            For proper operation, please select a different output device (like your headphones or speakers) from the list.
+          </p>
+          <button 
+            className="understand-button" 
+            onClick={() => setShowVirtualSpeakerWarning(false)}
           >
             I understand
           </button>
@@ -211,7 +251,7 @@ const AudioPanel: React.FC<AudioPanelProps> = ({
               <div 
                 key={index} 
                 className={`device-option ${selectedOutputDevice.deviceId === device.deviceId ? 'selected' : ''}`}
-                onClick={() => selectOutputDevice(device)}
+                onClick={() => handleOutputDeviceSelection(device)}
               >
                 <span>{device.label}</span>
                 {isVirtualSpeaker(device) && (
