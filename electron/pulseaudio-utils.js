@@ -585,9 +585,7 @@ async function disconnectVirtualSpeakerFromOutputs() {
     
     // Get existing links
     const { stdout: existingLinks } = await execPromise('pw-link -l').catch(() => ({ stdout: '' }));
-    console.log('Current audio connections:');
-    console.log(existingLinks);
-    
+
     // Parse the output to find links to disconnect
     const lines = existingLinks.split('\n');
     const linksToDisconnect = [];
