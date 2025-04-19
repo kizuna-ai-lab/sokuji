@@ -116,6 +116,17 @@ const MainLayout: React.FC = () => {
     }
   }, [selectedInputDevice, stopAudioVisualization]);
 
+  const currentInputDeviceRef = useRef<AudioDevice>({ deviceId: '', label: '' });
+  const currentOutputDeviceRef = useRef<AudioDevice>({ deviceId: '', label: '' });
+
+  useEffect(() => {
+    currentInputDeviceRef.current = selectedInputDevice;
+  }, [selectedInputDevice]);
+
+  useEffect(() => {
+    currentOutputDeviceRef.current = selectedOutputDevice;
+  }, [selectedOutputDevice]);
+
   const fetchAudioDevices = useCallback(async () => {
     try {
       await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -130,23 +141,34 @@ const MainLayout: React.FC = () => {
           deviceId: device.deviceId,
           label: device.label || `Microphone ${device.deviceId.slice(0, 5)}...`
         }));
-      
-      // Find the first non-virtual device to select
+
+      // if selected device still in new audioInputs, use it
+      const currentInputDevice = currentInputDeviceRef.current;
+      const currentInputDeviceStillAvailable = audioInputs.some(
+        device => device.deviceId === currentInputDevice.deviceId
+      );
+
       let selectedInput = null;
-      
-      // First try to find a non-virtual device
-      for (const device of audioInputs) {
-        if (!device.label.toLowerCase().includes('sokuji_virtual')) {
-          selectedInput = device;
-          console.log(`Selected first non-virtual input device: ${device.label}`);
-          break;
+      if (!currentInputDeviceStillAvailable || !currentInputDevice.deviceId) {
+        // Find the first non-virtual device to select
+        
+        // First try to find a non-virtual device
+        for (const device of audioInputs) {
+          if (!device.label.toLowerCase().includes('sokuji_virtual')) {
+            selectedInput = device;
+            console.log(`Selected first non-virtual input device: ${device.label}`);
+            break;
+          }
         }
-      }
       
-      // If all devices are virtual, just use the first one
-      if (!selectedInput && audioInputs.length > 0) {
-        selectedInput = audioInputs[0];
-        console.log(`All input devices are virtual, selecting first: ${audioInputs[0].label}`);
+        // If all devices are virtual, just use the first one
+        if (!selectedInput && audioInputs.length > 0) {
+          selectedInput = audioInputs[0];
+          console.log(`All input devices are virtual, selecting first: ${audioInputs[0].label}`);
+        }
+      } else {
+        selectedInput = currentInputDevice;
+        console.log(`Keeping previously selected input device: ${currentInputDevice.label}`);
       }
       
       // Set the input devices
@@ -165,22 +187,32 @@ const MainLayout: React.FC = () => {
           label: device.label || `Speaker ${device.deviceId.slice(0, 5)}...`
         }));
       
-      // Find the first non-virtual device to select
+      // Check if the previously selected output device is still available
+      const currentOutputDevice = currentOutputDeviceRef.current;
+      const currentOutputDeviceStillAvailable = audioOutputs.some(
+        device => device.deviceId === currentOutputDevice.deviceId
+      );
+
+      // Find the appropriate output device to select
       let selectedOutput = null;
-      
-      // First try to find a non-virtual device
-      for (const device of audioOutputs) {
-        if (!device.label.toLowerCase().includes('sokuji_virtual')) {
-          selectedOutput = device;
-          console.log(`Selected first non-virtual output device: ${device.label}`);
-          break;
+      if (!currentOutputDeviceStillAvailable || !currentOutputDevice.deviceId) {
+        // First try to find a non-virtual device
+        for (const device of audioOutputs) {
+          if (!device.label.toLowerCase().includes('sokuji_virtual')) {
+            selectedOutput = device;
+            console.log(`Selected first non-virtual output device: ${device.label}`);
+            break;
+          }
         }
-      }
-      
-      // If all devices are virtual, just use the first one
-      if (!selectedOutput && audioOutputs.length > 0) {
-        selectedOutput = audioOutputs[0];
-        console.log(`All output devices are virtual, selecting first: ${audioOutputs[0].label}`);
+        
+        // If all devices are virtual, just use the first one
+        if (!selectedOutput && audioOutputs.length > 0) {
+          selectedOutput = audioOutputs[0];
+          console.log(`All output devices are virtual, selecting first: ${audioOutputs[0].label}`);
+        }
+      } else {
+        selectedOutput = currentOutputDevice;
+        console.log(`Keeping previously selected output device: ${currentOutputDevice.label}`);
       }
       
       // Set the output devices
@@ -269,6 +301,7 @@ const MainLayout: React.FC = () => {
   }, [showSettings]);
 
   const selectInputDevice = useCallback((device: AudioDevice) => {
+    console.log(`Selected input device callback: ${device.label} (${device.deviceId})`);
     setSelectedInputDevice(device);
   }, []);
 
@@ -362,20 +395,21 @@ const MainLayout: React.FC = () => {
   const toggleSession = useCallback(() => {
     setIsSessionActive(prevState => {
       const newState = !prevState;
-      
+
+      console.log(`Toggling session state: ${newState}`);
       if (testAudioRef.current) {
         if (newState) {
           // If activating the session, set the audio source and play
           if (!testAudioRef.current.src || testAudioRef.current.src.indexOf('test-tone.mp3') === -1) {
             testAudioRef.current.src = './assets/test-tone.mp3';
           }
-          
+
           console.log(`isOutputDeviceOn: ${isOutputDeviceOn}, selectedOutputDevice: ${JSON.stringify(selectedOutputDevice)}`);
           // Always use Sokuji_Virtual_Speaker as the output device
           if ('setSinkId' in testAudioRef.current) {
             try {
               // Find the Sokuji_Virtual_Speaker device
-              const virtualSpeaker = audioOutputDevices.find(device => 
+              const virtualSpeaker = audioOutputDevices.find(device =>
                 device.label.includes('Sokuji_Virtual_Speaker'));
 
               if (virtualSpeaker) {
@@ -392,7 +426,7 @@ const MainLayout: React.FC = () => {
               console.error('Error setting audio output device:', err);
             }
           }
-          
+
           // Play audio
           testAudioRef.current.play()
             .catch(err => console.error('Error playing test audio:', err));
@@ -403,20 +437,11 @@ const MainLayout: React.FC = () => {
           console.log('Session stopped - paused test audio');
         }
       }
-      
+
       return newState;
     });
   }, [isOutputDeviceOn, selectedOutputDevice, audioOutputDevices]);
 
-  useEffect(() => {
-    // Stop test audio if it's playing
-    if (testAudioRef.current) {
-      testAudioRef.current.pause();
-      testAudioRef.current = null;
-    }
-    
-    stopAudioVisualization();
-  }, [stopAudioVisualization]);
   useEffect(() => {
     // Initialize by creating an empty Audio element
     testAudioRef.current = new Audio();
@@ -436,24 +461,35 @@ const MainLayout: React.FC = () => {
               await (testAudioRef.current as any).setSinkId(virtualSpeaker.deviceId);
               console.log('Set initial test audio output to Sokuji_Virtual_Speaker');
               
+              const currentOutputDevice = currentOutputDeviceRef.current;
+              const currentOutputDeviceStillAvailable = audioOutputDevices.some(
+                device => device.deviceId === currentOutputDevice.deviceId
+              );
+              
               // Find the first non-virtual output device as default selection
               let selectedOutput = null;
-              
-              // First try to find a non-virtual device
-              for (const device of audioOutputDevices) {
-                if (!device.label.toLowerCase().includes('sokuji_virtual')) {
-                  selectedOutput = device;
-                  console.log(`Selected first non-virtual output device on init: ${device.label}`);
-                  break;
+
+              if(!currentOutputDeviceStillAvailable || !currentOutputDevice.deviceId){
+                // First try to find a non-virtual device
+                for (const device of audioOutputDevices) {
+                  if (!device.label.toLowerCase().includes('sokuji_virtual')) {
+                    selectedOutput = device;
+                    console.log(`Selected first non-virtual output device on init: ${device.label}`);
+                    break;
+                  }
                 }
+                
+                // If all devices are virtual, use the first one
+                if (!selectedOutput && audioOutputDevices.length > 0) {
+                  selectedOutput = audioOutputDevices[0];
+                  console.log(`All output devices are virtual, selecting first on init: ${audioOutputDevices[0].label}`);
+                }
+                
+              }else{
+                selectedOutput = currentOutputDevice;
+                console.log(`Keeping previously selected output device: ${currentOutputDevice.label}`);
               }
-              
-              // If all devices are virtual, use the first one
-              if (!selectedOutput && audioOutputDevices.length > 0) {
-                selectedOutput = audioOutputDevices[0];
-                console.log(`All output devices are virtual, selecting first on init: ${audioOutputDevices[0].label}`);
-              }
-              
+
               // Set the selected output device
               if (selectedOutput) {
                 setSelectedOutputDevice(selectedOutput);
@@ -486,15 +522,6 @@ const MainLayout: React.FC = () => {
 
       setVirtualSpeaker();
     }
-
-    // Clean up resources when component unmounts
-    return () => {
-      if (testAudioRef.current) {
-        testAudioRef.current.pause();
-        testAudioRef.current.src = '';
-        testAudioRef.current = null;
-      }
-    };
   }, [audioOutputDevices]);
 
   return (
