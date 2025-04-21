@@ -1,11 +1,7 @@
 import React, { useState } from 'react';
 import './TokenGenerator.scss';
 import { useLog } from '../../contexts/LogContext';
-
-interface TokenGeneratorProps {
-  voice: string;
-  model?: string;
-}
+import { useSettings } from '../../contexts/SettingsContext';
 
 interface TokenResponse {
   success: boolean;
@@ -21,7 +17,8 @@ interface TokenResponse {
   error?: string;
 }
 
-const TokenGenerator: React.FC<TokenGeneratorProps> = ({ voice, model }) => {
+const TokenGenerator: React.FC = () => {
+  const { settings } = useSettings();
   const { addLog } = useLog();
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
@@ -30,13 +27,23 @@ const TokenGenerator: React.FC<TokenGeneratorProps> = ({ voice, model }) => {
     setIsGenerating(true);
     setError('');
     
-    addLog(`Generating token for model: ${model || 'gpt-4o-realtime-preview'}, voice: ${voice}`, 'info');
+    addLog(`Generating token for model: ${settings.model}, voice: ${settings.voice}`, 'info');
 
     try {
       // Use the OpenAI token generation API from Electron preload
       const response: TokenResponse = await window.electron.openai.generateToken({
-        model: model || 'gpt-4o-realtime-preview',
-        voice
+        model: settings.model,
+        voice: settings.voice,
+        turnDetectionMode: settings.turnDetectionMode,
+        threshold: settings.threshold,
+        prefixPadding: settings.prefixPadding,
+        silenceDuration: settings.silenceDuration,
+        semanticEagerness: settings.semanticEagerness,
+        temperature: settings.temperature,
+        maxTokens: settings.maxTokens,
+        transcriptModel: settings.transcriptModel,
+        noiseReduction: settings.noiseReduction,
+        systemInstructions: settings.systemInstructions
       });
 
       console.log('Token response:', response);

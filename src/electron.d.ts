@@ -11,6 +11,16 @@ interface ElectronAPI {
     generateToken: (options?: { 
       model?: string; 
       voice?: string; 
+      turnDetectionMode?: 'Normal' | 'Semantic' | 'Disabled';
+      threshold?: number;
+      prefixPadding?: number;
+      silenceDuration?: number;
+      semanticEagerness?: 'Auto' | 'Low' | 'Medium' | 'High';
+      temperature?: number;
+      maxTokens?: number;
+      transcriptModel?: 'gpt-4o-mini-transcribe' | 'gpt-4o-transcribe' | 'whisper-1';
+      noiseReduction?: 'None' | 'Near field' | 'Far field';
+      systemInstructions?: string;
     }) => Promise<{ 
       success: boolean; 
       data?: any; 

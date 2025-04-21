@@ -8,15 +8,7 @@ const CONFIG_DIR = path.join(os.homedir(), '.config', 'sokuji');
 const CONFIG_FILE = path.join(CONFIG_DIR, 'config.toml');
 
 // Default configuration
-const DEFAULT_CONFIG = {
-  openai: {
-    apiKey: ''
-  },
-  app: {
-    language: 'en',
-    theme: 'light'
-  }
-};
+const DEFAULT_CONFIG = {};
 
 /**
  * Ensures the configuration directory exists
@@ -75,14 +67,14 @@ function writeConfig(config) {
 
 /**
  * Gets a specific configuration value
- * @param {string} key - The key to get (using dot notation, e.g., 'openai.apiKey')
+ * @param {string} key - The key to get (using dot notation, e.g., 'settings.apiKey')
  * @param {any} defaultValue - The default value to return if the key doesn't exist
  * @returns {any} The configuration value
  */
 function getConfig(key, defaultValue = null) {
   const config = readConfig();
   
-  // Handle dot notation (e.g., 'openai.apiKey')
+  // Handle dot notation (e.g., 'settings.apiKey')
   const keys = key.split('.');
   let value = config;
   
@@ -98,14 +90,14 @@ function getConfig(key, defaultValue = null) {
 
 /**
  * Sets a specific configuration value
- * @param {string} key - The key to set (using dot notation, e.g., 'openai.apiKey')
+ * @param {string} key - The key to set (using dot notation, e.g., 'settings.apiKey')
  * @param {any} value - The value to set
  * @returns {boolean} Whether the operation was successful
  */
 function setConfig(key, value) {
   const config = readConfig();
   
-  // Handle dot notation (e.g., 'openai.apiKey')
+  // Handle dot notation (e.g., 'settings.apiKey')
   const keys = key.split('.');
   let current = config;
   

@@ -1,39 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowRight, Save, Check, AlertCircle, AlertTriangle, Info, Key } from 'react-feather';
 import './SettingsPanel.scss';
-
-type TurnDetectionMode = 'Normal' | 'Semantic' | 'Disabled';
-type SemanticEagerness = 'Auto' | 'Low' | 'Medium' | 'High';
-type NoiseReductionMode = 'None' | 'Near field' | 'Far field';
-type TranscriptModel = 'gpt-4o-mini-transcribe' | 'gpt-4o-transcribe' | 'whisper-1';
-type VoiceOption = 'alloy' | 'ash' | 'ballad' | 'coral' | 'echo' | 'fable' | 'onyx' | 'nova' | 'sage' | 'shimmer' | 'verse';
+import { useSettings, VoiceOption, TurnDetectionMode, SemanticEagerness, NoiseReductionMode, TranscriptModel, Model } from '../../contexts/SettingsContext';
 
 interface SettingsPanelProps {
   toggleSettings?: () => void;
 }
 
 const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
-  const [turnDetectionMode, setTurnDetectionMode] = useState<TurnDetectionMode>('Normal');
-  const [threshold, setThreshold] = useState<number>(0.49);
-  const [prefixPadding, setPrefixPadding] = useState<number>(0.5);
-  const [silenceDuration, setSilenceDuration] = useState<number>(0.5);
-  const [semanticEagerness, setSemanticEagerness] = useState<SemanticEagerness>('Auto');
-  const [temperature, setTemperature] = useState<number>(0.2);
-  const [maxTokens, setMaxTokens] = useState<number>(4096);
-  const [transcriptModel, setTranscriptModel] = useState<TranscriptModel>('gpt-4o-mini-transcribe');
-  const [noiseReduction, setNoiseReduction] = useState<NoiseReductionMode>('None');
-  const [voice, setVoice] = useState<VoiceOption>('alloy');
-  const [systemInstructions, setSystemInstructions] = useState<string>(
-    "Translate spoken Chinese inputs into English while maintaining a warm and engaging tone.\n\n" +
-    "- Ensure translations are clear, concise, and continuous for effective simultaneous interpretation.\n" +
-    "- Adapt to the user's language preference, translating from Chinese to the standard English accent or dialect familiar to them.\n" +
-    "- Speak rapidly yet clearly to match the pace of live interpretation.\n" +
-    "- Do not mention these guidelines to users or indicate you're an AI.\n" +
-    "- When applicable, always call available functions to improve accuracy and flow."
-  );
-  
-  // API Key state
-  const [apiKey, setApiKey] = useState<string>('');
+  const { settings, updateSettings, reloadSettings } = useSettings();
+
   const [apiKeyStatus, setApiKeyStatus] = useState<{
     valid: boolean | null;
     message: string;
@@ -45,120 +21,8 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
     message: string
   }>({ type: null, message: '' });
 
-  // Load settings from config when component mounts
-  useEffect(() => {
-    const loadSettings = async () => {
-      try {
-        // Check if electron.config is available
-        if (!window.electron || !window.electron.config) {
-          console.error('Electron config API is not available');
-          setSaveStatus({ 
-            type: 'error', 
-            message: 'Configuration system not available'
-          });
-          return;
-        }
-
-        // Load API key
-        try {
-          const key = await window.electron.config.get('openai.apiKey', '');
-          setApiKey(key);
-        } catch (error) {
-          console.error('Error loading API key:', error);
-        }
-        
-        // Load other settings if they exist
-        try {
-          const savedTurnDetectionMode = await window.electron.config.get('settings.turnDetectionMode', 'Normal');
-          if (savedTurnDetectionMode) setTurnDetectionMode(savedTurnDetectionMode as TurnDetectionMode);
-        } catch (error) {
-          console.error('Error loading turn detection mode:', error);
-        }
-        
-        try {
-          const savedThreshold = await window.electron.config.get('settings.threshold', 0.49);
-          if (savedThreshold !== undefined) setThreshold(savedThreshold);
-        } catch (error) {
-          console.error('Error loading threshold:', error);
-        }
-        
-        try {
-          const savedPrefixPadding = await window.electron.config.get('settings.prefixPadding', 0.5);
-          if (savedPrefixPadding !== undefined) setPrefixPadding(savedPrefixPadding);
-        } catch (error) {
-          console.error('Error loading prefix padding:', error);
-        }
-        
-        try {
-          const savedSilenceDuration = await window.electron.config.get('settings.silenceDuration', 0.5);
-          if (savedSilenceDuration !== undefined) setSilenceDuration(savedSilenceDuration);
-        } catch (error) {
-          console.error('Error loading silence duration:', error);
-        }
-        
-        try {
-          const savedSemanticEagerness = await window.electron.config.get('settings.semanticEagerness', 'Auto');
-          if (savedSemanticEagerness) setSemanticEagerness(savedSemanticEagerness as SemanticEagerness);
-        } catch (error) {
-          console.error('Error loading semantic eagerness:', error);
-        }
-        
-        try {
-          const savedTemperature = await window.electron.config.get('settings.temperature', 0.2);
-          if (savedTemperature !== undefined) setTemperature(savedTemperature);
-        } catch (error) {
-          console.error('Error loading temperature:', error);
-        }
-        
-        try {
-          const savedMaxTokens = await window.electron.config.get('settings.maxTokens', 4096);
-          if (savedMaxTokens !== undefined) setMaxTokens(savedMaxTokens);
-        } catch (error) {
-          console.error('Error loading max tokens:', error);
-        }
-        
-        try {
-          const savedTranscriptModel = await window.electron.config.get('settings.transcriptModel', 'gpt-4o-mini-transcribe');
-          if (savedTranscriptModel) setTranscriptModel(savedTranscriptModel as TranscriptModel);
-        } catch (error) {
-          console.error('Error loading transcript model:', error);
-        }
-        
-        try {
-          const savedNoiseReduction = await window.electron.config.get('settings.noiseReduction', 'None');
-          if (savedNoiseReduction) setNoiseReduction(savedNoiseReduction as NoiseReductionMode);
-        } catch (error) {
-          console.error('Error loading noise reduction:', error);
-        }
-        
-        try {
-          const savedVoice = await window.electron.config.get('settings.voice', 'alloy');
-          if (savedVoice) setVoice(savedVoice as VoiceOption);
-        } catch (error) {
-          console.error('Error loading voice:', error);
-        }
-        
-        try {
-          const savedSystemInstructions = await window.electron.config.get('settings.systemInstructions', systemInstructions);
-          if (savedSystemInstructions) setSystemInstructions(savedSystemInstructions);
-        } catch (error) {
-          console.error('Error loading system instructions:', error);
-        }
-        
-      } catch (error) {
-        console.error('Error loading settings:', error);
-        setSaveStatus({ 
-          type: 'error', 
-          message: 'Failed to load settings'
-        });
-      }
-    };
-
-    loadSettings();
-  }, [systemInstructions]);
-
   const validateApiKey = async () => {
-    if (!apiKey || apiKey.trim() === '') {
+    if (!settings.openAIApiKey || settings.openAIApiKey.trim() === '') {
       setApiKeyStatus({
         valid: false,
         message: 'API key cannot be empty',
@@ -174,7 +38,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
     });
 
     try {
-      const result = await window.electron.openai.validateApiKey(apiKey);
+      const result = await window.electron.openai.validateApiKey(settings.openAIApiKey);
       
       if (result.success && result.valid) {
         const modelCount = result.models?.length || 0;
@@ -203,96 +67,44 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
     }
   };
 
-  const saveAllSettings = async () => {
+  const handleSave = async () => {
     setIsSaving(true);
-    setSaveStatus({ type: 'info', message: 'Saving settings...' });
-    
+    setSaveStatus({ type: null, message: '' });
+    let failCount = 0, successCount = 0;
     try {
-      // Check if electron.config is available
-      if (!window.electron || !window.electron.config) {
-        throw new Error('Electron config API is not available');
-      }
-
-      // Validate API key first if it has changed
-      const currentApiKey = await window.electron.config.get('openai.apiKey', '');
-      if (apiKey !== currentApiKey) {
-        const isValid = await validateApiKey();
-        if (!isValid) {
-          setSaveStatus({ 
-            type: 'error', 
-            message: 'Invalid API key. Settings not saved.'
-          });
-          setIsSaving(false);
-          return;
-        }
-      }
-
-      // Save all settings
-      let successCount = 0;
-      let failCount = 0;
-      
-      // Helper function to save a setting with error handling
-      const saveSetting = async (key: string, value: any) => {
-        try {
-          const result = await window.electron.config.set(key, value);
-          if (result && result.success) {
-            successCount++;
-          } else {
-            failCount++;
-          }
-        } catch (error) {
-          console.error(`Error saving ${key}:`, error);
-          failCount++;
-        }
-      };
-      
-      // Save each setting individually with error handling
-      await saveSetting('openai.apiKey', apiKey);
-      await saveSetting('settings.turnDetectionMode', turnDetectionMode);
-      await saveSetting('settings.threshold', threshold);
-      await saveSetting('settings.prefixPadding', prefixPadding);
-      await saveSetting('settings.silenceDuration', silenceDuration);
-      await saveSetting('settings.semanticEagerness', semanticEagerness);
-      await saveSetting('settings.temperature', temperature);
-      await saveSetting('settings.maxTokens', maxTokens);
-      await saveSetting('settings.transcriptModel', transcriptModel);
-      await saveSetting('settings.noiseReduction', noiseReduction);
-      await saveSetting('settings.voice', voice);
-      await saveSetting('settings.systemInstructions', systemInstructions);
-      
-      // Determine the overall result
-      if (failCount === 0) {
-        setSaveStatus({ 
-          type: 'success', 
-          message: 'Settings saved successfully'
-        });
-      } else if (successCount > 0) {
-        setSaveStatus({ 
-          type: 'warning', 
-          message: `Saved ${successCount} settings, ${failCount} failed`
-        });
-      } else {
-        setSaveStatus({ 
-          type: 'error', 
-          message: 'Failed to save settings'
-        });
-      }
+      updateSettings({ openAIApiKey: settings.openAIApiKey });
+      successCount++;
     } catch (error) {
-      console.error('Error saving settings:', error);
-      setSaveStatus({ 
-        type: 'error', 
-        message: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`
-      });
-    } finally {
-      setIsSaving(false);
-      // Clear status after 3 seconds
-      setTimeout(() => {
-        setSaveStatus({ type: null, message: '' });
-      }, 3000);
+      failCount++;
     }
+    try {
+      updateSettings({
+        turnDetectionMode: settings.turnDetectionMode,
+        threshold: settings.threshold,
+        prefixPadding: settings.prefixPadding,
+        silenceDuration: settings.silenceDuration,
+        semanticEagerness: settings.semanticEagerness,
+        temperature: settings.temperature,
+        maxTokens: settings.maxTokens,
+        transcriptModel: settings.transcriptModel,
+        noiseReduction: settings.noiseReduction,
+        voice: settings.voice,
+        systemInstructions: settings.systemInstructions,
+      });
+      successCount++;
+    } catch (error) {
+      failCount++;
+    }
+    if (failCount === 0) {
+      setSaveStatus({ type: 'success', message: 'Settings saved successfully' });
+    } else if (successCount > 0) {
+      setSaveStatus({ type: 'warning', message: `Saved ${successCount} settings, ${failCount} failed` });
+    } else {
+      setSaveStatus({ type: 'error', message: 'Failed to save settings' });
+    }
+    setIsSaving(false);
   };
 
-  // Function to render the status icon based on save status
   const renderStatusIcon = () => {
     if (!saveStatus.type) return null;
     
@@ -333,7 +145,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
         <div className="header-actions">
           <button 
             className="save-all-button"
-            onClick={saveAllSettings}
+            onClick={handleSave}
             disabled={isSaving}
           >
             <Save size={16} />
@@ -354,8 +166,8 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
           <textarea 
             className="system-instructions" 
             placeholder="Enter system instructions here..."
-            value={systemInstructions}
-            onChange={(e) => setSystemInstructions(e.target.value)}
+            value={settings.systemInstructions}
+            onChange={(e) => updateSettings({ systemInstructions: e.target.value })}
           />
         </div>
         <div className="settings-section">
@@ -363,8 +175,8 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
           <div className="setting-item">
             <select 
               className="select-dropdown"
-              value={voice}
-              onChange={(e) => setVoice(e.target.value as VoiceOption)}
+              value={settings.voice}
+              onChange={(e) => updateSettings({ voice: e.target.value as VoiceOption })}
             >
               <option value="alloy">alloy</option>
               <option value="ash">ash</option>
@@ -385,85 +197,85 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
           <div className="setting-item">
             <div className="turn-detection-options">
               <button 
-                className={`option-button ${turnDetectionMode === 'Normal' ? 'active' : ''}`}
-                onClick={() => setTurnDetectionMode('Normal')}
+                className={`option-button ${settings.turnDetectionMode === 'Normal' ? 'active' : ''}`}
+                onClick={() => updateSettings({ turnDetectionMode: 'Normal' as TurnDetectionMode })}
               >
                 Normal
               </button>
               <button 
-                className={`option-button ${turnDetectionMode === 'Semantic' ? 'active' : ''}`}
-                onClick={() => setTurnDetectionMode('Semantic')}
+                className={`option-button ${settings.turnDetectionMode === 'Semantic' ? 'active' : ''}`}
+                onClick={() => updateSettings({ turnDetectionMode: 'Semantic' as TurnDetectionMode })}
               >
                 Semantic
               </button>
               <button 
-                className={`option-button ${turnDetectionMode === 'Disabled' ? 'active' : ''}`}
-                onClick={() => setTurnDetectionMode('Disabled')}
+                className={`option-button ${settings.turnDetectionMode === 'Disabled' ? 'active' : ''}`}
+                onClick={() => updateSettings({ turnDetectionMode: 'Disabled' as TurnDetectionMode })}
               >
                 Disabled
               </button>
             </div>
           </div>
 
-          {turnDetectionMode === 'Normal' && (
+          {settings.turnDetectionMode === 'Normal' && (
             <>
               <div className="setting-item">
                 <div className="setting-label">
                   <span>Threshold</span>
-                  <span className="setting-value">{threshold.toFixed(2)}</span>
+                  <span className="setting-value">{settings.threshold.toFixed(2)}</span>
                 </div>
                 <input 
                   type="range" 
                   min="0" 
                   max="1" 
                   step="0.01" 
-                  value={threshold}
-                  onChange={(e) => setThreshold(parseFloat(e.target.value))}
+                  value={settings.threshold}
+                  onChange={(e) => updateSettings({ threshold: parseFloat(e.target.value) })}
                   className="slider"
                 />
               </div>
               <div className="setting-item">
                 <div className="setting-label">
                   <span>Prefix padding</span>
-                  <span className="setting-value">{prefixPadding.toFixed(1)}s</span>
+                  <span className="setting-value">{settings.prefixPadding.toFixed(1)}s</span>
                 </div>
                 <input 
                   type="range" 
                   min="0" 
                   max="2" 
                   step="0.1" 
-                  value={prefixPadding}
-                  onChange={(e) => setPrefixPadding(parseFloat(e.target.value))}
+                  value={settings.prefixPadding}
+                  onChange={(e) => updateSettings({ prefixPadding: parseFloat(e.target.value) })}
                   className="slider"
                 />
               </div>
               <div className="setting-item">
                 <div className="setting-label">
                   <span>Silence duration</span>
-                  <span className="setting-value">{silenceDuration.toFixed(1)}s</span>
+                  <span className="setting-value">{settings.silenceDuration.toFixed(1)}s</span>
                 </div>
                 <input 
                   type="range" 
                   min="0" 
                   max="2" 
                   step="0.1" 
-                  value={silenceDuration}
-                  onChange={(e) => setSilenceDuration(parseFloat(e.target.value))}
+                  value={settings.silenceDuration}
+                  onChange={(e) => updateSettings({ silenceDuration: parseFloat(e.target.value) })}
                   className="slider"
                 />
               </div>
             </>
           )}
 
-          {turnDetectionMode === 'Semantic' && (
+          {settings.turnDetectionMode === 'Semantic' && (
             <div className="setting-item">
               <div className="setting-label">
                 <span>Eagerness</span>
               </div>
               <select 
                 className="select-dropdown"
-                value={semanticEagerness}
-                onChange={(e) => setSemanticEagerness(e.target.value as SemanticEagerness)}
+                value={settings.semanticEagerness}
+                onChange={(e) => updateSettings({ semanticEagerness: e.target.value as SemanticEagerness })}
               >
                 <option value="Auto">Auto</option>
                 <option value="Low">Low</option>
@@ -476,8 +288,13 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
         <div className="settings-section">
           <h2>Model</h2>
           <div className="setting-item">
-            <select className="select-dropdown">
-              <option>Any</option>
+            <select
+              className="select-dropdown"
+              value={settings.model}
+              onChange={(e) => updateSettings({ model: e.target.value as Model })}
+            >
+              <option value="gpt-4o-realtime-preview">gpt-4o-realtime-preview</option>
+              <option value="gpt-4o-mini-realtime-preview">gpt-4o-mini-realtime-preview</option>
             </select>
           </div>
         </div>
@@ -486,8 +303,8 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
           <div className="setting-item">
             <select 
               className="select-dropdown"
-              value={transcriptModel}
-              onChange={(e) => setTranscriptModel(e.target.value as TranscriptModel)}
+              value={settings.transcriptModel}
+              onChange={(e) => updateSettings({ transcriptModel: e.target.value as TranscriptModel })}
             >
               <option value="gpt-4o-mini-transcribe">gpt-4o-mini-transcribe</option>
               <option value="gpt-4o-transcribe">gpt-4o-transcribe</option>
@@ -500,8 +317,8 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
           <div className="setting-item">
             <select 
               className="select-dropdown"
-              value={noiseReduction}
-              onChange={(e) => setNoiseReduction(e.target.value as NoiseReductionMode)}
+              value={settings.noiseReduction}
+              onChange={(e) => updateSettings({ noiseReduction: e.target.value as NoiseReductionMode })}
             >
               <option value="None">None</option>
               <option value="Near field">Near field</option>
@@ -514,30 +331,30 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
           <div className="setting-item">
             <div className="setting-label">
               <span>Temperature</span>
-              <span className="setting-value">{temperature.toFixed(2)}</span>
+              <span className="setting-value">{settings.temperature.toFixed(2)}</span>
             </div>
             <input 
               type="range" 
-              min="0" 
-              max="1" 
+              min="0.6" 
+              max="1.2" 
               step="0.01" 
-              value={temperature}
-              onChange={(e) => setTemperature(parseFloat(e.target.value))}
+              value={settings.temperature}
+              onChange={(e) => updateSettings({ temperature: parseFloat(e.target.value) })}
               className="slider"
             />
           </div>
           <div className="setting-item">
             <div className="setting-label">
               <span>Max tokens</span>
-              <span className="setting-value">{maxTokens}</span>
+              <span className="setting-value">{settings.maxTokens}</span>
             </div>
             <input 
               type="range" 
               min="1024" 
               max="8192" 
               step="1024" 
-              value={maxTokens}
-              onChange={(e) => setMaxTokens(parseInt(e.target.value))}
+              value={settings.maxTokens}
+              onChange={(e) => updateSettings({ maxTokens: parseInt(e.target.value) })}
               className="slider"
             />
           </div>
@@ -547,14 +364,11 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
           <div className="setting-item">
             <div className="api-key-container">
               <input
-                type="text"
-                value={apiKey}
+                value={settings.openAIApiKey}
                 onChange={(e) => {
-                  setApiKey(e.target.value);
+                  updateSettings({ openAIApiKey: e.target.value });
                   // Reset validation status when key changes
-                  if (apiKeyStatus.valid !== null) {
-                    setApiKeyStatus({ valid: null, message: '', validating: false });
-                  }
+                  setApiKeyStatus({ valid: null, message: '', validating: false });
                 }}
                 placeholder="Enter your OpenAI API key"
                 className={`text-input api-key-input ${
@@ -565,7 +379,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
               <button 
                 className="validate-key-button"
                 onClick={validateApiKey}
-                disabled={apiKeyStatus.validating || !apiKey}
+                disabled={apiKeyStatus.validating || !settings.openAIApiKey}
               >
                 <Key size={16} />
                 <span>{apiKeyStatus.validating ? 'Validating...' : 'Validate'}</span>

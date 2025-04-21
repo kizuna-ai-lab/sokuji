@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Terminal, PlayCircle, Users, Settings, Volume2, Square } from 'react-feather';
 import './MainPanel.scss';
 import TokenGenerator from './TokenGenerator';
@@ -18,31 +18,6 @@ const MainPanel: React.FC<MainPanelProps> = ({
   toggleSession,
   isSessionActive
 }) => {
-  // These state variables are required for TokenGenerator component
-  // TokenGenerator needs these values to generate API tokens with the correct voice and model settings
-  const [voice, setVoice] = useState<string>('alloy');
-  const [model, setModel] = useState<string>('gpt-4o-realtime-preview');
-  
-  // Load voice setting from config - this is essential for TokenGenerator to use the user's preferred voice
-  // This ensures TokenGenerator uses the same voice setting across app restarts
-  useEffect(() => {
-    const loadVoiceSetting = async () => {
-      try {
-        if (window.electron && window.electron.config) {
-          const savedVoice = await window.electron.config.get('settings.voice', 'alloy');
-          if (savedVoice) setVoice(savedVoice);
-          
-          const savedModel = await window.electron.config.get('settings.model', 'gpt-4o-realtime-preview');
-          if (savedModel) setModel(savedModel);
-        }
-      } catch (error) {
-        console.error('Error loading voice setting:', error);
-      }
-    };
-    
-    loadVoiceSetting();
-  }, []);
-
   return (
     <div className="main-panel">
       <header className="main-panel-header">
@@ -72,7 +47,8 @@ const MainPanel: React.FC<MainPanelProps> = ({
               <span>Conversation will appear here</span>
             </div>
           </div>
-          <TokenGenerator voice={voice} model={model} />
+          {/* TokenGenerator now uses context for all settings, no props needed */}
+          <TokenGenerator />
         </div>
       </div>
       <div className="floating-controls">
