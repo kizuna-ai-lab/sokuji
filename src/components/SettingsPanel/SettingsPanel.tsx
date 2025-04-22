@@ -183,9 +183,6 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
               <option value="ballad">ballad</option>
               <option value="coral">coral</option>
               <option value="echo">echo</option>
-              <option value="fable">fable</option>
-              <option value="onyx">onyx</option>
-              <option value="nova">nova</option>
               <option value="sage">sage</option>
               <option value="shimmer">shimmer</option>
               <option value="verse">verse</option>
