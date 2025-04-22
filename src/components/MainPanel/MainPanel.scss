@@ -4,51 +4,6 @@
   height: 100%;
   position: relative;
   
-  .main-panel-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 10px 20px;
-    background-color: #252525;
-    border-bottom: 1px solid #333;
-    
-    h1 {
-      margin: 0;
-      font-size: 18px;
-      font-weight: 500;
-    }
-    
-    .header-controls {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      
-      .settings-button,
-      .audio-button,
-      .logs-button {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        background: transparent;
-        border: 1px solid #555;
-        border-radius: 4px;
-        color: white;
-        padding: 6px 12px;
-        cursor: pointer;
-        font-size: 14px;
-        
-        &:hover {
-          background-color: rgba(255, 255, 255, 0.1);
-        }
-        
-        &.active {
-          background-color: rgba(255, 255, 255, 0.2);
-          border-color: #10a37f;
-        }
-      }
-    }
-  }
-  
   .conversation-container {
     flex: 1;
     overflow-y: auto;

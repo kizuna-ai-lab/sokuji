@@ -3,6 +3,7 @@ import MainPanel from '../MainPanel/MainPanel';
 import SettingsPanel from '../SettingsPanel/SettingsPanel';
 import LogsPanel from '../LogsPanel/LogsPanel';
 import AudioPanel from '../AudioPanel/AudioPanel';
+import { Terminal, Settings, Volume2 } from 'react-feather';
 import './MainLayout.scss';
 
 interface AudioDevice {
@@ -24,7 +25,6 @@ const MainLayout: React.FC = () => {
   const [isOutputDeviceOn, setIsOutputDeviceOn] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
   const [inputAudioHistory, setInputAudioHistory] = useState<number[]>(Array(WAVEFORM_BARS).fill(0));
-  const [isSessionActive, setIsSessionActive] = useState(false);
 
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
@@ -460,13 +460,27 @@ const MainLayout: React.FC = () => {
 
   return (
     <div className="main-layout">
-      <div className={`main-panel-container ${(showLogs || showSettings || showAudio) ? 'with-panel' : 'full-width'}`}>
-        <MainPanel
-          toggleLogs={toggleLogs}
-          toggleSettings={toggleSettings}
-          toggleAudio={toggleAudio}
-          isSessionActive={isSessionActive}
-        />
+      <div className={`main-content ${(showLogs || showSettings || showAudio) ? 'with-panel' : 'full-width'}`}>
+        <header className="main-panel-header">
+          <h1>Realtime</h1>
+          <div className="header-controls">
+            <button className="settings-button" onClick={toggleSettings}>
+              <Settings size={16} />
+              <span>Settings</span>
+            </button>
+            <button className="audio-button" onClick={toggleAudio}>
+              <Volume2 size={16} />
+              <span>Audio</span>
+            </button>
+            <button className="logs-button" onClick={toggleLogs}>
+              <Terminal size={16} />
+              <span>Logs</span>
+            </button>
+          </div>
+        </header>
+        <div className="main-panel-container">
+          <MainPanel />
+        </div>
       </div>
       {(showLogs || showSettings || showAudio) && (
         <div className="settings-panel-container">

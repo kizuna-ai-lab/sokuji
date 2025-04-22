@@ -1,23 +1,13 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { Terminal, Settings, Volume2, X, Zap, Users } from 'react-feather';
+import { X, Zap, Users } from 'react-feather';
 import './MainPanel.scss';
 import { useSettings } from '../../contexts/SettingsContext';
 
-interface MainPanelProps {
-  toggleLogs: () => void;
-  toggleSettings: () => void;
-  toggleAudio: () => void;
-  isSessionActive: boolean;
-}
+interface MainPanelProps {}
 
-const MainPanel: React.FC<MainPanelProps> = ({ 
-  toggleLogs, 
-  toggleSettings, 
-  toggleAudio,
-  isSessionActive: initialSessionActive
-}) => {
+const MainPanel: React.FC<MainPanelProps> = () => {
   // State for session management
-  const [isSessionActive, setIsSessionActive] = useState(initialSessionActive);
+  const [isSessionActive, setIsSessionActive] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   
   // Get settings from context
@@ -78,23 +68,6 @@ const MainPanel: React.FC<MainPanelProps> = ({
 
   return (
     <div className="main-panel">
-      <header className="main-panel-header">
-        <h1>Realtime</h1>
-        <div className="header-controls">
-          <button className="settings-button" onClick={toggleSettings}>
-            <Settings size={16} />
-            <span>Settings</span>
-          </button>
-          <button className="audio-button" onClick={toggleAudio}>
-            <Volume2 size={16} />
-            <span>Audio</span>
-          </button>
-          <button className="logs-button" onClick={toggleLogs}>
-            <Terminal size={16} />
-            <span>Logs</span>
-          </button>
-        </div>
-      </header>
       <div className="conversation-container">
         <div className="conversation-content">
           <div className="conversation-placeholder">
