@@ -13,7 +13,7 @@ const {
   disconnectVirtualSpeakerFromOutputs
 } = require('./pulseaudio-utils');
 // Import API handlers
-const { generateToken, validateApiKey } = require('./api-handlers');
+const { validateApiKey } = require('./api-handlers');
 
 // Set application name for PulseAudio
 app.setName('sokuji');
@@ -204,20 +204,6 @@ ipcMain.handle('open-directory', (event, dirPath) => {
   } catch (error) {
     console.error('Error opening directory:', error);
     return { success: false, error: error.message };
-  }
-});
-
-// Handler for OpenAI token generation
-ipcMain.handle('generate-token', async (event, options) => {
-  try {
-    const tokenData = await generateToken(options);
-    return { success: true, data: tokenData };
-  } catch (error) {
-    console.error('Error generating token:', error);
-    return { 
-      success: false, 
-      error: error.message || 'Failed to generate token' 
-    };
   }
 });
 

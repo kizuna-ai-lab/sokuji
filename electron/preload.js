@@ -27,7 +27,6 @@ contextBridge.exposeInMainWorld(
         'set-config',
         'get-config-path',
         'open-directory',
-        'generate-token',
         'validate-api-key',
         'connect-virtual-speaker-to-output',
         'disconnect-virtual-speaker-outputs'
@@ -48,9 +47,6 @@ contextBridge.exposeInMainWorld(
       }
     },
     openai: {
-      generateToken: (options) => {
-        return ipcRenderer.invoke('generate-token', options);
-      },
       validateApiKey: (apiKey) => {
         return ipcRenderer.invoke('validate-api-key', apiKey);
       }

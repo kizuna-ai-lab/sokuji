@@ -1,7 +1,6 @@
 import React from 'react';
 import { Terminal, PlayCircle, Users, Settings, Volume2, Square } from 'react-feather';
 import './MainPanel.scss';
-import TokenGenerator from './TokenGenerator';
 
 interface MainPanelProps {
   toggleLogs: () => void;
@@ -47,8 +46,6 @@ const MainPanel: React.FC<MainPanelProps> = ({
               <span>Conversation will appear here</span>
             </div>
           </div>
-          {/* TokenGenerator now uses context for all settings, no props needed */}
-          <TokenGenerator />
         </div>
       </div>
       <div className="floating-controls">
