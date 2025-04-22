@@ -26,9 +26,9 @@ const Event: React.FC<{ logEntry: LogEntry }> = ({ logEntry }) => {
       >
         <span className="log-timestamp">{timestamp}</span>
         {isClient ? (
-          <ArrowDown className="client-icon" />
+          <ArrowUp className="client-icon" />
         ) : (
-          <ArrowUp className="server-icon" />
+          <ArrowDown className="server-icon" />
         )}
         <div className="event-info">
           <span className="source-label">{isClient ? "client:" : "server:"}</span>
