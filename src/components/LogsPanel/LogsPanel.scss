@@ -76,27 +76,29 @@
     flex: 1;
     overflow-y: auto;
     overflow-x: hidden;
-    padding: 15px;
+    padding: 12px;
     font-family: monospace;
-    font-size: 13px;
+    font-size: 12px;
     scrollbar-gutter: stable;
     box-sizing: border-box;
     width: 100%;
     // display: flex;
     
     .log-entry {
-      margin-bottom: 8px;
+      margin-bottom: 4px;
       display: flex;
       
       .log-timestamp {
         color: #888;
         margin-right: 10px;
         flex-shrink: 0;
+        font-size: 11px;
       }
       
       .log-message {
         color: #ddd;
         word-break: break-word;
+        font-size: 12px;
       }
       
       &.info {
@@ -159,6 +161,80 @@
           svg {
             color: #888;
           }
+        }
+      }
+    }
+    
+    // Styles for OpenAI Realtime API events
+    .event-entry {
+      display: flex;
+      flex-direction: column;
+      margin-bottom: 6px;
+      background-color: #1e1e1e;
+      border-radius: 4px;
+      overflow: hidden;
+      
+      .event-header {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 5px 10px;
+        cursor: pointer;
+        transition: background-color 0.2s;
+        
+        &:hover {
+          background-color: #2a2a2a;
+        }
+        
+        .log-timestamp {
+          color: #888;
+          margin-right: 5px;
+          flex-shrink: 0;
+          font-size: 11px;
+        }
+        
+        .client-icon, .server-icon {
+          flex-shrink: 0;
+          width: 14px;
+          height: 14px;
+        }
+        
+        .client-icon {
+          color: #4285f4; // Blue for client events
+        }
+        
+        .server-icon {
+          color: #10a37f; // Green for server events
+        }
+        
+        .event-info {
+          display: flex;
+          align-items: center;
+          gap: 5px;
+          font-size: 11px;
+          
+          .source-label {
+            color: #aaa;
+          }
+          
+          .event-type {
+            color: #ddd;
+          }
+        }
+      }
+      
+      .event-details {
+        background-color: #252525;
+        padding: 8px;
+        border-radius: 0 0 4px 4px;
+        overflow-x: auto;
+        
+        pre {
+          margin: 0;
+          font-size: 11px;
+          color: #ddd;
+          white-space: pre-wrap;
+          word-break: break-word;
         }
       }
     }

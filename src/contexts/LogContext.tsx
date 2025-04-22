@@ -5,11 +5,15 @@ export interface LogEntry {
   timestamp: string;
   message: string;
   type?: 'info' | 'success' | 'warning' | 'error' | 'token';
+  event?: any; // For storing OpenAI Realtime API events
+  source?: 'client' | 'server'; // To identify if it's a client or server event
+  eventType?: string; // The type of the event (e.g., 'session.created', 'response.text.delta')
 }
 
 interface LogContextType {
   logs: LogEntry[];
   addLog: (message: string, type?: LogEntry['type']) => void;
+  addRealtimeEvent: (event: any, source: 'client' | 'server', eventType: string) => void;
   clearLogs: () => void;
 }
 
@@ -40,12 +44,32 @@ export const LogProvider: React.FC<LogProviderProps> = ({ children }) => {
     ]);
   };
 
+  const addRealtimeEvent = (event: any, source: 'client' | 'server', eventType: string) => {
+    const now = new Date();
+    const timestamp = now.toLocaleTimeString();
+    
+    // Create a descriptive message for the log entry
+    const message = `${source}: ${eventType}`;
+    
+    setLogs(prevLogs => [
+      ...prevLogs,
+      { 
+        timestamp, 
+        message, 
+        type: 'info', 
+        event, 
+        source, 
+        eventType 
+      }
+    ]);
+  };
+
   const clearLogs = () => {
     setLogs([]);
   };
 
   return (
-    <LogContext.Provider value={{ logs, addLog, clearLogs }}>
+    <LogContext.Provider value={{ logs, addLog, addRealtimeEvent, clearLogs }}>
       {children}
     </LogContext.Provider>
   );

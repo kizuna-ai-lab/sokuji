@@ -1,17 +1,60 @@
-import React from 'react';
-import { ArrowRight, Terminal, Trash2 } from 'react-feather';
+import React, { useState } from 'react';
+import { ArrowRight, Terminal, Trash2, ArrowUp, ArrowDown } from 'react-feather';
 import './LogsPanel.scss';
 import { useLog, LogEntry } from '../../contexts/LogContext';
+import SampleEvents from './SampleEvents';
 
 interface LogsPanelProps {
   toggleLogs: () => void;
 }
 
+// Event component to display OpenAI Realtime API events
+const Event: React.FC<{ logEntry: LogEntry }> = ({ logEntry }) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const { event, source, timestamp, eventType } = logEntry;
+
+  if (!event || !source) return null;
+
+  const isClient = source === 'client';
+  const eventTypeDisplay = eventType || 'unknown';
+
+  return (
+    <div className="event-entry">
+      <div
+        className="event-header"
+        onClick={() => setIsExpanded(!isExpanded)}
+      >
+        <span className="log-timestamp">{timestamp}</span>
+        {isClient ? (
+          <ArrowDown className="client-icon" />
+        ) : (
+          <ArrowUp className="server-icon" />
+        )}
+        <div className="event-info">
+          <span className="source-label">{isClient ? "client:" : "server:"}</span>
+          <span className="event-type">{eventTypeDisplay}</span>
+        </div>
+      </div>
+      {isExpanded && (
+        <div className="event-details">
+          <pre>{JSON.stringify(event, null, 2)}</pre>
+        </div>
+      )}
+    </div>
+  );
+};
+
 const LogsPanel: React.FC<LogsPanelProps> = ({ toggleLogs }) => {
   const { logs, clearLogs } = useLog();
 
-  // Function to render log entry with appropriate styling based on type
+  // Function to render regular log entry with appropriate styling based on type
   const renderLogEntry = (log: LogEntry, index: number) => {
+    // If this is an OpenAI Realtime API event
+    if (log.event && log.source) {
+      return <Event key={index} logEntry={log} />;
+    }
+
+    // Regular application log
     return (
       <div className={`log-entry ${log.type || ''}`} key={index}>
         <span className="log-timestamp">{log.timestamp}</span>
@@ -51,6 +94,7 @@ const LogsPanel: React.FC<LogsPanelProps> = ({ toggleLogs }) => {
           </div>
         )}
       </div>
+      {/* <SampleEvents /> */}
     </div>
   );
 };
