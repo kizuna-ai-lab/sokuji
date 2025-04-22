@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { ArrowRight, Terminal, Trash2, ArrowUp, ArrowDown } from 'react-feather';
+import React, { useState, useRef, useEffect } from 'react';
+import { ArrowRight, Terminal, Trash2, ArrowUp, ArrowDown, FastForward } from 'react-feather';
 import './LogsPanel.scss';
 import { useLog, LogEntry } from '../../contexts/LogContext';
 import SampleEvents from './SampleEvents';
@@ -46,6 +46,21 @@ const Event: React.FC<{ logEntry: LogEntry }> = ({ logEntry }) => {
 
 const LogsPanel: React.FC<LogsPanelProps> = ({ toggleLogs }) => {
   const { logs, clearLogs } = useLog();
+  const [autoScroll, setAutoScroll] = useState(true);
+  const logsContentRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll to bottom when logs change
+  useEffect(() => {
+    if (autoScroll && logsContentRef.current) {
+      const { current } = logsContentRef;
+      current.scrollTop = current.scrollHeight;
+    }
+  }, [logs, autoScroll]);
+
+  // Function to toggle auto-scroll
+  const toggleAutoScroll = () => {
+    setAutoScroll(!autoScroll);
+  };
 
   // Function to render regular log entry with appropriate styling based on type
   const renderLogEntry = (log: LogEntry, index: number) => {
@@ -68,6 +83,14 @@ const LogsPanel: React.FC<LogsPanelProps> = ({ toggleLogs }) => {
       <div className="logs-panel-header">
         <h2>Logs</h2>
         <div className="header-actions">
+          <button 
+            className={`auto-scroll-button ${autoScroll ? 'active' : ''}`} 
+            onClick={toggleAutoScroll}
+            title={autoScroll ? "Disable auto-scroll" : "Enable auto-scroll"}
+          >
+            <FastForward size={16} />
+            <span>{autoScroll ? "Auto-scroll on" : "Auto-scroll off"}</span>
+          </button>
           {logs.length > 0 && (
             <button className="clear-logs-button" onClick={clearLogs}>
               <Trash2 size={16} />
@@ -80,7 +103,7 @@ const LogsPanel: React.FC<LogsPanelProps> = ({ toggleLogs }) => {
           </button>
         </div>
       </div>
-      <div className="logs-content">
+      <div className="logs-content" ref={logsContentRef}>
         {logs.length > 0 ? (
           logs.map(renderLogEntry)
         ) : (

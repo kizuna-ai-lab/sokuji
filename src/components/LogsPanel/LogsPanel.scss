@@ -27,6 +27,37 @@
       gap: 10px;
     }
     
+    .auto-scroll-button {
+      display: flex;
+      align-items: center;
+      background: none;
+      border: none;
+      color: #aaa;
+      cursor: pointer;
+      padding: 5px 10px;
+      border-radius: 4px;
+      transition: all 0.2s;
+      
+      span {
+        margin-left: 5px;
+        font-size: 13px;
+      }
+      
+      &:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+        color: white;
+      }
+      
+      &.active {
+        background-color: rgba(16, 163, 127, 0.1);
+        color: #10a37f;
+        
+        &:hover {
+          background-color: rgba(16, 163, 127, 0.2);
+        }
+      }
+    }
+    
     .clear-logs-button {
       display: flex;
       align-items: center;
