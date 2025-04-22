@@ -399,28 +399,6 @@ const MainLayout: React.FC = () => {
     }
   }, [fetchAudioDevices]);
 
-  const toggleSession = useCallback(() => {
-    setIsSessionActive(prevState => {
-      const newState = !prevState;
-      if (newState) {
-        // If activating the session, set the audio source and play
-        if (!testAudioRef.current.src || testAudioRef.current.src.indexOf('test-tone.mp3') === -1) {
-          testAudioRef.current.src = './assets/test-tone.mp3';
-        } // Play audio
-        testAudioRef.current.play()
-          .catch(err => console.error('Error playing test audio:', err));
-        console.log('Session started - playing test audio');
-      } else {
-        // If stopping the session, pause the audio
-        testAudioRef.current.pause();
-        console.log('Session stopped - paused test audio');
-      }
-
-      console.log(`Toggling session state: ${newState}`);
-      return newState;
-    });
-  }, []);
-
   useEffect(() => {
     // Try to set Sokuji_Virtual_Speaker as the default output device
     if ('setSinkId' in HTMLAudioElement.prototype) {
@@ -487,7 +465,6 @@ const MainLayout: React.FC = () => {
           toggleLogs={toggleLogs}
           toggleSettings={toggleSettings}
           toggleAudio={toggleAudio}
-          toggleSession={toggleSession}
           isSessionActive={isSessionActive}
         />
       </div>
