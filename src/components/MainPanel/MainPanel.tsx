@@ -29,6 +29,9 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   // canPushToTalk is true only when turnDetectionMode is 'Disabled'
   const [canPushToTalk, setCanPushToTalk] = useState(false);
   
+  // Reference for conversation container to enable auto-scrolling
+  const conversationContainerRef = useRef<HTMLDivElement>(null);
+  
   /**
    * Convert settings to updateSession parameters
    */
@@ -368,9 +371,30 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     };
   }, []);
 
+  /**
+   * Auto-scroll to the bottom of the conversation when new content is added
+   */
+  useEffect(() => {
+    if (conversationContainerRef.current) {
+      console.log('Auto-scrolling to bottom');
+      
+      // Use requestAnimationFrame to ensure DOM is updated before scrolling
+      requestAnimationFrame(() => {
+        // Add a small delay to ensure content is fully rendered
+        setTimeout(() => {
+          if (conversationContainerRef.current) {
+            const element = conversationContainerRef.current;
+            element.scrollTop = element.scrollHeight;
+            console.log('Scrolled to:', element.scrollTop, 'ScrollHeight:', element.scrollHeight);
+          }
+        }, 100);
+      });
+    }
+  }, [items]);
+
   return (
     <div className="main-panel">
-      <div className="conversation-container">
+      <div className="conversation-container" ref={conversationContainerRef}>
         <div className="conversation-content" data-conversation-content>
           {items.length > 0 ? (
             items.map((item) => (
@@ -378,32 +402,102 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                 <div className="conversation-item-role">{item.role}</div>
                 <div className="conversation-item-content">
                   {(() => {
-                    // Use type assertion to access potentially undefined properties
-                    const item_any = item as any;
+                    // Handle different item types based on the ItemType structure
+                    // from @openai/realtime-api-beta
                     
-                    // For items with content array property
-                    if (item_any.content && Array.isArray(item_any.content)) {
-                      return item_any.content.map((contentItem: any, i: number) => (
-                        <div key={i} className="content-item">
-                          {contentItem.type === 'text' && contentItem.text}
-                        </div>
-                      ));
-                    }
-                    
-                    // For items with formatted_content array
-                    if (item_any.formatted_content && Array.isArray(item_any.formatted_content)) {
-                      return item_any.formatted_content.map((contentItem: any, i: number) => (
-                        <div key={i} className="content-item">
-                          {contentItem.text}
-                        </div>
-                      ));
-                    }
-                    
-                    // For items with text property
-                    if (item_any.text) {
+                    // For items with formatted property containing text
+                    if (item.formatted && item.formatted.text) {
                       return (
-                        <div className="content-item">
-                          {item_any.text}
+                        <div className="content-item text">
+                          {item.formatted.text}
+                        </div>
+                      );
+                    }
+                    
+                    // For items with formatted property containing transcript
+                    if (item.formatted && item.formatted.transcript) {
+                      return (
+                        <div className="content-item transcript">
+                          {item.formatted.transcript}
+                        </div>
+                      );
+                    }
+                    
+                    // For items with formatted property containing audio
+                    if (item.formatted && item.formatted.audio) {
+                      return (
+                        <div className="content-item audio">
+                          <div className="audio-indicator">
+                            <span className="audio-icon">🔊</span>
+                            <span className="audio-text">Audio content</span>
+                          </div>
+                        </div>
+                      );
+                    }
+                    
+                    // For user or assistant messages with content array
+                    if ((item.role === 'user' || item.role === 'assistant' || item.role === 'system') && 
+                        'content' in item) {
+                      const typedItem = item as any; // Type assertion for accessing content
+                      if (Array.isArray(typedItem.content)) {
+                        return typedItem.content.map((contentItem: any, i: number) => (
+                          <div key={i} className={`content-item ${contentItem.type}`}>
+                            {contentItem.type === 'text' && contentItem.text}
+                            {contentItem.type === 'input_text' && contentItem.text}
+                            {contentItem.type === 'audio' && (
+                              <div className="audio-indicator">
+                                <span className="audio-icon">🔊</span>
+                                <span className="audio-text">Audio content</span>
+                              </div>
+                            )}
+                            {contentItem.type === 'input_audio' && contentItem.transcript && (
+                              <span className="transcript">{contentItem.transcript}</span>
+                            )}
+                          </div>
+                        ));
+                      }
+                    }
+                    
+                    // For tool calls
+                    if (item.formatted && item.formatted.tool) {
+                      const toolArgs = item.formatted.tool.arguments;
+                      let formattedArgs = toolArgs;
+                      
+                      // Try to parse and format JSON arguments
+                      try {
+                        const parsedArgs = JSON.parse(toolArgs);
+                        formattedArgs = JSON.stringify(parsedArgs, null, 2);
+                      } catch (e) {
+                        // Keep original format if parsing fails
+                      }
+                      
+                      return (
+                        <div className="content-item tool-call">
+                          <div className="tool-name">Function: {item.formatted.tool.name}</div>
+                          <div className="tool-args">
+                            <pre>{formattedArgs}</pre>
+                          </div>
+                        </div>
+                      );
+                    }
+                    
+                    // For tool outputs
+                    if (item.formatted && item.formatted.output) {
+                      let formattedOutput = item.formatted.output;
+                      
+                      // Try to parse and format JSON output
+                      try {
+                        const parsedOutput = JSON.parse(item.formatted.output);
+                        formattedOutput = JSON.stringify(parsedOutput, null, 2);
+                      } catch (e) {
+                        // Keep original format if parsing fails
+                      }
+                      
+                      return (
+                        <div className="content-item tool-output">
+                          <div className="output-content">
+                            <pre>{formattedOutput}</pre>
+                          </div>
                         </div>
                       );
                     }
@@ -411,7 +505,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                     // Fallback for other content types
                     return (
                       <div className="content-item">
-                        {JSON.stringify(item)}
+                        <pre>{JSON.stringify(item, null, 2)}</pre>
                       </div>
                     );
                   })()}
