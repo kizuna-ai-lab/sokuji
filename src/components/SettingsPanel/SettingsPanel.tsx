@@ -138,6 +138,11 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
     }
   };
 
+  // Runtime array of voice options
+  const voiceOptions: VoiceOption[] = [
+    'alloy', 'ash', 'ballad', 'coral', 'echo', 'sage', 'shimmer', 'verse'
+  ];
+
   return (
     <div className="settings-panel">
       <div className="settings-panel-header">
@@ -178,14 +183,9 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
               value={settings.voice}
               onChange={(e) => updateSettings({ voice: e.target.value as VoiceOption })}
             >
-              <option value="alloy">alloy</option>
-              <option value="ash">ash</option>
-              <option value="ballad">ballad</option>
-              <option value="coral">coral</option>
-              <option value="echo">echo</option>
-              <option value="sage">sage</option>
-              <option value="shimmer">shimmer</option>
-              <option value="verse">verse</option>
+              {voiceOptions.map((voice) => (
+                <option key={voice} value={voice}>{voice}</option>
+              ))}
             </select>
           </div>
         </div>
