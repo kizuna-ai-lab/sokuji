@@ -227,17 +227,18 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     // Update session with all parameters from settings
     const updateSessionParams = getUpdateSessionParams(settings);
 
-    // Update session with all parameters
-    client.updateSession(updateSessionParams);
-
-    // Connect to realtime API
-    await client.connect();
-
+    // First set the model and other parameters
     client.updateSession({
-      instructions: settings.systemInstructions
-    })
-    
+      ...updateSessionParams
+    });
 
+    // Then connect to realtime API
+    if (client.isConnected()) {
+      throw new Error(`Already connected, use .disconnect() first`);
+    }
+    await client.realtime.connect({model: settings.model});
+    client.updateSession();
+    
     // Start recording if using server VAD
     if (settings.turnDetectionMode !== 'Disabled') {
       await wavRecorder.record((data) => client.appendInputAudio(data.mono));
