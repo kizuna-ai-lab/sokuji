@@ -3,13 +3,16 @@ import './App.scss';
 import MainLayout from './components/MainLayout/MainLayout';
 import { LogProvider } from './contexts/LogContext';
 import { SettingsProvider } from './contexts/SettingsContext';
+import { AudioProvider } from './contexts/AudioContext';
 
 function App() {
   return (
     <div className="App">
       <SettingsProvider>
         <LogProvider>
-          <MainLayout />
+          <AudioProvider>
+            <MainLayout />
+          </AudioProvider>
         </LogProvider>
       </SettingsProvider>
     </div>

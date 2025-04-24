@@ -4,7 +4,7 @@ export type TurnDetectionMode = 'Normal' | 'Semantic' | 'Disabled';
 export type SemanticEagerness = 'Auto' | 'Low' | 'Medium' | 'High';
 export type NoiseReductionMode = 'None' | 'Near field' | 'Far field';
 export type TranscriptModel = 'gpt-4o-mini-transcribe' | 'gpt-4o-transcribe' | 'whisper-1';
-export type VoiceOption = 'alloy' | 'ash' | 'ballad' | 'coral' | 'echo' | 'fable' | 'onyx' | 'nova' | 'sage' | 'shimmer' | 'verse';
+export type VoiceOption = 'alloy' | 'ash' | 'ballad' | 'coral' | 'echo' | 'sage' | 'shimmer' | 'verse';
 export type Model = 'gpt-4o-realtime-preview' | 'gpt-4o-mini-realtime-preview';
 
 export interface Settings {

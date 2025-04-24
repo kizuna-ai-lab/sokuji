@@ -2,71 +2,26 @@ import React, { useState } from 'react';
 import { ArrowRight, Volume2, Mic, RefreshCw, AlertTriangle } from 'react-feather';
 import './AudioPanel.scss';
 import Modal from '../Modal/Modal';
+import { useAudioContext } from '../../contexts/AudioContext';
 
-interface AudioPanelProps {
-  toggleAudio: () => void;
-  audioInputDevices: Array<{deviceId: string; label: string; isDefault?: boolean}>;
-  audioOutputDevices: Array<{deviceId: string; label: string; isDefault?: boolean}>;
-  selectedInputDevice: {deviceId: string; label: string; isDefault?: boolean};
-  selectedOutputDevice: {deviceId: string; label: string; isDefault?: boolean};
-  isInputDeviceOn: boolean;
-  isOutputDeviceOn: boolean;
-  isLoading: boolean;
-  selectInputDevice: (device: {deviceId: string; label: string; isDefault?: boolean}) => void;
-  selectOutputDevice: (device: {deviceId: string; label: string; isDefault?: boolean}) => void;
-  toggleInputDeviceState: () => void;
-  toggleOutputDeviceState: () => void;
-  inputAudioHistory: number[];
-  refreshDevices: () => void;
-}
-
-const DOT_SIZE = 3; // px
-
-const AudioPanel: React.FC<AudioPanelProps> = ({ 
-  toggleAudio, 
-  audioInputDevices, 
-  audioOutputDevices,
-  selectedInputDevice, 
-  selectedOutputDevice,
-  isInputDeviceOn, 
-  isOutputDeviceOn,
-  isLoading,
-  selectInputDevice,
-  selectOutputDevice,
-  toggleInputDeviceState,
-  toggleOutputDeviceState,
-  inputAudioHistory,
-  refreshDevices
-}) => {
+const AudioPanel: React.FC<{ toggleAudio: () => void }> = ({ toggleAudio }) => {
   const [showVirtualMicWarning, setShowVirtualMicWarning] = useState(false);
   const [showVirtualSpeakerWarning, setShowVirtualSpeakerWarning] = useState(false);
 
-  // Audio waveform history: 5 bars, right is newest
-  const InputAudioWaveform = () => (
-    <div className="audio-waveform">
-      {inputAudioHistory.map((level, idx) => {
-        // More suitable threshold and amplification factor
-        const threshold = 0.02; // Lower threshold
-        const AMPLIFY = 4;     // Reduce amplification factor to prevent excessive height
-        // Non-linear sensitivity enhancement (e.g., square root)
-        const enhancedLevel = Math.sqrt(level); // Make low volume more visible
-        // Limit maximum height to 16px
-        const height = enhancedLevel < threshold ? DOT_SIZE : Math.min(16, Math.max(DOT_SIZE, enhancedLevel * AMPLIFY));
-        return (
-          <div
-            key={idx}
-            className="waveform-bar"
-            style={{
-              height: `${height}px`,
-              width: `${DOT_SIZE}px`,
-              borderRadius: `${DOT_SIZE / 2}px`,
-              opacity: isInputDeviceOn ? 1 : 0.5
-            }}
-          />
-        );
-      })}
-    </div>
-  );
+  const {
+    audioInputDevices,
+    audioOutputDevices,
+    selectedInputDevice,
+    selectedOutputDevice,
+    isInputDeviceOn,
+    isOutputDeviceOn,
+    isLoading,
+    selectInputDevice,
+    selectOutputDevice,
+    toggleInputDeviceState,
+    toggleOutputDeviceState,
+    refreshDevices
+  } = useAudioContext();
 
   // Check if a device is the virtual microphone
   const isVirtualMic = (device: {deviceId: string; label: string}) => {
@@ -177,7 +132,6 @@ const AudioPanel: React.FC<AudioPanelProps> = ({
               </div>
               <div className="device-info">
                 <div className="device-name">{isLoading ? 'Loading devices...' : selectedInputDevice.label}</div>
-                <InputAudioWaveform />
               </div>
             </div>
             <button 

@@ -3,6 +3,7 @@ import { X, Zap, Users } from 'react-feather';
 import './MainPanel.scss';
 import { useSettings } from '../../contexts/SettingsContext';
 import { useLog } from '../../contexts/LogContext';
+import { useAudioContext } from '../../contexts/AudioContext';
 import { RealtimeClient } from '@openai/realtime-api-beta';
 import { ItemType } from '@openai/realtime-api-beta/dist/lib/client.js';
 import { WavRecorder, WavStreamPlayer } from '../../lib/wavtools/index.js';
@@ -21,6 +22,9 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   
   // Get log functions from context
   const { addRealtimeEvent } = useLog();
+  
+  // Get audio context from context
+  const { selectedInputDevice } = useAudioContext();
   
   // canPushToTalk is true only when turnDetectionMode is 'Disabled'
   const [canPushToTalk, setCanPushToTalk] = useState(false);
@@ -183,11 +187,43 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     setCanPushToTalk(settings.turnDetectionMode === 'Disabled');
     
     // Connect to microphone
-    await wavRecorder.begin();
+    await wavRecorder.begin(selectedInputDevice.deviceId);
 
     // Connect to audio output
     await wavStreamPlayer.connect();
     
+    // Find and use sokuji_virtual_speaker as the output device
+    try {
+      // Get all audio output devices
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      // Find sokuji_virtual_speaker
+      const virtualSpeaker = devices.find(device => 
+        device.kind === 'audiooutput' && 
+        device.label.toLowerCase().includes('sokuji_virtual_speaker')
+      );
+      
+      // If virtual speaker is found, set it as the output device
+      if (virtualSpeaker && virtualSpeaker.deviceId) {
+        const ctxWithSink = wavStreamPlayer.context as AudioContext & { setSinkId?: (options: string | { type: string } | { deviceId: string }) => Promise<void> };
+        if (ctxWithSink && typeof ctxWithSink.setSinkId === 'function') {
+          try {
+            // According to MDN documentation, the correct way is to pass an object containing deviceId
+            await ctxWithSink.setSinkId({ deviceId: virtualSpeaker.deviceId });
+            console.log('AudioContext output device set to Sokuji_Virtual_Speaker:', virtualSpeaker.deviceId);
+          } catch (err) {
+            // If the new format fails, try the old format (directly passing the string)
+            console.log('Trying alternative setSinkId format...');
+            await ctxWithSink.setSinkId(virtualSpeaker.deviceId);
+            console.log('AudioContext output device set using alternative format');
+          }
+        }
+      } else {
+        console.log('Sokuji_Virtual_Speaker not found among output devices');
+      }
+    } catch (e) {
+      console.warn('Failed to set AudioContext to Sokuji_Virtual_Speaker:', e);
+    }
+
     // Update session with all parameters from settings
     const updateSessionParams = getUpdateSessionParams(settings);
 
@@ -206,7 +242,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     if (settings.turnDetectionMode !== 'Disabled') {
       await wavRecorder.record((data) => client.appendInputAudio(data.mono));
     }
-  }, [settings, getUpdateSessionParams, setupClientListeners]);
+  }, [settings, getUpdateSessionParams, setupClientListeners, selectedInputDevice]);
 
   /**
    * Disconnect and reset conversation state
