@@ -55,7 +55,7 @@ const MainLayout: React.FC = () => {
     <div className="main-layout">
       <div className={`main-content ${(showLogs || showSettings || showAudio) ? 'with-panel' : 'full-width'}`}>
         <header className="main-panel-header">
-          <h1>Realtime</h1>
+          <h1>Sokuji</h1>
           <div className="header-controls">
             <button className="settings-button" onClick={toggleSettings}>
               <Settings size={16} />
