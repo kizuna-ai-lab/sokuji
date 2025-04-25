@@ -62,11 +62,32 @@ Sokuji goes beyond basic translation by offering a complete audio routing soluti
 
 Sokuji creates virtual audio devices to facilitate seamless audio routing:
 
-- **sokuji_virtual_output**: A virtual output sink that receives audio from the application
-- **sokuji_virtual_mic**: A virtual microphone that can be selected as input in other applications
+- **Sokuji_Virtual_Speaker**: A virtual output sink that receives audio from the application
+- **Sokuji_Virtual_Mic**: A virtual microphone that can be selected as input in other applications
 - Automatic connection between these devices using PipeWire's `pw-link` tool
 - Multi-channel support (stereo audio)
 - Proper cleanup of virtual devices when the application exits
+
+### Understanding the Audio Routing Diagram
+
+The diagram above illustrates the audio flow between Sokuji and other applications:
+
+- **Chromium**: Represents the Sokuji application itself
+- **Google Chrome**: Represents meeting applications like Google Meet or Zoom running in Chrome
+- **Sokuji_Virtual_Speaker**: A virtual speaker created by Sokuji
+- **Sokuji_Virtual_Mic**: A virtual microphone created by Sokuji
+- **HyperX 7.1 Audio**: Represents a physical audio device
+
+The numbered connections in the diagram represent:
+
+①. **Connection ①**: Sokuji's audio output is always sent to the virtual speaker (this cannot be changed)
+②. **Connection ②**: Sokuji's audio is also always routed to the virtual microphone (this cannot be changed)
+③. **Connection ③**: The monitoring device selected in Sokuji's audio settings, used to play back the translated audio
+④. **Connection ④**: The audio output device selected in Google Meet (configured in Google Meet's settings)
+⑤. **Connection ⑤**: The virtual microphone selected as input in Google Meet (configured in Google Meet's settings)
+⑥. **Connection ⑥**: The input device selected in Sokuji's audio settings
+
+This routing system allows Sokuji to capture audio from your selected input device, process it through OpenAI's Realtime API, and then output the translated audio both to your local speakers and to other applications via the virtual microphone.
 
 # Preparation
 
@@ -131,16 +152,22 @@ sudo dpkg -i sokuji_0.1.0_amd64.deb
 
 # How to Use
 
-<p align="center">
-  <img width="800" src="https://github.com/kizuna-ai-lab/sokuji/raw/main/screenshots/usage-guide.gif" alt="Usage Guide" />
-</p>
-
 1. **Setup your API key**:
+   
+   <p align="center">
+     <img width="600" src="https://github.com/kizuna-ai-lab/sokuji/raw/main/screenshots/api-settings.png" alt="API Settings" />
+   </p>
+   
    - Click the Settings button in the top-right corner
    - Enter your OpenAI API key and click "Validate"
    - Click "Save" to store your API key securely
 
 2. **Configure audio devices**:
+   
+   <p align="center">
+     <img width="600" src="https://github.com/kizuna-ai-lab/sokuji/raw/main/screenshots/audio-settings.png" alt="Audio Settings" />
+   </p>
+   
    - Click the Audio button to open the Audio panel
    - Select your input device (microphone)
    - Select your output device (speakers/headphones)
@@ -151,7 +178,7 @@ sudo dpkg -i sokuji_0.1.0_amd64.deb
    - View real-time transcription and translation
 
 4. **Use with other applications**:
-   - Select "sokuji_virtual_mic" as the microphone input in your target application
+   - Select "Sokuji_Virtual_Mic" as the microphone input in your target application
    - The translated audio will be sent to that application
 
 # Technologies Used
@@ -166,4 +193,4 @@ sudo dpkg -i sokuji_0.1.0_amd64.deb
 
 # License
 
-[AGPL-3.0-1-ov-file](LICENSE)
+[AGPL-3.0](LICENSE)
