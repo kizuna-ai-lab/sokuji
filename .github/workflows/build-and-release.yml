@@ -45,13 +45,12 @@ jobs:
         run: |
           PREVIOUS_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
           if [ -z "$PREVIOUS_TAG" ]; then
-            git log --pretty=format:"- %s" > CHANGELOG.md
+            CHANGELOG=$(git log --pretty=format:"- %s")
           else
-            git log ${PREVIOUS_TAG}..HEAD --pretty=format:"- %s" > CHANGELOG.md
+            CHANGELOG=$(git log ${PREVIOUS_TAG}..HEAD --pretty=format:"- %s")
           fi
-          echo 'changelog<<CHANGELOG_DELIMITER' >> $GITHUB_OUTPUT
-          cat CHANGELOG.md >> $GITHUB_OUTPUT
-          echo 'CHANGELOG_DELIMITER' >> $GITHUB_OUTPUT
+          # Save changelog to a file for the release
+          echo "$CHANGELOG" > CHANGELOG.md
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
@@ -59,9 +58,7 @@ jobs:
           files: |
             dist/*.AppImage
             dist/*.deb
-          body: |
-            # Changelog
-            ${{ steps.changelog.outputs.changelog }}
+          body_path: CHANGELOG.md
           draft: false
           prerelease: false
         env:
