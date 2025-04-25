@@ -40,7 +40,11 @@ Sokuji is a desktop application designed to provide real-time simultaneous inter
 
 # Demo
 
-![Video](./screenshots/demo.mp4)
+<p align="center">
+  <video width="800" controls src="https://github.com/kizuna-ai-lab/sokuji/raw/main/screenshots/demo.mp4" type="video/mp4">
+    Your browser does not support the video tag.
+  </video>
+</p>
 
 # More than just translation
 
