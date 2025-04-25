@@ -204,7 +204,7 @@ export const AudioProvider = ({ children }: { children: ReactNode }) => {
               if (result.success) {
                 console.log('Successfully connected virtual speaker to output device:', result.message);
               } else {
-                console.error('Failed to connect virtual speaker to output device:', result.error);
+                console.error('Failed to connect virtual speaker to output device:', result.message);
               }
             })
             .catch((error: any) => {
@@ -238,7 +238,7 @@ export const AudioProvider = ({ children }: { children: ReactNode }) => {
           if (result.success) {
             console.log('Successfully connected virtual speaker to output device:', result.message);
           } else {
-            console.error('Failed to connect virtual speaker to output device:', result.error);
+            console.error('Failed to connect virtual speaker to output device:', result.message);
           }
         })
         .catch((error: any) => {

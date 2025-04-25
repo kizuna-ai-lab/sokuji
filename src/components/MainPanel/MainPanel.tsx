@@ -376,8 +376,6 @@ const MainPanel: React.FC<MainPanelProps> = () => {
    */
   useEffect(() => {
     if (conversationContainerRef.current) {
-      console.log('Auto-scrolling to bottom');
-      
       // Use requestAnimationFrame to ensure DOM is updated before scrolling
       requestAnimationFrame(() => {
         // Add a small delay to ensure content is fully rendered
@@ -385,7 +383,6 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           if (conversationContainerRef.current) {
             const element = conversationContainerRef.current;
             element.scrollTop = element.scrollHeight;
-            console.log('Scrolled to:', element.scrollTop, 'ScrollHeight:', element.scrollHeight);
           }
         }, 100);
       });
