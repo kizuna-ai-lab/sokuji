@@ -167,6 +167,42 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
       </div>
       <div className="settings-content">
         <div className="settings-section">
+          <h2>OpenAI API Key</h2>
+          <div className="setting-item">
+            <div className="api-key-container">
+              <input
+                value={settings.openAIApiKey}
+                onChange={(e) => {
+                  updateSettings({ openAIApiKey: e.target.value });
+                  // Reset validation status when key changes
+                  setApiKeyStatus({ valid: null, message: '', validating: false });
+                }}
+                placeholder="Enter your OpenAI API key"
+                className={`text-input api-key-input ${
+                  apiKeyStatus.valid === true ? 'valid' : 
+                  apiKeyStatus.valid === false ? 'invalid' : ''
+                }`}
+              />
+              <button 
+                className="validate-key-button"
+                onClick={validateApiKey}
+                disabled={apiKeyStatus.validating || !settings.openAIApiKey}
+              >
+                <Key size={16} />
+                <span>{apiKeyStatus.validating ? 'Validating...' : 'Validate'}</span>
+              </button>
+            </div>
+            {apiKeyStatus.message && (
+              <div className={`api-key-status ${
+                apiKeyStatus.valid === true ? 'success' : 
+                apiKeyStatus.valid === false ? 'error' : 'info'
+              }`}>
+                {apiKeyStatus.message}
+              </div>
+            )}
+          </div>
+        </div>
+        <div className="settings-section">
           <h2>System Instructions</h2>
           <textarea 
             className="system-instructions" 
@@ -354,42 +390,6 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
               onChange={(e) => updateSettings({ maxTokens: parseInt(e.target.value) })}
               className="slider"
             />
-          </div>
-        </div>
-        <div className="settings-section">
-          <h2>OpenAI API Key</h2>
-          <div className="setting-item">
-            <div className="api-key-container">
-              <input
-                value={settings.openAIApiKey}
-                onChange={(e) => {
-                  updateSettings({ openAIApiKey: e.target.value });
-                  // Reset validation status when key changes
-                  setApiKeyStatus({ valid: null, message: '', validating: false });
-                }}
-                placeholder="Enter your OpenAI API key"
-                className={`text-input api-key-input ${
-                  apiKeyStatus.valid === true ? 'valid' : 
-                  apiKeyStatus.valid === false ? 'invalid' : ''
-                }`}
-              />
-              <button 
-                className="validate-key-button"
-                onClick={validateApiKey}
-                disabled={apiKeyStatus.validating || !settings.openAIApiKey}
-              >
-                <Key size={16} />
-                <span>{apiKeyStatus.validating ? 'Validating...' : 'Validate'}</span>
-              </button>
-            </div>
-            {apiKeyStatus.message && (
-              <div className={`api-key-status ${
-                apiKeyStatus.valid === true ? 'success' : 
-                apiKeyStatus.valid === false ? 'error' : 'info'
-              }`}>
-                {apiKeyStatus.message}
-              </div>
-            )}
           </div>
         </div>
       </div>
