@@ -26,6 +26,8 @@ jobs:
 
       - name: Build React app
         run: npm run build
+        env:
+          CI: false
 
       - name: Build Electron app for Linux
         run: npm run electron:build
