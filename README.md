@@ -22,6 +22,12 @@
   
   <!-- Linux Badge -->
   <img alt="Linux" src="https://img.shields.io/badge/-Linux-FCC624?style=flat-square&logo=linux&logoColor=black" />
+  
+  <!-- OpenAI Badge -->
+  <img alt="OpenAI" src="https://img.shields.io/badge/-OpenAI-eee?style=flat-square&logo=openai&logoColor=412991" />
+  
+  <!-- Vibe Coding Badge -->
+  <img alt="Vibe Coding" src="https://img.shields.io/badge/built%20with-vibe%20coding-ff69b4?style=flat-square" />
 </p>
 
 # Why Sokuji?
@@ -30,6 +36,15 @@ Sokuji is a desktop application designed to provide real-time simultaneous inter
 
 <p align="center">
   <img width="800" src="https://github.com/kizuna-ai-lab/sokuji/raw/main/screenshots/main-interface.png" alt="Sokuji Interface" />
+</p>
+
+# Demo
+
+<p align="center">
+  <video width="800" controls>
+    <source src="https://github.com/kizuna-ai-lab/sokuji/raw/main/screenshots/demo.mp4" type="video/mp4">
+    Your browser does not support the video tag.
+  </video>
 </p>
 
 # More than just translation
