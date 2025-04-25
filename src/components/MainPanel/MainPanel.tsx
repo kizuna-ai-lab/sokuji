@@ -135,13 +135,13 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       addRealtimeEvent(realtimeEvent, realtimeEvent.source, realtimeEvent.event.type);
     });
     client.on('error', (event: any) => console.error(event));
-    client.on('conversation.interrupted', () => {
-      const trackSampleOffset = wavStreamPlayer.interrupt();
-      if (trackSampleOffset?.trackId) {
-        const { trackId, offset } = trackSampleOffset;
-        client.cancelResponse(trackId, offset);
-      }
-    });
+    // client.on('conversation.interrupted', () => {
+    //   const trackSampleOffset = wavStreamPlayer.interrupt();
+    //   if (trackSampleOffset?.trackId) {
+    //     const { trackId, offset } = trackSampleOffset;
+    //     client.cancelResponse(trackId, offset);
+    //   }
+    // });
     client.on('conversation.updated', async ({ item, delta }: any) => {
       const items = client.conversation.getItems();
       if (delta?.audio) {
@@ -155,7 +155,6 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         );
         item.formatted.file = wavFile;
       }
-      console.log('items', items);
       setItems(items);
     });
 
