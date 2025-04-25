@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { X, Zap, Users } from 'react-feather';
+import { X, Zap, Users, Mic } from 'react-feather';
 import './MainPanel.scss';
 import { useSettings } from '../../contexts/SettingsContext';
 import { useLog } from '../../contexts/LogContext';
@@ -526,39 +526,43 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           <div className="visualization-label">Input</div>
           <canvas ref={clientCanvasRef} className="visualization-canvas client-canvas" />
         </div>
+        
+        <div className="controls-container">
+          {isSessionActive && canPushToTalk && (
+            <button
+              className={`push-to-talk-button ${isRecording ? 'recording' : ''}`}
+              onMouseDown={startRecording}
+              onMouseUp={stopRecording}
+              disabled={!isSessionActive || !canPushToTalk}
+            >
+              <>
+                <Mic size={14} />
+                <span>{isRecording ? 'release' : 'push to talk'}</span>
+              </>
+            </button>
+          )}
+          <button 
+            className={`session-button ${isSessionActive ? 'active' : ''}`} 
+            onClick={isSessionActive ? disconnectConversation : connectConversation}
+          >
+            {isSessionActive ? (
+              <>
+                <X size={14} />
+                <span>End Session</span>
+              </>
+            ) : (
+              <>
+                <Zap size={14} />
+                <span>Start Session</span>
+              </>
+            )}
+          </button>
+        </div>
+        
         <div className="visualization-container">
           <div className="visualization-label">Output</div>
           <canvas ref={serverCanvasRef} className="visualization-canvas server-canvas" />
         </div>
-      </div>
-      
-      <div className="floating-controls">
-        {isSessionActive && canPushToTalk && (
-          <button
-            className={`push-to-talk-button ${isRecording ? 'recording' : ''}`}
-            onMouseDown={startRecording}
-            onMouseUp={stopRecording}
-            disabled={!isSessionActive || !canPushToTalk}
-          >
-            <span>{isRecording ? 'release to send' : 'push to talk'}</span>
-          </button>
-        )}
-        <button 
-          className={`session-button ${isSessionActive ? 'active' : ''}`} 
-          onClick={isSessionActive ? disconnectConversation : connectConversation}
-        >
-          {isSessionActive ? (
-            <>
-              <X size={16} />
-              <span>disconnect</span>
-            </>
-          ) : (
-            <>
-              <Zap size={16} />
-              <span>connect</span>
-            </>
-          )}
-        </button>
       </div>
     </div>
   );
