@@ -80,12 +80,12 @@ The diagram above illustrates the audio flow between Sokuji and other applicatio
 
 The numbered connections in the diagram represent:
 
-①. **Connection ①**: Sokuji's audio output is always sent to the virtual speaker (this cannot be changed)
-②. **Connection ②**: Sokuji's audio is also always routed to the virtual microphone (this cannot be changed)
-③. **Connection ③**: The monitoring device selected in Sokuji's audio settings, used to play back the translated audio
-④. **Connection ④**: The audio output device selected in Google Meet (configured in Google Meet's settings)
-⑤. **Connection ⑤**: The virtual microphone selected as input in Google Meet (configured in Google Meet's settings)
-⑥. **Connection ⑥**: The input device selected in Sokuji's audio settings
+**Connection ①**: Sokuji's audio output is always sent to the virtual speaker (this cannot be changed)  
+**Connection ②**: Sokuji's audio is also always routed to the virtual microphone (this cannot be changed)  
+**Connection ③**: The monitoring device selected in Sokuji's audio settings, used to play back the translated audio  
+**Connection ④**: The audio output device selected in Google Meet (configured in Google Meet's settings)  
+**Connection ⑤**: The virtual microphone selected as input in Google Meet (configured in Google Meet's settings)  
+**Connection ⑥**: The input device selected in Sokuji's audio settings  
 
 This routing system allows Sokuji to capture audio from your selected input device, process it through OpenAI's Realtime API, and then output the translated audio both to your local speakers and to other applications via the virtual microphone.
 
