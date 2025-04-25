@@ -247,7 +247,7 @@
       position: relative; /* Added for absolute positioning of labels */
       
       .visualization-label {
-        font-size: 10px;
+        font-size: 13px; /* Match the font size of the session button */
         color: #888;
         position: absolute;
         left: 0;
