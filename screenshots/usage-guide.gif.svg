@@ -1,0 +1,46 @@
+<svg width="800" height="450" xmlns="http://www.w3.org/2000/svg">
+  <rect width="800" height="450" fill="#f0f0f0" />
+  
+  <!-- Step 1 -->
+  <rect x="50" y="50" width="220" height="150" fill="#fff" stroke="#ddd" stroke-width="2" rx="5" />
+  <text x="160" y="80" font-family="Arial" font-size="14" text-anchor="middle" fill="#333">Step 1</text>
+  <text x="160" y="110" font-family="Arial" font-size="12" text-anchor="middle" fill="#666">Setup API Key</text>
+  <rect x="80" y="130" width="160" height="30" fill="#eee" stroke="#ccc" stroke-width="1" rx="3" />
+  <text x="160" y="150" font-family="Arial" font-size="10" text-anchor="middle" fill="#333">Settings Panel</text>
+  
+  <!-- Step 2 -->
+  <rect x="290" y="50" width="220" height="150" fill="#fff" stroke="#ddd" stroke-width="2" rx="5" />
+  <text x="400" y="80" font-family="Arial" font-size="14" text-anchor="middle" fill="#333">Step 2</text>
+  <text x="400" y="110" font-family="Arial" font-size="12" text-anchor="middle" fill="#666">Configure Audio Devices</text>
+  <rect x="320" y="130" width="160" height="30" fill="#eee" stroke="#ccc" stroke-width="1" rx="3" />
+  <text x="400" y="150" font-family="Arial" font-size="10" text-anchor="middle" fill="#333">Audio Panel</text>
+  
+  <!-- Step 3 -->
+  <rect x="530" y="50" width="220" height="150" fill="#fff" stroke="#ddd" stroke-width="2" rx="5" />
+  <text x="640" y="80" font-family="Arial" font-size="14" text-anchor="middle" fill="#333">Step 3</text>
+  <text x="640" y="110" font-family="Arial" font-size="12" text-anchor="middle" fill="#666">Start Session</text>
+  <rect x="560" y="130" width="160" height="30" fill="#eee" stroke="#ccc" stroke-width="1" rx="3" />
+  <text x="640" y="150" font-family="Arial" font-size="10" text-anchor="middle" fill="#333">Start Button</text>
+  
+  <!-- Step 4 -->
+  <rect x="170" y="230" width="460" height="170" fill="#fff" stroke="#ddd" stroke-width="2" rx="5" />
+  <text x="400" y="260" font-family="Arial" font-size="14" text-anchor="middle" fill="#333">Step 4</text>
+  <text x="400" y="290" font-family="Arial" font-size="12" text-anchor="middle" fill="#666">Use with Other Applications</text>
+  <rect x="200" y="310" width="400" height="60" fill="#eee" stroke="#ccc" stroke-width="1" rx="3" />
+  <text x="400" y="340" font-family="Arial" font-size="10" text-anchor="middle" fill="#333">Select "sokuji_virtual_mic" as input in target application</text>
+  
+  <!-- Arrows -->
+  <line x1="160" y1="200" x2="160" y2="230" stroke="#333" stroke-width="1.5" marker-end="url(#arrowhead)" />
+  <line x1="400" y1="200" x2="400" y2="230" stroke="#333" stroke-width="1.5" marker-end="url(#arrowhead)" />
+  <line x1="640" y1="200" x2="640" y2="230" stroke="#333" stroke-width="1.5" marker-end="url(#arrowhead)" />
+  
+  <!-- Arrow head definition -->
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#333" />
+    </marker>
+  </defs>
+  
+  <text x="400" y="25" font-family="Arial" font-size="18" text-anchor="middle" fill="#333">Sokuji Usage Guide</text>
+  <text x="400" y="430" font-family="Arial" font-size="14" text-anchor="middle" fill="#666">800×450</text>
+</svg>
