@@ -33,6 +33,7 @@ jobs:
         run: npm run electron:build
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CI: false
 
       - name: Generate changelog
         id: changelog

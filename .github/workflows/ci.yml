@@ -32,5 +32,6 @@ jobs:
         run: npm run electron:build
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CI: false
           # Set to false to prevent actual publishing during CI
           CSC_IDENTITY_AUTO_DISCOVERY: false
