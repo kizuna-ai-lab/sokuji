@@ -388,6 +388,39 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     }
   }, [items]);
 
+  // Add keyboard shortcut for push-to-talk functionality
+  useEffect(() => {
+    // Only add event listeners if session is active and push-to-talk is enabled
+    if (!isSessionActive || !canPushToTalk) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Use Space key as the shortcut for push-to-talk
+      if (e.code === 'Space' && !e.repeat && !isRecording) {
+        // Prevent default space behavior (scrolling)
+        e.preventDefault();
+        startRecording();
+      }
+    };
+
+    const handleKeyUp = (e: KeyboardEvent) => {
+      // Release push-to-talk when Space key is released
+      if (e.code === 'Space' && isRecording) {
+        e.preventDefault();
+        stopRecording();
+      }
+    };
+
+    // Add event listeners
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+
+    // Clean up event listeners on unmount or when dependencies change
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
+  }, [isSessionActive, canPushToTalk, isRecording, startRecording, stopRecording]);
+
   return (
     <div className="main-panel">
       <div className="conversation-container" ref={conversationContainerRef}>
@@ -537,7 +570,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
             >
               <>
                 <Mic size={14} />
-                <span>{isRecording ? 'release' : 'push to talk'}</span>
+                <span>{isRecording ? 'release' : 'push to talk (Space)'}</span>
               </>
             </button>
           )}
