@@ -34,17 +34,7 @@
 
 Sokuji is a desktop application designed to provide real-time simultaneous interpretation using OpenAI's Realtime API. It bridges language barriers in live conversations by capturing audio input, processing it through OpenAI's advanced models, and delivering translated output in real-time.
 
-<p align="center">
-  <img width="800" src="https://github.com/kizuna-ai-lab/sokuji/raw/main/screenshots/main-interface.png" alt="Sokuji Interface" />
-</p>
-
-# Demo
-
-<p align="center">
-  <video width="800" controls src="https://github.com/kizuna-ai-lab/sokuji/raw/main/screenshots/demo.mp4" type="video/mp4">
-    Your browser does not support the video tag.
-  </video>
-</p>
+https://github.com/user-attachments/assets/1eaaa333-a7ce-4412-a295-16b7eb2310de
 
 # More than just translation
 
