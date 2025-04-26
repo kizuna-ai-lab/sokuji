@@ -18,7 +18,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   const [items, setItems] = useState<ItemType[]>([]);
   
   // Get settings from context
-  const { settings } = useSettings();
+  const { settings, isApiKeyValid } = useSettings();
   
   // Get log functions from context
   const { addRealtimeEvent } = useLog();
@@ -577,6 +577,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           <button 
             className={`session-button ${isSessionActive ? 'active' : ''}`} 
             onClick={isSessionActive ? disconnectConversation : connectConversation}
+            disabled={!isSessionActive && !isApiKeyValid}
           >
             {isSessionActive ? (
               <>
@@ -587,6 +588,9 @@ const MainPanel: React.FC<MainPanelProps> = () => {
               <>
                 <Zap size={14} />
                 <span>Start Session</span>
+                {!isApiKeyValid && (
+                  <span className="tooltip">Please add a valid OpenAI API Key in settings first</span>
+                )}
               </>
             )}
           </button>
