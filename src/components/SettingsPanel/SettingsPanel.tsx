@@ -8,64 +8,19 @@ interface SettingsPanelProps {
 }
 
 const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
-  const { settings, updateSettings, reloadSettings } = useSettings();
+  const { settings, updateSettings, validateApiKey: contextValidateApiKey } = useSettings();
 
   const [apiKeyStatus, setApiKeyStatus] = useState<{
     valid: boolean | null;
-    message: string;
     validating: boolean;
-  }>({ valid: null, message: '', validating: false });
+    message: string
+  }>({ valid: null, validating: false, message: '' });
+  
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [saveStatus, setSaveStatus] = useState<{
     type: 'success' | 'error' | 'info' | 'warning' | null,
     message: string
   }>({ type: null, message: '' });
-
-  const validateApiKey = async () => {
-    if (!settings.openAIApiKey || settings.openAIApiKey.trim() === '') {
-      setApiKeyStatus({
-        valid: false,
-        message: 'API key cannot be empty',
-        validating: false
-      });
-      return false;
-    }
-
-    setApiKeyStatus({
-      valid: null,
-      message: 'Validating API key...',
-      validating: true
-    });
-
-    try {
-      const result = await window.electron.openai.validateApiKey(settings.openAIApiKey);
-      
-      if (result.success && result.valid) {
-        const modelCount = result.models?.length || 0;
-        setApiKeyStatus({
-          valid: true,
-          message: `Valid API key. Found ${modelCount} compatible models.`,
-          validating: false
-        });
-        return true;
-      } else {
-        setApiKeyStatus({
-          valid: false,
-          message: result.error || 'Invalid API key',
-          validating: false
-        });
-        return false;
-      }
-    } catch (error) {
-      console.error('Error validating API key:', error);
-      setApiKeyStatus({
-        valid: false,
-        message: error instanceof Error ? error.message : 'Error validating API key',
-        validating: false
-      });
-      return false;
-    }
-  };
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -138,6 +93,23 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
     }
   };
 
+  const handleValidateApiKey = async () => {
+    setApiKeyStatus({
+      valid: null,
+      message: 'Validating API key...',
+      validating: true
+    });
+    
+    const result = await contextValidateApiKey();
+    setApiKeyStatus({
+      valid: result.valid === true,
+      message: result.message,
+      validating: false
+    });
+    
+    return result.valid === true;
+  };
+
   // Runtime array of voice options
   const voiceOptions: VoiceOption[] = [
     'alloy', 'ash', 'ballad', 'coral', 'echo', 'sage', 'shimmer', 'verse'
@@ -185,7 +157,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
               />
               <button 
                 className="validate-key-button"
-                onClick={validateApiKey}
+                onClick={handleValidateApiKey}
                 disabled={apiKeyStatus.validating || !settings.openAIApiKey}
               >
                 <Key size={16} />

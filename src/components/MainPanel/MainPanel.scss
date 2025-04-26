@@ -330,6 +330,7 @@
         box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
         transition: background-color 0.2s, transform 0.1s;
         height: 28px; /* Fixed height to match visualization */
+        position: relative; /* For tooltip positioning */
         
         &:hover {
           background-color: #0c8c6a;
@@ -340,6 +341,53 @@
           
           &:hover {
             background-color: #555;
+          }
+        }
+        
+        &:disabled {
+          background-color: #666;
+          opacity: 0.6;
+          cursor: not-allowed;
+          box-shadow: none;
+          
+          &:hover {
+            background-color: #666;
+            .tooltip {
+              visibility: visible;
+              opacity: 1;
+            }
+          }
+          
+          .tooltip {
+            visibility: hidden;
+            width: 200px;
+            background-color: #333;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 8px;
+            position: absolute;
+            z-index: 10;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -100px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-weight: normal;
+            font-size: 12px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+            pointer-events: none;
+            
+            &::after {
+              content: "";
+              position: absolute;
+              top: 100%;
+              left: 50%;
+              margin-left: -5px;
+              border-width: 5px;
+              border-style: solid;
+              border-color: #333 transparent transparent transparent;
+            }
           }
         }
       }

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 
 export type TurnDetectionMode = 'Normal' | 'Semantic' | 'Disabled';
 export type SemanticEagerness = 'Auto' | 'Low' | 'Medium' | 'High';
@@ -27,7 +27,14 @@ interface SettingsContextType {
   settings: Settings;
   updateSettings: (newSettings: Partial<Settings>) => void;
   reloadSettings: () => Promise<void>;
+  isApiKeyValid: boolean;
+  validateApiKey: (apiKey?: string) => Promise<{
+    valid: boolean | null;
+    message: string;
+    validating?: boolean;
+  }>;
 }
+
 export const defaultSettings: Settings = {
   turnDetectionMode: 'Normal',
   threshold: 0.49,
@@ -55,7 +62,7 @@ export const defaultSettings: Settings = {
     "\n" +
     "- 用户（Chinese）：这句话在日语中有没有类似的话?\n" +
     " AI（English）：Is there a similar expression in Japanese for this sentence?\n",
-    openAIApiKey: '',
+  openAIApiKey: '',
 };
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
@@ -70,9 +77,55 @@ export const useSettings = () => {
 
 export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   const [settings, setSettings] = useState<Settings>(defaultSettings);
+  const [isApiKeyValid, setIsApiKeyValid] = useState<boolean>(false);
+
+  // Comprehensive API key validation
+  const validateApiKey = useCallback(async (apiKey?: string) => {
+    const keyToValidate = apiKey !== undefined ? apiKey : settings.openAIApiKey;
+    
+    // First do basic validation
+    if (!keyToValidate || keyToValidate.trim() === '') {
+      setIsApiKeyValid(false);
+      return {
+        valid: false,
+        message: 'API key cannot be empty',
+        validating: false
+      };
+    }
+
+    // Then do full validation with API call
+    try {
+      const result = await window.electron.openai.validateApiKey(keyToValidate);
+      
+      if (result.success && result.valid) {
+        const modelCount = result.models?.length || 0;
+        setIsApiKeyValid(true);
+        return {
+          valid: true,
+          message: `Valid API key. Found ${modelCount} compatible models.`,
+          validating: false
+        };
+      } else {
+        setIsApiKeyValid(false);
+        return {
+          valid: false,
+          message: result.error || 'Invalid API key',
+          validating: false
+        };
+      }
+    } catch (error) {
+      console.error('Error validating API key:', error);
+      setIsApiKeyValid(false);
+      return {
+        valid: false,
+        message: error instanceof Error ? error.message : 'Error validating API key',
+        validating: false
+      };
+    }
+  }, [settings.openAIApiKey]);
 
   // Load settings from config.toml via Electron API
-  const loadSettings = async () => {
+  const loadSettings = useCallback(async () => {
     try {
       const loaded = {
         turnDetectionMode: await window.electron.config.get('settings.turnDetectionMode', defaultSettings.turnDetectionMode),
@@ -90,14 +143,21 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         openAIApiKey: await window.electron.config.get('settings.openAIApiKey', defaultSettings.openAIApiKey),
       };
       setSettings(loaded as Settings);
+      
+      // Perform basic validation after loading settings
+      const apiKey = loaded.openAIApiKey;
+      setIsApiKeyValid(Boolean(apiKey && apiKey.trim() !== ''));
+      
+      // Optionally perform full validation in the background
+      // validateApiKey(loaded.openAIApiKey).catch(console.error);
     } catch (error) {
       // Optionally handle error
     }
-  };
+  }, []);
 
   useEffect(() => {
     loadSettings();
-  }, []);
+  }, [loadSettings]);
 
   // Update settings in context and persist to config.toml
   const updateSettings = (newSettings: Partial<Settings>) => {
@@ -106,6 +166,12 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
       Object.entries(newSettings).forEach(([key, value]) => {
         window.electron.config.set(`settings.${key}`, value);
       });
+      
+      // If API key is updated, validate it
+      if (newSettings.openAIApiKey !== undefined) {
+        validateApiKey(newSettings.openAIApiKey);
+      }
+      
       return updated;
     });
   };
@@ -115,7 +181,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <SettingsContext.Provider value={{ settings, updateSettings, reloadSettings }}>
+    <SettingsContext.Provider value={{ settings, updateSettings, reloadSettings, isApiKeyValid, validateApiKey }}>
       {children}
     </SettingsContext.Provider>
   );
