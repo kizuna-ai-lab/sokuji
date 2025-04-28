@@ -1,7 +1,7 @@
 {
   "name": "sokuji",
   "productName": "Sokuji",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "private": true,
   "main": "electron/main.js",
   "homepage": "./",
@@ -21,6 +21,7 @@
     "@types/react": "^18.3.5",
     "@types/react-dom": "^18.3.0",
     "dotenv": "^16.4.5",
+    "electron-squirrel-startup": "^1.0.1",
     "node-fetch": "^2.7.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
@@ -33,10 +34,16 @@
     "ws": "^8.18.0"
   },
   "devDependencies": {
+    "@electron-forge/cli": "^7.8.0",
+    "@electron-forge/maker-deb": "^7.8.0",
+    "@electron-forge/maker-squirrel": "^7.8.0",
+    "@electron-forge/maker-zip": "^7.8.0",
+    "@electron-forge/plugin-auto-unpack-natives": "^7.8.0",
+    "@electron-forge/plugin-fuses": "^7.8.0",
+    "@electron/fuses": "^1.8.0",
     "concurrently": "^8.2.2",
     "cross-env": "^7.0.3",
     "electron": "^34.0.0",
-    "electron-builder": "^24.13.3",
     "wait-on": "^7.2.0"
   },
   "scripts": {
@@ -45,8 +52,10 @@
     "test": "react-scripts test",
     "eject": "react-scripts eject",
     "electron:dev": "concurrently --kill-others \"cross-env BROWSER=none npm start\" \"wait-on http://localhost:3000 && electron .\"",
-    "electron:build": "npm run build && electron-builder",
-    "electron:start": "electron ."
+    "electron:build": "npm run build && npm run make",
+    "electron:start": "electron .",
+    "package": "electron-forge package",
+    "make": "electron-forge make"
   },
   "eslintConfig": {
     "extends": [
@@ -74,27 +83,7 @@
       "last 1 safari version"
     ]
   },
-  "build": {
-    "appId": "com.kizunaai.sokuji",
-    "files": [
-      "build/**/*",
-      "electron/**/*",
-      "node_modules/**/*",
-      "package.json"
-    ],
-    "directories": {
-      "buildResources": "assets"
-    },
-    "extraMetadata": {
-      "main": "electron/main.js"
-    },
-    "asar": true,
-    "linux": {
-      "target": [
-        "AppImage",
-        "deb"
-      ],
-      "category": "Audio"
-    }
+  "config": {
+    "forge": "./forge.config.js"
   }
 }
