@@ -1,77 +1,77 @@
-# Sokuji 浏览器扩展
+# Sokuji Browser Extension
 
-这是 Sokuji 实时翻译应用的浏览器扩展版本，使用 OpenAI 的 Realtime API 提供实时同声传译功能。
+This is the browser extension version of the Sokuji real-time translation application, providing simultaneous interpretation functionality using OpenAI's Realtime API.
 
-## 功能特点
+## Features
 
-- 复用原有 Sokuji React 应用的大部分代码
-- 在浏览器中提供与桌面应用相同的功能
-- 支持实时音频处理和翻译
-- 可以在任何网页中使用
+- Reuses most of the code from the original Sokuji React application
+- Provides the same functionality as the desktop application in the browser
+- Supports real-time audio processing and translation
+- Can be used on any webpage
 
-## 开发环境设置
+## Development Environment Setup
 
-### 安装依赖
+### Install Dependencies
 
 ```bash
 cd extension
 npm install
 ```
 
-### 开发模式构建
+### Development Build
 
 ```bash
 npm run dev
 ```
 
-这将启动 webpack 的监视模式，当你修改代码时自动重新构建扩展。
+This will start webpack in watch mode, automatically rebuilding the extension when you modify the code.
 
-### 生产模式构建
+### Production Build
 
 ```bash
 npm run build
 ```
 
-## 在浏览器中加载扩展
+## Loading the Extension in Browsers
 
 ### Chrome
 
-1. 打开 Chrome 浏览器，访问 `chrome://extensions/`
-2. 启用右上角的"开发者模式"
-3. 点击"加载已解压的扩展程序"
-4. 选择 `extension/dist` 目录
+1. Open Chrome browser and navigate to `chrome://extensions/`
+2. Enable "Developer mode" in the top right corner
+3. Click "Load unpacked"
+4. Select the `extension/dist` directory
 
 ### Firefox
 
-1. 打开 Firefox 浏览器，访问 `about:debugging#/runtime/this-firefox`
-2. 点击"临时载入附加组件"
-3. 选择 `extension/dist/manifest.json` 文件
+1. Open Firefox browser and navigate to `about:debugging#/runtime/this-firefox`
+2. Click "Load Temporary Add-on"
+3. Select the `extension/dist/manifest.json` file
 
-## 使用方法
+## Usage
 
-1. 点击浏览器工具栏中的 Sokuji 图标打开扩展弹出窗口
-2. 在设置中输入你的 OpenAI API 密钥
-3. 配置模型和其他设置
-4. 点击"开始会话"按钮开始使用
+1. Click the Sokuji icon in the browser toolbar to open the extension popup
+2. Enter your OpenAI API key in the settings
+3. Configure the model and other settings
+4. Click the "Start Session" button to begin
 
-## 在网页中使用
+## Using in Webpages
 
-点击扩展图标后，你可以选择"在当前页面中打开"，这将在当前网页中注入 Sokuji 界面，可以拖动和调整位置。
+After clicking the extension icon, you can select "Open in current page" which will inject the Sokuji interface into the current webpage. The interface can be dragged and repositioned.
 
-## 技术细节
+## Technical Details
 
-这个浏览器扩展使用以下技术：
+This browser extension uses the following technologies:
 
-- React 用于用户界面
-- OpenAI Realtime API 用于实时翻译
-- Web Audio API 用于音频处理
-- Chrome 扩展 API 用于浏览器集成
+- React for the user interface
+- OpenAI Realtime API for real-time translation
+- Web Audio API for audio processing
+- Chrome Extension API for browser integration
 
-## 与桌面版的区别
+## Differences from Desktop Version
 
-浏览器扩展版本与桌面版的主要区别：
+The main differences between the browser extension and desktop versions:
 
-1. 使用 Web Audio API 而不是 Electron 的音频功能
-2. 使用浏览器存储而不是本地文件系统
-3. 没有虚拟音频设备功能（浏览器限制）
-4. 界面适应浏览器扩展的弹出窗口和网页注入模式
+1. Uses Web Audio API instead of Electron's audio capabilities
+2. Uses browser storage instead of local file system
+3. No virtual audio device functionality (browser limitations)
+4. Interface adapted for browser extension popup and webpage injection modes
