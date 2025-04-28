@@ -34,8 +34,8 @@ jobs:
         env:
           CI: false
 
-      - name: Build Electron app for Linux
-        run: npm run electron:build
+      - name: Build Electron app with Forge
+        run: npm run make
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CI: false
@@ -56,8 +56,8 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            dist/*.AppImage
-            dist/*.deb
+            out/make/**/*.deb
+            out/make/**/*.zip
           body_path: CHANGELOG.md
           draft: false
           prerelease: false
