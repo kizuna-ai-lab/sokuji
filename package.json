@@ -46,6 +46,7 @@
     "concurrently": "^8.2.2",
     "cross-env": "^7.0.3",
     "electron": "^34.0.0",
+    "electron-rebuild": "^3.2.9",
     "wait-on": "^7.2.0"
   },
   "scripts": {
@@ -57,7 +58,8 @@
     "electron:build": "npm run build && npm run make",
     "electron:start": "electron .",
     "package": "electron-forge package",
-    "make": "electron-forge make"
+    "make": "electron-forge make",
+    "postinstall": "electron-rebuild"
   },
   "eslintConfig": {
     "extends": [
