@@ -1,5 +1,8 @@
 const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
+// Handle Squirrel events for Windows
+if (require('electron-squirrel-startup')) app.quit();
+
 // Use our custom config utility
 const { getConfig, setConfig, createDefaultConfig, CONFIG_DIR, CONFIG_FILE } = require('./config-utils');
 // Initialize config

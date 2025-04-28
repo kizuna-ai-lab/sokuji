@@ -32,8 +32,8 @@ jobs:
         env:
           CI: false
 
-      - name: Build Electron app
-        run: npm run electron:build
+      - name: Build Electron app with Forge
+        run: npm run make
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CI: false
