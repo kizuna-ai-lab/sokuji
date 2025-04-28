@@ -1,7 +1,14 @@
 const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
-// Handle Squirrel events for Windows
-if (require('electron-squirrel-startup')) app.quit();
+// Handle Squirrel events for Windows - only use on Windows platform
+if (process.platform === 'win32') {
+  try {
+    if (require('electron-squirrel-startup')) app.quit();
+  } catch (error) {
+    console.error('Error with electron-squirrel-startup:', error);
+    // Continue execution even if there's an error with squirrel startup
+  }
+}
 
 // Use our custom config utility
 const { getConfig, setConfig, createDefaultConfig, CONFIG_DIR, CONFIG_FILE } = require('./config-utils');
@@ -44,7 +51,50 @@ function createWindow() {
   if (isDev) {
     mainWindow.loadURL('http://localhost:3000');
   } else {
-    mainWindow.loadFile(path.join(__dirname, '../build/index.html'));
+    // Try multiple approaches to find the correct path
+    let indexPath;
+    
+    // Approach 1: Standard path relative to __dirname
+    const relativePath = path.join(__dirname, '../build/index.html');
+    
+    // Approach 2: Using app.getAppPath()
+    const appPathBased = path.join(app.getAppPath(), 'build/index.html');
+    
+    // Approach 3: Absolute path based on the installation location
+    const absolutePath = path.join(path.dirname(app.getPath('exe')), 'resources/app/build/index.html');
+    
+    // Approach 4: For asar packaged apps
+    const asarPath = path.join(path.dirname(app.getPath('exe')), 'resources/app.asar/build/index.html');
+    
+    // Log all potential paths for debugging
+    console.log('Potential paths:');
+    console.log('- Relative path:', relativePath);
+    console.log('- App path based:', appPathBased);
+    console.log('- Absolute path:', absolutePath);
+    console.log('- Asar path:', asarPath);
+    
+    // Check which path exists and use it
+    if (require('fs').existsSync(relativePath)) {
+      indexPath = relativePath;
+      console.log('Using relative path');
+    } else if (require('fs').existsSync(appPathBased)) {
+      indexPath = appPathBased;
+      console.log('Using app path based');
+    } else if (require('fs').existsSync(absolutePath)) {
+      indexPath = absolutePath;
+      console.log('Using absolute path');
+    } else if (require('fs').existsSync(asarPath)) {
+      indexPath = asarPath;
+      console.log('Using asar path');
+    } else {
+      // Fallback to the most likely path
+      indexPath = asarPath;
+      console.log('No path found, using fallback asar path');
+    }
+    
+    // Use loadFile which is recommended for local files
+    console.log('Final path used:', indexPath);
+    mainWindow.loadFile(indexPath);
   }
 
   // Open DevTools in development mode

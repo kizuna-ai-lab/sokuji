@@ -57,8 +57,8 @@
     "electron:dev": "concurrently --kill-others \"cross-env BROWSER=none npm start\" \"wait-on http://localhost:3000 && electron .\"",
     "electron:build": "npm run build && npm run make",
     "electron:start": "electron .",
-    "package": "electron-forge package",
-    "make": "electron-forge make",
+    "package": "npm run build && electron-forge package",
+    "make": "npm run build && electron-forge make",
     "postinstall": "electron-rebuild"
   },
   "eslintConfig": {

@@ -11,9 +11,10 @@ module.exports = {
     name: 'Sokuji',
     // Ignore development files and directories
     ignore: [
-      // Development source files
+      // Development source files (but keep the build directory)
       '/src($|/)',
       '/public($|/)',
+      '!build($|/)',  // Explicitly include the build directory
       
       // Development dependencies
       '/node_modules/(@testing-library|jest|eslint|babel).*($|/)',
