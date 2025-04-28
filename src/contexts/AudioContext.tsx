@@ -208,7 +208,7 @@ export const AudioProvider = ({ children }: { children: ReactNode }) => {
               }
             })
             .catch((error: any) => {
-              console.error('Error connecting virtual speaker to output device:', error);
+              console.error('Error connecting virtual speaker to output device:', JSON.stringify(error));
             });
         }
       }
@@ -242,7 +242,7 @@ export const AudioProvider = ({ children }: { children: ReactNode }) => {
           }
         })
         .catch((error: any) => {
-          console.error('Error connecting virtual speaker to output device:', error);
+          console.error('Error connecting virtual speaker to output device:', JSON.stringify(error));
         });
     } else {
       // Turn OFF - Disconnect virtual speaker from all outputs
