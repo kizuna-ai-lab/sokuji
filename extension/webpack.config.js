@@ -74,7 +74,10 @@ module.exports = {
           to: 'worklets/[name][ext]', 
           noErrorOnMissing: true 
         },
-        { from: 'assets', to: 'assets', noErrorOnMissing: true }
+        { 
+          from: '../public/assets/test-tone.mp3', 
+          to: 'assets/test-tone.mp3' 
+        }
       ],
     }),
   ],
