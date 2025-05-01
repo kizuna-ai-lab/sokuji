@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { X, Zap, Users, Mic, Tool } from 'react-feather';
+import { X, Zap, Users, Mic, Tool, Loader } from 'react-feather';
 import './MainPanel.scss';
 import { useSettings } from '../../contexts/SettingsContext';
 import { useLog } from '../../contexts/LogContext';
@@ -16,6 +16,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   const [isSessionActive, setIsSessionActive] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [items, setItems] = useState<ItemType[]>([]);
+  const [isInitializing, setIsInitializing] = useState(false);
   
   // Get settings from context
   const { settings, isApiKeyValid } = useSettings();
@@ -162,92 +163,6 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   }, [addRealtimeEvent]);
 
   /**
-   * Connect to conversation:
-   * WavRecorder takes speech input, WavStreamPlayer output, client is API client
-   */
-  const connectConversation = useCallback(async () => {
-    // clear current clientRef before create new client
-    clientRef.current.reset();
-    // Create a new RealtimeClient instance with the API key right before connecting
-    clientRef.current = new RealtimeClient({
-      apiKey: settings.openAIApiKey,
-      dangerouslyAllowAPIKeyInBrowser: true,
-    });
-    
-    // Setup listeners for the new client instance
-    await setupClientListeners();
-    
-    const client = clientRef.current;
-    const wavRecorder = wavRecorderRef.current;
-    const wavStreamPlayer = wavStreamPlayerRef.current;
-
-    // Set state variables
-    setIsSessionActive(true);
-    setItems(client.conversation.getItems() as ItemType[]);
-    
-    // Set canPushToTalk based on current turnDetectionMode
-    setCanPushToTalk(settings.turnDetectionMode === 'Disabled');
-    
-    // Connect to microphone
-    await wavRecorder.begin(selectedInputDevice.deviceId);
-
-    // Connect to audio output
-    await wavStreamPlayer.connect();
-    
-    // Find and use sokuji_virtual_speaker as the output device
-    try {
-      // Get all audio output devices
-      const devices = await navigator.mediaDevices.enumerateDevices();
-      // Find sokuji_virtual_speaker
-      const virtualSpeaker = devices.find(device => 
-        device.kind === 'audiooutput' && 
-        device.label.toLowerCase().includes('sokuji_virtual_speaker')
-      );
-      
-      // If virtual speaker is found, set it as the output device
-      if (virtualSpeaker && virtualSpeaker.deviceId) {
-        const ctxWithSink = wavStreamPlayer.context as AudioContext & { setSinkId?: (options: string | { type: string } | { deviceId: string }) => Promise<void> };
-        if (ctxWithSink && typeof ctxWithSink.setSinkId === 'function') {
-          try {
-            // According to MDN documentation, the correct way is to pass an object containing deviceId
-            await ctxWithSink.setSinkId({ deviceId: virtualSpeaker.deviceId });
-            console.log('AudioContext output device set to Sokuji_Virtual_Speaker:', virtualSpeaker.deviceId);
-          } catch (err) {
-            // If the new format fails, try the old format (directly passing the string)
-            console.log('Trying alternative setSinkId format...');
-            await ctxWithSink.setSinkId(virtualSpeaker.deviceId);
-            console.log('AudioContext output device set using alternative format');
-          }
-        }
-      } else {
-        console.log('Sokuji_Virtual_Speaker not found among output devices');
-      }
-    } catch (e) {
-      console.warn('Failed to set AudioContext to Sokuji_Virtual_Speaker:', e);
-    }
-
-    // Update session with all parameters from settings
-    const updateSessionParams = getUpdateSessionParams(settings);
-
-    // First set the model and other parameters
-    client.updateSession({
-      ...updateSessionParams
-    });
-
-    // Then connect to realtime API
-    if (client.isConnected()) {
-      throw new Error(`Already connected, use .disconnect() first`);
-    }
-    await client.realtime.connect({model: settings.model});
-    client.updateSession();
-    
-    // Start recording if using server VAD
-    if (settings.turnDetectionMode !== 'Disabled') {
-      await wavRecorder.record((data) => client.appendInputAudio(data.mono));
-    }
-  }, [settings, getUpdateSessionParams, setupClientListeners, selectedInputDevice]);
-
-  /**
    * Disconnect and reset conversation state
    */
   const disconnectConversation = useCallback(async () => {
@@ -263,6 +178,102 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     const wavStreamPlayer = wavStreamPlayerRef.current;
     wavStreamPlayer.interrupt();
   }, []);
+
+  /**
+   * Connect to conversation:
+   * WavRecorder takes speech input, WavStreamPlayer output, client is API client
+   */
+  const connectConversation = useCallback(async () => {
+    try {
+      setIsInitializing(true);
+      
+      // clear current clientRef before create new client
+      clientRef.current.reset();
+      // Create a new RealtimeClient instance with the API key right before connecting
+      clientRef.current = new RealtimeClient({
+        apiKey: settings.openAIApiKey,
+        dangerouslyAllowAPIKeyInBrowser: true,
+      });
+      
+      // Setup listeners for the new client instance
+      await setupClientListeners();
+      
+      const client = clientRef.current;
+      const wavRecorder = wavRecorderRef.current;
+      const wavStreamPlayer = wavStreamPlayerRef.current;
+
+      // Set canPushToTalk based on current turnDetectionMode
+      setCanPushToTalk(settings.turnDetectionMode === 'Disabled');
+      
+      // Connect to microphone
+      await wavRecorder.begin(selectedInputDevice.deviceId);
+
+      // Connect to audio output
+      await wavStreamPlayer.connect();
+      
+      // Find and use sokuji_virtual_speaker as the output device
+      try {
+        // Get all audio output devices
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        // Find sokuji_virtual_speaker
+        const virtualSpeaker = devices.find(device => 
+          device.kind === 'audiooutput' && 
+          device.label.toLowerCase().includes('sokuji_virtual_speaker')
+        );
+        
+        // If virtual speaker is found, set it as the output device
+        if (virtualSpeaker && virtualSpeaker.deviceId) {
+          const ctxWithSink = wavStreamPlayer.context as AudioContext & { setSinkId?: (options: string | { type: string } | { deviceId: string }) => Promise<void> };
+          if (ctxWithSink && typeof ctxWithSink.setSinkId === 'function') {
+            try {
+              // According to MDN documentation, the correct way is to pass an object containing deviceId
+              await ctxWithSink.setSinkId({ deviceId: virtualSpeaker.deviceId });
+              console.log('AudioContext output device set to Sokuji_Virtual_Speaker:', virtualSpeaker.deviceId);
+            } catch (err) {
+              // If the new format fails, try the old format (directly passing the string)
+              console.log('Trying alternative setSinkId format...');
+              await ctxWithSink.setSinkId(virtualSpeaker.deviceId);
+              console.log('AudioContext output device set using alternative format');
+            }
+          }
+        } else {
+          console.log('Sokuji_Virtual_Speaker not found among output devices');
+        }
+      } catch (e) {
+        console.warn('Failed to set AudioContext to Sokuji_Virtual_Speaker:', e);
+      }
+
+      // Update session with all parameters from settings
+      const updateSessionParams = getUpdateSessionParams(settings);
+
+      // First set the model and other parameters
+      client.updateSession({
+        ...updateSessionParams
+      });
+
+      // Then connect to realtime API
+      if (client.isConnected()) {
+        throw new Error(`Already connected, use .disconnect() first`);
+      }
+      await client.realtime.connect({model: settings.model});
+      client.updateSession();
+      
+      // Start recording if using server VAD
+      if (settings.turnDetectionMode !== 'Disabled') {
+        await wavRecorder.record((data) => client.appendInputAudio(data.mono));
+      }
+      
+      // Set state variables after successful initialization
+      setIsSessionActive(true);
+      setItems(client.conversation.getItems() as ItemType[]);
+    } catch (error) {
+      console.error('Failed to initialize session:', error);
+      // Reset state in case of error
+      await disconnectConversation();
+    } finally {
+      setIsInitializing(false);
+    }
+  }, [settings, getUpdateSessionParams, setupClientListeners, selectedInputDevice, disconnectConversation]);
 
   /**
    * In push-to-talk mode, start recording
@@ -659,9 +670,14 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           <button 
             className={`session-button ${isSessionActive ? 'active' : ''}`} 
             onClick={isSessionActive ? disconnectConversation : connectConversation}
-            disabled={!isSessionActive && !isApiKeyValid}
+            disabled={(!isSessionActive && !isApiKeyValid) || isInitializing}
           >
-            {isSessionActive ? (
+            {isInitializing ? (
+              <>
+                <Loader size={14} className="spinner" />
+                <span>Initializing...</span>
+              </>
+            ) : isSessionActive ? (
               <>
                 <X size={14} />
                 <span>End Session</span>
