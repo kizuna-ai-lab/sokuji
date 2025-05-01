@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { X, Zap, Users, Mic } from 'react-feather';
+import { X, Zap, Users, Mic, Tool } from 'react-feather';
 import './MainPanel.scss';
 import { useSettings } from '../../contexts/SettingsContext';
 import { useLog } from '../../contexts/LogContext';
@@ -301,6 +301,88 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   }, []);
 
   /**
+   * Play test tone for debugging
+   */
+  const playTestTone = useCallback(async () => {
+    try {
+      const wavStreamPlayer = wavStreamPlayerRef.current;
+      
+      // Ensure the player is connected before playing
+      if (!wavStreamPlayer.context || wavStreamPlayer.context.state === 'closed') {
+        await wavStreamPlayer.connect();
+      } else if (wavStreamPlayer.context.state === 'suspended') {
+        await wavStreamPlayer.context.resume();
+      }
+      
+      // Make sure we have a valid context after connecting
+      if (!wavStreamPlayer.context) {
+        throw new Error('Failed to initialize audio context');
+      }
+      
+      // Fetch the test tone file
+      let testToneUrl = '/assets/test-tone.mp3';
+      
+      // Check if we're in a Chrome extension environment
+      if (typeof window !== 'undefined' && 
+          'chrome' in window && 
+          window.chrome?.runtime?.getURL) {
+        // Use the extension's assets path
+        testToneUrl = window.chrome.runtime.getURL('assets/test-tone.mp3');
+      }
+      
+      const response = await fetch(testToneUrl);
+      const arrayBuffer = await response.arrayBuffer();
+      
+      // Use the wavStreamPlayer's context for decoding to ensure consistent sample rate
+      const audioBuffer = await wavStreamPlayer.context.decodeAudioData(arrayBuffer);
+      
+      // Get the sample rate from the player
+      const targetSampleRate = wavStreamPlayer.sampleRate;
+      
+      // Create an offline context for resampling if needed
+      let processedBuffer = audioBuffer;
+      if (audioBuffer.sampleRate !== targetSampleRate) {
+        const offlineCtx = new OfflineAudioContext(
+          audioBuffer.numberOfChannels,
+          audioBuffer.duration * targetSampleRate,
+          targetSampleRate
+        );
+        
+        const bufferSource = offlineCtx.createBufferSource();
+        bufferSource.buffer = audioBuffer;
+        bufferSource.connect(offlineCtx.destination);
+        bufferSource.start();
+        
+        // Render the audio at the target sample rate
+        processedBuffer = await offlineCtx.startRendering();
+      }
+      
+      // Extract PCM data from the first channel
+      const pcmData = new Float32Array(processedBuffer.length);
+      processedBuffer.copyFromChannel(pcmData, 0, 0);
+      
+      // Convert to 16-bit PCM (format expected by wavStreamPlayer)
+      const pcm16bit = new Int16Array(pcmData.length);
+      for (let i = 0; i < pcmData.length; i++) {
+        // Convert float (-1.0 to 1.0) to int16 (-32768 to 32767)
+        // Apply a slight volume reduction to prevent clipping
+        const sample = pcmData[i] * 0.8;
+        pcm16bit[i] = Math.max(-32768, Math.min(32767, Math.floor(sample * 32767)));
+      }
+      
+      // Interrupt any currently playing audio
+      await wavStreamPlayer.interrupt();
+      
+      // Play the test tone using wavStreamPlayer
+      wavStreamPlayer.add16BitPCM(pcm16bit, 'test-tone');
+      
+      console.log('Playing test tone');
+    } catch (error) {
+      console.error('Error playing test tone:', error);
+    }
+  }, []);
+
+  /**
    * Set up render loops for the visualization canvas
    */
   useEffect(() => {
@@ -594,6 +676,15 @@ const MainPanel: React.FC<MainPanelProps> = () => {
               </>
             )}
           </button>
+          {process.env.NODE_ENV === 'development' && (
+            <button 
+              className="debug-button" 
+              onClick={playTestTone}
+            >
+              <Tool size={14} />
+              <span>Debug</span>
+            </button>
+          )}
         </div>
         
         <div className="visualization-container">
