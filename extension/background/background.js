@@ -115,12 +115,14 @@ async function validateApiKey(apiKey) {
     if (response.ok) {
       const data = await response.json();
       return { 
+        success: true,
         valid: true, 
         models: data.data.map(model => model.id) 
       };
     } else {
       const errorData = await response.json();
       return { 
+        success: false,
         valid: false, 
         error: errorData.error?.message || 'API key validation failed' 
       };
@@ -128,6 +130,7 @@ async function validateApiKey(apiKey) {
   } catch (error) {
     console.error('Error validating API key:', error);
     return { 
+      success: false,
       valid: false, 
       error: error.message || 'Failed to validate API key' 
     };
