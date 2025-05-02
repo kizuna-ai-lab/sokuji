@@ -169,11 +169,28 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     setIsSessionActive(false);
     // setItems([]);
 
+    const wavRecorder = wavRecorderRef.current;
+    // First pause the recorder to stop sending audio chunks
+    if (wavRecorder.recording) {
+      try {
+        await wavRecorder.pause();
+      } catch (error) {
+        console.warn('Error pausing recorder during disconnect:', error);
+      }
+    }
+
+    // Small delay to ensure any in-flight audio processing completes
+    await new Promise(resolve => setTimeout(resolve, 100));
+
     const client = clientRef.current;
     client.reset();
 
-    const wavRecorder = wavRecorderRef.current;
-    await wavRecorder.end();
+    // Now fully end the recorder after client is reset
+    try {
+      await wavRecorder.end();
+    } catch (error) {
+      console.warn('Error ending recorder:', error);
+    }
 
     const wavStreamPlayer = wavStreamPlayerRef.current;
     wavStreamPlayer.interrupt();
