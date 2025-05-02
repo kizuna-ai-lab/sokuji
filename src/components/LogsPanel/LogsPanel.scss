@@ -251,6 +251,16 @@
           .event-type {
             color: #ddd;
           }
+          
+          .event-count {
+            color: #ffc107;
+            font-weight: 500;
+            background-color: rgba(255, 193, 7, 0.1);
+            border-radius: 10px;
+            padding: 1px 6px;
+            font-size: 10px;
+            margin-left: 2px;
+          }
         }
       }
       
@@ -266,6 +276,32 @@
           color: #ddd;
           white-space: pre-wrap;
           word-break: break-word;
+        }
+        
+        .grouped-events {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+          
+          .grouped-event {
+            border-left: 2px solid #444;
+            padding-left: 8px;
+            
+            .grouped-event-header {
+              padding: 4px 0;
+              margin-bottom: 4px;
+              
+              .grouped-event-index {
+                font-size: 10px;
+                color: #888;
+                font-style: italic;
+              }
+            }
+            
+            pre {
+              margin-left: 4px;
+            }
+          }
         }
       }
     }
