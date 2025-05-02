@@ -25,7 +25,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   const { addRealtimeEvent } = useLog();
   
   // Get audio context from context
-  const { selectedInputDevice } = useAudioContext();
+  const { selectedInputDevice, isInputDeviceOn } = useAudioContext();
   
   // canPushToTalk is true only when turnDetectionMode is 'Disabled'
   const [canPushToTalk, setCanPushToTalk] = useState(false);
@@ -222,8 +222,12 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       // Set canPushToTalk based on current turnDetectionMode
       setCanPushToTalk(settings.turnDetectionMode === 'Disabled');
       
-      // Connect to microphone
-      await wavRecorder.begin(selectedInputDevice.deviceId);
+      // Connect to microphone only if input device is turned on
+      if (isInputDeviceOn) {
+        await wavRecorder.begin(selectedInputDevice.deviceId);
+      } else {
+        console.log('Input device is turned off, not connecting to microphone');
+      }
 
       // Connect to audio output
       await wavStreamPlayer.connect();
@@ -275,8 +279,8 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       await client.realtime.connect({model: settings.model});
       client.updateSession();
       
-      // Start recording if using server VAD
-      if (settings.turnDetectionMode !== 'Disabled') {
+      // Start recording if using server VAD and input device is turned on
+      if (settings.turnDetectionMode !== 'Disabled' && isInputDeviceOn) {
         await wavRecorder.record((data) => client.appendInputAudio(data.mono));
       }
       
@@ -290,13 +294,19 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     } finally {
       setIsInitializing(false);
     }
-  }, [settings, getUpdateSessionParams, setupClientListeners, selectedInputDevice, disconnectConversation]);
+  }, [settings, getUpdateSessionParams, setupClientListeners, selectedInputDevice, isInputDeviceOn, disconnectConversation]);
 
   /**
    * In push-to-talk mode, start recording
    * .appendInputAudio() for each sample
    */
   const startRecording = useCallback(async () => {
+    // Don't start recording if input device is turned off
+    if (!isInputDeviceOn) {
+      console.log('Input device is turned off, not starting recording');
+      return;
+    }
+    
     setIsRecording(true);
     const client = clientRef.current;
     const wavRecorder = wavRecorderRef.current;
@@ -311,22 +321,30 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     
     // Start recording
     await wavRecorder.record((data) => client.appendInputAudio(data.mono));
-  }, []);
+  }, [isInputDeviceOn]);
 
   /**
    * In push-to-talk mode, stop recording
    */
   const stopRecording = useCallback(async () => {
+    // Only try to stop recording if we're actually recording
+    if (!isRecording) {
+      return;
+    }
+    
     setIsRecording(false);
     const client = clientRef.current;
     const wavRecorder = wavRecorderRef.current;
     
-    // Stop recording
-    await wavRecorder.pause();
-    
-    // Create response
-    client.createResponse();
-  }, []);
+    // Only try to pause if we're actually recording
+    if (wavRecorder.recording) {
+      // Stop recording
+      await wavRecorder.pause();
+      
+      // Create response
+      client.createResponse();
+    }
+  }, [isRecording]);
 
   /**
    * Play test tone for debugging
@@ -497,6 +515,57 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       });
     }
   }, [items]);
+
+  /**
+   * Watch for changes to isInputDeviceOn and update recording state accordingly
+   */
+  useEffect(() => {
+    // Only take action if session is active
+    if (!isSessionActive) return;
+
+    const wavRecorder = wavRecorderRef.current;
+    const client = clientRef.current;
+
+    const updateRecordingState = async () => {
+      try {
+        // If input device is turned off, pause recording
+        if (!isInputDeviceOn) {
+          console.log('Input device turned off - pausing recording');
+          if (wavRecorder.recording) {
+            await wavRecorder.pause();
+            setIsRecording(false);
+          }
+        } 
+        // If input device is turned on
+        else {
+          // First, check if the recorder is initialized by checking the processor property
+          if (!wavRecorder.processor) {
+            console.log('Input device turned on - initializing recorder with selected device');
+            try {
+              await wavRecorder.begin(selectedInputDevice.deviceId);
+            } catch (error) {
+              console.error('Error initializing recorder:', error);
+              return;
+            }
+          }
+          
+          // If we're in automatic mode, resume recording
+          if (settings.turnDetectionMode !== 'Disabled') {
+            console.log('Input device turned on - resuming recording in automatic mode');
+            if (!wavRecorder.recording) {
+              await wavRecorder.record((data) => client.appendInputAudio(data.mono));
+            }
+          }
+          // For push-to-talk mode, we don't automatically resume recording
+          // The user needs to press the button or Space key
+        }
+      } catch (error) {
+        console.error('Error updating recording state:', error);
+      }
+    };
+
+    updateRecordingState();
+  }, [isInputDeviceOn, isSessionActive, settings.turnDetectionMode, selectedInputDevice]);
 
   // Add keyboard shortcut for push-to-talk functionality
   useEffect(() => {
@@ -673,14 +742,16 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         <div className="controls-container">
           {isSessionActive && canPushToTalk && (
             <button
-              className={`push-to-talk-button ${isRecording ? 'recording' : ''}`}
+              className={`push-to-talk-button ${isRecording ? 'recording' : ''} ${!isInputDeviceOn ? 'disabled' : ''}`}
               onMouseDown={startRecording}
               onMouseUp={stopRecording}
-              disabled={!isSessionActive || !canPushToTalk}
+              disabled={!isSessionActive || !canPushToTalk || !isInputDeviceOn}
             >
               <>
                 <Mic size={14} />
-                <span>{isRecording ? 'release' : 'push to talk (Space)'}</span>
+                <span>
+                  {isRecording ? 'release' : isInputDeviceOn ? 'push to talk (Space)' : 'input device off'}
+                </span>
               </>
             </button>
           )}
