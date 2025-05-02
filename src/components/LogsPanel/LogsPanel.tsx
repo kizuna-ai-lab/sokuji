@@ -2,7 +2,6 @@ import React, { useState, useRef, useEffect } from 'react';
 import { ArrowRight, Terminal, Trash2, ArrowUp, ArrowDown, FastForward } from 'react-feather';
 import './LogsPanel.scss';
 import { useLog, LogEntry } from '../../contexts/LogContext';
-import SampleEvents from './SampleEvents';
 
 interface LogsPanelProps {
   toggleLogs: () => void;
@@ -11,12 +10,16 @@ interface LogsPanelProps {
 // Event component to display OpenAI Realtime API events
 const Event: React.FC<{ logEntry: LogEntry }> = ({ logEntry }) => {
   const [isExpanded, setIsExpanded] = useState(false);
-  const { event, source, timestamp, eventType } = logEntry;
+  const { events, source, timestamp, eventType } = logEntry;
 
-  if (!event || !source) return null;
+  if (!events || !events.length || !source) return null;
 
   const isClient = source === 'client';
   const eventTypeDisplay = eventType || 'unknown';
+  const hasMultipleEvents = events.length > 1;
+  
+  // Get the latest event for display in collapsed view
+  const latestEvent = events[events.length - 1];
 
   return (
     <div className="event-entry">
@@ -33,11 +36,27 @@ const Event: React.FC<{ logEntry: LogEntry }> = ({ logEntry }) => {
         <div className="event-info">
           <span className="source-label">{isClient ? "client:" : "server:"}</span>
           <span className="event-type">{eventTypeDisplay}</span>
+          {hasMultipleEvents && (
+            <span className="event-count">({events.length})</span>
+          )}
         </div>
       </div>
       {isExpanded && (
         <div className="event-details">
-          <pre>{JSON.stringify(event, null, 2)}</pre>
+          {hasMultipleEvents ? (
+            <div className="grouped-events">
+              {events.map((evt, index) => (
+                <div key={index} className="grouped-event">
+                  <div className="grouped-event-header">
+                    <span className="grouped-event-index">Event {index + 1} of {events.length}</span>
+                  </div>
+                  <pre>{JSON.stringify(evt, null, 2)}</pre>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <pre>{JSON.stringify(latestEvent, null, 2)}</pre>
+          )}
         </div>
       )}
     </div>
@@ -65,7 +84,7 @@ const LogsPanel: React.FC<LogsPanelProps> = ({ toggleLogs }) => {
   // Function to render regular log entry with appropriate styling based on type
   const renderLogEntry = (log: LogEntry, index: number) => {
     // If this is an OpenAI Realtime API event
-    if (log.event && log.source) {
+    if (log.events && log.events.length > 0 && log.source) {
       return <Event key={index} logEntry={log} />;
     }
 
