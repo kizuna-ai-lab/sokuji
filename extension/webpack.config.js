@@ -8,6 +8,8 @@ module.exports = {
   entry: {
     background: './background/background.js',
     content: './content/content.js',
+    'content/google-meet-audio-replacer': './content/google-meet-audio-replacer.js',
+    'content/injected-script': './content/injected-script.js',
     fullpage: './fullpage/index.jsx',
   },
   output: {

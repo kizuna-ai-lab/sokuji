@@ -1,15 +1,16 @@
 {
   "manifest_version": 3,
-  "name": "Sokuji - Real-time Interpreter",
+  "name": "Sokuji Extension",
   "version": "0.1.0",
-  "description": "Real-time simultaneous interpretation using OpenAI's Realtime API",
+  "description": "Real-time language interpretation extension for web browser",
   "icons": {
     "16": "icons/icon16.png",
     "48": "icons/icon48.png",
     "128": "icons/icon128.png"
   },
   "action": {
-    "default_title": "Sokuji Interpreter",
+    "default_popup": "",
+    "default_title": "Sokuji",
     "default_icon": {
       "16": "icons/icon16.png",
       "48": "icons/icon48.png",
@@ -18,12 +19,13 @@
   },
   "permissions": [
     "storage",
-    "activeTab",
-    "scripting",
-    "tabs"
+    "tabCapture",
+    "tabs",
+    "activeTab"
   ],
   "host_permissions": [
-    "https://api.openai.com/*"
+    "https://api.openai.com/*",
+    "https://api.anthropic.com/*"
   ],
   "background": {
     "service_worker": "background.js",
@@ -34,11 +36,17 @@
       "matches": ["<all_urls>"],
       "js": ["content.js"],
       "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://meet.google.com/*"],
+      "js": ["content/google-meet-audio-replacer.js"],
+      "run_at": "document_start",
+      "all_frames": true
     }
   ],
   "web_accessible_resources": [
     {
-      "resources": ["worklets/*"],
+      "resources": ["worklets/*", "content/google-meet-audio-replacer.js", "content/injected-script.js", "assets/*"],
       "matches": ["<all_urls>"]
     }
   ],
