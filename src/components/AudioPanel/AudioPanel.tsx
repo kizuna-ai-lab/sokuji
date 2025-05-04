@@ -131,7 +131,7 @@ const AudioPanel: React.FC<{ toggleAudio: () => void }> = ({ toggleAudio }) => {
                 <Mic size={18} />
               </div>
               <div className="device-info">
-                <div className="device-name">{isLoading ? 'Loading devices...' : selectedInputDevice.label}</div>
+                <div className="device-name">{isLoading ? 'Loading devices...' : (selectedInputDevice?.label || 'No device selected')}</div>
               </div>
             </div>
             <button 
@@ -157,7 +157,7 @@ const AudioPanel: React.FC<{ toggleAudio: () => void }> = ({ toggleAudio }) => {
             {audioInputDevices.map((device, index) => (
               <div 
                 key={index} 
-                className={`device-option ${selectedInputDevice.deviceId === device.deviceId ? 'selected' : ''}`}
+                className={`device-option ${selectedInputDevice?.deviceId === device.deviceId ? 'selected' : ''}`}
                 onClick={() => handleInputDeviceSelection(device)}
               >
                 <span>{device.label}</span>
@@ -166,7 +166,7 @@ const AudioPanel: React.FC<{ toggleAudio: () => void }> = ({ toggleAudio }) => {
                     <AlertTriangle size={14} color="#f0ad4e" />
                   </div>
                 )}
-                {selectedInputDevice.deviceId === device.deviceId && <div className="selected-indicator" />}
+                {selectedInputDevice?.deviceId === device.deviceId && <div className="selected-indicator" />}
               </div>
             ))}
           </div>
@@ -181,7 +181,7 @@ const AudioPanel: React.FC<{ toggleAudio: () => void }> = ({ toggleAudio }) => {
                 <Volume2 size={18} />
               </div>
               <div className="device-info">
-                <div className="device-name">{isLoading ? 'Loading devices...' : selectedOutputDevice.label}</div>
+                <div className="device-name">{isLoading ? 'Loading devices...' : (selectedOutputDevice?.label || 'No device selected')}</div>
               </div>
             </div>
             <button 
@@ -207,16 +207,16 @@ const AudioPanel: React.FC<{ toggleAudio: () => void }> = ({ toggleAudio }) => {
             {audioOutputDevices.map((device, index) => (
               <div 
                 key={index} 
-                className={`device-option ${selectedOutputDevice.deviceId === device.deviceId ? 'selected' : ''}`}
+                className={`device-option ${selectedOutputDevice?.deviceId === device.deviceId ? 'selected' : ''}`}
                 onClick={() => handleOutputDeviceSelection(device)}
               >
                 <span>{device.label}</span>
                 {isVirtualSpeaker(device) && (
-                  <div className="virtual-indicator" title="Virtual speaker - do not select">
+                  <div className="virtual-indicator" title="Virtual speaker">
                     <AlertTriangle size={14} color="#f0ad4e" />
                   </div>
                 )}
-                {selectedOutputDevice.deviceId === device.deviceId && <div className="selected-indicator" />}
+                {selectedOutputDevice?.deviceId === device.deviceId && <div className="selected-indicator" />}
               </div>
             ))}
           </div>

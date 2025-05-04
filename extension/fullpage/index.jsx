@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom/client';
 import App from '@src/App';
 import '@src/App.scss';
-import './electron-adapter';
 
 const FullPage = () => {
   const [isLoaded, setIsLoaded] = useState(false);
