@@ -11,6 +11,10 @@ import { WavRenderer } from '../../utils/wav_renderer';
 
 interface MainPanelProps {}
 
+interface WavStreamPlayerWithInterruptedTrackIds extends WavStreamPlayer {
+  interruptedTrackIds: { [key: string]: boolean };
+}
+
 const MainPanel: React.FC<MainPanelProps> = () => {
   // State for session management
   const [isSessionActive, setIsSessionActive] = useState(false);
@@ -38,6 +42,9 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   
   // Reference for conversation container to enable auto-scrolling
   const conversationContainerRef = useRef<HTMLDivElement>(null);
+  
+  // Add a state variable to track if test tone is playing
+  const [isTestTonePlaying, setIsTestTonePlaying] = useState(false);
   
   /**
    * Convert settings to updateSession parameters
@@ -190,7 +197,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   const wavRecorderRef = useRef<WavRecorder>(
     new WavRecorder({ sampleRate: 24000 })
   );
-  const wavStreamPlayerRef = useRef<WavStreamPlayer>(
+  const wavStreamPlayerRef = useRef<WavStreamPlayerWithInterruptedTrackIds>(
     new WavStreamPlayer({ sampleRate: 24000 })
   );
 
@@ -419,11 +426,19 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   }, [isRecording]);
 
   /**
-   * Play test tone for debugging
+   * Play or stop test tone for debugging
    */
   const playTestTone = useCallback(async () => {
     try {
       const wavStreamPlayer = wavStreamPlayerRef.current;
+      
+      // If test tone is already playing, stop it
+      if (isTestTonePlaying) {
+        await wavStreamPlayer.interrupt();
+        setIsTestTonePlaying(false);
+        console.log('Stopped test tone');
+        return;
+      }
       
       // Ensure the player is connected before playing
       if (!wavStreamPlayer.context || wavStreamPlayer.context.state === 'closed') {
@@ -506,14 +521,25 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       // Interrupt any currently playing audio
       await wavStreamPlayer.interrupt();
       
+      // Clear the interruptedTrackIds for 'test-tone' to allow replaying
+      // This is necessary because WavStreamPlayer keeps track of interrupted tracks
+      // and won't play them again unless cleared
+      if (wavStreamPlayer.interruptedTrackIds && typeof wavStreamPlayer.interruptedTrackIds === 'object') {
+        delete wavStreamPlayer.interruptedTrackIds['test-tone'];
+      }
+      
       // Play the test tone using wavStreamPlayer
       wavStreamPlayer.add16BitPCM(pcm16bit, 'test-tone');
+      
+      // Set the state to indicate test tone is playing
+      setIsTestTonePlaying(true);
       
       console.log('Playing test tone');
     } catch (error) {
       console.error('Error playing test tone:', error);
+      setIsTestTonePlaying(false);
     }
-  }, [setupVirtualAudioOutput, isOutputDeviceOn, selectedOutputDevice, selectOutputDevice]);
+  }, [setupVirtualAudioOutput, isOutputDeviceOn, selectedOutputDevice, selectOutputDevice, isTestTonePlaying]);
 
   /**
    * Set up render loops for the visualization canvas
@@ -914,7 +940,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
               onClick={playTestTone}
             >
               <Tool size={14} />
-              <span>Debug</span>
+              <span>{isTestTonePlaying ? 'Stop Debug' : 'Debug'}</span>
             </button>
           )}
         </div>
