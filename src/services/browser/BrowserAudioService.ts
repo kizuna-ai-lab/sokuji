@@ -97,10 +97,10 @@ export class BrowserAudioService implements IAudioService {
   }
 
   /**
-   * Connect audio to the specified output device
+   * Connect to a monitoring device
    * In browsers, we're limited by what the Web Audio API allows
    */
-  async connectOutput(deviceId: string, label: string): Promise<AudioOperationResult> {
+  async connectMonitoringDevice(deviceId: string, label: string): Promise<AudioOperationResult> {
     try {
       if (!this.audioContext || !this.gainNode) {
         await this.initialize();
@@ -110,7 +110,7 @@ export class BrowserAudioService implements IAudioService {
       // unless the browser supports AudioContext.setSinkId() which is still experimental
       // Instead, we simulate the functionality
       
-      console.log(`[Browser Audio] Connecting to output device: ${label} (${deviceId})`);
+      console.log(`[Browser Audio] Connecting to monitoring device: ${label} (${deviceId})`);
       
       // If the browser supports setSinkId (Chrome 110+), we could use it
       let result: AudioOperationResult;
@@ -126,7 +126,7 @@ export class BrowserAudioService implements IAudioService {
           console.warn('setSinkId failed:', e);
           result = {
             success: true,
-            message: `Browser extensions have limited output device selection. Audio should play through system default output.`
+            message: `Browser extensions have limited monitoring device selection. Audio should play through system default output.`
           };
         }
       } else {
@@ -134,7 +134,7 @@ export class BrowserAudioService implements IAudioService {
         // we just return success but note the limitation
         result = {
           success: true,
-          message: `Browser extensions have limited output device selection. Audio should play through system default output.`
+          message: `Browser extensions have limited monitoring device selection. Audio should play through system default output.`
         };
       }
       
@@ -142,15 +142,15 @@ export class BrowserAudioService implements IAudioService {
     } catch (error: any) {
       return {
         success: false,
-        error: error.message || 'Failed to connect output device'
+        error: error.message || 'Failed to connect monitoring device'
       };
     }
   }
 
   /**
-   * Disconnect from output devices
+   * Disconnect from all monitoring devices
    */
-  async disconnectOutputs(): Promise<AudioOperationResult> {
+  async disconnectMonitoringDevices(): Promise<AudioOperationResult> {
     try {
       if (this.gainNode) {
         // Disconnect from all outputs
@@ -159,12 +159,12 @@ export class BrowserAudioService implements IAudioService {
       
       return {
         success: true,
-        message: 'Disconnected from all outputs'
+        message: 'Disconnected from all monitoring devices'
       };
     } catch (error: any) {
       return {
         success: false,
-        error: error.message || 'Failed to disconnect output devices'
+        error: error.message || 'Failed to disconnect monitoring devices'
       };
     }
   }

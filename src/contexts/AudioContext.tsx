@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useRef, useCallback, useEffect, ReactNode } from 'react';
 import { ServiceFactory } from '../services/ServiceFactory';
-import { IAudioService } from '../services/interfaces/IAudioService';
+import { IAudioService, AudioOperationResult } from '../services/interfaces/IAudioService';
 
 export interface AudioDevice {
   deviceId: string;
@@ -110,15 +110,15 @@ export const AudioProvider = ({ children }: { children: ReactNode }) => {
         // Only do this on initial mount, not when selectedOutputDevice changes
         if (isOutputDeviceOn && selectedOutputDevice) {
           console.log('Initialization complete, actively connecting output device:', selectedOutputDevice.deviceId);
-          audioService.current.connectOutput(selectedOutputDevice.deviceId, selectedOutputDevice.label)
-            .then((result) => {
+          audioService.current.connectMonitoringDevice(selectedOutputDevice.deviceId, selectedOutputDevice.label)
+            .then((result: AudioOperationResult) => {
               if (result.success) {
                 console.log('Successfully connected virtual speaker to output device during initialization:', result.message);
               } else {
                 console.error('Failed to connect virtual speaker to output device during initialization:', result.error);
               }
             })
-            .catch((error) => {
+            .catch((error: Error) => {
               console.error('Error connecting output device during initialization:', error);
             });
         }
@@ -149,15 +149,15 @@ export const AudioProvider = ({ children }: { children: ReactNode }) => {
           console.log(`Connecting virtual speaker to output device: ${device.label}`);
 
           // Use the audio service instead of direct Electron calls
-          audioService.current.connectOutput(device.deviceId, device.label)
-            .then((result) => {
+          audioService.current.connectMonitoringDevice(device.deviceId, device.label)
+            .then((result: AudioOperationResult) => {
               if (result.success) {
                 console.log('Successfully connected virtual speaker to output device:', result.message);
               } else {
                 console.error('Failed to connect virtual speaker to output device:', result.error);
               }
             })
-            .catch((error) => {
+            .catch((error: Error) => {
               console.error('Error connecting virtual speaker to output device:', error);
             });
         }
@@ -182,15 +182,15 @@ export const AudioProvider = ({ children }: { children: ReactNode }) => {
       // Turn ON - Connect virtual speaker to the selected output device
       if (selectedOutputDevice) {
         console.log(`Connecting virtual speaker to output device: ${selectedOutputDevice.label}`);
-        audioService.current.connectOutput(selectedOutputDevice.deviceId, selectedOutputDevice.label)
-          .then((result) => {
+        audioService.current.connectMonitoringDevice(selectedOutputDevice.deviceId, selectedOutputDevice.label)
+          .then((result: AudioOperationResult) => {
             if (result.success) {
               console.log('Successfully connected virtual speaker to output device:', result.message);
             } else {
               console.error('Failed to connect virtual speaker to output device:', result.error);
             }
           })
-          .catch((error) => {
+          .catch((error: Error) => {
             console.error('Error connecting virtual speaker to output device:', error);
           });
       } else {
@@ -199,15 +199,15 @@ export const AudioProvider = ({ children }: { children: ReactNode }) => {
     } else {
       // Turn OFF - Disconnect virtual speaker from all outputs
       console.log('Disconnecting virtual speaker from all outputs');
-      audioService.current.disconnectOutputs()
-        .then((result) => {
+      audioService.current.disconnectMonitoringDevices()
+        .then((result: AudioOperationResult) => {
           if (result.success) {
             console.log('Successfully disconnected virtual speaker from all outputs:', result.message);
           } else {
             console.error('Failed to disconnect virtual speaker from outputs:', result.error);
           }
         })
-        .catch((error) => {
+        .catch((error: Error) => {
           console.error('Error disconnecting virtual speaker from outputs:', error);
         });
     }
