@@ -62,10 +62,10 @@ export class ElectronAudioService implements IAudioService {
   }
 
   /**
-   * Connect the virtual speaker to the specified output device
+   * Connect the virtual speaker to the specified monitoring device
    * This uses PulseAudio through Electron IPC
    */
-  async connectOutput(deviceId: string, label: string): Promise<AudioOperationResult> {
+  async connectMonitoringDevice(deviceId: string, label: string): Promise<AudioOperationResult> {
     try {
       const result = await (window as any).electron.invoke('connect-virtual-speaker-to-output', {
         deviceId,
@@ -80,16 +80,16 @@ export class ElectronAudioService implements IAudioService {
     } catch (error: any) {
       return {
         success: false,
-        error: error.message || 'Failed to connect output device'
+        error: error.message || 'Failed to connect monitoring device'
       };
     }
   }
 
   /**
-   * Disconnect the virtual speaker from all outputs
+   * Disconnect the virtual speaker from all monitoring devices
    * This uses PulseAudio through Electron IPC
    */
-  async disconnectOutputs(): Promise<AudioOperationResult> {
+  async disconnectMonitoringDevices(): Promise<AudioOperationResult> {
     try {
       const result = await (window as any).electron.invoke('disconnect-virtual-speaker-outputs');
       
@@ -101,7 +101,7 @@ export class ElectronAudioService implements IAudioService {
     } catch (error: any) {
       return {
         success: false,
-        error: error.message || 'Failed to disconnect output devices'
+        error: error.message || 'Failed to disconnect monitoring devices'
       };
     }
   }

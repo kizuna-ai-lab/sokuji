@@ -23,14 +23,14 @@ export interface IAudioService {
   selectInputDevice(deviceId: string): Promise<AudioOperationResult>;
   
   /**
-   * Connect audio output to the specified device
+   * Connect to a monitoring device
    */
-  connectOutput(deviceId: string, label: string): Promise<AudioOperationResult>;
+  connectMonitoringDevice(deviceId: string, label: string): Promise<AudioOperationResult>;
   
   /**
-   * Disconnect all audio outputs
+   * Disconnect all monitoring devices
    */
-  disconnectOutputs(): Promise<AudioOperationResult>;
+  disconnectMonitoringDevices(): Promise<AudioOperationResult>;
   
   /**
    * Create virtual audio devices if supported by the platform
