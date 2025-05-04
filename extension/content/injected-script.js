@@ -1,201 +1,185 @@
 (function() {
-    console.log('[Audio Replacer Injected] Script running in page context');
+    console.log('[Sokuji Injected] Script running in page context');
     
     // Store the original methods before anyone else can access them
     const originalGetUserMedia = navigator.mediaDevices.getUserMedia;
     const originalEnumerateDevices = navigator.mediaDevices.enumerateDevices;
     
-    // 定义虚拟设备信息（固定值）
+    // Define virtual device information (fixed values)
     const VIRTUAL_DEVICE_ID = 'virtual-audio-device-sokuji';
-    const VIRTUAL_DEVICE_LABEL = 'Sokuji Audio File (Virtual) (test-tone.mp3)';
+    const VIRTUAL_DEVICE_LABEL = 'Sokuji Audio (Virtual)';
     
-    // 存储音频上下文和流
+    // Store audio context and stream
     let audioContext = null;
     let audioSource = null;
     let audioDestination = null;
     let cachedAudioStream = null;
-    let audioData = null;
+    let sokujiAudioStreamInfo = null;
     
-    // 监听来自内容脚本的消息
+    // Listen for messages from content script
     window.addEventListener('message', (event) => {
-        // 确保消息来自我们的页面
+        // Ensure message is from our window
         if (event.source !== window) return;
         
-        // 检查消息类型
-        if (event.data && event.data.type === 'audio-replacer-audio-data') {
-            console.log('[Audio Replacer Injected] Received audio data from content script');
+        // Check message type
+        if (event.data && event.data.type === 'sokuji-audio-stream-data') {
+            console.log('[Sokuji Injected] Received Sokuji audio stream data');
             
             if (event.data.success) {
-                audioData = event.data.audioData;
-                console.log('[Audio Replacer Injected] Audio data stored successfully');
+                sokujiAudioStreamInfo = event.data.streamInfo;
+                console.log('[Sokuji Injected] Sokuji audio stream info stored successfully', sokujiAudioStreamInfo);
             } else {
-                console.error('[Audio Replacer Injected] Failed to receive audio data:', event.data.error);
+                console.error('[Sokuji Injected] Failed to receive Sokuji audio stream data:', event.data.error);
             }
         }
     });
     
-    // 请求音频数据
-    const requestAudioData = () => {
-        console.log('[Audio Replacer Injected] Requesting audio data from content script');
+    // Request Sokuji audio stream data
+    const requestSokujiAudioStream = () => {
+        console.log('[Sokuji Injected] Requesting Sokuji audio stream data');
         window.postMessage({
-            type: 'audio-replacer-request-audio-data'
+            type: 'sokuji-request-audio-data'
         }, '*');
         
-        // 返回一个 Promise，等待音频数据
+        // Return a Promise, waiting for audio stream data
         return new Promise((resolve, reject) => {
-            // 检查是否已经有音频数据
-            if (audioData) {
-                resolve(audioData);
+            // Check if we already have audio stream data
+            if (sokujiAudioStreamInfo) {
+                resolve(sokujiAudioStreamInfo);
                 return;
             }
             
-            // 设置一个监听器等待音频数据
+            // Set up a listener to wait for audio stream data
             const messageListener = (event) => {
-                // 确保消息来自我们的页面
+                // Ensure message is from our window
                 if (event.source !== window) return;
                 
-                // 检查消息类型
-                if (event.data && event.data.type === 'audio-replacer-audio-data') {
-                    // 移除监听器
+                // Check message type
+                if (event.data && event.data.type === 'sokuji-audio-stream-data') {
+                    // Remove listener
                     window.removeEventListener('message', messageListener);
                     
                     if (event.data.success) {
-                        audioData = event.data.audioData;
-                        resolve(audioData);
+                        sokujiAudioStreamInfo = event.data.streamInfo;
+                        resolve(sokujiAudioStreamInfo);
                     } else {
-                        reject(new Error(event.data.error || 'Failed to get audio data'));
+                        reject(new Error(event.data.error || 'Failed to get Sokuji audio stream data'));
                     }
                 }
             };
             
-            // 添加消息监听器
+            // Add message listener
             window.addEventListener('message', messageListener);
             
-            // 设置超时
+            // Set timeout
             setTimeout(() => {
                 window.removeEventListener('message', messageListener);
-                reject(new Error('Timeout waiting for audio data'));
+                reject(new Error('Timeout waiting for Sokuji audio stream data'));
             }, 5000);
         });
     };
     
-    // 创建循环播放的音频流，使用内容脚本提供的音频数据
-    const createLoopedAudioStream = async () => {
+    // Create audio stream for virtual device
+    const createAudioStream = async () => {
         try {
             if (cachedAudioStream) {
-                console.log('[Audio Replacer Injected] Using cached audio stream');
+                console.log('[Sokuji Injected] Using cached audio stream');
                 return cachedAudioStream;
             }
             
-            // 创建音频上下文
-            if (!audioContext) {
-                audioContext = new AudioContext();
-            }
-            
-            // 如果没有音频数据，请求它
-            if (!audioData) {
-                try {
-                    audioData = await requestAudioData();
-                } catch (error) {
-                    console.warn('[Audio Replacer Injected] Failed to get audio data:', error);
-                    // 继续执行，将使用后备音频
-                }
-            }
-            
-            // 检查是否有音频数据
-            if (audioData) {
-                console.log('[Audio Replacer Injected] Using audio data from content script');
+            // Try to get Sokuji audio stream info
+            try {
+                await requestSokujiAudioStream();
+                console.log('[Sokuji Injected] Received Sokuji audio stream info, using it for virtual device');
                 
-                // 创建新的 AudioBuffer
-                const buffer = audioContext.createBuffer(
-                    audioData.numberOfChannels,
-                    audioData.sampleRate * audioData.duration,
-                    audioData.sampleRate
-                );
-                
-                // 填充 AudioBuffer 的每个通道
-                for (let i = 0; i < audioData.numberOfChannels; i++) {
-                    const channelBuffer = buffer.getChannelData(i);
-                    const channelData = audioData.channelData[i];
-                    
-                    // 将数据复制到通道缓冲区
-                    for (let j = 0; j < channelData.length; j++) {
-                        channelBuffer[j] = channelData[j];
-                    }
+                // Create audio context
+                if (!audioContext) {
+                    audioContext = new AudioContext();
                 }
                 
-                // 创建音频源并设置缓冲区
-                audioSource = audioContext.createBufferSource();
-                audioSource.buffer = buffer;
-                audioSource.loop = true;
+                // Create a new MediaStream to simulate Sokuji's audio stream
+                // Note: We can't directly get the original MediaStream object, only its metadata
+                // So we create a new audio stream and use an oscillator as the actual audio source
                 
-                // 创建增益节点控制音量
-                const gainNode = audioContext.createGain();
-                gainNode.gain.value = 1.0; // 全音量
-                
-                // 创建媒体流目标
-                audioDestination = audioContext.createMediaStreamDestination();
-                
-                // 连接节点
-                audioSource.connect(gainNode);
-                gainNode.connect(audioDestination);
-                
-                // 开始播放
-                audioSource.start();
-                
-                // 保存流以便重用
-                cachedAudioStream = audioDestination.stream;
-                
-                console.log('[Audio Replacer Injected] Created audio stream with MP3 data,', 
-                    cachedAudioStream.getAudioTracks().length, 'audio tracks');
-                    
-                return cachedAudioStream;
-            } else {
-                // 如果没有音频数据，创建一个基本的音调作为后备
-                console.log('[Audio Replacer Injected] No audio data available, creating fallback tone');
-                
-                // 创建振荡器作为音频源（这将播放一个音调）
+                // Create oscillator as audio source
                 const oscillator = audioContext.createOscillator();
-                oscillator.type = 'sine'; // 正弦波
-                oscillator.frequency.setValueAtTime(440, audioContext.currentTime); // A4 音调
+                oscillator.type = 'sine'; // Sine wave
+                oscillator.frequency.setValueAtTime(440, audioContext.currentTime); // A4 tone
                 
-                // 创建增益节点控制音量
+                // Create gain node to control volume
                 const gainNode = audioContext.createGain();
-                gainNode.gain.value = 0.5; // 设置音量为一半
+                gainNode.gain.value = 0.5; // Set volume to half
                 
-                // 创建媒体流目标
+                // Create media stream destination
                 audioDestination = audioContext.createMediaStreamDestination();
                 
-                // 连接节点
+                // Connect nodes
                 oscillator.connect(gainNode);
                 gainNode.connect(audioDestination);
                 
-                // 开始播放
+                // Start playback
                 oscillator.start();
                 
-                // 保存流以便重用
+                // Save stream for reuse
                 cachedAudioStream = audioDestination.stream;
                 
-                console.log('[Audio Replacer Injected] Created fallback audio stream with', 
+                console.log('[Sokuji Injected] Created audio stream for Sokuji virtual device with', 
+                    cachedAudioStream.getAudioTracks().length, 'audio tracks');
+                    
+                return cachedAudioStream;
+            } catch (error) {
+                console.error('[Sokuji Injected] Error creating audio stream:', error);
+                
+                // Create a fallback tone if Sokuji stream fails
+                console.log('[Sokuji Injected] Creating fallback tone');
+                
+                // Create audio context
+                if (!audioContext) {
+                    audioContext = new AudioContext();
+                }
+                
+                // Create oscillator as audio source
+                const oscillator = audioContext.createOscillator();
+                oscillator.type = 'sine'; // Sine wave
+                oscillator.frequency.setValueAtTime(440, audioContext.currentTime); // A4 tone
+                
+                // Create gain node to control volume
+                const gainNode = audioContext.createGain();
+                gainNode.gain.value = 0.5; // Set volume to half
+                
+                // Create media stream destination
+                audioDestination = audioContext.createMediaStreamDestination();
+                
+                // Connect nodes
+                oscillator.connect(gainNode);
+                gainNode.connect(audioDestination);
+                
+                // Start playback
+                oscillator.start();
+                
+                // Save stream for reuse
+                cachedAudioStream = audioDestination.stream;
+                
+                console.log('[Sokuji Injected] Created fallback audio stream with', 
                     cachedAudioStream.getAudioTracks().length, 'audio tracks');
                     
                 return cachedAudioStream;
             }
         } catch (error) {
-            console.error('[Audio Replacer Injected] Error creating audio stream:', error);
+            console.error('[Sokuji Injected] Error creating audio stream:', error);
             throw error;
         }
     };
     
     // Override the enumerateDevices method
     navigator.mediaDevices.enumerateDevices = async function() {
-        console.log('[Audio Replacer Injected] Enumerating devices (intercepted)');
+        console.log('[Sokuji Injected] Enumerating devices (intercepted)');
         
         try {
             // Get original devices
             const originalDevices = await originalEnumerateDevices.apply(this, arguments);
             
-            // 添加虚拟设备（始终添加）
+            // Add virtual device (always add)
             const virtualDevice = {
                 deviceId: VIRTUAL_DEVICE_ID,
                 groupId: 'sokuji-virtual-devices',
@@ -203,53 +187,53 @@
                 label: VIRTUAL_DEVICE_LABEL
             };
             
-            console.log('[Audio Replacer Injected] Adding virtual device to list');
+            console.log('[Sokuji Injected] Adding virtual device to list');
             return [...originalDevices, virtualDevice];
         } catch (error) {
-            console.error('[Audio Replacer Injected] Error in enumerateDevices:', error);
-            // 出错时返回原始结果
+            console.error('[Sokuji Injected] Error in enumerateDevices:', error);
+            // Return original results on error
             return await originalEnumerateDevices.apply(this, arguments);
         }
     };
     
     // Override getUserMedia to intercept audio requests
     navigator.mediaDevices.getUserMedia = async function(constraints) {
-        console.log('[Audio Replacer Injected] getUserMedia intercepted', constraints);
+        console.log('[Sokuji Injected] getUserMedia intercepted', constraints);
         
         try {
-            // 检查是否请求了音频，以及是否指定了我们的虚拟设备
+            // Check if audio is requested and our virtual device is specified
             if (constraints && 
                 constraints.audio && 
                 constraints.audio.deviceId && 
                 constraints.audio.deviceId.exact === VIRTUAL_DEVICE_ID) {
                 
-                console.log('[Audio Replacer Injected] Virtual device requested, creating audio stream');
+                console.log('[Sokuji Injected] Virtual device requested, creating audio stream');
                 
-                // 直接创建音频流
+                // Create audio stream directly
                 try {
-                    const stream = await createLoopedAudioStream();
-                    console.log('[Audio Replacer Injected] Audio stream created successfully');
+                    const stream = await createAudioStream();
+                    console.log('[Sokuji Injected] Audio stream created successfully');
                     return stream;
                 } catch (error) {
-                    console.error('[Audio Replacer Injected] Failed to create audio stream:', error);
+                    console.error('[Sokuji Injected] Failed to create audio stream:', error);
                     throw new Error('Failed to create audio stream: ' + error.message);
                 }
             } else {
-                // 如果不是请求我们的虚拟设备，使用原始方法
-                console.log('[Audio Replacer Injected] Not our virtual device, using original getUserMedia');
+                // If not requesting our virtual device, use original method
+                console.log('[Sokuji Injected] Not our virtual device, using original getUserMedia');
                 return await originalGetUserMedia.apply(this, arguments);
             }
         } catch (error) {
-            console.error('[Audio Replacer Injected] Error in getUserMedia:', error);
-            // 出错时使用原始方法
+            console.error('[Sokuji Injected] Error in getUserMedia:', error);
+            // Use original method on error
             return await originalGetUserMedia.apply(this, arguments);
         }
     };
     
-    // 初始化时请求音频数据
-    requestAudioData().catch(error => {
-        console.warn('[Audio Replacer Injected] Initial audio data request failed:', error);
+    // Initialize by requesting Sokuji audio stream
+    requestSokujiAudioStream().catch(error => {
+        console.warn('[Sokuji Injected] Initial Sokuji audio stream request failed:', error);
     });
     
-    console.log('[Audio Replacer Injected] Navigator methods successfully overridden');
+    console.log('[Sokuji Injected] Navigator methods successfully overridden');
 })();

@@ -21,7 +21,8 @@
     "storage",
     "tabCapture",
     "tabs",
-    "activeTab"
+    "activeTab",
+    "audio"
   ],
   "host_permissions": [
     "https://api.openai.com/*",
@@ -46,7 +47,7 @@
   ],
   "web_accessible_resources": [
     {
-      "resources": ["worklets/*", "content/google-meet-audio-replacer.js", "content/injected-script.js", "assets/*"],
+      "resources": ["worklets/*", "content/google-meet-audio-replacer.js", "content/injected-script.js", "assets/*", "fullpage.html", "fullpage.js", "fullpage.css"],
       "matches": ["<all_urls>"]
     }
   ],
