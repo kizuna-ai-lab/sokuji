@@ -199,7 +199,7 @@ export class BrowserAudioService implements IAudioService {
   
   /**
    * Setup virtual audio output with the provided AudioContext
-   * In browser extensions, we look for the virtual output device
+   * In browser extensions, we look for the virtual output device and send audio data to the injected script
    * @param audioContext The AudioContext to configure for virtual output
    * @returns Promise resolving to true if virtual output was successfully set up, false otherwise
    */
@@ -220,31 +220,59 @@ export class BrowserAudioService implements IAudioService {
       );
       
       if (virtualOutput) {
-        // Try to set the sink ID if the browser supports it
-        const ctxWithSink = audioContext as AudioContext & { 
-          setSinkId?: (options: string | { deviceId: string }) => Promise<void> 
-        };
+        // Create a MediaStreamDestination for capturing output
+        const streamDestination = audioContext.createMediaStreamDestination();
         
-        if (ctxWithSink && typeof ctxWithSink.setSinkId === 'function') {
-          try {
-            // Try object format first
-            await ctxWithSink.setSinkId({ deviceId: virtualOutput.deviceId });
-            console.log('AudioContext output set to Sokuji Virtual Output');
-            return true;
-          } catch (err) {
-            // Fall back to string format
-            try {
-              await ctxWithSink.setSinkId(virtualOutput.deviceId);
-              console.log('AudioContext output set using alternative format');
-              return true;
-            } catch (fallbackErr) {
-              console.log('Browser does not support setSinkId, using default output');
-            }
-          }
+        // Connect the audio context destination to our stream destination
+        if (this.gainNode) {
+          this.gainNode.connect(streamDestination);
         }
         
-        // Even if setSinkId fails, we still consider this a success in browser extensions
-        // since the BrowserAudioService handles routing through Web Audio API
+        // Set up event listener to handle requests for audio data from the injected script
+        window.addEventListener('message', (event) => {
+          // Ensure message is from our window
+          if (event.source !== window) return;
+          
+          // Check if this is a request for audio data from our injected script
+          if (event.data && event.data.type === 'sokuji-request-audio-data') {
+            console.log('[Sokuji Browser] Received request for audio stream from injected script');
+            
+            try {
+              // Get the audio stream from our MediaStreamDestination
+              const audioStream = streamDestination.stream;
+              
+              // Create a message with the audio stream information
+              // Note: We can't directly send the MediaStream object via postMessage
+              // Instead, we'll send metadata about the stream that the injected script can use
+              window.postMessage({
+                type: 'sokuji-audio-stream-data',
+                success: true,
+                streamInfo: {
+                  id: audioStream.id,
+                  active: audioStream.active,
+                  trackCount: audioStream.getAudioTracks().length,
+                  tracks: audioStream.getAudioTracks().map(track => ({
+                    id: track.id,
+                    kind: track.kind,
+                    label: track.label,
+                    enabled: track.enabled,
+                    readyState: track.readyState
+                  }))
+                }
+              }, '*');
+              
+              console.log('[Sokuji Browser] Audio stream data sent to injected script');
+            } catch (error) {
+              console.error('[Sokuji Browser] Error preparing audio stream data:', error);
+              window.postMessage({
+                type: 'sokuji-audio-stream-data',
+                success: false,
+                error: error instanceof Error ? error.message : 'Unknown error'
+              }, '*');
+            }
+          }
+        });
+        
         console.log('Using Sokuji Virtual Output as the primary output device');
         return true;
       }
