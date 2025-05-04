@@ -132,4 +132,60 @@ export class ElectronAudioService implements IAudioService {
   supportsVirtualDevices(): boolean {
     return true;
   }
+  
+  /**
+   * Setup virtual audio output with the provided AudioContext
+   * In Electron, this finds and configures the sokuji_virtual_speaker device
+   * @param audioContext The AudioContext to configure for virtual output
+   * @returns Promise resolving to true if virtual output was successfully set up, false otherwise
+   */
+  async setupVirtualAudioOutput(audioContext: AudioContext | null): Promise<boolean> {
+    if (!audioContext) {
+      console.error('Cannot setup virtual audio output: AudioContext is null');
+      return false;
+    }
+    
+    try {
+      // Get all audio output devices
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      
+      // Find sokuji_virtual_speaker
+      const virtualSpeaker = devices.find(device => 
+        device.kind === 'audiooutput' && 
+        device.label.toLowerCase().includes('sokuji_virtual_speaker')
+      );
+      
+      // If virtual speaker is found, set it as the output device
+      if (virtualSpeaker && virtualSpeaker.deviceId) {
+        const ctxWithSink = audioContext as AudioContext & { 
+          setSinkId?: (options: string | { deviceId: string }) => Promise<void> 
+        };
+        
+        if (ctxWithSink && typeof ctxWithSink.setSinkId === 'function') {
+          try {
+            // According to MDN documentation, use object format with deviceId
+            await ctxWithSink.setSinkId({ deviceId: virtualSpeaker.deviceId });
+            console.log('AudioContext output device set to sokuji_virtual_speaker:', virtualSpeaker.deviceId);
+            return true;
+          } catch (err) {
+            // Fallback to string format if needed
+            try {
+              await ctxWithSink.setSinkId(virtualSpeaker.deviceId);
+              console.log('AudioContext output set using alternative format');
+              return true;
+            } catch (fallbackErr) {
+              console.error('Failed to set output device with both methods:', fallbackErr);
+              return false;
+            }
+          }
+        }
+      }
+      
+      console.log('Virtual output device not found. Using default output device.');
+      return false;
+    } catch (e) {
+      console.error('Failed to set up virtual audio output:', e);
+      return false;
+    }
+  }
 }

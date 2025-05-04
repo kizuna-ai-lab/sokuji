@@ -196,4 +196,64 @@ export class BrowserAudioService implements IAudioService {
   supportsVirtualDevices(): boolean {
     return false;
   }
+  
+  /**
+   * Setup virtual audio output with the provided AudioContext
+   * In browser extensions, we look for the virtual output device
+   * @param audioContext The AudioContext to configure for virtual output
+   * @returns Promise resolving to true if virtual output was successfully set up, false otherwise
+   */
+  async setupVirtualAudioOutput(audioContext: AudioContext | null): Promise<boolean> {
+    if (!audioContext) {
+      console.error('Cannot setup virtual audio output: AudioContext is null');
+      return false;
+    }
+    
+    try {
+      // Get all audio output devices
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      
+      // For browser extension, look for the virtual output
+      const virtualOutput = devices.find(device => 
+        device.kind === 'audiooutput' && 
+        device.label.includes('Sokuji Virtual Output (Browser Extension)')
+      );
+      
+      if (virtualOutput) {
+        // Try to set the sink ID if the browser supports it
+        const ctxWithSink = audioContext as AudioContext & { 
+          setSinkId?: (options: string | { deviceId: string }) => Promise<void> 
+        };
+        
+        if (ctxWithSink && typeof ctxWithSink.setSinkId === 'function') {
+          try {
+            // Try object format first
+            await ctxWithSink.setSinkId({ deviceId: virtualOutput.deviceId });
+            console.log('AudioContext output set to Sokuji Virtual Output');
+            return true;
+          } catch (err) {
+            // Fall back to string format
+            try {
+              await ctxWithSink.setSinkId(virtualOutput.deviceId);
+              console.log('AudioContext output set using alternative format');
+              return true;
+            } catch (fallbackErr) {
+              console.log('Browser does not support setSinkId, using default output');
+            }
+          }
+        }
+        
+        // Even if setSinkId fails, we still consider this a success in browser extensions
+        // since the BrowserAudioService handles routing through Web Audio API
+        console.log('Using Sokuji Virtual Output as the primary output device');
+        return true;
+      }
+      
+      console.log('Virtual output device not found. Using default output device.');
+      return false;
+    } catch (e) {
+      console.error('Failed to set up virtual audio output:', e);
+      return false;
+    }
+  }
 }
