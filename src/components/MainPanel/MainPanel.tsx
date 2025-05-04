@@ -8,6 +8,7 @@ import { RealtimeClient } from '@openai/realtime-api-beta';
 import { ItemType } from '@openai/realtime-api-beta/dist/lib/client.js';
 import { WavRecorder, WavStreamPlayer } from '../../lib/wavtools/index.js';
 import { WavRenderer } from '../../utils/wav_renderer';
+import { ServiceFactory } from '../../services/ServiceFactory'; // Import the ServiceFactory
 
 interface MainPanelProps {}
 
@@ -21,31 +22,31 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   const [isRecording, setIsRecording] = useState(false);
   const [items, setItems] = useState<ItemType[]>([]);
   const [isInitializing, setIsInitializing] = useState(false);
-  
+
   // Get settings from context
   const { settings, isApiKeyValid } = useSettings();
-  
+
   // Get log functions from context
   const { addRealtimeEvent } = useLog();
-  
+
   // Get audio context from context
-  const { 
-    selectedInputDevice, 
-    selectedOutputDevice, 
-    isInputDeviceOn, 
+  const {
+    selectedInputDevice,
+    selectedOutputDevice,
+    isInputDeviceOn,
     isOutputDeviceOn,
-    selectOutputDevice  // Import the selectOutputDevice function from context
+    selectOutputDevice // Import the selectOutputDevice function from context
   } = useAudioContext();
-  
+
   // canPushToTalk is true only when turnDetectionMode is 'Disabled'
   const [canPushToTalk, setCanPushToTalk] = useState(false);
-  
+
   // Reference for conversation container to enable auto-scrolling
   const conversationContainerRef = useRef<HTMLDivElement>(null);
-  
+
   // Add a state variable to track if test tone is playing
   const [isTestTonePlaying, setIsTestTonePlaying] = useState(false);
-  
+
   /**
    * Convert settings to updateSession parameters
    */
@@ -71,7 +72,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         threshold: settings.threshold
       };
       // Remove undefined fields
-      Object.keys(updateSessionParams.turn_detection).forEach(key => 
+      Object.keys(updateSessionParams.turn_detection).forEach(key =>
         updateSessionParams.turn_detection[key] === undefined && delete updateSessionParams.turn_detection[key]
       );
     } else if (settings.turnDetectionMode === 'Semantic') {
@@ -82,7 +83,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         eagerness: settings.semanticEagerness?.toLowerCase(),
       };
       // Remove undefined fields
-      Object.keys(updateSessionParams.turn_detection).forEach(key => 
+      Object.keys(updateSessionParams.turn_detection).forEach(key =>
         updateSessionParams.turn_detection[key] === undefined && delete updateSessionParams.turn_detection[key]
       );
     }
@@ -90,7 +91,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     // Configure noise reduction
     if (settings.noiseReduction && settings.noiseReduction !== 'None') {
       updateSessionParams.input_audio_noise_reduction = {
-        type: settings.noiseReduction === 'Near field' ? 'near_field' : 
+        type: settings.noiseReduction === 'Near field' ? 'near_field' :
               settings.noiseReduction === 'Far field' ? 'far_field' : undefined
       };
       if (!updateSessionParams.input_audio_noise_reduction.type) {
@@ -110,78 +111,23 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
   /**
    * Setup virtual audio output device
-   * This function identifies and configures the appropriate virtual output device 
-   * based on the environment (Electron or Browser Extension)
+   * This function uses the audio service to configure the appropriate virtual output device
+   * without environment-specific implementation details
    */
   const setupVirtualAudioOutput = useCallback(async (audioContext: AudioContext | null): Promise<boolean> => {
     if (!audioContext) {
       console.error('Cannot setup virtual audio output: AudioContext is null');
       return false;
     }
-    
+
     try {
-      // Get all audio output devices
-      const devices = await navigator.mediaDevices.enumerateDevices();
-      let virtualOutputFound = false;
-      
-      // Check if we're in Electron environment
-      if (typeof window !== 'undefined' && 'electron' in window) {
-        // Find sokuji_virtual_speaker
-        const virtualSpeaker = devices.find(device => 
-          device.kind === 'audiooutput' && 
-          device.label.toLowerCase().includes('sokuji_virtual_speaker')
-        );
-        
-        // If virtual speaker is found, set it as the output device
-        if (virtualSpeaker && virtualSpeaker.deviceId) {
-          virtualOutputFound = true;
-          const ctxWithSink = audioContext as AudioContext & { 
-            setSinkId?: (options: string | { deviceId: string }) => Promise<void> 
-          };
-          
-          if (ctxWithSink && typeof ctxWithSink.setSinkId === 'function') {
-            try {
-              // According to MDN documentation, use object format with deviceId
-              await ctxWithSink.setSinkId({ deviceId: virtualSpeaker.deviceId });
-              console.log('AudioContext output device set to sokuji_virtual_speaker:', virtualSpeaker.deviceId);
-            } catch (err) {
-              // Fallback to string format if needed
-              try {
-                await ctxWithSink.setSinkId(virtualSpeaker.deviceId);
-                console.log('AudioContext output set using alternative format');
-              } catch (fallbackErr) {
-                console.error('Failed to set output device with both methods:', fallbackErr);
-                virtualOutputFound = false;
-              }
-            }
-          }
-        }
-      } 
-      // Check if we're in browser extension environment
-      else if (typeof window !== 'undefined') {
-        // Safely check for Chrome extension environment
-        const chromeRuntime = (window as any).chrome?.runtime;
-        if (chromeRuntime) {
-          // For browser extension, look for the virtual output
-          const virtualOutput = devices.find(device => 
-            device.kind === 'audiooutput' && 
-            device.label.includes('Sokuji Virtual Output (Browser Extension)')
-          );
-          
-          if (virtualOutput) {
-            virtualOutputFound = true;
-            console.log('Using Sokuji Virtual Output as the primary output device');
-            // Browser extensions may not support setSinkId for specific routing,
-            // but we mark as found since the BrowserAudioService handles this
-          }
-        }
-      }
-      
-      if (!virtualOutputFound) {
-        console.log('Virtual output device not found. Using default output device.');
-      }
-      
-      return virtualOutputFound;
+      // Get the audio service from the ServiceFactory
+      const audioService = ServiceFactory.getAudioService();
+
+      // Use the audio service to set up the virtual audio output
+      const result = await audioService.setupVirtualAudioOutput(audioContext);
+
+      return result;
     } catch (e) {
       console.error('Failed to set up virtual audio output:', e);
       return false;
@@ -213,18 +159,18 @@ const MainPanel: React.FC<MainPanelProps> = () => {
    */
   const clientCanvasRef = useRef<HTMLCanvasElement>(null);
   const serverCanvasRef = useRef<HTMLCanvasElement>(null);
-  
+
   /**
    * Set up event listeners for the RealtimeClient
    */
   const setupClientListeners = useCallback(async () => {
     const client = clientRef.current;
     const wavStreamPlayer = wavStreamPlayerRef.current;
-    
+
     if (!client) return;
 
     // handle realtime events from client + server for event logging
-    client.on('realtime.event', (realtimeEvent: {[key:string]: any}) => {
+    client.on('realtime.event', (realtimeEvent: { [key: string]: any }) => {
       // console.log(realtimeEvent);
       addRealtimeEvent(realtimeEvent, realtimeEvent.source, realtimeEvent.event.type);
     });
@@ -296,7 +242,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   const connectConversation = useCallback(async () => {
     try {
       setIsInitializing(true);
-      
+
       // clear current clientRef before create new client
       clientRef.current.reset();
       // Create a new RealtimeClient instance with the API key right before connecting
@@ -304,17 +250,17 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         apiKey: settings.openAIApiKey,
         dangerouslyAllowAPIKeyInBrowser: true,
       });
-      
+
       // Setup listeners for the new client instance
       await setupClientListeners();
-      
+
       const client = clientRef.current;
       const wavRecorder = wavRecorderRef.current;
       const wavStreamPlayer = wavStreamPlayerRef.current;
 
       // Set canPushToTalk based on current turnDetectionMode
       setCanPushToTalk(settings.turnDetectionMode === 'Disabled');
-      
+
       // Connect to microphone only if input device is turned on
       if (isInputDeviceOn) {
         if (selectedInputDevice) {
@@ -328,16 +274,16 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
       // Connect to audio output
       await wavStreamPlayer.connect();
-      
+
       // Set up virtual output device for audio playback
       await setupVirtualAudioOutput(wavStreamPlayer.context);
-      
+
       // If output device is ON, ensure monitor device is connected immediately
-      if (isOutputDeviceOn && selectedOutputDevice && 
-          !selectedOutputDevice.label.toLowerCase().includes('sokuji_virtual') && 
-          !selectedOutputDevice.label.includes('Sokuji Virtual Output')) {
+      if (isOutputDeviceOn && selectedOutputDevice &&
+        !selectedOutputDevice.label.toLowerCase().includes('sokuji_virtual') &&
+        !selectedOutputDevice.label.includes('Sokuji Virtual Output')) {
         console.log('Setting up monitor device to:', selectedOutputDevice.label);
-        
+
         // Trigger the selectOutputDevice function to reconnect the monitor
         // This will use the audio service properly through the AudioContext
         selectOutputDevice(selectedOutputDevice);
@@ -355,14 +301,14 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       if (client.isConnected()) {
         throw new Error(`Already connected, use .disconnect() first`);
       }
-      await client.realtime.connect({model: settings.model});
+      await client.realtime.connect({ model: settings.model });
       client.updateSession();
-      
+
       // Start recording if using server VAD and input device is turned on
       if (settings.turnDetectionMode !== 'Disabled' && isInputDeviceOn) {
         await wavRecorder.record((data) => client.appendInputAudio(data.mono));
       }
-      
+
       // Set state variables after successful initialization
       setIsSessionActive(true);
       setItems(client.conversation.getItems() as ItemType[]);
@@ -385,19 +331,19 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       console.log('Input device is turned off, not starting recording');
       return;
     }
-    
+
     setIsRecording(true);
     const client = clientRef.current;
     const wavRecorder = wavRecorderRef.current;
     const wavStreamPlayer = wavStreamPlayerRef.current;
-    
+
     // Interrupt any playing audio
     const trackSampleOffset = await wavStreamPlayer.interrupt();
     if (trackSampleOffset?.trackId) {
       const { trackId, offset } = trackSampleOffset;
       client.cancelResponse(trackId, offset);
     }
-    
+
     // Start recording
     await wavRecorder.record((data) => client.appendInputAudio(data.mono));
   }, [isInputDeviceOn]);
@@ -410,16 +356,16 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     if (!isRecording) {
       return;
     }
-    
+
     setIsRecording(false);
     const client = clientRef.current;
     const wavRecorder = wavRecorderRef.current;
-    
+
     // Only try to pause if we're actually recording
     if (wavRecorder.recording) {
       // Stop recording
       await wavRecorder.pause();
-      
+
       // Create response
       client.createResponse();
     }
@@ -431,7 +377,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   const playTestTone = useCallback(async () => {
     try {
       const wavStreamPlayer = wavStreamPlayerRef.current;
-      
+
       // If test tone is already playing, stop it
       if (isTestTonePlaying) {
         await wavStreamPlayer.interrupt();
@@ -439,28 +385,28 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         console.log('Stopped test tone');
         return;
       }
-      
+
       // Ensure the player is connected before playing
       if (!wavStreamPlayer.context || wavStreamPlayer.context.state === 'closed') {
         await wavStreamPlayer.connect();
       } else if (wavStreamPlayer.context.state === 'suspended') {
         await wavStreamPlayer.context.resume();
       }
-      
+
       // Make sure we have a valid context after connecting
       if (!wavStreamPlayer.context) {
         throw new Error('Failed to initialize audio context');
       }
-      
+
       // Set up virtual output device for audio playback (same as in conversation)
       await setupVirtualAudioOutput(wavStreamPlayer.context);
-      
+
       // If output device is ON, ensure monitor device is connected immediately
-      if (isOutputDeviceOn && selectedOutputDevice && 
-          !selectedOutputDevice.label.toLowerCase().includes('sokuji_virtual') && 
-          !selectedOutputDevice.label.includes('Sokuji Virtual Output')) {
+      if (isOutputDeviceOn && selectedOutputDevice &&
+        !selectedOutputDevice.label.toLowerCase().includes('sokuji_virtual') &&
+        !selectedOutputDevice.label.includes('Sokuji Virtual Output')) {
         console.log('Test tone: Ensuring monitor device is connected:', selectedOutputDevice.label);
-        
+
         // Trigger the selectOutputDevice function to reconnect the monitor
         // This will use the audio service properly through the AudioContext
         selectOutputDevice(selectedOutputDevice);
@@ -468,7 +414,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
       // Fetch the test tone file
       let testToneUrl = '/assets/test-tone.mp3';
-      
+
       // Check if we're in a Chrome extension environment
       if (typeof window !== 'undefined') {
         const chromeRuntime = (window as any).chrome?.runtime;
@@ -477,16 +423,16 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           testToneUrl = chromeRuntime.getURL('assets/test-tone.mp3');
         }
       }
-      
+
       const response = await fetch(testToneUrl);
       const arrayBuffer = await response.arrayBuffer();
-      
+
       // Use the wavStreamPlayer's context for decoding to ensure consistent sample rate
       const audioBuffer = await wavStreamPlayer.context.decodeAudioData(arrayBuffer);
-      
+
       // Get the sample rate from the player
       const targetSampleRate = wavStreamPlayer.sampleRate;
-      
+
       // Create an offline context for resampling if needed
       let processedBuffer = audioBuffer;
       if (audioBuffer.sampleRate !== targetSampleRate) {
@@ -495,20 +441,20 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           audioBuffer.duration * targetSampleRate,
           targetSampleRate
         );
-        
+
         const bufferSource = offlineCtx.createBufferSource();
         bufferSource.buffer = audioBuffer;
         bufferSource.connect(offlineCtx.destination);
         bufferSource.start();
-        
+
         // Render the audio at the target sample rate
         processedBuffer = await offlineCtx.startRendering();
       }
-      
+
       // Extract PCM data from the first channel
       const pcmData = new Float32Array(processedBuffer.length);
       processedBuffer.copyFromChannel(pcmData, 0, 0);
-      
+
       // Convert to 16-bit PCM (format expected by wavStreamPlayer)
       const pcm16bit = new Int16Array(pcmData.length);
       for (let i = 0; i < pcmData.length; i++) {
@@ -517,23 +463,23 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         const sample = pcmData[i] * 0.8;
         pcm16bit[i] = Math.max(-32768, Math.min(32767, Math.floor(sample * 32767)));
       }
-      
+
       // Interrupt any currently playing audio
       await wavStreamPlayer.interrupt();
-      
+
       // Clear the interruptedTrackIds for 'test-tone' to allow replaying
       // This is necessary because WavStreamPlayer keeps track of interrupted tracks
       // and won't play them again unless cleared
       if (wavStreamPlayer.interruptedTrackIds && typeof wavStreamPlayer.interruptedTrackIds === 'object') {
         delete wavStreamPlayer.interruptedTrackIds['test-tone'];
       }
-      
+
       // Play the test tone using wavStreamPlayer
       wavStreamPlayer.add16BitPCM(pcm16bit, 'test-tone');
-      
+
       // Set the state to indicate test tone is playing
       setIsTestTonePlaying(true);
-      
+
       console.log('Playing test tone');
     } catch (error) {
       console.error('Error playing test tone:', error);
@@ -648,7 +594,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
             await wavRecorder.pause();
             setIsRecording(false);
           }
-        } 
+        }
         // If input device is turned on
         else {
           // First, check if the recorder is initialized by checking the processor property
@@ -661,7 +607,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
               return;
             }
           }
-          
+
           // If we're in automatic mode, resume recording
           if (settings.turnDetectionMode !== 'Disabled') {
             console.log('Input device turned on - resuming recording in automatic mode');
@@ -690,23 +636,23 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     if (!wavStreamPlayer.context || wavStreamPlayer.context.state === 'closed') {
       return;
     }
-    
+
     // Function to connect the monitor output
     const updateMonitorDevice = async () => {
       try {
         // Check if the selectedOutputDevice is a virtual device (which shouldn't be used as monitor)
         const isVirtualDevice = selectedOutputDevice?.label.toLowerCase().includes('sokuji_virtual') ||
-                               selectedOutputDevice?.label.includes('Sokuji Virtual Output');
-        
+          selectedOutputDevice?.label.includes('Sokuji Virtual Output');
+
         if (isVirtualDevice) {
           console.log('Selected output device is a virtual device - not using as monitor');
           return;
         }
-        
+
         // If output device is turned on, connect the monitor
         if (isOutputDeviceOn && selectedOutputDevice) {
           console.log(`Setting up monitor output to: ${selectedOutputDevice.label}`);
-          
+
           // Trigger the selectOutputDevice function to reconnect the monitor
           // This will use the audio service properly through the AudioContext
           selectOutputDevice(selectedOutputDevice);
@@ -715,7 +661,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         console.error('Error setting up monitor device:', error);
       }
     };
-    
+
     updateMonitorDevice();
   }, [selectedOutputDevice, isOutputDeviceOn, isSessionActive, selectOutputDevice]);
 
@@ -766,7 +712,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                   {(() => {
                     // Handle different item types based on the ItemType structure
                     // from @openai/realtime-api-beta
-                    
+
                     // For items with formatted property containing text
                     if (item.formatted && item.formatted.text) {
                       return (
@@ -775,7 +721,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                         </div>
                       );
                     }
-                    
+
                     // For items with formatted property containing transcript
                     if (item.formatted && item.formatted.transcript) {
                       return (
@@ -784,7 +730,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                         </div>
                       );
                     }
-                    
+
                     // For items with formatted property containing audio
                     if (item.formatted && item.formatted.audio) {
                       return (
@@ -796,10 +742,10 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                         </div>
                       );
                     }
-                    
+
                     // For user or assistant messages with content array
-                    if ((item.role === 'user' || item.role === 'assistant' || item.role === 'system') && 
-                        'content' in item) {
+                    if ((item.role === 'user' || item.role === 'assistant' || item.role === 'system') &&
+                      'content' in item) {
                       const typedItem = item; // Type assertion for accessing content
                       if (Array.isArray(typedItem.content)) {
                         return typedItem.content.map((contentItem, i) => (
@@ -819,12 +765,12 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                         ));
                       }
                     }
-                    
+
                     // For tool calls
                     if (item.formatted && item.formatted.tool) {
                       const toolArgs = item.formatted.tool.arguments;
                       let formattedArgs = toolArgs;
-                      
+
                       // Try to parse and format JSON arguments
                       try {
                         const parsedArgs = JSON.parse(toolArgs);
@@ -832,7 +778,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                       } catch (e) {
                         // Keep original format if parsing fails
                       }
-                      
+
                       return (
                         <div className="content-item tool-call">
                           <div className="tool-name">Function: {item.formatted.tool.name}</div>
@@ -842,11 +788,11 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                         </div>
                       );
                     }
-                    
+
                     // For tool outputs
                     if (item.formatted && item.formatted.output) {
                       let formattedOutput = item.formatted.output;
-                      
+
                       // Try to parse and format JSON output
                       try {
                         const parsedOutput = JSON.parse(item.formatted.output);
@@ -854,7 +800,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                       } catch (e) {
                         // Keep original format if parsing fails
                       }
-                      
+
                       return (
                         <div className="content-item tool-output">
                           <div className="output-content">
@@ -863,7 +809,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                         </div>
                       );
                     }
-                    
+
                     // Fallback for other content types
                     return (
                       <div className="content-item">
@@ -886,13 +832,13 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           )}
         </div>
       </div>
-      
+
       <div className="audio-visualization">
         <div className="visualization-container">
           <div className="visualization-label">Input</div>
           <canvas ref={clientCanvasRef} className="visualization-canvas client-canvas" />
         </div>
-        
+
         <div className="controls-container">
           {isSessionActive && canPushToTalk && (
             <button
@@ -909,8 +855,8 @@ const MainPanel: React.FC<MainPanelProps> = () => {
               </>
             </button>
           )}
-          <button 
-            className={`session-button ${isSessionActive ? 'active' : ''}`} 
+          <button
+            className={`session-button ${isSessionActive ? 'active' : ''}`}
             onClick={isSessionActive ? disconnectConversation : connectConversation}
             disabled={(!isSessionActive && !isApiKeyValid) || isInitializing}
           >
@@ -935,8 +881,8 @@ const MainPanel: React.FC<MainPanelProps> = () => {
             )}
           </button>
           {process.env.NODE_ENV === 'development' && (
-            <button 
-              className="debug-button" 
+            <button
+              className="debug-button"
               onClick={playTestTone}
             >
               <Tool size={14} />
@@ -944,7 +890,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
             </button>
           )}
         </div>
-        
+
         <div className="visualization-container">
           <div className="visualization-label">Output</div>
           <canvas ref={serverCanvasRef} className="visualization-canvas server-canvas" />

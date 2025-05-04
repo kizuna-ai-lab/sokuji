@@ -46,4 +46,11 @@ export interface IAudioService {
    * Initialize the audio service
    */
   initialize(): Promise<void>;
+  
+  /**
+   * Setup virtual audio output with the provided AudioContext
+   * @param audioContext The AudioContext to configure for virtual output
+   * @returns Promise resolving to true if virtual output was successfully set up, false otherwise
+   */
+  setupVirtualAudioOutput(audioContext: AudioContext | null): Promise<boolean>;
 }
