@@ -32,10 +32,10 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   // Get audio context from context
   const {
     selectedInputDevice,
-    selectedOutputDevice,
+    selectedMonitorDevice,
     isInputDeviceOn,
-    isOutputDeviceOn,
-    selectOutputDevice // Import the selectOutputDevice function from context
+    isMonitorDeviceOn,
+    selectMonitorDevice // Import the selectMonitorDevice function from context
   } = useAudioContext();
 
   // canPushToTalk is true only when turnDetectionMode is 'Disabled'
@@ -279,14 +279,14 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       await setupVirtualAudioOutput(wavStreamPlayer.context);
 
       // If output device is ON, ensure monitor device is connected immediately
-      if (isOutputDeviceOn && selectedOutputDevice &&
-        !selectedOutputDevice.label.toLowerCase().includes('sokuji_virtual') &&
-        !selectedOutputDevice.label.includes('Sokuji Virtual Output')) {
-        console.log('Setting up monitor device to:', selectedOutputDevice.label);
+      if (isMonitorDeviceOn && selectedMonitorDevice &&
+        !selectedMonitorDevice.label.toLowerCase().includes('sokuji_virtual') &&
+        !selectedMonitorDevice.label.includes('Sokuji Virtual Output')) {
+        console.log('Setting up monitor device to:', selectedMonitorDevice.label);
 
-        // Trigger the selectOutputDevice function to reconnect the monitor
+        // Trigger the selectMonitorDevice function to reconnect the monitor
         // This will use the audio service properly through the AudioContext
-        selectOutputDevice(selectedOutputDevice);
+        selectMonitorDevice(selectedMonitorDevice);
       }
 
       // Update session with all parameters from settings
@@ -319,7 +319,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     } finally {
       setIsInitializing(false);
     }
-  }, [settings, getUpdateSessionParams, setupClientListeners, selectedInputDevice, isInputDeviceOn, disconnectConversation, setupVirtualAudioOutput, isOutputDeviceOn, selectedOutputDevice, selectOutputDevice]);
+  }, [settings, getUpdateSessionParams, setupClientListeners, selectedInputDevice, isInputDeviceOn, disconnectConversation, setupVirtualAudioOutput, isMonitorDeviceOn, selectedMonitorDevice, selectMonitorDevice]);
 
   /**
    * In push-to-talk mode, start recording
@@ -402,14 +402,14 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       await setupVirtualAudioOutput(wavStreamPlayer.context);
 
       // If output device is ON, ensure monitor device is connected immediately
-      if (isOutputDeviceOn && selectedOutputDevice &&
-        !selectedOutputDevice.label.toLowerCase().includes('sokuji_virtual') &&
-        !selectedOutputDevice.label.includes('Sokuji Virtual Output')) {
-        console.log('Test tone: Ensuring monitor device is connected:', selectedOutputDevice.label);
+      if (isMonitorDeviceOn && selectedMonitorDevice &&
+        !selectedMonitorDevice.label.toLowerCase().includes('sokuji_virtual') &&
+        !selectedMonitorDevice.label.includes('Sokuji Virtual Output')) {
+        console.log('Test tone: Ensuring monitor device is connected:', selectedMonitorDevice.label);
 
-        // Trigger the selectOutputDevice function to reconnect the monitor
+        // Trigger the selectMonitorDevice function to reconnect the monitor
         // This will use the audio service properly through the AudioContext
-        selectOutputDevice(selectedOutputDevice);
+        selectMonitorDevice(selectedMonitorDevice);
       }
 
       // Fetch the test tone file
@@ -485,7 +485,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       console.error('Error playing test tone:', error);
       setIsTestTonePlaying(false);
     }
-  }, [setupVirtualAudioOutput, isOutputDeviceOn, selectedOutputDevice, selectOutputDevice, isTestTonePlaying]);
+  }, [setupVirtualAudioOutput, isMonitorDeviceOn, selectedMonitorDevice, selectMonitorDevice, isTestTonePlaying]);
 
   /**
    * Set up render loops for the visualization canvas
@@ -627,7 +627,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   }, [isInputDeviceOn, isSessionActive, settings.turnDetectionMode, selectedInputDevice]);
 
   /**
-   * Watch for changes to selectedOutputDevice or isOutputDeviceOn 
+   * Watch for changes to selectedMonitorDevice or isMonitorDeviceOn 
    * and update the audio monitoring accordingly
    */
   useEffect(() => {
@@ -640,22 +640,22 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     // Function to connect the monitor output
     const updateMonitorDevice = async () => {
       try {
-        // Check if the selectedOutputDevice is a virtual device (which shouldn't be used as monitor)
-        const isVirtualDevice = selectedOutputDevice?.label.toLowerCase().includes('sokuji_virtual') ||
-          selectedOutputDevice?.label.includes('Sokuji Virtual Output');
+        // Check if the selectedMonitorDevice is a virtual device (which shouldn't be used as monitor)
+        const isVirtualDevice = selectedMonitorDevice?.label.toLowerCase().includes('sokuji_virtual') ||
+          selectedMonitorDevice?.label.includes('Sokuji Virtual Output');
 
         if (isVirtualDevice) {
-          console.log('Selected output device is a virtual device - not using as monitor');
+          console.log('Selected monitor device is a virtual device - not using as monitor');
           return;
         }
 
-        // If output device is turned on, connect the monitor
-        if (isOutputDeviceOn && selectedOutputDevice) {
-          console.log(`Setting up monitor output to: ${selectedOutputDevice.label}`);
+        // If monitor device is turned on, connect the monitor
+        if (isMonitorDeviceOn && selectedMonitorDevice) {
+          console.log(`Setting up monitor output to: ${selectedMonitorDevice.label}`);
 
-          // Trigger the selectOutputDevice function to reconnect the monitor
+          // Trigger the selectMonitorDevice function to reconnect the monitor
           // This will use the audio service properly through the AudioContext
-          selectOutputDevice(selectedOutputDevice);
+          selectMonitorDevice(selectedMonitorDevice);
         }
       } catch (error) {
         console.error('Error setting up monitor device:', error);
@@ -663,7 +663,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     };
 
     updateMonitorDevice();
-  }, [selectedOutputDevice, isOutputDeviceOn, isSessionActive, selectOutputDevice]);
+  }, [selectedMonitorDevice, isMonitorDeviceOn, isSessionActive, selectMonitorDevice]);
 
   /**
    * Add keyboard shortcut for push-to-talk functionality

@@ -5,17 +5,11 @@ import LogsPanel from '../LogsPanel/LogsPanel';
 import AudioPanel from '../AudioPanel/AudioPanel';
 import { Terminal, Settings, Volume2 } from 'react-feather';
 import './MainLayout.scss';
-import { useAudioContext } from '../../contexts/AudioContext';
 
 const MainLayout: React.FC = () => {
   const [showLogs, setShowLogs] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showAudio, setShowAudio] = useState(false);
-
-  const {
-    toggleInputDeviceState,
-    toggleOutputDeviceState,
-  } = useAudioContext();
 
   // Modify toggle functions to ensure only one panel is displayed at a time
   const toggleAudio = () => {
