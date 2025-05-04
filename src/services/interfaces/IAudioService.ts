@@ -1,0 +1,49 @@
+import { AudioDevice } from '../../contexts/AudioContext';
+
+export interface AudioDevices {
+  inputs: AudioDevice[];
+  outputs: AudioDevice[];
+}
+
+export interface AudioOperationResult {
+  success: boolean;
+  message?: string;
+  error?: string;
+}
+
+export interface IAudioService {
+  /**
+   * Get available audio input and output devices
+   */
+  getDevices(): Promise<AudioDevices>;
+  
+  /**
+   * Select and activate an input device (microphone)
+   */
+  selectInputDevice(deviceId: string): Promise<AudioOperationResult>;
+  
+  /**
+   * Connect audio output to the specified device
+   */
+  connectOutput(deviceId: string, label: string): Promise<AudioOperationResult>;
+  
+  /**
+   * Disconnect all audio outputs
+   */
+  disconnectOutputs(): Promise<AudioOperationResult>;
+  
+  /**
+   * Create virtual audio devices if supported by the platform
+   */
+  createVirtualDevices?(): Promise<AudioOperationResult>;
+  
+  /**
+   * Check if the current environment supports virtual audio devices
+   */
+  supportsVirtualDevices(): boolean;
+  
+  /**
+   * Initialize the audio service
+   */
+  initialize(): Promise<void>;
+}

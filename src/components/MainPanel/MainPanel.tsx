@@ -25,7 +25,13 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   const { addRealtimeEvent } = useLog();
   
   // Get audio context from context
-  const { selectedInputDevice, isInputDeviceOn } = useAudioContext();
+  const { 
+    selectedInputDevice, 
+    selectedOutputDevice, 
+    isInputDeviceOn, 
+    isOutputDeviceOn,
+    selectOutputDevice  // Import the selectOutputDevice function from context
+  } = useAudioContext();
   
   // canPushToTalk is true only when turnDetectionMode is 'Disabled'
   const [canPushToTalk, setCanPushToTalk] = useState(false);
@@ -93,6 +99,86 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     }
 
     return updateSessionParams;
+  }, []);
+
+  /**
+   * Setup virtual audio output device
+   * This function identifies and configures the appropriate virtual output device 
+   * based on the environment (Electron or Browser Extension)
+   */
+  const setupVirtualAudioOutput = useCallback(async (audioContext: AudioContext | null): Promise<boolean> => {
+    if (!audioContext) {
+      console.error('Cannot setup virtual audio output: AudioContext is null');
+      return false;
+    }
+    
+    try {
+      // Get all audio output devices
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      let virtualOutputFound = false;
+      
+      // Check if we're in Electron environment
+      if (typeof window !== 'undefined' && 'electron' in window) {
+        // Find sokuji_virtual_speaker
+        const virtualSpeaker = devices.find(device => 
+          device.kind === 'audiooutput' && 
+          device.label.toLowerCase().includes('sokuji_virtual_speaker')
+        );
+        
+        // If virtual speaker is found, set it as the output device
+        if (virtualSpeaker && virtualSpeaker.deviceId) {
+          virtualOutputFound = true;
+          const ctxWithSink = audioContext as AudioContext & { 
+            setSinkId?: (options: string | { deviceId: string }) => Promise<void> 
+          };
+          
+          if (ctxWithSink && typeof ctxWithSink.setSinkId === 'function') {
+            try {
+              // According to MDN documentation, use object format with deviceId
+              await ctxWithSink.setSinkId({ deviceId: virtualSpeaker.deviceId });
+              console.log('AudioContext output device set to sokuji_virtual_speaker:', virtualSpeaker.deviceId);
+            } catch (err) {
+              // Fallback to string format if needed
+              try {
+                await ctxWithSink.setSinkId(virtualSpeaker.deviceId);
+                console.log('AudioContext output set using alternative format');
+              } catch (fallbackErr) {
+                console.error('Failed to set output device with both methods:', fallbackErr);
+                virtualOutputFound = false;
+              }
+            }
+          }
+        }
+      } 
+      // Check if we're in browser extension environment
+      else if (typeof window !== 'undefined') {
+        // Safely check for Chrome extension environment
+        const chromeRuntime = (window as any).chrome?.runtime;
+        if (chromeRuntime) {
+          // For browser extension, look for the virtual output
+          const virtualOutput = devices.find(device => 
+            device.kind === 'audiooutput' && 
+            device.label.includes('Sokuji Virtual Output (Browser Extension)')
+          );
+          
+          if (virtualOutput) {
+            virtualOutputFound = true;
+            console.log('Using Sokuji Virtual Output as the primary output device');
+            // Browser extensions may not support setSinkId for specific routing,
+            // but we mark as found since the BrowserAudioService handles this
+          }
+        }
+      }
+      
+      if (!virtualOutputFound) {
+        console.log('Virtual output device not found. Using default output device.');
+      }
+      
+      return virtualOutputFound;
+    } catch (e) {
+      console.error('Failed to set up virtual audio output:', e);
+      return false;
+    }
   }, []);
 
   /**
@@ -224,7 +310,11 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       
       // Connect to microphone only if input device is turned on
       if (isInputDeviceOn) {
-        await wavRecorder.begin(selectedInputDevice.deviceId);
+        if (selectedInputDevice) {
+          await wavRecorder.begin(selectedInputDevice.deviceId);
+        } else {
+          console.log('No input device selected, cannot connect to microphone');
+        }
       } else {
         console.log('Input device is turned off, not connecting to microphone');
       }
@@ -232,36 +322,18 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       // Connect to audio output
       await wavStreamPlayer.connect();
       
-      // Find and use sokuji_virtual_speaker as the output device
-      try {
-        // Get all audio output devices
-        const devices = await navigator.mediaDevices.enumerateDevices();
-        // Find sokuji_virtual_speaker
-        const virtualSpeaker = devices.find(device => 
-          device.kind === 'audiooutput' && 
-          device.label.toLowerCase().includes('sokuji_virtual_speaker')
-        );
+      // Set up virtual output device for audio playback
+      await setupVirtualAudioOutput(wavStreamPlayer.context);
+      
+      // If output device is ON, ensure monitor device is connected immediately
+      if (isOutputDeviceOn && selectedOutputDevice && 
+          !selectedOutputDevice.label.toLowerCase().includes('sokuji_virtual') && 
+          !selectedOutputDevice.label.includes('Sokuji Virtual Output')) {
+        console.log('Setting up monitor device to:', selectedOutputDevice.label);
         
-        // If virtual speaker is found, set it as the output device
-        if (virtualSpeaker && virtualSpeaker.deviceId) {
-          const ctxWithSink = wavStreamPlayer.context as AudioContext & { setSinkId?: (options: string | { type: string } | { deviceId: string }) => Promise<void> };
-          if (ctxWithSink && typeof ctxWithSink.setSinkId === 'function') {
-            try {
-              // According to MDN documentation, the correct way is to pass an object containing deviceId
-              await ctxWithSink.setSinkId({ deviceId: virtualSpeaker.deviceId });
-              console.log('AudioContext output device set to Sokuji_Virtual_Speaker:', virtualSpeaker.deviceId);
-            } catch (err) {
-              // If the new format fails, try the old format (directly passing the string)
-              console.log('Trying alternative setSinkId format...');
-              await ctxWithSink.setSinkId(virtualSpeaker.deviceId);
-              console.log('AudioContext output device set using alternative format');
-            }
-          }
-        } else {
-          console.log('Sokuji_Virtual_Speaker not found among output devices');
-        }
-      } catch (e) {
-        console.warn('Failed to set AudioContext to Sokuji_Virtual_Speaker:', e);
+        // Trigger the selectOutputDevice function to reconnect the monitor
+        // This will use the audio service properly through the AudioContext
+        selectOutputDevice(selectedOutputDevice);
       }
 
       // Update session with all parameters from settings
@@ -294,7 +366,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     } finally {
       setIsInitializing(false);
     }
-  }, [settings, getUpdateSessionParams, setupClientListeners, selectedInputDevice, isInputDeviceOn, disconnectConversation]);
+  }, [settings, getUpdateSessionParams, setupClientListeners, selectedInputDevice, isInputDeviceOn, disconnectConversation, setupVirtualAudioOutput, isOutputDeviceOn, selectedOutputDevice, selectOutputDevice]);
 
   /**
    * In push-to-talk mode, start recording
@@ -365,15 +437,30 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         throw new Error('Failed to initialize audio context');
       }
       
+      // Set up virtual output device for audio playback (same as in conversation)
+      await setupVirtualAudioOutput(wavStreamPlayer.context);
+      
+      // If output device is ON, ensure monitor device is connected immediately
+      if (isOutputDeviceOn && selectedOutputDevice && 
+          !selectedOutputDevice.label.toLowerCase().includes('sokuji_virtual') && 
+          !selectedOutputDevice.label.includes('Sokuji Virtual Output')) {
+        console.log('Test tone: Ensuring monitor device is connected:', selectedOutputDevice.label);
+        
+        // Trigger the selectOutputDevice function to reconnect the monitor
+        // This will use the audio service properly through the AudioContext
+        selectOutputDevice(selectedOutputDevice);
+      }
+
       // Fetch the test tone file
       let testToneUrl = '/assets/test-tone.mp3';
       
       // Check if we're in a Chrome extension environment
-      if (typeof window !== 'undefined' && 
-          'chrome' in window && 
-          window.chrome?.runtime?.getURL) {
-        // Use the extension's assets path
-        testToneUrl = window.chrome.runtime.getURL('assets/test-tone.mp3');
+      if (typeof window !== 'undefined') {
+        const chromeRuntime = (window as any).chrome?.runtime;
+        if (chromeRuntime?.getURL) {
+          // Use the extension's assets path
+          testToneUrl = chromeRuntime.getURL('assets/test-tone.mp3');
+        }
       }
       
       const response = await fetch(testToneUrl);
@@ -426,7 +513,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     } catch (error) {
       console.error('Error playing test tone:', error);
     }
-  }, []);
+  }, [setupVirtualAudioOutput, isOutputDeviceOn, selectedOutputDevice, selectOutputDevice]);
 
   /**
    * Set up render loops for the visualization canvas
@@ -542,7 +629,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           if (!wavRecorder.processor) {
             console.log('Input device turned on - initializing recorder with selected device');
             try {
-              await wavRecorder.begin(selectedInputDevice.deviceId);
+              await wavRecorder.begin(selectedInputDevice?.deviceId);
             } catch (error) {
               console.error('Error initializing recorder:', error);
               return;
@@ -567,7 +654,48 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     updateRecordingState();
   }, [isInputDeviceOn, isSessionActive, settings.turnDetectionMode, selectedInputDevice]);
 
-  // Add keyboard shortcut for push-to-talk functionality
+  /**
+   * Watch for changes to selectedOutputDevice or isOutputDeviceOn 
+   * and update the audio monitoring accordingly
+   */
+  useEffect(() => {
+    // Check if there's an active wavStreamPlayer context
+    const wavStreamPlayer = wavStreamPlayerRef.current;
+    if (!wavStreamPlayer.context || wavStreamPlayer.context.state === 'closed') {
+      return;
+    }
+    
+    // Function to connect the monitor output
+    const updateMonitorDevice = async () => {
+      try {
+        // Check if the selectedOutputDevice is a virtual device (which shouldn't be used as monitor)
+        const isVirtualDevice = selectedOutputDevice?.label.toLowerCase().includes('sokuji_virtual') ||
+                               selectedOutputDevice?.label.includes('Sokuji Virtual Output');
+        
+        if (isVirtualDevice) {
+          console.log('Selected output device is a virtual device - not using as monitor');
+          return;
+        }
+        
+        // If output device is turned on, connect the monitor
+        if (isOutputDeviceOn && selectedOutputDevice) {
+          console.log(`Setting up monitor output to: ${selectedOutputDevice.label}`);
+          
+          // Trigger the selectOutputDevice function to reconnect the monitor
+          // This will use the audio service properly through the AudioContext
+          selectOutputDevice(selectedOutputDevice);
+        }
+      } catch (error) {
+        console.error('Error setting up monitor device:', error);
+      }
+    };
+    
+    updateMonitorDevice();
+  }, [selectedOutputDevice, isOutputDeviceOn, isSessionActive, selectOutputDevice]);
+
+  /**
+   * Add keyboard shortcut for push-to-talk functionality
+   */
   useEffect(() => {
     // Only add event listeners if session is active and push-to-talk is enabled
     if (!isSessionActive || !canPushToTalk) return;
@@ -605,8 +733,8 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       <div className="conversation-container" ref={conversationContainerRef}>
         <div className="conversation-content" data-conversation-content>
           {items.length > 0 ? (
-            items.map((item) => (
-              <div key={item.id} className={`conversation-item ${item.role}`}>
+            items.map((item, index) => (
+              <div key={index} className={`conversation-item ${item.role}`}>
                 <div className="conversation-item-role">{item.role}</div>
                 <div className="conversation-item-content">
                   {(() => {
@@ -646,9 +774,9 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                     // For user or assistant messages with content array
                     if ((item.role === 'user' || item.role === 'assistant' || item.role === 'system') && 
                         'content' in item) {
-                      const typedItem = item as any; // Type assertion for accessing content
+                      const typedItem = item; // Type assertion for accessing content
                       if (Array.isArray(typedItem.content)) {
-                        return typedItem.content.map((contentItem: any, i: number) => (
+                        return typedItem.content.map((contentItem, i) => (
                           <div key={i} className={`content-item ${contentItem.type}`}>
                             {contentItem.type === 'text' && contentItem.text}
                             {contentItem.type === 'input_text' && contentItem.text}
