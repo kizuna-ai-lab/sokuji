@@ -158,7 +158,7 @@ export class ElectronAudioService implements IAudioService {
       // If virtual speaker is found, set it as the output device
       if (virtualSpeaker && virtualSpeaker.deviceId) {
         const ctxWithSink = audioContext as AudioContext & { 
-          setSinkId?: (options: string | { deviceId: string }) => Promise<void> 
+          setSinkId?: (options: string | { type: string }) => Promise<void>
         };
         
         if (ctxWithSink && typeof ctxWithSink.setSinkId === 'function') {
