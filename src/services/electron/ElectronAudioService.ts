@@ -164,20 +164,12 @@ export class ElectronAudioService implements IAudioService {
         if (ctxWithSink && typeof ctxWithSink.setSinkId === 'function') {
           try {
             // According to MDN documentation, use object format with deviceId
-            await ctxWithSink.setSinkId({ deviceId: virtualSpeaker.deviceId });
+            await ctxWithSink.setSinkId(virtualSpeaker.deviceId);
             console.log('AudioContext output device set to sokuji_virtual_speaker:', virtualSpeaker.deviceId);
             return true;
           } catch (err) {
-            // Fallback to string format if needed
-            try {
-              await ctxWithSink.setSinkId(virtualSpeaker.deviceId);
-              console.log('AudioContext output set using alternative format');
-              return true;
-            } catch (fallbackErr) {
-              console.error('Failed to set output device with both methods:', fallbackErr);
-              return false;
-            }
-          }
+            console.error('Failed to set output device with both methods:', err);
+            return false;          }
         }
       }
       
