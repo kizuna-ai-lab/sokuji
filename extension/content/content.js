@@ -1,145 +1,183 @@
-// Content script for Sokuji browser extension
-// This script injects UI elements and handles audio processing in web pages
+/* global chrome, browser */
 
-/* global chrome */
+// Content script for the Sokuji browser extension
+// This script injects the UI elements and the code to override mediaDevices methods
 
-// Listen for messages from the popup
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (message.action === 'TOGGLE_SOKUJI_UI') {
-    toggleSokujiUI();
-    sendResponse({ success: true });
+// UI Elements
+let sokujiIframe = null;
+let toggleButton = null;
+let isExpanded = false;
+
+// Get extension URL in a browser-compatible way
+function getExtensionURL(path) {
+  let url = '';
+  try {
+    // Try Chrome API first
+    if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.getURL) {
+      url = chrome.runtime.getURL(path);
+    } 
+    // Then try Firefox API
+    else if (typeof browser !== 'undefined' && browser.runtime && browser.runtime.getURL) {
+      url = browser.runtime.getURL(path);
+    }
+    // Fallback for other browsers or testing environments
+    else {
+      console.warn('[Sokuji] Browser extension API not available, using relative path');
+      url = path;
+    }
+  } catch (error) {
+    console.error('[Sokuji] Error getting extension URL:', error);
+    url = path;
   }
-  return true;
+  return url;
+}
+
+// Create and insert the Sokuji iframe
+function createSokujiIframe() {
+  // Create iframe element
+  sokujiIframe = document.createElement('iframe');
+  sokujiIframe.id = 'sokuji-iframe';
+  sokujiIframe.src = getExtensionURL('fullpage.html');
+  
+  // Add permissions for microphone access
+  sokujiIframe.allow = "microphone *; camera *";
+  
+  // Set iframe styles
+  Object.assign(sokujiIframe.style, {
+    position: 'fixed',
+    top: '0',
+    right: '0',
+    width: '400px',
+    height: '100%',
+    zIndex: '9999',
+    border: 'none',
+    boxShadow: '-2px 0 5px rgba(0,0,0,0.3)',
+    transition: 'transform 0.3s ease-in-out',
+    transform: 'translateX(100%)', // Start hidden
+    backgroundColor: '#ffffff'
+  });
+  
+  // Add iframe to the page
+  document.body.appendChild(sokujiIframe);
+  
+  console.log('[Sokuji] Iframe created and inserted');
+  return sokujiIframe;
+}
+
+// Create toggle button
+function createToggleButton() {
+  // Create button element
+  toggleButton = document.createElement('div');
+  toggleButton.id = 'sokuji-toggle';
+  
+  // Set button styles
+  Object.assign(toggleButton.style, {
+    position: 'fixed',
+    top: '20px',
+    right: '0',
+    width: '40px',
+    height: '40px',
+    backgroundColor: '#4285f4',
+    borderRadius: '4px 0 0 4px',
+    cursor: 'pointer',
+    zIndex: '10000',
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    boxShadow: '-2px 0 5px rgba(0,0,0,0.2)',
+    transition: 'right 0.3s ease-in-out'
+  });
+  
+  // Add icon to button
+  toggleButton.innerHTML = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M19 12H5M12 19l-7-7 7-7"/>
+    </svg>
+  `;
+  
+  // Add click event listener
+  toggleButton.addEventListener('click', toggleSokujiPanel);
+  
+  // Add button to the page
+  document.body.appendChild(toggleButton);
+  
+  console.log('[Sokuji] Toggle button created and inserted');
+  return toggleButton;
+}
+
+// Toggle Sokuji panel visibility
+function toggleSokujiPanel() {
+  if (!sokujiIframe) {
+    console.error('[Sokuji] Iframe not found');
+    return;
+  }
+  
+  isExpanded = !isExpanded;
+  
+  if (isExpanded) {
+    // Show iframe
+    sokujiIframe.style.transform = 'translateX(0)';
+    // Update toggle button icon and position
+    toggleButton.innerHTML = `
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M5 12h14M12 5l7 7-7 7"/>
+      </svg>
+    `;
+    toggleButton.style.right = '400px';
+  } else {
+    // Hide iframe
+    sokujiIframe.style.transform = 'translateX(100%)';
+    // Update toggle button icon and position
+    toggleButton.innerHTML = `
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M19 12H5M12 19l-7-7 7-7"/>
+      </svg>
+    `;
+    toggleButton.style.right = '0';
+  }
+  
+  console.log(`[Sokuji] Panel ${isExpanded ? 'expanded' : 'collapsed'}`);
+}
+
+// Inject the virtual microphone script as early as possible
+function injectVirtualMicrophoneScript() {
+  // Get the URL of the script
+  const scriptURL = getExtensionURL('virtual-microphone.js');
+  
+  // Create a script element
+  const script = document.createElement('script');
+  script.src = scriptURL;
+  script.async = false; // Ensure it's loaded synchronously
+  script.id = 'sokuji-virtual-microphone-script';
+  
+  // Insert the script as early as possible
+  // Try to insert it at the beginning of the head or document
+  if (document.head) {
+    document.head.insertBefore(script, document.head.firstChild);
+  } else if (document.documentElement) {
+    // If head isn't available yet, insert at the beginning of the HTML element
+    document.documentElement.insertBefore(script, document.documentElement.firstChild);
+  } else {
+    // Last resort: append to document
+    document.appendChild(script);
+  }
+  
+  console.log('[Sokuji] Virtual microphone script injected into page');
+}
+
+// Run script injection immediately (before DOMContentLoaded)
+injectVirtualMicrophoneScript();
+
+// Initialize UI elements when the page loads
+window.addEventListener('load', () => {
+  console.log('[Sokuji] Content script loaded');
+  
+  // Create UI elements
+  createSokujiIframe();
+  createToggleButton();
 });
 
-// Flag to track if the Sokuji UI is currently shown
-let isSokujiUIShown = false;
-let sokujiContainer = null;
-
-// Function to toggle the Sokuji UI
-function toggleSokujiUI() {
-  if (isSokujiUIShown) {
-    // Hide the UI
-    if (sokujiContainer) {
-      document.body.removeChild(sokujiContainer);
-      sokujiContainer = null;
-    }
-    isSokujiUIShown = false;
-  } else {
-    // Show the UI
-    createSokujiUI();
-    isSokujiUIShown = true;
-  }
-}
-
-// Function to create and inject the Sokuji UI
-function createSokujiUI() {
-  // Create container
-  sokujiContainer = document.createElement('div');
-  sokujiContainer.id = 'sokuji-container';
-  sokujiContainer.style.cssText = `
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    width: 500px;
-    height: 600px;
-    background-color: white;
-    border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    z-index: 9999;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    resize: both;
-    min-width: 400px;
-    min-height: 500px;
-    max-width: 800px;
-    max-height: 800px;
-  `;
-  
-  // Create header
-  const header = document.createElement('div');
-  header.style.cssText = `
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 10px 15px;
-    background-color: #f5f5f5;
-    border-bottom: 1px solid #e0e0e0;
-    cursor: move;
-  `;
-  
-  // Add title
-  const title = document.createElement('div');
-  title.textContent = 'Sokuji Interpreter';
-  title.style.fontWeight = 'bold';
-  
-  // Add close button
-  const closeButton = document.createElement('button');
-  closeButton.textContent = '✕';
-  closeButton.style.cssText = `
-    background: none;
-    border: none;
-    cursor: pointer;
-    font-size: 16px;
-  `;
-  closeButton.onclick = toggleSokujiUI;
-  
-  // Add elements to header
-  header.appendChild(title);
-  header.appendChild(closeButton);
-  
-  // Create iframe to load the popup UI
-  const iframe = document.createElement('iframe');
-  iframe.style.cssText = `
-    flex: 1;
-    width: 100%;
-    border: none;
-  `;
-  iframe.src = chrome.runtime.getURL('popup/index.html');
-  
-  // Add elements to container
-  sokujiContainer.appendChild(header);
-  sokujiContainer.appendChild(iframe);
-  
-  // Add container to page
-  document.body.appendChild(sokujiContainer);
-  
-  // Make the container draggable and resizable
-  makeDraggable(sokujiContainer, header);
-}
-
-// Function to make an element draggable
-function makeDraggable(element, dragHandle) {
-  let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
-  
-  dragHandle.onmousedown = dragMouseDown;
-  
-  function dragMouseDown(e) {
-    e.preventDefault();
-    // Get the mouse cursor position at startup
-    pos3 = e.clientX;
-    pos4 = e.clientY;
-    document.onmouseup = closeDragElement;
-    // Call a function whenever the cursor moves
-    document.onmousemove = elementDrag;
-  }
-  
-  function elementDrag(e) {
-    e.preventDefault();
-    // Calculate the new cursor position
-    pos1 = pos3 - e.clientX;
-    pos2 = pos4 - e.clientY;
-    pos3 = e.clientX;
-    pos4 = e.clientY;
-    // Set the element's new position
-    element.style.top = (element.offsetTop - pos2) + "px";
-    element.style.left = (element.offsetLeft - pos1) + "px";
-  }
-  
-  function closeDragElement() {
-    // Stop moving when mouse button is released
-    document.onmouseup = null;
-    document.onmousemove = null;
-  }
-}
+// Expose API for debugging
+window.sokujiContentScript = {
+  togglePanel: toggleSokujiPanel
+};

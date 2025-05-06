@@ -6,28 +6,12 @@ import { IAudioService, AudioDevices, AudioOperationResult } from '../interfaces
  * in browser extensions where we don't have access to system audio devices
  */
 export class BrowserAudioService implements IAudioService {
-  private audioContext: AudioContext | null = null;
-  private mediaStreamDestination: MediaStreamAudioDestinationNode | null = null;
-  private outputDestination: AudioDestinationNode | null = null;
-  private gainNode: GainNode | null = null;
-  
+  private externalAudioContext: AudioContext | null = null; // Store external AudioContext from wavStreamPlayer
+
   /**
    * Initialize the Web Audio API components
    */
   async initialize(): Promise<void> {
-    if (!this.audioContext) {
-      this.audioContext = new AudioContext();
-      this.outputDestination = this.audioContext.destination;
-      
-      // Create a gain node for volume control
-      this.gainNode = this.audioContext.createGain();
-      this.gainNode.gain.value = 1.0;
-      this.gainNode.connect(this.outputDestination);
-      
-      // Create a MediaStreamDestination for capturing output
-      this.mediaStreamDestination = this.audioContext.createMediaStreamDestination();
-      this.gainNode.connect(this.mediaStreamDestination);
-    }
   }
 
   /**
@@ -57,14 +41,6 @@ export class BrowserAudioService implements IAudioService {
           label: device.label || `Speaker ${device.deviceId.substring(0, 5)}...`,
           isVirtual: false
         }));
-      
-      // Add a virtual output device for the browser extension
-      // This is to maintain API compatibility with the Electron version
-      outputs.push({
-        deviceId: 'virtual-output',
-        label: 'Sokuji Virtual Output (Browser Extension)',
-        isVirtual: true
-      });
       
       return { inputs, outputs };
     } catch (error) {
@@ -101,45 +77,49 @@ export class BrowserAudioService implements IAudioService {
    * In browsers, we're limited by what the Web Audio API allows
    */
   async connectMonitoringDevice(deviceId: string, label: string): Promise<AudioOperationResult> {
+    console.log(`[Browser Audio] Connecting monitoring device: ${label} (${deviceId})`);
     try {
-      if (!this.audioContext || !this.gainNode) {
-        await this.initialize();
-      }
-      
-      // In browsers, we can't actually route to specific output devices through JavaScript
-      // unless the browser supports AudioContext.setSinkId() which is still experimental
-      // Instead, we simulate the functionality
-      
-      console.log(`[Browser Audio] Connecting to monitoring device: ${label} (${deviceId})`);
-      
-      // If the browser supports setSinkId (Chrome 110+), we could use it
-      let result: AudioOperationResult;
-      
-      if ((this.audioContext?.destination as any).setSinkId) {
-        try {
-          await (this.audioContext?.destination as any).setSinkId(deviceId);
-          result = {
-            success: true,
-            message: `Connected to ${label} using setSinkId`
-          };
-        } catch (e) {
-          console.warn('setSinkId failed:', e);
-          result = {
-            success: true,
-            message: `Browser extensions have limited monitoring device selection. Audio should play through system default output.`
-          };
-        }
-      } else {
-        // Since most browsers don't support routing to specific devices,
-        // we just return success but note the limitation
-        result = {
-          success: true,
-          message: `Browser extensions have limited monitoring device selection. Audio should play through system default output.`
+      if (!this.externalAudioContext) {
+        console.error('Cannot connect monitoring device: No external AudioContext available');
+        return {
+          success: false,
+          error: 'No audio context available'
         };
       }
       
-      return result;
+      console.log(`[Browser Audio] Connecting monitoring device: ${label} (${deviceId})`);
+      
+      // Type assertion to access setSinkId method
+      const ctxWithSink = this.externalAudioContext as AudioContext & { 
+        setSinkId?: (options: string | { type: string }) => Promise<void>
+      };
+      
+      if (ctxWithSink && typeof ctxWithSink.setSinkId === 'function') {
+        try {
+          // Use the device ID for setSinkId to route audio to the selected device
+          await ctxWithSink.setSinkId(deviceId);
+          
+          console.log(`AudioContext output device set to: ${label}`);
+          return {
+            success: true,
+            message: `Connected to monitoring device: ${label}`
+          };
+        } catch (err: any) {
+          console.error('Failed to set output device:', err);
+          return {
+            success: false,
+            error: err.message || 'Failed to set output device'
+          };
+        }
+      } else {
+        console.warn('AudioContext.setSinkId is not supported in this browser');
+        return {
+          success: false,
+          error: 'setSinkId not supported in this browser'
+        };
+      }
     } catch (error: any) {
+      console.error('Error connecting monitoring device:', error);
       return {
         success: false,
         error: error.message || 'Failed to connect monitoring device'
@@ -152,9 +132,26 @@ export class BrowserAudioService implements IAudioService {
    */
   async disconnectMonitoringDevices(): Promise<AudioOperationResult> {
     try {
-      if (this.gainNode) {
-        // Disconnect from all outputs
-        this.gainNode.disconnect();
+      // If we have an external AudioContext, set it back to 'none' to stop audio output
+      if (this.externalAudioContext) {
+        // Type assertion to access setSinkId method
+        const ctxWithSink = this.externalAudioContext as AudioContext & { 
+          setSinkId?: (options: string | { type: string }) => Promise<void>
+        };
+        
+        if (ctxWithSink && typeof ctxWithSink.setSinkId === 'function') {
+          try {
+            // Use {type:'none'} to prevent audio from being sent to physical speakers
+            await ctxWithSink.setSinkId({type: 'none'});
+            console.log('AudioContext output device set back to virtual (none type)');
+          } catch (err) {
+            console.error('Failed to reset output device:', err);
+            return {
+              success: false,
+              error: 'Failed to reset output device'
+            };
+          }
+        }
       }
       
       return {
@@ -174,19 +171,10 @@ export class BrowserAudioService implements IAudioService {
    * but we can create an audio processing pipeline using Web Audio API
    */
   async createVirtualDevices(): Promise<AudioOperationResult> {
-    try {
-      await this.initialize();
-      
-      return {
-        success: true,
-        message: 'Created virtual audio processing pipeline using Web Audio API'
-      };
-    } catch (error: any) {
-      return {
-        success: false,
-        error: error.message || 'Failed to create virtual audio pipeline'
-      };
-    }
+    return {
+      success: true,
+      message: 'Created virtual audio processing pipeline using Web Audio API'
+    };
   }
 
   /**
@@ -199,7 +187,8 @@ export class BrowserAudioService implements IAudioService {
   
   /**
    * Setup virtual audio output with the provided AudioContext
-   * In browser extensions, we look for the virtual output device and send audio data to the injected script
+   * In browser extensions, we capture audio data and send it to the parent page
+   * for the virtual device to use
    * @param audioContext The AudioContext to configure for virtual output
    * @returns Promise resolving to true if virtual output was successfully set up, false otherwise
    */
@@ -210,75 +199,29 @@ export class BrowserAudioService implements IAudioService {
     }
     
     try {
-      // Get all audio output devices
-      const devices = await navigator.mediaDevices.enumerateDevices();
+      // Store the external AudioContext for later use in connectMonitoringDevice and disconnectMonitoringDevices
+      this.externalAudioContext = audioContext;
       
-      // For browser extension, look for the virtual output
-      const virtualOutput = devices.find(device => 
-        device.kind === 'audiooutput' && 
-        device.label.includes('Sokuji Virtual Output (Browser Extension)')
-      );
+      // In browser extensions, we use {type:'none'} for setSinkId
+      // This tells the browser not to connect to any physical output device
+      const ctxWithSink = audioContext as AudioContext & { 
+        setSinkId?: (options: string | { type: string }) => Promise<void>
+      };
       
-      if (virtualOutput) {
-        // Create a MediaStreamDestination for capturing output
-        const streamDestination = audioContext.createMediaStreamDestination();
-        
-        // Connect the audio context destination to our stream destination
-        if (this.gainNode) {
-          this.gainNode.connect(streamDestination);
+      if (ctxWithSink && typeof ctxWithSink.setSinkId === 'function') {
+        try {
+          // Use {type:'none'} to prevent audio from being sent to physical speakers
+          await ctxWithSink.setSinkId({type: 'none'});
+          console.log('AudioContext output device set to virtual (none type)');
+          return true;
+        } catch (err) {
+          console.error('Failed to set output device:', err);
+          return false;
         }
-        
-        // Set up event listener to handle requests for audio data from the injected script
-        window.addEventListener('message', (event) => {
-          // Ensure message is from our window
-          if (event.source !== window) return;
-          
-          // Check if this is a request for audio data from our injected script
-          if (event.data && event.data.type === 'sokuji-request-audio-data') {
-            console.log('[Sokuji Browser] Received request for audio stream from injected script');
-            
-            try {
-              // Get the audio stream from our MediaStreamDestination
-              const audioStream = streamDestination.stream;
-              
-              // Create a message with the audio stream information
-              // Note: We can't directly send the MediaStream object via postMessage
-              // Instead, we'll send metadata about the stream that the injected script can use
-              window.postMessage({
-                type: 'sokuji-audio-stream-data',
-                success: true,
-                streamInfo: {
-                  id: audioStream.id,
-                  active: audioStream.active,
-                  trackCount: audioStream.getAudioTracks().length,
-                  tracks: audioStream.getAudioTracks().map(track => ({
-                    id: track.id,
-                    kind: track.kind,
-                    label: track.label,
-                    enabled: track.enabled,
-                    readyState: track.readyState
-                  }))
-                }
-              }, '*');
-              
-              console.log('[Sokuji Browser] Audio stream data sent to injected script');
-            } catch (error) {
-              console.error('[Sokuji Browser] Error preparing audio stream data:', error);
-              window.postMessage({
-                type: 'sokuji-audio-stream-data',
-                success: false,
-                error: error instanceof Error ? error.message : 'Unknown error'
-              }, '*');
-            }
-          }
-        });
-        
-        console.log('Using Sokuji Virtual Output as the primary output device');
-        return true;
+      } else {
+        console.warn('AudioContext.setSinkId is not supported in this browser');
+        return false;
       }
-      
-      console.log('Virtual output device not found. Using default output device.');
-      return false;
     } catch (e) {
       console.error('Failed to set up virtual audio output:', e);
       return false;

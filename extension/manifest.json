@@ -18,15 +18,14 @@
     }
   },
   "permissions": [
-    "storage",
-    "tabCapture",
-    "tabs",
     "activeTab",
+    "scripting",
+    "storage",
+    "tabs",
     "audio"
   ],
   "host_permissions": [
-    "https://api.openai.com/*",
-    "https://api.anthropic.com/*"
+    "https://api.openai.com/*"
   ],
   "background": {
     "service_worker": "background.js",
@@ -34,20 +33,14 @@
   },
   "content_scripts": [
     {
-      "matches": ["<all_urls>"],
-      "js": ["content.js"],
-      "run_at": "document_idle"
-    },
-    {
       "matches": ["https://meet.google.com/*"],
-      "js": ["content/google-meet-audio-replacer.js"],
-      "run_at": "document_start",
-      "all_frames": true
+      "js": ["content.js"],
+      "run_at": "document_start"
     }
   ],
   "web_accessible_resources": [
     {
-      "resources": ["worklets/*", "content/google-meet-audio-replacer.js", "content/injected-script.js", "assets/*", "fullpage.html", "fullpage.js", "fullpage.css"],
+      "resources": ["worklets/*", "virtual-microphone.js", "assets/*", "fullpage.html", "fullpage.js", "fullpage.css"],
       "matches": ["<all_urls>"]
     }
   ],
