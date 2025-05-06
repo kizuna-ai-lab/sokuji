@@ -275,9 +275,6 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       // Connect to audio output
       await wavStreamPlayer.connect();
 
-      // // Set up virtual output device for audio playback
-      // await setupVirtualAudioOutput(wavStreamPlayer.context);
-
       // If output device is ON, ensure monitor device is connected immediately
       if (isMonitorDeviceOn && selectedMonitorDevice &&
         !selectedMonitorDevice.label.toLowerCase().includes('sokuji_virtual') &&
@@ -397,9 +394,6 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       if (!wavStreamPlayer.context) {
         throw new Error('Failed to initialize audio context');
       }
-
-      // // Set up virtual output device for audio playback (same as in conversation)
-      // await setupVirtualAudioOutput(wavStreamPlayer.context);
 
       // If output device is ON, ensure monitor device is connected immediately
       if (isMonitorDeviceOn && selectedMonitorDevice &&
