@@ -275,8 +275,8 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       // Connect to audio output
       await wavStreamPlayer.connect();
 
-      // Set up virtual output device for audio playback
-      await setupVirtualAudioOutput(wavStreamPlayer.context);
+      // // Set up virtual output device for audio playback
+      // await setupVirtualAudioOutput(wavStreamPlayer.context);
 
       // If output device is ON, ensure monitor device is connected immediately
       if (isMonitorDeviceOn && selectedMonitorDevice &&
@@ -398,8 +398,8 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         throw new Error('Failed to initialize audio context');
       }
 
-      // Set up virtual output device for audio playback (same as in conversation)
-      await setupVirtualAudioOutput(wavStreamPlayer.context);
+      // // Set up virtual output device for audio playback (same as in conversation)
+      // await setupVirtualAudioOutput(wavStreamPlayer.context);
 
       // If output device is ON, ensure monitor device is connected immediately
       if (isMonitorDeviceOn && selectedMonitorDevice &&
@@ -699,6 +699,33 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       window.removeEventListener('keyup', handleKeyUp);
     };
   }, [isSessionActive, canPushToTalk, isRecording, startRecording, stopRecording]);
+
+  /**
+   * Initialize wavStreamPlayer and setup virtual audio output as soon as component mounts
+   */
+  useEffect(() => {
+    const initAudio = async () => {
+      const wavStreamPlayer = wavStreamPlayerRef.current;
+      
+      try {
+        // Connect wavStreamPlayer early
+        console.log('Initializing wavStreamPlayer and AudioContext early');
+        await wavStreamPlayer.connect();
+        
+        // Setup virtual audio output immediately after connecting
+        if (wavStreamPlayer.context) {
+          console.log('Setting up virtual audio output early');
+          await setupVirtualAudioOutput(wavStreamPlayer.context);
+        } else {
+          console.warn('Could not set up virtual audio output: wavStreamPlayer.context is null');
+        }
+      } catch (error) {
+        console.error('Failed to initialize audio early:', error);
+      }
+    };
+    
+    initAudio();
+  }, [setupVirtualAudioOutput]);
 
   return (
     <div className="main-panel">
