@@ -9,7 +9,6 @@
     "128": "icons/icon128.png"
   },
   "action": {
-    "default_popup": "",
     "default_title": "Sokuji",
     "default_icon": {
       "16": "icons/icon16.png",
@@ -17,12 +16,16 @@
       "128": "icons/icon128.png"
     }
   },
+  "side_panel": {
+    "default_path": "fullpage.html"
+  },
   "permissions": [
     "activeTab",
     "scripting",
     "storage",
     "tabs",
-    "audio"
+    "audio",
+    "sidePanel"
   ],
   "host_permissions": [
     "https://api.openai.com/*"

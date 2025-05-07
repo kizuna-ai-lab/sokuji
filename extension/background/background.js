@@ -33,9 +33,18 @@ chrome.runtime.onInstalled.addListener(async () => {
   }
 });
 
-// 监听扩展图标点击事件
-chrome.action.onClicked.addListener(() => {
-  chrome.tabs.create({ url: 'fullpage.html' });
+// 监听扩展图标点击事件 (Listen for extension icon click event)
+chrome.action.onClicked.addListener((tab) => {
+  // Check if the side panel API is available
+  if (chrome.sidePanel) {
+    // Open the side panel when the extension icon is clicked
+    chrome.sidePanel.open({ tabId: tab.id });
+    console.log('Opening Sokuji in side panel');
+  } else {
+    // Fallback for browsers without side panel support
+    chrome.tabs.create({ url: 'fullpage.html' });
+    console.log('Side panel API not available, opening in new tab');
+  }
 });
 
 // Handle messages from popup and content scripts
