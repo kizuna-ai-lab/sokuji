@@ -395,17 +395,6 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         throw new Error('Failed to initialize audio context');
       }
 
-      // If output device is ON, ensure monitor device is connected immediately
-      if (isMonitorDeviceOn && selectedMonitorDevice &&
-        !selectedMonitorDevice.label.toLowerCase().includes('sokuji_virtual') &&
-        !selectedMonitorDevice.label.includes('Sokuji Virtual Output')) {
-        console.log('Test tone: Ensuring monitor device is connected:', selectedMonitorDevice.label);
-
-        // Trigger the selectMonitorDevice function to reconnect the monitor
-        // This will use the audio service properly through the AudioContext
-        selectMonitorDevice(selectedMonitorDevice);
-      }
-
       // Fetch the test tone file
       let testToneUrl = '/assets/test-tone.mp3';
 
@@ -473,6 +462,17 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
       // Set the state to indicate test tone is playing
       setIsTestTonePlaying(true);
+
+      // If output device is ON, ensure monitor device is connected immediately
+      if (isMonitorDeviceOn && selectedMonitorDevice &&
+        !selectedMonitorDevice.label.toLowerCase().includes('sokuji_virtual') &&
+        !selectedMonitorDevice.label.includes('Sokuji Virtual Output')) {
+        console.log('Test tone: Ensuring monitor device is connected:', selectedMonitorDevice.label);
+
+        // Trigger the selectMonitorDevice function to reconnect the monitor
+        // This will use the audio service properly through the AudioContext
+        selectMonitorDevice(selectedMonitorDevice);
+      }
 
       console.log('Playing test tone');
     } catch (error) {
@@ -705,10 +705,11 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         // Connect wavStreamPlayer early
         console.log('Initializing wavStreamPlayer and AudioContext early');
         await wavStreamPlayer.connect();
+        console.log('wavStreamPlayer connected');
         
         // Setup virtual audio output immediately after connecting
         if (wavStreamPlayer.context) {
-          console.log('Setting up virtual audio output early');
+          console.log('Setting up virtual audio output early, maybe failed because of autoplay policy');
           await setupVirtualAudioOutput(wavStreamPlayer.context);
         } else {
           console.warn('Could not set up virtual audio output: wavStreamPlayer.context is null');
