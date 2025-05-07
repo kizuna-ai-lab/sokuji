@@ -1,6 +1,6 @@
-// Virtual Microphone implementation that captures audio from iframe
+// Virtual Microphone implementation
 // This script overrides enumerateDevices and getUserMedia to create a virtual microphone
-// that captures audio from an iframe's Web Audio API context
+// that can be used to inject audio into web applications
 
 // Configuration
 const VIRTUAL_DEVICE_ID = 'sokuji-virtual-microphone';
@@ -24,7 +24,7 @@ function initAudioContext() {
     audioContext = new AudioContext();
     destinationNode = audioContext.createMediaStreamDestination();
     
-    // Create a silent audio stream as fallback when no iframe audio is available
+    // Create a silent audio stream for the virtual microphone
     const oscillator = audioContext.createOscillator();
     oscillator.frequency.value = 0; // Silent
     oscillator.connect(destinationNode);
@@ -37,46 +37,47 @@ function initAudioContext() {
   }
 }
 
-// Setup message listener for communication with iframe
-function setupMessageListener() {
-  window.addEventListener('message', (event) => {
-    // We expect messages from our iframe application
-    const { type, audioData } = event.data;
-    
-    if (type === 'audio-replacer-audio-data' && audioData && audioContext) {
-      console.log('[Sokuji] Received audio data from iframe');
-      try {
-        // Process incoming audio data from iframe
-        // Create a new audio buffer
-        const buffer = audioContext.createBuffer(
-          audioData.numberOfChannels,
-          audioData.numberOfChannels * audioData.duration * audioData.sampleRate,
-          audioData.sampleRate
-        );
-        
-        // Fill the buffer with the received audio data
-        for (let channel = 0; channel < audioData.numberOfChannels; channel++) {
-          const channelData = buffer.getChannelData(channel);
-          // Copy the data from the received array
-          for (let i = 0; i < audioData.channelData[channel].length; i++) {
-            channelData[i] = audioData.channelData[channel][i];
-          }
-        }
-        
-        // Create and play the buffer
-        const bufferSource = audioContext.createBufferSource();
-        bufferSource.buffer = buffer;
-        bufferSource.connect(destinationNode);
-        bufferSource.start();
-        
-        console.log('[Sokuji] Processed audio data from iframe');
-      } catch (error) {
-        console.error('[Sokuji] Error processing audio data:', error);
-      }
+// Setup API for receiving audio data from external sources
+function setupAudioAPI() {
+  // Create a global function that can be called to inject audio data
+  window.sokujiInjectAudio = (audioData) => {
+    if (!audioData || !audioContext) {
+      console.error('[Sokuji] Cannot inject audio: invalid data or audio context not ready');
+      return false;
     }
-  });
+    
+    try {
+      // Create a new audio buffer
+      const buffer = audioContext.createBuffer(
+        audioData.numberOfChannels,
+        audioData.numberOfChannels * audioData.duration * audioData.sampleRate,
+        audioData.sampleRate
+      );
+      
+      // Fill the buffer with the received audio data
+      for (let channel = 0; channel < audioData.numberOfChannels; channel++) {
+        const channelData = buffer.getChannelData(channel);
+        // Copy the data from the received array
+        for (let i = 0; i < audioData.channelData[channel].length; i++) {
+          channelData[i] = audioData.channelData[channel][i];
+        }
+      }
+      
+      // Create and play the buffer
+      const bufferSource = audioContext.createBufferSource();
+      bufferSource.buffer = buffer;
+      bufferSource.connect(destinationNode);
+      bufferSource.start();
+      
+      console.log('[Sokuji] Processed injected audio data');
+      return true;
+    } catch (error) {
+      console.error('[Sokuji] Error processing audio data:', error);
+      return false;
+    }
+  };
   
-  console.log('[Sokuji] Message listener set up for iframe audio');
+  console.log('[Sokuji] Audio injection API set up');
 }
 
 // Start capturing audio
@@ -84,10 +85,10 @@ function startCapturing() {
   if (isCapturing) return;
   
   initAudioContext();
-  setupMessageListener();
+  setupAudioAPI();
   
   isCapturing = true;
-  console.log('[Sokuji] Started capturing audio from iframe');
+  console.log('[Sokuji] Virtual microphone ready for audio injection');
 }
 
 // Override enumerateDevices to include our virtual device
