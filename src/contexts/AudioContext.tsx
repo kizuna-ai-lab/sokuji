@@ -139,26 +139,25 @@ export const AudioProvider = ({ children }: { children: ReactNode }) => {
   const selectMonitorDevice = useCallback((device: AudioDevice) => {
     console.log(`Selected monitor device: ${device.label} (${device.deviceId})`);
     setSelectedMonitorDevice((prevDevice) => {
-      if (prevDevice?.deviceId !== device.deviceId) {
-        console.log(`Monitor device changed: ${prevDevice?.label} (${prevDevice?.deviceId}) -> ${device.label} (${device.deviceId})`);
+      
+      console.log(`Monitor device changed: ${prevDevice?.label} (${prevDevice?.deviceId}) -> ${device.label} (${device.deviceId})`);
 
-        // Only connect the virtual speaker if the monitor device is turned ON
-        if (isMonitorDeviceOn && device && device.deviceId) {
-          console.log(`Connecting virtual speaker to monitor device: ${device.label}`);
+      // Only connect the virtual speaker if the monitor device is turned ON
+      if (isMonitorDeviceOn && device && device.deviceId) {
+        console.log(`Connecting virtual speaker to monitor device: ${device.label}`);
 
-          // Use the audio service instead of direct Electron calls
-          audioService.current.connectMonitoringDevice(device.deviceId, device.label)
-            .then((result: AudioOperationResult) => {
-              if (result.success) {
-                console.log('Successfully connected virtual speaker to monitor device:', result.message);
-              } else {
-                console.error('Failed to connect virtual speaker to monitor device:', result.error);
-              }
-            })
-            .catch((error: Error) => {
-              console.error('Error connecting virtual speaker to monitor device:', error);
-            });
-        }
+        // Use the audio service instead of direct Electron calls
+        audioService.current.connectMonitoringDevice(device.deviceId, device.label)
+          .then((result: AudioOperationResult) => {
+            if (result.success) {
+              console.log('Successfully connected virtual speaker to monitor device:', result.message);
+            } else {
+              console.error('Failed to connect virtual speaker to monitor device:', result.error);
+            }
+          })
+          .catch((error: Error) => {
+            console.error('Error connecting virtual speaker to monitor device:', error);
+          });
       }
       return device;
     });
