@@ -41,6 +41,7 @@ function initAudioContext() {
 function setupAudioAPI() {
   // Create a global function that can be called to inject audio data
   window.sokujiInjectAudio = (audioData) => {
+    console.log('[Sokuji] Injecting audio data into virtual microphone');
     if (!audioData || !audioContext) {
       console.error('[Sokuji] Cannot inject audio: invalid data or audio context not ready');
       return false;
