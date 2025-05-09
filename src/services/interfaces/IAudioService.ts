@@ -50,8 +50,42 @@ export interface IAudioService {
   
   /**
    * Setup virtual audio output with the provided WavStreamPlayer
-   * @param wavStreamPlayer The WavStreamPlayer to configure for virtual output
+   * @param externalWavStreamPlayer Optional external WavStreamPlayer to configure for virtual output
    * @returns Promise resolving to true if virtual output was successfully set up, false otherwise
    */
-  setupVirtualAudioOutput(wavStreamPlayer: WavStreamPlayer): Promise<boolean>;
+  setupVirtualAudioOutput(externalWavStreamPlayer?: WavStreamPlayer): Promise<boolean>;
+  
+  /**
+   * Gets the current WavStreamPlayer instance, creating one if it doesn't exist
+   */
+  getWavStreamPlayer(): WavStreamPlayer;
+  
+  /**
+   * Connects the WavStreamPlayer to the audio context
+   */
+  connectWavStreamPlayer(): Promise<boolean>;
+  
+  /**
+   * Adds 16-bit PCM audio data to the WavStreamPlayer
+   * @param data The audio data to add
+   * @param trackId Optional track ID to associate with this audio
+   */
+  addAudioData(data: Int16Array, trackId?: string): void;
+  
+  /**
+   * Interrupts the currently playing audio
+   * @returns Object containing trackId and offset if audio was interrupted
+   */
+  interruptAudio(): Promise<{ trackId: string; offset: number } | null>;
+  
+  /**
+   * Checks if a track has been interrupted
+   * @param trackId The track ID to check
+   */
+  isTrackInterrupted(trackId: string): boolean;
+  
+  /**
+   * Clears the list of interrupted track IDs
+   */
+  clearInterruptedTracks(): void;
 }
