@@ -6,15 +6,12 @@ import { useLog } from '../../contexts/LogContext';
 import { useAudioContext } from '../../contexts/AudioContext';
 import { RealtimeClient } from '@openai/realtime-api-beta';
 import { ItemType } from '@openai/realtime-api-beta/dist/lib/client.js';
-import { WavRecorder, WavStreamPlayer } from '../../lib/wavtools/index.js';
+import { WavRecorder } from '../../lib/wavtools/index.js';
 import { WavRenderer } from '../../utils/wav_renderer';
 import { ServiceFactory } from '../../services/ServiceFactory'; // Import the ServiceFactory
+import { IAudioService } from '../../services/interfaces/IAudioService';
 
 interface MainPanelProps {}
-
-interface WavStreamPlayerWithInterruptedTrackIds extends WavStreamPlayer {
-  interruptedTrackIds: { [key: string]: boolean };
-}
 
 const MainPanel: React.FC<MainPanelProps> = () => {
   // State for session management
@@ -114,18 +111,13 @@ const MainPanel: React.FC<MainPanelProps> = () => {
    * This function uses the audio service to configure the appropriate virtual output device
    * without environment-specific implementation details
    */
-  const setupVirtualAudioOutput = useCallback(async (player: WavStreamPlayer | null): Promise<boolean> => {
-    if (!player) {
-      console.warn('WavStreamPlayer instance not available for setting up virtual audio output.');
-      return false;
-    }
-
+  const setupVirtualAudioOutput = useCallback(async (): Promise<boolean> => {
     try {
       // Get the audio service from the ServiceFactory
       const audioService = ServiceFactory.getAudioService();
 
       // Use the audio service to set up the virtual audio output
-      const result = await audioService.setupVirtualAudioOutput(player);
+      const result = await audioService.setupVirtualAudioOutput();
 
       return result;
     } catch (e) {
@@ -135,16 +127,44 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   }, []);
 
   /**
+   * Initialize the audio service and set up the virtual audio output
+   */
+  useEffect(() => {
+    // Initialize the audio service when the component mounts
+    const initAudioService = async () => {
+      try {
+        // Get the audio service from the ServiceFactory
+        const audioService = ServiceFactory.getAudioService();
+        
+        // Store the audio service in the ref for later use
+        audioServiceRef.current = audioService;
+        
+        // Initialize the audio service
+        await audioService.initialize();
+        
+        // Set up the virtual audio output
+        await setupVirtualAudioOutput();
+      } catch (error) {
+        console.error('Failed to initialize audio service:', error);
+      }
+    };
+    
+    initAudioService();
+    
+    // Clean up function
+    return () => {
+      // Any cleanup needed for the audio service
+    };
+  }, [setupVirtualAudioOutput]);
+
+  /**
    * Instantiate:
    * - WavRecorder (speech input)
-   * - WavStreamPlayer (speech output)
    * - RealtimeClient (API client)
+   * - Audio service reference
    */
   const wavRecorderRef = useRef<WavRecorder>(
     new WavRecorder({ sampleRate: 24000 })
-  );
-  const wavStreamPlayerRef = useRef<WavStreamPlayerWithInterruptedTrackIds>(
-    new WavStreamPlayer({ sampleRate: 24000 })
   );
 
   const clientRef = useRef<RealtimeClient>(
@@ -153,6 +173,9 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       dangerouslyAllowAPIKeyInBrowser: true,
     })
   );
+  
+  // Reference to audio service for accessing WavStreamPlayer
+  const audioServiceRef = useRef<IAudioService | null>(null);
 
   /**
    * References for rendering audio visualization (canvas)
@@ -165,9 +188,9 @@ const MainPanel: React.FC<MainPanelProps> = () => {
    */
   const setupClientListeners = useCallback(async () => {
     const client = clientRef.current;
-    const wavStreamPlayer = wavStreamPlayerRef.current;
+    const audioService = audioServiceRef.current;
 
-    if (!client) return;
+    if (!client || !audioService) return;
 
     // handle realtime events from client + server for event logging
     client.on('realtime.event', (realtimeEvent: { [key: string]: any }) => {
@@ -176,7 +199,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     });
     client.on('error', (event: any) => console.error(event));
     // client.on('conversation.interrupted', () => {
-    //   const trackSampleOffset = wavStreamPlayer.interrupt();
+    //   const trackSampleOffset = audioService.interruptAudio();
     //   if (trackSampleOffset?.trackId) {
     //     const { trackId, offset } = trackSampleOffset;
     //     client.cancelResponse(trackId, offset);
@@ -185,7 +208,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     client.on('conversation.updated', async ({ item, delta }: any) => {
       const items = client.conversation.getItems();
       if (delta?.audio) {
-        wavStreamPlayer.add16BitPCM(delta.audio, item.id);
+        audioService.addAudioData(delta.audio, item.id);
       }
       if (item.status === 'completed' && item.formatted.audio?.length) {
         const wavFile = await WavRecorder.decode(
@@ -231,17 +254,26 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       console.warn('Error ending recorder:', error);
     }
 
-    const wavStreamPlayer = wavStreamPlayerRef.current;
-    wavStreamPlayer.interrupt();
+    // Interrupt any playing audio using the audio service
+    const audioService = audioServiceRef.current;
+    if (audioService) {
+      await audioService.interruptAudio();
+    }
   }, []);
 
   /**
    * Connect to conversation:
-   * WavRecorder takes speech input, WavStreamPlayer output, client is API client
+   * WavRecorder takes speech input, audio service provides output, client is API client
    */
   const connectConversation = useCallback(async () => {
     try {
       setIsInitializing(true);
+
+      // Initialize the audio service if not already done
+      if (!audioServiceRef.current) {
+        audioServiceRef.current = ServiceFactory.getAudioService();
+        await audioServiceRef.current.initialize();
+      }
 
       // clear current clientRef before create new client
       clientRef.current.reset();
@@ -256,7 +288,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
       const client = clientRef.current;
       const wavRecorder = wavRecorderRef.current;
-      const wavStreamPlayer = wavStreamPlayerRef.current;
+      const audioService = audioServiceRef.current;
 
       // Set canPushToTalk based on current turnDetectionMode
       setCanPushToTalk(settings.turnDetectionMode === 'Disabled');
@@ -272,8 +304,10 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         console.log('Input device is turned off, not connecting to microphone');
       }
 
-      // Connect to audio output
-      await wavStreamPlayer.connect();
+      // // Connect to audio output using the audio service
+      // if (audioService) {
+      //   await audioService.connectWavStreamPlayer();
+      // }
 
       // If output device is ON, ensure monitor device is connected immediately
       if (isMonitorDeviceOn && selectedMonitorDevice &&
@@ -316,7 +350,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     } finally {
       setIsInitializing(false);
     }
-  }, [settings, getUpdateSessionParams, setupClientListeners, selectedInputDevice, isInputDeviceOn, disconnectConversation, setupVirtualAudioOutput, isMonitorDeviceOn, selectedMonitorDevice, selectMonitorDevice]);
+  }, [settings, getUpdateSessionParams, setupClientListeners, selectedInputDevice, isInputDeviceOn, disconnectConversation, isMonitorDeviceOn, selectedMonitorDevice, selectMonitorDevice]);
 
   /**
    * In push-to-talk mode, start recording
@@ -329,21 +363,41 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       return;
     }
 
+    // Don't start if already recording to avoid errors
+    if (isRecording) {
+      console.log('Already recording, not starting again');
+      return;
+    }
+
     setIsRecording(true);
     const client = clientRef.current;
     const wavRecorder = wavRecorderRef.current;
-    const wavStreamPlayer = wavStreamPlayerRef.current;
+    const audioService = audioServiceRef.current;
 
-    // Interrupt any playing audio
-    const trackSampleOffset = await wavStreamPlayer.interrupt();
-    if (trackSampleOffset?.trackId) {
-      const { trackId, offset } = trackSampleOffset;
-      client.cancelResponse(trackId, offset);
+    try {
+      // Interrupt any playing audio using the audio service
+      if (audioService) {
+        const trackSampleOffset = await audioService.interruptAudio();
+        if (trackSampleOffset?.trackId) {
+          const { trackId, offset } = trackSampleOffset;
+          client.cancelResponse(trackId, offset);
+        }
+      }
+
+      // Check if the recorder is in a valid state
+      if (wavRecorder.recording) {
+        // If somehow we're already recording, pause first
+        console.warn('WavRecorder was already recording, pausing first');
+        await wavRecorder.pause();
+      }
+
+      // Start recording
+      await wavRecorder.record((data) => client.appendInputAudio(data.mono));
+    } catch (error) {
+      console.error('Error starting recording:', error);
+      setIsRecording(false);
     }
-
-    // Start recording
-    await wavRecorder.record((data) => client.appendInputAudio(data.mono));
-  }, [isInputDeviceOn]);
+  }, [isInputDeviceOn, isRecording]);
 
   /**
    * In push-to-talk mode, stop recording
@@ -358,13 +412,21 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     const client = clientRef.current;
     const wavRecorder = wavRecorderRef.current;
 
-    // Only try to pause if we're actually recording
-    if (wavRecorder.recording) {
-      // Stop recording
-      await wavRecorder.pause();
+    try {
+      // Only try to pause if we're actually recording
+      if (wavRecorder.recording) {
+        // Stop recording
+        await wavRecorder.pause();
 
-      // Create response
-      client.createResponse();
+        // Create response
+        client.createResponse();
+      }
+    } catch (error) {
+      // If there's an error during pause (e.g., already paused), log it but don't crash
+      console.error('Error stopping recording:', error);
+      
+      // Reset the recording state to ensure UI is consistent
+      setIsRecording(false);
     }
   }, [isRecording]);
 
@@ -373,28 +435,23 @@ const MainPanel: React.FC<MainPanelProps> = () => {
    */
   const playTestTone = useCallback(async () => {
     try {
-      const wavStreamPlayer = wavStreamPlayerRef.current;
+      const audioService = audioServiceRef.current;
+      if (!audioService) {
+        console.error('Audio service not available');
+        return;
+      }
 
       // If test tone is already playing, stop it
       if (isTestTonePlaying) {
-        await wavStreamPlayer.interrupt();
+        await audioService.interruptAudio();
         setIsTestTonePlaying(false);
         console.log('Stopped test tone');
         return;
       }
 
-      // Ensure the player is connected before playing
-      if (!wavStreamPlayer.context || wavStreamPlayer.context.state === 'closed') {
-        await wavStreamPlayer.connect();
-      } else if (wavStreamPlayer.context.state === 'suspended') {
-        await wavStreamPlayer.context.resume();
-      }
-
-      // Make sure we have a valid context after connecting
-      if (!wavStreamPlayer.context) {
-        throw new Error('Failed to initialize audio context');
-      }
-
+      // // Ensure the player is connected before playing
+      // await audioService.connectWavStreamPlayer();
+      
       // Fetch the test tone file
       let testToneUrl = '/assets/test-tone.mp3';
 
@@ -410,8 +467,9 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       const response = await fetch(testToneUrl);
       const arrayBuffer = await response.arrayBuffer();
 
-      // Use the wavStreamPlayer's context for decoding to ensure consistent sample rate
-      const audioBuffer = await wavStreamPlayer.context.decodeAudioData(arrayBuffer);
+      // Create a temporary audio context for decoding
+      const tempContext = new AudioContext();
+      const audioBuffer = await tempContext.decodeAudioData(arrayBuffer);
 
       // Create an offline context for resampling if needed
       let processedBuffer = audioBuffer;
@@ -425,22 +483,16 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       for (let i = 0; i < pcmData.length; i++) {
         // Convert float (-1.0 to 1.0) to int16 (-32768 to 32767)
         // Apply a slight volume reduction to prevent clipping
-        const sample = pcmData[i] * 0.8;
+        const sample = pcmData[i];
         pcm16bit[i] = Math.max(-32768, Math.min(32767, Math.floor(sample * 32767)));
       }
 
-      // Interrupt any currently playing audio
-      await wavStreamPlayer.interrupt();
+      // // Interrupt any currently playing audio and clear interrupted tracks
+      // await audioService.interruptAudio();
+      // audioService.clearInterruptedTracks();
 
-      // Clear the interruptedTrackIds for 'test-tone' to allow replaying
-      // This is necessary because WavStreamPlayer keeps track of interrupted tracks
-      // and won't play them again unless cleared
-      if (wavStreamPlayer.interruptedTrackIds && typeof wavStreamPlayer.interruptedTrackIds === 'object') {
-        delete wavStreamPlayer.interruptedTrackIds['test-tone'];
-      }
-
-      // Play the test tone using wavStreamPlayer
-      wavStreamPlayer.add16BitPCM(pcm16bit, 'test-tone');
+      // Play the test tone using the audio service
+      audioService.addAudioData(pcm16bit, 'test-tone');
 
       // Set the state to indicate test tone is playing
       setIsTestTonePlaying(true);
@@ -461,7 +513,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       console.error('Error playing test tone:', error);
       setIsTestTonePlaying(false);
     }
-  }, [setupVirtualAudioOutput, isMonitorDeviceOn, selectedMonitorDevice, selectMonitorDevice, isTestTonePlaying]);
+  }, [isMonitorDeviceOn, selectedMonitorDevice, selectMonitorDevice, isTestTonePlaying]);
 
   /**
    * Set up render loops for the visualization canvas
@@ -473,7 +525,11 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     const clientCanvas = clientCanvasRef.current;
     let clientCtx: CanvasRenderingContext2D | null = null;
 
-    const wavStreamPlayer = wavStreamPlayerRef.current;
+    // Initialize audio service if not already done
+    if (!audioServiceRef.current) {
+      audioServiceRef.current = ServiceFactory.getAudioService();
+    }
+    const audioService = audioServiceRef.current;
     const serverCanvas = serverCanvasRef.current;
     let serverCtx: CanvasRenderingContext2D | null = null;
 
@@ -501,7 +557,8 @@ const MainPanel: React.FC<MainPanelProps> = () => {
             );
           }
         }
-        if (serverCanvas) {
+        
+        if (serverCanvas && audioService) {
           if (!serverCanvas.width || !serverCanvas.height) {
             serverCanvas.width = serverCanvas.offsetWidth;
             serverCanvas.height = serverCanvas.offsetHeight;
@@ -509,25 +566,57 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           serverCtx = serverCtx || serverCanvas.getContext('2d');
           if (serverCtx) {
             serverCtx.clearRect(0, 0, serverCanvas.width, serverCanvas.height);
-            const result = wavStreamPlayer.analyser
-              ? wavStreamPlayer.getFrequencies('voice')
-              : { values: new Float32Array([0]) };
-            WavRenderer.drawBars(
-              serverCanvas,
-              serverCtx,
-              result.values,
-              '#009900',
-              10,
-              0,
-              8
-            );
+            
+            try {
+              // Get the WavStreamPlayer from the audio service to access its frequencies
+              const wavStreamPlayer = audioService.getWavStreamPlayer();
+              
+              // Check if the WavStreamPlayer is properly connected before calling getFrequencies
+              if (wavStreamPlayer && wavStreamPlayer.context && wavStreamPlayer.context.state === 'running') {
+                const result = wavStreamPlayer.getFrequencies();
+                WavRenderer.drawBars(
+                  serverCanvas,
+                  serverCtx,
+                  result.values,
+                  '#ff9900',
+                  10,
+                  0,
+                  8
+                );
+              } else {
+                // If not connected, just draw an empty visualization
+                WavRenderer.drawBars(
+                  serverCanvas,
+                  serverCtx,
+                  new Float32Array([0]),
+                  '#ff9900',
+                  10,
+                  0,
+                  8
+                );
+              }
+            } catch (error) {
+              // If there's any error, just draw an empty visualization
+              WavRenderer.drawBars(
+                serverCanvas,
+                serverCtx,
+                new Float32Array([0]),
+                '#ff9900',
+                10,
+                0,
+                8
+              );
+              console.warn('Error getting frequencies from WavStreamPlayer:', error);
+            }
           }
         }
-        window.requestAnimationFrame(render);
+        
+        requestAnimationFrame(render);
       }
     };
+    
     render();
-
+    
     return () => {
       isLoaded = false;
     };
@@ -607,9 +696,9 @@ const MainPanel: React.FC<MainPanelProps> = () => {
    * and update the audio monitoring accordingly
    */
   useEffect(() => {
-    // Check if there's an active wavStreamPlayer context
-    const wavStreamPlayer = wavStreamPlayerRef.current;
-    if (!wavStreamPlayer.context || wavStreamPlayer.context.state === 'closed') {
+    // Get the audio service
+    const audioService = audioServiceRef.current;
+    if (!audioService) {
       return;
     }
 
@@ -642,62 +731,71 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   }, [selectedMonitorDevice, isMonitorDeviceOn, isSessionActive, selectMonitorDevice]);
 
   /**
-   * Add keyboard shortcut for push-to-talk functionality
+   * Set up push-to-talk keyboard shortcut
    */
   useEffect(() => {
-    // Only add event listeners if session is active and push-to-talk is enabled
-    if (!isSessionActive || !canPushToTalk) return;
+    // Only enable push-to-talk when session is active and turnDetectionMode is 'Disabled'
+    const isPushToTalkEnabled = isSessionActive && canPushToTalk;
+    
+    // Track if Space key is currently pressed to prevent state inconsistencies
+    const keyState = { spacePressed: false };
 
+    // Handle key down (start recording)
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Use Space key as the shortcut for push-to-talk
-      if (e.code === 'Space' && !e.repeat && !isRecording) {
-        // Prevent default space behavior (scrolling)
-        e.preventDefault();
+      if (!isPushToTalkEnabled || e.repeat || e.code !== 'Space') return;
+      e.preventDefault(); // Prevent page scrolling
+      
+      // Only start recording if Space wasn't already pressed
+      if (!keyState.spacePressed) {
+        keyState.spacePressed = true;
         startRecording();
       }
     };
 
+    // Handle key up (stop recording)
     const handleKeyUp = (e: KeyboardEvent) => {
-      // Release push-to-talk when Space key is released
-      if (e.code === 'Space' && isRecording) {
-        e.preventDefault();
+      if (!isPushToTalkEnabled || e.code !== 'Space') return;
+      e.preventDefault(); // Prevent page scrolling
+      
+      // Only stop recording if Space was previously pressed
+      if (keyState.spacePressed) {
+        keyState.spacePressed = false;
         stopRecording();
       }
     };
-
+    
+    // Handle window blur event to stop recording if the window loses focus
+    // while the Space key is pressed
+    const handleBlur = () => {
+      if (isPushToTalkEnabled && keyState.spacePressed) {
+        keyState.spacePressed = false;
+        stopRecording();
+      }
+    };
+    
     // Add event listeners
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
+    window.addEventListener('blur', handleBlur);
 
-    // Clean up event listeners on unmount or when dependencies change
+    // Clean up event listeners
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
+      window.removeEventListener('blur', handleBlur);
     };
-  }, [isSessionActive, canPushToTalk, isRecording, startRecording, stopRecording]);
+  }, [isSessionActive, canPushToTalk, startRecording, stopRecording]);
 
   /**
-   * Initialize wavStreamPlayer and setup virtual audio output as soon as component mounts
+   * Initialize audio on component mount
    */
   useEffect(() => {
     const initAudio = async () => {
-      const wavStreamPlayer = wavStreamPlayerRef.current;
-      
       try {
-        // Connect wavStreamPlayer early
-        console.log('Initializing wavStreamPlayer and AudioContext early');
-        await wavStreamPlayer.connect();
-        console.log('wavStreamPlayer connected');
-        
-        // Setup virtual audio output immediately after connecting
-        if (wavStreamPlayer.context) {
-          console.log('Setting up virtual audio output early, maybe failed because of autoplay policy');
-          await setupVirtualAudioOutput(wavStreamPlayer);
-        } else {
-          console.warn('Could not set up virtual audio output: wavStreamPlayer.context is null');
-        }
+        // Set up the virtual audio output
+        await setupVirtualAudioOutput();
       } catch (error) {
-        console.error('Failed to initialize audio early:', error);
+        console.error('Failed to initialize audio:', error);
       }
     };
     

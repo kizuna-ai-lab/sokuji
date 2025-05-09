@@ -7,11 +7,84 @@ import { WavStreamPlayer } from '../../lib/wavtools';
  * for system-level operations like virtual device creation
  */
 export class ElectronAudioService implements IAudioService {
+  private wavStreamPlayer: WavStreamPlayer = new WavStreamPlayer(); // WavStreamPlayer instance for audio output
+  private interruptedTrackIds: { [key: string]: boolean } = {}; // Track IDs that have been interrupted
+
   /**
    * Initialize the audio service
    */
   async initialize(): Promise<void> {
-    // Nothing special needed for initialization in Electron
+    // WavStreamPlayer is already instantiated in the class definition
+    // Any additional initialization can be done here if needed
+  }
+
+
+
+  /**
+   * Gets the current WavStreamPlayer instance
+   */
+  public getWavStreamPlayer(): WavStreamPlayer {
+    return this.wavStreamPlayer;
+  }
+
+  /**
+   * Connects the WavStreamPlayer to the audio context
+   */
+  public async connectWavStreamPlayer(): Promise<boolean> {
+    try {
+      await this.wavStreamPlayer.connect();
+      return true;
+    } catch (error) {
+      console.error('Failed to connect WavStreamPlayer:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Adds 16-bit PCM audio data to the WavStreamPlayer
+   * @param data The audio data to add
+   * @param trackId Optional track ID to associate with this audio
+   */
+  public addAudioData(data: Int16Array, trackId?: string): void {
+    this.wavStreamPlayer.add16BitPCM(data, trackId);
+  }
+
+  /**
+   * Interrupts the currently playing audio
+   * @returns Object containing trackId and offset if audio was interrupted
+   */
+  public async interruptAudio(): Promise<{ trackId: string; offset: number } | null> {
+    const rawResult = await this.wavStreamPlayer.interrupt();
+    
+    // If no result or trackId is null, return null
+    if (!rawResult || rawResult.trackId === null) {
+      return null;
+    }
+    
+    // Track interrupted track IDs
+    this.interruptedTrackIds[rawResult.trackId] = true;
+    
+    // Return only the properties we need in the correct format
+    return {
+      trackId: rawResult.trackId,
+      offset: rawResult.offset
+    };
+  }
+
+  /**
+   * Checks if a track has been interrupted
+   * @param trackId The track ID to check
+   * @returns True if the track has been interrupted, false otherwise
+   */
+  public isTrackInterrupted(trackId: string): boolean {
+    return !!this.interruptedTrackIds[trackId];
+  }
+
+  /**
+   * Clears the list of interrupted track IDs
+   */
+  public clearInterruptedTracks(): void {
+    this.interruptedTrackIds = {};
   }
 
   /**
@@ -135,16 +208,32 @@ export class ElectronAudioService implements IAudioService {
   }
   
   /**
-   * Setup virtual audio output using the provided WavStreamPlayer's AudioContext.
+   * Setup virtual audio output using the WavStreamPlayer's AudioContext.
    * In Electron, this involves communicating with the main process to manage virtual audio devices.
-   * @param wavStreamPlayer The WavStreamPlayer instance whose audio context will be used.
+   * @param externalWavStreamPlayer Optional external WavStreamPlayer instance to use instead of the internal one
    * @returns Promise resolving to true if virtual output was successfully set up, false otherwise.
    */
-  async setupVirtualAudioOutput(wavStreamPlayer: WavStreamPlayer): Promise<boolean> {
-    if (!wavStreamPlayer || !wavStreamPlayer.context) {
-      console.warn('Cannot setup virtual audio output: WavStreamPlayer or its context is not available.');
-      return false;
+  async setupVirtualAudioOutput(externalWavStreamPlayer?: WavStreamPlayer): Promise<boolean> {
+    // Use provided external WavStreamPlayer or fall back to internal one
+    const wavStreamPlayer = externalWavStreamPlayer || this.wavStreamPlayer;
+    
+    // Make sure the WavStreamPlayer is connected and has a valid context
+    if (!wavStreamPlayer.context) {
+      try {
+        // Connect the WavStreamPlayer if it's not already connected
+        await wavStreamPlayer.connect();
+      } catch (error) {
+        console.error('Failed to connect WavStreamPlayer:', error);
+        return false;
+      }
+      
+      // Check again after connecting
+      if (!wavStreamPlayer.context) {
+        console.warn('Cannot setup virtual audio output: WavStreamPlayer context is not available after connecting.');
+        return false;
+      }
     }
+    
     const audioContext = wavStreamPlayer.context;
     
     try {
