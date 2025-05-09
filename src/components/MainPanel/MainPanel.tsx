@@ -288,7 +288,6 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
       const client = clientRef.current;
       const wavRecorder = wavRecorderRef.current;
-      const audioService = audioServiceRef.current;
 
       // Set canPushToTalk based on current turnDetectionMode
       setCanPushToTalk(settings.turnDetectionMode === 'Disabled');
@@ -447,9 +446,6 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         console.log('Stopped test tone');
         return;
       }
-
-      // // Ensure the player is connected before playing
-      // await audioService.connectWavStreamPlayer();
       
       // Fetch the test tone file
       let testToneUrl = '/assets/test-tone.mp3';
@@ -522,10 +518,6 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         const sample = monoData[i] * 0.9; // Reduce volume by 10% to prevent clipping
         pcm16bit[i] = Math.max(-32768, Math.min(32767, Math.floor(sample * 32767)));
       }
-
-      // // Interrupt any currently playing audio and clear interrupted tracks
-      // await audioService.interruptAudio();
-      // audioService.clearInterruptedTracks();
 
       // Play the test tone using the audio service
       audioService.addAudioData(pcm16bit, 'test-tone');
