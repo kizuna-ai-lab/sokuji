@@ -370,17 +370,10 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     setIsRecording(true);
     const client = clientRef.current;
     const wavRecorder = wavRecorderRef.current;
-    const audioService = audioServiceRef.current;
 
     try {
-      // Interrupt any playing audio using the audio service
-      if (audioService) {
-        const trackSampleOffset = await audioService.interruptAudio();
-        if (trackSampleOffset?.trackId) {
-          const { trackId, offset } = trackSampleOffset;
-          client.cancelResponse(trackId, offset);
-        }
-      }
+      // Note: We no longer interrupt playing audio when recording starts
+      // This allows for simultaneous recording and playback
 
       // Check if the recorder is in a valid state
       if (wavRecorder.recording) {
