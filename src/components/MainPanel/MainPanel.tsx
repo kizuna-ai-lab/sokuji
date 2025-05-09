@@ -446,7 +446,28 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         console.log('Stopped test tone');
         return;
       }
+
+      // Clear the interrupted status for the test-tone track
+      // This is necessary because WavStreamPlayer keeps track of interrupted tracks
+      // and won't play them again unless cleared
+      audioService.clearInterruptedTracks();
       
+      // Add debug logging to check WavStreamPlayer's interruptedTrackIds
+      const wavStreamPlayer = audioService.getWavStreamPlayer();
+      console.log('WavStreamPlayer before playing test tone:', wavStreamPlayer);
+      
+      // Access and log the interruptedTrackIds with proper type checking
+      const interruptedTrackIds = (wavStreamPlayer as any).interruptedTrackIds || {};
+      console.log('WavStreamPlayer interruptedTrackIds:', interruptedTrackIds);
+      
+      // Manually clear the WavStreamPlayer's interruptedTrackIds for the test-tone
+      if (typeof interruptedTrackIds === 'object' && interruptedTrackIds['test-tone']) {
+        console.log('Manually clearing test-tone from WavStreamPlayer.interruptedTrackIds');
+        delete interruptedTrackIds['test-tone'];
+      }
+      
+      console.log('Cleared interrupted tracks before playing test tone');
+
       // Fetch the test tone file
       let testToneUrl = '/assets/test-tone.mp3';
 
@@ -466,9 +487,9 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       const targetSampleRate = 24000; // Match the sample rate used in WavStreamPlayer
       const tempContext = new AudioContext({ sampleRate: targetSampleRate });
       const audioBuffer = await tempContext.decodeAudioData(arrayBuffer);
-      
+
       console.log(`Test tone audio info - Sample rate: ${audioBuffer.sampleRate}Hz, Duration: ${audioBuffer.duration}s, Channels: ${audioBuffer.numberOfChannels}`);
-      
+
       // Check if we need to resample
       let processedBuffer = audioBuffer;
       if (audioBuffer.sampleRate !== targetSampleRate) {
@@ -479,16 +500,16 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           audioBuffer.duration * targetSampleRate,
           targetSampleRate
         );
-        
+
         const bufferSource = offlineContext.createBufferSource();
         bufferSource.buffer = audioBuffer;
         bufferSource.connect(offlineContext.destination);
         bufferSource.start(0);
-        
+
         // Render the resampled buffer
         processedBuffer = await offlineContext.startRendering();
       }
-      
+
       // Mix down to mono if stereo by averaging channels
       let monoData;
       if (processedBuffer.numberOfChannels > 1) {
@@ -499,7 +520,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         const rightChannel = new Float32Array(processedBuffer.length);
         processedBuffer.copyFromChannel(leftChannel, 0);
         processedBuffer.copyFromChannel(rightChannel, 1);
-        
+
         // Average the channels
         for (let i = 0; i < processedBuffer.length; i++) {
           monoData[i] = (leftChannel[i] + rightChannel[i]) / 2;
@@ -509,7 +530,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         monoData = new Float32Array(processedBuffer.length);
         processedBuffer.copyFromChannel(monoData, 0);
       }
-      
+
       // Convert to 16-bit PCM (format expected by wavStreamPlayer)
       const pcm16bit = new Int16Array(monoData.length);
       for (let i = 0; i < monoData.length; i++) {
@@ -518,6 +539,17 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         const sample = monoData[i] * 0.9; // Reduce volume by 10% to prevent clipping
         pcm16bit[i] = Math.max(-32768, Math.min(32767, Math.floor(sample * 32767)));
       }
+      //
+      // //
+      // // // Clear the interruptedTrackIds for 'test-tone' to allow replaying
+      // // // This is necessary because WavStreamPlayer keeps track of interrupted tracks
+      // // // and won't play them again unless cleared
+      // // if (wavStreamPlayer.interruptedTrackIds && typeof wavStreamPlayer.interruptedTrackIds === 'object') {
+      // //   delete wavStreamPlayer.interruptedTrackIds['test-tone'];
+      // // }
+      //
+      // await audioService.connectWavStreamPlayer();
+      // // audioService.clearInterruptedTracks();
 
       // Play the test tone using the audio service
       audioService.addAudioData(pcm16bit, 'test-tone');

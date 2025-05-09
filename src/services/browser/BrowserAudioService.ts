@@ -410,5 +410,18 @@ export class BrowserAudioService implements IAudioService {
    */
   public clearInterruptedTracks(): void {
     this.interruptedTrackIds = {};
+    
+    // Also clear the interrupted tracks in the WavStreamPlayer
+    try {
+      // Using any type to bypass TypeScript's type checking for accessing a private property
+      const player = this.wavStreamPlayer as any;
+      if (player && typeof player.interruptedTrackIds === 'object') {
+        console.log('WavStreamPlayer previous interruptedTrackIds:', player.interruptedTrackIds);
+        player.interruptedTrackIds = {};
+        console.log('Cleared WavStreamPlayer interruptedTrackIds');
+      }
+    } catch (error) {
+      console.error('Error clearing WavStreamPlayer interruptedTrackIds:', error);
+    }
   }
 }
