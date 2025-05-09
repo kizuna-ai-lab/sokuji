@@ -56,6 +56,14 @@ function injectVirtualMicrophoneScript() {
 // Run script injection immediately (before DOMContentLoaded)
 injectVirtualMicrophoneScript();
 
+// Listen for audio chunks from side panel and forward to page script
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.type === 'AUDIO_CHUNK') {
+    // Forward PCM data to page context
+    window.postMessage({ type: 'AUDIO_CHUNK', data: message.data }, '*');
+  }
+});
+
 // Content script loaded
 window.addEventListener('load', () => {
   console.log('[Sokuji] Content script loaded');

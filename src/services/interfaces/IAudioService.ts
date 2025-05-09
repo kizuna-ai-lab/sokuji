@@ -1,4 +1,5 @@
 import { AudioDevice } from '../../contexts/AudioContext';
+import { WavStreamPlayer } from '../../lib/wavtools/index.js';
 
 export interface AudioDevices {
   inputs: AudioDevice[];
@@ -48,9 +49,9 @@ export interface IAudioService {
   initialize(): Promise<void>;
   
   /**
-   * Setup virtual audio output with the provided AudioContext
-   * @param audioContext The AudioContext to configure for virtual output
+   * Setup virtual audio output with the provided WavStreamPlayer
+   * @param wavStreamPlayer The WavStreamPlayer to configure for virtual output
    * @returns Promise resolving to true if virtual output was successfully set up, false otherwise
    */
-  setupVirtualAudioOutput(audioContext: AudioContext | null): Promise<boolean>;
+  setupVirtualAudioOutput(wavStreamPlayer: WavStreamPlayer): Promise<boolean>;
 }
