@@ -363,9 +363,8 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       return;
     }
 
-    // Don't start if already recording to avoid errors
+    // If already recording, don't do anything (this is important for push-to-talk)
     if (isRecording) {
-      console.log('Already recording, not starting again');
       return;
     }
 
@@ -773,39 +772,25 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   useEffect(() => {
     // Only enable push-to-talk when session is active and turnDetectionMode is 'Disabled'
     const isPushToTalkEnabled = isSessionActive && canPushToTalk;
-    
-    // Track if Space key is currently pressed to prevent state inconsistencies
-    const keyState = { spacePressed: false };
 
     // Handle key down (start recording)
     const handleKeyDown = (e: KeyboardEvent) => {
       if (!isPushToTalkEnabled || e.repeat || e.code !== 'Space') return;
       e.preventDefault(); // Prevent page scrolling
-      
-      // Only start recording if Space wasn't already pressed
-      if (!keyState.spacePressed) {
-        keyState.spacePressed = true;
-        startRecording();
-      }
+      startRecording();
     };
 
     // Handle key up (stop recording)
     const handleKeyUp = (e: KeyboardEvent) => {
       if (!isPushToTalkEnabled || e.code !== 'Space') return;
       e.preventDefault(); // Prevent page scrolling
-      
-      // Only stop recording if Space was previously pressed
-      if (keyState.spacePressed) {
-        keyState.spacePressed = false;
-        stopRecording();
-      }
+      stopRecording();
     };
     
     // Handle window blur event to stop recording if the window loses focus
-    // while the Space key is pressed
+    // while recording is active
     const handleBlur = () => {
-      if (isPushToTalkEnabled && keyState.spacePressed) {
-        keyState.spacePressed = false;
+      if (isPushToTalkEnabled && isRecording) {
         stopRecording();
       }
     };
@@ -821,7 +806,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       window.removeEventListener('keyup', handleKeyUp);
       window.removeEventListener('blur', handleBlur);
     };
-  }, [isSessionActive, canPushToTalk, startRecording, stopRecording]);
+  }, [isSessionActive, canPushToTalk, startRecording, stopRecording, isRecording]);
 
   /**
    * Initialize audio on component mount
