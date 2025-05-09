@@ -1,5 +1,5 @@
 import { IAudioService, AudioDevices, AudioOperationResult } from '../interfaces/IAudioService';
-import { WavStreamPlayer } from '../../lib/wavtools/index.js';
+import { WavStreamPlayer } from '../../lib/wavtools';
 
 /**
  * Electron implementation of the Audio Service

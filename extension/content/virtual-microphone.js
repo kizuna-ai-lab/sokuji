@@ -78,23 +78,8 @@ function initAudioContext() {
         if (audioChunk && audioChunk.channelData && audioChunk.channelData[0]) {
           const inputData = audioChunk.channelData[0];
           const length = Math.min(outputData.length, inputData.length);
-          
-          // 检查此数据块是否全为零
-          const hasNonZeroValues = inputData.some(v => v !== 0);
-          
-          // 如果数据全为零，生成一个测试音频信号
-          if (!hasNonZeroValues && Math.random() < 0.1) { // 10%的概率添加测试音频
-            console.log('[Debug] Detected all-zero audio data, adding test tone');
-            // 添加1秒钟440Hz的测试音调，音量很小
-            for (let i = 0; i < length; i++) {
-              // 生成低音量正弦波，音量0.01（1%）
-              outputData[i] = Math.sin(2 * Math.PI * 440 * i / outputBuffer.sampleRate) * 0.01;
-            }
-          } else {
-            // 正常复制输入数据到输出
-            for (let i = 0; i < length; i++) {
-              outputData[i] = inputData[i];
-            }
+          for (let i = 0; i < length; i++) {
+            outputData[i] = inputData[i];
           }
           
           lastActivityTimestamp = Date.now();
@@ -211,6 +196,7 @@ function setupAudioAPI() {
       console.error('[Sokuji] Cannot inject audio: invalid data or audio context not ready');
       return false;
     }
+    console.log('[Sokuji] Injecting audio data:', audioData);
     
     try {
       // Ensure audio context is running
@@ -226,20 +212,6 @@ function setupAudioAPI() {
           !audioData.channelData[0].length) {
         console.error('[Sokuji] Invalid audio data format:', audioData);
         return false;
-      }
-      const hasNonZeroValues = audioData?.channelData?.[0]?.some(v => v !== 0) || false;
-      console.log('[Debug] Audio data received:', {
-        hasData: !!audioData,
-        numberOfChannels: audioData?.numberOfChannels,
-        sampleRate: audioData?.sampleRate,
-        dataLength: audioData?.channelData?.[0]?.length,
-        hasNonZeroValues: hasNonZeroValues,
-        audioContextSampleRate: audioContext.sampleRate
-      });
-      
-      // 如果数据全为零，记录警告
-      if (!hasNonZeroValues) {
-        console.warn('[Sokuji] Warning: Received audio data contains only zeros (silence)');
       }
       
       // Add audio data to queue, limiting queue size to prevent memory issues

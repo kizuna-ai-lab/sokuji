@@ -413,26 +413,8 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       // Use the wavStreamPlayer's context for decoding to ensure consistent sample rate
       const audioBuffer = await wavStreamPlayer.context.decodeAudioData(arrayBuffer);
 
-      // Get the sample rate from the player
-      const targetSampleRate = wavStreamPlayer.sampleRate;
-
       // Create an offline context for resampling if needed
       let processedBuffer = audioBuffer;
-      if (audioBuffer.sampleRate !== targetSampleRate) {
-        const offlineCtx = new OfflineAudioContext(
-          audioBuffer.numberOfChannels,
-          audioBuffer.duration * targetSampleRate,
-          targetSampleRate
-        );
-
-        const bufferSource = offlineCtx.createBufferSource();
-        bufferSource.buffer = audioBuffer;
-        bufferSource.connect(offlineCtx.destination);
-        bufferSource.start();
-
-        // Render the audio at the target sample rate
-        processedBuffer = await offlineCtx.startRendering();
-      }
 
       // Extract PCM data from the first channel
       const pcmData = new Float32Array(processedBuffer.length);
