@@ -1,4 +1,5 @@
 import { IAudioService, AudioDevices, AudioOperationResult } from '../interfaces/IAudioService';
+import { WavStreamPlayer } from '../../lib/wavtools/index.js';
 
 /**
  * Electron implementation of the Audio Service
@@ -134,16 +135,17 @@ export class ElectronAudioService implements IAudioService {
   }
   
   /**
-   * Setup virtual audio output with the provided AudioContext
-   * In Electron, this finds and configures the sokuji_virtual_speaker device
-   * @param audioContext The AudioContext to configure for virtual output
-   * @returns Promise resolving to true if virtual output was successfully set up, false otherwise
+   * Setup virtual audio output using the provided WavStreamPlayer's AudioContext.
+   * In Electron, this involves communicating with the main process to manage virtual audio devices.
+   * @param wavStreamPlayer The WavStreamPlayer instance whose audio context will be used.
+   * @returns Promise resolving to true if virtual output was successfully set up, false otherwise.
    */
-  async setupVirtualAudioOutput(audioContext: AudioContext | null): Promise<boolean> {
-    if (!audioContext) {
-      console.error('Cannot setup virtual audio output: AudioContext is null');
+  async setupVirtualAudioOutput(wavStreamPlayer: WavStreamPlayer): Promise<boolean> {
+    if (!wavStreamPlayer || !wavStreamPlayer.context) {
+      console.warn('Cannot setup virtual audio output: WavStreamPlayer or its context is not available.');
       return false;
     }
+    const audioContext = wavStreamPlayer.context;
     
     try {
       // Get all audio output devices
@@ -172,7 +174,6 @@ export class ElectronAudioService implements IAudioService {
             return false;          }
         }
       }
-      
       console.log('Virtual output device not found. Using default output device.');
       return false;
     } catch (e) {

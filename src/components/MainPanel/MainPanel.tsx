@@ -114,9 +114,9 @@ const MainPanel: React.FC<MainPanelProps> = () => {
    * This function uses the audio service to configure the appropriate virtual output device
    * without environment-specific implementation details
    */
-  const setupVirtualAudioOutput = useCallback(async (audioContext: AudioContext | null): Promise<boolean> => {
-    if (!audioContext) {
-      console.error('Cannot setup virtual audio output: AudioContext is null');
+  const setupVirtualAudioOutput = useCallback(async (player: WavStreamPlayer | null): Promise<boolean> => {
+    if (!player) {
+      console.warn('WavStreamPlayer instance not available for setting up virtual audio output.');
       return false;
     }
 
@@ -125,7 +125,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       const audioService = ServiceFactory.getAudioService();
 
       // Use the audio service to set up the virtual audio output
-      const result = await audioService.setupVirtualAudioOutput(audioContext);
+      const result = await audioService.setupVirtualAudioOutput(player);
 
       return result;
     } catch (e) {
@@ -710,7 +710,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         // Setup virtual audio output immediately after connecting
         if (wavStreamPlayer.context) {
           console.log('Setting up virtual audio output early, maybe failed because of autoplay policy');
-          await setupVirtualAudioOutput(wavStreamPlayer.context);
+          await setupVirtualAudioOutput(wavStreamPlayer);
         } else {
           console.warn('Could not set up virtual audio output: wavStreamPlayer.context is null');
         }
