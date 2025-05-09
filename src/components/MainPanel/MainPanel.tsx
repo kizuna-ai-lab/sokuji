@@ -467,23 +467,60 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       const response = await fetch(testToneUrl);
       const arrayBuffer = await response.arrayBuffer();
 
-      // Create a temporary audio context for decoding
-      const tempContext = new AudioContext();
+      // Create a temporary audio context for decoding with the same sample rate as WavStreamPlayer
+      const targetSampleRate = 24000; // Match the sample rate used in WavStreamPlayer
+      const tempContext = new AudioContext({ sampleRate: targetSampleRate });
       const audioBuffer = await tempContext.decodeAudioData(arrayBuffer);
-
-      // Create an offline context for resampling if needed
+      
+      console.log(`Test tone audio info - Sample rate: ${audioBuffer.sampleRate}Hz, Duration: ${audioBuffer.duration}s, Channels: ${audioBuffer.numberOfChannels}`);
+      
+      // Check if we need to resample
       let processedBuffer = audioBuffer;
-
-      // Extract PCM data from the first channel
-      const pcmData = new Float32Array(processedBuffer.length);
-      processedBuffer.copyFromChannel(pcmData, 0, 0);
-
+      if (audioBuffer.sampleRate !== targetSampleRate) {
+        console.log(`Resampling from ${audioBuffer.sampleRate}Hz to ${targetSampleRate}Hz`);
+        // Create an offline context for resampling
+        const offlineContext = new OfflineAudioContext(
+          audioBuffer.numberOfChannels,
+          audioBuffer.duration * targetSampleRate,
+          targetSampleRate
+        );
+        
+        const bufferSource = offlineContext.createBufferSource();
+        bufferSource.buffer = audioBuffer;
+        bufferSource.connect(offlineContext.destination);
+        bufferSource.start(0);
+        
+        // Render the resampled buffer
+        processedBuffer = await offlineContext.startRendering();
+      }
+      
+      // Mix down to mono if stereo by averaging channels
+      let monoData;
+      if (processedBuffer.numberOfChannels > 1) {
+        console.log('Converting stereo to mono');
+        monoData = new Float32Array(processedBuffer.length);
+        // Get the data from both channels
+        const leftChannel = new Float32Array(processedBuffer.length);
+        const rightChannel = new Float32Array(processedBuffer.length);
+        processedBuffer.copyFromChannel(leftChannel, 0);
+        processedBuffer.copyFromChannel(rightChannel, 1);
+        
+        // Average the channels
+        for (let i = 0; i < processedBuffer.length; i++) {
+          monoData[i] = (leftChannel[i] + rightChannel[i]) / 2;
+        }
+      } else {
+        // Already mono
+        monoData = new Float32Array(processedBuffer.length);
+        processedBuffer.copyFromChannel(monoData, 0);
+      }
+      
       // Convert to 16-bit PCM (format expected by wavStreamPlayer)
-      const pcm16bit = new Int16Array(pcmData.length);
-      for (let i = 0; i < pcmData.length; i++) {
+      const pcm16bit = new Int16Array(monoData.length);
+      for (let i = 0; i < monoData.length; i++) {
         // Convert float (-1.0 to 1.0) to int16 (-32768 to 32767)
         // Apply a slight volume reduction to prevent clipping
-        const sample = pcmData[i];
+        const sample = monoData[i] * 0.9; // Reduce volume by 10% to prevent clipping
         pcm16bit[i] = Math.max(-32768, Math.min(32767, Math.floor(sample * 32767)));
       }
 

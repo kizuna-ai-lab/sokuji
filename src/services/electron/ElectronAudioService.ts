@@ -7,7 +7,7 @@ import { WavStreamPlayer } from '../../lib/wavtools';
  * for system-level operations like virtual device creation
  */
 export class ElectronAudioService implements IAudioService {
-  private wavStreamPlayer: WavStreamPlayer = new WavStreamPlayer(); // WavStreamPlayer instance for audio output
+  private wavStreamPlayer: WavStreamPlayer = new WavStreamPlayer({ sampleRate: 24000 }); // WavStreamPlayer instance for audio output
   private interruptedTrackIds: { [key: string]: boolean } = {}; // Track IDs that have been interrupted
 
   /**
