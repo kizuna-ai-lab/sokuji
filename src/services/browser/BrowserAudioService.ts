@@ -12,12 +12,9 @@ declare const chrome: any;
  * in browser extensions where we don't have access to system audio devices
  */
 export class BrowserAudioService implements IAudioService {
-  private audioContext: AudioContext | null = null;
   private externalAudioContext: AudioContext | null = null; // To store the context from WavStreamPlayer
   private pcmCaptureIntervalId: number | null = null; // For PCM capture interval
   private isPcmCapturing: boolean = false; // Flag to indicate PCM capture status
-  private virtualOutputDevice: MediaDeviceInfo | null = null; // Holds the conceptual virtual device info
-  private isVirtualOutputSetup: boolean = false;
 
   /**
    * Initialize the Web Audio API components
@@ -241,8 +238,6 @@ export class BrowserAudioService implements IAudioService {
         console.warn('WavStreamPlayer.analyser is not available. Cannot start PCM capture.');
       }
 
-      this.setVirtualOutputSetupStatus(true);
-
       return true;
     } catch (e) {
       console.error('Failed to set up virtual audio output:', e);
@@ -289,7 +284,7 @@ export class BrowserAudioService implements IAudioService {
 
       // Send PCM data to the active tab's content script
       if (chrome && chrome.tabs && chrome.tabs.query) {
-        chrome.tabs.query({ active: true, currentWindow: true }, (tabs: chrome.tabs.Tab[]) => {
+        chrome.tabs.query({ active: true, currentWindow: true }, (tabs: any[]) => {
           if (chrome.runtime.lastError) {
             // Handle error, e.g., if no active tab or other issue
             // console.warn('Error querying tabs:', chrome.runtime.lastError.message);
@@ -327,35 +322,5 @@ export class BrowserAudioService implements IAudioService {
     }
     this.isPcmCapturing = false;
     console.log('PCM data capture stopped.');
-  }
-
-  /**
-   * Gets the current virtual audio output device information.
-   * For browser extensions, this might be a conceptual device as true virtual devices are not supported.
-   */
-  getVirtualAudioOutputDevice(): MediaDeviceInfo | null {
-    // In a browser extension, a true virtual device isn't created at the OS level.
-    // This might return a conceptual device representation if one is created/managed internally.
-    // For example, if setupVirtualAudioOutput successfully configures a virtual sink concept:
-    if (this.isVirtualOutputSetup && this.externalAudioContext) { 
-        this.virtualOutputDevice = {
-            deviceId: 'sokuji-browser-virtual-output',
-            kind: 'audioinput', // Seen as an input by other apps/tabs
-            label: `Sokuji Virtual Output (Browser - ${this.externalAudioContext.sampleRate} Hz)`,
-            groupId: 'sokuji-virtual-devices',
-            toJSON: function() { return {...this}; } // Ensure it can be serialized if needed
-        };
-        return this.virtualOutputDevice;
-    }
-    return null; 
-  }
-
-  private setVirtualOutputSetupStatus(status: boolean): void {
-    this.isVirtualOutputSetup = status;
-  }
-
-  // Placeholder for saving transcription, to be implemented
-  async saveTranscription(format: 'txt' | 'srt', content: string): Promise<void> {
-    // Implement logic to save transcription
   }
 }
