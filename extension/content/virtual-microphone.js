@@ -44,10 +44,10 @@ async function initWavStreamPlayer() {
     // Create our own AudioContext instead of using connect() which tries to load the worklet
     streamPlayer.context = new AudioContext({ sampleRate: SAMPLE_RATE });
     
-    // Resume the context if needed
-    if (streamPlayer.context.state === 'suspended') {
-      await streamPlayer.context.resume();
-    }
+    // // Resume the context if needed
+    // if (streamPlayer.context.state === 'suspended') {
+    //   await streamPlayer.context.resume();
+    // }
     
     // Create a blob URL for our embedded AudioWorklet code
     const blob = new Blob([StreamProcessorWorkletCode], { type: 'application/javascript' });
@@ -88,6 +88,8 @@ async function initWavStreamPlayer() {
     // Connect the audio processing chain
     workletNode.connect(gainNode);
     gainNode.connect(destinationNode);
+    console.log('[Sokuji] Worklet node connected to destination node')
+    streamPlayer.workletNode = workletNode;
     
     // Store the new MediaStream for getUserMedia to return
     virtualMediaStream = destinationNode.stream;
@@ -293,6 +295,7 @@ navigator.mediaDevices.enumerateDevices = async function() {
 
 // Override getUserMedia to handle requests for our virtual device
 navigator.mediaDevices.getUserMedia = async function(constraints) {
+  console.log('[Sokuji] getUserMedia called with constraints:', constraints);
   try {
     // If no audio is requested, pass through to the original method
     if (!constraints.audio) {
