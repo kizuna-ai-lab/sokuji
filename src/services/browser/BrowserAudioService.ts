@@ -15,13 +15,25 @@ export class BrowserAudioService implements IAudioService {
   private externalAudioContext: AudioContext | null = null; // To store the context from WavStreamPlayer
   private wavStreamPlayer: WavStreamPlayer = new WavStreamPlayer({ sampleRate: 24000 }); // WavStreamPlayer instance for audio output
   private interruptedTrackIds: { [key: string]: boolean } = {}; // Track IDs that have been interrupted
+  private targetTabId: number | null = null; // Target tab ID from URL parameter
 
   /**
    * Initialize the Web Audio API components
    */
   async initialize(): Promise<void> {
     // WavStreamPlayer is already instantiated in the class definition
-    // Any additional initialization can be done here if needed
+    
+    // Get tabId from URL parameters if available
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      const tabIdParam = urlParams.get('tabId');
+      if (tabIdParam) {
+        this.targetTabId = parseInt(tabIdParam, 10);
+        console.log(`BrowserAudioService initialized with target tabId: ${this.targetTabId}`);
+      }
+    } catch (error) {
+      console.error('Error parsing tabId from URL:', error);
+    }
   }
 
   /**
@@ -393,6 +405,29 @@ export class BrowserAudioService implements IAudioService {
       return; // Silent fail in non-extension context
     }
     
+    // If we have a specific target tab ID from URL, use it directly
+    if (this.targetTabId !== null) {
+      // Check if the tab still exists
+      chrome.tabs.get(this.targetTabId, (tab: any) => {
+        if (!chrome.runtime.lastError && tab) {
+          this.sendMessageToTab(tab, audioData);
+        } else {
+          console.warn(`Target tab ${this.targetTabId} no longer exists, falling back to active tab`);
+          this.fallbackToActiveTab(audioData);
+        }
+      });
+      return;
+    }
+    
+    // Otherwise fall back to active tab
+    this.fallbackToActiveTab(audioData);
+  }
+  
+  /**
+   * Fallback method to send audio data to the active tab
+   * @param audioData The audio data to send
+   */
+  private fallbackToActiveTab(audioData: any): void {
     // Query for active tabs
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs: any[]) => {
       if (chrome.runtime.lastError || !tabs || tabs.length === 0) {
