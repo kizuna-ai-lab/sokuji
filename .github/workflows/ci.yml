@@ -39,3 +39,14 @@ jobs:
           CI: false
           # Set to false to prevent actual publishing during CI
           CSC_IDENTITY_AUTO_DISCOVERY: false
+          
+      - name: Build Chrome Extension
+        run: |
+          cd extension
+          npm ci
+          npm run build
+          # Verify the build output exists
+          if [ ! -d "dist" ]; then
+            echo "Extension build failed: dist directory not found"
+            exit 1
+          fi
