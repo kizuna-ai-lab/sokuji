@@ -1,39 +1,4 @@
-/**
- * Audio processor module for handling audio recording and processing
- * This file provides the AudioProcessor worklet functionality and URL management
- */
-
-/**
- * Determines if the code is running in a Chrome extension environment
- * @returns {boolean} True if running in a Chrome extension
- */
-function isExtensionEnvironment() {
-  return typeof window !== 'undefined' && 
-         typeof window.chrome !== 'undefined' && 
-         typeof window.chrome.runtime !== 'undefined' && 
-         typeof window.chrome.runtime.getURL === 'function';
-}
-
-/**
- * Creates a source URL for the AudioWorklet
- * @returns {string} URL to the AudioWorklet code
- */
-export function getAudioProcessorSrc() {
-  if (isExtensionEnvironment()) {
-    // In extension environment, use the file from web_accessible_resources
-    return window.chrome.runtime.getURL('worklets/audio_processor_worklet.js');
-  } else {
-    // In Electron or other environments, use a direct path
-    return new URL('./audio_processor_worklet.js', import.meta.url).href;
-  }
-}
-
-// Export the source URL
-export const AudioProcessorSrc = getAudioProcessorSrc();
-
-// AudioWorklet processor code - this is the actual implementation that will be used
-// when the worklet is loaded. This should be identical to the code in extension/worklets/audio_processor_worklet.js
-export const AudioProcessorWorkletCode = `
+// AudioWorklet processor for recording and processing audio data
 class AudioProcessor extends AudioWorkletProcessor {
 
   constructor() {
@@ -57,7 +22,7 @@ class AudioProcessor extends AudioWorkletProcessor {
     if (channel !== -1) {
       if (chunks[0] && chunks[0].length - 1 < channel) {
         throw new Error(
-          \`Channel \${channel} out of range: max \${chunks[0].length}\`
+          `Channel ${channel} out of range: max ${chunks[0].length}`
         );
       }
       channelLimit = channel + 1;
@@ -229,7 +194,7 @@ class AudioProcessor extends AudioWorkletProcessor {
       }
     }
     if (inputs && inputs[0] && this.foundAudio && this.recording) {
-      // We need to copy the TypedArray, because the \`process\`
+      // We need to copy the TypedArray, because the `process`
       // internals will reuse the same buffer to hold each input
       const chunk = inputs.map((input) => input.slice(sliceIndex));
       this.chunks.push(chunk);
@@ -239,5 +204,5 @@ class AudioProcessor extends AudioWorkletProcessor {
   }
 }
 
+// This is required for AudioWorklet registration
 registerProcessor('audio_processor', AudioProcessor);
-`;

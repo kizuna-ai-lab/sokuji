@@ -5,17 +5,11 @@ import LogsPanel from '../LogsPanel/LogsPanel';
 import AudioPanel from '../AudioPanel/AudioPanel';
 import { Terminal, Settings, Volume2 } from 'react-feather';
 import './MainLayout.scss';
-import { useAudioContext } from '../../contexts/AudioContext';
 
 const MainLayout: React.FC = () => {
   const [showLogs, setShowLogs] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showAudio, setShowAudio] = useState(false);
-
-  const {
-    toggleInputDeviceState,
-    toggleOutputDeviceState,
-  } = useAudioContext();
 
   // Modify toggle functions to ensure only one panel is displayed at a time
   const toggleAudio = () => {
@@ -57,15 +51,15 @@ const MainLayout: React.FC = () => {
         <header className="main-panel-header">
           <h1>Sokuji</h1>
           <div className="header-controls">
-            <button className="settings-button" onClick={toggleSettings}>
+            <button className={`settings-button ${showSettings ? 'active' : ''}`} onClick={toggleSettings}>
               <Settings size={16} />
               <span>Settings</span>
             </button>
-            <button className="audio-button" onClick={toggleAudio}>
+            <button className={`audio-button ${showAudio ? 'active' : ''}`} onClick={toggleAudio}>
               <Volume2 size={16} />
               <span>Audio</span>
             </button>
-            <button className="logs-button" onClick={toggleLogs}>
+            <button className={`logs-button ${showLogs ? 'active' : ''}`} onClick={toggleLogs}>
               <Terminal size={16} />
               <span>Logs</span>
             </button>

@@ -1,5 +1,6 @@
 const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
+
 // Handle Squirrel events for Windows - only use on Windows platform
 if (process.platform === 'win32') {
   try {
@@ -313,6 +314,23 @@ ipcMain.handle('disconnect-virtual-speaker-outputs', async () => {
     return { 
       success: false, 
       error: error.message || 'Failed to disconnect virtual speaker from outputs' 
+    };
+  }
+});
+
+// Handler to create virtual audio devices
+ipcMain.handle('create-virtual-speaker', async () => {
+  try {
+    const result = await createVirtualAudioDevices();
+    return {
+      success: result,
+      message: result ? 'Virtual audio devices created successfully' : 'Failed to create virtual audio devices'
+    };
+  } catch (error) {
+    console.error('Error creating virtual audio devices:', error);
+    return {
+      success: false,
+      error: error.message || 'Failed to create virtual audio devices'
     };
   }
 });

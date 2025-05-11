@@ -313,6 +313,16 @@
           opacity: 0.5;
           cursor: not-allowed;
         }
+        
+        /* Hide text on small screens */
+        @media (max-width: 576px) {
+          padding: 6px;
+          gap: 0;
+          
+          span {
+            display: none;
+          }
+        }
       }
       
       .session-button {
@@ -388,6 +398,44 @@
               border-style: solid;
               border-color: #333 transparent transparent transparent;
             }
+          }
+        }
+        
+        /* Hide text on small screens */
+        @media (max-width: 576px) {
+          padding: 6px;
+          gap: 0;
+          
+          span {
+            display: none;
+          }
+        }
+      }
+      
+      .debug-button {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background-color: transparent;
+        border: 1px solid #555;
+        border-radius: 6px;
+        color: white;
+        padding: 6px 12px;
+        font-size: 13px;
+        cursor: pointer;
+        height: 28px; /* Fixed height to match others */
+        
+        &:hover {
+          background-color: rgba(255, 255, 255, 0.1);
+        }
+        
+        /* Hide text on small screens */
+        @media (max-width: 576px) {
+          padding: 6px;
+          gap: 0;
+          
+          span {
+            display: none;
           }
         }
       }
