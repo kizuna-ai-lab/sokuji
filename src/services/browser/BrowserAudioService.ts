@@ -13,8 +13,6 @@ declare const chrome: any;
  */
 export class BrowserAudioService implements IAudioService {
   private externalAudioContext: AudioContext | null = null; // To store the context from WavStreamPlayer
-  private pcmCaptureIntervalId: number | null = null; // For PCM capture interval
-  private isPcmCapturing: boolean = false; // Flag to indicate PCM capture status
   private wavStreamPlayer: WavStreamPlayer = new WavStreamPlayer({ sampleRate: 24000 }); // WavStreamPlayer instance for audio output
   private interruptedTrackIds: { [key: string]: boolean } = {}; // Track IDs that have been interrupted
 
@@ -250,13 +248,7 @@ export class BrowserAudioService implements IAudioService {
         return false;
       }
 
-      // PCM Data Capture from wavStreamPlayer.analyser
-      if (wavStreamPlayer.analyser) {
-        this.startPcmCapture(wavStreamPlayer.analyser);
-      } else {
-        console.warn('WavStreamPlayer.analyser is not available. Cannot start PCM capture.');
-      }
-
+      console.log('Virtual audio output setup complete. Audio data will be sent directly from addAudioData.');
       return true;
     } catch (e) {
       console.error('Failed to set up virtual audio output:', e);
@@ -264,84 +256,8 @@ export class BrowserAudioService implements IAudioService {
     }
   }
 
-  /**
-   * Starts capturing PCM data from the provided AnalyserNode.
-   * @param analyserNode The AnalyserNode to capture data from.
-   */
-  private startPcmCapture(analyserNode: AnalyserNode): void {
-    if (this.isPcmCapturing) {
-      console.log('PCM capture is already active.');
-      return;
-    }
-
-    const bufferSize = analyserNode.fftSize;
-    const pcmDataArray = new Float32Array(bufferSize);
-    this.isPcmCapturing = true;
-    console.log('Starting PCM data capture...');
-
-    this.pcmCaptureIntervalId = window.setInterval(() => { // Explicitly use window.setInterval
-      if (!this.isPcmCapturing || !analyserNode) {
-        this.stopPcmCapture();
-        return;
-      }
-      analyserNode.getFloatTimeDomainData(pcmDataArray);
-
-      // Construct audioData object
-      const sampleRate = analyserNode.context.sampleRate;
-      const numberOfChannels = 1; // getFloatTimeDomainData returns a single channel (mono or mixed-down)
-      const currentChannelData = Array.from(pcmDataArray); // Convert Float32Array to regular array for serialization
-
-      const audioData = {
-        numberOfChannels,
-        duration: pcmDataArray.length / sampleRate, // Duration of this chunk
-        sampleRate,
-        channelData: [currentChannelData] // Array of channels
-      };
-
-      // Check if there's any actual audio data to send
-      const hasNonZeroValues = currentChannelData.some(value => value !== 0);
-
-      // Send PCM data to the active tab's content script
-      if (chrome && chrome.tabs && chrome.tabs.query) {
-        chrome.tabs.query({ active: true, currentWindow: true }, (tabs: any[]) => {
-          if (chrome.runtime.lastError) {
-            // Handle error, e.g., if no active tab or other issue
-            // console.warn('Error querying tabs:', chrome.runtime.lastError.message);
-            // Potentially stop capture if tabs cannot be queried consistently, or just log and continue
-            // For now, we'll just log if there's an error and not send.
-            // If running outside an extension context, chrome.tabs will be undefined.
-            return;
-          }
-          const activeTab = tabs && tabs.length > 0 ? tabs[0] : null;
-          if (activeTab && activeTab.id !== undefined) {
-            console.log('Sending audio data to tab:', activeTab.id, hasNonZeroValues ? 'with audio' : 'silent chunk');
-            chrome.tabs.sendMessage(activeTab.id, { type: 'AUDIO_CHUNK', data: audioData }, (response: any) => {
-              if (chrome.runtime.lastError) {
-                // console.warn('Error sending message to tab:', activeTab.id, chrome.runtime.lastError.message);
-              }
-              // You can handle responses from the content script here if needed
-            });
-          } else {
-            // console.warn('No active tab found to send PCM data.');
-          }
-        });
-      } else {
-        // console.warn('chrome.tabs.query not available. PCM data not sent. Ensure this runs in an extension context.');
-      }
-    }, 100); // Adjust interval as needed (e.g., 100ms for 10fps-like updates)
-  }
-
-  /**
-   * Stops capturing PCM data.
-   */
-  public stopPcmCapture(): void {
-    if (this.pcmCaptureIntervalId !== null) {
-      window.clearInterval(this.pcmCaptureIntervalId); // Explicitly use window.clearInterval
-      this.pcmCaptureIntervalId = null;
-    }
-    this.isPcmCapturing = false;
-    console.log('PCM data capture stopped.');
-  }
+  // Note: PCM capture is now handled directly through the addAudioData method,
+  // which sends audio data to virtual microphone in tabs immediately when received.
 
 
 
@@ -366,12 +282,157 @@ export class BrowserAudioService implements IAudioService {
   }
 
   /**
-   * Adds 16-bit PCM audio data to the WavStreamPlayer
+   * Adds 16-bit PCM audio data to the WavStreamPlayer and sends it to virtual microphone
    * @param data The audio data to add
    * @param trackId Optional track ID to associate with this audio
    */
   public addAudioData(data: Int16Array, trackId?: string): void {
+    // First add to WavStreamPlayer for monitoring/playback
     this.wavStreamPlayer.add16BitPCM(data, trackId);
+    
+    // Then send to virtual microphone in tabs
+    this.sendPcmDataToTabs(data);
+  }
+  
+  /**
+   * Sends PCM data directly to tabs for virtual microphone
+   * @param data The Int16Array PCM data to send
+   */
+  private sendPcmDataToTabs(data: Int16Array): void {
+    if (!data || data.length === 0) return;
+    
+    // Detect extremely large audio files (like test tones) and adjust chunking strategy
+    const isLargeAudioFile = data.length > 100000; // > ~4 seconds at 24kHz
+    
+    // Use smaller chunks for large audio files to prevent overwhelming the virtual microphone
+    // For smaller audio data, use larger chunks for efficiency
+    let MAX_CHUNK_SIZE = isLargeAudioFile ? 1000 : 3000;
+    
+    // For extremely large audio (test tones, etc.), add delays between chunks to allow processing
+    const needsProgressive = isLargeAudioFile;
+    
+    // Calculate number of chunks needed
+    const numChunks = Math.ceil(data.length / MAX_CHUNK_SIZE);
+    
+    // Log information about chunking strategy
+    if (isLargeAudioFile) {
+      console.log(`Processing large audio file (${(data.length / 24000).toFixed(1)}s) in ${numChunks} chunks`);
+    }
+    
+    // Function to process a single chunk
+    const processChunk = (chunkIndex: number) => {
+      const startIndex = chunkIndex * MAX_CHUNK_SIZE;
+      const endIndex = Math.min(startIndex + MAX_CHUNK_SIZE, data.length);
+      const chunkSize = endIndex - startIndex;
+      
+      // Create a slice of the data for this chunk
+      const dataChunk = data.slice(startIndex, endIndex);
+      
+      // Convert Int16Array to Float32Array for web audio compatibility
+      const floatChunk = new Float32Array(chunkSize);
+      for (let i = 0; i < chunkSize; i++) {
+        // Convert 16-bit PCM (-32768 to 32767) to float (-1.0 to 1.0)
+        floatChunk[i] = dataChunk[i] / 32768.0;
+      }
+      
+      // Create audio data object for this chunk
+      const audioData = {
+        numberOfChannels: 1,
+        duration: chunkSize / 24000, // Assuming 24kHz sample rate
+        sampleRate: 24000,
+        channelData: [Array.from(floatChunk)], // Convert to regular array
+        chunkIndex, // Add chunk information for reassembly if needed
+        totalChunks: numChunks,
+        isLargeFile: isLargeAudioFile // Flag for the virtual microphone to adjust processing
+      };
+      
+      // Send this chunk to tabs
+      this.sendMessageToTabs(audioData);
+      
+      // Process next chunk if not the last one
+      if (chunkIndex < numChunks - 1) {
+        // For large audio files, use progressive sending with delays to prevent overwhelming receiver
+        if (needsProgressive) {
+          // Schedule next chunk with a small delay
+          // The delay increases slightly for larger files to reduce pressure
+          const delayMs = Math.min(20, 5 + Math.floor(numChunks / 100));
+          setTimeout(() => processChunk(chunkIndex + 1), delayMs);
+        } else {
+          // For smaller files, process immediately
+          processChunk(chunkIndex + 1);
+        }
+      } else if (isLargeAudioFile) {
+        // Log completion of large file processing
+        console.log(`Completed sending large audio file in ${numChunks} chunks`);
+      }
+    };
+    
+    // Start processing from the first chunk
+    processChunk(0);
+  }
+  
+  /**
+   * Checks if audio data contains significant (non-silent) content
+   * @param data The audio data to check
+   * @param threshold The amplitude threshold (default: 0.005)
+   * @returns True if significant audio is found
+   */
+  private hasSignificantAudio(data: Float32Array, threshold: number = 0.005): boolean {
+    // Check a subset of samples for performance
+    const stride = Math.max(1, Math.floor(data.length / 100));
+    
+    for (let i = 0; i < data.length; i += stride) {
+      if (Math.abs(data[i]) > threshold) {
+        return true;
+      }
+    }
+    
+    return false;
+  }
+  
+  /**
+   * Sends audio data message to all relevant tabs
+   * @param audioData The audio data to send
+   */
+  private sendMessageToTabs(audioData: any): void {
+    // Only proceed if Chrome extension API is available
+    if (!chrome || !chrome.tabs || !chrome.tabs.query) {
+      return; // Silent fail in non-extension context
+    }
+    
+    // Query for active tabs
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs: any[]) => {
+      if (chrome.runtime.lastError || !tabs || tabs.length === 0) {
+        // Try all tabs in current window as fallback
+        chrome.tabs.query({ currentWindow: true }, (allTabs: any[]) => {
+          if (allTabs && allTabs.length > 0) {
+            this.sendMessageToTab(allTabs[0], audioData);
+          }
+        });
+        return;
+      }
+      
+      // Send to active tab
+      this.sendMessageToTab(tabs[0], audioData);
+    });
+  }
+  
+  /**
+   * Sends a message to a specific tab
+   * @param tab The tab to send to
+   * @param audioData The audio data
+   */
+  private sendMessageToTab(tab: any, audioData: any): void {
+    if (!tab || tab.id === undefined) return;
+    
+    // Limit logging to avoid console spam (log ~1% of messages)
+    const shouldLog = Math.random() < 0.01;
+    
+    if (shouldLog) {
+      console.log(`Sending audio to tab ${tab.id}`);
+    }
+    
+    chrome.tabs.sendMessage(tab.id, { type: 'AUDIO_CHUNK', data: audioData });
   }
 
   /**
