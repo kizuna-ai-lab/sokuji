@@ -29,7 +29,8 @@ contextBridge.exposeInMainWorld(
         'open-directory',
         'validate-api-key',
         'connect-virtual-speaker-to-output',
-        'disconnect-virtual-speaker-outputs'
+        'disconnect-virtual-speaker-outputs',
+        'create-virtual-speaker'
       ];
       if (validChannels.includes(channel)) {
         return ipcRenderer.invoke(channel, data);

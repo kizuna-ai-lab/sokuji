@@ -99,28 +99,66 @@ async function connectAudioPorts(outputPortName, inputPortName) {
     }
     
     // Parse the output and input ports into arrays
-    const outputPortList = outputPorts.split('\n').filter(port => port.trim());
-    const inputPortList = inputPorts.split('\n').filter(port => port.trim());
+    const outputPortsArray = outputPorts.split('\n').filter(Boolean);
+    const inputPortsArray = inputPorts.split('\n').filter(Boolean);
     
-    console.log(`Found ${outputPortList.length} output ports and ${inputPortList.length} input ports`);
-    
-    // Connect each channel, matching by index (left to left, right to right, etc.)
-    const minChannels = Math.min(outputPortList.length, inputPortList.length);
-    
-    if (minChannels > 0) {
-      for (let i = 0; i < minChannels; i++) {
-        const outputPort = outputPortList[i].trim();
-        const inputPort = inputPortList[i].trim();
-        
-        console.log(`Connecting channel ${i+1}: "${outputPort}" to "${inputPort}"`);
-        await execPromise(`pw-link "${outputPort}" "${inputPort}"`);
-      }
-      console.log(`Successfully connected ${minChannels} channels between audio devices`);
-      return true;
-    } else {
-      console.log('Could not find matching ports. Devices created but not connected.');
+    if (outputPortsArray.length === 0 || inputPortsArray.length === 0) {
+      console.error('No matching audio ports found');
       return false;
     }
+    
+    // Check for existing connections for each pair of ports we want to connect
+    let allConnected = true;
+    let existingCount = 0;
+    let newCount = 0;
+    
+    // Get the list of existing links once to check against
+    const { stdout: currentLinks } = await execPromise('pw-link -l').catch(() => ({ stdout: '' }));
+    
+    // Connect each output port to each input port
+    for (let i = 0; i < Math.min(outputPortsArray.length, inputPortsArray.length); i++) {
+      const outputPort = outputPortsArray[i];
+      const inputPort = inputPortsArray[i];
+      
+      // Format port names for checking existing connections
+      // Remove leading "output." or "input." if present for comparison
+      const formattedOutputPort = outputPort.replace(/^output\./, '');
+      const formattedInputPort = inputPort.replace(/^input\./, '');
+      
+      // Check if this connection already exists
+      const connectionExists = currentLinks.includes(`${formattedOutputPort}`) && 
+                               currentLinks.includes(`${formattedInputPort}`) &&
+                               (currentLinks.includes(`${formattedOutputPort} -> ${formattedInputPort}`) || 
+                                currentLinks.includes(`${formattedInputPort} <- ${formattedOutputPort}`));
+      
+      if (connectionExists) {
+        console.log(`Connection already exists: Channel ${i+1}: "${outputPort}" to "${inputPort}"`);
+        existingCount++;
+        continue; // Skip this pair since they're already connected
+      }
+      
+      console.log(`Connecting channel ${i+1}: "${outputPort}" to "${inputPort}"`);
+      
+      try {
+        await execPromise(`pw-link "${outputPort}" "${inputPort}"`);
+        console.log(`Successfully connected channel ${i+1}`);
+        newCount++;
+      } catch (error) {
+        // Check if the error is "File exists" which means the connection already exists
+        if (error.stderr && error.stderr.includes('File exists')) {
+          console.log(`Connection already exists (detected during linking): Channel ${i+1}`);
+          existingCount++;
+        } else {
+          console.error(`Failed to connect audio devices: ${error}`);
+          allConnected = false;
+        }
+      }
+    }
+    
+    console.log(`Connection summary: ${newCount} new connections, ${existingCount} existing connections`);
+    
+    // Return true if all connections were established or already exist
+    return allConnected;
   } catch (error) {
     console.error('Failed to connect audio devices:', error);
     console.log('Devices created but not connected. Manual connection may be required.');

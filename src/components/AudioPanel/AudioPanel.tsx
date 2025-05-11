@@ -10,16 +10,16 @@ const AudioPanel: React.FC<{ toggleAudio: () => void }> = ({ toggleAudio }) => {
 
   const {
     audioInputDevices,
-    audioOutputDevices,
+    audioMonitorDevices,
     selectedInputDevice,
-    selectedOutputDevice,
+    selectedMonitorDevice,
     isInputDeviceOn,
-    isOutputDeviceOn,
+    isMonitorDeviceOn,
     isLoading,
     selectInputDevice,
-    selectOutputDevice,
+    selectMonitorDevice,
     toggleInputDeviceState,
-    toggleOutputDeviceState,
+    toggleMonitorDeviceState,
     refreshDevices
   } = useAudioContext();
 
@@ -42,12 +42,12 @@ const AudioPanel: React.FC<{ toggleAudio: () => void }> = ({ toggleAudio }) => {
     }
   };
 
-  // Handle output device selection with virtual speaker check
-  const handleOutputDeviceSelection = (device: {deviceId: string; label: string; isDefault?: boolean}) => {
+  // Handle monitor device selection with virtual speaker check
+  const handleMonitorDeviceSelection = (device: {deviceId: string; label: string; isDefault?: boolean}) => {
     if (isVirtualSpeaker(device)) {
       setShowVirtualSpeakerWarning(true);
     } else {
-      selectOutputDevice(device);
+      selectMonitorDevice(device);
     }
   };
 
@@ -100,10 +100,10 @@ const AudioPanel: React.FC<{ toggleAudio: () => void }> = ({ toggleAudio }) => {
             Connecting your monitor to Sokuji's output device would create an audio feedback loop, causing your input to contain your own monitored output.
           </p>
           <p>
-            The "Turn On" switch connects the virtual speaker to your selected output device, allowing you to hear what's being sent to your conferencing application. The "Turn Off" switch disconnects this monitoring connection.
+            The "Turn On" switch connects the virtual speaker to your selected monitor device, allowing you to hear what's being sent to your conferencing application. The "Turn Off" switch disconnects this monitoring connection.
           </p>
           <p>
-            For proper operation, please select a different output device (like your headphones or speakers) from the list.
+            For proper operation, please select a different monitor device (like your headphones or speakers) from the list.
           </p>
           <button 
             className="understand-button" 
@@ -131,7 +131,7 @@ const AudioPanel: React.FC<{ toggleAudio: () => void }> = ({ toggleAudio }) => {
                 <Mic size={18} />
               </div>
               <div className="device-info">
-                <div className="device-name">{isLoading ? 'Loading devices...' : selectedInputDevice.label}</div>
+                <div className="device-name">{isLoading ? 'Loading devices...' : (selectedInputDevice?.label || 'No device selected')}</div>
               </div>
             </div>
             <button 
@@ -157,7 +157,7 @@ const AudioPanel: React.FC<{ toggleAudio: () => void }> = ({ toggleAudio }) => {
             {audioInputDevices.map((device, index) => (
               <div 
                 key={index} 
-                className={`device-option ${selectedInputDevice.deviceId === device.deviceId ? 'selected' : ''}`}
+                className={`device-option ${selectedInputDevice?.deviceId === device.deviceId ? 'selected' : ''}`}
                 onClick={() => handleInputDeviceSelection(device)}
               >
                 <span>{device.label}</span>
@@ -166,57 +166,57 @@ const AudioPanel: React.FC<{ toggleAudio: () => void }> = ({ toggleAudio }) => {
                     <AlertTriangle size={14} color="#f0ad4e" />
                   </div>
                 )}
-                {selectedInputDevice.deviceId === device.deviceId && <div className="selected-indicator" />}
+                {selectedInputDevice?.deviceId === device.deviceId && <div className="selected-indicator" />}
               </div>
             ))}
           </div>
         </div>
 
-        {/* Output Device Section */}
+        {/* Monitor Device Section */}
         <div className="audio-section">
           <h3>Virtual Speaker Monitor Device</h3>
           <div className="device-selector">
             <div className="device-status">
-              <div className={`device-icon ${isOutputDeviceOn ? 'active' : 'inactive'}`}>
+              <div className={`device-icon ${isMonitorDeviceOn ? 'active' : 'inactive'}`}>
                 <Volume2 size={18} />
               </div>
               <div className="device-info">
-                <div className="device-name">{isLoading ? 'Loading devices...' : selectedOutputDevice.label}</div>
+                <div className="device-name">{isLoading ? 'Loading devices...' : (selectedMonitorDevice?.label || 'No device selected')}</div>
               </div>
             </div>
             <button 
-              className={`device-toggle-button ${isOutputDeviceOn ? 'on' : 'off'}`}
-              onClick={toggleOutputDeviceState}
+              className={`device-toggle-button ${isMonitorDeviceOn ? 'on' : 'off'}`}
+              onClick={toggleMonitorDeviceState}
             >
-              {isOutputDeviceOn ? 'Turn Off' : 'Turn On'}
+              {isMonitorDeviceOn ? 'Turn Off' : 'Turn On'}
             </button>
           </div>
           
           <div className="device-list">
             <div className="device-list-header">
-              <h4>Available Output Devices</h4>
+              <h4>Available Monitor Devices</h4>
               <button 
                 className="refresh-button"
                 onClick={() => refreshDevices()}
                 disabled={isLoading}
-                title="Refresh output devices"
+                title="Refresh monitor devices"
               >
                 <RefreshCw size={14} />
               </button>
             </div>
-            {audioOutputDevices.map((device, index) => (
+            {audioMonitorDevices.map((device, index) => (
               <div 
                 key={index} 
-                className={`device-option ${selectedOutputDevice.deviceId === device.deviceId ? 'selected' : ''}`}
-                onClick={() => handleOutputDeviceSelection(device)}
+                className={`device-option ${selectedMonitorDevice?.deviceId === device.deviceId ? 'selected' : ''}`}
+                onClick={() => handleMonitorDeviceSelection(device)}
               >
                 <span>{device.label}</span>
                 {isVirtualSpeaker(device) && (
-                  <div className="virtual-indicator" title="Virtual speaker - do not select">
+                  <div className="virtual-indicator" title="Virtual speaker">
                     <AlertTriangle size={14} color="#f0ad4e" />
                   </div>
                 )}
-                {selectedOutputDevice.deviceId === device.deviceId && <div className="selected-indicator" />}
+                {selectedMonitorDevice?.deviceId === device.deviceId && <div className="selected-indicator" />}
               </div>
             ))}
           </div>

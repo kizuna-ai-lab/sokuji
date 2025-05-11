@@ -1,39 +1,4 @@
-/**
- * Stream processor module for handling audio streaming
- * This file provides the StreamProcessor worklet functionality and URL management
- */
-
-/**
- * Determines if the code is running in a Chrome extension environment
- * @returns {boolean} True if running in a Chrome extension
- */
-function isExtensionEnvironment() {
-  return typeof window !== 'undefined' && 
-         typeof window.chrome !== 'undefined' && 
-         typeof window.chrome.runtime !== 'undefined' && 
-         typeof window.chrome.runtime.getURL === 'function';
-}
-
-/**
- * Creates a source URL for the StreamProcessor AudioWorklet
- * @returns {string} URL to the AudioWorklet code
- */
-export function getStreamProcessorSrc() {
-  if (isExtensionEnvironment()) {
-    // In extension environment, use the file from web_accessible_resources
-    return window.chrome.runtime.getURL('worklets/stream_processor_worklet.js');
-  } else {
-    // In Electron or other environments, use a direct path
-    return new URL('./stream_processor_worklet.js', import.meta.url).href;
-  }
-}
-
-// Export the source URL
-export const StreamProcessorSrc = getStreamProcessorSrc();
-
-// StreamProcessor worklet code - this is the actual implementation that will be used
-// when the worklet is loaded. This should be identical to the code in extension/worklets/stream_processor_worklet.js
-export const StreamProcessorWorkletCode = `
+// AudioWorklet processor for streaming audio data
 class StreamProcessor extends AudioWorkletProcessor {
   constructor() {
     super();
@@ -71,7 +36,7 @@ class StreamProcessor extends AudioWorkletProcessor {
             this.hasInterrupted = true;
           }
         } else {
-          throw new Error(\`Unhandled event "\${payload.event}"\`);
+          throw new Error(`Unhandled event "${payload.event}"`);
         }
       }
     };
@@ -113,15 +78,15 @@ class StreamProcessor extends AudioWorkletProcessor {
       }
       return true;
     } else if (this.hasStarted) {
-      // Send notification but don't stop processing
+      // 发送通知但不停止处理
       this.port.postMessage({ event: 'buffer-empty' });
       
-      // Output silence data
+      // 输出静音数据
       for (let i = 0; i < outputChannelData.length; i++) {
         outputChannelData[i] = 0;
       }
       
-      // Continue running
+      // 继续运行
       return true;
     } else {
       return true;
@@ -129,5 +94,5 @@ class StreamProcessor extends AudioWorkletProcessor {
   }
 }
 
+// This is required for AudioWorklet registration
 registerProcessor('stream_processor', StreamProcessor);
-`;

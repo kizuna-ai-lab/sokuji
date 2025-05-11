@@ -40,6 +40,15 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CI: false
 
+      - name: Build Chrome Extension
+        run: |
+          cd extension
+          npm ci
+          npm run build
+          cd dist
+          zip -r ../sokuji-extension.zip *
+          cd ..          
+
       - name: Generate changelog
         id: changelog
         run: |
@@ -58,6 +67,7 @@ jobs:
           files: |
             out/make/**/*.deb
             out/make/**/*.zip
+            extension/sokuji-extension.zip
           body_path: CHANGELOG.md
           draft: false
           prerelease: false

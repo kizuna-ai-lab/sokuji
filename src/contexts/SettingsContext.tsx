@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import { ServiceFactory } from '../services/ServiceFactory';
 
 export type TurnDetectionMode = 'Normal' | 'Semantic' | 'Disabled';
 export type SemanticEagerness = 'Auto' | 'Low' | 'Medium' | 'High';
@@ -50,22 +51,20 @@ export const defaultSettings: Settings = {
   systemInstructions:
     "You are a professional real-time interpreter.\n" +
     "Your only job is to translate every single user input **literally** from Chinese to Japanese—no exceptions.\n" +
-    "- **Never** reply that you don’t know, cannot judge, or ask for clarification.\n" +
+    "- **Never** reply that you don't know, cannot judge, or ask for clarification.\n" +
     "- **Always** produce a translation in Japanese, even if the input is a question or sounds like chat.\n" +
     "- Preserve all sentence types (declarative, interrogative, etc.) and punctuation.\n" +
     "- Do not add, remove, or alter any content beyond the translation itself.\n" +
-    "- Do not mention you are AI or that you are translating.\n" +
-    "\n" +
-    "**Examples**\n" +
-    "- 用户（Chinese）：第十五号任务。\n" +  
-    " AI（English）：15th task.\n" +  
-    "\n" +
-    "- 用户（Chinese）：这句话在日语中有没有类似的话?\n" +
-    " AI（English）：Is there a similar expression in Japanese for this sentence?\n",
+    "- Do not mention you are AI or that you are translating.\n\n" +
+    "**Examples**  \n" +
+    "- 用户（Chinese）：第十五号任务。  \n" +
+    "  AI（English）：15th task.  \n\n" +
+    "- 用户（Chinese）：这句话在日语中有没有类似的话?  \n" +
+    "  AI（English）：Is there a similar expression in Japanese for this sentence?",
   openAIApiKey: '',
 };
 
-const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
+const SettingsContext = createContext<SettingsContextType | null>(null);
 
 export const useSettings = () => {
   const context = useContext(SettingsContext);
@@ -76,112 +75,96 @@ export const useSettings = () => {
 };
 
 export const SettingsProvider = ({ children }: { children: ReactNode }) => {
+  // Create a reference to our settings service
+  const settingsService = ServiceFactory.getSettingsService();
+  
   const [settings, setSettings] = useState<Settings>(defaultSettings);
-  const [isApiKeyValid, setIsApiKeyValid] = useState<boolean>(false);
+  const [isApiKeyValid, setIsApiKeyValid] = useState(false);
 
-  // Comprehensive API key validation
+  // Validate the API key
   const validateApiKey = useCallback(async (apiKey?: string) => {
-    const keyToValidate = apiKey !== undefined ? apiKey : settings.openAIApiKey;
-    
-    // First do basic validation
-    if (!keyToValidate || keyToValidate.trim() === '') {
-      setIsApiKeyValid(false);
-      return {
-        valid: false,
-        message: 'API key cannot be empty',
-        validating: false
-      };
-    }
-
-    // Then do full validation with API call
     try {
-      const result = await window.electron.openai.validateApiKey(keyToValidate);
+      const keyToValidate = apiKey !== undefined ? apiKey : settings.openAIApiKey;
       
-      if (result.success && result.valid) {
-        const modelCount = result.models?.length || 0;
-        setIsApiKeyValid(true);
-        return {
-          valid: true,
-          message: `Valid API key. Found ${modelCount} compatible models.`,
-          validating: false
-        };
-      } else {
-        setIsApiKeyValid(false);
+      if (!keyToValidate || keyToValidate.trim() === '') {
         return {
           valid: false,
-          message: result.error || 'Invalid API key',
+          message: 'API key cannot be empty',
           validating: false
         };
       }
+      
+      // Use our settings service to validate the API key
+      const result = await settingsService.validateApiKey(keyToValidate);
+      
+      // Update the valid state if we're validating the current API key
+      if (apiKey === undefined || apiKey === settings.openAIApiKey) {
+        setIsApiKeyValid(Boolean(result.valid));
+      }
+      
+      return result;
     } catch (error) {
       console.error('Error validating API key:', error);
-      setIsApiKeyValid(false);
       return {
         valid: false,
         message: error instanceof Error ? error.message : 'Error validating API key',
         validating: false
       };
     }
-  }, [settings.openAIApiKey]);
+  }, [settings.openAIApiKey, settingsService]);
 
-  // Load settings from config.toml via Electron API
+  // Load settings using our settings service
   const loadSettings = useCallback(async () => {
     try {
-      const loaded = {
-        turnDetectionMode: await window.electron.config.get('settings.turnDetectionMode', defaultSettings.turnDetectionMode),
-        threshold: await window.electron.config.get('settings.threshold', defaultSettings.threshold),
-        prefixPadding: await window.electron.config.get('settings.prefixPadding', defaultSettings.prefixPadding),
-        silenceDuration: await window.electron.config.get('settings.silenceDuration', defaultSettings.silenceDuration),
-        semanticEagerness: await window.electron.config.get('settings.semanticEagerness', defaultSettings.semanticEagerness),
-        model: await window.electron.config.get('settings.model', defaultSettings.model),
-        temperature: await window.electron.config.get('settings.temperature', defaultSettings.temperature),
-        maxTokens: await window.electron.config.get('settings.maxTokens', defaultSettings.maxTokens),
-        transcriptModel: await window.electron.config.get('settings.transcriptModel', defaultSettings.transcriptModel),
-        noiseReduction: await window.electron.config.get('settings.noiseReduction', defaultSettings.noiseReduction),
-        voice: await window.electron.config.get('settings.voice', defaultSettings.voice),
-        systemInstructions: await window.electron.config.get('settings.systemInstructions', defaultSettings.systemInstructions),
-        openAIApiKey: await window.electron.config.get('settings.openAIApiKey', defaultSettings.openAIApiKey),
-      };
-      setSettings(loaded as Settings);
+      // Use the settings service to load all settings at once
+      const loaded = await settingsService.loadAllSettings(defaultSettings);
+      setSettings(loaded);
       
       // Perform basic validation after loading settings
       const apiKey = loaded.openAIApiKey;
       setIsApiKeyValid(Boolean(apiKey && apiKey.trim() !== ''));
       
       // Optionally perform full validation in the background
-      // validateApiKey(loaded.openAIApiKey).catch(console.error);
+      if (apiKey && apiKey.trim() !== '') {
+        validateApiKey(apiKey).catch(console.error);
+      }
     } catch (error) {
-      // Optionally handle error
+      console.error('Error loading settings:', error);
     }
-  }, []);
+  }, [settingsService, validateApiKey]);
 
+  // Save settings using our settings service
+  const updateSettings = useCallback((newSettings: Partial<Settings>) => {
+    setSettings(prev => {
+      const updatedSettings = { ...prev, ...newSettings };
+      
+      // Save each updated setting using the settings service
+      for (const key of Object.keys(newSettings)) {
+        const fullKey = `settings.${key}`;
+        const value = (newSettings as any)[key];
+        settingsService.setSetting(fullKey, value)
+          .catch(error => console.error(`Error saving setting ${key}:`, error));
+      }
+      
+      return updatedSettings;
+    });
+  }, [settingsService]);
+
+  // Initialize settings on component mount
   useEffect(() => {
     loadSettings();
   }, [loadSettings]);
 
-  // Update settings in context and persist to config.toml
-  const updateSettings = (newSettings: Partial<Settings>) => {
-    setSettings(prev => {
-      const updated = { ...prev, ...newSettings };
-      Object.entries(newSettings).forEach(([key, value]) => {
-        window.electron.config.set(`settings.${key}`, value);
-      });
-      
-      // If API key is updated, validate it
-      if (newSettings.openAIApiKey !== undefined) {
-        validateApiKey(newSettings.openAIApiKey);
-      }
-      
-      return updated;
-    });
-  };
-
-  const reloadSettings = async () => {
-    await loadSettings();
-  };
-
   return (
-    <SettingsContext.Provider value={{ settings, updateSettings, reloadSettings, isApiKeyValid, validateApiKey }}>
+    <SettingsContext.Provider
+      value={{
+        settings,
+        updateSettings,
+        reloadSettings: loadSettings,
+        isApiKeyValid,
+        validateApiKey,
+      }}
+    >
       {children}
     </SettingsContext.Provider>
   );

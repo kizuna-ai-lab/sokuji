@@ -1,299 +1,233 @@
 import React, { createContext, useContext, useState, useRef, useCallback, useEffect, ReactNode } from 'react';
+import { ServiceFactory } from '../services/ServiceFactory';
+import { IAudioService, AudioOperationResult } from '../services/interfaces/IAudioService';
 
 export interface AudioDevice {
   deviceId: string;
   label: string;
-  isDefault?: boolean;
+  isVirtual?: boolean;
 }
 
 interface AudioContextProps {
   audioInputDevices: AudioDevice[];
-  audioOutputDevices: AudioDevice[];
-  selectedInputDevice: AudioDevice;
-  selectedOutputDevice: AudioDevice;
+  audioMonitorDevices: AudioDevice[];
+  selectedInputDevice: AudioDevice | null;
+  selectedMonitorDevice: AudioDevice | null;
   isInputDeviceOn: boolean;
-  isOutputDeviceOn: boolean;
+  isMonitorDeviceOn: boolean;
   isLoading: boolean;
   selectInputDevice: (device: AudioDevice) => void;
-  selectOutputDevice: (device: AudioDevice) => void;
+  selectMonitorDevice: (device: AudioDevice) => void;
   toggleInputDeviceState: () => void;
-  toggleOutputDeviceState: () => void;
+  toggleMonitorDeviceState: () => void;
   refreshDevices: () => void;
 }
 
 const AudioContext = createContext<AudioContextProps | undefined>(undefined);
 
 export const useAudioContext = () => {
-  const ctx = useContext(AudioContext);
-  if (!ctx) throw new Error('useAudioContext must be used within an AudioProvider');
-  return ctx;
+  const context = useContext(AudioContext);
+  if (context === undefined) {
+    throw new Error('useAudioContext must be used within an AudioProvider');
+  }
+  return context;
 };
 
 export const AudioProvider = ({ children }: { children: ReactNode }) => {
+  // Create a reference to our audio service
+  const audioService = useRef<IAudioService>(ServiceFactory.getAudioService());
+  
   const [audioInputDevices, setAudioInputDevices] = useState<AudioDevice[]>([]);
-  const [audioOutputDevices, setAudioOutputDevices] = useState<AudioDevice[]>([]);
-  const [selectedInputDevice, setSelectedInputDevice] = useState<AudioDevice>({ deviceId: '', label: '' });
-  const [selectedOutputDevice, setSelectedOutputDevice] = useState<AudioDevice>({ deviceId: '', label: '' });
-  const [isInputDeviceOn, setIsInputDeviceOn] = useState(true);
-  const [isOutputDeviceOn, setIsOutputDeviceOn] = useState(true);
-  const [isLoading, setIsLoading] = useState(true);
+  const [audioMonitorDevices, setAudioMonitorDevices] = useState<AudioDevice[]>([]);
+  const [selectedInputDevice, setSelectedInputDevice] = useState<AudioDevice | null>(null);
+  const [selectedMonitorDevice, setSelectedMonitorDevice] = useState<AudioDevice | null>(null);
+  const [isInputDeviceOn, setIsInputDeviceOn] = useState<boolean>(true);
+  const [isMonitorDeviceOn, setIsMonitorDeviceOn] = useState<boolean>(true);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  // Reference to currently selected devices, used to maintain selection when device list updates
-  const currentInputDeviceRef = useRef<AudioDevice>({ deviceId: '', label: '' });
-  const currentOutputDeviceRef = useRef<AudioDevice>({ deviceId: '', label: '' });
-
-  // Update reference when selected device changes
-  useEffect(() => {
-    currentInputDeviceRef.current = selectedInputDevice;
-  }, [selectedInputDevice]);
-
-  useEffect(() => {
-    currentOutputDeviceRef.current = selectedOutputDevice;
-  }, [selectedOutputDevice]);
-
-  // Complete device fetching logic, consistent with original MainLayout
-  const fetchAudioDevices = useCallback(async () => {
-    try {
-      await navigator.mediaDevices.getUserMedia({ audio: true });
-      const devices = await navigator.mediaDevices.enumerateDevices();
-
-      console.log('All audio devices:', devices);
-
-      // Get audio input devices, excluding the generic 'default' device
-      const audioInputs = devices
-        .filter(device => device.kind === 'audioinput' && device.deviceId !== 'default' && device.deviceId !== '')
-        .map(device => ({
-          deviceId: device.deviceId,
-          label: device.label || `Microphone ${device.deviceId.slice(0, 5)}...`
-        }));
-
-      // if selected device still in new audioInputs, use it
-      const currentInputDevice = currentInputDeviceRef.current;
-      const currentInputDeviceStillAvailable = audioInputs.some(
-        device => device.deviceId === currentInputDevice.deviceId
-      );
-
-      let selectedInput = null;
-      if (!currentInputDeviceStillAvailable || !currentInputDevice.deviceId) {
-        // Find the first non-virtual device to select
-
-        // First try to find a non-virtual device
-        for (const device of audioInputs) {
-          if (!device.label.toLowerCase().includes('sokuji_virtual')) {
-            selectedInput = device;
-            console.log(`Selected first non-virtual input device: ${device.label}`);
-            break;
-          }
-        }
-
-        // If all devices are virtual, just use the first one
-        if (!selectedInput && audioInputs.length > 0) {
-          selectedInput = audioInputs[0];
-          console.log(`All input devices are virtual, selecting first: ${audioInputs[0].label}`);
-        }
-      } else {
-        selectedInput = currentInputDevice;
-        console.log(`Keeping previously selected input device: ${currentInputDevice.label}`);
-      }
-
-      // Set the input devices
-      setAudioInputDevices(audioInputs);
-
-      // Update the selected input device if we found one
-      if (selectedInput) {
-        setSelectedInputDevice(selectedInput);
-      }
-
-      // Get audio output devices, excluding the generic 'default' device
-      const audioOutputs = devices
-        .filter(device => device.kind === 'audiooutput' && device.deviceId !== 'default' && device.deviceId !== '')
-        .map(device => ({
-          deviceId: device.deviceId,
-          label: device.label || `Speaker ${device.deviceId.slice(0, 5)}...`
-        }));
-
-      // Check if the previously selected output device is still available
-      const currentOutputDevice = currentOutputDeviceRef.current;
-      const currentOutputDeviceStillAvailable = audioOutputs.some(
-        device => device.deviceId === currentOutputDevice.deviceId
-      );
-
-      // Find the appropriate output device to select
-      let selectedOutput = null;
-      if (!currentOutputDeviceStillAvailable || !currentOutputDevice.deviceId) {
-        // First try to find a non-virtual device
-        for (const device of audioOutputs) {
-          if (!device.label.toLowerCase().includes('sokuji_virtual')) {
-            selectedOutput = device;
-            console.log(`Selected first non-virtual output device: ${device.label}`);
-            break;
-          }
-        }
-
-        // If all devices are virtual, just use the first one
-        if (!selectedOutput && audioOutputs.length > 0) {
-          selectedOutput = audioOutputs[0];
-          console.log(`All output devices are virtual, selecting first: ${audioOutputs[0].label}`);
-        }
-      } else {
-        selectedOutput = currentOutputDevice;
-        console.log(`Keeping previously selected output device: ${currentOutputDevice.label}`);
-      }
-
-      // Set the output devices
-      setAudioOutputDevices(audioOutputs);
-
-      // Update the selected output device if we found one
-      if (selectedOutput) {
-        selectOutputDevice(selectedOutput);
-      }
-
-      return true; // Success
-    } catch (error) {
-      return error; // Return the error for handling by the caller
-    }
-  }, []);
-
-  // Call fetchAudioDevices and handle errors
-  const getAudioDevices = useCallback(async () => {
-    try {
-      const result = await fetchAudioDevices();
-      if (result === true) {
-        setIsLoading(false);
-      } else {
-        throw result; // Re-throw the error to be caught below
-      }
-    } catch (error) {
-      setAudioInputDevices([{ deviceId: '', label: '' }]);
-      setAudioOutputDevices([{ deviceId: '', label: '' }]);
-      setIsLoading(false);
-    }
-  }, [fetchAudioDevices]);
-
-  // Initialize and listen for device changes
-  useEffect(() => {
-    getAudioDevices();
-    navigator.mediaDevices.addEventListener('devicechange', getAudioDevices);
-    return () => {
-      navigator.mediaDevices.removeEventListener('devicechange', getAudioDevices);
-    };
-  }, [getAudioDevices]);
-
-  const selectInputDevice = (device: AudioDevice) => setSelectedInputDevice(device);
-  
-  // Restore original selectOutputDevice logic, including Electron IPC calls
-  const selectOutputDevice = useCallback((device: AudioDevice) => {
-    console.log(`Selected output device: ${device.label} (${device.deviceId})`);
-    setSelectedOutputDevice((prevDevice) => {
-      if (prevDevice.deviceId !== device.deviceId) {
-        console.log(`Output device changed: ${prevDevice.label} (${prevDevice.deviceId}) -> ${device.label} (${device.deviceId})`);
-
-        // Only connect the virtual speaker if the output device is turned ON
-        if (isOutputDeviceOn && device && device.deviceId) {
-          // Connect the virtual speaker's monitor port to the selected output device
-          // This will route the audio from Sokuji_Virtual_Speaker to the selected output device
-          console.log(`Connecting Sokuji_Virtual_Speaker to output device: ${device.label}`);
-
-          // Call the Electron IPC to connect the virtual speaker to this output device
-          // We're using window.electron which is exposed by the preload script
-          (window as any).electron.invoke('connect-virtual-speaker-to-output', {
-            deviceId: device.deviceId,
-            label: device.label
-          })
-            .then((result: any) => {
-              if (result.success) {
-                console.log('Successfully connected virtual speaker to output device:', result.message);
-              } else {
-                console.error('Failed to connect virtual speaker to output device:', result.message);
-              }
-            })
-            .catch((error: any) => {
-              console.error('Error connecting virtual speaker to output device:', error);
-            });
-        }
-      }
-      return device;
-    });
-  }, [isOutputDeviceOn]);
-  
-  // Restore original toggleInputDeviceState logic
-  const toggleInputDeviceState = useCallback(() => {
-    setIsInputDeviceOn(!isInputDeviceOn);
-  }, [isInputDeviceOn]);
-  
-  // Restore original toggleOutputDeviceState logic
-  const toggleOutputDeviceState = useCallback(() => {
-    const newState = !isOutputDeviceOn;
-    setIsOutputDeviceOn(newState);
-
-    // Connect or disconnect the virtual speaker based on the new state
-    if (newState) {
-      // Turn ON - Connect virtual speaker to the selected output device
-      console.log(`Connecting Sokuji_Virtual_Speaker to output device: ${selectedOutputDevice.label}`);
-      (window as any).electron.invoke('connect-virtual-speaker-to-output', {
-        deviceId: selectedOutputDevice.deviceId,
-        label: selectedOutputDevice.label
-      })
-        .then((result: any) => {
-          if (result.success) {
-            console.log('Successfully connected virtual speaker to output device:', result.message);
-          } else {
-            console.error('Failed to connect virtual speaker to output device:', result.message);
-          }
-        })
-        .catch((error: any) => {
-          console.error('Error connecting virtual speaker to output device:', error);
-        });
-    } else {
-      // Turn OFF - Disconnect virtual speaker from all outputs
-      console.log('Disconnecting Sokuji_Virtual_Speaker from all outputs');
-      (window as any).electron.invoke('disconnect-virtual-speaker-outputs')
-        .then((result: any) => {
-          if (result.success) {
-            console.log('Successfully disconnected virtual speaker from outputs:', result.message);
-          } else {
-            console.error('Failed to disconnect virtual speaker from outputs:', result.error);
-          }
-        })
-        .catch((error: any) => {
-          console.error('Error disconnecting virtual speaker from outputs:', error);
-        });
-    }
-  }, [isOutputDeviceOn, selectedOutputDevice]);
-  
-  // Manually refresh device list
+  // Function to refresh the list of audio devices
   const refreshDevices = useCallback(async () => {
     setIsLoading(true);
     try {
-      const result = await fetchAudioDevices();
-      if (result !== true) {
-        console.error('Error refreshing audio devices:', result);
+      const devices = await audioService.current.getDevices();
+      
+      setAudioInputDevices(devices.inputs);
+      setAudioMonitorDevices(devices.outputs);
+      
+      // Select first non-virtual input device if not already selected
+      if (devices.inputs.length > 0 && (selectedInputDevice === null || !devices.inputs.some(d => d.deviceId === selectedInputDevice?.deviceId))) {
+        // Filter out virtual devices and select the first one
+        const nonVirtualInputs = devices.inputs.filter(device => !device.isVirtual);
+        if (nonVirtualInputs.length > 0) {
+          setSelectedInputDevice(nonVirtualInputs[0]);
+        } else if (devices.inputs.length > 0) {
+          // If all devices are virtual, select the first one anyway
+          setSelectedInputDevice(devices.inputs[0]);
+        }
+      }
+      
+      // Select first non-virtual monitor device if not already selected
+      if (devices.outputs.length > 0 && (selectedMonitorDevice === null || !devices.outputs.some(d => d.deviceId === selectedMonitorDevice?.deviceId))) {
+        // Filter out virtual devices and select the first one
+        const nonVirtualOutputs = devices.outputs.filter(device => !device.isVirtual);
+        if (nonVirtualOutputs.length > 0) {
+          setSelectedMonitorDevice(nonVirtualOutputs[0]);
+        } else if (devices.outputs.length > 0) {
+          // If all devices are virtual, select the first one anyway
+          setSelectedMonitorDevice(devices.outputs[0]);
+        }
+      }
+      
+      // Check if our virtual audio device was created
+      if (devices.outputs.some(device => device.isVirtual)) {
+        console.log('Virtual audio device detected');
+      } else if (audioService.current.supportsVirtualDevices()) {
+        console.log('Creating virtual audio devices...');
+        const result = await audioService.current.createVirtualDevices?.();
+        if (result && result.success) {
+          console.log('Successfully created virtual audio devices:', result.message);
+          // Refresh the device list again after creating virtual devices
+          await refreshDevices();
+        } else {
+          console.error('Failed to create virtual audio devices:', result?.error);
+        }
       }
     } catch (error) {
       console.error('Error refreshing audio devices:', error);
     } finally {
       setIsLoading(false);
     }
-  }, [fetchAudioDevices]);
+  }, [selectedInputDevice, selectedMonitorDevice]);
+
+  // Initialize audio service and load devices
+  useEffect(() => {
+    const initAudioService = async () => {
+      try {
+        await audioService.current.initialize();
+        await refreshDevices();
+
+        // When monitor device is ON during initialization, actively connect monitor device
+        // Only do this on initial mount, not when selectedMonitorDevice changes
+        if (isMonitorDeviceOn && selectedMonitorDevice) {
+          console.log('Initialization complete, actively connecting monitor device:', selectedMonitorDevice.deviceId);
+          audioService.current.connectMonitoringDevice(selectedMonitorDevice.deviceId, selectedMonitorDevice.label)
+            .then((result: AudioOperationResult) => {
+              if (result.success) {
+                console.log('Successfully connected virtual speaker to monitor device during initialization:', result.message);
+              } else {
+                console.error('Failed to connect virtual speaker to monitor device during initialization:', result.error);
+              }
+            })
+            .catch((error: Error) => {
+              console.error('Error connecting monitor device during initialization:', error);
+            });
+        }
+      } catch (error) {
+        console.error('Failed to initialize audio service:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    initAudioService();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [refreshDevices, isMonitorDeviceOn]);
+
+  const selectInputDevice = (device: AudioDevice) => setSelectedInputDevice(device);
+  
+  // Updated selectMonitorDevice to use the audio service
+  const selectMonitorDevice = useCallback((device: AudioDevice) => {
+    console.log(`Selected monitor device: ${device.label} (${device.deviceId})`);
+    setSelectedMonitorDevice((prevDevice) => {
+      
+      console.log(`Monitor device changed: ${prevDevice?.label} (${prevDevice?.deviceId}) -> ${device.label} (${device.deviceId})`);
+
+      // Only connect the virtual speaker if the monitor device is turned ON
+      if (isMonitorDeviceOn && device && device.deviceId) {
+        console.log(`Connecting virtual speaker to monitor device: ${device.label}`);
+
+        // Use the audio service instead of direct Electron calls
+        audioService.current.connectMonitoringDevice(device.deviceId, device.label)
+          .then((result: AudioOperationResult) => {
+            if (result.success) {
+              console.log('Successfully connected virtual speaker to monitor device:', result.message);
+            } else {
+              console.error('Failed to connect virtual speaker to monitor device:', result.error);
+            }
+          })
+          .catch((error: Error) => {
+            console.error('Error connecting virtual speaker to monitor device:', error);
+          });
+      }
+      return device;
+    });
+  }, [isMonitorDeviceOn]);
+  
+  // Updated toggleInputDeviceState to use the audio service if needed
+  const toggleInputDeviceState = useCallback(() => {
+    setIsInputDeviceOn(!isInputDeviceOn);
+  }, [isInputDeviceOn]);
+  
+  // Updated toggleMonitorDeviceState to use the audio service
+  const toggleMonitorDeviceState = useCallback(() => {
+    console.log('Toggling monitor device state');
+    const newState = !isMonitorDeviceOn;
+    setIsMonitorDeviceOn(newState);
+    
+    // Connect or disconnect the virtual speaker based on the new state
+    if (newState) {
+      // Turn ON - Connect virtual speaker to the selected monitor device
+      if (selectedMonitorDevice) {
+        console.log(`Connecting virtual speaker to monitor device: ${selectedMonitorDevice.label}`);
+        audioService.current.connectMonitoringDevice(selectedMonitorDevice.deviceId, selectedMonitorDevice.label)
+          .then((result: AudioOperationResult) => {
+            if (result.success) {
+              console.log('Successfully connected virtual speaker to monitor device:', result.message);
+            } else {
+              console.error('Failed to connect virtual speaker to monitor device:', result.error);
+            }
+          })
+          .catch((error: Error) => {
+            console.error('Error connecting virtual speaker to monitor device:', error);
+          });
+      } else {
+        console.warn('Cannot connect monitor device: No monitor device selected');
+      }
+    } else {
+      // Turn OFF - Disconnect virtual speaker from all outputs
+      console.log('Disconnecting virtual speaker from all outputs');
+      audioService.current.disconnectMonitoringDevices()
+        .then((result: AudioOperationResult) => {
+          if (result.success) {
+            console.log('Successfully disconnected virtual speaker from all outputs:', result.message);
+          } else {
+            console.error('Failed to disconnect virtual speaker from outputs:', result.error);
+          }
+        })
+        .catch((error: Error) => {
+          console.error('Error disconnecting virtual speaker from outputs:', error);
+        });
+    }
+  }, [isMonitorDeviceOn, selectedMonitorDevice]);
 
   return (
-    <AudioContext.Provider
-      value={{
-        audioInputDevices,
-        audioOutputDevices,
-        selectedInputDevice,
-        selectedOutputDevice,
-        isInputDeviceOn,
-        isOutputDeviceOn,
-        isLoading,
-        selectInputDevice,
-        selectOutputDevice,
-        toggleInputDeviceState,
-        toggleOutputDeviceState,
-        refreshDevices,
-      }}
-    >
+    <AudioContext.Provider value={{
+      audioInputDevices,
+      audioMonitorDevices,
+      selectedInputDevice,
+      selectedMonitorDevice,
+      isInputDeviceOn,
+      isMonitorDeviceOn,
+      isLoading,
+      selectInputDevice,
+      selectMonitorDevice,
+      toggleInputDeviceState,
+      toggleMonitorDeviceState,
+      refreshDevices
+    }}>
       {children}
     </AudioContext.Provider>
   );
 };
+
+export default AudioContext;
