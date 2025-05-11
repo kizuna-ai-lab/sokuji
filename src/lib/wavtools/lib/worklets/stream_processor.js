@@ -113,8 +113,16 @@ class StreamProcessor extends AudioWorkletProcessor {
       }
       return true;
     } else if (this.hasStarted) {
-      this.port.postMessage({ event: 'stop' });
-      return false;
+      // Send notification but don't stop processing
+      this.port.postMessage({ event: 'buffer-empty' });
+      
+      // Output silence data
+      for (let i = 0; i < outputChannelData.length; i++) {
+        outputChannelData[i] = 0;
+      }
+      
+      // Continue running
+      return true;
     } else {
       return true;
     }
