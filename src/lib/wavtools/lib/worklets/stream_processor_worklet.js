@@ -78,8 +78,16 @@ class StreamProcessor extends AudioWorkletProcessor {
       }
       return true;
     } else if (this.hasStarted) {
-      this.port.postMessage({ event: 'stop' });
-      return false;
+      // 发送通知但不停止处理
+      this.port.postMessage({ event: 'buffer-empty' });
+      
+      // 输出静音数据
+      for (let i = 0; i < outputChannelData.length; i++) {
+        outputChannelData[i] = 0;
+      }
+      
+      // 继续运行
+      return true;
     } else {
       return true;
     }
