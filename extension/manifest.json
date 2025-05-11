@@ -3,6 +3,8 @@
   "name": "Sokuji Extension",
   "version": "0.1.0",
   "description": "Real-time language interpretation extension for web browser",
+  "minimum_chrome_version": "116",
+  "offline_enabled": false,
   "icons": {
     "16": "icons/icon16.png",
     "48": "icons/icon48.png",
@@ -23,8 +25,6 @@
     "activeTab",
     "scripting",
     "storage",
-    "tabs",
-    "audio",
     "sidePanel"
   ],
   "host_permissions": [
