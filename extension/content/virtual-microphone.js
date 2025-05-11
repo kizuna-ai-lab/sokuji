@@ -44,11 +44,6 @@ async function initWavStreamPlayer() {
     // Create our own AudioContext instead of using connect() which tries to load the worklet
     streamPlayer.context = new AudioContext({ sampleRate: SAMPLE_RATE });
     
-    // // Resume the context if needed
-    // if (streamPlayer.context.state === 'suspended') {
-    //   await streamPlayer.context.resume();
-    // }
-    
     // Create a blob URL for our embedded AudioWorklet code
     const blob = new Blob([StreamProcessorWorkletCode], { type: 'application/javascript' });
     const workletUrl = URL.createObjectURL(blob);
