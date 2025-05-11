@@ -328,19 +328,12 @@ export class BrowserAudioService implements IAudioService {
       // Create a slice of the data for this chunk
       const dataChunk = data.slice(startIndex, endIndex);
       
-      // Convert Int16Array to Float32Array for web audio compatibility
-      const floatChunk = new Float32Array(chunkSize);
-      for (let i = 0; i < chunkSize; i++) {
-        // Convert 16-bit PCM (-32768 to 32767) to float (-1.0 to 1.0)
-        floatChunk[i] = dataChunk[i] / 32768.0;
-      }
-      
       // Create audio data object for this chunk
       const audioData = {
         numberOfChannels: 1,
         duration: chunkSize / 24000, // Assuming 24kHz sample rate
         sampleRate: 24000,
-        channelData: [Array.from(floatChunk)], // Convert to regular array
+        channelData: [Array.from(dataChunk)], // Send original Int16Array data
         chunkIndex, // Add chunk information for reassembly if needed
         totalChunks: numChunks,
         isLargeFile: isLargeAudioFile // Flag for the virtual microphone to adjust processing

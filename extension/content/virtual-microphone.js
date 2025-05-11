@@ -350,15 +350,8 @@ window.addEventListener('message', (event) => {
     
     // Process the incoming audio data
     if (data && data.channelData && data.channelData[0]) {
-      // Convert Float32Array to Int16Array (scaling from [-1,1] to [-32768,32767])
-      const floatSamples = data.channelData[0];
-      const int16Samples = new Int16Array(floatSamples.length);
-      
-      for (let i = 0; i < floatSamples.length; i++) {
-        // Scale and clamp to 16-bit range
-        const sample = Math.max(-1, Math.min(1, floatSamples[i]));
-        int16Samples[i] = Math.round(sample * 32767);
-      }
+      // Data is already in Int16Array format, use it directly
+      const int16Samples = new Int16Array(data.channelData[0]);
       
       // Add the audio data to our player
       addAudioData(int16Samples, 'content-script');
