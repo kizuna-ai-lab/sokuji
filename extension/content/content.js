@@ -56,7 +56,52 @@ function injectVirtualMicrophoneScript() {
 // Run script injection immediately (before DOMContentLoaded)
 injectVirtualMicrophoneScript();
 
-// Listen for audio chunks from side panel and forward to page script
+// Wait for DOM to be ready before injecting permission iframe
+if (document.readyState === 'complete' || document.readyState === 'interactive') {
+  // If DOM is already ready, inject immediately
+  injectPermissionIframe();
+} else {
+  // Otherwise wait for DOMContentLoaded
+  document.addEventListener('DOMContentLoaded', injectPermissionIframe);
+}
+
+// Function to inject permission iframe
+function injectPermissionIframe() {
+  // Check if an iframe with this ID already exists
+  const existingIframe = document.getElementById('permissionsIFrame');
+  if (existingIframe) {
+    // Remove it if it exists
+    existingIframe.remove();
+  }
+
+  // Create a hidden iframe to request permission
+  const iframe = document.createElement('iframe');
+  iframe.hidden = true;
+  iframe.id = 'permissionsIFrame';
+  iframe.allow = 'microphone';
+  iframe.src = getExtensionURL('permission.html');
+  
+  // Remove the iframe after a delay to avoid keeping it in the DOM
+  setTimeout(() => {
+    if (iframe && iframe.parentNode) {
+      iframe.parentNode.removeChild(iframe);
+    }
+  }, 5000); // 5 second timeout should be enough for the permission request
+  
+  // Append the iframe to the document body or other available parent
+  if (document.body) {
+    document.body.appendChild(iframe);
+  } else if (document.documentElement) {
+    document.documentElement.appendChild(iframe);
+  } else {
+    console.error('[Sokuji] Cannot inject permission iframe - no suitable parent element found');
+    return; // Exit the function if we can't inject the iframe
+  }
+  
+  console.log('[Sokuji] Permission iframe injected into page');
+}
+
+// Listen for messages from the extension
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === 'AUDIO_CHUNK') {
     // Forward PCM data to page context
