@@ -62,10 +62,10 @@
       flex-direction: column;
       
       .conversation-item {
-        margin-bottom: 20px;
-        padding: 15px;
+        margin-bottom: 12px;
+        padding: 10px;
         border-radius: 8px;
-        max-width: 85%;
+        max-width: 95%;
         
         &.user {
           background-color: #2a2a2a;
@@ -87,13 +87,20 @@
         }
         
         .conversation-item-role {
-          font-size: 12px;
+          font-size: 10px;
           color: rgba(255, 255, 255, 0.6);
-          margin-bottom: 5px;
+          margin-bottom: 0;
           text-transform: capitalize;
           display: flex;
           align-items: center;
           gap: 6px;
+          position: absolute;
+          top: 4px;
+          right: 8px;
+          background-color: inherit;
+          padding: 2px 4px;
+          border-radius: 4px;
+          z-index: 2;
           
           .inline-play-button {
             display: flex;
@@ -101,9 +108,9 @@
             justify-content: center;
             background-color: rgba(255, 255, 255, 0.1);
             border: none;
-            border-radius: 4px;
-            width: 20px;
-            height: 20px;
+            border-radius: 3px;
+            width: 16px;
+            height: 16px;
             padding: 0;
             color: white;
             cursor: pointer;
@@ -133,8 +140,9 @@
         }
         
         .conversation-item-content {
+          padding-top: 12px;
           .content-item {
-            margin-bottom: 8px;
+            margin-bottom: 4px;
             
             &:last-child {
               margin-bottom: 0;

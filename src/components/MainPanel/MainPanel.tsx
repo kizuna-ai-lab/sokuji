@@ -948,7 +948,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         <div className="conversation-content" data-conversation-content>
           {items.length > 0 ? (
             items.map((item, index) => (
-              <div key={index} className={`conversation-item ${item.role}`}>
+              <div key={index} className={`conversation-item ${item.role}`} style={{ position: 'relative' }}>
                 <div className="conversation-item-role">
                   {item.role}
                   {process.env.NODE_ENV === 'development' && (item as any).status === 'completed' && item.formatted?.audio && (
@@ -957,7 +957,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                       onClick={() => handlePlayAudio(item)}
                       disabled={playingItemId === item.id}
                     >
-                      <Play size={12} />
+                      <Play size={10} />
                     </button>
                   )}
                 </div>
