@@ -955,7 +955,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                     <button 
                       className={`inline-play-button ${playingItemId === item.id ? 'playing' : ''}`}
                       onClick={() => handlePlayAudio(item)}
-                      disabled={playingItemId === item.id}
+                      disabled={playingItemId !== null}
                     >
                       <Play size={10} />
                     </button>
