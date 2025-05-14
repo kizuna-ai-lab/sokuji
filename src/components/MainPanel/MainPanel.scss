@@ -424,9 +424,18 @@
         font-size: 13px;
         cursor: pointer;
         height: 28px; /* Fixed height to match others */
+        transition: background-color 0.2s;
         
         &:hover {
           background-color: rgba(255, 255, 255, 0.1);
+        }
+        
+        &.active {
+          background-color: #444;
+          
+          &:hover {
+            background-color: #555;
+          }
         }
         
         /* Hide text on small screens */

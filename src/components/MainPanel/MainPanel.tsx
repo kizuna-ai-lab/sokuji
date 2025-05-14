@@ -1023,7 +1023,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           </button>
           {process.env.NODE_ENV === 'development' && (
             <button
-              className="debug-button"
+              className={`debug-button ${isTestTonePlaying ? 'active' : ''}`}
               onClick={playTestTone}
             >
               <Tool size={14} />
