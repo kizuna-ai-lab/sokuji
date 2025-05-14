@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { X, Zap, Users, Mic, Tool, Loader } from 'react-feather';
+import { X, Zap, Users, Mic, Tool, Loader, Play, Volume2 } from 'react-feather';
 import './MainPanel.scss';
 import { useSettings } from '../../contexts/SettingsContext';
 import { useLog } from '../../contexts/LogContext';
@@ -41,8 +41,9 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   // Reference for conversation container to enable auto-scrolling
   const conversationContainerRef = useRef<HTMLDivElement>(null);
 
-  // Add a state variable to track if test tone is playing
+  // Add state variables to track if test tone is playing and currently playing audio item
   const [isTestTonePlaying, setIsTestTonePlaying] = useState(false);
+  const [playingItemId, setPlayingItemId] = useState<string | null>(null);
 
   /**
    * Convert settings to updateSession parameters
@@ -218,9 +219,11 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         );
         item.formatted.file = wavFile;
       }
+      console.log(items);
       setItems(items);
     });
 
+    console.log(client.conversation.getItems());
     setItems(client.conversation.getItems());
   }, [addRealtimeEvent]);
 
@@ -341,6 +344,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
       // Set state variables after successful initialization
       setIsSessionActive(true);
+      console.log(client.conversation.getItems());
       setItems(client.conversation.getItems() as ItemType[]);
     } catch (error) {
       console.error('Failed to initialize session:', error);
@@ -420,6 +424,103 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       setIsRecording(false);
     }
   }, [isRecording]);
+
+  /**
+   * Play audio from a conversation item
+   */
+  const handlePlayAudio = useCallback(async (item: ItemType) => {
+    try {
+      const audioService = audioServiceRef.current;
+      if (!audioService) {
+        console.error('Audio service not available');
+        return;
+      }
+
+      // If already playing something, interrupt it first
+      if (playingItemId) {
+        await audioService.interruptAudio();
+        setPlayingItemId(null);
+      }
+
+      // If this is the same item that was playing, just stop it
+      if (playingItemId === item.id) {
+        return;
+      }
+
+      // Clear any interrupted tracks
+      audioService.clearInterruptedTracks();
+      
+      // Check if the item has audio data
+      if (!item.formatted?.audio) {
+        console.error('No audio data found in the item');
+        return;
+      }
+
+      // Clear any interrupted track for this item
+      const wavStreamPlayer = audioService.getWavStreamPlayer();
+      const interruptedTrackIds = (wavStreamPlayer as any).interruptedTrackIds || {};
+      if (typeof interruptedTrackIds === 'object' && interruptedTrackIds[item.id]) {
+        delete interruptedTrackIds[item.id];
+      }
+
+      // If output device is ON, ensure monitor device is connected
+      if (isMonitorDeviceOn && selectedMonitorDevice &&
+        !selectedMonitorDevice.label.toLowerCase().includes('sokuji_virtual') &&
+        !selectedMonitorDevice.label.includes('Sokuji Virtual Output')) {
+        selectMonitorDevice(selectedMonitorDevice);
+      }
+
+      // Play the audio using the audio service
+      audioService.addAudioData(item.formatted.audio, item.id);
+      
+      // Store the current item ID to use in the timeout
+      const currentItemId = item.id;
+      setPlayingItemId(currentItemId);
+      
+      // Calculate audio duration based on the audio data
+      let audioLength = 0;
+      
+      // Type assertion to access properties safely
+      const audioData = item.formatted.audio as any;
+      
+      if (audioData instanceof Int16Array) {
+        // If it's a proper Int16Array, use its length
+        audioLength = audioData.length;
+        console.log(`Audio is Int16Array with length: ${audioLength}`);
+      } else if (audioData && typeof audioData === 'object') {
+        if ('byteLength' in audioData && typeof audioData.byteLength === 'number') {
+          // If it has byteLength property
+          audioLength = audioData.byteLength / 2; // 2 bytes per Int16 sample
+          console.log(`Audio has byteLength: ${audioData.byteLength}, calculated length: ${audioLength}`);
+        } else if ('length' in audioData && typeof audioData.length === 'number') {
+          // If it has a numeric length property
+          audioLength = audioData.length;
+          console.log(`Audio has length property: ${audioLength}`);
+        } else {
+          // Last resort: count the keys in the object
+          audioLength = Object.keys(audioData).length;
+          console.log(`Audio length calculated from object keys: ${audioLength}`);
+        }
+      }
+      
+      // Calculate duration in milliseconds (24kHz sample rate)
+      const durationMs = (audioLength / 24000) * 1000;
+      console.log(`Audio duration: ${durationMs}ms`);
+      
+      // Use a minimum duration if calculated duration is too short
+      const actualDurationMs = Math.max(durationMs, 1000);
+      
+      // Set a timeout to clear the playing state
+      setTimeout(() => {
+        setPlayingItemId(prevId => prevId === currentItemId ? null : prevId);
+      }, actualDurationMs + 50); // Add 50ms buffer
+      
+      console.log(`Playing audio from item ${item.id}`);
+    } catch (error) {
+      console.error('Error playing audio:', error);
+      setPlayingItemId(null);
+    }
+  }, [isMonitorDeviceOn, selectedMonitorDevice, selectMonitorDevice, playingItemId]);
 
   /**
    * Play or stop test tone for debugging
@@ -865,9 +966,26 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
                     // For items with formatted property containing transcript
                     if (item.formatted && item.formatted.transcript) {
+                      const isPlaying = playingItemId === item.id;
+                      // Check if item has status property and if it's completed
+                      const isCompleted = (item as any).status === 'completed';
                       return (
                         <div className="content-item transcript">
-                          {item.formatted.transcript}
+                          <div className="transcript-content">
+                            {item.formatted.transcript}
+                          </div>
+                          {isCompleted && item.formatted.audio && (
+                            <div className="audio-controls">
+                              <button 
+                                className={`play-button ${isPlaying ? 'playing' : ''}`}
+                                onClick={() => handlePlayAudio(item)}
+                                disabled={isPlaying}
+                              >
+                                <Play size={14} />
+                                <span>{isPlaying ? 'Playing...' : 'Play'}</span>
+                              </button>
+                            </div>
+                          )}
                         </div>
                       );
                     }
@@ -877,7 +995,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                       return (
                         <div className="content-item audio">
                           <div className="audio-indicator">
-                            <span className="audio-icon">🔊</span>
+                            <span className="audio-icon"><Volume2 size={16} /></span>
                             <span className="audio-text">Audio content</span>
                           </div>
                         </div>
@@ -895,8 +1013,18 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                             {contentItem.type === 'input_text' && contentItem.text}
                             {contentItem.type === 'audio' && (
                               <div className="audio-indicator">
-                                <span className="audio-icon">🔊</span>
+                                <span className="audio-icon"><Volume2 size={16} /></span>
                                 <span className="audio-text">Audio content</span>
+                                {(item as any).status === 'completed' && (
+                                  <button 
+                                    className={`play-button ${playingItemId === item.id ? 'playing' : ''}`}
+                                    onClick={() => handlePlayAudio(item)}
+                                    disabled={playingItemId === item.id}
+                                  >
+                                    <Play size={14} />
+                                    <span>{playingItemId === item.id ? 'Playing...' : 'Play'}</span>
+                                  </button>
+                                )}
                               </div>
                             )}
                             {contentItem.type === 'input_audio' && contentItem.transcript && (
