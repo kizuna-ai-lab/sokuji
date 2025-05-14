@@ -42,7 +42,69 @@ export class BrowserAudioService implements IAudioService {
   async getDevices(): Promise<AudioDevices> {
     try {
       // Request permission to access media devices
-      await navigator.mediaDevices.getUserMedia({ audio: true });
+      try {
+        await navigator.mediaDevices.getUserMedia({ audio: true });
+      } catch (permissionError: any) {
+        console.error('Microphone permission denied:', permissionError);
+        
+        // Show user-friendly error message
+        const errorType = permissionError.name || 'Error';
+        let errorMessage = 'Unable to access your microphone. ';
+        
+        if (errorType === 'NotAllowedError' || errorType === 'PermissionDeniedError') {
+          // Get the URL to permission.html
+          let permissionUrl = '';
+          if (chrome && chrome.runtime && chrome.runtime.getURL) {
+            permissionUrl = chrome.runtime.getURL('permission.html');
+          }
+          
+          errorMessage += 'Please allow microphone access to use this extension. ';
+          
+          if (permissionUrl) {
+            errorMessage += `<a href="${permissionUrl}" target="_blank" style="color: white; text-decoration: underline; font-weight: bold;">Click here</a> to grant microphone permission, or `;
+          }
+          
+          errorMessage += 'click the camera/microphone icon in your browser address bar and grant permission.';
+        } else if (errorType === 'NotFoundError') {
+          errorMessage += 'No microphone was found on your device.';
+        } else if (errorType === 'NotReadableError') {
+          errorMessage += 'Your microphone is already in use by another application.';
+        } else {
+          errorMessage += `Error details: ${permissionError.message || errorType}`;
+        }
+        
+        // Display error message to user
+        if (typeof window !== 'undefined') {
+          // Create or update error notification element
+          let notification = document.getElementById('sokuji-mic-error');
+          if (!notification) {
+            notification = document.createElement('div');
+            notification.id = 'sokuji-mic-error';
+            notification.style.cssText = 'position:fixed; top:10px; left:50%; transform:translateX(-50%); '
+              + 'background:#f44336; color:white; padding:12px 24px; border-radius:4px; z-index:9999; '
+              + 'max-width:80%; text-align:center; box-shadow:0 2px 5px rgba(0,0,0,0.3); font-family:sans-serif;';
+            
+            // Add close button
+            const closeBtn = document.createElement('button');
+            closeBtn.innerHTML = '&times;';
+            closeBtn.style.cssText = 'background:none; border:none; color:white; font-size:20px; '
+              + 'position:absolute; right:5px; top:5px; cursor:pointer; padding:0 5px;';
+            closeBtn.onclick = () => notification?.remove();
+            notification.appendChild(closeBtn);
+            
+            document.body.appendChild(notification);
+          }
+          
+          // Add message content
+          notification.innerHTML = `<div>${errorMessage}</div>`;
+          
+          // Auto-hide after 15 seconds
+          setTimeout(() => notification?.remove(), 15000);
+        }
+        
+        // Return empty device lists
+        return { inputs: [], outputs: [] };
+      }
       
       const devices = await navigator.mediaDevices.enumerateDevices();
       
