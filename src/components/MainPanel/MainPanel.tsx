@@ -974,7 +974,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                           <div className="transcript-content">
                             {item.formatted.transcript}
                           </div>
-                          {isCompleted && item.formatted.audio && (
+                          {process.env.NODE_ENV === 'development' && isCompleted && item.formatted.audio && (
                             <div className="audio-controls">
                               <button 
                                 className={`play-button ${isPlaying ? 'playing' : ''}`}
@@ -1015,7 +1015,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                               <div className="audio-indicator">
                                 <span className="audio-icon"><Volume2 size={16} /></span>
                                 <span className="audio-text">Audio content</span>
-                                {(item as any).status === 'completed' && (
+                                {process.env.NODE_ENV === 'development' && (item as any).status === 'completed' && (
                                   <button 
                                     className={`play-button ${playingItemId === item.id ? 'playing' : ''}`}
                                     onClick={() => handlePlayAudio(item)}
