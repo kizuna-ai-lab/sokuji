@@ -949,7 +949,18 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           {items.length > 0 ? (
             items.map((item, index) => (
               <div key={index} className={`conversation-item ${item.role}`}>
-                <div className="conversation-item-role">{item.role}</div>
+                <div className="conversation-item-role">
+                  {item.role}
+                  {process.env.NODE_ENV === 'development' && (item as any).status === 'completed' && item.formatted?.audio && (
+                    <button 
+                      className={`inline-play-button ${playingItemId === item.id ? 'playing' : ''}`}
+                      onClick={() => handlePlayAudio(item)}
+                      disabled={playingItemId === item.id}
+                    >
+                      <Play size={12} />
+                    </button>
+                  )}
+                </div>
                 <div className="conversation-item-content">
                   {(() => {
                     // Handle different item types based on the ItemType structure
@@ -966,26 +977,13 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
                     // For items with formatted property containing transcript
                     if (item.formatted && item.formatted.transcript) {
-                      const isPlaying = playingItemId === item.id;
-                      // Check if item has status property and if it's completed
-                      const isCompleted = (item as any).status === 'completed';
+                      // Audio playback is now handled in the role label
                       return (
                         <div className="content-item transcript">
                           <div className="transcript-content">
                             {item.formatted.transcript}
                           </div>
-                          {process.env.NODE_ENV === 'development' && isCompleted && item.formatted.audio && (
-                            <div className="audio-controls">
-                              <button 
-                                className={`play-button ${isPlaying ? 'playing' : ''}`}
-                                onClick={() => handlePlayAudio(item)}
-                                disabled={isPlaying}
-                              >
-                                <Play size={14} />
-                                <span>{isPlaying ? 'Playing...' : 'Play'}</span>
-                              </button>
-                            </div>
-                          )}
+                          {/* Play button moved to role label */}
                         </div>
                       );
                     }
@@ -1015,16 +1013,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                               <div className="audio-indicator">
                                 <span className="audio-icon"><Volume2 size={16} /></span>
                                 <span className="audio-text">Audio content</span>
-                                {process.env.NODE_ENV === 'development' && (item as any).status === 'completed' && (
-                                  <button 
-                                    className={`play-button ${playingItemId === item.id ? 'playing' : ''}`}
-                                    onClick={() => handlePlayAudio(item)}
-                                    disabled={playingItemId === item.id}
-                                  >
-                                    <Play size={14} />
-                                    <span>{playingItemId === item.id ? 'Playing...' : 'Play'}</span>
-                                  </button>
-                                )}
+                                {/* Play button moved to role label */}
                               </div>
                             )}
                             {contentItem.type === 'input_audio' && contentItem.transcript && (
