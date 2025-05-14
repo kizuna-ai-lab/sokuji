@@ -442,3 +442,11 @@
     }
   }
 }
+
+.session-button {
+  @media (max-width: 576px) {
+    .tooltip {
+      display: block !important;
+    }
+  }
+}
