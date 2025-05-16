@@ -73,6 +73,29 @@ The extension uses Chrome-specific APIs like Side Panel that are not available i
 4. Click the "Start Session" button to begin interpretation
 5. Use the push-to-talk feature (Space key) when enabled
 
+## Google Meet Integration
+
+To use Sokuji with Google Meet:
+
+1. Join a Google Meet call
+2. Click the Sokuji extension icon
+3. Select "Open in Google Meet"
+4. The extension will automatically detect the meeting and inject the controls
+5. Use the audio replacement feature to play pre-recorded audio during the call
+
+## Troubleshooting
+
+### Microphone Access
+If the extension can't access your microphone:
+- Click the extension icon in the toolbar
+- Look for the microphone permission prompt and click "Allow"
+- If you previously denied access, click the lock icon in the address bar and update the site settings
+
+### Audio Not Working
+- Ensure you've selected the correct input/output devices in the Audio settings
+- Check your browser's audio settings to verify the correct devices are selected
+- Try refreshing the page where the extension is being used
+
 ## Using in Webpages
 
 After clicking the extension icon, you can select "Open in current page" to inject the Sokuji interface into the current webpage. The interface features:
