@@ -98,10 +98,16 @@ The numbered connections in the diagram represent:
 
 This routing system allows Sokuji to capture audio from your selected input device, process it through OpenAI's Realtime API, and then output the translated audio both to your local speakers and to other applications via the virtual microphone.
 
+# Browser Extension Available!
+
+Prefer not to install a desktop application? Try our [browser extension](https://chromewebstore.google.com/detail/ppmihnhelgfpjomhjhpecobloelicnak?utm_source=item-share-cb) for Chrome and Chromium-based browsers. It offers the same powerful real-time translation features directly in your browser, with special integration for Google Meet.
+
+[![Chrome Web Store](https://developer.chrome.com/static/docs/webstore/branding/image/UV4C4ybeBTsZt43U4xis.png)](https://chromewebstore.google.com/detail/ppmihnhelgfpjomhjhpecobloelicnak?utm_source=item-share-cb)
+
 # Preparation
 
 - (required) An OpenAI API key with access to the Realtime API
-- (required) Linux with PulseAudio or PipeWire for virtual audio device support
+- (required) Linux with PulseAudio or PipeWire for virtual audio device support (desktop app only)
 
 # Installation
 
