@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Sokuji Extension",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "description": "Real-time language interpretation extension for web browser",
   "minimum_chrome_version": "116",
   "offline_enabled": false,
