@@ -3,12 +3,34 @@ import { ArrowRight, Save, Check, AlertCircle, AlertTriangle, Info, Key } from '
 import './SettingsPanel.scss';
 import { useSettings, VoiceOption, TurnDetectionMode, SemanticEagerness, NoiseReductionMode, TranscriptModel, Model } from '../../contexts/SettingsContext';
 
+// Language options with native names and English values
+const languageOptions = [
+  { name: 'English', value: 'English' },
+  { name: '中文', value: 'Chinese' },
+  { name: '日本語', value: 'Japanese' },
+  { name: '한국어', value: 'Korean' },
+  { name: 'Español', value: 'Spanish' },
+  { name: 'Français', value: 'French' },
+  { name: 'Deutsch', value: 'German' },
+  { name: 'Italiano', value: 'Italian' },
+  { name: 'Português', value: 'Portuguese' },
+  { name: 'Русский', value: 'Russian' },
+  { name: 'العربية', value: 'Arabic' },
+  { name: 'हिन्दी', value: 'Hindi' },
+  { name: 'Tiếng Việt', value: 'Vietnamese' },
+  { name: 'ไทย', value: 'Thai' },
+  { name: 'Nederlands', value: 'Dutch' },
+  { name: 'Svenska', value: 'Swedish' },
+  { name: 'Polski', value: 'Polish' },
+  { name: 'Türkçe', value: 'Turkish' },
+];
+
 interface SettingsPanelProps {
   toggleSettings?: () => void;
 }
 
 const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
-  const { settings, updateSettings, validateApiKey: contextValidateApiKey } = useSettings();
+  const { settings, updateSettings, validateApiKey: contextValidateApiKey, getProcessedSystemInstructions } = useSettings();
 
   const [apiKeyStatus, setApiKeyStatus] = useState<{
     valid: boolean | null;
@@ -176,12 +198,92 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
         </div>
         <div className="settings-section">
           <h2>System Instructions</h2>
-          <textarea 
-            className="system-instructions" 
-            placeholder="Enter system instructions here..."
-            value={settings.systemInstructions}
-            onChange={(e) => updateSettings({ systemInstructions: e.target.value })}
-          />
+          <div className="setting-item">
+            <div className="turn-detection-options">
+              <button 
+                className={`option-button ${settings.useTemplateMode ? 'active' : ''}`}
+                onClick={() => updateSettings({ useTemplateMode: true })}
+              >
+                Simple
+              </button>
+              <button 
+                className={`option-button ${!settings.useTemplateMode ? 'active' : ''}`}
+                onClick={() => updateSettings({ useTemplateMode: false })}
+              >
+                Advanced
+              </button>
+            </div>
+          </div>
+          
+          {settings.useTemplateMode ? (
+            <>
+              <div className="setting-item">
+                <div className="setting-label">
+                  <span>Source Language</span>
+                </div>
+                <select
+                  className="select-dropdown"
+                  value={settings.sourceLanguage}
+                  onChange={(e) => {
+                    const newSourceLang = e.target.value;
+                    // If new source language is the same as current target language,
+                    // we need to update target language to avoid conflict
+                    if (newSourceLang === settings.targetLanguage) {
+                      // Find the first available language that's not the new source language
+                      const newTargetLang = languageOptions.find(lang => 
+                        lang.value !== newSourceLang
+                      )?.value || '';
+                      
+                      updateSettings({
+                        sourceLanguage: newSourceLang,
+                        targetLanguage: newTargetLang
+                      });
+                    } else {
+                      updateSettings({ sourceLanguage: newSourceLang });
+                    }
+                  }}
+                >
+                  {languageOptions
+                    .map((lang) => (
+                      <option key={lang.value} value={lang.value}>{lang.name}</option>
+                    ))}
+                </select>
+              </div>
+              <div className="setting-item">
+                <div className="setting-label">
+                  <span>Target Language</span>
+                </div>
+                <select
+                  className="select-dropdown"
+                  value={settings.targetLanguage}
+                  onChange={(e) => updateSettings({ targetLanguage: e.target.value })}
+                >
+                  {languageOptions
+                    .filter(lang => lang.value !== settings.sourceLanguage)
+                    .map((lang) => (
+                      <option key={lang.value} value={lang.value}>{lang.name}</option>
+                    ))}
+                </select>
+              </div>
+              <div className="setting-item">
+                <div className="system-instructions-preview">
+                  <h4>Preview:</h4>
+                  <div className="preview-content">
+                    {getProcessedSystemInstructions()}
+                  </div>
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className="setting-item">
+              <textarea 
+                className="system-instructions" 
+                placeholder="Enter custom system instructions here..."
+                value={settings.systemInstructions}
+                onChange={(e) => updateSettings({ systemInstructions: e.target.value })}
+              />
+            </div>
+          )}
         </div>
         <div className="settings-section">
           <h2>Voice</h2>

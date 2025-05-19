@@ -21,7 +21,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   const [isInitializing, setIsInitializing] = useState(false);
 
   // Get settings from context
-  const { settings, isApiKeyValid } = useSettings();
+  const { settings, isApiKeyValid, getProcessedSystemInstructions } = useSettings();
 
   // Get log functions from context
   const { addRealtimeEvent } = useLog();
@@ -49,10 +49,13 @@ const MainPanel: React.FC<MainPanelProps> = () => {
    * Convert settings to updateSession parameters
    */
   const getUpdateSessionParams = useCallback((settings: any) => {
+    // Get processed system instructions from the context
+    const systemInstructions = getProcessedSystemInstructions();
+
     const updateSessionParams: any = {
       model: settings.model || 'gpt-4o-mini-realtime-preview',
       voice: settings.voice || 'alloy',
-      instructions: settings.systemInstructions || '',
+      instructions: systemInstructions,
       temperature: settings.temperature ?? 0.8,
       max_response_output_tokens: settings.maxTokens ?? 'inf',
     };
@@ -105,7 +108,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     }
 
     return updateSessionParams;
-  }, []);
+  }, [getProcessedSystemInstructions]);
 
   /**
    * Setup virtual audio output device

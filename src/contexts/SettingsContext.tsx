@@ -20,7 +20,11 @@ export interface Settings {
   transcriptModel: TranscriptModel;
   noiseReduction: NoiseReductionMode;
   voice: VoiceOption;
+  useTemplateMode: boolean;
+  sourceLanguage: string;
+  targetLanguage: string;
   systemInstructions: string;
+  templateSystemInstructions: string;
   openAIApiKey: string;
 }
 
@@ -34,6 +38,7 @@ interface SettingsContextType {
     message: string;
     validating?: boolean;
   }>;
+  getProcessedSystemInstructions: () => string;
 }
 
 export const defaultSettings: Settings = {
@@ -48,6 +53,9 @@ export const defaultSettings: Settings = {
   transcriptModel: 'gpt-4o-mini-transcribe',
   noiseReduction: 'None',
   voice: 'alloy',
+  useTemplateMode: true,
+  sourceLanguage: 'Chinese',
+  targetLanguage: 'Japanese',
   systemInstructions:
     "You are a professional real-time interpreter.\n" +
     "Your only job is to translate every single user input **literally** from Chinese to Japanese—no exceptions.\n" +
@@ -61,6 +69,15 @@ export const defaultSettings: Settings = {
     "  AI（English）：15th task.  \n\n" +
     "- 用户（Chinese）：这句话在日语中有没有类似的话?  \n" +
     "  AI（English）：Is there a similar expression in Japanese for this sentence?",
+  templateSystemInstructions:
+    "You are a professional real-time simultaneous interpreter translating from {{SOURCE_LANGUAGE}} to {{TARGET_LANGUAGE}}. Upon receiving each new speech segment (typically one or two short sentences), begin outputting the translated text immediately, adhering to these rules:\n" +
+    "1. **Timeliness**: Start output within 200 ms of end-of-input.  \n" +
+    "2. **Accuracy**: Convey every detail faithfully—no omissions, no additions—and preserve original punctuation.  \n" +
+    "3. **Fluency**: Produce natural, coherent speech reflecting appropriate pauses and pace.  \n" +
+    "4. **Sentence-type preservation**: Maintain the original sentence form—if the input is a question, output it as a question in the target language, with proper interrogative structure and a question mark.  \n" +
+    "5. **Non-engagement**: Do **not** answer, explain, or comment on the content—translate only.  \n" +
+    "6. **Formatting**: Output **only** the translated text—no tags, notes, or commentary.  \n" +
+    "7. **Tone**: Match the speaker's register (formal vs. casual) without over-polishing.",
   openAIApiKey: '',
 };
 
@@ -80,6 +97,17 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   
   const [settings, setSettings] = useState<Settings>(defaultSettings);
   const [isApiKeyValid, setIsApiKeyValid] = useState(false);
+  
+  // Process system instructions based on the selected mode
+  const getProcessedSystemInstructions = useCallback(() => {
+    if (settings.useTemplateMode) {
+      return settings.templateSystemInstructions
+        .replace('{{SOURCE_LANGUAGE}}', settings.sourceLanguage || 'SOURCE_LANGUAGE')
+        .replace('{{TARGET_LANGUAGE}}', settings.targetLanguage || 'TARGET_LANGUAGE');
+    } else {
+      return settings.systemInstructions;
+    }
+  }, [settings.useTemplateMode, settings.templateSystemInstructions, settings.sourceLanguage, settings.targetLanguage, settings.systemInstructions]);
 
   // Validate the API key
   const validateApiKey = useCallback(async (apiKey?: string) => {
@@ -163,6 +191,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         reloadSettings: loadSettings,
         isApiKeyValid,
         validateApiKey,
+        getProcessedSystemInstructions
       }}
     >
       {children}
