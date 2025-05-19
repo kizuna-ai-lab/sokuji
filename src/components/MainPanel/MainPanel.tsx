@@ -219,7 +219,6 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         );
         item.formatted.file = wavFile;
       }
-      console.log(items);
       setItems(items);
     });
 
