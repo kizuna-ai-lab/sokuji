@@ -222,7 +222,6 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       setItems(items);
     });
 
-    console.log(client.conversation.getItems());
     setItems(client.conversation.getItems());
   }, [addRealtimeEvent]);
 
@@ -343,7 +342,6 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
       // Set state variables after successful initialization
       setIsSessionActive(true);
-      console.log(client.conversation.getItems());
       setItems(client.conversation.getItems() as ItemType[]);
     } catch (error) {
       console.error('Failed to initialize session:', error);
