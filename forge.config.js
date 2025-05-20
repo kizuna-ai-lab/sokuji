@@ -27,6 +27,9 @@ module.exports = {
       // Source maps and other development artifacts
       '\\.map$',
       
+      // Debug-only assets
+      'build/assets/test-tone\\.mp3',
+      
       // Test files
       'test($|/)',
       'tests($|/)',
