@@ -75,10 +75,10 @@ module.exports = {
           to: 'worklets/[name][ext]', 
           noErrorOnMissing: true 
         },
-        { 
+        ...(process.env.NODE_ENV === 'development' ? [{ 
           from: '../public/assets/test-tone.mp3', 
           to: 'assets/test-tone.mp3' 
-        },
+        }] : []),
         { from: 'permission.html', to: 'permission.html' },
         { from: 'requestPermission.js', to: 'requestPermission.js' }
       ],
