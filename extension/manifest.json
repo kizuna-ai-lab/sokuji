@@ -26,9 +26,6 @@
     "storage",
     "sidePanel"
   ],
-  "host_permissions": [
-    "https://api.openai.com/*"
-  ],
   "background": {
     "service_worker": "background.js",
     "type": "module"
