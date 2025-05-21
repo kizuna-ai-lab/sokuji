@@ -1,7 +1,7 @@
 {
   "name": "sokuji-extension",
   "version": "0.2.5",
-  "description": "Browser extension version of Sokuji - Real-time simultaneous interpretation using OpenAI's Realtime API",
+  "description": "Browser extension version of Sokuji - Live speech translation using OpenAI's Realtime API",
   "private": true,
   "scripts": {
     "build": "webpack --mode production",

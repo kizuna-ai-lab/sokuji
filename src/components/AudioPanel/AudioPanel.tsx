@@ -67,7 +67,7 @@ const AudioPanel: React.FC<{ toggleAudio: () => void }> = ({ toggleAudio }) => {
           </p>
           <p>
             Please do not select this device here. Instead, use this virtual microphone in your video conferencing 
-            applications (like Google Meet, Zoom, Microsoft Teams, etc.) to receive the simultaneous interpretation output.
+            applications (like Google Meet, Zoom, Microsoft Teams, etc.) to receive the live speech translation output.
           </p>
           <p>
             For Sokuji to work properly, please select your actual physical microphone from the list.

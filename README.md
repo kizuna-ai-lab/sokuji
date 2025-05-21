@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <em>Real-time simultaneous interpretation powered by OpenAI's Realtime API</em>
+  <em>Live speech translation powered by OpenAI's Realtime API</em>
 </p>
 
 <p align="center">
@@ -37,7 +37,7 @@
 
 # Why Sokuji?
 
-Sokuji is a desktop application designed to provide real-time simultaneous interpretation using OpenAI's Realtime API. It bridges language barriers in live conversations by capturing audio input, processing it through OpenAI's advanced models, and delivering translated output in real-time.
+Sokuji is a desktop application designed to provide live speech translation using OpenAI's Realtime API. It bridges language barriers in live conversations by capturing audio input, processing it through OpenAI's advanced models, and delivering translated output in real-time.
 
 https://github.com/user-attachments/assets/1eaaa333-a7ce-4412-a295-16b7eb2310de
 
@@ -100,7 +100,7 @@ This routing system allows Sokuji to capture audio from your selected input devi
 
 # Browser Extension Available!
 
-Prefer not to install a desktop application? Try our [browser extension](https://chromewebstore.google.com/detail/ppmihnhelgfpjomhjhpecobloelicnak?utm_source=item-share-cb) for Chrome and Chromium-based browsers. It offers the same powerful real-time translation features directly in your browser, with special integration for Google Meet.
+Prefer not to install a desktop application? Try our [browser extension](https://chromewebstore.google.com/detail/ppmihnhelgfpjomhjhpecobloelicnak?utm_source=item-share-cb) for Chrome and Chromium-based browsers. It offers the same powerful live speech translation features directly in your browser, with special integration for Google Meet.
 
 [![Chrome Web Store](https://developer.chrome.com/static/docs/webstore/branding/image/UV4C4ybeBTsZt43U4xis.png)](https://chromewebstore.google.com/detail/ppmihnhelgfpjomhjhpecobloelicnak?utm_source=item-share-cb)
 
