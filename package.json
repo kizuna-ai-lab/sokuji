@@ -5,7 +5,7 @@
   "private": true,
   "main": "electron/main.js",
   "homepage": "./",
-  "description": "Real-time simultaneous interpretation application using OpenAI's Realtime API",
+  "description": "Live speech translation application using OpenAI's Realtime API",
   "author": {
     "name": "Kizuna AI Lab",
     "email": "contact@kizuna.ai"

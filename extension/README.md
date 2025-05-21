@@ -1,10 +1,10 @@
 # Sokuji Browser Extension
 
-This is the browser extension version of the Sokuji real-time simultaneous interpretation application, leveraging OpenAI's Realtime API to provide real-time translation capabilities directly in your browser.
+This is the browser extension version of the Sokuji live speech translation application, leveraging OpenAI's Realtime API to provide live speech translation capabilities directly in your browser.
 
 ## Features
 
-- Real-time simultaneous interpretation using OpenAI's Realtime API
+- Live speech translation using OpenAI's Realtime API
 - Seamless integration with web browsers while maintaining desktop app functionality
 - Interactive audio visualization with input/output level indicators
 - Push-to-talk functionality with Space key shortcut support
@@ -109,7 +109,7 @@ After clicking the extension icon, you can select "Open in current page" to inje
 This browser extension uses the following technologies:
 
 - React for the user interface components
-- OpenAI Realtime API for simultaneous interpretation
+- OpenAI Realtime API for live speech translation
 - Web Audio API and wavtools library for audio processing
 - Chrome Extension APIs for browser integration
 - Webpack for building and bundling
