@@ -33,6 +33,11 @@
   
   <!-- Vibe Coding Badge -->
   <img alt="Vibe Coding" src="https://img.shields.io/badge/built%20with-vibe%20coding-ff69b4?style=flat-square" />
+  
+  <!-- DeepWiki Badge -->
+  <a href="https://deepwiki.com/kizuna-ai-lab/sokuji" target="_blank">
+    <img alt="Ask DeepWiki" src="https://deepwiki.com/badge.svg" />
+  </a>
 </p>
 
 # Why Sokuji?
