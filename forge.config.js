@@ -120,7 +120,7 @@ module.exports = {
         'coverage', '.nyc_output', '.vscode', '.idea'
       ];
       
-      console.log('Cleaning unnecessary files from node_modules...');
+      console.info('Cleaning unnecessary files from node_modules...');
       
       // Function to recursively remove unnecessary files
       const cleanDir = (dirPath) => {
@@ -145,7 +145,7 @@ module.exports = {
             )) {
               try {
                 fs.rmSync(fullPath, { recursive: true, force: true });
-                console.log(`Removed directory: ${fullPath}`);
+                console.debug(`Removed directory: ${fullPath}`);
               } catch (err) {
                 console.error(`Error removing ${fullPath}:`, err);
               }
@@ -160,7 +160,7 @@ module.exports = {
             )) {
               try {
                 fs.unlinkSync(fullPath);
-                console.log(`Removed file: ${fullPath}`);
+                console.debug(`Removed file: ${fullPath}`);
               } catch (err) {
                 console.error(`Error removing ${fullPath}:`, err);
               }
@@ -174,7 +174,7 @@ module.exports = {
         cleanDir(dir);
       }
       
-      console.log('Finished cleaning unnecessary files.');
+      console.info('Finished cleaning unnecessary files.');
     }
   }
 };

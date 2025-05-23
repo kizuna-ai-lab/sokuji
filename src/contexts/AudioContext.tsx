@@ -80,12 +80,12 @@ export const AudioProvider = ({ children }: { children: ReactNode }) => {
       
       // Check if our virtual audio device was created
       if (devices.outputs.some(device => device.isVirtual)) {
-        console.log('Virtual audio device detected');
+        console.info('Virtual audio device detected');
       } else if (audioService.current.supportsVirtualDevices()) {
-        console.log('Creating virtual audio devices...');
+        console.info('Creating virtual audio devices...');
         const result = await audioService.current.createVirtualDevices?.();
         if (result && result.success) {
-          console.log('Successfully created virtual audio devices:', result.message);
+          console.info('Successfully created virtual audio devices:', result.message);
           // Refresh the device list again after creating virtual devices
           await refreshDevices();
         } else {
@@ -109,11 +109,11 @@ export const AudioProvider = ({ children }: { children: ReactNode }) => {
         // When monitor device is ON during initialization, actively connect monitor device
         // Only do this on initial mount, not when selectedMonitorDevice changes
         if (isMonitorDeviceOn && selectedMonitorDevice) {
-          console.log('Initialization complete, actively connecting monitor device:', selectedMonitorDevice.deviceId);
+          console.info('Initialization complete, actively connecting monitor device:', selectedMonitorDevice.deviceId);
           audioService.current.connectMonitoringDevice(selectedMonitorDevice.deviceId, selectedMonitorDevice.label)
             .then((result: AudioOperationResult) => {
               if (result.success) {
-                console.log('Successfully connected virtual speaker to monitor device during initialization:', result.message);
+                console.info('Successfully connected virtual speaker to monitor device during initialization:', result.message);
               } else {
                 console.error('Failed to connect virtual speaker to monitor device during initialization:', result.error);
               }
@@ -137,20 +137,20 @@ export const AudioProvider = ({ children }: { children: ReactNode }) => {
   
   // Updated selectMonitorDevice to use the audio service
   const selectMonitorDevice = useCallback((device: AudioDevice) => {
-    console.log(`Selected monitor device: ${device.label} (${device.deviceId})`);
+    console.info(`Selected monitor device: ${device.label} (${device.deviceId})`);
     setSelectedMonitorDevice((prevDevice) => {
       
-      console.log(`Monitor device changed: ${prevDevice?.label} (${prevDevice?.deviceId}) -> ${device.label} (${device.deviceId})`);
+      console.info(`Monitor device changed: ${prevDevice?.label} (${prevDevice?.deviceId}) -> ${device.label} (${device.deviceId})`);
 
       // Only connect the virtual speaker if the monitor device is turned ON
       if (isMonitorDeviceOn && device && device.deviceId) {
-        console.log(`Connecting virtual speaker to monitor device: ${device.label}`);
+        console.info(`Connecting virtual speaker to monitor device: ${device.label}`);
 
         // Use the audio service instead of direct Electron calls
         audioService.current.connectMonitoringDevice(device.deviceId, device.label)
           .then((result: AudioOperationResult) => {
             if (result.success) {
-              console.log('Successfully connected virtual speaker to monitor device:', result.message);
+              console.info('Successfully connected virtual speaker to monitor device:', result.message);
             } else {
               console.error('Failed to connect virtual speaker to monitor device:', result.error);
             }
@@ -170,7 +170,7 @@ export const AudioProvider = ({ children }: { children: ReactNode }) => {
   
   // Updated toggleMonitorDeviceState to use the audio service
   const toggleMonitorDeviceState = useCallback(() => {
-    console.log('Toggling monitor device state');
+    console.info('Toggling monitor device state');
     const newState = !isMonitorDeviceOn;
     setIsMonitorDeviceOn(newState);
     
@@ -178,11 +178,11 @@ export const AudioProvider = ({ children }: { children: ReactNode }) => {
     if (newState) {
       // Turn ON - Connect virtual speaker to the selected monitor device
       if (selectedMonitorDevice) {
-        console.log(`Connecting virtual speaker to monitor device: ${selectedMonitorDevice.label}`);
+        console.info(`Connecting virtual speaker to monitor device: ${selectedMonitorDevice.label}`);
         audioService.current.connectMonitoringDevice(selectedMonitorDevice.deviceId, selectedMonitorDevice.label)
           .then((result: AudioOperationResult) => {
             if (result.success) {
-              console.log('Successfully connected virtual speaker to monitor device:', result.message);
+              console.info('Successfully connected virtual speaker to monitor device:', result.message);
             } else {
               console.error('Failed to connect virtual speaker to monitor device:', result.error);
             }
@@ -195,11 +195,11 @@ export const AudioProvider = ({ children }: { children: ReactNode }) => {
       }
     } else {
       // Turn OFF - Disconnect virtual speaker from all outputs
-      console.log('Disconnecting virtual speaker from all outputs');
+      console.info('Disconnecting virtual speaker from all outputs');
       audioService.current.disconnectMonitoringDevices()
         .then((result: AudioOperationResult) => {
           if (result.success) {
-            console.log('Successfully disconnected virtual speaker from all outputs:', result.message);
+            console.info('Successfully disconnected virtual speaker from all outputs:', result.message);
           } else {
             console.error('Failed to disconnect virtual speaker from outputs:', result.error);
           }

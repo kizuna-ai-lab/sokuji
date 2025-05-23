@@ -29,7 +29,7 @@ chrome.runtime.onInstalled.addListener(async () => {
     const result = await chrome.storage.local.get('config');
     if (!result.config) {
       await chrome.storage.local.set({ config: DEFAULT_CONFIG });
-      console.log('Default configuration initialized');
+      console.info('Default configuration initialized');
     }
     
     // Set up the side panel configuration
@@ -49,7 +49,7 @@ chrome.runtime.onInstalled.addListener(async () => {
           });
         }
       }
-      console.log('Disabled side panel for all existing tabs');
+      console.info('Disabled side panel for all existing tabs');
     }
   } catch (error) {
     console.error('Error initializing configuration:', error);
@@ -79,7 +79,7 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
 
 // Listen for extension icon click event
 chrome.action.onClicked.addListener((tab) => {
-  console.log('Extension icon clicked', tab.id);
+  console.debug('Extension icon clicked', tab.id);
   // Check if the side panel API is available
   if (chrome.sidePanel) {
     const tabId = tab.id;
@@ -92,7 +92,7 @@ chrome.action.onClicked.addListener((tab) => {
         tabId: tabId,
         enabled: false
       });
-      console.log('Closing Sokuji side panel for tab', tabId);
+      console.info('Closing Sokuji side panel for tab', tabId);
     } else {
       // First enable the panel for this specific tab
       chrome.sidePanel.setOptions({
@@ -106,12 +106,12 @@ chrome.action.onClicked.addListener((tab) => {
       
       // Then open the panel (must be in direct response to user gesture)
       chrome.sidePanel.open({ tabId: tabId });
-      console.log('Opening Sokuji in side panel for tab', tabId);
+      console.info('Opening Sokuji in side panel for tab', tabId);
     }
   } else {
     // Fallback for browsers without side panel support
     chrome.tabs.create({ url: 'fullpage.html' });
-    console.log('Side panel API not available, opening in new tab');
+    console.warn('Side panel API not available, opening in new tab');
   }
 });
 
@@ -119,7 +119,7 @@ chrome.action.onClicked.addListener((tab) => {
 chrome.tabs.onRemoved.addListener((tabId) => {
   if (activePanelTabs.has(tabId)) {
     activePanelTabs.delete(tabId);
-    console.log('Tab closed, removing from active panels:', tabId);
+    console.debug('Tab closed, removing from active panels:', tabId);
   }
 });
 
@@ -131,7 +131,7 @@ chrome.tabs.onCreated.addListener(async (tab) => {
       tabId: tab.id,
       enabled: false
     });
-    console.log('New tab created, side panel disabled by default:', tab.id);
+    console.debug('New tab created, side panel disabled by default:', tab.id);
   }
 });
 

@@ -198,7 +198,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
     // handle realtime events from client + server for event logging
     client.on('realtime.event', (realtimeEvent: { [key: string]: any }) => {
-      // console.log(realtimeEvent);
+      // console.debug(realtimeEvent);
       addRealtimeEvent(realtimeEvent, realtimeEvent.source, realtimeEvent.event.type);
     });
     client.on('error', (event: any) => console.error(event));
@@ -301,10 +301,10 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         if (selectedInputDevice) {
           await wavRecorder.begin(selectedInputDevice.deviceId);
         } else {
-          console.log('No input device selected, cannot connect to microphone');
+          console.warn('No input device selected, cannot connect to microphone');
         }
       } else {
-        console.log('Input device is turned off, not connecting to microphone');
+        console.info('Input device is turned off, not connecting to microphone');
       }
 
       // // Connect to audio output using the audio service
@@ -316,7 +316,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       if (isMonitorDeviceOn && selectedMonitorDevice &&
         !selectedMonitorDevice.label.toLowerCase().includes('sokuji_virtual') &&
         !selectedMonitorDevice.label.includes('Sokuji Virtual Output')) {
-        console.log('Setting up monitor device to:', selectedMonitorDevice.label);
+        console.info('Setting up monitor device to:', selectedMonitorDevice.label);
 
         // Trigger the selectMonitorDevice function to reconnect the monitor
         // This will use the audio service properly through the AudioContext
@@ -362,7 +362,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   const startRecording = useCallback(async () => {
     // Don't start recording if input device is turned off
     if (!isInputDeviceOn) {
-      console.log('Input device is turned off, not starting recording');
+      console.info('Input device is turned off, not starting recording');
       return;
     }
 
@@ -486,26 +486,26 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       if (audioData instanceof Int16Array) {
         // If it's a proper Int16Array, use its length
         audioLength = audioData.length;
-        console.log(`Audio is Int16Array with length: ${audioLength}`);
+        console.debug(`Audio is Int16Array with length: ${audioLength}`);
       } else if (audioData && typeof audioData === 'object') {
         if ('byteLength' in audioData && typeof audioData.byteLength === 'number') {
           // If it has byteLength property
           audioLength = audioData.byteLength / 2; // 2 bytes per Int16 sample
-          console.log(`Audio has byteLength: ${audioData.byteLength}, calculated length: ${audioLength}`);
+          console.debug(`Audio has byteLength: ${audioData.byteLength}, calculated length: ${audioLength}`);
         } else if ('length' in audioData && typeof audioData.length === 'number') {
           // If it has a numeric length property
           audioLength = audioData.length;
-          console.log(`Audio has length property: ${audioLength}`);
+          console.debug(`Audio has length property: ${audioLength}`);
         } else {
           // Last resort: count the keys in the object
           audioLength = Object.keys(audioData).length;
-          console.log(`Audio length calculated from object keys: ${audioLength}`);
+          console.debug(`Audio length calculated from object keys: ${audioLength}`);
         }
       }
       
       // Calculate duration in milliseconds (24kHz sample rate)
       const durationMs = (audioLength / 24000) * 1000;
-      console.log(`Audio duration: ${durationMs}ms`);
+      console.debug(`Audio duration: ${durationMs}ms`);
       
       // Use a minimum duration if calculated duration is too short
       const actualDurationMs = Math.max(durationMs, 1000);
@@ -515,7 +515,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         setPlayingItemId(prevId => prevId === currentItemId ? null : prevId);
       }, actualDurationMs + 50); // Add 50ms buffer
       
-      console.log(`Playing audio from item ${item.id}`);
+      console.info(`Playing audio from item ${item.id}`);
     } catch (error) {
       console.error('Error playing audio:', error);
       setPlayingItemId(null);
@@ -537,7 +537,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       if (isTestTonePlaying) {
         await audioService.interruptAudio();
         setIsTestTonePlaying(false);
-        console.log('Stopped test tone');
+        console.info('Stopped test tone');
         return;
       }
 
@@ -548,19 +548,19 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       
       // Add debug logging to check WavStreamPlayer's interruptedTrackIds
       const wavStreamPlayer = audioService.getWavStreamPlayer();
-      console.log('WavStreamPlayer before playing test tone:', wavStreamPlayer);
+      console.debug('WavStreamPlayer before playing test tone:', wavStreamPlayer);
       
       // Access and log the interruptedTrackIds with proper type checking
       const interruptedTrackIds = (wavStreamPlayer as any).interruptedTrackIds || {};
-      console.log('WavStreamPlayer interruptedTrackIds:', interruptedTrackIds);
+      console.debug('WavStreamPlayer interruptedTrackIds:', interruptedTrackIds);
       
       // Manually clear the WavStreamPlayer's interruptedTrackIds for the test-tone
       if (typeof interruptedTrackIds === 'object' && interruptedTrackIds['test-tone']) {
-        console.log('Manually clearing test-tone from WavStreamPlayer.interruptedTrackIds');
+        console.debug('Manually clearing test-tone from WavStreamPlayer.interruptedTrackIds');
         delete interruptedTrackIds['test-tone'];
       }
       
-      console.log('Cleared interrupted tracks before playing test tone');
+      console.debug('Cleared interrupted tracks before playing test tone');
 
       // Fetch the test tone file
       let testToneUrl = '/assets/test-tone.mp3';
@@ -582,12 +582,12 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       const tempContext = new AudioContext({ sampleRate: targetSampleRate });
       const audioBuffer = await tempContext.decodeAudioData(arrayBuffer);
 
-      console.log(`Test tone audio info - Sample rate: ${audioBuffer.sampleRate}Hz, Duration: ${audioBuffer.duration}s, Channels: ${audioBuffer.numberOfChannels}`);
+      console.debug(`Test tone audio info - Sample rate: ${audioBuffer.sampleRate}Hz, Duration: ${audioBuffer.duration}s, Channels: ${audioBuffer.numberOfChannels}`);
 
       // Check if we need to resample
       let processedBuffer = audioBuffer;
       if (audioBuffer.sampleRate !== targetSampleRate) {
-        console.log(`Resampling from ${audioBuffer.sampleRate}Hz to ${targetSampleRate}Hz`);
+        console.debug(`Resampling from ${audioBuffer.sampleRate}Hz to ${targetSampleRate}Hz`);
         // Create an offline context for resampling
         const offlineContext = new OfflineAudioContext(
           audioBuffer.numberOfChannels,
@@ -607,7 +607,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       // Mix down to mono if stereo by averaging channels
       let monoData;
       if (processedBuffer.numberOfChannels > 1) {
-        console.log('Converting stereo to mono');
+        console.debug('Converting stereo to mono');
         monoData = new Float32Array(processedBuffer.length);
         // Get the data from both channels
         const leftChannel = new Float32Array(processedBuffer.length);
@@ -655,14 +655,14 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       if (isMonitorDeviceOn && selectedMonitorDevice &&
         !selectedMonitorDevice.label.toLowerCase().includes('sokuji_virtual') &&
         !selectedMonitorDevice.label.includes('Sokuji Virtual Output')) {
-        console.log('Test tone: Ensuring monitor device is connected:', selectedMonitorDevice.label);
+        console.info('Test tone: Ensuring monitor device is connected:', selectedMonitorDevice.label);
 
         // Trigger the selectMonitorDevice function to reconnect the monitor
         // This will use the audio service properly through the AudioContext
         selectMonitorDevice(selectedMonitorDevice);
       }
 
-      console.log('Playing test tone');
+      console.info('Playing test tone');
     } catch (error) {
       console.error('Error playing test tone:', error);
       setIsTestTonePlaying(false);
@@ -808,7 +808,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       try {
         // If input device is turned off, pause recording
         if (!isInputDeviceOn) {
-          console.log('Input device turned off - pausing recording');
+          console.info('Input device turned off - pausing recording');
           if (wavRecorder.recording) {
             await wavRecorder.pause();
             setIsRecording(false);
@@ -818,7 +818,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         else {
           // First, check if the recorder is initialized by checking the processor property
           if (!wavRecorder.processor) {
-            console.log('Input device turned on - initializing recorder with selected device');
+            console.info('Input device turned on - initializing recorder with selected device');
             try {
               await wavRecorder.begin(selectedInputDevice?.deviceId);
             } catch (error) {
@@ -829,7 +829,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
           // If we're in automatic mode, resume recording
           if (settings.turnDetectionMode !== 'Disabled') {
-            console.log('Input device turned on - resuming recording in automatic mode');
+            console.info('Input device turned on - resuming recording in automatic mode');
             if (!wavRecorder.recording) {
               await wavRecorder.record((data) => client.appendInputAudio(data.mono));
             }
@@ -864,13 +864,13 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           selectedMonitorDevice?.label.includes('Sokuji Virtual Output');
 
         if (isVirtualDevice) {
-          console.log('Selected monitor device is a virtual device - not using as monitor');
+          console.info('Selected monitor device is a virtual device - not using as monitor');
           return;
         }
 
         // If monitor device is turned on, connect the monitor
         if (isMonitorDeviceOn && selectedMonitorDevice) {
-          console.log(`Setting up monitor output to: ${selectedMonitorDevice.label}`);
+          console.info(`Setting up monitor output to: ${selectedMonitorDevice.label}`);
 
           // Trigger the selectMonitorDevice function to reconnect the monitor
           // This will use the audio service properly through the AudioContext

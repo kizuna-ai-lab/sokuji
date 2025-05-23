@@ -91,9 +91,9 @@ export class ElectronAudioService implements IAudioService {
       // Using any type to bypass TypeScript's type checking for accessing a private property
       const player = this.wavStreamPlayer as any;
       if (player && typeof player.interruptedTrackIds === 'object') {
-        console.log('WavStreamPlayer previous interruptedTrackIds:', player.interruptedTrackIds);
+        console.debug('WavStreamPlayer previous interruptedTrackIds:', player.interruptedTrackIds);
         player.interruptedTrackIds = {};
-        console.log('Cleared WavStreamPlayer interruptedTrackIds');
+        console.debug('Cleared WavStreamPlayer interruptedTrackIds');
       }
     } catch (error) {
       console.error('Error clearing WavStreamPlayer interruptedTrackIds:', error);
@@ -269,14 +269,14 @@ export class ElectronAudioService implements IAudioService {
           try {
             // According to MDN documentation, use object format with deviceId
             await ctxWithSink.setSinkId(virtualSpeaker.deviceId);
-            console.log('AudioContext output device set to sokuji_virtual_speaker:', virtualSpeaker.deviceId);
+            console.info('AudioContext output device set to sokuji_virtual_speaker:', virtualSpeaker.deviceId);
             return true;
           } catch (err) {
             console.error('Failed to set output device with both methods:', err);
             return false;          }
         }
       }
-      console.log('Virtual output device not found. Using default output device.');
+      console.info('Virtual output device not found. Using default output device.');
       return false;
     } catch (e) {
       console.error('Failed to set up virtual audio output:', e);

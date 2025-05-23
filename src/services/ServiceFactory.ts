@@ -63,10 +63,10 @@ export class ServiceFactory {
     
     // Create new instance if needed
     if (ServiceFactory.isElectron()) {
-      console.log('Creating Electron audio service');
+      console.info('Creating Electron audio service');
       ServiceFactory.audioServiceInstance = new ElectronAudioService();
     } else {
-      console.log('Creating Browser audio service');
+      console.info('Creating Browser audio service');
       ServiceFactory.audioServiceInstance = new BrowserAudioService();
     }
     
@@ -85,10 +85,10 @@ export class ServiceFactory {
     
     // Create new instance if needed
     if (ServiceFactory.isElectron()) {
-      console.log('Creating Electron settings service');
+      console.info('Creating Electron settings service');
       ServiceFactory.settingsServiceInstance = new ElectronSettingsService();
     } else {
-      console.log('Creating Browser settings service');
+      console.info('Creating Browser settings service');
       ServiceFactory.settingsServiceInstance = new BrowserSettingsService();
     }
     
