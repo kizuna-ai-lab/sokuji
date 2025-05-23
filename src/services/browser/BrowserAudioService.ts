@@ -29,7 +29,7 @@ export class BrowserAudioService implements IAudioService {
       const tabIdParam = urlParams.get('tabId');
       if (tabIdParam) {
         this.targetTabId = parseInt(tabIdParam, 10);
-        console.log(`BrowserAudioService initialized with target tabId: ${this.targetTabId}`);
+        console.info(`BrowserAudioService initialized with target tabId: ${this.targetTabId}`);
       }
     } catch (error) {
       console.error('Error parsing tabId from URL:', error);
@@ -138,7 +138,7 @@ export class BrowserAudioService implements IAudioService {
    */
   async selectInputDevice(deviceId: string): Promise<AudioOperationResult> {
     try {
-      console.log(`[Browser Audio] Selecting input device: ${deviceId}`);
+      console.info(`[Browser Audio] Selecting input device: ${deviceId}`);
       
       // Here we would normally do something with the input device
       // but in browser extensions this is handled at stream creation time
@@ -161,7 +161,7 @@ export class BrowserAudioService implements IAudioService {
    * In browsers, we're limited by what the Web Audio API allows
    */
   async connectMonitoringDevice(deviceId: string, label: string): Promise<AudioOperationResult> {
-    console.log(`[Browser Audio] Connecting monitoring device: ${label} (${deviceId})`);
+    console.info(`[Browser Audio] Connecting monitoring device: ${label} (${deviceId})`);
     try {
       if (!this.externalAudioContext) {
         console.error('Cannot connect monitoring device: No external AudioContext available');
@@ -171,7 +171,7 @@ export class BrowserAudioService implements IAudioService {
         };
       }
       
-      console.log(`[Browser Audio] Connecting monitoring device: ${label} (${deviceId})`);
+      console.info(`[Browser Audio] Connecting monitoring device: ${label} (${deviceId})`);
       
       // Type assertion to access setSinkId method
       const ctxWithSink = this.externalAudioContext as AudioContext & { 
@@ -183,7 +183,7 @@ export class BrowserAudioService implements IAudioService {
           // Use the device ID for setSinkId to route audio to the selected device
           await ctxWithSink.setSinkId(deviceId);
           
-          console.log(`AudioContext output device set to: ${label}`);
+          console.info(`AudioContext output device set to: ${label}`);
           return {
             success: true,
             message: `Connected to monitoring device: ${label}`
@@ -227,7 +227,7 @@ export class BrowserAudioService implements IAudioService {
           try {
             // Use {type:'none'} to prevent audio from being sent to physical speakers
             await ctxWithSink.setSinkId({type: 'none'});
-            console.log('AudioContext output device set back to virtual (none type)');
+            console.info('AudioContext output device set back to virtual (none type)');
           } catch (err) {
             console.error('Failed to reset output device:', err);
             return {
@@ -312,7 +312,7 @@ export class BrowserAudioService implements IAudioService {
         try {
           // Use {type:'none'} to prevent audio from being sent to physical speakers
           await ctxWithSink.setSinkId({ type: "none" });
-          console.log("AudioContext output device set to virtual (none type)");
+          console.info("AudioContext output device set to virtual (none type)");
         } catch (err) {
           console.error("Failed to set output device:", err);
           return false;
@@ -322,7 +322,7 @@ export class BrowserAudioService implements IAudioService {
         return false;
       }
 
-      console.log('Virtual audio output setup complete. Audio data will be sent directly from addAudioData.');
+      console.info('Virtual audio output setup complete. Audio data will be sent directly from addAudioData.');
       return true;
     } catch (e) {
       console.error('Failed to set up virtual audio output:', e);
@@ -390,7 +390,7 @@ export class BrowserAudioService implements IAudioService {
     
     // Log information about chunking strategy
     if (isLargeAudioFile) {
-      console.log(`Processing large audio file (${(data.length / 24000).toFixed(1)}s) in ${numChunks} chunks`);
+      console.debug(`Processing large audio file (${(data.length / 24000).toFixed(1)}s) in ${numChunks} chunks`);
     }
     
     // Function to process a single chunk
@@ -430,7 +430,7 @@ export class BrowserAudioService implements IAudioService {
         }
       } else if (isLargeAudioFile) {
         // Log completion of large file processing
-        console.log(`Completed sending large audio file in ${numChunks} chunks`);
+        console.debug(`Completed sending large audio file in ${numChunks} chunks`);
       }
     };
     
@@ -519,7 +519,7 @@ export class BrowserAudioService implements IAudioService {
     const shouldLog = Math.random() < 0.01;
     
     if (shouldLog) {
-      console.log(`Sending audio to tab ${tab.id}`);
+      console.info(`Sending audio to tab ${tab.id}`);
     }
     
     chrome.tabs.sendMessage(tab.id, { type: 'AUDIO_CHUNK', data: audioData });
@@ -567,9 +567,9 @@ export class BrowserAudioService implements IAudioService {
       // Using any type to bypass TypeScript's type checking for accessing a private property
       const player = this.wavStreamPlayer as any;
       if (player && typeof player.interruptedTrackIds === 'object') {
-        console.log('WavStreamPlayer previous interruptedTrackIds:', player.interruptedTrackIds);
+        console.debug('WavStreamPlayer previous interruptedTrackIds:', player.interruptedTrackIds);
         player.interruptedTrackIds = {};
-        console.log('Cleared WavStreamPlayer interruptedTrackIds');
+        console.debug('Cleared WavStreamPlayer interruptedTrackIds');
       }
     } catch (error) {
       console.error('Error clearing WavStreamPlayer interruptedTrackIds:', error);

@@ -50,7 +50,7 @@ function injectVirtualMicrophoneScript() {
     document.appendChild(script);
   }
   
-  console.log('[Sokuji] Virtual microphone script injected into page');
+  console.info('[Sokuji] Virtual microphone script injected into page');
 }
 
 // Run script injection immediately (before DOMContentLoaded)
@@ -98,7 +98,7 @@ function injectPermissionIframe() {
     return; // Exit the function if we can't inject the iframe
   }
   
-  console.log('[Sokuji] Permission iframe injected into page');
+  console.info('[Sokuji] Permission iframe injected into page');
 }
 
 // Listen for messages from the extension
@@ -111,7 +111,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
 // Content script loaded
 window.addEventListener('load', () => {
-  console.log('[Sokuji] Content script loaded');
+  console.info('[Sokuji] Content script loaded');
 });
 
 // Expose API for debugging
