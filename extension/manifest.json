@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Sokuji Extension",
   "version": "0.2.6",
-  "description": "Real-time language interpretation extension with virtual microphone capabilities",
+  "description": "Live speech translation in Google Meet/MircoSoft Teams",
   "minimum_chrome_version": "116",
   "offline_enabled": false,
   "icons": {
