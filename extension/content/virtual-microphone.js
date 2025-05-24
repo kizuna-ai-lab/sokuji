@@ -1,452 +1,353 @@
-// Virtual Microphone implementation for Sokuji
-// This script creates a virtual microphone using WavStreamPlayer and overrides
-// navigator.mediaDevices.enumerateDevices and getUserMedia to inject this virtual device
-
-// Direct import of WavStreamPlayer and StreamProcessorWorkletCode from src - webpack will handle bundling
-import { WavStreamPlayer } from '@lib/wavtools/index.js';
-import { StreamProcessorWorkletCode } from '@lib/wavtools/lib/worklets/stream_processor.js';
-
-// Configuration
-const VIRTUAL_DEVICE_ID = 'sokuji-virtual-microphone';
-const VIRTUAL_DEVICE_LABEL = 'Sokuji_Virtual_Mic';
-const SAMPLE_RATE = 24000; // 24kHz to match BrowserAudioService
-
-// Store original methods
-const originalEnumerateDevices = navigator.mediaDevices.enumerateDevices.bind(navigator.mediaDevices);
-const originalGetUserMedia = navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);
-
-// Main state variables
-let streamPlayer = null;
-let virtualMediaStream = null;
-let isInitialized = false;
-let lastActivityTimestamp = Date.now();
-let audioEnabled = true;
-const CLEANUP_INTERVAL = 60000; // 1 minute
-let cleanupInterval = null;
-
 /**
- * Initialize the WavStreamPlayer
- * Creates and configures the WavStreamPlayer instance for virtual microphone use
+ * Virtual Microphone implementation
+ * This script overrides the mediaDevices API to provide a virtual microphone
+ * that can receive PCM data from the side panel.
  */
-async function initWavStreamPlayer() {
-  if (streamPlayer && streamPlayer.context && streamPlayer.context.state !== 'closed') {
-    // Player already exists and is active
-    console.info(`[Sokuji] WavStreamPlayer already exists - Context state: ${streamPlayer.context.state}`);
-    return streamPlayer;
-  }
 
-  try {
-    console.info('[Sokuji] Initializing WavStreamPlayer - Creating new instance');
-    
-    // Create a new WavStreamPlayer instance directly, but don't use its scriptSrc
-    streamPlayer = new WavStreamPlayer({ sampleRate: SAMPLE_RATE });
-    
-    // Create our own AudioContext instead of using connect() which tries to load the worklet
-    streamPlayer.context = new AudioContext({ sampleRate: SAMPLE_RATE });
-    
-    // Create a blob URL for our embedded AudioWorklet code
-    const blob = new Blob([StreamProcessorWorkletCode], { type: 'application/javascript' });
-    const workletUrl = URL.createObjectURL(blob);
-    
+(function() {
+  console.log('[Sokuji] Virtual Microphone script loaded');
+
+  // Store original mediaDevices methods
+  const originalEnumerateDevices = navigator.mediaDevices.enumerateDevices.bind(navigator.mediaDevices);
+  const originalGetUserMedia = navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);
+
+  // Virtual device info
+  const VIRTUAL_MIC_ID = 'sokuji-virtual-microphone';
+  const VIRTUAL_MIC_LABEL = 'Sokuji Virtual Microphone';
+  
+  // Audio configuration
+  const SAMPLE_RATE = 24000; // Match Sokuji's sample rate
+  const CHANNEL_COUNT = 1;
+  
+  // Create MediaStreamTrackGenerator for audio
+  let trackGenerator = null;
+  let audioWriter = null;
+  let virtualStream = null;
+  let isActive = false;
+  
+  // Audio chunk buffering system
+  const chunkBuffers = new Map(); // Map of trackId -> Map of chunkIndex -> chunk data
+  
+  // Initialize the track generator
+  function initializeTrackGenerator() {
+    if (trackGenerator) return;
+
     try {
-      // Add the AudioWorklet module using our blob URL
-      await streamPlayer.context.audioWorklet.addModule(workletUrl);
-      console.info('[Sokuji] Successfully loaded AudioWorklet from blob URL');
-    } catch (e) {
-      console.error('[Sokuji] Error loading AudioWorklet:', e);
-      throw new Error(`Could not add AudioWorklet module: ${e.message}`);
-    } finally {
-      // Clean up the blob URL
-      URL.revokeObjectURL(workletUrl);
+      // Create the track generator
+      trackGenerator = new window.MediaStreamTrackGenerator({ kind: 'audio' });
+      
+      // Create a writer for the track
+      audioWriter = trackGenerator.writable.getWriter();
+      
+      // Create a MediaStream with the generator track
+      virtualStream = new MediaStream([trackGenerator]);
+      
+      isActive = true;
+      console.log('[Sokuji] Track generator initialized');
+    } catch (error) {
+      console.error('[Sokuji] Error initializing track generator:', error);
     }
-    
-    // Set up analyzer node
-    const analyser = streamPlayer.context.createAnalyser();
-    analyser.fftSize = 8192;
-    analyser.smoothingTimeConstant = 0.1;
-    streamPlayer.analyser = analyser;
-    
-    // Get the AudioContext from the player
-    const audioContext = streamPlayer.context;
-    
-    // Create a MediaStreamDestination to get a MediaStream
-    const destinationNode = audioContext.createMediaStreamDestination();
-    
-    // Create an intermediate gain node to control volume
-    const gainNode = audioContext.createGain();
-    gainNode.gain.value = 1.0; // normal volume
-    
-    // Get the node that would normally go to the speakers
-    // and connect it to our destination instead
-    const workletNode = new AudioWorkletNode(audioContext, 'stream_processor');
-    
-    // Connect the audio processing chain
-    workletNode.connect(gainNode);
-    gainNode.connect(destinationNode);
-    console.info('[Sokuji] Worklet node connected to destination node')
-    streamPlayer.workletNode = workletNode;
-    
-    // Store the new MediaStream for getUserMedia to return
-    virtualMediaStream = destinationNode.stream;
-    
-    // Set up the communication with the worklet
-    workletNode.port.onmessage = (e) => {
-      const { event } = e.data;
-      if (event === 'stop') {
-        console.debug('[Sokuji] Worklet requested stop - sending keepalive');
-        // Send empty audio data to keep the worklet active
-        // Create a small silence buffer
-        const silenceBuffer = new Int16Array(128).fill(0);
-        workletNode.port.postMessage({ 
-          event: 'write', 
-          buffer: silenceBuffer, 
-          trackId: 'keepalive' 
-        });
-      }
-    };
-    
-    // Set up mechanism to post audio data to the worklet
-    streamPlayer.customPostAudioToWorklet = (buffer, trackId) => {
-      if (workletNode && workletNode.port) {
-        console.debug(`[Sokuji] Posting audio data to worklet - Length: ${buffer.length}, TrackId: ${trackId}`);
-        workletNode.port.postMessage({ 
-          event: 'write', 
-          buffer, 
-          trackId: trackId || 'default' 
-        });
-        return true;
-      }
-      console.warn('[Sokuji] Failed to post audio data - workletNode or port is not available');
-      return false;
-    };
-    
-    // Set up cleanup interval
-    if (!cleanupInterval) {
-      cleanupInterval = setInterval(checkAndCleanup, CLEANUP_INTERVAL);
-    }
-    
-    console.info('[Sokuji] Virtual microphone setup complete with WavStreamPlayer');
-    isInitialized = true;
-    lastActivityTimestamp = Date.now();
-    
-    return streamPlayer;
-  } catch (error) {
-    console.error('[Sokuji] Error during WavStreamPlayer initialization:', error);
-    return null;
   }
-}
 
-/**
- * Check for inactivity and clean up resources if needed
- */
-function checkAndCleanup() {
-  const now = Date.now();
-  const inactiveTime = now - lastActivityTimestamp;
-  
-  // If no activity for 5 minutes, clean up resources
-  if (inactiveTime > 300000) { // 5 minutes in milliseconds
-    console.info('[Sokuji] Detected inactivity for 5 minutes, cleaning up resources');
-    cleanupAudioResources();
-  }
-}
-
-/**
- * Clean up all audio resources
- */
-function cleanupAudioResources() {
-  try {
-    // Clear the interval first
-    if (cleanupInterval) {
-      clearInterval(cleanupInterval);
-      cleanupInterval = null;
-    }
+  // Add a chunk to the buffer and process if all chunks are received
+  function addChunkToBuffer(pcmData, metadata) {
+    if (!isActive || !audioWriter) return;
     
-    // Clean up player if it exists
-    if (streamPlayer) {
-      // No need to explicitly close - the AudioContext will be closed if needed
-      console.info('[Sokuji] Cleaning up WavStreamPlayer');
-      streamPlayer = null;
-    }
+    const { trackId = 'default', chunkIndex, totalChunks, sampleRate } = metadata;
     
-    // Reset all state variables
-    virtualMediaStream = null;
-    isInitialized = false;
-    audioEnabled = true;
-    
-    console.info('[Sokuji] Audio resources cleaned up successfully');
-  } catch (error) {
-    console.error('[Sokuji] Error during audio resource cleanup:', error);
-  }
-}
-
-/**
- * Add audio data to the stream player
- * @param {Int16Array|ArrayBuffer} audioData - The audio data to add
- * @param {string} [trackId='default'] - Optional track ID to identify the audio source
- */
-function addAudioData(audioData, trackId = 'default') {
-  lastActivityTimestamp = Date.now();
-  
-  if (!audioEnabled) {
-    // Audio is disabled, don't process
-    return;
-  }
-  
-  // Lazily initialize WavStreamPlayer if needed
-  if (!streamPlayer) {
-    initWavStreamPlayer().then(player => {
-      if (player) {
-        // Try adding the data again after initialization
-        addAudioData(audioData, trackId);
-      }
-    }).catch(error => {
-      console.error('[Sokuji] Error initializing WavStreamPlayer for addAudioData:', error);
-    });
-    return;
-  }
-  
-  try {
-    console.debug(`[Sokuji] addAudioData called - Type: ${audioData.constructor.name}, TrackId: ${trackId}`);
-    console.debug(`[Sokuji] StreamPlayer state - Initialized: ${isInitialized}, Context state: ${streamPlayer.context ? streamPlayer.context.state : 'N/A'}`);
-    
-    // 不再需要重连逻辑，因为我们不会断开workletNode
-    
-    // Convert ArrayBuffer to Int16Array if needed
-    let int16Data;
-    if (audioData instanceof Int16Array) {
-      int16Data = audioData;
-    } else if (audioData instanceof ArrayBuffer) {
-      int16Data = new Int16Array(audioData);
-    } else if (Array.isArray(audioData)) {
-      // Handle array of numbers by converting to Int16Array
-      int16Data = new Int16Array(audioData);
-    } else {
-      console.error('[Sokuji] Invalid audio data type:', typeof audioData);
+    // Single chunk - process immediately if no chunk info
+    if (chunkIndex === undefined || totalChunks === undefined) {
+      console.log('[Sokuji] Processing single chunk directly');
+      processAndWriteAudioData(pcmData, sampleRate || SAMPLE_RATE);
       return;
     }
     
-    console.debug(`[Sokuji] Processed audio data - Length: ${int16Data.length}, First few samples:`, int16Data.slice(0, 5));
+    console.log(`[Sokuji] Buffering chunk ${chunkIndex + 1}/${totalChunks} for track ${trackId}`);
     
-    // Use our custom method if available (this uses the worklet we set up)
-    if (streamPlayer.customPostAudioToWorklet) {
-      const result = streamPlayer.customPostAudioToWorklet(int16Data, trackId);
-      console.debug(`[Sokuji] customPostAudioToWorklet result: ${result}`);
+    // Get or create track buffer
+    if (!chunkBuffers.has(trackId)) {
+      chunkBuffers.set(trackId, new Map());
+    }
+    const trackBuffer = chunkBuffers.get(trackId);
+    
+    // Store this chunk
+    trackBuffer.set(chunkIndex, {
+      data: pcmData,
+      sampleRate: sampleRate || SAMPLE_RATE
+    });
+    
+    // Check if we have all chunks for this track
+    if (trackBuffer.size === totalChunks) {
+      console.log(`[Sokuji] All ${totalChunks} chunks received for track ${trackId}, processing...`);
+      processCompleteTrack(trackId, totalChunks);
     } else {
-      // Fall back to standard method
-      console.warn('[Sokuji] Falling back to add16BitPCM method');
-      streamPlayer.add16BitPCM(int16Data, trackId);
+      console.log(`[Sokuji] Waiting for more chunks: ${trackBuffer.size}/${totalChunks} received`);
     }
-  } catch (error) {
-    console.error('[Sokuji] Error adding audio data:', error);
   }
-}
-
-/**
- * Start capturing audio with the virtual microphone
- */
-async function startCapturing() {
-  try {
-    const player = await initWavStreamPlayer();
-    if (player) {
-      console.info('[Sokuji] Virtual microphone ready and capturing');
-      audioEnabled = true;
-      return true;
+  
+  // Process a complete track when all chunks are received
+  function processCompleteTrack(trackId, totalChunks) {
+    const trackBuffer = chunkBuffers.get(trackId);
+    if (!trackBuffer || trackBuffer.size < totalChunks) {
+      console.error(`[Sokuji] Cannot process incomplete track: ${trackBuffer?.size || 0}/${totalChunks}`);
+      return;
     }
-    return false;
-  } catch (error) {
-    console.error('[Sokuji] Error starting virtual microphone capture:', error);
-    return false;
+    
+    // Determine total length of all chunks
+    let totalLength = 0;
+    for (let i = 0; i < totalChunks; i++) {
+      if (!trackBuffer.has(i)) {
+        console.error(`[Sokuji] Missing chunk ${i} for track ${trackId}`);
+        return;
+      }
+      totalLength += trackBuffer.get(i).data.length;
+    }
+    
+    // Create a single combined buffer
+    const combinedData = new Int16Array(totalLength);
+    let offset = 0;
+    
+    // Fill the combined buffer with all chunks in order
+    for (let i = 0; i < totalChunks; i++) {
+      const chunk = trackBuffer.get(i);
+      combinedData.set(chunk.data, offset);
+      offset += chunk.data.length;
+    }
+    
+    // Use sample rate from first chunk
+    const sampleRate = trackBuffer.get(0).sampleRate;
+    
+    // Process the combined data
+    console.log(`[Sokuji] Processing combined data: ${totalLength} samples`);
+    processAndWriteAudioData(combinedData, sampleRate);
+    
+    // Clear the buffer for this track
+    chunkBuffers.delete(trackId);
   }
-}
+  
+  // Process PCM data and write to the track
+  async function processAndWriteAudioData(pcmData, sampleRate) {
+    if (!isActive || !audioWriter) return;
 
-// Override the enumerateDevices method to include our virtual device
-navigator.mediaDevices.enumerateDevices = async function() {
-  try {
-    // Get the original devices
+    try {
+        // Convert Int16Array to Float32Array (expected by Web Audio API)
+        const floatData = new Float32Array(pcmData.length);
+        for (let i = 0; i < pcmData.length; i++) {
+            floatData[i] = pcmData[i] / 32768.0; // Ensure floating point division
+        }
+
+        // --- BEGIN DIAGNOSTIC LOGS ---
+        let minVal = floatData.length > 0 ? floatData[0] : 0;
+        let maxVal = floatData.length > 0 ? floatData[0] : 0;
+        let hasNaN = false;
+        let nanIndex = -1;
+        for (let k = 0; k < floatData.length; k++) {
+            if (isNaN(floatData[k])) {
+                hasNaN = true;
+                nanIndex = k;
+                break;
+            }
+            if (floatData[k] < minVal) minVal = floatData[k];
+            if (floatData[k] > maxVal) maxVal = floatData[k];
+        }
+        console.log(`[Sokuji] floatData stats: length=${floatData.length}, min=${minVal}, max=${maxVal}, hasNaN=${hasNaN}${hasNaN ? ` at index ${nanIndex} (pcmData[${nanIndex}]=${pcmData[nanIndex]})` : ''}`);
+        
+        if (hasNaN) {
+            console.error("[Sokuji] FATAL: floatData contains NaN values! Aborting write.");
+            return; // Do not attempt to write if NaN
+        }
+        // Strict check for range. Values exactly -1.0 or 1.0 are fine.
+        if (maxVal > 1.0 || minVal < -1.0) {
+            console.warn(`[Sokuji] WARNING: floatData values (min: ${minVal}, max: ${maxVal}) are outside strict [-1.0, 1.0] range!`);
+        }
+        console.log('[Sokuji] Creating AudioData with sampleRate:', sampleRate);
+        // --- END DIAGNOSTIC LOGS ---
+
+        const framesPerChunk = sampleRate * 1; // 1 second of audio per chunk
+        let currentTimestampUs = performance.now() * 1000; // Initial timestamp in microseconds
+
+        console.log(`[Sokuji] Starting to write ${floatData.length} frames in chunks of ${framesPerChunk} frames using setTimeout.`);
+
+        let currentFrameIndex = 0;
+        let chunkCount = 0;
+
+        function writeNextChunk() {
+            if (currentFrameIndex >= floatData.length) {
+                console.log('[Sokuji] All audio data chunks written successfully via setTimeout.');
+                return;
+            }
+
+            const chunkEnd = Math.min(currentFrameIndex + framesPerChunk, floatData.length);
+            const chunkFloatData = floatData.slice(currentFrameIndex, chunkEnd);
+            const numberOfFramesInChunk = chunkFloatData.length;
+
+            if (numberOfFramesInChunk === 0) {
+                console.log('[Sokuji] Skipping empty chunk in setTimeout.');
+                currentFrameIndex += framesPerChunk; // Advance index even if chunk was empty
+                writeNextChunk(); // Immediately try next chunk
+                return;
+            }
+
+            // Create AudioData object
+            const audioDataChunk = new window.AudioData({
+                format: 'f32',
+                sampleRate: sampleRate,
+                numberOfFrames: numberOfFramesInChunk,
+                numberOfChannels: CHANNEL_COUNT,
+                timestamp: currentTimestampUs,
+                data: chunkFloatData
+            });
+
+            chunkCount++;
+            console.log(`[Sokuji] Writing chunk ${chunkCount}: ${numberOfFramesInChunk} frames, timestamp: ${currentTimestampUs / 1000} ms`);
+            
+            audioWriter.write(audioDataChunk).then(() => {
+                console.log(`[Sokuji] Successfully wrote chunk ${chunkCount}.`);
+                
+                const chunkDurationUs = (numberOfFramesInChunk / sampleRate) * 1000000;
+                currentTimestampUs += chunkDurationUs;
+                currentFrameIndex += numberOfFramesInChunk; // More precise advancement
+
+                const delayMs = chunkDurationUs / 1000;
+                setTimeout(writeNextChunk, delayMs);
+            }).catch(error => {
+                console.error(`[Sokuji] Error writing chunk ${chunkCount}:`, error);
+                // Optionally, decide if you want to stop or try to continue
+            });
+        }
+
+        writeNextChunk(); // Start the process
+
+    } catch (error) {
+        console.error('[Sokuji] Error in processAndWriteAudioData:', error);
+    }
+  }
+
+  // Override enumerateDevices to include our virtual microphone
+  navigator.mediaDevices.enumerateDevices = async function() {
+    // Get real devices
     const devices = await originalEnumerateDevices();
     
     // Check if our virtual device is already in the list
     const virtualDeviceExists = devices.some(device => 
-      device.deviceId === VIRTUAL_DEVICE_ID || 
-      device.label === VIRTUAL_DEVICE_LABEL
+      device.deviceId === VIRTUAL_MIC_ID && device.kind === 'audioinput'
     );
     
+    // If not, add our virtual microphone
     if (!virtualDeviceExists) {
-      // Add our virtual microphone to the list
       devices.push({
-        deviceId: VIRTUAL_DEVICE_ID,
+        deviceId: VIRTUAL_MIC_ID,
         kind: 'audioinput',
-        label: VIRTUAL_DEVICE_LABEL,
-        groupId: VIRTUAL_DEVICE_ID
+        label: VIRTUAL_MIC_LABEL,
+        groupId: ''
       });
     }
     
     return devices;
-  } catch (error) {
-    console.error('[Sokuji] Error in enumerateDevices override:', error);
-    return originalEnumerateDevices();
-  }
-};
+  };
 
-// Override getUserMedia to handle requests for our virtual device
-navigator.mediaDevices.getUserMedia = async function(constraints) {
-  console.debug('[Sokuji] getUserMedia called with constraints:', constraints);
-  try {
-    // If no audio is requested, pass through to the original method
-    if (!constraints.audio) {
+  // Override getUserMedia to intercept requests for our virtual microphone
+  navigator.mediaDevices.getUserMedia = async function(constraints) {
+    // If no audio constraints or explicitly not requesting our virtual mic, use original method
+    if (!constraints.audio || 
+        (constraints.audio.deviceId && 
+         constraints.audio.deviceId.exact !== VIRTUAL_MIC_ID &&
+         constraints.audio.deviceId !== VIRTUAL_MIC_ID)) {
       return originalGetUserMedia(constraints);
     }
     
-    // Check if the request is specifically for our virtual device
-    const requestsVirtualMic = constraints.audio === true ||
-      (constraints.audio && constraints.audio.deviceId && (
-        constraints.audio.deviceId === VIRTUAL_DEVICE_ID ||
-        (constraints.audio.deviceId.exact && constraints.audio.deviceId.exact === VIRTUAL_DEVICE_ID) ||
-        (Array.isArray(constraints.audio.deviceId.ideal) && constraints.audio.deviceId.ideal.includes(VIRTUAL_DEVICE_ID)) ||
-        (Array.isArray(constraints.audio.deviceId.exact) && constraints.audio.deviceId.exact.includes(VIRTUAL_DEVICE_ID))
-      ));
-    
-    // If not requesting our virtual mic, pass through to the original method
-    if (!requestsVirtualMic) {
-      return originalGetUserMedia(constraints);
-    }
-    
-    console.info('[Sokuji] Virtual microphone requested, initializing...');
-    
-    // Initialize the WavStreamPlayer if it's not already initialized
-    await startCapturing();
-    
-    // Check if AudioContext is suspended and try to resume it
-    if (streamPlayer && streamPlayer.context && streamPlayer.context.state === 'suspended') {
-      console.info('[Sokuji] AudioContext is suspended, attempting to resume...');
-      try {
-        // Try to resume the AudioContext
-        await streamPlayer.context.resume();
-        console.info(`[Sokuji] AudioContext resumed successfully, state: ${streamPlayer.context.state}`);
-        
-        // If we still don't have a virtual stream after resuming, create it
-        if (!virtualMediaStream && streamPlayer.context.state === 'running') {
-          console.info('[Sokuji] Recreating MediaStream after resuming AudioContext');
-          const audioContext = streamPlayer.context;
-          const destinationNode = audioContext.createMediaStreamDestination();
-          const gainNode = audioContext.createGain();
-          gainNode.gain.value = 1.0;
-          
-          // Reconnect the audio chain if workletNode exists
-          if (streamPlayer.workletNode) {
-            streamPlayer.workletNode.connect(gainNode);
-            gainNode.connect(destinationNode);
-            virtualMediaStream = destinationNode.stream;
-            console.info('[Sokuji] Recreated virtual media stream successfully');
-          }
-        }
-      } catch (error) {
-        console.error('[Sokuji] Failed to resume AudioContext:', error);
-      }
-    }
-    
-    // If we don't have a virtual stream, we can't provide it
-    if (!virtualMediaStream) {
-      console.error('[Sokuji] Virtual media stream not available');
-      console.error('[Sokuji] AudioContext state:', streamPlayer ? streamPlayer.context.state : 'No streamPlayer');
-      throw new Error('Virtual microphone is not available - AudioContext could not be started. Please interact with the page first.');
-    }
-    
-    // Create a new MediaStream with only audio tracks from our virtual stream
-    const outputStream = new MediaStream();
-    virtualMediaStream.getAudioTracks().forEach(track => {
-      outputStream.addTrack(track);
-    });
-    
-    // If video was also requested, get it from the original getUserMedia call
-    if (constraints.video) {
-      try {
-        const videoOnlyConstraints = { video: constraints.video, audio: false };
-        const videoStream = await originalGetUserMedia(videoOnlyConstraints);
-        
-        // Add video tracks to our stream
-        videoStream.getVideoTracks().forEach(track => {
-          outputStream.addTrack(track);
-        });
-      } catch (error) {
-        console.warn('[Sokuji] Failed to get video tracks:', error);
-        // Continue with just audio if video fails
-      }
-    }
-    
-    console.info('[Sokuji] Returning virtual microphone stream with', 
-      outputStream.getAudioTracks().length, 'audio tracks and',
-      outputStream.getVideoTracks().length, 'video tracks');
-    
-    return outputStream;
-  } catch (error) {
-    console.error('[Sokuji] Error in getUserMedia override:', error);
-    // If the virtual mic fails, try the original method as a fallback
-    return originalGetUserMedia(constraints);
-  }
-};
-
-// Listen for audio chunks from the content script
-window.addEventListener('message', (event) => {
-  // Only process messages from our own window
-  if (event.source !== window) return;
-  
-  if (event.data && event.data.type) {
-    console.debug('[Sokuji] Received window message:', event.data.type);
-    
-    // Check if this is an audio chunk message
-    if (event.data.type === 'SOKUJI_AUDIO_FILE') {
-      const { audioData } = event.data;
-      console.debug(`[Sokuji] Received SOKUJI_AUDIO_FILE - Data present: ${!!audioData}, Length: ${audioData ? audioData.byteLength : 'N/A'}`);
-      if (audioData) {
-        // Add the audio data to our virtual microphone
-        addAudioData(audioData);
-      }
-    } else if (event.data.type === 'AUDIO_CHUNK') {
-      const { data } = event.data;
-      console.debug('[Sokuji] Received AUDIO_CHUNK message', data ? 'with data' : 'without data');
+    // If constraints specifically request our virtual microphone
+    if (constraints.audio && 
+        ((constraints.audio.deviceId && 
+          (constraints.audio.deviceId.exact === VIRTUAL_MIC_ID || 
+           constraints.audio.deviceId === VIRTUAL_MIC_ID)) || 
+         constraints.audio === true)) {
       
-      // Process the incoming audio data
-      if (data && data.channelData && data.channelData[0]) {
-        console.debug(`[Sokuji] Processing AUDIO_CHUNK - Channel data length: ${data.channelData[0].length}`);
-        // Data is already in Int16Array format, use it directly
-        const int16Samples = new Int16Array(data.channelData[0]);
-        
-        // Add the audio data to our player
-        addAudioData(int16Samples, 'content-script');
-      }
+      // Initialize our virtual microphone if not already done
+      initializeTrackGenerator();
+      
+      // Return our virtual stream
+      console.log('[Sokuji] Returning virtual microphone stream');
+      return virtualStream;
     }
-  }
-});
+    
+    // For any other case, use the original getUserMedia
+    return originalGetUserMedia(constraints);
+  };
 
-// Add a listener for user interaction to ensure AudioContext can start
-const userInteractionEvents = ['click', 'touchstart', 'keydown'];
-userInteractionEvents.forEach(eventType => {
-  document.addEventListener(eventType, async function userInteractionHandler() {
-    // Only need to handle once
-    userInteractionEvents.forEach(e => document.removeEventListener(e, userInteractionHandler));
+  // Listen for messages from content script
+  window.addEventListener('message', function(event) {
+    // Only process messages from our own window
+    if (event.source !== window) return;
     
-    console.info('[Sokuji] User interaction detected, ensuring AudioContext is running');
+    // Support for legacy AUDIO_CHUNK format
+    if (event.data && event.data.type === 'AUDIO_CHUNK' && event.data.source === 'SOKUJI_AUDIO_BRIDGE') {
+      const { data } = event.data;
+      
+      // Create Int16Array from the channelData if available
+      let pcmData;
+      if (data && data.channelData && Array.isArray(data.channelData[0])) {
+        pcmData = new Int16Array(data.channelData[0]);
+      } else {
+        console.error('[Sokuji] Invalid audio data format received');
+        return;
+      }
+      
+      // Add chunk to buffer for processing
+      addChunkToBuffer(pcmData, {
+        chunkIndex: data.chunkIndex,
+        totalChunks: data.totalChunks,
+        sampleRate: data.sampleRate || SAMPLE_RATE,
+        trackId: data.trackId || 'default'
+      });
+    }
     
-    // If we have a streamPlayer with a suspended context, try to resume it
-    if (streamPlayer && streamPlayer.context && streamPlayer.context.state === 'suspended') {
-      try {
-        await streamPlayer.context.resume();
-        console.info(`[Sokuji] AudioContext resumed after user interaction, state: ${streamPlayer.context.state}`);
-      } catch (error) {
-        console.error('[Sokuji] Failed to resume AudioContext after user interaction:', error);
+    // Support for new PCM_DATA format
+    if (event.data && event.data.type === 'PCM_DATA') {
+      // Create Int16Array from the pcmData
+      let pcmData;
+      if (event.data.pcmData && Array.isArray(event.data.pcmData)) {
+        pcmData = new Int16Array(event.data.pcmData);
+      } else {
+        console.error('[Sokuji] Invalid PCM data format received');
+        return;
+      }
+      
+      // Add chunk to buffer for processing
+      addChunkToBuffer(pcmData, {
+        chunkIndex: event.data.chunkIndex,
+        totalChunks: event.data.totalChunks,
+        sampleRate: event.data.sampleRate || SAMPLE_RATE,
+        trackId: event.data.trackId || 'default'
+      });
+      
+      console.log(`[Sokuji] Received PCM_DATA chunk ${event.data.chunkIndex + 1}/${event.data.totalChunks}`);
+    }
+    
+    // Handle state change messages
+    if (event.data && event.data.type === 'VIRTUAL_MIC_STATE') {
+      if (event.data.enabled) {
+        // Initialize our virtual microphone if not already done
+        if (!isActive) {
+          initializeTrackGenerator();
+        }
+        console.log('[Sokuji] Virtual microphone enabled');
+      } else {
+        // Optionally handle disabling
+        console.log('[Sokuji] Virtual microphone disabled');
       }
     }
   });
-});
 
-// Initialize the virtual microphone immediately, but it might be in suspended state until user interaction
-startCapturing().then(success => {
-  if (success) {
-    console.info('[Sokuji] Virtual microphone initialized and ready');
-  } else {
-    console.warn('[Sokuji] Virtual microphone initialization deferred to first use');
-  }
-});
+  // Expose methods for debugging and external access
+  window.sokujiVirtualMic = {
+    isActive: () => isActive,
+    addChunkToBuffer,
+    processAndWriteAudioData,
+    getTrackGenerator: () => trackGenerator,
+    getVirtualStream: () => virtualStream,
+    getDeviceId: () => VIRTUAL_MIC_ID
+  };
 
-console.info('[Sokuji] Virtual microphone script loaded');
+  console.log('[Sokuji] Virtual microphone successfully initialized');
+})();
