@@ -43,14 +43,6 @@ export class BrowserAudioService implements IAudioService {
     } catch (error) {
       console.error('Error parsing URL parameters:', error);
     }
-    
-    // Connect the WavStreamPlayer
-    try {
-      await this.connectWavStreamPlayer();
-      console.info('WavStreamPlayer connected successfully');
-    } catch (error) {
-      console.error('Failed to connect WavStreamPlayer:', error);
-    }
   }
 
   /**
