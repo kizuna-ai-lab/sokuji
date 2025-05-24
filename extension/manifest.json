@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Sokuji Extension",
   "version": "0.2.6",
-  "description": "Real-time language interpretation extension for web browser",
+  "description": "Real-time language interpretation extension with virtual microphone capabilities",
   "minimum_chrome_version": "116",
   "offline_enabled": false,
   "icons": {
@@ -24,7 +24,8 @@
   "permissions": [
     "activeTab",
     "storage",
-    "sidePanel"
+    "sidePanel",
+    "scripting"
   ],
   "background": {
     "service_worker": "background.js",
@@ -32,18 +33,26 @@
   },
   "content_scripts": [
     {
-      "matches": ["https://meet.google.com/*"],
+      "matches": ["<all_urls>"],
       "js": ["content.js"],
       "run_at": "document_start"
     }
   ],
   "web_accessible_resources": [
     {
-      "resources": ["worklets/*", "virtual-microphone.js", "assets/*", "fullpage.html", "fullpage.js", "fullpage.css", "permission.html", "requestPermission.js"],
+      "resources": [
+        "virtual-microphone.js", 
+        "assets/*", 
+        "fullpage.html", 
+        "fullpage.js", 
+        "fullpage.css", 
+        "permission.html", 
+        "requestPermission.js"
+      ],
       "matches": ["<all_urls>"]
     }
   ],
   "content_security_policy": {
-    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'; worker-src 'self'"
+    "extension_pages": "script-src 'self'; object-src 'self'; worker-src 'self'"
   }
 }

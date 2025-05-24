@@ -3,6 +3,7 @@
 // Content script for the Sokuji browser extension
 // This script injects the code to override mediaDevices methods
 // and communicates with the side panel
+
 // Get extension URL in a browser-compatible way
 function getExtensionURL(path) {
   let url = '';
@@ -68,7 +69,7 @@ if (document.readyState === 'complete' || document.readyState === 'interactive')
 // Function to inject permission iframe
 function injectPermissionIframe() {
   // Check if an iframe with this ID already exists
-  const existingIframe = document.getElementById('permissionsIFrame');
+  const existingIframe = document.getElementById('sokujiPermissionsIFrame');
   if (existingIframe) {
     // Remove it if it exists
     existingIframe.remove();
@@ -77,7 +78,7 @@ function injectPermissionIframe() {
   // Create a hidden iframe to request permission
   const iframe = document.createElement('iframe');
   iframe.hidden = true;
-  iframe.id = 'permissionsIFrame';
+  iframe.id = 'sokujiPermissionsIFrame';
   iframe.allow = 'microphone';
   iframe.src = getExtensionURL('permission.html');
   
@@ -101,24 +102,77 @@ function injectPermissionIframe() {
   console.info('[Sokuji] Permission iframe injected into page');
 }
 
-// Listen for messages from the extension
+// Listen for messages from the extension side panel script
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (message.type === 'AUDIO_CHUNK') {
-    // Forward PCM data to page context
-    window.postMessage({ type: 'AUDIO_CHUNK', data: message.data }, '*');
+  // Handle new PCM_DATA message
+  if (message.type === 'PCM_DATA') {
+    console.debug(`[Sokuji] Received PCM data from side panel script: chunk ${message.chunkIndex + 1}/${message.totalChunks}`);
+    
+    // Forward PCM data to page's virtual microphone with same format
+    window.postMessage(message, '*');
+    
+    // Acknowledge receipt
+    if (sendResponse) {
+      sendResponse({ success: true });
+    }
+    return true; // Keep message channel open for async response
   }
+  
+  // Handle virtual mic enabled/disabled message
+  if (message.type === 'VIRTUAL_MIC_ENABLED') {
+    console.log('[Sokuji] Virtual microphone ' + (message.enabled ? 'enabled' : 'disabled'));
+    
+    // Forward mic state to the page
+    window.postMessage({
+      type: 'VIRTUAL_MIC_STATE',
+      enabled: message.enabled
+    }, '*');
+    
+    if (sendResponse) {
+      sendResponse({ success: true });
+    }
+    return true;
+  }
+  
+  return false;
 });
 
+// Listen for messages from the page context
+// window.addEventListener('message', (event) => {
+//   // Only handle messages from the same window
+//   if (event.source !== window) return;
+  
+//   // // Handle messages from the injected script
+//   // if (event.data && event.data.source === 'SOKUJI_VIRTUAL_MIC') {
+//   //   // Forward messages to the extension background script
+//   //   if (chrome.runtime && chrome.runtime.sendMessage) {
+//   //     chrome.runtime.sendMessage(event.data);
+//   //   }
+//   // }
+  
+//   // Handle virtual mic status updates
+//   if (event.data && event.data.type === 'VIRTUAL_MIC_STATUS') {
+//     console.log('[Sokuji] Virtual microphone status:', event.data.active);
+    
+//     // Forward status to background script
+//     if (chrome.runtime && chrome.runtime.sendMessage) {
+//       chrome.runtime.sendMessage({
+//         type: 'VIRTUAL_MIC_STATUS',
+//         active: event.data.active
+//       });
+//     }
+//   }
+// });
+
 // Content script loaded
-window.addEventListener('load', () => {
-  console.info('[Sokuji] Content script loaded');
-});
+console.info('[Sokuji] Content script loaded and ready for audio bridging');
 
 // Expose API for debugging
 window.sokujiContentScript = {
   version: '1.0.0',
   getStatus: () => ({
+    initialized: true,
     hasVirtualMic: !!window.sokujiVirtualMic,
-    canInjectAudio: !!window.sokujiInjectAudio
+    canInjectAudio: true
   })
 };
