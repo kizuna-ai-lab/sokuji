@@ -28,6 +28,10 @@
   // Audio chunk buffering system
   const chunkBuffers = new Map(); // Map of trackId -> Map of chunkIndex -> chunk data
   
+  // Batch queue system for each trackId
+  const batchQueues = new Map(); // Map of trackId -> Array of batches to be played
+  const isProcessingBatch = new Map(); // Map of trackId -> boolean indicating if a batch is being processed
+  
   // Initialize the track generator
   function initializeTrackGenerator() {
     if (trackGenerator) return;
@@ -58,7 +62,14 @@
     // Single chunk - process immediately if no chunk info
     if (chunkIndex === undefined || totalChunks === undefined) {
       console.log('[Sokuji] Processing single chunk directly');
-      processAndWriteAudioData(pcmData, sampleRate || SAMPLE_RATE);
+      
+      // For single chunks, we still want to queue them if this trackId has a queue
+      if (batchQueues.has(trackId) && batchQueues.get(trackId).length > 0) {
+        console.log(`[Sokuji] Adding single chunk to queue for track ${trackId}`);
+        queueBatchForProcessing(pcmData, trackId, sampleRate || SAMPLE_RATE);
+      } else {
+        processAndWriteAudioData(pcmData, sampleRate || SAMPLE_RATE);
+      }
       return;
     }
     
@@ -76,21 +87,29 @@
       sampleRate: sampleRate || SAMPLE_RATE
     });
     
-    // Check if we have all chunks for this track
+    // Check if we have all chunks for this batch
     if (trackBuffer.size === totalChunks) {
-      console.log(`[Sokuji] All ${totalChunks} chunks received for track ${trackId}, processing...`);
-      processCompleteTrack(trackId, totalChunks);
+      console.log(`[Sokuji] All ${totalChunks} chunks received for track ${trackId}, adding to queue...`);
+      
+      // Add this complete batch to the queue
+      const batch = assembleBatch(trackId, totalChunks);
+      
+      // Process the batch (will queue it if another batch is already playing)
+      processOrQueueBatch(batch);
+      
+      // Clear the buffer for this track to prepare for the next batch
+      chunkBuffers.delete(trackId);
     } else {
       console.log(`[Sokuji] Waiting for more chunks: ${trackBuffer.size}/${totalChunks} received`);
     }
   }
   
-  // Process a complete track when all chunks are received
-  function processCompleteTrack(trackId, totalChunks) {
+  // Assemble a batch from chunks
+  function assembleBatch(trackId, totalChunks) {
     const trackBuffer = chunkBuffers.get(trackId);
     if (!trackBuffer || trackBuffer.size < totalChunks) {
-      console.error(`[Sokuji] Cannot process incomplete track: ${trackBuffer?.size || 0}/${totalChunks}`);
-      return;
+      console.error(`[Sokuji] Cannot assemble incomplete batch: ${trackBuffer?.size || 0}/${totalChunks}`);
+      return null;
     }
     
     // Determine total length of all chunks
@@ -98,7 +117,7 @@
     for (let i = 0; i < totalChunks; i++) {
       if (!trackBuffer.has(i)) {
         console.error(`[Sokuji] Missing chunk ${i} for track ${trackId}`);
-        return;
+        return null;
       }
       totalLength += trackBuffer.get(i).data.length;
     }
@@ -117,109 +136,189 @@
     // Use sample rate from first chunk
     const sampleRate = trackBuffer.get(0).sampleRate;
     
-    // Process the combined data
-    console.log(`[Sokuji] Processing combined data: ${totalLength} samples`);
-    processAndWriteAudioData(combinedData, sampleRate);
-    
-    // Clear the buffer for this track
-    chunkBuffers.delete(trackId);
+    // Return assembled batch
+    console.log(`[Sokuji] Assembled batch: ${totalLength} samples for track ${trackId}`);
+    return {
+      data: combinedData,
+      sampleRate,
+      trackId,
+      durationMs: (combinedData.length / sampleRate) * 1000 // Calculate duration in milliseconds
+    };
   }
-  
+
+  // Queue a single PCM chunk as a batch
+  function queueBatchForProcessing(pcmData, trackId, sampleRate) {
+    const batch = {
+      data: pcmData,
+      sampleRate,
+      trackId,
+      durationMs: (pcmData.length / sampleRate) * 1000 // Calculate duration in milliseconds
+    };
+    
+    processOrQueueBatch(batch);
+  }
+
+  // Process or queue a batch depending on current state
+  function processOrQueueBatch(batch) {
+    if (!batch) return;
+    
+    const { trackId } = batch;
+    
+    // Initialize batch queue for this track if it doesn't exist
+    if (!batchQueues.has(trackId)) {
+      batchQueues.set(trackId, []);
+    }
+    
+    // Add this batch to the queue
+    batchQueues.get(trackId).push(batch);
+    console.log(`[Sokuji] Added batch to queue for track ${trackId}. Queue length: ${batchQueues.get(trackId).length}`);
+    
+    // If we're not currently processing a batch for this track, start processing
+    if (!isProcessingBatch.get(trackId)) {
+      processNextBatchInQueue(trackId);
+    } else {
+      console.log(`[Sokuji] Already processing a batch for track ${trackId}, queued for later`);
+    }
+  }
+
+  // Process the next batch in the queue for a track
+  function processNextBatchInQueue(trackId) {
+    // Get the queue for this track
+    const queue = batchQueues.get(trackId);
+    if (!queue || queue.length === 0) {
+      console.log(`[Sokuji] No batches in queue for track ${trackId}`);
+      isProcessingBatch.set(trackId, false);
+      return;
+    }
+    
+    // Mark as processing
+    isProcessingBatch.set(trackId, true);
+    
+    // Get the next batch from the queue
+    const nextBatch = queue.shift();
+    console.log(`[Sokuji] Processing next batch for track ${trackId}. Remaining in queue: ${queue.length}`);
+    
+    // Process this batch
+    processAndWriteAudioData(nextBatch.data, nextBatch.sampleRate)
+      .then(actualDurationMs => {
+        console.log(`[Sokuji] Batch for track ${trackId} completed. Duration: ${actualDurationMs}ms`);
+        
+        // Wait until this batch is fully played before processing the next one
+        setTimeout(() => {
+          processNextBatchInQueue(trackId);
+        }, 1); // Small additional delay for safety
+      })
+      .catch(error => {
+        console.error(`[Sokuji] Error processing batch for track ${trackId}:`, error);
+        // Continue with the next batch even if there was an error
+        setTimeout(() => {
+          processNextBatchInQueue(trackId);
+        }, 100);
+      });
+  }
+
   // Process PCM data and write to the track
   async function processAndWriteAudioData(pcmData, sampleRate) {
-    if (!isActive || !audioWriter) return;
+    if (!isActive || !audioWriter) return 0;
 
     try {
-        // Convert Int16Array to Float32Array (expected by Web Audio API)
-        const floatData = new Float32Array(pcmData.length);
-        for (let i = 0; i < pcmData.length; i++) {
-            floatData[i] = pcmData[i] / 32768.0; // Ensure floating point division
+      // Convert Int16Array to Float32Array (expected by Web Audio API)
+      const floatData = new Float32Array(pcmData.length);
+      for (let i = 0; i < pcmData.length; i++) {
+        floatData[i] = pcmData[i] / 32768.0; // Ensure floating point division
+      }
+
+      // --- BEGIN DIAGNOSTIC LOGS ---
+      let minVal = floatData.length > 0 ? floatData[0] : 0;
+      let maxVal = floatData.length > 0 ? floatData[0] : 0;
+      let hasNaN = false;
+      let nanIndex = -1;
+      for (let k = 0; k < floatData.length; k++) {
+        if (isNaN(floatData[k])) {
+          hasNaN = true;
+          nanIndex = k;
+          break;
         }
+        if (floatData[k] < minVal) minVal = floatData[k];
+        if (floatData[k] > maxVal) maxVal = floatData[k];
+      }
+      console.log(`[Sokuji] floatData stats: length=${floatData.length}, min=${minVal}, max=${maxVal}, hasNaN=${hasNaN}${hasNaN ? ` at index ${nanIndex} (pcmData[${nanIndex}]=${pcmData[nanIndex]})` : ''}`);
+      
+      if (hasNaN) {
+        console.error("[Sokuji] FATAL: floatData contains NaN values! Aborting write.");
+        return 0; // Do not attempt to write if NaN
+      }
+      // Strict check for range. Values exactly -1.0 or 1.0 are fine.
+      if (maxVal > 1.0 || minVal < -1.0) {
+        console.warn(`[Sokuji] WARNING: floatData values (min: ${minVal}, max: ${maxVal}) are outside strict [-1.0, 1.0] range!`);
+      }
+      console.log('[Sokuji] Creating AudioData with sampleRate:', sampleRate);
+      // --- END DIAGNOSTIC LOGS ---
 
-        // --- BEGIN DIAGNOSTIC LOGS ---
-        let minVal = floatData.length > 0 ? floatData[0] : 0;
-        let maxVal = floatData.length > 0 ? floatData[0] : 0;
-        let hasNaN = false;
-        let nanIndex = -1;
-        for (let k = 0; k < floatData.length; k++) {
-            if (isNaN(floatData[k])) {
-                hasNaN = true;
-                nanIndex = k;
-                break;
-            }
-            if (floatData[k] < minVal) minVal = floatData[k];
-            if (floatData[k] > maxVal) maxVal = floatData[k];
-        }
-        console.log(`[Sokuji] floatData stats: length=${floatData.length}, min=${minVal}, max=${maxVal}, hasNaN=${hasNaN}${hasNaN ? ` at index ${nanIndex} (pcmData[${nanIndex}]=${pcmData[nanIndex]})` : ''}`);
-        
-        if (hasNaN) {
-            console.error("[Sokuji] FATAL: floatData contains NaN values! Aborting write.");
-            return; // Do not attempt to write if NaN
-        }
-        // Strict check for range. Values exactly -1.0 or 1.0 are fine.
-        if (maxVal > 1.0 || minVal < -1.0) {
-            console.warn(`[Sokuji] WARNING: floatData values (min: ${minVal}, max: ${maxVal}) are outside strict [-1.0, 1.0] range!`);
-        }
-        console.log('[Sokuji] Creating AudioData with sampleRate:', sampleRate);
-        // --- END DIAGNOSTIC LOGS ---
+      const framesPerChunk = sampleRate * 1; // 1 second of audio per chunk
+      let currentTimestampUs = performance.now() * 1000; // Initial timestamp in microseconds
 
-        const framesPerChunk = sampleRate * 1; // 1 second of audio per chunk
-        let currentTimestampUs = performance.now() * 1000; // Initial timestamp in microseconds
+      console.log(`[Sokuji] Starting to write ${floatData.length} frames in chunks of ${framesPerChunk} frames using setTimeout.`);
 
-        console.log(`[Sokuji] Starting to write ${floatData.length} frames in chunks of ${framesPerChunk} frames using setTimeout.`);
+      let currentFrameIndex = 0;
+      let chunkCount = 0;
+      let totalDurationMs = 0;
 
-        let currentFrameIndex = 0;
-        let chunkCount = 0;
-
+      return new Promise((resolve, reject) => {
         function writeNextChunk() {
-            if (currentFrameIndex >= floatData.length) {
-                console.log('[Sokuji] All audio data chunks written successfully via setTimeout.');
-                return;
-            }
+          if (currentFrameIndex >= floatData.length) {
+            console.log('[Sokuji] All audio data chunks written successfully via setTimeout.');
+            resolve(totalDurationMs);
+            return;
+          }
 
-            const chunkEnd = Math.min(currentFrameIndex + framesPerChunk, floatData.length);
-            const chunkFloatData = floatData.slice(currentFrameIndex, chunkEnd);
-            const numberOfFramesInChunk = chunkFloatData.length;
+          const chunkEnd = Math.min(currentFrameIndex + framesPerChunk, floatData.length);
+          const chunkFloatData = floatData.slice(currentFrameIndex, chunkEnd);
+          const numberOfFramesInChunk = chunkFloatData.length;
 
-            if (numberOfFramesInChunk === 0) {
-                console.log('[Sokuji] Skipping empty chunk in setTimeout.');
-                currentFrameIndex += framesPerChunk; // Advance index even if chunk was empty
-                writeNextChunk(); // Immediately try next chunk
-                return;
-            }
+          if (numberOfFramesInChunk === 0) {
+            console.log('[Sokuji] Skipping empty chunk in setTimeout.');
+            currentFrameIndex += framesPerChunk; // Advance index even if chunk was empty
+            writeNextChunk(); // Immediately try next chunk
+            return;
+          }
 
-            // Create AudioData object
-            const audioDataChunk = new window.AudioData({
-                format: 'f32',
-                sampleRate: sampleRate,
-                numberOfFrames: numberOfFramesInChunk,
-                numberOfChannels: CHANNEL_COUNT,
-                timestamp: currentTimestampUs,
-                data: chunkFloatData
-            });
+          // Create AudioData object
+          const audioDataChunk = new window.AudioData({
+            format: 'f32',
+            sampleRate: sampleRate,
+            numberOfFrames: numberOfFramesInChunk,
+            numberOfChannels: CHANNEL_COUNT,
+            timestamp: currentTimestampUs,
+            data: chunkFloatData
+          });
 
-            chunkCount++;
-            console.log(`[Sokuji] Writing chunk ${chunkCount}: ${numberOfFramesInChunk} frames, timestamp: ${currentTimestampUs / 1000} ms`);
+          chunkCount++;
+          console.log(`[Sokuji] Writing chunk ${chunkCount}: ${numberOfFramesInChunk} frames, timestamp: ${currentTimestampUs / 1000} ms`);
+          
+          audioWriter.write(audioDataChunk).then(() => {
+            console.log(`[Sokuji] Successfully wrote chunk ${chunkCount}.`);
             
-            audioWriter.write(audioDataChunk).then(() => {
-                console.log(`[Sokuji] Successfully wrote chunk ${chunkCount}.`);
-                
-                const chunkDurationUs = (numberOfFramesInChunk / sampleRate) * 1000000;
-                currentTimestampUs += chunkDurationUs;
-                currentFrameIndex += numberOfFramesInChunk; // More precise advancement
+            const chunkDurationUs = (numberOfFramesInChunk / sampleRate) * 1000000;
+            currentTimestampUs += chunkDurationUs;
+            currentFrameIndex += numberOfFramesInChunk; // More precise advancement
+            
+            const chunkDurationMs = chunkDurationUs / 1000;
+            totalDurationMs += chunkDurationMs;
 
-                const delayMs = chunkDurationUs / 1000;
-                setTimeout(writeNextChunk, delayMs);
-            }).catch(error => {
-                console.error(`[Sokuji] Error writing chunk ${chunkCount}:`, error);
-                // Optionally, decide if you want to stop or try to continue
-            });
+            const delayMs = chunkDurationMs;
+            setTimeout(writeNextChunk, delayMs);
+          }).catch(error => {
+            console.error(`[Sokuji] Error writing chunk ${chunkCount}:`, error);
+            reject(error);
+          });
         }
 
         writeNextChunk(); // Start the process
-
+      });
     } catch (error) {
-        console.error('[Sokuji] Error in processAndWriteAudioData:', error);
+      console.error('[Sokuji] Error in processAndWriteAudioData:', error);
+      return 0;
     }
   }
 
@@ -346,7 +445,17 @@
     processAndWriteAudioData,
     getTrackGenerator: () => trackGenerator,
     getVirtualStream: () => virtualStream,
-    getDeviceId: () => VIRTUAL_MIC_ID
+    getDeviceId: () => VIRTUAL_MIC_ID,
+    getBatchQueueStatus: () => {
+      const status = {};
+      batchQueues.forEach((queue, trackId) => {
+        status[trackId] = {
+          queueLength: queue.length,
+          isProcessing: isProcessingBatch.get(trackId) || false
+        };
+      });
+      return status;
+    }
   };
 
   console.log('[Sokuji] Virtual microphone successfully initialized');
