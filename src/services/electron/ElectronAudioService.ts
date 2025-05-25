@@ -28,19 +28,6 @@ export class ElectronAudioService implements IAudioService {
   }
 
   /**
-   * Connects the WavStreamPlayer to the audio context
-   */
-  public async connectWavStreamPlayer(): Promise<boolean> {
-    try {
-      await this.wavStreamPlayer.connect();
-      return true;
-    } catch (error) {
-      console.error('Failed to connect WavStreamPlayer:', error);
-      return false;
-    }
-  }
-
-  /**
    * Adds 16-bit PCM audio data to the WavStreamPlayer
    * @param data The audio data to add
    * @param trackId Optional track ID to associate with this audio
