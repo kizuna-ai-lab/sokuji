@@ -16,7 +16,7 @@ export interface Settings {
   semanticEagerness: SemanticEagerness;
   model: Model;
   temperature: number;
-  maxTokens: number;
+  maxTokens: number | 'inf';
   transcriptModel: TranscriptModel;
   noiseReduction: NoiseReductionMode;
   voice: VoiceOption;
@@ -48,14 +48,14 @@ export const defaultSettings: Settings = {
   silenceDuration: 0.5,
   semanticEagerness: 'Auto',
   model: 'gpt-4o-mini-realtime-preview',
-  temperature: 0.8,
+  temperature: 0.6,
   maxTokens: 4096,
   transcriptModel: 'gpt-4o-mini-transcribe',
   noiseReduction: 'None',
   voice: 'alloy',
   useTemplateMode: true,
-  sourceLanguage: 'Chinese',
-  targetLanguage: 'Japanese',
+  sourceLanguage: 'English',
+  targetLanguage: 'French',
   systemInstructions:
     "You are a professional real-time interpreter.\n" +
     "Your only job is to translate every single user input **literally** from Chinese to Japanese—no exceptions.\n" +
