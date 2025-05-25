@@ -103,8 +103,8 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   const getProcessedSystemInstructions = useCallback(() => {
     if (settings.useTemplateMode) {
       return settings.templateSystemInstructions
-        .replace('{{SOURCE_LANGUAGE}}', settings.sourceLanguage || 'SOURCE_LANGUAGE')
-        .replace('{{TARGET_LANGUAGE}}', settings.targetLanguage || 'TARGET_LANGUAGE');
+        .replace(/\{\{SOURCE_LANGUAGE\}\}/g, settings.sourceLanguage || 'SOURCE_LANGUAGE')
+        .replace(/\{\{TARGET_LANGUAGE\}\}/g, settings.targetLanguage || 'TARGET_LANGUAGE');
     } else {
       return settings.systemInstructions;
     }
