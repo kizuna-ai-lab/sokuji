@@ -16,7 +16,6 @@ export class BrowserAudioService implements IAudioService {
   private wavStreamPlayer: WavStreamPlayer = new WavStreamPlayer({ sampleRate: 24000 }); // WavStreamPlayer instance for audio output
   private interruptedTrackIds: { [key: string]: boolean } = {}; // Track IDs that have been interrupted
   private targetTabId: number | null = null; // Target tab ID from URL parameter
-  private debugMode: boolean = false; // Enable for verbose logging
 
   /**
    * Initialize the Web Audio API components
@@ -28,18 +27,12 @@ export class BrowserAudioService implements IAudioService {
     try {
       const urlParams = new URLSearchParams(window.location.search);
       const tabIdParam = urlParams.get('tabId');
-      const debugParam = urlParams.get('debug');
       
       if (tabIdParam) {
         this.targetTabId = parseInt(tabIdParam, 10);
         console.info(`BrowserAudioService initialized with target tabId: ${this.targetTabId}`);
       }
       
-      // Enable debug mode if requested
-      if (debugParam === 'true' || debugParam === '1') {
-        this.debugMode = true;
-        console.info('BrowserAudioService debug mode enabled');
-      }
     } catch (error) {
       console.error('Error parsing URL parameters:', error);
     }
@@ -369,9 +362,7 @@ export class BrowserAudioService implements IAudioService {
   private sendPcmDataToTabs(data: Int16Array, trackId?: string): void {
     // Skip empty data
     if (!data || data.length === 0) {
-      if (this.debugMode) {
-        console.warn('[Sokuji] Attempted to send empty audio data');
-      }
+      console.warn('[Sokuji] Attempted to send empty audio data');
       return;
     }
     
@@ -386,7 +377,7 @@ export class BrowserAudioService implements IAudioService {
     // Calculate the total number of chunks needed
     const totalChunks = Math.ceil(data.length / chunkSize);
     
-    if (this.debugMode || isLargeFile) {
+    if (isLargeFile) {
       console.info(`[Sokuji] Sending audio data (${data.length} samples, ~${(data.length / sampleRate).toFixed(2)}s) in ${totalChunks} chunks`);
     }
     
@@ -398,10 +389,6 @@ export class BrowserAudioService implements IAudioService {
       
       // Create a slice of data for this chunk
       const chunkData = data.slice(start, end);
-      
-      if (this.debugMode && (chunkIndex === 0 || chunkIndex === totalChunks - 1)) {
-        console.debug(`[Sokuji] Processing chunk ${chunkIndex + 1}/${totalChunks}, samples ${start}-${end-1}`);
-      }
       
       // Create a message object with all necessary metadata - using PCM_DATA format
       const message = {
@@ -420,9 +407,6 @@ export class BrowserAudioService implements IAudioService {
       // Process the next chunk if not done
       if (chunkIndex < totalChunks - 1) {
         processChunk(chunkIndex + 1);
-      } else if (this.debugMode) {
-        // Log completion of sending all chunks
-        console.debug(`[Sokuji] Completed sending all ${totalChunks} chunks`);
       }
     };
     
@@ -437,9 +421,6 @@ export class BrowserAudioService implements IAudioService {
   private sendMessageToTabs(message: any): void {
     // Only proceed if Chrome extension API is available
     if (typeof chrome === 'undefined' || !chrome.tabs || !chrome.tabs.query) {
-      if (this.debugMode) {
-        console.warn('Chrome extension API not available');
-      }
       return; // Silent fail in non-extension context
     }
     
@@ -462,25 +443,19 @@ export class BrowserAudioService implements IAudioService {
     // Check if the tab still exists
     chrome.tabs.get(tabId, (tab: any) => {
       if (chrome.runtime.lastError) {
-        if (this.debugMode) {
-          console.warn(`Target tab ${tabId} error: ${chrome.runtime.lastError.message}`);
-        }
         // Fall back to sending to all tabs
         this.sendToAllTabs(message);
         return;
       }
       
       if (!tab) {
-        if (this.debugMode) {
-          console.warn(`Target tab ${tabId} no longer exists, falling back to all tabs`);
-        }
         this.sendToAllTabs(message);
         return;
       }
       
       // Tab exists, send the message
       chrome.tabs.sendMessage(tabId, message, (response: any) => {
-        if (chrome.runtime.lastError && this.debugMode) {
+        if (chrome.runtime.lastError) {
           console.warn(`Error sending to tab ${tabId}: ${chrome.runtime.lastError.message}`);
         }
       });
@@ -494,9 +469,6 @@ export class BrowserAudioService implements IAudioService {
   private sendToAllTabs(message: any): void {
     chrome.tabs.query({}, (tabs: any[]) => {
       if (chrome.runtime.lastError || !tabs || tabs.length === 0) {
-        if (this.debugMode) {
-          console.warn('No tabs available to send audio data');
-        }
         return;
       }
       
@@ -509,7 +481,7 @@ export class BrowserAudioService implements IAudioService {
         
         chrome.tabs.sendMessage(tab.id, message, (response: any) => {
           // Ignore errors, as not all tabs will have our content script
-          if (chrome.runtime.lastError && this.debugMode) {
+          if (chrome.runtime.lastError) {
             console.debug(`Tab ${tab.id} not ready: ${chrome.runtime.lastError.message}`);
           }
         });
@@ -559,9 +531,6 @@ export class BrowserAudioService implements IAudioService {
       // Using any type to bypass TypeScript's type checking for accessing a private property
       const player = this.wavStreamPlayer as any;
       if (player && typeof player.interruptedTrackIds === 'object') {
-        if (this.debugMode) {
-          console.debug('WavStreamPlayer previous interruptedTrackIds:', player.interruptedTrackIds);
-        }
         player.interruptedTrackIds = {};
         console.debug('Cleared WavStreamPlayer interruptedTrackIds');
       }
