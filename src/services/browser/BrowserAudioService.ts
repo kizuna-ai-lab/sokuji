@@ -419,14 +419,6 @@ export class BrowserAudioService implements IAudioService {
       
       // Process the next chunk if not done
       if (chunkIndex < totalChunks - 1) {
-        // // For large files, add a small delay between chunks to avoid overwhelming the receiver
-        // if (isLargeFile) {
-        //   const delayMs = 5; // 5ms delay between chunks for large files
-        //   setTimeout(() => processChunk(chunkIndex + 1), delayMs);
-        // } else {
-        //   // For smaller files, process next chunk immediately
-        //   processChunk(chunkIndex + 1);
-        // }
         processChunk(chunkIndex + 1);
       } else if (this.debugMode) {
         // Log completion of sending all chunks
