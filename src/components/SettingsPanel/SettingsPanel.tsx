@@ -457,10 +457,10 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
             </div>
             <input 
               type="range" 
-              min="1024" 
-              max="8192" 
-              step="1024" 
-              value={settings.maxTokens}
+              min="1" 
+              max="4096" 
+              step="1" 
+              value={typeof settings.maxTokens === 'number' ? settings.maxTokens : 4096}
               onChange={(e) => updateSettings({ maxTokens: parseInt(e.target.value) })}
               className="slider"
             />
