@@ -42,7 +42,7 @@ interface SettingsContextType {
 }
 
 export const defaultSettings: Settings = {
-  turnDetectionMode: 'Normal',
+  turnDetectionMode: 'Semantic',
   threshold: 0.49,
   prefixPadding: 0.5,
   silenceDuration: 0.5,
