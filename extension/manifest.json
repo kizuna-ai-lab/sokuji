@@ -24,8 +24,7 @@
   "permissions": [
     "activeTab",
     "storage",
-    "sidePanel",
-    "scripting"
+    "sidePanel"
   ],
   "background": {
     "service_worker": "background.js",
@@ -33,7 +32,7 @@
   },
   "content_scripts": [
     {
-      "matches": ["<all_urls>"],
+      "matches": ["https://meet.google.com/*", "https://teams.microsoft.com/*", "https://teams.live.com/*"],
       "js": ["content.js"],
       "run_at": "document_start"
     }
