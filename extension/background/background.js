@@ -20,8 +20,20 @@ const DEFAULT_CONFIG = {
   transcriptModel: 'whisper-1'
 };
 
-// Track active tabs with side panel
-const activePanelTabs = new Set();
+// Define sites where the side panel should be enabled
+// You can modify this array to include any domains you want
+const ENABLED_SITES = [
+  'meet.google.com',
+  'teams.live.com',
+  'zoom.us',
+  'teams.microsoft.com'
+];
+
+// Track which tabs have the side panel open
+const tabsWithSidePanelOpen = new Set();
+
+chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true })
+  .catch((error) => console.error('Error setting panel behavior:', error));
 
 // Initialize configuration in storage if not already set
 chrome.runtime.onInstalled.addListener(async () => {
@@ -31,107 +43,86 @@ chrome.runtime.onInstalled.addListener(async () => {
       await chrome.storage.local.set({ config: DEFAULT_CONFIG });
       console.info('Default configuration initialized');
     }
-    
-    // Set up the side panel configuration
-    if (chrome.sidePanel) {
-      await chrome.sidePanel.setOptions({
-        path: 'fullpage.html',
-        enabled: false // Default to disabled
-      });
-      
-      // Disable side panel for all existing tabs
-      const tabs = await chrome.tabs.query({});
-      for (const tab of tabs) {
-        if (tab.id) {
-          await chrome.sidePanel.setOptions({
-            tabId: tab.id,
-            enabled: false
-          });
-        }
-      }
-      console.info('Disabled side panel for all existing tabs');
-    }
   } catch (error) {
     console.error('Error initializing configuration:', error);
   }
 });
 
-// Listen for tab updates to manage side panel visibility
-chrome.tabs.onActivated.addListener(async (activeInfo) => {
-  if (chrome.sidePanel) {
-    const tabId = activeInfo.tabId;
-    // If this tab should have the panel open
-    if (activePanelTabs.has(tabId)) {
-      await chrome.sidePanel.setOptions({
-        tabId: tabId,
-        enabled: true,
-        path: 'fullpage.html?debug=true'
-      });
-    } else {
-      // Disable the panel for tabs that shouldn't have it
-      await chrome.sidePanel.setOptions({
-        tabId: tabId,
-        enabled: false
-      });
-    }
-  }
-});
-
-// Listen for extension icon click event
-chrome.action.onClicked.addListener((tab) => {
-  console.debug('Extension icon clicked', tab.id);
-  // Check if the side panel API is available
-  if (chrome.sidePanel) {
-    const tabId = tab.id;
+// Listen for tab URL updates to manage site-specific side panel visibility
+chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
+  // Only process when URL changes or when the tab is complete
+  if (!changeInfo.url && changeInfo.status !== 'complete') return;
+  
+  console.log('tabId', tabId, changeInfo, tab);
+  try {
+    const url = new URL(tab.url);
     
-    if (activePanelTabs.has(tabId)) {
-      // If panel is already active for this tab, close it
-      activePanelTabs.delete(tabId);
-      // Simply disable the panel
-      chrome.sidePanel.setOptions({
+    // Check if the current site is in the enabled sites list
+    const isEnabledSite = ENABLED_SITES.some(site => 
+      url.hostname === site || url.hostname.endsWith('.' + site));
+    
+    if (isEnabledSite) {
+      // Enable side panel for this site
+      await chrome.sidePanel.setOptions({
+        tabId: tabId,
+        path: `fullpage.html?tabId=${tabId}&debug=true`,
+        enabled: true
+      });
+      tabsWithSidePanelOpen.add(tabId);
+      console.info('Enabled Sokuji side panel for site:', url.hostname);
+    } else {
+      // Disable side panel for other sites
+      await chrome.sidePanel.setOptions({
         tabId: tabId,
         enabled: false
       });
-      console.info('Closing Sokuji side panel for tab', tabId);
-    } else {
-      // First enable the panel for this specific tab
-      chrome.sidePanel.setOptions({
-        tabId: tabId,
-        enabled: true,
-        path: `fullpage.html?tabId=${tabId}&debug=true`
-      });
-      
-      // Add to active panels list
-      activePanelTabs.add(tabId);
-      
-      // Then open the panel (must be in direct response to user gesture)
-      chrome.sidePanel.open({ tabId: tabId });
-      console.info('Opening Sokuji in side panel for tab', tabId);
+      // Remove from tracking if URL changed to a non-enabled site
+      if (tabsWithSidePanelOpen.has(tabId)) {
+        tabsWithSidePanelOpen.delete(tabId);
+        console.info('Removed tab from side panel tracking due to URL change:', tabId);
+      }
+      console.debug('Disabled Sokuji side panel for site:', url.hostname);
     }
-  } else {
-    // Fallback for browsers without side panel support
-    chrome.tabs.create({ url: 'fullpage.html?debug=true' });
-    console.warn('Side panel API not available, opening in new tab');
+  } catch (error) {
+    console.error('Error updating side panel for tab:', error);
   }
 });
 
-// Handle tab close events to clean up our tracking
+// Listen for tab switching events to update side panel visibility
+chrome.tabs.onActivated.addListener(async (activeInfo) => {
+  try {
+    // Get the details of the newly activated tab
+    const tab = await chrome.tabs.get(activeInfo.tabId);
+    
+    console.log('new tab activated', tab);
+
+    const tabId = activeInfo.tabId;
+    
+    // If the panel isn't actually open for this tab, close it
+    if (!tabsWithSidePanelOpen.has(tabId)) {
+      await chrome.sidePanel.setOptions({
+        enabled: false,
+      });
+      console.debug('Tab is on enabled site but side panel not explicitly opened:', tabId);
+    } else {
+      console.info('Kept side panel open for tab that previously opened it:', tabId);
+      await chrome.sidePanel.setOptions({
+        tabId: tabId,
+        path: `fullpage.html?tabId=${tabId}&debug=true`,
+        enabled: true, // Keep it enabled but don't show it
+      });
+    }
+  } catch (error) {
+    console.error('Error updating side panel for switched tab:', error);
+  }
+});
+
+// Listen for tab closing to clean up tracking
 chrome.tabs.onRemoved.addListener((tabId) => {
-  if (activePanelTabs.has(tabId)) {
-    activePanelTabs.delete(tabId);
-    console.debug('Tab closed, removing from active panels:', tabId);
-  }
-});
-
-// Handle new tab creation to ensure side panel is disabled by default
-chrome.tabs.onCreated.addListener(async (tab) => {
-  if (chrome.sidePanel && tab.id) {
-    // Disable side panel for newly created tabs
-    await chrome.sidePanel.setOptions({
-      tabId: tab.id,
-      enabled: false
-    });
-    console.debug('New tab created, side panel disabled by default:', tab.id);
+  // Remove the tab from tracking when it's closed
+  if (tabsWithSidePanelOpen.has(tabId)) {
+    tabsWithSidePanelOpen.delete(tabId);
+    console.info('Removed closed tab from side panel tracking:', tabId);
   }
 });
 
@@ -146,8 +137,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     handleSetConfig(message.key, message.value).then(sendResponse);
     return true; // Indicates async response
   }
-  
-
 });
 
 // Get configuration value
@@ -185,5 +174,3 @@ async function handleSetConfig(key, value) {
     return { success: false, error: error.message };
   }
 }
-
-
