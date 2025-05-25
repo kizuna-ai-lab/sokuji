@@ -57,7 +57,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       voice: settings.voice || 'alloy',
       instructions: systemInstructions,
       temperature: settings.temperature ?? 0.8,
-      max_response_output_tokens: settings.maxTokens === 'inf' ? 'inf' : String(settings.maxTokens ?? 'inf'),
+      max_response_output_tokens: settings.maxTokens ?? 'inf',
     };
 
     // Configure turn detection
