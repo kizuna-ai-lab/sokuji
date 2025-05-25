@@ -61,11 +61,6 @@ export interface IAudioService {
   getWavStreamPlayer(): WavStreamPlayer;
   
   /**
-   * Connects the WavStreamPlayer to the audio context
-   */
-  connectWavStreamPlayer(): Promise<boolean>;
-  
-  /**
    * Adds 16-bit PCM audio data to the WavStreamPlayer
    * @param data The audio data to add
    * @param trackId Optional track ID to associate with this audio

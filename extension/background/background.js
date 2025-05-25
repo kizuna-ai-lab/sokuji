@@ -65,7 +65,7 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
       await chrome.sidePanel.setOptions({
         tabId: tabId,
         enabled: true,
-        path: 'fullpage.html'
+        path: 'fullpage.html?debug=true'
       });
     } else {
       // Disable the panel for tabs that shouldn't have it
@@ -98,7 +98,7 @@ chrome.action.onClicked.addListener((tab) => {
       chrome.sidePanel.setOptions({
         tabId: tabId,
         enabled: true,
-        path: `fullpage.html?tabId=${tabId}`
+        path: `fullpage.html?tabId=${tabId}&debug=true`
       });
       
       // Add to active panels list
@@ -110,7 +110,7 @@ chrome.action.onClicked.addListener((tab) => {
     }
   } else {
     // Fallback for browsers without side panel support
-    chrome.tabs.create({ url: 'fullpage.html' });
+    chrome.tabs.create({ url: 'fullpage.html?debug=true' });
     console.warn('Side panel API not available, opening in new tab');
   }
 });

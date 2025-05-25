@@ -307,11 +307,6 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         console.info('Input device is turned off, not connecting to microphone');
       }
 
-      // // Connect to audio output using the audio service
-      // if (audioService) {
-      //   await audioService.connectWavStreamPlayer();
-      // }
-
       // If output device is ON, ensure monitor device is connected immediately
       if (isMonitorDeviceOn && selectedMonitorDevice &&
         !selectedMonitorDevice.label.toLowerCase().includes('sokuji_virtual') &&
@@ -633,17 +628,6 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         const sample = monoData[i] * 0.9; // Reduce volume by 10% to prevent clipping
         pcm16bit[i] = Math.max(-32768, Math.min(32767, Math.floor(sample * 32767)));
       }
-      //
-      // //
-      // // // Clear the interruptedTrackIds for 'test-tone' to allow replaying
-      // // // This is necessary because WavStreamPlayer keeps track of interrupted tracks
-      // // // and won't play them again unless cleared
-      // // if (wavStreamPlayer.interruptedTrackIds && typeof wavStreamPlayer.interruptedTrackIds === 'object') {
-      // //   delete wavStreamPlayer.interruptedTrackIds['test-tone'];
-      // // }
-      //
-      // await audioService.connectWavStreamPlayer();
-      // // audioService.clearInterruptedTracks();
 
       // Play the test tone using the audio service
       audioService.addAudioData(pcm16bit, 'test-tone');
