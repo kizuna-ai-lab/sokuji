@@ -87,7 +87,7 @@ Sokuji creates virtual audio devices to facilitate seamless audio routing:
 The diagram above illustrates the audio flow between Sokuji and other applications:
 
 - **Chromium**: Represents the Sokuji application itself
-- **Google Chrome**: Represents meeting applications like Google Meet or Zoom running in Chrome
+- **Google Chrome**: Represents meeting applications like Google Meet, Microsoft Teams, or Zoom running in Chrome
 - **Sokuji_Virtual_Speaker**: A virtual speaker created by Sokuji
 - **Sokuji_Virtual_Mic**: A virtual microphone created by Sokuji
 - **HyperX 7.1 Audio**: Represents a physical audio device
@@ -97,15 +97,15 @@ The numbered connections in the diagram represent:
 **Connection ①**: Sokuji's audio output is always sent to the virtual speaker (this cannot be changed)  
 **Connection ②**: Sokuji's audio is also always routed to the virtual microphone (this cannot be changed)  
 **Connection ③**: The monitoring device selected in Sokuji's audio settings, used to play back the translated audio  
-**Connection ④**: The audio output device selected in Google Meet (configured in Google Meet's settings)  
-**Connection ⑤**: The virtual microphone selected as input in Google Meet (configured in Google Meet's settings)  
+**Connection ④**: The audio output device selected in Google Meet/Microsoft Teams (configured in their settings)  
+**Connection ⑤**: The virtual microphone selected as input in Google Meet/Microsoft Teams (configured in their settings)  
 **Connection ⑥**: The input device selected in Sokuji's audio settings  
 
 This routing system allows Sokuji to capture audio from your selected input device, process it through OpenAI's Realtime API, and then output the translated audio both to your local speakers and to other applications via the virtual microphone.
 
 # Browser Extension Available!
 
-Prefer not to install a desktop application? Try our [browser extension](https://chromewebstore.google.com/detail/ppmihnhelgfpjomhjhpecobloelicnak?utm_source=item-share-cb) for Chrome and Chromium-based browsers. It offers the same powerful live speech translation features directly in your browser, with special integration for Google Meet.
+Prefer not to install a desktop application? Try our [browser extension](https://chromewebstore.google.com/detail/ppmihnhelgfpjomhjhpecobloelicnak?utm_source=item-share-cb) for Chrome and Chromium-based browsers. It offers the same powerful live speech translation features directly in your browser, with special integration for Google Meet and Microsoft Teams.
 
 [![Chrome Web Store](https://developer.chrome.com/static/docs/webstore/branding/image/UV4C4ybeBTsZt43U4xis.png)](https://chromewebstore.google.com/detail/ppmihnhelgfpjomhjhpecobloelicnak?utm_source=item-share-cb)
 

@@ -8,19 +8,31 @@ This is the browser extension version of the Sokuji live speech translation appl
 - Seamless integration with web browsers while maintaining desktop app functionality
 - Interactive audio visualization with input/output level indicators
 - Push-to-talk functionality with Space key shortcut support
-- Google Meet integration with audio replacement capabilities
+- Google Meet and Microsoft Teams integration with audio replacement capabilities
 - Draggable and repositionable interface when injected into webpages
 - Settings panel for API key configuration and audio preferences
 
-## Google Meet Integration
+## Video Conferencing Integration
 
-The extension includes special functionality for Google Meet:
+The extension includes special functionality for Google Meet and Microsoft Teams:
 
 - Replace your microphone input with a looped audio file during calls
 - Audio file selection with user-friendly interface
 - Audio playback testing before using in a call
 - Status indicators showing when audio replacement is active
-- Virtual audio device that appears in Google Meet's microphone selection
+- Virtual audio device that appears in microphone selection
+
+### Google Meet Integration
+
+- Seamlessly integrates with Google Meet's interface
+- Automatically detects meeting context for proper audio routing
+- Compatible with Google Meet's audio settings panel
+
+### Microsoft Teams Integration
+
+- Full support for Microsoft Teams web application
+- Maintains translation quality during Teams meetings
+- Works with Teams' audio selection interface
 
 ## Development Environment Setup
 
@@ -73,7 +85,17 @@ The extension uses Chrome-specific APIs like Side Panel that are not available i
 4. Click the "Start Session" button to begin interpretation
 5. Use the push-to-talk feature (Space key) when enabled
 
-## Google Meet Integration
+## Using with Video Conferencing
+
+To use Sokuji with Google Meet or Microsoft Teams:
+
+1. Join a video call
+2. Click the Sokuji extension icon
+3. Select "Open in Google Meet" or "Open in Microsoft Teams" based on your platform
+4. The extension will automatically detect the meeting and inject the controls
+5. Use the audio replacement feature to play pre-recorded audio during the call
+
+### Google Meet Specific Instructions
 
 To use Sokuji with Google Meet:
 
@@ -82,6 +104,16 @@ To use Sokuji with Google Meet:
 3. Select "Open in Google Meet"
 4. The extension will automatically detect the meeting and inject the controls
 5. Use the audio replacement feature to play pre-recorded audio during the call
+
+### Microsoft Teams Specific Instructions
+
+To use Sokuji with Microsoft Teams:
+
+1. Join a Microsoft Teams meeting in your browser
+2. Click the Sokuji extension icon
+3. Select "Open in Microsoft Teams"
+4. Configure your translation settings as needed
+5. The extension will integrate with Teams' audio system
 
 ## Troubleshooting
 
@@ -113,6 +145,7 @@ This browser extension uses the following technologies:
 - Web Audio API and wavtools library for audio processing
 - Chrome Extension APIs for browser integration
 - Webpack for building and bundling
+- Platform-specific integrations for Google Meet and Microsoft Teams
 
 ## Differences from Desktop Version
 
@@ -120,6 +153,6 @@ The browser extension differs from the desktop application in several ways:
 
 1. Uses Web Audio API instead of Electron's audio capabilities
 2. Leverages browser storage instead of local file system
-3. Provides Google Meet audio replacement functionality
+3. Provides Google Meet and Microsoft Teams audio replacement functionality
 4. Features an interface adapted for browser extension popup and webpage injection
 5. Maintains the same core functionality while working within browser constraints
