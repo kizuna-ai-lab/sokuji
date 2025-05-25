@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Sokuji Extension",
+  "name": "Sokuji - AI-powered Live Speech Translation for Online Meetings",
   "version": "0.3.2",
-  "description": "Live speech translation in Google Meet/MircoSoft Teams",
+  "description": "Breakthrough AI technology that translates speech instantly during online meetings. Experience natural conversation flow across languages on any video conferencing platform.",
   "minimum_chrome_version": "116",
   "offline_enabled": false,
   "icons": {
