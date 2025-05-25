@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Sokuji Extension",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Live speech translation in Google Meet/MircoSoft Teams",
   "minimum_chrome_version": "116",
   "offline_enabled": false,
