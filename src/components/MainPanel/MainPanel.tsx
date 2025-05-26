@@ -710,7 +710,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
               const wavStreamPlayer = audioService.getWavStreamPlayer();
               
               // Check if the WavStreamPlayer is properly connected before calling getFrequencies
-              if (wavStreamPlayer && wavStreamPlayer.context && wavStreamPlayer.context.state === 'running') {
+              if (wavStreamPlayer && wavStreamPlayer.context && wavStreamPlayer.context.state === 'running' && wavStreamPlayer.analyser) {
                 const result = wavStreamPlayer.getFrequencies();
                 WavRenderer.drawBars(
                   serverCanvas,
