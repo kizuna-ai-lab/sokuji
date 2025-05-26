@@ -2,6 +2,8 @@
 
 This is the browser extension version of the Sokuji live speech translation application, leveraging OpenAI's Realtime API to provide live speech translation capabilities directly in your browser.
 
+<a href="https://www.producthunt.com/posts/sokuji?embed=true&utm_source=badge-featured&utm_medium=badge&utm_source=badge-sokuji" target="_blank"><img src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=967440&theme=light&t=1748250774125" alt="Sokuji - Live&#0032;speech&#0032;translation&#0032;with&#0032;real&#0045;time&#0032;AI | Product Hunt" style="width: 250px; height: 54px;" width="250" height="54" /></a>
+
 ## Features
 
 - Live speech translation using OpenAI's Realtime API
