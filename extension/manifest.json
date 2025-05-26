@@ -32,7 +32,7 @@
   },
   "content_scripts": [
     {
-      "matches": ["https://meet.google.com/*", "https://teams.microsoft.com/*", "https://teams.live.com/*"],
+      "matches": ["https://meet.google.com/*", "https://teams.microsoft.com/*", "https://teams.live.com/*", "app.zoom.us/*"],
       "js": ["content.js"],
       "run_at": "document_start"
     }
