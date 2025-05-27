@@ -25,7 +25,7 @@ const DEFAULT_CONFIG = {
 const ENABLED_SITES = [
   'meet.google.com',
   'teams.live.com',
-  'zoom.us',
+  'app.zoom.us',
   'teams.microsoft.com'
 ];
 
