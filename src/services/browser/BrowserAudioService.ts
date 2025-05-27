@@ -349,7 +349,7 @@ export class BrowserAudioService implements IAudioService {
     this.wavStreamPlayer.add16BitPCM(data, trackId);
     
     // Then send to virtual microphone in tabs
-    this.sendPcmDataToTabs(data, trackId);
+    this.sendPcmDataToTabs(data, 'default');
   }
   
   /**

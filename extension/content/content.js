@@ -118,51 +118,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true; // Keep message channel open for async response
   }
   
-  // Handle virtual mic enabled/disabled message
-  if (message.type === 'VIRTUAL_MIC_ENABLED') {
-    console.log('[Sokuji] [Content] Virtual microphone ' + (message.enabled ? 'enabled' : 'disabled'));
-    
-    // Forward mic state to the page
-    window.postMessage({
-      type: 'VIRTUAL_MIC_STATE',
-      enabled: message.enabled
-    }, '*');
-    
-    if (sendResponse) {
-      sendResponse({ success: true });
-    }
-    return true;
-  }
-  
   return false;
 });
-
-// Listen for messages from the page context
-// window.addEventListener('message', (event) => {
-//   // Only handle messages from the same window
-//   if (event.source !== window) return;
-  
-//   // // Handle messages from the injected script
-//   // if (event.data && event.data.source === 'SOKUJI_VIRTUAL_MIC') {
-//   //   // Forward messages to the extension background script
-//   //   if (chrome.runtime && chrome.runtime.sendMessage) {
-//   //     chrome.runtime.sendMessage(event.data);
-//   //   }
-//   // }
-  
-//   // Handle virtual mic status updates
-//   if (event.data && event.data.type === 'VIRTUAL_MIC_STATUS') {
-//     console.log('[Sokuji] [Content] Virtual microphone status:', event.data.active);
-    
-//     // Forward status to background script
-//     if (chrome.runtime && chrome.runtime.sendMessage) {
-//       chrome.runtime.sendMessage({
-//         type: 'VIRTUAL_MIC_STATUS',
-//         active: event.data.active
-//       });
-//     }
-//   }
-// });
 
 // Content script loaded
 console.info('[Sokuji] [Content] Content script loaded and ready for audio bridging');
