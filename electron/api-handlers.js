@@ -49,7 +49,7 @@ async function validateApiKey(apiKey) {
       allModels: availableModels
     };
   } catch (error) {
-    console.error("API key validation error:", error);
+    console.error("[Sokuji] [API] API key validation error:", error);
     return { 
       valid: false, 
       error: error.message || 'Network error during validation'

@@ -63,10 +63,10 @@ export class ServiceFactory {
     
     // Create new instance if needed
     if (ServiceFactory.isElectron()) {
-      console.info('Creating Electron audio service');
+      console.info('[Sokuji] [ServiceFactory] Creating Electron audio service');
       ServiceFactory.audioServiceInstance = new ElectronAudioService();
     } else {
-      console.info('Creating Browser audio service');
+      console.info('[Sokuji] [ServiceFactory] Creating Browser audio service');
       ServiceFactory.audioServiceInstance = new BrowserAudioService();
     }
     
@@ -85,10 +85,10 @@ export class ServiceFactory {
     
     // Create new instance if needed
     if (ServiceFactory.isElectron()) {
-      console.info('Creating Electron settings service');
+      console.info('[Sokuji] [ServiceFactory] Creating Electron settings service');
       ServiceFactory.settingsServiceInstance = new ElectronSettingsService();
     } else {
-      console.info('Creating Browser settings service');
+      console.info('[Sokuji] [ServiceFactory] Creating Browser settings service');
       ServiceFactory.settingsServiceInstance = new BrowserSettingsService();
     }
     

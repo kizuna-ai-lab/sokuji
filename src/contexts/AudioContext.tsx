@@ -80,20 +80,20 @@ export const AudioProvider = ({ children }: { children: ReactNode }) => {
       
       // Check if our virtual audio device was created
       if (devices.outputs.some(device => device.isVirtual)) {
-        console.info('Virtual audio device detected');
+        console.info('[Sokuji] [AudioContext] Virtual audio device detected');
       } else if (audioService.current.supportsVirtualDevices()) {
-        console.info('Creating virtual audio devices...');
+        console.info('[Sokuji] [AudioContext] Creating virtual audio devices...');
         const result = await audioService.current.createVirtualDevices?.();
         if (result && result.success) {
-          console.info('Successfully created virtual audio devices:', result.message);
+          console.info('[Sokuji] [AudioContext] Successfully created virtual audio devices:', result.message);
           // Refresh the device list again after creating virtual devices
           await refreshDevices();
         } else {
-          console.error('Failed to create virtual audio devices:', result?.error);
+          console.error('[Sokuji] [AudioContext] Failed to create virtual audio devices:', result?.error);
         }
       }
     } catch (error) {
-      console.error('Error refreshing audio devices:', error);
+      console.error('[Sokuji] [AudioContext] Error refreshing audio devices:', error);
     } finally {
       setIsLoading(false);
     }
@@ -109,21 +109,21 @@ export const AudioProvider = ({ children }: { children: ReactNode }) => {
         // When monitor device is ON during initialization, actively connect monitor device
         // Only do this on initial mount, not when selectedMonitorDevice changes
         if (isMonitorDeviceOn && selectedMonitorDevice) {
-          console.info('Initialization complete, actively connecting monitor device:', selectedMonitorDevice.deviceId);
+          console.info('[Sokuji] [AudioContext] Initialization complete, actively connecting monitor device:', selectedMonitorDevice.deviceId);
           audioService.current.connectMonitoringDevice(selectedMonitorDevice.deviceId, selectedMonitorDevice.label)
             .then((result: AudioOperationResult) => {
               if (result.success) {
-                console.info('Successfully connected virtual speaker to monitor device during initialization:', result.message);
+                console.info('[Sokuji] [AudioContext] Successfully connected virtual speaker to monitor device during initialization:', result.message);
               } else {
-                console.error('Failed to connect virtual speaker to monitor device during initialization:', result.error);
+                console.error('[Sokuji] [AudioContext] Failed to connect virtual speaker to monitor device during initialization:', result.error);
               }
             })
             .catch((error: Error) => {
-              console.error('Error connecting monitor device during initialization:', error);
+              console.error('[Sokuji] [AudioContext] Error connecting monitor device during initialization:', error);
             });
         }
       } catch (error) {
-        console.error('Failed to initialize audio service:', error);
+        console.error('[Sokuji] [AudioContext] Failed to initialize audio service:', error);
       } finally {
         setIsLoading(false);
       }
@@ -137,26 +137,26 @@ export const AudioProvider = ({ children }: { children: ReactNode }) => {
   
   // Updated selectMonitorDevice to use the audio service
   const selectMonitorDevice = useCallback((device: AudioDevice) => {
-    console.info(`Selected monitor device: ${device.label} (${device.deviceId})`);
+    console.info(`[Sokuji] [AudioContext] Selected monitor device: ${device.label} (${device.deviceId})`);
     setSelectedMonitorDevice((prevDevice) => {
       
-      console.info(`Monitor device changed: ${prevDevice?.label} (${prevDevice?.deviceId}) -> ${device.label} (${device.deviceId})`);
+      console.info(`[Sokuji] [AudioContext] Monitor device changed: ${prevDevice?.label} (${prevDevice?.deviceId}) -> ${device.label} (${device.deviceId})`);
 
       // Only connect the virtual speaker if the monitor device is turned ON
       if (isMonitorDeviceOn && device && device.deviceId) {
-        console.info(`Connecting virtual speaker to monitor device: ${device.label}`);
+        console.info(`[Sokuji] [AudioContext] Connecting virtual speaker to monitor device: ${device.label}`);
 
         // Use the audio service instead of direct Electron calls
         audioService.current.connectMonitoringDevice(device.deviceId, device.label)
           .then((result: AudioOperationResult) => {
             if (result.success) {
-              console.info('Successfully connected virtual speaker to monitor device:', result.message);
+              console.info('[Sokuji] [AudioContext] Successfully connected virtual speaker to monitor device:', result.message);
             } else {
-              console.error('Failed to connect virtual speaker to monitor device:', result.error);
+              console.error('[Sokuji] [AudioContext] Failed to connect virtual speaker to monitor device:', result.error);
             }
           })
           .catch((error: Error) => {
-            console.error('Error connecting virtual speaker to monitor device:', error);
+            console.error('[Sokuji] [AudioContext] Error connecting virtual speaker to monitor device:', error);
           });
       }
       return device;
@@ -170,7 +170,7 @@ export const AudioProvider = ({ children }: { children: ReactNode }) => {
   
   // Updated toggleMonitorDeviceState to use the audio service
   const toggleMonitorDeviceState = useCallback(() => {
-    console.info('Toggling monitor device state');
+    console.info('[Sokuji] [AudioContext] Toggling monitor device state');
     const newState = !isMonitorDeviceOn;
     setIsMonitorDeviceOn(newState);
     
@@ -178,34 +178,34 @@ export const AudioProvider = ({ children }: { children: ReactNode }) => {
     if (newState) {
       // Turn ON - Connect virtual speaker to the selected monitor device
       if (selectedMonitorDevice) {
-        console.info(`Connecting virtual speaker to monitor device: ${selectedMonitorDevice.label}`);
+        console.info(`[Sokuji] [AudioContext] Connecting virtual speaker to monitor device: ${selectedMonitorDevice.label}`);
         audioService.current.connectMonitoringDevice(selectedMonitorDevice.deviceId, selectedMonitorDevice.label)
           .then((result: AudioOperationResult) => {
             if (result.success) {
-              console.info('Successfully connected virtual speaker to monitor device:', result.message);
+              console.info('[Sokuji] [AudioContext] Successfully connected virtual speaker to monitor device:', result.message);
             } else {
-              console.error('Failed to connect virtual speaker to monitor device:', result.error);
+              console.error('[Sokuji] [AudioContext] Failed to connect virtual speaker to monitor device:', result.error);
             }
           })
           .catch((error: Error) => {
-            console.error('Error connecting virtual speaker to monitor device:', error);
+            console.error('[Sokuji] [AudioContext] Error connecting virtual speaker to monitor device:', error);
           });
       } else {
-        console.warn('Cannot connect monitor device: No monitor device selected');
+        console.warn('[Sokuji] [AudioContext] Cannot connect monitor device: No monitor device selected');
       }
     } else {
       // Turn OFF - Disconnect virtual speaker from all outputs
-      console.info('Disconnecting virtual speaker from all outputs');
+      console.info('[Sokuji] [AudioContext] Disconnecting virtual speaker from all outputs');
       audioService.current.disconnectMonitoringDevices()
         .then((result: AudioOperationResult) => {
           if (result.success) {
-            console.info('Successfully disconnected virtual speaker from all outputs:', result.message);
+            console.info('[Sokuji] [AudioContext] Successfully disconnected virtual speaker from all outputs:', result.message);
           } else {
-            console.error('Failed to disconnect virtual speaker from outputs:', result.error);
+            console.error('[Sokuji] [AudioContext] Failed to disconnect virtual speaker from outputs:', result.error);
           }
         })
         .catch((error: Error) => {
-          console.error('Error disconnecting virtual speaker from outputs:', error);
+          console.error('[Sokuji] [AudioContext] Error disconnecting virtual speaker from outputs:', error);
         });
     }
   }, [isMonitorDeviceOn, selectedMonitorDevice]);

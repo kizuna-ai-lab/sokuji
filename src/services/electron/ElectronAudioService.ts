@@ -78,12 +78,12 @@ export class ElectronAudioService implements IAudioService {
       // Using any type to bypass TypeScript's type checking for accessing a private property
       const player = this.wavStreamPlayer as any;
       if (player && typeof player.interruptedTrackIds === 'object') {
-        console.debug('WavStreamPlayer previous interruptedTrackIds:', player.interruptedTrackIds);
+        console.debug('[Sokuji] [ElectronAudio] WavStreamPlayer previous interruptedTrackIds:', player.interruptedTrackIds);
         player.interruptedTrackIds = {};
-        console.debug('Cleared WavStreamPlayer interruptedTrackIds');
+        console.debug('[Sokuji] [ElectronAudio] Cleared WavStreamPlayer interruptedTrackIds');
       }
     } catch (error) {
-      console.error('Error clearing WavStreamPlayer interruptedTrackIds:', error);
+      console.error('[Sokuji] [ElectronAudio] Error clearing WavStreamPlayer interruptedTrackIds:', error);
     }
   }
 
@@ -118,7 +118,7 @@ export class ElectronAudioService implements IAudioService {
       
       return { inputs, outputs };
     } catch (error) {
-      console.error('Failed to get audio devices:', error);
+      console.error('[Sokuji] [ElectronAudio] Failed to get audio devices:', error);
       return { inputs: [], outputs: [] };
     }
   }
@@ -223,13 +223,13 @@ export class ElectronAudioService implements IAudioService {
         // Connect the WavStreamPlayer if it's not already connected
         await wavStreamPlayer.connect();
       } catch (error) {
-        console.error('Failed to connect WavStreamPlayer:', error);
+        console.error('[Sokuji] [ElectronAudio] Failed to connect WavStreamPlayer:', error);
         return false;
       }
       
       // Check again after connecting
       if (!wavStreamPlayer.context) {
-        console.warn('Cannot setup virtual audio output: WavStreamPlayer context is not available after connecting.');
+        console.warn('[Sokuji] [ElectronAudio] Cannot setup virtual audio output: WavStreamPlayer context is not available after connecting.');
         return false;
       }
     }
@@ -256,17 +256,17 @@ export class ElectronAudioService implements IAudioService {
           try {
             // According to MDN documentation, use object format with deviceId
             await ctxWithSink.setSinkId(virtualSpeaker.deviceId);
-            console.info('AudioContext output device set to sokuji_virtual_speaker:', virtualSpeaker.deviceId);
+            console.info('[Sokuji] [ElectronAudio] AudioContext output device set to sokuji_virtual_speaker:', virtualSpeaker.deviceId);
             return true;
           } catch (err) {
-            console.error('Failed to set output device with both methods:', err);
+            console.error('[Sokuji] [ElectronAudio] Failed to set output device with both methods:', err);
             return false;          }
         }
       }
-      console.info('Virtual output device not found. Using default output device.');
+      console.info('[Sokuji] [ElectronAudio] Virtual output device not found. Using default output device.');
       return false;
     } catch (e) {
-      console.error('Failed to set up virtual audio output:', e);
+      console.error('[Sokuji] [ElectronAudio] Failed to set up virtual audio output:', e);
       return false;
     }
   }

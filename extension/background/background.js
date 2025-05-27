@@ -33,7 +33,7 @@ const ENABLED_SITES = [
 const tabsWithSidePanelOpen = new Set();
 
 chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true })
-  .catch((error) => console.error('Error setting panel behavior:', error));
+  .catch((error) => console.error('[Sokuji] [Background] Error setting panel behavior:', error));
 
 // Initialize configuration in storage if not already set
 chrome.runtime.onInstalled.addListener(async () => {
@@ -41,10 +41,10 @@ chrome.runtime.onInstalled.addListener(async () => {
     const result = await chrome.storage.local.get('config');
     if (!result.config) {
       await chrome.storage.local.set({ config: DEFAULT_CONFIG });
-      console.debug('Default configuration initialized');
+      console.debug('[Sokuji] [Background] Default configuration initialized');
     }
   } catch (error) {
-    console.error('Error initializing configuration:', error);
+    console.error('[Sokuji] [Background] Error initializing configuration:', error);
   }
 });
 
@@ -68,7 +68,7 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
         enabled: true
       });
       tabsWithSidePanelOpen.add(tabId);
-      console.debug('Enabled Sokuji side panel for site:', url.hostname);
+      console.debug('[Sokuji] [Background] Enabled Sokuji side panel for site:', url.hostname);
     } else {
       // Disable side panel for other sites
       await chrome.sidePanel.setOptions({
@@ -78,11 +78,11 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
       // Remove from tracking if URL changed to a non-enabled site
       if (tabsWithSidePanelOpen.has(tabId)) {
         tabsWithSidePanelOpen.delete(tabId);
-        console.debug('Removed tab from side panel tracking due to URL change:', tabId);
+        console.debug('[Sokuji] [Background] Removed tab from side panel tracking due to URL change:', tabId);
       }
     }
   } catch (error) {
-    console.error('Error updating side panel for tab:', error);
+    console.error('[Sokuji] [Background] Error updating side panel for tab:', error);
   }
 });
 
@@ -102,10 +102,10 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
         path: `fullpage.html?tabId=${tabId}&debug=true`,
         enabled: true, // Keep it enabled but don't show it
       });
-      console.debug('Maintaining side panel for tab:', tabId);
+      console.debug('[Sokuji] [Background] Maintaining side panel for tab:', tabId);
     }
   } catch (error) {
-    console.error('Error updating side panel for switched tab:', error);
+    console.error('[Sokuji] [Background] Error updating side panel for switched tab:', error);
   }
 });
 
@@ -114,7 +114,7 @@ chrome.tabs.onRemoved.addListener((tabId) => {
   // Remove the tab from tracking when it's closed
   if (tabsWithSidePanelOpen.has(tabId)) {
     tabsWithSidePanelOpen.delete(tabId);
-    console.debug('Removed closed tab from side panel tracking:', tabId);
+    console.debug('[Sokuji] [Background] Removed closed tab from side panel tracking:', tabId);
   }
 });
 
@@ -143,7 +143,7 @@ async function handleGetConfig(key, defaultValue) {
       return { success: true, value: config };
     }
   } catch (error) {
-    console.error('Error getting config:', error);
+    console.error('[Sokuji] [Background] Error getting config:', error);
     return { success: false, error: error.message, value: defaultValue };
   }
 }
@@ -162,7 +162,7 @@ async function handleSetConfig(key, value) {
     
     return { success: true };
   } catch (error) {
-    console.error('Error setting config:', error);
+    console.error('[Sokuji] [Background] Error setting config:', error);
     return { success: false, error: error.message };
   }
 }

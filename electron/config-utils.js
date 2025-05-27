@@ -43,7 +43,7 @@ function readConfig() {
     const configData = fs.readFileSync(CONFIG_FILE, 'utf8');
     return TOML.parse(configData);
   } catch (error) {
-    console.error('Error reading config file:', error);
+    console.error('[Sokuji] [Config] Error reading config file:', error);
     // If there's an error reading the file, create a new default config
     createDefaultConfig();
     return { ...DEFAULT_CONFIG };
@@ -60,7 +60,7 @@ function writeConfig(config) {
     fs.writeFileSync(CONFIG_FILE, TOML.stringify(config));
     return true;
   } catch (error) {
-    console.error('Error writing config file:', error);
+    console.error('[Sokuji] [Config] Error writing config file:', error);
     return false;
   }
 }

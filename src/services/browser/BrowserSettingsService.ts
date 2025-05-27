@@ -16,7 +16,7 @@ export class BrowserSettingsService implements ISettingsService {
           // @ts-ignore - Chrome API is defined in global scope for extensions
           if (chrome.runtime.lastError) {
             // @ts-ignore - Chrome API is defined in global scope for extensions
-            console.error(`Error getting setting ${key}:`, chrome.runtime.lastError);
+            console.error(`[Sokuji] [BrowserSettings] Error getting setting ${key}:`, chrome.runtime.lastError);
             resolve(defaultValue);
           } else {
             resolve(result[key] !== undefined ? result[key] : defaultValue);
@@ -24,7 +24,7 @@ export class BrowserSettingsService implements ISettingsService {
         });
       });
     } catch (error) {
-      console.error(`Error getting setting ${key}:`, error);
+      console.error(`[Sokuji] [BrowserSettings] Error getting setting ${key}:`, error);
       return defaultValue;
     }
   }
@@ -74,7 +74,7 @@ export class BrowserSettingsService implements ISettingsService {
           // @ts-ignore - Chrome API is defined in global scope for extensions
           if (chrome.runtime.lastError) {
             // @ts-ignore - Chrome API is defined in global scope for extensions
-            console.error('Error loading all settings:', chrome.runtime.lastError);
+            console.error('[Sokuji] [BrowserSettings] Error loading all settings:', chrome.runtime.lastError);
             resolve(defaultSettings);
           } else {
             const settings = { ...defaultSettings };
@@ -91,7 +91,7 @@ export class BrowserSettingsService implements ISettingsService {
         });
       });
     } catch (error) {
-      console.error('Error loading all settings:', error);
+      console.error('[Sokuji] [BrowserSettings] Error loading all settings:', error);
       return defaultSettings;
     }
   }

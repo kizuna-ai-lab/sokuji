@@ -30,11 +30,11 @@ export class BrowserAudioService implements IAudioService {
       
       if (tabIdParam) {
         this.targetTabId = parseInt(tabIdParam, 10);
-        console.info(`BrowserAudioService initialized with target tabId: ${this.targetTabId}`);
+        console.info(`[Sokuji] [BrowserAudio] BrowserAudioService initialized with target tabId: ${this.targetTabId}`);
       }
       
     } catch (error) {
-      console.error('Error parsing URL parameters:', error);
+      console.error('[Sokuji] [BrowserAudio] Error parsing URL parameters:', error);
     }
   }
 
@@ -47,7 +47,7 @@ export class BrowserAudioService implements IAudioService {
       try {
         await navigator.mediaDevices.getUserMedia({ audio: true });
       } catch (permissionError: any) {
-        console.error('Microphone permission denied:', permissionError);
+        console.error('[Sokuji] [BrowserAudio] Microphone permission denied:', permissionError);
         
         // Show user-friendly error message
         const errorType = permissionError.name || 'Error';
@@ -130,7 +130,7 @@ export class BrowserAudioService implements IAudioService {
       
       return { inputs, outputs };
     } catch (error) {
-      console.error('Failed to get audio devices:', error);
+      console.error('[Sokuji] [BrowserAudio] Failed to get audio devices:', error);
       return { inputs: [], outputs: [] };
     }
   }
@@ -140,7 +140,7 @@ export class BrowserAudioService implements IAudioService {
    */
   async selectInputDevice(deviceId: string): Promise<AudioOperationResult> {
     try {
-      console.info(`[Browser Audio] Selecting input device: ${deviceId}`);
+      console.info(`[Sokuji] [BrowserAudio] Selecting input device: ${deviceId}`);
       
       // Here we would normally do something with the input device
       // but in browser extensions this is handled at stream creation time
@@ -150,7 +150,7 @@ export class BrowserAudioService implements IAudioService {
         message: 'Input device selected'
       };
     } catch (error: any) {
-      console.error('Error selecting input device:', error);
+      console.error('[Sokuji] [BrowserAudio] Error selecting input device:', error);
       return {
         success: false,
         error: error.message || 'Failed to select input device'
@@ -163,17 +163,17 @@ export class BrowserAudioService implements IAudioService {
    * In browsers, we're limited by what the Web Audio API allows
    */
   async connectMonitoringDevice(deviceId: string, label: string): Promise<AudioOperationResult> {
-    console.info(`[Browser Audio] Connecting monitoring device: ${label} (${deviceId})`);
+    console.info(`[Sokuji] [BrowserAudio] Connecting monitoring device: ${label} (${deviceId})`);
     try {
       if (!this.externalAudioContext) {
-        console.error('Cannot connect monitoring device: No external AudioContext available');
+        console.error('[Sokuji] [BrowserAudio] Cannot connect monitoring device: No external AudioContext available');
         return {
           success: false,
           error: 'No audio context available'
         };
       }
       
-      console.info(`[Browser Audio] Connecting monitoring device: ${label} (${deviceId})`);
+      console.info(`[Sokuji] [BrowserAudio] Connecting monitoring device: ${label} (${deviceId})`);
       
       // Type assertion to access setSinkId method
       const ctxWithSink = this.externalAudioContext as AudioContext & { 
@@ -185,27 +185,27 @@ export class BrowserAudioService implements IAudioService {
           // Use the device ID for setSinkId to route audio to the selected device
           await ctxWithSink.setSinkId(deviceId);
           
-          console.info(`AudioContext output device set to: ${label}`);
+          console.info(`[Sokuji] [BrowserAudio] AudioContext output device set to: ${label}`);
           return {
             success: true,
             message: `Connected to monitoring device: ${label}`
           };
         } catch (err: any) {
-          console.error('Failed to set output device:', err);
+          console.error('[Sokuji] [BrowserAudio] Failed to set output device:', err);
           return {
             success: false,
             error: err.message || 'Failed to set output device'
           };
         }
       } else {
-        console.warn('AudioContext.setSinkId is not supported in this browser');
+        console.warn('[Sokuji] [BrowserAudio] AudioContext.setSinkId is not supported in this browser');
         return {
           success: false,
           error: 'setSinkId not supported in this browser'
         };
       }
     } catch (error: any) {
-      console.error('Error connecting monitoring device:', error);
+      console.error('[Sokuji] [BrowserAudio] Error connecting monitoring device:', error);
       return {
         success: false,
         error: error.message || 'Failed to connect monitoring device'
@@ -229,9 +229,9 @@ export class BrowserAudioService implements IAudioService {
           try {
             // Use {type:'none'} to prevent audio from being sent to physical speakers
             await ctxWithSink.setSinkId({type: 'none'});
-            console.info('AudioContext output device set back to virtual (none type)');
+            console.info('[Sokuji] [BrowserAudio] AudioContext output device set back to virtual (none type)');
           } catch (err) {
-            console.error('Failed to reset output device:', err);
+            console.error('[Sokuji] [BrowserAudio] Failed to reset output device:', err);
             return {
               success: false,
               error: 'Failed to reset output device'
@@ -287,13 +287,13 @@ export class BrowserAudioService implements IAudioService {
         // Connect the WavStreamPlayer if it's not already connected
         await wavStreamPlayer.connect();
       } catch (error) {
-        console.error('Failed to connect WavStreamPlayer:', error);
+        console.error('[Sokuji] [BrowserAudio] Failed to connect WavStreamPlayer:', error);
         return false;
       }
       
       // Check again after connecting
       if (!wavStreamPlayer.context) {
-        console.warn('Cannot setup virtual audio output: WavStreamPlayer context is not available after connecting.');
+        console.warn('[Sokuji] [BrowserAudio] Cannot setup virtual audio output: WavStreamPlayer context is not available after connecting.');
         return false;
       }
     }
@@ -314,20 +314,20 @@ export class BrowserAudioService implements IAudioService {
         try {
           // Use {type:'none'} to prevent audio from being sent to physical speakers
           await ctxWithSink.setSinkId({ type: "none" });
-          console.info("AudioContext output device set to virtual (none type)");
+          console.info("[Sokuji] [BrowserAudio] AudioContext output device set to virtual (none type)");
         } catch (err) {
-          console.error("Failed to set output device:", err);
+          console.error("[Sokuji] [BrowserAudio] Failed to set output device:", err);
           return false;
         }
       } else {
-        console.warn("AudioContext.setSinkId is not supported in this browser");
+        console.warn("[Sokuji] [BrowserAudio] AudioContext.setSinkId is not supported in this browser");
         return false;
       }
 
-      console.info('Virtual audio output setup complete. Audio data will be sent directly from addAudioData.');
+      console.info('[Sokuji] [BrowserAudio] Virtual audio output setup complete. Audio data will be sent directly from addAudioData.');
       return true;
     } catch (e) {
-      console.error('Failed to set up virtual audio output:', e);
+      console.error('[Sokuji] [BrowserAudio] Failed to set up virtual audio output:', e);
       return false;
     }
   }
@@ -362,7 +362,7 @@ export class BrowserAudioService implements IAudioService {
   private sendPcmDataToTabs(data: Int16Array, trackId?: string): void {
     // Skip empty data
     if (!data || data.length === 0) {
-      console.warn('[Sokuji] Attempted to send empty audio data');
+      console.warn('[Sokuji] [BrowserAudio] Attempted to send empty audio data');
       return;
     }
     
@@ -378,7 +378,7 @@ export class BrowserAudioService implements IAudioService {
     const totalChunks = Math.ceil(data.length / chunkSize);
     
     if (isLargeFile) {
-      console.info(`[Sokuji] Sending audio data (${data.length} samples, ~${(data.length / sampleRate).toFixed(2)}s) in ${totalChunks} chunks`);
+      console.info(`[Sokuji] [BrowserAudio] Sending audio data (${data.length} samples, ~${(data.length / sampleRate).toFixed(2)}s) in ${totalChunks} chunks`);
     }
     
     // Process chunks recursively with slight delays for large files
@@ -456,7 +456,7 @@ export class BrowserAudioService implements IAudioService {
       // Tab exists, send the message
       chrome.tabs.sendMessage(tabId, message, (response: any) => {
         if (chrome.runtime.lastError) {
-          console.warn(`Error sending to tab ${tabId}: ${chrome.runtime.lastError.message}`);
+          console.warn(`[Sokuji] [BrowserAudio] Error sending to tab ${tabId}: ${chrome.runtime.lastError.message}`);
         }
       });
     });
@@ -482,7 +482,7 @@ export class BrowserAudioService implements IAudioService {
         chrome.tabs.sendMessage(tab.id, message, (response: any) => {
           // Ignore errors, as not all tabs will have our content script
           if (chrome.runtime.lastError) {
-            console.debug(`Tab ${tab.id} not ready: ${chrome.runtime.lastError.message}`);
+            console.debug(`[Sokuji] [BrowserAudio] Tab ${tab.id} not ready: ${chrome.runtime.lastError.message}`);
           }
         });
       }
@@ -532,10 +532,10 @@ export class BrowserAudioService implements IAudioService {
       const player = this.wavStreamPlayer as any;
       if (player && typeof player.interruptedTrackIds === 'object') {
         player.interruptedTrackIds = {};
-        console.debug('Cleared WavStreamPlayer interruptedTrackIds');
+        console.debug('[Sokuji] [BrowserAudio] Cleared WavStreamPlayer interruptedTrackIds');
       }
     } catch (error) {
-      console.error('Error clearing WavStreamPlayer interruptedTrackIds:', error);
+      console.error('[Sokuji] [BrowserAudio] Error clearing WavStreamPlayer interruptedTrackIds:', error);
     }
   }
 }

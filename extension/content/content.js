@@ -18,11 +18,11 @@ function getExtensionURL(path) {
     }
     // Fallback for other browsers or testing environments
     else {
-      console.warn('[Sokuji] Browser extension API not available, using relative path');
+      console.warn('[Sokuji] [Content] Browser extension API not available, using relative path');
       url = path;
     }
   } catch (error) {
-    console.error('[Sokuji] Error getting extension URL:', error);
+    console.error('[Sokuji] [Content] Error getting extension URL:', error);
     url = path;
   }
   return url;
@@ -51,7 +51,7 @@ function injectVirtualMicrophoneScript() {
     document.appendChild(script);
   }
   
-  console.info('[Sokuji] Virtual microphone script injected into page');
+  console.info('[Sokuji] [Content] Virtual microphone script injected into page');
 }
 
 // Run script injection immediately (before DOMContentLoaded)
@@ -95,18 +95,18 @@ function injectPermissionIframe() {
   } else if (document.documentElement) {
     document.documentElement.appendChild(iframe);
   } else {
-    console.error('[Sokuji] Cannot inject permission iframe - no suitable parent element found');
+    console.error('[Sokuji] [Content] Cannot inject permission iframe - no suitable parent element found');
     return; // Exit the function if we can't inject the iframe
   }
   
-  console.info('[Sokuji] Permission iframe injected into page');
+  console.info('[Sokuji] [Content] Permission iframe injected into page');
 }
 
 // Listen for messages from the extension side panel script
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   // Handle new PCM_DATA message
   if (message.type === 'PCM_DATA') {
-    console.debug(`[Sokuji] Received PCM data from side panel script: chunk ${message.chunkIndex + 1}/${message.totalChunks}`);
+    console.debug(`[Sokuji] [Content] Received PCM data from side panel script: chunk ${message.chunkIndex + 1}/${message.totalChunks}`);
     
     // Forward PCM data to page's virtual microphone with same format
     window.postMessage(message, '*');
@@ -120,7 +120,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   
   // Handle virtual mic enabled/disabled message
   if (message.type === 'VIRTUAL_MIC_ENABLED') {
-    console.log('[Sokuji] Virtual microphone ' + (message.enabled ? 'enabled' : 'disabled'));
+    console.log('[Sokuji] [Content] Virtual microphone ' + (message.enabled ? 'enabled' : 'disabled'));
     
     // Forward mic state to the page
     window.postMessage({
@@ -152,7 +152,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   
 //   // Handle virtual mic status updates
 //   if (event.data && event.data.type === 'VIRTUAL_MIC_STATUS') {
-//     console.log('[Sokuji] Virtual microphone status:', event.data.active);
+//     console.log('[Sokuji] [Content] Virtual microphone status:', event.data.active);
     
 //     // Forward status to background script
 //     if (chrome.runtime && chrome.runtime.sendMessage) {
@@ -165,7 +165,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 // });
 
 // Content script loaded
-console.info('[Sokuji] Content script loaded and ready for audio bridging');
+console.info('[Sokuji] [Content] Content script loaded and ready for audio bridging');
 
 // Expose API for debugging
 window.sokujiContentScript = {

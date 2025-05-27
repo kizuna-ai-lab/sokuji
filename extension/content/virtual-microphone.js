@@ -5,7 +5,7 @@
  */
 
 (function() {
-  console.info('[Sokuji] Virtual Microphone script loaded');
+  console.info('[Sokuji] [VirtualMic] Virtual Microphone script loaded');
 
   // Store original mediaDevices methods
   const originalEnumerateDevices = navigator.mediaDevices.enumerateDevices.bind(navigator.mediaDevices);
@@ -40,13 +40,13 @@
       if (trackGenerator && audioWriter) {
         // Check if writer is valid
         if (!isWriterValid()) {
-          console.warn('[Sokuji] Writer is not valid, reinitializing track generator');
+          console.warn('[Sokuji] [VirtualMic] Writer is not valid, reinitializing track generator');
           // Clean up existing resources
           trackGenerator = null;
           audioWriter = null;
           virtualStream = null;
         } else {
-          console.debug('[Sokuji] Track generator already exists and is valid');
+          console.debug('[Sokuji] [VirtualMic] Track generator already exists and is valid');
           return;
         }
       }
@@ -61,9 +61,9 @@
       virtualStream = new MediaStream([trackGenerator]);
       
       isActive = true;
-      console.info('[Sokuji] Track generator initialized');
+      console.info('[Sokuji] [VirtualMic] Track generator initialized');
     } catch (error) {
-      console.error('[Sokuji] Error initializing track generator:', error);
+      console.error('[Sokuji] [VirtualMic] Error initializing track generator:', error);
       // Reset state on error
       trackGenerator = null;
       audioWriter = null;
@@ -74,7 +74,7 @@
 
   // Check if the writer is valid
   function isWriterValid() {
-    console.debug('[Sokuji] Checking if writer is valid', { audioWriter });
+    console.debug('[Sokuji] [VirtualMic] Checking if writer is valid', { audioWriter });
     // WritableStreamDefaultWriter.closed is a Promise, not a boolean
     // Instead, check if the writer exists and if it has an active lock on its stream
     return audioWriter && audioWriter.desiredSize !== null;
@@ -84,12 +84,12 @@
   function addChunkToBuffer(pcmData, metadata) {
     // Check if writer is valid, reinitialize if not
     if (!isActive || !isWriterValid()) {
-      console.warn('[Sokuji] Writer not valid, attempting to reinitialize');
+      console.warn('[Sokuji] [VirtualMic] Writer not valid, attempting to reinitialize');
       initializeTrackGenerator();
       
       // If still not active after reinitialization, abort
       if (!isActive || !isWriterValid()) {
-        console.error('[Sokuji] Failed to reinitialize track generator, cannot process audio', { isActive, isWriterValid: isWriterValid() });
+        console.error('[Sokuji] [VirtualMic] Failed to reinitialize track generator, cannot process audio', { isActive, isWriterValid: isWriterValid() });
         return;
       }
     }
@@ -98,11 +98,11 @@
     
     // Single chunk - process immediately if no chunk info
     if (chunkIndex === undefined || totalChunks === undefined) {
-      console.debug('[Sokuji] Processing single chunk directly');
+      console.debug('[Sokuji] [VirtualMic] Processing single chunk directly');
       
       // For single chunks, we still want to queue them if this trackId has a queue
       if (batchQueues.has(trackId) && batchQueues.get(trackId).length > 0) {
-        console.debug(`[Sokuji] Adding single chunk to queue for track ${trackId}`);
+        console.debug(`[Sokuji] [VirtualMic] Adding single chunk to queue for track ${trackId}`);
         queueBatchForProcessing(pcmData, trackId, sampleRate || SAMPLE_RATE);
       } else {
         processAndWriteAudioData(pcmData, sampleRate || SAMPLE_RATE);
@@ -110,7 +110,7 @@
       return;
     }
     
-    console.debug(`[Sokuji] Buffering chunk ${chunkIndex + 1}/${totalChunks} for track ${trackId}`);
+    console.debug(`[Sokuji] [VirtualMic] Buffering chunk ${chunkIndex + 1}/${totalChunks} for track ${trackId}`);
     
     // Get or create track buffer
     if (!chunkBuffers.has(trackId)) {
@@ -126,7 +126,7 @@
     
     // Check if we have all chunks for this batch
     if (trackBuffer.size === totalChunks) {
-      console.info(`[Sokuji] All ${totalChunks} chunks received for track ${trackId}, adding to queue...`);
+      console.info(`[Sokuji] [VirtualMic] All ${totalChunks} chunks received for track ${trackId}, adding to queue...`);
       
       // Add this complete batch to the queue
       const batch = assembleBatch(trackId, totalChunks);
@@ -137,7 +137,7 @@
       // Clear the buffer for this track to prepare for the next batch
       chunkBuffers.delete(trackId);
     } else {
-      console.debug(`[Sokuji] Waiting for more chunks: ${trackBuffer.size}/${totalChunks} received`);
+      console.debug(`[Sokuji] [VirtualMic] Waiting for more chunks: ${trackBuffer.size}/${totalChunks} received`);
     }
   }
   
@@ -145,7 +145,7 @@
   function assembleBatch(trackId, totalChunks) {
     const trackBuffer = chunkBuffers.get(trackId);
     if (!trackBuffer || trackBuffer.size < totalChunks) {
-      console.error(`[Sokuji] Cannot assemble incomplete batch: ${trackBuffer?.size || 0}/${totalChunks}`);
+      console.error(`[Sokuji] [VirtualMic] Cannot assemble incomplete batch: ${trackBuffer?.size || 0}/${totalChunks}`);
       return null;
     }
     
@@ -153,7 +153,7 @@
     let totalLength = 0;
     for (let i = 0; i < totalChunks; i++) {
       if (!trackBuffer.has(i)) {
-        console.error(`[Sokuji] Missing chunk ${i} for track ${trackId}`);
+        console.error(`[Sokuji] [VirtualMic] Missing chunk ${i} for track ${trackId}`);
         return null;
       }
       totalLength += trackBuffer.get(i).data.length;
@@ -174,7 +174,7 @@
     const sampleRate = trackBuffer.get(0).sampleRate;
     
     // Return assembled batch
-    console.info(`[Sokuji] Assembled batch: ${totalLength} samples for track ${trackId}`);
+    console.info(`[Sokuji] [VirtualMic] Assembled batch: ${totalLength} samples for track ${trackId}`);
     return {
       data: combinedData,
       sampleRate,
@@ -208,13 +208,13 @@
     
     // Add this batch to the queue
     batchQueues.get(trackId).push(batch);
-    console.debug(`[Sokuji] Added batch to queue for track ${trackId}. Queue length: ${batchQueues.get(trackId).length}`);
+    console.debug(`[Sokuji] [VirtualMic] Added batch to queue for track ${trackId}. Queue length: ${batchQueues.get(trackId).length}`);
     
     // If we're not currently processing a batch for this track, start processing
     if (!isProcessingBatch.get(trackId)) {
       processNextBatchInQueue(trackId);
     } else {
-      console.debug(`[Sokuji] Already processing a batch for track ${trackId}, queued for later`);
+      console.debug(`[Sokuji] [VirtualMic] Already processing a batch for track ${trackId}, queued for later`);
     }
   }
 
@@ -223,7 +223,7 @@
     // Get the queue for this track
     const queue = batchQueues.get(trackId);
     if (!queue || queue.length === 0) {
-      console.debug(`[Sokuji] No batches in queue for track ${trackId}`);
+      console.debug(`[Sokuji] [VirtualMic] No batches in queue for track ${trackId}`);
       isProcessingBatch.set(trackId, false);
       return;
     }
@@ -233,12 +233,12 @@
     
     // Get the next batch from the queue
     const nextBatch = queue.shift();
-    console.debug(`[Sokuji] Processing next batch for track ${trackId}. Remaining in queue: ${queue.length}`);
+    console.debug(`[Sokuji] [VirtualMic] Processing next batch for track ${trackId}. Remaining in queue: ${queue.length}`);
     
     // Process this batch
     processAndWriteAudioData(nextBatch.data, nextBatch.sampleRate)
       .then(actualDurationMs => {
-        console.info(`[Sokuji] Batch for track ${trackId} completed. Duration: ${actualDurationMs}ms`);
+        console.info(`[Sokuji] [VirtualMic] Batch for track ${trackId} completed. Duration: ${actualDurationMs}ms`);
         
         // Wait until this batch is fully played before processing the next one
         setTimeout(() => {
@@ -246,7 +246,7 @@
         }, 1); // Small additional delay for safety
       })
       .catch(error => {
-        console.error(`[Sokuji] Error processing batch for track ${trackId}:`, error);
+        console.error(`[Sokuji] [VirtualMic] Error processing batch for track ${trackId}:`, error);
         // Continue with the next batch even if there was an error
         setTimeout(() => {
           processNextBatchInQueue(trackId);
@@ -258,12 +258,12 @@
   async function processAndWriteAudioData(pcmData, sampleRate) {
     // Check if writer is valid, attempt to reinitialize if not
     if (!isActive || !isWriterValid()) {
-      console.warn('[Sokuji] Writer not valid in processAndWriteAudioData, attempting to reinitialize');
+      console.warn('[Sokuji] [VirtualMic] Writer not valid in processAndWriteAudioData, attempting to reinitialize');
       initializeTrackGenerator();
       
       // If still not valid after reinitialization, abort
       if (!isActive || !isWriterValid()) {
-        console.error('[Sokuji] Failed to reinitialize track generator, cannot process audio');
+        console.error('[Sokuji] [VirtualMic] Failed to reinitialize track generator, cannot process audio');
         return 0;
       }
     }
@@ -289,23 +289,23 @@
         if (floatData[k] < minVal) minVal = floatData[k];
         if (floatData[k] > maxVal) maxVal = floatData[k];
       }
-      console.debug(`[Sokuji] floatData stats: length=${floatData.length}, min=${minVal}, max=${maxVal}, hasNaN=${hasNaN}${hasNaN ? ` at index ${nanIndex} (pcmData[${nanIndex}]=${pcmData[nanIndex]})` : ''}`);
+      console.debug(`[Sokuji] [VirtualMic] floatData stats: length=${floatData.length}, min=${minVal}, max=${maxVal}, hasNaN=${hasNaN}${hasNaN ? ` at index ${nanIndex} (pcmData[${nanIndex}]=${pcmData[nanIndex]})` : ''}`);
       
       if (hasNaN) {
-        console.error("[Sokuji] FATAL: floatData contains NaN values! Aborting write.");
+        console.error("[Sokuji] [VirtualMic] FATAL: floatData contains NaN values! Aborting write.");
         return 0; // Do not attempt to write if NaN
       }
       // Strict check for range. Values exactly -1.0 or 1.0 are fine.
       if (maxVal > 1.0 || minVal < -1.0) {
-        console.warn(`[Sokuji] WARNING: floatData values (min: ${minVal}, max: ${maxVal}) are outside strict [-1.0, 1.0] range!`);
+        console.warn(`[Sokuji] [VirtualMic] WARNING: floatData values (min: ${minVal}, max: ${maxVal}) are outside strict [-1.0, 1.0] range!`);
       }
-      console.debug('[Sokuji] Creating AudioData with sampleRate:', sampleRate);
+      console.debug('[Sokuji] [VirtualMic] Creating AudioData with sampleRate:', sampleRate);
       // --- END DIAGNOSTIC LOGS ---
 
       const framesPerChunk = sampleRate * 1; // 1 second of audio per chunk
       let currentTimestampUs = performance.now() * 1000; // Initial timestamp in microseconds
 
-      console.info(`[Sokuji] Starting to write ${floatData.length} frames in chunks of ${framesPerChunk} frames using setTimeout.`);
+      console.info(`[Sokuji] [VirtualMic] Starting to write ${floatData.length} frames in chunks of ${framesPerChunk} frames using setTimeout.`);
 
       let currentFrameIndex = 0;
       let chunkCount = 0;
@@ -314,7 +314,7 @@
       return new Promise((resolve, reject) => {
         function writeNextChunk() {
           if (currentFrameIndex >= floatData.length) {
-            console.info('[Sokuji] All audio data chunks written successfully via setTimeout.');
+            console.info('[Sokuji] [VirtualMic] All audio data chunks written successfully via setTimeout.');
             resolve(totalDurationMs);
             return;
           }
@@ -324,7 +324,7 @@
           const numberOfFramesInChunk = chunkFloatData.length;
 
           if (numberOfFramesInChunk === 0) {
-            console.debug('[Sokuji] Skipping empty chunk in setTimeout.');
+            console.debug('[Sokuji] [VirtualMic] Skipping empty chunk in setTimeout.');
             currentFrameIndex += framesPerChunk; // Advance index even if chunk was empty
             writeNextChunk(); // Immediately try next chunk
             return;
@@ -341,14 +341,14 @@
           });
 
           chunkCount++;
-          console.debug(`[Sokuji] Writing chunk ${chunkCount}: ${numberOfFramesInChunk} frames, timestamp: ${currentTimestampUs / 1000} ms`);
+          console.debug(`[Sokuji] [VirtualMic] Writing chunk ${chunkCount}: ${numberOfFramesInChunk} frames, timestamp: ${currentTimestampUs / 1000} ms`);
           
           const chunkDurationUs = (numberOfFramesInChunk / sampleRate) * 1000000;
           const chunkDurationMs = chunkDurationUs / 1000;
           const delayMs = chunkDurationMs;
 
           audioWriter.write(audioDataChunk).then(() => {
-            console.debug(`[Sokuji] Successfully wrote chunk ${chunkCount}.`);
+            console.debug(`[Sokuji] [VirtualMic] Successfully wrote chunk ${chunkCount}.`);
             
             currentTimestampUs += chunkDurationUs;
             currentFrameIndex += numberOfFramesInChunk; // More precise advancement
@@ -357,7 +357,7 @@
 
             setTimeout(writeNextChunk, delayMs);
           }).catch(error => {
-            console.warn(`[Sokuji] Error writing chunk ${chunkCount}:`, error);
+            console.warn(`[Sokuji] [VirtualMic] Error writing chunk ${chunkCount}:`, error);
             currentFrameIndex += numberOfFramesInChunk; // Advance to next chunk even on error
             setTimeout(writeNextChunk, delayMs); // Continue with next chunk after delay
             reject(error); // Reject the promise with the error
@@ -367,14 +367,14 @@
         writeNextChunk(); // Start the process
       });
     } catch (error) {
-      console.error('[Sokuji] Error in processAndWriteAudioData:', error);
+      console.error('[Sokuji] [VirtualMic] Error in processAndWriteAudioData:', error);
       return 0;
     }
   }
 
   // Cleanup resources when virtual microphone is no longer needed
   function cleanup() {
-    console.info('[Sokuji] Cleaning up virtual microphone resources');
+    console.info('[Sokuji] [VirtualMic] Cleaning up virtual microphone resources');
     
     // Store that we were previously active
     previouslyActive = isActive;
@@ -388,7 +388,7 @@
           audioWriter.releaseLock();
         }
       } catch (e) {
-        console.warn('[Sokuji] Error releasing writer lock:', e);
+        console.warn('[Sokuji] [VirtualMic] Error releasing writer lock:', e);
       }
     }
     
@@ -398,6 +398,7 @@
 
   // Override enumerateDevices to include our virtual microphone
   navigator.mediaDevices.enumerateDevices = async function() {
+    console.info('[Sokuji] [VirtualMic] enumerateDevices called');
     // Get real devices
     const devices = await originalEnumerateDevices();
     
@@ -421,6 +422,7 @@
 
   // Override getUserMedia to intercept requests for our virtual microphone
   navigator.mediaDevices.getUserMedia = async function(constraints) {
+    console.info('[Sokuji] [VirtualMic] getUserMedia called with constraints:', constraints);
     // If no audio constraints or explicitly not requesting our virtual mic, use original method
     if (!constraints.audio || 
         (constraints.audio.deviceId && 
@@ -430,7 +432,7 @@
         // If we were previously using the virtual mic but now switching to a different one,
         // clean up virtual mic resources
         if (isActive && constraints.audio) {
-          console.info('[Sokuji] Switching from virtual mic to different device, cleaning up');
+          console.info('[Sokuji] [VirtualMic] Switching from virtual mic to different device, cleaning up');
           cleanup();
         }
       
@@ -448,7 +450,7 @@
       // If we're returning to the virtual mic after using a different one,
       // force reinitialization by resetting resources
       if (previouslyActive && !isActive) {
-        console.info('[Sokuji] Returning to virtual mic after using a different one, reinitializing');
+        console.info('[Sokuji] [VirtualMic] Returning to virtual mic after using a different one, reinitializing');
         trackGenerator = null;
         audioWriter = null;
         virtualStream = null;
@@ -457,7 +459,7 @@
       initializeTrackGenerator();
       
       // Return our virtual stream
-      console.info('[Sokuji] Returning virtual microphone stream');
+      console.info('[Sokuji] [VirtualMic] Returning virtual microphone stream');
       return virtualStream;
     }
     
@@ -479,7 +481,7 @@
       if (data && data.channelData && Array.isArray(data.channelData[0])) {
         pcmData = new Int16Array(data.channelData[0]);
       } else {
-        console.error('[Sokuji] Invalid audio data format received');
+        console.error('[Sokuji] [VirtualMic] Invalid audio data format received');
         return;
       }
       
@@ -499,7 +501,7 @@
       if (event.data.pcmData && Array.isArray(event.data.pcmData)) {
         pcmData = new Int16Array(event.data.pcmData);
       } else {
-        console.error('[Sokuji] Invalid PCM data format received');
+        console.error('[Sokuji] [VirtualMic] Invalid PCM data format received');
         return;
       }
       
@@ -511,7 +513,7 @@
         trackId: event.data.trackId || 'default'
       });
       
-      console.debug(`[Sokuji] Received PCM_DATA chunk ${event.data.chunkIndex + 1}/${event.data.totalChunks}`);
+      console.debug(`[Sokuji] [VirtualMic] Received PCM_DATA chunk ${event.data.chunkIndex + 1}/${event.data.totalChunks}`);
     }
     
     // Handle state change messages
@@ -519,17 +521,17 @@
       if (event.data.enabled) {
         // Initialize our virtual microphone if not already done
         if (!isActive || !isWriterValid()) {
-          console.info('[Sokuji] Virtual microphone enabled, initializing or reinitializing');
+          console.info('[Sokuji] [VirtualMic] Virtual microphone enabled, initializing or reinitializing');
           trackGenerator = null; // Force reinitialization
           audioWriter = null;
           virtualStream = null;
           initializeTrackGenerator();
         } else {
-          console.debug('[Sokuji] Virtual microphone already enabled and valid');
+          console.debug('[Sokuji] [VirtualMic] Virtual microphone already enabled and valid');
         }
       } else {
         // Handle disabling by cleaning up resources
-        console.info('[Sokuji] Virtual microphone disabled');
+        console.info('[Sokuji] [VirtualMic] Virtual microphone disabled');
         cleanup();
       }
     }
@@ -555,5 +557,5 @@
     }
   };
 
-  console.info('[Sokuji] Virtual microphone successfully initialized');
+  console.info('[Sokuji] [VirtualMic] Virtual microphone successfully initialized');
 })();
