@@ -327,7 +327,7 @@ export class WavRecorder {
     try {
       await context.audioWorklet.addModule(this.scriptSrc);
     } catch (e) {
-      console.error(e);
+      console.error('[Sokuji] [WavRecorder]', e);
       throw new Error(`Could not add audioWorklet module: ${this.scriptSrc}`);
     }
     const processor = new AudioWorkletNode(context, 'audio_processor');
@@ -366,7 +366,7 @@ export class WavRecorder {
     if (this.outputToSpeakers) {
       // eslint-disable-next-line no-console
       console.warn(
-        'Warning: Output to speakers may affect sound quality,\n' +
+        '[Sokuji] [WavRecorder] Warning: Output to speakers may affect sound quality,\n' +
           'especially due to system audio feedback preventative measures.\n' +
           'use only for debugging',
       );

@@ -12,7 +12,7 @@ export class ElectronSettingsService implements ISettingsService {
     try {
       return await (window as any).electron.config.get(key, defaultValue);
     } catch (error) {
-      console.error(`Error getting setting ${key}:`, error);
+      console.error(`[Sokuji] [ElectronSettings] Error getting setting ${key}:`, error);
       return defaultValue;
     }
   }
@@ -51,7 +51,7 @@ export class ElectronSettingsService implements ISettingsService {
       
       return settings;
     } catch (error) {
-      console.error('Error loading all settings:', error);
+      console.error('[Sokuji] [ElectronSettings] Error loading all settings:', error);
       return defaultSettings;
     }
   }
@@ -87,7 +87,7 @@ export class ElectronSettingsService implements ISettingsService {
     try {
       return await (window as any).electron.config.getPath();
     } catch (error) {
-      console.error('Error getting settings path:', error);
+      console.error('[Sokuji] [ElectronSettings] Error getting settings path:', error);
       return { configDir: '', configFile: '' };
     }
   }

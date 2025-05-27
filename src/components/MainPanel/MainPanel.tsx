@@ -125,7 +125,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
       return result;
     } catch (e) {
-      console.error('Failed to set up virtual audio output:', e);
+      console.error('[Sokuji] [MainPanel] Failed to set up virtual audio output:', e);
       return false;
     }
   }, []);
@@ -149,7 +149,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         // Set up the virtual audio output
         await setupVirtualAudioOutput();
       } catch (error) {
-        console.error('Failed to initialize audio service:', error);
+        console.error('[Sokuji] [MainPanel] Failed to initialize audio service:', error);
       }
     };
     
@@ -201,7 +201,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       // console.debug(realtimeEvent);
       addRealtimeEvent(realtimeEvent, realtimeEvent.source, realtimeEvent.event.type);
     });
-    client.on('error', (event: any) => console.error(event));
+    client.on('error', (event: any) => console.error('[Sokuji] [MainPanel]', event));
     // client.on('conversation.interrupted', () => {
     //   const trackSampleOffset = audioService.interruptAudio();
     //   if (trackSampleOffset?.trackId) {
@@ -241,7 +241,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       try {
         await wavRecorder.pause();
       } catch (error) {
-        console.warn('Error pausing recorder during disconnect:', error);
+        console.warn('[Sokuji] [MainPanel] Error pausing recorder during disconnect:', error);
       }
     }
 
@@ -255,7 +255,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     try {
       await wavRecorder.end();
     } catch (error) {
-      console.warn('Error ending recorder:', error);
+      console.warn('[Sokuji] [MainPanel] Error ending recorder:', error);
     }
 
     // Interrupt any playing audio using the audio service
@@ -301,17 +301,17 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         if (selectedInputDevice) {
           await wavRecorder.begin(selectedInputDevice.deviceId);
         } else {
-          console.warn('No input device selected, cannot connect to microphone');
+          console.warn('[Sokuji] [MainPanel] No input device selected, cannot connect to microphone');
         }
       } else {
-        console.info('Input device is turned off, not connecting to microphone');
+        console.info('[Sokuji] [MainPanel] Input device is turned off, not connecting to microphone');
       }
 
       // If output device is ON, ensure monitor device is connected immediately
       if (isMonitorDeviceOn && selectedMonitorDevice &&
         !selectedMonitorDevice.label.toLowerCase().includes('sokuji_virtual') &&
         !selectedMonitorDevice.label.includes('Sokuji Virtual Output')) {
-        console.info('Setting up monitor device to:', selectedMonitorDevice.label);
+        console.info('[Sokuji] [MainPanel] Setting up monitor device to:', selectedMonitorDevice.label);
 
         // Trigger the selectMonitorDevice function to reconnect the monitor
         // This will use the audio service properly through the AudioContext
@@ -342,7 +342,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       setIsSessionActive(true);
       setItems(client.conversation.getItems() as ItemType[]);
     } catch (error) {
-      console.error('Failed to initialize session:', error);
+      console.error('[Sokuji] [MainPanel] Failed to initialize session:', error);
       // Reset state in case of error
       await disconnectConversation();
     } finally {
@@ -357,7 +357,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   const startRecording = useCallback(async () => {
     // Don't start recording if input device is turned off
     if (!isInputDeviceOn) {
-      console.info('Input device is turned off, not starting recording');
+      console.info('[Sokuji] [MainPanel] Input device is turned off, not starting recording');
       return;
     }
 
@@ -377,14 +377,14 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       // Check if the recorder is in a valid state
       if (wavRecorder.recording) {
         // If somehow we're already recording, pause first
-        console.warn('WavRecorder was already recording, pausing first');
+        console.warn('[Sokuji] [MainPanel] WavRecorder was already recording, pausing first');
         await wavRecorder.pause();
       }
 
       // Start recording
       await wavRecorder.record((data) => client.appendInputAudio(data.mono));
     } catch (error) {
-      console.error('Error starting recording:', error);
+      console.error('[Sokuji] [MainPanel] Error starting recording:', error);
       setIsRecording(false);
     }
   }, [isInputDeviceOn, isRecording]);
@@ -413,7 +413,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       }
     } catch (error) {
       // If there's an error during pause (e.g., already paused), log it but don't crash
-      console.error('Error stopping recording:', error);
+      console.error('[Sokuji] [MainPanel] Error stopping recording:', error);
       
       // Reset the recording state to ensure UI is consistent
       setIsRecording(false);
@@ -427,7 +427,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     try {
       const audioService = audioServiceRef.current;
       if (!audioService) {
-        console.error('Audio service not available');
+        console.error('[Sokuji] [MainPanel] Audio service not available');
         return;
       }
 
@@ -447,7 +447,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       
       // Check if the item has audio data
       if (!item.formatted?.audio) {
-        console.error('No audio data found in the item');
+        console.error('[Sokuji] [MainPanel] No audio data found in the item');
         return;
       }
 
@@ -481,26 +481,26 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       if (audioData instanceof Int16Array) {
         // If it's a proper Int16Array, use its length
         audioLength = audioData.length;
-        console.debug(`Audio is Int16Array with length: ${audioLength}`);
+        console.debug('[Sokuji] [MainPanel] Audio is Int16Array with length: ' + audioLength);
       } else if (audioData && typeof audioData === 'object') {
         if ('byteLength' in audioData && typeof audioData.byteLength === 'number') {
           // If it has byteLength property
           audioLength = audioData.byteLength / 2; // 2 bytes per Int16 sample
-          console.debug(`Audio has byteLength: ${audioData.byteLength}, calculated length: ${audioLength}`);
+          console.debug('[Sokuji] [MainPanel] Audio has byteLength: ' + audioData.byteLength + ', calculated length: ' + audioLength);
         } else if ('length' in audioData && typeof audioData.length === 'number') {
           // If it has a numeric length property
           audioLength = audioData.length;
-          console.debug(`Audio has length property: ${audioLength}`);
+          console.debug('[Sokuji] [MainPanel] Audio has length property: ' + audioLength);
         } else {
           // Last resort: count the keys in the object
           audioLength = Object.keys(audioData).length;
-          console.debug(`Audio length calculated from object keys: ${audioLength}`);
+          console.debug('[Sokuji] [MainPanel] Audio length calculated from object keys: ' + audioLength);
         }
       }
       
       // Calculate duration in milliseconds (24kHz sample rate)
       const durationMs = (audioLength / 24000) * 1000;
-      console.debug(`Audio duration: ${durationMs}ms`);
+      console.debug('[Sokuji] [MainPanel] Audio duration: ' + durationMs + 'ms');
       
       // Use a minimum duration if calculated duration is too short
       const actualDurationMs = Math.max(durationMs, 1000);
@@ -510,9 +510,9 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         setPlayingItemId(prevId => prevId === currentItemId ? null : prevId);
       }, actualDurationMs + 50); // Add 50ms buffer
       
-      console.info(`Playing audio from item ${item.id}`);
+      console.info('[Sokuji] [MainPanel] Playing audio from item ' + item.id);
     } catch (error) {
-      console.error('Error playing audio:', error);
+      console.error('[Sokuji] [MainPanel] Error playing audio:', error);
       setPlayingItemId(null);
     }
   }, [isMonitorDeviceOn, selectedMonitorDevice, selectMonitorDevice, playingItemId]);
@@ -524,7 +524,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     try {
       const audioService = audioServiceRef.current;
       if (!audioService) {
-        console.error('Audio service not available');
+        console.error('[Sokuji] [MainPanel] Audio service not available');
         return;
       }
 
@@ -532,7 +532,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       if (isTestTonePlaying) {
         await audioService.interruptAudio();
         setIsTestTonePlaying(false);
-        console.info('Stopped test tone');
+        console.info('[Sokuji] [MainPanel] Stopped test tone');
         return;
       }
 
@@ -543,19 +543,19 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       
       // Add debug logging to check WavStreamPlayer's interruptedTrackIds
       const wavStreamPlayer = audioService.getWavStreamPlayer();
-      console.debug('WavStreamPlayer before playing test tone:', wavStreamPlayer);
+      console.debug('[Sokuji] [MainPanel] WavStreamPlayer before playing test tone: ' + wavStreamPlayer);
       
       // Access and log the interruptedTrackIds with proper type checking
       const interruptedTrackIds = (wavStreamPlayer as any).interruptedTrackIds || {};
-      console.debug('WavStreamPlayer interruptedTrackIds:', interruptedTrackIds);
+      console.debug('[Sokuji] [MainPanel] WavStreamPlayer interruptedTrackIds: ' + JSON.stringify(interruptedTrackIds));
       
       // Manually clear the WavStreamPlayer's interruptedTrackIds for the test-tone
       if (typeof interruptedTrackIds === 'object' && interruptedTrackIds['test-tone']) {
-        console.debug('Manually clearing test-tone from WavStreamPlayer.interruptedTrackIds');
+        console.debug('[Sokuji] [MainPanel] Manually clearing test-tone from WavStreamPlayer.interruptedTrackIds');
         delete interruptedTrackIds['test-tone'];
       }
       
-      console.debug('Cleared interrupted tracks before playing test tone');
+      console.debug('[Sokuji] [MainPanel] Cleared interrupted tracks before playing test tone');
 
       // Fetch the test tone file
       let testToneUrl = '/assets/test-tone.mp3';
@@ -577,12 +577,12 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       const tempContext = new AudioContext({ sampleRate: targetSampleRate });
       const audioBuffer = await tempContext.decodeAudioData(arrayBuffer);
 
-      console.debug(`Test tone audio info - Sample rate: ${audioBuffer.sampleRate}Hz, Duration: ${audioBuffer.duration}s, Channels: ${audioBuffer.numberOfChannels}`);
+      console.debug(`[Sokuji] [MainPanel] Test tone audio info - Sample rate: ${audioBuffer.sampleRate}Hz, Duration: ${audioBuffer.duration}s, Channels: ${audioBuffer.numberOfChannels}`);
 
       // Check if we need to resample
       let processedBuffer = audioBuffer;
       if (audioBuffer.sampleRate !== targetSampleRate) {
-        console.debug(`Resampling from ${audioBuffer.sampleRate}Hz to ${targetSampleRate}Hz`);
+        console.debug(`[Sokuji] [MainPanel] Resampling from ${audioBuffer.sampleRate}Hz to ${targetSampleRate}Hz`);
         // Create an offline context for resampling
         const offlineContext = new OfflineAudioContext(
           audioBuffer.numberOfChannels,
@@ -602,7 +602,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       // Mix down to mono if stereo by averaging channels
       let monoData;
       if (processedBuffer.numberOfChannels > 1) {
-        console.debug('Converting stereo to mono');
+        console.debug('[Sokuji] [MainPanel] Converting stereo to mono');
         monoData = new Float32Array(processedBuffer.length);
         // Get the data from both channels
         const leftChannel = new Float32Array(processedBuffer.length);
@@ -639,16 +639,16 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       if (isMonitorDeviceOn && selectedMonitorDevice &&
         !selectedMonitorDevice.label.toLowerCase().includes('sokuji_virtual') &&
         !selectedMonitorDevice.label.includes('Sokuji Virtual Output')) {
-        console.info('Test tone: Ensuring monitor device is connected:', selectedMonitorDevice.label);
+        console.info('[Sokuji] [MainPanel] Test tone: Ensuring monitor device is connected:', selectedMonitorDevice.label);
 
         // Trigger the selectMonitorDevice function to reconnect the monitor
         // This will use the audio service properly through the AudioContext
         selectMonitorDevice(selectedMonitorDevice);
       }
 
-      console.info('Playing test tone');
+      console.info('[Sokuji] [MainPanel] Playing test tone');
     } catch (error) {
-      console.error('Error playing test tone:', error);
+      console.error('[Sokuji] [MainPanel] Error playing test tone:', error);
       setIsTestTonePlaying(false);
     }
   }, [isMonitorDeviceOn, selectedMonitorDevice, selectMonitorDevice, isTestTonePlaying]);
@@ -744,7 +744,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                 0,
                 8
               );
-              console.warn('Error getting frequencies from WavStreamPlayer:', error);
+              console.warn('[Sokuji] [MainPanel] Error getting frequencies from WavStreamPlayer:', error);
             }
           }
         }
@@ -792,7 +792,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       try {
         // If input device is turned off, pause recording
         if (!isInputDeviceOn) {
-          console.info('Input device turned off - pausing recording');
+          console.info('[Sokuji] [MainPanel] Input device turned off - pausing recording');
           if (wavRecorder.recording) {
             await wavRecorder.pause();
             setIsRecording(false);
@@ -802,18 +802,18 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         else {
           // First, check if the recorder is initialized by checking the processor property
           if (!wavRecorder.processor) {
-            console.info('Input device turned on - initializing recorder with selected device');
+            console.info('[Sokuji] [MainPanel] Input device turned on - initializing recorder with selected device');
             try {
               await wavRecorder.begin(selectedInputDevice?.deviceId);
             } catch (error) {
-              console.error('Error initializing recorder:', error);
+              console.error('[Sokuji] [MainPanel] Error initializing recorder:', error);
               return;
             }
           }
 
           // If we're in automatic mode, resume recording
           if (settings.turnDetectionMode !== 'Disabled') {
-            console.info('Input device turned on - resuming recording in automatic mode');
+            console.info('[Sokuji] [MainPanel] Input device turned on - resuming recording in automatic mode');
             if (!wavRecorder.recording) {
               await wavRecorder.record((data) => client.appendInputAudio(data.mono));
             }
@@ -822,7 +822,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           // The user needs to press the button or Space key
         }
       } catch (error) {
-        console.error('Error updating recording state:', error);
+        console.error('[Sokuji] [MainPanel] Error updating recording state:', error);
       }
     };
 
@@ -848,20 +848,20 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           selectedMonitorDevice?.label.includes('Sokuji Virtual Output');
 
         if (isVirtualDevice) {
-          console.info('Selected monitor device is a virtual device - not using as monitor');
+          console.info('[Sokuji] [MainPanel] Selected monitor device is a virtual device - not using as monitor');
           return;
         }
 
         // If monitor device is turned on, connect the monitor
         if (isMonitorDeviceOn && selectedMonitorDevice) {
-          console.info(`Setting up monitor output to: ${selectedMonitorDevice.label}`);
+          console.info(`[Sokuji] [MainPanel] Setting up monitor output to: ${selectedMonitorDevice.label}`);
 
           // Trigger the selectMonitorDevice function to reconnect the monitor
           // This will use the audio service properly through the AudioContext
           selectMonitorDevice(selectedMonitorDevice);
         }
       } catch (error) {
-        console.error('Error setting up monitor device:', error);
+        console.error('[Sokuji] [MainPanel] Error setting up monitor device:', error);
       }
     };
 
@@ -919,7 +919,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         // Set up the virtual audio output
         await setupVirtualAudioOutput();
       } catch (error) {
-        console.error('Failed to initialize audio:', error);
+        console.error('[Sokuji] [MainPanel] Failed to initialize audio:', error);
       }
     };
     

@@ -6,7 +6,7 @@ if (process.platform === 'win32') {
   try {
     if (require('electron-squirrel-startup')) app.quit();
   } catch (error) {
-    console.error('Error with electron-squirrel-startup:', error);
+    console.error('[Sokuji] [Main] Error with electron-squirrel-startup:', error);
     // Continue execution even if there's an error with squirrel startup
   }
 }
@@ -68,33 +68,33 @@ function createWindow() {
     const asarPath = path.join(path.dirname(app.getPath('exe')), 'resources/app.asar/build/index.html');
     
     // Log all potential paths for debugging
-    console.log('Potential paths:');
-    console.log('- Relative path:', relativePath);
-    console.log('- App path based:', appPathBased);
-    console.log('- Absolute path:', absolutePath);
-    console.log('- Asar path:', asarPath);
+    console.log('[Sokuji] [Main] Potential paths:');
+    console.log('[Sokuji] [Main] - Relative path:', relativePath);
+    console.log('[Sokuji] [Main] - App path based:', appPathBased);
+    console.log('[Sokuji] [Main] - Absolute path:', absolutePath);
+    console.log('[Sokuji] [Main] - Asar path:', asarPath);
     
     // Check which path exists and use it
     if (require('fs').existsSync(relativePath)) {
       indexPath = relativePath;
-      console.log('Using relative path');
+      console.log('[Sokuji] [Main] Using relative path');
     } else if (require('fs').existsSync(appPathBased)) {
       indexPath = appPathBased;
-      console.log('Using app path based');
+      console.log('[Sokuji] [Main] Using app path based');
     } else if (require('fs').existsSync(absolutePath)) {
       indexPath = absolutePath;
-      console.log('Using absolute path');
+      console.log('[Sokuji] [Main] Using absolute path');
     } else if (require('fs').existsSync(asarPath)) {
       indexPath = asarPath;
-      console.log('Using asar path');
+      console.log('[Sokuji] [Main] Using asar path');
     } else {
       // Fallback to the most likely path
       indexPath = asarPath;
-      console.log('No path found, using fallback asar path');
+      console.log('[Sokuji] [Main] No path found, using fallback asar path');
     }
     
     // Use loadFile which is recommended for local files
-    console.log('Final path used:', indexPath);
+    console.log('[Sokuji] [Main] Final path used:', indexPath);
     mainWindow.loadFile(indexPath);
   }
 
@@ -123,16 +123,16 @@ app.whenReady().then(async () => {
   // Clean up any orphaned devices
   try {
     await cleanupOrphanedDevices();
-    console.log('Orphaned devices cleaned up successfully');
+    console.log('[Sokuji] [Main] Orphaned devices cleaned up successfully');
   } catch (error) {
-    console.error('Error cleaning up orphaned devices:', error);
+    console.error('[Sokuji] [Main] Error cleaning up orphaned devices:', error);
   }
 
   // Start virtual audio devices before creating the window
   try {
     const devicesCreated = await createVirtualAudioDevices();
     if (devicesCreated) {
-      console.log('Virtual audio devices created successfully');
+      console.log('[Sokuji] [Main] Virtual audio devices created successfully');
       
       // Connect the virtual speaker to the default output device
       // try {
@@ -145,18 +145,18 @@ app.whenReady().then(async () => {
       //   // Connect virtual speaker to default output
       //   const connected = await connectVirtualSpeakerToOutput(defaultDeviceInfo);
       //   if (connected) {
-      //     console.log('Successfully connected virtual speaker to default output device');
+      //     console.log('[Sokuji] [Main] Successfully connected virtual speaker to default output device');
       //   } else {
-      //     console.error('Failed to connect virtual speaker to default output device');
+      //     console.error('[Sokuji] [Main] Failed to connect virtual speaker to default output device');
       //   }
       // } catch (connectionError) {
-      //   console.error('Error connecting virtual speaker to default output:', connectionError);
+      //   console.error('[Sokuji] [Main] Error connecting virtual speaker to default output:', connectionError);
       // }
     } else {
-      console.error('Failed to create virtual audio devices');
+      console.error('[Sokuji] [Main] Failed to create virtual audio devices');
     }
   } catch (error) {
-    console.error('Error creating virtual audio devices:', error);
+    console.error('[Sokuji] [Main] Error creating virtual audio devices:', error);
   }
   
   createWindow();
@@ -164,14 +164,14 @@ app.whenReady().then(async () => {
 
 // Ensure cleanup happens before app exits
 const cleanupAndExit = () => {
-  console.log('Cleaning up virtual audio devices before exit...');
+  console.log('[Sokuji] [Main] Cleaning up virtual audio devices before exit...');
   removeVirtualAudioDevices();
-  console.log('Virtual audio devices cleaned up successfully');
+  console.log('[Sokuji] [Main] Virtual audio devices cleaned up successfully');
 };
 
 // Create a more robust exit handler that ensures cleanup happens
 const handleExit = (signal) => {
-  console.log(`Received ${signal} signal. Ensuring cleanup before exit...`);
+  console.log(`[Sokuji] [Main] Received ${signal} signal. Ensuring cleanup before exit...`);
   
   // Perform cleanup synchronously
   cleanupAndExit();
@@ -188,11 +188,11 @@ app.on('before-quit', cleanupAndExit);
 process.on('SIGINT', () => handleExit('SIGINT'));
 process.on('SIGTERM', () => handleExit('SIGTERM'));
 process.on('uncaughtException', (error) => {
-  console.error('Uncaught exception:', error);
+  console.error('[Sokuji] [Main] Uncaught exception:', error);
   handleExit('uncaughtException');
 });
 process.on('unhandledRejection', (reason, promise) => {
-  console.error('Unhandled rejection at:', promise, 'reason:', reason);
+  console.error('[Sokuji] [Main] Unhandled rejection at:', promise, 'reason:', reason);
   handleExit('unhandledRejection');
 });
 
@@ -217,7 +217,7 @@ ipcMain.handle('check-audio-system', async () => {
       pulseAudioAvailable
     };
   } catch (error) {
-    console.error('Error checking audio system status:', error);
+    console.error('[Sokuji] [Main] Error checking audio system status:', error);
     return {
       pulseAudioAvailable: false,
       error: error.message
@@ -230,7 +230,7 @@ ipcMain.handle('get-config', (event, key, defaultValue) => {
   try {
     return getConfig(key, defaultValue);
   } catch (error) {
-    console.error('Error getting config:', error);
+    console.error('[Sokuji] [Main] Error getting config:', error);
     return defaultValue;
   }
 });
@@ -239,7 +239,7 @@ ipcMain.handle('set-config', (event, key, value) => {
   try {
     return { success: setConfig(key, value) };
   } catch (error) {
-    console.error('Error setting config:', error);
+    console.error('[Sokuji] [Main] Error setting config:', error);
     return { success: false, error: error.message };
   }
 });
@@ -256,7 +256,7 @@ ipcMain.handle('open-directory', (event, dirPath) => {
     shell.openPath(dirPath);
     return { success: true };
   } catch (error) {
-    console.error('Error opening directory:', error);
+    console.error('[Sokuji] [Main] Error opening directory:', error);
     return { success: false, error: error.message };
   }
 });
@@ -270,7 +270,7 @@ ipcMain.handle('validate-api-key', async (event, apiKey) => {
       ...validationResult 
     };
   } catch (error) {
-    console.error('Error validating API key:', error);
+    console.error('[Sokuji] [Main] Error validating API key:', error);
     return { 
       success: false, 
       valid: false,
@@ -293,7 +293,7 @@ ipcMain.handle('connect-virtual-speaker-to-output', async (event, deviceInfo) =>
       message: result ? 'Connected virtual speaker to output device' : 'Failed to connect'
     };
   } catch (error) {
-    console.error('Error connecting virtual speaker to output:', error);
+    console.error('[Sokuji] [Main] Error connecting virtual speaker to output:', error);
     return { 
       success: false, 
       error: error.message || 'Failed to connect virtual speaker to output device' 
@@ -310,7 +310,7 @@ ipcMain.handle('disconnect-virtual-speaker-outputs', async () => {
       message: result ? 'Disconnected virtual speaker from all outputs' : 'Failed to disconnect'
     };
   } catch (error) {
-    console.error('Error disconnecting virtual speaker:', error);
+    console.error('[Sokuji] [Main] Error disconnecting virtual speaker:', error);
     return { 
       success: false, 
       error: error.message || 'Failed to disconnect virtual speaker from outputs' 
@@ -327,7 +327,7 @@ ipcMain.handle('create-virtual-speaker', async () => {
       message: result ? 'Virtual audio devices created successfully' : 'Failed to create virtual audio devices'
     };
   } catch (error) {
-    console.error('Error creating virtual audio devices:', error);
+    console.error('[Sokuji] [Main] Error creating virtual audio devices:', error);
     return {
       success: false,
       error: error.message || 'Failed to create virtual audio devices'

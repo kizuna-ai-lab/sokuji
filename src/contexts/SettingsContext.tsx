@@ -133,7 +133,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
       
       return result;
     } catch (error) {
-      console.error('Error validating API key:', error);
+      console.error('[Sokuji] [Settings] Error validating API key:', error);
       return {
         valid: false,
         message: error instanceof Error ? error.message : 'Error validating API key',
@@ -155,10 +155,10 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
       
       // Optionally perform full validation in the background
       if (apiKey && apiKey.trim() !== '') {
-        validateApiKey(apiKey).catch(console.error);
+        validateApiKey(apiKey).catch(error => console.error('[Sokuji] [Settings] Error validating API key:', error));
       }
     } catch (error) {
-      console.error('Error loading settings:', error);
+      console.error('[Sokuji] [Settings] Error loading settings:', error);
     }
   }, [settingsService, validateApiKey]);
 
@@ -172,7 +172,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         const fullKey = `settings.${key}`;
         const value = (newSettings as any)[key];
         settingsService.setSetting(fullKey, value)
-          .catch(error => console.error(`Error saving setting ${key}:`, error));
+          .catch(error => console.error(`[Sokuji] [Settings] Error saving setting ${key}:`, error));
       }
       
       return updatedSettings;

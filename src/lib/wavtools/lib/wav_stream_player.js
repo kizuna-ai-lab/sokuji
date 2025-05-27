@@ -33,7 +33,7 @@ export class WavStreamPlayer {
     try {
       await this.context.audioWorklet.addModule(this.scriptSrc);
     } catch (e) {
-      console.error(e);
+      console.error('[Sokuji] [WavStreamPlayer]', e);
       throw new Error(`Could not add audioWorklet module: ${this.scriptSrc}`);
     }
     const analyser = this.context.createAnalyser();
