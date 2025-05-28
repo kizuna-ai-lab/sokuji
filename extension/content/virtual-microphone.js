@@ -19,7 +19,7 @@
   
   // Playback configuration
   const MIN_BATCH_SIZE = SAMPLE_RATE * 0.1; // 100ms minimum batch size
-  const MAX_BATCH_SIZE = SAMPLE_RATE * 10; // 500ms maximum batch size
+  const MAX_BATCH_SIZE = SAMPLE_RATE * 2; // 10s maximum batch size
   
   // Virtual microphone state
   let trackGenerator = null;
@@ -223,6 +223,72 @@
       
       // Combine collected batches into a single audio data
       const combinedBatch = combineBatches(batchesToPlay);
+
+      // // Check if the batch contains silent data
+      // const silenceThreshold = 0.0001; // Threshold for detecting silence
+      // let isSilent = true;
+      // let silentSections = [];
+      // let currentSection = null;
+      
+      // // Analyze the data for silent sections
+      // for (let i = 0; i < combinedBatch.data.length; i++) {
+      //   const amplitude = Math.abs(combinedBatch.data[i]);
+      //   const isSampleSilent = amplitude < silenceThreshold;
+        
+      //   if (isSampleSilent) {
+      //     if (currentSection === null) {
+      //       currentSection = {
+      //         start: i,
+      //         end: i
+      //       };
+      //     } else {
+      //       currentSection.end = i;
+      //     }
+      //   } else {
+      //     isSilent = false;
+      //     if (currentSection !== null) {
+      //       silentSections.push(currentSection);
+      //       currentSection = null;
+      //     }
+      //   }
+      // }
+      
+      // // Capture the last section if it exists
+      // if (currentSection !== null) {
+      //   silentSections.push(currentSection);
+      // }
+      
+      // // Calculate statistics
+      // const totalSamples = combinedBatch.data.length;
+      // const silentSamples = silentSections.reduce((total, section) => 
+      //   total + (section.end - section.start + 1), 0);
+      // const silentPercentage = (silentSamples / totalSamples) * 100;
+      // const durationSeconds = totalSamples / combinedBatch.sampleRate;
+      
+      // console.debug(`[Sokuji] [VirtualMic] Audio analysis: ${silentSections.length} silent sections, ${silentPercentage.toFixed(2)}% silent`);
+      
+      // // Log more detailed information about large silent sections
+      // const largeThresholdSeconds = 0.5; // Sections longer than 0.5s are considered large
+      // const largeThresholdSamples = largeThresholdSeconds * combinedBatch.sampleRate;
+      
+      // const largeSilentSections = silentSections.filter(section => 
+      //   (section.end - section.start) > largeThresholdSamples);
+      
+      // if (largeSilentSections.length > 0) {
+      //   console.warn(`[Sokuji] [VirtualMic] Found ${largeSilentSections.length} large silent sections`);
+        
+      //   largeSilentSections.forEach((section, index) => {
+      //     const startTimeSeconds = section.start / combinedBatch.sampleRate;
+      //     const endTimeSeconds = section.end / combinedBatch.sampleRate;
+      //     const durationSeconds = (section.end - section.start) / combinedBatch.sampleRate;
+          
+      //     console.warn(`[Sokuji] [VirtualMic] Silent section #${index + 1}: ${startTimeSeconds.toFixed(2)}s - ${endTimeSeconds.toFixed(2)}s (${durationSeconds.toFixed(2)}s long)`);
+      //   });
+      // }
+      
+      // if (isSilent) {
+      //   console.warn(`[Sokuji] [VirtualMic] WARNING: Entire batch of ${durationSeconds.toFixed(2)}s is silent!`);
+      // }
       
       // Play the combined batch
       const playbackDurationMs = await playAudioBatch(combinedBatch);
@@ -257,8 +323,34 @@
       
       // Check if adding this batch would exceed the maximum size
       if (totalSamples + nextBatch.data.length > MAX_BATCH_SIZE) {
-        console.debug(`[Sokuji] [VirtualMic] Next batch would exceed max size (${totalSamples + nextBatch.data.length} > ${MAX_BATCH_SIZE}), stopping collection`);
-        break;
+        console.debug(`[Sokuji] [VirtualMic] Next batch would exceed max size (${totalSamples + nextBatch.data.length} > ${MAX_BATCH_SIZE}), slicing batch`);
+        
+        // Calculate how many samples we can take from this batch
+        const remainingSamples = MAX_BATCH_SIZE - totalSamples;
+        
+        // Remove the batch from the queue
+        playbackQueue.shift();
+        
+        // Create a batch with just the portion we can use
+        const slicedData = nextBatch.data.slice(0, remainingSamples);
+        console.debug(`[Sokuji] [VirtualMic] Sliced batch to ${slicedData.length} samples`);
+        batches.push({
+          data: slicedData,
+          sampleRate: nextBatch.sampleRate
+        });
+        
+        // Put the remainder back in the queue for next time
+        const remainderData = nextBatch.data.slice(remainingSamples);
+        if (remainderData.length > 0) {
+          playbackQueue.unshift({
+            data: remainderData,
+            sampleRate: nextBatch.sampleRate
+          });
+        }
+        
+        totalSamples += slicedData.length;
+        targetSampleRate = nextBatch.sampleRate;
+        break; // We've reached max size, so exit the loop
       }
       
       // Safe to add this batch
