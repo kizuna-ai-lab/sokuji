@@ -11,6 +11,7 @@ module.exports = (env, argv) => {
     entry: {
       background: './background/background.js',
       content: './content/content.js',
+      'zoom-content': './content/zoom-content.js',
       'virtual-microphone': './content/virtual-microphone.js',
       fullpage: './fullpage/index.jsx',
     },
