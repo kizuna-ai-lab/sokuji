@@ -14,6 +14,7 @@
   // Virtual device configuration
   const VIRTUAL_MIC_ID = 'sokuji-virtual-microphone';
   const VIRTUAL_MIC_LABEL = 'Sokuji Virtual Microphone';
+  const VIRTUAL_MIC_GROUP_ID = 'sokuji-device-group';
   const SAMPLE_RATE = 24000;
   const CHANNEL_COUNT = 1;
   
@@ -34,6 +35,30 @@
   let chunkBuffer = new Map(); // Temporary storage for incomplete batches: trackId -> {chunks, totalChunks, sampleRate}
   
   /**
+   * Create a MediaDeviceInfo-like object for our virtual microphone
+   */
+  function createVirtualMicrophoneInfo() {
+    // Create a MediaDeviceInfo-like object that matches the expected interface
+    const virtualMicrophoneInfo = {
+      deviceId: VIRTUAL_MIC_ID,
+      kind: 'audioinput',
+      label: VIRTUAL_MIC_LABEL,
+      groupId: VIRTUAL_MIC_GROUP_ID,
+      // Implement toJSON method as required by MediaDeviceInfo interface
+      toJSON: function() {
+        return {
+          deviceId: this.deviceId,
+          kind: this.kind,
+          label: this.label,
+          groupId: this.groupId
+        };
+      }
+    };
+    
+    return virtualMicrophoneInfo;
+  }
+  
+  /**
    * Initialize the virtual microphone
    */
   function initializeVirtualMic() {
@@ -48,6 +73,26 @@
       trackGenerator = new window.MediaStreamTrackGenerator({ kind: 'audio' });
       audioWriter = trackGenerator.writable.getWriter();
       virtualStream = new MediaStream([trackGenerator]);
+      
+      // Set the deviceId in the MediaStreamTrack
+      if (trackGenerator.id) {
+        // Use the existing id if available
+        console.debug(`[Sokuji] [VirtualMic] Using existing track ID: ${trackGenerator.id}`);
+      } else {
+        // Try to set custom ID or properties if possible
+        try {
+          Object.defineProperty(trackGenerator, 'id', { value: VIRTUAL_MIC_ID });
+        } catch (e) {
+          console.debug('[Sokuji] [VirtualMic] Could not set custom track ID', e);
+        }
+      }
+      
+      // Set track label if possible
+      try {
+        Object.defineProperty(trackGenerator, 'label', { value: VIRTUAL_MIC_LABEL });
+      } catch (e) {
+        console.debug('[Sokuji] [VirtualMic] Could not set track label', e);
+      }
       
       isActive = true;
       audioTimestamp = performance.now() * 1000; // Reset timestamp to current time in microseconds
@@ -489,12 +534,9 @@
     );
     
     if (!hasVirtualMic) {
-      devices.push({
-        deviceId: VIRTUAL_MIC_ID,
-        kind: 'audioinput',
-        label: VIRTUAL_MIC_LABEL,
-        groupId: ''
-      });
+      // Create a proper MediaDeviceInfo-like object
+      const virtualMicrophoneInfo = createVirtualMicrophoneInfo();
+      devices.push(virtualMicrophoneInfo);
     }
     
     return devices;
@@ -504,18 +546,47 @@
   navigator.mediaDevices.getUserMedia = async function(constraints) {
     console.debug('[Sokuji] [VirtualMic] getUserMedia called', constraints);
     
-    // Check if requesting virtual microphone
+    // Check if we're on Zoom
+    const isZoomDomain = window.location.hostname === 'app.zoom.us';
+    
+    // Standard check for requesting virtual microphone
     const isRequestingVirtualMic = constraints?.audio && (
       constraints.audio === true ||
-      constraints.audio.deviceId === VIRTUAL_MIC_ID ||
-      constraints.audio.deviceId?.exact === VIRTUAL_MIC_ID
+      (constraints.audio.deviceId && (
+        constraints.audio.deviceId === VIRTUAL_MIC_ID ||
+        constraints.audio.deviceId.exact === VIRTUAL_MIC_ID ||
+        (Array.isArray(constraints.audio.deviceId.ideal) && 
+         constraints.audio.deviceId.ideal.includes(VIRTUAL_MIC_ID)) ||
+        (Array.isArray(constraints.audio.deviceId.oneOf) && 
+         constraints.audio.deviceId.oneOf.includes(VIRTUAL_MIC_ID))
+      ))
     );
     
-    if (isRequestingVirtualMic) {
+    // Special handling for Zoom: check if deviceId is unknown (not found in real devices)
+    let isUnknownDeviceOnZoom = false;
+    if (isZoomDomain && constraints?.audio && constraints.audio.deviceId) {
+      const requestedDeviceId = constraints.audio.deviceId.exact || constraints.audio.deviceId;
+      if (requestedDeviceId) {
+        // Get list of real device IDs
+        const realDevices = await originalEnumerateDevices();
+        const realDeviceIds = realDevices
+          .filter(device => device.kind === 'audioinput')
+          .map(device => device.deviceId);
+        
+        // Check if requested device is not in the list of real devices
+        isUnknownDeviceOnZoom = !realDeviceIds.includes(requestedDeviceId);
+        if (isUnknownDeviceOnZoom) {
+          console.info(`[Sokuji] [VirtualMic] Zoom requested unknown device ID: ${requestedDeviceId}, using virtual microphone`);
+        }
+      }
+    }
+    
+    // Provide virtual microphone if explicitly requested or if on Zoom with unknown device
+    if (isRequestingVirtualMic || isUnknownDeviceOnZoom) {
       console.info('[Sokuji] [VirtualMic] Providing virtual microphone stream');
       
       if (!initializeVirtualMic()) {
-        throw new Error('Failed to initialize virtual microphone');
+        throw new DOMException('Could not start virtual audio source', 'NotReadableError');
       }
       
       return virtualStream;
@@ -541,6 +612,7 @@
     getBufferedTracks: () => Array.from(chunkBuffer.keys()),
     getDeviceId: () => VIRTUAL_MIC_ID,
     getVirtualStream: () => virtualStream,
+    // getDeviceInfo: () => createVirtualMicrophoneInfo(),
     addAudioData,
     cleanup,
     reinitialize: initializeVirtualMic
