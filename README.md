@@ -38,6 +38,15 @@ https://github.com/user-attachments/assets/1eaaa333-a7ce-4412-a295-16b7eb2310de
 
 Prefer not to install a desktop application? Try our [browser extension](https://chromewebstore.google.com/detail/ppmihnhelgfpjomhjhpecobloelicnak?utm_source=item-share-cb) for Chrome and Chromium-based browsers. It offers the same powerful live speech translation features directly in your browser, with special integration for Google Meet and Microsoft Teams.
 
+<p>
+  <a href="https://chromewebstore.google.com/detail/ppmihnhelgfpjomhjhpecobloelicnak?utm_source=item-share-cb" target="_blank">
+    <img alt="Chrome Web Store" src="https://developer.chrome.com/static/docs/webstore/branding/image/UV4C4ybeBTsZt43U4xis.png" />
+  </a>
+  <a href="https://www.producthunt.com/posts/sokuji?embed=true&utm_source=badge-featured&utm_medium=badge&utm_source=badge-sokuji" target="_blank">
+    <img src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=967440&theme=light&t=1748250774125" alt="Sokuji - Live&#0032;speech&#0032;translation&#0032;with&#0032;real&#0045;time&#0032;AI | Product Hunt" style="width: 250px; height: 54px;" width="250" height="54" />
+  </a>
+</p>
+
 ## Installing Browser Extension in Developer Mode
 
 If you want to install the latest version of the browser extension:
@@ -48,15 +57,6 @@ If you want to install the latest version of the browser extension:
 4. Enable "Developer mode" in the top right corner
 5. Click "Load unpacked" and select the extracted folder
 6. The Sokuji extension will be installed and ready to use
-
-<p>
-  <a href="https://chromewebstore.google.com/detail/ppmihnhelgfpjomhjhpecobloelicnak?utm_source=item-share-cb" target="_blank">
-    <img alt="Chrome Web Store" src="https://developer.chrome.com/static/docs/webstore/branding/image/UV4C4ybeBTsZt43U4xis.png" />
-  </a>
-  <a href="https://www.producthunt.com/posts/sokuji?embed=true&utm_source=badge-featured&utm_medium=badge&utm_source=badge-sokuji" target="_blank">
-    <img src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=967440&theme=light&t=1748250774125" alt="Sokuji - Live&#0032;speech&#0032;translation&#0032;with&#0032;real&#0045;time&#0032;AI | Product Hunt" style="width: 250px; height: 54px;" width="250" height="54" />
-  </a>
-</p>
 
 # More than just translation
 
