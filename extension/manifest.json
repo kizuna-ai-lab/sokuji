@@ -50,7 +50,6 @@
         "assets/*", 
         "fullpage.html", 
         "fullpage.js", 
-        "fullpage.css", 
         "permission.html", 
         "requestPermission.js"
       ],

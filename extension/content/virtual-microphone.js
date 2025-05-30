@@ -116,7 +116,7 @@
    * Check if audio writer is valid
    */
   function isWriterValid() {
-    return audioWriter && audioWriter.desiredSize !== null;
+    return audioWriter && audioWriter.desiredSize !== null && virtualStream.active;
   }
   
   /**
@@ -588,7 +588,7 @@
     }
     
     // Provide virtual microphone if explicitly requested or if on Zoom with unknown device
-    if (isRequestingVirtualMic || isUnknownDeviceOnZoom) {
+    if (isRequestingVirtualMic) {
       console.info('[Sokuji] [VirtualMic] Providing virtual microphone stream');
       
       if (!initializeVirtualMic()) {
@@ -601,7 +601,9 @@
     // For other requests, clean up virtual mic if active
     if (isActive && constraints?.audio) {
       console.info('[Sokuji] [VirtualMic] Switching away from virtual microphone');
-      cleanup();
+      if (!isUnknownDeviceOnZoom) {
+        cleanup();
+      }
     }
     
     return originalGetUserMedia(constraints);
