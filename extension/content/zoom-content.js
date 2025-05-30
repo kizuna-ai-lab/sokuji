@@ -104,6 +104,120 @@ function injectVirtualMicrophoneScript() {
   }
 }
 
+// Function to monitor and auto-select Sokuji Virtual Microphone
+function monitorMicrophoneSelection() {
+  // Function to check and update microphone selection
+  function checkAndUpdateMicSelection() {
+    // Find the audio option menu dropdown
+    const audioMenu = document.querySelector('.audio-option-menu__pop-menu');
+    if (!audioMenu) {
+      return; // Menu not visible, nothing to do
+    }
+
+    // Find all microphone items (items between "Select a Microphone" and first divider)
+    const microphoneHeader = Array.from(audioMenu.querySelectorAll('.dropdown-header'))
+      .find(header => header.textContent.includes('Select a Microphone'));
+    
+    if (!microphoneHeader) {
+      return; // Microphone section not found
+    }
+
+    // Get all microphone dropdown items
+    const microphoneItems = [];
+    let currentElement = microphoneHeader.nextElementSibling;
+    
+    while (currentElement && !currentElement.classList.contains('common-ui-component__dropdown-divider')) {
+      if (currentElement.classList.contains('dropdown-item') && 
+          currentElement.getAttribute('aria-label')?.includes('Select a microphone')) {
+        microphoneItems.push(currentElement);
+      }
+      currentElement = currentElement.nextElementSibling;
+    }
+
+    // Check if any microphone is currently selected
+    const hasSelectedMicrophone = microphoneItems.some(item => 
+      item.classList.contains('audio-option-menu__pop-menu--checked')
+    );
+
+    // Find our Sokuji Virtual Microphone item
+    const sokujiMicItem = microphoneItems.find(item => 
+      item.textContent.includes('Sokuji Virtual Microphone')
+    );
+
+    if (!hasSelectedMicrophone && sokujiMicItem) {
+      // No microphone is selected, auto-select our virtual microphone
+      console.info('[Sokuji] [Zoom] No microphone selected, auto-selecting Sokuji Virtual Microphone');
+      
+      // Remove checked class from all microphone items (just in case)
+      microphoneItems.forEach(item => {
+        item.classList.remove('audio-option-menu__pop-menu--checked');
+        item.setAttribute('aria-selected', 'false');
+        item.setAttribute('aria-label', item.getAttribute('aria-label')?.replace(' selected', ' unselect') || '');
+      });
+
+      // Add checked class to our virtual microphone
+      sokujiMicItem.classList.add('audio-option-menu__pop-menu--checked');
+      sokujiMicItem.setAttribute('aria-selected', 'true');
+      sokujiMicItem.setAttribute('aria-label', 
+        sokujiMicItem.getAttribute('aria-label')?.replace(' unselect', ' selected') || ''
+      );
+    } else if (hasSelectedMicrophone && sokujiMicItem) {
+      // Another microphone is selected, ensure our virtual microphone is not checked
+      const isSokujiSelected = sokujiMicItem.classList.contains('audio-option-menu__pop-menu--checked');
+      const otherMicSelected = microphoneItems.some(item => 
+        item !== sokujiMicItem && item.classList.contains('audio-option-menu__pop-menu--checked')
+      );
+
+      if (isSokujiSelected && otherMicSelected) {
+        // Both our mic and another mic are selected, uncheck ours
+        console.info('[Sokuji] [Zoom] Another microphone is selected, unchecking Sokuji Virtual Microphone');
+        sokujiMicItem.classList.remove('audio-option-menu__pop-menu--checked');
+        sokujiMicItem.setAttribute('aria-selected', 'false');
+        sokujiMicItem.setAttribute('aria-label', 
+          sokujiMicItem.getAttribute('aria-label')?.replace(' selected', ' unselect') || ''
+        );
+      }
+    }
+  }
+
+  // Set up a MutationObserver to watch for changes in the DOM
+  const observer = new MutationObserver((mutations) => {
+    mutations.forEach((mutation) => {
+      // Check if any nodes were added that might be the audio menu
+      if (mutation.type === 'childList') {
+        mutation.addedNodes.forEach((node) => {
+          if (node.nodeType === Node.ELEMENT_NODE) {
+            // Check if the added node is or contains the audio menu
+            if (node.classList?.contains('audio-option-menu__pop-menu') ||
+                node.querySelector?.('.audio-option-menu__pop-menu')) {
+              setTimeout(checkAndUpdateMicSelection, 100);
+            }
+          }
+        });
+      }
+      
+      // Also check for attribute changes that might indicate menu visibility
+      if (mutation.type === 'attributes' && 
+          mutation.target.classList?.contains('audio-option-menu__pop-menu')) {
+        setTimeout(checkAndUpdateMicSelection, 100);
+      }
+    });
+  });
+
+  // Start observing
+  observer.observe(document.documentElement, {
+    childList: true,
+    subtree: true,
+    attributes: true,
+    attributeFilter: ['class', 'style']
+  });
+
+  // Also run a periodic check as backup
+  setInterval(checkAndUpdateMicSelection, 2000);
+
+  console.info('[Sokuji] [Zoom] Microphone selection monitor initialized');
+}
+
 // Function to inject permission iframe
 function injectPermissionIframe() {
   // Only inject permissions in the webclient iframe or directly if we're in it
@@ -185,9 +299,15 @@ injectVirtualMicrophoneScript();
 if (document.readyState === 'complete' || document.readyState === 'interactive') {
   // If DOM is already ready, inject immediately
   injectPermissionIframe();
+  // Start monitoring microphone selection
+  monitorMicrophoneSelection();
 } else {
   // Otherwise wait for DOMContentLoaded
-  document.addEventListener('DOMContentLoaded', injectPermissionIframe);
+  document.addEventListener('DOMContentLoaded', () => {
+    injectPermissionIframe();
+    // Start monitoring microphone selection
+    monitorMicrophoneSelection();
+  });
 }
 
 // Listen for messages from the extension side panel script
@@ -235,6 +355,43 @@ window.sokujiZoomContent = {
     isWebclientIframe,
     isMainZoomPage,
     hasVirtualMic: !!window.sokujiVirtualMic,
-    canInjectAudio: true
-  })
+    canInjectAudio: true,
+    microphoneMonitorActive: true
+  }),
+  // Helper function to manually check microphone selection
+  checkMicrophoneSelection: () => {
+    const audioMenu = document.querySelector('.audio-option-menu__pop-menu');
+    if (!audioMenu) {
+      return { status: 'menu_not_visible' };
+    }
+    
+    const microphoneHeader = Array.from(audioMenu.querySelectorAll('.dropdown-header'))
+      .find(header => header.textContent.includes('Select a Microphone'));
+    
+    if (!microphoneHeader) {
+      return { status: 'microphone_section_not_found' };
+    }
+
+    const microphoneItems = [];
+    let currentElement = microphoneHeader.nextElementSibling;
+    
+    while (currentElement && !currentElement.classList.contains('common-ui-component__dropdown-divider')) {
+      if (currentElement.classList.contains('dropdown-item') && 
+          currentElement.getAttribute('aria-label')?.includes('Select a microphone')) {
+        microphoneItems.push({
+          text: currentElement.textContent,
+          selected: currentElement.classList.contains('audio-option-menu__pop-menu--checked'),
+          ariaLabel: currentElement.getAttribute('aria-label')
+        });
+      }
+      currentElement = currentElement.nextElementSibling;
+    }
+
+    return {
+      status: 'success',
+      microphoneItems,
+      hasSelectedMicrophone: microphoneItems.some(item => item.selected),
+      sokujiMicPresent: microphoneItems.some(item => item.text.includes('Sokuji Virtual Microphone'))
+    };
+  }
 }; 

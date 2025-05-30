@@ -19,7 +19,7 @@
   const CHANNEL_COUNT = 1;
   
   // Playback configuration
-  const MIN_BATCH_SIZE = SAMPLE_RATE * 0.1; // 100ms minimum batch size
+  const MIN_BATCH_SIZE = SAMPLE_RATE * 0.02; // 20ms minimum batch size
   const MAX_BATCH_SIZE = SAMPLE_RATE * 2; // 10s maximum batch size
   
   // Virtual microphone state
@@ -64,9 +64,15 @@
   function initializeVirtualMic() {
     if (trackGenerator && audioWriter && isWriterValid()) {
       console.debug('[Sokuji] [VirtualMic] Virtual microphone already initialized');
-      return true;
+      if (!virtualStream.active) {
+        console.debug('[Sokuji] [VirtualMic] Virtual microphone is not active, reinitializing');
+        cleanup();
+      } else {
+        console.debug('[Sokuji] [VirtualMic] Virtual microphone is active, returning true');
+        return true;
+      }
     }
-    
+
     try {
       console.info('[Sokuji] [VirtualMic] Initializing virtual microphone');
       
