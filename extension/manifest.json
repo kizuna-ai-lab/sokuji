@@ -32,9 +32,15 @@
   },
   "content_scripts": [
     {
-      "matches": ["https://meet.google.com/*", "https://teams.microsoft.com/*", "https://teams.live.com/*", "https://app.zoom.us/*"],
+      "matches": ["https://meet.google.com/*", "https://teams.microsoft.com/*", "https://teams.live.com/*"],
       "js": ["content.js"],
       "run_at": "document_start"
+    },
+    {
+      "matches": ["https://app.zoom.us/*"],
+      "js": ["zoom-content.js"],
+      "run_at": "document_start",
+      "all_frames": true
     }
   ],
   "web_accessible_resources": [
@@ -44,7 +50,6 @@
         "assets/*", 
         "fullpage.html", 
         "fullpage.js", 
-        "fullpage.css", 
         "permission.html", 
         "requestPermission.js"
       ],
