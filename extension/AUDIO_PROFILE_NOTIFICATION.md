@@ -42,15 +42,12 @@ The feature is implemented in the Zoom-specific content script:
 - Main function that creates and displays the notification
 - Handles iframe detection for Zoom's webclient
 - Sets up event listeners for user interactions
-
-#### `showAudioProfileNotificationInDocument(targetDocument)`
-- Helper function that can inject notifications into specific documents (including iframes)
-- Handles the complex iframe structure of Zoom's web client
-- Ensures notification appears in the correct context
+- Creates notification with inline CSS for maximum compatibility
+- Manages auto-dismiss timer and user interaction handling
 
 ### Storage
 - Uses `localStorage` to track dismissal state
-- Key: `sokuji-audio-profile-dismissed`
+- Key: `sokuji-zoom-audio-profile-dismissed`
 - Value: `'true'` when dismissed, removed when reset
 
 ## Debugging API
@@ -67,20 +64,48 @@ window.sokujiZoomContent.showAudioProfileNotification()
 
 // Reset dismissal state
 window.sokujiZoomContent.resetAudioProfileNotificationDismissal()
+
+// Check microphone selection status
+window.sokujiZoomContent.checkMicrophoneSelection()
 ```
+
+### Available Status Information
+The `getStatus()` method returns:
+- `initialized`: Whether the content script is initialized
+- `isWebclientIframe`: Whether running in Zoom's webclient iframe
+- `hasVirtualMic`: Whether virtual microphone is available
+- `canInjectAudio`: Whether audio injection is possible
+- `microphoneMonitorActive`: Whether microphone monitoring is active
+- `audioProfileNotificationDismissed`: Whether notification was dismissed
 
 ## Testing
 
-A test page is available at `extension/test-notification.html` that allows you to:
-- Test the notification display
-- Check platform detection
-- Reset dismissal state
-- View current status information
+### Manual Testing via Browser Console
+Since no dedicated test page exists, testing can be performed directly on Zoom using the browser console:
 
-### Running Tests
-1. Load the extension in Chrome
-2. Navigate to `chrome-extension://[extension-id]/test-notification.html`
-3. Use the provided buttons to test functionality
+1. Navigate to `app.zoom.us` in Chrome with the extension loaded
+2. Open browser Developer Tools (F12)
+3. Use the debugging API commands in the console:
+
+```javascript
+// Check current status
+window.sokujiZoomContent.getStatus()
+
+// Manually trigger notification
+window.sokujiZoomContent.showAudioProfileNotification()
+
+// Reset dismissal state to test again
+window.sokujiZoomContent.resetAudioProfileNotificationDismissal()
+
+// Check microphone selection (if audio menu is open)
+window.sokujiZoomContent.checkMicrophoneSelection()
+```
+
+### Testing Scenarios
+- **First visit**: Notification should appear after 3 seconds
+- **After dismissal**: Notification should not appear again in the same session
+- **Remind later**: Notification should reappear after 10 minutes
+- **Auto-dismiss**: Notification should disappear after 30 seconds if no interaction
 
 ## Configuration
 
@@ -131,4 +156,5 @@ Potential improvements for future versions:
 - Integration with extension settings panel
 - Analytics on notification effectiveness
 - A/B testing for different message formats
-- Detection of current Zoom audio settings to show more targeted advice 
+- Detection of current Zoom audio settings to show more targeted advice
+- Creation of dedicated test page for functionality testing 
