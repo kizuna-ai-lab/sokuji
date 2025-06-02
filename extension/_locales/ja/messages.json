@@ -1,9 +1,9 @@
 {
   "extensionName": {
-    "message": "Sokuji - AI搭載リアルタイム音声翻訳（オンライン会議用）"
+    "message": "Sokuji - オンライン会議用AI音声翻訳"
   },
   "extensionDescription": {
-    "message": "すべてのビデオ会議でAI搭載の瞬間音声翻訳。リアルタイム音声翻訳で言語の壁を打ち破ります。"
+    "message": "すべてのビデオ会議用のAI音声翻訳。リアルタイム音声翻訳で言語の壁を破る。"
   },
   "popupTitle": {
     "message": "Sokuji - 対応サイト"
@@ -15,7 +15,7 @@
     "message": "Chrome ウェブストア"
   },
   "sokujiAvailable": {
-    "message": "✓ $SITE_NAME$でSokujiが利用できます！",
+    "message": "✓ Sokujiは$SITE_NAME$で利用可能です！",
     "placeholders": {
       "site_name": {
         "content": "$1",
@@ -24,19 +24,19 @@
     }
   },
   "clickToStart": {
-    "message": "下の「Sokujiを開く」をクリックしてリアルタイム翻訳を開始してください。"
+    "message": "リアルタイム翻訳を開始するには、下の「Sokujiを開く」をクリックしてください。"
   },
   "quickStart": {
     "message": "クイックスタート："
   },
   "quickStartInstructions": {
-    "message": "OpenAI APIキーを設定 → マイクとして「Sokuji_Virtual_Mic」を選択 → 話し始める！"
+    "message": "OpenAI APIキーを設定 ← マイクとして「Sokuji_Virtual_Mic」を選択 ← 話し始める！"
   },
   "notSupported": {
-    "message": "⚠ このサイトはサポートされていません"
+    "message": "⚠ このサイトではサポートされていません"
   },
   "currentlyOn": {
-    "message": "現在$HOSTNAME$にいます。Sokujiは以下のプラットフォームで動作します：",
+    "message": "現在$HOSTNAME$にいます。Sokujiはこれらのプラットフォームで動作します：",
     "placeholders": {
       "hostname": {
         "content": "$1",
@@ -48,13 +48,13 @@
     "message": "より多くのサイトのサポートが必要ですか？"
   },
   "contactUs": {
-    "message": "お問い合わせ："
+    "message": "お問い合わせ"
   },
   "contributeCode": {
-    "message": "または私たちの"
+    "message": "私たちの"
   },
   "openSourceProject": {
-    "message": "オープンソースプロジェクト"
+    "message": "オープンソースプロジェクトに貢献"
   },
   "unableToDetect": {
     "message": "⚠ 現在のサイトを検出できません"
@@ -63,12 +63,12 @@
     "message": "ページを更新してもう一度お試しください。"
   },
   "needMoreSitesShort": {
-    "message": "より多くのサイトが必要ですか？"
+    "message": "より多くのサイト？"
   },
   "contactUsShort": {
     "message": "お問い合わせ"
   },
   "contributeCodeShort": {
-    "message": "コードに貢献"
+    "message": "コード貢献"
   }
-} 
+}

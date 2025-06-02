@@ -26,6 +26,13 @@ import thTranslation from './th/translation.json';
 import trTranslation from './tr/translation.json';
 import ukTranslation from './uk/translation.json';
 import viTranslation from './vi/translation.json';
+import bnTranslation from './bn/translation.json';
+import faTranslation from './fa/translation.json';
+import nlTranslation from './nl/translation.json';
+import plTranslation from './pl/translation.json';
+import msTranslation from './ms/translation.json';
+import heTranslation from './he/translation.json';
+import arTranslation from './ar/translation.json';
 
 const resources = {
   en: {
@@ -96,6 +103,27 @@ const resources = {
   },
   vi: {
     translation: viTranslation,
+  },
+  bn: {
+    translation: bnTranslation,
+  },
+  fa: {
+    translation: faTranslation,
+  },
+  nl: {
+    translation: nlTranslation,
+  },
+  pl: {
+    translation: plTranslation,
+  },
+  ms: {
+    translation: msTranslation,
+  },
+  he: {
+    translation: heTranslation,
+  },
+  ar: {
+    translation: arTranslation,
   },
 };
 

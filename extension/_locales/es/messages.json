@@ -1,0 +1,74 @@
+{
+  "extensionName": {
+    "message": "Sokuji - Traducción de Voz en Vivo con IA para Reuniones Online"
+  },
+  "extensionDescription": {
+    "message": "Traducción instantánea de voz con IA para todas las videollamadas. Rompe las barreras del idioma con traducción de voz en tiempo real."
+  },
+  "popupTitle": {
+    "message": "Sokuji - Sitios Compatibles"
+  },
+  "openSokuji": {
+    "message": "Abrir Sokuji"
+  },
+  "chromeWebStore": {
+    "message": "Chrome Web Store"
+  },
+  "sokujiAvailable": {
+    "message": "✓ ¡Sokuji está disponible en $SITE_NAME$!",
+    "placeholders": {
+      "site_name": {
+        "content": "$1",
+        "example": "Google Meet"
+      }
+    }
+  },
+  "clickToStart": {
+    "message": "Haz clic en \"Abrir Sokuji\" a continuación para comenzar la traducción en tiempo real."
+  },
+  "quickStart": {
+    "message": "Inicio Rápido:"
+  },
+  "quickStartInstructions": {
+    "message": "Configura tu clave API de OpenAI → Selecciona \"Sokuji_Virtual_Mic\" como micrófono → ¡Comienza a hablar!"
+  },
+  "notSupported": {
+    "message": "⚠ No compatible con este sitio"
+  },
+  "currentlyOn": {
+    "message": "Actualmente en $HOSTNAME$. Sokuji funciona en estas plataformas:",
+    "placeholders": {
+      "hostname": {
+        "content": "$1",
+        "example": "example.com"
+      }
+    }
+  },
+  "needMoreSites": {
+    "message": "¿Necesitas soporte para más sitios?"
+  },
+  "contactUs": {
+    "message": "Contáctanos en"
+  },
+  "contributeCode": {
+    "message": "contribuye a nuestro"
+  },
+  "openSourceProject": {
+    "message": "proyecto de código abierto"
+  },
+  "unableToDetect": {
+    "message": "⚠ No se puede detectar el sitio actual"
+  },
+  "refreshAndTry": {
+    "message": "Por favor, actualiza la página e inténtalo de nuevo."
+  },
+  "needMoreSitesShort": {
+    "message": "¿Más sitios?"
+  },
+  "contactUsShort": {
+    "message": "Contáctanos"
+  },
+  "contributeCodeShort": {
+    "message": "contribuir código"
+  }
+}
