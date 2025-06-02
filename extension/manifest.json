@@ -12,6 +12,7 @@
   },
   "action": {
     "default_title": "Sokuji",
+    "default_popup": "popup.html",
     "default_icon": {
       "16": "icons/icon16.png",
       "48": "icons/icon48.png",
@@ -51,7 +52,10 @@
         "fullpage.html", 
         "fullpage.js", 
         "permission.html", 
-        "requestPermission.js"
+        "requestPermission.js",
+        "popup.html",
+        "popup.js",
+        "popup.css"
       ],
       "matches": ["<all_urls>"]
     }

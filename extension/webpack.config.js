@@ -14,6 +14,7 @@ module.exports = (env, argv) => {
       'zoom-content': './content/zoom-content.js',
       'virtual-microphone': './content/virtual-microphone.js',
       fullpage: './fullpage/index.jsx',
+      popup: './popup.js',
     },
     output: {
       path: path.resolve(__dirname, 'dist'),
@@ -70,6 +71,11 @@ module.exports = (env, argv) => {
         filename: 'fullpage.html',
         chunks: ['fullpage'],
       }),
+      new HtmlWebpackPlugin({
+        template: path.resolve(__dirname, './popup.html'),
+        filename: 'popup.html',
+        chunks: ['popup'],
+      }),
       new CopyWebpackPlugin({
         patterns: [
           { from: 'manifest.json', to: 'manifest.json' },
@@ -84,7 +90,8 @@ module.exports = (env, argv) => {
             to: 'assets/test-tone.mp3' 
           }] : []),
           { from: 'permission.html', to: 'permission.html' },
-          { from: 'requestPermission.js', to: 'requestPermission.js' }
+          { from: 'requestPermission.js', to: 'requestPermission.js' },
+          { from: 'popup.css', to: 'popup.css' }
         ],
       }),
     ],
