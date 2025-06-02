@@ -61,7 +61,11 @@
     "enterCustomInstructions": "Enter custom system instructions here...",
     "settingsSavedSuccessfully": "Settings saved successfully",
     "failedToSaveSettings": "Failed to save settings",
-    "validatingApiKey": "Validating API key..."
+    "validatingApiKey": "Validating API key...",
+    "settingSavedSuccessfully": "Successfully saved setting: {{key}}",
+    "failedToSaveSetting": "Failed to save setting: {{key}}",
+    "apiKeyValidationCompleted": "API key validation completed",
+    "errorValidatingApiKey": "Error validating API key"
   },
   "audioPanel": {
     "title": "Audio Settings",

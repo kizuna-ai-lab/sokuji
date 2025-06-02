@@ -61,7 +61,11 @@
     "enterCustomInstructions": "カスタムシステム指示をここに入力してください...",
     "settingsSavedSuccessfully": "設定が正常に保存されました",
     "failedToSaveSettings": "設定の保存に失敗しました",
-    "validatingApiKey": "APIキーを検証中..."
+    "validatingApiKey": "APIキーを検証中...",
+    "settingSavedSuccessfully": "設定が正常に保存されました: {{key}}",
+    "failedToSaveSetting": "設定の保存に失敗しました: {{key}}",
+    "apiKeyValidationCompleted": "APIキーの検証が完了しました",
+    "errorValidatingApiKey": "APIキーの検証中にエラーが発生しました"
   },
   "audioPanel": {
     "title": "オーディオ設定",
