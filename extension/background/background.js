@@ -32,8 +32,9 @@ const ENABLED_SITES = [
 // Track which tabs have the side panel open
 const tabsWithSidePanelOpen = new Set();
 
-chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true })
-  .catch((error) => console.error('[Sokuji] [Background] Error setting panel behavior:', error));
+// Remove automatic side panel opening behavior - now handled by popup
+// chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true })
+//   .catch((error) => console.error('[Sokuji] [Background] Error setting panel behavior:', error));
 
 // Initialize configuration in storage if not already set
 chrome.runtime.onInstalled.addListener(async () => {
@@ -61,13 +62,12 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
       url.hostname === site || url.hostname.endsWith('.' + site));
     
     if (isEnabledSite) {
-      // Enable side panel for this site
+      // Enable side panel for this site (but don't auto-open)
       await chrome.sidePanel.setOptions({
         tabId: tabId,
         path: `fullpage.html?tabId=${tabId}&debug=true`,
         enabled: true
       });
-      tabsWithSidePanelOpen.add(tabId);
       console.debug('[Sokuji] [Background] Enabled Sokuji side panel for site:', url.hostname);
     } else {
       // Disable side panel for other sites
@@ -91,18 +91,25 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
   try {
     const tabId = activeInfo.tabId;
     
-    // If the panel isn't actually open for this tab, close it
-    if (!tabsWithSidePanelOpen.has(tabId)) {
-      await chrome.sidePanel.setOptions({
-        enabled: false,
-      });
-    } else {
+    // Get tab information to check if it's a supported site
+    const tab = await chrome.tabs.get(tabId);
+    if (!tab.url) return;
+    
+    const url = new URL(tab.url);
+    const isEnabledSite = ENABLED_SITES.some(site => 
+      url.hostname === site || url.hostname.endsWith('.' + site));
+    
+    if (isEnabledSite) {
       await chrome.sidePanel.setOptions({
         tabId: tabId,
         path: `fullpage.html?tabId=${tabId}&debug=true`,
-        enabled: true, // Keep it enabled but don't show it
+        enabled: true,
       });
-      console.debug('[Sokuji] [Background] Maintaining side panel for tab:', tabId);
+      console.debug('[Sokuji] [Background] Maintaining side panel for supported site:', url.hostname);
+    } else {
+      await chrome.sidePanel.setOptions({
+        enabled: false,
+      });
     }
   } catch (error) {
     console.error('[Sokuji] [Background] Error updating side panel for switched tab:', error);
@@ -127,6 +134,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   
   if (message.type === 'SET_CONFIG') {
     handleSetConfig(message.key, message.value).then(sendResponse);
+    return true; // Indicates async response
+  }
+  
+  if (message.type === 'OPEN_SIDE_PANEL') {
+    handleOpenSidePanel(message.tabId).then(sendResponse);
     return true; // Indicates async response
   }
 });
@@ -163,6 +175,19 @@ async function handleSetConfig(key, value) {
     return { success: true };
   } catch (error) {
     console.error('[Sokuji] [Background] Error setting config:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+// Handle opening side panel from popup
+async function handleOpenSidePanel(tabId) {
+  try {
+    await chrome.sidePanel.open({ tabId: tabId });
+    tabsWithSidePanelOpen.add(tabId);
+    console.debug('[Sokuji] [Background] Opened side panel for tab:', tabId);
+    return { success: true };
+  } catch (error) {
+    console.error('[Sokuji] [Background] Error opening side panel:', error);
     return { success: false, error: error.message };
   }
 }
