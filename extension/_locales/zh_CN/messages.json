@@ -1,0 +1,74 @@
+{
+  "extensionName": {
+    "message": "Sokuji - AI驱动的在线会议实时语音翻译"
+  },
+  "extensionDescription": {
+    "message": "AI驱动的即时语音翻译，适用于所有视频会议。通过实时语音翻译打破语言障碍。"
+  },
+  "popupTitle": {
+    "message": "Sokuji - 支持的网站"
+  },
+  "openSokuji": {
+    "message": "打开 Sokuji"
+  },
+  "chromeWebStore": {
+    "message": "Chrome 网上应用店"
+  },
+  "sokujiAvailable": {
+    "message": "✓ Sokuji 在 $SITE_NAME$ 上可用！",
+    "placeholders": {
+      "site_name": {
+        "content": "$1",
+        "example": "Google Meet"
+      }
+    }
+  },
+  "clickToStart": {
+    "message": "点击下方的\"打开 Sokuji\"开始实时翻译。"
+  },
+  "quickStart": {
+    "message": "快速开始："
+  },
+  "quickStartInstructions": {
+    "message": "配置您的 OpenAI API 密钥 ← 选择\"Sokuji_Virtual_Mic\"作为麦克风 ← 开始说话！"
+  },
+  "notSupported": {
+    "message": "⚠ 此网站不支持"
+  },
+  "currentlyOn": {
+    "message": "当前在 $HOSTNAME$。Sokuji 支持这些平台：",
+    "placeholders": {
+      "hostname": {
+        "content": "$1",
+        "example": "example.com"
+      }
+    }
+  },
+  "needMoreSites": {
+    "message": "需要支持更多网站？"
+  },
+  "contactUs": {
+    "message": "联系我们："
+  },
+  "contributeCode": {
+    "message": "为我们的"
+  },
+  "openSourceProject": {
+    "message": "开源项目贡献代码"
+  },
+  "unableToDetect": {
+    "message": "⚠ 无法检测当前网站"
+  },
+  "refreshAndTry": {
+    "message": "请刷新页面后重试。"
+  },
+  "needMoreSitesShort": {
+    "message": "需要更多网站？"
+  },
+  "contactUsShort": {
+    "message": "联系我们"
+  },
+  "contributeCodeShort": {
+    "message": "贡献代码"
+  }
+}

@@ -3,8 +3,10 @@ import { ArrowRight, Volume2, Mic, RefreshCw, AlertTriangle } from 'react-feathe
 import './AudioPanel.scss';
 import Modal from '../Modal/Modal';
 import { useAudioContext } from '../../contexts/AudioContext';
+import { useTranslation } from 'react-i18next';
 
 const AudioPanel: React.FC<{ toggleAudio: () => void }> = ({ toggleAudio }) => {
+  const { t } = useTranslation();
   const [showVirtualMicWarning, setShowVirtualMicWarning] = useState(false);
   const [showVirtualSpeakerWarning, setShowVirtualSpeakerWarning] = useState(false);
 
@@ -56,27 +58,26 @@ const AudioPanel: React.FC<{ toggleAudio: () => void }> = ({ toggleAudio }) => {
       <Modal 
         isOpen={showVirtualMicWarning} 
         onClose={() => setShowVirtualMicWarning(false)}
-        title="Virtual Microphone Notice"
+        title={t('audioPanel.virtualMicrophoneNotice')}
       >
         <div className="virtual-mic-warning">
           <div className="warning-icon">
             <AlertTriangle size={24} color="#f0ad4e" />
           </div>
           <p>
-            <strong>This is a virtual microphone created by Sokuji.</strong>
+            <strong>{t('audioPanel.virtualMicWarningTitle')}</strong>
           </p>
           <p>
-            Please do not select this device here. Instead, use this virtual microphone in your video conferencing 
-            applications (like Google Meet, Zoom, Microsoft Teams, etc.) to receive the live speech translation output.
+            {t('audioPanel.virtualMicWarningText1')}
           </p>
           <p>
-            For Sokuji to work properly, please select your actual physical microphone from the list.
+            {t('audioPanel.virtualMicWarningText2')}
           </p>
           <button 
             className="understand-button" 
             onClick={() => setShowVirtualMicWarning(false)}
           >
-            I understand
+            {t('audioPanel.iUnderstand')}
           </button>
         </div>
       </Modal>
@@ -84,72 +85,72 @@ const AudioPanel: React.FC<{ toggleAudio: () => void }> = ({ toggleAudio }) => {
       <Modal 
         isOpen={showVirtualSpeakerWarning} 
         onClose={() => setShowVirtualSpeakerWarning(false)}
-        title="Virtual Speaker Notice"
+        title={t('audioPanel.virtualSpeakerNotice')}
       >
         <div className="virtual-mic-warning">
           <div className="warning-icon">
             <AlertTriangle size={24} color="#f0ad4e" />
           </div>
           <p>
-            <strong>This is a virtual speaker created by Sokuji.</strong>
+            <strong>{t('audioPanel.virtualSpeakerWarningTitle')}</strong>
           </p>
           <p>
-            Please do not select this device as your monitor. The Sokuji_Virtual_Speaker is used by Sokuji to output audio to your conferencing applications.
+            {t('audioPanel.virtualSpeakerWarningText1')}
           </p>
           <p>
-            Connecting your monitor to Sokuji's output device would create an audio feedback loop, causing your input to contain your own monitored output.
+            {t('audioPanel.virtualSpeakerWarningText2')}
           </p>
           <p>
-            The "Turn On" switch connects the virtual speaker to your selected monitor device, allowing you to hear what's being sent to your conferencing application. The "Turn Off" switch disconnects this monitoring connection.
+            {t('audioPanel.virtualSpeakerWarningText3')}
           </p>
           <p>
-            For proper operation, please select a different monitor device (like your headphones or speakers) from the list.
+            {t('audioPanel.virtualSpeakerWarningText4')}
           </p>
           <button 
             className="understand-button" 
             onClick={() => setShowVirtualSpeakerWarning(false)}
           >
-            I understand
+            {t('audioPanel.iUnderstand')}
           </button>
         </div>
       </Modal>
 
       <div className="audio-panel-header">
-        <h2>Audio Settings</h2>
+        <h2>{t('audioPanel.title')}</h2>
         <button className="close-audio-button" onClick={toggleAudio}>
           <ArrowRight size={16} />
-          <span>Close</span>
+          <span>{t('common.close')}</span>
         </button>
       </div>
       <div className="audio-content">
         {/* Input Device Section */}
         <div className="audio-section">
-          <h3>Audio Input Device</h3>
+          <h3>{t('audioPanel.audioInputDevice')}</h3>
           <div className="device-selector">
             <div className="device-status">
               <div className={`device-icon ${isInputDeviceOn ? 'active' : 'inactive'}`}>
                 <Mic size={18} />
               </div>
               <div className="device-info">
-                <div className="device-name">{isLoading ? 'Loading devices...' : (selectedInputDevice?.label || 'No device selected')}</div>
+                <div className="device-name">{isLoading ? t('audioPanel.loadingDevices') : (selectedInputDevice?.label || t('audioPanel.noDeviceSelected'))}</div>
               </div>
             </div>
             <button 
               className={`device-toggle-button ${isInputDeviceOn ? 'on' : 'off'}`}
               onClick={toggleInputDeviceState}
             >
-              {isInputDeviceOn ? 'Turn Off' : 'Turn On'}
+              {isInputDeviceOn ? t('audioPanel.turnOff') : t('audioPanel.turnOn')}
             </button>
           </div>
           
           <div className="device-list">
             <div className="device-list-header">
-              <h4>Available Input Devices</h4>
+              <h4>{t('audioPanel.availableInputDevices')}</h4>
               <button 
                 className="refresh-button"
                 onClick={() => refreshDevices()}
                 disabled={isLoading}
-                title="Refresh input devices"
+                title={t('audioPanel.refreshInputDevices')}
               >
                 <RefreshCw size={14} />
               </button>
@@ -162,7 +163,7 @@ const AudioPanel: React.FC<{ toggleAudio: () => void }> = ({ toggleAudio }) => {
               >
                 <span>{device.label}</span>
                 {isVirtualMic(device) && (
-                  <div className="virtual-indicator" title="Virtual microphone">
+                  <div className="virtual-indicator" title={t('audioPanel.virtualMicrophone')}>
                     <AlertTriangle size={14} color="#f0ad4e" />
                   </div>
                 )}
@@ -174,32 +175,32 @@ const AudioPanel: React.FC<{ toggleAudio: () => void }> = ({ toggleAudio }) => {
 
         {/* Monitor Device Section */}
         <div className="audio-section">
-          <h3>Virtual Speaker Monitor Device</h3>
+          <h3>{t('audioPanel.virtualSpeakerMonitorDevice')}</h3>
           <div className="device-selector">
             <div className="device-status">
               <div className={`device-icon ${isMonitorDeviceOn ? 'active' : 'inactive'}`}>
                 <Volume2 size={18} />
               </div>
               <div className="device-info">
-                <div className="device-name">{isLoading ? 'Loading devices...' : (selectedMonitorDevice?.label || 'No device selected')}</div>
+                <div className="device-name">{isLoading ? t('audioPanel.loadingDevices') : (selectedMonitorDevice?.label || t('audioPanel.noDeviceSelected'))}</div>
               </div>
             </div>
             <button 
               className={`device-toggle-button ${isMonitorDeviceOn ? 'on' : 'off'}`}
               onClick={toggleMonitorDeviceState}
             >
-              {isMonitorDeviceOn ? 'Turn Off' : 'Turn On'}
+              {isMonitorDeviceOn ? t('audioPanel.turnOff') : t('audioPanel.turnOn')}
             </button>
           </div>
           
           <div className="device-list">
             <div className="device-list-header">
-              <h4>Available Monitor Devices</h4>
+              <h4>{t('audioPanel.availableMonitorDevices')}</h4>
               <button 
                 className="refresh-button"
                 onClick={() => refreshDevices()}
                 disabled={isLoading}
-                title="Refresh monitor devices"
+                title={t('audioPanel.refreshMonitorDevices')}
               >
                 <RefreshCw size={14} />
               </button>
@@ -212,7 +213,7 @@ const AudioPanel: React.FC<{ toggleAudio: () => void }> = ({ toggleAudio }) => {
               >
                 <span>{device.label}</span>
                 {isVirtualSpeaker(device) && (
-                  <div className="virtual-indicator" title="Virtual speaker">
+                  <div className="virtual-indicator" title={t('audioPanel.virtualSpeaker')}>
                     <AlertTriangle size={14} color="#f0ad4e" />
                   </div>
                 )}

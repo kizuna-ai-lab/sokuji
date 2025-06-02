@@ -1,0 +1,53 @@
+{
+  "common": {
+    "ok": "OK",
+    "cancel": "Kanselahin",
+    "save": "I-save",
+    "close": "Isara",
+    "settings": "Mga Setting",
+    "help": "Tulong",
+    "loading": "Naglo-load...",
+    "error": "Error",
+    "success": "Tagumpay",
+    "warning": "Babala",
+    "info": "Impormasyon",
+    "logs": "Mga Log",
+    "clear": "Linisin"
+  },
+  "app": {
+    "title": "Sokuji",
+    "description": "Real-time voice translation application"
+  },
+  "settings": {
+    "title": "Mga Setting",
+    "uiLanguage": "Wika ng interface",
+    "openaiApiKey": "OpenAI API key",
+    "validate": "I-validate",
+    "validating": "Nag-va-validate...",
+    "enterApiKey": "Ilagay ang inyong OpenAI API key"
+  },
+  "mainPanel": {
+    "conversationPlaceholder": "Ang usapan ay lalabas dito",
+    "pushToTalk": "pindutin para magsalita (Space)",
+    "endSession": "Tapusin ang session",
+    "startSession": "Simulan ang session",
+    "initializing": "Nagsisimula...",
+    "apiKeyRequired": "Magdagdag muna ng valid na OpenAI API key sa settings"
+  },
+  "audioPanel": {
+    "title": "Mga setting ng audio"
+  },
+  "logsPanel": {
+    "title": "Mga Log"
+  },
+  "translation": {
+    "start": "Simulan ang pagsasalin",
+    "stop": "Itigil ang pagsasalin"
+  },
+  "errors": {
+    "microphoneAccess": "Hindi pinahintulutan ang access sa microphone",
+    "networkError": "Error sa network connection",
+    "translationFailed": "Nabigo ang pagsasalin",
+    "audioError": "Error sa audio processing"
+  }
+} 

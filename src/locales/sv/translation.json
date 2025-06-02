@@ -1,0 +1,53 @@
+{
+  "common": {
+    "ok": "OK",
+    "cancel": "Avbryt",
+    "save": "Spara",
+    "close": "Stäng",
+    "settings": "Inställningar",
+    "help": "Hjälp",
+    "loading": "Laddar...",
+    "error": "Fel",
+    "success": "Framgång",
+    "warning": "Varning",
+    "info": "Information",
+    "logs": "Loggar",
+    "clear": "Rensa"
+  },
+  "app": {
+    "title": "Sokuji",
+    "description": "Realtidsapplikation för röstöversättning"
+  },
+  "settings": {
+    "title": "Inställningar",
+    "uiLanguage": "Gränssnittsspråk",
+    "openaiApiKey": "OpenAI API-nyckel",
+    "validate": "Validera",
+    "validating": "Validerar...",
+    "enterApiKey": "Ange din OpenAI API-nyckel"
+  },
+  "mainPanel": {
+    "conversationPlaceholder": "Konversationen kommer att visas här",
+    "pushToTalk": "tryck för att tala (Mellanslag)",
+    "endSession": "Avsluta session",
+    "startSession": "Starta session",
+    "initializing": "Initialiserar...",
+    "apiKeyRequired": "Lägg först till en giltig OpenAI API-nyckel i inställningarna"
+  },
+  "audioPanel": {
+    "title": "Ljudinställningar"
+  },
+  "logsPanel": {
+    "title": "Loggar"
+  },
+  "translation": {
+    "start": "Starta översättning",
+    "stop": "Stoppa översättning"
+  },
+  "errors": {
+    "microphoneAccess": "Mikrofonåtkomst nekad",
+    "networkError": "Nätverksanslutningsfel",
+    "translationFailed": "Översättning misslyckades",
+    "audioError": "Ljudbehandlingsfel"
+  }
+} 

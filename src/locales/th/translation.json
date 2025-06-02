@@ -1,0 +1,53 @@
+{
+  "common": {
+    "ok": "ตกลง",
+    "cancel": "ยกเลิก",
+    "save": "บันทึก",
+    "close": "ปิด",
+    "settings": "การตั้งค่า",
+    "help": "ช่วยเหลือ",
+    "loading": "กำลังโหลด...",
+    "error": "ข้อผิดพลาด",
+    "success": "สำเร็จ",
+    "warning": "คำเตือน",
+    "info": "ข้อมูล",
+    "logs": "บันทึก",
+    "clear": "ล้าง"
+  },
+  "app": {
+    "title": "Sokuji",
+    "description": "แอปพลิเคชันแปลเสียงแบบเรียลไทม์"
+  },
+  "settings": {
+    "title": "การตั้งค่า",
+    "uiLanguage": "ภาษาอินเทอร์เฟซ",
+    "openaiApiKey": "คีย์ API OpenAI",
+    "validate": "ตรวจสอบ",
+    "validating": "กำลังตรวจสอบ...",
+    "enterApiKey": "ใส่คีย์ API OpenAI ของคุณ"
+  },
+  "mainPanel": {
+    "conversationPlaceholder": "การสนทนาจะปรากฏที่นี่",
+    "pushToTalk": "กดเพื่อพูด (Space)",
+    "endSession": "จบเซสชัน",
+    "startSession": "เริ่มเซสชัน",
+    "initializing": "กำลังเริ่มต้น...",
+    "apiKeyRequired": "โปรดเพิ่มคีย์ API OpenAI ที่ถูกต้องในการตั้งค่าก่อน"
+  },
+  "audioPanel": {
+    "title": "การตั้งค่าเสียง"
+  },
+  "logsPanel": {
+    "title": "บันทึก"
+  },
+  "translation": {
+    "start": "เริ่มการแปล",
+    "stop": "หยุดการแปล"
+  },
+  "errors": {
+    "microphoneAccess": "การเข้าถึงไมโครโฟนถูกปฏิเสธ",
+    "networkError": "ข้อผิดพลาดการเชื่อมต่อเครือข่าย",
+    "translationFailed": "การแปลล้มเหลว",
+    "audioError": "ข้อผิดพลาดการประมวลผลเสียง"
+  }
+} 

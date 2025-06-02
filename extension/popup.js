@@ -28,15 +28,35 @@ const SITE_INFO = {
   }
 };
 
+// Helper function to get localized message
+function getMessage(key, substitutions = []) {
+  return chrome.i18n.getMessage(key, substitutions);
+}
+
 // Initialize popup when DOM is loaded
 document.addEventListener('DOMContentLoaded', async () => {
   try {
+    // Initialize localization first
+    initializeLocalization();
     await initializePopup();
   } catch (error) {
     console.error('[Sokuji] [Popup] Error initializing popup:', error);
     showErrorState();
   }
 });
+
+// Initialize localization for static elements
+function initializeLocalization() {
+  // Update title
+  document.title = getMessage('popupTitle');
+  
+  // Update elements with data-i18n attributes
+  const elementsToLocalize = document.querySelectorAll('[data-i18n]');
+  elementsToLocalize.forEach(element => {
+    const key = element.getAttribute('data-i18n');
+    element.textContent = getMessage(key);
+  });
+}
 
 async function initializePopup() {
   // Get current tab information
@@ -73,12 +93,12 @@ function showSupportedState(hostname) {
   
   content.innerHTML = `
     <div class="status-message status-supported">
-      <strong>✓ Sokuji is available on ${siteInfo.name}!</strong><br>
-      Click "Open Sokuji" below to start real-time translation.
+      <strong>${getMessage('sokujiAvailable', [siteInfo.name])}</strong><br>
+      ${getMessage('clickToStart')}
     </div>
     
     <div class="instructions">
-      <p><strong>Quick Start:</strong> Configure your OpenAI API key → Select "Sokuji_Virtual_Mic" as microphone → Start speaking!</p>
+      <p><strong>${getMessage('quickStart')}</strong> ${getMessage('quickStartInstructions')}</p>
     </div>
   `;
   
@@ -90,8 +110,8 @@ function showUnsupportedState(hostname) {
   
   content.innerHTML = `
     <div class="status-message status-unsupported">
-      <strong>⚠ Not supported on this site</strong><br>
-      Currently on <code>${hostname}</code>. Sokuji works on these platforms:
+      <strong>${getMessage('notSupported')}</strong><br>
+      ${getMessage('currentlyOn', [`<code>${hostname}</code>`])}
     </div>
     
     <div class="supported-sites">
@@ -112,7 +132,7 @@ function showUnsupportedState(hostname) {
     </div>
     
     <div class="instructions">
-      <p><strong>Need support for more sites?</strong> Contact us at <a href="mailto:support@kizuna.ai" target="_blank">support@kizuna.ai</a> or contribute to our <a href="https://github.com/kizuna-ai-lab/sokuji" target="_blank">open source project</a>.</p>
+      <p><strong>${getMessage('needMoreSites')}</strong> ${getMessage('contactUs')} <a href="mailto:support@kizuna.ai" target="_blank">support@kizuna.ai</a> ${getMessage('contributeCode')} <a href="https://github.com/kizuna-ai-lab/sokuji" target="_blank">${getMessage('openSourceProject')}</a>.</p>
     </div>
   `;
 }
@@ -122,8 +142,8 @@ function showErrorState() {
   
   content.innerHTML = `
     <div class="status-message status-unsupported">
-      <strong>⚠ Unable to detect current site</strong><br>
-      Please refresh the page and try again.
+      <strong>${getMessage('unableToDetect')}</strong><br>
+      ${getMessage('refreshAndTry')}
     </div>
     
     <div class="supported-sites">
@@ -144,7 +164,7 @@ function showErrorState() {
     </div>
     
     <div class="instructions">
-      <p><strong>Need more sites?</strong> <a href="mailto:support@kizuna.ai" target="_blank">Contact us</a> or <a href="https://github.com/kizuna-ai-lab/sokuji" target="_blank">contribute code</a>.</p>
+      <p><strong>${getMessage('needMoreSitesShort')}</strong> <a href="mailto:support@kizuna.ai" target="_blank">${getMessage('contactUsShort')}</a> ${getMessage('contributeCode')} <a href="https://github.com/kizuna-ai-lab/sokuji" target="_blank">${getMessage('contributeCodeShort')}</a>.</p>
     </div>
   `;
 }

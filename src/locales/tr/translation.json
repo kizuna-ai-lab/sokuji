@@ -1,0 +1,53 @@
+{
+  "common": {
+    "ok": "Tamam",
+    "cancel": "İptal",
+    "save": "Kaydet",
+    "close": "Kapat",
+    "settings": "Ayarlar",
+    "help": "Yardım",
+    "loading": "Yükleniyor...",
+    "error": "Hata",
+    "success": "Başarılı",
+    "warning": "Uyarı",
+    "info": "Bilgi",
+    "logs": "Günlükler",
+    "clear": "Temizle"
+  },
+  "app": {
+    "title": "Sokuji",
+    "description": "Gerçek zamanlı ses çeviri uygulaması"
+  },
+  "settings": {
+    "title": "Ayarlar",
+    "uiLanguage": "Arayüz dili",
+    "openaiApiKey": "OpenAI API anahtarı",
+    "validate": "Doğrula",
+    "validating": "Doğrulanıyor...",
+    "enterApiKey": "OpenAI API anahtarınızı girin"
+  },
+  "mainPanel": {
+    "conversationPlaceholder": "Konuşma burada görünecek",
+    "pushToTalk": "konuşmak için basın (Boşluk)",
+    "endSession": "Oturumu sonlandır",
+    "startSession": "Oturumu başlat",
+    "initializing": "Başlatılıyor...",
+    "apiKeyRequired": "Lütfen önce ayarlarda geçerli bir OpenAI API anahtarı ekleyin"
+  },
+  "audioPanel": {
+    "title": "Ses ayarları"
+  },
+  "logsPanel": {
+    "title": "Günlükler"
+  },
+  "translation": {
+    "start": "Çeviriyi başlat",
+    "stop": "Çeviriyi durdur"
+  },
+  "errors": {
+    "microphoneAccess": "Mikrofon erişimi reddedildi",
+    "networkError": "Ağ bağlantı hatası",
+    "translationFailed": "Çeviri başarısız",
+    "audioError": "Ses işleme hatası"
+  }
+} 

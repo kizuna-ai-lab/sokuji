@@ -10,10 +10,13 @@ import { WavRecorder } from '../../lib/wavtools/index.js';
 import { WavRenderer } from '../../utils/wav_renderer';
 import { ServiceFactory } from '../../services/ServiceFactory'; // Import the ServiceFactory
 import { IAudioService } from '../../services/interfaces/IAudioService';
+import { useTranslation } from 'react-i18next';
 
 interface MainPanelProps {}
 
 const MainPanel: React.FC<MainPanelProps> = () => {
+  const { t } = useTranslation();
+  
   // State for session management
   const [isSessionActive, setIsSessionActive] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
@@ -978,7 +981,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                         <div className="content-item audio">
                           <div className="audio-indicator">
                             <span className="audio-icon"><Volume2 size={16} /></span>
-                            <span className="audio-text">Audio content</span>
+                            <span className="audio-text">{t('mainPanel.audioContent')}</span>
                           </div>
                         </div>
                       );
@@ -996,7 +999,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                             {contentItem.type === 'audio' && (
                               <div className="audio-indicator">
                                 <span className="audio-icon"><Volume2 size={16} /></span>
-                                <span className="audio-text">Audio content</span>
+                                <span className="audio-text">{t('mainPanel.audioContent')}</span>
                                 {/* Play button moved to role label */}
                               </div>
                             )}
@@ -1023,7 +1026,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
                       return (
                         <div className="content-item tool-call">
-                          <div className="tool-name">Function: {item.formatted.tool.name}</div>
+                          <div className="tool-name">{t('mainPanel.function')}: {item.formatted.tool.name}</div>
                           <div className="tool-args">
                             <pre>{formattedArgs}</pre>
                           </div>
@@ -1068,7 +1071,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                 <div className="icon-container">
                   <Users size={24} />
                 </div>
-                <span>Conversation will appear here</span>
+                <span>{t('mainPanel.conversationPlaceholder')}</span>
               </div>
             </div>
           )}
@@ -1077,7 +1080,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
       <div className="audio-visualization">
         <div className="visualization-container">
-          <div className="visualization-label">Input</div>
+          <div className="visualization-label">{t('mainPanel.input')}</div>
           <canvas ref={clientCanvasRef} className="visualization-canvas client-canvas" />
         </div>
 
@@ -1092,7 +1095,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
               <>
                 <Mic size={14} />
                 <span>
-                  {isRecording ? 'release' : isInputDeviceOn ? 'push to talk (Space)' : 'input device off'}
+                  {isRecording ? t('mainPanel.release') : isInputDeviceOn ? t('mainPanel.pushToTalk') : t('mainPanel.inputDeviceOff')}
                 </span>
               </>
             </button>
@@ -1105,19 +1108,19 @@ const MainPanel: React.FC<MainPanelProps> = () => {
             {isInitializing ? (
               <>
                 <Loader size={14} className="spinner" />
-                <span>Initializing...</span>
+                <span>{t('mainPanel.initializing')}</span>
               </>
             ) : isSessionActive ? (
               <>
                 <X size={14} />
-                <span>End Session</span>
+                <span>{t('mainPanel.endSession')}</span>
               </>
             ) : (
               <>
                 <Zap size={14} />
-                <span>Start Session</span>
+                <span>{t('mainPanel.startSession')}</span>
                 {!isApiKeyValid && (
-                  <span className="tooltip">Please add a valid OpenAI API Key in settings first</span>
+                  <span className="tooltip">{t('mainPanel.apiKeyRequired')}</span>
                 )}
               </>
             )}
@@ -1128,13 +1131,13 @@ const MainPanel: React.FC<MainPanelProps> = () => {
               onClick={playTestTone}
             >
               <Tool size={14} />
-              <span>{isTestTonePlaying ? 'Stop Debug' : 'Debug'}</span>
+              <span>{isTestTonePlaying ? t('mainPanel.stopDebug') : t('mainPanel.debug')}</span>
             </button>
           )}
         </div>
 
         <div className="visualization-container">
-          <div className="visualization-label">Output</div>
+          <div className="visualization-label">{t('mainPanel.output')}</div>
           <canvas ref={serverCanvasRef} className="visualization-canvas server-canvas" />
         </div>
       </div>

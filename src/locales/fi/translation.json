@@ -1,0 +1,53 @@
+{
+  "common": {
+    "ok": "OK",
+    "cancel": "Peruuta",
+    "save": "Tallenna",
+    "close": "Sulje",
+    "settings": "Asetukset",
+    "help": "Ohje",
+    "loading": "Ladataan...",
+    "error": "Virhe",
+    "success": "Onnistui",
+    "warning": "Varoitus",
+    "info": "Tieto",
+    "logs": "Lokit",
+    "clear": "Tyhjennä"
+  },
+  "app": {
+    "title": "Sokuji",
+    "description": "Reaaliaikainen äänenkäännössovellus"
+  },
+  "settings": {
+    "title": "Asetukset",
+    "uiLanguage": "Käyttöliittymän kieli",
+    "openaiApiKey": "OpenAI API-avain",
+    "validate": "Vahvista",
+    "validating": "Vahvistetaan...",
+    "enterApiKey": "Syötä OpenAI API-avaimesi"
+  },
+  "mainPanel": {
+    "conversationPlaceholder": "Keskustelu näkyy tässä",
+    "pushToTalk": "paina puhuaksesi (Välilyönti)",
+    "endSession": "Lopeta istunto",
+    "startSession": "Aloita istunto",
+    "initializing": "Alustetaan...",
+    "apiKeyRequired": "Lisää ensin kelvollinen OpenAI API-avain asetuksiin"
+  },
+  "audioPanel": {
+    "title": "Ääniasetukset"
+  },
+  "logsPanel": {
+    "title": "Lokit"
+  },
+  "translation": {
+    "start": "Aloita käännös",
+    "stop": "Lopeta käännös"
+  },
+  "errors": {
+    "microphoneAccess": "Mikrofonin käyttö evätty",
+    "networkError": "Verkkoyhteyden virhe",
+    "translationFailed": "Käännös epäonnistui",
+    "audioError": "Äänen käsittelyn virhe"
+  }
+} 

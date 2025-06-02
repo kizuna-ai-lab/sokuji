@@ -1,0 +1,53 @@
+{
+  "common": {
+    "ok": "OK",
+    "cancel": "Hủy",
+    "save": "Lưu",
+    "close": "Đóng",
+    "settings": "Cài đặt",
+    "help": "Trợ giúp",
+    "loading": "Đang tải...",
+    "error": "Lỗi",
+    "success": "Thành công",
+    "warning": "Cảnh báo",
+    "info": "Thông tin",
+    "logs": "Nhật ký",
+    "clear": "Xóa"
+  },
+  "app": {
+    "title": "Sokuji",
+    "description": "Ứng dụng dịch giọng nói thời gian thực"
+  },
+  "settings": {
+    "title": "Cài đặt",
+    "uiLanguage": "Ngôn ngữ giao diện",
+    "openaiApiKey": "Khóa API OpenAI",
+    "validate": "Xác thực",
+    "validating": "Đang xác thực...",
+    "enterApiKey": "Nhập khóa API OpenAI của bạn"
+  },
+  "mainPanel": {
+    "conversationPlaceholder": "Cuộc trò chuyện sẽ xuất hiện ở đây",
+    "pushToTalk": "nhấn để nói (Space)",
+    "endSession": "Kết thúc phiên",
+    "startSession": "Bắt đầu phiên",
+    "initializing": "Đang khởi tạo...",
+    "apiKeyRequired": "Vui lòng thêm khóa API OpenAI hợp lệ trong cài đặt trước"
+  },
+  "audioPanel": {
+    "title": "Cài đặt âm thanh"
+  },
+  "logsPanel": {
+    "title": "Nhật ký"
+  },
+  "translation": {
+    "start": "Bắt đầu dịch",
+    "stop": "Dừng dịch"
+  },
+  "errors": {
+    "microphoneAccess": "Quyền truy cập microphone bị từ chối",
+    "networkError": "Lỗi kết nối mạng",
+    "translationFailed": "Dịch thất bại",
+    "audioError": "Lỗi xử lý âm thanh"
+  }
+} 

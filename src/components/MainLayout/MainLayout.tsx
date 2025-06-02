@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import MainPanel from '../MainPanel/MainPanel';
 import SettingsPanel from '../SettingsPanel/SettingsPanel';
 import LogsPanel from '../LogsPanel/LogsPanel';
@@ -7,6 +8,7 @@ import { Terminal, Settings, Volume2 } from 'react-feather';
 import './MainLayout.scss';
 
 const MainLayout: React.FC = () => {
+  const { t } = useTranslation();
   const [showLogs, setShowLogs] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showAudio, setShowAudio] = useState(false);
@@ -49,19 +51,19 @@ const MainLayout: React.FC = () => {
     <div className="main-layout">
       <div className={`main-content ${(showLogs || showSettings || showAudio) ? 'with-panel' : 'full-width'}`}>
         <header className="main-panel-header">
-          <h1>Sokuji</h1>
+          <h1>{t('app.title')}</h1>
           <div className="header-controls">
             <button className={`settings-button ${showSettings ? 'active' : ''}`} onClick={toggleSettings}>
               <Settings size={16} />
-              <span>Settings</span>
+              <span>{t('settings.title')}</span>
             </button>
             <button className={`audio-button ${showAudio ? 'active' : ''}`} onClick={toggleAudio}>
               <Volume2 size={16} />
-              <span>Audio</span>
+              <span>{t('settings.audio')}</span>
             </button>
             <button className={`logs-button ${showLogs ? 'active' : ''}`} onClick={toggleLogs}>
               <Terminal size={16} />
-              <span>Logs</span>
+              <span>{t('common.logs')}</span>
             </button>
           </div>
         </header>
