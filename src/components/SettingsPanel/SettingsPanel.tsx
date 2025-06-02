@@ -211,12 +211,28 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
               onChange={(e) => i18n.changeLanguage(e.target.value)}
             >
               <option value="en">🇺🇸 English</option>
-              <option value="zh">🇨🇳 中文</option>
+              <option value="zh_CN">🇨🇳 中文 (简体)</option>
+              <option value="zh_TW">🇹🇼 中文 (繁體)</option>
               <option value="ja">🇯🇵 日本語</option>
               <option value="fr">🇫🇷 Français</option>
               <option value="es">🇪🇸 Español</option>
               <option value="de">🇩🇪 Deutsch</option>
               <option value="ko">🇰🇷 한국어</option>
+              <option value="pt_BR">🇧🇷 Português (Brasil)</option>
+              <option value="pt_PT">🇵🇹 Português (Portugal)</option>
+              <option value="id">🇮🇩 Bahasa Indonesia</option>
+              <option value="it">🇮🇹 Italiano</option>
+              <option value="hi">🇮🇳 हिन्दी</option>
+              <option value="fi">🇫🇮 Suomi</option>
+              <option value="fil">🇵🇭 Filipino</option>
+              <option value="sv">🇸🇪 Svenska</option>
+              <option value="ru">🇷🇺 Русский</option>
+              <option value="ta">🇮🇳 தமிழ்</option>
+              <option value="te">🇮🇳 తెలుగు</option>
+              <option value="th">🇹🇭 ไทย</option>
+              <option value="tr">🇹🇷 Türkçe</option>
+              <option value="uk">🇺🇦 Українська</option>
+              <option value="vi">🇻🇳 Tiếng Việt</option>
             </select>
           </div>
         </div>

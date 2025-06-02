@@ -1,0 +1,53 @@
+{
+  "common": {
+    "ok": "சரி",
+    "cancel": "ரத்து செய்",
+    "save": "சேமி",
+    "close": "மூடு",
+    "settings": "அமைப்புகள்",
+    "help": "உதவி",
+    "loading": "ஏற்றுகிறது...",
+    "error": "பிழை",
+    "success": "வெற்றி",
+    "warning": "எச்சரிக்கை",
+    "info": "தகவல்",
+    "logs": "பதிவுகள்",
+    "clear": "அழி"
+  },
+  "app": {
+    "title": "Sokuji",
+    "description": "நேரடி குரல் மொழிபெயர்ப்பு பயன்பாடு"
+  },
+  "settings": {
+    "title": "அமைப்புகள்",
+    "uiLanguage": "இடைமுக மொழி",
+    "openaiApiKey": "OpenAI API விசை",
+    "validate": "சரிபார்",
+    "validating": "சரிபார்க்கிறது...",
+    "enterApiKey": "உங்கள் OpenAI API விசையை உள்ளிடவும்"
+  },
+  "mainPanel": {
+    "conversationPlaceholder": "உரையாடல் இங்கே தோன்றும்",
+    "pushToTalk": "பேச அழுத்தவும் (Space)",
+    "endSession": "அமர்வை முடி",
+    "startSession": "அமர்வைத் தொடங்கு",
+    "initializing": "தொடங்குகிறது...",
+    "apiKeyRequired": "முதலில் அமைப்புகளில் சரியான OpenAI API விசையைச் சேர்க்கவும்"
+  },
+  "audioPanel": {
+    "title": "ஆடியோ அமைப்புகள்"
+  },
+  "logsPanel": {
+    "title": "பதிவுகள்"
+  },
+  "translation": {
+    "start": "மொழிபெயர்ப்பைத் தொடங்கு",
+    "stop": "மொழிபெயர்ப்பை நிறுத்து"
+  },
+  "errors": {
+    "microphoneAccess": "மைக்ரோஃபோன் அணுகல் மறுக்கப்பட்டது",
+    "networkError": "நெட்வொர்க் இணைப்பு பிழை",
+    "translationFailed": "மொழிபெயர்ப்பு தோல்வியடைந்தது",
+    "audioError": "ஆடியோ செயலாக்க பிழை"
+  }
+} 
