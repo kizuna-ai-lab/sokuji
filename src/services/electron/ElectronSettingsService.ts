@@ -1,4 +1,5 @@
 import { ISettingsService, SettingsOperationResult, ApiKeyValidationResult } from '../interfaces/ISettingsService';
+import i18n from '../../locales';
 
 /**
  * Electron implementation of the Settings Service
@@ -25,12 +26,12 @@ export class ElectronSettingsService implements ISettingsService {
       await (window as any).electron.config.set(key, value);
       return {
         success: true,
-        message: `Successfully saved setting: ${key}`
+        message: i18n.t('settings.settingSavedSuccessfully', { key })
       };
     } catch (error: any) {
       return {
         success: false,
-        error: error.message || `Failed to save setting: ${key}`
+        error: error.message || i18n.t('settings.failedToSaveSetting', { key })
       };
     }
   }
@@ -70,12 +71,12 @@ export class ElectronSettingsService implements ISettingsService {
       
       return {
         success: true,
-        message: 'Successfully saved all settings'
+        message: i18n.t('settings.settingsSavedSuccessfully')
       };
     } catch (error: any) {
       return {
         success: false,
-        error: error.message || 'Failed to save all settings'
+        error: error.message || i18n.t('settings.failedToSaveSettings')
       };
     }
   }
@@ -101,13 +102,13 @@ export class ElectronSettingsService implements ISettingsService {
       
       return {
         valid: result.valid,
-        message: result.message || 'API key validation completed',
+        message: result.message || i18n.t('settings.apiKeyValidationCompleted'),
         validating: false
       };
     } catch (error: any) {
       return {
         valid: false,
-        message: error.message || 'Error validating API key',
+        message: error.message || i18n.t('settings.errorValidatingApiKey'),
         validating: false
       };
     }

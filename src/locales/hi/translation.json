@@ -1,0 +1,53 @@
+{
+  "common": {
+    "ok": "ठीक है",
+    "cancel": "रद्द करें",
+    "save": "सेव करें",
+    "close": "बंद करें",
+    "settings": "सेटिंग्स",
+    "help": "सहायता",
+    "loading": "लोड हो रहा है...",
+    "error": "त्रुटि",
+    "success": "सफलता",
+    "warning": "चेतावनी",
+    "info": "जानकारी",
+    "logs": "लॉग्स",
+    "clear": "साफ़ करें"
+  },
+  "app": {
+    "title": "Sokuji",
+    "description": "रियल-टाइम वॉयस ट्रांसलेशन एप्लिकेशन"
+  },
+  "settings": {
+    "title": "सेटिंग्स",
+    "uiLanguage": "UI भाषा",
+    "openaiApiKey": "OpenAI API की",
+    "validate": "सत्यापित करें",
+    "validating": "सत्यापन...",
+    "enterApiKey": "अपनी OpenAI API की दर्ज करें"
+  },
+  "mainPanel": {
+    "conversationPlaceholder": "बातचीत यहाँ दिखाई देगी",
+    "pushToTalk": "बोलने के लिए दबाएं (स्पेस)",
+    "endSession": "सत्र समाप्त करें",
+    "startSession": "सत्र शुरू करें",
+    "initializing": "प्रारंभ हो रहा है...",
+    "apiKeyRequired": "कृपया पहले सेटिंग्स में एक वैध OpenAI API की जोड़ें"
+  },
+  "audioPanel": {
+    "title": "ऑडियो सेटिंग्स"
+  },
+  "logsPanel": {
+    "title": "लॉग्स"
+  },
+  "translation": {
+    "start": "अनुवाद शुरू करें",
+    "stop": "अनुवाद रोकें"
+  },
+  "errors": {
+    "microphoneAccess": "माइक्रोफ़ोन एक्सेस अस्वीकृत",
+    "networkError": "नेटवर्क कनेक्शन त्रुटि",
+    "translationFailed": "अनुवाद असफल",
+    "audioError": "ऑडियो प्रोसेसिंग त्रुटि"
+  }
+} 

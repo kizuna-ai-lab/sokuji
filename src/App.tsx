@@ -1,5 +1,6 @@
 import React from 'react';
 import './App.scss';
+import './locales'; // Initialize i18n
 import MainLayout from './components/MainLayout/MainLayout';
 import { LogProvider } from './contexts/LogContext';
 import { SettingsProvider } from './contexts/SettingsContext';

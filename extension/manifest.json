@@ -1,8 +1,9 @@
 {
   "manifest_version": 3,
-  "name": "Sokuji - AI-powered Live Speech Translation for Online Meetings",
+  "name": "__MSG_extensionName__",
   "version": "0.3.9",
-  "description": "AI-powered instant speech translation for all video meetings. Break language barriers with real-time voice translation.",
+  "description": "__MSG_extensionDescription__",
+  "default_locale": "en",
   "minimum_chrome_version": "116",
   "offline_enabled": false,
   "icons": {

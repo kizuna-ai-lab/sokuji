@@ -1,0 +1,74 @@
+{
+  "extensionName": {
+    "message": "Sokuji - ترجمة الكلام المباشر بالذكاء الاصطناعي للاجتماعات الإلكترونية"
+  },
+  "extensionDescription": {
+    "message": "ترجمة فورية للكلام بالذكاء الاصطناعي لجميع اجتماعات الفيديو. كسر حواجز اللغة مع الترجمة الصوتية في الوقت الفعلي."
+  },
+  "popupTitle": {
+    "message": "Sokuji - المواقع المدعومة"
+  },
+  "openSokuji": {
+    "message": "فتح Sokuji"
+  },
+  "chromeWebStore": {
+    "message": "متجر Chrome الإلكتروني"
+  },
+  "sokujiAvailable": {
+    "message": "✓ Sokuji متاح على $SITE_NAME$!",
+    "placeholders": {
+      "site_name": {
+        "content": "$1",
+        "example": "Google Meet"
+      }
+    }
+  },
+  "clickToStart": {
+    "message": "انقر على \"فتح Sokuji\" أدناه لبدء الترجمة في الوقت الفعلي."
+  },
+  "quickStart": {
+    "message": "البدء السريع:"
+  },
+  "quickStartInstructions": {
+    "message": "قم بتكوين مفتاح OpenAI API الخاص بك ← حدد \"Sokuji_Virtual_Mic\" كميكروفون ← ابدأ بالتحدث!"
+  },
+  "notSupported": {
+    "message": "⚠ غير مدعوم على هذا الموقع"
+  },
+  "currentlyOn": {
+    "message": "حالياً على $HOSTNAME$. Sokuji يعمل على هذه المنصات:",
+    "placeholders": {
+      "hostname": {
+        "content": "$1",
+        "example": "example.com"
+      }
+    }
+  },
+  "needMoreSites": {
+    "message": "تحتاج دعم لمواقع أكثر؟"
+  },
+  "contactUs": {
+    "message": "اتصل بنا على"
+  },
+  "contributeCode": {
+    "message": "ساهم في"
+  },
+  "openSourceProject": {
+    "message": "مشروعنا مفتوح المصدر"
+  },
+  "unableToDetect": {
+    "message": "⚠ غير قادر على اكتشاف الموقع الحالي"
+  },
+  "refreshAndTry": {
+    "message": "يرجى تحديث الصفحة والمحاولة مرة أخرى."
+  },
+  "needMoreSitesShort": {
+    "message": "تحتاج مواقع أكثر؟"
+  },
+  "contactUsShort": {
+    "message": "اتصل بنا"
+  },
+  "contributeCodeShort": {
+    "message": "ساهم بالكود"
+  }
+}

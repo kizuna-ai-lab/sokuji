@@ -1,0 +1,74 @@
+{
+  "extensionName": {
+    "message": "Sokuji - Traduction Vocale en Direct par IA pour Réunions en Ligne"
+  },
+  "extensionDescription": {
+    "message": "Traduction vocale instantanée par IA pour toutes les visioconférences. Brisez les barrières linguistiques avec la traduction vocale en temps réel."
+  },
+  "popupTitle": {
+    "message": "Sokuji - Sites Pris en Charge"
+  },
+  "openSokuji": {
+    "message": "Ouvrir Sokuji"
+  },
+  "chromeWebStore": {
+    "message": "Chrome Web Store"
+  },
+  "sokujiAvailable": {
+    "message": "✓ Sokuji est disponible sur $SITE_NAME$ !",
+    "placeholders": {
+      "site_name": {
+        "content": "$1",
+        "example": "Google Meet"
+      }
+    }
+  },
+  "clickToStart": {
+    "message": "Cliquez sur \"Ouvrir Sokuji\" ci-dessous pour commencer la traduction en temps réel."
+  },
+  "quickStart": {
+    "message": "Démarrage Rapide :"
+  },
+  "quickStartInstructions": {
+    "message": "Configurez votre clé API OpenAI → Sélectionnez \"Sokuji_Virtual_Mic\" comme microphone → Commencez à parler !"
+  },
+  "notSupported": {
+    "message": "⚠ Non pris en charge sur ce site"
+  },
+  "currentlyOn": {
+    "message": "Actuellement sur $HOSTNAME$. Sokuji fonctionne sur ces plateformes :",
+    "placeholders": {
+      "hostname": {
+        "content": "$1",
+        "example": "example.com"
+      }
+    }
+  },
+  "needMoreSites": {
+    "message": "Besoin de support pour plus de sites ?"
+  },
+  "contactUs": {
+    "message": "Contactez-nous à"
+  },
+  "contributeCode": {
+    "message": "contribuez à notre"
+  },
+  "openSourceProject": {
+    "message": "projet open source"
+  },
+  "unableToDetect": {
+    "message": "⚠ Impossible de détecter le site actuel"
+  },
+  "refreshAndTry": {
+    "message": "Veuillez actualiser la page et réessayer."
+  },
+  "needMoreSitesShort": {
+    "message": "Plus de sites ?"
+  },
+  "contactUsShort": {
+    "message": "Contactez-nous"
+  },
+  "contributeCodeShort": {
+    "message": "contribuer au code"
+  }
+}

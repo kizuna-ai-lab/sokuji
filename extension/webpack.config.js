@@ -79,6 +79,7 @@ module.exports = (env, argv) => {
       new CopyWebpackPlugin({
         patterns: [
           { from: 'manifest.json', to: 'manifest.json' },
+          { from: '_locales', to: '_locales', noErrorOnMissing: true },
           { from: 'icons', to: 'icons', noErrorOnMissing: true },
           { 
             from: '../src/lib/wavtools/lib/worklets/*_worklet.js', 

@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { ArrowRight, Terminal, Trash2, ArrowUp, ArrowDown, FastForward } from 'react-feather';
 import './LogsPanel.scss';
 import { useLog, LogEntry } from '../../contexts/LogContext';
+import { useTranslation } from 'react-i18next';
 
 interface LogsPanelProps {
   toggleLogs: () => void;
@@ -9,13 +10,14 @@ interface LogsPanelProps {
 
 // Event component to display OpenAI Realtime API events
 const Event: React.FC<{ logEntry: LogEntry }> = ({ logEntry }) => {
+  const { t } = useTranslation();
   const [isExpanded, setIsExpanded] = useState(false);
   const { events, source, timestamp, eventType } = logEntry;
 
   if (!events || !events.length || !source) return null;
 
   const isClient = source === 'client';
-  const eventTypeDisplay = eventType || 'unknown';
+  const eventTypeDisplay = eventType || t('logsPanel.unknown');
   const hasMultipleEvents = events.length > 1;
   
   // Get the latest event for display in collapsed view
@@ -34,7 +36,7 @@ const Event: React.FC<{ logEntry: LogEntry }> = ({ logEntry }) => {
           <ArrowDown className="server-icon" />
         )}
         <div className="event-info">
-          <span className="source-label">{isClient ? "client:" : "server:"}</span>
+          <span className="source-label">{isClient ? t('logsPanel.client') : t('logsPanel.server')}:</span>
           <span className="event-type">{eventTypeDisplay}</span>
           {hasMultipleEvents && (
             <span className="event-count">({events.length})</span>
@@ -48,7 +50,7 @@ const Event: React.FC<{ logEntry: LogEntry }> = ({ logEntry }) => {
               {events.map((evt, index) => (
                 <div key={index} className="grouped-event">
                   <div className="grouped-event-header">
-                    <span className="grouped-event-index">Event {index + 1} of {events.length}</span>
+                    <span className="grouped-event-index">{t('logsPanel.event')} {index + 1} {t('logsPanel.of')} {events.length}</span>
                   </div>
                   <pre>{JSON.stringify(evt, null, 2)}</pre>
                 </div>
@@ -64,6 +66,7 @@ const Event: React.FC<{ logEntry: LogEntry }> = ({ logEntry }) => {
 };
 
 const LogsPanel: React.FC<LogsPanelProps> = ({ toggleLogs }) => {
+  const { t } = useTranslation();
   const { logs, clearLogs } = useLog();
   const [autoScroll, setAutoScroll] = useState(true);
   const logsContentRef = useRef<HTMLDivElement>(null);
@@ -100,25 +103,25 @@ const LogsPanel: React.FC<LogsPanelProps> = ({ toggleLogs }) => {
   return (
     <div className="logs-panel">
       <div className="logs-panel-header">
-        <h2>Logs</h2>
+        <h2>{t('logsPanel.title')}</h2>
         <div className="header-actions">
           <button 
             className={`auto-scroll-button ${autoScroll ? 'active' : ''}`} 
             onClick={toggleAutoScroll}
-            title={autoScroll ? "Disable auto-scroll" : "Enable auto-scroll"}
+            title={autoScroll ? t('logsPanel.disableAutoScroll') : t('logsPanel.enableAutoScroll')}
           >
             <FastForward size={16} />
-            <span>{autoScroll ? "Auto-scroll on" : "Auto-scroll off"}</span>
+            <span>{autoScroll ? t('logsPanel.autoScrollOn') : t('logsPanel.autoScrollOff')}</span>
           </button>
           {logs.length > 0 && (
             <button className="clear-logs-button" onClick={clearLogs}>
               <Trash2 size={16} />
-              <span>Clear</span>
+              <span>{t('common.clear')}</span>
             </button>
           )}
           <button className="close-logs-button" onClick={toggleLogs}>
             <ArrowRight size={16} />
-            <span>Close</span>
+            <span>{t('common.close')}</span>
           </button>
         </div>
       </div>
@@ -131,12 +134,11 @@ const LogsPanel: React.FC<LogsPanelProps> = ({ toggleLogs }) => {
               <div className="icon-container">
                 <Terminal size={24} />
               </div>
-              <span>Logs will appear here</span>
+              <span>{t('logsPanel.logsPlaceholder')}</span>
             </div>
           </div>
         )}
       </div>
-      {/* <SampleEvents /> */}
     </div>
   );
 };

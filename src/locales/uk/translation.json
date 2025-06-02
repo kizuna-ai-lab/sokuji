@@ -1,0 +1,53 @@
+{
+  "common": {
+    "ok": "ОК",
+    "cancel": "Скасувати",
+    "save": "Зберегти",
+    "close": "Закрити",
+    "settings": "Налаштування",
+    "help": "Допомога",
+    "loading": "Завантаження...",
+    "error": "Помилка",
+    "success": "Успіх",
+    "warning": "Попередження",
+    "info": "Інформація",
+    "logs": "Логи",
+    "clear": "Очистити"
+  },
+  "app": {
+    "title": "Sokuji",
+    "description": "Додаток для перекладу мови в реальному часі"
+  },
+  "settings": {
+    "title": "Налаштування",
+    "uiLanguage": "Мова інтерфейсу",
+    "openaiApiKey": "API-ключ OpenAI",
+    "validate": "Перевірити",
+    "validating": "Перевірка...",
+    "enterApiKey": "Введіть ваш API-ключ OpenAI"
+  },
+  "mainPanel": {
+    "conversationPlaceholder": "Розмова з'явиться тут",
+    "pushToTalk": "натисніть, щоб говорити (Пробіл)",
+    "endSession": "Завершити сесію",
+    "startSession": "Почати сесію",
+    "initializing": "Ініціалізація...",
+    "apiKeyRequired": "Будь ласка, спочатку додайте дійсний API-ключ OpenAI в налаштуваннях"
+  },
+  "audioPanel": {
+    "title": "Налаштування аудіо"
+  },
+  "logsPanel": {
+    "title": "Логи"
+  },
+  "translation": {
+    "start": "Почати переклад",
+    "stop": "Зупинити переклад"
+  },
+  "errors": {
+    "microphoneAccess": "Доступ до мікрофона заборонено",
+    "networkError": "Помилка мережевого з'єднання",
+    "translationFailed": "Переклад не вдався",
+    "audioError": "Помилка обробки аудіо"
+  }
+} 

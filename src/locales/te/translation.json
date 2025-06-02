@@ -1,0 +1,53 @@
+{
+  "common": {
+    "ok": "సరే",
+    "cancel": "రద్దు చేయి",
+    "save": "సేవ్ చేయి",
+    "close": "మూసివేయి",
+    "settings": "సెట్టింగ్స్",
+    "help": "సహాయం",
+    "loading": "లోడ్ అవుతోంది...",
+    "error": "లోపం",
+    "success": "విజయం",
+    "warning": "హెచ్చరిక",
+    "info": "సమాచారం",
+    "logs": "లాగ్స్",
+    "clear": "క్లియర్ చేయి"
+  },
+  "app": {
+    "title": "Sokuji",
+    "description": "రియల్-టైమ్ వాయిస్ ట్రాన్స్లేషన్ అప్లికేషన్"
+  },
+  "settings": {
+    "title": "సెట్టింగ్స్",
+    "uiLanguage": "ఇంటర్ఫేస్ భాష",
+    "openaiApiKey": "OpenAI API కీ",
+    "validate": "ధృవీకరించు",
+    "validating": "ధృవీకరిస్తోంది...",
+    "enterApiKey": "మీ OpenAI API కీని ఎంటర్ చేయండి"
+  },
+  "mainPanel": {
+    "conversationPlaceholder": "సంభాషణ ఇక్కడ కనిపిస్తుంది",
+    "pushToTalk": "మాట్లాడటానికి నొక్కండి (Space)",
+    "endSession": "సెషన్ ముగించు",
+    "startSession": "సెషన్ ప్రారంభించు",
+    "initializing": "ప్రారంభిస్తోంది...",
+    "apiKeyRequired": "దయచేసి మొదట సెట్టింగ్స్లో చెల్లుబాటు అయ్యే OpenAI API కీని జోడించండి"
+  },
+  "audioPanel": {
+    "title": "ఆడియో సెట్టింగ్స్"
+  },
+  "logsPanel": {
+    "title": "లాగ్స్"
+  },
+  "translation": {
+    "start": "అనువాదం ప్రారంభించు",
+    "stop": "అనువాదం ఆపు"
+  },
+  "errors": {
+    "microphoneAccess": "మైక్రోఫోన్ యాక్సెస్ తిరస్కరించబడింది",
+    "networkError": "నెట్వర్క్ కనెక్షన్ లోపం",
+    "translationFailed": "అనువాదం విఫలమైంది",
+    "audioError": "ఆడియో ప్రాసెసింగ్ లోపం"
+  }
+} 
