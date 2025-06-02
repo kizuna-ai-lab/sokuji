@@ -1,0 +1,47 @@
+{
+  "common": {
+    "ok": "OK",
+    "cancel": "Cancel",
+    "save": "Save",
+    "close": "Close",
+    "settings": "Settings",
+    "help": "Help",
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "warning": "Warning",
+    "info": "Information"
+  },
+  "app": {
+    "title": "Sokuji",
+    "description": "Live speech translation application"
+  },
+  "menu": {
+    "file": "File",
+    "edit": "Edit",
+    "view": "View",
+    "window": "Window",
+    "help": "Help"
+  },
+  "settings": {
+    "title": "Settings",
+    "language": "Language",
+    "audio": "Audio",
+    "translation": "Translation",
+    "general": "General"
+  },
+  "translation": {
+    "start": "Start Translation",
+    "stop": "Stop Translation",
+    "listening": "Listening...",
+    "translating": "Translating...",
+    "sourceLanguage": "Source Language",
+    "targetLanguage": "Target Language"
+  },
+  "errors": {
+    "microphoneAccess": "Microphone access denied",
+    "networkError": "Network connection error",
+    "translationFailed": "Translation failed",
+    "audioError": "Audio processing error"
+  }
+} 

@@ -1,0 +1,39 @@
+.language-switcher {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0;
+
+  &__label {
+    font-size: 14px;
+    font-weight: 500;
+    color: #ffffff;
+  }
+
+  &__select {
+    padding: 6px 12px;
+    border: 1px solid #444;
+    border-radius: 4px;
+    background-color: #2a2a2a;
+    color: #ffffff;
+    font-size: 14px;
+    cursor: pointer;
+    transition: border-color 0.2s ease;
+
+    &:hover {
+      border-color: #007bff;
+    }
+
+    &:focus {
+      outline: none;
+      border-color: #007bff;
+      box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+    }
+
+    option {
+      padding: 4px 8px;
+      background-color: #2a2a2a;
+      color: #ffffff;
+    }
+  }
+} 

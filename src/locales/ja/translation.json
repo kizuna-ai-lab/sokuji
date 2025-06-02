@@ -1,0 +1,47 @@
+{
+  "common": {
+    "ok": "OK",
+    "cancel": "キャンセル",
+    "save": "保存",
+    "close": "閉じる",
+    "settings": "設定",
+    "help": "ヘルプ",
+    "loading": "読み込み中...",
+    "error": "エラー",
+    "success": "成功",
+    "warning": "警告",
+    "info": "情報"
+  },
+  "app": {
+    "title": "Sokuji",
+    "description": "リアルタイム音声翻訳アプリケーション"
+  },
+  "menu": {
+    "file": "ファイル",
+    "edit": "編集",
+    "view": "表示",
+    "window": "ウィンドウ",
+    "help": "ヘルプ"
+  },
+  "settings": {
+    "title": "設定",
+    "language": "言語",
+    "audio": "オーディオ",
+    "translation": "翻訳",
+    "general": "一般"
+  },
+  "translation": {
+    "start": "翻訳開始",
+    "stop": "翻訳停止",
+    "listening": "聞き取り中...",
+    "translating": "翻訳中...",
+    "sourceLanguage": "元の言語",
+    "targetLanguage": "翻訳先言語"
+  },
+  "errors": {
+    "microphoneAccess": "マイクへのアクセスが拒否されました",
+    "networkError": "ネットワーク接続エラー",
+    "translationFailed": "翻訳に失敗しました",
+    "audioError": "音声処理エラー"
+  }
+} 
