@@ -50,7 +50,7 @@ function createWindow() {
   // Load the app
   const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
   if (isDev) {
-    mainWindow.loadURL('http://localhost:3000');
+    mainWindow.loadURL('http://localhost:5173');
   } else {
     // Try multiple approaches to find the correct path
     let indexPath;
