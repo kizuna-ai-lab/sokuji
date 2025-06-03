@@ -166,10 +166,32 @@ export class BrowserSettingsService implements ISettingsService {
       });
       
       if (response.status === 200) {
+        const data = await response.json();
+        
+        // Check if there's a model that contains both "realtime" and "4o"
+        const hasRealtimeModel = data.data?.some((model: any) => {
+          const modelName = model.id?.toLowerCase() || '';
+          return modelName.includes('realtime') && modelName.includes('4o');
+        }) || false;
+        
+        // If no realtime models are available, consider the validation as failed
+        if (!hasRealtimeModel) {
+          return {
+            valid: false,
+            message: i18n.t('settings.realtimeModelNotAvailable'),
+            validating: false,
+            hasRealtimeModel: hasRealtimeModel
+          };
+        }
+        
+        let message = i18n.t('settings.apiKeyValidationCompleted');
+        message += ' ' + i18n.t('settings.realtimeModelAvailable');
+        
         return {
           valid: true,
-          message: i18n.t('settings.apiKeyValidationCompleted'),
-          validating: false
+          message: message,
+          validating: false,
+          hasRealtimeModel: hasRealtimeModel
         };
       } else {
         const errorData = await response.json().catch(() => ({}));

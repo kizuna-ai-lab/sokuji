@@ -38,15 +38,34 @@ async function validateApiKey(apiKey) {
     
     // Check if the models we need are available
     const availableModels = data.data || [];
-    const realtimeModels = availableModels.filter(model => 
-      model.id.includes('realtime') || 
-      model.id.includes('gpt-4o')
-    );
+    
+    // Filter realtime models that contain both "realtime" and "4o"
+    const realtimeModels = availableModels.filter(model => {
+      const modelName = model.id.toLowerCase();
+      return modelName.includes('realtime') && modelName.includes('4o');
+    });
+    
+    const hasRealtimeModel = realtimeModels.length > 0;
+
+    console.log("[Sokuji] [API] Available models:", availableModels);
+    console.log("[Sokuji] [API] Has realtime model:", hasRealtimeModel);
+    
+    // If no realtime models are available, consider the validation as failed
+    if (!hasRealtimeModel) {
+      return {
+        valid: false,
+        error: 'No GPT-4o Realtime models available with this API key',
+        models: realtimeModels,
+        allModels: availableModels,
+        hasRealtimeModel: hasRealtimeModel
+      };
+    }
     
     return { 
       valid: true, 
       models: realtimeModels,
-      allModels: availableModels
+      allModels: availableModels,
+      hasRealtimeModel: hasRealtimeModel
     };
   } catch (error) {
     console.error("[Sokuji] [API] API key validation error:", error);
