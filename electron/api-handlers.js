@@ -47,8 +47,8 @@ async function validateApiKey(apiKey) {
     
     const hasRealtimeModel = realtimeModels.length > 0;
 
-    console.log("[Sokuji] [API] Available models:", availableModels);
-    console.log("[Sokuji] [API] Has realtime model:", hasRealtimeModel);
+    console.info("[Sokuji] [API] Available models:", availableModels);
+    console.info("[Sokuji] [API] Has realtime model:", hasRealtimeModel);
     
     // If no realtime models are available, consider the validation as failed
     if (!hasRealtimeModel) {
