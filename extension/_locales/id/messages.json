@@ -1,21 +1,21 @@
 {
   "extensionName": {
-    "message": "Sokuji - AI-powered Live Speech Translation for Online Meetings"
+    "message": "Sokuji - Terjemahan Ucapan Langsung bertenaga AI untuk Rapat Online"
   },
   "extensionDescription": {
-    "message": "AI-powered instant speech translation for all video meetings. Break language barriers with real-time voice translation."
+    "message": "Terjemahan ucapan instan bertenaga AI untuk semua rapat video. Hancurkan hambatan bahasa dengan terjemahan suara real-time."
   },
   "popupTitle": {
-    "message": "Sokuji - Supported Sites"
+    "message": "Sokuji - Situs yang Didukung"
   },
   "openSokuji": {
-    "message": "Open Sokuji"
+    "message": "Buka Sokuji"
   },
   "chromeWebStore": {
     "message": "Chrome Web Store"
   },
   "sokujiAvailable": {
-    "message": "✓ Sokuji is available on $SITE_NAME$!",
+    "message": "✓ Sokuji tersedia di $SITE_NAME$!",
     "placeholders": {
       "site_name": {
         "content": "$1",
@@ -24,19 +24,19 @@
     }
   },
   "clickToStart": {
-    "message": "Click \"Open Sokuji\" below to start real-time translation."
+    "message": "Klik \"Buka Sokuji\" di bawah untuk memulai terjemahan real-time."
   },
   "quickStart": {
-    "message": "Quick Start:"
+    "message": "Mulai Cepat:"
   },
   "quickStartInstructions": {
-    "message": "Configure your OpenAI API key → Select \"Sokuji_Virtual_Mic\" as microphone → Start speaking!"
+    "message": "Konfigurasi kunci API OpenAI Anda → Pilih \"Sokuji_Virtual_Mic\" sebagai mikrofon → Mulai berbicara!"
   },
   "notSupported": {
-    "message": "⚠ Not supported on this site"
+    "message": "⚠ Tidak didukung di situs ini"
   },
   "currentlyOn": {
-    "message": "Currently on $HOSTNAME$. Sokuji works on these platforms:",
+    "message": "Saat ini di $HOSTNAME$. Sokuji bekerja di platform ini:",
     "placeholders": {
       "hostname": {
         "content": "$1",
@@ -45,30 +45,30 @@
     }
   },
   "needMoreSites": {
-    "message": "Need support for more sites?"
+    "message": "Butuh dukungan untuk lebih banyak situs?"
   },
   "contactUs": {
-    "message": "Contact us at"
+    "message": "Hubungi kami di"
   },
   "contributeCode": {
-    "message": "contribute to our"
+    "message": "berkontribusi pada"
   },
   "openSourceProject": {
-    "message": "open source project"
+    "message": "proyek open source kami"
   },
   "unableToDetect": {
-    "message": "⚠ Unable to detect current site"
+    "message": "⚠ Tidak dapat mendeteksi situs saat ini"
   },
   "refreshAndTry": {
-    "message": "Please refresh the page and try again."
+    "message": "Silakan refresh halaman dan coba lagi."
   },
   "needMoreSitesShort": {
-    "message": "Need more sites?"
+    "message": "Butuh lebih banyak situs?"
   },
   "contactUsShort": {
-    "message": "Contact us"
+    "message": "Hubungi kami"
   },
   "contributeCodeShort": {
-    "message": "contribute code"
+    "message": "kontribusi kode"
   }
 }

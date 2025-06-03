@@ -1,21 +1,21 @@
 {
   "extensionName": {
-    "message": "Sokuji - AI-powered Live Speech Translation for Online Meetings"
+    "message": "Sokuji - ऑनलाइन मीटिंग्स के लिए AI-संचालित लाइव स्पीच ट्रांसलेशन"
   },
   "extensionDescription": {
-    "message": "AI-powered instant speech translation for all video meetings. Break language barriers with real-time voice translation."
+    "message": "सभी वीडियो मीटिंग्स के लिए AI-संचालित तत्काल स्पीच ट्रांसलेशन। रियल-टाइम वॉयस ट्रांसलेशन के साथ भाषा की बाधाओं को तोड़ें।"
   },
   "popupTitle": {
-    "message": "Sokuji - Supported Sites"
+    "message": "Sokuji - समर्थित साइटें"
   },
   "openSokuji": {
-    "message": "Open Sokuji"
+    "message": "Sokuji खोलें"
   },
   "chromeWebStore": {
-    "message": "Chrome Web Store"
+    "message": "Chrome वेब स्टोर"
   },
   "sokujiAvailable": {
-    "message": "✓ Sokuji is available on $SITE_NAME$!",
+    "message": "✓ Sokuji $SITE_NAME$ पर उपलब्ध है!",
     "placeholders": {
       "site_name": {
         "content": "$1",
@@ -24,19 +24,19 @@
     }
   },
   "clickToStart": {
-    "message": "Click \"Open Sokuji\" below to start real-time translation."
+    "message": "रियल-टाइम ट्रांसलेशन शुरू करने के लिए नीचे \"Sokuji खोलें\" पर क्लिक करें।"
   },
   "quickStart": {
-    "message": "Quick Start:"
+    "message": "त्वरित शुरुआत:"
   },
   "quickStartInstructions": {
-    "message": "Configure your OpenAI API key → Select \"Sokuji_Virtual_Mic\" as microphone → Start speaking!"
+    "message": "अपनी OpenAI API कुंजी कॉन्फ़िगर करें → माइक्रोफ़ोन के रूप में \"Sokuji_Virtual_Mic\" चुनें → बोलना शुरू करें!"
   },
   "notSupported": {
-    "message": "⚠ Not supported on this site"
+    "message": "⚠ इस साइट पर समर्थित नहीं"
   },
   "currentlyOn": {
-    "message": "Currently on $HOSTNAME$. Sokuji works on these platforms:",
+    "message": "वर्तमान में $HOSTNAME$ पर। Sokuji इन प्लेटफॉर्म पर काम करता है:",
     "placeholders": {
       "hostname": {
         "content": "$1",
@@ -45,30 +45,30 @@
     }
   },
   "needMoreSites": {
-    "message": "Need support for more sites?"
+    "message": "अधिक साइटों के लिए समर्थन चाहिए?"
   },
   "contactUs": {
-    "message": "Contact us at"
+    "message": "हमसे संपर्क करें:"
   },
   "contributeCode": {
-    "message": "contribute to our"
+    "message": "हमारे"
   },
   "openSourceProject": {
-    "message": "open source project"
+    "message": "ओपन सोर्स प्रोजेक्ट में योगदान दें"
   },
   "unableToDetect": {
-    "message": "⚠ Unable to detect current site"
+    "message": "⚠ वर्तमान साइट का पता नहीं लगा सकते"
   },
   "refreshAndTry": {
-    "message": "Please refresh the page and try again."
+    "message": "कृपया पेज को रिफ्रेश करें और फिर से कोशिश करें।"
   },
   "needMoreSitesShort": {
-    "message": "Need more sites?"
+    "message": "अधिक साइटों की आवश्यकता?"
   },
   "contactUsShort": {
-    "message": "Contact us"
+    "message": "संपर्क करें"
   },
   "contributeCodeShort": {
-    "message": "contribute code"
+    "message": "कोड योगदान"
   }
 }

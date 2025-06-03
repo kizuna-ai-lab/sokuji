@@ -1,21 +1,21 @@
 {
   "extensionName": {
-    "message": "Sokuji - AI-powered Live Speech Translation for Online Meetings"
+    "message": "Sokuji - AI-aangedreven Live Spraakvertaling voor Online Vergaderingen"
   },
   "extensionDescription": {
-    "message": "AI-powered instant speech translation for all video meetings. Break language barriers with real-time voice translation."
+    "message": "AI-aangedreven directe spraakvertaling voor alle videovergaderingen. Doorbreek taalbarrières met realtime stemvertaling."
   },
   "popupTitle": {
-    "message": "Sokuji - Supported Sites"
+    "message": "Sokuji - Ondersteunde Sites"
   },
   "openSokuji": {
-    "message": "Open Sokuji"
+    "message": "Sokuji Openen"
   },
   "chromeWebStore": {
     "message": "Chrome Web Store"
   },
   "sokujiAvailable": {
-    "message": "✓ Sokuji is available on $SITE_NAME$!",
+    "message": "✓ Sokuji is beschikbaar op $SITE_NAME$!",
     "placeholders": {
       "site_name": {
         "content": "$1",
@@ -24,19 +24,19 @@
     }
   },
   "clickToStart": {
-    "message": "Click \"Open Sokuji\" below to start real-time translation."
+    "message": "Klik op \"Sokuji Openen\" hieronder om realtime vertaling te starten."
   },
   "quickStart": {
-    "message": "Quick Start:"
+    "message": "Snelle Start:"
   },
   "quickStartInstructions": {
-    "message": "Configure your OpenAI API key → Select \"Sokuji_Virtual_Mic\" as microphone → Start speaking!"
+    "message": "Configureer uw OpenAI API-sleutel → Selecteer \"Sokuji_Virtual_Mic\" als microfoon → Begin met spreken!"
   },
   "notSupported": {
-    "message": "⚠ Not supported on this site"
+    "message": "⚠ Niet ondersteund op deze site"
   },
   "currentlyOn": {
-    "message": "Currently on $HOSTNAME$. Sokuji works on these platforms:",
+    "message": "Momenteel op $HOSTNAME$. Sokuji werkt op deze platforms:",
     "placeholders": {
       "hostname": {
         "content": "$1",
@@ -45,30 +45,30 @@
     }
   },
   "needMoreSites": {
-    "message": "Need support for more sites?"
+    "message": "Ondersteuning nodig voor meer sites?"
   },
   "contactUs": {
-    "message": "Contact us at"
+    "message": "Neem contact met ons op via"
   },
   "contributeCode": {
-    "message": "contribute to our"
+    "message": "draag bij aan ons"
   },
   "openSourceProject": {
     "message": "open source project"
   },
   "unableToDetect": {
-    "message": "⚠ Unable to detect current site"
+    "message": "⚠ Kan huidige site niet detecteren"
   },
   "refreshAndTry": {
-    "message": "Please refresh the page and try again."
+    "message": "Ververs de pagina en probeer het opnieuw."
   },
   "needMoreSitesShort": {
-    "message": "Need more sites?"
+    "message": "Meer sites nodig?"
   },
   "contactUsShort": {
-    "message": "Contact us"
+    "message": "Contact opnemen"
   },
   "contributeCodeShort": {
-    "message": "contribute code"
+    "message": "code bijdragen"
   }
 }

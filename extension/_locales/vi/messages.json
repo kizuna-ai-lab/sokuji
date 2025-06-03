@@ -1,21 +1,21 @@
 {
   "extensionName": {
-    "message": "Sokuji - AI-powered Live Speech Translation for Online Meetings"
+    "message": "Sokuji - Dịch Giọng Nói Trực Tiếp bằng AI cho Cuộc Họp Trực Tuyến"
   },
   "extensionDescription": {
-    "message": "AI-powered instant speech translation for all video meetings. Break language barriers with real-time voice translation."
+    "message": "Dịch giọng nói tức thì bằng AI cho tất cả cuộc họp video. Phá vỡ rào cản ngôn ngữ với dịch giọng nói thời gian thực."
   },
   "popupTitle": {
-    "message": "Sokuji - Supported Sites"
+    "message": "Sokuji - Các Trang Web Được Hỗ Trợ"
   },
   "openSokuji": {
-    "message": "Open Sokuji"
+    "message": "Mở Sokuji"
   },
   "chromeWebStore": {
-    "message": "Chrome Web Store"
+    "message": "Cửa Hàng Web Chrome"
   },
   "sokujiAvailable": {
-    "message": "✓ Sokuji is available on $SITE_NAME$!",
+    "message": "✓ Sokuji có sẵn trên $SITE_NAME$!",
     "placeholders": {
       "site_name": {
         "content": "$1",
@@ -24,19 +24,19 @@
     }
   },
   "clickToStart": {
-    "message": "Click \"Open Sokuji\" below to start real-time translation."
+    "message": "Nhấp vào \"Mở Sokuji\" bên dưới để bắt đầu dịch thời gian thực."
   },
   "quickStart": {
-    "message": "Quick Start:"
+    "message": "Bắt Đầu Nhanh:"
   },
   "quickStartInstructions": {
-    "message": "Configure your OpenAI API key → Select \"Sokuji_Virtual_Mic\" as microphone → Start speaking!"
+    "message": "Cấu hình khóa API OpenAI của bạn → Chọn \"Sokuji_Virtual_Mic\" làm microphone → Bắt đầu nói!"
   },
   "notSupported": {
-    "message": "⚠ Not supported on this site"
+    "message": "⚠ Không được hỗ trợ trên trang web này"
   },
   "currentlyOn": {
-    "message": "Currently on $HOSTNAME$. Sokuji works on these platforms:",
+    "message": "Hiện tại trên $HOSTNAME$. Sokuji hoạt động trên các nền tảng này:",
     "placeholders": {
       "hostname": {
         "content": "$1",
@@ -45,30 +45,30 @@
     }
   },
   "needMoreSites": {
-    "message": "Need support for more sites?"
+    "message": "Cần hỗ trợ cho nhiều trang web hơn?"
   },
   "contactUs": {
-    "message": "Contact us at"
+    "message": "Liên hệ với chúng tôi tại"
   },
   "contributeCode": {
-    "message": "contribute to our"
+    "message": "đóng góp cho"
   },
   "openSourceProject": {
-    "message": "open source project"
+    "message": "dự án mã nguồn mở của chúng tôi"
   },
   "unableToDetect": {
-    "message": "⚠ Unable to detect current site"
+    "message": "⚠ Không thể phát hiện trang web hiện tại"
   },
   "refreshAndTry": {
-    "message": "Please refresh the page and try again."
+    "message": "Vui lòng làm mới trang và thử lại."
   },
   "needMoreSitesShort": {
-    "message": "Need more sites?"
+    "message": "Cần thêm trang web?"
   },
   "contactUsShort": {
-    "message": "Contact us"
+    "message": "Liên hệ"
   },
   "contributeCodeShort": {
-    "message": "contribute code"
+    "message": "đóng góp mã"
   }
 }
