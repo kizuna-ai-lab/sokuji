@@ -211,7 +211,6 @@ if (!isWebclientIframe) {
 
   // Function to show Audio Profile settings notification
   function showAudioProfileNotification() {
-    console.log('showAudioProfileNotification');
     // Check if notification already exists
     const existingNotification = document.getElementById('sokuji-zoom-audio-profile-notification');
     if (existingNotification) {
