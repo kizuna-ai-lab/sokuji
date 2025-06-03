@@ -100,11 +100,34 @@ export class ElectronSettingsService implements ISettingsService {
     try {
       const result = await (window as any).electron.openai.validateApiKey(apiKey);
       
-      return {
-        valid: result.valid,
-        message: result.message || i18n.t('settings.apiKeyValidationCompleted'),
-        validating: false
-      };
+      if (result.valid) {
+        let message = i18n.t('settings.apiKeyValidationCompleted');
+        if (result.hasRealtimeModel) {
+          message += ' ' + i18n.t('settings.realtimeModelAvailable');
+        } else {
+          message += ' ' + i18n.t('settings.realtimeModelNotAvailable');
+        }
+        
+        return {
+          valid: result.valid,
+          message: message,
+          validating: false,
+          hasRealtimeModel: result.hasRealtimeModel || false
+        };
+      } else {
+        // Check if the error is specifically about missing realtime models
+        let message = result.error || i18n.t('settings.errorValidatingApiKey');
+        if (result.error && result.error.includes('No GPT-4o Realtime models')) {
+          message = i18n.t('settings.realtimeModelNotAvailable');
+        }
+        
+        return {
+          valid: result.valid,
+          message: message,
+          validating: false,
+          hasRealtimeModel: result.hasRealtimeModel || false
+        };
+      }
     } catch (error: any) {
       return {
         valid: false,

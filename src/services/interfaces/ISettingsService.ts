@@ -9,6 +9,7 @@ export interface ApiKeyValidationResult {
   valid: boolean | null;
   message: string;
   validating?: boolean;
+  hasRealtimeModel?: boolean;
 }
 
 export interface ISettingsService {

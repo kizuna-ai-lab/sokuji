@@ -65,7 +65,9 @@
     "settingSavedSuccessfully": "Successfully saved setting: {{key}}",
     "failedToSaveSetting": "Failed to save setting: {{key}}",
     "apiKeyValidationCompleted": "API key validation completed",
-    "errorValidatingApiKey": "Error validating API key"
+    "errorValidatingApiKey": "Error validating API key",
+    "realtimeModelAvailable": "GPT-4o Realtime model is available",
+    "realtimeModelNotAvailable": "GPT-4o Realtime model is not available"
   },
   "audioPanel": {
     "title": "Audio Settings",
