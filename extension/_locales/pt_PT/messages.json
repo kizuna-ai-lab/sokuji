@@ -1,21 +1,21 @@
 {
   "extensionName": {
-    "message": "Sokuji - AI-powered Live Speech Translation for Online Meetings"
+    "message": "Sokuji - Tradução de Voz ao Vivo com IA para Reuniões Online"
   },
   "extensionDescription": {
-    "message": "AI-powered instant speech translation for all video meetings. Break language barriers with real-time voice translation."
+    "message": "Tradução instantânea de voz com IA para todas as videochamadas. Quebre barreiras linguísticas com tradução de voz em tempo real."
   },
   "popupTitle": {
-    "message": "Sokuji - Supported Sites"
+    "message": "Sokuji - Sites Suportados"
   },
   "openSokuji": {
-    "message": "Open Sokuji"
+    "message": "Abrir Sokuji"
   },
   "chromeWebStore": {
     "message": "Chrome Web Store"
   },
   "sokujiAvailable": {
-    "message": "✓ Sokuji is available on $SITE_NAME$!",
+    "message": "✓ Sokuji está disponível no $SITE_NAME$!",
     "placeholders": {
       "site_name": {
         "content": "$1",
@@ -24,19 +24,19 @@
     }
   },
   "clickToStart": {
-    "message": "Click \"Open Sokuji\" below to start real-time translation."
+    "message": "Clique em \"Abrir Sokuji\" abaixo para iniciar a tradução em tempo real."
   },
   "quickStart": {
-    "message": "Quick Start:"
+    "message": "Início Rápido:"
   },
   "quickStartInstructions": {
-    "message": "Configure your OpenAI API key → Select \"Sokuji_Virtual_Mic\" as microphone → Start speaking!"
+    "message": "Configure a sua chave API OpenAI → Seleccione \"Sokuji_Virtual_Mic\" como microfone → Comece a falar!"
   },
   "notSupported": {
-    "message": "⚠ Not supported on this site"
+    "message": "⚠ Não suportado neste site"
   },
   "currentlyOn": {
-    "message": "Currently on $HOSTNAME$. Sokuji works on these platforms:",
+    "message": "Actualmente em $HOSTNAME$. Sokuji funciona nestas plataformas:",
     "placeholders": {
       "hostname": {
         "content": "$1",
@@ -45,30 +45,30 @@
     }
   },
   "needMoreSites": {
-    "message": "Need support for more sites?"
+    "message": "Precisa de suporte para mais sites?"
   },
   "contactUs": {
-    "message": "Contact us at"
+    "message": "Contacte-nos em"
   },
   "contributeCode": {
-    "message": "contribute to our"
+    "message": "contribua para o nosso"
   },
   "openSourceProject": {
-    "message": "open source project"
+    "message": "projecto de código aberto"
   },
   "unableToDetect": {
-    "message": "⚠ Unable to detect current site"
+    "message": "⚠ Não foi possível detectar o site actual"
   },
   "refreshAndTry": {
-    "message": "Please refresh the page and try again."
+    "message": "Por favor, actualize a página e tente novamente."
   },
   "needMoreSitesShort": {
-    "message": "Need more sites?"
+    "message": "Precisa de mais sites?"
   },
   "contactUsShort": {
-    "message": "Contact us"
+    "message": "Contacte-nos"
   },
   "contributeCodeShort": {
-    "message": "contribute code"
+    "message": "contribuir código"
   }
 }

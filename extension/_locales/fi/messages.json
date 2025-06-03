@@ -1,21 +1,21 @@
 {
   "extensionName": {
-    "message": "Sokuji - AI-powered Live Speech Translation for Online Meetings"
+    "message": "Sokuji - AI-käyttöinen Live-puheenkäännös verkkokokouksiin"
   },
   "extensionDescription": {
-    "message": "AI-powered instant speech translation for all video meetings. Break language barriers with real-time voice translation."
+    "message": "AI-käyttöinen välitön puheenkäännös kaikille videokokouksille. Murra kieliesteet reaaliaikaisella äänenkäännöksellä."
   },
   "popupTitle": {
-    "message": "Sokuji - Supported Sites"
+    "message": "Sokuji - Tuetut sivustot"
   },
   "openSokuji": {
-    "message": "Open Sokuji"
+    "message": "Avaa Sokuji"
   },
   "chromeWebStore": {
-    "message": "Chrome Web Store"
+    "message": "Chrome-verkkokauppa"
   },
   "sokujiAvailable": {
-    "message": "✓ Sokuji is available on $SITE_NAME$!",
+    "message": "✓ Sokuji on saatavilla sivustolla $SITE_NAME$!",
     "placeholders": {
       "site_name": {
         "content": "$1",
@@ -24,19 +24,19 @@
     }
   },
   "clickToStart": {
-    "message": "Click \"Open Sokuji\" below to start real-time translation."
+    "message": "Napsauta \"Avaa Sokuji\" alla aloittaaksesi reaaliaikaisen käännöksen."
   },
   "quickStart": {
-    "message": "Quick Start:"
+    "message": "Pika-aloitus:"
   },
   "quickStartInstructions": {
-    "message": "Configure your OpenAI API key → Select \"Sokuji_Virtual_Mic\" as microphone → Start speaking!"
+    "message": "Määritä OpenAI API-avaimesi → Valitse \"Sokuji_Virtual_Mic\" mikrofoniksi → Aloita puhuminen!"
   },
   "notSupported": {
-    "message": "⚠ Not supported on this site"
+    "message": "⚠ Ei tuettu tällä sivustolla"
   },
   "currentlyOn": {
-    "message": "Currently on $HOSTNAME$. Sokuji works on these platforms:",
+    "message": "Tällä hetkellä sivustolla $HOSTNAME$. Sokuji toimii näillä alustoilla:",
     "placeholders": {
       "hostname": {
         "content": "$1",
@@ -45,30 +45,30 @@
     }
   },
   "needMoreSites": {
-    "message": "Need support for more sites?"
+    "message": "Tarvitsetko tukea useammille sivustoille?"
   },
   "contactUs": {
-    "message": "Contact us at"
+    "message": "Ota meihin yhteyttä osoitteessa"
   },
   "contributeCode": {
-    "message": "contribute to our"
+    "message": "osallistu"
   },
   "openSourceProject": {
-    "message": "open source project"
+    "message": "avoimen lähdekoodin projektiimme"
   },
   "unableToDetect": {
-    "message": "⚠ Unable to detect current site"
+    "message": "⚠ Nykyistä sivustoa ei voida tunnistaa"
   },
   "refreshAndTry": {
-    "message": "Please refresh the page and try again."
+    "message": "Päivitä sivu ja yritä uudelleen."
   },
   "needMoreSitesShort": {
-    "message": "Need more sites?"
+    "message": "Tarvitsetko lisää sivustoja?"
   },
   "contactUsShort": {
-    "message": "Contact us"
+    "message": "Ota yhteyttä"
   },
   "contributeCodeShort": {
-    "message": "contribute code"
+    "message": "osallistu koodiin"
   }
 }

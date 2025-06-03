@@ -1,21 +1,21 @@
 {
   "extensionName": {
-    "message": "Sokuji - AI-powered Live Speech Translation for Online Meetings"
+    "message": "Sokuji - AI-drevet Live Taleoversettelse for Nettmøter"
   },
   "extensionDescription": {
-    "message": "AI-powered instant speech translation for all video meetings. Break language barriers with real-time voice translation."
+    "message": "AI-drevet øyeblikkelig taleoversettelse for alle videomøter. Bryt språkbarrierer med sanntids stemmeoversettelse."
   },
   "popupTitle": {
-    "message": "Sokuji - Supported Sites"
+    "message": "Sokuji - Støttede Nettsteder"
   },
   "openSokuji": {
-    "message": "Open Sokuji"
+    "message": "Åpne Sokuji"
   },
   "chromeWebStore": {
-    "message": "Chrome Web Store"
+    "message": "Chrome Nettbutikk"
   },
   "sokujiAvailable": {
-    "message": "✓ Sokuji is available on $SITE_NAME$!",
+    "message": "✓ Sokuji er tilgjengelig på $SITE_NAME$!",
     "placeholders": {
       "site_name": {
         "content": "$1",
@@ -24,19 +24,19 @@
     }
   },
   "clickToStart": {
-    "message": "Click \"Open Sokuji\" below to start real-time translation."
+    "message": "Klikk \"Åpne Sokuji\" nedenfor for å starte sanntidsoversettelse."
   },
   "quickStart": {
-    "message": "Quick Start:"
+    "message": "Hurtigstart:"
   },
   "quickStartInstructions": {
-    "message": "Configure your OpenAI API key → Select \"Sokuji_Virtual_Mic\" as microphone → Start speaking!"
+    "message": "Konfigurer din OpenAI API-nøkkel → Velg \"Sokuji_Virtual_Mic\" som mikrofon → Begynn å snakke!"
   },
   "notSupported": {
-    "message": "⚠ Not supported on this site"
+    "message": "⚠ Ikke støttet på dette nettstedet"
   },
   "currentlyOn": {
-    "message": "Currently on $HOSTNAME$. Sokuji works on these platforms:",
+    "message": "For øyeblikket på $HOSTNAME$. Sokuji fungerer på disse plattformene:",
     "placeholders": {
       "hostname": {
         "content": "$1",
@@ -45,30 +45,30 @@
     }
   },
   "needMoreSites": {
-    "message": "Need support for more sites?"
+    "message": "Trenger du støtte for flere nettsteder?"
   },
   "contactUs": {
-    "message": "Contact us at"
+    "message": "Kontakt oss på"
   },
   "contributeCode": {
-    "message": "contribute to our"
+    "message": "bidra til vårt"
   },
   "openSourceProject": {
-    "message": "open source project"
+    "message": "åpen kildekode-prosjekt"
   },
   "unableToDetect": {
-    "message": "⚠ Unable to detect current site"
+    "message": "⚠ Kan ikke oppdage gjeldende nettsted"
   },
   "refreshAndTry": {
-    "message": "Please refresh the page and try again."
+    "message": "Vennligst oppdater siden og prøv igjen."
   },
   "needMoreSitesShort": {
-    "message": "Need more sites?"
+    "message": "Trenger flere nettsteder?"
   },
   "contactUsShort": {
-    "message": "Contact us"
+    "message": "Kontakt oss"
   },
   "contributeCodeShort": {
-    "message": "contribute code"
+    "message": "bidra kode"
   }
 }

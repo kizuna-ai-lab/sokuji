@@ -77,8 +77,6 @@ Sokuji goes beyond basic translation by offering a complete audio routing soluti
 11. **Noise reduction options** (None, Near field, Far field)
 12. **API key validation** with real-time feedback
 13. **Configuration persistence** in user's home directory
-14. **Multi-channel audio support** (stereo)
-15. **Push-to-talk functionality** with Space key shortcut
 
 # Audio Routing
 
