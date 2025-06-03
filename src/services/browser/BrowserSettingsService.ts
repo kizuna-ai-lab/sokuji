@@ -1,4 +1,5 @@
 import { ISettingsService, SettingsOperationResult, ApiKeyValidationResult } from '../interfaces/ISettingsService';
+import i18n from '../../locales';
 
 /**
  * Browser implementation of the Settings Service
@@ -42,12 +43,12 @@ export class BrowserSettingsService implements ISettingsService {
             resolve({
               success: false,
               // @ts-ignore - Chrome API is defined in global scope for extensions
-              error: chrome.runtime.lastError.message || `Failed to save setting: ${key}`
+              error: chrome.runtime.lastError.message || i18n.t('settings.failedToSaveSetting', { key })
             });
           } else {
             resolve({
               success: true,
-              message: `Successfully saved setting: ${key}`
+              message: i18n.t('settings.settingSavedSuccessfully', { key })
             });
           }
         });
@@ -55,7 +56,7 @@ export class BrowserSettingsService implements ISettingsService {
     } catch (error: any) {
       return {
         success: false,
-        error: error.message || `Failed to save setting: ${key}`
+        error: error.message || i18n.t('settings.failedToSaveSetting', { key })
       };
     }
   }
@@ -115,12 +116,12 @@ export class BrowserSettingsService implements ISettingsService {
             resolve({
               success: false,
               // @ts-ignore - Chrome API is defined in global scope for extensions
-              error: chrome.runtime.lastError.message || 'Failed to save all settings'
+              error: chrome.runtime.lastError.message || i18n.t('settings.failedToSaveSettings')
             });
           } else {
             resolve({
               success: true,
-              message: 'Successfully saved all settings'
+              message: i18n.t('settings.settingsSavedSuccessfully')
             });
           }
         });
@@ -128,7 +129,7 @@ export class BrowserSettingsService implements ISettingsService {
     } catch (error: any) {
       return {
         success: false,
-        error: error.message || 'Failed to save all settings'
+        error: error.message || i18n.t('settings.failedToSaveSettings')
       };
     }
   }
@@ -149,7 +150,7 @@ export class BrowserSettingsService implements ISettingsService {
       if (!apiKey || apiKey.trim() === '') {
         return {
           valid: false,
-          message: 'API key cannot be empty',
+          message: i18n.t('settings.errorValidatingApiKey'),
           validating: false
         };
       }
@@ -167,21 +168,21 @@ export class BrowserSettingsService implements ISettingsService {
       if (response.status === 200) {
         return {
           valid: true,
-          message: 'API key is valid',
+          message: i18n.t('settings.apiKeyValidationCompleted'),
           validating: false
         };
       } else {
         const errorData = await response.json().catch(() => ({}));
         return {
           valid: false,
-          message: errorData.error?.message || `API key validation failed with status ${response.status}`,
+          message: errorData.error?.message || i18n.t('settings.errorValidatingApiKey'),
           validating: false
         };
       }
     } catch (error: any) {
       return {
         valid: false,
-        message: error.message || 'Error validating API key',
+        message: error.message || i18n.t('settings.errorValidatingApiKey'),
         validating: false
       };
     }
