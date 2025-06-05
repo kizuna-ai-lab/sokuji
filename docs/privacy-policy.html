@@ -54,6 +54,23 @@
         .section {
             margin-bottom: 30px;
         }
+        .highlight {
+            background-color: #f8f9fa;
+            border-left: 4px solid #3498db;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        .privacy-guarantee {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        .privacy-guarantee h4 {
+            color: #155724;
+            margin-top: 0;
+        }
         footer {
             margin-top: 50px;
             text-align: center;
@@ -69,12 +86,24 @@
         <div class="header">
             <img src="https://github.com/kizuna-ai-lab/sokuji/raw/main/src/assets/logo.png" alt="Sokuji Logo">
             <h1>Sokuji Extension Privacy Policy</h1>
-            <p class="last-updated">Last Updated: May 11, 2025</p>
+            <p class="last-updated">Last Updated: June 3, 2025</p>
         </div>
 
         <div class="section">
             <h2>Introduction</h2>
-            <p>Sokuji Extension ("we", "our", or "us") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our browser extension. Please read this privacy policy carefully. If you do not agree with the terms of this privacy policy, please do not access the extension.</p>
+            <p>Sokuji Extension ("we", "our", or "us") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our browser extension and desktop application. Please read this privacy policy carefully. If you do not agree with the terms of this privacy policy, please do not access the extension.</p>
+        </div>
+
+        <div class="privacy-guarantee">
+            <h4>🔒 Our Privacy Guarantee</h4>
+            <p><strong>We NEVER collect, store, or transmit:</strong></p>
+            <ul>
+                <li>Audio recordings or voice content</li>
+                <li>Translation text or conversation content</li>
+                <li>Personal information (names, emails, addresses)</li>
+                <li>Location data or IP addresses</li>
+                <li>Any sensitive or personally identifiable information</li>
+            </ul>
         </div>
 
         <div class="section">
@@ -83,13 +112,26 @@
             <h3>User-Provided Information</h3>
             <ul>
                 <li><strong>OpenAI API Key</strong>: You provide your own OpenAI API key which is stored locally on your device.</li>
-                <li><strong>Audio Content</strong>: The extension processes audio from your microphone when you actively use the interpretation feature.</li>
+                <li><strong>Audio Content</strong>: The extension processes audio from your microphone when you actively use the interpretation feature. This audio is processed in real-time and is not stored.</li>
                 <li><strong>Configuration Settings</strong>: Your preferences for language models, voice settings, and other configuration options.</li>
             </ul>
             
+            <h3>Analytics Data (Optional)</h3>
+            <div class="highlight">
+                <p><strong>With your explicit consent</strong>, we collect anonymous usage analytics to improve Sokuji:</p>
+                <ul>
+                    <li><strong>App Usage Patterns</strong>: Which features you use and how often</li>
+                    <li><strong>Performance Metrics</strong>: App startup time, translation latency, and error rates</li>
+                    <li><strong>Device Information</strong>: Operating system, device type (anonymized)</li>
+                    <li><strong>Language Preferences</strong>: Source and target language selections</li>
+                    <li><strong>Settings Changes</strong>: When you modify app settings (not the content of settings)</li>
+                </ul>
+                <p><em>You can opt-out of analytics at any time through the app settings.</em></p>
+            </div>
+            
             <h3>Automatically Collected Information</h3>
             <ul>
-                <li><strong>Technical Data</strong>: Basic usage statistics to improve the extension's functionality.</li>
+                <li><strong>Technical Data</strong>: Basic usage statistics to improve the extension's functionality (only with consent).</li>
                 <li><strong>Extension State</strong>: Information about the extension's current state (active/inactive) on specific tabs.</li>
             </ul>
         </div>
@@ -101,7 +143,45 @@
                 <li>To provide real-time language interpretation services</li>
                 <li>To create and manage virtual audio devices for communication applications</li>
                 <li>To save your preferences and settings between sessions</li>
-                <li>To improve and optimize the extension's performance</li>
+                <li>To improve and optimize the extension's performance (with your consent)</li>
+                <li>To understand user behavior and improve the user experience (with your consent)</li>
+                <li>To identify and fix bugs and performance issues (with your consent)</li>
+            </ul>
+        </div>
+
+        <div class="section">
+            <h2>Analytics and Tracking</h2>
+            
+            <h3>PostHog Analytics</h3>
+            <p>We use PostHog, a privacy-focused analytics platform, to understand how users interact with Sokuji. This helps us improve the application and fix issues.</p>
+            
+            <div class="highlight">
+                <h4>Your Control Over Analytics</h4>
+                <ul>
+                    <li><strong>Explicit Consent Required</strong>: Analytics are only enabled after you explicitly consent</li>
+                    <li><strong>Easy Opt-Out</strong>: You can disable analytics at any time in the app settings</li>
+                    <li><strong>Granular Control</strong>: Choose what types of data you're comfortable sharing</li>
+                    <li><strong>GDPR Compliant</strong>: Full compliance with European privacy regulations</li>
+                </ul>
+            </div>
+            
+            <h3>What Analytics Data Includes</h3>
+            <ul>
+                <li>Feature usage frequency and patterns</li>
+                <li>App performance metrics (startup time, memory usage)</li>
+                <li>Error reports and crash information (anonymized)</li>
+                <li>Language pair preferences and usage statistics</li>
+                <li>Device type and operating system (anonymized)</li>
+            </ul>
+            
+            <h3>What Analytics Data NEVER Includes</h3>
+            <ul>
+                <li>❌ Audio recordings or voice content</li>
+                <li>❌ Translation text or conversation content</li>
+                <li>❌ Personal information or identifiers</li>
+                <li>❌ IP addresses or location data</li>
+                <li>❌ OpenAI API keys or credentials</li>
+                <li>❌ Any sensitive or private information</li>
             </ul>
         </div>
 
@@ -112,12 +192,15 @@
             <ul>
                 <li>All user data, including your OpenAI API key and configuration settings, is stored locally on your device using the browser's secure storage mechanisms.</li>
                 <li>No user data is stored on our servers.</li>
+                <li>Analytics consent preferences are stored locally on your device.</li>
             </ul>
             
             <h3>Data Transmission</h3>
             <ul>
                 <li>Audio data is transmitted directly from your browser to OpenAI's servers using your provided API key.</li>
+                <li>Analytics data (if consented) is transmitted to PostHog's secure servers.</li>
                 <li>All data transmission occurs over secure HTTPS connections.</li>
+                <li>No audio or translation content is ever transmitted to our analytics servers.</li>
             </ul>
         </div>
 
@@ -130,6 +213,14 @@
                 <li>This transmission is governed by <a href="https://openai.com/policies/privacy-policy" target="_blank">OpenAI's Privacy Policy</a>.</li>
                 <li>Your use of OpenAI's services through our extension is subject to OpenAI's terms of service.</li>
             </ul>
+            
+            <h3>PostHog Analytics (Optional)</h3>
+            <ul>
+                <li>If you consent to analytics, anonymous usage data is sent to PostHog for analysis.</li>
+                <li>PostHog is a privacy-focused analytics platform with strong data protection measures.</li>
+                <li>PostHog's data handling is governed by their <a href="https://posthog.com/privacy" target="_blank">Privacy Policy</a>.</li>
+                <li>You can opt-out of PostHog analytics at any time through the app settings.</li>
+            </ul>
         </div>
 
         <div class="section">
@@ -137,42 +228,78 @@
             <ul>
                 <li>Your configuration data is retained locally on your device until you uninstall the extension or clear your browser data.</li>
                 <li>Audio data is processed in real-time and is not persistently stored by the extension.</li>
+                <li>Analytics data (if consented) is retained by PostHog according to their retention policy (typically 7 years, configurable).</li>
                 <li>OpenAI may retain data according to their privacy policy.</li>
+                <li>You can request deletion of your analytics data by contacting us.</li>
             </ul>
         </div>
 
         <div class="section">
-            <h2>User Rights</h2>
+            <h2>User Rights and Control</h2>
             <p>You have the right to:</p>
             <ul>
                 <li>Access, update, or delete your information stored locally by the extension</li>
-                <li>Opt-out of any future communications from us</li>
+                <li>Opt-out of analytics tracking at any time through the app settings</li>
+                <li>Request deletion of any analytics data we may have collected</li>
                 <li>Be informed of how your data is being used</li>
+                <li>Withdraw consent for analytics tracking without affecting core app functionality</li>
+                <li>Export your local settings and preferences</li>
+            </ul>
+            
+            <div class="highlight">
+                <h4>Managing Your Privacy Settings</h4>
+                <p>To manage your analytics preferences:</p>
+                <ol>
+                    <li>Open Sokuji application</li>
+                    <li>Go to Settings → Privacy</li>
+                    <li>Toggle "Analytics & Usage Data" on or off</li>
+                    <li>Changes take effect immediately</li>
+                </ol>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>GDPR Compliance</h2>
+            <p>For users in the European Union, we ensure full compliance with the General Data Protection Regulation (GDPR):</p>
+            <ul>
+                <li><strong>Lawful Basis</strong>: Analytics data collection is based on your explicit consent</li>
+                <li><strong>Data Minimization</strong>: We only collect data necessary for improving the application</li>
+                <li><strong>Purpose Limitation</strong>: Data is only used for the purposes stated in this policy</li>
+                <li><strong>Right to Erasure</strong>: You can request deletion of your data at any time</li>
+                <li><strong>Data Portability</strong>: You can export your local settings and preferences</li>
+                <li><strong>Transparent Processing</strong>: This policy clearly explains all data processing activities</li>
             </ul>
         </div>
 
         <div class="section">
             <h2>Children's Privacy</h2>
-            <p>Our extension is not intended for children under 13 years of age. We do not knowingly collect personal information from children under 13.</p>
+            <p>Our extension is not intended for children under 13 years of age. We do not knowingly collect personal information from children under 13. If you are a parent or guardian and believe your child has provided us with personal information, please contact us immediately.</p>
         </div>
 
         <div class="section">
             <h2>Changes to This Privacy Policy</h2>
-            <p>We may update our Privacy Policy from time to time. We will notify you of any changes by posting the new Privacy Policy on this page and updating the "Last Updated" date.</p>
+            <p>We may update our Privacy Policy from time to time. We will notify you of any changes by:</p>
+            <ul>
+                <li>Posting the new Privacy Policy on this page</li>
+                <li>Updating the "Last Updated" date</li>
+                <li>Showing an in-app notification for significant changes</li>
+                <li>Requesting renewed consent for analytics if data collection practices change</li>
+            </ul>
         </div>
 
         <div class="section">
             <h2>Contact Us</h2>
-            <p>If you have any questions or suggestions about our Privacy Policy, do not hesitate to contact us at:</p>
+            <p>If you have any questions or suggestions about our Privacy Policy, or if you want to exercise your privacy rights, do not hesitate to contact us at:</p>
             <ul>
                 <li>Email: <a href="mailto:contact@kizuna.ai">contact@kizuna.ai</a></li>
                 <li>GitHub: <a href="https://github.com/kizuna-ai-lab/sokuji" target="_blank">https://github.com/kizuna-ai-lab/sokuji</a></li>
+                <li>Privacy Requests: <a href="mailto:privacy@kizuna.ai">privacy@kizuna.ai</a></li>
             </ul>
         </div>
 
         <div class="section">
             <h2>Consent</h2>
-            <p>By using our extension, you hereby consent to our Privacy Policy and agree to its terms.</p>
+            <p>By using our extension, you hereby consent to our Privacy Policy and agree to its terms. For analytics data collection, we will request separate, explicit consent through the application interface.</p>
         </div>
 
         <footer>
