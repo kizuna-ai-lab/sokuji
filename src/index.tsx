@@ -8,11 +8,6 @@ import { PostHogProvider } from 'posthog-js/react';
 import posthog from 'posthog-js';
 import packageInfo from '../package.json';
 
-const options = {
-  api_host: import.meta.env.VITE_PUBLIC_POSTHOG_HOST,
-  debug: import.meta.env.DEV,
-}
-
 // Only initialize PostHog if we have the required environment variables
 const shouldInitializePostHog = 
   import.meta.env.VITE_PUBLIC_POSTHOG_KEY && 
@@ -20,7 +15,9 @@ const shouldInitializePostHog =
 
 // Initialize PostHog with Super Properties if enabled
 if (shouldInitializePostHog) {
-  posthog.init(import.meta.env.VITE_PUBLIC_POSTHOG_KEY, options);
+  posthog.init(import.meta.env.VITE_PUBLIC_POSTHOG_KEY, {
+    api_host: import.meta.env.VITE_PUBLIC_POSTHOG_HOST,
+  });
   
   // Set Super Properties that will be included with every event
   posthog.register({
