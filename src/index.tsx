@@ -7,6 +7,27 @@ import reportWebVitals from './reportWebVitals';
 import { PostHogProvider } from 'posthog-js/react';
 import packageInfo from '../package.json';
 
+// Platform detection utility - distinguishes between app and extension
+const getPlatform = (): string => {
+  // Check if running as Chrome extension
+  const chromeAPI = (window as any).chrome;
+  if (typeof chromeAPI !== 'undefined' && chromeAPI.runtime && chromeAPI.runtime.id) {
+    return 'extension';
+  }
+  
+  // Check if running in Electron (desktop app)
+  const isElectron = (window as any).electronAPI || 
+                     (window as any).require || 
+                     navigator.userAgent.includes('Electron');
+  
+  if (isElectron) {
+    return 'app';
+  }
+  
+  // Default to web if neither extension nor app
+  return 'web';
+};
+
 const options = {
   api_host: import.meta.env.VITE_PUBLIC_POSTHOG_HOST,
   debug: import.meta.env.DEV,
@@ -20,6 +41,7 @@ const options = {
     posthog.register({
       app_version: packageInfo.version,
       environment: import.meta.env.DEV ? 'development' : 'production',
+      platform: getPlatform(),
       user_agent: navigator.userAgent,
     });
     
