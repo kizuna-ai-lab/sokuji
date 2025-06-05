@@ -1,4 +1,4 @@
-# PostHog Analytics Integration
+# App Analytics Integration
 
 This document outlines the PostHog analytics integration for the Sokuji React application.
 
@@ -35,7 +35,7 @@ The application automatically sets the following Super Properties that are inclu
 
 - `app_version`: Application version from package.json (e.g., "0.4.2")
 - `environment`: "development" or "production" based on build mode
-- `platform`: "web" (constant for web application)
+- `platform`: Dynamically detected platform ("app", "extension", or "web")
 - `user_agent`: Browser user agent string
 
 These properties are set once during initialization and automatically included with all subsequent events, eliminating the need to pass them with each tracking call.
