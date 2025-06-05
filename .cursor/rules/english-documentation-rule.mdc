@@ -1,14 +1,8 @@
 ---
 description: 
-globs: 
+globs: .js, .jsx, .ts, .tsx, .py, .java, .cpp, .c, .h, .hpp, .cs, .php, .rb, .go, .rs, .swift, .kt, .scala, .md, .mdx, .vue, .svelte
 alwaysApply: false
 ---
----
-description: Always write documentation and comments in English for international collaboration
-globs: ["**/*.{js,jsx,ts,tsx,py,java,cpp,c,h,hpp,cs,php,rb,go,rs,swift,kt,scala,md,mdx,vue,svelte}"]
-alwaysApply: false
----
-
 # English Documentation and Comments Rule
 
 Always write all documentation and comments in English, regardless of the developer's native language or project context.
