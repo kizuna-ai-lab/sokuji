@@ -4,7 +4,7 @@
 /* global chrome */
 
 // Uninstall feedback URL - placeholder for survey form
-const UNINSTALL_FEEDBACK_URL = 'https://sokuji.kizuna.ai/uninstall_feedback';
+const UNINSTALL_FEEDBACK_URL = 'https://kizuna-ai-lab.github.io/sokuji/uninstall_feedback.html';
 
 // Default configuration values
 const DEFAULT_CONFIG = {
