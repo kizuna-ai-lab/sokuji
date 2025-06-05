@@ -20,6 +20,7 @@
     "@types/node": "^16.18.108",
     "@types/react": "^18.3.5",
     "@types/react-dom": "^18.3.0",
+    "@types/uuid": "^10.0.0",
     "dotenv": "^16.4.5",
     "electron-squirrel-startup": "^1.0.1",
     "i18next": "^25.2.1",
@@ -32,6 +33,7 @@
     "react-i18next": "^15.5.2",
     "sass": "^1.78.0",
     "save": "^2.9.0",
+    "uuid": "^11.1.0",
     "web-vitals": "^2.1.4",
     "ws": "^8.18.0"
   },
