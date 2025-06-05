@@ -1,5 +1,5 @@
 import { usePostHog } from 'posthog-js/react';
-import { isDevelopment } from '../config/analytics';
+import { isDevelopment, getPlatform } from '../config/analytics';
 
 // Analytics event types based on the GitHub issue requirements
 export interface AnalyticsEvents {
@@ -79,7 +79,7 @@ export interface AnalyticsEvents {
   };
 }
 
-// Sensitive data patterns to exclude from analytics
+// Sensitive fields that should be excluded from analytics
 const SENSITIVE_FIELDS = [
   'email', 'phone', 'address', 'ip', 'password', 'token',
   'audio_content', 'translation_text', 'user_input', 'api_key'
@@ -98,6 +98,42 @@ function sanitizeData(data: Record<string, any>): Record<string, any> {
   return sanitized;
 }
 
+// Function to sync PostHog distinct_id to background script in extension environment
+export async function syncDistinctIdToBackground(posthogInstance?: any): Promise<void> {
+  // Only run in extension environment
+  if (getPlatform() !== 'extension') {
+    return;
+  }
+
+  try {
+    // Get PostHog distinct_id from provided posthog instance
+    let distinctId = null;
+    
+    if (posthogInstance && typeof posthogInstance.get_distinct_id === 'function') {
+      distinctId = posthogInstance.get_distinct_id();
+      console.debug('[Sokuji] [Analytics] Retrieved distinct_id from PostHog instance');
+    } else {
+      console.debug('[Sokuji] [Analytics] PostHog instance not available or get_distinct_id not found');
+    }
+    
+    // Send message to background script to update uninstall URL
+    (window as any).chrome.runtime.sendMessage({
+      type: 'UPDATE_UNINSTALL_URL',
+      distinct_id: distinctId
+    }, (response: any) => {
+      if ((window as any).chrome.runtime.lastError) {
+        console.error('[Sokuji] [Analytics] Error syncing distinct_id to background:', (window as any).chrome.runtime.lastError);
+      } else if (response?.success) {
+        console.debug('[Sokuji] [Analytics] Successfully synced distinct_id to background script');
+      } else {
+        console.warn('[Sokuji] [Analytics] Background script returned unsuccessful response');
+      }
+    });
+  } catch (error) {
+    console.error('[Sokuji] [Analytics] Error syncing distinct_id to background:', error);
+  }
+}
+
 // Custom hook for analytics
 export function useAnalytics() {
   const posthog = usePostHog();
@@ -110,9 +146,15 @@ export function useAnalytics() {
       if (posthog) {
         const sanitizedProperties = sanitizeData(properties as Record<string, any>);
         posthog.capture(eventName, sanitizedProperties);
+        
+        // Sync distinct_id to background script after tracking events
+        // Use a small delay to ensure PostHog has processed the event
+        setTimeout(() => {
+          syncDistinctIdToBackground(posthog);
+        }, 100);
       }
     } catch (error) {
-      console.error('Analytics tracking error:', error);
+      console.error('[Sokuji] [Analytics] Analytics tracking error:', error);
     }
   };
 
@@ -121,9 +163,14 @@ export function useAnalytics() {
       if (posthog) {
         const sanitizedTraits = traits ? sanitizeData(traits) : {};
         posthog.identify(userId, sanitizedTraits);
+        
+        // Sync distinct_id to background script after identifying user
+        setTimeout(() => {
+          syncDistinctIdToBackground(posthog);
+        }, 100);
       }
     } catch (error) {
-      console.error('User identification error:', error);
+      console.error('[Sokuji] [Analytics] User identification error:', error);
     }
   };
 
@@ -134,7 +181,7 @@ export function useAnalytics() {
         posthog.people.set(sanitizedProperties);
       }
     } catch (error) {
-      console.error('Set user properties error:', error);
+      console.error('[Sokuji] [Analytics] Set user properties error:', error);
     }
   };
 
@@ -142,14 +189,14 @@ export function useAnalytics() {
   const enableCapturing = () => {
     if (isDevelopment() && posthog) {
       posthog.opt_in_capturing();
-      console.debug('PostHog capturing enabled for development');
+      console.debug('[Sokuji] [Analytics] PostHog capturing enabled for development');
     }
   };
 
   const disableCapturing = () => {
     if (isDevelopment() && posthog) {
       posthog.opt_out_capturing();
-      console.debug('PostHog capturing disabled for development');
+      console.debug('[Sokuji] [Analytics] PostHog capturing disabled for development');
     }
   };
 
@@ -157,10 +204,28 @@ export function useAnalytics() {
     return posthog ? !posthog.has_opted_out_capturing() : false;
   };
 
+  // Helper function to get current distinct_id
+  const getDistinctId = () => {
+    try {
+      if (posthog && posthog.get_distinct_id) {
+        return posthog.get_distinct_id();
+      }
+      return null;
+    } catch (error) {
+      console.error('[Sokuji] [Analytics] Error getting distinct_id:', error);
+      return null;
+    }
+  };
+
+  // Sync function that uses the current posthog instance
+  const syncDistinctId = () => syncDistinctIdToBackground(posthog);
+
   return {
     trackEvent,
     identifyUser,
     setUserProperties,
+    syncDistinctIdToBackground: syncDistinctId,
+    getDistinctId,
     // Development helpers (only available in development)
     ...(isDevelopment() && {
       enableCapturing,
