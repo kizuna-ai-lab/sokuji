@@ -20,7 +20,6 @@ const options = {
     posthog.register({
       app_version: packageInfo.version,
       environment: import.meta.env.DEV ? 'development' : 'production',
-      platform: 'web',
       user_agent: navigator.userAgent,
     });
     
