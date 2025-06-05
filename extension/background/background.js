@@ -1,7 +1,10 @@
 // Background script for Sokuji browser extension
-// This script handles configuration storage and API communication
+// This script handles configuration storage, API communication, and uninstall feedback
 
 /* global chrome */
+
+// Uninstall feedback URL - placeholder for survey form
+const UNINSTALL_FEEDBACK_URL = 'https://sokuji.kizuna.ai/uninstall_feedback';
 
 // Default configuration values
 const DEFAULT_CONFIG = {
@@ -43,6 +46,12 @@ chrome.runtime.onInstalled.addListener(async () => {
     if (!result.config) {
       await chrome.storage.local.set({ config: DEFAULT_CONFIG });
       console.debug('[Sokuji] [Background] Default configuration initialized');
+    }
+    
+    // Set up uninstall URL for feedback collection
+    if (chrome.runtime.setUninstallURL) {
+      chrome.runtime.setUninstallURL(UNINSTALL_FEEDBACK_URL);
+      console.debug('[Sokuji] [Background] Uninstall feedback URL configured:', UNINSTALL_FEEDBACK_URL);
     }
   } catch (error) {
     console.error('[Sokuji] [Background] Error initializing configuration:', error);
