@@ -15,7 +15,7 @@ const loadStyles = async () => {
     try {
       await import('../src/App.scss' as any);
     } catch (e2) {
-      console.warn('Could not load styles:', e2);
+              console.warn('[Sokuji] Could not load styles:', e2);
     }
   }
 };
@@ -57,7 +57,20 @@ const PostHogOptions = async () => {
       if (isDevelopment()) {
         // You can manually opt in during development by calling:
         // posthog.opt_in_capturing();
-        console.debug('PostHog initialized in development mode - capturing is opt-out by default');
+        console.debug('[Sokuji] PostHog initialized in development mode - capturing is opt-out by default');
+      }
+      
+      // Sync distinct_id to background script in extension environment
+      if (getPlatform() === 'extension') {
+        // Import and call sync function
+        import('../src/lib/analytics').then(({ syncDistinctIdToBackground }) => {
+          // Small delay to ensure PostHog is fully initialized
+          setTimeout(() => {
+            syncDistinctIdToBackground(posthog);
+          }, 500);
+        }).catch(error => {
+          console.warn('[Sokuji] [PostHog] Could not sync distinct_id to background script:', error.message);
+        });
       }
     }
   };

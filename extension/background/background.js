@@ -4,7 +4,7 @@
 /* global chrome */
 
 // Uninstall feedback URL - placeholder for survey form
-const UNINSTALL_FEEDBACK_URL = 'https://kizuna-ai-lab.github.io/sokuji/uninstall_feedback.html';
+const UNINSTALL_FEEDBACK_BASE_URL = 'https://kizuna-ai-lab.github.io/sokuji/uninstall_feedback.html';
 
 // Default configuration values
 const DEFAULT_CONFIG = {
@@ -35,6 +35,62 @@ const ENABLED_SITES = [
 // Track which tabs have the side panel open
 const tabsWithSidePanelOpen = new Set();
 
+// Store PostHog distinct_id received from frontend
+let currentDistinctId = null;
+
+// Function to get stored distinct_id
+async function getStoredDistinctId() {
+  try {
+    const result = await chrome.storage.local.get('posthog_distinct_id');
+    return result.posthog_distinct_id || null;
+  } catch (error) {
+    console.error('[Sokuji] [Background] Error getting stored distinct_id:', error);
+    return null;
+  }
+}
+
+// Function to store distinct_id
+async function storeDistinctId(distinctId) {
+  try {
+    await chrome.storage.local.set({ posthog_distinct_id: distinctId });
+    currentDistinctId = distinctId;
+    console.debug('[Sokuji] [Background] Stored distinct_id');
+    return true;
+  } catch (error) {
+    console.error('[Sokuji] [Background] Error storing distinct_id:', error);
+    return false;
+  }
+}
+
+// Function to update uninstall URL with distinct_id
+async function updateUninstallURL(distinctId = null) {
+  try {
+    // Use provided distinctId or get from storage
+    const activeDistinctId = distinctId || currentDistinctId || await getStoredDistinctId();
+    let uninstallUrl = UNINSTALL_FEEDBACK_BASE_URL;
+    
+    if (activeDistinctId) {
+      // Add distinct_id as URL parameter
+      const url = new URL(uninstallUrl);
+      url.searchParams.set('distinct_id', activeDistinctId);
+      uninstallUrl = url.toString();
+      console.debug('[Sokuji] [Background] Updated uninstall URL with distinct_id');
+    } else {
+      console.debug('[Sokuji] [Background] No distinct_id available, using base uninstall URL');
+    }
+    
+    if (chrome.runtime.setUninstallURL) {
+      chrome.runtime.setUninstallURL(uninstallUrl);
+      console.debug('[Sokuji] [Background] Uninstall feedback URL configured');
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('[Sokuji] [Background] Error updating uninstall URL:', error);
+    return false;
+  }
+}
+
 // Remove automatic side panel opening behavior - now handled by popup
 // chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true })
 //   .catch((error) => console.error('[Sokuji] [Background] Error setting panel behavior:', error));
@@ -49,10 +105,7 @@ chrome.runtime.onInstalled.addListener(async () => {
     }
     
     // Set up uninstall URL for feedback collection
-    if (chrome.runtime.setUninstallURL) {
-      chrome.runtime.setUninstallURL(UNINSTALL_FEEDBACK_URL);
-      console.debug('[Sokuji] [Background] Uninstall feedback URL configured:', UNINSTALL_FEEDBACK_URL);
-    }
+    await updateUninstallURL();
   } catch (error) {
     console.error('[Sokuji] [Background] Error initializing configuration:', error);
   }
@@ -148,6 +201,31 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   
   if (message.type === 'OPEN_SIDE_PANEL') {
     handleOpenSidePanel(message.tabId).then(sendResponse);
+    return true; // Indicates async response
+  }
+  
+  if (message.type === 'UPDATE_UNINSTALL_URL') {
+    // Handle distinct_id from frontend
+    const distinctId = message.distinct_id;
+    if (distinctId) {
+      // Store the distinct_id and update uninstall URL
+      storeDistinctId(distinctId).then(() => {
+        return updateUninstallURL(distinctId);
+      }).then(() => {
+        sendResponse({ success: true });
+      }).catch(error => {
+        console.error('[Sokuji] [Background] Error handling distinct_id update:', error);
+        sendResponse({ success: false, error: error.message });
+      });
+    } else {
+      // Just update with existing distinct_id
+      updateUninstallURL().then(() => {
+        sendResponse({ success: true });
+      }).catch(error => {
+        console.error('[Sokuji] [Background] Error updating uninstall URL:', error);
+        sendResponse({ success: false, error: error.message });
+      });
+    }
     return true; // Indicates async response
   }
 });
