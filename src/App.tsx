@@ -5,18 +5,14 @@ import MainLayout from './components/MainLayout/MainLayout';
 import { LogProvider } from './contexts/LogContext';
 import { SettingsProvider } from './contexts/SettingsContext';
 import { AudioProvider } from './contexts/AudioContext';
-import { AnalyticsConsentBanner } from './components/AnalyticsConsent';
 import { useAnalytics } from './lib/analytics';
 
 function App() {
   const { trackEvent } = useAnalytics();
 
   useEffect(() => {
-    // Track app startup
-    trackEvent('app_startup', {
-      version: '1.0.0', // TODO: Get from package.json
-      platform: navigator.platform || 'unknown'
-    });
+    // Track app startup - version, platform, environment are automatically included via Super Properties
+    trackEvent('app_startup', {});
 
     // Track app shutdown on beforeunload
     const handleBeforeUnload = () => {
@@ -48,7 +44,6 @@ function App() {
         <LogProvider>
           <AudioProvider>
             <MainLayout />
-            <AnalyticsConsentBanner />
           </AudioProvider>
         </LogProvider>
       </SettingsProvider>

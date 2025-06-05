@@ -5,44 +5,40 @@ import './index.scss';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
 import { PostHogProvider } from 'posthog-js/react';
-import { AnalyticsConsent } from './lib/analytics';
+import posthog from 'posthog-js';
+import packageInfo from '../package.json';
 
 const options = {
   api_host: import.meta.env.VITE_PUBLIC_POSTHOG_HOST,
-  // Disable automatic tracking until consent is granted
-  autocapture: false,
-  capture_pageview: false,
-  disable_session_recording: !AnalyticsConsent.hasConsent(),
-  opt_out_capturing_by_default: !AnalyticsConsent.hasConsent(),
-  // Privacy settings
-  mask_all_text: true,
-  mask_all_element_attributes: true,
-  // Performance settings
-  loaded: (posthog: any) => {
-    if (AnalyticsConsent.hasConsent()) {
-      posthog.opt_in_capturing();
-    } else {
-      posthog.opt_out_capturing();
-    }
-  }
+  debug: import.meta.env.DEV,
 }
-
-const root = ReactDOM.createRoot(
-  document.getElementById('root') as HTMLElement
-);
 
 // Only initialize PostHog if we have the required environment variables
 const shouldInitializePostHog = 
   import.meta.env.VITE_PUBLIC_POSTHOG_KEY && 
   import.meta.env.VITE_PUBLIC_POSTHOG_HOST;
 
+// Initialize PostHog with Super Properties if enabled
+if (shouldInitializePostHog) {
+  posthog.init(import.meta.env.VITE_PUBLIC_POSTHOG_KEY, options);
+  
+  // Set Super Properties that will be included with every event
+  posthog.register({
+    app_version: packageInfo.version,
+    environment: import.meta.env.DEV ? 'development' : 'production',
+    platform: 'web',
+    user_agent: navigator.userAgent,
+  });
+}
+
+const root = ReactDOM.createRoot(
+  document.getElementById('root') as HTMLElement
+);
+
 root.render(
   <React.StrictMode>
     {shouldInitializePostHog ? (
-      <PostHogProvider 
-        apiKey={import.meta.env.VITE_PUBLIC_POSTHOG_KEY}
-        options={options}
-      >
+      <PostHogProvider client={posthog}>
         <App />
       </PostHogProvider>
     ) : (
