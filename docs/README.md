@@ -6,6 +6,7 @@ This directory contains comprehensive documentation for the Sokuji project, orga
 
 ### Application Documentation
 - **[app-analytics-integration.md](./app-analytics-integration.md)** - PostHog analytics integration for the main application
+- **[app-analytics-events.md](./app-analytics-events.md)** - Comprehensive reference for all PostHog analytics events
 - **[privacy-policy.html](./privacy-policy.html)** - Privacy policy for the application
 
 ### Extension Documentation
