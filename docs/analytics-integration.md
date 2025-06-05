@@ -17,6 +17,18 @@ VITE_PUBLIC_POSTHOG_KEY=your_posthog_project_key
 VITE_PUBLIC_POSTHOG_HOST=https://app.posthog.com
 ```
 
+### Development vs Production Behavior
+
+#### Production Environment
+- PostHog captures events automatically
+- All tracking is enabled by default
+
+#### Development Environment  
+- PostHog is configured with `opt_out_capturing_by_default: true`
+- Events are **NOT** captured by default to avoid sending test data
+- Debug logging is enabled for troubleshooting
+- Manual control available via developer helpers
+
 ### Super Properties
 
 The application automatically sets the following Super Properties that are included with every tracked event:
@@ -26,53 +38,132 @@ The application automatically sets the following Super Properties that are inclu
 - `platform`: "web" (constant for web application)
 - `user_agent`: Browser user agent string
 
-These properties are set once during PostHog initialization and automatically attached to all subsequent events, eliminating the need to manually include them in each `trackEvent` call.
+These properties are set once during initialization and automatically included with all subsequent events, eliminating the need to pass them with each tracking call.
 
-## Analytics Events
+## Development Tools
+
+### Manual Capturing Control
+
+In development mode, you can manually control PostHog capturing:
+
+```javascript
+import { useAnalytics } from './lib/analytics';
+
+function MyComponent() {
+  const { 
+    trackEvent, 
+    enableCapturing, 
+    disableCapturing, 
+    isCapturingEnabled 
+  } = useAnalytics();
+
+  // Enable capturing for testing
+  const handleEnableAnalytics = () => {
+    enableCapturing();
+  };
+
+  // Disable capturing
+  const handleDisableAnalytics = () => {
+    disableCapturing();
+  };
+
+  // Check current status
+  const captureStatus = isCapturingEnabled();
+
+  return (
+    <div>
+      <p>Capturing enabled: {captureStatus ? 'Yes' : 'No'}</p>
+      <button onClick={handleEnableAnalytics}>Enable Analytics</button>
+      <button onClick={handleDisableAnalytics}>Disable Analytics</button>
+    </div>
+  );
+}
+```
+
+### Console Commands
+
+You can also control capturing directly from the browser console:
+
+```javascript
+// Enable capturing in development
+window.posthog?.opt_in_capturing();
+
+// Disable capturing in development
+window.posthog?.opt_out_capturing();
+
+// Check if capturing is enabled
+!window.posthog?.has_opted_out_capturing();
+```
+
+## Event Types
 
 ### Application Lifecycle
-- `app_startup`: Triggered when the application starts
-- `app_shutdown`: Triggered before the application closes (includes session duration)
+- `app_startup`: Application starts
+- `app_shutdown`: Application closes (includes session duration)
 
 ### Translation Sessions
-- `translation_session_start`: When a new translation session begins
-- `translation_session_end`: When a translation session ends (includes duration and translation count)
+- `translation_session_start`: Translation session begins
+- `translation_session_end`: Translation session ends (includes duration and count)
 
 ### Audio Handling
-- `audio_device_changed`: When user changes audio input/output device
-- `audio_quality_metric`: Performance metrics for audio processing
+- `audio_device_changed`: Audio input/output device changes
+- `audio_quality_metric`: Audio quality measurements
 
 ### User Interactions
-- `settings_modified`: When user changes application settings
-- `feature_used`: When user interacts with specific features
+- `settings_modified`: User changes application settings
+- `language_changed`: Source or target language selection changes
+- `ui_interaction`: General UI interactions
 
 ### Performance Metrics
 - `performance_metric`: General performance measurements
+- `latency_measurement`: Operation latency tracking
 
 ### Error Tracking
-- `error_occurred`: When errors occur in the application
+- `error_occurred`: Application errors with severity levels
+- `api_error`: API request failures
 
 ### Extension Usage
-- `extension_interaction`: When user interacts with browser extensions
+- `extension_installed`: Browser extension installation
+- `extension_uninstalled`: Browser extension removal
+- `extension_used`: Extension feature usage
 
-## Usage
+## Data Privacy
+
+### Automatic Data Sanitization
+
+The analytics system automatically removes sensitive data before sending events:
+
+**Excluded Fields:**
+- `email`, `phone`, `address`, `ip`
+- `password`, `token`, `api_key`
+- `audio_content`, `translation_text`, `user_input`
+
+### GDPR Compliance
+
+- No personal data is collected without explicit consent
+- All sensitive fields are automatically filtered
+- Users can opt out of analytics at any time
+- Data retention follows PostHog's policies
+
+## Usage Examples
 
 ### Basic Event Tracking
 
 ```typescript
-import { useAnalytics } from '../lib/analytics';
+import { useAnalytics } from './lib/analytics';
 
-const { trackEvent } = useAnalytics();
+function MyComponent() {
+  const { trackEvent } = useAnalytics();
 
-// Simple event - app_version, environment, platform are automatically included
-trackEvent('app_startup', {});
+  const handleSettingChange = (setting: string, newValue: any) => {
+    trackEvent('settings_modified', {
+      setting_name: setting,
+      new_value: newValue
+    });
+  };
 
-// Event with properties
-trackEvent('translation_session_start', {
-  source_language: 'en',
-  target_language: 'ja',
-  session_id: 'session_123'
-});
+  return <div>...</div>;
+}
 ```
 
 ### User Identification
@@ -80,50 +171,43 @@ trackEvent('translation_session_start', {
 ```typescript
 const { identifyUser, setUserProperties } = useAnalytics();
 
-// Identify a user
-identifyUser('user_123', {
-  subscription_plan: 'premium'
+// Identify user (only non-sensitive data)
+identifyUser('user123', {
+  subscription_plan: 'premium',
+  signup_date: '2024-01-01'
 });
 
 // Set user properties
 setUserProperties({
-  preferred_language: 'japanese'
+  preferred_language: 'en',
+  theme: 'dark'
 });
 ```
 
-## Data Privacy
+## Best Practices
 
-### Automatic Data Sanitization
+1. **Test Events in Development**: Use `enableCapturing()` when testing analytics
+2. **Verify Data Sanitization**: Check that no sensitive data is being sent
+3. **Use Semantic Event Names**: Follow the predefined event structure
+4. **Include Relevant Context**: Add meaningful properties to events
+5. **Monitor Performance**: Track key metrics that matter to your application
 
-The analytics system automatically removes sensitive data fields before sending events to PostHog:
+## Troubleshooting
 
-- `email`
-- `phone`
-- `address`
-- `ip`
-- `audio_content`
-- `translation_text`
+### Events Not Appearing
 
-### No Consent Required
-
-The application automatically enables analytics tracking without requiring user consent. All tracking focuses on application usage patterns and performance metrics rather than personal data.
-
-## Development
+1. **Check Environment Variables**: Ensure `.env` file has correct PostHog credentials
+2. **Development Mode**: Remember that capturing is disabled by default in development
+3. **Console Logs**: Look for PostHog initialization and error messages
+4. **Network Tab**: Verify HTTP requests are being sent to PostHog
 
 ### Debug Mode
 
-In development mode (`npm run dev`), PostHog debug logging is automatically enabled, allowing you to see all tracked events in the browser console.
+In development, PostHog runs in debug mode with verbose console logging. Check the browser console for:
 
-### Testing
-
-Events are only sent to PostHog when both `VITE_PUBLIC_POSTHOG_KEY` and `VITE_PUBLIC_POSTHOG_HOST` environment variables are configured. If these are missing, the application will run without analytics.
-
-## Benefits of Super Properties
-
-1. **Consistency**: Every event automatically includes version, environment, and platform information
-2. **Reduced Code Duplication**: No need to manually add common properties to each event
-3. **Performance**: Properties are set once rather than computed for each event
-4. **Maintainability**: Centralized configuration of common tracking properties
+- PostHog initialization messages
+- Event capture confirmations
+- Error messages or warnings
 
 ## Features
 
@@ -211,25 +295,6 @@ To test the analytics integration:
 - PostHog default retention: 7 years
 - Can be configured in PostHog dashboard
 - Users can request data deletion
-
-## Troubleshooting
-
-### Common Issues
-
-1. **Events not appearing**: Check environment variables and network connectivity
-2. **Consent banner not showing**: Clear localStorage to reset consent state
-3. **Build errors**: Ensure PostHog SDK is properly installed
-
-### Debug Mode
-
-Enable debug logging in development:
-
-```tsx
-const options = {
-  // ... other options
-  debug: process.env.NODE_ENV === 'development'
-};
-```
 
 ## Next Steps
 

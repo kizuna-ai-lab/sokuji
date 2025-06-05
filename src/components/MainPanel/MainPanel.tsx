@@ -364,7 +364,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     } finally {
       setIsInitializing(false);
     }
-  }, [settings, getUpdateSessionParams, setupClientListeners, selectedInputDevice, isInputDeviceOn, disconnectConversation, isMonitorDeviceOn, selectedMonitorDevice, selectMonitorDevice]);
+  }, [settings, getUpdateSessionParams, setupClientListeners, selectedInputDevice, isInputDeviceOn, isMonitorDeviceOn, selectedMonitorDevice, selectMonitorDevice]);
 
   /**
    * In push-to-talk mode, start recording
@@ -951,7 +951,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       setSessionStartTime(startTime);
       setTranslationCount(0);
       
-      // Track session start
+      // // Track session start
       trackEvent('translation_session_start', { 
         source_language: settings.sourceLanguage,
         target_language: settings.targetLanguage,
@@ -965,13 +965,12 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         duration,
         translation_count: translationCount
       });
-      
       // Reset session state
       setSessionId(null);
       setSessionStartTime(null);
       setTranslationCount(0);
     }
-  }, [isSessionActive, settings.sourceLanguage, settings.targetLanguage, trackEvent]);
+  }, [isSessionActive, settings.sourceLanguage, settings.targetLanguage]);
 
   return (
     <div className="main-panel">
