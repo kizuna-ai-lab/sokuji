@@ -200,88 +200,115 @@
     </script>
 
     <script>
-        // Survey configuration
-        const surveyConfig = {
-            "id": "01973f4f-0d8e-0000-3335-187808bb1ade",
-            "name": "Sokuji Extension Uninstall Feedback",
-            "description": "Help us improve Sokuji by sharing your experience. Your feedback is valuable and will help us build a better product for everyone.",
-            "type": "api",
-            "questions": [
-                {
-                    "id": "34f12408-95ab-4b17-ad04-42ee47bef985",
-                    "type": "multiple_choice",
-                    "choices": [
-                        "The extension didn't work as expected",
-                        "Poor translation quality",
-                        "Too many bugs or technical issues",
-                        "Difficult to use or confusing interface",
-                        "Privacy or security concerns",
-                        "Performance issues (slows down browser/meetings)",
-                        "Missing features I needed",
-                        "Found a better alternative",
-                        "No longer need live translation",
-                        "The extension conflicts with other tools",
-                        "Other (please specify)"
-                    ],
-                    "question": "We're sorry to see you go. What is your reason for uninstalling?",
-                    "buttonText": "Submit Feedback",
-                    "description": "Please select all reasons that apply. Your honest feedback helps us understand how we can improve.",
-                    "hasOpenChoice": true
-                }
-            ]
-        };
+        // Target survey ID to fetch from PostHog
+        const TARGET_SURVEY_ID = "01973f4f-0d8e-0000-3335-187808bb1ade";
+        let currentSurvey = null;
 
         // Initialize survey
         document.addEventListener('DOMContentLoaded', function() {
-            // Capture survey shown event
-            posthog.capture("survey shown", {
-                $survey_id: surveyConfig.id
-            });
-
-            initializeSurvey();
+            fetchAndInitializeSurvey();
         });
 
-        function initializeSurvey() {
-            const question = surveyConfig.questions[0];
+        function fetchAndInitializeSurvey() {
+            // Fetch surveys from PostHog
+            posthog.getSurveys((surveys) => {
+                // Find the target survey by ID
+                const survey = surveys.find(s => s.id === TARGET_SURVEY_ID);
+                
+                if (!survey) {
+                    showError("Survey not found. Please contact support.");
+                    return;
+                }
+
+                currentSurvey = survey;
+                
+                // Capture survey shown event
+                posthog.capture("survey shown", {
+                    $survey_id: survey.id
+                });
+
+                initializeSurvey(survey);
+            }, true); // forceReload = true to get latest survey data
+        }
+
+        function showError(message) {
+            const loadingStep = document.getElementById('loading-step');
+            loadingStep.innerHTML = `
+                <div style="text-align: center; color: #e74c3c;">
+                    <h3>Unable to load survey</h3>
+                    <p>${message}</p>
+                    <button class="btn" onclick="fetchAndInitializeSurvey()">Retry</button>
+                </div>
+            `;
+        }
+
+        function initializeSurvey(survey) {
+            if (!survey || !survey.questions || survey.questions.length === 0) {
+                showError("Invalid survey configuration.");
+                return;
+            }
+
+            const question = survey.questions[0];
+            
+            // Update question text and description
+            document.getElementById('survey-question').textContent = question.question || "Survey Question";
+            const descriptionElement = document.querySelector('.question-description');
+            if (question.description) {
+                descriptionElement.textContent = question.description;
+            }
+
+            // Update submit button text
+            const submitBtn = document.getElementById('submit-btn');
+            if (question.buttonText) {
+                submitBtn.textContent = question.buttonText;
+            }
+            
             const choicesContainer = document.getElementById('choices-container');
             
+            // Clear any existing content
+            choicesContainer.innerHTML = '';
+            
             // Populate choices
-            question.choices.forEach((choice, index) => {
-                const choiceDiv = document.createElement('div');
-                choiceDiv.className = 'choice-option';
-                
-                const isOther = choice.includes('Other');
-                const choiceId = `choice-${index}`;
-                
-                choiceDiv.innerHTML = `
-                    <label for="${choiceId}">
-                        <input type="checkbox" id="${choiceId}" name="choices" value="${choice}">
-                        ${choice}
-                    </label>
-                    ${isOther ? `
-                        <div class="other-input" id="other-input-${index}">
-                            <input type="text" placeholder="Please specify..." id="other-text-${index}">
-                        </div>
-                    ` : ''}
-                `;
-                
-                choicesContainer.appendChild(choiceDiv);
-                
-                // Handle "Other" option
-                if (isOther) {
-                    const checkbox = choiceDiv.querySelector(`#${choiceId}`);
-                    const otherInput = choiceDiv.querySelector(`#other-input-${index}`);
+            if (question.choices && question.choices.length > 0) {
+                question.choices.forEach((choice, index) => {
+                    const choiceDiv = document.createElement('div');
+                    choiceDiv.className = 'choice-option';
                     
-                    checkbox.addEventListener('change', function() {
-                        if (this.checked) {
-                            otherInput.classList.add('show');
-                        } else {
-                            otherInput.classList.remove('show');
-                            otherInput.querySelector('input').value = '';
-                        }
-                    });
-                }
-            });
+                    const isOther = choice.toLowerCase().includes('other');
+                    const choiceId = `choice-${index}`;
+                    
+                    choiceDiv.innerHTML = `
+                        <label for="${choiceId}">
+                            <input type="checkbox" id="${choiceId}" name="choices" value="${choice}">
+                            ${choice}
+                        </label>
+                        ${isOther ? `
+                            <div class="other-input" id="other-input-${index}">
+                                <input type="text" placeholder="Please specify..." id="other-text-${index}">
+                            </div>
+                        ` : ''}
+                    `;
+                    
+                    choicesContainer.appendChild(choiceDiv);
+                    
+                    // Handle "Other" option
+                    if (isOther) {
+                        const checkbox = choiceDiv.querySelector(`#${choiceId}`);
+                        const otherInput = choiceDiv.querySelector(`#other-input-${index}`);
+                        
+                        checkbox.addEventListener('change', function() {
+                            if (this.checked) {
+                                otherInput.classList.add('show');
+                            } else {
+                                otherInput.classList.remove('show');
+                                otherInput.querySelector('input').value = '';
+                            }
+                        });
+                    }
+                });
+            } else {
+                choicesContainer.innerHTML = '<p>No survey options available.</p>';
+            }
             
             // Show survey step
             document.getElementById('loading-step').classList.remove('active');
@@ -294,7 +321,11 @@
         function handleSubmit(event) {
             event.preventDefault();
             
-            const formData = new FormData(event.target);
+            if (!currentSurvey || !currentSurvey.questions || currentSurvey.questions.length === 0) {
+                alert('Survey configuration error. Please try again.');
+                return;
+            }
+            
             const selectedChoices = [];
             
             // Get all selected choices
@@ -303,7 +334,7 @@
                 let choice = checkbox.value;
                 
                 // Handle "Other" option with custom text
-                if (choice.includes('Other')) {
+                if (choice.toLowerCase().includes('other')) {
                     const parentDiv = checkbox.closest('.choice-option');
                     const otherInput = parentDiv.querySelector('input[type="text"]');
                     if (otherInput && otherInput.value.trim()) {
@@ -314,10 +345,10 @@
                 selectedChoices.push(choice);
             });
             
-            // Capture survey response
-            const responseKey = `$survey_response_${surveyConfig.questions[0].id}`;
+            // Capture survey response using ID-based format
+            const responseKey = `$survey_response_${currentSurvey.questions[0].id}`;
             posthog.capture("survey sent", {
-                $survey_id: surveyConfig.id,
+                $survey_id: currentSurvey.id,
                 [responseKey]: selectedChoices
             });
             
@@ -328,10 +359,10 @@
 
         // Handle survey dismissed (if user closes without submitting)
         window.addEventListener('beforeunload', function() {
-            // Only capture dismiss if user is still on survey step
-            if (document.getElementById('survey-step').classList.contains('active')) {
+            // Only capture dismiss if user is still on survey step and survey is loaded
+            if (currentSurvey && document.getElementById('survey-step').classList.contains('active')) {
                 posthog.capture("survey dismissed", {
-                    $survey_id: surveyConfig.id
+                    $survey_id: currentSurvey.id
                 });
             }
         });
