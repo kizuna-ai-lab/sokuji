@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sokuji Extension Feedback</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f8f9fa;
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #3498db;
+            margin-top: 30px;
+        }
+        a {
+            color: #3498db;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        .container {
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .header img {
+            max-width: 200px;
+            margin-bottom: 20px;
+        }
+        .survey-step {
+            display: none;
+        }
+        .survey-step.active {
+            display: block;
+        }
+        .question-description {
+            color: #666;
+            font-size: 0.9em;
+            margin-bottom: 20px;
+        }
+        .choice-option {
+            margin-bottom: 10px;
+        }
+        .choice-option label {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .choice-option label:hover {
+            background-color: #e9ecef;
+        }
+        .choice-option input[type="checkbox"] {
+            margin-right: 10px;
+        }
+        .other-input {
+            display: none;
+            margin-top: 10px;
+        }
+        .other-input.show {
+            display: block;
+        }
+        .other-input input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
+        .form-actions {
+            margin-top: 30px;
+            text-align: center;
+        }
+        .btn {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: background-color 0.2s;
+        }
+        .btn:hover {
+            background-color: #2980b9;
+        }
+        .btn:disabled {
+            background-color: #bdc3c7;
+            cursor: not-allowed;
+        }
+        .thank-you {
+            text-align: center;
+        }
+        .thank-you h2 {
+            color: #27ae60;
+        }
+        .chrome-store-link {
+            display: inline-block;
+            margin-top: 20px;
+            padding: 10px 20px;
+            background-color: #4285f4;
+            color: white;
+            border-radius: 4px;
+            text-decoration: none;
+        }
+        .chrome-store-link:hover {
+            background-color: #3367d6;
+            text-decoration: none;
+        }
+        footer {
+            margin-top: 50px;
+            text-align: center;
+            color: #7f8c8d;
+            font-size: 0.9em;
+            border-top: 1px solid #eee;
+            padding-top: 20px;
+        }
+        .loading {
+            text-align: center;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <img src="https://github.com/kizuna-ai-lab/sokuji/raw/main/src/assets/logo.png" alt="Sokuji Logo">
+            <h1>Sokuji Extension Feedback</h1>
+        </div>
+
+        <!-- Loading Step -->
+        <div id="loading-step" class="survey-step active">
+            <div class="loading">
+                <p>Loading survey...</p>
+            </div>
+        </div>
+
+        <!-- Survey Step -->
+        <div id="survey-step" class="survey-step">
+            <h2 id="survey-question">We're sorry to see you go. What is your reason for uninstalling?</h2>
+            <p class="question-description">Please select all reasons that apply. Your honest feedback helps us understand how we can improve.</p>
+            
+            <form id="feedback-form">
+                <div id="choices-container">
+                    <!-- Choices will be populated by JavaScript -->
+                </div>
+                
+                <div class="form-actions">
+                    <button type="submit" class="btn" id="submit-btn">Submit Feedback</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Thank You Step -->
+        <div id="thank-you-step" class="survey-step">
+            <div class="thank-you">
+                <h2>Thank you for your feedback!</h2>
+                <p>We appreciate you taking the time to share your thoughts with us. Your feedback will help us improve Sokuji for future users.</p>
+                <p>If you change your mind, you can always reinstall Sokuji from the Chrome Web Store. We'd love to have you back!</p>
+                <a href="https://chromewebstore.google.com/detail/sokuji-extension/ppmihnhelgfpjomhjhpecobloelicnak" 
+                   target="_blank" 
+                   class="chrome-store-link">
+                    Reinstall from Chrome Web Store
+                </a>
+                <div style="margin-top: 20px;">
+                    <button class="btn" onclick="window.close()">Close</button>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            &copy; 2025 Kizuna AI Lab. All rights reserved.
+        </footer>
+    </div>
+
+    <!-- PostHog Script -->
+    <script>
+        // Get distinct_id from URL parameters before initializing PostHog
+        function getDistinctIdFromURL() {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get('distinct_id');
+        }
+
+        // Get distinct_id from URL if available
+        const distinctIdFromURL = getDistinctIdFromURL();
+
+        !function(t,e){var o,n,p,r;e.__SV||(window.posthog=e,e._i=[],e.init=function(i,s,a){function g(t,e){var o=e.split(".");2==o.length&&(t=t[o[0]],e=o[1]);t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}}(p=t.createElement("script")).type="text/javascript",p.async=!0,p.src=s.api_host+"/static/array.js",(r=t.getElementsByTagName("script")[0]).parentNode.insertBefore(p,r);var u=e;for(void 0!==a?u=e[a]=[]:a="posthog",u.people=u.people||[],u.toString=function(t){var e="posthog";return"posthog"!==a&&(e+="."+a),t||(e+=" (stub)"),e},u.people.toString=function(){return u.toString(1)+".people (stub)"},o="capture identify alias people.set people.set_once set_config register register_once unregister opt_out_capturing has_opted_out_capturing opt_in_capturing reset isFeatureEnabled onFeatureFlags getFeatureFlag getFeatureFlagPayload reloadFeatureFlags group updateEarlyAccessFeatureEnrollment getEarlyAccessFeatures getActiveMatchingSurveys getSurveys onSessionId".split(" "),n=0;n<o.length;n++)g(u,o[n]);e._i.push([i,s,a])},e.__SV=1)}(document,window.posthog||[]);
+        
+        // Initialize PostHog with configuration
+        const posthogConfig = {
+            api_host: 'https://us.i.posthog.com',
+            loaded: function(posthog) {
+                // If distinct_id is provided in URL, identify the user immediately
+                if (distinctIdFromURL) {
+                    console.debug('[Sokuji] [Uninstall Feedback] Using distinct_id from URL');
+                    posthog.identify(distinctIdFromURL);
+                }
+            }
+        };
+
+        posthog.init('phc_EMOuUDTntTI5SuzKQATy11qHgxVrlhJsgNFbBaWEhet', posthogConfig);
+    </script>
+
+    <script>
+        // Target survey ID to fetch from PostHog
+        const TARGET_SURVEY_ID = "01973f4f-0d8e-0000-3335-187808bb1ade";
+        let currentSurvey = null;
+
+        // Initialize survey
+        document.addEventListener('DOMContentLoaded', function() {
+            // User identification is already handled in PostHog initialization
+            // if distinct_id was provided in URL
+            if (distinctIdFromURL) {
+                console.debug('[Sokuji] [Uninstall Feedback] Survey initialized with distinct_id from URL');
+            }
+            
+            fetchAndInitializeSurvey();
+        });
+
+        function fetchAndInitializeSurvey() {
+            // Fetch surveys from PostHog
+            posthog.getSurveys((surveys) => {
+                // Find the target survey by ID
+                const survey = surveys.find(s => s.id === TARGET_SURVEY_ID);
+                
+                if (!survey) {
+                    showError("Survey not found. Please contact support.");
+                    return;
+                }
+
+                currentSurvey = survey;
+                
+                // Capture survey shown event
+                posthog.capture("survey shown", {
+                    $survey_id: survey.id
+                });
+
+                initializeSurvey(survey);
+            }, true); // forceReload = true to get latest survey data
+        }
+
+        function showError(message) {
+            const loadingStep = document.getElementById('loading-step');
+            loadingStep.innerHTML = `
+                <div style="text-align: center; color: #e74c3c;">
+                    <h3>Unable to load survey</h3>
+                    <p>${message}</p>
+                    <button class="btn" onclick="fetchAndInitializeSurvey()">Retry</button>
+                </div>
+            `;
+        }
+
+        function initializeSurvey(survey) {
+            if (!survey || !survey.questions || survey.questions.length === 0) {
+                showError("Invalid survey configuration.");
+                return;
+            }
+
+            const question = survey.questions[0];
+            
+            // Update question text and description
+            document.getElementById('survey-question').textContent = question.question || "Survey Question";
+            const descriptionElement = document.querySelector('.question-description');
+            if (question.description) {
+                descriptionElement.textContent = question.description;
+            }
+
+            // Update submit button text
+            const submitBtn = document.getElementById('submit-btn');
+            if (question.buttonText) {
+                submitBtn.textContent = question.buttonText;
+            }
+            
+            const choicesContainer = document.getElementById('choices-container');
+            
+            // Clear any existing content
+            choicesContainer.innerHTML = '';
+            
+            // Populate choices
+            if (question.choices && question.choices.length > 0) {
+                question.choices.forEach((choice, index) => {
+                    const choiceDiv = document.createElement('div');
+                    choiceDiv.className = 'choice-option';
+                    
+                    const isOther = choice.toLowerCase().includes('other');
+                    const choiceId = `choice-${index}`;
+                    
+                    choiceDiv.innerHTML = `
+                        <label for="${choiceId}">
+                            <input type="checkbox" id="${choiceId}" name="choices" value="${choice}">
+                            ${choice}
+                        </label>
+                        ${isOther ? `
+                            <div class="other-input" id="other-input-${index}">
+                                <input type="text" placeholder="Please specify..." id="other-text-${index}">
+                            </div>
+                        ` : ''}
+                    `;
+                    
+                    choicesContainer.appendChild(choiceDiv);
+                    
+                    // Handle "Other" option
+                    if (isOther) {
+                        const checkbox = choiceDiv.querySelector(`#${choiceId}`);
+                        const otherInput = choiceDiv.querySelector(`#other-input-${index}`);
+                        
+                        checkbox.addEventListener('change', function() {
+                            if (this.checked) {
+                                otherInput.classList.add('show');
+                            } else {
+                                otherInput.classList.remove('show');
+                                otherInput.querySelector('input').value = '';
+                            }
+                        });
+                    }
+                });
+            } else {
+                choicesContainer.innerHTML = '<p>No survey options available.</p>';
+            }
+            
+            // Show survey step
+            document.getElementById('loading-step').classList.remove('active');
+            document.getElementById('survey-step').classList.add('active');
+            
+            // Handle form submission
+            document.getElementById('feedback-form').addEventListener('submit', handleSubmit);
+        }
+
+        function handleSubmit(event) {
+            event.preventDefault();
+            
+            if (!currentSurvey || !currentSurvey.questions || currentSurvey.questions.length === 0) {
+                alert('Survey configuration error. Please try again.');
+                return;
+            }
+            
+            const selectedChoices = [];
+            
+            // Get all selected choices
+            const checkboxes = document.querySelectorAll('input[name="choices"]:checked');
+            checkboxes.forEach(checkbox => {
+                let choice = checkbox.value;
+                
+                // Handle "Other" option with custom text
+                if (choice.toLowerCase().includes('other')) {
+                    const parentDiv = checkbox.closest('.choice-option');
+                    const otherInput = parentDiv.querySelector('input[type="text"]');
+                    if (otherInput && otherInput.value.trim()) {
+                        choice = `Other: ${otherInput.value.trim()}`;
+                    }
+                }
+                
+                selectedChoices.push(choice);
+            });
+            
+            // Capture survey response using ID-based format
+            const responseKey = `$survey_response_${currentSurvey.questions[0].id}`;
+            posthog.capture("survey sent", {
+                $survey_id: currentSurvey.id,
+                [responseKey]: selectedChoices
+            });
+            
+            // Show thank you step
+            document.getElementById('survey-step').classList.remove('active');
+            document.getElementById('thank-you-step').classList.add('active');
+        }
+
+        // Handle survey dismissed (if user closes without submitting)
+        window.addEventListener('beforeunload', function() {
+            // Only capture dismiss if user is still on survey step and survey is loaded
+            if (currentSurvey && document.getElementById('survey-step').classList.contains('active')) {
+                posthog.capture("survey dismissed", {
+                    $survey_id: currentSurvey.id
+                });
+            }
+        });
+    </script>
+</body>
+</html> 
