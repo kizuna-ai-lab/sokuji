@@ -1,10 +1,129 @@
 # PostHog Analytics Integration
 
-This document describes the PostHog analytics integration implemented in Sokuji, following the requirements from [GitHub Issue #27](https://github.com/kizuna-ai-lab/sokuji/issues/27).
+This document outlines the PostHog analytics integration for the Sokuji React application.
 
 ## Overview
 
-PostHog has been integrated to provide comprehensive analytics tracking while maintaining strict privacy controls and GDPR compliance.
+The application uses PostHog for comprehensive analytics tracking, including user interactions, performance metrics, and application lifecycle events.
+
+## Configuration
+
+### Environment Variables
+
+Create a `.env` file in the project root with the following variables:
+
+```env
+VITE_PUBLIC_POSTHOG_KEY=your_posthog_project_key
+VITE_PUBLIC_POSTHOG_HOST=https://app.posthog.com
+```
+
+### Super Properties
+
+The application automatically sets the following Super Properties that are included with every tracked event:
+
+- `app_version`: Application version from package.json (e.g., "0.4.2")
+- `environment`: "development" or "production" based on build mode
+- `platform`: "web" (constant for web application)
+- `user_agent`: Browser user agent string
+
+These properties are set once during PostHog initialization and automatically attached to all subsequent events, eliminating the need to manually include them in each `trackEvent` call.
+
+## Analytics Events
+
+### Application Lifecycle
+- `app_startup`: Triggered when the application starts
+- `app_shutdown`: Triggered before the application closes (includes session duration)
+
+### Translation Sessions
+- `translation_session_start`: When a new translation session begins
+- `translation_session_end`: When a translation session ends (includes duration and translation count)
+
+### Audio Handling
+- `audio_device_changed`: When user changes audio input/output device
+- `audio_quality_metric`: Performance metrics for audio processing
+
+### User Interactions
+- `settings_modified`: When user changes application settings
+- `feature_used`: When user interacts with specific features
+
+### Performance Metrics
+- `performance_metric`: General performance measurements
+
+### Error Tracking
+- `error_occurred`: When errors occur in the application
+
+### Extension Usage
+- `extension_interaction`: When user interacts with browser extensions
+
+## Usage
+
+### Basic Event Tracking
+
+```typescript
+import { useAnalytics } from '../lib/analytics';
+
+const { trackEvent } = useAnalytics();
+
+// Simple event - app_version, environment, platform are automatically included
+trackEvent('app_startup', {});
+
+// Event with properties
+trackEvent('translation_session_start', {
+  source_language: 'en',
+  target_language: 'ja',
+  session_id: 'session_123'
+});
+```
+
+### User Identification
+
+```typescript
+const { identifyUser, setUserProperties } = useAnalytics();
+
+// Identify a user
+identifyUser('user_123', {
+  subscription_plan: 'premium'
+});
+
+// Set user properties
+setUserProperties({
+  preferred_language: 'japanese'
+});
+```
+
+## Data Privacy
+
+### Automatic Data Sanitization
+
+The analytics system automatically removes sensitive data fields before sending events to PostHog:
+
+- `email`
+- `phone`
+- `address`
+- `ip`
+- `audio_content`
+- `translation_text`
+
+### No Consent Required
+
+The application automatically enables analytics tracking without requiring user consent. All tracking focuses on application usage patterns and performance metrics rather than personal data.
+
+## Development
+
+### Debug Mode
+
+In development mode (`npm run dev`), PostHog debug logging is automatically enabled, allowing you to see all tracked events in the browser console.
+
+### Testing
+
+Events are only sent to PostHog when both `VITE_PUBLIC_POSTHOG_KEY` and `VITE_PUBLIC_POSTHOG_HOST` environment variables are configured. If these are missing, the application will run without analytics.
+
+## Benefits of Super Properties
+
+1. **Consistency**: Every event automatically includes version, environment, and platform information
+2. **Reduced Code Duplication**: No need to manually add common properties to each event
+3. **Performance**: Properties are set once rather than computed for each event
+4. **Maintainability**: Centralized configuration of common tracking properties
 
 ## Features
 
@@ -23,125 +142,6 @@ PostHog has been integrated to provide comprehensive analytics tracking while ma
 - **Dashboard Configuration**: Custom dashboards for key metrics
 - **Error Boundary Integration**: Automatic error tracking
 - **Performance Monitoring**: Advanced performance metrics
-
-## Environment Setup
-
-Create a `.env` file in the project root:
-
-```env
-# PostHog Analytics Configuration
-VITE_PUBLIC_POSTHOG_KEY=your_posthog_project_key_here
-VITE_PUBLIC_POSTHOG_HOST=https://us.i.posthog.com
-```
-
-## Usage
-
-### Basic Event Tracking
-
-```tsx
-import { useAnalytics } from '../lib/analytics';
-
-function MyComponent() {
-  const { trackEvent } = useAnalytics();
-
-  const handleFeatureUse = () => {
-    trackEvent('feature_used', {
-      feature_name: 'translation_start',
-      context: 'main_panel'
-    });
-  };
-
-  return <button onClick={handleFeatureUse}>Start Translation</button>;
-}
-```
-
-### Available Events
-
-The analytics system supports the following event types:
-
-#### Application Lifecycle
-- `app_startup`: Application start with version and platform
-- `app_shutdown`: Application shutdown with session duration
-
-#### Translation Sessions
-- `translation_session_start`: Translation session begins
-- `translation_session_end`: Translation session ends with metrics
-
-#### Audio Handling
-- `audio_device_changed`: Audio device selection changes
-- `audio_quality_metric`: Audio quality measurements
-
-#### User Interactions
-- `settings_modified`: Settings changes
-- `feature_used`: Feature usage tracking
-
-#### Performance & Errors
-- `performance_metric`: Performance measurements
-- `error_occurred`: Error tracking (sanitized)
-
-#### Extension Usage
-- `extension_interaction`: Browser extension interactions
-
-### Privacy Controls
-
-#### Consent Management
-
-```tsx
-import { AnalyticsConsent } from '../lib/analytics';
-
-// Check consent status
-const hasConsent = AnalyticsConsent.hasConsent();
-
-// Grant consent
-AnalyticsConsent.grantConsent();
-
-// Revoke consent
-AnalyticsConsent.revokeConsent();
-```
-
-#### Settings Integration
-
-```tsx
-import { AnalyticsSettings } from '../components/AnalyticsConsent';
-
-function SettingsPage() {
-  return (
-    <div>
-      <h2>Privacy Settings</h2>
-      <AnalyticsSettings />
-    </div>
-  );
-}
-```
-
-## Data Privacy
-
-### What We Track
-- App usage patterns and feature interactions
-- Performance metrics and error reports
-- Language preferences and settings
-- Device type and platform information
-
-### What We DON'T Track
-- ❌ Audio recordings or content
-- ❌ Translation text or content
-- ❌ Personal information (names, emails, etc.)
-- ❌ IP addresses or location data
-- ❌ Sensitive user data
-
-### Data Sanitization
-
-All tracked data goes through automatic sanitization:
-
-```tsx
-// Sensitive fields are automatically removed
-const sanitizedData = sanitizeProperties({
-  feature_name: 'translation',
-  email: 'user@example.com', // ← This will be removed
-  audio_content: 'Hello world', // ← This will be removed
-  device_name: "John's MacBook" // ← This will be anonymized to "User's MacBook"
-});
-```
 
 ## Implementation Details
 

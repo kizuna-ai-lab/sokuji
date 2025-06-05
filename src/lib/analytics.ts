@@ -3,7 +3,7 @@ import { usePostHog } from 'posthog-js/react';
 // Analytics event types based on the GitHub issue requirements
 export interface AnalyticsEvents {
   // Application lifecycle
-  'app_startup': { version: string; platform: string };
+  'app_startup': {}; // version and platform are now in Super Properties
   'app_shutdown': { session_duration: number };
   
   // Translation sessions
@@ -21,7 +21,7 @@ export interface AnalyticsEvents {
   // Audio handling
   'audio_device_changed': { 
     device_type: string;
-    device_name?: string; // anonymized
+    device_name?: string;
   };
   'audio_quality_metric': {
     quality_score: number;
@@ -73,6 +73,9 @@ export const useAnalytics = () => {
     
     // Ensure no sensitive data is tracked
     const sanitizedProperties = sanitizeProperties(properties);
+    
+    // Super Properties (app_version, environment, platform, user_agent) 
+    // are automatically included with every event
     posthog.capture(eventName, sanitizedProperties);
   };
 
@@ -118,43 +121,5 @@ const sanitizeProperties = (properties: Record<string, any>): Record<string, any
     }
   });
   
-  // Anonymize device names if they contain personal info
-  if (sanitized.device_name && typeof sanitized.device_name === 'string') {
-    sanitized.device_name = anonymizeDeviceName(sanitized.device_name);
-  }
-  
   return sanitized;
-};
-
-// Anonymize device names to remove personal information
-const anonymizeDeviceName = (deviceName: string): string => {
-  // Replace common personal identifiers with generic terms
-  return deviceName
-    .replace(/\b\w+['']s\s/gi, 'User\'s ') // Replace possessive names
-    .replace(/\b[A-Z][a-z]+\s+(MacBook|iPhone|iPad|PC|Computer)/gi, 'User $1') // Replace names before device types
-    .replace(/\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/g, '[IP_ADDRESS]') // Replace IP addresses
-    .trim();
-};
-
-// Consent management
-export const AnalyticsConsent = {
-  STORAGE_KEY: 'posthog_analytics_consent',
-  
-  hasConsent(): boolean {
-    return localStorage.getItem(this.STORAGE_KEY) === 'true';
-  },
-  
-  grantConsent(): void {
-    localStorage.setItem(this.STORAGE_KEY, 'true');
-  },
-  
-  revokeConsent(): void {
-    localStorage.setItem(this.STORAGE_KEY, 'false');
-    // Clear any existing PostHog data
-    localStorage.removeItem('ph_phc_EMOuUDTntTI5SuzKQATy11qHgxVrlhJsgNFbBaWEhet_posthog');
-  },
-  
-  isConsentRequired(): boolean {
-    return localStorage.getItem(this.STORAGE_KEY) === null;
-  }
 }; 
