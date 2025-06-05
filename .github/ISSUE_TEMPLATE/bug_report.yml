@@ -1,0 +1,137 @@
+name: 🐛 Bug Report
+description: Report a technical issue or bug in the application
+title: "[Bug]: "
+labels: ["bug", "needs-triage"]
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## ⚠️ Important Notice
+        
+        **This template is for reporting technical bugs only.** 
+        
+        Issues about project management, star counts, repository visibility, or other non-technical matters will be closed immediately.
+        
+        Please ensure you have:
+        - ✅ Read our [Contributing Guidelines](https://github.com/kizuna-ai-lab/sokuji/blob/main/.github/CONTRIBUTING.md)
+        - ✅ Searched existing issues to avoid duplicates
+        - ✅ Tested with the latest version
+        
+  - type: checkboxes
+    id: prerequisites
+    attributes:
+      label: Prerequisites
+      description: Please confirm you have completed these steps
+      options:
+        - label: I have read the contributing guidelines
+          required: true
+        - label: I have searched existing issues and this is not a duplicate
+          required: true
+        - label: This is a technical bug report, not a general question or discussion
+          required: true
+        - label: I have tested this with the latest version
+          required: true
+
+  - type: dropdown
+    id: bug-type
+    attributes:
+      label: Bug Type
+      description: What type of issue are you experiencing?
+      options:
+        - Desktop Application
+        - Browser Extension
+        - Both Desktop and Extension
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: bug-description
+    attributes:
+      label: Bug Description
+      description: A clear and concise description of what the bug is
+      placeholder: Describe the bug...
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction-steps
+    attributes:
+      label: Steps to Reproduce
+      description: Steps to reproduce the behavior
+      placeholder: |
+        1. Go to '...'
+        2. Click on '...'
+        3. Scroll down to '...'
+        4. See error
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected-behavior
+    attributes:
+      label: Expected Behavior
+      description: A clear and concise description of what you expected to happen
+      placeholder: What should have happened?
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual-behavior
+    attributes:
+      label: Actual Behavior
+      description: What actually happened instead
+      placeholder: What actually happened?
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment Information
+      description: Please provide your environment details
+      placeholder: |
+        **Desktop Application:**
+        - OS: [e.g. Windows 11, macOS 13, Ubuntu 22.04]
+        - App Version: [e.g. 1.0.0]
+        - Installation Method: [e.g. GitHub Release, Package Manager]
+        
+        **Browser Extension (if applicable):**
+        - Browser: [e.g. Chrome 120, Firefox 121, Edge 119]
+        - Extension Version: [e.g. 1.0.0]
+        - Browser Extension Store: [e.g. Chrome Web Store, Firefox Add-ons]
+        
+        **Additional Info:**
+        - Node.js Version: [if applicable]
+        - System Architecture: [e.g. x64, arm64]
+    validations:
+      required: true
+
+  - type: textarea
+    id: extension-specific
+    attributes:
+      label: Extension-Specific Information (if applicable)
+      description: If this is an extension-related bug, please provide additional details
+      placeholder: |
+        - Extension permissions granted: [list permissions]
+        - Websites where the issue occurs: [specific URLs or domains]
+        - Extension popup/content script behavior: [describe]
+        - Console errors in browser dev tools: [paste errors]
+        - Extension conflicts: [other extensions that might interfere]
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots/Logs
+      description: If applicable, add screenshots or error logs to help explain your problem
+      placeholder: |
+        For Desktop App: Paste screenshots or application logs here...
+        For Extension: Include browser console errors, extension popup screenshots, etc.
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional Context
+      description: Add any other context about the problem here
+      placeholder: Any additional information... 
