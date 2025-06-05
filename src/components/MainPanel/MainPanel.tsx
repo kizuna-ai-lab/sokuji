@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { X, Zap, Users, Mic, Tool, Loader, Play, Volume2 } from 'react-feather';
 import './MainPanel.scss';
 import { useSettings } from '../../contexts/SettingsContext';
@@ -6,22 +6,30 @@ import { useLog } from '../../contexts/LogContext';
 import { useAudioContext } from '../../contexts/AudioContext';
 import { RealtimeClient } from '@openai/realtime-api-beta';
 import { ItemType } from '@openai/realtime-api-beta/dist/lib/client.js';
-import { WavRecorder } from '../../lib/wavtools/index.js';
+import { WavRecorder, WavStreamPlayer } from '../../lib/wavtools';
 import { WavRenderer } from '../../utils/wav_renderer';
 import { ServiceFactory } from '../../services/ServiceFactory'; // Import the ServiceFactory
 import { IAudioService } from '../../services/interfaces/IAudioService';
 import { useTranslation } from 'react-i18next';
+import { useAnalytics } from '../../lib/analytics';
+import { v4 as uuidv4 } from 'uuid';
 
 interface MainPanelProps {}
 
 const MainPanel: React.FC<MainPanelProps> = () => {
   const { t } = useTranslation();
+  const { trackEvent } = useAnalytics();
   
   // State for session management
   const [isSessionActive, setIsSessionActive] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [items, setItems] = useState<ItemType[]>([]);
   const [isInitializing, setIsInitializing] = useState(false);
+  
+  // Session tracking for analytics
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [sessionStartTime, setSessionStartTime] = useState<number | null>(null);
+  const [translationCount, setTranslationCount] = useState(0);
 
   // Get settings from context
   const { settings, isApiKeyValid, getProcessedSystemInstructions } = useSettings();
@@ -225,6 +233,11 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         );
         item.formatted.file = wavFile;
       }
+      // Increment translation count when assistant item is completed
+      if (item.status === 'completed' && item.role === 'assistant' && 
+          (item.formatted?.audio || item.formatted?.text || item.formatted?.transcript)) {
+        setTranslationCount(prev => prev + 1);
+      }
       setItems(items);
     });
 
@@ -351,7 +364,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     } finally {
       setIsInitializing(false);
     }
-  }, [settings, getUpdateSessionParams, setupClientListeners, selectedInputDevice, isInputDeviceOn, disconnectConversation, isMonitorDeviceOn, selectedMonitorDevice, selectMonitorDevice]);
+  }, [settings, getUpdateSessionParams, setupClientListeners, selectedInputDevice, isInputDeviceOn, isMonitorDeviceOn, selectedMonitorDevice, selectMonitorDevice]);
 
   /**
    * In push-to-talk mode, start recording
@@ -929,6 +942,36 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     initAudio();
   }, [setupVirtualAudioOutput]);
 
+  // Session tracking for analytics
+  useEffect(() => {
+    if (isSessionActive) {
+      const newSessionId = uuidv4();
+      const startTime = Date.now();
+      setSessionId(newSessionId);
+      setSessionStartTime(startTime);
+      setTranslationCount(0);
+      
+      // // Track session start
+      trackEvent('translation_session_start', { 
+        source_language: settings.sourceLanguage,
+        target_language: settings.targetLanguage,
+        session_id: newSessionId
+      });
+    } else if (sessionId && sessionStartTime) {
+      // Track session end
+      const duration = Date.now() - sessionStartTime;
+      trackEvent('translation_session_end', { 
+        session_id: sessionId,
+        duration,
+        translation_count: translationCount
+      });
+      // Reset session state
+      setSessionId(null);
+      setSessionStartTime(null);
+      setTranslationCount(0);
+    }
+  }, [isSessionActive, settings.sourceLanguage, settings.targetLanguage]);
+
   return (
     <div className="main-panel">
       <div className="conversation-container" ref={conversationContainerRef}>
@@ -938,7 +981,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
               <div key={index} className={`conversation-item ${item.role}`} style={{ position: 'relative' }}>
                 <div className="conversation-item-role">
                   {item.role}
-                  {process.env.NODE_ENV === 'development' && (item as any).status === 'completed' && item.formatted?.audio && (
+                  {import.meta.env.DEV && (item as any).status === 'completed' && item.formatted?.audio && (
                     <button 
                       className={`inline-play-button ${playingItemId === item.id ? 'playing' : ''}`}
                       onClick={() => handlePlayAudio(item)}
@@ -1125,7 +1168,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
               </>
             )}
           </button>
-          {process.env.NODE_ENV === 'development' && (
+          {import.meta.env.DEV && (
             <button
               className={`debug-button ${isTestTonePlaying ? 'active' : ''}`}
               onClick={playTestTone}
