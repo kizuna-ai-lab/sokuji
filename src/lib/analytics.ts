@@ -1,4 +1,5 @@
 import { usePostHog } from 'posthog-js/react';
+import { isDevelopment } from '../config/analytics';
 
 // Analytics event types based on the GitHub issue requirements
 export interface AnalyticsEvents {
@@ -139,16 +140,16 @@ export function useAnalytics() {
 
   // Development helpers
   const enableCapturing = () => {
-    if (import.meta.env.DEV && posthog) {
+    if (isDevelopment() && posthog) {
       posthog.opt_in_capturing();
-      console.log('PostHog capturing enabled for development');
+      console.debug('PostHog capturing enabled for development');
     }
   };
 
   const disableCapturing = () => {
-    if (import.meta.env.DEV && posthog) {
+    if (isDevelopment() && posthog) {
       posthog.opt_out_capturing();
-      console.log('PostHog capturing disabled for development');
+      console.debug('PostHog capturing disabled for development');
     }
   };
 
@@ -161,7 +162,7 @@ export function useAnalytics() {
     identifyUser,
     setUserProperties,
     // Development helpers (only available in development)
-    ...(import.meta.env.DEV && {
+    ...(isDevelopment() && {
       enableCapturing,
       disableCapturing,
       isCapturingEnabled,

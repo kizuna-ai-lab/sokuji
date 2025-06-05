@@ -8,14 +8,18 @@ The application uses PostHog for comprehensive analytics tracking, including use
 
 ## Configuration
 
-### Environment Variables
+### Configuration
 
-Create a `.env` file in the project root with the following variables:
+PostHog credentials are now hardcoded in the source code for both Electron and extension environments. The configuration is located in `src/config/analytics.ts`:
 
-```env
-VITE_PUBLIC_POSTHOG_KEY=your_posthog_project_key
-VITE_PUBLIC_POSTHOG_HOST=https://app.posthog.com
+```typescript
+export const ANALYTICS_CONFIG = {
+  POSTHOG_KEY: 'phc_EMOuUDTntTI5SuzKQATy11qHgxVrlhJsgNFbBaWEhet',
+  POSTHOG_HOST: 'https://us.i.posthog.com',
+} as const;
 ```
+
+This approach ensures compatibility across all environments (Electron app, browser extension, and web) without requiring environment variable configuration.
 
 ### Development vs Production Behavior
 
@@ -196,10 +200,11 @@ setUserProperties({
 
 ### Events Not Appearing
 
-1. **Check Environment Variables**: Ensure `.env` file has correct PostHog credentials
+1. **Check Configuration**: Ensure `src/config/analytics.ts` has correct PostHog credentials
 2. **Development Mode**: Remember that capturing is disabled by default in development
 3. **Console Logs**: Look for PostHog initialization and error messages
 4. **Network Tab**: Verify HTTP requests are being sent to PostHog
+5. **Environment Detection**: Check that the environment is being detected correctly (development vs production)
 
 ### Debug Mode
 
@@ -247,12 +252,13 @@ The PostHog provider is configured with privacy-first settings:
 
 ```tsx
 const options = {
-  api_host: import.meta.env.VITE_PUBLIC_POSTHOG_HOST,
+  api_host: ANALYTICS_CONFIG.POSTHOG_HOST,
+  debug: isDevelopment(),
   autocapture: false, // Disabled for privacy
   capture_pageview: false, // Manual control
   mask_all_text: true, // Privacy protection
   mask_all_element_attributes: true, // Privacy protection
-  opt_out_capturing_by_default: !AnalyticsConsent.hasConsent()
+  opt_out_capturing_by_default: true // Disabled by default in development
 };
 ```
 
@@ -278,10 +284,11 @@ posthog.init('your_key', {
 
 To test the analytics integration:
 
-1. **Development**: Set environment variables and run `npm start`
+1. **Development**: Run `npm start` (no environment variables needed)
 2. **Consent Flow**: Clear localStorage and reload to see consent banner
 3. **Event Tracking**: Check browser dev tools → Network tab for PostHog requests
 4. **Privacy**: Verify no sensitive data in tracked events
+5. **Extension Testing**: Build extension with `npm run build` in extension directory
 
 ## Compliance
 

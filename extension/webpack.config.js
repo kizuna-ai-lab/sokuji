@@ -1,6 +1,7 @@
 const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const CopyWebpackPlugin = require('copy-webpack-plugin');
+const webpack = require('webpack');
 
 module.exports = (env, argv) => {
   const isDevMode = argv.mode === 'development';
@@ -13,7 +14,7 @@ module.exports = (env, argv) => {
       content: './content/content.js',
       'zoom-content': './content/zoom-content.js',
       'virtual-microphone': './content/virtual-microphone.js',
-      fullpage: './fullpage/index.jsx',
+      fullpage: '../shared/index.tsx',
       popup: './popup.js',
     },
     output: {
@@ -66,8 +67,11 @@ module.exports = (env, argv) => {
       },
     },
     plugins: [
+      new webpack.DefinePlugin({
+        'process.env.NODE_ENV': JSON.stringify(argv.mode || 'development'),
+      }),
       new HtmlWebpackPlugin({
-        template: path.resolve(__dirname, './fullpage/index.html'),
+        template: path.resolve(__dirname, '../shared/index.html'),
         filename: 'fullpage.html',
         chunks: ['fullpage'],
       }),

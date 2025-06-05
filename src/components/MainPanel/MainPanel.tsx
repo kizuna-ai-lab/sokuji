@@ -12,6 +12,7 @@ import { ServiceFactory } from '../../services/ServiceFactory'; // Import the Se
 import { IAudioService } from '../../services/interfaces/IAudioService';
 import { useTranslation } from 'react-i18next';
 import { useAnalytics } from '../../lib/analytics';
+import { isDevelopment } from '../../config/analytics';
 import { v4 as uuidv4 } from 'uuid';
 
 interface MainPanelProps {}
@@ -981,7 +982,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
               <div key={index} className={`conversation-item ${item.role}`} style={{ position: 'relative' }}>
                 <div className="conversation-item-role">
                   {item.role}
-                  {import.meta.env.DEV && (item as any).status === 'completed' && item.formatted?.audio && (
+                  {isDevelopment() && (item as any).status === 'completed' && item.formatted?.audio && (
                     <button 
                       className={`inline-play-button ${playingItemId === item.id ? 'playing' : ''}`}
                       onClick={() => handlePlayAudio(item)}
@@ -1168,7 +1169,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
               </>
             )}
           </button>
-          {import.meta.env.DEV && (
+          {isDevelopment() && (
             <button
               className={`debug-button ${isTestTonePlaying ? 'active' : ''}`}
               onClick={playTestTone}
