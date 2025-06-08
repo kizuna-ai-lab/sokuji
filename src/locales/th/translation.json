@@ -24,7 +24,10 @@
     "openaiApiKey": "คีย์ API OpenAI",
     "validate": "ตรวจสอบ",
     "validating": "กำลังตรวจสอบ...",
-    "enterApiKey": "ใส่คีย์ API OpenAI ของคุณ"
+    "enterApiKey": "ใส่คีย์ API OpenAI ของคุณ",
+    "refreshModels": "รีเฟรชโมเดลที่มีอยู่",
+    "loadingModels": "กำลังโหลดโมเดลที่มีอยู่...",
+    "modelsFound": "มีโมเดล {{count}} ตัวที่ใช้ได้"
   },
   "mainPanel": {
     "conversationPlaceholder": "การสนทนาจะปรากฏที่นี่",

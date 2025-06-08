@@ -24,7 +24,10 @@
     "openaiApiKey": "Khóa API OpenAI",
     "validate": "Xác thực",
     "validating": "Đang xác thực...",
-    "enterApiKey": "Nhập khóa API OpenAI của bạn"
+    "enterApiKey": "Nhập khóa API OpenAI của bạn",
+    "refreshModels": "Làm mới các mô hình có sẵn",
+    "loadingModels": "Đang tải các mô hình có sẵn...",
+    "modelsFound": "{{count}} mô hình có sẵn"
   },
   "mainPanel": {
     "conversationPlaceholder": "Cuộc trò chuyện sẽ xuất hiện ở đây",

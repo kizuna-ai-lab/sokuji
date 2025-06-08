@@ -65,7 +65,10 @@
     "settingSavedSuccessfully": "تنظیم با موفقیت ذخیره شد: {{key}}",
     "failedToSaveSetting": "ذخیره تنظیم ناموفق بود: {{key}}",
     "apiKeyValidationCompleted": "اعتبارسنجی کلید API تکمیل شد",
-    "errorValidatingApiKey": "خطا در اعتبارسنجی کلید API"
+    "errorValidatingApiKey": "خطا در اعتبارسنجی کلید API",
+    "refreshModels": "بروزرسانی مدل‌های موجود",
+    "loadingModels": "بارگذاری مدل‌های موجود...",
+    "modelsFound": "{{count}} مدل موجود"
   },
   "audioPanel": {
     "title": "تنظیمات صدا",

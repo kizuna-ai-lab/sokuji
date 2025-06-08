@@ -24,7 +24,10 @@
     "openaiApiKey": "OpenAI API-avain",
     "validate": "Vahvista",
     "validating": "Vahvistetaan...",
-    "enterApiKey": "Syötä OpenAI API-avaimesi"
+    "enterApiKey": "Syötä OpenAI API-avaimesi",
+    "refreshModels": "Päivitä saatavilla olevat mallit",
+    "loadingModels": "Ladataan saatavilla olevia malleja...",
+    "modelsFound": "{{count}} mallia saatavilla"
   },
   "mainPanel": {
     "conversationPlaceholder": "Keskustelu näkyy tässä",

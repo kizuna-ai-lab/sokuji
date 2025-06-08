@@ -65,7 +65,10 @@
     "settingSavedSuccessfully": "تم حفظ الإعداد بنجاح: {{key}}",
     "failedToSaveSetting": "فشل في حفظ الإعداد: {{key}}",
     "apiKeyValidationCompleted": "اكتمل التحقق من مفتاح API",
-    "errorValidatingApiKey": "خطأ في التحقق من مفتاح API"
+    "errorValidatingApiKey": "خطأ في التحقق من مفتاح API",
+    "refreshModels": "تحديث النماذج المتاحة",
+    "loadingModels": "جاري تحميل النماذج المتاحة...",
+    "modelsFound": "{{count}} نماذج متاحة"
   },
   "audioPanel": {
     "title": "إعدادات الصوت",

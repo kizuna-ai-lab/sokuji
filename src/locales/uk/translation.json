@@ -24,7 +24,10 @@
     "openaiApiKey": "API-ключ OpenAI",
     "validate": "Перевірити",
     "validating": "Перевірка...",
-    "enterApiKey": "Введіть ваш API-ключ OpenAI"
+    "enterApiKey": "Введіть ваш API-ключ OpenAI",
+    "refreshModels": "Оновити доступні моделі",
+    "loadingModels": "Завантаження доступних моделей...",
+    "modelsFound": "{{count}} моделей доступно"
   },
   "mainPanel": {
     "conversationPlaceholder": "Розмова з'явиться тут",

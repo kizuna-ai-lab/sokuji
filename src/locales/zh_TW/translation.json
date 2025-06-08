@@ -65,7 +65,10 @@
     "settingSavedSuccessfully": "設定儲存成功: {{key}}",
     "failedToSaveSetting": "設定儲存失敗: {{key}}",
     "apiKeyValidationCompleted": "API金鑰驗證完成",
-    "errorValidatingApiKey": "驗證API金鑰時發生錯誤"
+    "errorValidatingApiKey": "驗證API金鑰時發生錯誤",
+    "refreshModels": "重新整理可用模型",
+    "loadingModels": "載入可用模型中...",
+    "modelsFound": "找到 {{count}} 個模型"
   },
   "audioPanel": {
     "title": "音訊設定",

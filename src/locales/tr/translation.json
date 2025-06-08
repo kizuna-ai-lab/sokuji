@@ -24,7 +24,10 @@
     "openaiApiKey": "OpenAI API anahtarı",
     "validate": "Doğrula",
     "validating": "Doğrulanıyor...",
-    "enterApiKey": "OpenAI API anahtarınızı girin"
+    "enterApiKey": "OpenAI API anahtarınızı girin",
+    "refreshModels": "Mevcut modelleri yenile",
+    "loadingModels": "Mevcut modeller yükleniyor...",
+    "modelsFound": "{{count}} model mevcut"
   },
   "mainPanel": {
     "conversationPlaceholder": "Konuşma burada görünecek",

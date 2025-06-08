@@ -65,7 +65,10 @@
     "settingSavedSuccessfully": "הגדרה נשמרה בהצלחה: {{key}}",
     "failedToSaveSetting": "שמירת הגדרה נכשלה: {{key}}",
     "apiKeyValidationCompleted": "אימות מפתח API הושלם",
-    "errorValidatingApiKey": "שגיאה באימות מפתח API"
+    "errorValidatingApiKey": "שגיאה באימות מפתח API",
+    "refreshModels": "רענן מודלים זמינים",
+    "loadingModels": "טוען מודלים זמינים...",
+    "modelsFound": "{{count}} מודלים זמינים"
   },
   "audioPanel": {
     "title": "הגדרות אודיו",

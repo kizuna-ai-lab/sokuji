@@ -65,7 +65,10 @@
     "settingSavedSuccessfully": "Pengaturan berhasil disimpan: {{key}}",
     "failedToSaveSetting": "Gagal menyimpan pengaturan: {{key}}",
     "apiKeyValidationCompleted": "Validasi kunci API selesai",
-    "errorValidatingApiKey": "Kesalahan saat memvalidasi kunci API"
+    "errorValidatingApiKey": "Kesalahan saat memvalidasi kunci API",
+    "refreshModels": "Segarkan model yang tersedia",
+    "loadingModels": "Memuat model yang tersedia...",
+    "modelsFound": "{{count}} model tersedia"
   },
   "audioPanel": {
     "title": "Pengaturan audio",

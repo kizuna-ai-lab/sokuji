@@ -65,7 +65,10 @@
     "settingSavedSuccessfully": "Tetapan berjaya disimpan: {{key}}",
     "failedToSaveSetting": "Gagal menyimpan tetapan: {{key}}",
     "apiKeyValidationCompleted": "Pengesahan kunci API selesai",
-    "errorValidatingApiKey": "Ralat mengesahkan kunci API"
+    "errorValidatingApiKey": "Ralat mengesahkan kunci API",
+    "refreshModels": "Segar semula model yang tersedia",
+    "loadingModels": "Memuatkan model yang tersedia...",
+    "modelsFound": "{{count}} model tersedia"
   },
   "audioPanel": {
     "title": "Tetapan audio",

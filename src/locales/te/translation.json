@@ -24,7 +24,10 @@
     "openaiApiKey": "OpenAI API కీ",
     "validate": "ధృవీకరించు",
     "validating": "ధృవీకరిస్తోంది...",
-    "enterApiKey": "మీ OpenAI API కీని ఎంటర్ చేయండి"
+    "enterApiKey": "మీ OpenAI API కీని ఎంటర్ చేయండి",
+    "refreshModels": "అందుబాటులో ఉన్న మోడల్స్ను రిఫ్రెష్ చేయండి",
+    "loadingModels": "అందుబాటులో ఉన్న మోడల్స్ లోడ్ అవుతున్నాయి...",
+    "modelsFound": "{{count}} మోడల్స్ అందుబాటులో ఉన్నాయి"
   },
   "mainPanel": {
     "conversationPlaceholder": "సంభాషణ ఇక్కడ కనిపిస్తుంది",

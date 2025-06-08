@@ -65,7 +65,10 @@
     "settingSavedSuccessfully": "Paramètre enregistré avec succès : {{key}}",
     "failedToSaveSetting": "Échec de l'enregistrement du paramètre : {{key}}",
     "apiKeyValidationCompleted": "Validation de la clé API terminée",
-    "errorValidatingApiKey": "Erreur lors de la validation de la clé API"
+    "errorValidatingApiKey": "Erreur lors de la validation de la clé API",
+    "refreshModels": "Actualiser les modèles disponibles",
+    "loadingModels": "Chargement des modèles disponibles...",
+    "modelsFound": "{{count}} modèles disponibles"
   },
   "audioPanel": {
     "title": "Paramètres audio",

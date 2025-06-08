@@ -24,7 +24,10 @@
     "openaiApiKey": "OpenAI API की",
     "validate": "सत्यापित करें",
     "validating": "सत्यापन...",
-    "enterApiKey": "अपनी OpenAI API की दर्ज करें"
+    "enterApiKey": "अपनी OpenAI API की दर्ज करें",
+    "refreshModels": "उपलब्ध मॉडल रीफ्रेश करें",
+    "loadingModels": "उपलब्ध मॉडल लोड हो रहे हैं...",
+    "modelsFound": "{{count}} मॉडल उपलब्ध"
   },
   "mainPanel": {
     "conversationPlaceholder": "बातचीत यहाँ दिखाई देगी",
