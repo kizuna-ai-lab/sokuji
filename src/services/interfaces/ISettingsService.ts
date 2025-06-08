@@ -12,6 +12,13 @@ export interface ApiKeyValidationResult {
   hasRealtimeModel?: boolean;
 }
 
+export interface AvailableModel {
+  id: string;
+  displayName: string;
+  type: 'realtime' | 'audio';
+  created: number;
+}
+
 export interface ISettingsService {
   /**
    * Load a specific setting by key
@@ -49,4 +56,10 @@ export interface ISettingsService {
    * @param apiKey The API key to validate
    */
   validateApiKey(apiKey: string): Promise<ApiKeyValidationResult>;
+
+  /**
+   * Get available models from OpenAI API
+   * @param apiKey The API key to use for authentication
+   */
+  getAvailableModels(apiKey: string): Promise<AvailableModel[]>;
 }

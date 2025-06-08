@@ -1,12 +1,13 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { ServiceFactory } from '../services/ServiceFactory';
+import { AvailableModel } from '../services/interfaces/ISettingsService';
 
 export type TurnDetectionMode = 'Normal' | 'Semantic' | 'Disabled';
 export type SemanticEagerness = 'Auto' | 'Low' | 'Medium' | 'High';
 export type NoiseReductionMode = 'None' | 'Near field' | 'Far field';
 export type TranscriptModel = 'gpt-4o-mini-transcribe' | 'gpt-4o-transcribe' | 'whisper-1';
 export type VoiceOption = 'alloy' | 'ash' | 'ballad' | 'coral' | 'echo' | 'sage' | 'shimmer' | 'verse';
-export type Model = 'gpt-4o-realtime-preview' | 'gpt-4o-mini-realtime-preview';
+export type Model = string; // Changed to string to support dynamic models
 
 export interface Settings {
   turnDetectionMode: TurnDetectionMode;
@@ -39,6 +40,9 @@ interface SettingsContextType {
     validating?: boolean;
   }>;
   getProcessedSystemInstructions: () => string;
+  availableModels: AvailableModel[];
+  loadingModels: boolean;
+  fetchAvailableModels: (apiKey?: string) => Promise<void>;
 }
 
 // Language code to full name mapping for system instructions
@@ -165,6 +169,8 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   
   const [settings, setSettings] = useState<Settings>(defaultSettings);
   const [isApiKeyValid, setIsApiKeyValid] = useState(false);
+  const [availableModels, setAvailableModels] = useState<AvailableModel[]>([]);
+  const [loadingModels, setLoadingModels] = useState(false);
   
   // Process system instructions based on the selected mode
   const getProcessedSystemInstructions = useCallback(() => {
@@ -246,6 +252,29 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     });
   }, [settingsService]);
 
+  // Fetch available models from OpenAI API
+  const fetchAvailableModels = useCallback(async (apiKey?: string) => {
+    try {
+      const keyToUse = apiKey !== undefined ? apiKey : settings.openAIApiKey;
+      
+      if (!keyToUse || keyToUse.trim() === '') {
+        console.warn('[Sokuji] [Settings] Cannot fetch models: API key is empty');
+        return;
+      }
+
+      setLoadingModels(true);
+      const models = await settingsService.getAvailableModels(keyToUse);
+      setAvailableModels(models);
+      
+      console.info('[Sokuji] [Settings] Fetched available models:', models);
+    } catch (error) {
+      console.error('[Sokuji] [Settings] Error fetching available models:', error);
+      setAvailableModels([]);
+    } finally {
+      setLoadingModels(false);
+    }
+  }, [settings.openAIApiKey, settingsService]);
+
   // Initialize settings on component mount
   useEffect(() => {
     loadSettings();
@@ -259,7 +288,10 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         reloadSettings: loadSettings,
         isApiKeyValid,
         validateApiKey,
-        getProcessedSystemInstructions
+        getProcessedSystemInstructions,
+        availableModels,
+        loadingModels,
+        fetchAvailableModels
       }}
     >
       {children}

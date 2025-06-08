@@ -65,7 +65,12 @@
     "settingSavedSuccessfully": "设置保存成功: {{key}}",
     "failedToSaveSetting": "设置保存失败: {{key}}",
     "apiKeyValidationCompleted": "API密钥验证完成",
-    "errorValidatingApiKey": "验证API密钥时出错"
+    "errorValidatingApiKey": "验证API密钥时出错",
+    "realtimeModelAvailable": "GPT-4o实时模型可用",
+    "realtimeModelNotAvailable": "GPT-4o实时模型不可用",
+    "refreshModels": "刷新可用模型",
+    "loadingModels": "正在加载可用模型...",
+    "modelsFound": "找到{{count}}个模型"
   },
   "audioPanel": {
     "title": "音频设置",
