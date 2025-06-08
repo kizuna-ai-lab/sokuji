@@ -1,4 +1,5 @@
 import { ISettingsService, SettingsOperationResult, ApiKeyValidationResult } from '../interfaces/ISettingsService';
+import { ApiKeyValidator } from '../utils/ApiKeyValidator';
 import i18n from '../../locales';
 
 /**
@@ -146,67 +147,6 @@ export class BrowserSettingsService implements ISettingsService {
    * Validate an OpenAI API key by making a direct API call
    */
   async validateApiKey(apiKey: string): Promise<ApiKeyValidationResult> {
-    try {
-      if (!apiKey || apiKey.trim() === '') {
-        return {
-          valid: false,
-          message: i18n.t('settings.errorValidatingApiKey'),
-          validating: false
-        };
-      }
-      
-      // In a browser extension, we can make the request directly
-      // instead of going through Electron's IPC
-      const response = await fetch('https://api.openai.com/v1/models', {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      if (response.status === 200) {
-        const data = await response.json();
-        
-        // Check if there's a model that contains both "realtime" and "4o"
-        const hasRealtimeModel = data.data?.some((model: any) => {
-          const modelName = model.id?.toLowerCase() || '';
-          return modelName.includes('realtime') && modelName.includes('4o');
-        }) || false;
-        
-        // If no realtime models are available, consider the validation as failed
-        if (!hasRealtimeModel) {
-          return {
-            valid: false,
-            message: i18n.t('settings.realtimeModelNotAvailable'),
-            validating: false,
-            hasRealtimeModel: hasRealtimeModel
-          };
-        }
-        
-        let message = i18n.t('settings.apiKeyValidationCompleted');
-        message += ' ' + i18n.t('settings.realtimeModelAvailable');
-        
-        return {
-          valid: true,
-          message: message,
-          validating: false,
-          hasRealtimeModel: hasRealtimeModel
-        };
-      } else {
-        const errorData = await response.json().catch(() => ({}));
-        return {
-          valid: false,
-          message: errorData.error?.message || i18n.t('settings.errorValidatingApiKey'),
-          validating: false
-        };
-      }
-    } catch (error: any) {
-      return {
-        valid: false,
-        message: error.message || i18n.t('settings.errorValidatingApiKey'),
-        validating: false
-      };
-    }
+    return ApiKeyValidator.validateApiKey(apiKey);
   }
 }

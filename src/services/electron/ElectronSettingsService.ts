@@ -1,4 +1,5 @@
 import { ISettingsService, SettingsOperationResult, ApiKeyValidationResult } from '../interfaces/ISettingsService';
+import { ApiKeyValidator } from '../utils/ApiKeyValidator';
 import i18n from '../../locales';
 
 /**
@@ -97,75 +98,6 @@ export class ElectronSettingsService implements ISettingsService {
    * Validate an OpenAI API key by making a direct API call
    */
   async validateApiKey(apiKey: string): Promise<ApiKeyValidationResult> {
-    try {
-      if (!apiKey || apiKey.trim() === '') {
-        return {
-          valid: false,
-          message: i18n.t('settings.errorValidatingApiKey'),
-          validating: false
-        };
-      }
-      
-      // Make request to OpenAI API models endpoint
-      const response = await fetch('https://api.openai.com/v1/models', {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      // Parse the response
-      const data = await response.json();
-      
-      if (!response.ok) {
-        return {
-          valid: false,
-          message: data.error?.message || i18n.t('settings.errorValidatingApiKey'),
-          validating: false
-        };
-      }
-      
-      // Check if the models we need are available
-      const availableModels = data.data || [];
-      
-      // Filter realtime models that contain both "realtime" and "4o"
-      const realtimeModels = availableModels.filter((model: any) => {
-        const modelName = model.id.toLowerCase();
-        return modelName.includes('realtime') && modelName.includes('4o');
-      });
-      
-      const hasRealtimeModel = realtimeModels.length > 0;
-
-      console.info("[Sokuji] [ElectronSettings] Available models:", availableModels);
-      console.info("[Sokuji] [ElectronSettings] Has realtime model:", hasRealtimeModel);
-      
-      // If no realtime models are available, consider the validation as failed
-      if (!hasRealtimeModel) {
-        return {
-          valid: false,
-          message: i18n.t('settings.realtimeModelNotAvailable'),
-          validating: false,
-          hasRealtimeModel: hasRealtimeModel
-        };
-      }
-      
-      let message = i18n.t('settings.apiKeyValidationCompleted');
-      message += ' ' + i18n.t('settings.realtimeModelAvailable');
-      
-      return {
-        valid: true,
-        message: message,
-        validating: false,
-        hasRealtimeModel: hasRealtimeModel
-      };
-    } catch (error: any) {
-      console.error("[Sokuji] [ElectronSettings] API key validation error:", error);
-      return {
-        valid: false,
-        message: error.message || i18n.t('settings.errorValidatingApiKey'),
-        validating: false
-      };
-    }
+    return ApiKeyValidator.validateApiKey(apiKey);
   }
 }
