@@ -23,8 +23,6 @@ const {
   connectVirtualSpeakerToOutput,
   disconnectVirtualSpeakerFromOutputs
 } = require('./pulseaudio-utils');
-// Import API handlers
-const { validateApiKey } = require('./api-handlers');
 
 // Set application name for PulseAudio
 app.setName('sokuji');
@@ -261,23 +259,7 @@ ipcMain.handle('open-directory', (event, dirPath) => {
   }
 });
 
-// Handler for validating OpenAI API key
-ipcMain.handle('validate-api-key', async (event, apiKey) => {
-  try {
-    const validationResult = await validateApiKey(apiKey);
-    return { 
-      success: true, 
-      ...validationResult 
-    };
-  } catch (error) {
-    console.error('[Sokuji] [Main] Error validating API key:', error);
-    return { 
-      success: false, 
-      valid: false,
-      error: error.message || 'Failed to validate API key' 
-    };
-  }
-});
+
 
 // Handler to connect virtual speaker to a specific output device
 ipcMain.handle('connect-virtual-speaker-to-output', async (event, deviceInfo) => {

@@ -26,13 +26,6 @@ interface ElectronAPI {
       data?: any; 
       error?: string 
     }>;
-    validateApiKey: (apiKey: string) => Promise<{
-      success: boolean;
-      valid: boolean;
-      models?: any[];
-      allModels?: any[];
-      error?: string;
-    }>;
   };
 }
 
