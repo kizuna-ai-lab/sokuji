@@ -24,7 +24,10 @@
     "openaiApiKey": "OpenAI API விசை",
     "validate": "சரிபார்",
     "validating": "சரிபார்க்கிறது...",
-    "enterApiKey": "உங்கள் OpenAI API விசையை உள்ளிடவும்"
+    "enterApiKey": "உங்கள் OpenAI API விசையை உள்ளிடவும்",
+    "refreshModels": "கிடைக்கும் மாதிரிகளை புதுப்பிக்கவும்",
+    "loadingModels": "கிடைக்கும் மாதிரிகள் ஏற்றப்படுகின்றன...",
+    "modelsFound": "{{count}} மாதிரிகள் கிடைக்கின்றன"
   },
   "mainPanel": {
     "conversationPlaceholder": "உரையாடல் இங்கே தோன்றும்",

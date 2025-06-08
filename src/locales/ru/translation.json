@@ -65,7 +65,10 @@
     "settingSavedSuccessfully": "Настройка успешно сохранена: {{key}}",
     "failedToSaveSetting": "Не удалось сохранить настройку: {{key}}",
     "apiKeyValidationCompleted": "Проверка API-ключа завершена",
-    "errorValidatingApiKey": "Ошибка при проверке API-ключа"
+    "errorValidatingApiKey": "Ошибка при проверке API-ключа",
+    "refreshModels": "Обновить доступные модели",
+    "loadingModels": "Загрузка доступных моделей...",
+    "modelsFound": "{{count}} моделей доступно"
   },
   "audioPanel": {
     "title": "Настройки аудио",

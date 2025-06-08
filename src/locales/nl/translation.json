@@ -65,7 +65,10 @@
     "settingSavedSuccessfully": "Instelling succesvol opgeslagen: {{key}}",
     "failedToSaveSetting": "Opslaan van instelling mislukt: {{key}}",
     "apiKeyValidationCompleted": "API sleutel validatie voltooid",
-    "errorValidatingApiKey": "Fout bij valideren van API sleutel"
+    "errorValidatingApiKey": "Fout bij valideren van API sleutel",
+    "refreshModels": "Beschikbare modellen vernieuwen",
+    "loadingModels": "Beschikbare modellen laden...",
+    "modelsFound": "{{count}} modellen beschikbaar"
   },
   "audioPanel": {
     "title": "Audio instellingen",

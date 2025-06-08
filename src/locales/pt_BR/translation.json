@@ -65,7 +65,10 @@
     "settingSavedSuccessfully": "Configuração salva com sucesso: {{key}}",
     "failedToSaveSetting": "Falha ao salvar configuração: {{key}}",
     "apiKeyValidationCompleted": "Validação da chave da API concluída",
-    "errorValidatingApiKey": "Erro ao validar chave da API"
+    "errorValidatingApiKey": "Erro ao validar chave da API",
+    "refreshModels": "Atualizar modelos disponíveis",
+    "loadingModels": "Carregando modelos disponíveis...",
+    "modelsFound": "{{count}} modelos disponíveis"
   },
   "audioPanel": {
     "title": "Configurações de áudio",

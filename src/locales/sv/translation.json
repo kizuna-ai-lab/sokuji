@@ -24,7 +24,10 @@
     "openaiApiKey": "OpenAI API-nyckel",
     "validate": "Validera",
     "validating": "Validerar...",
-    "enterApiKey": "Ange din OpenAI API-nyckel"
+    "enterApiKey": "Ange din OpenAI API-nyckel",
+    "refreshModels": "Uppdatera tillgängliga modeller",
+    "loadingModels": "Laddar tillgängliga modeller...",
+    "modelsFound": "{{count}} modeller tillgängliga"
   },
   "mainPanel": {
     "conversationPlaceholder": "Konversationen kommer att visas här",

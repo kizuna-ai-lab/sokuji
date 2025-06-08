@@ -65,7 +65,10 @@
     "settingSavedSuccessfully": "সেটিং সফলভাবে সংরক্ষিত: {{key}}",
     "failedToSaveSetting": "সেটিং সংরক্ষণে ব্যর্থ: {{key}}",
     "apiKeyValidationCompleted": "API কী যাচাই সম্পন্ন",
-    "errorValidatingApiKey": "API কী যাচাইয়ে ত্রুটি"
+    "errorValidatingApiKey": "API কী যাচাইয়ে ত্রুটি",
+    "refreshModels": "উপলব্ধ মডেল রিফ্রেশ করুন",
+    "loadingModels": "উপলব্ধ মডেল লোড হচ্ছে...",
+    "modelsFound": "{{count}}টি মডেল উপলব্ধ"
   },
   "audioPanel": {
     "title": "অডিও সেটিংস",

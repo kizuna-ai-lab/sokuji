@@ -65,7 +65,10 @@
     "settingSavedSuccessfully": "Definição guardada com sucesso: {{key}}",
     "failedToSaveSetting": "Falha ao guardar definição: {{key}}",
     "apiKeyValidationCompleted": "Validação da chave da API concluída",
-    "errorValidatingApiKey": "Erro ao validar chave da API"
+    "errorValidatingApiKey": "Erro ao validar chave da API",
+    "refreshModels": "Actualizar modelos disponíveis",
+    "loadingModels": "A carregar modelos disponíveis...",
+    "modelsFound": "{{count}} modelos disponíveis"
   },
   "audioPanel": {
     "title": "Definições de áudio",

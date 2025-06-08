@@ -65,7 +65,10 @@
     "settingSavedSuccessfully": "설정이 성공적으로 저장되었습니다: {{key}}",
     "failedToSaveSetting": "설정 저장에 실패했습니다: {{key}}",
     "apiKeyValidationCompleted": "API 키 검증이 완료되었습니다",
-    "errorValidatingApiKey": "API 키 검증 중 오류가 발생했습니다"
+    "errorValidatingApiKey": "API 키 검증 중 오류가 발생했습니다",
+    "refreshModels": "사용 가능한 모델 새로고침",
+    "loadingModels": "사용 가능한 모델 로딩 중...",
+    "modelsFound": "{{count}}개의 모델 사용 가능"
   },
   "audioPanel": {
     "title": "오디오 설정",

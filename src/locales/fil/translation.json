@@ -24,7 +24,10 @@
     "openaiApiKey": "OpenAI API key",
     "validate": "I-validate",
     "validating": "Nag-va-validate...",
-    "enterApiKey": "Ilagay ang inyong OpenAI API key"
+    "enterApiKey": "Ilagay ang inyong OpenAI API key",
+    "refreshModels": "I-refresh ang mga available na model",
+    "loadingModels": "Naglo-load ng mga available na model...",
+    "modelsFound": "{{count}} na mga model ang available"
   },
   "mainPanel": {
     "conversationPlaceholder": "Ang usapan ay lalabas dito",
