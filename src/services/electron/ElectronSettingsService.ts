@@ -1,4 +1,4 @@
-import { ISettingsService, SettingsOperationResult, ApiKeyValidationResult } from '../interfaces/ISettingsService';
+import { ISettingsService, SettingsOperationResult, ApiKeyValidationResult, AvailableModel } from '../interfaces/ISettingsService';
 import { ApiKeyValidator } from '../utils/ApiKeyValidator';
 import i18n from '../../locales';
 
@@ -99,5 +99,18 @@ export class ElectronSettingsService implements ISettingsService {
    */
   async validateApiKey(apiKey: string): Promise<ApiKeyValidationResult> {
     return ApiKeyValidator.validateApiKey(apiKey);
+  }
+
+  /**
+   * Get available models from OpenAI API
+   */
+  async getAvailableModels(apiKey: string): Promise<AvailableModel[]> {
+    try {
+      const models = await ApiKeyValidator.fetchAvailableModels(apiKey);
+      return ApiKeyValidator.filterRelevantModels(models);
+    } catch (error: any) {
+      console.error('[Sokuji] [ElectronSettings] Error fetching available models:', error);
+      return [];
+    }
   }
 }

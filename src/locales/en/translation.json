@@ -67,7 +67,10 @@
     "apiKeyValidationCompleted": "API key validation completed",
     "errorValidatingApiKey": "Error validating API key",
     "realtimeModelAvailable": "GPT-4o Realtime model is available",
-    "realtimeModelNotAvailable": "GPT-4o Realtime model is not available"
+    "realtimeModelNotAvailable": "GPT-4o Realtime model is not available",
+    "refreshModels": "Refresh available models",
+    "loadingModels": "Loading available models...",
+    "modelsFound": "{{count}} models available"
   },
   "audioPanel": {
     "title": "Audio Settings",

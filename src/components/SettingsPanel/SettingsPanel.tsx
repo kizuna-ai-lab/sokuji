@@ -68,7 +68,15 @@ interface SettingsPanelProps {
 }
 
 const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
-  const { settings, updateSettings, validateApiKey: contextValidateApiKey, getProcessedSystemInstructions } = useSettings();
+  const { 
+    settings, 
+    updateSettings, 
+    validateApiKey: contextValidateApiKey, 
+    getProcessedSystemInstructions,
+    availableModels,
+    loadingModels,
+    fetchAvailableModels
+  } = useSettings();
   const { t, i18n } = useTranslation();
 
   const [apiKeyStatus, setApiKeyStatus] = useState<{
@@ -168,6 +176,11 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
       validating: false
     });
     
+    // If validation is successful, fetch available models
+    if (result.valid === true) {
+      await fetchAvailableModels();
+    }
+    
     return result.valid === true;
   };
 
@@ -175,6 +188,15 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
   const voiceOptions: VoiceOption[] = [
     'alloy', 'ash', 'ballad', 'coral', 'echo', 'sage', 'shimmer', 'verse'
   ];
+
+  // Auto-fetch models when API key is available and valid
+  useEffect(() => {
+    if (settings.openAIApiKey && settings.openAIApiKey.trim() !== '' && availableModels.length === 0 && !loadingModels) {
+      fetchAvailableModels().catch(error => 
+        console.error('[Sokuji] [SettingsPanel] Error auto-fetching models:', error)
+      );
+    }
+  }, [settings.openAIApiKey, availableModels.length, loadingModels, fetchAvailableModels]);
 
   return (
     <div className="settings-panel">
@@ -478,14 +500,49 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
         <div className="settings-section">
           <h2>{t('settings.model')}</h2>
           <div className="setting-item">
-            <select
-              className="select-dropdown"
-              value={settings.model}
-              onChange={(e) => updateSettings({ model: e.target.value as Model })}
-            >
-              <option value="gpt-4o-realtime-preview">gpt-4o-realtime-preview</option>
-              <option value="gpt-4o-mini-realtime-preview">gpt-4o-mini-realtime-preview</option>
-            </select>
+            <div className="model-selection-container">
+              <select
+                className="select-dropdown"
+                value={settings.model}
+                onChange={(e) => updateSettings({ model: e.target.value as Model })}
+                disabled={loadingModels}
+              >
+                {availableModels.length > 0 ? (
+                  availableModels
+                    .filter(model => model.type === 'realtime')
+                    .map((model) => (
+                      <option key={model.id} value={model.id}>
+                        {model.displayName}
+                      </option>
+                    ))
+                ) : (
+                  <>
+                    <option value="gpt-4o-realtime-preview">gpt-4o-realtime-preview</option>
+                    <option value="gpt-4o-mini-realtime-preview">gpt-4o-mini-realtime-preview</option>
+                  </>
+                )}
+              </select>
+              <button 
+                className="refresh-models-button"
+                onClick={() => fetchAvailableModels()}
+                disabled={loadingModels || !settings.openAIApiKey}
+                title={t('settings.refreshModels')}
+              >
+                <span className={loadingModels ? 'loading' : ''}>
+                  {loadingModels ? '⟳' : '↻'}
+                </span>
+              </button>
+            </div>
+            {loadingModels && (
+              <div className="loading-status">
+                {t('settings.loadingModels')}
+              </div>
+            )}
+            {availableModels.filter(model => model.type === 'realtime').length > 0 && !loadingModels && (
+              <div className="models-info">
+                {t('settings.modelsFound', { count: availableModels.filter(model => model.type === 'realtime').length })}
+              </div>
+            )}
           </div>
         </div>
         <div className="settings-section">

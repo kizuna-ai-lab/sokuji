@@ -349,6 +349,77 @@
             color: #4285f4;
           }
         }
+
+        .model-selection-container {
+          display: flex;
+          gap: 10px;
+          width: 100%;
+          
+          .select-dropdown {
+            flex: 1;
+          }
+          
+          .refresh-models-button {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #333;
+            border: 1px solid #444;
+            border-radius: 4px;
+            color: #ddd;
+            cursor: pointer;
+            padding: 0 12px;
+            transition: all 0.2s;
+            white-space: nowrap;
+            min-width: 40px;
+            
+            span {
+              font-size: 16px;
+              transition: transform 0.5s ease;
+              
+              &.loading {
+                animation: spin 1s linear infinite;
+              }
+            }
+            
+            &:hover:not(:disabled) {
+              background-color: #444;
+              border-color: #555;
+            }
+            
+            &:disabled {
+              opacity: 0.5;
+              cursor: not-allowed;
+            }
+          }
+        }
+
+        .loading-status {
+          margin-top: 8px;
+          padding: 6px 10px;
+          border-radius: 4px;
+          font-size: 12px;
+          background-color: rgba(66, 133, 244, 0.1);
+          color: #4285f4;
+        }
+
+        .models-info {
+          margin-top: 8px;
+          padding: 6px 10px;
+          border-radius: 4px;
+          font-size: 12px;
+          background-color: rgba(16, 163, 127, 0.1);
+          color: #10a37f;
+        }
+
+        @keyframes spin {
+          from {
+            transform: rotate(0deg);
+          }
+          to {
+            transform: rotate(360deg);
+          }
+        }
         
         .select-dropdown {
           width: 100%;
