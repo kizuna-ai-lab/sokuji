@@ -1,0 +1,9 @@
+<svg width="206" height="60" viewBox="0 0 206 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect width="206" height="60" rx="8" fill="#2D2D2D"/>
+<circle cx="32" cy="30" r="12" fill="#0078D4"/>
+<path d="M32 18C37.5228 18 42 22.4772 42 28C42 33.5228 37.5228 38 32 38C26.4772 38 22 33.5228 22 28C22 22.4772 26.4772 18 32 18Z" fill="#0078D4"/>
+<path d="M38.5 24C38.5 21.5147 36.4853 19.5 34 19.5H30C27.5147 19.5 25.5 21.5147 25.5 24V32C25.5 34.4853 27.5147 36.5 30 36.5H34C36.4853 36.5 38.5 34.4853 38.5 32V24Z" fill="#FFFFFF"/>
+<path d="M35.5 26.5C35.5 25.6716 34.8284 25 34 25H30C29.1716 25 28.5 25.6716 28.5 26.5V29.5C28.5 30.3284 29.1716 31 30 31H34C34.8284 31 35.5 30.3284 35.5 29.5V26.5Z" fill="#0078D4"/>
+<text x="60" y="20" fill="#FFFFFF" font-family="Arial, sans-serif" font-size="11" font-weight="400">Available on</text>
+<text x="60" y="38" fill="#FFFFFF" font-family="Arial, sans-serif" font-size="16" font-weight="500">Edge Add-ons</text>
+</svg> 

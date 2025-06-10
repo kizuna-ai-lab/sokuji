@@ -138,5 +138,63 @@
     "networkError": "Erreur de connexion réseau",
     "translationFailed": "Échec de la traduction",
     "audioError": "Erreur de traitement audio"
+  },
+  "onboarding": {
+    "back": "Retour",
+    "close": "Fermer",
+    "finish": "Terminer",
+    "next": "Suivant",
+    "nextWithProgress": "Suivant ({step}/{steps})",
+    "open": "Ouvrir la boîte de dialogue",
+    "skip": "Ignorer la visite",
+    "restartTour": "Redémarrer le guide de configuration",
+    "steps": {
+      "welcome": {
+        "title": "Bienvenue dans Sokuji",
+        "content": "Bienvenue dans Sokuji ! Ce guide vous aidera à configurer l'extension pour la traduction vocale en temps réel. Commençons !"
+      },
+      "settings": {
+        "title": "Étape 1 : Ouvrir les paramètres",
+        "content": "D'abord, configurons vos paramètres. Cliquez ici pour ouvrir le panneau des paramètres où vous pouvez configurer votre clé API OpenAI et personnaliser les instructions système."
+      },
+      "apiKey": {
+        "title": "Étape 2 : Configurer la clé API",
+        "content": "Entrez votre clé API OpenAI ici. Vous pouvez en obtenir une depuis la",
+        "linkText": "page OpenAI",
+        "required": ". Ceci est requis pour la traduction vocale."
+      },
+      "systemInstructions": {
+        "title": "Étape 3 : Instructions système",
+        "content": "Personnalisez les instructions système pour contrôler comment l'IA répond. Vous pouvez modifier le comportement de traduction et ajouter des exigences spécifiques ici."
+      },
+      "voiceSettings": {
+        "title": "Étape 4 : Paramètres vocaux",
+        "content": "Configurez le type de voix qui sera utilisé pour la synthèse vocale. Choisissez parmi différentes options vocales selon votre préférence."
+      },
+      "turnDetection": {
+        "title": "Étape 5 : Détection des tours",
+        "content": "Configurez les paramètres de détection automatique des tours incluant le mode de détection, le seuil et les paramètres audio pour une performance optimale de reconnaissance vocale."
+      },
+      "audioSettings": {
+        "title": "Étape 6 : Paramètres audio",
+        "content": "Ensuite, configurons vos paramètres audio. Cliquez ici pour ouvrir le panneau audio et configurer votre microphone et vos haut-parleurs."
+      },
+      "microphoneSetup": {
+        "title": "Étape 7 : Configuration du microphone",
+        "content": "Sélectionnez votre dispositif microphone ici. Assurez-vous de choisir le bon dispositif d'entrée pour la meilleure qualité audio."
+      },
+      "speakerSetup": {
+        "title": "Étape 8 : Configuration des haut-parleurs",
+        "content": "Sélectionnez un dispositif de surveillance pour écouter l'audio traduit et vérifier s'il répond à vos exigences. Il est recommandé d'utiliser des écouteurs pour la surveillance afin d'éviter les interférences avec l'entrée du microphone. Lorsque vous pensez que les paramètres de traduction répondent à vos exigences, il est suggéré de désactiver la surveillance afin que vous puissiez vous concentrer davantage sur votre expression et ne pas interférer avec l'entrée du microphone."
+      },
+      "startSession": {
+        "title": "Étape 9 : Démarrer la session",
+        "content": "Cliquez sur le bouton \"Démarrer la session\" pour commencer à utiliser Sokuji. Une fois démarré, vous pouvez parler naturellement pour la traduction en temps réel. Si la détection automatique des tours est désactivée, utilisez \"Appuyer pour parler\" (barre d'espace) pour parler."
+      },
+      "complete": {
+        "title": "Guide de configuration terminé !",
+        "content": "Excellent ! Vous avez terminé le guide de configuration et êtes maintenant familier avec l'interface. Pour commencer à utiliser Sokuji, veuillez entrer votre clé API OpenAI dans les paramètres, accordez les permissions du microphone lorsque demandé, et sélectionnez \"Sokuji Virtual Microphone\" comme votre microphone dans votre application de réunion (Google Meet, Zoom, Microsoft Teams, etc.). Vous pouvez redémarrer ce guide à tout moment depuis les paramètres."
+      }
+    }
   }
 } 

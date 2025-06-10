@@ -138,5 +138,61 @@
     "networkError": "Ralat sambungan rangkaian",
     "translationFailed": "Terjemahan gagal",
     "audioError": "Ralat pemprosesan audio"
+  },
+  "onboarding": {
+    "back": "Kembali",
+    "close": "Tutup",
+    "finish": "Selesai",
+    "next": "Seterusnya",
+    "nextWithProgress": "Seterusnya ({step}/{steps})",
+    "open": "Buka",
+    "skip": "Langkau",
+    "restartTour": "Mula semula panduan persediaan",
+    "steps": {
+      "welcome": {
+        "title": "Selamat datang ke Sokuji!",
+        "content": "Selamat datang ke aplikasi terjemahan suara masa nyata! Mari kita sediakan sistem anda dengan pantas untuk pengalaman terbaik."
+      },
+      "openSettings": {
+        "title": "Buka panel tetapan",
+        "content": "Klik butang ini untuk membuka panel tetapan, di mana kita akan mengkonfigurasi kunci API dan pilihan anda."
+      },
+      "apiKey": {
+        "title": "Sediakan kunci API OpenAI",
+        "content": "Masukkan kunci API OpenAI anda untuk mengaktifkan fungsi terjemahan. Anda boleh mendapatkan kunci dari <a href='https://platform.openai.com/api-keys' target='_blank'>platform OpenAI</a>."
+      },
+      "systemInstructions": {
+        "title": "Sesuaikan arahan sistem",
+        "content": "Tambahkan sebarang arahan khusus di sini untuk menyesuaikan tingkah laku terjemahan, seperti nada, gaya, atau keperluan khas."
+      },
+      "voiceSettings": {
+        "title": "Tetapan suara",
+        "content": "Pilih model suara dan tetapan pilihan anda. Tetapan ini akan mempengaruhi kualiti dan kelajuan terjemahan."
+      },
+      "turnDetection": {
+        "title": "Pengesanan giliran",
+        "content": "Konfigurasikan tetapan pengesanan giliran automatik untuk mengawal bila sistem mula dan berhenti mendengar."
+      },
+      "audioSettings": {
+        "title": "Panel tetapan audio",
+        "content": "Klik di sini untuk membuka tetapan audio, di mana kita akan menyediakan peranti mikrofon dan pembesar suara anda."
+      },
+      "microphoneSetup": {
+        "title": "Pilih peranti mikrofon",
+        "content": "Pilih peranti mikrofon fizikal sebenar anda dari senarai. Elakkan memilih peranti maya kerana ini digunakan untuk aplikasi persidangan."
+      },
+      "speakerSetup": {
+        "title": "Persediaan peranti monitor",
+        "content": "Pilih peranti monitor (seperti fon kepala atau pembesar suara) untuk mendengar output terjemahan. Disyorkan menggunakan fon kepala untuk mengelakkan maklum balas audio. Jika anda ingin fokus pada mesyuarat tanpa gangguan pemantauan, anda boleh mematikan ciri pemantauan."
+      },
+      "startSession": {
+        "title": "Mulakan sesi anda",
+        "content": "Semuanya sudah sedia! Klik butang \"Mula sesi\" untuk memulakan terjemahan masa nyata. Ingat untuk memilih mikrofon maya Sokuji sebagai peranti input dalam aplikasi persidangan anda."
+      },
+      "completion": {
+        "title": "Panduan persediaan selesai!",
+        "content": "Anda telah menyelesaikan panduan persediaan! Sekarang pastikan untuk benar-benar memasukkan kunci API dan mengkonfigurasi tetapan anda, kemudian gunakan mikrofon maya Sokuji dalam aplikasi persidangan (seperti Google Meet, Zoom, dll.) untuk memulakan terjemahan masa nyata."
+      }
+    }
   }
 } 

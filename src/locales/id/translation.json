@@ -138,5 +138,61 @@
     "networkError": "Kesalahan koneksi jaringan",
     "translationFailed": "Terjemahan gagal",
     "audioError": "Kesalahan pemrosesan audio"
+  },
+  "onboarding": {
+    "back": "Kembali",
+    "close": "Tutup",
+    "finish": "Selesai",
+    "next": "Selanjutnya",
+    "nextWithProgress": "Selanjutnya ({step}/{steps})",
+    "open": "Buka",
+    "skip": "Lewati",
+    "restartTour": "Mulai ulang panduan pengaturan",
+    "steps": {
+      "welcome": {
+        "title": "Selamat datang di Sokuji!",
+        "content": "Selamat datang di aplikasi terjemahan suara real-time! Mari kita atur sistem Anda dengan cepat untuk pengalaman terbaik."
+      },
+      "openSettings": {
+        "title": "Buka panel pengaturan",
+        "content": "Klik tombol ini untuk membuka panel pengaturan, di mana kita akan mengonfigurasi kunci API dan preferensi Anda."
+      },
+      "apiKey": {
+        "title": "Atur kunci API OpenAI",
+        "content": "Masukkan kunci API OpenAI Anda untuk mengaktifkan fungsi terjemahan. Anda bisa mendapatkan kunci dari <a href='https://platform.openai.com/api-keys' target='_blank'>platform OpenAI</a>."
+      },
+      "systemInstructions": {
+        "title": "Kustomisasi instruksi sistem",
+        "content": "Tambahkan instruksi khusus di sini untuk menyesuaikan perilaku terjemahan, seperti nada, gaya, atau persyaratan khusus."
+      },
+      "voiceSettings": {
+        "title": "Pengaturan suara",
+        "content": "Pilih model suara dan pengaturan yang Anda sukai. Pengaturan ini akan mempengaruhi kualitas dan kecepatan terjemahan."
+      },
+      "turnDetection": {
+        "title": "Deteksi giliran",
+        "content": "Konfigurasikan pengaturan deteksi giliran otomatis untuk mengontrol kapan sistem mulai dan berhenti mendengarkan."
+      },
+      "audioSettings": {
+        "title": "Panel pengaturan audio",
+        "content": "Klik di sini untuk membuka pengaturan audio, di mana kita akan mengatur perangkat mikrofon dan speaker Anda."
+      },
+      "microphoneSetup": {
+        "title": "Pilih perangkat mikrofon",
+        "content": "Pilih perangkat mikrofon fisik Anda dari daftar. Hindari memilih perangkat virtual karena ini digunakan untuk aplikasi konferensi."
+      },
+      "speakerSetup": {
+        "title": "Pengaturan perangkat monitor",
+        "content": "Pilih perangkat monitor (seperti headphone atau speaker) untuk mendengar output terjemahan. Disarankan menggunakan headphone untuk menghindari umpan balik audio. Jika Anda ingin fokus pada rapat tanpa gangguan monitoring, Anda dapat mematikan fitur monitoring."
+      },
+      "startSession": {
+        "title": "Mulai sesi Anda",
+        "content": "Semuanya sudah siap! Klik tombol \"Mulai sesi\" untuk memulai terjemahan real-time. Ingat untuk memilih mikrofon virtual Sokuji sebagai perangkat input di aplikasi konferensi Anda."
+      },
+      "completion": {
+        "title": "Panduan pengaturan selesai!",
+        "content": "Anda telah menyelesaikan panduan pengaturan! Sekarang pastikan untuk benar-benar memasukkan kunci API dan mengonfigurasi pengaturan Anda, lalu gunakan mikrofon virtual Sokuji di aplikasi konferensi (seperti Google Meet, Zoom, dll.) untuk memulai terjemahan real-time."
+      }
+    }
   }
 } 

@@ -52,5 +52,61 @@
     "networkError": "Nätverksanslutningsfel",
     "translationFailed": "Översättning misslyckades",
     "audioError": "Ljudbehandlingsfel"
+  },
+  "onboarding": {
+    "back": "Tillbaka",
+    "close": "Stäng",
+    "finish": "Slutför",
+    "next": "Nästa",
+    "nextWithProgress": "Nästa ({step}/{steps})",
+    "open": "Öppna",
+    "skip": "Hoppa över",
+    "restartTour": "Starta om installationsguiden",
+    "steps": {
+      "welcome": {
+        "title": "Välkommen till Sokuji!",
+        "content": "Välkommen till realtidsapplikationen för röstöversättning! Låt oss snabbt konfigurera ditt system för bästa upplevelse."
+      },
+      "openSettings": {
+        "title": "Öppna inställningspanelen",
+        "content": "Klicka på denna knapp för att öppna inställningspanelen, där vi kommer att konfigurera din API-nyckel och preferenser."
+      },
+      "apiKey": {
+        "title": "Konfigurera OpenAI API-nyckel",
+        "content": "Ange din OpenAI API-nyckel för att aktivera översättningsfunktionen. Du kan få en nyckel från <a href='https://platform.openai.com/api-keys' target='_blank'>OpenAI-plattformen</a>."
+      },
+      "systemInstructions": {
+        "title": "Anpassa systeminstruktioner",
+        "content": "Lägg till specifika instruktioner här för att anpassa översättningsbeteendet, såsom ton, stil eller särskilda krav."
+      },
+      "voiceSettings": {
+        "title": "Röstinställningar",
+        "content": "Välj din föredragna röstmodell och inställningar. Dessa inställningar kommer att påverka översättningens kvalitet och hastighet."
+      },
+      "turnDetection": {
+        "title": "Turdetektering",
+        "content": "Konfigurera automatiska turdetekteringsinställningar för att kontrollera när systemet börjar och slutar lyssna."
+      },
+      "audioSettings": {
+        "title": "Ljudinställningspanel",
+        "content": "Klicka här för att öppna ljudinställningar, där vi kommer att konfigurera dina mikrofon- och högtalarenheter."
+      },
+      "microphoneSetup": {
+        "title": "Välj mikrofonenhet",
+        "content": "Välj din verkliga fysiska mikrofonenhet från listan. Undvik att välja virtuella enheter eftersom dessa är för konferensapplikationer."
+      },
+      "speakerSetup": {
+        "title": "Monitorenhetsinställning",
+        "content": "Välj en monitorenhet (som hörlurar eller högtalare) för att höra översättningsutdata. Det rekommenderas att använda hörlurar för att undvika ljudåterkoppling. Om du vill fokusera på mötet utan distraktion från övervakning kan du stänga av övervakningsfunktionen."
+      },
+      "startSession": {
+        "title": "Starta din session",
+        "content": "Allt är redo! Klicka på \"Starta session\"-knappen för att börja realtidsöversättning. Kom ihåg att välja Sokuji virtuell mikrofon som inmatningsenhet i din konferensapplikation."
+      },
+      "completion": {
+        "title": "Installationsguiden slutförd!",
+        "content": "Du har slutfört installationsguiden! Se nu till att du faktiskt anger din API-nyckel och konfigurerar dina inställningar, använd sedan Sokuji virtuell mikrofon i konferensapplikationer (som Google Meet, Zoom, etc.) för att starta realtidsöversättning."
+      }
+    }
   }
 } 

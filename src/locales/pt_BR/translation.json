@@ -138,5 +138,63 @@
     "networkError": "Erro de conexão de rede",
     "translationFailed": "Falha na tradução",
     "audioError": "Erro de processamento de áudio"
+  },
+  "onboarding": {
+    "back": "Voltar",
+    "close": "Fechar",
+    "finish": "Finalizar",
+    "next": "Próximo",
+    "nextWithProgress": "Próximo ({step}/{steps})",
+    "open": "Abrir diálogo",
+    "skip": "Pular tour",
+    "restartTour": "Reiniciar guia de configuração",
+    "steps": {
+      "welcome": {
+        "title": "Bem-vindo ao Sokuji",
+        "content": "Bem-vindo ao Sokuji! Este guia ajudará você a configurar a extensão para tradução de voz em tempo real. Vamos começar!"
+      },
+      "settings": {
+        "title": "Passo 1: Abrir configurações",
+        "content": "Primeiro, vamos configurar suas definições. Clique aqui para abrir o painel de configurações onde você pode definir sua chave da API OpenAI e personalizar instruções do sistema."
+      },
+      "apiKey": {
+        "title": "Passo 2: Configurar chave da API",
+        "content": "Digite sua chave da API OpenAI aqui. Você pode obter uma na",
+        "linkText": "página da OpenAI",
+        "required": ". Isso é necessário para a tradução de voz."
+      },
+      "systemInstructions": {
+        "title": "Passo 3: Instruções do sistema",
+        "content": "Personalize as instruções do sistema para controlar como a IA responde. Você pode modificar o comportamento da tradução e adicionar requisitos específicos aqui."
+      },
+      "voiceSettings": {
+        "title": "Passo 4: Configurações de voz",
+        "content": "Configure o tipo de voz que será usado para síntese de voz. Escolha entre diferentes opções de voz de acordo com sua preferência."
+      },
+      "turnDetection": {
+        "title": "Passo 5: Detecção de turno",
+        "content": "Configure as definições de detecção automática de turno incluindo modo de detecção, limite e parâmetros de áudio para desempenho ótimo de reconhecimento de voz."
+      },
+      "audioSettings": {
+        "title": "Passo 6: Configurações de áudio",
+        "content": "Em seguida, vamos configurar suas definições de áudio. Clique aqui para abrir o painel de áudio e configurar seu microfone e alto-falantes."
+      },
+      "microphoneSetup": {
+        "title": "Passo 7: Configuração do microfone",
+        "content": "Selecione seu dispositivo de microfone aqui. Certifique-se de escolher o dispositivo de entrada correto para a melhor qualidade de áudio."
+      },
+      "speakerSetup": {
+        "title": "Passo 8: Configuração de alto-falantes",
+        "content": "Selecione um dispositivo de monitoramento para ouvir o áudio traduzido e verificar se atende aos seus requisitos. É recomendado usar fones de ouvido para monitoramento para evitar interferência com a entrada do microfone. Quando você achar que as configurações de tradução atendem aos seus requisitos, é sugerido desligar o monitoramento para que você possa se concentrar mais em sua expressão e não interferir com a entrada do microfone."
+      },
+      "startSession": {
+        "title": "Passo 9: Iniciar sessão",
+        "content": "Clique no botão \"Iniciar sessão\" para começar a usar o Sokuji. Uma vez iniciado, você pode falar naturalmente para tradução em tempo real. Se a detecção automática de turno estiver desabilitada, use \"pressionar para falar\" (barra de espaço) para falar."
+      },
+      "complete": {
+        "title": "Guia de configuração concluído!",
+        "content": "Excelente! Você concluiu o guia de configuração e agora está familiarizado com a interface. Para começar a usar o Sokuji, por favor digite sua chave da API OpenAI nas configurações, conceda permissões de microfone quando solicitado, e selecione \"Sokuji Virtual Microphone\" como seu microfone em seu aplicativo de reunião (Google Meet, Zoom, Microsoft Teams, etc.). Você pode reiniciar este guia a qualquer momento nas configurações."
+      }
+    }
   }
 } 

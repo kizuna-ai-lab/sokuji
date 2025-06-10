@@ -138,5 +138,63 @@
     "networkError": "Netzwerkverbindungsfehler",
     "translationFailed": "Übersetzung fehlgeschlagen",
     "audioError": "Audio-Verarbeitungsfehler"
+  },
+  "onboarding": {
+    "back": "Zurück",
+    "close": "Schließen",
+    "finish": "Fertig",
+    "next": "Weiter",
+    "nextWithProgress": "Weiter ({step}/{steps})",
+    "open": "Dialog öffnen",
+    "skip": "Tour überspringen",
+    "restartTour": "Setup-Anleitung neu starten",
+    "steps": {
+      "welcome": {
+        "title": "Willkommen bei Sokuji",
+        "content": "Willkommen bei Sokuji! Diese Anleitung hilft Ihnen dabei, die Erweiterung für Live-Sprachübersetzung einzurichten. Lassen Sie uns beginnen!"
+      },
+      "settings": {
+        "title": "Schritt 1: Einstellungen öffnen",
+        "content": "Zuerst konfigurieren wir Ihre Einstellungen. Klicken Sie hier, um das Einstellungspanel zu öffnen, wo Sie Ihren OpenAI API-Schlüssel einrichten und Systemanweisungen anpassen können."
+      },
+      "apiKey": {
+        "title": "Schritt 2: API-Schlüssel konfigurieren",
+        "content": "Geben Sie hier Ihren OpenAI API-Schlüssel ein. Sie können einen von der",
+        "linkText": "OpenAI-Seite",
+        "required": "erhalten. Dies ist für die Sprachübersetzung erforderlich."
+      },
+      "systemInstructions": {
+        "title": "Schritt 3: Systemanweisungen",
+        "content": "Passen Sie die Systemanweisungen an, um zu steuern, wie die KI antwortet. Sie können hier das Übersetzungsverhalten ändern und spezifische Anforderungen hinzufügen."
+      },
+      "voiceSettings": {
+        "title": "Schritt 4: Spracheinstellungen",
+        "content": "Konfigurieren Sie den Stimmtyp, der für die Sprachsynthese verwendet wird. Wählen Sie aus verschiedenen Stimmoptionen entsprechend Ihrer Präferenz."
+      },
+      "turnDetection": {
+        "title": "Schritt 5: Wendeerkennung",
+        "content": "Konfigurieren Sie die automatischen Wendeerkennungseinstellungen einschließlich Erkennungsmodus, Schwellenwert und Audioparameter für optimale Spracherkennungsleistung."
+      },
+      "audioSettings": {
+        "title": "Schritt 6: Audio-Einstellungen",
+        "content": "Als nächstes konfigurieren wir Ihre Audio-Einstellungen. Klicken Sie hier, um das Audio-Panel zu öffnen und Ihr Mikrofon und Ihre Lautsprecher einzurichten."
+      },
+      "microphoneSetup": {
+        "title": "Schritt 7: Mikrofon-Setup",
+        "content": "Wählen Sie hier Ihr Mikrofongerät aus. Stellen Sie sicher, dass Sie das richtige Eingabegerät für die beste Audioqualität auswählen."
+      },
+      "speakerSetup": {
+        "title": "Schritt 8: Lautsprecher-Setup",
+        "content": "Wählen Sie ein Überwachungsgerät aus, um die übersetzte Audio anzuhören und zu überprüfen, ob sie Ihren Anforderungen entspricht. Es wird empfohlen, Kopfhörer für die Überwachung zu verwenden, um Interferenzen mit der Mikrofoneingabe zu vermeiden. Wenn Sie der Meinung sind, dass die Übersetzungseinstellungen Ihren Anforderungen entsprechen, wird empfohlen, die Überwachung auszuschalten, damit Sie sich mehr auf Ihren Ausdruck konzentrieren können und die Mikrofoneingabe nicht stören."
+      },
+      "startSession": {
+        "title": "Schritt 9: Sitzung starten",
+        "content": "Klicken Sie auf die Schaltfläche \"Sitzung starten\", um mit der Verwendung von Sokuji zu beginnen. Nach dem Start können Sie natürlich sprechen für Live-Übersetzung. Wenn die automatische Wendeerkennung deaktiviert ist, verwenden Sie \"Drücken zum Sprechen\" (Leertaste) zum Sprechen."
+      },
+      "complete": {
+        "title": "Setup-Anleitung abgeschlossen!",
+        "content": "Großartig! Sie haben die Setup-Anleitung abgeschlossen und sind nun mit der Benutzeroberfläche vertraut. Um Sokuji zu verwenden, geben Sie bitte Ihren OpenAI API-Schlüssel in den Einstellungen ein, gewähren Sie Mikrofonberechtigungen wenn aufgefordert, und wählen Sie \"Sokuji Virtual Microphone\" als Ihr Mikrofon in Ihrer Meeting-Anwendung (Google Meet, Zoom, Microsoft Teams, usw.). Sie können diese Anleitung jederzeit aus den Einstellungen neu starten."
+      }
+    }
   }
 } 

@@ -140,5 +140,63 @@
     "networkError": "网络连接错误",
     "translationFailed": "翻译失败",
     "audioError": "音频处理错误"
+  },
+  "onboarding": {
+    "back": "返回",
+    "close": "关闭",
+    "finish": "完成",
+    "next": "下一步",
+    "nextWithProgress": "下一步 ({step}/{steps})",
+    "open": "打开对话框",
+    "skip": "跳过向导",
+    "restartTour": "重新开始设置向导",
+    "steps": {
+      "welcome": {
+        "title": "欢迎使用Sokuji",
+        "content": "欢迎使用Sokuji！本指南将帮助您设置实时语音翻译应用程序。让我们开始吧！"
+      },
+      "settings": {
+        "title": "步骤1：打开设置",
+        "content": "首先，让我们配置您的设置。点击这里打开设置面板，您可以在其中设置OpenAI API密钥并自定义系统指令。"
+      },
+      "apiKey": {
+        "title": "步骤2：配置API密钥",
+        "content": "在此处输入您的OpenAI API密钥。您可以从",
+        "linkText": "OpenAI页面",
+        "required": "获取一个。这对于语音翻译功能是必需的。"
+      },
+      "systemInstructions": {
+        "title": "步骤3：系统指令",
+        "content": "自定义系统指令以控制AI的响应方式。您可以在此处修改翻译行为并添加特定要求。"
+      },
+      "voiceSettings": {
+        "title": "步骤4：语音设置",
+        "content": "配置用于语音合成的语音类型。从不同的语音选项中选择以符合您的偏好。"
+      },
+      "turnDetection": {
+        "title": "步骤5：轮换检测",
+        "content": "配置自动轮换检测设置，包括检测模式、阈值和音频参数，以获得最佳的语音识别性能。"
+      },
+      "audioSettings": {
+        "title": "步骤6：音频设置",
+        "content": "接下来，让我们配置您的音频设置。点击这里打开音频面板并设置您的麦克风和扬声器。"
+      },
+      "microphoneSetup": {
+        "title": "步骤7：麦克风设置",
+        "content": "在此处选择您的麦克风设备。请确保选择正确的输入设备以获得最佳音频质量。"
+      },
+      "speakerSetup": {
+        "title": "步骤8：扬声器设置",
+        "content": "选择一个监听设备，你可以用来收听翻译的声音是否正确和符合你的要求，建议使用耳机进行监听，这样监听的声音不会干扰麦克风收音，当你认为翻译设置符合你的要求的时候，建议关闭监听，这样你可以更加专心于你的表达，而且不会干扰麦克风收音。"
+      },
+      "startSession": {
+        "title": "步骤9：开始会话",
+        "content": "点击\"开始会话\"按钮开始使用Sokuji。启动后，您可以自然说话进行实时翻译。如果禁用了自动轮换检测，请使用\"按住说话\"（空格键）来说话。"
+      },
+      "complete": {
+        "title": "设置指南完成！",
+        "content": "太棒了！您已经完成了设置指南，现在熟悉了界面操作。要开始使用Sokuji，请在设置中输入您的OpenAI API密钥，在提示时授予麦克风权限，并在您的会议应用程序（Google Meet、Zoom、Microsoft Teams等）中选择\"Sokuji Virtual Microphone\"作为您的麦克风。您可以随时从设置中重新启动此指南。"
+      }
+    }
   }
 } 

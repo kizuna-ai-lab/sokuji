@@ -138,5 +138,61 @@
     "networkError": "Netwerkverbinding fout",
     "translationFailed": "Vertaling mislukt",
     "audioError": "Audio verwerkingsfout"
+  },
+  "onboarding": {
+    "back": "Terug",
+    "close": "Sluiten",
+    "finish": "Voltooien",
+    "next": "Volgende",
+    "nextWithProgress": "Volgende ({step}/{steps})",
+    "open": "Openen",
+    "skip": "Overslaan",
+    "restartTour": "Setup gids opnieuw starten",
+    "steps": {
+      "welcome": {
+        "title": "Welkom bij Sokuji!",
+        "content": "Welkom bij de realtime spraakvertaling applicatie! Laten we uw systeem snel instellen voor de beste ervaring."
+      },
+      "openSettings": {
+        "title": "Instellingen paneel openen",
+        "content": "Klik op deze knop om het instellingen paneel te openen, waar we uw API sleutel en voorkeuren zullen configureren."
+      },
+      "apiKey": {
+        "title": "OpenAI API sleutel instellen",
+        "content": "Voer uw OpenAI API sleutel in om de vertaalfunctie te activeren. U kunt een sleutel verkrijgen van het <a href='https://platform.openai.com/api-keys' target='_blank'>OpenAI platform</a>."
+      },
+      "systemInstructions": {
+        "title": "Systeeminstructies aanpassen",
+        "content": "Voeg hier specifieke instructies toe om het vertaalgedrag aan te passen, zoals toon, stijl of speciale vereisten."
+      },
+      "voiceSettings": {
+        "title": "Stem instellingen",
+        "content": "Kies uw gewenste stemmodel en instellingen. Deze instellingen beïnvloeden de kwaliteit en snelheid van de vertaling."
+      },
+      "turnDetection": {
+        "title": "Beurt detectie",
+        "content": "Configureer de automatische beurt detectie instellingen om te bepalen wanneer het systeem begint en stopt met luisteren."
+      },
+      "audioSettings": {
+        "title": "Audio instellingen paneel",
+        "content": "Klik hier om de audio instellingen te openen, waar we uw microfoon en luidspreker apparaten zullen instellen."
+      },
+      "microphoneSetup": {
+        "title": "Microfoon apparaat selecteren",
+        "content": "Selecteer uw echte fysieke microfoon apparaat uit de lijst. Vermijd het selecteren van virtuele apparaten omdat deze voor conferentie applicaties zijn."
+      },
+      "speakerSetup": {
+        "title": "Monitor apparaat instelling",
+        "content": "Selecteer een monitor apparaat (zoals koptelefoon of luidsprekers) om de vertaling output te horen. Het wordt aanbevolen om koptelefoons te gebruiken om audio feedback te vermijden. Als u zich wilt concentreren op de vergadering zonder afleiding van monitoring, kunt u de monitoring functie uitschakelen."
+      },
+      "startSession": {
+        "title": "Start uw sessie",
+        "content": "Alles is klaar! Klik op de \"Sessie starten\" knop om realtime vertaling te beginnen. Vergeet niet om de Sokuji virtuele microfoon te selecteren als invoer apparaat in uw conferentie applicatie."
+      },
+      "completion": {
+        "title": "Setup gids voltooid!",
+        "content": "U heeft de setup gids voltooid! Zorg er nu voor dat u daadwerkelijk uw API sleutel invoert en uw instellingen configureert, gebruik dan de Sokuji virtuele microfoon in conferentie applicaties (zoals Google Meet, Zoom, enz.) om realtime vertaling te starten."
+      }
+    }
   }
 } 

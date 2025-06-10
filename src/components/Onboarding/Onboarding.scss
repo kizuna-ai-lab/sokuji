@@ -1,0 +1,52 @@
+// Onboarding component styles
+.onboarding {
+  // Custom styles for joyride tooltips can be added here if needed
+  // Most styling is handled through the Joyride styles prop
+  
+  // Ensure proper z-index for onboarding elements
+  .react-joyride__tooltip {
+    z-index: 10001 !important;
+  }
+  
+  .react-joyride__overlay {
+    z-index: 10000 !important;
+  }
+  
+  .react-joyride__spotlight {
+    z-index: 10001 !important;
+  }
+  
+  .react-joyride__beacon {
+    z-index: 10002 !important;
+  }
+}
+
+// Ensure highlighted elements are visible during onboarding
+.react-joyride__spotlight {
+  border-radius: 4px !important;
+}
+
+// Custom beacon animation
+@keyframes joyride-beacon {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.react-joyride__beacon {
+  animation: joyride-beacon 1.5s ease-in-out infinite;
+}
+
+// Responsive adjustments for smaller screens
+@media (max-width: 768px) {
+  .react-joyride__tooltip {
+    max-width: 90vw !important;
+    margin: 10px !important;
+  }
+} 

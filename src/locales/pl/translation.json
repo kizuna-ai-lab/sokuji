@@ -138,5 +138,61 @@
     "networkError": "Błąd połączenia sieciowego",
     "translationFailed": "Tłumaczenie nie powiodło się",
     "audioError": "Błąd przetwarzania audio"
+  },
+  "onboarding": {
+    "back": "Wstecz",
+    "close": "Zamknij",
+    "finish": "Zakończ",
+    "next": "Dalej",
+    "nextWithProgress": "Dalej ({step}/{steps})",
+    "open": "Otwórz",
+    "skip": "Pomiń",
+    "restartTour": "Uruchom ponownie przewodnik konfiguracji",
+    "steps": {
+      "welcome": {
+        "title": "Witamy w Sokuji!",
+        "content": "Witamy w aplikacji do tłumaczenia mowy w czasie rzeczywistym! Szybko skonfigurujmy Twój system dla najlepszego doświadczenia."
+      },
+      "openSettings": {
+        "title": "Otwórz panel ustawień",
+        "content": "Kliknij ten przycisk, aby otworzyć panel ustawień, gdzie skonfigurujemy Twój klucz API i preferencje."
+      },
+      "apiKey": {
+        "title": "Skonfiguruj klucz API OpenAI",
+        "content": "Wprowadź swój klucz API OpenAI, aby włączyć funkcję tłumaczenia. Możesz uzyskać klucz z <a href='https://platform.openai.com/api-keys' target='_blank'>platformy OpenAI</a>."
+      },
+      "systemInstructions": {
+        "title": "Dostosuj instrukcje systemowe",
+        "content": "Dodaj tutaj konkretne instrukcje, aby dostosować zachowanie tłumaczenia, takie jak ton, styl lub specjalne wymagania."
+      },
+      "voiceSettings": {
+        "title": "Ustawienia głosu",
+        "content": "Wybierz preferowany model głosu i ustawienia. Te ustawienia wpłyną na jakość i szybkość tłumaczenia."
+      },
+      "turnDetection": {
+        "title": "Wykrywanie kolejki",
+        "content": "Skonfiguruj ustawienia automatycznego wykrywania kolejki, aby kontrolować, kiedy system zaczyna i przestaje słuchać."
+      },
+      "audioSettings": {
+        "title": "Panel ustawień audio",
+        "content": "Kliknij tutaj, aby otworzyć ustawienia audio, gdzie skonfigurujemy Twoje urządzenia mikrofonu i głośników."
+      },
+      "microphoneSetup": {
+        "title": "Wybierz urządzenie mikrofonu",
+        "content": "Wybierz swoje prawdziwe fizyczne urządzenie mikrofonu z listy. Unikaj wybierania urządzeń wirtualnych, ponieważ są one przeznaczone dla aplikacji konferencyjnych."
+      },
+      "speakerSetup": {
+        "title": "Konfiguracja urządzenia monitorującego",
+        "content": "Wybierz urządzenie monitorujące (takie jak słuchawki lub głośniki), aby słyszeć wyjście tłumaczenia. Zaleca się używanie słuchawek, aby uniknąć sprzężenia zwrotnego audio. Jeśli chcesz skupić się na spotkaniu bez rozpraszania przez monitorowanie, możesz wyłączyć funkcję monitorowania."
+      },
+      "startSession": {
+        "title": "Rozpocznij swoją sesję",
+        "content": "Wszystko gotowe! Kliknij przycisk \"Rozpocznij sesję\", aby rozpocząć tłumaczenie w czasie rzeczywistym. Pamiętaj, aby wybrać wirtualny mikrofon Sokuji jako urządzenie wejściowe w swojej aplikacji konferencyjnej."
+      },
+      "completion": {
+        "title": "Przewodnik konfiguracji zakończony!",
+        "content": "Ukończyłeś przewodnik konfiguracji! Teraz upewnij się, że rzeczywiście wprowadzisz swój klucz API i skonfigurujesz ustawienia, a następnie użyj wirtualnego mikrofonu Sokuji w aplikacjach konferencyjnych (takich jak Google Meet, Zoom itp.), aby rozpocząć tłumaczenie w czasie rzeczywistym."
+      }
+    }
   }
 } 

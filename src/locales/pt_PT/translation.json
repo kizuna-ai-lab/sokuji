@@ -138,5 +138,61 @@
     "networkError": "Erro de ligação de rede",
     "translationFailed": "Falha na tradução",
     "audioError": "Erro de processamento de áudio"
+  },
+  "onboarding": {
+    "back": "Voltar",
+    "close": "Fechar",
+    "finish": "Terminar",
+    "next": "Seguinte",
+    "nextWithProgress": "Seguinte ({step}/{steps})",
+    "open": "Abrir",
+    "skip": "Saltar",
+    "restartTour": "Reiniciar guia de configuração",
+    "steps": {
+      "welcome": {
+        "title": "Bem-vindo ao Sokuji!",
+        "content": "Bem-vindo à aplicação de tradução de voz em tempo real! Vamos configurar rapidamente as suas definições para uma experiência óptima."
+      },
+      "openSettings": {
+        "title": "Abrir painel de definições",
+        "content": "Clique neste botão para abrir o painel de definições onde iremos configurar a sua chave API e preferências."
+      },
+      "apiKey": {
+        "title": "Configurar chave da API OpenAI",
+        "content": "Introduza a sua chave da API OpenAI para activar a funcionalidade de tradução. Pode obter uma chave na <a href='https://platform.openai.com/api-keys' target='_blank'>plataforma OpenAI</a>."
+      },
+      "systemInstructions": {
+        "title": "Personalizar instruções do sistema",
+        "content": "Adicione instruções específicas aqui para personalizar o comportamento da tradução, como tom, estilo ou requisitos especiais."
+      },
+      "voiceSettings": {
+        "title": "Definições de voz",
+        "content": "Escolha o seu modelo de voz preferido e definições. Estas definições afectarão a qualidade e velocidade da tradução."
+      },
+      "turnDetection": {
+        "title": "Detecção de turno",
+        "content": "Configure as definições de detecção automática de turno para controlar quando o sistema começa e pára de ouvir."
+      },
+      "audioSettings": {
+        "title": "Painel de definições de áudio",
+        "content": "Clique aqui para abrir as definições de áudio onde irá configurar os seus dispositivos de microfone e altifalante."
+      },
+      "microphoneSetup": {
+        "title": "Seleccionar dispositivo de microfone",
+        "content": "Escolha o seu dispositivo de microfone físico real da lista. Evite seleccionar dispositivos virtuais, pois estes são destinados a aplicações de conferência."
+      },
+      "speakerSetup": {
+        "title": "Configuração do dispositivo de monitorização",
+        "content": "Seleccione um dispositivo de monitorização (como auscultadores ou altifalantes) para ouvir a saída da tradução. Recomenda-se o uso de auscultadores para evitar feedback de áudio. Se preferir focar-se na reunião sem distracção da monitorização, pode desactivar a funcionalidade de monitorização."
+      },
+      "startSession": {
+        "title": "Iniciar a sua sessão",
+        "content": "Tudo pronto! Clique no botão \"Iniciar sessão\" para começar a tradução em tempo real. Lembre-se de seleccionar o microfone virtual Sokuji como dispositivo de entrada na sua aplicação de conferência."
+      },
+      "completion": {
+        "title": "Guia de configuração concluído!",
+        "content": "Concluiu o guia de configuração! Agora certifique-se de que realmente introduziu a sua chave API e configurou as suas definições, depois use o microfone virtual Sokuji em aplicações de conferência (como Google Meet, Zoom, etc.) para começar a tradução em tempo real."
+      }
+    }
   }
 } 

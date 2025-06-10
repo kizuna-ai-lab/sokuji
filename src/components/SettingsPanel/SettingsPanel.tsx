@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowRight, Save, Check, AlertCircle, AlertTriangle, Info, Key } from 'react-feather';
+import { ArrowRight, Save, Check, AlertCircle, AlertTriangle, Info, Key, HelpCircle } from 'react-feather';
 import './SettingsPanel.scss';
 import { useSettings, VoiceOption, TurnDetectionMode, SemanticEagerness, NoiseReductionMode, TranscriptModel, Model } from '../../contexts/SettingsContext';
+import { useOnboarding } from '../../contexts/OnboardingContext';
 import { useTranslation } from 'react-i18next';
 
 // Language options with native names and language codes
@@ -77,6 +78,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
     loadingModels,
     fetchAvailableModels
   } = useSettings();
+  const { startOnboarding } = useOnboarding();
   const { t, i18n } = useTranslation();
 
   const [apiKeyStatus, setApiKeyStatus] = useState<{
@@ -265,7 +267,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
             </select>
           </div>
         </div>
-        <div className="settings-section">
+        <div className="settings-section api-key-section">
           <h2>{t('settings.openaiApiKey')}</h2>
           <div className="setting-item">
             <div className="api-key-container">
@@ -301,7 +303,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
             )}
           </div>
         </div>
-        <div className="settings-section">
+        <div className="settings-section system-instructions-section">
           <h2>{t('settings.systemInstructions')}</h2>
           <div className="setting-item">
             <div className="turn-detection-options">
@@ -390,7 +392,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
             </div>
           )}
         </div>
-        <div className="settings-section">
+        <div className="settings-section voice-settings-section">
           <h2>{t('settings.voice')}</h2>
           <div className="setting-item">
             <select 
@@ -404,7 +406,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
             </select>
           </div>
         </div>
-        <div className="settings-section">
+        <div className="settings-section turn-detection-section">
           <h2>{t('settings.automaticTurnDetection')}</h2>
           <div className="setting-item">
             <div className="turn-detection-options">
@@ -604,6 +606,23 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
               onChange={(e) => updateSettings({ maxTokens: parseInt(e.target.value) })}
               className="slider"
             />
+          </div>
+        </div>
+        <div className="settings-section">
+          <h2>{t('settings.help', 'Help')}</h2>
+          <div className="setting-item">
+            <button 
+              className="restart-onboarding-button"
+              onClick={() => {
+                startOnboarding();
+                if (toggleSettings) {
+                  toggleSettings();
+                }
+              }}
+            >
+              <HelpCircle size={16} />
+              <span>{t('onboarding.restartTour', 'Restart Setup Guide')}</span>
+            </button>
           </div>
         </div>
       </div>

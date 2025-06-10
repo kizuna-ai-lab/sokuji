@@ -1,0 +1,11 @@
+<svg width="206" height="60" viewBox="0 0 206 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect width="206" height="60" rx="8" fill="#2D2D2D"/>
+<circle cx="32" cy="30" r="12" fill="#4285F4"/>
+<circle cx="32" cy="30" r="9" fill="#EA4335"/>
+<circle cx="32" cy="30" r="6" fill="#FBBC04"/>
+<circle cx="32" cy="30" r="3" fill="#34A853"/>
+<path d="M32 18C37.5228 18 42 22.4772 42 28C42 33.5228 37.5228 38 32 38C26.4772 38 22 33.5228 22 28C22 22.4772 26.4772 18 32 18ZM32 21C28.134 21 25 24.134 25 28C25 31.866 28.134 35 32 35C35.866 35 39 31.866 39 28C39 24.134 35.866 21 32 21Z" fill="#4285F4"/>
+<path d="M29.5 25.5L34.5 30.5L29.5 35.5" stroke="#4285F4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+<text x="60" y="20" fill="#FFFFFF" font-family="Arial, sans-serif" font-size="11" font-weight="400">Available on</text>
+<text x="60" y="38" fill="#FFFFFF" font-family="Arial, sans-serif" font-size="16" font-weight="500">Chrome Web Store</text>
+</svg> 
