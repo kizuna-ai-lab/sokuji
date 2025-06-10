@@ -7,6 +7,24 @@ export interface AnalyticsEvents {
   'app_startup': {}; // version and platform are now in Super Properties
   'app_shutdown': { session_duration: number };
   
+  // Onboarding events
+  'onboarding_started': { 
+    is_first_time_user: boolean;
+    onboarding_version: string;
+  };
+  'onboarding_completed': { 
+    completion_method: 'finished' | 'skipped';
+    steps_completed: number;
+    total_steps: number;
+    duration_ms: number;
+    onboarding_version: string;
+  };
+  'onboarding_step_viewed': {
+    step_index: number;
+    step_target: string;
+    step_title: string;
+  };
+  
   // Translation sessions
   'translation_session_start': { 
     source_language: string; 

@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useAnalytics } from '../lib/analytics';
 
 export interface OnboardingStep {
   target: string;
@@ -30,7 +31,7 @@ interface OnboardingContextType {
   prevStep: () => void;
   skipOnboarding: () => void;
   isFirstTimeUser: boolean;
-  markOnboardingComplete: () => void;
+  markOnboardingComplete: (sendAnalytics?: boolean) => void;
 }
 
 const OnboardingContext = createContext<OnboardingContextType | undefined>(undefined);
@@ -134,15 +135,33 @@ interface OnboardingProviderProps {
 
 export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({ children }) => {
   const { t } = useTranslation();
+  const { trackEvent } = useAnalytics();
   const [isOnboardingActive, setIsOnboardingActive] = useState(false);
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [isFirstTimeUser, setIsFirstTimeUser] = useState(false);
+  const [onboardingStartTime, setOnboardingStartTime] = useState<number | null>(null);
   
   const onboardingSteps = createOnboardingSteps(t);
 
   const startOnboarding = () => {
+    const startTime = Date.now();
+    setOnboardingStartTime(startTime);
     setCurrentStepIndex(0);
     setIsOnboardingActive(true);
+    
+    // Track onboarding started event
+    trackEvent('onboarding_started', {
+      is_first_time_user: isFirstTimeUser,
+      onboarding_version: ONBOARDING_VERSION,
+    });
+    
+    // Track first step viewed event
+    const firstStep = onboardingSteps[0];
+    trackEvent('onboarding_step_viewed', {
+      step_index: 0,
+      step_target: firstStep.target,
+      step_title: typeof firstStep.title === 'string' ? firstStep.title : 'Step',
+    });
   };
 
   useEffect(() => {
@@ -175,7 +194,16 @@ export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({ children
 
   const nextStep = () => {
     if (currentStepIndex < onboardingSteps.length - 1) {
-      setCurrentStepIndex(currentStepIndex + 1);
+      const newStepIndex = currentStepIndex + 1;
+      setCurrentStepIndex(newStepIndex);
+      
+      // Track step viewed event
+      const step = onboardingSteps[newStepIndex];
+      trackEvent('onboarding_step_viewed', {
+        step_index: newStepIndex,
+        step_target: step.target,
+        step_title: typeof step.title === 'string' ? step.title : 'Step',
+      });
     } else {
       markOnboardingComplete();
     }
@@ -183,15 +211,34 @@ export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({ children
 
   const prevStep = () => {
     if (currentStepIndex > 0) {
-      setCurrentStepIndex(currentStepIndex - 1);
+      const newStepIndex = currentStepIndex - 1;
+      setCurrentStepIndex(newStepIndex);
+      
+      // Track step viewed event
+      const step = onboardingSteps[newStepIndex];
+      trackEvent('onboarding_step_viewed', {
+        step_index: newStepIndex,
+        step_target: step.target,
+        step_title: typeof step.title === 'string' ? step.title : 'Step',
+      });
     }
   };
 
   const skipOnboarding = () => {
-    markOnboardingComplete();
+    // Track onboarding completed event with skipped method
+    const duration = onboardingStartTime ? Date.now() - onboardingStartTime : 0;
+    trackEvent('onboarding_completed', {
+      completion_method: 'skipped' as const,
+      steps_completed: currentStepIndex,
+      total_steps: onboardingSteps.length,
+      duration_ms: duration,
+      onboarding_version: ONBOARDING_VERSION,
+    });
+    
+    markOnboardingComplete(false); // Don't send analytics again
   };
 
-  const markOnboardingComplete = () => {
+  const markOnboardingComplete = (sendAnalytics: boolean = true) => {
     const onboardingData = {
       completed: true,
       version: ONBOARDING_VERSION,
@@ -201,6 +248,18 @@ export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({ children
     setIsOnboardingActive(false);
     setIsFirstTimeUser(false);
     setCurrentStepIndex(0);
+    
+    // Track onboarding completed event only if requested
+    if (sendAnalytics) {
+      const duration = onboardingStartTime ? Date.now() - onboardingStartTime : 0;
+      trackEvent('onboarding_completed', {
+        completion_method: 'finished' as const,
+        steps_completed: currentStepIndex + 1,
+        total_steps: onboardingSteps.length,
+        duration_ms: duration,
+        onboarding_version: ONBOARDING_VERSION,
+      });
+    }
   };
 
   const contextValue: OnboardingContextType = {
