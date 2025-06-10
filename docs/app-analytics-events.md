@@ -90,6 +90,71 @@ trackEvent('translation_session_end', {
 });
 ```
 
+### 🎯 Onboarding Events
+
+#### `onboarding_started`
+**Description**: Triggered when the user starts the onboarding process.
+
+**Properties**:
+- `is_first_time_user` (boolean): Whether this is a first-time user
+- `onboarding_version` (string): Version of the onboarding flow
+
+**Implementation**: `src/contexts/OnboardingContext.tsx`
+
+**Example**:
+```typescript
+trackEvent('onboarding_started', {
+  is_first_time_user: true,
+  onboarding_version: '1.0.0'
+});
+```
+
+---
+
+#### `onboarding_completed`
+**Description**: Triggered when the user completes or skips the onboarding process.
+
+**Properties**:
+- `completion_method` ('finished' | 'skipped'): How the onboarding was completed
+- `steps_completed` (number): Number of steps the user went through
+- `total_steps` (number): Total number of steps in the onboarding
+- `duration_ms` (number): Time spent in onboarding in milliseconds
+- `onboarding_version` (string): Version of the onboarding flow
+
+**Implementation**: `src/contexts/OnboardingContext.tsx`
+
+**Example**:
+```typescript
+trackEvent('onboarding_completed', {
+  completion_method: 'finished',
+  steps_completed: 10,
+  total_steps: 10,
+  duration_ms: 180000, // 3 minutes
+  onboarding_version: '1.0.0'
+});
+```
+
+---
+
+#### `onboarding_step_viewed`
+**Description**: Triggered when the user views a specific onboarding step.
+
+**Properties**:
+- `step_index` (number): Index of the step being viewed (0-based)
+- `step_target` (string): CSS selector or target of the step
+- `step_title` (string): Title of the onboarding step
+
+**Implementation**: `src/contexts/OnboardingContext.tsx`
+
+**Example**:
+```typescript
+trackEvent('onboarding_step_viewed', {
+  step_index: 2,
+  step_target: '.api-key-section',
+  step_title: 'Step 2: Configure API Key'
+});
+```
+
 ### 🔊 Audio Handling Events
 
 #### `audio_device_changed`
@@ -335,6 +400,9 @@ trackEvent('extension_used', {
 - `app_shutdown` - Session duration tracking
 - `translation_session_start` - Translation session initiation
 - `translation_session_end` - Translation session completion with metrics
+- `onboarding_started` - Onboarding process initiation tracking
+- `onboarding_completed` - Onboarding completion/skip tracking with metrics
+- `onboarding_step_viewed` - Individual onboarding step tracking
 
 ### ⚠️ Defined but Not Implemented
 - `audio_device_changed` - Audio device selection tracking
