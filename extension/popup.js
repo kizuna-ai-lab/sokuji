@@ -1,5 +1,81 @@
 /* global chrome */
 
+// Import PostHog from installed package
+import posthog from 'posthog-js/dist/module.full.no-external';
+
+// Analytics configuration - matches main app config
+const ANALYTICS_CONFIG = {
+  POSTHOG_KEY: 'phc_EMOuUDTntTI5SuzKQATy11qHgxVrlhJsgNFbBaWEhet',
+  POSTHOG_HOST: 'https://us.i.posthog.com'
+};
+
+// PostHog instance
+let posthogInstance = null;
+
+// Initialize PostHog
+function initializePostHog() {
+  if (posthogInstance || typeof window === 'undefined') return;
+  
+  try {
+    // Initialize PostHog with configuration
+    posthog.init(ANALYTICS_CONFIG.POSTHOG_KEY, {
+      api_host: ANALYTICS_CONFIG.POSTHOG_HOST,
+      loaded: function(posthogLoaded) {
+        posthogInstance = posthogLoaded;
+        
+        // Set super properties
+        posthogInstance.register({
+          app_version: chrome.runtime.getManifest().version,
+          environment: isDevelopment() ? 'development' : 'production',
+          platform: 'extension',
+          component: 'popup'
+        });
+        
+        console.debug('[Sokuji] [Popup] PostHog initialized');
+      }
+    });
+    
+    // Store reference to posthog instance immediately
+    posthogInstance = posthog;
+  } catch (error) {
+    console.error('[Sokuji] [Popup] Error initializing PostHog:', error);
+  }
+}
+
+// Check if we're in development mode
+function isDevelopment() {
+  return !chrome.runtime.getManifest().update_url;
+}
+
+// Track events with PostHog
+function trackEvent(eventName, properties = {}) {
+  try {
+    if (posthogInstance) {
+      // Sanitize properties by removing sensitive data
+      const sanitizedProperties = sanitizeProperties(properties);
+      posthogInstance.capture(eventName, sanitizedProperties);
+      console.debug('[Sokuji] [Popup] Event tracked:', eventName, sanitizedProperties);
+    }
+  } catch (error) {
+    console.error('[Sokuji] [Popup] Error tracking event:', error);
+  }
+}
+
+// Sanitize properties to remove sensitive information
+function sanitizeProperties(properties) {
+  const sanitized = { ...properties };
+  
+  // Remove or mask sensitive fields
+  const sensitiveFields = ['apiKey', 'password', 'token', 'secret', 'private'];
+  sensitiveFields.forEach(field => {
+    if (sanitized[field]) {
+      delete sanitized[field];
+    }
+  });
+  
+  return sanitized;
+}
+
 // Define the same enabled sites as in background.js
 const ENABLED_SITES = [
   'meet.google.com',
@@ -36,8 +112,13 @@ function getMessage(key, substitutions = []) {
 // Initialize popup when DOM is loaded
 document.addEventListener('DOMContentLoaded', async () => {
   try {
-    // Initialize localization first
+    // Initialize PostHog first
+    initializePostHog();
+    
+    // Initialize localization
     initializeLocalization();
+    
+    // Initialize popup
     await initializePopup();
   } catch (error) {
     console.error('[Sokuji] [Popup] Error initializing popup:', error);
@@ -64,6 +145,13 @@ async function initializePopup() {
   
   if (!tab || !tab.url) {
     showErrorState();
+    
+    // Track popup opened on error state
+    trackEvent('popup_opened', {
+      is_supported_site: false,
+      hostname: null,
+      error_type: 'no_tab_info'
+    });
     return;
   }
 
@@ -74,6 +162,16 @@ async function initializePopup() {
   const isSupported = ENABLED_SITES.some(site => 
     hostname === site || hostname.endsWith('.' + site)
   );
+
+  // Track popup opened event
+  trackEvent('popup_opened', {
+    is_supported_site: isSupported,
+    hostname: hostname,
+    full_url: url.origin,
+    supported_site_match: isSupported ? ENABLED_SITES.find(site => 
+      hostname === site || hostname.endsWith('.' + site)
+    ) : null
+  });
 
   if (isSupported) {
     showSupportedState(hostname);
@@ -91,6 +189,12 @@ function showSupportedState(hostname) {
   
   const siteInfo = SITE_INFO[hostname] || { name: hostname, icon: '' };
   
+  // Track supported state shown
+  trackEvent('popup_supported_state_shown', {
+    hostname: hostname,
+    site_name: siteInfo.name
+  });
+  
   content.innerHTML = `
     <div class="status-message status-supported">
       <strong>${getMessage('sokujiAvailable', [siteInfo.name])}</strong><br>
@@ -107,6 +211,12 @@ function showSupportedState(hostname) {
 
 function showUnsupportedState(hostname) {
   const content = document.getElementById('content');
+  
+  // Track unsupported state shown
+  trackEvent('popup_unsupported_state_shown', {
+    hostname: hostname,
+    supported_sites_count: ENABLED_SITES.length
+  });
   
   content.innerHTML = `
     <div class="status-message status-unsupported">
@@ -139,6 +249,11 @@ function showUnsupportedState(hostname) {
 
 function showErrorState() {
   const content = document.getElementById('content');
+  
+  // Track error state shown
+  trackEvent('popup_error_state_shown', {
+    error_type: 'unable_to_detect_site'
+  });
   
   content.innerHTML = `
     <div class="status-message status-unsupported">
@@ -174,14 +289,33 @@ function setupEventListeners(tabId, isSupported) {
   
   if (isSupported && openButton) {
     openButton.addEventListener('click', async () => {
+      // Track open side panel clicked
+      trackEvent('popup_open_sidepanel_clicked', {
+        tab_id: tabId,
+        is_supported_site: isSupported
+      });
+      
       try {
         // Open the side panel for the current tab
         await chrome.sidePanel.open({ tabId: tabId });
+        
+        // Track successful side panel open
+        trackEvent('sidepanel_opened_from_popup', {
+          tab_id: tabId,
+          method: 'direct_api'
+        });
         
         // Close the popup
         window.close();
       } catch (error) {
         console.error('[Sokuji] [Popup] Error opening side panel:', error);
+        
+        // Track side panel open error
+        trackEvent('sidepanel_open_error', {
+          tab_id: tabId,
+          error_type: 'direct_api_failed',
+          error_message: error.message
+        });
         
         // Fallback: try to send a message to background script
         try {
@@ -189,9 +323,24 @@ function setupEventListeners(tabId, isSupported) {
             type: 'OPEN_SIDE_PANEL',
             tabId: tabId
           });
+          
+          // Track successful fallback
+          trackEvent('sidepanel_opened_from_popup', {
+            tab_id: tabId,
+            method: 'background_message'
+          });
+          
           window.close();
         } catch (fallbackError) {
           console.error('[Sokuji] [Popup] Fallback failed:', fallbackError);
+          
+          // Track fallback error
+          trackEvent('sidepanel_open_error', {
+            tab_id: tabId,
+            error_type: 'background_message_failed',
+            error_message: fallbackError.message
+          });
+          
           alert('Unable to open Sokuji. Please try refreshing the page.');
         }
       }
@@ -203,6 +352,15 @@ function setupEventListeners(tabId, isSupported) {
   siteItems.forEach(item => {
     item.addEventListener('click', () => {
       const siteUrl = item.querySelector('.site-url').textContent;
+      const siteName = item.querySelector('.site-name').textContent;
+      
+      // Track site navigation
+      trackEvent('popup_site_navigation_clicked', {
+        target_site: siteUrl,
+        target_site_name: siteName,
+        is_supported_site: isSupported
+      });
+      
       chrome.tabs.create({ url: `https://${siteUrl}` });
       window.close();
     });
