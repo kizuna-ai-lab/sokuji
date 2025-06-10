@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom/client';
 import App from '../src/App';
 import { PostHogProvider } from 'posthog-js/react';
+import posthog from 'posthog-js/dist/module.full.no-external';
 import { ANALYTICS_CONFIG, isDevelopment, getPlatform, getEnvironment } from '../src/config/analytics';
 
 // Dynamically import styles based on environment
@@ -31,22 +32,26 @@ const getPackageInfo = async () => {
   }
 };
 
-const PostHogOptions = async () => {
+const initializePostHog = async () => {
   const packageInfo = await getPackageInfo();
   const platform = getPlatform();
   
-  return {
+  const options = {
     api_host: ANALYTICS_CONFIG.POSTHOG_HOST,
     debug: isDevelopment(),
     // According to official documentation, browser extensions must disable external dependency loading
     disable_external_dependency_loading: true,
     disable_surveys: true,
+    disable_session_recording: true,
     // Recommended persistence method for browser extensions
-    persistence: platform === 'extension' ? 'localStorage' : 'localStorage+cookie',
+    autocapture: false,
+    capture_dead_clicks: false,
+    enable_heatmaps: false,
+    persistence: (platform === 'extension' ? 'localStorage' : 'localStorage+cookie') as 'localStorage' | 'localStorage+cookie',
     // Set Super Properties during initialization
-    loaded: (posthog: any) => {
+    loaded: (posthogInstance: any) => {
       // Set Super Properties that will be included with every event
-      posthog.register({
+      posthogInstance.register({
         app_version: packageInfo.version,
         environment: getEnvironment(),
         platform: getPlatform(),
@@ -56,7 +61,7 @@ const PostHogOptions = async () => {
       // In development, manually opt in to capturing if needed
       if (isDevelopment()) {
         // You can manually opt in during development by calling:
-        // posthog.opt_in_capturing();
+        // posthogInstance.opt_in_capturing();
         console.debug('[Sokuji] PostHog initialized in development mode - capturing is opt-out by default');
       }
       
@@ -66,7 +71,7 @@ const PostHogOptions = async () => {
         import('../src/lib/analytics').then(({ syncDistinctIdToBackground }) => {
           // Small delay to ensure PostHog is fully initialized
           setTimeout(() => {
-            syncDistinctIdToBackground(posthog);
+            syncDistinctIdToBackground(posthogInstance);
           }, 500);
         }).catch(error => {
           console.warn('[Sokuji] [PostHog] Could not sync distinct_id to background script:', error.message);
@@ -74,20 +79,25 @@ const PostHogOptions = async () => {
       }
     }
   };
+
+  // Initialize PostHog explicitly
+  posthog.init(ANALYTICS_CONFIG.POSTHOG_KEY, options);
+  
+  return posthog;
 };
 
 const UnifiedApp = () => {
   const [isLoaded, setIsLoaded] = useState(false);
-  const [posthogOptions, setPosthogOptions] = useState<any>(null);
+  const [posthogClient, setPosthogClient] = useState<any>(null);
 
   useEffect(() => {
     const initializeApp = async () => {
       // Load styles
       await loadStyles();
       
-      // Set PostHog options
-      const options = await PostHogOptions();
-      setPosthogOptions(options);
+      // Initialize PostHog client
+      const client = await initializePostHog();
+      setPosthogClient(client);
       
       // Mark as loaded
       setIsLoaded(true);
@@ -96,7 +106,7 @@ const UnifiedApp = () => {
     initializeApp();
   }, []);
 
-  if (!isLoaded || !posthogOptions) {
+  if (!isLoaded || !posthogClient) {
     return (
       <div style={{ 
         display: 'flex', 
@@ -112,10 +122,7 @@ const UnifiedApp = () => {
 
   return (
     <React.StrictMode>
-      <PostHogProvider 
-        apiKey={ANALYTICS_CONFIG.POSTHOG_KEY}
-        options={posthogOptions}
-      >
+      <PostHogProvider client={posthogClient}>
         <App />
       </PostHogProvider>
     </React.StrictMode>
