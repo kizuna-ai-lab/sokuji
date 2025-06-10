@@ -52,5 +52,61 @@
     "networkError": "Lỗi kết nối mạng",
     "translationFailed": "Dịch thất bại",
     "audioError": "Lỗi xử lý âm thanh"
+  },
+  "onboarding": {
+    "back": "Quay lại",
+    "close": "Đóng",
+    "finish": "Hoàn thành",
+    "next": "Tiếp theo",
+    "nextWithProgress": "Tiếp theo ({step}/{steps})",
+    "open": "Mở",
+    "skip": "Bỏ qua",
+    "restartTour": "Khởi động lại hướng dẫn thiết lập",
+    "steps": {
+      "welcome": {
+        "title": "Chào mừng đến với Sokuji!",
+        "content": "Chào mừng bạn đến với ứng dụng dịch giọng nói thời gian thực! Hãy thiết lập hệ thống của bạn nhanh chóng để có trải nghiệm tốt nhất."
+      },
+      "openSettings": {
+        "title": "Mở bảng cài đặt",
+        "content": "Nhấp vào nút này để mở bảng cài đặt, nơi chúng ta sẽ cấu hình khóa API và tùy chọn của bạn."
+      },
+      "apiKey": {
+        "title": "Thiết lập khóa API OpenAI",
+        "content": "Nhập khóa API OpenAI của bạn để kích hoạt chức năng dịch. Bạn có thể lấy khóa từ <a href='https://platform.openai.com/api-keys' target='_blank'>nền tảng OpenAI</a>."
+      },
+      "systemInstructions": {
+        "title": "Tùy chỉnh hướng dẫn hệ thống",
+        "content": "Thêm bất kỳ hướng dẫn cụ thể nào ở đây để tùy chỉnh hành vi dịch, chẳng hạn như giọng điệu, phong cách hoặc yêu cầu đặc biệt."
+      },
+      "voiceSettings": {
+        "title": "Cài đặt giọng nói",
+        "content": "Chọn mô hình giọng nói và cài đặt ưa thích của bạn. Những cài đặt này sẽ ảnh hưởng đến chất lượng và tốc độ dịch."
+      },
+      "turnDetection": {
+        "title": "Phát hiện lượt",
+        "content": "Cấu hình cài đặt phát hiện lượt tự động để kiểm soát khi nào hệ thống bắt đầu và dừng nghe."
+      },
+      "audioSettings": {
+        "title": "Bảng cài đặt âm thanh",
+        "content": "Nhấp vào đây để mở cài đặt âm thanh, nơi chúng ta sẽ thiết lập thiết bị microphone và loa của bạn."
+      },
+      "microphoneSetup": {
+        "title": "Chọn thiết bị microphone",
+        "content": "Chọn thiết bị microphone vật lý thực của bạn từ danh sách. Tránh chọn thiết bị ảo vì chúng được sử dụng cho ứng dụng hội nghị."
+      },
+      "speakerSetup": {
+        "title": "Thiết lập thiết bị giám sát",
+        "content": "Chọn thiết bị giám sát (như tai nghe hoặc loa) để nghe đầu ra dịch. Khuyến nghị sử dụng tai nghe để tránh phản hồi âm thanh. Nếu bạn muốn tập trung vào cuộc họp mà không bị phân tâm bởi giám sát, bạn có thể tắt tính năng giám sát."
+      },
+      "startSession": {
+        "title": "Bắt đầu phiên của bạn",
+        "content": "Mọi thứ đã sẵn sàng! Nhấp vào nút \"Bắt đầu phiên\" để bắt đầu dịch thời gian thực. Nhớ chọn microphone ảo Sokuji làm thiết bị đầu vào trong ứng dụng hội nghị của bạn."
+      },
+      "completion": {
+        "title": "Hướng dẫn thiết lập hoàn thành!",
+        "content": "Bạn đã hoàn thành hướng dẫn thiết lập! Bây giờ hãy đảm bảo thực sự nhập khóa API và cấu hình cài đặt của bạn, sau đó sử dụng microphone ảo Sokuji trong ứng dụng hội nghị (như Google Meet, Zoom, v.v.) để bắt đầu dịch thời gian thực."
+      }
+    }
   }
 } 

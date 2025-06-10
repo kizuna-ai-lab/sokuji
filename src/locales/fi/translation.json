@@ -52,5 +52,61 @@
     "networkError": "Verkkoyhteyden virhe",
     "translationFailed": "Käännös epäonnistui",
     "audioError": "Äänen käsittelyn virhe"
+  },
+  "onboarding": {
+    "back": "Takaisin",
+    "close": "Sulje",
+    "finish": "Valmis",
+    "next": "Seuraava",
+    "nextWithProgress": "Seuraava ({step}/{steps})",
+    "open": "Avaa",
+    "skip": "Ohita",
+    "restartTour": "Käynnistä asennusopas uudelleen",
+    "steps": {
+      "welcome": {
+        "title": "Tervetuloa Sokuji:iin!",
+        "content": "Tervetuloa reaaliaikaiseen äänenkäännössovellukseen! Määritetään järjestelmäsi nopeasti parhaan kokemuksen saamiseksi."
+      },
+      "openSettings": {
+        "title": "Avaa asetuspaneeli",
+        "content": "Napsauta tätä painiketta avataksesi asetuspaneelin, jossa määritämme API-avaimesi ja asetuksesi."
+      },
+      "apiKey": {
+        "title": "Määritä OpenAI API-avain",
+        "content": "Syötä OpenAI API-avaimesi käännöstoiminnon käyttöönottamiseksi. Voit hankkia avaimen <a href='https://platform.openai.com/api-keys' target='_blank'>OpenAI-alustalta</a>."
+      },
+      "systemInstructions": {
+        "title": "Mukauta järjestelmäohjeita",
+        "content": "Lisää tähän erityisiä ohjeita käännöskäyttäytymisen mukauttamiseksi, kuten sävy, tyyli tai erityisvaatimukset."
+      },
+      "voiceSettings": {
+        "title": "Ääniasetukset",
+        "content": "Valitse haluamasi äänimalli ja asetukset. Nämä asetukset vaikuttavat käännöksen laatuun ja nopeuteen."
+      },
+      "turnDetection": {
+        "title": "Vuoron tunnistus",
+        "content": "Määritä automaattisen vuoron tunnistuksen asetukset hallitaksesi, milloin järjestelmä alkaa ja lopettaa kuuntelun."
+      },
+      "audioSettings": {
+        "title": "Ääniasetuspaneeli",
+        "content": "Napsauta tätä avataksesi ääniasetukset, jossa määritämme mikrofoni- ja kaiutinlaitteesi."
+      },
+      "microphoneSetup": {
+        "title": "Valitse mikrofonilaitteesi",
+        "content": "Valitse todellinen fyysinen mikrofonilaitteesi luettelosta. Vältä virtuaalisten laitteiden valitsemista, koska ne on tarkoitettu konferenssisovelluksille."
+      },
+      "speakerSetup": {
+        "title": "Monitorilaitteen asennus",
+        "content": "Valitse monitorilaitteesi (kuten kuulokkeet tai kaiuttimet) kuullaksesi käännöksen tulosteen. Kuulokkeiden käyttöä suositellaan äänipalautteiden välttämiseksi. Jos haluat keskittyä kokoukseen ilman monitoroinnin häiriöitä, voit poistaa monitorointitoiminnon käytöstä."
+      },
+      "startSession": {
+        "title": "Aloita istuntosi",
+        "content": "Kaikki on valmista! Napsauta \"Aloita istunto\" -painiketta aloittaaksesi reaaliaikaisen käännöksen. Muista valita Sokuji-virtuaalimikrofoni syöttölaitteeksi konferenssisovelluksessasi."
+      },
+      "completion": {
+        "title": "Asennusopas valmis!",
+        "content": "Olet suorittanut asennusoppaan! Varmista nyt, että syötät todella API-avaimesi ja määrität asetuksesi, käytä sitten Sokuji-virtuaalimikrofonia konferenssisovelluksissa (kuten Google Meet, Zoom jne.) aloittaaksesi reaaliaikaisen käännöksen."
+      }
+    }
   }
 } 

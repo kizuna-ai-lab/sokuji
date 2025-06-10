@@ -138,5 +138,61 @@
     "networkError": "網路連線錯誤",
     "translationFailed": "翻譯失敗",
     "audioError": "音訊處理錯誤"
+  },
+  "onboarding": {
+    "back": "返回",
+    "close": "關閉",
+    "finish": "完成",
+    "next": "下一步",
+    "nextWithProgress": "下一步 ({step}/{steps})",
+    "open": "開啟",
+    "skip": "跳過",
+    "restartTour": "重新開始設定指南",
+    "steps": {
+      "welcome": {
+        "title": "歡迎使用 Sokuji！",
+        "content": "歡迎使用即時語音翻譯應用程式！讓我們快速設定您的系統，以獲得最佳體驗。"
+      },
+      "openSettings": {
+        "title": "開啟設定面板",
+        "content": "點擊此按鈕開啟設定面板，我們將在此處配置您的 API 金鑰和偏好設定。"
+      },
+      "apiKey": {
+        "title": "設定 OpenAI API 金鑰",
+        "content": "輸入您的 OpenAI API 金鑰以啟用翻譯功能。您可以從 <a href='https://platform.openai.com/api-keys' target='_blank'>OpenAI 平台</a> 取得金鑰。"
+      },
+      "systemInstructions": {
+        "title": "自訂系統指令",
+        "content": "在此處新增任何特定指令以自訂翻譯行為，例如語調、風格或特殊要求。"
+      },
+      "voiceSettings": {
+        "title": "語音設定",
+        "content": "選擇您偏好的語音模型和設定。這些設定將影響翻譯的品質和速度。"
+      },
+      "turnDetection": {
+        "title": "輪換偵測",
+        "content": "配置自動輪換偵測設定，以控制系統何時開始和停止聆聽。"
+      },
+      "audioSettings": {
+        "title": "音訊設定面板",
+        "content": "點擊此處開啟音訊設定，我們將在此處設定您的麥克風和揚聲器裝置。"
+      },
+      "microphoneSetup": {
+        "title": "選擇麥克風裝置",
+        "content": "從清單中選擇您的實際麥克風裝置。避免選擇虛擬裝置，因為這些是供會議應用程式使用的。"
+      },
+      "speakerSetup": {
+        "title": "監控裝置設定",
+        "content": "選擇監控裝置（如耳機或揚聲器）來聽取翻譯輸出。建議使用耳機以避免音訊回饋。如果您想專注於會議而不被監控分心，可以關閉監控功能。"
+      },
+      "startSession": {
+        "title": "開始您的工作階段",
+        "content": "一切設定完成！點擊「開始工作階段」按鈕開始即時翻譯。記住在您的會議應用程式中選擇 Sokuji 虛擬麥克風作為輸入裝置。"
+      },
+      "completion": {
+        "title": "設定指南完成！",
+        "content": "您已完成設定指南！現在請確實輸入您的 API 金鑰並配置設定，然後在會議應用程式（如 Google Meet、Zoom 等）中使用 Sokuji 虛擬麥克風開始即時翻譯。"
+      }
+    }
   }
 } 

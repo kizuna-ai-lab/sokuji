@@ -755,5 +755,38 @@
     .settings-footer {
       display: none;
     }
+    
+    .restart-onboarding-button {
+      display: flex;
+      align-items: center;
+      width: 100%;
+      padding: 10px 15px;
+      background-color: #10a37f;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+      
+      svg {
+        margin-right: 8px;
+      }
+      
+      &:hover {
+        background-color: #0d8c6d;
+      }
+      
+      &:active {
+        background-color: #0b7a5f;
+      }
+      
+      &:disabled {
+        background-color: #444;
+        cursor: not-allowed;
+        opacity: 0.6;
+      }
+    }
   }
 }

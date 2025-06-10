@@ -52,5 +52,61 @@
     "networkError": "Ağ bağlantı hatası",
     "translationFailed": "Çeviri başarısız",
     "audioError": "Ses işleme hatası"
+  },
+  "onboarding": {
+    "back": "Geri",
+    "close": "Kapat",
+    "finish": "Bitir",
+    "next": "İleri",
+    "nextWithProgress": "İleri ({step}/{steps})",
+    "open": "Aç",
+    "skip": "Atla",
+    "restartTour": "Kurulum kılavuzunu yeniden başlat",
+    "steps": {
+      "welcome": {
+        "title": "Sokuji'ye hoş geldiniz!",
+        "content": "Gerçek zamanlı ses çeviri uygulamasına hoş geldiniz! En iyi deneyim için sisteminizi hızlıca kuralım."
+      },
+      "openSettings": {
+        "title": "Ayarlar panelini aç",
+        "content": "API anahtarınızı ve tercihlerinizi yapılandıracağımız ayarlar panelini açmak için bu düğmeye tıklayın."
+      },
+      "apiKey": {
+        "title": "OpenAI API anahtarını ayarla",
+        "content": "Çeviri işlevini etkinleştirmek için OpenAI API anahtarınızı girin. <a href='https://platform.openai.com/api-keys' target='_blank'>OpenAI platformundan</a> bir anahtar alabilirsiniz."
+      },
+      "systemInstructions": {
+        "title": "Sistem talimatlarını özelleştir",
+        "content": "Ton, stil veya özel gereksinimler gibi çeviri davranışını özelleştirmek için burada belirli talimatlar ekleyin."
+      },
+      "voiceSettings": {
+        "title": "Ses ayarları",
+        "content": "Tercih ettiğiniz ses modelini ve ayarları seçin. Bu ayarlar çevirinin kalitesini ve hızını etkileyecektir."
+      },
+      "turnDetection": {
+        "title": "Sıra algılama",
+        "content": "Sistemin ne zaman dinlemeye başlayıp durduğunu kontrol etmek için otomatik sıra algılama ayarlarını yapılandırın."
+      },
+      "audioSettings": {
+        "title": "Ses ayarları paneli",
+        "content": "Mikrofon ve hoparlör cihazlarınızı kuracağımız ses ayarlarını açmak için buraya tıklayın."
+      },
+      "microphoneSetup": {
+        "title": "Mikrofon cihazını seç",
+        "content": "Listeden gerçek fiziksel mikrofon cihazınızı seçin. Sanal cihazları seçmekten kaçının çünkü bunlar konferans uygulamaları içindir."
+      },
+      "speakerSetup": {
+        "title": "Monitör cihazı kurulumu",
+        "content": "Çeviri çıktısını duymak için bir monitör cihazı (kulaklık veya hoparlör gibi) seçin. Ses geri beslemesini önlemek için kulaklık kullanılması önerilir. Toplantıya odaklanmak ve monitörleme tarafından dikkatinizin dağılmasını istemiyorsanız, monitörleme özelliğini kapatabilirsiniz."
+      },
+      "startSession": {
+        "title": "Oturumunuzu başlatın",
+        "content": "Her şey hazır! Gerçek zamanlı çeviriyi başlatmak için \"Oturumu başlat\" düğmesine tıklayın. Konferans uygulamanızda giriş cihazı olarak Sokuji sanal mikrofonunu seçmeyi unutmayın."
+      },
+      "completion": {
+        "title": "Kurulum kılavuzu tamamlandı!",
+        "content": "Kurulum kılavuzunu tamamladınız! Şimdi gerçekten API anahtarınızı girdiğinizden ve ayarlarınızı yapılandırdığınızdan emin olun, ardından gerçek zamanlı çeviriyi başlatmak için konferans uygulamalarında (Google Meet, Zoom vb. gibi) Sokuji sanal mikrofonunu kullanın."
+      }
+    }
   }
 } 

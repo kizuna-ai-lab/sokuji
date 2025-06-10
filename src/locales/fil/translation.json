@@ -52,5 +52,61 @@
     "networkError": "Error sa network connection",
     "translationFailed": "Nabigo ang pagsasalin",
     "audioError": "Error sa audio processing"
+  },
+  "onboarding": {
+    "back": "Bumalik",
+    "close": "Isara",
+    "finish": "Tapos",
+    "next": "Susunod",
+    "nextWithProgress": "Susunod ({step}/{steps})",
+    "open": "Buksan",
+    "skip": "Laktawan",
+    "restartTour": "I-restart ang setup guide",
+    "steps": {
+      "welcome": {
+        "title": "Maligayang pagdating sa Sokuji!",
+        "content": "Maligayang pagdating sa real-time voice translation application! Mabilis nating i-configure ang inyong mga setting para sa pinakamahusay na karanasan."
+      },
+      "openSettings": {
+        "title": "Buksan ang settings panel",
+        "content": "I-click ang button na ito para buksan ang settings panel kung saan natin i-configure ang inyong API key at mga preference."
+      },
+      "apiKey": {
+        "title": "I-set up ang OpenAI API key",
+        "content": "Ilagay ang inyong OpenAI API key para ma-enable ang translation functionality. Makakakuha kayo ng key sa <a href='https://platform.openai.com/api-keys' target='_blank'>OpenAI platform</a>."
+      },
+      "systemInstructions": {
+        "title": "I-customize ang system instructions",
+        "content": "Magdagdag ng mga specific na instruction dito para ma-customize ang translation behavior, tulad ng tone, style, o mga special na requirement."
+      },
+      "voiceSettings": {
+        "title": "Voice settings",
+        "content": "Piliin ang inyong preferred voice model at mga setting. Ang mga setting na ito ay makakaapekto sa kalidad at bilis ng translation."
+      },
+      "turnDetection": {
+        "title": "Turn detection",
+        "content": "I-configure ang automatic turn detection settings para kontrolin kung kailan magsisimula at titigil ang system sa pakikinig."
+      },
+      "audioSettings": {
+        "title": "Audio settings panel",
+        "content": "I-click dito para buksan ang audio settings kung saan nyo i-configure ang inyong microphone at speaker devices."
+      },
+      "microphoneSetup": {
+        "title": "Pumili ng microphone device",
+        "content": "Piliin ang inyong tunay na physical microphone device sa listahan. Iwasan ang pagpili ng virtual devices dahil ang mga ito ay para sa conference applications."
+      },
+      "speakerSetup": {
+        "title": "Monitor device setup",
+        "content": "Pumili ng monitor device (tulad ng headphones o speakers) para marinig ang translation output. Inirerekomenda ang paggamit ng headphones para maiwasan ang audio feedback. Kung mas gusto ninyong mag-focus sa meeting nang walang distraction mula sa monitoring, pwede ninyong i-disable ang monitoring feature."
+      },
+      "startSession": {
+        "title": "Simulan ang inyong session",
+        "content": "Handa na lahat! I-click ang \"Start session\" button para simulan ang real-time translation. Tandaan na piliin ang Sokuji virtual microphone bilang input device sa inyong conference application."
+      },
+      "completion": {
+        "title": "Tapos na ang setup guide!",
+        "content": "Natapos ninyo na ang setup guide! Ngayon, siguraduhin na talagang nalagay ninyo ang inyong API key at na-configure ang inyong mga setting, tapos gamitin ang Sokuji virtual microphone sa mga conference applications (tulad ng Google Meet, Zoom, atbp.) para simulan ang real-time translation."
+      }
+    }
   }
 } 

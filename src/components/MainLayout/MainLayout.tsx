@@ -4,6 +4,7 @@ import MainPanel from '../MainPanel/MainPanel';
 import SettingsPanel from '../SettingsPanel/SettingsPanel';
 import LogsPanel from '../LogsPanel/LogsPanel';
 import AudioPanel from '../AudioPanel/AudioPanel';
+import Onboarding from '../Onboarding/Onboarding';
 import { Terminal, Settings, Volume2 } from 'react-feather';
 import './MainLayout.scss';
 
@@ -80,6 +81,7 @@ const MainLayout: React.FC = () => {
           )}
         </div>
       )}
+      <Onboarding />
     </div>
   );
 };

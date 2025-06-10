@@ -124,7 +124,7 @@ const AudioPanel: React.FC<{ toggleAudio: () => void }> = ({ toggleAudio }) => {
       </div>
       <div className="audio-content">
         {/* Input Device Section */}
-        <div className="audio-section">
+        <div className="audio-section microphone-section">
           <h3>{t('audioPanel.audioInputDevice')}</h3>
           <div className="device-selector">
             <div className="device-status">
@@ -174,7 +174,7 @@ const AudioPanel: React.FC<{ toggleAudio: () => void }> = ({ toggleAudio }) => {
         </div>
 
         {/* Monitor Device Section */}
-        <div className="audio-section">
+        <div className="audio-section speaker-section">
           <h3>{t('audioPanel.virtualSpeakerMonitorDevice')}</h3>
           <div className="device-selector">
             <div className="device-status">

@@ -70,7 +70,8 @@
     "realtimeModelNotAvailable": "GPT-4o Realtime model is not available",
     "refreshModels": "Refresh available models",
     "loadingModels": "Loading available models...",
-    "modelsFound": "{{count}} models available"
+    "modelsFound": "{{count}} models available",
+    "help": "Help"
   },
   "audioPanel": {
     "title": "Audio Settings",
@@ -140,5 +141,63 @@
     "networkError": "Network connection error",
     "translationFailed": "Translation failed",
     "audioError": "Audio processing error"
+  },
+  "onboarding": {
+    "back": "Back",
+    "close": "Close",
+    "finish": "Finish",
+    "next": "Next",
+    "nextWithProgress": "Next ({step}/{steps})",
+    "open": "Open the dialog",
+    "skip": "Skip tour",
+    "restartTour": "Restart Setup Guide",
+    "steps": {
+      "welcome": {
+        "title": "Welcome to Sokuji",
+        "content": "Welcome to Sokuji! This guide will help you set up the extension for live speech translation. Let's get started!"
+      },
+      "settings": {
+        "title": "Step 1: Open Settings",
+        "content": "First, let's configure your settings. Click here to open the Settings panel where you can set up your OpenAI API key and customize system instructions."
+      },
+      "apiKey": {
+        "title": "Step 2: Configure API Key",
+        "content": "Enter your OpenAI API key here. You can get one from the",
+        "linkText": "OpenAI page",
+        "required": "This is required for the speech translation to work."
+      },
+      "systemInstructions": {
+        "title": "Step 3: System Instructions",
+        "content": "Customize the system instructions to control how the AI responds. You can modify the translation behavior and add specific requirements here."
+      },
+      "voiceSettings": {
+        "title": "Step 4: Voice Settings",
+        "content": "Configure the voice type that will be used for speech synthesis. Choose from different voice options to match your preference."
+      },
+      "turnDetection": {
+        "title": "Step 5: Turn Detection",
+        "content": "Configure automatic turn detection settings including detection mode, threshold, and audio parameters for optimal speech recognition performance."
+      },
+      "audioSettings": {
+        "title": "Step 6: Audio Settings",
+        "content": "Next, let's configure your audio settings. Click here to open the Audio panel and set up your microphone and speakers."
+      },
+      "microphoneSetup": {
+        "title": "Step 7: Microphone Setup",
+        "content": "Select your microphone device here. Make sure to choose the correct input device for the best audio quality."
+      },
+      "speakerSetup": {
+        "title": "Step 8: Speaker Setup",
+        "content": "Select a monitoring device to listen to the translated audio and verify if it meets your requirements. It is recommended to use headphones for monitoring to avoid interference with microphone input. When you are satisfied with the translation settings, it is suggested to turn off monitoring so you can focus more on your expression without microphone interference."
+      },
+      "startSession": {
+        "title": "Step 9: Start Session",
+        "content": "Click the \"Start Session\" button to begin using Sokuji. Once started, you can speak naturally for live translation. If Automatic turn detection is disabled, use \"Push to Talk\" (Space key) to speak."
+      },
+      "complete": {
+        "title": "Setup Guide Complete!",
+        "content": "Great! You've completed the setup guide and are now familiar with the interface. To start using Sokuji, please enter your OpenAI API key in the settings, grant microphone permissions when prompted, and select \"Sokuji Virtual Microphone\" as your microphone in your meeting application (Google Meet, Zoom, Microsoft Teams, etc.). You can restart this guide anytime from the settings."
+      }
+    }
   }
 } 

@@ -5,6 +5,7 @@ import MainLayout from './components/MainLayout/MainLayout';
 import { LogProvider } from './contexts/LogContext';
 import { SettingsProvider } from './contexts/SettingsContext';
 import { AudioProvider } from './contexts/AudioContext';
+import { OnboardingProvider } from './contexts/OnboardingContext';
 import { useAnalytics } from './lib/analytics';
 
 function App() {
@@ -43,7 +44,9 @@ function App() {
       <SettingsProvider>
         <LogProvider>
           <AudioProvider>
-            <MainLayout />
+            <OnboardingProvider>
+              <MainLayout />
+            </OnboardingProvider>
           </AudioProvider>
         </LogProvider>
       </SettingsProvider>
