@@ -393,6 +393,165 @@ trackEvent('extension_used', {
 });
 ```
 
+### 🔧 Extension Popup Events
+
+#### `popup_opened`
+**Description**: Triggered when the extension popup is opened.
+
+**Properties**:
+- `is_supported_site` (boolean): Whether the current site supports Sokuji
+- `hostname` (string | null): Hostname of the current tab
+- `full_url` (string, optional): Origin URL of the current tab
+- `supported_site_match` (string | null): Which supported site pattern was matched
+- `error_type` (string, optional): Type of error if tab info unavailable
+
+**Status**: ✅ Implemented in `extension/popup.js`
+
+**Example**:
+```typescript
+trackEvent('popup_opened', {
+  is_supported_site: true,
+  hostname: 'meet.google.com',
+  full_url: 'https://meet.google.com',
+  supported_site_match: 'meet.google.com'
+});
+```
+
+---
+
+#### `popup_supported_state_shown`
+**Description**: Triggered when popup shows the supported site state.
+
+**Properties**:
+- `hostname` (string): Hostname of the supported site
+- `site_name` (string): Display name of the supported site
+
+**Status**: ✅ Implemented in `extension/popup.js`
+
+**Example**:
+```typescript
+trackEvent('popup_supported_state_shown', {
+  hostname: 'meet.google.com',
+  site_name: 'Google Meet'
+});
+```
+
+---
+
+#### `popup_unsupported_state_shown`
+**Description**: Triggered when popup shows the unsupported site state.
+
+**Properties**:
+- `hostname` (string): Hostname of the unsupported site
+- `supported_sites_count` (number): Number of supported sites available
+
+**Status**: ✅ Implemented in `extension/popup.js`
+
+**Example**:
+```typescript
+trackEvent('popup_unsupported_state_shown', {
+  hostname: 'example.com',
+  supported_sites_count: 4
+});
+```
+
+---
+
+#### `popup_error_state_shown`
+**Description**: Triggered when popup shows an error state.
+
+**Properties**:
+- `error_type` (string): Type of error encountered
+
+**Status**: ✅ Implemented in `extension/popup.js`
+
+**Example**:
+```typescript
+trackEvent('popup_error_state_shown', {
+  error_type: 'unable_to_detect_site'
+});
+```
+
+---
+
+#### `popup_open_sidepanel_clicked`
+**Description**: Triggered when user clicks the "Open Sokuji" button in popup.
+
+**Properties**:
+- `tab_id` (number): ID of the current tab
+- `is_supported_site` (boolean): Whether the current site supports Sokuji
+
+**Status**: ✅ Implemented in `extension/popup.js`
+
+**Example**:
+```typescript
+trackEvent('popup_open_sidepanel_clicked', {
+  tab_id: 123456,
+  is_supported_site: true
+});
+```
+
+---
+
+#### `sidepanel_opened_from_popup`
+**Description**: Triggered when side panel is successfully opened from popup.
+
+**Properties**:
+- `tab_id` (number): ID of the tab where side panel was opened
+- `method` ('direct_api' | 'background_message'): Method used to open side panel
+
+**Status**: ✅ Implemented in `extension/popup.js`
+
+**Example**:
+```typescript
+trackEvent('sidepanel_opened_from_popup', {
+  tab_id: 123456,
+  method: 'direct_api'
+});
+```
+
+---
+
+#### `sidepanel_open_error`
+**Description**: Triggered when side panel fails to open from popup.
+
+**Properties**:
+- `tab_id` (number): ID of the tab where opening failed
+- `error_type` ('direct_api_failed' | 'background_message_failed'): Type of failure
+- `error_message` (string): Error message from the failure
+
+**Status**: ✅ Implemented in `extension/popup.js`
+
+**Example**:
+```typescript
+trackEvent('sidepanel_open_error', {
+  tab_id: 123456,
+  error_type: 'direct_api_failed',
+  error_message: 'Side panel API not available'
+});
+```
+
+---
+
+#### `popup_site_navigation_clicked`
+**Description**: Triggered when user clicks on a supported site in popup to navigate.
+
+**Properties**:
+- `target_site` (string): URL of the site being navigated to
+- `target_site_name` (string): Display name of the target site
+- `is_supported_site` (boolean): Whether current site was supported
+
+**Status**: ✅ Implemented in `extension/popup.js`
+
+**Example**:
+```typescript
+trackEvent('popup_site_navigation_clicked', {
+  target_site: 'meet.google.com',
+  target_site_name: 'Google Meet',
+  is_supported_site: false
+});
+```
+
 ## Implementation Status
 
 ### ✅ Currently Implemented
@@ -403,6 +562,14 @@ trackEvent('extension_used', {
 - `onboarding_started` - Onboarding process initiation tracking
 - `onboarding_completed` - Onboarding completion/skip tracking with metrics
 - `onboarding_step_viewed` - Individual onboarding step tracking
+- `popup_opened` - Extension popup opening tracking
+- `popup_supported_state_shown` - Popup supported site state display
+- `popup_unsupported_state_shown` - Popup unsupported site state display
+- `popup_error_state_shown` - Popup error state display
+- `popup_open_sidepanel_clicked` - Popup side panel button clicks
+- `sidepanel_opened_from_popup` - Successful side panel opening from popup
+- `sidepanel_open_error` - Side panel opening errors from popup
+- `popup_site_navigation_clicked` - Popup site navigation clicks
 
 ### ⚠️ Defined but Not Implemented
 - `audio_device_changed` - Audio device selection tracking
@@ -499,9 +666,15 @@ src/
 ├── lib/
 │   └── analytics.ts              # Event definitions and analytics utilities
 ├── App.tsx                       # App lifecycle events
-└── components/
-    └── MainPanel/
-        └── MainPanel.tsx         # Translation session events
+├── components/
+│   └── MainPanel/
+│       └── MainPanel.tsx         # Translation session events
+└── contexts/
+    └── OnboardingContext.tsx     # Onboarding events
+
+extension/
+├── popup.js                      # Extension popup events (uses local posthog-js)
+└── package.json                  # PostHog dependency management
 ```
 
 ## Next Steps
