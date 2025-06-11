@@ -8,7 +8,7 @@ module.exports = (env, argv) => {
   
   return {
     mode: argv.mode || 'development',
-    devtool: 'cheap-module-source-map',
+    devtool: isDevMode ? 'cheap-module-source-map' : false,
     entry: {
       background: './background/background.js',
       content: './content/content.js',
