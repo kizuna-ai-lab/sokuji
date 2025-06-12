@@ -58,7 +58,6 @@ module.exports = (env, argv) => {
     resolve: {
       extensions: ['.js', '.jsx', '.ts', '.tsx'],
       alias: {
-        // 创建别名，使得可以直接引用原项目的组件和模块
         '@src': path.resolve(__dirname, '../src'),
         '@components': path.resolve(__dirname, '../src/components'),
         '@contexts': path.resolve(__dirname, '../src/contexts'),
