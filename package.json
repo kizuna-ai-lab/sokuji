@@ -11,6 +11,7 @@
     "email": "contact@kizuna.ai"
   },
   "dependencies": {
+    "@google/genai": "^0.14.0",
     "@iarna/toml": "^2.2.5",
     "@openai/realtime-api-beta": "github:openai/openai-realtime-api-beta",
     "@testing-library/jest-dom": "^5.17.0",
