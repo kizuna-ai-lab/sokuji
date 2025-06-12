@@ -43,7 +43,7 @@
           font-size: 13px;
         }
         
-        &:hover {
+        &:hover:not(:disabled) {
           background-color: rgba(255, 255, 255, 0.1);
           color: white;
         }
@@ -51,6 +51,7 @@
         &:disabled {
           opacity: 0.5;
           cursor: not-allowed;
+          color: #666;
         }
       }
       
@@ -144,6 +145,29 @@
     box-sizing: border-box;
     width: 100%;
     
+    .session-active-notice {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background-color: rgba(255, 193, 7, 0.15);
+      border: 1px solid rgba(255, 193, 7, 0.3);
+      border-radius: 6px;
+      padding: 12px;
+      margin-bottom: 20px;
+      color: #ffc107;
+      font-size: 13px;
+      line-height: 1.4;
+      
+      svg {
+        flex-shrink: 0;
+        margin-top: 1px;
+      }
+      
+      span {
+        flex: 1;
+      }
+    }
+    
     .settings-section {
       margin-bottom: 20px;
       
@@ -171,6 +195,13 @@
         &:focus {
           outline: none;
           border-color: #10a37f;
+        }
+        
+        &:disabled {
+          background-color: #2a2a2a;
+          color: #777;
+          cursor: not-allowed;
+          opacity: 0.6;
         }
         
         h4 {
@@ -441,6 +472,13 @@
             outline: none;
             border-color: #10a37f;
           }
+          
+          &:disabled {
+            background-color: #2a2a2a;
+            color: #777;
+            cursor: not-allowed;
+            opacity: 0.6;
+          }
         }
         
         .slider {
@@ -471,6 +509,21 @@
             cursor: pointer;
             border: none;
           }
+          
+          &:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            
+            &::-webkit-slider-thumb {
+              background: #777;
+              cursor: not-allowed;
+            }
+            
+            &::-moz-range-thumb {
+              background: #777;
+              cursor: not-allowed;
+            }
+          }
         }
         
         .turn-detection-options {
@@ -498,8 +551,17 @@
               background-color: #10a37f;
             }
             
-            &:hover:not(.active) {
+            &:hover:not(.active):not(:disabled) {
               background-color: #444;
+            }
+            
+            &:disabled {
+              opacity: 0.6;
+              cursor: not-allowed;
+              
+              &.active {
+                background-color: #777;
+              }
             }
           }
         }

@@ -4,6 +4,7 @@ import './SettingsPanel.scss';
 import { useSettings, VoiceOption, TurnDetectionMode, SemanticEagerness, NoiseReductionMode, TranscriptModel, Model } from '../../contexts/SettingsContext';
 import { useOnboarding } from '../../contexts/OnboardingContext';
 import { useTranslation } from 'react-i18next';
+import { useSession } from '../../contexts/SessionContext';
 
 // Language options with native names and language codes
 const languageOptions = [
@@ -80,6 +81,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
   } = useSettings();
   const { startOnboarding } = useOnboarding();
   const { t, i18n } = useTranslation();
+  const { isSessionActive } = useSession();
 
   const [apiKeyStatus, setApiKeyStatus] = useState<{
     valid: boolean | null;
@@ -208,7 +210,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
           <button 
             className="save-all-button"
             onClick={handleSave}
-            disabled={isSaving}
+            disabled={isSaving || isSessionActive}
           >
             <Save size={16} />
             <span>{isSaving ? t('settings.saving') : t('common.save')}</span>
@@ -223,6 +225,12 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
         </div>
       </div>
       <div className="settings-content">
+        {isSessionActive && (
+          <div className="session-active-notice">
+            <Info size={16} />
+            <span>{t('settings.isSessionActiveNotice', 'Settings are locked while session is active. Please end the session to modify settings.')}</span>
+          </div>
+        )}
         <div className="settings-section">
           <h2>{t('settings.language')}</h2>
           <div className="setting-item">
@@ -233,6 +241,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
               className="select-dropdown"
               value={i18n.language}
               onChange={(e) => i18n.changeLanguage(e.target.value)}
+              disabled={isSessionActive}
             >
               <option value="en">🇺🇸 English</option>
               <option value="zh_CN">🇨🇳 中文 (简体)</option>
@@ -283,11 +292,12 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
                   apiKeyStatus.valid === true ? 'valid' : 
                   apiKeyStatus.valid === false ? 'invalid' : ''
                 }`}
+                disabled={isSessionActive}
               />
               <button 
                 className="validate-key-button"
                 onClick={handleValidateApiKey}
-                disabled={apiKeyStatus.validating || !settings.openAIApiKey}
+                disabled={apiKeyStatus.validating || !settings.openAIApiKey || isSessionActive}
               >
                 <Key size={16} />
                 <span>{apiKeyStatus.validating ? t('settings.validating') : t('settings.validate')}</span>
@@ -310,12 +320,14 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
               <button 
                 className={`option-button ${settings.useTemplateMode ? 'active' : ''}`}
                 onClick={() => updateSettings({ useTemplateMode: true })}
+                disabled={isSessionActive}
               >
                 {t('settings.simple')}
               </button>
               <button 
                 className={`option-button ${!settings.useTemplateMode ? 'active' : ''}`}
                 onClick={() => updateSettings({ useTemplateMode: false })}
+                disabled={isSessionActive}
               >
                 {t('settings.advanced')}
               </button>
@@ -349,6 +361,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
                       updateSettings({ sourceLanguage: newSourceLang });
                     }
                   }}
+                  disabled={isSessionActive}
                 >
                   {languageOptions
                     .map((lang) => (
@@ -364,6 +377,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
                   className="select-dropdown"
                   value={settings.targetLanguage}
                   onChange={(e) => updateSettings({ targetLanguage: e.target.value })}
+                  disabled={isSessionActive}
                 >
                   {languageOptions
                     .filter(lang => lang.value !== settings.sourceLanguage)
@@ -388,6 +402,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
                 placeholder={t('settings.enterCustomInstructions')}
                 value={settings.systemInstructions}
                 onChange={(e) => updateSettings({ systemInstructions: e.target.value })}
+                disabled={isSessionActive}
               />
             </div>
           )}
@@ -399,6 +414,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
               className="select-dropdown"
               value={settings.voice}
               onChange={(e) => updateSettings({ voice: e.target.value as VoiceOption })}
+              disabled={isSessionActive}
             >
               {voiceOptions.map((voice) => (
                 <option key={voice} value={voice}>{voice}</option>
@@ -413,18 +429,21 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
               <button 
                 className={`option-button ${settings.turnDetectionMode === 'Normal' ? 'active' : ''}`}
                 onClick={() => updateSettings({ turnDetectionMode: 'Normal' as TurnDetectionMode })}
+                disabled={isSessionActive}
               >
                 {t('settings.normal')}
               </button>
               <button 
                 className={`option-button ${settings.turnDetectionMode === 'Semantic' ? 'active' : ''}`}
                 onClick={() => updateSettings({ turnDetectionMode: 'Semantic' as TurnDetectionMode })}
+                disabled={isSessionActive}
               >
                 {t('settings.semantic')}
               </button>
               <button 
                 className={`option-button ${settings.turnDetectionMode === 'Disabled' ? 'active' : ''}`}
                 onClick={() => updateSettings({ turnDetectionMode: 'Disabled' as TurnDetectionMode })}
+                disabled={isSessionActive}
               >
                 {t('settings.disabled')}
               </button>
@@ -446,6 +465,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
                   value={settings.threshold}
                   onChange={(e) => updateSettings({ threshold: parseFloat(e.target.value) })}
                   className="slider"
+                  disabled={isSessionActive}
                 />
               </div>
               <div className="setting-item">
@@ -461,6 +481,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
                   value={settings.prefixPadding}
                   onChange={(e) => updateSettings({ prefixPadding: parseFloat(e.target.value) })}
                   className="slider"
+                  disabled={isSessionActive}
                 />
               </div>
               <div className="setting-item">
@@ -476,6 +497,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
                   value={settings.silenceDuration}
                   onChange={(e) => updateSettings({ silenceDuration: parseFloat(e.target.value) })}
                   className="slider"
+                  disabled={isSessionActive}
                 />
               </div>
             </>
@@ -490,6 +512,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
                 className="select-dropdown"
                 value={settings.semanticEagerness}
                 onChange={(e) => updateSettings({ semanticEagerness: e.target.value as SemanticEagerness })}
+                disabled={isSessionActive}
               >
                 <option value="Auto">Auto</option>
                 <option value="Low">Low</option>
@@ -507,7 +530,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
                 className="select-dropdown"
                 value={settings.model}
                 onChange={(e) => updateSettings({ model: e.target.value as Model })}
-                disabled={loadingModels}
+                disabled={loadingModels || isSessionActive}
               >
                 {availableModels.length > 0 ? (
                   availableModels
@@ -527,7 +550,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
               <button 
                 className="refresh-models-button"
                 onClick={() => fetchAvailableModels()}
-                disabled={loadingModels || !settings.openAIApiKey}
+                disabled={loadingModels || !settings.openAIApiKey || isSessionActive}
                 title={t('settings.refreshModels')}
               >
                 <span className={loadingModels ? 'loading' : ''}>
@@ -554,6 +577,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
               className="select-dropdown"
               value={settings.transcriptModel}
               onChange={(e) => updateSettings({ transcriptModel: e.target.value as TranscriptModel })}
+              disabled={isSessionActive}
             >
               <option value="gpt-4o-mini-transcribe">gpt-4o-mini-transcribe</option>
               <option value="gpt-4o-transcribe">gpt-4o-transcribe</option>
@@ -568,6 +592,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
               className="select-dropdown"
               value={settings.noiseReduction}
               onChange={(e) => updateSettings({ noiseReduction: e.target.value as NoiseReductionMode })}
+              disabled={isSessionActive}
             >
               <option value="None">None</option>
               <option value="Near field">Near field</option>
@@ -590,6 +615,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
               value={settings.temperature}
               onChange={(e) => updateSettings({ temperature: parseFloat(e.target.value) })}
               className="slider"
+              disabled={isSessionActive}
             />
           </div>
           <div className="setting-item">
@@ -605,6 +631,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
               value={typeof settings.maxTokens === 'number' ? settings.maxTokens : 4096}
               onChange={(e) => updateSettings({ maxTokens: parseInt(e.target.value) })}
               className="slider"
+              disabled={isSessionActive}
             />
           </div>
         </div>

@@ -2,8 +2,9 @@ import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react'
 import { X, Zap, Users, Mic, Tool, Loader, Play, Volume2 } from 'react-feather';
 import './MainPanel.scss';
 import { useSettings } from '../../contexts/SettingsContext';
-import { useLog } from '../../contexts/LogContext';
+import { useSession } from '../../contexts/SessionContext';
 import { useAudioContext } from '../../contexts/AudioContext';
+import { useLog } from '../../contexts/LogContext';
 import { RealtimeClient } from '@openai/realtime-api-beta';
 import { ItemType } from '@openai/realtime-api-beta/dist/lib/client.js';
 import { WavRecorder, WavStreamPlayer } from '../../lib/wavtools';
@@ -22,18 +23,24 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   const { trackEvent } = useAnalytics();
   
   // State for session management
-  const [isSessionActive, setIsSessionActive] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [items, setItems] = useState<ItemType[]>([]);
   const [isInitializing, setIsInitializing] = useState(false);
   
-  // Session tracking for analytics
-  const [sessionId, setSessionId] = useState<string | null>(null);
-  const [sessionStartTime, setSessionStartTime] = useState<number | null>(null);
-  const [translationCount, setTranslationCount] = useState(0);
-
   // Get settings from context
   const { settings, isApiKeyValid, getProcessedSystemInstructions } = useSettings();
+  
+  // Get session state from context
+  const { 
+    isSessionActive, 
+    setIsSessionActive, 
+    sessionId, 
+    setSessionId,
+    sessionStartTime,
+    setSessionStartTime,
+    translationCount,
+    setTranslationCount
+  } = useSession();
 
   // Get log functions from context
   const { addRealtimeEvent } = useLog();
@@ -237,7 +244,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       // Increment translation count when assistant item is completed
       if (item.status === 'completed' && item.role === 'assistant' && 
           (item.formatted?.audio || item.formatted?.text || item.formatted?.transcript)) {
-        setTranslationCount(prev => prev + 1);
+        setTranslationCount(translationCount + 1);
       }
       setItems(items);
     });
