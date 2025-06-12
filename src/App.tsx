@@ -5,6 +5,7 @@ import MainLayout from './components/MainLayout/MainLayout';
 import { LogProvider } from './contexts/LogContext';
 import { SettingsProvider } from './contexts/SettingsContext';
 import { AudioProvider } from './contexts/AudioContext';
+import { SessionProvider } from './contexts/SessionContext';
 import { OnboardingProvider } from './contexts/OnboardingContext';
 import { useAnalytics } from './lib/analytics';
 
@@ -44,9 +45,11 @@ function App() {
       <SettingsProvider>
         <LogProvider>
           <AudioProvider>
-            <OnboardingProvider>
-              <MainLayout />
-            </OnboardingProvider>
+            <SessionProvider>
+              <OnboardingProvider>
+                <MainLayout />
+              </OnboardingProvider>
+            </SessionProvider>
           </AudioProvider>
         </LogProvider>
       </SettingsProvider>
