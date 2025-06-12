@@ -65,7 +65,10 @@
     "settingSavedSuccessfully": "Tetapan berjaya disimpan: {{key}}",
     "failedToSaveSetting": "Gagal menyimpan tetapan: {{key}}",
     "apiKeyValidationCompleted": "Pengesahan kunci API selesai",
-    "errorValidatingApiKey": "Ralat mengesahkan kunci API",
+    "errorValidatingApiKey": "Ralat semasa mengesahkan kunci API",
+    "sessionActiveNotice": "Tetapan dikunci semasa sesi aktif. Sila tamatkan sesi untuk mengubah tetapan.",
+    "realtimeModelAvailable": "Model GPT-4o masa nyata tersedia",
+    "realtimeModelNotAvailable": "Model GPT-4o masa nyata tidak tersedia",
     "refreshModels": "Segar semula model yang tersedia",
     "loadingModels": "Memuatkan model yang tersedia...",
     "modelsFound": "{{count}} model tersedia"

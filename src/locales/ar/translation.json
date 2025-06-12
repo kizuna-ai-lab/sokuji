@@ -64,8 +64,11 @@
     "validatingApiKey": "جاري التحقق من مفتاح API...",
     "settingSavedSuccessfully": "تم حفظ الإعداد بنجاح: {{key}}",
     "failedToSaveSetting": "فشل في حفظ الإعداد: {{key}}",
-    "apiKeyValidationCompleted": "اكتمل التحقق من مفتاح API",
+    "apiKeyValidationCompleted": "تم التحقق من مفتاح API بنجاح",
     "errorValidatingApiKey": "خطأ في التحقق من مفتاح API",
+    "sessionActiveNotice": "الإعدادات مؤمنة أثناء نشاط الجلسة. يرجى إنهاء الجلسة لتعديل الإعدادات.",
+    "realtimeModelAvailable": "نموذج GPT-4o في الوقت الفعلي متاح",
+    "realtimeModelNotAvailable": "نموذج GPT-4o في الوقت الفعلي غير متاح",
     "refreshModels": "تحديث النماذج المتاحة",
     "loadingModels": "جاري تحميل النماذج المتاحة...",
     "modelsFound": "{{count}} نماذج متاحة"

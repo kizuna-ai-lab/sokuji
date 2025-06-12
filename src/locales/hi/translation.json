@@ -27,7 +27,12 @@
     "enterApiKey": "अपनी OpenAI API की दर्ज करें",
     "refreshModels": "उपलब्ध मॉडल रीफ्रेश करें",
     "loadingModels": "उपलब्ध मॉडल लोड हो रहे हैं...",
-    "modelsFound": "{{count}} मॉडल उपलब्ध"
+    "modelsFound": "{{count}} मॉडल उपलब्ध",
+    "apiKeyValidationCompleted": "API कुंजी सत्यापन पूरा हुआ",
+    "errorValidatingApiKey": "API कुंजी सत्यापन में त्रुटि",
+    "sessionActiveNotice": "सत्र सक्रिय होने पर सेटिंग्स लॉक हैं। सेटिंग्स बदलने के लिए कृपया सत्र समाप्त करें।",
+    "realtimeModelAvailable": "GPT-4o रीयल-टाइम मॉडल उपलब्ध है",
+    "realtimeModelNotAvailable": "GPT-4o रीयल-टाइम मॉडल उपलब्ध नहीं है"
   },
   "mainPanel": {
     "conversationPlaceholder": "बातचीत यहाँ दिखाई देगी",

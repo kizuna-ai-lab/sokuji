@@ -64,8 +64,11 @@
     "validatingApiKey": "APIキーを検証中...",
     "settingSavedSuccessfully": "設定が正常に保存されました: {{key}}",
     "failedToSaveSetting": "設定の保存に失敗しました: {{key}}",
-    "apiKeyValidationCompleted": "APIキーの検証が完了しました",
-    "errorValidatingApiKey": "APIキーの検証中にエラーが発生しました",
+    "apiKeyValidationCompleted": "APIキー検証が完了しました",
+    "errorValidatingApiKey": "APIキー検証中にエラーが発生しました",
+    "sessionActiveNotice": "セッション中は設定がロックされています。設定を変更するにはセッションを終了してください。",
+    "realtimeModelAvailable": "GPT-4oリアルタイムモデルが利用可能です",
+    "realtimeModelNotAvailable": "GPT-4oリアルタイムモデルは利用できません",
     "refreshModels": "利用可能なモデルを更新",
     "loadingModels": "利用可能なモデルを読み込み中...",
     "modelsFound": "{{count}}個のモデルが利用可能"

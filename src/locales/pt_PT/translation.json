@@ -64,8 +64,11 @@
     "validatingApiKey": "A validar chave da API...",
     "settingSavedSuccessfully": "Definição guardada com sucesso: {{key}}",
     "failedToSaveSetting": "Falha ao guardar definição: {{key}}",
-    "apiKeyValidationCompleted": "Validação da chave da API concluída",
-    "errorValidatingApiKey": "Erro ao validar chave da API",
+    "apiKeyValidationCompleted": "Validação da chave API concluída",
+    "errorValidatingApiKey": "Erro ao validar a chave API",
+    "sessionActiveNotice": "As definições estão bloqueadas enquanto a sessão está activa. Termine a sessão para modificar as definições.",
+    "realtimeModelAvailable": "O modelo GPT-4o em tempo real está disponível",
+    "realtimeModelNotAvailable": "O modelo GPT-4o em tempo real não está disponível",
     "refreshModels": "Actualizar modelos disponíveis",
     "loadingModels": "A carregar modelos disponíveis...",
     "modelsFound": "{{count}} modelos disponíveis"

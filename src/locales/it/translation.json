@@ -64,8 +64,11 @@
     "validatingApiKey": "Convalida chiave API...",
     "settingSavedSuccessfully": "Impostazione salvata con successo: {{key}}",
     "failedToSaveSetting": "Impossibile salvare l'impostazione: {{key}}",
-    "apiKeyValidationCompleted": "Convalida chiave API completata",
+    "apiKeyValidationCompleted": "Convalida della chiave API completata",
     "errorValidatingApiKey": "Errore nella convalida della chiave API",
+    "sessionActiveNotice": "Le impostazioni sono bloccate mentre la sessione è attiva. Termina la sessione per modificare le impostazioni.",
+    "realtimeModelAvailable": "Il modello GPT-4o in tempo reale è disponibile",
+    "realtimeModelNotAvailable": "Il modello GPT-4o in tempo reale non è disponibile",
     "refreshModels": "Aggiorna modelli disponibili",
     "loadingModels": "Caricamento modelli disponibili...",
     "modelsFound": "{{count}} modelli disponibili"

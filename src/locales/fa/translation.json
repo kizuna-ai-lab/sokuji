@@ -66,6 +66,9 @@
     "failedToSaveSetting": "ذخیره تنظیم ناموفق بود: {{key}}",
     "apiKeyValidationCompleted": "اعتبارسنجی کلید API تکمیل شد",
     "errorValidatingApiKey": "خطا در اعتبارسنجی کلید API",
+    "sessionActiveNotice": "تنظیمات در حین فعال بودن جلسه قفل شده‌اند. لطفاً جلسه را پایان دهید تا تنظیمات را تغییر دهید.",
+    "realtimeModelAvailable": "مدل GPT-4o زمان واقعی در دسترس است",
+    "realtimeModelNotAvailable": "مدل GPT-4o زمان واقعی در دسترس نیست",
     "refreshModels": "بروزرسانی مدل‌های موجود",
     "loadingModels": "بارگذاری مدل‌های موجود...",
     "modelsFound": "{{count}} مدل موجود"

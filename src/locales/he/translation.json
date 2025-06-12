@@ -66,6 +66,9 @@
     "failedToSaveSetting": "שמירת הגדרה נכשלה: {{key}}",
     "apiKeyValidationCompleted": "אימות מפתח API הושלם",
     "errorValidatingApiKey": "שגיאה באימות מפתח API",
+    "sessionActiveNotice": "ההגדרות נעולות כאשר הפגישה פעילה. אנא סיים את הפגישה כדי לשנות הגדרות.",
+    "realtimeModelAvailable": "מודל GPT-4o בזמן אמת זמין",
+    "realtimeModelNotAvailable": "מודל GPT-4o בזמן אמת לא זמין",
     "refreshModels": "רענן מודלים זמינים",
     "loadingModels": "טוען מודלים זמינים...",
     "modelsFound": "{{count}} מודלים זמינים"

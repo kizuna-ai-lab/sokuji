@@ -108,5 +108,10 @@
         "content": "Natapos ninyo na ang setup guide! Ngayon, siguraduhin na talagang nalagay ninyo ang inyong API key at na-configure ang inyong mga setting, tapos gamitin ang Sokuji virtual microphone sa mga conference applications (tulad ng Google Meet, Zoom, atbp.) para simulan ang real-time translation."
       }
     }
-  }
+  },
+  "apiKeyValidationCompleted": "Tapos na ang pag-verify ng API key",
+  "errorValidatingApiKey": "May error sa pag-verify ng API key",
+  "sessionActiveNotice": "Nakalock ang mga setting habang aktibo ang session. Tapusin ang session para mabago ang mga setting.",
+  "realtimeModelAvailable": "Available ang GPT-4o realtime model",
+  "realtimeModelNotAvailable": "Hindi available ang GPT-4o realtime model"
 } 

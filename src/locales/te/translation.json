@@ -27,7 +27,12 @@
     "enterApiKey": "మీ OpenAI API కీని ఎంటర్ చేయండి",
     "refreshModels": "అందుబాటులో ఉన్న మోడల్స్ను రిఫ్రెష్ చేయండి",
     "loadingModels": "అందుబాటులో ఉన్న మోడల్స్ లోడ్ అవుతున్నాయి...",
-    "modelsFound": "{{count}} మోడల్స్ అందుబాటులో ఉన్నాయి"
+    "modelsFound": "{{count}} మోడల్స్ అందుబాటులో ఉన్నాయి",
+    "apiKeyValidationCompleted": "API కీ ధృవీకరణ పూర్తయింది",
+    "errorValidatingApiKey": "API కీ ధృవీకరణలో లోపం",
+    "sessionActiveNotice": "సెషన్ చురుకుగా ఉన్నప్పుడు సెట్టింగ్‌లు లాక్ చేయబడ్డాయి. సెట్టింగ్‌లను మార్చడానికి దయచేసి సెషన్‌ను ముగించండి.",
+    "realtimeModelAvailable": "GPT-4o నిజ-సమయ మోడల్ అందుబాటులో ఉంది",
+    "realtimeModelNotAvailable": "GPT-4o నిజ-సమయ మోడల్ అందుబాటులో లేదు"
   },
   "mainPanel": {
     "conversationPlaceholder": "సంభాషణ ఇక్కడ కనిపిస్తుంది",

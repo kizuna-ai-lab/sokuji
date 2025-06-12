@@ -66,6 +66,9 @@
     "failedToSaveSetting": "Error al guardar la configuración: {{key}}",
     "apiKeyValidationCompleted": "Validación de clave API completada",
     "errorValidatingApiKey": "Error al validar la clave API",
+    "sessionActiveNotice": "La configuración está bloqueada mientras la sesión está activa. Termina la sesión para modificar la configuración.",
+    "realtimeModelAvailable": "El modelo GPT-4o en tiempo real está disponible",
+    "realtimeModelNotAvailable": "El modelo GPT-4o en tiempo real no está disponible",
     "refreshModels": "Actualizar modelos disponibles",
     "loadingModels": "Cargando modelos disponibles...",
     "modelsFound": "{{count}} modelos disponibles"

@@ -27,7 +27,12 @@
     "enterApiKey": "OpenAI API anahtarınızı girin",
     "refreshModels": "Mevcut modelleri yenile",
     "loadingModels": "Mevcut modeller yükleniyor...",
-    "modelsFound": "{{count}} model mevcut"
+    "modelsFound": "{{count}} model mevcut",
+    "apiKeyValidationCompleted": "API anahtarı doğrulaması tamamlandı",
+    "errorValidatingApiKey": "API anahtarını doğrularken hata",
+    "sessionActiveNotice": "Oturum aktifken ayarlar kilitlenir. Ayarları değiştirmek için lütfen oturumu sonlandırın.",
+    "realtimeModelAvailable": "GPT-4o gerçek zamanlı model kullanılabilir",
+    "realtimeModelNotAvailable": "GPT-4o gerçek zamanlı model kullanılamıyor"
   },
   "mainPanel": {
     "conversationPlaceholder": "Konuşma burada görünecek",
