@@ -64,8 +64,11 @@
     "validatingApiKey": "API sleutel valideren...",
     "settingSavedSuccessfully": "Instelling succesvol opgeslagen: {{key}}",
     "failedToSaveSetting": "Opslaan van instelling mislukt: {{key}}",
-    "apiKeyValidationCompleted": "API sleutel validatie voltooid",
-    "errorValidatingApiKey": "Fout bij valideren van API sleutel",
+    "apiKeyValidationCompleted": "API-sleutel validatie voltooid",
+    "errorValidatingApiKey": "Fout bij het valideren van API-sleutel",
+    "sessionActiveNotice": "Instellingen zijn vergrendeld tijdens een actieve sessie. Beëindig de sessie om instellingen te wijzigen.",
+    "realtimeModelAvailable": "GPT-4o realtime model is beschikbaar",
+    "realtimeModelNotAvailable": "GPT-4o realtime model is niet beschikbaar",
     "refreshModels": "Beschikbare modellen vernieuwen",
     "loadingModels": "Beschikbare modellen laden...",
     "modelsFound": "{{count}} modellen beschikbaar"

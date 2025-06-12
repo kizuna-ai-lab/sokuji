@@ -66,6 +66,9 @@
     "failedToSaveSetting": "Fehler beim Speichern der Einstellung: {{key}}",
     "apiKeyValidationCompleted": "API-Schlüssel-Validierung abgeschlossen",
     "errorValidatingApiKey": "Fehler bei der Validierung des API-Schlüssels",
+    "sessionActiveNotice": "Die Einstellungen sind gesperrt, während die Sitzung aktiv ist. Beenden Sie die Sitzung, um die Einstellungen zu ändern.",
+    "realtimeModelAvailable": "GPT-4o-Echtzeitmodell ist verfügbar",
+    "realtimeModelNotAvailable": "GPT-4o-Echtzeitmodell ist nicht verfügbar",
     "refreshModels": "Verfügbare Modelle aktualisieren",
     "loadingModels": "Verfügbare Modelle werden geladen...",
     "modelsFound": "{{count}} Modelle verfügbar"

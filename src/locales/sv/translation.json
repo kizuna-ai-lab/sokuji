@@ -108,5 +108,10 @@
         "content": "Du har slutfört installationsguiden! Se nu till att du faktiskt anger din API-nyckel och konfigurerar dina inställningar, använd sedan Sokuji virtuell mikrofon i konferensapplikationer (som Google Meet, Zoom, etc.) för att starta realtidsöversättning."
       }
     }
-  }
+  },
+  "apiKeyValidationCompleted": "API-nyckel validering slutförd",
+  "errorValidatingApiKey": "Fel vid validering av API-nyckel",
+  "sessionActiveNotice": "Inställningar är låsta när sessionen är aktiv. Avsluta sessionen för att ändra inställningar.",
+  "realtimeModelAvailable": "GPT-4o realtidsmodell är tillgänglig",
+  "realtimeModelNotAvailable": "GPT-4o realtidsmodell är inte tillgänglig"
 } 

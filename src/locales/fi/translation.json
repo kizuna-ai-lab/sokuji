@@ -27,7 +27,12 @@
     "enterApiKey": "Syötä OpenAI API-avaimesi",
     "refreshModels": "Päivitä saatavilla olevat mallit",
     "loadingModels": "Ladataan saatavilla olevia malleja...",
-    "modelsFound": "{{count}} mallia saatavilla"
+    "modelsFound": "{{count}} mallia saatavilla",
+    "apiKeyValidationCompleted": "API-avaimen validointi valmis",
+    "errorValidatingApiKey": "Virhe API-avainta validoidessa",
+    "sessionActiveNotice": "Asetukset on lukittu istunnon ollessa aktiivinen. Lopeta istunto muuttaaksesi asetuksia.",
+    "realtimeModelAvailable": "GPT-4o reaaliaikamalli on saatavilla",
+    "realtimeModelNotAvailable": "GPT-4o reaaliaikamalli ei ole saatavilla"
   },
   "mainPanel": {
     "conversationPlaceholder": "Keskustelu näkyy tässä",

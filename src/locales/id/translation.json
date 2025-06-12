@@ -66,6 +66,9 @@
     "failedToSaveSetting": "Gagal menyimpan pengaturan: {{key}}",
     "apiKeyValidationCompleted": "Validasi kunci API selesai",
     "errorValidatingApiKey": "Kesalahan saat memvalidasi kunci API",
+    "sessionActiveNotice": "Pengaturan terkunci saat sesi aktif. Harap akhiri sesi untuk mengubah pengaturan.",
+    "realtimeModelAvailable": "Model GPT-4o real-time tersedia",
+    "realtimeModelNotAvailable": "Model GPT-4o real-time tidak tersedia",
     "refreshModels": "Segarkan model yang tersedia",
     "loadingModels": "Memuat model yang tersedia...",
     "modelsFound": "{{count}} model tersedia"

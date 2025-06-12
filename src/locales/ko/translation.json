@@ -66,6 +66,9 @@
     "failedToSaveSetting": "설정 저장에 실패했습니다: {{key}}",
     "apiKeyValidationCompleted": "API 키 검증이 완료되었습니다",
     "errorValidatingApiKey": "API 키 검증 중 오류가 발생했습니다",
+    "sessionActiveNotice": "세션이 활성 상태일 때 설정이 잠깁니다. 설정을 수정하려면 세션을 종료하세요.",
+    "realtimeModelAvailable": "GPT-4o 실시간 모델을 사용할 수 있습니다",
+    "realtimeModelNotAvailable": "GPT-4o 실시간 모델을 사용할 수 없습니다",
     "refreshModels": "사용 가능한 모델 새로고침",
     "loadingModels": "사용 가능한 모델 로딩 중...",
     "modelsFound": "{{count}}개의 모델 사용 가능"

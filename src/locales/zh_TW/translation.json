@@ -65,7 +65,10 @@
     "settingSavedSuccessfully": "設定儲存成功: {{key}}",
     "failedToSaveSetting": "設定儲存失敗: {{key}}",
     "apiKeyValidationCompleted": "API金鑰驗證完成",
-    "errorValidatingApiKey": "驗證API金鑰時發生錯誤",
+    "errorValidatingApiKey": "驗證API金鑰時出錯",
+    "sessionActiveNotice": "工作階段啟用時設定已鎖定。請結束工作階段以修改設定。",
+    "realtimeModelAvailable": "GPT-4o即時模型可用",
+    "realtimeModelNotAvailable": "GPT-4o即時模型不可用",
     "refreshModels": "重新整理可用模型",
     "loadingModels": "載入可用模型中...",
     "modelsFound": "找到 {{count}} 個模型"
