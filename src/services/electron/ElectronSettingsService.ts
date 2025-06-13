@@ -1,5 +1,6 @@
 import { ISettingsService, SettingsOperationResult, ApiKeyValidationResult, AvailableModel } from '../interfaces/ISettingsService';
-import { ApiKeyValidator } from '../utils/ApiKeyValidator';
+import { OpenAIClient } from '../clients/OpenAIClient';
+import { GeminiClient } from '../clients/GeminiClient';
 import i18n from '../../locales';
 
 /**
@@ -95,19 +96,29 @@ export class ElectronSettingsService implements ISettingsService {
   }
   
   /**
-   * Validate an OpenAI API key by making a direct API call
+   * Validate API key for the current provider
    */
   async validateApiKey(apiKey: string): Promise<ApiKeyValidationResult> {
-    return ApiKeyValidator.validateApiKey(apiKey);
+    // For now, we'll assume OpenAI for backward compatibility
+    try {
+      return await OpenAIClient.validateApiKey(apiKey);
+    } catch (error: any) {
+      console.error('[Sokuji] [ElectronSettings] Error validating API key:', error);
+      return {
+        valid: false,
+        message: error.message || 'Validation failed',
+        validating: false
+      };
+    }
   }
 
   /**
-   * Get available models from OpenAI API
+   * Get available models for the current provider
    */
   async getAvailableModels(apiKey: string): Promise<AvailableModel[]> {
     try {
-      const models = await ApiKeyValidator.fetchAvailableModels(apiKey);
-      return ApiKeyValidator.filterRelevantModels(models);
+      // For now, we'll assume OpenAI for backward compatibility
+      return await OpenAIClient.fetchAvailableModels(apiKey);
     } catch (error: any) {
       console.error('[Sokuji] [ElectronSettings] Error fetching available models:', error);
       return [];
