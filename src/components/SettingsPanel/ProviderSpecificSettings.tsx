@@ -1,6 +1,6 @@
 import React, { Fragment } from 'react';
 import { ProviderConfig } from '../../services/providers/ProviderConfig';
-import { useSettings, VoiceOption, TurnDetectionMode, SemanticEagerness, NoiseReductionMode, TranscriptModel, Model } from '../../contexts/SettingsContext';
+import { useSettings } from '../../contexts/SettingsContext';
 import { useTranslation } from 'react-i18next';
 import { ChevronDown, ChevronRight } from 'react-feather';
 
@@ -19,11 +19,31 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
   setIsPreviewExpanded,
   getProcessedSystemInstructions
 }) => {
-  const { settings, updateSettings } = useSettings();
+  const { 
+    commonSettings, 
+    updateCommonSettings,
+    openAISettings,
+    geminiSettings,
+    updateOpenAISettings,
+    updateGeminiSettings,
+    getCurrentProviderSettings
+  } = useSettings();
   const { t } = useTranslation();
 
+  // Get current provider's settings
+  const currentProviderSettings = getCurrentProviderSettings();
+
+  // Helper functions to update current provider's settings
+  const updateCurrentProviderSetting = (key: string, value: any) => {
+    if (commonSettings.provider === 'openai') {
+      updateOpenAISettings({ [key]: value });
+    } else {
+      updateGeminiSettings({ [key]: value });
+    }
+  };
+
   const renderLanguageSelections = () => {
-    if (!config.capabilities.hasTemplateMode || !settings.useTemplateMode) {
+    if (!config.capabilities.hasTemplateMode || !commonSettings.useTemplateMode) {
       return null;
     }
 
@@ -35,23 +55,23 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
           </div>
           <select
             className="select-dropdown"
-            value={settings.sourceLanguage}
+            value={commonSettings.sourceLanguage}
             onChange={(e) => {
               const newSourceLang = e.target.value;
               // If new source language is the same as current target language,
               // we need to update target language to avoid conflict
-              if (newSourceLang === settings.targetLanguage) {
+              if (newSourceLang === commonSettings.targetLanguage) {
                 // Find the first available language that's not the new source language
                 const newTargetLang = config.languages.find(lang => 
                   lang.value !== newSourceLang
                 )?.value || config.defaults.targetLanguage;
                 
-                updateSettings({
+                updateCommonSettings({
                   sourceLanguage: newSourceLang,
                   targetLanguage: newTargetLang
                 });
               } else {
-                updateSettings({ sourceLanguage: newSourceLang });
+                updateCommonSettings({ sourceLanguage: newSourceLang });
               }
             }}
             disabled={isSessionActive}
@@ -67,12 +87,12 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
           </div>
           <select
             className="select-dropdown"
-            value={settings.targetLanguage}
-            onChange={(e) => updateSettings({ targetLanguage: e.target.value })}
+            value={commonSettings.targetLanguage}
+            onChange={(e) => updateCommonSettings({ targetLanguage: e.target.value })}
             disabled={isSessionActive}
           >
             {config.languages
-              .filter(lang => lang.value !== settings.sourceLanguage)
+              .filter(lang => lang.value !== commonSettings.sourceLanguage)
               .map((lang) => (
                 <option key={lang.value} value={lang.value}>{lang.name}</option>
               ))}
@@ -93,8 +113,8 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
         <div className="setting-item">
           <select 
             className="select-dropdown"
-            value={settings.voice}
-            onChange={(e) => updateSettings({ voice: e.target.value as VoiceOption })}
+            value={currentProviderSettings.voice}
+            onChange={(e) => updateCurrentProviderSetting('voice', e.target.value)}
             disabled={isSessionActive}
           >
             {config.voices.map((voice) => (
@@ -112,6 +132,11 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
     }
 
     const { turnDetection } = config.capabilities;
+    
+    // Turn detection is OpenAI-specific
+    if (commonSettings.provider !== 'openai') {
+      return null;
+    }
 
     return (
       <div className="settings-section turn-detection-section">
@@ -121,8 +146,8 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
             {turnDetection.modes.map((mode) => (
               <button 
                 key={mode}
-                className={`option-button ${settings.turnDetectionMode === mode ? 'active' : ''}`}
-                onClick={() => updateSettings({ turnDetectionMode: mode as TurnDetectionMode })}
+                className={`option-button ${openAISettings.turnDetectionMode === mode ? 'active' : ''}`}
+                onClick={() => updateOpenAISettings({ turnDetectionMode: mode as 'Normal' | 'Semantic' | 'Disabled' })}
                 disabled={isSessionActive}
               >
                 {t(`settings.${mode.toLowerCase()}`)}
@@ -131,20 +156,20 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
           </div>
         </div>
 
-        {settings.turnDetectionMode === 'Normal' && turnDetection.hasThreshold && (
+        {openAISettings.turnDetectionMode === 'Normal' && turnDetection.hasThreshold && (
           <>
             <div className="setting-item">
               <div className="setting-label">
                 <span>{t('settings.threshold')}</span>
-                <span className="setting-value">{settings.threshold.toFixed(2)}</span>
+                <span className="setting-value">{openAISettings.threshold.toFixed(2)}</span>
               </div>
               <input 
                 type="range" 
                 min="0" 
                 max="1" 
                 step="0.01" 
-                value={settings.threshold}
-                onChange={(e) => updateSettings({ threshold: parseFloat(e.target.value) })}
+                value={openAISettings.threshold}
+                onChange={(e) => updateOpenAISettings({ threshold: parseFloat(e.target.value) })}
                 className="slider"
                 disabled={isSessionActive}
               />
@@ -153,15 +178,15 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
               <div className="setting-item">
                 <div className="setting-label">
                   <span>{t('settings.prefixPadding')}</span>
-                  <span className="setting-value">{settings.prefixPadding.toFixed(1)}s</span>
+                  <span className="setting-value">{openAISettings.prefixPadding.toFixed(1)}s</span>
                 </div>
                 <input 
                   type="range" 
                   min="0" 
                   max="2" 
                   step="0.1" 
-                  value={settings.prefixPadding}
-                  onChange={(e) => updateSettings({ prefixPadding: parseFloat(e.target.value) })}
+                  value={openAISettings.prefixPadding}
+                  onChange={(e) => updateOpenAISettings({ prefixPadding: parseFloat(e.target.value) })}
                   className="slider"
                   disabled={isSessionActive}
                 />
@@ -171,15 +196,15 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
               <div className="setting-item">
                 <div className="setting-label">
                   <span>{t('settings.silenceDuration')}</span>
-                  <span className="setting-value">{settings.silenceDuration.toFixed(1)}s</span>
+                  <span className="setting-value">{openAISettings.silenceDuration.toFixed(1)}s</span>
                 </div>
                 <input 
                   type="range" 
                   min="0" 
                   max="2" 
                   step="0.1" 
-                  value={settings.silenceDuration}
-                  onChange={(e) => updateSettings({ silenceDuration: parseFloat(e.target.value) })}
+                  value={openAISettings.silenceDuration}
+                  onChange={(e) => updateOpenAISettings({ silenceDuration: parseFloat(e.target.value) })}
                   className="slider"
                   disabled={isSessionActive}
                 />
@@ -188,21 +213,21 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
           </>
         )}
 
-        {settings.turnDetectionMode === 'Semantic' && turnDetection.hasSemanticEagerness && (
+        {openAISettings.turnDetectionMode === 'Semantic' && turnDetection.hasSemanticEagerness && (
           <div className="setting-item">
             <div className="setting-label">
               <span>{t('settings.eagerness')}</span>
             </div>
             <select 
               className="select-dropdown"
-              value={settings.semanticEagerness}
-              onChange={(e) => updateSettings({ semanticEagerness: e.target.value as SemanticEagerness })}
+              value={openAISettings.semanticEagerness}
+              onChange={(e) => updateOpenAISettings({ semanticEagerness: e.target.value as 'Auto' | 'Low' | 'Medium' | 'High' })}
               disabled={isSessionActive}
             >
-              <option value="Auto">Auto</option>
-              <option value="Low">Low</option>
-              <option value="Medium">Medium</option>
-              <option value="High">High</option>
+              <option value="Auto">{t('settings.auto')}</option>
+              <option value="Low">{t('settings.low')}</option>
+              <option value="Medium">{t('settings.medium')}</option>
+              <option value="High">{t('settings.high')}</option>
             </select>
           </div>
         )}
@@ -217,8 +242,8 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
         <div className="setting-item">
           <select
             className="select-dropdown"
-            value={settings.model}
-            onChange={(e) => updateSettings({ model: e.target.value as Model })}
+            value={currentProviderSettings.model}
+            onChange={(e) => updateCurrentProviderSetting('model', e.target.value)}
             disabled={isSessionActive}
           >
             {config.models
@@ -239,14 +264,19 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
       return null;
     }
 
+    // Noise reduction is OpenAI-specific
+    if (commonSettings.provider !== 'openai') {
+      return null;
+    }
+
     return (
       <div className="settings-section">
         <h2>{t('settings.noiseReduction')}</h2>
         <div className="setting-item">
           <select 
             className="select-dropdown"
-            value={settings.noiseReduction}
-            onChange={(e) => updateSettings({ noiseReduction: e.target.value as NoiseReductionMode })}
+            value={openAISettings.noiseReduction}
+            onChange={(e) => updateOpenAISettings({ noiseReduction: e.target.value as 'None' | 'Near field' | 'Far field' })}
             disabled={isSessionActive}
           >
             {config.noiseReductionModes.map((mode) => (
@@ -263,14 +293,19 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
       return null;
     }
 
+    // Transcript model is OpenAI-specific
+    if (commonSettings.provider !== 'openai') {
+      return null;
+    }
+
     return (
       <div className="settings-section">
         <h2>{t('settings.userTranscriptModel')}</h2>
         <div className="setting-item">
           <select 
             className="select-dropdown"
-            value={settings.transcriptModel}
-            onChange={(e) => updateSettings({ transcriptModel: e.target.value as TranscriptModel })}
+            value={openAISettings.transcriptModel}
+            onChange={(e) => updateOpenAISettings({ transcriptModel: e.target.value as 'gpt-4o-mini-transcribe' | 'gpt-4o-transcribe' | 'whisper-1' })}
             disabled={isSessionActive}
           >
             {config.transcriptModels.map((model) => (
@@ -295,15 +330,15 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
         <div className="setting-item">
           <div className="setting-label">
             <span>{t('settings.temperature')}</span>
-            <span className="setting-value">{settings.temperature.toFixed(2)}</span>
+            <span className="setting-value">{currentProviderSettings.temperature.toFixed(2)}</span>
           </div>
           <input 
             type="range" 
             min={temperatureRange.min} 
             max={temperatureRange.max} 
             step={temperatureRange.step} 
-            value={settings.temperature}
-            onChange={(e) => updateSettings({ temperature: parseFloat(e.target.value) })}
+            value={currentProviderSettings.temperature}
+            onChange={(e) => updateCurrentProviderSetting('temperature', parseFloat(e.target.value))}
             className="slider"
             disabled={isSessionActive}
           />
@@ -311,15 +346,15 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
         <div className="setting-item">
           <div className="setting-label">
             <span>{t('settings.maxTokens')}</span>
-            <span className="setting-value">{settings.maxTokens}</span>
+            <span className="setting-value">{currentProviderSettings.maxTokens}</span>
           </div>
           <input 
             type="range" 
             min={maxTokensRange.min} 
             max={maxTokensRange.max} 
             step={maxTokensRange.step} 
-            value={typeof settings.maxTokens === 'number' ? settings.maxTokens : maxTokensRange.max}
-            onChange={(e) => updateSettings({ maxTokens: parseInt(e.target.value) })}
+            value={typeof currentProviderSettings.maxTokens === 'number' ? currentProviderSettings.maxTokens : maxTokensRange.max}
+            onChange={(e) => updateCurrentProviderSetting('maxTokens', parseInt(e.target.value))}
             className="slider"
             disabled={isSessionActive}
           />
@@ -337,15 +372,15 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
           <div className="setting-item">
             <div className="turn-detection-options">
               <button 
-                className={`option-button ${settings.useTemplateMode ? 'active' : ''}`}
-                onClick={() => updateSettings({ useTemplateMode: true })}
+                className={`option-button ${commonSettings.useTemplateMode ? 'active' : ''}`}
+                onClick={() => updateCommonSettings({ useTemplateMode: true })}
                 disabled={isSessionActive}
               >
                 {t('settings.simple')}
               </button>
               <button 
-                className={`option-button ${!settings.useTemplateMode ? 'active' : ''}`}
-                onClick={() => updateSettings({ useTemplateMode: false })}
+                className={`option-button ${!commonSettings.useTemplateMode ? 'active' : ''}`}
+                onClick={() => updateCommonSettings({ useTemplateMode: false })}
                 disabled={isSessionActive}
               >
                 {t('settings.advanced')}
@@ -353,7 +388,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
             </div>
           </div>
           
-          {settings.useTemplateMode ? (
+          {commonSettings.useTemplateMode ? (
             <>
               {renderLanguageSelections()}
               <div className="setting-item">
@@ -377,8 +412,8 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
               <textarea 
                 className="system-instructions" 
                 placeholder={t('settings.enterCustomInstructions')}
-                value={settings.systemInstructions}
-                onChange={(e) => updateSettings({ systemInstructions: e.target.value })}
+                value={commonSettings.systemInstructions}
+                onChange={(e) => updateCommonSettings({ systemInstructions: e.target.value })}
                 disabled={isSessionActive}
               />
             </div>
