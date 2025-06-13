@@ -184,7 +184,6 @@ export class OpenAIClient implements IClient {
       if (modelName.includes('realtime') && (modelName.includes('4o') || modelName.includes('gpt-4'))) {
         relevantModels.push({
           id: model.id,
-          displayName: model.id,
           type: 'realtime',
           created: model.created
         });
@@ -193,7 +192,6 @@ export class OpenAIClient implements IClient {
       else if (modelName.includes('audio') && (modelName.includes('4o') || modelName.includes('gpt-4'))) {
         relevantModels.push({
           id: model.id,
-          displayName: model.id,
           type: 'audio',
           created: model.created
         });

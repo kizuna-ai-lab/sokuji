@@ -225,7 +225,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
               .filter(model => model.type === 'realtime')
               .map((model) => (
                 <option key={model.id} value={model.id}>
-                  {model.displayName}
+                                          {model.id}
                 </option>
               ))}
           </select>

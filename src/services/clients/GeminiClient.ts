@@ -86,13 +86,11 @@ export class GeminiClient implements IClient {
       const geminiModels: FilteredModel[] = [
         {
           id: 'gemini-2.0-flash-exp',
-          displayName: 'Gemini 2.0 Flash (Experimental)',
           type: 'realtime',
           created: Date.now() / 1000 // Current timestamp
         },
         {
           id: 'gemini-exp-1206',
-          displayName: 'Gemini Experimental 1206',
           type: 'realtime',
           created: Date.now() / 1000 - 86400 // Yesterday
         }
@@ -140,20 +138,10 @@ export class GeminiClient implements IClient {
       } : undefined,
     };
 
-    // Handle voice configuration (Gemini uses different voice names)
+    // Handle voice configuration
     if (config.voice) {
-      // Map OpenAI voice names to Gemini equivalents if needed
-      const voiceMapping: { [key: string]: string } = {
-        'alloy': 'Puck',
-        'echo': 'Charon', 
-        'fable': 'Kore',
-        'onyx': 'Fenrir',
-        'nova': 'Aoede',
-        'shimmer': 'Puck' // fallback
-      };
-      
-      // Note: Gemini Live API voice configuration may differ
-      // This is a placeholder for when voice configuration is available
+      // Note: Gemini Live API voice configuration may be added here when available
+      // For now, voice is handled by the provider configuration system
     }
 
     try {

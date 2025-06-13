@@ -10,7 +10,6 @@ export interface VoiceOption {
 
 export interface ModelOption {
   id: string;
-  displayName: string;
   type: 'realtime' | 'text' | 'multimodal';
 }
 

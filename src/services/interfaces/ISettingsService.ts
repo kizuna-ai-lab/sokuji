@@ -14,7 +14,6 @@ export interface ApiKeyValidationResult {
 
 export interface AvailableModel {
   id: string;
-  displayName: string;
   type: 'realtime' | 'audio';
   created: number;
 }

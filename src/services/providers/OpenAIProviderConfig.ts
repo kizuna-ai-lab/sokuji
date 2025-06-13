@@ -71,8 +71,8 @@ export class OpenAIProviderConfig extends BaseProviderConfig {
   ];
 
   private static readonly MODELS: ModelOption[] = [
-    { id: 'gpt-4o-realtime-preview', displayName: 'GPT-4o Realtime Preview', type: 'realtime' },
-    { id: 'gpt-4o-mini-realtime-preview', displayName: 'GPT-4o Mini Realtime Preview', type: 'realtime' },
+    { id: 'gpt-4o-realtime-preview', type: 'realtime' },
+    { id: 'gpt-4o-mini-realtime-preview', type: 'realtime' },
   ];
 
   getConfig(): ProviderConfig {
