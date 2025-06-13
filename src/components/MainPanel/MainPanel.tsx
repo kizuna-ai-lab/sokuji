@@ -1,13 +1,12 @@
-import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { X, Zap, Users, Mic, Tool, Loader, Play, Volume2 } from 'react-feather';
 import './MainPanel.scss';
 import { useSettings } from '../../contexts/SettingsContext';
 import { useSession } from '../../contexts/SessionContext';
 import { useAudioContext } from '../../contexts/AudioContext';
 import { useLog } from '../../contexts/LogContext';
-import { RealtimeClient } from '@openai/realtime-api-beta';
-import { ItemType } from '@openai/realtime-api-beta/dist/lib/client.js';
-import { WavRecorder, WavStreamPlayer } from '../../lib/wavtools';
+import { IClient, ConversationItem, SessionConfig, ClientEventHandlers, ClientFactory } from '../../services/clients';
+import { WavRecorder } from '../../lib/wavtools';
 import { WavRenderer } from '../../utils/wav_renderer';
 import { ServiceFactory } from '../../services/ServiceFactory'; // Import the ServiceFactory
 import { IAudioService } from '../../services/interfaces/IAudioService';
@@ -24,7 +23,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   
   // State for session management
   const [isRecording, setIsRecording] = useState(false);
-  const [items, setItems] = useState<ItemType[]>([]);
+  const [items, setItems] = useState<ConversationItem[]>([]);
   const [isInitializing, setIsInitializing] = useState(false);
   
   // Get settings from context
@@ -65,68 +64,57 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   const [playingItemId, setPlayingItemId] = useState<string | null>(null);
 
   /**
-   * Convert settings to updateSession parameters
+   * Convert settings to SessionConfig
    */
-  const getUpdateSessionParams = useCallback((settings: any) => {
+  const getSessionConfig = useCallback((settings: any): SessionConfig => {
     // Get processed system instructions from the context
     const systemInstructions = getProcessedSystemInstructions();
 
-    const updateSessionParams: any = {
+    const sessionConfig: SessionConfig = {
       model: settings.model || 'gpt-4o-mini-realtime-preview',
       voice: settings.voice || 'alloy',
       instructions: systemInstructions,
       temperature: settings.temperature ?? 0.8,
-      max_response_output_tokens: settings.maxTokens ?? 'inf',
+      maxTokens: settings.maxTokens ?? 'inf',
     };
 
     // Configure turn detection
     if (settings.turnDetectionMode === 'Disabled') {
-      // No turn detection
+      sessionConfig.turnDetection = { type: 'none' };
     } else if (settings.turnDetectionMode === 'Normal') {
-      updateSessionParams.turn_detection = {
-        create_response: true,
+      sessionConfig.turnDetection = {
         type: 'server_vad',
-        interrupt_response: false,
-        prefix_padding_ms: settings.prefixPadding !== undefined ? Math.round(settings.prefixPadding * 1000) : undefined,
-        silence_duration_ms: settings.silenceDuration !== undefined ? Math.round(settings.silenceDuration * 1000) : undefined,
+        createResponse: true,
+        interruptResponse: false,
+        prefixPadding: settings.prefixPadding,
+        silenceDuration: settings.silenceDuration,
         threshold: settings.threshold
       };
-      // Remove undefined fields
-      Object.keys(updateSessionParams.turn_detection).forEach(key =>
-        updateSessionParams.turn_detection[key] === undefined && delete updateSessionParams.turn_detection[key]
-      );
     } else if (settings.turnDetectionMode === 'Semantic') {
-      updateSessionParams.turn_detection = {
-        create_response: true,
+      sessionConfig.turnDetection = {
         type: 'semantic_vad',
-        interrupt_response: false,
+        createResponse: true,
+        interruptResponse: false,
         eagerness: settings.semanticEagerness?.toLowerCase(),
       };
-      // Remove undefined fields
-      Object.keys(updateSessionParams.turn_detection).forEach(key =>
-        updateSessionParams.turn_detection[key] === undefined && delete updateSessionParams.turn_detection[key]
-      );
     }
 
     // Configure noise reduction
     if (settings.noiseReduction && settings.noiseReduction !== 'None') {
-      updateSessionParams.input_audio_noise_reduction = {
+      sessionConfig.inputAudioNoiseReduction = {
         type: settings.noiseReduction === 'Near field' ? 'near_field' :
-              settings.noiseReduction === 'Far field' ? 'far_field' : undefined
+              settings.noiseReduction === 'Far field' ? 'far_field' : 'near_field'
       };
-      if (!updateSessionParams.input_audio_noise_reduction.type) {
-        delete updateSessionParams.input_audio_noise_reduction;
-      }
     }
 
     // Configure transcription
     if (settings.transcriptModel) {
-      updateSessionParams.input_audio_transcription = {
+      sessionConfig.inputAudioTranscription = {
         model: settings.transcriptModel
       };
     }
 
-    return updateSessionParams;
+    return sessionConfig;
   }, [getProcessedSystemInstructions]);
 
   /**
@@ -183,19 +171,14 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   /**
    * Instantiate:
    * - WavRecorder (speech input)
-   * - RealtimeClient (API client)
+   * - AI Client (API client)
    * - Audio service reference
    */
   const wavRecorderRef = useRef<WavRecorder>(
     new WavRecorder({ sampleRate: 24000 })
   );
 
-  const clientRef = useRef<RealtimeClient>(
-    new RealtimeClient({
-      apiKey: settings.openAIApiKey,
-      dangerouslyAllowAPIKeyInBrowser: true,
-    })
-  );
+  const clientRef = useRef<IClient | null>(null);
   
   // Reference to audio service for accessing WavStreamPlayer
   const audioServiceRef = useRef<IAudioService | null>(null);
@@ -207,7 +190,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   const serverCanvasRef = useRef<HTMLCanvasElement>(null);
 
   /**
-   * Set up event listeners for the RealtimeClient
+   * Set up event listeners for the AI Client
    */
   const setupClientListeners = useCallback(async () => {
     const client = clientRef.current;
@@ -215,42 +198,47 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
     if (!client || !audioService) return;
 
-    // handle realtime events from client + server for event logging
-    client.on('realtime.event', (realtimeEvent: { [key: string]: any }) => {
-      // console.debug(realtimeEvent);
-      addRealtimeEvent(realtimeEvent, realtimeEvent.source, realtimeEvent.event.type);
-    });
-    client.on('error', (event: any) => console.error('[Sokuji] [MainPanel]', event));
-    // client.on('conversation.interrupted', () => {
-    //   const trackSampleOffset = audioService.interruptAudio();
-    //   if (trackSampleOffset?.trackId) {
-    //     const { trackId, offset } = trackSampleOffset;
-    //     client.cancelResponse(trackId, offset);
-    //   }
-    // });
-    client.on('conversation.updated', async ({ item, delta }: any) => {
-      const items = client.conversation.getItems();
-      if (delta?.audio) {
-        audioService.addAudioData(delta.audio, item.id);
+    const eventHandlers: ClientEventHandlers = {
+      onRealtimeEvent: (realtimeEvent: any) => {
+        addRealtimeEvent(realtimeEvent, realtimeEvent.source, realtimeEvent.event?.type || 'unknown');
+      },
+      onError: (event: any) => {
+        console.error('[Sokuji] [MainPanel]', event);
+      },
+      onConversationInterrupted: async () => {
+        // Handle conversation interruption
+        const trackSampleOffset = await audioService.interruptAudio();
+        if (trackSampleOffset?.trackId) {
+          const { trackId, offset } = trackSampleOffset;
+          client.cancelResponse(trackId, offset);
+        }
+      },
+      onConversationUpdated: async ({ item, delta }: { item: ConversationItem; delta?: any }) => {
+        if (delta?.audio) {
+          audioService.addAudioData(delta.audio, item.id);
+        }
+        if (item.status === 'completed' && item.formatted?.audio) {
+          const wavFile = await WavRecorder.decode(
+            item.formatted.audio as Int16Array,
+            24000,
+            24000
+          );
+          if (item.formatted) {
+            item.formatted.file = wavFile;
+          }
+        }
+        // Increment translation count when assistant item is completed
+        if (item.status === 'completed' && item.role === 'assistant' && 
+            (item.formatted?.audio || item.formatted?.text || item.formatted?.transcript)) {
+          setTranslationCount(translationCount + 1);
+        }
+        setItems(client.getConversationItems());
       }
-      if (item.status === 'completed' && item.formatted.audio?.length) {
-        const wavFile = await WavRecorder.decode(
-          item.formatted.audio,
-          24000,
-          24000
-        );
-        item.formatted.file = wavFile;
-      }
-      // Increment translation count when assistant item is completed
-      if (item.status === 'completed' && item.role === 'assistant' && 
-          (item.formatted?.audio || item.formatted?.text || item.formatted?.transcript)) {
-        setTranslationCount(translationCount + 1);
-      }
-      setItems(items);
-    });
+    };
 
-    setItems(client.conversation.getItems());
-  }, [addRealtimeEvent]);
+    client.setEventHandlers(eventHandlers);
+    setItems(client.getConversationItems());
+  }, [addRealtimeEvent, translationCount]);
 
   /**
    * Disconnect and reset conversation state
@@ -273,7 +261,10 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     await new Promise(resolve => setTimeout(resolve, 100));
 
     const client = clientRef.current;
-    client.reset();
+    if (client) {
+      await client.disconnect();
+      client.reset();
+    }
 
     // Now fully end the recorder after client is reset
     try {
@@ -303,13 +294,12 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         await audioServiceRef.current.initialize();
       }
 
-      // clear current clientRef before create new client
-      clientRef.current.reset();
-      // Create a new RealtimeClient instance with the API key right before connecting
-      clientRef.current = new RealtimeClient({
-        apiKey: settings.openAIApiKey,
-        dangerouslyAllowAPIKeyInBrowser: true,
-      });
+      // Create a new AI client instance
+      clientRef.current = ClientFactory.createClient(
+        settings.model,
+        settings.openAIApiKey,
+        settings.geminiApiKey
+      );
 
       // Setup listeners for the new client instance
       await setupClientListeners();
@@ -342,29 +332,24 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         selectMonitorDevice(selectedMonitorDevice);
       }
 
-      // Update session with all parameters from settings
-      const updateSessionParams = getUpdateSessionParams(settings);
+      // Get session configuration
+      const sessionConfig = getSessionConfig(settings);
 
-      // First set the model and other parameters
-      client.updateSession({
-        ...updateSessionParams
-      });
-
-      // Then connect to realtime API
-      if (client.isConnected()) {
-        throw new Error(`Already connected, use .disconnect() first`);
-      }
-      await client.realtime.connect({ model: settings.model });
-      client.updateSession();
+      // Connect to the AI service
+      await client.connect(sessionConfig);
 
       // Start recording if using server VAD and input device is turned on
       if (settings.turnDetectionMode !== 'Disabled' && isInputDeviceOn) {
-        await wavRecorder.record((data) => client.appendInputAudio(data.mono));
+        await wavRecorder.record((data) => {
+          if (client) {
+            client.appendInputAudio(data.mono);
+          }
+        });
       }
 
       // Set state variables after successful initialization
       setIsSessionActive(true);
-      setItems(client.conversation.getItems() as ItemType[]);
+      setItems(client.getConversationItems());
     } catch (error) {
       console.error('[Sokuji] [MainPanel] Failed to initialize session:', error);
       // Reset state in case of error
@@ -372,7 +357,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     } finally {
       setIsInitializing(false);
     }
-  }, [settings, getUpdateSessionParams, setupClientListeners, selectedInputDevice, isInputDeviceOn, isMonitorDeviceOn, selectedMonitorDevice, selectMonitorDevice]);
+  }, [settings, getSessionConfig, setupClientListeners, selectedInputDevice, isInputDeviceOn, isMonitorDeviceOn, selectedMonitorDevice, selectMonitorDevice]);
 
   /**
    * In push-to-talk mode, start recording
@@ -406,7 +391,11 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       }
 
       // Start recording
-      await wavRecorder.record((data) => client.appendInputAudio(data.mono));
+      await wavRecorder.record((data) => {
+        if (client) {
+          client.appendInputAudio(data.mono);
+        }
+      });
     } catch (error) {
       console.error('[Sokuji] [MainPanel] Error starting recording:', error);
       setIsRecording(false);
@@ -433,7 +422,9 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         await wavRecorder.pause();
 
         // Create response
-        client.createResponse();
+        if (client) {
+          client.createResponse();
+        }
       }
     } catch (error) {
       // If there's an error during pause (e.g., already paused), log it but don't crash
@@ -447,7 +438,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   /**
    * Play audio from a conversation item
    */
-  const handlePlayAudio = useCallback(async (item: ItemType) => {
+  const handlePlayAudio = useCallback(async (item: ConversationItem) => {
     try {
       const audioService = audioServiceRef.current;
       if (!audioService) {
@@ -490,7 +481,15 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       }
 
       // Play the audio using the audio service
-      audioService.addAudioData(item.formatted.audio, item.id);
+      const itemAudioData = item.formatted.audio;
+      if (itemAudioData instanceof Int16Array) {
+        audioService.addAudioData(itemAudioData, item.id);
+      } else if (itemAudioData instanceof ArrayBuffer) {
+        audioService.addAudioData(new Int16Array(itemAudioData), item.id);
+      } else {
+        console.error('[Sokuji] [MainPanel] Unsupported audio data type');
+        return;
+      }
       
       // Store the current item ID to use in the timeout
       const currentItemId = item.id;
@@ -839,7 +838,11 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           if (settings.turnDetectionMode !== 'Disabled') {
             console.info('[Sokuji] [MainPanel] Input device turned on - resuming recording in automatic mode');
             if (!wavRecorder.recording) {
-              await wavRecorder.record((data) => client.appendInputAudio(data.mono));
+              await wavRecorder.record((data) => {
+                if (client) {
+                  client.appendInputAudio(data.mono);
+                }
+              });
             }
           }
           // For push-to-talk mode, we don't automatically resume recording

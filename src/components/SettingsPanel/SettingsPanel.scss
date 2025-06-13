@@ -178,8 +178,7 @@
         color: #ccc;
       }
       
-      .system-instructions,
-      .system-instructions-preview {
+      .system-instructions {
         width: 100%;
         min-height: 120px;
         background-color: #333;
@@ -203,14 +202,19 @@
           cursor: not-allowed;
           opacity: 0.6;
         }
-        
-        h4 {
-          margin-top: 0;
-          margin-bottom: 8px;
-          color: #aaa;
-          font-size: 12px;
-          font-weight: 500;
-        }
+      }
+      
+      .system-instructions-preview {
+        width: 100%;
+        background-color: #333;
+        border: 1px solid #444;
+        border-radius: 4px;
+        color: white;
+        font-size: 12px;
+        line-height: 1.4;
+        box-sizing: border-box;
+        padding: 10px;
+        margin-top: 6px;
         
         .preview-content {
           white-space: pre-wrap;
@@ -238,6 +242,24 @@
           
           .setting-value {
             color: #aaa;
+          }
+          
+          .preview-toggle {
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            padding: 4px;
+            border-radius: 4px;
+            transition: background-color 0.2s;
+            
+            &:hover {
+              background-color: rgba(255, 255, 255, 0.1);
+            }
+            
+            svg {
+              color: #aaa;
+              transition: transform 0.2s;
+            }
           }
           
           .toggle-switch {

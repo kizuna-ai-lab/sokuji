@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { ServiceFactory } from '../services/ServiceFactory';
 import { AvailableModel } from '../services/interfaces/ISettingsService';
 
@@ -10,6 +10,7 @@ export type VoiceOption = 'alloy' | 'ash' | 'ballad' | 'coral' | 'echo' | 'sage'
 export type Model = string; // Changed to string to support dynamic models
 
 export interface Settings {
+  provider: 'openai' | 'gemini';
   turnDetectionMode: TurnDetectionMode;
   threshold: number;
   prefixPadding: number;
@@ -27,6 +28,7 @@ export interface Settings {
   systemInstructions: string;
   templateSystemInstructions: string;
   openAIApiKey: string;
+  geminiApiKey: string;
 }
 
 interface SettingsContextType {
@@ -109,13 +111,14 @@ const getLanguageName = (code: string): string => {
 };
 
 export const defaultSettings: Settings = {
+  provider: 'openai',
   turnDetectionMode: 'Normal',
   threshold: 0.49,
   prefixPadding: 0.5,
   silenceDuration: 0.5,
   semanticEagerness: 'Auto',
   model: 'gpt-4o-mini-realtime-preview',
-  temperature: 0.6,
+  temperature: 0.8,
   maxTokens: 4096,
   transcriptModel: 'gpt-4o-mini-transcribe',
   noiseReduction: 'None',
@@ -151,6 +154,7 @@ export const defaultSettings: Settings = {
     "9. **Tone**: Match the speaker's register (formal vs. casual) without over-polishing.\n\n" +
     "Remember: You are a translation machine, not a conversational AI. Your sole purpose is to convert {{SOURCE_LANGUAGE}} text to {{TARGET_LANGUAGE}} text, nothing more.",
   openAIApiKey: '',
+  geminiApiKey: '',
 };
 
 const SettingsContext = createContext<SettingsContextType | null>(null);
