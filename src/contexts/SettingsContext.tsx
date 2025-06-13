@@ -1,13 +1,16 @@
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { ServiceFactory } from '../services/ServiceFactory';
 import { AvailableModel } from '../services/interfaces/ISettingsService';
+import { ProviderConfigFactory } from '../services/providers/ProviderConfigFactory';
+import { ProviderConfig } from '../services/providers/ProviderConfig';
+import { OpenAIClient } from '../services/clients/OpenAIClient';
+import { GeminiClient } from '../services/clients/GeminiClient';
 
 export type TurnDetectionMode = 'Normal' | 'Semantic' | 'Disabled';
 export type SemanticEagerness = 'Auto' | 'Low' | 'Medium' | 'High';
 export type NoiseReductionMode = 'None' | 'Near field' | 'Far field';
 export type TranscriptModel = 'gpt-4o-mini-transcribe' | 'gpt-4o-transcribe' | 'whisper-1';
-export type VoiceOption = 'alloy' | 'ash' | 'ballad' | 'coral' | 'echo' | 'sage' | 'shimmer' | 'verse';
-export type Model = string; // Changed to string to support dynamic models
+export type Model = string; // Support dynamic models from any provider
 
 export interface Settings {
   provider: 'openai' | 'gemini';
@@ -21,7 +24,7 @@ export interface Settings {
   maxTokens: number | 'inf';
   transcriptModel: TranscriptModel;
   noiseReduction: NoiseReductionMode;
-  voice: VoiceOption;
+  voice: string; // Changed to string to support any provider's voices
   useTemplateMode: boolean;
   sourceLanguage: string;
   targetLanguage: string;
@@ -36,7 +39,7 @@ interface SettingsContextType {
   updateSettings: (newSettings: Partial<Settings>) => void;
   reloadSettings: () => Promise<void>;
   isApiKeyValid: boolean;
-  validateApiKey: (apiKey?: string) => Promise<{
+  validateApiKey: () => Promise<{
     valid: boolean | null;
     message: string;
     validating?: boolean;
@@ -44,7 +47,8 @@ interface SettingsContextType {
   getProcessedSystemInstructions: () => string;
   availableModels: AvailableModel[];
   loadingModels: boolean;
-  fetchAvailableModels: (apiKey?: string) => Promise<void>;
+  fetchAvailableModels: () => Promise<void>;
+  getCurrentProviderConfig: () => ProviderConfig;
 }
 
 // Language code to full name mapping for system instructions
@@ -122,7 +126,7 @@ export const defaultSettings: Settings = {
   maxTokens: 4096,
   transcriptModel: 'gpt-4o-mini-transcribe',
   noiseReduction: 'None',
-  voice: 'alloy',
+  voice: 'alloy', // Will be dynamically updated based on provider
   useTemplateMode: true,
   sourceLanguage: 'en',
   targetLanguage: 'fr',
@@ -175,6 +179,21 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   const [isApiKeyValid, setIsApiKeyValid] = useState(false);
   const [availableModels, setAvailableModels] = useState<AvailableModel[]>([]);
   const [loadingModels, setLoadingModels] = useState(false);
+
+  // Get current provider configuration
+  const getCurrentProviderConfig = useCallback((): ProviderConfig => {
+    try {
+      return ProviderConfigFactory.getConfig(settings.provider);
+    } catch (error) {
+      console.warn(`[SettingsContext] Unknown provider: ${settings.provider}, falling back to OpenAI`);
+      return ProviderConfigFactory.getConfig('openai');
+    }
+  }, [settings.provider]);
+
+  // Get current API key based on provider
+  const getCurrentApiKey = useCallback((): string => {
+    return settings.provider === 'openai' ? settings.openAIApiKey : settings.geminiApiKey;
+  }, [settings.provider, settings.openAIApiKey, settings.geminiApiKey]);
   
   // Process system instructions based on the selected mode
   const getProcessedSystemInstructions = useCallback(() => {
@@ -187,12 +206,12 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [settings.useTemplateMode, settings.templateSystemInstructions, settings.sourceLanguage, settings.targetLanguage, settings.systemInstructions]);
 
-  // Validate the API key
-  const validateApiKey = useCallback(async (apiKey?: string) => {
+  // Validate the API key for current provider
+  const validateApiKey = useCallback(async () => {
     try {
-      const keyToValidate = apiKey !== undefined ? apiKey : settings.openAIApiKey;
+      const apiKey = getCurrentApiKey();
       
-      if (!keyToValidate || keyToValidate.trim() === '') {
+      if (!apiKey || apiKey.trim() === '') {
         return {
           valid: false,
           message: 'API key cannot be empty',
@@ -200,14 +219,21 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         };
       }
       
-      // Use our settings service to validate the API key
-      const result = await settingsService.validateApiKey(keyToValidate);
-      
-      // Update the valid state if we're validating the current API key
-      if (apiKey === undefined || apiKey === settings.openAIApiKey) {
-        setIsApiKeyValid(Boolean(result.valid));
+      // Use the appropriate client to validate based on provider
+      let result;
+      if (settings.provider === 'openai') {
+        result = await OpenAIClient.validateApiKey(apiKey);
+      } else if (settings.provider === 'gemini') {
+        result = await GeminiClient.validateApiKey(apiKey);
+      } else {
+        return {
+          valid: false,
+          message: `Unknown provider: ${settings.provider}`,
+          validating: false
+        };
       }
       
+      setIsApiKeyValid(Boolean(result.valid));
       return result;
     } catch (error) {
       console.error('[Sokuji] [Settings] Error validating API key:', error);
@@ -217,7 +243,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         validating: false
       };
     }
-  }, [settings.openAIApiKey, settingsService]);
+  }, [settings.provider, getCurrentApiKey]);
 
   // Load settings using our settings service
   const loadSettings = useCallback(async () => {
@@ -227,17 +253,30 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
       setSettings(loaded);
       
       // Perform basic validation after loading settings
-      const apiKey = loaded.openAIApiKey;
+      const apiKey = loaded.provider === 'openai' ? loaded.openAIApiKey : loaded.geminiApiKey;
       setIsApiKeyValid(Boolean(apiKey && apiKey.trim() !== ''));
       
       // Optionally perform full validation in the background
       if (apiKey && apiKey.trim() !== '') {
-        validateApiKey(apiKey).catch(error => console.error('[Sokuji] [Settings] Error validating API key:', error));
+        // Use the appropriate client for validation
+        try {
+          let result;
+          if (loaded.provider === 'openai') {
+            result = await OpenAIClient.validateApiKey(apiKey);
+          } else if (loaded.provider === 'gemini') {
+            result = await GeminiClient.validateApiKey(apiKey);
+          }
+          if (result) {
+            setIsApiKeyValid(Boolean(result.valid));
+          }
+        } catch (error) {
+          console.error('[Sokuji] [Settings] Error validating API key during load:', error);
+        }
       }
     } catch (error) {
       console.error('[Sokuji] [Settings] Error loading settings:', error);
     }
-  }, [settingsService, validateApiKey]);
+  }, [settingsService]);
 
   // Save settings using our settings service
   const updateSettings = useCallback((newSettings: Partial<Settings>) => {
@@ -256,20 +295,30 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     });
   }, [settingsService]);
 
-  // Fetch available models from OpenAI API
-  const fetchAvailableModels = useCallback(async (apiKey?: string) => {
+  // Fetch available models from current provider
+  const fetchAvailableModels = useCallback(async () => {
     try {
-      const keyToUse = apiKey !== undefined ? apiKey : settings.openAIApiKey;
+      const apiKey = getCurrentApiKey();
       
-      if (!keyToUse || keyToUse.trim() === '') {
+      if (!apiKey || apiKey.trim() === '') {
         console.warn('[Sokuji] [Settings] Cannot fetch models: API key is empty');
         return;
       }
 
       setLoadingModels(true);
-      const models = await settingsService.getAvailableModels(keyToUse);
-      setAvailableModels(models);
       
+      // Use the appropriate client to fetch models based on provider
+      let models: AvailableModel[] = [];
+      if (settings.provider === 'openai') {
+        models = await OpenAIClient.fetchAvailableModels(apiKey);
+      } else if (settings.provider === 'gemini') {
+        models = await GeminiClient.fetchAvailableModels(apiKey);
+      } else {
+        console.warn(`[Sokuji] [Settings] Unknown provider: ${settings.provider}`);
+        return;
+      }
+      
+      setAvailableModels(models);
       console.info('[Sokuji] [Settings] Fetched available models:', models);
     } catch (error) {
       console.error('[Sokuji] [Settings] Error fetching available models:', error);
@@ -277,7 +326,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     } finally {
       setLoadingModels(false);
     }
-  }, [settings.openAIApiKey, settingsService]);
+  }, [settings.provider, getCurrentApiKey]);
 
   // Initialize settings on component mount
   useEffect(() => {
@@ -295,7 +344,8 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         getProcessedSystemInstructions,
         availableModels,
         loadingModels,
-        fetchAvailableModels
+        fetchAvailableModels,
+        getCurrentProviderConfig
       }}
     >
       {children}

@@ -72,8 +72,8 @@ export class GeminiProviderConfig extends BaseProviderConfig {
   ];
 
   private static readonly MODELS: ModelOption[] = [
-    { id: 'gemini-2.0-flash-exp', displayName: 'Gemini 2.0 Flash (Experimental)', type: 'realtime' },
-    { id: 'gemini-2.0-flash-thinking-exp', displayName: 'Gemini 2.0 Flash Thinking (Experimental)', type: 'realtime' },
+    { id: 'gemini-2.0-flash-exp', type: 'realtime' },
+    { id: 'gemini-2.0-flash-thinking-exp', type: 'realtime' },
   ];
 
   getConfig(): ProviderConfig {
