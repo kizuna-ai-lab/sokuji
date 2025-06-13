@@ -14,8 +14,20 @@ interface SettingsPanelProps {
 
 const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
   const { 
+    // New structured settings
+    commonSettings,
+    updateCommonSettings,
+    openAISettings,
+    geminiSettings,
+    updateOpenAISettings,
+    updateGeminiSettings,
+    getCurrentProviderSettings,
+    
+    // Legacy settings for backward compatibility (can be removed later)
     settings, 
     updateSettings, 
+    
+    // Other context methods
     validateApiKey: contextValidateApiKey, 
     getProcessedSystemInstructions,
     availableModels,
@@ -29,17 +41,20 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
   // Get current provider configuration
   const currentProviderConfig = useMemo(() => {
     try {
-      return ProviderConfigFactory.getConfig(settings.provider || 'openai');
+      return ProviderConfigFactory.getConfig(commonSettings.provider || 'openai');
     } catch (error) {
-      console.warn(`[SettingsPanel] Unknown provider: ${settings.provider}, falling back to OpenAI`);
+      console.warn(`[SettingsPanel] Unknown provider: ${commonSettings.provider}, falling back to OpenAI`);
       return ProviderConfigFactory.getConfig('openai');
     }
-  }, [settings.provider]);
+  }, [commonSettings.provider]);
 
   // Get all available providers for the dropdown
   const availableProviders = useMemo(() => {
     return ProviderConfigFactory.getAllConfigs();
   }, []);
+
+  // Get current provider's settings
+  const currentProviderSettings = getCurrentProviderSettings();
 
   const [apiKeyStatus, setApiKeyStatus] = useState<{
     valid: boolean | null;
@@ -58,30 +73,27 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
     setIsSaving(true);
     setSaveStatus({ type: null, message: '' });
     let failCount = 0, successCount = 0;
+    
     try {
-      updateSettings({ openAIApiKey: settings.openAIApiKey });
+      // Save common settings
+      updateCommonSettings(commonSettings);
       successCount++;
     } catch (error) {
       failCount++;
     }
+    
     try {
-      updateSettings({
-        turnDetectionMode: settings.turnDetectionMode,
-        threshold: settings.threshold,
-        prefixPadding: settings.prefixPadding,
-        silenceDuration: settings.silenceDuration,
-        semanticEagerness: settings.semanticEagerness,
-        temperature: settings.temperature,
-        maxTokens: settings.maxTokens,
-        transcriptModel: settings.transcriptModel,
-        noiseReduction: settings.noiseReduction,
-        voice: settings.voice,
-        systemInstructions: settings.systemInstructions,
-      });
+      // Save provider-specific settings
+      if (commonSettings.provider === 'openai') {
+        updateOpenAISettings(openAISettings);
+      } else {
+        updateGeminiSettings(geminiSettings);
+      }
       successCount++;
     } catch (error) {
       failCount++;
     }
+    
     if (failCount === 0) {
       setSaveStatus({ type: 'success', message: t('settings.settingsSavedSuccessfully') });
     } else if (successCount > 0) {
@@ -147,16 +159,15 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
     return result.valid === true;
   };
 
-
-
-  // Auto-fetch models when API key is available and valid (only for OpenAI)
+  // Auto-fetch models when API key is available and valid
   useEffect(() => {
-    if (settings.provider === 'openai' && settings.openAIApiKey && settings.openAIApiKey.trim() !== '' && availableModels.length === 0 && !loadingModels) {
+    const currentApiKey = commonSettings.provider === 'openai' ? openAISettings.apiKey : geminiSettings.apiKey;
+    if (currentApiKey && currentApiKey.trim() !== '' && availableModels.length === 0 && !loadingModels) {
       fetchAvailableModels().catch(error => 
-        console.error('[Sokuji] [SettingsPanel] Error auto-fetching models:', error)
+        console.error('[SettingsPanel] Error auto-fetching models:', error)
       );
     }
-  }, [settings.provider, settings.openAIApiKey, availableModels.length, loadingModels, fetchAvailableModels]);
+  }, [commonSettings.provider, openAISettings.apiKey, geminiSettings.apiKey, availableModels.length, loadingModels, fetchAvailableModels]);
 
   return (
     <div className="settings-panel">
@@ -195,8 +206,8 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
             </div>
             <select
               className="select-dropdown"
-              value={settings.provider || 'openai'}
-              onChange={(e) => updateSettings({ provider: e.target.value as 'openai' | 'gemini' })}
+              value={commonSettings.provider || 'openai'}
+              onChange={(e) => updateCommonSettings({ provider: e.target.value as 'openai' | 'gemini' })}
               disabled={isSessionActive}
             >
               {availableProviders.map((provider) => (
@@ -212,12 +223,12 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
             </div>
             <div className="api-key-container">
               <input
-                value={settings.provider === 'openai' ? settings.openAIApiKey : settings.geminiApiKey}
+                value={commonSettings.provider === 'openai' ? openAISettings.apiKey : geminiSettings.apiKey}
                 onChange={(e) => {
-                  if (settings.provider === 'openai') {
-                    updateSettings({ openAIApiKey: e.target.value });
+                  if (commonSettings.provider === 'openai') {
+                    updateOpenAISettings({ apiKey: e.target.value });
                   } else {
-                    updateSettings({ geminiApiKey: e.target.value });
+                    updateGeminiSettings({ apiKey: e.target.value });
                   }
                   // Reset validation status when key changes
                   setApiKeyStatus({ valid: null, message: '', validating: false });
@@ -233,7 +244,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
                 className="validate-key-button"
                 onClick={handleValidateApiKey}
                 disabled={apiKeyStatus.validating || 
-                  (settings.provider === 'openai' ? !settings.openAIApiKey : !settings.geminiApiKey) || 
+                  (commonSettings.provider === 'openai' ? !openAISettings.apiKey : !geminiSettings.apiKey) || 
                   isSessionActive}
               >
                 <Key size={16} />
@@ -259,7 +270,10 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
             <select
               className="select-dropdown"
               value={i18n.language}
-              onChange={(e) => i18n.changeLanguage(e.target.value)}
+              onChange={(e) => {
+                i18n.changeLanguage(e.target.value);
+                updateCommonSettings({ uiLanguage: e.target.value });
+              }}
               disabled={isSessionActive}
             >
               <option value="en">🇺🇸 English</option>
@@ -295,7 +309,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
             </select>
           </div>
         </div>
-                <ProviderSpecificSettings
+        <ProviderSpecificSettings
           config={currentProviderConfig}
           isSessionActive={isSessionActive}
           isPreviewExpanded={isPreviewExpanded}
