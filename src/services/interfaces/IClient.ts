@@ -74,7 +74,6 @@ export interface ApiKeyValidationResult {
  */
 export interface FilteredModel {
   id: string;
-  displayName: string;
   type: 'realtime' | 'audio';
   created: number;
 }
