@@ -2,7 +2,8 @@ import React, { Fragment } from 'react';
 import { ProviderConfig } from '../../services/providers/ProviderConfig';
 import { useSettings } from '../../contexts/SettingsContext';
 import { useTranslation } from 'react-i18next';
-import { ChevronDown, ChevronRight } from 'react-feather';
+import { ChevronDown, ChevronRight, RotateCw } from 'react-feather';
+import { AvailableModel } from '../../services/interfaces/ISettingsService';
 
 interface ProviderSpecificSettingsProps {
   config: ProviderConfig;
@@ -10,6 +11,9 @@ interface ProviderSpecificSettingsProps {
   isPreviewExpanded: boolean;
   setIsPreviewExpanded: (expanded: boolean) => void;
   getProcessedSystemInstructions: () => string;
+  availableModels: AvailableModel[];
+  loadingModels: boolean;
+  fetchAvailableModels: () => Promise<void>;
 }
 
 const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
@@ -17,7 +21,10 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
   isSessionActive,
   isPreviewExpanded,
   setIsPreviewExpanded,
-  getProcessedSystemInstructions
+  getProcessedSystemInstructions,
+  availableModels,
+  loadingModels,
+  fetchAvailableModels
 }) => {
   const { 
     commonSettings, 
@@ -236,24 +243,57 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
   };
 
   const renderModelSettings = () => {
+    // Use available models from API if available, fallback to config models
+    const modelsToUse = availableModels.length > 0 ? 
+      availableModels.filter(model => model.type === 'realtime') : 
+      config.models.filter(model => model.type === 'realtime');
+
+    const handleRefreshModels = async () => {
+      try {
+        await fetchAvailableModels();
+      } catch (error) {
+        console.error('[ProviderSpecificSettings] Error refreshing models:', error);
+      }
+    };
+
     return (
       <div className="settings-section">
         <h2>{t('settings.model')}</h2>
         <div className="setting-item">
-          <select
-            className="select-dropdown"
-            value={currentProviderSettings.model}
-            onChange={(e) => updateCurrentProviderSetting('model', e.target.value)}
-            disabled={isSessionActive}
-          >
-            {config.models
-              .filter(model => model.type === 'realtime')
-              .map((model) => (
+          <div className="model-selection-container">
+            <select
+              className="select-dropdown"
+              value={currentProviderSettings.model}
+              onChange={(e) => updateCurrentProviderSetting('model', e.target.value)}
+              disabled={isSessionActive}
+            >
+              {modelsToUse.map((model) => (
                 <option key={model.id} value={model.id}>
-                                          {model.id}
+                  {model.id}
                 </option>
               ))}
-          </select>
+            </select>
+            <button
+              className="refresh-models-button"
+              onClick={handleRefreshModels}
+              disabled={isSessionActive || loadingModels}
+              title={t('settings.refreshModels', 'Refresh available models')}
+            >
+              <span className={loadingModels ? 'loading' : ''}>
+                <RotateCw size={16} />
+              </span>
+            </button>
+          </div>
+          {loadingModels && (
+            <div className="loading-status">
+              {t('settings.loadingModels', 'Loading available models...')}
+            </div>
+          )}
+          {availableModels.length > 0 && !loadingModels && (
+            <div className="models-info">
+              {t('settings.modelsFound', 'Found {{count}} available models', { count: modelsToUse.length })}
+            </div>
+          )}
         </div>
       </div>
     );
