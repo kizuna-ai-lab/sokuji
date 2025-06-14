@@ -1,3 +1,5 @@
+import { FilteredModel } from './IClient';
+
 // Settings service interface definition
 export interface SettingsOperationResult {
   success: boolean;
@@ -10,12 +12,6 @@ export interface ApiKeyValidationResult {
   message: string;
   validating?: boolean;
   hasRealtimeModel?: boolean;
-}
-
-export interface AvailableModel {
-  id: string;
-  type: 'realtime' | 'audio';
-  created: number;
 }
 
 export interface ISettingsService {
@@ -62,5 +58,5 @@ export interface ISettingsService {
    * @param apiKey The API key to use for authentication
    * @param provider The service provider to fetch models from ('openai' | 'gemini')
    */
-  getAvailableModels(apiKey: string, provider: 'openai' | 'gemini'): Promise<AvailableModel[]>;
+  getAvailableModels(apiKey: string, provider: 'openai' | 'gemini'): Promise<FilteredModel[]>;
 }
