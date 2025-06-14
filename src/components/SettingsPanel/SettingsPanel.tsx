@@ -315,6 +315,9 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
           isPreviewExpanded={isPreviewExpanded}
           setIsPreviewExpanded={setIsPreviewExpanded}
           getProcessedSystemInstructions={getProcessedSystemInstructions}
+          availableModels={availableModels}
+          loadingModels={loadingModels}
+          fetchAvailableModels={fetchAvailableModels}
         />
         
         <div className="settings-section">

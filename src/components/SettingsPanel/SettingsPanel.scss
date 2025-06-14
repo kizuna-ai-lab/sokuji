@@ -427,8 +427,17 @@
             min-width: 40px;
             
             span {
+              display: flex;
+              align-items: center;
+              justify-content: center;
               font-size: 16px;
               transition: transform 0.5s ease;
+              transform-origin: center center;
+              
+              svg {
+                display: block;
+                transform-origin: center center;
+              }
               
               &.loading {
                 animation: spin 1s linear infinite;

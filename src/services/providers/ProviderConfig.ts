@@ -79,7 +79,7 @@ export abstract class BaseProviderConfig {
   
   // Validation methods
   validateApiKey(apiKey: string): boolean {
-    return apiKey && apiKey.trim().length > 0;
+    return !!(apiKey && apiKey.trim().length > 0);
   }
   
   // Helper methods that can be overridden

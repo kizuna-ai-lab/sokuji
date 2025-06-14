@@ -51,14 +51,16 @@ export interface ISettingsService {
   getSettingsPath(): Promise<{ configDir: string; configFile: string }>;
   
   /**
-   * Validate an OpenAI API key
+   * Validate an API key for the specified provider
    * @param apiKey The API key to validate
+   * @param provider The service provider to validate against ('openai' | 'gemini')
    */
-  validateApiKey(apiKey: string): Promise<ApiKeyValidationResult>;
+  validateApiKey(apiKey: string, provider: 'openai' | 'gemini'): Promise<ApiKeyValidationResult>;
 
   /**
-   * Get available models from OpenAI API
+   * Get available models from the specified provider's API
    * @param apiKey The API key to use for authentication
+   * @param provider The service provider to fetch models from ('openai' | 'gemini')
    */
-  getAvailableModels(apiKey: string): Promise<AvailableModel[]>;
+  getAvailableModels(apiKey: string, provider: 'openai' | 'gemini'): Promise<AvailableModel[]>;
 }
