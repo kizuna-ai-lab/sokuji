@@ -67,8 +67,8 @@
     "apiKeyValidationCompleted": "Walidacja klucza API zakończona",
     "errorValidatingApiKey": "Błąd podczas walidacji klucza API",
     "sessionActiveNotice": "Ustawienia są zablokowane podczas aktywnej sesji. Zakończ sesję, aby zmienić ustawienia.",
-    "realtimeModelAvailable": "Model GPT-4o w czasie rzeczywistym jest dostępny",
-    "realtimeModelNotAvailable": "Model GPT-4o w czasie rzeczywistym nie jest dostępny",
+    "realtimeModelAvailable": "Model w czasie rzeczywistym jest dostępny",
+    "realtimeModelNotAvailable": "Model w czasie rzeczywistym nie jest dostępny",
     "refreshModels": "Odśwież dostępne modele",
     "loadingModels": "Ładowanie dostępnych modeli...",
     "modelsFound": "{{count}} modeli dostępnych"

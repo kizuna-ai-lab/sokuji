@@ -112,6 +112,6 @@
   "apiKeyValidationCompleted": "API-nyckel validering slutförd",
   "errorValidatingApiKey": "Fel vid validering av API-nyckel",
   "sessionActiveNotice": "Inställningar är låsta när sessionen är aktiv. Avsluta sessionen för att ändra inställningar.",
-  "realtimeModelAvailable": "GPT-4o realtidsmodell är tillgänglig",
-  "realtimeModelNotAvailable": "GPT-4o realtidsmodell är inte tillgänglig"
+      "realtimeModelAvailable": "Realtidsmodell är tillgänglig",
+    "realtimeModelNotAvailable": "Realtidsmodell är inte tillgänglig"
 } 

@@ -67,8 +67,8 @@
     "apiKeyValidationCompleted": "Validation de la clé API terminée",
     "errorValidatingApiKey": "Erreur lors de la validation de la clé API",
     "sessionActiveNotice": "Les paramètres sont verrouillés pendant que la session est active. Veuillez terminer la session pour modifier les paramètres.",
-    "realtimeModelAvailable": "Le modèle GPT-4o en temps réel est disponible",
-    "realtimeModelNotAvailable": "Le modèle GPT-4o en temps réel n'est pas disponible",
+    "realtimeModelAvailable": "Le modèle en temps réel est disponible",
+    "realtimeModelNotAvailable": "Le modèle en temps réel n'est pas disponible",
     "refreshModels": "Actualiser les modèles disponibles",
     "loadingModels": "Chargement des modèles disponibles...",
     "modelsFound": "{{count}} modèles disponibles"

@@ -112,6 +112,6 @@
   "apiKeyValidationCompleted": "Tapos na ang pag-verify ng API key",
   "errorValidatingApiKey": "May error sa pag-verify ng API key",
   "sessionActiveNotice": "Nakalock ang mga setting habang aktibo ang session. Tapusin ang session para mabago ang mga setting.",
-  "realtimeModelAvailable": "Available ang GPT-4o realtime model",
-  "realtimeModelNotAvailable": "Hindi available ang GPT-4o realtime model"
+      "realtimeModelAvailable": "Available ang realtime model",
+    "realtimeModelNotAvailable": "Hindi available ang realtime model"
 } 
