@@ -70,8 +70,8 @@
     "loadingModels": "উপলব্ধ মডেল লোড হচ্ছে...",
     "modelsFound": "{{count}}টি মডেল উপলব্ধ",
     "sessionActiveNotice": "সেশন সক্রিয় থাকাকালীন সেটিংস লক থাকে। সেটিংস পরিবর্তনের জন্য অনুগ্রহ করে সেশন শেষ করুন।",
-    "realtimeModelAvailable": "GPT-4o রিয়েল-টাইম মডেল উপলব্ধ",
-    "realtimeModelNotAvailable": "GPT-4o রিয়েল-টাইম মডেল উপলব্ধ নেই"
+    "realtimeModelAvailable": "রিয়েল-টাইম মডেল উপলব্ধ",
+    "realtimeModelNotAvailable": "রিয়েল-টাইম মডেল উপলব্ধ নেই"
   },
   "audioPanel": {
     "title": "অডিও সেটিংস",

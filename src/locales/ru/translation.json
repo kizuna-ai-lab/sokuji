@@ -67,8 +67,8 @@
     "apiKeyValidationCompleted": "Проверка API-ключа завершена",
     "errorValidatingApiKey": "Ошибка при проверке API-ключа",
     "sessionActiveNotice": "Настройки заблокированы во время активной сессии. Завершите сессию, чтобы изменить настройки.",
-    "realtimeModelAvailable": "Модель GPT-4o в реальном времени доступна",
-    "realtimeModelNotAvailable": "Модель GPT-4o в реальном времени недоступна",
+    "realtimeModelAvailable": "Модель в реальном времени доступна",
+    "realtimeModelNotAvailable": "Модель в реальном времени недоступна",
     "refreshModels": "Обновить доступные модели",
     "loadingModels": "Загрузка доступных моделей...",
     "modelsFound": "{{count}} моделей доступно"

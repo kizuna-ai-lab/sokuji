@@ -31,8 +31,8 @@
     "apiKeyValidationCompleted": "การตรวจสอบ API key เสร็จสิ้น",
     "errorValidatingApiKey": "เกิดข้อผิดพลาดในการตรวจสอบ API key",
     "sessionActiveNotice": "การตั้งค่าถูกล็อกขณะที่เซสชันทำงานอยู่ กรุณาสิ้นสุดเซสชันเพื่อแก้ไขการตั้งค่า",
-    "realtimeModelAvailable": "โมเดล GPT-4o แบบเรียลไทม์พร้อมใช้งาน",
-    "realtimeModelNotAvailable": "โมเดล GPT-4o แบบเรียลไทม์ไม่พร้อมใช้งาน"
+    "realtimeModelAvailable": "โมเดลแบบเรียลไทม์พร้อมใช้งาน",
+    "realtimeModelNotAvailable": "โมเดลแบบเรียลไทม์ไม่พร้อมใช้งาน"
   },
   "mainPanel": {
     "conversationPlaceholder": "การสนทนาจะปรากฏที่นี่",
