@@ -279,13 +279,14 @@ export class GeminiClient implements IClient {
       systemInstruction: config.instructions ? {
         parts: [{ text: config.instructions }]
       } : undefined,
+      speechConfig: config.voice ? {
+        voiceConfig: {
+          prebuiltVoiceConfig: {
+            voiceName: config.voice
+          }
+        }
+      } : undefined,
     };
-
-    // Handle voice configuration
-    if (config.voice) {
-      // Note: Gemini Live API voice configuration may be added here when available
-      // For now, voice is handled by the provider configuration system
-    }
 
     try {
       this.session = await this.client.live.connect({
