@@ -3,7 +3,7 @@ import { ProviderConfig } from '../../services/providers/ProviderConfig';
 import { useSettings } from '../../contexts/SettingsContext';
 import { useTranslation } from 'react-i18next';
 import { ChevronDown, ChevronRight, RotateCw } from 'react-feather';
-import { AvailableModel } from '../../services/interfaces/ISettingsService';
+import { FilteredModel } from '../../services/interfaces/IClient';
 
 interface ProviderSpecificSettingsProps {
   config: ProviderConfig;
@@ -11,7 +11,7 @@ interface ProviderSpecificSettingsProps {
   isPreviewExpanded: boolean;
   setIsPreviewExpanded: (expanded: boolean) => void;
   getProcessedSystemInstructions: () => string;
-  availableModels: AvailableModel[];
+  availableModels: FilteredModel[];
   loadingModels: boolean;
   fetchAvailableModels: () => Promise<void>;
 }
@@ -54,6 +54,8 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
       return null;
     }
 
+    const currentSettings = currentProviderSettings as any; // Cast to access sourceLanguage/targetLanguage
+    
     return (
       <>
         <div className="setting-item">
@@ -62,23 +64,21 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
           </div>
           <select
             className="select-dropdown"
-            value={commonSettings.sourceLanguage}
+            value={currentSettings.sourceLanguage}
             onChange={(e) => {
               const newSourceLang = e.target.value;
               // If new source language is the same as current target language,
               // we need to update target language to avoid conflict
-              if (newSourceLang === commonSettings.targetLanguage) {
+              if (newSourceLang === currentSettings.targetLanguage) {
                 // Find the first available language that's not the new source language
                 const newTargetLang = config.languages.find(lang => 
                   lang.value !== newSourceLang
                 )?.value || config.defaults.targetLanguage;
                 
-                updateCommonSettings({
-                  sourceLanguage: newSourceLang,
-                  targetLanguage: newTargetLang
-                });
+                updateCurrentProviderSetting('sourceLanguage', newSourceLang);
+                updateCurrentProviderSetting('targetLanguage', newTargetLang);
               } else {
-                updateCommonSettings({ sourceLanguage: newSourceLang });
+                updateCurrentProviderSetting('sourceLanguage', newSourceLang);
               }
             }}
             disabled={isSessionActive}
@@ -94,12 +94,12 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
           </div>
           <select
             className="select-dropdown"
-            value={commonSettings.targetLanguage}
-            onChange={(e) => updateCommonSettings({ targetLanguage: e.target.value })}
+            value={currentSettings.targetLanguage}
+            onChange={(e) => updateCurrentProviderSetting('targetLanguage', e.target.value)}
             disabled={isSessionActive}
           >
             {config.languages
-              .filter(lang => lang.value !== commonSettings.sourceLanguage)
+              .filter(lang => lang.value !== currentSettings.sourceLanguage)
               .map((lang) => (
                 <option key={lang.value} value={lang.value}>{lang.name}</option>
               ))}

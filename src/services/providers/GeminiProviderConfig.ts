@@ -95,7 +95,7 @@ export class GeminiProviderConfig extends BaseProviderConfig {
         hasTurnDetection: false, // Gemini handles turn detection automatically
         hasVoiceSettings: true,
         hasNoiseReduction: false,
-        hasModelConfiguration: false, // Gemini has fewer model configuration options
+        hasModelConfiguration: true, // Gemini supports temperature and max tokens configuration
         
         turnDetection: {
           modes: [], // Gemini handles this automatically

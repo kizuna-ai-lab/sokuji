@@ -1,4 +1,5 @@
-import { ISettingsService, SettingsOperationResult, ApiKeyValidationResult, AvailableModel } from '../interfaces/ISettingsService';
+import { ISettingsService, SettingsOperationResult, ApiKeyValidationResult } from '../interfaces/ISettingsService';
+import { FilteredModel } from '../interfaces/IClient';
 import { ClientOperations } from '../ClientOperations';
 import i18n from '../../locales';
 
@@ -113,7 +114,7 @@ export class ElectronSettingsService implements ISettingsService {
   /**
    * Get available models for the specified provider
    */
-  async getAvailableModels(apiKey: string, provider: 'openai' | 'gemini'): Promise<AvailableModel[]> {
+  async getAvailableModels(apiKey: string, provider: 'openai' | 'gemini'): Promise<FilteredModel[]> {
     try {
       return await ClientOperations.getAvailableModels(apiKey, provider);
     } catch (error: any) {
