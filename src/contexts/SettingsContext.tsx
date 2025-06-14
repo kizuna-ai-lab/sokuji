@@ -3,8 +3,6 @@ import { ServiceFactory } from '../services/ServiceFactory';
 import { AvailableModel } from '../services/interfaces/ISettingsService';
 import { ProviderConfigFactory } from '../services/providers/ProviderConfigFactory';
 import { ProviderConfig } from '../services/providers/ProviderConfig';
-import { OpenAIClient } from '../services/clients/OpenAIClient';
-import { GeminiClient } from '../services/clients/GeminiClient';
 
 // Common Settings - applicable to all providers
 export interface CommonSettings {
@@ -339,20 +337,8 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         };
       }
       
-      // Use the appropriate client to validate based on provider
-      let result;
-      if (commonSettings.provider === 'openai') {
-        result = await OpenAIClient.validateApiKey(apiKey);
-      } else if (commonSettings.provider === 'gemini') {
-        result = await GeminiClient.validateApiKey(apiKey);
-      } else {
-        return {
-          valid: false,
-          message: `Unknown provider: ${commonSettings.provider}`,
-          validating: false
-        };
-      }
-      
+      // Use settings service to validate with the current provider
+      const result = await settingsService.validateApiKey(apiKey, commonSettings.provider);
       setIsApiKeyValid(Boolean(result.valid));
       return result;
     } catch (error) {
@@ -363,7 +349,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         validating: false
       };
     }
-  }, [commonSettings.provider, getCurrentApiKey]);
+  }, [commonSettings.provider, getCurrentApiKey, settingsService]);
 
   // Update functions for different settings categories
   const updateCommonSettings = useCallback((newSettings: Partial<CommonSettings>) => {
@@ -531,16 +517,8 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
 
       setLoadingModels(true);
       
-      // Use the appropriate client to fetch models based on provider
-      let models: AvailableModel[] = [];
-      if (commonSettings.provider === 'openai') {
-        models = await OpenAIClient.fetchAvailableModels(apiKey);
-      } else if (commonSettings.provider === 'gemini') {
-        models = await GeminiClient.fetchAvailableModels(apiKey);
-      } else {
-        console.warn(`[Settings] Unknown provider: ${commonSettings.provider}`);
-        return;
-      }
+      // Use settings service to fetch models with the current provider
+      const models = await settingsService.getAvailableModels(apiKey, commonSettings.provider);
       
       setAvailableModels(models);
       console.info('[Settings] Fetched available models:', models);
@@ -550,7 +528,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     } finally {
       setLoadingModels(false);
     }
-  }, [commonSettings.provider, getCurrentApiKey]);
+  }, [commonSettings.provider, getCurrentApiKey, settingsService]);
 
   // Initialize settings on component mount
   useEffect(() => {

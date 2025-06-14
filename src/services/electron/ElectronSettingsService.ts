@@ -1,6 +1,5 @@
 import { ISettingsService, SettingsOperationResult, ApiKeyValidationResult, AvailableModel } from '../interfaces/ISettingsService';
-import { OpenAIClient } from '../clients/OpenAIClient';
-import { GeminiClient } from '../clients/GeminiClient';
+import { ClientOperations } from '../ClientOperations';
 import i18n from '../../locales';
 
 /**
@@ -96,14 +95,13 @@ export class ElectronSettingsService implements ISettingsService {
   }
   
   /**
-   * Validate API key for the current provider
+   * Validate API key for the specified provider
    */
-  async validateApiKey(apiKey: string): Promise<ApiKeyValidationResult> {
-    // For now, we'll assume OpenAI for backward compatibility
+  async validateApiKey(apiKey: string, provider: 'openai' | 'gemini'): Promise<ApiKeyValidationResult> {
     try {
-      return await OpenAIClient.validateApiKey(apiKey);
+      return await ClientOperations.validateApiKey(apiKey, provider);
     } catch (error: any) {
-      console.error('[Sokuji] [ElectronSettings] Error validating API key:', error);
+      console.error(`[Sokuji] [ElectronSettings] Error validating API key for ${provider}:`, error);
       return {
         valid: false,
         message: error.message || 'Validation failed',
@@ -113,14 +111,13 @@ export class ElectronSettingsService implements ISettingsService {
   }
 
   /**
-   * Get available models for the current provider
+   * Get available models for the specified provider
    */
-  async getAvailableModels(apiKey: string): Promise<AvailableModel[]> {
+  async getAvailableModels(apiKey: string, provider: 'openai' | 'gemini'): Promise<AvailableModel[]> {
     try {
-      // For now, we'll assume OpenAI for backward compatibility
-      return await OpenAIClient.fetchAvailableModels(apiKey);
+      return await ClientOperations.getAvailableModels(apiKey, provider);
     } catch (error: any) {
-      console.error('[Sokuji] [ElectronSettings] Error fetching available models:', error);
+      console.error(`[Sokuji] [ElectronSettings] Error fetching available models for ${provider}:`, error);
       return [];
     }
   }
