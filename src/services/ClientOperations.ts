@@ -1,6 +1,7 @@
 import { OpenAIClient } from './clients/OpenAIClient';
 import { GeminiClient } from './clients/GeminiClient';
-import { ApiKeyValidationResult, AvailableModel } from './interfaces/ISettingsService';
+import { ApiKeyValidationResult } from './interfaces/ISettingsService';
+import { FilteredModel } from './interfaces/IClient';
 
 /**
  * Utility class for client operations
@@ -24,7 +25,7 @@ export class ClientOperations {
   /**
    * Get available models for the specified provider
    */
-  static async getAvailableModels(apiKey: string, provider: 'openai' | 'gemini'): Promise<AvailableModel[]> {
+  static async getAvailableModels(apiKey: string, provider: 'openai' | 'gemini'): Promise<FilteredModel[]> {
     switch (provider) {
       case 'openai':
         return await OpenAIClient.fetchAvailableModels(apiKey);
@@ -38,7 +39,7 @@ export class ClientOperations {
   /**
    * Get latest realtime model for the specified provider
    */
-  static getLatestRealtimeModel(filteredModels: AvailableModel[], provider: 'openai' | 'gemini'): string {
+  static getLatestRealtimeModel(filteredModels: FilteredModel[], provider: 'openai' | 'gemini'): string {
     switch (provider) {
       case 'openai':
         return OpenAIClient.getLatestRealtimeModel(filteredModels);
