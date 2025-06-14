@@ -1,15 +1,13 @@
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { ServiceFactory } from '../services/ServiceFactory';
-import { AvailableModel } from '../services/interfaces/ISettingsService';
 import { ProviderConfigFactory } from '../services/providers/ProviderConfigFactory';
 import { ProviderConfig } from '../services/providers/ProviderConfig';
+import { FilteredModel } from '../services/interfaces/IClient';
 
 // Common Settings - applicable to all providers
 export interface CommonSettings {
   provider: 'openai' | 'gemini';
   uiLanguage: string; // UI language setting
-  sourceLanguage: string;
-  targetLanguage: string;
   systemInstructions: string;
   templateSystemInstructions: string;
   useTemplateMode: boolean;
@@ -20,6 +18,8 @@ export interface OpenAISettings {
   apiKey: string;
   model: string;
   voice: string; // OpenAI voice options
+  sourceLanguage: string;
+  targetLanguage: string;
   turnDetectionMode: 'Normal' | 'Semantic' | 'Disabled';
   threshold: number;
   prefixPadding: number;
@@ -36,6 +36,8 @@ export interface GeminiSettings {
   apiKey: string;
   model: string;
   voice: string; // Gemini voice options
+  sourceLanguage: string;
+  targetLanguage: string;
   temperature: number;
   maxTokens: number | 'inf';
   // Gemini may have different capabilities, so different settings
@@ -47,6 +49,8 @@ export interface Settings extends CommonSettings {
   // but these will be managed separately internally
   openAIApiKey: string;
   geminiApiKey: string;
+  sourceLanguage: string;
+  targetLanguage: string;
   
   // Current provider's settings (for backward compatibility)
   turnDetectionMode: OpenAISettings['turnDetectionMode'];
@@ -89,9 +93,10 @@ interface SettingsContextType {
     validating?: boolean;
   }>;
   getProcessedSystemInstructions: () => string;
-  availableModels: AvailableModel[];
+  availableModels: FilteredModel[];
   loadingModels: boolean;
   fetchAvailableModels: () => Promise<void>;
+  clearAvailableModels: () => void;
   getCurrentProviderConfig: () => ProviderConfig;
 }
 
@@ -162,8 +167,6 @@ const getLanguageName = (code: string): string => {
 export const defaultCommonSettings: CommonSettings = {
   provider: 'openai',
   uiLanguage: 'en',
-  sourceLanguage: 'en',
-  targetLanguage: 'fr',
   systemInstructions:
     "You are a professional real-time interpreter.\n" +
     "Your only job is to translate every single user input **literally** from Chinese to Japanese—no exceptions.\n" +
@@ -199,6 +202,8 @@ export const defaultOpenAISettings: OpenAISettings = {
   apiKey: '',
   model: 'gpt-4o-mini-realtime-preview',
   voice: 'alloy',
+  sourceLanguage: 'en',
+  targetLanguage: 'zh_CN',
   turnDetectionMode: 'Normal',
   threshold: 0.49,
   prefixPadding: 0.5,
@@ -215,6 +220,8 @@ export const defaultGeminiSettings: GeminiSettings = {
   apiKey: '',
   model: 'gemini-2.0-flash-exp',
   voice: 'Aoede',
+  sourceLanguage: 'en-US',
+  targetLanguage: 'cmn-CN',
   temperature: 0.8,
   maxTokens: 4096,
 };
@@ -224,6 +231,8 @@ export const defaultSettings: Settings = {
   ...defaultCommonSettings,
   openAIApiKey: defaultOpenAISettings.apiKey,
   geminiApiKey: defaultGeminiSettings.apiKey,
+  sourceLanguage: defaultOpenAISettings.sourceLanguage,
+  targetLanguage: defaultOpenAISettings.targetLanguage,
   model: defaultOpenAISettings.model,
   voice: defaultOpenAISettings.voice,
   turnDetectionMode: defaultOpenAISettings.turnDetectionMode,
@@ -257,7 +266,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   const [geminiSettings, setGeminiSettings] = useState<GeminiSettings>(defaultGeminiSettings);
   
   const [isApiKeyValid, setIsApiKeyValid] = useState(false);
-  const [availableModels, setAvailableModels] = useState<AvailableModel[]>([]);
+  const [availableModels, setAvailableModels] = useState<FilteredModel[]>([]);
   const [loadingModels, setLoadingModels] = useState(false);
 
   // Get current provider configuration
@@ -286,6 +295,8 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     openAIApiKey: openAISettings.apiKey,
     geminiApiKey: geminiSettings.apiKey,
     ...(commonSettings.provider === 'openai' ? {
+      sourceLanguage: openAISettings.sourceLanguage,
+      targetLanguage: openAISettings.targetLanguage,
       model: openAISettings.model,
       voice: openAISettings.voice,
       turnDetectionMode: openAISettings.turnDetectionMode,
@@ -298,6 +309,8 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
       transcriptModel: openAISettings.transcriptModel,
       noiseReduction: openAISettings.noiseReduction,
     } : {
+      sourceLanguage: geminiSettings.sourceLanguage,
+      targetLanguage: geminiSettings.targetLanguage,
       model: geminiSettings.model,
       voice: geminiSettings.voice,
       temperature: geminiSettings.temperature,
@@ -316,13 +329,14 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   // Process system instructions based on the selected mode
   const getProcessedSystemInstructions = useCallback(() => {
     if (commonSettings.useTemplateMode) {
+      const currentSettings = commonSettings.provider === 'openai' ? openAISettings : geminiSettings;
       return commonSettings.templateSystemInstructions
-        .replace(/\{\{SOURCE_LANGUAGE\}\}/g, getLanguageName(commonSettings.sourceLanguage || 'SOURCE_LANGUAGE'))
-        .replace(/\{\{TARGET_LANGUAGE\}\}/g, getLanguageName(commonSettings.targetLanguage || 'TARGET_LANGUAGE'));
+        .replace(/\{\{SOURCE_LANGUAGE\}\}/g, getLanguageName(currentSettings.sourceLanguage || 'SOURCE_LANGUAGE'))
+        .replace(/\{\{TARGET_LANGUAGE\}\}/g, getLanguageName(currentSettings.targetLanguage || 'TARGET_LANGUAGE'));
     } else {
       return commonSettings.systemInstructions;
     }
-  }, [commonSettings.useTemplateMode, commonSettings.templateSystemInstructions, commonSettings.sourceLanguage, commonSettings.targetLanguage, commonSettings.systemInstructions]);
+  }, [commonSettings.useTemplateMode, commonSettings.templateSystemInstructions, commonSettings.systemInstructions, commonSettings.provider, openAISettings.sourceLanguage, openAISettings.targetLanguage, geminiSettings.sourceLanguage, geminiSettings.targetLanguage]);
 
   // Validate the API key for current provider
   const validateApiKey = useCallback(async () => {
@@ -412,12 +426,19 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
       switch (key) {
         case 'provider':
         case 'uiLanguage':
-        case 'sourceLanguage':
-        case 'targetLanguage':
         case 'systemInstructions':
         case 'templateSystemInstructions':
         case 'useTemplateMode':
           (commonUpdates as any)[key] = value;
+          break;
+        case 'sourceLanguage':
+        case 'targetLanguage':
+          // Language settings are now provider-specific
+          if (commonSettings.provider === 'openai') {
+            (openAIUpdates as any)[key] = value;
+          } else {
+            (geminiUpdates as any)[key] = value;
+          }
           break;
         case 'openAIApiKey':
           openAIUpdates.apiKey = value as string;
@@ -530,6 +551,11 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [commonSettings.provider, getCurrentApiKey, settingsService]);
 
+  // Clear available models (useful when switching providers)
+  const clearAvailableModels = useCallback(() => {
+    setAvailableModels([]);
+  }, []);
+
   // Initialize settings on component mount
   useEffect(() => {
     loadSettings();
@@ -559,6 +585,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         availableModels,
         loadingModels,
         fetchAvailableModels,
+        clearAvailableModels,
         getCurrentProviderConfig
       }}
     >

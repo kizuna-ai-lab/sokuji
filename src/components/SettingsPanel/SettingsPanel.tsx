@@ -32,7 +32,8 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
     getProcessedSystemInstructions,
     availableModels,
     loadingModels,
-    fetchAvailableModels
+    fetchAvailableModels,
+    clearAvailableModels
   } = useSettings();
   const { startOnboarding } = useOnboarding();
   const { t, i18n } = useTranslation();
@@ -195,7 +196,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
         {isSessionActive && (
           <div className="session-active-notice">
             <Info size={16} />
-            <span>{t('settings.isSessionActiveNotice', 'Settings are locked while session is active. Please end the session to modify settings.')}</span>
+            <span>{t('settings.sessionActiveNotice', 'Settings are locked while session is active. Please end the session to modify settings.')}</span>
           </div>
         )}
         <div className="settings-section api-key-section">
@@ -207,7 +208,18 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
             <select
               className="select-dropdown"
               value={commonSettings.provider || 'openai'}
-              onChange={(e) => updateCommonSettings({ provider: e.target.value as 'openai' | 'gemini' })}
+              onChange={(e) => {
+                const newProvider = e.target.value as 'openai' | 'gemini';
+                updateCommonSettings({ provider: newProvider });
+                
+                // Reset API key validation status when provider changes
+                setApiKeyStatus({ valid: null, message: '', validating: false });
+                
+                // Clear available models as they are provider-specific
+                clearAvailableModels();
+                
+                // The useEffect will automatically fetch new models if API key exists for the new provider
+              }}
               disabled={isSessionActive}
             >
               {availableProviders.map((provider) => (
