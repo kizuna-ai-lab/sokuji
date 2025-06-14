@@ -31,8 +31,8 @@
     "apiKeyValidationCompleted": "API கீ சரிபார்ப்பு முடிந்தது",
     "errorValidatingApiKey": "API கீ சரிபார்ப்பதில் பிழை",
     "sessionActiveNotice": "அமர்வு செயலில் இருக்கும் போது அமைப்புகள் பூட்டப்பட்டுள்ளன. அமைப்புகளை மாற்ற அமர்வை முடிக்கவும்.",
-    "realtimeModelAvailable": "GPT-4o நிகழ்நேர மாதிரி கிடைக்கிறது",
-    "realtimeModelNotAvailable": "GPT-4o நிகழ்நேர மாதிரி கிடைக்கவில்லை"
+    "realtimeModelAvailable": "நிகழ்நேர மாதிரி கிடைக்கிறது",
+    "realtimeModelNotAvailable": "நிகழ்நேர மாதிரி கிடைக்கவில்லை"
   },
   "mainPanel": {
     "conversationPlaceholder": "உரையாடல் இங்கே தோன்றும்",

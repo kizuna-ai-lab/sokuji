@@ -67,8 +67,8 @@
     "apiKeyValidationCompleted": "Pengesahan kunci API selesai",
     "errorValidatingApiKey": "Ralat semasa mengesahkan kunci API",
     "sessionActiveNotice": "Tetapan dikunci semasa sesi aktif. Sila tamatkan sesi untuk mengubah tetapan.",
-    "realtimeModelAvailable": "Model GPT-4o masa nyata tersedia",
-    "realtimeModelNotAvailable": "Model GPT-4o masa nyata tidak tersedia",
+    "realtimeModelAvailable": "Model masa nyata tersedia",
+    "realtimeModelNotAvailable": "Model masa nyata tidak tersedia",
     "refreshModels": "Segar semula model yang tersedia",
     "loadingModels": "Memuatkan model yang tersedia...",
     "modelsFound": "{{count}} model tersedia"

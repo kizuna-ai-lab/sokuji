@@ -67,8 +67,8 @@
     "apiKeyValidationCompleted": "تم التحقق من مفتاح API بنجاح",
     "errorValidatingApiKey": "خطأ في التحقق من مفتاح API",
     "sessionActiveNotice": "الإعدادات مؤمنة أثناء نشاط الجلسة. يرجى إنهاء الجلسة لتعديل الإعدادات.",
-    "realtimeModelAvailable": "نموذج GPT-4o في الوقت الفعلي متاح",
-    "realtimeModelNotAvailable": "نموذج GPT-4o في الوقت الفعلي غير متاح",
+    "realtimeModelAvailable": "نموذج الوقت الفعلي متاح",
+    "realtimeModelNotAvailable": "نموذج الوقت الفعلي غير متاح",
     "refreshModels": "تحديث النماذج المتاحة",
     "loadingModels": "جاري تحميل النماذج المتاحة...",
     "modelsFound": "{{count}} نماذج متاحة"
