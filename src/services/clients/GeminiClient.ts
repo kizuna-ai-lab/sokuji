@@ -7,6 +7,8 @@ import i18n from '../../locales';
  * Implements the IClient interface for Google's Gemini Live API
  */
 export class GeminiClient implements IClient {
+  private static readonly MODELS_ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models';
+  
   private client: GoogleGenAI;
   private session: any = null;
   private eventHandlers: ClientEventHandlers = {};
@@ -21,8 +23,140 @@ export class GeminiClient implements IClient {
   }
 
   /**
-   * Validate Gemini API key by attempting to create a client
-   * Note: Gemini doesn't have a dedicated models endpoint, so we simulate validation
+   * Make a request to Gemini API models endpoint with pagination support
+   */
+  private static async fetchModelsFromAPI(apiKey: string): Promise<any[]> {
+    const allModels: any[] = [];
+    let nextPageToken: string | undefined;
+
+    do {
+      const url = nextPageToken 
+        ? `${this.MODELS_ENDPOINT}?key=${apiKey}&pageToken=${nextPageToken}`
+        : `${this.MODELS_ENDPOINT}?key=${apiKey}`;
+
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error?.message || 'Failed to fetch models');
+      }
+
+      const data = await response.json();
+      const models = data.models || [];
+      allModels.push(...models);
+      
+      nextPageToken = data.nextPageToken;
+    } while (nextPageToken);
+
+    return allModels;
+  }
+
+  /**
+   * Check if a model is realtime capable (supports bidirectional generation)
+   */
+  private static isRealtimeCapableModel(model: any): boolean {
+    const modelName = model.name?.toLowerCase() || '';
+    
+    // Check for models with "audio" or "live" in the name
+    return modelName.includes('audio') || modelName.includes('live');
+  }
+
+  /**
+   * Check if realtime models are available in the models list
+   */
+  private static checkRealtimeModelAvailability(models: any[]): boolean {
+    return models.some(this.isRealtimeCapableModel);
+  }
+
+  /**
+   * Build validation result based on realtime model availability
+   */
+  private static buildValidationResult(hasRealtimeModel: boolean): ApiKeyValidationResult {
+    if (!hasRealtimeModel) {
+      return {
+        valid: false,
+        message: i18n.t('settings.realtimeModelNotAvailable'),
+        validating: false,
+        hasRealtimeModel: false
+      };
+    }
+
+    const message = i18n.t('settings.apiKeyValidationCompleted') + ' ' + i18n.t('settings.realtimeModelAvailable');
+
+    return {
+      valid: true,
+      message: message,
+      validating: false,
+      hasRealtimeModel: true
+    };
+  }
+
+  /**
+   * Get fallback models when no suitable models found from API
+   */
+  private static getFallbackModels(): FilteredModel[] {
+    return [
+      {
+        id: 'gemini-2.5-flash-preview-native-audio-dialog',
+        type: 'realtime',
+        created: Date.now() / 1000
+      },
+      {
+        id: 'gemini-2.0-flash-live',
+        type: 'realtime',
+        created: Date.now() / 1000 - 86400
+      }
+    ];
+  }
+
+  /**
+   * Sort models by creation date (newest first) and then by name
+   */
+  private static sortModels(models: FilteredModel[]): FilteredModel[] {
+    return models.sort((a: FilteredModel, b: FilteredModel) => {
+      if (b.created !== a.created) {
+        return b.created - a.created;
+      }
+      return a.id.localeCompare(b.id);
+    });
+  }
+
+  /**
+   * Handle API key validation errors
+   */
+  private static handleValidationError(error: any): ApiKeyValidationResult {
+    console.error("[Sokuji] [GeminiClient] API key validation error:", error);
+    return {
+      valid: false,
+      message: error.message || i18n.t('settings.errorValidatingApiKey'),
+      validating: false
+    };
+  }
+
+  /**
+   * Handle model fetching errors
+   */
+  private static handleModelFetchError(error: any): never {
+    console.error("[Sokuji] [GeminiClient] Error fetching models:", error);
+    throw error;
+  }
+
+  /**
+   * Validate API key format and throw error if invalid
+   */
+  private static validateApiKeyFormat(apiKey: string): void {
+    if (!apiKey || apiKey.trim() === '') {
+      throw new Error('API key is required');
+    }
+  }
+
+  /**
+   * Validate Gemini API key by making a request to the models endpoint
    */
   static async validateApiKey(apiKey: string): Promise<ApiKeyValidationResult> {
     try {
@@ -35,74 +169,83 @@ export class GeminiClient implements IClient {
         };
       }
 
-      // For Gemini, we'll try to create a client instance
-      // This is a basic validation - in a real scenario, you might want to make a test API call
-      const testClient = new GoogleGenAI({ apiKey });
-      
-      console.info("[Sokuji] [GeminiClient] API key validation attempt");
-      
-      // For now, we'll assume the key is valid if it's in the correct format
-      // A more robust implementation would make a test API call
-      const isValidFormat = apiKey.trim().length > 10; // Basic format check
-      
-      if (!isValidFormat) {
-        return {
-          valid: false,
-          message: i18n.t('settings.errorValidatingApiKey'),
-          validating: false
-        };
-      }
+      // Make request to Gemini API models endpoint
+      const availableModels = await this.fetchModelsFromAPI(apiKey);
 
-      // Return success for Gemini
-      return {
-        valid: true,
-        message: i18n.t('settings.apiKeyValidationCompleted'),
-        validating: false,
-        hasRealtimeModel: true // Gemini Live supports realtime by default
-      };
-      
+      console.info("[Sokuji] [GeminiClient] Validation response: success");
+
+      // Check for realtime models availability
+      const hasRealtimeModel = this.checkRealtimeModelAvailability(availableModels);
+
+      console.info("[Sokuji] [GeminiClient] Available models:", availableModels);
+      console.info("[Sokuji] [GeminiClient] Has realtime model:", hasRealtimeModel);
+
+      // Return validation result based on realtime model availability
+      return this.buildValidationResult(hasRealtimeModel);
+
     } catch (error: any) {
-      console.error("[Sokuji] [GeminiClient] API key validation error:", error);
-      return {
-        valid: false,
-        message: error.message || i18n.t('settings.errorValidatingApiKey'),
-        validating: false
-      };
+      return this.handleValidationError(error);
     }
   }
 
   /**
-   * Fetch available models for Gemini
-   * Note: Gemini Live has predefined models, so we return a static list
+   * Fetch available models from Gemini API
    */
   static async fetchAvailableModels(apiKey: string): Promise<FilteredModel[]> {
     try {
-      if (!apiKey || apiKey.trim() === '') {
-        throw new Error('API key is required');
-      }
+      this.validateApiKeyFormat(apiKey);
 
-      // Return predefined Gemini Live models
-      // These are the models that support live conversation
-      const geminiModels: FilteredModel[] = [
-        {
-          id: 'gemini-2.0-flash-exp',
-          type: 'realtime',
-          created: Date.now() / 1000 // Current timestamp
-        },
-        {
-          id: 'gemini-exp-1206',
-          type: 'realtime',
-          created: Date.now() / 1000 - 86400 // Yesterday
-        }
-      ];
-
-      console.info("[Sokuji] [GeminiClient] Available models:", geminiModels);
-      return geminiModels;
+      const models = await this.fetchModelsFromAPI(apiKey);
       
+      return this.filterRelevantModels(models);
     } catch (error: any) {
-      console.error("[Sokuji] [GeminiClient] Error fetching models:", error);
-      throw error;
+      return this.handleModelFetchError(error);
     }
+  }
+
+  /**
+   * Filter models to get only realtime models
+   */
+  private static filterRelevantModels(models: any[]): FilteredModel[] {
+    const relevantModels: FilteredModel[] = [];
+
+    models.forEach(model => {
+      // Check for realtime capable models using the shared method
+      if (this.isRealtimeCapableModel(model)) {
+        const modelId = model.name?.replace('models/', '') || '';
+        
+        // Extract creation date from model version or use current time as fallback
+        let createdTime = Date.now() / 1000;
+        
+        // Try to extract date from version string (e.g., "2.0", "exp-03-07", "preview-04-17")
+        if (model.version) {
+          const versionMatch = model.version.match(/(\d{2})-(\d{2})/);
+          if (versionMatch) {
+            const [, month, day] = versionMatch;
+            // Assume current year for simplicity
+            const year = new Date().getFullYear();
+            createdTime = new Date(year, parseInt(month) - 1, parseInt(day)).getTime() / 1000;
+          }
+        }
+        
+        relevantModels.push({
+          id: modelId,
+          type: 'realtime',
+          created: createdTime
+        });
+      }
+    });
+
+    console.info(`[Sokuji] [GeminiClient] Found ${relevantModels.length} realtime-capable models from API`);
+
+    // If no models found from API, return fallback models
+    if (relevantModels.length === 0) {
+      console.warn("[Sokuji] [GeminiClient] No suitable models found from API, using fallback models");
+      return this.getFallbackModels();
+    }
+
+    // Sort by creation date (newest first) and then by name
+    return this.sortModels(relevantModels);
   }
 
   /**
@@ -116,8 +259,8 @@ export class GeminiClient implements IClient {
       return realtimeModels[0].id;
     }
     
-    // Fallback to default Gemini model
-    return 'gemini-2.0-flash-exp';
+    // Fallback to default Gemini realtime model (contains "audio")
+    return 'gemini-2.5-flash-preview-native-audio-dialog';
   }
 
   async connect(config: SessionConfig): Promise<void> {
