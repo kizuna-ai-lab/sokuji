@@ -35,16 +35,22 @@ export class OpenAIClient implements IClient {
   }
 
   /**
-   * Validate OpenAI API key by making a request to the models endpoint
+   * Validate API key and fetch available models in a single request
    */
-  static async validateApiKey(apiKey: string): Promise<ApiKeyValidationResult> {
+  static async validateApiKeyAndFetchModels(apiKey: string): Promise<{
+    validation: ApiKeyValidationResult;
+    models: FilteredModel[];
+  }> {
     try {
       // Check if API key is empty or invalid
       if (!apiKey || apiKey.trim() === '') {
         return {
-          valid: false,
-          message: i18n.t('settings.errorValidatingApiKey'),
-          validating: false
+          validation: {
+            valid: false,
+            message: i18n.t('settings.errorValidatingApiKey'),
+            validating: false
+          },
+          models: []
         };
       }
       
@@ -63,9 +69,12 @@ export class OpenAIClient implements IClient {
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         return {
-          valid: false,
-          message: errorData.error?.message || i18n.t('settings.errorValidatingApiKey'),
-          validating: false
+          validation: {
+            valid: false,
+            message: errorData.error?.message || i18n.t('settings.errorValidatingApiKey'),
+            validating: false
+          },
+          models: []
         };
       }
       
@@ -79,49 +88,44 @@ export class OpenAIClient implements IClient {
       console.info("[Sokuji] [OpenAIClient] Available models:", availableModels);
       console.info("[Sokuji] [OpenAIClient] Has realtime model:", hasRealtimeModel);
       
-      // Return validation result based on realtime model availability
-      return this.buildValidationResult(hasRealtimeModel);
+      // Filter relevant models
+      const filteredModels = this.filterRelevantModels(availableModels);
+      
+      // Return validation result and models
+      return {
+        validation: this.buildValidationResult(hasRealtimeModel),
+        models: filteredModels
+      };
       
     } catch (error: any) {
       console.error("[Sokuji] [OpenAIClient] API key validation error:", error);
       return {
-        valid: false,
-        message: error.message || i18n.t('settings.errorValidatingApiKey'),
-        validating: false
+        validation: {
+          valid: false,
+          message: error.message || i18n.t('settings.errorValidatingApiKey'),
+          validating: false
+        },
+        models: []
       };
     }
   }
 
   /**
+   * Validate OpenAI API key by making a request to the models endpoint
+   * @deprecated Use validateApiKeyAndFetchModels instead to avoid duplicate API calls
+   */
+  static async validateApiKey(apiKey: string): Promise<ApiKeyValidationResult> {
+    const result = await this.validateApiKeyAndFetchModels(apiKey);
+    return result.validation;
+  }
+
+  /**
    * Fetch available models from OpenAI API
+   * @deprecated Use validateApiKeyAndFetchModels instead to avoid duplicate API calls
    */
   static async fetchAvailableModels(apiKey: string): Promise<FilteredModel[]> {
-    try {
-      if (!apiKey || apiKey.trim() === '') {
-        throw new Error('API key is required');
-      }
-
-      const response = await fetch(this.MODELS_ENDPOINT, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error?.message || 'Failed to fetch models');
-      }
-
-      const data = await response.json();
-      const models: OpenAIModel[] = data.data || [];
-      
-      return this.filterRelevantModels(models);
-    } catch (error: any) {
-      console.error("[Sokuji] [OpenAIClient] Error fetching models:", error);
-      throw error;
-    }
+    const result = await this.validateApiKeyAndFetchModels(apiKey);
+    return result.models;
   }
 
   /**

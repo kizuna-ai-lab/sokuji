@@ -9,7 +9,25 @@ import { FilteredModel } from './interfaces/IClient';
  */
 export class ClientOperations {
   /**
+   * Validate API key and fetch available models in a single request
+   */
+  static async validateApiKeyAndFetchModels(apiKey: string, provider: 'openai' | 'gemini'): Promise<{
+    validation: ApiKeyValidationResult;
+    models: FilteredModel[];
+  }> {
+    switch (provider) {
+      case 'openai':
+        return await OpenAIClient.validateApiKeyAndFetchModels(apiKey);
+      case 'gemini':
+        return await GeminiClient.validateApiKeyAndFetchModels(apiKey);
+      default:
+        throw new Error(`Unsupported provider: ${provider}`);
+    }
+  }
+
+  /**
    * Validate API key for the specified provider
+   * @deprecated Use validateApiKeyAndFetchModels instead to avoid duplicate API calls
    */
   static async validateApiKey(apiKey: string, provider: 'openai' | 'gemini'): Promise<ApiKeyValidationResult> {
     switch (provider) {
@@ -24,6 +42,7 @@ export class ClientOperations {
 
   /**
    * Get available models for the specified provider
+   * @deprecated Use validateApiKeyAndFetchModels instead to avoid duplicate API calls
    */
   static async getAvailableModels(apiKey: string, provider: 'openai' | 'gemini'): Promise<FilteredModel[]> {
     switch (provider) {
