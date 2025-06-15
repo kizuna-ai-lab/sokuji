@@ -133,8 +133,8 @@ export const LogProvider: React.FC<LogProviderProps> = ({ children }) => {
       groupingKey = eventType;
     }
     // Gemini-specific grouping
-    else if (eventType === 'serverContent.modelTurn') {
-      // Group Gemini model turn events together
+    else if (eventType === 'serverContent.modelTurn' || eventType === 'serverContent.outputTranscription') {
+      // Group Gemini model turn and output transcription events together (both are assistant output)
       groupingKey = 'gemini_model_turn';
     }
     else if (eventType === 'serverContent.interrupted') {
@@ -152,10 +152,6 @@ export const LogProvider: React.FC<LogProviderProps> = ({ children }) => {
     else if (eventType === 'usageMetadata') {
       // Group Gemini usage metadata events together
       groupingKey = 'gemini_usage_metadata';
-    }
-    else if (eventType === 'serverContent.outputTranscription') {
-      // Group Gemini output transcription events together
-      groupingKey = 'gemini_output_transcription';
     }
     else if (eventType === 'serverContent.inputTranscription') {
       // Group Gemini input transcription events together
