@@ -1,0 +1,7 @@
+feat: add support for Gemini input and output transcription messages
+
+- Add handling for serverContent.outputTranscription messages (assistant speech-to-text)
+- Add handling for serverContent.inputTranscription messages (user speech-to-text)  
+- Create conversation items for transcription text with appropriate roles
+- Add new event types to LogContext for proper event logging
+- Add log grouping for transcription events to reduce clutter 

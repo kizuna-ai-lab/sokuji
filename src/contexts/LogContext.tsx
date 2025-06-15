@@ -22,6 +22,8 @@ export interface EventData {
     | 'serverContent.generationComplete'
     | 'serverContent.groundingMetadata'
     | 'serverContent.modelTurn'
+    | 'serverContent.outputTranscription'
+    | 'serverContent.inputTranscription'
     // OpenAI-specific types
     | 'conversation.item.created'
     | 'conversation.item.truncated'
@@ -150,6 +152,14 @@ export const LogProvider: React.FC<LogProviderProps> = ({ children }) => {
     else if (eventType === 'usageMetadata') {
       // Group Gemini usage metadata events together
       groupingKey = 'gemini_usage_metadata';
+    }
+    else if (eventType === 'serverContent.outputTranscription') {
+      // Group Gemini output transcription events together
+      groupingKey = 'gemini_output_transcription';
+    }
+    else if (eventType === 'serverContent.inputTranscription') {
+      // Group Gemini input transcription events together
+      groupingKey = 'gemini_input_transcription';
     }
     // For other events, extract item_id if it exists (OpenAI)
     else {
