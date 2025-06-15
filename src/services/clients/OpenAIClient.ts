@@ -215,7 +215,7 @@ export class OpenAIClient implements IClient {
         const standardizedEvent: RealtimeEvent = {
         source: 'server', // OpenAI events are always from server
         event: {
-          type: realtimeEvent.type || 'unknown',
+          type: realtimeEvent.event?.type || 'unknown',
           data: realtimeEvent,
           // Copy all OpenAI-specific properties for backward compatibility
           ...realtimeEvent
