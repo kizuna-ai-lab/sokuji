@@ -4,7 +4,7 @@ import './MainPanel.scss';
 import { useSettings } from '../../contexts/SettingsContext';
 import { useSession } from '../../contexts/SessionContext';
 import { useAudioContext } from '../../contexts/AudioContext';
-import { useLog } from '../../contexts/LogContext';
+import { useLog, RealtimeEvent, RealtimeEventSource } from '../../contexts/LogContext';
 import { IClient, ConversationItem, SessionConfig, ClientEventHandlers, ClientFactory } from '../../services/clients';
 import { WavRecorder } from '../../lib/wavtools';
 import { WavRenderer } from '../../utils/wav_renderer';
@@ -199,8 +199,12 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     if (!client || !audioService) return;
 
     const eventHandlers: ClientEventHandlers = {
-      onRealtimeEvent: (realtimeEvent: any) => {
-        addRealtimeEvent(realtimeEvent, realtimeEvent.source, realtimeEvent.event?.type || 'unknown');
+      onRealtimeEvent: (realtimeEvent: RealtimeEvent) => {
+        addRealtimeEvent(
+          realtimeEvent.event, 
+          realtimeEvent.source, 
+          realtimeEvent.event?.type || 'unknown'
+        );
       },
       onError: (event: any) => {
         console.error('[Sokuji] [MainPanel]', event);

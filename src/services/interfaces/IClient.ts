@@ -3,6 +3,8 @@
  * This interface provides a unified API for different AI providers
  */
 
+import { RealtimeEvent } from '../../contexts/LogContext';
+
 export interface ConversationItem {
   id: string;
   role: 'user' | 'assistant' | 'system';
@@ -56,7 +58,7 @@ export interface ClientEventHandlers {
   onError?: (error: any) => void;
   onConversationUpdated?: (data: { item: ConversationItem; delta?: any }) => void;
   onConversationInterrupted?: () => void;
-  onRealtimeEvent?: (event: any) => void;
+  onRealtimeEvent?: (event: RealtimeEvent) => void;
 }
 
 /**
