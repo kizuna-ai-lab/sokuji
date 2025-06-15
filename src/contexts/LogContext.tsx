@@ -1,12 +1,79 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 
+// Define the core event data structure
+export interface EventData {
+  type: 
+    // General message types
+    | 'message'
+    // Connection state types
+    | 'session.opened'
+    | 'session.closed'
+    | 'session.error'
+    // Gemini-specific top-level message types
+    | 'setupComplete'
+    | 'usageMetadata'
+    | 'toolCall'
+    | 'toolCallCancellation'
+    | 'goAway'
+    | 'sessionResumptionUpdate'
+    // Gemini-specific serverContent types
+    | 'serverContent.interrupted'
+    | 'serverContent.turnComplete'
+    | 'serverContent.generationComplete'
+    | 'serverContent.groundingMetadata'
+    | 'serverContent.modelTurn'
+    // OpenAI-specific types
+    | 'conversation.item.created'
+    | 'conversation.item.truncated'
+    | 'conversation.item.deleted'
+    | 'conversation.item.input_audio_transcription.completed'
+    | 'conversation.item.input_audio_transcription.failed'
+    | 'input_audio_buffer.committed'
+    | 'input_audio_buffer.cleared'
+    | 'input_audio_buffer.speech_started'
+    | 'input_audio_buffer.speech_stopped'
+    | 'input_audio_buffer.append'
+    | 'response.created'
+    | 'response.done'
+    | 'response.output_item.added'
+    | 'response.output_item.done'
+    | 'response.content_part.added'
+    | 'response.content_part.done'
+    | 'response.text.delta'
+    | 'response.text.done'
+    | 'response.audio_transcript.delta'
+    | 'response.audio_transcript.done'
+    | 'response.audio.delta'
+    | 'response.audio.done'
+    | 'response.function_call_arguments.delta'
+    | 'response.function_call_arguments.done'
+    | 'rate_limits.updated'
+    | 'session.created'
+    | 'session.updated'
+    | 'error';
+  data: any;
+  // Support additional properties for flexible event handling (e.g., OpenAI properties)
+  [key: string]: any;
+}
+
+// Define the realtime event type that includes source and event info
+export interface RealtimeEvent {
+  source: RealtimeEventSource;
+  event: EventData;
+  // Support additional properties for flexible event handling (e.g., OpenAI raw events)
+  [key: string]: any;
+}
+
+// Define the realtime event source type
+export type RealtimeEventSource = 'client' | 'server';
+
 // Define the log entry type
 export interface LogEntry {
   timestamp: string;
   message: string;
   type?: 'info' | 'success' | 'warning' | 'error' | 'token';
-  events?: {[key:string]: any}[]; // For storing all events (single or grouped)
-  source?: 'client' | 'server'; // To identify if it's a client or server event
+  events?: EventData[]; // For storing all events (single or grouped)
+  source?: RealtimeEventSource; // To identify if it's a client or server event
   eventType?: string; // The type of the event (e.g., 'session.created', 'response.text.delta')
   groupingKey?: string; // Custom grouping key for specific event types
 }
@@ -14,7 +81,7 @@ export interface LogEntry {
 interface LogContextType {
   logs: LogEntry[];
   addLog: (message: string, type?: LogEntry['type']) => void;
-  addRealtimeEvent: (event: {[key:string]: any}, source: 'client' | 'server', eventType: string) => void;
+  addRealtimeEvent: (event: EventData, source: RealtimeEventSource, eventType: string) => void;
   clearLogs: () => void;
 }
 
@@ -45,7 +112,7 @@ export const LogProvider: React.FC<LogProviderProps> = ({ children }) => {
     ]);
   };
 
-  const addRealtimeEvent = (event: any, source: 'client' | 'server', eventType: string) => {
+  const addRealtimeEvent = (event: EventData, source: RealtimeEventSource, eventType: string) => {
     const now = new Date();
     const timestamp = now.toLocaleTimeString();
     

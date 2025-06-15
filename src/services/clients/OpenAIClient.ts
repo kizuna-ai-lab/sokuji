@@ -1,6 +1,7 @@
 import { RealtimeClient } from '@openai/realtime-api-beta';
 import { ItemType } from '@openai/realtime-api-beta/dist/lib/client.js';
 import { IClient, ConversationItem, SessionConfig, ClientEventHandlers, ApiKeyValidationResult, FilteredModel, IClientStatic } from '../interfaces/IClient';
+import { RealtimeEvent } from '../../contexts/LogContext';
 import i18n from '../../locales';
 
 /**
@@ -210,11 +211,36 @@ export class OpenAIClient implements IClient {
   private setupEventListeners(): void {
     // Handle realtime events
     this.client.on('realtime.event', (realtimeEvent: any) => {
-      this.eventHandlers.onRealtimeEvent?.(realtimeEvent);
+              // Convert raw OpenAI event to our standardized RealtimeEvent format
+        const standardizedEvent: RealtimeEvent = {
+        source: 'server', // OpenAI events are always from server
+        event: {
+          type: realtimeEvent.type || 'unknown',
+          data: realtimeEvent,
+          // Copy all OpenAI-specific properties for backward compatibility
+          ...realtimeEvent
+        }
+      };
+      this.eventHandlers.onRealtimeEvent?.(standardizedEvent);
     });
 
     // Handle errors
     this.client.on('error', (event: any) => {
+      this.eventHandlers.onRealtimeEvent?.({
+        source: 'client',
+        event: { 
+          type: 'session.error', 
+          data: {
+            message: event.message || event.toString(),
+            type: event.type || 'error',
+            error: event.error ? event.error.toString() : undefined,
+            stack: event.stack,
+            timestamp: event.timeStamp || Date.now(),
+            // Keep original data to avoid missing information
+            original: event
+          }
+        }
+      });
       this.eventHandlers.onError?.(event);
     });
 
@@ -273,11 +299,37 @@ export class OpenAIClient implements IClient {
     // Update session after connection
     this.client.updateSession();
     
+    this.eventHandlers.onRealtimeEvent?.({
+      source: 'client',
+      event: { 
+        type: 'session.opened', 
+        data: { 
+          status: 'connected', 
+          provider: 'openai',
+          model: config.model,
+          timestamp: Date.now(),
+          voice: config.voice,
+          temperature: config.temperature
+        } 
+      }
+    });
     this.eventHandlers.onOpen?.();
   }
 
   async disconnect(): Promise<void> {
     this.client.reset();
+    this.eventHandlers.onRealtimeEvent?.({
+      source: 'client',
+      event: { 
+        type: 'session.closed', 
+        data: { 
+          status: 'disconnected',
+          provider: 'openai',
+          timestamp: Date.now(),
+          reason: 'client_disconnect'
+        } 
+      }
+    });
     this.eventHandlers.onClose?.({});
   }
 

@@ -1,4 +1,4 @@
-import { GoogleGenAI, LiveConnectConfig, LiveServerContent, LiveServerMessage } from '@google/genai';
+import { ActivityHandling, GoogleGenAI, LiveConnectConfig, LiveServerContent, LiveServerMessage, Modality, Session } from '@google/genai';
 import { IClient, ConversationItem, SessionConfig, ClientEventHandlers, ApiKeyValidationResult, FilteredModel, IClientStatic } from '../interfaces/IClient';
 import i18n from '../../locales';
 
@@ -10,7 +10,7 @@ export class GeminiClient implements IClient {
   private static readonly MODELS_ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models';
   
   private client: GoogleGenAI;
-  private session: any = null;
+  private session: Session | null = null;
   private eventHandlers: ClientEventHandlers = {};
   private apiKey: string;
   private conversationItems: ConversationItem[] = [];
@@ -272,10 +272,9 @@ export class GeminiClient implements IClient {
     
     // Convert SessionConfig to LiveConnectConfig
     const liveConfig: LiveConnectConfig = {
-      generationConfig: {
-        temperature: config.temperature,
-        maxOutputTokens: typeof config.maxTokens === 'number' ? config.maxTokens : undefined,
-      },
+      // responseModalities: [Modality.TEXT, Modality.AUDIO],
+      temperature: config.temperature,
+      maxOutputTokens: typeof config.maxTokens === 'number' ? config.maxTokens : undefined,
       systemInstruction: config.instructions ? {
         parts: [{ text: config.instructions }]
       } : undefined,
@@ -286,6 +285,9 @@ export class GeminiClient implements IClient {
           }
         }
       } : undefined,
+      realtimeInputConfig: {
+        activityHandling: ActivityHandling.NO_INTERRUPTION,
+      }
     };
 
     try {
@@ -294,15 +296,65 @@ export class GeminiClient implements IClient {
         config: liveConfig,
         callbacks: {
           onopen: () => {
+            console.info('[Sokuji] [GeminiClient] Session opened');
             this.isConnectedState = true;
+            this.eventHandlers.onRealtimeEvent?.({
+              source: 'client',
+              event: { 
+                type: 'session.opened', 
+                data: { 
+                  status: 'connected',
+                  provider: 'gemini',
+                  model: this.currentModel,
+                  timestamp: Date.now(),
+                  config: {
+                    temperature: liveConfig.temperature,
+                    maxOutputTokens: liveConfig.maxOutputTokens,
+                    systemInstruction: liveConfig.systemInstruction ? 'set' : 'none'
+                  }
+                } 
+              }
+            });
             this.eventHandlers.onOpen?.();
           },
           onmessage: this.handleMessage.bind(this),
           onerror: (error: ErrorEvent) => {
+            console.error('[Sokuji] [GeminiClient] Session error:', error);
+            this.eventHandlers.onRealtimeEvent?.({
+              source: 'client',
+              event: { 
+                type: 'session.error', 
+                data: {
+                  message: error.message,
+                  filename: error.filename,
+                  lineno: error.lineno,
+                  colno: error.colno,
+                  type: error.type,
+                  isTrusted: error.isTrusted,
+                  timestamp: error.timeStamp,
+                  error: error.error ? error.error.toString() : undefined
+                }
+              }
+            });
             this.eventHandlers.onError?.(error);
           },
           onclose: (event: CloseEvent) => {
+            console.info('[Sokuji] [GeminiClient] Session closed', event);
             this.isConnectedState = false;
+            this.eventHandlers.onRealtimeEvent?.({
+              source: 'client',
+              event: { 
+                type: 'session.closed', 
+                data: {
+                  code: event.code,
+                  reason: event.reason,
+                  type: event.type,
+                  wasClean: event.wasClean,
+                  isTrusted: event.isTrusted,
+                  timestamp: event.timeStamp
+                }
+              }
+            });
             this.eventHandlers.onClose?.(event);
           }
         }
@@ -314,35 +366,51 @@ export class GeminiClient implements IClient {
   }
 
   private async handleMessage(message: LiveServerMessage): Promise<void> {
-    // Emit realtime event for logging
-    this.eventHandlers.onRealtimeEvent?.({
-      source: 'server',
-      event: { type: 'message', data: message }
-    });
-
+    console.info('[Sokuji] [GeminiClient] Message received:', message);
+    
+    // Emit specific realtime events based on message content
     if (message.setupComplete) {
+      this.eventHandlers.onRealtimeEvent?.({
+        source: 'server',
+        event: { type: 'setupComplete', data: message.setupComplete }
+      });
       // Setup is complete, ready to use
       return;
     }
 
+    if (message.usageMetadata) {
+      this.eventHandlers.onRealtimeEvent?.({
+        source: 'server',
+        event: { type: 'usageMetadata', data: message.usageMetadata }
+      });
+    }
+
     if (message.toolCall) {
-      // Handle tool calls
-      const conversationItem: ConversationItem = {
-        id: message.toolCall.functionCalls?.[0]?.id || this.generateId(),
-        role: 'assistant',
-        type: 'function_call',
-        status: 'completed',
-        formatted: {
-          tool: {
-            name: message.toolCall.functionCalls?.[0]?.name || '',
-            arguments: JSON.stringify(message.toolCall.functionCalls?.[0]?.args || {})
-          }
-        }
-      };
-      
-      this.conversationItems.push(conversationItem);
-      this.eventHandlers.onConversationUpdated?.({ item: conversationItem });
-      return;
+      this.eventHandlers.onRealtimeEvent?.({
+        source: 'server',
+        event: { type: 'toolCall', data: message.toolCall }
+      });
+    }
+
+    if (message.toolCallCancellation) {
+      this.eventHandlers.onRealtimeEvent?.({
+        source: 'server',
+        event: { type: 'toolCallCancellation', data: message.toolCallCancellation }
+      });
+    }
+
+    if (message.goAway) {
+      this.eventHandlers.onRealtimeEvent?.({
+        source: 'server',
+        event: { type: 'goAway', data: message.goAway }
+      });
+    }
+
+    if (message.sessionResumptionUpdate) {
+      this.eventHandlers.onRealtimeEvent?.({
+        source: 'server',
+        event: { type: 'sessionResumptionUpdate', data: message.sessionResumptionUpdate }
+      });
     }
 
     if (message.serverContent) {
@@ -352,16 +420,42 @@ export class GeminiClient implements IClient {
 
   private async handleServerContent(serverContent: LiveServerContent): Promise<void> {
     if ('interrupted' in serverContent) {
+      this.eventHandlers.onRealtimeEvent?.({
+        source: 'server',
+        event: { type: 'serverContent.interrupted', data: serverContent.interrupted }
+      });
       this.eventHandlers.onConversationInterrupted?.();
       return;
     }
 
     if ('turnComplete' in serverContent) {
+      this.eventHandlers.onRealtimeEvent?.({
+        source: 'server',
+        event: { type: 'serverContent.turnComplete', data: serverContent.turnComplete }
+      });
       // Turn is complete
       return;
     }
 
+    if ('generationComplete' in serverContent) {
+      this.eventHandlers.onRealtimeEvent?.({
+        source: 'server',
+        event: { type: 'serverContent.generationComplete', data: serverContent.generationComplete }
+      });
+    }
+
+    if ('groundingMetadata' in serverContent && serverContent.groundingMetadata) {
+      this.eventHandlers.onRealtimeEvent?.({
+        source: 'server',
+        event: { type: 'serverContent.groundingMetadata', data: serverContent.groundingMetadata }
+      });
+    }
+
     if ('modelTurn' in serverContent && serverContent.modelTurn) {
+      this.eventHandlers.onRealtimeEvent?.({
+        source: 'server',
+        event: { type: 'serverContent.modelTurn', data: serverContent.modelTurn }
+      });
       const parts = serverContent.modelTurn.parts || [];
       
       // Separate audio and text parts
@@ -461,11 +555,11 @@ export class GeminiClient implements IClient {
     }
 
     // Convert Int16Array to base64 PCM format for Gemini
-    const base64Audio = this.arrayBufferToBase64(audioData.buffer);
+    const base64Audio = this.arrayBufferToBase64(audioData);
     
     this.session.sendRealtimeInput({
       media: {
-        mimeType: 'audio/pcm',
+        mimeType: 'audio/pcm;rate=16000',
         data: base64Audio
       }
     });
@@ -481,8 +575,8 @@ export class GeminiClient implements IClient {
       }
     };
     
-    this.conversationItems.push(conversationItem);
-    this.eventHandlers.onConversationUpdated?.({ item: conversationItem });
+    // this.conversationItems.push(conversationItem);
+    // this.eventHandlers.onConversationUpdated?.({ item: conversationItem });
   }
 
   private arrayBufferToBase64(buffer: ArrayBuffer): string {
