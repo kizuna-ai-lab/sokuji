@@ -16,6 +16,24 @@ export class GeminiClient implements IClient {
   private conversationItems: ConversationItem[] = [];
   private isConnectedState = false;
   private currentModel = '';
+  
+  // Turn accumulation state
+  private currentTurn: {
+    inputTranscription: string;
+    modelTurnParts: any[];
+    outputTranscription: string;
+    audioData: Int16Array[];
+    textParts: string[];
+    inputTranscriptionItem?: ConversationItem;
+    modelTurnItem?: ConversationItem;
+    outputTranscriptionItem?: ConversationItem;
+  } = {
+    inputTranscription: '',
+    modelTurnParts: [],
+    outputTranscription: '',
+    audioData: [],
+    textParts: [],
+  };
 
   constructor(apiKey: string) {
     this.apiKey = apiKey;
@@ -425,6 +443,121 @@ export class GeminiClient implements IClient {
     }
   }
 
+  private resetCurrentTurn(): void {
+    this.currentTurn = {
+      inputTranscription: '',
+      modelTurnParts: [],
+      outputTranscription: '',
+      audioData: [],
+      textParts: [],
+    };
+  }
+
+  private async finalizeTurn(): Promise<void> {
+    // Create final conversation items from accumulated data
+    
+    // Finalize input transcription if we have accumulated text
+    if (this.currentTurn.inputTranscription.trim()) {
+      if (this.currentTurn.inputTranscriptionItem && this.currentTurn.inputTranscriptionItem.formatted) {
+        // Update existing item with final accumulated text and mark as completed
+        this.currentTurn.inputTranscriptionItem.formatted.transcript = this.currentTurn.inputTranscription.trim();
+        this.currentTurn.inputTranscriptionItem.status = 'completed';
+        this.eventHandlers.onConversationUpdated?.({ item: this.currentTurn.inputTranscriptionItem });
+      } else {
+        // Create new item if none exists
+        const conversationItem: ConversationItem = {
+          id: this.generateId(),
+          role: 'user',
+          type: 'message',
+          status: 'completed',
+          formatted: {
+            transcript: this.currentTurn.inputTranscription.trim()
+          }
+        };
+        this.conversationItems.push(conversationItem);
+        this.eventHandlers.onConversationUpdated?.({ item: conversationItem });
+      }
+    }
+
+    // Finalize model turn with accumulated audio and text
+    if (this.currentTurn.audioData.length > 0 || this.currentTurn.textParts.length > 0) {
+      // Combine all audio data
+      let combinedAudio: Int16Array | undefined;
+      if (this.currentTurn.audioData.length > 0) {
+        const totalLength = this.currentTurn.audioData.reduce((sum, arr) => sum + arr.length, 0);
+        combinedAudio = new Int16Array(totalLength);
+        let offset = 0;
+        for (const audioChunk of this.currentTurn.audioData) {
+          combinedAudio.set(audioChunk, offset);
+          offset += audioChunk.length;
+        }
+      }
+
+      // Combine all text parts
+      const combinedText = this.currentTurn.textParts.join('');
+
+      if (this.currentTurn.modelTurnItem && this.currentTurn.modelTurnItem.formatted) {
+        // Update existing item and mark as completed
+        if (combinedAudio) {
+          this.currentTurn.modelTurnItem.formatted.audio = combinedAudio;
+        }
+        if (combinedText) {
+          this.currentTurn.modelTurnItem.formatted.text = combinedText;
+        }
+        this.currentTurn.modelTurnItem.status = 'completed';
+        this.eventHandlers.onConversationUpdated?.({ 
+          item: this.currentTurn.modelTurnItem,
+          delta: combinedAudio ? { audio: combinedAudio } : undefined
+        });
+      } else {
+        // Create new item
+        const conversationItem: ConversationItem = {
+          id: this.generateId(),
+          role: 'assistant',
+          type: 'message',
+          status: 'completed',
+          formatted: {}
+        };
+
+        if (combinedAudio && conversationItem.formatted) {
+          conversationItem.formatted.audio = combinedAudio;
+        }
+        if (combinedText && conversationItem.formatted) {
+          conversationItem.formatted.text = combinedText;
+        }
+
+        this.conversationItems.push(conversationItem);
+        this.eventHandlers.onConversationUpdated?.({ 
+          item: conversationItem,
+          delta: combinedAudio ? { audio: combinedAudio } : undefined
+        });
+      }
+    }
+
+    // Finalize output transcription if we have accumulated text
+    if (this.currentTurn.outputTranscription.trim()) {
+      if (this.currentTurn.outputTranscriptionItem && this.currentTurn.outputTranscriptionItem.formatted) {
+        // Update existing item with final accumulated text and mark as completed
+        this.currentTurn.outputTranscriptionItem.formatted.transcript = this.currentTurn.outputTranscription.trim();
+        this.currentTurn.outputTranscriptionItem.status = 'completed';
+        this.eventHandlers.onConversationUpdated?.({ item: this.currentTurn.outputTranscriptionItem });
+      } else {
+        // Create new item if none exists
+        const conversationItem: ConversationItem = {
+          id: this.generateId(),
+          role: 'assistant',
+          type: 'message',
+          status: 'completed',
+          formatted: {
+            transcript: this.currentTurn.outputTranscription.trim()
+          }
+        };
+        this.conversationItems.push(conversationItem);
+        this.eventHandlers.onConversationUpdated?.({ item: conversationItem });
+      }
+    }
+  }
+
   private async handleServerContent(serverContent: LiveServerContent): Promise<void> {
     if ('interrupted' in serverContent) {
       this.eventHandlers.onRealtimeEvent?.({
@@ -432,6 +565,8 @@ export class GeminiClient implements IClient {
         event: { type: 'serverContent.interrupted', data: serverContent.interrupted }
       });
       this.eventHandlers.onConversationInterrupted?.();
+      // Reset current turn on interruption
+      this.resetCurrentTurn();
       return;
     }
 
@@ -440,7 +575,12 @@ export class GeminiClient implements IClient {
         source: 'server',
         event: { type: 'serverContent.turnComplete', data: serverContent.turnComplete }
       });
-      // Turn is complete
+      
+      // Finalize accumulated data and create final conversation items
+      await this.finalizeTurn();
+      
+      // Reset for next turn
+      this.resetCurrentTurn();
       return;
     }
 
@@ -464,20 +604,28 @@ export class GeminiClient implements IClient {
         event: { type: 'serverContent.outputTranscription', data: serverContent.outputTranscription }
       });
       
-      // Create conversation item for output transcription (assistant's speech-to-text)
+      // Accumulate output transcription text
       if (serverContent.outputTranscription.text) {
-        const conversationItem: ConversationItem = {
-          id: this.generateId(),
-          role: 'assistant',
-          type: 'message',
-          status: 'completed',
-          formatted: {
-            transcript: serverContent.outputTranscription.text
-          }
-        };
+        this.currentTurn.outputTranscription += serverContent.outputTranscription.text;
         
-        this.conversationItems.push(conversationItem);
-        this.eventHandlers.onConversationUpdated?.({ item: conversationItem });
+        // Create or update conversation item for real-time display
+        if (!this.currentTurn.outputTranscriptionItem) {
+          this.currentTurn.outputTranscriptionItem = {
+            id: this.generateId(),
+            role: 'assistant',
+            type: 'message',
+            status: 'in_progress',
+            formatted: {
+              transcript: this.currentTurn.outputTranscription
+            }
+          };
+          this.conversationItems.push(this.currentTurn.outputTranscriptionItem);
+          this.eventHandlers.onConversationUpdated?.({ item: this.currentTurn.outputTranscriptionItem });
+        } else if (this.currentTurn.outputTranscriptionItem.formatted) {
+          // Update existing item with accumulated text
+          this.currentTurn.outputTranscriptionItem.formatted.transcript = this.currentTurn.outputTranscription;
+          this.eventHandlers.onConversationUpdated?.({ item: this.currentTurn.outputTranscriptionItem });
+        }
       }
     }
 
@@ -487,20 +635,28 @@ export class GeminiClient implements IClient {
         event: { type: 'serverContent.inputTranscription', data: serverContent.inputTranscription }
       });
       
-      // Create conversation item for input transcription (user's speech-to-text)
+      // Accumulate input transcription text
       if (serverContent.inputTranscription.text) {
-        const conversationItem: ConversationItem = {
-          id: this.generateId(),
-          role: 'user',
-          type: 'message',
-          status: 'completed',
-          formatted: {
-            transcript: serverContent.inputTranscription.text
-          }
-        };
+        this.currentTurn.inputTranscription += serverContent.inputTranscription.text;
         
-        this.conversationItems.push(conversationItem);
-        this.eventHandlers.onConversationUpdated?.({ item: conversationItem });
+        // Create or update conversation item for real-time display
+        if (!this.currentTurn.inputTranscriptionItem) {
+          this.currentTurn.inputTranscriptionItem = {
+            id: this.generateId(),
+            role: 'user',
+            type: 'message',
+            status: 'in_progress',
+            formatted: {
+              transcript: this.currentTurn.inputTranscription
+            }
+          };
+          this.conversationItems.push(this.currentTurn.inputTranscriptionItem);
+          this.eventHandlers.onConversationUpdated?.({ item: this.currentTurn.inputTranscriptionItem });
+        } else if (this.currentTurn.inputTranscriptionItem.formatted) {
+          // Update existing item with accumulated text
+          this.currentTurn.inputTranscriptionItem.formatted.transcript = this.currentTurn.inputTranscription;
+          this.eventHandlers.onConversationUpdated?.({ item: this.currentTurn.inputTranscriptionItem });
+        }
       }
     }
 
@@ -517,44 +673,60 @@ export class GeminiClient implements IClient {
       );
       const textParts = parts.filter(p => p.text);
 
-      // Handle audio parts
+      // Accumulate audio parts
       for (const audioPart of audioParts) {
         if (audioPart.inlineData?.data) {
           const audioData = this.base64ToArrayBuffer(audioPart.inlineData.data);
-          
-          const conversationItem: ConversationItem = {
-            id: this.generateId(),
-            role: 'assistant',
-            type: 'message',
-            status: 'completed',
-            formatted: {
-              audio: new Int16Array(audioData)
-            }
-          };
-          
-          this.conversationItems.push(conversationItem);
-          this.eventHandlers.onConversationUpdated?.({ 
-            item: conversationItem, 
-            delta: { audio: new Int16Array(audioData) }
-          });
+          this.currentTurn.audioData.push(new Int16Array(audioData));
         }
       }
 
-      // Handle text parts
+      // Accumulate text parts
       for (const textPart of textParts) {
         if (textPart.text) {
-          const conversationItem: ConversationItem = {
+          this.currentTurn.textParts.push(textPart.text);
+        }
+      }
+
+      // Create or update conversation item for real-time display
+      if (this.currentTurn.audioData.length > 0 || this.currentTurn.textParts.length > 0) {
+        if (!this.currentTurn.modelTurnItem) {
+          this.currentTurn.modelTurnItem = {
             id: this.generateId(),
             role: 'assistant',
             type: 'message',
-            status: 'completed',
-            formatted: {
-              text: textPart.text
-            }
+            status: 'in_progress',
+            formatted: {}
           };
-          
-          this.conversationItems.push(conversationItem);
-          this.eventHandlers.onConversationUpdated?.({ item: conversationItem });
+          this.conversationItems.push(this.currentTurn.modelTurnItem);
+        }
+
+        // Update with latest accumulated data
+        if (this.currentTurn.modelTurnItem.formatted) {
+          // Combine all audio data for real-time display
+          if (this.currentTurn.audioData.length > 0) {
+            const totalLength = this.currentTurn.audioData.reduce((sum, arr) => sum + arr.length, 0);
+            const combinedAudio = new Int16Array(totalLength);
+            let offset = 0;
+            for (const audioChunk of this.currentTurn.audioData) {
+              combinedAudio.set(audioChunk, offset);
+              offset += audioChunk.length;
+            }
+            this.currentTurn.modelTurnItem.formatted.audio = combinedAudio;
+            
+            // Emit delta for the latest audio chunk
+            const latestAudio = this.currentTurn.audioData[this.currentTurn.audioData.length - 1];
+            this.eventHandlers.onConversationUpdated?.({ 
+              item: this.currentTurn.modelTurnItem, 
+              delta: { audio: latestAudio }
+            });
+          }
+
+          // Combine all text parts
+          if (this.currentTurn.textParts.length > 0) {
+            this.currentTurn.modelTurnItem.formatted.text = this.currentTurn.textParts.join('');
+            this.eventHandlers.onConversationUpdated?.({ item: this.currentTurn.modelTurnItem });
+          }
         }
       }
     }
@@ -580,6 +752,7 @@ export class GeminiClient implements IClient {
     }
     this.isConnectedState = false;
     this.conversationItems = [];
+    this.resetCurrentTurn();
   }
 
   isConnected(): boolean {
@@ -594,6 +767,7 @@ export class GeminiClient implements IClient {
 
   reset(): void {
     this.conversationItems = [];
+    this.resetCurrentTurn();
     if (this.session) {
       // Reset conversation state
       this.session = null;
