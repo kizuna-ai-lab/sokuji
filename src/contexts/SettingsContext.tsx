@@ -583,36 +583,8 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
 
       console.info('[Settings] Loaded settings successfully');
       
-      // Auto-validate API key and fetch models after loading settings
-      const provider = loadedCommon.provider || 'openai';
-      const apiKey = provider === 'openai' ? 
-        (loadedOpenAI.apiKey || '') : 
-        (loadedGemini.apiKey || '');
-      
-      if (apiKey && apiKey.trim() !== '') {
-        console.info('[Settings] Auto-validating API key and fetching models...');
-        try {
-          setLoadingModels(true);
-          const result = await settingsService.validateApiKeyAndFetchModels(apiKey, provider);
-          setIsApiKeyValid(Boolean(result.validation.valid));
-          setAvailableModels(result.models);
-          
-          if (result.validation.valid) {
-            console.info('[Settings] API key is valid, models loaded:', result.models);
-          } else {
-            console.warn('[Settings] API key validation failed:', result.validation.message);
-          }
-        } catch (validationError) {
-          console.error('[Settings] Error auto-validating API key and fetching models:', validationError);
-          setIsApiKeyValid(false);
-          setAvailableModels([]);
-        } finally {
-          setLoadingModels(false);
-        }
-      } else {
-        console.info('[Settings] No API key found, skipping auto-validation');
-        setIsApiKeyValid(false);
-      }
+      // Note: Auto-validation will be handled by the useEffect that monitors provider/API key changes
+      // This prevents duplicate API requests during initialization
     } catch (error) {
       console.error('[Settings] Error loading settings:', error);
     }

@@ -153,36 +153,14 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
       validating: false
     });
     
-    // If validation is successful, fetch available models
-    if (result.valid === true) {
-      await fetchAvailableModels();
-    }
+    // Note: contextValidateApiKey() now automatically fetches models internally
+    // No need to call fetchAvailableModels() separately
     
     return result.valid === true;
   };
 
-  // Auto-fetch models when API key is available and valid
-  useEffect(() => {
-    const currentApiKey = commonSettings.provider === 'openai' ? openAISettings.apiKey : geminiSettings.apiKey;
-    if (
-      currentApiKey && currentApiKey.trim() !== '' &&
-      isApiKeyValid &&
-      availableModels.length === 0 &&
-      !loadingModels
-    ) {
-      fetchAvailableModels().catch(error => 
-        console.error('[SettingsPanel] Error auto-fetching models:', error)
-      );
-    }
-  }, [
-    commonSettings.provider,
-    openAISettings.apiKey,
-    geminiSettings.apiKey,
-    isApiKeyValid,
-    availableModels.length,
-    loadingModels,
-    fetchAvailableModels
-  ]);
+  // Note: Auto-fetching models is now handled by SettingsContext
+  // This useEffect was removed to prevent duplicate API requests
 
   return (
     <div className="settings-panel">

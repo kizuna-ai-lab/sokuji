@@ -56,19 +56,5 @@ export interface ISettingsService {
     models: FilteredModel[];
   }>;
 
-  /**
-   * Validate an API key for the specified provider
-   * @param apiKey The API key to validate
-   * @param provider The service provider to validate against ('openai' | 'gemini')
-   * @deprecated Use validateApiKeyAndFetchModels instead to avoid duplicate API calls
-   */
-  validateApiKey(apiKey: string, provider: 'openai' | 'gemini'): Promise<ApiKeyValidationResult>;
 
-  /**
-   * Get available models from the specified provider's API
-   * @param apiKey The API key to use for authentication
-   * @param provider The service provider to fetch models from ('openai' | 'gemini')
-   * @deprecated Use validateApiKeyAndFetchModels instead to avoid duplicate API calls
-   */
-  getAvailableModels(apiKey: string, provider: 'openai' | 'gemini'): Promise<FilteredModel[]>;
 }

@@ -1,6 +1,6 @@
-import { BaseProviderConfig, ProviderConfig, LanguageOption, VoiceOption, ModelOption } from './ProviderConfig';
+import { ProviderConfig, LanguageOption, VoiceOption, ModelOption } from './ProviderConfig';
 
-export class GeminiProviderConfig extends BaseProviderConfig {
+export class GeminiProviderConfig {
   private static readonly LANGUAGES: LanguageOption[] = [
     { name: 'English (United States)', value: 'en-US' },
     { name: 'English (Australia)', value: 'en-AU' },

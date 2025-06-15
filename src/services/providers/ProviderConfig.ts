@@ -74,24 +74,4 @@ export interface ProviderConfig {
   };
 }
 
-export abstract class BaseProviderConfig {
-  abstract getConfig(): ProviderConfig;
-  
-  // Validation methods
-  validateApiKey(apiKey: string): boolean {
-    return !!(apiKey && apiKey.trim().length > 0);
-  }
-  
-  // Helper methods that can be overridden
-  getAvailableModels(): ModelOption[] {
-    return this.getConfig().models;
-  }
-  
-  isLanguageSupported(languageCode: string): boolean {
-    return this.getConfig().languages.some(lang => lang.value === languageCode);
-  }
-  
-  isVoiceSupported(voiceName: string): boolean {
-    return this.getConfig().voices.some(voice => voice.value === voiceName);
-  }
-} 
+ 

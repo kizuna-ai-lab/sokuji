@@ -166,33 +166,5 @@ export class BrowserSettingsService implements ISettingsService {
     }
   }
 
-  /**
-   * Validate API key for the specified provider
-   * @deprecated Use validateApiKeyAndFetchModels instead to avoid duplicate API calls
-   */
-  async validateApiKey(apiKey: string, provider: 'openai' | 'gemini'): Promise<ApiKeyValidationResult> {
-    try {
-      return await ClientOperations.validateApiKey(apiKey, provider);
-    } catch (error: any) {
-      console.error(`[Sokuji] [BrowserSettings] Error validating API key for ${provider}:`, error);
-      return {
-        valid: false,
-        message: error.message || 'Validation failed',
-        validating: false
-      };
-    }
-  }
 
-  /**
-   * Get available models for the specified provider
-   * @deprecated Use validateApiKeyAndFetchModels instead to avoid duplicate API calls
-   */
-  async getAvailableModels(apiKey: string, provider: 'openai' | 'gemini'): Promise<FilteredModel[]> {
-    try {
-      return await ClientOperations.getAvailableModels(apiKey, provider);
-    } catch (error: any) {
-      console.error(`[Sokuji] [BrowserSettings] Error fetching available models for ${provider}:`, error);
-      return [];
-    }
-  }
 }

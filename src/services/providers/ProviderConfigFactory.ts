@@ -1,9 +1,13 @@
-import { BaseProviderConfig, ProviderConfig } from './ProviderConfig';
+import { ProviderConfig } from './ProviderConfig';
 import { OpenAIProviderConfig } from './OpenAIProviderConfig';
 import { GeminiProviderConfig } from './GeminiProviderConfig';
 
+interface ProviderConfigInstance {
+  getConfig(): ProviderConfig;
+}
+
 export class ProviderConfigFactory {
-  private static configs: Map<string, BaseProviderConfig> = new Map();
+  private static configs: Map<string, ProviderConfigInstance> = new Map();
 
   static {
     // Initialize configurations
@@ -54,16 +58,16 @@ export class ProviderConfigFactory {
    * @param providerId - The provider identifier
    * @param config - The provider configuration instance
    */
-  static registerProvider(providerId: string, config: BaseProviderConfig): void {
+  static registerProvider(providerId: string, config: ProviderConfigInstance): void {
     this.configs.set(providerId, config);
   }
 
   /**
    * Get provider configuration instance (for advanced usage)
    * @param providerId - The provider identifier
-   * @returns BaseProviderConfig instance
+   * @returns ProviderConfigInstance instance
    */
-  static getConfigInstance(providerId: string): BaseProviderConfig {
+  static getConfigInstance(providerId: string): ProviderConfigInstance {
     const configInstance = this.configs.get(providerId);
     if (!configInstance) {
       throw new Error(`Unsupported provider: ${providerId}`);
