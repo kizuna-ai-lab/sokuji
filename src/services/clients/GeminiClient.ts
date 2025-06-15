@@ -341,6 +341,9 @@ export class GeminiClient implements IClient {
           onclose: (event: CloseEvent) => {
             console.info('[Sokuji] [GeminiClient] Session closed', event);
             this.isConnectedState = false;
+            // Clean up session state
+            this.session = null;
+            this.conversationItems = [];
             this.eventHandlers.onRealtimeEvent?.({
               source: 'client',
               event: { 
