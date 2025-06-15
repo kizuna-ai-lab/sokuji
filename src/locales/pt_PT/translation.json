@@ -137,7 +137,9 @@
     "initializing": "A inicializar...",
     "stopDebug": "Parar depuração",
     "debug": "Depurar",
-    "apiKeyRequired": "Por favor, adicione primeiro uma chave da API OpenAI válida nas definições"
+        "apiKeyRequired": "Por favor, adicione primeiro uma chave da API OpenAI válida nas definições",
+    "modelsRequired": "São necessários modelos. Por favor, valide primeiro a sua chave da API para carregar os modelos disponíveis.",
+    "modelsLoading": "A carregar modelos disponíveis, por favor aguarde..."
   },
   "errors": {
     "microphoneAccess": "Acesso ao microfone negado",

@@ -38,7 +38,9 @@
     "endSession": "Avsluta session",
     "startSession": "Starta session",
     "initializing": "Initialiserar...",
-    "apiKeyRequired": "Lägg först till en giltig OpenAI API-nyckel i inställningarna"
+    "apiKeyRequired": "Lägg först till en giltig OpenAI API-nyckel i inställningarna",
+    "modelsRequired": "Modeller krävs. Vänligen validera din API-nyckel först för att ladda tillgängliga modeller.",
+    "modelsLoading": "Laddar tillgängliga modeller, vänligen vänta..."
   },
   "audioPanel": {
     "title": "Ljudinställningar"

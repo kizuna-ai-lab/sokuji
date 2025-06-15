@@ -38,7 +38,9 @@
     "endSession": "Tapusin ang session",
     "startSession": "Simulan ang session",
     "initializing": "Nagsisimula...",
-    "apiKeyRequired": "Magdagdag muna ng valid na OpenAI API key sa settings"
+    "apiKeyRequired": "Magdagdag muna ng valid na OpenAI API key sa settings",
+    "modelsRequired": "Kailangan ang mga modelo. Mangyaring i-validate muna ang inyong API key upang ma-load ang mga available na modelo.",
+    "modelsLoading": "Naglo-load ng mga available na modelo, mangyaring maghintay..."
   },
   "audioPanel": {
     "title": "Mga setting ng audio"

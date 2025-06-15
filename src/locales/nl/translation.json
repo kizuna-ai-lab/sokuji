@@ -137,7 +137,9 @@
     "initializing": "Initialiseren...",
     "stopDebug": "Debug stoppen",
     "debug": "Debug",
-    "apiKeyRequired": "Voeg eerst een geldige OpenAI API sleutel toe in de instellingen"
+    "apiKeyRequired": "Voeg eerst een geldige OpenAI API sleutel toe in de instellingen",
+    "modelsRequired": "Modellen zijn vereist. Valideer eerst uw API-sleutel om beschikbare modellen te laden.",
+    "modelsLoading": "Beschikbare modellen laden, even geduld..."
   },
   "errors": {
     "microphoneAccess": "Microfoon toegang geweigerd",

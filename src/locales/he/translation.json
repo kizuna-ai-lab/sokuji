@@ -137,7 +137,9 @@
     "initializing": "מאתחל...",
     "stopDebug": "עצור ניפוי שגיאות",
     "debug": "ניפוי שגיאות",
-    "apiKeyRequired": "אנא הוסף תחילה מפתח API תקף של OpenAI בהגדרות"
+    "apiKeyRequired": "אנא הוסף תחילה מפתח API תקף של OpenAI בהגדרות",
+    "modelsRequired": "נדרשים מודלים. אנא אמת תחילה את מפתח ה-API שלך כדי לטעון מודלים זמינים.",
+    "modelsLoading": "טוען מודלים זמינים, אנא המתן..."
   },
   "errors": {
     "microphoneAccess": "גישה למיקרופון נדחתה",
