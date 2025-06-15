@@ -43,7 +43,9 @@
     "endSession": "Lopeta istunto",
     "startSession": "Aloita istunto",
     "initializing": "Alustetaan...",
-    "apiKeyRequired": "Lisää ensin kelvollinen OpenAI API-avain asetuksiin"
+    "apiKeyRequired": "Lisää ensin kelvollinen OpenAI API-avain asetuksiin",
+    "modelsRequired": "Malleja tarvitaan. Vahvista ensin API-avaimesi ladataksesi käytettävissä olevat mallit.",
+    "modelsLoading": "Ladataan käytettävissä olevia malleja, odota hetki..."
   },
   "audioPanel": {
     "title": "Ääniasetukset"

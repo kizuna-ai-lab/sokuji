@@ -43,7 +43,9 @@
     "endSession": "Oturumu sonlandır",
     "startSession": "Oturumu başlat",
     "initializing": "Başlatılıyor...",
-    "apiKeyRequired": "Lütfen önce ayarlarda geçerli bir OpenAI API anahtarı ekleyin"
+    "apiKeyRequired": "Lütfen önce ayarlarda geçerli bir OpenAI API anahtarı ekleyin",
+    "modelsRequired": "Modeller gereklidir. Mevcut modelleri yüklemek için lütfen önce API anahtarınızı doğrulayın.",
+    "modelsLoading": "Mevcut modeller yükleniyor, lütfen bekleyin..."
   },
   "audioPanel": {
     "title": "Ses ayarları"

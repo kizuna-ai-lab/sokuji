@@ -137,7 +137,9 @@
     "initializing": "초기화 중...",
     "stopDebug": "디버그 중지",
     "debug": "디버그",
-    "apiKeyRequired": "먼저 설정에서 유효한 OpenAI API 키를 추가하세요"
+    "apiKeyRequired": "먼저 설정에서 유효한 OpenAI API 키를 추가하세요",
+    "modelsRequired": "모델이 필요합니다. 사용 가능한 모델을 로드하려면 먼저 API 키를 검증하세요.",
+    "modelsLoading": "사용 가능한 모델을 로딩 중입니다. 잠시 기다려 주세요..."
   },
   "errors": {
     "microphoneAccess": "마이크 접근이 거부되었습니다",
