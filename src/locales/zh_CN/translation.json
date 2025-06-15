@@ -137,7 +137,9 @@
     "initializing": "初始化中...",
     "stopDebug": "停止调试",
     "debug": "调试",
-    "apiKeyRequired": "请先在设置中添加有效的OpenAI API密钥"
+    "apiKeyRequired": "请先在设置中添加有效的OpenAI API密钥",
+    "modelsRequired": "需要模型列表。请先验证您的API密钥以加载可用模型。",
+    "modelsLoading": "正在加载可用模型，请稍候..."
   },
   "errors": {
     "microphoneAccess": "麦克风访问被拒绝",

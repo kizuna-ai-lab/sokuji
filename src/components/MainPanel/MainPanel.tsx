@@ -27,7 +27,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   const [isInitializing, setIsInitializing] = useState(false);
   
   // Get settings from context
-  const { settings, isApiKeyValid, getProcessedSystemInstructions } = useSettings();
+  const { settings, isApiKeyValid, getProcessedSystemInstructions, availableModels, loadingModels } = useSettings();
   
   // Get session state from context
   const { 
@@ -1161,7 +1161,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           <button
             className={`session-button ${isSessionActive ? 'active' : ''}`}
             onClick={isSessionActive ? disconnectConversation : connectConversation}
-            disabled={(!isSessionActive && !isApiKeyValid) || isInitializing}
+            disabled={(!isSessionActive && (!isApiKeyValid || availableModels.length === 0 || loadingModels)) || isInitializing}
           >
             {isInitializing ? (
               <>
@@ -1179,6 +1179,12 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                 <span>{t('mainPanel.startSession')}</span>
                 {!isApiKeyValid && (
                   <span className="tooltip">{t('mainPanel.apiKeyRequired')}</span>
+                )}
+                {isApiKeyValid && availableModels.length === 0 && !loadingModels && (
+                  <span className="tooltip">{t('mainPanel.modelsRequired')}</span>
+                )}
+                {isApiKeyValid && loadingModels && (
+                  <span className="tooltip">{t('mainPanel.modelsLoading')}</span>
                 )}
               </>
             )}
