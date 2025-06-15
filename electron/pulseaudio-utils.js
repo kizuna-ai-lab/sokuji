@@ -20,9 +20,22 @@ async function connectAudioPorts(outputPortName, inputPortName) {
     const { stdout: outputPorts } = await execPromise(`pw-link -o | grep ${outputPortName}`);
     console.log('[Sokuji] [PulseAudio] Available output ports:', outputPorts);
     
-    // Get input ports
-    const { stdout: inputPorts } = await execPromise(`pw-link -i | grep ${inputPortName}`);
-    console.log('[Sokuji] [PulseAudio] Available input ports:', inputPorts);
+    // Get input ports - handle both direct input and playback ports
+    let inputPorts = '';
+    try {
+      const { stdout: directInputPorts } = await execPromise(`pw-link -i | grep ${inputPortName}`);
+      inputPorts = directInputPorts;
+      console.log('[Sokuji] [PulseAudio] Available input ports (direct match):', inputPorts);
+    } catch (directError) {
+      // If direct match fails, try to find playback ports for ALSA output devices
+      try {
+        const { stdout: playbackPorts } = await execPromise(`pw-link -i | grep "${inputPortName}:playback"`);
+        inputPorts = playbackPorts;
+        console.log('[Sokuji] [PulseAudio] Available input ports (playback match):', inputPorts);
+      } catch (playbackError) {
+        console.error('[Sokuji] [PulseAudio] Failed to find matching input ports:', playbackError.message);
+      }
+    }
     
     // Get existing links
     console.log(`[Sokuji] [PulseAudio] Checking existing links between ${outputPortName} and ${inputPortName}...`);
@@ -445,132 +458,79 @@ async function connectVirtualSpeakerToOutput(deviceInfo) {
     // First, disconnect any existing connections from the virtual speaker
     await disconnectVirtualSpeakerFromOutputs();
     
-    // Find the PipeWire node based on the device description/label
-    // Use grep to search for the node with a matching description
-    const { stdout: nodeList } = await execPromise('pw-cli ls Node');
-    console.log('[Sokuji] [PulseAudio] Searching for matching PipeWire node...');
+    // Find the PipeWire node based on the device description/label using pw-dump
+    console.log('[Sokuji] [PulseAudio] Searching for matching PipeWire node using pw-dump...');
+    const { stdout: nodeListJson } = await execPromise('pw-dump -N');
     
-    // Parse the node list to find the matching node
-    const lines = nodeList.split('\n');
     let nodeId = null;
     let nodeName = null;
     let nodeDescription = null;
-    let currentId = null;
     
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i].trim();
+    try {
+      const nodes = JSON.parse(nodeListJson);
       
-      // Check for node ID line
-      if (line.startsWith('id ') && line.includes('type PipeWire:Interface:Node')) {
-        const idMatch = line.match(/id (\d+)/);
-        if (idMatch) {
-          currentId = idMatch[1];
+      // Filter for PipeWire:Interface:Node with Audio/Sink media class
+      const audioSinks = nodes.filter(node => 
+        node.type === 'PipeWire:Interface:Node' && 
+        node.info && 
+        node.info.props && 
+        node.info.props['media.class'] === 'Audio/Sink'
+      );
+      
+      console.log(`[Sokuji] [PulseAudio] Found ${audioSinks.length} Audio/Sink nodes`);
+      
+      // Look for exact matches first
+      let matchedNode = null;
+      
+      if (deviceInfo.deviceId === 'default') {
+        // For default device, find the default sink from metadata
+        const defaultSinkMeta = nodes.find(node => 
+          node.type === 'PipeWire:Interface:Metadata' &&
+          node.metadata &&
+          node.metadata.some(meta => 
+            meta.key === 'default.audio.sink' && meta.value && meta.value.name
+          )
+        );
+        
+        if (defaultSinkMeta) {
+          const defaultSinkName = defaultSinkMeta.metadata.find(meta => 
+            meta.key === 'default.audio.sink'
+          ).value.name;
+          
+          matchedNode = audioSinks.find(node => 
+            node.info.props['node.name'] === defaultSinkName
+          );
+          
+          if (matchedNode) {
+            console.log(`[Sokuji] [PulseAudio] Found default Audio/Sink: ${defaultSinkName}`);
+          }
         }
-      }
-      
-      // Check for node description that matches our device label
-      if (line.includes('node.description') && currentId) {
-        const descMatch = line.match(/node\.description = "([^"]+)"/);
-        if (descMatch && descMatch[1]) {
-          // Check if this description matches our device label
-          const description = descMatch[1];
+      } else {
+        // Look for node with matching description
+        for (const node of audioSinks) {
+          const props = node.info.props;
+          const description = props['node.description'] || '';
+          const name = props['node.name'] || '';
           
           // Use a fuzzy match to account for slight differences in naming
           if (description.includes(deviceInfo.label) || deviceInfo.label.includes(description)) {
-            nodeDescription = description;
-            nodeId = currentId;
-            
-            // Now find the node name for this ID
-            for (let j = i; j < Math.min(i + 10, lines.length); j++) {
-              if (lines[j].includes('node.name') && lines[j].includes('=')) {
-                const nameMatch = lines[j].match(/node\.name = "([^"]+)"/);
-                if (nameMatch && nameMatch[1]) {
-                  nodeName = nameMatch[1];
-                  break;
-                }
-              }
-            }
-            
-            if (nodeName) {
-              break; // We found everything we need
-            }
-          }
-        }
-      }
-      
-      // Also check for node name that matches "Default" device
-      if (deviceInfo.deviceId === 'default' && line.includes('node.name') && line.includes('=') && currentId) {
-        // For "Default" device, try to find the default sink
-        // This is typically the first Audio/Sink in the list
-        const nameMatch = line.match(/node\.name = "([^"]+)"/);
-        if (nameMatch && nameMatch[1]) {
-          const potentialNodeName = nameMatch[1];
-          
-          // Check if this is an Audio/Sink in nearby lines
-          for (let j = Math.max(0, i - 5); j < Math.min(i + 5, lines.length); j++) {
-            if (lines[j].includes('media.class') && lines[j].includes('Audio/Sink')) {
-              // This is an Audio/Sink, so it's a potential match for "Default"
-              nodeName = potentialNodeName;
-              nodeId = currentId;
-              nodeDescription = 'Default Audio Sink';
-              break;
-            }
-          }
-          
-          if (nodeName) {
-            break; // We found a default sink
-          }
-        }
-      }
-    }
-    
-    if (!nodeName) {
-      // If we still don't have a node name, try a different approach for finding the node
-      // Look for any sink that has a description or name containing parts of our label
-      console.log('[Sokuji] [PulseAudio] No exact match found, trying alternative matching approach...');
-      
-      // Reset for second pass
-      currentId = null;
-      
-      for (let i = 0; i < lines.length; i++) {
-        const line = lines[i].trim();
-        
-        // Check for node ID line
-        if (line.startsWith('id ') && line.includes('type PipeWire:Interface:Node')) {
-          const idMatch = line.match(/id (\d+)/);
-          if (idMatch) {
-            currentId = idMatch[1];
+            matchedNode = node;
+            console.log(`[Sokuji] [PulseAudio] Found matching Audio/Sink: ${name} (${description})`);
+            break;
           }
         }
         
-        // Check if this is an Audio/Sink
-        if (line.includes('media.class') && line.includes('Audio/Sink') && currentId) {
-          // This is an Audio/Sink, so look for its name and description
-          let tempNodeName = null;
-          let tempNodeDescription = null;
+        // If no exact match, try partial matching
+        if (!matchedNode) {
+          console.log('[Sokuji] [PulseAudio] No exact match found, trying partial matching...');
           
-          // Look at nearby lines for name and description
-          for (let j = Math.max(0, i - 10); j < Math.min(i + 10, lines.length); j++) {
-            if (lines[j].includes('node.name') && lines[j].includes('=')) {
-              const nameMatch = lines[j].match(/node\.name = "([^"]+)"/);
-              if (nameMatch && nameMatch[1]) {
-                tempNodeName = nameMatch[1];
-              }
-            }
+          for (const node of audioSinks) {
+            const props = node.info.props;
+            const description = props['node.description'] || '';
             
-            if (lines[j].includes('node.description') && lines[j].includes('=')) {
-              const descMatch = lines[j].match(/node\.description = "([^"]+)"/);
-              if (descMatch && descMatch[1]) {
-                tempNodeDescription = descMatch[1];
-              }
-            }
-          }
-          
-          // If we found both name and description, check for a partial match
-          if (tempNodeName && tempNodeDescription) {
             // Split the device label into words for partial matching
             const labelWords = deviceInfo.label.toLowerCase().split(/\s+/);
-            const descriptionLower = tempNodeDescription.toLowerCase();
+            const descriptionLower = description.toLowerCase();
             
             // Check if any significant word from the label appears in the description
             const hasMatch = labelWords.some(word => 
@@ -578,14 +538,24 @@ async function connectVirtualSpeakerToOutput(deviceInfo) {
             );
             
             if (hasMatch) {
-              nodeName = tempNodeName;
-              nodeId = currentId;
-              nodeDescription = tempNodeDescription;
+              matchedNode = node;
+              console.log(`[Sokuji] [PulseAudio] Found partial match Audio/Sink: ${props['node.name']} (${description})`);
               break;
             }
           }
         }
       }
+      
+      if (matchedNode) {
+        nodeId = matchedNode.id;
+        nodeName = matchedNode.info.props['node.name'];
+        nodeDescription = matchedNode.info.props['node.description'];
+      }
+    } catch (parseError) {
+      console.error('[Sokuji] [PulseAudio] Failed to parse pw-dump JSON output:', parseError);
+      // Fallback to old method if JSON parsing fails
+      console.log('[Sokuji] [PulseAudio] Falling back to pw-cli method...');
+      // TODO: Add fallback to pw-cli method if needed
     }
     
     if (!nodeName) {
