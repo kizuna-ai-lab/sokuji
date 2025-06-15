@@ -513,14 +513,46 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
       }
       setGeminiSettings(loadedGemini as GeminiSettings);
 
-      // Perform basic validation after loading settings
+      console.info('[Settings] Loaded settings successfully');
+      
+      // Auto-validate API key and fetch models after loading settings
       const provider = loadedCommon.provider || 'openai';
       const apiKey = provider === 'openai' ? 
         (loadedOpenAI.apiKey || '') : 
         (loadedGemini.apiKey || '');
-      setIsApiKeyValid(Boolean(apiKey && apiKey.trim() !== ''));
       
-      console.info('[Settings] Loaded settings successfully');
+      if (apiKey && apiKey.trim() !== '') {
+        console.info('[Settings] Auto-validating API key and fetching models...');
+        try {
+          // Validate API key
+          const validationResult = await settingsService.validateApiKey(apiKey, provider);
+          setIsApiKeyValid(Boolean(validationResult.valid));
+          
+          // If validation is successful, fetch available models
+          if (validationResult.valid) {
+            console.info('[Settings] API key is valid, fetching models...');
+            setLoadingModels(true);
+            try {
+              const models = await settingsService.getAvailableModels(apiKey, provider);
+              setAvailableModels(models);
+              console.info('[Settings] Auto-fetched available models:', models);
+            } catch (modelError) {
+              console.error('[Settings] Error auto-fetching models:', modelError);
+              setAvailableModels([]);
+            } finally {
+              setLoadingModels(false);
+            }
+          } else {
+            console.warn('[Settings] API key validation failed:', validationResult.message);
+          }
+        } catch (validationError) {
+          console.error('[Settings] Error auto-validating API key:', validationError);
+          setIsApiKeyValid(false);
+        }
+      } else {
+        console.info('[Settings] No API key found, skipping auto-validation');
+        setIsApiKeyValid(false);
+      }
     } catch (error) {
       console.error('[Settings] Error loading settings:', error);
     }
@@ -560,6 +592,53 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     loadSettings();
   }, [loadSettings]);
+
+  // Auto-validate API key and fetch models when provider or API key changes
+  useEffect(() => {
+    const currentApiKey = getCurrentApiKey();
+    
+    if (currentApiKey && currentApiKey.trim() !== '') {
+      console.info('[Settings] Provider or API key changed, auto-validating...');
+      
+      // Debounce the validation to avoid too many API calls
+      const timeoutId = setTimeout(async () => {
+        try {
+          // Validate API key
+          const validationResult = await settingsService.validateApiKey(currentApiKey, commonSettings.provider);
+          setIsApiKeyValid(Boolean(validationResult.valid));
+          
+          // If validation is successful, fetch available models
+          if (validationResult.valid) {
+            console.info('[Settings] API key is valid, fetching models...');
+            setLoadingModels(true);
+            try {
+              const models = await settingsService.getAvailableModels(currentApiKey, commonSettings.provider);
+              setAvailableModels(models);
+              console.info('[Settings] Auto-fetched available models:', models);
+            } catch (modelError) {
+              console.error('[Settings] Error auto-fetching models:', modelError);
+              setAvailableModels([]);
+            } finally {
+              setLoadingModels(false);
+            }
+          } else {
+            console.warn('[Settings] API key validation failed:', validationResult.message);
+            setAvailableModels([]);
+          }
+        } catch (validationError) {
+          console.error('[Settings] Error auto-validating API key:', validationError);
+          setIsApiKeyValid(false);
+          setAvailableModels([]);
+        }
+      }, 1000); // 1 second debounce
+      
+      return () => clearTimeout(timeoutId);
+    } else {
+      console.info('[Settings] No API key found, clearing validation state');
+      setIsApiKeyValid(false);
+      setAvailableModels([]);
+    }
+  }, [commonSettings.provider, openAISettings.apiKey, geminiSettings.apiKey, getCurrentApiKey, settingsService]);
 
   return (
     <SettingsContext.Provider

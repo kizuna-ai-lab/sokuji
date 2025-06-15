@@ -27,7 +27,8 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
     settings, 
     updateSettings, 
     
-    // Other context methods
+    // Other context methods and state
+    isApiKeyValid,
     validateApiKey: contextValidateApiKey, 
     getProcessedSystemInstructions,
     availableModels,
@@ -163,12 +164,25 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
   // Auto-fetch models when API key is available and valid
   useEffect(() => {
     const currentApiKey = commonSettings.provider === 'openai' ? openAISettings.apiKey : geminiSettings.apiKey;
-    if (currentApiKey && currentApiKey.trim() !== '' && availableModels.length === 0 && !loadingModels) {
+    if (
+      currentApiKey && currentApiKey.trim() !== '' &&
+      isApiKeyValid &&
+      availableModels.length === 0 &&
+      !loadingModels
+    ) {
       fetchAvailableModels().catch(error => 
         console.error('[SettingsPanel] Error auto-fetching models:', error)
       );
     }
-  }, [commonSettings.provider, openAISettings.apiKey, geminiSettings.apiKey, availableModels.length, loadingModels, fetchAvailableModels]);
+  }, [
+    commonSettings.provider,
+    openAISettings.apiKey,
+    geminiSettings.apiKey,
+    isApiKeyValid,
+    availableModels.length,
+    loadingModels,
+    fetchAvailableModels
+  ]);
 
   return (
     <div className="settings-panel">
