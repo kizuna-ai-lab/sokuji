@@ -3,6 +3,7 @@ import { ServiceFactory } from '../services/ServiceFactory';
 import { ProviderConfigFactory } from '../services/providers/ProviderConfigFactory';
 import { ProviderConfig } from '../services/providers/ProviderConfig';
 import { FilteredModel } from '../services/interfaces/IClient';
+import { ApiKeyValidationResult } from '../services/interfaces/ISettingsService';
 
 // Common Settings - applicable to all providers
 export interface CommonSettings {
@@ -268,6 +269,13 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   const [isApiKeyValid, setIsApiKeyValid] = useState(false);
   const [availableModels, setAvailableModels] = useState<FilteredModel[]>([]);
   const [loadingModels, setLoadingModels] = useState(false);
+  
+  // Cache for API validation and models to avoid duplicate requests
+  const [modelsCache, setModelsCache] = useState<Map<string, {
+    validation: ApiKeyValidationResult;
+    models: FilteredModel[];
+    timestamp: number;
+  }>>(new Map());
 
   // Get current provider configuration
   const getCurrentProviderConfig = useCallback((): ProviderConfig => {
@@ -288,6 +296,76 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   const getCurrentApiKey = useCallback((): string => {
     return commonSettings.provider === 'openai' ? openAISettings.apiKey : geminiSettings.apiKey;
   }, [commonSettings.provider, openAISettings.apiKey, geminiSettings.apiKey]);
+
+  // Generate cache key for current provider and API key
+  const getCacheKey = useCallback((): string => {
+    const apiKey = getCurrentApiKey();
+    return `${commonSettings.provider}:${apiKey}`;
+  }, [commonSettings.provider, getCurrentApiKey]);
+
+  // Check if cache is valid (not older than 5 minutes)
+  const isCacheValid = useCallback((timestamp: number): boolean => {
+    const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+    return Date.now() - timestamp < CACHE_DURATION;
+  }, []);
+
+  // Validate API key and fetch models in a single request with caching
+  const validateApiKeyAndFetchModels = useCallback(async (): Promise<{
+    validation: ApiKeyValidationResult;
+    models: FilteredModel[];
+  }> => {
+    const apiKey = getCurrentApiKey();
+    const cacheKey = getCacheKey();
+    
+    // Check cache first
+    const cached = modelsCache.get(cacheKey);
+    if (cached && isCacheValid(cached.timestamp)) {
+      console.info('[Settings] Using cached validation and models result');
+      return {
+        validation: cached.validation,
+        models: cached.models
+      };
+    }
+
+    if (!apiKey || apiKey.trim() === '') {
+      const result = {
+        validation: {
+          valid: false,
+          message: 'API key cannot be empty',
+          validating: false
+        } as ApiKeyValidationResult,
+        models: [] as FilteredModel[]
+      };
+      return result;
+    }
+
+    try {
+      console.info('[Settings] Validating API key and fetching models...');
+      const result = await settingsService.validateApiKeyAndFetchModels(apiKey, commonSettings.provider);
+      
+      // Cache the result
+      const newCache = new Map(modelsCache);
+      newCache.set(cacheKey, {
+        validation: result.validation,
+        models: result.models,
+        timestamp: Date.now()
+      });
+      setModelsCache(newCache);
+      
+      return result;
+    } catch (error) {
+      console.error('[Settings] Error validating API key and fetching models:', error);
+      const result = {
+        validation: {
+          valid: false,
+          message: error instanceof Error ? error.message : 'Error validating API key',
+          validating: false
+        } as ApiKeyValidationResult,
+        models: [] as FilteredModel[]
+      };
+      return result;
+    }
+  }, [commonSettings.provider, getCurrentApiKey, getCacheKey, modelsCache, isCacheValid, settingsService]);
 
   // Create legacy settings object for backward compatibility
   const legacySettings: Settings = {
@@ -341,20 +419,10 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   // Validate the API key for current provider
   const validateApiKey = useCallback(async () => {
     try {
-      const apiKey = getCurrentApiKey();
-      
-      if (!apiKey || apiKey.trim() === '') {
-        return {
-          valid: false,
-          message: 'API key cannot be empty',
-          validating: false
-        };
-      }
-      
-      // Use settings service to validate with the current provider
-      const result = await settingsService.validateApiKey(apiKey, commonSettings.provider);
-      setIsApiKeyValid(Boolean(result.valid));
-      return result;
+      const result = await validateApiKeyAndFetchModels();
+      setIsApiKeyValid(Boolean(result.validation.valid));
+      setAvailableModels(result.models);
+      return result.validation;
     } catch (error) {
       console.error('[Sokuji] [Settings] Error validating API key:', error);
       return {
@@ -363,7 +431,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         validating: false
       };
     }
-  }, [commonSettings.provider, getCurrentApiKey, settingsService]);
+  }, [validateApiKeyAndFetchModels]);
 
   // Update functions for different settings categories
   const updateCommonSettings = useCallback((newSettings: Partial<CommonSettings>) => {
@@ -524,30 +592,22 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
       if (apiKey && apiKey.trim() !== '') {
         console.info('[Settings] Auto-validating API key and fetching models...');
         try {
-          // Validate API key
-          const validationResult = await settingsService.validateApiKey(apiKey, provider);
-          setIsApiKeyValid(Boolean(validationResult.valid));
+          setLoadingModels(true);
+          const result = await settingsService.validateApiKeyAndFetchModels(apiKey, provider);
+          setIsApiKeyValid(Boolean(result.validation.valid));
+          setAvailableModels(result.models);
           
-          // If validation is successful, fetch available models
-          if (validationResult.valid) {
-            console.info('[Settings] API key is valid, fetching models...');
-            setLoadingModels(true);
-            try {
-              const models = await settingsService.getAvailableModels(apiKey, provider);
-              setAvailableModels(models);
-              console.info('[Settings] Auto-fetched available models:', models);
-            } catch (modelError) {
-              console.error('[Settings] Error auto-fetching models:', modelError);
-              setAvailableModels([]);
-            } finally {
-              setLoadingModels(false);
-            }
+          if (result.validation.valid) {
+            console.info('[Settings] API key is valid, models loaded:', result.models);
           } else {
-            console.warn('[Settings] API key validation failed:', validationResult.message);
+            console.warn('[Settings] API key validation failed:', result.validation.message);
           }
         } catch (validationError) {
-          console.error('[Settings] Error auto-validating API key:', validationError);
+          console.error('[Settings] Error auto-validating API key and fetching models:', validationError);
           setIsApiKeyValid(false);
+          setAvailableModels([]);
+        } finally {
+          setLoadingModels(false);
         }
       } else {
         console.info('[Settings] No API key found, skipping auto-validation');
@@ -561,31 +621,24 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   // Fetch available models from current provider
   const fetchAvailableModels = useCallback(async () => {
     try {
-      const apiKey = getCurrentApiKey();
-      
-      if (!apiKey || apiKey.trim() === '') {
-        console.warn('[Settings] Cannot fetch models: API key is empty');
-        return;
-      }
-
       setLoadingModels(true);
-      
-      // Use settings service to fetch models with the current provider
-      const models = await settingsService.getAvailableModels(apiKey, commonSettings.provider);
-      
-      setAvailableModels(models);
-      console.info('[Settings] Fetched available models:', models);
+      const result = await validateApiKeyAndFetchModels();
+      setIsApiKeyValid(Boolean(result.validation.valid));
+      setAvailableModels(result.models);
+      console.info('[Settings] Fetched available models:', result.models);
     } catch (error) {
       console.error('[Settings] Error fetching available models:', error);
       setAvailableModels([]);
+      setIsApiKeyValid(false);
     } finally {
       setLoadingModels(false);
     }
-  }, [commonSettings.provider, getCurrentApiKey, settingsService]);
+  }, [validateApiKeyAndFetchModels]);
 
-  // Clear available models (useful when switching providers)
+  // Clear available models and cache (useful when switching providers)
   const clearAvailableModels = useCallback(() => {
     setAvailableModels([]);
+    setModelsCache(new Map()); // Clear cache when switching providers
   }, []);
 
   // Initialize settings on component mount
@@ -603,32 +656,22 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
       // Debounce the validation to avoid too many API calls
       const timeoutId = setTimeout(async () => {
         try {
-          // Validate API key
-          const validationResult = await settingsService.validateApiKey(currentApiKey, commonSettings.provider);
-          setIsApiKeyValid(Boolean(validationResult.valid));
+          setLoadingModels(true);
+          const result = await validateApiKeyAndFetchModels();
+          setIsApiKeyValid(Boolean(result.validation.valid));
+          setAvailableModels(result.models);
           
-          // If validation is successful, fetch available models
-          if (validationResult.valid) {
-            console.info('[Settings] API key is valid, fetching models...');
-            setLoadingModels(true);
-            try {
-              const models = await settingsService.getAvailableModels(currentApiKey, commonSettings.provider);
-              setAvailableModels(models);
-              console.info('[Settings] Auto-fetched available models:', models);
-            } catch (modelError) {
-              console.error('[Settings] Error auto-fetching models:', modelError);
-              setAvailableModels([]);
-            } finally {
-              setLoadingModels(false);
-            }
+          if (result.validation.valid) {
+            console.info('[Settings] API key is valid, models loaded:', result.models);
           } else {
-            console.warn('[Settings] API key validation failed:', validationResult.message);
-            setAvailableModels([]);
+            console.warn('[Settings] API key validation failed:', result.validation.message);
           }
         } catch (validationError) {
-          console.error('[Settings] Error auto-validating API key:', validationError);
+          console.error('[Settings] Error auto-validating API key and fetching models:', validationError);
           setIsApiKeyValid(false);
           setAvailableModels([]);
+        } finally {
+          setLoadingModels(false);
         }
       }, 1000); // 1 second debounce
       
@@ -637,8 +680,9 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
       console.info('[Settings] No API key found, clearing validation state');
       setIsApiKeyValid(false);
       setAvailableModels([]);
+      setModelsCache(new Map()); // Clear cache when no API key
     }
-  }, [commonSettings.provider, openAISettings.apiKey, geminiSettings.apiKey, getCurrentApiKey, settingsService]);
+  }, [commonSettings.provider, openAISettings.apiKey, geminiSettings.apiKey, getCurrentApiKey, validateApiKeyAndFetchModels]);
 
   return (
     <SettingsContext.Provider

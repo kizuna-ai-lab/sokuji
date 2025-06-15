@@ -96,7 +96,30 @@ export class ElectronSettingsService implements ISettingsService {
   }
   
   /**
+   * Validate API key and fetch available models in a single request
+   */
+  async validateApiKeyAndFetchModels(apiKey: string, provider: 'openai' | 'gemini'): Promise<{
+    validation: ApiKeyValidationResult;
+    models: FilteredModel[];
+  }> {
+    try {
+      return await ClientOperations.validateApiKeyAndFetchModels(apiKey, provider);
+    } catch (error: any) {
+      console.error(`[Sokuji] [ElectronSettings] Error validating API key and fetching models for ${provider}:`, error);
+      return {
+        validation: {
+          valid: false,
+          message: error.message || 'Validation failed',
+          validating: false
+        },
+        models: []
+      };
+    }
+  }
+
+  /**
    * Validate API key for the specified provider
+   * @deprecated Use validateApiKeyAndFetchModels instead to avoid duplicate API calls
    */
   async validateApiKey(apiKey: string, provider: 'openai' | 'gemini'): Promise<ApiKeyValidationResult> {
     try {
@@ -113,6 +136,7 @@ export class ElectronSettingsService implements ISettingsService {
 
   /**
    * Get available models for the specified provider
+   * @deprecated Use validateApiKeyAndFetchModels instead to avoid duplicate API calls
    */
   async getAvailableModels(apiKey: string, provider: 'openai' | 'gemini'): Promise<FilteredModel[]> {
     try {

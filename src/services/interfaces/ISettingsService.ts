@@ -47,9 +47,20 @@ export interface ISettingsService {
   getSettingsPath(): Promise<{ configDir: string; configFile: string }>;
   
   /**
+   * Validate API key and fetch available models in a single request
+   * @param apiKey The API key to validate and use for fetching models
+   * @param provider The service provider to validate against ('openai' | 'gemini')
+   */
+  validateApiKeyAndFetchModels(apiKey: string, provider: 'openai' | 'gemini'): Promise<{
+    validation: ApiKeyValidationResult;
+    models: FilteredModel[];
+  }>;
+
+  /**
    * Validate an API key for the specified provider
    * @param apiKey The API key to validate
    * @param provider The service provider to validate against ('openai' | 'gemini')
+   * @deprecated Use validateApiKeyAndFetchModels instead to avoid duplicate API calls
    */
   validateApiKey(apiKey: string, provider: 'openai' | 'gemini'): Promise<ApiKeyValidationResult>;
 
@@ -57,6 +68,7 @@ export interface ISettingsService {
    * Get available models from the specified provider's API
    * @param apiKey The API key to use for authentication
    * @param provider The service provider to fetch models from ('openai' | 'gemini')
+   * @deprecated Use validateApiKeyAndFetchModels instead to avoid duplicate API calls
    */
   getAvailableModels(apiKey: string, provider: 'openai' | 'gemini'): Promise<FilteredModel[]>;
 }

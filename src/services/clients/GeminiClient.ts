@@ -156,16 +156,22 @@ export class GeminiClient implements IClient {
   }
 
   /**
-   * Validate Gemini API key by making a request to the models endpoint
+   * Validate API key and fetch available models in a single request
    */
-  static async validateApiKey(apiKey: string): Promise<ApiKeyValidationResult> {
+  static async validateApiKeyAndFetchModels(apiKey: string): Promise<{
+    validation: ApiKeyValidationResult;
+    models: FilteredModel[];
+  }> {
     try {
       // Check if API key is empty or invalid
       if (!apiKey || apiKey.trim() === '') {
         return {
-          valid: false,
-          message: i18n.t('settings.errorValidatingApiKey'),
-          validating: false
+          validation: {
+            valid: false,
+            message: i18n.t('settings.errorValidatingApiKey'),
+            validating: false
+          },
+          models: []
         };
       }
 
@@ -180,27 +186,39 @@ export class GeminiClient implements IClient {
       console.info("[Sokuji] [GeminiClient] Available models:", availableModels);
       console.info("[Sokuji] [GeminiClient] Has realtime model:", hasRealtimeModel);
 
-      // Return validation result based on realtime model availability
-      return this.buildValidationResult(hasRealtimeModel);
+      // Filter relevant models
+      const filteredModels = this.filterRelevantModels(availableModels);
+
+      // Return validation result and models
+      return {
+        validation: this.buildValidationResult(hasRealtimeModel),
+        models: filteredModels
+      };
 
     } catch (error: any) {
-      return this.handleValidationError(error);
+      return {
+        validation: this.handleValidationError(error),
+        models: []
+      };
     }
   }
 
   /**
+   * Validate Gemini API key by making a request to the models endpoint
+   * @deprecated Use validateApiKeyAndFetchModels instead to avoid duplicate API calls
+   */
+  static async validateApiKey(apiKey: string): Promise<ApiKeyValidationResult> {
+    const result = await this.validateApiKeyAndFetchModels(apiKey);
+    return result.validation;
+  }
+
+  /**
    * Fetch available models from Gemini API
+   * @deprecated Use validateApiKeyAndFetchModels instead to avoid duplicate API calls
    */
   static async fetchAvailableModels(apiKey: string): Promise<FilteredModel[]> {
-    try {
-      this.validateApiKeyFormat(apiKey);
-
-      const models = await this.fetchModelsFromAPI(apiKey);
-      
-      return this.filterRelevantModels(models);
-    } catch (error: any) {
-      return this.handleModelFetchError(error);
-    }
+    const result = await this.validateApiKeyAndFetchModels(apiKey);
+    return result.models;
   }
 
   /**
