@@ -1,6 +1,6 @@
-import { BaseProviderConfig, ProviderConfig, LanguageOption, VoiceOption, ModelOption } from './ProviderConfig';
+import { ProviderConfig, LanguageOption, VoiceOption, ModelOption } from './ProviderConfig';
 
-export class OpenAIProviderConfig extends BaseProviderConfig {
+export class OpenAIProviderConfig {
   private static readonly LANGUAGES: LanguageOption[] = [
     { name: 'العربية', value: 'ar' },
     { name: 'አማርኛ', value: 'am' },

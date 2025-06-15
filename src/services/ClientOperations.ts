@@ -25,35 +25,7 @@ export class ClientOperations {
     }
   }
 
-  /**
-   * Validate API key for the specified provider
-   * @deprecated Use validateApiKeyAndFetchModels instead to avoid duplicate API calls
-   */
-  static async validateApiKey(apiKey: string, provider: 'openai' | 'gemini'): Promise<ApiKeyValidationResult> {
-    switch (provider) {
-      case 'openai':
-        return await OpenAIClient.validateApiKey(apiKey);
-      case 'gemini':
-        return await GeminiClient.validateApiKey(apiKey);
-      default:
-        throw new Error(`Unsupported provider: ${provider}`);
-    }
-  }
 
-  /**
-   * Get available models for the specified provider
-   * @deprecated Use validateApiKeyAndFetchModels instead to avoid duplicate API calls
-   */
-  static async getAvailableModels(apiKey: string, provider: 'openai' | 'gemini'): Promise<FilteredModel[]> {
-    switch (provider) {
-      case 'openai':
-        return await OpenAIClient.fetchAvailableModels(apiKey);
-      case 'gemini':
-        return await GeminiClient.fetchAvailableModels(apiKey);
-      default:
-        throw new Error(`Unsupported provider: ${provider}`);
-    }
-  }
 
   /**
    * Get latest realtime model for the specified provider

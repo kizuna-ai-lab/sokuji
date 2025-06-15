@@ -113,14 +113,12 @@ export interface IClient {
  */
 export interface IClientStatic {
   /**
-   * Validate API key for the provider
+   * Validate API key and fetch available models in a single request
    */
-  validateApiKey(apiKey: string): Promise<ApiKeyValidationResult>;
-  
-  /**
-   * Fetch available models from the provider
-   */
-  fetchAvailableModels(apiKey: string): Promise<FilteredModel[]>;
+  validateApiKeyAndFetchModels(apiKey: string): Promise<{
+    validation: ApiKeyValidationResult;
+    models: FilteredModel[];
+  }>;
   
   /**
    * Get the latest realtime model ID

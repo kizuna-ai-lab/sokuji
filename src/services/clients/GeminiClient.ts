@@ -203,23 +203,7 @@ export class GeminiClient implements IClient {
     }
   }
 
-  /**
-   * Validate Gemini API key by making a request to the models endpoint
-   * @deprecated Use validateApiKeyAndFetchModels instead to avoid duplicate API calls
-   */
-  static async validateApiKey(apiKey: string): Promise<ApiKeyValidationResult> {
-    const result = await this.validateApiKeyAndFetchModels(apiKey);
-    return result.validation;
-  }
 
-  /**
-   * Fetch available models from Gemini API
-   * @deprecated Use validateApiKeyAndFetchModels instead to avoid duplicate API calls
-   */
-  static async fetchAvailableModels(apiKey: string): Promise<FilteredModel[]> {
-    const result = await this.validateApiKeyAndFetchModels(apiKey);
-    return result.models;
-  }
 
   /**
    * Filter models to get only realtime models
