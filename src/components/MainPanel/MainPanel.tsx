@@ -209,6 +209,28 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       onError: (event: any) => {
         console.error('[Sokuji] [MainPanel]', event);
       },
+      onClose: async (event: any) => {
+        console.info('[Sokuji] [MainPanel] Connection closed, cleaning up session', event);
+        // When connection closes, clean up the session state
+        setIsSessionActive(false);
+        
+        // Clean up audio recording
+        const wavRecorder = wavRecorderRef.current;
+        if (wavRecorder.recording) {
+          try {
+            await wavRecorder.pause();
+            await wavRecorder.end();
+          } catch (error) {
+            console.warn('[Sokuji] [MainPanel] Error cleaning up recorder on close:', error);
+          }
+        }
+        
+        // Interrupt any playing audio
+        const audioService = audioServiceRef.current;
+        if (audioService) {
+          await audioService.interruptAudio();
+        }
+      },
       onConversationInterrupted: async () => {
         // Handle conversation interruption
         const trackSampleOffset = await audioService.interruptAudio();
