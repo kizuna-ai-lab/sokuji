@@ -285,6 +285,8 @@ export class GeminiClient implements IClient {
           }
         }
       } : undefined,
+      inputAudioTranscription: true,
+      outputAudioTranscription: true,
       realtimeInputConfig: {
         activityHandling: ActivityHandling.NO_INTERRUPTION,
       }
@@ -452,6 +454,52 @@ export class GeminiClient implements IClient {
         source: 'server',
         event: { type: 'serverContent.groundingMetadata', data: serverContent.groundingMetadata }
       });
+    }
+
+    if ('outputTranscription' in serverContent && serverContent.outputTranscription) {
+      this.eventHandlers.onRealtimeEvent?.({
+        source: 'server',
+        event: { type: 'serverContent.outputTranscription', data: serverContent.outputTranscription }
+      });
+      
+      // Create conversation item for output transcription (assistant's speech-to-text)
+      if (serverContent.outputTranscription.text) {
+        const conversationItem: ConversationItem = {
+          id: this.generateId(),
+          role: 'assistant',
+          type: 'message',
+          status: 'completed',
+          formatted: {
+            transcript: serverContent.outputTranscription.text
+          }
+        };
+        
+        this.conversationItems.push(conversationItem);
+        this.eventHandlers.onConversationUpdated?.({ item: conversationItem });
+      }
+    }
+
+    if ('inputTranscription' in serverContent && serverContent.inputTranscription) {
+      this.eventHandlers.onRealtimeEvent?.({
+        source: 'server',
+        event: { type: 'serverContent.inputTranscription', data: serverContent.inputTranscription }
+      });
+      
+      // Create conversation item for input transcription (user's speech-to-text)
+      if (serverContent.inputTranscription.text) {
+        const conversationItem: ConversationItem = {
+          id: this.generateId(),
+          role: 'user',
+          type: 'message',
+          status: 'completed',
+          formatted: {
+            transcript: serverContent.inputTranscription.text
+          }
+        };
+        
+        this.conversationItems.push(conversationItem);
+        this.eventHandlers.onConversationUpdated?.({ item: conversationItem });
+      }
     }
 
     if ('modelTurn' in serverContent && serverContent.modelTurn) {
