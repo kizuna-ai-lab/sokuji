@@ -122,7 +122,7 @@ export const LogProvider: React.FC<LogProviderProps> = ({ children }) => {
     // For specific event types, use different grouping strategies
     let groupingKey: string | undefined;
     
-    // For input_audio_buffer.append events, group by event type only
+    // OpenAI-specific grouping
     if (eventType === 'input_audio_buffer.append') {
       groupingKey = 'input_audio_buffer';
     } 
@@ -130,7 +130,28 @@ export const LogProvider: React.FC<LogProviderProps> = ({ children }) => {
     else if (eventType.includes('delta')) {
       groupingKey = eventType;
     }
-    // For other events, extract item_id if it exists
+    // Gemini-specific grouping
+    else if (eventType === 'serverContent.modelTurn') {
+      // Group Gemini model turn events together
+      groupingKey = 'gemini_model_turn';
+    }
+    else if (eventType === 'serverContent.interrupted') {
+      // Group Gemini interruption events together
+      groupingKey = 'gemini_interrupted';
+    }
+    else if (eventType === 'serverContent.turnComplete') {
+      // Group Gemini turn complete events together
+      groupingKey = 'gemini_turn_complete';
+    }
+    else if (eventType === 'serverContent.generationComplete') {
+      // Group Gemini generation complete events together
+      groupingKey = 'gemini_generation_complete';
+    }
+    else if (eventType === 'usageMetadata') {
+      // Group Gemini usage metadata events together
+      groupingKey = 'gemini_usage_metadata';
+    }
+    // For other events, extract item_id if it exists (OpenAI)
     else {
       // Check for item_id in various event structures
       if (event.conversation?.item?.id) {
