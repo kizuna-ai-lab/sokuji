@@ -132,7 +132,7 @@ export const defaultGeminiSettings: GeminiSettings = {
   model: 'gemini-2.0-flash-exp',
   voice: 'Aoede',
   sourceLanguage: 'en-US',
-  targetLanguage: 'cmn-CN',
+  targetLanguage: 'ja-JP',
   temperature: 0.8,
   maxTokens: 4096,
 };
