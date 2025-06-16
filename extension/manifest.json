@@ -62,6 +62,6 @@
     }
   ],
   "content_security_policy": {
-    "extension_pages": "script-src 'self'; object-src 'self'; worker-src 'self'; connect-src 'self' https://us.i.posthog.com https://api.openai.com https://us-assets.i.posthog.com wss://api.openai.com"
+    "extension_pages": "script-src 'self'; object-src 'self'; worker-src 'self'; connect-src 'self' https://us.i.posthog.com https://api.openai.com https://us-assets.i.posthog.com wss://api.openai.com https://generativelanguage.googleapis.com wss://generativelanguage.googleapis.com"
   }
 }
