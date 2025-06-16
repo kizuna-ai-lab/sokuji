@@ -5,7 +5,7 @@ import SettingsPanel from '../SettingsPanel/SettingsPanel';
 import LogsPanel from '../LogsPanel/LogsPanel';
 import AudioPanel from '../AudioPanel/AudioPanel';
 import Onboarding from '../Onboarding/Onboarding';
-import { Terminal, Settings, Volume2 } from 'react-feather';
+import { Terminal, Settings, Volume2 } from 'lucide-react';
 import './MainLayout.scss';
 
 const MainLayout: React.FC = () => {

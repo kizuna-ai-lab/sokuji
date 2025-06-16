@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { X, Zap, Users, Mic, Tool, Loader, Play, Volume2 } from 'react-feather';
+import { X, Zap, Users, Mic, Wrench, Loader, Play, Volume2 } from 'lucide-react';
 import './MainPanel.scss';
 import { useSettings } from '../../contexts/SettingsContext';
 import { useSession } from '../../contexts/SessionContext';
@@ -1262,7 +1262,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
               className={`debug-button ${isTestTonePlaying ? 'active' : ''}`}
               onClick={playTestTone}
             >
-              <Tool size={14} />
+              <Wrench size={14} />
               <span>{isTestTonePlaying ? t('mainPanel.stopDebug') : t('mainPanel.debug')}</span>
             </button>
           )}

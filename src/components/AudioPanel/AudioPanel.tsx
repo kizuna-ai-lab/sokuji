@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowRight, Volume2, Mic, RefreshCw, AlertTriangle } from 'react-feather';
+import { ArrowRight, Volume2, Mic, RefreshCw, AlertTriangle } from 'lucide-react';
 import './AudioPanel.scss';
 import Modal from '../Modal/Modal';
 import { useAudioContext } from '../../contexts/AudioContext';
