@@ -30,7 +30,7 @@
     "message": "Gyors Kezdés:"
   },
   "quickStartInstructions": {
-    "message": "Konfigurálja OpenAI API kulcsát → Válassza a \"Sokuji_Virtual_Mic\"-et mikrofonként → Kezdjen el beszélni!"
+    "message": "Konfigurálja API kulcsát (OpenAI vagy Gemini) → Válassza a \"Sokuji_Virtual_Mic\"-et mikrofonként → Kezdjen el beszélni!"
   },
   "notSupported": {
     "message": "⚠ Nem támogatott ezen az oldalon"

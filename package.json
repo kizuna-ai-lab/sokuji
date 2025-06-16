@@ -1,11 +1,11 @@
 {
   "name": "sokuji",
   "productName": "Sokuji",
-  "version": "0.4.6",
+  "version": "0.5.0",
   "private": true,
   "main": "electron/main.js",
   "homepage": "./",
-  "description": "Live speech translation application using OpenAI's Realtime API",
+  "description": "Live speech translation application using OpenAI and Google Gemini APIs",
   "author": {
     "name": "Kizuna AI Lab",
     "email": "contact@kizuna.ai"

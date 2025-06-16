@@ -30,7 +30,7 @@
     "message": "快速开始："
   },
   "quickStartInstructions": {
-    "message": "配置您的 OpenAI API 密钥 ← 选择\"Sokuji_Virtual_Mic\"作为麦克风 ← 开始说话！"
+    "message": "配置您的 API 密钥（OpenAI 或 Gemini）← 选择\"Sokuji_Virtual_Mic\"作为麦克风 ← 开始说话！"
   },
   "notSupported": {
     "message": "⚠ 此网站不支持"

@@ -30,7 +30,7 @@
     "message": "Snelle Start:"
   },
   "quickStartInstructions": {
-    "message": "Configureer uw OpenAI API-sleutel → Selecteer \"Sokuji_Virtual_Mic\" als microfoon → Begin met spreken!"
+    "message": "Configureer uw API-sleutel (OpenAI of Gemini) → Selecteer \"Sokuji_Virtual_Mic\" als microfoon → Begin met spreken!"
   },
   "notSupported": {
     "message": "⚠ Niet ondersteund op deze site"
