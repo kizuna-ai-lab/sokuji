@@ -127,7 +127,7 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
       // Enable side panel for this site (but don't auto-open)
       await chrome.sidePanel.setOptions({
         tabId: tabId,
-        path: `fullpage.html?tabId=${tabId}&debug=true`,
+        path: `fullpage.html?tabId=${tabId}`,
         enabled: true
       });
       console.debug('[Sokuji] [Background] Enabled Sokuji side panel for site:', url.hostname);
@@ -164,7 +164,7 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
     if (isEnabledSite) {
       await chrome.sidePanel.setOptions({
         tabId: tabId,
-        path: `fullpage.html?tabId=${tabId}&debug=true`,
+        path: `fullpage.html?tabId=${tabId}`,
         enabled: true,
       });
       console.debug('[Sokuji] [Background] Maintaining side panel for supported site:', url.hostname);
