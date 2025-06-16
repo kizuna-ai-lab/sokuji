@@ -72,8 +72,8 @@ export class GeminiProviderConfig {
   ];
 
   private static readonly MODELS: ModelOption[] = [
-    { id: 'gemini-2.0-flash-exp', type: 'realtime' },
-    { id: 'gemini-2.0-flash-thinking-exp', type: 'realtime' },
+    { id: 'gemini-2.0-flash-live-001', type: 'realtime' },
+    { id: 'gemini-2.5-flash-preview-native-audio-dialog', type: 'realtime' },
   ];
 
   getConfig(): ProviderConfig {
@@ -110,12 +110,12 @@ export class GeminiProviderConfig {
       },
       
       defaults: {
-        model: 'gemini-2.0-flash-exp',
+        model: 'gemini-2.0-flash-live-001',
         voice: 'Aoede',
         temperature: 1.0,
         maxTokens: 8192,
         sourceLanguage: 'en-US',
-        targetLanguage: 'cmn-CN',
+        targetLanguage: 'ja-JP',
         turnDetectionMode: 'Auto', // Gemini handles automatically
         threshold: 0.5,
         prefixPadding: 0.0,

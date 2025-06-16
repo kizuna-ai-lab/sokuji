@@ -73,8 +73,8 @@ Sokuji goes beyond basic translation by offering a complete audio routing soluti
 1. **Real-time speech translation** using OpenAI and Google Gemini APIs
 2. **Multi-Provider Support**: Seamlessly switch between OpenAI and Google Gemini.
 3. **Supported Models**:
-   - **OpenAI**: `gpt-4o`, `gpt-4o-mini`
-   - **Google Gemini**: `gemini-2.0-flash-exp`, `gemini-2.0-flash-thinking-exp`
+   - **OpenAI**: `gpt-4o-realtime-preview`, `gpt-4o-mini-realtime-preview`
+   - **Google Gemini**: `gemini-2.0-flash-live-001`, `gemini-2.5-flash-preview-native-audio-dialog`
 4. **Automatic turn detection** with multiple modes (Normal, Semantic, Disabled) for OpenAI
 5. **Audio visualization** with waveform display
 6. **Virtual audio device** creation and management on Linux (using PulseAudio/PipeWire)
