@@ -31,11 +31,13 @@
     "refreshModels": "Mevcut modelleri yenile",
     "loadingModels": "Mevcut modeller yükleniyor...",
     "modelsFound": "{{count}} model mevcut",
+    "experimentalFeatureTooltip": "Bu deneysel bir özellik ve kararsız olabilir.",
     "apiKeyValidationCompleted": "API anahtarı doğrulaması tamamlandı",
     "errorValidatingApiKey": "API anahtarını doğrularken hata",
     "sessionActiveNotice": "Oturum aktifken ayarlar kilitlenir. Ayarları değiştirmek için lütfen oturumu sonlandırın.",
     "realtimeModelAvailable": "Gerçek zamanlı model kullanılabilir",
-    "realtimeModelNotAvailable": "Gerçek zamanlı model kullanılamıyor"
+    "realtimeModelNotAvailable": "Gerçek zamanlı model kullanılamıyor",
+    "help": "Yardım"
   },
   "mainPanel": {
     "conversationPlaceholder": "Konuşma burada görünecek",

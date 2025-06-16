@@ -74,7 +74,9 @@
     "realtimeModelNotAvailable": "Модель в реальном времени недоступна",
     "refreshModels": "Обновить доступные модели",
     "loadingModels": "Загрузка доступных моделей...",
-    "modelsFound": "{{count}} моделей доступно"
+    "modelsFound": "{{count}} моделей доступно",
+    "experimentalFeatureTooltip": "Это экспериментальная функция, которая может быть нестабильной.",
+    "help": "Помощь"
   },
   "audioPanel": {
     "title": "Настройки аудио",

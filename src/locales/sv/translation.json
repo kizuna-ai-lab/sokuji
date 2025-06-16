@@ -30,7 +30,9 @@
     "enterApiKey": "Ange din OpenAI API-nyckel",
     "refreshModels": "Uppdatera tillgängliga modeller",
     "loadingModels": "Laddar tillgängliga modeller...",
-    "modelsFound": "{{count}} modeller tillgängliga"
+    "modelsFound": "{{count}} modeller tillgängliga",
+    "experimentalFeatureTooltip": "Detta är en experimentell funktion och kan vara instabil.",
+    "help": "Hjälp"
   },
   "mainPanel": {
     "conversationPlaceholder": "Konversationen kommer att visas här",

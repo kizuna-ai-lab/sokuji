@@ -74,7 +74,9 @@
     "realtimeModelNotAvailable": "מודל בזמן אמת לא זמין",
     "refreshModels": "רענן מודלים זמינים",
     "loadingModels": "טוען מודלים זמינים...",
-    "modelsFound": "{{count}} מודלים זמינים"
+    "modelsFound": "{{count}} מודלים זמינים",
+    "experimentalFeatureTooltip": "זוהי תכונה ניסיונית ועלולה להיות לא יציבה.",
+    "help": "עזרה"
   },
   "audioPanel": {
     "title": "הגדרות אודיו",

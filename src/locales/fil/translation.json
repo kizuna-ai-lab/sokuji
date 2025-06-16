@@ -30,7 +30,9 @@
     "enterApiKey": "Ilagay ang inyong OpenAI API key",
     "refreshModels": "I-refresh ang mga available na model",
     "loadingModels": "Naglo-load ng mga available na model...",
-    "modelsFound": "{{count}} na mga model ang available"
+    "modelsFound": "{{count}} na mga model ang available",
+    "experimentalFeatureTooltip": "Ito ay isang experimental na feature at maaaring hindi stable.",
+    "help": "Tulong"
   },
   "mainPanel": {
     "conversationPlaceholder": "Ang usapan ay lalabas dito",

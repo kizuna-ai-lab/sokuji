@@ -29,13 +29,15 @@
     "validating": "กำลังตรวจสอบ...",
     "enterApiKey": "ใส่คีย์ API OpenAI ของคุณ",
     "refreshModels": "รีเฟรชโมเดลที่มีอยู่",
-    "loadingModels": "กำลังโหลดโมเดลที่มีอยู่...",
+    "loadingModels": "กำลังโหลดโมเดลที่ใช้ได้...",
     "modelsFound": "มีโมเดล {{count}} ตัวที่ใช้ได้",
+    "experimentalFeatureTooltip": "นี่เป็นฟีเจอร์ทดลองและอาจไม่เสถียร",
     "apiKeyValidationCompleted": "การตรวจสอบ API key เสร็จสิ้น",
     "errorValidatingApiKey": "เกิดข้อผิดพลาดในการตรวจสอบ API key",
     "sessionActiveNotice": "การตั้งค่าถูกล็อกขณะที่เซสชันทำงานอยู่ กรุณาสิ้นสุดเซสชันเพื่อแก้ไขการตั้งค่า",
     "realtimeModelAvailable": "โมเดลแบบเรียลไทม์พร้อมใช้งาน",
-    "realtimeModelNotAvailable": "โมเดลแบบเรียลไทม์ไม่พร้อมใช้งาน"
+    "realtimeModelNotAvailable": "โมเดลแบบเรียลไทม์ไม่พร้อมใช้งาน",
+    "help": "ช่วยเหลือ"
   },
   "mainPanel": {
     "conversationPlaceholder": "การสนทนาจะปรากฏที่นี่",

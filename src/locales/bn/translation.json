@@ -72,6 +72,7 @@
     "refreshModels": "উপলব্ধ মডেল রিফ্রেশ করুন",
     "loadingModels": "উপলব্ধ মডেল লোড হচ্ছে...",
     "modelsFound": "{{count}}টি মডেল উপলব্ধ",
+    "experimentalFeatureTooltip": "এটি একটি পরীক্ষামূলক বৈশিষ্ট্য এবং অস্থির হতে পারে।",
     "sessionActiveNotice": "সেশন সক্রিয় থাকাকালীন সেটিংস লক থাকে। সেটিংস পরিবর্তনের জন্য অনুগ্রহ করে সেশন শেষ করুন।",
     "realtimeModelAvailable": "রিয়েল-টাইম মডেল উপলব্ধ",
     "realtimeModelNotAvailable": "রিয়েল-টাইম মডেল উপলব্ধ নেই"

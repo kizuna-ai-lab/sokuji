@@ -75,6 +75,7 @@
     "refreshModels": "Refresh available models",
     "loadingModels": "Loading available models...",
     "modelsFound": "{{count}} models available",
+    "experimentalFeatureTooltip": "This is an experimental feature and may be unstable.",
     "help": "Help"
   },
   "audioPanel": {

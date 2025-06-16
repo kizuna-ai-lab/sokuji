@@ -74,7 +74,9 @@
     "realtimeModelNotAvailable": "Model real-time tidak tersedia",
     "refreshModels": "Segarkan model yang tersedia",
     "loadingModels": "Memuat model yang tersedia...",
-    "modelsFound": "{{count}} model tersedia"
+    "modelsFound": "{{count}} model tersedia",
+    "experimentalFeatureTooltip": "Ini adalah fitur eksperimental dan mungkin tidak stabil.",
+    "help": "Bantuan"
   },
   "audioPanel": {
     "title": "Pengaturan audio",

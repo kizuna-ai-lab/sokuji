@@ -30,7 +30,9 @@
     "enterApiKey": "Введіть ваш API-ключ OpenAI",
     "refreshModels": "Оновити доступні моделі",
     "loadingModels": "Завантаження доступних моделей...",
-    "modelsFound": "{{count}} моделей доступно"
+    "modelsFound": "{{count}} моделей доступно",
+    "experimentalFeatureTooltip": "Це експериментальна функція і може бути нестабільною.",
+    "help": "Допомога"
   },
   "mainPanel": {
     "conversationPlaceholder": "Розмова з'явиться тут",

@@ -74,7 +74,9 @@
     "realtimeModelNotAvailable": "نموذج الوقت الفعلي غير متاح",
     "refreshModels": "تحديث النماذج المتاحة",
     "loadingModels": "جاري تحميل النماذج المتاحة...",
-    "modelsFound": "{{count}} نماذج متاحة"
+    "modelsFound": "{{count}} نماذج متاحة",
+    "experimentalFeatureTooltip": "هذه ميزة تجريبية وقد تكون غير مستقرة.",
+    "help": "مساعدة"
   },
   "audioPanel": {
     "title": "إعدادات الصوت",

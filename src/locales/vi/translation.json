@@ -31,11 +31,13 @@
     "refreshModels": "Làm mới các mô hình có sẵn",
     "loadingModels": "Đang tải các mô hình có sẵn...",
     "modelsFound": "{{count}} mô hình có sẵn",
+    "experimentalFeatureTooltip": "Đây là tính năng thử nghiệm và có thể không ổn định.",
     "apiKeyValidationCompleted": "Xác thực khóa API hoàn tất",
     "errorValidatingApiKey": "Lỗi khi xác thực khóa API",
     "sessionActiveNotice": "Cài đặt bị khóa khi phiên đang hoạt động. Vui lòng kết thúc phiên để thay đổi cài đặt.",
     "realtimeModelAvailable": "Mô hình thời gian thực có sẵn",
-    "realtimeModelNotAvailable": "Mô hình thời gian thực không có sẵn"
+    "realtimeModelNotAvailable": "Mô hình thời gian thực không có sẵn",
+    "help": "Trợ giúp"
   },
   "mainPanel": {
     "conversationPlaceholder": "Cuộc trò chuyện sẽ xuất hiện ở đây",
