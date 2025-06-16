@@ -1,6 +1,6 @@
 import React from 'react';
 import './Modal.scss';
-import { X } from 'react-feather';
+import { X } from 'lucide-react';
 
 interface ModalProps {
   isOpen: boolean;

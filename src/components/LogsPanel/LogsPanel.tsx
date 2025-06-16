@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ArrowRight, Terminal, Trash2, ArrowUp, ArrowDown, FastForward } from 'react-feather';
+import { ArrowRight, Terminal, Trash2, ArrowUp, ArrowDown, FastForward } from 'lucide-react';
 import './LogsPanel.scss';
 import { useLog, LogEntry } from '../../contexts/LogContext';
 import { useTranslation } from 'react-i18next';

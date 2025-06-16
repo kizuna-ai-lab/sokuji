@@ -205,7 +205,7 @@ sudo dpkg -i sokuji_*.deb
 - OpenAI Realtime API
 - PulseAudio/PipeWire for virtual audio devices
 - SASS for styling
-- React-Feather for icons
+- Lucide React for icons
 
 # License
 

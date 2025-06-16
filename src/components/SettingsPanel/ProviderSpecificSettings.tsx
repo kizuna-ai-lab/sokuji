@@ -2,7 +2,7 @@ import React, { Fragment } from 'react';
 import { ProviderConfig } from '../../services/providers/ProviderConfig';
 import { useSettings } from '../../contexts/SettingsContext';
 import { useTranslation } from 'react-i18next';
-import { ChevronDown, ChevronRight, RotateCw } from 'react-feather';
+import { ChevronDown, ChevronRight, RotateCw } from 'lucide-react';
 import { FilteredModel } from '../../services/interfaces/IClient';
 
 interface ProviderSpecificSettingsProps {
