@@ -30,7 +30,7 @@
     "message": "Hızlı Başlangıç:"
   },
   "quickStartInstructions": {
-    "message": "OpenAI API anahtarınızı yapılandırın → Mikrofon olarak \"Sokuji_Virtual_Mic\"i seçin → Konuşmaya başlayın!"
+    "message": "API anahtarınızı yapılandırın (OpenAI veya Gemini) → Mikrofon olarak \"Sokuji_Virtual_Mic\"i seçin → Konuşmaya başlayın!"
   },
   "notSupported": {
     "message": "⚠ Bu sitede desteklenmiyor"

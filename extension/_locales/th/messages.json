@@ -30,7 +30,7 @@
     "message": "เริ่มต้นอย่างรวดเร็ว:"
   },
   "quickStartInstructions": {
-    "message": "กำหนดค่า OpenAI API key ของคุณ → เลือก \"Sokuji_Virtual_Mic\" เป็นไมโครโฟน → เริ่มพูด!"
+    "message": "กำหนดค่า API key (OpenAI or Gemini) ของคุณ → เลือก \"Sokuji_Virtual_Mic\" เป็นไมโครโฟน → เริ่มพูด!"
   },
   "notSupported": {
     "message": "⚠ ไม่รองรับบนเว็บไซต์นี้"

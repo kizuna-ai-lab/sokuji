@@ -30,7 +30,7 @@
     "message": "দ্রুত শুরু:"
   },
   "quickStartInstructions": {
-    "message": "আপনার OpenAI API কী কনফিগার করুন ← মাইক্রোফোন হিসেবে \"Sokuji_Virtual_Mic\" নির্বাচন করুন ← কথা বলা শুরু করুন!"
+    "message": "আপনার API কী কনফিগার করুন (OpenAI বা Gemini) ← মাইক্রোফোন হিসেবে \"Sokuji_Virtual_Mic\" নির্বাচন করুন ← কথা বলা শুরু করুন!"
   },
   "notSupported": {
     "message": "⚠ এই ওয়েবসাইটে সমর্থিত নয়"

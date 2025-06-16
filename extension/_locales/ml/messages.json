@@ -30,7 +30,7 @@
     "message": "Quick Start:"
   },
   "quickStartInstructions": {
-    "message": "Configure your OpenAI API key → Select \"Sokuji_Virtual_Mic\" as microphone → Start speaking!"
+    "message": "Configure your API key (OpenAI or Gemini) → Select \"Sokuji_Virtual_Mic\" as microphone → Start speaking!"
   },
   "notSupported": {
     "message": "⚠ Not supported on this site"

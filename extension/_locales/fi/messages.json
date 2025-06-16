@@ -30,7 +30,7 @@
     "message": "Pika-aloitus:"
   },
   "quickStartInstructions": {
-    "message": "Määritä OpenAI API-avaimesi → Valitse \"Sokuji_Virtual_Mic\" mikrofoniksi → Aloita puhuminen!"
+    "message": "Määritä API-avaimesi (OpenAI tai Gemini) → Valitse \"Sokuji_Virtual_Mic\" mikrofoniksi → Aloita puhuminen!"
   },
   "notSupported": {
     "message": "⚠ Ei tuettu tällä sivustolla"

@@ -30,7 +30,7 @@
     "message": "Mabilis na Simula:"
   },
   "quickStartInstructions": {
-    "message": "I-configure ang inyong OpenAI API key ← Piliin ang \"Sokuji_Virtual_Mic\" bilang microphone ← Simulang magsalita!"
+    "message": "I-configure ang inyong API key (OpenAI or Gemini) ← Piliin ang \"Sokuji_Virtual_Mic\" bilang microphone ← Simulang magsalita!"
   },
   "notSupported": {
     "message": "⚠ Hindi suportado sa website na ito"

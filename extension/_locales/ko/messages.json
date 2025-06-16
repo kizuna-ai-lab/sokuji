@@ -30,7 +30,7 @@
     "message": "빠른 시작:"
   },
   "quickStartInstructions": {
-    "message": "OpenAI API 키 설정 → 마이크로 \"Sokuji_Virtual_Mic\" 선택 → 말하기 시작!"
+    "message": "API 키 설정 (OpenAI 또는 Gemini) → 마이크로 \"Sokuji_Virtual_Mic\" 선택 → 말하기 시작!"
   },
   "notSupported": {
     "message": "⚠ 이 사이트에서는 지원되지 않습니다"

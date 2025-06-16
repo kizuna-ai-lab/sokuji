@@ -30,7 +30,7 @@
     "message": "त्वरित शुरुआत:"
   },
   "quickStartInstructions": {
-    "message": "अपनी OpenAI API कुंजी कॉन्फ़िगर करें → माइक्रोफ़ोन के रूप में \"Sokuji_Virtual_Mic\" चुनें → बोलना शुरू करें!"
+    "message": "अपनी API कुंजी कॉन्फ़िगर करें (OpenAI या Gemini) → माइक्रोफ़ोन के रूप में \"Sokuji_Virtual_Mic\" चुनें → बोलना शुरू करें!"
   },
   "notSupported": {
     "message": "⚠ इस साइट पर समर्थित नहीं"

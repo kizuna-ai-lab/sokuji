@@ -30,7 +30,7 @@
     "message": "Rychlý start:"
   },
   "quickStartInstructions": {
-    "message": "Nakonfigurujte svůj OpenAI API klíč → Vyberte \"Sokuji_Virtual_Mic\" jako mikrofon → Začněte mluvit!"
+    "message": "Nakonfigurujte svůj API klíč (OpenAI nebo Gemini) → Vyberte \"Sokuji_Virtual_Mic\" jako mikrofon → Začněte mluvit!"
   },
   "notSupported": {
     "message": "⚠ Nepodporováno na této stránce"

@@ -30,7 +30,7 @@
     "message": "クイックスタート："
   },
   "quickStartInstructions": {
-    "message": "OpenAI APIキーを設定 ← マイクとして「Sokuji_Virtual_Mic」を選択 ← 話し始める！"
+    "message": "APIキー（OpenAI または Gemini）を設定 ← マイクとして「Sokuji_Virtual_Mic」を選択 ← 話し始める！"
   },
   "notSupported": {
     "message": "⚠ このサイトではサポートされていません"

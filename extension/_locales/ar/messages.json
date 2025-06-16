@@ -30,7 +30,7 @@
     "message": "البدء السريع:"
   },
   "quickStartInstructions": {
-    "message": "قم بتكوين مفتاح OpenAI API الخاص بك ← حدد \"Sokuji_Virtual_Mic\" كميكروفون ← ابدأ بالتحدث!"
+    "message": "قم بتكوين مفتاح API الخاص بك (OpenAI أو Gemini) ← حدد \"Sokuji_Virtual_Mic\" كميكروفون ← ابدأ بالتحدث!"
   },
   "notSupported": {
     "message": "⚠ غير مدعوم على هذا الموقع"

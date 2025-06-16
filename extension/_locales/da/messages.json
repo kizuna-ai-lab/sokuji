@@ -30,7 +30,7 @@
     "message": "Hurtig Start:"
   },
   "quickStartInstructions": {
-    "message": "Konfigurer din OpenAI API-nøgle → Vælg \"Sokuji_Virtual_Mic\" som mikrofon → Begynd at tale!"
+    "message": "Konfigurer din API-nøgle (OpenAI eller Gemini) → Vælg \"Sokuji_Virtual_Mic\" som mikrofon → Begynd at tale!"
   },
   "notSupported": {
     "message": "⚠ Ikke understøttet på denne side"
