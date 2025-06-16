@@ -74,69 +74,6 @@ interface SettingsContextType {
   getCurrentProviderConfig: () => ProviderConfig;
 }
 
-// Language code to full name mapping for system instructions
-const getLanguageName = (code: string): string => {
-  const languageMap: { [key: string]: string } = {
-    'ar': 'Arabic',
-    'am': 'Amharic',
-    'bg': 'Bulgarian',
-    'bn': 'Bengali',
-    'ca': 'Catalan',
-    'cs': 'Czech',
-    'da': 'Danish',
-    'de': 'German',
-    'el': 'Greek',
-    'en': 'English',
-    'en_AU': 'English (Australia)',
-    'en_GB': 'English (Great Britain)',
-    'en_US': 'English (USA)',
-    'es': 'Spanish',
-    'es_419': 'Spanish (Latin America and Caribbean)',
-    'et': 'Estonian',
-    'fa': 'Persian',
-    'fi': 'Finnish',
-    'fil': 'Filipino',
-    'fr': 'French',
-    'gu': 'Gujarati',
-    'he': 'Hebrew',
-    'hi': 'Hindi',
-    'hr': 'Croatian',
-    'hu': 'Hungarian',
-    'id': 'Indonesian',
-    'it': 'Italian',
-    'ja': 'Japanese',
-    'kn': 'Kannada',
-    'ko': 'Korean',
-    'lt': 'Lithuanian',
-    'lv': 'Latvian',
-    'ml': 'Malayalam',
-    'mr': 'Marathi',
-    'ms': 'Malay',
-    'nl': 'Dutch',
-    'no': 'Norwegian',
-    'pl': 'Polish',
-    'pt_BR': 'Portuguese (Brazil)',
-    'pt_PT': 'Portuguese (Portugal)',
-    'ro': 'Romanian',
-    'ru': 'Russian',
-    'sk': 'Slovak',
-    'sl': 'Slovenian',
-    'sr': 'Serbian',
-    'sv': 'Swedish',
-    'sw': 'Swahili',
-    'ta': 'Tamil',
-    'te': 'Telugu',
-    'th': 'Thai',
-    'tr': 'Turkish',
-    'uk': 'Ukrainian',
-    'vi': 'Vietnamese',
-    'zh_CN': 'Chinese (China)',
-    'zh_TW': 'Chinese (Taiwan)',
-  };
-  
-  return languageMap[code] || code;
-};
-
 // Default common settings
 export const defaultCommonSettings: CommonSettings = {
   provider: 'openai',
@@ -323,14 +260,22 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   // Process system instructions based on the selected mode
   const getProcessedSystemInstructions = useCallback(() => {
     if (commonSettings.useTemplateMode) {
-      const currentSettings = commonSettings.provider === 'openai' ? openAISettings : geminiSettings;
+      const providerConfig = getCurrentProviderConfig();
+      const currentSettings = getCurrentProviderSettings();
+      
+      const sourceLang = providerConfig.languages.find(l => l.value === currentSettings.sourceLanguage);
+      const targetLang = providerConfig.languages.find(l => l.value === currentSettings.targetLanguage);
+
+      const sourceLangName = sourceLang?.englishName || currentSettings.sourceLanguage || 'SOURCE_LANGUAGE';
+      const targetLangName = targetLang?.englishName || currentSettings.targetLanguage || 'TARGET_LANGUAGE';
+
       return commonSettings.templateSystemInstructions
-        .replace(/\{\{SOURCE_LANGUAGE\}\}/g, getLanguageName(currentSettings.sourceLanguage || 'SOURCE_LANGUAGE'))
-        .replace(/\{\{TARGET_LANGUAGE\}\}/g, getLanguageName(currentSettings.targetLanguage || 'TARGET_LANGUAGE'));
+        .replace(/\{\{SOURCE_LANGUAGE\}\}/g, sourceLangName)
+        .replace(/\{\{TARGET_LANGUAGE\}\}/g, targetLangName);
     } else {
       return commonSettings.systemInstructions;
     }
-  }, [commonSettings.useTemplateMode, commonSettings.templateSystemInstructions, commonSettings.systemInstructions, commonSettings.provider, openAISettings.sourceLanguage, openAISettings.targetLanguage, geminiSettings.sourceLanguage, geminiSettings.targetLanguage]);
+  }, [commonSettings.useTemplateMode, commonSettings.templateSystemInstructions, commonSettings.systemInstructions, getCurrentProviderConfig, getCurrentProviderSettings]);
 
   // Validate the API key for current provider
   const validateApiKey = useCallback(async () => {

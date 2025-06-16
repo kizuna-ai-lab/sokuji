@@ -1,6 +1,7 @@
 export interface LanguageOption {
   name: string;
   value: string;
+  englishName: string;
 }
 
 export interface VoiceOption {
