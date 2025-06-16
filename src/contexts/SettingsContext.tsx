@@ -44,29 +44,6 @@ export interface GeminiSettings {
   // Gemini may have different capabilities, so different settings
 }
 
-// Combined Settings interface for backward compatibility
-export interface Settings extends CommonSettings {
-  // For backward compatibility, we'll maintain the old structure
-  // but these will be managed separately internally
-  openAIApiKey: string;
-  geminiApiKey: string;
-  sourceLanguage: string;
-  targetLanguage: string;
-  
-  // Current provider's settings (for backward compatibility)
-  turnDetectionMode: OpenAISettings['turnDetectionMode'];
-  threshold: number;
-  prefixPadding: number;
-  silenceDuration: number;
-  semanticEagerness: OpenAISettings['semanticEagerness'];
-  model: string;
-  temperature: number;
-  maxTokens: number | 'inf';
-  transcriptModel: OpenAISettings['transcriptModel'];
-  noiseReduction: OpenAISettings['noiseReduction'];
-  voice: string;
-}
-
 interface SettingsContextType {
   // Common settings
   commonSettings: CommonSettings;
@@ -80,10 +57,6 @@ interface SettingsContextType {
   
   // Current provider settings (computed from provider-specific settings)
   getCurrentProviderSettings: () => OpenAISettings | GeminiSettings;
-  
-  // Legacy settings interface for backward compatibility
-  settings: Settings;
-  updateSettings: (newSettings: Partial<Settings>) => void;
   
   // Other context methods
   reloadSettings: () => Promise<void>;
@@ -227,26 +200,6 @@ export const defaultGeminiSettings: GeminiSettings = {
   maxTokens: 4096,
 };
 
-// Legacy default settings for backward compatibility
-export const defaultSettings: Settings = {
-  ...defaultCommonSettings,
-  openAIApiKey: defaultOpenAISettings.apiKey,
-  geminiApiKey: defaultGeminiSettings.apiKey,
-  sourceLanguage: defaultOpenAISettings.sourceLanguage,
-  targetLanguage: defaultOpenAISettings.targetLanguage,
-  model: defaultOpenAISettings.model,
-  voice: defaultOpenAISettings.voice,
-  turnDetectionMode: defaultOpenAISettings.turnDetectionMode,
-  threshold: defaultOpenAISettings.threshold,
-  prefixPadding: defaultOpenAISettings.prefixPadding,
-  silenceDuration: defaultOpenAISettings.silenceDuration,
-  semanticEagerness: defaultOpenAISettings.semanticEagerness,
-  temperature: defaultOpenAISettings.temperature,
-  maxTokens: defaultOpenAISettings.maxTokens,
-  transcriptModel: defaultOpenAISettings.transcriptModel,
-  noiseReduction: defaultOpenAISettings.noiseReduction,
-};
-
 const SettingsContext = createContext<SettingsContextType | null>(null);
 
 export const useSettings = () => {
@@ -367,43 +320,6 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [commonSettings.provider, getCurrentApiKey, getCacheKey, modelsCache, isCacheValid, settingsService]);
 
-  // Create legacy settings object for backward compatibility
-  const legacySettings: Settings = {
-    ...commonSettings,
-    openAIApiKey: openAISettings.apiKey,
-    geminiApiKey: geminiSettings.apiKey,
-    ...(commonSettings.provider === 'openai' ? {
-      sourceLanguage: openAISettings.sourceLanguage,
-      targetLanguage: openAISettings.targetLanguage,
-      model: openAISettings.model,
-      voice: openAISettings.voice,
-      turnDetectionMode: openAISettings.turnDetectionMode,
-      threshold: openAISettings.threshold,
-      prefixPadding: openAISettings.prefixPadding,
-      silenceDuration: openAISettings.silenceDuration,
-      semanticEagerness: openAISettings.semanticEagerness,
-      temperature: openAISettings.temperature,
-      maxTokens: openAISettings.maxTokens,
-      transcriptModel: openAISettings.transcriptModel,
-      noiseReduction: openAISettings.noiseReduction,
-    } : {
-      sourceLanguage: geminiSettings.sourceLanguage,
-      targetLanguage: geminiSettings.targetLanguage,
-      model: geminiSettings.model,
-      voice: geminiSettings.voice,
-      temperature: geminiSettings.temperature,
-      maxTokens: geminiSettings.maxTokens,
-      // Provide default values for OpenAI-specific settings when using Gemini
-      turnDetectionMode: 'Normal' as const,
-      threshold: 0.49,
-      prefixPadding: 0.5,
-      silenceDuration: 0.5,
-      semanticEagerness: 'Auto' as const,
-      transcriptModel: 'gpt-4o-mini-transcribe' as const,
-      noiseReduction: 'None' as const,
-    }),
-  };
-  
   // Process system instructions based on the selected mode
   const getProcessedSystemInstructions = useCallback(() => {
     if (commonSettings.useTemplateMode) {
@@ -481,75 +397,6 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
       return updated;
     });
   }, [settingsService]);
-
-  // Legacy update function for backward compatibility
-  const updateSettings = useCallback((newSettings: Partial<Settings>) => {
-    // Split the settings update based on categories
-    const commonUpdates: Partial<CommonSettings> = {};
-    const openAIUpdates: Partial<OpenAISettings> = {};
-    const geminiUpdates: Partial<GeminiSettings> = {};
-
-    // Map legacy settings to new structure
-    Object.entries(newSettings).forEach(([key, value]) => {
-      switch (key) {
-        case 'provider':
-        case 'uiLanguage':
-        case 'systemInstructions':
-        case 'templateSystemInstructions':
-        case 'useTemplateMode':
-          (commonUpdates as any)[key] = value;
-          break;
-        case 'sourceLanguage':
-        case 'targetLanguage':
-          // Language settings are now provider-specific
-          if (commonSettings.provider === 'openai') {
-            (openAIUpdates as any)[key] = value;
-          } else {
-            (geminiUpdates as any)[key] = value;
-          }
-          break;
-        case 'openAIApiKey':
-          openAIUpdates.apiKey = value as string;
-          break;
-        case 'geminiApiKey':
-          geminiUpdates.apiKey = value as string;
-          break;
-        case 'model':
-        case 'voice':
-        case 'temperature':
-        case 'maxTokens':
-          if (commonSettings.provider === 'openai') {
-            (openAIUpdates as any)[key] = value;
-          } else {
-            (geminiUpdates as any)[key] = value;
-          }
-          break;
-        case 'turnDetectionMode':
-        case 'threshold':
-        case 'prefixPadding':
-        case 'silenceDuration':
-        case 'semanticEagerness':
-        case 'transcriptModel':
-        case 'noiseReduction':
-          // These are OpenAI-specific
-          if (commonSettings.provider === 'openai') {
-            (openAIUpdates as any)[key] = value;
-          }
-          break;
-      }
-    });
-
-    // Apply updates
-    if (Object.keys(commonUpdates).length > 0) {
-      updateCommonSettings(commonUpdates);
-    }
-    if (Object.keys(openAIUpdates).length > 0) {
-      updateOpenAISettings(openAIUpdates);
-    }
-    if (Object.keys(geminiUpdates).length > 0) {
-      updateGeminiSettings(geminiUpdates);
-    }
-  }, [commonSettings.provider, updateCommonSettings, updateOpenAISettings, updateGeminiSettings]);
 
   // Load settings from storage
   const loadSettings = useCallback(async () => {
@@ -640,8 +487,9 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
           }
         } catch (validationError) {
           console.error('[Settings] Error auto-validating API key and fetching models:', validationError);
-          setIsApiKeyValid(false);
-          setAvailableModels([]);
+          setIsApiKeyValid(prev => prev ? false : prev);
+          setAvailableModels(prev => prev.length > 0 ? [] : prev);
+          setModelsCache(prev => prev.size > 0 ? new Map() : prev); // Prevent re-render loop
         } finally {
           setLoadingModels(false);
         }
@@ -650,9 +498,9 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
       return () => clearTimeout(timeoutId);
     } else {
       console.info('[Settings] No API key found, clearing validation state');
-      setIsApiKeyValid(false);
-      setAvailableModels([]);
-      setModelsCache(new Map()); // Clear cache when no API key
+      setIsApiKeyValid(prev => prev ? false : prev);
+      setAvailableModels(prev => prev.length > 0 ? [] : prev);
+      setModelsCache(prev => prev.size > 0 ? new Map() : prev); // Prevent re-render loop
     }
   }, [commonSettings.provider, openAISettings.apiKey, geminiSettings.apiKey, getCurrentApiKey, validateApiKeyAndFetchModels]);
 
@@ -667,10 +515,6 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         updateOpenAISettings,
         updateGeminiSettings,
         getCurrentProviderSettings,
-        
-        // Legacy settings interface
-        settings: legacySettings,
-        updateSettings,
         
         // Other context methods
         reloadSettings: loadSettings,

@@ -23,10 +23,6 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
     updateGeminiSettings,
     getCurrentProviderSettings,
     
-    // Legacy settings for backward compatibility (can be removed later)
-    settings, 
-    updateSettings, 
-    
     // Other context methods and state
     isApiKeyValid,
     validateApiKey: contextValidateApiKey, 

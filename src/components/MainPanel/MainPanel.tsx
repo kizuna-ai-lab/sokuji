@@ -4,7 +4,7 @@ import './MainPanel.scss';
 import { useSettings } from '../../contexts/SettingsContext';
 import { useSession } from '../../contexts/SessionContext';
 import { useAudioContext } from '../../contexts/AudioContext';
-import { useLog, RealtimeEvent, RealtimeEventSource } from '../../contexts/LogContext';
+import { useLog, RealtimeEvent } from '../../contexts/LogContext';
 import { IClient, ConversationItem, SessionConfig, ClientEventHandlers, ClientFactory } from '../../services/clients';
 import { WavRecorder } from '../../lib/wavtools';
 import { WavRenderer } from '../../utils/wav_renderer';
@@ -27,7 +27,16 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   const [isInitializing, setIsInitializing] = useState(false);
   
   // Get settings from context
-  const { settings, isApiKeyValid, getProcessedSystemInstructions, availableModels, loadingModels } = useSettings();
+  const {
+    commonSettings,
+    openAISettings,
+    geminiSettings,
+    getCurrentProviderSettings,
+    isApiKeyValid,
+    getProcessedSystemInstructions,
+    availableModels,
+    loadingModels
+  } = useSettings();
   
   // Get session state from context
   const { 
@@ -66,56 +75,62 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   /**
    * Convert settings to SessionConfig
    */
-  const getSessionConfig = useCallback((settings: any): SessionConfig => {
+  const getSessionConfig = useCallback((): SessionConfig => {
     // Get processed system instructions from the context
     const systemInstructions = getProcessedSystemInstructions();
+    const { provider } = commonSettings;
+    const currentProviderSettings = getCurrentProviderSettings();
 
     const sessionConfig: SessionConfig = {
-      model: settings.model || 'gpt-4o-mini-realtime-preview',
-      voice: settings.voice || 'alloy',
+      model: currentProviderSettings.model,
+      voice: currentProviderSettings.voice,
       instructions: systemInstructions,
-      temperature: settings.temperature ?? 0.8,
-      maxTokens: settings.maxTokens ?? 'inf',
+      temperature: currentProviderSettings.temperature ?? 0.8,
+      maxTokens: currentProviderSettings.maxTokens ?? 'inf',
     };
 
-    // Configure turn detection
-    if (settings.turnDetectionMode === 'Disabled') {
-      sessionConfig.turnDetection = { type: 'none' };
-    } else if (settings.turnDetectionMode === 'Normal') {
-      sessionConfig.turnDetection = {
-        type: 'server_vad',
-        createResponse: true,
-        interruptResponse: false,
-        prefixPadding: settings.prefixPadding,
-        silenceDuration: settings.silenceDuration,
-        threshold: settings.threshold
-      };
-    } else if (settings.turnDetectionMode === 'Semantic') {
-      sessionConfig.turnDetection = {
-        type: 'semantic_vad',
-        createResponse: true,
-        interruptResponse: false,
-        eagerness: settings.semanticEagerness?.toLowerCase(),
-      };
-    }
+    // Configure provider-specific settings
+    if (provider === 'openai') {
+      const { turnDetectionMode, prefixPadding, silenceDuration, threshold, semanticEagerness, noiseReduction, transcriptModel } = openAISettings;
+      // Configure turn detection
+      if (turnDetectionMode === 'Disabled') {
+        sessionConfig.turnDetection = { type: 'none' };
+      } else if (turnDetectionMode === 'Normal') {
+        sessionConfig.turnDetection = {
+          type: 'server_vad',
+          createResponse: true,
+          interruptResponse: false,
+          prefixPadding: prefixPadding,
+          silenceDuration: silenceDuration,
+          threshold: threshold
+        };
+      } else if (turnDetectionMode === 'Semantic') {
+        sessionConfig.turnDetection = {
+          type: 'semantic_vad',
+          createResponse: true,
+          interruptResponse: false,
+          eagerness: semanticEagerness?.toLowerCase() as any,
+        };
+      }
 
-    // Configure noise reduction
-    if (settings.noiseReduction && settings.noiseReduction !== 'None') {
-      sessionConfig.inputAudioNoiseReduction = {
-        type: settings.noiseReduction === 'Near field' ? 'near_field' :
-              settings.noiseReduction === 'Far field' ? 'far_field' : 'near_field'
-      };
-    }
+      // Configure noise reduction
+      if (noiseReduction && noiseReduction !== 'None') {
+        sessionConfig.inputAudioNoiseReduction = {
+          type: noiseReduction === 'Near field' ? 'near_field' :
+                noiseReduction === 'Far field' ? 'far_field' : 'near_field'
+        };
+      }
 
-    // Configure transcription
-    if (settings.transcriptModel) {
-      sessionConfig.inputAudioTranscription = {
-        model: settings.transcriptModel
-      };
+      // Configure transcription
+      if (transcriptModel) {
+        sessionConfig.inputAudioTranscription = {
+          model: transcriptModel
+        };
+      }
     }
 
     return sessionConfig;
-  }, [getProcessedSystemInstructions]);
+  }, [commonSettings, openAISettings, getCurrentProviderSettings, getProcessedSystemInstructions]);
 
   /**
    * Setup virtual audio output device
@@ -321,10 +336,11 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       }
 
       // Create a new AI client instance
+      const currentProviderSettings = getCurrentProviderSettings();
       clientRef.current = ClientFactory.createClient(
-        settings.model,
-        settings.openAIApiKey,
-        settings.geminiApiKey
+        currentProviderSettings.model,
+        openAISettings.apiKey,
+        geminiSettings.apiKey
       );
 
       // Setup listeners for the new client instance
@@ -334,7 +350,11 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       const wavRecorder = wavRecorderRef.current;
 
       // Set canPushToTalk based on current turnDetectionMode
-      setCanPushToTalk(settings.turnDetectionMode === 'Disabled');
+      if (commonSettings.provider === 'openai') {
+        setCanPushToTalk(openAISettings.turnDetectionMode === 'Disabled');
+      } else {
+        setCanPushToTalk(false); // Not supported by Gemini yet
+      }
 
       // Connect to microphone only if input device is turned on
       if (isInputDeviceOn) {
@@ -359,13 +379,18 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       }
 
       // Get session configuration
-      const sessionConfig = getSessionConfig(settings);
+      const sessionConfig = getSessionConfig();
 
       // Connect to the AI service
       await client.connect(sessionConfig);
 
       // Start recording if using server VAD and input device is turned on
-      if (settings.turnDetectionMode !== 'Disabled' && isInputDeviceOn) {
+      let turnDetectionDisabled = false;
+      if (commonSettings.provider === 'openai') {
+        turnDetectionDisabled = openAISettings.turnDetectionMode === 'Disabled';
+      }
+      
+      if (!turnDetectionDisabled && isInputDeviceOn) {
         await wavRecorder.record((data) => {
           if (client) {
             client.appendInputAudio(data.mono);
@@ -383,7 +408,19 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     } finally {
       setIsInitializing(false);
     }
-  }, [settings, getSessionConfig, setupClientListeners, selectedInputDevice, isInputDeviceOn, isMonitorDeviceOn, selectedMonitorDevice, selectMonitorDevice]);
+  }, [
+    commonSettings, 
+    openAISettings, 
+    geminiSettings, 
+    getCurrentProviderSettings, 
+    getSessionConfig, 
+    setupClientListeners, 
+    selectedInputDevice, 
+    isInputDeviceOn, 
+    isMonitorDeviceOn, 
+    selectedMonitorDevice, 
+    selectMonitorDevice
+  ]);
 
   /**
    * In push-to-talk mode, start recording
@@ -861,7 +898,11 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           }
 
           // If we're in automatic mode, resume recording
-          if (settings.turnDetectionMode !== 'Disabled') {
+          let turnDetectionDisabled = false;
+          if (commonSettings.provider === 'openai') {
+            turnDetectionDisabled = openAISettings.turnDetectionMode === 'Disabled';
+          }
+          if (!turnDetectionDisabled) {
             console.info('[Sokuji] [MainPanel] Input device turned on - resuming recording in automatic mode');
             if (!wavRecorder.recording) {
               await wavRecorder.record((data) => {
@@ -880,7 +921,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     };
 
     updateRecordingState();
-  }, [isInputDeviceOn, isSessionActive, settings.turnDetectionMode, selectedInputDevice]);
+  }, [isInputDeviceOn, isSessionActive, commonSettings.provider, openAISettings.turnDetectionMode, selectedInputDevice]);
 
   /**
    * Watch for changes to selectedMonitorDevice or isMonitorDeviceOn 
@@ -982,32 +1023,37 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   // Session tracking for analytics
   useEffect(() => {
     if (isSessionActive) {
-      const newSessionId = uuidv4();
-      const startTime = Date.now();
-      setSessionId(newSessionId);
-      setSessionStartTime(startTime);
-      setTranslationCount(0);
-      
-      // // Track session start
-      trackEvent('translation_session_start', { 
-        source_language: settings.sourceLanguage,
-        target_language: settings.targetLanguage,
-        session_id: newSessionId
-      });
-    } else if (sessionId && sessionStartTime) {
-      // Track session end
-      const duration = Date.now() - sessionStartTime;
-      trackEvent('translation_session_end', { 
-        session_id: sessionId,
-        duration,
-        translation_count: translationCount
-      });
-      // Reset session state
-      setSessionId(null);
-      setSessionStartTime(null);
-      setTranslationCount(0);
+      // Only run on session start transition
+      if (sessionId === null) { 
+        const newSessionId = uuidv4();
+        const startTime = Date.now();
+        setSessionId(newSessionId);
+        setSessionStartTime(startTime);
+        setTranslationCount(0);
+  
+        const currentSettings = getCurrentProviderSettings();
+        trackEvent('translation_session_start', {
+          source_language: currentSettings.sourceLanguage,
+          target_language: currentSettings.targetLanguage,
+          session_id: newSessionId
+        });
+      }
+    } else {
+      // Only run on session end transition
+      if (sessionId !== null) {
+        const duration = Date.now() - (sessionStartTime || Date.now());
+        trackEvent('translation_session_end', {
+          session_id: sessionId,
+          duration,
+          translation_count: translationCount
+        });
+        // Reset session state
+        setSessionId(null);
+        setSessionStartTime(null);
+        setTranslationCount(0);
+      }
     }
-  }, [isSessionActive, settings.sourceLanguage, settings.targetLanguage]);
+  }, [isSessionActive, sessionId, sessionStartTime, translationCount, getCurrentProviderSettings, setSessionId, setSessionStartTime, setTranslationCount, trackEvent]);
 
   return (
     <div className="main-panel">
