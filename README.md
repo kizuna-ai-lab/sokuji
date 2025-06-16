@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <em>Live speech translation powered by OpenAI's Realtime API</em>
+  <em>Live speech translation powered by OpenAI & Google Gemini</em>
 </p>
 
 <p align="center">
@@ -19,6 +19,9 @@
   <!-- OpenAI Badge -->
   <img alt="OpenAI" src="https://img.shields.io/badge/-OpenAI-eee?style=flat-square&logo=openai&logoColor=412991" />
   
+  <!-- Google Gemini Badge -->
+  <img alt="Google Gemini" src="https://img.shields.io/badge/Google%20Gemini-4285F4?style=flat-square&logo=google-gemini&logoColor=white" />
+  
   <!-- Vibe Coding Badge -->
   <img alt="Vibe Coding" src="https://img.shields.io/badge/built%20with-vibe%20coding-ff69b4?style=flat-square" />
   
@@ -30,7 +33,7 @@
 
 # Why Sokuji?
 
-Sokuji is a desktop application designed to provide live speech translation using OpenAI's Realtime API. It bridges language barriers in live conversations by capturing audio input, processing it through OpenAI's advanced models, and delivering translated output in real-time.
+Sokuji is a desktop application designed to provide live speech translation using OpenAI and Google Gemini APIs. It bridges language barriers in live conversations by capturing audio input, processing it through advanced AI models, and delivering translated output in real-time.
 
 https://github.com/user-attachments/assets/1eaaa333-a7ce-4412-a295-16b7eb2310de
 
@@ -67,19 +70,22 @@ Sokuji goes beyond basic translation by offering a complete audio routing soluti
 
 # Features
 
-1. **Real-time speech translation** using OpenAI's Realtime API
-2. Support for **GPT-4o Realtime** and **GPT-4o mini Realtime** models
-3. **Automatic turn detection** with multiple modes (Normal, Semantic, Disabled)
-4. **Audio visualization** with waveform display
-5. **Virtual audio device** creation and management on Linux (using PulseAudio/PipeWire)
-6. **Automatic audio routing** between virtual devices
-7. **Audio input and output device selection**
-8. **Comprehensive logs** for tracking API interactions
-9. **Customizable model settings** (temperature, max tokens)
-10. **User transcript model selection** (gpt-4o-mini-transcribe, gpt-4o-transcribe, whisper-1)
-11. **Noise reduction options** (None, Near field, Far field)
-12. **API key validation** with real-time feedback
-13. **Configuration persistence** in user's home directory
+1. **Real-time speech translation** using OpenAI and Google Gemini APIs
+2. **Multi-Provider Support**: Seamlessly switch between OpenAI and Google Gemini.
+3. **Supported Models**:
+   - **OpenAI**: `gpt-4o`, `gpt-4o-mini`
+   - **Google Gemini**: `gemini-2.0-flash-exp`, `gemini-2.0-flash-thinking-exp`
+4. **Automatic turn detection** with multiple modes (Normal, Semantic, Disabled) for OpenAI
+5. **Audio visualization** with waveform display
+6. **Virtual audio device** creation and management on Linux (using PulseAudio/PipeWire)
+7. **Automatic audio routing** between virtual devices
+8. **Audio input and output device selection**
+9. **Comprehensive logs** for tracking API interactions
+10. **Customizable model settings** (temperature, max tokens)
+11. **User transcript model selection** (for OpenAI: `gpt-4o-mini-transcribe`, `gpt-4o-transcribe`, `whisper-1`)
+12. **Noise reduction options** (for OpenAI: None, Near field, Far field)
+13. **API key validation** with real-time feedback
+14. **Configuration persistence** in user's home directory
 
 # Audio Routing
 
@@ -114,11 +120,11 @@ The numbered connections in the diagram represent:
 **Connection ⑤**: The virtual microphone selected as input in Google Meet/Microsoft Teams (configured in their settings)  
 **Connection ⑥**: The input device selected in Sokuji's audio settings  
 
-This routing system allows Sokuji to capture audio from your selected input device, process it through OpenAI's Realtime API, and then output the translated audio both to your local speakers and to other applications via the virtual microphone.
+This routing system allows Sokuji to capture audio from your selected input device, process it through the selected AI provider, and then output the translated audio both to your local speakers and to other applications via the virtual microphone.
 
 # Preparation
 
-- (required) An OpenAI API key with access to the Realtime API
+- (required) An OpenAI or Google Gemini API key.
 - (required) Linux with PulseAudio or PipeWire for virtual audio device support (desktop app only)
 
 # Installation
@@ -175,8 +181,9 @@ sudo dpkg -i sokuji_*.deb
    </p>
    
    - Click the Settings button in the top-right corner
-   - Enter your OpenAI API key and click "Validate"
-   - Click "Save" to store your API key securely
+   - Select your desired provider (OpenAI or Gemini).
+   - Enter your API key for the selected provider and click "Validate".
+   - Click "Save" to store your API key securely.
 
 2. **Configure audio devices**:
    
@@ -202,7 +209,7 @@ sudo dpkg -i sokuji_*.deb
 - Electron 34
 - React 18
 - TypeScript
-- OpenAI Realtime API
+- OpenAI & Google Gemini APIs
 - PulseAudio/PipeWire for virtual audio devices
 - SASS for styling
 - Lucide React for icons

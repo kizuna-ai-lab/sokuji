@@ -4,7 +4,7 @@ AI-powered instant speech translation for all video meetings. Break language bar
 
 ## Features
 
-- **Real-time speech translation** using OpenAI's Realtime API
+- **Real-time speech translation** using OpenAI & Google Gemini APIs
 - **Smart site detection** - Shows supported sites when clicking the extension icon
 - **Seamless integration** with Google Meet, Microsoft Teams, and Zoom
 - **Virtual microphone** functionality for meeting integration
@@ -31,7 +31,7 @@ When you click the Sokuji extension icon:
 1. Navigate to a supported video meeting platform
 2. Click the Sokuji extension icon
 3. Click "Open Sokuji" in the popup
-4. Configure your OpenAI API key in the settings
+4. Configure your API key (OpenAI or Gemini) in the settings.
 5. Select "Sokuji_Virtual_Mic" as your microphone in the meeting
 6. Start speaking to see real-time translation!
 
@@ -39,10 +39,10 @@ When you click the Sokuji extension icon:
 
 The extension provides comprehensive settings for:
 
-- **API Configuration**: OpenAI API key and model selection
+- **API Configuration**: Select your provider (OpenAI/Gemini), enter the API key, and choose a model.
 - **Voice Settings**: Voice selection and audio parameters
 - **Translation Settings**: System instructions and language preferences
-- **Audio Settings**: Input/output device selection and noise reduction
+- **Audio Settings**: Input/output device selection and noise reduction (for supported providers)
 
 ## Installation
 
@@ -119,7 +119,7 @@ extension/
 
 1. Ensure you've selected "Sokuji_Virtual_Mic" in your meeting platform
 2. Check microphone permissions in Chrome
-3. Verify your OpenAI API key is configured correctly
+3. Verify your API key for the selected provider (OpenAI/Gemini) is configured correctly
 
 ### Audio Quality Issues
 
