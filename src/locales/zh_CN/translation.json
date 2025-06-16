@@ -74,7 +74,9 @@
     "realtimeModelNotAvailable": "实时模型不可用",
     "refreshModels": "刷新可用模型",
     "loadingModels": "正在加载可用模型...",
-    "modelsFound": "找到{{count}}个模型"
+    "modelsFound": "找到{{count}}个模型",
+    "experimentalFeatureTooltip": "这是一个实验性功能，可能会不稳定。",
+    "help": "帮助"
   },
   "audioPanel": {
     "title": "音频设置",

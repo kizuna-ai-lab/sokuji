@@ -31,11 +31,13 @@
     "refreshModels": "Päivitä saatavilla olevat mallit",
     "loadingModels": "Ladataan saatavilla olevia malleja...",
     "modelsFound": "{{count}} mallia saatavilla",
+    "experimentalFeatureTooltip": "Tämä on kokeellinen ominaisuus ja voi olla epävakaa.",
     "apiKeyValidationCompleted": "API-avaimen validointi valmis",
     "errorValidatingApiKey": "Virhe API-avainta validoidessa",
     "sessionActiveNotice": "Asetukset on lukittu istunnon ollessa aktiivinen. Lopeta istunto muuttaaksesi asetuksia.",
     "realtimeModelAvailable": "Reaaliaikamalli on saatavilla",
-    "realtimeModelNotAvailable": "Reaaliaikamalli ei ole saatavilla"
+    "realtimeModelNotAvailable": "Reaaliaikamalli ei ole saatavilla",
+    "help": "Ohje"
   },
   "mainPanel": {
     "conversationPlaceholder": "Keskustelu näkyy tässä",

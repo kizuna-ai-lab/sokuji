@@ -248,17 +248,20 @@
             cursor: pointer;
             display: flex;
             align-items: center;
-            padding: 4px;
-            border-radius: 4px;
-            transition: background-color 0.2s;
+            color: #aaa;
+            font-size: 12px;
             
             &:hover {
-              background-color: rgba(255, 255, 255, 0.1);
+              color: white;
             }
             
             svg {
-              color: #aaa;
+              margin-left: 4px;
               transition: transform 0.2s;
+            }
+            
+            &.expanded svg {
+              transform: rotate(90deg);
             }
           }
           
@@ -329,6 +332,77 @@
                 }
               }
             }
+          }
+        }
+        
+        .provider-selection-wrapper {
+          display: flex;
+          align-items: center;
+          position: relative;
+          width: 100%;
+
+          .select-dropdown {
+            flex-grow: 1;
+          }
+
+          .experimental-icon-wrapper {
+            margin-left: 8px;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+
+            .experimental-icon {
+              color: #ffc107;
+              transition: color 0.2s;
+
+              &:hover {
+                color: #ffca28;
+              }
+            }
+
+            .experimental-tooltip {
+              visibility: hidden;
+              width: 200px;
+              background-color: #333;
+              color: #fff;
+              text-align: center;
+              border-radius: 6px;
+              padding: 8px;
+              position: absolute;
+              z-index: 10;
+              bottom: 180%;
+              right: -15px;
+              opacity: 0;
+              transition: opacity 0.3s;
+              font-weight: normal;
+              font-size: 12px;
+              box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+              pointer-events: none;
+              line-height: 1.4;
+
+              &::after {
+                content: "";
+                position: absolute;
+                top: 100%;
+                right: 18px;
+                border-width: 5px;
+                border-style: solid;
+                border-color: #333 transparent transparent transparent;
+              }
+            }
+
+            &:hover .experimental-tooltip {
+              visibility: visible;
+              opacity: 1;
+            }
+          }
+          
+          span[title] { // For the tooltip wrapper
+            display: flex;
+            align-items: center;
+            justify-content: center;
           }
         }
         

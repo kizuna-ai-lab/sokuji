@@ -74,7 +74,9 @@
     "realtimeModelNotAvailable": "Realtime model is niet beschikbaar",
     "refreshModels": "Beschikbare modellen vernieuwen",
     "loadingModels": "Beschikbare modellen laden...",
-    "modelsFound": "{{count}} modellen beschikbaar"
+    "modelsFound": "{{count}} modellen beschikbaar",
+    "experimentalFeatureTooltip": "Dit is een experimentele functie en kan instabiel zijn.",
+    "help": "Help"
   },
   "audioPanel": {
     "title": "Audio instellingen",

@@ -31,11 +31,13 @@
     "refreshModels": "கிடைக்கும் மாதிரிகளை புதுப்பிக்கவும்",
     "loadingModels": "கிடைக்கும் மாதிரிகள் ஏற்றப்படுகின்றன...",
     "modelsFound": "{{count}} மாதிரிகள் கிடைக்கின்றன",
+    "experimentalFeatureTooltip": "இது ஒரு சோதனை அம்சம் மற்றும் நிலையற்றதாக இருக்கலாம்।",
     "apiKeyValidationCompleted": "API கீ சரிபார்ப்பு முடிந்தது",
     "errorValidatingApiKey": "API கீ சரிபார்ப்பதில் பிழை",
     "sessionActiveNotice": "அமர்வு செயலில் இருக்கும் போது அமைப்புகள் பூட்டப்பட்டுள்ளன. அமைப்புகளை மாற்ற அமர்வை முடிக்கவும்.",
     "realtimeModelAvailable": "நிகழ்நேர மாதிரி கிடைக்கிறது",
-    "realtimeModelNotAvailable": "நிகழ்நேர மாதிரி கிடைக்கவில்லை"
+    "realtimeModelNotAvailable": "நிகழ்நேர மாதிரி கிடைக்கவில்லை",
+    "help": "உதவி"
   },
   "mainPanel": {
     "conversationPlaceholder": "உரையாடல் இங்கே தோன்றும்",

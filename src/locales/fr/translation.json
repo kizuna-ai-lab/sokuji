@@ -74,7 +74,9 @@
     "realtimeModelNotAvailable": "Le modèle en temps réel n'est pas disponible",
     "refreshModels": "Actualiser les modèles disponibles",
     "loadingModels": "Chargement des modèles disponibles...",
-    "modelsFound": "{{count}} modèles disponibles"
+    "modelsFound": "{{count}} modèles disponibles",
+    "experimentalFeatureTooltip": "Il s'agit d'une fonctionnalité expérimentale qui peut être instable.",
+    "help": "Aide"
   },
   "audioPanel": {
     "title": "Paramètres audio",

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { ArrowRight, Save, Check, AlertCircle, AlertTriangle, Info, Key, HelpCircle } from 'lucide-react';
+import { ArrowRight, Save, Check, AlertCircle, AlertTriangle, Info, Key, HelpCircle, FlaskConical } from 'lucide-react';
 import './SettingsPanel.scss';
 import { useSettings } from '../../contexts/SettingsContext';
 import { useOnboarding } from '../../contexts/OnboardingContext';
@@ -193,29 +193,42 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
             <div className="setting-label">
               <span>{t('settings.providerType', 'Provider')}</span>
             </div>
-            <select
-              className="select-dropdown"
-              value={commonSettings.provider || 'openai'}
-              onChange={(e) => {
-                const newProvider = e.target.value as 'openai' | 'gemini';
-                updateCommonSettings({ provider: newProvider });
-                
-                // Reset API key validation status when provider changes
-                setApiKeyStatus({ valid: null, message: '', validating: false });
-                
-                // Clear available models as they are provider-specific
-                clearAvailableModels();
-                
-                // The useEffect will automatically fetch new models if API key exists for the new provider
-              }}
-              disabled={isSessionActive}
-            >
-              {availableProviders.map((provider) => (
-                <option key={provider.id} value={provider.id}>
-                  {provider.displayName}
-                </option>
-              ))}
-            </select>
+            <div className="provider-selection-wrapper">
+              <select
+                className="select-dropdown"
+                value={commonSettings.provider || 'openai'}
+                onChange={(e) => {
+                  const newProvider = e.target.value as 'openai' | 'gemini';
+                  updateCommonSettings({ provider: newProvider });
+                  
+                  // Reset API key validation status when provider changes
+                  setApiKeyStatus({ valid: null, message: '', validating: false });
+                  
+                  // Clear available models as they are provider-specific
+                  clearAvailableModels();
+                  
+                  // The useEffect will automatically fetch new models if API key exists for the new provider
+                }}
+                disabled={isSessionActive}
+              >
+                {availableProviders.map((provider) => (
+                  <option key={provider.id} value={provider.id}>
+                    {provider.displayName}
+                  </option>
+                ))}
+              </select>
+              {commonSettings.provider === 'gemini' && (
+                <div className="experimental-icon-wrapper">
+                  <FlaskConical 
+                    size={16} 
+                    className="experimental-icon" 
+                  />
+                  <div className="experimental-tooltip">
+                    {t('settings.experimentalFeatureTooltip', 'This is an experimental feature and may be unstable.')}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
           <div className="setting-item">
             <div className="setting-label">

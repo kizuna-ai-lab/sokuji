@@ -31,11 +31,13 @@
     "refreshModels": "उपलब्ध मॉडल रीफ्रेश करें",
     "loadingModels": "उपलब्ध मॉडल लोड हो रहे हैं...",
     "modelsFound": "{{count}} मॉडल उपलब्ध",
+    "experimentalFeatureTooltip": "यह एक प्रयोगात्मक सुविधा है और अस्थिर हो सकती है।",
     "apiKeyValidationCompleted": "API कुंजी सत्यापन पूरा हुआ",
     "errorValidatingApiKey": "API कुंजी सत्यापन में त्रुटि",
     "sessionActiveNotice": "सत्र सक्रिय होने पर सेटिंग्स लॉक हैं। सेटिंग्स बदलने के लिए कृपया सत्र समाप्त करें।",
     "realtimeModelAvailable": "रीयल-टाइम मॉडल उपलब्ध है",
-    "realtimeModelNotAvailable": "रीयल-टाइम मॉडल उपलब्ध नहीं है"
+    "realtimeModelNotAvailable": "रीयल-टाइम मॉडल उपलब्ध नहीं है",
+    "help": "सहायता"
   },
   "mainPanel": {
     "conversationPlaceholder": "बातचीत यहाँ दिखाई देगी",

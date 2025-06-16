@@ -74,7 +74,8 @@
     "realtimeModelNotAvailable": "مدل زمان واقعی در دسترس نیست",
     "refreshModels": "بروزرسانی مدل‌های موجود",
     "loadingModels": "بارگذاری مدل‌های موجود...",
-    "modelsFound": "{{count}} مدل موجود"
+    "modelsFound": "{{count}} مدل موجود",
+    "experimentalFeatureTooltip": "این یک ویژگی آزمایشی است و ممکن است ناپایدار باشد."
   },
   "audioPanel": {
     "title": "تنظیمات صدا",
