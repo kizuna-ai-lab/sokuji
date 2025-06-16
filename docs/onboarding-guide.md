@@ -1,38 +1,38 @@
-# Sokuji 用户引导功能
+# Sokuji Onboarding Guide
 
-## 概述
+## Overview
 
-Sokuji 现在包含了一个全面的首次用户引导系统，使用 `react-joyride` 库实现。这个功能帮助新用户了解和配置扩展的各项设置。
+Sokuji now includes a comprehensive first-time user onboarding system, implemented using the `react-joyride` library. This feature helps new users understand and configure the extension's various settings.
 
-## 功能特性
+## Features
 
-### 自动触发
-- 首次安装后自动启动引导
-- 1秒延迟后开始，确保界面完全加载
+### Automatic Triggering
+- The tour starts automatically after the first installation.
+- It begins after a 1-second delay to ensure the interface is fully loaded.
 
-### 引导步骤
+### Onboarding Steps
 
-引导包含以下关键步骤：
+The tour covers the following key steps:
 
-1. **欢迎界面** - 介绍 Sokuji 的功能
-2. **设置面板** - 引导用户打开设置
-3. **API 密钥配置** - 指导设置 OpenAI API 密钥
-4. **系统指令** - 解释如何自定义系统指令
-5. **音频设置** - 引导打开音频面板
-6. **麦克风设置** - 选择输入设备
-7. **扬声器设置** - 选择输出设备
-8. **语音配置** - 配置语音设置和检测参数
-9. **主界面介绍** - 展示主要功能区域
-10. **完成** - 总结和后续提示
+1.  **Welcome Screen** - Introduces the features of Sokuji.
+2.  **Settings Panel** - Guides the user to open the settings.
+3.  **API Key Configuration** - Instructs on how to set up the API key for the selected provider (OpenAI or Gemini).
+4.  **System Instructions** - Explains how to customize system instructions.
+5.  **Audio Settings** - Guides the user to open the audio panel.
+6.  **Microphone Setup** - How to select an input device.
+7.  **Speaker Setup** - How to select an output device.
+8.  **Voice Configuration** - Configuring voice settings and detection parameters.
+9.  **Main Interface Introduction** - Showcases the main functional areas.
+10. **Completion** - Summary and next steps.
 
-### 用户控制
-- **跳过** - 用户可以随时跳过引导
-- **导航** - 前进/后退按钮
-- **重新开始** - 从设置面板重新启动引导
+### User Control
+- **Skip** - Users can skip the tour at any time.
+- **Navigation** - Back and Next buttons.
+- **Restart** - The tour can be restarted from the settings panel.
 
-## 技术实现
+## Technical Implementation
 
-### 核心组件
+### Core Components
 
 #### OnboardingContext
 ```typescript
@@ -50,34 +50,34 @@ interface OnboardingContextType {
 }
 ```
 
-#### Onboarding 组件
-- 使用 `react-joyride` 库
-- 自定义样式和主题
-- 响应式设计
-- 国际化支持
+#### Onboarding Component
+- Uses the `react-joyride` library.
+- Custom styling and theming.
+- Responsive design.
+- Internationalization support.
 
-### 数据持久化
-- 使用 `localStorage` 存储完成状态
-- 版本控制支持更新时重新显示引导
-- 存储键：`sokuji_onboarding_completed`
+### Data Persistence
+- Uses `localStorage` to store the completion status.
+- Version control allows re-triggering the tour after updates.
+- Storage key: `sokuji_onboarding_completed`
 
-### 样式定制
-- 主色调：`#007bff`
-- 自定义工具提示样式
-- 动画效果和过渡
-- 响应式适配
+### Style Customization
+- Primary color: `#007bff`
+- Custom tooltip styles.
+- Animations and transitions.
+- Responsive adjustments.
 
-## 配置选项
+## Configuration Options
 
-### 引导步骤配置
-每个步骤包含：
-- `target` - CSS 选择器
-- `content` - 说明文本
-- `title` - 步骤标题
-- `placement` - 工具提示位置
-- `spotlightClicks` - 是否允许点击高亮元素
+### Step Configuration
+Each step includes:
+- `target` - A CSS selector.
+- `content` - Explanatory text.
+- `title` - The title of the step.
+- `placement` - Tooltip position.
+- `spotlightClicks` - Whether clicks on the highlighted element are allowed.
 
-### 样式配置
+### Style Configuration
 ```typescript
 styles: {
   options: {
@@ -92,75 +92,75 @@ styles: {
 }
 ```
 
-## 国际化
+## Internationalization
 
-支持的语言文本：
-- `onboarding.back` - 返回按钮
-- `onboarding.close` - 关闭按钮
-- `onboarding.finish` - 完成按钮
-- `onboarding.next` - 下一步按钮
-- `onboarding.skip` - 跳过按钮
-- `onboarding.restartTour` - 重新开始引导
+Supported language keys:
+- `onboarding.back` - Back button
+- `onboarding.close` - Close button
+- `onboarding.finish` - Finish button
+- `onboarding.next` - Next button
+- `onboarding.skip` - Skip button
+- `onboarding.restartTour` - Restart Tour
 
-## 使用方法
+## How to Use
 
-### 开发者
-1. 引导会在首次访问时自动启动
-2. 可以通过设置面板的"重新开始引导"按钮手动启动
-3. 引导状态通过 Context API 管理
+### For Developers
+1. The tour will start automatically on the first visit.
+2. It can be manually started via the "Restart Tour" button in the settings panel.
+3. The onboarding state is managed via the Context API.
 
-### 最终用户
-1. 安装扩展后会自动看到引导
-2. 可以跳过或完整完成引导
-3. 可以从设置中重新查看引导
+### For End-Users
+1. The tour will appear automatically after installing the extension.
+2. Users can skip or complete the tour.
+3. The tour can be revisited from the settings.
 
-## 扩展和自定义
+## Extension and Customization
 
-### 添加新步骤
-在 `OnboardingContext.tsx` 中的 `onboardingSteps` 数组中添加新步骤：
+### Adding New Steps
+Add new steps to the `onboardingSteps` array in `OnboardingContext.tsx`:
 
 ```typescript
 {
   target: '.new-element',
-  content: '新功能的说明',
-  title: '步骤标题',
+  content: 'Description of the new feature.',
+  title: 'Step Title',
   placement: 'bottom',
 }
 ```
 
-### 修改样式
-在 `Onboarding.scss` 中添加自定义样式或修改 `Onboarding.tsx` 中的 styles 配置。
+### Modifying Styles
+Add custom styles in `Onboarding.scss` or modify the `styles` configuration in `Onboarding.tsx`.
 
-### 更新文本
-在相应的语言文件中添加新的翻译键值对。
+### Updating Text
+Add new key-value pairs for translations in the corresponding language files.
 
-## 最佳实践
+## Best Practices
 
-1. **简洁明了** - 每个步骤的说明应该简洁易懂
-2. **逻辑顺序** - 按照用户的自然使用流程安排步骤
-3. **可跳过** - 始终提供跳过选项
-4. **响应式** - 确保在不同屏幕尺寸下正常工作
-5. **版本控制** - 重大更新时更新版本号以重新显示引导
+1.  **Be Concise** - Each step's explanation should be brief and easy to understand.
+2.  **Logical Order** - Arrange steps according to the user's natural workflow.
+3.  **Allow Skipping** - Always provide an option to skip the tour.
+4.  **Be Responsive** - Ensure it works correctly on different screen sizes.
+5.  **Use Versioning** - Update the version number on major updates to re-show the tour.
 
-## 故障排除
+## Troubleshooting
 
-### 常见问题
+### Common Issues
 
-1. **引导不显示**
-   - 检查 localStorage 中是否已标记为完成
-   - 清除 `sokuji_onboarding_completed` 键
+1.  **Tour does not appear**
+    -   Check if it's already marked as completed in `localStorage`.
+    -   Clear the `sokuji_onboarding_completed` key.
 
-2. **目标元素找不到**
-   - 确保 CSS 选择器正确
-   - 检查元素是否已渲染
+2.  **Target element not found**
+    -   Ensure the CSS selector is correct.
+    -   Check if the element has been rendered.
 
-3. **样式问题**
-   - 检查 z-index 设置
-   - 确保没有 CSS 冲突
+3.  **Styling issues**
+    -   Check the `z-index` settings.
+    -   Ensure there are no CSS conflicts.
 
-### 调试
-在浏览器控制台中运行：
+### Debugging
+Run the following in the browser console:
 ```javascript
 localStorage.removeItem('sokuji_onboarding_completed');
 ```
-然后刷新页面重新触发引导。 
+Then refresh the page to re-trigger the tour. 
