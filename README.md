@@ -31,10 +31,9 @@
   </a>
 </p>
 
-## Languages / 言語
-
-- [English](README.md)
-- [日本語](README.ja.md)
+<p align="center">
+  English | <a href="README.ja.md">日本語</a>
+</p>
 
 # Why Sokuji?
 

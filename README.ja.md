@@ -31,10 +31,9 @@
   </a>
 </p>
 
-## 言語 / Languages
-
-- [English](README.md)
-- [日本語](README.ja.md)
+<p align="center">
+  <a href="README.md">English</a> | 日本語
+</p>
 
 # なぜSokujiなのか？
 
@@ -136,28 +135,28 @@ Windowsでは追加の依存関係は必要ありません。
 
 ### ステップ
 
-1. リポジトリをクローン:
+1. リポジトリをクローン：
 ```bash
 git clone https://github.com/kizuna-ai-lab/sokuji.git
 cd sokuji
 ```
 
-2. 依存関係をインストール:
+2. 依存関係をインストール：
 ```bash
 npm install
 ```
 
-3. アプリケーションをビルド:
+3. アプリケーションをビルド：
 ```bash
 npm run build
 ```
 
-4. アプリケーションを起動:
+4. アプリケーションを起動：
 ```bash
 npm start
 ```
 
-または、開発モードで実行:
+または、開発モードで実行：
 ```bash
 npm run dev
 ```
