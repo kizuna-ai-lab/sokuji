@@ -14,6 +14,9 @@
   "chromeWebStore": {
     "message": "فروشگاه وب کروم"
   },
+  "edgeAddons": {
+    "message": "افزونه‌های Edge"
+  },
   "sokujiAvailable": {
     "message": "✓ Sokuji در $SITE_NAME$ در دسترس است!",
     "placeholders": {

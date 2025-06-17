@@ -14,6 +14,9 @@
   "chromeWebStore": {
     "message": "Chrome 웹 스토어"
   },
+  "edgeAddons": {
+    "message": "Edge 추가 기능"
+  },
   "sokujiAvailable": {
     "message": "✓ $SITE_NAME$에서 Sokuji를 사용할 수 있습니다!",
     "placeholders": {
