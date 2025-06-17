@@ -14,6 +14,9 @@
   "chromeWebStore": {
     "message": "Chrome वेब स्टोर"
   },
+  "edgeAddons": {
+    "message": "Edge ऐड-ऑन"
+  },
   "sokujiAvailable": {
     "message": "✓ Sokuji $SITE_NAME$ पर उपलब्ध है!",
     "placeholders": {

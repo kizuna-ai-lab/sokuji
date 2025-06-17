@@ -14,6 +14,9 @@
   "chromeWebStore": {
     "message": "Chrome 网上应用店"
   },
+  "edgeAddons": {
+    "message": "Edge 插件商店"
+  },
   "sokujiAvailable": {
     "message": "✓ Sokuji 在 $SITE_NAME$ 上可用！",
     "placeholders": {

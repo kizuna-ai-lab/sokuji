@@ -14,6 +14,9 @@
   "chromeWebStore": {
     "message": "Інтернет-магазин Chrome"
   },
+  "edgeAddons": {
+    "message": "Доповнення Edge"
+  },
   "sokujiAvailable": {
     "message": "✓ Sokuji доступний на $SITE_NAME$!",
     "placeholders": {

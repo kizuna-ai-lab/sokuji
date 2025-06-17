@@ -14,6 +14,9 @@
   "chromeWebStore": {
     "message": "Chrome Web Store"
   },
+  "edgeAddons": {
+    "message": "Mga Edge Add-on"
+  },
   "sokujiAvailable": {
     "message": "✓ Available ang Sokuji sa $SITE_NAME$!",
     "placeholders": {

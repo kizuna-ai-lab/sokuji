@@ -109,6 +109,41 @@ function getMessage(key, substitutions = []) {
   return chrome.i18n.getMessage(key, substitutions);
 }
 
+// Browser detection utility
+function detectBrowser() {
+  const userAgent = navigator.userAgent;
+  
+  // Check for Edge (both Chromium-based and legacy)
+  if (userAgent.includes('Edg/') || userAgent.includes('Edge/')) {
+    return 'edge';
+  }
+  
+  // Check for Chrome
+  if (userAgent.includes('Chrome/') && !userAgent.includes('Edg/')) {
+    return 'chrome';
+  }
+  
+  // Default to chrome for other Chromium-based browsers
+  return 'chrome';
+}
+
+// Get appropriate store information based on browser
+function getStoreInfo() {
+  const browser = detectBrowser();
+  
+  if (browser === 'edge') {
+    return {
+      url: 'https://microsoftedge.microsoft.com/addons/detail/sokuji-aipowered-live-/dcmmcdkeibkalgdjlahlembodjhijhkm',
+      textKey: 'edgeAddons'
+    };
+  } else {
+    return {
+      url: 'https://chromewebstore.google.com/detail/ppmihnhelgfpjomhjhpecobloelicnak',
+      textKey: 'chromeWebStore'
+    };
+  }
+}
+
 // Initialize popup when DOM is loaded
 document.addEventListener('DOMContentLoaded', async () => {
   try {
@@ -137,6 +172,14 @@ function initializeLocalization() {
     const key = element.getAttribute('data-i18n');
     element.textContent = getMessage(key);
   });
+  
+  // Update store link with appropriate text and URL
+  const storeLink = document.getElementById('storeLink');
+  if (storeLink) {
+    const storeInfo = getStoreInfo();
+    storeLink.href = storeInfo.url;
+    storeLink.textContent = getMessage(storeInfo.textKey);
+  }
 }
 
 async function initializePopup() {
@@ -168,6 +211,7 @@ async function initializePopup() {
     is_supported_site: isSupported,
     hostname: hostname,
     full_url: url.origin,
+    browser_type: detectBrowser(),
     supported_site_match: isSupported ? ENABLED_SITES.find(site => 
       hostname === site || hostname.endsWith('.' + site)
     ) : null
@@ -365,4 +409,21 @@ function setupEventListeners(tabId, isSupported) {
       window.close();
     });
   });
+
+  // Handle store link clicks
+  const storeLink = document.getElementById('storeLink');
+  if (storeLink) {
+    storeLink.addEventListener('click', () => {
+      const storeInfo = getStoreInfo();
+      const browser = detectBrowser();
+      
+      // Track store link clicked
+      trackEvent('popup_store_link_clicked', {
+        browser_type: browser,
+        store_type: browser === 'edge' ? 'edge_addons' : 'chrome_webstore',
+        store_url: storeInfo.url,
+        is_supported_site: isSupported
+      });
+    });
+  }
 } 

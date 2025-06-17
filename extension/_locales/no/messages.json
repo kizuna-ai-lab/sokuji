@@ -14,6 +14,9 @@
   "chromeWebStore": {
     "message": "Chrome Nettbutikk"
   },
+  "edgeAddons": {
+    "message": "Edge-tillegg"
+  },
   "sokujiAvailable": {
     "message": "✓ Sokuji er tilgjengelig på $SITE_NAME$!",
     "placeholders": {
