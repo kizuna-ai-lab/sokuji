@@ -31,6 +31,11 @@
   </a>
 </p>
 
+## Languages / 言語
+
+- [English](README.md)
+- [日本語](README.ja.md)
+
 # Why Sokuji?
 
 Sokuji is a desktop application designed to provide live speech translation using OpenAI and Google Gemini APIs. It bridges language barriers in live conversations by capturing audio input, processing it through advanced AI models, and delivering translated output in real-time.
