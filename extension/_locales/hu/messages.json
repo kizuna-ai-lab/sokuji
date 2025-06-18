@@ -73,5 +73,17 @@
   },
   "contributeCodeShort": {
     "message": "kód hozzájárulás"
+  },
+  "gatherTownTitle": {
+    "message": "Sokuji for Gather Town"
+  },
+  "gatherTownGuidance": {
+    "message": "A Sokuji használatához válassza ki a <strong>\"Sokuji Virtual Microphone\"</strong> opciót a mikrofon beállításaiban."
+  },
+  "gotIt": {
+    "message": "Értem"
+  },
+  "remindLater": {
+    "message": "Emlékeztessen később"
   }
 }

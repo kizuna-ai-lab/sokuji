@@ -72,6 +72,18 @@
     "message": "Contact us"
   },
   "contributeCodeShort": {
-    "message": "contribute code"
+    "message": "ಕೋಡ್ ಕೊಡುಗೆ"
+  },
+  "gatherTownTitle": {
+    "message": "Sokuji for Gather Town"
+  },
+  "gatherTownGuidance": {
+    "message": "Sokuji ಬಳಸಲು, ನಿಮ್ಮ ಮೈಕ್ರೊಫೋನ್ ಸೆಟ್ಟಿಂಗ್‌ಗಳಲ್ಲಿ <strong>\"Sokuji Virtual Microphone\"</strong> ಆಯ್ಕೆ ಮಾಡಿ."
+  },
+  "gotIt": {
+    "message": "ಅರ್ಥವಾಯಿತು"
+  },
+  "remindLater": {
+    "message": "ನಂತರ ನೆನಪಿಸಿ"
   }
 }

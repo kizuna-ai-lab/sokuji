@@ -72,6 +72,18 @@
     "message": "문의하기"
   },
   "contributeCodeShort": {
-    "message": "코드 기여하기"
+    "message": "코드 기여"
+  },
+  "gatherTownTitle": {
+    "message": "Sokuji for Gather Town"
+  },
+  "gatherTownGuidance": {
+    "message": "Sokuji를 사용하려면 마이크 설정에서 <strong>\"Sokuji Virtual Microphone\"</strong>을 선택하세요."
+  },
+  "gotIt": {
+    "message": "알겠습니다"
+  },
+  "remindLater": {
+    "message": "나중에 알림"
   }
 }

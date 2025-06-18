@@ -72,6 +72,18 @@
     "message": "Contact us"
   },
   "contributeCodeShort": {
-    "message": "contribute code"
+    "message": "prisidėti prie kodo"
+  },
+  "gatherTownTitle": {
+    "message": "Sokuji for Gather Town"
+  },
+  "gatherTownGuidance": {
+    "message": "Norėdami naudoti Sokuji, pasirinkite <strong>\"Sokuji Virtual Microphone\"</strong> mikrofono nustatymuose."
+  },
+  "gotIt": {
+    "message": "Supratau"
+  },
+  "remindLater": {
+    "message": "Priminti vėliau"
   }
 }

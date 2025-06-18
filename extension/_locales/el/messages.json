@@ -73,5 +73,17 @@
   },
   "contributeCodeShort": {
     "message": "συνεισφορά κώδικα"
+  },
+  "gatherTownTitle": {
+    "message": "Sokuji for Gather Town"
+  },
+  "gatherTownGuidance": {
+    "message": "Για να χρησιμοποιήσετε το Sokuji, επιλέξτε <strong>\"Sokuji Virtual Microphone\"</strong> στις ρυθμίσεις του μικροφώνου σας."
+  },
+  "gotIt": {
+    "message": "Κατάλαβα"
+  },
+  "remindLater": {
+    "message": "Υπενθύμιση αργότερα"
   }
 }

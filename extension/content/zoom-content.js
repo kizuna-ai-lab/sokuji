@@ -40,7 +40,7 @@ if (!isWebclientIframe) {
   // Inject the virtual microphone script as early as possible
   function injectVirtualMicrophoneScript() {
     // Get the URL of the script
-    const scriptURL = getExtensionURL('virtual-microphone.js');
+    const scriptURL = getExtensionURL('content/virtual-microphone.js');
     
     // Create a script element
     const script = document.createElement('script');

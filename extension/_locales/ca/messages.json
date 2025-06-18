@@ -72,6 +72,18 @@
     "message": "Contact us"
   },
   "contributeCodeShort": {
-    "message": "contribute code"
+    "message": "contribuir codi"
+  },
+  "gatherTownTitle": {
+    "message": "Sokuji for Gather Town"
+  },
+  "gatherTownGuidance": {
+    "message": "Per utilitzar Sokuji, seleccioneu <strong>\"Sokuji Virtual Microphone\"</strong> a la configuració del micròfon."
+  },
+  "gotIt": {
+    "message": "Ho entenc"
+  },
+  "remindLater": {
+    "message": "Recordar més tard"
   }
 }

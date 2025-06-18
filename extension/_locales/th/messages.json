@@ -72,6 +72,18 @@
     "message": "ติดต่อเรา"
   },
   "contributeCodeShort": {
-    "message": "มีส่วนร่วมโค้ด"
+    "message": "มีส่วนร่วมในโค้ด"
+  },
+  "gatherTownTitle": {
+    "message": "Sokuji for Gather Town"
+  },
+  "gatherTownGuidance": {
+    "message": "หากต้องการใช้ Sokuji โปรดเลือก <strong>\"Sokuji Virtual Microphone\"</strong> ในการตั้งค่าไมโครโฟนของคุณ"
+  },
+  "gotIt": {
+    "message": "เข้าใจแล้ว"
+  },
+  "remindLater": {
+    "message": "เตือนภายหลัง"
   }
 }

@@ -73,5 +73,17 @@
   },
   "contributeCodeShort": {
     "message": "贡献代码"
+  },
+  "gatherTownTitle": {
+    "message": "Sokuji for Gather Town"
+  },
+  "gatherTownGuidance": {
+    "message": "要使用 Sokuji，请在麦克风设置中选择<strong>\"Sokuji Virtual Microphone\"</strong>。"
+  },
+  "gotIt": {
+    "message": "知道了"
+  },
+  "remindLater": {
+    "message": "稍后提醒"
   }
 }

@@ -81,7 +81,8 @@ const ENABLED_SITES = [
   'meet.google.com',
   'teams.live.com',
   'teams.microsoft.com',
-  'app.zoom.us'
+  'app.zoom.us',
+  'app.gather.town'
 ];
 
 // Site information with display names and icons
@@ -101,6 +102,10 @@ const SITE_INFO = {
   'app.zoom.us': {
     name: 'Zoom',
     icon: 'data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz48IS0tIFVwbG9hZGVkIHRvOiBTVkcgUmVwbywgd3d3LnN2Z3JlcG8uY29tLCBHZW5lcmF0b3I6IFNWRyBSZXBvIE1peGVyIFRvb2xzIC0tPgo8c3ZnIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIKYXJpYS1sYWJlbD0iWm9vbSIgcm9sZT0iaW1nIgp2aWV3Qm94PSIwIDAgNTEyIDUxMiI+PHJlY3QKd2lkdGg9IjUxMiIgaGVpZ2h0PSI1MTIiCnJ4PSIxNSUiCmZpbGw9IiMyRDhDRkYiLz48cGF0aCBmaWxsPSIjZmZmZmZmIiBkPSJNNDI4IDM1N2M4IDIgMTUtMiAxOS04IDItMyAyLTggMi0xOVYxNzljMC0xMSAwLTE1LTItMTktMy04LTExLTExLTE5LTgtMjEgMTQtNjcgNTUtNjggNzItLjggMy0uOCA4LS44IDE1djM4YzAgOCAwIDExIC44IDE1IDEgOCA0IDE1IDggMTkgMTIgOSA1MiA0NSA2MSA0NXpNNjQgMTg3YzAtMTUgMC0yMyAzLTI3IDItNCA4LTggMTEtMTEgNC0zIDExLTMgMjctM2gxMjljMzggMCA1NyAwIDcyIDggMTEgOCAyMyAxNSAzMCAzMCA4IDE1IDggMzQgOCA3MnY2OGMwIDE1IDAgMjMtMyAyNy0yIDQtOCA4LTExIDExLTQgMy0xMSAzLTI3IDNIMTc0Yy0zOCAwLTU3IDAtNzItOC0xMS04LTIzLTE1LTMwLTMwLTgtMTUtOC0zNC04LTcyeiIvPjwvc3ZnPg=='
+  },
+  'app.gather.town': {
+    name: 'Gather Town',
+    icon: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiByeD0iOCIgZmlsbD0iIzY2NjZGRiIvPgo8cGF0aCBkPSJNMTIgMTJIMjhWMjhIMTJWMTJaIiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjIiIGZpbGw9Im5vbmUiLz4KPGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iMiIgZmlsbD0id2hpdGUiLz4KPGNpcmNsZSBjeD0iMjQiIGN5PSIxNiIgcj0iMiIgZmlsbD0id2hpdGUiLz4KPGNpcmNsZSBjeD0iMTYiIGN5PSIyNCIgcj0iMiIgZmlsbD0id2hpdGUiLz4KPGNpcmNsZSBjeD0iMjQiIGN5PSIyNCIgcj0iMiIgZmlsbD0id2hpdGUiLz4KPC9zdmc+Cg=='
   }
 };
 
