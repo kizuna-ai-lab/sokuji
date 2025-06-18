@@ -72,6 +72,18 @@
     "message": "Contact us"
   },
   "contributeCodeShort": {
-    "message": "contribute code"
+    "message": "कोड योगदान"
+  },
+  "gatherTownTitle": {
+    "message": "Sokuji for Gather Town"
+  },
+  "gatherTownGuidance": {
+    "message": "Sokuji वापरण्यासाठी, तुमच्या मायक्रोफोन सेटिंग्जमध्ये <strong>\"Sokuji Virtual Microphone\"</strong> निवडा."
+  },
+  "gotIt": {
+    "message": "समजले"
+  },
+  "remindLater": {
+    "message": "नंतर आठवण करून द्या"
   }
 }

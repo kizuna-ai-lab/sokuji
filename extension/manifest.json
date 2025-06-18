@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "__MSG_extensionName__",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "description": "__MSG_extensionDescription__",
   "default_locale": "en",
   "minimum_chrome_version": "116",
@@ -34,7 +34,7 @@
   },
   "content_scripts": [
     {
-      "matches": ["https://meet.google.com/*", "https://teams.microsoft.com/*", "https://teams.live.com/*"],
+      "matches": ["https://meet.google.com/*", "https://teams.microsoft.com/*", "https://teams.live.com/*", "https://app.gather.town/*"],
       "js": ["content.js"],
       "run_at": "document_start"
     },
@@ -48,7 +48,8 @@
   "web_accessible_resources": [
     {
       "resources": [
-        "virtual-microphone.js", 
+        "content/virtual-microphone.js", 
+        "content/site-plugins.js",
         "assets/*", 
         "fullpage.html", 
         "fullpage.js", 

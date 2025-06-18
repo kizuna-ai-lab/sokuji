@@ -72,6 +72,18 @@
     "message": "Связаться с нами"
   },
   "contributeCodeShort": {
-    "message": "внести код"
+    "message": "внести вклад в код"
+  },
+  "gatherTownTitle": {
+    "message": "Sokuji for Gather Town"
+  },
+  "gatherTownGuidance": {
+    "message": "Чтобы использовать Sokuji, выберите <strong>\"Sokuji Virtual Microphone\"</strong> в настройках микрофона."
+  },
+  "gotIt": {
+    "message": "Понятно"
+  },
+  "remindLater": {
+    "message": "Напомнить позже"
   }
 }

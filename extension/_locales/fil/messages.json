@@ -73,5 +73,17 @@
   },
   "contributeCodeShort": {
     "message": "mag-ambag ng code"
+  },
+  "gatherTownTitle": {
+    "message": "Sokuji for Gather Town"
+  },
+  "gatherTownGuidance": {
+    "message": "Para gamitin ang Sokuji, piliin ang <strong>\"Sokuji Virtual Microphone\"</strong> sa inyong microphone settings."
+  },
+  "gotIt": {
+    "message": "Naintindihan"
+  },
+  "remindLater": {
+    "message": "Paalalahanan mamaya"
   }
 }

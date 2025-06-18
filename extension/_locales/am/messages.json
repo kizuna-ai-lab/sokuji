@@ -72,6 +72,18 @@
     "message": "Contact us"
   },
   "contributeCodeShort": {
-    "message": "contribute code"
+    "message": "ኮድ አስተዋፅዖ"
+  },
+  "gatherTownTitle": {
+    "message": "Sokuji for Gather Town"
+  },
+  "gatherTownGuidance": {
+    "message": "ሶኩጂ ለመጠቀም፣ በማይክሮፎን ቅንብሮችዎ ውስጥ <strong>\"Sokuji Virtual Microphone\"</strong> ይምረጡ።"
+  },
+  "gotIt": {
+    "message": "ተረድቻለሁ"
+  },
+  "remindLater": {
+    "message": "በኋላ አስታውስ"
   }
 }

@@ -72,6 +72,18 @@
     "message": "Contact us"
   },
   "contributeCodeShort": {
-    "message": "contribute code"
+    "message": "prispevaj kodo"
+  },
+  "gatherTownTitle": {
+    "message": "Sokuji for Gather Town"
+  },
+  "gatherTownGuidance": {
+    "message": "Za uporabo Sokujija izberite <strong>\"Sokuji Virtual Microphone\"</strong> v nastavitvah mikrofona."
+  },
+  "gotIt": {
+    "message": "Razumem"
+  },
+  "remindLater": {
+    "message": "Spomni me kasneje"
   }
 }

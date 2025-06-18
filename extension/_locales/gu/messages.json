@@ -72,6 +72,18 @@
     "message": "Contact us"
   },
   "contributeCodeShort": {
-    "message": "contribute code"
+    "message": "કોડ યોગદાન"
+  },
+  "gatherTownTitle": {
+    "message": "Sokuji for Gather Town"
+  },
+  "gatherTownGuidance": {
+    "message": "Sokuji નો ઉપયોગ કરવા માટે, તમારી માઇક્રોફોન સેટિંગ્સમાં <strong>\"Sokuji Virtual Microphone\"</strong> પસંદ કરો."
+  },
+  "gotIt": {
+    "message": "સમજાયું"
+  },
+  "remindLater": {
+    "message": "પછીથી યાદ કરાવો"
   }
 }

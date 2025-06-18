@@ -6,7 +6,7 @@ AI-powered instant speech translation for all video meetings. Break language bar
 
 - **Real-time speech translation** using OpenAI & Google Gemini APIs
 - **Smart site detection** - Shows supported sites when clicking the extension icon
-- **Seamless integration** with Google Meet, Microsoft Teams, and Zoom
+- **Seamless integration** with Google Meet, Microsoft Teams, Zoom, and Gather Town
 - **Virtual microphone** functionality for meeting integration
 - **Customizable settings** for voice, model, and translation preferences
 
@@ -16,6 +16,7 @@ AI-powered instant speech translation for all video meetings. Break language bar
 - **Microsoft Teams** (teams.microsoft.com)
 - **Microsoft Teams Live** (teams.live.com)
 - **Zoom** (app.zoom.us)
+- **Gather Town** (app.gather.town)
 
 ## How to Use
 
@@ -35,7 +36,20 @@ When you click the Sokuji extension icon:
 5. Select "Sokuji_Virtual_Mic" as your microphone in the meeting
 6. Start speaking to see real-time translation!
 
-### 3. Configuration
+### 3. Platform-Specific Notes
+
+#### Gather Town
+- Works seamlessly with Gather Town's spatial audio features
+- Select "Sokuji Virtual Microphone" in Gather Town's audio settings
+- The extension automatically detects when you're in a Gather Town space
+- Supports both proximity-based conversations and larger group meetings
+
+#### Zoom
+- Requires selecting "Sokuji Virtual Microphone" in Zoom's audio settings
+- For optimal performance, set background noise suppression to "Browser built-in noise suppression"
+- Works in both main Zoom meetings and breakout rooms
+
+### 4. Configuration
 
 The extension provides comprehensive settings for:
 

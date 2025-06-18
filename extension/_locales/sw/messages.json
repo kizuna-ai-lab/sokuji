@@ -72,6 +72,18 @@
     "message": "Contact us"
   },
   "contributeCodeShort": {
-    "message": "contribute code"
+    "message": "changia kodi"
+  },
+  "gatherTownTitle": {
+    "message": "Sokuji for Gather Town"
+  },
+  "gatherTownGuidance": {
+    "message": "Kutumia Sokuji, chagua <strong>\"Sokuji Virtual Microphone\"</strong> katika mipangilio ya kipaza sauti chako."
+  },
+  "gotIt": {
+    "message": "Nimeelewa"
+  },
+  "remindLater": {
+    "message": "Nikumbushe baadaye"
   }
 }

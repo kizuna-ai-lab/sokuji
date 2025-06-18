@@ -72,6 +72,18 @@
     "message": "Kontakt os"
   },
   "contributeCodeShort": {
-    "message": "bidrag kode"
+    "message": "bidrag med kode"
+  },
+  "gatherTownTitle": {
+    "message": "Sokuji for Gather Town"
+  },
+  "gatherTownGuidance": {
+    "message": "For at bruge Sokuji skal du vælge <strong>\"Sokuji Virtual Microphone\"</strong> i dine mikrofonindstillinger."
+  },
+  "gotIt": {
+    "message": "Forstået"
+  },
+  "remindLater": {
+    "message": "Påmind senere"
   }
 }

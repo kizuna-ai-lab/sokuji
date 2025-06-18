@@ -1,8 +1,8 @@
 /* global chrome, browser */
 
-// Content script for the Sokuji browser extension
-// This script injects the code to override mediaDevices methods
-// and communicates with the side panel
+// Universal content script for the Sokuji browser extension
+// This script injects the core virtual microphone functionality
+// and provides a plugin system for site-specific features
 
 // Get extension URL in a browser-compatible way
 function getExtensionURL(path) {
@@ -31,7 +31,7 @@ function getExtensionURL(path) {
 // Inject the virtual microphone script as early as possible
 function injectVirtualMicrophoneScript() {
   // Get the URL of the script
-  const scriptURL = getExtensionURL('virtual-microphone.js');
+  const scriptURL = getExtensionURL('content/virtual-microphone.js');
   
   // Create a script element
   const script = document.createElement('script');
@@ -54,16 +54,52 @@ function injectVirtualMicrophoneScript() {
   console.info('[Sokuji] [Content] Virtual microphone script injected into page');
 }
 
-// Run script injection immediately (before DOMContentLoaded)
-injectVirtualMicrophoneScript();
-
-// Wait for DOM to be ready before injecting permission iframe
-if (document.readyState === 'complete' || document.readyState === 'interactive') {
-  // If DOM is already ready, inject immediately
-  injectPermissionIframe();
-} else {
-  // Otherwise wait for DOMContentLoaded
-  document.addEventListener('DOMContentLoaded', injectPermissionIframe);
+// Inject site plugins script (includes plugin initialization)
+function injectSitePluginsScript() {
+  // Get i18n messages for plugins
+  const i18nMessages = {
+    gatherTownTitle: chrome.i18n.getMessage('gatherTownTitle'),
+    gatherTownGuidance: chrome.i18n.getMessage('gatherTownGuidance'),
+    gotIt: chrome.i18n.getMessage('gotIt'),
+    remindLater: chrome.i18n.getMessage('remindLater')
+  };
+  
+  // Safely encode i18n messages using Base64 to handle all Unicode characters
+  const i18nParams = new URLSearchParams();
+  for (const [key, value] of Object.entries(i18nMessages)) {
+    if (value) {
+      try {
+        // Use Base64 encoding to safely handle all Unicode characters
+        const encodedValue = btoa(unescape(encodeURIComponent(value)));
+        i18nParams.set(key, encodedValue);
+      } catch (error) {
+        console.warn(`[Sokuji] [Content] Failed to encode i18n message for ${key}:`, error);
+        // Fallback to direct encoding if Base64 fails
+        i18nParams.set(key, encodeURIComponent(value));
+      }
+    }
+  }
+  
+  // Get the URL of the site plugins script with i18n parameters
+  const baseScriptURL = getExtensionURL('content/site-plugins.js');
+  const scriptURL = `${baseScriptURL}?${i18nParams.toString()}`;
+  
+  // Create a script element
+  const script = document.createElement('script');
+  script.src = scriptURL;
+  script.async = false;
+  script.id = 'sokuji-site-plugins-script';
+  
+  // Insert the script
+  if (document.head) {
+    document.head.appendChild(script);
+  } else if (document.documentElement) {
+    document.documentElement.appendChild(script);
+  } else {
+    document.appendChild(script);
+  }
+  
+  console.info('[Sokuji] [Content] Site plugins script injected into page with i18n parameters (Base64 encoded)');
 }
 
 // Function to inject permission iframe
@@ -102,6 +138,19 @@ function injectPermissionIframe() {
   console.info('[Sokuji] [Content] Permission iframe injected into page');
 }
 
+// Run script injections immediately (before DOMContentLoaded)
+injectVirtualMicrophoneScript();
+injectSitePluginsScript();
+
+// Wait for DOM to be ready before injecting permission iframe
+if (document.readyState === 'complete' || document.readyState === 'interactive') {
+  // If DOM is already ready, inject immediately
+  injectPermissionIframe();
+} else {
+  // Otherwise wait for DOMContentLoaded
+  document.addEventListener('DOMContentLoaded', injectPermissionIframe);
+}
+
 // Listen for messages from the extension side panel script
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   // Handle new PCM_DATA message
@@ -122,14 +171,41 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 });
 
 // Content script loaded
-console.info('[Sokuji] [Content] Content script loaded and ready for audio bridging');
+console.info('[Sokuji] [Content] Universal content script loaded and ready for audio bridging');
 
-// Expose API for debugging
+// Expose API for debugging in content script context
 window.sokujiContentScript = {
-  version: '1.0.0',
+  version: '2.0.0',
+  context: 'content',
   getStatus: () => ({
     initialized: true,
-    hasVirtualMic: !!window.sokujiVirtualMic,
-    canInjectAudio: true
-  })
+    context: 'content',
+    canInjectScripts: true,
+    permissionIframeInjected: !!document.getElementById('sokujiPermissionsIFrame'),
+    virtualMicScriptInjected: !!document.getElementById('sokuji-virtual-microphone-script'),
+    pluginsScriptInjected: !!document.getElementById('sokuji-site-plugins-script')
+  }),
+  // Helper function to check page context status
+  getPageContextStatus: () => {
+    // Try to access page context API
+    try {
+      const pageContext = window.wrappedJSObject ? window.wrappedJSObject.sokujiPageContext : null;
+      return pageContext ? pageContext.getStatus() : { error: 'Page context not accessible from content script' };
+    } catch (e) {
+      return { error: 'Cannot access page context: ' + e.message };
+    }
+  },
+  // Helper function to get i18n messages (for debugging)
+  getI18nMessages: () => {
+    try {
+      return {
+        gatherTownTitle: chrome.i18n.getMessage('gatherTownTitle'),
+        gatherTownGuidance: chrome.i18n.getMessage('gatherTownGuidance'),
+        gotIt: chrome.i18n.getMessage('gotIt'),
+        remindLater: chrome.i18n.getMessage('remindLater')
+      };
+    } catch (e) {
+      return { error: 'Cannot access i18n messages: ' + e.message };
+    }
+  }
 };

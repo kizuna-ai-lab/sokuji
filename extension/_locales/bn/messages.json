@@ -73,5 +73,17 @@
   },
   "contributeCodeShort": {
     "message": "কোড অবদান"
+  },
+  "gatherTownTitle": {
+    "message": "Sokuji for Gather Town"
+  },
+  "gatherTownGuidance": {
+    "message": "Sokuji ব্যবহার করতে, আপনার মাইক্রোফোন সেটিংসে <strong>\"Sokuji Virtual Microphone\"</strong> নির্বাচন করুন।"
+  },
+  "gotIt": {
+    "message": "বুঝেছি"
+  },
+  "remindLater": {
+    "message": "পরে মনে করিয়ে দিন"
   }
 }

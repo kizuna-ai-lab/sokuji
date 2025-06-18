@@ -72,6 +72,18 @@
     "message": "Contact us"
   },
   "contributeCodeShort": {
-    "message": "contribute code"
+    "message": "panustada koodi"
+  },
+  "gatherTownTitle": {
+    "message": "Sokuji for Gather Town"
+  },
+  "gatherTownGuidance": {
+    "message": "Sokuji kasutamiseks valige oma mikrofoni seadetes <strong>\"Sokuji Virtual Microphone\"</strong>."
+  },
+  "gotIt": {
+    "message": "Sain aru"
+  },
+  "remindLater": {
+    "message": "Tuleta hiljem meelde"
   }
 }
