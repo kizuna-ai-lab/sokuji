@@ -261,7 +261,7 @@ const sitePluginsRegistry = {
   'app.gather.town': gatherTownPlugin
   // Add more site plugins here as needed
   // 'meet.google.com': googleMeetPlugin,
-  // 'teams.microsoft.com': teamsPlugin,
+  // 'teams.live.com': teamsPlugin,
   // etc.
 };
 
