@@ -80,6 +80,12 @@
   "gatherTownGuidance": {
     "message": "За да използвате Sokuji, моля изберете <strong>\"Sokuji Virtual Microphone\"</strong> в настройките на микрофона си."
   },
+  "wherebyTitle": {
+    "message": "Sokuji for Whereby"
+  },
+  "wherebyGuidance": {
+    "message": "За да използвате Sokuji, моля изберете <strong>\"Sokuji Virtual Microphone\"</strong> в настройките на микрофона и <strong>деактивирайте намаляването на шума</strong> за по-добра производителност."
+  },
   "gotIt": {
     "message": "Разбрах"
   },

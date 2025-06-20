@@ -80,6 +80,12 @@
   "gatherTownGuidance": {
     "message": "Kutumia Sokuji, chagua <strong>\"Sokuji Virtual Microphone\"</strong> katika mipangilio ya kipaza sauti chako."
   },
+  "wherebyTitle": {
+    "message": "Sokuji for Whereby"
+  },
+  "wherebyGuidance": {
+    "message": "Kutumia Sokuji, tafadhali chagua <strong>\"Sokuji Virtual Microphone\"</strong> katika mipangilio ya kipaza sauti chako na <strong>lemaza kupunguza kelele</strong> kwa utendaji bora zaidi."
+  },
   "gotIt": {
     "message": "Nimeelewa"
   },

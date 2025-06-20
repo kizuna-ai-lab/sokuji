@@ -80,6 +80,12 @@
   "gatherTownGuidance": {
     "message": "Sokuji वापरण्यासाठी, तुमच्या मायक्रोफोन सेटिंग्जमध्ये <strong>\"Sokuji Virtual Microphone\"</strong> निवडा."
   },
+  "wherebyTitle": {
+    "message": "Sokuji for Whereby"
+  },
+  "wherebyGuidance": {
+    "message": "Sokuji वापरण्यासाठी, कृपया आपल्या मायक्रोफोन सेटिंग्जमध्ये <strong>\"Sokuji Virtual Microphone\"</strong> निवडा आणि चांगल्या कामगिरीसाठी <strong>आवाज कमी करणे अक्षम करा</strong>."
+  },
   "gotIt": {
     "message": "समजले"
   },

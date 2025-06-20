@@ -80,6 +80,12 @@
   "gatherTownGuidance": {
     "message": "ሶኩጂ ለመጠቀም፣ በማይክሮፎን ቅንብሮችዎ ውስጥ <strong>\"Sokuji Virtual Microphone\"</strong> ይምረጡ።"
   },
+  "wherebyTitle": {
+    "message": "Sokuji for Whereby"
+  },
+  "wherebyGuidance": {
+    "message": "Sokuji ን ለመጠቀም፣ እባክዎ በማይክሮፎን ቅንብሮችዎ ውስጥ <strong>\"Sokuji Virtual Microphone\"</strong> ን ይምረጡ እና ለተሻለ አፈጻጸም <strong>ድምፅ መቀነስን ያሰናክሉ</strong>።"
+  },
   "gotIt": {
     "message": "ተረድቻለሁ"
   },
