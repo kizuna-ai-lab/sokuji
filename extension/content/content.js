@@ -56,10 +56,26 @@ function injectVirtualMicrophoneScript() {
 
 // Inject site plugins script (includes plugin initialization)
 function injectSitePluginsScript() {
-  // Get i18n messages for plugins
+  // Determine which messages to use based on current site
+  const hostname = window.location.hostname;
+  let title, guidance;
+  
+  if (hostname === 'app.gather.town') {
+    title = chrome.i18n.getMessage('gatherTownTitle');
+    guidance = chrome.i18n.getMessage('gatherTownGuidance');
+  } else if (hostname === 'whereby.com') {
+    title = chrome.i18n.getMessage('wherebyTitle');
+    guidance = chrome.i18n.getMessage('wherebyGuidance');
+  } else {
+    // Default fallback
+    title = 'Sokuji';
+    guidance = 'To use Sokuji, please select "Sokuji Virtual Microphone" in your microphone settings.';
+  }
+  
+  // Get unified i18n messages for plugins
   const i18nMessages = {
-    gatherTownTitle: chrome.i18n.getMessage('gatherTownTitle'),
-    gatherTownGuidance: chrome.i18n.getMessage('gatherTownGuidance'),
+    title: title,
+    guidance: guidance,
     gotIt: chrome.i18n.getMessage('gotIt'),
     remindLater: chrome.i18n.getMessage('remindLater')
   };
@@ -198,9 +214,23 @@ window.sokujiContentScript = {
   // Helper function to get i18n messages (for debugging)
   getI18nMessages: () => {
     try {
+      const hostname = window.location.hostname;
+      let title, guidance;
+      
+      if (hostname === 'app.gather.town') {
+        title = chrome.i18n.getMessage('gatherTownTitle');
+        guidance = chrome.i18n.getMessage('gatherTownGuidance');
+      } else if (hostname === 'whereby.com') {
+        title = chrome.i18n.getMessage('wherebyTitle');
+        guidance = chrome.i18n.getMessage('wherebyGuidance');
+      } else {
+        title = 'Sokuji';
+        guidance = 'To use Sokuji, please select "Sokuji Virtual Microphone" in your microphone settings.';
+      }
+      
       return {
-        gatherTownTitle: chrome.i18n.getMessage('gatherTownTitle'),
-        gatherTownGuidance: chrome.i18n.getMessage('gatherTownGuidance'),
+        title: title,
+        guidance: guidance,
         gotIt: chrome.i18n.getMessage('gotIt'),
         remindLater: chrome.i18n.getMessage('remindLater')
       };

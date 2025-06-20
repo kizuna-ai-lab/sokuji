@@ -29,7 +29,8 @@ const ENABLED_SITES = [
   'meet.google.com',
   'teams.live.com',
   'app.zoom.us',
-  'app.gather.town'
+  'app.gather.town',
+  'whereby.com'
 ];
 
 // Track which tabs have the side panel open
