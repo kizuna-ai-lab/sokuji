@@ -97,5 +97,11 @@
   },
   "defaultGuidance": {
     "message": "Щоб використовувати Sokuji, виберіть \"Sokuji Virtual Microphone\" у налаштуваннях мікрофона."
+  },
+  "discordTitle": {
+    "message": "Sokuji for Discord"
+  },
+  "discordGuidance": {
+    "message": "Щоб використовувати Sokuji, виберіть <strong>\"Sokuji Virtual Microphone\"</strong> у налаштуваннях мікрофона та <strong>вимкніть Придушення шуму</strong> в голосових налаштуваннях Discord для кращої продуктивності."
   }
 }

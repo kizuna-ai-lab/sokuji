@@ -97,5 +97,11 @@
   },
   "defaultGuidance": {
     "message": "Sokuji ని ఉపయోగించడానికి, దయచేసి మీ మైక్రోఫోన్ సెట్టింగ్‌లలో \"Sokuji Virtual Microphone\" ని ఎంచుకోండి."
+  },
+  "discordTitle": {
+    "message": "Sokuji for Discord"
+  },
+  "discordGuidance": {
+    "message": "Sokuji ని ఉపయోగించడానికి, దయచేసి మీ మైక్రోఫోన్ సెట్టింగ్‌లలో <strong>\"Sokuji Virtual Microphone\"</strong> ని ఎంచుకోండి మరియు మెరుగైన పనితీరు కోసం Discord యొక్క వాయిస్ సెట్టింగ్‌లలో <strong>నాయిజ్ సప్రెషన్‌ను నిలిపివేయండి</strong>."
   }
 }

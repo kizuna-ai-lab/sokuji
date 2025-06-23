@@ -97,5 +97,11 @@
   },
   "defaultGuidance": {
     "message": "หากต้องการใช้ Sokuji โปรดเลือก \"Sokuji Virtual Microphone\" ในการตั้งค่าไมโครโฟน"
+  },
+  "discordTitle": {
+    "message": "Sokuji for Discord"
+  },
+  "discordGuidance": {
+    "message": "หากต้องการใช้ Sokuji โปรดเลือก <strong>\"Sokuji Virtual Microphone\"</strong> ในการตั้งค่าไมโครโฟน และ<strong>ปิดการลดเสียงรบกวน</strong>ในการตั้งค่าเสียงของ Discord เพื่อประสิทธิภาพที่ดีขึ้น"
   }
 }

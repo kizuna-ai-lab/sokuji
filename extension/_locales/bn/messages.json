@@ -97,5 +97,11 @@
   },
   "defaultGuidance": {
     "message": "Sokuji ব্যবহার করতে, আপনার মাইক্রোফোন সেটিংসে \"Sokuji Virtual Microphone\" নির্বাচন করুন।"
+  },
+  "discordTitle": {
+    "message": "Sokuji for Discord"
+  },
+  "discordGuidance": {
+    "message": "Sokuji ব্যবহার করতে, আপনার মাইক্রোফোন সেটিংসে <strong>\"Sokuji Virtual Microphone\"</strong> নির্বাচন করুন এবং ভাল পারফরম্যান্সের জন্য Discord এর ভয়েস সেটিংসে <strong>Noise Suppression নিষ্ক্রিয় করুন</strong>।"
   }
 }

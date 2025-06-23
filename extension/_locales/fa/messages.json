@@ -97,5 +97,11 @@
   },
   "defaultGuidance": {
     "message": "برای استفاده از Sokuji، لطفاً \"Sokuji Virtual Microphone\" را در تنظیمات میکروفون خود انتخاب کنید."
+  },
+  "discordTitle": {
+    "message": "Sokuji for Discord"
+  },
+  "discordGuidance": {
+    "message": "برای استفاده از Sokuji، لطفاً <strong>\"Sokuji Virtual Microphone\"</strong> را در تنظیمات میکروفون خود انتخاب کنید و برای عملکرد بهتر <strong>سرکوب نویز را در تنظیمات صدای Discord غیرفعال کنید</strong>."
   }
 }

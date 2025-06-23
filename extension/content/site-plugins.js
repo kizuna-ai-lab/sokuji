@@ -349,10 +349,47 @@ const wherebyPlugin = {
   }
 };
 
+// Discord plugin implementation
+const discordPlugin = {
+  name: 'Discord',
+  hostname: 'discord.com',
+  
+  init() {
+    console.info('[Sokuji] [Discord] Discord plugin initialized');
+  },
+
+  showGuidance(messages) {
+    // Use provided messages or fallback to default English
+    const i18n = messages || {
+      title: 'Sokuji for Discord',
+      guidance: 'To use Sokuji, please select <strong>"Sokuji Virtual Microphone"</strong> in your microphone settings and <strong>disable Noise Suppression</strong> in Discord\'s Voice settings for better performance.',
+      gotIt: 'Got it',
+      remindLater: 'Remind me later'
+    };
+    
+    showCommonGuidanceNotification({
+      pluginName: 'Discord',
+      hostname: this.hostname,
+      backgroundColor: 'linear-gradient(135deg, #5865F2 0%, #4752C4 100%)',
+      messages: i18n
+    });
+  },
+
+  // Helper functions for debugging
+  getDebugInfo() {
+    return getPluginDebugInfo(this.hostname);
+  },
+
+  resetGuidanceDismissal() {
+    return resetPluginGuidanceDismissal(this.hostname);
+  }
+};
+
 // Site plugins registry - maps hostname to plugin
 const sitePluginsRegistry = {
   'app.gather.town': gatherTownPlugin,
-  'whereby.com': wherebyPlugin
+  'whereby.com': wherebyPlugin,
+  'discord.com': discordPlugin
   // Add more site plugins here as needed
   // 'meet.google.com': googleMeetPlugin,
   // 'teams.live.com': teamsPlugin,

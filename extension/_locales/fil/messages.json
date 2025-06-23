@@ -97,5 +97,11 @@
   },
   "defaultGuidance": {
     "message": "Upang gamitin ang Sokuji, pakipili ang \"Sokuji Virtual Microphone\" sa inyong microphone settings."
+  },
+  "discordTitle": {
+    "message": "Sokuji for Discord"
+  },
+  "discordGuidance": {
+    "message": "Upang gamitin ang Sokuji, pakipili ang <strong>\"Sokuji Virtual Microphone\"</strong> sa inyong microphone settings at <strong>i-disable ang Noise Suppression</strong> sa voice settings ng Discord para sa mas magandang performance."
   }
 }

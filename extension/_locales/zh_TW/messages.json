@@ -97,5 +97,11 @@
   },
   "defaultGuidance": {
     "message": "要使用 Sokuji，請在麥克風設定中選擇「Sokuji Virtual Microphone」。"
+  },
+  "discordTitle": {
+    "message": "Sokuji for Discord"
+  },
+  "discordGuidance": {
+    "message": "要使用 Sokuji，請在麥克風設定中選擇<strong>「Sokuji Virtual Microphone」</strong>，並在 Discord 的語音設定中<strong>關閉噪音抑制</strong>以獲得更好的效能。"
   }
 }
