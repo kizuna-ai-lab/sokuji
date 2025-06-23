@@ -1,6 +1,6 @@
 {
   "name": "sokuji-extension",
-  "version": "0.5.4",
+  "version": "0.5.5",
   "description": "Browser extension version of Sokuji - Live speech translation using OpenAI and Google Gemini APIs",
   "private": true,
   "scripts": {
@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@openai/realtime-api-beta": "github:openai/openai-realtime-api-beta",
-    "posthog-js": "^1.167.0"
+    "posthog-js": "1.167.0"
   },
   "devDependencies": {
     "@babel/core": "^7.23.0",
