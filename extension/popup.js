@@ -82,7 +82,8 @@ const ENABLED_SITES = [
   'teams.live.com',
   'app.zoom.us',
   'app.gather.town',
-  'whereby.com'
+  'whereby.com',
+  'discord.com'
 ];
 
 // Site information with display names and icons
@@ -106,6 +107,10 @@ const SITE_INFO = {
   'whereby.com': {
     name: 'Whereby',
     icon: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABwAAAAcCAMAAABF0y+mAAAAulBMVEX429X53Nb12NLv0szt0Mrqzcfx0s39493y1c/94dv//fb/9/D///z////56+bt1s+DcG2lkIx7aWZ0YmCfioZpWlYAAAD/6uTZ0M5DNTM+ODaPg4BmX13NuraflJEkJSUTDQy2qabk4N6onJjy4NlFQD+opaT/+fddWVeYl5d2c3O3op6CfHoyMDDw5ePax8NKPDrg1NBYTUovJCGtr62/v7r75+EYHBzJzMwoGxcZFRbFsq2Ufnra2tqLdargAAABL0lEQVR4AcSPBZYCMRBEo/gIVsC44+52/2PhhHl7ga14fiv5P9G3XlfCWB4xLl6SgjLGC8WiKFHFypVKtVJ7SBO61GsG18r8S6kw6/W62Wi22ujo3R5gVYkK3bEBOK7nIwijBwsQV/mHlRItRZD1+2GAQexkQwuj/jculdUxMEmEPn0cs1l/DltBwow+sOguqy3A7siCBlfnqkupmUBW5FVgtUxIB/1cryWiA+3I1dbAJul7qSYpybm2ge2OIUDD0PZGp0R+KhXnQENL3QZwmB81SfIS0QLonrQzsBnVX7UqUb7LgNWlGq2x6L1KzYkl1zUwEzsPGOuqHJXVxqUvySFAZDDyB+42uJKS0TFN3VCOKu7SjARlu8wt/xwVLXcev4wUd3mm6H3gIGMCUQMIAHDuG3vTJfIlAAAAAElFTkSuQmCC'
+  },
+  'discord.com': {
+    name: 'Discord',
+    icon: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABwAAAAcCAMAAABF0y+mAAAASFBMVEVHcExYZPFXZPJXZPFXZPFXZPFXZPFXZPFYZPJYZfJYZPJXZfFWY/JhbfNsd/OSmvbS1fv////x8/6pr/hQXvLl5/2Bi/XAxfpYg8U1AAAADHRSTlMADzmFwOT8YtP/sloPkm6kAAABAklEQVR4AYWTBbLFIAxFcXs4lf3vFEg1X2+9JzITIZco40IqJQVnlGBRbewtoxFmziI59rCPRGhIfn5hiLKDYSkJkemZz98689IB9YlCjPMlxnBgr4ejgTebcqltqJacLFBDCQPHJZWX0gIOjHB4Lusbrgu4ciKQI3IVRALMGGaAkqgZNdQRK4U8foc0MtQw46oDbmC9pBkQomwHlBPOlOsW9lL2sK1XUknETNnKpNOl5slKm1AQfsFaxw2eF+RQBB9HwLq3PedxG3CPMyc7yufDqF6b5Q2+jfoFf5SPaH/WPXhQuCqvn5bNVqEXR1GzkST7e0wwxeyX0fSO/T/Uf65DBzQNHUMopTvLAAAAAElFTkSuQmCC'
   }
 };
 

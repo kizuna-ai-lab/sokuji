@@ -91,5 +91,11 @@
   },
   "remindLater": {
     "message": "Ingatkan nanti"
+  },
+  "defaultTitle": {
+    "message": "Sokuji"
+  },
+  "defaultGuidance": {
+    "message": "Untuk menggunakan Sokuji, silakan pilih \"Sokuji Virtual Microphone\" di pengaturan mikrofon Anda."
   }
 }

@@ -91,5 +91,11 @@
   },
   "remindLater": {
     "message": "나중에 알림"
+  },
+  "defaultTitle": {
+    "message": "Sokuji"
+  },
+  "defaultGuidance": {
+    "message": "Sokuji를 사용하려면 마이크 설정에서 \"Sokuji Virtual Microphone\"을 선택하세요."
   }
 }

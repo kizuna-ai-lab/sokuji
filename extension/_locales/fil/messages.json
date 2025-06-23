@@ -91,5 +91,11 @@
   },
   "remindLater": {
     "message": "Paalalahanan mamaya"
+  },
+  "defaultTitle": {
+    "message": "Sokuji"
+  },
+  "defaultGuidance": {
+    "message": "Upang gamitin ang Sokuji, pakipili ang \"Sokuji Virtual Microphone\" sa inyong microphone settings."
   }
 }
