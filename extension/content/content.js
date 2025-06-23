@@ -94,8 +94,8 @@ function injectSitePluginsScript() {
     guidance = chrome.i18n.getMessage('wherebyGuidance');
   } else {
     // Default fallback
-    title = 'Sokuji';
-    guidance = 'To use Sokuji, please select "Sokuji Virtual Microphone" in your microphone settings.';
+    title = chrome.i18n.getMessage('defaultTitle');
+    guidance = chrome.i18n.getMessage('defaultGuidance');
   }
   
   // Get unified i18n messages for plugins

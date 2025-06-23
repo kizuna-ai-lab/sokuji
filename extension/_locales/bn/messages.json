@@ -91,5 +91,11 @@
   },
   "remindLater": {
     "message": "পরে মনে করিয়ে দিন"
+  },
+  "defaultTitle": {
+    "message": "Sokuji"
+  },
+  "defaultGuidance": {
+    "message": "Sokuji ব্যবহার করতে, আপনার মাইক্রোফোন সেটিংসে \"Sokuji Virtual Microphone\" নির্বাচন করুন।"
   }
 }

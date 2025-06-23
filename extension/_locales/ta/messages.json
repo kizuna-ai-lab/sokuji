@@ -91,5 +91,11 @@
   },
   "remindLater": {
     "message": "பின்னர் நினைவூட்டு"
+  },
+  "defaultTitle": {
+    "message": "Sokuji"
+  },
+  "defaultGuidance": {
+    "message": "Sokuji ஐ பயன்படுத்த, உங்கள் மைக்ரோஃபோன் அமைப்புகளில் \"Sokuji Virtual Microphone\" ஐ தேர்ந்தெடுக்கவும்."
   }
 }
