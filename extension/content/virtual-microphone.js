@@ -7,9 +7,7 @@
 (function() {
   console.info('[Sokuji] [VirtualMic] Virtual Microphone script loaded');
 
-  // Store original mediaDevices methods
-  const originalEnumerateDevices = navigator.mediaDevices.enumerateDevices.bind(navigator.mediaDevices);
-  const originalGetUserMedia = navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);
+  // No need to store original methods when using device emulator
 
   // Virtual device configuration
   const VIRTUAL_MIC_ID = 'sokuji-virtual-microphone';
@@ -34,29 +32,7 @@
   let playbackQueue = []; // Queue of complete audio batches ready for playback
   let chunkBuffer = new Map(); // Temporary storage for incomplete batches: trackId -> {chunks, totalChunks, sampleRate}
   
-  /**
-   * Create a MediaDeviceInfo-like object for our virtual microphone
-   */
-  function createVirtualMicrophoneInfo() {
-    // Create a MediaDeviceInfo-like object that matches the expected interface
-    const virtualMicrophoneInfo = {
-      deviceId: VIRTUAL_MIC_ID,
-      kind: 'audioinput',
-      label: VIRTUAL_MIC_LABEL,
-      groupId: VIRTUAL_MIC_GROUP_ID,
-      // Implement toJSON method as required by MediaDeviceInfo interface
-      toJSON: function() {
-        return {
-          deviceId: this.deviceId,
-          kind: this.kind,
-          label: this.label,
-          groupId: this.groupId
-        };
-      }
-    };
-    
-    return virtualMicrophoneInfo;
-  }
+  // No longer need createVirtualMicrophoneInfo as device-emulator handles device creation
   
   /**
    * Initialize the virtual microphone
@@ -352,7 +328,14 @@
       }, playbackDurationMs);
       
     } catch (error) {
-      console.error('[Sokuji] [VirtualMic] Error in playback process:', error);
+      // Check if this is the specific stream closed error we want to suppress
+      const isStreamClosedError = error.name === 'InvalidStateError' && 
+        error.message && error.message.includes('Stream closed');
+      
+      if (!isStreamClosedError) {
+        console.error('[Sokuji] [VirtualMic] Error in playback process:', error);
+      }
+      
       // Continue with next batch after a short delay
       setTimeout(() => {
         processNextPlaybackBatch();
@@ -490,6 +473,17 @@
     playbackQueue.length = 0;
     chunkBuffer.clear();
     
+    // Remove emulated device if exists
+    if (virtualDeviceId && navigator.mediaDevices?.removeEmulatedDevice) {
+      try {
+        navigator.mediaDevices.removeEmulatedDevice(virtualDeviceId);
+        console.info('[Sokuji] [VirtualMic] Removed emulated device');
+      } catch (error) {
+        console.warn('[Sokuji] [VirtualMic] Error removing emulated device:', error);
+      }
+      virtualDeviceId = null;
+    }
+    
     // Release writer
     if (audioWriter) {
       try {
@@ -528,89 +522,84 @@
     }
   }
   
-  // Override enumerateDevices to include virtual microphone
-  navigator.mediaDevices.enumerateDevices = async function() {
-    console.debug('[Sokuji] [VirtualMic] enumerateDevices called');
-    
-    const devices = await originalEnumerateDevices();
-    
-    // Add virtual microphone if not already present
-    const hasVirtualMic = devices.some(device => 
-      device.deviceId === VIRTUAL_MIC_ID && device.kind === 'audioinput'
-    );
-    
-    if (!hasVirtualMic) {
-      // Create a proper MediaDeviceInfo-like object
-      const virtualMicrophoneInfo = createVirtualMicrophoneInfo();
-      devices.push(virtualMicrophoneInfo);
-    }
-    
-    return devices;
-  };
+  // Virtual device state
+  let virtualDeviceId = null;
   
-  // Override getUserMedia to handle virtual microphone requests
-  navigator.mediaDevices.getUserMedia = async function(constraints) {
-    console.debug('[Sokuji] [VirtualMic] getUserMedia called', constraints);
-    
-    // Check if we're on Zoom
-    const isZoomDomain = window.location.hostname === 'app.zoom.us';
-    
-    // Standard check for requesting virtual microphone
-    const isRequestingVirtualMic = constraints?.audio && (
-      constraints.audio === true ||
-      (constraints.audio.deviceId && (
-        constraints.audio.deviceId === VIRTUAL_MIC_ID ||
-        constraints.audio.deviceId.exact === VIRTUAL_MIC_ID ||
-        (Array.isArray(constraints.audio.deviceId.ideal) && 
-         constraints.audio.deviceId.ideal.includes(VIRTUAL_MIC_ID)) ||
-        (Array.isArray(constraints.audio.deviceId.oneOf) && 
-         constraints.audio.deviceId.oneOf.includes(VIRTUAL_MIC_ID))
-      ))
-    );
-    
-    // Special handling for Zoom: check if deviceId is unknown (not found in real devices)
-    let isUnknownDeviceOnZoom = false;
-    if (isZoomDomain && constraints?.audio && constraints.audio.deviceId) {
-      const requestedDeviceId = constraints.audio.deviceId.exact || constraints.audio.deviceId;
-      if (requestedDeviceId) {
-        // Get list of real device IDs
-        const realDevices = await originalEnumerateDevices();
-        const realDeviceIds = realDevices
-          .filter(device => device.kind === 'audioinput')
-          .map(device => device.deviceId);
-        
-        // Check if requested device is not in the list of real devices
-        isUnknownDeviceOnZoom = !realDeviceIds.includes(requestedDeviceId);
-        if (isUnknownDeviceOnZoom) {
-          console.info(`[Sokuji] [VirtualMic] Zoom requested unknown device ID: ${requestedDeviceId}, using virtual microphone`);
-        }
+  /**
+   * Wait for device emulator to be loaded
+   */
+  function waitForDeviceEmulator() {
+    return new Promise((resolve, reject) => {
+      // Check if device emulator is already loaded
+      if (navigator.mediaDevices && typeof navigator.mediaDevices.addEmulatedDevice === 'function') {
+        console.info('[Sokuji] [VirtualMic] Device emulator already available');
+        resolve();
+        return;
       }
+      
+      // Listen for the device emulator loaded event
+      const handleDeviceEmulatorLoaded = () => {
+        console.info('[Sokuji] [VirtualMic] Device emulator loaded event received');
+        window.removeEventListener('dyte.deviceEmulatorLoaded', handleDeviceEmulatorLoaded);
+        resolve();
+      };
+      
+      window.addEventListener('dyte.deviceEmulatorLoaded', handleDeviceEmulatorLoaded);
+      
+      // Timeout after 10 seconds
+      setTimeout(() => {
+        window.removeEventListener('dyte.deviceEmulatorLoaded', handleDeviceEmulatorLoaded);
+        reject(new Error('Device emulator did not load within 10 seconds'));
+      }, 10000);
+    });
+  }
+  
+  /**
+   * Register virtual microphone with device emulator
+   */
+  async function registerVirtualDevice() {
+    if (virtualDeviceId) {
+      console.debug('[Sokuji] [VirtualMic] Virtual device already registered');
+      return;
     }
     
-    // Provide virtual microphone if explicitly requested or if on Zoom with unknown device
-    if (isRequestingVirtualMic) {
-      console.info('[Sokuji] [VirtualMic] Providing virtual microphone stream');
+    try {
+      // Wait for device emulator to be available
+      await waitForDeviceEmulator();
       
+      // Ensure virtual microphone is initialized
       if (!initializeVirtualMic()) {
-        throw new DOMException('Could not start virtual audio source', 'NotReadableError');
+        throw new Error('Failed to initialize virtual microphone');
       }
+      // Register the virtual device using device emulator
+      virtualDeviceId = await navigator.mediaDevices.addEmulatedDevice('audioinput', undefined, {
+        stream: virtualStream,
+        label: VIRTUAL_MIC_LABEL,
+        deviceId: VIRTUAL_MIC_ID,
+        groupId: VIRTUAL_MIC_GROUP_ID
+      });
       
-      return virtualStream;
+      console.info(`[Sokuji] [VirtualMic] Virtual microphone registered with device ID: ${virtualDeviceId}`);
+      
+    } catch (error) {
+      console.error('[Sokuji] [VirtualMic] Failed to register virtual device:', error);
     }
-    
-    // For other requests, clean up virtual mic if active
-    if (isActive && constraints?.audio) {
-      console.info('[Sokuji] [VirtualMic] Switching away from virtual microphone');
-      if (!isUnknownDeviceOnZoom) {
-        cleanup();
-      }
-    }
-    
-    return originalGetUserMedia(constraints);
-  };
+  }
   
   // Set up message listener
   window.addEventListener('message', handleMessage);
+  
+  // Listen for device emulator loaded event and register virtual device
+  window.addEventListener('dyte.deviceEmulatorLoaded', () => {
+    console.info('[Sokuji] [VirtualMic] Device emulator loaded, registering virtual microphone...');
+    registerVirtualDevice();
+  });
+  
+  // Check if device emulator is already loaded
+  if (navigator.mediaDevices && typeof navigator.mediaDevices.addEmulatedDevice === 'function') {
+    console.info('[Sokuji] [VirtualMic] Device emulator already available, registering virtual microphone...');
+    registerVirtualDevice();
+  }
   
   // Expose API for debugging
   window.sokujiVirtualMic = {
@@ -618,13 +607,13 @@
     isPlaying: () => isPlaying,
     getQueueLength: () => playbackQueue.length,
     getBufferedTracks: () => Array.from(chunkBuffer.keys()),
-    getDeviceId: () => VIRTUAL_MIC_ID,
+    getDeviceId: () => virtualDeviceId,
     getVirtualStream: () => virtualStream,
-    // getDeviceInfo: () => createVirtualMicrophoneInfo(),
     addAudioData,
     cleanup,
-    reinitialize: initializeVirtualMic
+    reinitialize: initializeVirtualMic,
+    registerDevice: registerVirtualDevice
   };
   
-  console.info('[Sokuji] [VirtualMic] Virtual microphone setup complete');
+  console.info('[Sokuji] [VirtualMic] Virtual microphone setup complete (Device Emulator version)');
 })();

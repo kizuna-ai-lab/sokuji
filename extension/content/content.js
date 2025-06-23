@@ -28,6 +28,32 @@ function getExtensionURL(path) {
   return url;
 }
 
+// Inject the device emulator script first
+function injectDeviceEmulatorScript() {
+  // Get the URL of the device emulator script
+  const scriptURL = getExtensionURL('content/device-emulator.iife.js');
+  
+  // Create a script element
+  const script = document.createElement('script');
+  script.src = scriptURL;
+  script.async = false; // Ensure it's loaded synchronously
+  script.id = 'sokuji-device-emulator-script';
+  
+  // Insert the script as early as possible
+  // Try to insert it at the beginning of the head or document
+  if (document.head) {
+    document.head.insertBefore(script, document.head.firstChild);
+  } else if (document.documentElement) {
+    // If head isn't available yet, insert at the beginning of the HTML element
+    document.documentElement.insertBefore(script, document.documentElement.firstChild);
+  } else {
+    // Last resort: append to document
+    document.appendChild(script);
+  }
+  
+  console.info('[Sokuji] [Content] Device emulator script injected into page');
+}
+
 // Inject the virtual microphone script as early as possible
 function injectVirtualMicrophoneScript() {
   // Get the URL of the script
@@ -155,6 +181,8 @@ function injectPermissionIframe() {
 }
 
 // Run script injections immediately (before DOMContentLoaded)
+// Inject device emulator first, then virtual microphone
+injectDeviceEmulatorScript();
 injectVirtualMicrophoneScript();
 injectSitePluginsScript();
 
@@ -198,6 +226,7 @@ window.sokujiContentScript = {
     context: 'content',
     canInjectScripts: true,
     permissionIframeInjected: !!document.getElementById('sokujiPermissionsIFrame'),
+    deviceEmulatorScriptInjected: !!document.getElementById('sokuji-device-emulator-script'),
     virtualMicScriptInjected: !!document.getElementById('sokuji-virtual-microphone-script'),
     pluginsScriptInjected: !!document.getElementById('sokuji-site-plugins-script')
   }),

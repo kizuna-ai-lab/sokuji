@@ -48,7 +48,8 @@
   "web_accessible_resources": [
     {
       "resources": [
-        "content/virtual-microphone.js", 
+        "content/virtual-microphone.js",
+        "content/device-emulator.iife.js",
         "content/site-plugins.js",
         "assets/*", 
         "fullpage.html", 
