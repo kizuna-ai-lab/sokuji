@@ -473,17 +473,6 @@
     playbackQueue.length = 0;
     chunkBuffer.clear();
     
-    // Remove emulated device if exists
-    if (virtualDeviceId && navigator.mediaDevices?.removeEmulatedDevice) {
-      try {
-        navigator.mediaDevices.removeEmulatedDevice(virtualDeviceId);
-        console.info('[Sokuji] [VirtualMic] Removed emulated device');
-      } catch (error) {
-        console.warn('[Sokuji] [VirtualMic] Error removing emulated device:', error);
-      }
-      virtualDeviceId = null;
-    }
-    
     // Release writer
     if (audioWriter) {
       try {
@@ -578,6 +567,7 @@
         deviceId: VIRTUAL_MIC_ID,
         groupId: VIRTUAL_MIC_GROUP_ID
       });
+      // virtualDeviceId = await navigator.mediaDevices.addEmulatedDevice('audioinput');
       
       console.info(`[Sokuji] [VirtualMic] Virtual microphone registered with device ID: ${virtualDeviceId}`);
       
