@@ -37,6 +37,28 @@ if (!isWebclientIframe) {
   console.info('[Sokuji] [Zoom] Not in webclient iframe, exiting');
   // Exit early if not in webclient iframe
 } else {
+  // Inject the device emulator script first
+  function injectDeviceEmulatorScript() {
+    // Get the URL of the device emulator script
+    const scriptURL = getExtensionURL('content/device-emulator.iife.js');
+    
+    // Create a script element
+    const script = document.createElement('script');
+    script.src = scriptURL;
+    script.async = false; // Ensure it's loaded synchronously
+    script.id = 'sokuji-device-emulator-script';
+    
+    // Inject directly into the webclient iframe
+    if (document.head) {
+      document.head.insertBefore(script, document.head.firstChild);
+    } else if (document.documentElement) {
+      document.documentElement.insertBefore(script, document.documentElement.firstChild);
+    } else {
+      document.appendChild(script);
+    }
+    console.info('[Sokuji] [Zoom] Device emulator script injected into Zoom webclient iframe');
+  }
+
   // Inject the virtual microphone script as early as possible
   function injectVirtualMicrophoneScript() {
     // Get the URL of the script
@@ -349,7 +371,9 @@ if (!isWebclientIframe) {
     console.info('[Sokuji] [Zoom] Audio profile notification shown');
   }
 
-  // Run script injection immediately (before DOMContentLoaded)
+  // Run script injections immediately (before DOMContentLoaded)
+  // Inject device emulator first, then virtual microphone
+  injectDeviceEmulatorScript();
   injectVirtualMicrophoneScript();
 
   // Wait for DOM to be ready before injecting permission iframe
@@ -424,6 +448,8 @@ if (!isWebclientIframe) {
       hasVirtualMic: !!window.sokujiVirtualMic,
       canInjectAudio: true,
       microphoneMonitorActive: true,
+      deviceEmulatorScriptInjected: !!document.getElementById('sokuji-device-emulator-script'),
+      virtualMicScriptInjected: !!document.getElementById('sokuji-virtual-microphone-script'),
       audioProfileNotificationDismissed: (() => {
         try {
           return localStorage.getItem('sokuji-zoom-audio-profile-dismissed') === 'true';
