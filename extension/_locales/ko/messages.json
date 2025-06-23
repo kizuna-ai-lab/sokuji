@@ -97,5 +97,11 @@
   },
   "defaultGuidance": {
     "message": "Sokuji를 사용하려면 마이크 설정에서 \"Sokuji Virtual Microphone\"을 선택하세요."
+  },
+  "discordTitle": {
+    "message": "Sokuji for Discord"
+  },
+  "discordGuidance": {
+    "message": "Sokuji를 사용하려면 마이크 설정에서 <strong>\"Sokuji Virtual Microphone\"</strong>을 선택하고, 더 나은 성능을 위해 Discord의 음성 설정에서 <strong>노이즈 억제를 비활성화</strong>하세요."
   }
 }

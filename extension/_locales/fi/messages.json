@@ -97,5 +97,11 @@
   },
   "defaultGuidance": {
     "message": "Käyttääksesi Sokuji:ta, valitse \"Sokuji Virtual Microphone\" mikrofonin asetuksista."
+  },
+  "discordTitle": {
+    "message": "Sokuji for Discord"
+  },
+  "discordGuidance": {
+    "message": "Käyttääksesi Sokuji:ta, valitse <strong>\"Sokuji Virtual Microphone\"</strong> mikrofonin asetuksista ja <strong>poista Kohinanvaimennus käytöstä</strong> Discordin ääniasetuksista parempaa suorituskykyä varten."
   }
 }

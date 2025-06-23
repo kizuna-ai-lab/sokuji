@@ -92,6 +92,9 @@ function injectSitePluginsScript() {
   } else if (hostname === 'whereby.com') {
     title = chrome.i18n.getMessage('wherebyTitle');
     guidance = chrome.i18n.getMessage('wherebyGuidance');
+  } else if (hostname === 'discord.com') {
+    title = chrome.i18n.getMessage('discordTitle');
+    guidance = chrome.i18n.getMessage('discordGuidance');
   } else {
     // Default fallback
     title = chrome.i18n.getMessage('defaultTitle');
@@ -238,33 +241,6 @@ window.sokujiContentScript = {
       return pageContext ? pageContext.getStatus() : { error: 'Page context not accessible from content script' };
     } catch (e) {
       return { error: 'Cannot access page context: ' + e.message };
-    }
-  },
-  // Helper function to get i18n messages (for debugging)
-  getI18nMessages: () => {
-    try {
-      const hostname = window.location.hostname;
-      let title, guidance;
-      
-      if (hostname === 'app.gather.town') {
-        title = chrome.i18n.getMessage('gatherTownTitle');
-        guidance = chrome.i18n.getMessage('gatherTownGuidance');
-      } else if (hostname === 'whereby.com') {
-        title = chrome.i18n.getMessage('wherebyTitle');
-        guidance = chrome.i18n.getMessage('wherebyGuidance');
-      } else {
-        title = 'Sokuji';
-        guidance = 'To use Sokuji, please select "Sokuji Virtual Microphone" in your microphone settings.';
-      }
-      
-      return {
-        title: title,
-        guidance: guidance,
-        gotIt: chrome.i18n.getMessage('gotIt'),
-        remindLater: chrome.i18n.getMessage('remindLater')
-      };
-    } catch (e) {
-      return { error: 'Cannot access i18n messages: ' + e.message };
     }
   }
 };

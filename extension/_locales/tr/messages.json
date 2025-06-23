@@ -97,5 +97,11 @@
   },
   "defaultGuidance": {
     "message": "Sokuji'yi kullanmak için mikrofon ayarlarınızda \"Sokuji Virtual Microphone\"u seçin."
+  },
+  "discordTitle": {
+    "message": "Sokuji for Discord"
+  },
+  "discordGuidance": {
+    "message": "Sokuji'yi kullanmak için mikrofon ayarlarınızda <strong>\"Sokuji Virtual Microphone\"</strong>u seçin ve daha iyi performans için Discord'un ses ayarlarında <strong>Gürültü Bastırma'yı devre dışı bırakın</strong>."
   }
 }
