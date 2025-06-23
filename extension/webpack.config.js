@@ -15,6 +15,7 @@ module.exports = (env, argv) => {
       'zoom-content': './content/zoom-content.js',
       'content/site-plugins': './content/site-plugins.js',
       'content/virtual-microphone': './content/virtual-microphone.js',
+      'content/device-emulator.iife': './content/device-emulator.iife.js',
       fullpage: '../shared/index.tsx',
       popup: './popup.js',
     },
