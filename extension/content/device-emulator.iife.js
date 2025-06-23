@@ -610,6 +610,12 @@
           await registerMediaStreamTrack(audioDeviceId, mediaStream2, emulatedConstraints, "audio", meta);
         }
       }
+      if (realConstraints.audio || realConstraints.video) {
+        const stream = await originalFn(realConstraints);
+        stream.getTracks().forEach((track) => {
+          mediaStream2.addTrack(track);
+        });
+      }
       return mediaStream2;
     }
     const mediaStream = new MediaStream();
