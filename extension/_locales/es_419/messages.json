@@ -15,7 +15,7 @@
     "message": "Chrome Web Store"
   },
   "edgeAddons": {
-    "message": "Complementos de Edge"
+    "message": "Edge Add-ons"
   },
   "sokujiAvailable": {
     "message": "✓ Sokuji is available on $SITE_NAME$!",
@@ -109,5 +109,17 @@
   },
   "slackGuidance": {
     "message": "Para usar Sokuji en Slack Huddles, por favor <strong>inicia un Huddle</strong>, luego selecciona <strong>\"Sokuji Virtual Microphone\"</strong> en tu configuración de Video y Micrófono, y <strong>desactiva la Supresión de ruido</strong> en las preferencias de Audio y Video para un mejor rendimiento."
+  },
+  "showMoreSites": {
+    "message": "Show $COUNT$ more sites",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "4"
+      }
+    }
+  },
+  "showLessSites": {
+    "message": "Show less sites"
   }
 }

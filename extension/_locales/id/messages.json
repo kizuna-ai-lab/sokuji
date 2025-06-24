@@ -109,5 +109,17 @@
   },
   "slackGuidance": {
     "message": "Untuk menggunakan Sokuji di Slack Huddles, silakan <strong>mulai Huddle</strong>, lalu pilih <strong>\"Sokuji Virtual Microphone\"</strong> di pengaturan Video dan Mic Anda, dan <strong>nonaktifkan Penekan Noise</strong> di preferensi Audio dan Video untuk performa yang lebih baik."
+  },
+  "showMoreSites": {
+    "message": "Show $COUNT$ more sites",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "4"
+      }
+    }
+  },
+  "showLessSites": {
+    "message": "Show less sites"
   }
 }
