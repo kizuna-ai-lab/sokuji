@@ -83,7 +83,8 @@ const ENABLED_SITES = [
   'app.zoom.us',
   'app.gather.town',
   'whereby.com',
-  'discord.com'
+  'discord.com',
+  'app.slack.com'
 ];
 
 // Site information with display names and icons
@@ -111,6 +112,10 @@ const SITE_INFO = {
   'discord.com': {
     name: 'Discord',
     icon: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABwAAAAcCAMAAABF0y+mAAAASFBMVEVHcExYZPFXZPJXZPFXZPFXZPFXZPFXZPFYZPJYZfJYZPJXZfFWY/JhbfNsd/OSmvbS1fv////x8/6pr/hQXvLl5/2Bi/XAxfpYg8U1AAAADHRSTlMADzmFwOT8YtP/sloPkm6kAAABAklEQVR4AYWTBbLFIAxFcXs4lf3vFEg1X2+9JzITIZco40IqJQVnlGBRbewtoxFmziI59rCPRGhIfn5hiLKDYSkJkemZz98689IB9YlCjPMlxnBgr4ejgTebcqltqJacLFBDCQPHJZWX0gIOjHB4Lusbrgu4ciKQI3IVRALMGGaAkqgZNdQRK4U8foc0MtQw46oDbmC9pBkQomwHlBPOlOsW9lL2sK1XUknETNnKpNOl5slKm1AQfsFaxw2eF+RQBB9HwLq3PedxG3CPMyc7yufDqF6b5Q2+jfoFf5SPaH/WPXhQuCqvn5bNVqEXR1GzkST7e0wwxeyX0fSO/T/Uf65DBzQNHUMopTvLAAAAAElFTkSuQmCC'
+  },
+  'app.slack.com': {
+    name: 'Slack',
+    icon: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAD2klEQVR4Ab2VBYzjVhRFn7OMomUKlMk/1AwVUkGZubHLzK2oGChzK1ZJVFGZnLGdMgXKzLiMAXsY3bvgKvXau55Za450B/KV944/mdyQKGkh5KlEqfEHfhdaytoxbaVuzhwPqxmOqVmBlzMf8UrmJ6ZkHmBKdhF5QWtZ4xLFxneI0ZShts+79qEd8Gr2dF5OG/9PRiEvSJT1syzNzXxHIKzkpqNhH2JYMhJV7tqb9pSWUuNWWwHkyMrAVEz5UmtzM1iacz1YAv0QNBuyE2gvdk3n1cxyJwGmpgXyAmy8uyZewEJLUWtvKWk3Q+YOM8kv9MkTJOCMJwJHfNbLtVa62lqL2jXIdU7BDFzTVtYYNRGRc64FWuTcfKakz2ZqhpFJS1kPYT0/Q4wxpDP5S++U7ccw60oAl9Ot+GzAPKK8klaYnFlAKPYcYow1mI1HCYRdzABuxQ7bcSV9JwS0+rgEilrfcb8bPjd7AI1utxfIlAn3+8/jnIFfCRxauGcGGgzbN8juRwDT/YDtuJx+jVDoynEI9LVU9CNoB1jLa1FwyNLgHXMc7wU7gRHMwPGEJeASJT2For3ummsabsfjqImOdx7hsLOvwrXcj8KjEHo18f59swjYzoCSrkffuquVFXIcmSQ/656Kp1rYUmkscgpewQtxZCeTAy0f3DM1quTmkoWImpsdLmQWbctb6QU4jpPIjjUhcdaqvS+cvS37XTJlp/H9L5hqJGHtgCHFuIYcm72rdCmxmdTMyoDI/eMXD1u5IrX2nxUp47/4U1fQDjYFL5m9coXwEj4fWekXflsVTEXJQi0fPrn6Jlu75U3e2G0k9otWiIeqcpQjFBRQeBQx7ASMs170/bNC+MIy3g1p1tQ8hcIDiDGGDFY7w0lCse8Qw0kAgmfZja/E9wg01Pg0PJG75pZU3+RfIDTSHRqIBDD1j9sKIuv2vXzalnxkgX0DV0vxGZ4w9crOzYXRVUFxHwIQecJJYMNe50/XpZivKrHvxzkD99PK4PkHoNhvTYX7Me1XEnAjQECToktQ8JcxNB+tSny51smWbm8SusD3T0A8C41vXBsUVxBwK9B0BKfWJHYupvWhXaWaZ/fW8+w4XYlz5Aa3At7jUqAuhWdjD1zdlFQtH10+YQJVKbzcZncPQOT0CRKImALW1Az5uCm0p/zjFx5zEli730XTsPGWOR6zfPgoDwRE0VYA7wQCupqYiWaDdket/mbkQC+WwIeGf1oERtb6xTjtYIvEX2kVwDn/kLxilV84CC+k13Zc29/gvjgHYpw5jg3nw1Jch8a/IlUIPbslz/zkgn8BeVEBTo2yH6AAAAAASUVORK5CYII='
   }
 };
 

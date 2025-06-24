@@ -75,13 +75,13 @@
     "message": "code bijdragen"
   },
   "gatherTownTitle": {
-    "message": "Sokuji for Gather Town"
+    "message": "Sokuji voor Gather Town"
   },
   "gatherTownGuidance": {
     "message": "Om Sokuji te gebruiken, selecteer <strong>\"Sokuji Virtual Microphone\"</strong> in uw microfooninstellingen."
   },
   "wherebyTitle": {
-    "message": "Sokuji for Whereby"
+    "message": "Sokuji voor Whereby"
   },
   "wherebyGuidance": {
     "message": "Om Sokuji te gebruiken, selecteer <strong>\"Sokuji Virtual Microphone\"</strong> in de microfooninstellingen en <strong>schakel ruisonderdrukking uit</strong> voor betere prestaties."
@@ -99,9 +99,15 @@
     "message": "Om Sokuji te gebruiken, selecteer \"Sokuji Virtual Microphone\" in uw microfooninstellingen."
   },
   "discordTitle": {
-    "message": "Sokuji for Discord"
+    "message": "Sokuji voor Discord"
   },
   "discordGuidance": {
     "message": "Om Sokuji te gebruiken, selecteer <strong>\"Sokuji Virtual Microphone\"</strong> in uw microfooninstellingen en <strong>schakel Ruisonderdrukking uit</strong> in de Discord-spraakinstellingen voor betere prestaties."
+  },
+  "slackTitle": {
+    "message": "Sokuji voor Slack"
+  },
+  "slackGuidance": {
+    "message": "Om Sokuji in Slack Huddles te gebruiken, <strong>start een Huddle</strong>, selecteer vervolgens <strong>\"Sokuji Virtual Microphone\"</strong> in uw Video en Microfoon instellingen, en <strong>schakel Ruisonderdrukking uit</strong> in Audio en Video voorkeuren voor betere prestaties."
   }
 }

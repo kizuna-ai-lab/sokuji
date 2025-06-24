@@ -103,5 +103,11 @@
   },
   "discordGuidance": {
     "message": "Käyttääksesi Sokuji:ta, valitse <strong>\"Sokuji Virtual Microphone\"</strong> mikrofonin asetuksista ja <strong>poista Kohinanvaimennus käytöstä</strong> Discordin ääniasetuksista parempaa suorituskykyä varten."
+  },
+  "slackTitle": {
+    "message": "Sokuji for Slack"
+  },
+  "slackGuidance": {
+    "message": "Käyttääksesi Sokuji:ta Slack Huddleissa, <strong>aloita Huddle</strong>, valitse sitten <strong>\"Sokuji Virtual Microphone\"</strong> Video- ja Mikrofoni-asetuksistasi ja <strong>poista Kohinanvaimennus käytöstä</strong> Ääni- ja Video-asetuksissa parempaa suorituskykyä varten."
   }
 }

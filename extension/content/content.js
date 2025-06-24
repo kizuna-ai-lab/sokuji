@@ -95,6 +95,9 @@ function injectSitePluginsScript() {
   } else if (hostname === 'discord.com') {
     title = chrome.i18n.getMessage('discordTitle');
     guidance = chrome.i18n.getMessage('discordGuidance');
+  } else if (hostname === 'app.slack.com') {
+    title = chrome.i18n.getMessage('slackTitle');
+    guidance = chrome.i18n.getMessage('slackGuidance');
   } else {
     // Default fallback
     title = chrome.i18n.getMessage('defaultTitle');

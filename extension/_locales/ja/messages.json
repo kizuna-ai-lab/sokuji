@@ -103,5 +103,11 @@
   },
   "discordGuidance": {
     "message": "Sokujiを使用するには、マイクの設定で<strong>「Sokuji Virtual Microphone」</strong>を選択し、より良いパフォーマンスのためにDiscordの音声設定で<strong>ノイズ抑制を無効</strong>にしてください。"
+  },
+  "slackTitle": {
+    "message": "Sokuji for Slack"
+  },
+  "slackGuidance": {
+    "message": "Slack Huddlesで Sokuji を使用するには、<strong>Huddleを開始</strong>し、ビデオとマイクの設定で<strong>「Sokuji Virtual Microphone」</strong>を選択し、より良いパフォーマンスのために音声・ビデオ設定で<strong>ノイズ抑制を無効</strong>にしてください。"
   }
 }

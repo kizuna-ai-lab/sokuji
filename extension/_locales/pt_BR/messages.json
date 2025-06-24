@@ -75,13 +75,13 @@
     "message": "contribuir com código"
   },
   "gatherTownTitle": {
-    "message": "Sokuji for Gather Town"
+    "message": "Sokuji para Gather Town"
   },
   "gatherTownGuidance": {
     "message": "Para usar o Sokuji, selecione <strong>\"Sokuji Virtual Microphone\"</strong> nas configurações do seu microfone."
   },
   "wherebyTitle": {
-    "message": "Sokuji for Whereby"
+    "message": "Sokuji para Whereby"
   },
   "wherebyGuidance": {
     "message": "Para usar o Sokuji, selecione <strong>\"Sokuji Virtual Microphone\"</strong> nas configurações do microfone e <strong>desative a redução de ruído</strong> para melhor performance."
@@ -99,9 +99,15 @@
     "message": "Para usar o Sokuji, selecione \"Sokuji Virtual Microphone\" nas configurações do seu microfone."
   },
   "discordTitle": {
-    "message": "Sokuji for Discord"
+    "message": "Sokuji para Discord"
   },
   "discordGuidance": {
     "message": "Para usar o Sokuji, selecione <strong>\"Sokuji Virtual Microphone\"</strong> nas configurações do seu microfone e <strong>desative a Supressão de ruído</strong> nas configurações de voz do Discord para melhor desempenho."
+  },
+  "slackTitle": {
+    "message": "Sokuji para Slack"
+  },
+  "slackGuidance": {
+    "message": "Para usar o Sokuji no Slack Huddles, por favor <strong>inicie um Huddle</strong>, então selecione <strong>\"Sokuji Virtual Microphone\"</strong> nas suas configurações de Vídeo e Microfone, e <strong>desative a Supressão de ruído</strong> nas preferências de Áudio e Vídeo para melhor desempenho."
   }
 }
