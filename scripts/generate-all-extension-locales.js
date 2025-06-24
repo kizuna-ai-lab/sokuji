@@ -32,7 +32,9 @@ const englishTranslations = {
   refreshAndTry: 'Please refresh the page and try again.',
   needMoreSitesShort: 'Need more sites?',
   contactUsShort: 'Contact us',
-  contributeCodeShort: 'contribute code'
+  contributeCodeShort: 'contribute code',
+  showMoreSites: 'Show $COUNT$ more sites',
+  showLessSites: 'Show less sites'
 };
 
 // Specific translations for key languages
@@ -79,7 +81,9 @@ const specificTranslations = {
     refreshAndTry: '请刷新页面后重试。',
     needMoreSitesShort: '需要更多网站？',
     contactUsShort: '联系我们',
-    contributeCodeShort: '贡献代码'
+    contributeCodeShort: '贡献代码',
+    showMoreSites: '显示更多 $COUNT$ 个网站',
+    showLessSites: '收起网站列表'
   },
   'es': {
     extensionName: 'Sokuji - Traducción de Voz en Vivo con IA para Reuniones Online',
@@ -101,7 +105,9 @@ const specificTranslations = {
     refreshAndTry: 'Por favor, actualiza la página e inténtalo de nuevo.',
     needMoreSitesShort: '¿Más sitios?',
     contactUsShort: 'Contáctanos',
-    contributeCodeShort: 'contribuir código'
+    contributeCodeShort: 'contribuir código',
+    showMoreSites: 'Mostrar $COUNT$ sitios más',
+    showLessSites: 'Mostrar menos sitios'
   },
   'fr': {
     extensionName: 'Sokuji - Traduction Vocale en Direct par IA pour Réunions en Ligne',
@@ -123,7 +129,9 @@ const specificTranslations = {
     refreshAndTry: 'Veuillez actualiser la page et réessayer.',
     needMoreSitesShort: 'Plus de sites ?',
     contactUsShort: 'Contactez-nous',
-    contributeCodeShort: 'contribuer au code'
+    contributeCodeShort: 'contribuer au code',
+    showMoreSites: 'Afficher $COUNT$ sites de plus',
+    showLessSites: 'Afficher moins de sites'
   },
   'ja': {
     extensionName: 'Sokuji - オンライン会議用AI音声翻訳',
@@ -145,7 +153,9 @@ const specificTranslations = {
     refreshAndTry: 'ページを更新してもう一度お試しください。',
     needMoreSitesShort: 'より多くのサイト？',
     contactUsShort: 'お問い合わせ',
-    contributeCodeShort: 'コード貢献'
+    contributeCodeShort: 'コード貢献',
+    showMoreSites: 'さらに$COUNT$サイトを表示',
+    showLessSites: 'サイトを折りたたむ'
   }
 };
 
@@ -223,6 +233,18 @@ const createMessagesJson = (translations) => {
     },
     "contributeCodeShort": {
       "message": translations.contributeCodeShort
+    },
+    "showMoreSites": {
+      "message": translations.showMoreSites,
+      "placeholders": {
+        "count": {
+          "content": "$1",
+          "example": "4"
+        }
+      }
+    },
+    "showLessSites": {
+      "message": translations.showLessSites
     }
   };
 };

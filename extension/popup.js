@@ -289,20 +289,14 @@ function showUnsupportedState(hostname) {
     </div>
     
     <div class="supported-sites">
-      <ul class="sites-list">
-        ${ENABLED_SITES.map(site => {
-          const info = SITE_INFO[site];
-          return `
-            <li class="site-item">
-              <img src="${info.icon}" alt="${info.name}" class="site-icon" onerror="this.style.display='none'">
-              <div class="site-info">
-                <div class="site-name">${info.name}</div>
-                <div class="site-url">${site}</div>
-              </div>
-            </li>
-          `;
-        }).join('')}
+      <ul class="sites-list" id="sitesList">
+        ${generateSitesList()}
       </ul>
+      ${ENABLED_SITES.length > 3 ? `
+        <button class="toggle-sites-button" id="toggleSitesButton">
+          ${getMessage('showMoreSites', [ENABLED_SITES.length - 3])}
+        </button>
+      ` : ''}
     </div>
     
     <div class="instructions">
@@ -326,26 +320,57 @@ function showErrorState() {
     </div>
     
     <div class="supported-sites">
-      <ul class="sites-list">
-        ${ENABLED_SITES.map(site => {
-          const info = SITE_INFO[site];
-          return `
-            <li class="site-item">
-              <img src="${info.icon}" alt="${info.name}" class="site-icon" onerror="this.style.display='none'">
-              <div class="site-info">
-                <div class="site-name">${info.name}</div>
-                <div class="site-url">${site}</div>
-              </div>
-            </li>
-          `;
-        }).join('')}
+      <ul class="sites-list" id="sitesList">
+        ${generateSitesList()}
       </ul>
+      ${ENABLED_SITES.length > 3 ? `
+        <button class="toggle-sites-button" id="toggleSitesButton">
+          ${getMessage('showMoreSites', [ENABLED_SITES.length - 3])}
+        </button>
+      ` : ''}
     </div>
     
     <div class="instructions">
       <p><strong>${getMessage('needMoreSitesShort')}</strong> <a href="mailto:support@kizuna.ai" target="_blank">${getMessage('contactUsShort')}</a> ${getMessage('contributeCode')} <a href="https://github.com/kizuna-ai-lab/sokuji" target="_blank">${getMessage('contributeCodeShort')}</a>.</p>
     </div>
   `;
+}
+
+// Helper function to generate sites list HTML with initial 3 sites visible
+function generateSitesList(showAll = false) {
+  const sitesToShow = showAll ? ENABLED_SITES : ENABLED_SITES.slice(0, 3);
+  const hiddenSites = showAll ? [] : ENABLED_SITES.slice(3);
+  
+  let html = sitesToShow.map(site => {
+    const info = SITE_INFO[site];
+    return `
+      <li class="site-item">
+        <img src="${info.icon}" alt="${info.name}" class="site-icon" onerror="this.style.display='none'">
+        <div class="site-info">
+          <div class="site-name">${info.name}</div>
+          <div class="site-url">${site}</div>
+        </div>
+      </li>
+    `;
+  }).join('');
+  
+  // Add hidden sites with a class for styling
+  if (!showAll && hiddenSites.length > 0) {
+    html += hiddenSites.map(site => {
+      const info = SITE_INFO[site];
+      return `
+        <li class="site-item hidden-site">
+          <img src="${info.icon}" alt="${info.name}" class="site-icon" onerror="this.style.display='none'">
+          <div class="site-info">
+            <div class="site-name">${info.name}</div>
+            <div class="site-url">${site}</div>
+          </div>
+        </li>
+      `;
+    }).join('');
+  }
+  
+  return html;
 }
 
 function setupEventListeners(tabId, isSupported) {
@@ -411,24 +436,56 @@ function setupEventListeners(tabId, isSupported) {
     });
   }
 
-  // Handle site item clicks (navigate to supported sites)
-  const siteItems = document.querySelectorAll('.site-item');
-  siteItems.forEach(item => {
-    item.addEventListener('click', () => {
-      const siteUrl = item.querySelector('.site-url').textContent;
-      const siteName = item.querySelector('.site-name').textContent;
+  // Handle toggle sites button
+  const toggleButton = document.getElementById('toggleSitesButton');
+  if (toggleButton) {
+    let showingAll = false;
+    
+    toggleButton.addEventListener('click', () => {
+      const sitesList = document.getElementById('sitesList');
+      const allSiteItems = document.querySelectorAll('.site-item');
       
-      // Track site navigation
-      trackEvent('popup_site_navigation_clicked', {
-        target_site: siteUrl,
-        target_site_name: siteName,
-        is_supported_site: isSupported
-      });
+      showingAll = !showingAll;
       
-      chrome.tabs.create({ url: `https://${siteUrl}` });
-      window.close();
+      if (showingAll) {
+        // Show all sites by removing the hidden-site class from items beyond index 2
+        allSiteItems.forEach((site, index) => {
+          if (index >= 3) {
+            site.classList.remove('hidden-site');
+          }
+        });
+        toggleButton.textContent = getMessage('showLessSites');
+        
+        // Track show more clicked
+        trackEvent('popup_show_more_sites_clicked', {
+          total_sites: ENABLED_SITES.length,
+          hidden_sites_count: ENABLED_SITES.length - 3,
+          is_supported_site: isSupported
+        });
+      } else {
+        // Hide extra sites by adding the hidden-site class to items beyond index 2
+        allSiteItems.forEach((site, index) => {
+          if (index >= 3) {
+            site.classList.add('hidden-site');
+          }
+        });
+        toggleButton.textContent = getMessage('showMoreSites', [ENABLED_SITES.length - 3]);
+        
+        // Track show less clicked
+        trackEvent('popup_show_less_sites_clicked', {
+          total_sites: ENABLED_SITES.length,
+          hidden_sites_count: ENABLED_SITES.length - 3,
+          is_supported_site: isSupported
+        });
+      }
+      
+      // Re-attach click handlers to newly visible site items
+      setupSiteItemClickHandlers(isSupported);
     });
-  });
+  }
+
+  // Handle site item clicks (navigate to supported sites) 
+  setupSiteItemClickHandlers(isSupported);
 
   // Handle store link clicks
   const storeLink = document.getElementById('storeLink');
@@ -446,4 +503,29 @@ function setupEventListeners(tabId, isSupported) {
       });
     });
   }
+}
+
+// Helper function to setup site item click handlers
+function setupSiteItemClickHandlers(isSupported) {
+  const siteItems = document.querySelectorAll('.site-item');
+  siteItems.forEach(item => {
+    // Remove existing event listeners by cloning the element
+    const newItem = item.cloneNode(true);
+    item.parentNode.replaceChild(newItem, item);
+    
+    newItem.addEventListener('click', () => {
+      const siteUrl = newItem.querySelector('.site-url').textContent;
+      const siteName = newItem.querySelector('.site-name').textContent;
+      
+      // Track site navigation
+      trackEvent('popup_site_navigation_clicked', {
+        target_site: siteUrl,
+        target_site_name: siteName,
+        is_supported_site: isSupported
+      });
+      
+      chrome.tabs.create({ url: `https://${siteUrl}` });
+      window.close();
+    });
+  });
 } 

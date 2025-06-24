@@ -73,6 +73,32 @@ body {
   list-style: none;
   padding: 0;
   margin: 0;
+  max-height: 200px;
+  overflow-y: auto;
+  border-radius: 6px;
+  /* Firefox scrollbar styling */
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 #f1f5f9;
+}
+
+/* Custom scrollbar styling for webkit browsers */
+.sites-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.sites-list::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 3px;
+}
+
+.sites-list::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+  transition: background 0.2s ease;
+}
+
+.sites-list::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }
 
 .site-item {
@@ -192,6 +218,35 @@ body {
 
 .instructions strong {
   color: #334155;
+}
+
+.toggle-sites-button {
+  background: none;
+  border: none;
+  color: #667eea;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 8px 12px;
+  margin-top: 8px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  text-align: center;
+  width: 100%;
+}
+
+.toggle-sites-button:hover {
+  background-color: #f8fafc;
+  color: #5b21b6;
+}
+
+.toggle-sites-button:active {
+  background-color: #f1f5f9;
+  transform: translateY(1px);
+}
+
+.hidden-site {
+  display: none !important;
 }
 
 /* Responsive adjustments */
