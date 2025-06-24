@@ -385,11 +385,48 @@ const discordPlugin = {
   }
 };
 
+// Slack plugin implementation
+const slackPlugin = {
+  name: 'Slack',
+  hostname: 'app.slack.com',
+  
+  init() {
+    console.info('[Sokuji] [Slack] Slack plugin initialized');
+  },
+
+  showGuidance(messages) {
+    // Use provided messages or fallback to default English
+    const i18n = messages || {
+      title: 'Sokuji for Slack',
+      guidance: 'To use Sokuji in Slack Huddles, please <strong>start a Huddle</strong>, then select <strong>"Sokuji Virtual Microphone"</strong> in your Video and Mic settings, and <strong>disable Noise Suppression</strong> in Audio & Video preferences for better performance.',
+      gotIt: 'Got it',
+      remindLater: 'Remind me later'
+    };
+    
+    showCommonGuidanceNotification({
+      pluginName: 'Slack',
+      hostname: this.hostname,
+      backgroundColor: 'linear-gradient(135deg, #4A154B 0%, #350d36 100%)',
+      messages: i18n
+    });
+  },
+
+  // Helper functions for debugging
+  getDebugInfo() {
+    return getPluginDebugInfo(this.hostname);
+  },
+
+  resetGuidanceDismissal() {
+    return resetPluginGuidanceDismissal(this.hostname);
+  }
+};
+
 // Site plugins registry - maps hostname to plugin
 const sitePluginsRegistry = {
   'app.gather.town': gatherTownPlugin,
   'whereby.com': wherebyPlugin,
-  'discord.com': discordPlugin
+  'discord.com': discordPlugin,
+  'app.slack.com': slackPlugin
   // Add more site plugins here as needed
   // 'meet.google.com': googleMeetPlugin,
   // 'teams.live.com': teamsPlugin,

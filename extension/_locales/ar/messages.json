@@ -75,13 +75,13 @@
     "message": "ساهم بالكود"
   },
   "gatherTownTitle": {
-    "message": "Sokuji for Gather Town"
+    "message": "Sokuji لـ Gather Town"
   },
   "gatherTownGuidance": {
     "message": "لاستخدام Sokuji، يرجى تحديد <strong>\"Sokuji Virtual Microphone\"</strong> في إعدادات الميكروفون الخاص بك."
   },
   "wherebyTitle": {
-    "message": "Sokuji for Whereby"
+    "message": "Sokuji لـ Whereby"
   },
   "wherebyGuidance": {
     "message": "لاستخدام Sokuji، يرجى تحديد <strong>\"Sokuji Virtual Microphone\"</strong> في إعدادات الميكروفون و<strong>إلغاء تنشيط تقليل الضوضاء</strong> للحصول على أداء أفضل."
@@ -99,9 +99,15 @@
     "message": "لاستخدام Sokuji، يرجى تحديد \"Sokuji Virtual Microphone\" في إعدادات الميكروفون."
   },
   "discordTitle": {
-    "message": "Sokuji for Discord"
+    "message": "Sokuji لـ Discord"
   },
   "discordGuidance": {
     "message": "لاستخدام Sokuji، يرجى تحديد <strong>\"Sokuji Virtual Microphone\"</strong> في إعدادات الميكروفون و<strong>إلغاء تفعيل قمع الضوضاء</strong> في إعدادات الصوت في Discord للحصول على أداء أفضل."
+  },
+  "slackTitle": {
+    "message": "Sokuji لـ Slack"
+  },
+  "slackGuidance": {
+    "message": "لاستخدام Sokuji في Slack Huddles، يرجى <strong>بدء Huddle</strong>، ثم حدد <strong>\"Sokuji Virtual Microphone\"</strong> في إعدادات الفيديو والميكروفون، و<strong>قم بإلغاء تنشيط كبت الضوضاء</strong> في تفضيلات الصوت والفيديو للحصول على أداء أفضل."
   }
 }

@@ -103,5 +103,11 @@
   },
   "discordGuidance": {
     "message": "Upang gamitin ang Sokuji, pakipili ang <strong>\"Sokuji Virtual Microphone\"</strong> sa inyong microphone settings at <strong>i-disable ang Noise Suppression</strong> sa voice settings ng Discord para sa mas magandang performance."
+  },
+  "slackTitle": {
+    "message": "Sokuji for Slack"
+  },
+  "slackGuidance": {
+    "message": "To use Sokuji in Slack Huddles, please <strong>start a Huddle</strong>, then select <strong>\"Sokuji Virtual Microphone\"</strong> in your Video and Mic settings, and <strong>disable Noise Suppression</strong> in Audio & Video preferences for better performance."
   }
 }

@@ -31,7 +31,8 @@ const ENABLED_SITES = [
   'app.zoom.us',
   'app.gather.town',
   'whereby.com',
-  'discord.com'
+  'discord.com',
+  'slack.com'
 ];
 
 // Track which tabs have the side panel open

@@ -75,13 +75,13 @@
     "message": "внести вклад в код"
   },
   "gatherTownTitle": {
-    "message": "Sokuji for Gather Town"
+    "message": "Sokuji для Gather Town"
   },
   "gatherTownGuidance": {
     "message": "Чтобы использовать Sokuji, выберите <strong>\"Sokuji Virtual Microphone\"</strong> в настройках микрофона."
   },
   "wherebyTitle": {
-    "message": "Sokuji for Whereby"
+    "message": "Sokuji для Whereby"
   },
   "wherebyGuidance": {
     "message": "Чтобы использовать Sokuji, выберите <strong>\"Sokuji Virtual Microphone\"</strong> в настройках микрофона и <strong>отключите шумоподавление</strong> для лучшей производительности."
@@ -99,9 +99,15 @@
     "message": "Чтобы использовать Sokuji, выберите \"Sokuji Virtual Microphone\" в настройках микрофона."
   },
   "discordTitle": {
-    "message": "Sokuji for Discord"
+    "message": "Sokuji для Discord"
   },
   "discordGuidance": {
     "message": "Чтобы использовать Sokuji, выберите <strong>\"Sokuji Virtual Microphone\"</strong> в настройках микрофона и <strong>отключите подавление шума</strong> в голосовых настройках Discord для лучшей производительности."
+  },
+  "slackTitle": {
+    "message": "Sokuji для Slack"
+  },
+  "slackGuidance": {
+    "message": "Чтобы использовать Sokuji в Slack Huddles, пожалуйста <strong>начните Huddle</strong>, затем выберите <strong>\"Sokuji Virtual Microphone\"</strong> в настройках видео и микрофона, и <strong>отключите подавление шума</strong> в настройках аудио и видео для лучшей производительности."
   }
 }

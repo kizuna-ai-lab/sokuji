@@ -103,5 +103,11 @@
   },
   "discordGuidance": {
     "message": "To use Sokuji, please select <strong>\"Sokuji Virtual Microphone\"</strong> in your microphone settings and <strong>disable Noise Suppression</strong> in Discord's Voice settings for better performance."
+  },
+  "slackTitle": {
+    "message": "Sokuji for Slack"
+  },
+  "slackGuidance": {
+    "message": "For at bruge Sokuji i Slack Huddles, skal du <strong>starte en Huddle</strong>, derefter vælge <strong>\"Sokuji Virtual Microphone\"</strong> i dine Video- og Mikrofon-indstillinger og <strong>deaktivere Støjreduktion</strong> i Lyd- og Video-præferencer for bedre ydeevne."
   }
 }

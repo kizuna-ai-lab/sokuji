@@ -103,5 +103,11 @@
   },
   "discordGuidance": {
     "message": "Sokuji'yi kullanmak için mikrofon ayarlarınızda <strong>\"Sokuji Virtual Microphone\"</strong>u seçin ve daha iyi performans için Discord'un ses ayarlarında <strong>Gürültü Bastırma'yı devre dışı bırakın</strong>."
+  },
+  "slackTitle": {
+    "message": "Sokuji for Slack"
+  },
+  "slackGuidance": {
+    "message": "Slack Huddles'da Sokuji kullanmak için lütfen <strong>bir Huddle başlatın</strong>, ardından Video ve Mikrofon ayarlarınızda <strong>\"Sokuji Virtual Microphone\"</strong> seçin ve daha iyi performans için Audio ve Video tercihlerinde <strong>Gürültü Bastırma'yı devre dışı bırakın</strong>."
   }
 }

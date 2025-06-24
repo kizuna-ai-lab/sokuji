@@ -103,5 +103,11 @@
   },
   "discordGuidance": {
     "message": "Aby używać Sokuji, wybierz <strong>\"Sokuji Virtual Microphone\"</strong> w ustawieniach mikrofonu i <strong>wyłącz Tłumienie szumów</strong> w ustawieniach głosu Discord dla lepszej wydajności."
+  },
+  "slackTitle": {
+    "message": "Sokuji for Slack"
+  },
+  "slackGuidance": {
+    "message": "Aby używać Sokuji w Slack Huddles, proszę <strong>rozpocząć Huddle</strong>, następnie wybrać <strong>\"Sokuji Virtual Microphone\"</strong> w ustawieniach Wideo i Mikrofonu oraz <strong>wyłączyć Tłumienie szumów</strong> w preferencjach Dźwięku i Wideo dla lepszej wydajności."
   }
 }

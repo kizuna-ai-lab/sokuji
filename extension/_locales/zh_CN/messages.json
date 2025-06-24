@@ -103,5 +103,11 @@
   },
   "discordGuidance": {
     "message": "要使用 Sokuji，请在麦克风设置中选择<strong>\"Sokuji Virtual Microphone\"</strong>，并在 Discord 的语音设置中<strong>关闭噪音抑制</strong>以获得更好的性能。"
+  },
+  "slackTitle": {
+    "message": "Sokuji for Slack"
+  },
+  "slackGuidance": {
+    "message": "要在 Slack Huddles 中使用 Sokuji，请<strong>开始一个 Huddle</strong>，然后在视频和麦克风设置中选择<strong>\"Sokuji Virtual Microphone\"</strong>，并在音频和视频偏好设置中<strong>关闭噪音抑制</strong>以获得更好的性能。"
   }
 }

@@ -103,5 +103,11 @@
   },
   "discordGuidance": {
     "message": "หากต้องการใช้ Sokuji โปรดเลือก <strong>\"Sokuji Virtual Microphone\"</strong> ในการตั้งค่าไมโครโฟน และ<strong>ปิดการลดเสียงรบกวน</strong>ในการตั้งค่าเสียงของ Discord เพื่อประสิทธิภาพที่ดีขึ้น"
+  },
+  "slackTitle": {
+    "message": "Sokuji for Slack"
+  },
+  "slackGuidance": {
+    "message": "หากต้องการใช้ Sokuji ใน Slack Huddles โปรด<strong>เริ่ม Huddle</strong> จากนั้นเลือก <strong>\"Sokuji Virtual Microphone\"</strong> ในการตั้งค่าวิดีโอและไมโครโฟน และ<strong>ปิดการปราบปรามเสียงรบกวน</strong>ในการตั้งค่าเสียงและวิดีโอเพื่อประสิทธิภาพที่ดีขึ้น"
   }
 }

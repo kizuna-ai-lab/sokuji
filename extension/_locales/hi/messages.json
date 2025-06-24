@@ -75,13 +75,13 @@
     "message": "कोड योगदान करें"
   },
   "gatherTownTitle": {
-    "message": "Sokuji for Gather Town"
+    "message": "Gather Town के लिए Sokuji"
   },
   "gatherTownGuidance": {
     "message": "Sokuji का उपयोग करने के लिए, अपनी माइक्रोफोन सेटिंग्स में <strong>\"Sokuji Virtual Microphone\"</strong> का चयन करें।"
   },
   "wherebyTitle": {
-    "message": "Sokuji for Whereby"
+    "message": "Whereby के लिए Sokuji"
   },
   "wherebyGuidance": {
     "message": "Sokuji का उपयोग करने के लिए, माइक्रोफ़ोन सेटिंग्स में <strong>\"Sokuji Virtual Microphone\"</strong> चुनें और बेहतर प्रदर्शन के लिए <strong>शोर में कमी को अक्षम</strong> करें।"
@@ -99,9 +99,15 @@
     "message": "Sokuji का उपयोग करने के लिए, कृपया अपनी माइक्रोफोन सेटिंग में \"Sokuji Virtual Microphone\" चुनें।"
   },
   "discordTitle": {
-    "message": "Sokuji for Discord"
+    "message": "Discord के लिए Sokuji"
   },
   "discordGuidance": {
     "message": "Sokuji का उपयोग करने के लिए, अपनी माइक्रोफोन सेटिंग में <strong>\"Sokuji Virtual Microphone\"</strong> चुनें और बेहतर प्रदर्शन के लिए Discord की आवाज सेटिंग में <strong>शोर दमन को अक्षम</strong> करें।"
+  },
+  "slackTitle": {
+    "message": "Slack के लिए Sokuji"
+  },
+  "slackGuidance": {
+    "message": "Slack Huddles में Sokuji का उपयोग करने के लिए, कृपया <strong>एक Huddle शुरू करें</strong>, फिर अपनी Video और Mic सेटिंग्स में <strong>\"Sokuji Virtual Microphone\"</strong> चुनें, और बेहतर प्रदर्शन के लिए Audio और Video प्राथमिकताओं में <strong>Noise Suppression को बंद करें</strong>।"
   }
 }
