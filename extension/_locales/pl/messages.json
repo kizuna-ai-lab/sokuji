@@ -36,7 +36,7 @@
     "message": "Skonfiguruj swój klucz API OpenAI → Wybierz \"Sokuji_Virtual_Mic\" jako mikrofon → Zacznij mówić!"
   },
   "notSupported": {
-    "message": "⚠ Nieobsługiwane na tej stronie"
+    "message": "⚠ Nie obsługiwane na tej stronie"
   },
   "currentlyOn": {
     "message": "Obecnie na $HOSTNAME$. Sokuji działa na tych platformach:",
@@ -109,5 +109,17 @@
   },
   "slackGuidance": {
     "message": "Aby używać Sokuji w Slack Huddles, proszę <strong>rozpocząć Huddle</strong>, następnie wybrać <strong>\"Sokuji Virtual Microphone\"</strong> w ustawieniach Wideo i Mikrofonu oraz <strong>wyłączyć Tłumienie szumów</strong> w preferencjach Dźwięku i Wideo dla lepszej wydajności."
+  },
+  "showMoreSites": {
+    "message": "Pokaż $COUNT$ więcej stron",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "4"
+      }
+    }
+  },
+  "showLessSites": {
+    "message": "Pokaż mniej stron"
   }
 }

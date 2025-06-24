@@ -57,7 +57,7 @@
     "message": "우리의"
   },
   "openSourceProject": {
-    "message": "오픈 소스 프로젝트에 기여하기"
+    "message": "오픈소스 프로젝트에 기여하기"
   },
   "unableToDetect": {
     "message": "⚠ 현재 사이트를 감지할 수 없습니다"
@@ -108,6 +108,18 @@
     "message": "Slack용 Sokuji"
   },
   "slackGuidance": {
-    "message": "Slack Huddles에서 Sokuji를 사용하려면 <strong>Huddle을 시작</strong>한 다음, 비디오 및 마이크 설정에서 <strong>\"Sokuji Virtual Microphone\"</strong>을 선택하고, 더 나은 성능을 위해 오디오 및 비디오 설정에서 <strong>노이즈 억제를 비활성화</strong>하세요."
+    "message": "Slack Huddles에서 Sokuji를 사용하려면 <strong>Huddle을 시작</strong>한 다음 비디오 및 마이크 설정에서 <strong>\"Sokuji Virtual Microphone\"</strong>을 선택하고 더 나은 성능을 위해 오디오 및 비디오 기본 설정에서 <strong>노이즈 억제를 비활성화</strong>해주세요."
+  },
+  "showMoreSites": {
+    "message": "$COUNT$개 사이트 더 보기",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "4"
+      }
+    }
+  },
+  "showLessSites": {
+    "message": "사이트 접기"
   }
 }
