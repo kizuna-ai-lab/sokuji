@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom/client';
 import App from '../src/App';
-import { PostHogProvider } from 'posthog-js/react';
 import posthog from 'posthog-js/dist/module.full.no-external';
+import { PostHogProvider } from 'posthog-js/react';
 import { ANALYTICS_CONFIG, isDevelopment, getPlatform, getEnvironment } from '../src/config/analytics';
 
 // Dynamically import styles based on environment
