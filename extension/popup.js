@@ -1,7 +1,7 @@
 /* global chrome */
 
 // Import PostHog from installed package
-import posthog from 'posthog-js/dist/module.full.no-external';
+import PostHog from 'posthog-js-lite';
 
 // Analytics configuration - matches main app config
 const ANALYTICS_CONFIG = {
@@ -17,26 +17,30 @@ function initializePostHog() {
   if (posthogInstance || typeof window === 'undefined') return;
   
   try {
-    // Initialize PostHog with configuration
-    posthog.init(ANALYTICS_CONFIG.POSTHOG_KEY, {
-      api_host: ANALYTICS_CONFIG.POSTHOG_HOST,
-      loaded: function(posthogLoaded) {
-        posthogInstance = posthogLoaded;
-        
-        // Set super properties
-        posthogInstance.register({
-          app_version: chrome.runtime.getManifest().version,
-          environment: isDevelopment() ? 'development' : 'production',
-          platform: 'extension',
-          component: 'popup'
-        });
-        
-        console.debug('[Sokuji] [Popup] PostHog initialized');
-      }
+    // Initialize PostHog with posthog-js-lite
+    posthogInstance = new PostHog(ANALYTICS_CONFIG.POSTHOG_KEY, {
+      host: ANALYTICS_CONFIG.POSTHOG_HOST,
+      debug: isDevelopment(),
+      persistence: 'localStorage',
+      autocapture: true,
+      captureHistoryEvents: false // Not needed for popup
     });
     
-    // Store reference to posthog instance immediately
-    posthogInstance = posthog;
+    // Set super properties
+    posthogInstance.register({
+      app_version: chrome.runtime.getManifest().version,
+      environment: isDevelopment() ? 'development' : 'production',
+      platform: 'extension',
+      component: 'popup'
+    });
+    
+    // In development, opt out by default
+    if (isDevelopment()) {
+      posthogInstance.optOut();
+      console.debug('[Sokuji] [Popup] PostHog initialized in development mode - capturing is opt-out by default');
+    }
+    
+    console.debug('[Sokuji] [Popup] PostHog initialized');
   } catch (error) {
     console.error('[Sokuji] [Popup] Error initializing PostHog:', error);
   }
