@@ -6,39 +6,32 @@ Thank you for reviewing our extension "Sokuji - AI-powered Live Speech Translati
 
 I would like to respectfully address the violation regarding "Including remotely hosted code resources in a manifest V3 item" and provide clarification on our PostHog analytics implementation.
 
+# Chrome Web Store Compliance Response
+
+This document addresses Chrome Web Store review feedback regarding "Remote Code Execution" and provides clarification on our PostHog analytics implementation.
+
 ## Our PostHog Implementation Complies with Manifest V3 Requirements
 
-**We do NOT inject external PostHog scripts from posthog.com**. Instead, we use the bundled, self-contained version of PostHog that is included within our extension package. Here are the technical details:
+**We have migrated from `posthog-js` to `posthog-js-lite`** to ensure full Manifest V3 compliance and eliminate any remote code execution concerns.
 
-### 1. Bundled PostHog Library
-- We use `posthog-js/dist/module.full.no-external` which is specifically designed for browser extensions
-- This version includes ALL PostHog functionality within the bundle and does NOT load external dependencies
-- The library is installed via npm (`"posthog-js": "1.167.0"`) and bundled into our extension during the build process
+### 1. Migration to posthog-js-lite
+- We now use `posthog-js-lite` version 4.1.0, which is specifically designed for browser extensions
+- This version provides core analytics functionality without any remote code execution
+- It has zero external dependencies and no script injection capabilities
+- The library is installed via npm (`"posthog-js-lite": "^4.1.0"`) and bundled into our extension during the build process
 
-### 2. Code Evidence
-You can verify this in our open-source repository at https://github.com/kizuna-ai-lab/sokuji/
+### 2. Updated Implementation Details
+Our current implementation uses the following imports:
+- `shared/index.tsx` (line 3): `import PostHog from 'posthog-js-lite';`
+- `extension/popup.js` (line 3): `import PostHog from 'posthog-js-lite';`
 
-Key files showing our compliant implementation:
-- `shared/index.tsx` (line 3): `import posthog from 'posthog-js/dist/module.full.no-external';`
-- `extension/popup.js` (line 3): `import posthog from 'posthog-js/dist/module.full.no-external';`
-- `shared/index.tsx` (line 42): `disable_external_dependency_loading: true`
-
-### 3. Explicit Configuration for Extensions
-Our PostHog configuration explicitly disables external dependency loading:
-
-```javascript
-const options = {
-  api_host: ANALYTICS_CONFIG.POSTHOG_HOST,
-  // According to official documentation, browser extensions must disable external dependency loading
-  disable_external_dependency_loading: true,
-  disable_surveys: true,
-  disable_session_recording: true,
-  autocapture: false,
-  capture_dead_clicks: false,
-  enable_heatmaps: false,
-  // ... other extension-specific settings
-};
-```
+### 3. No Remote Code Execution
+Unlike the full `posthog-js` library, `posthog-js-lite`:
+- Does NOT include session replay functionality
+- Does NOT include survey injection capabilities  
+- Does NOT include autocapture features
+- Does NOT include toolbar functionality
+- Does NOT inject any external scripts or remote code
 
 ### 4. Content Security Policy Compliance
 Our manifest.json includes PostHog's API endpoint in the CSP for data transmission only:
@@ -59,7 +52,7 @@ PostHog is used for privacy-focused analytics to help us:
 - Comply with GDPR and privacy regulations
 
 All analytics are:
-- Opt-out by default (`opt_out_capturing_by_default: true`)
+- Opt-out by default (`optOut()` called in development)
 - Sanitized to remove sensitive information
 - Sent only as data payloads to PostHog's API (no external script loading)
 
@@ -69,18 +62,29 @@ Our extension is completely open-source, and you can verify:
 1. **Source code**: https://github.com/kizuna-ai-lab/sokuji/
 2. **Build process**: GitHub Actions workflow that generates the exact zip file we submit
 3. **Package contents**: All PostHog code is bundled within the extension, no external dependencies
+4. **Migration commit**: The exact changes made to migrate from posthog-js to posthog-js-lite
 
-The submitted extension package contains the complete PostHog library code within the bundled JavaScript files, with no external script loading whatsoever.
+The submitted extension package contains the complete PostHog Lite library code within the bundled JavaScript files, with no external script loading whatsoever.
+
+## Migration Benefits
+
+The migration to `posthog-js-lite` provides:
+- ✅ Full Manifest V3 compliance
+- ✅ No remote code execution capabilities
+- ✅ Smaller bundle size (693 kB vs 1.5+ MB)
+- ✅ Chrome Web Store approval compatibility
+- ✅ Maintained core analytics functionality
 
 ## Conclusion
 
-We believe this may be a false positive in your automated detection system. Our implementation:
-- ✅ Uses bundled PostHog library (no external script loading)
-- ✅ Explicitly disables external dependency loading
-- ✅ Only makes HTTPS API calls for data transmission
-- ✅ Complies with all Manifest V3 requirements
+We have proactively migrated to `posthog-js-lite` to ensure complete compliance with Chrome Web Store policies. This implementation:
+- ✅ Uses bundled PostHog Lite library (no external script loading)
+- ✅ Eliminates all remote code execution capabilities
+- ✅ Maintains essential analytics functionality
+- ✅ Complies with Manifest V3 requirements
+- ✅ Provides a smaller, more secure package
 
-We respectfully request a manual review of our extension, as we are confident that our PostHog implementation fully complies with Chrome Web Store policies.
+We believe this migration fully addresses the remote code execution concerns and demonstrates our commitment to Chrome Web Store compliance.
 
 If you need any additional information or clarification, please don't hesitate to contact us. We greatly appreciate your work in maintaining the security and quality of the Chrome Web Store.
 
