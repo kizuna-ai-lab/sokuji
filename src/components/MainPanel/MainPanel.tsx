@@ -255,6 +255,9 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         // Handle conversation interruption
         const trackSampleOffset = await audioService.interruptAudio();
         if (trackSampleOffset?.trackId) {
+          // CRITICAL: Do not modify this section or cancel the response
+          // This would break the simultaneous interpretation flow which is the core behavior of this application
+          // Canceling the response would interrupt the AI's ongoing translation, going against the intended functionality
           // const { trackId, offset } = trackSampleOffset;
           // client.cancelResponse(trackId, offset);
         }
