@@ -14,6 +14,7 @@ import { useTranslation } from 'react-i18next';
 import { useAnalytics } from '../../lib/analytics';
 import { isDevelopment } from '../../config/analytics';
 import { v4 as uuidv4 } from 'uuid';
+import { Provider } from '../../types/Provider';
 
 interface MainPanelProps {}
 
@@ -90,7 +91,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     };
 
     // Configure provider-specific settings
-    if (provider === 'openai') {
+    if (provider === Provider.OPENAI) {
       const { turnDetectionMode, prefixPadding, silenceDuration, threshold, semanticEagerness, noiseReduction, transcriptModel } = openAISettings;
       // Configure turn detection
       if (turnDetectionMode === 'Disabled') {
@@ -350,7 +351,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       const wavRecorder = wavRecorderRef.current;
 
       // Set canPushToTalk based on current turnDetectionMode
-      if (commonSettings.provider === 'openai') {
+      if (commonSettings.provider === Provider.OPENAI) {
         setCanPushToTalk(openAISettings.turnDetectionMode === 'Disabled');
       } else {
         setCanPushToTalk(false); // Not supported by Gemini yet
@@ -386,7 +387,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
       // Start recording if using server VAD and input device is turned on
       let turnDetectionDisabled = false;
-      if (commonSettings.provider === 'openai') {
+      if (commonSettings.provider === Provider.OPENAI) {
         turnDetectionDisabled = openAISettings.turnDetectionMode === 'Disabled';
       }
       
@@ -899,7 +900,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
           // If we're in automatic mode, resume recording
           let turnDetectionDisabled = false;
-          if (commonSettings.provider === 'openai') {
+          if (commonSettings.provider === Provider.OPENAI) {
             turnDetectionDisabled = openAISettings.turnDetectionMode === 'Disabled';
           }
           if (!turnDetectionDisabled) {

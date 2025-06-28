@@ -1,6 +1,7 @@
 import { ISettingsService, SettingsOperationResult, ApiKeyValidationResult } from '../interfaces/ISettingsService';
 import { FilteredModel } from '../interfaces/IClient';
 import { ClientOperations } from '../ClientOperations';
+import { ProviderType } from '../../types/Provider';
 import i18n from '../../locales';
 
 /**
@@ -147,7 +148,7 @@ export class BrowserSettingsService implements ISettingsService {
   /**
    * Validate API key and fetch available models in a single request
    */
-  async validateApiKeyAndFetchModels(apiKey: string, provider: 'openai' | 'gemini'): Promise<{
+  async validateApiKeyAndFetchModels(apiKey: string, provider: ProviderType): Promise<{
     validation: ApiKeyValidationResult;
     models: FilteredModel[];
   }> {

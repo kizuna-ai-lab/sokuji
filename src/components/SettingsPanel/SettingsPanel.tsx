@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next';
 import { useSession } from '../../contexts/SessionContext';
 import { ProviderConfigFactory } from '../../services/providers/ProviderConfigFactory';
 import ProviderSpecificSettings from './ProviderSpecificSettings';
+import { Provider, ProviderType } from '../../types/Provider';
 
 interface SettingsPanelProps {
   toggleSettings?: () => void;
@@ -196,9 +197,9 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
             <div className="provider-selection-wrapper">
               <select
                 className="select-dropdown"
-                value={commonSettings.provider || 'openai'}
+                value={commonSettings.provider || Provider.OPENAI}
                 onChange={(e) => {
-                  const newProvider = e.target.value as 'openai' | 'gemini';
+                  const newProvider = e.target.value as ProviderType;
                   updateCommonSettings({ provider: newProvider });
                   
                   // Reset API key validation status when provider changes
@@ -217,7 +218,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
                   </option>
                 ))}
               </select>
-              {commonSettings.provider === 'gemini' && (
+              {commonSettings.provider === Provider.GEMINI && (
                 <div className="experimental-icon-wrapper">
                   <FlaskConical 
                     size={16} 
@@ -236,9 +237,9 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
             </div>
             <div className="api-key-container">
               <input
-                value={commonSettings.provider === 'openai' ? openAISettings.apiKey : geminiSettings.apiKey}
+                value={commonSettings.provider === Provider.OPENAI ? openAISettings.apiKey : geminiSettings.apiKey}
                 onChange={(e) => {
-                  if (commonSettings.provider === 'openai') {
+                  if (commonSettings.provider === Provider.OPENAI) {
                     updateOpenAISettings({ apiKey: e.target.value });
                   } else {
                     updateGeminiSettings({ apiKey: e.target.value });
@@ -257,7 +258,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
                 className="validate-key-button"
                 onClick={handleValidateApiKey}
                 disabled={apiKeyStatus.validating || 
-                  (commonSettings.provider === 'openai' ? !openAISettings.apiKey : !geminiSettings.apiKey) || 
+                  (commonSettings.provider === Provider.OPENAI ? !openAISettings.apiKey : !geminiSettings.apiKey) || 
                   isSessionActive}
               >
                 <Key size={16} />

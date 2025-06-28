@@ -1,6 +1,7 @@
 import { IClient } from '../interfaces/IClient';
 import { OpenAIClient } from './OpenAIClient';
 import { GeminiClient } from './GeminiClient';
+import { Provider, ProviderType } from '../../types/Provider';
 
 /**
  * Factory for creating AI client instances
@@ -12,24 +13,26 @@ export class ClientFactory {
    * @param model - The model name to determine which client to use
    * @param openaiApiKey - OpenAI API key
    * @param geminiApiKey - Gemini API key
+   * @param openaiApiHost - Optional OpenAI API host (defaults to https://api.openai.com)
    * @returns IClient instance
    */
   static createClient(
     model: string,
     openaiApiKey?: string,
-    geminiApiKey?: string
+    geminiApiKey?: string,
+    openaiApiHost?: string
   ): IClient {
     // Determine provider based on model name
     const provider = this.getProviderFromModel(model);
     
     switch (provider) {
-      case 'openai':
+      case Provider.OPENAI:
         if (!openaiApiKey) {
           throw new Error('OpenAI API key is required for OpenAI models');
         }
-        return new OpenAIClient(openaiApiKey);
+        return new OpenAIClient(openaiApiKey, openaiApiHost);
         
-      case 'gemini':
+      case Provider.GEMINI:
         if (!geminiApiKey) {
           throw new Error('Gemini API key is required for Gemini models');
         }
@@ -45,20 +48,18 @@ export class ClientFactory {
    * @param model - The model name
    * @returns Provider name
    */
-  static getProviderFromModel(model: string): 'openai' | 'gemini' {
+  static getProviderFromModel(model: string): ProviderType {
     // OpenAI models
     if (model.startsWith('gpt-')) {
-      return 'openai';
+      return Provider.OPENAI;
     }
     
     // Gemini models
     if (model.startsWith('gemini-')) {
-      return 'gemini';
+      return Provider.GEMINI;
     }
     
     // Default fallback (could be made configurable)
-    return 'openai';
+    return Provider.OPENAI;
   }
-
-
 } 

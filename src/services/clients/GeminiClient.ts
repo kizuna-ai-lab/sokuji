@@ -1,6 +1,7 @@
 import { ActivityHandling, GoogleGenAI, LiveConnectConfig, LiveServerContent, LiveServerMessage, Modality, Session } from '@google/genai';
 import { IClient, ConversationItem, SessionConfig, ClientEventHandlers, ApiKeyValidationResult, FilteredModel, IClientStatic } from '../interfaces/IClient';
 import i18n from '../../locales';
+import { Provider, ProviderType } from '../../types/Provider';
 
 /**
  * Gemini Live API client adapter
@@ -841,7 +842,7 @@ export class GeminiClient implements IClient {
     this.eventHandlers = { ...handlers };
   }
 
-  getProvider(): 'openai' | 'gemini' {
-    return 'gemini';
+  getProvider(): ProviderType {
+    return Provider.GEMINI;
   }
 } 
