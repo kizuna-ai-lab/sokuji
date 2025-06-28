@@ -22,6 +22,12 @@ export class ClientOperations {
     switch (provider) {
       case Provider.OPENAI:
         return await OpenAIClient.validateApiKeyAndFetchModels(apiKey);
+      case Provider.COMET_API:
+        // CometAPI is OpenAI-compatible, use OpenAIClient with custom host
+        return await OpenAIClient.validateApiKeyAndFetchModels(
+          apiKey, 
+          'https://api.cometapi.com'
+        );
       case Provider.GEMINI:
         return await GeminiClient.validateApiKeyAndFetchModels(apiKey);
       default:
@@ -35,6 +41,8 @@ export class ClientOperations {
   static getLatestRealtimeModel(filteredModels: FilteredModel[], provider: ProviderType): string {
     switch (provider) {
       case Provider.OPENAI:
+      case Provider.COMET_API:
+        // Both OpenAI and CometAPI use the same model detection logic
         return OpenAIClient.getLatestRealtimeModel(filteredModels);
       case Provider.GEMINI:
         return GeminiClient.getLatestRealtimeModel(filteredModels);

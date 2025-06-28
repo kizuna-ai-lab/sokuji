@@ -9,57 +9,36 @@ import { Provider, ProviderType } from '../../types/Provider';
  */
 export class ClientFactory {
   /**
-   * Create an AI client instance based on the model name
-   * @param model - The model name to determine which client to use
-   * @param openaiApiKey - OpenAI API key
-   * @param geminiApiKey - Gemini API key
-   * @param openaiApiHost - Optional OpenAI API host (defaults to https://api.openai.com)
+   * Create an AI client instance based on the provider and model
+   * @param model - The model name
+   * @param provider - The provider type
+   * @param apiKey - The API key for the specified provider
    * @returns IClient instance
    */
   static createClient(
     model: string,
-    openaiApiKey?: string,
-    geminiApiKey?: string,
-    openaiApiHost?: string
+    provider: ProviderType,
+    apiKey: string
   ): IClient {
-    // Determine provider based on model name
-    const provider = this.getProviderFromModel(model);
+    if (!apiKey) {
+      throw new Error(`API key is required for ${provider} provider`);
+    }
     
     switch (provider) {
       case Provider.OPENAI:
-        if (!openaiApiKey) {
-          throw new Error('OpenAI API key is required for OpenAI models');
-        }
-        return new OpenAIClient(openaiApiKey, openaiApiHost);
+        return new OpenAIClient(apiKey);
+        
+      case Provider.COMET_API:
+        // CometAPI uses OpenAIClient with custom host
+        return new OpenAIClient(apiKey, 'https://api.cometapi.com');
         
       case Provider.GEMINI:
-        if (!geminiApiKey) {
-          throw new Error('Gemini API key is required for Gemini models');
-        }
-        return new GeminiClient(geminiApiKey);
+        return new GeminiClient(apiKey);
         
       default:
-        throw new Error(`Unsupported model: ${model}`);
+        throw new Error(`Unsupported provider: ${provider}`);
     }
   }
 
-  /**
-   * Determine the provider based on model name
-   * @param model - The model name
-   * @returns Provider name
-   */
-  static getProviderFromModel(model: string): ProviderType {
-    // OpenAI models
-    if (model.startsWith('gpt-')) {
-      return Provider.OPENAI;
-    }
-    
-    // Gemini models
-    if (model.startsWith('gemini-')) {
-      return Provider.GEMINI;
-    }
-    
-    // Default fallback (could be made configurable)
-    return Provider.OPENAI;
-  }
+
 } 
