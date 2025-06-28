@@ -1,4 +1,5 @@
 import { FilteredModel } from './IClient';
+import { ProviderType } from '../../types/Provider';
 
 // Settings service interface definition
 export interface SettingsOperationResult {
@@ -49,12 +50,10 @@ export interface ISettingsService {
   /**
    * Validate API key and fetch available models in a single request
    * @param apiKey The API key to validate and use for fetching models
-   * @param provider The service provider to validate against ('openai' | 'gemini')
+   * @param provider The service provider to validate against
    */
-  validateApiKeyAndFetchModels(apiKey: string, provider: 'openai' | 'gemini'): Promise<{
+  validateApiKeyAndFetchModels(apiKey: string, provider: ProviderType): Promise<{
     validation: ApiKeyValidationResult;
     models: FilteredModel[];
   }>;
-
-
 }

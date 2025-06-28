@@ -1,18 +1,19 @@
 import { ProviderConfig } from './ProviderConfig';
 import { OpenAIProviderConfig } from './OpenAIProviderConfig';
 import { GeminiProviderConfig } from './GeminiProviderConfig';
+import { Provider, ProviderType } from '../../types/Provider';
 
 interface ProviderConfigInstance {
   getConfig(): ProviderConfig;
 }
 
 export class ProviderConfigFactory {
-  private static configs: Map<string, ProviderConfigInstance> = new Map();
+  private static configs: Map<ProviderType, ProviderConfigInstance> = new Map();
 
   static {
     // Initialize configurations
-    ProviderConfigFactory.configs.set('openai', new OpenAIProviderConfig());
-    ProviderConfigFactory.configs.set('gemini', new GeminiProviderConfig());
+    ProviderConfigFactory.configs.set(Provider.OPENAI, new OpenAIProviderConfig());
+    ProviderConfigFactory.configs.set(Provider.GEMINI, new GeminiProviderConfig());
   }
 
   /**
@@ -20,7 +21,7 @@ export class ProviderConfigFactory {
    * @param providerId - The provider identifier
    * @returns ProviderConfig object
    */
-  static getConfig(providerId: string): ProviderConfig {
+  static getConfig(providerId: ProviderType): ProviderConfig {
     const configInstance = this.configs.get(providerId);
     if (!configInstance) {
       throw new Error(`Unsupported provider: ${providerId}`);
@@ -40,7 +41,7 @@ export class ProviderConfigFactory {
    * Get all available provider IDs
    * @returns Array of provider IDs
    */
-  static getAvailableProviders(): string[] {
+  static getAvailableProviders(): ProviderType[] {
     return Array.from(this.configs.keys());
   }
 
@@ -49,7 +50,7 @@ export class ProviderConfigFactory {
    * @param providerId - The provider identifier
    * @returns boolean
    */
-  static isProviderSupported(providerId: string): boolean {
+  static isProviderSupported(providerId: ProviderType): boolean {
     return this.configs.has(providerId);
   }
 
@@ -58,7 +59,7 @@ export class ProviderConfigFactory {
    * @param providerId - The provider identifier
    * @param config - The provider configuration instance
    */
-  static registerProvider(providerId: string, config: ProviderConfigInstance): void {
+  static registerProvider(providerId: ProviderType, config: ProviderConfigInstance): void {
     this.configs.set(providerId, config);
   }
 
@@ -67,7 +68,7 @@ export class ProviderConfigFactory {
    * @param providerId - The provider identifier
    * @returns ProviderConfigInstance instance
    */
-  static getConfigInstance(providerId: string): ProviderConfigInstance {
+  static getConfigInstance(providerId: ProviderType): ProviderConfigInstance {
     const configInstance = this.configs.get(providerId);
     if (!configInstance) {
       throw new Error(`Unsupported provider: ${providerId}`);

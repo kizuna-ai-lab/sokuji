@@ -4,6 +4,7 @@
  */
 
 import { RealtimeEvent } from '../../contexts/LogContext';
+import { ProviderType } from '../../types/Provider';
 
 export interface ConversationItem {
   id: string;
@@ -104,7 +105,7 @@ export interface IClient {
   setEventHandlers(handlers: ClientEventHandlers): void;
   
   // Provider-specific information
-  getProvider(): 'openai' | 'gemini';
+  getProvider(): ProviderType;
 }
 
 /**

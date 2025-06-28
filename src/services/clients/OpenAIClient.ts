@@ -2,6 +2,7 @@ import { RealtimeClient } from '@openai/realtime-api-beta';
 import { ItemType } from '@openai/realtime-api-beta/dist/lib/client.js';
 import { IClient, ConversationItem, SessionConfig, ClientEventHandlers, ApiKeyValidationResult, FilteredModel, IClientStatic } from '../interfaces/IClient';
 import { RealtimeEvent } from '../../contexts/LogContext';
+import { Provider, ProviderType } from '../../types/Provider';
 import i18n from '../../locales';
 
 /**
@@ -19,17 +20,24 @@ interface OpenAIModel {
  * Implements the IClient interface for OpenAI's Realtime API
  */
 export class OpenAIClient implements IClient {
-  private static readonly MODELS_ENDPOINT = 'https://api.openai.com/v1/models';
+  private static readonly DEFAULT_API_HOST = 'https://api.openai.com';
   
   private client: RealtimeClient;
   private eventHandlers: ClientEventHandlers = {};
   private apiKey: string;
+  private apiHost: string;
 
-  constructor(apiKey: string) {
+  constructor(apiKey: string, apiHost?: string) {
     this.apiKey = apiKey;
+    this.apiHost = apiHost || OpenAIClient.DEFAULT_API_HOST;
+    
+    // Remove trailing slash from API host if present
+    this.apiHost = this.apiHost.replace(/\/$/, '');
+    
     this.client = new RealtimeClient({
       apiKey,
       dangerouslyAllowAPIKeyInBrowser: true,
+      url: `${this.apiHost}/v1/realtime`
     });
     this.setupEventListeners();
   }
@@ -37,7 +45,7 @@ export class OpenAIClient implements IClient {
   /**
    * Validate API key and fetch available models in a single request
    */
-  static async validateApiKeyAndFetchModels(apiKey: string): Promise<{
+  static async validateApiKeyAndFetchModels(apiKey: string, apiHost?: string): Promise<{
     validation: ApiKeyValidationResult;
     models: FilteredModel[];
   }> {
@@ -54,8 +62,12 @@ export class OpenAIClient implements IClient {
         };
       }
       
+      // Use provided API host or default
+      const host = apiHost || this.DEFAULT_API_HOST;
+      const modelsEndpoint = `${host.replace(/\/$/, '')}/v1/models`;
+      
       // Make request to OpenAI API models endpoint
-      const response = await fetch(this.MODELS_ENDPOINT, {
+      const response = await fetch(modelsEndpoint, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${apiKey}`,
@@ -109,8 +121,6 @@ export class OpenAIClient implements IClient {
       };
     }
   }
-
-
 
   /**
    * Get the latest realtime model from the filtered models
@@ -269,10 +279,11 @@ export class OpenAIClient implements IClient {
   }
 
   async connect(config: SessionConfig): Promise<void> {
-    // Create new client instance with fresh API key
+    // Create new client instance with fresh API key and API host
     this.client = new RealtimeClient({
       apiKey: this.apiKey,
       dangerouslyAllowAPIKeyInBrowser: true,
+      url: `${this.apiHost}/v1/realtime`
     });
     
     // Re-setup event listeners for new client
@@ -297,7 +308,8 @@ export class OpenAIClient implements IClient {
           model: config.model,
           timestamp: Date.now(),
           voice: config.voice,
-          temperature: config.temperature
+          temperature: config.temperature,
+          apiHost: this.apiHost
         } 
       }
     });
@@ -414,7 +426,7 @@ export class OpenAIClient implements IClient {
     this.eventHandlers = { ...handlers };
   }
 
-  getProvider(): 'openai' | 'gemini' {
-    return 'openai';
+  getProvider(): ProviderType {
+    return Provider.OPENAI;
   }
 } 
