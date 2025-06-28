@@ -15,8 +15,8 @@ export interface CommonSettings {
   useTemplateMode: boolean;
 }
 
-// OpenAI-specific Settings
-export interface OpenAISettings {
+// OpenAI-compatible Settings (used by OpenAI and CometAPI)
+export interface OpenAICompatibleSettings {
   apiKey: string;
   model: string;
   voice: string; // OpenAI voice options
@@ -32,6 +32,10 @@ export interface OpenAISettings {
   transcriptModel: 'gpt-4o-mini-transcribe' | 'gpt-4o-transcribe' | 'whisper-1';
   noiseReduction: 'None' | 'Near field' | 'Far field';
 }
+
+// Type aliases for clarity
+export type OpenAISettings = OpenAICompatibleSettings;
+export type CometAPISettings = OpenAICompatibleSettings;
 
 // Gemini-specific Settings
 export interface GeminiSettings {
@@ -52,12 +56,14 @@ interface SettingsContextType {
   
   // Provider-specific settings
   openAISettings: OpenAISettings;
+  cometAPISettings: CometAPISettings;
   geminiSettings: GeminiSettings;
   updateOpenAISettings: (newSettings: Partial<OpenAISettings>) => void;
+  updateCometAPISettings: (newSettings: Partial<CometAPISettings>) => void;
   updateGeminiSettings: (newSettings: Partial<GeminiSettings>) => void;
   
   // Current provider settings (computed from provider-specific settings)
-  getCurrentProviderSettings: () => OpenAISettings | GeminiSettings;
+  getCurrentProviderSettings: () => OpenAISettings | GeminiSettings | CometAPISettings;
   
   // Other context methods
   reloadSettings: () => Promise<void>;
@@ -84,8 +90,8 @@ export const defaultCommonSettings: CommonSettings = {
   useTemplateMode: true,
 };
 
-// Default OpenAI settings
-export const defaultOpenAISettings: OpenAISettings = {
+// Default OpenAI-compatible settings (shared by OpenAI and CometAPI)
+export const defaultOpenAICompatibleSettings: OpenAICompatibleSettings = {
   apiKey: '',
   model: 'gpt-4o-mini-realtime-preview',
   voice: 'alloy',
@@ -101,6 +107,10 @@ export const defaultOpenAISettings: OpenAISettings = {
   transcriptModel: 'gpt-4o-mini-transcribe',
   noiseReduction: 'None',
 };
+
+// Default settings for each provider
+export const defaultOpenAISettings: OpenAISettings = defaultOpenAICompatibleSettings;
+export const defaultCometAPISettings: CometAPISettings = defaultOpenAICompatibleSettings;
 
 // Default Gemini settings
 export const defaultGeminiSettings: GeminiSettings = {
@@ -130,6 +140,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   // Separate state management for different settings categories
   const [commonSettings, setCommonSettings] = useState<CommonSettings>(defaultCommonSettings);
   const [openAISettings, setOpenAISettings] = useState<OpenAISettings>(defaultOpenAISettings);
+  const [cometAPISettings, setCometAPISettings] = useState<CometAPISettings>(defaultCometAPISettings);
   const [geminiSettings, setGeminiSettings] = useState<GeminiSettings>(defaultGeminiSettings);
   
   const [isApiKeyValid, setIsApiKeyValid] = useState(false);
@@ -154,14 +165,32 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   }, [commonSettings.provider]);
 
   // Get current provider's settings
-  const getCurrentProviderSettings = useCallback((): OpenAISettings | GeminiSettings => {
-    return commonSettings.provider === Provider.OPENAI ? openAISettings : geminiSettings;
-  }, [commonSettings.provider, openAISettings, geminiSettings]);
+  const getCurrentProviderSettings = useCallback((): OpenAISettings | GeminiSettings | CometAPISettings => {
+    switch (commonSettings.provider) {
+      case Provider.OPENAI:
+        return openAISettings;
+      case Provider.COMET_API:
+        return cometAPISettings;
+      case Provider.GEMINI:
+        return geminiSettings;
+      default:
+        return openAISettings;
+    }
+  }, [commonSettings.provider, openAISettings, cometAPISettings, geminiSettings]);
 
   // Get current API key based on provider
   const getCurrentApiKey = useCallback((): string => {
-    return commonSettings.provider === Provider.OPENAI ? openAISettings.apiKey : geminiSettings.apiKey;
-  }, [commonSettings.provider, openAISettings.apiKey, geminiSettings.apiKey]);
+    switch (commonSettings.provider) {
+      case Provider.OPENAI:
+        return openAISettings.apiKey;
+      case Provider.COMET_API:
+        return cometAPISettings.apiKey;
+      case Provider.GEMINI:
+        return geminiSettings.apiKey;
+      default:
+        return openAISettings.apiKey;
+    }
+  }, [commonSettings.provider, openAISettings.apiKey, cometAPISettings.apiKey, geminiSettings.apiKey]);
 
   // Generate cache key for current provider and API key
   const getCacheKey = useCallback((): string => {
@@ -207,16 +236,18 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
 
     try {
       console.info('[Settings] Validating API key and fetching models...');
-      const result = await settingsService.validateApiKeyAndFetchModels(apiKey, commonSettings.provider);
+      
+      const result = await settingsService.validateApiKeyAndFetchModels(
+        apiKey, 
+        commonSettings.provider
+      );
       
       // Cache the result
-      const newCache = new Map(modelsCache);
-      newCache.set(cacheKey, {
+      modelsCache.set(cacheKey, {
         validation: result.validation,
         models: result.models,
         timestamp: Date.now()
       });
-      setModelsCache(newCache);
       
       return result;
     } catch (error) {
@@ -224,7 +255,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
       const result = {
         validation: {
           valid: false,
-          message: error instanceof Error ? error.message : 'Error validating API key',
+          message: error instanceof Error ? error.message : 'Validation failed',
           validating: false
         } as ApiKeyValidationResult,
         models: [] as FilteredModel[]
@@ -303,6 +334,22 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     });
   }, [settingsService]);
 
+  const updateCometAPISettings = useCallback((newSettings: Partial<CometAPISettings>) => {
+    setCometAPISettings(prev => {
+      const updated = { ...prev, ...newSettings };
+      
+      // Save each updated setting
+      for (const key of Object.keys(newSettings)) {
+        const fullKey = `settings.cometapi.${key}`;
+        const value = (newSettings as any)[key];
+        settingsService.setSetting(fullKey, value)
+          .catch(error => console.error(`[Settings] Error saving CometAPI setting ${key}:`, error));
+      }
+      
+      return updated;
+    });
+  }, [settingsService]);
+
   const updateGeminiSettings = useCallback((newSettings: Partial<GeminiSettings>) => {
     setGeminiSettings(prev => {
       const updated = { ...prev, ...newSettings };
@@ -339,6 +386,15 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         (loadedOpenAI as any)[key] = await settingsService.getSetting(fullKey, defaultValue);
       }
       setOpenAISettings(loadedOpenAI as OpenAISettings);
+
+      // Load CometAPI settings
+      const loadedCometAPI: Partial<CometAPISettings> = {};
+      for (const key of Object.keys(defaultCometAPISettings)) {
+        const fullKey = `settings.cometapi.${key}`;
+        const defaultValue = (defaultCometAPISettings as any)[key];
+        (loadedCometAPI as any)[key] = await settingsService.getSetting(fullKey, defaultValue);
+      }
+      setCometAPISettings(loadedCometAPI as CometAPISettings);
 
       // Load Gemini settings
       const loadedGemini: Partial<GeminiSettings> = {};
@@ -423,7 +479,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
       setAvailableModels(prev => prev.length > 0 ? [] : prev);
       setModelsCache(prev => prev.size > 0 ? new Map() : prev); // Prevent re-render loop
     }
-  }, [commonSettings.provider, openAISettings.apiKey, geminiSettings.apiKey, getCurrentApiKey, validateApiKeyAndFetchModels]);
+  }, [commonSettings.provider, openAISettings.apiKey, cometAPISettings.apiKey, geminiSettings.apiKey, getCurrentApiKey, validateApiKeyAndFetchModels]);
 
   return (
     <SettingsContext.Provider
@@ -432,8 +488,10 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         commonSettings,
         updateCommonSettings,
         openAISettings,
+        cometAPISettings,
         geminiSettings,
         updateOpenAISettings,
+        updateCometAPISettings,
         updateGeminiSettings,
         getCurrentProviderSettings,
         

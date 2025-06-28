@@ -14,7 +14,7 @@ import { useTranslation } from 'react-i18next';
 import { useAnalytics } from '../../lib/analytics';
 import { isDevelopment } from '../../config/analytics';
 import { v4 as uuidv4 } from 'uuid';
-import { Provider } from '../../types/Provider';
+import { Provider, isOpenAICompatible } from '../../types/Provider';
 
 interface MainPanelProps {}
 
@@ -31,6 +31,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   const {
     commonSettings,
     openAISettings,
+    cometAPISettings,
     geminiSettings,
     getCurrentProviderSettings,
     isApiKeyValid,
@@ -90,9 +91,12 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       maxTokens: currentProviderSettings.maxTokens ?? 'inf',
     };
 
-    // Configure provider-specific settings
-    if (provider === Provider.OPENAI) {
-      const { turnDetectionMode, prefixPadding, silenceDuration, threshold, semanticEagerness, noiseReduction, transcriptModel } = openAISettings;
+    // Configure provider-specific settings for OpenAI-compatible providers
+    if (isOpenAICompatible(provider)) {
+      // Get settings from the appropriate provider
+      const compatibleSettings = provider === Provider.OPENAI ? openAISettings : cometAPISettings;
+      const { turnDetectionMode, prefixPadding, silenceDuration, threshold, semanticEagerness, noiseReduction, transcriptModel } = compatibleSettings;
+      
       // Configure turn detection
       if (turnDetectionMode === 'Disabled') {
         sessionConfig.turnDetection = { type: 'none' };
@@ -131,7 +135,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     }
 
     return sessionConfig;
-  }, [commonSettings, openAISettings, getCurrentProviderSettings, getProcessedSystemInstructions]);
+  }, [commonSettings, openAISettings, cometAPISettings, getCurrentProviderSettings, getProcessedSystemInstructions]);
 
   /**
    * Setup virtual audio output device
@@ -251,8 +255,8 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         // Handle conversation interruption
         const trackSampleOffset = await audioService.interruptAudio();
         if (trackSampleOffset?.trackId) {
-          const { trackId, offset } = trackSampleOffset;
-          client.cancelResponse(trackId, offset);
+          // const { trackId, offset } = trackSampleOffset;
+          // client.cancelResponse(trackId, offset);
         }
       },
       onConversationUpdated: async ({ item, delta }: { item: ConversationItem; delta?: any }) => {
@@ -338,10 +342,28 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
       // Create a new AI client instance
       const currentProviderSettings = getCurrentProviderSettings();
+      console.log('currentProviderSettings', currentProviderSettings);
+      
+      // Get the appropriate API key based on the current provider
+      let apiKey: string;
+      switch (commonSettings.provider) {
+        case Provider.OPENAI:
+          apiKey = openAISettings.apiKey;
+          break;
+        case Provider.COMET_API:
+          apiKey = cometAPISettings.apiKey;
+          break;
+        case Provider.GEMINI:
+          apiKey = geminiSettings.apiKey;
+          break;
+        default:
+          throw new Error(`Unsupported provider: ${commonSettings.provider}`);
+      }
+      
       clientRef.current = ClientFactory.createClient(
         currentProviderSettings.model,
-        openAISettings.apiKey,
-        geminiSettings.apiKey
+        commonSettings.provider,
+        apiKey
       );
 
       // Setup listeners for the new client instance
@@ -351,8 +373,9 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       const wavRecorder = wavRecorderRef.current;
 
       // Set canPushToTalk based on current turnDetectionMode
-      if (commonSettings.provider === Provider.OPENAI) {
-        setCanPushToTalk(openAISettings.turnDetectionMode === 'Disabled');
+      if (isOpenAICompatible(commonSettings.provider)) {
+        const settings = commonSettings.provider === Provider.OPENAI ? openAISettings : cometAPISettings;
+        setCanPushToTalk(settings.turnDetectionMode === 'Disabled');
       } else {
         setCanPushToTalk(false); // Not supported by Gemini yet
       }
@@ -387,8 +410,9 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
       // Start recording if using server VAD and input device is turned on
       let turnDetectionDisabled = false;
-      if (commonSettings.provider === Provider.OPENAI) {
-        turnDetectionDisabled = openAISettings.turnDetectionMode === 'Disabled';
+      if (isOpenAICompatible(commonSettings.provider)) {
+        const settings = commonSettings.provider === Provider.OPENAI ? openAISettings : cometAPISettings;
+        turnDetectionDisabled = settings.turnDetectionMode === 'Disabled';
       }
       
       if (!turnDetectionDisabled && isInputDeviceOn) {
@@ -413,6 +437,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     commonSettings, 
     openAISettings, 
     geminiSettings, 
+    cometAPISettings, 
     getCurrentProviderSettings, 
     getSessionConfig, 
     setupClientListeners, 
@@ -900,8 +925,9 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
           // If we're in automatic mode, resume recording
           let turnDetectionDisabled = false;
-          if (commonSettings.provider === Provider.OPENAI) {
-            turnDetectionDisabled = openAISettings.turnDetectionMode === 'Disabled';
+          if (isOpenAICompatible(commonSettings.provider)) {
+            const settings = commonSettings.provider === Provider.OPENAI ? openAISettings : cometAPISettings;
+            turnDetectionDisabled = settings.turnDetectionMode === 'Disabled';
           }
           if (!turnDetectionDisabled) {
             console.info('[Sokuji] [MainPanel] Input device turned on - resuming recording in automatic mode');

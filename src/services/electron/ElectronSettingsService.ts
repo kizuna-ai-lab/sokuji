@@ -99,7 +99,10 @@ export class ElectronSettingsService implements ISettingsService {
   /**
    * Validate API key and fetch available models in a single request
    */
-  async validateApiKeyAndFetchModels(apiKey: string, provider: ProviderType): Promise<{
+  async validateApiKeyAndFetchModels(
+    apiKey: string, 
+    provider: ProviderType
+  ): Promise<{
     validation: ApiKeyValidationResult;
     models: FilteredModel[];
   }> {

@@ -52,7 +52,10 @@ export interface ISettingsService {
    * @param apiKey The API key to validate and use for fetching models
    * @param provider The service provider to validate against
    */
-  validateApiKeyAndFetchModels(apiKey: string, provider: ProviderType): Promise<{
+  validateApiKeyAndFetchModels(
+    apiKey: string, 
+    provider: ProviderType
+  ): Promise<{
     validation: ApiKeyValidationResult;
     models: FilteredModel[];
   }>;

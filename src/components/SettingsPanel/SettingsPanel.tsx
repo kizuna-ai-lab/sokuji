@@ -19,10 +19,12 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
     commonSettings,
     updateCommonSettings,
     openAISettings,
+    cometAPISettings,
     geminiSettings,
     updateOpenAISettings,
+    updateCometAPISettings,
     updateGeminiSettings,
-    getCurrentProviderSettings,
+    getCurrentProviderConfig,
     
     // Other context methods and state
     isApiKeyValid,
@@ -40,10 +42,10 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
   // Get current provider configuration
   const currentProviderConfig = useMemo(() => {
     try {
-      return ProviderConfigFactory.getConfig(commonSettings.provider || 'openai');
+      return ProviderConfigFactory.getConfig(commonSettings.provider || Provider.OPENAI);
     } catch (error) {
       console.warn(`[SettingsPanel] Unknown provider: ${commonSettings.provider}, falling back to OpenAI`);
-      return ProviderConfigFactory.getConfig('openai');
+      return ProviderConfigFactory.getConfig(Provider.OPENAI);
     }
   }, [commonSettings.provider]);
 
@@ -53,7 +55,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
   }, []);
 
   // Get current provider's settings
-  const currentProviderSettings = getCurrentProviderSettings();
+  const currentProviderSettings = getCurrentProviderConfig();
 
   const [apiKeyStatus, setApiKeyStatus] = useState<{
     valid: boolean | null;
@@ -71,36 +73,27 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
   const handleSave = async () => {
     setIsSaving(true);
     setSaveStatus({ type: null, message: '' });
-    let failCount = 0, successCount = 0;
     
     try {
-      // Save common settings
-      updateCommonSettings(commonSettings);
-      successCount++;
-    } catch (error) {
-      failCount++;
-    }
-    
-    try {
-      // Save provider-specific settings
-      if (commonSettings.provider === 'openai') {
+      // Save all settings
+      if (commonSettings.provider === Provider.OPENAI) {
         updateOpenAISettings(openAISettings);
+      } else if (commonSettings.provider === Provider.COMET_API) {
+        updateCometAPISettings(cometAPISettings);
       } else {
         updateGeminiSettings(geminiSettings);
       }
-      successCount++;
-    } catch (error) {
-      failCount++;
-    }
-    
-    if (failCount === 0) {
+      
+      updateCommonSettings(commonSettings);
+      
+      console.info('[Settings] All settings saved successfully');
       setSaveStatus({ type: 'success', message: t('settings.settingsSavedSuccessfully') });
-    } else if (successCount > 0) {
-      setSaveStatus({ type: 'warning', message: `${t('common.save')} ${successCount} settings, ${failCount} failed` });
-    } else {
+    } catch (error) {
+      console.error('[Settings] Error saving settings:', error);
       setSaveStatus({ type: 'error', message: t('settings.failedToSaveSettings') });
+    } finally {
+      setIsSaving(false);
     }
-    setIsSaving(false);
   };
 
   const renderStatusIcon = () => {
@@ -237,10 +230,16 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
             </div>
             <div className="api-key-container">
               <input
-                value={commonSettings.provider === Provider.OPENAI ? openAISettings.apiKey : geminiSettings.apiKey}
+                value={
+                  commonSettings.provider === Provider.OPENAI ? openAISettings.apiKey :
+                  commonSettings.provider === Provider.COMET_API ? cometAPISettings.apiKey :
+                  geminiSettings.apiKey
+                }
                 onChange={(e) => {
                   if (commonSettings.provider === Provider.OPENAI) {
                     updateOpenAISettings({ apiKey: e.target.value });
+                  } else if (commonSettings.provider === Provider.COMET_API) {
+                    updateCometAPISettings({ apiKey: e.target.value });
                   } else {
                     updateGeminiSettings({ apiKey: e.target.value });
                   }
@@ -258,7 +257,9 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
                 className="validate-key-button"
                 onClick={handleValidateApiKey}
                 disabled={apiKeyStatus.validating || 
-                  (commonSettings.provider === Provider.OPENAI ? !openAISettings.apiKey : !geminiSettings.apiKey) || 
+                  (commonSettings.provider === Provider.OPENAI ? !openAISettings.apiKey :
+                   commonSettings.provider === Provider.COMET_API ? !cometAPISettings.apiKey :
+                   !geminiSettings.apiKey) || 
                   isSessionActive}
               >
                 <Key size={16} />
