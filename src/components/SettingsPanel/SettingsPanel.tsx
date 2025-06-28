@@ -211,7 +211,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
                   </option>
                 ))}
               </select>
-              {commonSettings.provider === Provider.GEMINI && (
+              {(commonSettings.provider === Provider.GEMINI || commonSettings.provider === Provider.COMET_API) && (
                 <div className="experimental-icon-wrapper">
                   <FlaskConical 
                     size={16} 
