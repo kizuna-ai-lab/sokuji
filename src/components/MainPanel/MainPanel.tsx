@@ -345,7 +345,6 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
       // Create a new AI client instance
       const currentProviderSettings = getCurrentProviderSettings();
-      console.log('currentProviderSettings', currentProviderSettings);
       
       // Get the appropriate API key based on the current provider
       let apiKey: string;
