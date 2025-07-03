@@ -16,10 +16,15 @@ interface AudioContextProps {
   isInputDeviceOn: boolean;
   isMonitorDeviceOn: boolean;
   isLoading: boolean;
+  // Real person voice passthrough settings
+  isRealVoicePassthroughEnabled: boolean;
+  realVoicePassthroughVolume: number;
   selectInputDevice: (device: AudioDevice) => void;
   selectMonitorDevice: (device: AudioDevice) => void;
   toggleInputDeviceState: () => void;
   toggleMonitorDeviceState: () => void;
+  toggleRealVoicePassthrough: () => void;
+  setRealVoicePassthroughVolume: (volume: number) => void;
   refreshDevices: () => void;
 }
 
@@ -44,6 +49,9 @@ export const AudioProvider = ({ children }: { children: ReactNode }) => {
   const [isInputDeviceOn, setIsInputDeviceOn] = useState<boolean>(true);
   const [isMonitorDeviceOn, setIsMonitorDeviceOn] = useState<boolean>(true);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  // Real person voice passthrough settings
+  const [isRealVoicePassthroughEnabled, setIsRealVoicePassthroughEnabled] = useState<boolean>(false);
+  const [realVoicePassthroughVolume, setRealVoicePassthroughVolumeState] = useState<number>(0.2); // Default 20%
 
   // Function to refresh the list of audio devices
   const refreshDevices = useCallback(async () => {
@@ -210,6 +218,19 @@ export const AudioProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [isMonitorDeviceOn, selectedMonitorDevice]);
 
+  // Real person voice passthrough functions
+  const toggleRealVoicePassthrough = useCallback(() => {
+    console.info('[Sokuji] [AudioContext] Toggling real voice passthrough');
+    setIsRealVoicePassthroughEnabled(!isRealVoicePassthroughEnabled);
+  }, [isRealVoicePassthroughEnabled]);
+
+  const setRealVoicePassthroughVolume = useCallback((volume: number) => {
+    // Clamp volume between 0 and 0.6 (60%)
+    const clampedVolume = Math.max(0, Math.min(0.6, volume));
+    console.info('[Sokuji] [AudioContext] Setting real voice passthrough volume:', clampedVolume);
+    setRealVoicePassthroughVolumeState(clampedVolume);
+  }, []);
+
   return (
     <AudioContext.Provider value={{
       audioInputDevices,
@@ -219,10 +240,15 @@ export const AudioProvider = ({ children }: { children: ReactNode }) => {
       isInputDeviceOn,
       isMonitorDeviceOn,
       isLoading,
+      // Real person voice passthrough settings
+      isRealVoicePassthroughEnabled,
+      realVoicePassthroughVolume,
       selectInputDevice,
       selectMonitorDevice,
       toggleInputDeviceState,
       toggleMonitorDeviceState,
+      toggleRealVoicePassthrough,
+      setRealVoicePassthroughVolume,
       refreshDevices
     }}>
       {children}

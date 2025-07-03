@@ -18,10 +18,15 @@ const AudioPanel: React.FC<{ toggleAudio: () => void }> = ({ toggleAudio }) => {
     isInputDeviceOn,
     isMonitorDeviceOn,
     isLoading,
+    // Real person voice passthrough settings
+    isRealVoicePassthroughEnabled,
+    realVoicePassthroughVolume,
     selectInputDevice,
     selectMonitorDevice,
     toggleInputDeviceState,
     toggleMonitorDeviceState,
+    toggleRealVoicePassthrough,
+    setRealVoicePassthroughVolume,
     refreshDevices
   } = useAudioContext();
 
@@ -220,6 +225,51 @@ const AudioPanel: React.FC<{ toggleAudio: () => void }> = ({ toggleAudio }) => {
                 {selectedMonitorDevice?.deviceId === device.deviceId && <div className="selected-indicator" />}
               </div>
             ))}
+          </div>
+        </div>
+
+        {/* Real Person Voice Passthrough Section */}
+        <div className="audio-section voice-passthrough-section">
+          <h3>{t('audioPanel.realVoicePassthrough')}</h3>
+          <div className="device-selector">
+            <div className="device-status">
+              <div className={`device-icon ${isRealVoicePassthroughEnabled ? 'active' : 'inactive'}`}>
+                <Mic size={18} />
+              </div>
+              <div className="device-info">
+                <div className="device-name">{t('audioPanel.enableRealVoicePassthrough')}</div>
+                <div className="device-description">{t('audioPanel.realVoicePassthroughDescription')}</div>
+              </div>
+            </div>
+            <button 
+              className={`device-toggle-button ${isRealVoicePassthroughEnabled ? 'on' : 'off'}`}
+              onClick={toggleRealVoicePassthrough}
+            >
+              {isRealVoicePassthroughEnabled ? t('audioPanel.turnOff') : t('audioPanel.turnOn')}
+            </button>
+          </div>
+          
+          <div className="device-list">
+            <div className={`volume-control ${!isRealVoicePassthroughEnabled ? 'disabled' : ''}`}>
+              <div className="setting-label">
+                <span>{t('audioPanel.realVoiceVolume')}</span>
+                <span className="setting-value">{Math.round(realVoicePassthroughVolume * 100)}%</span>
+              </div>
+              <input 
+                type="range" 
+                min="0" 
+                max="0.6" 
+                step="0.01" 
+                value={realVoicePassthroughVolume}
+                onChange={(e) => setRealVoicePassthroughVolume(parseFloat(e.target.value))}
+                className="volume-slider"
+                disabled={!isRealVoicePassthroughEnabled}
+              />
+              <div className="volume-limits">
+                <span>0%</span>
+                <span>60%</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
