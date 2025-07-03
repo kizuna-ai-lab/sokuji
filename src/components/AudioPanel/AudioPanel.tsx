@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowRight, Volume2, Mic, RefreshCw, AlertTriangle } from 'lucide-react';
+import { ArrowRight, Volume2, Mic, RefreshCw, AlertTriangle, AudioLines } from 'lucide-react';
 import './AudioPanel.scss';
 import Modal from '../Modal/Modal';
 import { useAudioContext } from '../../contexts/AudioContext';
@@ -234,7 +234,7 @@ const AudioPanel: React.FC<{ toggleAudio: () => void }> = ({ toggleAudio }) => {
           <div className="device-selector">
             <div className="device-status">
               <div className={`device-icon ${isRealVoicePassthroughEnabled ? 'active' : 'inactive'}`}>
-                <Mic size={18} />
+                <AudioLines size={18} />
               </div>
               <div className="device-info">
                 <div className="device-name">{t('audioPanel.enableRealVoicePassthrough')}</div>
