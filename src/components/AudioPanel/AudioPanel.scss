@@ -318,4 +318,120 @@
       }
     }
   }
+
+  // Voice Passthrough Section Styles
+  .voice-passthrough-section {
+    .device-info {
+      .device-description {
+        font-size: 12px;
+        color: #aaa;
+        line-height: 1.4;
+        margin-top: 2px;
+      }
+    }
+    
+    .device-list {
+      .volume-control {
+        background-color: #2a2a2a;
+        border-radius: 4px;
+        padding: 12px;
+        margin-bottom: 6px;
+        
+        .setting-label {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 10px;
+          
+          span {
+            font-size: 13px;
+            
+            &:first-child {
+              color: #fff;
+              font-weight: 500;
+            }
+            
+            &.setting-value {
+              color: #10a37f;
+              font-weight: 600;
+            }
+          }
+        }
+        
+        &.disabled {
+          .setting-label {
+            span {
+              &:first-child {
+                color: #888;
+              }
+              
+              &.setting-value {
+                color: #666;
+              }
+            }
+          }
+        }
+        
+        .volume-slider {
+          width: 100%;
+          height: 4px;
+          border-radius: 2px;
+          background: #444;
+          outline: none;
+          -webkit-appearance: none;
+          appearance: none;
+          margin-bottom: 8px;
+          transition: opacity 0.2s;
+          
+          &::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #10a37f;
+            cursor: pointer;
+            border: 2px solid #fff;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            transition: all 0.2s;
+          }
+          
+          &::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #10a37f;
+            cursor: pointer;
+            border: 2px solid #fff;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            transition: all 0.2s;
+          }
+          
+          &:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            
+            &::-webkit-slider-thumb {
+              background: #666;
+              cursor: not-allowed;
+              box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+            }
+            
+            &::-moz-range-thumb {
+              background: #666;
+              cursor: not-allowed;
+              box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+            }
+          }
+        }
+        
+        .volume-limits {
+          display: flex;
+          justify-content: space-between;
+          font-size: 11px;
+          color: #666;
+        }
+      }
+    }
+  }
 }
