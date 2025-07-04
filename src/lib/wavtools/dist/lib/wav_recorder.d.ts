@@ -49,6 +49,32 @@ export class WavRecorder {
         mono: ArrayBuffer;
     };
     /**
+     * Sets up real-time audio passthrough to a WavStreamPlayer
+     * @param {any} player WavStreamPlayer instance
+     * @param {boolean} enabled Whether passthrough is enabled
+     * @param {number} volume Volume multiplier (0.0 to 1.0)
+     * @returns {void}
+     */
+    setupPassthrough(player: any, enabled?: boolean, volume?: number): void;
+    /**
+     * Enables or disables real-time audio passthrough
+     * @param {boolean} enabled Whether passthrough is enabled
+     * @returns {void}
+     */
+    setPassthroughEnabled(enabled: boolean): void;
+    /**
+     * Sets the volume for real-time audio passthrough
+     * @param {number} volume Volume multiplier (0.0 to 1.0)
+     * @returns {void}
+     */
+    setPassthroughVolume(volume: number): void;
+    /**
+     * Handles real-time audio passthrough for a data chunk
+     * @param {{mono: ArrayBuffer, raw: ArrayBuffer}} data Audio data chunk
+     * @returns {void}
+     */
+    handlePassthrough(data: {mono: ArrayBuffer, raw: ArrayBuffer}): void;
+    /**
      * Logs data in debug mode
      * @param {...any} arguments
      * @returns {true}

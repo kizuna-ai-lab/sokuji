@@ -4,11 +4,11 @@ class StreamProcessor extends AudioWorkletProcessor {
     super();
     this.hasStarted = false;
     this.hasInterrupted = false;
-    this.outputBuffers = [];
+    this.trackBuffers = {}; // Separate buffer queues for each trackId
     this.bufferLength = 128;
-    this.write = { buffer: new Float32Array(this.bufferLength), trackId: null };
-    this.writeOffset = 0;
+    this.currentWrites = {}; // Current write buffers for each trackId
     this.trackSampleOffsets = {};
+    
     this.port.onmessage = (event) => {
       if (event.data) {
         const payload = event.data;
@@ -24,8 +24,10 @@ class StreamProcessor extends AudioWorkletProcessor {
           payload.event === 'interrupt'
         ) {
           const requestId = payload.requestId;
-          const trackId = this.write.trackId;
-          const offset = this.trackSampleOffsets[trackId] || 0;
+          // Find the most recently active trackId or use the first available one
+          const trackIds = Object.keys(this.trackSampleOffsets);
+          const trackId = trackIds.length > 0 ? trackIds[trackIds.length - 1] : null;
+          const offset = trackId ? (this.trackSampleOffsets[trackId] || 0) : 0;
           this.port.postMessage({
             event: 'offset',
             requestId,
@@ -42,55 +44,87 @@ class StreamProcessor extends AudioWorkletProcessor {
     };
   }
 
-  writeData(float32Array, trackId = null) {
-    let { buffer } = this.write;
-    let offset = this.writeOffset;
+  writeData(float32Array, trackId = 'default') {
+    // Initialize track-specific data structures if needed
+    if (!this.trackBuffers[trackId]) {
+      this.trackBuffers[trackId] = [];
+      this.currentWrites[trackId] = {
+        buffer: new Float32Array(this.bufferLength),
+        offset: 0
+      };
+    }
+
+    let { buffer, offset } = this.currentWrites[trackId];
+    
     for (let i = 0; i < float32Array.length; i++) {
       buffer[offset++] = float32Array[i];
       if (offset >= buffer.length) {
-        this.outputBuffers.push(this.write);
-        this.write = { buffer: new Float32Array(this.bufferLength), trackId };
-        buffer = this.write.buffer;
+        // Push completed buffer to track's queue
+        this.trackBuffers[trackId].push(buffer);
+        // Create new buffer for this track
+        buffer = new Float32Array(this.bufferLength);
         offset = 0;
       }
     }
-    this.writeOffset = offset;
+    
+    // Update current write state for this track
+    this.currentWrites[trackId].buffer = buffer;
+    this.currentWrites[trackId].offset = offset;
+    
     return true;
   }
 
   process(inputs, outputs, parameters) {
     const output = outputs[0];
     const outputChannelData = output[0];
-    const outputBuffers = this.outputBuffers;
+    
     if (this.hasInterrupted) {
       this.port.postMessage({ event: 'stop' });
       return false;
-    } else if (outputBuffers.length) {
-      this.hasStarted = true;
-      const { buffer, trackId } = outputBuffers.shift();
-      for (let i = 0; i < outputChannelData.length; i++) {
-        outputChannelData[i] = buffer[i] || 0;
-      }
-      if (trackId) {
-        this.trackSampleOffsets[trackId] =
-          this.trackSampleOffsets[trackId] || 0;
+    }
+
+    // Initialize output with silence
+    for (let i = 0; i < outputChannelData.length; i++) {
+      outputChannelData[i] = 0;
+    }
+
+    let hasAnyAudio = false;
+    
+    // Mix audio from all active tracks
+    for (const trackId in this.trackBuffers) {
+      const trackQueue = this.trackBuffers[trackId];
+      
+      if (trackQueue.length > 0) {
+        hasAnyAudio = true;
+        this.hasStarted = true;
+        
+        const buffer = trackQueue.shift();
+        
+        // Mix this track's audio with the output
+        for (let i = 0; i < outputChannelData.length && i < buffer.length; i++) {
+          outputChannelData[i] += buffer[i];
+        }
+        
+        // Update sample offset for this track
+        this.trackSampleOffsets[trackId] = this.trackSampleOffsets[trackId] || 0;
         this.trackSampleOffsets[trackId] += buffer.length;
       }
-      return true;
-    } else if (this.hasStarted) {
-      // 发送通知但不停止处理
-      this.port.postMessage({ event: 'buffer-empty' });
-      
-      // 输出静音数据
-      for (let i = 0; i < outputChannelData.length; i++) {
-        outputChannelData[i] = 0;
-      }
-      
-      // 继续运行
-      return true;
-    } else {
-      return true;
     }
+    
+    // Clean up empty track queues
+    for (const trackId in this.trackBuffers) {
+      if (this.trackBuffers[trackId].length === 0) {
+        delete this.trackBuffers[trackId];
+        delete this.currentWrites[trackId];
+      }
+    }
+    
+    if (!hasAnyAudio && this.hasStarted) {
+      // Send notification but don't stop processing
+      this.port.postMessage({ event: 'buffer-empty' });
+    }
+    
+    return true;
   }
 }
 

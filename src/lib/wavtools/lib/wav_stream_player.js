@@ -98,9 +98,10 @@ export class WavStreamPlayer {
    * You can add chunks beyond the current play point and they will be queued for play
    * @param {ArrayBuffer|Int16Array} arrayBuffer
    * @param {string} [trackId]
+   * @param {number} [volume] Volume multiplier (0.0 to 1.0), default 1.0
    * @returns {Int16Array}
    */
-  add16BitPCM(arrayBuffer, trackId = 'default') {
+  add16BitPCM(arrayBuffer, trackId = 'default', volume = 1.0) {
     if (typeof trackId !== 'string') {
       throw new Error(`trackId must be a string`);
     } else if (this.interruptedTrackIds[trackId]) {
@@ -117,8 +118,30 @@ export class WavStreamPlayer {
     } else {
       throw new Error(`argument must be Int16Array or ArrayBuffer`);
     }
+    
+    // Apply volume control if needed
+    if (volume !== 1.0) {
+      const originalBuffer = buffer; // Keep reference to original buffer
+      buffer = new Int16Array(originalBuffer.length); // Create new buffer with correct length
+      for (let i = 0; i < originalBuffer.length; i++) {
+        buffer[i] = Math.round(originalBuffer[i] * volume);
+      }
+    }
     this.stream.port.postMessage({ event: 'write', buffer, trackId });
     return buffer;
+  }
+
+  /**
+   * Adds 16BitPCM data for immediate playback without queuing
+   * Uses a unique trackId for each chunk to avoid queuing behavior
+   * @param {ArrayBuffer|Int16Array} arrayBuffer
+   * @param {number} [volume] Volume multiplier (0.0 to 1.0), default 1.0
+   * @returns {Int16Array}
+   */
+  addImmediatePCM(arrayBuffer, volume = 1.0) {
+    // Generate a truly unique trackId for immediate playback
+    const immediateTrackId = `immediate`;
+    return this.add16BitPCM(arrayBuffer, immediateTrackId, volume);
   }
 
   /**
