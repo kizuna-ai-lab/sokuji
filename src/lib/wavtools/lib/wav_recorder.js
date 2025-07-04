@@ -51,6 +51,64 @@ export class WavRecorder {
       raw: new ArrayBuffer(0),
       mono: new ArrayBuffer(0),
     };
+    // Real-time passthrough settings
+    this._passthroughPlayer = null;
+    this._passthroughEnabled = false;
+    this._passthroughVolume = 0.2; // Default 20%
+  }
+
+  /**
+   * Sets up real-time audio passthrough to a WavStreamPlayer
+   * @param {import('./wav_stream_player.js').WavStreamPlayer} player The player instance to receive audio
+   * @param {boolean} enabled Whether passthrough is enabled
+   * @param {number} volume Volume level (0.0 to 1.0)
+   * @returns {true}
+   */
+  setupPassthrough(player, enabled = false, volume = 0.2) {
+    this._passthroughPlayer = player;
+    this._passthroughEnabled = enabled;
+    this._passthroughVolume = Math.max(0, Math.min(1, volume));
+    this.log(`Passthrough setup: enabled=${enabled}, volume=${this._passthroughVolume}`);
+    return true;
+  }
+
+  /**
+   * Enables or disables real-time audio passthrough
+   * @param {boolean} enabled
+   * @returns {true}
+   */
+  setPassthroughEnabled(enabled) {
+    this._passthroughEnabled = enabled;
+    this.log(`Passthrough ${enabled ? 'enabled' : 'disabled'}`);
+    return true;
+  }
+
+  /**
+   * Sets the volume for real-time audio passthrough
+   * @param {number} volume Volume level (0.0 to 1.0)
+   * @returns {true}
+   */
+  setPassthroughVolume(volume) {
+    this._passthroughVolume = Math.max(0, Math.min(1, volume));
+    this.log(`Passthrough volume set to: ${this._passthroughVolume}`);
+    return true;
+  }
+
+  /**
+   * Internal method to handle passthrough of audio chunks
+   * @private
+   * @param {{mono: ArrayBuffer, raw: ArrayBuffer}} data
+   */
+  handlePassthrough(data) {
+    if (this._passthroughEnabled && this._passthroughPlayer && data.mono) {
+      try {
+        // Use mono audio for passthrough to avoid doubling
+        // Use addImmediatePCM with unique trackId for each chunk to avoid queuing
+        this._passthroughPlayer.addImmediatePCM(data.mono, this._passthroughVolume);
+      } catch (error) {
+        console.error('[Sokuji] [WavRecorder] Passthrough error:', error);
+      }
+    }
   }
 
   /**
@@ -136,7 +194,7 @@ export class WavRecorder {
    */
   log() {
     if (this.debug) {
-      this.log(...arguments);
+      console.log('[Sokuji] [WavRecorder]', ...arguments);
     }
     return true;
   }
@@ -346,6 +404,8 @@ export class WavRecorder {
             this._chunkProcessorBuffer.mono.byteLength >=
             this._chunkProcessorSize
           ) {
+            // Handle passthrough for buffered data
+            this.handlePassthrough(this._chunkProcessorBuffer);
             this._chunkProcessor(this._chunkProcessorBuffer);
             this._chunkProcessorBuffer = {
               raw: new ArrayBuffer(0),
@@ -353,6 +413,8 @@ export class WavRecorder {
             };
           }
         } else {
+          // Handle passthrough for immediate data
+          this.handlePassthrough(data);
           this._chunkProcessor(data);
         }
       }
@@ -417,6 +479,8 @@ export class WavRecorder {
       throw new Error('Already paused: please call .record() first');
     }
     if (this._chunkProcessorBuffer.raw.byteLength) {
+      // Handle passthrough for remaining buffered data
+      this.handlePassthrough(this._chunkProcessorBuffer);
       this._chunkProcessor(this._chunkProcessorBuffer);
     }
     this.log('Pausing ...');

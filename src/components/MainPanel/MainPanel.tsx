@@ -61,6 +61,8 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     selectedMonitorDevice,
     isInputDeviceOn,
     isMonitorDeviceOn,
+    isRealVoicePassthroughEnabled,
+    realVoicePassthroughVolume,
     selectMonitorDevice // Import the selectMonitorDevice function from context
   } = useAudioContext();
 
@@ -187,6 +189,24 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       // Any cleanup needed for the audio service
     };
   }, [setupVirtualAudioOutput]);
+
+  /**
+   * Update passthrough settings when they change
+   */
+  useEffect(() => {
+    const wavRecorder = wavRecorderRef.current;
+    if (wavRecorder && audioServiceRef.current) {
+      const wavStreamPlayer = audioServiceRef.current.getWavStreamPlayer();
+      if (wavStreamPlayer) {
+        wavRecorder.setupPassthrough(
+          wavStreamPlayer, 
+          isRealVoicePassthroughEnabled, 
+          realVoicePassthroughVolume
+        );
+        console.info('[Sokuji] [MainPanel] Updated passthrough settings: enabled=', isRealVoicePassthroughEnabled, 'volume=', realVoicePassthroughVolume);
+      }
+    }
+  }, [isRealVoicePassthroughEnabled, realVoicePassthroughVolume]);
 
   /**
    * Instantiate:
@@ -386,6 +406,19 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       if (isInputDeviceOn) {
         if (selectedInputDevice) {
           await wavRecorder.begin(selectedInputDevice.deviceId);
+          
+          // Setup real voice passthrough if enabled
+          if (isRealVoicePassthroughEnabled && audioServiceRef.current) {
+            const wavStreamPlayer = audioServiceRef.current.getWavStreamPlayer();
+            if (wavStreamPlayer) {
+              wavRecorder.setupPassthrough(
+                wavStreamPlayer, 
+                isRealVoicePassthroughEnabled, 
+                realVoicePassthroughVolume
+              );
+              console.info('[Sokuji] [MainPanel] Real voice passthrough enabled with volume:', realVoicePassthroughVolume);
+            }
+          }
         } else {
           console.warn('[Sokuji] [MainPanel] No input device selected, cannot connect to microphone');
         }
@@ -447,7 +480,9 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     isInputDeviceOn, 
     isMonitorDeviceOn, 
     selectedMonitorDevice, 
-    selectMonitorDevice
+    selectMonitorDevice,
+    isRealVoicePassthroughEnabled,
+    realVoicePassthroughVolume
   ]);
 
   /**
