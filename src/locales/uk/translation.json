@@ -45,7 +45,11 @@
     "modelsLoading": "Завантаження доступних моделей, будь ласка, зачекайте..."
   },
   "audioPanel": {
-    "title": "Налаштування аудіо"
+    "title": "Налаштування аудіо",
+    "realVoicePassthrough": "Пряма передача оригінального аудіо",
+    "enableRealVoicePassthrough": "Увімкнути пряму передачу оригінального аудіо",
+    "realVoicePassthroughDescription": "Передавайте ваше оригінальне аудіо (голос мовця) безпосередньо в віртуальний мікрофон, щоб слухачі могли чути як оригінальне, так і перекладене аудіо",
+    "realVoiceVolume": "Гучність оригінального аудіо"
   },
   "logsPanel": {
     "title": "Логи"
@@ -121,6 +125,6 @@
   "apiKeyValidationCompleted": "Перевірка API-ключа завершена",
   "errorValidatingApiKey": "Помилка при перевірці API-ключа",
   "sessionActiveNotice": "Налаштування заблоковані під час активної сесії. Завершіть сесію, щоб змінити налаштування.",
-      "realtimeModelAvailable": "Модель в реальному часі доступна",
-    "realtimeModelNotAvailable": "Модель в реальному часі недоступна"
-} 
+  "realtimeModelAvailable": "Модель в реальному часі доступна",
+  "realtimeModelNotAvailable": "Модель в реальному часі недоступна"
+}

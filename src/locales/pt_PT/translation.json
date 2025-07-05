@@ -102,7 +102,11 @@
     "virtualSpeakerWarningText1": "Por favor, não seleccione este dispositivo como o seu monitor. O Sokuji_Virtual_Speaker é usado pelo Sokuji para enviar áudio para as suas aplicações de conferência.",
     "virtualSpeakerWarningText2": "Conectar o seu monitor ao dispositivo de saída do Sokuji criaria um loop de feedback de áudio, fazendo com que a sua entrada contenha a sua própria saída monitorizada.",
     "virtualSpeakerWarningText3": "O botão \"Ligar\" conecta o altifalante virtual ao seu dispositivo de monitor seleccionado, permitindo que ouça o que está a ser enviado para a sua aplicação de conferência. O botão \"Desligar\" desconecta esta ligação de monitorização.",
-    "virtualSpeakerWarningText4": "Para operação adequada, seleccione um dispositivo de monitor diferente (como os seus auscultadores ou altifalantes) da lista."
+    "virtualSpeakerWarningText4": "Para operação adequada, seleccione um dispositivo de monitor diferente (como os seus auscultadores ou altifalantes) da lista.",
+    "realVoicePassthrough": "Passagem de Áudio Original",
+    "enableRealVoicePassthrough": "Activar Passagem de Áudio Original",
+    "realVoicePassthroughDescription": "Passe o seu áudio original (voz do orador) directamente para o microfone virtual para que os ouvintes possam ouvir tanto o áudio original como o traduzido",
+    "realVoiceVolume": "Volume do Áudio Original"
   },
   "logsPanel": {
     "title": "Registos",
@@ -139,7 +143,7 @@
     "initializing": "A inicializar...",
     "stopDebug": "Parar depuração",
     "debug": "Depurar",
-        "apiKeyRequired": "Por favor, adicione primeiro uma chave da API OpenAI válida nas definições",
+    "apiKeyRequired": "Por favor, adicione primeiro uma chave da API OpenAI válida nas definições",
     "modelsRequired": "São necessários modelos. Por favor, valide primeiro a sua chave da API para carregar os modelos disponíveis.",
     "modelsLoading": "A carregar modelos disponíveis, por favor aguarde..."
   },
@@ -205,4 +209,4 @@
       }
     }
   }
-} 
+}

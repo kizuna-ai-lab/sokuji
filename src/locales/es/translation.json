@@ -102,7 +102,11 @@
     "virtualSpeakerWarningText1": "Por favor, no seleccione este dispositivo como su monitor. El Sokuji_Virtual_Speaker es usado por Sokuji para enviar audio a sus aplicaciones de conferencia.",
     "virtualSpeakerWarningText2": "Conectar su monitor al dispositivo de salida de Sokuji crearía un bucle de retroalimentación de audio, causando que su entrada contenga su propia salida monitoreada.",
     "virtualSpeakerWarningText3": "El interruptor \"Encender\" conecta el altavoz virtual a su dispositivo de monitor seleccionado, permitiéndole escuchar lo que se envía a su aplicación de conferencia. El interruptor \"Apagar\" desconecta esta conexión de monitoreo.",
-    "virtualSpeakerWarningText4": "Para un funcionamiento adecuado, seleccione un dispositivo de monitor diferente (como sus auriculares o altavoces) de la lista."
+    "virtualSpeakerWarningText4": "Para un funcionamiento adecuado, seleccione un dispositivo de monitor diferente (como sus auriculares o altavoces) de la lista.",
+    "realVoicePassthrough": "Paso de Audio Original",
+    "enableRealVoicePassthrough": "Habilitar Paso de Audio Original",
+    "realVoicePassthroughDescription": "Pasar tu audio original (voz del hablante) directamente al micrófono virtual para que los oyentes puedan escuchar tanto el audio original como el traducido",
+    "realVoiceVolume": "Volumen de Audio Original"
   },
   "logsPanel": {
     "title": "Registros",
@@ -207,4 +211,4 @@
       }
     }
   }
-} 
+}

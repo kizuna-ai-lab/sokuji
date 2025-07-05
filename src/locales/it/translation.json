@@ -102,7 +102,11 @@
     "virtualSpeakerWarningText1": "Per favore non selezionare questo dispositivo come monitor. Il Sokuji_Virtual_Speaker è usato da Sokuji per inviare audio alle tue applicazioni di conferenza.",
     "virtualSpeakerWarningText2": "Collegare il tuo monitor al dispositivo di output di Sokuji creerebbe un loop di feedback audio, causando che il tuo input contenga il tuo stesso output monitorato.",
     "virtualSpeakerWarningText3": "L'interruttore \"Accendi\" collega l'altoparlante virtuale al tuo dispositivo monitor selezionato, permettendoti di sentire cosa viene inviato alla tua applicazione di conferenza. L'interruttore \"Spegni\" disconnette questa connessione di monitoraggio.",
-    "virtualSpeakerWarningText4": "Per un funzionamento corretto, seleziona un dispositivo monitor diverso (come le tue cuffie o altoparlanti) dall'elenco."
+    "virtualSpeakerWarningText4": "Per un funzionamento corretto, seleziona un dispositivo monitor diverso (come le tue cuffie o altoparlanti) dall'elenco.",
+    "realVoicePassthrough": "Passaggio Audio Originale",
+    "enableRealVoicePassthrough": "Abilita Passaggio Audio Originale",
+    "realVoicePassthroughDescription": "Passa il tuo audio originale (voce del parlante) direttamente al microfono virtuale in modo che gli ascoltatori possano sentire sia l'audio originale che quello tradotto",
+    "realVoiceVolume": "Volume Audio Originale"
   },
   "logsPanel": {
     "title": "Log",
@@ -139,7 +143,7 @@
     "initializing": "Inizializzazione...",
     "stopDebug": "Ferma debug",
     "debug": "Debug",
-        "apiKeyRequired": "Per favore aggiungi prima una chiave API OpenAI valida nelle impostazioni",
+    "apiKeyRequired": "Per favore aggiungi prima una chiave API OpenAI valida nelle impostazioni",
     "modelsRequired": "Sono richiesti modelli. Per favore valida prima la tua chiave API per caricare i modelli disponibili.",
     "modelsLoading": "Caricamento modelli disponibili, attendere prego..."
   },
@@ -207,4 +211,4 @@
       }
     }
   }
-} 
+}

@@ -102,7 +102,11 @@
     "virtualSpeakerWarningText1": "Veuillez ne pas sélectionner ce périphérique comme moniteur. Le Sokuji_Virtual_Speaker est utilisé par Sokuji pour diffuser l'audio vers vos applications de conférence.",
     "virtualSpeakerWarningText2": "Connecter votre moniteur au périphérique de sortie de Sokuji créerait une boucle de rétroaction audio, causant votre entrée à contenir votre propre sortie surveillée.",
     "virtualSpeakerWarningText3": "Le commutateur \"Activer\" connecte le haut-parleur virtuel à votre périphérique de surveillance sélectionné, vous permettant d'entendre ce qui est envoyé à votre application de conférence. Le commutateur \"Désactiver\" déconnecte cette connexion de surveillance.",
-    "virtualSpeakerWarningText4": "Pour un fonctionnement correct, veuillez sélectionner un périphérique de surveillance différent (comme vos écouteurs ou haut-parleurs) dans la liste."
+    "virtualSpeakerWarningText4": "Pour un fonctionnement correct, veuillez sélectionner un périphérique de surveillance différent (comme vos écouteurs ou haut-parleurs) dans la liste.",
+    "realVoicePassthrough": "Passage Audio Original",
+    "enableRealVoicePassthrough": "Activer le Passage Audio Original",
+    "realVoicePassthroughDescription": "Transmettre votre audio original (voix du locuteur) directement au microphone virtuel pour que les auditeurs puissent entendre à la fois l'audio original et traduit",
+    "realVoiceVolume": "Volume Audio Original"
   },
   "logsPanel": {
     "title": "Journaux",
@@ -139,7 +143,7 @@
     "initializing": "Initialisation...",
     "stopDebug": "Arrêter le débogage",
     "debug": "Déboguer",
-        "apiKeyRequired": "Veuillez d'abord ajouter une clé API OpenAI valide dans les paramètres",
+    "apiKeyRequired": "Veuillez d'abord ajouter une clé API OpenAI valide dans les paramètres",
     "modelsRequired": "Des modèles sont requis. Veuillez d'abord valider votre clé API pour charger les modèles disponibles.",
     "modelsLoading": "Chargement des modèles disponibles, veuillez patienter..."
   },
@@ -207,4 +211,4 @@
       }
     }
   }
-} 
+}

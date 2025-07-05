@@ -45,7 +45,11 @@
     "modelsLoading": "Laddar tillgängliga modeller, vänligen vänta..."
   },
   "audioPanel": {
-    "title": "Ljudinställningar"
+    "title": "Ljudinställningar",
+    "realVoicePassthrough": "Original Audio Genomströmning",
+    "enableRealVoicePassthrough": "Aktivera Original Audio Genomströmning",
+    "realVoicePassthroughDescription": "Skicka ditt ursprungliga ljud (talarens röst) direkt till den virtuella mikrofonen så att lyssnarna kan höra både det ursprungliga och översatta ljudet",
+    "realVoiceVolume": "Original Audio Volym"
   },
   "logsPanel": {
     "title": "Loggar"
@@ -119,6 +123,6 @@
   "apiKeyValidationCompleted": "API-nyckel validering slutförd",
   "errorValidatingApiKey": "Fel vid validering av API-nyckel",
   "sessionActiveNotice": "Inställningar är låsta när sessionen är aktiv. Avsluta sessionen för att ändra inställningar.",
-      "realtimeModelAvailable": "Realtidsmodell är tillgänglig",
-    "realtimeModelNotAvailable": "Realtidsmodell är inte tillgänglig"
-} 
+  "realtimeModelAvailable": "Realtidsmodell är tillgänglig",
+  "realtimeModelNotAvailable": "Realtidsmodell är inte tillgänglig"
+}

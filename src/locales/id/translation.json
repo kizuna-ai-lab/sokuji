@@ -102,7 +102,11 @@
     "virtualSpeakerWarningText1": "Jangan pilih perangkat ini sebagai monitor Anda. Sokuji_Virtual_Speaker digunakan oleh Sokuji untuk mengirim audio ke aplikasi konferensi Anda.",
     "virtualSpeakerWarningText2": "Menghubungkan monitor Anda ke perangkat output Sokuji akan menciptakan loop umpan balik audio, menyebabkan input Anda berisi output monitor Anda sendiri.",
     "virtualSpeakerWarningText3": "Tombol \"Nyalakan\" menghubungkan speaker virtual ke perangkat monitor yang dipilih, memungkinkan Anda mendengar apa yang dikirim ke aplikasi konferensi Anda. Tombol \"Matikan\" memutuskan koneksi monitoring ini.",
-    "virtualSpeakerWarningText4": "Untuk operasi yang tepat, pilih perangkat monitor yang berbeda (seperti headphone atau speaker Anda) dari daftar."
+    "virtualSpeakerWarningText4": "Untuk operasi yang tepat, pilih perangkat monitor yang berbeda (seperti headphone atau speaker Anda) dari daftar.",
+    "realVoicePassthrough": "Passthrough Audio Asli",
+    "enableRealVoicePassthrough": "Aktifkan Passthrough Audio Asli",
+    "realVoicePassthroughDescription": "Teruskan audio asli Anda (suara pembicara) langsung ke mikrofon virtual agar pendengar dapat mendengar audio asli dan terjemahan",
+    "realVoiceVolume": "Volume Audio Asli"
   },
   "logsPanel": {
     "title": "Log",
@@ -205,4 +209,4 @@
       }
     }
   }
-} 
+}

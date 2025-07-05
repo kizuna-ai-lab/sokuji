@@ -102,7 +102,11 @@
     "virtualSpeakerWarningText1": "이 장치를 모니터로 선택하지 마세요. Sokuji_Virtual_Speaker는 Sokuji가 회의 애플리케이션에 오디오를 출력하는 데 사용됩니다.",
     "virtualSpeakerWarningText2": "모니터를 Sokuji의 출력 장치에 연결하면 오디오 피드백 루프가 생성되어 입력에 자신의 모니터링된 출력이 포함됩니다.",
     "virtualSpeakerWarningText3": "\"켜기\" 스위치는 가상 스피커를 선택한 모니터 장치에 연결하여 회의 애플리케이션으로 전송되는 내용을 들을 수 있게 합니다. \"끄기\" 스위치는 이 모니터링 연결을 끊습니다.",
-    "virtualSpeakerWarningText4": "올바른 작동을 위해 목록에서 다른 모니터 장치(헤드폰이나 스피커 등)를 선택하세요."
+    "virtualSpeakerWarningText4": "올바른 작동을 위해 목록에서 다른 모니터 장치(헤드폰이나 스피커 등)를 선택하세요.",
+    "realVoicePassthrough": "원음 패스스루",
+    "enableRealVoicePassthrough": "원음 패스스루 활성화",
+    "realVoicePassthroughDescription": "원음(화자의 목소리)을 가상 마이크로 직접 전달하여 청취자가 원음과 번역된 음성을 모두 들을 수 있도록 합니다",
+    "realVoiceVolume": "원음 볼륨"
   },
   "logsPanel": {
     "title": "로그",
@@ -207,4 +211,4 @@
       }
     }
   }
-} 
+}

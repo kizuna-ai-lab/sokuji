@@ -45,7 +45,11 @@
     "modelsLoading": "Naglo-load ng mga available na modelo, mangyaring maghintay..."
   },
   "audioPanel": {
-    "title": "Mga setting ng audio"
+    "title": "Mga setting ng audio",
+    "realVoicePassthrough": "Original Audio Passthrough",
+    "enableRealVoicePassthrough": "I-enable ang Original Audio Passthrough",
+    "realVoicePassthroughDescription": "Ipasa ang inyong orihinal na audio (boses ng nagsasalita) direkta sa virtual microphone para marinig ng mga nakikinig ang parehong orihinal at translated na audio",
+    "realVoiceVolume": "Original Audio Volume"
   },
   "logsPanel": {
     "title": "Mga Log"
@@ -119,6 +123,6 @@
   "apiKeyValidationCompleted": "Tapos na ang pag-verify ng API key",
   "errorValidatingApiKey": "May error sa pag-verify ng API key",
   "sessionActiveNotice": "Nakalock ang mga setting habang aktibo ang session. Tapusin ang session para mabago ang mga setting.",
-      "realtimeModelAvailable": "Available ang realtime model",
-    "realtimeModelNotAvailable": "Hindi available ang realtime model"
-} 
+  "realtimeModelAvailable": "Available ang realtime model",
+  "realtimeModelNotAvailable": "Hindi available ang realtime model"
+}
