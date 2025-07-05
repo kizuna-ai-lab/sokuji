@@ -102,7 +102,11 @@
     "virtualSpeakerWarningText1": "請不要選擇此裝置作為您的監控器。Sokuji_Virtual_Speaker由Sokuji用於向您的會議應用程式輸出音訊。",
     "virtualSpeakerWarningText2": "將您的監控器連接到Sokuji的輸出裝置會產生音訊回饋迴路，導致您的輸入包含您自己的監控輸出。",
     "virtualSpeakerWarningText3": "「開啟」開關將虛擬揚聲器連接到您選擇的監控裝置，讓您聽到傳送到會議應用程式的內容。「關閉」開關中斷此監控連接。",
-    "virtualSpeakerWarningText4": "為了正常運行，請從清單中選擇不同的監控裝置（如您的耳機或揚聲器）。"
+    "virtualSpeakerWarningText4": "為了正常運行，請從清單中選擇不同的監控裝置（如您的耳機或揚聲器）。",
+    "realVoicePassthrough": "原聲直通",
+    "enableRealVoicePassthrough": "啟用原聲直通",
+    "realVoicePassthroughDescription": "將您的原聲（說話者聲音）直接傳遞到虛擬麥克風，讓聽眾同時聽到原聲和譯聲",
+    "realVoiceVolume": "原聲音量"
   },
   "logsPanel": {
     "title": "日誌",
@@ -205,4 +209,4 @@
       }
     }
   }
-} 
+}

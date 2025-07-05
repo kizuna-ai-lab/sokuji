@@ -50,7 +50,11 @@
     "modelsLoading": "Đang tải các mô hình có sẵn, vui lòng đợi..."
   },
   "audioPanel": {
-    "title": "Cài đặt âm thanh"
+    "title": "Cài đặt âm thanh",
+    "realVoicePassthrough": "Truyền Âm Thanh Gốc",
+    "enableRealVoicePassthrough": "Bật Truyền Âm Thanh Gốc",
+    "realVoicePassthroughDescription": "Truyền âm thanh gốc của bạn (giọng nói của người nói) trực tiếp đến microphone ảo để người nghe có thể nghe cả âm thanh gốc và âm thanh đã dịch",
+    "realVoiceVolume": "Âm Lượng Âm Thanh Gốc"
   },
   "logsPanel": {
     "title": "Nhật ký"
@@ -121,4 +125,4 @@
       }
     }
   }
-} 
+}

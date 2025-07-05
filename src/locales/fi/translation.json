@@ -50,7 +50,11 @@
     "modelsLoading": "Ladataan käytettävissä olevia malleja, odota hetki..."
   },
   "audioPanel": {
-    "title": "Ääniasetukset"
+    "title": "Ääniasetukset",
+    "realVoicePassthrough": "Alkuperäisen äänen läpiviennti",
+    "enableRealVoicePassthrough": "Ota alkuperäisen äänen läpiviennti käyttöön",
+    "realVoicePassthroughDescription": "Välitä alkuperäinen äänesi (puhujan ääni) suoraan virtuaalimikrofoniin, jotta kuulijat voivat kuulla sekä alkuperäisen että käännetyn äänen",
+    "realVoiceVolume": "Alkuperäisen äänen äänenvoimakkuus"
   },
   "logsPanel": {
     "title": "Lokit"
@@ -121,4 +125,4 @@
       }
     }
   }
-} 
+}

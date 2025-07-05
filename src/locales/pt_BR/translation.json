@@ -102,7 +102,11 @@
     "virtualSpeakerWarningText1": "Por favor, não selecione este dispositivo como seu monitor. O Sokuji_Virtual_Speaker é usado pelo Sokuji para enviar áudio para seus aplicativos de conferência.",
     "virtualSpeakerWarningText2": "Conectar seu monitor ao dispositivo de saída do Sokuji criaria um loop de feedback de áudio, fazendo com que sua entrada contenha sua própria saída monitorada.",
     "virtualSpeakerWarningText3": "O botão \"Ligar\" conecta o alto-falante virtual ao seu dispositivo de monitor selecionado, permitindo que você ouça o que está sendo enviado para seu aplicativo de conferência. O botão \"Desligar\" desconecta esta conexão de monitoramento.",
-    "virtualSpeakerWarningText4": "Para operação adequada, selecione um dispositivo de monitor diferente (como seus fones de ouvido ou alto-falantes) da lista."
+    "virtualSpeakerWarningText4": "Para operação adequada, selecione um dispositivo de monitor diferente (como seus fones de ouvido ou alto-falantes) da lista.",
+    "realVoicePassthrough": "Passagem de Áudio Original",
+    "enableRealVoicePassthrough": "Ativar Passagem de Áudio Original",
+    "realVoicePassthroughDescription": "Passe seu áudio original (voz do falante) diretamente para o microfone virtual para que os ouvintes possam ouvir tanto o áudio original quanto o traduzido",
+    "realVoiceVolume": "Volume do Áudio Original"
   },
   "logsPanel": {
     "title": "Logs",
@@ -139,7 +143,7 @@
     "initializing": "Inicializando...",
     "stopDebug": "Parar depuração",
     "debug": "Depurar",
-        "apiKeyRequired": "Por favor, adicione primeiro uma chave da API OpenAI válida nas configurações",
+    "apiKeyRequired": "Por favor, adicione primeiro uma chave da API OpenAI válida nas configurações",
     "modelsRequired": "Modelos são necessários. Por favor, valide sua chave da API primeiro para carregar os modelos disponíveis.",
     "modelsLoading": "Carregando modelos disponíveis, por favor aguarde..."
   },
@@ -207,4 +211,4 @@
       }
     }
   }
-} 
+}

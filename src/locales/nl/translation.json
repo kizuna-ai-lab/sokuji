@@ -102,7 +102,11 @@
     "virtualSpeakerWarningText1": "Selecteer dit apparaat niet als uw monitor. De Sokuji_Virtual_Speaker wordt door Sokuji gebruikt om audio naar uw conferentie-applicaties te sturen.",
     "virtualSpeakerWarningText2": "Het verbinden van uw monitor met Sokuji's output apparaat zou een audio feedback loop creëren, waardoor uw input uw eigen gemonitorde output zou bevatten.",
     "virtualSpeakerWarningText3": "De \"Inschakelen\" schakelaar verbindt de virtuele luidspreker met uw geselecteerde monitor apparaat, zodat u kunt horen wat naar uw conferentie-applicatie wordt gestuurd. De \"Uitschakelen\" schakelaar verbreekt deze monitor verbinding.",
-    "virtualSpeakerWarningText4": "Voor een juiste werking, selecteer een ander monitor apparaat (zoals uw koptelefoon of luidsprekers) uit de lijst."
+    "virtualSpeakerWarningText4": "Voor een juiste werking, selecteer een ander monitor apparaat (zoals uw koptelefoon of luidsprekers) uit de lijst.",
+    "realVoicePassthrough": "Originele Audio Doorvoer",
+    "enableRealVoicePassthrough": "Originele Audio Doorvoer Inschakelen",
+    "realVoicePassthroughDescription": "Geef uw originele audio (stem van de spreker) rechtstreeks door aan de virtuele microfoon zodat luisteraars zowel de originele als de vertaalde audio kunnen horen",
+    "realVoiceVolume": "Originele Audio Volume"
   },
   "logsPanel": {
     "title": "Logs",
@@ -205,4 +209,4 @@
       }
     }
   }
-} 
+}

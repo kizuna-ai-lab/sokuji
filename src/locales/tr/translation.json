@@ -50,7 +50,11 @@
     "modelsLoading": "Mevcut modeller yükleniyor, lütfen bekleyin..."
   },
   "audioPanel": {
-    "title": "Ses ayarları"
+    "title": "Ses ayarları",
+    "realVoicePassthrough": "Orijinal Ses Geçişi",
+    "enableRealVoicePassthrough": "Orijinal Ses Geçişini Etkinleştir",
+    "realVoicePassthroughDescription": "Orijinal sesinizi (konuşmacının sesi) doğrudan sanal mikrofona iletin, böylece dinleyiciler hem orijinal hem de çevrilmiş sesi duyabilir",
+    "realVoiceVolume": "Orijinal Ses Seviyesi"
   },
   "logsPanel": {
     "title": "Günlükler"
@@ -121,4 +125,4 @@
       }
     }
   }
-} 
+}

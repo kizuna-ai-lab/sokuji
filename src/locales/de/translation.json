@@ -102,7 +102,11 @@
     "virtualSpeakerWarningText1": "Bitte wählen Sie dieses Gerät nicht als Ihren Monitor aus. Der Sokuji_Virtual_Speaker wird von Sokuji verwendet, um Audio an Ihre Konferenz-Anwendungen auszugeben.",
     "virtualSpeakerWarningText2": "Das Verbinden Ihres Monitors mit Sokujis Ausgabegerät würde eine Audio-Rückkopplungsschleife erzeugen, wodurch Ihre Eingabe Ihre eigene überwachte Ausgabe enthalten würde.",
     "virtualSpeakerWarningText3": "Der \"Einschalten\"-Schalter verbindet den virtuellen Lautsprecher mit Ihrem ausgewählten Überwachungsgerät, sodass Sie hören können, was an Ihre Konferenz-Anwendung gesendet wird. Der \"Ausschalten\"-Schalter trennt diese Überwachungsverbindung.",
-    "virtualSpeakerWarningText4": "Für den ordnungsgemäßen Betrieb wählen Sie bitte ein anderes Überwachungsgerät (wie Ihre Kopfhörer oder Lautsprecher) aus der Liste aus."
+    "virtualSpeakerWarningText4": "Für den ordnungsgemäßen Betrieb wählen Sie bitte ein anderes Überwachungsgerät (wie Ihre Kopfhörer oder Lautsprecher) aus der Liste aus.",
+    "realVoicePassthrough": "Original-Audio-Durchleitung",
+    "enableRealVoicePassthrough": "Original-Audio-Durchleitung aktivieren",
+    "realVoicePassthroughDescription": "Ihr Original-Audio (Sprecherstimme) direkt an das virtuelle Mikrofon weiterleiten, damit Zuhörer sowohl das Original- als auch das übersetzte Audio hören können",
+    "realVoiceVolume": "Original-Audio-Lautstärke"
   },
   "logsPanel": {
     "title": "Protokolle",
@@ -139,7 +143,7 @@
     "initializing": "Initialisierung...",
     "stopDebug": "Debug stoppen",
     "debug": "Debug",
-        "apiKeyRequired": "Bitte fügen Sie zuerst einen gültigen OpenAI API-Schlüssel in den Einstellungen hinzu",
+    "apiKeyRequired": "Bitte fügen Sie zuerst einen gültigen OpenAI API-Schlüssel in den Einstellungen hinzu",
     "modelsRequired": "Modelle sind erforderlich. Bitte validieren Sie zuerst Ihren API-Schlüssel, um verfügbare Modelle zu laden.",
     "modelsLoading": "Verfügbare Modelle werden geladen, bitte warten..."
   },
@@ -207,4 +211,4 @@
       }
     }
   }
-} 
+}
