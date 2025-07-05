@@ -17,6 +17,7 @@ export class GeminiClient implements IClient {
   private conversationItems: ConversationItem[] = [];
   private isConnectedState = false;
   private currentModel = '';
+  private instanceId: string;
   
   // Turn accumulation state
   private currentTurn: {
@@ -39,6 +40,8 @@ export class GeminiClient implements IClient {
   constructor(apiKey: string) {
     this.apiKey = apiKey;
     this.client = new GoogleGenAI({ apiKey });
+    // Generate a unique instance ID that remains constant for this client instance
+    this.instanceId = `gemini_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   }
 
   /**
@@ -467,7 +470,7 @@ export class GeminiClient implements IClient {
       } else {
         // Create new item if none exists
         const conversationItem: ConversationItem = {
-          id: this.generateId(),
+          id: this.instanceId,
           role: 'user',
           type: 'message',
           status: 'completed',
@@ -517,7 +520,7 @@ export class GeminiClient implements IClient {
       } else {
         // Create new item
         const conversationItem: ConversationItem = {
-          id: this.generateId(),
+          id: this.instanceId,
           role: 'assistant',
           type: 'message',
           status: 'completed',
@@ -596,7 +599,7 @@ export class GeminiClient implements IClient {
         // Create or update the same assistant item that handles modelTurn
         if (!this.currentTurn.assistantItem) {
           this.currentTurn.assistantItem = {
-            id: this.generateId(),
+            id: this.instanceId,
             role: 'assistant',
             type: 'message',
             status: 'in_progress',
@@ -626,7 +629,7 @@ export class GeminiClient implements IClient {
         // Create or update conversation item for real-time display
         if (!this.currentTurn.inputTranscriptionItem) {
           this.currentTurn.inputTranscriptionItem = {
-            id: this.generateId(),
+            id: this.instanceId,
             role: 'user',
             type: 'message',
             status: 'in_progress',
@@ -685,7 +688,7 @@ export class GeminiClient implements IClient {
       if (hasNewAudio || hasNewText) {
         if (!this.currentTurn.assistantItem) {
           this.currentTurn.assistantItem = {
-            id: this.generateId(),
+            id: this.instanceId,
             role: 'assistant',
             type: 'message',
             status: 'in_progress',
@@ -749,10 +752,6 @@ export class GeminiClient implements IClient {
     return bytes.buffer;
   }
 
-  private generateId(): string {
-    return `gemini_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-  }
-
   async disconnect(): Promise<void> {
     if (this.session) {
       this.session.close();
@@ -801,7 +800,7 @@ export class GeminiClient implements IClient {
 
     // Create a user conversation item for the audio input
     const conversationItem: ConversationItem = {
-      id: this.generateId(),
+      id: this.instanceId,
       role: 'user',
       type: 'message',
       status: 'completed',
