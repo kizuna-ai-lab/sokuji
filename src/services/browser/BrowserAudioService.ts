@@ -21,24 +21,15 @@ class EnhancedWavStreamPlayer extends WavStreamPlayer {
    * Override add16BitPCM to automatically send data to tabs
    */
   add16BitPCM(arrayBuffer: ArrayBuffer | Int16Array, trackId: string = 'default', volume: number = 1.0): Int16Array {
-    // Call the parent method first
+    // Call the parent method first to get the volume-adjusted result
     const result = super.add16BitPCM(arrayBuffer, trackId, volume);
     
-    // Convert to Int16Array for sending to tabs
-    let data: Int16Array;
-    if (arrayBuffer instanceof Int16Array) {
-      data = arrayBuffer;
-    } else {
-      data = new Int16Array(arrayBuffer);
-    }
-    
-    // Automatically send to tabs
-    this.audioService.sendPcmDataToTabs(data, trackId);
+    // Send the volume-adjusted result to tabs instead of the original arrayBuffer
+    // This ensures that volume control (like Real Voice Volume) is properly applied
+    this.audioService.sendPcmDataToTabs(result, trackId);
     
     return result;
   }
-
-
 }
 
 /**
