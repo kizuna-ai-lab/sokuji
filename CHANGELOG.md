@@ -30,6 +30,52 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Documentation**: Updated README.md with comprehensive feature documentation and technical details
 - **Architecture**: Improved virtual microphone implementation with better audio stream management
 
+## [0.7.0] - 2025-06-29
+
+### Added
+
+- **CometAPI Support**: Introduced CometAPI as an OpenAI-compatible provider for enhanced flexibility
+- **Provider Enum System**: Implemented comprehensive Provider enum system for better type safety
+- **Multi-Provider Architecture**: Enhanced support for multiple AI providers with shared settings and logic
+
+### Changed
+
+- **Provider Handling**: Replaced string literals with Provider enum for improved maintainability
+- **Settings Management**: Refactored settings context and service methods to accommodate CometAPI settings
+- **Type Safety**: Enhanced type safety by utilizing Provider enum for all provider-related operations
+
+### Technical Improvements
+
+- **Code Refactoring**: Updated MainPanel, SettingsPanel, and service files to use Provider enum
+- **API Key Validation**: Improved API key validation and model fetching methods with new Provider structure
+- **Provider Configuration**: Added CometAPIProviderConfig for OpenAI-compatible provider support
+
+## [0.6.0] - 2025-06-27
+
+### Added
+
+- **PostHog-js-lite Migration**: Migrated from posthog-js to posthog-js-lite for Chrome Web Store compliance
+- **Custom Analytics Context**: Implemented custom React context to replace posthog-js/react dependency
+- **Chrome Web Store Documentation**: Added detailed response documentation for Manifest V3 compliance
+
+### Fixed
+
+- **Remote Code Execution**: Eliminated remote code execution violations for Manifest V3 compliance
+- **Bundle Size Optimization**: Reduced bundle size from 1.5+ MB to ~693 kB
+- **PostHog Provider Import**: Corrected PostHogProvider import in index.tsx
+
+### Changed
+
+- **Analytics API**: Updated API method calls to use posthog-js-lite patterns (getDistinctId(), optIn())
+- **Event Tracking**: Replaced posthog.people.set() with posthog.identify() using $set parameter
+- **Analytics Configuration**: Enabled autocapture and immediate event flushing for better tracking
+
+### Technical Improvements
+
+- **Manifest V3 Compliance**: Ensured full compliance with Chrome Web Store Manifest V3 requirements
+- **Security Enhancement**: Enhanced security with zero external dependencies for analytics
+- **Development Logging**: Added detailed logging for analytics events in development mode
+
 ## [0.5.0] - 2025-06-16
 
 ### Added
