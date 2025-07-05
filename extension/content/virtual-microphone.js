@@ -2,6 +2,14 @@
  * Virtual Microphone implementation
  * This script overrides the mediaDevices API to provide a virtual microphone
  * that can receive PCM data from the side panel.
+ * 
+ * Features:
+ * - Regular audio tracks: queued and played in order
+ * - Immediate audio tracks: separate queue that plays simultaneously with regular tracks
+ *   (use trackId='immediate' to mark as immediate track)
+ * - Audio mixing: immediate and regular tracks are mixed together for simultaneous playback
+ * - Chunked audio support for both regular and immediate tracks
+ * - Device emulator integration for virtual device registration
  */
 
 (function() {
@@ -30,7 +38,10 @@
   let audioTimestamp = 0; // Internal timestamp counter (microseconds)
   let isPlaying = false;
   let playbackQueue = []; // Queue of complete audio batches ready for playback
+  let immediateQueue = []; // Queue for immediate tracks that bypass regular queue
+  let isPlayingImmediate = false; // Separate playing state for immediate tracks
   let chunkBuffer = new Map(); // Temporary storage for incomplete batches: trackId -> {chunks, totalChunks, sampleRate}
+  let immediateChunkBuffer = new Map(); // Temporary storage for immediate track chunks
   
   // No longer need createVirtualMicrophoneInfo as device-emulator handles device creation
   
@@ -101,6 +112,9 @@
   function addAudioData(pcmData, metadata = {}) {
     const { chunkIndex, totalChunks, sampleRate = SAMPLE_RATE, trackId = 'default' } = metadata;
     
+    // Determine if this is an immediate track based on trackId
+    const immediate = trackId === 'immediate';
+    
     if (!pcmData || pcmData.length === 0) {
       console.warn('[Sokuji] [VirtualMic] Received empty audio data');
       return;
@@ -114,58 +128,67 @@
     
     // Handle single chunk (no chunking info)
     if (chunkIndex === undefined || totalChunks === undefined) {
-      console.debug('[Sokuji] [VirtualMic] Adding single audio chunk to playback queue');
+      console.debug(`[Sokuji] [VirtualMic] Adding single audio chunk to ${immediate ? 'immediate' : 'regular'} playback queue (trackId: ${trackId})`);
       addBatchToQueue({
         data: floatData,
         sampleRate: sampleRate
-      });
+      }, immediate);
       return;
     }
     
     // Handle multi-chunk batch
-    console.debug(`[Sokuji] [VirtualMic] Received chunk ${chunkIndex + 1}/${totalChunks} for track ${trackId}`);
+    console.debug(`[Sokuji] [VirtualMic] Received ${immediate ? 'immediate' : 'regular'} chunk ${chunkIndex + 1}/${totalChunks} for track ${trackId}`);
+    
+    // Choose appropriate buffer based on immediate flag
+    const bufferMap = immediate ? immediateChunkBuffer : chunkBuffer;
     
     // Initialize buffer for this track if needed
-    if (!chunkBuffer.has(trackId)) {
-      chunkBuffer.set(trackId, {
+    if (!bufferMap.has(trackId)) {
+      bufferMap.set(trackId, {
         chunks: new Map(),
         totalChunks: totalChunks,
         sampleRate: sampleRate
       });
     }
     
-    const buffer = chunkBuffer.get(trackId);
+    const buffer = bufferMap.get(trackId);
     buffer.chunks.set(chunkIndex, floatData);
     
     // Check if we have all chunks for this batch
     if (buffer.chunks.size === buffer.totalChunks) {
-      console.info(`[Sokuji] [VirtualMic] Complete batch received for track ${trackId} (${buffer.totalChunks} chunks)`);
+      console.info(`[Sokuji] [VirtualMic] Complete ${immediate ? 'immediate' : 'regular'} batch received for track ${trackId} (${buffer.totalChunks} chunks)`);
       
       // Assemble complete batch
-      const completeBatch = assembleCompleteBatch(trackId);
+      const completeBatch = assembleCompleteBatch(trackId, immediate);
       if (completeBatch) {
-        addBatchToQueue(completeBatch);
+        addBatchToQueue(completeBatch, immediate);
       }
       
       // Clean up buffer
-      chunkBuffer.delete(trackId);
+      bufferMap.delete(trackId);
     }
   }
   
   /**
    * Assemble a complete batch from chunks
    */
-  function assembleCompleteBatch(trackId) {
-    const buffer = chunkBuffer.get(trackId);
-    if (!buffer || buffer.chunks.size < buffer.totalChunks) {
+  function assembleCompleteBatch(trackId, immediate = false) {
+    const buffer = immediate ? immediateChunkBuffer : chunkBuffer;
+    if (!buffer.has(trackId)) {
+      console.error(`[Sokuji] [VirtualMic] Cannot assemble incomplete batch for track ${trackId} (buffer not found)`);
+      return null;
+    }
+    
+    const bufferData = buffer.get(trackId);
+    if (!bufferData || bufferData.chunks.size < bufferData.totalChunks) {
       console.error(`[Sokuji] [VirtualMic] Cannot assemble incomplete batch for track ${trackId}`);
       return null;
     }
     
     // Calculate total length
     let totalLength = 0;
-    for (let i = 0; i < buffer.totalChunks; i++) {
-      const chunk = buffer.chunks.get(i);
+    for (let i = 0; i < bufferData.totalChunks; i++) {
+      const chunk = bufferData.chunks.get(i);
       if (!chunk) {
         console.error(`[Sokuji] [VirtualMic] Missing chunk ${i} for track ${trackId}`);
         return null;
@@ -176,27 +199,32 @@
     // Combine all chunks in order
     const combinedData = new Float32Array(totalLength);
     let offset = 0;
-    for (let i = 0; i < buffer.totalChunks; i++) {
-      const chunk = buffer.chunks.get(i);
+    for (let i = 0; i < bufferData.totalChunks; i++) {
+      const chunk = bufferData.chunks.get(i);
       combinedData.set(chunk, offset);
       offset += chunk.length;
     }
     
-    console.info(`[Sokuji] [VirtualMic] Assembled batch: ${totalLength} samples for track ${trackId}`);
+    console.debug(`[Sokuji] [VirtualMic] Assembled batch: ${totalLength} samples for track ${trackId}`);
     return {
       data: combinedData,
-      sampleRate: buffer.sampleRate
+      sampleRate: bufferData.sampleRate
     };
   }
   
   /**
    * Add a complete batch to the playback queue
    */
-  function addBatchToQueue(batch) {
-    playbackQueue.push(batch);
-    console.debug(`[Sokuji] [VirtualMic] Added batch to queue. Queue length: ${playbackQueue.length}`);
+  function addBatchToQueue(batch, immediate = false) {
+    if (immediate) {
+      immediateQueue.push(batch);
+      console.debug(`[Sokuji] [VirtualMic] Added immediate batch to queue. Queue length: ${immediateQueue.length}`);
+    } else {
+      playbackQueue.push(batch);
+      console.debug(`[Sokuji] [VirtualMic] Added batch to queue. Queue length: ${playbackQueue.length}`);
+    }
     
-    // Start playback if not already playing
+    // Start playback if not already playing (both queues can trigger playback)
     if (!isPlaying) {
       startPlayback();
     }
@@ -206,7 +234,7 @@
    * Start the playback process
    */
   function startPlayback() {
-    if (isPlaying || playbackQueue.length === 0) {
+    if (isPlaying || (immediateQueue.length === 0 && playbackQueue.length === 0)) {
       return;
     }
     
@@ -232,24 +260,25 @@
     }
     
     // If queue is empty, stop playback
-    if (playbackQueue.length === 0) {
+    if (immediateQueue.length === 0 && playbackQueue.length === 0) {
       console.debug('[Sokuji] [VirtualMic] Playback queue empty, stopping playback');
       isPlaying = false;
       return;
     }
     
     try {
-      // Collect batches from queue to create an optimal-sized playback chunk
-      const batchesToPlay = collectBatchesForPlayback();
+      // Collect batches from both queues for mixing
+      const batchData = collectBatchesForPlayback();
       
-      if (batchesToPlay.length === 0) {
+      if (!batchData) {
         console.debug('[Sokuji] [VirtualMic] No batches collected, stopping playback');
         isPlaying = false;
         return;
       }
       
-      // Combine collected batches into a single audio data
-      const combinedBatch = combineBatches(batchesToPlay);
+      // Mix audio from both queues
+      const { immediateBatches, regularBatches, maxSamples, targetSampleRate } = batchData;
+      const combinedBatch = mixAudioBatches(immediateBatches, regularBatches, maxSamples, targetSampleRate);
 
       // // Check if the batch contains silent data
       // const silenceThreshold = 0.0001; // Threshold for detecting silence
@@ -344,73 +373,118 @@
   }
   
   /**
-   * Collect batches from queue for optimal playback
+   * Collect batches from both queues for mixed playback
    */
   function collectBatchesForPlayback() {
-    const batches = [];
-    let totalSamples = 0;
+    const immediateBatches = [];
+    const regularBatches = [];
     let targetSampleRate = SAMPLE_RATE;
+    let maxSamples = 0;
     
-    // Take batches until we reach optimal size or queue is empty
-    while (playbackQueue.length > 0) {
-      const nextBatch = playbackQueue[0]; // Peek at next batch without removing it
+    // Collect from immediate queue
+    let immediateSamples = 0;
+    while (immediateQueue.length > 0 && immediateSamples < MAX_BATCH_SIZE) {
+      const nextBatch = immediateQueue[0];
       
-      // Check if adding this batch would exceed the maximum size
-      if (totalSamples + nextBatch.data.length > MAX_BATCH_SIZE) {
-        console.debug(`[Sokuji] [VirtualMic] Next batch would exceed max size (${totalSamples + nextBatch.data.length} > ${MAX_BATCH_SIZE}), slicing batch`);
+      if (immediateSamples + nextBatch.data.length > MAX_BATCH_SIZE) {
+        // Slice the batch to fit
+        const remainingSamples = MAX_BATCH_SIZE - immediateSamples;
+        const batch = immediateQueue.shift();
+        const slicedData = batch.data.slice(0, remainingSamples);
         
-        // Calculate how many samples we can take from this batch
-        const remainingSamples = MAX_BATCH_SIZE - totalSamples;
-        
-        // Remove the batch from the queue
-        playbackQueue.shift();
-        
-        // Create a batch with just the portion we can use
-        const slicedData = nextBatch.data.slice(0, remainingSamples);
-        console.debug(`[Sokuji] [VirtualMic] Sliced batch to ${slicedData.length} samples`);
-        batches.push({
+        immediateBatches.push({
           data: slicedData,
-          sampleRate: nextBatch.sampleRate
+          sampleRate: batch.sampleRate
         });
         
-        // Put the remainder back in the queue for next time
-        const remainderData = nextBatch.data.slice(remainingSamples);
+        // Put remainder back
+        const remainderData = batch.data.slice(remainingSamples);
         if (remainderData.length > 0) {
-          playbackQueue.unshift({
+          immediateQueue.unshift({
             data: remainderData,
-            sampleRate: nextBatch.sampleRate
+            sampleRate: batch.sampleRate
           });
         }
         
-        totalSamples += slicedData.length;
-        targetSampleRate = nextBatch.sampleRate;
-        break; // We've reached max size, so exit the loop
+        immediateSamples += slicedData.length;
+        targetSampleRate = batch.sampleRate;
+        break;
       }
       
-      // Safe to add this batch
-      const batch = playbackQueue.shift();
-      batches.push(batch);
-      totalSamples += batch.data.length;
-      targetSampleRate = batch.sampleRate; // Use the sample rate of the last batch
+      const batch = immediateQueue.shift();
+      immediateBatches.push(batch);
+      immediateSamples += batch.data.length;
+      targetSampleRate = batch.sampleRate;
     }
     
+    // Collect from regular queue
+    let regularSamples = 0;
+    while (playbackQueue.length > 0 && regularSamples < MAX_BATCH_SIZE) {
+      const nextBatch = playbackQueue[0];
+      
+      if (regularSamples + nextBatch.data.length > MAX_BATCH_SIZE) {
+        // Slice the batch to fit
+        const remainingSamples = MAX_BATCH_SIZE - regularSamples;
+        const batch = playbackQueue.shift();
+        const slicedData = batch.data.slice(0, remainingSamples);
+        
+        regularBatches.push({
+          data: slicedData,
+          sampleRate: batch.sampleRate
+        });
+        
+        // Put remainder back
+        const remainderData = batch.data.slice(remainingSamples);
+        if (remainderData.length > 0) {
+          playbackQueue.unshift({
+            data: remainderData,
+            sampleRate: batch.sampleRate
+          });
+        }
+        
+        regularSamples += slicedData.length;
+        targetSampleRate = batch.sampleRate;
+        break;
+      }
+      
+      const batch = playbackQueue.shift();
+      regularBatches.push(batch);
+      regularSamples += batch.data.length;
+      targetSampleRate = batch.sampleRate;
+    }
+    
+    // Determine the length for mixing (use the longer one)
+    maxSamples = Math.max(immediateSamples, regularSamples);
+    
     // Only proceed if we have minimum batch size or this is the last data available
-    if (totalSamples >= MIN_BATCH_SIZE || playbackQueue.length === 0) {
-      const durationMs = (totalSamples / targetSampleRate) * 1000;
-      console.debug(`[Sokuji] [VirtualMic] Collected ${batches.length} batches (${totalSamples} samples, ${durationMs.toFixed(1)}ms) for playback`);
-      return batches;
+    const hasMoreData = immediateQueue.length > 0 || playbackQueue.length > 0;
+    if (maxSamples >= MIN_BATCH_SIZE || !hasMoreData) {
+      const durationMs = (maxSamples / targetSampleRate) * 1000;
+      console.debug(`[Sokuji] [VirtualMic] Collected batches for mixing: immediate=${immediateBatches.length} (${immediateSamples} samples), regular=${regularBatches.length} (${regularSamples} samples), mixed=${maxSamples} samples, ${durationMs.toFixed(1)}ms`);
+      
+      return {
+        immediateBatches,
+        regularBatches,
+        maxSamples,
+        targetSampleRate
+      };
     } else {
       // Put batches back and wait for more data
-      batches.reverse().forEach(batch => playbackQueue.unshift(batch));
-      console.debug(`[Sokuji] [VirtualMic] Not enough data for playback (${totalSamples} < ${MIN_BATCH_SIZE}), waiting for more`);
-      return [];
+      immediateBatches.reverse().forEach(batch => immediateQueue.unshift(batch));
+      regularBatches.reverse().forEach(batch => playbackQueue.unshift(batch));
+      console.debug(`[Sokuji] [VirtualMic] Not enough data for playback (${maxSamples} < ${MIN_BATCH_SIZE}), waiting for more`);
+      return null;
     }
   }
   
   /**
-   * Combine multiple batches into a single batch
+   * Combine batches from the same queue into a single continuous batch
    */
-  function combineBatches(batches) {
+  function combineBatchesFromQueue(batches) {
+    if (batches.length === 0) {
+      return null;
+    }
+    
     if (batches.length === 1) {
       return batches[0];
     }
@@ -430,6 +504,50 @@
     return {
       data: combinedData,
       sampleRate: sampleRate
+    };
+  }
+
+  /**
+   * Mix audio from immediate and regular queues
+   */
+  function mixAudioBatches(immediateBatches, regularBatches, maxSamples, targetSampleRate) {
+    // Combine batches from each queue
+    const immediateAudio = combineBatchesFromQueue(immediateBatches);
+    const regularAudio = combineBatchesFromQueue(regularBatches);
+    
+    // Create output buffer
+    const mixedData = new Float32Array(maxSamples);
+    
+    // Mix immediate audio
+    if (immediateAudio) {
+      const immediateLength = Math.min(immediateAudio.data.length, maxSamples);
+      for (let i = 0; i < immediateLength; i++) {
+        mixedData[i] += immediateAudio.data[i];
+      }
+      console.debug(`[Sokuji] [VirtualMic] Mixed immediate audio: ${immediateLength} samples`);
+    }
+    
+    // Mix regular audio
+    if (regularAudio) {
+      const regularLength = Math.min(regularAudio.data.length, maxSamples);
+      for (let i = 0; i < regularLength; i++) {
+        mixedData[i] += regularAudio.data[i];
+      }
+      console.debug(`[Sokuji] [VirtualMic] Mixed regular audio: ${regularLength} samples`);
+    }
+    
+    // Apply soft clipping to prevent distortion from mixing
+    for (let i = 0; i < maxSamples; i++) {
+      if (mixedData[i] > 1.0) {
+        mixedData[i] = 1.0;
+      } else if (mixedData[i] < -1.0) {
+        mixedData[i] = -1.0;
+      }
+    }
+    
+    return {
+      data: mixedData,
+      sampleRate: targetSampleRate
     };
   }
   
@@ -468,10 +586,13 @@
     
     isActive = false;
     isPlaying = false;
+    isPlayingImmediate = false;
     
     // Clear queues and buffers
     playbackQueue.length = 0;
+    immediateQueue.length = 0;
     chunkBuffer.clear();
+    immediateChunkBuffer.clear();
     
     // Release writer
     if (audioWriter) {
@@ -595,8 +716,13 @@
   window.sokujiVirtualMic = {
     isActive: () => isActive,
     isPlaying: () => isPlaying,
+    isPlayingImmediate: () => isPlayingImmediate,
     getQueueLength: () => playbackQueue.length,
+    getImmediateQueueLength: () => immediateQueue.length,
+    getTotalQueueLength: () => playbackQueue.length + immediateQueue.length,
     getBufferedTracks: () => Array.from(chunkBuffer.keys()),
+    getBufferedImmediateTracks: () => Array.from(immediateChunkBuffer.keys()),
+    getAllBufferedTracks: () => Array.from(chunkBuffer.keys()).concat(Array.from(immediateChunkBuffer.keys())),
     getDeviceId: () => virtualDeviceId,
     getVirtualStream: () => virtualStream,
     addAudioData,

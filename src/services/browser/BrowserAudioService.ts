@@ -7,15 +7,55 @@ declare const chrome: any;
 // Install @types/chrome for better TypeScript support with Chrome extension APIs: npm install --save-dev @types/chrome
 
 /**
+ * Extended WavStreamPlayer that automatically sends PCM data to tabs
+ */
+class EnhancedWavStreamPlayer extends WavStreamPlayer {
+  private audioService: BrowserAudioService;
+
+  constructor(options: any, audioService: BrowserAudioService) {
+    super(options);
+    this.audioService = audioService;
+  }
+
+  /**
+   * Override add16BitPCM to automatically send data to tabs
+   */
+  add16BitPCM(arrayBuffer: ArrayBuffer | Int16Array, trackId: string = 'default', volume: number = 1.0): Int16Array {
+    // Call the parent method first
+    const result = super.add16BitPCM(arrayBuffer, trackId, volume);
+    
+    // Convert to Int16Array for sending to tabs
+    let data: Int16Array;
+    if (arrayBuffer instanceof Int16Array) {
+      data = arrayBuffer;
+    } else {
+      data = new Int16Array(arrayBuffer);
+    }
+    
+    // Automatically send to tabs
+    this.audioService.sendPcmDataToTabs(data, trackId);
+    
+    return result;
+  }
+
+
+}
+
+/**
  * Browser implementation of the Audio Service
  * This implementation uses Web Audio API for audio processing
  * in browser extensions where we don't have access to system audio devices
  */
 export class BrowserAudioService implements IAudioService {
   private externalAudioContext: AudioContext | null = null; // To store the context from WavStreamPlayer
-  private wavStreamPlayer: WavStreamPlayer = new WavStreamPlayer({ sampleRate: 24000 }); // WavStreamPlayer instance for audio output
+  private wavStreamPlayer: EnhancedWavStreamPlayer; // Now using the wrapper
   private interruptedTrackIds: { [key: string]: boolean } = {}; // Track IDs that have been interrupted
   private targetTabId: number | null = null; // Target tab ID from URL parameter
+
+  constructor() {
+    // Initialize the wrapper with this service instance
+    this.wavStreamPlayer = new EnhancedWavStreamPlayer({ sampleRate: 24000 }, this);
+  }
 
   /**
    * Initialize the Web Audio API components
@@ -333,23 +373,21 @@ export class BrowserAudioService implements IAudioService {
   }
 
   /**
-   * Gets the current WavStreamPlayer instance
+   * Gets the current WavStreamPlayer instance (enhanced)
    */
   public getWavStreamPlayer(): WavStreamPlayer {
     return this.wavStreamPlayer;
   }
 
   /**
-   * Adds 16-bit PCM audio data to the WavStreamPlayer and sends it to virtual microphone
+   * Adds 16-bit PCM audio data to the WavStreamPlayer
+   * The enhanced player will automatically send it to virtual microphone
    * @param data The audio data to add
    * @param trackId Optional track ID to associate with this audio
    */
   public addAudioData(data: Int16Array, trackId?: string): void {
-    // First add to WavStreamPlayer for monitoring/playback
+    // The enhanced player will automatically call sendPcmDataToTabs
     this.wavStreamPlayer.add16BitPCM(data, trackId);
-    
-    // Then send to virtual microphone in tabs
-    this.sendPcmDataToTabs(data, 'default');
   }
   
   /**
@@ -359,7 +397,7 @@ export class BrowserAudioService implements IAudioService {
    * @param data The Int16Array PCM data to send
    * @param trackId Optional track ID to associate with this audio
    */
-  private sendPcmDataToTabs(data: Int16Array, trackId?: string): void {
+  public sendPcmDataToTabs(data: Int16Array, trackId?: string): void {
     // Skip empty data
     if (!data || data.length === 0) {
       console.warn('[Sokuji] [BrowserAudio] Attempted to send empty audio data');
