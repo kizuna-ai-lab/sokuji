@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Supported Websites - Sokuji Extension</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #2c3e50;
+            margin-top: 30px;
+        }
+        a {
+            color: #3498db;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        .container {
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .header img {
+            max-width: 150px;
+            margin-bottom: 20px;
+        }
+        .back-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            padding: 8px 16px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            text-decoration: none;
+            color: #3498db;
+        }
+        .back-link:hover {
+            background-color: #e9ecef;
+        }
+        .sites-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+        .site-card {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            border: 1px solid #e9ecef;
+        }
+        .site-card h3 {
+            color: #2c3e50;
+            margin-top: 0;
+            margin-bottom: 10px;
+        }
+        .site-card .site-url {
+            color: #6c757d;
+            font-size: 0.9em;
+            margin-bottom: 15px;
+        }
+        .site-card .features {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .site-card .features li {
+            padding: 4px 0;
+            color: #666;
+            font-size: 0.9em;
+        }
+        .site-card .features li:before {
+            content: "✓ ";
+            color: #28a745;
+            font-weight: bold;
+        }
+        .visit-btn {
+            display: inline-block;
+            margin-top: 15px;
+            padding: 8px 16px;
+            background-color: #3498db;
+            color: white;
+            border-radius: 4px;
+            text-decoration: none;
+            font-size: 0.9em;
+        }
+        .visit-btn:hover {
+            background-color: #2980b9;
+            text-decoration: none;
+        }
+        .usage-note {
+            background-color: #e7f3ff;
+            border: 1px solid #b8daff;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .usage-note h3 {
+            color: #0c5460;
+            margin-top: 0;
+        }
+        footer {
+            margin-top: 50px;
+            text-align: center;
+            color: #7f8c8d;
+            font-size: 0.9em;
+            border-top: 1px solid #eee;
+            padding-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="index.html" class="back-link">← Back to Documentation</a>
+        
+        <div class="header">
+            <img src="https://github.com/kizuna-ai-lab/sokuji/raw/main/src/assets/logo.png" alt="Sokuji Logo">
+            <h1>Supported Websites</h1>
+        </div>
+
+        <p>The Sokuji extension is compatible with the following video conferencing and communication platforms. On each platform, Sokuji provides real-time language interpretation through its virtual microphone feature.</p>
+
+        <div class="usage-note">
+            <h3>How to Use</h3>
+            <p>On any supported platform, simply select <strong>"Sokuji Virtual Microphone"</strong> as your microphone input in the platform's audio settings. Sokuji will then provide real-time translation of your speech.</p>
+        </div>
+
+        <div class="sites-grid">
+            <div class="site-card">
+                <h3>Google Meet</h3>
+                <div class="site-url">meet.google.com</div>
+                <ul class="features">
+                    <li>Real-time voice translation</li>
+                    <li>Virtual microphone integration</li>
+                    <li>Seamless audio routing</li>
+                </ul>
+                <a href="https://meet.google.com" target="_blank" rel="noopener noreferrer" class="visit-btn">Visit Platform</a>
+            </div>
+
+            <div class="site-card">
+                <h3>Microsoft Teams</h3>
+                <div class="site-url">teams.live.com</div>
+                <ul class="features">
+                    <li>Real-time voice translation</li>
+                    <li>Virtual microphone integration</li>
+                    <li>Cross-platform compatibility</li>
+                </ul>
+                <a href="https://teams.live.com" target="_blank" rel="noopener noreferrer" class="visit-btn">Visit Platform</a>
+            </div>
+
+            <div class="site-card">
+                <h3>Gather</h3>
+                <div class="site-url">app.gather.town</div>
+                <ul class="features">
+                    <li>Real-time voice translation</li>
+                    <li>Virtual microphone integration</li>
+                    <li>Spatial audio support</li>
+                </ul>
+                <a href="https://app.gather.town" target="_blank" rel="noopener noreferrer" class="visit-btn">Visit Platform</a>
+            </div>
+
+            <div class="site-card">
+                <h3>Whereby</h3>
+                <div class="site-url">whereby.com</div>
+                <ul class="features">
+                    <li>Real-time voice translation</li>
+                    <li>Virtual microphone integration</li>
+                    <li>Browser-based meetings</li>
+                </ul>
+                <a href="https://whereby.com" target="_blank" rel="noopener noreferrer" class="visit-btn">Visit Platform</a>
+            </div>
+
+            <div class="site-card">
+                <h3>Discord</h3>
+                <div class="site-url">discord.com</div>
+                <ul class="features">
+                    <li>Real-time voice translation</li>
+                    <li>Virtual microphone integration</li>
+                    <li>Voice channel support</li>
+                </ul>
+                <a href="https://discord.com" target="_blank" rel="noopener noreferrer" class="visit-btn">Visit Platform</a>
+            </div>
+
+            <div class="site-card">
+                <h3>Slack</h3>
+                <div class="site-url">app.slack.com</div>
+                <ul class="features">
+                    <li>Real-time voice translation</li>
+                    <li>Virtual microphone integration</li>
+                    <li>Huddles and calls support</li>
+                </ul>
+                <a href="https://app.slack.com" target="_blank" rel="noopener noreferrer" class="visit-btn">Visit Platform</a>
+            </div>
+
+            <div class="site-card">
+                <h3>Zoom</h3>
+                <div class="site-url">app.zoom.us</div>
+                <ul class="features">
+                    <li>Real-time voice translation</li>
+                    <li>Virtual microphone integration</li>
+                    <li>Enhanced frame support</li>
+                </ul>
+                <a href="https://app.zoom.us" target="_blank" rel="noopener noreferrer" class="visit-btn">Visit Platform</a>
+            </div>
+        </div>
+
+        <div class="usage-note">
+            <h3>Need Help?</h3>
+            <p>If you encounter any issues with a specific platform, please check our <a href="https://github.com/kizuna-ai-lab/sokuji">GitHub repository</a> for troubleshooting guides and support.</p>
+        </div>
+
+        <footer>
+            &copy; 2025 Kizuna AI Lab. All rights reserved.
+        </footer>
+    </div>
+</body>
+</html> 
