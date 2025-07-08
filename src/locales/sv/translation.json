@@ -32,7 +32,11 @@
     "loadingModels": "Laddar tillgängliga modeller...",
     "modelsFound": "{{count}} modeller tillgängliga",
     "experimentalFeatureTooltip": "Detta är en experimentell funktion och kan vara instabil.",
-    "help": "Hjälp"
+    "help": "Hjälp",
+    "auto": "Auto",
+    "low": "Låg",
+    "medium": "Medel",
+    "high": "Hög"
   },
   "mainPanel": {
     "conversationPlaceholder": "Konversationen kommer att visas här",

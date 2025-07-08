@@ -76,7 +76,11 @@
     "loadingModels": "사용 가능한 모델 로딩 중...",
     "modelsFound": "{{count}}개의 모델 사용 가능",
     "experimentalFeatureTooltip": "이것은 실험적인 기능이며 불안정할 수 있습니다.",
-    "help": "도움말"
+    "help": "도움말",
+    "auto": "자동",
+    "low": "낮음",
+    "medium": "중간",
+    "high": "높음"
   },
   "audioPanel": {
     "title": "오디오 설정",

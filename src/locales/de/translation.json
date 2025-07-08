@@ -76,7 +76,11 @@
     "loadingModels": "Verfügbare Modelle werden geladen...",
     "modelsFound": "{{count}} Modelle verfügbar",
     "experimentalFeatureTooltip": "Dies ist eine experimentelle Funktion und kann instabil sein.",
-    "help": "Hilfe"
+    "help": "Hilfe",
+    "auto": "Auto",
+    "low": "Niedrig",
+    "medium": "Mittel",
+    "high": "Hoch"
   },
   "audioPanel": {
     "title": "Audio-Einstellungen",
