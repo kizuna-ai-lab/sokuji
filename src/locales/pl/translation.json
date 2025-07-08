@@ -75,7 +75,11 @@
     "refreshModels": "Odśwież dostępne modele",
     "loadingModels": "Ładowanie dostępnych modeli...",
     "modelsFound": "{{count}} modeli dostępnych",
-    "experimentalFeatureTooltip": "To jest funkcja eksperymentalna i może być niestabilna."
+    "experimentalFeatureTooltip": "To jest funkcja eksperymentalna i może być niestabilna.",
+    "auto": "Auto",
+    "low": "Niski",
+    "medium": "Średni",
+    "high": "Wysoki"
   },
   "audioPanel": {
     "title": "Ustawienia audio",

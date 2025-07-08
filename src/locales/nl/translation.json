@@ -76,7 +76,11 @@
     "loadingModels": "Beschikbare modellen laden...",
     "modelsFound": "{{count}} modellen beschikbaar",
     "experimentalFeatureTooltip": "Dit is een experimentele functie en kan instabiel zijn.",
-    "help": "Help"
+    "help": "Help",
+    "auto": "Auto",
+    "low": "Laag",
+    "medium": "Gemiddeld",
+    "high": "Hoog"
   },
   "audioPanel": {
     "title": "Audio instellingen",

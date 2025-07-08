@@ -37,7 +37,11 @@
     "sessionActiveNotice": "Asetukset on lukittu istunnon ollessa aktiivinen. Lopeta istunto muuttaaksesi asetuksia.",
     "realtimeModelAvailable": "Reaaliaikamalli on saatavilla",
     "realtimeModelNotAvailable": "Reaaliaikamalli ei ole saatavilla",
-    "help": "Ohje"
+    "help": "Ohje",
+    "auto": "Auto",
+    "low": "Matala",
+    "medium": "Keskitaso",
+    "high": "Korkea"
   },
   "mainPanel": {
     "conversationPlaceholder": "Keskustelu näkyy tässä",

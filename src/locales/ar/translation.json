@@ -76,7 +76,11 @@
     "loadingModels": "جاري تحميل النماذج المتاحة...",
     "modelsFound": "{{count}} نماذج متاحة",
     "experimentalFeatureTooltip": "هذه ميزة تجريبية وقد تكون غير مستقرة.",
-    "help": "مساعدة"
+    "help": "مساعدة",
+    "auto": "تلقائي",
+    "low": "منخفض",
+    "medium": "متوسط",
+    "high": "عالي"
   },
   "audioPanel": {
     "title": "إعدادات الصوت",

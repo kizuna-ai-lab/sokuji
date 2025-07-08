@@ -76,7 +76,11 @@
     "loadingModels": "載入可用模型中...",
     "modelsFound": "找到 {{count}} 個模型",
     "experimentalFeatureTooltip": "這是一個實驗性功能，可能會不穩定。",
-    "help": "說明"
+    "help": "說明",
+    "auto": "自動",
+    "low": "低",
+    "medium": "中等",
+    "high": "高"
   },
   "audioPanel": {
     "title": "音訊設定",
