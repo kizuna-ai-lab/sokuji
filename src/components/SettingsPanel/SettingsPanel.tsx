@@ -21,9 +21,11 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
     openAISettings,
     cometAPISettings,
     geminiSettings,
+    palabraAISettings,
     updateOpenAISettings,
     updateCometAPISettings,
     updateGeminiSettings,
+    updatePalabraAISettings,
     getCurrentProviderConfig,
     
     // Other context methods and state
@@ -80,6 +82,8 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
         updateOpenAISettings(openAISettings);
       } else if (commonSettings.provider === Provider.COMET_API) {
         updateCometAPISettings(cometAPISettings);
+      } else if (commonSettings.provider === Provider.PALABRA_AI) {
+        updatePalabraAISettings(palabraAISettings);
       } else {
         updateGeminiSettings(geminiSettings);
       }
@@ -211,7 +215,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
                   </option>
                 ))}
               </select>
-              {(commonSettings.provider === Provider.GEMINI || commonSettings.provider === Provider.COMET_API) && (
+              {(commonSettings.provider === Provider.GEMINI || commonSettings.provider === Provider.COMET_API || commonSettings.provider === Provider.PALABRA_AI) && (
                 <div className="experimental-icon-wrapper">
                   <FlaskConical 
                     size={16} 
@@ -224,57 +228,119 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
               )}
             </div>
           </div>
-          <div className="setting-item">
-            <div className="setting-label">
-              <span>{t('settings.apiKey', 'API Key')}</span>
-            </div>
-            <div className="api-key-container">
-              <input
-                value={
-                  commonSettings.provider === Provider.OPENAI ? openAISettings.apiKey :
-                  commonSettings.provider === Provider.COMET_API ? cometAPISettings.apiKey :
-                  geminiSettings.apiKey
-                }
-                onChange={(e) => {
-                  if (commonSettings.provider === Provider.OPENAI) {
-                    updateOpenAISettings({ apiKey: e.target.value });
-                  } else if (commonSettings.provider === Provider.COMET_API) {
-                    updateCometAPISettings({ apiKey: e.target.value });
-                  } else {
-                    updateGeminiSettings({ apiKey: e.target.value });
-                  }
-                  // Reset validation status when key changes
-                  setApiKeyStatus({ valid: null, message: '', validating: false });
-                }}
-                placeholder={currentProviderConfig.apiKeyPlaceholder}
-                className={`text-input api-key-input ${
-                  apiKeyStatus.valid === true ? 'valid' : 
-                  apiKeyStatus.valid === false ? 'invalid' : ''
-                }`}
-                disabled={isSessionActive}
-              />
-              <button 
-                className="validate-key-button"
-                onClick={handleValidateApiKey}
-                disabled={apiKeyStatus.validating || 
-                  (commonSettings.provider === Provider.OPENAI ? !openAISettings.apiKey :
-                   commonSettings.provider === Provider.COMET_API ? !cometAPISettings.apiKey :
-                   !geminiSettings.apiKey) || 
-                  isSessionActive}
-              >
-                <Key size={16} />
-                <span>{apiKeyStatus.validating ? t('settings.validating') : t('settings.validate')}</span>
-              </button>
-            </div>
-            {apiKeyStatus.message && (
-              <div className={`api-key-status ${
-                apiKeyStatus.valid === true ? 'success' : 
-                apiKeyStatus.valid === false ? 'error' : 'info'
-              }`}>
-                {apiKeyStatus.message}
+          {/* API Key or Client Credentials section */}
+          {commonSettings.provider === Provider.PALABRA_AI ? (
+            // PalabraAI uses Client ID and Client Secret
+            <>
+              <div className="setting-item">
+                <div className="setting-label">
+                  <span>{t('settings.clientId', 'Client ID')}</span>
+                </div>
+                <div className="api-key-container">
+                  <input
+                    value={palabraAISettings.clientId}
+                    onChange={(e) => {
+                      updatePalabraAISettings({ clientId: e.target.value });
+                      // Reset validation status when key changes
+                      setApiKeyStatus({ valid: null, message: '', validating: false });
+                    }}
+                    placeholder="Enter your PalabraAI Client ID"
+                    className={`text-input api-key-input ${
+                      apiKeyStatus.valid === true ? 'valid' : 
+                      apiKeyStatus.valid === false ? 'invalid' : ''
+                    }`}
+                    disabled={isSessionActive}
+                  />
+                </div>
               </div>
-            )}
-          </div>
+              <div className="setting-item">
+                <div className="setting-label">
+                  <span>{t('settings.clientSecret', 'Client Secret')}</span>
+                </div>
+                <div className="api-key-container">
+                  <input
+                    type="password"
+                    value={palabraAISettings.clientSecret}
+                    onChange={(e) => {
+                      updatePalabraAISettings({ clientSecret: e.target.value });
+                      // Reset validation status when key changes
+                      setApiKeyStatus({ valid: null, message: '', validating: false });
+                    }}
+                    placeholder="Enter your PalabraAI Client Secret"
+                    className={`text-input api-key-input ${
+                      apiKeyStatus.valid === true ? 'valid' : 
+                      apiKeyStatus.valid === false ? 'invalid' : ''
+                    }`}
+                    disabled={isSessionActive}
+                  />
+                  <button 
+                    className="validate-key-button"
+                    onClick={handleValidateApiKey}
+                    disabled={apiKeyStatus.validating || 
+                      !palabraAISettings.clientId || 
+                      !palabraAISettings.clientSecret || 
+                      isSessionActive}
+                  >
+                    <Key size={16} />
+                    <span>{apiKeyStatus.validating ? t('settings.validating') : t('settings.validate')}</span>
+                  </button>
+                </div>
+              </div>
+            </>
+          ) : (
+            // Other providers use API Key
+            <div className="setting-item">
+              <div className="setting-label">
+                <span>{t('settings.apiKey', 'API Key')}</span>
+              </div>
+              <div className="api-key-container">
+                <input
+                  value={
+                    commonSettings.provider === Provider.OPENAI ? openAISettings.apiKey :
+                    commonSettings.provider === Provider.COMET_API ? cometAPISettings.apiKey :
+                    geminiSettings.apiKey
+                  }
+                  onChange={(e) => {
+                    if (commonSettings.provider === Provider.OPENAI) {
+                      updateOpenAISettings({ apiKey: e.target.value });
+                    } else if (commonSettings.provider === Provider.COMET_API) {
+                      updateCometAPISettings({ apiKey: e.target.value });
+                    } else {
+                      updateGeminiSettings({ apiKey: e.target.value });
+                    }
+                    // Reset validation status when key changes
+                    setApiKeyStatus({ valid: null, message: '', validating: false });
+                  }}
+                  placeholder={currentProviderConfig.apiKeyPlaceholder}
+                  className={`text-input api-key-input ${
+                    apiKeyStatus.valid === true ? 'valid' : 
+                    apiKeyStatus.valid === false ? 'invalid' : ''
+                  }`}
+                  disabled={isSessionActive}
+                />
+                <button 
+                  className="validate-key-button"
+                  onClick={handleValidateApiKey}
+                  disabled={apiKeyStatus.validating || 
+                    (commonSettings.provider === Provider.OPENAI ? !openAISettings.apiKey :
+                     commonSettings.provider === Provider.COMET_API ? !cometAPISettings.apiKey :
+                     !geminiSettings.apiKey) || 
+                    isSessionActive}
+                >
+                  <Key size={16} />
+                  <span>{apiKeyStatus.validating ? t('settings.validating') : t('settings.validate')}</span>
+                </button>
+              </div>
+            </div>
+          )}
+          {apiKeyStatus.message && (
+            <div className={`api-key-status ${
+              apiKeyStatus.valid === true ? 'success' : 
+              apiKeyStatus.valid === false ? 'error' : 'info'
+            }`}>
+              {apiKeyStatus.message}
+            </div>
+          )}
         </div>
         <div className="settings-section">
           <h2>{t('settings.language')}</h2>

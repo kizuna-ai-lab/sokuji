@@ -25,6 +25,7 @@
     "electron-squirrel-startup": "^1.0.1",
     "i18next": "^25.2.1",
     "i18next-browser-languagedetector": "^8.1.0",
+    "livekit-client": "^2.15.2",
     "lucide-react": "^0.515.0",
     "posthog-js-lite": "^4.1.0",
     "react": "^18.3.1",
