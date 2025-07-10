@@ -351,37 +351,46 @@ export class WavRecorder {
   }
 
   /**
-   * Begins a recording session and requests microphone permissions if not already granted
-   * Microphone recording indicator will appear on browser tab but status will be "paused"
-   * @param {string} [deviceId] if no device provided, default device will be used
-   * @returns {Promise<true>}
+   * Request microphone permissions and begin recording
+   * @param {string} [deviceId] - Optional device ID to use for recording
+   * @returns {Promise<boolean>}
    */
   async begin(deviceId) {
     if (this.processor) {
       throw new Error(
-        `Already connected: please call .end() to start a new session`,
+        `WavRecorder: Already connected: please call .end() to start over`,
       );
     }
 
-    if (
-      !navigator.mediaDevices ||
-      !('getUserMedia' in navigator.mediaDevices)
-    ) {
-      throw new Error('Could not request user media');
-    }
+    // Request microphone permissions
+    const constraints = {
+      audio: {
+        deviceId: deviceId ? { exact: deviceId } : undefined,
+        sampleRate: this.sampleRate,
+        // Add echo cancellation and noise suppression to reduce feedback
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true,
+        // Additional constraints for better audio quality
+        channelCount: 1,
+        latency: 0.02, // 20ms latency
+      },
+    };
+
     try {
-      const config = { audio: true };
-      if (deviceId) {
-        config.audio = { deviceId: { exact: deviceId } };
-      }
-      this.stream = await navigator.mediaDevices.getUserMedia(config);
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      this.stream = stream;
+      this.log('Got stream, setting up recording');
     } catch (err) {
-      throw new Error('Could not start media stream');
+      console.error('[Sokuji] [WavRecorder] Could not start audio recording', err);
+      return false;
     }
 
+    // Create audio context with the specified sample rate
     const context = new AudioContext({ sampleRate: this.sampleRate });
     const source = context.createMediaStreamSource(this.stream);
-    // Load and execute the module script.
+    
+    // Create audio processor
     try {
       await context.audioWorklet.addModule(this.scriptSrc);
     } catch (e) {
@@ -389,6 +398,12 @@ export class WavRecorder {
       throw new Error(`Could not add audioWorklet module: ${this.scriptSrc}`);
     }
     const processor = new AudioWorkletNode(context, 'audio_processor');
+    // processor.port.postMessage({
+    //   command: 'init',
+    //   sampleRate: this.sampleRate,
+    // });
+
+    // Set up event handling for processor
     processor.port.onmessage = (e) => {
       const { event, id, data } = e.data;
       if (event === 'receipt') {

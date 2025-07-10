@@ -157,6 +157,20 @@
     "translationFailed": "Translation failed",
     "audioError": "Audio processing error"
   },
+  "audioFeedback": {
+    "title": "Audio Feedback Warning",
+    "description": "Potential audio feedback detected. This may cause echo or sound loops during recording.",
+    "inputDevice": "Input Device",
+    "outputDevice": "Output Device",
+    "recommendation": "Recommendation",
+    "solutions": {
+      "title": "Solutions",
+      "differentDevices": "Select different input and output devices",
+      "useHeadphones": "Use headphones instead of speakers",
+      "adjustDistance": "Increase distance between microphone and speakers",
+      "disablePassthrough": "Disable original audio passthrough"
+    }
+  },
   "onboarding": {
     "back": "Back",
     "close": "Close",
