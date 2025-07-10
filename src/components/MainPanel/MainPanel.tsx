@@ -15,6 +15,7 @@ import { useAnalytics } from '../../lib/analytics';
 import { isDevelopment } from '../../config/analytics';
 import { v4 as uuidv4 } from 'uuid';
 import { Provider, isOpenAICompatible } from '../../types/Provider';
+import { OpenAICompatibleSettings, GeminiSettings, PalabraAISettings } from '../../contexts/SettingsContext';
 
 interface MainPanelProps {}
 
@@ -33,11 +34,13 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     openAISettings,
     cometAPISettings,
     geminiSettings,
+    palabraAISettings,
     getCurrentProviderSettings,
     isApiKeyValid,
     getProcessedSystemInstructions,
     availableModels,
-    loadingModels
+    loadingModels,
+    createSessionConfig
   } = useSettings();
   
   // Get session state from context
@@ -82,62 +85,10 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   const getSessionConfig = useCallback((): SessionConfig => {
     // Get processed system instructions from the context
     const systemInstructions = getProcessedSystemInstructions();
-    const { provider } = commonSettings;
-    const currentProviderSettings = getCurrentProviderSettings();
-
-    const sessionConfig: SessionConfig = {
-      model: currentProviderSettings.model,
-      voice: currentProviderSettings.voice,
-      instructions: systemInstructions,
-      temperature: currentProviderSettings.temperature ?? 0.8,
-      maxTokens: currentProviderSettings.maxTokens ?? 'inf',
-    };
-
-    // Configure provider-specific settings for OpenAI-compatible providers
-    if (isOpenAICompatible(provider)) {
-      // Get settings from the appropriate provider
-      const compatibleSettings = provider === Provider.OPENAI ? openAISettings : cometAPISettings;
-      const { turnDetectionMode, prefixPadding, silenceDuration, threshold, semanticEagerness, noiseReduction, transcriptModel } = compatibleSettings;
-      
-      // Configure turn detection
-      if (turnDetectionMode === 'Disabled') {
-        sessionConfig.turnDetection = { type: 'none' };
-      } else if (turnDetectionMode === 'Normal') {
-        sessionConfig.turnDetection = {
-          type: 'server_vad',
-          createResponse: true,
-          interruptResponse: false,
-          prefixPadding: prefixPadding,
-          silenceDuration: silenceDuration,
-          threshold: threshold
-        };
-      } else if (turnDetectionMode === 'Semantic') {
-        sessionConfig.turnDetection = {
-          type: 'semantic_vad',
-          createResponse: true,
-          interruptResponse: false,
-          eagerness: semanticEagerness?.toLowerCase() as any,
-        };
-      }
-
-      // Configure noise reduction
-      if (noiseReduction && noiseReduction !== 'None') {
-        sessionConfig.inputAudioNoiseReduction = {
-          type: noiseReduction === 'Near field' ? 'near_field' :
-                noiseReduction === 'Far field' ? 'far_field' : 'near_field'
-        };
-      }
-
-      // Configure transcription
-      if (transcriptModel) {
-        sessionConfig.inputAudioTranscription = {
-          model: transcriptModel
-        };
-      }
-    }
-
-    return sessionConfig;
-  }, [commonSettings, openAISettings, cometAPISettings, getCurrentProviderSettings, getProcessedSystemInstructions]);
+    
+    // Use the type-safe createSessionConfig from SettingsContext
+    return createSessionConfig(systemInstructions);
+  }, [getProcessedSystemInstructions, createSessionConfig]);
 
   /**
    * Setup virtual audio output device
@@ -366,7 +317,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       // Create a new AI client instance
       const currentProviderSettings = getCurrentProviderSettings();
       
-      // Get the appropriate API key based on the current provider
+      // Get the appropriate API key/credentials based on the current provider
       let apiKey: string;
       switch (commonSettings.provider) {
         case Provider.OPENAI:
@@ -378,15 +329,34 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         case Provider.GEMINI:
           apiKey = geminiSettings.apiKey;
           break;
+        case Provider.PALABRA_AI:
+          // PalabraAI uses clientId as the "apiKey" parameter for ClientFactory
+          apiKey = palabraAISettings.clientId;
+          break;
         default:
           throw new Error(`Unsupported provider: ${commonSettings.provider}`);
       }
       
-      clientRef.current = ClientFactory.createClient(
-        currentProviderSettings.model,
-        commonSettings.provider,
-        apiKey
-      );
+      // Get model name based on provider
+      const modelName = commonSettings.provider === Provider.PALABRA_AI 
+        ? 'realtime-translation' 
+        : (currentProviderSettings as any).model;
+      
+      // Create client with appropriate parameters
+      if (commonSettings.provider === Provider.PALABRA_AI) {
+        clientRef.current = ClientFactory.createClient(
+          modelName,
+          commonSettings.provider,
+          apiKey, // clientId
+          palabraAISettings.clientSecret // clientSecret
+        );
+      } else {
+        clientRef.current = ClientFactory.createClient(
+          modelName,
+          commonSettings.provider,
+          apiKey
+        );
+      }
 
       // Setup listeners for the new client instance
       await setupClientListeners();
@@ -399,7 +369,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         const settings = commonSettings.provider === Provider.OPENAI ? openAISettings : cometAPISettings;
         setCanPushToTalk(settings.turnDetectionMode === 'Disabled');
       } else {
-        setCanPushToTalk(false); // Not supported by Gemini yet
+        setCanPushToTalk(false); // Not supported by Gemini and PalabraAI
       }
 
       // Connect to microphone only if input device is turned on
@@ -473,6 +443,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     openAISettings, 
     geminiSettings, 
     cometAPISettings, 
+    palabraAISettings,
     getCurrentProviderSettings, 
     getSessionConfig, 
     setupClientListeners, 
@@ -985,7 +956,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     };
 
     updateRecordingState();
-  }, [isInputDeviceOn, isSessionActive, commonSettings.provider, openAISettings.turnDetectionMode, selectedInputDevice]);
+  }, [isInputDeviceOn, isSessionActive, commonSettings.provider, openAISettings.turnDetectionMode, cometAPISettings.turnDetectionMode, selectedInputDevice]);
 
   /**
    * Watch for changes to selectedMonitorDevice or isMonitorDeviceOn 

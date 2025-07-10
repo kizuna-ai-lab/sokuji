@@ -51,10 +51,12 @@ export interface ISettingsService {
    * Validate API key and fetch available models in a single request
    * @param apiKey The API key to validate and use for fetching models
    * @param provider The service provider to validate against
+   * @param clientSecret The client secret for PalabraAI (optional)
    */
   validateApiKeyAndFetchModels(
     apiKey: string, 
-    provider: ProviderType
+    provider: ProviderType,
+    clientSecret?: string
   ): Promise<{
     validation: ApiKeyValidationResult;
     models: FilteredModel[];
