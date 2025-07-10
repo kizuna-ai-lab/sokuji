@@ -16,6 +16,8 @@ import { isDevelopment } from '../../config/analytics';
 import { v4 as uuidv4 } from 'uuid';
 import { Provider, isOpenAICompatible } from '../../types/Provider';
 import { OpenAICompatibleSettings, GeminiSettings, PalabraAISettings } from '../../contexts/SettingsContext';
+import AudioFeedbackWarning from '../AudioFeedbackWarning/AudioFeedbackWarning';
+import { getSafeAudioConfiguration } from '../../utils/audioUtils';
 
 interface MainPanelProps {}
 
@@ -78,6 +80,10 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   // Add state variables to track if test tone is playing and currently playing audio item
   const [isTestTonePlaying, setIsTestTonePlaying] = useState(false);
   const [playingItemId, setPlayingItemId] = useState<string | null>(null);
+  
+  // Audio feedback warning state
+  const [showFeedbackWarning, setShowFeedbackWarning] = useState(false);
+  const [feedbackWarningDismissed, setFeedbackWarningDismissed] = useState(false);
 
   /**
    * Convert settings to SessionConfig
@@ -149,15 +155,78 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     if (wavRecorder && audioServiceRef.current) {
       const wavStreamPlayer = audioServiceRef.current.getWavStreamPlayer();
       if (wavStreamPlayer) {
+        // Add safety checks to prevent feedback loops
+        const isSafeForPassthrough = () => {
+          // Check if input and output devices are different
+          if (selectedInputDevice && selectedMonitorDevice) {
+            const inputLabel = selectedInputDevice.label.toLowerCase();
+            const outputLabel = selectedMonitorDevice.label.toLowerCase();
+            
+            // Prevent feedback if devices are the same or if output is the default device
+            // when input is also default, or if both are system defaults
+            if (inputLabel === outputLabel || 
+                (inputLabel.includes('default') && outputLabel.includes('default'))) {
+              console.warn('[Sokuji] [MainPanel] Passthrough disabled: same input/output device detected');
+              return false;
+            }
+          }
+          
+          // Check for virtual devices to prevent feedback
+          if (selectedMonitorDevice) {
+            const outputLabel = selectedMonitorDevice.label.toLowerCase();
+            if (outputLabel.includes('sokuji') || outputLabel.includes('virtual')) {
+              console.warn('[Sokuji] [MainPanel] Passthrough disabled: virtual device detected as output');
+              return false;
+            }
+          }
+          
+          return true;
+        };
+
+        // Only enable passthrough if it's safe to do so
+        const safePassthroughEnabled = isRealVoicePassthroughEnabled && isSafeForPassthrough();
+        
         wavRecorder.setupPassthrough(
           wavStreamPlayer, 
-          isRealVoicePassthroughEnabled, 
+          safePassthroughEnabled, 
           realVoicePassthroughVolume
         );
-        console.info('[Sokuji] [MainPanel] Updated passthrough settings: enabled=', isRealVoicePassthroughEnabled, 'volume=', realVoicePassthroughVolume);
+        
+        if (safePassthroughEnabled) {
+          console.info('[Sokuji] [MainPanel] Updated passthrough settings: enabled=', safePassthroughEnabled, 'volume=', realVoicePassthroughVolume);
+        } else if (isRealVoicePassthroughEnabled) {
+          console.warn('[Sokuji] [MainPanel] Passthrough disabled for safety - potential feedback loop detected');
+        }
       }
     }
-  }, [isRealVoicePassthroughEnabled, realVoicePassthroughVolume]);
+  }, [isRealVoicePassthroughEnabled, realVoicePassthroughVolume, selectedInputDevice, selectedMonitorDevice]);
+
+  /**
+   * Check for potential audio feedback and show warning
+   */
+  useEffect(() => {
+    if (feedbackWarningDismissed || !isRealVoicePassthroughEnabled) {
+      setShowFeedbackWarning(false);
+      return;
+    }
+
+    const safeConfig = getSafeAudioConfiguration(
+      selectedInputDevice,
+      selectedMonitorDevice,
+      isRealVoicePassthroughEnabled
+    );
+
+    if (!safeConfig.safePassthroughEnabled && safeConfig.recommendedAction) {
+      setShowFeedbackWarning(true);
+    } else {
+      setShowFeedbackWarning(false);
+    }
+  }, [
+    isRealVoicePassthroughEnabled,
+    selectedInputDevice,
+    selectedMonitorDevice,
+    feedbackWarningDismissed
+  ]);
 
   /**
    * Instantiate:
@@ -377,16 +446,52 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         if (selectedInputDevice) {
           await wavRecorder.begin(selectedInputDevice.deviceId);
           
-          // Setup real voice passthrough if enabled
+          // Setup real voice passthrough if enabled and safe
           if (isRealVoicePassthroughEnabled && audioServiceRef.current) {
             const wavStreamPlayer = audioServiceRef.current.getWavStreamPlayer();
             if (wavStreamPlayer) {
+              // Add safety checks to prevent feedback loops
+              const isSafeForPassthrough = () => {
+                // Check if input and output devices are different
+                if (selectedInputDevice && selectedMonitorDevice) {
+                  const inputLabel = selectedInputDevice.label.toLowerCase();
+                  const outputLabel = selectedMonitorDevice.label.toLowerCase();
+                  
+                  // Prevent feedback if devices are the same or if output is the default device
+                  // when input is also default, or if both are system defaults
+                  if (inputLabel === outputLabel || 
+                      (inputLabel.includes('default') && outputLabel.includes('default'))) {
+                    console.warn('[Sokuji] [MainPanel] Passthrough disabled: same input/output device detected');
+                    return false;
+                  }
+                }
+                
+                // Check for virtual devices to prevent feedback
+                if (selectedMonitorDevice) {
+                  const outputLabel = selectedMonitorDevice.label.toLowerCase();
+                  if (outputLabel.includes('sokuji') || outputLabel.includes('virtual')) {
+                    console.warn('[Sokuji] [MainPanel] Passthrough disabled: virtual device detected as output');
+                    return false;
+                  }
+                }
+                
+                return true;
+              };
+
+              // Only enable passthrough if it's safe to do so
+              const safePassthroughEnabled = isRealVoicePassthroughEnabled && isSafeForPassthrough();
+              
               wavRecorder.setupPassthrough(
                 wavStreamPlayer, 
-                isRealVoicePassthroughEnabled, 
+                safePassthroughEnabled, 
                 realVoicePassthroughVolume
               );
-              console.info('[Sokuji] [MainPanel] Real voice passthrough enabled with volume:', realVoicePassthroughVolume);
+              
+              if (safePassthroughEnabled) {
+                console.info('[Sokuji] [MainPanel] Real voice passthrough enabled with volume:', realVoicePassthroughVolume);
+              } else {
+                console.warn('[Sokuji] [MainPanel] Real voice passthrough disabled for safety - potential feedback loop detected');
+              }
             }
           }
         } else {
@@ -1308,6 +1413,22 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           <canvas ref={serverCanvasRef} className="visualization-canvas server-canvas" />
         </div>
       </div>
+              <AudioFeedbackWarning
+          isVisible={showFeedbackWarning}
+          inputDeviceLabel={selectedInputDevice?.label}
+          outputDeviceLabel={selectedMonitorDevice?.label}
+          recommendedAction={
+            getSafeAudioConfiguration(
+              selectedInputDevice,
+              selectedMonitorDevice,
+              isRealVoicePassthroughEnabled
+            ).recommendedAction
+          }
+          onDismiss={() => {
+            setShowFeedbackWarning(false);
+            setFeedbackWarningDismissed(true);
+          }}
+        />
     </div>
   );
 };
