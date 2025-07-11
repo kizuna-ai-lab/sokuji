@@ -1,7 +1,7 @@
 import { IClient, ConversationItem, SessionConfig, ClientEventHandlers, ApiKeyValidationResult, PalabraAISessionConfig, isPalabraAISessionConfig } from '../interfaces/IClient';
 import { Provider, ProviderType } from '../../types/Provider';
 import i18n from '../../locales';
-import { Room, RoomEvent, Track, TrackPublication, RemoteParticipant, RemoteTrack, RemoteAudioTrack, DataPacket_Kind } from 'livekit-client';
+import { Room, RoomEvent, Track, TrackPublication, RemoteParticipant, RemoteTrack, RemoteAudioTrack, DataPacket_Kind, LocalAudioTrack } from 'livekit-client';
 
 /**
  * PalabraAI API session configuration interface (returned by the API)
@@ -109,8 +109,8 @@ export class PalabraAIClient implements IClient {
   
   // Audio handling
   private audioContext: AudioContext | null = null;
-  private mediaStreamSource: MediaStreamAudioSourceNode | null = null;
-  private processor: ScriptProcessorNode | null = null;
+  private audioDestination: MediaStreamAudioDestinationNode | null = null;
+  private customAudioTrack: LocalAudioTrack | null = null;
 
   constructor(clientId: string, clientSecret: string) {
     this.clientId = clientId;
@@ -246,12 +246,13 @@ export class PalabraAIClient implements IClient {
         this.currentSessionId = null;
       }
       
+      // Clean up audio resources before disconnecting room
+      this.cleanupAudio();
+      
       if (this.room) {
         await this.room.disconnect();
         this.room = null;
       }
-      
-      this.cleanupAudio();
       this.isConnectedState = false;
       this.sessionConfig = null;
       this.conversationItems = [];
@@ -285,10 +286,61 @@ export class PalabraAIClient implements IClient {
   }
 
   appendInputAudio(audioData: Int16Array): void {
-    // PalabraAI handles audio input through WebRTC directly
-    // Audio is captured by the browser and sent through the WebRTC connection
-    // No need to manually append audio data
-    console.info("[Sokuji] [PalabraAIClient] Appending input audio", audioData);
+    if (!this.audioContext || !this.audioDestination) {
+      console.warn("[Sokuji] [PalabraAIClient] Audio context not initialized");
+      return;
+    }
+    
+    try {
+      // Handle different input types - cast to any to allow type checking
+      const data = audioData as any;
+      let int16Array: Int16Array;
+      
+      if (data instanceof Float32Array) {
+        // Convert Float32Array to Int16Array
+        int16Array = new Int16Array(data.length);
+        for (let i = 0; i < data.length; i++) {
+          // Convert from Float32 (-1.0 to 1.0) to Int16 (-32768 to 32767)
+          int16Array[i] = Math.max(-32768, Math.min(32767, data[i] * 32767));
+        }
+      } else if (data instanceof Int16Array) {
+        int16Array = data;
+      } else if (data instanceof ArrayBuffer) {
+        int16Array = new Int16Array(data);
+      } else if (data && typeof data === 'object' && data.buffer instanceof ArrayBuffer) {
+        // Handle Uint8Array or other TypedArray
+        int16Array = new Int16Array(data.buffer, data.byteOffset, data.byteLength / 2);
+      } else {
+        console.warn("[Sokuji] [PalabraAIClient] Invalid audio data type:", typeof data, data);
+        return;
+      }
+      
+      // Check if we have valid audio data
+      if (!int16Array || int16Array.length === 0) {
+        console.warn("[Sokuji] [PalabraAIClient] Empty audio data received");
+        return;
+      }
+      
+      console.info("[Sokuji] [PalabraAIClient] Appending input audio", int16Array.length, "samples");
+      
+      // Convert Int16Array to AudioBuffer
+      const audioBuffer = this.audioContext.createBuffer(1, int16Array.length, 24000);
+      const channelData = audioBuffer.getChannelData(0);
+      
+      // Convert Int16 to Float32 and normalize
+      for (let i = 0; i < int16Array.length; i++) {
+        channelData[i] = int16Array[i] / 32768.0;
+      }
+      
+      // Create AudioBufferSourceNode and play the audio
+      const source = this.audioContext.createBufferSource();
+      source.buffer = audioBuffer;
+      source.connect(this.audioDestination);
+      source.start();
+      
+    } catch (error) {
+      console.error("[Sokuji] [PalabraAIClient] Error processing audio data:", error);
+    }
   }
 
   createResponse(): void {
@@ -302,7 +354,7 @@ export class PalabraAIClient implements IClient {
   }
 
   getConversationItems(): ConversationItem[] {
-    return this.conversationItems;
+    return [...this.conversationItems];  // Return a new array copy to ensure React detects changes
   }
 
   setEventHandlers(handlers: ClientEventHandlers): void {
@@ -363,13 +415,23 @@ export class PalabraAIClient implements IClient {
     }
 
     try {
-      // Get user media
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      // Create audio context and destination for custom audio processing
+      this.audioContext = new AudioContext({ sampleRate: 24000 });
+      this.audioDestination = this.audioContext.createMediaStreamDestination();
       
-      // Publish audio track
-      const audioTrack = stream.getAudioTracks()[0];
-      await this.room.localParticipant.publishTrack(audioTrack,{ 
-        dtx: false,// Required to be disabled for proper work of Palabra translation pipeline
+      // Get the MediaStreamTrack from the destination
+      const audioTrack = this.audioDestination.stream.getAudioTracks()[0];
+      
+      if (!audioTrack) {
+        throw new Error('Failed to create audio track from MediaStreamAudioDestinationNode');
+      }
+      
+      // Create a custom audio track from the MediaStreamTrack
+      this.customAudioTrack = new LocalAudioTrack(audioTrack, undefined, true, this.audioContext);
+      
+      // Publish the custom audio track
+      await this.room.localParticipant.publishTrack(this.customAudioTrack, { 
+        dtx: false, // Required to be disabled for proper work of Palabra translation pipeline
         red: false, 
         audioPreset: {
           maxBitrate: 32000, 
@@ -377,11 +439,36 @@ export class PalabraAIClient implements IClient {
         }
       });
       
-      console.info("[Sokuji] [PalabraAIClient] Audio setup complete");
+      console.info("[Sokuji] [PalabraAIClient] Custom audio setup complete");
       
     } catch (error) {
-      console.error("[Sokuji] [PalabraAIClient] Audio setup error:", error);
-      throw error;
+      console.error("[Sokuji] [PalabraAIClient] Custom audio setup error:", error);
+      
+      // Fallback to microphone audio if custom audio setup fails
+      try {
+        console.warn("[Sokuji] [PalabraAIClient] Falling back to microphone audio");
+        this.cleanupAudio();
+        
+        // Get user media as fallback
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const micAudioTrack = stream.getAudioTracks()[0];
+        
+        // Publish microphone audio track
+        await this.room.localParticipant.publishTrack(micAudioTrack, { 
+          dtx: false, // Required to be disabled for proper work of Palabra translation pipeline
+          red: false, 
+          audioPreset: {
+            maxBitrate: 32000, 
+            priority: "high"
+          }
+        });
+        
+        console.info("[Sokuji] [PalabraAIClient] Fallback microphone audio setup complete");
+        
+      } catch (fallbackError) {
+        console.error("[Sokuji] [PalabraAIClient] Fallback audio setup error:", fallbackError);
+        throw fallbackError;
+      }
     }
   }
 
@@ -902,14 +989,14 @@ export class PalabraAIClient implements IClient {
   }
 
   private cleanupAudio(): void {
-    if (this.processor) {
-      this.processor.disconnect();
-      this.processor = null;
+    if (this.audioDestination) {
+      this.audioDestination.disconnect();
+      this.audioDestination = null;
     }
     
-    if (this.mediaStreamSource) {
-      this.mediaStreamSource.disconnect();
-      this.mediaStreamSource = null;
+    if (this.customAudioTrack) {
+      this.customAudioTrack.stop();
+      this.customAudioTrack = null;
     }
     
     if (this.audioContext) {
