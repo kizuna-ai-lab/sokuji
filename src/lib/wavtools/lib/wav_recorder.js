@@ -398,10 +398,6 @@ export class WavRecorder {
       throw new Error(`Could not add audioWorklet module: ${this.scriptSrc}`);
     }
     const processor = new AudioWorkletNode(context, 'audio_processor');
-    // processor.port.postMessage({
-    //   command: 'init',
-    //   sampleRate: this.sampleRate,
-    // });
 
     // Set up event handling for processor
     processor.port.onmessage = (e) => {
