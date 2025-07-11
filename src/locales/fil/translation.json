@@ -32,7 +32,26 @@
     "loadingModels": "Naglo-load ng mga available na model...",
     "modelsFound": "{{count}} na mga model ang available",
     "experimentalFeatureTooltip": "Ito ay isang experimental na feature at maaaring hindi stable.",
-    "help": "Tulong"
+    "help": "Tulong",
+    "auto": "Awtomatiko",
+    "low": "Mababa",
+    "medium": "Katamtaman",
+    "high": "Mataas",
+    "clientId": "Client ID",
+    "clientSecret": "Client Secret",
+    "languageSettings": "Mga Setting ng Wika",
+    "voiceSettings": "Mga Setting ng Boses",
+    "speechProcessing": "Pagproseso ng Pagsasalita",
+    "silenceThreshold": "Prag ng Katahimikan",
+    "sentenceSplitter": "Panghati ng Pangungusap",
+    "enabled": "Pinagana",
+    "translatePartialTranscriptions": "Isalin ang mga Bahagyang Transkripsyon",
+    "queueConfiguration": "Configuration ng Audio Buffer",
+    "desiredQueueLevel": "Target na Audio Buffer",
+    "maxQueueLevel": "Pinakamataas na Audio Buffer",
+    "autoTempo": "Nakikibagay na Bilis ng Pagsasalita",
+    "apiKeyValidated": "Na-validate ang API key",
+    "realtimeTranslationAvailable": "Available ang serbisyo ng real-time na pagsasalin"
   },
   "mainPanel": {
     "conversationPlaceholder": "Ang usapan ay lalabas dito",
@@ -45,7 +64,7 @@
     "modelsLoading": "Naglo-load ng mga available na modelo, mangyaring maghintay..."
   },
   "audioPanel": {
-    "title": "Mga setting ng audio",
+    "title": "Mga Setting ng Audio",
     "realVoicePassthrough": "Original Audio Passthrough",
     "enableRealVoicePassthrough": "I-enable ang Original Audio Passthrough",
     "realVoicePassthroughDescription": "Ipasa ang inyong orihinal na audio (boses ng nagsasalita) direkta sa virtual microphone para marinig ng mga nakikinig ang parehong orihinal at translated na audio",

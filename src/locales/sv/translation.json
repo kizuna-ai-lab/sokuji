@@ -36,7 +36,22 @@
     "auto": "Auto",
     "low": "Låg",
     "medium": "Medel",
-    "high": "Hög"
+    "high": "Hög",
+    "clientId": "Klient-ID",
+    "clientSecret": "Klienthemlighet",
+    "languageSettings": "Språkinställningar",
+    "voiceSettings": "Röstinställningar",
+    "speechProcessing": "Talbehandling",
+    "silenceThreshold": "Tystnadströskel",
+    "sentenceSplitter": "Meningdelare",
+    "enabled": "Aktiverad",
+    "translatePartialTranscriptions": "Översätt Partiella Transkriptioner",
+    "queueConfiguration": "Ljudbuffertkonfiguration",
+    "desiredQueueLevel": "Målljudbuffert",
+    "maxQueueLevel": "Maximal ljudbuffert",
+    "autoTempo": "Adaptiv Talhastighet",
+    "apiKeyValidated": "API-nyckel validerad",
+    "realtimeTranslationAvailable": "Realtidsöversättningstjänst är tillgänglig"
   },
   "mainPanel": {
     "conversationPlaceholder": "Konversationen kommer att visas här",
