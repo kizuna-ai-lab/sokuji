@@ -374,6 +374,15 @@ export class WavRecorder {
         // Additional constraints for better audio quality
         channelCount: 1,
         latency: 0.02, // 20ms latency
+        // Advanced audio processing settings
+        suppressLocalAudioPlayback: true, // Prevent local audio playback feedback
+        googEchoCancellation: true, // Google-specific echo cancellation
+        googAutoGainControl: true, // Google-specific auto gain control
+        googNoiseSuppression: true, // Google-specific noise suppression
+        googHighpassFilter: true, // High-pass filter to remove low-frequency noise
+        googTypingNoiseDetection: true, // Typing noise detection and suppression
+        googAudioMirroring: false, // Disable audio mirroring to prevent feedback
+      
       },
     };
 
