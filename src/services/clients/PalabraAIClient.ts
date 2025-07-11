@@ -1,7 +1,10 @@
 import { IClient, ConversationItem, SessionConfig, ClientEventHandlers, ApiKeyValidationResult, PalabraAISessionConfig, isPalabraAISessionConfig } from '../interfaces/IClient';
 import { Provider, ProviderType } from '../../types/Provider';
 import i18n from '../../locales';
-import { Room, RoomEvent, TrackPublication, RemoteParticipant, RemoteTrack, RemoteAudioTrack, LocalAudioTrack } from 'livekit-client';
+import { Room, RoomEvent, TrackPublication, RemoteParticipant, RemoteTrack, RemoteAudioTrack, LocalAudioTrack, setLogLevel } from 'livekit-client';
+
+// Suppress verbose logs from LiveKit client, including silence detection.
+setLogLevel('error');
 
 /**
  * PalabraAI API session configuration interface (returned by the API)
