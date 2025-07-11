@@ -6,6 +6,33 @@ import { Room, RoomEvent, TrackPublication, RemoteParticipant, RemoteTrack, Remo
 // Suppress verbose logs from LiveKit client, including silence detection.
 setLogLevel('error');
 
+// --- Helper functions to get the correct worklet path ---
+
+/**
+ * Determines if the code is running in a Chrome extension environment.
+ * @returns {boolean} True if running in a Chrome extension.
+ */
+function isExtensionEnvironment() {
+  return typeof window !== 'undefined' && 
+         typeof window.chrome !== 'undefined' && 
+         typeof window.chrome.runtime !== 'undefined' && 
+         typeof window.chrome.runtime.getURL === 'function';
+}
+
+/**
+ * Creates a source URL for the Palabra PCM Processor AudioWorklet.
+ * This function handles the different pathing requirements for
+ * Chrome Extensions and Electron/web environments.
+ * @returns {string} URL to the AudioWorklet code.
+ */
+function getPalabraWorkletProcessorSrc(): string {
+  if (isExtensionEnvironment()) {
+    return window.chrome.runtime.getURL('worklets/palabra-audio-worklet-processor.js');
+  } else {
+    return new URL('../worklets/palabra-audio-worklet-processor.js', import.meta.url).href;
+  }
+}
+
 /**
  * PalabraAI API session configuration interface (returned by the API)
  */
@@ -113,7 +140,6 @@ export class PalabraAIClient implements IClient {
   private remoteAudioSource: MediaStreamAudioSourceNode | null = null;
   private remoteAudioWorkletNode: AudioWorkletNode | null = null;
   private remoteAudioStream: MediaStream | null = null;
-  private workletURL: string | null = null;
 
   constructor(clientId: string, clientSecret: string) {
     this.clientId = clientId;
@@ -564,36 +590,18 @@ export class PalabraAIClient implements IClient {
 
           // Step 2: Create AudioContext
           this.remoteAudioContext = new AudioContext({ sampleRate: 24000 });
+          
+          // Step 3: Get the dynamically resolved worklet path
+          const workletUrl = getPalabraWorkletProcessorSrc();
 
-          // Step 3: Create MediaStreamAudioSourceNode
-          this.remoteAudioSource = this.remoteAudioContext.createMediaStreamSource(mediaStream);
-
-          // Step 4: Add the audio worklet module from an inline script
-          const workletCode = `
-            class PalabraPCMProcessor extends AudioWorkletProcessor {
-              process(inputs) {
-                const inputChannel = inputs[0][0];
-                if (!inputChannel) {
-                  return true;
-                }
-                const pcmData = new Int16Array(inputChannel.length);
-                for (let i = 0; i < inputChannel.length; i++) {
-                  pcmData[i] = Math.max(-32768, Math.min(32767, inputChannel[i] * 32767));
-                }
-                this.port.postMessage(pcmData, [pcmData.buffer]);
-                return true;
-              }
-            }
-            registerProcessor('palabra-pcm-processor', PalabraPCMProcessor);
-          `;
-          const blob = new Blob([workletCode], { type: 'application/javascript' });
-          this.workletURL = URL.createObjectURL(blob);
-          await this.remoteAudioContext.audioWorklet.addModule(this.workletURL);
+          // Step 4: Add the audio worklet module
+          await this.remoteAudioContext.audioWorklet.addModule(workletUrl);
 
           // Step 5: Create an AudioWorkletNode
           this.remoteAudioWorkletNode = new AudioWorkletNode(this.remoteAudioContext, 'palabra-pcm-processor');
 
-          // Step 6: Connect the processing nodes
+          // Step 6: Create MediaStreamAudioSourceNode and connect the processing nodes
+          this.remoteAudioSource = this.remoteAudioContext.createMediaStreamSource(mediaStream);
           this.remoteAudioSource.connect(this.remoteAudioWorkletNode);
           this.remoteAudioWorkletNode.connect(this.remoteAudioContext.destination);
 
@@ -1123,9 +1131,5 @@ export class PalabraAIClient implements IClient {
       this.remoteAudioContext = null;
     }
     this.remoteAudioStream = null;
-    if (this.workletURL) {
-      URL.revokeObjectURL(this.workletURL);
-      this.workletURL = null;
-    }
   }
 } 

@@ -156,7 +156,7 @@
     
     // Check if we have all chunks for this batch
     if (buffer.chunks.size === buffer.totalChunks) {
-      console.info(`[Sokuji] [VirtualMic] Complete ${immediate ? 'immediate' : 'regular'} batch received for track ${trackId} (${buffer.totalChunks} chunks)`);
+      console.debug(`[Sokuji] [VirtualMic] Complete ${immediate ? 'immediate' : 'regular'} batch received for track ${trackId} (${buffer.totalChunks} chunks)`);
       
       // Assemble complete batch
       const completeBatch = assembleCompleteBatch(trackId, immediate);
