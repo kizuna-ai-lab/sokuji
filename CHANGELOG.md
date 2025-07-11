@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.0] - 2025-07-11
+
+### Added
+- **Palabra.ai Support**: Integrated Palabra.ai as a new translation service provider.
+- **Audio Feedback Warning**: Added audio feedback warnings and safety checks for passthrough functionality.
+- **Supported Websites Documentation**: Added a "Supported Websites" section to the documentation.
+
+### Changed
+- **Audio Processing**: Refactored audio processing in `PalabraAIClient` to use `AudioWorkletNode` for better performance and flexibility.
+- **Enhanced WavRecorder**: The `WavRecorder` has been enhanced with advanced audio processing options.
+- **Custom Audio Tracks**: Added support for custom audio tracks in `PalabraAIClient`.
+- **Virtual Microphone**: Improved the virtual microphone with dynamic worklet path resolution and updated logging levels.
+- **Translations**: Updated translations for multiple languages to include new audio settings and API key validation messages.
+- **Content Security Policy**: Updated the Content Security Policy to accommodate new services.
+
+### Fixed
+- **README Images**: Improved image styling for browser extension badges in `README.md`.
+
 ## [0.8.0] - 2025-01-22
 
 ### Added
