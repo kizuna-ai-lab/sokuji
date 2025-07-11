@@ -996,16 +996,19 @@ export class PalabraAIClient implements IClient {
       } else if (data && data.data && Array.isArray(data.data)) {
         // Response has a data property with array
         sessions = data.data;
-      } else if (data && data.sessions && Array.isArray(data.sessions)) {
-        // Response has a sessions property with array
+      } else if (data && data.sessions) {
+        // Response has a sessions property with array or null
         sessions = data.sessions;
+      } else if (data && data.data && 'sessions' in data.data) {
+        // This handles {"data": {"sessions": [...]}} and {"data": {"sessions": null}}
+        sessions = data.data.sessions;
       } else {
         console.warn("[Sokuji] [PalabraAIClient] Unexpected response structure:", data);
         return [];
       }
       
-      console.info("[Sokuji] [PalabraAIClient] Retrieved existing sessions:", sessions.length);
-      return sessions;
+      console.info("[Sokuji] [PalabraAIClient] Retrieved existing sessions:", (sessions || []).length);
+      return sessions || [];
       
     } catch (error) {
       console.error("[Sokuji] [PalabraAIClient] Error getting sessions:", error);
