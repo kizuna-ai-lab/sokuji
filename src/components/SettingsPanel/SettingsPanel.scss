@@ -178,6 +178,29 @@
         color: #ccc;
       }
       
+      // API key status directly under settings section (new layout)
+      .api-key-status {
+        margin-top: 8px;
+        padding: 6px 10px;
+        border-radius: 4px;
+        font-size: 12px;
+        
+        &.success {
+          background-color: rgba(16, 163, 127, 0.1);
+          color: #10a37f;
+        }
+        
+        &.error {
+          background-color: rgba(255, 76, 76, 0.1);
+          color: #ff4c4c;
+        }
+        
+        &.info {
+          background-color: rgba(66, 133, 244, 0.1);
+          color: #4285f4;
+        }
+      }
+      
       .system-instructions {
         width: 100%;
         min-height: 120px;
@@ -476,7 +499,7 @@
             color: #4285f4;
           }
         }
-
+        
         .model-selection-container {
           display: flex;
           gap: 10px;

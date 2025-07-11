@@ -80,7 +80,22 @@
     "auto": "Авто",
     "low": "Низкий",
     "medium": "Средний",
-    "high": "Высокий"
+    "high": "Высокий",
+    "clientId": "Идентификатор клиента",
+    "clientSecret": "Секрет клиента",
+    "languageSettings": "Настройки языка",
+    "voiceSettings": "Настройки голоса",
+    "speechProcessing": "Обработка речи",
+    "silenceThreshold": "Порог тишины",
+    "sentenceSplitter": "Разделитель предложений",
+    "enabled": "Включено",
+    "translatePartialTranscriptions": "Переводить частичные расшифровки",
+    "queueConfiguration": "Конфигурация аудио-буфера",
+    "desiredQueueLevel": "Целевой аудио-буфер",
+    "maxQueueLevel": "Максимальный аудио-буфер",
+    "autoTempo": "Адаптивная скорость речи",
+    "apiKeyValidated": "Ключ API проверен",
+    "realtimeTranslationAvailable": "Доступна услуга перевода в реальном времени"
   },
   "audioPanel": {
     "title": "Настройки аудио",

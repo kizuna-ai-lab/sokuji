@@ -47,7 +47,7 @@ export const AudioProvider = ({ children }: { children: ReactNode }) => {
   const [selectedInputDevice, setSelectedInputDevice] = useState<AudioDevice | null>(null);
   const [selectedMonitorDevice, setSelectedMonitorDevice] = useState<AudioDevice | null>(null);
   const [isInputDeviceOn, setIsInputDeviceOn] = useState<boolean>(true);
-  const [isMonitorDeviceOn, setIsMonitorDeviceOn] = useState<boolean>(true);
+  const [isMonitorDeviceOn, setIsMonitorDeviceOn] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   // Real person voice passthrough settings
   const [isRealVoicePassthroughEnabled, setIsRealVoicePassthroughEnabled] = useState<boolean>(false);

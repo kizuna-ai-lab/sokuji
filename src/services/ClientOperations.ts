@@ -1,5 +1,6 @@
 import { OpenAIClient } from './clients/OpenAIClient';
 import { GeminiClient } from './clients/GeminiClient';
+import { PalabraAIClient } from './clients/PalabraAIClient';
 import { ApiKeyValidationResult } from './interfaces/ISettingsService';
 import { FilteredModel } from './interfaces/IClient';
 import { Provider, ProviderType, SUPPORTED_PROVIDERS } from '../types/Provider';
@@ -14,7 +15,8 @@ export class ClientOperations {
    */
   static async validateApiKeyAndFetchModels(
     apiKey: string, 
-    provider: ProviderType
+    provider: ProviderType,
+    clientSecret?: string
   ): Promise<{
     validation: ApiKeyValidationResult;
     models: FilteredModel[];
@@ -30,6 +32,19 @@ export class ClientOperations {
         );
       case Provider.GEMINI:
         return await GeminiClient.validateApiKeyAndFetchModels(apiKey);
+      case Provider.PALABRA_AI:
+        if (!clientSecret || !apiKey) {
+          throw new Error(`Client id and Client secret are required for ${provider} provider`);
+        }
+        const validation = await PalabraAIClient.validateApiKey(apiKey, clientSecret);
+        return {
+          validation,
+          models: [{ 
+            id: 'realtime-translation', 
+            type: 'realtime',
+            created: Date.now() / 1000 // Current timestamp
+          }] // PalabraAI default model
+        };
       default:
         throw new Error(`Unsupported provider: ${provider}`);
     }
@@ -46,6 +61,9 @@ export class ClientOperations {
         return OpenAIClient.getLatestRealtimeModel(filteredModels);
       case Provider.GEMINI:
         return GeminiClient.getLatestRealtimeModel(filteredModels);
+      case Provider.PALABRA_AI:
+        // PalabraAI doesn't have model selection, return a default identifier
+        return 'realtime-translation';
       default:
         throw new Error(`Unsupported provider: ${provider}`);
     }

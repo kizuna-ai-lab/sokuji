@@ -101,13 +101,14 @@ export class ElectronSettingsService implements ISettingsService {
    */
   async validateApiKeyAndFetchModels(
     apiKey: string, 
-    provider: ProviderType
+    provider: ProviderType,
+    clientSecret?: string
   ): Promise<{
     validation: ApiKeyValidationResult;
     models: FilteredModel[];
   }> {
     try {
-      return await ClientOperations.validateApiKeyAndFetchModels(apiKey, provider);
+      return await ClientOperations.validateApiKeyAndFetchModels(apiKey, provider, clientSecret);
     } catch (error: any) {
       console.error(`[Sokuji] [ElectronSettings] Error validating API key and fetching models for ${provider}:`, error);
       return {

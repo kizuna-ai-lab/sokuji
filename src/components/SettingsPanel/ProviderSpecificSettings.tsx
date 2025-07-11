@@ -2,7 +2,7 @@ import React, { Fragment } from 'react';
 import { ProviderConfig } from '../../services/providers/ProviderConfig';
 import { useSettings } from '../../contexts/SettingsContext';
 import { useTranslation } from 'react-i18next';
-import { ChevronDown, ChevronRight, RotateCw } from 'lucide-react';
+import { ChevronDown, ChevronRight, RotateCw, Info } from 'lucide-react';
 import { FilteredModel } from '../../services/interfaces/IClient';
 import { Provider, isOpenAICompatible } from '../../types/Provider';
 
@@ -33,9 +33,11 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
     openAISettings,
     cometAPISettings,
     geminiSettings,
+    palabraAISettings,
     updateOpenAISettings,
     updateCometAPISettings,
     updateGeminiSettings,
+    updatePalabraAISettings,
     getCurrentProviderSettings
   } = useSettings();
   const { t } = useTranslation();
@@ -51,6 +53,8 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
       updateCometAPISettings({ [key]: value });
     } else if (commonSettings.provider === Provider.GEMINI) {
       updateGeminiSettings({ [key]: value });
+    } else if (commonSettings.provider === Provider.PALABRA_AI) {
+      updatePalabraAISettings({ [key]: value });
     } else {
       console.warn('[Sokuji][ProviderSpecificSettings] Unsupported provider:', commonSettings.provider);
     }
@@ -141,7 +145,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
   };
 
   const renderVoiceSettings = () => {
-    if (!config.capabilities.hasVoiceSettings) {
+    if (!config.capabilities.hasVoiceSettings || commonSettings.provider === Provider.PALABRA_AI) {
       return null;
     }
 
@@ -151,7 +155,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
         <div className="setting-item">
           <select 
             className="select-dropdown"
-            value={currentProviderSettings.voice}
+            value={(currentProviderSettings as any).voice}
             onChange={(e) => updateCurrentProviderSetting('voice', e.target.value)}
             disabled={isSessionActive}
           >
@@ -276,6 +280,11 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
   };
 
   const renderModelSettings = () => {
+    // PalabraAI doesn't have model selection
+    if (commonSettings.provider === Provider.PALABRA_AI) {
+      return null;
+    }
+
     // Use available models from API if available, fallback to config models
     const modelsToUse = availableModels.length > 0 ? 
       availableModels.filter(model => model.type === 'realtime') : 
@@ -296,7 +305,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
           <div className="model-selection-container">
             <select
               className="select-dropdown"
-              value={currentProviderSettings.model}
+              value={(currentProviderSettings as any).model}
               onChange={(e) => updateCurrentProviderSetting('model', e.target.value)}
               disabled={isSessionActive}
             >
@@ -395,7 +404,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
   };
 
   const renderModelConfigurationSettings = () => {
-    if (!config.capabilities.hasModelConfiguration) {
+    if (!config.capabilities.hasModelConfiguration || commonSettings.provider === Provider.PALABRA_AI) {
       return null;
     }
 
@@ -407,14 +416,14 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
         <div className="setting-item">
           <div className="setting-label">
             <span>{t('settings.temperature')}</span>
-            <span className="setting-value">{currentProviderSettings.temperature.toFixed(2)}</span>
+            <span className="setting-value">{(currentProviderSettings as any).temperature.toFixed(2)}</span>
           </div>
           <input 
             type="range" 
             min={temperatureRange.min} 
             max={temperatureRange.max} 
             step={temperatureRange.step} 
-            value={currentProviderSettings.temperature}
+            value={(currentProviderSettings as any).temperature}
             onChange={(e) => updateCurrentProviderSetting('temperature', parseFloat(e.target.value))}
             className="slider"
             disabled={isSessionActive}
@@ -423,20 +432,272 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
         <div className="setting-item">
           <div className="setting-label">
             <span>{t('settings.maxTokens')}</span>
-            <span className="setting-value">{currentProviderSettings.maxTokens}</span>
+            <span className="setting-value">{(currentProviderSettings as any).maxTokens}</span>
           </div>
           <input 
             type="range" 
             min={maxTokensRange.min} 
             max={maxTokensRange.max} 
             step={maxTokensRange.step} 
-            value={typeof currentProviderSettings.maxTokens === 'number' ? currentProviderSettings.maxTokens : maxTokensRange.max}
+            value={typeof (currentProviderSettings as any).maxTokens === 'number' ? (currentProviderSettings as any).maxTokens : maxTokensRange.max}
             onChange={(e) => updateCurrentProviderSetting('maxTokens', parseInt(e.target.value))}
             className="slider"
             disabled={isSessionActive}
           />
         </div>
       </div>
+    );
+  };
+
+  const renderPalabraAISettings = () => {
+    if (commonSettings.provider !== Provider.PALABRA_AI) {
+      return null;
+    }
+
+    return (
+      <>
+        <div className="settings-section">
+          <h2>{t('settings.languageSettings', 'Language Settings')}</h2>
+          <div className="setting-item">
+            <div className="setting-label">
+              <span>{t('settings.sourceLanguage')}</span>
+            </div>
+            <select
+              className="select-dropdown"
+              value={palabraAISettings.sourceLanguage}
+              onChange={(e) => {
+                const newSourceLang = e.target.value;
+                // For PalabraAI, source and target languages use different codes,
+                // so conflicts are less likely, but we still handle them
+                updatePalabraAISettings({ sourceLanguage: newSourceLang });
+              }}
+              disabled={isSessionActive}
+            >
+              {config.languages.map((lang) => (
+                <option key={lang.value} value={lang.value}>{lang.name}</option>
+              ))}
+            </select>
+          </div>
+          <div className="setting-item">
+            <div className="setting-label">
+              <span>{t('settings.targetLanguage')}</span>
+            </div>
+            <select
+              className="select-dropdown"
+              value={palabraAISettings.targetLanguage}
+              onChange={(e) => updatePalabraAISettings({ targetLanguage: e.target.value })}
+              disabled={isSessionActive}
+            >
+              {/* PalabraAI target language options */}
+              <option value="ar-sa">العربية (السعودية)</option>
+              <option value="ar-ae">العربية (الإمارات)</option>
+              <option value="az">Azərbaycan</option>
+              <option value="bg">Български</option>
+              <option value="zh">中文 (简体)</option>
+              <option value="zh-hant">中文 (繁體)</option>
+              <option value="cs">Čeština</option>
+              <option value="da">Dansk</option>
+              <option value="de">Deutsch</option>
+              <option value="el">Ελληνικά</option>
+              <option value="en-us">English (US)</option>
+              <option value="en-au">English (Australia)</option>
+              <option value="en-ca">English (Canada)</option>
+              <option value="es">Español</option>
+              <option value="es-mx">Español (México)</option>
+              <option value="fil">Filipino</option>
+              <option value="fi">Suomi</option>
+              <option value="fr">Français</option>
+              <option value="fr-ca">Français (Canada)</option>
+              <option value="he">עברית</option>
+              <option value="hi">हिन्दी</option>
+              <option value="hr">Hrvatski</option>
+              <option value="hu">Magyar</option>
+              <option value="id">Bahasa Indonesia</option>
+              <option value="it">Italiano</option>
+              <option value="ja">日本語</option>
+              <option value="ko">한국어</option>
+              <option value="ms">Bahasa Melayu</option>
+              <option value="nl">Nederlands</option>
+              <option value="no">Norsk</option>
+              <option value="pl">Polski</option>
+              <option value="pt">Português</option>
+              <option value="pt-br">Português (Brasil)</option>
+              <option value="ro">Română</option>
+              <option value="ru">Русский</option>
+              <option value="sk">Slovenčina</option>
+              <option value="sv">Svenska</option>
+              <option value="ta">தமிழ்</option>
+              <option value="tr">Türkçe</option>
+              <option value="uk">Українська</option>
+              <option value="vn">Tiếng Việt</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="settings-section">
+          <h2>{t('settings.voiceSettings', 'Voice Settings')}</h2>
+          <div className="setting-item">
+            <div className="setting-label">
+              <span>{t('settings.voice')}</span>
+            </div>
+            <select
+              className="select-dropdown"
+              value={palabraAISettings.voiceId}
+              onChange={(e) => updatePalabraAISettings({ voiceId: e.target.value })}
+              disabled={isSessionActive}
+            >
+              {config.voices.map((voice) => (
+                <option key={voice.value} value={voice.value}>{voice.name}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className="settings-section">
+          <h2>{t('settings.speechProcessing', 'Speech Processing')}</h2>
+          <div className="setting-item">
+            <div className="setting-label">
+              <span>{t('settings.silenceThreshold', 'Silence Threshold')}</span>
+              <span className="setting-value">{palabraAISettings.segmentConfirmationSilenceThreshold.toFixed(2)}s</span>
+            </div>
+            <input 
+              type="range" 
+              min="0.1" 
+              max="2.0" 
+              step="0.01" 
+              value={palabraAISettings.segmentConfirmationSilenceThreshold}
+              onChange={(e) => updatePalabraAISettings({ segmentConfirmationSilenceThreshold: parseFloat(e.target.value) })}
+              className="slider"
+              disabled={isSessionActive}
+            />
+          </div>
+          <div className="setting-item">
+            <div className="setting-label">
+              <span>{t('settings.sentenceSplitter', 'Sentence Splitter')}</span>
+            </div>
+            <div className="turn-detection-options">
+              <button 
+                className={`option-button ${palabraAISettings.sentenceSplitterEnabled ? 'active' : ''}`}
+                onClick={() => updatePalabraAISettings({ sentenceSplitterEnabled: true })}
+                disabled={isSessionActive}
+              >
+                {t('settings.enabled', 'Enabled')}
+              </button>
+              <button 
+                className={`option-button ${!palabraAISettings.sentenceSplitterEnabled ? 'active' : ''}`}
+                onClick={() => updatePalabraAISettings({ sentenceSplitterEnabled: false })}
+                disabled={isSessionActive}
+              >
+                {t('settings.disabled', 'Disabled')}
+              </button>
+            </div>
+          </div>
+          <div className="setting-item">
+            <div className="setting-label">
+              <span>{t('settings.translatePartialTranscriptions', 'Translate Partial Transcriptions')}</span>
+            </div>
+            <div className="turn-detection-options">
+              <button 
+                className={`option-button ${palabraAISettings.translatePartialTranscriptions ? 'active' : ''}`}
+                onClick={() => updatePalabraAISettings({ translatePartialTranscriptions: true })}
+                disabled={isSessionActive}
+              >
+                {t('settings.enabled', 'Enabled')}
+              </button>
+              <button 
+                className={`option-button ${!palabraAISettings.translatePartialTranscriptions ? 'active' : ''}`}
+                onClick={() => updatePalabraAISettings({ translatePartialTranscriptions: false })}
+                disabled={isSessionActive}
+              >
+                {t('settings.disabled', 'Disabled')}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="settings-section">
+          <h2>{t('settings.queueConfiguration', 'Audio Buffer Configuration')}</h2>
+          <div className="setting-item">
+            <div className="setting-label">
+              <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                {t('settings.desiredQueueLevel', 'Target Audio Buffer')}
+                <span 
+                  title="Desired average TTS buffer size. The system will try to maintain this amount of translated audio ready for playback. Recommended: 6-8 seconds for optimal performance."
+                  style={{ display: 'flex', alignItems: 'center', cursor: 'help' }}
+                >
+                  <Info size={14} style={{ color: '#aaa' }} />
+                </span>
+              </span>
+              <span className="setting-value">{(palabraAISettings.desiredQueueLevelMs / 1000).toFixed(1)}s</span>
+            </div>
+            <input 
+              type="range" 
+              min="3000" 
+              max="15000" 
+              step="1000" 
+              value={palabraAISettings.desiredQueueLevelMs}
+              onChange={(e) => updatePalabraAISettings({ desiredQueueLevelMs: parseInt(e.target.value) })}
+              className="slider"
+              disabled={isSessionActive}
+            />
+          </div>
+          <div className="setting-item">
+            <div className="setting-label">
+              <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                {t('settings.maxQueueLevel', 'Max Audio Buffer')}
+                <span 
+                  title="Maximum TTS queue size. If the buffer grows beyond this limit, older audio will be dropped to prevent excessive delay. Should be 2-3x larger than the target buffer size."
+                  style={{ display: 'flex', alignItems: 'center', cursor: 'help' }}
+                >
+                  <Info size={14} style={{ color: '#aaa' }} />
+                </span>
+              </span>
+              <span className="setting-value">{(palabraAISettings.maxQueueLevelMs / 1000).toFixed(1)}s</span>
+            </div>
+            <input 
+              type="range" 
+              min="12000" 
+              max="60000" 
+              step="3000" 
+              value={palabraAISettings.maxQueueLevelMs}
+              onChange={(e) => updatePalabraAISettings({ maxQueueLevelMs: parseInt(e.target.value) })}
+              className="slider"
+              disabled={isSessionActive}
+            />
+          </div>
+          <div className="setting-item">
+            <div className="setting-label">
+              <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                {t('settings.autoTempo', 'Adaptive Speech Speed')}
+                <span 
+                  title="Automatically adjust speech tempo based on the audio buffer state. When enabled, the system will speed up or slow down speech to maintain optimal buffer levels."
+                  style={{ display: 'flex', alignItems: 'center', cursor: 'help' }}
+                >
+                  <Info size={14} style={{ color: '#aaa' }} />
+                </span>
+              </span>
+            </div>
+            <div className="turn-detection-options">
+              <button 
+                className={`option-button ${palabraAISettings.autoTempo ? 'active' : ''}`}
+                onClick={() => updatePalabraAISettings({ autoTempo: true })}
+                disabled={isSessionActive}
+              >
+                {t('settings.enabled', 'Enabled')}
+              </button>
+              <button 
+                className={`option-button ${!palabraAISettings.autoTempo ? 'active' : ''}`}
+                onClick={() => updatePalabraAISettings({ autoTempo: false })}
+                disabled={isSessionActive}
+              >
+                {t('settings.disabled', 'Disabled')}
+              </button>
+            </div>
+          </div>
+        </div>
+
+
+      </>
     );
   };
 
@@ -505,6 +766,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
       {renderTranscriptSettings()}
       {renderNoiseReductionSettings()}
       {renderModelConfigurationSettings()}
+      {renderPalabraAISettings()}
     </Fragment>
   );
 };

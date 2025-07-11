@@ -1,10 +1,12 @@
-import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode, useMemo } from 'react';
 import { ServiceFactory } from '../services/ServiceFactory';
 import { ProviderConfigFactory } from '../services/providers/ProviderConfigFactory';
 import { ProviderConfig } from '../services/providers/ProviderConfig';
-import { FilteredModel } from '../services/interfaces/IClient';
+import { FilteredModel, SessionConfig, OpenAISessionConfig, GeminiSessionConfig, PalabraAISessionConfig } from '../services/interfaces/IClient';
 import { ApiKeyValidationResult } from '../services/interfaces/ISettingsService';
 import { Provider, ProviderType } from '../types/Provider';
+import { ClientFactory } from '../services/clients/ClientFactory';
+import i18n from '../locales';
 
 // Common Settings - applicable to all providers
 export interface CommonSettings {
@@ -49,6 +51,133 @@ export interface GeminiSettings {
   // Gemini may have different capabilities, so different settings
 }
 
+// PalabraAI-specific Settings
+export interface PalabraAISettings {
+  clientId: string;
+  clientSecret: string;
+  sourceLanguage: string;
+  targetLanguage: string;
+  voiceId: string;
+  subscriberCount: number;
+  publisherCanSubscribe: boolean;
+  // Translation pipeline settings
+  segmentConfirmationSilenceThreshold: number;
+  sentenceSplitterEnabled: boolean;
+  translatePartialTranscriptions: boolean;
+  // Queue configuration
+  desiredQueueLevelMs: number;
+  maxQueueLevelMs: number;
+  autoTempo: boolean;
+}
+
+/**
+ * Helper functions to convert provider settings to SessionConfig
+ */
+export function createOpenAISessionConfig(
+  settings: OpenAISettings, 
+  systemInstructions: string
+): OpenAISessionConfig {
+  return {
+    provider: 'openai',
+    model: settings.model,
+    voice: settings.voice,
+    instructions: systemInstructions,
+    temperature: settings.temperature,
+    maxTokens: settings.maxTokens,
+    turnDetection: settings.turnDetectionMode === 'Disabled' ? { type: 'none' } :
+      settings.turnDetectionMode === 'Normal' ? {
+        type: 'server_vad',
+        createResponse: true,
+        interruptResponse: false,
+        prefixPadding: settings.prefixPadding,
+        silenceDuration: settings.silenceDuration,
+        threshold: settings.threshold
+      } : {
+        type: 'semantic_vad',
+        createResponse: true,
+        interruptResponse: false,
+        eagerness: settings.semanticEagerness?.toLowerCase() as any,
+      },
+    inputAudioNoiseReduction: settings.noiseReduction && settings.noiseReduction !== 'None' ? {
+      type: settings.noiseReduction === 'Near field' ? 'near_field' : 'far_field'
+    } : undefined,
+    inputAudioTranscription: settings.transcriptModel ? {
+      model: settings.transcriptModel
+    } : undefined,
+  };
+}
+
+export function createCometAPISessionConfig(
+  settings: CometAPISettings, 
+  systemInstructions: string
+): OpenAISessionConfig {
+  return {
+    provider: 'cometapi',
+    model: settings.model,
+    voice: settings.voice,
+    instructions: systemInstructions,
+    temperature: settings.temperature,
+    maxTokens: settings.maxTokens,
+    turnDetection: settings.turnDetectionMode === 'Disabled' ? { type: 'none' } :
+      settings.turnDetectionMode === 'Normal' ? {
+        type: 'server_vad',
+        createResponse: true,
+        interruptResponse: false,
+        prefixPadding: settings.prefixPadding,
+        silenceDuration: settings.silenceDuration,
+        threshold: settings.threshold
+      } : {
+        type: 'semantic_vad',
+        createResponse: true,
+        interruptResponse: false,
+        eagerness: settings.semanticEagerness?.toLowerCase() as any,
+      },
+    inputAudioNoiseReduction: settings.noiseReduction && settings.noiseReduction !== 'None' ? {
+      type: settings.noiseReduction === 'Near field' ? 'near_field' : 'far_field'
+    } : undefined,
+    inputAudioTranscription: settings.transcriptModel ? {
+      model: settings.transcriptModel
+    } : undefined,
+  };
+}
+
+export function createGeminiSessionConfig(
+  settings: GeminiSettings, 
+  systemInstructions: string
+): GeminiSessionConfig {
+  return {
+    provider: 'gemini',
+    model: settings.model,
+    voice: settings.voice,
+    instructions: systemInstructions,
+    temperature: settings.temperature,
+    maxTokens: settings.maxTokens,
+  };
+}
+
+export function createPalabraAISessionConfig(
+  settings: PalabraAISettings, 
+  systemInstructions: string
+): PalabraAISessionConfig {
+  return {
+    provider: 'palabraai',
+    model: 'realtime-translation', // Fixed model for PalabraAI
+    voice: settings.voiceId,
+    instructions: systemInstructions,
+    temperature: 0.8, // Not used by PalabraAI but required by base interface
+    maxTokens: 'inf', // Not used by PalabraAI but required by base interface
+    sourceLanguage: settings.sourceLanguage,
+    targetLanguage: settings.targetLanguage,
+    voiceId: settings.voiceId,
+    segmentConfirmationSilenceThreshold: settings.segmentConfirmationSilenceThreshold,
+    sentenceSplitterEnabled: settings.sentenceSplitterEnabled,
+    translatePartialTranscriptions: settings.translatePartialTranscriptions,
+    desiredQueueLevelMs: settings.desiredQueueLevelMs,
+    maxQueueLevelMs: settings.maxQueueLevelMs,
+    autoTempo: settings.autoTempo,
+  };
+}
+
 interface SettingsContextType {
   // Common settings
   commonSettings: CommonSettings;
@@ -58,12 +187,17 @@ interface SettingsContextType {
   openAISettings: OpenAISettings;
   cometAPISettings: CometAPISettings;
   geminiSettings: GeminiSettings;
+  palabraAISettings: PalabraAISettings;
   updateOpenAISettings: (newSettings: Partial<OpenAISettings>) => void;
   updateCometAPISettings: (newSettings: Partial<CometAPISettings>) => void;
   updateGeminiSettings: (newSettings: Partial<GeminiSettings>) => void;
+  updatePalabraAISettings: (newSettings: Partial<PalabraAISettings>) => void;
   
   // Current provider settings (computed from provider-specific settings)
-  getCurrentProviderSettings: () => OpenAISettings | GeminiSettings | CometAPISettings;
+  getCurrentProviderSettings: () => OpenAISettings | GeminiSettings | CometAPISettings | PalabraAISettings;
+  
+  // Session config creation (type-safe)
+  createSessionConfig: (systemInstructions: string) => SessionConfig;
   
   // Other context methods
   reloadSettings: () => Promise<void>;
@@ -123,6 +257,25 @@ export const defaultGeminiSettings: GeminiSettings = {
   maxTokens: 4096,
 };
 
+// Default PalabraAI settings
+export const defaultPalabraAISettings: PalabraAISettings = {
+  clientId: '',
+  clientSecret: '',
+  sourceLanguage: 'en',
+  targetLanguage: 'es',
+  voiceId: 'default_low',
+  subscriberCount: 0,
+  publisherCanSubscribe: true,
+  // Translation pipeline settings (based on recommended settings from docs)
+  segmentConfirmationSilenceThreshold: 0.7,
+  sentenceSplitterEnabled: true,
+  translatePartialTranscriptions: false,
+  // Queue configuration (based on recommended settings from docs)
+  desiredQueueLevelMs: 8000,
+  maxQueueLevelMs: 24000,
+  autoTempo: false,
+};
+
 const SettingsContext = createContext<SettingsContextType | null>(null);
 
 export const useSettings = () => {
@@ -142,6 +295,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   const [openAISettings, setOpenAISettings] = useState<OpenAISettings>(defaultOpenAISettings);
   const [cometAPISettings, setCometAPISettings] = useState<CometAPISettings>(defaultCometAPISettings);
   const [geminiSettings, setGeminiSettings] = useState<GeminiSettings>(defaultGeminiSettings);
+  const [palabraAISettings, setPalabraAISettings] = useState<PalabraAISettings>(defaultPalabraAISettings);
   
   const [isApiKeyValid, setIsApiKeyValid] = useState(false);
   const [availableModels, setAvailableModels] = useState<FilteredModel[]>([]);
@@ -165,7 +319,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   }, [commonSettings.provider]);
 
   // Get current provider's settings
-  const getCurrentProviderSettings = useCallback((): OpenAISettings | GeminiSettings | CometAPISettings => {
+  const getCurrentProviderSettings = useCallback((): OpenAISettings | GeminiSettings | CometAPISettings | PalabraAISettings => {
     switch (commonSettings.provider) {
       case Provider.OPENAI:
         return openAISettings;
@@ -173,10 +327,12 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         return cometAPISettings;
       case Provider.GEMINI:
         return geminiSettings;
+      case Provider.PALABRA_AI:
+        return palabraAISettings;
       default:
         return openAISettings;
     }
-  }, [commonSettings.provider, openAISettings, cometAPISettings, geminiSettings]);
+  }, [commonSettings.provider, openAISettings, cometAPISettings, geminiSettings, palabraAISettings]);
 
   // Get current API key based on provider
   const getCurrentApiKey = useCallback((): string => {
@@ -187,10 +343,12 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         return cometAPISettings.apiKey;
       case Provider.GEMINI:
         return geminiSettings.apiKey;
+      case Provider.PALABRA_AI:
+        return palabraAISettings.clientId; // PalabraAI uses clientId as primary identifier
       default:
         return openAISettings.apiKey;
     }
-  }, [commonSettings.provider, openAISettings.apiKey, cometAPISettings.apiKey, geminiSettings.apiKey]);
+  }, [commonSettings.provider, openAISettings.apiKey, cometAPISettings.apiKey, geminiSettings.apiKey, palabraAISettings.clientId]);
 
   // Generate cache key for current provider and API key
   const getCacheKey = useCallback((): string => {
@@ -237,9 +395,14 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     try {
       console.info('[Settings] Validating API key and fetching models...');
       
+      // For PalabraAI, we need to pass both clientId and clientSecret
+      const clientSecret = commonSettings.provider === Provider.PALABRA_AI ? 
+        palabraAISettings.clientSecret : undefined;
+      
       const result = await settingsService.validateApiKeyAndFetchModels(
         apiKey, 
-        commonSettings.provider
+        commonSettings.provider,
+        clientSecret
       );
       
       // Cache the result
@@ -366,6 +529,22 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     });
   }, [settingsService]);
 
+  const updatePalabraAISettings = useCallback((newSettings: Partial<PalabraAISettings>) => {
+    setPalabraAISettings(prev => {
+      const updated = { ...prev, ...newSettings };
+      
+      // Save each updated setting
+      for (const key of Object.keys(newSettings)) {
+        const fullKey = `settings.palabraai.${key}`;
+        const value = (newSettings as any)[key];
+        settingsService.setSetting(fullKey, value)
+          .catch(error => console.error(`[Settings] Error saving PalabraAI setting ${key}:`, error));
+      }
+      
+      return updated;
+    });
+  }, [settingsService]);
+
   // Load settings from storage
   const loadSettings = useCallback(async () => {
     try {
@@ -404,6 +583,15 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         (loadedGemini as any)[key] = await settingsService.getSetting(fullKey, defaultValue);
       }
       setGeminiSettings(loadedGemini as GeminiSettings);
+
+      // Load PalabraAI settings
+      const loadedPalabraAI: Partial<PalabraAISettings> = {};
+      for (const key of Object.keys(defaultPalabraAISettings)) {
+        const fullKey = `settings.palabraai.${key}`;
+        const defaultValue = (defaultPalabraAISettings as any)[key];
+        (loadedPalabraAI as any)[key] = await settingsService.getSetting(fullKey, defaultValue);
+      }
+      setPalabraAISettings(loadedPalabraAI as PalabraAISettings);
 
       console.info('[Settings] Loaded settings successfully');
       
@@ -479,7 +667,23 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
       setAvailableModels(prev => prev.length > 0 ? [] : prev);
       setModelsCache(prev => prev.size > 0 ? new Map() : prev); // Prevent re-render loop
     }
-  }, [commonSettings.provider, openAISettings.apiKey, cometAPISettings.apiKey, geminiSettings.apiKey, getCurrentApiKey, validateApiKeyAndFetchModels]);
+  }, [commonSettings.provider, openAISettings.apiKey, cometAPISettings.apiKey, geminiSettings.apiKey, palabraAISettings.clientId, getCurrentApiKey, validateApiKeyAndFetchModels]);
+
+  // Create session config based on current settings
+  const createSessionConfig = useCallback((systemInstructions: string): SessionConfig => {
+    switch (commonSettings.provider) {
+      case Provider.OPENAI:
+        return createOpenAISessionConfig(openAISettings, systemInstructions);
+      case Provider.COMET_API:
+        return createCometAPISessionConfig(cometAPISettings, systemInstructions);
+      case Provider.GEMINI:
+        return createGeminiSessionConfig(geminiSettings, systemInstructions);
+      case Provider.PALABRA_AI:
+        return createPalabraAISessionConfig(palabraAISettings, systemInstructions);
+      default:
+        return createOpenAISessionConfig(openAISettings, systemInstructions);
+    }
+  }, [commonSettings.provider, openAISettings, cometAPISettings, geminiSettings, palabraAISettings]);
 
   return (
     <SettingsContext.Provider
@@ -490,10 +694,15 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         openAISettings,
         cometAPISettings,
         geminiSettings,
+        palabraAISettings,
         updateOpenAISettings,
         updateCometAPISettings,
         updateGeminiSettings,
+        updatePalabraAISettings,
         getCurrentProviderSettings,
+        
+        // Session config creation
+        createSessionConfig,
         
         // Other context methods
         reloadSettings: loadSettings,
