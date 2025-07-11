@@ -91,6 +91,11 @@ module.exports = (env, argv) => {
             to: 'worklets/[name][ext]', 
             noErrorOnMissing: true 
           },
+          {
+            from: '../src/services/worklets/palabra-audio-worklet-processor.js',
+            to: 'worklets/palabra-audio-worklet-processor.js',
+            noErrorOnMissing: true
+          },
           ...(isDevMode ? [{ 
             from: '../public/assets/test-tone.mp3', 
             to: 'assets/test-tone.mp3' 
