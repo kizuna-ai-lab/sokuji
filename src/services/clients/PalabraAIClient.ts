@@ -1,7 +1,7 @@
 import { IClient, ConversationItem, SessionConfig, ClientEventHandlers, ApiKeyValidationResult, PalabraAISessionConfig, isPalabraAISessionConfig } from '../interfaces/IClient';
 import { Provider, ProviderType } from '../../types/Provider';
 import i18n from '../../locales';
-import { Room, RoomEvent, Track, TrackPublication, RemoteParticipant, RemoteTrack, RemoteAudioTrack, DataPacket_Kind, LocalAudioTrack } from 'livekit-client';
+import { Room, RoomEvent, TrackPublication, RemoteParticipant, RemoteTrack, RemoteAudioTrack, LocalAudioTrack } from 'livekit-client';
 
 /**
  * PalabraAI API session configuration interface (returned by the API)
@@ -82,14 +82,6 @@ interface PalabraAISessionData {
 }
 
 /**
- * PalabraAI get sessions response interface
- */
-interface PalabraAIGetSessionsResponse {
-  ok: boolean;
-  data: PalabraAISessionData[];
-}
-
-/**
  * PalabraAI WebRTC client adapter
  * Implements the IClient interface for PalabraAI's WebRTC API
  */
@@ -111,6 +103,13 @@ export class PalabraAIClient implements IClient {
   private audioContext: AudioContext | null = null;
   private audioDestination: MediaStreamAudioDestinationNode | null = null;
   private customAudioTrack: LocalAudioTrack | null = null;
+  private hiddenAudioElement: HTMLAudioElement | null = null;
+
+  // Additional members for remote audio capture
+  private remoteAudioContext: AudioContext | null = null;
+  private remoteAudioSource: MediaStreamAudioSourceNode | null = null;
+  private remoteAudioProcessor: ScriptProcessorNode | null = null;
+  private remoteAudioStream: MediaStream | null = null;
 
   constructor(clientId: string, clientSecret: string) {
     this.clientId = clientId;
@@ -248,6 +247,7 @@ export class PalabraAIClient implements IClient {
       
       // Clean up audio resources before disconnecting room
       this.cleanupAudio();
+      this.cleanupRemoteAudio();
       
       if (this.room) {
         await this.room.disconnect();
@@ -321,7 +321,7 @@ export class PalabraAIClient implements IClient {
         return;
       }
       
-      console.info("[Sokuji] [PalabraAIClient] Appending input audio", int16Array.length, "samples");
+      // Optional: log input audio buffer length for troubleshooting
       
       // Convert Int16Array to AudioBuffer
       const audioBuffer = this.audioContext.createBuffer(1, int16Array.length, 24000);
@@ -414,62 +414,31 @@ export class PalabraAIClient implements IClient {
       throw new Error('Room not connected');
     }
 
-    try {
-      // Create audio context and destination for custom audio processing
-      this.audioContext = new AudioContext({ sampleRate: 24000 });
-      this.audioDestination = this.audioContext.createMediaStreamDestination();
-      
-      // Get the MediaStreamTrack from the destination
-      const audioTrack = this.audioDestination.stream.getAudioTracks()[0];
-      
-      if (!audioTrack) {
-        throw new Error('Failed to create audio track from MediaStreamAudioDestinationNode');
-      }
-      
-      // Create a custom audio track from the MediaStreamTrack
-      this.customAudioTrack = new LocalAudioTrack(audioTrack, undefined, true, this.audioContext);
-      
-      // Publish the custom audio track
-      await this.room.localParticipant.publishTrack(this.customAudioTrack, { 
-        dtx: false, // Required to be disabled for proper work of Palabra translation pipeline
-        red: false, 
-        audioPreset: {
-          maxBitrate: 32000, 
-          priority: "high"
-        }
-      });
-      
-      console.info("[Sokuji] [PalabraAIClient] Custom audio setup complete");
-      
-    } catch (error) {
-      console.error("[Sokuji] [PalabraAIClient] Custom audio setup error:", error);
-      
-      // Fallback to microphone audio if custom audio setup fails
-      try {
-        console.warn("[Sokuji] [PalabraAIClient] Falling back to microphone audio");
-        this.cleanupAudio();
-        
-        // Get user media as fallback
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        const micAudioTrack = stream.getAudioTracks()[0];
-        
-        // Publish microphone audio track
-        await this.room.localParticipant.publishTrack(micAudioTrack, { 
-          dtx: false, // Required to be disabled for proper work of Palabra translation pipeline
-          red: false, 
-          audioPreset: {
-            maxBitrate: 32000, 
-            priority: "high"
-          }
-        });
-        
-        console.info("[Sokuji] [PalabraAIClient] Fallback microphone audio setup complete");
-        
-      } catch (fallbackError) {
-        console.error("[Sokuji] [PalabraAIClient] Fallback audio setup error:", fallbackError);
-        throw fallbackError;
-      }
+    // Create audio context and destination for custom audio processing
+    this.audioContext = new AudioContext({ sampleRate: 24000 });
+    this.audioDestination = this.audioContext.createMediaStreamDestination();
+    
+    // Get the MediaStreamTrack from the destination
+    const audioTrack = this.audioDestination.stream.getAudioTracks()[0];
+    
+    if (!audioTrack) {
+      throw new Error('Failed to create audio track from MediaStreamAudioDestinationNode');
     }
+    
+    // Create a custom audio track from the MediaStreamTrack
+    this.customAudioTrack = new LocalAudioTrack(audioTrack, undefined, true, this.audioContext);
+    
+    // Publish the custom audio track
+    await this.room.localParticipant.publishTrack(this.customAudioTrack, { 
+      dtx: false, // Required to be disabled for proper work of Palabra translation pipeline
+      red: false, 
+      audioPreset: {
+        maxBitrate: 32000, 
+        priority: "high"
+      }
+    });
+    
+    console.info("[Sokuji] [PalabraAIClient] Custom audio setup complete");
   }
 
   private async startTranslation(): Promise<void> {
@@ -556,8 +525,7 @@ export class PalabraAIClient implements IClient {
 
   private handleTrackSubscribed(track: RemoteTrack, publication: TrackPublication, participant: RemoteParticipant): void {
     console.info("[Sokuji] [PalabraAIClient] Track subscribed:", track.kind);
-    console.info("[Sokuji] [PalabraAIClient] Publication:", publication);
-    console.info("[Sokuji] [PalabraAIClient] Participant:", participant);
+    // Verbose logs (publication, participant) removed for cleaner output
     
     // Notify about track subscription event
     this.eventHandlers.onRealtimeEvent?.({
@@ -576,21 +544,49 @@ export class PalabraAIClient implements IClient {
     
     if (track.kind === 'audio') {
       const audioTrack = track as RemoteAudioTrack;
-      const audioElement = audioTrack.attach();
-      document.body.appendChild(audioElement);
-      audioElement.play();
-      
-      // Notify about audio track ready
-      this.eventHandlers.onRealtimeEvent?.({
-        source: 'server',
-        event: {
-          type: 'output_audio_data',
-          data: { 
-            trackId: track.sid,
-            status: 'ready'
-          }
+      // Step 0: Attach track to a hidden, muted audio element to activate the WebRTC decoder
+      this.hiddenAudioElement = audioTrack.attach();
+      this.hiddenAudioElement.muted = true;
+      this.hiddenAudioElement.volume = 0;
+      this.hiddenAudioElement.style.display = 'none';
+      document.body.appendChild(this.hiddenAudioElement);
+
+      // Step 1: Obtain MediaStreamTrack
+      const mediaStream = new MediaStream([audioTrack.mediaStreamTrack]);
+      this.remoteAudioStream = mediaStream;
+
+      // Step 2: Create AudioContext
+      this.remoteAudioContext = new AudioContext({ sampleRate: 24000 });
+
+      // Step 3: Create MediaStreamAudioSourceNode
+      this.remoteAudioSource = this.remoteAudioContext.createMediaStreamSource(mediaStream);
+
+      // Step 4: Create ScriptProcessorNode
+      this.remoteAudioProcessor = this.remoteAudioContext.createScriptProcessor(4096, 1, 1);
+
+      // Step 5: Connect processing nodes
+      this.remoteAudioSource.connect(this.remoteAudioProcessor);
+      this.remoteAudioProcessor.connect(this.remoteAudioContext.destination);
+
+      // Step 6: Process PCM data
+      this.remoteAudioProcessor.onaudioprocess = (event) => {
+        const input = event.inputBuffer.getChannelData(0); // Float32Array
+        const pcm = new Int16Array(input.length);
+        for (let i = 0; i < input.length; i++) {
+          pcm[i] = Math.max(-32768, Math.min(32767, input[i] * 32767));
         }
-      });
+        // Push data to MainPanel
+        this.eventHandlers.onConversationUpdated?.({
+          item: {
+            id: this.instanceId,
+            role: 'assistant',
+            type: 'message',
+            status: 'in_progress',
+            formatted: { audio: pcm }
+          },
+          delta: { audio: pcm }
+        });
+      };
     }
   }
 
@@ -600,14 +596,14 @@ export class PalabraAIClient implements IClient {
     
     try {
       const data = JSON.parse(message);
-      console.info("[Sokuji] [PalabraAIClient] Data received:", data);
+      // Detailed payload logging removed to keep console output concise
       
-      // Check if this is a queue status message (language code with queue info)
+      // Check if this is a queue status message
       // Format: { "es": { "current_queue_level_ms": 320, "max_queue_level_ms": 24000 } }
       const isQueueStatusMessage = this.isQueueStatusMessage(data);
       
       if (isQueueStatusMessage) {
-        console.info("[Sokuji] [PalabraAIClient] Ignoring queue status message:", data);
+        // Ignored queue status message
         return;
       }
       
@@ -625,18 +621,11 @@ export class PalabraAIClient implements IClient {
         case 'validated_transcription':
           this.handleValidatedTranscription(data.data);
           break;
-        case 'output_audio_data':
-          this.handleOutputAudioData(data.data);
-          break;
-        case 'current_task':
-          this.handleCurrentTask(data.data);
-          break;
         case 'error':
           this.handleError(data.data);
           break;
         default:
-          console.info("[Sokuji] [PalabraAIClient] Unknown message type:", data.message_type);
-          // Notify about unknown message type
+          // Unknown message types are forwarded to realtime event handler
           this.eventHandlers.onRealtimeEvent?.({
             source: 'server',
             event: {
@@ -909,36 +898,6 @@ export class PalabraAIClient implements IClient {
     }
   }
 
-  private handleOutputAudioData(data: any): void {
-    const audioData = typeof data === 'string' ? JSON.parse(data) : data;
-    
-    // Notify about output audio data event
-    this.eventHandlers.onRealtimeEvent?.({
-      source: 'server',
-      event: {
-        type: 'output_audio_data',
-        data: audioData
-      }
-    });
-    
-    console.info("[Sokuji] [PalabraAIClient] Received audio data:", audioData);
-  }
-
-  private handleCurrentTask(data: any): void {
-    const taskData = typeof data === 'string' ? JSON.parse(data) : data;
-    
-    // Notify about current task event
-    this.eventHandlers.onRealtimeEvent?.({
-      source: 'server',
-      event: {
-        type: 'current_task',
-        data: taskData
-      }
-    });
-    
-    console.info("[Sokuji] [PalabraAIClient] Current task:", taskData);
-  }
-
   private handleError(data: any): void {
     const errorData = typeof data === 'string' ? JSON.parse(data) : data;
     
@@ -1003,6 +962,7 @@ export class PalabraAIClient implements IClient {
       this.audioContext.close();
       this.audioContext = null;
     }
+    this.cleanupRemoteAudio();
   }
 
   /**
@@ -1025,7 +985,7 @@ export class PalabraAIClient implements IClient {
       }
 
       const data = await response.json();
-      console.info("[Sokuji] [PalabraAIClient] Raw API response:", data);
+      // Raw API responses omitted from routine logs
       
       // Handle different possible response structures
       let sessions: PalabraAISessionData[] = [];
@@ -1107,5 +1067,27 @@ export class PalabraAIClient implements IClient {
       console.error("[Sokuji] [PalabraAIClient] Error during cleanup:", error);
       // Don't throw here, allow connection to continue
     }
+  }
+
+  private cleanupRemoteAudio(): void {
+    if (this.hiddenAudioElement) {
+      this.hiddenAudioElement.remove();
+      this.hiddenAudioElement = null;
+    }
+
+    if (this.remoteAudioProcessor) {
+      this.remoteAudioProcessor.disconnect();
+      this.remoteAudioProcessor.onaudioprocess = null;
+      this.remoteAudioProcessor = null;
+    }
+    if (this.remoteAudioSource) {
+      this.remoteAudioSource.disconnect();
+      this.remoteAudioSource = null;
+    }
+    if (this.remoteAudioContext) {
+      this.remoteAudioContext.close();
+      this.remoteAudioContext = null;
+    }
+    this.remoteAudioStream = null;
   }
 } 
