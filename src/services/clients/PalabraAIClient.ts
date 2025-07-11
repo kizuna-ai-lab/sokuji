@@ -111,8 +111,9 @@ export class PalabraAIClient implements IClient {
   // Additional members for remote audio capture
   private remoteAudioContext: AudioContext | null = null;
   private remoteAudioSource: MediaStreamAudioSourceNode | null = null;
-  private remoteAudioProcessor: ScriptProcessorNode | null = null;
+  private remoteAudioWorkletNode: AudioWorkletNode | null = null;
   private remoteAudioStream: MediaStream | null = null;
+  private workletURL: string | null = null;
 
   constructor(clientId: string, clientSecret: string) {
     this.clientId = clientId;
@@ -554,42 +555,69 @@ export class PalabraAIClient implements IClient {
       this.hiddenAudioElement.style.display = 'none';
       document.body.appendChild(this.hiddenAudioElement);
 
-      // Step 1: Obtain MediaStreamTrack
-      const mediaStream = new MediaStream([audioTrack.mediaStreamTrack]);
-      this.remoteAudioStream = mediaStream;
+      // The setup is asynchronous, so we'll wrap it in a function.
+      const setupAudioWorklet = async () => {
+        try {
+          // Step 1: Obtain MediaStreamTrack
+          const mediaStream = new MediaStream([audioTrack.mediaStreamTrack]);
+          this.remoteAudioStream = mediaStream;
 
-      // Step 2: Create AudioContext
-      this.remoteAudioContext = new AudioContext({ sampleRate: 24000 });
+          // Step 2: Create AudioContext
+          this.remoteAudioContext = new AudioContext({ sampleRate: 24000 });
 
-      // Step 3: Create MediaStreamAudioSourceNode
-      this.remoteAudioSource = this.remoteAudioContext.createMediaStreamSource(mediaStream);
+          // Step 3: Create MediaStreamAudioSourceNode
+          this.remoteAudioSource = this.remoteAudioContext.createMediaStreamSource(mediaStream);
 
-      // Step 4: Create ScriptProcessorNode
-      this.remoteAudioProcessor = this.remoteAudioContext.createScriptProcessor(4096, 1, 1);
+          // Step 4: Add the audio worklet module from an inline script
+          const workletCode = `
+            class PalabraPCMProcessor extends AudioWorkletProcessor {
+              process(inputs) {
+                const inputChannel = inputs[0][0];
+                if (!inputChannel) {
+                  return true;
+                }
+                const pcmData = new Int16Array(inputChannel.length);
+                for (let i = 0; i < inputChannel.length; i++) {
+                  pcmData[i] = Math.max(-32768, Math.min(32767, inputChannel[i] * 32767));
+                }
+                this.port.postMessage(pcmData, [pcmData.buffer]);
+                return true;
+              }
+            }
+            registerProcessor('palabra-pcm-processor', PalabraPCMProcessor);
+          `;
+          const blob = new Blob([workletCode], { type: 'application/javascript' });
+          this.workletURL = URL.createObjectURL(blob);
+          await this.remoteAudioContext.audioWorklet.addModule(this.workletURL);
 
-      // Step 5: Connect processing nodes
-      this.remoteAudioSource.connect(this.remoteAudioProcessor);
-      this.remoteAudioProcessor.connect(this.remoteAudioContext.destination);
+          // Step 5: Create an AudioWorkletNode
+          this.remoteAudioWorkletNode = new AudioWorkletNode(this.remoteAudioContext, 'palabra-pcm-processor');
 
-      // Step 6: Process PCM data
-      this.remoteAudioProcessor.onaudioprocess = (event) => {
-        const input = event.inputBuffer.getChannelData(0); // Float32Array
-        const pcm = new Int16Array(input.length);
-        for (let i = 0; i < input.length; i++) {
-          pcm[i] = Math.max(-32768, Math.min(32767, input[i] * 32767));
+          // Step 6: Connect the processing nodes
+          this.remoteAudioSource.connect(this.remoteAudioWorkletNode);
+          this.remoteAudioWorkletNode.connect(this.remoteAudioContext.destination);
+
+          // Step 7: Process PCM data received from the worklet
+          this.remoteAudioWorkletNode.port.onmessage = (event) => {
+            const pcm = event.data as Int16Array;
+            // Push data to MainPanel
+            this.eventHandlers.onConversationUpdated?.({
+              item: {
+                id: this.instanceId,
+                role: 'assistant',
+                type: 'message',
+                status: 'in_progress',
+                formatted: { audio: pcm }
+              },
+              delta: { audio: pcm }
+            });
+          };
+        } catch (error) {
+          console.error("[Sokuji] [PalabraAIClient] Failed to set up audio worklet:", error);
         }
-        // Push data to MainPanel
-        this.eventHandlers.onConversationUpdated?.({
-          item: {
-            id: this.instanceId,
-            role: 'assistant',
-            type: 'message',
-            status: 'in_progress',
-            formatted: { audio: pcm }
-          },
-          delta: { audio: pcm }
-        });
       };
+
+      setupAudioWorklet();
     }
   }
 
@@ -1081,10 +1109,10 @@ export class PalabraAIClient implements IClient {
       this.hiddenAudioElement = null;
     }
 
-    if (this.remoteAudioProcessor) {
-      this.remoteAudioProcessor.disconnect();
-      this.remoteAudioProcessor.onaudioprocess = null;
-      this.remoteAudioProcessor = null;
+    if (this.remoteAudioWorkletNode) {
+      this.remoteAudioWorkletNode.port.onmessage = null;
+      this.remoteAudioWorkletNode.disconnect();
+      this.remoteAudioWorkletNode = null;
     }
     if (this.remoteAudioSource) {
       this.remoteAudioSource.disconnect();
@@ -1095,5 +1123,9 @@ export class PalabraAIClient implements IClient {
       this.remoteAudioContext = null;
     }
     this.remoteAudioStream = null;
+    if (this.workletURL) {
+      URL.revokeObjectURL(this.workletURL);
+      this.workletURL = null;
+    }
   }
 } 
