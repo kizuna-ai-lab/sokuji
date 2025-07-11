@@ -80,7 +80,22 @@
     "auto": "자동",
     "low": "낮음",
     "medium": "중간",
-    "high": "높음"
+    "high": "높음",
+    "clientId": "클라이언트 ID",
+    "clientSecret": "클라이언트 시크릿",
+    "languageSettings": "언어 설정",
+    "voiceSettings": "음성 설정",
+    "speechProcessing": "음성 처리",
+    "silenceThreshold": "침묵 임계값",
+    "sentenceSplitter": "문장 분리기",
+    "enabled": "활성화됨",
+    "translatePartialTranscriptions": "부분적인 음성 텍스트 번역",
+    "queueConfiguration": "오디오 버퍼 구성",
+    "desiredQueueLevel": "목표 오디오 버퍼",
+    "maxQueueLevel": "최대 오디오 버퍼",
+    "autoTempo": "적응형 말하기 속도",
+    "apiKeyValidated": "API 키가 확인되었습니다",
+    "realtimeTranslationAvailable": "실시간 번역 서비스를 사용할 수 있습니다"
   },
   "audioPanel": {
     "title": "오디오 설정",

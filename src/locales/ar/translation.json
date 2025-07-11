@@ -80,7 +80,22 @@
     "auto": "تلقائي",
     "low": "منخفض",
     "medium": "متوسط",
-    "high": "عالي"
+    "high": "مرتفع",
+    "clientId": "معرّف العميل",
+    "clientSecret": "سر العميل",
+    "languageSettings": "إعدادات اللغة",
+    "voiceSettings": "إعدادات الصوت",
+    "speechProcessing": "معالجة الكلام",
+    "silenceThreshold": "عتبة الصمت",
+    "sentenceSplitter": "مقسم الجمل",
+    "enabled": "مفعل",
+    "translatePartialTranscriptions": "ترجمة النصوص الجزئية",
+    "queueConfiguration": "تكوين مخزن الصوت المؤقت",
+    "desiredQueueLevel": "مستوى المخزن المؤقت المستهدف",
+    "maxQueueLevel": "أقصى مستوى للمخزن المؤقت",
+    "autoTempo": "سرعة الكلام التكيفية",
+    "apiKeyValidated": "تم التحقق من مفتاح API",
+    "realtimeTranslationAvailable": "خدمة الترجمة الفورية متاحة"
   },
   "audioPanel": {
     "title": "إعدادات الصوت",

@@ -80,7 +80,22 @@
     "auto": "自動",
     "low": "低",
     "medium": "中",
-    "high": "高"
+    "high": "高",
+    "clientId": "クライアントID",
+    "clientSecret": "クライアントシークレット",
+    "languageSettings": "言語設定",
+    "voiceSettings": "音声設定",
+    "speechProcessing": "音声処理",
+    "silenceThreshold": "沈黙のしきい値",
+    "sentenceSplitter": "文の分割",
+    "enabled": "有効",
+    "translatePartialTranscriptions": "部分的な書き起こしを翻訳",
+    "queueConfiguration": "音声バッファ設定",
+    "desiredQueueLevel": "目標音声バッファ",
+    "maxQueueLevel": "最大音声バッファ",
+    "autoTempo": "適応的な話速",
+    "apiKeyValidated": "APIキーが検証されました",
+    "realtimeTranslationAvailable": "リアルタイム翻訳サービスが利用可能です"
   },
   "audioPanel": {
     "title": "オーディオ設定",

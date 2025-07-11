@@ -41,7 +41,22 @@
     "auto": "Auto",
     "low": "Matala",
     "medium": "Keskitaso",
-    "high": "Korkea"
+    "high": "Korkea",
+    "clientId": "Asiakastunnus",
+    "clientSecret": "Asiakassalaisuus",
+    "languageSettings": "Kieliasetukset",
+    "voiceSettings": "Ääniasetukset",
+    "speechProcessing": "Puheen käsittely",
+    "silenceThreshold": "Hiljaisuuden kynnys",
+    "sentenceSplitter": "Lauseen jakaja",
+    "enabled": "Käytössä",
+    "translatePartialTranscriptions": "Käännä osittaiset transkriptiot",
+    "queueConfiguration": "Äänipuskurin asetukset",
+    "desiredQueueLevel": "Tavoiteltu äänipuskuri",
+    "maxQueueLevel": "Suurin äänipuskuri",
+    "autoTempo": "Mukautuva puhenopeus",
+    "apiKeyValidated": "API-avain vahvistettu",
+    "realtimeTranslationAvailable": "Reaaliaikainen käännöspalvelu on saatavilla"
   },
   "mainPanel": {
     "conversationPlaceholder": "Keskustelu näkyy tässä",

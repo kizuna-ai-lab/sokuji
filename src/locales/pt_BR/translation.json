@@ -80,7 +80,22 @@
     "auto": "Auto",
     "low": "Baixo",
     "medium": "Médio",
-    "high": "Alto"
+    "high": "Alto",
+    "clientId": "ID do Cliente",
+    "clientSecret": "Segredo do Cliente",
+    "languageSettings": "Configurações de Idioma",
+    "voiceSettings": "Configurações de Voz",
+    "speechProcessing": "Processamento de Fala",
+    "silenceThreshold": "Limite de Silêncio",
+    "sentenceSplitter": "Divisor de Frases",
+    "enabled": "Ativado",
+    "translatePartialTranscriptions": "Traduzir Transcrições Parciais",
+    "queueConfiguration": "Configuração do Buffer de Áudio",
+    "desiredQueueLevel": "Buffer de Áudio Desejado",
+    "maxQueueLevel": "Buffer de Áudio Máximo",
+    "autoTempo": "Velocidade de Fala Adaptável",
+    "apiKeyValidated": "Chave de API validada",
+    "realtimeTranslationAvailable": "Serviço de tradução em tempo real disponível"
   },
   "audioPanel": {
     "title": "Configurações de áudio",
