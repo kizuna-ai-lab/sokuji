@@ -353,8 +353,11 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   // Generate cache key for current provider and API key
   const getCacheKey = useCallback((): string => {
     const apiKey = getCurrentApiKey();
+    if (commonSettings.provider === Provider.PALABRA_AI) {
+      return `${commonSettings.provider}:${apiKey}:${palabraAISettings.clientSecret}`;
+    }
     return `${commonSettings.provider}:${apiKey}`;
-  }, [commonSettings.provider, getCurrentApiKey]);
+  }, [commonSettings.provider, getCurrentApiKey, palabraAISettings.clientSecret]);
 
   // Check if cache is valid (not older than 5 minutes)
   const isCacheValid = useCallback((timestamp: number): boolean => {
@@ -425,7 +428,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
       };
       return result;
     }
-  }, [commonSettings.provider, getCurrentApiKey, getCacheKey, modelsCache, isCacheValid, settingsService]);
+  }, [commonSettings.provider, getCurrentApiKey, getCacheKey, modelsCache, isCacheValid, settingsService, palabraAISettings.clientSecret]);
 
   // Process system instructions based on the selected mode
   const getProcessedSystemInstructions = useCallback(() => {
@@ -667,7 +670,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
       setAvailableModels(prev => prev.length > 0 ? [] : prev);
       setModelsCache(prev => prev.size > 0 ? new Map() : prev); // Prevent re-render loop
     }
-  }, [commonSettings.provider, openAISettings.apiKey, cometAPISettings.apiKey, geminiSettings.apiKey, palabraAISettings.clientId, getCurrentApiKey, validateApiKeyAndFetchModels]);
+  }, [commonSettings.provider, openAISettings.apiKey, cometAPISettings.apiKey, geminiSettings.apiKey, palabraAISettings.clientId, palabraAISettings.clientSecret, getCurrentApiKey, validateApiKeyAndFetchModels]);
 
   // Create session config based on current settings
   const createSessionConfig = useCallback((systemInstructions: string): SessionConfig => {
