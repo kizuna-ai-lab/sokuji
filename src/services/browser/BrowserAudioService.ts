@@ -391,7 +391,7 @@ export class BrowserAudioService implements IAudioService {
   public sendPcmDataToTabs(data: Int16Array, trackId?: string): void {
     // Skip empty data
     if (!data || data.length === 0) {
-      console.warn('[Sokuji] [BrowserAudio] Attempted to send empty audio data');
+      console.info('[Sokuji] [BrowserAudio] Attempted to send empty audio data');
       return;
     }
     

@@ -1,6 +1,7 @@
 import { IClient } from '../interfaces/IClient';
 import { OpenAIClient } from './OpenAIClient';
 import { GeminiClient } from './GeminiClient';
+import { PalabraAIClient } from './PalabraAIClient';
 import { Provider, ProviderType } from '../../types/Provider';
 
 /**
@@ -13,12 +14,14 @@ export class ClientFactory {
    * @param model - The model name
    * @param provider - The provider type
    * @param apiKey - The API key for the specified provider
+   * @param clientSecret - The client secret for PalabraAI (optional)
    * @returns IClient instance
    */
   static createClient(
     model: string,
     provider: ProviderType,
-    apiKey: string
+    apiKey: string,
+    clientSecret?: string
   ): IClient {
     if (!apiKey) {
       throw new Error(`API key is required for ${provider} provider`);
@@ -34,6 +37,12 @@ export class ClientFactory {
         
       case Provider.GEMINI:
         return new GeminiClient(apiKey);
+        
+      case Provider.PALABRA_AI:
+        if (!clientSecret) {
+          throw new Error(`Client secret is required for ${provider} provider`);
+        }
+        return new PalabraAIClient(apiKey, clientSecret);
         
       default:
         throw new Error(`Unsupported provider: ${provider}`);

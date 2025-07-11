@@ -41,7 +41,22 @@
     "auto": "อัตโนมัติ",
     "low": "ต่ำ",
     "medium": "ปานกลาง",
-    "high": "สูง"
+    "high": "สูง",
+    "clientId": "รหัสไคลเอ็นต์",
+    "clientSecret": "รหัสลับไคลเอ็นต์",
+    "languageSettings": "การตั้งค่าภาษา",
+    "voiceSettings": "การตั้งค่าเสียง",
+    "speechProcessing": "การประมวลผลคำพูด",
+    "silenceThreshold": "เกณฑ์ความเงียบ",
+    "sentenceSplitter": "ตัวแบ่งประโยค",
+    "enabled": "เปิดใช้งาน",
+    "translatePartialTranscriptions": "แปลการถอดเสียงบางส่วน",
+    "queueConfiguration": "การกำหนดค่าบัฟเฟอร์เสียง",
+    "desiredQueueLevel": "บัฟเฟอร์เสียงเป้าหมาย",
+    "maxQueueLevel": "บัฟเฟอร์เสียงสูงสุด",
+    "autoTempo": "ความเร็วในการพูดแบบปรับได้",
+    "apiKeyValidated": "ตรวจสอบคีย์ API แล้ว",
+    "realtimeTranslationAvailable": "มีบริการแปลภาษาแบบเรียลไทม์"
   },
   "mainPanel": {
     "conversationPlaceholder": "การสนทนาจะปรากฏที่นี่",

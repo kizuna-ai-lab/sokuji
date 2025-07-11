@@ -30,12 +30,22 @@ export interface ConversationItem {
   }>;
 }
 
-export interface SessionConfig {
+/**
+ * Base session configuration shared by all providers
+ */
+export interface BaseSessionConfig {
   model: string;
   voice?: string;
   instructions?: string;
   temperature?: number;
   maxTokens?: number | string;
+}
+
+/**
+ * OpenAI-specific session configuration
+ */
+export interface OpenAISessionConfig extends BaseSessionConfig {
+  provider: 'openai' | 'cometapi';
   turnDetection?: {
     type: 'server_vad' | 'semantic_vad' | 'none';
     threshold?: number;
@@ -51,6 +61,50 @@ export interface SessionConfig {
   inputAudioNoiseReduction?: {
     type: 'near_field' | 'far_field';
   };
+}
+
+/**
+ * Gemini-specific session configuration
+ */
+export interface GeminiSessionConfig extends BaseSessionConfig {
+  provider: 'gemini';
+  // Add Gemini-specific configuration here as needed
+}
+
+/**
+ * PalabraAI-specific session configuration
+ */
+export interface PalabraAISessionConfig extends BaseSessionConfig {
+  provider: 'palabraai';
+  sourceLanguage: string;
+  targetLanguage: string;
+  voiceId: string;
+  segmentConfirmationSilenceThreshold: number;
+  sentenceSplitterEnabled: boolean;
+  translatePartialTranscriptions: boolean;
+  desiredQueueLevelMs: number;
+  maxQueueLevelMs: number;
+  autoTempo: boolean;
+}
+
+/**
+ * Union type for all possible session configurations
+ */
+export type SessionConfig = OpenAISessionConfig | GeminiSessionConfig | PalabraAISessionConfig;
+
+/**
+ * Type guards for session configurations
+ */
+export function isOpenAISessionConfig(config: SessionConfig): config is OpenAISessionConfig {
+  return config.provider === 'openai' || config.provider === 'cometapi';
+}
+
+export function isGeminiSessionConfig(config: SessionConfig): config is GeminiSessionConfig {
+  return config.provider === 'gemini';
+}
+
+export function isPalabraAISessionConfig(config: SessionConfig): config is PalabraAISessionConfig {
+  return config.provider === 'palabraai';
 }
 
 export interface ClientEventHandlers {

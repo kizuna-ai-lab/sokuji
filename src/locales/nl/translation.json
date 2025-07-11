@@ -80,7 +80,22 @@
     "auto": "Auto",
     "low": "Laag",
     "medium": "Gemiddeld",
-    "high": "Hoog"
+    "high": "Hoog",
+    "clientId": "Client-ID",
+    "clientSecret": "Clientgeheim",
+    "languageSettings": "Taalinstellingen",
+    "voiceSettings": "Spraakinstellingen",
+    "speechProcessing": "Spraakverwerking",
+    "silenceThreshold": "Stiltedrempel",
+    "sentenceSplitter": "Zinverdeler",
+    "enabled": "Ingeschakeld",
+    "translatePartialTranscriptions": "Vertaal Gedeeltelijke Transcripties",
+    "queueConfiguration": "Audiobufferconfiguratie",
+    "desiredQueueLevel": "Doel-audiobuffer",
+    "maxQueueLevel": "Maximale audiobuffer",
+    "autoTempo": "Adaptieve Spraaksnelheid",
+    "apiKeyValidated": "API-sleutel gevalideerd",
+    "realtimeTranslationAvailable": "Realtime vertaalservice is beschikbaar"
   },
   "audioPanel": {
     "title": "Audio instellingen",

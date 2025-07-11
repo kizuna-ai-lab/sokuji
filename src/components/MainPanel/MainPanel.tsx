@@ -15,6 +15,9 @@ import { useAnalytics } from '../../lib/analytics';
 import { isDevelopment } from '../../config/analytics';
 import { v4 as uuidv4 } from 'uuid';
 import { Provider, isOpenAICompatible } from '../../types/Provider';
+import { OpenAICompatibleSettings, GeminiSettings, PalabraAISettings } from '../../contexts/SettingsContext';
+import AudioFeedbackWarning from '../AudioFeedbackWarning/AudioFeedbackWarning';
+import { getSafeAudioConfiguration } from '../../utils/audioUtils';
 
 interface MainPanelProps {}
 
@@ -33,11 +36,13 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     openAISettings,
     cometAPISettings,
     geminiSettings,
+    palabraAISettings,
     getCurrentProviderSettings,
     isApiKeyValid,
     getProcessedSystemInstructions,
     availableModels,
-    loadingModels
+    loadingModels,
+    createSessionConfig
   } = useSettings();
   
   // Get session state from context
@@ -75,6 +80,10 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   // Add state variables to track if test tone is playing and currently playing audio item
   const [isTestTonePlaying, setIsTestTonePlaying] = useState(false);
   const [playingItemId, setPlayingItemId] = useState<string | null>(null);
+  
+  // Audio feedback warning state
+  const [showFeedbackWarning, setShowFeedbackWarning] = useState(false);
+  const [feedbackWarningDismissed, setFeedbackWarningDismissed] = useState(false);
 
   /**
    * Convert settings to SessionConfig
@@ -82,62 +91,10 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   const getSessionConfig = useCallback((): SessionConfig => {
     // Get processed system instructions from the context
     const systemInstructions = getProcessedSystemInstructions();
-    const { provider } = commonSettings;
-    const currentProviderSettings = getCurrentProviderSettings();
-
-    const sessionConfig: SessionConfig = {
-      model: currentProviderSettings.model,
-      voice: currentProviderSettings.voice,
-      instructions: systemInstructions,
-      temperature: currentProviderSettings.temperature ?? 0.8,
-      maxTokens: currentProviderSettings.maxTokens ?? 'inf',
-    };
-
-    // Configure provider-specific settings for OpenAI-compatible providers
-    if (isOpenAICompatible(provider)) {
-      // Get settings from the appropriate provider
-      const compatibleSettings = provider === Provider.OPENAI ? openAISettings : cometAPISettings;
-      const { turnDetectionMode, prefixPadding, silenceDuration, threshold, semanticEagerness, noiseReduction, transcriptModel } = compatibleSettings;
-      
-      // Configure turn detection
-      if (turnDetectionMode === 'Disabled') {
-        sessionConfig.turnDetection = { type: 'none' };
-      } else if (turnDetectionMode === 'Normal') {
-        sessionConfig.turnDetection = {
-          type: 'server_vad',
-          createResponse: true,
-          interruptResponse: false,
-          prefixPadding: prefixPadding,
-          silenceDuration: silenceDuration,
-          threshold: threshold
-        };
-      } else if (turnDetectionMode === 'Semantic') {
-        sessionConfig.turnDetection = {
-          type: 'semantic_vad',
-          createResponse: true,
-          interruptResponse: false,
-          eagerness: semanticEagerness?.toLowerCase() as any,
-        };
-      }
-
-      // Configure noise reduction
-      if (noiseReduction && noiseReduction !== 'None') {
-        sessionConfig.inputAudioNoiseReduction = {
-          type: noiseReduction === 'Near field' ? 'near_field' :
-                noiseReduction === 'Far field' ? 'far_field' : 'near_field'
-        };
-      }
-
-      // Configure transcription
-      if (transcriptModel) {
-        sessionConfig.inputAudioTranscription = {
-          model: transcriptModel
-        };
-      }
-    }
-
-    return sessionConfig;
-  }, [commonSettings, openAISettings, cometAPISettings, getCurrentProviderSettings, getProcessedSystemInstructions]);
+    
+    // Use the type-safe createSessionConfig from SettingsContext
+    return createSessionConfig(systemInstructions);
+  }, [getProcessedSystemInstructions, createSessionConfig]);
 
   /**
    * Setup virtual audio output device
@@ -198,15 +155,78 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     if (wavRecorder && audioServiceRef.current) {
       const wavStreamPlayer = audioServiceRef.current.getWavStreamPlayer();
       if (wavStreamPlayer) {
+        // Add safety checks to prevent feedback loops
+        const isSafeForPassthrough = () => {
+          // Check if input and output devices are different
+          if (selectedInputDevice && selectedMonitorDevice) {
+            const inputLabel = selectedInputDevice.label.toLowerCase();
+            const outputLabel = selectedMonitorDevice.label.toLowerCase();
+            
+            // Prevent feedback if devices are the same or if output is the default device
+            // when input is also default, or if both are system defaults
+            if (inputLabel === outputLabel || 
+                (inputLabel.includes('default') && outputLabel.includes('default'))) {
+              console.warn('[Sokuji] [MainPanel] Passthrough disabled: same input/output device detected');
+              return false;
+            }
+          }
+          
+          // Check for virtual devices to prevent feedback
+          if (selectedMonitorDevice) {
+            const outputLabel = selectedMonitorDevice.label.toLowerCase();
+            if (outputLabel.includes('sokuji') || outputLabel.includes('virtual')) {
+              console.warn('[Sokuji] [MainPanel] Passthrough disabled: virtual device detected as output');
+              return false;
+            }
+          }
+          
+          return true;
+        };
+
+        // Only enable passthrough if it's safe to do so
+        const safePassthroughEnabled = isRealVoicePassthroughEnabled && isSafeForPassthrough();
+        
         wavRecorder.setupPassthrough(
           wavStreamPlayer, 
-          isRealVoicePassthroughEnabled, 
+          safePassthroughEnabled, 
           realVoicePassthroughVolume
         );
-        console.info('[Sokuji] [MainPanel] Updated passthrough settings: enabled=', isRealVoicePassthroughEnabled, 'volume=', realVoicePassthroughVolume);
+        
+        if (safePassthroughEnabled) {
+          console.info('[Sokuji] [MainPanel] Updated passthrough settings: enabled=', safePassthroughEnabled, 'volume=', realVoicePassthroughVolume);
+        } else if (isRealVoicePassthroughEnabled) {
+          console.warn('[Sokuji] [MainPanel] Passthrough disabled for safety - potential feedback loop detected');
+        }
       }
     }
-  }, [isRealVoicePassthroughEnabled, realVoicePassthroughVolume]);
+  }, [isRealVoicePassthroughEnabled, realVoicePassthroughVolume, selectedInputDevice, selectedMonitorDevice]);
+
+  /**
+   * Check for potential audio feedback and show warning
+   */
+  useEffect(() => {
+    if (feedbackWarningDismissed || !isRealVoicePassthroughEnabled) {
+      setShowFeedbackWarning(false);
+      return;
+    }
+
+    const safeConfig = getSafeAudioConfiguration(
+      selectedInputDevice,
+      selectedMonitorDevice,
+      isRealVoicePassthroughEnabled
+    );
+
+    if (!safeConfig.safePassthroughEnabled && safeConfig.recommendedAction) {
+      setShowFeedbackWarning(true);
+    } else {
+      setShowFeedbackWarning(false);
+    }
+  }, [
+    isRealVoicePassthroughEnabled,
+    selectedInputDevice,
+    selectedMonitorDevice,
+    feedbackWarningDismissed
+  ]);
 
   /**
    * Instantiate:
@@ -366,7 +386,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       // Create a new AI client instance
       const currentProviderSettings = getCurrentProviderSettings();
       
-      // Get the appropriate API key based on the current provider
+      // Get the appropriate API key/credentials based on the current provider
       let apiKey: string;
       switch (commonSettings.provider) {
         case Provider.OPENAI:
@@ -378,15 +398,34 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         case Provider.GEMINI:
           apiKey = geminiSettings.apiKey;
           break;
+        case Provider.PALABRA_AI:
+          // PalabraAI uses clientId as the "apiKey" parameter for ClientFactory
+          apiKey = palabraAISettings.clientId;
+          break;
         default:
           throw new Error(`Unsupported provider: ${commonSettings.provider}`);
       }
       
-      clientRef.current = ClientFactory.createClient(
-        currentProviderSettings.model,
-        commonSettings.provider,
-        apiKey
-      );
+      // Get model name based on provider
+      const modelName = commonSettings.provider === Provider.PALABRA_AI 
+        ? 'realtime-translation' 
+        : (currentProviderSettings as any).model;
+      
+      // Create client with appropriate parameters
+      if (commonSettings.provider === Provider.PALABRA_AI) {
+        clientRef.current = ClientFactory.createClient(
+          modelName,
+          commonSettings.provider,
+          apiKey, // clientId
+          palabraAISettings.clientSecret // clientSecret
+        );
+      } else {
+        clientRef.current = ClientFactory.createClient(
+          modelName,
+          commonSettings.provider,
+          apiKey
+        );
+      }
 
       // Setup listeners for the new client instance
       await setupClientListeners();
@@ -399,7 +438,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         const settings = commonSettings.provider === Provider.OPENAI ? openAISettings : cometAPISettings;
         setCanPushToTalk(settings.turnDetectionMode === 'Disabled');
       } else {
-        setCanPushToTalk(false); // Not supported by Gemini yet
+        setCanPushToTalk(false); // Not supported by Gemini and PalabraAI
       }
 
       // Connect to microphone only if input device is turned on
@@ -407,16 +446,52 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         if (selectedInputDevice) {
           await wavRecorder.begin(selectedInputDevice.deviceId);
           
-          // Setup real voice passthrough if enabled
+          // Setup real voice passthrough if enabled and safe
           if (isRealVoicePassthroughEnabled && audioServiceRef.current) {
             const wavStreamPlayer = audioServiceRef.current.getWavStreamPlayer();
             if (wavStreamPlayer) {
+              // Add safety checks to prevent feedback loops
+              const isSafeForPassthrough = () => {
+                // Check if input and output devices are different
+                if (selectedInputDevice && selectedMonitorDevice) {
+                  const inputLabel = selectedInputDevice.label.toLowerCase();
+                  const outputLabel = selectedMonitorDevice.label.toLowerCase();
+                  
+                  // Prevent feedback if devices are the same or if output is the default device
+                  // when input is also default, or if both are system defaults
+                  if (inputLabel === outputLabel || 
+                      (inputLabel.includes('default') && outputLabel.includes('default'))) {
+                    console.warn('[Sokuji] [MainPanel] Passthrough disabled: same input/output device detected');
+                    return false;
+                  }
+                }
+                
+                // Check for virtual devices to prevent feedback
+                if (selectedMonitorDevice) {
+                  const outputLabel = selectedMonitorDevice.label.toLowerCase();
+                  if (outputLabel.includes('sokuji') || outputLabel.includes('virtual')) {
+                    console.warn('[Sokuji] [MainPanel] Passthrough disabled: virtual device detected as output');
+                    return false;
+                  }
+                }
+                
+                return true;
+              };
+
+              // Only enable passthrough if it's safe to do so
+              const safePassthroughEnabled = isRealVoicePassthroughEnabled && isSafeForPassthrough();
+              
               wavRecorder.setupPassthrough(
                 wavStreamPlayer, 
-                isRealVoicePassthroughEnabled, 
+                safePassthroughEnabled, 
                 realVoicePassthroughVolume
               );
-              console.info('[Sokuji] [MainPanel] Real voice passthrough enabled with volume:', realVoicePassthroughVolume);
+              
+              if (safePassthroughEnabled) {
+                console.info('[Sokuji] [MainPanel] Real voice passthrough enabled with volume:', realVoicePassthroughVolume);
+              } else {
+                console.warn('[Sokuji] [MainPanel] Real voice passthrough disabled for safety - potential feedback loop detected');
+              }
             }
           }
         } else {
@@ -473,6 +548,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     openAISettings, 
     geminiSettings, 
     cometAPISettings, 
+    palabraAISettings,
     getCurrentProviderSettings, 
     getSessionConfig, 
     setupClientListeners, 
@@ -985,7 +1061,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     };
 
     updateRecordingState();
-  }, [isInputDeviceOn, isSessionActive, commonSettings.provider, openAISettings.turnDetectionMode, selectedInputDevice]);
+  }, [isInputDeviceOn, isSessionActive, commonSettings.provider, openAISettings.turnDetectionMode, cometAPISettings.turnDetectionMode, selectedInputDevice]);
 
   /**
    * Watch for changes to selectedMonitorDevice or isMonitorDeviceOn 
@@ -1337,6 +1413,22 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           <canvas ref={serverCanvasRef} className="visualization-canvas server-canvas" />
         </div>
       </div>
+              <AudioFeedbackWarning
+          isVisible={showFeedbackWarning}
+          inputDeviceLabel={selectedInputDevice?.label}
+          outputDeviceLabel={selectedMonitorDevice?.label}
+          recommendedAction={
+            getSafeAudioConfiguration(
+              selectedInputDevice,
+              selectedMonitorDevice,
+              isRealVoicePassthroughEnabled
+            ).recommendedAction
+          }
+          onDismiss={() => {
+            setShowFeedbackWarning(false);
+            setFeedbackWarningDismissed(true);
+          }}
+        />
     </div>
   );
 };

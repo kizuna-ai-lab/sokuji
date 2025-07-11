@@ -79,7 +79,22 @@
     "auto": "Auto",
     "low": "Niski",
     "medium": "Średni",
-    "high": "Wysoki"
+    "high": "Wysoki",
+    "clientId": "ID Klienta",
+    "clientSecret": "Tajny Klucz Klienta",
+    "languageSettings": "Ustawienia Językowe",
+    "voiceSettings": "Ustawienia Głosu",
+    "speechProcessing": "Przetwarzanie Mowy",
+    "silenceThreshold": "Próg Ciszy",
+    "sentenceSplitter": "Dzielnik Zdań",
+    "enabled": "Włączone",
+    "translatePartialTranscriptions": "Tłumacz Częściowe Transkrypcje",
+    "queueConfiguration": "Konfiguracja Bufora Audio",
+    "desiredQueueLevel": "Docelowy Bufor Audio",
+    "maxQueueLevel": "Maksymalny Bufor Audio",
+    "autoTempo": "Adaptacyjna Szybkość Mowy",
+    "apiKeyValidated": "Klucz API zweryfikowany",
+    "realtimeTranslationAvailable": "Usługa tłumaczenia w czasie rzeczywistym jest dostępna"
   },
   "audioPanel": {
     "title": "Ustawienia audio",
