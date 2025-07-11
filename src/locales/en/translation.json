@@ -71,19 +71,8 @@
     "desiredQueueLevel": "Target Audio Buffer",
     "maxQueueLevel": "Max Audio Buffer",
     "autoTempo": "Adaptive Speech Speed",
-    "apiKey": {
-        "info": "Your API key is stored locally and never sent to any server except to the API provider.",
-        "validation": {
-            "success": "API key is valid.",
-            "error": "API key is invalid."
-        }
-    },
-    "providerSettings": {
-        "title": "Provider Settings"
-    },
-    "featureFlags": {
-        "title": "Feature Flags"
-    },
+    "apiKey": "API Key",
+    "apiKeyInfo": "Your API key is stored locally and never sent to any server except to the API provider.",
     "systemPromptPlaceholder": "e.g. Translate into formal Japanese.",
     "hotkey": "Hotkey",
     "pushToTalk": "Push-to-talk",
