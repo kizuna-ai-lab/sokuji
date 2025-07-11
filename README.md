@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <em>Live speech translation powered by OpenAI & Google Gemini</em>
+  <em>Live speech translation powered by OpenAI, Google Gemini, and Palabra.ai</em>
 </p>
 
 <p align="center">
@@ -22,6 +22,9 @@
   <!-- Google Gemini Badge -->
   <img alt="Google Gemini" src="https://img.shields.io/badge/Google%20Gemini-4285F4?style=flat-square&logo=google-gemini&logoColor=white" />
   
+  <!-- Palabra.ai Badge -->
+  <img alt="Palabra.ai" src="https://img.shields.io/badge/Palabra.ai-black?style=flat-square&logo=websockets&logoColor=white" />
+
   <!-- Vibe Coding Badge -->
   <img alt="Vibe Coding" src="https://img.shields.io/badge/built%20with-vibe%20coding-ff69b4?style=flat-square" />
   
@@ -37,7 +40,7 @@
 
 # Why Sokuji?
 
-Sokuji is a desktop application designed to provide live speech translation using OpenAI and Google Gemini APIs. It bridges language barriers in live conversations by capturing audio input, processing it through advanced AI models, and delivering translated output in real-time.
+Sokuji is a desktop application designed to provide live speech translation using OpenAI, Google Gemini, and Palabra.ai APIs. It bridges language barriers in live conversations by capturing audio input, processing it through advanced AI models, and delivering translated output in real-time.
 
 https://github.com/user-attachments/assets/1eaaa333-a7ce-4412-a295-16b7eb2310de
 
@@ -74,11 +77,12 @@ Sokuji goes beyond basic translation by offering a complete audio routing soluti
 
 # Features
 
-1. **Real-time speech translation** using OpenAI and Google Gemini APIs
-2. **Multi-Provider Support**: Seamlessly switch between OpenAI and Google Gemini.
+1. **Real-time speech translation** using OpenAI, Google Gemini, and Palabra.ai APIs
+2. **Multi-Provider Support**: Seamlessly switch between OpenAI, Google Gemini, and Palabra.ai.
 3. **Supported Models**:
    - **OpenAI**: `gpt-4o-realtime-preview`, `gpt-4o-mini-realtime-preview`
    - **Google Gemini**: `gemini-2.0-flash-live-001`, `gemini-2.5-flash-preview-native-audio-dialog`
+   - **Palabra.ai**: Real-time speech-to-speech translation via WebRTC
 4. **Automatic turn detection** with multiple modes (Normal, Semantic, Disabled) for OpenAI
 5. **Audio visualization** with waveform display
 6. **Advanced Virtual Microphone** with dual-queue audio mixing system:
@@ -168,7 +172,7 @@ The virtual microphone now supports advanced audio processing:
 
 # Preparation
 
-- (required) An OpenAI or Google Gemini API key.
+- (required) An OpenAI, Google Gemini, or Palabra.ai API key. For Palabra.ai, you will need a Client ID and Client Secret.
 - (required) Linux with PulseAudio or PipeWire for virtual audio device support (desktop app only)
 
 # Installation
@@ -225,8 +229,8 @@ sudo dpkg -i sokuji_*.deb
    </p>
    
    - Click the Settings button in the top-right corner
-   - Select your desired provider (OpenAI or Gemini).
-   - Enter your API key for the selected provider and click "Validate".
+   - Select your desired provider (OpenAI, Gemini, or Palabra).
+   - Enter your API key for the selected provider and click "Validate". For Palabra, you will need to enter a Client ID and Client Secret.
    - Click "Save" to store your API key securely.
 
 2. **Configure audio devices**:

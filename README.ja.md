@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <em>OpenAI & Google Gemini による リアルタイム音声翻訳</em>
+  <em>OpenAI, Google Gemini, Palabra.ai による リアルタイム音声翻訳</em>
 </p>
 
 <p align="center">
@@ -22,6 +22,9 @@
   <!-- Google Gemini Badge -->
   <img alt="Google Gemini" src="https://img.shields.io/badge/Google%20Gemini-4285F4?style=flat-square&logo=google-gemini&logoColor=white" />
   
+  <!-- Palabra.ai Badge -->
+  <img alt="Palabra.ai" src="https://img.shields.io/badge/Palabra.ai-black?style=flat-square&logo=websockets&logoColor=white" />
+
   <!-- Vibe Coding Badge -->
   <img alt="Vibe Coding" src="https://img.shields.io/badge/built%20with-vibe%20coding-ff69b4?style=flat-square" />
   
@@ -37,7 +40,7 @@
 
 # なぜSokujiなのか？
 
-SokujiはOpenAIとGoogle Gemini APIを使用してリアルタイム音声翻訳を提供するデスクトップアプリケーションです。音声入力をキャプチャし、高度なAIモデルで処理し、リアルタイムで翻訳された出力を配信することで、ライブ会話における言語の壁を取り除きます。
+SokujiはOpenAI, Google Gemini, Palabra.ai APIを使用してリアルタイム音声翻訳を提供するデスクトップアプリケーションです。音声入力をキャプチャし、高度なAIモデルで処理し、リアルタイムで翻訳された出力を配信することで、ライブ会話における言語の壁を取り除きます。
 
 https://github.com/user-attachments/assets/1eaaa333-a7ce-4412-a295-16b7eb2310de
 
@@ -74,22 +77,30 @@ Sokujiは基本的な翻訳を超えて、仮想デバイス管理による完�
 
 # 機能
 
-1. **OpenAIとGoogle Gemini APIを使用したリアルタイム音声翻訳**
-2. **マルチプロバイダーサポート**: OpenAIとGoogle Geminiをシームレスに切り替え
+1. **OpenAI, Google Gemini, Palabra.ai APIを使用したリアルタイム音声翻訳**
+2. **マルチプロバイダーサポート**: OpenAI, Google Gemini, Palabra.aiをシームレスに切り替え
 3. **サポートされているモデル**:
    - **OpenAI**: `gpt-4o-realtime-preview`, `gpt-4o-mini-realtime-preview`
    - **Google Gemini**: `gemini-2.0-flash-live-001`, `gemini-2.5-flash-preview-native-audio-dialog`
+   - **Palabra.ai**: WebRTCによるリアルタイム音声翻訳
 4. **自動ターン検出** OpenAI用の複数モード（通常、セマンティック、無効）
 5. **波形表示による音声可視化**
-6. **Linux上での仮想オーディオデバイス**の作成と管理（PulseAudio/PipeWire使用）
-7. **仮想デバイス間の自動オーディオルーティング**
-8. **オーディオ入力・出力デバイス選択**
-9. **API相互作用を追跡する包括的なログ**
-10. **カスタマイズ可能なモデル設定**（温度、最大トークン）
-11. **ユーザー転写モデル選択**（OpenAI用: `gpt-4o-mini-transcribe`, `gpt-4o-transcribe`, `whisper-1`）
-12. **ノイズリダクションオプション**（OpenAI用: なし、近距離、遠距離）
-13. **リアルタイムフィードバック付きAPIキー検証**
-14. **ユーザーのホームディレクトリでの設定永続化**
+6. **デュアルキュー音声ミキシングシステムを備えた高度な仮想マイク**:
+   - **通常音声トラック**: キューに入れられ、順次再生
+   - **即時音声トラック**: リアルタイム音声ミキシング用の別キュー
+   - **同時再生**: 両方のトラックタイプをミックスしてオーディオ体験を向上
+   - **チャンク化音声対応**: 大規模な音声ストリームの効率的な処理
+7. **リアルタイム音声パススルー**: 録音セッション中のライブ音声モニタリング
+8. **Linux上での仮想オーディオデバイス**の作成と管理（PulseAudio/PipeWire使用）
+9. **仮想デバイス間の自動オーディオルーティング**
+10. **オーディオ入力・出力デバイス選択**
+11. **API相互作用を追跡する包括的なログ**
+12. **カスタマイズ可能なモデル設定**（温度、最大トークン）
+13. **ユーザー転写モデル選択**（OpenAI用: `gpt-4o-mini-transcribe`, `gpt-4o-transcribe`, `whisper-1`）
+14. **ノイズリダクションオプション**（OpenAI用: なし、近距離、遠距離）
+15. **リアルタイムフィードバック付きAPIキー検証**
+16. **ユーザーのホームディレクトリでの設定永続化**
+17. **最適化されたAIクライアントパフォーマンス**: 一貫したID生成による会話管理の強化
 
 # オーディオルーティング
 
@@ -102,120 +113,142 @@ Sokujiはシームレスなオーディオルーティングを促進するた�
 - **Sokuji_Virtual_Speaker**: アプリケーションからオーディオを受信する仮想出力シンク
 - **Sokuji_Virtual_Mic**: 他のアプリケーションで入力として選択できる仮想マイク
 - PipeWireの`pw-link`ツールを使用したこれらのデバイス間の自動接続
+- マルチチャネル対応（ステレオ音声）
+- アプリケーション終了時の仮想デバイスの適切なクリーンアップ
+
+### オーディオルーティング図の理解
+
+上の図は、Sokujiと他のアプリケーション間のオーディオの流れを示しています：
+
+- **Chromium**: Sokujiアプリケーション自体を表します
+- **Google Chrome**: Google Meet、Microsoft Teams、Zoomなどの会議アプリケーションがChromeで実行されていることを表します
+- **Sokuji_Virtual_Speaker**: Sokujiによって作成された仮想スピーカー
+- **Sokuji_Virtual_Mic**: Sokujiによって作成された高度なミキシング機能を備えた仮想マイク
+- **HyperX 7.1 Audio**: 物理的なオーディオデバイスを表します
+
+図中の番号付き接続は以下を表します：
+
+**接続 ①**: Sokujiの音声出力は常に仮想スピーカーに送られます（変更不可）
+**接続 ②**: Sokujiの音声は高度なミキシングをサポートする仮想マイクにルーティングされます（変更不可）
+**接続 ③**: Sokujiのオーディオ設定で選択されたモニタリングデバイスで、翻訳された音声を再生するために使用されます
+**接続 ④**: Google Meet/Microsoft Teamsで選択された音声出力デバイス（設定で構成）
+**接続 ⑤**: Google Meet/Microsoft Teamsで入力として選択された仮想マイク（設定で構成）
+**接続 ⑥**: Sokujiのオーディオ設定で選択された入力デバイス
+
+このルーティングシステムにより、Sokujiは選択した入力デバイスから音声をキャプチャし、選択したAIプロバイダーを介して処理し、翻訳された音声をローカルスピーカーと仮想マイクを介して他のアプリケーションに高度なオーディオミキシング機能付きで出力できます。
+
+## 強化された仮想マイク機能
+
+仮想マイクは高度な音声処理をサポートするようになりました：
+
+- **デュアルキューシステム**: 通常音声トラックと即時音声トラック用の別々のキュー
+- **オーディオミキシング**: 複数の音声ストリームの同時再生
+- **ソフトクリッピング**: ミキシング中の音声歪みを防止
+- **チャンク化音声対応**: 大きな音声ファイルの効率的な処理
+- **リアルタイム処理**: 即時音声トラックは通常のキューをバイパスして低遅延再生を実現
+- **デバイスエミュレーター統合**: シームレスな仮想デバイス登録
+
+## 開発者ノート
+
+### アーキテクチャの改善
+
+**強化されたオーディオサービスアーキテクチャ**:
+- `EnhancedWavStreamPlayer`: PCMデータの自動ルーティングを備えた拡張WavStreamPlayer
+- 仮想マイク統合のための自動タブ通信
+- コンポーネント間の合理化されたオーディオデータフロー
+
+**最適化されたクライアント管理**:
+- `GeminiClient`: 一貫したインスタンスIDによる改善された会話アイテム管理
+- メソッド呼び出しの削減とパフォーマンスの向上
+- 長時間実行セッションのためのより良いメモリ管理
+
+**仮想マイクの実装**:
+- 通常音声トラックと即時音声トラック用のデュアルキューシステム
+- ソフトクリッピングによるリアルタイムオーディオミキシング
+- 大容量ファイル用のチャンク化音声処理
+- シームレスな仮想デバイス管理のためのデバイスエミュレーター統合
+
+# 準備
+
+- (必須) OpenAI, Google Gemini, または Palabra.ai のAPIキー。Palabra.aiの場合、クライアントIDとクライアントシークレットが必要です。
+- (必須) 仮想オーディオデバイスをサポートするPulseAudioまたはPipeWireを搭載したLinux（デスクトップアプリのみ）
 
 # インストール
 
-## 前提条件
-
-### Linux (Ubuntu/Debian)
-```bash
-sudo apt update
-sudo apt install pulseaudio pipewire pipewire-pulse wireplumber
-```
-
-### macOS
-macOSでは追加の依存関係は必要ありません。
-
-### Windows
-Windowsでは追加の依存関係は必要ありません。
-
-## プリビルドバイナリ
-
-[リリースページ](https://github.com/kizuna-ai-lab/sokuji/releases)から最新のプリビルドバイナリをダウンロードしてください：
-
-- **Linux**: `sokuji-linux-x64.tar.gz`
-- **macOS**: `sokuji-macos-x64.dmg`
-- **Windows**: `sokuji-windows-x64.exe`
-
-## ソースからのビルド
+## ソースから
 
 ### 前提条件
-- Node.js 18以上
-- npm または yarn
 
-### ステップ
+- Node.js（最新のLTSバージョンを推奨）
+- npm
+- Linuxの仮想オーディオデバイスサポート:
+  - PulseAudioまたはPipeWire
+  - PipeWireツール (`pw-link`)
 
-1. リポジトリをクローン：
+### 手順
+
+1. リポジトリをクローン
+   ```bash
+   git clone https://github.com/kizuna-ai-lab/sokuji.git
+   cd sokuji
+   ```
+
+2. 依存関係をインストール
+   ```bash
+   npm install
+   ```
+
+3. 開発モードでアプリケーションを起動
+   ```bash
+   npm run electron:dev
+   ```
+
+4. 本番用にアプリケーションをビルド
+   ```bash
+   npm run electron:build
+   ```
+
+## パッケージから
+
+### Debian パッケージ
+
+[リリースページ](https://github.com/kizuna-ai-lab/sokuji/releases)から最新のDebianパッケージをダウンロードしてインストールします：
+
 ```bash
-git clone https://github.com/kizuna-ai-lab/sokuji.git
-cd sokuji
+sudo dpkg -i sokuji_*.deb
 ```
 
-2. 依存関係をインストール：
-```bash
-npm install
-```
+# 使い方
 
-3. アプリケーションをビルド：
-```bash
-npm run build
-```
+1. **APIキーを設定**:
+   
+   <p align="center">
+     <img width="600" src="https://github.com/kizuna-ai-lab/sokuji/raw/main/screenshots/api-settings.png" alt="API Settings" />
+   </p>
+   
+   - 右上の設定ボタンをクリック
+   - 希望のプロバイダー（OpenAI, Gemini, またはPalabra）を選択
+   - 選択したプロバイダーのAPIキーを入力し、「検証」をクリック。Palabraの場合、クライアントIDとクライアントシークレットを入力する必要があります。
+   - 「保存」をクリックしてAPIキーを安全に保存
 
-4. アプリケーションを起動：
-```bash
-npm start
-```
+2. **オーディオデバイスを設定**:
+   
+   <p align="center">
+     <img width="600" src="https://github.com/kizuna-ai-lab/sokuji/raw/main/screenshots/audio-settings.png" alt="Audio Settings" />
+   </p>
+   
+   - オーディオボタンをクリックしてオーディオパネルを開く
+   - 入力デバイス（マイク）を選択
+   - 出力デバイス（スピーカー/ヘッドフォン）を選択
 
-または、開発モードで実行：
-```bash
-npm run dev
-```
+3. **セッションを開始**:
+   - 「セッションを開始」をクリックして開始
+   - マイクに向かって話す
+   - リアルタイムの文字起こしと翻訳を表示
 
-# 使用方法
-
-## 初期設定
-
-1. Sokujiを起動
-2. 設定タブに移動
-3. OpenAIまたはGoogle GeminiのAPIキーを入力
-4. 希望するAIモデルを選択
-5. 入力・出力オーディオデバイスを設定
-
-## 基本的な使用方法
-
-1. **開始**ボタンをクリックして翻訳セッションを開始
-2. マイクに向かって話す
-3. リアルタイムで翻訳された音声を聞く
-4. **停止**ボタンをクリックしてセッションを終了
-
-## 高度な機能
-
-### 仮想オーディオデバイス（Linux）
-Linuxでは、Sokujiは自動的に仮想オーディオデバイスを作成し、他のアプリケーションとの統合を可能にします。
-
-### ログとデバッグ
-包括的なログがアプリケーション内で利用可能で、API相互作用とオーディオ処理をデバッグできます。
-
-# 設定
-
-設定は以下の場所に保存されます：
-- **Linux**: `~/.config/sokuji/`
-- **macOS**: `~/Library/Application Support/sokuji/`
-- **Windows**: `%APPDATA%\sokuji\`
-
-# トラブルシューティング
-
-## 一般的な問題
-
-### オーディオデバイスが検出されない
-- オーディオドライバが最新であることを確認
-- アプリケーションを再起動
-- システムのオーディオ設定を確認
-
-### API接続の問題
-- インターネット接続を確認
-- APIキーが有効で正しく入力されていることを確認
-- APIクォータと使用制限を確認
-
-### Linux特有の問題
-- PulseAudioまたはPipeWireが実行されていることを確認
-- 必要な権限でアプリケーションが実行されていることを確認
-
-## ログ
-
-詳細なログは以下で利用可能です：
-- アプリケーション内のログタブ
-- 設定ディレクトリ内のログファイル
+4. **他のアプリケーションで使用**:
+   - ターゲットアプリケーションのマイク入力として「Sokuji_Virtual_Mic」を選択
+   - 翻訳された音声が高度なミキシングをサポートしてそのアプリケーションに送信されます
 
 # 貢献
 
