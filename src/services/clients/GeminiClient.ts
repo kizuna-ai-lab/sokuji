@@ -797,20 +797,6 @@ export class GeminiClient implements IClient {
         data: base64Audio
       }
     });
-
-    // Create a user conversation item for the audio input
-    const conversationItem: ConversationItem = {
-      id: this.instanceId,
-      role: 'user',
-      type: 'message',
-      status: 'completed',
-      formatted: {
-        audio: audioData
-      }
-    };
-    
-    // this.conversationItems.push(conversationItem);
-    // this.eventHandlers.onConversationUpdated?.({ item: conversationItem });
   }
 
   private arrayBufferToBase64(buffer: ArrayBuffer): string {
