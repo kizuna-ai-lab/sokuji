@@ -172,6 +172,22 @@
     "translationFailed": "Terjemahan gagal",
     "audioError": "Ralat pemprosesan audio"
   },
+  "audioFeedback": {
+    "title": "Amaran Maklum Balas Audio",
+    "description": "Maklum balas audio yang berpotensi dikesan. Ini boleh menyebabkan gema atau gelung bunyi semasa rakaman.",
+    "speakerModeWarning": "Mod Pembesar Suara Dikesan: Risiko tinggi gema/maklum balas yang boleh mengganggu ketepatan terjemahan.",
+    "inputDevice": "Peranti Input",
+    "outputDevice": "Peranti Output",
+    "recommendation": "Cadangan",
+    "solutions": {
+      "title": "Penyelesaian",
+      "differentDevices": "Pilih peranti input dan output yang berbeza",
+      "useHeadphones": "Gunakan fon kepala berbanding pembesar suara (sangat disyorkan)",
+      "adjustDistance": "Tingkatkan jarak antara mikrofon dan pembesar suara",
+      "disablePassthrough": "Lumpuhkan laluan audio asal",
+      "speakerModeHeadphones": "Untuk hasil terbaik dalam mod pembesar suara, gunakan fon kepala untuk mengelakkan gema audio yang boleh menyebabkan ralat terjemahan"
+    }
+  },
   "onboarding": {
     "back": "Kembali",
     "close": "Tutup",

@@ -172,6 +172,22 @@
     "translationFailed": "Échec de la traduction",
     "audioError": "Erreur de traitement audio"
   },
+  "audioFeedback": {
+    "title": "Avertissement de retour audio",
+    "description": "Retour audio potentiel détecté. Cela peut causer des échos ou des boucles sonores pendant l'enregistrement.",
+    "speakerModeWarning": "Mode haut-parleur détecté : Risque élevé d'écho/retour qui peut interférer avec la précision de traduction.",
+    "inputDevice": "Périphérique d'entrée",
+    "outputDevice": "Périphérique de sortie",
+    "recommendation": "Recommandation",
+    "solutions": {
+      "title": "Solutions",
+      "differentDevices": "Sélectionner des périphériques d'entrée et de sortie différents",
+      "useHeadphones": "Utiliser des écouteurs au lieu de haut-parleurs (fortement recommandé)",
+      "adjustDistance": "Augmenter la distance entre le microphone et les haut-parleurs",
+      "disablePassthrough": "Désactiver le passage audio original",
+      "speakerModeHeadphones": "Pour de meilleurs résultats en mode haut-parleur, utilisez des écouteurs pour éviter l'écho audio qui peut causer des erreurs de traduction"
+    }
+  },
   "onboarding": {
     "back": "Retour",
     "close": "Fermer",

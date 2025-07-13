@@ -92,6 +92,22 @@
     "translationFailed": "Çeviri başarısız",
     "audioError": "Ses işleme hatası"
   },
+  "audioFeedback": {
+    "title": "Ses Geri Beslemesi Uyarısı",
+    "description": "Potansiyel ses geri beslemesi tespit edildi. Bu kayıt sırasında eko veya ses döngülerine neden olabilir.",
+    "speakerModeWarning": "Hoparlör modu tespit edildi: Çeviri doğruluğunu etkileyebilecek yüksek eko/geri besleme riski.",
+    "inputDevice": "Giriş Cihazı",
+    "outputDevice": "Çıkış Cihazı",
+    "recommendation": "Öneri",
+    "solutions": {
+      "title": "Çözümler",
+      "differentDevices": "Farklı giriş ve çıkış cihazları seçin",
+      "useHeadphones": "Hoparlör yerine kulaklık kullanın (şiddetle önerilir)",
+      "adjustDistance": "Mikrofon ve hoparlörler arasındaki mesafeyi artırın",
+      "disablePassthrough": "Orijinal ses geçişini devre dışı bırakın",
+      "speakerModeHeadphones": "Hoparlör modunda en iyi sonuçlar için, çeviri hatalarına neden olabilecek ses ekosunu önlemek için kulaklık kullanın"
+    }
+  },
   "onboarding": {
     "back": "Geri",
     "close": "Kapat",
