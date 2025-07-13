@@ -83,6 +83,22 @@
     "translationFailed": "Översättning misslyckades",
     "audioError": "Ljudbehandlingsfel"
   },
+  "audioFeedback": {
+    "title": "Ljudåterkopplingsvarning",
+    "description": "Potentiell ljudåterkoppling upptäckt. Detta kan orsaka eko eller ljudslingor under inspelning.",
+    "speakerModeWarning": "Högtalarläge upptäckt: Hög risk för eko/återkoppling som kan störa översättningsnoggrannheten.",
+    "inputDevice": "Indataenhet",
+    "outputDevice": "Utdataenhet",
+    "recommendation": "Rekommendation",
+    "solutions": {
+      "title": "Lösningar",
+      "differentDevices": "Välj olika indata- och utdataenheter",
+      "useHeadphones": "Använd hörlurar istället för högtalare (starkt rekommenderat)",
+      "adjustDistance": "Öka avståndet mellan mikrofon och högtalare",
+      "disablePassthrough": "Inaktivera original ljudgenomgång",
+      "speakerModeHeadphones": "För bästa resultat i högtalarläge, använd hörlurar för att förhindra ljudeko som kan orsaka översättningsfel"
+    }
+  },
   "onboarding": {
     "back": "Tillbaka",
     "close": "Stäng",

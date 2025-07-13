@@ -83,6 +83,22 @@
     "translationFailed": "Nabigo ang pagsasalin",
     "audioError": "Error sa audio processing"
   },
+  "audioFeedback": {
+    "title": "Babala sa Audio Feedback",
+    "description": "Nadetektang posibleng audio feedback. Maaaring magdulot ito ng echo o sound loops sa panahon ng pagrekord.",
+    "speakerModeWarning": "Nadetektang Speaker Mode: Mataas na panganib ng echo/feedback na maaaring makagambala sa katumpakan ng pagsasalin.",
+    "inputDevice": "Input Device",
+    "outputDevice": "Output Device",
+    "recommendation": "Rekomendasyon",
+    "solutions": {
+      "title": "Mga Solusyon",
+      "differentDevices": "Pumili ng iba't ibang input at output devices",
+      "useHeadphones": "Gumamit ng headphones sa halip na speakers (lubos na inirerekomenda)",
+      "adjustDistance": "Dagdagan ang distansya sa pagitan ng microphone at speakers",
+      "disablePassthrough": "I-disable ang orihinal na audio passthrough",
+      "speakerModeHeadphones": "Para sa pinakamahusay na resulta sa speaker mode, gumamit ng headphones upang maiwasan ang audio echo na maaaring magdulot ng mga error sa pagsasalin"
+    }
+  },
   "onboarding": {
     "back": "Bumalik",
     "close": "Isara",
