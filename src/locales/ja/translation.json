@@ -172,6 +172,22 @@
     "translationFailed": "翻訳に失敗しました",
     "audioError": "音声処理エラー"
   },
+  "audioFeedback": {
+    "title": "オーディオフィードバック警告",
+    "description": "潜在的なオーディオフィードバックが検出されました。録音中にエコーやサウンドループが発生する可能性があります。",
+    "speakerModeWarning": "スピーカーモードが検出されました：エコー/フィードバックのリスクが高く、翻訳精度に影響する可能性があります。",
+    "inputDevice": "入力デバイス",
+    "outputDevice": "出力デバイス",
+    "recommendation": "推奨",
+    "solutions": {
+      "title": "解決策",
+      "differentDevices": "異なる入力および出力デバイスを選択する",
+      "useHeadphones": "スピーカーの代わりにヘッドフォンを使用する（強く推奨）",
+      "adjustDistance": "マイクとスピーカーの距離を増やす",
+      "disablePassthrough": "原音パススルーを無効にする",
+      "speakerModeHeadphones": "スピーカーモードで最良の結果を得るには、翻訳エラーの原因となるオーディオエコーを防ぐためにヘッドフォンを使用してください"
+    }
+  },
   "onboarding": {
     "back": "戻る",
     "close": "閉じる",

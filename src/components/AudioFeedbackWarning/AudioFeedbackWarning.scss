@@ -15,6 +15,23 @@
     border: 1px solid rgba(255, 255, 255, 0.1);
   }
 
+  // High risk (speaker mode) - stronger warning
+  &.high-risk .warning-content {
+    background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 12px 40px rgba(231, 76, 60, 0.4);
+  }
+
+  // Medium risk - standard warning
+  &.medium-risk .warning-content {
+    background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+  }
+
+  // Low risk - info style
+  &.low-risk .warning-content {
+    background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+  }
+
   .warning-header {
     display: flex;
     align-items: center;
@@ -110,6 +127,35 @@
       }
     }
 
+    .headphone-recommendation {
+      display: flex;
+      align-items: center;
+      margin: 16px 0;
+      padding: 16px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+      border: 2px solid rgba(255, 255, 255, 0.2);
+
+      .headphone-icon-wrapper {
+        margin-right: 12px;
+        
+        .headphone-icon {
+          color: #ffffff;
+          filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+        }
+      }
+
+      .headphone-text {
+        flex: 1;
+        
+        strong {
+          font-size: 14px;
+          color: #ffffff;
+          line-height: 1.4;
+        }
+      }
+    }
+
     .feedback-solutions {
       margin-top: 16px;
 
@@ -132,6 +178,17 @@
 
           &:last-child {
             margin-bottom: 0;
+          }
+
+          &.priority-solution {
+            font-weight: 600;
+            color: #ffffff;
+            position: relative;
+            
+            &::before {
+              content: '⚠️';
+              margin-right: 8px;
+            }
           }
         }
       }
