@@ -88,6 +88,22 @@
     "translationFailed": "Käännös epäonnistui",
     "audioError": "Äänen käsittelyn virhe"
   },
+  "audioFeedback": {
+    "title": "Äänipalautteen varoitus",
+    "description": "Mahdollinen äänipalautesilmukka havaittu. Tämä voi aiheuttaa kaikua tai äänisilmukoita nauhoituksen aikana.",
+    "speakerModeWarning": "Kaiutintila havaittu: Korkea kaiku/äänipalauteen riski, joka voi häiritä käännöksen tarkkuutta.",
+    "inputDevice": "Syöttölaite",
+    "outputDevice": "Ulostulolaite",
+    "recommendation": "Suositus",
+    "solutions": {
+      "title": "Ratkaisut",
+      "differentDevices": "Valitse erilaiset syöttö- ja ulostulolaitteet",
+      "useHeadphones": "Käytä kuulokkeita kaiuttimien sijaan (vahvasti suositeltu)",
+      "adjustDistance": "Lisää etäisyyttä mikrofonin ja kaiuttimien välille",
+      "disablePassthrough": "Poista alkuperäisen äänen läpiviennti käytöstä",
+      "speakerModeHeadphones": "Parhaan tuloksen saamiseksi kaiuttintilassa käytä kuulokkeita estääksesi äänikaikua, joka voi aiheuttaa käännösvirheitä"
+    }
+  },
   "onboarding": {
     "back": "Takaisin",
     "close": "Sulje",

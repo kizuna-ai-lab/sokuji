@@ -170,6 +170,22 @@
     "translationFailed": "Terjemahan gagal",
     "audioError": "Kesalahan pemrosesan audio"
   },
+  "audioFeedback": {
+    "title": "Peringatan Umpan Balik Audio",
+    "description": "Umpan balik audio potensial terdeteksi. Ini dapat menyebabkan gema atau loop suara selama perekaman.",
+    "speakerModeWarning": "Mode Speaker Terdeteksi: Risiko tinggi gema/umpan balik yang dapat mengganggu akurasi terjemahan.",
+    "inputDevice": "Perangkat Input",
+    "outputDevice": "Perangkat Output",
+    "recommendation": "Rekomendasi",
+    "solutions": {
+      "title": "Solusi",
+      "differentDevices": "Pilih perangkat input dan output yang berbeda",
+      "useHeadphones": "Gunakan headphone alih-alih speaker (sangat disarankan)",
+      "adjustDistance": "Tingkatkan jarak antara mikrofon dan speaker",
+      "disablePassthrough": "Nonaktifkan passthrough audio asli",
+      "speakerModeHeadphones": "Untuk hasil terbaik dalam mode speaker, gunakan headphone untuk mencegah gema audio yang dapat menyebabkan kesalahan terjemahan"
+    }
+  },
   "onboarding": {
     "back": "Kembali",
     "close": "Tutup",

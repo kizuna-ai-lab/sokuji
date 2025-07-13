@@ -172,6 +172,22 @@
     "translationFailed": "翻译失败",
     "audioError": "音频处理错误"
   },
+  "audioFeedback": {
+    "title": "音频反馈警告",
+    "description": "检测到潜在的音频反馈。这可能在录音期间导致回声或声音循环。",
+    "speakerModeWarning": "检测到扬声器模式：回声/反馈风险较高，可能会干扰翻译准确性。",
+    "inputDevice": "输入设备",
+    "outputDevice": "输出设备",
+    "recommendation": "建议",
+    "solutions": {
+      "title": "解决方案",
+      "differentDevices": "选择不同的输入和输出设备",
+      "useHeadphones": "使用耳机而不是扬声器（强烈推荐）",
+      "adjustDistance": "增加麦克风和扬声器之间的距离",
+      "disablePassthrough": "禁用原声直通",
+      "speakerModeHeadphones": "在扬声器模式下为获得最佳效果，请使用耳机以防止可能导致翻译错误的音频回声"
+    }
+  },
   "onboarding": {
     "back": "返回",
     "close": "关闭",

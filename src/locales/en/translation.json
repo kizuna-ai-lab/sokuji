@@ -217,15 +217,17 @@
   "audioFeedback": {
     "title": "Audio Feedback Warning",
     "description": "Potential audio feedback detected. This may cause echo or sound loops during recording.",
+    "speakerModeWarning": "Speaker Mode Detected: High echo/feedback risk that can interfere with translation accuracy.",
     "inputDevice": "Input Device",
     "outputDevice": "Output Device",
     "recommendation": "Recommendation",
     "solutions": {
       "title": "Solutions",
       "differentDevices": "Select different input and output devices",
-      "useHeadphones": "Use headphones instead of speakers",
+      "useHeadphones": "Use headphones instead of speakers (strongly recommended)",
       "adjustDistance": "Increase distance between microphone and speakers",
-      "disablePassthrough": "Disable original audio passthrough"
+      "disablePassthrough": "Disable original audio passthrough",
+      "speakerModeHeadphones": "For best results in speaker mode, use headphones to prevent audio echo that can cause translation errors"
     }
   },
   "onboarding": {

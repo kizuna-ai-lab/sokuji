@@ -5,12 +5,32 @@ This directory contains comprehensive documentation for the Sokuji project, orga
 ## Documentation Structure
 
 ### Application Documentation
-- **[app-analytics-integration.md](./app-analytics-integration.md)** - PostHog analytics integration for the main application
-- **[app-analytics-events.md](./app-analytics-events.md)** - Comprehensive reference for all PostHog analytics events
-- **[privacy-policy.html](./privacy-policy.html)** - Privacy policy for the application
+- **[app/](./app/)** - Main application (Electron/React) documentation
+  - Analytics integration and event tracking
+  - Configuration and setup guides
 
-### Extension Documentation
-- **[extension-audio-profile-notification.md](./extension-audio-profile-notification.md)** - Audio profile notification feature for browser extension
+### Extension Documentation  
+- **[extension/](./extension/)** - Browser extension documentation
+  - Feature implementations and integrations
+  - Analytics and user tracking
+
+### Store Documentation
+- **[store/](./store/)** - App store submission and response documentation
+  - Chrome Web Store communications
+  - Compliance and review feedback
+
+### User Guides
+- **[guides/](./guides/)** - User-facing guides and tutorials
+  - Onboarding and setup instructions
+  - Feature walkthroughs
+
+### Legal Documentation
+- **[privacy-policy.html](./privacy-policy.html)** - Privacy policy and data practices
+- **[legal/](./legal/)** - Additional legal documentation and compliance materials
+
+### Technical Analysis Documentation
+- **[audio-analysis/](./audio-analysis/)** - Comprehensive audio flow analysis and echo feedback documentation
+- **[github-issues/](./github-issues/)** - Technical analysis for specific GitHub issues
 
 ### Project Documentation
 - **[../README.md](../README.md)** - Main project README
@@ -35,40 +55,53 @@ All documentation files follow a consistent naming pattern:
 
 ## Documentation Categories
 
-### 📱 Application (app-*)
+### 📱 Application (app/)
 Documentation related to the main Electron/React application:
 - Analytics and tracking
 - Configuration and setup
 - Feature guides
 - Deployment instructions
 
-### 🔌 Extension (extension-*)
+### 🔌 Extension (extension/)
 Documentation related to the browser extension:
 - Feature implementations
 - Content script guides
 - Manifest configuration
-- Store submission guides
+- Analytics and tracking
 
-### 🔧 API (api-*)
-Documentation related to API integrations:
-- Authentication guides
-- Endpoint references
-- Integration examples
-- Rate limiting
+### 🏪 Store (store/)
+Documentation related to app store submissions:
+- Chrome Web Store communications
+- Review feedback and compliance
+- Publication requirements
+- Store optimization
 
-### 🚀 Deployment (deployment-*)
-Documentation related to deployment and infrastructure:
-- Build processes
-- Release procedures
-- Environment setup
-- CI/CD configuration
+### 📚 Guides (guides/)
+User-facing guides and tutorials:
+- Onboarding processes
+- Feature walkthroughs
+- Setup instructions
+- Best practices
 
-### 🧪 Testing (testing-*)
-Documentation related to testing:
-- Test strategies
-- Testing guides
-- Quality assurance
-- Performance testing
+### ⚖️ Legal (legal/)
+Legal documents and policies:
+- Privacy policies
+- Terms of service
+- Compliance documentation
+- Data protection
+
+### 🔊 Audio Analysis (audio-analysis/)
+Technical documentation and analysis:
+- Audio flow architecture
+- Echo feedback analysis
+- Browser AEC limitations
+- Solution recommendations
+
+### 🐛 GitHub Issues (github-issues/)
+Issue-specific technical analysis:
+- Problem investigation reports
+- Solution implementation details
+- Technical explanations for community
 
 ## Contributing to Documentation
 

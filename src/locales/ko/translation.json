@@ -172,6 +172,22 @@
     "translationFailed": "번역에 실패했습니다",
     "audioError": "오디오 처리 오류"
   },
+  "audioFeedback": {
+    "title": "오디오 피드백 경고",
+    "description": "잠재적인 오디오 피드백이 감지되었습니다. 녹음 중에 에코나 사운드 루프를 일으킬 수 있습니다.",
+    "speakerModeWarning": "스피커 모드 감지됨: 번역 정확성을 방해할 수 있는 높은 에코/피드백 위험이 있습니다.",
+    "inputDevice": "입력 장치",
+    "outputDevice": "출력 장치",
+    "recommendation": "권장사항",
+    "solutions": {
+      "title": "해결책",
+      "differentDevices": "다른 입력 및 출력 장치 선택",
+      "useHeadphones": "스피커 대신 헤드폰 사용 (강력히 권장)",
+      "adjustDistance": "마이크와 스피커 사이의 거리 늘리기",
+      "disablePassthrough": "원본 오디오 패스스루 비활성화",
+      "speakerModeHeadphones": "스피커 모드에서 최상의 결과를 위해 번역 오류를 일으킬 수 있는 오디오 에코를 방지하기 위해 헤드폰을 사용하세요"
+    }
+  },
   "onboarding": {
     "back": "뒤로",
     "close": "닫기",

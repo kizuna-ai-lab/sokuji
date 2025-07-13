@@ -172,6 +172,22 @@
     "translationFailed": "Vertaling mislukt",
     "audioError": "Audio verwerkingsfout"
   },
+  "audioFeedback": {
+    "title": "Audio Feedback Waarschuwing",
+    "description": "Mogelijke audio feedback gedetecteerd. Dit kan echo of geluidslussen veroorzaken tijdens opname.",
+    "speakerModeWarning": "Luidsprekermodus Gedetecteerd: Hoog echo/feedback risico dat de vertaalnauwkeurigheid kan verstoren.",
+    "inputDevice": "Invoerapparaat",
+    "outputDevice": "Uitvoerapparaat",
+    "recommendation": "Aanbeveling",
+    "solutions": {
+      "title": "Oplossingen",
+      "differentDevices": "Selecteer verschillende invoer- en uitvoerapparaten",
+      "useHeadphones": "Gebruik koptelefoons in plaats van luidsprekers (sterk aanbevolen)",
+      "adjustDistance": "Vergroot de afstand tussen microfoon en luidsprekers",
+      "disablePassthrough": "Schakel originele audio doorvoer uit",
+      "speakerModeHeadphones": "Voor de beste resultaten in luidsprekermodus, gebruik koptelefoons om audio echo te voorkomen dat vertaalfouten kan veroorzaken"
+    }
+  },
   "onboarding": {
     "back": "Terug",
     "close": "Sluiten",

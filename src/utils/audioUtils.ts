@@ -1,5 +1,26 @@
 /**
  * Audio utilities for enhanced audio processing and feedback prevention
+ * 
+ * ACOUSTIC ECHO CANCELLATION (AEC) ANALYSIS:
+ * 
+ * The main issue identified in GitHub issue #55 is that the WavStreamPlayer uses Web Audio API 
+ * to write PCM data directly to the audio output buffer. This prevents the browser's built-in 
+ * Acoustic Echo Cancellation (AEC) from recognizing the audio as a standard playback stream.
+ * 
+ * Current limitations:
+ * 1. Browser AEC cannot process programmatically generated audio via Web Audio API
+ * 2. The feedback loop occurs when microphone captures speaker output
+ * 3. No reference signal available for echo cancellation algorithms
+ * 
+ * Potential software-based AEC solutions (evaluated as complex/low priority):
+ * 1. WebAssembly AEC libraries (e.g., libspeex, WebRTC's AEC implementation)
+ * 2. Real-time audio processing with correlation-based echo detection
+ * 3. Adaptive filtering using LMS/NLMS algorithms
+ * 
+ * Recommended solution: Headphone usage (implemented via UI notifications)
+ * - Most reliable and immediate solution
+ * - No performance impact
+ * - Addresses root cause of feedback loop
  */
 
 /**
@@ -27,6 +48,27 @@ export const getEnhancedAudioConstraints = (deviceId?: string): MediaStreamConst
       googAudioMirroring: false, // Disable audio mirroring to prevent feedback
     } as any // Type assertion for advanced constraints
   };
+};
+
+/**
+ * Check if current setup is using speaker mode (WavStreamPlayer output to speakers)
+ */
+export const isSpeakerMode = (
+  outputDevice: { deviceId: string; label: string } | null
+): boolean => {
+  if (!outputDevice) {
+    return false;
+  }
+
+  const outputLabel = outputDevice.label.toLowerCase();
+  
+  // Speaker mode detection: output device that's NOT headphones/earphones
+  const isHeadphones = outputLabel.includes('headphone') || 
+                      outputLabel.includes('earphone') || 
+                      outputLabel.includes('earbud') ||
+                      outputLabel.includes('headset');
+  
+  return !isHeadphones;
 };
 
 /**
@@ -64,6 +106,11 @@ export const isLikelyToGenerateFeedback = (
     return true;
   }
 
+  // Speaker mode with microphone always has high feedback risk
+  if (isSpeakerMode(outputDevice)) {
+    return true;
+  }
+
   // Check for same device family (e.g., both are from the same manufacturer/product)
   const extractDeviceFamily = (label: string): string => {
     // Remove common prefixes and suffixes
@@ -94,19 +141,48 @@ export const getSafeAudioConfiguration = (
 ): {
   safePassthroughEnabled: boolean;
   recommendedAction?: string;
+  feedbackRisk: 'low' | 'medium' | 'high';
 } => {
   if (!isPassthroughEnabled) {
-    return { safePassthroughEnabled: false };
-  }
-
-  if (isLikelyToGenerateFeedback(inputDevice, outputDevice)) {
-    return {
+    return { 
       safePassthroughEnabled: false,
-      recommendedAction: 'Please select different input and output devices to enable real voice passthrough'
+      feedbackRisk: 'low'
     };
   }
 
-  return { safePassthroughEnabled: true };
+  if (!inputDevice || !outputDevice) {
+    return { 
+      safePassthroughEnabled: false,
+      feedbackRisk: 'low'
+    };
+  }
+
+  const isSpeaker = isSpeakerMode(outputDevice);
+  const isLikelyFeedback = isLikelyToGenerateFeedback(inputDevice, outputDevice);
+
+  // High risk: Speaker mode or clear feedback indicators
+  if (isSpeaker) {
+    return {
+      safePassthroughEnabled: false,
+      recommendedAction: 'For speaker mode, strongly recommend using headphones to prevent echo/feedback loops that can interfere with translation accuracy',
+      feedbackRisk: 'high'
+    };
+  }
+
+  // Medium/High risk: Other feedback indicators
+  if (isLikelyFeedback) {
+    return {
+      safePassthroughEnabled: false,
+      recommendedAction: 'Please select different input and output devices to enable real voice passthrough',
+      feedbackRisk: 'medium'
+    };
+  }
+
+  // Low risk: Safe configuration
+  return { 
+    safePassthroughEnabled: true,
+    feedbackRisk: 'low'
+  };
 };
 
 /**

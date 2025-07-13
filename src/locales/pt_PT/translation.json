@@ -172,6 +172,22 @@
     "translationFailed": "Falha na tradução",
     "audioError": "Erro de processamento de áudio"
   },
+  "audioFeedback": {
+    "title": "Aviso de Retorno de Áudio",
+    "description": "Retorno de áudio potencial detectado. Isto pode causar eco ou loops de som durante a gravação.",
+    "speakerModeWarning": "Modo Altifalante Detectado: Alto risco de eco/retorno que pode interferir na precisão da tradução.",
+    "inputDevice": "Dispositivo de Entrada",
+    "outputDevice": "Dispositivo de Saída",
+    "recommendation": "Recomendação",
+    "solutions": {
+      "title": "Soluções",
+      "differentDevices": "Seleccionar dispositivos de entrada e saída diferentes",
+      "useHeadphones": "Usar auscultadores em vez de altifalantes (altamente recomendado)",
+      "adjustDistance": "Aumentar a distância entre microfone e altifalantes",
+      "disablePassthrough": "Desactivar passagem de áudio original",
+      "speakerModeHeadphones": "Para melhores resultados no modo altifalante, use auscultadores para prevenir eco de áudio que pode causar erros de tradução"
+    }
+  },
   "onboarding": {
     "back": "Voltar",
     "close": "Fechar",
