@@ -172,6 +172,22 @@
     "translationFailed": "Übersetzung fehlgeschlagen",
     "audioError": "Audio-Verarbeitungsfehler"
   },
+  "audioFeedback": {
+    "title": "Audio-Feedback-Warnung",
+    "description": "Potentielles Audio-Feedback erkannt. Dies kann während der Aufnahme zu Echo oder Klangschleifen führen.",
+    "speakerModeWarning": "Lautsprechermodus erkannt: Hohes Echo-/Feedback-Risiko, das die Übersetzungsgenauigkeit beeinträchtigen kann.",
+    "inputDevice": "Eingabegerät",
+    "outputDevice": "Ausgabegerät",
+    "recommendation": "Empfehlung",
+    "solutions": {
+      "title": "Lösungen",
+      "differentDevices": "Verschiedene Eingabe- und Ausgabegeräte auswählen",
+      "useHeadphones": "Kopfhörer statt Lautsprecher verwenden (dringend empfohlen)",
+      "adjustDistance": "Abstand zwischen Mikrofon und Lautsprechern vergrößern",
+      "disablePassthrough": "Original-Audio-Durchleitung deaktivieren",
+      "speakerModeHeadphones": "Für beste Ergebnisse im Lautsprechermodus verwenden Sie Kopfhörer, um Audio-Echo zu verhindern, das Übersetzungsfehler verursachen kann"
+    }
+  },
   "onboarding": {
     "back": "Zurück",
     "close": "Schließen",

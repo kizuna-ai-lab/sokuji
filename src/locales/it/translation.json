@@ -172,6 +172,22 @@
     "translationFailed": "Traduzione fallita",
     "audioError": "Errore di elaborazione audio"
   },
+  "audioFeedback": {
+    "title": "Avviso Feedback Audio",
+    "description": "Rilevato potenziale feedback audio. Questo può causare eco o loop sonori durante la registrazione.",
+    "speakerModeWarning": "Modalità Altoparlante Rilevata: Alto rischio di eco/feedback che può interferire con l'accuratezza della traduzione.",
+    "inputDevice": "Dispositivo di Input",
+    "outputDevice": "Dispositivo di Output",
+    "recommendation": "Raccomandazione",
+    "solutions": {
+      "title": "Soluzioni",
+      "differentDevices": "Seleziona dispositivi di input e output diversi",
+      "useHeadphones": "Usa le cuffie invece degli altoparlanti (fortemente raccomandato)",
+      "adjustDistance": "Aumenta la distanza tra microfono e altoparlanti",
+      "disablePassthrough": "Disabilita il passthrough audio originale",
+      "speakerModeHeadphones": "Per i migliori risultati in modalità altoparlante, usa le cuffie per prevenire l'eco audio che può causare errori di traduzione"
+    }
+  },
   "onboarding": {
     "back": "Indietro",
     "close": "Chiudi",

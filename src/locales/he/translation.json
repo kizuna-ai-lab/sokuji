@@ -172,6 +172,22 @@
     "translationFailed": "התרגום נכשל",
     "audioError": "שגיאת עיבוד אודיו"
   },
+  "audioFeedback": {
+    "title": "אזהרת משוב אודיו",
+    "description": "זוהה משוב אודיו פוטנציאלי. זה עלול לגרום להד או לולאות קול במהלך ההקלטה.",
+    "speakerModeWarning": "זוהה מצב רמקול: סיכון גבוה להד/משוב שעלול להפריע לדיוק התרגום.",
+    "inputDevice": "התקן קלט",
+    "outputDevice": "התקן פלט",
+    "recommendation": "המלצה",
+    "solutions": {
+      "title": "פתרונות",
+      "differentDevices": "בחירת התקני קלט ופלט שונים",
+      "useHeadphones": "שימוש באוזניות במקום רמקולים (מומלץ מאוד)",
+      "adjustDistance": "הגדלת המרחק בין המיקרופון לרמקולים",
+      "disablePassthrough": "השבתת העברת האודיו המקורי",
+      "speakerModeHeadphones": "לתוצאות מיטביות במצב רמקול, השתמש באוזניות כדי למנוע הד אודיו שעלול לגרום לשגיאות תרגום"
+    }
+  },
   "onboarding": {
     "back": "חזור",
     "close": "סגור",

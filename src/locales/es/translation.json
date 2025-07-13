@@ -172,6 +172,22 @@
     "translationFailed": "Falló la traducción",
     "audioError": "Error de procesamiento de audio"
   },
+  "audioFeedback": {
+    "title": "Advertencia de retroalimentación de audio",
+    "description": "Se detectó posible retroalimentación de audio. Esto puede causar eco o bucles de sonido durante la grabación.",
+    "speakerModeWarning": "Modo altavoz detectado: Alto riesgo de eco/retroalimentación que puede interferir con la precisión de traducción.",
+    "inputDevice": "Dispositivo de entrada",
+    "outputDevice": "Dispositivo de salida",
+    "recommendation": "Recomendación",
+    "solutions": {
+      "title": "Soluciones",
+      "differentDevices": "Seleccionar dispositivos de entrada y salida diferentes",
+      "useHeadphones": "Usar auriculares en lugar de altavoces (muy recomendado)",
+      "adjustDistance": "Aumentar la distancia entre micrófono y altavoces",
+      "disablePassthrough": "Desactivar el paso de audio original",
+      "speakerModeHeadphones": "Para mejores resultados en modo altavoz, use auriculares para prevenir el eco de audio que puede causar errores de traducción"
+    }
+  },
   "onboarding": {
     "back": "Atrás",
     "close": "Cerrar",

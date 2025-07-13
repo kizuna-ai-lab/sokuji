@@ -171,6 +171,22 @@
     "translationFailed": "Tłumaczenie nie powiodło się",
     "audioError": "Błąd przetwarzania audio"
   },
+  "audioFeedback": {
+    "title": "Ostrzeżenie o sprzężeniu zwrotnym dźwięku",
+    "description": "Wykryto potencjalne sprzężenie zwrotne dźwięku. Może to powodować echo lub pętle dźwiękowe podczas nagrywania.",
+    "speakerModeWarning": "Wykryto tryb głośnika: Wysokie ryzyko echa/sprzężenia zwrotnego, które może zakłócać dokładność tłumaczenia.",
+    "inputDevice": "Urządzenie wejściowe",
+    "outputDevice": "Urządzenie wyjściowe",
+    "recommendation": "Zalecenie",
+    "solutions": {
+      "title": "Rozwiązania",
+      "differentDevices": "Wybierz różne urządzenia wejściowe i wyjściowe",
+      "useHeadphones": "Używaj słuchawek zamiast głośników (zdecydowanie zalecane)",
+      "adjustDistance": "Zwiększ odległość między mikrofonem a głośnikami",
+      "disablePassthrough": "Wyłącz przekazywanie oryginalnego dźwięku",
+      "speakerModeHeadphones": "Aby uzyskać najlepsze wyniki w trybie głośnika, używaj słuchawek, aby zapobiec echu dźwięku, które może powodować błędy tłumaczenia"
+    }
+  },
   "onboarding": {
     "back": "Wstecz",
     "close": "Zamknij",

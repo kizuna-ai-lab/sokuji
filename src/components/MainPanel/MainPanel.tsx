@@ -205,7 +205,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
    * Check for potential audio feedback and show warning
    */
   useEffect(() => {
-    if (feedbackWarningDismissed || !isRealVoicePassthroughEnabled) {
+    if (feedbackWarningDismissed || !isRealVoicePassthroughEnabled || !isMonitorDeviceOn) {
       setShowFeedbackWarning(false);
       return;
     }
@@ -225,7 +225,8 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     isRealVoicePassthroughEnabled,
     selectedInputDevice,
     selectedMonitorDevice,
-    feedbackWarningDismissed
+    feedbackWarningDismissed,
+    isMonitorDeviceOn
   ]);
 
   /**
@@ -1423,6 +1424,13 @@ const MainPanel: React.FC<MainPanelProps> = () => {
               selectedMonitorDevice,
               isRealVoicePassthroughEnabled
             ).recommendedAction
+          }
+          feedbackRisk={
+            getSafeAudioConfiguration(
+              selectedInputDevice,
+              selectedMonitorDevice,
+              isRealVoicePassthroughEnabled
+            ).feedbackRisk
           }
           onDismiss={() => {
             setShowFeedbackWarning(false);
