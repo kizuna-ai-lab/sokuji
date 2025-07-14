@@ -6,8 +6,9 @@ import { useSession } from '../../contexts/SessionContext';
 import { useAudioContext } from '../../contexts/AudioContext';
 import { useLog, RealtimeEvent } from '../../contexts/LogContext';
 import { IClient, ConversationItem, SessionConfig, ClientEventHandlers, ClientFactory } from '../../services/clients';
-import { WavRecorder } from '../../lib/wavtools';
+import { ModernAudioRecorder } from '../../lib/modern-audio';
 import { WavRenderer } from '../../utils/wav_renderer';
+import { WavRecorder } from '../../lib/wavtools/lib/wav_recorder';
 import { ServiceFactory } from '../../services/ServiceFactory'; // Import the ServiceFactory
 import { IAudioService } from '../../services/interfaces/IAudioService';
 import { useTranslation } from 'react-i18next';
@@ -15,7 +16,6 @@ import { useAnalytics } from '../../lib/analytics';
 import { isDevelopment } from '../../config/analytics';
 import { v4 as uuidv4 } from 'uuid';
 import { Provider, isOpenAICompatible } from '../../types/Provider';
-import { OpenAICompatibleSettings, GeminiSettings, PalabraAISettings } from '../../contexts/SettingsContext';
 import AudioFeedbackWarning from '../AudioFeedbackWarning/AudioFeedbackWarning';
 import { getSafeAudioConfiguration } from '../../utils/audioUtils';
 
@@ -189,7 +189,8 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         wavRecorder.setupPassthrough(
           wavStreamPlayer, 
           safePassthroughEnabled, 
-          realVoicePassthroughVolume
+          realVoicePassthroughVolume,
+          isMonitorDeviceOn
         );
         
         if (safePassthroughEnabled) {
@@ -199,7 +200,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         }
       }
     }
-  }, [isRealVoicePassthroughEnabled, realVoicePassthroughVolume, selectedInputDevice, selectedMonitorDevice]);
+  }, [isRealVoicePassthroughEnabled, realVoicePassthroughVolume, selectedInputDevice, selectedMonitorDevice, isMonitorDeviceOn]);
 
   /**
    * Check for potential audio feedback and show warning
@@ -231,17 +232,17 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
   /**
    * Instantiate:
-   * - WavRecorder (speech input)
+   * - ModernAudioRecorder (speech input)
    * - AI Client (API client)
    * - Audio service reference
    */
-  const wavRecorderRef = useRef<WavRecorder>(
-    new WavRecorder({ sampleRate: 24000 })
+  const wavRecorderRef = useRef<ModernAudioRecorder>(
+    new ModernAudioRecorder({ sampleRate: 24000, debug: false })
   );
 
   const clientRef = useRef<IClient | null>(null);
   
-  // Reference to audio service for accessing WavStreamPlayer
+  // Reference to audio service for accessing ModernAudioPlayer
   const audioServiceRef = useRef<IAudioService | null>(null);
 
   /**
@@ -304,8 +305,14 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         // }
       },
       onConversationUpdated: async ({ item, delta }: { item: ConversationItem; delta?: any }) => {
+        // Send delta audio to audio service for real-time streaming playback
         if (delta?.audio) {
-          audioService.addAudioData(delta.audio, item.id);
+          // Only stream assistant audio for real-time playback when monitor device is on
+          // User audio should NOT be played back to avoid echo
+          const shouldPlayAudio = isMonitorDeviceOn && item.role === 'assistant';
+          
+          // Use a consistent trackId for all AI assistant audio to ensure proper queuing
+          audioService.addAudioData(delta.audio, 'ai-assistant', shouldPlayAudio);
         }
         if (item.status === 'completed' && item.formatted?.audio) {
           const wavFile = await WavRecorder.decode(
@@ -322,13 +329,18 @@ const MainPanel: React.FC<MainPanelProps> = () => {
             (item.formatted?.audio || item.formatted?.text || item.formatted?.transcript)) {
           setTranslationCount(translationCount + 1);
         }
+        
+        // Note: We don't clear the streaming track for individual items anymore
+        // since all AI audio uses the same trackId 'ai-assistant' for proper queuing
+        // The streaming track will be cleared when the session ends or is interrupted
+        
         setItems(client.getConversationItems());
       }
     };
 
     client.setEventHandlers(eventHandlers);
     setItems(client.getConversationItems());
-  }, [addRealtimeEvent, translationCount]);
+  }, [addRealtimeEvent, translationCount, isMonitorDeviceOn]);
 
   /**
    * Disconnect and reset conversation state
@@ -367,6 +379,8 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     const audioService = audioServiceRef.current;
     if (audioService) {
       await audioService.interruptAudio();
+      // Clear the unified AI assistant streaming track
+      audioService.clearStreamingTrack('ai-assistant');
     }
   }, []);
 
@@ -485,7 +499,8 @@ const MainPanel: React.FC<MainPanelProps> = () => {
               wavRecorder.setupPassthrough(
                 wavStreamPlayer, 
                 safePassthroughEnabled, 
-                realVoicePassthroughVolume
+                realVoicePassthroughVolume,
+                isMonitorDeviceOn
               );
               
               if (safePassthroughEnabled) {
@@ -527,8 +542,14 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       }
       
       if (!turnDetectionDisabled && isInputDeviceOn) {
+        let audioCallbackCount = 0;
         await wavRecorder.record((data) => {
           if (client) {
+            // Debug logging every 100 calls to verify AI client receives data
+            if (audioCallbackCount % 100 === 0) {
+              console.log(`[Sokuji] [MainPanel] Sending audio to client: chunk ${audioCallbackCount}, PCM length: ${data.mono.length}`);
+            }
+            audioCallbackCount++;
             client.appendInputAudio(data.mono);
           }
         });
@@ -594,8 +615,14 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       }
 
       // Start recording
+      let pttAudioCallbackCount = 0;
       await wavRecorder.record((data) => {
         if (client) {
+          // Debug logging for push-to-talk (every 50 chunks)
+          if (pttAudioCallbackCount % 50 === 0) {
+            console.log(`[Sokuji] [MainPanel] PTT: Sending audio to client: chunk ${pttAudioCallbackCount}, PCM length: ${data.mono.length}`);
+          }
+          pttAudioCallbackCount++;
           client.appendInputAudio(data.mono);
         }
       });
@@ -684,11 +711,14 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       }
 
       // Play the audio using the audio service
+      // For manual playback (inline-play-button), always play regardless of monitor device state
+      // This is user's explicit action and should always work
+      const shouldPlayAudio = true; // Always play for manual playback (user's explicit action)
       const itemAudioData = item.formatted.audio;
       if (itemAudioData instanceof Int16Array) {
-        audioService.addAudioData(itemAudioData, item.id);
+        audioService.addAudioData(itemAudioData, item.id, shouldPlayAudio);
       } else if (itemAudioData instanceof ArrayBuffer) {
-        audioService.addAudioData(new Int16Array(itemAudioData), item.id);
+        audioService.addAudioData(new Int16Array(itemAudioData), item.id, shouldPlayAudio);
       } else {
         console.error('[Sokuji] [MainPanel] Unsupported audio data type');
         return;
@@ -763,21 +793,21 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       }
 
       // Clear the interrupted status for the test-tone track
-      // This is necessary because WavStreamPlayer keeps track of interrupted tracks
+      // This is necessary because ModernAudioPlayer keeps track of interrupted tracks
       // and won't play them again unless cleared
       audioService.clearInterruptedTracks();
       
-      // Add debug logging to check WavStreamPlayer's interruptedTrackIds
-      const wavStreamPlayer = audioService.getWavStreamPlayer();
-      console.debug('[Sokuji] [MainPanel] WavStreamPlayer before playing test tone: ' + wavStreamPlayer);
+      // Add debug logging to check ModernAudioPlayer's interruptedTrackIds
+      const modernAudioPlayer = audioService.getWavStreamPlayer();
+      console.debug('[Sokuji] [MainPanel] ModernAudioPlayer before playing test tone: ' + modernAudioPlayer);
       
       // Access and log the interruptedTrackIds with proper type checking
-      const interruptedTrackIds = (wavStreamPlayer as any).interruptedTrackIds || {};
-      console.debug('[Sokuji] [MainPanel] WavStreamPlayer interruptedTrackIds: ' + JSON.stringify(interruptedTrackIds));
+      const interruptedTrackIds = (modernAudioPlayer as any).interruptedTrackIds || {};
+      console.debug('[Sokuji] [MainPanel] ModernAudioPlayer interruptedTrackIds: ' + JSON.stringify(interruptedTrackIds));
       
-      // Manually clear the WavStreamPlayer's interruptedTrackIds for the test-tone
+      // Manually clear the ModernAudioPlayer's interruptedTrackIds for the test-tone
       if (typeof interruptedTrackIds === 'object' && interruptedTrackIds['test-tone']) {
-        console.debug('[Sokuji] [MainPanel] Manually clearing test-tone from WavStreamPlayer.interruptedTrackIds');
+        console.debug('[Sokuji] [MainPanel] Manually clearing test-tone from ModernAudioPlayer.interruptedTrackIds');
         delete interruptedTrackIds['test-tone'];
       }
       
@@ -798,8 +828,8 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       const response = await fetch(testToneUrl);
       const arrayBuffer = await response.arrayBuffer();
 
-      // Create a temporary audio context for decoding with the same sample rate as WavStreamPlayer
-      const targetSampleRate = 24000; // Match the sample rate used in WavStreamPlayer
+      // Create a temporary audio context for decoding with the same sample rate as ModernAudioPlayer
+      const targetSampleRate = 24000; // Match the sample rate used in ModernAudioPlayer
       const tempContext = new AudioContext({ sampleRate: targetSampleRate });
       const audioBuffer = await tempContext.decodeAudioData(arrayBuffer);
 
@@ -855,8 +885,8 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         pcm16bit[i] = Math.max(-32768, Math.min(32767, Math.floor(sample * 32767)));
       }
 
-      // Play the test tone using the audio service
-      audioService.addAudioData(pcm16bit, 'test-tone');
+      // Play the test tone using the audio service (respect monitor device state)
+      audioService.addAudioData(pcm16bit, 'test-tone', isMonitorDeviceOn);
 
       // Set the state to indicate test tone is playing
       setIsTestTonePlaying(true);
@@ -1026,13 +1056,23 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         }
         // If input device is turned on
         else {
-          // First, check if the recorder is initialized by checking the processor property
-          if (!wavRecorder.processor) {
+          // First, check if the recorder is initialized by checking the mediaRecorder property
+          if (!wavRecorder.mediaRecorder) {
             console.info('[Sokuji] [MainPanel] Input device turned on - initializing recorder with selected device');
             try {
               await wavRecorder.begin(selectedInputDevice?.deviceId);
             } catch (error) {
               console.error('[Sokuji] [MainPanel] Error initializing recorder:', error);
+              return;
+            }
+          } else {
+            // If already connected, end and restart to avoid "Already connected" error
+            console.info('[Sokuji] [MainPanel] Recorder already connected - restarting with new device');
+            try {
+              await wavRecorder.end();
+              await wavRecorder.begin(selectedInputDevice?.deviceId);
+            } catch (error) {
+              console.error('[Sokuji] [MainPanel] Error reinitializing recorder:', error);
               return;
             }
           }
@@ -1046,8 +1086,14 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           if (!turnDetectionDisabled) {
             console.info('[Sokuji] [MainPanel] Input device turned on - resuming recording in automatic mode');
             if (!wavRecorder.recording) {
+              let autoAudioCallbackCount = 0;
               await wavRecorder.record((data) => {
                 if (client) {
+                  // Debug logging for automatic mode (every 100 chunks)
+                  if (autoAudioCallbackCount % 100 === 0) {
+                    console.log(`[Sokuji] [MainPanel] Auto: Sending audio to client: chunk ${autoAudioCallbackCount}, PCM length: ${data.mono.length}`);
+                  }
+                  autoAudioCallbackCount++;
                   client.appendInputAudio(data.mono);
                 }
               });

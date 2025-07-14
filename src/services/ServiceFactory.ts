@@ -1,7 +1,6 @@
 import { IAudioService } from './interfaces/IAudioService';
 import { ISettingsService } from './interfaces/ISettingsService';
-import { ElectronAudioService } from './electron/ElectronAudioService';
-import { BrowserAudioService } from './browser/BrowserAudioService';
+import { ModernBrowserAudioService } from '../lib/modern-audio/ModernBrowserAudioService';
 import { ElectronSettingsService } from './electron/ElectronSettingsService';
 import { BrowserSettingsService } from './browser/BrowserSettingsService';
 
@@ -61,14 +60,9 @@ export class ServiceFactory {
       return ServiceFactory.audioServiceInstance;
     }
     
-    // Create new instance if needed
-    if (ServiceFactory.isElectron()) {
-      console.info('[Sokuji] [ServiceFactory] Creating Electron audio service');
-      ServiceFactory.audioServiceInstance = new ElectronAudioService();
-    } else {
-      console.info('[Sokuji] [ServiceFactory] Creating Browser audio service');
-      ServiceFactory.audioServiceInstance = new BrowserAudioService();
-    }
+    // Create new instance if needed - both platforms now use the same unified service
+    console.info('[Sokuji] [ServiceFactory] Creating Modern Browser audio service (unified for all platforms)');
+    ServiceFactory.audioServiceInstance = new ModernBrowserAudioService();
     
     return ServiceFactory.audioServiceInstance;
   }

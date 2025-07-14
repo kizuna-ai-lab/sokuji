@@ -1,5 +1,5 @@
 import { AudioDevice } from '../../contexts/AudioContext';
-import { WavStreamPlayer } from '../../lib/wavtools/index.js';
+import { ModernAudioPlayer } from '../../lib/modern-audio';
 
 export interface AudioDevices {
   inputs: AudioDevice[];
@@ -18,10 +18,6 @@ export interface IAudioService {
    */
   getDevices(): Promise<AudioDevices>;
   
-  /**
-   * Select and activate an input device (microphone)
-   */
-  selectInputDevice(deviceId: string): Promise<AudioOperationResult>;
   
   /**
    * Connect to a monitoring device
@@ -49,35 +45,37 @@ export interface IAudioService {
   initialize(): Promise<void>;
   
   /**
-   * Setup virtual audio output with the provided WavStreamPlayer
-   * @param externalWavStreamPlayer Optional external WavStreamPlayer to configure for virtual output
+   * Setup virtual audio output with the provided ModernAudioPlayer
+   * @param externalPlayer Optional external ModernAudioPlayer to configure for virtual output
    * @returns Promise resolving to true if virtual output was successfully set up, false otherwise
    */
-  setupVirtualAudioOutput(externalWavStreamPlayer?: WavStreamPlayer): Promise<boolean>;
+  setupVirtualAudioOutput(externalPlayer?: ModernAudioPlayer): Promise<boolean>;
   
   /**
-   * Gets the current WavStreamPlayer instance, creating one if it doesn't exist
+   * Gets the current ModernAudioPlayer instance, creating one if it doesn't exist
    */
-  getWavStreamPlayer(): WavStreamPlayer;
+  getWavStreamPlayer(): ModernAudioPlayer;
   
   /**
-   * Adds 16-bit PCM audio data to the WavStreamPlayer
+   * Adds 16-bit PCM audio data to the ModernAudioPlayer
    * @param data The audio data to add
    * @param trackId Optional track ID to associate with this audio
+   * @param shouldPlay Whether to play the audio (defaults to true for backward compatibility)
    */
-  addAudioData(data: Int16Array, trackId?: string): void;
+  addAudioData(data: Int16Array, trackId?: string, shouldPlay?: boolean): void;
   
   /**
    * Interrupts the currently playing audio
    * @returns Object containing trackId and offset if audio was interrupted
    */
   interruptAudio(): Promise<{ trackId: string; offset: number } | null>;
-  
+
   /**
-   * Checks if a track has been interrupted
-   * @param trackId The track ID to check
+   * Clear streaming audio data for a specific track
+   * @param trackId The track ID to clear
    */
-  isTrackInterrupted(trackId: string): boolean;
+  clearStreamingTrack(trackId: string): void;
+  
   
   /**
    * Clears the list of interrupted track IDs
