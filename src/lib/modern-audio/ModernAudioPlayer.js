@@ -105,7 +105,7 @@ export class ModernAudioPlayer {
     const streamData = this.streamingBuffers.get(trackId);
     if (!streamData) return;
 
-    const minBufferSize = this.sampleRate * 0.2; // 0.2 seconds
+    const minBufferSize = this.sampleRate * 0.1; // 0.1 seconds
     
     if (streamData.buffer.length >= minBufferSize) {
       this.flushStreamingBuffer(trackId);
@@ -142,7 +142,7 @@ export class ModernAudioPlayer {
 
     const timeoutId = setTimeout(() => {
       this.flushStreamingBuffer(trackId);
-    }, 300);
+    }, 100);
     
     this.streamingTimeouts.set(trackId, timeoutId);
   }
@@ -184,7 +184,7 @@ export class ModernAudioPlayer {
         clearInterval(checkInterval);
         this.processQueue(trackId);
       }
-    }, 100);
+    }, 10);
   }
 
   /**
