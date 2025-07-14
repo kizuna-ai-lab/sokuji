@@ -13,6 +13,10 @@ export class ModernAudioPlayer {
     this.currentAudioId = 0;
     this.outputDeviceId = null;
     
+    // Audio element pool for reuse
+    this.audioPool = [];
+    this.maxPoolSize = 3;
+    
     // Queue system for sequential playback
     this.trackQueues = new Map(); // Queue system for each trackId
     this.streamingBuffers = new Map(); // Accumulate chunks before queuing
@@ -176,30 +180,56 @@ export class ModernAudioPlayer {
   }
 
   /**
-   * Schedule processing of next queue item
+   * Schedule processing of next queue item using event-driven approach
    */
   scheduleNextPlayback(trackId) {
-    const checkInterval = setInterval(() => {
-      if (!this.isTrackPlaying(trackId)) {
-        clearInterval(checkInterval);
-        this.processQueue(trackId);
-      }
-    }, 10);
+    // Use event-driven approach instead of polling
+    // The next queue item will be processed when current audio ends
+    // This is handled in the audio.onended callback in playAudio()
   }
 
   /**
-   * Play audio buffer
+   * Get or create audio element from pool
+   */
+  getAudioElement() {
+    if (this.audioPool.length > 0) {
+      return this.audioPool.pop();
+    }
+    return new Audio();
+  }
+
+  /**
+   * Return audio element to pool for reuse
+   */
+  returnAudioElement(audio) {
+    if (this.audioPool.length < this.maxPoolSize) {
+      // Reset audio element state
+      audio.pause();
+      audio.currentTime = 0;
+      audio.src = '';
+      audio.onended = null;
+      audio.onerror = null;
+      audio.onplay = null;
+      
+      this.audioPool.push(audio);
+    }
+  }
+
+  /**
+   * Play audio buffer with optimized audio element reuse
    */
   playAudio(trackId, buffer, volume = 1.0) {
     try {
       // Apply volume if needed
       const processedBuffer = this.applyVolume(buffer, volume);
       
-      // Create and play audio
+      // Create WAV blob
       const wavBlob = this.createWavBlob(processedBuffer);
       const audioUrl = URL.createObjectURL(wavBlob);
-      const audio = new Audio(audioUrl);
       
+      // Get audio element from pool or create new one
+      const audio = this.getAudioElement();
+      audio.src = audioUrl;
       audio.volume = Math.max(0, Math.min(1, volume));
       audio.crossOrigin = 'anonymous';
       
@@ -216,9 +246,17 @@ export class ModernAudioPlayer {
         startTime: Date.now()
       });
 
-      // Setup event handlers
-      audio.onended = () => this.cleanupAudio(audioId);
-      audio.onerror = () => this.cleanupAudio(audioId);
+      // Setup event handlers with queue processing
+      audio.onended = () => {
+        this.cleanupAudio(audioId);
+        // Process next item in queue when current audio ends
+        setTimeout(() => this.processQueue(trackId), 0);
+      };
+      audio.onerror = () => {
+        this.cleanupAudio(audioId);
+        // Process next item even on error to prevent queue stalling
+        setTimeout(() => this.processQueue(trackId), 0);
+      };
       
       // Connect to analyser for visualization
       audio.onplay = () => this.connectToAnalyser(audio);
@@ -435,12 +473,13 @@ export class ModernAudioPlayer {
   }
 
   /**
-   * Cleanup audio element
+   * Cleanup audio element with pool reuse
    */
   cleanupAudio(audioId) {
     const audioInfo = this.audioElements.get(audioId);
     if (audioInfo) {
       URL.revokeObjectURL(audioInfo.url);
+      this.returnAudioElement(audioInfo.element);
       this.audioElements.delete(audioId);
     }
   }
