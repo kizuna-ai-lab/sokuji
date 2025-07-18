@@ -352,7 +352,7 @@ export class ModernAudioRecorder {
       
       // Handle passthrough (safe method)
       if (this._passthroughEnabled && this._passthroughPlayer && pcmData.length > 0) {
-        this._passthroughPlayer.playPassthrough(pcmData, this._passthroughVolume, this._passthroughShouldPlay);
+        this._passthroughPlayer.addToPassthroughBuffer(pcmData, this._passthroughVolume, this._passthroughShouldPlay);
       }
       
       // Send to AI processing if recording is active and callback is set

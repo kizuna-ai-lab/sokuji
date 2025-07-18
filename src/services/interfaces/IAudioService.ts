@@ -57,6 +57,12 @@ export interface IAudioService {
   getWavStreamPlayer(): ModernAudioPlayer;
   
   /**
+   * Set monitor volume (0 to mute, 1 for normal)
+   * @param enabled Whether monitor is enabled
+   */
+  setMonitorVolume(enabled: boolean): void;
+  
+  /**
    * Adds 16-bit PCM audio data to the ModernAudioPlayer
    * @param data The audio data to add
    * @param trackId Optional track ID to associate with this audio

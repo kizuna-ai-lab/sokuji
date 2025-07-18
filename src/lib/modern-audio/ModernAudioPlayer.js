@@ -22,6 +22,20 @@ export class ModernAudioPlayer {
     this.streamingBuffers = new Map(); // Accumulate chunks before queuing
     this.streamingTimeouts = new Map(); // Timeout management
     this.interruptedTracks = new Set(); // Track interrupted trackIds
+    
+    // Global volume control for monitor on/off
+    // Default to 0 (muted) since isMonitorDeviceOn defaults to false in AudioContext
+    this.globalVolumeMultiplier = 0.0;
+    
+    // Device switching state
+    this.isSettingDevice = false;
+    this.pendingDeviceId = null;
+    
+    // Track audio elements that have been connected to analyser
+    this.connectedAudioElements = new WeakSet();
+    
+    // Store gain nodes for volume control
+    this.audioGainNodes = new WeakMap();
   }
 
   /**
@@ -192,10 +206,16 @@ export class ModernAudioPlayer {
    * Get or create audio element from pool
    */
   getAudioElement() {
+    let audio;
     if (this.audioPool.length > 0) {
-      return this.audioPool.pop();
+      audio = this.audioPool.pop();
+    } else {
+      audio = new Audio();
     }
-    return new Audio();
+    
+    // Don't set sink ID here - it will be set after connecting to analyser
+    
+    return audio;
   }
 
   /**
@@ -230,13 +250,10 @@ export class ModernAudioPlayer {
       // Get audio element from pool or create new one
       const audio = this.getAudioElement();
       audio.src = audioUrl;
-      audio.volume = Math.max(0, Math.min(1, volume));
+      // Keep audio element volume at max to ensure data flows to analyser
+      // Volume control will be done via GainNode in Web Audio API
+      audio.volume = volume; // Only apply the track volume, not global multiplier
       audio.crossOrigin = 'anonymous';
-      
-      // Apply output device if set
-      if (this.outputDeviceId && audio.setSinkId) {
-        audio.setSinkId(this.outputDeviceId);
-      }
 
       const audioId = ++this.currentAudioId;
       this.audioElements.set(audioId, {
@@ -245,6 +262,11 @@ export class ModernAudioPlayer {
         trackId: `${trackId}-stream`,
         startTime: Date.now()
       });
+
+      // Connect to analyser BEFORE playing
+      this.connectToAnalyser(audio);
+      
+      // Note: Output device is set on AudioContext level, not on individual audio elements
 
       // Setup event handlers with queue processing
       audio.onended = () => {
@@ -257,9 +279,6 @@ export class ModernAudioPlayer {
         // Process next item even on error to prevent queue stalling
         setTimeout(() => this.processQueue(trackId), 0);
       };
-      
-      // Connect to analyser for visualization
-      audio.onplay = () => this.connectToAnalyser(audio);
 
       audio.play().catch(error => {
         console.error('[ModernAudioPlayer] Playback failed:', error);
@@ -290,12 +309,34 @@ export class ModernAudioPlayer {
   connectToAnalyser(audio) {
     if (!this.context || !this.analyser) return;
     
+    // Check if this audio element has already been connected
+    if (this.connectedAudioElements.has(audio)) {
+      // Already connected, no need to create source again
+      return;
+    }
+    
     try {
+      // Create MediaElementSource (can only be done once per audio element)
       const source = this.context.createMediaElementSource(audio);
+      
+      // Create a gain node for volume control
+      const gainNode = this.context.createGain();
+      gainNode.gain.value = this.globalVolumeMultiplier;
+      
+      // Connect: source -> analyser (for visualization)
+      //          source -> gainNode -> destination (for playback with volume control)
       source.connect(this.analyser);
-      source.connect(this.context.destination);
+      source.connect(gainNode);
+      gainNode.connect(this.context.destination);
+      
+      // Store the gain node for this audio element
+      this.audioGainNodes.set(audio, gainNode);
+      
+      // Mark this audio element as connected
+      this.connectedAudioElements.add(audio);
     } catch (error) {
-      // Ignore if already connected
+      // This might happen if the audio element was already connected elsewhere
+      console.warn('[ModernAudioPlayer] Could not connect audio to analyser:', error.message);
     }
   }
 
@@ -377,6 +418,7 @@ export class ModernAudioPlayer {
     const dataArray = new Uint8Array(bufferLength);
     this.analyser.getByteFrequencyData(dataArray);
     
+    
     const result = new Float32Array(bufferLength);
     for (let i = 0; i < bufferLength; i++) {
       result[i] = dataArray[i] / 255.0;
@@ -389,24 +431,66 @@ export class ModernAudioPlayer {
   }
 
   /**
+   * Set global volume multiplier (for monitor on/off)
+   * @param {number} volume - Volume from 0 to 1
+   */
+  setGlobalVolume(volume) {
+    this.globalVolumeMultiplier = Math.max(0, Math.min(1, volume));
+    
+    // Apply to all gain nodes of currently playing audio elements
+    for (const [, audioInfo] of this.audioElements) {
+      const gainNode = this.audioGainNodes.get(audioInfo.element);
+      if (gainNode) {
+        // Use setValueAtTime for immediate change without clicks
+        gainNode.gain.setValueAtTime(this.globalVolumeMultiplier, this.context.currentTime);
+      }
+    }
+    
+    console.log(`[ModernAudioPlayer] Global volume set to: ${this.globalVolumeMultiplier}`);
+  }
+
+  /**
    * Set audio output device
    */
   async setSinkId(deviceId) {
+    // If already setting device or same device, skip
+    if (this.isSettingDevice || this.outputDeviceId === deviceId) {
+      if (this.outputDeviceId === deviceId) {
+        console.log('[ModernAudioPlayer] Device already set to:', deviceId);
+        return true;
+      }
+      // Store pending device ID to set after current operation
+      this.pendingDeviceId = deviceId;
+      return false;
+    }
+    
+    this.isSettingDevice = true;
+    
     try {
-      // Apply to all current audio elements
-      const promises = [];
-      for (const [, audioInfo] of this.audioElements) {
-        if (audioInfo.element.setSinkId) {
-          promises.push(audioInfo.element.setSinkId(deviceId));
-        }
+      // Set output device on AudioContext instead of individual audio elements
+      if (this.context && this.context.setSinkId) {
+        await this.context.setSinkId(deviceId);
+        console.log('[ModernAudioPlayer] Successfully set AudioContext output device to:', deviceId);
+      } else {
+        console.warn('[ModernAudioPlayer] AudioContext.setSinkId not supported in this browser');
       }
       
-      await Promise.all(promises);
       this.outputDeviceId = deviceId;
+      
+      // Check if there's a pending device change
+      const pending = this.pendingDeviceId;
+      this.pendingDeviceId = null;
+      this.isSettingDevice = false;
+      
+      if (pending && pending !== deviceId) {
+        // Process pending device change
+        return this.setSinkId(pending);
+      }
       
       return true;
     } catch (error) {
       console.error('[ModernAudioPlayer] Failed to set sink ID:', error);
+      this.isSettingDevice = false;
       return false;
     }
   }
@@ -461,6 +545,14 @@ export class ModernAudioPlayer {
     // Remove from interrupted tracks
     this.interruptedTracks.delete(trackId);
   }
+  
+  /**
+   * Clear all interrupted tracks
+   */
+  clearInterruptedTracks() {
+    this.interruptedTracks.clear();
+    console.debug('[ModernAudioPlayer] Cleared all interrupted tracks');
+  }
 
   /**
    * Clear timeout for a track
@@ -479,6 +571,14 @@ export class ModernAudioPlayer {
     const audioInfo = this.audioElements.get(audioId);
     if (audioInfo) {
       URL.revokeObjectURL(audioInfo.url);
+      
+      // Clean up gain node
+      const gainNode = this.audioGainNodes.get(audioInfo.element);
+      if (gainNode) {
+        gainNode.disconnect();
+        this.audioGainNodes.delete(audioInfo.element);
+      }
+      
       this.returnAudioElement(audioInfo.element);
       this.audioElements.delete(audioId);
     }

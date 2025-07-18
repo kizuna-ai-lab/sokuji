@@ -277,19 +277,27 @@ export class ModernBrowserAudioService implements IAudioService {
   }
 
   /**
+   * Set monitor volume (0 to mute, 1 for normal)
+   * @param enabled Whether monitor is enabled
+   */
+  public setMonitorVolume(enabled: boolean): void {
+    const volume = enabled ? 1.0 : 0.0;
+    this.player.setGlobalVolume(volume);
+    console.log(`[Sokuji] [ModernBrowserAudio] Monitor volume set to: ${volume}`);
+  }
+
+  /**
    * Add audio data for playback and virtual microphone
    * @param data The audio data to add
    * @param trackId Optional track ID
-   * @param shouldPlay Whether to play the audio (defaults to true for backward compatibility)
+   * @param shouldPlay Whether to play the audio (kept for compatibility but always true internally)
    */
   public addAudioData(data: Int16Array, trackId?: string, shouldPlay: boolean = true): void {
     let result = data;
     
-    // Only play through modern player if shouldPlay is true
-    if (shouldPlay) {
-      // Use streaming audio for real-time playback to avoid audio fragments
-      result = this.player.addStreamingAudio(result, trackId);
-    }
+    // Always add audio to player - let global volume control handle muting
+    // Use streaming audio for real-time playback to avoid audio fragments
+    result = this.player.addStreamingAudio(result, trackId);
     
     // Always send to virtual microphone (maintain compatibility)
     this.sendPcmDataToTabs(result, trackId);
@@ -461,6 +469,8 @@ export class ModernBrowserAudioService implements IAudioService {
    */
   public clearInterruptedTracks(): void {
     this.interruptedTrackIds = {};
+    // Also clear interrupted tracks in the player
+    this.player.clearInterruptedTracks();
     console.debug('[Sokuji] [ModernBrowserAudio] Cleared interrupted tracks');
   }
 }
