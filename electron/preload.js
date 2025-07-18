@@ -27,8 +27,6 @@ contextBridge.exposeInMainWorld(
         'set-config',
         'get-config-path',
         'open-directory',
-        'connect-virtual-speaker-to-output',
-        'disconnect-virtual-speaker-outputs',
         'create-virtual-speaker'
       ];
       if (validChannels.includes(channel)) {
