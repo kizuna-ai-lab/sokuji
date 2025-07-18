@@ -307,9 +307,9 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       onConversationUpdated: async ({ item, delta }: { item: ConversationItem; delta?: any }) => {
         // Send delta audio to audio service for real-time streaming playback
         if (delta?.audio) {
-          // Only stream assistant audio for real-time playback when monitor device is on
+          // Always stream assistant audio - monitor on/off is handled by global volume
           // User audio should NOT be played back to avoid echo
-          const shouldPlayAudio = isMonitorDeviceOn && item.role === 'assistant';
+          const shouldPlayAudio = item.role === 'assistant';
           
           // Use a consistent trackId for all AI assistant audio to ensure proper queuing
           audioService.addAudioData(delta.audio, 'ai-assistant', shouldPlayAudio);
@@ -696,12 +696,8 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         return;
       }
 
-      // Clear any interrupted track for this item
-      const wavStreamPlayer = audioService.getWavStreamPlayer();
-      const interruptedTrackIds = (wavStreamPlayer as any).interruptedTrackIds || {};
-      if (typeof interruptedTrackIds === 'object' && interruptedTrackIds[item.id]) {
-        delete interruptedTrackIds[item.id];
-      }
+      // The clearInterruptedTracks above should have cleared all interrupted tracks
+      // No need for additional manual clearing
 
       // If output device is ON, ensure monitor device is connected
       if (isMonitorDeviceOn && selectedMonitorDevice &&
@@ -797,18 +793,14 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       // and won't play them again unless cleared
       audioService.clearInterruptedTracks();
       
-      // Add debug logging to check ModernAudioPlayer's interruptedTrackIds
+      // Add debug logging to check ModernAudioPlayer's interruptedTracks
       const modernAudioPlayer = audioService.getWavStreamPlayer();
-      console.debug('[Sokuji] [MainPanel] ModernAudioPlayer before playing test tone: ' + modernAudioPlayer);
+      console.debug('[Sokuji] [MainPanel] ModernAudioPlayer before playing test tone');
       
-      // Access and log the interruptedTrackIds with proper type checking
-      const interruptedTrackIds = (modernAudioPlayer as any).interruptedTrackIds || {};
-      console.debug('[Sokuji] [MainPanel] ModernAudioPlayer interruptedTrackIds: ' + JSON.stringify(interruptedTrackIds));
-      
-      // Manually clear the ModernAudioPlayer's interruptedTrackIds for the test-tone
-      if (typeof interruptedTrackIds === 'object' && interruptedTrackIds['test-tone']) {
-        console.debug('[Sokuji] [MainPanel] Manually clearing test-tone from ModernAudioPlayer.interruptedTrackIds');
-        delete interruptedTrackIds['test-tone'];
+      // Check if test-tone is in interrupted tracks
+      const interruptedTracks = (modernAudioPlayer as any).interruptedTracks;
+      if (interruptedTracks instanceof Set && interruptedTracks.has('test-tone')) {
+        console.debug('[Sokuji] [MainPanel] test-tone is in interrupted tracks, will be cleared by clearInterruptedTracks');
       }
       
       console.debug('[Sokuji] [MainPanel] Cleared interrupted tracks before playing test tone');
@@ -885,8 +877,8 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         pcm16bit[i] = Math.max(-32768, Math.min(32767, Math.floor(sample * 32767)));
       }
 
-      // Play the test tone using the audio service (respect monitor device state)
-      audioService.addAudioData(pcm16bit, 'test-tone', isMonitorDeviceOn);
+      // Play the test tone using the audio service (always play, volume is controlled by monitor state)
+      audioService.addAudioData(pcm16bit, 'test-tone', true);
 
       // Set the state to indicate test tone is playing
       setIsTestTonePlaying(true);
@@ -962,6 +954,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
             serverCtx.clearRect(0, 0, serverCanvas.width, serverCanvas.height);
             
             try {
+              // Always show visualization regardless of Monitor state
               // Get the WavStreamPlayer from the audio service to access its frequencies
               const wavStreamPlayer = audioService.getWavStreamPlayer();
               
