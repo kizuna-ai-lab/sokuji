@@ -84,6 +84,23 @@ export class ModernAudioPlayer {
   }
 
   /**
+   * Add audio to passthrough buffer - immediate playback for monitoring
+   */
+  addToPassthroughBuffer(audioData, volume = 1.0, shouldPlay = true) {
+    if (!shouldPlay || this.globalVolumeMultiplier === 0) {
+      return;
+    }
+
+    // Use immediate playback for passthrough audio
+    const buffer = this.normalizeAudioData(audioData);
+    const trackId = 'passthrough';
+    
+    // Queue and immediately process for low-latency monitoring
+    this.queueAudio(trackId, buffer, volume * this.globalVolumeMultiplier);
+    this.processQueue(trackId);
+  }
+
+  /**
    * Normalize audio data to Int16Array
    */
   normalizeAudioData(audioData) {
