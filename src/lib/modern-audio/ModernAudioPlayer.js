@@ -13,9 +13,7 @@ export class ModernAudioPlayer {
     this.currentAudioId = 0;
     this.outputDeviceId = null;
     
-    // Audio element pool for reuse
-    this.audioPool = [];
-    this.maxPoolSize = 3;
+    // No pooling - create new audio elements each time to avoid connection issues
     
     // Queue system for sequential playback
     this.trackQueues = new Map(); // Queue system for each trackId
@@ -31,11 +29,11 @@ export class ModernAudioPlayer {
     this.isSettingDevice = false;
     this.pendingDeviceId = null;
     
-    // Track audio elements that have been connected to analyser
-    this.connectedAudioElements = new WeakSet();
-    
     // Store gain nodes for volume control
     this.audioGainNodes = new WeakMap();
+    
+    // Store source nodes for proper cleanup
+    this.audioSourceNodes = new WeakMap();
   }
 
   /**
@@ -203,40 +201,49 @@ export class ModernAudioPlayer {
   }
 
   /**
-   * Get or create audio element from pool
+   * Create new audio element
    */
-  getAudioElement() {
-    let audio;
-    if (this.audioPool.length > 0) {
-      audio = this.audioPool.pop();
-    } else {
-      audio = new Audio();
-    }
-    
-    // Don't set sink ID here - it will be set after connecting to analyser
-    
-    return audio;
+  createAudioElement() {
+    return new Audio();
   }
 
   /**
-   * Return audio element to pool for reuse
+   * Cleanup audio element
    */
-  returnAudioElement(audio) {
-    if (this.audioPool.length < this.maxPoolSize) {
-      // Reset audio element state
-      audio.pause();
-      audio.currentTime = 0;
-      audio.src = '';
-      audio.onended = null;
-      audio.onerror = null;
-      audio.onplay = null;
-      
-      this.audioPool.push(audio);
+  cleanupAudioElement(audio) {
+    // Disconnect source node if exists
+    const sourceNode = this.audioSourceNodes.get(audio);
+    if (sourceNode) {
+      try {
+        sourceNode.disconnect();
+      } catch (e) {
+        // Ignore disconnect errors
+      }
+      this.audioSourceNodes.delete(audio);
     }
+    
+    // Clean up gain node
+    const gainNode = this.audioGainNodes.get(audio);
+    if (gainNode) {
+      try {
+        gainNode.disconnect();
+      } catch (e) {
+        // Ignore disconnect errors
+      }
+      this.audioGainNodes.delete(audio);
+    }
+    
+    // Reset audio element state
+    audio.pause();
+    audio.currentTime = 0;
+    audio.src = '';
+    audio.onended = null;
+    audio.onerror = null;
+    audio.onplay = null;
   }
 
   /**
-   * Play audio buffer with optimized audio element reuse
+   * Play audio buffer
    */
   playAudio(trackId, buffer, volume = 1.0) {
     try {
@@ -247,8 +254,8 @@ export class ModernAudioPlayer {
       const wavBlob = this.createWavBlob(processedBuffer);
       const audioUrl = URL.createObjectURL(wavBlob);
       
-      // Get audio element from pool or create new one
-      const audio = this.getAudioElement();
+      // Create new audio element
+      const audio = this.createAudioElement();
       audio.src = audioUrl;
       // Keep audio element volume at max to ensure data flows to analyser
       // Volume control will be done via GainNode in Web Audio API
@@ -283,10 +290,14 @@ export class ModernAudioPlayer {
       audio.play().catch(error => {
         console.error('[ModernAudioPlayer] Playback failed:', error);
         this.cleanupAudio(audioId);
+        // Process next item even on play error to prevent queue stalling
+        setTimeout(() => this.processQueue(trackId), 0);
       });
 
     } catch (error) {
       console.error('[ModernAudioPlayer] Error playing audio:', error);
+      // Process next item even on error to prevent queue stalling
+      setTimeout(() => this.processQueue(trackId), 0);
     }
   }
 
@@ -309,11 +320,6 @@ export class ModernAudioPlayer {
   connectToAnalyser(audio) {
     if (!this.context || !this.analyser) return;
     
-    // Check if this audio element has already been connected
-    if (this.connectedAudioElements.has(audio)) {
-      // Already connected, no need to create source again
-      return;
-    }
     
     try {
       // Create MediaElementSource (can only be done once per audio element)
@@ -329,11 +335,10 @@ export class ModernAudioPlayer {
       source.connect(gainNode);
       gainNode.connect(this.context.destination);
       
-      // Store the gain node for this audio element
+      // Store the nodes for this audio element
       this.audioGainNodes.set(audio, gainNode);
+      this.audioSourceNodes.set(audio, source);
       
-      // Mark this audio element as connected
-      this.connectedAudioElements.add(audio);
     } catch (error) {
       // This might happen if the audio element was already connected elsewhere
       console.warn('[ModernAudioPlayer] Could not connect audio to analyser:', error.message);
@@ -406,7 +411,7 @@ export class ModernAudioPlayer {
   /**
    * Get frequency data for visualization
    */
-  getFrequencies(analysisType = 'frequency') {
+  getFrequencies() {
     if (!this.context || !this.analyser) {
       return {
         values: new Float32Array(1024),
@@ -565,21 +570,14 @@ export class ModernAudioPlayer {
   }
 
   /**
-   * Cleanup audio element with pool reuse
+
+   * Cleanup audio element and resources
    */
   cleanupAudio(audioId) {
     const audioInfo = this.audioElements.get(audioId);
     if (audioInfo) {
       URL.revokeObjectURL(audioInfo.url);
-      
-      // Clean up gain node
-      const gainNode = this.audioGainNodes.get(audioInfo.element);
-      if (gainNode) {
-        gainNode.disconnect();
-        this.audioGainNodes.delete(audioInfo.element);
-      }
-      
-      this.returnAudioElement(audioInfo.element);
+      this.cleanupAudioElement(audioInfo.element);
       this.audioElements.delete(audioId);
     }
   }
