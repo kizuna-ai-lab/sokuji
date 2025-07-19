@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useRef, useCallback, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useRef, useCallback, useEffect, ReactNode } from 'react';
 import { ServiceFactory } from '../services/ServiceFactory';
 import { IAudioService, AudioOperationResult } from '../services/interfaces/IAudioService';
 
@@ -97,9 +97,20 @@ export const AudioProvider = ({ children }: { children: ReactNode }) => {
         const result = await audioService.current.createVirtualDevices?.();
         if (result && result.success) {
           console.info('[Sokuji] [AudioContext] Successfully created virtual audio devices:', result.message);
-          // Refresh the device list again after creating virtual devices
-          const newDevices = await refreshDevices();
-          return newDevices;
+          // Get updated device list after creating virtual devices
+          const updatedDevices = await audioService.current.getDevices();
+          
+          setAudioInputDevices(updatedDevices.inputs);
+          setAudioMonitorDevices(updatedDevices.outputs);
+          
+          // Update selected devices if needed
+          if (updatedDevices.outputs.length > 0 && !selectedMonitorDevice) {
+            const nonVirtualOutputs = updatedDevices.outputs.filter(device => !device.isVirtual);
+            if (nonVirtualOutputs.length > 0) {
+              defaultMonitorDevice = nonVirtualOutputs[0];
+              setSelectedMonitorDevice(defaultMonitorDevice);
+            }
+          }
         } else {
           console.error('[Sokuji] [AudioContext] Failed to create virtual audio devices:', result?.error);
         }

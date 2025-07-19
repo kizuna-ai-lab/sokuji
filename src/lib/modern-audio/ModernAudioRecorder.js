@@ -36,7 +36,6 @@ export class ModernAudioRecorder {
     this._passthroughPlayer = null;
     this._passthroughEnabled = false;
     this._passthroughVolume = 0.2;
-    this._passthroughShouldPlay = true;
     
     // Audio processing
     this.onAudioData = null;
@@ -46,19 +45,17 @@ export class ModernAudioRecorder {
   }
 
   /**
-   * Sets up passthrough to a ModernAudioPlayer
-   * @param {import('./ModernAudioPlayer.js').ModernAudioPlayer} player The player instance to receive audio
+   * Sets up passthrough functionality
+   * @param {Object} player The audio player to use for passthrough (must have addToPassthroughBuffer method)
    * @param {boolean} enabled Whether passthrough is enabled
    * @param {number} volume Volume level (0.0 to 1.0)
-   * @param {boolean} shouldPlay Whether to actually play the passthrough audio
    * @returns {true}
    */
-  setupPassthrough(player, enabled = false, volume = 0.2, shouldPlay = true) {
+  setupPassthrough(player, enabled = false, volume = 0.2) {
     this._passthroughPlayer = player;
     this._passthroughEnabled = enabled;
     this._passthroughVolume = Math.max(0, Math.min(1, volume));
-    this._passthroughShouldPlay = shouldPlay;
-    this.log(`Passthrough setup: enabled=${enabled}, volume=${this._passthroughVolume}, shouldPlay=${shouldPlay}`);
+    this.log(`Passthrough setup: enabled=${enabled}, volume=${this._passthroughVolume}`);
     return true;
   }
 
@@ -84,16 +81,6 @@ export class ModernAudioRecorder {
     return true;
   }
 
-  /**
-   * Sets whether passthrough should actually play audio
-   * @param {boolean} shouldPlay Whether to play passthrough audio
-   * @returns {true}
-   */
-  setPassthroughShouldPlay(shouldPlay) {
-    this._passthroughShouldPlay = shouldPlay;
-    this.log(`Passthrough shouldPlay set to: ${this._passthroughShouldPlay}`);
-    return true;
-  }
 
   /**
    * Logs data in debug mode
@@ -352,7 +339,7 @@ export class ModernAudioRecorder {
       
       // Handle passthrough (safe method)
       if (this._passthroughEnabled && this._passthroughPlayer && pcmData.length > 0) {
-        this._passthroughPlayer.addToPassthroughBuffer(pcmData, this._passthroughVolume, this._passthroughShouldPlay);
+        this._passthroughPlayer.addToPassthroughBuffer(pcmData, this._passthroughVolume);
       }
       
       // Send to AI processing if recording is active and callback is set

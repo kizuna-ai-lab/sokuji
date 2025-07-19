@@ -16,6 +16,7 @@ export class ModernBrowserAudioService implements IAudioService {
   private passthrough: ModernPassthrough;
   private targetTabId: number | null = null;
   private interruptedTrackIds: { [key: string]: boolean } = {};
+  private initialized: boolean = false;
 
   constructor() {
     // Initialize modern audio components
@@ -39,6 +40,12 @@ export class ModernBrowserAudioService implements IAudioService {
    * Initialize the modern audio service
    */
   async initialize(): Promise<void> {
+    // Make initialization idempotent
+    if (this.initialized) {
+      console.info('[Sokuji] [ModernBrowserAudio] Audio service already initialized');
+      return;
+    }
+    
     // Connect the player
     await this.player.connect();
     
@@ -73,6 +80,7 @@ export class ModernBrowserAudioService implements IAudioService {
       console.error('[Sokuji] [ModernBrowserAudio] Error parsing URL parameters:', error);
     }
 
+    this.initialized = true;
     console.info('[Sokuji] [ModernBrowserAudio] Modern audio service initialized');
   }
 
@@ -290,9 +298,8 @@ export class ModernBrowserAudioService implements IAudioService {
    * Add audio data for playback and virtual microphone
    * @param data The audio data to add
    * @param trackId Optional track ID
-   * @param shouldPlay Whether to play the audio (kept for compatibility but always true internally)
    */
-  public addAudioData(data: Int16Array, trackId?: string, shouldPlay: boolean = true): void {
+  public addAudioData(data: Int16Array, trackId?: string): void {
     let result = data;
     
     // Always add audio to player - let global volume control handle muting
@@ -400,7 +407,7 @@ export class ModernBrowserAudioService implements IAudioService {
       }
       
       // Tab exists, send the message
-      chrome.tabs.sendMessage(tabId, message, (response: any) => {
+      chrome.tabs.sendMessage(tabId, message, (_response: any) => {
         if (chrome.runtime.lastError) {
           console.warn(`[Sokuji] [ModernBrowserAudio] Error sending to tab ${tabId}: ${chrome.runtime.lastError.message}`);
         }
@@ -425,7 +432,7 @@ export class ModernBrowserAudioService implements IAudioService {
           continue;
         }
         
-        chrome.tabs.sendMessage(tab.id, message, (response: any) => {
+        chrome.tabs.sendMessage(tab.id, message, (_response: any) => {
           // Ignore errors, as not all tabs will have our content script
           if (chrome.runtime.lastError) {
             console.debug(`[Sokuji] [ModernBrowserAudio] Tab ${tab.id} not ready: ${chrome.runtime.lastError.message}`);
