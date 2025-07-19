@@ -17,8 +17,12 @@ async function connectVirtualDevices() {
     // Try to connect using pw-link
     try {
       // First, let's find the exact port names
-      const { stdout: outputPorts } = await execPromise('pw-link -o | grep sokuji_virtual_output');
-      const { stdout: inputPorts } = await execPromise('pw-link -i | grep sokuji_virtual_mic');
+      const pwLinkOutputCmd = 'pw-link -o | grep sokuji_virtual_output';
+      const pwLinkInputCmd = 'pw-link -i | grep sokuji_virtual_mic';
+      console.log('[Sokuji] [PulseAudio] Executing:', pwLinkOutputCmd);
+      const { stdout: outputPorts } = await execPromise(pwLinkOutputCmd);
+      console.log('[Sokuji] [PulseAudio] Executing:', pwLinkInputCmd);
+      const { stdout: inputPorts } = await execPromise(pwLinkInputCmd);
       
       console.log('[Sokuji] [PulseAudio] Found output ports:', outputPorts.trim());
       console.log('[Sokuji] [PulseAudio] Found input ports:', inputPorts.trim());
@@ -33,7 +37,9 @@ async function connectVirtualDevices() {
       
       // Connect each channel
       for (let i = 0; i < Math.min(outputPortsArray.length, inputPortsArray.length); i++) {
-        await execPromise(`pw-link "${outputPortsArray[i]}" "${inputPortsArray[i]}"`);
+        const pwLinkCmd = `pw-link "${outputPortsArray[i]}" "${inputPortsArray[i]}"`;
+        console.log('[Sokuji] [PulseAudio] Executing:', pwLinkCmd);
+        await execPromise(pwLinkCmd);
         console.log(`[Sokuji] [PulseAudio] Connected: ${outputPortsArray[i]} -> ${inputPortsArray[i]}`);
       }
       
@@ -44,7 +50,10 @@ async function connectVirtualDevices() {
       console.log('[Sokuji] [PulseAudio] pw-link failed, trying pactl method...');
       
       // The module-remap-source should handle this automatically, but we can verify
-      const { stdout } = await execPromise('pactl list sources short | grep sokuji_virtual_mic');
+      const pactlListCmd = 'pactl list sources short | grep sokuji_virtual_mic';
+      console.log('[Sokuji] [PulseAudio] Executing:', pactlListCmd);
+      const { stdout } = await execPromise(pactlListCmd);
+      console.log('[Sokuji] [PulseAudio] Command output:', stdout.trim());
       if (stdout.includes('sokuji_virtual_mic')) {
         console.log('[Sokuji] [PulseAudio] Virtual mic is using monitor source (auto-connected via module-remap-source)');
         return true;
@@ -65,7 +74,9 @@ async function connectVirtualDevices() {
 async function createVirtualAudioDevices() {
   try {
     // Create a virtual output sink
-    const sinkResult = await execPromise('pactl load-module module-null-sink sink_name=sokuji_virtual_output sink_properties=device.description="Sokuji_Virtual_Speaker"');
+    const sinkCmd = 'pactl load-module module-null-sink sink_name=sokuji_virtual_output sink_properties=device.description="Sokuji_Virtual_Speaker"';
+    console.log('[Sokuji] [PulseAudio] Executing:', sinkCmd);
+    const sinkResult = await execPromise(sinkCmd);
     if (sinkResult && sinkResult.stdout) {
       virtualSinkModule = sinkResult.stdout.trim();
       console.log(`[Sokuji] [PulseAudio] Created virtual sink with module ID: ${virtualSinkModule}`);
@@ -75,7 +86,10 @@ async function createVirtualAudioDevices() {
     }
 
     // Create a virtual microphone source that uses the virtual sink as its monitor
-    const sourceResult = await execPromise('pactl load-module module-remap-source master=sokuji_virtual_output.monitor source_name=sokuji_virtual_mic source_properties=device.description="Sokuji_Virtual_Mic"');
+    // Add dont_move=true to prevent automatic connections to default devices
+    const sourceCmd = 'pactl load-module module-remap-source master=sokuji_virtual_output.monitor source_name=sokuji_virtual_mic source_properties=device.description="Sokuji_Virtual_Mic" channel_map=front-left,front-right';
+    console.log('[Sokuji] [PulseAudio] Executing:', sourceCmd);
+    const sourceResult = await execPromise(sourceCmd);
     if (sourceResult && sourceResult.stdout) {
       virtualSourceModule = sourceResult.stdout.trim();
       console.log(`[Sokuji] [PulseAudio] Created virtual microphone with module ID: ${virtualSourceModule}`);
@@ -89,10 +103,76 @@ async function createVirtualAudioDevices() {
       return false;
     }
 
+    // Wait a moment for connections to stabilize
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
+    // Disconnect any automatic connections to physical microphones
+    try {
+      console.log('[Sokuji] [PulseAudio] Checking for automatic connections to disconnect...');
+      
+      // Get all output ports that might be connected to virtual mic
+      const outputPortsCmd = 'pw-link -o | grep -v sokuji';
+      console.log('[Sokuji] [PulseAudio] Executing:', outputPortsCmd);
+      const { stdout: outputPorts } = await execPromise(outputPortsCmd);
+      const physicalPorts = outputPorts.trim().split('\n').filter(Boolean);
+      
+      // Check each physical port and disconnect if connected to virtual mic
+      for (const port of physicalPorts) {
+        try {
+          // Check if this port is connected to virtual mic FL
+          const checkFLCmd = `pw-link -l | grep -A1 "${port}" | grep "input.sokuji_virtual_mic:input_FL"`;
+          const { stdout: flConnected } = await execPromise(checkFLCmd).catch(() => ({ stdout: '' }));
+          
+          if (flConnected) {
+            const disconnectFLCmd = `pw-link -d "${port}" "input.sokuji_virtual_mic:input_FL"`;
+            console.log('[Sokuji] [PulseAudio] Disconnecting:', disconnectFLCmd);
+            await execPromise(disconnectFLCmd);
+            console.log(`[Sokuji] [PulseAudio] Disconnected ${port} from virtual mic FL`);
+          }
+          
+          // Check if this port is connected to virtual mic FR
+          const checkFRCmd = `pw-link -l | grep -A1 "${port}" | grep "input.sokuji_virtual_mic:input_FR"`;
+          const { stdout: frConnected } = await execPromise(checkFRCmd).catch(() => ({ stdout: '' }));
+          
+          if (frConnected) {
+            const disconnectFRCmd = `pw-link -d "${port}" "input.sokuji_virtual_mic:input_FR"`;
+            console.log('[Sokuji] [PulseAudio] Disconnecting:', disconnectFRCmd);
+            await execPromise(disconnectFRCmd);
+            console.log(`[Sokuji] [PulseAudio] Disconnected ${port} from virtual mic FR`);
+          }
+        } catch (err) {
+          // Ignore individual port errors
+        }
+      }
+      
+      console.log('[Sokuji] [PulseAudio] Finished checking for unwanted connections');
+    } catch (disconnectError) {
+      console.log('[Sokuji] [PulseAudio] Error while disconnecting:', disconnectError.message);
+    }
+
     // Connect the virtual devices
     const connected = await connectVirtualDevices();
     if (!connected) {
       console.log('[Sokuji] [PulseAudio] Warning: Virtual devices created but connection might not be established');
+    }
+    
+    // Verify the final state
+    console.log('[Sokuji] [PulseAudio] Verifying final device state...');
+    try {
+      const verifyCmd = 'pw-link -l | grep sokuji';
+      console.log('[Sokuji] [PulseAudio] Executing:', verifyCmd);
+      const { stdout: linkState } = await execPromise(verifyCmd);
+      console.log('[Sokuji] [PulseAudio] Current connections:', linkState.trim());
+    } catch (verifyError) {
+      console.log('[Sokuji] [PulseAudio] Could not verify with pw-link, trying pactl...');
+      try {
+        const pactlCmd = 'pactl list short | grep sokuji';
+        console.log('[Sokuji] [PulseAudio] Executing:', pactlCmd);
+        const { stdout: pactlState } = await execPromise(pactlCmd);
+        console.log('[Sokuji] [PulseAudio] Current devices:', pactlState.trim());
+      } catch (pactlError) {
+        console.log('[Sokuji] [PulseAudio] Could not verify device state');
+      }
     }
     
     console.log('[Sokuji] [PulseAudio] Virtual audio devices created successfully');
@@ -128,7 +208,9 @@ function removeVirtualAudioDevices() {
       try {
         console.log(`[Sokuji] [PulseAudio] Removing virtual source module ID: ${virtualSourceModule}`);
         // Use execSync for more reliable cleanup during exit
-        execSync(`pactl unload-module ${virtualSourceModule}`);
+        const unloadSourceCmd = `pactl unload-module ${virtualSourceModule}`;
+        console.log('[Sokuji] [PulseAudio] Executing:', unloadSourceCmd);
+        execSync(unloadSourceCmd);
         console.log('[Sokuji] [PulseAudio] Virtual microphone source stopped');
         virtualSourceModule = null;
       } catch (sourceError) {
@@ -143,7 +225,9 @@ function removeVirtualAudioDevices() {
       try {
         console.log(`[Sokuji] [PulseAudio] Removing virtual sink module ID: ${virtualSinkModule}`);
         // Use execSync for more reliable cleanup during exit
-        execSync(`pactl unload-module ${virtualSinkModule}`);
+        const unloadSinkCmd = `pactl unload-module ${virtualSinkModule}`;
+        console.log('[Sokuji] [PulseAudio] Executing:', unloadSinkCmd);
+        execSync(unloadSinkCmd);
         console.log('[Sokuji] [PulseAudio] Virtual sink stopped');
         virtualSinkModule = null;
       } catch (sinkError) {
@@ -192,8 +276,12 @@ function removeVirtualAudioDevices() {
  */
 async function isPulseAudioAvailable() {
   try {
-    const { stdout } = await execPromise('pactl info');
-    return stdout.includes('PulseAudio') || stdout.includes('Server Name');
+    const cmd = 'pactl info';
+    console.log('[Sokuji] [PulseAudio] Checking availability with:', cmd);
+    const { stdout } = await execPromise(cmd);
+    const isAvailable = stdout.includes('PulseAudio') || stdout.includes('Server Name');
+    console.log('[Sokuji] [PulseAudio] Available:', isAvailable);
+    return isAvailable;
   } catch (error) {
     console.error('[Sokuji] [PulseAudio] Error checking PulseAudio availability:', error);
     return false;
@@ -209,7 +297,10 @@ async function cleanupOrphanedDevices() {
     console.log('[Sokuji] [PulseAudio] Checking for orphaned virtual audio devices...');
     
     // Check for sokuji_virtual_output sink
-    const { stdout: sinkList } = await execPromise('pactl list sinks short');
+    const sinkListCmd = 'pactl list sinks short';
+    console.log('[Sokuji] [PulseAudio] Executing:', sinkListCmd);
+    const { stdout: sinkList } = await execPromise(sinkListCmd);
+    console.log('[Sokuji] [PulseAudio] Sinks found:', sinkList.trim());
     if (sinkList.includes('sokuji_virtual_output')) {
       console.log('[Sokuji] [PulseAudio] Found orphaned virtual sink, cleaning up...');
       try {
@@ -225,7 +316,10 @@ async function cleanupOrphanedDevices() {
     }
     
     // Check for sokuji_virtual_mic source
-    const { stdout: sourceList } = await execPromise('pactl list sources short');
+    const sourceListCmd = 'pactl list sources short';
+    console.log('[Sokuji] [PulseAudio] Executing:', sourceListCmd);
+    const { stdout: sourceList } = await execPromise(sourceListCmd);
+    console.log('[Sokuji] [PulseAudio] Sources found:', sourceList.trim());
     if (sourceList.includes('sokuji_virtual_mic')) {
       console.log('[Sokuji] [PulseAudio] Found orphaned virtual source, cleaning up...');
       try {
