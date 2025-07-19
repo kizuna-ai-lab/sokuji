@@ -91,8 +91,8 @@ Sokuji goes beyond basic translation by offering a complete audio routing soluti
    - **Simultaneous playback**: Mix both track types for enhanced audio experience
    - **Chunked audio support**: Efficient handling of large audio streams
 7. **Real-time Voice Passthrough**: Live audio monitoring during recording sessions
-8. **Virtual audio device** creation and management on Linux (using PulseAudio/PipeWire)
-9. **Automatic audio routing** between virtual devices
+8. **Cross-platform audio support** with modern Web Audio API
+9. **Automatic device switching** and configuration persistence
 10. **Audio input and output device selection**
 11. **Comprehensive logs** for tracking API interactions
 12. **Customizable model settings** (temperature, max tokens)
@@ -102,78 +102,54 @@ Sokuji goes beyond basic translation by offering a complete audio routing soluti
 16. **Configuration persistence** in user's home directory
 17. **Optimized AI Client Performance**: Enhanced conversation management with consistent ID generation
 
-# Audio Routing
+# Audio Architecture
 
-<p align="center">
-  <img width="600" src="https://github.com/kizuna-ai-lab/sokuji/raw/main/screenshots/audio-routing.png" alt="Audio Routing Diagram" />
-</p>
+Sokuji uses a modern audio processing pipeline built on Web Audio API:
 
-Sokuji creates virtual audio devices to facilitate seamless audio routing:
+- **ModernAudioRecorder**: Captures input with advanced echo cancellation
+- **ModernAudioPlayer**: Handles playback with queue-based audio management
+- **Real-time Processing**: Low-latency audio streaming with chunked playback
+- **Cross-platform Support**: Works on all platforms without requiring virtual devices
 
-- **Sokuji_Virtual_Speaker**: A virtual output sink that receives audio from the application
-- **Sokuji_Virtual_Mic**: A virtual microphone that can be selected as input in other applications
-- **Advanced Audio Mixing**: Dual-queue system supporting both regular and immediate audio tracks
-- **Real-time Audio Processing**: Simultaneous playback of multiple audio streams with proper mixing
-- Automatic connection between these devices using PipeWire's `pw-link` tool
-- Multi-channel support (stereo audio)
-- Proper cleanup of virtual devices when the application exits
+### Audio Flow
 
-### Understanding the Audio Routing Diagram
+The simplified audio flow in Sokuji:
 
-The diagram above illustrates the audio flow between Sokuji and other applications:
+1. **Input Capture**: Microphone audio is captured with echo cancellation enabled
+2. **AI Processing**: Audio is sent to the selected AI provider for translation
+3. **Playback**: Translated audio is played through the selected monitor device
+4. **Optional Passthrough**: Original voice can be monitored in real-time
 
-- **Chromium**: Represents the Sokuji application itself
-- **Google Chrome**: Represents meeting applications like Google Meet, Microsoft Teams, or Zoom running in Chrome
-- **Sokuji_Virtual_Speaker**: A virtual speaker created by Sokuji
-- **Sokuji_Virtual_Mic**: A virtual microphone created by Sokuji with enhanced mixing capabilities
-- **HyperX 7.1 Audio**: Represents a physical audio device
-
-The numbered connections in the diagram represent:
-
-**Connection ①**: Sokuji's audio output is always sent to the virtual speaker (this cannot be changed)  
-**Connection ②**: Sokuji's audio is routed to the virtual microphone with advanced mixing support (this cannot be changed)  
-**Connection ③**: The monitoring device selected in Sokuji's audio settings, used to play back the translated audio  
-**Connection ④**: The audio output device selected in Google Meet/Microsoft Teams (configured in their settings)  
-**Connection ⑤**: The virtual microphone selected as input in Google Meet/Microsoft Teams (configured in their settings)  
-**Connection ⑥**: The input device selected in Sokuji's audio settings  
-
-This routing system allows Sokuji to capture audio from your selected input device, process it through the selected AI provider, and then output the translated audio both to your local speakers and to other applications via the virtual microphone with advanced audio mixing capabilities.
-
-## Enhanced Virtual Microphone Features
-
-The virtual microphone now supports advanced audio processing:
-
-- **Dual-Queue System**: Separate queues for regular and immediate audio tracks
-- **Audio Mixing**: Simultaneous playback of multiple audio streams
-- **Soft Clipping**: Prevents audio distortion during mixing
-- **Chunked Audio Support**: Efficient handling of large audio files
-- **Real-time Processing**: Immediate audio tracks bypass regular queue for low-latency playback
-- **Device Emulator Integration**: Seamless virtual device registration
+This streamlined architecture provides:
+- Better echo cancellation using modern browser APIs
+- Lower latency through optimized audio pipelines
+- Improved compatibility across different platforms
+- Simplified device management without virtual devices
 
 ## Developer Notes
 
 ### Architecture Improvements
 
-**Enhanced Audio Service Architecture**:
-- `EnhancedWavStreamPlayer`: Extended WavStreamPlayer with automatic PCM data routing
-- Automatic tab communication for virtual microphone integration
-- Streamlined audio data flow between components
+**Modern Audio Service Architecture**:
+- `ModernAudioRecorder`: Web Audio API-based recording with echo cancellation
+- `ModernAudioPlayer`: Queue-based playback with event-driven processing
+- Unified audio service for both Electron and browser extension platforms
 
 **Optimized Client Management**:
 - `GeminiClient`: Improved conversation item management with consistent instance IDs
 - Reduced method calls and improved performance
 - Better memory management for long-running sessions
 
-**Virtual Microphone Implementation**:
-- Dual-queue system for regular and immediate audio tracks
-- Real-time audio mixing with soft clipping
-- Chunked audio processing for large files
-- Device emulator integration for seamless virtual device management
+**Audio Processing Implementation**:
+- Queue-based audio chunk management for smooth playback
+- Real-time passthrough with configurable volume control
+- Event-driven playback to reduce CPU usage
+- Automatic device switching and reconnection
 
 # Preparation
 
 - (required) An OpenAI, Google Gemini, or Palabra.ai API key. For Palabra.ai, you will need a Client ID and Client Secret.
-- (required) Linux with PulseAudio or PipeWire for virtual audio device support (desktop app only)
+- (optional) Linux with PulseAudio or PipeWire for advanced audio features (desktop app only)
 
 # Installation
 
@@ -183,9 +159,7 @@ The virtual microphone now supports advanced audio processing:
 
 - Node.js (latest LTS version recommended)
 - npm
-- For Linux virtual audio device support:
-  - PulseAudio or PipeWire
-  - PipeWire tools (`pw-link`)
+- Audio support works on all platforms (Windows, macOS, Linux)
 
 ### Steps
 
@@ -248,21 +222,22 @@ sudo dpkg -i sokuji_*.deb
    - Speak into your microphone
    - View real-time transcription and translation
 
-4. **Use with other applications**:
-   - Select "Sokuji_Virtual_Mic" as the microphone input in your target application
-   - The translated audio will be sent to that application with advanced mixing support
+4. **Monitor and control audio**:
+   - Toggle monitor device to hear translated output
+   - Enable real voice passthrough for live monitoring
+   - Adjust passthrough volume as needed
 
 ## Recent Improvements
 
-### Virtual Microphone Audio Mixing (v1.x.x)
+### Modern Audio Processing (v2.x.x)
 
-The virtual microphone now features a sophisticated dual-queue audio mixing system:
+The audio system now features improved echo cancellation and processing:
 
-- **Regular Audio Tracks**: Standard audio processing with sequential playback
-- **Immediate Audio Tracks**: Real-time audio that bypasses the regular queue for low-latency playback
-- **Simultaneous Mixing**: Both track types can play simultaneously, mixed together in real-time
-- **Soft Clipping**: Prevents audio distortion when mixing multiple audio streams
-- **Chunked Processing**: Efficient handling of large audio files through intelligent chunking
+- **Echo Cancellation**: Advanced echo suppression using modern Web Audio APIs
+- **Queue-Based Playback**: Smooth audio streaming with intelligent buffering
+- **Real-time Passthrough**: Monitor your voice with adjustable volume control
+- **Event-Driven Architecture**: Reduced CPU usage through efficient event handling
+- **Cross-Platform Support**: Unified audio handling across all platforms
 
 ### AI Client Optimization (v1.x.x)
 
@@ -288,10 +263,9 @@ Live audio monitoring capabilities:
 - OpenAI & Google Gemini APIs
 - Advanced Audio Processing:
   - Web Audio API for real-time audio processing
-  - AudioWorklet for high-performance audio streaming
-  - Dual-queue audio mixing system
-  - Device Emulator for virtual device management
-- PulseAudio/PipeWire for virtual audio devices
+  - MediaRecorder API for reliable audio capture
+  - ScriptProcessor for real-time audio analysis
+  - Queue-based playback system for smooth streaming
 - SASS for styling
 - Lucide React for icons
 
