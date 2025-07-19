@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Sokuji is a real-time AI-powered translation application available as both an Electron desktop app and a browser extension. It provides live speech translation using OpenAI, Google Gemini, and Palabra.ai APIs with advanced audio routing capabilities.
+Sokuji is a real-time AI-powered translation application available as both an Electron desktop app and a browser extension. It provides live speech translation using OpenAI, Google Gemini, and Palabra.ai APIs with modern audio processing capabilities.
 
 ## Development Commands
 
@@ -61,21 +61,21 @@ The codebase supports both Electron desktop app and Chrome/Edge browser extensio
 
 3. **Audio Processing Pipeline**
    ```
-   Input Device → ModernAudioRecorder → AI Provider → ModernAudioPlayer → Output Device + Virtual Mic
+   Input Device → ModernAudioRecorder → AI Provider → ModernAudioPlayer → Output Device
    ```
-   - `ModernAudioRecorder`: Captures input with passthrough support
-   - `ModernAudioPlayer`: Playback with dual-queue mixing system
-   - Virtual devices created via PulseAudio (Electron only)
+   - `ModernAudioRecorder`: Captures input with echo cancellation and optional passthrough
+   - `ModernAudioPlayer`: Queue-based playback with event-driven processing
+   - Unified audio service across all platforms (no virtual devices)
 
 4. **State Management**
    - React Context API for global state
    - Key contexts: AudioContext, SessionContext, SettingsContext, LogContext
    - No external state management libraries
 
-5. **Virtual Audio Device Management** (Electron only)
-   - `pulseaudio-utils.js` manages virtual devices
-   - Creates `Sokuji_Virtual_Speaker` and `Sokuji_Virtual_Mic`
-   - Automatic cleanup on app exit
+5. **Audio Service Management**
+   - `ModernBrowserAudioService` provides unified audio handling
+   - Cross-platform compatibility without virtual devices
+   - Automatic device switching and reconnection
 
 ## Important Patterns and Conventions
 
@@ -102,8 +102,8 @@ if (window.electronAPI) {
 
 ### Audio Handling
 - Always use ModernAudioPlayer/ModernAudioRecorder classes
-- Virtual microphone supports dual-queue mixing (regular + immediate tracks)
-- Passthrough audio uses dedicated 'passthrough' track ID
+- Audio playback uses queue-based system with event-driven processing
+- Passthrough audio uses dedicated 'passthrough' track ID for real-time monitoring
 
 ## Testing and Quality
 
@@ -128,19 +128,20 @@ if (window.electronAPI) {
 ### Modifying Audio Pipeline
 1. Audio processing in `src/lib/modern-audio/`
 2. Test with both regular and passthrough audio
-3. Ensure virtual device compatibility (Electron)
-4. Handle browser security restrictions
+3. Ensure echo cancellation is working properly
+4. Handle browser security restrictions and permissions
 
 ### Debugging Audio Issues
 - Check DevTools console for audio errors
 - Verify device permissions granted
-- Test virtual device creation (Linux: `pactl list`)
+- Test echo cancellation settings in browser
 - Monitor LogsPanel for real-time diagnostics
+- Check ScriptProcessor audio processing callbacks
 
 ## Platform Requirements
 
 ### Electron App
-- Linux with PulseAudio/PipeWire for virtual devices
+- Works on all platforms (Windows, macOS, Linux)
 - Node.js LTS version
 - Electron 34+
 

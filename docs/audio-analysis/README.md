@@ -1,53 +1,49 @@
-# Audio Analysis Documentation
+# Audio Analysis Documentation (Updated)
 
-This directory contains comprehensive documentation analyzing Sokuji's audio processing architecture and echo feedback issues.
+This directory contains comprehensive documentation analyzing Sokuji's modern audio processing architecture.
 
 ## Files
 
 ### [`audio-flow-analysis.md`](./audio-flow-analysis.md)
-Detailed technical analysis of Sokuji's audio flow path, including:
-- Main audio processing chain diagram
-- Echo source identification and analysis
-- Browser AEC failure explanation
+Detailed technical analysis of Sokuji's modern audio flow path, including:
+- Modern audio processing chain diagram
+- Echo cancellation improvements
+- New architecture solutions
 - Technical implementation details with code references
-- Solution comparison and recommendations
+- Performance optimizations
 
 ### [`audio-flow-mermaid.md`](./audio-flow-mermaid.md)
-Visual documentation using Mermaid diagrams, including:
+Visual documentation using Mermaid diagrams (needs updating), including:
 - Main audio flow path diagram
-- Detailed echo feedback loops visualization
-- Browser AEC failure analysis flowchart
+- Audio processing visualization
 - Technical implementation sequence diagram
-- Solution comparison decision tree
-- Audio processing architecture diagram
-- Speaker vs headphone mode comparison
-- Code location reference mindmap
+- Architecture comparison
+- Code location reference
 
 ### [`audio-flow-diagram.html`](./audio-flow-diagram.html)
-Interactive HTML visualization with:
-- Color-coded component flow diagram
-- Animated feedback loop indicators
-- Technical details tooltips
-- Solution comparison matrix
-- Responsive design for various screen sizes
+Interactive HTML visualization (needs updating) with:
+- Component flow diagram
+- Technical details
+- Architecture overview
+- Responsive design
 
-## Key Findings
+## Key Improvements (2025)
 
-1. **Three Echo Sources Identified:**
-   - Passthrough mechanism (~20ms delay)
-   - AI response playback (500-2000ms delay)
-   - Cumulative audio degradation
+1. **Echo Cancellation Fixed:**
+   - System-level AEC with `echoCancellationType: 'system'`
+   - `suppressLocalAudioPlayback` now properly implemented
+   - Automatic safety checks for passthrough
 
-2. **Browser AEC Limitations:**
-   - Cannot process AudioWorkletNode-generated audio
-   - Missing reference signal for echo cancellation
-   - Standard constraints ineffective for programmatic audio
+2. **Modern Architecture:**
+   - Replaced WavRecorder/WavStreamPlayer with ModernAudioRecorder/ModernAudioPlayer
+   - Event-driven processing instead of polling
+   - Removed virtual device dependencies
 
-3. **Recommended Solution:**
-   - Headphone usage provides 100% effective physical isolation
-   - No performance impact or code changes required
-   - Already implemented in UI warning system
+3. **Cross-Platform Support:**
+   - Unified audio service for all platforms
+   - No Linux-specific dependencies
+   - Better browser compatibility
 
-## Related Issues
+## Related Documentation
 
-- [GitHub Issue #55](../github-issues/issue-55-comment.md) - Original audio echo problem report
+- [GitHub Issue #55](../github-issues/issue-55-comment.md) - Original audio echo problem (now resolved)

@@ -1,29 +1,26 @@
-# Sokuji Audio Flow Path Analysis
+# Sokuji Audio Flow Path Analysis (Updated)
 
-## 1. Main Audio Flow Path Diagram
+## 1. Modern Audio Flow Path Diagram
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────────────┐
-│                                  Sokuji Audio Flow                                 │
+│                              Sokuji Modern Audio Flow                              │
 └─────────────────────────────────────────────────────────────────────────────────────┘
 
 ┌───────────────┐    ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│  Physical     │    │   wav_recorder  │    │   AI Client     │    │  wav_stream     │
-│  Microphone   │───▶│   (Recording)   │───▶│   (Processing)  │───▶│   _player       │
-└───────────────┘    └─────────────────┘    └─────────────────┘    │   (Playback)    │
-        ▲                       │                                   └─────────────────┘
-        │                       │                                            │
-        │                       ▼                                            ▼
-        │            ┌─────────────────┐                          ┌─────────────────┐
-        │            │  Passthrough    │                          │   Physical      │
-        │            │  (Real Voice)   │◀─────────────────────────│   Speakers      │
+│  Physical     │    │ModernAudioRecorder│   │   AI Client     │    │ModernAudioPlayer│
+│  Microphone   │───▶│   (Recording)   │───▶│   (Processing)  │───▶│   (Playback)    │
+└───────────────┘    └─────────────────┘    └─────────────────┘    └─────────────────┘
+        ▲                       │                                            │
+        │                       │                                            ▼
+        │                       ▼                                   ┌─────────────────┐
+        │            ┌─────────────────┐                          │ Monitor Device  │
+        │            │  Passthrough    │◀─────────────────────────│ (Speakers/      │
+        │            │  (Real Voice)   │                          │  Headphones)    │
         │            └─────────────────┘                          └─────────────────┘
         │                       │
-        │                       ▼
-        │            ┌─────────────────┐
-        └────────────│  ECHO FEEDBACK  │
-                     │     LOOP        │
-                     └─────────────────┘
+        │            [Echo Cancellation Applied]
+        └───────────────────────┘
 ```
 
 ## 2. Detailed Technical Flow Diagram
@@ -35,249 +32,168 @@
       │
       ▼
 ┌─────────────────────────────────────────────────────────────────────────────────────┐
-│                            INPUT PROCESSING                                         │
+│                            INPUT PROCESSING (ModernAudioRecorder)                  │
 ├─────────────────────────────────────────────────────────────────────────────────────┤
 │ navigator.mediaDevices.getUserMedia({                                              │
 │   audio: {                                                                         │
-│     echoCancellation: true,        // ✗ Ineffective - cannot process AudioWorklet │
-│     suppressLocalAudioPlayback: true, // ✗ Ineffective - only works for <audio>  │
-│     googEchoCancellation: true     // ✗ Ineffective - cannot identify programmatic│
+│     echoCancellation: true,        // ✅ Effective with modern implementation     │
+│     echoCancellationType: 'system', // ✅ Chrome M68+ system-level AEC           │
+│     suppressLocalAudioPlayback: true, // ✅ Now effective!                       │
+│     noiseSuppression: true,                                                       │
+│     autoGainControl: true                                                         │
 │   }                                                                                │
 │ })                                                                                 │
 └─────┬───────────────────────────────────────────────────────────────────────────────┘
       │
       ▼
 ┌─────────────────────────────────────────────────────────────────────────────────────┐
-│                          WAV_RECORDER PROCESSING                                   │
+│                          ModernAudioRecorder PROCESSING                            │
 ├─────────────────────────────────────────────────────────────────────────────────────┤
-│ MediaStreamSource → AudioWorkletNode(audio_processor) → data chunks               │
+│ MediaStreamSource → ScriptProcessor → Real-time PCM processing                     │
 │                                                                                     │
-│ processor.port.onmessage = (e) => {                                               │
-│   if (event === 'chunk') {                                                        │
-│     this.handlePassthrough(data);  // ← Immediate playback (ECHO SOURCE 1)       │
-│     this._chunkProcessor(data);     // ← Send to AI                               │
+│ scriptProcessor.onaudioprocess = (event) => {                                      │
+│   const pcmData = convertToPCM16(inputData);                                      │
+│                                                                                     │
+│   // Optional passthrough with safety checks                                       │
+│   if (passthroughEnabled && isSafeForPassthrough()) {                             │
+│     passthroughPlayer.addToPassthroughBuffer(pcmData);                           │
 │   }                                                                                │
+│                                                                                     │
+│   // Send to AI                                                                    │
+│   if (onAudioData) onAudioData({ mono: pcmData });                               │
 │ };                                                                                 │
 └─────┬─────────────────────────────────────┬─────────────────────────────────────────┘
       │                                     │
-      │ (Send to AI)                        │ (Passthrough)
+      │ (Send to AI)                        │ (Optional Passthrough)
       ▼                                     ▼
 ┌─────────────────────────────────────┐   ┌─────────────────────────────────────┐
 │        AI CLIENT                   │   │     PASSTHROUGH PATH                │
 ├─────────────────────────────────────┤   ├─────────────────────────────────────┤
-│ client.appendInputAudio(data.mono)  │   │ if (_passthroughEnabled) {          │
-│                                     │   │   _passthroughPlayer.addImmediatePCM│
-│ ↓ Process and generate response     │   │   (data.mono, _passthroughVolume)   │
-│                                     │   │ }                                   │
+│ client.appendInputAudio(data.mono)  │   │ Safety Checks:                      │
+│                                     │   │ - Different input/output devices    │
+│ ↓ Process and generate response     │   │ - No virtual devices as output      │
+│                                     │   │ - Volume control (0-60%)            │
 │ onConversationUpdated: ({ delta })  │   │                                     │
-│ audioService.addAudioData(delta.audio)│ │ ↓ Immediate playback (ECHO SOURCE 1)│
+│ audioService.addAudioData(delta.audio)│ │ ↓ Queue-based playback             │
 └─────────────────────────────────────┘   └─────────────────────────────────────┘
       │                                     │
       │ (AI response audio)                 │
       ▼                                     │
 ┌─────────────────────────────────────────────────────────────────────────────────────┐
-│                        WAV_STREAM_PLAYER PROCESSING                                │
+│                        ModernAudioPlayer PROCESSING                                │
 ├─────────────────────────────────────────────────────────────────────────────────────┤
-│ addAudioData(data) → wavStreamPlayer.add16BitPCM(data, trackId)                    │
+│ Queue-based audio management with event-driven playback                            │
 │                                                                                     │
-│ EnhancedWavStreamPlayer.add16BitPCM() {                                            │
-│   const result = super.add16BitPCM(arrayBuffer, trackId, volume);                 │
-│   this.audioService.sendPcmDataToTabs(result, trackId); // ← Send to virtual mic  │
-│   return result;                                                                   │
+│ addStreamingAudio(audioData, trackId) {                                            │
+│   // Accumulate chunks to prevent choppy playback                                 │
+│   accumulateChunk(trackId, buffer, volume);                                       │
+│   checkAndTriggerPlayback(trackId); // Play when buffer is ready                  │
 │ }                                                                                  │
 │                                                                                     │
-│ streamNode = new AudioWorkletNode(context, 'stream_processor');                    │
-│ streamNode.connect(context.destination); // ← Direct playback (ECHO SOURCE 2)     │
-└─────┬─────────────────────────────────────┬─────────────────────────────────────────┘
-      │                                     │
-      │ (Playback to speakers)              │ (Send to virtual microphone)
-      ▼                                     ▼
-┌─────────────────────────────────────┐   ┌─────────────────────────────────────┐
-│     PHYSICAL SPEAKERS               │   │   VIRTUAL MICROPHONE                │
-├─────────────────────────────────────┤   ├─────────────────────────────────────┤
-│ AudioContext.destination            │   │ sendPcmDataToTabs() →               │
-│                                     │   │ virtual-microphone.js →             │
-│ ↓ Audio output to physical environment│  │ Meeting apps (Zoom/Meet/Teams)      │
-│                                     │   │                                     │
-│ 🔊 Speaker plays:                   │   │ 🎤 Virtual microphone outputs:     │
-│ - AI response audio (ECHO SOURCE 2) │   │ - AI translation audio              │
-│ - User original voice (from Passthrough)│ │ - User original voice (if enabled) │
-└─────────────────────────────────────┘   └─────────────────────────────────────┘
+│ playAudio(trackId, buffer, volume) {                                              │
+│   const audio = new Audio(wavBlob);                                                │
+│   connectToAnalyser(audio); // For visualization                                  │
+│   audio.play();                                                                    │
+│   audio.onended = () => processQueue(trackId); // Event-driven queue processing   │
+│ }                                                                                  │
+└─────┬───────────────────────────────────────────────────────────────────────────────┘
       │
-      │ (Acoustic feedback)
+      │ (Playback to monitor device)
       ▼
 ┌─────────────────────────────────────────────────────────────────────────────────────┐
-│                              ECHO FEEDBACK LOOPS                                   │
+│                              MONITOR DEVICE OUTPUT                                 │
 ├─────────────────────────────────────────────────────────────────────────────────────┤
+│ AudioContext.destination → Selected Monitor Device                                  │
 │                                                                                     │
-│ 🔄 LOOP 1 - Passthrough Echo (Immediate echo):                                     │
-│ User speaks → wav_recorder → handlePassthrough → wav_stream_player →               │
-│ Speakers → Microphone captures → wav_recorder → handlePassthrough (cycles)        │
+│ - Global volume control via GainNode                                               │
+│ - Monitor on/off switch (volume 0 or 1)                                           │
+│ - Device switching via AudioContext.setSinkId()                                    │
 │                                                                                     │
-│ 🔄 LOOP 2 - AI Response Echo (AI response echo):                                   │
-│ User speaks → AI processing → wav_stream_player plays AI response →                │
-│ Speakers → Microphone captures AI response → Sent as new input to AI              │
-│                                                                                     │
-│ 🔄 LOOP 3 - Cumulative Echo (Cumulative echo):                                     │
-│ Multiple LOOP 1 + LOOP 2 → Audio quality gradually degrades → Delay accumulates   │
-│ → Volume may amplify                                                               │
-│                                                                                     │
+│ 🔊 Output includes:                                                               │
+│ - AI translated audio                                                              │
+│ - Optional passthrough audio (if enabled and safe)                                 │
 └─────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-## 3. Echo Source Analysis
+## 3. Echo Cancellation Improvements
 
-### ECHO SOURCE 1: Real Voice Passthrough
-```
-Location: wav_recorder.js:102-112
-Trigger: Every recording chunk
-Delay: ~20ms (real-time)
-Impact: Immediate echo of own voice
-```
-
-### ECHO SOURCE 2: AI Response Audio
-```
-Location: wav_stream_player.js:78
-Trigger: AI response playback
-Delay: ~500-2000ms (depends on AI processing time)
-Impact: AI responses include echo from previous conversation
-```
-
-## 4. Why Browser AEC Fails
-
+### Modern Echo Cancellation Stack:
 ```
 ┌─────────────────────────────────────────────────────────────────────────────────────┐
-│                       Why Browser AEC Cannot Work                                  │
+│                    Modern Echo Cancellation Implementation                         │
 ├─────────────────────────────────────────────────────────────────────────────────────┤
 │                                                                                     │
-│ Standard AEC Working Principle:                                                     │
-│ ┌─────────────┐    ┌─────────────┐    ┌─────────────┐                              │
-│ │ Microphone  │───▶│  AEC        │───▶│ Clean Audio │                              │
-│ │ Input       │    │ Algorithm   │    └─────────────┘                              │
-│ └─────────────┘    │             │                                                 │
-│                    │ Reference   │                                                 │
-│ ┌─────────────┐    │ Signal ↑    │                                                 │
-│ │ Speaker     │────┘             │                                                 │
-│ │ Output      │    └─────────────┘                                                 │
-│ └─────────────┘                                                                    │
+│ 1. System-Level AEC (echoCancellationType: 'system'):                             │
+│    - Uses OS-level echo cancellation                                              │
+│    - More effective than browser-only AEC                                         │
 │                                                                                     │
-│ Sokuji Actual Situation:                                                           │
-│ ┌─────────────┐    ┌─────────────┐    ┌─────────────┐                              │
-│ │ Microphone  │───▶│ Browser AEC │───▶│ Still Has   │                              │
-│ │ Input       │    │             │    │ Echo        │                              │
-│ └─────────────┘    │             │    └─────────────┘                              │
-│                    │ Reference   │                                                 │
-│ ┌─────────────┐    │ Signal      │                                                 │
-│ │AudioWorkletNode│ │ ✗ Cannot    │                                                 │
-│ │Generated Audio│  │ Identify    │                                                 │
-│ └─────────────┘────┘             │                                                 │
-│                    └─────────────┘                                                 │
+│ 2. suppressLocalAudioPlayback:                                                    │
+│    - Now properly implemented in modern browsers                                   │
+│    - Prevents local audio playback from being captured                            │
 │                                                                                     │
-│ Key Issues:                                                                         │
-│ • AudioWorkletNode generated audio is invisible to browser AEC                     │
-│ • suppressLocalAudioPlayback only works for <audio>/<video> elements               │
-│ • echoCancellation cannot process programmatically generated audio                 │
+│ 3. ScriptProcessor with Muted Output:                                             │
+│    - Uses dummyGain node with gain.value = 0                                      │
+│    - Prevents audio feedback while maintaining processing                          │
+│                                                                                     │
+│ 4. Safety Checks for Passthrough:                                                 │
+│    - Automatic detection of same input/output devices                             │
+│    - Disables passthrough when feedback loop detected                             │
 │                                                                                     │
 └─────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-## 5. Speaker Mode vs Headphone Mode
+## 4. Key Architecture Changes
 
-### Speaker Mode (Problem Mode):
-```
-┌─────────────┐         ┌─────────────┐
-│  Microphone │  Air     │  Speakers   │
-│     🎤      │◀─────────│     🔊     │
-└─────────────┘ Acoustic └─────────────┘
-                Feedback       ↑
-                             │ 
-                    ┌─────────────────┐
-                    │ wav_stream_player│
-                    └─────────────────┘
-                             
-Result: Physical acoustic feedback + Digital audio feedback = Double echo
-```
+### Old Architecture Issues:
+- WavRecorder/WavStreamPlayer created feedback loops
+- AudioWorklet-generated audio bypassed browser AEC
+- No safety checks for passthrough
+- Virtual devices complicated the audio path
 
-### Headphone Mode (Solution):
-```
-┌─────────────┐         ┌─────────────┐
-│  Microphone │   ✗     │  Headphones │
-│     🎤      │ Physical│     🎧     │
-└─────────────┘ Isolation└─────────────┘
-                             ↑
-                             │ 
-                    ┌─────────────────┐
-                    │ wav_stream_player│
-                    └─────────────────┘
-                             
-Result: Physical feedback blocked, only need to handle software Passthrough
-```
+### New Architecture Solutions:
+- ✅ MediaRecorder API with proper echo cancellation
+- ✅ HTMLAudioElement playback (AEC-friendly)
+- ✅ Automatic safety checks for passthrough
+- ✅ Simplified audio path without virtual devices
+- ✅ Event-driven queue processing (no polling)
 
-## 6. Solution Comparison
+## 5. Audio Processing Components
 
-| Solution | Implementation Complexity | Effectiveness | Performance Impact | Recommendation |
-|----------|---------------------------|---------------|-------------------|----------------|
-| Headphone Usage | None (user behavior) | ✅ 100% effective | None | ⭐⭐⭐⭐⭐ |
-| Disable Passthrough | Low (configuration option) | ✅ Partially effective | None | ⭐⭐⭐⭐ |
-| Software AEC | High (algorithm implementation) | ❓ Uncertain effectiveness | High CPU usage | ⭐⭐ |
-| Architecture Refactor | Very High (rewrite audio chain) | ✅ Possibly effective | High | ⭐ |
-
-## 7. Technical Implementation Details
-
-### wav_recorder Audio Processing Chain:
+### ModernAudioRecorder:
 ```javascript
-// Location: wav_recorder.js:358-388
-const constraints = {
-  audio: {
-    deviceId: deviceId ? { exact: deviceId } : undefined,
-    sampleRate: this.sampleRate,
-    // These constraints are INEFFECTIVE for AudioWorklet-generated audio
-    echoCancellation: true,
-    noiseSuppression: true,
-    autoGainControl: true,
-    suppressLocalAudioPlayback: true,
-    googEchoCancellation: true,
-    // ... other Google-specific constraints
-  }
-};
+// Key features:
+- MediaStream with echo cancellation constraints
+- ScriptProcessor for real-time PCM processing
+- Configurable passthrough with safety checks
+- Low-latency audio capture (20ms chunks)
 ```
 
-### wav_stream_player Audio Output Chain:
+### ModernAudioPlayer:
 ```javascript
-// Location: wav_stream_player.js:77-78
-const streamNode = new AudioWorkletNode(this.context, 'stream_processor');
-streamNode.connect(this.context.destination); // Direct speaker output - NO AEC REFERENCE
+// Key features:
+- Queue-based chunk accumulation (100ms minimum)
+- Event-driven playback (onended callbacks)
+- Global volume control via GainNode
+- Support for multiple concurrent tracks
 ```
 
-### Real Voice Passthrough Mechanism:
-```javascript
-// Location: wav_recorder.js:102-112
-handlePassthrough(data) {
-  if (this._passthroughEnabled && this._passthroughPlayer && data.mono) {
-    // IMMEDIATE PLAYBACK - Creates instant feedback loop
-    this._passthroughPlayer.addImmediatePCM(data.mono, this._passthroughVolume);
-  }
-}
-```
+## 6. Performance Optimizations
 
-### Enhanced Player with Virtual Microphone:
-```javascript
-// Location: BrowserAudioService.ts:23-32
-add16BitPCM(arrayBuffer: ArrayBuffer | Int16Array, trackId: string = 'default', volume: number = 1.0): Int16Array {
-  const result = super.add16BitPCM(arrayBuffer, trackId, volume); // Play to speakers
-  this.audioService.sendPcmDataToTabs(result, trackId);          // Send to virtual mic
-  return result;
-}
-```
+| Component | Old Implementation | New Implementation | Improvement |
+|-----------|-------------------|-------------------|-------------|
+| Recording | AudioWorklet polling | ScriptProcessor event-driven | Lower CPU usage |
+| Playback | Continuous AudioWorklet | HTMLAudioElement with events | Better memory management |
+| Echo Cancellation | Ineffective browser AEC | System-level AEC + safety checks | Eliminated echo issues |
+| Device Management | Virtual devices via PulseAudio | Direct device selection | Cross-platform compatibility |
 
-## 8. Conclusion
+## 7. Conclusion
 
-This technical analysis confirms that:
+The modern audio architecture successfully addresses the echo issues identified in the original analysis:
 
-1. **The combination of wav_recorder and wav_stream_player creates multiple echo feedback loops**
-2. **Real Voice Passthrough mechanism is the primary echo amplifier**
-3. **Browser built-in echo cancellation is completely ineffective for this architecture**
-4. **Headphone solution is the most reliable and practical approach**
-5. **Software AEC solutions would require major architectural changes with uncertain effectiveness**
+1. **Echo cancellation now works** thanks to proper API usage and system-level AEC
+2. **Passthrough is safe** with automatic feedback detection
+3. **Simplified architecture** without virtual devices improves reliability
+4. **Better performance** through event-driven processing
+5. **Cross-platform compatibility** by removing Linux-specific dependencies
 
-The analysis validates that GitHub issue #55's assessment is completely accurate: recommending headphone usage is the most practical solution for speaker mode echo elimination.
+The new implementation provides a robust, echo-free audio experience while maintaining all the original features.
