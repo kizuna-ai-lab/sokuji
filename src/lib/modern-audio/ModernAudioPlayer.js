@@ -28,6 +28,7 @@ export class ModernAudioPlayer {
     // Device switching state
     this.isSettingDevice = false;
     this.pendingDeviceId = null;
+    this.deviceChangePromise = null;
     
     // Store gain nodes for volume control
     this.audioGainNodes = new WeakMap();
@@ -40,6 +41,15 @@ export class ModernAudioPlayer {
    * Initialize the audio player
    */
   async connect() {
+    // Make this method idempotent - only create context if it doesn't exist
+    if (this.context) {
+      console.log('[ModernAudioPlayer] AudioContext already initialized');
+      if (this.context.state === 'suspended') {
+        await this.context.resume();
+      }
+      return true;
+    }
+    
     this.context = new AudioContext({ sampleRate: this.sampleRate });
     if (this.context.state === 'suspended') {
       await this.context.resume();
@@ -86,8 +96,8 @@ export class ModernAudioPlayer {
   /**
    * Add audio to passthrough buffer - immediate playback for monitoring
    */
-  addToPassthroughBuffer(audioData, volume = 1.0, shouldPlay = true) {
-    if (!shouldPlay || this.globalVolumeMultiplier === 0) {
+  addToPassthroughBuffer(audioData, volume = 1.0) {
+    if (this.globalVolumeMultiplier === 0) {
       return;
     }
 
@@ -475,18 +485,53 @@ export class ModernAudioPlayer {
    * Set audio output device
    */
   async setSinkId(deviceId) {
-    // If already setting device or same device, skip
-    if (this.isSettingDevice || this.outputDeviceId === deviceId) {
-      if (this.outputDeviceId === deviceId) {
-        console.log('[ModernAudioPlayer] Device already set to:', deviceId);
-        return true;
-      }
-      // Store pending device ID to set after current operation
-      this.pendingDeviceId = deviceId;
-      return false;
+    console.log('[ModernAudioPlayer] setSinkId called with:', deviceId, 'current state:', {
+      hasContext: !!this.context,
+      isSettingDevice: this.isSettingDevice,
+      currentDeviceId: this.outputDeviceId
+    });
+    
+    // Check if device is already set
+    if (this.outputDeviceId === deviceId) {
+      console.log('[ModernAudioPlayer] Device already set to:', deviceId);
+      return true;
     }
     
-    this.isSettingDevice = true;
+    // If there's an ongoing device change, wait for it if it's the same device
+    if (this.deviceChangePromise && this.pendingDeviceId === deviceId) {
+      console.log('[ModernAudioPlayer] Waiting for ongoing device change to same device');
+      return this.deviceChangePromise;
+    }
+    
+    // Create a new promise for this device change
+    this.pendingDeviceId = deviceId;
+    this.deviceChangePromise = this._performDeviceChange(deviceId);
+    
+    try {
+      return await this.deviceChangePromise;
+    } finally {
+      // Clear the promise when done
+      if (this.pendingDeviceId === deviceId) {
+        this.deviceChangePromise = null;
+        this.pendingDeviceId = null;
+      }
+    }
+  }
+  
+  /**
+   * Internal method to perform the actual device change
+   */
+  async _performDeviceChange(deviceId) {
+    // Ensure audio context is initialized
+    if (!this.context) {
+      console.warn('[ModernAudioPlayer] AudioContext not initialized, initializing now...');
+      try {
+        await this.connect();
+      } catch (error) {
+        console.error('[ModernAudioPlayer] Failed to initialize AudioContext:', error);
+        return false;
+      }
+    }
     
     try {
       // Set output device on AudioContext instead of individual audio elements
@@ -498,21 +543,9 @@ export class ModernAudioPlayer {
       }
       
       this.outputDeviceId = deviceId;
-      
-      // Check if there's a pending device change
-      const pending = this.pendingDeviceId;
-      this.pendingDeviceId = null;
-      this.isSettingDevice = false;
-      
-      if (pending && pending !== deviceId) {
-        // Process pending device change
-        return this.setSinkId(pending);
-      }
-      
       return true;
     } catch (error) {
       console.error('[ModernAudioPlayer] Failed to set sink ID:', error);
-      this.isSettingDevice = false;
       return false;
     }
   }
