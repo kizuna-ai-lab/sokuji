@@ -2,6 +2,7 @@ import { IAudioService, AudioDevices, AudioOperationResult } from '../../service
 import { ModernAudioRecorder } from './ModernAudioRecorder';
 import { ModernAudioPlayer } from './ModernAudioPlayer';
 import { ModernPassthrough } from './ModernPassthrough';
+import { ServiceFactory } from '../../services/ServiceFactory';
 
 // Declare chrome namespace for extension messaging
 declare const chrome: any;
@@ -13,6 +14,7 @@ declare const chrome: any;
 export class ModernBrowserAudioService implements IAudioService {
   private recorder: ModernAudioRecorder;
   private player: ModernAudioPlayer;
+  private virtualSpeakerPlayer: ModernAudioPlayer | null;
   private passthrough: ModernPassthrough;
   private targetTabId: number | null = null;
   private interruptedTrackIds: { [key: string]: boolean } = {};
@@ -29,6 +31,15 @@ export class ModernBrowserAudioService implements IAudioService {
     this.player = new ModernAudioPlayer({ 
       sampleRate: 24000 
     });
+    
+    // Initialize virtual speaker player only in Electron
+    this.virtualSpeakerPlayer = null;
+    if (ServiceFactory.isElectron()) {
+      console.info('[Sokuji] [ModernBrowserAudio] Initializing virtual speaker player for Electron');
+      this.virtualSpeakerPlayer = new ModernAudioPlayer({ 
+        sampleRate: 24000 
+      });
+    }
     
     this.passthrough = new ModernPassthrough({
       bufferDelay: 50, // 50ms delay to prevent immediate echo
@@ -48,6 +59,13 @@ export class ModernBrowserAudioService implements IAudioService {
     
     // Connect the player
     await this.player.connect();
+    
+    // Connect virtual speaker player if available
+    if (this.virtualSpeakerPlayer) {
+      await this.virtualSpeakerPlayer.connect();
+      // Auto-detect and configure virtual speaker device
+      await this.detectAndSetVirtualSpeaker();
+    }
     
     // Initialize passthrough with the player
     this.passthrough.initialize(this.player);
@@ -202,6 +220,28 @@ export class ModernBrowserAudioService implements IAudioService {
   }
 
   /**
+   * Detect and configure virtual speaker device for Electron
+   * @private
+   */
+  private async detectAndSetVirtualSpeaker(): Promise<void> {
+    try {
+      const devices = await this.getDevices();
+      const virtualSpeaker = devices.outputs.find(device => 
+        device.label.includes('Sokuji_Virtual_Speaker')
+      );
+      
+      if (virtualSpeaker && this.virtualSpeakerPlayer) {
+        await this.virtualSpeakerPlayer.setSinkId(virtualSpeaker.deviceId);
+        console.info('[Sokuji] [ModernBrowserAudio] Virtual speaker detected and configured:', virtualSpeaker.label);
+      } else if (this.virtualSpeakerPlayer) {
+        console.warn('[Sokuji] [ModernBrowserAudio] Virtual speaker device not found');
+      }
+    } catch (error) {
+      console.error('[Sokuji] [ModernBrowserAudio] Error detecting virtual speaker:', error);
+    }
+  }
+
+  /**
    * Connect to a monitoring device
    */
   async connectMonitoringDevice(deviceId: string, label: string): Promise<AudioOperationResult> {
@@ -211,6 +251,11 @@ export class ModernBrowserAudioService implements IAudioService {
       const success = await this.player.setSinkId(deviceId);
       
       if (success) {
+        // Re-detect virtual speaker when output device changes
+        if (this.virtualSpeakerPlayer) {
+          await this.detectAndSetVirtualSpeaker();
+        }
+        
         return {
           success: true,
           message: `Connected to monitoring device: ${label}`
@@ -292,6 +337,11 @@ export class ModernBrowserAudioService implements IAudioService {
     const volume = enabled ? 1.0 : 0.0;
     this.player.setGlobalVolume(volume);
     console.log(`[Sokuji] [ModernBrowserAudio] Monitor volume set to: ${volume}`);
+    
+    // Virtual speaker always plays at full volume (not affected by monitor toggle)
+    if (this.virtualSpeakerPlayer) {
+      this.virtualSpeakerPlayer.setGlobalVolume(1.0);
+    }
   }
 
   /**
@@ -305,6 +355,11 @@ export class ModernBrowserAudioService implements IAudioService {
     // Always add audio to player - let global volume control handle muting
     // Use streaming audio for real-time playback to avoid audio fragments
     result = this.player.addStreamingAudio(result, trackId);
+    
+    // Also add to virtual speaker player if available (Electron only)
+    if (this.virtualSpeakerPlayer) {
+      this.virtualSpeakerPlayer.addStreamingAudio(data, trackId);
+    }
     
     // Always send to virtual microphone (maintain compatibility)
     this.sendPcmDataToTabs(result, trackId);
@@ -448,6 +503,11 @@ export class ModernBrowserAudioService implements IAudioService {
   public async interruptAudio(): Promise<{ trackId: string; offset: number } | null> {
     const rawResult = await this.player.interrupt();
     
+    // Also interrupt virtual speaker player
+    if (this.virtualSpeakerPlayer) {
+      await this.virtualSpeakerPlayer.interrupt();
+    }
+    
     // If no result or trackId is null, return null
     if (!rawResult || rawResult.trackId === null) {
       return null;
@@ -469,6 +529,11 @@ export class ModernBrowserAudioService implements IAudioService {
    */
   public clearStreamingTrack(trackId: string): void {
     this.player.clearStreamingTrack(trackId);
+    
+    // Also clear from virtual speaker player
+    if (this.virtualSpeakerPlayer) {
+      this.virtualSpeakerPlayer.clearStreamingTrack(trackId);
+    }
   }
 
   /**
@@ -478,6 +543,12 @@ export class ModernBrowserAudioService implements IAudioService {
     this.interruptedTrackIds = {};
     // Also clear interrupted tracks in the player
     this.player.clearInterruptedTracks();
+    
+    // Also clear from virtual speaker player
+    if (this.virtualSpeakerPlayer) {
+      this.virtualSpeakerPlayer.clearInterruptedTracks();
+    }
+    
     console.debug('[Sokuji] [ModernBrowserAudio] Cleared interrupted tracks');
   }
 }
