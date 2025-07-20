@@ -263,8 +263,7 @@ export const applyAudioProcessing = (
  */
 export const createEchoCancellationSetup = (
   audioContext: AudioContext,
-  inputStream: MediaStream,
-  outputAudioNode: AudioNode
+  inputStream: MediaStream
 ): {
   processedStream: MediaStream;
   cleanup: () => void;
@@ -372,5 +371,80 @@ export const analyzeAudioForFeedback = (
     } catch (error) {
       console.warn('[Sokuji] [AudioUtils] Error cleaning up feedback analyzer:', error);
     }
+  };
+};
+
+/**
+ * Decode PCM16 audio data to WAV format with blob, url, values and audioBuffer
+ * Replacement for WavRecorder.decode() to remove wavtools dependency
+ */
+export const decodeAudioToWav = async (
+  audioData: Int16Array,
+  sampleRate: number = 24000,
+  fromSampleRate: number = 24000
+): Promise<{
+  blob: Blob;
+  url: string;
+  values: Float32Array;
+  audioBuffer: AudioBuffer;
+}> => {
+  // Create WAV header
+  const createWavHeader = (dataSize: number): Uint8Array => {
+    const header = new ArrayBuffer(44);
+    const view = new DataView(header);
+    
+    const numChannels = 1;
+    const bitsPerSample = 16;
+    const byteRate = fromSampleRate * numChannels * bitsPerSample / 8;
+    const blockAlign = numChannels * bitsPerSample / 8;
+    
+    // RIFF header
+    view.setUint32(0, 0x52494646, false); // "RIFF"
+    view.setUint32(4, dataSize + 36, true); // file size - 8
+    view.setUint32(8, 0x57415645, false); // "WAVE"
+    
+    // fmt chunk
+    view.setUint32(12, 0x666d7420, false); // "fmt "
+    view.setUint32(16, 16, true); // chunk size
+    view.setUint16(20, 1, true); // PCM format
+    view.setUint16(22, numChannels, true);
+    view.setUint32(24, fromSampleRate, true); // Use fromSampleRate for the WAV header
+    view.setUint32(28, byteRate, true);
+    view.setUint16(32, blockAlign, true);
+    view.setUint16(34, bitsPerSample, true);
+    
+    // data chunk
+    view.setUint32(36, 0x64617461, false); // "data"
+    view.setUint32(40, dataSize, true);
+    
+    return new Uint8Array(header);
+  };
+
+  // Create WAV blob from PCM data
+  const arrayBuffer = audioData.buffer.slice(audioData.byteOffset, audioData.byteOffset + audioData.byteLength);
+  const wavHeader = createWavHeader(arrayBuffer.byteLength);
+  const wavArray = new Uint8Array(44 + arrayBuffer.byteLength);
+  
+  wavArray.set(wavHeader, 0);
+  wavArray.set(new Uint8Array(arrayBuffer), 44);
+  
+  const blob = new Blob([wavArray], { type: 'audio/wav' });
+  const url = URL.createObjectURL(blob);
+
+  // Create audio context and decode the audio data
+  const audioContext = new AudioContext({ sampleRate });
+  // Convert blob to ArrayBuffer for decodeAudioData
+  const wavArrayBuffer = await blob.arrayBuffer();
+  const audioBuffer = await audioContext.decodeAudioData(wavArrayBuffer);
+  const values = audioBuffer.getChannelData(0);
+  
+  // Close the audio context to free resources
+  await audioContext.close();
+
+  return {
+    blob,
+    url,
+    values,
+    audioBuffer
   };
 }; 

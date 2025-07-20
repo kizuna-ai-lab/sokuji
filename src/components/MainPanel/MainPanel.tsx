@@ -8,7 +8,6 @@ import { useLog, RealtimeEvent } from '../../contexts/LogContext';
 import { IClient, ConversationItem, SessionConfig, ClientEventHandlers, ClientFactory } from '../../services/clients';
 import { ModernAudioRecorder } from '../../lib/modern-audio';
 import { WavRenderer } from '../../utils/wav_renderer';
-import { WavRecorder } from '../../lib/wavtools/lib/wav_recorder';
 import { ServiceFactory } from '../../services/ServiceFactory'; // Import the ServiceFactory
 import { IAudioService } from '../../services/interfaces/IAudioService';
 import { useTranslation } from 'react-i18next';
@@ -17,7 +16,7 @@ import { isDevelopment } from '../../config/analytics';
 import { v4 as uuidv4 } from 'uuid';
 import { Provider, isOpenAICompatible } from '../../types/Provider';
 import AudioFeedbackWarning from '../AudioFeedbackWarning/AudioFeedbackWarning';
-import { getSafeAudioConfiguration } from '../../utils/audioUtils';
+import { getSafeAudioConfiguration, decodeAudioToWav } from '../../utils/audioUtils';
 
 interface MainPanelProps {}
 
@@ -189,8 +188,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         wavRecorder.setupPassthrough(
           wavStreamPlayer, 
           safePassthroughEnabled, 
-          realVoicePassthroughVolume,
-          isMonitorDeviceOn
+          realVoicePassthroughVolume
         );
         
         if (safePassthroughEnabled) {
@@ -315,7 +313,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           audioService.addAudioData(delta.audio, 'ai-assistant', shouldPlayAudio);
         }
         if (item.status === 'completed' && item.formatted?.audio) {
-          const wavFile = await WavRecorder.decode(
+          const wavFile = await decodeAudioToWav(
             item.formatted.audio as Int16Array,
             24000,
             24000
@@ -386,7 +384,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
   /**
    * Connect to conversation:
-   * WavRecorder takes speech input, audio service provides output, client is API client
+   * ModernAudioRecorder takes speech input, audio service provides output, client is API client
    */
   const connectConversation = useCallback(async () => {
     try {
@@ -499,8 +497,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
               wavRecorder.setupPassthrough(
                 wavStreamPlayer, 
                 safePassthroughEnabled, 
-                realVoicePassthroughVolume,
-                isMonitorDeviceOn
+                realVoicePassthroughVolume
               );
               
               if (safePassthroughEnabled) {
@@ -610,7 +607,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       // Check if the recorder is in a valid state
       if (wavRecorder.recording) {
         // If somehow we're already recording, pause first
-        console.warn('[Sokuji] [MainPanel] WavRecorder was already recording, pausing first');
+        console.warn('[Sokuji] [MainPanel] ModernAudioRecorder was already recording, pausing first');
         await wavRecorder.pause();
       }
 
