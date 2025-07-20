@@ -789,7 +789,8 @@ export class GeminiClient implements IClient {
     }
 
     // Convert Int16Array to base64 PCM format for Gemini
-    const base64Audio = this.arrayBufferToBase64(audioData);
+    // Use the buffer property to get the underlying ArrayBuffer
+    const base64Audio = this.arrayBufferToBase64(audioData.buffer);
     
     this.session.sendRealtimeInput({
       media: {
