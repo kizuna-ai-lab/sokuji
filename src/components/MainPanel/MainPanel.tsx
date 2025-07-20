@@ -6,7 +6,6 @@ import { useSession } from '../../contexts/SessionContext';
 import { useAudioContext } from '../../contexts/AudioContext';
 import { useLog, RealtimeEvent } from '../../contexts/LogContext';
 import { IClient, ConversationItem, SessionConfig, ClientEventHandlers, ClientFactory } from '../../services/clients';
-import { ModernAudioRecorder } from '../../lib/modern-audio';
 import { WavRenderer } from '../../utils/wav_renderer';
 import { ServiceFactory } from '../../services/ServiceFactory'; // Import the ServiceFactory
 import { IAudioService } from '../../services/interfaces/IAudioService';
@@ -75,6 +74,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
   // Reference for conversation container to enable auto-scrolling
   const conversationContainerRef = useRef<HTMLDivElement>(null);
+  const isInitializedRef = useRef(false);
 
   // Add state variables to track if test tone is playing and currently playing audio item
   const [isTestTonePlaying, setIsTestTonePlaying] = useState(false);
@@ -96,26 +96,6 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   }, [getProcessedSystemInstructions, createSessionConfig]);
 
   /**
-   * Setup virtual audio output device
-   * This function uses the audio service to configure the appropriate virtual output device
-   * without environment-specific implementation details
-   */
-  const setupVirtualAudioOutput = useCallback(async (): Promise<boolean> => {
-    try {
-      // Get the audio service from the ServiceFactory
-      const audioService = ServiceFactory.getAudioService();
-
-      // Use the audio service to set up the virtual audio output
-      const result = await audioService.setupVirtualAudioOutput();
-
-      return result;
-    } catch (e) {
-      console.error('[Sokuji] [MainPanel] Failed to set up virtual audio output:', e);
-      return false;
-    }
-  }, []);
-
-  /**
    * Initialize the audio service and set up the virtual audio output
    */
   useEffect(() => {
@@ -127,12 +107,9 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         
         // Store the audio service in the ref for later use
         audioServiceRef.current = audioService;
-        
+
         // Initialize the audio service
         await audioService.initialize();
-        
-        // Set up the virtual audio output
-        await setupVirtualAudioOutput();
       } catch (error) {
         console.error('[Sokuji] [MainPanel] Failed to initialize audio service:', error);
       }
@@ -144,58 +121,21 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     return () => {
       // Any cleanup needed for the audio service
     };
-  }, [setupVirtualAudioOutput]);
+  }, []);
 
   /**
    * Update passthrough settings when they change
    */
   useEffect(() => {
-    const wavRecorder = wavRecorderRef.current;
-    if (wavRecorder && audioServiceRef.current) {
-      const wavStreamPlayer = audioServiceRef.current.getWavStreamPlayer();
-      if (wavStreamPlayer) {
-        // Add safety checks to prevent feedback loops
-        const isSafeForPassthrough = () => {
-          // Check if input and output devices are different
-          if (selectedInputDevice && selectedMonitorDevice) {
-            const inputLabel = selectedInputDevice.label.toLowerCase();
-            const outputLabel = selectedMonitorDevice.label.toLowerCase();
-            
-            // Prevent feedback if devices are the same or if output is the default device
-            // when input is also default, or if both are system defaults
-            if (inputLabel === outputLabel || 
-                (inputLabel.includes('default') && outputLabel.includes('default'))) {
-              console.warn('[Sokuji] [MainPanel] Passthrough disabled: same input/output device detected');
-              return false;
-            }
-          }
-          
-          // Check for virtual devices to prevent feedback
-          if (selectedMonitorDevice) {
-            const outputLabel = selectedMonitorDevice.label.toLowerCase();
-            if (outputLabel.includes('sokuji') || outputLabel.includes('virtual')) {
-              console.warn('[Sokuji] [MainPanel] Passthrough disabled: virtual device detected as output');
-              return false;
-            }
-          }
-          
-          return true;
-        };
-
-        // Only enable passthrough if it's safe to do so
-        const safePassthroughEnabled = isRealVoicePassthroughEnabled && isSafeForPassthrough();
-        
-        wavRecorder.setupPassthrough(
-          wavStreamPlayer, 
-          safePassthroughEnabled, 
-          realVoicePassthroughVolume
-        );
-        
-        if (safePassthroughEnabled) {
-          console.info('[Sokuji] [MainPanel] Updated passthrough settings: enabled=', safePassthroughEnabled, 'volume=', realVoicePassthroughVolume);
-        } else if (isRealVoicePassthroughEnabled) {
-          console.warn('[Sokuji] [MainPanel] Passthrough disabled for safety - potential feedback loop detected');
-        }
+    const audioService = audioServiceRef.current;
+    if (audioService) {
+      audioService.setupPassthrough(
+        isRealVoicePassthroughEnabled,
+        realVoicePassthroughVolume
+      );
+      
+      if (isRealVoicePassthroughEnabled) {
+        console.info('[Sokuji] [MainPanel] Updated passthrough settings: enabled=', isRealVoicePassthroughEnabled, 'volume=', realVoicePassthroughVolume);
       }
     }
   }, [isRealVoicePassthroughEnabled, realVoicePassthroughVolume, selectedInputDevice, selectedMonitorDevice, isMonitorDeviceOn]);
@@ -230,13 +170,9 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
   /**
    * Instantiate:
-   * - ModernAudioRecorder (speech input)
    * - AI Client (API client)
-   * - Audio service reference
+   * - Audio service reference (handles recording)
    */
-  const wavRecorderRef = useRef<ModernAudioRecorder>(
-    new ModernAudioRecorder({ sampleRate: 24000, debug: false })
-  );
 
   const clientRef = useRef<IClient | null>(null);
   
@@ -275,19 +211,19 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         setIsSessionActive(false);
         
         // Clean up audio recording
-        const wavRecorder = wavRecorderRef.current;
-        if (wavRecorder.recording) {
+        const audioService = audioServiceRef.current;
+        if (audioService) {
           try {
-            await wavRecorder.pause();
-            await wavRecorder.end();
+            const recorder = audioService.getRecorder();
+            if (recorder.recording) {
+              await audioService.pauseRecording();
+              await audioService.stopRecording();
+            }
           } catch (error) {
             console.warn('[Sokuji] [MainPanel] Error cleaning up recorder on close:', error);
           }
-        }
-        
-        // Interrupt any playing audio
-        const audioService = audioServiceRef.current;
-        if (audioService) {
+          
+          // Interrupt any playing audio
           await audioService.interruptAudio();
         }
       },
@@ -347,11 +283,11 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     setIsSessionActive(false);
     // setItems([]);
 
-    const wavRecorder = wavRecorderRef.current;
-    // First pause the recorder to stop sending audio chunks
-    if (wavRecorder.recording) {
+    const audioService = audioServiceRef.current;
+    if (audioService) {
+      // First pause the recorder to stop sending audio chunks
       try {
-        await wavRecorder.pause();
+        await audioService.pauseRecording();
       } catch (error) {
         console.warn('[Sokuji] [MainPanel] Error pausing recorder during disconnect:', error);
       }
@@ -367,15 +303,14 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     }
 
     // Now fully end the recorder after client is reset
-    try {
-      await wavRecorder.end();
-    } catch (error) {
-      console.warn('[Sokuji] [MainPanel] Error ending recorder:', error);
-    }
-
-    // Interrupt any playing audio using the audio service
-    const audioService = audioServiceRef.current;
     if (audioService) {
+      try {
+        await audioService.stopRecording();
+      } catch (error) {
+        console.warn('[Sokuji] [MainPanel] Error ending recorder:', error);
+      }
+
+      // Interrupt any playing audio
       await audioService.interruptAudio();
       // Clear the unified AI assistant streaming track
       audioService.clearStreamingTrack('ai-assistant');
@@ -444,7 +379,6 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       await setupClientListeners();
 
       const client = clientRef.current;
-      const wavRecorder = wavRecorderRef.current;
 
       // Set canPushToTalk based on current turnDetectionMode
       if (isOpenAICompatible(commonSettings.provider)) {
@@ -457,68 +391,21 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       // Connect to microphone only if input device is turned on
       if (isInputDeviceOn) {
         if (selectedInputDevice) {
-          await wavRecorder.begin(selectedInputDevice.deviceId);
-          
-          // Setup real voice passthrough if enabled and safe
-          if (isRealVoicePassthroughEnabled && audioServiceRef.current) {
-            const wavStreamPlayer = audioServiceRef.current.getWavStreamPlayer();
-            if (wavStreamPlayer) {
-              // Add safety checks to prevent feedback loops
-              const isSafeForPassthrough = () => {
-                // Check if input and output devices are different
-                if (selectedInputDevice && selectedMonitorDevice) {
-                  const inputLabel = selectedInputDevice.label.toLowerCase();
-                  const outputLabel = selectedMonitorDevice.label.toLowerCase();
-                  
-                  // Prevent feedback if devices are the same or if output is the default device
-                  // when input is also default, or if both are system defaults
-                  if (inputLabel === outputLabel || 
-                      (inputLabel.includes('default') && outputLabel.includes('default'))) {
-                    console.warn('[Sokuji] [MainPanel] Passthrough disabled: same input/output device detected');
-                    return false;
-                  }
-                }
-                
-                // Check for virtual devices to prevent feedback
-                if (selectedMonitorDevice) {
-                  const outputLabel = selectedMonitorDevice.label.toLowerCase();
-                  if (outputLabel.includes('sokuji') || outputLabel.includes('virtual')) {
-                    console.warn('[Sokuji] [MainPanel] Passthrough disabled: virtual device detected as output');
-                    return false;
-                  }
-                }
-                
-                return true;
-              };
-
-              // Only enable passthrough if it's safe to do so
-              const safePassthroughEnabled = isRealVoicePassthroughEnabled && isSafeForPassthrough();
-              
-              wavRecorder.setupPassthrough(
-                wavStreamPlayer, 
-                safePassthroughEnabled, 
-                realVoicePassthroughVolume
-              );
-              
-              if (safePassthroughEnabled) {
-                console.info('[Sokuji] [MainPanel] Real voice passthrough enabled with volume:', realVoicePassthroughVolume);
-              } else {
-                console.warn('[Sokuji] [MainPanel] Real voice passthrough disabled for safety - potential feedback loop detected');
-              }
-            }
-          }
+          // Note: Don't start recording yet, just prepare the device
+          // Recording will be started below based on turn detection mode
+          // Passthrough is already configured via the useEffect hook
         } else {
           console.warn('[Sokuji] [MainPanel] No input device selected, cannot connect to microphone');
         }
       } else {
-        console.info('[Sokuji] [MainPanel] Input device is turned off, not connecting to microphone');
+        console.debug('[Sokuji] [MainPanel] Input device is turned off, not connecting to microphone');
       }
 
       // If output device is ON, ensure monitor device is connected immediately
       if (isMonitorDeviceOn && selectedMonitorDevice &&
         !selectedMonitorDevice.label.toLowerCase().includes('sokuji_virtual') &&
         !selectedMonitorDevice.label.includes('Sokuji Virtual Output')) {
-        console.info('[Sokuji] [MainPanel] Setting up monitor device to:', selectedMonitorDevice.label);
+        console.debug('[Sokuji] [MainPanel] Setting up monitor device to:', selectedMonitorDevice.label);
 
         // Trigger the selectMonitorDevice function to reconnect the monitor
         // This will use the audio service properly through the AudioContext
@@ -538,13 +425,13 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         turnDetectionDisabled = settings.turnDetectionMode === 'Disabled';
       }
       
-      if (!turnDetectionDisabled && isInputDeviceOn) {
+      if (!turnDetectionDisabled && isInputDeviceOn && audioServiceRef.current) {
         let audioCallbackCount = 0;
-        await wavRecorder.record((data) => {
+        await audioServiceRef.current.startRecording(selectedInputDevice?.deviceId, (data) => {
           if (client) {
             // Debug logging every 100 calls to verify AI client receives data
             if (audioCallbackCount % 100 === 0) {
-              console.log(`[Sokuji] [MainPanel] Sending audio to client: chunk ${audioCallbackCount}, PCM length: ${data.mono.length}`);
+              console.debug(`[Sokuji] [MainPanel] Sending audio to client: chunk ${audioCallbackCount}, PCM length: ${data.mono.length}`);
             }
             audioCallbackCount++;
             client.appendInputAudio(data.mono);
@@ -598,26 +485,33 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
     setIsRecording(true);
     const client = clientRef.current;
-    const wavRecorder = wavRecorderRef.current;
+    const audioService = audioServiceRef.current;
+
+    if (!audioService) {
+      console.error('[Sokuji] [MainPanel] Audio service not available');
+      setIsRecording(false);
+      return;
+    }
 
     try {
       // Note: We no longer interrupt playing audio when recording starts
       // This allows for simultaneous recording and playback
 
       // Check if the recorder is in a valid state
-      if (wavRecorder.recording) {
+      const recorder = audioService.getRecorder();
+      if (recorder.recording) {
         // If somehow we're already recording, pause first
         console.warn('[Sokuji] [MainPanel] ModernAudioRecorder was already recording, pausing first');
-        await wavRecorder.pause();
+        await audioService.pauseRecording();
       }
 
       // Start recording
       let pttAudioCallbackCount = 0;
-      await wavRecorder.record((data) => {
+      await audioService.startRecording(selectedInputDevice?.deviceId, (data) => {
         if (client) {
           // Debug logging for push-to-talk (every 50 chunks)
           if (pttAudioCallbackCount % 50 === 0) {
-            console.log(`[Sokuji] [MainPanel] PTT: Sending audio to client: chunk ${pttAudioCallbackCount}, PCM length: ${data.mono.length}`);
+            console.debug(`[Sokuji] [MainPanel] PTT: Sending audio to client: chunk ${pttAudioCallbackCount}, PCM length: ${data.mono.length}`);
           }
           pttAudioCallbackCount++;
           client.appendInputAudio(data.mono);
@@ -627,7 +521,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       console.error('[Sokuji] [MainPanel] Error starting recording:', error);
       setIsRecording(false);
     }
-  }, [isInputDeviceOn, isRecording]);
+  }, [isInputDeviceOn, isRecording, selectedInputDevice]);
 
   /**
    * In push-to-talk mode, stop recording
@@ -640,13 +534,18 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
     setIsRecording(false);
     const client = clientRef.current;
-    const wavRecorder = wavRecorderRef.current;
+    const audioService = audioServiceRef.current;
+
+    if (!audioService) {
+      return;
+    }
 
     try {
       // Only try to pause if we're actually recording
-      if (wavRecorder.recording) {
+      const recorder = audioService.getRecorder();
+      if (recorder.recording) {
         // Stop recording
-        await wavRecorder.pause();
+        await audioService.pauseRecording();
 
         // Create response
         if (client) {
@@ -904,7 +803,6 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   useEffect(() => {
     let isLoaded = true;
 
-    const wavRecorder = wavRecorderRef.current;
     const clientCanvas = clientCanvasRef.current;
     let clientCtx: CanvasRenderingContext2D | null = null;
 
@@ -918,7 +816,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
     const render = () => {
       if (isLoaded) {
-        if (clientCanvas) {
+        if (clientCanvas && audioService) {
           if (!clientCanvas.width || !clientCanvas.height) {
             clientCanvas.width = clientCanvas.offsetWidth;
             clientCanvas.height = clientCanvas.offsetHeight;
@@ -926,8 +824,9 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           clientCtx = clientCtx || clientCanvas.getContext('2d');
           if (clientCtx) {
             clientCtx.clearRect(0, 0, clientCanvas.width, clientCanvas.height);
-            const result = wavRecorder.recording
-              ? wavRecorder.getFrequencies('voice')
+            const recorder = audioService.getRecorder();
+            const result = recorder.recording
+              ? recorder.getFrequencies('voice')
               : { values: new Float32Array([0]) };
             WavRenderer.drawBars(
               clientCanvas,
@@ -1031,57 +930,42 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     // Only take action if session is active
     if (!isSessionActive) return;
 
-    const wavRecorder = wavRecorderRef.current;
+    const audioService = audioServiceRef.current;
     const client = clientRef.current;
+
+    if (!audioService) {
+      return;
+    }
 
     const updateRecordingState = async () => {
       try {
+        const recorder = audioService.getRecorder();
+        
         // If input device is turned off, pause recording
         if (!isInputDeviceOn) {
           console.info('[Sokuji] [MainPanel] Input device turned off - pausing recording');
-          if (wavRecorder.recording) {
-            await wavRecorder.pause();
+          if (recorder.recording) {
+            await audioService.pauseRecording();
             setIsRecording(false);
           }
         }
         // If input device is turned on
         else {
-          // First, check if the recorder is initialized by checking the mediaRecorder property
-          if (!wavRecorder.mediaRecorder) {
-            console.info('[Sokuji] [MainPanel] Input device turned on - initializing recorder with selected device');
-            try {
-              await wavRecorder.begin(selectedInputDevice?.deviceId);
-            } catch (error) {
-              console.error('[Sokuji] [MainPanel] Error initializing recorder:', error);
-              return;
-            }
-          } else {
-            // If already connected, end and restart to avoid "Already connected" error
-            console.info('[Sokuji] [MainPanel] Recorder already connected - restarting with new device');
-            try {
-              await wavRecorder.end();
-              await wavRecorder.begin(selectedInputDevice?.deviceId);
-            } catch (error) {
-              console.error('[Sokuji] [MainPanel] Error reinitializing recorder:', error);
-              return;
-            }
-          }
-
-          // If we're in automatic mode, resume recording
+          // If we're in automatic mode, start/resume recording
           let turnDetectionDisabled = false;
           if (isOpenAICompatible(commonSettings.provider)) {
             const settings = commonSettings.provider === Provider.OPENAI ? openAISettings : cometAPISettings;
             turnDetectionDisabled = settings.turnDetectionMode === 'Disabled';
           }
           if (!turnDetectionDisabled) {
-            console.info('[Sokuji] [MainPanel] Input device turned on - resuming recording in automatic mode');
-            if (!wavRecorder.recording) {
+            console.info('[Sokuji] [MainPanel] Input device turned on - starting recording in automatic mode');
+            if (!recorder.recording) {
               let autoAudioCallbackCount = 0;
-              await wavRecorder.record((data) => {
+              await audioService.startRecording(selectedInputDevice?.deviceId, (data) => {
                 if (client) {
                   // Debug logging for automatic mode (every 100 chunks)
                   if (autoAudioCallbackCount % 100 === 0) {
-                    console.log(`[Sokuji] [MainPanel] Auto: Sending audio to client: chunk ${autoAudioCallbackCount}, PCM length: ${data.mono.length}`);
+                    console.debug(`[Sokuji] [MainPanel] Auto: Sending audio to client: chunk ${autoAudioCallbackCount}, PCM length: ${data.mono.length}`);
                   }
                   autoAudioCallbackCount++;
                   client.appendInputAudio(data.mono);
@@ -1181,22 +1065,6 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     };
   }, [isSessionActive, canPushToTalk, startRecording, stopRecording, isRecording]);
 
-  /**
-   * Initialize audio on component mount
-   */
-  useEffect(() => {
-    const initAudio = async () => {
-      try {
-        // Set up the virtual audio output
-        await setupVirtualAudioOutput();
-      } catch (error) {
-        console.error('[Sokuji] [MainPanel] Failed to initialize audio:', error);
-      }
-    };
-    
-    initAudio();
-  }, [setupVirtualAudioOutput]);
-
   // Session tracking for analytics
   useEffect(() => {
     if (isSessionActive) {
@@ -1231,6 +1099,53 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       }
     }
   }, [isSessionActive, sessionId, sessionStartTime, translationCount, getCurrentProviderSettings, setSessionId, setSessionStartTime, setTranslationCount, trackEvent]);
+
+  /**
+   * Handle input device changes during active session
+   */
+  useEffect(() => {
+    // Only handle device changes if session is active and recording
+    if (!isSessionActive || !isInputDeviceOn) {
+      // Reset initialized flag when session ends
+      if (!isSessionActive) {
+        isInitializedRef.current = false;
+      }
+      return;
+    }
+
+    const audioService = audioServiceRef.current;
+    if (!audioService || !audioService.switchRecordingDevice) {
+      return;
+    }
+
+    // Don't switch on initial mount
+    if (!isInitializedRef.current) {
+      isInitializedRef.current = true;
+      return;
+    }
+
+    // Handle device switching
+    const handleDeviceSwitch = async () => {
+      try {
+        console.info(`[Sokuji] [MainPanel] Switching recording device during active session to: ${selectedInputDevice?.label}`);
+        await audioService.switchRecordingDevice!(selectedInputDevice?.deviceId);
+      } catch (error: any) {
+        console.error('[Sokuji] [MainPanel] Failed to switch recording device:', error);
+        addRealtimeEvent(
+          { 
+            type: 'error', 
+            data: {
+              message: `Failed to switch recording device: ${error?.message || 'Unknown error'}`
+            }
+          },
+          'client',
+          'error'
+        );
+      }
+    };
+
+    handleDeviceSwitch();
+  }, [selectedInputDevice?.deviceId, isSessionActive, isInputDeviceOn]);
 
   return (
     <div className="main-panel">
@@ -1450,29 +1365,29 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           <canvas ref={serverCanvasRef} className="visualization-canvas server-canvas" />
         </div>
       </div>
-              <AudioFeedbackWarning
-          isVisible={showFeedbackWarning}
-          inputDeviceLabel={selectedInputDevice?.label}
-          outputDeviceLabel={selectedMonitorDevice?.label}
-          recommendedAction={
-            getSafeAudioConfiguration(
-              selectedInputDevice,
-              selectedMonitorDevice,
-              isRealVoicePassthroughEnabled
-            ).recommendedAction
-          }
-          feedbackRisk={
-            getSafeAudioConfiguration(
-              selectedInputDevice,
-              selectedMonitorDevice,
-              isRealVoicePassthroughEnabled
-            ).feedbackRisk
-          }
-          onDismiss={() => {
-            setShowFeedbackWarning(false);
-            setFeedbackWarningDismissed(true);
-          }}
-        />
+      <AudioFeedbackWarning
+        isVisible={showFeedbackWarning}
+        inputDeviceLabel={selectedInputDevice?.label}
+        outputDeviceLabel={selectedMonitorDevice?.label}
+        recommendedAction={
+          getSafeAudioConfiguration(
+            selectedInputDevice,
+            selectedMonitorDevice,
+            isRealVoicePassthroughEnabled
+          ).recommendedAction
+        }
+        feedbackRisk={
+          getSafeAudioConfiguration(
+            selectedInputDevice,
+            selectedMonitorDevice,
+            isRealVoicePassthroughEnabled
+          ).feedbackRisk
+        }
+        onDismiss={() => {
+          setShowFeedbackWarning(false);
+          setFeedbackWarningDismissed(true);
+        }}
+      />
     </div>
   );
 };

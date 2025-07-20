@@ -43,7 +43,7 @@ export class ModernAudioPlayer {
   async connect() {
     // Make this method idempotent - only create context if it doesn't exist
     if (this.context) {
-      console.log('[ModernAudioPlayer] AudioContext already initialized');
+      console.debug('[ModernAudioPlayer] AudioContext already initialized');
       if (this.context.state === 'suspended') {
         await this.context.resume();
       }
@@ -94,20 +94,32 @@ export class ModernAudioPlayer {
   }
 
   /**
-   * Add audio to passthrough buffer - immediate playback for monitoring
+   * Add audio to passthrough buffer - with optional delay for echo cancellation
    */
-  addToPassthroughBuffer(audioData, volume = 1.0) {
+  addToPassthroughBuffer(audioData, volume = 1.0, delay = 50) {
     if (this.globalVolumeMultiplier === 0) {
       return;
     }
 
-    // Use immediate playback for passthrough audio
+    console.info('[ModernAudioPlayer] Adding to passthrough volume:', volume, 'global multiplier:', this.globalVolumeMultiplier);
+
     const buffer = this.normalizeAudioData(audioData);
     const trackId = 'passthrough';
     
-    // Queue and immediately process for low-latency monitoring
-    this.queueAudio(trackId, buffer, volume * this.globalVolumeMultiplier);
-    this.processQueue(trackId);
+    if (delay > 0) {
+      // Delayed playback for echo cancellation safety
+      setTimeout(() => {
+        // Check again in case volume was muted during delay
+        if (this.globalVolumeMultiplier > 0) {
+          this.queueAudio(trackId, buffer, volume * this.globalVolumeMultiplier);
+          this.processQueue(trackId);
+        }
+      }, delay);
+    } else {
+      // Immediate playback
+      this.queueAudio(trackId, buffer, volume * this.globalVolumeMultiplier);
+      this.processQueue(trackId);
+    }
   }
 
   /**
@@ -478,14 +490,14 @@ export class ModernAudioPlayer {
       }
     }
     
-    console.log(`[ModernAudioPlayer] Global volume set to: ${this.globalVolumeMultiplier}`);
+    console.debug(`[ModernAudioPlayer] Global volume set to: ${this.globalVolumeMultiplier}`);
   }
 
   /**
    * Set audio output device
    */
   async setSinkId(deviceId) {
-    console.log('[ModernAudioPlayer] setSinkId called with:', deviceId, 'current state:', {
+    console.debug('[ModernAudioPlayer] setSinkId called with:', deviceId, 'current state:', {
       hasContext: !!this.context,
       isSettingDevice: this.isSettingDevice,
       currentDeviceId: this.outputDeviceId
@@ -493,13 +505,13 @@ export class ModernAudioPlayer {
     
     // Check if device is already set
     if (this.outputDeviceId === deviceId) {
-      console.log('[ModernAudioPlayer] Device already set to:', deviceId);
+      console.debug('[ModernAudioPlayer] Device already set to:', deviceId);
       return true;
     }
     
     // If there's an ongoing device change, wait for it if it's the same device
     if (this.deviceChangePromise && this.pendingDeviceId === deviceId) {
-      console.log('[ModernAudioPlayer] Waiting for ongoing device change to same device');
+      console.debug('[ModernAudioPlayer] Waiting for ongoing device change to same device');
       return this.deviceChangePromise;
     }
     
@@ -537,7 +549,7 @@ export class ModernAudioPlayer {
       // Set output device on AudioContext instead of individual audio elements
       if (this.context && this.context.setSinkId) {
         await this.context.setSinkId(deviceId);
-        console.log('[ModernAudioPlayer] Successfully set AudioContext output device to:', deviceId);
+        console.info('[ModernAudioPlayer] Successfully set AudioContext output device to:', deviceId);
       } else {
         console.warn('[ModernAudioPlayer] AudioContext.setSinkId not supported in this browser');
       }
