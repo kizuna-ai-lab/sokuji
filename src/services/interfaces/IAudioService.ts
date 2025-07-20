@@ -1,5 +1,5 @@
 import { AudioDevice } from '../../contexts/AudioContext';
-import { ModernAudioPlayer } from '../../lib/modern-audio';
+import { ModernAudioPlayer, ModernAudioRecorder } from '../../lib/modern-audio';
 
 export interface AudioDevices {
   inputs: AudioDevice[];
@@ -10,6 +10,10 @@ export interface AudioOperationResult {
   success: boolean;
   message?: string;
   error?: string;
+}
+
+export interface AudioRecordingCallback {
+  (data: { mono: Int16Array; raw: Int16Array }): void;
 }
 
 export interface IAudioService {
@@ -81,10 +85,51 @@ export interface IAudioService {
    * @param trackId The track ID to clear
    */
   clearStreamingTrack(trackId: string): void;
-  
-  
+
   /**
    * Clears the list of interrupted track IDs
    */
   clearInterruptedTracks(): void;
+
+  /**
+   * Start recording audio from the specified device
+   * @param deviceId The device ID to record from
+   * @param callback Function to receive audio data chunks
+   */
+  startRecording(deviceId: string | undefined, callback: AudioRecordingCallback): Promise<void>;
+
+  /**
+   * Stop recording and clean up resources
+   */
+  stopRecording(): Promise<void>;
+
+  /**
+   * Pause recording (keeps resources allocated)
+   */
+  pauseRecording(): Promise<void>;
+
+  /**
+   * Switch recording device while maintaining session
+   * @param deviceId The new device ID to switch to
+   */
+  switchRecordingDevice?(deviceId: string | undefined): Promise<void>;
+
+  /**
+   * Get the recorder instance for accessing methods like getFrequencies
+   */
+  getRecorder(): ModernAudioRecorder;
+
+  /**
+   * Setup passthrough settings
+   * @param enabled Whether passthrough is enabled
+   * @param volume Passthrough volume (0.0 to 1.0)
+   */
+  setupPassthrough(enabled: boolean, volume: number): void;
+
+  /**
+   * Handle passthrough audio routing to outputs
+   * @param audioData The audio data to passthrough
+   * @param volume The volume level
+   */
+  handlePassthroughAudio(audioData: Int16Array, volume: number): void;
 }

@@ -54,9 +54,9 @@
 │ scriptProcessor.onaudioprocess = (event) => {                                      │
 │   const pcmData = convertToPCM16(inputData);                                      │
 │                                                                                     │
-│   // Optional passthrough with safety checks                                       │
-│   if (passthroughEnabled && isSafeForPassthrough()) {                             │
-│     passthroughPlayer.addToPassthroughBuffer(pcmData);                           │
+│   // Optional passthrough (safety checks removed per user request)                 │
+│   if (passthroughEnabled) {                                                       │
+│     passthroughPlayer.addToPassthroughBuffer(pcmData, passthroughVolume);        │
 │   }                                                                                │
 │                                                                                     │
 │   // Send to AI                                                                    │
@@ -69,10 +69,10 @@
 ┌─────────────────────────────────────┐   ┌─────────────────────────────────────┐
 │        AI CLIENT                   │   │     PASSTHROUGH PATH                │
 ├─────────────────────────────────────┤   ├─────────────────────────────────────┤
-│ client.appendInputAudio(data.mono)  │   │ Safety Checks:                      │
-│                                     │   │ - Different input/output devices    │
-│ ↓ Process and generate response     │   │ - No virtual devices as output      │
-│                                     │   │ - Volume control (0-60%)            │
+│ client.appendInputAudio(data.mono)  │   │ Features:                           │
+│                                     │   │ - Direct passthrough when enabled   │
+│ ↓ Process and generate response     │   │ - Volume control (0-100%)           │
+│                                     │   │ - Default volume: 30%               │
 │ onConversationUpdated: ({ delta })  │   │                                     │
 │ audioService.addAudioData(delta.audio)│ │ ↓ Queue-based playback             │
 └─────────────────────────────────────┘   └─────────────────────────────────────┘
@@ -135,9 +135,10 @@
 │    - Uses dummyGain node with gain.value = 0                                      │
 │    - Prevents audio feedback while maintaining processing                          │
 │                                                                                     │
-│ 4. Safety Checks for Passthrough:                                                 │
-│    - Automatic detection of same input/output devices                             │
-│    - Disables passthrough when feedback loop detected                             │
+│ 4. Passthrough Audio:                                                             │
+│    - Direct passthrough when enabled by user                                      │
+│    - No automatic safety checks (removed per user request)                        │
+│    - User-controlled volume with default of 30%                                  │
 │                                                                                     │
 └─────────────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -184,16 +185,33 @@
 | Recording | AudioWorklet polling | ScriptProcessor event-driven | Lower CPU usage |
 | Playback | Continuous AudioWorklet | HTMLAudioElement with events | Better memory management |
 | Echo Cancellation | Ineffective browser AEC | System-level AEC + safety checks | Eliminated echo issues |
-| Device Management | Virtual devices via PulseAudio | Direct device selection | Cross-platform compatibility |
+| Device Management | Virtual devices via PulseAudio | Direct device selection + dynamic switching | Better flexibility |
 
 ## 7. Conclusion
 
 The modern audio architecture successfully addresses the echo issues identified in the original analysis:
 
 1. **Echo cancellation now works** thanks to proper API usage and system-level AEC
-2. **Passthrough is safe** with automatic feedback detection
+2. **Passthrough is user-controlled** without automatic safety checks
 3. **Simplified architecture** without virtual devices improves reliability
 4. **Better performance** through event-driven processing
 5. **Cross-platform compatibility** by removing Linux-specific dependencies
 
 The new implementation provides a robust, echo-free audio experience while maintaining all the original features.
+
+## 8. Dynamic Device Switching
+
+The modern architecture supports switching recording devices during active sessions:
+
+### Implementation Details:
+- `ModernBrowserAudioService.switchRecordingDevice()` method handles device changes
+- Maintains recording state and callbacks during switch
+- Tracks current device with `currentRecordingDeviceId`
+- MainPanel detects device changes via React useEffect
+
+### Best Practices:
+- Use `deviceId` string in React dependencies, not full device objects
+- Reset initialization flags when sessions end
+- Handle errors gracefully with user feedback
+
+This allows users to change microphones mid-session without interrupting translations.

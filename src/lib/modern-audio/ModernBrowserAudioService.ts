@@ -1,7 +1,6 @@
-import { IAudioService, AudioDevices, AudioOperationResult } from '../../services/interfaces/IAudioService';
+import { IAudioService, AudioDevices, AudioOperationResult, AudioRecordingCallback } from '../../services/interfaces/IAudioService';
 import { ModernAudioRecorder } from './ModernAudioRecorder';
 import { ModernAudioPlayer } from './ModernAudioPlayer';
-import { ModernPassthrough } from './ModernPassthrough';
 import { ServiceFactory } from '../../services/ServiceFactory';
 
 // Declare chrome namespace for extension messaging
@@ -15,17 +14,17 @@ export class ModernBrowserAudioService implements IAudioService {
   private recorder: ModernAudioRecorder;
   private player: ModernAudioPlayer;
   private virtualSpeakerPlayer: ModernAudioPlayer | null;
-  private passthrough: ModernPassthrough;
   private targetTabId: number | null = null;
   private interruptedTrackIds: { [key: string]: boolean } = {};
   private initialized: boolean = false;
+  private recordingCallback: AudioRecordingCallback | null = null;
+  private currentRecordingDeviceId: string | undefined = undefined;
 
   constructor() {
     // Initialize modern audio components
     this.recorder = new ModernAudioRecorder({ 
       sampleRate: 24000, 
-      enablePassthrough: true,
-      debug: false 
+      enablePassthrough: true
     });
     
     this.player = new ModernAudioPlayer({ 
@@ -40,11 +39,6 @@ export class ModernBrowserAudioService implements IAudioService {
         sampleRate: 24000 
       });
     }
-    
-    this.passthrough = new ModernPassthrough({
-      bufferDelay: 50, // 50ms delay to prevent immediate echo
-      maxBufferSize: 10
-    });
   }
 
   /**
@@ -56,10 +50,10 @@ export class ModernBrowserAudioService implements IAudioService {
       console.info('[Sokuji] [ModernBrowserAudio] Audio service already initialized');
       return;
     }
-    
+
     // Connect the player
     await this.player.connect();
-    
+
     // Connect virtual speaker player if available
     if (this.virtualSpeakerPlayer) {
       await this.virtualSpeakerPlayer.connect();
@@ -67,22 +61,8 @@ export class ModernBrowserAudioService implements IAudioService {
       await this.detectAndSetVirtualSpeaker();
     }
     
-    // Initialize passthrough with the player
-    this.passthrough.initialize(this.player);
-    
-    // Setup passthrough in recorder
-    this.recorder.setupPassthrough(this.passthrough, false, 0.2);
-    
-    // Setup audio data handling
-    this.recorder.onAudioData = (data) => {
-      // Forward to passthrough system
-      this.passthrough.addToPassthroughBuffer(data.mono);
-      
-      // Forward to external handler if set
-      if (this.onRecordingData) {
-        this.onRecordingData(data);
-      }
-    };
+    // Initialize passthrough settings (will be configured later via setupPassthrough)
+    this.recorder.setupPassthrough(false, 0.3);
 
     // Get tabId from URL parameters if available
     try {
@@ -99,13 +79,9 @@ export class ModernBrowserAudioService implements IAudioService {
     }
 
     this.initialized = true;
-    console.info('[Sokuji] [ModernBrowserAudio] Modern audio service initialized');
+    console.info('[Sokuji] [ModernBrowserAudio] Audio service initialized');
   }
 
-  /**
-   * External handler for recording data (used by passthrough system)
-   */
-  public onRecordingData: ((data: { mono: Int16Array; raw: Int16Array }) => void) | null = null;
 
   /**
    * Get available audio input and output devices
@@ -246,7 +222,7 @@ export class ModernBrowserAudioService implements IAudioService {
    */
   async connectMonitoringDevice(deviceId: string, label: string): Promise<AudioOperationResult> {
     try {
-      console.info(`[Sokuji] [ModernBrowserAudio] Connecting monitoring device: ${label} (${deviceId})`);
+      console.debug(`[Sokuji] [ModernBrowserAudio] Connecting monitoring device: ${label} (${deviceId})`);
       
       const success = await this.player.setSinkId(deviceId);
       
@@ -336,7 +312,7 @@ export class ModernBrowserAudioService implements IAudioService {
   public setMonitorVolume(enabled: boolean): void {
     const volume = enabled ? 1.0 : 0.0;
     this.player.setGlobalVolume(volume);
-    console.log(`[Sokuji] [ModernBrowserAudio] Monitor volume set to: ${volume}`);
+    console.debug(`[Sokuji] [ModernBrowserAudio] Monitor volume set to: ${volume}`);
     
     // Virtual speaker always plays at full volume (not affected by monitor toggle)
     if (this.virtualSpeakerPlayer) {
@@ -372,7 +348,7 @@ export class ModernBrowserAudioService implements IAudioService {
   public sendPcmDataToTabs(data: Int16Array, trackId?: string): void {
     // Skip empty data
     if (!data || data.length === 0) {
-      console.info('[Sokuji] [ModernBrowserAudio] Attempted to send empty audio data');
+      console.debug('[Sokuji] [ModernBrowserAudio] Attempted to send empty audio data');
       return;
     }
     
@@ -550,5 +526,129 @@ export class ModernBrowserAudioService implements IAudioService {
     }
     
     console.debug('[Sokuji] [ModernBrowserAudio] Cleared interrupted tracks');
+  }
+
+  /**
+   * Start recording audio from the specified device
+   */
+  public async startRecording(deviceId: string | undefined, callback: AudioRecordingCallback): Promise<void> {
+    this.recordingCallback = callback;
+
+    console.debug(`[Sokuji] [ModernBrowserAudio] Starting recording from device: ${deviceId}`);
+    
+    // Check if we need to switch devices
+    const recorderStatus = this.recorder.getStatus();
+    const needsDeviceSwitch = this.currentRecordingDeviceId !== deviceId && recorderStatus !== 'ended';
+    
+    if (needsDeviceSwitch) {
+      console.info(`[Sokuji] [ModernBrowserAudio] Switching recording device from ${this.currentRecordingDeviceId} to ${deviceId}`);
+      // Need to end current recording session to switch devices
+      await this.recorder.end();
+    }
+    
+    // Check if recorder needs to be connected
+    if (this.recorder.getStatus() === 'ended') {
+      // Connect with the (potentially new) device
+      await this.recorder.begin(deviceId);
+      this.currentRecordingDeviceId = deviceId;
+    }
+    
+    // Start recording with callback that handles both AI and passthrough
+    await this.recorder.record((data) => {
+      // Forward to the external callback (MainPanel will send to AI)
+      if (this.recordingCallback) {
+        this.recordingCallback(data);
+      }
+      
+      // Handle passthrough internally if enabled
+      // Check the data object for passthrough info (as set by ModernAudioRecorder)
+      if (data.isPassthrough && data.mono) {
+        this.handlePassthroughAudio(data.mono, data.passthroughVolume || 0.3);
+      }
+    });
+  }
+
+  /**
+   * Stop recording and clean up resources
+   */
+  public async stopRecording(): Promise<void> {
+    await this.recorder.end();
+    this.recordingCallback = null;
+    this.currentRecordingDeviceId = undefined;
+  }
+
+  /**
+   * Pause recording (keeps resources allocated)
+   */
+  public async pauseRecording(): Promise<void> {
+    await this.recorder.pause();
+  }
+
+  /**
+   * Switch recording device while maintaining session
+   * @param deviceId The new device ID to switch to
+   */
+  public async switchRecordingDevice(deviceId: string | undefined): Promise<void> {
+    if (this.currentRecordingDeviceId === deviceId) {
+      console.debug(`[Sokuji] [ModernBrowserAudio] Already using device: ${deviceId}`);
+      return;
+    }
+
+    console.info(`[Sokuji] [ModernBrowserAudio] Switching recording device from ${this.currentRecordingDeviceId} to ${deviceId}`);
+    
+    // Save the current recording state
+    const wasRecording = this.recorder.getStatus() === 'recording';
+    const savedCallback = this.recordingCallback;
+    
+    // End current recording session
+    if (this.recorder.getStatus() !== 'ended') {
+      await this.recorder.end();
+    }
+    
+    // Begin with new device
+    await this.recorder.begin(deviceId);
+    this.currentRecordingDeviceId = deviceId;
+    
+    // Resume recording if it was active
+    if (wasRecording && savedCallback) {
+      await this.recorder.record((data) => {
+        if (savedCallback) {
+          savedCallback(data);
+        }
+        
+        if (data.isPassthrough && data.mono) {
+          this.handlePassthroughAudio(data.mono, data.passthroughVolume || 0.3);
+        }
+      });
+    }
+  }
+
+  /**
+   * Get the recorder instance
+   */
+  public getRecorder(): ModernAudioRecorder {
+    return this.recorder;
+  }
+
+  /**
+   * Setup passthrough settings
+   */
+  public setupPassthrough(enabled: boolean, volume: number): void {
+    this.recorder.setupPassthrough(enabled, volume);
+  }
+
+  /**
+   * Handle passthrough audio routing to outputs
+   */
+  public handlePassthroughAudio(audioData: Int16Array, volume: number): void {
+    const delay = 150; // ms delay for echo cancellation
+    
+    // Send to monitor output
+    this.player.addToPassthroughBuffer(audioData, volume, delay);
+    
+    // Send to virtual speaker if available
+    if (this.virtualSpeakerPlayer) {
+      this.virtualSpeakerPlayer.addToPassthroughBuffer(audioData, volume, delay);
+    }
   }
 }

@@ -65,7 +65,7 @@ The codebase supports both Electron desktop app and Chrome/Edge browser extensio
    ```
    - `ModernAudioRecorder`: Captures input with echo cancellation and optional passthrough
    - `ModernAudioPlayer`: Queue-based playback with event-driven processing
-   - Unified audio service across all platforms (no virtual devices)
+   - Unified audio service across all platforms with virtual device support in Electron
 
 4. **State Management**
    - React Context API for global state
@@ -75,7 +75,7 @@ The codebase supports both Electron desktop app and Chrome/Edge browser extensio
 5. **Audio Service Management**
    - `ModernBrowserAudioService` provides unified audio handling
    - Cross-platform compatibility without virtual devices
-   - Automatic device switching and reconnection
+   - Automatic device switching and reconnection, including dynamic switching during active sessions
 
 ## Important Patterns and Conventions
 
@@ -103,7 +103,7 @@ if (window.electronAPI) {
 ### Audio Handling
 - Always use ModernAudioPlayer/ModernAudioRecorder classes
 - Audio playback uses queue-based system with event-driven processing
-- Passthrough audio uses dedicated 'passthrough' track ID for real-time monitoring
+- Passthrough audio uses dedicated 'passthrough' track ID for real-time monitoring (default volume: 30%)
 
 ## Testing and Quality
 
@@ -137,6 +137,14 @@ if (window.electronAPI) {
 - Test echo cancellation settings in browser
 - Monitor LogsPanel for real-time diagnostics
 - Check ScriptProcessor audio processing callbacks
+- Watch for infinite loops in device switching - use deviceId in React dependencies, not device objects
+
+### Dynamic Audio Device Switching
+1. Recording devices can be switched during active sessions without interrupting the session
+2. Implemented via `switchRecordingDevice` method in `ModernBrowserAudioService`
+3. MainPanel detects device changes via useEffect hook
+4. Important: Use `selectedInputDevice?.deviceId` string in React dependencies, not the full device object to prevent unnecessary re-renders
+5. The service tracks current device with `currentRecordingDeviceId` and handles reconnection automatically
 
 ## Platform Requirements
 

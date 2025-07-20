@@ -7,18 +7,16 @@
 export class ModernAudioRecorder {
   /**
    * Create a new ModernAudioRecorder instance
-   * @param {{sampleRate?: number, enablePassthrough?: boolean, debug?: boolean}} [options]
+   * @param {{sampleRate?: number, enablePassthrough?: boolean}} [options]
    * @returns {ModernAudioRecorder}
    */
   constructor({
     sampleRate = 24000,
     enablePassthrough = true,
-    debug = false,
   } = {}) {
     // Config
     this.sampleRate = sampleRate;
     this.enablePassthrough = enablePassthrough;
-    this.debug = !!debug;
     this._deviceChangeCallback = null;
     this._devices = [];
     
@@ -33,9 +31,8 @@ export class ModernAudioRecorder {
     this.dummyGain = null;
     
     // Passthrough settings
-    this._passthroughPlayer = null;
     this._passthroughEnabled = false;
-    this._passthroughVolume = 0.2;
+    this._passthroughVolume = 0.3;
     
     // Audio processing
     this.onAudioData = null;
@@ -46,51 +43,14 @@ export class ModernAudioRecorder {
 
   /**
    * Sets up passthrough functionality
-   * @param {Object} player The audio player to use for passthrough (must have addToPassthroughBuffer method)
    * @param {boolean} enabled Whether passthrough is enabled
    * @param {number} volume Volume level (0.0 to 1.0)
    * @returns {true}
    */
-  setupPassthrough(player, enabled = false, volume = 0.2) {
-    this._passthroughPlayer = player;
+  setupPassthrough(enabled = false, volume = 0.3) {
     this._passthroughEnabled = enabled;
     this._passthroughVolume = Math.max(0, Math.min(1, volume));
-    this.log(`Passthrough setup: enabled=${enabled}, volume=${this._passthroughVolume}`);
-    return true;
-  }
-
-  /**
-   * Enables or disables passthrough
-   * @param {boolean} enabled
-   * @returns {true}
-   */
-  setPassthroughEnabled(enabled) {
-    this._passthroughEnabled = enabled;
-    this.log(`Passthrough ${enabled ? 'enabled' : 'disabled'}`);
-    return true;
-  }
-
-  /**
-   * Sets the volume for passthrough
-   * @param {number} volume Volume level (0.0 to 1.0)
-   * @returns {true}
-   */
-  setPassthroughVolume(volume) {
-    this._passthroughVolume = Math.max(0, Math.min(1, volume));
-    this.log(`Passthrough volume set to: ${this._passthroughVolume}`);
-    return true;
-  }
-
-
-  /**
-   * Logs data in debug mode
-   * @param {...any} arguments
-   * @returns {true}
-   */
-  log() {
-    if (this.debug) {
-      console.log('[Sokuji] [ModernAudioRecorder]', ...arguments);
-    }
+    console.info(`[Sokuji] [ModernAudioRecorder] Passthrough setup: enabled=${enabled}, volume=${this._passthroughVolume}`);
     return true;
   }
 
@@ -268,14 +228,12 @@ export class ModernAudioRecorder {
 
     try {
       this.stream = await navigator.mediaDevices.getUserMedia(constraints);
-      this.log('Got stream, setting up recording');
-      
       // Verify echo cancellation configuration
       const track = this.stream.getAudioTracks()[0];
       const settings = track.getSettings();
-      this.log('Echo cancellation:', settings.echoCancellation);
-      this.log('Echo cancellation type:', settings.echoCancellationType);
-      this.log('Suppress local audio playback:', settings.suppressLocalAudioPlayback);
+      console.info('[Sokuji] [ModernAudioRecorder] Echo cancellation:', settings.echoCancellation);
+      console.info('[Sokuji] [ModernAudioRecorder] Echo cancellation type:', settings.echoCancellationType);
+      console.info('[Sokuji] [ModernAudioRecorder] Suppress local audio playback:', settings.suppressLocalAudioPlayback);
       
     } catch (err) {
       console.error('[Sokuji] [ModernAudioRecorder] Could not start audio recording', err);
@@ -324,10 +282,10 @@ export class ModernAudioRecorder {
       const inputBuffer = event.inputBuffer;
       const inputData = inputBuffer.getChannelData(0);
       
-      // Debug: Log every 200 calls to verify ScriptProcessor is working
+      // Log every 1000 calls to verify ScriptProcessor is working
       this._scriptProcessorCallCount = (this._scriptProcessorCallCount || 0) + 1;
-      if (this._scriptProcessorCallCount % 200 === 0) {
-        this.log(`ScriptProcessor callback triggered: call ${this._scriptProcessorCallCount}, buffer length: ${inputData.length}`);
+      if (this._scriptProcessorCallCount % 1000 === 0) {
+        console.debug(`[Sokuji] [ModernAudioRecorder] ScriptProcessor callback: call ${this._scriptProcessorCallCount}, buffer length: ${inputData.length}`);
       }
       
       // Convert to PCM16 for AI processing
@@ -337,23 +295,21 @@ export class ModernAudioRecorder {
         pcmData[i] = sample < 0 ? sample * 32768 : sample * 32767;
       }
       
-      // Handle passthrough (safe method)
-      if (this._passthroughEnabled && this._passthroughPlayer && pcmData.length > 0) {
-        this._passthroughPlayer.addToPassthroughBuffer(pcmData, this._passthroughVolume);
-      }
-      
-      // Send to AI processing if recording is active and callback is set
-      if (this.recording && this.onAudioData && typeof this.onAudioData === 'function' && pcmData.length > 0) {
+      // Always send audio data through callback if available
+      if (this.onAudioData && typeof this.onAudioData === 'function' && pcmData.length > 0) {
         try {
-          // Add debug logging every 100 chunks to verify data flow
-          if (this._audioChunkCount % 100 === 0) {
-            this.log(`Sending audio chunk ${this._audioChunkCount}, PCM length: ${pcmData.length}, sample range: ${Math.min(...pcmData)} to ${Math.max(...pcmData)}`);
-          }
+          // Log every 500 chunks to verify data flow
           this._audioChunkCount = (this._audioChunkCount || 0) + 1;
+          if (this._audioChunkCount % 500 === 0) {
+            console.debug(`[Sokuji] [ModernAudioRecorder] Audio chunk ${this._audioChunkCount}, PCM length: ${pcmData.length}`);
+          }
           
           this.onAudioData({ 
             mono: pcmData, 
-            raw: pcmData 
+            raw: pcmData,
+            isRecording: this.recording,
+            isPassthrough: this._passthroughEnabled,
+            passthroughVolume: this._passthroughVolume
           });
         } catch (error) {
           console.error('[Sokuji] [ModernAudioRecorder] Error in onAudioData callback:', error);
@@ -371,7 +327,7 @@ export class ModernAudioRecorder {
     this.scriptProcessor.connect(this.dummyGain);
     this.dummyGain.connect(this.audioContext.destination);
     
-    this.log('Real-time audio processing setup complete');
+    console.info('[Sokuji] [ModernAudioRecorder] Real-time audio processing setup complete');
   }
 
   /**
@@ -382,33 +338,20 @@ export class ModernAudioRecorder {
     this.mediaRecorder.ondataavailable = (event) => {
       if (event.data.size > 0) {
         this.audioChunks.push(event.data);
-        this.processAudioChunk(event.data);
       }
     };
 
     this.mediaRecorder.onstart = () => {
-      this.log('MediaRecorder started');
+      console.debug('[Sokuji] [ModernAudioRecorder] MediaRecorder started');
     };
 
     this.mediaRecorder.onstop = () => {
-      this.log('MediaRecorder stopped');
+      console.debug('[Sokuji] [ModernAudioRecorder] MediaRecorder stopped');
     };
 
     this.mediaRecorder.onerror = (event) => {
       console.error('[Sokuji] [ModernAudioRecorder] MediaRecorder error:', event.error);
     };
-  }
-
-  /**
-   * Process audio chunk from MediaRecorder
-   * @private
-   * @param {Blob} blob
-   */
-  async processAudioChunk(blob) {
-    // Skip processing MediaRecorder chunks for real-time audio
-    // MediaRecorder chunks are compressed and not suitable for real-time PCM processing
-    // Real-time audio processing is handled by the audio analysis node instead
-    this.log('MediaRecorder chunk received, size:', blob.size);
   }
 
   /**
@@ -445,7 +388,7 @@ export class ModernAudioRecorder {
 
   /**
    * Start recording and storing to memory
-   * @param {(data: { mono: Int16Array; raw: Int16Array }) => any} [chunkProcessor]
+   * @param {(data: { mono: Int16Array; raw: Int16Array; isRecording:boolean; isPassthrough:boolean; passthroughVolume:number; }) => any} [chunkProcessor]
    * @param {number} [chunkSize] Recording interval in milliseconds
    * @returns {Promise<true>}
    */
@@ -461,7 +404,7 @@ export class ModernAudioRecorder {
     this.onAudioData = chunkProcessor;
     this.audioChunks = [];
     
-    this.log('Recording ...');
+    console.info('[Sokuji] [ModernAudioRecorder] Recording started');
     
     // Start MediaRecorder with specified interval
     this.mediaRecorder.start(chunkSize);
@@ -481,7 +424,7 @@ export class ModernAudioRecorder {
       throw new Error('Already paused: please call .record() first');
     }
 
-    this.log('Pausing ...');
+    console.info('[Sokuji] [ModernAudioRecorder] Pausing recording');
     
     if (this.mediaRecorder.state === 'recording') {
       this.mediaRecorder.stop();
@@ -508,7 +451,7 @@ export class ModernAudioRecorder {
     }
     
     this.audioChunks = [];
-    this.log('Audio buffer cleared');
+    console.debug('[Sokuji] [ModernAudioRecorder] Audio buffer cleared');
     return true;
   }
 
@@ -517,7 +460,7 @@ export class ModernAudioRecorder {
    * @returns {Promise<{meanValues: Float32Array, channels: Array<Float32Array>}>}
    */
   async read() {
-    this.log('Read operation not supported in MediaRecorder mode');
+    console.warn('[Sokuji] [ModernAudioRecorder] Read operation not supported in MediaRecorder mode');
     return {
       meanValues: new Float32Array(0),
       channels: []
@@ -540,7 +483,7 @@ export class ModernAudioRecorder {
       );
     }
 
-    this.log('Saving recording...');
+    console.info('[Sokuji] [ModernAudioRecorder] Saving recording...');
     
     if (this.audioChunks.length === 0) {
       throw new Error('No audio data to save');
@@ -563,7 +506,7 @@ export class ModernAudioRecorder {
       throw new Error('Session ended: please call .begin() first');
     }
 
-    this.log('Stopping ...');
+    console.info('[Sokuji] [ModernAudioRecorder] Stopping recording session');
     
     // Stop recording if active
     if (this.recording) {
@@ -577,7 +520,7 @@ export class ModernAudioRecorder {
         savedAudio = await this.save(true);
       }
     } catch (saveError) {
-      this.log('No audio data to save or save failed:', saveError.message);
+      console.debug('[Sokuji] [ModernAudioRecorder] No audio data to save or save failed:', saveError.message);
       // Create empty response for compatibility
       savedAudio = { blob: new Blob([], { type: 'audio/webm' }), url: '' };
     }
