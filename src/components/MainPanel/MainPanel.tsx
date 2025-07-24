@@ -135,7 +135,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       );
       
       if (isRealVoicePassthroughEnabled) {
-        console.info('[Sokuji] [MainPanel] Updated passthrough settings: enabled=', isRealVoicePassthroughEnabled, 'volume=', realVoicePassthroughVolume);
+        console.debug('[Sokuji] [MainPanel] Updated passthrough settings: enabled=', isRealVoicePassthroughEnabled, 'volume=', realVoicePassthroughVolume);
       }
     }
   }, [isRealVoicePassthroughEnabled, realVoicePassthroughVolume, selectedInputDevice, selectedMonitorDevice, isMonitorDeviceOn]);

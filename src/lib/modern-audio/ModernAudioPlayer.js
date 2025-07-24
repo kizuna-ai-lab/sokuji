@@ -100,9 +100,6 @@ export class ModernAudioPlayer {
     if (this.globalVolumeMultiplier === 0) {
       return;
     }
-
-    console.info('[ModernAudioPlayer] Adding to passthrough volume:', volume, 'global multiplier:', this.globalVolumeMultiplier);
-
     const buffer = this.normalizeAudioData(audioData);
     const trackId = 'passthrough';
     

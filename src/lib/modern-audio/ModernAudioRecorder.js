@@ -1,7 +1,7 @@
 /**
  * Modern Audio Recorder using standard browser APIs
  * Replaces WavRecorder with MediaRecorder API for better echo cancellation support
- * Updated: Fixed audio processing and connection state issues
+ * Updated: Uses AudioWorklet API instead of deprecated ScriptProcessor
  * @class
  */
 export class ModernAudioRecorder {
@@ -27,8 +27,10 @@ export class ModernAudioRecorder {
     this.audioContext = null;
     this.mediaStreamSource = null;
     this.scriptProcessor = null;
+    this.audioWorkletNode = null;
     this.analyser = null;
     this.dummyGain = null;
+    this.useAudioWorklet = false;
     
     // Passthrough settings
     this._passthroughEnabled = false;
@@ -50,7 +52,7 @@ export class ModernAudioRecorder {
   setupPassthrough(enabled = false, volume = 0.3) {
     this._passthroughEnabled = enabled;
     this._passthroughVolume = Math.max(0, Math.min(1, volume));
-    console.info(`[Sokuji] [ModernAudioRecorder] Passthrough setup: enabled=${enabled}, volume=${this._passthroughVolume}`);
+    console.debug(`[Sokuji] [ModernAudioRecorder] Passthrough setup: enabled=${enabled}, volume=${this._passthroughVolume}`);
     return true;
   }
 
@@ -261,6 +263,31 @@ export class ModernAudioRecorder {
   }
 
   /**
+   * Get the URL for the AudioWorklet processor
+   * @private
+   * @returns {string}
+   */
+  getAudioWorkletProcessorUrl() {
+    // Check if we're in a Chrome extension environment
+    if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.getURL) {
+      return chrome.runtime.getURL('worklets/audio-recorder-worklet-processor.js');
+    }
+    // For regular web/Electron environments
+    return new URL('../../services/worklets/audio-recorder-worklet-processor.js', import.meta.url).href;
+  }
+
+  /**
+   * Check if AudioWorklet is supported
+   * @private
+   * @returns {boolean}
+   */
+  isAudioWorkletSupported() {
+    return typeof AudioWorkletNode !== 'undefined' && 
+           this.audioContext && 
+           this.audioContext.audioWorklet;
+  }
+
+  /**
    * Setup real-time audio processing for AI input and passthrough
    * @private
    */
@@ -272,9 +299,77 @@ export class ModernAudioRecorder {
     // Create MediaStreamSource
     this.mediaStreamSource = this.audioContext.createMediaStreamSource(this.stream);
     
-    // Create ScriptProcessor for real-time audio processing
-    // Note: ScriptProcessor is deprecated but still widely supported
-    // For production, consider migrating to AudioWorklet
+    // Check if AudioWorklet is supported
+    this.useAudioWorklet = this.isAudioWorkletSupported();
+    
+    if (this.useAudioWorklet) {
+      try {
+        // Use modern AudioWorklet API
+        console.info('[Sokuji] [ModernAudioRecorder] Using AudioWorklet for audio processing');
+        
+        // Load the AudioWorklet module
+        const workletUrl = this.getAudioWorkletProcessorUrl();
+        await this.audioContext.audioWorklet.addModule(workletUrl);
+        
+        // Create AudioWorkletNode
+        this.audioWorkletNode = new AudioWorkletNode(this.audioContext, 'audio-recorder-processor');
+        
+        // Handle messages from the worklet
+        this.audioWorkletNode.port.onmessage = (event) => {
+          if (event.data.type === 'audioData') {
+            const { pcmData, timestamp, frameCount } = event.data;
+            
+            // Log periodically to verify data flow
+            this._audioChunkCount = (this._audioChunkCount || 0) + 1;
+            if (this._audioChunkCount % 500 === 0) {
+              console.debug(`[Sokuji] [ModernAudioRecorder] AudioWorklet chunk ${this._audioChunkCount}, PCM length: ${pcmData.length}, timestamp: ${timestamp}`);
+            }
+            
+            // Send audio data through callback
+            if (this.onAudioData && typeof this.onAudioData === 'function' && pcmData.length > 0) {
+              try {
+                this.onAudioData({ 
+                  mono: pcmData, 
+                  raw: pcmData,
+                  isRecording: this.recording,
+                  isPassthrough: this._passthroughEnabled,
+                  passthroughVolume: this._passthroughVolume
+                });
+              } catch (error) {
+                console.error('[Sokuji] [ModernAudioRecorder] Error in onAudioData callback:', error);
+              }
+            }
+          }
+        };
+        
+        // Connect nodes
+        this.mediaStreamSource.connect(this.audioWorkletNode);
+        
+        // Create dummy gain node to keep worklet active
+        this.dummyGain = this.audioContext.createGain();
+        this.dummyGain.gain.value = 0; // Mute the output
+        this.audioWorkletNode.connect(this.dummyGain);
+        this.dummyGain.connect(this.audioContext.destination);
+        
+      } catch (error) {
+        console.warn('[Sokuji] [ModernAudioRecorder] Failed to setup AudioWorklet, falling back to ScriptProcessor:', error);
+        this.useAudioWorklet = false;
+        await this.setupScriptProcessorFallback();
+      }
+    } else {
+      // Fallback to ScriptProcessor for older browsers
+      console.info('[Sokuji] [ModernAudioRecorder] AudioWorklet not supported, using ScriptProcessor fallback');
+      await this.setupScriptProcessorFallback();
+    }
+    
+    console.info('[Sokuji] [ModernAudioRecorder] Real-time audio processing setup complete');
+  }
+
+  /**
+   * Setup ScriptProcessor as fallback for browsers without AudioWorklet support
+   * @private
+   */
+  async setupScriptProcessorFallback() {
     const bufferSize = 4096; // Good balance between latency and performance
     this.scriptProcessor = this.audioContext.createScriptProcessor(bufferSize, 1, 1);
     
@@ -321,13 +416,10 @@ export class ModernAudioRecorder {
     this.mediaStreamSource.connect(this.scriptProcessor);
     
     // Create a dummy gain node with zero volume to keep ScriptProcessor active
-    // without causing audio feedback
     this.dummyGain = this.audioContext.createGain();
     this.dummyGain.gain.value = 0; // Mute the output
     this.scriptProcessor.connect(this.dummyGain);
     this.dummyGain.connect(this.audioContext.destination);
-    
-    console.info('[Sokuji] [ModernAudioRecorder] Real-time audio processing setup complete');
   }
 
   /**
@@ -533,6 +625,12 @@ export class ModernAudioRecorder {
     }
 
     // Clean up real-time audio processing
+    if (this.audioWorkletNode) {
+      this.audioWorkletNode.disconnect();
+      this.audioWorkletNode.port.close();
+      this.audioWorkletNode = null;
+    }
+    
     if (this.scriptProcessor) {
       this.scriptProcessor.disconnect();
       this.scriptProcessor = null;

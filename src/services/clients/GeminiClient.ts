@@ -395,7 +395,7 @@ export class GeminiClient implements IClient {
   }
 
   private async handleMessage(message: LiveServerMessage): Promise<void> {
-    console.info('[Sokuji] [GeminiClient] Message received:', message);
+    console.debug('[Sokuji] [GeminiClient] Message received:', message);
     
     // Emit specific realtime events based on message content
     if (message.setupComplete) {
