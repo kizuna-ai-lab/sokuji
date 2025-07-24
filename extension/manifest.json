@@ -58,7 +58,8 @@
         "requestPermission.js",
         "popup.html",
         "popup.js",
-        "popup.css"
+        "popup.css",
+        "worklets/*"
       ],
       "matches": ["<all_urls>"]
     }
