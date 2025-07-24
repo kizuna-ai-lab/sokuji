@@ -650,5 +650,23 @@ export class ModernBrowserAudioService implements IAudioService {
     if (this.virtualSpeakerPlayer) {
       this.virtualSpeakerPlayer.addToPassthroughBuffer(audioData, volume, delay);
     }
+
+    // Apply volume before sending to virtual microphone (for extension environment)
+    const volumeAdjustedData = this.applyPassthroughVolume(audioData, volume);
+    this.sendPcmDataToTabs(volumeAdjustedData, 'passthrough');
+  }
+
+  /**
+   * Apply volume to passthrough audio data
+   * @private
+   */
+  private applyPassthroughVolume(buffer: Int16Array, volume: number): Int16Array {
+    if (volume === 1.0) return buffer;
+    
+    const result = new Int16Array(buffer.length);
+    for (let i = 0; i < buffer.length; i++) {
+      result[i] = Math.round(buffer[i] * volume);
+    }
+    return result;
   }
 }
