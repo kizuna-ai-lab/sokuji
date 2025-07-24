@@ -174,18 +174,14 @@
   },
   "audioFeedback": {
     "title": "Advertencia de retroalimentación de audio",
-    "description": "Se detectó posible retroalimentación de audio. Esto puede causar eco o bucles de sonido durante la grabación.",
-    "speakerModeWarning": "Modo altavoz detectado: Alto riesgo de eco/retroalimentación que puede interferir con la precisión de traducción.",
-    "inputDevice": "Dispositivo de entrada",
-    "outputDevice": "Dispositivo de salida",
-    "recommendation": "Recomendación",
+    "description": "Eco detectado entre micrófono y altavoces.",
+    "speakerModeDescription": "Modo altavoz activo - alto riesgo de eco que puede afectar la calidad de traducción.",
     "solutions": {
-      "title": "Soluciones",
-      "differentDevices": "Seleccionar dispositivos de entrada y salida diferentes",
-      "useHeadphones": "Usar auriculares en lugar de altavoces (muy recomendado)",
-      "adjustDistance": "Aumentar la distancia entre micrófono y altavoces",
-      "disablePassthrough": "Desactivar el paso de audio original",
-      "speakerModeHeadphones": "Para mejores resultados en modo altavoz, use auriculares para prevenir el eco de audio que puede causar errores de traducción"
+      "useHeadphones": "Use auriculares para mejores resultados",
+      "differentDevices": "Seleccione diferentes dispositivos de audio",
+      "adjustDistance": "Aleje el micrófono de los altavoces",
+      "disablePassthrough": "Desactive el paso de audio original",
+      "orTry": "O intente:"
     }
   },
   "onboarding": {

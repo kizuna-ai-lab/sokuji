@@ -94,18 +94,14 @@
   },
   "audioFeedback": {
     "title": "Cảnh báo phản hồi âm thanh",
-    "description": "Đã phát hiện phản hồi âm thanh tiềm ẩn. Điều này có thể gây ra tiếng vọng hoặc vòng lặp âm thanh trong quá trình ghi âm.",
-    "speakerModeWarning": "Đã phát hiện chế độ loa: Nguy cơ cao về tiếng vọng/phản hồi có thể can thiệp vào độ chính xác của bản dịch.",
-    "inputDevice": "Thiết bị đầu vào",
-    "outputDevice": "Thiết bị đầu ra",
-    "recommendation": "Khuyến nghị",
+    "description": "Phát hiện tiếng vọng giữa microphone và loa.",
+    "speakerModeDescription": "Chế độ loa đang hoạt động - nguy cơ tiếng vọng cao có thể ảnh hưởng chất lượng dịch.",
     "solutions": {
-      "title": "Giải pháp",
-      "differentDevices": "Chọn các thiết bị đầu vào và đầu ra khác nhau",
-      "useHeadphones": "Sử dụng tai nghe thay vì loa (khuyến khích mạnh)",
-      "adjustDistance": "Tăng khoảng cách giữa microphone và loa",
-      "disablePassthrough": "Tắt chức năng truyền âm thanh gốc",
-      "speakerModeHeadphones": "Để có kết quả tốt nhất ở chế độ loa, hãy sử dụng tai nghe để ngăn tiếng vọng âm thanh có thể gây lỗi dịch"
+      "useHeadphones": "Sử dụng tai nghe để có kết quả tốt nhất",
+      "differentDevices": "Chọn các thiết bị âm thanh khác nhau",
+      "adjustDistance": "Di chuyển microphone ra xa loa",
+      "disablePassthrough": "Tắt truyền âm thanh gốc",
+      "orTry": "Hoặc thử:"
     }
   },
   "onboarding": {
