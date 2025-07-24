@@ -701,12 +701,15 @@ export class PalabraAIClient implements IClient {
       return false;
     }
     
-    // Check if all keys are potential language codes (2-3 letter codes)
+    // Check if all keys are potential language codes (2-3 letter codes or locale format like en-us)
     const allKeysAreLangCodes = keys.every(key => 
       typeof key === 'string' && 
-      key.length >= 2 && 
-      key.length <= 3 && 
-      /^[a-z]+$/.test(key)
+      (
+        // Simple language code (2-3 letters)
+        (key.length >= 2 && key.length <= 3 && /^[a-z]+$/.test(key)) ||
+        // Locale format (e.g., en-us, zh-cn)
+        /^[a-z]{2,3}-[a-z]{2,3}$/i.test(key)
+      )
     );
     
     if (!allKeysAreLangCodes) {

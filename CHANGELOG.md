@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- **Audio Architecture Overhaul**: Completely redesigned audio system using modern Web Audio APIs
+- **Removed Virtual Devices**: Eliminated virtual audio device dependencies for better cross-platform compatibility
+- **Modern Audio Components**: Replaced WavRecorder/WavStreamPlayer with ModernAudioRecorder/ModernAudioPlayer
+- **Improved Echo Cancellation**: Enhanced echo cancellation using latest browser APIs (suppressLocalAudioPlayback, etc.)
+- **Unified Audio Service**: Both Electron and browser extension now use the same ModernBrowserAudioService
+- **Event-Driven Playback**: Replaced polling-based audio playback with efficient event-driven architecture
+
+### Fixed
+
+- **Audio Echo Issues**: Fixed echo problems by implementing proper echo cancellation in the recording pipeline
+- **Device Switching**: Improved device switching reliability and removed race conditions
+- **Audio Visualization**: Fixed frequency analysis display issues with proper AudioContext connections
+
+### Removed
+
+- **PulseAudio Dependencies**: Removed all PulseAudio/PipeWire virtual device creation code
+- **Platform-Specific Audio Services**: Removed separate BrowserAudioService and ElectronAudioService classes
+- **Virtual Device Warnings**: Removed UI warnings for virtual microphone/speaker selection
+
 ## [0.9.0] - 2025-07-11
 
 ### Added

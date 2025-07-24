@@ -16,6 +16,12 @@ PostHog analytics integration documentation for the main application, covering:
 - Integration patterns
 - Best practices for event tracking
 
+### [`app-audio-device-switching.md`](./app-audio-device-switching.md)
+Dynamic audio device switching documentation, covering:
+- Architecture and implementation
+- React integration patterns
+- Best practices and troubleshooting
+
 ## Related Documentation
 
 - [Extension Analytics](../extension/) - Analytics for browser extension

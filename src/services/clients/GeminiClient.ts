@@ -395,7 +395,7 @@ export class GeminiClient implements IClient {
   }
 
   private async handleMessage(message: LiveServerMessage): Promise<void> {
-    console.info('[Sokuji] [GeminiClient] Message received:', message);
+    console.debug('[Sokuji] [GeminiClient] Message received:', message);
     
     // Emit specific realtime events based on message content
     if (message.setupComplete) {
@@ -789,7 +789,8 @@ export class GeminiClient implements IClient {
     }
 
     // Convert Int16Array to base64 PCM format for Gemini
-    const base64Audio = this.arrayBufferToBase64(audioData);
+    // Use the buffer property to get the underlying ArrayBuffer
+    const base64Audio = this.arrayBufferToBase64(audioData.buffer);
     
     this.session.sendRealtimeInput({
       media: {

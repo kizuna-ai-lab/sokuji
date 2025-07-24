@@ -1,5 +1,5 @@
 import { AudioDevice } from '../../contexts/AudioContext';
-import { WavStreamPlayer } from '../../lib/wavtools/index.js';
+import { ModernAudioPlayer, ModernAudioRecorder } from '../../lib/modern-audio';
 
 export interface AudioDevices {
   inputs: AudioDevice[];
@@ -12,16 +12,16 @@ export interface AudioOperationResult {
   error?: string;
 }
 
+export interface AudioRecordingCallback {
+  (data: { mono: Int16Array; raw: Int16Array }): void;
+}
+
 export interface IAudioService {
   /**
    * Get available audio input and output devices
    */
   getDevices(): Promise<AudioDevices>;
   
-  /**
-   * Select and activate an input device (microphone)
-   */
-  selectInputDevice(deviceId: string): Promise<AudioOperationResult>;
   
   /**
    * Connect to a monitoring device
@@ -49,38 +49,87 @@ export interface IAudioService {
   initialize(): Promise<void>;
   
   /**
-   * Setup virtual audio output with the provided WavStreamPlayer
-   * @param externalWavStreamPlayer Optional external WavStreamPlayer to configure for virtual output
+   * Setup virtual audio output with the provided ModernAudioPlayer
+   * @param externalPlayer Optional external ModernAudioPlayer to configure for virtual output
    * @returns Promise resolving to true if virtual output was successfully set up, false otherwise
    */
-  setupVirtualAudioOutput(externalWavStreamPlayer?: WavStreamPlayer): Promise<boolean>;
+  setupVirtualAudioOutput(externalPlayer?: ModernAudioPlayer): Promise<boolean>;
   
   /**
-   * Gets the current WavStreamPlayer instance, creating one if it doesn't exist
+   * Gets the current ModernAudioPlayer instance, creating one if it doesn't exist
    */
-  getWavStreamPlayer(): WavStreamPlayer;
+  getWavStreamPlayer(): ModernAudioPlayer;
   
   /**
-   * Adds 16-bit PCM audio data to the WavStreamPlayer
+   * Set monitor volume (0 to mute, 1 for normal)
+   * @param enabled Whether monitor is enabled
+   */
+  setMonitorVolume(enabled: boolean): void;
+  
+  /**
+   * Adds 16-bit PCM audio data to the ModernAudioPlayer
    * @param data The audio data to add
    * @param trackId Optional track ID to associate with this audio
+   * @param shouldPlay Whether to play the audio (defaults to true for backward compatibility)
    */
-  addAudioData(data: Int16Array, trackId?: string): void;
+  addAudioData(data: Int16Array, trackId?: string, shouldPlay?: boolean): void;
   
   /**
    * Interrupts the currently playing audio
    * @returns Object containing trackId and offset if audio was interrupted
    */
   interruptAudio(): Promise<{ trackId: string; offset: number } | null>;
-  
+
   /**
-   * Checks if a track has been interrupted
-   * @param trackId The track ID to check
+   * Clear streaming audio data for a specific track
+   * @param trackId The track ID to clear
    */
-  isTrackInterrupted(trackId: string): boolean;
-  
+  clearStreamingTrack(trackId: string): void;
+
   /**
    * Clears the list of interrupted track IDs
    */
   clearInterruptedTracks(): void;
+
+  /**
+   * Start recording audio from the specified device
+   * @param deviceId The device ID to record from
+   * @param callback Function to receive audio data chunks
+   */
+  startRecording(deviceId: string | undefined, callback: AudioRecordingCallback): Promise<void>;
+
+  /**
+   * Stop recording and clean up resources
+   */
+  stopRecording(): Promise<void>;
+
+  /**
+   * Pause recording (keeps resources allocated)
+   */
+  pauseRecording(): Promise<void>;
+
+  /**
+   * Switch recording device while maintaining session
+   * @param deviceId The new device ID to switch to
+   */
+  switchRecordingDevice?(deviceId: string | undefined): Promise<void>;
+
+  /**
+   * Get the recorder instance for accessing methods like getFrequencies
+   */
+  getRecorder(): ModernAudioRecorder;
+
+  /**
+   * Setup passthrough settings
+   * @param enabled Whether passthrough is enabled
+   * @param volume Passthrough volume (0.0 to 1.0)
+   */
+  setupPassthrough(enabled: boolean, volume: number): void;
+
+  /**
+   * Handle passthrough audio routing to outputs
+   * @param audioData The audio data to passthrough
+   * @param volume The volume level
+   */
+  handlePassthroughAudio(audioData: Int16Array, volume: number): void;
 }

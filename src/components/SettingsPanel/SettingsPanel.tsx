@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { ArrowRight, Save, Check, AlertCircle, AlertTriangle, Info, Key, HelpCircle, FlaskConical } from 'lucide-react';
 import './SettingsPanel.scss';
 import { useSettings } from '../../contexts/SettingsContext';
@@ -26,10 +26,8 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
     updateCometAPISettings,
     updateGeminiSettings,
     updatePalabraAISettings,
-    getCurrentProviderConfig,
     
     // Other context methods and state
-    isApiKeyValid,
     validateApiKey: contextValidateApiKey, 
     getProcessedSystemInstructions,
     availableModels,
@@ -55,9 +53,6 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
   const availableProviders = useMemo(() => {
     return ProviderConfigFactory.getAllConfigs();
   }, []);
-
-  // Get current provider's settings
-  const currentProviderSettings = getCurrentProviderConfig();
 
   const [apiKeyStatus, setApiKeyStatus] = useState<{
     valid: boolean | null;

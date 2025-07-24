@@ -19,9 +19,7 @@ const {
   createVirtualAudioDevices, 
   removeVirtualAudioDevices, 
   isPulseAudioAvailable,
-  cleanupOrphanedDevices,
-  connectVirtualSpeakerToOutput,
-  disconnectVirtualSpeakerFromOutputs
+  cleanupOrphanedDevices
 } = require('./pulseaudio-utils');
 
 // Set application name for PulseAudio
@@ -261,44 +259,6 @@ ipcMain.handle('open-directory', (event, dirPath) => {
 
 
 
-// Handler to connect virtual speaker to a specific output device
-ipcMain.handle('connect-virtual-speaker-to-output', async (event, deviceInfo) => {
-  try {
-    // First disconnect any existing connections
-    await disconnectVirtualSpeakerFromOutputs();
-    
-    // Then connect to the new output device
-    // Pass both deviceId and label to help with PipeWire node identification
-    const result = await connectVirtualSpeakerToOutput(deviceInfo);
-    return { 
-      success: result,
-      message: result ? 'Connected virtual speaker to output device' : 'Failed to connect'
-    };
-  } catch (error) {
-    console.error('[Sokuji] [Main] Error connecting virtual speaker to output:', error);
-    return { 
-      success: false, 
-      error: error.message || 'Failed to connect virtual speaker to output device' 
-    };
-  }
-});
-
-// Handler to disconnect virtual speaker from all outputs
-ipcMain.handle('disconnect-virtual-speaker-outputs', async () => {
-  try {
-    const result = await disconnectVirtualSpeakerFromOutputs();
-    return { 
-      success: result,
-      message: result ? 'Disconnected virtual speaker from all outputs' : 'Failed to disconnect'
-    };
-  } catch (error) {
-    console.error('[Sokuji] [Main] Error disconnecting virtual speaker:', error);
-    return { 
-      success: false, 
-      error: error.message || 'Failed to disconnect virtual speaker from outputs' 
-    };
-  }
-});
 
 // Handler to create virtual audio devices
 ipcMain.handle('create-virtual-speaker', async () => {

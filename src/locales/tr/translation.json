@@ -94,18 +94,14 @@
   },
   "audioFeedback": {
     "title": "Ses Geri Beslemesi Uyarısı",
-    "description": "Potansiyel ses geri beslemesi tespit edildi. Bu kayıt sırasında eko veya ses döngülerine neden olabilir.",
-    "speakerModeWarning": "Hoparlör modu tespit edildi: Çeviri doğruluğunu etkileyebilecek yüksek eko/geri besleme riski.",
-    "inputDevice": "Giriş Cihazı",
-    "outputDevice": "Çıkış Cihazı",
-    "recommendation": "Öneri",
+    "description": "Mikrofon ve hoparlörler arasında eko tespit edildi.",
+    "speakerModeDescription": "Hoparlör modu aktif - çeviri kalitesini etkileyebilecek yüksek eko riski.",
     "solutions": {
-      "title": "Çözümler",
-      "differentDevices": "Farklı giriş ve çıkış cihazları seçin",
-      "useHeadphones": "Hoparlör yerine kulaklık kullanın (şiddetle önerilir)",
-      "adjustDistance": "Mikrofon ve hoparlörler arasındaki mesafeyi artırın",
-      "disablePassthrough": "Orijinal ses geçişini devre dışı bırakın",
-      "speakerModeHeadphones": "Hoparlör modunda en iyi sonuçlar için, çeviri hatalarına neden olabilecek ses ekosunu önlemek için kulaklık kullanın"
+      "useHeadphones": "En iyi sonuçlar için kulaklık kullanın",
+      "differentDevices": "Farklı ses cihazları seçin",
+      "adjustDistance": "Mikrofonu hoparlörlerden uzağa taşıyın",
+      "disablePassthrough": "Orijinal ses geçişini kapatın",
+      "orTry": "Veya deneyin:"
     }
   },
   "onboarding": {

@@ -90,18 +90,14 @@
   },
   "audioFeedback": {
     "title": "Äänipalautteen varoitus",
-    "description": "Mahdollinen äänipalautesilmukka havaittu. Tämä voi aiheuttaa kaikua tai äänisilmukoita nauhoituksen aikana.",
-    "speakerModeWarning": "Kaiutintila havaittu: Korkea kaiku/äänipalauteen riski, joka voi häiritä käännöksen tarkkuutta.",
-    "inputDevice": "Syöttölaite",
-    "outputDevice": "Ulostulolaite",
-    "recommendation": "Suositus",
+    "description": "Kaiku havaittu mikrofonin ja kaiuttimien välillä.",
+    "speakerModeDescription": "Kaiutintila aktiivinen - korkea kaikuriski, joka voi vaikuttaa käännöksen laatuun.",
     "solutions": {
-      "title": "Ratkaisut",
-      "differentDevices": "Valitse erilaiset syöttö- ja ulostulolaitteet",
-      "useHeadphones": "Käytä kuulokkeita kaiuttimien sijaan (vahvasti suositeltu)",
-      "adjustDistance": "Lisää etäisyyttä mikrofonin ja kaiuttimien välille",
+      "useHeadphones": "Käytä kuulokkeita parhaan tuloksen saamiseksi",
+      "differentDevices": "Valitse eri äänilaitteet",
+      "adjustDistance": "Siirrä mikrofoni kauemmas kaiuttimista",
       "disablePassthrough": "Poista alkuperäisen äänen läpiviennti käytöstä",
-      "speakerModeHeadphones": "Parhaan tuloksen saamiseksi kaiuttintilassa käytä kuulokkeita estääksesi äänikaikua, joka voi aiheuttaa käännösvirheitä"
+      "orTry": "Tai kokeile:"
     }
   },
   "onboarding": {

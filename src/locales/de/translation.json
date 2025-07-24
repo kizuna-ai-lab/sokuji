@@ -174,18 +174,14 @@
   },
   "audioFeedback": {
     "title": "Audio-Feedback-Warnung",
-    "description": "Potentielles Audio-Feedback erkannt. Dies kann während der Aufnahme zu Echo oder Klangschleifen führen.",
-    "speakerModeWarning": "Lautsprechermodus erkannt: Hohes Echo-/Feedback-Risiko, das die Übersetzungsgenauigkeit beeinträchtigen kann.",
-    "inputDevice": "Eingabegerät",
-    "outputDevice": "Ausgabegerät",
-    "recommendation": "Empfehlung",
+    "description": "Echo zwischen Mikrofon und Lautsprechern erkannt.",
+    "speakerModeDescription": "Lautsprechermodus aktiv - hohes Echo-Risiko, das die Übersetzungsqualität beeinträchtigen kann.",
     "solutions": {
-      "title": "Lösungen",
-      "differentDevices": "Verschiedene Eingabe- und Ausgabegeräte auswählen",
-      "useHeadphones": "Kopfhörer statt Lautsprecher verwenden (dringend empfohlen)",
-      "adjustDistance": "Abstand zwischen Mikrofon und Lautsprechern vergrößern",
-      "disablePassthrough": "Original-Audio-Durchleitung deaktivieren",
-      "speakerModeHeadphones": "Für beste Ergebnisse im Lautsprechermodus verwenden Sie Kopfhörer, um Audio-Echo zu verhindern, das Übersetzungsfehler verursachen kann"
+      "useHeadphones": "Verwenden Sie Kopfhörer für beste Ergebnisse",
+      "differentDevices": "Wählen Sie verschiedene Audiogeräte",
+      "adjustDistance": "Mikrofon von Lautsprechern entfernen",
+      "disablePassthrough": "Original-Audio-Durchleitung ausschalten",
+      "orTry": "Oder versuchen Sie:"
     }
   },
   "onboarding": {

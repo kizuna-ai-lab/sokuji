@@ -1,6 +1,6 @@
 import { RealtimeClient } from '@openai/realtime-api-beta';
 import { ItemType } from '@openai/realtime-api-beta/dist/lib/client.js';
-import { IClient, ConversationItem, SessionConfig, ClientEventHandlers, ApiKeyValidationResult, FilteredModel, IClientStatic } from '../interfaces/IClient';
+import { IClient, ConversationItem, SessionConfig, ClientEventHandlers, ApiKeyValidationResult, FilteredModel } from '../interfaces/IClient';
 import { RealtimeEvent } from '../../contexts/LogContext';
 import { Provider, ProviderType } from '../../types/Provider';
 import i18n from '../../locales';
