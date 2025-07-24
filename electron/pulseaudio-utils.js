@@ -7,174 +7,62 @@ let virtualSinkModule = null;
 let virtualSourceModule = null;
 
 /**
- * Connect two audio ports using pw-link
- * @param {string} outputPortName - Name pattern of the output port
- * @param {string} inputPortName - Name pattern of the input port
+ * Connect virtual speaker monitor to virtual mic using pw-link
  * @returns {Promise<boolean>} - True if connection successful, false otherwise
  */
-async function connectAudioPorts(outputPortName, inputPortName) {
+async function connectVirtualDevices() {
   try {
-    console.log(`[Sokuji] [PulseAudio] Attempting to connect ${outputPortName} to ${inputPortName} using pw-link...`);
+    console.log('[Sokuji] [PulseAudio] Connecting virtual speaker monitor to virtual mic...');
     
-    // Get output ports
-    const { stdout: outputPorts } = await execPromise(`pw-link -o | grep ${outputPortName}`);
-    console.log('[Sokuji] [PulseAudio] Available output ports:', outputPorts);
-    
-    // Get input ports - handle both direct input and playback ports
-    let inputPorts = '';
+    // Try to connect using pw-link
     try {
-      const { stdout: directInputPorts } = await execPromise(`pw-link -i | grep ${inputPortName}`);
-      inputPorts = directInputPorts;
-      console.log('[Sokuji] [PulseAudio] Available input ports (direct match):', inputPorts);
-    } catch (directError) {
-      // If direct match fails, try to find playback ports for ALSA output devices
-      try {
-        const { stdout: playbackPorts } = await execPromise(`pw-link -i | grep "${inputPortName}:playback"`);
-        inputPorts = playbackPorts;
-        console.log('[Sokuji] [PulseAudio] Available input ports (playback match):', inputPorts);
-      } catch (playbackError) {
-        console.error('[Sokuji] [PulseAudio] Failed to find matching input ports:', playbackError.message);
+      // First, let's find the exact port names
+      const pwLinkOutputCmd = 'pw-link -o | grep sokuji_virtual_output';
+      const pwLinkInputCmd = 'pw-link -i | grep sokuji_virtual_mic';
+      console.log('[Sokuji] [PulseAudio] Executing:', pwLinkOutputCmd);
+      const { stdout: outputPorts } = await execPromise(pwLinkOutputCmd);
+      console.log('[Sokuji] [PulseAudio] Executing:', pwLinkInputCmd);
+      const { stdout: inputPorts } = await execPromise(pwLinkInputCmd);
+      
+      console.log('[Sokuji] [PulseAudio] Found output ports:', outputPorts.trim());
+      console.log('[Sokuji] [PulseAudio] Found input ports:', inputPorts.trim());
+      
+      // Parse the ports
+      const outputPortsArray = outputPorts.trim().split('\n').filter(Boolean);
+      const inputPortsArray = inputPorts.trim().split('\n').filter(Boolean);
+      
+      if (outputPortsArray.length === 0 || inputPortsArray.length === 0) {
+        throw new Error('No matching ports found');
+      }
+      
+      // Connect each channel
+      for (let i = 0; i < Math.min(outputPortsArray.length, inputPortsArray.length); i++) {
+        const pwLinkCmd = `pw-link "${outputPortsArray[i]}" "${inputPortsArray[i]}"`;
+        console.log('[Sokuji] [PulseAudio] Executing:', pwLinkCmd);
+        await execPromise(pwLinkCmd);
+        console.log(`[Sokuji] [PulseAudio] Connected: ${outputPortsArray[i]} -> ${inputPortsArray[i]}`);
+      }
+      
+      console.log('[Sokuji] [PulseAudio] Successfully connected virtual devices using pw-link');
+      return true;
+    } catch (pwError) {
+      // If pw-link fails, try using pactl
+      console.log('[Sokuji] [PulseAudio] pw-link failed, trying pactl method...');
+      
+      // The module-remap-source should handle this automatically, but we can verify
+      const pactlListCmd = 'pactl list sources short | grep sokuji_virtual_mic';
+      console.log('[Sokuji] [PulseAudio] Executing:', pactlListCmd);
+      const { stdout } = await execPromise(pactlListCmd);
+      console.log('[Sokuji] [PulseAudio] Command output:', stdout.trim());
+      if (stdout.includes('sokuji_virtual_mic')) {
+        console.log('[Sokuji] [PulseAudio] Virtual mic is using monitor source (auto-connected via module-remap-source)');
+        return true;
       }
     }
     
-    // Get existing links
-    console.log(`[Sokuji] [PulseAudio] Checking existing links between ${outputPortName} and ${inputPortName}...`);
-    const { stdout: existingLinks } = await execPromise('pw-link -l').catch(() => ({ stdout: '' }));
-    console.log('[Sokuji] [PulseAudio] Checking for existing links to disconnect...');
-    
-    // Parse the output to find links to disconnect
-    const lines = existingLinks.split('\n');
-    const linksToDisconnect = [];
-    
-    // Process the output to find connections
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i].trim();
-      
-      // Check if this is an input port line for the target input
-      if (line.startsWith(`input.${inputPortName}:`)) {
-        const inputPort = line;
-        
-        // Look at the next lines for connections (they start with |<-)
-        let j = i + 1;
-        while (j < lines.length && lines[j].trim().startsWith('|<-')) {
-          const outputPortLine = lines[j].trim();
-          const outputPort = outputPortLine.substring(3).trim(); // Remove the '|<-' prefix
-          
-          // Add this connection to our list to disconnect
-          linksToDisconnect.push({
-            output: outputPort,
-            input: inputPort
-          });
-          
-          j++;
-        }
-      }
-      
-      // Also check for output lines that connect to the target input
-      if (!line.startsWith(`input.${inputPortName}:`) && !line.startsWith('|')) {
-        const outputPort = line;
-        
-        // Look at the next lines for connections (they start with |->)
-        let j = i + 1;
-        while (j < lines.length && lines[j].trim().startsWith('|->')) {
-          const inputPortLine = lines[j].trim();
-          const inputPort = inputPortLine.substring(3).trim(); // Remove the '|->' prefix
-          
-          // Check if this connects to our target input
-          if (inputPort.startsWith(`input.${inputPortName}:`)) {
-            // Add this connection to our list to disconnect
-            linksToDisconnect.push({
-              output: outputPort,
-              input: inputPort
-            });
-          }
-          
-          j++;
-        }
-      }
-    }
-    
-    // Disconnect all found links
-    if (linksToDisconnect.length > 0) {
-      console.log(`[Sokuji] [PulseAudio] Found ${linksToDisconnect.length} links to disconnect`);
-      
-      for (const link of linksToDisconnect) {
-        console.log(`[Sokuji] [PulseAudio] Disconnecting: "${link.output}" from "${link.input}"`);
-        try {
-          await execPromise(`pw-link -d "${link.output}" "${link.input}"`);
-          console.log('[Sokuji] [PulseAudio] Link disconnected successfully');
-        } catch (disconnectError) {
-          console.error('[Sokuji] [PulseAudio] Failed to disconnect link:', disconnectError.message);
-        }
-      }
-    } else {
-      console.log(`[Sokuji] [PulseAudio] No existing links to ${inputPortName} found`);
-    }
-    
-    // Parse the output and input ports into arrays
-    const outputPortsArray = outputPorts.split('\n').filter(Boolean);
-    const inputPortsArray = inputPorts.split('\n').filter(Boolean);
-    
-    if (outputPortsArray.length === 0 || inputPortsArray.length === 0) {
-      console.error('[Sokuji] [PulseAudio] No matching audio ports found');
-      return false;
-    }
-    
-    // Check for existing connections for each pair of ports we want to connect
-    let allConnected = true;
-    let existingCount = 0;
-    let newCount = 0;
-    
-    // Get the list of existing links once to check against
-    const { stdout: currentLinks } = await execPromise('pw-link -l').catch(() => ({ stdout: '' }));
-    
-    // Connect each output port to each input port
-    for (let i = 0; i < Math.min(outputPortsArray.length, inputPortsArray.length); i++) {
-      const outputPort = outputPortsArray[i];
-      const inputPort = inputPortsArray[i];
-      
-      // Format port names for checking existing connections
-      // Remove leading "output." or "input." if present for comparison
-      const formattedOutputPort = outputPort.replace(/^output\./, '');
-      const formattedInputPort = inputPort.replace(/^input\./, '');
-      
-      // Check if this connection already exists
-      const connectionExists = currentLinks.includes(`${formattedOutputPort}`) && 
-                               currentLinks.includes(`${formattedInputPort}`) &&
-                               (currentLinks.includes(`${formattedOutputPort} -> ${formattedInputPort}`) || 
-                                currentLinks.includes(`${formattedInputPort} <- ${formattedOutputPort}`));
-      
-      if (connectionExists) {
-        console.log(`[Sokuji] [PulseAudio] Connection already exists: Channel ${i+1}: "${outputPort}" to "${inputPort}"`);
-        existingCount++;
-        continue; // Skip this pair since they're already connected
-      }
-      
-      console.log(`[Sokuji] [PulseAudio] Connecting channel ${i+1}: "${outputPort}" to "${inputPort}"`);
-      
-      try {
-        await execPromise(`pw-link "${outputPort}" "${inputPort}"`);
-        console.log(`[Sokuji] [PulseAudio] Successfully connected channel ${i+1}`);
-        newCount++;
-      } catch (error) {
-        // Check if the error is "File exists" which means the connection already exists
-        if (error.stderr && error.stderr.includes('File exists')) {
-          console.log(`[Sokuji] [PulseAudio] Connection already exists (detected during linking): Channel ${i+1}`);
-          existingCount++;
-        } else {
-          console.error(`[Sokuji] [PulseAudio] Failed to connect audio devices: ${error}`);
-          allConnected = false;
-        }
-      }
-    }
-    
-    console.log(`[Sokuji] [PulseAudio] Connection summary: ${newCount} new connections, ${existingCount} existing connections`);
-    
-    // Return true if all connections were established or already exist
-    return allConnected;
+    return false;
   } catch (error) {
-    console.error('[Sokuji] [PulseAudio] Failed to connect audio devices:', error);
-    console.log('[Sokuji] [PulseAudio] Devices created but not connected. Manual connection may be required.');
+    console.error('[Sokuji] [PulseAudio] Failed to connect virtual devices:', error);
     return false;
   }
 }
@@ -186,7 +74,9 @@ async function connectAudioPorts(outputPortName, inputPortName) {
 async function createVirtualAudioDevices() {
   try {
     // Create a virtual output sink
-    const sinkResult = await execPromise('pactl load-module module-null-sink sink_name=sokuji_virtual_output sink_properties=device.description="Sokuji_Virtual_Speaker"');
+    const sinkCmd = 'pactl load-module module-null-sink sink_name=sokuji_virtual_output sink_properties=device.description="Sokuji_Virtual_Speaker"';
+    console.log('[Sokuji] [PulseAudio] Executing:', sinkCmd);
+    const sinkResult = await execPromise(sinkCmd);
     if (sinkResult && sinkResult.stdout) {
       virtualSinkModule = sinkResult.stdout.trim();
       console.log(`[Sokuji] [PulseAudio] Created virtual sink with module ID: ${virtualSinkModule}`);
@@ -196,7 +86,10 @@ async function createVirtualAudioDevices() {
     }
 
     // Create a virtual microphone source that uses the virtual sink as its monitor
-    const sourceResult = await execPromise('pactl load-module module-remap-source master=sokuji_virtual_output.monitor source_name=sokuji_virtual_mic source_properties=device.description="Sokuji_Virtual_Mic"');
+    // Add dont_move=true to prevent automatic connections to default devices
+    const sourceCmd = 'pactl load-module module-remap-source master=sokuji_virtual_output.monitor source_name=sokuji_virtual_mic source_properties=device.description="Sokuji_Virtual_Mic" channel_map=front-left,front-right';
+    console.log('[Sokuji] [PulseAudio] Executing:', sourceCmd);
+    const sourceResult = await execPromise(sourceCmd);
     if (sourceResult && sourceResult.stdout) {
       virtualSourceModule = sourceResult.stdout.trim();
       console.log(`[Sokuji] [PulseAudio] Created virtual microphone with module ID: ${virtualSourceModule}`);
@@ -210,9 +103,80 @@ async function createVirtualAudioDevices() {
       return false;
     }
 
-    // Connect sokuji_virtual_mic input to sokuji_virtual_output.monitor using the new method
-    const connectionResult = await connectAudioPorts('sokuji_virtual_output', 'sokuji_virtual_mic');
-    return connectionResult || true; // Still return true even if connection failed but devices were created
+    // Wait a moment for connections to stabilize
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
+    // Disconnect any automatic connections to physical microphones
+    try {
+      console.log('[Sokuji] [PulseAudio] Checking for automatic connections to disconnect...');
+      
+      // Get all output ports that might be connected to virtual mic
+      const outputPortsCmd = 'pw-link -o | grep -v sokuji';
+      console.log('[Sokuji] [PulseAudio] Executing:', outputPortsCmd);
+      const { stdout: outputPorts } = await execPromise(outputPortsCmd);
+      const physicalPorts = outputPorts.trim().split('\n').filter(Boolean);
+      
+      // Check each physical port and disconnect if connected to virtual mic
+      for (const port of physicalPorts) {
+        try {
+          // Check if this port is connected to virtual mic FL
+          const checkFLCmd = `pw-link -l | grep -A1 "${port}" | grep "input.sokuji_virtual_mic:input_FL"`;
+          const { stdout: flConnected } = await execPromise(checkFLCmd).catch(() => ({ stdout: '' }));
+          
+          if (flConnected) {
+            const disconnectFLCmd = `pw-link -d "${port}" "input.sokuji_virtual_mic:input_FL"`;
+            console.log('[Sokuji] [PulseAudio] Disconnecting:', disconnectFLCmd);
+            await execPromise(disconnectFLCmd);
+            console.log(`[Sokuji] [PulseAudio] Disconnected ${port} from virtual mic FL`);
+          }
+          
+          // Check if this port is connected to virtual mic FR
+          const checkFRCmd = `pw-link -l | grep -A1 "${port}" | grep "input.sokuji_virtual_mic:input_FR"`;
+          const { stdout: frConnected } = await execPromise(checkFRCmd).catch(() => ({ stdout: '' }));
+          
+          if (frConnected) {
+            const disconnectFRCmd = `pw-link -d "${port}" "input.sokuji_virtual_mic:input_FR"`;
+            console.log('[Sokuji] [PulseAudio] Disconnecting:', disconnectFRCmd);
+            await execPromise(disconnectFRCmd);
+            console.log(`[Sokuji] [PulseAudio] Disconnected ${port} from virtual mic FR`);
+          }
+        } catch (err) {
+          // Ignore individual port errors
+        }
+      }
+      
+      console.log('[Sokuji] [PulseAudio] Finished checking for unwanted connections');
+    } catch (disconnectError) {
+      console.log('[Sokuji] [PulseAudio] Error while disconnecting:', disconnectError.message);
+    }
+
+    // Connect the virtual devices
+    const connected = await connectVirtualDevices();
+    if (!connected) {
+      console.log('[Sokuji] [PulseAudio] Warning: Virtual devices created but connection might not be established');
+    }
+    
+    // Verify the final state
+    console.log('[Sokuji] [PulseAudio] Verifying final device state...');
+    try {
+      const verifyCmd = 'pw-link -l | grep sokuji';
+      console.log('[Sokuji] [PulseAudio] Executing:', verifyCmd);
+      const { stdout: linkState } = await execPromise(verifyCmd);
+      console.log('[Sokuji] [PulseAudio] Current connections:', linkState.trim());
+    } catch (verifyError) {
+      console.log('[Sokuji] [PulseAudio] Could not verify with pw-link, trying pactl...');
+      try {
+        const pactlCmd = 'pactl list short | grep sokuji';
+        console.log('[Sokuji] [PulseAudio] Executing:', pactlCmd);
+        const { stdout: pactlState } = await execPromise(pactlCmd);
+        console.log('[Sokuji] [PulseAudio] Current devices:', pactlState.trim());
+      } catch (pactlError) {
+        console.log('[Sokuji] [PulseAudio] Could not verify device state');
+      }
+    }
+    
+    console.log('[Sokuji] [PulseAudio] Virtual audio devices created successfully');
+    return true;
   } catch (error) {
     console.error('[Sokuji] [PulseAudio] Failed to create virtual audio devices:', error);
     // Clean up any modules that might have been created
@@ -244,7 +208,9 @@ function removeVirtualAudioDevices() {
       try {
         console.log(`[Sokuji] [PulseAudio] Removing virtual source module ID: ${virtualSourceModule}`);
         // Use execSync for more reliable cleanup during exit
-        execSync(`pactl unload-module ${virtualSourceModule}`);
+        const unloadSourceCmd = `pactl unload-module ${virtualSourceModule}`;
+        console.log('[Sokuji] [PulseAudio] Executing:', unloadSourceCmd);
+        execSync(unloadSourceCmd);
         console.log('[Sokuji] [PulseAudio] Virtual microphone source stopped');
         virtualSourceModule = null;
       } catch (sourceError) {
@@ -259,7 +225,9 @@ function removeVirtualAudioDevices() {
       try {
         console.log(`[Sokuji] [PulseAudio] Removing virtual sink module ID: ${virtualSinkModule}`);
         // Use execSync for more reliable cleanup during exit
-        execSync(`pactl unload-module ${virtualSinkModule}`);
+        const unloadSinkCmd = `pactl unload-module ${virtualSinkModule}`;
+        console.log('[Sokuji] [PulseAudio] Executing:', unloadSinkCmd);
+        execSync(unloadSinkCmd);
         console.log('[Sokuji] [PulseAudio] Virtual sink stopped');
         virtualSinkModule = null;
       } catch (sinkError) {
@@ -308,8 +276,12 @@ function removeVirtualAudioDevices() {
  */
 async function isPulseAudioAvailable() {
   try {
-    const { stdout } = await execPromise('pactl info');
-    return stdout.includes('PulseAudio') || stdout.includes('Server Name');
+    const cmd = 'pactl info';
+    console.log('[Sokuji] [PulseAudio] Checking availability with:', cmd);
+    const { stdout } = await execPromise(cmd);
+    const isAvailable = stdout.includes('PulseAudio') || stdout.includes('Server Name');
+    console.log('[Sokuji] [PulseAudio] Available:', isAvailable);
+    return isAvailable;
   } catch (error) {
     console.error('[Sokuji] [PulseAudio] Error checking PulseAudio availability:', error);
     return false;
@@ -325,7 +297,10 @@ async function cleanupOrphanedDevices() {
     console.log('[Sokuji] [PulseAudio] Checking for orphaned virtual audio devices...');
     
     // Check for sokuji_virtual_output sink
-    const { stdout: sinkList } = await execPromise('pactl list sinks short');
+    const sinkListCmd = 'pactl list sinks short';
+    console.log('[Sokuji] [PulseAudio] Executing:', sinkListCmd);
+    const { stdout: sinkList } = await execPromise(sinkListCmd);
+    console.log('[Sokuji] [PulseAudio] Sinks found:', sinkList.trim());
     if (sinkList.includes('sokuji_virtual_output')) {
       console.log('[Sokuji] [PulseAudio] Found orphaned virtual sink, cleaning up...');
       try {
@@ -341,7 +316,10 @@ async function cleanupOrphanedDevices() {
     }
     
     // Check for sokuji_virtual_mic source
-    const { stdout: sourceList } = await execPromise('pactl list sources short');
+    const sourceListCmd = 'pactl list sources short';
+    console.log('[Sokuji] [PulseAudio] Executing:', sourceListCmd);
+    const { stdout: sourceList } = await execPromise(sourceListCmd);
+    console.log('[Sokuji] [PulseAudio] Sources found:', sourceList.trim());
     if (sourceList.includes('sokuji_virtual_mic')) {
       console.log('[Sokuji] [PulseAudio] Found orphaned virtual source, cleaning up...');
       try {
@@ -356,70 +334,6 @@ async function cleanupOrphanedDevices() {
       }
     }
     
-    // Check for any orphaned PipeWire loopback modules or connections
-    try {
-      // Clean up any orphaned connections related to our virtual devices
-      console.log('[Sokuji] [PulseAudio] Checking for orphaned PipeWire connections...');
-      
-      // Get existing links
-      const { stdout: existingLinks } = await execPromise('pw-link -l').catch(() => ({ stdout: '' }));
-      
-      if (existingLinks.includes('sokuji_virtual')) {
-        console.log('[Sokuji] [PulseAudio] Found orphaned PipeWire connections, cleaning up...');
-        
-        // Parse the output to find links to disconnect
-        const lines = existingLinks.split('\n');
-        let disconnectedCount = 0;
-        
-        // First pass: Find all connections involving our virtual devices
-        for (let i = 0; i < lines.length; i++) {
-          const line = lines[i].trim();
-          
-          // Check if this line mentions our virtual devices
-          if (line.includes('sokuji_virtual')) {
-            // If it's a port line, check the next lines for connections
-            if (!line.startsWith('|')) {
-              const port = line;
-              
-              // Look at the next lines for connections
-              let j = i + 1;
-              while (j < lines.length && lines[j].trim().startsWith('|')) {
-                const connectionLine = lines[j].trim();
-                let connectedPort;
-                
-                if (connectionLine.startsWith('|->')) {
-                  // This is an output connection
-                  connectedPort = connectionLine.substring(3).trim();
-                  try {
-                    await execPromise(`pw-link -d "${port}" "${connectedPort}"`);
-                    console.log(`[Sokuji] [PulseAudio] Disconnected orphaned link: ${port} -> ${connectedPort}`);
-                    disconnectedCount++;
-                  } catch (disconnectError) {
-                    console.error('[Sokuji] [PulseAudio] Failed to disconnect orphaned link:', disconnectError.message);
-                  }
-                } else if (connectionLine.startsWith('|<-')) {
-                  // This is an input connection
-                  connectedPort = connectionLine.substring(3).trim();
-                  try {
-                    await execPromise(`pw-link -d "${connectedPort}" "${port}"`);
-                    console.log(`[Sokuji] [PulseAudio] Disconnected orphaned link: ${connectedPort} -> ${port}`);
-                    disconnectedCount++;
-                  } catch (disconnectError) {
-                    console.error('[Sokuji] [PulseAudio] Failed to disconnect orphaned link:', disconnectError.message);
-                  }
-                }
-                
-                j++;
-              }
-            }
-          }
-        }
-        
-        console.log(`[Sokuji] [PulseAudio] Cleaned up ${disconnectedCount} orphaned PipeWire connections`);
-      }
-    } catch (error) {
-      console.error('[Sokuji] [PulseAudio] Error cleaning up orphaned PipeWire connections:', error);
-    }
     
     // Check for sokuji_virtual_speaker
     const { stdout: speakerList } = await execPromise('pactl list sinks short');
@@ -444,221 +358,11 @@ async function cleanupOrphanedDevices() {
   }
 }
 
-/**
- * Connect the virtual speaker's monitor port to a specific output device
- * @param {Object} deviceInfo - Information about the output device
- * @param {string} deviceInfo.deviceId - The device ID from the browser API
- * @param {string} deviceInfo.label - The human-readable label of the device
- * @returns {Promise<boolean>} - True if connection successful, false otherwise
- */
-async function connectVirtualSpeakerToOutput(deviceInfo) {
-  try {
-    console.log(`[Sokuji] [PulseAudio] Connecting Sokuji_Virtual_Speaker monitor to output device: ${deviceInfo.label} (ID: ${deviceInfo.deviceId})`);
-    
-    // First, disconnect any existing connections from the virtual speaker
-    await disconnectVirtualSpeakerFromOutputs();
-    
-    // Find the PipeWire node based on the device description/label using pw-dump
-    console.log('[Sokuji] [PulseAudio] Searching for matching PipeWire node using pw-dump...');
-    const { stdout: nodeListJson } = await execPromise('pw-dump -N');
-    
-    let nodeId = null;
-    let nodeName = null;
-    let nodeDescription = null;
-    
-    try {
-      const nodes = JSON.parse(nodeListJson);
-      
-      // Filter for PipeWire:Interface:Node with Audio/Sink media class
-      const audioSinks = nodes.filter(node => 
-        node.type === 'PipeWire:Interface:Node' && 
-        node.info && 
-        node.info.props && 
-        node.info.props['media.class'] === 'Audio/Sink'
-      );
-      
-      console.log(`[Sokuji] [PulseAudio] Found ${audioSinks.length} Audio/Sink nodes`);
-      
-      // Look for exact matches first
-      let matchedNode = null;
-      
-      if (deviceInfo.deviceId === 'default') {
-        // For default device, find the default sink from metadata
-        const defaultSinkMeta = nodes.find(node => 
-          node.type === 'PipeWire:Interface:Metadata' &&
-          node.metadata &&
-          node.metadata.some(meta => 
-            meta.key === 'default.audio.sink' && meta.value && meta.value.name
-          )
-        );
-        
-        if (defaultSinkMeta) {
-          const defaultSinkName = defaultSinkMeta.metadata.find(meta => 
-            meta.key === 'default.audio.sink'
-          ).value.name;
-          
-          matchedNode = audioSinks.find(node => 
-            node.info.props['node.name'] === defaultSinkName
-          );
-          
-          if (matchedNode) {
-            console.log(`[Sokuji] [PulseAudio] Found default Audio/Sink: ${defaultSinkName}`);
-          }
-        }
-      } else {
-        // Look for node with matching description
-        for (const node of audioSinks) {
-          const props = node.info.props;
-          const description = props['node.description'] || '';
-          const name = props['node.name'] || '';
-          
-          // Use a fuzzy match to account for slight differences in naming
-          if (description.includes(deviceInfo.label) || deviceInfo.label.includes(description)) {
-            matchedNode = node;
-            console.log(`[Sokuji] [PulseAudio] Found matching Audio/Sink: ${name} (${description})`);
-            break;
-          }
-        }
-        
-        // If no exact match, try partial matching
-        if (!matchedNode) {
-          console.log('[Sokuji] [PulseAudio] No exact match found, trying partial matching...');
-          
-          for (const node of audioSinks) {
-            const props = node.info.props;
-            const description = props['node.description'] || '';
-            
-            // Split the device label into words for partial matching
-            const labelWords = deviceInfo.label.toLowerCase().split(/\s+/);
-            const descriptionLower = description.toLowerCase();
-            
-            // Check if any significant word from the label appears in the description
-            const hasMatch = labelWords.some(word => 
-              word.length > 3 && descriptionLower.includes(word.toLowerCase())
-            );
-            
-            if (hasMatch) {
-              matchedNode = node;
-              console.log(`[Sokuji] [PulseAudio] Found partial match Audio/Sink: ${props['node.name']} (${description})`);
-              break;
-            }
-          }
-        }
-      }
-      
-      if (matchedNode) {
-        nodeId = matchedNode.id;
-        nodeName = matchedNode.info.props['node.name'];
-        nodeDescription = matchedNode.info.props['node.description'];
-      }
-    } catch (parseError) {
-      console.error('[Sokuji] [PulseAudio] Failed to parse pw-dump JSON output:', parseError);
-      // Fallback to old method if JSON parsing fails
-      console.log('[Sokuji] [PulseAudio] Falling back to pw-cli method...');
-      // TODO: Add fallback to pw-cli method if needed
-    }
-    
-    if (!nodeName) {
-      console.error(`[Sokuji] [PulseAudio] Could not find PipeWire node for device: ${deviceInfo.label}`);
-      return false;
-    }
-    
-    console.log(`[Sokuji] [PulseAudio] Found PipeWire node: ${nodeName} (ID: ${nodeId}, Description: ${nodeDescription})`);
-    
-    // Use the connectAudioPorts function to connect the virtual speaker monitor to the output device
-    // The virtual speaker's monitor output is named "sokuji_virtual_output.monitor"
-    const result = await connectAudioPorts('sokuji_virtual_output.monitor', nodeName);
-    
-    if (result) {
-      console.log(`[Sokuji] [PulseAudio] Successfully connected sokuji_virtual_output.monitor to ${nodeName}`);
-      return true;
-    } else {
-      console.error(`[Sokuji] [PulseAudio] Failed to connect sokuji_virtual_output.monitor to ${nodeName}`);
-      return false;
-    }
-  } catch (error) {
-    console.error('[Sokuji] [PulseAudio] Failed to connect virtual speaker to output device:', error);
-    return false;
-  }
-}
 
-/**
- * Disconnect any existing connections from the virtual speaker's monitor port,
- * except for the connection to sokuji_virtual_mic
- * @returns {Promise<boolean>} - True if disconnection successful, false otherwise
- */
-async function disconnectVirtualSpeakerFromOutputs() {
-  try {
-    console.log('[Sokuji] [PulseAudio] Disconnecting virtual speaker monitor from output devices (preserving sokuji_virtual_mic connection)...');
-    
-    // Get existing links
-    const { stdout: existingLinks } = await execPromise('pw-link -l').catch(() => ({ stdout: '' }));
-
-    // Parse the output to find links to disconnect
-    const lines = existingLinks.split('\n');
-    const linksToDisconnect = [];
-    
-    // Process the output to find connections from sokuji_virtual_output:monitor_*
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i].trim();
-      
-      // Check if this is an output port line for the virtual speaker monitor
-      // Format is like "sokuji_virtual_output:monitor_FL" or "sokuji_virtual_output:monitor_FR"
-      if (line.includes('sokuji_virtual_output:monitor_')) {
-        const outputPort = line;
-        
-        // Look at the next lines for connections (they start with |->)
-        let j = i + 1;
-        while (j < lines.length && lines[j].trim().startsWith('|->')) {
-          const inputPortLine = lines[j].trim();
-          const inputPort = inputPortLine.substring(3).trim(); // Remove the '|->' prefix
-          
-          // Only add to disconnect list if it's NOT connected to sokuji_virtual_mic
-          if (!inputPort.includes('sokuji_virtual_mic')) {
-            // Add this connection to our list to disconnect
-            linksToDisconnect.push({
-              output: outputPort,
-              input: inputPort
-            });
-          } else {
-            console.log(`[Sokuji] [PulseAudio] Preserving connection from ${outputPort} to ${inputPort}`);
-          }
-          
-          j++;
-        }
-      }
-    }
-    
-    // Disconnect all found links (except sokuji_virtual_mic)
-    if (linksToDisconnect.length > 0) {
-      console.log(`[Sokuji] [PulseAudio] Found ${linksToDisconnect.length} links to disconnect (excluding sokuji_virtual_mic)`);
-      
-      for (const link of linksToDisconnect) {
-        console.log(`[Sokuji] [PulseAudio] Disconnecting: "${link.output}" from "${link.input}"`);
-        try {
-          await execPromise(`pw-link -d "${link.output}" "${link.input}"`);
-          console.log('[Sokuji] [PulseAudio] Link disconnected successfully');
-        } catch (disconnectError) {
-          console.error('[Sokuji] [PulseAudio] Failed to disconnect link:', disconnectError.message);
-        }
-      }
-      return true;
-    } else {
-      console.log('[Sokuji] [PulseAudio] No links to disconnect (or only sokuji_virtual_mic connection exists)');
-      return true; // No links to disconnect is still a success
-    }
-  } catch (error) {
-    console.error('[Sokuji] [PulseAudio] Failed to disconnect virtual speaker from outputs:', error);
-    return false;
-  }
-}
 
 module.exports = {
   createVirtualAudioDevices,
   removeVirtualAudioDevices,
   isPulseAudioAvailable,
-  cleanupOrphanedDevices,
-  connectAudioPorts,
-  connectVirtualSpeakerToOutput,
-  disconnectVirtualSpeakerFromOutputs
+  cleanupOrphanedDevices
 };

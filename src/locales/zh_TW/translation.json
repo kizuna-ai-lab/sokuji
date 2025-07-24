@@ -174,18 +174,14 @@
   },
   "audioFeedback": {
     "title": "音訊回饋警告",
-    "description": "偵測到潛在的音訊回饋。這可能在錄音期間造成回音或聲音循環。",
-    "speakerModeWarning": "偵測到揚聲器模式：高回音/回饋風險，可能會干擾翻譯準確性。",
-    "inputDevice": "輸入裝置",
-    "outputDevice": "輸出裝置",
-    "recommendation": "建議",
+    "description": "偵測到麥克風和揚聲器之間的回音。",
+    "speakerModeDescription": "揚聲器模式啟用中 - 高回音風險可能影響翻譯品質。",
     "solutions": {
-      "title": "解決方案",
-      "differentDevices": "選擇不同的輸入和輸出裝置",
-      "useHeadphones": "使用耳機而非揚聲器（強烈建議）",
-      "adjustDistance": "增加麥克風和揚聲器之間的距離",
-      "disablePassthrough": "停用原始音訊直通",
-      "speakerModeHeadphones": "為了在揚聲器模式下獲得最佳效果，請使用耳機防止可能導致翻譯錯誤的音訊回音"
+      "useHeadphones": "使用耳機以獲得最佳效果",
+      "differentDevices": "選擇不同的音訊裝置",
+      "adjustDistance": "將麥克風移離揚聲器",
+      "disablePassthrough": "關閉原始音訊直通",
+      "orTry": "或嘗試："
     }
   },
   "onboarding": {

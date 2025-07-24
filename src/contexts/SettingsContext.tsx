@@ -1,12 +1,10 @@
-import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode, useMemo } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
 import { ServiceFactory } from '../services/ServiceFactory';
 import { ProviderConfigFactory } from '../services/providers/ProviderConfigFactory';
 import { ProviderConfig } from '../services/providers/ProviderConfig';
 import { FilteredModel, SessionConfig, OpenAISessionConfig, GeminiSessionConfig, PalabraAISessionConfig } from '../services/interfaces/IClient';
 import { ApiKeyValidationResult } from '../services/interfaces/ISettingsService';
 import { Provider, ProviderType } from '../types/Provider';
-import { ClientFactory } from '../services/clients/ClientFactory';
-import i18n from '../locales';
 
 // Common Settings - applicable to all providers
 export interface CommonSettings {

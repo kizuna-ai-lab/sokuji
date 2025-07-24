@@ -113,7 +113,7 @@
     const { chunkIndex, totalChunks, sampleRate = SAMPLE_RATE, trackId = 'default' } = metadata;
     
     // Determine if this is an immediate track based on trackId
-    const immediate = trackId === 'immediate';
+    const immediate = trackId === 'immediate' || trackId === 'passthrough';
     
     if (!pcmData || pcmData.length === 0) {
       console.warn('[Sokuji] [VirtualMic] Received empty audio data');

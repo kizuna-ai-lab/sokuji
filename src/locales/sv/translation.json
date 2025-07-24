@@ -85,18 +85,14 @@
   },
   "audioFeedback": {
     "title": "Ljudåterkopplingsvarning",
-    "description": "Potentiell ljudåterkoppling upptäckt. Detta kan orsaka eko eller ljudslingor under inspelning.",
-    "speakerModeWarning": "Högtalarläge upptäckt: Hög risk för eko/återkoppling som kan störa översättningsnoggrannheten.",
-    "inputDevice": "Indataenhet",
-    "outputDevice": "Utdataenhet",
-    "recommendation": "Rekommendation",
+    "description": "Eko upptäckt mellan mikrofon och högtalare.",
+    "speakerModeDescription": "Högtalarläge aktivt - hög ekorisk som kan påverka översättningskvaliteten.",
     "solutions": {
-      "title": "Lösningar",
-      "differentDevices": "Välj olika indata- och utdataenheter",
-      "useHeadphones": "Använd hörlurar istället för högtalare (starkt rekommenderat)",
-      "adjustDistance": "Öka avståndet mellan mikrofon och högtalare",
-      "disablePassthrough": "Inaktivera original ljudgenomgång",
-      "speakerModeHeadphones": "För bästa resultat i högtalarläge, använd hörlurar för att förhindra ljudeko som kan orsaka översättningsfel"
+      "useHeadphones": "Använd hörlurar för bästa resultat",
+      "differentDevices": "Välj olika ljudenheter",
+      "adjustDistance": "Flytta mikrofonen bort från högtalarna",
+      "disablePassthrough": "Stäng av original ljudgenomströmning",
+      "orTry": "Eller försök:"
     }
   },
   "onboarding": {
