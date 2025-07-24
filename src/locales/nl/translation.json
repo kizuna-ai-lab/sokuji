@@ -174,18 +174,14 @@
   },
   "audioFeedback": {
     "title": "Audio Feedback Waarschuwing",
-    "description": "Mogelijke audio feedback gedetecteerd. Dit kan echo of geluidslussen veroorzaken tijdens opname.",
-    "speakerModeWarning": "Luidsprekermodus Gedetecteerd: Hoog echo/feedback risico dat de vertaalnauwkeurigheid kan verstoren.",
-    "inputDevice": "Invoerapparaat",
-    "outputDevice": "Uitvoerapparaat",
-    "recommendation": "Aanbeveling",
+    "description": "Echo gedetecteerd tussen microfoon en luidsprekers.",
+    "speakerModeDescription": "Luidsprekermodus actief - hoog echorisico dat de vertaalkwaliteit kan beïnvloeden.",
     "solutions": {
-      "title": "Oplossingen",
-      "differentDevices": "Selecteer verschillende invoer- en uitvoerapparaten",
-      "useHeadphones": "Gebruik koptelefoons in plaats van luidsprekers (sterk aanbevolen)",
-      "adjustDistance": "Vergroot de afstand tussen microfoon en luidsprekers",
+      "useHeadphones": "Gebruik koptelefoons voor de beste resultaten",
+      "differentDevices": "Selecteer verschillende audioapparaten",
+      "adjustDistance": "Verplaats de microfoon verder van de luidsprekers",
       "disablePassthrough": "Schakel originele audio doorvoer uit",
-      "speakerModeHeadphones": "Voor de beste resultaten in luidsprekermodus, gebruik koptelefoons om audio echo te voorkomen dat vertaalfouten kan veroorzaken"
+      "orTry": "Of probeer:"
     }
   },
   "onboarding": {

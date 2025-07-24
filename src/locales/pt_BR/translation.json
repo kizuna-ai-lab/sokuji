@@ -174,18 +174,14 @@
   },
   "audioFeedback": {
     "title": "Aviso de Retorno de Áudio",
-    "description": "Retorno de áudio potencial detectado. Isso pode causar eco ou loops de som durante a gravação.",
-    "speakerModeWarning": "Modo Alto-falante Detectado: Alto risco de eco/retorno que pode interferir na precisão da tradução.",
-    "inputDevice": "Dispositivo de Entrada",
-    "outputDevice": "Dispositivo de Saída",
-    "recommendation": "Recomendação",
+    "description": "Eco detectado entre microfone e alto-falantes.",
+    "speakerModeDescription": "Modo alto-falante ativo - alto risco de eco que pode afetar a qualidade da tradução.",
     "solutions": {
-      "title": "Soluções",
-      "differentDevices": "Selecionar dispositivos de entrada e saída diferentes",
-      "useHeadphones": "Usar fones de ouvido em vez de alto-falantes (altamente recomendado)",
-      "adjustDistance": "Aumentar a distância entre microfone e alto-falantes",
-      "disablePassthrough": "Desativar passagem de áudio original",
-      "speakerModeHeadphones": "Para melhores resultados no modo alto-falante, use fones de ouvido para prevenir eco de áudio que pode causar erros de tradução"
+      "useHeadphones": "Use fones de ouvido para melhores resultados",
+      "differentDevices": "Selecione dispositivos de áudio diferentes",
+      "adjustDistance": "Afaste o microfone dos alto-falantes",
+      "disablePassthrough": "Desative a passagem de áudio original",
+      "orTry": "Ou tente:"
     }
   },
   "onboarding": {
