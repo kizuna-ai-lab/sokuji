@@ -215,3 +215,101 @@ The modern architecture supports switching recording devices during active sessi
 - Handle errors gracefully with user feedback
 
 This allows users to change microphones mid-session without interrupting translations.
+
+## 9. Platform-Specific Differences: Electron vs Extension
+
+### Architecture Overview
+
+Both Electron and Extension environments use the same `ModernBrowserAudioService` implementation, but with key differences in audio routing:
+
+#### Electron Environment:
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                          Electron Audio Flow                                │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ Physical Input → ModernAudioRecorder → AI Client → ModernAudioPlayer       │
+│                     ↓                                  ↓                    │
+│                  Passthrough                    Monitor Device              │
+│                     ↓                           Virtual Speaker             │
+│              Virtual Speaker                  (Sokuji_Virtual_Speaker)      │
+│                                                                             │
+│ Key Features:                                                               │
+│ - Supports virtual audio devices via PulseAudio (Linux)                    │
+│ - Virtual speaker for system-wide audio injection                          │
+│ - Direct audio routing without browser limitations                         │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+#### Extension Environment:
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                          Extension Audio Flow                               │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ Physical Input → ModernAudioRecorder → AI Client → ModernAudioPlayer       │
+│                     ↓                                  ↓                    │
+│                  Passthrough                    Monitor Device              │
+│                     ↓                           Virtual Microphone          │
+│               Virtual Microphone              (via sendPcmDataToTabs)       │
+│                                                                             │
+│ Key Features:                                                               │
+│ - Virtual microphone via Chrome messaging API                              │
+│ - Injects audio into web pages via content scripts                         │
+│ - Browser security sandbox limitations                                     │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Key Differences:
+
+| Feature | Electron | Extension |
+|---------|----------|-----------|
+| Virtual Audio Devices | ✅ Sokuji_Virtual_Speaker/Mic | ❌ Uses browser APIs |
+| Virtual Output | Direct via PulseAudio | Chrome messaging to tabs |
+| Passthrough Routing | Monitor + Virtual Speaker | Monitor + Virtual Microphone |
+| Platform Support | Windows/macOS/Linux | Chrome/Edge browsers |
+| Audio Injection | System-wide | Per-tab via content scripts |
+| Security Model | Full system access | Browser sandbox |
+
+### Implementation Details:
+
+1. **Platform Detection**:
+   ```javascript
+   if (ServiceFactory.isElectron()) {
+     // Initialize virtual speaker player
+     this.virtualSpeakerPlayer = new ModernAudioPlayer({ sampleRate: 24000 });
+   }
+   ```
+
+2. **Audio Routing**:
+   - **AI-generated audio**: Both platforms use `addAudioData()` which:
+     - Sends to monitor via `ModernAudioPlayer`
+     - Sends to virtual speaker (Electron) or virtual microphone (Extension)
+   
+   - **Passthrough audio**: Via `handlePassthroughAudio()` which:
+     - Sends to monitor with delay for echo cancellation (volume applied internally)
+     - Sends to virtual speaker (Electron only, volume applied internally)
+     - Sends to virtual microphone via `sendPcmDataToTabs()` (Extension, volume pre-applied)
+
+3. **Virtual Microphone (Extension)**:
+   - Uses `sendPcmDataToTabs()` to send PCM data
+   - Chunks audio data for efficient messaging
+   - Content scripts inject audio into web pages
+   - Track IDs distinguish different audio sources
+   - Passthrough audio (trackId='passthrough') plays immediately without queueing
+   - Volume is pre-applied to passthrough audio before sending
+
+4. **Virtual Speaker (Electron)**:
+   - Auto-detects `Sokuji_Virtual_Speaker` device
+   - Direct audio output via Web Audio API
+   - Not affected by monitor volume control
+
+### Common Features:
+- Same echo cancellation implementation
+- Same recording and playback APIs
+- Same AI client integration
+- Same passthrough support with volume control
+- Same dynamic device switching
+
+### Recent Fixes (Extension Environment):
+1. **Passthrough Audio to Virtual Microphone**: Fixed missing passthrough audio by adding `sendPcmDataToTabs()` call
+2. **Immediate Playback**: Passthrough audio now plays immediately by recognizing 'passthrough' trackId as immediate
+3. **Volume Control**: Fixed volume control by pre-applying volume to PCM data before sending to virtual microphone
