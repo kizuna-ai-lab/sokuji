@@ -1,7 +1,7 @@
 {
   "name": "sokuji",
   "productName": "Sokuji",
-  "version": "0.9.2",
+  "version": "0.9.3",
   "private": true,
   "main": "electron/main.js",
   "homepage": "./",
