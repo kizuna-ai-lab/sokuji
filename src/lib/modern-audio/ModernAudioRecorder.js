@@ -7,12 +7,15 @@
 export class ModernAudioRecorder {
   /**
    * Create a new ModernAudioRecorder instance
-   * @param {{sampleRate?: number, enablePassthrough?: boolean}} [options]
+   * @param {{sampleRate?: number, enablePassthrough?: boolean, enableWarmup?: boolean, warmupDuration?: number, skipStartupFrames?: number}} [options]
    * @returns {ModernAudioRecorder}
    */
   constructor({
     sampleRate = 24000,
     enablePassthrough = true,
+    enableWarmup = true,
+    warmupDuration = 200,
+    skipStartupFrames = 5,
   } = {}) {
     // Config
     this.sampleRate = sampleRate;
@@ -41,6 +44,13 @@ export class ModernAudioRecorder {
     this.audioChunks = [];
     this.isProcessing = false;
     this._audioChunkCount = 0;
+    
+    // First recording and warmup settings
+    this._isFirstRecording = true;
+    this._enableWarmup = enableWarmup;
+    this._warmupDuration = warmupDuration;
+    this._skipStartupFrames = skipStartupFrames;
+    this._lastValidAudioChunk = null;
   }
 
   /**
@@ -311,8 +321,22 @@ export class ModernAudioRecorder {
         const workletUrl = this.getAudioWorkletProcessorUrl();
         await this.audioContext.audioWorklet.addModule(workletUrl);
         
+        // Warmup AudioWorklet on first use
+        if (this._isFirstRecording && this._enableWarmup) {
+          console.info('[Sokuji] [ModernAudioRecorder] Warming up AudioWorklet...');
+          await this._warmupAudioWorklet();
+        }
+        
         // Create AudioWorkletNode
         this.audioWorkletNode = new AudioWorkletNode(this.audioContext, 'audio-recorder-processor');
+        
+        // Configure the worklet with skip frames settings
+        this.audioWorkletNode.port.postMessage({
+          type: 'config',
+          config: {
+            skipStartupFrames: this._skipStartupFrames
+          }
+        });
         
         // Handle messages from the worklet
         this.audioWorkletNode.port.onmessage = (event) => {
@@ -325,20 +349,20 @@ export class ModernAudioRecorder {
               console.debug(`[Sokuji] [ModernAudioRecorder] AudioWorklet chunk ${this._audioChunkCount}, PCM length: ${pcmData.length}, timestamp: ${timestamp}`);
             }
             
-            // Send audio data through callback
-            if (this.onAudioData && typeof this.onAudioData === 'function' && pcmData.length > 0) {
-              try {
-                this.onAudioData({ 
-                  mono: pcmData, 
-                  raw: pcmData,
-                  isRecording: this.recording,
-                  isPassthrough: this._passthroughEnabled,
-                  passthroughVolume: this._passthroughVolume
-                });
-              } catch (error) {
-                console.error('[Sokuji] [ModernAudioRecorder] Error in onAudioData callback:', error);
+            // Detect and handle silence (potential buffer underrun)
+            if (this._isFirstRecording && this._detectSilence(pcmData)) {
+              if (this._lastValidAudioChunk) {
+                // Use interpolated audio to smooth over the silence
+                const interpolated = this._interpolateAudio(this._lastValidAudioChunk, pcmData);
+                this._processAudioData(interpolated);
+                return;
               }
+            } else {
+              this._lastValidAudioChunk = pcmData;
             }
+            
+            // Send audio data through callback
+            this._processAudioData(pcmData);
           }
         };
         
@@ -390,26 +414,14 @@ export class ModernAudioRecorder {
         pcmData[i] = sample < 0 ? sample * 32768 : sample * 32767;
       }
       
-      // Always send audio data through callback if available
-      if (this.onAudioData && typeof this.onAudioData === 'function' && pcmData.length > 0) {
-        try {
-          // Log every 500 chunks to verify data flow
-          this._audioChunkCount = (this._audioChunkCount || 0) + 1;
-          if (this._audioChunkCount % 500 === 0) {
-            console.debug(`[Sokuji] [ModernAudioRecorder] Audio chunk ${this._audioChunkCount}, PCM length: ${pcmData.length}`);
-          }
-          
-          this.onAudioData({ 
-            mono: pcmData, 
-            raw: pcmData,
-            isRecording: this.recording,
-            isPassthrough: this._passthroughEnabled,
-            passthroughVolume: this._passthroughVolume
-          });
-        } catch (error) {
-          console.error('[Sokuji] [ModernAudioRecorder] Error in onAudioData callback:', error);
-        }
+      // Log every 500 chunks to verify data flow
+      this._audioChunkCount = (this._audioChunkCount || 0) + 1;
+      if (this._audioChunkCount % 500 === 0) {
+        console.debug(`[Sokuji] [ModernAudioRecorder] Audio chunk ${this._audioChunkCount}, PCM length: ${pcmData.length}`);
       }
+      
+      // Always send audio data through callback if available
+      this._processAudioData(pcmData);
     };
     
     // Connect the nodes 
@@ -498,9 +510,33 @@ export class ModernAudioRecorder {
     
     console.info('[Sokuji] [ModernAudioRecorder] Recording started');
     
-    // Start MediaRecorder with specified interval
-    this.mediaRecorder.start(chunkSize);
-    this.recording = true;
+    // For first recording with AudioWorklet, add a small delay to ensure stability
+    if (this._isFirstRecording && this.useAudioWorklet) {
+      console.info('[Sokuji] [ModernAudioRecorder] First recording - adding startup delay');
+      
+      // Start MediaRecorder immediately
+      this.mediaRecorder.start(chunkSize);
+      this.recording = true;
+      
+      // Delay actual audio processing by 100ms on first recording
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // Send start command to worklet after delay
+      if (this.audioWorkletNode) {
+        this.audioWorkletNode.port.postMessage({ type: 'start' });
+      }
+      
+      this._isFirstRecording = false;
+    } else {
+      // Normal recording start
+      this.mediaRecorder.start(chunkSize);
+      this.recording = true;
+      
+      // Send start command to worklet immediately
+      if (this.audioWorkletNode) {
+        this.audioWorkletNode.port.postMessage({ type: 'start' });
+      }
+    }
     
     return true;
   }
@@ -517,6 +553,11 @@ export class ModernAudioRecorder {
     }
 
     console.info('[Sokuji] [ModernAudioRecorder] Pausing recording');
+    
+    // Send stop command to worklet
+    if (this.audioWorkletNode) {
+      this.audioWorkletNode.port.postMessage({ type: 'stop' });
+    }
     
     if (this.mediaRecorder.state === 'recording') {
       this.mediaRecorder.stop();
@@ -675,6 +716,110 @@ export class ModernAudioRecorder {
       await this.end();
     }
     return true;
+  }
+
+  /**
+   * Warmup AudioWorklet by running it briefly before actual use
+   * @private
+   * @returns {Promise<void>}
+   */
+  async _warmupAudioWorklet() {
+    if (!this.audioContext || !this.stream) {
+      throw new Error('AudioContext and stream required for warmup');
+    }
+
+    // Create temporary nodes for warmup
+    const tempSource = this.audioContext.createMediaStreamSource(this.stream);
+    const tempWorklet = new AudioWorkletNode(this.audioContext, 'audio-recorder-processor');
+    const tempGain = this.audioContext.createGain();
+    tempGain.gain.value = 0; // Mute output
+    
+    // Connect for warmup
+    tempSource.connect(tempWorklet);
+    tempWorklet.connect(tempGain);
+    tempGain.connect(this.audioContext.destination);
+    
+    // Ignore warmup data
+    tempWorklet.port.onmessage = () => {
+      // Discard warmup data
+    };
+    
+    // Wait for warmup duration
+    await new Promise(resolve => setTimeout(resolve, this._warmupDuration));
+    
+    // Cleanup warmup nodes
+    tempSource.disconnect();
+    tempWorklet.disconnect();
+    tempGain.disconnect();
+    tempWorklet.port.close();
+    
+    console.info('[Sokuji] [ModernAudioRecorder] AudioWorklet warmup complete');
+  }
+
+  /**
+   * Process audio data through callback
+   * @private
+   * @param {Int16Array} pcmData
+   */
+  _processAudioData(pcmData) {
+    if (this.onAudioData && typeof this.onAudioData === 'function' && pcmData.length > 0) {
+      try {
+        this.onAudioData({ 
+          mono: pcmData, 
+          raw: pcmData,
+          isRecording: this.recording,
+          isPassthrough: this._passthroughEnabled,
+          passthroughVolume: this._passthroughVolume
+        });
+      } catch (error) {
+        console.error('[Sokuji] [ModernAudioRecorder] Error in onAudioData callback:', error);
+      }
+    }
+  }
+
+  /**
+   * Detect if audio data is silent (potential buffer underrun)
+   * @private
+   * @param {Int16Array} audioData
+   * @param {number} [threshold]
+   * @returns {boolean}
+   */
+  _detectSilence(audioData, threshold = 0.001) {
+    if (!audioData || audioData.length === 0) return true;
+    
+    // Calculate average amplitude
+    let sum = 0;
+    for (let i = 0; i < audioData.length; i++) {
+      sum += Math.abs(audioData[i] / 32768); // Normalize to [-1, 1]
+    }
+    const avgAmplitude = sum / audioData.length;
+    
+    return avgAmplitude < threshold;
+  }
+
+  /**
+   * Interpolate between last valid audio and current (likely silent) audio
+   * @private
+   * @param {Int16Array} lastChunk
+   * @param {Int16Array} currentChunk
+   * @returns {Int16Array}
+   */
+  _interpolateAudio(lastChunk, currentChunk) {
+    const result = new Int16Array(currentChunk.length);
+    const fadeLength = Math.min(32, currentChunk.length); // 32 sample fade
+    
+    for (let i = 0; i < currentChunk.length; i++) {
+      if (i < fadeLength && lastChunk.length > fadeLength) {
+        // Linear fade from last chunk to silence
+        const ratio = i / fadeLength;
+        const lastIndex = lastChunk.length - fadeLength + i;
+        result[i] = Math.round(lastChunk[lastIndex] * (1 - ratio));
+      } else {
+        result[i] = 0; // Silent
+      }
+    }
+    
+    return result;
   }
 
   /**
