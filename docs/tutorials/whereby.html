@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Whereby Tutorial - Sokuji Extension</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f8f9fa;
+        }
+        .container {
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .header img {
+            max-width: 150px;
+            margin-bottom: 20px;
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+            text-align: center;
+        }
+        h2 {
+            color: #2c3e50;
+            margin-top: 30px;
+        }
+        .back-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            padding: 8px 16px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            text-decoration: none;
+            color: #3498db;
+        }
+        .back-link:hover {
+            background-color: #e9ecef;
+        }
+        .language-selector {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+        }
+        .language-selector a {
+            margin: 0 10px;
+            color: #3498db;
+            text-decoration: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+        }
+        .language-selector a:hover {
+            background-color: #e9ecef;
+        }
+        .language-selector a.active {
+            background-color: #3498db;
+            color: white;
+        }
+        .step {
+            margin-bottom: 30px;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #3498db;
+        }
+        .step h3 {
+            color: #2c3e50;
+            margin-top: 0;
+        }
+        .step-number {
+            display: inline-block;
+            width: 30px;
+            height: 30px;
+            background-color: #3498db;
+            color: white;
+            text-align: center;
+            line-height: 30px;
+            border-radius: 50%;
+            margin-right: 10px;
+            font-weight: bold;
+        }
+        .screenshot-placeholder {
+            background-color: #e9ecef;
+            border: 2px dashed #cbd5e0;
+            border-radius: 4px;
+            padding: 40px;
+            text-align: center;
+            color: #6c757d;
+            margin: 15px 0;
+        }
+        .tip {
+            background-color: #e7f3ff;
+            border: 1px solid #b8daff;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .tip h4 {
+            color: #0c5460;
+            margin-top: 0;
+        }
+        .faq {
+            margin-top: 40px;
+        }
+        .faq-item {
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+        }
+        .faq-item h4 {
+            color: #2c3e50;
+            margin-top: 0;
+        }
+        footer {
+            margin-top: 50px;
+            text-align: center;
+            color: #7f8c8d;
+            font-size: 0.9em;
+            border-top: 1px solid #eee;
+            padding-top: 20px;
+        }
+        code {
+            background-color: #f8f9fa;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="../supported-sites.html" class="back-link">← Back to Supported Sites</a>
+        
+        <div class="header">
+            <img src="https://github.com/kizuna-ai-lab/sokuji/raw/main/src/assets/logo.png" alt="Sokuji Logo">
+            <h1 id="page-title">Using Sokuji with Whereby</h1>
+        </div>
+
+        <div class="language-selector">
+            <span id="lang-label">Language:</span>
+            <a href="?lang=en" id="lang-en">English</a>
+            <a href="?lang=zh" id="lang-zh">中文</a>
+            <a href="?lang=ja" id="lang-ja">日本語</a>
+            <a href="?lang=ko" id="lang-ko">한국어</a>
+        </div>
+
+        <div id="content">
+            <!-- Content will be dynamically inserted here -->
+        </div>
+
+        <footer>
+            &copy; 2025 Kizuna AI Lab. All rights reserved.
+        </footer>
+    </div>
+
+    <script>
+        // Language content definitions
+        const translations = {
+            en: {
+                pageTitle: "Using Sokuji with Whereby",
+                langLabel: "Language:",
+                backLink: "← Back to Supported Sites",
+                overview: {
+                    title: "Overview",
+                    content: "This guide will walk you through setting up and using Sokuji with Whereby for real-time language translation during browser-based meetings."
+                },
+                steps: [
+                    {
+                        title: "Install Sokuji Extension",
+                        content: "Make sure you have the Sokuji extension installed in your Chrome or Edge browser. You can get it from the Chrome Web Store.",
+                        tip: "The extension icon should appear in your browser toolbar after installation."
+                    },
+                    {
+                        title: "Join a Whereby Room",
+                        content: "Navigate to your Whereby room URL (e.g., <code>whereby.com/your-room-name</code>) or create a new room.",
+                        tip: "Whereby works directly in your browser without downloads."
+                    },
+                    {
+                        title: "Grant Permissions",
+                        content: "When prompted, allow Whereby to access your camera and microphone. This is necessary for Sokuji to function.",
+                        tip: "You may need to click the camera icon in your browser's address bar to grant permissions."
+                    },
+                    {
+                        title: "Select Sokuji Virtual Microphone",
+                        content: "Before joining, click on the microphone settings and select <strong>Sokuji Virtual Microphone</strong> from the list of available devices.",
+                        tip: "You can also change this during the meeting by clicking the settings gear icon."
+                    },
+                    {
+                        title: "Join and Start Speaking",
+                        content: "Click 'Join meeting' and start speaking in your native language. Sokuji will translate your speech in real-time for other participants.",
+                        tip: "The microphone icon should show activity when you speak."
+                    }
+                ],
+                tips: {
+                    title: "Tips for Best Results",
+                    items: [
+                        "Use Whereby's pre-meeting device check to ensure everything is working",
+                        "Keep your browser updated for the best compatibility",
+                        "Close unnecessary tabs to improve performance",
+                        "Use a wired internet connection when possible"
+                    ]
+                },
+                faq: {
+                    title: "Frequently Asked Questions",
+                    items: [
+                        {
+                            question: "Can I use Sokuji with Whereby's screen sharing?",
+                            answer: "Yes, Sokuji continues to work while you're sharing your screen. Your translated audio will still be transmitted to other participants."
+                        },
+                        {
+                            question: "Does Sokuji work with Whereby's breakout rooms?",
+                            answer: "Yes, Sokuji works in both the main room and breakout rooms. The virtual microphone remains active when you move between rooms."
+                        },
+                        {
+                            question: "What browsers are supported?",
+                            answer: "Sokuji works best with Chrome and Edge browsers. Make sure you're using the latest version for optimal performance."
+                        }
+                    ]
+                },
+                troubleshooting: {
+                    title: "Troubleshooting",
+                    content: "If you encounter any issues, please visit our <a href='https://github.com/kizuna-ai-lab/sokuji'>GitHub repository</a> for support."
+                }
+            },
+            zh: {
+                pageTitle: "在 Whereby 中使用 Sokuji",
+                langLabel: "语言：",
+                backLink: "← 返回支持的网站",
+                overview: {
+                    title: "概述",
+                    content: "本指南将指导您如何在 Whereby 中设置和使用 Sokuji，在基于浏览器的会议中实现实时语言翻译。"
+                },
+                steps: [
+                    {
+                        title: "安装 Sokuji 扩展",
+                        content: "确保您已在 Chrome 或 Edge 浏览器中安装了 Sokuji 扩展。您可以从 Chrome 网上应用店获取。",
+                        tip: "安装后，扩展图标应出现在浏览器工具栏中。"
+                    },
+                    {
+                        title: "进入 Gather 空间",
+                        content: "访问 <code>app.gather.town</code> 并进入您的 Gather 空间。系统会提示您设置音频和视频。",
+                        tip: "Gather 在 Chrome 或 Edge 浏览器中效果最佳。"
+                    },
+                    {
+                        title: "配置音频输入",
+                        content: "当提示选择麦克风时，或在设置菜单（通过齿轮图标访问）中，从下拉菜单中选择 <strong>Sokuji Virtual Microphone</strong>。",
+                        tip: "您可以随时通过点击屏幕底部的齿轮图标更改音频设置。"
+                    },
+                    {
+                        title: "测试您的音频",
+                        content: "使用 Gather 的音频测试功能确保 Sokuji 正常工作。用您的母语说话并验证音频水平。",
+                        tip: "说话时绿色音频指示器应该会移动。"
+                    },
+                    {
+                        title: "开始对话",
+                        content: "将您的角色移动到其他人附近开始对话。您的语音将通过 Sokuji 自动实时翻译。",
+                        tip: "请记住 Gather 使用空间音频 - 靠近人们可以更好地听到他们。"
+                    }
+                ],
+                tips: {
+                    title: "最佳使用建议",
+                    items: [
+                        "保持在其他参与者的对话范围内",
+                        "使用耳机以防止空间音频中的回声",
+                        "检查您的网络连接以确保流畅的角色移动和翻译",
+                        "使用私人空间功能进行重要的翻译对话"
+                    ]
+                },
+                faq: {
+                    title: "常见问题",
+                    items: [
+                        {
+                            question: "Sokuji 是否支持 Gather 的空间音频？",
+                            answer: "是的，Sokuji 与 Gather 的空间音频系统完全兼容。翻译后的音频保持空间定位。"
+                        },
+                        {
+                            question: "我可以在 Gather 的私人空间中使用 Sokuji 吗？",
+                            answer: "是的，Sokuji 在 Gather 的所有区域都可以工作，包括私人空间、会议室和开放区域。"
+                        },
+                        {
+                            question: "如果遇到音频延迟怎么办？",
+                            answer: "音频延迟通常是由于网络延迟造成的。确保您有稳定的网络连接并关闭其他占用带宽的应用程序。"
+                        }
+                    ]
+                },
+                troubleshooting: {
+                    title: "故障排除",
+                    content: "如果遇到任何问题，请访问我们的 <a href='https://github.com/kizuna-ai-lab/sokuji'>GitHub 仓库</a> 获取支持。"
+                }
+            },
+            ja: {
+                pageTitle: "Gather で Sokuji を使用する",
+                langLabel: "言語：",
+                backLink: "← サポートされているサイトに戻る",
+                overview: {
+                    title: "概要",
+                    content: "このガイドでは、Gather で Sokuji を設定して使用し、仮想空間でリアルタイム言語翻訳を行う方法を説明します。"
+                },
+                steps: [
+                    {
+                        title: "Sokuji 拡張機能をインストール",
+                        content: "Chrome または Edge ブラウザに Sokuji 拡張機能がインストールされていることを確認してください。Chrome ウェブストアから入手できます。",
+                        tip: "インストール後、拡張機能のアイコンがブラウザのツールバーに表示されます。"
+                    },
+                    {
+                        title: "Gather スペースに入る",
+                        content: "<code>app.gather.town</code> にアクセスし、Gather スペースに入ります。オーディオとビデオの設定を求められます。",
+                        tip: "Gather は Chrome または Edge ブラウザで最適に動作します。"
+                    },
+                    {
+                        title: "オーディオ入力を設定",
+                        content: "マイクを選択するよう求められたとき、または設定メニュー（歯車アイコンからアクセス）で、ドロップダウンから <strong>Sokuji Virtual Microphone</strong> を選択します。",
+                        tip: "画面下部の歯車アイコンをクリックして、いつでもオーディオ設定を変更できます。"
+                    },
+                    {
+                        title: "オーディオをテスト",
+                        content: "Gather のオーディオテスト機能を使用して、Sokuji が正しく動作していることを確認します。母国語で話し、オーディオレベルを確認してください。",
+                        tip: "話すと緑色のオーディオインジケーターが動くはずです。"
+                    },
+                    {
+                        title: "会話を開始",
+                        content: "アバターを他の人の近くに移動して会話を開始します。あなたの音声は Sokuji を通じて自動的にリアルタイムで翻訳されます。",
+                        tip: "Gather は空間オーディオを使用することを覚えておいてください - 人々に近づくとよりよく聞こえます。"
+                    }
+                ],
+                tips: {
+                    title: "最良の結果を得るためのヒント",
+                    items: [
+                        "他の参加者の会話範囲内に留まる",
+                        "空間オーディオでのエコーを防ぐためにヘッドフォンを使用する",
+                        "スムーズなアバターの動きと翻訳のためにインターネット接続を確認する",
+                        "重要な翻訳会話にはプライベートスペース機能を使用する"
+                    ]
+                },
+                faq: {
+                    title: "よくある質問",
+                    items: [
+                        {
+                            question: "Sokuji は Gather の空間オーディオで動作しますか？",
+                            answer: "はい、Sokuji は Gather の空間オーディオシステムと完全に互換性があります。翻訳されたオーディオは空間的な位置を維持します。"
+                        },
+                        {
+                            question: "Gather のプライベートスペースで Sokuji を使用できますか？",
+                            answer: "はい、Sokuji はプライベートスペース、会議室、オープンエリアを含む Gather のすべてのエリアで動作します。"
+                        },
+                        {
+                            question: "オーディオの遅延が発生した場合はどうすればよいですか？",
+                            answer: "オーディオの遅延は通常、ネットワークの遅延によるものです。安定したインターネット接続を確保し、他の帯域幅を大量に使用するアプリケーションを閉じてください。"
+                        }
+                    ]
+                },
+                troubleshooting: {
+                    title: "トラブルシューティング",
+                    content: "問題が発生した場合は、<a href='https://github.com/kizuna-ai-lab/sokuji'>GitHub リポジトリ</a>でサポートを受けてください。"
+                }
+            },
+            ko: {
+                pageTitle: "Gather에서 Sokuji 사용하기",
+                langLabel: "언어:",
+                backLink: "← 지원 사이트로 돌아가기",
+                overview: {
+                    title: "개요",
+                    content: "이 가이드는 Gather에서 Sokuji를 설정하고 사용하여 가상 공간에서 실시간 언어 번역을 수행하는 방법을 안내합니다."
+                },
+                steps: [
+                    {
+                        title: "Sokuji 확장 프로그램 설치",
+                        content: "Chrome 또는 Edge 브라우저에 Sokuji 확장 프로그램이 설치되어 있는지 확인하세요. Chrome 웹 스토어에서 받을 수 있습니다.",
+                        tip: "설치 후 확장 프로그램 아이콘이 브라우저 도구 모음에 나타납니다."
+                    },
+                    {
+                        title: "Gather 공간 입장",
+                        content: "<code>app.gather.town</code>으로 이동하여 Gather 공간에 입장하세요. 오디오와 비디오 설정을 요청받게 됩니다.",
+                        tip: "Gather는 Chrome 또는 Edge 브라우저에서 가장 잘 작동합니다."
+                    },
+                    {
+                        title: "오디오 입력 구성",
+                        content: "마이크 선택을 요청받거나 설정 메뉴(톱니바퀴 아이콘으로 접근)에서 드롭다운에서 <strong>Sokuji Virtual Microphone</strong>을 선택하세요.",
+                        tip: "화면 하단의 톱니바퀴 아이콘을 클릭하여 언제든지 오디오 설정을 변경할 수 있습니다."
+                    },
+                    {
+                        title: "오디오 테스트",
+                        content: "Gather의 오디오 테스트 기능을 사용하여 Sokuji가 올바르게 작동하는지 확인하세요. 모국어로 말하고 오디오 레벨을 확인하세요.",
+                        tip: "말할 때 녹색 오디오 표시기가 움직여야 합니다."
+                    },
+                    {
+                        title: "대화 시작",
+                        content: "아바타를 다른 사람 가까이로 이동하여 대화를 시작하세요. 음성이 Sokuji를 통해 자동으로 실시간 번역됩니다.",
+                        tip: "Gather는 공간 오디오를 사용한다는 것을 기억하세요 - 사람들에게 가까이 가면 더 잘 들립니다."
+                    }
+                ],
+                tips: {
+                    title: "최상의 결과를 위한 팁",
+                    items: [
+                        "다른 참가자의 대화 범위 내에 머무르기",
+                        "공간 오디오에서 에코를 방지하기 위해 헤드폰 사용",
+                        "원활한 아바타 이동과 번역을 위해 인터넷 연결 확인",
+                        "중요한 번역 대화에는 프라이빗 공간 기능 사용"
+                    ]
+                },
+                faq: {
+                    title: "자주 묻는 질문",
+                    items: [
+                        {
+                            question: "Sokuji가 Gather의 공간 오디오와 함께 작동하나요?",
+                            answer: "네, Sokuji는 Gather의 공간 오디오 시스템과 완벽하게 호환됩니다. 번역된 오디오는 공간적 위치를 유지합니다."
+                        },
+                        {
+                            question: "Gather의 프라이빗 공간에서 Sokuji를 사용할 수 있나요?",
+                            answer: "네, Sokuji는 프라이빗 공간, 회의실, 오픈 영역을 포함한 Gather의 모든 영역에서 작동합니다."
+                        },
+                        {
+                            question: "오디오 지연이 발생하면 어떻게 하나요?",
+                            answer: "오디오 지연은 일반적으로 네트워크 지연으로 인한 것입니다. 안정적인 인터넷 연결을 확보하고 대역폭을 많이 사용하는 다른 응용 프로그램을 닫으세요."
+                        }
+                    ]
+                },
+                troubleshooting: {
+                    title: "문제 해결",
+                    content: "문제가 발생하면 <a href='https://github.com/kizuna-ai-lab/sokuji'>GitHub 저장소</a>를 방문하여 지원을 받으세요."
+                }
+            }
+        };
+
+        // Get language from query string
+        function getLanguage() {
+            const params = new URLSearchParams(window.location.search);
+            const lang = params.get('lang');
+            return translations[lang] ? lang : 'en';
+        }
+
+        // Render content based on selected language
+        function renderContent() {
+            const lang = getLanguage();
+            const t = translations[lang];
+            
+            // Update page title
+            document.getElementById('page-title').textContent = t.pageTitle;
+            document.title = t.pageTitle + ' - Sokuji Extension';
+            
+            // Update language label
+            document.getElementById('lang-label').textContent = t.langLabel;
+            
+            // Update back link
+            document.querySelector('.back-link').textContent = t.backLink;
+            
+            // Highlight active language
+            document.querySelectorAll('.language-selector a').forEach(link => {
+                link.classList.remove('active');
+            });
+            document.getElementById('lang-' + lang).classList.add('active');
+            
+            // Build content HTML
+            let contentHTML = '';
+            
+            // Overview
+            contentHTML += `
+                <h2>${t.overview.title}</h2>
+                <p>${t.overview.content}</p>
+            `;
+            
+            // Steps
+            t.steps.forEach((step, index) => {
+                contentHTML += `
+                    <div class="step">
+                        <h3><span class="step-number">${index + 1}</span>${step.title}</h3>
+                        <p>${step.content}</p>
+                        <div class="screenshot-placeholder">Screenshot placeholder</div>
+                        ${step.tip ? `<div class="tip"><h4>Tip</h4><p>${step.tip}</p></div>` : ''}
+                    </div>
+                `;
+            });
+            
+            // Tips
+            contentHTML += `
+                <div class="tip">
+                    <h4>${t.tips.title}</h4>
+                    <ul>
+                        ${t.tips.items.map(item => `<li>${item}</li>`).join('')}
+                    </ul>
+                </div>
+            `;
+            
+            // FAQ
+            contentHTML += `
+                <div class="faq">
+                    <h2>${t.faq.title}</h2>
+                    ${t.faq.items.map(item => `
+                        <div class="faq-item">
+                            <h4>${item.question}</h4>
+                            <p>${item.answer}</p>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+            
+            // Troubleshooting
+            contentHTML += `
+                <h2>${t.troubleshooting.title}</h2>
+                <p>${t.troubleshooting.content}</p>
+            `;
+            
+            // Insert content
+            document.getElementById('content').innerHTML = contentHTML;
+        }
+
+        // Initialize on page load
+        renderContent();
+    </script>
+</body>
+</html>
