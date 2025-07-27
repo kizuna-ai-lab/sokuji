@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google Meet Tutorial - Sokuji Extension</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f8f9fa;
+        }
+        .container {
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .header img {
+            max-width: 150px;
+            margin-bottom: 20px;
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+            text-align: center;
+        }
+        h2 {
+            color: #2c3e50;
+            margin-top: 30px;
+        }
+        .back-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            padding: 8px 16px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            text-decoration: none;
+            color: #3498db;
+        }
+        .back-link:hover {
+            background-color: #e9ecef;
+        }
+        .language-selector {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+        }
+        .language-selector a {
+            margin: 0 10px;
+            color: #3498db;
+            text-decoration: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+        }
+        .language-selector a:hover {
+            background-color: #e9ecef;
+        }
+        .language-selector a.active {
+            background-color: #3498db;
+            color: white;
+        }
+        .step {
+            margin-bottom: 30px;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #3498db;
+        }
+        .step h3 {
+            color: #2c3e50;
+            margin-top: 0;
+        }
+        .step-number {
+            display: inline-block;
+            width: 30px;
+            height: 30px;
+            background-color: #3498db;
+            color: white;
+            text-align: center;
+            line-height: 30px;
+            border-radius: 50%;
+            margin-right: 10px;
+            font-weight: bold;
+        }
+        .screenshot-placeholder {
+            background-color: #e9ecef;
+            border: 2px dashed #cbd5e0;
+            border-radius: 4px;
+            padding: 40px;
+            text-align: center;
+            color: #6c757d;
+            margin: 15px 0;
+        }
+        .tip {
+            background-color: #e7f3ff;
+            border: 1px solid #b8daff;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .tip h4 {
+            color: #0c5460;
+            margin-top: 0;
+        }
+        .faq {
+            margin-top: 40px;
+        }
+        .faq-item {
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+        }
+        .faq-item h4 {
+            color: #2c3e50;
+            margin-top: 0;
+        }
+        footer {
+            margin-top: 50px;
+            text-align: center;
+            color: #7f8c8d;
+            font-size: 0.9em;
+            border-top: 1px solid #eee;
+            padding-top: 20px;
+        }
+        code {
+            background-color: #f8f9fa;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="../supported-sites.html" class="back-link">← Back to Supported Sites</a>
+        
+        <div class="header">
+            <img src="https://github.com/kizuna-ai-lab/sokuji/raw/main/src/assets/logo.png" alt="Sokuji Logo">
+            <h1 id="page-title">Using Sokuji with Google Meet</h1>
+        </div>
+
+        <div class="language-selector">
+            <span id="lang-label">Language:</span>
+            <a href="?lang=en" id="lang-en">English</a>
+            <a href="?lang=zh" id="lang-zh">中文</a>
+            <a href="?lang=ja" id="lang-ja">日本語</a>
+            <a href="?lang=ko" id="lang-ko">한국어</a>
+        </div>
+
+        <div id="content">
+            <!-- Content will be dynamically inserted here -->
+        </div>
+
+        <footer>
+            &copy; 2025 Kizuna AI Lab. All rights reserved.
+        </footer>
+    </div>
+
+    <script>
+        // Language content definitions
+        const translations = {
+            en: {
+                pageTitle: "Using Sokuji with Google Meet",
+                langLabel: "Language:",
+                backLink: "← Back to Supported Sites",
+                overview: {
+                    title: "Overview",
+                    content: "This guide will walk you through setting up and using Sokuji with Google Meet for real-time language translation during your meetings."
+                },
+                steps: [
+                    {
+                        title: "Install Sokuji Extension",
+                        content: "Make sure you have the Sokuji extension installed in your Chrome or Edge browser. You can get it from the Chrome Web Store.",
+                        tip: "The extension icon should appear in your browser toolbar after installation."
+                    },
+                    {
+                        title: "Join a Google Meet",
+                        content: "Navigate to <code>meet.google.com</code> and join or start a meeting as you normally would.",
+                        tip: "Sokuji works with both scheduled meetings and instant meetings."
+                    },
+                    {
+                        title: "Configure Audio Settings",
+                        content: "Once in the meeting, click on the three dots menu (⋮) at the bottom of the screen and select 'Settings'.",
+                        tip: "You can also access settings before joining the meeting."
+                    },
+                    {
+                        title: "Select Sokuji Virtual Microphone",
+                        content: "In the Audio settings, find the Microphone dropdown and select <strong>Sokuji Virtual Microphone</strong> from the list of available devices.",
+                        tip: "If you don't see the Sokuji Virtual Microphone, refresh the page and check that the extension is active."
+                    },
+                    {
+                        title: "Start Speaking",
+                        content: "That's it! Sokuji will now translate your speech in real-time. Speak in your native language, and others will hear the translated audio.",
+                        tip: "Make sure to speak clearly and at a moderate pace for best translation results."
+                    }
+                ],
+                tips: {
+                    title: "Tips for Best Results",
+                    items: [
+                        "Speak clearly and avoid background noise",
+                        "Pause briefly between sentences for better translation accuracy",
+                        "Check your internet connection for smooth performance",
+                        "Test your audio before important meetings"
+                    ]
+                },
+                faq: {
+                    title: "Frequently Asked Questions",
+                    items: [
+                        {
+                            question: "Why can't I see the Sokuji Virtual Microphone?",
+                            answer: "Make sure the Sokuji extension is installed and active. Try refreshing the Google Meet page. If the issue persists, check that you've granted microphone permissions to the extension."
+                        },
+                        {
+                            question: "Can other participants hear both languages?",
+                            answer: "No, other participants will only hear the translated audio through the Sokuji Virtual Microphone."
+                        },
+                        {
+                            question: "Does Sokuji work with Google Meet recordings?",
+                            answer: "Yes, the translated audio will be included in the meeting recording if you're using Sokuji Virtual Microphone."
+                        }
+                    ]
+                },
+                troubleshooting: {
+                    title: "Troubleshooting",
+                    content: "If you encounter any issues, please visit our <a href='https://github.com/kizuna-ai-lab/sokuji'>GitHub repository</a> for support."
+                }
+            },
+            zh: {
+                pageTitle: "在 Google Meet 中使用 Sokuji",
+                langLabel: "语言：",
+                backLink: "← 返回支持的网站",
+                overview: {
+                    title: "概述",
+                    content: "本指南将指导您如何在 Google Meet 中设置和使用 Sokuji，实现会议中的实时语言翻译。"
+                },
+                steps: [
+                    {
+                        title: "安装 Sokuji 扩展",
+                        content: "确保您已在 Chrome 或 Edge 浏览器中安装了 Sokuji 扩展。您可以从 Chrome 网上应用店获取。",
+                        tip: "安装后，扩展图标应出现在浏览器工具栏中。"
+                    },
+                    {
+                        title: "加入 Google Meet",
+                        content: "访问 <code>meet.google.com</code> 并像往常一样加入或开始会议。",
+                        tip: "Sokuji 支持预定会议和即时会议。"
+                    },
+                    {
+                        title: "配置音频设置",
+                        content: "进入会议后，点击屏幕底部的三点菜单 (⋮)，然后选择\"设置\"。",
+                        tip: "您也可以在加入会议前访问设置。"
+                    },
+                    {
+                        title: "选择 Sokuji 虚拟麦克风",
+                        content: "在音频设置中，找到麦克风下拉菜单，从可用设备列表中选择 <strong>Sokuji Virtual Microphone</strong>。",
+                        tip: "如果看不到 Sokuji 虚拟麦克风，请刷新页面并检查扩展是否处于活动状态。"
+                    },
+                    {
+                        title: "开始说话",
+                        content: "就这样！Sokuji 现在将实时翻译您的语音。用您的母语说话，其他人将听到翻译后的音频。",
+                        tip: "为获得最佳翻译效果，请清晰地说话并保持适中的语速。"
+                    }
+                ],
+                tips: {
+                    title: "最佳使用建议",
+                    items: [
+                        "清晰说话，避免背景噪音",
+                        "句子之间稍作停顿以提高翻译准确性",
+                        "检查网络连接以确保流畅性能",
+                        "重要会议前测试音频"
+                    ]
+                },
+                faq: {
+                    title: "常见问题",
+                    items: [
+                        {
+                            question: "为什么看不到 Sokuji 虚拟麦克风？",
+                            answer: "确保 Sokuji 扩展已安装并处于活动状态。尝试刷新 Google Meet 页面。如果问题仍然存在，请检查是否已授予扩展麦克风权限。"
+                        },
+                        {
+                            question: "其他参与者能听到两种语言吗？",
+                            answer: "不能，其他参与者只能通过 Sokuji 虚拟麦克风听到翻译后的音频。"
+                        },
+                        {
+                            question: "Sokuji 支持 Google Meet 录制吗？",
+                            answer: "是的，如果您使用 Sokuji 虚拟麦克风，翻译后的音频将包含在会议录制中。"
+                        }
+                    ]
+                },
+                troubleshooting: {
+                    title: "故障排除",
+                    content: "如果遇到任何问题，请访问我们的 <a href='https://github.com/kizuna-ai-lab/sokuji'>GitHub 仓库</a> 获取支持。"
+                }
+            },
+            ja: {
+                pageTitle: "Google Meet で Sokuji を使用する",
+                langLabel: "言語：",
+                backLink: "← サポートされているサイトに戻る",
+                overview: {
+                    title: "概要",
+                    content: "このガイドでは、Google Meet で Sokuji を設定して使用し、会議中にリアルタイム言語翻訳を行う方法を説明します。"
+                },
+                steps: [
+                    {
+                        title: "Sokuji 拡張機能をインストール",
+                        content: "Chrome または Edge ブラウザに Sokuji 拡張機能がインストールされていることを確認してください。Chrome ウェブストアから入手できます。",
+                        tip: "インストール後、拡張機能のアイコンがブラウザのツールバーに表示されます。"
+                    },
+                    {
+                        title: "Google Meet に参加",
+                        content: "<code>meet.google.com</code> にアクセスし、通常どおり会議に参加または開始します。",
+                        tip: "Sokuji は予定された会議とインスタント会議の両方で動作します。"
+                    },
+                    {
+                        title: "オーディオ設定を構成",
+                        content: "会議に参加したら、画面下部の三点メニュー (⋮) をクリックし、「設定」を選択します。",
+                        tip: "会議に参加する前に設定にアクセスすることもできます。"
+                    },
+                    {
+                        title: "Sokuji 仮想マイクを選択",
+                        content: "オーディオ設定で、マイクのドロップダウンを見つけ、利用可能なデバイスのリストから <strong>Sokuji Virtual Microphone</strong> を選択します。",
+                        tip: "Sokuji 仮想マイクが表示されない場合は、ページを更新して拡張機能がアクティブであることを確認してください。"
+                    },
+                    {
+                        title: "話し始める",
+                        content: "これで完了です！Sokuji がリアルタイムで音声を翻訳します。母国語で話すと、他の人は翻訳された音声を聞くことができます。",
+                        tip: "最高の翻訳結果を得るために、はっきりと適度なペースで話してください。"
+                    }
+                ],
+                tips: {
+                    title: "最良の結果を得るためのヒント",
+                    items: [
+                        "はっきりと話し、背景ノイズを避ける",
+                        "翻訳精度を向上させるため、文の間で少し一時停止する",
+                        "スムーズなパフォーマンスのためにインターネット接続を確認する",
+                        "重要な会議の前にオーディオをテストする"
+                    ]
+                },
+                faq: {
+                    title: "よくある質問",
+                    items: [
+                        {
+                            question: "Sokuji 仮想マイクが表示されないのはなぜですか？",
+                            answer: "Sokuji 拡張機能がインストールされ、アクティブであることを確認してください。Google Meet ページを更新してみてください。問題が解決しない場合は、拡張機能にマイクの権限を付与したかどうかを確認してください。"
+                        },
+                        {
+                            question: "他の参加者は両方の言語を聞くことができますか？",
+                            answer: "いいえ、他の参加者は Sokuji 仮想マイクを通じて翻訳された音声のみを聞くことができます。"
+                        },
+                        {
+                            question: "Sokuji は Google Meet の録画で動作しますか？",
+                            answer: "はい、Sokuji 仮想マイクを使用している場合、翻訳された音声が会議の録画に含まれます。"
+                        }
+                    ]
+                },
+                troubleshooting: {
+                    title: "トラブルシューティング",
+                    content: "問題が発生した場合は、<a href='https://github.com/kizuna-ai-lab/sokuji'>GitHub リポジトリ</a>でサポートを受けてください。"
+                }
+            },
+            ko: {
+                pageTitle: "Google Meet에서 Sokuji 사용하기",
+                langLabel: "언어:",
+                backLink: "← 지원 사이트로 돌아가기",
+                overview: {
+                    title: "개요",
+                    content: "이 가이드는 Google Meet에서 Sokuji를 설정하고 사용하여 회의 중 실시간 언어 번역을 수행하는 방법을 안내합니다."
+                },
+                steps: [
+                    {
+                        title: "Sokuji 확장 프로그램 설치",
+                        content: "Chrome 또는 Edge 브라우저에 Sokuji 확장 프로그램이 설치되어 있는지 확인하세요. Chrome 웹 스토어에서 받을 수 있습니다.",
+                        tip: "설치 후 확장 프로그램 아이콘이 브라우저 도구 모음에 나타납니다."
+                    },
+                    {
+                        title: "Google Meet 참여",
+                        content: "<code>meet.google.com</code>으로 이동하여 평소처럼 회의에 참여하거나 시작하세요.",
+                        tip: "Sokuji는 예약된 회의와 즉석 회의 모두에서 작동합니다."
+                    },
+                    {
+                        title: "오디오 설정 구성",
+                        content: "회의에 참여한 후 화면 하단의 점 3개 메뉴 (⋮)를 클릭하고 '설정'을 선택하세요.",
+                        tip: "회의 참여 전에도 설정에 액세스할 수 있습니다."
+                    },
+                    {
+                        title: "Sokuji 가상 마이크 선택",
+                        content: "오디오 설정에서 마이크 드롭다운을 찾아 사용 가능한 장치 목록에서 <strong>Sokuji Virtual Microphone</strong>을 선택하세요.",
+                        tip: "Sokuji 가상 마이크가 보이지 않으면 페이지를 새로 고치고 확장 프로그램이 활성화되어 있는지 확인하세요."
+                    },
+                    {
+                        title: "말하기 시작",
+                        content: "이제 완료되었습니다! Sokuji가 실시간으로 음성을 번역합니다. 모국어로 말하면 다른 사람들은 번역된 오디오를 들을 수 있습니다.",
+                        tip: "최상의 번역 결과를 위해 명확하고 적당한 속도로 말하세요."
+                    }
+                ],
+                tips: {
+                    title: "최상의 결과를 위한 팁",
+                    items: [
+                        "명확하게 말하고 배경 소음을 피하세요",
+                        "번역 정확도 향상을 위해 문장 사이에 잠시 멈추세요",
+                        "원활한 성능을 위해 인터넷 연결을 확인하세요",
+                        "중요한 회의 전에 오디오를 테스트하세요"
+                    ]
+                },
+                faq: {
+                    title: "자주 묻는 질문",
+                    items: [
+                        {
+                            question: "Sokuji 가상 마이크가 보이지 않는 이유는 무엇인가요?",
+                            answer: "Sokuji 확장 프로그램이 설치되고 활성화되어 있는지 확인하세요. Google Meet 페이지를 새로 고쳐 보세요. 문제가 지속되면 확장 프로그램에 마이크 권한을 부여했는지 확인하세요."
+                        },
+                        {
+                            question: "다른 참가자들이 두 언어를 모두 들을 수 있나요?",
+                            answer: "아니요, 다른 참가자들은 Sokuji 가상 마이크를 통해 번역된 오디오만 들을 수 있습니다."
+                        },
+                        {
+                            question: "Sokuji가 Google Meet 녹화에서 작동하나요?",
+                            answer: "네, Sokuji 가상 마이크를 사용하는 경우 번역된 오디오가 회의 녹화에 포함됩니다."
+                        }
+                    ]
+                },
+                troubleshooting: {
+                    title: "문제 해결",
+                    content: "문제가 발생하면 <a href='https://github.com/kizuna-ai-lab/sokuji'>GitHub 저장소</a>를 방문하여 지원을 받으세요."
+                }
+            }
+        };
+
+        // Get language from query string
+        function getLanguage() {
+            const params = new URLSearchParams(window.location.search);
+            const lang = params.get('lang');
+            return translations[lang] ? lang : 'en';
+        }
+
+        // Render content based on selected language
+        function renderContent() {
+            const lang = getLanguage();
+            const t = translations[lang];
+            
+            // Update page title
+            document.getElementById('page-title').textContent = t.pageTitle;
+            document.title = t.pageTitle + ' - Sokuji Extension';
+            
+            // Update language label
+            document.getElementById('lang-label').textContent = t.langLabel;
+            
+            // Update back link
+            document.querySelector('.back-link').textContent = t.backLink;
+            
+            // Highlight active language
+            document.querySelectorAll('.language-selector a').forEach(link => {
+                link.classList.remove('active');
+            });
+            document.getElementById('lang-' + lang).classList.add('active');
+            
+            // Build content HTML
+            let contentHTML = '';
+            
+            // Overview
+            contentHTML += `
+                <h2>${t.overview.title}</h2>
+                <p>${t.overview.content}</p>
+            `;
+            
+            // Steps
+            t.steps.forEach((step, index) => {
+                contentHTML += `
+                    <div class="step">
+                        <h3><span class="step-number">${index + 1}</span>${step.title}</h3>
+                        <p>${step.content}</p>
+                        <div class="screenshot-placeholder">Screenshot placeholder</div>
+                        ${step.tip ? `<div class="tip"><h4>Tip</h4><p>${step.tip}</p></div>` : ''}
+                    </div>
+                `;
+            });
+            
+            // Tips
+            contentHTML += `
+                <div class="tip">
+                    <h4>${t.tips.title}</h4>
+                    <ul>
+                        ${t.tips.items.map(item => `<li>${item}</li>`).join('')}
+                    </ul>
+                </div>
+            `;
+            
+            // FAQ
+            contentHTML += `
+                <div class="faq">
+                    <h2>${t.faq.title}</h2>
+                    ${t.faq.items.map(item => `
+                        <div class="faq-item">
+                            <h4>${item.question}</h4>
+                            <p>${item.answer}</p>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+            
+            // Troubleshooting
+            contentHTML += `
+                <h2>${t.troubleshooting.title}</h2>
+                <p>${t.troubleshooting.content}</p>
+            `;
+            
+            // Insert content
+            document.getElementById('content').innerHTML = contentHTML;
+        }
+
+        // Initialize on page load
+        renderContent();
+    </script>
+</body>
+</html>
