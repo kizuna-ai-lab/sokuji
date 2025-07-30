@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PalabraAI Setup Tutorial - Sokuji</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f8f9fa;
+        }
+        .container {
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .header img {
+            max-width: 150px;
+            margin-bottom: 20px;
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+            text-align: center;
+        }
+        h2 {
+            color: #2c3e50;
+            margin-top: 30px;
+        }
+        .back-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            padding: 8px 16px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            text-decoration: none;
+            color: #3498db;
+        }
+        .back-link:hover {
+            background-color: #e9ecef;
+        }
+        .step {
+            background-color: #f8f9fa;
+            border-left: 4px solid #6f42c1;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .step h3 {
+            margin-top: 0;
+            color: #2c3e50;
+        }
+        .warning {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .warning:before {
+            content: "⚠️ ";
+            color: #f39c12;
+        }
+        .info {
+            background-color: #e7f3ff;
+            border: 1px solid #b8daff;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .info:before {
+            content: "ℹ️ ";
+            color: #0c5460;
+        }
+        code {
+            background-color: #f8f9fa;
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
+        .btn {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #6f42c1;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            margin: 10px 5px;
+        }
+        .btn:hover {
+            background-color: #5a32a3;
+            text-decoration: none;
+        }
+        footer {
+            margin-top: 50px;
+            text-align: center;
+            color: #7f8c8d;
+            font-size: 0.9em;
+            border-top: 1px solid #eee;
+            padding-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="../supported-ai-providers.html" class="back-link">← Back to AI Providers</a>
+        
+        <div class="header">
+            <img src="https://github.com/kizuna-ai-lab/sokuji/raw/main/src/assets/logo.png" alt="Sokuji Logo">
+            <h1>PalabraAI Setup Tutorial</h1>
+        </div>
+
+        <p>This tutorial will guide you through setting up PalabraAI for use with Sokuji. PalabraAI specializes in real-time WebRTC translation with minimal latency, making it ideal for live conversations.</p>
+
+        <div class="info">
+            <strong>Specialization:</strong> PalabraAI is optimized specifically for real-time translation with support for 60+ source languages and 40+ target languages.
+        </div>
+
+        <div class="step">
+            <h3>Step 1: Visit PalabraAI Website</h3>
+            <p>Go to <a href="https://palabra.ai" target="_blank" rel="noopener noreferrer">palabra.ai</a> to access the PalabraAI platform.</p>
+        </div>
+
+        <div class="step">
+            <h3>Step 2: Sign Up and Access Dashboard</h3>
+            <p>Create an account and navigate to your dashboard. PalabraAI typically provides a straightforward registration process.</p>
+        </div>
+
+        <div class="step">
+            <h3>Step 3: Obtain Client ID</h3>
+            <p>In your PalabraAI dashboard:</p>
+            <ol>
+                <li>Look for <strong>"API Keys"</strong> or <strong>"Credentials"</strong> section</li>
+                <li>Generate a new <strong>Client ID</strong> for your application</li>
+                <li>Give it a descriptive name like "Sokuji Translation"</li>
+                <li>Copy the generated Client ID</li>
+            </ol>
+            <div class="warning">
+                <strong>Important:</strong> PalabraAI uses Client IDs instead of traditional API keys. Make sure to copy the correct credential.
+            </div>
+        </div>
+
+        <div class="step">
+            <h3>Step 4: Configure in Sokuji</h3>
+            <p>Open Sokuji and navigate to the Settings panel:</p>
+            <ol>
+                <li>Select <strong>"PalabraAI"</strong> as your AI provider</li>
+                <li>Paste your Client ID in the <strong>"Client ID"</strong> field</li>
+                <li>Choose your voice setting (<code>default_low</code> or <code>default_high</code>)</li>
+                <li>Configure your source language (language you'll speak)</li>
+                <li>Configure your target language (language for translation output)</li>
+                <li>Click <strong>Save Settings</strong></li>
+            </ol>
+        </div>
+
+        <div class="step">
+            <h3>Step 5: Test Your Setup</h3>
+            <p>Start a translation session to verify everything is working:</p>
+            <ol>
+                <li>Click the <strong>Start Session</strong> button in Sokuji</li>
+                <li>Speak into your microphone</li>
+                <li>You should hear the translated audio output with minimal delay</li>
+            </ol>
+        </div>
+
+        <h2>PalabraAI-Specific Features</h2>
+
+        <div class="step">
+            <h3>WebRTC Technology</h3>
+            <p>PalabraAI uses WebRTC for ultra-low latency streaming, making it ideal for real-time conversations. The service automatically handles:</p>
+            <ul>
+                <li>Audio compression and transmission</li>
+                <li>Network optimization</li>
+                <li>Automatic quality adjustment</li>
+                <li>Echo cancellation and noise reduction</li>
+            </ul>
+        </div>
+
+        <div class="step">
+            <h3>Language Support</h3>
+            <p>PalabraAI supports extensive language combinations:</p>
+            <ul>
+                <li><strong>Source Languages:</strong> 60+ languages including major world languages and regional variants</li>
+                <li><strong>Target Languages:</strong> 40+ languages with regional specificity (e.g., Spanish for Mexico vs Spain)</li>
+                <li><strong>Specialized Support:</strong> Optimized for commonly requested language pairs</li>
+            </ul>
+        </div>
+
+        <div class="step">
+            <h3>Automatic Processing</h3>
+            <p>Unlike other providers, PalabraAI handles most audio processing automatically:</p>
+            <ul>
+                <li>No manual turn detection configuration needed</li>
+                <li>Automatic audio quality optimization</li>
+                <li>Built-in noise reduction</li>
+                <li>Adaptive streaming based on network conditions</li>
+            </ul>
+        </div>
+
+        <h2>Troubleshooting</h2>
+
+        <div class="step">
+            <h3>Common Issues</h3>
+            <p><strong>Authentication Error:</strong> Double-check that you're using the Client ID (not an API key) and that it's correctly pasted.</p>
+            <p><strong>Connection Issues:</strong> PalabraAI uses WebRTC, so ensure your firewall/network allows WebRTC connections.</p>
+            <p><strong>Audio Quality Issues:</strong> Try switching between <code>default_low</code> and <code>default_high</code> voice settings based on your network conditions.</p>
+            <p><strong>Language Pair Not Working:</strong> Verify that your selected source and target language combination is supported.</p>
+        </div>
+
+        <div class="step">
+            <h3>Network Requirements</h3>
+            <p>For optimal performance with PalabraAI:</p>
+            <ul>
+                <li>Stable internet connection (minimum 1 Mbps upload/download)</li>
+                <li>Low network latency (preferably under 100ms)</li>
+                <li>WebRTC-compatible network configuration</li>
+                <li>Avoid VPNs if possible for lowest latency</li>
+            </ul>
+        </div>
+
+        <div class="info">
+            <strong>Need More Help?</strong> Check the <a href="https://palabra.ai/docs" target="_blank" rel="noopener noreferrer">PalabraAI documentation</a> or visit our <a href="https://github.com/kizuna-ai-lab/sokuji" target="_blank" rel="noopener noreferrer">GitHub repository</a> for support.
+        </div>
+
+        <footer>
+            &copy; 2025 Kizuna AI Lab. All rights reserved.
+        </footer>
+    </div>
+</body>
+</html>

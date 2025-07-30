@@ -1,0 +1,1415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenAI Setup Tutorial - Sokuji</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f8f9fa;
+            scroll-behavior: smooth;
+        }
+        
+        /* TOC Styles */
+        .toc-container {
+            position: fixed;
+            left: 20px;
+            top: 150px;
+            width: 250px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+        
+        .toc-container h4 {
+            margin: 0 0 15px 0;
+            color: #2c3e50;
+            font-size: 16px;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 8px;
+        }
+        
+        .toc-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        
+        .toc-list li {
+            margin: 5px 0;
+        }
+        
+        .toc-list li.toc-subsection {
+            margin-left: 20px;
+            font-size: 14px;
+        }
+        
+        .toc-list a {
+            color: #555;
+            text-decoration: none;
+            display: block;
+            padding: 5px 10px;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+        }
+        
+        .toc-list a:hover {
+            background-color: #f8f9fa;
+            color: #3498db;
+        }
+        
+        .toc-list a.active {
+            background-color: #e7f3ff;
+            color: #3498db;
+            font-weight: 500;
+        }
+        
+        /* Mobile TOC */
+        .mobile-toc {
+            display: none;
+            margin-bottom: 20px;
+        }
+        
+        .mobile-toc select {
+            width: 100%;
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: #fff;
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 1400px) {
+            .toc-container {
+                display: none;
+            }
+            
+            .mobile-toc {
+                display: block;
+            }
+            
+            body {
+                max-width: 900px;
+            }
+        }
+        
+        @media (min-width: 1401px) {
+            body {
+                margin-left: 300px;
+                max-width: 900px;
+            }
+        }
+        .container {
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .header img {
+            max-width: 150px;
+            margin-bottom: 20px;
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+            text-align: center;
+        }
+        h2 {
+            color: #2c3e50;
+            margin-top: 30px;
+        }
+        .back-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            padding: 8px 16px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            text-decoration: none;
+            color: #3498db;
+        }
+        .back-link:hover {
+            background-color: #e9ecef;
+        }
+        .language-selector {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+        }
+        .language-selector a {
+            margin: 0 10px;
+            color: #3498db;
+            text-decoration: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+        }
+        .language-selector a:hover {
+            background-color: #e9ecef;
+        }
+        .language-selector a.active {
+            background-color: #3498db;
+            color: white;
+        }
+        .step {
+            background-color: #f8f9fa;
+            border-left: 4px solid #3498db;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .step h3 {
+            margin-top: 0;
+            color: #2c3e50;
+        }
+        .warning {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .warning:before {
+            content: "⚠️ ";
+            color: #f39c12;
+        }
+        .info {
+            background-color: #e7f3ff;
+            border: 1px solid #b8daff;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .info:before {
+            content: "ℹ️ ";
+            color: #0c5460;
+        }
+        .screenshot {
+            width: 100%;
+            max-width: 800px;
+            margin: 20px auto;
+            display: block;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            cursor: pointer;
+        }
+        .screenshot:hover {
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+        .lightbox {
+            display: none;
+            position: fixed;
+            z-index: 999;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.9);
+            overflow: auto;
+        }
+        .lightbox-content {
+            margin: auto;
+            display: block;
+            max-width: 90%;
+            max-height: 90%;
+            margin-top: 2%;
+        }
+        .close {
+            position: absolute;
+            top: 15px;
+            right: 35px;
+            color: #f1f1f1;
+            font-size: 40px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .close:hover,
+        .close:focus {
+            color: #bbb;
+        }
+        code {
+            background-color: #f8f9fa;
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
+        .btn {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #3498db;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            margin: 10px 5px;
+        }
+        .btn:hover {
+            background-color: #2980b9;
+            text-decoration: none;
+        }
+        footer {
+            margin-top: 50px;
+            text-align: center;
+            color: #7f8c8d;
+            font-size: 0.9em;
+            border-top: 1px solid #eee;
+            padding-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Table of Contents for Desktop -->
+    <nav class="toc-container" id="toc-container">
+        <!-- TOC will be dynamically generated -->
+    </nav>
+    
+    <div class="container">
+        <a href="../supported-ai-providers.html" class="back-link" id="back-link">← Back to AI Providers</a>
+        
+        <!-- Mobile TOC Dropdown -->
+        <div class="mobile-toc" id="mobile-toc">
+            <!-- Mobile TOC will be dynamically generated -->
+        </div>
+        
+        <div class="header">
+            <img src="https://github.com/kizuna-ai-lab/sokuji/raw/main/src/assets/logo.png" alt="Sokuji Logo">
+            <h1 id="page-title">OpenAI Setup Tutorial</h1>
+        </div>
+
+        <div class="language-selector">
+            <span id="lang-label">Language:</span>
+            <a href="?lang=en" id="lang-en">English</a>
+            <a href="?lang=zh" id="lang-zh">中文</a>
+            <a href="?lang=ja" id="lang-ja">日本語</a>
+            <a href="?lang=ko" id="lang-ko">한국어</a>
+        </div>
+
+        <div id="content">
+            <!-- Content will be dynamically inserted here -->
+        </div>
+
+        <footer id="footer">
+            &copy; 2025 Kizuna AI Lab. All rights reserved.
+        </footer>
+    </div>
+
+    <!-- Lightbox for full-size images -->
+    <div id="lightbox" class="lightbox" onclick="closeLightbox()">
+        <span class="close">&times;</span>
+        <img class="lightbox-content" id="lightbox-img">
+    </div>
+
+    <script>
+        // Translation data
+        const translations = {
+            en: {
+                pageTitle: "OpenAI Setup Tutorial",
+                langLabel: "Language:",
+                backLink: "← Back to AI Providers",
+                tocTitle: "Table of Contents",
+                mobileJumpTo: "Jump to section...",
+                overview: "This tutorial will guide you through setting up OpenAI's Realtime API for use with Sokuji. OpenAI provides high-quality voice synthesis and advanced language processing capabilities.",
+                importantNote: "<strong>Important:</strong> OpenAI's Realtime API requires a paid account and has usage-based pricing. Make sure to check their pricing page and set up billing before proceeding.",
+                setupSteps: "Setup Steps",
+                steps: [
+                    {
+                        title: "Step 1: Access OpenAI Platform",
+                        content: `Visit <a href="https://platform.openai.com" target="_blank" rel="noopener noreferrer">https://platform.openai.com</a> and sign in to your account. After logging in, you'll see the main dashboard. Click the <strong>Settings</strong> button in the top right corner.`,
+                        screenshot: "openai-setup/1.png"
+                    },
+                    {
+                        title: "Step 2: Navigate to API Keys",
+                        content: `In the settings menu, click on <strong>API Keys</strong> from the left sidebar.`,
+                        screenshot: "openai-setup/2.png"
+                    },
+                    {
+                        title: "Step 3: Create New Secret Key",
+                        content: `Click the <strong>"Create new secret key"</strong> button in the top right corner of the API Keys page.`,
+                        screenshot: "openai-setup/3.png"
+                    },
+                    {
+                        title: "Step 4: Configure Key Settings",
+                        content: `In the dialog that appears:
+                        <ol>
+                            <li>Enter a descriptive <strong>Name</strong> for your key (e.g., "Sokuji Translation")</li>
+                            <li>Select a <strong>Project</strong> from the dropdown</li>
+                            <li>For <strong>Permissions</strong>, if you're unsure, select "All" (we'll cover the minimum required permissions later)</li>
+                            <li>Click <strong>"Create secret key"</strong></li>
+                        </ol>`,
+                        screenshot: "openai-setup/4.png"
+                    },
+                    {
+                        title: "Step 5: Copy and Save Your API Key",
+                        content: `After creating the key, a dialog will show your new API key. Click <strong>Copy</strong> to copy it to your clipboard.`,
+                        warning: `<strong>Important:</strong> This is the only time you'll see this API key! Make sure to copy and save it in a secure location. If you lose it, you'll need to create a new one.`,
+                        screenshot: "openai-setup/5.png"
+                    },
+                    {
+                        title: "Step 6: API Key Permissions (Optional)",
+                        content: `If you want to limit your API key's permissions for security reasons, you can edit the permissions by clicking the edit button next to your API key in the list.
+                        <p>The minimum required permissions for Sokuji are:</p>
+                        <ul>
+                            <li><strong>Models</strong> - Read access (/v1/models)</li>
+                            <li><strong>Model capabilities</strong> - Write access (includes /v1/audio, /v1/chat/completions, /v1/embeddings, /v1/images, /v1/moderations)</li>
+                        </ul>`,
+                        screenshots: ["openai-setup/6.png", "openai-setup/7.png"]
+                    },
+                    {
+                        title: "Step 7: Set Up Billing",
+                        content: `Before using the Realtime API, ensure you have billing set up. Navigate to the <strong>Billing</strong> section in your OpenAI dashboard and add a payment method.`,
+                        info: `The Realtime API is billed per minute of audio processed. Check the current pricing at <a href="https://openai.com/api/pricing/" target="_blank" rel="noopener noreferrer">OpenAI's pricing page</a>.`
+                    },
+                    {
+                        title: "Step 8: Configure in Sokuji",
+                        content: `Open Sokuji and navigate to the Settings panel:
+                        <ol>
+                            <li>Select <strong>"OpenAI"</strong> as your AI provider</li>
+                            <li>Paste your API key in the <strong>"OpenAI API Key"</strong> field</li>
+                            <li>Choose your preferred model (recommended: <code>gpt-4o-realtime-preview</code>)</li>
+                            <li>Select a voice (e.g., <code>alloy</code>, <code>echo</code>, or <code>shimmer</code>)</li>
+                            <li>Configure your source and target languages</li>
+                            <li>Click <strong>Save Settings</strong></li>
+                        </ol>`
+                    },
+                    {
+                        title: "Step 9: Test Your Setup",
+                        content: `Start a translation session to verify everything is working:
+                        <ol>
+                            <li>Click the <strong>Start Session</strong> button in Sokuji</li>
+                            <li>Speak into your microphone</li>
+                            <li>You should hear the translated audio output</li>
+                        </ol>`
+                    }
+                ],
+                troubleshooting: "Troubleshooting",
+                commonIssues: {
+                    title: "Common Issues",
+                    authError: "<strong>Authentication Error:</strong> Double-check that your API key is correctly pasted and that billing is set up on your OpenAI account.",
+                    connectionIssues: "<strong>Connection Issues:</strong> Verify your internet connection and that OpenAI services are operational."
+                },
+                checkAccountStatus: {
+                    title: "Check Your Account Status",
+                    intro: "Before using the Realtime API, verify your OpenAI account has sufficient resources:",
+                    creditBalance: {
+                        title: "1. Check Credit Balance",
+                        content: `Visit <a href="https://platform.openai.com/settings/organization/billing/overview" target="_blank" rel="noopener noreferrer">Billing Overview</a> to ensure your credit balance is not $0.`,
+                        warning: "<strong>Important:</strong> If your credit balance reaches $0, your API requests will stop working. Make sure to add funds or enable auto-recharge."
+                    },
+                    usageLimits: {
+                        title: "2. Check Usage Limits and Budget",
+                        content: `Visit <a href="https://platform.openai.com/settings/organization/limits" target="_blank" rel="noopener noreferrer">Usage Limits</a> to verify your monthly budget hasn't been exceeded.`,
+                        info: "Monitor your usage to avoid hitting monthly spending limits. Consider setting up usage alerts to get notified before reaching your budget."
+                    },
+                    rateLimits: {
+                        title: "3. Check Realtime API Rate Limits",
+                        content: `Ensure your account has sufficient rate limits for the Realtime API. Check the limits table for <code>gpt-4o-realtime-preview</code> models.`,
+                        info: "The Realtime API has specific rate limits (TPM - Tokens Per Minute, RPM - Requests Per Minute). Make sure your usage tier provides adequate limits for your needs."
+                    }
+                },
+                verifyPermissions: {
+                    title: "Verify API Key Permissions",
+                    intro: "Use this tool to verify if your API key has access to the Realtime API:",
+                    securityNotice: "<strong>Security Notice:</strong> This verification happens entirely in your browser. Your API key is only sent to OpenAI's servers and is never stored or transmitted elsewhere.",
+                    inputLabel: "Enter your OpenAI API Key:",
+                    verifyButton: "Verify Permissions",
+                    clearButton: "Clear",
+                    verificationResults: "Verification Results:",
+                    tests: {
+                        apiKeyValidity: "API Key Validity",
+                        realtimeAccess: "Realtime API Access",
+                        transcriptionAccess: "Transcription API Access"
+                    },
+                    messages: {
+                        enterKey: "Please enter your API key",
+                        invalidFormat: "Invalid API key format. OpenAI API keys should start with \"sk-\"",
+                        verifying: "Verifying...",
+                        checking: "🔄 Checking API key validity...",
+                        invalidKey: "Invalid API key. Please check your key and try again.",
+                        rateLimit: "Rate limit exceeded or insufficient quota. Please check your billing.",
+                        validKey: "API key is valid",
+                        hasRealtimeAccess: "You have access to Realtime models: ",
+                        noRealtimeAccess: "No access to Realtime API models. You may need to join the waitlist or upgrade your account.",
+                        hasWhisperAccess: "You have access to Whisper transcription models: ",
+                        noWhisperAccess: "No access to Whisper transcription models. This is required for audio transcription features.",
+                        connectionError: "Connection error: {error}. This might be due to network issues or CORS restrictions.",
+                        unexpectedError: "Unexpected error: {status} {statusText}",
+                        successMessage: "<strong>✅ Great!</strong> Your API key has all the necessary permissions for Sokuji.",
+                        actionRequired: "<strong>⚠️ Action Required:</strong> ",
+                        bothMissing: "Your API key doesn't have access to both Realtime API and Whisper transcription models.",
+                        realtimeMissing: "Your API key doesn't have access to the Realtime API.",
+                        whisperMissing: "Your API key doesn't have access to Whisper transcription models.",
+                        getAccessSteps: `<br><br>To get access:
+                            <ol style="margin: 10px 0 0 20px;">
+                                <li>Visit the <a href="https://platform.openai.com/docs/guides/realtime" target="_blank" style="color: #721c24; text-decoration: underline;">OpenAI documentation</a></li>
+                                <li>Check if you need to join a waitlist or upgrade your account</li>
+                                <li>Ensure your account has sufficient credits and active billing</li>
+                            </ol>`,
+                        issuesFound: "<strong>❌ Issues Found:</strong> Please review the errors above and fix them before using Sokuji."
+                    }
+                },
+                needHelp: {
+                    title: "Need More Help?",
+                    content: "Check the <a href=\"https://platform.openai.com/docs/guides/realtime\" target=\"_blank\" rel=\"noopener noreferrer\">OpenAI Realtime API documentation</a>, visit our <a href=\"https://github.com/kizuna-ai-lab/sokuji\" target=\"_blank\" rel=\"noopener noreferrer\">GitHub repository</a>, or contact us at <a href=\"mailto:support@kizuna.ai\">support@kizuna.ai</a> for support."
+                },
+                footer: "&copy; 2025 Kizuna AI Lab. All rights reserved."
+            },
+            zh: {
+                pageTitle: "OpenAI 设置教程",
+                langLabel: "语言：",
+                backLink: "← 返回 AI 提供商",
+                tocTitle: "目录",
+                mobileJumpTo: "跳转到章节...",
+                overview: "本教程将指导您设置 OpenAI 的实时 API 以供 Sokuji 使用。OpenAI 提供高质量的语音合成和先进的语言处理能力。",
+                importantNote: "<strong>重要提示：</strong>OpenAI 的实时 API 需要付费账户并采用基于使用量的定价。请确保在继续之前查看其定价页面并设置计费。",
+                setupSteps: "设置步骤",
+                steps: [
+                    {
+                        title: "步骤 1：访问 OpenAI 平台",
+                        content: `访问 <a href="https://platform.openai.com" target="_blank" rel="noopener noreferrer">https://platform.openai.com</a> 并登录您的账户。登录后，您将看到主仪表板。点击右上角的<strong>设置</strong>按钮。`,
+                        screenshot: "openai-setup/1.png"
+                    },
+                    {
+                        title: "步骤 2：导航到 API 密钥",
+                        content: `在设置菜单中，从左侧边栏点击 <strong>API Keys</strong>。`,
+                        screenshot: "openai-setup/2.png"
+                    },
+                    {
+                        title: "步骤 3：创建新的密钥",
+                        content: `点击 API Keys 页面右上角的<strong>"Create new secret key"</strong>按钮。`,
+                        screenshot: "openai-setup/3.png"
+                    },
+                    {
+                        title: "步骤 4：配置密钥设置",
+                        content: `在出现的对话框中：
+                        <ol>
+                            <li>为您的密钥输入一个描述性的<strong>名称</strong>（例如，"Sokuji Translation"）</li>
+                            <li>从下拉菜单中选择一个<strong>项目</strong></li>
+                            <li>对于<strong>权限</strong>，如果您不确定，请选择"All"（我们稍后会介绍最低要求的权限）</li>
+                            <li>点击<strong>"Create secret key"</strong></li>
+                        </ol>`,
+                        screenshot: "openai-setup/4.png"
+                    },
+                    {
+                        title: "步骤 5：复制并保存您的 API 密钥",
+                        content: `创建密钥后，对话框将显示您的新 API 密钥。点击<strong>复制</strong>将其复制到剪贴板。`,
+                        warning: `<strong>重要提示：</strong>这是您唯一一次看到此 API 密钥的机会！请确保将其复制并保存在安全的位置。如果丢失，您需要创建一个新的。`,
+                        screenshot: "openai-setup/5.png"
+                    },
+                    {
+                        title: "步骤 6：API 密钥权限（可选）",
+                        content: `如果您出于安全原因想要限制 API 密钥的权限，可以通过点击列表中 API 密钥旁边的编辑按钮来编辑权限。
+                        <p>Sokuji 所需的最低权限为：</p>
+                        <ul>
+                            <li><strong>Models</strong> - 读取访问权限 (/v1/models)</li>
+                            <li><strong>Model capabilities</strong> - 写入访问权限（包括 /v1/audio、/v1/chat/completions、/v1/embeddings、/v1/images、/v1/moderations）</li>
+                        </ul>`,
+                        screenshots: ["openai-setup/6.png", "openai-setup/7.png"]
+                    },
+                    {
+                        title: "步骤 7：设置计费",
+                        content: `在使用实时 API 之前，请确保已设置计费。导航到 OpenAI 仪表板中的<strong>Billing</strong>部分并添加付款方式。`,
+                        info: `实时 API 按处理的音频分钟数计费。请查看 <a href="https://openai.com/api/pricing/" target="_blank" rel="noopener noreferrer">OpenAI 定价页面</a>上的当前定价。`
+                    },
+                    {
+                        title: "步骤 8：在 Sokuji 中配置",
+                        content: `打开 Sokuji 并导航到设置面板：
+                        <ol>
+                            <li>选择 <strong>"OpenAI"</strong> 作为您的 AI 提供商</li>
+                            <li>在 <strong>"OpenAI API Key"</strong> 字段中粘贴您的 API 密钥</li>
+                            <li>选择您喜欢的模型（推荐：<code>gpt-4o-realtime-preview</code>）</li>
+                            <li>选择一个语音（例如，<code>alloy</code>、<code>echo</code> 或 <code>shimmer</code>）</li>
+                            <li>配置您的源语言和目标语言</li>
+                            <li>点击<strong>保存设置</strong></li>
+                        </ol>`
+                    },
+                    {
+                        title: "步骤 9：测试您的设置",
+                        content: `启动翻译会话以验证一切正常工作：
+                        <ol>
+                            <li>在 Sokuji 中点击<strong>开始会话</strong>按钮</li>
+                            <li>对着麦克风说话</li>
+                            <li>您应该能听到翻译后的音频输出</li>
+                        </ol>`
+                    }
+                ],
+                troubleshooting: "故障排除",
+                commonIssues: {
+                    title: "常见问题",
+                    authError: "<strong>身份验证错误：</strong>请仔细检查您的 API 密钥是否正确粘贴，以及您的 OpenAI 账户是否已设置计费。",
+                    connectionIssues: "<strong>连接问题：</strong>验证您的互联网连接以及 OpenAI 服务是否正常运行。"
+                },
+                checkAccountStatus: {
+                    title: "检查您的账户状态",
+                    intro: "在使用实时 API 之前，请验证您的 OpenAI 账户是否有足够的资源：",
+                    creditBalance: {
+                        title: "1. 检查信用余额",
+                        content: `访问<a href="https://platform.openai.com/settings/organization/billing/overview" target="_blank" rel="noopener noreferrer">计费概览</a>以确保您的信用余额不是 $0。`,
+                        warning: "<strong>重要提示：</strong>如果您的信用余额达到 $0，您的 API 请求将停止工作。请确保添加资金或启用自动充值。"
+                    },
+                    usageLimits: {
+                        title: "2. 检查使用限制和预算",
+                        content: `访问<a href="https://platform.openai.com/settings/organization/limits" target="_blank" rel="noopener noreferrer">使用限制</a>以验证您的月度预算是否未超出。`,
+                        info: "监控您的使用情况以避免达到月度支出限制。考虑设置使用警报以在达到预算之前收到通知。"
+                    },
+                    rateLimits: {
+                        title: "3. 检查实时 API 速率限制",
+                        content: `确保您的账户对实时 API 有足够的速率限制。检查 <code>gpt-4o-realtime-preview</code> 模型的限制表。`,
+                        info: "实时 API 有特定的速率限制（TPM - 每分钟令牌数，RPM - 每分钟请求数）。确保您的使用层级为您的需求提供足够的限制。"
+                    }
+                },
+                verifyPermissions: {
+                    title: "验证 API 密钥权限",
+                    intro: "使用此工具验证您的 API 密钥是否可以访问实时 API：",
+                    securityNotice: "<strong>安全提示：</strong>此验证完全在您的浏览器中进行。您的 API 密钥仅发送到 OpenAI 的服务器，不会被存储或传输到其他地方。",
+                    inputLabel: "输入您的 OpenAI API 密钥：",
+                    verifyButton: "验证权限",
+                    clearButton: "清除",
+                    verificationResults: "验证结果：",
+                    tests: {
+                        apiKeyValidity: "API 密钥有效性",
+                        realtimeAccess: "实时 API 访问",
+                        transcriptionAccess: "转录 API 访问"
+                    },
+                    messages: {
+                        enterKey: "请输入您的 API 密钥",
+                        invalidFormat: "无效的 API 密钥格式。OpenAI API 密钥应以 \"sk-\" 开头",
+                        verifying: "验证中...",
+                        checking: "🔄 检查 API 密钥有效性...",
+                        invalidKey: "无效的 API 密钥。请检查您的密钥并重试。",
+                        rateLimit: "超出速率限制或配额不足。请检查您的计费。",
+                        validKey: "API 密钥有效",
+                        hasRealtimeAccess: "您可以访问实时模型：",
+                        noRealtimeAccess: "无法访问实时 API 模型。您可能需要加入等待名单或升级您的账户。",
+                        hasWhisperAccess: "您可以访问 Whisper 转录模型：",
+                        noWhisperAccess: "无法访问 Whisper 转录模型。音频转录功能需要此权限。",
+                        connectionError: "连接错误：{error}。这可能是由于网络问题或 CORS 限制。",
+                        unexpectedError: "意外错误：{status} {statusText}",
+                        successMessage: "<strong>✅ 太好了！</strong>您的 API 密钥具有 Sokuji 所需的所有权限。",
+                        actionRequired: "<strong>⚠️ 需要采取行动：</strong>",
+                        bothMissing: "您的 API 密钥无法访问实时 API 和 Whisper 转录模型。",
+                        realtimeMissing: "您的 API 密钥无法访问实时 API。",
+                        whisperMissing: "您的 API 密钥无法访问 Whisper 转录模型。",
+                        getAccessSteps: `<br><br>获取访问权限：
+                            <ol style="margin: 10px 0 0 20px;">
+                                <li>访问 <a href="https://platform.openai.com/docs/guides/realtime" target="_blank" style="color: #721c24; text-decoration: underline;">OpenAI 文档</a></li>
+                                <li>检查您是否需要加入等待名单或升级账户</li>
+                                <li>确保您的账户有足够的信用额度和有效的计费</li>
+                            </ol>`,
+                        issuesFound: "<strong>❌ 发现问题：</strong>请查看上述错误并在使用 Sokuji 之前修复它们。"
+                    }
+                },
+                needHelp: {
+                    title: "需要更多帮助？",
+                    content: "查看 <a href=\"https://platform.openai.com/docs/guides/realtime\" target=\"_blank\" rel=\"noopener noreferrer\">OpenAI 实时 API 文档</a>，访问我们的 <a href=\"https://github.com/kizuna-ai-lab/sokuji\" target=\"_blank\" rel=\"noopener noreferrer\">GitHub 仓库</a>，或通过 <a href=\"mailto:support@kizuna.ai\">support@kizuna.ai</a> 联系我们获取支持。"
+                },
+                footer: "&copy; 2025 Kizuna AI Lab. 保留所有权利。"
+            },
+            ja: {
+                pageTitle: "OpenAI セットアップチュートリアル",
+                langLabel: "言語：",
+                backLink: "← AI プロバイダーに戻る",
+                tocTitle: "目次",
+                mobileJumpTo: "セクションにジャンプ...",
+                overview: "このチュートリアルでは、Sokuji で使用するための OpenAI のリアルタイム API の設定方法をご案内します。OpenAI は高品質な音声合成と高度な言語処理機能を提供しています。",
+                importantNote: "<strong>重要：</strong>OpenAI のリアルタイム API には有料アカウントが必要で、使用量ベースの料金設定となっています。続行する前に、料金ページを確認し、請求設定を行ってください。",
+                setupSteps: "セットアップ手順",
+                steps: [
+                    {
+                        title: "ステップ 1：OpenAI プラットフォームにアクセス",
+                        content: `<a href="https://platform.openai.com" target="_blank" rel="noopener noreferrer">https://platform.openai.com</a> にアクセスし、アカウントにサインインします。ログイン後、メインダッシュボードが表示されます。右上隅の<strong>設定</strong>ボタンをクリックします。`,
+                        screenshot: "openai-setup/1.png"
+                    },
+                    {
+                        title: "ステップ 2：API キーに移動",
+                        content: `設定メニューで、左側のサイドバーから <strong>API Keys</strong> をクリックします。`,
+                        screenshot: "openai-setup/2.png"
+                    },
+                    {
+                        title: "ステップ 3：新しい秘密鍵を作成",
+                        content: `API Keys ページの右上隅にある<strong>「Create new secret key」</strong>ボタンをクリックします。`,
+                        screenshot: "openai-setup/3.png"
+                    },
+                    {
+                        title: "ステップ 4：キー設定を構成",
+                        content: `表示されるダイアログで：
+                        <ol>
+                            <li>キーの説明的な<strong>名前</strong>を入力します（例：「Sokuji Translation」）</li>
+                            <li>ドロップダウンから<strong>プロジェクト</strong>を選択します</li>
+                            <li><strong>権限</strong>については、よくわからない場合は「All」を選択します（後で必要最小限の権限について説明します）</li>
+                            <li><strong>「Create secret key」</strong>をクリックします</li>
+                        </ol>`,
+                        screenshot: "openai-setup/4.png"
+                    },
+                    {
+                        title: "ステップ 5：API キーをコピーして保存",
+                        content: `キーを作成すると、新しい API キーが表示されます。<strong>コピー</strong>をクリックしてクリップボードにコピーします。`,
+                        warning: `<strong>重要：</strong>この API キーを見ることができるのはこの時だけです！必ずコピーして安全な場所に保存してください。紛失した場合は、新しいものを作成する必要があります。`,
+                        screenshot: "openai-setup/5.png"
+                    },
+                    {
+                        title: "ステップ 6：API キーの権限（オプション）",
+                        content: `セキュリティ上の理由で API キーの権限を制限したい場合は、リスト内の API キーの横にある編集ボタンをクリックして権限を編集できます。
+                        <p>Sokuji に必要な最小権限は：</p>
+                        <ul>
+                            <li><strong>Models</strong> - 読み取りアクセス (/v1/models)</li>
+                            <li><strong>Model capabilities</strong> - 書き込みアクセス（/v1/audio、/v1/chat/completions、/v1/embeddings、/v1/images、/v1/moderations を含む）</li>
+                        </ul>`,
+                        screenshots: ["openai-setup/6.png", "openai-setup/7.png"]
+                    },
+                    {
+                        title: "ステップ 7：請求設定",
+                        content: `リアルタイム API を使用する前に、請求設定が完了していることを確認してください。OpenAI ダッシュボードの<strong>Billing</strong>セクションに移動し、支払い方法を追加します。`,
+                        info: `リアルタイム API は処理された音声の分単位で課金されます。現在の料金は <a href="https://openai.com/api/pricing/" target="_blank" rel="noopener noreferrer">OpenAI の料金ページ</a>で確認してください。`
+                    },
+                    {
+                        title: "ステップ 8：Sokuji で設定",
+                        content: `Sokuji を開き、設定パネルに移動します：
+                        <ol>
+                            <li>AI プロバイダーとして <strong>「OpenAI」</strong> を選択</li>
+                            <li><strong>「OpenAI API Key」</strong> フィールドに API キーを貼り付け</li>
+                            <li>お好みのモデルを選択（推奨：<code>gpt-4o-realtime-preview</code>）</li>
+                            <li>音声を選択（例：<code>alloy</code>、<code>echo</code>、または <code>shimmer</code>）</li>
+                            <li>ソース言語とターゲット言語を設定</li>
+                            <li><strong>設定を保存</strong>をクリック</li>
+                        </ol>`
+                    },
+                    {
+                        title: "ステップ 9：設定をテスト",
+                        content: `翻訳セッションを開始して、すべてが正常に動作していることを確認します：
+                        <ol>
+                            <li>Sokuji で<strong>セッションを開始</strong>ボタンをクリック</li>
+                            <li>マイクに向かって話す</li>
+                            <li>翻訳された音声出力が聞こえるはずです</li>
+                        </ol>`
+                    }
+                ],
+                troubleshooting: "トラブルシューティング",
+                commonIssues: {
+                    title: "よくある問題",
+                    authError: "<strong>認証エラー：</strong>API キーが正しく貼り付けられているか、OpenAI アカウントで請求が設定されているかを再確認してください。",
+                    connectionIssues: "<strong>接続の問題：</strong>インターネット接続と OpenAI サービスが動作していることを確認してください。"
+                },
+                checkAccountStatus: {
+                    title: "アカウントステータスを確認",
+                    intro: "リアルタイム API を使用する前に、OpenAI アカウントに十分なリソースがあることを確認してください：",
+                    creditBalance: {
+                        title: "1. クレジット残高を確認",
+                        content: `<a href="https://platform.openai.com/settings/organization/billing/overview" target="_blank" rel="noopener noreferrer">請求概要</a>にアクセスして、クレジット残高が $0 でないことを確認してください。`,
+                        warning: "<strong>重要：</strong>クレジット残高が $0 に達すると、API リクエストは動作しなくなります。必ず資金を追加するか、自動チャージを有効にしてください。"
+                    },
+                    usageLimits: {
+                        title: "2. 使用制限と予算を確認",
+                        content: `<a href="https://platform.openai.com/settings/organization/limits" target="_blank" rel="noopener noreferrer">使用制限</a>にアクセスして、月間予算を超えていないことを確認してください。`,
+                        info: "月間支出制限に達しないよう使用状況を監視してください。予算に達する前に通知を受け取るために使用アラートの設定を検討してください。"
+                    },
+                    rateLimits: {
+                        title: "3. リアルタイム API のレート制限を確認",
+                        content: `アカウントにリアルタイム API の十分なレート制限があることを確認してください。<code>gpt-4o-realtime-preview</code> モデルの制限表を確認してください。`,
+                        info: "リアルタイム API には特定のレート制限（TPM - 1分あたりのトークン数、RPM - 1分あたりのリクエスト数）があります。使用階層がニーズに適した制限を提供していることを確認してください。"
+                    }
+                },
+                verifyPermissions: {
+                    title: "API キーの権限を確認",
+                    intro: "このツールを使用して、API キーがリアルタイム API にアクセスできるかどうかを確認します：",
+                    securityNotice: "<strong>セキュリティ通知：</strong>この検証は完全にブラウザ内で行われます。API キーは OpenAI のサーバーにのみ送信され、他の場所に保存または送信されることはありません。",
+                    inputLabel: "OpenAI API キーを入力：",
+                    verifyButton: "権限を確認",
+                    clearButton: "クリア",
+                    verificationResults: "検証結果：",
+                    tests: {
+                        apiKeyValidity: "API キーの有効性",
+                        realtimeAccess: "リアルタイム API アクセス",
+                        transcriptionAccess: "文字起こし API アクセス"
+                    },
+                    messages: {
+                        enterKey: "API キーを入力してください",
+                        invalidFormat: "無効な API キー形式です。OpenAI API キーは「sk-」で始まる必要があります",
+                        verifying: "検証中...",
+                        checking: "🔄 API キーの有効性を確認中...",
+                        invalidKey: "無効な API キーです。キーを確認してもう一度お試しください。",
+                        rateLimit: "レート制限を超えたか、クォータが不足しています。請求を確認してください。",
+                        validKey: "API キーは有効です",
+                        hasRealtimeAccess: "リアルタイムモデルにアクセスできます：",
+                        noRealtimeAccess: "リアルタイム API モデルにアクセスできません。ウェイトリストに参加するか、アカウントをアップグレードする必要がある可能性があります。",
+                        hasWhisperAccess: "Whisper 文字起こしモデルにアクセスできます：",
+                        noWhisperAccess: "Whisper 文字起こしモデルにアクセスできません。音声文字起こし機能にはこれが必要です。",
+                        connectionError: "接続エラー：{error}。これはネットワークの問題または CORS 制限が原因である可能性があります。",
+                        unexpectedError: "予期しないエラー：{status} {statusText}",
+                        successMessage: "<strong>✅ 素晴らしい！</strong>API キーには Sokuji に必要なすべての権限があります。",
+                        actionRequired: "<strong>⚠️ アクションが必要です：</strong>",
+                        bothMissing: "API キーはリアルタイム API と Whisper 文字起こしモデルの両方にアクセスできません。",
+                        realtimeMissing: "API キーはリアルタイム API にアクセスできません。",
+                        whisperMissing: "API キーは Whisper 文字起こしモデルにアクセスできません。",
+                        getAccessSteps: `<br><br>アクセスを取得するには：
+                            <ol style="margin: 10px 0 0 20px;">
+                                <li><a href="https://platform.openai.com/docs/guides/realtime" target="_blank" style="color: #721c24; text-decoration: underline;">OpenAI ドキュメント</a>を訪問</li>
+                                <li>ウェイトリストに参加するか、アカウントをアップグレードする必要があるか確認</li>
+                                <li>アカウントに十分なクレジットとアクティブな請求があることを確認</li>
+                            </ol>`,
+                        issuesFound: "<strong>❌ 問題が見つかりました：</strong>上記のエラーを確認し、Sokuji を使用する前に修正してください。"
+                    }
+                },
+                needHelp: {
+                    title: "さらにヘルプが必要ですか？",
+                    content: "<a href=\"https://platform.openai.com/docs/guides/realtime\" target=\"_blank\" rel=\"noopener noreferrer\">OpenAI リアルタイム API ドキュメント</a>を確認するか、<a href=\"https://github.com/kizuna-ai-lab/sokuji\" target=\"_blank\" rel=\"noopener noreferrer\">GitHub リポジトリ</a>を訪問するか、<a href=\"mailto:support@kizuna.ai\">support@kizuna.ai</a> までお問い合わせください。"
+                },
+                footer: "&copy; 2025 Kizuna AI Lab. All rights reserved."
+            },
+            ko: {
+                pageTitle: "OpenAI 설정 튜토리얼",
+                langLabel: "언어:",
+                backLink: "← AI 제공자로 돌아가기",
+                tocTitle: "목차",
+                mobileJumpTo: "섹션으로 이동...",
+                overview: "이 튜토리얼은 Sokuji에서 사용하기 위한 OpenAI의 실시간 API 설정을 안내합니다. OpenAI는 고품질 음성 합성과 고급 언어 처리 기능을 제공합니다.",
+                importantNote: "<strong>중요:</strong> OpenAI의 실시간 API는 유료 계정이 필요하며 사용량 기반 요금제를 사용합니다. 계속하기 전에 가격 페이지를 확인하고 결제를 설정하세요.",
+                setupSteps: "설정 단계",
+                steps: [
+                    {
+                        title: "1단계: OpenAI 플랫폼 접속",
+                        content: `<a href="https://platform.openai.com" target="_blank" rel="noopener noreferrer">https://platform.openai.com</a>을 방문하여 계정에 로그인하세요. 로그인 후 메인 대시보드가 표시됩니다. 오른쪽 상단의 <strong>설정</strong> 버튼을 클릭하세요.`,
+                        screenshot: "openai-setup/1.png"
+                    },
+                    {
+                        title: "2단계: API 키로 이동",
+                        content: `설정 메뉴에서 왼쪽 사이드바의 <strong>API Keys</strong>를 클릭하세요.`,
+                        screenshot: "openai-setup/2.png"
+                    },
+                    {
+                        title: "3단계: 새 비밀 키 생성",
+                        content: `API Keys 페이지 오른쪽 상단의 <strong>"Create new secret key"</strong> 버튼을 클릭하세요.`,
+                        screenshot: "openai-setup/3.png"
+                    },
+                    {
+                        title: "4단계: 키 설정 구성",
+                        content: `나타나는 대화 상자에서:
+                        <ol>
+                            <li>키에 대한 설명적인 <strong>이름</strong>을 입력하세요 (예: "Sokuji Translation")</li>
+                            <li>드롭다운에서 <strong>프로젝트</strong>를 선택하세요</li>
+                            <li><strong>권한</strong>의 경우, 확실하지 않다면 "All"을 선택하세요 (나중에 최소 필요 권한을 다룰 예정)</li>
+                            <li><strong>"Create secret key"</strong>를 클릭하세요</li>
+                        </ol>`,
+                        screenshot: "openai-setup/4.png"
+                    },
+                    {
+                        title: "5단계: API 키 복사 및 저장",
+                        content: `키를 생성한 후, 새 API 키가 표시됩니다. <strong>복사</strong>를 클릭하여 클립보드에 복사하세요.`,
+                        warning: `<strong>중요:</strong> 이 API 키를 볼 수 있는 유일한 기회입니다! 반드시 복사하여 안전한 장소에 저장하세요. 분실하면 새로 만들어야 합니다.`,
+                        screenshot: "openai-setup/5.png"
+                    },
+                    {
+                        title: "6단계: API 키 권한 (선택사항)",
+                        content: `보안상의 이유로 API 키의 권한을 제한하려면, 목록에서 API 키 옆의 편집 버튼을 클릭하여 권한을 편집할 수 있습니다.
+                        <p>Sokuji에 필요한 최소 권한:</p>
+                        <ul>
+                            <li><strong>Models</strong> - 읽기 권한 (/v1/models)</li>
+                            <li><strong>Model capabilities</strong> - 쓰기 권한 (/v1/audio, /v1/chat/completions, /v1/embeddings, /v1/images, /v1/moderations 포함)</li>
+                        </ul>`,
+                        screenshots: ["openai-setup/6.png", "openai-setup/7.png"]
+                    },
+                    {
+                        title: "7단계: 결제 설정",
+                        content: `실시간 API를 사용하기 전에 결제가 설정되어 있는지 확인하세요. OpenAI 대시보드의 <strong>Billing</strong> 섹션으로 이동하여 결제 방법을 추가하세요.`,
+                        info: `실시간 API는 처리된 오디오의 분당 요금이 청구됩니다. <a href="https://openai.com/api/pricing/" target="_blank" rel="noopener noreferrer">OpenAI 가격 페이지</a>에서 현재 가격을 확인하세요.`
+                    },
+                    {
+                        title: "8단계: Sokuji에서 구성",
+                        content: `Sokuji를 열고 설정 패널로 이동합니다:
+                        <ol>
+                            <li>AI 제공자로 <strong>"OpenAI"</strong>를 선택</li>
+                            <li><strong>"OpenAI API Key"</strong> 필드에 API 키를 붙여넣기</li>
+                            <li>선호하는 모델 선택 (권장: <code>gpt-4o-realtime-preview</code>)</li>
+                            <li>음성 선택 (예: <code>alloy</code>, <code>echo</code>, 또는 <code>shimmer</code>)</li>
+                            <li>소스 언어와 대상 언어 구성</li>
+                            <li><strong>설정 저장</strong> 클릭</li>
+                        </ol>`
+                    },
+                    {
+                        title: "9단계: 설정 테스트",
+                        content: `번역 세션을 시작하여 모든 것이 작동하는지 확인합니다:
+                        <ol>
+                            <li>Sokuji에서 <strong>세션 시작</strong> 버튼 클릭</li>
+                            <li>마이크에 대고 말하기</li>
+                            <li>번역된 오디오 출력이 들려야 합니다</li>
+                        </ol>`
+                    }
+                ],
+                troubleshooting: "문제 해결",
+                commonIssues: {
+                    title: "일반적인 문제",
+                    authError: "<strong>인증 오류:</strong> API 키가 올바르게 붙여넣어졌는지, OpenAI 계정에 결제가 설정되어 있는지 다시 확인하세요.",
+                    connectionIssues: "<strong>연결 문제:</strong> 인터넷 연결과 OpenAI 서비스가 작동 중인지 확인하세요."
+                },
+                checkAccountStatus: {
+                    title: "계정 상태 확인",
+                    intro: "실시간 API를 사용하기 전에 OpenAI 계정에 충분한 리소스가 있는지 확인하세요:",
+                    creditBalance: {
+                        title: "1. 크레딧 잔액 확인",
+                        content: `<a href="https://platform.openai.com/settings/organization/billing/overview" target="_blank" rel="noopener noreferrer">결제 개요</a>를 방문하여 크레딧 잔액이 $0이 아닌지 확인하세요.`,
+                        warning: "<strong>중요:</strong> 크레딧 잔액이 $0에 도달하면 API 요청이 작동하지 않습니다. 자금을 추가하거나 자동 충전을 활성화하세요."
+                    },
+                    usageLimits: {
+                        title: "2. 사용 제한 및 예산 확인",
+                        content: `<a href="https://platform.openai.com/settings/organization/limits" target="_blank" rel="noopener noreferrer">사용 제한</a>을 방문하여 월간 예산을 초과하지 않았는지 확인하세요.`,
+                        info: "월간 지출 한도에 도달하지 않도록 사용량을 모니터링하세요. 예산에 도달하기 전에 알림을 받으려면 사용량 알림 설정을 고려하세요."
+                    },
+                    rateLimits: {
+                        title: "3. 실시간 API 속도 제한 확인",
+                        content: `계정에 실시간 API에 대한 충분한 속도 제한이 있는지 확인하세요. <code>gpt-4o-realtime-preview</code> 모델의 제한 표를 확인하세요.`,
+                        info: "실시간 API에는 특정 속도 제한(TPM - 분당 토큰 수, RPM - 분당 요청 수)이 있습니다. 사용 계층이 필요에 적합한 제한을 제공하는지 확인하세요."
+                    }
+                },
+                verifyPermissions: {
+                    title: "API 키 권한 확인",
+                    intro: "이 도구를 사용하여 API 키가 실시간 API에 액세스할 수 있는지 확인하세요:",
+                    securityNotice: "<strong>보안 공지:</strong> 이 확인은 전적으로 브라우저에서 수행됩니다. API 키는 OpenAI 서버로만 전송되며 다른 곳에 저장되거나 전송되지 않습니다.",
+                    inputLabel: "OpenAI API 키 입력:",
+                    verifyButton: "권한 확인",
+                    clearButton: "지우기",
+                    verificationResults: "확인 결과:",
+                    tests: {
+                        apiKeyValidity: "API 키 유효성",
+                        realtimeAccess: "실시간 API 액세스",
+                        transcriptionAccess: "전사 API 액세스"
+                    },
+                    messages: {
+                        enterKey: "API 키를 입력하세요",
+                        invalidFormat: "잘못된 API 키 형식입니다. OpenAI API 키는 \"sk-\"로 시작해야 합니다",
+                        verifying: "확인 중...",
+                        checking: "🔄 API 키 유효성 확인 중...",
+                        invalidKey: "유효하지 않은 API 키입니다. 키를 확인하고 다시 시도하세요.",
+                        rateLimit: "속도 제한 초과 또는 할당량 부족. 결제를 확인하세요.",
+                        validKey: "API 키가 유효합니다",
+                        hasRealtimeAccess: "실시간 모델에 액세스할 수 있습니다: ",
+                        noRealtimeAccess: "실시간 API 모델에 액세스할 수 없습니다. 대기자 명단에 가입하거나 계정을 업그레이드해야 할 수 있습니다.",
+                        hasWhisperAccess: "Whisper 전사 모델에 액세스할 수 있습니다: ",
+                        noWhisperAccess: "Whisper 전사 모델에 액세스할 수 없습니다. 오디오 전사 기능에 필요합니다.",
+                        connectionError: "연결 오류: {error}. 네트워크 문제나 CORS 제한 때문일 수 있습니다.",
+                        unexpectedError: "예상치 못한 오류: {status} {statusText}",
+                        successMessage: "<strong>✅ 훌륭합니다!</strong> API 키에 Sokuji에 필요한 모든 권한이 있습니다.",
+                        actionRequired: "<strong>⚠️ 조치 필요:</strong> ",
+                        bothMissing: "API 키가 실시간 API와 Whisper 전사 모델 모두에 액세스할 수 없습니다.",
+                        realtimeMissing: "API 키가 실시간 API에 액세스할 수 없습니다.",
+                        whisperMissing: "API 키가 Whisper 전사 모델에 액세스할 수 없습니다.",
+                        getAccessSteps: `<br><br>액세스 권한을 얻으려면:
+                            <ol style="margin: 10px 0 0 20px;">
+                                <li><a href="https://platform.openai.com/docs/guides/realtime" target="_blank" style="color: #721c24; text-decoration: underline;">OpenAI 문서</a> 방문</li>
+                                <li>대기자 명단에 가입하거나 계정을 업그레이드해야 하는지 확인</li>
+                                <li>계정에 충분한 크레딧과 활성 결제가 있는지 확인</li>
+                            </ol>`,
+                        issuesFound: "<strong>❌ 문제 발견:</strong> 위의 오류를 검토하고 Sokuji를 사용하기 전에 수정하세요."
+                    }
+                },
+                needHelp: {
+                    title: "더 많은 도움이 필요하신가요?",
+                    content: "<a href=\"https://platform.openai.com/docs/guides/realtime\" target=\"_blank\" rel=\"noopener noreferrer\">OpenAI 실시간 API 문서</a>를 확인하거나, <a href=\"https://github.com/kizuna-ai-lab/sokuji\" target=\"_blank\" rel=\"noopener noreferrer\">GitHub 저장소</a>를 방문하거나, <a href=\"mailto:support@kizuna.ai\">support@kizuna.ai</a>로 연락하여 지원을 받으세요."
+                },
+                footer: "&copy; 2025 Kizuna AI Lab. 모든 권리 보유."
+            }
+        };
+
+        // Get language from URL or default to English
+        function getCurrentLanguage() {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get('lang') || 'en';
+        }
+
+        // Render content based on language
+        function renderContent(lang) {
+            const t = translations[lang] || translations.en;
+            
+            // Update page title
+            document.title = t.pageTitle + " - Sokuji";
+            document.getElementById('page-title').textContent = t.pageTitle;
+            
+            // Update language selector
+            document.getElementById('lang-label').textContent = t.langLabel;
+            document.getElementById('back-link').textContent = t.backLink;
+            
+            // Highlight active language
+            document.querySelectorAll('.language-selector a').forEach(link => {
+                link.classList.remove('active');
+            });
+            document.getElementById('lang-' + lang).classList.add('active');
+            
+            // Build content HTML
+            let contentHtml = `
+                <p>${t.overview}</p>
+                <div class="warning">${t.importantNote}</div>
+                <h2 id="setup-steps">${t.setupSteps}</h2>
+            `;
+            
+            // Add steps
+            t.steps.forEach((step, index) => {
+                contentHtml += `<div class="step" id="step${index + 1}">
+                    <h3>${step.title}</h3>
+                    <p>${step.content}</p>`;
+                
+                if (step.warning) {
+                    contentHtml += `<div class="warning">${step.warning}</div>`;
+                }
+                
+                if (step.info) {
+                    contentHtml += `<div class="info">${step.info}</div>`;
+                }
+                
+                if (step.screenshot) {
+                    contentHtml += `<img src="${step.screenshot}" alt="${step.title}" class="screenshot" onclick="openLightbox(this)">`;
+                } else if (step.screenshots) {
+                    step.screenshots.forEach(screenshot => {
+                        contentHtml += `<img src="${screenshot}" alt="${step.title}" class="screenshot" onclick="openLightbox(this)">`;
+                    });
+                }
+                
+                contentHtml += '</div>';
+            });
+            
+            // Add troubleshooting section
+            contentHtml += `
+                <h2 id="troubleshooting">${t.troubleshooting}</h2>
+                
+                <div class="step" id="common-issues">
+                    <h3>${t.commonIssues.title}</h3>
+                    <p>${t.commonIssues.authError}</p>
+                    <p>${t.commonIssues.connectionIssues}</p>
+                </div>
+                
+                <div class="step" id="check-account">
+                    <h3>${t.checkAccountStatus.title}</h3>
+                    <p>${t.checkAccountStatus.intro}</p>
+                    
+                    <h4>${t.checkAccountStatus.creditBalance.title}</h4>
+                    <p>${t.checkAccountStatus.creditBalance.content}</p>
+                    <img src="openai-setup/credit-balance.png" alt="OpenAI Credit Balance Check" class="screenshot" onclick="openLightbox(this)">
+                    <div class="warning">${t.checkAccountStatus.creditBalance.warning}</div>
+                    
+                    <h4>${t.checkAccountStatus.usageLimits.title}</h4>
+                    <p>${t.checkAccountStatus.usageLimits.content}</p>
+                    <img src="openai-setup/budget.png" alt="OpenAI Budget and Usage Limits" class="screenshot" onclick="openLightbox(this)">
+                    <div class="info">${t.checkAccountStatus.usageLimits.info}</div>
+                    
+                    <h4>${t.checkAccountStatus.rateLimits.title}</h4>
+                    <p>${t.checkAccountStatus.rateLimits.content}</p>
+                    <img src="openai-setup/rate-limits.png" alt="OpenAI Realtime API Rate Limits" class="screenshot" onclick="openLightbox(this)">
+                    <div class="info">${t.checkAccountStatus.rateLimits.info}</div>
+                </div>
+                
+                <div class="step" id="verify-permissions">
+                    <h3>${t.verifyPermissions.title}</h3>
+                    <p>${t.verifyPermissions.intro}</p>
+                    
+                    <div class="warning">${t.verifyPermissions.securityNotice}</div>
+                    
+                    <div style="margin: 20px 0;">
+                        <label for="apiKeyInput" style="display: block; margin-bottom: 10px; font-weight: bold;">${t.verifyPermissions.inputLabel}</label>
+                        <input type="password" id="apiKeyInput" placeholder="sk-..." style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-family: monospace; box-sizing: border-box;">
+                        
+                        <button id="verifyButton" onclick="verifyAPIKey('${lang}')" style="margin-top: 10px; padding: 10px 20px; background-color: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 16px;">
+                            ${t.verifyPermissions.verifyButton}
+                        </button>
+                        
+                        <button id="clearButton" onclick="clearResults()" style="margin-top: 10px; margin-left: 10px; padding: 10px 20px; background-color: #7f8c8d; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; display: none;">
+                            ${t.verifyPermissions.clearButton}
+                        </button>
+                    </div>
+                    
+                    <div id="verificationResults" style="margin-top: 20px; display: none;">
+                        <h4 style="margin-bottom: 15px;">${t.verifyPermissions.verificationResults}</h4>
+                        <div id="resultsList"></div>
+                    </div>
+                </div>
+                
+                <div class="step" id="help">
+                    <h3>${t.needHelp.title}</h3>
+                    <p>${t.needHelp.content}</p>
+                </div>
+            `;
+            
+            document.getElementById('content').innerHTML = contentHtml;
+            document.getElementById('footer').textContent = t.footer;
+            
+            // Generate TOC
+            generateTOC(lang);
+        }
+
+        // Generate Table of Contents
+        function generateTOC(lang) {
+            const t = translations[lang] || translations.en;
+            
+            // Desktop TOC
+            let tocHtml = `<h4>${t.tocTitle}</h4><ul class="toc-list">`;
+            tocHtml += `<li><a href="#setup-steps">${t.setupSteps}</a></li>`;
+            
+            t.steps.forEach((step, index) => {
+                tocHtml += `<li class="toc-subsection"><a href="#step${index + 1}">${step.title}</a></li>`;
+            });
+            
+            tocHtml += `<li><a href="#troubleshooting">${t.troubleshooting}</a></li>`;
+            tocHtml += `<li class="toc-subsection"><a href="#common-issues">${t.commonIssues.title}</a></li>`;
+            tocHtml += `<li class="toc-subsection"><a href="#check-account">${t.checkAccountStatus.title}</a></li>`;
+            tocHtml += `<li class="toc-subsection"><a href="#verify-permissions">${t.verifyPermissions.title}</a></li>`;
+            tocHtml += `<li><a href="#help">${t.needHelp.title}</a></li>`;
+            tocHtml += '</ul>';
+            
+            document.getElementById('toc-container').innerHTML = tocHtml;
+            
+            // Mobile TOC
+            let mobileTocHtml = `<select onchange="window.location.hash = this.value">`;
+            mobileTocHtml += `<option value="">${t.mobileJumpTo}</option>`;
+            mobileTocHtml += `<option value="#setup-steps">${t.setupSteps}</option>`;
+            
+            t.steps.forEach((step, index) => {
+                mobileTocHtml += `<option value="#step${index + 1}">— ${step.title}</option>`;
+            });
+            
+            mobileTocHtml += `<option value="#troubleshooting">${t.troubleshooting}</option>`;
+            mobileTocHtml += `<option value="#common-issues">— ${t.commonIssues.title}</option>`;
+            mobileTocHtml += `<option value="#check-account">— ${t.checkAccountStatus.title}</option>`;
+            mobileTocHtml += `<option value="#verify-permissions">— ${t.verifyPermissions.title}</option>`;
+            mobileTocHtml += `<option value="#help">${t.needHelp.title}</option>`;
+            mobileTocHtml += '</select>';
+            
+            document.getElementById('mobile-toc').innerHTML = mobileTocHtml;
+            
+            // Add smooth scrolling to TOC links
+            document.querySelectorAll('.toc-list a').forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const targetId = this.getAttribute('href').substring(1);
+                    const targetElement = document.getElementById(targetId);
+                    if (targetElement) {
+                        const offset = 80;
+                        const targetPosition = targetElement.offsetTop - offset;
+                        window.scrollTo({
+                            top: targetPosition,
+                            behavior: 'smooth'
+                        });
+                    }
+                });
+            });
+        }
+
+        // Lightbox functions
+        function openLightbox(img) {
+            const lightbox = document.getElementById('lightbox');
+            const lightboxImg = document.getElementById('lightbox-img');
+            lightbox.style.display = 'block';
+            lightboxImg.src = img.src;
+        }
+
+        function closeLightbox() {
+            document.getElementById('lightbox').style.display = 'none';
+        }
+
+        // API Key Verification
+        async function verifyAPIKey(lang) {
+            const t = translations[lang] || translations.en;
+            const messages = t.verifyPermissions.messages;
+            
+            const apiKey = document.getElementById('apiKeyInput').value.trim();
+            const resultsDiv = document.getElementById('verificationResults');
+            const resultsList = document.getElementById('resultsList');
+            const verifyButton = document.getElementById('verifyButton');
+            const clearButton = document.getElementById('clearButton');
+            
+            if (!apiKey) {
+                alert(messages.enterKey);
+                return;
+            }
+            
+            if (!apiKey.startsWith('sk-')) {
+                alert(messages.invalidFormat);
+                return;
+            }
+            
+            // Show loading state
+            verifyButton.disabled = true;
+            verifyButton.textContent = messages.verifying;
+            resultsList.innerHTML = '';
+            resultsDiv.style.display = 'block';
+            
+            const results = [];
+            
+            try {
+                // Test API key validity
+                resultsList.innerHTML = `<div style="color: #888;">${messages.checking}</div>`;
+                
+                const response = await fetch('https://api.openai.com/v1/models', {
+                    headers: {
+                        'Authorization': `Bearer ${apiKey}`
+                    }
+                });
+                
+                if (response.status === 401) {
+                    // Try to get error message from response
+                    let errorMessage = messages.invalidKey;
+                    try {
+                        const errorData = await response.json();
+                        if (errorData.error) {
+                            // Handle both string and object error formats
+                            if (typeof errorData.error === 'string') {
+                                errorMessage = errorData.error;
+                            } else if (errorData.error.message) {
+                                errorMessage = errorData.error.message;
+                            }
+                        }
+                    } catch (e) {
+                        // Use default message if can't parse response
+                    }
+                    results.push({
+                        test: t.verifyPermissions.tests.apiKeyValidity,
+                        passed: false,
+                        message: errorMessage
+                    });
+                } else if (response.status === 429) {
+                    // Try to get error message from response
+                    let errorMessage = messages.rateLimit;
+                    try {
+                        const errorData = await response.json();
+                        if (errorData.error) {
+                            // Handle both string and object error formats
+                            if (typeof errorData.error === 'string') {
+                                errorMessage = errorData.error;
+                            } else if (errorData.error.message) {
+                                errorMessage = errorData.error.message;
+                            }
+                        }
+                    } catch (e) {
+                        // Use default message if can't parse response
+                    }
+                    results.push({
+                        test: t.verifyPermissions.tests.apiKeyValidity,
+                        passed: false,
+                        message: errorMessage
+                    });
+                } else if (response.ok) {
+                    results.push({
+                        test: t.verifyPermissions.tests.apiKeyValidity,
+                        passed: true,
+                        message: messages.validKey
+                    });
+                    
+                    const data = await response.json();
+                    
+                    // Check for Realtime API access
+                    const hasRealtimeAccess = data.data.some(model => 
+                        model.id.includes('gpt-4o-realtime') || 
+                        model.id.includes('gpt-4o-mini-realtime')
+                    );
+                    
+                    if (hasRealtimeAccess) {
+                        const realtimeModels = data.data
+                            .filter(model => model.id.includes('realtime'))
+                            .map(model => model.id)
+                            .join(', ');
+                        
+                        results.push({
+                            test: t.verifyPermissions.tests.realtimeAccess,
+                            passed: true,
+                            message: messages.hasRealtimeAccess + realtimeModels
+                        });
+                    } else {
+                        results.push({
+                            test: t.verifyPermissions.tests.realtimeAccess,
+                            passed: false,
+                            message: messages.noRealtimeAccess
+                        });
+                    }
+                    
+                    // Check for Whisper access
+                    const hasWhisperAccess = data.data.some(model => 
+                        model.id.includes('whisper')
+                    );
+                    
+                    if (hasWhisperAccess) {
+                        const whisperModels = data.data
+                            .filter(model => model.id.includes('whisper'))
+                            .map(model => model.id)
+                            .join(', ');
+                        
+                        results.push({
+                            test: t.verifyPermissions.tests.transcriptionAccess,
+                            passed: true,
+                            message: messages.hasWhisperAccess + whisperModels
+                        });
+                    } else {
+                        results.push({
+                            test: t.verifyPermissions.tests.transcriptionAccess,
+                            passed: false,
+                            message: messages.noWhisperAccess
+                        });
+                    }
+                    
+                } else {
+                    // Try to get error message from response for other error statuses
+                    let errorMessage = messages.unexpectedError.replace('{status}', response.status).replace('{statusText}', response.statusText);
+                    try {
+                        const errorData = await response.json();
+                        if (errorData.error) {
+                            // Handle both string and object error formats
+                            if (typeof errorData.error === 'string') {
+                                errorMessage = `${errorMessage} - ${errorData.error}`;
+                            } else if (errorData.error.message) {
+                                errorMessage = `${errorMessage} - ${errorData.error.message}`;
+                            }
+                        }
+                    } catch (e) {
+                        // Use default message if can't parse response
+                    }
+                    results.push({
+                        test: t.verifyPermissions.tests.apiKeyValidity,
+                        passed: false,
+                        message: errorMessage
+                    });
+                }
+                
+            } catch (error) {
+                results.push({
+                    test: 'Connection',
+                    passed: false,
+                    message: messages.connectionError.replace('{error}', error.message)
+                });
+            }
+            
+            // Display results
+            displayResults(results, lang);
+            
+            // Reset button state
+            verifyButton.disabled = false;
+            verifyButton.textContent = t.verifyPermissions.verifyButton;
+            clearButton.style.display = 'inline-block';
+        }
+
+        function displayResults(results, lang) {
+            const t = translations[lang] || translations.en;
+            const messages = t.verifyPermissions.messages;
+            
+            const resultsList = document.getElementById('resultsList');
+            resultsList.innerHTML = '';
+            
+            results.forEach(result => {
+                const resultDiv = document.createElement('div');
+                resultDiv.style.cssText = `
+                    padding: 12px;
+                    margin: 8px 0;
+                    border-radius: 4px;
+                    border: 1px solid ${result.passed ? '#d4edda' : '#f8d7da'};
+                    background-color: ${result.passed ? '#d4edda' : '#f8d7da'};
+                    color: ${result.passed ? '#155724' : '#721c24'};
+                `;
+                
+                const icon = result.passed ? '✅' : '❌';
+                resultDiv.innerHTML = `<strong>${icon} ${result.test}:</strong> ${result.message}`;
+                
+                resultsList.appendChild(resultDiv);
+            });
+            
+            // Add summary
+            const allPassed = results.every(r => r.passed);
+            const summaryDiv = document.createElement('div');
+            summaryDiv.style.cssText = `
+                margin-top: 20px;
+                padding: 15px;
+                border-radius: 4px;
+                ${allPassed ? 
+                    'background-color: #d4edda; border: 1px solid #c3e6cb; color: #155724;' : 
+                    'background-color: #f8d7da; border: 1px solid #f5c6cb; color: #721c24;'}
+            `;
+            
+            if (allPassed) {
+                summaryDiv.innerHTML = messages.successMessage;
+            } else {
+                const hasRealtimeIssue = results.some(r => r.test === t.verifyPermissions.tests.realtimeAccess && !r.passed);
+                const hasWhisperIssue = results.some(r => r.test === t.verifyPermissions.tests.transcriptionAccess && !r.passed);
+                
+                if (hasRealtimeIssue || hasWhisperIssue) {
+                    let message = messages.actionRequired;
+                    
+                    if (hasRealtimeIssue && hasWhisperIssue) {
+                        message += messages.bothMissing;
+                    } else if (hasRealtimeIssue) {
+                        message += messages.realtimeMissing;
+                    } else {
+                        message += messages.whisperMissing;
+                    }
+                    
+                    message += messages.getAccessSteps;
+                    summaryDiv.innerHTML = message;
+                } else {
+                    summaryDiv.innerHTML = messages.issuesFound;
+                }
+            }
+            
+            resultsList.appendChild(summaryDiv);
+        }
+
+        function clearResults() {
+            document.getElementById('apiKeyInput').value = '';
+            document.getElementById('verificationResults').style.display = 'none';
+            document.getElementById('resultsList').innerHTML = '';
+            document.getElementById('clearButton').style.display = 'none';
+        }
+
+        // TOC Active Section Highlighting
+        function updateActiveSection() {
+            const sections = document.querySelectorAll('[id]');
+            const tocLinks = document.querySelectorAll('.toc-list a');
+            
+            let currentSection = '';
+            
+            sections.forEach(section => {
+                const rect = section.getBoundingClientRect();
+                if (rect.top <= 100 && rect.bottom >= 100) {
+                    currentSection = section.id;
+                }
+            });
+            
+            tocLinks.forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('href') === '#' + currentSection) {
+                    link.classList.add('active');
+                }
+            });
+        }
+
+        // Event listeners
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                closeLightbox();
+            }
+        });
+
+        window.addEventListener('scroll', updateActiveSection);
+        window.addEventListener('load', updateActiveSection);
+
+        // Initialize page
+        renderContent(getCurrentLanguage());
+        
+        // Add event listener after content is rendered
+        setTimeout(() => {
+            const apiKeyInput = document.getElementById('apiKeyInput');
+            if (apiKeyInput) {
+                apiKeyInput.addEventListener('keypress', function(event) {
+                    if (event.key === 'Enter') {
+                        verifyAPIKey(getCurrentLanguage());
+                    }
+                });
+            }
+        }, 0);
+    </script>
+</body>
+</html>

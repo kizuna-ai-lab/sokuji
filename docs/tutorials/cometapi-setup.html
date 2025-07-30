@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CometAPI Setup Tutorial - Sokuji</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f8f9fa;
+        }
+        .container {
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .header img {
+            max-width: 150px;
+            margin-bottom: 20px;
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+            text-align: center;
+        }
+        h2 {
+            color: #2c3e50;
+            margin-top: 30px;
+        }
+        .back-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            padding: 8px 16px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            text-decoration: none;
+            color: #3498db;
+        }
+        .back-link:hover {
+            background-color: #e9ecef;
+        }
+        .step {
+            background-color: #f8f9fa;
+            border-left: 4px solid #e74c3c;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .step h3 {
+            margin-top: 0;
+            color: #2c3e50;
+        }
+        .warning {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .warning:before {
+            content: "⚠️ ";
+            color: #f39c12;
+        }
+        .info {
+            background-color: #e7f3ff;
+            border: 1px solid #b8daff;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .info:before {
+            content: "ℹ️ ";
+            color: #0c5460;
+        }
+        .compatibility {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .compatibility:before {
+            content: "🔗 ";
+            color: #f39c12;
+        }
+        code {
+            background-color: #f8f9fa;
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
+        .btn {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #e74c3c;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            margin: 10px 5px;
+        }
+        .btn:hover {
+            background-color: #c0392b;
+            text-decoration: none;
+        }
+        footer {
+            margin-top: 50px;
+            text-align: center;
+            color: #7f8c8d;
+            font-size: 0.9em;
+            border-top: 1px solid #eee;
+            padding-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="../supported-ai-providers.html" class="back-link">← Back to AI Providers</a>
+        
+        <div class="header">
+            <img src="https://github.com/kizuna-ai-lab/sokuji/raw/main/src/assets/logo.png" alt="Sokuji Logo">
+            <h1>CometAPI Setup Tutorial</h1>
+        </div>
+
+        <p>This tutorial will guide you through setting up CometAPI for use with Sokuji. CometAPI is fully compatible with OpenAI's Realtime API, offering the same features with alternative pricing and service options.</p>
+
+        <div class="compatibility">
+            <strong>OpenAI Compatibility:</strong> CometAPI is 100% compatible with OpenAI's Realtime API. All models, voices, and features work identically.
+        </div>
+
+        <div class="step">
+            <h3>Step 1: Visit CometAPI Website</h3>
+            <p>Go to <a href="https://api.cometapi.com/" target="_blank" rel="noopener noreferrer">api.cometapi.com</a> to access the CometAPI platform.</p>
+        </div>
+
+        <div class="step">
+            <h3>Step 2: Create Account and Set Up Billing</h3>
+            <p>Sign up for a CometAPI account and configure your billing settings. Like OpenAI, CometAPI requires a paid account for Realtime API access.</p>
+            <div class="info">
+                CometAPI often offers competitive pricing compared to OpenAI. Check their pricing page for current rates and any promotional offers.
+            </div>
+        </div>
+
+        <div class="step">
+            <h3>Step 3: Generate API Key</h3>
+            <p>In your CometAPI dashboard:</p>
+            <ol>
+                <li>Navigate to the <strong>"API Keys"</strong> section</li>
+                <li>Click <strong>"Create new API key"</strong></li>
+                <li>Give your key a descriptive name like "Sokuji Translation"</li>
+                <li>Select appropriate permissions (Realtime API access)</li>
+                <li>Click <strong>Generate</strong> and copy the key</li>
+            </ol>
+            <div class="warning">
+                <strong>Security Note:</strong> Copy and save your API key immediately. CometAPI will only show it once for security reasons.
+            </div>
+        </div>
+
+        <div class="step">
+            <h3>Step 4: Configure in Sokuji</h3>
+            <p>Open Sokuji and navigate to the Settings panel:</p>
+            <ol>
+                <li>Select <strong>"CometAPI"</strong> as your AI provider</li>
+                <li>Paste your API key in the <strong>"CometAPI Key"</strong> field</li>
+                <li>Choose your preferred model (same as OpenAI: <code>gpt-4o-realtime-preview</code>)</li>
+                <li>Select a voice (same options as OpenAI: <code>alloy</code>, <code>echo</code>, <code>shimmer</code>, etc.)</li>
+                <li>Configure your source and target languages</li>
+                <li>Adjust advanced settings like temperature, turn detection, etc.</li>
+                <li>Click <strong>Save Settings</strong></li>
+            </ol>
+        </div>
+
+        <div class="step">
+            <h3>Step 5: Test Your Setup</h3>
+            <p>Start a translation session to verify everything is working:</p>
+            <ol>
+                <li>Click the <strong>Start Session</strong> button in Sokuji</li>
+                <li>Speak into your microphone</li>
+                <li>You should hear the translated audio output</li>
+            </ol>
+        </div>
+
+        <h2>CometAPI-Specific Information</h2>
+
+        <div class="step">
+            <h3>Full OpenAI Compatibility</h3>
+            <p>CometAPI provides identical functionality to OpenAI's Realtime API:</p>
+            <ul>
+                <li><strong>Same Models:</strong> <code>gpt-4o-realtime-preview</code>, <code>gpt-4o-mini-realtime-preview</code></li>
+                <li><strong>Same Voices:</strong> All 8 OpenAI voices (Alloy, Ash, Ballad, Coral, Echo, Sage, Shimmer, Verse)</li>
+                <li><strong>Same Features:</strong> Turn detection, noise reduction, temperature control, etc.</li>
+                <li><strong>Same Quality:</strong> Identical audio processing and translation quality</li>
+            </ul>
+        </div>
+
+        <div class="step">
+            <h3>Why Choose CometAPI?</h3>
+            <ul>
+                <li><strong>Alternative Pricing:</strong> Potentially lower costs or different pricing structure</li>
+                <li><strong>Service Reliability:</strong> Additional service provider for redundancy</li>
+                <li><strong>Regional Availability:</strong> May be available in regions where OpenAI isn't</li>
+                <li><strong>Support Options:</strong> Different customer support channels</li>
+            </ul>
+        </div>
+
+        <div class="step">
+            <h3>Configuration Tips</h3>
+            <p>Since CometAPI is OpenAI-compatible, you can:</p>
+            <ul>
+                <li>Use the exact same settings as you would with OpenAI</li>
+                <li>Switch between OpenAI and CometAPI easily</li>
+                <li>Use the same prompts and templates</li>
+                <li>Expect identical behavior and results</li>
+            </ul>
+        </div>
+
+        <h2>Troubleshooting</h2>
+
+        <div class="step">
+            <h3>Common Issues</h3>
+            <p><strong>Authentication Error:</strong> Verify your CometAPI key is correctly pasted and that billing is set up on your account.</p>
+            <p><strong>Model Not Available:</strong> Ensure your CometAPI account has access to Realtime API models.</p>
+            <p><strong>Different Behavior from OpenAI:</strong> This shouldn't happen due to full compatibility. Contact CometAPI support if you notice differences.</p>
+        </div>
+
+        <div class="step">
+            <h3>Switching from OpenAI</h3>
+            <p>If you're switching from OpenAI to CometAPI:</p>
+            <ol>
+                <li>Export your current Sokuji settings</li>
+                <li>Change provider to CometAPI</li>
+                <li>Replace the API key</li>
+                <li>Keep all other settings identical</li>
+                <li>Test to ensure everything works as expected</li>
+            </ol>
+        </div>
+
+        <div class="info">
+            <strong>Need More Help?</strong> Check the <a href="https://api.cometapi.com/docs" target="_blank" rel="noopener noreferrer">CometAPI documentation</a> or visit our <a href="https://github.com/kizuna-ai-lab/sokuji" target="_blank" rel="noopener noreferrer">GitHub repository</a> for support.
+        </div>
+
+        <footer>
+            &copy; 2025 Kizuna AI Lab. All rights reserved.
+        </footer>
+    </div>
+</body>
+</html>
