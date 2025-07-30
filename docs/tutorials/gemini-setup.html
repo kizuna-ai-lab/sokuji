@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google Gemini Setup Tutorial - Sokuji</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f8f9fa;
+        }
+        .container {
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .header img {
+            max-width: 150px;
+            margin-bottom: 20px;
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+            text-align: center;
+        }
+        h2 {
+            color: #2c3e50;
+            margin-top: 30px;
+        }
+        .back-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            padding: 8px 16px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            text-decoration: none;
+            color: #3498db;
+        }
+        .back-link:hover {
+            background-color: #e9ecef;
+        }
+        .step {
+            background-color: #f8f9fa;
+            border-left: 4px solid #4285f4;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .step h3 {
+            margin-top: 0;
+            color: #2c3e50;
+        }
+        .warning {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .warning:before {
+            content: "⚠️ ";
+            color: #f39c12;
+        }
+        .info {
+            background-color: #e7f3ff;
+            border: 1px solid #b8daff;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .info:before {
+            content: "ℹ️ ";
+            color: #0c5460;
+        }
+        code {
+            background-color: #f8f9fa;
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
+        .btn {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #4285f4;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            margin: 10px 5px;
+        }
+        .btn:hover {
+            background-color: #3367d6;
+            text-decoration: none;
+        }
+        footer {
+            margin-top: 50px;
+            text-align: center;
+            color: #7f8c8d;
+            font-size: 0.9em;
+            border-top: 1px solid #eee;
+            padding-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="../supported-ai-providers.html" class="back-link">← Back to AI Providers</a>
+        
+        <div class="header">
+            <img src="https://github.com/kizuna-ai-lab/sokuji/raw/main/src/assets/logo.png" alt="Sokuji Logo">
+            <h1>Google Gemini Setup Tutorial</h1>
+        </div>
+
+        <p>This tutorial will guide you through setting up Google Gemini's Live API for use with Sokuji. Gemini offers excellent multilingual support and automatic audio processing capabilities.</p>
+
+        <div class="info">
+            <strong>Good News:</strong> Gemini API offers generous free quotas and competitive pricing compared to other providers.
+        </div>
+
+        <div class="step">
+            <h3>Step 1: Access Google AI Studio</h3>
+            <p>Visit <a href="https://aistudio.google.com" target="_blank" rel="noopener noreferrer">Google AI Studio</a> and sign in with your Google account.</p>
+        </div>
+
+        <div class="step">
+            <h3>Step 2: Create an API Key</h3>
+            <p>In Google AI Studio:</p>
+            <ol>
+                <li>Click on <strong>"Get API key"</strong> in the left sidebar</li>
+                <li>Click <strong>"Create API key"</strong></li>
+                <li>Select <strong>"Create API key in new project"</strong> (recommended) or choose an existing project</li>
+                <li>Your API key will be generated and displayed</li>
+            </ol>
+            <div class="warning">
+                <strong>Security Note:</strong> Copy and save your API key immediately. Store it securely and never share it publicly.
+            </div>
+        </div>
+
+        <div class="step">
+            <h3>Step 3: Enable Required APIs</h3>
+            <p>The API key should automatically have access to Gemini models. If you encounter issues, visit the <a href="https://console.cloud.google.com/apis" target="_blank" rel="noopener noreferrer">Google Cloud Console</a> and ensure the Gemini API is enabled for your project.</p>
+        </div>
+
+        <div class="step">
+            <h3>Step 4: Configure in Sokuji</h3>
+            <p>Open Sokuji and navigate to the Settings panel:</p>
+            <ol>
+                <li>Select <strong>"Gemini"</strong> as your AI provider</li>
+                <li>Paste your API key in the <strong>"Gemini API Key"</strong> field</li>
+                <li>Choose your preferred model (recommended: <code>gemini-2.0-flash-live-001</code>)</li>
+                <li>Select a voice (e.g., <code>Aoede</code>, <code>Puck</code>, or <code>Charon</code>)</li>
+                <li>Configure your source and target languages</li>
+                <li>Adjust temperature and token settings if needed</li>
+                <li>Click <strong>Save Settings</strong></li>
+            </ol>
+        </div>
+
+        <div class="step">
+            <h3>Step 5: Test Your Setup</h3>
+            <p>Start a translation session to verify everything is working:</p>
+            <ol>
+                <li>Click the <strong>Start Session</strong> button in Sokuji</li>
+                <li>Speak into your microphone</li>
+                <li>You should hear the translated audio output</li>
+            </ol>
+        </div>
+
+        <h2>Gemini-Specific Features</h2>
+
+        <div class="step">
+            <h3>Automatic Processing</h3>
+            <p>Gemini handles turn detection automatically, so you don't need to configure threshold or silence duration settings. The model intelligently determines when you've finished speaking.</p>
+        </div>
+
+        <div class="step">
+            <h3>Voice Personalities</h3>
+            <p>Gemini offers 30 unique voice personalities with different characteristics. Experiment with different voices to find one that suits your use case:</p>
+            <ul>
+                <li><strong>Aoede:</strong> Clear and professional</li>
+                <li><strong>Puck:</strong> Friendly and casual</li>
+                <li><strong>Charon:</strong> Deep and authoritative</li>
+                <li><strong>Kore:</strong> Warm and engaging</li>
+            </ul>
+        </div>
+
+        <h2>Troubleshooting</h2>
+
+        <div class="step">
+            <h3>Common Issues</h3>
+            <p><strong>API Key Error:</strong> Ensure your API key is valid and has not expired. Check that the Gemini API is enabled in your Google Cloud project.</p>
+            <p><strong>Quota Exceeded:</strong> Check your usage limits in Google AI Studio and consider upgrading if needed.</p>
+            <p><strong>Language Not Supported:</strong> Verify that both your source and target languages are supported by Gemini. Some language pairs may have better quality than others.</p>
+        </div>
+
+        <div class="info">
+            <strong>Need More Help?</strong> Check the <a href="https://ai.google.dev/gemini-api/docs" target="_blank" rel="noopener noreferrer">Gemini API documentation</a> or visit our <a href="https://github.com/kizuna-ai-lab/sokuji" target="_blank" rel="noopener noreferrer">GitHub repository</a> for support.
+        </div>
+
+        <footer>
+            &copy; 2025 Kizuna AI Lab. All rights reserved.
+        </footer>
+    </div>
+</body>
+</html>
