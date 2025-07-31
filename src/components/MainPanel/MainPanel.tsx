@@ -178,6 +178,12 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   
   // Reference to audio service for accessing ModernAudioPlayer
   const audioServiceRef = useRef<IAudioService | null>(null);
+  
+  // Reference to track push-to-talk duration
+  const pushToTalkStartTimeRef = useRef<number | null>(null);
+  
+  // Reference to track audio quality metrics
+  const audioQualityIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   /**
    * References for rendering audio visualization (canvas)
@@ -204,9 +210,23 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       },
       onError: (event: any) => {
         console.error('[Sokuji] [MainPanel]', event);
+        
+        // Track API errors
+        trackEvent('api_error', {
+          provider: commonSettings.provider || Provider.OPENAI,
+          error_message: event.message || event.error || 'Unknown error',
+          error_type: event.type === 'error' ? 'client' : 'server'
+        });
       },
       onClose: async (event: any) => {
         console.info('[Sokuji] [MainPanel] Connection closed, cleaning up session', event);
+        
+        // Track disconnection
+        trackEvent('connection_status', {
+          status: 'disconnected',
+          provider: commonSettings.provider || Provider.OPENAI
+        });
+        
         // When connection closes, clean up the session state
         setIsSessionActive(false);
         
@@ -262,6 +282,24 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         if (item.status === 'completed' && item.role === 'assistant' && 
             (item.formatted?.audio || item.formatted?.text || item.formatted?.transcript)) {
           setTranslationCount(translationCount + 1);
+          
+          // Track translation completion with latency
+          if (item.createdAt) {
+            const translationLatency = Date.now() - new Date(item.createdAt).getTime();
+            trackEvent('translation_completed', {
+              session_id: sessionId || '',
+              source_language: getCurrentProviderSettings().sourceLanguage,
+              target_language: getCurrentProviderSettings().targetLanguage,
+              latency_ms: translationLatency,
+              provider: commonSettings.provider || Provider.OPENAI
+            });
+            
+            trackEvent('latency_measurement', {
+              operation: 'translation',
+              latency_ms: translationLatency,
+              provider: commonSettings.provider
+            });
+          }
         }
         
         // Note: We don't clear the streaming track for individual items anymore
@@ -281,6 +319,13 @@ const MainPanel: React.FC<MainPanelProps> = () => {
    */
   const disconnectConversation = useCallback(async () => {
     setIsSessionActive(false);
+    
+    // Clear audio quality tracking interval
+    if (audioQualityIntervalRef.current) {
+      clearInterval(audioQualityIntervalRef.current);
+      audioQualityIntervalRef.current = null;
+    }
+    
     // setItems([]);
 
     const audioService = audioServiceRef.current;
@@ -415,8 +460,35 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       // Get session configuration
       const sessionConfig = getSessionConfig();
 
-      // Connect to the AI service
-      await client.connect(sessionConfig);
+      // Track connection attempt and measure latency
+      const connectionStartTime = Date.now();
+      
+      try {
+        // Connect to the AI service
+        await client.connect(sessionConfig);
+        
+        // Track successful connection with latency
+        const connectionLatency = Date.now() - connectionStartTime;
+        trackEvent('latency_measurement', {
+          operation: 'websocket',
+          latency_ms: connectionLatency,
+          provider: commonSettings.provider
+        });
+        
+        trackEvent('connection_status', {
+          status: 'connected',
+          provider: commonSettings.provider || Provider.OPENAI,
+          duration_ms: connectionLatency
+        });
+      } catch (connectError: any) {
+        // Track connection failure
+        trackEvent('api_error', {
+          provider: commonSettings.provider || Provider.OPENAI,
+          error_message: connectError.message || 'Connection failed',
+          error_type: 'network'
+        });
+        throw connectError;
+      }
 
       // Start recording if using server VAD and input device is turned on
       let turnDetectionDisabled = false;
@@ -442,8 +514,35 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       // Set state variables after successful initialization
       setIsSessionActive(true);
       setItems(client.getConversationItems());
-    } catch (error) {
+      
+      // Start tracking audio quality metrics during session
+      audioQualityIntervalRef.current = setInterval(() => {
+        if (audioServiceRef.current) {
+          const recorder = audioServiceRef.current.getRecorder();
+          if (recorder && recorder.recording) {
+            // Track audio quality metrics
+            trackEvent('audio_quality_metric', {
+              quality_score: 100, // Placeholder - in production this would be calculated
+              latency: 0, // Placeholder - would measure actual latency
+              echo_cancellation_enabled: true,
+              noise_suppression_enabled: true
+            });
+          }
+        }
+      }, 30000); // Every 30 seconds
+    } catch (error: any) {
       console.error('[Sokuji] [MainPanel] Failed to initialize session:', error);
+      
+      // Track session initialization failure
+      trackEvent('error_occurred', {
+        error_type: 'session_initialization',
+        error_message: error.message || 'Failed to initialize session',
+        component: 'MainPanel',
+        severity: 'high',
+        provider: commonSettings.provider,
+        recoverable: true
+      });
+      
       // Reset state in case of error
       await disconnectConversation();
     } finally {
@@ -484,6 +583,10 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     }
 
     setIsRecording(true);
+    
+    // Track push-to-talk start time
+    pushToTalkStartTimeRef.current = Date.now();
+    
     const client = clientRef.current;
     const audioService = audioServiceRef.current;
 
@@ -533,6 +636,17 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     }
 
     setIsRecording(false);
+    
+    // Track push-to-talk usage
+    if (pushToTalkStartTimeRef.current && sessionId) {
+      const holdDuration = Date.now() - pushToTalkStartTimeRef.current;
+      trackEvent('push_to_talk_used', {
+        session_id: sessionId,
+        hold_duration_ms: holdDuration
+      });
+      pushToTalkStartTimeRef.current = null;
+    }
+    
     const client = clientRef.current;
     const audioService = audioServiceRef.current;
 
@@ -1129,8 +1243,24 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       try {
         console.info(`[Sokuji] [MainPanel] Switching recording device during active session to: ${selectedInputDevice?.label}`);
         await audioService.switchRecordingDevice!(selectedInputDevice?.deviceId);
+        
+        // Track successful device change during active session
+        trackEvent('audio_device_changed', {
+          device_type: 'input',
+          device_name: selectedInputDevice?.label,
+          change_type: 'selected',
+          during_session: true
+        });
       } catch (error: any) {
         console.error('[Sokuji] [MainPanel] Failed to switch recording device:', error);
+        
+        // Track failed device change
+        trackEvent('audio_error', {
+          error_type: 'device_access',
+          error_message: error.message || 'Failed to switch recording device',
+          device_info: selectedInputDevice?.label
+        });
+        
         addRealtimeEvent(
           { 
             type: 'error', 
@@ -1320,7 +1450,19 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           )}
           <button
             className={`session-button ${isSessionActive ? 'active' : ''}`}
-            onClick={isSessionActive ? disconnectConversation : connectConversation}
+            onClick={() => {
+              const action = isSessionActive ? 'stop' : 'start';
+              trackEvent('session_control_clicked', {
+                action: action,
+                method: 'button'
+              });
+              
+              if (isSessionActive) {
+                disconnectConversation();
+              } else {
+                connectConversation();
+              }
+            }}
             disabled={(!isSessionActive && (!isApiKeyValid || availableModels.length === 0 || loadingModels)) || isInitializing}
           >
             {isInitializing ? (

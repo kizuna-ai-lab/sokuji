@@ -214,10 +214,10 @@ async function initializePopup() {
     showErrorState();
     
     // Track popup opened on error state
-    trackEvent('popup_opened', {
+    trackEvent('extension_popup_opened', {
       is_supported_site: false,
       hostname: null,
-      error_type: 'no_tab_info'
+      browser_type: detectBrowser()
     });
     return;
   }
@@ -230,15 +230,11 @@ async function initializePopup() {
     hostname === site || hostname.endsWith('.' + site)
   );
 
-  // Track popup opened event
-  trackEvent('popup_opened', {
+  // Track popup opened event using standardized event name
+  trackEvent('extension_popup_opened', {
     is_supported_site: isSupported,
     hostname: hostname,
-    full_url: url.origin,
-    browser_type: detectBrowser(),
-    supported_site_match: isSupported ? ENABLED_SITES.find(site => 
-      hostname === site || hostname.endsWith('.' + site)
-    ) : null
+    browser_type: detectBrowser()
   });
 
   if (isSupported) {
@@ -248,7 +244,7 @@ async function initializePopup() {
   }
 
   // Set up event listeners
-  setupEventListeners(tab.id, isSupported);
+  setupEventListeners(tab.id, isSupported, hostname);
 }
 
 function showSupportedState(hostname) {
@@ -258,7 +254,7 @@ function showSupportedState(hostname) {
   const siteInfo = SITE_INFO[hostname] || { name: hostname, icon: '' };
   
   // Track supported state shown
-  trackEvent('popup_supported_state_shown', {
+  trackEvent('extension_popup_supported_state_shown', {
     hostname: hostname,
     site_name: siteInfo.name
   });
@@ -281,7 +277,7 @@ function showUnsupportedState(hostname) {
   const content = document.getElementById('content');
   
   // Track unsupported state shown
-  trackEvent('popup_unsupported_state_shown', {
+  trackEvent('extension_popup_unsupported_state_shown', {
     hostname: hostname,
     supported_sites_count: ENABLED_SITES.length
   });
@@ -313,8 +309,9 @@ function showErrorState() {
   const content = document.getElementById('content');
   
   // Track error state shown
-  trackEvent('popup_error_state_shown', {
-    error_type: 'unable_to_detect_site'
+  trackEvent('extension_popup_error', {
+    error_type: 'no_tab_info',
+    error_message: 'Unable to detect current site'
   });
   
   content.innerHTML = `
@@ -377,7 +374,7 @@ function generateSitesList(showAll = false) {
   return html;
 }
 
-function setupEventListeners(tabId, isSupported) {
+function setupEventListeners(tabId, isSupported, currentHostname) {
   const openButton = document.getElementById('openSidePanel');
   
   if (isSupported && openButton) {
@@ -393,9 +390,9 @@ function setupEventListeners(tabId, isSupported) {
         await chrome.sidePanel.open({ tabId: tabId });
         
         // Track successful side panel open
-        trackEvent('sidepanel_opened_from_popup', {
-          tab_id: tabId,
-          method: 'direct_api'
+        trackEvent('extension_side_panel_opened', {
+          trigger: 'popup',
+          site: currentHostname
         });
         
         // Close the popup
@@ -418,9 +415,9 @@ function setupEventListeners(tabId, isSupported) {
           });
           
           // Track successful fallback
-          trackEvent('sidepanel_opened_from_popup', {
-            tab_id: tabId,
-            method: 'background_message'
+          trackEvent('extension_side_panel_opened', {
+            trigger: 'popup',
+            site: currentHostname
           });
           
           window.close();
@@ -484,12 +481,12 @@ function setupEventListeners(tabId, isSupported) {
       }
       
       // Re-attach click handlers to newly visible site items
-      setupSiteItemClickHandlers(isSupported);
+      setupSiteItemClickHandlers(isSupported, currentHostname);
     });
   }
 
   // Handle site item clicks (navigate to supported sites) 
-  setupSiteItemClickHandlers(isSupported);
+  setupSiteItemClickHandlers(isSupported, currentHostname);
 
   // Handle store link clicks
   const storeLink = document.getElementById('storeLink');
@@ -510,7 +507,7 @@ function setupEventListeners(tabId, isSupported) {
 }
 
 // Helper function to setup site item click handlers
-function setupSiteItemClickHandlers(isSupported) {
+function setupSiteItemClickHandlers(isSupported, currentHostname) {
   const siteItems = document.querySelectorAll('.site-item');
   siteItems.forEach(item => {
     // Remove existing event listeners by cloning the element
@@ -522,10 +519,10 @@ function setupSiteItemClickHandlers(isSupported) {
       const siteName = newItem.querySelector('.site-name').textContent;
       
       // Track site navigation
-      trackEvent('popup_site_navigation_clicked', {
-        target_site: siteUrl,
-        target_site_name: siteName,
-        is_supported_site: isSupported
+      trackEvent('extension_site_navigated', {
+        from_site: currentHostname || 'unknown',
+        to_site: siteUrl,
+        navigation_source: 'popup'
       });
       
       chrome.tabs.create({ url: `https://${siteUrl}` });
