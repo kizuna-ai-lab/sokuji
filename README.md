@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <em>Live speech translation powered by OpenAI, Google Gemini, and Palabra.ai</em>
+  <em>Live speech translation powered by OpenAI, Google Gemini, CometAPI, and Palabra.ai</em>
 </p>
 
 <p align="center">
@@ -40,7 +40,7 @@
 
 # Why Sokuji?
 
-Sokuji is a desktop application designed to provide live speech translation using OpenAI, Google Gemini, and Palabra.ai APIs. It bridges language barriers in live conversations by capturing audio input, processing it through advanced AI models, and delivering translated output in real-time.
+Sokuji is a desktop application designed to provide live speech translation using OpenAI, Google Gemini, CometAPI, and Palabra.ai APIs. It bridges language barriers in live conversations by capturing audio input, processing it through advanced AI models, and delivering translated output in real-time.
 
 https://github.com/user-attachments/assets/1eaaa333-a7ce-4412-a295-16b7eb2310de
 
@@ -73,58 +73,61 @@ If you want to install the latest version of the browser extension:
 
 # More than just translation
 
-Sokuji goes beyond basic translation by offering a complete audio routing solution with virtual device management, allowing for seamless integration with other applications. It provides a modern, intuitive interface with real-time audio visualization and comprehensive logging.
+Sokuji goes beyond basic translation by offering a complete audio routing solution with virtual device management (Linux only), allowing for seamless integration with other applications. It provides a modern, intuitive interface with real-time audio visualization and comprehensive logging.
 
 # Features
 
-1. **Real-time speech translation** using OpenAI, Google Gemini, and Palabra.ai APIs
-2. **Multi-Provider Support**: Seamlessly switch between OpenAI, Google Gemini, and Palabra.ai.
+1. **Real-time speech translation** using OpenAI, Google Gemini, CometAPI, and Palabra.ai APIs
+2. **Multi-Provider Support**: Seamlessly switch between OpenAI, Google Gemini, CometAPI, and Palabra.ai.
 3. **Supported Models**:
    - **OpenAI**: `gpt-4o-realtime-preview`, `gpt-4o-mini-realtime-preview`
    - **Google Gemini**: `gemini-2.0-flash-live-001`, `gemini-2.5-flash-preview-native-audio-dialog`
+   - **CometAPI**: OpenAI-compatible models with custom endpoints
    - **Palabra.ai**: Real-time speech-to-speech translation via WebRTC
 4. **Automatic turn detection** with multiple modes (Normal, Semantic, Disabled) for OpenAI
 5. **Audio visualization** with waveform display
-6. **Advanced Virtual Microphone** with dual-queue audio mixing system:
+6. **Advanced Virtual Microphone** (Linux only) with dual-queue audio mixing system:
    - **Regular audio tracks**: Queued and played sequentially
    - **Immediate audio tracks**: Separate queue for real-time audio mixing
    - **Simultaneous playback**: Mix both track types for enhanced audio experience
    - **Chunked audio support**: Efficient handling of large audio streams
 7. **Real-time Voice Passthrough**: Live audio monitoring during recording sessions
-8. **Cross-platform audio support** with modern Web Audio API
-9. **Automatic device switching** and configuration persistence
-10. **Audio input and output device selection**
-11. **Comprehensive logs** for tracking API interactions
-12. **Customizable model settings** (temperature, max tokens)
-13. **User transcript model selection** (for OpenAI: `gpt-4o-mini-transcribe`, `gpt-4o-transcribe`, `whisper-1`)
-14. **Noise reduction options** (for OpenAI: None, Near field, Far field)
-15. **API key validation** with real-time feedback
-16. **Configuration persistence** in user's home directory
-17. **Optimized AI Client Performance**: Enhanced conversation management with consistent ID generation
+8. **Virtual audio device creation and management** on Linux (using PulseAudio/PipeWire)
+9. **Automatic audio routing between virtual devices** (Linux only)
+10. **Automatic device switching** and configuration persistence
+11. **Audio input and output device selection**
+12. **Comprehensive logs** for tracking API interactions
+13. **Customizable model settings** (temperature, max tokens)
+14. **User transcript model selection** (for OpenAI: `gpt-4o-mini-transcribe`, `gpt-4o-transcribe`, `whisper-1`)
+15. **Noise reduction options** (for OpenAI: None, Near field, Far field)
+16. **API key validation** with real-time feedback
+17. **Configuration persistence** in user's home directory
+18. **Optimized AI Client Performance**: Enhanced conversation management with consistent ID generation
 
 # Audio Architecture
 
-Sokuji uses a modern audio processing pipeline built on Web Audio API:
+Sokuji uses a modern audio processing pipeline built on Web Audio API, with additional virtual device capabilities on Linux:
 
 - **ModernAudioRecorder**: Captures input with advanced echo cancellation
 - **ModernAudioPlayer**: Handles playback with queue-based audio management
 - **Real-time Processing**: Low-latency audio streaming with chunked playback
-- **Cross-platform Support**: Works on all platforms without requiring virtual devices
+- **Virtual Device Support**: On Linux, creates virtual audio devices for application integration
 
 ### Audio Flow
 
-The simplified audio flow in Sokuji:
+The audio flow in Sokuji:
 
 1. **Input Capture**: Microphone audio is captured with echo cancellation enabled
 2. **AI Processing**: Audio is sent to the selected AI provider for translation
 3. **Playback**: Translated audio is played through the selected monitor device
-4. **Optional Passthrough**: Original voice can be monitored in real-time
+4. **Virtual Device Output** (Linux only): Audio is also routed to virtual microphone for other applications
+5. **Optional Passthrough**: Original voice can be monitored in real-time
 
-This streamlined architecture provides:
+This architecture provides:
 - Better echo cancellation using modern browser APIs
 - Lower latency through optimized audio pipelines
-- Improved compatibility across different platforms
-- Simplified device management without virtual devices
+- Virtual device integration on Linux for seamless app-to-app audio routing
+- Cross-platform compatibility with graceful degradation
 
 ## Developer Notes
 
@@ -148,8 +151,8 @@ This streamlined architecture provides:
 
 # Preparation
 
-- (required) An OpenAI, Google Gemini, or Palabra.ai API key. For Palabra.ai, you will need a Client ID and Client Secret.
-- (optional) Linux with PulseAudio or PipeWire for advanced audio features (desktop app only)
+- (required) An OpenAI, Google Gemini, CometAPI, or Palabra.ai API key. For Palabra.ai, you will need a Client ID and Client Secret. For CometAPI, you'll need to configure the custom endpoint URL.
+- (optional) Linux with PulseAudio or PipeWire for virtual audio device features (desktop app only)
 
 # Installation
 
@@ -160,6 +163,7 @@ This streamlined architecture provides:
 - Node.js (latest LTS version recommended)
 - npm
 - Audio support works on all platforms (Windows, macOS, Linux)
+- Virtual audio devices require Linux with PulseAudio or PipeWire
 
 ### Steps
 
@@ -203,8 +207,8 @@ sudo dpkg -i sokuji_*.deb
    </p>
    
    - Click the Settings button in the top-right corner
-   - Select your desired provider (OpenAI, Gemini, or Palabra).
-   - Enter your API key for the selected provider and click "Validate". For Palabra, you will need to enter a Client ID and Client Secret.
+   - Select your desired provider (OpenAI, Gemini, CometAPI, or Palabra).
+   - Enter your API key for the selected provider and click "Validate". For Palabra, you will need to enter a Client ID and Client Secret. For CometAPI, configure both the API key and custom endpoint URL.
    - Click "Save" to store your API key securely.
 
 2. **Configure audio devices**:
@@ -227,9 +231,13 @@ sudo dpkg -i sokuji_*.deb
    - Enable real voice passthrough for live monitoring
    - Adjust passthrough volume as needed
 
+5. **Use with other applications** (Linux only):
+   - Select "Sokuji_Virtual_Mic" as the microphone input in your target application
+   - Translated audio will be sent to that application with advanced mixing support
+
 ## Recent Improvements
 
-### Modern Audio Processing (v2.x.x)
+### Modern Audio Processing (v0.9.x)
 
 The audio system now features improved echo cancellation and processing:
 
@@ -239,7 +247,7 @@ The audio system now features improved echo cancellation and processing:
 - **Event-Driven Architecture**: Reduced CPU usage through efficient event handling
 - **Cross-Platform Support**: Unified audio handling across all platforms
 
-### AI Client Optimization (v1.x.x)
+### AI Client Optimization (v0.8.x)
 
 Enhanced Google Gemini client performance:
 
@@ -257,7 +265,7 @@ Live audio monitoring capabilities:
 
 # Technologies Used
 
-- Electron 34
+- Electron 34+
 - React 18
 - TypeScript
 - OpenAI & Google Gemini APIs

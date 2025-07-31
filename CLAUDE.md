@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Sokuji is a real-time AI-powered translation application available as both an Electron desktop app and a browser extension. It provides live speech translation using OpenAI, Google Gemini, and Palabra.ai APIs with modern audio processing capabilities.
+Sokuji is a real-time AI-powered translation application available as both an Electron desktop app and a browser extension. It provides live speech translation using OpenAI, Google Gemini, CometAPI, and Palabra.ai APIs with modern audio processing capabilities.
 
 ## Development Commands
 
@@ -43,7 +43,7 @@ npm run make
 ### Dual Platform Architecture
 The codebase supports both Electron desktop app and Chrome/Edge browser extension from a shared React codebase:
 - **Shared code**: `src/` directory contains all React components and business logic
-- **Electron-specific**: `electron/` directory, virtual audio device management
+- **Electron-specific**: `electron/` directory, virtual audio device management (Linux only)
 - **Extension-specific**: `extension/` directory, manifest.json, background scripts
 
 ### Key Architectural Components
@@ -55,7 +55,7 @@ The codebase supports both Electron desktop app and Chrome/Edge browser extensio
 
 2. **AI Client Architecture**
    - `ClientFactory` creates provider-specific clients
-   - Providers: OpenAI, Gemini, PalabraAI
+   - Providers: OpenAI, Gemini, CometAPI, PalabraAI
    - Each client implements `IClient` interface
    - Real-time communication via WebSocket or REST APIs
 
@@ -65,7 +65,7 @@ The codebase supports both Electron desktop app and Chrome/Edge browser extensio
    ```
    - `ModernAudioRecorder`: Captures input with echo cancellation and optional passthrough
    - `ModernAudioPlayer`: Queue-based playback with event-driven processing
-   - Unified audio service across all platforms with virtual device support in Electron
+   - Unified audio service across all platforms with virtual device support in Electron (Linux only)
 
 4. **State Management**
    - React Context API for global state
@@ -82,7 +82,7 @@ The codebase supports both Electron desktop app and Chrome/Edge browser extensio
 ### Code Organization
 - Components in `src/components/` - functional React components with TypeScript
 - Services in `src/services/` - implement interface contracts
-- AI clients in `src/lib/ai-clients/` - provider-specific implementations
+- AI clients in `src/services/clients/` - provider-specific implementations
 - Audio modules in `src/lib/modern-audio/` - Web Audio API based
 
 ### Error Handling
@@ -120,7 +120,7 @@ if (window.electronAPI) {
 ## Common Development Tasks
 
 ### Adding a New AI Provider
-1. Create client class implementing `IClient` in `src/lib/ai-clients/`
+1. Create client class implementing `IClient` in `src/services/clients/`
 2. Add provider config extending `ProviderConfig`
 3. Update `ClientFactory` to handle new provider
 4. Add UI controls in SettingsPanel
@@ -152,6 +152,7 @@ if (window.electronAPI) {
 - Works on all platforms (Windows, macOS, Linux)
 - Node.js LTS version
 - Electron 34+
+- Virtual audio devices require Linux with PulseAudio or PipeWire
 
 ### Browser Extension
 - Chrome/Edge/Chromium browsers
