@@ -5,12 +5,12 @@ import Modal from '../Modal/Modal';
 import { useAudioContext } from '../../contexts/AudioContext';
 import { useTranslation } from 'react-i18next';
 import { useAnalytics } from '../../lib/analytics';
-import { useSessionContext } from '../../contexts/SessionContext';
+import { useSession } from '../../contexts/SessionContext';
 
 const AudioPanel: React.FC<{ toggleAudio: () => void }> = ({ toggleAudio }) => {
   const { t } = useTranslation();
   const { trackEvent } = useAnalytics();
-  const { isSessionActive } = useSessionContext();
+  const { isSessionActive } = useSession();
   const [showVirtualMicWarning, setShowVirtualMicWarning] = useState(false);
   const [showVirtualSpeakerWarning, setShowVirtualSpeakerWarning] = useState(false);
 
@@ -46,8 +46,6 @@ const AudioPanel: React.FC<{ toggleAudio: () => void }> = ({ toggleAudio }) => {
 
   // Handle input device selection with virtual mic check
   const handleInputDeviceSelection = (device: {deviceId: string; label: string; isDefault?: boolean}) => {
-    const previousDevice = selectedInputDevice;
-    
     if (isVirtualMic(device)) {
       setShowVirtualMicWarning(true);
       trackEvent('virtual_device_warning', {
@@ -67,8 +65,6 @@ const AudioPanel: React.FC<{ toggleAudio: () => void }> = ({ toggleAudio }) => {
 
   // Handle monitor device selection with virtual speaker check
   const handleMonitorDeviceSelection = (device: {deviceId: string; label: string; isDefault?: boolean}) => {
-    const previousDevice = selectedMonitorDevice;
-    
     if (isVirtualSpeaker(device)) {
       setShowVirtualSpeakerWarning(true);
       trackEvent('virtual_device_warning', {

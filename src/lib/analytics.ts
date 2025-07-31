@@ -273,7 +273,7 @@ export function useAnalytics() {
   ) => {
     try {
       if (posthog) {
-        console.log("[Sokuji] [Analytics] Tracking event:", eventName, properties);
+        console.debug("[Sokuji] [Analytics] Tracking event:", eventName, properties);
         const sanitizedProperties = sanitizeData(properties as Record<string, any>);
         posthog.capture(eventName, sanitizedProperties);
         
