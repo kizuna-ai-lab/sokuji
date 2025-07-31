@@ -4,9 +4,13 @@ import './AudioPanel.scss';
 import Modal from '../Modal/Modal';
 import { useAudioContext } from '../../contexts/AudioContext';
 import { useTranslation } from 'react-i18next';
+import { useAnalytics } from '../../lib/analytics';
+import { useSessionContext } from '../../contexts/SessionContext';
 
 const AudioPanel: React.FC<{ toggleAudio: () => void }> = ({ toggleAudio }) => {
   const { t } = useTranslation();
+  const { trackEvent } = useAnalytics();
+  const { isSessionActive } = useSessionContext();
   const [showVirtualMicWarning, setShowVirtualMicWarning] = useState(false);
   const [showVirtualSpeakerWarning, setShowVirtualSpeakerWarning] = useState(false);
 
@@ -42,19 +46,43 @@ const AudioPanel: React.FC<{ toggleAudio: () => void }> = ({ toggleAudio }) => {
 
   // Handle input device selection with virtual mic check
   const handleInputDeviceSelection = (device: {deviceId: string; label: string; isDefault?: boolean}) => {
+    const previousDevice = selectedInputDevice;
+    
     if (isVirtualMic(device)) {
       setShowVirtualMicWarning(true);
+      trackEvent('virtual_device_warning', {
+        device_type: 'input',
+        action_taken: 'ignored'
+      });
     } else {
       selectInputDevice(device);
+      trackEvent('audio_device_changed', {
+        device_type: 'input',
+        device_name: device.label,
+        change_type: 'selected',
+        during_session: isSessionActive
+      });
     }
   };
 
   // Handle monitor device selection with virtual speaker check
   const handleMonitorDeviceSelection = (device: {deviceId: string; label: string; isDefault?: boolean}) => {
+    const previousDevice = selectedMonitorDevice;
+    
     if (isVirtualSpeaker(device)) {
       setShowVirtualSpeakerWarning(true);
+      trackEvent('virtual_device_warning', {
+        device_type: 'output',
+        action_taken: 'ignored'
+      });
     } else {
       selectMonitorDevice(device);
+      trackEvent('audio_device_changed', {
+        device_type: 'output',
+        device_name: device.label,
+        change_type: 'selected',
+        during_session: isSessionActive
+      });
     }
   };
 
@@ -243,7 +271,13 @@ const AudioPanel: React.FC<{ toggleAudio: () => void }> = ({ toggleAudio }) => {
             </div>
             <button 
               className={`device-toggle-button ${isRealVoicePassthroughEnabled ? 'on' : 'off'}`}
-              onClick={toggleRealVoicePassthrough}
+              onClick={() => {
+                toggleRealVoicePassthrough();
+                trackEvent('audio_passthrough_toggled', {
+                  enabled: !isRealVoicePassthroughEnabled,
+                  volume_level: realVoicePassthroughVolume
+                });
+              }}
             >
               {isRealVoicePassthroughEnabled ? t('audioPanel.turnOff') : t('audioPanel.turnOn')}
             </button>
@@ -261,7 +295,19 @@ const AudioPanel: React.FC<{ toggleAudio: () => void }> = ({ toggleAudio }) => {
                 max="0.6" 
                 step="0.01" 
                 value={realVoicePassthroughVolume}
-                onChange={(e) => setRealVoicePassthroughVolume(parseFloat(e.target.value))}
+                onChange={(e) => {
+                  const newVolume = parseFloat(e.target.value);
+                  setRealVoicePassthroughVolume(newVolume);
+                }}
+                onMouseUp={(e) => {
+                  // Track volume change on mouse up to avoid too many events
+                  trackEvent('ui_interaction', {
+                    component: 'AudioPanel',
+                    action: 'passthrough_volume_changed',
+                    element: 'volume_slider',
+                    value: parseFloat((e.target as HTMLInputElement).value)
+                  });
+                }}
                 className="volume-slider"
                 disabled={!isRealVoicePassthroughEnabled}
               />
