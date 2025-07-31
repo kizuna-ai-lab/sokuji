@@ -28,6 +28,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Platform-Specific Audio Services**: Removed separate BrowserAudioService and ElectronAudioService classes
 - **Virtual Device Warnings**: Removed UI warnings for virtual microphone/speaker selection
 
+## [0.9.4] - 2025-01-31
+
+### Added
+
+- **Comprehensive Analytics Tracking**: Implemented PostHog analytics with 40+ event types for better product insights
+- **Privacy-First Analytics**: Added automatic data sanitization and user privacy protection
+- **Performance Metrics**: Added real-time performance tracking during active translation sessions
+- **Audio Device Tracking**: Track device changes, passthrough toggles, and virtual device usage
+- **Settings Analytics**: Monitor provider switches, language changes, and API key validations
+- **Extension Analytics**: Standardized popup tracking with proper event naming conventions
+
+### Fixed
+
+- **Extension Hostname Tracking**: Fixed hostname tracking in browser extension popup analytics
+
+### Documentation
+
+- **Analytics Events Documentation**: Added comprehensive documentation for all analytics events (ANALYTICS_EVENTS.md)
+
 ## [0.9.0] - 2025-07-11
 
 ### Added
