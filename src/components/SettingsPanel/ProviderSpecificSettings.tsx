@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { ChevronDown, ChevronRight, RotateCw, Info } from 'lucide-react';
 import { FilteredModel } from '../../services/interfaces/IClient';
 import { Provider, isOpenAICompatible } from '../../types/Provider';
+import { useAnalytics } from '../../lib/analytics';
 
 interface ProviderSpecificSettingsProps {
   config: ProviderConfig;
@@ -41,6 +42,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
     getCurrentProviderSettings
   } = useSettings();
   const { t } = useTranslation();
+  const { trackEvent } = useAnalytics();
 
   // Get current provider's settings
   const currentProviderSettings = getCurrentProviderSettings();
@@ -101,6 +103,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
             className="select-dropdown"
             value={currentSettings.sourceLanguage}
             onChange={(e) => {
+              const oldSourceLang = currentSettings.sourceLanguage;
               const newSourceLang = e.target.value;
               // If new source language is the same as current target language,
               // we need to update target language to avoid conflict
@@ -112,8 +115,27 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
                 
                 updateCurrentProviderSetting('sourceLanguage', newSourceLang);
                 updateCurrentProviderSetting('targetLanguage', newTargetLang);
+                
+                // Track both language changes
+                trackEvent('language_changed', {
+                  from_language: oldSourceLang,
+                  to_language: newSourceLang,
+                  language_type: 'source'
+                });
+                trackEvent('language_changed', {
+                  from_language: currentSettings.targetLanguage,
+                  to_language: newTargetLang,
+                  language_type: 'target'
+                });
               } else {
                 updateCurrentProviderSetting('sourceLanguage', newSourceLang);
+                
+                // Track language change
+                trackEvent('language_changed', {
+                  from_language: oldSourceLang,
+                  to_language: newSourceLang,
+                  language_type: 'source'
+                });
               }
             }}
             disabled={isSessionActive}
@@ -130,7 +152,18 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
           <select
             className="select-dropdown"
             value={currentSettings.targetLanguage}
-            onChange={(e) => updateCurrentProviderSetting('targetLanguage', e.target.value)}
+            onChange={(e) => {
+              const oldTargetLang = currentSettings.targetLanguage;
+              const newTargetLang = e.target.value;
+              updateCurrentProviderSetting('targetLanguage', newTargetLang);
+              
+              // Track language change
+              trackEvent('language_changed', {
+                from_language: oldTargetLang,
+                to_language: newTargetLang,
+                language_type: 'target'
+              });
+            }}
             disabled={isSessionActive}
           >
             {config.languages
@@ -466,10 +499,18 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
               className="select-dropdown"
               value={palabraAISettings.sourceLanguage}
               onChange={(e) => {
+                const oldSourceLang = palabraAISettings.sourceLanguage;
                 const newSourceLang = e.target.value;
                 // For PalabraAI, source and target languages use different codes,
                 // so conflicts are less likely, but we still handle them
                 updatePalabraAISettings({ sourceLanguage: newSourceLang });
+                
+                // Track language change
+                trackEvent('language_changed', {
+                  from_language: oldSourceLang,
+                  to_language: newSourceLang,
+                  language_type: 'source'
+                });
               }}
               disabled={isSessionActive}
             >
@@ -485,7 +526,18 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
             <select
               className="select-dropdown"
               value={palabraAISettings.targetLanguage}
-              onChange={(e) => updatePalabraAISettings({ targetLanguage: e.target.value })}
+              onChange={(e) => {
+                const oldTargetLang = palabraAISettings.targetLanguage;
+                const newTargetLang = e.target.value;
+                updatePalabraAISettings({ targetLanguage: newTargetLang });
+                
+                // Track language change
+                trackEvent('language_changed', {
+                  from_language: oldTargetLang,
+                  to_language: newTargetLang,
+                  language_type: 'target'
+                });
+              }}
               disabled={isSessionActive}
             >
               {/* PalabraAI target language options */}

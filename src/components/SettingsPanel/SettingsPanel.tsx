@@ -8,6 +8,7 @@ import { useSession } from '../../contexts/SessionContext';
 import { ProviderConfigFactory } from '../../services/providers/ProviderConfigFactory';
 import ProviderSpecificSettings from './ProviderSpecificSettings';
 import { Provider, ProviderType } from '../../types/Provider';
+import { useAnalytics } from '../../lib/analytics';
 
 interface SettingsPanelProps {
   toggleSettings?: () => void;
@@ -38,6 +39,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
   const { startOnboarding } = useOnboarding();
   const { t, i18n } = useTranslation();
   const { isSessionActive } = useSession();
+  const { trackEvent } = useAnalytics();
 
   // Get current provider configuration
   const currentProviderConfig = useMemo(() => {
@@ -142,6 +144,13 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
       validating: false
     });
     
+    // Track API key validation
+    trackEvent('api_key_validated', {
+      provider: commonSettings.provider || Provider.OPENAI,
+      success: result.valid === true,
+      error_type: result.valid === false ? result.message.includes('Invalid') ? 'invalid_key' : 'validation_error' : undefined
+    });
+    
     // Note: contextValidateApiKey() now automatically fetches models internally
     // No need to call fetchAvailableModels() separately
     
@@ -191,8 +200,16 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
                 className="select-dropdown"
                 value={commonSettings.provider || Provider.OPENAI}
                 onChange={(e) => {
+                  const oldProvider = commonSettings.provider;
                   const newProvider = e.target.value as ProviderType;
                   updateCommonSettings({ provider: newProvider });
+                  
+                  // Track provider switch
+                  trackEvent('provider_switched', {
+                    from_provider: oldProvider || Provider.OPENAI,
+                    to_provider: newProvider,
+                    during_session: isSessionActive
+                  });
                   
                   // Reset API key validation status when provider changes
                   setApiKeyStatus({ valid: null, message: '', validating: false });
@@ -347,8 +364,17 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
               className="select-dropdown"
               value={i18n.language}
               onChange={(e) => {
-                i18n.changeLanguage(e.target.value);
-                updateCommonSettings({ uiLanguage: e.target.value });
+                const oldLanguage = i18n.language;
+                const newLanguage = e.target.value;
+                i18n.changeLanguage(newLanguage);
+                updateCommonSettings({ uiLanguage: newLanguage });
+                
+                // Track UI language change
+                trackEvent('language_changed', {
+                  from_language: oldLanguage,
+                  to_language: newLanguage,
+                  language_type: 'ui'
+                });
               }}
               disabled={isSessionActive}
             >
