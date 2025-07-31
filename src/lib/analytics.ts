@@ -1,7 +1,7 @@
 import { usePostHog } from '../../shared/index';
 import { isDevelopment, getPlatform } from '../config/analytics';
 
-// Analytics event types based on the GitHub issue requirements
+// Analytics event types - Comprehensive product metrics for Sokuji
 export interface AnalyticsEvents {
   // Application lifecycle
   'app_startup': {}; // version and platform are now in Super Properties
@@ -30,38 +30,93 @@ export interface AnalyticsEvents {
     source_language: string; 
     target_language: string;
     session_id: string;
+    provider: string;
+    model?: string;
+    vad_mode?: string;
   };
   'translation_session_end': { 
     session_id: string;
     duration: number;
     translation_count: number;
+    provider: string;
+    error_count?: number;
+  };
+  'translation_completed': {
+    session_id: string;
+    source_language: string;
+    target_language: string;
+    latency_ms: number;
+    provider: string;
   };
   
   // Audio handling
   'audio_device_changed': { 
-    device_type: string;
+    device_type: 'input' | 'output';
     device_name?: string;
+    change_type: 'selected' | 'connected' | 'disconnected';
+    during_session: boolean;
   };
   'audio_quality_metric': {
     quality_score: number;
     latency: number;
+    echo_cancellation_enabled: boolean;
+    noise_suppression_enabled: boolean;
+  };
+  'audio_passthrough_toggled': {
+    enabled: boolean;
+    volume_level: number;
+  };
+  'virtual_device_warning': {
+    device_type: 'input' | 'output';
+    action_taken: 'ignored' | 'changed_device';
   };
   
-  // User interactions
+  // Settings & Configuration
   'settings_modified': { 
     setting_name: string;
     old_value?: any;
     new_value?: any;
+    provider?: string;
+    category: 'api' | 'audio' | 'language' | 'advanced';
   };
   'language_changed': { 
     from_language?: string;
     to_language: string;
-    language_type: 'source' | 'target';
+    language_type: 'source' | 'target' | 'ui';
   };
+  'provider_switched': {
+    from_provider: string;
+    to_provider: string;
+    during_session: boolean;
+  };
+  'api_key_validated': {
+    provider: string;
+    success: boolean;
+    error_type?: string;
+  };
+  
+  // User interactions
   'ui_interaction': { 
     component: string;
     action: string;
     element?: string;
+    value?: any;
+  };
+  'push_to_talk_used': {
+    session_id: string;
+    hold_duration_ms: number;
+  };
+  'session_control_clicked': {
+    action: 'start' | 'stop';
+    method: 'button' | 'keyboard';
+  };
+  'panel_viewed': {
+    panel_name: 'main' | 'settings' | 'audio' | 'logs';
+    view_duration_ms?: number;
+  };
+  'help_accessed': {
+    help_type: 'onboarding' | 'tutorial' | 'documentation';
+    source: string;
   };
   
   // Performance metrics
@@ -69,10 +124,17 @@ export interface AnalyticsEvents {
     metric_name: string;
     value: number;
     unit?: string;
+    percentile?: number;
   };
   'latency_measurement': {
-    operation: string;
+    operation: 'api_call' | 'audio_processing' | 'translation' | 'websocket';
     latency_ms: number;
+    provider?: string;
+  };
+  'connection_status': {
+    status: 'connected' | 'disconnected' | 'reconnecting';
+    provider: string;
+    duration_ms?: number;
   };
   
   // Error tracking
@@ -81,19 +143,67 @@ export interface AnalyticsEvents {
     error_message: string;
     component?: string;
     severity: 'low' | 'medium' | 'high' | 'critical';
+    provider?: string;
+    recoverable: boolean;
   };
   'api_error': {
-    endpoint: string;
+    provider: string;
+    endpoint?: string;
     status_code?: number;
     error_message: string;
+    error_type: 'auth' | 'rate_limit' | 'network' | 'server' | 'client';
+  };
+  'audio_error': {
+    error_type: 'device_access' | 'processing' | 'playback' | 'recording';
+    error_message: string;
+    device_info?: string;
   };
   
-  // Extension usage
+  // Extension specific events
   'extension_installed': { extension_version: string };
   'extension_uninstalled': { extension_version: string };
-  'extension_used': { 
-    feature: string;
-    usage_context?: string;
+  'extension_popup_opened': {
+    is_supported_site: boolean;
+    hostname: string | null;
+    browser_type?: string;
+  };
+  'extension_popup_supported_state_shown': {
+    hostname: string;
+    site_name: string;
+  };
+  'extension_popup_unsupported_state_shown': {
+    hostname: string;
+    supported_sites_count: number;
+  };
+  'extension_popup_error': {
+    error_type: string;
+    error_message?: string;
+  };
+  'extension_side_panel_opened': {
+    trigger: 'popup' | 'action' | 'context_menu';
+    site?: string;
+  };
+  'extension_side_panel_closed': {
+    duration_ms: number;
+  };
+  'extension_site_navigated': {
+    from_site?: string;
+    to_site: string;
+    navigation_source: 'popup' | 'link';
+  };
+  'extension_permissions_requested': {
+    permission_type: string;
+    granted: boolean;
+  };
+  
+  // Feature adoption
+  'feature_discovered': {
+    feature_name: string;
+    discovery_method: 'onboarding' | 'exploration' | 'documentation';
+  };
+  'feature_first_use': {
+    feature_name: string;
+    time_since_install_hours?: number;
   };
 }
 
@@ -163,7 +273,7 @@ export function useAnalytics() {
   ) => {
     try {
       if (posthog) {
-        console.log("[Sokuji] [Analytics] Tracking event:", eventName, properties);
+        console.debug("[Sokuji] [Analytics] Tracking event:", eventName, properties);
         const sanitizedProperties = sanitizeData(properties as Record<string, any>);
         posthog.capture(eventName, sanitizedProperties);
         
