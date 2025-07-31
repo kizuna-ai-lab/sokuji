@@ -244,7 +244,7 @@ async function initializePopup() {
   }
 
   // Set up event listeners
-  setupEventListeners(tab.id, isSupported);
+  setupEventListeners(tab.id, isSupported, hostname);
 }
 
 function showSupportedState(hostname) {
@@ -374,7 +374,7 @@ function generateSitesList(showAll = false) {
   return html;
 }
 
-function setupEventListeners(tabId, isSupported) {
+function setupEventListeners(tabId, isSupported, currentHostname) {
   const openButton = document.getElementById('openSidePanel');
   
   if (isSupported && openButton) {
@@ -392,7 +392,7 @@ function setupEventListeners(tabId, isSupported) {
         // Track successful side panel open
         trackEvent('extension_side_panel_opened', {
           trigger: 'popup',
-          site: window.location.hostname
+          site: currentHostname
         });
         
         // Close the popup
@@ -417,7 +417,7 @@ function setupEventListeners(tabId, isSupported) {
           // Track successful fallback
           trackEvent('extension_side_panel_opened', {
             trigger: 'popup',
-            site: window.location.hostname
+            site: currentHostname
           });
           
           window.close();
@@ -481,12 +481,12 @@ function setupEventListeners(tabId, isSupported) {
       }
       
       // Re-attach click handlers to newly visible site items
-      setupSiteItemClickHandlers(isSupported);
+      setupSiteItemClickHandlers(isSupported, currentHostname);
     });
   }
 
   // Handle site item clicks (navigate to supported sites) 
-  setupSiteItemClickHandlers(isSupported);
+  setupSiteItemClickHandlers(isSupported, currentHostname);
 
   // Handle store link clicks
   const storeLink = document.getElementById('storeLink');
@@ -507,7 +507,7 @@ function setupEventListeners(tabId, isSupported) {
 }
 
 // Helper function to setup site item click handlers
-function setupSiteItemClickHandlers(isSupported) {
+function setupSiteItemClickHandlers(isSupported, currentHostname) {
   const siteItems = document.querySelectorAll('.site-item');
   siteItems.forEach(item => {
     // Remove existing event listeners by cloning the element
@@ -520,7 +520,7 @@ function setupSiteItemClickHandlers(isSupported) {
       
       // Track site navigation
       trackEvent('extension_site_navigated', {
-        from_site: window.location.hostname,
+        from_site: currentHostname || 'unknown',
         to_site: siteUrl,
         navigation_source: 'popup'
       });

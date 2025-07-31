@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import MainPanel from '../MainPanel/MainPanel';
 import SettingsPanel from '../SettingsPanel/SettingsPanel';
@@ -9,6 +9,8 @@ import { Terminal, Settings, Volume2 } from 'lucide-react';
 import './MainLayout.scss';
 import { useAnalytics } from '../../lib/analytics';
 
+type PanelName = 'settings' | 'audio' | 'logs' | 'main';
+
 const MainLayout: React.FC = () => {
   const { t } = useTranslation();
   const { trackEvent } = useAnalytics();
@@ -18,15 +20,15 @@ const MainLayout: React.FC = () => {
   
   // Track panel view times
   const panelOpenTimeRef = useRef<number | null>(null);
-  const currentPanelRef = useRef<string | null>(null);
+  const currentPanelRef = useRef<PanelName | null>(null);
   
   // Helper function to track panel view events
-  const trackPanelView = (panelName: 'settings' | 'audio' | 'logs' | 'main' | null) => {
+  const trackPanelView = (panelName: PanelName | null) => {
     // Track closing of previous panel
     if (currentPanelRef.current && panelOpenTimeRef.current) {
       const viewDuration = Date.now() - panelOpenTimeRef.current;
       trackEvent('panel_viewed', {
-        panel_name: currentPanelRef.current as any,
+        panel_name: currentPanelRef.current,
         view_duration_ms: viewDuration
       });
     }
