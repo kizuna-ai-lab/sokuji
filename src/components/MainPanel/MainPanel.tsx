@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { X, Zap, Users, Mic, Wrench, Loader, Play, Volume2 } from 'lucide-react';
+import { X, Zap, Users, Mic, Wrench, Loader, Play, Volume2, Eye, EyeOff } from 'lucide-react';
 import './MainPanel.scss';
 import { useSettings } from '../../contexts/SettingsContext';
 import { useSession } from '../../contexts/SessionContext';
@@ -16,6 +16,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { Provider, isOpenAICompatible } from '../../types/Provider';
 import AudioFeedbackWarning from '../AudioFeedbackWarning/AudioFeedbackWarning';
 import { getSafeAudioConfiguration, decodeAudioToWav } from '../../utils/audioUtils';
+import SimpleMainPanel from '../SimpleMainPanel/SimpleMainPanel';
 
 interface MainPanelProps {}
 
@@ -31,6 +32,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   // Get settings from context
   const {
     commonSettings,
+    updateCommonSettings,
     openAISettings,
     cometAPISettings,
     geminiSettings,
@@ -1277,8 +1279,48 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     handleDeviceSwitch();
   }, [selectedInputDevice?.deviceId, isSessionActive, isInputDeviceOn]);
 
+  // Toggle between basic and advanced mode
+  const toggleUIMode = useCallback(() => {
+    const newMode = commonSettings.uiMode === 'basic' ? 'advanced' : 'basic';
+    updateCommonSettings({ uiMode: newMode });
+    
+    trackEvent('ui_mode_toggled', {
+      from_mode: commonSettings.uiMode,
+      to_mode: newMode
+    });
+  }, [commonSettings.uiMode, updateCommonSettings, trackEvent]);
+
+  // If in basic mode, render the simplified interface
+  if (commonSettings.uiMode === 'basic') {
+    return (
+      <div className="main-panel-wrapper">
+        <button className="mode-toggle-btn" onClick={toggleUIMode} title={t('mainPanel.switchToAdvanced', 'Switch to advanced mode')}>
+          <Eye size={16} />
+          <span>{t('mainPanel.advancedMode', 'Advanced')}</span>
+        </button>
+        <SimpleMainPanel
+          items={items}
+          isSessionActive={isSessionActive}
+          isInitializing={isInitializing}
+          onStartSession={connectConversation}
+          onEndSession={disconnectConversation}
+          canPushToTalk={canPushToTalk}
+          isRecording={isRecording}
+          onStartRecording={startRecording}
+          onStopRecording={stopRecording}
+        />
+      </div>
+    );
+  }
+
+  // Render the advanced interface
   return (
-    <div className="main-panel">
+    <div className="main-panel-wrapper">
+      <button className="mode-toggle-btn" onClick={toggleUIMode} title={t('mainPanel.switchToBasic', 'Switch to basic mode')}>
+        <EyeOff size={16} />
+        <span>{t('mainPanel.basicMode', 'Basic')}</span>
+      </button>
+      <div className="main-panel">
       <div className="conversation-container" ref={conversationContainerRef}>
         <div className="conversation-content" data-conversation-content>
           {items.length > 0 ? (
@@ -1530,6 +1572,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           setFeedbackWarningDismissed(true);
         }}
       />
+      </div>
     </div>
   );
 };

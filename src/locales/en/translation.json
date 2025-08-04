@@ -12,7 +12,9 @@
     "warning": "Warning",
     "info": "Information",
     "logs": "Logs",
-    "clear": "Clear"
+    "clear": "Clear",
+    "off": "Off",
+    "autoDetect": "Auto Detect"
   },
   "app": {
     "title": "Sokuji",
@@ -137,7 +139,37 @@
     "medium": "Medium",
     "high": "High",
     "apiKeyValidated": "API key validated",
-    "realtimeTranslationAvailable": "Realtime translation is available"
+    "realtimeTranslationAvailable": "Realtime translation is available",
+    "switchToAdvanced": "Switch to advanced mode",
+    "switchToBasic": "Switch to basic mode",
+    "advancedMode": "Advanced",
+    "basicMode": "Basic"
+  },
+  "simpleSettings": {
+    "quickSetup": "Quick Setup",
+    "quickSetupDesc": "Choose a preset for common scenarios",
+    "preset": {
+      "meeting": "Meeting",
+      "meetingDesc": "Optimized for business meetings",
+      "presentation": "Presentation",
+      "presentationDesc": "For lectures and presentations",
+      "casual": "Casual Chat",
+      "casualDesc": "Relaxed conversations",
+      "travel": "Travel",
+      "travelDesc": "Tourism and travel scenarios"
+    },
+    "apiKey": "API Key",
+    "apiKeyPlaceholder": "Enter your API key",
+    "validate": "Validate",
+    "howToGetApiKey": "How to get an API key?",
+    "apiKeyHelp1": "1. Visit the provider's website",
+    "apiKeyHelp2": "2. Sign up or log in to your account",
+    "apiKeyHelp3": "3. Navigate to API keys section",
+    "apiKeyHelp4": "4. Create a new API key and copy it here",
+    "languages": "Languages",
+    "uiLanguage": "Interface Language",
+    "audioSettings": "Audio Settings",
+    "audioSettingsDesc": "Configure your microphone and speakers in the Audio panel"
   },
   "audioPanel": {
     "title": "Audio Settings",
@@ -168,6 +200,18 @@
     "enableRealVoicePassthrough": "Enable Original Audio Passthrough",
     "realVoicePassthroughDescription": "Pass your original audio (speaker's voice) directly to the virtual microphone so listeners can hear both original and translated audio",
     "realVoiceVolume": "Original Audio Volume"
+  },
+  "simpleConfig": {
+    "interfaceLanguage": "Interface Language",
+    "interfaceLanguageDesc": "Choose your preferred interface language",
+    "translationLanguages": "Translation Languages",
+    "translationLanguagesDesc": "Set the languages for translation",
+    "yourLanguage": "Your Language",
+    "targetLanguage": "Target Language",
+    "microphone": "Microphone",
+    "microphoneDesc": "Select your microphone device for voice input",
+    "speaker": "Speaker",
+    "speakerDesc": "Select your speaker device for audio output"
   },
   "logsPanel": {
     "title": "Logs",
@@ -206,13 +250,47 @@
     "debug": "Debug",
     "apiKeyRequired": "Please add a valid OpenAI API Key in settings first",
     "modelsRequired": "Models are required. Please validate your API key first to load available models.",
-    "modelsLoading": "Loading available models, please wait..."
+    "modelsLoading": "Loading available models, please wait...",
+    "advancedMode": "Advanced",
+    "basicMode": "Basic",
+    "switchToAdvanced": "Switch to advanced mode",
+    "switchToBasic": "Switch to basic mode"
+  },
+  "simplePanel": {
+    "translationActive": "Translation Active",
+    "translationInactive": "Translation Inactive",
+    "statusNoApiKey": "Please configure your API key in settings",
+    "statusNoMic": "Please select a microphone in audio settings",
+    "statusConnecting": "Connecting to translation service...",
+    "statusConnected": "Ready to translate",
+    "statusDisconnected": "Click start to begin translation",
+    "languages": "Languages",
+    "provider": "Service",
+    "noConversation": "No conversation yet",
+    "startToBegin": "Click Start to begin real-time translation",
+    "you": "You",
+    "translation": "Translation",
+    "noMicSelected": "No mic selected",
+    "noSpeakerSelected": "No speaker selected",
+    "release": "Release to stop",
+    "holdToSpeak": "Hold to speak",
+    "connecting": "Connecting...",
+    "stop": "Stop",
+    "start": "Start"
   },
   "errors": {
     "microphoneAccess": "Microphone access denied",
     "networkError": "Network connection error",
     "translationFailed": "Translation failed",
     "audioError": "Audio processing error"
+  },
+  "connectionStatus": {
+    "disconnected": "Disconnected",
+    "connecting": "Connecting...",
+    "connected": "Connected",
+    "error": "Connection Error",
+    "noApiKey": "API Key Required",
+    "noMic": "Microphone Required"
   },
   "audioFeedback": {
     "title": "Audio Feedback Warning",

@@ -10,6 +10,7 @@ import { Provider, ProviderType } from '../types/Provider';
 export interface CommonSettings {
   provider: ProviderType;
   uiLanguage: string; // UI language setting
+  uiMode: 'basic' | 'advanced'; // UI display mode
   systemInstructions: string;
   templateSystemInstructions: string;
   useTemplateMode: boolean;
@@ -217,6 +218,7 @@ interface SettingsContextType {
 export const defaultCommonSettings: CommonSettings = {
   provider: Provider.OPENAI,
   uiLanguage: 'en',
+  uiMode: 'basic',
   systemInstructions: 'You are a professional simultaneous interpreter. Translate the following speech naturally and accurately, maintaining the speaker\'s tone and intent. Provide only the translation without additional commentary.',
   templateSystemInstructions: 'You are a professional simultaneous interpreter. Translate the following speech from {{SOURCE_LANGUAGE}} to {{TARGET_LANGUAGE}} naturally and accurately, maintaining the speaker\'s tone and intent. Provide only the translation without additional commentary.',
   useTemplateMode: true,
@@ -556,6 +558,19 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         const defaultValue = (defaultCommonSettings as any)[key];
         (loadedCommon as any)[key] = await settingsService.getSetting(fullKey, defaultValue);
       }
+      
+      // Handle migration from old localStorage key for UI mode
+      if (!loadedCommon.uiMode) {
+        const oldUiMode = localStorage.getItem('sokuji_ui_mode');
+        if (oldUiMode) {
+          loadedCommon.uiMode = oldUiMode === 'advanced' ? 'advanced' : 'basic';
+          // Save to new location
+          await settingsService.setSetting('settings.common.uiMode', loadedCommon.uiMode);
+          // Remove old key
+          localStorage.removeItem('sokuji_ui_mode');
+        }
+      }
+      
       setCommonSettings(loadedCommon as CommonSettings);
 
       // Load OpenAI settings

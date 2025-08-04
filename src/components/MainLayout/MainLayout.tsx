@@ -4,16 +4,19 @@ import MainPanel from '../MainPanel/MainPanel';
 import SettingsPanel from '../SettingsPanel/SettingsPanel';
 import LogsPanel from '../LogsPanel/LogsPanel';
 import AudioPanel from '../AudioPanel/AudioPanel';
+import SimpleConfigPanel from '../SimpleConfigPanel/SimpleConfigPanel';
 import Onboarding from '../Onboarding/Onboarding';
 import { Terminal, Settings, Volume2 } from 'lucide-react';
 import './MainLayout.scss';
 import { useAnalytics } from '../../lib/analytics';
+import { useSettings } from '../../contexts/SettingsContext';
 
 type PanelName = 'settings' | 'audio' | 'logs' | 'main';
 
 const MainLayout: React.FC = () => {
   const { t } = useTranslation();
   const { trackEvent } = useAnalytics();
+  const { commonSettings } = useSettings();
   const [showLogs, setShowLogs] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showAudio, setShowAudio] = useState(false);
@@ -100,14 +103,18 @@ const MainLayout: React.FC = () => {
               <Settings size={16} />
               <span>{t('settings.title')}</span>
             </button>
-            <button className={`audio-button ${showAudio ? 'active' : ''}`} onClick={toggleAudio}>
-              <Volume2 size={16} />
-              <span>{t('settings.audio')}</span>
-            </button>
-            <button className={`logs-button ${showLogs ? 'active' : ''}`} onClick={toggleLogs}>
-              <Terminal size={16} />
-              <span>{t('common.logs')}</span>
-            </button>
+            {commonSettings.uiMode === 'advanced' && (
+              <button className={`audio-button ${showAudio ? 'active' : ''}`} onClick={toggleAudio}>
+                <Volume2 size={16} />
+                <span>{t('settings.audio')}</span>
+              </button>
+            )}
+            {commonSettings.uiMode === 'advanced' && (
+              <button className={`logs-button ${showLogs ? 'active' : ''}`} onClick={toggleLogs}>
+                <Terminal size={16} />
+                <span>{t('common.logs')}</span>
+              </button>
+            )}
           </div>
         </header>
         <div className="main-panel-container">
@@ -117,9 +124,19 @@ const MainLayout: React.FC = () => {
       {(showLogs || showSettings || showAudio) && (
         <div className="settings-panel-container">
           {showLogs && <LogsPanel toggleLogs={toggleLogs} />}
-          {showSettings && <SettingsPanel toggleSettings={toggleSettings} />}
+          {showSettings && (
+            commonSettings.uiMode === 'basic' ? (
+              <SimpleConfigPanel toggleSettings={toggleSettings} />
+            ) : (
+              <SettingsPanel toggleSettings={toggleSettings} />
+            )
+          )}
           {showAudio && (
-            <AudioPanel toggleAudio={toggleAudio} />
+            commonSettings.uiMode === 'basic' ? (
+              <SimpleConfigPanel toggleSettings={toggleAudio} />
+            ) : (
+              <AudioPanel toggleAudio={toggleAudio} />
+            )
           )}
         </div>
       )}
