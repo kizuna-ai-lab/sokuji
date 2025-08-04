@@ -160,6 +160,9 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
   // Note: Auto-fetching models is now handled by SettingsContext
   // This useEffect was removed to prevent duplicate API requests
 
+
+
+  // Render advanced settings
   return (
     <div className="settings-panel">
       <div className="settings-panel-header">
@@ -378,36 +381,36 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
               }}
               disabled={isSessionActive}
             >
-              <option value="en">🇺🇸 English</option>
-              <option value="zh_CN">🇨🇳 中文 (简体)</option>
-              <option value="hi">🇮🇳 हिन्दी</option>
-              <option value="es">🇪🇸 Español</option>
-              <option value="fr">🇫🇷 Français</option>
-              <option value="ar">🇸🇦 العربية</option>
-              <option value="bn">🇧🇩 বাংলা</option>
-              <option value="pt_BR">🇧🇷 Português (Brasil)</option>
-              <option value="ru">🇷🇺 Русский</option>
-              <option value="ja">🇯🇵 日本語</option>
-              <option value="de">🇩🇪 Deutsch</option>
-              <option value="ko">🇰🇷 한국어</option>
-              <option value="fa">🇮🇷 فارسی</option>
-              <option value="tr">🇹🇷 Türkçe</option>
-              <option value="vi">🇻🇳 Tiếng Việt</option>
-              <option value="it">🇮🇹 Italiano</option>
-              <option value="th">🇹🇭 ไทย</option>
-              <option value="pl">🇵🇱 Polski</option>
-              <option value="id">🇮🇩 Bahasa Indonesia</option>
-              <option value="ms">🇲🇾 Bahasa Melayu</option>
-              <option value="nl">🇳🇱 Nederlands</option>
-              <option value="zh_TW">🇹🇼 中文 (繁體)</option>
-              <option value="pt_PT">🇵🇹 Português (Portugal)</option>
-              <option value="uk">🇺🇦 Українська</option>
-              <option value="ta">🇮🇳 தமிழ்</option>
-              <option value="te">🇮🇳 తెలుగు</option>
-              <option value="he">🇮🇱 עברית</option>
-              <option value="fil">🇵🇭 Filipino</option>
-              <option value="sv">🇸🇪 Svenska</option>
-              <option value="fi">🇫🇮 Suomi</option>
+              <option value="en">English</option>
+              <option value="zh_CN">中文 (简体)</option>
+              <option value="hi">हिन्दी</option>
+              <option value="es">Español</option>
+              <option value="fr">Français</option>
+              <option value="ar">العربية</option>
+              <option value="bn">বাংলা</option>
+              <option value="pt_BR">Português (Brasil)</option>
+              <option value="ru">Русский</option>
+              <option value="ja">日本語</option>
+              <option value="de">Deutsch</option>
+              <option value="ko">한국어</option>
+              <option value="fa">فارسی</option>
+              <option value="tr">Türkçe</option>
+              <option value="vi">Tiếng Việt</option>
+              <option value="it">Italiano</option>
+              <option value="th">ไทย</option>
+              <option value="pl">Polski</option>
+              <option value="id">Bahasa Indonesia</option>
+              <option value="ms">Bahasa Melayu</option>
+              <option value="nl">Nederlands</option>
+              <option value="zh_TW">中文 (繁體)</option>
+              <option value="pt_PT">Português (Portugal)</option>
+              <option value="uk">Українська</option>
+              <option value="ta">தமிழ்</option>
+              <option value="te">తెలుగు</option>
+              <option value="he">עברית</option>
+              <option value="fil">Filipino</option>
+              <option value="sv">Svenska</option>
+              <option value="fi">Suomi</option>
             </select>
           </div>
         </div>

@@ -1,0 +1,211 @@
+.tooltip-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+
+  .tooltip-trigger {
+    cursor: help;
+    color: #888;
+    transition: color 0.2s ease;
+    
+    &:hover {
+      color: #aaa;
+    }
+  }
+
+  .tooltip-content {
+    position: absolute;
+    z-index: 1000;
+    background: #2a2a2a;
+    border: 1px solid #444;
+    border-radius: 6px;
+    padding: 10px 12px;
+    font-size: 13px;
+    line-height: 1.5;
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    pointer-events: none;
+    opacity: 0;
+    animation: tooltipFadeIn 0.2s ease forwards;
+    white-space: normal;
+    min-width: 200px;
+
+    &.top {
+      bottom: calc(100% + 8px);
+      left: 50%;
+      transform: translateX(-50%);
+      
+      .tooltip-arrow {
+        position: absolute;
+        bottom: -5px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 0;
+        height: 0;
+        border-style: solid;
+        border-width: 5px 5px 0 5px;
+        border-color: #2a2a2a transparent transparent transparent;
+        
+        &::before {
+          content: '';
+          position: absolute;
+          bottom: 1px;
+          left: -6px;
+          width: 0;
+          height: 0;
+          border-style: solid;
+          border-width: 6px 6px 0 6px;
+          border-color: #444 transparent transparent transparent;
+        }
+      }
+    }
+
+    &.bottom {
+      top: calc(100% + 8px);
+      left: 50%;
+      transform: translateX(-50%);
+      
+      .tooltip-arrow {
+        position: absolute;
+        top: -5px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 0;
+        height: 0;
+        border-style: solid;
+        border-width: 0 5px 5px 5px;
+        border-color: transparent transparent #2a2a2a transparent;
+        
+        &::before {
+          content: '';
+          position: absolute;
+          top: -1px;
+          left: -6px;
+          width: 0;
+          height: 0;
+          border-style: solid;
+          border-width: 0 6px 6px 6px;
+          border-color: transparent transparent #444 transparent;
+        }
+      }
+    }
+
+    &.left {
+      right: calc(100% + 8px);
+      top: 50%;
+      transform: translateY(-50%);
+      
+      .tooltip-arrow {
+        position: absolute;
+        right: -5px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 0;
+        height: 0;
+        border-style: solid;
+        border-width: 5px 0 5px 5px;
+        border-color: transparent transparent transparent #2a2a2a;
+        
+        &::before {
+          content: '';
+          position: absolute;
+          right: -1px;
+          top: -6px;
+          width: 0;
+          height: 0;
+          border-style: solid;
+          border-width: 6px 0 6px 6px;
+          border-color: transparent transparent transparent #444;
+        }
+      }
+    }
+
+    &.right {
+      left: calc(100% + 8px);
+      top: 50%;
+      transform: translateY(-50%);
+      
+      .tooltip-arrow {
+        position: absolute;
+        left: -5px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 0;
+        height: 0;
+        border-style: solid;
+        border-width: 5px 5px 5px 0;
+        border-color: transparent #2a2a2a transparent transparent;
+        
+        &::before {
+          content: '';
+          position: absolute;
+          left: 1px;
+          top: -6px;
+          width: 0;
+          height: 0;
+          border-style: solid;
+          border-width: 6px 6px 6px 0;
+          border-color: transparent #444 transparent transparent;
+        }
+      }
+    }
+
+    .tooltip-body {
+      position: relative;
+      z-index: 1;
+      
+      p {
+        margin: 0 0 8px 0;
+        
+        &:last-child {
+          margin-bottom: 0;
+        }
+      }
+      
+      code {
+        background: rgba(255, 255, 255, 0.1);
+        padding: 2px 4px;
+        border-radius: 3px;
+        font-size: 12px;
+      }
+    }
+  }
+
+  @keyframes tooltipFadeIn {
+    from {
+      opacity: 0;
+      transform: translateX(-50%) translateY(4px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+  }
+
+  .tooltip-content.bottom {
+    @keyframes tooltipFadeIn {
+      from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(-4px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+      }
+    }
+  }
+
+  .tooltip-content.left,
+  .tooltip-content.right {
+    @keyframes tooltipFadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(-50%) translateX(0);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(-50%) translateX(0);
+      }
+    }
+  }
+}
