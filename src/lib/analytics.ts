@@ -102,6 +102,10 @@ export interface AnalyticsEvents {
     element?: string;
     value?: any;
   };
+  'ui_mode_toggled': {
+    from_mode: 'basic' | 'advanced';
+    to_mode: 'basic' | 'advanced';
+  };
   'push_to_talk_used': {
     session_id: string;
     hold_duration_ms: number;
