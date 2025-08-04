@@ -37,6 +37,13 @@ npm run package
 # Create distributable packages
 npm run make
 ```
+### Update Version
+* update version in root `package.json`
+* update version in `extension/package.json`
+* update version in `extension/manifest.json`
+* commit version changes with conventional commit format (e.g., `chore(release): v0.1.0`)
+* create annotated tag with the same version (e.g., `git tag -a v0.1.0 -m "Release v0.1.0"`)
+* push changes and tags to remote repository
 
 ## Architecture Overview
 
