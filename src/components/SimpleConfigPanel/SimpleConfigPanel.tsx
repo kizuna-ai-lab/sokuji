@@ -237,7 +237,7 @@ const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings })
         <div className="config-section">
           <h3>
             <Globe size={18} />
-            {t('simpleConfig.interfaceLanguage', '界面语言')}
+            {t('simpleConfig.interfaceLanguage', 'Interface Language')}
           </h3>
           <p className="section-description">
             {t('simpleConfig.interfaceLanguageDesc', 'Choose your preferred interface language')}
@@ -268,7 +268,7 @@ const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings })
         <div className="config-section">
           <h3>
             <Languages size={18} />
-            {t('simpleConfig.translationLanguages', '翻译语言')}
+            {t('simpleConfig.translationLanguages', 'Translation Languages')}
           </h3>
           <p className="section-description">
             {t('simpleConfig.translationLanguagesDesc', 'Set the languages for translation')}
@@ -276,7 +276,7 @@ const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings })
           
           <div className="language-pair-row">
             <div className="language-select-group">
-              <label>{t('simpleConfig.yourLanguage', '你的语言')}</label>
+              <label>{t('simpleConfig.yourLanguage', 'Your Language')}</label>
               <select
                 value={currentProviderSettings.sourceLanguage || 'auto'}
                 onChange={(e) => updateSourceLanguage(e.target.value)}
@@ -293,7 +293,7 @@ const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings })
             </div>
             
             <div className="language-select-group">
-              <label>{t('simpleConfig.targetLanguage', '目标语言')}</label>
+              <label>{t('simpleConfig.targetLanguage', 'Target Language')}</label>
               <select
                 value={currentProviderSettings.targetLanguage || 'en'}
                 onChange={(e) => updateTargetLanguage(e.target.value)}
@@ -381,7 +381,7 @@ const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings })
         <div className="config-section">
           <h3>
             <Mic size={18} />
-            {t('simpleConfig.microphone', '麦克风')}
+            {t('simpleConfig.microphone', 'Microphone')}
           </h3>
           <p className="section-description">
             {t('simpleConfig.microphoneDesc', 'Select your microphone device for voice input')}
@@ -421,7 +421,7 @@ const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings })
         <div className="config-section">
           <h3>
             <Volume2 size={18} />
-            {t('simpleConfig.speaker', '扬声器')}
+            {t('simpleConfig.speaker', 'Speaker')}
           </h3>
           <p className="section-description">
             {t('simpleConfig.speakerDesc', 'Select your speaker device for audio output')}
