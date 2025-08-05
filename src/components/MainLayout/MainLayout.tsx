@@ -6,7 +6,7 @@ import LogsPanel from '../LogsPanel/LogsPanel';
 import AudioPanel from '../AudioPanel/AudioPanel';
 import SimpleConfigPanel from '../SimpleConfigPanel/SimpleConfigPanel';
 import Onboarding from '../Onboarding/Onboarding';
-import { Terminal, Settings, Volume2 } from 'lucide-react';
+import { Terminal, Settings, Volume2, LayoutGrid, Sliders } from 'lucide-react';
 import './MainLayout.scss';
 import { useAnalytics } from '../../lib/analytics';
 import { useSettings } from '../../contexts/SettingsContext';
@@ -110,20 +110,14 @@ const MainLayout: React.FC = () => {
         <header className="main-panel-header">
           <h1>{t('app.title')}</h1>
           <div className="header-controls">
-            <div className="ui-mode-toggle">
-              <button 
-                className={`mode-option ${commonSettings.uiMode === 'basic' ? 'active' : ''}`}
-                onClick={() => commonSettings.uiMode !== 'basic' && toggleUIMode()}
-              >
-                {t('mainPanel.basicMode', 'Basic')}
-              </button>
-              <button 
-                className={`mode-option ${commonSettings.uiMode === 'advanced' ? 'active' : ''}`}
-                onClick={() => commonSettings.uiMode !== 'advanced' && toggleUIMode()}
-              >
-                {t('mainPanel.advancedMode', 'Advanced')}
-              </button>
-            </div>
+            <button 
+              className={`ui-mode-toggle-icon ${commonSettings.uiMode}`}
+              onClick={toggleUIMode}
+              title={t(commonSettings.uiMode === 'basic' ? 'mainPanel.switchToAdvanced' : 'mainPanel.switchToBasic')}
+              aria-label={t(commonSettings.uiMode === 'basic' ? 'mainPanel.switchToAdvanced' : 'mainPanel.switchToBasic')}
+            >
+              {commonSettings.uiMode === 'basic' ? <LayoutGrid size={16} /> : <Sliders size={16} />}
+            </button>
             <button className={`settings-button ${showSettings ? 'active' : ''}`} onClick={toggleSettings}>
               <Settings size={16} />
               <span>{t('settings.title')}</span>
