@@ -87,6 +87,38 @@
       align-items: center;
       gap: 8px;
       
+      .ui-mode-toggle {
+        display: flex;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 20px;
+        padding: 2px;
+        margin-right: 8px;
+
+        .mode-option {
+          background: transparent;
+          border: none;
+          color: rgba(255, 255, 255, 0.6);
+          padding: 5px 12px;
+          font-size: 12px;
+          font-weight: 500;
+          cursor: pointer;
+          border-radius: 18px;
+          transition: all 0.2s ease;
+          white-space: nowrap;
+
+          &:hover:not(.active) {
+            color: rgba(255, 255, 255, 0.8);
+          }
+
+          &.active {
+            background: rgba(255, 255, 255, 0.15);
+            color: #fff;
+            cursor: default;
+          }
+        }
+      }
+      
       .settings-button,
       .audio-button,
       .logs-button {

@@ -161,7 +161,9 @@
     "initializing": "Alustetaan...",
     "apiKeyRequired": "Lisää ensin kelvollinen OpenAI API-avain asetuksiin",
     "modelsRequired": "Malleja tarvitaan. Vahvista ensin API-avaimesi ladataksesi käytettävissä olevat mallit.",
-    "modelsLoading": "Ladataan käytettävissä olevia malleja, odota hetki..."
+    "modelsLoading": "Ladataan käytettävissä olevia malleja, odota hetki...",
+    "basicMode": "Perus",
+    "advancedMode": "Edistynyt"
   },
   "audioPanel": {
     "title": "Ääniasetukset",

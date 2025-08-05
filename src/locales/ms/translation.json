@@ -259,7 +259,9 @@
     "debug": "Nyahpepijat",
     "apiKeyRequired": "Sila tambah kunci API OpenAI yang sah dalam tetapan terlebih dahulu",
     "modelsRequired": "Model diperlukan. Sila sahkan kunci API anda terlebih dahulu untuk memuatkan model yang tersedia.",
-    "modelsLoading": "Memuatkan model yang tersedia, sila tunggu..."
+    "modelsLoading": "Memuatkan model yang tersedia, sila tunggu...",
+    "basicMode": "Asas",
+    "advancedMode": "Lanjutan"
   },
   "errors": {
     "microphoneAccess": "Akses mikrofon ditolak",
