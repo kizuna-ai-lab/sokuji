@@ -142,7 +142,8 @@
     "holdToSpeak": "Hawakan para magsalita",
     "connecting": "Kumukonekta...",
     "stop": "Itigil",
-    "start": "Simulan"
+    "start": "Simulan",
+    "sessionDuration": "Duration"
   },
   "connectionStatus": {
     "disconnected": "Nakadiskonekta",

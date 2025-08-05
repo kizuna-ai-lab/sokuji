@@ -255,7 +255,8 @@
     "holdToSpeak": "কথা বলতে ধরে রাখুন",
     "connecting": "সংযোগ হচ্ছে...",
     "stop": "থামুন",
-    "start": "শুরু"
+    "start": "শুরু",
+    "sessionDuration": "Duration"
   },
   "errors": {
     "microphoneAccess": "মাইক্রোফোন অ্যাক্সেস অস্বীকৃত",

@@ -326,7 +326,8 @@
     "holdToSpeak": "長押しして話す",
     "connecting": "接続中...",
     "stop": "停止",
-    "start": "開始"
+    "start": "開始",
+    "sessionDuration": "Duration"
   },
   "connectionStatus": {
     "disconnected": "切断済み",

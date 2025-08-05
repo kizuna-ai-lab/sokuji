@@ -181,7 +181,8 @@
     "holdToSpeak": "החזק כדי לדבר",
     "connecting": "מתחבר...",
     "stop": "עצור",
-    "start": "התחל"
+    "start": "התחל",
+    "sessionDuration": "Duration"
   },
   "connectionStatus": {
     "disconnected": "מנותק",

@@ -324,7 +324,8 @@
     "holdToSpeak": "Удерживайте, чтобы говорить",
     "connecting": "Подключение...",
     "stop": "Стоп",
-    "start": "Старт"
+    "start": "Старт",
+    "sessionDuration": "Duration"
   },
   "connectionStatus": {
     "disconnected": "Отключен",

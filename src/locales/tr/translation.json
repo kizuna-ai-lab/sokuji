@@ -39,10 +39,6 @@
     "sessionActiveNotice": "Oturum aktifken ayarlar kilitlenir. Ayarları değiştirmek için lütfen oturumu sonlandırın.",
     "realtimeModelAvailable": "Gerçek zamanlı model kullanılabilir",
     "realtimeModelNotAvailable": "Gerçek zamanlı model kullanılamıyor",
-    "refreshModels": "Mevcut modelleri yenile",
-    "loadingModels": "Mevcut modeller yükleniyor...",
-    "modelsFound": "{{count}} model mevcut",
-    "experimentalFeatureTooltip": "Bu deneysel bir özelliktir ve kararsız olabilir.",
     "help": "Yardım",
     "auto": "Otomatik",
     "low": "Düşük",
@@ -244,7 +240,8 @@
     "holdToSpeak": "Konuşmak için basılı tutun",
     "connecting": "Bağlanıyor...",
     "stop": "Durdur",
-    "start": "Başlat"
+    "start": "Başlat",
+    "sessionDuration": "Duration"
   },
   "connectionStatus": {
     "disconnected": "Bağlantı kesildi",

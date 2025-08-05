@@ -39,10 +39,6 @@
     "sessionActiveNotice": "Cài đặt bị khóa khi phiên đang hoạt động. Vui lòng kết thúc phiên để thay đổi cài đặt.",
     "realtimeModelAvailable": "Mô hình thời gian thực có sẵn",
     "realtimeModelNotAvailable": "Mô hình thời gian thực không có sẵn",
-    "refreshModels": "Làm mới các mô hình có sẵn",
-    "loadingModels": "Đang tải các mô hình có sẵn...",
-    "modelsFound": "{{count}} mô hình có sẵn",
-    "experimentalFeatureTooltip": "Đây là một tính năng thử nghiệm và có thể không ổn định.",
     "help": "Trợ giúp",
     "auto": "Tự động",
     "low": "Thấp",
@@ -244,7 +240,8 @@
     "holdToSpeak": "Giữ để nói",
     "connecting": "Kết nối...",
     "stop": "Dừng",
-    "start": "Bắt đầu"
+    "start": "Bắt đầu",
+    "sessionDuration": "Duration"
   },
   "connectionStatus": {
     "disconnected": "Mất kết nối",

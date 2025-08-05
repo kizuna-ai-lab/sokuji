@@ -258,7 +258,8 @@
     "holdToSpeak": "اضغط مع الاستمرار للتحدث",
     "connecting": "جاري الاتصال...",
     "stop": "توقف",
-    "start": "ابدأ"
+    "start": "ابدأ",
+    "sessionDuration": "Duration"
   },
   "errors": {
     "microphoneAccess": "تم رفض الوصول إلى الميكروفون",

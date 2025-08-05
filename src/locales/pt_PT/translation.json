@@ -181,7 +181,8 @@
     "holdToSpeak": "Mantenha premido para falar",
     "connecting": "A ligar...",
     "stop": "Parar",
-    "start": "Iniciar"
+    "start": "Iniciar",
+    "sessionDuration": "Duration"
   },
   "connectionStatus": {
     "disconnected": "Desligado",
