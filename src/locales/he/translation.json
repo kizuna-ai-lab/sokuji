@@ -259,7 +259,9 @@
     "debug": "ניפוי שגיאות",
     "apiKeyRequired": "אנא הוסף תחילה מפתח API תקף של OpenAI בהגדרות",
     "modelsRequired": "נדרשים מודלים. אנא אמת תחילה את מפתח ה-API שלך כדי לטעון מודלים זמינים.",
-    "modelsLoading": "טוען מודלים זמינים, אנא המתן..."
+    "modelsLoading": "טוען מודלים זמינים, אנא המתן...",
+    "basicMode": "בסיסי",
+    "advancedMode": "מתקדם"
   },
   "errors": {
     "microphoneAccess": "גישה למיקרופון נדחתה",

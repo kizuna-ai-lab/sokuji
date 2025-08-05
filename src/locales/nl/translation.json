@@ -166,7 +166,9 @@
     "debug": "Debug",
     "apiKeyRequired": "Voeg eerst een geldige OpenAI API sleutel toe in de instellingen",
     "modelsRequired": "Modellen zijn vereist. Valideer eerst uw API-sleutel om beschikbare modellen te laden.",
-    "modelsLoading": "Beschikbare modellen laden, even geduld..."
+    "modelsLoading": "Beschikbare modellen laden, even geduld...",
+    "basicMode": "Basis",
+    "advancedMode": "Geavanceerd"
   },
   "errors": {
     "microphoneAccess": "Microfoon toegang geweigerd",

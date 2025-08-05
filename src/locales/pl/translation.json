@@ -165,7 +165,9 @@
     "debug": "Debuguj",
     "apiKeyRequired": "Proszę najpierw dodać ważny klucz API OpenAI w ustawieniach",
     "modelsRequired": "Wymagane są modele. Proszę najpierw zweryfikować klucz API, aby załadować dostępne modele.",
-    "modelsLoading": "Ładowanie dostępnych modeli, proszę czekać..."
+    "modelsLoading": "Ładowanie dostępnych modeli, proszę czekać...",
+    "basicMode": "Podstawowy",
+    "advancedMode": "Zaawansowany"
   },
   "errors": {
     "microphoneAccess": "Dostęp do mikrofonu został odrzucony",

@@ -208,7 +208,9 @@
     "debug": "偵錯",
     "apiKeyRequired": "請先在設定中新增有效的OpenAI API金鑰",
     "modelsRequired": "需要模型清單。請先驗證您的API金鑰以載入可用模型。",
-    "modelsLoading": "正在載入可用模型，請稍候..."
+    "modelsLoading": "正在載入可用模型，請稍候...",
+    "basicMode": "基礎",
+    "advancedMode": "進階"
   },
   "errors": {
     "microphoneAccess": "麥克風存取被拒絕",

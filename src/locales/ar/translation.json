@@ -149,7 +149,7 @@
       "description": "مدعوم بنماذج GPT"
     },
     "gemini": {
-      "name": "Google Gemini", 
+      "name": "Google Gemini",
       "description": "تقنية الذكاء الاصطناعي من Google"
     },
     "cometapi": {

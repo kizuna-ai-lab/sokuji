@@ -166,7 +166,9 @@
     "debug": "デバッグ",
     "apiKeyRequired": "まず設定で有効なOpenAI APIキーを追加してください",
     "modelsRequired": "モデルが必要です。利用可能なモデルを読み込むために、まずAPIキーを検証してください。",
-    "modelsLoading": "利用可能なモデルを読み込み中です。お待ちください..."
+    "modelsLoading": "利用可能なモデルを読み込み中です。お待ちください...",
+    "basicMode": "ベーシック",
+    "advancedMode": "アドバンスト"
   },
   "errors": {
     "microphoneAccess": "マイクへのアクセスが拒否されました",
