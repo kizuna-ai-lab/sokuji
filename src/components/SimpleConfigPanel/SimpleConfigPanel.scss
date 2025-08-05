@@ -83,9 +83,10 @@
         align-items: center;
         gap: 10px;
         margin: 0 0 12px 0;
-        font-size: 18px;
-        font-weight: 600;
-        color: #fff;
+        font-size: 14px;
+        font-weight: 500;
+        color: #ccc;
+        position: relative;
       }
 
       .section-description {
@@ -98,8 +99,9 @@
       // Language Pair Row
       .language-pair-row {
         display: grid;
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: 1fr auto 1fr;
         gap: 16px;
+        align-items: end;
 
         .language-select-group {
           display: flex;
@@ -131,6 +133,14 @@
               cursor: not-allowed;
             }
           }
+        }
+
+        .language-arrow {
+          color: #666;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin-bottom: 8px;
         }
       }
 
@@ -277,11 +287,8 @@
       }
 
       .help-link {
-        background: none;
-        border: none;
         color: #10a37f;
         font-size: 13px;
-        cursor: pointer;
         display: flex;
         align-items: center;
         gap: 6px;
@@ -412,6 +419,10 @@
       .language-pair-row {
         grid-template-columns: 1fr;
         gap: 12px;
+        
+        .language-arrow {
+          display: none;
+        }
       }
 
       .device-list {

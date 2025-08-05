@@ -12,7 +12,9 @@
     "warning": "Advertencia",
     "info": "Información",
     "logs": "Registros",
-    "clear": "Limpiar"
+    "clear": "Limpiar",
+    "off": "Apagado",
+    "autoDetect": "Detección Automática"
   },
   "app": {
     "title": "Sokuji",
@@ -241,5 +243,97 @@
         "content": "¡Excelente! Has completado la guía de configuración y ahora estás familiarizado con la interfaz. Para comenzar a usar Sokuji, por favor ingresa tu clave API de OpenAI en la configuración, otorga permisos de micrófono cuando se solicite, y selecciona \"Sokuji Virtual Microphone\" como tu micrófono en tu aplicación de reuniones (Google Meet, Zoom, Microsoft Teams, etc.). Puedes reiniciar esta guía en cualquier momento desde la configuración."
       }
     }
+  },
+  "simpleSettings": {
+    "quickSetup": "Configuración Rápida",
+    "quickSetupDesc": "Elige un preset para escenarios comunes",
+    "preset": {
+      "meeting": "Reunión",
+      "meetingDesc": "Optimizado para reuniones de negocios",
+      "presentation": "Presentación",
+      "presentationDesc": "Para conferencias y presentaciones",
+      "casual": "Chat Casual",
+      "casualDesc": "Conversaciones relajadas",
+      "travel": "Viaje",
+      "travelDesc": "Escenarios de turismo y viajes"
+    },
+    "apiKey": "Clave API",
+    "apiKeyPlaceholder": "Ingresa tu clave API",
+    "validate": "Validar",
+    "howToGetApiKey": "¿Cómo obtener una clave API?",
+    "apiKeyHelp1": "1. Visita el sitio web del proveedor",
+    "apiKeyHelp2": "2. Regístrate o inicia sesión en tu cuenta",
+    "apiKeyHelp3": "3. Navega a la sección de claves API",
+    "apiKeyHelp4": "4. Crea una nueva clave API y cópiala aquí",
+    "apiKeyHelpTooltip": "Una clave API es como una contraseña que permite a Sokuji usar los servicios de traducción AI. Necesitas obtener una de tu proveedor elegido (como OpenAI).",
+    "apiKeyHelpTooltip2": "Guía paso a paso:",
+    "languages": "Idiomas",
+    "uiLanguage": "Idioma de la Interfaz",
+    "audioSettings": "Configuración de Audio",
+    "audioSettingsDesc": "Configura tu micrófono y altavoces en el panel de Audio"
+  },
+  "simpleConfig": {
+    "interfaceLanguage": "Idioma de la Interfaz",
+    "interfaceLanguageDesc": "Esto cambia el idioma de los menús y botones de Sokuji. NO afecta los idiomas entre los que puedes traducir.",
+    "translationLanguages": "Idiomas de Traducción",
+    "translationLanguagesDesc": "Elige qué idioma hablas (Tu Idioma) y en qué idioma quieres escuchar la traducción (Idioma Objetivo). Selecciona \"Detección Automática\" si no estás seguro del idioma origen.",
+    "yourLanguage": "Tu Idioma",
+    "targetLanguage": "Idioma Objetivo",
+    "microphone": "Micrófono",
+    "microphoneDesc": "Elige qué micrófono debe escuchar Sokuji. Esto captura el habla que quieres traducir en tiempo real. Selecciona \"Apagado\" para desactivar la entrada de voz.",
+    "speaker": "Altavoz",
+    "speakerDesc": "Elige dónde quieres escuchar el habla traducida. Este es el altavoz o auriculares que reproducirán la traducción generada por AI. Selecciona \"Apagado\" para desactivar la salida de audio."
+  },
+  "providers": {
+    "openai": {
+      "name": "OpenAI",
+      "description": "Impulsado por modelos GPT"
+    },
+    "gemini": {
+      "name": "Google Gemini",
+      "description": "Tecnología AI de Google"
+    },
+    "cometapi": {
+      "name": "Comet API",
+      "description": "Proveedor AI alternativo"
+    },
+    "palabraai": {
+      "name": "Palabra AI",
+      "description": "AI de traducción especializada"
+    },
+    "unknown": {
+      "name": "Desconocido",
+      "description": "Proveedor desconocido"
+    }
+  },
+  "simplePanel": {
+    "translationActive": "Traducción Activa",
+    "translationInactive": "Traducción Inactiva",
+    "statusNoApiKey": "Por favor configura tu clave API en configuración",
+    "statusNoMic": "Por favor selecciona un micrófono en configuración de audio",
+    "statusConnecting": "Conectando al servicio de traducción...",
+    "statusConnected": "Listo para traducir",
+    "statusDisconnected": "Haz clic en iniciar para comenzar la traducción",
+    "languages": "Idiomas",
+    "provider": "Servicio",
+    "noConversation": "Aún no hay conversación",
+    "startToBegin": "Haz clic en Iniciar para comenzar la traducción en tiempo real",
+    "you": "Tú",
+    "translation": "Traducción",
+    "noMicSelected": "Sin micrófono seleccionado",
+    "noSpeakerSelected": "Sin altavoz seleccionado",
+    "release": "Suelta para parar",
+    "holdToSpeak": "Mantén presionado para hablar",
+    "connecting": "Conectando...",
+    "stop": "Parar",
+    "start": "Iniciar"
+  },
+  "connectionStatus": {
+    "disconnected": "Desconectado",
+    "connecting": "Conectando...",
+    "connected": "Conectado",
+    "error": "Error de Conexión",
+    "noApiKey": "Clave API Requerida",
+    "noMic": "Micrófono Requerido"
   }
 }

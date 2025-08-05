@@ -12,11 +12,54 @@
     "warning": "คำเตือน",
     "info": "ข้อมูล",
     "logs": "บันทึก",
-    "clear": "ล้าง"
+    "clear": "ล้าง",
+    "off": "ปิด",
+    "autoDetect": "ตรวจสอบอัตโนมัติ"
   },
   "app": {
     "title": "Sokuji",
     "description": "แอปพลิเคชันแปลเสียงแบบเรียลไทม์"
+  },
+  "simpleSettings": {
+    "quickSetup": "การตั้งค่าอย่างรวดเร็ว",
+    "apiKey": "คีย์ API",
+    "validate": "ตรวจสอบ",
+    "languages": "ภาษา",
+    "uiLanguage": "ภาษาอินเทอร์เฟซ",
+    "audioSettings": "การตั้งค่าเสียง"
+  },
+  "simpleConfig": {
+    "interfaceLanguage": "ภาษาอินเทอร์เฟซ",
+    "yourLanguage": "ภาษาของคุณ",
+    "targetLanguage": "ภาษาเป้าหมาย",
+    "microphone": "ไมโครโฟน",
+    "speaker": "ลำโพง"
+  },
+  "providers": {
+    "openai": {
+      "name": "OpenAI",
+      "description": "ขับเคลื่อนโดยโมเดล GPT"
+    },
+    "gemini": {
+      "name": "Google Gemini",
+      "description": "เทคโนโลยี AI ของ Google"
+    },
+    "unknown": {
+      "name": "ไม่ทราบ",
+      "description": "ผู้ให้บริการที่ไม่ทราบ"
+    }
+  },
+  "simplePanel": {
+    "translationActive": "การแปลทำงาน",
+    "you": "คุณ",
+    "translation": "การแปล",
+    "stop": "หยุด",
+    "start": "เริ่ม"
+  },
+  "connectionStatus": {
+    "disconnected": "ตัดการเชื่อมต่อ",
+    "connected": "เชื่อมต่อแล้ว",
+    "error": "ข้อผิดพลาดการเชื่อมต่อ"
   },
   "settings": {
     "title": "การตั้งค่า",

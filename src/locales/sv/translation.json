@@ -12,7 +12,9 @@
     "warning": "Varning",
     "info": "Information",
     "logs": "Loggar",
-    "clear": "Rensa"
+    "clear": "Rensa",
+    "off": "Av",
+    "autoDetect": "Automatisk Detektion"
   },
   "app": {
     "title": "Sokuji",
@@ -155,5 +157,97 @@
   "errorValidatingApiKey": "Fel vid validering av API-nyckel",
   "sessionActiveNotice": "Inställningar är låsta när sessionen är aktiv. Avsluta sessionen för att ändra inställningar.",
   "realtimeModelAvailable": "Realtidsmodell är tillgänglig",
-  "realtimeModelNotAvailable": "Realtidsmodell är inte tillgänglig"
+  "realtimeModelNotAvailable": "Realtidsmodell är inte tillgänglig",
+  "simpleSettings": {
+    "quickSetup": "Snabb Installation",
+    "quickSetupDesc": "Välj en förinställning för vanliga scenarier",
+    "preset": {
+      "meeting": "Möte",
+      "meetingDesc": "Optimerad för affärsmöten",
+      "presentation": "Presentation",
+      "presentationDesc": "För konferenser och presentationer",
+      "casual": "Avslappnat Samtal",
+      "casualDesc": "Informella konversationer",
+      "travel": "Resa",
+      "travelDesc": "Turist- och resescenarier"
+    },
+    "apiKey": "API Nyckel",
+    "apiKeyPlaceholder": "Ange din API nyckel",
+    "validate": "Validera",
+    "howToGetApiKey": "Hur får man en API nyckel?",
+    "apiKeyHelp1": "1. Besök leverantörens webbplats",
+    "apiKeyHelp2": "2. Registrera dig eller logga in på ditt konto",
+    "apiKeyHelp3": "3. Navigera till API nycklar-sektionen",
+    "apiKeyHelp4": "4. Skapa en ny API nyckel och kopiera den hit",
+    "apiKeyHelpTooltip": "En API nyckel är som ett lösenord som låter Sokuji använda AI översättningstjänster. Du måste få en från din valda leverantör (som OpenAI).",
+    "apiKeyHelpTooltip2": "Steg-för-steg guide:",
+    "languages": "Språk",
+    "uiLanguage": "Gränssnittsspråk",
+    "audioSettings": "Ljudinställningar",
+    "audioSettingsDesc": "Konfigurera din mikrofon och högtalare i Ljudpanelen"
+  },
+  "simpleConfig": {
+    "interfaceLanguage": "Gränssnittsspråk",
+    "interfaceLanguageDesc": "Detta ändrar språket för Sokujis menyer och knappar. Det påverkar INTE språken du kan översätta mellan.",
+    "translationLanguages": "Översättningsspråk",
+    "translationLanguagesDesc": "Välj vilket språk du talar (Ditt Språk) och vilket språk du vill höra översättningen på (Målspråk). Välj 'Automatisk Detektion' om du inte är säker på källspråket.",
+    "yourLanguage": "Ditt Språk",
+    "targetLanguage": "Målspråk",
+    "microphone": "Mikrofon",
+    "microphoneDesc": "Välj vilken mikrofon Sokuji ska lyssna på. Detta fångar talet du vill översätta i realtid. Välj 'Av' för att inaktivera röstinmatning.",
+    "speaker": "Högtalare",
+    "speakerDesc": "Välj var du vill höra det översatta talet. Detta är högtalaren eller hörlurarna som kommer att spela upp den AI-genererade översättningen. Välj 'Av' för att inaktivera ljudutmatning."
+  },
+  "providers": {
+    "openai": {
+      "name": "OpenAI",
+      "description": "Drivs av GPT modeller"
+    },
+    "gemini": {
+      "name": "Google Gemini",
+      "description": "Googles AI teknologi"
+    },
+    "cometapi": {
+      "name": "Comet API",
+      "description": "Alternativ AI leverantör"
+    },
+    "palabraai": {
+      "name": "Palabra AI",
+      "description": "Specialiserad översättnings AI"
+    },
+    "unknown": {
+      "name": "Okänd",
+      "description": "Okänd leverantör"
+    }
+  },
+  "simplePanel": {
+    "translationActive": "Översättning Aktiv",
+    "translationInactive": "Översättning Inaktiv",
+    "statusNoApiKey": "Konfigurera din API nyckel i inställningar",
+    "statusNoMic": "Välj en mikrofon i ljudinställningar",
+    "statusConnecting": "Ansluter till översättningstjänst...",
+    "statusConnected": "Redo att översätta",
+    "statusDisconnected": "Klicka på start för att börja översättning",
+    "languages": "Språk",
+    "provider": "Tjänst",
+    "noConversation": "Ingen konversation än",
+    "startToBegin": "Klicka på Start för att börja realtidsöversättning",
+    "you": "Du",
+    "translation": "Översättning",
+    "noMicSelected": "Ingen mikrofon vald",
+    "noSpeakerSelected": "Ingen högtalare vald",
+    "release": "Släpp för att stoppa",
+    "holdToSpeak": "Håll ned för att tala",
+    "connecting": "Ansluter...",
+    "stop": "Stoppa",
+    "start": "Starta"
+  },
+  "connectionStatus": {
+    "disconnected": "Frånkopplad",
+    "connecting": "Ansluter...",
+    "connected": "Ansluten",
+    "error": "Anslutningsfel",
+    "noApiKey": "API Nyckel Krävs",
+    "noMic": "Mikrofon Krävs"
+  }
 }

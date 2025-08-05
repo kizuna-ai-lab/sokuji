@@ -12,7 +12,9 @@
     "warning": "警告",
     "info": "信息",
     "logs": "日志",
-    "clear": "清除"
+    "clear": "清除",
+    "off": "关闭",
+    "autoDetect": "自动检测"
   },
   "app": {
     "title": "Sokuji",
@@ -96,6 +98,68 @@
     "autoTempo": "自适应语速",
     "apiKeyValidated": "API密钥已验证",
     "realtimeTranslationAvailable": "实时翻译服务可用"
+  },
+  "simpleSettings": {
+    "quickSetup": "快速设置",
+    "quickSetupDesc": "为常见场景选择预设",
+    "preset": {
+      "meeting": "会议",
+      "meetingDesc": "为商务会议优化",
+      "presentation": "演示",
+      "presentationDesc": "用于讲座和演示",
+      "casual": "随意聊天",
+      "casualDesc": "轻松对话",
+      "travel": "旅行",
+      "travelDesc": "旅游和旅行场景"
+    },
+    "apiKey": "API密钥",
+    "apiKeyPlaceholder": "输入您的API密钥",
+    "validate": "验证",
+    "howToGetApiKey": "如何获取API密钥？",
+    "apiKeyHelp1": "1. 访问提供商网站",
+    "apiKeyHelp2": "2. 注册或登录您的账户",
+    "apiKeyHelp3": "3. 导航到API密钥部分",
+    "apiKeyHelp4": "4. 创建新的API密钥并复制到这里",
+    "apiKeyHelpTooltip": "API密钥就像密码，让Sokuji使用AI翻译服务。您需要从选择的提供商（如OpenAI）获取一个。",
+    "apiKeyHelpTooltip2": "分步指南：",
+    "languages": "语言",
+    "uiLanguage": "界面语言",
+    "audioSettings": "音频设置",
+    "audioSettingsDesc": "在音频面板中配置您的麦克风和扬声器"
+  },
+  "simpleConfig": {
+    "interfaceLanguage": "界面语言",
+    "interfaceLanguageDesc": "这会更改Sokuji菜单和按钮的语言。它不会影响您可以在哪些语言之间翻译。",
+    "translationLanguages": "翻译语言",
+    "translationLanguagesDesc": "选择您说的语言（您的语言）和您想要听到翻译的语言（目标语言）。如果您不确定源语言，请选择\"自动检测\"。",
+    "yourLanguage": "您的语言",
+    "targetLanguage": "目标语言",
+    "microphone": "麦克风",
+    "microphoneDesc": "选择Sokuji应该监听的麦克风。这会捕获您想要实时翻译的语音。选择\"关闭\"以禁用语音输入。",
+    "speaker": "扬声器",
+    "speakerDesc": "选择您想要听到翻译语音的地方。这是播放AI生成翻译的扬声器或耳机。选择\"关闭\"以禁用音频输出。"
+  },
+  "providers": {
+    "openai": {
+      "name": "OpenAI",
+      "description": "由GPT模型驱动"
+    },
+    "gemini": {
+      "name": "Google Gemini",
+      "description": "谷歌AI技术"
+    },
+    "cometapi": {
+      "name": "Comet API",
+      "description": "替代AI提供商"
+    },
+    "palabraai": {
+      "name": "Palabra AI",
+      "description": "专业翻译AI"
+    },
+    "unknown": {
+      "name": "未知",
+      "description": "未知提供商"
+    }
   },
   "audioPanel": {
     "title": "音频设置",

@@ -12,7 +12,9 @@
     "warning": "Amaran",
     "info": "Maklumat",
     "logs": "Log",
-    "clear": "Kosongkan"
+    "clear": "Kosongkan",
+    "off": "Mati",
+    "autoDetect": "Kesan Automatik"
   },
   "app": {
     "title": "Sokuji",
@@ -96,6 +98,98 @@
     "autoTempo": "Kelajuan Pertuturan Adaptif",
     "apiKeyValidated": "Kunci API disahkan",
     "realtimeTranslationAvailable": "Perkhidmatan terjemahan masa nyata tersedia"
+  },
+  "simpleSettings": {
+    "quickSetup": "Persediaan Pantas",
+    "quickSetupDesc": "Pilih preset untuk senario biasa",
+    "preset": {
+      "meeting": "Mesyuarat",
+      "meetingDesc": "Dioptimumkan untuk mesyuarat perniagaan",
+      "presentation": "Pembentangan",
+      "presentationDesc": "Untuk kuliah dan pembentangan",
+      "casual": "Sembang Santai",
+      "casualDesc": "Perbualan santai",
+      "travel": "Perjalanan",
+      "travelDesc": "Senario pelancongan dan perjalanan"
+    },
+    "apiKey": "Kunci API",
+    "apiKeyPlaceholder": "Masukkan kunci API anda",
+    "validate": "Sahkan",
+    "howToGetApiKey": "Bagaimana untuk mendapatkan kunci API?",
+    "apiKeyHelp1": "1. Lawati laman web penyedia",
+    "apiKeyHelp2": "2. Daftar atau log masuk ke akaun anda",
+    "apiKeyHelp3": "3. Navigasi ke bahagian kunci API",
+    "apiKeyHelp4": "4. Cipta kunci API baru dan salin ke sini",
+    "apiKeyHelpTooltip": "Kunci API seperti kata laluan yang membenarkan Sokuji menggunakan perkhidmatan terjemahan AI. Anda perlu mendapatkannya dari penyedia pilihan anda (seperti OpenAI).",
+    "apiKeyHelpTooltip2": "Panduan langkah demi langkah:",
+    "languages": "Bahasa",
+    "uiLanguage": "Bahasa Antara Muka",
+    "audioSettings": "Tetapan Audio",
+    "audioSettingsDesc": "Konfigurasikan mikrofon dan pembesar suara anda dalam panel Audio"
+  },
+  "simpleConfig": {
+    "interfaceLanguage": "Bahasa Antara Muka",
+    "interfaceLanguageDesc": "Ini mengubah bahasa menu dan butang Sokuji. Ia TIDAK mempengaruhi bahasa mana yang boleh anda terjemahkan.",
+    "translationLanguages": "Bahasa Terjemahan",
+    "translationLanguagesDesc": "Pilih bahasa yang anda gunakan (Bahasa Anda) dan bahasa yang anda mahu dengar terjemahannya (Bahasa Sasaran). Pilih \"Kesan Automatik\" jika anda tidak pasti tentang bahasa sumber.",
+    "yourLanguage": "Bahasa Anda",
+    "targetLanguage": "Bahasa Sasaran",
+    "microphone": "Mikrofon",
+    "microphoneDesc": "Pilih mikrofon mana yang Sokuji patut dengar. Ini menangkap pertuturan yang anda mahu terjemahkan dalam masa nyata. Pilih \"Mati\" untuk melumpuhkan input suara.",
+    "speaker": "Pembesar Suara",
+    "speakerDesc": "Pilih di mana anda mahu mendengar pertuturan yang diterjemahkan. Ini adalah pembesar suara atau fon kepala yang akan memainkan terjemahan yang dijana AI. Pilih \"Mati\" untuk melumpuhkan output audio."
+  },
+  "providers": {
+    "openai": {
+      "name": "OpenAI",
+      "description": "Dikuasakan oleh model GPT"
+    },
+    "gemini": {
+      "name": "Google Gemini",
+      "description": "Teknologi AI Google"
+    },
+    "cometapi": {
+      "name": "Comet API",
+      "description": "Penyedia AI alternatif"
+    },
+    "palabraai": {
+      "name": "Palabra AI",
+      "description": "AI terjemahan khusus"
+    },
+    "unknown": {
+      "name": "Tidak Diketahui",
+      "description": "Penyedia tidak diketahui"
+    }
+  },
+  "simplePanel": {
+    "translationActive": "Terjemahan Aktif",
+    "translationInactive": "Terjemahan Tidak Aktif",
+    "statusNoApiKey": "Sila konfigurasikan kunci API anda dalam tetapan",
+    "statusNoMic": "Sila pilih mikrofon dalam tetapan audio",
+    "statusConnecting": "Menyambung ke perkhidmatan terjemahan...",
+    "statusConnected": "Sedia untuk menterjemah",
+    "statusDisconnected": "Klik mula untuk memulakan terjemahan",
+    "languages": "Bahasa",
+    "provider": "Perkhidmatan",
+    "noConversation": "Belum ada perbualan",
+    "startToBegin": "Klik Mula untuk memulakan terjemahan masa nyata",
+    "you": "Anda",
+    "translation": "Terjemahan",
+    "noMicSelected": "Tiada mikrofon dipilih",
+    "noSpeakerSelected": "Tiada pembesar suara dipilih",
+    "release": "Lepaskan untuk berhenti",
+    "holdToSpeak": "Tahan untuk bercakap",
+    "connecting": "Menyambung...",
+    "stop": "Berhenti",
+    "start": "Mula"
+  },
+  "connectionStatus": {
+    "disconnected": "Terputus",
+    "connecting": "Menyambung...",
+    "connected": "Disambung",
+    "error": "Ralat Sambungan",
+    "noApiKey": "Perlukan Kunci API",
+    "noMic": "Perlukan Mikrofon"
   },
   "audioPanel": {
     "title": "Tetapan Audio",

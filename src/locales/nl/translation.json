@@ -12,7 +12,9 @@
     "warning": "Waarschuwing",
     "info": "Informatie",
     "logs": "Logs",
-    "clear": "Wissen"
+    "clear": "Wissen",
+    "off": "Uit",
+    "autoDetect": "Automatische Detectie"
   },
   "app": {
     "title": "Sokuji",
@@ -239,5 +241,97 @@
         "content": "U heeft de setup gids voltooid! Zorg er nu voor dat u daadwerkelijk uw API sleutel invoert en uw instellingen configureert, gebruik dan de Sokuji virtuele microfoon in conferentie applicaties (zoals Google Meet, Zoom, enz.) om realtime vertaling te starten."
       }
     }
+  },
+  "simpleSettings": {
+    "quickSetup": "Snelle Installatie",
+    "quickSetupDesc": "Kies een preset voor veelvoorkomende scenario's",
+    "preset": {
+      "meeting": "Vergadering",
+      "meetingDesc": "Geoptimaliseerd voor zakelijke vergaderingen",
+      "presentation": "Presentatie",
+      "presentationDesc": "Voor conferenties en presentaties",
+      "casual": "Informeel Gesprek",
+      "casualDesc": "Ontspannen gesprekken",
+      "travel": "Reizen",
+      "travelDesc": "Toerisme en reisscenario's"
+    },
+    "apiKey": "API Sleutel",
+    "apiKeyPlaceholder": "Voer uw API sleutel in",
+    "validate": "Valideren",
+    "howToGetApiKey": "Hoe krijg je een API sleutel?",
+    "apiKeyHelp1": "1. Bezoek de website van de provider",
+    "apiKeyHelp2": "2. Registreer of log in bij uw account",
+    "apiKeyHelp3": "3. Ga naar de API sleutels sectie",
+    "apiKeyHelp4": "4. Maak een nieuwe API sleutel aan en kopieer deze hier",
+    "apiKeyHelpTooltip": "Een API sleutel is als een wachtwoord dat Sokuji toestaat om AI vertaaldiensten te gebruiken. Je moet er een krijgen van je gekozen provider (zoals OpenAI).",
+    "apiKeyHelpTooltip2": "Stap-voor-stap gids:",
+    "languages": "Talen",
+    "uiLanguage": "Interface Taal",
+    "audioSettings": "Audio Instellingen",
+    "audioSettingsDesc": "Configureer uw microfoon en luidsprekers in het Audio paneel"
+  },
+  "simpleConfig": {
+    "interfaceLanguage": "Interface Taal",
+    "interfaceLanguageDesc": "Dit verandert de taal van Sokuji's menu's en knoppen. Dit heeft GEEN invloed op de talen waartussen je kunt vertalen.",
+    "translationLanguages": "Vertaaltalen",
+    "translationLanguagesDesc": "Kies welke taal je spreekt (Jouw Taal) en in welke taal je de vertaling wilt horen (Doeltaal). Selecteer 'Automatische Detectie' als je niet zeker weet welke brontaal.",
+    "yourLanguage": "Jouw Taal",
+    "targetLanguage": "Doeltaal",
+    "microphone": "Microfoon",
+    "microphoneDesc": "Kies naar welke microfoon Sokuji moet luisteren. Dit vangt de spraak op die je in realtime wilt vertalen. Selecteer 'Uit' om spraakinvoer uit te schakelen.",
+    "speaker": "Luidspreker",
+    "speakerDesc": "Kies waar je de vertaalde spraak wilt horen. Dit is de luidspreker of hoofdtelefoon die de door AI gegenereerde vertaling zal afspelen. Selecteer 'Uit' om audio-uitvoer uit te schakelen."
+  },
+  "providers": {
+    "openai": {
+      "name": "OpenAI",
+      "description": "Aangedreven door GPT modellen"
+    },
+    "gemini": {
+      "name": "Google Gemini",
+      "description": "Google's AI technologie"
+    },
+    "cometapi": {
+      "name": "Comet API",
+      "description": "Alternatieve AI provider"
+    },
+    "palabraai": {
+      "name": "Palabra AI",
+      "description": "Gespecialiseerde vertaal AI"
+    },
+    "unknown": {
+      "name": "Onbekend",
+      "description": "Onbekende provider"
+    }
+  },
+  "simplePanel": {
+    "translationActive": "Vertaling Actief",
+    "translationInactive": "Vertaling Inactief",
+    "statusNoApiKey": "Configureer uw API sleutel in instellingen",
+    "statusNoMic": "Selecteer een microfoon in audio instellingen",
+    "statusConnecting": "Verbinden met vertaalservice...",
+    "statusConnected": "Klaar om te vertalen",
+    "statusDisconnected": "Klik op start om vertaling te beginnen",
+    "languages": "Talen",
+    "provider": "Service",
+    "noConversation": "Nog geen gesprek",
+    "startToBegin": "Klik op Start om realtime vertaling te beginnen",
+    "you": "Jij",
+    "translation": "Vertaling",
+    "noMicSelected": "Geen microfoon geselecteerd",
+    "noSpeakerSelected": "Geen luidspreker geselecteerd",
+    "release": "Loslaten om te stoppen",
+    "holdToSpeak": "Ingedrukt houden om te spreken",
+    "connecting": "Verbinden...",
+    "stop": "Stoppen",
+    "start": "Starten"
+  },
+  "connectionStatus": {
+    "disconnected": "Verbinding verbroken",
+    "connecting": "Verbinden...",
+    "connected": "Verbonden",
+    "error": "Verbindingsfout",
+    "noApiKey": "API Sleutel Vereist",
+    "noMic": "Microfoon Vereist"
   }
 }

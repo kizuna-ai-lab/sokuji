@@ -12,7 +12,9 @@
     "warning": "警告",
     "info": "情報",
     "logs": "ログ",
-    "clear": "クリア"
+    "clear": "クリア",
+    "off": "オフ",
+    "autoDetect": "自動検出"
   },
   "app": {
     "title": "Sokuji",
@@ -241,5 +243,97 @@
         "content": "素晴らしい！セットアップガイドが完了し、インターフェースの操作に慣れました。Sokujiの使用を開始するには、設定でOpenAI APIキーを入力し、プロンプトが表示されたらマイクの許可を与え、会議アプリケーション（Google Meet、Zoom、Microsoft Teamsなど）で「Sokuji Virtual Microphone」をマイクとして選択してください。このガイドは設定からいつでも再開できます。"
       }
     }
+  },
+  "simpleSettings": {
+    "quickSetup": "クイックセットアップ",
+    "quickSetupDesc": "よくあるシナリオのプリセットを選択",
+    "preset": {
+      "meeting": "会議",
+      "meetingDesc": "ビジネス会議用に最適化",
+      "presentation": "プレゼンテーション",
+      "presentationDesc": "講演やプレゼンテーション用",
+      "casual": "カジュアルチャット",
+      "casualDesc": "リラックスした会話",
+      "travel": "旅行",
+      "travelDesc": "観光や旅行のシナリオ"
+    },
+    "apiKey": "APIキー",
+    "apiKeyPlaceholder": "APIキーを入力してください",
+    "validate": "検証",
+    "howToGetApiKey": "APIキーの取得方法は？",
+    "apiKeyHelp1": "1. プロバイダーのウェブサイトを訪問",
+    "apiKeyHelp2": "2. アカウントにサインアップまたはログイン",
+    "apiKeyHelp3": "3. APIキーセクションに移動",
+    "apiKeyHelp4": "4. 新しいAPIキーを作成してここにコピー",
+    "apiKeyHelpTooltip": "APIキーは、SokujiがAI翻訳サービスを使用できるようにするパスワードのようなものです。選択したプロバイダー（OpenAIなど）から取得する必要があります。",
+    "apiKeyHelpTooltip2": "ステップバイステップガイド：",
+    "languages": "言語",
+    "uiLanguage": "インターフェース言語",
+    "audioSettings": "オーディオ設定",
+    "audioSettingsDesc": "オーディオパネルでマイクとスピーカーを設定"
+  },
+  "simpleConfig": {
+    "interfaceLanguage": "インターフェース言語",
+    "interfaceLanguageDesc": "これはSokujiのメニューとボタンの言語を変更します。翻訳可能な言語には影響しません。",
+    "translationLanguages": "翻訳言語",
+    "translationLanguagesDesc": "話す言語（あなたの言語）と翻訳を聞きたい言語（ターゲット言語）を選択します。ソース言語が不明な場合は「自動検出」を選択してください。",
+    "yourLanguage": "あなたの言語",
+    "targetLanguage": "ターゲット言語",
+    "microphone": "マイクロフォン",
+    "microphoneDesc": "Sokujiが聞き取るマイクを選択します。これはリアルタイムで翻訳したい音声をキャプチャします。音声入力を無効にするには「オフ」を選択してください。",
+    "speaker": "スピーカー",
+    "speakerDesc": "翻訳された音声を聞く場所を選択します。これはAI生成の翻訳を再生するスピーカーまたはヘッドフォンです。オーディオ出力を無効にするには「オフ」を選択してください。"
+  },
+  "providers": {
+    "openai": {
+      "name": "OpenAI",
+      "description": "GPTモデル搭載"
+    },
+    "gemini": {
+      "name": "Google Gemini",
+      "description": "GoogleのAI技術"
+    },
+    "cometapi": {
+      "name": "Comet API",
+      "description": "代替AIプロバイダー"
+    },
+    "palabraai": {
+      "name": "Palabra AI",
+      "description": "専門翻訳AI"
+    },
+    "unknown": {
+      "name": "不明",
+      "description": "不明なプロバイダー"
+    }
+  },
+  "simplePanel": {
+    "translationActive": "翻訳アクティブ",
+    "translationInactive": "翻訳非アクティブ",
+    "statusNoApiKey": "設定でAPIキーを設定してください",
+    "statusNoMic": "オーディオ設定でマイクを選択してください",
+    "statusConnecting": "翻訳サービスに接続中...",
+    "statusConnected": "翻訳準備完了",
+    "statusDisconnected": "開始をクリックして翻訳を始める",
+    "languages": "言語",
+    "provider": "サービス",
+    "noConversation": "まだ会話がありません",
+    "startToBegin": "開始をクリックしてリアルタイム翻訳を始める",
+    "you": "あなた",
+    "translation": "翻訳",
+    "noMicSelected": "マイクが選択されていません",
+    "noSpeakerSelected": "スピーカーが選択されていません",
+    "release": "離して停止",
+    "holdToSpeak": "長押しして話す",
+    "connecting": "接続中...",
+    "stop": "停止",
+    "start": "開始"
+  },
+  "connectionStatus": {
+    "disconnected": "切断済み",
+    "connecting": "接続中...",
+    "connected": "接続済み",
+    "error": "接続エラー",
+    "noApiKey": "APIキーが必要",
+    "noMic": "マイクが必要"
   }
 }

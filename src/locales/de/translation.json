@@ -12,7 +12,9 @@
     "warning": "Warnung",
     "info": "Information",
     "logs": "Protokolle",
-    "clear": "Löschen"
+    "clear": "Löschen",
+    "off": "Aus",
+    "autoDetect": "Automatische Erkennung"
   },
   "app": {
     "title": "Sokuji",
@@ -241,5 +243,97 @@
         "content": "Großartig! Sie haben die Setup-Anleitung abgeschlossen und sind nun mit der Benutzeroberfläche vertraut. Um Sokuji zu verwenden, geben Sie bitte Ihren OpenAI API-Schlüssel in den Einstellungen ein, gewähren Sie Mikrofonberechtigungen wenn aufgefordert, und wählen Sie \"Sokuji Virtual Microphone\" als Ihr Mikrofon in Ihrer Meeting-Anwendung (Google Meet, Zoom, Microsoft Teams, usw.). Sie können diese Anleitung jederzeit aus den Einstellungen neu starten."
       }
     }
+  },
+  "simpleSettings": {
+    "quickSetup": "Schnelle Einrichtung",
+    "quickSetupDesc": "Wählen Sie ein Preset für häufige Szenarien",
+    "preset": {
+      "meeting": "Besprechung",
+      "meetingDesc": "Optimiert für Geschäftsbesprechungen",
+      "presentation": "Präsentation",
+      "presentationDesc": "Für Vorträge und Präsentationen",
+      "casual": "Zwangloser Chat",
+      "casualDesc": "Entspannte Unterhaltungen",
+      "travel": "Reise",
+      "travelDesc": "Tourismus- und Reiseszenarien"
+    },
+    "apiKey": "API-Schlüssel",
+    "apiKeyPlaceholder": "Geben Sie Ihren API-Schlüssel ein",
+    "validate": "Validieren",
+    "howToGetApiKey": "Wie bekomme ich einen API-Schlüssel?",
+    "apiKeyHelp1": "1. Besuchen Sie die Website des Anbieters",
+    "apiKeyHelp2": "2. Registrieren Sie sich oder melden Sie sich bei Ihrem Konto an",
+    "apiKeyHelp3": "3. Navigieren Sie zum Bereich API-Schlüssel",
+    "apiKeyHelp4": "4. Erstellen Sie einen neuen API-Schlüssel und kopieren Sie ihn hier",
+    "apiKeyHelpTooltip": "Ein API-Schlüssel ist wie ein Passwort, das Sokuji ermöglicht, AI-Übersetzungsdienste zu nutzen. Sie müssen einen von Ihrem gewählten Anbieter (wie OpenAI) erhalten.",
+    "apiKeyHelpTooltip2": "Schritt-für-Schritt-Anleitung:",
+    "languages": "Sprachen",
+    "uiLanguage": "Sprache der Benutzeroberfläche",
+    "audioSettings": "Audio-Einstellungen",
+    "audioSettingsDesc": "Konfigurieren Sie Ihr Mikrofon und Ihre Lautsprecher im Audio-Panel"
+  },
+  "simpleConfig": {
+    "interfaceLanguage": "Sprache der Benutzeroberfläche",
+    "interfaceLanguageDesc": "Dies ändert die Sprache von Sokujis Menüs und Schaltflächen. Es beeinflusst NICHT, zwischen welchen Sprachen Sie übersetzen können.",
+    "translationLanguages": "Übersetzungssprachen",
+    "translationLanguagesDesc": "Wählen Sie, welche Sprache Sie sprechen (Ihre Sprache) und in welcher Sprache Sie die Übersetzung hören möchten (Zielsprache). Wählen Sie \"Automatische Erkennung\", wenn Sie sich über die Quellsprache unsicher sind.",
+    "yourLanguage": "Ihre Sprache",
+    "targetLanguage": "Zielsprache",
+    "microphone": "Mikrofon",
+    "microphoneDesc": "Wählen Sie, welches Mikrofon Sokuji abhören soll. Dies erfasst die Sprache, die Sie in Echtzeit übersetzen möchten. Wählen Sie \"Aus\", um die Spracheingabe zu deaktivieren.",
+    "speaker": "Lautsprecher",
+    "speakerDesc": "Wählen Sie, wo Sie die übersetzte Sprache hören möchten. Dies ist der Lautsprecher oder Kopfhörer, der die AI-generierte Übersetzung wiedergeben wird. Wählen Sie \"Aus\", um die Audioausgabe zu deaktivieren."
+  },
+  "providers": {
+    "openai": {
+      "name": "OpenAI",
+      "description": "Betrieben von GPT-Modellen"
+    },
+    "gemini": {
+      "name": "Google Gemini",
+      "description": "Googles AI-Technologie"
+    },
+    "cometapi": {
+      "name": "Comet API",
+      "description": "Alternativer AI-Anbieter"
+    },
+    "palabraai": {
+      "name": "Palabra AI",
+      "description": "Spezialisierte Übersetzungs-AI"
+    },
+    "unknown": {
+      "name": "Unbekannt",
+      "description": "Unbekannter Anbieter"
+    }
+  },
+  "simplePanel": {
+    "translationActive": "Übersetzung Aktiv",
+    "translationInactive": "Übersetzung Inaktiv",
+    "statusNoApiKey": "Bitte konfigurieren Sie Ihren API-Schlüssel in den Einstellungen",
+    "statusNoMic": "Bitte wählen Sie ein Mikrofon in den Audio-Einstellungen",
+    "statusConnecting": "Verbindung zum Übersetzungsdienst...",
+    "statusConnected": "Bereit zum Übersetzen",
+    "statusDisconnected": "Klicken Sie auf Start, um die Übersetzung zu beginnen",
+    "languages": "Sprachen",
+    "provider": "Dienst",
+    "noConversation": "Noch kein Gespräch",
+    "startToBegin": "Klicken Sie auf Start, um die Echtzeit-Übersetzung zu beginnen",
+    "you": "Sie",
+    "translation": "Übersetzung",
+    "noMicSelected": "Kein Mikrofon ausgewählt",
+    "noSpeakerSelected": "Kein Lautsprecher ausgewählt",
+    "release": "Loslassen zum Stoppen",
+    "holdToSpeak": "Halten zum Sprechen",
+    "connecting": "Verbinden...",
+    "stop": "Stoppen",
+    "start": "Starten"
+  },
+  "connectionStatus": {
+    "disconnected": "Getrennt",
+    "connecting": "Verbinden...",
+    "connected": "Verbunden",
+    "error": "Verbindungsfehler",
+    "noApiKey": "API-Schlüssel Erforderlich",
+    "noMic": "Mikrofon Erforderlich"
   }
 }
