@@ -184,7 +184,7 @@ const SimpleMainPanel: React.FC<SimpleMainPanelProps> = ({
               onTouchEnd={onStopRecording}
             >
               <Mic size={20} />
-              <span>{isRecording ? t('simplePanel.release', 'Release') : t('simplePanel.holdToSpeak', 'Hold')}</span>
+              <span className="btn-text">{isRecording ? t('simplePanel.release', 'Release') : t('simplePanel.holdToSpeak', 'Hold')}</span>
             </button>
           )}
           
@@ -196,17 +196,17 @@ const SimpleMainPanel: React.FC<SimpleMainPanelProps> = ({
             {isInitializing ? (
               <>
                 <Loader className="spinning" size={20} />
-                <span>{t('simplePanel.connecting', 'Connecting...')}</span>
+                <span className="btn-text">{t('simplePanel.connecting', 'Connecting...')}</span>
               </>
             ) : isSessionActive ? (
               <>
                 <span className="stop-icon">■</span>
-                <span>{t('simplePanel.stop', 'Stop')}</span>
+                <span className="btn-text">{t('simplePanel.stop', 'Stop')}</span>
               </>
             ) : (
               <>
                 <span className="play-icon">▶</span>
-                <span>{t('simplePanel.start', 'Start')}</span>
+                <span className="btn-text">{t('simplePanel.start', 'Start')}</span>
               </>
             )}
           </button>
