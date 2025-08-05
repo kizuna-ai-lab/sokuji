@@ -2,7 +2,6 @@
   display: flex;
   flex-direction: column;
   height: 100%;
-  background-color: #1a1a1a;
   color: #fff;
 
   .config-header {
@@ -11,11 +10,14 @@
     align-items: center;
     padding: 15px;
     border-bottom: 1px solid #333;
+    box-sizing: border-box;
+    width: 100%;
 
     h2 {
       margin: 0;
       font-size: 16px;
       font-weight: 500;
+      color: white;
     }
 
     .close-button {
@@ -23,11 +25,11 @@
       align-items: center;
       background: none;
       border: none;
-      color: #888;
+      color: #aaa;
       cursor: pointer;
-      padding: 8px;
+      padding: 5px 10px;
       border-radius: 4px;
-      transition: all 0.2s ease;
+      transition: all 0.2s;
 
       span {
         margin-left: 5px;
@@ -35,8 +37,8 @@
       }
 
       &:hover {
-        background: rgba(255, 255, 255, 0.1);
-        color: #fff;
+        background-color: rgba(255, 255, 255, 0.1);
+        color: white;
       }
     }
   }
@@ -45,38 +47,28 @@
   .config-content {
     flex: 1;
     overflow-y: auto;
-    padding: 20px;
-
-    &::-webkit-scrollbar {
-      width: 8px;
-    }
-    &::-webkit-scrollbar-track {
-      background: #1a1a1a;
-    }
-    &::-webkit-scrollbar-thumb {
-      background: #444;
-      border-radius: 4px;
-      &:hover {
-        background: #555;
-      }
-    }
+    overflow-x: hidden;
+    padding: 15px;
+    scrollbar-gutter: stable;
+    box-sizing: border-box;
+    width: 100%;
 
     .session-warning {
       display: flex;
       align-items: center;
       gap: 10px;
-      padding: 12px 16px;
+      padding: 6px 10px;
       background: rgba(255, 170, 0, 0.1);
       border: 1px solid rgba(255, 170, 0, 0.3);
       border-radius: 4px;
       margin-bottom: 20px;
-      font-size: 14px;
+      font-size: 12px;
       color: #ffaa00;
     }
 
     // Settings Tab Styles
     .config-section {
-      margin-bottom: 32px;
+      margin-bottom: 20px;
 
       h3 {
         display: flex;
@@ -91,7 +83,7 @@
 
       .section-description {
         margin: 0 0 16px 0;
-        font-size: 14px;
+        font-size: 12px;
         color: #888;
         line-height: 1.5;
       }
@@ -108,20 +100,27 @@
           flex-direction: column;
 
           label {
-            font-size: 13px;
+            font-size: 14px;
             color: #ccc;
             margin-bottom: 6px;
             font-weight: 500;
           }
 
           .language-select {
-            background: #2a2a2a;
-            border: 1px solid #333;
+            background: #333;
+            border: 1px solid #444;
             color: #fff;
-            padding: 8px 12px;
+            padding: 8px 10px;
             border-radius: 4px;
-            font-size: 13px;
+            font-size: 14px;
             cursor: pointer;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23FFFFFF%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+            background-repeat: no-repeat;
+            background-position: right 10px center;
+            background-size: 12px;
 
             &:focus {
               outline: none;
@@ -129,8 +128,10 @@
             }
 
             &:disabled {
-              opacity: 0.5;
+              background-color: #2a2a2a;
+              color: #777;
               cursor: not-allowed;
+              opacity: 0.6;
             }
           }
         }
@@ -147,13 +148,20 @@
       // Single Language Select
       .language-select {
         width: 100%;
-        background: #2a2a2a;
-        border: 1px solid #333;
+        background: #333;
+        border: 1px solid #444;
         color: #fff;
-        padding: 8px 12px;
+        padding: 8px 10px;
         border-radius: 4px;
-        font-size: 13px;
+        font-size: 14px;
         cursor: pointer;
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        appearance: none;
+        background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23FFFFFF%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+        background-repeat: no-repeat;
+        background-position: right 10px center;
+        background-size: 12px;
 
         &:focus {
           outline: none;
@@ -172,7 +180,7 @@
         align-items: center;
         gap: 12px;
         padding: 12px;
-        background: #2a2a2a;
+        background: #333;
         border-radius: 4px;
         margin-bottom: 16px;
 
@@ -195,7 +203,7 @@
           }
 
           .provider-description {
-            font-size: 13px;
+            font-size: 14px;
             color: #888;
           }
         }
@@ -209,12 +217,12 @@
 
         .api-key-input {
           flex: 1;
-          background: #2a2a2a;
-          border: 1px solid #333;
+          background: #333;
+          border: 1px solid #444;
           color: #fff;
-          padding: 8px 12px;
+          padding: 8px 10px;
           border-radius: 4px;
-          font-size: 13px;
+          font-size: 14px;
           transition: all 0.2s ease;
 
           &:focus {
@@ -239,7 +247,7 @@
           color: #fff;
           padding: 8px 16px;
           border-radius: 4px;
-          font-size: 13px;
+          font-size: 14px;
           font-weight: 500;
           cursor: pointer;
           transition: all 0.2s ease;
@@ -268,9 +276,9 @@
       }
 
       .validation-message {
-        padding: 8px 12px;
-        border-radius: 6px;
-        font-size: 13px;
+        padding: 6px 10px;
+        border-radius: 4px;
+        font-size: 12px;
         margin-bottom: 12px;
 
         &.success {
@@ -296,12 +304,12 @@
         transition: opacity 0.2s ease;
 
         &:hover {
-          opacity: 0.8;
+          text-decoration: underline;
         }
       }
 
       .help-content {
-        background: #2a2a2a;
+        background: #333;
         border: 1px solid #333;
         border-radius: 4px;
         padding: 12px;
@@ -339,14 +347,21 @@
           }
 
           select {
-            background: #2a2a2a;
-            border: 1px solid #333;
+            background: #333;
+            border: 1px solid #444;
             color: #fff;
-            padding: 6px 10px;
+            padding: 8px 10px;
             border-radius: 4px;
-            font-size: 13px;
+            font-size: 14px;
             cursor: pointer;
             min-width: 150px;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23FFFFFF%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+            background-repeat: no-repeat;
+            background-position: right 10px center;
+            background-size: 12px;
 
             &:focus {
               outline: none;
@@ -354,8 +369,10 @@
             }
 
             &:disabled {
-              opacity: 0.5;
+              background-color: #2a2a2a;
+              color: #777;
               cursor: not-allowed;
+              opacity: 0.6;
             }
           }
         }
@@ -369,7 +386,7 @@
         align-items: center;
         justify-content: space-between;
         padding: 10px 12px;
-        background-color: #2a2a2a;
+        background-color: #333;
         border-radius: 4px;
         margin-bottom: 6px;
         cursor: pointer;

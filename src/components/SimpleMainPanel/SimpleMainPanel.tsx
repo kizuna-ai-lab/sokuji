@@ -1,14 +1,11 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { Mic, MicOff, Loader, Volume2, VolumeX, Wifi, WifiOff, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Mic, MicOff, Volume2, VolumeX, Loader, MessageSquare } from 'lucide-react';
 import './SimpleMainPanel.scss';
 import { useSettings } from '../../contexts/SettingsContext';
 import { useSession } from '../../contexts/SessionContext';
 import { useAudioContext } from '../../contexts/AudioContext';
-import { useLog } from '../../contexts/LogContext';
 import { ConversationItem } from '../../services/clients';
 import { useTranslation } from 'react-i18next';
-import { useAnalytics } from '../../lib/analytics';
-import { Provider } from '../../types/Provider';
 
 interface SimpleMainPanelProps {
   items: ConversationItem[];
@@ -34,7 +31,6 @@ const SimpleMainPanel: React.FC<SimpleMainPanelProps> = ({
   onStopRecording
 }) => {
   const { t } = useTranslation();
-  const { trackEvent } = useAnalytics();
   const conversationContainerRef = useRef<HTMLDivElement>(null);
   
   const {
@@ -50,52 +46,8 @@ const SimpleMainPanel: React.FC<SimpleMainPanelProps> = ({
     isMonitorDeviceOn,
   } = useAudioContext();
 
-  // Determine connection status
-  const getConnectionStatus = () => {
-    if (!isApiKeyValid) return 'no-api-key';
-    if (!selectedInputDevice) return 'no-mic';
-    if (isInitializing) return 'connecting';
-    if (isSessionActive) return 'connected';
-    return 'disconnected';
-  };
-
-  const connectionStatus = getConnectionStatus();
   const currentSettings = getCurrentProviderSettings();
-
-  // Get user-friendly status message
-  const getStatusMessage = () => {
-    switch (connectionStatus) {
-      case 'no-api-key':
-        return t('simplePanel.statusNoApiKey', 'Please configure your API key in settings');
-      case 'no-mic':
-        return t('simplePanel.statusNoMic', 'Please select a microphone in audio settings');
-      case 'connecting':
-        return t('simplePanel.statusConnecting', 'Connecting to translation service...');
-      case 'connected':
-        return t('simplePanel.statusConnected', 'Ready to translate');
-      case 'disconnected':
-        return t('simplePanel.statusDisconnected', 'Click start to begin translation');
-      default:
-        return '';
-    }
-  };
-
-  // Get status icon
-  const getStatusIcon = () => {
-    switch (connectionStatus) {
-      case 'no-api-key':
-      case 'no-mic':
-        return <AlertCircle className="status-icon error" size={24} />;
-      case 'connecting':
-        return <Loader className="status-icon loading" size={24} />;
-      case 'connected':
-        return <CheckCircle2 className="status-icon success" size={24} />;
-      case 'disconnected':
-        return <WifiOff className="status-icon disconnected" size={24} />;
-      default:
-        return null;
-    }
-  };
+  const canStartSession = isApiKeyValid && selectedInputDevice && !isInitializing;
 
   // Filter conversation items to show only user messages and assistant responses
   const filteredItems = items.filter(item => 
@@ -137,42 +89,14 @@ const SimpleMainPanel: React.FC<SimpleMainPanelProps> = ({
     };
   }, [isSessionActive, canPushToTalk, isInputDeviceOn, onStartRecording, onStopRecording]);
 
-  const canStartSession = isApiKeyValid && selectedInputDevice && !isInitializing;
-
   return (
     <div className="simple-main-panel">
-      {/* Status Header */}
-      <div className="status-header">
-        <div className="status-indicator">
-          {getStatusIcon()}
-          <div className="status-text">
-            <h2>{isSessionActive ? t('simplePanel.translationActive', 'Translation Active') : t('simplePanel.translationInactive', 'Translation Inactive')}</h2>
-            <p>{getStatusMessage()}</p>
-          </div>
-        </div>
-        
-        <div className="quick-info">
-          <div className="info-item">
-            <span className="label">{t('simplePanel.languages', 'Languages')}:</span>
-            <span className="value">
-              {currentSettings.sourceLanguage} → {currentSettings.targetLanguage}
-            </span>
-          </div>
-          <div className="info-item">
-            <span className="label">{t('simplePanel.provider', 'Service')}:</span>
-            <span className="value">{commonSettings.provider}</span>
-          </div>
-        </div>
-      </div>
 
       {/* Conversation Display */}
       <div className="conversation-display" ref={conversationContainerRef}>
         {filteredItems.length === 0 ? (
           <div className="empty-state">
-            <div className="empty-icon">
-              <Volume2 size={48} />
-            </div>
-            <h3>{t('simplePanel.noConversation', 'No conversation yet')}</h3>
+            <MessageSquare size={32} />
             <p>{t('simplePanel.startToBegin', 'Click Start to begin real-time translation')}</p>
           </div>
         ) : (
@@ -195,17 +119,21 @@ const SimpleMainPanel: React.FC<SimpleMainPanelProps> = ({
 
       {/* Control Footer */}
       <div className="control-footer">
-        <div className="device-indicators">
-          <div className={`device-indicator ${isInputDeviceOn ? 'active' : 'inactive'}`}>
-            {isInputDeviceOn ? <Mic size={16} /> : <MicOff size={16} />}
-            <span>{selectedInputDevice?.label || t('simplePanel.noMicSelected', 'No mic selected')}</span>
-          </div>
-          <div className={`device-indicator ${isMonitorDeviceOn ? 'active' : 'inactive'}`}>
-            {isMonitorDeviceOn ? <Volume2 size={16} /> : <VolumeX size={16} />}
-            <span>{selectedMonitorDevice?.label || t('simplePanel.noSpeakerSelected', 'No speaker selected')}</span>
-          </div>
+        <div className="status-info">
+          <span className={`status-dot ${isSessionActive ? 'active' : ''}`} />
+          <span className="language-pair">
+            {currentSettings.sourceLanguage} → {currentSettings.targetLanguage}
+          </span>
+          <span className="device-status">
+            <span className={`device-icon ${isInputDeviceOn ? 'active' : ''}`}>
+              {isInputDeviceOn ? <Mic size={14} /> : <MicOff size={14} />}
+            </span>
+            <span className={`device-icon ${isMonitorDeviceOn ? 'active' : ''}`}>
+              {isMonitorDeviceOn ? <Volume2 size={14} /> : <VolumeX size={14} />}
+            </span>
+          </span>
         </div>
-
+        
         <div className="main-controls">
           {isSessionActive && canPushToTalk && (
             <button
@@ -216,7 +144,7 @@ const SimpleMainPanel: React.FC<SimpleMainPanelProps> = ({
               onTouchEnd={onStopRecording}
             >
               <Mic size={20} />
-              <span>{isRecording ? t('simplePanel.release', 'Release to stop') : t('simplePanel.holdToSpeak', 'Hold to speak')}</span>
+              <span>{isRecording ? t('simplePanel.release', 'Release') : t('simplePanel.holdToSpeak', 'Hold')}</span>
             </button>
           )}
           

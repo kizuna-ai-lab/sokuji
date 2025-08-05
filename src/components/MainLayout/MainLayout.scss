@@ -126,6 +126,8 @@
     flex: 1;
     display: flex;
     flex-direction: column;
+    overflow: hidden; // Prevent content from overflowing
+    min-height: 0; // Allow shrinking in flex container
   }
   
   .settings-panel-container {
