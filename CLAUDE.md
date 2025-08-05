@@ -88,6 +88,10 @@ The codebase supports both Electron desktop app and Chrome/Edge browser extensio
 
 ### Code Organization
 - Components in `src/components/` - functional React components with TypeScript
+  - `SimpleConfigPanel/` - Streamlined 6-section configuration interface
+  - `SimpleMainPanel/` - Focused conversation view with session duration
+  - `Tooltip/` - Enhanced tooltip using @floating-ui/react
+  - `ConnectionStatus/` - Real-time connection status display
 - Services in `src/services/` - implement interface contracts
 - AI clients in `src/services/clients/` - provider-specific implementations
 - Audio modules in `src/lib/modern-audio/` - Web Audio API based
@@ -124,6 +128,20 @@ if (window.electronAPI) {
 - English-only for all comments and documentation
 - Conventional commit format for git commits
 
+## Dependencies
+
+### Key Libraries
+- **@floating-ui/react**: Advanced tooltip positioning and floating elements
+  - Used in Tooltip component for accurate positioning
+  - Provides FloatingPortal for proper z-index management
+  - Includes arrow positioning and auto-placement features
+
+### Internationalization
+- **i18next**: Multi-language support framework
+- **react-i18next**: React bindings for i18next
+- Complete translations for 35+ languages
+- English fallback for missing translations
+
 ## Common Development Tasks
 
 ### Adding a New AI Provider
@@ -152,6 +170,44 @@ if (window.electronAPI) {
 3. MainPanel detects device changes via useEffect hook
 4. Important: Use `selectedInputDevice?.deviceId` string in React dependencies, not the full device object to prevent unnecessary re-renders
 5. The service tracks current device with `currentRecordingDeviceId` and handles reconnection automatically
+
+## UI Components
+
+### Simple Mode Components
+- **SimpleConfigPanel**: Unified 6-section configuration interface
+  - Interface Language - UI language selection with 35+ language support
+  - Translation Languages - source/target language pair selection
+  - API Key - provider authentication with real-time validation
+  - Microphone - input device selection with "Off" option
+  - Speaker - output device selection with "Off" option
+  - Single scrollable layout replacing tabbed interface
+
+- **SimpleMainPanel**: Streamlined conversation interface
+  - Focus on conversation content display
+  - Real-time session duration tracking (MM:SS or HH:MM:SS format)
+  - Simplified footer with device status icons
+  - Maximum space for conversation history
+
+- **Enhanced Tooltip**: Interactive help system
+  - Powered by @floating-ui/react for accurate positioning
+  - Support for hover, click, and focus triggers
+  - FloatingPortal and FloatingArrow for proper rendering
+  - Comprehensive help text with provider links
+
+- **ConnectionStatus**: Visual connection indicator
+  - Real-time connection state display
+  - Color-coded status indicators
+
+### UI Design System
+- **Color Scheme**:
+  - Input backgrounds: #333
+  - Borders: #444
+  - Font sizes: 14px (inputs), 12px (descriptions)
+- **Consistent Styling**:
+  - Unified dropdown styles with custom arrows
+  - Matching hover effects and disabled states
+  - Standardized padding and margins
+  - Consistent border-radius values
 
 ## Platform Requirements
 

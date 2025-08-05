@@ -78,31 +78,40 @@ Sokuji goes beyond basic translation by offering a complete audio routing soluti
 # Features
 
 1. **Real-time speech translation** using OpenAI, Google Gemini, CometAPI, and Palabra.ai APIs
-2. **Multi-Provider Support**: Seamlessly switch between OpenAI, Google Gemini, CometAPI, and Palabra.ai.
-3. **Supported Models**:
+2. **Simple Mode Interface**: Streamlined 6-section configuration for non-technical users:
+   - Interface language selection
+   - Translation language pairs (source/target)
+   - API key management with validation
+   - Microphone selection with "Off" option
+   - Speaker selection with "Off" option
+   - Real-time session duration display
+3. **Multi-Provider Support**: Seamlessly switch between OpenAI, Google Gemini, CometAPI, and Palabra.ai.
+4. **Supported Models**:
    - **OpenAI**: `gpt-4o-realtime-preview`, `gpt-4o-mini-realtime-preview`
    - **Google Gemini**: `gemini-2.0-flash-live-001`, `gemini-2.5-flash-preview-native-audio-dialog`
    - **CometAPI**: OpenAI-compatible models with custom endpoints
    - **Palabra.ai**: Real-time speech-to-speech translation via WebRTC
-4. **Automatic turn detection** with multiple modes (Normal, Semantic, Disabled) for OpenAI
-5. **Audio visualization** with waveform display
-6. **Advanced Virtual Microphone** (Linux only) with dual-queue audio mixing system:
+5. **Automatic turn detection** with multiple modes (Normal, Semantic, Disabled) for OpenAI
+6. **Audio visualization** with waveform display
+7. **Advanced Virtual Microphone** (Linux only) with dual-queue audio mixing system:
    - **Regular audio tracks**: Queued and played sequentially
    - **Immediate audio tracks**: Separate queue for real-time audio mixing
    - **Simultaneous playback**: Mix both track types for enhanced audio experience
    - **Chunked audio support**: Efficient handling of large audio streams
-7. **Real-time Voice Passthrough**: Live audio monitoring during recording sessions
-8. **Virtual audio device creation and management** on Linux (using PulseAudio/PipeWire)
-9. **Automatic audio routing between virtual devices** (Linux only)
-10. **Automatic device switching** and configuration persistence
-11. **Audio input and output device selection**
-12. **Comprehensive logs** for tracking API interactions
-13. **Customizable model settings** (temperature, max tokens)
-14. **User transcript model selection** (for OpenAI: `gpt-4o-mini-transcribe`, `gpt-4o-transcribe`, `whisper-1`)
-15. **Noise reduction options** (for OpenAI: None, Near field, Far field)
-16. **API key validation** with real-time feedback
-17. **Configuration persistence** in user's home directory
-18. **Optimized AI Client Performance**: Enhanced conversation management with consistent ID generation
+8. **Real-time Voice Passthrough**: Live audio monitoring during recording sessions
+9. **Virtual audio device creation and management** on Linux (using PulseAudio/PipeWire)
+10. **Automatic audio routing between virtual devices** (Linux only)
+11. **Automatic device switching** and configuration persistence
+12. **Audio input and output device selection**
+13. **Comprehensive logs** for tracking API interactions
+14. **Customizable model settings** (temperature, max tokens)
+15. **User transcript model selection** (for OpenAI: `gpt-4o-mini-transcribe`, `gpt-4o-transcribe`, `whisper-1`)
+16. **Noise reduction options** (for OpenAI: None, Near field, Far field)
+17. **API key validation** with real-time feedback
+18. **Configuration persistence** in user's home directory
+19. **Optimized AI Client Performance**: Enhanced conversation management with consistent ID generation
+20. **Enhanced Tooltips**: Interactive help tooltips powered by @floating-ui for better user guidance
+21. **Multi-language Support**: Complete internationalization with 35+ languages and English fallback
 
 # Audio Architecture
 
@@ -237,6 +246,16 @@ sudo dpkg -i sokuji_*.deb
 
 ## Recent Improvements
 
+### Simple Mode Interface (v0.10.x)
+
+Redesigned user interface for improved accessibility:
+
+- **Streamlined Configuration**: 6-section unified layout replacing complex tabbed interface
+- **Enhanced Tooltips**: Interactive help using @floating-ui library for better user guidance
+- **Session Duration Display**: Real-time tracking of conversation length
+- **Unified Styling**: Consistent UI design with improved visual hierarchy
+- **Multi-language Support**: Complete i18n with 35+ languages and English fallback
+
 ### Modern Audio Processing (v0.9.x)
 
 The audio system now features improved echo cancellation and processing:
@@ -274,8 +293,13 @@ Live audio monitoring capabilities:
   - MediaRecorder API for reliable audio capture
   - ScriptProcessor for real-time audio analysis
   - Queue-based playback system for smooth streaming
-- SASS for styling
-- Lucide React for icons
+- UI Libraries:
+  - @floating-ui/react for advanced tooltip positioning
+  - SASS for styling
+  - Lucide React for icons
+- Internationalization:
+  - i18next for multi-language support
+  - 35+ language translations
 
 # License
 
