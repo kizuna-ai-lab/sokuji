@@ -96,11 +96,11 @@
     flex-shrink: 0; // Prevent footer from being compressed
     background: #2a2a2a;
     border-top: 1px solid #333;
-    padding: 8px 12px;
+    padding: 6px 10px;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    min-height: 40px;
+    min-height: 36px;
 
     .status-info {
       display: flex;
@@ -172,7 +172,7 @@
         display: flex;
         align-items: center;
         gap: 6px;
-        height: 28px;
+        height: 24px;
 
         &:hover {
           background: #555;
@@ -202,7 +202,7 @@
         gap: 6px;
         min-width: 100px;
         justify-content: center;
-        height: 28px;
+        height: 24px;
 
         &:hover:not(:disabled) {
           background: #0d8c6d;
@@ -250,7 +250,7 @@
     }
 
     .control-footer {
-      padding: 6px 10px;
+      // padding already set in base styles, no need to override
       
       .status-info {
         .language-pair {
@@ -265,10 +265,15 @@
         .main-action-btn {
           padding: 6px 10px;
           font-size: 12px;
+          min-width: auto; // Override min-width for icon-only display
           
-          span {
-            display: none; // Hide text on mobile
+          .btn-text {
+            display: none; // Hide only text on mobile, keep icons visible
           }
+        }
+        
+        .main-action-btn {
+          min-width: 36px; // Just enough for icon + padding
         }
       }
     }
