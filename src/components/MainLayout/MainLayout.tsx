@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import MainPanel from '../MainPanel/MainPanel';
 import SettingsPanel from '../SettingsPanel/SettingsPanel';
@@ -16,7 +16,7 @@ type PanelName = 'settings' | 'audio' | 'logs' | 'main';
 const MainLayout: React.FC = () => {
   const { t } = useTranslation();
   const { trackEvent } = useAnalytics();
-  const { commonSettings } = useSettings();
+  const { commonSettings, updateCommonSettings } = useSettings();
   const [showLogs, setShowLogs] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showAudio, setShowAudio] = useState(false);
@@ -93,12 +93,37 @@ const MainLayout: React.FC = () => {
     }
   };
 
+  // Toggle between basic and advanced mode
+  const toggleUIMode = useCallback(() => {
+    const newMode = commonSettings.uiMode === 'basic' ? 'advanced' : 'basic';
+    updateCommonSettings({ uiMode: newMode });
+    
+    trackEvent('ui_mode_toggled', {
+      from_mode: commonSettings.uiMode,
+      to_mode: newMode
+    });
+  }, [commonSettings.uiMode, updateCommonSettings, trackEvent]);
+
   return (
     <div className="main-layout">
       <div className={`main-content ${(showLogs || showSettings || showAudio) ? 'with-panel' : 'full-width'}`}>
         <header className="main-panel-header">
           <h1>{t('app.title')}</h1>
           <div className="header-controls">
+            <div className="ui-mode-toggle">
+              <button 
+                className={`mode-option ${commonSettings.uiMode === 'basic' ? 'active' : ''}`}
+                onClick={() => commonSettings.uiMode !== 'basic' && toggleUIMode()}
+              >
+                {t('mainPanel.basicMode', 'Basic')}
+              </button>
+              <button 
+                className={`mode-option ${commonSettings.uiMode === 'advanced' ? 'active' : ''}`}
+                onClick={() => commonSettings.uiMode !== 'advanced' && toggleUIMode()}
+              >
+                {t('mainPanel.advancedMode', 'Advanced')}
+              </button>
+            </div>
             <button className={`settings-button ${showSettings ? 'active' : ''}`} onClick={toggleSettings}>
               <Settings size={16} />
               <span>{t('settings.title')}</span>

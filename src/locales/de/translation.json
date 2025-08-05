@@ -166,7 +166,9 @@
     "debug": "Debug",
     "apiKeyRequired": "Bitte fügen Sie zuerst einen gültigen OpenAI API-Schlüssel in den Einstellungen hinzu",
     "modelsRequired": "Modelle sind erforderlich. Bitte validieren Sie zuerst Ihren API-Schlüssel, um verfügbare Modelle zu laden.",
-    "modelsLoading": "Verfügbare Modelle werden geladen, bitte warten..."
+    "modelsLoading": "Verfügbare Modelle werden geladen, bitte warten...",
+    "basicMode": "Basis",
+    "advancedMode": "Erweitert"
   },
   "errors": {
     "microphoneAccess": "Mikrofonzugriff verweigert",

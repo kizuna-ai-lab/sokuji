@@ -149,7 +149,7 @@
       "description": "قدرت گرفته از مدل‌های GPT"
     },
     "gemini": {
-      "name": "Google Gemini", 
+      "name": "Google Gemini",
       "description": "فناوری هوش مصنوعی Google"
     },
     "cometapi": {

@@ -63,7 +63,9 @@
     "initializing": "Initialiserar...",
     "apiKeyRequired": "Lägg först till en giltig OpenAI API-nyckel i inställningarna",
     "modelsRequired": "Modeller krävs. Vänligen validera din API-nyckel först för att ladda tillgängliga modeller.",
-    "modelsLoading": "Laddar tillgängliga modeller, vänligen vänta..."
+    "modelsLoading": "Laddar tillgängliga modeller, vänligen vänta...",
+    "basicMode": "Grundläggande",
+    "advancedMode": "Avancerad"
   },
   "audioPanel": {
     "title": "Ljudinställningar",
