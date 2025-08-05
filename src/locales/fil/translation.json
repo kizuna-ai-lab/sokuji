@@ -12,7 +12,9 @@
     "warning": "Babala",
     "info": "Impormasyon",
     "logs": "Mga Log",
-    "clear": "Linisin"
+    "clear": "Linisin",
+    "off": "Patay",
+    "autoDetect": "Awtomatikong Detekta"
   },
   "app": {
     "title": "Sokuji",
@@ -51,7 +53,104 @@
     "maxQueueLevel": "Pinakamataas na Audio Buffer",
     "autoTempo": "Nakikibagay na Bilis ng Pagsasalita",
     "apiKeyValidated": "Na-validate ang API key",
-    "realtimeTranslationAvailable": "Available ang serbisyo ng real-time na pagsasalin"
+    "realtimeTranslationAvailable": "Available ang serbisyo ng real-time na pagsasalin",
+    "apiKeyValidationCompleted": "Tapos na ang pag-verify ng API key",
+    "errorValidatingApiKey": "May error sa pag-verify ng API key",
+    "sessionActiveNotice": "Nakalock ang mga setting habang aktibo ang session. Tapusin ang session para mabago ang mga setting.",
+    "realtimeModelAvailable": "Available ang realtime model",
+    "realtimeModelNotAvailable": "Hindi available ang realtime model"
+  },
+  "simpleSettings": {
+    "quickSetup": "Mabilisang Setup",
+    "quickSetupDesc": "Pumili ng preset para sa mga karaniwang sitwasyon",
+    "preset": {
+      "meeting": "Meeting",
+      "meetingDesc": "Na-optimize para sa business meetings",
+      "presentation": "Presentasyon",
+      "presentationDesc": "Para sa mga lecture at presentation",
+      "casual": "Casual na Usapan",
+      "casualDesc": "Relaxed na mga pag-uusap",
+      "travel": "Paglalakbay",
+      "travelDesc": "Tourism at travel na mga sitwasyon"
+    },
+    "apiKey": "API Key",
+    "apiKeyPlaceholder": "Ilagay ang inyong API key",
+    "validate": "I-validate",
+    "howToGetApiKey": "Paano makakuha ng API key?",
+    "apiKeyHelp1": "1. Bisitahin ang website ng provider",
+    "apiKeyHelp2": "2. Mag-sign up o mag-login sa inyong account",
+    "apiKeyHelp3": "3. Pumunta sa API keys section",
+    "apiKeyHelp4": "4. Gumawa ng bagong API key at i-copy dito",
+    "apiKeyHelpTooltip": "Ang API key ay parang password na nagbibigay-daan sa Sokuji na gamitin ang AI translation services. Kailangan ninyong kumuha ng isa mula sa inyong napiling provider (tulad ng OpenAI).",
+    "apiKeyHelpTooltip2": "Step-by-step na guide:",
+    "languages": "Mga Wika",
+    "uiLanguage": "Wika ng Interface",
+    "audioSettings": "Mga Audio Setting",
+    "audioSettingsDesc": "I-configure ang inyong microphone at speakers sa Audio panel"
+  },
+  "simpleConfig": {
+    "interfaceLanguage": "Wika ng Interface",
+    "interfaceLanguageDesc": "Binabago nito ang wika ng mga menu at button ng Sokuji. HINDI nito naaapektuhan kung anong mga wika ang pwede ninyong i-translate.",
+    "translationLanguages": "Mga Wika ng Translation",
+    "translationLanguagesDesc": "Piliin kung anong wika ang ginagamit ninyo (Inyong Wika) at kung anong wika ang gusto ninyong marinig sa translation (Target na Wika). Piliin ang \"Awtomatikong Detekta\" kung hindi kayo sigurado sa source language.",
+    "yourLanguage": "Inyong Wika",
+    "targetLanguage": "Target na Wika",
+    "microphone": "Microphone",
+    "microphoneDesc": "Piliin kung anong microphone ang dapat pakinggan ng Sokuji. Kinukuha nito ang pagsasalita na gusto ninyong i-translate nang real-time. Piliin ang \"Patay\" para i-disable ang voice input.",
+    "speaker": "Speaker",
+    "speakerDesc": "Piliin kung saan ninyo gustong marinig ang translated na pagsasalita. Ito ang speaker o headphones na mag-play ng AI-generated na translation. Piliin ang \"Patay\" para i-disable ang audio output."
+  },
+  "providers": {
+    "openai": {
+      "name": "OpenAI",
+      "description": "Powered ng GPT models"
+    },
+    "gemini": {
+      "name": "Google Gemini",
+      "description": "AI technology ng Google"
+    },
+    "cometapi": {
+      "name": "Comet API",
+      "description": "Alternative na AI provider"
+    },
+    "palabraai": {
+      "name": "Palabra AI",
+      "description": "Specialized na translation AI"
+    },
+    "unknown": {
+      "name": "Hindi Kilala",
+      "description": "Hindi kilalang provider"
+    }
+  },
+  "simplePanel": {
+    "translationActive": "Aktibo ang Translation",
+    "translationInactive": "Hindi Aktibo ang Translation",
+    "statusNoApiKey": "Pakiayos ang inyong API key sa settings",
+    "statusNoMic": "Pakipili ang microphone sa audio settings",
+    "statusConnecting": "Kumukonekta sa translation service...",
+    "statusConnected": "Handang mag-translate",
+    "statusDisconnected": "I-click ang start para simulan ang translation",
+    "languages": "Mga Wika",
+    "provider": "Serbisyo",
+    "noConversation": "Walang usapan pa",
+    "startToBegin": "I-click ang Start para simulan ang real-time translation",
+    "you": "Kayo",
+    "translation": "Translation",
+    "noMicSelected": "Walang napiling microphone",
+    "noSpeakerSelected": "Walang napiling speaker",
+    "release": "Bitiwan para tumigil",
+    "holdToSpeak": "Hawakan para magsalita",
+    "connecting": "Kumukonekta...",
+    "stop": "Itigil",
+    "start": "Simulan"
+  },
+  "connectionStatus": {
+    "disconnected": "Nakadiskonekta",
+    "connecting": "Kumukonekta...",
+    "connected": "Nakakonekta",
+    "error": "Error sa Koneksyon",
+    "noApiKey": "Kailangan ang API Key",
+    "noMic": "Kailangan ang Microphone"
   },
   "mainPanel": {
     "conversationPlaceholder": "Ang usapan ay lalabas dito",
@@ -150,10 +249,5 @@
         "content": "Natapos ninyo na ang setup guide! Ngayon, siguraduhin na talagang nalagay ninyo ang inyong API key at na-configure ang inyong mga setting, tapos gamitin ang Sokuji virtual microphone sa mga conference applications (tulad ng Google Meet, Zoom, atbp.) para simulan ang real-time translation."
       }
     }
-  },
-  "apiKeyValidationCompleted": "Tapos na ang pag-verify ng API key",
-  "errorValidatingApiKey": "May error sa pag-verify ng API key",
-  "sessionActiveNotice": "Nakalock ang mga setting habang aktibo ang session. Tapusin ang session para mabago ang mga setting.",
-  "realtimeModelAvailable": "Available ang realtime model",
-  "realtimeModelNotAvailable": "Hindi available ang realtime model"
+  }
 }

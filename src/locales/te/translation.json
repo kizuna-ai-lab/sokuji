@@ -12,11 +12,54 @@
     "warning": "హెచ్చరిక",
     "info": "సమాచారం",
     "logs": "లాగ్స్",
-    "clear": "క్లియర్ చేయి"
+    "clear": "క్లియర్ చేయి",
+    "off": "ఆఫ్",
+    "autoDetect": "ఆటో డిటెక్ట్"
   },
   "app": {
     "title": "Sokuji",
     "description": "రియల్-టైమ్ వాయిస్ ట్రాన్స్లేషన్ అప్లికేషన్"
+  },
+  "simpleSettings": {
+    "quickSetup": "వేగమైన సెటప్",
+    "apiKey": "API కీ",
+    "validate": "ధృవీకరించు",
+    "languages": "భాషలు",
+    "uiLanguage": "ఇంటర్ఫేస్ భాష",
+    "audioSettings": "ఆడియో సెట్టింగ్స్"
+  },
+  "simpleConfig": {
+    "interfaceLanguage": "ఇంటర్ఫేస్ భాష",
+    "yourLanguage": "మీ భాష",
+    "targetLanguage": "లక్ష్య భాష",
+    "microphone": "మైక్రోఫోన్",
+    "speaker": "స్పీకర్"
+  },
+  "providers": {
+    "openai": {
+      "name": "OpenAI",
+      "description": "GPT మాడల్స్ ద్వారా సంచాలితం"
+    },
+    "gemini": {
+      "name": "Google Gemini",
+      "description": "Google AI టెక్నాలజీ"
+    },
+    "unknown": {
+      "name": "తెలియనిది",
+      "description": "తెలియని ప్రదాత"
+    }
+  },
+  "simplePanel": {
+    "translationActive": "అనువాదం ఆక్టివ్",
+    "you": "మీరు",
+    "translation": "అనువాదం",
+    "stop": "ఆప్పు",
+    "start": "ప్రారంభం"
+  },
+  "connectionStatus": {
+    "disconnected": "విచ్ఛేదించబడింది",
+    "connected": "కనెక్ట్ అయ్యింది",
+    "error": "కనెక్షన్ ఎరర్"
   },
   "settings": {
     "title": "సెట్టింగ్స్",

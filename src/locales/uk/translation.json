@@ -12,11 +12,54 @@
     "warning": "Попередження",
     "info": "Інформація",
     "logs": "Логи",
-    "clear": "Очистити"
+    "clear": "Очистити",
+    "off": "Вимкнено",
+    "autoDetect": "Автовиявлення"
   },
   "app": {
     "title": "Sokuji",
     "description": "Додаток для перекладу мови в реальному часі"
+  },
+  "simpleSettings": {
+    "quickSetup": "Швидке налаштування",
+    "apiKey": "API-ключ",
+    "validate": "Перевірити",
+    "languages": "Мови",
+    "uiLanguage": "Мова інтерфейсу",
+    "audioSettings": "Налаштування аудіо"
+  },
+  "simpleConfig": {
+    "interfaceLanguage": "Мова інтерфейсу",
+    "yourLanguage": "Ваша мова",
+    "targetLanguage": "Цільова мова",
+    "microphone": "Мікрофон",
+    "speaker": "Динамік"
+  },
+  "providers": {
+    "openai": {
+      "name": "OpenAI",
+      "description": "На базі моделей GPT"
+    },
+    "gemini": {
+      "name": "Google Gemini",
+      "description": "Технологія AI від Google"
+    },
+    "unknown": {
+      "name": "Невідомо",
+      "description": "Невідомий постачальник"
+    }
+  },
+  "simplePanel": {
+    "translationActive": "Переклад активний",
+    "you": "Ви",
+    "translation": "Переклад",
+    "stop": "Зупинити",
+    "start": "Почати"
+  },
+  "connectionStatus": {
+    "disconnected": "Відключено",
+    "connected": "Підключено",
+    "error": "Помилка підключення"
   },
   "settings": {
     "title": "Налаштування",

@@ -12,7 +12,9 @@
     "warning": "Avertissement",
     "info": "Information",
     "logs": "Journaux",
-    "clear": "Effacer"
+    "clear": "Effacer",
+    "off": "Arrêt",
+    "autoDetect": "Détection Automatique"
   },
   "app": {
     "title": "Sokuji",
@@ -241,5 +243,97 @@
         "content": "Excellent ! Vous avez terminé le guide de configuration et êtes maintenant familier avec l'interface. Pour commencer à utiliser Sokuji, veuillez entrer votre clé API OpenAI dans les paramètres, accordez les permissions du microphone lorsque demandé, et sélectionnez \"Sokuji Virtual Microphone\" comme votre microphone dans votre application de réunion (Google Meet, Zoom, Microsoft Teams, etc.). Vous pouvez redémarrer ce guide à tout moment depuis les paramètres."
       }
     }
+  },
+  "simpleSettings": {
+    "quickSetup": "Configuration Rapide",
+    "quickSetupDesc": "Choisissez un preset pour des scénarios courants",
+    "preset": {
+      "meeting": "Réunion",
+      "meetingDesc": "Optimisé pour les réunions d'affaires",
+      "presentation": "Présentation",
+      "presentationDesc": "Pour les conférences et présentations",
+      "casual": "Discussion Décontractée",
+      "casualDesc": "Conversations détendues",
+      "travel": "Voyage",
+      "travelDesc": "Scénarios de tourisme et de voyage"
+    },
+    "apiKey": "Clé API",
+    "apiKeyPlaceholder": "Entrez votre clé API",
+    "validate": "Valider",
+    "howToGetApiKey": "Comment obtenir une clé API ?",
+    "apiKeyHelp1": "1. Visitez le site web du fournisseur",
+    "apiKeyHelp2": "2. Inscrivez-vous ou connectez-vous à votre compte",
+    "apiKeyHelp3": "3. Naviguez vers la section des clés API",
+    "apiKeyHelp4": "4. Créez une nouvelle clé API et copiez-la ici",
+    "apiKeyHelpTooltip": "Une clé API est comme un mot de passe qui permet à Sokuji d'utiliser les services de traduction AI. Vous devez en obtenir une auprès de votre fournisseur choisi (comme OpenAI).",
+    "apiKeyHelpTooltip2": "Guide étape par étape :",
+    "languages": "Langues",
+    "uiLanguage": "Langue de l'Interface",
+    "audioSettings": "Paramètres Audio",
+    "audioSettingsDesc": "Configurez votre microphone et vos haut-parleurs dans le panneau Audio"
+  },
+  "simpleConfig": {
+    "interfaceLanguage": "Langue de l'Interface",
+    "interfaceLanguageDesc": "Ceci change la langue des menus et boutons de Sokuji. Cela N'AFFECTE PAS les langues entre lesquelles vous pouvez traduire.",
+    "translationLanguages": "Langues de Traduction",
+    "translationLanguagesDesc": "Choisissez quelle langue vous parlez (Votre Langue) et dans quelle langue vous voulez entendre la traduction (Langue Cible). Sélectionnez \"Détection Automatique\" si vous n'êtes pas sûr de la langue source.",
+    "yourLanguage": "Votre Langue",
+    "targetLanguage": "Langue Cible",
+    "microphone": "Microphone",
+    "microphoneDesc": "Choisissez quel microphone Sokuji doit écouter. Ceci capture la parole que vous voulez traduire en temps réel. Sélectionnez \"Arrêt\" pour désactiver l'entrée vocale.",
+    "speaker": "Haut-parleur",
+    "speakerDesc": "Choisissez où vous voulez entendre la parole traduite. C'est le haut-parleur ou les écouteurs qui diffuseront la traduction générée par l'IA. Sélectionnez \"Arrêt\" pour désactiver la sortie audio."
+  },
+  "providers": {
+    "openai": {
+      "name": "OpenAI",
+      "description": "Alimenté par les modèles GPT"
+    },
+    "gemini": {
+      "name": "Google Gemini",
+      "description": "Technologie AI de Google"
+    },
+    "cometapi": {
+      "name": "Comet API",
+      "description": "Fournisseur AI alternatif"
+    },
+    "palabraai": {
+      "name": "Palabra AI",
+      "description": "IA de traduction spécialisée"
+    },
+    "unknown": {
+      "name": "Inconnu",
+      "description": "Fournisseur inconnu"
+    }
+  },
+  "simplePanel": {
+    "translationActive": "Traduction Active",
+    "translationInactive": "Traduction Inactive",
+    "statusNoApiKey": "Veuillez configurer votre clé API dans les paramètres",
+    "statusNoMic": "Veuillez sélectionner un microphone dans les paramètres audio",
+    "statusConnecting": "Connexion au service de traduction...",
+    "statusConnected": "Prêt à traduire",
+    "statusDisconnected": "Cliquez sur démarrer pour commencer la traduction",
+    "languages": "Langues",
+    "provider": "Service",
+    "noConversation": "Pas encore de conversation",
+    "startToBegin": "Cliquez sur Démarrer pour commencer la traduction en temps réel",
+    "you": "Vous",
+    "translation": "Traduction",
+    "noMicSelected": "Aucun micro sélectionné",
+    "noSpeakerSelected": "Aucun haut-parleur sélectionné",
+    "release": "Relâchez pour arrêter",
+    "holdToSpeak": "Maintenez pour parler",
+    "connecting": "Connexion...",
+    "stop": "Arrêter",
+    "start": "Démarrer"
+  },
+  "connectionStatus": {
+    "disconnected": "Déconnecté",
+    "connecting": "Connexion...",
+    "connected": "Connecté",
+    "error": "Erreur de Connexion",
+    "noApiKey": "Clé API Requise",
+    "noMic": "Microphone Requis"
   }
 }

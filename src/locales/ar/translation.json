@@ -12,7 +12,9 @@
     "warning": "تحذير",
     "info": "معلومات",
     "logs": "السجلات",
-    "clear": "مسح"
+    "clear": "مسح",
+    "off": "إيقاف",
+    "autoDetect": "اكتشاف تلقائي"
   },
   "app": {
     "title": "Sokuji",
@@ -95,7 +97,73 @@
     "maxQueueLevel": "أقصى مستوى للمخزن المؤقت",
     "autoTempo": "سرعة الكلام التكيفية",
     "apiKeyValidated": "تم التحقق من مفتاح API",
-    "realtimeTranslationAvailable": "خدمة الترجمة الفورية متاحة"
+    "realtimeTranslationAvailable": "خدمة الترجمة الفورية متاحة",
+    "switchToAdvanced": "التبديل إلى الوضع المتقدم",
+    "switchToBasic": "التبديل إلى الوضع الأساسي",
+    "advancedMode": "متقدم",
+    "basicMode": "أساسي"
+  },
+  "simpleSettings": {
+    "quickSetup": "إعداد سريع",
+    "quickSetupDesc": "اختر إعداداً مسبقاً للسيناريوهات الشائعة",
+    "preset": {
+      "meeting": "اجتماع",
+      "meetingDesc": "محسن للاجتماعات التجارية",
+      "presentation": "عرض تقديمي",
+      "presentationDesc": "للمحاضرات والعروض التقديمية",
+      "casual": "محادثة عادية",
+      "casualDesc": "محادثات مريحة",
+      "travel": "سفر",
+      "travelDesc": "سيناريوهات السياحة والسفر"
+    },
+    "apiKey": "مفتاح API",
+    "apiKeyPlaceholder": "أدخل مفتاح API الخاص بك",
+    "validate": "تحقق",
+    "howToGetApiKey": "كيفية الحصول على مفتاح API؟",
+    "apiKeyHelp1": "1. قم بزيارة موقع مقدم الخدمة",
+    "apiKeyHelp2": "2. قم بالتسجيل أو تسجيل الدخول إلى حسابك",
+    "apiKeyHelp3": "3. انتقل إلى قسم مفاتيح API",
+    "apiKeyHelp4": "4. أنشئ مفتاح API جديداً وانسخه هنا",
+    "apiKeyHelpTooltip": "مفتاح API مثل كلمة المرور التي تتيح لـ Sokuji استخدام خدمات الترجمة بالذكاء الاصطناعي. تحتاج للحصول على واحد من مقدم الخدمة المختار (مثل OpenAI).",
+    "apiKeyHelpTooltip2": "دليل خطوة بخطوة:",
+    "languages": "اللغات",
+    "uiLanguage": "لغة الواجهة",
+    "audioSettings": "إعدادات الصوت",
+    "audioSettingsDesc": "قم بتكوين الميكروفون والسماعات في لوحة الصوت"
+  },
+  "simpleConfig": {
+    "interfaceLanguage": "لغة الواجهة",
+    "interfaceLanguageDesc": "هذا يغير لغة قوائم وأزرار Sokuji. لا يؤثر على اللغات التي يمكنك الترجمة بينها.",
+    "translationLanguages": "لغات الترجمة",
+    "translationLanguagesDesc": "اختر اللغة التي تتحدث بها (لغتك) واللغة التي تريد سماع الترجمة بها (اللغة الهدف). اختر \"اكتشاف تلقائي\" إذا لم تكن متأكداً من اللغة المصدر.",
+    "yourLanguage": "لغتك",
+    "targetLanguage": "اللغة الهدف",
+    "microphone": "ميكروفون",
+    "microphoneDesc": "اختر الميكروفون الذي يجب على Sokuji الاستماع إليه. هذا يلتقط الكلام الذي تريد ترجمته في الوقت الفعلي. اختر \"إيقاف\" لتعطيل إدخال الصوت.",
+    "speaker": "سماعة",
+    "speakerDesc": "اختر المكان الذي تريد سماع الكلام المترجم فيه. هذه هي السماعة أو سماعات الرأس التي ستشغل الترجمة المولدة بالذكاء الاصطناعي. اختر \"إيقاف\" لتعطيل إخراج الصوت."
+  },
+  "providers": {
+    "openai": {
+      "name": "OpenAI",
+      "description": "مدعوم بنماذج GPT"
+    },
+    "gemini": {
+      "name": "Google Gemini", 
+      "description": "تقنية الذكاء الاصطناعي من Google"
+    },
+    "cometapi": {
+      "name": "Comet API",
+      "description": "مقدم ذكاء اصطناعي بديل"
+    },
+    "palabraai": {
+      "name": "Palabra AI",
+      "description": "ذكاء اصطناعي متخصص في الترجمة"
+    },
+    "unknown": {
+      "name": "غير معروف",
+      "description": "مقدم خدمة غير معروف"
+    }
   },
   "audioPanel": {
     "title": "إعدادات الصوت",
@@ -164,7 +232,33 @@
     "debug": "تصحيح",
     "apiKeyRequired": "يرجى إضافة مفتاح OpenAI API صالح في الإعدادات أولاً",
     "modelsRequired": "النماذج مطلوبة. يرجى التحقق من صحة مفتاح API الخاص بك أولاً لتحميل النماذج المتاحة.",
-    "modelsLoading": "جاري تحميل النماذج المتاحة، يرجى الانتظار..."
+    "modelsLoading": "جاري تحميل النماذج المتاحة، يرجى الانتظار...",
+    "advancedMode": "متقدم",
+    "basicMode": "أساسي",
+    "switchToAdvanced": "التبديل إلى الوضع المتقدم",
+    "switchToBasic": "التبديل إلى الوضع الأساسي"
+  },
+  "simplePanel": {
+    "translationActive": "الترجمة نشطة",
+    "translationInactive": "الترجمة غير نشطة",
+    "statusNoApiKey": "يرجى تكوين مفتاح API في الإعدادات",
+    "statusNoMic": "يرجى اختيار ميكروفون في إعدادات الصوت",
+    "statusConnecting": "جاري الاتصال بخدمة الترجمة...",
+    "statusConnected": "جاهز للترجمة",
+    "statusDisconnected": "انقر على ابدأ لبدء الترجمة",
+    "languages": "اللغات",
+    "provider": "الخدمة",
+    "noConversation": "لا توجد محادثة بعد",
+    "startToBegin": "انقر على ابدأ لبدء الترجمة الفورية",
+    "you": "أنت",
+    "translation": "الترجمة",
+    "noMicSelected": "لم يتم اختيار ميكروفون",
+    "noSpeakerSelected": "لم يتم اختيار سماعة",
+    "release": "حرر للتوقف",
+    "holdToSpeak": "اضغط مع الاستمرار للتحدث",
+    "connecting": "جاري الاتصال...",
+    "stop": "توقف",
+    "start": "ابدأ"
   },
   "errors": {
     "microphoneAccess": "تم رفض الوصول إلى الميكروفون",
@@ -239,5 +333,13 @@
         "content": "لقد أكملت دليل الإعداد! الآن تأكد من إدخال مفتاح API وتكوين إعداداتك فعلياً، ثم استخدم ميكروفون Sokuji الافتراضي في تطبيقات المؤتمرات (مثل Google Meet وZoom وما إلى ذلك) لبدء الترجمة الفورية."
       }
     }
+  },
+  "connectionStatus": {
+    "disconnected": "منقطع",
+    "connecting": "جاري الاتصال...",
+    "connected": "متصل",
+    "error": "خطأ في الاتصال",
+    "noApiKey": "مفتاح API مطلوب",
+    "noMic": "ميكروفون مطلوب"
   }
 }

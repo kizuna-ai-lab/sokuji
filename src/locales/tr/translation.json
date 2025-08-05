@@ -12,7 +12,9 @@
     "warning": "Uyarı",
     "info": "Bilgi",
     "logs": "Günlükler",
-    "clear": "Temizle"
+    "clear": "Temizle",
+    "off": "Kapalı",
+    "autoDetect": "Otomatik Algılama"
   },
   "app": {
     "title": "Sokuji",
@@ -159,5 +161,97 @@
         "content": "Kurulum kılavuzunu tamamladınız! Şimdi gerçekten API anahtarınızı girdiğinizden ve ayarlarınızı yapılandırdığınızdan emin olun, ardından gerçek zamanlı çeviriyi başlatmak için konferans uygulamalarında (Google Meet, Zoom vb. gibi) Sokuji sanal mikrofonunu kullanın."
       }
     }
+  },
+  "simpleSettings": {
+    "quickSetup": "Hızlı Kurulum",
+    "quickSetupDesc": "Yaygın senaryolar için ön ayar seçin",
+    "preset": {
+      "meeting": "Toplantı",
+      "meetingDesc": "Iş toplantıları için optimize edilmiş",
+      "presentation": "Sunum",
+      "presentationDesc": "Konferans ve sunumlar için",
+      "casual": "Sohbet",
+      "casualDesc": "Rahat konuşmalar",
+      "travel": "Seyahat",
+      "travelDesc": "Turizm ve seyahat senaryoları"
+    },
+    "apiKey": "API Anahtarı",
+    "apiKeyPlaceholder": "API anahtarınızı girin",
+    "validate": "Doğrula",
+    "howToGetApiKey": "API anahtarı nasıl alınır?",
+    "apiKeyHelp1": "1. Sağlayıcının web sitesini ziyaret edin",
+    "apiKeyHelp2": "2. Hesabınıza kaydolun veya giriş yapın",
+    "apiKeyHelp3": "3. API anahtarları bölümüne gidin",
+    "apiKeyHelp4": "4. Yeni bir API anahtarı oluşturun ve buraya kopyalayın",
+    "apiKeyHelpTooltip": "API anahtarı, Sokuji'nin AI çeviri hizmetlerini kullanmasına izin veren şifre gibidir. Seçtiğiniz sağlayıcıdan (OpenAI gibi) bir tane almanız gerekir.",
+    "apiKeyHelpTooltip2": "Adım adım kılavuz:",
+    "languages": "Diller",
+    "uiLanguage": "Arayüz Dili",
+    "audioSettings": "Ses Ayarları",
+    "audioSettingsDesc": "Ses panelinde mikrofonunuzu ve hoparlörlerinizi yapılandırın"
+  },
+  "simpleConfig": {
+    "interfaceLanguage": "Arayüz Dili",
+    "interfaceLanguageDesc": "Bu, Sokuji'nin menülerinin ve düğmelerinin dilini değiştirir. Çeviri yapabileceğiniz dilleri ETKİLEMEZ.",
+    "translationLanguages": "Çeviri Dilleri",
+    "translationLanguagesDesc": "Hangi dilde konuştuğunuzu (Diliniz) ve çeviriyi hangi dilde duymak istediğinizi (Hedef Dil) seçin. Kaynak dili hakkinda emin değilseniz 'Otomatik Algılama'yı seçin.",
+    "yourLanguage": "Diliniz",
+    "targetLanguage": "Hedef Dil",
+    "microphone": "Mikrofon",
+    "microphoneDesc": "Sokuji'nin hangi mikrofonu dinlemesi gerektiğini seçin. Bu, gerçek zamanda çevirmek istediğiniz konuşmayı yakalar. Ses girişini devre dışı bırakmak için 'Kapalı'yı seçin.",
+    "speaker": "Hoparlör",
+    "speakerDesc": "Çevrilmiş konuşmayı nerede duymak istediğinizi seçin. Bu, AI tarafından üretilen çeviriyi çalacak hoparlör veya kulaklıktır. Ses çıkışını devre dışı bırakmak için 'Kapalı'yı seçin."
+  },
+  "providers": {
+    "openai": {
+      "name": "OpenAI",
+      "description": "GPT modelleri ile çalışır"
+    },
+    "gemini": {
+      "name": "Google Gemini",
+      "description": "Google'un AI teknolojisi"
+    },
+    "cometapi": {
+      "name": "Comet API",
+      "description": "Alternatif AI sağlayıcısı"
+    },
+    "palabraai": {
+      "name": "Palabra AI",
+      "description": "Uzmanlaşmış çeviri AI'si"
+    },
+    "unknown": {
+      "name": "Bilinmeyen",
+      "description": "Bilinmeyen sağlayıcı"
+    }
+  },
+  "simplePanel": {
+    "translationActive": "Çeviri Aktif",
+    "translationInactive": "Çeviri Pasif",
+    "statusNoApiKey": "Ayarlarda API anahtarınızı yapılandırın",
+    "statusNoMic": "Ses ayarlarında bir mikrofon seçin",
+    "statusConnecting": "Çeviri hizmetine bağlanıyor...",
+    "statusConnected": "Çevirmeye hazır",
+    "statusDisconnected": "Çeviriyi başlatmak için başlat'a tıklayın",
+    "languages": "Diller",
+    "provider": "Hizmet",
+    "noConversation": "Henüz konuşma yok",
+    "startToBegin": "Gerçek zamanlı çeviriyi başlatmak için Başlat'a tıklayın",
+    "you": "Siz",
+    "translation": "Çeviri",
+    "noMicSelected": "Mikrofon seçilmedi",
+    "noSpeakerSelected": "Hoparlör seçilmedi",
+    "release": "Durdurmak için bırakın",
+    "holdToSpeak": "Konuşmak için basılı tutun",
+    "connecting": "Bağlanıyor...",
+    "stop": "Durdur",
+    "start": "Başlat"
+  },
+  "connectionStatus": {
+    "disconnected": "Bağlantı kesildi",
+    "connecting": "Bağlanıyor...",
+    "connected": "Bağlandı",
+    "error": "Bağlantı Hatası",
+    "noApiKey": "API Anahtarı Gerekli",
+    "noMic": "Mikrofon Gerekli"
   }
 }

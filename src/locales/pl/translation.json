@@ -12,7 +12,9 @@
     "warning": "Ostrzeżenie",
     "info": "Informacja",
     "logs": "Logi",
-    "clear": "Wyczyść"
+    "clear": "Wyczyść",
+    "off": "Wyłącz",
+    "autoDetect": "Automatyczne Wykrywanie"
   },
   "app": {
     "title": "Sokuji",
@@ -238,5 +240,97 @@
         "content": "Ukończyłeś przewodnik konfiguracji! Teraz upewnij się, że rzeczywiście wprowadzisz swój klucz API i skonfigurujesz ustawienia, a następnie użyj wirtualnego mikrofonu Sokuji w aplikacjach konferencyjnych (takich jak Google Meet, Zoom itp.), aby rozpocząć tłumaczenie w czasie rzeczywistym."
       }
     }
+  },
+  "simpleSettings": {
+    "quickSetup": "Szybka Konfiguracja",
+    "quickSetupDesc": "Wybierz preset dla popularnych scenariuszy",
+    "preset": {
+      "meeting": "Spotkanie",
+      "meetingDesc": "Zoptymalizowane dla spotkań biznesowych",
+      "presentation": "Prezentacja",
+      "presentationDesc": "Do konferencji i prezentacji",
+      "casual": "Swobodna Rozmowa",
+      "casualDesc": "Nieformalne rozmowy",
+      "travel": "Podróże",
+      "travelDesc": "Scenariusze turystyczne i podróżnicze"
+    },
+    "apiKey": "Klucz API",
+    "apiKeyPlaceholder": "Wprowadź swój klucz API",
+    "validate": "Sprawdź",
+    "howToGetApiKey": "Jak uzyskać klucz API?",
+    "apiKeyHelp1": "1. Odwiedź stronę dostawcy",
+    "apiKeyHelp2": "2. Zarejestruj się lub zaloguj do swojego konta",
+    "apiKeyHelp3": "3. Przejdź do sekcji kluczy API",
+    "apiKeyHelp4": "4. Utwórz nowy klucz API i skopiuj go tutaj",
+    "apiKeyHelpTooltip": "Klucz API to jak hasło, które pozwala Sokuji używać usług tłumaczenia AI. Musisz uzyskać go od wybranego dostawcy (np. OpenAI).",
+    "apiKeyHelpTooltip2": "Przewodnik krok po kroku:",
+    "languages": "Języki",
+    "uiLanguage": "Język Interfejsu",
+    "audioSettings": "Ustawienia Audio",
+    "audioSettingsDesc": "Skonfiguruj mikrofon i głośniki w panelu Audio"
+  },
+  "simpleConfig": {
+    "interfaceLanguage": "Język Interfejsu",
+    "interfaceLanguageDesc": "To zmienia język menu i przycisków Sokuji. NIE wpływa na języki, między którymi możesz tłumaczyć.",
+    "translationLanguages": "Języki Tłumaczenia",
+    "translationLanguagesDesc": "Wybierz język, którym mówisz (Twój Język) i język, w którym chcesz słyszeć tłumaczenie (Język Docelowy). Wybierz 'Automatyczne Wykrywanie', jeśli nie jesteś pewien języka źródłowego.",
+    "yourLanguage": "Twój Język",
+    "targetLanguage": "Język Docelowy",
+    "microphone": "Mikrofon",
+    "microphoneDesc": "Wybierz mikrofon, którego Sokuji ma słuchać. To przechwytuje mowę, którą chcesz tłumaczyć w czasie rzeczywistym. Wybierz 'Wyłącz', aby wyłączyć wejście głosowe.",
+    "speaker": "Głośnik",
+    "speakerDesc": "Wybierz, gdzie chcesz słyszeć przetłumaczoną mowę. To głośnik lub słuchawki, które będą odtwarzać tłumaczenie wygenerowane przez AI. Wybierz 'Wyłącz', aby wyłączyć wyjście audio."
+  },
+  "providers": {
+    "openai": {
+      "name": "OpenAI",
+      "description": "Napędzany modelami GPT"
+    },
+    "gemini": {
+      "name": "Google Gemini",
+      "description": "Technologia AI Google"
+    },
+    "cometapi": {
+      "name": "Comet API",
+      "description": "Alternatywny dostawca AI"
+    },
+    "palabraai": {
+      "name": "Palabra AI",
+      "description": "Wyspecjalizowane AI do tłumaczeń"
+    },
+    "unknown": {
+      "name": "Nieznany",
+      "description": "Nieznany dostawca"
+    }
+  },
+  "simplePanel": {
+    "translationActive": "Tłumaczenie Aktywne",
+    "translationInactive": "Tłumaczenie Nieaktywne",
+    "statusNoApiKey": "Skonfiguruj swój klucz API w ustawieniach",
+    "statusNoMic": "Wybierz mikrofon w ustawieniach audio",
+    "statusConnecting": "Łączenie z usługą tłumaczenia...",
+    "statusConnected": "Gotowy do tłumaczenia",
+    "statusDisconnected": "Kliknij start, aby rozpocząć tłumaczenie",
+    "languages": "Języki",
+    "provider": "Usługa",
+    "noConversation": "Jeszcze nie ma rozmowy",
+    "startToBegin": "Kliknij Start, aby rozpocząć tłumaczenie w czasie rzeczywistym",
+    "you": "Ty",
+    "translation": "Tłumaczenie",
+    "noMicSelected": "Nie wybrano mikrofonu",
+    "noSpeakerSelected": "Nie wybrano głośnika",
+    "release": "Puść, aby zatrzymać",
+    "holdToSpeak": "Przytrzymaj, aby mówić",
+    "connecting": "Łączenie...",
+    "stop": "Zatrzymaj",
+    "start": "Uruchom"
+  },
+  "connectionStatus": {
+    "disconnected": "Rozłączony",
+    "connecting": "Łączenie...",
+    "connected": "Połączony",
+    "error": "Błąd Połączenia",
+    "noApiKey": "Wymagany Klucz API",
+    "noMic": "Wymagany Mikrofon"
   }
 }

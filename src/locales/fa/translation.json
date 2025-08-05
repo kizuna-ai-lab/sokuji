@@ -12,7 +12,9 @@
     "warning": "هشدار",
     "info": "اطلاعات",
     "logs": "گزارش‌ها",
-    "clear": "پاک کردن"
+    "clear": "پاک کردن",
+    "off": "خاموش",
+    "autoDetect": "تشخیص خودکار"
   },
   "app": {
     "title": "Sokuji",
@@ -95,7 +97,73 @@
     "maxQueueLevel": "حداکثر بافر صوتی",
     "autoTempo": "سرعت گفتار تطبیقی",
     "apiKeyValidated": "کلید API تأیید شد",
-    "realtimeTranslationAvailable": "سرویس ترجمه همزمان در دسترس است"
+    "realtimeTranslationAvailable": "سرویس ترجمه همزمان در دسترس است",
+    "switchToAdvanced": "تغییر به حالت پیشرفته",
+    "switchToBasic": "تغییر به حالت پایه",
+    "advancedMode": "پیشرفته",
+    "basicMode": "پایه"
+  },
+  "simpleSettings": {
+    "quickSetup": "راه‌اندازی سریع",
+    "quickSetupDesc": "یک پیش‌تنظیم برای سناریوهای معمول انتخاب کنید",
+    "preset": {
+      "meeting": "جلسه",
+      "meetingDesc": "بهینه‌سازی شده برای جلسات کاری",
+      "presentation": "ارائه",
+      "presentationDesc": "برای سخنرانی‌ها و ارائه‌ها",
+      "casual": "گفتگوی عادی",
+      "casualDesc": "مکالمات راحت",
+      "travel": "سفر",
+      "travelDesc": "سناریوهای گردشگری و سفر"
+    },
+    "apiKey": "کلید API",
+    "apiKeyPlaceholder": "کلید API خود را وارد کنید",
+    "validate": "اعتبارسنجی",
+    "howToGetApiKey": "چگونه کلید API دریافت کنم؟",
+    "apiKeyHelp1": "1. از وب‌سایت ارائه‌دهنده خدمات دیدن کنید",
+    "apiKeyHelp2": "2. ثبت‌نام کنید یا به حساب خود وارد شوید",
+    "apiKeyHelp3": "3. به بخش کلیدهای API بروید",
+    "apiKeyHelp4": "4. یک کلید API جدید ایجاد کنید و آن را اینجا کپی کنید",
+    "apiKeyHelpTooltip": "کلید API مانند یک رمز عبور است که به Sokuji اجازه استفاده از خدمات ترجمه هوش مصنوعی را می‌دهد. باید از ارائه‌دهنده انتخابی خود (مانند OpenAI) یکی دریافت کنید.",
+    "apiKeyHelpTooltip2": "راهنمای قدم به قدم:",
+    "languages": "زبان‌ها",
+    "uiLanguage": "زبان رابط کاربری",
+    "audioSettings": "تنظیمات صدا",
+    "audioSettingsDesc": "میکروفون و بلندگوی خود را در پنل صدا پیکربندی کنید"
+  },
+  "simpleConfig": {
+    "interfaceLanguage": "زبان رابط کاربری",
+    "interfaceLanguageDesc": "این زبان منوها و دکمه‌های Sokuji را تغییر می‌دهد. بر زبان‌هایی که می‌توانید بین آن‌ها ترجمه کنید تأثیر نمی‌گذارد.",
+    "translationLanguages": "زبان‌های ترجمه",
+    "translationLanguagesDesc": "زبانی که صحبت می‌کنید (زبان شما) و زبانی که می‌خواهید ترجمه را بشنوید (زبان مقصد) را انتخاب کنید. اگر از زبان مبدأ مطمئن نیستید \"تشخیص خودکار\" را انتخاب کنید.",
+    "yourLanguage": "زبان شما",
+    "targetLanguage": "زبان مقصد",
+    "microphone": "میکروفون",
+    "microphoneDesc": "میکروفونی که Sokuji به آن گوش دهد را انتخاب کنید. این گفتاری را که می‌خواهید به طور زنده ترجمه کنید ضبط می‌کند. یا از \"خاموش\" برای غیرفعال کردن ورودی صدا استفاده کنید.",
+    "speaker": "بلندگو",
+    "speakerDesc": "جایی که می‌خواهید گفتار ترجمه شده را بشنوید را انتخاب کنید. این بلندگو یا هدفونی است که ترجمه تولید شده با هوش مصنوعی را پخش خواهد کرد. برای غیرفعال کردن خروجی صدا \"خاموش\" را انتخاب کنید."
+  },
+  "providers": {
+    "openai": {
+      "name": "OpenAI",
+      "description": "قدرت گرفته از مدل‌های GPT"
+    },
+    "gemini": {
+      "name": "Google Gemini", 
+      "description": "فناوری هوش مصنوعی Google"
+    },
+    "cometapi": {
+      "name": "Comet API",
+      "description": "ارائه‌دهنده هوش مصنوعی جایگزین"
+    },
+    "palabraai": {
+      "name": "Palabra AI",
+      "description": "هوش مصنوعی تخصصی ترجمه"
+    },
+    "unknown": {
+      "name": "نامشخص",
+      "description": "ارائه‌دهنده نامشخص"
+    }
   },
   "audioPanel": {
     "title": "تنظیمات صدا",
@@ -164,7 +232,33 @@
     "debug": "اشکال‌زدایی",
     "apiKeyRequired": "لطفاً ابتدا یک کلید API معتبر OpenAI در تنظیمات اضافه کنید",
     "modelsRequired": "مدل‌ها مورد نیاز هستند. لطفاً ابتدا کلید API خود را تأیید کنید تا مدل‌های موجود بارگذاری شوند.",
-    "modelsLoading": "در حال بارگذاری مدل‌های موجود، لطفاً صبر کنید..."
+    "modelsLoading": "در حال بارگذاری مدل‌های موجود، لطفاً صبر کنید...",
+    "advancedMode": "پیشرفته",
+    "basicMode": "پایه",
+    "switchToAdvanced": "تغییر به حالت پیشرفته",
+    "switchToBasic": "تغییر به حالت پایه"
+  },
+  "simplePanel": {
+    "translationActive": "ترجمه فعال",
+    "translationInactive": "ترجمه غیرفعال",
+    "statusNoApiKey": "لطفاً کلید API خود را در تنظیمات پیکربندی کنید",
+    "statusNoMic": "لطفاً در تنظیمات صدا یک میکروفون انتخاب کنید",
+    "statusConnecting": "در حال اتصال به سرویس ترجمه...",
+    "statusConnected": "آماده برای ترجمه",
+    "statusDisconnected": "برای شروع ترجمه روی شروع کلیک کنید",
+    "languages": "زبان‌ها",
+    "provider": "سرویس",
+    "noConversation": "هنوز هیچ مکالمه‌ای نیست",
+    "startToBegin": "برای شروع ترجمه زنده روی شروع کلیک کنید",
+    "you": "شما",
+    "translation": "ترجمه",
+    "noMicSelected": "هیچ میکروفونی انتخاب نشده",
+    "noSpeakerSelected": "هیچ بلندگویی انتخاب نشده",
+    "release": "برای توقف رها کنید",
+    "holdToSpeak": "برای صحبت نگه دارید",
+    "connecting": "در حال اتصال...",
+    "stop": "توقف",
+    "start": "شروع"
   },
   "errors": {
     "microphoneAccess": "دسترسی به میکروفون رد شد",
@@ -239,5 +333,13 @@
         "content": "شما راهنمای تنظیمات را تکمیل کردید! حالا مطمئن شوید که واقعاً کلید API خود را وارد کرده و تنظیماتتان را پیکربندی کرده‌اید، سپس از میکروفون مجازی Sokuji در برنامه‌های کنفرانس (مانند Google Meet، Zoom و غیره) برای شروع ترجمه بلادرنگ استفاده کنید."
       }
     }
+  },
+  "connectionStatus": {
+    "disconnected": "قطع ارتباط",
+    "connecting": "در حال اتصال...",
+    "connected": "متصل",
+    "error": "خطای اتصال",
+    "noApiKey": "کلید API ضروری",
+    "noMic": "میکروفون ضروری"
   }
 }

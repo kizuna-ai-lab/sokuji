@@ -12,11 +12,85 @@
     "warning": "எச்சரிக்கை",
     "info": "தகவல்",
     "logs": "பதிவுகள்",
-    "clear": "அழி"
+    "clear": "அழி",
+    "off": "முட்டு",
+    "autoDetect": "தானியங்கு கண்டறிதல்"
   },
   "app": {
     "title": "Sokuji",
     "description": "நேரடி குரல் மொழிபெயர்ப்பு பயன்பாடு"
+  },
+  "simpleSettings": {
+    "quickSetup": "வேகமான அமைப்பு",
+    "quickSetupDesc": "பொதுவான செனாரியோகளுக்கு முன்னிரைவு தெரிந்தெடுக்கவும்",
+    "preset": {
+      "meeting": "கூட்டம்",
+      "meetingDesc": "வெளினேச கூட்டங்களுக்கு உறித்தபடுத்தப்பட்டது",
+      "presentation": "விளக்கக்காட்சி",
+      "presentationDesc": "கலந்துரைகள் மற்றும் விளக்கக்காட்சிகளுக்கு",
+      "casual": "சாதாரண தொல்பேச்சு",
+      "casualDesc": "நிம்மதியான உரையாடல்கள்",
+      "travel": "பயணம்",
+      "travelDesc": "சுற்றுலா மற்றும் பயண செனாரியோகள்"
+    },
+    "apiKey": "API விசை",
+    "apiKeyPlaceholder": "உங்கஷ் API விசையை உள்ளிடவும்",
+    "validate": "சரிபார்",
+    "howToGetApiKey": "API விசை எப்படி பெறுவது?",
+    "apiKeyHelp1": "1. வழங்குநரின் வெப்சைட்டை அனுகவும்",
+    "apiKeyHelp2": "2. பந்தியல் செய்யவும் அல்லது உங்கள் கணக்கில் உள்நுழைவும்",
+    "apiKeyHelp3": "3. API விசைகள் பிரிவுக்கு நேவிகேட் செய்யவும்",
+    "apiKeyHelp4": "4. புதிய API விசையை உருவாக்கி இங்கே நகலேடுக்கவும்",
+    "languages": "மோழிகள்",
+    "uiLanguage": "இடைமுக மோழி",
+    "audioSettings": "ஆடியோ அமைப்புகள்",
+    "audioSettingsDesc": "ஆடியோ பீனலில் உங்கள் இங் மற்றும் ஊங்கிகளை அமைக்கவும்"
+  },
+  "simpleConfig": {
+    "interfaceLanguage": "இடைமுக மோழி",
+    "translationLanguages": "மோழிபெயர்ப்பு மோழிகள்",
+    "yourLanguage": "உங்கள் மோழி",
+    "targetLanguage": "இலக்கு மோழி",
+    "microphone": "இக்கோ",
+    "speaker": "ஊங்கி"
+  },
+  "providers": {
+    "openai": {
+      "name": "OpenAI",
+      "description": "GPT மாதிரிகளால் அல்லதித்தப்படுகிறது"
+    },
+    "gemini": {
+      "name": "Google Gemini",
+      "description": "Google-ன் AI தகவல்"
+    },
+    "cometapi": {
+      "name": "Comet API",
+      "description": "மாற்று AI வழங்குநர்"
+    },
+    "palabraai": {
+      "name": "Palabra AI",
+      "description": "நியங்களித்த மோழிபெயர்ப்பு AI"
+    },
+    "unknown": {
+      "name": "தெரியாதது",
+      "description": "தெரியாத வழங்குநர்"
+    }
+  },
+  "simplePanel": {
+    "translationActive": "மோழிபெயர்ப்பு செயலில்",
+    "translationInactive": "மோழிபெயர்ப்பு செயலற்றது",
+    "you": "நீங்கள்",
+    "translation": "மோழிபெயர்ப்பு",
+    "stop": "நிறுத்து",
+    "start": "துவங்கு"
+  },
+  "connectionStatus": {
+    "disconnected": "துண்டிக்கப்பட்டது",
+    "connecting": "இணைக்கிறது...",
+    "connected": "இணைக்கப்பட்டது",
+    "error": "இணைப்பு பிழை",
+    "noApiKey": "API விசை தேவை",
+    "noMic": "இக்கோ தேவை"
   },
   "settings": {
     "title": "அமைப்புகள்",
@@ -48,6 +122,7 @@
     "voiceSettings": "குரல் அமைப்புகள்",
     "speechProcessing": "பேச்சு செயலாக்கம்",
     "silenceThreshold": "மௌன வரம்பு",
+    "apiKeyValidated": "API கீய் சரிபார்க்கப்பட�டது",
     "sentenceSplitter": "வாக்கிய பிரிப்பான்",
     "enabled": "இயக்கப்பட்டது",
     "translatePartialTranscriptions": "பகுதி டிரான்ஸ்கிரிப்ஷன்களை மொழிபெயர்",
