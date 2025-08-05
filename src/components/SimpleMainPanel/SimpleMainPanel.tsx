@@ -32,6 +32,7 @@ const SimpleMainPanel: React.FC<SimpleMainPanelProps> = ({
 }) => {
   const { t } = useTranslation();
   const conversationContainerRef = useRef<HTMLDivElement>(null);
+  const [sessionDuration, setSessionDuration] = useState<string>('00:00');
   
   const {
     isApiKeyValid,
@@ -45,6 +46,8 @@ const SimpleMainPanel: React.FC<SimpleMainPanelProps> = ({
     isInputDeviceOn,
     isMonitorDeviceOn,
   } = useAudioContext();
+
+  const { sessionStartTime } = useSession();
 
   const currentSettings = getCurrentProviderSettings();
   const canStartSession = isApiKeyValid && selectedInputDevice && !isInitializing;
@@ -61,6 +64,38 @@ const SimpleMainPanel: React.FC<SimpleMainPanelProps> = ({
       conversationContainerRef.current.scrollTop = conversationContainerRef.current.scrollHeight;
     }
   }, [filteredItems]);
+
+  // Update session duration
+  useEffect(() => {
+    if (!isSessionActive || !sessionStartTime) {
+      setSessionDuration('00:00');
+      return;
+    }
+
+    const updateDuration = () => {
+      const now = Date.now();
+      const elapsed = Math.floor((now - sessionStartTime) / 1000);
+      
+      const hours = Math.floor(elapsed / 3600);
+      const minutes = Math.floor((elapsed % 3600) / 60);
+      const seconds = elapsed % 60;
+      
+      if (hours > 0) {
+        setSessionDuration(
+          `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
+        );
+      } else {
+        setSessionDuration(
+          `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
+        );
+      }
+    };
+
+    updateDuration();
+    const interval = setInterval(updateDuration, 1000);
+
+    return () => clearInterval(interval);
+  }, [isSessionActive, sessionStartTime]);
 
   // Push-to-talk keyboard handler
   useEffect(() => {
@@ -124,6 +159,11 @@ const SimpleMainPanel: React.FC<SimpleMainPanelProps> = ({
           <span className="language-pair">
             {currentSettings.sourceLanguage} → {currentSettings.targetLanguage}
           </span>
+          {isSessionActive && (
+            <span className="session-duration">
+              {t('simplePanel.sessionDuration', 'Duration')}: {sessionDuration}
+            </span>
+          )}
           <span className="device-status">
             <span className={`device-icon ${isInputDeviceOn ? 'active' : ''}`}>
               {isInputDeviceOn ? <Mic size={14} /> : <MicOff size={14} />}

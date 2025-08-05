@@ -61,7 +61,8 @@
     "you": "您",
     "translation": "翻譯",
     "stop": "停止",
-    "start": "開始"
+    "start": "開始",
+    "sessionDuration": "Duration"
   },
   "connectionStatus": {
     "disconnected": "已斷線",

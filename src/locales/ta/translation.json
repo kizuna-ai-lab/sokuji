@@ -82,7 +82,8 @@
     "you": "நீங்கள்",
     "translation": "மோழிபெயர்ப்பு",
     "stop": "நிறுத்து",
-    "start": "துவங்கு"
+    "start": "துவங்கு",
+    "sessionDuration": "Duration"
   },
   "connectionStatus": {
     "disconnected": "துண்டிக்கப்பட்டது",
@@ -122,7 +123,7 @@
     "voiceSettings": "குரல் அமைப்புகள்",
     "speechProcessing": "பேச்சு செயலாக்கம்",
     "silenceThreshold": "மௌன வரம்பு",
-    "apiKeyValidated": "API கீய் சரிபார்க்கப்பட�டது",
+    "apiKeyValidated": "API விசை சரிபார்க்கப்பட்டது",
     "sentenceSplitter": "வாக்கிய பிரிப்பான்",
     "enabled": "இயக்கப்பட்டது",
     "translatePartialTranscriptions": "பகுதி டிரான்ஸ்கிரிப்ஷன்களை மொழிபெயர்",
@@ -130,7 +131,6 @@
     "desiredQueueLevel": "இலக்கு ஆடியோ இடையகம்",
     "maxQueueLevel": "அதிகபட்ச ஆடியோ இடையகம்",
     "autoTempo": "ஏற்றவாறு பேச்சு வேகம்",
-    "apiKeyValidated": "API விசை சரிபார்க்கப்பட்டது",
     "realtimeTranslationAvailable": "நிகழ்நேர மொழிபெயர்ப்பு சேவை கிடைக்கிறது"
   },
   "mainPanel": {

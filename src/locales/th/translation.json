@@ -54,7 +54,8 @@
     "you": "คุณ",
     "translation": "การแปล",
     "stop": "หยุด",
-    "start": "เริ่ม"
+    "start": "เริ่ม",
+    "sessionDuration": "Duration"
   },
   "connectionStatus": {
     "disconnected": "ตัดการเชื่อมต่อ",

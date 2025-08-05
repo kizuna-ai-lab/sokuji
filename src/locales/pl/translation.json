@@ -323,7 +323,8 @@
     "holdToSpeak": "Przytrzymaj, aby mówić",
     "connecting": "Łączenie...",
     "stop": "Zatrzymaj",
-    "start": "Uruchom"
+    "start": "Uruchom",
+    "sessionDuration": "Duration"
   },
   "connectionStatus": {
     "disconnected": "Rozłączony",
