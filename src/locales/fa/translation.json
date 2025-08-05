@@ -258,7 +258,8 @@
     "holdToSpeak": "برای صحبت نگه دارید",
     "connecting": "در حال اتصال...",
     "stop": "توقف",
-    "start": "شروع"
+    "start": "شروع",
+    "sessionDuration": "Duration"
   },
   "errors": {
     "microphoneAccess": "دسترسی به میکروفون رد شد",

@@ -142,7 +142,8 @@
     "holdToSpeak": "Pidä pohjassa puhuaksesi",
     "connecting": "Yhdistetään...",
     "stop": "Lopeta",
-    "start": "Aloita"
+    "start": "Aloita",
+    "sessionDuration": "Duration"
   },
   "connectionStatus": {
     "disconnected": "Yhteys katkaistu",

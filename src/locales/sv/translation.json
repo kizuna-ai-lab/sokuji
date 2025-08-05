@@ -240,7 +240,8 @@
     "holdToSpeak": "Håll ned för att tala",
     "connecting": "Ansluter...",
     "stop": "Stoppa",
-    "start": "Starta"
+    "start": "Starta",
+    "sessionDuration": "Duration"
   },
   "connectionStatus": {
     "disconnected": "Frånkopplad",

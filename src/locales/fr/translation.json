@@ -326,7 +326,8 @@
     "holdToSpeak": "Maintenez pour parler",
     "connecting": "Connexion...",
     "stop": "Arrêter",
-    "start": "Démarrer"
+    "start": "Démarrer",
+    "sessionDuration": "Duration"
   },
   "connectionStatus": {
     "disconnected": "Déconnecté",

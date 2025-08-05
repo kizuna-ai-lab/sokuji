@@ -300,7 +300,8 @@
     "holdToSpeak": "Hold to speak",
     "connecting": "Connecting...",
     "stop": "Stop",
-    "start": "Start"
+    "start": "Start",
+    "sessionDuration": "Duration"
   },
   "errors": {
     "microphoneAccess": "Microphone access denied",

@@ -142,7 +142,8 @@
     "holdToSpeak": "बोलने के लिए दबाकर रखें",
     "connecting": "जुड़ रहे हैं...",
     "stop": "रोकें",
-    "start": "शुरू करें"
+    "start": "शुरू करें",
+    "sessionDuration": "Duration"
   },
   "connectionStatus": {
     "disconnected": "डिस्कनेक्टेड",

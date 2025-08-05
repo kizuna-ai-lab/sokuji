@@ -181,7 +181,8 @@
     "holdToSpeak": "Tahan untuk bercakap",
     "connecting": "Menyambung...",
     "stop": "Berhenti",
-    "start": "Mula"
+    "start": "Mula",
+    "sessionDuration": "Duration"
   },
   "connectionStatus": {
     "disconnected": "Terputus",

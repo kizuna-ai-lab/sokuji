@@ -54,7 +54,8 @@
     "you": "మీరు",
     "translation": "అనువాదం",
     "stop": "ఆప్పు",
-    "start": "ప్రారంభం"
+    "start": "ప్రారంభం",
+    "sessionDuration": "Duration"
   },
   "connectionStatus": {
     "disconnected": "విచ్ఛేదించబడింది",

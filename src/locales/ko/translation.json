@@ -326,7 +326,8 @@
     "holdToSpeak": "누르고 말하기",
     "connecting": "연결 중...",
     "stop": "중지",
-    "start": "시작"
+    "start": "시작",
+    "sessionDuration": "Duration"
   },
   "connectionStatus": {
     "disconnected": "연결 해제됨",

@@ -54,7 +54,8 @@
     "you": "Ви",
     "translation": "Переклад",
     "stop": "Зупинити",
-    "start": "Почати"
+    "start": "Почати",
+    "sessionDuration": "Duration"
   },
   "connectionStatus": {
     "disconnected": "Відключено",
