@@ -87,34 +87,50 @@
       align-items: center;
       gap: 8px;
       
-      .ui-mode-toggle {
+      .ui-mode-toggle-icon {
         display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
         background: rgba(255, 255, 255, 0.05);
         border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 20px;
-        padding: 2px;
+        border-radius: 8px;
         margin-right: 8px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        color: rgba(255, 255, 255, 0.7);
 
-        .mode-option {
-          background: transparent;
-          border: none;
-          color: rgba(255, 255, 255, 0.6);
-          padding: 5px 12px;
-          font-size: 12px;
-          font-weight: 500;
-          cursor: pointer;
-          border-radius: 18px;
-          transition: all 0.2s ease;
-          white-space: nowrap;
+        &:hover {
+          background: rgba(255, 255, 255, 0.1);
+          border-color: rgba(255, 255, 255, 0.2);
+          color: #fff;
+          transform: scale(1.05);
+        }
 
-          &:hover:not(.active) {
-            color: rgba(255, 255, 255, 0.8);
+        &:active {
+          transform: scale(0.95);
+        }
+
+        &.basic {
+          svg {
+            // Simple grid icon for basic mode
+            stroke-width: 2;
           }
+        }
 
-          &.active {
-            background: rgba(255, 255, 255, 0.15);
-            color: #fff;
-            cursor: default;
+        &.advanced {
+          svg {
+            // Sliders icon for advanced mode
+            stroke-width: 2;
+          }
+          background: rgba(16, 163, 127, 0.1);
+          border-color: rgba(16, 163, 127, 0.3);
+          color: #10a37f;
+
+          &:hover {
+            background: rgba(16, 163, 127, 0.15);
+            border-color: rgba(16, 163, 127, 0.4);
           }
         }
       }
