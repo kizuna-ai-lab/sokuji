@@ -166,6 +166,8 @@
     "apiKeyHelp2": "2. Sign up or log in to your account",
     "apiKeyHelp3": "3. Navigate to API keys section",
     "apiKeyHelp4": "4. Create a new API key and copy it here",
+    "apiKeyHelpTooltip": "An API key is like a password that lets Sokuji use AI translation services. You need to get one from your chosen provider (like OpenAI).",
+    "apiKeyHelpTooltip2": "Step-by-step guide:",
     "languages": "Languages",
     "uiLanguage": "Interface Language",
     "audioSettings": "Audio Settings",
@@ -203,15 +205,37 @@
   },
   "simpleConfig": {
     "interfaceLanguage": "Interface Language",
-    "interfaceLanguageDesc": "Choose your preferred interface language",
+    "interfaceLanguageDesc": "This changes the language of Sokuji's menus and buttons. It does NOT affect which languages you can translate between.",
     "translationLanguages": "Translation Languages",
-    "translationLanguagesDesc": "Set the languages for translation",
+    "translationLanguagesDesc": "Choose which language you speak (Your Language) and which language you want to hear the translation in (Target Language). Select \"Auto Detect\" if you're unsure about the source language.",
     "yourLanguage": "Your Language",
     "targetLanguage": "Target Language",
     "microphone": "Microphone",
-    "microphoneDesc": "Select your microphone device for voice input",
+    "microphoneDesc": "Choose which microphone Sokuji should listen to. This captures the speech you want to translate in real-time. Select \"Off\" to disable voice input.",
     "speaker": "Speaker",
-    "speakerDesc": "Select your speaker device for audio output"
+    "speakerDesc": "Choose where you want to hear the translated speech. This is the speaker or headphones that will play the AI-generated translation. Select \"Off\" to disable audio output."
+  },
+  "providers": {
+    "openai": {
+      "name": "OpenAI",
+      "description": "Powered by GPT models"
+    },
+    "gemini": {
+      "name": "Google Gemini", 
+      "description": "Google's AI technology"
+    },
+    "cometapi": {
+      "name": "Comet API",
+      "description": "Alternative AI provider"
+    },
+    "palabraai": {
+      "name": "Palabra AI",
+      "description": "Specialized translation AI"
+    },
+    "unknown": {
+      "name": "Unknown",
+      "description": "Unknown provider"
+    }
   },
   "logsPanel": {
     "title": "Logs",

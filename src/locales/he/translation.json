@@ -12,7 +12,9 @@
     "warning": "אזהרה",
     "info": "מידע",
     "logs": "יומנים",
-    "clear": "נקה"
+    "clear": "נקה",
+    "off": "כבוי",
+    "autoDetect": "זיהוי אוטומטי"
   },
   "app": {
     "title": "Sokuji",
@@ -96,6 +98,98 @@
     "autoTempo": "מהירות דיבור אדפטיבית",
     "apiKeyValidated": "מפתח API אומת",
     "realtimeTranslationAvailable": "שירות תרגום בזמן אמת זמין"
+  },
+  "simpleSettings": {
+    "quickSetup": "הגדרה מהירה",
+    "quickSetupDesc": "בחר הגדרות מוכנות לתרחישים נפוצים",
+    "preset": {
+      "meeting": "פגישה",
+      "meetingDesc": "מותאם לפגישות עסקיות",
+      "presentation": "מצגת",
+      "presentationDesc": "להרצאות ומצגות",
+      "casual": "שיחה רגילה",
+      "casualDesc": "שיחות רגועות",
+      "travel": "נסיעות",
+      "travelDesc": "תרחישי תיירות ונסיעות"
+    },
+    "apiKey": "מפתח API",
+    "apiKeyPlaceholder": "הזן את מפתח ה-API שלך",
+    "validate": "אמת",
+    "howToGetApiKey": "איך להשיג מפתח API?",
+    "apiKeyHelp1": "1. בקר באתר הספק",
+    "apiKeyHelp2": "2. הירשם או התחבר לחשבון שלך",
+    "apiKeyHelp3": "3. נווט לקטע מפתחות API",
+    "apiKeyHelp4": "4. צור מפתח API חדש והעתק אותו לכאן",
+    "apiKeyHelpTooltip": "מפתח API הוא כמו סיסמה שמאפשרת ל-Sokuji להשתמש בשירותי תרגום בינה מלאכותית. אתה צריך להשיג אחד מהספק שבחרת (כמו OpenAI).",
+    "apiKeyHelpTooltip2": "מדריך שלב אחר שלב:",
+    "languages": "שפות",
+    "uiLanguage": "שפת ממשק",
+    "audioSettings": "הגדרות שמע",
+    "audioSettingsDesc": "קבע את המיקרופון והרמקולים בפאנל השמע"
+  },
+  "simpleConfig": {
+    "interfaceLanguage": "שפת ממשק",
+    "interfaceLanguageDesc": "זה משנה את השפה של התפריטים והכפתורים של Sokuji. זה לא משפיע על איזה שפות אתה יכול לתרגם ביניהן.",
+    "translationLanguages": "שפות תרגום",
+    "translationLanguagesDesc": "בחר איזו שפה אתה מדבר (השפה שלך) ואיזו שפה אתה רוצה לשמוע בתרגום (שפת יעד). בחר \"זיהוי אוטומטי\" אם אתה לא בטוח לגבי שפת המקור.",
+    "yourLanguage": "השפה שלך",
+    "targetLanguage": "שפת יעד",
+    "microphone": "מיקרופון",
+    "microphoneDesc": "בחר איזה מיקרופון Sokuji צריך להאזין לו. זה לוכד את הדיבור שאתה רוצה לתרגם בזמן אמת. בחר \"כבוי\" להשבית קלט קולי.",
+    "speaker": "רמקול",
+    "speakerDesc": "בחר איפה אתה רוצה לשמוע את הדיבור המתורגם. זה הרמקול או האוזניות שינגנו את התרגום שנוצר על ידי הבינה המלאכותית. בחר \"כבוי\" להשבית פלט שמע."
+  },
+  "providers": {
+    "openai": {
+      "name": "OpenAI",
+      "description": "מופעל על ידי מודלי GPT"
+    },
+    "gemini": {
+      "name": "Google Gemini",
+      "description": "טכנולוגיית בינה מלאכותית של Google"
+    },
+    "cometapi": {
+      "name": "Comet API",
+      "description": "ספק בינה מלאכותית חלופי"
+    },
+    "palabraai": {
+      "name": "Palabra AI",
+      "description": "בינה מלאכותית מתמחה בתרגום"
+    },
+    "unknown": {
+      "name": "לא ידוע",
+      "description": "ספק לא ידוע"
+    }
+  },
+  "simplePanel": {
+    "translationActive": "תרגום פעיל",
+    "translationInactive": "תרגום לא פעיל",
+    "statusNoApiKey": "אנא קבע את מפתח ה-API שלך בהגדרות",
+    "statusNoMic": "אנא בחר מיקרופון בהגדרות השמע",
+    "statusConnecting": "מתחבר לשירות התרגום...",
+    "statusConnected": "מוכן לתרגום",
+    "statusDisconnected": "לחץ התחל כדי להתחיל תרגום",
+    "languages": "שפות",
+    "provider": "שירות",
+    "noConversation": "אין שיחה עדיין",
+    "startToBegin": "לחץ התחל כדי להתחיל תרגום בזמן אמת",
+    "you": "אתה",
+    "translation": "תרגום",
+    "noMicSelected": "לא נבחר מיקרופון",
+    "noSpeakerSelected": "לא נבחר רמקול",
+    "release": "שחרר כדי לעצור",
+    "holdToSpeak": "החזק כדי לדבר",
+    "connecting": "מתחבר...",
+    "stop": "עצור",
+    "start": "התחל"
+  },
+  "connectionStatus": {
+    "disconnected": "מנותק",
+    "connecting": "מתחבר...",
+    "connected": "מחובר",
+    "error": "שגיאת חיבור",
+    "noApiKey": "נדרש מפתח API",
+    "noMic": "נדרש מיקרופון"
   },
   "audioPanel": {
     "title": "הגדרות שמע",

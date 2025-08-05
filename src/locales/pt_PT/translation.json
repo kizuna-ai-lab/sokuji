@@ -12,7 +12,9 @@
     "warning": "Aviso",
     "info": "Informação",
     "logs": "Registos",
-    "clear": "Limpar"
+    "clear": "Limpar",
+    "off": "Desligado",
+    "autoDetect": "Detecção Automática"
   },
   "app": {
     "title": "Sokuji",
@@ -96,6 +98,98 @@
     "autoTempo": "Velocidade de Fala Adaptativa",
     "apiKeyValidated": "Chave de API validada",
     "realtimeTranslationAvailable": "Serviço de tradução em tempo real disponível"
+  },
+  "simpleSettings": {
+    "quickSetup": "Configuração Rápida",
+    "quickSetupDesc": "Escolha uma predefinição para cenários comuns",
+    "preset": {
+      "meeting": "Reunião",
+      "meetingDesc": "Optimizado para reuniões de negócios",
+      "presentation": "Apresentação",
+      "presentationDesc": "Para palestras e apresentações",
+      "casual": "Conversa Casual",
+      "casualDesc": "Conversas descontraídas",
+      "travel": "Viagem",
+      "travelDesc": "Cenários de turismo e viagem"
+    },
+    "apiKey": "Chave API",
+    "apiKeyPlaceholder": "Introduza a sua chave API",
+    "validate": "Validar",
+    "howToGetApiKey": "Como obter uma chave API?",
+    "apiKeyHelp1": "1. Visite o website do fornecedor",
+    "apiKeyHelp2": "2. Registe-se ou inicie sessão na sua conta",
+    "apiKeyHelp3": "3. Navegue para a secção de chaves API",
+    "apiKeyHelp4": "4. Crie uma nova chave API e copie-a aqui",
+    "apiKeyHelpTooltip": "Uma chave API é como uma palavra-passe que permite ao Sokuji usar serviços de tradução AI. Precisa de obter uma do seu fornecedor escolhido (como OpenAI).",
+    "apiKeyHelpTooltip2": "Guia passo a passo:",
+    "languages": "Idiomas",
+    "uiLanguage": "Idioma da Interface",
+    "audioSettings": "Definições de Áudio",
+    "audioSettingsDesc": "Configure o seu microfone e altifalantes no painel de Áudio"
+  },
+  "simpleConfig": {
+    "interfaceLanguage": "Idioma da Interface",
+    "interfaceLanguageDesc": "Isto muda o idioma dos menus e botões do Sokuji. NÃO afecta entre que idiomas pode traduzir.",
+    "translationLanguages": "Idiomas de Tradução",
+    "translationLanguagesDesc": "Escolha que idioma fala (O Seu Idioma) e em que idioma quer ouvir a tradução (Idioma de Destino). Seleccione \"Detecção Automática\" se não tem certeza sobre o idioma de origem.",
+    "yourLanguage": "O Seu Idioma",
+    "targetLanguage": "Idioma de Destino",
+    "microphone": "Microfone",
+    "microphoneDesc": "Escolha que microfone o Sokuji deve ouvir. Isto captura a fala que quer traduzir em tempo real. Seleccione \"Desligado\" para desactivar a entrada de voz.",
+    "speaker": "Altifalante",
+    "speakerDesc": "Escolha onde quer ouvir a fala traduzida. Este é o altifalante ou auscultadores que irá reproduzir a tradução gerada por AI. Seleccione \"Desligado\" para desactivar a saída de áudio."
+  },
+  "providers": {
+    "openai": {
+      "name": "OpenAI",
+      "description": "Alimentado por modelos GPT"
+    },
+    "gemini": {
+      "name": "Google Gemini",
+      "description": "Tecnologia AI da Google"
+    },
+    "cometapi": {
+      "name": "Comet API",
+      "description": "Fornecedor AI alternativo"
+    },
+    "palabraai": {
+      "name": "Palabra AI",
+      "description": "AI de tradução especializada"
+    },
+    "unknown": {
+      "name": "Desconhecido",
+      "description": "Fornecedor desconhecido"
+    }
+  },
+  "simplePanel": {
+    "translationActive": "Tradução Activa",
+    "translationInactive": "Tradução Inactiva",
+    "statusNoApiKey": "Por favor configure a sua chave API nas definições",
+    "statusNoMic": "Por favor seleccione um microfone nas definições de áudio",
+    "statusConnecting": "A ligar ao serviço de tradução...",
+    "statusConnected": "Pronto para traduzir",
+    "statusDisconnected": "Clique iniciar para começar a tradução",
+    "languages": "Idiomas",
+    "provider": "Serviço",
+    "noConversation": "Ainda não há conversação",
+    "startToBegin": "Clique Iniciar para começar a tradução em tempo real",
+    "you": "Você",
+    "translation": "Tradução",
+    "noMicSelected": "Nenhum microfone seleccionado",
+    "noSpeakerSelected": "Nenhum altifalante seleccionado",
+    "release": "Solte para parar",
+    "holdToSpeak": "Mantenha premido para falar",
+    "connecting": "A ligar...",
+    "stop": "Parar",
+    "start": "Iniciar"
+  },
+  "connectionStatus": {
+    "disconnected": "Desligado",
+    "connecting": "A ligar...",
+    "connected": "Ligado",
+    "error": "Erro de Ligação",
+    "noApiKey": "Chave API Necessária",
+    "noMic": "Microfone Necessário"
   },
   "audioPanel": {
     "title": "Definições de áudio",

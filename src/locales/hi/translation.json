@@ -12,7 +12,9 @@
     "warning": "चेतावनी",
     "info": "जानकारी",
     "logs": "लॉग्स",
-    "clear": "साफ़ करें"
+    "clear": "साफ़ करें",
+    "off": "बंद",
+    "autoDetect": "स्वचालित पहचान"
   },
   "app": {
     "title": "Sokuji",
@@ -57,6 +59,98 @@
     "autoTempo": "अनुकूली भाषण गति",
     "apiKeyValidated": "API कुंजी मान्य",
     "realtimeTranslationAvailable": "रीयल-टाइम अनुवाद सेवा उपलब्ध है"
+  },
+  "simpleSettings": {
+    "quickSetup": "त्वरित सेटअप",
+    "quickSetupDesc": "सामान्य परिदृश्यों के लिए प्रीसेट चुनें",
+    "preset": {
+      "meeting": "मीटिंग",
+      "meetingDesc": "बिज़नेस मीटिंग के लिए अनुकूलित",
+      "presentation": "प्रेज़ेंटेशन",
+      "presentationDesc": "व्याख्यान और प्रेज़ेंटेशन के लिए",
+      "casual": "अनौपचारिक चर्चा",
+      "casualDesc": "आरामदेह बातचीत",
+      "travel": "यात्रा",
+      "travelDesc": "पर्यटन और यात्रा परिदृश्य"
+    },
+    "apiKey": "API की",
+    "apiKeyPlaceholder": "अपनी API की दर्ज करें",
+    "validate": "सत्यापित करें",
+    "howToGetApiKey": "API की कैसे प्राप्त करें?",
+    "apiKeyHelp1": "1. प्रदाता की वेबसाइट पर जाएं",
+    "apiKeyHelp2": "2. साइन अप करें या अपने खाते में लॉग इन करें",
+    "apiKeyHelp3": "3. API कीज़ विभाग पर जाएं",
+    "apiKeyHelp4": "4. एक नई API की बनाएं और इसे यहां कॉपी करें",
+    "apiKeyHelpTooltip": "API की एक पासवर्ड की तरह है जो Sokuji को AI अनुवाद सेवाओं का उपयोग करने देती है। आपको अपने चुने गए प्रदाता (जैसे OpenAI) से एक प्राप्त करनी होगी।",
+    "apiKeyHelpTooltip2": "कदम-दर-कदम गाइड:",
+    "languages": "भाषाएं",
+    "uiLanguage": "इंटरफेस भाषा",
+    "audioSettings": "ऑडियो सेटिंग्स",
+    "audioSettingsDesc": "ऑडियो पैनल में अपना माइक्रोफोन और स्पीकर कॉन्फ़िगर करें"
+  },
+  "simpleConfig": {
+    "interfaceLanguage": "इंटरफेस भाषा",
+    "interfaceLanguageDesc": "यह Sokuji के मेनू और बटन की भाषा बदलता है। यह इस बात को प्रभावित नहीं करता कि आप किन भाषाओं के बीच अनुवाद कर सकते हैं।",
+    "translationLanguages": "अनुवाद भाषाएं",
+    "translationLanguagesDesc": "चुनें कि आप कौन सी भाषा बोलते हैं (आपकी भाषा) और किस भाषा में आप अनुवाद सुनना चाहते हैं (लक्ष्य भाषा)। स्रोत भाषा के बारे में अनिश्चित होने पर \"स्वचालित पहचान\" चुनें।",
+    "yourLanguage": "आपकी भाषा",
+    "targetLanguage": "लक्ष्य भाषा",
+    "microphone": "माइक्रोफोन",
+    "microphoneDesc": "चुनें कि Sokuji को किस माइक्रोफोन को सुनना चाहिए। यह उस भाषाण को कैप्चर करता है जिसे आप रियल-टाइम में अनुवाद करना चाहते हैं। वॉइस इनपुट को अक्षम करने के लिए \"बंद\" चुनें।",
+    "speaker": "स्पीकर",
+    "speakerDesc": "चुनें कि आप कहां अनुवादित भाषाण सुनना चाहते हैं। यह वह स्पीकर या हेडफोन है जो AI द्वारा जेनरेट किए गए अनुवाद को बजाएगा। ऑडियो आउटपुट को अक्षम करने के लिए \"बंद\" चुनें।"
+  },
+  "providers": {
+    "openai": {
+      "name": "OpenAI",
+      "description": "GPT मॉडल द्वारा संचालित"
+    },
+    "gemini": {
+      "name": "Google Gemini",
+      "description": "Google की AI तकनफ0940क"
+    },
+    "cometapi": {
+      "name": "Comet API",
+      "description": "वैकल्पिक AI प्रदाता"
+    },
+    "palabraai": {
+      "name": "Palabra AI",
+      "description": "विशिष्ट अनुवाद AI"
+    },
+    "unknown": {
+      "name": "अज्ञात",
+      "description": "अज्ञात प्रदाता"
+    }
+  },
+  "simplePanel": {
+    "translationActive": "अनुवाद सक्रिय",
+    "translationInactive": "अनुवाद निष्क्रिय",
+    "statusNoApiKey": "कृपया सेटिंग्स में अपनी API की कॉन्फ़िगर करें",
+    "statusNoMic": "कृपया ऑडियो सेटिंग्स में माइक्रोफोन चुनें",
+    "statusConnecting": "अनुवाद सेवा से जुड़ रहे हैं...",
+    "statusConnected": "अनुवाद के लिए तैयार",
+    "statusDisconnected": "अनुवाद शुरू करने के लिए स्टार्ट पर क्लिक करें",
+    "languages": "भाषाएं",
+    "provider": "सेवा",
+    "noConversation": "अभी तक कोई बातचीत नहीं",
+    "startToBegin": "रियल-टाइम अनुवाद शुरू करने के लिए स्टार्ट पर क्लिक करें",
+    "you": "आप",
+    "translation": "अनुवाद",
+    "noMicSelected": "कोई माइक नहीं चुना गया",
+    "noSpeakerSelected": "कोई स्पीकर नहीं चुना गया",
+    "release": "रोकने के लिए छोड़ें",
+    "holdToSpeak": "बोलने के लिए दबाकर रखें",
+    "connecting": "जुड़ रहे हैं...",
+    "stop": "रोकें",
+    "start": "शुरू करें"
+  },
+  "connectionStatus": {
+    "disconnected": "डिस्कनेक्टेड",
+    "connecting": "जुड़ रहे हैं...",
+    "connected": "जुड़ा हुआ",
+    "error": "कनेक्शन एरर",
+    "noApiKey": "API की आवश्यक",
+    "noMic": "माइक्रोफोन आवश्यक"
   },
   "mainPanel": {
     "conversationPlaceholder": "बातचीत यहाँ दिखाई देगी",

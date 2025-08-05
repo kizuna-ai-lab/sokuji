@@ -12,7 +12,9 @@
     "warning": "경고",
     "info": "정보",
     "logs": "로그",
-    "clear": "지우기"
+    "clear": "지우기",
+    "off": "끄기",
+    "autoDetect": "자동 감지"
   },
   "app": {
     "title": "Sokuji",
@@ -241,5 +243,97 @@
         "content": "훌륭합니다! 설정 가이드를 완료하고 인터페이스 조작에 익숙해졌습니다. Sokuji 사용을 시작하려면 설정에서 OpenAI API 키를 입력하고, 프롬프트가 표시되면 마이크 권한을 부여하고, 회의 애플리케이션(Google Meet, Zoom, Microsoft Teams 등)에서 \"Sokuji Virtual Microphone\"을 마이크로 선택하세요. 설정에서 언제든지 이 가이드를 다시 시작할 수 있습니다."
       }
     }
+  },
+  "simpleSettings": {
+    "quickSetup": "빠른 설정",
+    "quickSetupDesc": "일반적인 시나리오를 위한 프리셋 선택",
+    "preset": {
+      "meeting": "회의",
+      "meetingDesc": "비즈니스 회의에 최적화",
+      "presentation": "프레젠테이션",
+      "presentationDesc": "컨퍼런스 및 프레젠테이션용",
+      "casual": "캐주얼 대화",
+      "casualDesc": "편안한 대화",
+      "travel": "여행",
+      "travelDesc": "관광 및 여행 시나리오"
+    },
+    "apiKey": "API 키",
+    "apiKeyPlaceholder": "API 키를 입력하세요",
+    "validate": "검증",
+    "howToGetApiKey": "API 키를 얻는 방법?",
+    "apiKeyHelp1": "1. 제공업체 웹사이트 방문",
+    "apiKeyHelp2": "2. 계정에 가입하거나 로그인",
+    "apiKeyHelp3": "3. API 키 섹션으로 이동",
+    "apiKeyHelp4": "4. 새 API 키를 생성하고 여기에 복사",
+    "apiKeyHelpTooltip": "API 키는 Sokuji가 AI 번역 서비스를 사용할 수 있게 하는 비밀번호와 같습니다. 선택한 제공업체(예: OpenAI)에서 하나를 얻어야 합니다.",
+    "apiKeyHelpTooltip2": "단계별 가이드:",
+    "languages": "언어",
+    "uiLanguage": "인터페이스 언어",
+    "audioSettings": "오디오 설정",
+    "audioSettingsDesc": "오디오 패널에서 마이크와 스피커를 설정하세요"
+  },
+  "simpleConfig": {
+    "interfaceLanguage": "인터페이스 언어",
+    "interfaceLanguageDesc": "Sokuji의 메뉴와 버튼 언어를 변경합니다. 번역할 수 있는 언어에는 영향을 주지 않습니다.",
+    "translationLanguages": "번역 언어",
+    "translationLanguagesDesc": "당신이 말하는 언어(원본 언어)와 번역을 듣고 싶은 언어(대상 언어)를 선택하세요. 원본 언어가 확실하지 않다면 '자동 감지'를 선택하세요.",
+    "yourLanguage": "당신의 언어",
+    "targetLanguage": "대상 언어",
+    "microphone": "마이크",
+    "microphoneDesc": "Sokuji가 들어야 할 마이크를 선택하세요. 실시간으로 번역하고 싶은 음성을 캡처합니다. 음성 입력을 비활성화하려면 '끄기'를 선택하세요.",
+    "speaker": "스피커",
+    "speakerDesc": "번역된 음성을 들을 곳을 선택하세요. AI가 생성한 번역을 재생할 스피커나 헤드폰입니다. 오디오 출력을 비활성화하려면 '끄기'를 선택하세요."
+  },
+  "providers": {
+    "openai": {
+      "name": "OpenAI",
+      "description": "GPT 모델 기반"
+    },
+    "gemini": {
+      "name": "구글 제미나이",
+      "description": "구글의 AI 기술"
+    },
+    "cometapi": {
+      "name": "Comet API",
+      "description": "대안 AI 제공업체"
+    },
+    "palabraai": {
+      "name": "Palabra AI",
+      "description": "전문 번역 AI"
+    },
+    "unknown": {
+      "name": "알 수 없음",
+      "description": "알 수 없는 제공업체"
+    }
+  },
+  "simplePanel": {
+    "translationActive": "번역 활성",
+    "translationInactive": "번역 비활성",
+    "statusNoApiKey": "설정에서 API 키를 구성해주세요",
+    "statusNoMic": "오디오 설정에서 마이크를 선택해주세요",
+    "statusConnecting": "번역 서비스에 연결 중...",
+    "statusConnected": "번역 준비 완료",
+    "statusDisconnected": "번역을 시작하려면 시작을 클릭하세요",
+    "languages": "언어",
+    "provider": "서비스",
+    "noConversation": "아직 대화가 없습니다",
+    "startToBegin": "실시간 번역을 시작하려면 시작을 클릭하세요",
+    "you": "당신",
+    "translation": "번역",
+    "noMicSelected": "마이크 선택 안됨",
+    "noSpeakerSelected": "스피커 선택 안됨",
+    "release": "놓으면 중지",
+    "holdToSpeak": "누르고 말하기",
+    "connecting": "연결 중...",
+    "stop": "중지",
+    "start": "시작"
+  },
+  "connectionStatus": {
+    "disconnected": "연결 해제됨",
+    "connecting": "연결 중...",
+    "connected": "연결됨",
+    "error": "연결 오류",
+    "noApiKey": "API 키 필요",
+    "noMic": "마이크 필요"
   }
 }

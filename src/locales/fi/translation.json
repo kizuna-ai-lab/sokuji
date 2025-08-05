@@ -12,7 +12,9 @@
     "warning": "Varoitus",
     "info": "Tieto",
     "logs": "Lokit",
-    "clear": "Tyhjennä"
+    "clear": "Tyhjennä",
+    "off": "Pois",
+    "autoDetect": "Automaattinen tunnistus"
   },
   "app": {
     "title": "Sokuji",
@@ -57,6 +59,98 @@
     "autoTempo": "Mukautuva puhenopeus",
     "apiKeyValidated": "API-avain vahvistettu",
     "realtimeTranslationAvailable": "Reaaliaikainen käännöspalvelu on saatavilla"
+  },
+  "simpleSettings": {
+    "quickSetup": "Pika-asennus",
+    "quickSetupDesc": "Valitse esiasetukset yleisille skenaarioille",
+    "preset": {
+      "meeting": "Kokous",
+      "meetingDesc": "Optimoitu liiketapaamisille",
+      "presentation": "Esitys",
+      "presentationDesc": "Luennoille ja esityksille",
+      "casual": "Rento keskustelu",
+      "casualDesc": "Rennot keskustelut",
+      "travel": "Matkailu",
+      "travelDesc": "Turismi- ja matkailuskenaariot"
+    },
+    "apiKey": "API-avain",
+    "apiKeyPlaceholder": "Syötä API-avaimesi",
+    "validate": "Vahvista",
+    "howToGetApiKey": "Miten hankin API-avaimen?",
+    "apiKeyHelp1": "1. Vieraile palveluntarjoajan verkkosivustolla",
+    "apiKeyHelp2": "2. Rekisteröidy tai kirjaudu sisään tiliisi",
+    "apiKeyHelp3": "3. Siirry API-avaimet osioon",
+    "apiKeyHelp4": "4. Luo uusi API-avain ja kopioi se tähän",
+    "apiKeyHelpTooltip": "API-avain on kuin salasana, joka antaa Sokuji:lle luvan käyttää tekoälyn käännöspalveluja. Sinun täytyy hankkia sellainen valitsemaltasi palveluntarjoajalta (kuten OpenAI).",
+    "apiKeyHelpTooltip2": "Vaihe vaiheelta -opas:",
+    "languages": "Kielet",
+    "uiLanguage": "Käyttöliittymän kieli",
+    "audioSettings": "Ääniasetukset",
+    "audioSettingsDesc": "Määritä mikrofoni ja kaiuttimet äänipaneelissa"
+  },
+  "simpleConfig": {
+    "interfaceLanguage": "Käyttöliittymän kieli",
+    "interfaceLanguageDesc": "Tämä muuttaa Sokuji:n valikoiden ja painikkeiden kieltä. Se EI vaikuta siihen, minkä kielten välillä voit kääntää.",
+    "translationLanguages": "Käännöskielet",
+    "translationLanguagesDesc": "Valitse mikä kieli puhut (Sinun kielesi) ja mikä kieli haluat kuulla käännöksen (Kohdekieli). Valitse \"Automaattinen tunnistus\" jos et ole varma lähdekielestä.",
+    "yourLanguage": "Sinun kielesi",
+    "targetLanguage": "Kohdekieli",
+    "microphone": "Mikrofoni",
+    "microphoneDesc": "Valitse mikä mikrofoni Sokuji:n tulisi kuunnella. Tämä kaappaa puheen, jonka haluat kääntää reaaliajassa. Valitse \"Pois\" poistaaksesi äänitulo käytöstä.",
+    "speaker": "Kaiutin",
+    "speakerDesc": "Valitse mistä haluat kuulla käännetyn puheen. Tämä on kaiutin tai kuulokkeet, jotka toistavat tekoälyn luoman käännöksen. Valitse \"Pois\" poistaaksesi ääniulostulo käytöstä."
+  },
+  "providers": {
+    "openai": {
+      "name": "OpenAI",
+      "description": "GPT-mallien voimalla"
+    },
+    "gemini": {
+      "name": "Google Gemini",
+      "description": "Googlen tekoälyteknologia"
+    },
+    "cometapi": {
+      "name": "Comet API",
+      "description": "Vaihtoehtoinen tekoälypalveluntarjoaja"
+    },
+    "palabraai": {
+      "name": "Palabra AI",
+      "description": "Erikoistunut käännöstekoäly"
+    },
+    "unknown": {
+      "name": "Tuntematon",
+      "description": "Tuntematon palveluntarjoaja"
+    }
+  },
+  "simplePanel": {
+    "translationActive": "Käännös aktiivinen",
+    "translationInactive": "Käännös ei-aktiivinen",
+    "statusNoApiKey": "Määritä API-avaimesi asetuksissa",
+    "statusNoMic": "Valitse mikrofoni ääniasetuksissa",
+    "statusConnecting": "Yhdistetään käännöspalveluun...",
+    "statusConnected": "Valmis kääntämään",
+    "statusDisconnected": "Napsauta aloita aloittaaksesi käännöksen",
+    "languages": "Kielet",
+    "provider": "Palvelu",
+    "noConversation": "Ei vielä keskustelua",
+    "startToBegin": "Napsauta Aloita aloittaaksesi reaaliaikaisen käännöksen",
+    "you": "Sinä",
+    "translation": "Käännös",
+    "noMicSelected": "Mikrofonia ei valittu",
+    "noSpeakerSelected": "Kaiutinta ei valittu",
+    "release": "Vapauta lopettaaksesi",
+    "holdToSpeak": "Pidä pohjassa puhuaksesi",
+    "connecting": "Yhdistetään...",
+    "stop": "Lopeta",
+    "start": "Aloita"
+  },
+  "connectionStatus": {
+    "disconnected": "Yhteys katkaistu",
+    "connecting": "Yhdistetään...",
+    "connected": "Yhdistetty",
+    "error": "Yhteysvirhe",
+    "noApiKey": "API-avain vaaditaan",
+    "noMic": "Mikrofoni vaaditaan"
   },
   "mainPanel": {
     "conversationPlaceholder": "Keskustelu näkyy tässä",

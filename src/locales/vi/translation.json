@@ -12,7 +12,9 @@
     "warning": "Cảnh báo",
     "info": "Thông tin",
     "logs": "Nhật ký",
-    "clear": "Xóa"
+    "clear": "Xóa",
+    "off": "Tắt",
+    "autoDetect": "Tự Động Phát Hiện"
   },
   "app": {
     "title": "Sokuji",
@@ -159,5 +161,97 @@
         "content": "Bạn đã hoàn thành hướng dẫn thiết lập! Bây giờ hãy đảm bảo thực sự nhập khóa API và cấu hình cài đặt của bạn, sau đó sử dụng microphone ảo Sokuji trong ứng dụng hội nghị (như Google Meet, Zoom, v.v.) để bắt đầu dịch thời gian thực."
       }
     }
+  },
+  "simpleSettings": {
+    "quickSetup": "Cài Đặt Nhanh",
+    "quickSetupDesc": "Chọn preset cho các kịch bản phổ biến",
+    "preset": {
+      "meeting": "Họp",
+      "meetingDesc": "Tối ưu hóa cho các cuộc họp kinh doanh",
+      "presentation": "Thuyết Trình",
+      "presentationDesc": "Cho hội nghị và thuyết trình",
+      "casual": "Trò Chuyện Thường",
+      "casualDesc": "Các cuộc trò chuyện thân mật",
+      "travel": "Du Lịch",
+      "travelDesc": "Các tình huống du lịch và khám phá"
+    },
+    "apiKey": "Khóa API",
+    "apiKeyPlaceholder": "Nhập khóa API của bạn",
+    "validate": "Xác thực",
+    "howToGetApiKey": "Làm sao để có khóa API?",
+    "apiKeyHelp1": "1. Truy cập trang web của nhà cung cấp",
+    "apiKeyHelp2": "2. Đăng ký hoặc đăng nhập vào tài khoản của bạn",
+    "apiKeyHelp3": "3. Đi đến phần khóa API",
+    "apiKeyHelp4": "4. Tạo khóa API mới và sao chép vào đây",
+    "apiKeyHelpTooltip": "Khóa API giống như mật khẩu cho phép Sokuji sử dụng các dịch vụ dịch AI. Bạn cần lấy một cái từ nhà cung cấp bạn chọn (như OpenAI).",
+    "apiKeyHelpTooltip2": "Hướng dẫn từng bước:",
+    "languages": "Ngôn ngữ",
+    "uiLanguage": "Ngôn Ngữ Giao Diện",
+    "audioSettings": "Cài Đặt Âm Thanh",
+    "audioSettingsDesc": "Cấu hình microphone và loa của bạn trong bảng Âm thanh"
+  },
+  "simpleConfig": {
+    "interfaceLanguage": "Ngôn Ngữ Giao Diện",
+    "interfaceLanguageDesc": "Điều này thay đổi ngôn ngữ của menu và nút của Sokuji. Nó KHÔNG ảnh hưởng đến các ngôn ngữ bạn có thể dịch giữa.",
+    "translationLanguages": "Ngôn Ngữ Dịch",
+    "translationLanguagesDesc": "Chọn ngôn ngữ bạn nói (Ngôn Ngữ Của Bạn) và ngôn ngữ bạn muốn nghe bản dịch (Ngôn Ngữ Đích). Chọn 'Tự Động Phát Hiện' nếu bạn không chắc chắn về ngôn ngữ nguồn.",
+    "yourLanguage": "Ngôn Ngữ Của Bạn",
+    "targetLanguage": "Ngôn Ngữ Đích",
+    "microphone": "Microphone",
+    "microphoneDesc": "Chọn microphone mà Sokuji nên lắng nghe. Điều này ghi lại lời nói bạn muốn dịch theo thời gian thực. Chọn 'Tắt' để vô hiệu hóa đầu vào giọng nói.",
+    "speaker": "Loa",
+    "speakerDesc": "Chọn nơi bạn muốn nghe lời nói đã dịch. Đây là loa hoặc tai nghe sẽ phát bản dịch do AI tạo ra. Chọn 'Tắt' để vô hiệu hóa đầu ra âm thanh."
+  },
+  "providers": {
+    "openai": {
+      "name": "OpenAI",
+      "description": "Sử dụng các mô hình GPT"
+    },
+    "gemini": {
+      "name": "Google Gemini",
+      "description": "Công nghệ AI của Google"
+    },
+    "cometapi": {
+      "name": "Comet API",
+      "description": "Nhà cung cấp AI thay thế"
+    },
+    "palabraai": {
+      "name": "Palabra AI",
+      "description": "AI dịch chuyên biệt"
+    },
+    "unknown": {
+      "name": "Không rõ",
+      "description": "Nhà cung cấp không rõ"
+    }
+  },
+  "simplePanel": {
+    "translationActive": "Dịch Hoạt Động",
+    "translationInactive": "Dịch Không Hoạt Động",
+    "statusNoApiKey": "Cấu hình khóa API của bạn trong cài đặt",
+    "statusNoMic": "Chọn microphone trong cài đặt âm thanh",
+    "statusConnecting": "Kết nối với dịch vụ dịch...",
+    "statusConnected": "Sẵn sàng dịch",
+    "statusDisconnected": "Nhấp vào bắt đầu để bắt đầu dịch",
+    "languages": "Ngôn ngữ",
+    "provider": "Dịch vụ",
+    "noConversation": "Chưa có cuộc trò chuyện",
+    "startToBegin": "Nhấp vào Bắt đầu để bắt đầu dịch thời gian thực",
+    "you": "Bạn",
+    "translation": "Dịch",
+    "noMicSelected": "Chưa chọn microphone",
+    "noSpeakerSelected": "Chưa chọn loa",
+    "release": "Thả ra để dừng",
+    "holdToSpeak": "Giữ để nói",
+    "connecting": "Kết nối...",
+    "stop": "Dừng",
+    "start": "Bắt đầu"
+  },
+  "connectionStatus": {
+    "disconnected": "Mất kết nối",
+    "connecting": "Kết nối...",
+    "connected": "Đã kết nối",
+    "error": "Lỗi Kết Nối",
+    "noApiKey": "Cần Khóa API",
+    "noMic": "Cần Microphone"
   }
 }

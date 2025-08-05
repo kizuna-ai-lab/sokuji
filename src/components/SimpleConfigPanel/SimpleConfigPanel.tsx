@@ -54,7 +54,6 @@ const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings })
 
   const [isValidating, setIsValidating] = useState(false);
   const [validationMessage, setValidationMessage] = useState('');
-  const [showApiKeyHelp, setShowApiKeyHelp] = useState(false);
 
   // Filter out virtual devices
   const isVirtualDevice = (device: {label: string}) => {
@@ -174,38 +173,38 @@ const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings })
     switch (commonSettings.provider) {
       case Provider.OPENAI:
         return {
-          name: 'OpenAI',
+          name: t('providers.openai.name'),
           icon: Bot,
           helpUrl: 'https://platform.openai.com/api-keys',
-          description: 'Powered by GPT models'
+          description: t('providers.openai.description')
         };
       case Provider.GEMINI:
         return {
-          name: 'Google Gemini',
+          name: t('providers.gemini.name'),
           icon: Sparkles,
           helpUrl: 'https://makersuite.google.com/app/apikey',
-          description: 'Google\'s AI technology'
+          description: t('providers.gemini.description')
         };
       case Provider.COMET_API:
         return {
-          name: 'Comet API',
+          name: t('providers.cometapi.name'),
           icon: Zap,
           helpUrl: 'https://cometapi.com',
-          description: 'Alternative AI provider'
+          description: t('providers.cometapi.description')
         };
       case Provider.PALABRA_AI:
         return {
-          name: 'Palabra AI',
+          name: t('providers.palabraai.name'),
           icon: AudioLines,
           helpUrl: 'https://palabra.ai',
-          description: 'Specialized translation AI'
+          description: t('providers.palabraai.description')
         };
       default:
         return {
-          name: 'Unknown',
+          name: t('providers.unknown.name'),
           icon: HelpCircle,
           helpUrl: '#',
-          description: 'Unknown provider'
+          description: t('providers.unknown.description')
         };
     }
   };
@@ -237,11 +236,13 @@ const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings })
         <div className="config-section">
           <h3>
             <Globe size={18} />
-            {t('simpleConfig.interfaceLanguage', 'Interface Language')}
+            <span>{t('simpleConfig.interfaceLanguage')}</span>
+            <Tooltip
+              content={t('simpleConfig.interfaceLanguageDesc')}
+              position="top"
+              icon="help"
+            />
           </h3>
-          <p className="section-description">
-            {t('simpleConfig.interfaceLanguageDesc', 'Choose your preferred interface language')}
-          </p>
           
           <div className="setting-row">
             <select
@@ -268,22 +269,24 @@ const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings })
         <div className="config-section">
           <h3>
             <Languages size={18} />
-            {t('simpleConfig.translationLanguages', 'Translation Languages')}
+            <span>{t('simpleConfig.translationLanguages')}</span>
+            <Tooltip
+              content={t('simpleConfig.translationLanguagesDesc')}
+              position="top"
+              icon="help"
+            />
           </h3>
-          <p className="section-description">
-            {t('simpleConfig.translationLanguagesDesc', 'Set the languages for translation')}
-          </p>
           
           <div className="language-pair-row">
             <div className="language-select-group">
-              <label>{t('simpleConfig.yourLanguage', 'Your Language')}</label>
+              <label>{t('simpleConfig.yourLanguage')}</label>
               <select
                 value={currentProviderSettings.sourceLanguage || 'auto'}
                 onChange={(e) => updateSourceLanguage(e.target.value)}
                 disabled={isSessionActive}
                 className="language-select"
               >
-                <option value="auto">{t('common.autoDetect', 'Auto Detect')}</option>
+                <option value="auto">{t('common.autoDetect')}</option>
                 {providerConfig.languages.map((lang) => (
                   <option key={lang.value} value={lang.value}>
                     {lang.name}
@@ -292,8 +295,12 @@ const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings })
               </select>
             </div>
             
+            <div className="language-arrow">
+              <ArrowRight size={20} />
+            </div>
+            
             <div className="language-select-group">
-              <label>{t('simpleConfig.targetLanguage', 'Target Language')}</label>
+              <label>{t('simpleConfig.targetLanguage')}</label>
               <select
                 value={currentProviderSettings.targetLanguage || 'en'}
                 onChange={(e) => updateTargetLanguage(e.target.value)}
@@ -314,7 +321,26 @@ const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings })
             <div className="config-section">
               <h3>
                 <Key size={18} />
-                {t('simpleSettings.apiKey', 'API Key')}
+                <span>{t('simpleSettings.apiKey')}</span>
+                <Tooltip
+                  content={
+                    <div>
+                      <p>{t('simpleSettings.apiKeyHelpTooltip')}</p>
+                      <p style={{ marginTop: '8px' }}>{t('simpleSettings.apiKeyHelpTooltip2')}</p>
+                      <a 
+                        href="https://kizuna-ai-lab.github.io/sokuji/tutorials/openai-setup.html" 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        style={{ color: '#10a37f', textDecoration: 'underline' }}
+                      >
+                        https://kizuna-ai-lab.github.io/sokuji/tutorials/openai-setup.html
+                      </a>
+                    </div>
+                  }
+                  position="top"
+                  icon="help"
+                  maxWidth={350}
+                />
               </h3>
               
               <div className="provider-info">
@@ -330,7 +356,7 @@ const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings })
                   type="password"
                   value={currentApiKey}
                   onChange={(e) => updateApiKey(e.target.value)}
-                  placeholder={t('simpleSettings.apiKeyPlaceholder', 'Enter your API key')}
+                  placeholder={t('simpleSettings.apiKeyPlaceholder')}
                   className={`api-key-input ${isApiKeyValid ? 'valid' : ''}`}
                   disabled={isSessionActive}
                 />
@@ -344,7 +370,7 @@ const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings })
                   ) : isApiKeyValid ? (
                     <CheckCircle size={16} />
                   ) : (
-                    t('simpleSettings.validate', 'Validate')
+                    t('simpleSettings.validate')
                   )}
                 </button>
               </div>
@@ -354,26 +380,6 @@ const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings })
                   {validationMessage}
                 </div>
               )}
-
-              <button
-                className="help-link"
-                onClick={() => setShowApiKeyHelp(!showApiKeyHelp)}
-              >
-                <HelpCircle size={14} />
-                {t('simpleSettings.howToGetApiKey', 'How to get an API key?')}
-              </button>
-
-              {showApiKeyHelp && (
-                <div className="help-content">
-                  <p>{t('simpleSettings.apiKeyHelp1', '1. Visit the provider\'s website')}</p>
-                  <a href={providerInfo.helpUrl} target="_blank" rel="noopener noreferrer">
-                    {providerInfo.helpUrl}
-                  </a>
-                  <p>{t('simpleSettings.apiKeyHelp2', '2. Sign up or log in to your account')}</p>
-                  <p>{t('simpleSettings.apiKeyHelp3', '3. Navigate to API keys section')}</p>
-                  <p>{t('simpleSettings.apiKeyHelp4', '4. Create a new API key and copy it here')}</p>
-                </div>
-              )}
             </div>
 
 
@@ -381,11 +387,14 @@ const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings })
         <div className="config-section">
           <h3>
             <Mic size={18} />
-            {t('simpleConfig.microphone', 'Microphone')}
+            <span>{t('simpleConfig.microphone')}</span>
+            <Tooltip
+              content={t('simpleConfig.microphoneDesc')}
+              position="top"
+              icon="help"
+              maxWidth={300}
+            />
           </h3>
-          <p className="section-description">
-            {t('simpleConfig.microphoneDesc', 'Select your microphone device for voice input')}
-          </p>
           
           <div className="device-list">
             <div 
@@ -396,7 +405,7 @@ const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings })
                 }
               }}
             >
-              <span>{t('common.off', 'Off')}</span>
+              <span>{t('common.off')}</span>
               {!isInputDeviceOn && <div className="selected-indicator" />}
             </div>
             {filteredInputDevices.map((device) => (
@@ -410,7 +419,7 @@ const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings })
                   selectInputDevice(device);
                 }}
               >
-                <span>{device.label || t('audioPanel.unknownDevice', 'Unknown Device')}</span>
+                <span>{device.label || t('audioPanel.unknownDevice')}</span>
                 {isInputDeviceOn && selectedInputDevice?.deviceId === device.deviceId && <div className="selected-indicator" />}
               </div>
             ))}
@@ -421,11 +430,14 @@ const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings })
         <div className="config-section">
           <h3>
             <Volume2 size={18} />
-            {t('simpleConfig.speaker', 'Speaker')}
+            <span>{t('simpleConfig.speaker')}</span>
+            <Tooltip
+              content={t('simpleConfig.speakerDesc')}
+              position="top"
+              icon="help"
+              maxWidth={300}
+            />
           </h3>
-          <p className="section-description">
-            {t('simpleConfig.speakerDesc', 'Select your speaker device for audio output')}
-          </p>
           
           <div className="device-list">
             <div 
@@ -436,7 +448,7 @@ const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings })
                 }
               }}
             >
-              <span>{t('common.off', 'Off')}</span>
+              <span>{t('common.off')}</span>
               {!isMonitorDeviceOn && <div className="selected-indicator" />}
             </div>
             {filteredMonitorDevices.map((device) => (
@@ -450,7 +462,7 @@ const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings })
                   selectMonitorDevice(device);
                 }}
               >
-                <span>{device.label || t('audioPanel.unknownDevice', 'Unknown Device')}</span>
+                <span>{device.label || t('audioPanel.unknownDevice')}</span>
                 {isMonitorDeviceOn && selectedMonitorDevice?.deviceId === device.deviceId && <div className="selected-indicator" />}
               </div>
             ))}

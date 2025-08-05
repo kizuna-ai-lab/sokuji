@@ -1,5 +1,22 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, cloneElement, isValidElement } from 'react';
 import { HelpCircle, Info } from 'lucide-react';
+import {
+  useFloating,
+  autoUpdate,
+  offset,
+  flip,
+  shift,
+  useHover,
+  useFocus,
+  useDismiss,
+  useRole,
+  useInteractions,
+  FloatingPortal,
+  arrow,
+  useClick,
+  safePolygon,
+  FloatingArrow
+} from '@floating-ui/react';
 import './Tooltip.scss';
 
 interface TooltipProps {
@@ -19,84 +36,52 @@ const Tooltip: React.FC<TooltipProps> = ({
   icon = 'help',
   maxWidth = 250
 }) => {
-  const [isVisible, setIsVisible] = useState(false);
-  const [actualPosition, setActualPosition] = useState(position);
-  const tooltipRef = useRef<HTMLDivElement>(null);
-  const triggerRef = useRef<HTMLDivElement>(null);
+  const [isOpen, setIsOpen] = useState(false);
+  const arrowRef = React.useRef(null);
 
-  useEffect(() => {
-    if (isVisible && tooltipRef.current && triggerRef.current) {
-      const tooltip = tooltipRef.current;
-      const trigger = triggerRef.current;
-      const tooltipRect = tooltip.getBoundingClientRect();
-      const triggerRect = trigger.getBoundingClientRect();
-      const viewportWidth = window.innerWidth;
-      const viewportHeight = window.innerHeight;
+  const { refs, floatingStyles, context, placement } = useFloating({
+    open: isOpen,
+    onOpenChange: setIsOpen,
+    placement: position,
+    middleware: [
+      offset(10),
+      flip({
+        fallbackAxisSideDirection: 'start',
+        crossAxis: false,
+      }),
+      shift({ 
+        padding: 8,
+        crossAxis: true,
+      }),
+      arrow({
+        element: arrowRef,
+      }),
+    ],
+    whileElementsMounted: autoUpdate,
+    strategy: 'fixed',
+  });
 
-      let newPosition = position;
+  // Interaction hooks based on trigger type
+  const hover = useHover(context, {
+    enabled: trigger === 'hover',
+    delay: { open: 100, close: 0 },
+    handleClose: safePolygon(),
+  });
+  
+  const click = useClick(context, {
+    enabled: trigger === 'click',
+  });
 
-      // Check if tooltip goes outside viewport and adjust position
-      switch (position) {
-        case 'top':
-          if (triggerRect.top - tooltipRect.height < 0) {
-            newPosition = 'bottom';
-          }
-          break;
-        case 'bottom':
-          if (triggerRect.bottom + tooltipRect.height > viewportHeight) {
-            newPosition = 'top';
-          }
-          break;
-        case 'left':
-          if (triggerRect.left - tooltipRect.width < 0) {
-            newPosition = 'right';
-          }
-          break;
-        case 'right':
-          if (triggerRect.right + tooltipRect.width > viewportWidth) {
-            newPosition = 'left';
-          }
-          break;
-      }
+  const focus = useFocus(context);
+  const dismiss = useDismiss(context);
+  const role = useRole(context, { role: 'tooltip' });
 
-      if (newPosition !== actualPosition) {
-        setActualPosition(newPosition);
-      }
-    }
-  }, [isVisible, position, actualPosition]);
-
-  const handleMouseEnter = () => {
-    if (trigger === 'hover') {
-      setIsVisible(true);
-    }
-  };
-
-  const handleMouseLeave = () => {
-    if (trigger === 'hover') {
-      setIsVisible(false);
-    }
-  };
-
-  const handleClick = (e: React.MouseEvent) => {
-    if (trigger === 'click') {
-      e.stopPropagation();
-      setIsVisible(!isVisible);
-    }
-  };
-
-  useEffect(() => {
-    if (trigger === 'click' && isVisible) {
-      const handleClickOutside = (e: MouseEvent) => {
-        if (tooltipRef.current && !tooltipRef.current.contains(e.target as Node) &&
-            triggerRef.current && !triggerRef.current.contains(e.target as Node)) {
-          setIsVisible(false);
-        }
-      };
-
-      document.addEventListener('click', handleClickOutside);
-      return () => document.removeEventListener('click', handleClickOutside);
-    }
-  }, [isVisible, trigger]);
+  const { getReferenceProps, getFloatingProps } = useInteractions([
+    trigger === 'hover' ? hover : click,
+    focus,
+    dismiss,
+    role,
+  ]);
 
   const renderIcon = () => {
     if (icon === 'none' || children) return null;
@@ -105,28 +90,56 @@ const Tooltip: React.FC<TooltipProps> = ({
     return <IconComponent size={16} />;
   };
 
+  const triggerElement = children || renderIcon();
+
   return (
-    <div className="tooltip-wrapper">
-      <div
-        ref={triggerRef}
-        className="tooltip-trigger"
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
-        onClick={handleClick}
-      >
-        {children || renderIcon()}
-      </div>
-      {isVisible && (
-        <div
-          ref={tooltipRef}
-          className={`tooltip-content ${actualPosition}`}
-          style={{ maxWidth }}
+    <>
+      {isValidElement(triggerElement) ? (
+        cloneElement(
+          triggerElement,
+          getReferenceProps({
+            ref: refs.setReference,
+            ...(triggerElement.props as any),
+            className: `${(triggerElement.props as any)?.className || ''} tooltip-trigger`.trim(),
+          })
+        )
+      ) : (
+        <span
+          ref={refs.setReference}
+          {...getReferenceProps()}
+          className="tooltip-trigger"
         >
-          <div className="tooltip-arrow" />
-          <div className="tooltip-body">{content}</div>
-        </div>
+          {triggerElement}
+        </span>
       )}
-    </div>
+      <FloatingPortal>
+        {isOpen && (
+          <div
+            ref={refs.setFloating}
+            style={{
+              ...floatingStyles,
+              maxWidth,
+              zIndex: 9999,
+            }}
+            className={`tooltip-content ${placement}`}
+            {...getFloatingProps()}
+          >
+            <FloatingArrow 
+              ref={arrowRef} 
+              context={context}
+              className="tooltip-arrow"
+              width={10}
+              height={5}
+              tipRadius={2}
+              fill="#2a2a2a"
+              stroke="#444"
+              strokeWidth={1}
+            />
+            <div className="tooltip-body">{content}</div>
+          </div>
+        )}
+      </FloatingPortal>
+    </>
   );
 };
 

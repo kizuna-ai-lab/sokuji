@@ -12,7 +12,9 @@
     "warning": "警告",
     "info": "資訊",
     "logs": "日誌",
-    "clear": "清除"
+    "clear": "清除",
+    "off": "關閉",
+    "autoDetect": "自動辨識"
   },
   "app": {
     "title": "Sokuji",
@@ -24,6 +26,47 @@
     "view": "檢視",
     "window": "視窗",
     "help": "說明"
+  },
+  "simpleSettings": {
+    "quickSetup": "快速設定",
+    "apiKey": "API 金鑰",
+    "validate": "驗證",
+    "languages": "語言",
+    "uiLanguage": "介面語言",
+    "audioSettings": "音訊設定"
+  },
+  "simpleConfig": {
+    "interfaceLanguage": "介面語言",
+    "yourLanguage": "您的語言",
+    "targetLanguage": "目標語言",
+    "microphone": "麥克風",
+    "speaker": "揚聲器"
+  },
+  "providers": {
+    "openai": {
+      "name": "OpenAI",
+      "description": "由 GPT 模型驅動"
+    },
+    "gemini": {
+      "name": "Google Gemini",
+      "description": "Google 的 AI 技術"
+    },
+    "unknown": {
+      "name": "未知",
+      "description": "未知的提供商"
+    }
+  },
+  "simplePanel": {
+    "translationActive": "翻譯中",
+    "you": "您",
+    "translation": "翻譯",
+    "stop": "停止",
+    "start": "開始"
+  },
+  "connectionStatus": {
+    "disconnected": "已斷線",
+    "connected": "已連線",
+    "error": "連線錯誤"
   },
   "settings": {
     "title": "設定",
