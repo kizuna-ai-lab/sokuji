@@ -135,9 +135,9 @@
     "yourLanguage": "O Seu Idioma",
     "targetLanguage": "Idioma de Destino",
     "microphone": "Microfone",
-    "microphoneDesc": "Escolha que microfone o Sokuji deve ouvir. Isto captura a fala que quer traduzir em tempo real. Seleccione \"Desligado\" para desactivar a entrada de voz.",
+    "microphoneDesc": "Seleccione o microfone para capturar a sua fala. Fale no seu idioma para este microfone, e o Sokuji traduzirá tudo o que ouvir em tempo real.",
     "speaker": "Altifalante",
-    "speakerDesc": "Escolha onde quer ouvir a fala traduzida. Este é o altifalante ou auscultadores que irá reproduzir a tradução gerada por AI. Seleccione \"Desligado\" para desactivar a saída de áudio."
+    "speakerDesc": "Seleccione um altifalante para monitorizar a saída traduzida. Isto permite-lhe ouvir como soa a tradução. Pode desligá-lo se a monitorização não for necessária. Esteja ligado ou desligado, o áudio traduzido é sempre enviado para o microfone virtual para outros participantes ouvirem."
   },
   "providers": {
     "openai": {

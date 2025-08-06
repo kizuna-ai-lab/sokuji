@@ -196,9 +196,9 @@
     "yourLanguage": "Diliniz",
     "targetLanguage": "Hedef Dil",
     "microphone": "Mikrofon",
-    "microphoneDesc": "Sokuji'nin hangi mikrofonu dinlemesi gerektiğini seçin. Bu, gerçek zamanda çevirmek istediğiniz konuşmayı yakalar. Ses girişini devre dışı bırakmak için 'Kapalı'yı seçin.",
+    "microphoneDesc": "Konuşmanızı yakalamak için mikrofonu seçin. Bu mikrofona dilinizle konuşun, Sokuji duyduğu her şeyi gerçek zamanda çevirecektir.",
     "speaker": "Hoparlör",
-    "speakerDesc": "Çevrilmiş konuşmayı nerede duymak istediğinizi seçin. Bu, AI tarafından üretilen çeviriyi çalacak hoparlör veya kulaklıktır. Ses çıkışını devre dışı bırakmak için 'Kapalı'yı seçin."
+    "speakerDesc": "Çevrilmiş çıktıyı izlemek için bir hoparlör seçin. Bu, çevirinin nasıl geldiğini duymanızı sağlar. İzleme gerekmiyorsa kapatabilirsiniz. Açık veya kapalı olsun, çevrilmiş ses her zaman sanal mikrofona gönderilir ve diğer katılımcılar duyar."
   },
   "providers": {
     "openai": {

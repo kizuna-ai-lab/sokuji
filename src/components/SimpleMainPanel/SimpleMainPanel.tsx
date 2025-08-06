@@ -37,7 +37,8 @@ const SimpleMainPanel: React.FC<SimpleMainPanelProps> = ({
   const {
     isApiKeyValid,
     getCurrentProviderSettings,
-    commonSettings
+    commonSettings,
+    navigateToSettings
   } = useSettings();
   
   const {
@@ -156,7 +157,11 @@ const SimpleMainPanel: React.FC<SimpleMainPanelProps> = ({
       <div className="control-footer">
         <div className="status-info">
           <span className={`status-dot ${isSessionActive ? 'active' : ''}`} />
-          <span className="language-pair">
+          <span 
+            className="language-pair clickable" 
+            onClick={() => navigateToSettings('languages')}
+            title={t('simplePanel.clickToConfigLanguages', 'Click to configure languages')}
+          >
             {currentSettings.sourceLanguage} → {currentSettings.targetLanguage}
           </span>
           {isSessionActive && (
@@ -165,10 +170,18 @@ const SimpleMainPanel: React.FC<SimpleMainPanelProps> = ({
             </span>
           )}
           <span className="device-status">
-            <span className={`device-icon ${isInputDeviceOn ? 'active' : ''}`}>
+            <span 
+              className={`device-icon ${isInputDeviceOn ? 'active' : ''} clickable`}
+              onClick={() => navigateToSettings('microphone')}
+              title={t('simplePanel.clickToConfigMicrophone', 'Click to configure microphone')}
+            >
               {isInputDeviceOn ? <Mic size={14} /> : <MicOff size={14} />}
             </span>
-            <span className={`device-icon ${isMonitorDeviceOn ? 'active' : ''}`}>
+            <span 
+              className={`device-icon ${isMonitorDeviceOn ? 'active' : ''} clickable`}
+              onClick={() => navigateToSettings('speaker')}
+              title={t('simplePanel.clickToConfigSpeaker', 'Click to configure speaker')}
+            >
               {isMonitorDeviceOn ? <Volume2 size={14} /> : <VolumeX size={14} />}
             </span>
           </span>

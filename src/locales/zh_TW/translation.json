@@ -37,10 +37,15 @@
   },
   "simpleConfig": {
     "interfaceLanguage": "介面語言",
+    "interfaceLanguageDesc": "這會變更 Sokuji 選單和按鈕的語言。不會影響您可以在哪些語言之間翻譯。",
+    "translationLanguages": "翻譯語言",
+    "translationLanguagesDesc": "選擇您說的語言（您的語言）和您想要聽到翻譯的語言（目標語言）。如果您不確定來源語言，請選擇「自動偵測」。",
     "yourLanguage": "您的語言",
     "targetLanguage": "目標語言",
     "microphone": "麥克風",
-    "speaker": "揚聲器"
+    "microphoneDesc": "選擇麥克風來捕捉您的語音。對著這個麥克風說您的語言，Sokuji 會即時翻譯它聽到的一切。",
+    "speaker": "揚聲器",
+    "speakerDesc": "選擇揚聲器來監聽翻譯輸出。這讓您能聽到翻譯的聲音效果。如果不需要監聽，可以關閉。無論開啟或關閉，翻譯的音訊都會發送到虛擬麥克風供其他參與者聽到。"
   },
   "providers": {
     "openai": {

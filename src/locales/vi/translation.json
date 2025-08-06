@@ -196,9 +196,9 @@
     "yourLanguage": "Ngôn Ngữ Của Bạn",
     "targetLanguage": "Ngôn Ngữ Đích",
     "microphone": "Microphone",
-    "microphoneDesc": "Chọn microphone mà Sokuji nên lắng nghe. Điều này ghi lại lời nói bạn muốn dịch theo thời gian thực. Chọn 'Tắt' để vô hiệu hóa đầu vào giọng nói.",
+    "microphoneDesc": "Chọn microphone để ghi lại giọng nói của bạn. Nói bằng ngôn ngữ của bạn vào microphone này, và Sokuji sẽ dịch mọi thứ nó nghe thấy theo thời gian thực.",
     "speaker": "Loa",
-    "speakerDesc": "Chọn nơi bạn muốn nghe lời nói đã dịch. Đây là loa hoặc tai nghe sẽ phát bản dịch do AI tạo ra. Chọn 'Tắt' để vô hiệu hóa đầu ra âm thanh."
+    "speakerDesc": "Chọn loa để giám sát đầu ra đã dịch. Điều này cho phép bạn nghe bản dịch như thế nào. Bạn có thể tắt nó nếu không cần giám sát. Dù bật hay tắt, âm thanh đã dịch luôn được gửi tới microphone ảo để những người tham gia khác có thể nghe."
   },
   "providers": {
     "openai": {

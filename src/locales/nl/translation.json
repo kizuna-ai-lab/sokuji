@@ -280,9 +280,9 @@
     "yourLanguage": "Jouw Taal",
     "targetLanguage": "Doeltaal",
     "microphone": "Microfoon",
-    "microphoneDesc": "Kies naar welke microfoon Sokuji moet luisteren. Dit vangt de spraak op die je in realtime wilt vertalen. Selecteer 'Uit' om spraakinvoer uit te schakelen.",
+    "microphoneDesc": "Selecteer de microfoon om uw spraak op te vangen. Spreek uw taal in deze microfoon, en Sokuji zal alles wat het hoort in realtime vertalen.",
     "speaker": "Luidspreker",
-    "speakerDesc": "Kies waar je de vertaalde spraak wilt horen. Dit is de luidspreker of hoofdtelefoon die de door AI gegenereerde vertaling zal afspelen. Selecteer 'Uit' om audio-uitvoer uit te schakelen."
+    "speakerDesc": "Selecteer een luidspreker om de vertaalde uitvoer te monitoren. Hiermee kunt u horen hoe de vertaling klinkt. U kunt het uitschakelen als monitoring niet nodig is. Of het nu aan of uit staat, de vertaalde audio wordt altijd naar de virtuele microfoon gestuurd zodat andere deelnemers het kunnen horen."
   },
   "providers": {
     "openai": {

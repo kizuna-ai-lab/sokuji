@@ -279,9 +279,9 @@
     "yourLanguage": "Twój Język",
     "targetLanguage": "Język Docelowy",
     "microphone": "Mikrofon",
-    "microphoneDesc": "Wybierz mikrofon, którego Sokuji ma słuchać. To przechwytuje mowę, którą chcesz tłumaczyć w czasie rzeczywistym. Wybierz 'Wyłącz', aby wyłączyć wejście głosowe.",
+    "microphoneDesc": "Wybierz mikrofon do przechwytywania swojej mowy. Mów w swoim języku do tego mikrofonu, a Sokuji będzie tłumaczyć wszystko co usłyszy w czasie rzeczywistym.",
     "speaker": "Głośnik",
-    "speakerDesc": "Wybierz, gdzie chcesz słyszeć przetłumaczoną mowę. To głośnik lub słuchawki, które będą odtwarzać tłumaczenie wygenerowane przez AI. Wybierz 'Wyłącz', aby wyłączyć wyjście audio."
+    "speakerDesc": "Wybierz głośnik do monitorowania przetłumaczonego wyjścia. Pozwala to słyszeć jak brzmi tłumaczenie. Możesz to wyłączyć jeśli monitorowanie nie jest potrzebne. Niezależnie od tego czy jest włączone czy wyłączone, przetłumaczone audio jest zawsze wysyłane do wirtualnego mikrofonu aby inni uczestnicy mogli je słyszeć."
   },
   "providers": {
     "openai": {

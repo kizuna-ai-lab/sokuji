@@ -282,9 +282,9 @@
     "yourLanguage": "Ihre Sprache",
     "targetLanguage": "Zielsprache",
     "microphone": "Mikrofon",
-    "microphoneDesc": "Wählen Sie, welches Mikrofon Sokuji abhören soll. Dies erfasst die Sprache, die Sie in Echtzeit übersetzen möchten. Wählen Sie \"Aus\", um die Spracheingabe zu deaktivieren.",
+    "microphoneDesc": "Wählen Sie das Mikrofon zur Aufnahme Ihrer Sprache. Sprechen Sie in Ihrer Sprache in dieses Mikrofon, und Sokuji wird alles, was es hört, in Echtzeit übersetzen.",
     "speaker": "Lautsprecher",
-    "speakerDesc": "Wählen Sie, wo Sie die übersetzte Sprache hören möchten. Dies ist der Lautsprecher oder Kopfhörer, der die AI-generierte Übersetzung wiedergeben wird. Wählen Sie \"Aus\", um die Audioausgabe zu deaktivieren."
+    "speakerDesc": "Wählen Sie einen Lautsprecher zur Überwachung der übersetzten Ausgabe. Damit können Sie hören, wie die Übersetzung klingt. Sie können es ausschalten, wenn keine Überwachung erforderlich ist. Ob ein- oder ausgeschaltet, das übersetzte Audio wird immer an das virtuelle Mikrofon gesendet, damit andere Teilnehmer es hören können."
   },
   "providers": {
     "openai": {
