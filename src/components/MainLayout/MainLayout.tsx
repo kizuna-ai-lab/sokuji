@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import MainPanel from '../MainPanel/MainPanel';
 import SettingsPanel from '../SettingsPanel/SettingsPanel';
@@ -16,7 +16,7 @@ type PanelName = 'settings' | 'audio' | 'logs' | 'main';
 const MainLayout: React.FC = () => {
   const { t } = useTranslation();
   const { trackEvent } = useAnalytics();
-  const { commonSettings, updateCommonSettings } = useSettings();
+  const { commonSettings, updateCommonSettings, settingsNavigationTarget } = useSettings();
   const [showLogs, setShowLogs] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showAudio, setShowAudio] = useState(false);
@@ -104,6 +104,17 @@ const MainLayout: React.FC = () => {
     });
   }, [commonSettings.uiMode, updateCommonSettings, trackEvent]);
 
+  // Listen for navigation requests from settings context
+  useEffect(() => {
+    if (settingsNavigationTarget) {
+      // Open settings panel when navigation is requested
+      setShowSettings(true);
+      setShowAudio(false);
+      setShowLogs(false);
+      trackPanelView('settings');
+    }
+  }, [settingsNavigationTarget]);
+
   return (
     <div className="main-layout">
       <div className={`main-content ${(showLogs || showSettings || showAudio) ? 'with-panel' : 'full-width'}`}>
@@ -145,14 +156,20 @@ const MainLayout: React.FC = () => {
           {showLogs && <LogsPanel toggleLogs={toggleLogs} />}
           {showSettings && (
             commonSettings.uiMode === 'basic' ? (
-              <SimpleConfigPanel toggleSettings={toggleSettings} />
+              <SimpleConfigPanel 
+                toggleSettings={toggleSettings} 
+                highlightSection={settingsNavigationTarget}
+              />
             ) : (
               <SettingsPanel toggleSettings={toggleSettings} />
             )
           )}
           {showAudio && (
             commonSettings.uiMode === 'basic' ? (
-              <SimpleConfigPanel toggleSettings={toggleAudio} />
+              <SimpleConfigPanel 
+                toggleSettings={toggleAudio} 
+                highlightSection={settingsNavigationTarget}
+              />
             ) : (
               <AudioPanel toggleAudio={toggleAudio} />
             )

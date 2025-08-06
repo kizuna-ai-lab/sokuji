@@ -135,9 +135,32 @@
     "yourLanguage": "您的语言",
     "targetLanguage": "目标语言",
     "microphone": "麦克风",
-    "microphoneDesc": "选择Sokuji应该监听的麦克风。这会捕获您想要实时翻译的语音。选择\"关闭\"以禁用语音输入。",
+    "microphoneDesc": "选择用于捕获您语音的麦克风。对着此麦克风说您的语言，Sokuji会实时翻译麦克风接收到的所有内容。",
     "speaker": "扬声器",
-    "speakerDesc": "选择您想要听到翻译语音的地方。这是播放AI生成翻译的扬声器或耳机。选择\"关闭\"以禁用音频输出。"
+    "speakerDesc": "选择用于监听翻译输出的扬声器。这让您能听到翻译的效果。如果不需要监听可以关闭。无论开启或关闭，翻译的音频都会发送到虚拟麦克风供其他参与者听到。"
+  },
+  "simplePanel": {
+    "translationActive": "翻译进行中",
+    "translationInactive": "翻译未激活",
+    "statusNoApiKey": "请在设置中配置您的API密钥",
+    "statusNoMic": "请在音频设置中选择麦克风",
+    "statusConnecting": "正在连接翻译服务...",
+    "statusConnected": "准备好翻译",
+    "statusDisconnected": "点击开始进行翻译",
+    "languages": "语言",
+    "provider": "服务",
+    "noConversation": "暂无对话",
+    "startToBegin": "点击开始进行实时翻译",
+    "you": "您",
+    "translation": "翻译",
+    "noMicSelected": "未选择麦克风",
+    "noSpeakerSelected": "未选择扬声器",
+    "release": "释放以停止",
+    "holdToSpeak": "按住说话",
+    "connecting": "连接中...",
+    "stop": "停止",
+    "start": "开始",
+    "sessionDuration": "时长"
   },
   "providers": {
     "openai": {

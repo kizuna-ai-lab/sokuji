@@ -96,9 +96,9 @@
     "yourLanguage": "Inyong Wika",
     "targetLanguage": "Target na Wika",
     "microphone": "Microphone",
-    "microphoneDesc": "Piliin kung anong microphone ang dapat pakinggan ng Sokuji. Kinukuha nito ang pagsasalita na gusto ninyong i-translate nang real-time. Piliin ang \"Patay\" para i-disable ang voice input.",
+    "microphoneDesc": "Piliin ang microphone para ma-capture ang inyong pagsasalita. Magsalita sa inyong wika sa microphone na ito, at i-translate ng Sokuji ang lahat ng maririnig niya nang real-time.",
     "speaker": "Speaker",
-    "speakerDesc": "Piliin kung saan ninyo gustong marinig ang translated na pagsasalita. Ito ang speaker o headphones na mag-play ng AI-generated na translation. Piliin ang \"Patay\" para i-disable ang audio output."
+    "speakerDesc": "Piliin ang speaker para ma-monitor ang translated na output. Pinapahintulutan ninyo nitong marinig kung paano tumutunog ang translation. Pwede ninyong i-off ito kung hindi kailangan ang monitoring. Naka-on man o naka-off, laging napapadala ang translated na audio sa virtual microphone para marinig ng ibang participants."
   },
   "providers": {
     "openai": {

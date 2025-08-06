@@ -280,9 +280,9 @@
     "yourLanguage": "La Tua Lingua",
     "targetLanguage": "Lingua di Destinazione",
     "microphone": "Microfono",
-    "microphoneDesc": "Scegli quale microfono Sokuji deve ascoltare. Questo cattura il parlato che vuoi tradurre in tempo reale. Seleziona \"Spento\" per disabilitare l'input vocale.",
+    "microphoneDesc": "Seleziona il microfono per catturare il tuo parlato. Parla nella tua lingua in questo microfono, e Sokuji tradurrà tutto ciò che sente in tempo reale.",
     "speaker": "Altoparlante",
-    "speakerDesc": "Scegli dove vuoi sentire il parlato tradotto. Questo è l'altoparlante o le cuffie che riprodurranno la traduzione generata dall'AI. Seleziona \"Spento\" per disabilitare l'output audio."
+    "speakerDesc": "Seleziona un altoparlante per monitorare l'output tradotto. Questo ti permette di sentire come suona la traduzione. Puoi spegnerlo se il monitoraggio non è necessario. Che sia acceso o spento, l'audio tradotto viene sempre inviato al microfono virtuale perché altri partecipanti possano sentirlo."
   },
   "providers": {
     "openai": {

@@ -212,6 +212,10 @@ interface SettingsContextType {
   fetchAvailableModels: () => Promise<void>;
   clearAvailableModels: () => void;
   getCurrentProviderConfig: () => ProviderConfig;
+  
+  // Navigation support for settings panel
+  settingsNavigationTarget: string | null;
+  navigateToSettings: (section?: string | null) => void;
 }
 
 // Default common settings
@@ -324,6 +328,9 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   const [isApiKeyValid, setIsApiKeyValid] = useState(false);
   const [availableModels, setAvailableModels] = useState<FilteredModel[]>([]);
   const [loadingModels, setLoadingModels] = useState(false);
+  
+  // Navigation state for settings panel
+  const [settingsNavigationTarget, setSettingsNavigationTarget] = useState<string | null>(null);
   
   // Cache for API validation and models to avoid duplicate requests
   const [modelsCache, setModelsCache] = useState<Map<string, {
@@ -725,6 +732,11 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [commonSettings.provider, openAISettings, cometAPISettings, geminiSettings, palabraAISettings]);
 
+  // Navigation function for settings panel
+  const navigateToSettings = useCallback((section?: string | null) => {
+    setSettingsNavigationTarget(section || null);
+  }, []);
+
   return (
     <SettingsContext.Provider
       value={{
@@ -753,7 +765,11 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         loadingModels,
         fetchAvailableModels,
         clearAvailableModels,
-        getCurrentProviderConfig
+        getCurrentProviderConfig,
+        
+        // Navigation support
+        settingsNavigationTarget,
+        navigateToSettings
       }}
     >
       {children}
