@@ -33,7 +33,9 @@
     "validate": "驗證",
     "languages": "語言",
     "uiLanguage": "介面語言",
-    "audioSettings": "音訊設定"
+    "audioSettings": "音訊設定",
+    "apiKeyHelpTooltip": "API 金鑰就像密碼，讓 Sokuji 使用 AI 翻譯服務。您需要從選擇的提供商（如 OpenAI）取得一個。",
+    "apiKeyHelpTooltip2": "逐步指南："
   },
   "simpleConfig": {
     "interfaceLanguage": "介面語言",
@@ -67,7 +69,10 @@
     "translation": "翻譯",
     "stop": "停止",
     "start": "開始",
-    "sessionDuration": "Duration"
+    "sessionDuration": "時長",
+    "startToBegin": "點擊開始進行即時翻譯",
+    "holdToSpeak": "按住說話",
+    "connecting": "連線中..."
   },
   "connectionStatus": {
     "disconnected": "已斷線",

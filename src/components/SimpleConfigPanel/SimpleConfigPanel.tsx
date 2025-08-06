@@ -282,11 +282,16 @@ const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings, h
             >
               <option value="en">English</option>
               <option value="zh_CN">中文 (简体)</option>
+              <option value="zh_TW">中文 (繁體)</option>
               <option value="ja">日本語</option>
+              <option value="ko">한국어</option>
               <option value="es">Español</option>
               <option value="fr">Français</option>
               <option value="de">Deutsch</option>
-              <option value="ko">한국어</option>
+              <option value="pt_BR">Português (Brasil)</option>
+              <option value="pt_PT">Português (Portugal)</option>
+              <option value="vi">Tiếng Việt</option>
+              <option value="hi">हिन्दी</option>
             </select>
           </div>
         </div>
