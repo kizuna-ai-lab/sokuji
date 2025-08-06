@@ -69,6 +69,13 @@
     // Settings Tab Styles
     .config-section {
       margin-bottom: 20px;
+      transition: background-color 0.3s ease;
+      position: relative;
+      
+      &.highlight {
+        animation: pulse-highlight 2s ease-out;
+        border-radius: 8px;
+      }
 
       h3 {
         display: flex;
@@ -448,6 +455,35 @@
           font-size: 12px;
         }
       }
+    }
+  }
+  
+  // Highlight animation - more intense pulsing with outline offset
+  @keyframes pulse-highlight {
+    0%, 100% { 
+      background-color: transparent;
+      box-shadow: none;
+      outline: none;
+    }
+    20%, 40%, 60% { 
+      background-color: rgba(59, 130, 246, 0.25);
+      box-shadow: 0 0 40px rgba(59, 130, 246, 0.8), 
+                  0 0 20px rgba(59, 130, 246, 0.6) inset;
+      outline: 3px solid rgba(59, 130, 246, 0.7);
+      outline-offset: 8px;
+    }
+    30%, 50%, 70% { 
+      background-color: rgba(59, 130, 246, 0.15);
+      box-shadow: 0 0 25px rgba(59, 130, 246, 0.6),
+                  0 0 10px rgba(59, 130, 246, 0.3) inset;
+      outline: 2px solid rgba(59, 130, 246, 0.5);
+      outline-offset: 6px;
+    }
+    90% {
+      background-color: rgba(59, 130, 246, 0.05);
+      box-shadow: 0 0 10px rgba(59, 130, 246, 0.3);
+      outline: 1px solid rgba(59, 130, 246, 0.2);
+      outline-offset: 4px;
     }
   }
 }

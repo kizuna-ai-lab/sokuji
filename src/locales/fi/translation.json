@@ -96,9 +96,9 @@
     "yourLanguage": "Sinun kielesi",
     "targetLanguage": "Kohdekieli",
     "microphone": "Mikrofoni",
-    "microphoneDesc": "Valitse mikä mikrofoni Sokuji:n tulisi kuunnella. Tämä kaappaa puheen, jonka haluat kääntää reaaliajassa. Valitse \"Pois\" poistaaksesi äänitulo käytöstä.",
+    "microphoneDesc": "Valitse mikrofoni puheesi kaappaamiseen. Puhu kielelläsi tähän mikrofoniin, niin Sokuji kääntää kaiken mitä se kuulee reaaliajassa.",
     "speaker": "Kaiutin",
-    "speakerDesc": "Valitse mistä haluat kuulla käännetyn puheen. Tämä on kaiutin tai kuulokkeet, jotka toistavat tekoälyn luoman käännöksen. Valitse \"Pois\" poistaaksesi ääniulostulo käytöstä."
+    "speakerDesc": "Valitse kaiutin käännetyn tulosteen valvomiseen. Tämä antaa sinun kuulla miltä käännös kuulostaa. Voit sammuttaa sen, jos valvonta ei ole tarpeen. Oli se päällä tai pois, käännetty ääni lähetetään aina virtuaaliseen mikrofoniin muiden osallistujien kuultavaksi."
   },
   "providers": {
     "openai": {

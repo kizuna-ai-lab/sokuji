@@ -124,6 +124,16 @@
       .language-pair {
         font-weight: 500;
         color: #aaa;
+        
+        &.clickable {
+          cursor: default;
+          transition: color 0.2s ease;
+          
+          &:hover {
+            color: #fff;
+            text-decoration: underline;
+          }
+        }
       }
       
       .session-duration {
@@ -149,6 +159,15 @@
           
           &.active {
             color: #10a37f;
+          }
+          
+          &.clickable {
+            cursor: default;
+            
+            &:hover {
+              color: #aaa;
+              transform: scale(1.1);
+            }
           }
         }
       }

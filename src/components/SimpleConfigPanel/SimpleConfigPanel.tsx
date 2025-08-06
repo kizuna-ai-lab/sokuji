@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { ArrowRight, Settings, Volume2, Key, Globe, CheckCircle, AlertCircle, HelpCircle, Bot, Sparkles, Zap, AudioLines, Mic, Languages } from 'lucide-react';
 import './SimpleConfigPanel.scss';
 import { useSettings } from '../../contexts/SettingsContext';
@@ -12,10 +12,11 @@ import Tooltip from '../Tooltip/Tooltip';
 
 interface SimpleConfigPanelProps {
   toggleSettings?: () => void;
+  highlightSection?: string | null;
 }
 
 
-const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings }) => {
+const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings, highlightSection }) => {
   const { t, i18n } = useTranslation();
   const { trackEvent } = useAnalytics();
   const { isSessionActive } = useSession();
@@ -35,7 +36,8 @@ const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings })
     validateApiKey,
     isApiKeyValid,
     availableModels,
-    loadingModels
+    loadingModels,
+    navigateToSettings
   } = useSettings();
   
   // Audio context
@@ -212,6 +214,30 @@ const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings })
   const providerInfo = getProviderInfo();
   const currentApiKey = getCurrentApiKey();
 
+  // Handle scrolling and highlighting when highlightSection changes
+  useEffect(() => {
+    if (highlightSection) {
+      // Small delay to ensure the panel is fully rendered
+      setTimeout(() => {
+        const sectionId = `${highlightSection}-section`;
+        const element = document.getElementById(sectionId);
+        if (element) {
+          // Scroll to the element
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          
+          // Add highlight class
+          element.classList.add('highlight');
+          
+          // Remove highlight after 3 seconds and clear navigation target
+          setTimeout(() => {
+            element.classList.remove('highlight');
+            navigateToSettings(null);
+          }, 3000);
+        }
+      }, 100);
+    }
+  }, [highlightSection, navigateToSettings]);
+
   return (
     <div className="simple-config-panel">
       <div className="config-header">
@@ -266,7 +292,7 @@ const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings })
         </div>
 
         {/* Translation Languages Section */}
-        <div className="config-section">
+        <div className="config-section" id="languages-section">
           <h3>
             <Languages size={18} />
             <span>{t('simpleConfig.translationLanguages')}</span>
@@ -384,7 +410,7 @@ const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings })
 
 
         {/* Microphone Section */}
-        <div className="config-section">
+        <div className="config-section" id="microphone-section">
           <h3>
             <Mic size={18} />
             <span>{t('simpleConfig.microphone')}</span>
@@ -427,7 +453,7 @@ const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings })
         </div>
 
         {/* Speaker Section */}
-        <div className="config-section">
+        <div className="config-section" id="speaker-section">
           <h3>
             <Volume2 size={18} />
             <span>{t('simpleConfig.speaker')}</span>

@@ -135,9 +135,9 @@
     "yourLanguage": "Bahasa Anda",
     "targetLanguage": "Bahasa Sasaran",
     "microphone": "Mikrofon",
-    "microphoneDesc": "Pilih mikrofon mana yang Sokuji patut dengar. Ini menangkap pertuturan yang anda mahu terjemahkan dalam masa nyata. Pilih \"Mati\" untuk melumpuhkan input suara.",
+    "microphoneDesc": "Pilih mikrofon untuk menangkap pertuturan anda. Bercakap dalam bahasa anda ke mikrofon ini, dan Sokuji akan menterjemah semua yang didengarinya dalam masa nyata.",
     "speaker": "Pembesar Suara",
-    "speakerDesc": "Pilih di mana anda mahu mendengar pertuturan yang diterjemahkan. Ini adalah pembesar suara atau fon kepala yang akan memainkan terjemahan yang dijana AI. Pilih \"Mati\" untuk melumpuhkan output audio."
+    "speakerDesc": "Pilih pembesar suara untuk memantau output terjemahan. Ini membolehkan anda mendengar bagaimana terjemahan kedengaran. Anda boleh mematikannya jika pemantauan tidak diperlukan. Sama ada hidup atau mati, audio terjemahan sentiasa dihantar ke mikrofon maya agar peserta lain dapat mendengar."
   },
   "providers": {
     "openai": {
