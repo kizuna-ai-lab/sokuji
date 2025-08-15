@@ -109,6 +109,18 @@
       font-size: 13px;
       color: #888;
       
+      .auth-status {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        color: #ffaa00;
+        font-weight: 500;
+        
+        svg {
+          flex-shrink: 0;
+        }
+      }
+      
       .status-dot {
         width: 8px;
         height: 8px;

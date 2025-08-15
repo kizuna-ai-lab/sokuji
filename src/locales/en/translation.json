@@ -14,7 +14,8 @@
     "logs": "Logs",
     "clear": "Clear",
     "off": "Off",
-    "autoDetect": "Auto Detect"
+    "autoDetect": "Auto Detect",
+    "signIn": "Sign In"
   },
   "app": {
     "title": "Sokuji",
@@ -33,6 +34,7 @@
     "openaiApiKey": "OpenAI API Key",
     "geminiApiKey": "Gemini API Key",
     "palabraApiKey": "Palabra API Key",
+    "kizunaaiApiKey": "Kizuna AI Access",
     "clientId": "Client ID",
     "clientSecret": "Client Secret",
     "systemPrompt": "System Prompt",
@@ -143,7 +145,11 @@
     "switchToAdvanced": "Switch to advanced mode",
     "switchToBasic": "Switch to basic mode",
     "advancedMode": "Advanced",
-    "basicMode": "Basic"
+    "basicMode": "Basic",
+    "apiKey": "API Key",
+    "apiKeyManagedByBackend": "Backend-managed API key",
+    "autoManaged": "Auto-managed",
+    "kizunaApiKeyInfo": "This API key is automatically managed by our backend service."
   },
   "simpleSettings": {
     "quickSetup": "Quick Setup",
@@ -171,7 +177,10 @@
     "languages": "Languages",
     "uiLanguage": "Interface Language",
     "audioSettings": "Audio Settings",
-    "audioSettingsDesc": "Configure your microphone and speakers in the Audio panel"
+    "audioSettingsDesc": "Configure your microphone and speakers in the Audio panel",
+    "apiKeyManagedByBackend": "Backend-managed API key",
+    "autoManaged": "Auto-managed",
+    "kizunaApiKeyInfo": "This API key is automatically managed by our backend service."
   },
   "audioPanel": {
     "title": "Audio Settings",
@@ -203,12 +212,25 @@
     "realVoicePassthroughDescription": "Pass your original audio (speaker's voice) directly to the virtual microphone so listeners can hear both original and translated audio",
     "realVoiceVolume": "Original Audio Volume"
   },
+  "auth": {
+    "signInRequired": "Sign in required for Kizuna AI",
+    "signInToUseKizunaAI": "Please sign in to use Kizuna AI service",
+    "authenticationManaged": "Authentication managed automatically",
+    "fetchingApiKey": "Fetching API key...",
+    "apiKeyFetched": "API key obtained successfully",
+    "failedToFetchApiKey": "Failed to get API key",
+    "kizunaaiNotAvailable": "Kizuna AI is only available when signed in"
+  },
   "simpleConfig": {
     "interfaceLanguage": "Interface Language",
     "interfaceLanguageDesc": "This changes the language of Sokuji's menus and buttons. It does NOT affect which languages you can translate between.",
     "translationLanguages": "Translation Languages",
     "translationLanguagesDesc": "Choose which language you speak (Your Language) and which language you want to hear the translation in (Target Language). Select \"Auto Detect\" if you're unsure about the source language.",
     "yourLanguage": "Your Language",
+    "userAccount": "User Account",
+    "userAccountTooltip": "For users with technical knowledge and their own API keys, you can use your own API key whether logged in or not. User Account is designed for new users who prefer a simplified setup without complex configuration.",
+    "signInRequired": "You can use your own AI provider and API key without logging in, or sign up to purchase and use kizuna.ai's API service.",
+    "signInDescription": "Sign up for a convenient experience without complex configuration.",
     "targetLanguage": "Target Language",
     "microphone": "Microphone",
     "microphoneDesc": "Select the microphone to capture your speech. Speak your language into this microphone, and Sokuji will translate everything it hears in real-time.",
@@ -231,6 +253,10 @@
     "palabraai": {
       "name": "Palabra AI",
       "description": "Specialized translation AI"
+    },
+    "kizunaai": {
+      "name": "Kizuna AI",
+      "description": "Powered by kizuna.ai service"
     },
     "unknown": {
       "name": "Unknown",
@@ -286,6 +312,8 @@
     "statusNoApiKey": "Please configure your API key in settings",
     "statusNoMic": "Please select a microphone in audio settings",
     "statusConnecting": "Connecting to translation service...",
+    "signInRequired": "Sign in required",
+    "signInToStart": "Please sign in to start translation",
     "statusConnected": "Ready to translate",
     "statusDisconnected": "Click start to begin translation",
     "languages": "Languages",
@@ -329,7 +357,67 @@
       "orTry": "Or try:"
     }
   },
+  "userTypeSelection": {
+    "title": "Welcome to Sokuji",
+    "subtitle": "Please select your user type to get started",
+    "regular": {
+      "title": "Regular User",
+      "description": "I'm new to AI services or prefer a simple experience",
+      "feature1": "No API key knowledge required",
+      "feature2": "Simple and intuitive interface",
+      "feature3": "Guided setup process",
+      "action": "Start with Basic Mode"
+    },
+    "experienced": {
+      "title": "Experienced User",
+      "description": "I have my own API keys and understand AI services",
+      "feature1": "Have OpenAI or Gemini API keys",
+      "feature2": "Access to realtime API features",
+      "feature3": "Full control over all settings",
+      "action": "Start with Advanced Mode"
+    }
+  },
   "onboarding": {
+    "basic": {
+      "steps": {
+        "welcome": {
+          "title": "Welcome to Sokuji",
+          "content": "Welcome to Sokuji! This simple guide will help you start using real-time translation in just a few steps."
+        },
+        "settings": {
+          "title": "Step 1: Open Settings",
+          "content": "Click here to open Settings where you can configure your languages and audio devices."
+        },
+        "uiModeToggle": {
+          "title": "Step 2: UI Mode Toggle",
+          "content": "You can switch between Basic and Advanced modes anytime using this button. Basic mode shows simplified options, while Advanced mode provides full control."
+        },
+        "account": {
+          "title": "Step 3: User Account",
+          "content": "Sign in for a simple experience, or use your own API key without logging in. New users can sign up for kizuna.ai's API service."
+        },
+        "languages": {
+          "title": "Step 4: Choose Languages",
+          "content": "Select your source language (what you speak) and target language (what you want to hear)."
+        },
+        "microphone": {
+          "title": "Step 5: Select Microphone",
+          "content": "Select your microphone from the list. This is what will capture your voice."
+        },
+        "speaker": {
+          "title": "Step 6: Select Speaker",
+          "content": "Choose your speakers or headphones to hear the translation. Headphones are recommended."
+        },
+        "start": {
+          "title": "Step 7: Start Translating",
+          "content": "Click 'Start' to begin translating! Just speak naturally and hear the translation in real-time."
+        },
+        "complete": {
+          "title": "All Set!",
+          "content": "Perfect! You're ready to use Sokuji. Click Start and begin speaking to hear real-time translations."
+        }
+      }
+    },
     "back": "Back",
     "close": "Close",
     "finish": "Finish",

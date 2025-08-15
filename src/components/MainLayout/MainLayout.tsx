@@ -6,10 +6,12 @@ import LogsPanel from '../LogsPanel/LogsPanel';
 import AudioPanel from '../AudioPanel/AudioPanel';
 import SimpleConfigPanel from '../SimpleConfigPanel/SimpleConfigPanel';
 import Onboarding from '../Onboarding/Onboarding';
+import UserTypeSelection from '../UserTypeSelection/UserTypeSelection';
 import { Terminal, Settings, Volume2, LayoutGrid, Sliders } from 'lucide-react';
 import './MainLayout.scss';
 import { useAnalytics } from '../../lib/analytics';
 import { useSettings } from '../../contexts/SettingsContext';
+import { useOnboarding } from '../../contexts/OnboardingContext';
 
 type PanelName = 'settings' | 'audio' | 'logs' | 'main';
 
@@ -17,6 +19,7 @@ const MainLayout: React.FC = () => {
   const { t } = useTranslation();
   const { trackEvent } = useAnalytics();
   const { commonSettings, updateCommonSettings, settingsNavigationTarget } = useSettings();
+  const { userTypeSelected, setUserType } = useOnboarding();
   const [showLogs, setShowLogs] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showAudio, setShowAudio] = useState(false);
@@ -115,6 +118,26 @@ const MainLayout: React.FC = () => {
     }
   }, [settingsNavigationTarget]);
 
+  // Handle user type selection
+  const handleUserTypeSelection = useCallback((type: 'regular' | 'experienced') => {
+    // Set UI mode based on user type
+    const newMode = type === 'regular' ? 'basic' : 'advanced';
+    updateCommonSettings({ uiMode: newMode });
+    
+    // Call the onboarding context to handle the selection
+    setUserType(type);
+    
+    trackEvent('user_type_applied', {
+      user_type: type,
+      ui_mode: newMode
+    });
+  }, [updateCommonSettings, setUserType, trackEvent]);
+
+  // Show user type selection if not selected yet
+  if (!userTypeSelected) {
+    return <UserTypeSelection onSelectUserType={handleUserTypeSelection} />;
+  }
+
   return (
     <div className="main-layout">
       <div className={`main-content ${(showLogs || showSettings || showAudio) ? 'with-panel' : 'full-width'}`}>
@@ -122,6 +145,7 @@ const MainLayout: React.FC = () => {
           <h1>{t('app.title')}</h1>
           <div className="header-controls">
             <button 
+              id="ui-mode-toggle"
               className={`ui-mode-toggle-icon ${commonSettings.uiMode}`}
               onClick={toggleUIMode}
               title={t(commonSettings.uiMode === 'basic' ? 'mainPanel.switchToAdvanced' : 'mainPanel.switchToBasic')}
