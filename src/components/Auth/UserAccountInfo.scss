@@ -1,0 +1,256 @@
+/**
+ * Styles for the unified UserAccountInfo component
+ */
+
+.user-account-loading {
+  display: flex;
+  justify-content: center;
+  padding: 20px;
+  
+  .loading-spinner {
+    width: 24px;
+    height: 24px;
+    border: 2px solid #333;
+    border-top-color: #10a37f;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+// Compact view (for header/toolbar)
+.user-account-compact {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px;
+  
+  .user-info-compact {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    
+    .user-email {
+      font-size: 12px;
+      color: #fff;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    
+    .user-subscription {
+      font-size: 10px;
+      color: #999;
+      text-transform: uppercase;
+    }
+  }
+}
+
+// Full account view
+.user-account {
+  padding: 20px;
+  background: #1a1a1a;
+  border-radius: 8px;
+  border: 1px solid #333;
+}
+
+.user-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #333;
+}
+
+.user-info {
+  flex: 1;
+  min-width: 0;
+  
+  .user-name {
+    font-size: 18px;
+    font-weight: 600;
+    color: #fff;
+    margin: 0 0 4px 0;
+  }
+  
+  .user-email {
+    font-size: 14px;
+    color: #999;
+    margin: 0;
+  }
+}
+
+.user-subscription-info {
+  .subscription-badge {
+    margin-bottom: 20px;
+    
+    .badge {
+      display: inline-block;
+      padding: 6px 12px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      
+      &.badge-free {
+        background: #333;
+        color: #999;
+      }
+      
+      &.badge-basic {
+        background: #2a4e7c;
+        color: #5ba0f2;
+      }
+      
+      &.badge-premium {
+        background: #4a3c28;
+        color: #f0b429;
+      }
+      
+      &.badge-enterprise {
+        background: #3c2a4a;
+        color: #b77ff0;
+      }
+    }
+  }
+  
+  .upgrade-button {
+    width: 100%;
+    padding: 10px;
+    background: #10a37f;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s;
+    
+    &:hover {
+      background: #0e8f6f;
+    }
+  }
+}
+
+// Quota Status Section
+.quota-status-section {
+  margin-bottom: 20px;
+}
+
+.quota-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 60px;
+  
+  .loading-spinner {
+    width: 20px;
+    height: 20px;
+    border: 2px solid #333;
+    border-top-color: #10a37f;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+}
+
+.quota-error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #e74c3c;
+  font-size: 12px;
+  padding: 8px 0;
+}
+
+.quota-warning {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 4px;
+  margin-bottom: 12px;
+  font-size: 12px;
+  
+  &.warning-low {
+    background: rgba(241, 196, 15, 0.1);
+    color: #f1c40f;
+    border: 1px solid rgba(241, 196, 15, 0.2);
+  }
+  
+  &.warning-critical {
+    background: rgba(230, 126, 34, 0.1);
+    color: #e67e22;
+    border: 1px solid rgba(230, 126, 34, 0.2);
+  }
+  
+  &.warning-exceeded {
+    background: rgba(231, 76, 60, 0.1);
+    color: #e74c3c;
+    border: 1px solid rgba(231, 76, 60, 0.2);
+  }
+}
+
+.quota-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  
+  h4 {
+    font-size: 14px;
+    font-weight: 600;
+    color: #fff;
+    margin: 0;
+  }
+  
+  .reset-date {
+    font-size: 11px;
+    color: #999;
+  }
+}
+
+.quota-details {
+  .quota-bar-container {
+    margin-bottom: 0;
+  }
+  
+  .quota-bar {
+    height: 8px;
+    background: #333;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 8px;
+    
+    .quota-progress {
+      height: 100%;
+      background: linear-gradient(90deg, #10a37f, #0e8f6f);
+      transition: width 0.3s ease;
+      
+      &.high-usage {
+        background: linear-gradient(90deg, #e67e22, #d35400);
+      }
+    }
+  }
+  
+  .quota-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: #999;
+    
+    .usage-label {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      color: #fff;
+    }
+    
+    .remaining-label {
+      color: #10a37f;
+    }
+  }
+}
