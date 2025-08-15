@@ -3,6 +3,7 @@ import { OpenAIProviderConfig } from './OpenAIProviderConfig';
 import { GeminiProviderConfig } from './GeminiProviderConfig';
 import { CometAPIProviderConfig } from './CometAPIProviderConfig';
 import { PalabraAIProviderConfig } from './PalabraAIProviderConfig';
+import { KizunaAIProviderConfig } from './KizunaAIProviderConfig';
 import { Provider, ProviderType } from '../../types/Provider';
 
 interface ProviderConfigInstance {
@@ -18,6 +19,7 @@ export class ProviderConfigFactory {
     ProviderConfigFactory.configs.set(Provider.GEMINI, new GeminiProviderConfig());
     ProviderConfigFactory.configs.set(Provider.COMET_API, new CometAPIProviderConfig());
     ProviderConfigFactory.configs.set(Provider.PALABRA_AI, new PalabraAIProviderConfig());
+    ProviderConfigFactory.configs.set(Provider.KIZUNA_AI, new KizunaAIProviderConfig());
   }
 
   /**

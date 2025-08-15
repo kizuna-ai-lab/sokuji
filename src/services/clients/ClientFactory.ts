@@ -44,6 +44,12 @@ export class ClientFactory {
         }
         return new PalabraAIClient(apiKey, clientSecret);
         
+      case Provider.KIZUNA_AI:
+        // KizunaAI uses OpenAIClient with custom backend URL
+        // The apiKey should be fetched from the backend API
+        const backendUrl = "https://gateway.ai.cloudflare.com/v1/567d673242fea0196daf20a8aa2f92ec/sokuji-gateway-dev/openai";
+        return new OpenAIClient(apiKey, backendUrl);
+        
       default:
         throw new Error(`Unsupported provider: ${provider}`);
     }
