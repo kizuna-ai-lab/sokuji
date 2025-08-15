@@ -13,7 +13,7 @@ import {
 
 export class BrowserAuthService implements IAuthService {
   private authStateListeners: ((user: AuthUser | null) => void)[] = [];
-  private backendUrl: string = import.meta.env.VITE_BACKEND_URL || 'https://api.sokuji.ai';
+  private backendUrl: string = import.meta.env.VITE_BACKEND_URL || 'https://sokuji-api.kizuna.ai';
   
   async initialize(): Promise<void> {
     // Check if we have a stored session

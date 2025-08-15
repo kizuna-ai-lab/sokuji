@@ -4,10 +4,10 @@ Complete API reference for the Sokuji Cloudflare Workers backend.
 
 ## Base URL
 
-- **Production**: `https://api.sokuji.ai`
+- **Production**: `https://sokuji-api.kizuna.ai`
 - **Development**: `http://localhost:8787`
 
-## Authentication
+## Authenticationu
 
 All protected endpoints require a Bearer token in the Authorization header:
 
@@ -69,7 +69,7 @@ Initiates OAuth authentication flow with supported providers.
 
 **Example:**
 ```bash
-curl -X GET "https://api.sokuji.ai/api/auth/oauth/google?extension=true"
+curl -X GET "https://sokuji-api.kizuna.ai/api/auth/oauth/google?extension=true"
 ```
 
 ---
@@ -93,7 +93,7 @@ Refreshes an expiring authentication token.
 
 **Example:**
 ```bash
-curl -X POST "https://api.sokuji.ai/api/auth/refresh" \
+curl -X POST "https://sokuji-api.kizuna.ai/api/auth/refresh" \
   -H "Authorization: Bearer current_token"
 ```
 
@@ -386,8 +386,8 @@ Creates a Stripe checkout session for subscription upgrade.
 ```json
 {
   "planId": "premium",
-  "successUrl": "https://app.sokuji.ai/subscription/success",
-  "cancelUrl": "https://app.sokuji.ai/subscription/cancel"
+  "successUrl": "https://sokuji.kizuna.ai/subscription/success",
+  "cancelUrl": "https://sokuji.kizuna.ai/subscription/cancel"
 }
 ```
 
@@ -791,7 +791,7 @@ Establishes a WebSocket connection for real-time quota updates across devices.
 ```javascript
 // Establish WebSocket connection
 const ws = new WebSocket(
-  'wss://api.sokuji.ai/ws/quota?deviceId=device_123&platform=chrome-extension',
+  'wss://sokuji-api.kizuna.ai/ws/quota?deviceId=device_123&platform=chrome-extension',
   {
     headers: {
       'Authorization': `Bearer ${token}`
@@ -905,14 +905,14 @@ When rate limited, the API returns:
 
 **Get user profile:**
 ```bash
-curl -X GET "https://api.sokuji.ai/api/user/profile" \
+curl -X GET "https://sokuji-api.kizuna.ai/api/user/profile" \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json"
 ```
 
 **Report usage:**
 ```bash
-curl -X POST "https://api.sokuji.ai/api/usage/report" \
+curl -X POST "https://sokuji-api.kizuna.ai/api/usage/report" \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json" \
   -H "X-Device-Id: device_123" \
@@ -929,7 +929,7 @@ curl -X POST "https://api.sokuji.ai/api/usage/report" \
 Import the following environment variables:
 ```json
 {
-  "base_url": "https://api.sokuji.ai",
+  "base_url": "https://sokuji-api.kizuna.ai",
   "token": "YOUR_JWT_TOKEN",
   "device_id": "device_123",
   "platform": "chrome-extension"
@@ -940,7 +940,7 @@ Import the following environment variables:
 
 Use a WebSocket client like `wscat`:
 ```bash
-wscat -c "wss://api.sokuji.ai/ws/quota?deviceId=device_123" \
+wscat -c "wss://sokuji-api.kizuna.ai/ws/quota?deviceId=device_123" \
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
 
@@ -951,4 +951,4 @@ wscat -c "wss://api.sokuji.ai/ws/quota?deviceId=device_123" \
 For API support and questions:
 - GitHub Issues: [Report issues](https://github.com/your-repo/issues)
 - Documentation: [Main README](./README.md)
-- Status Page: https://status.sokuji.ai
+- Status Page: https://status.kizuna.ai
