@@ -67,52 +67,9 @@ app.post('/refresh', authMiddleware, async (c) => {
  * Sign out endpoint
  */
 app.post('/signout', authMiddleware, async (c) => {
-  const userId = c.get('userId');
-  const deviceId = c.req.header('X-Device-Id');
-  
-  if (deviceId) {
-    // Clear session from database
-    await c.env.DB.prepare(
-      'DELETE FROM sessions WHERE user_id = (SELECT id FROM users WHERE clerk_id = ?) AND device_id = ?'
-    ).bind(userId, deviceId).run();
-    
-    // Clear from KV
-    await c.env.SESSION_KV.delete(`session:${userId}:${deviceId}`);
-  }
-  
   return c.json({ success: true });
 });
 
-/**
- * Sync authentication state across devices
- */
-app.post('/sync', authMiddleware, async (c) => {
-  const userId = c.get('userId');
-  const { platform, deviceId, session, user } = await c.req.json();
-  
-  // Update session in database
-  const userResult = await c.env.DB.prepare(
-    'SELECT id FROM users WHERE clerk_id = ?'
-  ).bind(userId).first();
-  
-  if (userResult) {
-    await c.env.DB.prepare(`
-      INSERT INTO sessions (user_id, device_id, platform, metadata)
-      VALUES (?, ?, ?, ?)
-      ON CONFLICT(user_id, device_id) 
-      DO UPDATE SET 
-        last_active = CURRENT_TIMESTAMP,
-        metadata = excluded.metadata
-    `).bind(
-      userResult.id,
-      deviceId,
-      platform,
-      JSON.stringify({ session, user })
-    ).run();
-  }
-  
-  return c.json({ success: true });
-});
 
 /**
  * Clerk webhook endpoint
@@ -514,38 +471,6 @@ async function handleSessionCreated(session: any, env: Env) {
     return;
   }
   
-  // Get user's internal ID
-  const user = await env.DB.prepare(
-    'SELECT id FROM users WHERE clerk_id = ?'
-  ).bind(userId).first();
-  
-  if (!user) {
-    console.error(`User ${userId} still not found after sync attempt`);
-    return;
-  }
-  
-  // Store session in database
-  const deviceId = session.client_id || session.id;
-  const platform = session.client_type === 'browser' ? 'extension' : 'electron';
-  
-  await env.DB.prepare(`
-    INSERT INTO sessions (user_id, device_id, platform, metadata)
-    VALUES (?, ?, ?, ?)
-    ON CONFLICT(user_id, device_id) 
-    DO UPDATE SET 
-      last_active = CURRENT_TIMESTAMP,
-      metadata = excluded.metadata
-  `).bind(
-    user.id,
-    deviceId,
-    platform,
-    JSON.stringify({
-      session_id: session.id,
-      created_at: session.created_at,
-      client: session.client
-    })
-  ).run();
-  
   console.log(`Session ${session.id} created for user ${userId}`);
 }
 
@@ -564,43 +489,6 @@ async function handleSessionPending(session: any, env: Env) {
     console.error(`Failed to sync user ${userId} for session pending`);
     return;
   }
-  
-  // Get user's internal ID
-  const user = await env.DB.prepare(
-    'SELECT id FROM users WHERE clerk_id = ?'
-  ).bind(userId).first();
-  
-  if (!user) {
-    console.error(`User ${userId} still not found after sync attempt`);
-    return;
-  }
-  
-  // Store pending session state in database
-  const deviceId = session.client_id || session.id;
-  const platform = session.client_type === 'browser' ? 'extension' : 'electron';
-  
-  await env.DB.prepare(`
-    INSERT INTO sessions (user_id, device_id, platform, metadata)
-    VALUES (?, ?, ?, ?)
-    ON CONFLICT(user_id, device_id) 
-    DO UPDATE SET 
-      last_active = CURRENT_TIMESTAMP,
-      metadata = json_set(
-        COALESCE(metadata, '{}'),
-        '$.status', 'pending',
-        '$.pending_at', datetime('now')
-      )
-  `).bind(
-    user.id,
-    deviceId,
-    platform,
-    JSON.stringify({
-      session_id: session.id,
-      status: 'pending',
-      pending_at: new Date().toISOString(),
-      client: session.client
-    })
-  ).run();
   
   console.log(`Session ${session.id} marked as pending for user ${userId}`);
 }
@@ -621,23 +509,6 @@ async function handleSessionTerminated(session: any, env: Env) {
     console.error(`Failed to sync user ${userId} for session end`);
     return;
   }
-  
-  // Get user's internal ID
-  const user = await env.DB.prepare(
-    'SELECT id FROM users WHERE clerk_id = ?'
-  ).bind(userId).first();
-  
-  if (!user) return;
-  
-  // Remove session from database
-  const deviceId = session.client_id || session.id;
-  
-  await env.DB.prepare(
-    'DELETE FROM sessions WHERE user_id = ? AND device_id = ?'
-  ).bind(user.id, deviceId).run();
-  
-  // Clean up session from KV if exists
-  await env.SESSION_KV.delete(`session:${userId}:${deviceId}`);
   
   console.log(`Session ${session.id} terminated for user ${userId}`);
 }

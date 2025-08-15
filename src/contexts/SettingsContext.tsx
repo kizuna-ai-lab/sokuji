@@ -485,7 +485,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     return Date.now() - timestamp < CACHE_DURATION;
   }, []);
 
-  // Unified API key management for Kizuna AI
+  // Unified API key management for Kizuna AI - uses Clerk token as API key
   const ensureKizunaApiKey = useCallback(async (): Promise<boolean> => {
     // Check if we already have a key or are currently fetching
     if (kizunaAISettings.apiKey && kizunaAISettings.apiKey.trim() !== '') {
@@ -493,12 +493,12 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     }
     
     if (isApiKeyFetching) {
-      console.log('[SettingsContext] API key fetch already in progress');
+      console.log('[SettingsContext] Token fetch already in progress');
       return false; // Prevent duplicate requests
     }
     
     if (!isSignedIn || !getToken) {
-      console.log('[SettingsContext] Cannot fetch API key - user not signed in');
+      console.log('[SettingsContext] Cannot get token - user not signed in');
       setApiKeyFetchError('User not signed in');
       return false;
     }
@@ -507,23 +507,24 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     setApiKeyFetchError(null);
     
     try {
-      console.log('[SettingsContext] Fetching Kizuna AI API key...');
-      const { apiKeyService } = await import('../services/ApiKeyService');
-      const fetchedApiKey = await apiKeyService.fetchApiKey('kizunaai', getToken);
+      console.log('[SettingsContext] Getting Clerk token for Kizuna AI...');
+      // Directly use Clerk token as the "API key"
+      const clerkToken = await getToken();
       
-      if (fetchedApiKey) {
-        console.log('[SettingsContext] Successfully fetched Kizuna AI API key');
-        setKizunaAISettings(prev => ({ ...prev, apiKey: fetchedApiKey }));
+      if (clerkToken) {
+        console.log('[SettingsContext] Successfully got Clerk token for Kizuna AI');
+        // Set the Clerk token as the "apiKey" - MainPanel will use it unchanged
+        setKizunaAISettings(prev => ({ ...prev, apiKey: clerkToken }));
         return true;
       } else {
-        const error = 'Failed to fetch API key from backend';
+        const error = 'Failed to get Clerk token';
         console.warn('[SettingsContext] ' + error);
         setApiKeyFetchError(error);
         return false;
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error fetching API key';
-      console.error('[SettingsContext] Error fetching Kizuna AI API key:', errorMessage);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error getting Clerk token';
+      console.error('[SettingsContext] Error getting Clerk token for Kizuna AI:', errorMessage);
       setApiKeyFetchError(errorMessage);
       return false;
     } finally {

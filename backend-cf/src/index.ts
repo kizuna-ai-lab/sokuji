@@ -10,6 +10,8 @@ import userRoutes from './routes/user';
 import subscriptionRoutes from './routes/subscription';
 import usageRoutes from './routes/usage';
 import healthRoutes from './routes/health';
+import { handleOpenAIProxy } from './routes/proxy';
+import realtimeProxy from './routes/realtime-proxy';
 import { Env } from './types';
 
 // Durable Objects removed - using HTTP polling instead
@@ -19,8 +21,6 @@ const app = new Hono<{ Bindings: Env }>();
 // CORS configuration
 app.use('/*', cors({
   origin: (origin) => {
-    console.log('[CORS] Processing origin:', origin);
-    
     // Allow requests without origin (curl, Postman, mobile apps, etc.)
     if (!origin) {
       console.log('[CORS] No origin - allowing');
@@ -38,7 +38,6 @@ app.use('/*', cors({
     
     // Check static origins
     if (allowed.includes(origin)) {
-      console.log('[CORS] Static origin allowed:', origin);
       return origin; // Return the origin string
     }
     
@@ -79,6 +78,18 @@ app.route('/api/user', userRoutes);
 app.route('/api/subscription', subscriptionRoutes);
 app.route('/api/usage', usageRoutes);
 app.route('/api/health', healthRoutes);
+
+// OpenAI-compatible proxy routes for Kizuna AI
+// WebSocket proxy for Realtime API
+app.all('/v1/realtime', async (c) => {
+  // This endpoint only handles WebSocket connections
+  return await realtimeProxy.fetch(c.req.raw, c.env);
+});
+
+// REST API proxy for all other OpenAI endpoints
+app.all('/v1/*', async (c) => {
+  return await handleOpenAIProxy(c.req.raw, c.env);
+});
 
 // WebSocket removed - quota sync now handled via HTTP polling in /api/usage routes
 

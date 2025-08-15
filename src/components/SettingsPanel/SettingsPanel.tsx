@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { ArrowRight, Save, Check, AlertCircle, AlertTriangle, Info, Key, HelpCircle, FlaskConical } from 'lucide-react';
+import { ArrowRight, Save, Check, AlertCircle, AlertTriangle, Info, Key, HelpCircle, FlaskConical, CheckCircle } from 'lucide-react';
 import './SettingsPanel.scss';
 import { useSettings } from '../../contexts/SettingsContext';
 import { useOnboarding } from '../../contexts/OnboardingContext';
@@ -316,70 +316,69 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
               </div>
             </>
           ) : (
-            // Other providers use API Key
-            <div className="setting-item">
-              <div className="setting-label">
-                <span>{t('settings.apiKey', 'API Key')}</span>
-              </div>
-              <div className="api-key-container">
-                <input
-                  value={
-                    commonSettings.provider === Provider.OPENAI ? openAISettings.apiKey :
-                    commonSettings.provider === Provider.COMET_API ? cometAPISettings.apiKey :
-                    commonSettings.provider === Provider.KIZUNA_AI ? (kizunaAISettings.apiKey || '') :
-                    geminiSettings.apiKey
-                  }
-                  onChange={(e) => {
-                    if (commonSettings.provider === Provider.OPENAI) {
-                      updateOpenAISettings({ apiKey: e.target.value });
-                    } else if (commonSettings.provider === Provider.COMET_API) {
-                      updateCometAPISettings({ apiKey: e.target.value });
-                    } else if (commonSettings.provider === Provider.KIZUNA_AI) {
-                      // KizunaAI API key is managed by backend, so we don't allow updates here
-                      console.warn('KizunaAI API key is managed automatically');
-                    } else {
-                      updateGeminiSettings({ apiKey: e.target.value });
+            // Other providers use API Key, but hide for Kizuna AI
+            commonSettings.provider !== Provider.KIZUNA_AI ? (
+              <div className="setting-item">
+                <div className="setting-label">
+                  <span>{t('settings.apiKey', 'API Key')}</span>
+                </div>
+                <div className="api-key-container">
+                  <input
+                    value={
+                      commonSettings.provider === Provider.OPENAI ? openAISettings.apiKey :
+                      commonSettings.provider === Provider.COMET_API ? cometAPISettings.apiKey :
+                      geminiSettings.apiKey
                     }
-                    // Reset validation status when key changes
-                    setApiKeyStatus({ valid: null, message: '', validating: false });
-                  }}
-                  placeholder={
-                    commonSettings.provider === Provider.KIZUNA_AI ? 
-                    t('settings.apiKeyManagedByBackend', 'Backend-managed API key') :
-                    currentProviderConfig.apiKeyPlaceholder
-                  }
-                  className={`text-input api-key-input ${
-                    apiKeyStatus.valid === true ? 'valid' : 
-                    apiKeyStatus.valid === false ? 'invalid' : ''
-                  } ${commonSettings.provider === Provider.KIZUNA_AI ? 'readonly' : ''}`}
-                  disabled={isSessionActive || commonSettings.provider === Provider.KIZUNA_AI}
-                  readOnly={commonSettings.provider === Provider.KIZUNA_AI}
-                />
-                <button 
-                  className="validate-key-button"
-                  onClick={handleValidateApiKey}
-                  disabled={apiKeyStatus.validating || 
-                    (commonSettings.provider === Provider.OPENAI ? !openAISettings.apiKey :
-                     commonSettings.provider === Provider.COMET_API ? !cometAPISettings.apiKey :
-                     commonSettings.provider === Provider.KIZUNA_AI ? false :
-                     !geminiSettings.apiKey) || 
-                    isSessionActive ||
-                    commonSettings.provider === Provider.KIZUNA_AI}
-                >
-                  {commonSettings.provider === Provider.KIZUNA_AI ? (
-                    <>
-                      <Key size={16} />
-                      <span>{t('settings.autoManaged', 'Auto-managed')}</span>
-                    </>
-                  ) : (
-                    <>
-                      <Key size={16} />
-                      <span>{apiKeyStatus.validating ? t('settings.validating') : t('settings.validate')}</span>
-                    </>
-                  )}
-                </button>
+                    onChange={(e) => {
+                      if (commonSettings.provider === Provider.OPENAI) {
+                        updateOpenAISettings({ apiKey: e.target.value });
+                      } else if (commonSettings.provider === Provider.COMET_API) {
+                        updateCometAPISettings({ apiKey: e.target.value });
+                      } else {
+                        updateGeminiSettings({ apiKey: e.target.value });
+                      }
+                      // Reset validation status when key changes
+                      setApiKeyStatus({ valid: null, message: '', validating: false });
+                    }}
+                    placeholder={currentProviderConfig.apiKeyPlaceholder}
+                    className={`text-input api-key-input ${
+                      apiKeyStatus.valid === true ? 'valid' : 
+                      apiKeyStatus.valid === false ? 'invalid' : ''
+                    }`}
+                    disabled={isSessionActive}
+                  />
+                  <button 
+                    className="validate-key-button"
+                    onClick={handleValidateApiKey}
+                    disabled={apiKeyStatus.validating || 
+                      (commonSettings.provider === Provider.OPENAI ? !openAISettings.apiKey :
+                       commonSettings.provider === Provider.COMET_API ? !cometAPISettings.apiKey :
+                       !geminiSettings.apiKey) || 
+                      isSessionActive}
+                  >
+                    <Key size={16} />
+                    <span>{apiKeyStatus.validating ? t('settings.validating') : t('settings.validate')}</span>
+                  </button>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="setting-item">
+                <div className="setting-label">
+                  <span>{t('settings.authentication', 'Authentication')}</span>
+                </div>
+                {isSignedIn ? (
+                  <div className="api-key-info">
+                    <CheckCircle size={16} className="success-icon" />
+                    <span>{t('settings.autoAuthenticated', 'Automatically authenticated via your account')}</span>
+                  </div>
+                ) : (
+                  <div className="api-key-warning">
+                    <AlertCircle size={16} className="warning-icon" />
+                    <span>{t('settings.signInRequired', 'Please sign in to use Kizuna AI as your provider')}</span>
+                  </div>
+                )}
+              </div>
+            )
           )}
           {apiKeyStatus.message && (
             <div className={`api-key-status ${

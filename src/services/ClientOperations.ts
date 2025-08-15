@@ -4,6 +4,7 @@ import { PalabraAIClient } from './clients/PalabraAIClient';
 import { ApiKeyValidationResult } from './interfaces/ISettingsService';
 import { FilteredModel } from './interfaces/IClient';
 import { Provider, ProviderType, SUPPORTED_PROVIDERS } from '../types/Provider';
+import { getBackendUrl } from '../utils/environment';
 
 /**
  * Utility class for client operations
@@ -46,10 +47,11 @@ export class ClientOperations {
           }] // PalabraAI default model
         };
       case Provider.KIZUNA_AI:
-        // KizunaAI is OpenAI-compatible, use OpenAIClient with custom backend URL
+        // KizunaAI is OpenAI-compatible, use OpenAIClient with proxy
+        // Use environment-specific backend URL
         return await OpenAIClient.validateApiKeyAndFetchModels(
           apiKey,
-          'https://gateway.ai.cloudflare.com/v1/567d673242fea0196daf20a8aa2f92ec/sokuji-gateway-dev/openai'
+          getBackendUrl()
         );
       default:
         throw new Error(`Unsupported provider: ${provider}`);

@@ -21,6 +21,7 @@
   },
   "dependencies": {
     "@clerk/backend": "^0.38.0",
+    "@openai/realtime-api-beta": "github:openai/openai-realtime-api-beta",
     "hono": "^4.0.0",
     "svix": "^1.15.0"
   },

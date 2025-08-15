@@ -11,11 +11,6 @@ CLERK_SECRET_KEY=sk_test_your_clerk_test_secret_key
 CLERK_PUBLISHABLE_KEY=pk_test_your_clerk_test_publishable_key
 CLERK_WEBHOOK_SECRET=whsec_your_clerk_test_webhook_secret
 
-# Cloudflare AI Gateway (Required for AI features)
-# Can use test gateway or production gateway for development
-AI_GATEWAY_ACCOUNT_ID=your_cloudflare_account_id
-AI_GATEWAY_ID=your_ai_gateway_id_or_test_gateway
-
 # Application URLs (Required)
 # Use localhost URLs for development
 FRONTEND_URL=http://localhost:5173

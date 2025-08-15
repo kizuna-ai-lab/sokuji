@@ -113,6 +113,31 @@ export function hasChromeRuntime(): boolean {
   return typeof window.chrome?.runtime !== 'undefined';
 }
 
+/**
+ * Get the backend API URL based on the current environment
+ * @returns The backend API URL
+ */
+export function getBackendUrl(): string {
+  // Use environment variable if available, otherwise use production URL
+  return import.meta.env.VITE_BACKEND_URL || 'https://sokuji-api.kizuna.ai';
+}
+
+/**
+ * Check if running in development mode
+ * @returns true if in development mode
+ */
+export function isDevelopmentMode(): boolean {
+  return import.meta.env.MODE === 'development';
+}
+
+/**
+ * Check if running in production mode
+ * @returns true if in production mode
+ */
+export function isProductionMode(): boolean {
+  return import.meta.env.MODE === 'production';
+}
+
 // Re-export for backward compatibility
 export const isElectronEnvironment = isElectron();
 export const isExtensionEnvironment = isExtension();

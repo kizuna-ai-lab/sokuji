@@ -35,7 +35,7 @@ export class OpenAIClient implements IClient {
     this.apiHost = this.apiHost.replace(/\/$/, '');
     
     this.client = new RealtimeClient({
-      apiKey,
+      apiKey: apiKey,
       dangerouslyAllowAPIKeyInBrowser: true,
       url: `${this.apiHost}/v1/realtime`
     });

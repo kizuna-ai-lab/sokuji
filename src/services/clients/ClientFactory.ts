@@ -3,6 +3,7 @@ import { OpenAIClient } from './OpenAIClient';
 import { GeminiClient } from './GeminiClient';
 import { PalabraAIClient } from './PalabraAIClient';
 import { Provider, ProviderType } from '../../types/Provider';
+import { getBackendUrl } from '../../utils/environment';
 
 /**
  * Factory for creating AI client instances
@@ -45,10 +46,11 @@ export class ClientFactory {
         return new PalabraAIClient(apiKey, clientSecret);
         
       case Provider.KIZUNA_AI:
-        // KizunaAI uses OpenAIClient with custom backend URL
-        // The apiKey should be fetched from the backend API
-        const backendUrl = "https://gateway.ai.cloudflare.com/v1/567d673242fea0196daf20a8aa2f92ec/sokuji-gateway-dev/openai";
-        return new OpenAIClient(apiKey, backendUrl);
+        // KizunaAI uses OpenAIClient with our Worker proxy
+        // The proxy transparently handles both REST and WebSocket connections
+        // The apiKey here is actually the auth token from Clerk
+        // Use environment-specific backend URL
+        return new OpenAIClient(apiKey, getBackendUrl());
         
       default:
         throw new Error(`Unsupported provider: ${provider}`);

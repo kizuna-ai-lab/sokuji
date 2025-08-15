@@ -9,7 +9,6 @@ import {
   QuotaInfo,
   UsageReport,
   QuotaWarning,
-  DeviceUsage,
   QuotaSyncStatus
 } from './interfaces/IQuotaService';
 
@@ -22,17 +21,14 @@ export class QuotaService implements IQuotaService {
   private syncStatus: QuotaSyncStatus = {
     connected: false,
     lastSync: new Date(),
-    pending: 0,
-    devices: []
+    pending: 0
   };
   private pendingReports: UsageReport[] = [];
   private backendUrl: string = import.meta.env.VITE_BACKEND_URL || 'https://sokuji-api.kizuna.ai';
-  private deviceId: string | null = null;
   private getTokenFn: (() => Promise<string | null>) | null = null;
   
   async initialize(userId: string, getToken?: () => Promise<string | null>): Promise<void> {
     this.userId = userId;
-    this.deviceId = await this.getDeviceId();
     this.getTokenFn = getToken || null;
     
     // Load cached quota info
@@ -101,7 +97,6 @@ export class QuotaService implements IQuotaService {
     const params = new URLSearchParams();
     if (startDate) params.append('startDate', startDate.toISOString());
     if (endDate) params.append('endDate', endDate.toISOString());
-    if (this.deviceId) params.append('deviceId', this.deviceId);
     
     const response = await fetch(`${this.backendUrl}/api/usage/history?${params}`, {
       headers: {
@@ -135,7 +130,6 @@ export class QuotaService implements IQuotaService {
     const response = await fetch(`${this.backendUrl}/api/usage/quota`, {
       headers: {
         'Authorization': `Bearer ${token}`,
-        'X-Device-Id': this.deviceId || '',
         'X-Platform': platform
       }
     });
@@ -168,12 +162,8 @@ export class QuotaService implements IQuotaService {
     return this.quotaInfo;
   }
   
-  async getUnifiedQuotaStatus(): Promise<QuotaInfo & { devices: DeviceUsage[] }> {
-    const quota = await this.getQuotaInfo();
-    return {
-      ...quota,
-      devices: this.syncStatus.devices
-    };
+  async getUnifiedQuotaStatus(): Promise<QuotaInfo> {
+    return await this.getQuotaInfo();
   }
   
   
@@ -261,7 +251,6 @@ export class QuotaService implements IQuotaService {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
-          'X-Device-Id': this.deviceId || '',
           'X-Platform': platform
         },
         body: JSON.stringify({
@@ -450,14 +439,6 @@ export class QuotaService implements IQuotaService {
     return null;
   }
   
-  private async getDeviceId(): Promise<string> {
-    let deviceId = localStorage.getItem('deviceId');
-    if (!deviceId) {
-      deviceId = crypto.randomUUID();
-      localStorage.setItem('deviceId', deviceId);
-    }
-    return deviceId;
-  }
   
   private getPlatform(): string {
     // Check for Electron

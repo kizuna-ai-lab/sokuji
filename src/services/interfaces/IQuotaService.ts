@@ -28,18 +28,10 @@ export interface QuotaWarning {
   message: string;
 }
 
-export interface DeviceUsage {
-  deviceId: string;
-  platform: 'electron' | 'extension';
-  tokensUsed: number;
-  lastActive: Date;
-}
-
 export interface QuotaSyncStatus {
   connected: boolean;
   lastSync: Date;
   pending: number;  // Pending reports to sync
-  devices: DeviceUsage[];
 }
 
 export interface IQuotaService {
@@ -81,7 +73,7 @@ export interface IQuotaService {
   /**
    * Get cross-platform unified quota status
    */
-  getUnifiedQuotaStatus(): Promise<QuotaInfo & { devices: DeviceUsage[] }>;
+  getUnifiedQuotaStatus(): Promise<QuotaInfo>;
   
   
   /**
