@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <em>Live speech translation powered by OpenAI, Google Gemini, CometAPI, and Palabra.ai</em>
+  <em>Live speech translation powered by OpenAI, Google Gemini, CometAPI, Palabra.ai, and Kizuna AI</em>
 </p>
 
 <p align="center">
@@ -40,7 +40,7 @@
 
 # Why Sokuji?
 
-Sokuji is a desktop application designed to provide live speech translation using OpenAI, Google Gemini, CometAPI, and Palabra.ai APIs. It bridges language barriers in live conversations by capturing audio input, processing it through advanced AI models, and delivering translated output in real-time.
+Sokuji is a desktop application designed to provide live speech translation using OpenAI, Google Gemini, CometAPI, Palabra.ai, and Kizuna AI APIs. It bridges language barriers in live conversations by capturing audio input, processing it through advanced AI models, and delivering translated output in real-time.
 
 https://github.com/user-attachments/assets/1eaaa333-a7ce-4412-a295-16b7eb2310de
 
@@ -77,7 +77,7 @@ Sokuji goes beyond basic translation by offering a complete audio routing soluti
 
 # Features
 
-1. **Real-time speech translation** using OpenAI, Google Gemini, CometAPI, and Palabra.ai APIs
+1. **Real-time speech translation** using OpenAI, Google Gemini, CometAPI, Palabra.ai, and Kizuna AI APIs
 2. **Simple Mode Interface**: Streamlined 6-section configuration for non-technical users:
    - Interface language selection
    - Translation language pairs (source/target)
@@ -85,12 +85,13 @@ Sokuji goes beyond basic translation by offering a complete audio routing soluti
    - Microphone selection with "Off" option
    - Speaker selection with "Off" option
    - Real-time session duration display
-3. **Multi-Provider Support**: Seamlessly switch between OpenAI, Google Gemini, CometAPI, and Palabra.ai.
+3. **Multi-Provider Support**: Seamlessly switch between OpenAI, Google Gemini, CometAPI, Palabra.ai, and Kizuna AI.
 4. **Supported Models**:
    - **OpenAI**: `gpt-4o-realtime-preview`, `gpt-4o-mini-realtime-preview`
    - **Google Gemini**: `gemini-2.0-flash-live-001`, `gemini-2.5-flash-preview-native-audio-dialog`
    - **CometAPI**: OpenAI-compatible models with custom endpoints
    - **Palabra.ai**: Real-time speech-to-speech translation via WebRTC
+   - **Kizuna AI**: OpenAI-compatible models with backend-managed authentication
 5. **Automatic turn detection** with multiple modes (Normal, Semantic, Disabled) for OpenAI
 6. **Audio visualization** with waveform display
 7. **Advanced Virtual Microphone** (Linux only) with dual-queue audio mixing system:
@@ -160,7 +161,7 @@ This architecture provides:
 
 # Preparation
 
-- (required) An OpenAI, Google Gemini, CometAPI, or Palabra.ai API key. For Palabra.ai, you will need a Client ID and Client Secret. For CometAPI, you'll need to configure the custom endpoint URL.
+- (required) An OpenAI, Google Gemini, CometAPI, or Palabra.ai API key, OR a Kizuna AI account. For Palabra.ai, you will need a Client ID and Client Secret. For CometAPI, you'll need to configure the custom endpoint URL. For Kizuna AI, sign in to your account to automatically access backend-managed API keys.
 - (optional) Linux with PulseAudio or PipeWire for virtual audio device features (desktop app only)
 
 # Installation
@@ -216,9 +217,10 @@ sudo dpkg -i sokuji_*.deb
    </p>
    
    - Click the Settings button in the top-right corner
-   - Select your desired provider (OpenAI, Gemini, CometAPI, or Palabra).
-   - Enter your API key for the selected provider and click "Validate". For Palabra, you will need to enter a Client ID and Client Secret. For CometAPI, configure both the API key and custom endpoint URL.
-   - Click "Save" to store your API key securely.
+   - Select your desired provider (OpenAI, Gemini, CometAPI, Palabra, or Kizuna AI).
+   - For user-managed providers: Enter your API key and click "Validate". For Palabra, you will need to enter a Client ID and Client Secret. For CometAPI, configure both the API key and custom endpoint URL.
+   - For Kizuna AI: Sign in to your account to automatically access backend-managed API keys.
+   - Click "Save" to store your configuration securely.
 
 2. **Configure audio devices**:
    
