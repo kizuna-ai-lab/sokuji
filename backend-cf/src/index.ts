@@ -33,7 +33,7 @@ app.use('/*', cors({
       'https://sokuji.kizuna.ai',
       'https://www.sokuji.kizuna.ai',
       'https://dev.sokuji.kizuna.ai',
-      'https://sokuji.ai', // Legacy support
+      // Legacy domain removed - now using kizuna.ai
     ];
     
     // Check static origins

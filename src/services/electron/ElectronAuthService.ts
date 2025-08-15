@@ -13,7 +13,7 @@ import {
 
 export class ElectronAuthService implements IAuthService {
   private authStateListeners: ((user: AuthUser | null) => void)[] = [];
-  private backendUrl: string = import.meta.env.VITE_BACKEND_URL || 'https://api.sokuji.ai';
+  private backendUrl: string = import.meta.env.VITE_BACKEND_URL || 'https://sokuji-api.kizuna.ai';
   private currentUser: AuthUser | null = null;
   private currentSession: AuthSession | null = null;
   

@@ -15,7 +15,7 @@ export class ApiKeyService {
   private readonly CACHE_DURATION = 5 * 60 * 1000; // 5 minutes cache
 
   constructor(backendUrl?: string) {
-    this.backendUrl = backendUrl || import.meta.env.VITE_BACKEND_URL || 'https://api.sokuji.ai';
+    this.backendUrl = backendUrl || import.meta.env.VITE_BACKEND_URL || 'https://sokuji-api.kizuna.ai';
   }
 
   /**

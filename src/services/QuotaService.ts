@@ -26,7 +26,7 @@ export class QuotaService implements IQuotaService {
     devices: []
   };
   private pendingReports: UsageReport[] = [];
-  private backendUrl: string = import.meta.env.VITE_BACKEND_URL || 'https://api.sokuji.ai';
+  private backendUrl: string = import.meta.env.VITE_BACKEND_URL || 'https://sokuji-api.kizuna.ai';
   private deviceId: string | null = null;
   private getTokenFn: (() => Promise<string | null>) | null = null;
   

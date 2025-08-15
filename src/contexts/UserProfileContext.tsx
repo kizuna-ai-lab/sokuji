@@ -74,7 +74,7 @@ export function UserProfileProvider({ children }: UserProfileProviderProps) {
         throw new Error('No authentication token available');
       }
 
-      const apiUrl = import.meta.env.VITE_BACKEND_URL || 'https://api.sokuji.ai';
+      const apiUrl = import.meta.env.VITE_BACKEND_URL || 'https://sokuji-api.kizuna.ai';
       const response = await fetch(`${apiUrl}/api/user/profile`, {
         method: 'GET',
         headers: {

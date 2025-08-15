@@ -58,7 +58,7 @@ npm install --save-dev cross-env
 | 变量名 | 说明 | 示例值 |
 |--------|------|--------|
 | `VITE_CLERK_PUBLISHABLE_KEY` | Clerk 公开密钥 | `pk_test_...` 或 `pk_live_...` |
-| `VITE_BACKEND_URL` | 后端 API 地址 | `http://localhost:8787` 或 `https://api.sokuji.ai` |
+| `VITE_BACKEND_URL` | 后端 API 地址 | `http://localhost:8787` 或 `https://sokuji-api.kizuna.ai` |
 
 ## 注意事项
 
