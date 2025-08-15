@@ -1,0 +1,69 @@
+/**
+ * Styles for the AuthGuard component
+ */
+
+.auth-guard-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  text-align: center;
+  
+  .loading-spinner {
+    width: 32px;
+    height: 32px;
+    border: 3px solid #333;
+    border-top-color: #10a37f;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin-bottom: 16px;
+  }
+  
+  p {
+    color: #999;
+    font-size: 14px;
+  }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.premium-required {
+  background: #1a1a1a;
+  border: 1px solid #333;
+  border-radius: 8px;
+  padding: 32px;
+  text-align: center;
+  max-width: 400px;
+  margin: 40px auto;
+  
+  h3 {
+    color: #fff;
+    font-size: 20px;
+    margin-bottom: 12px;
+  }
+  
+  p {
+    color: #999;
+    font-size: 14px;
+    margin-bottom: 24px;
+  }
+  
+  .upgrade-button {
+    padding: 10px 24px;
+    background: #10a37f;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s;
+    
+    &:hover {
+      background: #0e8f6f;
+    }
+  }
+}

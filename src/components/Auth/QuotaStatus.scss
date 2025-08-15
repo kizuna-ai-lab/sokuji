@@ -1,0 +1,177 @@
+/**
+ * Styles for the QuotaStatus component
+ */
+
+.quota-status {
+  padding: 16px;
+  background: #1a1a1a;
+  border-radius: 8px;
+  border: 1px solid #333;
+  
+  &.quota-loading {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 80px;
+    
+    .loading-spinner {
+      width: 20px;
+      height: 20px;
+      border: 2px solid #333;
+      border-top-color: #10a37f;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+  }
+  
+  &.quota-error {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #e74c3c;
+    font-size: 12px;
+  }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.quota-warning {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 4px;
+  margin-bottom: 12px;
+  font-size: 12px;
+  
+  &.warning-low {
+    background: rgba(241, 196, 15, 0.1);
+    color: #f1c40f;
+    border: 1px solid rgba(241, 196, 15, 0.2);
+  }
+  
+  &.warning-critical {
+    background: rgba(230, 126, 34, 0.1);
+    color: #e67e22;
+    border: 1px solid rgba(230, 126, 34, 0.2);
+  }
+  
+  &.warning-exceeded {
+    background: rgba(231, 76, 60, 0.1);
+    color: #e74c3c;
+    border: 1px solid rgba(231, 76, 60, 0.2);
+  }
+}
+
+.quota-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  
+  h4 {
+    font-size: 14px;
+    font-weight: 600;
+    color: #fff;
+    margin: 0;
+  }
+  
+  .reset-date {
+    font-size: 11px;
+    color: #999;
+  }
+}
+
+.quota-details {
+  .quota-bar-container {
+    margin-bottom: 16px;
+  }
+  
+  .quota-bar {
+    height: 8px;
+    background: #333;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 8px;
+    
+    &.mini {
+      height: 4px;
+      margin-bottom: 4px;
+    }
+    
+    .quota-progress {
+      height: 100%;
+      background: linear-gradient(90deg, #10a37f, #0e8f6f);
+      transition: width 0.3s ease;
+      
+      &.high-usage {
+        background: linear-gradient(90deg, #e67e22, #d35400);
+      }
+    }
+  }
+  
+  .quota-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: #999;
+    
+    .usage-label {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      color: #fff;
+    }
+    
+    .remaining-label {
+      color: #10a37f;
+    }
+  }
+  
+  .daily-quota {
+    padding-top: 12px;
+    border-top: 1px solid #333;
+    
+    .quota-label {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      color: #999;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+    }
+    
+    .quota-text {
+      font-size: 11px;
+      color: #999;
+    }
+  }
+}
+
+// Compact view
+.quota-status-compact {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  
+  .quota-bar {
+    height: 4px;
+    background: #333;
+    border-radius: 2px;
+    overflow: hidden;
+    
+    .quota-progress {
+      height: 100%;
+      background: linear-gradient(90deg, #10a37f, #0e8f6f);
+      transition: width 0.3s ease;
+    }
+  }
+  
+  .quota-text {
+    font-size: 11px;
+    color: #999;
+  }
+}
