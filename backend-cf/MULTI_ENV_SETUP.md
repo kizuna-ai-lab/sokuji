@@ -112,14 +112,14 @@ wrangler secret put GEMINI_API_KEY
 
 #### Development (.env.development)
 ```env
-VITE_API_URL=https://sokuji-api-dev.kizuna.ai
+VITE_BACKEND_URL=https://sokuji-api-dev.kizuna.ai
 VITE_CLERK_PUBLISHABLE_KEY=pk_test_YOUR_DEV_KEY
 VITE_ENVIRONMENT=development
 ```
 
 #### Production (.env.production)
 ```env
-VITE_API_URL=https://sokuji-api.kizuna.ai
+VITE_BACKEND_URL=https://sokuji-api.kizuna.ai
 VITE_CLERK_PUBLISHABLE_KEY=pk_live_YOUR_PROD_KEY
 VITE_ENVIRONMENT=production
 ```

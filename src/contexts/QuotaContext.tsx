@@ -10,7 +10,6 @@ import {
   QuotaInfo,
   UsageReport,
   QuotaWarning,
-  DeviceUsage,
   QuotaSyncStatus
 } from '../services/interfaces/IQuotaService';
 import { ServiceFactory } from '../services/ServiceFactory';
@@ -18,7 +17,6 @@ import { ServiceFactory } from '../services/ServiceFactory';
 interface QuotaContextValue {
   quotaInfo: QuotaInfo | null;
   syncStatus: QuotaSyncStatus;
-  devices: DeviceUsage[];
   warning: QuotaWarning | null;
   isLoading: boolean;
   error: string | null;
@@ -52,10 +50,8 @@ export function QuotaProvider({ children }: QuotaProviderProps) {
   const [syncStatus, setSyncStatus] = useState<QuotaSyncStatus>({
     connected: false,
     lastSync: new Date(),
-    pending: 0,
-    devices: []
+    pending: 0
   });
-  const [devices, setDevices] = useState<DeviceUsage[]>([]);
   const [warning, setWarning] = useState<QuotaWarning | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -67,7 +63,6 @@ export function QuotaProvider({ children }: QuotaProviderProps) {
       if (!isSignedIn || !user) {
         // Clear quota info when not authenticated
         setQuotaInfo(null);
-        setDevices([]);
         return;
       }
       
@@ -81,10 +76,6 @@ export function QuotaProvider({ children }: QuotaProviderProps) {
         // Get initial quota info
         const quota = await quotaService.getQuotaInfo();
         setQuotaInfo(quota);
-        
-        // Get unified status with devices
-        const status = await quotaService.getUnifiedQuotaStatus();
-        setDevices(status.devices || []);
         
         // Get sync status
         const sync = quotaService.getSyncStatus();
@@ -108,7 +99,6 @@ export function QuotaProvider({ children }: QuotaProviderProps) {
       // Update sync status
       const sync = quotaService.getSyncStatus();
       setSyncStatus(sync);
-      setDevices(sync.devices || []);
     });
     
     // Set up warning listener
@@ -180,10 +170,6 @@ export function QuotaProvider({ children }: QuotaProviderProps) {
       const quota = await quotaService.syncQuota();
       setQuotaInfo(quota);
       
-      // Update devices
-      const status = await quotaService.getUnifiedQuotaStatus();
-      setDevices(status.devices || []);
-      
       // Update sync status
       const sync = quotaService.getSyncStatus();
       setSyncStatus(sync);
@@ -222,7 +208,6 @@ export function QuotaProvider({ children }: QuotaProviderProps) {
   const value: QuotaContextValue = {
     quotaInfo,
     syncStatus,
-    devices,
     warning,
     isLoading,
     error,

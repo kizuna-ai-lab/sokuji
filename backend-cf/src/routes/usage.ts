@@ -14,7 +14,6 @@ const app = new Hono<{ Bindings: Env }>();
  */
 app.get('/quota', authMiddleware, async (c) => {
   const userId = c.get('userId');
-  const deviceId = c.req.header('X-Device-Id');
   
   // Get user quota from database
   const user = await c.env.DB.prepare(
@@ -46,21 +45,6 @@ app.get('/quota', authMiddleware, async (c) => {
     );
   }
   
-  // Get device-specific usage if deviceId provided
-  if (deviceId) {
-    const deviceUsage = await c.env.DB.prepare(`
-      SELECT SUM(tokens) as tokens_used
-      FROM usage_logs
-      WHERE user_id = ? AND metadata LIKE ?
-      AND created_at > datetime('now', '-30 days')
-    `).bind(user.id, `%"deviceId":"${deviceId}"%`).first<{ tokens_used: number }>();
-    
-    quota.deviceUsage = {
-      deviceId,
-      tokensUsed: deviceUsage?.tokens_used || 0
-    };
-  }
-  
   return c.json(quota);
 });
 
@@ -69,7 +53,6 @@ app.get('/quota', authMiddleware, async (c) => {
  */
 app.post('/report', authMiddleware, async (c) => {
   const userId = c.get('userId');
-  const deviceId = c.req.header('X-Device-Id');
   const platform = c.req.header('X-Platform');
   
   const {
@@ -112,7 +95,6 @@ app.post('/report', authMiddleware, async (c) => {
   // Record usage in database
   const logMetadata = JSON.stringify({
     sessionId,
-    deviceId,
     platform,
     timestamp: timestamp || new Date().toISOString(),
     ...metadata
@@ -149,18 +131,6 @@ app.post('/report', authMiddleware, async (c) => {
     JSON.stringify(updatedQuota)
   );
   
-  // Update session tracking for device
-  if (deviceId) {
-    await c.env.SESSION_KV.put(
-      `session:${userId}:${deviceId}`,
-      JSON.stringify({
-        platform,
-        lastActive: new Date().toISOString(),
-        lastUsage: tokens
-      }),
-      { expirationTtl: 86400 } // 24 hours
-    );
-  }
   
   return c.json({
     success: true,
@@ -178,7 +148,6 @@ app.get('/history', authMiddleware, async (c) => {
     endDate, 
     provider, 
     model,
-    deviceId,
     limit = 100,
     offset = 0
   } = c.req.query();
@@ -216,11 +185,6 @@ app.get('/history', authMiddleware, async (c) => {
     params.push(model);
   }
   
-  if (deviceId) {
-    query += ' AND metadata LIKE ?';
-    params.push(`%"deviceId":"${deviceId}"%`);
-  }
-  
   query += ' ORDER BY created_at DESC LIMIT ? OFFSET ?';
   params.push(parseInt(limit as string), parseInt(offset as string));
   
@@ -249,11 +213,6 @@ app.get('/history', authMiddleware, async (c) => {
   if (model) {
     countQuery += ' AND model = ?';
     countParams.push(model);
-  }
-  
-  if (deviceId) {
-    countQuery += ' AND metadata LIKE ?';
-    countParams.push(`%"deviceId":"${deviceId}"%`);
   }
   
   const count = await c.env.DB.prepare(countQuery).bind(...countParams).first<{ total: number }>();
@@ -319,10 +278,9 @@ app.get('/stats', authMiddleware, async (c) => {
     ORDER BY date DESC
   `).bind(user.id, startDate).all();
   
-  // Get device statistics
-  const deviceStats = await c.env.DB.prepare(`
+  // Get session statistics
+  const sessionStats = await c.env.DB.prepare(`
     SELECT 
-      COUNT(DISTINCT json_extract(metadata, '$.deviceId')) as unique_devices,
       COUNT(DISTINCT json_extract(metadata, '$.sessionId')) as total_sessions
     FROM usage_logs
     WHERE user_id = ? AND created_at >= ?
@@ -378,8 +336,7 @@ app.get('/stats', authMiddleware, async (c) => {
     summary: {
       totalRequests: stats.results.reduce((sum, s) => sum + s.total_requests, 0),
       totalTokens: stats.results.reduce((sum, s) => sum + s.total_tokens, 0),
-      uniqueDevices: deviceStats?.unique_devices || 0,
-      totalSessions: deviceStats?.total_sessions || 0
+      totalSessions: sessionStats?.total_sessions || 0
     },
     byProvider,
     byDate: Object.entries(byDate).map(([date, data]) => ({
@@ -478,8 +435,6 @@ app.post('/reset', authMiddleware, async (c) => {
  */
 app.post('/sync', authMiddleware, async (c) => {
   const userId = c.get('userId');
-  const deviceId = c.req.header('X-Device-Id');
-  const platform = c.req.header('X-Platform');
   const { lastSyncTimestamp } = await c.req.json();
   
   // Get current quota from KV
@@ -516,18 +471,6 @@ app.post('/sync', authMiddleware, async (c) => {
   
   const quota = JSON.parse(quotaData);
   
-  // Update device session if provided
-  if (deviceId) {
-    await c.env.SESSION_KV.put(
-      `session:${userId}:${deviceId}`,
-      JSON.stringify({
-        platform: platform || 'unknown',
-        lastActive: new Date().toISOString(),
-        lastSync: new Date().toISOString()
-      }),
-      { expirationTtl: 86400 } // 24 hours
-    );
-  }
   
   // Check if there are updates since last sync
   let hasUpdates = true;
@@ -546,62 +489,39 @@ app.post('/sync', authMiddleware, async (c) => {
 });
 
 /**
- * Get active sessions for the user
- * Shows all devices currently using the quota
+ * Get user quota summary
+ * Simplified endpoint that returns current quota status without device sessions
  */
 app.get('/sessions', authMiddleware, async (c) => {
   const userId = c.get('userId');
   
-  // Get user ID from database
+  // Get user from database
   const user = await c.env.DB.prepare(
-    'SELECT id FROM users WHERE clerk_id = ?'
-  ).bind(userId).first();
+    'SELECT token_quota, tokens_used FROM users WHERE clerk_id = ?'
+  ).bind(userId).first<{ token_quota: number; tokens_used: number }>();
   
   if (!user) {
     return c.json({ error: 'User not found' }, 404);
   }
   
-  // Get all sessions from database
-  const sessions = await c.env.DB.prepare(`
-    SELECT device_id, platform, last_active, metadata
-    FROM sessions
-    WHERE user_id = ?
-    ORDER BY last_active DESC
-  `).bind(user.id).all();
+  // Get quota from KV
+  const quotaData = await c.env.QUOTA_KV.get(`quota:${userId}`);
+  let quota;
   
-  // Also check KV for more recent session data
-  const activeSessions = [];
-  for (const session of sessions.results) {
-    const kvData = await c.env.SESSION_KV.get(
-      `session:${userId}:${session.device_id}`
-    );
-    
-    if (kvData) {
-      const kvSession = JSON.parse(kvData);
-      activeSessions.push({
-        deviceId: session.device_id,
-        platform: kvSession.platform || session.platform,
-        lastActive: kvSession.lastActive || session.last_active,
-        isActive: true
-      });
-    } else {
-      // Session exists in DB but not in KV - might be inactive
-      const lastActiveTime = new Date(session.last_active).getTime();
-      const isActive = Date.now() - lastActiveTime < 24 * 60 * 60 * 1000; // 24 hours
-      
-      activeSessions.push({
-        deviceId: session.device_id,
-        platform: session.platform,
-        lastActive: session.last_active,
-        isActive
-      });
-    }
+  if (quotaData) {
+    quota = JSON.parse(quotaData);
+  } else {
+    quota = {
+      total: user.token_quota,
+      used: user.tokens_used,
+      remaining: user.token_quota - user.tokens_used,
+      resetDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+    };
   }
   
   return c.json({
-    sessions: activeSessions,
-    total: activeSessions.length,
-    active: activeSessions.filter(s => s.isActive).length
+    quota,
+    message: 'Device session tracking has been simplified'
   });
 });
 

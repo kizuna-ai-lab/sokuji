@@ -25,8 +25,6 @@ preview_id = "YOUR_SESSION_KV_PREVIEW_ID"
 [vars]
 ENVIRONMENT = "production"
 FRONTEND_URL = "https://sokuji.kizuna.ai"
-AI_GATEWAY_ACCOUNT_ID = "YOUR_ACCOUNT_ID"
-AI_GATEWAY_ID = "YOUR_GATEWAY_ID"
 
 # Routes for Production Environment
 [[routes]]

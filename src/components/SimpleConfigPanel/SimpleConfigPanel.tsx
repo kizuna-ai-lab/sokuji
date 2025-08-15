@@ -454,32 +454,43 @@ const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings, h
                 </div>
               </div>
 
-              <div className="api-key-input-group">
-                <input
-                  type="password"
-                  value={currentApiKey}
-                  onChange={(e) => updateApiKey(e.target.value)}
-                  placeholder={isReadOnlyApiKey ? t('simpleSettings.apiKeyManagedByBackend', 'Backend-managed API key') : t('simpleSettings.apiKeyPlaceholder')}
-                  className={`api-key-input ${isApiKeyValid ? 'valid' : ''} ${isReadOnlyApiKey ? 'readonly' : ''}`}
-                  disabled={isSessionActive || isReadOnlyApiKey}
-                  readOnly={isReadOnlyApiKey}
-                />
-                <button
-                  className="validate-button"
-                  onClick={handleValidateApiKey}
-                  disabled={!currentApiKey || isValidating || isSessionActive || isReadOnlyApiKey}
-                >
-                  {isReadOnlyApiKey ? (
-                    t('simpleSettings.autoManaged', 'Auto-managed')
-                  ) : isValidating ? (
-                    <span className="spinner" />
-                  ) : isApiKeyValid ? (
-                    <CheckCircle size={16} />
-                  ) : (
-                    t('simpleSettings.validate')
-                  )}
-                </button>
-              </div>
+              {commonSettings.provider !== Provider.KIZUNA_AI ? (
+                <div className="api-key-input-group">
+                  <input
+                    type="password"
+                    value={currentApiKey}
+                    onChange={(e) => updateApiKey(e.target.value)}
+                    placeholder={t('simpleSettings.apiKeyPlaceholder')}
+                    className={`api-key-input ${isApiKeyValid ? 'valid' : ''}`}
+                    disabled={isSessionActive}
+                  />
+                  <button
+                    className="validate-button"
+                    onClick={handleValidateApiKey}
+                    disabled={!currentApiKey || isValidating || isSessionActive}
+                  >
+                    {isValidating ? (
+                      <span className="spinner" />
+                    ) : isApiKeyValid ? (
+                      <CheckCircle size={16} />
+                    ) : (
+                      t('simpleSettings.validate')
+                    )}
+                  </button>
+                </div>
+              ) : (
+                isSignedIn ? (
+                  <div className="api-key-info">
+                    <CheckCircle size={16} className="success-icon" />
+                    <span>{t('simpleSettings.autoAuthenticated', 'Automatically authenticated via your account')}</span>
+                  </div>
+                ) : (
+                  <div className="api-key-warning">
+                    <AlertCircle size={16} className="warning-icon" />
+                    <span>{t('simpleSettings.signInRequired', 'Please sign in to use Kizuna AI as your provider')}</span>
+                  </div>
+                )
+              )}
 
               {validationMessage && (
                 <div className={`validation-message ${isApiKeyValid ? 'success' : 'error'}`}>

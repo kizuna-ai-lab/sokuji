@@ -258,6 +258,53 @@
         display: flex;
         gap: 8px;
         margin-bottom: 12px;
+      }
+
+      // API Key Info for auto-managed providers
+      .api-key-info {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 10px;
+        background: rgba(16, 163, 127, 0.1);
+        border: 1px solid rgba(16, 163, 127, 0.3);
+        border-radius: 4px;
+        margin-bottom: 12px;
+        
+        .success-icon {
+          color: #10a37f;
+          flex-shrink: 0;
+        }
+        
+        span {
+          color: #10a37f;
+          font-size: 14px;
+        }
+      }
+
+      // API Key Warning for unauthenticated users
+      .api-key-warning {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 10px;
+        background: rgba(255, 193, 7, 0.1);
+        border: 1px solid rgba(255, 193, 7, 0.3);
+        border-radius: 4px;
+        margin-bottom: 12px;
+        
+        .warning-icon {
+          color: #ffc107;
+          flex-shrink: 0;
+        }
+        
+        span {
+          color: #ffc107;
+          font-size: 14px;
+        }
+      }
+
+      .api-key-input-group {
 
         .api-key-input {
           flex: 1;

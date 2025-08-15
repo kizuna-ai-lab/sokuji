@@ -13,8 +13,6 @@ export interface Env {
   CLERK_SECRET_KEY: string;
   CLERK_PUBLISHABLE_KEY: string;
   CLERK_WEBHOOK_SECRET: string;
-  AI_GATEWAY_ACCOUNT_ID: string;
-  AI_GATEWAY_ID: string;
   OPENAI_API_KEY: string;
   FRONTEND_URL: string;
   EXTENSION_URL?: string;
