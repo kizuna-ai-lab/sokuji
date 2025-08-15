@@ -41,3 +41,28 @@ logs
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Environment files - CRITICAL (contains API keys and secrets)
+.env.development
+.env.production
+backend-cf/.dev.vars
+backend-cf/.env
+
+# Cloudflare configuration with sensitive data
+backend-cf/wrangler.dev.toml
+backend-cf/wrangler.prod.toml
+
+# Translation backup and temporary files
+*.bak
+*.tmp
+
+# Backend dependencies
+backend-cf/node_modules/
+
+# Local database files
+*.sqlite
+*.db
+
+# IDE and system files
+.vscode/settings.json
+.idea/workspace.xml
