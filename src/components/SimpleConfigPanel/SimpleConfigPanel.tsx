@@ -274,29 +274,8 @@ const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings, h
     }
   }, [highlightSection, navigateToSettings]);
 
-  // Auto-fetch API key when switching to Kizuna AI provider
-  useEffect(() => {
-    if (commonSettings.provider === Provider.KIZUNA_AI && isSignedIn && getToken) {
-      // Check if API key is empty and user can get auth token
-      if (!kizunaAISettings.apiKey || kizunaAISettings.apiKey.trim() === '') {
-        console.log('[SimpleConfigPanel] Auto-fetching Kizuna AI API key...');
-        
-        // Create auth token getter
-        const getAuthToken = () => getToken();
-        
-        // Call validateApiKey which will fetch the API key internally
-        validateApiKey(getAuthToken).then(result => {
-          if (result.valid) {
-            console.log('[SimpleConfigPanel] Successfully auto-fetched Kizuna AI API key');
-          } else {
-            console.warn('[SimpleConfigPanel] Failed to auto-fetch Kizuna AI API key:', result.message);
-          }
-        }).catch(error => {
-          console.error('[SimpleConfigPanel] Error auto-fetching Kizuna AI API key:', error);
-        });
-      }
-    }
-  }, [commonSettings.provider, kizunaAISettings.apiKey, isSignedIn, getToken, validateApiKey]);
+  // Note: Auto-fetching of Kizuna AI API key is now handled centrally in SettingsContext
+  // This prevents duplicate API calls and ensures consistent state management
 
   return (
     <div className="simple-config-panel">

@@ -270,6 +270,11 @@ interface SettingsContextType {
   // Navigation support for settings panel
   settingsNavigationTarget: string | null;
   navigateToSettings: (section?: string | null) => void;
+  
+  // Kizuna AI API key management
+  isApiKeyFetching: boolean;
+  apiKeyFetchError: string | null;
+  ensureKizunaApiKey: () => Promise<boolean>;
 }
 
 // Default common settings
@@ -402,6 +407,8 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   const [kizunaAISettings, setKizunaAISettings] = useState<KizunaAISettings>(defaultKizunaAISettings);
   
   // Kizuna AI specific state
+  const [isApiKeyFetching, setIsApiKeyFetching] = useState(false);
+  const [apiKeyFetchError, setApiKeyFetchError] = useState<string | null>(null);
   
   const [isApiKeyValid, setIsApiKeyValid] = useState(false);
   const [availableModels, setAvailableModels] = useState<FilteredModel[]>([]);
@@ -478,52 +485,65 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     return Date.now() - timestamp < CACHE_DURATION;
   }, []);
 
+  // Unified API key management for Kizuna AI
+  const ensureKizunaApiKey = useCallback(async (): Promise<boolean> => {
+    // Check if we already have a key or are currently fetching
+    if (kizunaAISettings.apiKey && kizunaAISettings.apiKey.trim() !== '') {
+      return true; // Already have a key
+    }
+    
+    if (isApiKeyFetching) {
+      console.log('[SettingsContext] API key fetch already in progress');
+      return false; // Prevent duplicate requests
+    }
+    
+    if (!isSignedIn || !getToken) {
+      console.log('[SettingsContext] Cannot fetch API key - user not signed in');
+      setApiKeyFetchError('User not signed in');
+      return false;
+    }
+    
+    setIsApiKeyFetching(true);
+    setApiKeyFetchError(null);
+    
+    try {
+      console.log('[SettingsContext] Fetching Kizuna AI API key...');
+      const { apiKeyService } = await import('../services/ApiKeyService');
+      const fetchedApiKey = await apiKeyService.fetchApiKey('kizunaai', getToken);
+      
+      if (fetchedApiKey) {
+        console.log('[SettingsContext] Successfully fetched Kizuna AI API key');
+        setKizunaAISettings(prev => ({ ...prev, apiKey: fetchedApiKey }));
+        return true;
+      } else {
+        const error = 'Failed to fetch API key from backend';
+        console.warn('[SettingsContext] ' + error);
+        setApiKeyFetchError(error);
+        return false;
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error fetching API key';
+      console.error('[SettingsContext] Error fetching Kizuna AI API key:', errorMessage);
+      setApiKeyFetchError(errorMessage);
+      return false;
+    } finally {
+      setIsApiKeyFetching(false);
+    }
+  }, [kizunaAISettings.apiKey, isApiKeyFetching, isSignedIn, getToken]);
+
   // Validate API key and fetch models in a single request with caching
   const validateApiKeyAndFetchModels = useCallback(async (getAuthToken?: () => Promise<string | null>): Promise<{
     validation: ApiKeyValidationResult;
     models: FilteredModel[];
   }> => {
-    // For KizunaAI, first fetch the API key from backend if not already set
-    if (commonSettings.provider === Provider.KIZUNA_AI && (!kizunaAISettings.apiKey || kizunaAISettings.apiKey.trim() === '')) {
-      if (!getAuthToken) {
-        console.warn('[Settings] No auth token getter provided for Kizuna AI API key fetch');
+    // For KizunaAI, ensure we have an API key first
+    if (commonSettings.provider === Provider.KIZUNA_AI) {
+      const hasKey = await ensureKizunaApiKey();
+      if (!hasKey) {
         return {
           validation: {
             valid: false,
-            message: 'Authentication required for Kizuna AI',
-            validating: false
-          } as ApiKeyValidationResult,
-          models: [] as FilteredModel[]
-        };
-      }
-      
-      try {
-        // Import ApiKeyService dynamically
-        const { apiKeyService } = await import('../services/ApiKeyService');
-        
-        const fetchedApiKey = await apiKeyService.fetchApiKey('kizunaai', getAuthToken);
-        
-        if (fetchedApiKey) {
-          console.log('[Settings] Successfully fetched Kizuna AI API key');
-          // Update settings with the fetched API key (non-persistent)
-          setKizunaAISettings(prev => ({ ...prev, apiKey: fetchedApiKey }));
-        } else {
-          console.warn('[Settings] Failed to fetch Kizuna AI API key');
-          return {
-            validation: {
-              valid: false,
-              message: 'Failed to fetch API key from server',
-              validating: false
-            } as ApiKeyValidationResult,
-            models: [] as FilteredModel[]
-          };
-        }
-      } catch (error) {
-        console.error('[Settings] Error fetching Kizuna AI API key:', error);
-        return {
-          validation: {
-            valid: false,
-            message: error instanceof Error ? error.message : 'Failed to fetch API key',
+            message: apiKeyFetchError || 'Failed to fetch Kizuna AI API key',
             validating: false
           } as ApiKeyValidationResult,
           models: [] as FilteredModel[]
@@ -589,7 +609,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
       };
       return result;
     }
-  }, [commonSettings.provider, kizunaAISettings, getCurrentApiKey, getCacheKey, modelsCache, isCacheValid, settingsService, palabraAISettings.clientSecret]);
+  }, [commonSettings.provider, ensureKizunaApiKey, apiKeyFetchError, getCurrentApiKey, getCacheKey, modelsCache, isCacheValid, settingsService, palabraAISettings.clientSecret]);
 
   // Process system instructions based on the selected mode
   const getProcessedSystemInstructions = useCallback(() => {
@@ -838,30 +858,13 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     loadSettings();
   }, [loadSettings]);
 
-  // Auto-fetch KizunaAI API key when user logs in
+  // Auto-fetch KizunaAI API key when user logs in or provider changes
   useEffect(() => {
-    if (commonSettings.provider === Provider.KIZUNA_AI && 
-        isSignedIn && 
-        getToken && 
-        (!kizunaAISettings.apiKey || kizunaAISettings.apiKey.trim() === '')) {
-      
-      console.log('[SettingsProvider] User signed in with KizunaAI, auto-fetching API key...');
-      
-      (async () => {
-        try {
-          const { apiKeyService } = await import('../services/ApiKeyService');
-          const fetchedApiKey = await apiKeyService.fetchApiKey('kizunaai', getToken);
-          
-          if (fetchedApiKey) {
-            console.log('[SettingsProvider] Successfully fetched KizunaAI API key');
-            setKizunaAISettings(prev => ({ ...prev, apiKey: fetchedApiKey }));
-          }
-        } catch (error) {
-          console.error('[SettingsProvider] Error fetching KizunaAI API key:', error);
-        }
-      })();
+    if (commonSettings.provider === Provider.KIZUNA_AI && isSignedIn) {
+      console.log('[SettingsProvider] KizunaAI provider selected, ensuring API key...');
+      ensureKizunaApiKey();
     }
-  }, [commonSettings.provider, isSignedIn, getToken, kizunaAISettings.apiKey]);
+  }, [commonSettings.provider, isSignedIn, ensureKizunaApiKey]);
 
   // Auto-validate API key and fetch models when provider or API key changes
   useEffect(() => {
@@ -959,7 +962,11 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         
         // Navigation support
         settingsNavigationTarget,
-        navigateToSettings
+        navigateToSettings,
+        // Kizuna AI API key management
+        isApiKeyFetching,
+        apiKeyFetchError,
+        ensureKizunaApiKey
       }}
     >
       {children}
