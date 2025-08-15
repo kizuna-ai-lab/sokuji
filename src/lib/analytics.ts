@@ -106,6 +106,14 @@ export interface AnalyticsEvents {
     from_mode: 'basic' | 'advanced';
     to_mode: 'basic' | 'advanced';
   };
+  'user_type_selected': {
+    user_type: 'regular' | 'experienced';
+    is_first_time_user: boolean;
+  };
+  'user_type_applied': {
+    user_type: 'regular' | 'experienced';
+    ui_mode: 'basic' | 'advanced';
+  };
   'push_to_talk_used': {
     session_id: string;
     hold_duration_ms: number;

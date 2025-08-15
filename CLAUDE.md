@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Sokuji is a real-time AI-powered translation application available as both an Electron desktop app and a browser extension. It provides live speech translation using OpenAI, Google Gemini, CometAPI, and Palabra.ai APIs with modern audio processing capabilities.
+Sokuji is a real-time AI-powered translation application available as both an Electron desktop app and a browser extension. It provides live speech translation using OpenAI, Google Gemini, CometAPI, Palabra.ai, and Kizuna AI APIs with modern audio processing capabilities.
 
 ## Development Commands
 
@@ -66,10 +66,11 @@ The codebase supports both Electron desktop app and Chrome/Edge browser extensio
 
 2. **AI Client Architecture**
    - `ClientFactory` creates provider-specific clients
-   - Providers: OpenAI, Gemini, CometAPI, PalabraAI
+   - Providers: OpenAI, Gemini, CometAPI, PalabraAI, KizunaAI
    - Each client implements `IClient` interface
    - Real-time communication via WebSocket or REST APIs
    - CometAPI uses OpenAIClient with custom host configuration
+   - KizunaAI uses OpenAI-compatible API with backend-managed authentication
 
 3. **Audio Processing Pipeline**
    ```
@@ -81,8 +82,9 @@ The codebase supports both Electron desktop app and Chrome/Edge browser extensio
 
 4. **State Management**
    - React Context API for global state
-   - Key contexts: AudioContext, SessionContext, SettingsContext, LogContext, OnboardingContext
+   - Key contexts: AudioContext, SessionContext, SettingsContext, LogContext, OnboardingContext, AuthContext
    - No external state management libraries
+   - Backend-managed API key integration for authenticated providers
 
 5. **Audio Service Management**
    - `ModernBrowserAudioService` provides unified audio handling
@@ -210,6 +212,7 @@ if (window.electronAPI) {
 
 ### Simple Mode Components
 - **SimpleConfigPanel**: Unified 6-section configuration interface
+  - User Account - Authentication and backend-managed API key access
   - Interface Language - UI language selection
   - Translation Languages - source/target language pair selection
   - API Key - provider authentication with real-time validation
@@ -283,5 +286,28 @@ if (window.electronAPI) {
 
 ### Security Policy
 - Strict CSP configuration for extension pages
-- Allowed connections to AI provider APIs (OpenAI, Google, Palabra, CometAPI)
+- Allowed connections to AI provider APIs (OpenAI, Google, Palabra, CometAPI, Kizuna AI)
 - PostHog analytics integration for usage tracking
+
+## Authentication and API Key Management
+
+### Authentication System
+- **Clerk Integration**: User authentication using Clerk service
+- **Backend-Managed Keys**: Kizuna AI API keys are automatically managed by the backend
+- **Mixed Authentication**: Supports both user-managed and backend-managed API keys
+- **Cross-Platform**: Authentication works across Electron and browser extension
+
+### API Key Types
+1. **User-Managed Keys**: OpenAI, Gemini, CometAPI, Palabra AI - users input their own keys
+2. **Backend-Managed Keys**: Kizuna AI - keys fetched from authenticated backend service
+
+### Authentication Flow for Kizuna AI
+1. User signs in via Clerk authentication
+2. `ApiKeyService` fetches API key from backend endpoint (`/api/user/api-key`)
+3. API key is cached for 5 minutes to reduce backend load
+4. Provider becomes available in UI only when authenticated and key is available
+
+### Key Services
+- **ApiKeyService**: Handles fetching API keys from backend with caching
+- **AuthContext**: Manages authentication state and token lifecycle
+- **Service Integration**: All AI clients check authentication before operations

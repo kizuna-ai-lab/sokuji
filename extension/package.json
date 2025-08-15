@@ -9,6 +9,7 @@
     "lint": "eslint ."
   },
   "dependencies": {
+    "@clerk/chrome-extension": "^2.5.19",
     "@openai/realtime-api-beta": "github:openai/openai-realtime-api-beta",
     "posthog-js-lite": "^4.1.0"
   },

@@ -45,6 +45,12 @@ export class ClientOperations {
             created: Date.now() / 1000 // Current timestamp
           }] // PalabraAI default model
         };
+      case Provider.KIZUNA_AI:
+        // KizunaAI is OpenAI-compatible, use OpenAIClient with custom backend URL
+        return await OpenAIClient.validateApiKeyAndFetchModels(
+          apiKey,
+          'https://gateway.ai.cloudflare.com/v1/567d673242fea0196daf20a8aa2f92ec/sokuji-gateway-dev/openai'
+        );
       default:
         throw new Error(`Unsupported provider: ${provider}`);
     }
@@ -64,6 +70,9 @@ export class ClientOperations {
       case Provider.PALABRA_AI:
         // PalabraAI doesn't have model selection, return a default identifier
         return 'realtime-translation';
+      case Provider.KIZUNA_AI:
+        // KizunaAI uses the same model detection logic as OpenAI
+        return OpenAIClient.getLatestRealtimeModel(filteredModels);
       default:
         throw new Error(`Unsupported provider: ${provider}`);
     }

@@ -11,6 +11,9 @@
     "email": "contact@kizuna.ai"
   },
   "dependencies": {
+    "@clerk/chrome-extension": "^2.5.18",
+    "@clerk/clerk-react": "^5.41.0",
+    "@clerk/themes": "^2.4.8",
     "@floating-ui/react": "^0.27.15",
     "@google/genai": "^0.14.1",
     "@iarna/toml": "^2.2.5",
@@ -33,6 +36,7 @@
     "react-dom": "^18.3.1",
     "react-i18next": "^15.5.2",
     "react-joyride": "^2.9.3",
+    "react-router-dom": "^7.8.0",
     "sass": "^1.78.0",
     "uuid": "^11.1.0",
     "web-vitals": "^2.1.4",
@@ -49,6 +53,7 @@
     "@electron-forge/plugin-fuses": "^7.8.0",
     "@electron/fuses": "^1.8.0",
     "@types/node": "^20.12.7",
+    "@types/react-router-dom": "^5.3.3",
     "@vitejs/plugin-react": "^4.2.1",
     "concurrently": "^8.2.2",
     "cross-env": "^7.0.3",

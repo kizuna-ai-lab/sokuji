@@ -1,6 +1,8 @@
 // Analytics configuration that works in both Electron and extension environments
 // This replaces the need for environment variables
 
+import { isElectron, isExtension, isWeb } from '../utils/environment';
+
 export const ANALYTICS_CONFIG = {
   POSTHOG_KEY: 'phc_EMOuUDTntTI5SuzKQATy11qHgxVrlhJsgNFbBaWEhet',
   POSTHOG_HOST: 'https://us.i.posthog.com',
@@ -53,18 +55,12 @@ export const isDevelopment = (): boolean => {
 
 // Platform detection utility - distinguishes between app and extension
 export const getPlatform = (): string => {
-  // Check if running as Chrome extension
-  const chromeAPI = (window as any).chrome;
-  if (typeof chromeAPI !== 'undefined' && chromeAPI.runtime && chromeAPI.runtime.id) {
+  // Use centralized environment detection
+  if (isExtension()) {
     return 'extension';
   }
   
-  // Check if running in Electron (desktop app)
-  const isElectron = (window as any).electronAPI || 
-                     (window as any).require || 
-                     navigator.userAgent.includes('Electron');
-  
-  if (isElectron) {
+  if (isElectron()) {
     return 'app';
   }
   
