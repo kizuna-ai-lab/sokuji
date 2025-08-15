@@ -14,7 +14,8 @@
     "logs": "日志",
     "clear": "清除",
     "off": "关闭",
-    "autoDetect": "自动检测"
+    "autoDetect": "自动检测",
+    "signIn": "登录"
   },
   "app": {
     "title": "Sokuji",
@@ -133,6 +134,10 @@
     "translationLanguages": "翻译语言",
     "translationLanguagesDesc": "选择您说的语言（您的语言）和您想要听到翻译的语言（目标语言）。如果您不确定源语言，请选择\"自动检测\"。",
     "yourLanguage": "您的语言",
+    "userAccount": "用户账户",
+    "userAccountTooltip": "对于拥有技术知识和自己API密钥的用户，无论是否登录都可以使用自己的API密钥。用户账户是为希望简化设置、无需复杂配置的新用户设计的。",
+    "signInRequired": "您可以在不登录的情况下使用自己的AI提供商和API密钥，或者注册购买使用kizuna.ai提供的API服务。",
+    "signInDescription": "注册即可享受便捷体验，无需复杂配置。",
     "targetLanguage": "目标语言",
     "microphone": "麦克风",
     "microphoneDesc": "选择用于捕获您语音的麦克风。对着此麦克风说您的语言，Sokuji会实时翻译麦克风接收到的所有内容。",
@@ -145,6 +150,8 @@
     "statusNoApiKey": "请在设置中配置您的API密钥",
     "statusNoMic": "请在音频设置中选择麦克风",
     "statusConnecting": "正在连接翻译服务...",
+    "signInRequired": "需要登录",
+    "signInToStart": "请登录以开始翻译",
     "statusConnected": "准备好翻译",
     "statusDisconnected": "点击开始进行翻译",
     "languages": "语言",
@@ -274,6 +281,46 @@
     }
   },
   "onboarding": {
+    "basic": {
+      "steps": {
+        "welcome": {
+          "title": "欢迎使用 Sokuji",
+          "content": "欢迎使用 Sokuji！这个简单的指南将帮助您在几个步骤内开始使用实时翻译。"
+        },
+        "settings": {
+          "title": "步骤 1：打开设置",
+          "content": "点击这里打开设置，您可以配置语言和音频设备。"
+        },
+        "uiModeToggle": {
+          "title": "步骤 2：界面模式切换",
+          "content": "您可以随时使用此按钮在基础模式和高级模式之间切换。基础模式显示简化选项，高级模式提供全面控制。"
+        },
+        "account": {
+          "title": "步骤 3：用户账户",
+          "content": "登录以获得简单体验，或者不登录使用您自己的API密钥。新用户可以注册kizuna.ai的API服务。"
+        },
+        "languages": {
+          "title": "步骤 4：选择语言",
+          "content": "选择您的源语言（您说的语言）和目标语言（您想听到的语言）。"
+        },
+        "microphone": {
+          "title": "步骤 5：选择麦克风",
+          "content": "从列表中选择您的麦克风。这将捕获您的声音。"
+        },
+        "speaker": {
+          "title": "步骤 6：选择扬声器",
+          "content": "选择您的扬声器或耳机来听翻译。推荐使用耳机。"
+        },
+        "start": {
+          "title": "步骤 7：开始翻译",
+          "content": "点击'开始'开始翻译！自然地说话，实时听到翻译。"
+        },
+        "complete": {
+          "title": "设置完成！",
+          "content": "完美！您已准备好使用 Sokuji。点击开始并开始说话以听到实时翻译。"
+        }
+      }
+    },
     "back": "返回",
     "close": "关闭",
     "finish": "完成",
@@ -329,6 +376,26 @@
         "title": "设置指南完成！",
         "content": "太棒了！您已经完成了设置指南，现在熟悉了界面操作。要开始使用Sokuji，请在设置中输入您的OpenAI API密钥，在提示时授予麦克风权限，并在您的会议应用程序（Google Meet、Zoom、Microsoft Teams等）中选择\"Sokuji Virtual Microphone\"作为您的麦克风。您可以随时从设置中重新启动此指南。"
       }
+    }
+  },
+  "userTypeSelection": {
+    "title": "欢迎使用 Sokuji",
+    "subtitle": "请选择您的用户类型以开始使用",
+    "regular": {
+      "title": "普通用户",
+      "description": "我是AI服务新手或希望简单体验",
+      "feature1": "无需了解API密钥",
+      "feature2": "简单直观的界面",
+      "feature3": "引导式设置流程",
+      "action": "以基础模式开始"
+    },
+    "experienced": {
+      "title": "高级用户",
+      "description": "我有自己的API密钥并了解AI服务",
+      "feature1": "拥有OpenAI或Gemini API密钥",
+      "feature2": "可访问实时API功能",
+      "feature3": "完全控制所有设置",
+      "action": "以高级模式开始"
     }
   }
 }

@@ -36,6 +36,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     cometAPISettings,
     geminiSettings,
     palabraAISettings,
+    kizunaAISettings,
     getCurrentProviderSettings,
     isApiKeyValid,
     getProcessedSystemInstructions,
@@ -388,6 +389,9 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           break;
         case Provider.COMET_API:
           apiKey = cometAPISettings.apiKey;
+          break;
+        case Provider.KIZUNA_AI:
+          apiKey = kizunaAISettings.apiKey || '';
           break;
         case Provider.GEMINI:
           apiKey = geminiSettings.apiKey;

@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { ArrowRight, Settings, Volume2, Key, Globe, CheckCircle, AlertCircle, HelpCircle, Bot, Sparkles, Zap, AudioLines, Mic, Languages } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { ArrowRight, Settings, Volume2, Key, Globe, CheckCircle, AlertCircle, HelpCircle, CircleHelp, Bot, Sparkles, Zap, AudioLines, Mic, Languages, User } from 'lucide-react';
 import './SimpleConfigPanel.scss';
 import { useSettings } from '../../contexts/SettingsContext';
 import { useAudioContext } from '../../contexts/AudioContext';
@@ -9,6 +10,9 @@ import { Provider } from '../../types/Provider';
 import { useAnalytics } from '../../lib/analytics';
 import { ProviderConfigFactory } from '../../services/providers/ProviderConfigFactory';
 import Tooltip from '../Tooltip/Tooltip';
+import { useAuth, useUser } from '../../lib/clerk/ClerkProvider';
+import { UserAccountInfo } from '../Auth/UserAccountInfo';
+import { SignedIn, SignedOut } from '../Auth/AuthGuard';
 
 interface SimpleConfigPanelProps {
   toggleSettings?: () => void;
@@ -19,7 +23,9 @@ interface SimpleConfigPanelProps {
 const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings, highlightSection }) => {
   const { t, i18n } = useTranslation();
   const { trackEvent } = useAnalytics();
+  const navigate = useNavigate();
   const { isSessionActive } = useSession();
+  const { getToken, isSignedIn } = useAuth();
   
   // Settings context
   const {
@@ -28,11 +34,13 @@ const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings, h
     geminiSettings,
     cometAPISettings,
     palabraAISettings,
+    kizunaAISettings,
     updateCommonSettings,
     updateOpenAISettings,
     updateGeminiSettings,
     updateCometAPISettings,
     updatePalabraAISettings,
+    updateKizunaAISettings,
     validateApiKey,
     isApiKeyValid,
     availableModels,
@@ -78,6 +86,8 @@ const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings, h
         return cometAPISettings;
       case Provider.PALABRA_AI:
         return palabraAISettings;
+      case Provider.KIZUNA_AI:
+        return kizunaAISettings;
       default:
         return openAISettings;
     }
@@ -94,6 +104,8 @@ const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings, h
         return cometAPISettings.apiKey;
       case Provider.PALABRA_AI:
         return palabraAISettings.clientId; // Show client ID as "API key" for simplicity
+      case Provider.KIZUNA_AI:
+        return kizunaAISettings.apiKey || ''; // Use non-persistent API key from settings
       default:
         return '';
     }
@@ -114,6 +126,10 @@ const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings, h
       case Provider.PALABRA_AI:
         updatePalabraAISettings({ clientId: value });
         break;
+      case Provider.KIZUNA_AI:
+        // KizunaAI API key is managed by backend, so we don't allow updates here
+        console.warn('KizunaAI API key is managed automatically');
+        break;
     }
   };
 
@@ -131,6 +147,9 @@ const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings, h
         break;
       case Provider.PALABRA_AI:
         updatePalabraAISettings({ sourceLanguage: value });
+        break;
+      case Provider.KIZUNA_AI:
+        updateKizunaAISettings({ sourceLanguage: value });
         break;
     }
   };
@@ -150,6 +169,9 @@ const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings, h
       case Provider.PALABRA_AI:
         updatePalabraAISettings({ targetLanguage: value });
         break;
+      case Provider.KIZUNA_AI:
+        updateKizunaAISettings({ targetLanguage: value });
+        break;
     }
   };
 
@@ -159,7 +181,11 @@ const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings, h
     setIsValidating(true);
     setValidationMessage('');
     
-    const result = await validateApiKey();
+    // Pass getAuthToken for Kizuna AI provider
+    const getAuthToken = commonSettings.provider === Provider.KIZUNA_AI && isSignedIn && getToken ? 
+      () => getToken() : undefined;
+    
+    const result = await validateApiKey(getAuthToken);
     
     setIsValidating(false);
     setValidationMessage(result.message);
@@ -201,6 +227,13 @@ const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings, h
           helpUrl: 'https://palabra.ai',
           description: t('providers.palabraai.description')
         };
+      case Provider.KIZUNA_AI:
+        return {
+          name: t('providers.kizunaai.name'),
+          icon: User,
+          helpUrl: 'https://kizuna.ai',
+          description: t('providers.kizunaai.description')
+        };
       default:
         return {
           name: t('providers.unknown.name'),
@@ -213,6 +246,9 @@ const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings, h
 
   const providerInfo = getProviderInfo();
   const currentApiKey = getCurrentApiKey();
+  
+  // Check if API key should be readonly (for backend-managed providers)
+  const isReadOnlyApiKey = commonSettings.provider === Provider.KIZUNA_AI;
 
   // Handle scrolling and highlighting when highlightSection changes
   useEffect(() => {
@@ -238,6 +274,30 @@ const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings, h
     }
   }, [highlightSection, navigateToSettings]);
 
+  // Auto-fetch API key when switching to Kizuna AI provider
+  useEffect(() => {
+    if (commonSettings.provider === Provider.KIZUNA_AI && isSignedIn && getToken) {
+      // Check if API key is empty and user can get auth token
+      if (!kizunaAISettings.apiKey || kizunaAISettings.apiKey.trim() === '') {
+        console.log('[SimpleConfigPanel] Auto-fetching Kizuna AI API key...');
+        
+        // Create auth token getter
+        const getAuthToken = () => getToken();
+        
+        // Call validateApiKey which will fetch the API key internally
+        validateApiKey(getAuthToken).then(result => {
+          if (result.valid) {
+            console.log('[SimpleConfigPanel] Successfully auto-fetched Kizuna AI API key');
+          } else {
+            console.warn('[SimpleConfigPanel] Failed to auto-fetch Kizuna AI API key:', result.message);
+          }
+        }).catch(error => {
+          console.error('[SimpleConfigPanel] Error auto-fetching Kizuna AI API key:', error);
+        });
+      }
+    }
+  }, [commonSettings.provider, kizunaAISettings.apiKey, isSignedIn, getToken, validateApiKey]);
+
   return (
     <div className="simple-config-panel">
       <div className="config-header">
@@ -257,6 +317,39 @@ const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings, h
             <span>{t('settings.sessionActiveNotice')}</span>
           </div>
         )}
+
+        {/* User Account Section */}
+        <div className="config-section" id="user-account-section">
+          <h3>
+            <User size={18} />
+            <span>{t('simpleConfig.userAccount', 'User Account')}</span>
+            <Tooltip
+              content={t('simpleConfig.userAccountTooltip', 'For users with technical knowledge and their own API keys, you can use your own API key whether logged in or not. User Account is designed for new users who prefer a simplified setup without complex configuration.')}
+              position="top"
+            >
+              <CircleHelp className="lucide lucide-circle-help tooltip-trigger" size={14} />
+            </Tooltip>
+          </h3>
+          
+          <SignedIn>
+            <UserAccountInfo compact={false} showWarning={true} />
+          </SignedIn>
+          
+          <SignedOut>
+            <div className="sign-in-prompt">
+              <p>{t('simpleConfig.signInRequired', 'You can use your own AI provider and API key without logging in, or sign up to purchase and use kizuna.ai\'s API service.')}</p>
+              <p className="sign-in-description">{t('simpleConfig.signInDescription', 'Sign up for a convenient experience without complex configuration.')}</p>
+              <button 
+                className="sign-in-button"
+                onClick={() => {
+                  navigate('/sign-in');
+                }}
+              >
+                {t('common.signIn', 'Sign In')}
+              </button>
+            </div>
+          </SignedOut>
+        </div>
 
         {/* Interface Language Section */}
         <div className="config-section">
@@ -387,16 +480,19 @@ const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings, h
                   type="password"
                   value={currentApiKey}
                   onChange={(e) => updateApiKey(e.target.value)}
-                  placeholder={t('simpleSettings.apiKeyPlaceholder')}
-                  className={`api-key-input ${isApiKeyValid ? 'valid' : ''}`}
-                  disabled={isSessionActive}
+                  placeholder={isReadOnlyApiKey ? t('simpleSettings.apiKeyManagedByBackend', 'Backend-managed API key') : t('simpleSettings.apiKeyPlaceholder')}
+                  className={`api-key-input ${isApiKeyValid ? 'valid' : ''} ${isReadOnlyApiKey ? 'readonly' : ''}`}
+                  disabled={isSessionActive || isReadOnlyApiKey}
+                  readOnly={isReadOnlyApiKey}
                 />
                 <button
                   className="validate-button"
                   onClick={handleValidateApiKey}
-                  disabled={!currentApiKey || isValidating || isSessionActive}
+                  disabled={!currentApiKey || isValidating || isSessionActive || isReadOnlyApiKey}
                 >
-                  {isValidating ? (
+                  {isReadOnlyApiKey ? (
+                    t('simpleSettings.autoManaged', 'Auto-managed')
+                  ) : isValidating ? (
                     <span className="spinner" />
                   ) : isApiKeyValid ? (
                     <CheckCircle size={16} />

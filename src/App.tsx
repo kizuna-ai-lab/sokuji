@@ -1,58 +1,40 @@
-import React, { useEffect } from 'react';
+import React from 'react';
+import { createMemoryRouter, RouterProvider } from 'react-router-dom';
 import './App.scss';
 import './locales'; // Initialize i18n
-import MainLayout from './components/MainLayout/MainLayout';
-import { LogProvider } from './contexts/LogContext';
-import { SettingsProvider } from './contexts/SettingsContext';
-import { AudioProvider } from './contexts/AudioContext';
-import { SessionProvider } from './contexts/SessionContext';
-import { OnboardingProvider } from './contexts/OnboardingContext';
-import { useAnalytics } from './lib/analytics';
+import { RootLayout } from './layouts/RootLayout';
+import { Home } from './routes/Home';
+import { SignIn } from './routes/SignIn';
+import { SignUp } from './routes/SignUp';
+import { isExtensionEnvironment } from './lib/clerk/ClerkProvider';
+
+// Create the memory router for Chrome extension
+// Memory router is recommended for Chrome extensions as they don't have a URL bar
+const router = createMemoryRouter([
+  {
+    path: '/',
+    element: <RootLayout />,
+    children: [
+      {
+        index: true,
+        element: <Home />,
+      },
+      {
+        path: 'sign-in/*',
+        element: <SignIn />,
+      },
+      {
+        path: 'sign-up/*',
+        element: <SignUp />,
+      },
+    ],
+  },
+]);
 
 function App() {
-  const { trackEvent } = useAnalytics();
-
-  useEffect(() => {
-    // Track app startup - version, platform, environment are automatically included via Super Properties
-    trackEvent('app_startup', {});
-
-    // Track app shutdown on beforeunload
-    const handleBeforeUnload = () => {
-      const sessionStart = sessionStorage.getItem('session_start');
-      const sessionDuration = sessionStart 
-        ? Date.now() - parseInt(sessionStart, 10)
-        : 0;
-      
-      trackEvent('app_shutdown', {
-        session_duration: sessionDuration
-      });
-    };
-
-    // Store session start time
-    if (!sessionStorage.getItem('session_start')) {
-      sessionStorage.setItem('session_start', Date.now().toString());
-    }
-
-    window.addEventListener('beforeunload', handleBeforeUnload);
-
-    return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-    };
-  }, [trackEvent]);
-
   return (
     <div className="App">
-      <SettingsProvider>
-        <LogProvider>
-          <AudioProvider>
-            <SessionProvider>
-              <OnboardingProvider>
-                <MainLayout />
-              </OnboardingProvider>
-            </SessionProvider>
-          </AudioProvider>
-        </LogProvider>
-      </SettingsProvider>
+      <RouterProvider router={router} />
     </div>
   );
 }

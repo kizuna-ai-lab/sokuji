@@ -14,7 +14,8 @@
     "logs": "ログ",
     "clear": "クリア",
     "off": "オフ",
-    "autoDetect": "自動検出"
+    "autoDetect": "自動検出",
+    "signIn": "サインイン"
   },
   "app": {
     "title": "Sokuji",
@@ -189,6 +190,46 @@
     }
   },
   "onboarding": {
+    "basic": {
+      "steps": {
+        "welcome": {
+          "title": "Sokujiへようこそ",
+          "content": "Sokujiへようこそ！このシンプルなガイドで、数ステップでリアルタイム翻訳を始められます。"
+        },
+        "settings": {
+          "title": "ステップ 1：設定を開く",
+          "content": "ここをクリックして設定を開き、言語とオーディオデバイスを設定できます。"
+        },
+        "uiModeToggle": {
+          "title": "ステップ 2：UIモード切替",
+          "content": "このボタンで基本モードと高度モードをいつでも切り替えられます。基本モードは簡略化されたオプション、高度モードは全機能をご利用いただけます。"
+        },
+        "account": {
+          "title": "ステップ 3：ユーザーアカウント",
+          "content": "簡単な体験のためにサインインするか、ログインせずに独自のAPIキーを使用します。新規ユーザーはkizuna.aiのAPIサービスに登録できます。"
+        },
+        "languages": {
+          "title": "ステップ 4：言語を選択",
+          "content": "ソース言語（話す言語）とターゲット言語（聞きたい言語）を選択します。"
+        },
+        "microphone": {
+          "title": "ステップ 5：マイクを選択",
+          "content": "リストからマイクを選択します。これがあなたの声をキャプチャします。"
+        },
+        "speaker": {
+          "title": "ステップ 6：スピーカーを選択",
+          "content": "翻訳を聞くスピーカーまたはヘッドフォンを選択します。ヘッドフォンが推奨されます。"
+        },
+        "start": {
+          "title": "ステップ 7：翻訳を開始",
+          "content": "「開始」をクリックして翻訳を始めます！自然に話して、リアルタイムで翻訳を聞きます。"
+        },
+        "complete": {
+          "title": "準備完了！",
+          "content": "完璧です！Sokujiを使用する準備ができました。開始をクリックして話し始め、リアルタイム翻訳を聞きます。"
+        }
+      }
+    },
     "back": "戻る",
     "close": "閉じる",
     "finish": "完了",
@@ -280,6 +321,10 @@
     "translationLanguages": "翻訳言語",
     "translationLanguagesDesc": "話す言語（あなたの言語）と翻訳を聞きたい言語（ターゲット言語）を選択します。ソース言語が不明な場合は「自動検出」を選択してください。",
     "yourLanguage": "あなたの言語",
+    "userAccount": "ユーザーアカウント",
+    "userAccountTooltip": "技術的な知識と独自のAPIキーをお持ちのユーザーは、ログインの有無に関わらず独自のAPIキーを使用できます。ユーザーアカウントは、複雑な設定なしで簡単にセットアップしたい新規ユーザー向けに設計されています。",
+    "signInRequired": "ログインせずに独自のAIプロバイダーとAPIキーを使用するか、kizuna.aiのAPIサービスを購入して使用するために登録できます。",
+    "signInDescription": "複雑な設定なしで便利な体験をするために登録してください。",
     "targetLanguage": "ターゲット言語",
     "microphone": "マイクロフォン",
     "microphoneDesc": "音声を取り込むマイクを選択してください。このマイクに向かってあなたの言語で話すと、Sokujiがリアルタイムで聞こえるすべてを翻訳します。",
@@ -314,6 +359,8 @@
     "statusNoApiKey": "設定でAPIキーを設定してください",
     "statusNoMic": "オーディオ設定でマイクを選択してください",
     "statusConnecting": "翻訳サービスに接続中...",
+    "signInRequired": "サインインが必要",
+    "signInToStart": "翻訳を開始するにはサインインしてください",
     "statusConnected": "翻訳準備完了",
     "statusDisconnected": "開始をクリックして翻訳を始める",
     "languages": "言語",
@@ -338,5 +385,25 @@
     "error": "接続エラー",
     "noApiKey": "APIキーが必要",
     "noMic": "マイクが必要"
+  },
+  "userTypeSelection": {
+    "title": "Sokujiへようこそ",
+    "subtitle": "ご利用タイプを選択してください",
+    "regular": {
+      "title": "一般ユーザー",
+      "description": "AIサービスに詳しくない方・シンプルな体験を希望する方",
+      "feature1": "APIキーの知識不要",
+      "feature2": "シンプルで直感的なインターフェース",
+      "feature3": "ガイド付きセットアップ",
+      "action": "ベーシックモードで始める"
+    },
+    "experienced": {
+      "title": "上級ユーザー",
+      "description": "APIキーをお持ちでAIサービスに精通した方",
+      "feature1": "OpenAIまたはGeminiのAPIキーを保有",
+      "feature2": "リアルタイムAPI機能へのアクセス",
+      "feature3": "すべての設定を完全にコントロール",
+      "action": "アドバンスドモードで始める"
+    }
   }
 }

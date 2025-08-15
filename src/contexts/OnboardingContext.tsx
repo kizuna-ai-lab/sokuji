@@ -32,15 +32,83 @@ interface OnboardingContextType {
   skipOnboarding: () => void;
   isFirstTimeUser: boolean;
   markOnboardingComplete: (sendAnalytics?: boolean) => void;
+  userTypeSelected: boolean;
+  setUserType: (type: 'regular' | 'experienced') => void;
 }
 
 const OnboardingContext = createContext<OnboardingContextType | undefined>(undefined);
 
 const ONBOARDING_STORAGE_KEY = 'sokuji_onboarding_completed';
+const USER_TYPE_STORAGE_KEY = 'sokuji_user_type';
 const ONBOARDING_VERSION = '1.0.0';
 
-// Function to create onboarding steps with internationalization
-const createOnboardingSteps = (t: any): OnboardingStep[] => [
+// Basic mode onboarding steps - simplified for regular users
+const createBasicOnboardingSteps = (t: any): OnboardingStep[] => [
+  {
+    target: 'body',
+    content: t('onboarding.basic.steps.welcome.content', 'Welcome to Sokuji! This simple guide will help you start using real-time translation in just a few steps.'),
+    title: t('onboarding.basic.steps.welcome.title', 'Welcome to Sokuji'),
+    placement: 'center',
+    disableBeacon: true,
+    styles: {
+      options: {
+        primaryColor: '#10a37f',
+      }
+    }
+  },
+  {
+    target: '.settings-button',
+    content: t('onboarding.basic.steps.settings.content', 'Click here to open Settings where you can configure your languages and audio devices.'),
+    title: t('onboarding.basic.steps.settings.title', 'Step 1: Open Settings'),
+    placement: 'bottom',
+  },
+  {
+    target: '#ui-mode-toggle',
+    content: t('onboarding.basic.steps.uiModeToggle.content', 'You can switch between Basic and Advanced modes anytime using this button. Basic mode shows simplified options, while Advanced mode provides full control.'),
+    title: t('onboarding.basic.steps.uiModeToggle.title', 'Step 2: UI Mode Toggle'),
+    placement: 'bottom',
+  },
+  {
+    target: '#user-account-section',
+    content: t('onboarding.basic.steps.account.content', 'Sign in for a simple experience, or use your own API key without logging in. New users can sign up for kizuna.ai\'s API service.'),
+    title: t('onboarding.basic.steps.account.title', 'Step 3: User Account'),
+    placement: 'left',
+  },
+  {
+    target: '#languages-section',
+    content: t('onboarding.basic.steps.languages.content', 'Select your source language (what you speak) and target language (what you want to hear).'),
+    title: t('onboarding.basic.steps.languages.title', 'Step 4: Choose Languages'),
+    placement: 'left',
+  },
+  {
+    target: '#microphone-section',
+    content: t('onboarding.basic.steps.microphone.content', 'Select your microphone from the list. This is what will capture your voice.'),
+    title: t('onboarding.basic.steps.microphone.title', 'Step 5: Select Microphone'),
+    placement: 'left',
+  },
+  {
+    target: '#speaker-section',
+    content: t('onboarding.basic.steps.speaker.content', 'Choose your speakers or headphones to hear the translation. Headphones are recommended.'),
+    title: t('onboarding.basic.steps.speaker.title', 'Step 6: Select Speaker'),
+    placement: 'left',
+  },
+  {
+    target: '.main-action-btn',
+    content: t('onboarding.basic.steps.start.content', 'Click "Start" to begin translating! Just speak naturally and hear the translation in real-time.'),
+    title: t('onboarding.basic.steps.start.title', 'Step 7: Start Translating'),
+    placement: 'top',
+  },
+  {
+    target: 'body',
+    content: t('onboarding.basic.steps.complete.content', 'Perfect! You\'re ready to use Sokuji. Click Start and begin speaking to hear real-time translations.'),
+    title: t('onboarding.basic.steps.complete.title', 'All Set!'),
+    placement: 'center',
+    disableBeacon: true,
+  }
+];
+
+// Advanced mode onboarding steps - detailed for experienced users
+const createAdvancedOnboardingSteps = (t: any): OnboardingStep[] => [
   {
     target: 'body',
     content: t('onboarding.steps.welcome.content', 'Welcome to Sokuji! This guide will help you set up the extension for live speech translation. Let\'s get started!'),
@@ -140,8 +208,15 @@ export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({ children
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [isFirstTimeUser, setIsFirstTimeUser] = useState(false);
   const [onboardingStartTime, setOnboardingStartTime] = useState<number | null>(null);
+  const [userTypeSelected, setUserTypeSelected] = useState(false);
   
-  const onboardingSteps = createOnboardingSteps(t);
+  // Get user type from localStorage to determine which steps to use
+  const getUserType = () => localStorage.getItem(USER_TYPE_STORAGE_KEY);
+  
+  // Select appropriate onboarding steps based on user type
+  const onboardingSteps = getUserType() === 'regular' 
+    ? createBasicOnboardingSteps(t)
+    : createAdvancedOnboardingSteps(t);
 
   const startOnboarding = () => {
     const startTime = Date.now();
@@ -165,14 +240,17 @@ export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({ children
   };
 
   useEffect(() => {
+    // Check if user has selected their type
+    const userType = localStorage.getItem(USER_TYPE_STORAGE_KEY);
+    if (userType) {
+      setUserTypeSelected(true);
+    }
+    
     // Check if user has completed onboarding
     const onboardingData = localStorage.getItem(ONBOARDING_STORAGE_KEY);
     if (!onboardingData) {
       setIsFirstTimeUser(true);
-      // Auto-start onboarding for first-time users after a short delay
-      setTimeout(() => {
-        startOnboarding();
-      }, 1000);
+      // Don't auto-start onboarding anymore - let user select type first
     } else {
       try {
         const data = JSON.parse(onboardingData);
@@ -262,6 +340,25 @@ export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({ children
     }
   };
 
+  const setUserType = (type: 'regular' | 'experienced') => {
+    // Store user type selection
+    localStorage.setItem(USER_TYPE_STORAGE_KEY, type);
+    setUserTypeSelected(true);
+    
+    // Track user type selection
+    trackEvent('user_type_selected', {
+      user_type: type,
+      is_first_time_user: isFirstTimeUser,
+    });
+    
+    // Start onboarding after user type selection if first time user
+    if (isFirstTimeUser) {
+      setTimeout(() => {
+        startOnboarding();
+      }, 500);
+    }
+  };
+
   const contextValue: OnboardingContextType = {
     isOnboardingActive,
     currentStepIndex,
@@ -273,6 +370,8 @@ export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({ children
     skipOnboarding,
     isFirstTimeUser,
     markOnboardingComplete,
+    userTypeSelected,
+    setUserType,
   };
 
   return (

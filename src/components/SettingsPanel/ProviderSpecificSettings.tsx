@@ -6,6 +6,7 @@ import { ChevronDown, ChevronRight, RotateCw, Info } from 'lucide-react';
 import { FilteredModel } from '../../services/interfaces/IClient';
 import { Provider, isOpenAICompatible } from '../../types/Provider';
 import { useAnalytics } from '../../lib/analytics';
+import { useAuth } from '../../lib/clerk/ClerkProvider';
 
 interface ProviderSpecificSettingsProps {
   config: ProviderConfig;
@@ -15,7 +16,7 @@ interface ProviderSpecificSettingsProps {
   getProcessedSystemInstructions: () => string;
   availableModels: FilteredModel[];
   loadingModels: boolean;
-  fetchAvailableModels: () => Promise<void>;
+  fetchAvailableModels: (getAuthToken?: () => Promise<string | null>) => Promise<void>;
 }
 
 const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
@@ -28,6 +29,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
   loadingModels,
   fetchAvailableModels
 }) => {
+  const { getToken } = useAuth();
   const { 
     commonSettings, 
     updateCommonSettings,
@@ -35,10 +37,12 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
     cometAPISettings,
     geminiSettings,
     palabraAISettings,
+    kizunaAISettings,
     updateOpenAISettings,
     updateCometAPISettings,
     updateGeminiSettings,
     updatePalabraAISettings,
+    updateKizunaAISettings,
     getCurrentProviderSettings
   } = useSettings();
   const { t } = useTranslation();
@@ -53,6 +57,8 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
       updateOpenAISettings({ [key]: value });
     } else if (commonSettings.provider === Provider.COMET_API) {
       updateCometAPISettings({ [key]: value });
+    } else if (commonSettings.provider === Provider.KIZUNA_AI) {
+      updateKizunaAISettings({ [key]: value });
     } else if (commonSettings.provider === Provider.GEMINI) {
       updateGeminiSettings({ [key]: value });
     } else if (commonSettings.provider === Provider.PALABRA_AI) {
@@ -73,6 +79,8 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
       return openAISettings;
     } else if (commonSettings.provider === Provider.COMET_API) {
       return cometAPISettings;
+    } else if (commonSettings.provider === Provider.KIZUNA_AI) {
+      return kizunaAISettings;
     }
     return null;
   };
@@ -83,6 +91,8 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
       updateOpenAISettings(updates);
     } else if (commonSettings.provider === Provider.COMET_API) {
       updateCometAPISettings(updates);
+    } else if (commonSettings.provider === Provider.KIZUNA_AI) {
+      updateKizunaAISettings(updates);
     }
   };
 
@@ -325,7 +335,11 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
 
     const handleRefreshModels = async () => {
       try {
-        await fetchAvailableModels();
+        // Pass getAuthToken for Kizuna AI provider
+        const getAuthToken = commonSettings.provider === Provider.KIZUNA_AI && getToken ? 
+          () => getToken() : undefined;
+        
+        await fetchAvailableModels(getAuthToken);
       } catch (error) {
         console.error('[Sokuji][ProviderSpecificSettings] Error refreshing models:', error);
       }
