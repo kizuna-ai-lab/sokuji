@@ -1022,7 +1022,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     return () => {
       isLoaded = false;
     };
-  }, []);
+  }, [commonSettings.uiMode]);
 
   /**
    * Auto-scroll to the bottom of the conversation when new content is added

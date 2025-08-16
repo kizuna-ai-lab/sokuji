@@ -281,7 +281,8 @@ interface SettingsContextType {
 export const defaultCommonSettings: CommonSettings = {
   provider: Provider.OPENAI,
   uiLanguage: 'en',
-  uiMode: 'basic',systemInstructions:
+  uiMode: 'basic',
+  systemInstructions:
     "You are a professional real-time interpreter.\n" +
     "Your only job is to translate every single user input **literally** from Chinese to Japanese—no exceptions.\n" +
     "- **Never** reply that you don't know, cannot judge, or ask for clarification.\n" +
@@ -761,18 +762,6 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         const fullKey = `settings.common.${key}`;
         const defaultValue = (defaultCommonSettings as any)[key];
         (loadedCommon as any)[key] = await settingsService.getSetting(fullKey, defaultValue);
-      }
-
-      // Handle migration from old localStorage key for UI mode
-      if (!loadedCommon.uiMode) {
-        const oldUiMode = localStorage.getItem('sokuji_ui_mode');
-        if (oldUiMode) {
-          loadedCommon.uiMode = oldUiMode === 'advanced' ? 'advanced' : 'basic';
-          // Save to new location
-          await settingsService.setSetting('settings.common.uiMode', loadedCommon.uiMode);
-          // Remove old key
-          localStorage.removeItem('sokuji_ui_mode');
-        }
       }
 
       setCommonSettings(loadedCommon as CommonSettings);
