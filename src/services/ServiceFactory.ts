@@ -3,8 +3,7 @@ import { ISettingsService } from './interfaces/ISettingsService';
 import { IAuthService } from './interfaces/IAuthService';
 import { IQuotaService } from './interfaces/IQuotaService';
 import { ModernBrowserAudioService } from '../lib/modern-audio/ModernBrowserAudioService';
-import { ElectronSettingsService } from './electron/ElectronSettingsService';
-import { BrowserSettingsService } from './browser/BrowserSettingsService';
+import { SettingsService } from './SettingsService';
 import { AuthServiceFactory } from './AuthServiceFactory';
 import { QuotaService } from './QuotaService';
 import { isElectron as checkIsElectron, isExtension as checkIsExtension } from '../utils/environment';
@@ -62,14 +61,9 @@ export class ServiceFactory {
       return ServiceFactory.settingsServiceInstance;
     }
     
-    // Create new instance if needed
-    if (ServiceFactory.isElectron()) {
-      console.info('[Sokuji] [ServiceFactory] Creating Electron settings service');
-      ServiceFactory.settingsServiceInstance = new ElectronSettingsService();
-    } else {
-      console.info('[Sokuji] [ServiceFactory] Creating Browser settings service');
-      ServiceFactory.settingsServiceInstance = new BrowserSettingsService();
-    }
+    // Create unified settings service for all platforms
+    console.info('[Sokuji] [ServiceFactory] Creating unified settings service');
+    ServiceFactory.settingsServiceInstance = new SettingsService();
     
     return ServiceFactory.settingsServiceInstance;
   }

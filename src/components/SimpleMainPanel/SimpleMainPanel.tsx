@@ -39,7 +39,9 @@ const SimpleMainPanel: React.FC<SimpleMainPanelProps> = ({
     isApiKeyValid,
     getCurrentProviderSettings,
     commonSettings,
-    navigateToSettings
+    navigateToSettings,
+    availableModels,
+    loadingModels
   } = useSettings();
   
   const {
@@ -53,7 +55,7 @@ const SimpleMainPanel: React.FC<SimpleMainPanelProps> = ({
   const { isSignedIn } = useAuth();
 
   const currentSettings = getCurrentProviderSettings();
-  const canStartSession = isApiKeyValid && selectedInputDevice && !isInitializing && isSignedIn;
+  const canStartSession = isApiKeyValid && availableModels.length > 0 && !loadingModels && !isInitializing;
 
   // Filter conversation items to show only user messages and assistant responses
   const filteredItems = items.filter(item => 
@@ -212,8 +214,7 @@ const SimpleMainPanel: React.FC<SimpleMainPanelProps> = ({
           <button
             className={`main-action-btn ${isSessionActive ? 'stop' : 'start'}`}
             onClick={isSessionActive ? onEndSession : onStartSession}
-            disabled={(!canStartSession || !isSignedIn) && !isSessionActive}
-            title={!isSignedIn ? t('simplePanel.signInToStart', 'Please sign in to start') : ''}
+            disabled={!canStartSession && !isSessionActive}
           >
             {isInitializing ? (
               <>
