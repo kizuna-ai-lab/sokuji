@@ -10,7 +10,7 @@ import userRoutes from './routes/user';
 import subscriptionRoutes from './routes/subscription';
 import usageRoutes from './routes/usage';
 import healthRoutes from './routes/health';
-import { handleOpenAIProxy } from './routes/proxy';
+import proxyRoutes from './routes/proxy';
 import experimentalRelay from './routes/experimental-relay';
 import { Env } from './types';
 
@@ -87,9 +87,7 @@ app.all('/v1/realtime', async (c) => {
 });
 
 // REST API proxy for all other OpenAI endpoints
-app.all('/v1/*', async (c) => {
-  return await handleOpenAIProxy(c.req.raw, c.env);
-});
+app.route('/v1', proxyRoutes);
 
 // WebSocket removed - quota sync now handled via HTTP polling in /api/usage routes
 

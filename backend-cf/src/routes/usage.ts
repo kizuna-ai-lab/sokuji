@@ -4,10 +4,10 @@
  */
 
 import { Hono } from 'hono';
-import { Env, UsageLog } from '../types';
+import { Env, UsageLog, HonoVariables } from '../types';
 import { authMiddleware } from '../middleware/auth';
 
-const app = new Hono<{ Bindings: Env }>();
+const app = new Hono<{ Bindings: Env; Variables: HonoVariables }>();
 
 /**
  * Get current quota status

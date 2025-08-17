@@ -3,7 +3,8 @@
  * Handles JWT verification and user management with Clerk
  */
 
-import { Env, ClerkUser, TokenPayload } from '../types';
+import type { JwtPayload } from '@clerk/types';
+import { Env, ClerkUser } from '../types';
 
 /**
  * Verify a Clerk JWT token with proper authorized parties
@@ -48,13 +49,27 @@ export async function verifyClerkToken(
     
     const payload = await verifyToken(token, {
       secretKey: env.CLERK_SECRET_KEY,
-      authorizedParties: authorizedParties.filter(Boolean)
-    }) as TokenPayload;
+      authorizedParties: authorizedParties.filter(Boolean),
+      issuer: null // We don't need to validate the issuer
+    });
+    
+    // Temporary restriction: Only allow specific users
+    const allowedUsers = [
+      'user_31E3feoFgbYN060lRGK3T5f9hkz',
+      'user_2zK7oAYxuSF2xvZhbG8Qk9QtlDp'
+    ];
+    
+    if (!allowedUsers.includes(payload.sub)) {
+      console.log('[Clerk] User not in allowed list:', payload.sub);
+      return { valid: false };
+    }
     
     return {
       valid: true,
       userId: payload.sub,
-      email: payload.email
+      // Email is not a standard field in Clerk's JWT payload
+      // It needs to be added as a custom claim in Clerk Dashboard
+      email: (payload.email as string | undefined) || undefined
     };
   } catch (error) {
     console.error('Token verification failed:', error);
@@ -254,9 +269,9 @@ export function createSessionToken(userId: string, email?: string): string {
 /**
  * Parse a session token
  */
-export function parseSessionToken(token: string): TokenPayload | null {
+export function parseSessionToken(token: string): JwtPayload | null {
   try {
-    const payload = JSON.parse(atob(token)) as TokenPayload;
+    const payload = JSON.parse(atob(token)) as JwtPayload;
     
     // Check expiration
     if (payload.exp < Math.floor(Date.now() / 1000)) {
