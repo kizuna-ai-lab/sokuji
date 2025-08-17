@@ -4,11 +4,11 @@
  */
 
 import { Hono } from 'hono';
-import { Env, User } from '../types';
+import { Env, User, HonoVariables } from '../types';
 import { verifyClerkToken, getClerkUser, verifyClerkWebhook, updateClerkUserMetadata, ensureUserExists } from '../services/clerk';
 import { authMiddleware, adminMiddleware } from '../middleware/auth';
 
-const app = new Hono<{ Bindings: Env }>();
+const app = new Hono<{ Bindings: Env; Variables: HonoVariables }>();
 
 /**
  * OAuth sign-in endpoint

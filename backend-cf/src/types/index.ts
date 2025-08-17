@@ -2,6 +2,16 @@
  * Type definitions for the Cloudflare Workers backend
  */
 
+/**
+ * Hono context variables that are set by middleware
+ * These are available in all route handlers after middleware runs
+ */
+export interface HonoVariables {
+  userId?: string;
+  userEmail?: string;
+  subscription?: string;
+}
+
 export interface Env {
   // Bindings
   DB: D1Database;
@@ -81,13 +91,6 @@ export interface ClerkUser {
   image_url?: string;
   public_metadata?: Record<string, any>;
   private_metadata?: Record<string, any>;
-}
-
-export interface TokenPayload {
-  sub: string; // User ID
-  email?: string;
-  exp: number;
-  iat: number;
 }
 
 export interface QuotaInfo {

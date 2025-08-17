@@ -4,11 +4,11 @@
  */
 
 import { Hono } from 'hono';
-import { Env, User, ApiKey } from '../types';
+import { Env, User, ApiKey, HonoVariables } from '../types';
 import { authMiddleware } from '../middleware/auth';
 import { getClerkUser, updateClerkUserMetadata } from '../services/clerk';
 
-const app = new Hono<{ Bindings: Env }>();
+const app = new Hono<{ Bindings: Env; Variables: HonoVariables }>();
 
 /**
  * Get current user profile with quota info

@@ -3,14 +3,14 @@
  */
 
 import { Context, Next } from 'hono';
-import { Env } from '../types';
+import { Env, HonoVariables } from '../types';
 import { verifyClerkToken, ensureUserExists } from '../services/clerk';
 
 /**
  * Middleware to verify authentication token
  */
 export async function authMiddleware(
-  c: Context<{ Bindings: Env }>,
+  c: Context<{ Bindings: Env; Variables: HonoVariables }>,
   next: Next
 ) {
   const token = c.req.header('Authorization')?.replace('Bearer ', '');
@@ -44,7 +44,7 @@ export async function authMiddleware(
  * Sets user info if valid token is present, but doesn't require it
  */
 export async function optionalAuthMiddleware(
-  c: Context<{ Bindings: Env }>,
+  c: Context<{ Bindings: Env; Variables: HonoVariables }>,
   next: Next
 ) {
   const token = c.req.header('Authorization')?.replace('Bearer ', '');
@@ -70,7 +70,7 @@ export async function optionalAuthMiddleware(
  * Must be used after authMiddleware
  */
 export async function subscriptionMiddleware(
-  c: Context<{ Bindings: Env }>,
+  c: Context<{ Bindings: Env; Variables: HonoVariables }>,
   next: Next
 ) {
   const userId = c.get('userId');
@@ -103,7 +103,7 @@ export async function subscriptionMiddleware(
  * Must be used after authMiddleware
  */
 export async function adminMiddleware(
-  c: Context<{ Bindings: Env }>,
+  c: Context<{ Bindings: Env; Variables: HonoVariables }>,
   next: Next
 ) {
   const userId = c.get('userId');
