@@ -1,12 +1,11 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { Mic, MicOff, Volume2, VolumeX, Loader, MessageSquare, User } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Mic, MicOff, Volume2, VolumeX, Loader, MessageSquare } from 'lucide-react';
 import './SimpleMainPanel.scss';
 import { useSettings } from '../../contexts/SettingsContext';
 import { useSession } from '../../contexts/SessionContext';
 import { useAudioContext } from '../../contexts/AudioContext';
 import { ConversationItem } from '../../services/clients';
 import { useTranslation } from 'react-i18next';
-import { useAuth } from '../../lib/clerk/ClerkProvider';
 
 interface SimpleMainPanelProps {
   items: ConversationItem[];
@@ -52,7 +51,6 @@ const SimpleMainPanel: React.FC<SimpleMainPanelProps> = ({
   } = useAudioContext();
 
   const { sessionStartTime } = useSession();
-  const { isSignedIn } = useAuth();
 
   const currentSettings = getCurrentProviderSettings();
   const canStartSession = isApiKeyValid && availableModels.length > 0 && !loadingModels && !isInitializing;
@@ -160,12 +158,6 @@ const SimpleMainPanel: React.FC<SimpleMainPanelProps> = ({
       {/* Control Footer */}
       <div className="control-footer">
         <div className="status-info">
-          {!isSignedIn && (
-            <span className="auth-status">
-              <User size={12} />
-              <span>{t('simplePanel.signInRequired', 'Sign in required')}</span>
-            </span>
-          )}
           <span className={`status-dot ${isSessionActive ? 'active' : ''}`} />
           <span 
             className="language-pair clickable" 
