@@ -11,10 +11,7 @@ if (process.platform === 'win32') {
   }
 }
 
-// Use our custom config utility
-const { getConfig, setConfig, createDefaultConfig, CONFIG_DIR, CONFIG_FILE } = require('./config-utils');
-// Initialize config
-createDefaultConfig();
+// Config utility no longer needed - using localStorage in renderer process
 const { 
   createVirtualAudioDevices, 
   removeVirtualAudioDevices, 
@@ -221,28 +218,7 @@ ipcMain.handle('check-audio-system', async () => {
   }
 });
 
-// Configuration IPC handlers
-ipcMain.handle('get-config', (event, key, defaultValue) => {
-  try {
-    return getConfig(key, defaultValue);
-  } catch (error) {
-    console.error('[Sokuji] [Main] Error getting config:', error);
-    return defaultValue;
-  }
-});
-
-ipcMain.handle('set-config', (event, key, value) => {
-  try {
-    return { success: setConfig(key, value) };
-  } catch (error) {
-    console.error('[Sokuji] [Main] Error setting config:', error);
-    return { success: false, error: error.message };
-  }
-});
-
-ipcMain.handle('get-config-path', () => {
-  return { configDir: CONFIG_DIR, configFile: CONFIG_FILE };
-});
+// Configuration now handled directly in renderer process via localStorage
 
 // Handler to open a directory in the file explorer
 ipcMain.handle('open-directory', (event, dirPath) => {
