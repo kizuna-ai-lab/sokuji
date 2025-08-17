@@ -389,7 +389,9 @@ export class OpenAIClient implements IClient {
     // Handle transcription
     if (config.inputAudioTranscription) {
       updateParams.input_audio_transcription = {
-        model: config.inputAudioTranscription.model
+        model: config.inputAudioTranscription.model,
+        language: undefined,
+        prompt: undefined
       };
     }
 

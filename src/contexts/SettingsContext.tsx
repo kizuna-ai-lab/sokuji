@@ -334,24 +334,16 @@ export const defaultOpenAICompatibleSettings: OpenAICompatibleSettings = {
 
 // Default settings for each provider
 export const defaultOpenAISettings: OpenAISettings = defaultOpenAICompatibleSettings;
-export const defaultCometAPISettings: CometAPISettings = defaultOpenAICompatibleSettings;
+export const defaultCometAPISettings: CometAPISettings = {
+  ...defaultOpenAICompatibleSettings,
+  transcriptModel: 'whisper-1',  // CometAPI uses whisper-1 for better compatibility
+};
 
-// Default KizunaAI settings (OpenAI-compatible with non-persistent apiKey)
+// Default KizunaAI settings (OpenAI-compatible with backend-managed API key)
 export const defaultKizunaAISettings: KizunaAISettings = {
-  apiKey: '', // Non-persistent, fetched from backend
-  model: 'gpt-4o-mini-realtime-preview',
-  voice: 'alloy',
-  sourceLanguage: 'en',
-  targetLanguage: 'zh_CN',
-  turnDetectionMode: 'Normal',
-  threshold: 0.49,
-  prefixPadding: 0.5,
-  silenceDuration: 0.5,
-  semanticEagerness: 'Auto',
-  temperature: 0.8,
-  maxTokens: 4096,
-  transcriptModel: 'gpt-4o-mini-transcribe',
-  noiseReduction: 'None',
+  ...defaultOpenAICompatibleSettings,
+  transcriptModel: 'whisper-1',  // KizunaAI uses whisper-1 for better compatibility
+  // Note: apiKey is backend-managed for KizunaAI (fetched from server, not user-provided)
 };
 
 // Default Gemini settings
