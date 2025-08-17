@@ -98,7 +98,9 @@
     "maxQueueLevel": "Buffer de Áudio Máximo",
     "autoTempo": "Velocidade de Fala Adaptável",
     "apiKeyValidated": "Chave de API validada",
-    "realtimeTranslationAvailable": "Serviço de tradução em tempo real disponível"
+    "realtimeTranslationAvailable": "Serviço de tradução em tempo real disponível",
+    "authentication": "Autenticação",
+    "autoAuthenticated": "Autenticado automaticamente através da sua conta"
   },
   "audioPanel": {
     "title": "Configurações de áudio",
@@ -313,7 +315,8 @@
     "languages": "Idiomas",
     "uiLanguage": "Idioma da Interface",
     "audioSettings": "Configurações de Áudio",
-    "audioSettingsDesc": "Configure seu microfone e alto-falantes no painel de Áudio"
+    "audioSettingsDesc": "Configure seu microfone e alto-falantes no painel de Áudio",
+    "autoAuthenticated": "Autenticado automaticamente através da sua conta"
   },
   "simpleConfig": {
     "interfaceLanguage": "Idioma da Interface",
@@ -376,7 +379,10 @@
     "connecting": "Conectando...",
     "stop": "Parar",
     "start": "Iniciar",
-    "sessionDuration": "Duration"
+    "sessionDuration": "Duration",
+    "clickToConfigLanguages": "Clique para configurar idiomas",
+    "clickToConfigMicrophone": "Clique para configurar o microfone",
+    "clickToConfigSpeaker": "Clique para configurar o alto-falante"
   },
   "connectionStatus": {
     "disconnected": "Desconectado",

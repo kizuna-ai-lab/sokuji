@@ -54,7 +54,9 @@
     "maxQueueLevel": "Maximal ljudbuffert",
     "autoTempo": "Adaptiv Talhastighet",
     "apiKeyValidated": "API-nyckel validerad",
-    "realtimeTranslationAvailable": "Realtidsöversättningstjänst är tillgänglig"
+    "realtimeTranslationAvailable": "Realtidsöversättningstjänst är tillgänglig",
+    "authentication": "Autentisering",
+    "autoAuthenticated": "Automatiskt autentiserad via ditt konto"
   },
   "mainPanel": {
     "conversationPlaceholder": "Konversationen kommer att visas här",
@@ -227,7 +229,8 @@
     "languages": "Språk",
     "uiLanguage": "Gränssnittsspråk",
     "audioSettings": "Ljudinställningar",
-    "audioSettingsDesc": "Konfigurera din mikrofon och högtalare i Ljudpanelen"
+    "audioSettingsDesc": "Konfigurera din mikrofon och högtalare i Ljudpanelen",
+    "autoAuthenticated": "Automatiskt autentiserad via ditt konto"
   },
   "simpleConfig": {
     "interfaceLanguage": "Gränssnittsspråk",
@@ -290,7 +293,10 @@
     "connecting": "Ansluter...",
     "stop": "Stoppa",
     "start": "Starta",
-    "sessionDuration": "Varaktighet"
+    "sessionDuration": "Varaktighet",
+    "clickToConfigLanguages": "Klicka för att konfigurera språk",
+    "clickToConfigMicrophone": "Klicka för att konfigurera mikrofon",
+    "clickToConfigSpeaker": "Klicka för att konfigurera högtalare"
   },
   "connectionStatus": {
     "disconnected": "Frånkopplad",

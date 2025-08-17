@@ -99,7 +99,9 @@
     "switchToAdvanced": "উন্নত মোডে স্যুইচ করুন",
     "switchToBasic": "বেসিক মোডে স্যুইচ করুন",
     "advancedMode": "উন্নত",
-    "basicMode": "বেসিক"
+    "basicMode": "বেসিক",
+    "authentication": "প্রমাণীকরণ",
+    "autoAuthenticated": "আপনার অ্যাকাউন্টের মাধ্যমে স্বয়ংক্রিয়ভাবে প্রমাণীকৃত"
   },
   "simpleSettings": {
     "quickSetup": "দ্রুত সেটআপ",
@@ -127,7 +129,8 @@
     "languages": "ভাষা",
     "uiLanguage": "ইন্টারফেস ভাষা",
     "audioSettings": "অডিও সেটিংস",
-    "audioSettingsDesc": "অডিও প্যানেলে আপনার মাইক্রোফোন এবং স্পিকার কনফিগার করুন"
+    "audioSettingsDesc": "অডিও প্যানেলে আপনার মাইক্রোফোন এবং স্পিকার কনফিগার করুন",
+    "autoAuthenticated": "আপনার অ্যাকাউন্টের মাধ্যমে স্বয়ংক্রিয়ভাবে প্রমাণীকৃত"
   },
   "simpleConfig": {
     "interfaceLanguage": "ইন্টারফেস ভাষা",
@@ -263,7 +266,10 @@
     "connecting": "সংযোগ হচ্ছে...",
     "stop": "থামুন",
     "start": "শুরু",
-    "sessionDuration": "Duration"
+    "sessionDuration": "Duration",
+    "clickToConfigLanguages": "ভাষা কনফিগার করতে ক্লিক করুন",
+    "clickToConfigMicrophone": "মাইক্রোফোন কনফিগার করতে ক্লিক করুন",
+    "clickToConfigSpeaker": "স্পিকার কনফিগার করতে ক্লিক করুন"
   },
   "errors": {
     "microphoneAccess": "মাইক্রোফোন অ্যাক্সেস অস্বীকৃত",

@@ -59,7 +59,9 @@
     "maxQueueLevel": "Suurin äänipuskuri",
     "autoTempo": "Mukautuva puhenopeus",
     "apiKeyValidated": "API-avain vahvistettu",
-    "realtimeTranslationAvailable": "Reaaliaikainen käännöspalvelu on saatavilla"
+    "realtimeTranslationAvailable": "Reaaliaikainen käännöspalvelu on saatavilla",
+    "authentication": "Todennus",
+    "autoAuthenticated": "Automaattisesti todennettu tilisi kautta"
   },
   "simpleSettings": {
     "quickSetup": "Pika-asennus",
@@ -87,7 +89,8 @@
     "languages": "Kielet",
     "uiLanguage": "Käyttöliittymän kieli",
     "audioSettings": "Ääniasetukset",
-    "audioSettingsDesc": "Määritä mikrofoni ja kaiuttimet äänipaneelissa"
+    "audioSettingsDesc": "Määritä mikrofoni ja kaiuttimet äänipaneelissa",
+    "autoAuthenticated": "Automaattisesti todennettu tilisi kautta"
   },
   "simpleConfig": {
     "interfaceLanguage": "Käyttöliittymän kieli",
@@ -150,7 +153,10 @@
     "connecting": "Yhdistetään...",
     "stop": "Lopeta",
     "start": "Aloita",
-    "sessionDuration": "Duration"
+    "sessionDuration": "Duration",
+    "clickToConfigLanguages": "Napsauta määrittääksesi kielet",
+    "clickToConfigMicrophone": "Napsauta määrittääksesi mikrofonin",
+    "clickToConfigSpeaker": "Napsauta määrittääksesi kaiuttimen"
   },
   "connectionStatus": {
     "disconnected": "Yhteys katkaistu",

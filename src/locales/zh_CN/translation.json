@@ -98,7 +98,9 @@
     "maxQueueLevel": "最大音频缓冲区",
     "autoTempo": "自适应语速",
     "apiKeyValidated": "API密钥已验证",
-    "realtimeTranslationAvailable": "实时翻译服务可用"
+    "realtimeTranslationAvailable": "实时翻译服务可用",
+    "authentication": "身份认证",
+    "autoAuthenticated": "已通过您的账户自动认证"
   },
   "simpleSettings": {
     "quickSetup": "快速设置",
@@ -126,7 +128,8 @@
     "languages": "语言",
     "uiLanguage": "界面语言",
     "audioSettings": "音频设置",
-    "audioSettingsDesc": "在音频面板中配置您的麦克风和扬声器"
+    "audioSettingsDesc": "在音频面板中配置您的麦克风和扬声器",
+    "autoAuthenticated": "已通过您的账户自动认证"
   },
   "simpleConfig": {
     "interfaceLanguage": "界面语言",
@@ -167,7 +170,10 @@
     "connecting": "连接中...",
     "stop": "停止",
     "start": "开始",
-    "sessionDuration": "时长"
+    "sessionDuration": "时长",
+    "clickToConfigLanguages": "点击配置语言",
+    "clickToConfigMicrophone": "点击配置麦克风",
+    "clickToConfigSpeaker": "点击配置扬声器"
   },
   "providers": {
     "openai": {

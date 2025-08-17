@@ -59,7 +59,9 @@
     "maxQueueLevel": "अधिकतम ऑडियो बफर",
     "autoTempo": "अनुकूली भाषण गति",
     "apiKeyValidated": "API कुंजी मान्य",
-    "realtimeTranslationAvailable": "रीयल-टाइम अनुवाद सेवा उपलब्ध है"
+    "realtimeTranslationAvailable": "रीयल-टाइम अनुवाद सेवा उपलब्ध है",
+    "authentication": "प्रमाणीकरण",
+    "autoAuthenticated": "आपके खाते के माध्यम से स्वचालित रूप से प्रमाणित"
   },
   "simpleSettings": {
     "quickSetup": "त्वरित सेटअप",
@@ -87,7 +89,8 @@
     "languages": "भाषाएं",
     "uiLanguage": "इंटरफेस भाषा",
     "audioSettings": "ऑडियो सेटिंग्स",
-    "audioSettingsDesc": "ऑडियो पैनल में अपना माइक्रोफोन और स्पीकर कॉन्फ़िगर करें"
+    "audioSettingsDesc": "ऑडियो पैनल में अपना माइक्रोफोन और स्पीकर कॉन्फ़िगर करें",
+    "autoAuthenticated": "आपके खाते के माध्यम से स्वचालित रूप से प्रमाणित"
   },
   "simpleConfig": {
     "interfaceLanguage": "इंटरफेस भाषा",
@@ -150,7 +153,10 @@
     "connecting": "जुड़ रहे हैं...",
     "stop": "रोकें",
     "start": "शुरू करें",
-    "sessionDuration": "Duration"
+    "sessionDuration": "Duration",
+    "clickToConfigLanguages": "भाषाओं को कॉन्फ़िगर करने के लिए क्लिक करें",
+    "clickToConfigMicrophone": "माइक्रोफ़ोन कॉन्फ़िगर करने के लिए क्लिक करें",
+    "clickToConfigSpeaker": "स्पीकर कॉन्फ़िगर करने के लिए क्लिक करें"
   },
   "connectionStatus": {
     "disconnected": "डिस्कनेक्टेड",

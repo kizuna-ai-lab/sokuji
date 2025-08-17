@@ -98,7 +98,9 @@
     "maxQueueLevel": "Максимальный аудио-буфер",
     "autoTempo": "Адаптивная скорость речи",
     "apiKeyValidated": "Ключ API проверен",
-    "realtimeTranslationAvailable": "Доступна услуга перевода в реальном времени"
+    "realtimeTranslationAvailable": "Доступна услуга перевода в реальном времени",
+    "authentication": "Аутентификация",
+    "autoAuthenticated": "Автоматически аутентифицирован через вашу учетную запись"
   },
   "audioPanel": {
     "title": "Настройки аудио",
@@ -313,7 +315,8 @@
     "languages": "Языки",
     "uiLanguage": "Язык интерфейса",
     "audioSettings": "Настройки аудио",
-    "audioSettingsDesc": "Настройте ваш микрофон и динамики в панели Аудио"
+    "audioSettingsDesc": "Настройте ваш микрофон и динамики в панели Аудио",
+    "autoAuthenticated": "Автоматически аутентифицирован через вашу учетную запись"
   },
   "simpleConfig": {
     "interfaceLanguage": "Язык интерфейса",
@@ -376,7 +379,10 @@
     "connecting": "Подключение...",
     "stop": "Стоп",
     "start": "Старт",
-    "sessionDuration": "Duration"
+    "sessionDuration": "Duration",
+    "clickToConfigLanguages": "Нажмите для настройки языков",
+    "clickToConfigMicrophone": "Нажмите для настройки микрофона",
+    "clickToConfigSpeaker": "Нажмите для настройки динамика"
   },
   "connectionStatus": {
     "disconnected": "Отключен",

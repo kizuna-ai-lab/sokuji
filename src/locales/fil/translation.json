@@ -59,7 +59,9 @@
     "errorValidatingApiKey": "May error sa pag-verify ng API key",
     "sessionActiveNotice": "Nakalock ang mga setting habang aktibo ang session. Tapusin ang session para mabago ang mga setting.",
     "realtimeModelAvailable": "Available ang realtime model",
-    "realtimeModelNotAvailable": "Hindi available ang realtime model"
+    "realtimeModelNotAvailable": "Hindi available ang realtime model",
+    "authentication": "Authentication",
+    "autoAuthenticated": "Awtomatikong na-authenticate sa pamamagitan ng iyong account"
   },
   "simpleSettings": {
     "quickSetup": "Mabilisang Setup",
@@ -87,7 +89,8 @@
     "languages": "Mga Wika",
     "uiLanguage": "Wika ng Interface",
     "audioSettings": "Mga Audio Setting",
-    "audioSettingsDesc": "I-configure ang inyong microphone at speakers sa Audio panel"
+    "audioSettingsDesc": "I-configure ang inyong microphone at speakers sa Audio panel",
+    "autoAuthenticated": "Awtomatikong na-authenticate sa pamamagitan ng iyong account"
   },
   "simpleConfig": {
     "interfaceLanguage": "Wika ng Interface",
@@ -150,7 +153,10 @@
     "connecting": "Kumukonekta...",
     "stop": "Itigil",
     "start": "Simulan",
-    "sessionDuration": "Duration"
+    "sessionDuration": "Duration",
+    "clickToConfigLanguages": "I-click upang i-configure ang mga wika",
+    "clickToConfigMicrophone": "I-click upang i-configure ang mikropono",
+    "clickToConfigSpeaker": "I-click upang i-configure ang speaker"
   },
   "connectionStatus": {
     "disconnected": "Nakadiskonekta",

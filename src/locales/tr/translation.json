@@ -59,7 +59,9 @@
     "maxQueueLevel": "Maksimum Ses Tamponu",
     "autoTempo": "Uyarlanabilir Konuşma Hızı",
     "apiKeyValidated": "API anahtarı doğrulandı",
-    "realtimeTranslationAvailable": "Gerçek zamanlı çeviri hizmeti mevcut"
+    "realtimeTranslationAvailable": "Gerçek zamanlı çeviri hizmeti mevcut",
+    "authentication": "Kimlik Doğrulama",
+    "autoAuthenticated": "Hesabınız üzerinden otomatik olarak doğrulandı"
   },
   "mainPanel": {
     "conversationPlaceholder": "Konuşma burada görünecek",
@@ -227,7 +229,8 @@
     "languages": "Diller",
     "uiLanguage": "Arayüz Dili",
     "audioSettings": "Ses Ayarları",
-    "audioSettingsDesc": "Ses panelinde mikrofonunuzu ve hoparlörlerinizi yapılandırın"
+    "audioSettingsDesc": "Ses panelinde mikrofonunuzu ve hoparlörlerinizi yapılandırın",
+    "autoAuthenticated": "Hesabınız üzerinden otomatik olarak doğrulandı"
   },
   "simpleConfig": {
     "interfaceLanguage": "Arayüz Dili",
@@ -290,7 +293,10 @@
     "connecting": "Bağlanıyor...",
     "stop": "Durdur",
     "start": "Başlat",
-    "sessionDuration": "Süre"
+    "sessionDuration": "Süre",
+    "clickToConfigLanguages": "Dilleri yapılandırmak için tıklayın",
+    "clickToConfigMicrophone": "Mikrofonu yapılandırmak için tıklayın",
+    "clickToConfigSpeaker": "Hoparlörü yapılandırmak için tıklayın"
   },
   "connectionStatus": {
     "disconnected": "Bağlantı kesildi",

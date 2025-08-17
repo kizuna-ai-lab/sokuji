@@ -98,7 +98,9 @@
     "maxQueueLevel": "최대 오디오 버퍼",
     "autoTempo": "적응형 말하기 속도",
     "apiKeyValidated": "API 키가 확인되었습니다",
-    "realtimeTranslationAvailable": "실시간 번역 서비스를 사용할 수 있습니다"
+    "realtimeTranslationAvailable": "실시간 번역 서비스를 사용할 수 있습니다",
+    "authentication": "인증",
+    "autoAuthenticated": "계정을 통해 자동으로 인증됨"
   },
   "audioPanel": {
     "title": "오디오 설정",
@@ -313,7 +315,8 @@
     "languages": "언어",
     "uiLanguage": "인터페이스 언어",
     "audioSettings": "오디오 설정",
-    "audioSettingsDesc": "오디오 패널에서 마이크와 스피커를 설정하세요"
+    "audioSettingsDesc": "오디오 패널에서 마이크와 스피커를 설정하세요",
+    "autoAuthenticated": "계정을 통해 자동으로 인증됨"
   },
   "simpleConfig": {
     "interfaceLanguage": "인터페이스 언어",
@@ -376,7 +379,10 @@
     "connecting": "연결 중...",
     "stop": "중지",
     "start": "시작",
-    "sessionDuration": "Duration"
+    "sessionDuration": "Duration",
+    "clickToConfigLanguages": "언어를 구성하려면 클릭",
+    "clickToConfigMicrophone": "마이크를 구성하려면 클릭",
+    "clickToConfigSpeaker": "스피커를 구성하려면 클릭"
   },
   "connectionStatus": {
     "disconnected": "연결 해제됨",

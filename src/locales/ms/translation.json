@@ -98,7 +98,9 @@
     "maxQueueLevel": "Penimbal Audio Maksimum",
     "autoTempo": "Kelajuan Pertuturan Adaptif",
     "apiKeyValidated": "Kunci API disahkan",
-    "realtimeTranslationAvailable": "Perkhidmatan terjemahan masa nyata tersedia"
+    "realtimeTranslationAvailable": "Perkhidmatan terjemahan masa nyata tersedia",
+    "authentication": "Pengesahan",
+    "autoAuthenticated": "Disahkan secara automatik melalui akaun anda"
   },
   "simpleSettings": {
     "quickSetup": "Persediaan Pantas",
@@ -126,7 +128,8 @@
     "languages": "Bahasa",
     "uiLanguage": "Bahasa Antara Muka",
     "audioSettings": "Tetapan Audio",
-    "audioSettingsDesc": "Konfigurasikan mikrofon dan pembesar suara anda dalam panel Audio"
+    "audioSettingsDesc": "Konfigurasikan mikrofon dan pembesar suara anda dalam panel Audio",
+    "autoAuthenticated": "Disahkan secara automatik melalui akaun anda"
   },
   "simpleConfig": {
     "interfaceLanguage": "Bahasa Antara Muka",
@@ -189,7 +192,10 @@
     "connecting": "Menyambung...",
     "stop": "Berhenti",
     "start": "Mula",
-    "sessionDuration": "Duration"
+    "sessionDuration": "Duration",
+    "clickToConfigLanguages": "Klik untuk mengkonfigurasi bahasa",
+    "clickToConfigMicrophone": "Klik untuk mengkonfigurasi mikrofon",
+    "clickToConfigSpeaker": "Klik untuk mengkonfigurasi pembesar suara"
   },
   "connectionStatus": {
     "disconnected": "Terputus",

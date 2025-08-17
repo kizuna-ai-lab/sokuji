@@ -30,6 +30,8 @@
   },
   "settings": {
     "title": "Settings",
+    "authentication": "Authentication",
+    "autoAuthenticated": "Automatically authenticated via your account",
     "provider": "Provider",
     "openaiApiKey": "OpenAI API Key",
     "geminiApiKey": "Gemini API Key",
@@ -152,6 +154,7 @@
     "kizunaApiKeyInfo": "This API key is automatically managed by our backend service."
   },
   "simpleSettings": {
+    "autoAuthenticated": "Automatically authenticated via your account",
     "quickSetup": "Quick Setup",
     "quickSetupDesc": "Choose a preset for common scenarios",
     "preset": {
@@ -307,6 +310,9 @@
     "switchToBasic": "Switch to basic mode"
   },
   "simplePanel": {
+    "clickToConfigLanguages": "Click to configure languages",
+    "clickToConfigMicrophone": "Click to configure microphone",
+    "clickToConfigSpeaker": "Click to configure speaker",
     "translationActive": "Translation Active",
     "translationInactive": "Translation Inactive",
     "statusNoApiKey": "Please configure your API key in settings",

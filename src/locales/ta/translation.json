@@ -45,7 +45,8 @@
     "languages": "மோழிகள்",
     "uiLanguage": "இடைமுக மோழி",
     "audioSettings": "ஆடியோ அமைப்புகள்",
-    "audioSettingsDesc": "ஆடியோ பீனலில் உங்கள் இங் மற்றும் ஊங்கிகளை அமைக்கவும்"
+    "audioSettingsDesc": "ஆடியோ பீனலில் உங்கள் இங் மற்றும் ஊங்கிகளை அமைக்கவும்",
+    "autoAuthenticated": "உங்கள் கணக்கு மூலம் தானாக அங்கீகரிக்கப்பட்டது"
   },
   "simpleConfig": {
     "interfaceLanguage": "இடைமுக மோழி",
@@ -92,7 +93,10 @@
     "translation": "மோழிபெயர்ப்பு",
     "stop": "நிறுத்து",
     "start": "துவங்கு",
-    "sessionDuration": "कालावधि"
+    "sessionDuration": "कालावधि",
+    "clickToConfigLanguages": "மொழிகளை உள்ளமைக்க கிளிக் செய்யவும்",
+    "clickToConfigMicrophone": "மைக்ரோஃபோனை உள்ளமைக்க கிளிக் செய்யவும்",
+    "clickToConfigSpeaker": "ஸ்பீக்கரை உள்ளமைக்க கிளிக் செய்யவும்"
   },
   "connectionStatus": {
     "disconnected": "துண்டிக்கப்பட்டது",
@@ -140,7 +144,9 @@
     "desiredQueueLevel": "இலக்கு ஆடியோ இடையகம்",
     "maxQueueLevel": "அதிகபட்ச ஆடியோ இடையகம்",
     "autoTempo": "ஏற்றவாறு பேச்சு வேகம்",
-    "realtimeTranslationAvailable": "நிகழ்நேர மொழிபெயர்ப்பு சேவை கிடைக்கிறது"
+    "realtimeTranslationAvailable": "நிகழ்நேர மொழிபெயர்ப்பு சேவை கிடைக்கிறது",
+    "authentication": "அங்கீகாரம்",
+    "autoAuthenticated": "உங்கள் கணக்கு மூலம் தானாக அங்கீகரிக்கப்பட்டது"
   },
   "mainPanel": {
     "conversationPlaceholder": "உரையாடல் இங்கே தோன்றும்",
