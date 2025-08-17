@@ -553,7 +553,21 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
       }
     }
     
-    const apiKey = getCurrentApiKey();
+    // For Kizuna AI, use the getAuthToken parameter to get fresh token if available
+    let apiKey: string;
+    if (commonSettings.provider === Provider.KIZUNA_AI && getAuthToken) {
+      try {
+        console.log('[SettingsContext] Using getAuthToken to fetch fresh token for validation...');
+        apiKey = await getAuthToken() || '';
+        console.log('[SettingsContext] Successfully got fresh token for validation');
+      } catch (error) {
+        console.error('[SettingsContext] Failed to get fresh token for validation:', error);
+        apiKey = getCurrentApiKey();
+      }
+    } else {
+      apiKey = getCurrentApiKey();
+    }
+    
     const cacheKey = getCacheKey();
     
     // Check cache first
@@ -867,7 +881,10 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
       const timeoutId = setTimeout(async () => {
         try {
           setLoadingModels(true);
-          const result = await validateApiKeyAndFetchModels();
+          // For Kizuna AI, pass getToken function to get fresh token
+          const getAuthToken = commonSettings.provider === Provider.KIZUNA_AI && getToken ? 
+            () => getToken({ skipCache: true }) : undefined;
+          const result = await validateApiKeyAndFetchModels(getAuthToken);
           setIsApiKeyValid(Boolean(result.validation.valid));
           setAvailableModels(result.models);
           
