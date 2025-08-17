@@ -17,12 +17,16 @@ import { Provider, isOpenAICompatible } from '../../types/Provider';
 import AudioFeedbackWarning from '../AudioFeedbackWarning/AudioFeedbackWarning';
 import { getSafeAudioConfiguration, decodeAudioToWav } from '../../utils/audioUtils';
 import SimpleMainPanel from '../SimpleMainPanel/SimpleMainPanel';
+import { useAuth } from '../../lib/clerk/ClerkProvider';
 
 interface MainPanelProps {}
 
 const MainPanel: React.FC<MainPanelProps> = () => {
   const { t } = useTranslation();
   const { trackEvent } = useAnalytics();
+  
+  // Get authentication state for Kizuna AI dynamic token fetching
+  const { getToken, isSignedIn } = useAuth();
   
   // State for session management
   const [isRecording, setIsRecording] = useState(false);
@@ -391,7 +395,21 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           apiKey = cometAPISettings.apiKey;
           break;
         case Provider.KIZUNA_AI:
-          apiKey = kizunaAISettings.apiKey || '';
+          // For Kizuna AI, fetch a fresh token from Clerk to avoid 401 errors
+          if (getToken && isSignedIn) {
+            console.log('[MainPanel] Fetching fresh Clerk token for Kizuna AI...');
+            try {
+              const freshToken = await getToken({ skipCache: true });
+              apiKey = freshToken || '';
+              console.log('[MainPanel] Successfully got fresh Clerk token for Kizuna AI');
+            } catch (error) {
+              console.error('[MainPanel] Failed to get fresh Clerk token:', error);
+              apiKey = kizunaAISettings.apiKey || '';
+            }
+          } else {
+            // Fallback to stored token if getToken is not available
+            apiKey = kizunaAISettings.apiKey || '';
+          }
           break;
         case Provider.GEMINI:
           apiKey = geminiSettings.apiKey;
@@ -1199,7 +1217,9 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         trackEvent('translation_session_start', {
           source_language: currentSettings.sourceLanguage,
           target_language: currentSettings.targetLanguage,
-          session_id: newSessionId
+          session_id: newSessionId,
+          provider: commonSettings.provider,
+          model: (currentSettings as any).model
         });
       }
     } else {
@@ -1209,7 +1229,8 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         trackEvent('translation_session_end', {
           session_id: sessionId,
           duration,
-          translation_count: translationCount
+          translation_count: translationCount,
+          provider: commonSettings.provider
         });
         // Reset session state
         setSessionId(null);
