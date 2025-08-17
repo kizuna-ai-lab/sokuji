@@ -23,9 +23,15 @@ const MainLayout: React.FC = () => {
   const { commonSettings, updateCommonSettings, settingsNavigationTarget } = useSettings();
   const { userTypeSelected, setUserType } = useOnboarding();
   const { isSignedIn } = useAuth();
-  const [showLogs, setShowLogs] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
-  const [showAudio, setShowAudio] = useState(false);
+  const [showLogs, setShowLogs] = useState(() => {
+    return sessionStorage.getItem('panelState.showLogs') === 'true';
+  });
+  const [showSettings, setShowSettings] = useState(() => {
+    return sessionStorage.getItem('panelState.showSettings') === 'true';
+  });
+  const [showAudio, setShowAudio] = useState(() => {
+    return sessionStorage.getItem('panelState.showAudio') === 'true';
+  });
   
   // Track panel view times
   const panelOpenTimeRef = useRef<number | null>(null);
@@ -67,11 +73,15 @@ const MainLayout: React.FC = () => {
     // If already shown, close it; otherwise open it and close other panels
     if (showAudio) {
       setShowAudio(false);
+      sessionStorage.setItem('panelState.showAudio', 'false');
       trackPanelView(null);
     } else {
       setShowAudio(true);
       setShowLogs(false);
       setShowSettings(false);
+      sessionStorage.setItem('panelState.showAudio', 'true');
+      sessionStorage.setItem('panelState.showLogs', 'false');
+      sessionStorage.setItem('panelState.showSettings', 'false');
       trackPanelView('audio');
     }
   };
@@ -80,11 +90,15 @@ const MainLayout: React.FC = () => {
     // If already shown, close it; otherwise open it and close other panels
     if (showLogs) {
       setShowLogs(false);
+      sessionStorage.setItem('panelState.showLogs', 'false');
       trackPanelView(null);
     } else {
       setShowLogs(true);
       setShowAudio(false);
       setShowSettings(false);
+      sessionStorage.setItem('panelState.showLogs', 'true');
+      sessionStorage.setItem('panelState.showAudio', 'false');
+      sessionStorage.setItem('panelState.showSettings', 'false');
       trackPanelView('logs');
     }
   };
@@ -93,11 +107,15 @@ const MainLayout: React.FC = () => {
     // If already shown, close it; otherwise open it and close other panels
     if (showSettings) {
       setShowSettings(false);
+      sessionStorage.setItem('panelState.showSettings', 'false');
       trackPanelView(null);
     } else {
       setShowSettings(true);
       setShowAudio(false);
       setShowLogs(false);
+      sessionStorage.setItem('panelState.showSettings', 'true');
+      sessionStorage.setItem('panelState.showAudio', 'false');
+      sessionStorage.setItem('panelState.showLogs', 'false');
       trackPanelView('settings');
     }
   };
@@ -120,6 +138,10 @@ const MainLayout: React.FC = () => {
       setShowSettings(true);
       setShowAudio(false);
       setShowLogs(false);
+      // Save to sessionStorage when programmatically opening settings
+      sessionStorage.setItem('panelState.showSettings', 'true');
+      sessionStorage.setItem('panelState.showAudio', 'false');
+      sessionStorage.setItem('panelState.showLogs', 'false');
       trackPanelView('settings');
     }
   }, [settingsNavigationTarget]);
