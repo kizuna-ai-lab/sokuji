@@ -98,7 +98,9 @@
     "maxQueueLevel": "Maximaler Audio-Puffer",
     "autoTempo": "Adaptive Sprechgeschwindigkeit",
     "apiKeyValidated": "API-Schlüssel validiert",
-    "realtimeTranslationAvailable": "Echtzeit-Übersetzungsdienst ist verfügbar"
+    "realtimeTranslationAvailable": "Echtzeit-Übersetzungsdienst ist verfügbar",
+    "authentication": "Authentifizierung",
+    "autoAuthenticated": "Automatisch über Ihr Konto authentifiziert"
   },
   "audioPanel": {
     "title": "Audio-Einstellungen",
@@ -313,7 +315,8 @@
     "languages": "Sprachen",
     "uiLanguage": "Sprache der Benutzeroberfläche",
     "audioSettings": "Audio-Einstellungen",
-    "audioSettingsDesc": "Konfigurieren Sie Ihr Mikrofon und Ihre Lautsprecher im Audio-Panel"
+    "audioSettingsDesc": "Konfigurieren Sie Ihr Mikrofon und Ihre Lautsprecher im Audio-Panel",
+    "autoAuthenticated": "Automatisch über Ihr Konto authentifiziert"
   },
   "simpleConfig": {
     "interfaceLanguage": "Sprache der Benutzeroberfläche",
@@ -376,7 +379,10 @@
     "connecting": "Verbinden...",
     "stop": "Stoppen",
     "start": "Starten",
-    "sessionDuration": "Duration"
+    "sessionDuration": "Duration",
+    "clickToConfigLanguages": "Klicken Sie, um Sprachen zu konfigurieren",
+    "clickToConfigMicrophone": "Klicken Sie, um das Mikrofon zu konfigurieren",
+    "clickToConfigSpeaker": "Klicken Sie, um den Lautsprecher zu konfigurieren"
   },
   "connectionStatus": {
     "disconnected": "Getrennt",

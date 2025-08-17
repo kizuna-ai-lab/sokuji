@@ -27,7 +27,8 @@
     "validate": "ตรวจสอบ",
     "languages": "ภาษา",
     "uiLanguage": "ภาษาอินเทอร์เฟซ",
-    "audioSettings": "การตั้งค่าเสียง"
+    "audioSettings": "การตั้งค่าเสียง",
+    "autoAuthenticated": "ตรวจสอบสิทธิ์อัตโนมัติผ่านบัญชีของคุณ"
   },
   "simpleConfig": {
     "interfaceLanguage": "ภาษาอินเทอร์เฟซ",
@@ -65,7 +66,10 @@
     "translation": "การแปล",
     "stop": "หยุด",
     "start": "เริ่ม",
-    "sessionDuration": "ระยะเวลา"
+    "sessionDuration": "ระยะเวลา",
+    "clickToConfigLanguages": "คลิกเพื่อกำหนดค่าภาษา",
+    "clickToConfigMicrophone": "คลิกเพื่อกำหนดค่าไมโครโฟน",
+    "clickToConfigSpeaker": "คลิกเพื่อกำหนดค่าลำโพง"
   },
   "connectionStatus": {
     "disconnected": "ตัดการเชื่อมต่อ",
@@ -110,7 +114,9 @@
     "maxQueueLevel": "บัฟเฟอร์เสียงสูงสุด",
     "autoTempo": "ความเร็วในการพูดแบบปรับได้",
     "apiKeyValidated": "ตรวจสอบคีย์ API แล้ว",
-    "realtimeTranslationAvailable": "มีบริการแปลภาษาแบบเรียลไทม์"
+    "realtimeTranslationAvailable": "มีบริการแปลภาษาแบบเรียลไทม์",
+    "authentication": "การตรวจสอบสิทธิ์",
+    "autoAuthenticated": "ตรวจสอบสิทธิ์อัตโนมัติผ่านบัญชีของคุณ"
   },
   "mainPanel": {
     "conversationPlaceholder": "การสนทนาจะปรากฏที่นี่",

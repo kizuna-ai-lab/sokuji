@@ -96,7 +96,9 @@
     "maxQueueLevel": "Buffer Audio Maksimum",
     "autoTempo": "Kecepatan Bicara Adaptif",
     "apiKeyValidated": "Kunci API divalidasi",
-    "realtimeTranslationAvailable": "Layanan terjemahan waktu nyata tersedia"
+    "realtimeTranslationAvailable": "Layanan terjemahan waktu nyata tersedia",
+    "authentication": "Autentikasi",
+    "autoAuthenticated": "Otomatis terautentikasi melalui akun Anda"
   },
   "simpleSettings": {
     "quickSetup": "Pengaturan Cepat",
@@ -124,7 +126,8 @@
     "languages": "Bahasa",
     "uiLanguage": "Bahasa Antarmuka",
     "audioSettings": "Pengaturan Audio",
-    "audioSettingsDesc": "Konfigurasikan mikrofon dan speaker Anda di panel Audio"
+    "audioSettingsDesc": "Konfigurasikan mikrofon dan speaker Anda di panel Audio",
+    "autoAuthenticated": "Otomatis terautentikasi melalui akun Anda"
   },
   "simpleConfig": {
     "interfaceLanguage": "Bahasa Antarmuka",
@@ -187,7 +190,10 @@
     "connecting": "Menghubungkan...",
     "stop": "Berhenti",
     "start": "Mulai",
-    "sessionDuration": "Duration"
+    "sessionDuration": "Duration",
+    "clickToConfigLanguages": "Klik untuk mengonfigurasi bahasa",
+    "clickToConfigMicrophone": "Klik untuk mengonfigurasi mikrofon",
+    "clickToConfigSpeaker": "Klik untuk mengonfigurasi speaker"
   },
   "connectionStatus": {
     "disconnected": "Terputus",

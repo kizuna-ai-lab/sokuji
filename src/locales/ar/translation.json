@@ -102,7 +102,9 @@
     "switchToAdvanced": "التبديل إلى الوضع المتقدم",
     "switchToBasic": "التبديل إلى الوضع الأساسي",
     "advancedMode": "متقدم",
-    "basicMode": "أساسي"
+    "basicMode": "أساسي",
+    "authentication": "المصادقة",
+    "autoAuthenticated": "تمت المصادقة تلقائيًا عبر حسابك"
   },
   "simpleSettings": {
     "quickSetup": "إعداد سريع",
@@ -130,7 +132,8 @@
     "languages": "اللغات",
     "uiLanguage": "لغة الواجهة",
     "audioSettings": "إعدادات الصوت",
-    "audioSettingsDesc": "قم بتكوين الميكروفون والسماعات في لوحة الصوت"
+    "audioSettingsDesc": "قم بتكوين الميكروفون والسماعات في لوحة الصوت",
+    "autoAuthenticated": "تمت المصادقة تلقائيًا عبر حسابك"
   },
   "simpleConfig": {
     "interfaceLanguage": "لغة الواجهة",
@@ -266,7 +269,10 @@
     "connecting": "جاري الاتصال...",
     "stop": "توقف",
     "start": "ابدأ",
-    "sessionDuration": "المدة"
+    "sessionDuration": "المدة",
+    "clickToConfigLanguages": "انقر لتكوين اللغات",
+    "clickToConfigMicrophone": "انقر لتكوين الميكروفون",
+    "clickToConfigSpeaker": "انقر لتكوين السماعة"
   },
   "errors": {
     "microphoneAccess": "تم رفض الوصول إلى الميكروفون",

@@ -59,7 +59,9 @@
     "maxQueueLevel": "Bộ đệm âm thanh tối đa",
     "autoTempo": "Tốc độ nói thích ứng",
     "apiKeyValidated": "Đã xác thực khóa API",
-    "realtimeTranslationAvailable": "Dịch vụ dịch thuật thời gian thực có sẵn"
+    "realtimeTranslationAvailable": "Dịch vụ dịch thuật thời gian thực có sẵn",
+    "authentication": "Xác thực",
+    "autoAuthenticated": "Tự động xác thực qua tài khoản của bạn"
   },
   "mainPanel": {
     "conversationPlaceholder": "Cuộc trò chuyện sẽ xuất hiện ở đây",
@@ -227,7 +229,8 @@
     "languages": "Ngôn ngữ",
     "uiLanguage": "Ngôn Ngữ Giao Diện",
     "audioSettings": "Cài Đặt Âm Thanh",
-    "audioSettingsDesc": "Cấu hình microphone và loa của bạn trong bảng Âm thanh"
+    "audioSettingsDesc": "Cấu hình microphone và loa của bạn trong bảng Âm thanh",
+    "autoAuthenticated": "Tự động xác thực qua tài khoản của bạn"
   },
   "simpleConfig": {
     "interfaceLanguage": "Ngôn Ngữ Giao Diện",
@@ -290,7 +293,10 @@
     "connecting": "Kết nối...",
     "stop": "Dừng",
     "start": "Bắt đầu",
-    "sessionDuration": "Thời lượng"
+    "sessionDuration": "Thời lượng",
+    "clickToConfigLanguages": "Nhấp để cấu hình ngôn ngữ",
+    "clickToConfigMicrophone": "Nhấp để cấu hình microphone",
+    "clickToConfigSpeaker": "Nhấp để cấu hình loa"
   },
   "connectionStatus": {
     "disconnected": "Mất kết nối",

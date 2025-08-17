@@ -27,7 +27,8 @@
     "validate": "Перевірити",
     "languages": "Мови",
     "uiLanguage": "Мова інтерфейсу",
-    "audioSettings": "Налаштування аудіо"
+    "audioSettings": "Налаштування аудіо",
+    "autoAuthenticated": "Автоматично автентифіковано через ваш обліковий запис"
   },
   "simpleConfig": {
     "interfaceLanguage": "Мова інтерфейсу",
@@ -65,7 +66,10 @@
     "translation": "Переклад",
     "stop": "Зупинити",
     "start": "Почати",
-    "sessionDuration": "Тривалість"
+    "sessionDuration": "Тривалість",
+    "clickToConfigLanguages": "Натисніть для налаштування мов",
+    "clickToConfigMicrophone": "Натисніть для налаштування мікрофона",
+    "clickToConfigSpeaker": "Натисніть для налаштування динаміка"
   },
   "connectionStatus": {
     "disconnected": "Відключено",
@@ -105,7 +109,9 @@
     "maxQueueLevel": "Максимальний аудіобуфер",
     "autoTempo": "Адаптивна швидкість мовлення",
     "apiKeyValidated": "Ключ API перевірено",
-    "realtimeTranslationAvailable": "Доступна послуга перекладу в реальному часі"
+    "realtimeTranslationAvailable": "Доступна послуга перекладу в реальному часі",
+    "authentication": "Автентифікація",
+    "autoAuthenticated": "Автоматично автентифіковано через ваш обліковий запис"
   },
   "mainPanel": {
     "conversationPlaceholder": "Розмова з'явиться тут",

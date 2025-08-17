@@ -98,7 +98,9 @@
     "maxQueueLevel": "מאגר שמע מרבי",
     "autoTempo": "מהירות דיבור אדפטיבית",
     "apiKeyValidated": "מפתח API אומת",
-    "realtimeTranslationAvailable": "שירות תרגום בזמן אמת זמין"
+    "realtimeTranslationAvailable": "שירות תרגום בזמן אמת זמין",
+    "authentication": "אימות",
+    "autoAuthenticated": "אומת אוטומטית דרך החשבון שלך"
   },
   "simpleSettings": {
     "quickSetup": "הגדרה מהירה",
@@ -126,7 +128,8 @@
     "languages": "שפות",
     "uiLanguage": "שפת ממשק",
     "audioSettings": "הגדרות שמע",
-    "audioSettingsDesc": "קבע את המיקרופון והרמקולים בפאנל השמע"
+    "audioSettingsDesc": "קבע את המיקרופון והרמקולים בפאנל השמע",
+    "autoAuthenticated": "אומת אוטומטית דרך החשבון שלך"
   },
   "simpleConfig": {
     "interfaceLanguage": "שפת ממשק",
@@ -189,7 +192,10 @@
     "connecting": "מתחבר...",
     "stop": "עצור",
     "start": "התחל",
-    "sessionDuration": "Duration"
+    "sessionDuration": "Duration",
+    "clickToConfigLanguages": "לחץ כדי להגדיר שפות",
+    "clickToConfigMicrophone": "לחץ כדי להגדיר מיקרופון",
+    "clickToConfigSpeaker": "לחץ כדי להגדיר רמקול"
   },
   "connectionStatus": {
     "disconnected": "מנותק",

@@ -102,7 +102,9 @@
     "switchToAdvanced": "تغییر به حالت پیشرفته",
     "switchToBasic": "تغییر به حالت پایه",
     "advancedMode": "پیشرفته",
-    "basicMode": "پایه"
+    "basicMode": "پایه",
+    "authentication": "احراز هویت",
+    "autoAuthenticated": "به طور خودکار از طریق حساب کاربری شما احراز هویت شده"
   },
   "simpleSettings": {
     "quickSetup": "راه‌اندازی سریع",
@@ -130,7 +132,8 @@
     "languages": "زبان‌ها",
     "uiLanguage": "زبان رابط کاربری",
     "audioSettings": "تنظیمات صدا",
-    "audioSettingsDesc": "میکروفون و بلندگوی خود را در پنل صدا پیکربندی کنید"
+    "audioSettingsDesc": "میکروفون و بلندگوی خود را در پنل صدا پیکربندی کنید",
+    "autoAuthenticated": "به طور خودکار از طریق حساب کاربری شما احراز هویت شده"
   },
   "simpleConfig": {
     "interfaceLanguage": "زبان رابط کاربری",
@@ -266,7 +269,10 @@
     "connecting": "در حال اتصال...",
     "stop": "توقف",
     "start": "شروع",
-    "sessionDuration": "Duration"
+    "sessionDuration": "Duration",
+    "clickToConfigLanguages": "برای پیکربندی زبان‌ها کلیک کنید",
+    "clickToConfigMicrophone": "برای پیکربندی میکروفن کلیک کنید",
+    "clickToConfigSpeaker": "برای پیکربندی بلندگو کلیک کنید"
   },
   "errors": {
     "microphoneAccess": "دسترسی به میکروفون رد شد",

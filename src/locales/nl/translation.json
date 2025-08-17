@@ -98,7 +98,9 @@
     "maxQueueLevel": "Maximale audiobuffer",
     "autoTempo": "Adaptieve Spraaksnelheid",
     "apiKeyValidated": "API-sleutel gevalideerd",
-    "realtimeTranslationAvailable": "Realtime vertaalservice is beschikbaar"
+    "realtimeTranslationAvailable": "Realtime vertaalservice is beschikbaar",
+    "authentication": "Authenticatie",
+    "autoAuthenticated": "Automatisch geauthenticeerd via uw account"
   },
   "audioPanel": {
     "title": "Audio instellingen",
@@ -311,7 +313,8 @@
     "languages": "Talen",
     "uiLanguage": "Interface Taal",
     "audioSettings": "Audio Instellingen",
-    "audioSettingsDesc": "Configureer uw microfoon en luidsprekers in het Audio paneel"
+    "audioSettingsDesc": "Configureer uw microfoon en luidsprekers in het Audio paneel",
+    "autoAuthenticated": "Automatisch geauthenticeerd via uw account"
   },
   "simpleConfig": {
     "interfaceLanguage": "Interface Taal",
@@ -374,7 +377,10 @@
     "connecting": "Verbinden...",
     "stop": "Stoppen",
     "start": "Starten",
-    "sessionDuration": "Duration"
+    "sessionDuration": "Duration",
+    "clickToConfigLanguages": "Klik om talen te configureren",
+    "clickToConfigMicrophone": "Klik om de microfoon te configureren",
+    "clickToConfigSpeaker": "Klik om de luidspreker te configureren"
   },
   "connectionStatus": {
     "disconnected": "Verbinding verbroken",

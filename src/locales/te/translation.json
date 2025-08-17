@@ -27,7 +27,8 @@
     "validate": "ధృవీకరించు",
     "languages": "భాషలు",
     "uiLanguage": "ఇంటర్ఫేస్ భాష",
-    "audioSettings": "ఆడియో సెట్టింగ్స్"
+    "audioSettings": "ఆడియో సెట్టింగ్స్",
+    "autoAuthenticated": "మీ ఖాతా ద్వారా స్వయంచాలకంగా ప్రామాణీకరించబడింది"
   },
   "simpleConfig": {
     "interfaceLanguage": "ఇంటర్ఫేస్ భాష",
@@ -65,7 +66,10 @@
     "translation": "అనువాదం",
     "stop": "ఆప్పు",
     "start": "ప్రారంభం",
-    "sessionDuration": "కాలవధి"
+    "sessionDuration": "కాలవధి",
+    "clickToConfigLanguages": "భాషలను కాన్ఫిగర్ చేయడానికి క్లిక్ చేయండి",
+    "clickToConfigMicrophone": "మైక్రోఫోన్‌ను కాన్ఫిగర్ చేయడానికి క్లిక్ చేయండి",
+    "clickToConfigSpeaker": "స్పీకర్‌ను కాన్ఫిగర్ చేయడానికి క్లిక్ చేయండి"
   },
   "connectionStatus": {
     "disconnected": "విచ్ఛేదించబడింది",
@@ -110,7 +114,9 @@
     "maxQueueLevel": "గరిష్ట ఆడియో బఫర్",
     "autoTempo": "అనుకూల ప్రసంగ వేగం",
     "apiKeyValidated": "API కీ ధృవీకరించబడింది",
-    "realtimeTranslationAvailable": "నిజ-సమయ అనువాద సేవ అందుబాటులో ఉంది"
+    "realtimeTranslationAvailable": "నిజ-సమయ అనువాద సేవ అందుబాటులో ఉంది",
+    "authentication": "ప్రామాణీకరణ",
+    "autoAuthenticated": "మీ ఖాతా ద్వారా స్వయంచాలకంగా ప్రామాణీకరించబడింది"
   },
   "mainPanel": {
     "conversationPlaceholder": "సంభాషణ ఇక్కడ కనిపిస్తుంది",

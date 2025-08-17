@@ -98,7 +98,9 @@
     "maxQueueLevel": "最大音声バッファ",
     "autoTempo": "適応的な話速",
     "apiKeyValidated": "APIキーが検証されました",
-    "realtimeTranslationAvailable": "リアルタイム翻訳サービスが利用可能です"
+    "realtimeTranslationAvailable": "リアルタイム翻訳サービスが利用可能です",
+    "authentication": "認証",
+    "autoAuthenticated": "アカウントで自動的に認証されました"
   },
   "audioPanel": {
     "title": "オーディオ設定",
@@ -313,7 +315,8 @@
     "languages": "言語",
     "uiLanguage": "インターフェース言語",
     "audioSettings": "オーディオ設定",
-    "audioSettingsDesc": "オーディオパネルでマイクとスピーカーを設定"
+    "audioSettingsDesc": "オーディオパネルでマイクとスピーカーを設定",
+    "autoAuthenticated": "アカウントで自動的に認証されました"
   },
   "simpleConfig": {
     "interfaceLanguage": "インターフェース言語",
@@ -376,7 +379,10 @@
     "connecting": "接続中...",
     "stop": "停止",
     "start": "開始",
-    "sessionDuration": "Duration"
+    "sessionDuration": "Duration",
+    "clickToConfigLanguages": "言語を設定するにはクリック",
+    "clickToConfigMicrophone": "マイクを設定するにはクリック",
+    "clickToConfigSpeaker": "スピーカーを設定するにはクリック"
   },
   "connectionStatus": {
     "disconnected": "切断済み",
