@@ -5,7 +5,7 @@
 
 import React from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
-import { ClerkProvider, isExtensionEnvironment } from '../lib/clerk/ClerkProvider';
+import { ClerkProvider } from '../lib/clerk/ClerkProvider';
 import { useAnalytics } from '../lib/analytics';
 import { dark } from '@clerk/themes';
 
@@ -22,28 +22,18 @@ export function RootLayout() {
     navigate(to, { replace: true });
   };
 
-  // Different props for different environments
-  const clerkProps = isExtensionEnvironment
-    ? {
-        publishableKey: import.meta.env.VITE_CLERK_PUBLISHABLE_KEY || '',
-        routerPush,
-        routerReplace,
-        fallbackRedirectUrl: '/',
-        signInUrl: '/sign-in',
-        signUpUrl: '/sign-up',
-        appearance: {
-          baseTheme: dark,
-        },
-      }
-    : {
-        publishableKey: import.meta.env.VITE_CLERK_PUBLISHABLE_KEY || '',
-        fallbackRedirectUrl: '/',
-        signInUrl: '/sign-in',
-        signUpUrl: '/sign-up',
-        appearance: {
-          baseTheme: dark,
-        },
-      };
+  // ClerkProvider props with routing functions for memory router navigation
+  const clerkProps = {
+    publishableKey: import.meta.env.VITE_CLERK_PUBLISHABLE_KEY || '',
+    routerPush,
+    routerReplace,
+    fallbackRedirectUrl: '/',
+    signInUrl: '/sign-in',
+    signUpUrl: '/sign-up',
+    appearance: {
+      baseTheme: dark,
+    },
+  };
 
   React.useEffect(() => {
     // Track app startup - version, platform, environment are automatically included via Super Properties
