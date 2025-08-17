@@ -2,7 +2,6 @@
  * Sign-up page component using Clerk's built-in SignUp component
  */
 
-import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { SignUp as ClerkSignUp, isExtensionEnvironment } from '../lib/clerk/ClerkProvider';
@@ -27,6 +26,7 @@ export function SignUp() {
         <ClerkSignUp 
           routing="virtual" 
           oauthFlow={isExtensionEnvironment ? 'popup' : 'redirect'}
+          oidcPrompt="select_account"
         />
       </div>
     </div>

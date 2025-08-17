@@ -27,6 +27,7 @@ export function SignIn() {
         <ClerkSignIn 
           routing="virtual" 
           oauthFlow={isExtensionEnvironment ? 'popup' : 'redirect'}
+          oidcPrompt="select_account"
         />
       </div>
     </div>
