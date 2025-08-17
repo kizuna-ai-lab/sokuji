@@ -450,8 +450,12 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
       // Set canPushToTalk based on current turnDetectionMode
       if (isOpenAICompatible(commonSettings.provider)) {
-        const settings = commonSettings.provider === Provider.OPENAI ? openAISettings : cometAPISettings;
-        setCanPushToTalk(settings.turnDetectionMode === 'Disabled');
+        const settings = 
+          commonSettings.provider === Provider.OPENAI ? openAISettings :
+          commonSettings.provider === Provider.COMET_API ? cometAPISettings :
+          commonSettings.provider === Provider.KIZUNA_AI ? kizunaAISettings :
+          null;
+        setCanPushToTalk(settings ? settings.turnDetectionMode === 'Disabled' : false);
       } else {
         setCanPushToTalk(false); // Not supported by Gemini and PalabraAI
       }
@@ -516,8 +520,12 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       // Start recording if using server VAD and input device is turned on
       let turnDetectionDisabled = false;
       if (isOpenAICompatible(commonSettings.provider)) {
-        const settings = commonSettings.provider === Provider.OPENAI ? openAISettings : cometAPISettings;
-        turnDetectionDisabled = settings.turnDetectionMode === 'Disabled';
+        const settings = 
+          commonSettings.provider === Provider.OPENAI ? openAISettings :
+          commonSettings.provider === Provider.COMET_API ? cometAPISettings :
+          commonSettings.provider === Provider.KIZUNA_AI ? kizunaAISettings :
+          null;
+        turnDetectionDisabled = settings ? settings.turnDetectionMode === 'Disabled' : false;
       }
       
       if (!turnDetectionDisabled && isInputDeviceOn && audioServiceRef.current) {
@@ -1091,8 +1099,12 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           // If we're in automatic mode, start/resume recording
           let turnDetectionDisabled = false;
           if (isOpenAICompatible(commonSettings.provider)) {
-            const settings = commonSettings.provider === Provider.OPENAI ? openAISettings : cometAPISettings;
-            turnDetectionDisabled = settings.turnDetectionMode === 'Disabled';
+            const settings = 
+              commonSettings.provider === Provider.OPENAI ? openAISettings :
+              commonSettings.provider === Provider.COMET_API ? cometAPISettings :
+              commonSettings.provider === Provider.KIZUNA_AI ? kizunaAISettings :
+              null;
+            turnDetectionDisabled = settings ? settings.turnDetectionMode === 'Disabled' : false;
           }
           if (!turnDetectionDisabled) {
             console.info('[Sokuji] [MainPanel] Input device turned on - starting recording in automatic mode');

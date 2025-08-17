@@ -1,5 +1,5 @@
 /**
- * REST API Proxy for OpenAI
+ * REST API Proxy for CometAPI (OpenAI-compatible)
  * Handles regular HTTP API calls with authentication and billing
  */
 
@@ -42,8 +42,8 @@ async function extractUser(request: Request, env: Env) {
 
 
 /**
- * Handle REST API proxy for OpenAI endpoints
- * Forwards regular HTTP requests to OpenAI API with authentication
+ * Handle REST API proxy for CometAPI endpoints (OpenAI-compatible)
+ * Forwards regular HTTP requests to CometAPI with authentication
  */
 export async function handleOpenAIProxy(request: Request, env: Env): Promise<Response> {
   const startTime = Date.now();
@@ -72,30 +72,30 @@ export async function handleOpenAIProxy(request: Request, env: Env): Promise<Res
   // Remove the /v1 prefix if present to get the clean path
   const path = url.pathname.replace(/^\/v1/, '');
   
-  // Forward to OpenAI API
-  const openAIUrl = `https://api.openai.com/v1${path}${url.search}`;
-  console.log('[Proxy] Forwarding to OpenAI URL:', openAIUrl);
+  // Forward to CometAPI (OpenAI-compatible)
+  const cometAPIUrl = `https://api.cometapi.com/v1${path}${url.search}`;
+  console.log('[Proxy] Forwarding to CometAPI URL:', cometAPIUrl);
   
-  const openAIHeaders = new Headers(request.headers);
-  openAIHeaders.set('Authorization', `Bearer ${env.OPENAI_API_KEY}`);
-  openAIHeaders.delete('Host');
-  openAIHeaders.delete('CF-Connecting-IP');
-  openAIHeaders.delete('CF-RAY');
+  const cometAPIHeaders = new Headers(request.headers);
+  cometAPIHeaders.set('Authorization', `Bearer ${env.COMET_API_KEY}`);
+  cometAPIHeaders.delete('Host');
+  cometAPIHeaders.delete('CF-Connecting-IP');
+  cometAPIHeaders.delete('CF-RAY');
   
-  console.log('[Proxy] Request headers prepared, API key:', env.OPENAI_API_KEY ? 'present' : 'missing');
+  console.log('[Proxy] Request headers prepared, API key:', env.COMET_API_KEY ? 'present' : 'missing');
   
-  const openAIRequest = new Request(openAIUrl, {
+  const cometAPIRequest = new Request(cometAPIUrl, {
     method: request.method,
-    headers: openAIHeaders,
+    headers: cometAPIHeaders,
     body: request.body,
   });
 
   try {
-    console.log('[Proxy] Sending request to OpenAI...');
-    const response = await fetch(openAIRequest);
+    console.log('[Proxy] Sending request to CometAPI...');
+    const response = await fetch(cometAPIRequest);
     const duration = Date.now() - startTime;
     
-    console.log('[Proxy] OpenAI response received:', response.status);
+    console.log('[Proxy] CometAPI response received:', response.status);
     
     // Log usage for billing
     if (response.ok && request.method === 'POST') {
@@ -129,7 +129,7 @@ export async function handleOpenAIProxy(request: Request, env: Env): Promise<Res
           
           await env.DB.prepare(`
             INSERT INTO usage_logs (user_id, model, provider, tokens, metadata, created_at)
-            VALUES (?, ?, 'openai', ?, ?, datetime('now'))
+            VALUES (?, ?, 'comet', ?, ?, datetime('now'))
           `).bind(
             user.sub,
             model,
