@@ -289,14 +289,11 @@ export class OpenAIClient implements IClient {
     // Re-setup event listeners for new client
     this.setupEventListeners();
 
-    // Update session configuration
-    this.updateSession(config);
-
     // Connect to the API
     await this.client.realtime.connect({ model: config.model });
-    
-    // Update session after connection
-    this.client.updateSession();
+
+    // Update session configuration after connection
+    this.updateSession(config);
     
     this.eventHandlers.onRealtimeEvent?.({
       source: 'client',

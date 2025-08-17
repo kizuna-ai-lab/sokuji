@@ -21,11 +21,12 @@ EXTENSION_URL=chrome-extension://your-dev-extension-id
 STRIPE_SECRET_KEY=sk_test_your_stripe_test_secret_key
 STRIPE_WEBHOOK_SECRET=whsec_your_stripe_test_webhook_secret
 
-# AI Provider Keys (Optional)
-# Can use test/development keys or production keys
-OPENAI_API_KEY=sk-your_openai_api_key
+# AI Provider Keys (Required)
+# CometAPI is used as the primary provider to avoid regional restrictions
+# IMPORTANT: Set COMET_API_KEY for the proxy to work properly
+COMET_API_KEY=your_comet_api_key  # Required for proxy functionality
+OPENAI_API_KEY=sk-your_openai_api_key  # Optional, kept for compatibility
 GEMINI_API_KEY=your_gemini_api_key
-COMET_API_KEY=your_comet_api_key
 PALABRA_API_KEY=your_palabra_api_key
 
 # Admin Configuration (Optional)

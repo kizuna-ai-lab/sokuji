@@ -223,9 +223,11 @@ export function createKizunaAISessionConfig(
         eagerness: settings.semanticEagerness?.toLowerCase() as any,
       },
     inputAudioNoiseReduction: settings.noiseReduction && settings.noiseReduction !== 'None' ? {
-      type: settings.noiseReduction.toLowerCase().replace(' ', '_')
+      type: settings.noiseReduction === 'Near field' ? 'near_field' : 'far_field'
     } : undefined,
-    transcriptModel: settings.transcriptModel
+    inputAudioTranscription: settings.transcriptModel ? {
+      model: settings.transcriptModel
+    } : undefined
   };
 }
 

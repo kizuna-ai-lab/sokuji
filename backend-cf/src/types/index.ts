@@ -14,6 +14,7 @@ export interface Env {
   CLERK_PUBLISHABLE_KEY: string;
   CLERK_WEBHOOK_SECRET: string;
   OPENAI_API_KEY: string;
+  COMET_API_KEY: string;
   FRONTEND_URL: string;
   EXTENSION_URL?: string;
 }
