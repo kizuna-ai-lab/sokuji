@@ -165,7 +165,7 @@ if (window.electronAPI) {
 ### Key Libraries
 - **@floating-ui/react**: Advanced tooltip positioning and floating elements
 - **i18next & react-i18next**: Internationalization framework
-- **@openai/realtime-api-beta**: OpenAI real-time API client
+- **openai-realtime-api**: OpenAI real-time API client (strongly-typed fork)
 - **@google/genai**: Google Gemini SDK
 - **lucide-react**: Icon library
 - **ws**: WebSocket client for real-time communication

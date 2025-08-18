@@ -1358,7 +1358,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                 <div className="conversation-item-content">
                   {(() => {
                     // Handle different item types based on the ItemType structure
-                    // from @openai/realtime-api-beta
+                    // from openai-realtime-api
 
                     // For items with formatted property containing text
                     if (item.formatted && item.formatted.text) {
