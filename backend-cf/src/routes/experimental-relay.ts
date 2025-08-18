@@ -5,7 +5,7 @@
  * For development and testing purposes only
  */
 
-import { RealtimeClient } from '@openai/realtime-api-beta';
+import { RealtimeClient } from 'openai-realtime-api';
 import { Env } from '../types';
 
 const DEBUG = true; // Set to true for debug logging
@@ -53,6 +53,14 @@ async function createExperimentalRealtimeClient(
     return new Response('Missing API key', { status: 401 });
   }
 
+  // Get model from query params or use default
+  let model: string = MODEL;
+  const modelParam = new URL(request.url).searchParams.get('model');
+  if (modelParam) {
+    model = modelParam;
+    relayLog('Using model from query params:', model);
+  }
+
   let realtimeClient: RealtimeClient | null = null;
 
   // Create RealtimeClient for CometAPI
@@ -62,6 +70,7 @@ async function createExperimentalRealtimeClient(
       apiKey,
       debug: DEBUG,
       url: COMET_API_URL,
+      model
     });
     relayLog('CometAPI RealtimeClient created successfully');
   } catch (e) {
@@ -101,7 +110,7 @@ async function createExperimentalRealtimeClient(
 
     const data = typeof event.data === 'string' ? event.data : event.data.toString();
     
-    if (!realtimeClient.isConnected()) {
+    if (!realtimeClient.isConnected) {
       relayLog('CometAPI not connected yet, queuing message');
       messageQueue.push(data);
     } else {
@@ -121,19 +130,10 @@ async function createExperimentalRealtimeClient(
     relayError('WebSocket error:', event);
   });
 
-  // Get model from query params or use default
-  let model: string = MODEL;
-  const modelParam = new URL(request.url).searchParams.get('model');
-  if (modelParam) {
-    model = modelParam;
-    relayLog('Using model from query params:', model);
-  }
-
   // Connect to CometAPI Realtime API
   try {
     relayLog(`Connecting to CometAPI with model: ${model}...`);
-    // @ts-expect-error Waiting on type fix from OpenAI SDK
-    await realtimeClient.connect({ model });
+    await realtimeClient.connect();
     relayLog('Connected to CometAPI successfully!');
     
     // Process any queued messages
