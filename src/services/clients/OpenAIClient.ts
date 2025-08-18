@@ -295,9 +295,15 @@ export class OpenAIClient implements IClient {
     // Connect to the API
     await this.client.connect();
 
-    // Update session configuration after connection
+    // Update session configuration immediately after connection
+    // This is important to send configuration as soon as possible
     this.updateSession(config);
     
+    // Wait for the session to be fully created by the server
+    // This ensures MainPanel only allows user interaction after session is ready
+    await this.client.waitForSessionCreated();
+    
+    // Only send these events after session is created
     this.eventHandlers.onRealtimeEvent?.({
       source: 'client',
       event: { 
@@ -313,11 +319,14 @@ export class OpenAIClient implements IClient {
         } 
       }
     });
+    
+    // Critical: Only call onOpen after session is truly ready
+    // This ensures MainPanel's setIsSessionActive(true) happens at the right time
     this.eventHandlers.onOpen?.();
   }
 
   async disconnect(): Promise<void> {
-    this.client.reset();
+    this.client.disconnect();
     this.eventHandlers.onRealtimeEvent?.({
       source: 'client',
       event: { 
