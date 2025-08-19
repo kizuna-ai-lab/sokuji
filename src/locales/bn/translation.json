@@ -166,6 +166,7 @@
       "description": "বিশেষায়িত অনুবাদ AI"
     },
     "unknown": {
+    "sessionEnded": "সেশন শেষ"
       "name": "অজানা",
       "description": "অজানা প্রদানকারী"
     }

@@ -86,18 +86,37 @@ const LogsPanel: React.FC<LogsPanelProps> = ({ toggleLogs }) => {
 
   // Function to render regular log entry with appropriate styling based on type
   const renderLogEntry = (log: LogEntry, index: number) => {
-    // If this is an OpenAI Realtime API event
+    const elements: React.ReactNode[] = [];
+    
+    // Check if this is a session end marker
+    const isSessionEnd = log.eventType === 'session.closed' || 
+                        (log.message && log.message.includes('session.closed'));
+    
+    // Render the log entry itself
     if (log.events && log.events.length > 0 && log.source) {
-      return <Event key={index} logEntry={log} />;
+      elements.push(<Event key={`event-${index}`} logEntry={log} />);
+    } else {
+      // Regular application log
+      elements.push(
+        <div className={`log-entry ${log.type || ''}`} key={`log-${index}`}>
+          <span className="log-timestamp">{log.timestamp}</span>
+          <span className="log-message">{log.message}</span>
+        </div>
+      );
     }
-
-    // Regular application log
-    return (
-      <div className={`log-entry ${log.type || ''}`} key={index}>
-        <span className="log-timestamp">{log.timestamp}</span>
-        <span className="log-message">{log.message}</span>
-      </div>
-    );
+    
+    // Add session separator after session end
+    if (isSessionEnd) {
+      elements.push(
+        <div key={`separator-${index}`} className="session-separator">
+          <div className="separator-line"></div>
+          <span className="separator-text">{t('logsPanel.sessionEnded')}</span>
+          <div className="separator-line"></div>
+        </div>
+      );
+    }
+    
+    return <React.Fragment key={`fragment-${index}`}>{elements}</React.Fragment>;
   };
 
   return (

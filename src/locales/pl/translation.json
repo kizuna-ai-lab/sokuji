@@ -143,6 +143,7 @@
     "event": "Zdarzenie",
     "of": "z",
     "unknown": "nieznane"
+    "sessionEnded": "Sesja zakończona"
   },
   "translation": {
     "start": "Rozpocznij tłumaczenie",

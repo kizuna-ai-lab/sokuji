@@ -65,6 +65,7 @@
       "description": "Google 的 AI 技術"
     },
     "unknown": {
+    "sessionEnded": "會話結束"
       "name": "未知",
       "description": "未知的提供商"
     }

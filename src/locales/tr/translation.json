@@ -266,6 +266,7 @@
       "description": "Uzmanlaşmış çeviri AI'si"
     },
     "unknown": {
+    "sessionEnded": "Oturum Sonlandı"
       "name": "Bilinmeyen",
       "description": "Bilinmeyen sağlayıcı"
     }

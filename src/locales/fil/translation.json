@@ -126,6 +126,7 @@
       "description": "Specialized na translation AI"
     },
     "unknown": {
+    "sessionEnded": "Natapos ang Session"
       "name": "Hindi Kilala",
       "description": "Hindi kilalang provider"
     }

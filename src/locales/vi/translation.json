@@ -266,6 +266,7 @@
       "description": "AI dịch chuyên biệt"
     },
     "unknown": {
+    "sessionEnded": "Phiên kết thúc"
       "name": "Không rõ",
       "description": "Nhà cung cấp không rõ"
     }

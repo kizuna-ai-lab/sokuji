@@ -266,6 +266,7 @@
       "description": "Specialiserad översättnings AI"
     },
     "unknown": {
+    "sessionEnded": "Session avslutad"
       "name": "Okänd",
       "description": "Okänd leverantör"
     }

@@ -165,6 +165,7 @@
       "description": "בינה מלאכותית מתמחה בתרגום"
     },
     "unknown": {
+    "sessionEnded": "ההפעלה הסתיימה"
       "name": "לא ידוע",
       "description": "ספק לא ידוע"
     }

@@ -126,6 +126,7 @@
       "description": "Erikoistunut käännöstekoäly"
     },
     "unknown": {
+    "sessionEnded": "Istunto päättyi"
       "name": "Tuntematon",
       "description": "Tuntematon palveluntarjoaja"
     }
