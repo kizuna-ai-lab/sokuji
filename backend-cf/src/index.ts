@@ -12,7 +12,8 @@ import usageRoutes from './routes/usage';
 import healthRoutes from './routes/health';
 import proxyRoutes from './routes/proxy';
 import experimentalRelay from './routes/experimental-relay';
-import { Env } from './types';
+import { authMiddleware } from './middleware/auth';
+import { Env, HonoVariables } from './types';
 
 // Durable Objects removed - using HTTP polling instead
 
@@ -81,10 +82,15 @@ app.route('/api/usage', usageRoutes);
 app.route('/api/health', healthRoutes);
 
 // OpenAI-compatible proxy routes for Kizuna AI
-// WebSocket relay for Realtime API (CometAPI)
-app.all('/v1/realtime', async (c) => {
+// WebSocket relay for Realtime API (CometAPI) with authentication
+app.all('/v1/realtime', authMiddleware, async (c) => {
   console.log('[Main] Routing to realtime relay endpoint');
-  return await experimentalRelay.fetch(c.req.raw, c.env);
+  const userId = c.get('userId');
+  const userEmail = c.get('userEmail');
+  console.log('[Main] Authenticated user for realtime:', { userId, userEmail });
+  
+  // Pass user context to the WebSocket relay
+  return await experimentalRelay.fetch(c.req.raw, c.env, { userId, userEmail: userEmail || undefined });
 });
 
 // REST API proxy for all other OpenAI endpoints

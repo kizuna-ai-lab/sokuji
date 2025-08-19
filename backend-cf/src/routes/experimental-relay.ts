@@ -1,8 +1,7 @@
 /**
- * Experimental CometAPI Realtime WebSocket Relay
+ * CometAPI Realtime WebSocket Relay with Authentication
  * Based on Cloudflare's openai-workers-relay
- * Direct WebSocket relay without authentication or billing
- * For development and testing purposes only
+ * Includes authentication verification and usage tracking
  */
 
 import { RealtimeClient } from 'openai-realtime-api';
@@ -24,9 +23,14 @@ function relayError(...args: unknown[]) {
 
 async function createExperimentalRealtimeClient(
   request: Request,
-  env: Env
+  env: Env,
+  userContext?: { userId: string; userEmail?: string }
 ): Promise<Response> {
-  relayLog('Creating experimental realtime client');
+  relayLog('Creating experimental realtime client for user:', userContext);
+  
+  // Track session start time and token usage
+  const sessionStartTime = Date.now();
+  let totalTokensUsed = 0;
   
   // Create WebSocket pair
   const webSocketPair = new WebSocketPair();
@@ -34,17 +38,31 @@ async function createExperimentalRealtimeClient(
 
   serverSocket.accept();
 
-  // Copy protocol headers
+  // Handle WebSocket protocol headers
   const responseHeaders = new Headers();
   const protocolHeader = request.headers.get('Sec-WebSocket-Protocol');
   const apiKey = env.COMET_API_KEY;
   
   if (protocolHeader) {
     const requestedProtocols = protocolHeader.split(',').map((p) => p.trim());
-    if (requestedProtocols.includes('realtime')) {
-      // Accept the realtime protocol
+    
+    // Filter out the authentication protocol (openai-insecure-api-key.*)
+    // and only keep the actual WebSocket sub-protocols
+    const filteredProtocols = requestedProtocols.filter(p => 
+      !p.startsWith('openai-insecure-api-key.') && 
+      !p.startsWith('openai-beta.')
+    );
+    
+    // Accept the realtime protocol if requested
+    if (filteredProtocols.includes('realtime')) {
       responseHeaders.set('Sec-WebSocket-Protocol', 'realtime');
     }
+    
+    relayLog('WebSocket protocols:', {
+      requested: requestedProtocols,
+      filtered: filteredProtocols,
+      userContext: userContext?.userId ? 'authenticated' : 'unauthenticated'
+    });
   }
 
   if (!apiKey) {
@@ -81,10 +99,50 @@ async function createExperimentalRealtimeClient(
     });
   }
 
-  // Relay: CometAPI -> Client
-  realtimeClient.realtime.on('server.*', (event: { type: string }) => {
+  // Relay: CometAPI -> Client (with usage tracking)
+  realtimeClient.realtime.on('server.*', async (event: any) => {
     if (serverSocket.readyState === WebSocket.OPEN) {
       relayLog('Relaying event from CometAPI to client:', event.type);
+      
+      // Track token usage for billing if user is authenticated
+      if (userContext?.userId) {
+        try {
+          // Track usage for specific event types that consume tokens
+          if (event.type === 'response.done' && event.response?.usage) {
+            const usage = event.response.usage;
+            totalTokensUsed += usage.total_tokens || 0;
+            
+            relayLog('Recording realtime usage:', {
+              userId: userContext.userId,
+              totalTokens: usage.total_tokens,
+              model: event.response.model || 'gpt-4o-realtime-preview'
+            });
+            
+            // Record usage in database
+            await env.DB.prepare(`
+              INSERT INTO usage_logs (user_id, model, provider, tokens, metadata, created_at)
+              VALUES (?, ?, 'comet', ?, ?, datetime('now'))
+            `).bind(
+              userContext.userId,
+              event.response.model || 'gpt-4o-realtime-preview',
+              usage.total_tokens || 0,
+              JSON.stringify(usage)
+            ).run();
+            
+            // Update user's total token usage
+            await env.DB.prepare(`
+              UPDATE users 
+              SET tokens_used = tokens_used + ?, 
+                  updated_at = datetime('now')
+              WHERE clerk_id = ?
+            `).bind(usage.total_tokens || 0, userContext.userId).run();
+          }
+        } catch (billingError) {
+          relayError('Error recording usage:', billingError);
+          // Don't interrupt the relay for billing errors
+        }
+      }
+      
       serverSocket.send(JSON.stringify(event));
     }
   });
@@ -125,8 +183,19 @@ async function createExperimentalRealtimeClient(
     }
   });
 
-  serverSocket.addEventListener('close', (evt: CloseEvent) => {
+  serverSocket.addEventListener('close', async (evt: CloseEvent) => {
     relayLog(`Client closed connection: ${evt.code} ${evt.reason}`);
+    
+    // Log session duration if user is authenticated
+    if (userContext?.userId) {
+      const sessionDuration = Math.round((Date.now() - sessionStartTime) / 1000);
+      relayLog('Session ended for user:', {
+        userId: userContext.userId,
+        duration: `${sessionDuration}s`,
+        totalTokens: totalTokensUsed
+      });
+    }
+    
     // CRITICAL FIX: Must close serverSocket to prevent hung request
     try { 
       serverSocket.close();
@@ -187,14 +256,14 @@ async function createExperimentalRealtimeClient(
 }
 
 export default {
-  async fetch(request: Request, env: Env): Promise<Response> {
+  async fetch(request: Request, env: Env, userContext?: { userId: string; userEmail?: string }): Promise<Response> {
     // Only handle WebSocket upgrade requests
     const upgradeHeader = request.headers.get('Upgrade');
     if (upgradeHeader !== 'websocket') {
       return new Response('Expected Upgrade: websocket', { status: 426 });
     }
 
-    relayLog('Received WebSocket upgrade request');
-    return createExperimentalRealtimeClient(request, env);
+    relayLog('Received WebSocket upgrade request from user:', userContext);
+    return createExperimentalRealtimeClient(request, env, userContext);
   },
 };
