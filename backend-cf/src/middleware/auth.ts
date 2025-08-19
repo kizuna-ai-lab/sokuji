@@ -8,12 +8,33 @@ import { verifyClerkToken, ensureUserExists } from '../services/clerk';
 
 /**
  * Middleware to verify authentication token
+ * Supports both Authorization header and WebSocket protocol header
  */
 export async function authMiddleware(
   c: Context<{ Bindings: Env; Variables: HonoVariables }>,
   next: Next
 ) {
-  const token = c.req.header('Authorization')?.replace('Bearer ', '');
+  // Check if this is a WebSocket upgrade request
+  const isWebSocketUpgrade = c.req.header('Upgrade') === 'websocket';
+  
+  // First try to get token from Authorization header
+  let token = c.req.header('Authorization')?.replace('Bearer ', '');
+  
+  // If no token in Authorization header and this is a WebSocket request,
+  // try to extract from Sec-WebSocket-Protocol header
+  if (!token && isWebSocketUpgrade) {
+    const protocols = c.req.header('Sec-WebSocket-Protocol');
+    if (protocols) {
+      // Parse protocol list and look for openai-insecure-api-key.{token}
+      const protocolList = protocols.split(',').map(p => p.trim());
+      const apiKeyProtocol = protocolList.find(p => p.startsWith('openai-insecure-api-key.'));
+      if (apiKeyProtocol) {
+        // Extract the token from the protocol string
+        token = apiKeyProtocol.replace('openai-insecure-api-key.', '');
+        console.log('[Auth] Extracted token from WebSocket protocol header');
+      }
+    }
+  }
   
   if (!token) {
     return c.json({ error: 'No token provided' }, 401);
