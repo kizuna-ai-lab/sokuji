@@ -7,7 +7,6 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import authRoutes from './routes/auth';
 import userRoutes from './routes/user';
-import subscriptionRoutes from './routes/subscription';
 import usageRoutes from './routes/usage';
 import healthRoutes from './routes/health';
 import proxyRoutes from './routes/proxy';
@@ -77,7 +76,6 @@ app.get('/', (c) => {
 // API routes
 app.route('/api/auth', authRoutes);
 app.route('/api/user', userRoutes);
-app.route('/api/subscription', subscriptionRoutes);
 app.route('/api/usage', usageRoutes);
 app.route('/api/health', healthRoutes);
 

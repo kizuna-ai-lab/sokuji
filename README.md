@@ -284,22 +284,48 @@ Live audio monitoring capabilities:
 - **Volume Control**: Adjustable passthrough volume for optimal monitoring
 - **Low Latency**: Immediate audio feedback using optimized audio processing
 
+# Architecture
+
+Sokuji features a simplified architecture focused on core functionality:
+
+## Backend (Cloudflare Workers)
+- **Simplified User System**: Only users and usage_logs tables
+- **Real-time Usage Tracking**: Relay server directly writes usage data to database  
+- **Clerk Authentication**: Handles all user authentication and session management
+- **Streamlined API**: Only essential endpoints maintained (/quota, /check, /reset)
+
+## Frontend (React + TypeScript)  
+- **Service Factory Pattern**: Platform-specific implementations (Electron/Browser Extension)
+- **Modern Audio Processing**: AudioWorklet with ScriptProcessor fallback
+- **Unified Components**: SimpleConfigPanel and SimpleMainPanel for streamlined UX
+- **Context-Based State**: React Context API without external state management
+
+## Database Schema
+```sql
+-- Core user table
+users (id, clerk_id, email, subscription, token_quota)
+
+-- Simplified usage tracking (written by relay)
+usage_logs (id, user_id, session_id, model, total_tokens, input_tokens, output_tokens, created_at)
+```
+
 # Technologies Used
 
-- Electron 34+
-- React 18
-- TypeScript
-- OpenAI & Google Gemini APIs
-- Advanced Audio Processing:
+- **Runtime**: Electron 34+ / Chrome Extension Manifest V3
+- **Frontend**: React 18 + TypeScript  
+- **Backend**: Cloudflare Workers + Hono + D1 Database
+- **Authentication**: Clerk
+- **AI Providers**: OpenAI, Google Gemini, CometAPI, Palabra.ai, Kizuna AI
+- **Advanced Audio Processing**:
   - Web Audio API for real-time audio processing
   - MediaRecorder API for reliable audio capture
   - ScriptProcessor for real-time audio analysis
   - Queue-based playback system for smooth streaming
-- UI Libraries:
+- **UI Libraries**:
   - @floating-ui/react for advanced tooltip positioning
   - SASS for styling
   - Lucide React for icons
-- Internationalization:
+- **Internationalization**:
   - i18next for multi-language support
   - 35+ language translations
 

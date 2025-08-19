@@ -10,21 +10,6 @@ import { authMiddleware, adminMiddleware } from '../middleware/auth';
 
 const app = new Hono<{ Bindings: Env; Variables: HonoVariables }>();
 
-/**
- * OAuth sign-in endpoint
- * Redirects to Clerk OAuth flow
- */
-app.get('/oauth/:provider', async (c) => {
-  const provider = c.req.param('provider');
-  const isExtension = c.req.query('extension') === 'true';
-  
-  // Build Clerk OAuth URL
-  const clerkOAuthUrl = `https://accounts.${c.env.CLERK_PUBLISHABLE_KEY.replace('pk_', '')}.clerk.accounts.dev/sign-in#/?redirect_url=${encodeURIComponent(
-    isExtension ? `${c.env.FRONTEND_URL}/auth/callback?extension=true` : `${c.env.FRONTEND_URL}/auth/callback`
-  )}`;
-  
-  return c.redirect(clerkOAuthUrl);
-});
 
 /**
  * Sign-in page redirect
@@ -38,37 +23,7 @@ app.get('/signin', (c) => {
   return c.redirect(signInUrl);
 });
 
-/**
- * Token refresh endpoint
- */
-app.post('/refresh', authMiddleware, async (c) => {
-  const userId = c.get('userId');
-  
-  // Get fresh user data
-  const clerkUser = await getClerkUser(userId, c.env);
-  if (!clerkUser) {
-    return c.json({ error: 'User not found' }, 404);
-  }
-  
-  // Create new session token
-  const { createSessionToken } = await import('../services/clerk');
-  const newToken = createSessionToken(
-    userId,
-    clerkUser.email_addresses[0]?.email_address
-  );
-  
-  return c.json({
-    token: newToken,
-    expiresAt: Date.now() + (24 * 60 * 60 * 1000) // 24 hours
-  });
-});
 
-/**
- * Sign out endpoint
- */
-app.post('/signout', authMiddleware, async (c) => {
-  return c.json({ success: true });
-});
 
 
 /**

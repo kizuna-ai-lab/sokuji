@@ -15,55 +15,28 @@ CREATE TABLE IF NOT EXISTS users (
   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
--- API Keys table
-CREATE TABLE IF NOT EXISTS api_keys (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  user_id INTEGER NOT NULL,
-  key TEXT UNIQUE NOT NULL,
-  name TEXT,
-  provider TEXT DEFAULT 'openai' CHECK(provider IN ('openai', 'gemini', 'comet', 'palabra')),
-  provider_key TEXT, -- The actual provider API key
-  tier TEXT DEFAULT 'free',
-  rate_limit INTEGER DEFAULT 10, -- requests per minute
-  is_active BOOLEAN DEFAULT 1,
-  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-  last_used_at DATETIME,
-  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-);
 
 -- Usage logs table
 CREATE TABLE IF NOT EXISTS usage_logs (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   user_id INTEGER NOT NULL,
-  api_key_id INTEGER,
-  tokens INTEGER NOT NULL,
-  model TEXT,
-  provider TEXT,
-  cost REAL, -- Estimated cost in USD
-  metadata TEXT, -- JSON string for additional data
+  session_id TEXT, -- from response.done event
+  response_id TEXT, -- from response.done event
+  model TEXT, -- from response.done
+  total_tokens INTEGER NOT NULL, -- response.usage.total_tokens
+  input_tokens INTEGER NOT NULL, -- response.usage.input_tokens
+  output_tokens INTEGER NOT NULL, -- response.usage.output_tokens
+  input_token_details TEXT, -- JSON: response.usage.input_token_details
+  output_token_details TEXT, -- JSON: response.usage.output_token_details
+  metadata TEXT, -- other useful info like conversation_id
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-  FOREIGN KEY (api_key_id) REFERENCES api_keys(id) ON DELETE SET NULL
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
 
--- Sessions table (for cross-platform sync)
-CREATE TABLE IF NOT EXISTS sessions (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  user_id INTEGER NOT NULL,
-  device_id TEXT NOT NULL,
-  platform TEXT CHECK(platform IN ('electron', 'extension')),
-  last_active DATETIME DEFAULT CURRENT_TIMESTAMP,
-  metadata TEXT, -- JSON string
-  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-  UNIQUE(user_id, device_id)
-);
 
 -- Indexes for performance (only create if not exists)
 CREATE INDEX IF NOT EXISTS idx_users_clerk_id ON users(clerk_id);
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
-CREATE INDEX IF NOT EXISTS idx_api_keys_user_id ON api_keys(user_id);
-CREATE INDEX IF NOT EXISTS idx_api_keys_key ON api_keys(key);
 CREATE INDEX IF NOT EXISTS idx_usage_logs_user_id ON usage_logs(user_id);
 CREATE INDEX IF NOT EXISTS idx_usage_logs_created_at ON usage_logs(created_at);
-CREATE INDEX IF NOT EXISTS idx_sessions_user_device ON sessions(user_id, device_id);

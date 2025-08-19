@@ -1,6 +1,6 @@
 # Sokuji Backend - Cloudflare Workers
 
-A high-performance, serverless backend for the Sokuji AI translation service, built on Cloudflare Workers with integrated authentication, quota management, and real-time synchronization.
+A simplified, high-performance serverless backend for the Sokuji AI translation service, built on Cloudflare Workers with Clerk authentication and relay-based usage tracking.
 
 ## 🏗️ Architecture Overview
 
@@ -14,31 +14,35 @@ A high-performance, serverless backend for the Sokuji AI translation service, bu
               ┌──────▼──────┐
               │  Cloudflare │
               │   Workers   │
+              │  (Simplified)│
               └──────┬──────┘
                      │
        ┌─────────────┼─────────────┐
        │             │             │
    ┌───▼───┐   ┌────▼────┐   ┌───▼───┐
-   │ Clerk │   │   D1    │   │  KV   │
-   │ Auth &│   │Database │   │Storage│
-   │ Subs  │   └─────────┘   └───────┘
-   └───────┘
+   │ Clerk │   │   D1    │   │Relay  │
+   │ Auth  │   │Database │   │Server │
+   │       │   │(2 tables)│  │       │
+   └───────┘   └─────────┘   └───────┘
+                     ▲
+                     │ Direct writes
+               ┌─────▼─────┐
+               │usage_logs │
+               │   table   │
+               └───────────┘
 ```
 
 ## ✨ Features
 
 ### Core Capabilities
 - **🔐 Multi-Platform Authentication**: Unified auth for Chrome Extension and Electron app via Clerk
-- **📊 Token Quota Management**: Per-user token tracking with 50M tokens for premium subscribers
+- **📊 Simplified Token Quota Management**: Real-time quota calculation from usage_logs table
 - **💳 Subscription Management**: Managed through Clerk user metadata and dashboard
-- **🔄 Quota Synchronization**: HTTP polling-based quota sync across devices
-- **🔑 API Key Management**: Secure distribution of pre-created provider API keys
-- **📈 Usage Analytics**: Detailed usage tracking by provider, model, and device
+- **📈 Relay-Based Usage Tracking**: Direct usage logging from relay server to database
 - **⚡ Edge Performance**: Global deployment on Cloudflare's edge network
 
 ### Security Features
 - JWT-based authentication with Clerk
-- API key masking and secure storage
 - Rate limiting per subscription tier
 - Webhook signature verification with Clerk/Svix
 - CORS protection with origin validation
@@ -48,8 +52,7 @@ A high-performance, serverless backend for the Sokuji AI translation service, bu
 - **Runtime**: Cloudflare Workers (V8 Isolates)
 - **Framework**: [Hono](https://hono.dev/) - Ultrafast web framework
 - **Database**: Cloudflare D1 (SQLite at the edge)
-- **KV Storage**: Cloudflare KV for session and quota caching
-- **Session Management**: Cloudflare KV for device session tracking
+- **KV Storage**: Cloudflare KV for minimal caching
 - **Authentication**: [Clerk](https://clerk.com/)
 - **Language**: TypeScript
 
@@ -84,15 +87,13 @@ npm install
 **Development:**
 ```bash
 wrangler d1 create sokuji-db-dev
-wrangler kv namespace create "QUOTA_KV"
-wrangler kv namespace create "SESSION_KV"
+wrangler kv namespace create "QUOTA_KV"  # Minimal caching only
 ```
 
 **Production:**
 ```bash
 wrangler d1 create sokuji-db-prod
-wrangler kv namespace create "QUOTA_KV"
-wrangler kv namespace create "SESSION_KV"
+wrangler kv namespace create "QUOTA_KV"  # Minimal caching only
 ```
 
 3. **Initialize databases:**
@@ -139,11 +140,10 @@ backend-cf/
 │   ├── types/                # TypeScript type definitions
 │   ├── middleware/           # Auth and validation middleware
 │   ├── routes/               # API route handlers
-│   │   ├── auth.ts          # Authentication endpoints
+│   │   ├── auth.ts          # Clerk webhook handlers only
 │   │   ├── health.ts        # Health check endpoints
 │   │   ├── user.ts          # User management
-│   │   ├── subscription.ts  # Subscription handling
-│   │   └── usage.ts         # Usage tracking
+│   │   └── usage.ts         # Simplified usage tracking
 │   └── services/            # External service integrations
 │       └── clerk.ts         # Clerk auth service
 ├── scripts/
@@ -165,47 +165,25 @@ backend-cf/
 - Stores subscription tier and token quotas
 - Managed entirely through Clerk metadata
 
-#### `api_keys`
-- Manages API keys assigned to users
-- Tracks provider, tier, and rate limits
-- Soft delete for key revocation
-
 #### `usage_logs`
-- Detailed token usage records
-- Tracks by provider, model, and device
-- Used for analytics and billing
+- Real-time token usage records written by relay server
+- Tracks session_id, response_id, model, and token details
+- Used for quota calculation and analytics
 
-
-#### `sessions`
-- Multi-device session tracking
-- Platform identification (Chrome/Electron)
-- Activity monitoring
+**Removed tables**: `api_keys`, `sessions`, and `realtime_sessions` have been eliminated for simplified architecture
 
 ## 🔌 API Endpoints
 
 ### Authentication (`/api/auth/*`)
-- `GET /oauth/:provider` - OAuth flow initiation
-- `POST /refresh` - Token refresh
-- `POST /signout` - Session termination
-- `POST /webhook/clerk` - Clerk webhook handler (subscriptions, sessions, users)
+- `POST /webhook/clerk` - Clerk webhook handler (user management)
 
 ### User Management (`/api/user/*`)
 - `GET /profile` - User profile with quota
-- `PATCH /profile` - Update user details
-- `GET /api-key` - Get/create Kizuna AI API key (backend-managed)
 
-### Subscriptions (`/api/subscription/*`)
-- `GET /plans` - Available subscription tiers
-- `GET /current` - Current subscription status from Clerk metadata
-- `POST /upgrade` - Instructions for upgrading through Clerk dashboard
+### Usage Tracking (`/api/usage/*`) - **Ultra-Simplified**
+- `GET /quota` - Current quota status (aggregated from usage_logs)
 
-### Usage Tracking (`/api/usage/*`)
-- `GET /quota` - Current quota status
-- `POST /report` - Report token usage
-- `POST /sync` - Sync quota across devices (HTTP polling)
-- `GET /sessions` - List active sessions/devices
-- `GET /history` - Usage history
-- `GET /stats` - Usage analytics
+**Removed endpoints**: `/oauth`, `/refresh`, `/signout`, `/sync`, `/report`, `/history`, `/stats`, `/sessions`, `/check`, `/reset`, `/profile` (PATCH), entire `/subscription` module
 
 ### Health Check (`/api/health/*`)
 - `GET /` - System health and environment status
@@ -316,24 +294,22 @@ npm run logs:prod # Production logs
 wrangler d1 insights sokuji-db-dev  # Development
 wrangler d1 insights sokuji-db-prod # Production
 
-# KV storage metrics
-wrangler kv:namespace list
+# Monitor usage logs
+wrangler d1 execute sokuji-db-prod --command "SELECT COUNT(*) as total_records FROM usage_logs"
 ```
 
-## 🔄 Quota Synchronization
+## 🔄 Usage Tracking Architecture
 
-The backend uses HTTP polling for quota synchronization across devices:
+The backend now uses a simplified relay-based approach:
 
-### Sync Flow
-1. Client calls `/api/usage/sync` with auth token and last sync timestamp
-2. Server returns current quota and hasUpdates flag
-3. Client polls periodically (recommended: every 30 seconds when active)
-4. Sessions tracked in KV storage with 24-hour TTL
+### Tracking Flow
+1. Relay server captures OpenAI Realtime API events (`session.created`, `response.done`)
+2. Usage data is written directly to `usage_logs` table
+3. Frontend calls `/api/usage/quota` to get real-time quota status
+4. No manual usage reporting required from frontend
 
-### Sync Endpoint
-- **POST** `/api/usage/sync` - Get latest quota and sync status
-- **GET** `/api/usage/sessions` - Get all active sessions/devices
-- **POST** `/api/usage/report` - Report token usage
+### Quota Endpoint
+- **GET** `/api/usage/quota` - Real-time quota calculation from usage_logs
 
 ## 🧪 Testing
 
@@ -358,8 +334,9 @@ curl https://sokuji-api-dev.kizuna.ai/api/health
 # Test database operations
 wrangler d1 execute sokuji-db-dev --command "SELECT * FROM users" --env dev
 
-# Test KV operations
-wrangler kv:key get --namespace-id=YOUR_DEV_KV_ID "quota:user_123"
+# Test quota calculation
+curl https://sokuji-api-dev.kizuna.ai/api/usage/quota \
+  -H "Authorization: Bearer YOUR_TOKEN"
 ```
 
 ### Production Environment Testing
@@ -373,12 +350,12 @@ wrangler d1 execute sokuji-db-prod --command "SELECT COUNT(*) FROM users"
 
 ## 📊 Subscription Tiers
 
-| Plan | Monthly Tokens | API Keys | Concurrent Sessions | Price |
-|------|---------------|----------|-------------------|-------|
-| Free | 1M | 1 | 1 | $0 |
-| Basic | 10M | 3 | 3 | $9.99 |
-| Premium | 50M | 10 | 10 | $29.99 |
-| Enterprise | Unlimited | Unlimited | Unlimited | Custom |
+| Plan | Monthly Tokens | Price |
+|------|---------------|-------|
+| Free | 1M | $0 |
+| Basic | 10M | $9.99 |
+| Premium | 50M | $29.99 |
+| Enterprise | Unlimited | Custom |
 
 ## 🔧 Maintenance
 
@@ -406,9 +383,8 @@ wrangler d1 execute sokuji-db-prod --file=backup-prod.sql          # Production
 
 ### Monitoring Checklist
 - [ ] API response times < 100ms p95
-- [ ] Sync endpoint availability > 99.9%
+- [ ] Quota endpoint availability > 99.9%
 - [ ] Database queries optimized
-- [ ] KV cache hit rate > 90%
 - [ ] Error rate < 0.1%
 
 ## 🐛 Troubleshooting
@@ -426,11 +402,11 @@ wrangler d1 execute sokuji-db-prod --file=backup-prod.sql          # Production
 - Ensure webhook endpoints are accessible
 - Verify authorized parties include all domain variants
 
-**Quota Sync Issues**
-- Check KV storage availability
-- Verify sync endpoint authentication
-- Monitor polling frequency in client
-- Check session TTL in KV storage
+**Quota Calculation Issues**
+- Check usage_logs table data integrity
+- Verify relay server is writing usage data
+- Monitor /quota endpoint response times
+- Ensure proper date range calculations for monthly quotas
 
 **Database Connection**
 - Ensure D1 database is created and bound
