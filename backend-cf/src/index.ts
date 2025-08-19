@@ -30,6 +30,7 @@ app.use('/*', cors({
     const allowed = [
       'http://localhost:3000',
       'http://localhost:5173',
+      'http://localhost:63342',
       'https://sokuji.kizuna.ai',
       'https://www.sokuji.kizuna.ai',
       'https://dev.sokuji.kizuna.ai',
