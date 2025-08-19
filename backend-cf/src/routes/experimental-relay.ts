@@ -75,7 +75,7 @@ async function createExperimentalRealtimeClient(
     relayLog('CometAPI RealtimeClient created successfully');
   } catch (e) {
     relayError('Error creating CometAPI RealtimeClient:', e);
-    serverSocket.close(1011, 'Failed to create client');
+    serverSocket.close();
     return new Response('Error creating CometAPI RealtimeClient', {
       status: 500,
     });
@@ -91,7 +91,7 @@ async function createExperimentalRealtimeClient(
 
   realtimeClient.realtime.on('close', (metadata: { error: boolean }) => {
     relayLog(`CometAPI connection closed (error: ${metadata.error})`);
-    serverSocket.close(1000, 'CometAPI connection closed');
+    serverSocket.close();
   });
 
   // Relay: Client -> CometAPI
@@ -120,14 +120,8 @@ async function createExperimentalRealtimeClient(
 
   serverSocket.addEventListener('close', ({ code, reason }) => {
     relayLog(`Client closed connection: ${code} ${reason}`);
-    if (realtimeClient) {
-      realtimeClient.disconnect();
-    }
+    realtimeClient.disconnect();
     messageQueue.length = 0;
-  });
-
-  serverSocket.addEventListener('error', (event) => {
-    relayError('WebSocket error:', event);
   });
 
   // Connect to CometAPI Realtime API
@@ -141,13 +135,11 @@ async function createExperimentalRealtimeClient(
       const message = messageQueue.shift();
       if (message) {
         relayLog('Processing queued message');
-        const parsedEvent = JSON.parse(message);
-        realtimeClient.realtime.send(parsedEvent.type, parsedEvent);
+        serverSocket.send(message);
       }
     }
   } catch (e) {
     relayError('Error connecting to CometAPI:', e);
-    serverSocket.close(1011, 'Failed to connect to CometAPI');
     return new Response('Error connecting to CometAPI', { status: 500 });
   }
 
