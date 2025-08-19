@@ -56,7 +56,6 @@
       "description": "เทคโนโลยี AI ของ Google"
     },
     "unknown": {
-    "sessionEnded": "สิ้นสุดเซสชัน"
       "name": "ไม่ทราบ",
       "description": "ผู้ให้บริการที่ไม่ทราบ"
     }
@@ -139,7 +138,8 @@
     "realVoiceVolume": "ระดับเสียงต้นฉบับ"
   },
   "logsPanel": {
-    "title": "บันทึก"
+    "title": "บันทึก",
+    "sessionEnded": "สิ้นสุดเซสชัน"
   },
   "translation": {
     "start": "เริ่มการแปล",

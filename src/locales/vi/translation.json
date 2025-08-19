@@ -83,7 +83,8 @@
     "realVoiceVolume": "Âm Lượng Âm Thanh Gốc"
   },
   "logsPanel": {
-    "title": "Nhật ký"
+    "title": "Nhật ký",
+    "sessionEnded": "Phiên kết thúc"
   },
   "translation": {
     "start": "Bắt đầu dịch",
@@ -266,7 +267,6 @@
       "description": "AI dịch chuyên biệt"
     },
     "unknown": {
-    "sessionEnded": "Phiên kết thúc"
       "name": "Không rõ",
       "description": "Nhà cung cấp không rõ"
     }

@@ -126,7 +126,6 @@
       "description": "Erikoistunut käännöstekoäly"
     },
     "unknown": {
-    "sessionEnded": "Istunto päättyi"
       "name": "Tuntematon",
       "description": "Tuntematon palveluntarjoaja"
     }
@@ -187,7 +186,8 @@
     "realVoiceVolume": "Alkuperäisen äänen äänenvoimakkuus"
   },
   "logsPanel": {
-    "title": "Lokit"
+    "title": "Lokit",
+    "sessionEnded": "Istunto päättyi"
   },
   "translation": {
     "start": "Aloita käännös",

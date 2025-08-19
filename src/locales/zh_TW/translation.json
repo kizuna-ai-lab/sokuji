@@ -65,7 +65,6 @@
       "description": "Google 的 AI 技術"
     },
     "unknown": {
-    "sessionEnded": "會話結束"
       "name": "未知",
       "description": "未知的提供商"
     }
@@ -204,7 +203,8 @@
     "server": "伺服器",
     "event": "事件",
     "of": "的",
-    "unknown": "未知"
+    "unknown": "未知",
+    "sessionEnded": "會話結束"
   },
   "translation": {
     "start": "開始翻譯",

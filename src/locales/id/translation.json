@@ -163,7 +163,6 @@
       "description": "AI terjemahan khusus"
     },
     "unknown": {
-    "sessionEnded": "Sesi Berakhir"
       "name": "Tidak Diketahui",
       "description": "Penyedia tidak diketahui"
     }
@@ -245,7 +244,8 @@
     "server": "server",
     "event": "Peristiwa",
     "of": "dari",
-    "unknown": "tidak diketahui"
+    "unknown": "tidak diketahui",
+    "sessionEnded": "Sesi Berakhir"
   },
   "translation": {
     "start": "Mulai terjemahan",

@@ -78,7 +78,8 @@
     "realVoiceVolume": "Original Audio Volym"
   },
   "logsPanel": {
-    "title": "Loggar"
+    "title": "Loggar",
+    "sessionEnded": "Session avslutad"
   },
   "translation": {
     "start": "Starta översättning",
@@ -266,7 +267,6 @@
       "description": "Specialiserad översättnings AI"
     },
     "unknown": {
-    "sessionEnded": "Session avslutad"
       "name": "Okänd",
       "description": "Okänd leverantör"
     }
