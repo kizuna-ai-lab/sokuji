@@ -17,8 +17,48 @@ function relayLog(...args: unknown[]) {
   }
 }
 
-function relayError(...args: unknown[]) {
-  console.error('[experimental-relay error]', ...args);
+const WEBSOCKET_STATES = {
+  0: 'CONNECTING',
+  1: 'OPEN', 
+  2: 'CLOSING',
+  3: 'CLOSED'
+} as const;
+
+const WEBSOCKET_CLOSE_CODES = {
+  1000: 'Normal Closure',
+  1001: 'Going Away', 
+  1002: 'Protocol Error',
+  1003: 'Unsupported Data',
+  1005: 'No Status Received',
+  1006: 'Abnormal Closure',
+  1011: 'Internal Error',
+  1015: 'TLS Handshake'
+} as const;
+
+function formatError(error: unknown, context?: string): string {
+  if (error instanceof Error) {
+    return `${error.name}: ${error.message}\nStack: ${error.stack}${context ? `\nContext: ${context}` : ''}`;
+  }
+  if (typeof error === 'object' && error !== null) {
+    try {
+      const jsonStr = JSON.stringify(error, null, 2);
+      if (jsonStr === '{}' || jsonStr === 'null') {
+        return `Empty error object${context ? ` (Context: ${context})` : ''}`;
+      }
+      return `${jsonStr}${context ? `\nContext: ${context}` : ''}`;
+    } catch {
+      return `${String(error)}${context ? ` (Context: ${context})` : ''}`;
+    }
+  }
+  return `${String(error)}${context ? ` (Context: ${context})` : ''}`;
+}
+
+function relayError(message: string, error?: unknown, context?: string, ...additionalArgs: unknown[]) {
+  if (error !== undefined) {
+    console.error('[experimental-relay error]', message, formatError(error, context), ...additionalArgs);
+  } else {
+    console.error('[experimental-relay error]', message, ...additionalArgs);
+  }
 }
 
 async function createExperimentalRealtimeClient(
@@ -31,6 +71,8 @@ async function createExperimentalRealtimeClient(
   // Track session start time and token usage
   const sessionStartTime = Date.now();
   let totalTokensUsed = 0;
+  let sessionId: string | null = null;
+  let conversationId: string | null = null;
   
   // Create WebSocket pair
   const webSocketPair = new WebSocketPair();
@@ -107,6 +149,12 @@ async function createExperimentalRealtimeClient(
       // Track token usage for billing if user is authenticated
       if (userContext?.userId) {
         try {
+          // Capture session ID from session.created event
+          if (event.type === 'session.created' && event.session?.id) {
+            sessionId = event.session.id;
+            relayLog('Session created:', { sessionId });
+          }
+          
           // Track usage for specific event types that consume tokens
           if (event.type === 'response.done' && event.response?.usage) {
             const usage = event.response.usage;
@@ -118,24 +166,46 @@ async function createExperimentalRealtimeClient(
               model: event.response.model || 'gpt-4o-realtime-preview'
             });
             
-            // Record usage in database
-            await env.DB.prepare(`
-              INSERT INTO usage_logs (user_id, model, provider, tokens, metadata, created_at)
-              VALUES (?, ?, 'comet', ?, ?, datetime('now'))
-            `).bind(
-              userContext.userId,
-              event.response.model || 'gpt-4o-realtime-preview',
-              usage.total_tokens || 0,
-              JSON.stringify(usage)
-            ).run();
+            // Get user database ID from clerk_id
+            const user = await env.DB.prepare(
+              'SELECT id FROM users WHERE clerk_id = ?'
+            ).bind(userContext.userId).first();
             
-            // Update user's total token usage
-            await env.DB.prepare(`
-              UPDATE users 
-              SET tokens_used = tokens_used + ?, 
-                  updated_at = datetime('now')
-              WHERE clerk_id = ?
-            `).bind(usage.total_tokens || 0, userContext.userId).run();
+            if (user) {
+              // Record usage in database with correct schema
+              await env.DB.prepare(`
+                INSERT INTO usage_logs (
+                  user_id, session_id, response_id, model, 
+                  total_tokens, input_tokens, output_tokens,
+                  input_token_details, output_token_details, metadata
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+              `).bind(
+                user.id,
+                sessionId || null, // We'll need to track session ID
+                event.response?.id || null,
+                event.response?.model || 'gpt-4o-realtime-preview',
+                usage.total_tokens || 0,
+                usage.input_tokens || 0,
+                usage.output_tokens || 0,
+                JSON.stringify(usage.input_token_details || {}),
+                JSON.stringify(usage.output_token_details || {}),
+                JSON.stringify({ 
+                  provider: 'comet',
+                  conversation_id: conversationId || null,
+                  event_type: event.type 
+                })
+              ).run();
+            }
+            
+            // Update user's total token usage (optional, since we calculate from usage_logs in real-time)
+            if (user) {
+              await env.DB.prepare(`
+                UPDATE users 
+                SET tokens_used = tokens_used + ?, 
+                    updated_at = datetime('now')
+                WHERE id = ?
+              `).bind(usage.total_tokens || 0, user.id).run();
+            }
           }
         } catch (billingError) {
           relayError('Error recording usage:', billingError);
@@ -184,7 +254,9 @@ async function createExperimentalRealtimeClient(
   });
 
   serverSocket.addEventListener('close', async (evt: CloseEvent) => {
-    relayLog(`Client closed connection: ${evt.code} ${evt.reason}`);
+    const codeDescription = WEBSOCKET_CLOSE_CODES[evt.code as keyof typeof WEBSOCKET_CLOSE_CODES] || 'Unknown';
+    const closeInfo = `Code: ${evt.code} (${codeDescription}), Reason: ${evt.reason || 'No reason'}, WasClean: ${evt.wasClean}`;
+    relayLog(`Client closed connection: ${closeInfo}`);
     
     // Log session duration if user is authenticated
     if (userContext?.userId) {
@@ -212,7 +284,19 @@ async function createExperimentalRealtimeClient(
 
   // Add error handler for serverSocket
   serverSocket.addEventListener('error', (err) => {
-    relayError('Client socket error:', err);
+    // If WebSocket is already closed, this is likely a normal cleanup event, not a real error
+    if (serverSocket.readyState === WebSocket.CLOSED) {
+      relayLog('WebSocket error event after close (likely cleanup)', {
+        state: WEBSOCKET_STATES[serverSocket.readyState as keyof typeof WEBSOCKET_STATES],
+        user: userContext?.userId || 'anonymous'
+      });
+      return; // Don't log as error
+    }
+    
+    // Real error situation - WebSocket is in CONNECTING, OPEN, or CLOSING state
+    const wsState = WEBSOCKET_STATES[serverSocket.readyState as keyof typeof WEBSOCKET_STATES] || 'UNKNOWN';
+    const context = `WebSocket State: ${wsState} (${serverSocket.readyState}), User: ${userContext?.userId || 'anonymous'}`;
+    relayError('Client socket error:', err, context);
     try { 
       serverSocket.close(1011, 'Client socket error'); 
     } catch {}
@@ -237,7 +321,7 @@ async function createExperimentalRealtimeClient(
         }
       }
     } catch (e) {
-      relayError('Error connecting to CometAPI:', e);
+      relayError('Error connecting to CometAPI:', e, `User: ${userContext?.userId || 'anonymous'}`);
       // Close the connection on upstream connect failure
       try {
         serverSocket.close(1011, 'Upstream connect failed');

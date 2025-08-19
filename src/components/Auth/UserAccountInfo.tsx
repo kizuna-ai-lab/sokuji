@@ -4,9 +4,8 @@
 
 import React from 'react';
 import { useUser, UserButton } from '../../lib/clerk/ClerkProvider';
-import { useQuota } from '../../contexts/QuotaContext';
 import { useUserProfile } from '../../contexts/UserProfileContext';
-import { AlertCircle, TrendingUp } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
 import './UserAccountInfo.scss';
 
 interface UserAccountInfoProps {
@@ -21,12 +20,11 @@ export function UserAccountInfo({
   onManageSubscription 
 }: UserAccountInfoProps) {
   const { isLoaded, isSignedIn, user } = useUser();
-  const { quotaInfo, warning, isLoading: quotaLoading, error: quotaError } = useQuota();
   
   // Get user profile from backend
   const { profile, isLoading: profileLoading } = useUserProfile();
 
-  if (!isLoaded || profileLoading) {
+  if (!isLoaded) {
     return (
       <div className="user-account-loading">
         <div className="loading-spinner" />
@@ -62,11 +60,6 @@ export function UserAccountInfo({
     );
   }
 
-  const isUnlimited = quotaInfo?.total === -1;
-  const usagePercentage = quotaInfo && quotaInfo.total > 0 
-    ? (quotaInfo.used / quotaInfo.total) * 100 
-    : 0;
-  const remainingTokens = quotaInfo?.remaining || 0;
 
   return (
     <div className="user-account">
@@ -99,65 +92,6 @@ export function UserAccountInfo({
           </span>
         </div>
 
-        {/* Quota Status Section */}
-        {quotaLoading ? (
-          <div className="quota-loading">
-            <div className="loading-spinner" />
-          </div>
-        ) : quotaError ? (
-          <div className="quota-error">
-            <AlertCircle size={14} />
-            <span>Unable to load quota</span>
-          </div>
-        ) : quotaInfo ? (
-          <div className="quota-status-section">
-            {showWarning && warning && (
-              <div className={`quota-warning warning-${warning.level}`}>
-                <AlertCircle size={14} />
-                <span>{warning.message}</span>
-              </div>
-            )}
-
-            <div className="quota-header">
-              <h4>Token Usage</h4>
-              {quotaInfo.resetDate && (
-                <span className="reset-date">
-                  Resets {new Date(quotaInfo.resetDate).toLocaleDateString()}
-                </span>
-              )}
-            </div>
-
-            <div className="quota-details">
-              <div className="quota-bar-container">
-                <div className="quota-bar">
-                  <div 
-                    className={`quota-progress ${usagePercentage > 80 ? 'high-usage' : ''}`}
-                    style={{ width: isUnlimited ? '0%' : `${usagePercentage}%` }}
-                  />
-                </div>
-                <div className="quota-labels">
-                  <span className="usage-label">
-                    {isUnlimited ? (
-                      <>
-                        <TrendingUp size={12} />
-                        {(quotaInfo.used / 1000000).toFixed(2)}M used
-                      </>
-                    ) : (
-                      <>
-                        {(quotaInfo.used / 1000000).toFixed(2)}M / {(quotaInfo.total / 1000000).toFixed(0)}M
-                      </>
-                    )}
-                  </span>
-                  {!isUnlimited && (
-                    <span className="remaining-label">
-                      {(remainingTokens / 1000000).toFixed(2)}M remaining
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        ) : null}
 
         {subscription === 'free' && onManageSubscription && (
           <button 

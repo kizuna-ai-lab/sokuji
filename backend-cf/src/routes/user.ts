@@ -6,7 +6,6 @@
 import { Hono } from 'hono';
 import { Env, User, ApiKey, HonoVariables } from '../types';
 import { authMiddleware } from '../middleware/auth';
-import { getClerkUser, updateClerkUserMetadata } from '../services/clerk';
 
 const app = new Hono<{ Bindings: Env; Variables: HonoVariables }>();
 
@@ -51,28 +50,6 @@ app.get('/profile', authMiddleware, async (c) => {
   });
 });
 
-/**
- * Update user profile
- */
-app.patch('/profile', authMiddleware, async (c) => {
-  const userId = c.get('userId');
-  const { firstName, lastName } = await c.req.json();
-  
-  // Update in database
-  await c.env.DB.prepare(`
-    UPDATE users 
-    SET first_name = ?, last_name = ?, updated_at = CURRENT_TIMESTAMP
-    WHERE clerk_id = ?
-  `).bind(firstName, lastName, userId).run();
-  
-  // Update in Clerk
-  await updateClerkUserMetadata(userId, {
-    firstName,
-    lastName
-  }, c.env);
-  
-  return c.json({ success: true });
-});
 
 
 
