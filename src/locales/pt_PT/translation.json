@@ -165,7 +165,6 @@
       "description": "AI de tradução especializada"
     },
     "unknown": {
-    "sessionEnded": "Sessão encerrada"
       "name": "Desconhecido",
       "description": "Fornecedor desconhecido"
     }
@@ -247,7 +246,8 @@
     "server": "servidor",
     "event": "Evento",
     "of": "de",
-    "unknown": "desconhecido"
+    "unknown": "desconhecido",
+    "sessionEnded": "Sessão encerrada"
   },
   "translation": {
     "start": "Iniciar tradução",

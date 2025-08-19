@@ -82,7 +82,6 @@
       "description": "நியங்களித்த மோழிபெயர்ப்பு AI"
     },
     "unknown": {
-    "sessionEnded": "அமர்வு முடிந்தது"
       "name": "தெரியாதது",
       "description": "தெரியாத வழங்குநர்"
     }
@@ -169,7 +168,8 @@
     "realVoiceVolume": "அசல் ஆடியோ ஒலியளவு"
   },
   "logsPanel": {
-    "title": "பதிவுகள்"
+    "title": "பதிவுகள்",
+    "sessionEnded": "அமர்வு முடிந்தது"
   },
   "translation": {
     "start": "மொழிபெயர்ப்பைத் தொடங்கு",

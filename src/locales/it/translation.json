@@ -143,7 +143,7 @@
     "server": "server",
     "event": "Evento",
     "of": "di",
-    "unknown": "sconosciuto"
+    "unknown": "sconosciuto",
     "sessionEnded": "Sessione terminata"
   },
   "translation": {

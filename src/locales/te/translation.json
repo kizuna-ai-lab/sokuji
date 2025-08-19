@@ -56,7 +56,6 @@
       "description": "Google AI టెక్నాలజీ"
     },
     "unknown": {
-    "sessionEnded": "సెషన్ ముగిసింది"
       "name": "తెలియనిది",
       "description": "తెలియని ప్రదాత"
     }
@@ -139,7 +138,8 @@
     "realVoiceVolume": "అసలు ఆడియో వాల్యూమ్"
   },
   "logsPanel": {
-    "title": "లాగ్స్"
+    "title": "లాగ్స్",
+    "sessionEnded": "సెషన్ ముగిసింది"
   },
   "translation": {
     "start": "అనువాదం ప్రారంభించు",

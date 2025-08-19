@@ -83,7 +83,8 @@
     "realVoiceVolume": "Orijinal Ses Seviyesi"
   },
   "logsPanel": {
-    "title": "Günlükler"
+    "title": "Günlükler",
+    "sessionEnded": "Oturum Sonlandı"
   },
   "translation": {
     "start": "Çeviriyi başlat",
@@ -266,7 +267,6 @@
       "description": "Uzmanlaşmış çeviri AI'si"
     },
     "unknown": {
-    "sessionEnded": "Oturum Sonlandı"
       "name": "Bilinmeyen",
       "description": "Bilinmeyen sağlayıcı"
     }

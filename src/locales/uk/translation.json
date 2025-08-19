@@ -56,7 +56,6 @@
       "description": "Технологія AI від Google"
     },
     "unknown": {
-    "sessionEnded": "Сеанс завершено"
       "name": "Невідомо",
       "description": "Невідомий постачальник"
     }
@@ -134,7 +133,8 @@
     "realVoiceVolume": "Гучність оригінального аудіо"
   },
   "logsPanel": {
-    "title": "Логи"
+    "title": "Логи",
+    "sessionEnded": "Сеанс завершено"
   },
   "translation": {
     "start": "Почати переклад",

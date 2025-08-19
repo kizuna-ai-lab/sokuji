@@ -165,7 +165,6 @@
       "description": "בינה מלאכותית מתמחה בתרגום"
     },
     "unknown": {
-    "sessionEnded": "ההפעלה הסתיימה"
       "name": "לא ידוע",
       "description": "ספק לא ידוע"
     }
@@ -247,7 +246,8 @@
     "server": "שרת",
     "event": "אירוע",
     "of": "מתוך",
-    "unknown": "לא ידוע"
+    "unknown": "לא ידוע",
+    "sessionEnded": "ההפעלה הסתיימה"
   },
   "translation": {
     "start": "התחל תרגום",

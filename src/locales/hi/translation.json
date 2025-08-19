@@ -126,7 +126,6 @@
       "description": "विशिष्ट अनुवाद AI"
     },
     "unknown": {
-    "sessionEnded": "सत्र समाप्त"
       "name": "अज्ञात",
       "description": "अज्ञात प्रदाता"
     }
@@ -187,7 +186,8 @@
     "realVoiceVolume": "मूल ऑडियो वॉल्यूम"
   },
   "logsPanel": {
-    "title": "लॉग्स"
+    "title": "लॉग्स",
+    "sessionEnded": "सत्र समाप्त"
   },
   "translation": {
     "start": "अनुवाद शुरू करें",

@@ -126,7 +126,6 @@
       "description": "Specialized na translation AI"
     },
     "unknown": {
-    "sessionEnded": "Natapos ang Session"
       "name": "Hindi Kilala",
       "description": "Hindi kilalang provider"
     }
@@ -187,7 +186,8 @@
     "realVoiceVolume": "Original Audio Volume"
   },
   "logsPanel": {
-    "title": "Mga Log"
+    "title": "Mga Log",
+    "sessionEnded": "Natapos ang Session"
   },
   "translation": {
     "start": "Simulan ang pagsasalin",

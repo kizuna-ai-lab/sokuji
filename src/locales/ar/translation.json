@@ -169,7 +169,6 @@
       "description": "ذكاء اصطناعي متخصص في الترجمة"
     },
     "unknown": {
-    "sessionEnded": "انتهت الجلسة"
       "name": "غير معروف",
       "description": "مقدم خدمة غير معروف"
     }
@@ -215,7 +214,8 @@
     "server": "الخادم",
     "event": "حدث",
     "of": "من",
-    "unknown": "غير معروف"
+    "unknown": "غير معروف",
+    "sessionEnded": "انتهت الجلسة"
   },
   "translation": {
     "start": "بدء الترجمة",
