@@ -89,25 +89,32 @@ async function createExperimentalRealtimeClient(
     }
   });
 
-  realtimeClient.realtime.on('close', (metadata: { error: boolean }) => {
-    relayLog(`CometAPI connection closed (error: ${metadata.error})`);
-    serverSocket.close();
+  realtimeClient.realtime.on('close', (event: any) => {
+    const error = event?.error || false;
+    relayLog(`CometAPI connection closed (error: ${error})`);
+    // Close downstream connection when upstream closes
+    try {
+      serverSocket.close(error ? 1011 : 1000, 'Upstream closed');
+    } catch (e) {
+      relayLog('Error closing serverSocket on upstream close:', e);
+    }
   });
 
   // Relay: Client -> CometAPI
   const messageQueue: string[] = [];
 
-  serverSocket.addEventListener('message', (event: MessageEvent) => {
-    const messageHandler = (data: string) => {
-      try {
-        const parsedEvent = JSON.parse(data);
-        relayLog('Relaying event from client to CometAPI:', parsedEvent.type);
-        realtimeClient!.realtime.send(parsedEvent.type, parsedEvent);
-      } catch (e) {
-        relayError('Error parsing event from client:', e, 'Data:', data);
-      }
-    };
+  // Message handler function - moved outside event listener for reuse
+  const messageHandler = (data: string) => {
+    try {
+      const parsedEvent = JSON.parse(data);
+      relayLog('Relaying event from client to CometAPI:', parsedEvent.type);
+      realtimeClient!.realtime.send(parsedEvent.type, parsedEvent);
+    } catch (e) {
+      relayError('Error parsing event from client:', e, 'Data:', data);
+    }
+  };
 
+  serverSocket.addEventListener('message', (event: MessageEvent) => {
     const data = typeof event.data === 'string' ? event.data : event.data.toString();
     
     if (!realtimeClient.isConnected) {
@@ -118,34 +125,60 @@ async function createExperimentalRealtimeClient(
     }
   });
 
-  serverSocket.addEventListener('close', ({ code, reason }) => {
-    relayLog(`Client closed connection: ${code} ${reason}`);
-    realtimeClient.disconnect();
+  serverSocket.addEventListener('close', (evt: CloseEvent) => {
+    relayLog(`Client closed connection: ${evt.code} ${evt.reason}`);
+    // CRITICAL FIX: Must close serverSocket to prevent hung request
+    try { 
+      serverSocket.close();
+    } catch (e) {
+      relayLog('Error closing serverSocket:', e);
+    }
+    try { 
+      realtimeClient?.disconnect(); 
+    } catch (e) {
+      relayLog('Error disconnecting realtimeClient:', e);
+    }
     messageQueue.length = 0;
   });
 
-  // Connect to CometAPI Realtime API
-  try {
-    relayLog(`Connecting to CometAPI with model: ${model}...`);
-    await realtimeClient.connect();
-    relayLog('Connected to CometAPI successfully!');
-    
-    // Process any queued messages
-    while (messageQueue.length > 0) {
-      const message = messageQueue.shift();
-      if (message) {
-        relayLog('Processing queued message');
-        serverSocket.send(message);
-      }
-    }
-  } catch (e) {
-    relayError('Error connecting to CometAPI:', e);
-    return new Response('Error connecting to CometAPI', { status: 500 });
-  }
+  // Add error handler for serverSocket
+  serverSocket.addEventListener('error', (err) => {
+    relayError('Client socket error:', err);
+    try { 
+      serverSocket.close(1011, 'Client socket error'); 
+    } catch {}
+    try { 
+      realtimeClient?.disconnect(); 
+    } catch {}
+  });
 
-  relayLog('WebSocket relay established successfully');
+  // Connect to CometAPI Realtime API asynchronously (don't block 101 response)
+  (async () => {
+    try {
+      relayLog(`Connecting to CometAPI with model: ${model}...`);
+      await realtimeClient.connect();
+      relayLog('Connected to CometAPI successfully!');
+      
+      // Process any queued messages - FIX: use messageHandler instead of serverSocket.send
+      while (messageQueue.length > 0) {
+        const message = messageQueue.shift();
+        if (message) {
+          relayLog('Processing queued message');
+          messageHandler(message); // Forward to CometAPI, not back to client
+        }
+      }
+    } catch (e) {
+      relayError('Error connecting to CometAPI:', e);
+      // Close the connection on upstream connect failure
+      try {
+        serverSocket.close(1011, 'Upstream connect failed');
+      } catch {}
+    }
+  })();
+
+  relayLog('WebSocket relay established, connecting to upstream...');
   
-  // Return the client socket as the response
+  // Return the client socket as the response immediately
   return new Response(null, {
     status: 101,
     headers: responseHeaders,
