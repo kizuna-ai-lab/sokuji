@@ -144,6 +144,7 @@
     "event": "Evento",
     "of": "di",
     "unknown": "sconosciuto"
+    "sessionEnded": "Sessione terminata"
   },
   "translation": {
     "start": "Inizia traduzione",

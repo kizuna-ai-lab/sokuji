@@ -238,7 +238,8 @@
     "server": "服务器",
     "event": "事件",
     "of": "的",
-    "unknown": "未知"
+    "unknown": "未知",
+    "sessionEnded": "会话结束"
   },
   "translation": {
     "start": "开始翻译",

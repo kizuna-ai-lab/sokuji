@@ -56,6 +56,7 @@
       "description": "Google AI టెక్నాలజీ"
     },
     "unknown": {
+    "sessionEnded": "సెషన్ ముగిసింది"
       "name": "తెలియనిది",
       "description": "తెలియని ప్రదాత"
     }

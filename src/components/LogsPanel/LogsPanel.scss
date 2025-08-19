@@ -305,5 +305,27 @@
         }
       }
     }
+    
+    // Session separator styles
+    .session-separator {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 15px 0;
+      
+      .separator-line {
+        flex: 1;
+        height: 1px;
+        background-color: #333;
+      }
+      
+      .separator-text {
+        padding: 0 10px;
+        color: #666;
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+    }
   }
 }

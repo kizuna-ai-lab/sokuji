@@ -169,6 +169,7 @@
       "description": "هوش مصنوعی تخصصی ترجمه"
     },
     "unknown": {
+    "sessionEnded": "جلسه پایان یافت"
       "name": "نامشخص",
       "description": "ارائه‌دهنده نامشخص"
     }

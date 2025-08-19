@@ -163,6 +163,7 @@
       "description": "AI terjemahan khusus"
     },
     "unknown": {
+    "sessionEnded": "Sesi Berakhir"
       "name": "Tidak Diketahui",
       "description": "Penyedia tidak diketahui"
     }

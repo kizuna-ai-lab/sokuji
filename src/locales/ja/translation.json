@@ -144,6 +144,7 @@
     "event": "イベント",
     "of": "の",
     "unknown": "不明"
+    "sessionEnded": "セッション終了"
   },
   "translation": {
     "start": "翻訳開始",

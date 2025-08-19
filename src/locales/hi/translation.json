@@ -126,6 +126,7 @@
       "description": "विशिष्ट अनुवाद AI"
     },
     "unknown": {
+    "sessionEnded": "सत्र समाप्त"
       "name": "अज्ञात",
       "description": "अज्ञात प्रदाता"
     }
