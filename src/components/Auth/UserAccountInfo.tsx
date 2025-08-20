@@ -20,10 +20,10 @@ export function UserAccountInfo({
   showWarning = true,
   onManageSubscription 
 }: UserAccountInfoProps) {
-  const { isLoaded, isSignedIn, user } = useUser();
+  const { isLoaded, isSignedIn } = useUser();
   
-  // Get user profile from backend
-  const { profile, isLoading: profileLoading } = useUserProfile();
+  // Get user profile and quota
+  const { user, quota, isLoading: quotaLoading } = useUserProfile();
 
   if (!isLoaded) {
     return (
@@ -37,8 +37,8 @@ export function UserAccountInfo({
     return null;
   }
 
-  // Get subscription from backend profile data, fallback to 'free' if not available
-  const subscription = profile?.user?.subscription || 'free';
+  // Get subscription from user data
+  const subscription = user.subscription;
 
   if (compact) {
     return (
@@ -54,7 +54,7 @@ export function UserAccountInfo({
           }}
         />
         <div className="user-info-compact">
-          <span className="user-email">{user.primaryEmailAddress?.emailAddress}</span>
+          <span className="user-email">{user.email}</span>
           <span className="user-subscription">{subscription}</span>
         </div>
       </div>
@@ -63,7 +63,6 @@ export function UserAccountInfo({
 
 
   // Quota data and calculations
-  const quota = profile?.quota;
   const warningLevel = quota ? getQuotaWarningLevel(quota.used, quota.total) : 'normal';
   const usagePercentage = quota ? formatPercentage(quota.used, quota.total) : 0;
 
@@ -87,13 +86,13 @@ export function UserAccountInfo({
               ? `${user.firstName || ''} ${user.lastName || ''}`.trim()
               : 'User'}
           </h3>
-          <p className="user-email">{user.primaryEmailAddress?.emailAddress}</p>
+          <p className="user-email">{user.email}</p>
         </div>
       </div>
 
       {/* Quota Status Section */}
       <div className="quota-status-section">
-        {profileLoading ? (
+        {quotaLoading ? (
           <div className="quota-loading">
             <div className="loading-spinner" />
           </div>

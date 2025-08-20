@@ -1,14 +1,21 @@
 /**
  * User Profile Context
- * Fetches and provides user profile data from the backend API,
- * including subscription information
+ * Provides user data from Clerk and quota information from backend API
  */
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useAuth, useUser } from '../lib/clerk/ClerkProvider';
 import { useSession } from './SessionContext';
 
-interface UserProfileData {
+interface QuotaData {
+  total: number;
+  used: number;
+  remaining: number;
+  resetDate?: string;
+}
+
+interface UserProfileContextValue {
+  // User data directly from Clerk
   user: {
     id: string;
     email: string;
@@ -16,22 +23,14 @@ interface UserProfileData {
     lastName?: string;
     imageUrl?: string;
     subscription: 'free' | 'basic' | 'premium' | 'enterprise';
-    createdAt: string;
-    updatedAt: string;
-  };
-  quota: {
-    total: number;
-    used: number;
-    remaining: number;
-    resetDate?: string;
-  };
-}
-
-interface UserProfileContextValue {
-  profile: UserProfileData | null;
+    createdAt: number;
+    updatedAt: number;
+  } | null;
+  // Quota data from backend
+  quota: QuotaData | null;
   isLoading: boolean;
   error: string | null;
-  refetch: () => Promise<void>;
+  refetchQuota: () => Promise<void>;
 }
 
 const UserProfileContext = createContext<UserProfileContextValue | undefined>(undefined);
@@ -50,16 +49,29 @@ interface UserProfileProviderProps {
 
 export function UserProfileProvider({ children }: UserProfileProviderProps) {
   const { isSignedIn, getToken } = useAuth();
-  const { user } = useUser();
+  const { user: clerkUser } = useUser();
   const { isSessionActive } = useSession();
-  const [profile, setProfile] = useState<UserProfileData | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  
+  const [quota, setQuota] = useState<QuotaData | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchProfile = useCallback(async () => {
-    if (!isSignedIn || !user) {
-      setIsLoading(false);
-      setProfile(null);
+  // Transform Clerk user data to our format
+  const user = clerkUser ? {
+    id: clerkUser.id,
+    email: clerkUser.primaryEmailAddress?.emailAddress || '',
+    firstName: clerkUser.firstName || undefined,
+    lastName: clerkUser.lastName || undefined,
+    imageUrl: clerkUser.imageUrl || undefined,
+    subscription: (clerkUser.publicMetadata?.subscription as 'free' | 'basic' | 'premium' | 'enterprise') || 'free',
+    createdAt: clerkUser.createdAt?.getTime() || Date.now(),
+    updatedAt: clerkUser.updatedAt?.getTime() || Date.now()
+  } : null;
+
+  // Function to fetch quota data from backend
+  const fetchQuota = useCallback(async () => {
+    if (!isSignedIn || !clerkUser) {
+      setQuota(null);
       return;
     }
 
@@ -73,73 +85,7 @@ export function UserProfileProvider({ children }: UserProfileProviderProps) {
       }
 
       const apiUrl = import.meta.env.VITE_BACKEND_URL || 'https://sokuji-api.kizuna.ai';
-      
-      // Fetch user profile and quota separately
-      const [profileResponse, quotaResponse] = await Promise.all([
-        fetch(`${apiUrl}/api/user/profile`, {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          }
-        }),
-        fetch(`${apiUrl}/api/usage/quota`, {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          }
-        })
-      ]);
-
-      // Check profile response
-      if (!profileResponse.ok) {
-        if (profileResponse.status === 401) {
-          throw new Error('Not authenticated');
-        } else if (profileResponse.status === 404) {
-          throw new Error('User profile not found');
-        } else {
-          throw new Error(`Failed to fetch profile: ${profileResponse.statusText}`);
-        }
-      }
-
-      // Check quota response
-      if (!quotaResponse.ok) {
-        if (quotaResponse.status === 401) {
-          throw new Error('Not authenticated for quota');
-        } else {
-          throw new Error(`Failed to fetch quota: ${quotaResponse.statusText}`);
-        }
-      }
-      
-      const userData = await profileResponse.json();
-      const quotaData = await quotaResponse.json();
-      
-      // Combine user data with quota data
-      setProfile({
-        user: userData.user,
-        quota: quotaData
-      });
-      setError(null);
-    } catch (err: any) {
-      console.error('[UserProfileContext] Error fetching profile:', err);
-      setError(err.message || 'Failed to fetch user profile');
-      setProfile(null);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [isSignedIn, user, getToken]);
-
-  // Function to refresh only quota data (for periodic updates during sessions)
-  const fetchQuotaOnly = useCallback(async () => {
-    if (!isSignedIn || !user || !profile) return;
-
-    try {
-      const token = await getToken();
-      if (!token) return;
-
-      const apiUrl = import.meta.env.VITE_BACKEND_URL || 'https://sokuji-api.kizuna.ai';
-      const quotaResponse = await fetch(`${apiUrl}/api/usage/quota`, {
+      const response = await fetch(`${apiUrl}/api/usage/quota`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -147,51 +93,86 @@ export function UserProfileProvider({ children }: UserProfileProviderProps) {
         }
       });
 
-      if (quotaResponse.ok) {
-        const quotaData = await quotaResponse.json();
-        setProfile(prevProfile => prevProfile ? {
-          ...prevProfile,
-          quota: quotaData
-        } : null);
+      if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error('Not authenticated');
+        } else {
+          throw new Error(`Failed to fetch quota: ${response.statusText}`);
+        }
+      }
+      
+      const quotaData = await response.json();
+      setQuota(quotaData);
+      setError(null);
+    } catch (err: any) {
+      console.error('[UserProfileContext] Error fetching quota:', err);
+      setError(err.message || 'Failed to fetch quota');
+      setQuota(null);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [isSignedIn, clerkUser, getToken]);
+
+  // Function to refresh only quota data silently (for periodic updates during sessions)
+  const fetchQuotaSilently = useCallback(async () => {
+    if (!isSignedIn || !clerkUser) return;
+
+    try {
+      const token = await getToken();
+      if (!token) return;
+
+      const apiUrl = import.meta.env.VITE_BACKEND_URL || 'https://sokuji-api.kizuna.ai';
+      const response = await fetch(`${apiUrl}/api/usage/quota`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        }
+      });
+
+      if (response.ok) {
+        const quotaData = await response.json();
+        setQuota(quotaData);
       }
     } catch (err: any) {
       console.error('[UserProfileContext] Error fetching quota:', err);
-      // Don't set error state for quota-only refreshes to avoid disrupting UI
+      // Don't set error state for silent refreshes to avoid disrupting UI
     }
-  }, [isSignedIn, user, profile, getToken]);
+  }, [isSignedIn, clerkUser, getToken]);
 
-  // Fetch profile on mount and when authentication state changes
+  // Fetch quota on mount and when user changes
   useEffect(() => {
-    fetchProfile();
-  }, [fetchProfile]);
-
-  // Re-fetch profile periodically (every 5 minutes)
-  useEffect(() => {
-    if (!isSignedIn) return;
-
-    const interval = setInterval(() => {
-      fetchProfile();
-    }, 5 * 60 * 1000); // 5 minutes
-
-    return () => clearInterval(interval);
-  }, [isSignedIn, fetchProfile]);
+    fetchQuota();
+  }, [fetchQuota]);
 
   // Refresh quota every minute when session is active
   useEffect(() => {
     if (!isSignedIn || !isSessionActive) return;
 
-    const quotaInterval = setInterval(() => {
-      fetchQuotaOnly();
+    const interval = setInterval(() => {
+      fetchQuotaSilently();
     }, 60 * 1000); // 1 minute
 
-    return () => clearInterval(quotaInterval);
-  }, [isSignedIn, isSessionActive, fetchQuotaOnly]);
+    return () => clearInterval(interval);
+  }, [isSignedIn, isSessionActive, fetchQuotaSilently]);
+
+  // Refresh quota every 5 minutes when not in session
+  useEffect(() => {
+    if (!isSignedIn || isSessionActive) return;
+
+    const interval = setInterval(() => {
+      fetchQuotaSilently();
+    }, 5 * 60 * 1000); // 5 minutes
+
+    return () => clearInterval(interval);
+  }, [isSignedIn, isSessionActive, fetchQuotaSilently]);
 
   const value: UserProfileContextValue = {
-    profile,
+    user,
+    quota,
     isLoading,
     error,
-    refetch: fetchProfile
+    refetchQuota: fetchQuota
   };
 
   return (
