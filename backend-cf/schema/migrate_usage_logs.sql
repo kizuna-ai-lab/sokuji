@@ -1,22 +1,11 @@
--- Sokuji D1 Database Schema
+-- Migration script to update usage_logs table structure
+-- This script creates the new table and migrates existing data
 
--- Users table
-CREATE TABLE IF NOT EXISTS users (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  clerk_id TEXT UNIQUE NOT NULL,
-  email TEXT NOT NULL,
-  first_name TEXT,
-  last_name TEXT,
-  image_url TEXT,
-  subscription TEXT DEFAULT 'free' CHECK(subscription IN ('free', 'basic', 'premium', 'enterprise')),
-  token_quota INTEGER DEFAULT 1000000,
-  tokens_used INTEGER DEFAULT 0,
-  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-);
+-- Step 1: Rename existing table if it exists
+DROP TABLE IF EXISTS usage_logs_old;
+ALTER TABLE usage_logs RENAME TO usage_logs_old;
 
-
--- Usage logs table - supports flexible usage tracking for various events
+-- Step 2: Create new table with updated structure
 CREATE TABLE IF NOT EXISTS usage_logs (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   
@@ -53,14 +42,47 @@ CREATE TABLE IF NOT EXISTS usage_logs (
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
+-- Step 3: Migrate existing data (if old table exists)
+INSERT INTO usage_logs (
+  user_id, event_type, event_id, session_id, model, provider,
+  total_tokens, input_tokens, output_tokens,
+  input_token_details, output_token_details, usage_data, metadata, created_at
+)
+SELECT 
+  user_id,
+  'response.done' as event_type,  -- Assume old records are response.done events
+  NULL as event_id,               -- Old table doesn't have event_id
+  session_id,
+  model,
+  'openai' as provider,           -- Default provider for old records
+  total_tokens,
+  input_tokens,
+  output_tokens,
+  input_token_details,
+  output_token_details,
+  JSON_OBJECT(
+    'total_tokens', total_tokens,
+    'input_tokens', input_tokens,
+    'output_tokens', output_tokens,
+    'input_token_details', COALESCE(JSON(input_token_details), JSON_OBJECT()),
+    'output_token_details', COALESCE(JSON(output_token_details), JSON_OBJECT())
+  ) as usage_data,
+  JSON_OBJECT(
+    'provider', 'openai',
+    'response_id', response_id,
+    'migrated_metadata', COALESCE(JSON(metadata), JSON_OBJECT())
+  ) as metadata,
+  created_at
+FROM usage_logs_old
+WHERE EXISTS (SELECT 1 FROM usage_logs_old LIMIT 1);
 
-
--- Indexes for performance (only create if not exists)
-CREATE INDEX IF NOT EXISTS idx_users_clerk_id ON users(clerk_id);
-CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+-- Step 4: Create indexes
 CREATE INDEX IF NOT EXISTS idx_usage_logs_user_id ON usage_logs(user_id);
 CREATE INDEX IF NOT EXISTS idx_usage_logs_event_type ON usage_logs(event_type);
 CREATE INDEX IF NOT EXISTS idx_usage_logs_session_id ON usage_logs(session_id);
 CREATE INDEX IF NOT EXISTS idx_usage_logs_created_at ON usage_logs(created_at);
 CREATE INDEX IF NOT EXISTS idx_usage_logs_model ON usage_logs(model);
 CREATE INDEX IF NOT EXISTS idx_usage_logs_provider ON usage_logs(provider);
+
+-- Step 5: Drop old table (uncomment when migration is verified)
+-- DROP TABLE IF EXISTS usage_logs_old;

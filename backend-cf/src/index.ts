@@ -10,7 +10,7 @@ import userRoutes from './routes/user';
 import usageRoutes from './routes/usage';
 import healthRoutes from './routes/health';
 import proxyRoutes from './routes/proxy';
-import experimentalRelay from './routes/experimental-relay';
+import realtimeRelay from './routes/realtime-relay';
 import { authMiddleware } from './middleware/auth';
 import { Env, HonoVariables } from './types';
 
@@ -88,7 +88,7 @@ app.all('/v1/realtime', authMiddleware, async (c) => {
   console.log('[Main] Authenticated user for realtime:', { userId, userEmail });
   
   // Pass user context to the WebSocket relay
-  return await experimentalRelay.fetch(c.req.raw, c.env, { userId, userEmail: userEmail || undefined });
+  return await realtimeRelay.fetch(c.req.raw, c.env, { userId, userEmail: userEmail || undefined });
 });
 
 // REST API proxy for all other OpenAI endpoints

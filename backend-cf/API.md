@@ -77,7 +77,7 @@ Handles Clerk webhook events (user creation, updates, deletion).
 
 ### Get User Profile
 
-Retrieves the current user's profile with quota information.
+Retrieves the current user's profile information (without quota data).
 
 **Endpoint:** `GET /api/user/profile`
 
@@ -96,15 +96,11 @@ Retrieves the current user's profile with quota information.
     "subscription": "premium",
     "createdAt": "2024-01-01T00:00:00Z",
     "updatedAt": "2024-01-01T00:00:00Z"
-  },
-  "quota": {
-    "total": 50000000,
-    "used": 1234567,
-    "remaining": 48765433,
-    "resetDate": "2024-02-01T00:00:00Z"
   }
 }
 ```
+
+**Note:** Quota information is now retrieved separately via the `/api/usage/quota` endpoint.
 
 ---
 
@@ -227,14 +223,14 @@ When rate limited, the API returns:
 
 ### Using cURL
 
-**Get user profile:**
+**Get user profile (without quota):**
 ```bash
 curl -X GET "https://sokuji-api.kizuna.ai/api/user/profile" \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json"
 ```
 
-**Get current quota:**
+**Get current quota (separate endpoint):**
 ```bash
 curl -X GET "https://sokuji-api.kizuna.ai/api/usage/quota" \
   -H "Authorization: Bearer YOUR_TOKEN" \
