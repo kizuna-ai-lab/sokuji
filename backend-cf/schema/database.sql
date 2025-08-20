@@ -8,8 +8,8 @@ CREATE TABLE IF NOT EXISTS users (
   first_name TEXT,
   last_name TEXT,
   image_url TEXT,
-  subscription TEXT DEFAULT 'free' CHECK(subscription IN ('free', 'basic', 'premium', 'enterprise')),
-  token_quota INTEGER DEFAULT 1000000,
+  subscription TEXT DEFAULT 'fallback',
+  token_quota INTEGER DEFAULT 0,
   tokens_used INTEGER DEFAULT 0,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP

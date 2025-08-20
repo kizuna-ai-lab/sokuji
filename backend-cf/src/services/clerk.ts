@@ -53,16 +53,17 @@ export async function verifyClerkToken(
       issuer: null // We don't need to validate the issuer
     });
     
-    // Temporary restriction: Only allow specific users
-    const allowedUsers = [
-      'user_31E3feoFgbYN060lRGK3T5f9hkz',
-      'user_2zK7oAYxuSF2xvZhbG8Qk9QtlDp'
-    ];
-    
-    if (!allowedUsers.includes(payload.sub)) {
-      console.log('[Clerk] User not in allowed list:', payload.sub);
-      return { valid: false };
-    }
+    // // Temporary restriction: Only allow specific users
+    // const allowedUsers = [
+    //   'user_31E3feoFgbYN060lRGK3T5f9hkz',
+    //   'user_2zK7oAYxuSF2xvZhbG8Qk9QtlDp',
+    //   'user_31Z9tOTnGIV9omPDfzBmuXbzhBU'
+    // ];
+    //
+    // if (!allowedUsers.includes(payload.sub)) {
+    //   console.log('[Clerk] User not in allowed list:', payload.sub);
+    //   return { valid: false };
+    // }
     
     return {
       valid: true,
@@ -163,33 +164,54 @@ export async function ensureUserExists(userId: string, env: Env): Promise<boolea
     const subscription = clerkUser.public_metadata?.subscription || 'free';
     const tokenQuota = clerkUser.public_metadata?.tokenQuota || getQuotaForPlan(subscription);
     
-    // Create user in D1
-    await env.DB.prepare(`
-      INSERT INTO users (clerk_id, email, first_name, last_name, image_url, subscription, token_quota, tokens_used)
-      VALUES (?, ?, ?, ?, ?, ?, ?, 0)
-    `).bind(
-      userId,
-      email,
-      clerkUser.first_name || null,
-      clerkUser.last_name || null,
-      clerkUser.image_url || null,
-      subscription,
-      tokenQuota
-    ).run();
-    
-    // Initialize quota in KV
-    await env.QUOTA_KV.put(
-      `quota:${userId}`,
-      JSON.stringify({
-        total: tokenQuota,
-        used: 0,
-        remaining: tokenQuota,
-        resetDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
-      })
-    );
-    
-    console.log(`Successfully synced user ${userId} from Clerk to D1`);
-    return true;
+    try {
+      // Create user in D1 using INSERT OR IGNORE to handle race conditions
+      const result = await env.DB.prepare(`
+        INSERT OR IGNORE INTO users (clerk_id, email, first_name, last_name, image_url, subscription, token_quota, tokens_used)
+        VALUES (?, ?, ?, ?, ?, ?, ?, 0)
+      `).bind(
+        userId,
+        email,
+        clerkUser.first_name || null,
+        clerkUser.last_name || null,
+        clerkUser.image_url || null,
+        subscription,
+        tokenQuota
+      ).run();
+      
+      // Only initialize KV if user was actually created (not a duplicate)
+      if (result.meta.changes > 0) {
+        // Initialize quota in KV
+        await env.QUOTA_KV.put(
+          `quota:${userId}`,
+          JSON.stringify({
+            total: tokenQuota,
+            used: 0,
+            remaining: tokenQuota,
+            resetDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+          })
+        );
+        console.log(`Successfully synced user ${userId} from Clerk to D1`);
+      } else {
+        console.log(`User ${userId} was created by another process during sync`);
+      }
+      
+      return true;
+    } catch (insertError) {
+      console.error(`Error inserting user ${userId} into D1:`, insertError);
+      
+      // Check if user exists now (might have been created by another process)
+      const userCheck = await env.DB.prepare(
+        'SELECT id FROM users WHERE clerk_id = ?'
+      ).bind(userId).first();
+      
+      if (userCheck) {
+        console.log(`User ${userId} exists after failed insert - concurrent creation`);
+        return true;
+      }
+      
+      return false;
+    }
   } catch (error) {
     console.error(`Error ensuring user exists for ${userId}:`, error);
     return false;
