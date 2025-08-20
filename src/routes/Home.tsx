@@ -9,18 +9,18 @@ import { OnboardingProvider } from '../contexts/OnboardingContext';
 
 export function Home() {
   return (
-    <UserProfileProvider>
-        <SettingsProvider>
-          <LogProvider>
-            <AudioProvider>
-              <SessionProvider>
+    <SessionProvider>
+      <UserProfileProvider>
+          <SettingsProvider>
+            <LogProvider>
+              <AudioProvider>
                 <OnboardingProvider>
                   <MainLayout />
                 </OnboardingProvider>
-              </SessionProvider>
-            </AudioProvider>
-          </LogProvider>
-        </SettingsProvider>
-    </UserProfileProvider>
+              </AudioProvider>
+            </LogProvider>
+          </SettingsProvider>
+      </UserProfileProvider>
+    </SessionProvider>
   );
 }
