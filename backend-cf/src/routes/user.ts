@@ -10,7 +10,7 @@ import { authMiddleware } from '../middleware/auth';
 const app = new Hono<{ Bindings: Env; Variables: HonoVariables }>();
 
 /**
- * Get current user profile with quota info
+ * Get current user profile
  */
 app.get('/profile', authMiddleware, async (c) => {
   const userId = c.get('userId');
@@ -26,15 +26,6 @@ app.get('/profile', authMiddleware, async (c) => {
     return c.json({ error: 'User not found' }, 404);
   }
   
-  // Get quota info from KV
-  const quotaData = await c.env.QUOTA_KV.get(`quota:${userId}`);
-  const quota = quotaData ? JSON.parse(quotaData) : {
-    total: user.token_quota,
-    used: user.tokens_used,
-    remaining: user.token_quota - user.tokens_used,
-    resetDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
-  };
-  
   return c.json({
     user: {
       id: user.clerk_id,
@@ -45,8 +36,7 @@ app.get('/profile', authMiddleware, async (c) => {
       subscription: user.subscription,
       createdAt: user.created_at,
       updatedAt: user.updated_at
-    },
-    quota
+    }
   });
 });
 
