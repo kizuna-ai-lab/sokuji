@@ -6,6 +6,7 @@ import React from 'react';
 import { useUser, UserButton } from '../../lib/clerk/ClerkProvider';
 import { useUserProfile } from '../../contexts/UserProfileContext';
 import { AlertCircle } from 'lucide-react';
+import { formatTokens, formatPercentage, formatDate, getQuotaWarningLevel } from '../../utils/formatters';
 import './UserAccountInfo.scss';
 
 interface UserAccountInfoProps {
@@ -61,6 +62,11 @@ export function UserAccountInfo({
   }
 
 
+  // Quota data and calculations
+  const quota = profile?.quota;
+  const warningLevel = quota ? getQuotaWarningLevel(quota.used, quota.total) : 'normal';
+  const usagePercentage = quota ? formatPercentage(quota.used, quota.total) : 0;
+
   return (
     <div className="user-account">
       {/* User Profile Section */}
@@ -85,13 +91,69 @@ export function UserAccountInfo({
         </div>
       </div>
 
+      {/* Quota Status Section */}
+      <div className="quota-status-section">
+        {profileLoading ? (
+          <div className="quota-loading">
+            <div className="loading-spinner" />
+          </div>
+        ) : !quota ? (
+          <div className="quota-error">
+            <AlertCircle size={14} />
+            <span>Unable to load quota information</span>
+          </div>
+        ) : (
+          <>
+            {/* Quota Warning */}
+            {showWarning && warningLevel !== 'normal' && (
+              <div className={`quota-warning warning-${warningLevel === 'critical' ? 'exceeded' : 'low'}`}>
+                <AlertCircle size={14} />
+                <span>
+                  {warningLevel === 'critical' 
+                    ? `You've used ${usagePercentage}% of your monthly quota`
+                    : `Approaching quota limit: ${usagePercentage}% used`
+                  }
+                </span>
+              </div>
+            )}
+
+            {/* Quota Display */}
+            <div className="quota-header">
+              <h4>Token Usage</h4>
+              {quota.resetDate && (
+                <span className="reset-date">Resets {formatDate(quota.resetDate)}</span>
+              )}
+            </div>
+
+            <div className="quota-details">
+              <div className="quota-bar-container">
+                <div className="quota-bar">
+                  <div 
+                    className={`quota-progress ${usagePercentage >= 80 ? 'high-usage' : ''}`}
+                    style={{ width: `${Math.min(usagePercentage, 100)}%` }}
+                  />
+                </div>
+              </div>
+
+              <div className="quota-labels">
+                <div className="usage-label">
+                  <span>{formatTokens(quota.used)} used</span>
+                </div>
+                <div className="remaining-label">
+                  {formatTokens(quota.remaining)} remaining
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+
       <div className="user-subscription-info">
         <div className="subscription-badge">
           <span className={`badge badge-${subscription}`}>
             {subscription.charAt(0).toUpperCase() + subscription.slice(1)} Plan
           </span>
         </div>
-
 
         {subscription === 'free' && onManageSubscription && (
           <button 
