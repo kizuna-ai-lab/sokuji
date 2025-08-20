@@ -10,6 +10,18 @@ import { authMiddleware, adminMiddleware } from '../middleware/auth';
 
 const app = new Hono<{ Bindings: Env; Variables: HonoVariables }>();
 
+/**
+ * Extract user ID from webhook event data
+ */
+function extractUserIdFromEvent(event: any): string | null {
+  // Try different paths where user ID might be found
+  if (event.data?.user_id) return event.data.user_id;
+  if (event.data?.id) return event.data.id; // For user.* events
+  if (event.data?.subscription?.user_id) return event.data.subscription.user_id;
+  if (event.data?.metadata?.user_id) return event.data.metadata.user_id;
+  return null;
+}
+
 
 /**
  * Sign-in page redirect
@@ -47,6 +59,56 @@ app.post('/webhook/clerk', async (c) => {
   
   const event = result.event;
   console.log(`Processing webhook event: ${event.type}`);
+  
+  // Extract user ID from event data
+  const clerkUserId = extractUserIdFromEvent(event);
+  const eventId = event.evt_id || `${event.type}_${Date.now()}`;
+  
+  // Check for duplicate event (idempotency)
+  const existingEvent = await c.env.DB.prepare(
+    'SELECT id, processing_status FROM webhook_logs WHERE event_id = ?'
+  ).bind(eventId).first();
+  
+  if (existingEvent) {
+    console.log(`Webhook event ${eventId} already processed with status: ${existingEvent.processing_status}`);
+    return c.json({ received: true, duplicate: true });
+  }
+  
+  // Get client IP and headers for logging
+  const clientIP = c.req.header('CF-Connecting-IP') || c.req.header('X-Forwarded-For') || 'unknown';
+  const headers = JSON.stringify({
+    'user-agent': c.req.header('User-Agent'),
+    'content-type': c.req.header('Content-Type'),
+    'svix-id': c.req.header('svix-id'),
+    'svix-timestamp': c.req.header('svix-timestamp'),
+    'svix-signature': c.req.header('svix-signature')
+  });
+  
+  // Record webhook event in database immediately
+  let webhookLogId: number;
+  try {
+    const insertResult = await c.env.DB.prepare(`
+      INSERT INTO webhook_logs (
+        event_id, event_type, clerk_user_id, raw_payload, headers, 
+        webhook_signature, ip_address, processing_status
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, 'pending')
+    `).bind(
+      eventId,
+      event.type,
+      clerkUserId,
+      JSON.stringify(event),
+      headers,
+      c.req.header('svix-signature') || '',
+      clientIP
+    ).run();
+    
+    webhookLogId = insertResult.meta.last_row_id as number;
+    console.log(`Webhook logged with ID: ${webhookLogId}`);
+  } catch (logError) {
+    console.error('Failed to log webhook event:', logError);
+    // Continue processing even if logging fails
+    webhookLogId = 0;
+  }
   
   try {
     switch (event.type) {
@@ -105,9 +167,36 @@ app.post('/webhook/clerk', async (c) => {
         console.log(`Unhandled webhook event type: ${event.type}`);
     }
     
+    // Update webhook log status to success
+    if (webhookLogId > 0) {
+      try {
+        await c.env.DB.prepare(`
+          UPDATE webhook_logs 
+          SET processing_status = 'success', processed_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+          WHERE id = ?
+        `).bind(webhookLogId).run();
+      } catch (updateError) {
+        console.error('Failed to update webhook log status:', updateError);
+      }
+    }
+    
     return c.json({ received: true });
   } catch (error) {
     console.error(`Error processing webhook event ${event.type}:`, error);
+    
+    // Update webhook log status to failed
+    if (webhookLogId > 0) {
+      try {
+        await c.env.DB.prepare(`
+          UPDATE webhook_logs 
+          SET processing_status = 'failed', error_message = ?, processed_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+          WHERE id = ?
+        `).bind(error?.toString() || 'Unknown error', webhookLogId).run();
+      } catch (updateError) {
+        console.error('Failed to update webhook log error status:', updateError);
+      }
+    }
+    
     return c.json({ error: 'Processing failed' }, 500);
   }
 });
@@ -581,6 +670,142 @@ app.post('/sync-user/:userId', adminMiddleware, async (c) => {
       success: false,
       error: error.message
     }, 500);
+  }
+});
+
+/**
+ * Get webhook logs endpoint - for debugging and monitoring
+ * Admin only endpoint
+ */
+app.get('/webhook-logs', adminMiddleware, async (c) => {
+  const limit = Math.min(parseInt(c.req.query('limit') || '50'), 1000);
+  const offset = parseInt(c.req.query('offset') || '0');
+  const status = c.req.query('status'); // pending, success, failed
+  const eventType = c.req.query('event_type');
+  
+  let query = 'SELECT * FROM webhook_logs';
+  const conditions: string[] = [];
+  const params: any[] = [];
+  
+  if (status) {
+    conditions.push('processing_status = ?');
+    params.push(status);
+  }
+  
+  if (eventType) {
+    conditions.push('event_type = ?');
+    params.push(eventType);
+  }
+  
+  if (conditions.length > 0) {
+    query += ' WHERE ' + conditions.join(' AND ');
+  }
+  
+  query += ' ORDER BY created_at DESC LIMIT ? OFFSET ?';
+  params.push(limit, offset);
+  
+  try {
+    const result = await c.env.DB.prepare(query).bind(...params).all();
+    
+    // Also get total count
+    let countQuery = 'SELECT COUNT(*) as total FROM webhook_logs';
+    if (conditions.length > 0) {
+      countQuery += ' WHERE ' + conditions.join(' AND ');
+    }
+    
+    const countParams = params.slice(0, -2); // Remove limit and offset
+    const countResult = await c.env.DB.prepare(countQuery).bind(...countParams).first();
+    
+    return c.json({
+      logs: result.results,
+      pagination: {
+        total: countResult?.total || 0,
+        limit,
+        offset,
+        hasMore: (countResult?.total || 0) > offset + limit
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching webhook logs:', error);
+    return c.json({ error: 'Failed to fetch webhook logs' }, 500);
+  }
+});
+
+/**
+ * Get webhook statistics endpoint
+ * Admin only endpoint
+ */
+app.get('/webhook-stats', adminMiddleware, async (c) => {
+  try {
+    const stats = await c.env.DB.prepare(`
+      SELECT 
+        processing_status,
+        COUNT(*) as count,
+        MIN(created_at) as first_event,
+        MAX(created_at) as last_event
+      FROM webhook_logs 
+      GROUP BY processing_status
+    `).all();
+    
+    const eventTypes = await c.env.DB.prepare(`
+      SELECT 
+        event_type,
+        COUNT(*) as count,
+        processing_status,
+        MAX(created_at) as last_seen
+      FROM webhook_logs 
+      GROUP BY event_type, processing_status
+      ORDER BY count DESC
+    `).all();
+    
+    return c.json({
+      statusStats: stats.results,
+      eventTypeStats: eventTypes.results
+    });
+  } catch (error) {
+    console.error('Error fetching webhook stats:', error);
+    return c.json({ error: 'Failed to fetch webhook statistics' }, 500);
+  }
+});
+
+/**
+ * Retry failed webhook endpoint
+ * Admin only endpoint for reprocessing failed webhooks
+ */
+app.post('/webhook-logs/:id/retry', adminMiddleware, async (c) => {
+  const logId = c.req.param('id');
+  
+  try {
+    // Get the webhook log
+    const webhookLog = await c.env.DB.prepare(
+      'SELECT * FROM webhook_logs WHERE id = ? AND processing_status = ?'
+    ).bind(logId, 'failed').first();
+    
+    if (!webhookLog) {
+      return c.json({ error: 'Webhook log not found or not in failed state' }, 404);
+    }
+    
+    // Parse the raw payload and reprocess
+    const event = JSON.parse(webhookLog.raw_payload as string);
+    
+    // Update retry count
+    await c.env.DB.prepare(`
+      UPDATE webhook_logs 
+      SET retry_count = retry_count + 1, processing_status = 'pending', updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `).bind(logId).run();
+    
+    // Note: For a complete implementation, you would reprocess the event here
+    // For now, we'll just mark it as pending for manual review
+    
+    return c.json({ 
+      success: true, 
+      message: 'Webhook marked for retry',
+      retryCount: (webhookLog.retry_count as number) + 1
+    });
+  } catch (error) {
+    console.error('Error retrying webhook:', error);
+    return c.json({ error: 'Failed to retry webhook' }, 500);
   }
 });
 
