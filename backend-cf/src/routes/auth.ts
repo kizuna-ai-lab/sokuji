@@ -16,7 +16,11 @@ const app = new Hono<{ Bindings: Env; Variables: HonoVariables }>();
 function extractUserIdFromEvent(event: any): string | null {
   // Try different paths where user ID might be found
   if (event.data?.user_id) return event.data.user_id;
-  if (event.data?.id) return event.data.id; // For user.* events
+  
+  // Only use data.id for user events (not for subscription or subscription item events)
+  if (event.type?.startsWith('user.') && event.data?.id) return event.data.id;
+  
+  if (event.data?.payer?.user_id) return event.data.payer.user_id; // For subscription events
   if (event.data?.subscription?.user_id) return event.data.subscription.user_id;
   if (event.data?.metadata?.user_id) return event.data.metadata.user_id;
   return null;
@@ -144,6 +148,14 @@ app.post('/webhook/clerk', async (c) => {
         await handleSubscriptionItemChanged(event.data, c.env);
         break;
         
+      case 'subscriptionItem.active':
+        await handleSubscriptionItemActive(event.data, c.env);
+        break;
+        
+      case 'subscriptionItem.ended':
+        await handleSubscriptionItemEnded(event.data, c.env);
+        break;
+        
       case 'subscriptionItem.deleted':
         await handleSubscriptionItemDeleted(event.data, c.env);
         break;
@@ -214,15 +226,10 @@ async function handleUserCreated(clerkUser: any, env: Env) {
   const resetDate = clerkUser.public_metadata?.resetDate || 
     new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
   
-  // Check if user already exists
-  const existing = await env.DB.prepare(
-    'SELECT id FROM users WHERE clerk_id = ?'
-  ).bind(clerkUser.id).first();
-  
-  if (!existing) {
-    // Create user in database
-    await env.DB.prepare(`
-      INSERT INTO users (
+  try {
+    // Use INSERT OR IGNORE to handle race conditions
+    const result = await env.DB.prepare(`
+      INSERT OR IGNORE INTO users (
         clerk_id, email, first_name, last_name, image_url, 
         subscription, token_quota
       ) VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -236,16 +243,25 @@ async function handleUserCreated(clerkUser: any, env: Env) {
       tokenQuota
     ).run();
     
-    // Initialize user quota in KV
-    await env.QUOTA_KV.put(
-      `quota:${clerkUser.id}`,
-      JSON.stringify({
-        total: tokenQuota,
-        used: 0,
-        remaining: tokenQuota,
-        resetDate: resetDate
-      })
-    );
+    // Only initialize KV if user was actually created (not a duplicate)
+    if (result.meta.changes > 0) {
+      // Initialize user quota in KV
+      await env.QUOTA_KV.put(
+        `quota:${clerkUser.id}`,
+        JSON.stringify({
+          total: tokenQuota,
+          used: 0,
+          remaining: tokenQuota,
+          resetDate: resetDate
+        })
+      );
+      console.log(`User ${clerkUser.id} created successfully`);
+    } else {
+      console.log(`User ${clerkUser.id} already exists, skipping creation`);
+    }
+  } catch (error) {
+    console.error(`Error creating user ${clerkUser.id}:`, error);
+    // Don't throw error - this might be a concurrent insert from another webhook
   }
 }
 
@@ -285,7 +301,7 @@ async function handleUserUpdated(clerkUser: any, env: Env) {
   // If subscription changed, update quota in KV
   if (currentUser && (currentUser.subscription !== subscription || currentUser.token_quota !== tokenQuota)) {
     // Handle subscription upgrade/downgrade
-    const tokensUsed = subscription === 'free' ? 0 : currentUser.tokens_used; // Reset usage for free tier
+    const tokensUsed = subscription === 'free' ? 0 : Number(currentUser.tokens_used) || 0; // Reset usage for free tier
     
     await env.QUOTA_KV.put(
       `quota:${clerkUser.id}`,
@@ -325,13 +341,14 @@ async function handleUserDeleted(clerkUser: any, env: Env) {
  */
 function getQuotaForPlan(plan: string): number {
   const quotas: Record<string, number> = {
-    free: 1000000,      // 1M tokens
-    basic: 10000000,    // 10M tokens
-    premium: 50000000,  // 50M tokens
-    enterprise: -1      // Unlimited
+    fallback: 0,
+    free_plan: 1000000,    // 1M tokens (plan slug format)
+    starter_plan: 10000000, // 10M tokens (plan slug format)
+    essentials_plan: 50000000, // 50M tokens (plan slug format)
+    enterprise_plan: -1         // Unlimited
   };
   
-  return quotas[plan] || quotas.free;
+  return quotas[plan] || quotas.fallback;
 }
 
 /**
@@ -340,15 +357,22 @@ function getQuotaForPlan(plan: string): number {
 async function handleSubscriptionCreated(subscription: any, env: Env) {
   console.log('Subscription created:', subscription.id);
   
-  // Get user ID from subscription metadata
-  const userId = subscription.user_id || subscription.metadata?.user_id;
+  // Get user ID from subscription data
+  const userId = subscription.payer?.user_id || subscription.user_id || subscription.metadata?.user_id;
   if (!userId) {
     console.error('No user ID in subscription data');
     return;
   }
   
-  // Extract plan details
-  const plan = subscription.metadata?.plan || 'basic';
+  // Ensure user exists in D1 (auto-sync from Clerk if needed)
+  const userSynced = await ensureUserExists(userId, env);
+  if (!userSynced) {
+    console.error(`Failed to sync user ${userId} for subscription creation`);
+    return;
+  }
+  
+  // Extract plan details from subscription items or metadata
+  const plan = subscription.items?.[0]?.plan?.slug || subscription.metadata?.plan || 'free_plan';
   const tokenQuota = getQuotaForPlan(plan);
   
   // Update user subscription in database
@@ -378,7 +402,8 @@ async function handleSubscriptionCreated(subscription: any, env: Env) {
 async function handleSubscriptionUpdated(subscription: any, env: Env) {
   console.log('Subscription updated:', subscription.id);
   
-  const userId = subscription.user_id || subscription.metadata?.user_id;
+  // Get user ID from subscription data (check payer first)
+  const userId = subscription.payer?.user_id || subscription.user_id || subscription.metadata?.user_id;
   if (!userId) {
     console.error('No user ID in subscription data');
     return;
@@ -401,7 +426,17 @@ async function handleSubscriptionUpdated(subscription: any, env: Env) {
     return;
   }
   
-  const plan = subscription.metadata?.plan || currentUser.subscription;
+  // Find the active subscription item from the items array
+  const activeItem = subscription.items?.find((item: any) => item.status === 'active');
+  
+  // Extract plan from active item or fallback to metadata/current subscription
+  let plan = currentUser.subscription; // Default fallback
+  if (activeItem?.plan?.slug) {
+    plan = activeItem.plan.slug; // Use the slug as-is (starter_plan, essentials_plan, etc.)
+  } else if (subscription.metadata?.plan) {
+    plan = subscription.metadata.plan;
+  }
+  
   const tokenQuota = getQuotaForPlan(plan);
   
   // Update user subscription
@@ -412,17 +447,18 @@ async function handleSubscriptionUpdated(subscription: any, env: Env) {
   `).bind(plan, tokenQuota, userId).run();
   
   // Update quota in KV
+  const tokensUsed = Number(currentUser.tokens_used) || 0;
   await env.QUOTA_KV.put(
     `quota:${userId}`,
     JSON.stringify({
       total: tokenQuota,
-      used: currentUser.tokens_used || 0,
-      remaining: tokenQuota - (currentUser.tokens_used || 0),
+      used: tokensUsed,
+      remaining: tokenQuota - tokensUsed,
       resetDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
     })
   );
   
-  console.log(`User ${userId} subscription updated to ${plan}`);
+  console.log(`User ${userId} subscription updated to ${plan} (from active item: ${activeItem?.plan?.slug || 'none'})`);
 }
 
 /**
@@ -431,7 +467,7 @@ async function handleSubscriptionUpdated(subscription: any, env: Env) {
 async function handleSubscriptionDeleted(subscription: any, env: Env) {
   console.log('Subscription deleted:', subscription.id);
   
-  const userId = subscription.user_id || subscription.metadata?.user_id;
+  const userId = subscription.payer?.user_id || subscription.user_id || subscription.metadata?.user_id;
   if (!userId) {
     console.error('No user ID in subscription data');
     return;
@@ -482,6 +518,91 @@ async function handleSubscriptionItemChanged(item: any, env: Env) {
   `).bind(plan, tokenQuota, userId).run();
   
   console.log(`User ${userId} subscription item updated to ${plan}`);
+}
+
+/**
+ * Handle subscription item active event
+ */
+async function handleSubscriptionItemActive(item: any, env: Env) {
+  console.log('Subscription item activated:', item.id);
+  
+  // Get user ID from the item or payer data
+  const userId = item.payer?.user_id || item.subscription?.user_id || item.metadata?.user_id;
+  if (!userId) {
+    console.error('No user ID in subscription item data');
+    return;
+  }
+  
+  // Ensure user exists in D1 (auto-sync from Clerk if needed)
+  const userSynced = await ensureUserExists(userId, env);
+  if (!userSynced) {
+    console.error(`Failed to sync user ${userId} for subscription item activation`);
+    return;
+  }
+  
+  // Get current user data to preserve token usage
+  const currentUser = await env.DB.prepare(
+    'SELECT subscription, tokens_used FROM users WHERE clerk_id = ?'
+  ).bind(userId).first();
+  
+  if (!currentUser) {
+    console.error(`User ${userId} not found after sync for subscription item activation`);
+    return;
+  }
+  
+  // Extract plan information from the subscription item
+  const plan = item.plan?.slug || item.plan?.name || item.metadata?.plan || 'free_plan';
+  const tokenQuota = getQuotaForPlan(plan);
+  
+  // Preserve current token usage unless downgrading to free plan
+  const currentTokensUsed = Number(currentUser.tokens_used) || 0;
+  const tokensUsed = plan === 'free_plan' ? 0 : currentTokensUsed; // Only reset for free plan
+  
+  // Update user subscription in database
+  await env.DB.prepare(`
+    UPDATE users 
+    SET subscription = ?, token_quota = ?, tokens_used = ?, updated_at = CURRENT_TIMESTAMP
+    WHERE clerk_id = ?
+  `).bind(plan, tokenQuota, tokensUsed, userId).run();
+  
+  // Update quota in KV
+  await env.QUOTA_KV.put(
+    `quota:${userId}`,
+    JSON.stringify({
+      total: tokenQuota,
+      used: tokensUsed,
+      remaining: tokenQuota - tokensUsed,
+      resetDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+    })
+  );
+  
+  console.log(`User ${userId} subscription item activated: ${plan} with ${tokenQuota} tokens (preserved usage: ${tokensUsed})`);
+}
+
+/**
+ * Handle subscription item ended event
+ */
+async function handleSubscriptionItemEnded(item: any, env: Env) {
+  console.log('Subscription item ended:', item.id);
+  
+  // Get user ID from the item or payer data
+  const userId = item.payer?.user_id || item.subscription?.user_id || item.metadata?.user_id;
+  if (!userId) {
+    console.error('No user ID in subscription item ended data');
+    return;
+  }
+  
+  // Extract plan information from the ended subscription item
+  const endedPlan = item.plan?.slug || item.plan?.name || 'unknown';
+  
+  // Log the ended subscription item but don't take action
+  // The active subscription items determine the current user plan
+  console.log(`User ${userId} subscription item ended: ${endedPlan} (status: ${item.status})`);
+  
+  // Note: We don't update the user's subscription here because:
+  // 1. There might be other active subscription items
+  // 2. The subscription.updated webhook will handle the overall subscription state
+  // 3. Active subscription items take precedence over ended ones
 }
 
 /**
