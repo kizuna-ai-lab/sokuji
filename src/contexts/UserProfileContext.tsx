@@ -31,6 +31,8 @@ interface UserProfileContextValue {
   isLoading: boolean;
   error: string | null;
   refetchQuota: () => Promise<void>;
+  refetchProfile: () => Promise<void>;
+  refetchAll: () => Promise<void>;
 }
 
 const UserProfileContext = createContext<UserProfileContextValue | undefined>(undefined);
@@ -167,12 +169,34 @@ export function UserProfileProvider({ children }: UserProfileProviderProps) {
     return () => clearInterval(interval);
   }, [isSignedIn, isSessionActive, fetchQuotaSilently]);
 
+  // Function to refresh user profile from Clerk
+  const refetchProfile = useCallback(async () => {
+    try {
+      // Reload Clerk user data
+      if ((window as any).Clerk?.user) {
+        await (window as any).Clerk.user.reload();
+      }
+    } catch (error) {
+      console.error('[UserProfileContext] Error refreshing profile:', error);
+    }
+  }, []);
+
+  // Function to refresh both profile and quota
+  const refetchAll = useCallback(async () => {
+    await Promise.all([
+      refetchProfile(),
+      fetchQuota()
+    ]);
+  }, [refetchProfile, fetchQuota]);
+
   const value: UserProfileContextValue = {
     user,
     quota,
     isLoading,
     error,
-    refetchQuota: fetchQuota
+    refetchQuota: fetchQuota,
+    refetchProfile,
+    refetchAll
   };
 
   return (

@@ -2,11 +2,11 @@
  * Unified user account information component that combines user profile and quota status
  */
 
-import React from 'react';
-import { useUser, UserButton } from '../../lib/clerk/ClerkProvider';
-import { useUserProfile } from '../../contexts/UserProfileContext';
-import { AlertCircle } from 'lucide-react';
-import { formatTokens, formatPercentage, formatDate, getQuotaWarningLevel } from '../../utils/formatters';
+import {useEffect, useRef, useState} from 'react';
+import {SignOutButton, useClerk, useUser} from '../../lib/clerk/ClerkProvider';
+import {useUserProfile} from '../../contexts/UserProfileContext';
+import {AlertCircle, LogOut, Settings} from 'lucide-react';
+import {formatDate, formatPercentage, formatTokens, getQuotaWarningLevel} from '../../utils/formatters';
 import './UserAccountInfo.scss';
 
 interface UserAccountInfoProps {
@@ -20,10 +20,11 @@ export function UserAccountInfo({
   showWarning = true,
   onManageSubscription 
 }: UserAccountInfoProps) {
-  const { isLoaded, isSignedIn } = useUser();
+  const { isLoaded, isSignedIn, user: clerkUser } = useUser();
+  const clerk = useClerk();
   
   // Get user profile and quota
-  const { user, quota, isLoading: quotaLoading } = useUserProfile();
+  const { user, quota, isLoading: quotaLoading, refetchAll } = useUserProfile();
 
   if (!isLoaded) {
     return (
@@ -43,16 +44,15 @@ export function UserAccountInfo({
   if (compact) {
     return (
       <div className="user-account-compact">
-        <UserButton 
-          appearance={{
-            elements: {
-              userButtonAvatarBox: {
-                width: '32px',
-                height: '32px'
-              }
-            }
-          }}
-        />
+        <div className="user-avatar">
+          {clerkUser?.imageUrl ? (
+            <img src={clerkUser.imageUrl} alt={user.firstName || 'User'} />
+          ) : (
+            <div className="avatar-placeholder">
+              {(user.firstName?.[0] || user.email[0]).toUpperCase()}
+            </div>
+          )}
+        </div>
         <div className="user-info-compact">
           <span className="user-email">{user.email}</span>
           <span className="user-subscription">{subscription}</span>
@@ -65,21 +65,46 @@ export function UserAccountInfo({
   // Quota data and calculations
   const warningLevel = quota ? getQuotaWarningLevel(quota.used, quota.total) : 'normal';
   const usagePercentage = quota ? formatPercentage(quota.used, quota.total) : 0;
+  
+  // Refs and state for UserProfile mounting
+  const userProfileDivRef = useRef<HTMLDivElement>(null);
+  const [isProfileMounted, setIsProfileMounted] = useState(false);
+
+  // Handle manage account click - just show the overlay
+  const handleManageAccount = () => {
+    setIsProfileMounted(true);
+  };
+
+  // Mount UserProfile after the div is rendered
+  useEffect(() => {
+    if (isProfileMounted && userProfileDivRef.current && clerk) {
+      clerk.mountUserProfile(userProfileDivRef.current);
+    }
+  }, [isProfileMounted, clerk]);
+
+  // Handle close - unmount UserProfile and refresh data
+  const handleCloseProfile = () => {
+    if (userProfileDivRef.current && clerk) {
+      clerk.unmountUserProfile(userProfileDivRef.current);
+    }
+    setIsProfileMounted(false);
+    // Refresh both profile and quota data when closing
+    refetchAll();
+  };
 
   return (
     <div className="user-account">
       {/* User Profile Section */}
       <div className="user-header">
-        <UserButton 
-          appearance={{
-            elements: {
-              userButtonAvatarBox: {
-                width: '48px',
-                height: '48px'
-              }
-            }
-          }}
-        />
+        <div className="user-avatar">
+          {clerkUser?.imageUrl ? (
+            <img src={clerkUser.imageUrl} alt={user.firstName || 'User'} />
+          ) : (
+            <div className="avatar-placeholder">
+              {(user.firstName?.[0] || user.email[0]).toUpperCase()}
+            </div>
+          )}
+        </div>
         <div className="user-info">
           <h3 className="user-name">
             {user.firstName || user.lastName 
@@ -88,6 +113,23 @@ export function UserAccountInfo({
           </h3>
           <p className="user-email">{user.email}</p>
         </div>
+      </div>
+
+      {/* Action Buttons */}
+      <div className="user-actions">
+        <button 
+          className="action-button manage-account"
+          onClick={handleManageAccount}
+        >
+          <Settings size={16} />
+          <span>Manage Account</span>
+        </button>
+        <SignOutButton>
+          <button className="action-button sign-out">
+            <LogOut size={16} />
+            <span>Sign Out</span>
+          </button>
+        </SignOutButton>
       </div>
 
       {/* Quota Status Section */}
@@ -163,6 +205,17 @@ export function UserAccountInfo({
           </button>
         )}
       </div>
+
+      {/* UserProfile mounting point with overlay */}
+      {isProfileMounted && (
+        <div className="user-profile-overlay" onClick={handleCloseProfile}>
+          <div 
+            ref={userProfileDivRef} 
+            className="user-profile-mount"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
     </div>
   );
 }
