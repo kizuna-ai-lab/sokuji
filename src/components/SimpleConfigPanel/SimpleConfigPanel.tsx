@@ -1,16 +1,16 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Settings, Volume2, Key, Globe, CheckCircle, AlertCircle, HelpCircle, CircleHelp, Bot, Sparkles, Zap, AudioLines, Mic, Languages, User } from 'lucide-react';
+import { ArrowRight, Volume2, Key, Globe, CheckCircle, AlertCircle, HelpCircle, CircleHelp, Bot, Sparkles, Zap, AudioLines, Mic, Languages, User, ChevronDown, ChevronUp } from 'lucide-react';
 import './SimpleConfigPanel.scss';
 import { useSettings } from '../../contexts/SettingsContext';
 import { useAudioContext } from '../../contexts/AudioContext';
 import { useSession } from '../../contexts/SessionContext';
 import { useTranslation } from 'react-i18next';
-import { Provider } from '../../types/Provider';
+import { Provider, ProviderType } from '../../types/Provider';
 import { useAnalytics } from '../../lib/analytics';
 import { ProviderConfigFactory } from '../../services/providers/ProviderConfigFactory';
 import Tooltip from '../Tooltip/Tooltip';
-import { useAuth, useUser } from '../../lib/clerk/ClerkProvider';
+import { useAuth } from '../../lib/clerk/ClerkProvider';
 import { UserAccountInfo } from '../Auth/UserAccountInfo';
 import { SignedIn, SignedOut } from '../Auth/AuthGuard';
 
@@ -64,6 +64,12 @@ const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings, h
 
   const [isValidating, setIsValidating] = useState(false);
   const [validationMessage, setValidationMessage] = useState('');
+  const [isProviderExpanded, setIsProviderExpanded] = useState(false);
+
+  // Get all available providers for the dropdown
+  const availableProviders = useMemo(() => {
+    return ProviderConfigFactory.getAllConfigs();
+  }, []);
 
   // Filter out virtual devices
   const isVirtualDevice = (device: {label: string}) => {
@@ -196,9 +202,45 @@ const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings, h
     });
   };
 
-  // Get provider display info
-  const getProviderInfo = () => {
-    switch (commonSettings.provider) {
+  // Handle provider switching
+  const handleProviderChange = (newProvider: ProviderType) => {
+    const oldProvider = commonSettings.provider;
+    updateCommonSettings({ provider: newProvider });
+    
+    // Track provider switch
+    trackEvent('provider_switched', {
+      from_provider: oldProvider || 'default',
+      to_provider: newProvider,
+      during_session: isSessionActive
+    });
+    
+    // Reset validation status when provider changes
+    setValidationMessage('');
+    // Close the expanded state
+    setIsProviderExpanded(false);
+  };
+
+  // Handle clicking outside the provider selector
+  const handleClickOutside = useCallback((event: MouseEvent) => {
+    const target = event.target as Element;
+    if (!target.closest('.provider-selection-area')) {
+      setIsProviderExpanded(false);
+    }
+  }, []);
+
+  // Add click outside listener
+  useEffect(() => {
+    if (isProviderExpanded) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+      };
+    }
+  }, [isProviderExpanded, handleClickOutside]);
+
+  // Utility function to get provider info by ID
+  const getProviderInfoById = (providerId: ProviderType) => {
+    switch (providerId) {
       case Provider.OPENAI:
         return {
           name: t('providers.openai.name'),
@@ -242,6 +284,11 @@ const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings, h
           description: t('providers.unknown.description')
         };
     }
+  };
+
+  // Get provider display info for current provider
+  const getProviderInfo = () => {
+    return getProviderInfoById(commonSettings.provider);
   };
 
   const providerInfo = getProviderInfo();
@@ -430,7 +477,7 @@ const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings, h
         </div>
 
             {/* API Key Section */}
-            <div className="config-section">
+            <div className="config-section" id="api-key-section">
               <h3>
                 <Key size={18} />
                 <span>{t('simpleSettings.apiKey')}</span>
@@ -455,12 +502,50 @@ const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings, h
                 />
               </h3>
               
-              <div className="provider-info">
-                <div className="provider-icon">{React.createElement(providerInfo.icon, { size: 24 })}</div>
-                <div className="provider-details">
-                  <div className="provider-name">{providerInfo.name}</div>
-                  <div className="provider-description">{providerInfo.description}</div>
+              <div className="provider-selection-area">
+                <div 
+                  className={`provider-info ${isProviderExpanded ? 'expanded' : ''} ${isSessionActive ? 'disabled' : ''}`}
+                  onClick={() => !isSessionActive && setIsProviderExpanded(!isProviderExpanded)}
+                >
+                  <div className="provider-icon">{React.createElement(providerInfo.icon, { size: 24 })}</div>
+                  <div className="provider-details">
+                    <div className="provider-main-info">
+                      <div className="provider-name">{providerInfo.name}</div>
+                      <div className="provider-description">{providerInfo.description}</div>
+                    </div>
+                    {!isSessionActive && (
+                      <div className="provider-toggle">
+                        {isProviderExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                      </div>
+                    )}
+                  </div>
                 </div>
+                
+                {isProviderExpanded && !isSessionActive && (
+                  <div className="provider-options">
+                    {availableProviders
+                      .filter(provider => provider.id !== commonSettings.provider)
+                      .map((provider) => {
+                        const optionInfo = getProviderInfoById(provider.id as ProviderType);
+                        
+                        return (
+                          <div
+                            key={provider.id}
+                            className="provider-option"
+                            onClick={() => handleProviderChange(provider.id as ProviderType)}
+                          >
+                            <div className="provider-option-icon">
+                              {React.createElement(optionInfo.icon, { size: 20 })}
+                            </div>
+                            <div className="provider-option-details">
+                              <div className="provider-option-name">{optionInfo.name}</div>
+                              <div className="provider-option-description">{optionInfo.description}</div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                  </div>
+                )}
               </div>
 
               {commonSettings.provider !== Provider.KIZUNA_AI ? (
