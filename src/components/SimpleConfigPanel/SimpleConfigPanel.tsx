@@ -318,14 +318,24 @@ const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings, h
             <div className="sign-in-prompt">
               <p>{t('simpleConfig.signInRequired', 'You can use your own AI provider and API key without logging in, or sign up to purchase and use kizuna.ai\'s API service.')}</p>
               <p className="sign-in-description">{t('simpleConfig.signInDescription', 'Sign up for a convenient experience without complex configuration.')}</p>
-              <button 
-                className="sign-in-button"
-                onClick={() => {
-                  navigate('/sign-in');
-                }}
-              >
-                {t('common.signIn', 'Sign In')}
-              </button>
+              <div className="auth-buttons">
+                <button 
+                  className="sign-in-button"
+                  onClick={() => {
+                    navigate('/sign-in');
+                  }}
+                >
+                  {t('common.signIn', 'Sign In')}
+                </button>
+                <button 
+                  className="sign-up-button"
+                  onClick={() => {
+                    navigate('/sign-up');
+                  }}
+                >
+                  {t('common.signUp', 'Sign Up')}
+                </button>
+              </div>
             </div>
           </SignedOut>
         </div>

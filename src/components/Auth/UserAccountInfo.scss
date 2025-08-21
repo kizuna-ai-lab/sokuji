@@ -28,6 +28,32 @@
   gap: 12px;
   padding: 8px;
   
+  .user-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    overflow: hidden;
+    flex-shrink: 0;
+    
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    
+    .avatar-placeholder {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #10a37f;
+      color: #fff;
+      font-weight: 600;
+      font-size: 14px;
+    }
+  }
+  
   .user-info-compact {
     display: flex;
     flex-direction: column;
@@ -61,9 +87,33 @@
   display: flex;
   align-items: center;
   gap: 16px;
-  margin-bottom: 24px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid #333;
+  margin-bottom: 16px;
+  
+  .user-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    overflow: hidden;
+    flex-shrink: 0;
+    
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    
+    .avatar-placeholder {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #10a37f;
+      color: #fff;
+      font-weight: 600;
+      font-size: 18px;
+    }
+  }
 }
 
 .user-info {
@@ -83,6 +133,55 @@
     margin: 0;
   }
 }
+
+// Action buttons
+.user-actions {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #333;
+  
+  .action-button {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 24px;
+    border: none;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s;
+    
+    &.manage-account {
+      background: #10a37f;
+      color: #fff;
+      
+      &:hover {
+        background: #0e8f6f;
+      }
+    }
+    
+    &.sign-out {
+      background: transparent;
+      color: #e74c3c;
+      border: 1px solid #e74c3c;
+      
+      &:hover {
+        background: rgba(231, 76, 60, 0.1);
+        border-color: #c0392b;
+      }
+    }
+    
+    svg {
+      flex-shrink: 0;
+    }
+  }
+}
+
 
 .user-subscription-info {
   .subscription-badge {
@@ -250,5 +349,24 @@
     .remaining-label {
       color: #10a37f;
     }
+  }
+}
+
+// UserProfile overlay and mount point
+.user-profile-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  
+  .user-profile-mount {
+    // The Clerk UserProfile will mount here
+    // It will handle its own styling
   }
 }
