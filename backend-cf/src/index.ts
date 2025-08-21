@@ -9,8 +9,7 @@ import authRoutes from './routes/auth';
 import userRoutes from './routes/user';
 import usageRoutes from './routes/usage';
 import healthRoutes from './routes/health';
-import proxyRoutes from './routes/proxy';
-import realtimeRelay from './routes/realtime-relay';
+import v1Routes from './routes/v1';
 import { authMiddleware } from './middleware/auth';
 import { Env, HonoVariables } from './types';
 
@@ -78,21 +77,7 @@ app.route('/api/auth', authRoutes);
 app.route('/api/user', userRoutes);
 app.route('/api/usage', usageRoutes);
 app.route('/api/health', healthRoutes);
-
-// OpenAI-compatible proxy routes for Kizuna AI
-// WebSocket relay for Realtime API (CometAPI) with authentication
-app.all('/v1/realtime', authMiddleware, async (c) => {
-  console.log('[Main] Routing to realtime relay endpoint');
-  const userId = c.get('userId');
-  const userEmail = c.get('userEmail');
-  console.log('[Main] Authenticated user for realtime:', { userId, userEmail });
-  
-  // Pass user context to the WebSocket relay
-  return await realtimeRelay.fetch(c.req.raw, c.env, { userId, userEmail: userEmail || undefined });
-});
-
-// REST API proxy for all other OpenAI endpoints
-app.route('/v1', proxyRoutes);
+app.route('/v1', v1Routes);
 
 // WebSocket removed - quota sync now handled via HTTP polling in /api/usage routes
 
