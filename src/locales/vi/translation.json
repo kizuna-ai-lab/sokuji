@@ -15,7 +15,8 @@
     "clear": "Xóa",
     "off": "Tắt",
     "autoDetect": "Tự Động Phát Hiện",
-    "signIn": "Đăng nhập"
+    "signIn": "Đăng nhập",
+    "signUp": "Đăng ký"
   },
   "app": {
     "title": "Sokuji",

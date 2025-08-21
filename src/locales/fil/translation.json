@@ -15,7 +15,8 @@
     "clear": "Linisin",
     "off": "Patay",
     "autoDetect": "Awtomatikong Detekta",
-    "signIn": "Mag-sign In"
+    "signIn": "Mag-sign In",
+    "signUp": "Mag-sign Up"
   },
   "app": {
     "title": "Sokuji",

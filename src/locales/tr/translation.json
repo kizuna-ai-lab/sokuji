@@ -15,7 +15,8 @@
     "clear": "Temizle",
     "off": "Kapalı",
     "autoDetect": "Otomatik Algılama",
-    "signIn": "Giriş Yap"
+    "signIn": "Giriş Yap",
+    "signUp": "Kayıt Ol"
   },
   "app": {
     "title": "Sokuji",

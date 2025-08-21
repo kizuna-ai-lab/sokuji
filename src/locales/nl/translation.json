@@ -15,7 +15,9 @@
     "clear": "Wissen",
     "off": "Uit",
     "autoDetect": "Automatische Detectie",
-    "signIn": "Inloggen"
+    "signIn": "Inloggen",
+    "signUp": "Aanmelden",
+    "signInRequired": "Log in om Kizuna AI als uw provider te gebruiken"
   },
   "app": {
     "title": "Sokuji",

@@ -15,7 +15,9 @@
     "clear": "清除",
     "off": "關閉",
     "autoDetect": "自動辨識",
-    "signIn": "登入"
+    "signIn": "登入",
+    "signUp": "註冊",
+    "signInRequired": "請登入以使用Kizuna AI作為您的提供商"
   },
   "app": {
     "title": "Sokuji",

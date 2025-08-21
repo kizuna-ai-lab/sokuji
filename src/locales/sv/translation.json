@@ -15,7 +15,8 @@
     "clear": "Rensa",
     "off": "Av",
     "autoDetect": "Automatisk Detektion",
-    "signIn": "Logga in"
+    "signIn": "Logga in",
+    "signUp": "Registrera"
   },
   "app": {
     "title": "Sokuji",
