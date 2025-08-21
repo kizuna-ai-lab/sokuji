@@ -496,7 +496,7 @@ const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings, h
                 ) : (
                   <div className="api-key-warning">
                     <AlertCircle size={16} className="warning-icon" />
-                    <span>{t('simpleSettings.signInRequired', 'Please sign in to use Kizuna AI as your provider')}</span>
+                    <span>{t('common.signInRequired', 'Please sign in to use Kizuna AI as your provider')}</span>
                   </div>
                 )
               )}
