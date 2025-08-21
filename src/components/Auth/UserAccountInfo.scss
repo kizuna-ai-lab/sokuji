@@ -390,19 +390,34 @@
       color: #999;
     }
     
-    &.badge-basic {
+    &.badge-starter {
       background: #2a4e7c;
       color: #5ba0f2;
     }
     
-    &.badge-premium {
+    &.badge-essentials {
       background: #4a3c28;
       color: #f0b429;
     }
     
-    &.badge-enterprise {
+    &.badge-professional {
       background: #3c2a4a;
       color: #b77ff0;
+    }
+    
+    &.badge-business {
+      background: #2a4a3c;
+      color: #7ff0b7;
+    }
+    
+    &.badge-enterprise {
+      background: #4a2a3c;
+      color: #f07fb7;
+    }
+    
+    &.badge-unlimited {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #fff;
     }
   }
 }

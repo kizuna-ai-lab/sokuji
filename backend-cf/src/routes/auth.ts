@@ -342,10 +342,13 @@ async function handleUserDeleted(clerkUser: any, env: Env) {
 function getQuotaForPlan(plan: string): number {
   const quotas: Record<string, number> = {
     fallback: 0,
-    free_plan: 1000000,    // 1M tokens (plan slug format)
-    starter_plan: 10000000, // 10M tokens (plan slug format)
-    essentials_plan: 50000000, // 50M tokens (plan slug format)
-    enterprise_plan: -1         // Unlimited
+    free_plan: 1000000,           // 1M tokens (plan slug format)
+    starter_plan: 10000000,       // 10M tokens (plan slug format)
+    essentials_plan: 50000000,    // 50M tokens (plan slug format)
+    professional_plan: 100000000, // 100M tokens (plan slug format)
+    business_plan: 500000000,     // 500M tokens (plan slug format)
+    enterprise_plan: 1000000000,  // 1B tokens (plan slug format)
+    unlimited_plan: -1            // Unlimited
   };
   
   return quotas[plan] || quotas.fallback;

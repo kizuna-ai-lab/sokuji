@@ -12,6 +12,7 @@ interface QuotaData {
   used: number;
   remaining: number;
   resetDate?: string;
+  plan: string;  // Add plan field from backend API
 }
 
 interface UserProfileContextValue {
@@ -22,7 +23,7 @@ interface UserProfileContextValue {
     firstName?: string;
     lastName?: string;
     imageUrl?: string;
-    subscription: 'free' | 'basic' | 'premium' | 'enterprise';
+    subscription: 'free' | 'starter' | 'essentials' | 'professional' | 'business' | 'enterprise' | 'unlimited';
     createdAt: number;
     updatedAt: number;
   } | null;
@@ -59,13 +60,14 @@ export function UserProfileProvider({ children }: UserProfileProviderProps) {
   const [error, setError] = useState<string | null>(null);
 
   // Transform Clerk user data to our format
+  // Note: subscription now comes from quota API, not from Clerk publicMetadata
   const user = clerkUser ? {
     id: clerkUser.id,
     email: clerkUser.primaryEmailAddress?.emailAddress || '',
     firstName: clerkUser.firstName || undefined,
     lastName: clerkUser.lastName || undefined,
     imageUrl: clerkUser.imageUrl || undefined,
-    subscription: (clerkUser.publicMetadata?.subscription as 'free' | 'basic' | 'premium' | 'enterprise') || 'free',
+    subscription: (quota?.plan as 'free' | 'starter' | 'essentials' | 'professional' | 'business' | 'enterprise' | 'unlimited') || 'free',  // Get from quota API
     createdAt: clerkUser.createdAt?.getTime() || Date.now(),
     updatedAt: clerkUser.updatedAt?.getTime() || Date.now()
   } : null;

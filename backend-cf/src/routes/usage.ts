@@ -16,9 +16,9 @@ const app = new Hono<{ Bindings: Env; Variables: HonoVariables }>();
 app.get('/quota', authMiddleware, async (c) => {
   const userId = c.get('userId');
   
-  // Get user quota from database
+  // Get user quota and subscription from database
   const user = await c.env.DB.prepare(
-    'SELECT id, token_quota FROM users WHERE clerk_id = ?'
+    'SELECT id, token_quota, subscription FROM users WHERE clerk_id = ?'
   ).bind(userId).first();
   
   if (!user) {
@@ -35,11 +35,14 @@ app.get('/quota', authMiddleware, async (c) => {
   `).bind(user.id, currentMonth).first();
   
   const tokensUsed = (usageResult?.used as number) || 0;
+  // Remove '_plan' suffix from subscription for frontend display
+  const plan = (user.subscription as string || 'free').replace(/_plan$/, '');
   const quota = {
     total: user.token_quota,
     used: tokensUsed,
     remaining: user.token_quota === -1 ? -1 : Math.max(0, (user.token_quota as number) - tokensUsed),
-    resetDate: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1).toISOString()
+    resetDate: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1).toISOString(),
+    plan: plan  // Return plan without '_plan' suffix
   };
   
   return c.json(quota);

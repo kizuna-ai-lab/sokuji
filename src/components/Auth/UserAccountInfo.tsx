@@ -38,8 +38,8 @@ export function UserAccountInfo({
     return null;
   }
 
-  // Get subscription from user data
-  const subscription = user.subscription;
+  // Get subscription from quota data (primary source) or user data (fallback)
+  const subscription = quota?.plan || user?.subscription || 'free';
 
   if (compact) {
     return (
@@ -150,7 +150,7 @@ export function UserAccountInfo({
             <div className="quota-header">
               <h4>Token Usage</h4>
               <span className={`badge badge-inline badge-${subscription}`}>
-                {subscription.charAt(0).toUpperCase() + subscription.slice(1)}
+                {subscription.toUpperCase()}
               </span>
             </div>
 

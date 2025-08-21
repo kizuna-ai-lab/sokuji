@@ -223,10 +223,13 @@ export async function ensureUserExists(userId: string, env: Env): Promise<boolea
  */
 function getQuotaForPlan(plan: string): number {
   const quotas: Record<string, number> = {
-    free: 1000000,      // 1M tokens
-    basic: 10000000,    // 10M tokens
-    premium: 50000000,  // 50M tokens
-    enterprise: -1      // Unlimited
+    free: 1000000,           // 1M tokens
+    starter: 10000000,       // 10M tokens
+    essentials: 50000000,    // 50M tokens
+    professional: 100000000, // 100M tokens
+    business: 500000000,     // 500M tokens
+    enterprise: 1000000000,  // 1B tokens
+    unlimited: -1            // Unlimited
   };
   return quotas[plan] || quotas.free;
 }
