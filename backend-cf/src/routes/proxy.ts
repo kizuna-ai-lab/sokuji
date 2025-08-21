@@ -12,7 +12,7 @@ const app = new Hono<{ Bindings: Env; Variables: HonoVariables }>();
 
 /**
  * Handle REST API proxy for CometAPI endpoints (OpenAI-compatible)
- * Forwards regular HTTP requests to CometAPI with authentication
+ * Only allows /models endpoint - all others are rejected
  */
 app.all('/*', authMiddleware, async (c) => {
   const startTime = Date.now();
@@ -30,11 +30,20 @@ app.all('/*', authMiddleware, async (c) => {
     contentType: c.req.header('Content-Type')
   });
   
-  console.log('[Proxy] User authenticated, proceeding with request');
-
   // Parse the path to get the API endpoint
   // Remove the /v1 prefix if present to get the clean path
   const path = url.pathname.replace(/^\/v1/, '');
+  
+  // Only allow /models endpoint
+  if (path !== '/models') {
+    console.log('[Proxy] Rejected unauthorized endpoint:', path);
+    return c.json({ 
+      error: 'Forbidden',
+      message: 'Only /v1/models and /v1/realtime endpoints are allowed'
+    }, 403);
+  }
+  
+  console.log('[Proxy] User authenticated, proceeding with models request');
   
   // Forward to CometAPI (OpenAI-compatible)
   const cometAPIUrl = `https://api.cometapi.com/v1${path}${url.search}`;
