@@ -232,7 +232,13 @@
         }
       }
 
-      // Provider Info
+      // Provider Selection Area
+      .provider-selection-area {
+        margin-bottom: 16px;
+        position: relative;
+      }
+
+      // Provider Info (Main Card)
       .provider-info {
         display: flex;
         align-items: center;
@@ -240,7 +246,29 @@
         padding: 12px;
         background: #333;
         border-radius: 4px;
-        margin-bottom: 16px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        user-select: none;
+
+        &:hover:not(.disabled) {
+          background: #3a3a3a;
+        }
+
+        &.expanded {
+          background: #3a3a3a;
+          border-bottom-left-radius: 0;
+          border-bottom-right-radius: 0;
+        }
+
+        &.disabled {
+          cursor: not-allowed;
+          opacity: 0.6;
+          background: #2a2a2a;
+          
+          .provider-details .provider-toggle {
+            display: none;
+          }
+        }
 
         .provider-icon {
           color: #888;
@@ -253,16 +281,105 @@
 
         .provider-details {
           flex: 1;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
 
-          .provider-name {
-            font-size: 16px;
-            font-weight: 600;
-            margin-bottom: 2px;
+          .provider-main-info {
+            flex: 1;
+
+            .provider-name {
+              font-size: 16px;
+              font-weight: 600;
+              margin-bottom: 2px;
+              color: #fff;
+            }
+
+            .provider-description {
+              font-size: 12px;
+              color: #888;
+              line-height: 1.3;
+            }
           }
 
-          .provider-description {
-            font-size: 14px;
+          .provider-toggle {
             color: #888;
+            transition: color 0.2s ease;
+            
+            &:hover {
+              color: #fff;
+            }
+          }
+        }
+      }
+
+      // Provider Options (Expanded List)
+      .provider-options {
+        background: #2a2a2a;
+        border: 1px solid #3a3a3a;
+        border-top: none;
+        border-radius: 0 0 4px 4px;
+        max-height: 300px;
+        overflow-y: auto;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        animation: slideDown 0.15s ease-out;
+
+        @keyframes slideDown {
+          from {
+            opacity: 0;
+            transform: translateY(-4px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        .provider-option {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 10px 12px;
+          cursor: pointer;
+          transition: background-color 0.15s ease;
+          border-bottom: 1px solid #333;
+
+          &:last-child {
+            border-bottom: none;
+          }
+
+          &:hover {
+            background: #333;
+          }
+
+          &:active {
+            background: #3a3a3a;
+          }
+
+          .provider-option-icon {
+            color: #888;
+            
+            svg {
+              width: 20px;
+              height: 20px;
+            }
+          }
+
+          .provider-option-details {
+            flex: 1;
+
+            .provider-option-name {
+              font-size: 14px;
+              font-weight: 500;
+              color: #fff;
+              margin-bottom: 1px;
+            }
+
+            .provider-option-description {
+              font-size: 11px;
+              color: #aaa;
+              line-height: 1.2;
+            }
           }
         }
       }
