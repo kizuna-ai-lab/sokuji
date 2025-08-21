@@ -5,7 +5,7 @@
 import {useEffect, useRef, useState} from 'react';
 import {SignOutButton, useClerk, useUser} from '../../lib/clerk/ClerkProvider';
 import {useUserProfile} from '../../contexts/UserProfileContext';
-import {AlertCircle, LogOut, Settings} from 'lucide-react';
+import {AlertCircle, LogOut, UserCog} from 'lucide-react';
 import {formatDate, formatPercentage, formatTokens, getQuotaWarningLevel} from '../../utils/formatters';
 import './UserAccountInfo.scss';
 
@@ -93,9 +93,9 @@ export function UserAccountInfo({
   };
 
   return (
-    <div className="user-account">
-      {/* User Profile Section */}
-      <div className="user-header">
+    <div className="user-account user-account-compact-layout">
+      {/* Combined User Profile and Actions */}
+      <div className="user-header-compact">
         <div className="user-avatar">
           {clerkUser?.imageUrl ? (
             <img src={clerkUser.imageUrl} alt={user.firstName || 'User'} />
@@ -113,23 +113,23 @@ export function UserAccountInfo({
           </h3>
           <p className="user-email">{user.email}</p>
         </div>
-      </div>
-
-      {/* Action Buttons */}
-      <div className="user-actions">
-        <button 
-          className="action-button manage-account"
-          onClick={handleManageAccount}
-        >
-          <Settings size={16} />
-          <span>Manage Account</span>
-        </button>
-        <SignOutButton>
-          <button className="action-button sign-out">
-            <LogOut size={16} />
-            <span>Sign Out</span>
+        <div className="user-actions-compact">
+          <button 
+            className="action-button-compact manage-account"
+            onClick={handleManageAccount}
+            title="Manage Account"
+          >
+            <UserCog size={14} />
           </button>
-        </SignOutButton>
+          <SignOutButton>
+            <button 
+              className="action-button-compact sign-out"
+              title="Sign Out"
+            >
+              <LogOut size={14} />
+            </button>
+          </SignOutButton>
+        </div>
       </div>
 
       {/* Quota Status Section */}
@@ -145,25 +145,13 @@ export function UserAccountInfo({
           </div>
         ) : (
           <>
-            {/* Quota Warning */}
-            {showWarning && warningLevel !== 'normal' && (
-              <div className={`quota-warning warning-${warningLevel === 'critical' ? 'exceeded' : 'low'}`}>
-                <AlertCircle size={14} />
-                <span>
-                  {warningLevel === 'critical' 
-                    ? `You've used ${usagePercentage}% of your monthly quota`
-                    : `Approaching quota limit: ${usagePercentage}% used`
-                  }
-                </span>
-              </div>
-            )}
 
-            {/* Quota Display */}
+            {/* Quota Display with Subscription Badge */}
             <div className="quota-header">
               <h4>Token Usage</h4>
-              {quota.resetDate && (
-                <span className="reset-date">Resets {formatDate(quota.resetDate)}</span>
-              )}
+              <span className={`badge badge-inline badge-${subscription}`}>
+                {subscription.charAt(0).toUpperCase() + subscription.slice(1)}
+              </span>
             </div>
 
             <div className="quota-details">
@@ -189,22 +177,16 @@ export function UserAccountInfo({
         )}
       </div>
 
-      <div className="user-subscription-info">
-        <div className="subscription-badge">
-          <span className={`badge badge-${subscription}`}>
-            {subscription.charAt(0).toUpperCase() + subscription.slice(1)} Plan
-          </span>
-        </div>
-
-        {subscription === 'free' && onManageSubscription && (
+      {subscription === 'free' && onManageSubscription && (
+        <div className="upgrade-section">
           <button 
             className="upgrade-button"
             onClick={onManageSubscription}
           >
             Upgrade to Premium
           </button>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* UserProfile mounting point with overlay */}
       {isProfileMounted && (

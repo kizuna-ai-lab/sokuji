@@ -73,7 +73,7 @@
       position: relative;
       
       .sign-in-prompt {
-        padding: 20px;
+        padding: 12px;
         background: #1a1a1a;
         border: 1px solid #333;
         border-radius: 8px;
@@ -81,29 +81,22 @@
         
         p {
           color: #999;
-          font-size: 14px;
-          margin: 0 0 16px 0;
-        }
-        
-        .sign-in-description {
-          color: #777;
           font-size: 13px;
-          margin: -8px 0 16px 0;
-          font-style: italic;
+          margin: 0 0 10px 0;
         }
         
         .auth-buttons {
           display: flex;
-          gap: 12px;
+          gap: 10px;
           justify-content: center;
         }
         
         .sign-in-button,
         .sign-up-button {
-          padding: 10px 24px;
+          padding: 8px 20px;
           border: none;
           border-radius: 4px;
-          font-size: 14px;
+          font-size: 13px;
           font-weight: 500;
           cursor: pointer;
           transition: background 0.2s;

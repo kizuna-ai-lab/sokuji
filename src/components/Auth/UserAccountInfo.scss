@@ -77,10 +77,14 @@
 
 // Full account view
 .user-account {
-  padding: 20px;
+  padding: 16px;
   background: #1a1a1a;
   border-radius: 8px;
   border: 1px solid #333;
+  
+  &.user-account-compact-layout {
+    padding: 12px;
+  }
 }
 
 .user-header {
@@ -116,19 +120,112 @@
   }
 }
 
+// Compact header with inline actions
+.user-header-compact {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  
+  .user-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    overflow: hidden;
+    flex-shrink: 0;
+    
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    
+    .avatar-placeholder {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #10a37f;
+      color: #fff;
+      font-weight: 600;
+      font-size: 14px;
+    }
+  }
+  
+  .user-info {
+    flex: 1;
+    min-width: 0;
+    
+    .user-name {
+      font-size: 14px;
+      font-weight: 600;
+      color: #fff;
+      margin: 0 0 2px 0;
+    }
+    
+    .user-email {
+      font-size: 12px;
+      color: #999;
+      margin: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  }
+  
+  .user-actions-compact {
+    display: flex;
+    gap: 8px;
+    
+    .action-button-compact {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      padding: 0;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.2s;
+      
+      &.manage-account {
+        background: #10a37f;
+        color: #fff;
+        
+        &:hover {
+          background: #0e8f6f;
+        }
+      }
+      
+      &.sign-out {
+        background: transparent;
+        color: #e74c3c;
+        border: 1px solid #e74c3c;
+        
+        &:hover {
+          background: rgba(231, 76, 60, 0.1);
+          border-color: #c0392b;
+        }
+      }
+    }
+  }
+}
+
 .user-info {
   flex: 1;
   min-width: 0;
   
   .user-name {
-    font-size: 18px;
+    font-size: 16px;
     font-weight: 600;
     color: #fff;
-    margin: 0 0 4px 0;
+    margin: 0 0 2px 0;
   }
   
   .user-email {
-    font-size: 14px;
+    font-size: 13px;
     color: #999;
     margin: 0;
   }
@@ -183,46 +280,17 @@
 }
 
 
-.user-subscription-info {
-  .subscription-badge {
-    .badge {
-      display: inline-block;
-      padding: 6px 12px;
-      border-radius: 4px;
-      font-size: 12px;
-      font-weight: 600;
-      text-transform: uppercase;
-      
-      &.badge-free {
-        background: #333;
-        color: #999;
-      }
-      
-      &.badge-basic {
-        background: #2a4e7c;
-        color: #5ba0f2;
-      }
-      
-      &.badge-premium {
-        background: #4a3c28;
-        color: #f0b429;
-      }
-      
-      &.badge-enterprise {
-        background: #3c2a4a;
-        color: #b77ff0;
-      }
-    }
-  }
+.upgrade-section {
+  margin-top: 8px;
   
   .upgrade-button {
     width: 100%;
-    padding: 10px;
+    padding: 8px;
     background: #10a37f;
     color: #fff;
     border: none;
     border-radius: 4px;
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 500;
     cursor: pointer;
     transition: background 0.2s;
@@ -235,7 +303,7 @@
 
 // Quota Status Section
 .quota-status-section {
-  margin-bottom: 20px;
+  margin-bottom: 12px;
 }
 
 .quota-loading {
@@ -295,10 +363,10 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
   
   h4 {
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 600;
     color: #fff;
     margin: 0;
@@ -308,6 +376,35 @@
     font-size: 11px;
     color: #999;
   }
+  
+  .badge-inline {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 3px;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    
+    &.badge-free {
+      background: #333;
+      color: #999;
+    }
+    
+    &.badge-basic {
+      background: #2a4e7c;
+      color: #5ba0f2;
+    }
+    
+    &.badge-premium {
+      background: #4a3c28;
+      color: #f0b429;
+    }
+    
+    &.badge-enterprise {
+      background: #3c2a4a;
+      color: #b77ff0;
+    }
+  }
 }
 
 .quota-details {
@@ -316,11 +413,11 @@
   }
   
   .quota-bar {
-    height: 8px;
+    height: 6px;
     background: #333;
-    border-radius: 4px;
+    border-radius: 3px;
     overflow: hidden;
-    margin-bottom: 8px;
+    margin-bottom: 6px;
     
     .quota-progress {
       height: 100%;
@@ -336,7 +433,7 @@
   .quota-labels {
     display: flex;
     justify-content: space-between;
-    font-size: 12px;
+    font-size: 11px;
     color: #999;
     
     .usage-label {

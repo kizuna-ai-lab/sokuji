@@ -317,7 +317,6 @@ const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings, h
           <SignedOut>
             <div className="sign-in-prompt">
               <p>{t('simpleConfig.signInRequired', 'You can use your own AI provider and API key without logging in, or sign up to purchase and use kizuna.ai\'s API service.')}</p>
-              <p className="sign-in-description">{t('simpleConfig.signInDescription', 'Sign up for a convenient experience without complex configuration.')}</p>
               <div className="auth-buttons">
                 <button 
                   className="sign-in-button"
