@@ -36,7 +36,7 @@ export interface User {
   first_name?: string;
   last_name?: string;
   image_url?: string;
-  subscription: 'free' | 'basic' | 'premium' | 'enterprise';
+  subscription: 'free' | 'starter' | 'essentials' | 'professional' | 'business' | 'enterprise' | 'unlimited';
   token_quota: number;
   tokens_used: number;
   created_at: string;
