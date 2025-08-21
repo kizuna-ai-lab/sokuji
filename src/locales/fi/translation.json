@@ -15,7 +15,8 @@
     "clear": "Tyhjennä",
     "off": "Pois",
     "autoDetect": "Automaattinen tunnistus",
-    "signIn": "Kirjaudu sisään"
+    "signIn": "Kirjaudu sisään",
+    "signUp": "Rekisteröidy"
   },
   "app": {
     "title": "Sokuji",

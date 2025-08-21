@@ -15,7 +15,8 @@
     "clear": "পরিষ্কার",
     "off": "বন্ধ",
     "autoDetect": "স্বয়ংক্রিয় সনাক্তকরণ",
-    "signIn": "সাইন ইন"
+    "signIn": "সাইন ইন",
+    "signUp": "সাইন আপ"
   },
   "app": {
     "title": "Sokuji",

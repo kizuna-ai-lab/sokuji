@@ -15,7 +15,9 @@
     "clear": "クリア",
     "off": "オフ",
     "autoDetect": "自動検出",
-    "signIn": "サインイン"
+    "signIn": "サインイン",
+    "signUp": "サインアップ",
+    "signInRequired": "Kizuna AIをプロバイダーとして使用するにはサインインしてください"
   },
   "app": {
     "title": "Sokuji",

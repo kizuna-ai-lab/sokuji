@@ -15,7 +15,9 @@
     "clear": "Clear",
     "off": "Off",
     "autoDetect": "Auto Detect",
-    "signIn": "Sign In"
+    "signIn": "Sign In",
+    "signUp": "Sign Up",
+    "signInRequired": "Please sign in to use Kizuna AI as your provider"
   },
   "app": {
     "title": "Sokuji",
@@ -216,7 +218,6 @@
     "realVoiceVolume": "Original Audio Volume"
   },
   "auth": {
-    "signInRequired": "Sign in required for Kizuna AI",
     "signInToUseKizunaAI": "Please sign in to use Kizuna AI service",
     "authenticationManaged": "Authentication managed automatically",
     "fetchingApiKey": "Fetching API key...",
@@ -232,8 +233,8 @@
     "yourLanguage": "Your Language",
     "userAccount": "User Account",
     "userAccountTooltip": "For users with technical knowledge and their own API keys, you can use your own API key whether logged in or not. User Account is designed for new users who prefer a simplified setup without complex configuration.",
-    "signInRequired": "You can use your own AI provider and API key without logging in, or sign up to purchase and use kizuna.ai's API service.",
     "signInDescription": "Sign up for a convenient experience without complex configuration.",
+    "signInRequired": "You can use your own AI provider and API key without logging in, or sign up to purchase and use kizuna.ai's API service.",
     "targetLanguage": "Target Language",
     "microphone": "Microphone",
     "microphoneDesc": "Select the microphone to capture your speech. Speak your language into this microphone, and Sokuji will translate everything it hears in real-time.",
@@ -319,7 +320,6 @@
     "statusNoApiKey": "Please configure your API key in settings",
     "statusNoMic": "Please select a microphone in audio settings",
     "statusConnecting": "Connecting to translation service...",
-    "signInRequired": "Sign in required",
     "signInToStart": "Please sign in to start translation",
     "statusConnected": "Ready to translate",
     "statusDisconnected": "Click start to begin translation",

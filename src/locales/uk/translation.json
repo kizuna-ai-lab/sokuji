@@ -15,7 +15,8 @@
     "clear": "Очистити",
     "off": "Вимкнено",
     "autoDetect": "Автовиявлення",
-    "signIn": "Увійти"
+    "signIn": "Увійти",
+    "signUp": "Реєстрація"
   },
   "app": {
     "title": "Sokuji",

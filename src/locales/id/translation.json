@@ -15,7 +15,9 @@
     "clear": "Hapus",
     "off": "Mati",
     "autoDetect": "Deteksi Otomatis",
-    "signIn": "Masuk"
+    "signIn": "Masuk",
+    "signUp": "Daftar",
+    "signInRequired": "Silakan masuk untuk menggunakan Kizuna AI sebagai penyedia Anda"
   },
   "app": {
     "title": "Sokuji",

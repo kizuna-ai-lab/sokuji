@@ -15,7 +15,8 @@
     "clear": "Wyczyść",
     "off": "Wyłącz",
     "autoDetect": "Automatyczne Wykrywanie",
-    "signIn": "Zaloguj się"
+    "signIn": "Zaloguj się",
+    "signUp": "Zarejestruj się"
   },
   "app": {
     "title": "Sokuji",

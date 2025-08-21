@@ -15,7 +15,8 @@
     "clear": "Limpar",
     "off": "Desligado",
     "autoDetect": "Detecção Automática",
-    "signIn": "Iniciar Sessão"
+    "signIn": "Iniciar Sessão",
+    "signUp": "Registar"
   },
   "app": {
     "title": "Sokuji",

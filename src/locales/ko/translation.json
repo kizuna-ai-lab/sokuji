@@ -15,7 +15,9 @@
     "clear": "지우기",
     "off": "끄기",
     "autoDetect": "자동 감지",
-    "signIn": "로그인"
+    "signIn": "로그인",
+    "signUp": "가입",
+    "signInRequired": "Kizuna AI를 제공업체로 사용하려면 로그인하세요"
   },
   "app": {
     "title": "Sokuji",
