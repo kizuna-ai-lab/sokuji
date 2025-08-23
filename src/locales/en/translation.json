@@ -481,5 +481,12 @@
         "content": "Great! You've completed the setup guide and are now familiar with the interface. To start using Sokuji, please enter your OpenAI API key in the settings, grant microphone permissions when prompted, and select \"Sokuji Virtual Microphone\" as your microphone in your meeting application (Google Meet, Zoom, Microsoft Teams, etc.). You can restart this guide anytime from the settings."
       }
     }
+  },
+  "tokenUsage": {
+    "title": "Token Usage",
+    "used": "used",
+    "remaining": "remaining",
+    "unableToLoadQuota": "Unable to load quota information",
+    "upgradeToPremium": "Upgrade to Premium"
   }
 } 

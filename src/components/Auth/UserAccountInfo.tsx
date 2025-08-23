@@ -7,6 +7,7 @@ import {SignOutButton, useClerk, useUser} from '../../lib/clerk/ClerkProvider';
 import {useUserProfile} from '../../contexts/UserProfileContext';
 import {AlertCircle, LogOut, UserCog} from 'lucide-react';
 import {formatDate, formatPercentage, formatTokens, getQuotaWarningLevel} from '../../utils/formatters';
+import {useTranslation} from 'react-i18next';
 import './UserAccountInfo.scss';
 
 interface UserAccountInfoProps {
@@ -20,6 +21,7 @@ export function UserAccountInfo({
   showWarning = true,
   onManageSubscription 
 }: UserAccountInfoProps) {
+  const { t } = useTranslation();
   const { isLoaded, isSignedIn, user: clerkUser } = useUser();
   const clerk = useClerk();
   
@@ -68,11 +70,24 @@ export function UserAccountInfo({
   
   // Refs and state for UserProfile mounting
   const userProfileDivRef = useRef<HTMLDivElement>(null);
+  const subscriptionProfileDivRef = useRef<HTMLDivElement>(null);
   const [isProfileMounted, setIsProfileMounted] = useState(false);
+  const [isSubscriptionProfileMounted, setIsSubscriptionProfileMounted] = useState(false);
 
   // Handle manage account click - just show the overlay
   const handleManageAccount = () => {
     setIsProfileMounted(true);
+  };
+
+  // Handle manage subscription click - show UserProfile with billing section
+  const handleManageSubscriptionClick = () => {
+    if (onManageSubscription) {
+      // Use custom handler if provided
+      onManageSubscription();
+    } else {
+      // Default: open UserProfile with billing/subscription section
+      setIsSubscriptionProfileMounted(true);
+    }
   };
 
   // Mount UserProfile after the div is rendered
@@ -82,12 +97,32 @@ export function UserAccountInfo({
     }
   }, [isProfileMounted, clerk]);
 
+  // Mount UserProfile for subscription management
+  useEffect(() => {
+    if (isSubscriptionProfileMounted && subscriptionProfileDivRef.current && clerk) {
+      // Mount with experimental start path to open billing/subscription section
+      clerk.mountUserProfile(subscriptionProfileDivRef.current, {
+        __experimental_startPath: '/billing'
+      });
+    }
+  }, [isSubscriptionProfileMounted, clerk]);
+
   // Handle close - unmount UserProfile and refresh data
   const handleCloseProfile = () => {
     if (userProfileDivRef.current && clerk) {
       clerk.unmountUserProfile(userProfileDivRef.current);
     }
     setIsProfileMounted(false);
+    // Refresh both profile and quota data when closing
+    refetchAll();
+  };
+
+  // Handle close for subscription profile
+  const handleCloseSubscriptionProfile = () => {
+    if (subscriptionProfileDivRef.current && clerk) {
+      clerk.unmountUserProfile(subscriptionProfileDivRef.current);
+    }
+    setIsSubscriptionProfileMounted(false);
     // Refresh both profile and quota data when closing
     refetchAll();
   };
@@ -141,14 +176,14 @@ export function UserAccountInfo({
         ) : !quota ? (
           <div className="quota-error">
             <AlertCircle size={14} />
-            <span>Unable to load quota information</span>
+            <span>{t('tokenUsage.unableToLoadQuota')}</span>
           </div>
         ) : (
           <>
 
             {/* Quota Display with Subscription Badge */}
             <div className="quota-header">
-              <h4>Token Usage</h4>
+              <h4>{t('tokenUsage.title')}</h4>
               <span className={`badge badge-inline badge-${subscription}`}>
                 {subscription.toUpperCase()}
               </span>
@@ -166,10 +201,10 @@ export function UserAccountInfo({
 
               <div className="quota-labels">
                 <div className="usage-label">
-                  <span>{formatTokens(quota.used)} used</span>
+                  <span>{formatTokens(quota.used)} {t('tokenUsage.used')}</span>
                 </div>
                 <div className="remaining-label">
-                  {formatTokens(quota.remaining)} remaining
+                  {formatTokens(quota.remaining)} {t('tokenUsage.remaining')}
                 </div>
               </div>
             </div>
@@ -177,13 +212,13 @@ export function UserAccountInfo({
         )}
       </div>
 
-      {subscription === 'free' && onManageSubscription && (
+      {subscription === 'free' && (
         <div className="upgrade-section">
           <button 
             className="upgrade-button"
-            onClick={onManageSubscription}
+            onClick={handleManageSubscriptionClick}
           >
-            Upgrade to Premium
+            {t('tokenUsage.upgradeToPremium')}
           </button>
         </div>
       )}
@@ -193,6 +228,17 @@ export function UserAccountInfo({
         <div className="user-profile-overlay" onClick={handleCloseProfile}>
           <div 
             ref={userProfileDivRef} 
+            className="user-profile-mount"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
+
+      {/* Subscription UserProfile mounting point with overlay */}
+      {isSubscriptionProfileMounted && (
+        <div className="user-profile-overlay" onClick={handleCloseSubscriptionProfile}>
+          <div 
+            ref={subscriptionProfileDivRef} 
             className="user-profile-mount"
             onClick={(e) => e.stopPropagation()}
           />

@@ -414,5 +414,12 @@
       "feature3": "すべての設定を完全にコントロール",
       "action": "アドバンスドモードで始める"
     }
+  },
+  "tokenUsage": {
+    "title": "トークン使用状況",
+    "used": "使用済み",
+    "remaining": "残り",
+    "unableToLoadQuota": "クォータ情報を読み込めません",
+    "upgradeToPremium": "プレミアムにアップグレード"
   }
 }

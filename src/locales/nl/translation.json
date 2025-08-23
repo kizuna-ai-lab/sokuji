@@ -412,5 +412,12 @@
       "feature3": "Volledige controle over alle instellingen",
       "action": "Begin met Geavanceerde Modus"
     }
+  },
+  "tokenUsage": {
+    "title": "Tokengebruik",
+    "used": "gebruikt",
+    "remaining": "resterend",
+    "unableToLoadQuota": "Kan quota-informatie niet laden",
+    "upgradeToPremium": "Upgrade naar Premium"
   }
 }

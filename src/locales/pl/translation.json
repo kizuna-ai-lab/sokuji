@@ -410,5 +410,12 @@
       "feature3": "Pełna kontrola nad wszystkimi ustawieniami",
       "action": "Rozpocznij z Trybem Zaawansowanym"
     }
+  },
+  "tokenUsage": {
+    "title": "Użycie tokenów",
+    "used": "użyte",
+    "remaining": "pozostałe",
+    "unableToLoadQuota": "Nie można załadować informacji o limicie",
+    "upgradeToPremium": "Uaktualnij do Premium"
   }
 }

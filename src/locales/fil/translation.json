@@ -327,5 +327,12 @@
       "feature3": "Kumpletong kontrol sa lahat ng settings",
       "action": "Simulan sa Advanced Mode"
     }
+  },
+  "tokenUsage": {
+    "title": "Paggamit ng Token",
+    "used": "nagamit",
+    "remaining": "natitira",
+    "unableToLoadQuota": "Hindi ma-load ang impormasyon ng quota",
+    "upgradeToPremium": "Mag-upgrade sa Premium"
   }
 }

@@ -414,5 +414,12 @@
       "feature3": "Vollständige Kontrolle über alle Einstellungen",
       "action": "Mit dem erweiterten Modus beginnen"
     }
+  },
+  "tokenUsage": {
+    "title": "Token-Nutzung",
+    "used": "verwendet",
+    "remaining": "verbleibend",
+    "unableToLoadQuota": "Kontingentinformationen können nicht geladen werden",
+    "upgradeToPremium": "Auf Premium upgraden"
   }
 }

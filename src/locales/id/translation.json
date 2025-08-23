@@ -410,5 +410,12 @@
       "feature3": "Kontrol penuh atas semua pengaturan",
       "action": "Mulai dengan Mode Lanjutan"
     }
+  },
+  "tokenUsage": {
+    "title": "Penggunaan Token",
+    "used": "digunakan",
+    "remaining": "tersisa",
+    "unableToLoadQuota": "Tidak dapat memuat informasi kuota",
+    "upgradeToPremium": "Tingkatkan ke Premium"
   }
 }
