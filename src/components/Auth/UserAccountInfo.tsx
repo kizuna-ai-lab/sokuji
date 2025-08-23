@@ -2,24 +2,20 @@
  * Unified user account information component that combines user profile and quota status
  */
 
-import {useEffect, useRef, useState} from 'react';
+import {useEffect} from 'react';
 import {SignOutButton, useClerk, useUser} from '../../lib/clerk/ClerkProvider';
 import {useUserProfile} from '../../contexts/UserProfileContext';
 import {AlertCircle, LogOut, UserCog} from 'lucide-react';
-import {formatDate, formatPercentage, formatTokens, getQuotaWarningLevel} from '../../utils/formatters';
+import {formatPercentage, formatTokens} from '../../utils/formatters';
 import {useTranslation} from 'react-i18next';
 import './UserAccountInfo.scss';
 
 interface UserAccountInfoProps {
   compact?: boolean;
-  showWarning?: boolean;
-  onManageSubscription?: () => void;
 }
 
 export function UserAccountInfo({ 
-  compact = false, 
-  showWarning = true,
-  onManageSubscription 
+  compact = false
 }: UserAccountInfoProps) {
   const { t } = useTranslation();
   const { isLoaded, isSignedIn, user: clerkUser } = useUser();
@@ -65,67 +61,46 @@ export function UserAccountInfo({
 
 
   // Quota data and calculations
-  const warningLevel = quota ? getQuotaWarningLevel(quota.used, quota.total) : 'normal';
   const usagePercentage = quota ? formatPercentage(quota.used, quota.total) : 0;
   
-  // Refs and state for UserProfile mounting
-  const userProfileDivRef = useRef<HTMLDivElement>(null);
-  const subscriptionProfileDivRef = useRef<HTMLDivElement>(null);
-  const [isProfileMounted, setIsProfileMounted] = useState(false);
-  const [isSubscriptionProfileMounted, setIsSubscriptionProfileMounted] = useState(false);
-
-  // Handle manage account click - just show the overlay
+  // Handle manage account click - open UserProfile modal
   const handleManageAccount = () => {
-    setIsProfileMounted(true);
+    clerk.openUserProfile();
   };
 
   // Handle manage subscription click - show UserProfile with billing section
   const handleManageSubscriptionClick = () => {
-    if (onManageSubscription) {
-      // Use custom handler if provided
-      onManageSubscription();
-    } else {
-      // Default: open UserProfile with billing/subscription section
-      setIsSubscriptionProfileMounted(true);
-    }
+    clerk.openUserProfile({
+      __experimental_startPath: '/billing'
+    });
   };
 
-  // Mount UserProfile after the div is rendered
+  // Monitor for Clerk modal close using MutationObserver
   useEffect(() => {
-    if (isProfileMounted && userProfileDivRef.current && clerk) {
-      clerk.mountUserProfile(userProfileDivRef.current);
-    }
-  }, [isProfileMounted, clerk]);
-
-  // Mount UserProfile for subscription management
-  useEffect(() => {
-    if (isSubscriptionProfileMounted && subscriptionProfileDivRef.current && clerk) {
-      // Mount with experimental start path to open billing/subscription section
-      clerk.mountUserProfile(subscriptionProfileDivRef.current, {
-        __experimental_startPath: '/billing'
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        // Check if nodes were removed
+        mutation.removedNodes.forEach((node) => {
+          // Check if the removed node is the Clerk modal backdrop
+          if (node.nodeType === Node.ELEMENT_NODE && 
+              (node as Element).classList && 
+              (node as Element).classList.contains('cl-modalBackdrop')) {
+            // Modal was closed, refresh data
+            refetchAll();
+          }
+        });
       });
-    }
-  }, [isSubscriptionProfileMounted, clerk]);
+    });
 
-  // Handle close - unmount UserProfile and refresh data
-  const handleCloseProfile = () => {
-    if (userProfileDivRef.current && clerk) {
-      clerk.unmountUserProfile(userProfileDivRef.current);
-    }
-    setIsProfileMounted(false);
-    // Refresh both profile and quota data when closing
-    refetchAll();
-  };
+    // Start observing the document body for child list changes
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true
+    });
 
-  // Handle close for subscription profile
-  const handleCloseSubscriptionProfile = () => {
-    if (subscriptionProfileDivRef.current && clerk) {
-      clerk.unmountUserProfile(subscriptionProfileDivRef.current);
-    }
-    setIsSubscriptionProfileMounted(false);
-    // Refresh both profile and quota data when closing
-    refetchAll();
-  };
+    // Cleanup observer on unmount
+    return () => observer.disconnect();
+  }, [refetchAll]);
 
   return (
     <div className="user-account user-account-compact-layout">
@@ -223,27 +198,6 @@ export function UserAccountInfo({
         </div>
       )}
 
-      {/* UserProfile mounting point with overlay */}
-      {isProfileMounted && (
-        <div className="user-profile-overlay" onClick={handleCloseProfile}>
-          <div 
-            ref={userProfileDivRef} 
-            className="user-profile-mount"
-            onClick={(e) => e.stopPropagation()}
-          />
-        </div>
-      )}
-
-      {/* Subscription UserProfile mounting point with overlay */}
-      {isSubscriptionProfileMounted && (
-        <div className="user-profile-overlay" onClick={handleCloseSubscriptionProfile}>
-          <div 
-            ref={subscriptionProfileDivRef} 
-            className="user-profile-mount"
-            onClick={(e) => e.stopPropagation()}
-          />
-        </div>
-      )}
     </div>
   );
 }

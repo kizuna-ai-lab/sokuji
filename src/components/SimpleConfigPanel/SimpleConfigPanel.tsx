@@ -358,7 +358,7 @@ const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings, h
           </h3>
           
           <SignedIn>
-            <UserAccountInfo compact={false} showWarning={true} />
+            <UserAccountInfo />
           </SignedIn>
           
           <SignedOut>
