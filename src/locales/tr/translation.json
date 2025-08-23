@@ -327,5 +327,12 @@
       "feature3": "Tüm ayarlar üzerinde tam kontrol",
       "action": "Gelişmiş Mod ile Başla"
     }
+  },
+  "tokenUsage": {
+    "title": "Token Kullanımı",
+    "used": "kullanıldı",
+    "remaining": "kalan",
+    "unableToLoadQuota": "Kota bilgileri yüklenemiyor",
+    "upgradeToPremium": "Premium'a Yükselt"
   }
 }

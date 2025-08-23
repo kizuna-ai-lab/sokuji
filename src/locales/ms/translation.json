@@ -411,5 +411,12 @@
       "feature3": "Kawalan penuh ke atas semua tetapan",
       "action": "Mula dengan Mod Lanjutan"
     }
+  },
+  "tokenUsage": {
+    "title": "Penggunaan Token",
+    "used": "digunakan",
+    "remaining": "baki",
+    "unableToLoadQuota": "Tidak dapat memuatkan maklumat kuota",
+    "upgradeToPremium": "Naik taraf ke Premium"
   }
 }

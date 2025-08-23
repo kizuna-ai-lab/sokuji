@@ -417,5 +417,12 @@
       "feature3": "کنترل کامل بر تمام تنظیمات",
       "action": "با حالت پیشرفته شروع کنید"
     }
+  },
+  "tokenUsage": {
+    "title": "استفاده از توکن",
+    "used": "استفاده شده",
+    "remaining": "باقی‌مانده",
+    "unableToLoadQuota": "قادر به بارگیری اطلاعات سهمیه نیست",
+    "upgradeToPremium": "ارتقا به Premium"
   }
 }

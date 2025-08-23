@@ -327,5 +327,12 @@
       "feature3": "Täysi hallinta kaikkiin asetuksiin",
       "action": "Aloita edistyneessä tilassa"
     }
+  },
+  "tokenUsage": {
+    "title": "Tokenien käyttö",
+    "used": "käytetty",
+    "remaining": "jäljellä",
+    "unableToLoadQuota": "Kiintiötietoja ei voitu ladata",
+    "upgradeToPremium": "Päivitä Premiumiin"
   }
 }

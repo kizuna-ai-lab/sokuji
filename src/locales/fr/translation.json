@@ -414,5 +414,12 @@
       "feature3": "Contrôle total sur tous les paramètres",
       "action": "Commencer en Mode Avancé"
     }
+  },
+  "tokenUsage": {
+    "title": "Utilisation des jetons",
+    "used": "utilisé",
+    "remaining": "restant",
+    "unableToLoadQuota": "Impossible de charger les informations de quota",
+    "upgradeToPremium": "Passer à Premium"
   }
 }

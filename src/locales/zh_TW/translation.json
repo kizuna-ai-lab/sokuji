@@ -369,5 +369,12 @@
       "feature3": "完全控制所有設定",
       "action": "以進階模式開始"
     }
+  },
+  "tokenUsage": {
+    "title": "代幣使用量",
+    "used": "已使用",
+    "remaining": "剩餘",
+    "unableToLoadQuota": "無法載入配額資訊",
+    "upgradeToPremium": "升級到高級版"
   }
 }

@@ -327,5 +327,12 @@
       "feature3": "Full kontroll över alla inställningar",
       "action": "Börja med avancerat läge"
     }
+  },
+  "tokenUsage": {
+    "title": "Tokenanvändning",
+    "used": "använt",
+    "remaining": "återstående",
+    "unableToLoadQuota": "Kunde inte ladda kvotinformation",
+    "upgradeToPremium": "Uppgradera till Premium"
   }
 }

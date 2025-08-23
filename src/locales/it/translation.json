@@ -414,5 +414,12 @@
       "feature3": "Controllo completo su tutte le impostazioni",
       "action": "Inizia con la Modalità Avanzata"
     }
+  },
+  "tokenUsage": {
+    "title": "Utilizzo token",
+    "used": "usato",
+    "remaining": "rimanente",
+    "unableToLoadQuota": "Impossibile caricare le informazioni sulla quota",
+    "upgradeToPremium": "Aggiorna a Premium"
   }
 }

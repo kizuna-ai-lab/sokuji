@@ -411,5 +411,12 @@
       "feature3": "שליטה מלאה על כל ההגדרות",
       "action": "התחל במצב מתקדם"
     }
+  },
+  "tokenUsage": {
+    "title": "שימוש בטוקנים",
+    "used": "בשימוש",
+    "remaining": "נותר",
+    "unableToLoadQuota": "לא ניתן לטעון מידע על מכסה",
+    "upgradeToPremium": "שדרג ל-Premium"
   }
 }

@@ -414,5 +414,12 @@
       "feature3": "Controle total sobre todas as configurações",
       "action": "Começar com o Modo Avançado"
     }
+  },
+  "tokenUsage": {
+    "title": "Uso de tokens",
+    "used": "usado",
+    "remaining": "restante",
+    "unableToLoadQuota": "Não foi possível carregar as informações de cota",
+    "upgradeToPremium": "Atualizar para Premium"
   }
 }

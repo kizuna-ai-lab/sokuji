@@ -327,5 +327,12 @@
       "feature3": "Kiểm soát đầy đủ tất cả cài đặt",
       "action": "Bắt đầu với chế độ nâng cao"
     }
+  },
+  "tokenUsage": {
+    "title": "Sử dụng Token",
+    "used": "đã dùng",
+    "remaining": "còn lại",
+    "unableToLoadQuota": "Không thể tải thông tin hạn ngạch",
+    "upgradeToPremium": "Nâng cấp lên Premium"
   }
 }

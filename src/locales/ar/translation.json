@@ -418,5 +418,12 @@
       "feature3": "تحكم كامل في جميع الإعدادات",
       "action": "ابدأ بالوضع المتقدم"
     }
+  },
+  "tokenUsage": {
+    "title": "استخدام الرموز",
+    "used": "مستخدم",
+    "remaining": "متبقي",
+    "unableToLoadQuota": "غير قادر على تحميل معلومات الحصة",
+    "upgradeToPremium": "الترقية إلى Premium"
   }
 }

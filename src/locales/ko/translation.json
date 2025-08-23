@@ -414,5 +414,12 @@
       "feature3": "모든 설정에 대한 완전한 제어",
       "action": "고급 모드로 시작"
     }
+  },
+  "tokenUsage": {
+    "title": "토큰 사용량",
+    "used": "사용됨",
+    "remaining": "남음",
+    "unableToLoadQuota": "할당량 정보를 로드할 수 없습니다",
+    "upgradeToPremium": "프리미엄으로 업그레이드"
   }
 }

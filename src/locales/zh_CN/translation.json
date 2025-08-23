@@ -406,5 +406,12 @@
       "feature3": "完全控制所有设置",
       "action": "以高级模式开始"
     }
+  },
+  "tokenUsage": {
+    "title": "令牌使用量",
+    "used": "已使用",
+    "remaining": "剩余",
+    "unableToLoadQuota": "无法加载配额信息",
+    "upgradeToPremium": "升级到高级版"
   }
 }
