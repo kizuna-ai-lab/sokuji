@@ -34,7 +34,7 @@
   },
   "content_scripts": [
     {
-      "matches": ["https://meet.google.com/*", "https://teams.live.com/*", "https://app.gather.town/*", "https://whereby.com/*", "https://discord.com/*", "https://app.slack.com/*"],
+      "matches": ["https://meet.google.com/*", "https://teams.live.com/*", "https://teams.microsoft.com/*", "https://app.gather.town/*", "https://whereby.com/*", "https://discord.com/*", "https://app.slack.com/*"],
       "js": ["content.js"],
       "run_at": "document_start"
     },

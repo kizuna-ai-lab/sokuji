@@ -84,6 +84,7 @@ function sanitizeProperties(properties) {
 const ENABLED_SITES = [
   'meet.google.com',
   'teams.live.com',
+  'teams.microsoft.com',
   'app.zoom.us',
   'app.gather.town',
   'whereby.com',
@@ -99,6 +100,10 @@ const SITE_INFO = {
   },
   'teams.live.com': {
     name: 'Microsoft Teams Live',
+    icon: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAACD0lEQVR4Ae2XA2wlURiF7zq2VuEiztq2rdq27bWNeG3bCNa2VT/V7vy9fzmeaR/Kk5yH0fnm+pJWq7i1+vExq7WXYlZr0tH4G49ZJJyGRVMzMSkaYDs2RVuJ58z+5hjEDuZDmLUksKj5oXzjNYSlJbYv5i6yevZ8sdXTfPzG/0YAaNKVATTp3PCnwDcetwgAvrEYAB5vEoBv6Jsb/mHvge2QmJ+SVYDFLgaAxwlq3rI7a+cuu1s2d+kdaJxvw+yFh8HG8RxCCBuh2hJQDFeAmLNwGwIIu6HaNqAYouBFyw/o/MPfZ4oPRMq9QACgIAEAMVICgLKyynrXiXVMADBqrA+ssjsh2huikrLBxfcLiDfCZ6VLrJ6tla2C8vJKYBiGf1wRgAeBgZIQ5gZAY5ikOwA6ADoAjBmKjQewfmYwdjIyBgAHoutGTcdTZu6hAL6yABGJmZKj4CLr5yOIGo2dGJSKbyq0H0yfs1YWIDDyPyMIt35WucTqqStRKxuXC0cxRMq2zhekSyAh8zB928N0Gv5Xbeunh5bbPh9IGiO/yI+DXbzuMc6ed0BgrzvgF/ZOYomuKY5ZretLTCH6sGRegKLjVus2EVMJADrFpmjPqg2PXa05ceAAdCOm1M6d0CN2jS4hZrWmRGZnVEpLa2siQGdiLsVuzO0ft1q7hgY9ooG51H+pn1CvT9yg6UVak6oAILzSjyQsMWUAAAAASUVORK5CYII='
+  },
+  'teams.microsoft.com': {
+    name: 'Microsoft Teams',
     icon: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAACD0lEQVR4Ae2XA2wlURiF7zq2VuEiztq2rdq27bWNeG3bCNa2VT/V7vy9fzmeaR/Kk5yH0fnm+pJWq7i1+vExq7WXYlZr0tH4G49ZJJyGRVMzMSkaYDs2RVuJ58z+5hjEDuZDmLUksKj5oXzjNYSlJbYv5i6yevZ8sdXTfPzG/0YAaNKVATTp3PCnwDcetwgAvrEYAB5vEoBv6Jsb/mHvge2QmJ+SVYDFLgaAxwlq3rI7a+cuu1s2d+kdaJxvw+yFh8HG8RxCCBuh2hJQDFeAmLNwGwIIu6HaNqAYouBFyw/o/MPfZ4oPRMq9QACgIAEAMVICgLKyynrXiXVMADBqrA+ssjsh2huikrLBxfcLiDfCZ6VLrJ6tla2C8vJKYBiGf1wRgAeBgZIQ5gZAY5ikOwA6ADoAjBmKjQewfmYwdjIyBgAHoutGTcdTZu6hAL6yABGJmZKj4CLr5yOIGo2dGJSKbyq0H0yfs1YWIDDyPyMIt35WucTqqStRKxuXC0cxRMq2zhekSyAh8zB928N0Gv5Xbeunh5bbPh9IGiO/yI+DXbzuMc6ed0BgrzvgF/ZOYomuKY5ZretLTCH6sGRegKLjVus2EVMJADrFpmjPqg2PXa05ceAAdCOm1M6d0CN2jS4hZrWmRGZnVEpLa2siQGdiLsVuzO0ft1q7hgY9ooG51H+pn1CvT9yg6UVak6oAILzSjyQsMWUAAAAASUVORK5CYII='
   },
   'app.zoom.us': {
