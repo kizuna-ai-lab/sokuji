@@ -28,6 +28,7 @@ const DEFAULT_CONFIG = {
 const ENABLED_SITES = [
   'meet.google.com',
   'teams.live.com',
+  'teams.microsoft.com',
   'app.zoom.us',
   'app.gather.town',
   'whereby.com',
