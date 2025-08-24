@@ -303,7 +303,7 @@
 
 // Quota Status Section
 .quota-status-section {
-  margin-bottom: 12px;
+  
 }
 
 .quota-loading {
@@ -359,70 +359,118 @@
   }
 }
 
-.quota-header {
+
+// Ultra-compact single line display with badge and dividers
+.quota-compact-line {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin-bottom: 8px;
+  gap: 8px;
+  padding: 8px 0;
+  font-size: 13px;
+  flex-wrap: wrap; // Allow wrapping on very small screens
   
-  h4 {
-    font-size: 13px;
-    font-weight: 600;
-    color: #fff;
-    margin: 0;
-  }
-  
-  .reset-date {
-    font-size: 11px;
-    color: #999;
-  }
-  
-  .badge-inline {
+  .plan-badge {
     display: inline-block;
-    padding: 3px 8px;
+    padding: 2px 6px;
     border-radius: 3px;
     font-size: 10px;
     font-weight: 600;
     text-transform: uppercase;
     
-    &.badge-free {
+    &.plan-badge-free {
       background: #333;
       color: #999;
     }
     
-    &.badge-starter {
+    &.plan-badge-starter {
       background: #2a4e7c;
       color: #5ba0f2;
     }
     
-    &.badge-essentials {
+    &.plan-badge-essentials {
       background: #4a3c28;
       color: #f0b429;
     }
     
-    &.badge-professional {
+    &.plan-badge-professional, &.plan-badge-pro {
       background: #3c2a4a;
       color: #b77ff0;
     }
     
-    &.badge-business {
+    &.plan-badge-business {
       background: #2a4a3c;
       color: #7ff0b7;
     }
     
-    &.badge-enterprise {
+    &.plan-badge-enterprise {
       background: #4a2a3c;
       color: #f07fb7;
     }
     
-    &.badge-unlimited {
+    &.plan-badge-unlimited {
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       color: #fff;
     }
   }
+  
+  .divider {
+    color: #666;
+    font-weight: 300;
+  }
+  
+  .wallet-icon {
+    color: #10a37f;
+    flex-shrink: 0;
+  }
+  
+  .balance-section {
+    color: #fff;
+    font-weight: 600;
+    font-size: 14px;
+  }
+  
+  .usage-section {
+    color: #e67e22;  // Amber for spending
+    font-size: 13px;
+  }
+  
+  .quota-section {
+    color: #10a37f;  // Green for income
+    font-size: 13px;
+  }
 }
 
 .quota-details {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  
+  // Legacy metric display styles (kept for compatibility)
+  .quota-metric {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid #333;
+    
+    &:last-child {
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+    
+    .metric-label {
+      font-size: 13px;
+      color: #999;
+    }
+    
+    .metric-value {
+      font-size: 14px;
+      color: #fff;
+      font-weight: 500;
+    }
+  }
+  
+  // Legacy styles kept for compatibility
   .quota-bar-container {
     margin-bottom: 0;
   }
