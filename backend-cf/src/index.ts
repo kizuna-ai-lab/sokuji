@@ -72,7 +72,6 @@ app.get('/', (c) => {
 app.route('/api/auth', authWalletRoutes);  // New wallet-based auth routes
 app.route('/api/user', userRoutes);
 app.route('/api/wallet', walletRoutes);    // New wallet endpoints
-app.route('/api/usage', walletRoutes);     // Map old usage routes to wallet for compatibility
 app.route('/api/health', healthRoutes);
 app.route('/v1', v1Routes);
 

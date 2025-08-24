@@ -36,9 +36,10 @@ A simplified, high-performance serverless backend for the Sokuji AI translation 
 
 ### Core Capabilities
 - **🔐 Multi-Platform Authentication**: Unified auth for Chrome Extension and Electron app via Clerk
-- **📊 Simplified Token Quota Management**: Real-time quota calculation from usage_logs table
-- **💳 Subscription Management**: Managed through Clerk user metadata and dashboard
-- **📈 Relay-Based Usage Tracking**: Direct usage logging from relay server to database
+- **💰 Wallet-Based Token System**: Tokens never expire, minted proportionally based on payments
+- **📊 Real-Time Usage Tracking**: 30-day rolling usage statistics with atomic token deduction
+- **💳 Subscription Management**: Plan entitlements separate from token balance
+- **📈 Comprehensive Audit Trail**: Complete ledger of all token movements and transactions
 - **⚡ Edge Performance**: Global deployment on Cloudflare's edge network
 
 ### Security Features
@@ -162,13 +163,32 @@ backend-cf/
 
 #### `users`
 - User profiles synchronized from Clerk
-- Stores subscription tier and token quotas
+- Links to wallet system for token management
 - Managed entirely through Clerk metadata
+
+#### `wallets`
+- User token balances (never expire)
+- Frozen status for account control
+- Atomic balance operations for concurrency safety
+
+#### `wallet_ledger`
+- Complete audit trail of all token movements
+- Tracks mints, usage, refunds, and adjustments
+- Immutable transaction history
+
+#### `entitlements`
+- Current plan features and limits
+- Separate from token balance
+- Rate limits and concurrent session limits
 
 #### `usage_logs`
 - Real-time token usage records written by relay server
 - Tracks session_id, response_id, model, and token details
-- Used for quota calculation and analytics
+- Used for 30-day usage statistics
+
+#### `processed_events`
+- Webhook idempotency tracking
+- Prevents duplicate payment processing
 
 **Removed tables**: `api_keys`, `sessions`, and `realtime_sessions` have been eliminated for simplified architecture
 
@@ -180,10 +200,12 @@ backend-cf/
 ### User Management (`/api/user/*`)
 - `GET /profile` - User profile with quota
 
-### Usage Tracking (`/api/usage/*`) - **Ultra-Simplified**
-- `GET /quota` - Current quota status (aggregated from usage_logs)
+### Wallet Management (`/api/wallet/*`) - **Token System**
+- `GET /status` - Current balance, plan, and 30-day usage statistics
+- `POST /use` - Deduct tokens from wallet (atomic operation)
+- `GET /history` - Transaction history from ledger
 
-**Removed endpoints**: `/oauth`, `/refresh`, `/signout`, `/sync`, `/report`, `/history`, `/stats`, `/sessions`, `/check`, `/reset`, `/profile` (PATCH), entire `/subscription` module
+**Removed endpoints**: `/oauth`, `/refresh`, `/signout`, `/sync`, `/report`, `/history`, `/stats`, `/sessions`, `/check`, `/reset`, `/profile` (PATCH), entire `/subscription` module, entire `/usage` module
 
 ### Health Check (`/api/health/*`)
 - `GET /` - System health and environment status
@@ -298,18 +320,23 @@ wrangler d1 insights sokuji-db-prod # Production
 wrangler d1 execute sokuji-db-prod --command "SELECT COUNT(*) as total_records FROM usage_logs"
 ```
 
-## 🔄 Usage Tracking Architecture
+## 💰 Wallet System Architecture
 
-The backend now uses a simplified relay-based approach:
+The backend uses a wallet-based token system where tokens never expire:
 
-### Tracking Flow
-1. Relay server captures OpenAI Realtime API events (`session.created`, `response.done`)
-2. Usage data is written directly to `usage_logs` table
-3. Frontend calls `/api/usage/quota` to get real-time quota status
-4. No manual usage reporting required from frontend
+### Token Flow
+1. **Minting**: Tokens are minted proportionally when payments are received
+   - Formula: `tokens = floor(monthly_quota * min(amount_paid / plan_price, 1))`
+   - Only triggers on successful payment events
+   - Maximum 12 months of tokens per transaction
+2. **Usage**: Atomic token deduction from wallet balance
+3. **Tracking**: 30-day rolling usage statistics from `usage_logs`
+4. **Freezing**: Wallets frozen on subscription issues (balance preserved)
 
-### Quota Endpoint
-- **GET** `/api/usage/quota` - Real-time quota calculation from usage_logs
+### Key Endpoints
+- **GET** `/api/wallet/status` - Balance, plan, and usage statistics
+- **POST** `/api/wallet/use` - Atomic token deduction
+- **GET** `/api/wallet/history` - Complete transaction history
 
 ## 🧪 Testing
 
@@ -353,9 +380,11 @@ wrangler d1 execute sokuji-db-prod --command "SELECT COUNT(*) FROM users"
 | Plan | Monthly Tokens | Price |
 |------|---------------|-------|
 | Free | 0 | $0 |
-| Basic | 10M | $9.99 |
-| Premium | 50M | $29.99 |
-| Enterprise | Unlimited | Custom |
+| Starter | 10M | $10 |
+| Essentials | 20M | $20 |
+| Pro | 50M | $50 |
+| Business | 100M | $100 |
+| Enterprise | 500M | $500 |
 
 ## 🔧 Maintenance
 
@@ -402,11 +431,12 @@ wrangler d1 execute sokuji-db-prod --file=backup-prod.sql          # Production
 - Ensure webhook endpoints are accessible
 - Verify authorized parties include all domain variants
 
-**Quota Calculation Issues**
-- Check usage_logs table data integrity
-- Verify relay server is writing usage data
-- Monitor /quota endpoint response times
-- Ensure proper date range calculations for monthly quotas
+**Wallet & Token Issues**
+- Check wallet balance and frozen status
+- Verify payment webhook processing
+- Monitor wallet_ledger for transaction history
+- Check processed_events for duplicate prevention
+- Ensure atomic operations for concurrent usage
 
 **Database Connection**
 - Ensure D1 database is created and bound

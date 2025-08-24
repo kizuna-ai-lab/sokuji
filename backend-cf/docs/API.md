@@ -1,13 +1,13 @@
 # Sokuji Backend API Documentation
 
-Complete API reference for the Sokuji Cloudflare Workers backend.
+Complete API reference for the Sokuji Cloudflare Workers backend with wallet-based token system.
 
 ## Base URL
 
 - **Production**: `https://sokuji-api.kizuna.ai`
 - **Development**: `http://localhost:8787`
 
-## Authenticationu
+## Authentication
 
 All protected endpoints require a Bearer token in the Authorization header:
 
@@ -77,7 +77,7 @@ Handles Clerk webhook events (user creation, updates, deletion).
 
 ### Get User Profile
 
-Retrieves the current user's profile information (without quota data).
+Retrieves the current user's profile information (without token balance data).
 
 **Endpoint:** `GET /api/user/profile`
 
@@ -93,14 +93,14 @@ Retrieves the current user's profile information (without quota data).
     "firstName": "John",
     "lastName": "Doe",
     "imageUrl": "https://...",
-    "subscription": "premium",
+    "subscription": "pro",
     "createdAt": "2024-01-01T00:00:00Z",
     "updatedAt": "2024-01-01T00:00:00Z"
   }
 }
 ```
 
-**Note:** Quota information is now retrieved separately via the `/api/usage/quota` endpoint.
+**Note:** Token balance and usage information is now retrieved via the `/api/wallet/status` endpoint.
 
 ---
 
@@ -132,15 +132,15 @@ Retrieves or creates the user's Kizuna AI API key.
 
 
 
-## Usage Tracking Endpoints
+## Wallet Management Endpoints
 
-**Note:** Usage tracking is now simplified. Token usage is tracked automatically by the relay server and recorded directly in the `usage_logs` table. Frontend applications no longer need to report usage manually.
+The wallet system replaces the traditional quota model with tokens that never expire and are minted proportionally based on payments.
 
-### Get Current Quota
+### Get Wallet Status
 
-Retrieves the user's current token quota status. Calculates usage from `usage_logs` table in real-time.
+Retrieves the user's current wallet balance, plan information, and usage statistics.
 
-**Endpoint:** `GET /api/usage/quota`
+**Endpoint:** `GET /api/wallet/status`
 
 **Headers:**
 - `Authorization: Bearer <token>`
@@ -148,10 +148,118 @@ Retrieves the user's current token quota status. Calculates usage from `usage_lo
 **Response:**
 ```json
 {
+  "balance": 50000000,
+  "frozen": false,
+  "plan": "pro",
+  "monthlyQuota": 50000000,
+  "last30DaysUsage": 1234567,
+  "features": ["advanced_models", "api_access"],
+  "rateLimitRpm": 300,
+  "maxConcurrentSessions": 5,
   "total": 50000000,
-  "used": 1234567,
-  "remaining": 48765433,
-  "resetDate": "2024-02-01T00:00:00Z"
+  "used": 0,
+  "remaining": 50000000,
+  "resetDate": null
+}
+```
+
+**Fields:**
+- `balance`: Current token balance (never expires)
+- `frozen`: Whether the wallet is frozen (subscription issues)
+- `plan`: Current subscription plan
+- `monthlyQuota`: Tokens allocated monthly for this plan
+- `last30DaysUsage`: Tokens used in the past 30 days
+- `features`: Plan features and capabilities
+- `rateLimitRpm`: Rate limit in requests per minute
+- `maxConcurrentSessions`: Maximum concurrent sessions allowed
+- `total`, `used`, `remaining`: Compatibility fields for legacy clients
+- `resetDate`: Always null (tokens don't reset)
+
+---
+
+### Use Tokens
+
+Deducts tokens from the user's wallet balance (atomic operation).
+
+**Endpoint:** `POST /api/wallet/use`
+
+**Headers:**
+- `Authorization: Bearer <token>`
+
+**Request Body:**
+```json
+{
+  "tokens": 1000,
+  "metadata": {
+    "model": "gpt-4",
+    "session_id": "session_123"
+  }
+}
+```
+
+**Success Response:**
+```json
+{
+  "success": true,
+  "remaining": 49999000,
+  "message": "Used 1000 tokens successfully"
+}
+```
+
+**Error Response (Insufficient Balance):**
+```json
+{
+  "error": "Insufficient balance",
+  "available": 500,
+  "requested": 1000
+}
+```
+
+---
+
+### Get Transaction History
+
+Retrieves the user's token transaction history from the ledger.
+
+**Endpoint:** `GET /api/wallet/history`
+
+**Headers:**
+- `Authorization: Bearer <token>`
+
+**Query Parameters:**
+- `limit` (optional): Number of transactions to return (default: 20, max: 100)
+- `offset` (optional): Pagination offset (default: 0)
+
+**Response:**
+```json
+{
+  "transactions": [
+    {
+      "id": "txn_123",
+      "type": "mint",
+      "tokens": 50000000,
+      "balance": 50000000,
+      "metadata": {
+        "plan": "pro_plan",
+        "amount_paid": 5000
+      },
+      "createdAt": "2024-01-15T10:00:00Z"
+    },
+    {
+      "id": "txn_124",
+      "type": "use",
+      "tokens": -1000,
+      "balance": 49999000,
+      "metadata": {
+        "model": "gpt-4",
+        "session_id": "session_123"
+      },
+      "createdAt": "2024-01-15T11:00:00Z"
+    }
+  ],
+  "total": 42,
+  "limit": 20,
+  "offset": 0
 }
 ```
 
@@ -196,6 +304,13 @@ When rate limited, the API returns:
 - Refresh tokens before expiration to maintain session
 - Store tokens securely (never in localStorage for extensions)
 
+### Wallet Security
+- **Atomic Operations**: All token deductions are atomic to prevent race conditions
+- **Idempotency**: External event IDs prevent duplicate payment processing
+- **Negative Balance Protection**: Automatic wallet freezing on negative balance
+- **Mint Capping**: Maximum 12 months of tokens per transaction
+- **Audit Trail**: Complete immutable ledger of all token movements
+
 ### API Keys
 - Keys are masked in responses (only first 7 and last 4 characters shown)
 - Keys can be revoked immediately via soft delete
@@ -216,6 +331,8 @@ When rate limited, the API returns:
 - All webhooks are verified using HMAC signatures
 - Replay attacks are prevented with timestamp validation
 - Failed webhooks are retried with exponential backoff
+- Duplicate prevention via processed_events table
+- Payment events trigger proportional token minting
 
 ---
 
@@ -230,11 +347,19 @@ curl -X GET "https://sokuji-api.kizuna.ai/api/user/profile" \
   -H "Content-Type: application/json"
 ```
 
-**Get current quota (separate endpoint):**
+**Get wallet status:**
 ```bash
-curl -X GET "https://sokuji-api.kizuna.ai/api/usage/quota" \
+curl -X GET "https://sokuji-api.kizuna.ai/api/wallet/status" \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json"
+```
+
+**Use tokens from wallet:**
+```bash
+curl -X POST "https://sokuji-api.kizuna.ai/api/wallet/use" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"tokens": 1000, "metadata": {"model": "gpt-4"}}'
 ```
 
 ### Using Postman

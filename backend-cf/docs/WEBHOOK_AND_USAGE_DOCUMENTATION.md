@@ -1,15 +1,16 @@
-# Webhook Event Handling and Token Usage Management Documentation
+# Webhook Event Handling and Wallet-Based Token Management Documentation
 
 ## Overview
 
-The Sokuji backend uses Clerk webhooks for user and subscription management, combined with real-time token usage tracking through API proxy and WebSocket relay endpoints. This document explains how webhook events affect user attributes and how token usage is calculated and updated.
+The Sokuji backend uses Clerk webhooks for user and subscription management, combined with a wallet-based token system where tokens never expire and are minted proportionally based on actual payments. This document explains how webhook events affect the wallet system and how token usage is tracked.
 
 ## Table of Contents
 1. [Webhook Event Processing Pipeline](#webhook-event-processing-pipeline)
 2. [Webhook Event Types and Their Impact](#webhook-event-types-and-their-impact)
-3. [Token Usage Tracking System](#token-usage-tracking-system)
-4. [Database Schema and Fields](#database-schema-and-fields)
-5. [Quota Calculation Logic](#quota-calculation-logic)
+3. [Wallet System Architecture](#wallet-system-architecture)
+4. [Token Minting and Usage](#token-minting-and-usage)
+5. [Database Schema and Fields](#database-schema-and-fields)
+6. [Migration from Quota to Wallet](#migration-from-quota-to-wallet)
 
 ## Webhook Event Processing Pipeline
 
@@ -67,286 +68,293 @@ app.post('/webhook/clerk', async (c) => {
 ### User Events
 
 #### `user.created`
-**Handler**: `handleUserCreated` (line 219)
-**Database Impact**:
+**Handler**: `handleUserCreated`
+**Wallet Impact**:
 - Creates new record in `users` table
-- Sets initial fields:
-  - `subscription`: from Clerk metadata or 'free'
-  - `token_quota`: based on subscription plan
-  - `tokens_used`: 0
-- Initializes KV storage for real-time quota tracking
+- Initializes wallet with 0 balance
+- Sets entitlements based on metadata
 
 #### `user.updated`
-**Handler**: `handleUserUpdated` (line 271)
-**Database Impact**:
+**Handler**: `handleUserUpdated`
+**Wallet Impact**:
 - Updates user profile fields (email, name, image_url)
-- Updates subscription and token_quota if changed
-- For downgrades to free tier: resets `tokens_used` to 0
-- Updates KV quota storage
+- No impact on wallet balance
+- May update entitlements if plan changed
 
 #### `user.deleted`
-**Handler**: `handleUserDeleted` (line 328)
-**Database Impact**:
-- Deletes user record (cascades to usage_logs)
-- Cleans up KV storage entries
+**Handler**: `handleUserDeleted`
+**Wallet Impact**:
+- Freezes wallet (balance preserved but unusable)
+- User record marked as deleted
 
-### Subscription Events
+### Payment Events (Token Minting)
+
+#### `paymentAttempt.updated`
+**Handler**: `handlePaymentAttempt`
+**Wallet Impact**:
+- Triggers token minting when status is `paid`
+- Mints tokens proportionally: `tokens = floor(monthly_quota * min(amount_paid / plan_price, 1))`
+- Adds transaction to wallet_ledger
+- Updates wallet balance atomically
+
+#### `payment.succeeded`
+**Handler**: `handlePaymentSucceeded`
+**Wallet Impact**:
+- Same as `paymentAttempt.updated` with status `paid`
+- Ensures idempotency via external_id
+
+### Refund Events
+
+#### `payment.refunded` / `refund.created`
+**Handler**: `handleRefund`
+**Wallet Impact**:
+- Deducts refunded tokens from wallet
+- May freeze wallet if balance becomes negative
+- Adds refund transaction to ledger
+
+### Subscription Events (Entitlements Only)
 
 #### `subscription.created`
-**Handler**: `handleSubscriptionCreated` (line 357)
-**Database Impact**:
-- Updates user's `subscription` field to new plan
-- Sets `token_quota` based on plan:
-  - `free_plan`: 0 tokens
-  - `starter_plan`: 10,000,000 tokens
-  - `essentials_plan`: 50,000,000 tokens
-  - `enterprise_plan`: -1 (unlimited)
-- Resets `tokens_used` to 0
-- Updates KV quota storage
+**Handler**: `handleSubscriptionCreated`
+**Wallet Impact**:
+- Updates entitlements (features, rate limits)
+- NO tokens minted (only payment events mint tokens)
+- Sets plan features in entitlements table
 
 #### `subscription.updated`
-**Handler**: `handleSubscriptionUpdated` (line 402)
-**Database Impact**:
-- Extracts active plan from subscription items
-- Updates `subscription` and `token_quota`
-- Preserves current `tokens_used` value
-- Recalculates remaining quota in KV
+**Handler**: `handleSubscriptionUpdated`
+**Wallet Impact**:
+- Updates plan features and limits
+- NO impact on wallet balance
+- May change rate limits and concurrent sessions
 
 #### `subscription.deleted`
-**Handler**: `handleSubscriptionDeleted` (line 467)
-**Database Impact**:
-- Downgrades user to free tier
-- Sets `subscription` to 'free'
-- Sets `token_quota` to free plan limit
-- Resets `tokens_used` to 0
-
-### Subscription Item Events
-
-#### `subscriptionItem.active`
-**Handler**: `handleSubscriptionItemActive` (line 526)
-**Database Impact**:
-- Activates specific subscription item
-- Updates plan based on item details
-- Preserves token usage unless downgrading to free
-- Updates quota in KV storage
-
-#### `subscriptionItem.ended`
-**Handler**: `handleSubscriptionItemEnded` (line 585)
-**Database Impact**:
-- Logs the ended item but doesn't immediately change subscription
-- Waits for `subscription.updated` event for overall state
+**Handler**: `handleSubscriptionDeleted`
+**Wallet Impact**:
+- Freezes wallet (balance preserved)
+- Downgrades entitlements to free tier
+- Does NOT remove tokens from wallet
 
 ### Session Events
 
 #### `session.created`, `session.pending`, `session.ended`
 **Handlers**: `handleSessionCreated`, `handleSessionPending`, `handleSessionTerminated`
-**Database Impact**:
+**Wallet Impact**:
 - Triggers `ensureUserExists` to sync user from Clerk if missing
 - Provides self-healing for missed `user.created` webhooks
-- No direct impact on quotas or usage
+- No direct impact on wallet balance
 
-## Token Usage Tracking System
+## Wallet System Architecture
 
-### 1. REST API Proxy Usage Tracking
+### Core Principles
 
-Location: `src/routes/proxy.ts`
+1. **Tokens Never Expire**: Once minted to a wallet, tokens remain until used
+2. **Proportional Minting**: Tokens minted based on actual payment amount
+3. **No Period Windows**: No monthly resets or complicated period tracking
+4. **Anti-Gaming**: Natural protection against subscription manipulation
+
+### Token Minting Formula
+
+```
+tokens_minted = floor(monthly_quota * min(amount_paid / plan_price, 1))
+```
+
+Example:
+- Pro plan: 50M tokens/month at $50
+- User pays $25 (50% of price)
+- Mints: floor(50M * 0.5) = 25M tokens
+
+### Wallet States
+
+- **Active**: Normal operation, can use tokens
+- **Frozen**: Balance preserved but cannot use tokens
+  - Triggers: subscription canceled, past_due, refunds causing negative balance
+- **Negative**: Automatic freezing, requires resolution
+
+## Token Minting and Usage
+
+### Token Minting (Payment Events)
 
 ```typescript
-// For successful POST requests to OpenAI-compatible endpoints
-if (response.ok && c.req.method === 'POST') {
-  const responseBody = await clonedResponse.json();
+// Only on successful payment events
+if (event.type === 'paymentAttempt.updated' && event.data.status === 'paid') {
+  const amount = event.data.amount; // in cents
+  const planPrice = getPlanPrice(event.data.plan.slug);
+  const monthlyQuota = getPlanQuota(event.data.plan.slug);
   
-  if (responseBody.usage) {
-    const usage = responseBody.usage;
-    const totalTokens = usage.total_tokens || 0;
-    
-    // Insert into usage_logs table
-    await c.env.DB.prepare(`
-      INSERT INTO usage_logs (
-        user_id, model, provider, tokens, metadata, created_at
-      ) VALUES (?, ?, 'comet', ?, ?, datetime('now'))
-    `).bind(userId, model, totalTokens, JSON.stringify(usage)).run();
-    
-    // Update user's cumulative token usage
-    await c.env.DB.prepare(`
-      UPDATE users 
-      SET tokens_used = tokens_used + ?, updated_at = datetime('now')
-      WHERE clerk_id = ?
-    `).bind(totalTokens, userId).run();
-  }
+  const tokensToMint = Math.floor(
+    monthlyQuota * Math.min(amount / planPrice, 1)
+  );
+  
+  // Atomic mint operation
+  await walletService.mintTokens({
+    subjectType: 'user',
+    subjectId: userId,
+    tokens: tokensToMint,
+    externalId: event.data.id, // Idempotency key
+    metadata: {
+      plan: event.data.plan.slug,
+      amount_paid: amount
+    }
+  });
 }
 ```
 
-### 2. WebSocket Realtime API Usage Tracking
-
-Location: `src/routes/realtime-relay.ts`
+### Token Usage (API Calls)
 
 ```typescript
-// Tracks usage from specific realtime events
-realtimeClient.realtime.on('server.*', async (event: any) => {
-  const eventsWithUsage = [
-    'response.done',
-    'conversation.item.input_audio_transcription.completed'
-  ];
-  
-  if (eventsWithUsage.includes(event.type)) {
-    let usage = null;
-    
-    // Extract usage based on event type
-    if (event.type === 'response.done' && event.response?.usage) {
-      usage = event.response.usage;
-    } else if (event.type === 'conversation.item.input_audio_transcription.completed' && event.usage) {
-      usage = event.usage;
-    }
-    
-    if (usage) {
-      // Insert detailed usage log
-      await env.DB.prepare(`
-        INSERT INTO usage_logs (
-          user_id, event_type, event_id, session_id, model, provider,
-          total_tokens, input_tokens, output_tokens,
-          input_token_details, output_token_details, usage_data, metadata
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `).bind(...).run();
-      
-      // Update cumulative usage
-      await env.DB.prepare(`
-        UPDATE users 
-        SET tokens_used = tokens_used + ?, updated_at = datetime('now')
-        WHERE id = ?
-      `).bind(usage.total_tokens || 0, user.id).run();
-    }
+// Atomic token deduction
+const result = await walletService.useTokens({
+  subjectType: 'user',
+  subjectId: userId,
+  tokens: totalTokens,
+  metadata: {
+    model: 'gpt-4',
+    session_id: sessionId
   }
 });
+
+if (!result.success) {
+  // Handle insufficient balance
+  throw new Error('Insufficient tokens');
+}
 ```
 
 ## Database Schema and Fields
 
-### Users Table
+### Wallets Table
 ```sql
-CREATE TABLE users (
+CREATE TABLE wallets (
   id INTEGER PRIMARY KEY,
-  clerk_id TEXT UNIQUE NOT NULL,        -- Clerk user ID
-  email TEXT NOT NULL,
-  subscription TEXT DEFAULT 'fallback',  -- Current plan
-  token_quota INTEGER DEFAULT 0,         -- Max tokens for plan
-  tokens_used INTEGER DEFAULT 0,         -- DEPRECATED: Use usage_logs
+  subject_type TEXT NOT NULL,            -- 'user' or 'team'
+  subject_id TEXT NOT NULL,               -- User or team ID
+  balance_tokens INTEGER DEFAULT 0,      -- Current token balance
+  frozen BOOLEAN DEFAULT 0,              -- Frozen state
   created_at DATETIME,
-  updated_at DATETIME
+  updated_at DATETIME,
+  UNIQUE(subject_type, subject_id)
 );
 ```
 
-### Usage Logs Table
+### Wallet Ledger Table
+```sql
+CREATE TABLE wallet_ledger (
+  id INTEGER PRIMARY KEY,
+  subject_type TEXT NOT NULL,
+  subject_id TEXT NOT NULL,
+  type TEXT NOT NULL,                    -- 'mint', 'use', 'refund', 'adjust'
+  tokens INTEGER NOT NULL,               -- Positive for mint, negative for use
+  balance INTEGER NOT NULL,              -- Balance after transaction
+  external_id TEXT,                      -- For idempotency
+  metadata TEXT,                         -- JSON additional data
+  created_at DATETIME,
+  UNIQUE(external_id)                    -- Prevent duplicates
+);
+```
+
+### Entitlements Table
+```sql
+CREATE TABLE entitlements (
+  id INTEGER PRIMARY KEY,
+  subject_type TEXT NOT NULL,
+  subject_id TEXT NOT NULL,
+  plan_id TEXT,                          -- Current plan
+  features TEXT,                         -- JSON array of features
+  rate_limit_rpm INTEGER DEFAULT 60,     -- Requests per minute
+  max_concurrent_sessions INTEGER DEFAULT 1,
+  created_at DATETIME,
+  updated_at DATETIME,
+  UNIQUE(subject_type, subject_id)
+);
+```
+
+### Usage Logs Table (for 30-day statistics)
 ```sql
 CREATE TABLE usage_logs (
   id INTEGER PRIMARY KEY,
-  user_id INTEGER NOT NULL,              -- FK to users.id
-  event_type TEXT NOT NULL,              -- API event type
-  model TEXT NOT NULL,                   -- AI model used
-  provider TEXT NOT NULL,                -- 'openai', 'comet'
-  total_tokens INTEGER NOT NULL,         -- Total tokens consumed
-  input_tokens INTEGER NOT NULL,
-  output_tokens INTEGER NOT NULL,
-  input_token_details TEXT,              -- JSON breakdown
-  output_token_details TEXT,             -- JSON breakdown
-  usage_data TEXT,                       -- Complete usage JSON
-  metadata TEXT,                         -- Additional context
+  user_id INTEGER NOT NULL,
+  event_type TEXT NOT NULL,
+  model TEXT NOT NULL,
+  provider TEXT NOT NULL,
+  total_tokens INTEGER NOT NULL,
   created_at DATETIME
 );
 ```
 
-### Webhook Logs Table
+### Processed Events Table
 ```sql
-CREATE TABLE webhook_logs (
+CREATE TABLE processed_events (
   id INTEGER PRIMARY KEY,
-  event_id TEXT UNIQUE NOT NULL,         -- For idempotency
-  event_type TEXT NOT NULL,              -- Clerk event type
-  clerk_user_id TEXT,                    -- User affected
-  raw_payload TEXT NOT NULL,             -- Complete event JSON
-  processing_status TEXT,                -- 'pending', 'success', 'failed'
-  error_message TEXT,
-  created_at DATETIME,
+  external_id TEXT UNIQUE NOT NULL,      -- Payment/webhook event ID
+  event_type TEXT NOT NULL,
   processed_at DATETIME
 );
 ```
 
-## Quota Calculation Logic
+## Migration from Quota to Wallet
 
-### Real-time Quota Calculation
+### Key Differences
 
-Location: `src/routes/usage.ts:16`
+| Aspect | Quota System | Wallet System |
+|--------|--------------|---------------|
+| Token Lifecycle | Reset monthly | Never expire |
+| Token Source | Subscription tier | Actual payments |
+| Usage Tracking | Monthly windows | Continuous deduction |
+| Refund Handling | Complex adjustments | Simple deduction |
+| Gaming Protection | Period manipulation possible | Naturally protected |
 
-```typescript
-app.get('/quota', authMiddleware, async (c) => {
-  const userId = c.get('userId');
-  
-  // Get user's plan quota
-  const user = await c.env.DB.prepare(
-    'SELECT id, token_quota FROM users WHERE clerk_id = ?'
-  ).bind(userId).first();
-  
-  // Calculate current month's usage from usage_logs
-  const currentMonth = new Date().toISOString().slice(0, 7) + '-01';
-  
-  const usageResult = await c.env.DB.prepare(`
-    SELECT COALESCE(SUM(total_tokens), 0) as used
-    FROM usage_logs 
-    WHERE user_id = ? AND created_at >= ?
-  `).bind(user.id, currentMonth).first();
-  
-  const tokensUsed = usageResult?.used || 0;
-  
-  return {
-    total: user.token_quota,           // Plan limit
-    used: tokensUsed,                   // Current month usage
-    remaining: user.token_quota === -1 ? -1 : 
-               Math.max(0, user.token_quota - tokensUsed),
-    resetDate: // First day of next month
-  };
-});
+### Migration Steps
+
+1. **Deploy Wallet Schema**
+```bash
+wrangler d1 execute sokuji-db --file=schema/wallet-schema.sql
 ```
 
-### Key Points:
-1. **Monthly Reset**: Usage resets on the 1st of each month
-2. **Real-time Calculation**: Usage is summed from `usage_logs` table on each request
-3. **Unlimited Plans**: `token_quota = -1` indicates unlimited usage
-4. **No Caching**: Each quota check queries the database for accuracy
+2. **Update Backend Routes**
+- All `/api/usage/*` endpoints have been removed
+- Use `/api/wallet/*` endpoints exclusively
+- Update webhook handlers for payment events
+- Implement atomic wallet operations
 
-## Plan Quota Mapping
+3. **Frontend Updates**
+- Update all API calls to use `/api/wallet/status`
+- Update quota displays to show balance
+- Add 30-day usage statistics
+- Remove reset date displays
 
-```typescript
-function getQuotaForPlan(plan: string): number {
-  const quotas = {
-    fallback: 0,
-    free_plan: 0,               // 0 tokens
-    starter_plan: 10_000_000,   // 10M tokens
-    essentials_plan: 50_000_000, // 50M tokens
-    enterprise_plan: -1          // Unlimited
-  };
-  return quotas[plan] || quotas.fallback;
-}
-```
+## Plan Configuration
+
+| Plan | Monthly Tokens | Price |
+|------|---------------|-------|
+| free_plan | 0 | $0 |
+| starter_plan | 10M | $10 |
+| essentials_plan | 20M | $20 |
+| pro_plan | 50M | $50 |
+| business_plan | 100M | $100 |
+| enterprise_plan | 500M | $500 |
 
 ## Data Flow Summary
 
 1. **User Creation/Update Flow**:
-   - Clerk webhook → Verify signature → Log event → Create/Update user → Set quota → Update KV
+   - Clerk webhook → Verify signature → Log event → Create/Update user → Initialize wallet
 
-2. **Subscription Change Flow**:
-   - Clerk webhook → Extract plan details → Update user quota → Preserve/Reset usage → Update KV
+2. **Payment Flow (Token Minting)**:
+   - Payment webhook → Verify payment → Calculate tokens → Mint to wallet → Add to ledger
 
 3. **Token Usage Flow**:
-   - API call → Proxy/Relay → Extract usage from response → Log to usage_logs → Update cumulative usage
+   - API call → Check wallet balance → Atomic deduction → Log to usage_logs → Update ledger
 
-4. **Quota Check Flow**:
-   - Client request → Get user quota → Sum usage_logs for current month → Calculate remaining → Return quota
+4. **Balance Check Flow**:
+   - Client request → Get wallet balance → Calculate 30-day usage → Return status
 
 ## Important Implementation Details
 
-1. **Idempotency**: Event IDs prevent duplicate processing
-2. **Self-healing**: `ensureUserExists` syncs missing users from Clerk
-3. **Race Condition Protection**: Uses `INSERT OR IGNORE` for concurrent operations
-4. **Monthly Reset**: Usage calculations are scoped to current calendar month
-5. **Real-time Accuracy**: No caching of usage data ensures accurate quota checks
-6. **Webhook Logging**: All webhooks logged for debugging and audit trail
-7. **Error Recovery**: Failed webhooks can be retried via admin endpoints
+1. **Idempotency**: External IDs prevent duplicate token minting
+2. **Atomic Operations**: All wallet operations are atomic to prevent race conditions
+3. **Self-healing**: `ensureUserExists` syncs missing users from Clerk
+4. **Proportional Minting**: Tokens strictly proportional to payment amount
+5. **Frozen Wallets**: Balance preserved but unusable during subscription issues
+6. **Audit Trail**: Complete ledger history for all token movements
+7. **30-Day Statistics**: Rolling usage window for analytics
+8. **Error Recovery**: Failed webhooks can be retried via admin endpoints
+9. **Mint Capping**: Maximum 12 months of tokens per transaction for safety
