@@ -1,19 +1,16 @@
 /**
- * Sokuji Backend - Cloudflare Workers
- * Main entry point for the API
+ * Sokuji Backend - Cloudflare Workers (Wallet Model)
+ * Main entry point for the API with wallet-based token management
  */
 
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
-import authRoutes from './routes/auth';
+import authWalletRoutes from './routes/auth-wallet';
 import userRoutes from './routes/user';
-import usageRoutes from './routes/usage';
+import walletRoutes from './routes/wallet';
 import healthRoutes from './routes/health';
 import v1Routes from './routes/v1';
-import { authMiddleware } from './middleware/auth';
 import { Env, HonoVariables } from './types';
-
-// Durable Objects removed - using HTTP polling instead
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -33,12 +30,11 @@ app.use('/*', cors({
       'https://sokuji.kizuna.ai',
       'https://www.sokuji.kizuna.ai',
       'https://dev.sokuji.kizuna.ai',
-      // Legacy domain removed - now using kizuna.ai
     ];
     
     // Check static origins
     if (allowed.includes(origin)) {
-      return origin; // Return the origin string
+      return origin;
     }
     
     // Check regex patterns
@@ -50,12 +46,12 @@ app.use('/*', cors({
     for (const pattern of patterns) {
       if (pattern.test(origin)) {
         console.log('[CORS] Regex pattern matched:', origin);
-        return origin; // Return the origin string
+        return origin;
       }
     }
     
     console.log('[CORS] Origin rejected:', origin);
-    return null; // Reject by returning null
+    return null;
   },
   credentials: true,
   allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -67,19 +63,18 @@ app.get('/', (c) => {
   return c.json({
     status: 'healthy',
     service: 'Sokuji Backend',
-    version: '1.0.0',
+    version: '2.0.0',
     timestamp: new Date().toISOString()
   });
 });
 
 // API routes
-app.route('/api/auth', authRoutes);
+app.route('/api/auth', authWalletRoutes);  // New wallet-based auth routes
 app.route('/api/user', userRoutes);
-app.route('/api/usage', usageRoutes);
+app.route('/api/wallet', walletRoutes);    // New wallet endpoints
+app.route('/api/usage', walletRoutes);     // Map old usage routes to wallet for compatibility
 app.route('/api/health', healthRoutes);
 app.route('/v1', v1Routes);
-
-// WebSocket removed - quota sync now handled via HTTP polling in /api/usage routes
 
 // Error handling
 app.onError((err, c) => {
