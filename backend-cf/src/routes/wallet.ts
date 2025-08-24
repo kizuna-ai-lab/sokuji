@@ -25,6 +25,9 @@ app.get('/status', authMiddleware, async (c) => {
       return c.json({ error: 'Failed to get wallet status' }, 500);
     }
     
+    // Get usage statistics (30-day usage and monthly quota)
+    const usageStats = await walletService.getUsageStats('user', userId);
+    
     // Format response for frontend compatibility
     return c.json({
       // Balance information
@@ -33,6 +36,10 @@ app.get('/status', authMiddleware, async (c) => {
       
       // Plan information
       plan: balance.planId?.replace(/_plan$/, '') || 'free', // Remove '_plan' suffix for display
+      
+      // Usage statistics (new fields)
+      monthlyQuota: usageStats?.monthlyQuota || 0,  // Tokens allocated monthly for this plan
+      last30DaysUsage: usageStats?.last30DaysUsage || 0,  // Tokens used in past 30 days
       
       // Features and limits
       features: balance.features || [],
@@ -168,36 +175,6 @@ app.get('/history', authMiddleware, async (c) => {
       error: 'Failed to get wallet history',
       details: c.env.ENVIRONMENT === 'development' ? error.message : undefined
     }, 500);
-  }
-});
-
-/**
- * Get current quota (compatibility endpoint)
- * Maps wallet status to old quota format
- */
-app.get('/quota', authMiddleware, async (c) => {
-  const userId = c.get('userId');
-  const walletService = createWalletService(c.env);
-  
-  try {
-    const balance = await walletService.getBalance('user', userId);
-    
-    if (!balance) {
-      return c.json({ error: 'Failed to get quota' }, 500);
-    }
-    
-    // Return in old quota format for compatibility
-    return c.json({
-      total: balance.balanceTokens,
-      used: 0, // Wallet model doesn't track monthly usage
-      remaining: balance.frozen ? 0 : balance.balanceTokens,
-      resetDate: null, // No reset in wallet model
-      plan: balance.planId?.replace(/_plan$/, '') || 'free'
-    });
-    
-  } catch (error) {
-    console.error('Error getting quota:', error);
-    return c.json({ error: 'Failed to get quota' }, 500);
   }
 });
 

@@ -12,6 +12,10 @@ interface QuotaData {
   balance?: number;      // Wallet balance (never expires)
   frozen?: boolean;      // Whether wallet is frozen
   
+  // Usage statistics (new fields)
+  monthlyQuota?: number;     // Tokens allocated monthly for this plan
+  last30DaysUsage?: number;  // Tokens used in the past 30 days
+  
   // Compatibility fields (for frontend UI)
   total: number;         // = balance (for compatibility)
   used: number;          // = 0 (wallet model doesn't track usage)

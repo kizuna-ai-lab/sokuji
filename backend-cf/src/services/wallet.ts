@@ -496,6 +496,47 @@ export class WalletService {
   }
 
   /**
+   * Get usage statistics including 30-day rolling usage
+   */
+  async getUsageStats(
+    subjectType: 'user' | 'organization',
+    subjectId: string
+  ): Promise<{ last30DaysUsage: number; monthlyQuota: number } | null> {
+    try {
+      // Get 30-day rolling usage (sum of all 'use' events)
+      const usageResult = await this.env.DB.prepare(`
+        SELECT 
+          COALESCE(ABS(SUM(amount_tokens)), 0) as usage
+        FROM wallet_ledger
+        WHERE subject_type = ? 
+          AND subject_id = ?
+          AND event_type = 'use'
+          AND created_at >= datetime('now', '-30 days')
+      `).bind(subjectType, subjectId).first();
+
+      // Get monthly quota from plan
+      const planResult = await this.env.DB.prepare(`
+        SELECT 
+          p.monthly_quota_tokens
+        FROM entitlements e
+        JOIN plans p ON e.plan_id = p.plan_id
+        WHERE e.subject_type = ? AND e.subject_id = ?
+      `).bind(subjectType, subjectId).first();
+
+      // If no entitlement found, check for free plan
+      const monthlyQuota = planResult?.monthly_quota_tokens || 0;
+
+      return {
+        last30DaysUsage: usageResult?.usage as number || 0,
+        monthlyQuota: monthlyQuota as number
+      };
+    } catch (error) {
+      console.error('Error getting usage stats:', error);
+      return null;
+    }
+  }
+
+  /**
    * Get usage history from ledger
    */
   async getHistory(

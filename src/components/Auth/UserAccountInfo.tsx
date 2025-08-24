@@ -5,8 +5,8 @@
 import {useEffect} from 'react';
 import {SignOutButton, useClerk, useUser} from '../../lib/clerk/ClerkProvider';
 import {useUserProfile} from '../../contexts/UserProfileContext';
-import {AlertCircle, LogOut, UserCog} from 'lucide-react';
-import {formatPercentage, formatTokens} from '../../utils/formatters';
+import {AlertCircle, LogOut, UserCog, Wallet} from 'lucide-react';
+import {formatTokens} from '../../utils/formatters';
 import {useTranslation} from 'react-i18next';
 import './UserAccountInfo.scss';
 
@@ -60,9 +60,6 @@ export function UserAccountInfo({
   }
 
 
-  // Quota data and calculations
-  const usagePercentage = quota ? formatPercentage(quota.used, quota.total) : 0;
-  
   // Handle manage account click - open UserProfile modal
   const handleManageAccount = () => {
     clerk.openUserProfile();
@@ -156,32 +153,19 @@ export function UserAccountInfo({
         ) : (
           <>
 
-            {/* Quota Display with Subscription Badge */}
-            <div className="quota-header">
-              <h4>{t('tokenUsage.title')}</h4>
-              <span className={`badge badge-inline badge-${subscription}`}>
+            <div className="quota-compact-line">
+              <span className={`plan-badge plan-badge-${subscription}`}>
                 {subscription.toUpperCase()}
               </span>
-            </div>
-
-            <div className="quota-details">
-              <div className="quota-bar-container">
-                <div className="quota-bar">
-                  <div 
-                    className={`quota-progress ${usagePercentage >= 80 ? 'high-usage' : ''}`}
-                    style={{ width: `${Math.min(usagePercentage, 100)}%` }}
-                  />
-                </div>
-              </div>
-
-              <div className="quota-labels">
-                <div className="usage-label">
-                  <span>{formatTokens(quota.used)} {t('tokenUsage.used')}</span>
-                </div>
-                <div className="remaining-label">
-                  {formatTokens(quota.remaining)} {t('tokenUsage.remaining')}
-                </div>
-              </div>
+              <span className="divider">|</span>
+              <Wallet size={14} className="wallet-icon" />
+              <span className="balance-section">
+                {formatTokens(quota.balance || quota.remaining)} tokens
+              </span>
+              <span className="divider">|</span>
+              <span className="usage-section">
+                Last 30 days: {formatTokens(quota.last30DaysUsage || 0)}
+              </span>
             </div>
           </>
         )}
