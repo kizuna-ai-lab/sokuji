@@ -1,12 +1,13 @@
 /**
  * REST API Proxy for CometAPI (OpenAI-compatible)
- * Handles regular HTTP API calls with authentication and billing
+ * Handles regular HTTP API calls with authentication and wallet token deduction
  */
 
 import { Hono } from 'hono';
 import { Env, HonoVariables } from '../types';
 import { authMiddleware } from '../middleware/auth';
 import { corsHeaders } from '../middleware/cors';
+import { createWalletService } from '../services/wallet';
 
 const app = new Hono<{ Bindings: Env; Variables: HonoVariables }>();
 
@@ -71,9 +72,9 @@ app.all('/*', authMiddleware, async (c) => {
     
     console.log('[Proxy] CometAPI response received:', response.status);
     
-    // Log usage for billing
+    // Deduct tokens from wallet for successful POST requests
     if (response.ok && c.req.method === 'POST') {
-      console.log('[Proxy] Processing billing for successful POST request');
+      console.log('[Proxy] Processing wallet deduction for successful POST request');
       try {
         const clonedResponse = response.clone();
         const responseBody = await clonedResponse.json() as any;
@@ -88,49 +89,72 @@ app.all('/*', authMiddleware, async (c) => {
           } : 'none'
         });
         
-        // Track token usage
+        // Deduct tokens from wallet
         if (responseBody.usage) {
           const usage = responseBody.usage;
           const totalTokens = usage.total_tokens || 0;
           const model = responseBody.model || 'unknown';
           
-          console.log('[Proxy] Recording usage:', {
+          console.log('[Proxy] Deducting tokens from wallet:', {
             userId: userId,
             model,
             totalTokens,
             provider: 'comet'
           });
           
-          await c.env.DB.prepare(`
-            INSERT INTO usage_logs (user_id, model, provider, tokens, metadata, created_at)
-            VALUES (?, ?, 'comet', ?, ?, datetime('now'))
-          `).bind(
-            userId,
-            model,
-            totalTokens,
-            JSON.stringify(usage)
-          ).run();
+          // Create wallet service
+          const walletService = createWalletService(c.env);
           
-          console.log('[Proxy] Usage log inserted successfully');
+          // Deduct tokens from wallet with detailed usage information
+          const deductResult = await walletService.useTokens({
+            subjectType: 'user',
+            subjectId: userId,
+            tokens: totalTokens,
+            // API usage details
+            provider: 'comet',
+            model: model,
+            endpoint: path,
+            method: c.req.method,
+            inputTokens: usage.prompt_tokens || 0,
+            outputTokens: usage.completion_tokens || 0,
+            metadata: {
+              usage_details: usage,
+              request_timestamp: new Date().toISOString()
+            }
+          });
           
-          // Update user's token usage
-          await c.env.DB.prepare(`
-            UPDATE users 
-            SET tokens_used = tokens_used + ?, 
-                updated_at = datetime('now')
-            WHERE clerk_id = ?
-          `).bind(totalTokens, userId).run();
-          
-          console.log('[Proxy] User token usage updated successfully');
+          if (!deductResult.success) {
+            console.error('[Proxy] Failed to deduct tokens from wallet:', deductResult.error);
+            
+            // If insufficient balance or frozen, return error response
+            if (deductResult.error === 'Insufficient balance') {
+              return c.json({
+                error: 'insufficient_balance',
+                message: `Insufficient token balance. Remaining: ${deductResult.remaining || 0} tokens`,
+                remaining: deductResult.remaining || 0
+              }, 409);
+            } else if (deductResult.error === 'Wallet is frozen') {
+              return c.json({
+                error: 'wallet_frozen',
+                message: 'Your wallet is frozen. Please contact support.'
+              }, 403);
+            }
+            // For other errors, log but don't fail the request
+          } else {
+            console.log('[Proxy] Tokens deducted successfully:', {
+              remaining: deductResult.remaining,
+              tokensUsed: totalTokens
+            });
+          }
         } else {
-          console.log('[Proxy] No usage data found in response, skipping billing');
+          console.log('[Proxy] No usage data found in response, skipping wallet deduction');
         }
       } catch (billingError) {
-        console.error('[Proxy] Error processing billing:', billingError);
+        console.error('[Proxy] Error processing wallet deduction:', billingError);
         // Don't fail the whole request due to billing errors
       }
     } else {
-      console.log('[Proxy] Skipping billing:', {
+      console.log('[Proxy] Skipping wallet deduction:', {
         responseOk: response.ok,
         method: c.req.method,
         reason: !response.ok ? 'response not ok' : 'not POST method'

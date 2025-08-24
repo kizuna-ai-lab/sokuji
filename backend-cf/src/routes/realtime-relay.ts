@@ -2,11 +2,12 @@
  * Realtime WebSocket Relay with Authentication
  * Based on Cloudflare's openai-workers-relay
  * Supports OpenAI and CometAPI providers
- * Includes authentication verification and usage tracking
+ * Includes authentication verification and wallet token deduction
  */
 
 import { RealtimeClient } from 'openai-realtime-api';
 import { Env } from '../types';
+import { createWalletService } from '../services/wallet';
 
 const DEBUG = true; // Set to true for debug logging
 const MODEL = 'gpt-4o-realtime-preview-2024-10-01';
@@ -95,6 +96,9 @@ async function createRealtimeClient(
   const [clientSocket, serverSocket] = Object.values(webSocketPair);
 
   serverSocket.accept();
+  
+  // Create wallet service for token deduction
+  const walletService = createWalletService(env);
 
   // Get provider from query params, default to OpenAI
   const url = new URL(request.url);
@@ -217,75 +221,87 @@ async function createRealtimeClient(
             }
           }
           
-          // If we have usage data, record it
+          // If we have usage data, deduct tokens from wallet
           if (usage && eventsWithUsage.includes(event.type)) {
-            totalTokensUsed += usage.total_tokens || 0;
+            const tokensToUse = usage.total_tokens || 0;
+            totalTokensUsed += tokensToUse;
             
-            relayLog('Recording realtime usage:', {
+            relayLog('Deducting tokens from wallet:', {
               userId: userContext.userId,
               eventType: event.type,
-              totalTokens: usage.total_tokens,
+              totalTokens: tokensToUse,
               model: modelName,
               provider: provider
             });
             
-            // Get user database ID from clerk_id
-            const user = await env.DB.prepare(
-              'SELECT id FROM users WHERE clerk_id = ?'
-            ).bind(userContext.userId).first();
+            // Prepare structured parameters for wallet service
+            const metadata: any = {
+              event_id: event.event_id || null,
+              usage_details: usage
+            };
             
-            if (user) {
-              // Prepare metadata object with event-specific information
-              const metadata: any = {
-                provider: provider
-              };
-              
-              // Add event-specific metadata
-              if (event.type === 'response.done') {
-                if (event.response?.conversation_id) metadata.conversation_id = event.response.conversation_id;
-                if (responseId) metadata.response_id = responseId;
-                if (event.response?.voice) metadata.voice = event.response.voice;
-                if (event.response?.modalities) metadata.modalities = event.response.modalities;
-                if (event.response?.temperature) metadata.temperature = event.response.temperature;
-              } else if (event.type === 'conversation.item.input_audio_transcription.completed') {
-                if (event.item_id) metadata.item_id = event.item_id;
-                if (event.transcript) metadata.transcript = event.transcript;
-                if (event.content_index !== undefined) metadata.content_index = event.content_index;
-                if (conversationId) metadata.conversation_id = conversationId;
-              }
-              
-              // Record usage in database with new schema
-              await env.DB.prepare(`
-                INSERT INTO usage_logs (
-                  user_id, event_type, event_id, session_id, model, provider,
-                  total_tokens, input_tokens, output_tokens,
-                  input_token_details, output_token_details, usage_data, metadata
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-              `).bind(
-                user.id,
-                event.type,
-                event.event_id || null,
-                sessionId || null,
-                modelName,
-                provider,
-                usage.total_tokens || 0,
-                usage.input_tokens || 0,
-                usage.output_tokens || 0,
-                JSON.stringify(usage.input_token_details || {}),
-                JSON.stringify(usage.output_token_details || {}),
-                JSON.stringify(usage),
-                JSON.stringify(metadata)
-              ).run();
+            // Add event-specific metadata
+            if (event.type === 'response.done') {
+              if (event.response?.conversation_id) metadata.conversation_id = event.response.conversation_id;
+              if (event.response?.voice) metadata.voice = event.response.voice;
+              if (event.response?.modalities) metadata.modalities = event.response.modalities;
+              if (event.response?.temperature) metadata.temperature = event.response.temperature;
+            } else if (event.type === 'conversation.item.input_audio_transcription.completed') {
+              if (event.item_id) metadata.item_id = event.item_id;
+              if (event.transcript) metadata.transcript_length = event.transcript?.length || 0;
+              if (event.content_index !== undefined) metadata.content_index = event.content_index;
+              if (conversationId) metadata.conversation_id = conversationId;
             }
             
-            // Update user's total token usage
-            if (user) {
-              await env.DB.prepare(`
-                UPDATE users 
-                SET tokens_used = tokens_used + ?, 
-                    updated_at = datetime('now')
-                WHERE id = ?
-              `).bind(usage.total_tokens || 0, user.id).run();
+            // Deduct tokens from wallet with detailed usage information
+            const deductResult = await walletService.useTokens({
+              subjectType: 'user',
+              subjectId: userContext.userId,
+              tokens: tokensToUse,
+              // API usage details
+              provider: provider,
+              model: modelName,
+              endpoint: '/v1/realtime',
+              method: 'WS',
+              inputTokens: usage.input_tokens || 0,
+              outputTokens: usage.output_tokens || 0,
+              sessionId: sessionId,
+              responseId: responseId || undefined,
+              eventType: event.type,
+              metadata: metadata
+            });
+            
+            if (!deductResult.success) {
+              relayError('Failed to deduct tokens from wallet:', deductResult.error, `User: ${userContext.userId}`);
+              
+              // Send error message to client and close connection if insufficient balance or frozen
+              if (deductResult.error === 'Insufficient balance' || deductResult.error === 'Wallet is frozen') {
+                const errorMessage = {
+                  type: 'error',
+                  error: {
+                    type: 'insufficient_balance',
+                    message: deductResult.error === 'Insufficient balance' 
+                      ? `Insufficient token balance. Remaining: ${deductResult.remaining || 0} tokens`
+                      : 'Your wallet is frozen. Please contact support.',
+                    code: deductResult.error === 'Insufficient balance' ? 'insufficient_balance' : 'wallet_frozen'
+                  }
+                };
+                
+                serverSocket.send(JSON.stringify(errorMessage));
+                
+                // Close the connection after sending error
+                setTimeout(() => {
+                  serverSocket.close(1008, deductResult.error);
+                  realtimeClient?.disconnect();
+                }, 100);
+                
+                return; // Stop processing this event
+              }
+            } else {
+              relayLog('Tokens deducted successfully:', {
+                remaining: deductResult.remaining,
+                tokensUsed: tokensToUse
+              });
             }
           }
         } catch (billingError) {

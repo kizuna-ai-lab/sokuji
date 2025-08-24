@@ -97,7 +97,7 @@ app.post('/webhook/clerk', async (c) => {
 **Database Impact**:
 - Updates user's `subscription` field to new plan
 - Sets `token_quota` based on plan:
-  - `free_plan`: 1,000,000 tokens
+  - `free_plan`: 0 tokens
   - `starter_plan`: 10,000,000 tokens
   - `essentials_plan`: 50,000,000 tokens
   - `enterprise_plan`: -1 (unlimited)
@@ -318,7 +318,7 @@ app.get('/quota', authMiddleware, async (c) => {
 function getQuotaForPlan(plan: string): number {
   const quotas = {
     fallback: 0,
-    free_plan: 1_000_000,      // 1M tokens
+    free_plan: 0,               // 0 tokens
     starter_plan: 10_000_000,   // 10M tokens
     essentials_plan: 50_000_000, // 50M tokens
     enterprise_plan: -1          // Unlimited

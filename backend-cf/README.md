@@ -352,7 +352,7 @@ wrangler d1 execute sokuji-db-prod --command "SELECT COUNT(*) FROM users"
 
 | Plan | Monthly Tokens | Price |
 |------|---------------|-------|
-| Free | 1M | $0 |
+| Free | 0 | $0 |
 | Basic | 10M | $9.99 |
 | Premium | 50M | $29.99 |
 | Enterprise | Unlimited | Custom |

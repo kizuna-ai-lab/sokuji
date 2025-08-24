@@ -8,11 +8,21 @@ import { useAuth, useUser } from '../lib/clerk/ClerkProvider';
 import { useSession } from './SessionContext';
 
 interface QuotaData {
-  total: number;
-  used: number;
-  remaining: number;
-  resetDate?: string;
-  plan: string;  // Add plan field from backend API
+  // Core wallet data (new fields)
+  balance?: number;      // Wallet balance (never expires)
+  frozen?: boolean;      // Whether wallet is frozen
+  
+  // Compatibility fields (for frontend UI)
+  total: number;         // = balance (for compatibility)
+  used: number;          // = 0 (wallet model doesn't track usage)
+  remaining: number;     // = balance (if not frozen) or 0 (if frozen)
+  resetDate?: string | null;  // = null (no reset in wallet model)
+  plan: string;          // Current subscription plan
+  
+  // Additional features (new fields)
+  features?: string[];   // Enabled features for the plan
+  rateLimitRpm?: number; // Rate limit (requests per minute)
+  maxConcurrentSessions?: number; // Max concurrent sessions allowed
 }
 
 interface UserProfileContextValue {
@@ -89,7 +99,7 @@ export function UserProfileProvider({ children }: UserProfileProviderProps) {
       }
 
       const apiUrl = import.meta.env.VITE_BACKEND_URL || 'https://sokuji-api.kizuna.ai';
-      const response = await fetch(`${apiUrl}/api/usage/quota`, {
+      const response = await fetch(`${apiUrl}/api/wallet/status`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -126,7 +136,7 @@ export function UserProfileProvider({ children }: UserProfileProviderProps) {
       if (!token) return;
 
       const apiUrl = import.meta.env.VITE_BACKEND_URL || 'https://sokuji-api.kizuna.ai';
-      const response = await fetch(`${apiUrl}/api/usage/quota`, {
+      const response = await fetch(`${apiUrl}/api/wallet/status`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
