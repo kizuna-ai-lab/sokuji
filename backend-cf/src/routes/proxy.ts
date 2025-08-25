@@ -1,5 +1,5 @@
 /**
- * REST API Proxy for CometAPI (OpenAI-compatible)
+ * REST API Proxy for OpenAI
  * Handles regular HTTP API calls with authentication and wallet token deduction
  */
 
@@ -12,7 +12,7 @@ import { createWalletService } from '../services/wallet';
 const app = new Hono<{ Bindings: Env; Variables: HonoVariables }>();
 
 /**
- * Handle REST API proxy for CometAPI endpoints (OpenAI-compatible)
+ * Handle REST API proxy for OpenAI endpoints
  * Only allows /models endpoint - all others are rejected
  */
 app.all('/*', authMiddleware, async (c) => {
@@ -46,31 +46,31 @@ app.all('/*', authMiddleware, async (c) => {
   
   console.log('[Proxy] User authenticated, proceeding with models request');
   
-  // Forward to CometAPI (OpenAI-compatible)
-  const cometAPIUrl = `https://api.cometapi.com/v1${path}${url.search}`;
-  console.log('[Proxy] Forwarding to CometAPI URL:', cometAPIUrl);
+  // Forward to OpenAI API
+  const openaiUrl = `https://api.openai.com/v1${path}${url.search}`;
+  console.log('[Proxy] Forwarding to OpenAI URL:', openaiUrl);
   
   // Get the raw request for headers and body
   const rawRequest = c.req.raw;
-  const cometAPIHeaders = new Headers(rawRequest.headers);
-  cometAPIHeaders.set('Authorization', `Bearer ${c.env.COMET_API_KEY}`);
-  cometAPIHeaders.delete('Host');
-  cometAPIHeaders.delete('CF-Connecting-IP');
-  cometAPIHeaders.delete('CF-RAY');
+  const openaiHeaders = new Headers(rawRequest.headers);
+  openaiHeaders.set('Authorization', `Bearer ${c.env.OPENAI_API_KEY}`);
+  openaiHeaders.delete('Host');
+  openaiHeaders.delete('CF-Connecting-IP');
+  openaiHeaders.delete('CF-RAY');
   
-  console.log('[Proxy] Request headers prepared, API key:', c.env.COMET_API_KEY ? 'present' : 'missing');
+  console.log('[Proxy] Request headers prepared, API key:', c.env.OPENAI_API_KEY ? 'present' : 'missing');
   
-  const cometAPIRequest = new Request(cometAPIUrl, {
+  const openaiRequest = new Request(openaiUrl, {
     method: c.req.method,
-    headers: cometAPIHeaders,
+    headers: openaiHeaders,
     body: rawRequest.body,
   });
 
   try {
-    console.log('[Proxy] Sending request to CometAPI...');
-    const response = await fetch(cometAPIRequest);
+    console.log('[Proxy] Sending request to OpenAI...');
+    const response = await fetch(openaiRequest);
     
-    console.log('[Proxy] CometAPI response received:', response.status);
+    console.log('[Proxy] OpenAI response received:', response.status);
     
     // Deduct tokens from wallet for successful POST requests
     if (response.ok && c.req.method === 'POST') {
@@ -92,31 +92,36 @@ app.all('/*', authMiddleware, async (c) => {
         // Deduct tokens from wallet
         if (responseBody.usage) {
           const usage = responseBody.usage;
-          const totalTokens = usage.total_tokens || 0;
           const model = responseBody.model || 'unknown';
+          const inputTokens = usage.prompt_tokens || 0;
+          const outputTokens = usage.completion_tokens || 0;
           
-          console.log('[Proxy] Deducting tokens from wallet:', {
+          console.log('[Proxy] Processing token usage:', {
             userId: userId,
             model,
-            totalTokens,
-            provider: 'comet'
+            provider: 'openai',
+            inputTokens,
+            outputTokens,
+            totalTokens: inputTokens + outputTokens
           });
           
           // Create wallet service
           const walletService = createWalletService(c.env);
           
-          // Deduct tokens from wallet with detailed usage information
+          // Deduct tokens from wallet (pricing calculation happens internally)
           const deductResult = await walletService.useTokens({
             subjectType: 'user',
-            subjectId: userId,
-            tokens: totalTokens,
+            subjectId: userId || 'unknown',
             // API usage details
-            provider: 'comet',
+            provider: 'openai',
             model: model,
             endpoint: path,
             method: c.req.method,
-            inputTokens: usage.prompt_tokens || 0,
-            outputTokens: usage.completion_tokens || 0,
+            // Raw token counts
+            inputTokens: inputTokens,
+            outputTokens: outputTokens,
+            // Modality
+            modality: 'text', // REST API is always text
             metadata: {
               usage_details: usage,
               request_timestamp: new Date().toISOString()
@@ -143,7 +148,7 @@ app.all('/*', authMiddleware, async (c) => {
           } else {
             console.log('[Proxy] Tokens deducted successfully:', {
               remaining: deductResult.remaining,
-              tokensUsed: totalTokens
+              tokensUsed: inputTokens + outputTokens
             });
           }
         } else {
