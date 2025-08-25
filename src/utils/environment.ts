@@ -138,7 +138,3 @@ export function isProductionMode(): boolean {
   return import.meta.env.MODE === 'production';
 }
 
-// Re-export for backward compatibility
-export const isElectronEnvironment = isElectron();
-export const isExtensionEnvironment = isExtension();
-export const isWebEnvironment = isWeb();

@@ -149,11 +149,8 @@ const localizationCache: Record<string, ClerkLocalization> = {
  * @returns The Clerk localization object or English as fallback
  */
 export async function loadClerkLocalization(languageCode: string): Promise<ClerkLocalization> {
-  console.log(`[Clerk i18n] Loading localization for: ${languageCode}`);
-  
   // Return cached localization if available
   if (localizationCache[languageCode]) {
-    console.log(`[Clerk i18n] Using cached localization for: ${languageCode}`);
     return localizationCache[languageCode];
   }
 
@@ -167,7 +164,6 @@ export async function loadClerkLocalization(languageCode: string): Promise<Clerk
   const loader = localeMap[languageCode];
   if (loader) {
     try {
-      console.log(`[Clerk i18n] Dynamically importing localization for: ${languageCode}`);
       const module = await loader();
       const localization = module.default;
       
@@ -176,7 +172,6 @@ export async function loadClerkLocalization(languageCode: string): Promise<Clerk
       
       // Cache the merged localization
       localizationCache[languageCode] = mergedLocalization;
-      console.log(`[Clerk i18n] Successfully loaded and merged localization for: ${languageCode}`);
       return mergedLocalization;
     } catch (error) {
       console.warn(`[Clerk i18n] Failed to load localization for ${languageCode}, falling back to English`, error);
