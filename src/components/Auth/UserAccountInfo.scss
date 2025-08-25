@@ -21,6 +21,10 @@
   to { transform: rotate(360deg); }
 }
 
+@keyframes refresh-spin {
+  to { transform: rotate(360deg); }
+}
+
 // Compact view (for header/toolbar)
 .user-account-compact {
   display: flex;
@@ -120,6 +124,55 @@
   }
 }
 
+// Base styles for action buttons - can be used anywhere
+.action-button-compact {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+  
+  &.manage-account {
+    background: #10a37f;
+    color: #fff;
+    
+    &:hover {
+      background: #0e8f6f;
+    }
+  }
+  
+  &.sign-out {
+    background: transparent;
+    color: #e74c3c;
+    border: 1px solid #e74c3c;
+    
+    &:hover {
+      background: rgba(231, 76, 60, 0.1);
+      border-color: #c0392b;
+    }
+  }
+  
+  &.refresh-account {
+    background: transparent;
+    color: #e67e22; // Match usage section color
+    border: 1px solid #e67e22;
+    
+    &:hover {
+      background: rgba(231, 123, 34, 0.1);
+      border-color: #f39c12;
+    }
+    
+    &:active svg {
+      animation: refresh-spin 0.5s ease-in-out;
+    }
+  }
+}
+
 // Compact header with inline actions
 .user-header-compact {
   display: flex;
@@ -173,43 +226,10 @@
       text-overflow: ellipsis;
     }
   }
-  
+
   .user-actions-compact {
     display: flex;
     gap: 8px;
-    
-    .action-button-compact {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 28px;
-      height: 28px;
-      padding: 0;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      transition: all 0.2s;
-      
-      &.manage-account {
-        background: #10a37f;
-        color: #fff;
-        
-        &:hover {
-          background: #0e8f6f;
-        }
-      }
-      
-      &.sign-out {
-        background: transparent;
-        color: #e74c3c;
-        border: 1px solid #e74c3c;
-        
-        &:hover {
-          background: rgba(231, 76, 60, 0.1);
-          border-color: #c0392b;
-        }
-      }
-    }
   }
 }
 
@@ -310,7 +330,7 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  min-height: 60px;
+  //min-height: 60px;
   
   .loading-spinner {
     width: 20px;
@@ -365,9 +385,13 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 0;
   font-size: 13px;
   flex-wrap: wrap; // Allow wrapping on very small screens
+  
+  // Push refresh button to the right
+  .action-button-compact {
+    margin-left: auto;
+  }
   
   .plan-badge {
     display: inline-block;
@@ -437,6 +461,9 @@
   .usage-section {
     color: #e67e22;  // Amber for spending
     font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
   }
   
   .quota-section {
