@@ -5,7 +5,7 @@
 import {useEffect} from 'react';
 import {SignOutButton, useClerk, useUser} from '../../lib/clerk/ClerkProvider';
 import {useUserProfile} from '../../contexts/UserProfileContext';
-import {AlertCircle, LogOut, TrendingDown, UserCog, Wallet} from 'lucide-react';
+import {AlertCircle, LogOut, RefreshCw, TrendingDown, UserCog, Wallet} from 'lucide-react';
 import {formatTokens} from '../../utils/formatters';
 import {useTranslation} from 'react-i18next';
 import './UserAccountInfo.scss';
@@ -167,6 +167,13 @@ export function UserAccountInfo({
                 <TrendingDown size={14} className="usage-icon" />
                 30D: {formatTokens(quota.last30DaysUsage || 0)}
               </span>
+              <button 
+                className="action-button-compact refresh-account" 
+                onClick={refetchAll}
+                title="Refresh"
+              >
+                <RefreshCw size={14} />
+              </button>
             </div>
           </>
         )}
