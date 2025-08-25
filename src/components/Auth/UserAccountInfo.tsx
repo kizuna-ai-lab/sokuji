@@ -5,7 +5,7 @@
 import {useEffect} from 'react';
 import {SignOutButton, useClerk, useUser} from '../../lib/clerk/ClerkProvider';
 import {useUserProfile} from '../../contexts/UserProfileContext';
-import {AlertCircle, LogOut, UserCog, Wallet} from 'lucide-react';
+import {AlertCircle, LogOut, TrendingDown, UserCog, Wallet} from 'lucide-react';
 import {formatTokens} from '../../utils/formatters';
 import {useTranslation} from 'react-i18next';
 import './UserAccountInfo.scss';
@@ -164,7 +164,8 @@ export function UserAccountInfo({
               </span>
               <span className="divider">|</span>
               <span className="usage-section">
-                Last 30 days: {formatTokens(quota.last30DaysUsage || 0)}
+                <TrendingDown size={14} className="usage-icon" />
+                30D: {formatTokens(quota.last30DaysUsage || 0)}
               </span>
             </div>
           </>

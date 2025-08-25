@@ -423,6 +423,11 @@
     flex-shrink: 0;
   }
   
+  .usage-icon {
+    color: #e67e22; // Match the usage section color (amber for spending)
+    flex-shrink: 0;
+  }
+  
   .balance-section {
     color: #fff;
     font-weight: 600;
