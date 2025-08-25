@@ -30,7 +30,6 @@ export function RootLayout() {
   // Load Clerk localization when i18n language changes
   React.useEffect(() => {
     const handleLanguageChange = async (language: string) => {
-      console.log(`[Clerk i18n] Language changed to: ${language}`);
       const localization = await loadClerkLocalization(language);
       setClerkLocalization(localization);
     };
@@ -40,8 +39,7 @@ export function RootLayout() {
 
     // Load initial localization if different from default
     if (i18n.language !== 'en') {
-      console.log(`[Clerk i18n] Initial language is: ${i18n.language}`);
-      handleLanguageChange(i18n.language).catch(console.warn);
+      handleLanguageChange(i18n.language).catch(() => {});
     }
 
     return () => {
