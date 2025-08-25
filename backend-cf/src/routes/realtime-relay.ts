@@ -1,7 +1,7 @@
 /**
  * Realtime WebSocket Relay with Authentication
  * Based on Cloudflare's openai-workers-relay
- * Supports OpenAI and CometAPI providers
+ * OpenAI provider only
  * Includes authentication verification and wallet token deduction
  */
 
@@ -9,24 +9,15 @@ import { RealtimeClient } from 'openai-realtime-api';
 import { Env } from '../types';
 import { createWalletService } from '../services/wallet';
 
-const DEBUG = true; // Set to true for debug logging
-const MODEL = 'gpt-4o-realtime-preview-2024-10-01';
+const DEBUG = false; // Set to true for debug logging
+const MODEL = 'gpt-4o-mini-realtime-preview';
 
-// Provider configurations
-const PROVIDERS = {
-  openai: {
-    url: 'wss://api.openai.com/v1/realtime',
-    apiKeyEnv: 'OPENAI_API_KEY',
-    name: 'OpenAI'
-  },
-  comet: {
-    url: 'wss://api.cometapi.com/v1/realtime',
-    apiKeyEnv: 'COMET_API_KEY', 
-    name: 'CometAPI'
-  }
+// OpenAI configuration
+const OPENAI_CONFIG = {
+  url: 'wss://api.openai.com/v1/realtime',
+  apiKeyEnv: 'OPENAI_API_KEY',
+  name: 'OpenAI'
 } as const;
-
-type ProviderType = keyof typeof PROVIDERS;
 
 function relayLog(...args: unknown[]) {
   if (DEBUG) {
@@ -100,18 +91,14 @@ async function createRealtimeClient(
   // Create wallet service for token deduction
   const walletService = createWalletService(env);
 
-  // Get provider from query params, default to OpenAI
   const url = new URL(request.url);
-  const providerParam = url.searchParams.get('provider') as ProviderType;
-  const provider: ProviderType = providerParam && providerParam in PROVIDERS ? providerParam : 'openai';
-  const providerConfig = PROVIDERS[provider];
   
-  relayLog('Using provider:', provider, providerConfig.name);
+  relayLog('Using OpenAI provider');
   
   // Handle WebSocket protocol headers
   const responseHeaders = new Headers();
   const protocolHeader = request.headers.get('Sec-WebSocket-Protocol');
-  const apiKey = env[providerConfig.apiKeyEnv as keyof Env] as string;
+  const apiKey = env[OPENAI_CONFIG.apiKeyEnv as keyof Env] as string;
   
   if (protocolHeader) {
     const requestedProtocols = protocolHeader.split(',').map((p) => p.trim());
@@ -131,13 +118,13 @@ async function createRealtimeClient(
     relayLog('WebSocket protocols:', {
       requested: requestedProtocols,
       filtered: filteredProtocols,
-      provider: providerConfig.name,
+      provider: 'OpenAI',
       userContext: userContext?.userId ? 'authenticated' : 'unauthenticated'
     });
   }
 
   if (!apiKey) {
-    relayError(`Missing ${providerConfig.name} key. Please set ${providerConfig.apiKeyEnv} in environment variables.`);
+    relayError(`Missing OpenAI API key. Please set OPENAI_API_KEY in environment variables.`);
     serverSocket.close(1008, 'Missing API key');
     return new Response('Missing API key', { status: 401 });
   }
@@ -152,28 +139,37 @@ async function createRealtimeClient(
 
   let realtimeClient: RealtimeClient | null = null;
 
-  // Create RealtimeClient for selected provider
+  // Create OpenAI RealtimeClient
   try {
-    relayLog(`Creating ${providerConfig.name} RealtimeClient`);
+    relayLog('Creating OpenAI RealtimeClient');
     realtimeClient = new RealtimeClient({
       apiKey,
       debug: DEBUG,
-      url: providerConfig.url,
+      url: OPENAI_CONFIG.url,
       model
     });
-    relayLog(`${providerConfig.name} RealtimeClient created successfully`);
+    relayLog('OpenAI RealtimeClient created successfully');
   } catch (e) {
-    relayError(`Error creating ${providerConfig.name} RealtimeClient:`, e);
+    relayError('Error creating OpenAI RealtimeClient:', e);
     serverSocket.close();
-    return new Response(`Error creating ${providerConfig.name} RealtimeClient`, {
+    return new Response('Error creating OpenAI RealtimeClient', {
       status: 500,
     });
   }
 
-  // Relay: Provider -> Client (with usage tracking)
+  // Relay: OpenAI -> Client (with usage tracking)
   realtimeClient.realtime.on('server.*', async (event: any) => {
     if (serverSocket.readyState === WebSocket.OPEN) {
-      relayLog(`Relaying event from ${providerConfig.name} to client:`, event.type);
+      // Skip logging for events with binary audio data
+      const skipLogging = event.type === 'response.audio.delta' || 
+                          event.type === 'response.audio_transcript.delta' ||
+                          event.type === 'input_audio_buffer.speech_started' ||
+                          event.type === 'input_audio_buffer.speech_stopped' ||
+                          event.type === 'conversation.item.input_audio_transcription.in_progress';
+      
+      if (!skipLogging) {
+        relayLog('Relaying event from OpenAI to client:', event.type);
+      }
       
       // Track token usage for billing if user is authenticated
       if (userContext?.userId) {
@@ -223,21 +219,39 @@ async function createRealtimeClient(
           
           // If we have usage data, deduct tokens from wallet
           if (usage && eventsWithUsage.includes(event.type)) {
-            const tokensToUse = usage.total_tokens || 0;
-            totalTokensUsed += tokensToUse;
+            const inputTokens = usage.input_tokens || 0;
+            const outputTokens = usage.output_tokens || 0;
             
-            relayLog('Deducting tokens from wallet:', {
+            // Determine modality based on model and event type
+            // Realtime models typically use audio, but may have text components
+            let modality: 'audio' | 'text' = 'audio'; // Default for realtime
+            
+            // Check if this is specifically a text-based interaction
+            if (event.response?.modalities && Array.isArray(event.response.modalities)) {
+              // If modalities only includes 'text', use text pricing
+              if (event.response.modalities.length === 1 && event.response.modalities[0] === 'text') {
+                modality = 'text';
+              }
+            }
+            
+            totalTokensUsed += inputTokens + outputTokens;
+            
+            relayLog('Processing token usage:', {
               userId: userContext.userId,
               eventType: event.type,
-              totalTokens: tokensToUse,
               model: modelName,
-              provider: provider
+              provider: 'openai',
+              modality: modality,
+              inputTokens,
+              outputTokens,
+              totalTokens: inputTokens + outputTokens
             });
             
             // Prepare structured parameters for wallet service
             const metadata: any = {
               event_id: event.event_id || null,
-              usage_details: usage
+              usage_details: usage,
+              modality: modality
             };
             
             // Add event-specific metadata
@@ -253,18 +267,21 @@ async function createRealtimeClient(
               if (conversationId) metadata.conversation_id = conversationId;
             }
             
-            // Deduct tokens from wallet with detailed usage information
+            // Deduct tokens from wallet (pricing calculation happens internally)
             const deductResult = await walletService.useTokens({
               subjectType: 'user',
               subjectId: userContext.userId,
-              tokens: tokensToUse,
               // API usage details
-              provider: provider,
+              provider: 'openai',
               model: modelName,
               endpoint: '/v1/realtime',
               method: 'WS',
-              inputTokens: usage.input_tokens || 0,
-              outputTokens: usage.output_tokens || 0,
+              // Raw token counts
+              inputTokens: inputTokens,
+              outputTokens: outputTokens,
+              // Modality
+              modality: modality,
+              // Session details
               sessionId: sessionId,
               responseId: responseId || undefined,
               eventType: event.type,
@@ -300,7 +317,7 @@ async function createRealtimeClient(
             } else {
               relayLog('Tokens deducted successfully:', {
                 remaining: deductResult.remaining,
-                tokensUsed: tokensToUse
+                tokensUsed: inputTokens + outputTokens
               });
             }
           }
@@ -316,7 +333,7 @@ async function createRealtimeClient(
 
   realtimeClient.realtime.on('close', (event: any) => {
     const error = event?.error || false;
-    relayLog(`${providerConfig.name} connection closed (error: ${error})`);
+    relayLog(`OpenAI connection closed (error: ${error})`);
     // Close downstream connection when upstream closes
     try {
       serverSocket.close(error ? 1011 : 1000, 'Upstream closed');
@@ -332,10 +349,16 @@ async function createRealtimeClient(
   const messageHandler = (data: string) => {
     try {
       const parsedEvent = JSON.parse(data);
-      relayLog(`Relaying event from client to ${providerConfig.name}:`, parsedEvent.type);
+      // Skip logging for events with audio data
+      const skipLogging = parsedEvent.type === 'input_audio_buffer.append' ||
+                          parsedEvent.type === 'response.create';
+      
+      if (!skipLogging) {
+        relayLog('Relaying event from client to OpenAI:', parsedEvent.type);
+      }
       realtimeClient!.realtime.send(parsedEvent.type, parsedEvent);
     } catch (e) {
-      relayError('Error parsing event from client:', e, 'Data:', data);
+      relayError('Error parsing event from client:', e, 'Data length:', data.length);
     }
   };
 
@@ -343,7 +366,7 @@ async function createRealtimeClient(
     const data = typeof event.data === 'string' ? event.data : event.data.toString();
     
     if (!realtimeClient.isConnected) {
-      relayLog(`${providerConfig.name} not connected yet, queuing message`);
+      relayLog('OpenAI not connected yet, queuing message');
       messageQueue.push(data);
     } else {
       messageHandler(data);
@@ -402,12 +425,12 @@ async function createRealtimeClient(
     } catch {}
   });
 
-  // Connect to Provider Realtime API asynchronously (don't block 101 response)
+  // Connect to OpenAI Realtime API asynchronously (don't block 101 response)
   (async () => {
     try {
-      relayLog(`Connecting to ${providerConfig.name} with model: ${model}...`);
+      relayLog(`Connecting to OpenAI with model: ${model}...`);
       await realtimeClient.connect();
-      relayLog(`Connected to ${providerConfig.name} successfully!`);
+      relayLog('Connected to OpenAI successfully!');
       
       // Process any queued messages - FIX: use messageHandler instead of serverSocket.send
       while (messageQueue.length > 0) {
@@ -418,7 +441,7 @@ async function createRealtimeClient(
         }
       }
     } catch (e) {
-      relayError(`Error connecting to ${providerConfig.name}:`, e, `User: ${userContext?.userId || 'anonymous'}`);
+      relayError('Error connecting to OpenAI:', e, `User: ${userContext?.userId || 'anonymous'}`);
       // Close the connection on upstream connect failure
       try {
         serverSocket.close(1011, 'Upstream connect failed');
