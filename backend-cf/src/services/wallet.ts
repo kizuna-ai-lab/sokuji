@@ -2,9 +2,53 @@
  * Wallet Service
  * Core wallet functionality for token management
  * Implements mint-on-payment model with permanent balances
+ * Includes integrated pricing calculations for billing
  */
 
 import { Env } from '../types';
+
+// ============================================
+// PRICING CONFIGURATION
+// ============================================
+
+/**
+ * Profit margin multiplier (1.2 = 20% profit margin)
+ * Adjust this value to change the overall profit margin
+ */
+const PROFIT_MARGIN = 1.2;
+
+/**
+ * Our base price per 1M tokens in USD
+ * This is what we charge customers
+ */
+const OUR_PRICE_PER_1M = 10.0;
+
+/**
+ * Provider costs per 1M tokens in USD
+ * Based on official pricing from OpenAI
+ */
+const PROVIDER_COSTS = {
+  'openai': {
+    'gpt-4o-realtime-preview-2024-10-01': {
+      'text': { input: 5.0, output: 20.0 },
+      'audio': { input: 40.0, output: 80.0 }
+    },
+    'gpt-4o-realtime-preview': {
+      'text': { input: 5.0, output: 20.0 },
+      'audio': { input: 40.0, output: 80.0 }
+    },
+    'gpt-4o-mini-realtime-preview-2024-10-01': {
+      'text': { input: 0.6, output: 2.4 },
+      'audio': { input: 10.0, output: 20.0 }
+    },
+    'gpt-4o-mini-realtime-preview': {
+      'text': { input: 0.6, output: 2.4 },
+      'audio': { input: 10.0, output: 20.0 }
+    }
+  }
+} as const;
+
+type Modality = 'text' | 'audio';
 
 export interface MintRequest {
   subjectType: 'user' | 'organization';
@@ -18,14 +62,17 @@ export interface MintRequest {
 export interface UseRequest {
   subjectType: 'user' | 'organization';
   subjectId: string;
-  tokens: number;
   // API usage details
   provider?: string;
   model?: string;
   endpoint?: string;
   method?: string;
+  // Raw token counts
   inputTokens?: number;
   outputTokens?: number;
+  // Modality type (optional - can be auto-detected)
+  modality?: Modality;
+  // Session details
   sessionId?: string;
   requestId?: string;
   responseId?: string;
@@ -44,8 +91,126 @@ export interface WalletBalance {
   maxConcurrentSessions?: number;
 }
 
+interface ModelPricingRatios {
+  inputRatio: number;
+  outputRatio: number;
+}
+
 export class WalletService {
-  constructor(private env: Env) {}
+  private ratios: Record<string, Record<string, Record<Modality, ModelPricingRatios>>>;
+  
+  constructor(private env: Env) {
+    // Calculate ratios based on provider costs and profit margin
+    this.ratios = this.calculateRatios();
+    console.log('WalletService initialized with integrated pricing, profit margin:', PROFIT_MARGIN);
+  }
+  
+  /**
+   * Calculate pricing ratios for all models
+   * Formula: (provider_cost / our_price) * profit_margin
+   */
+  private calculateRatios(): Record<string, Record<string, Record<Modality, ModelPricingRatios>>> {
+    const ratios: any = {};
+    
+    for (const [provider, models] of Object.entries(PROVIDER_COSTS)) {
+      ratios[provider] = {};
+      for (const [model, modalities] of Object.entries(models)) {
+        ratios[provider][model] = {};
+        for (const [modality, costs] of Object.entries(modalities)) {
+          const inputRatio = (costs.input / OUR_PRICE_PER_1M) * PROFIT_MARGIN;
+          const outputRatio = (costs.output / OUR_PRICE_PER_1M) * PROFIT_MARGIN;
+          
+          ratios[provider][model][modality] = {
+            inputRatio,
+            outputRatio
+          };
+          
+          console.log(`Pricing ratio for ${provider}/${model}/${modality}:`, {
+            inputRatio: inputRatio.toFixed(3),
+            outputRatio: outputRatio.toFixed(3)
+          });
+        }
+      }
+    }
+    
+    return ratios;
+  }
+  
+  /**
+   * Determine modality type based on model name and other factors
+   */
+  private determineModality(model: string, endpoint?: string, eventType?: string): Modality {
+    // If it's a realtime model, determine based on endpoint and event type
+    if (model.includes('realtime')) {
+      // REST API endpoints typically use text
+      if (endpoint && (endpoint.includes('/chat/completions') || endpoint.includes('/completions'))) {
+        return 'text';
+      }
+      // WebSocket events are typically audio for realtime models
+      return 'audio';
+    }
+    
+    // Non-realtime models are text
+    return 'text';
+  }
+  
+  /**
+   * Calculate adjusted token amounts based on provider, model, and modality
+   */
+  private calculateAdjustedTokens(
+    provider: string,
+    model: string,
+    modality: Modality,
+    inputTokens: number,
+    outputTokens: number
+  ): {
+    adjustedInputTokens: number;
+    adjustedOutputTokens: number;
+    totalAdjustedTokens: number;
+    inputRatio: number;
+    outputRatio: number;
+  } {
+    // Get pricing ratios for this model
+    const modelRatios = this.ratios[provider]?.[model]?.[modality];
+    
+    if (!modelRatios) {
+      // Unknown model or provider - use conservative 1:1 ratio
+      console.warn(`No pricing configuration found for ${provider}/${model}/${modality}, using 1:1 ratio`);
+      return {
+        adjustedInputTokens: inputTokens,
+        adjustedOutputTokens: outputTokens,
+        totalAdjustedTokens: inputTokens + outputTokens,
+        inputRatio: 1,
+        outputRatio: 1
+      };
+    }
+    
+    // Calculate adjusted tokens (round up to ensure no losses)
+    const adjustedInputTokens = Math.ceil(inputTokens * modelRatios.inputRatio);
+    const adjustedOutputTokens = Math.ceil(outputTokens * modelRatios.outputRatio);
+    const totalAdjustedTokens = adjustedInputTokens + adjustedOutputTokens;
+    
+    console.log('Token adjustment calculation:', {
+      provider,
+      model,
+      modality,
+      rawInput: inputTokens,
+      rawOutput: outputTokens,
+      adjustedInput: adjustedInputTokens,
+      adjustedOutput: adjustedOutputTokens,
+      totalAdjusted: totalAdjustedTokens,
+      inputRatio: modelRatios.inputRatio.toFixed(3),
+      outputRatio: modelRatios.outputRatio.toFixed(3)
+    });
+    
+    return {
+      adjustedInputTokens,
+      adjustedOutputTokens,
+      totalAdjustedTokens,
+      inputRatio: modelRatios.inputRatio,
+      outputRatio: modelRatios.outputRatio
+    };
+  }
 
   /**
    * Mint tokens based on payment amount
@@ -151,20 +316,34 @@ export class WalletService {
   }
 
   /**
-   * Use tokens (atomic deduction with usage logging)
+   * Use tokens (atomic deduction with usage logging and automatic pricing calculation)
    */
   async useTokens(request: UseRequest): Promise<{ success: boolean; remaining?: number; error?: string }> {
     const { 
-      subjectType, subjectId, tokens, 
+      subjectType, subjectId,
       provider, model, endpoint, method,
-      inputTokens, outputTokens, sessionId, 
-      requestId, responseId, eventType,
+      inputTokens = 0, outputTokens = 0,
+      modality,
+      sessionId, requestId, responseId, eventType,
       metadata 
     } = request;
 
-    if (tokens <= 0) {
-      return { success: false, error: 'Invalid token amount' };
+    // Validate input
+    if (!inputTokens && !outputTokens) {
+      return { success: false, error: 'No tokens to deduct' };
     }
+    
+    // Calculate adjusted tokens internally
+    const actualModality = modality || this.determineModality(model || '', endpoint, eventType);
+    const adjustment = this.calculateAdjustedTokens(
+      provider || 'openai',
+      model || 'unknown',
+      actualModality,
+      inputTokens,
+      outputTokens
+    );
+    
+    const tokens = adjustment.totalAdjustedTokens;
 
     try {
       // Start transaction with batch operations
@@ -233,9 +412,11 @@ export class WalletService {
               subject_type, subject_id,
               provider, model, endpoint, method,
               input_tokens, output_tokens, total_tokens,
+              adjusted_input_tokens, adjusted_output_tokens, adjusted_total_tokens,
+              input_ratio, output_ratio, modality,
               session_id, request_id, response_id, event_type,
               ledger_id, metadata
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           `).bind(
             subjectType,
             subjectId,
@@ -243,15 +424,32 @@ export class WalletService {
             model,
             endpoint || null,
             method || null,
-            inputTokens || 0,
-            outputTokens || 0,
-            tokens,
+            inputTokens,
+            outputTokens,
+            inputTokens + outputTokens,  // Raw total tokens
+            adjustment.adjustedInputTokens,
+            adjustment.adjustedOutputTokens,
+            adjustment.totalAdjustedTokens,
+            adjustment.inputRatio,
+            adjustment.outputRatio,
+            actualModality,
             sessionId || null,
             requestId || null,
             responseId || null,
             eventType || null,
             ledgerId,
-            JSON.stringify(metadata || {})
+            JSON.stringify({
+              ...metadata,
+              adjusted_tokens: {
+                input: adjustment.adjustedInputTokens,
+                output: adjustment.adjustedOutputTokens,
+                total: adjustment.totalAdjustedTokens
+              },
+              pricing_ratios: {
+                input: adjustment.inputRatio,
+                output: adjustment.outputRatio
+              }
+            })
           )
         );
       }
