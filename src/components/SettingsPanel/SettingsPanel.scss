@@ -1,3 +1,40 @@
+.settings-panel-wrapper {
+  position: relative;
+  height: 100%;
+  width: 100%;
+  
+  .mode-toggle-btn {
+    position: absolute;
+    top: 20px;
+    right: 60px;
+    z-index: 100;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #fff;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    backdrop-filter: blur(10px);
+    
+    &:hover {
+      background: rgba(255, 255, 255, 0.2);
+      border-color: rgba(255, 255, 255, 0.3);
+      transform: scale(1.05);
+    }
+    
+    svg {
+      width: 14px;
+      height: 14px;
+    }
+  }
+}
+
 .settings-panel {
   display: flex;
   flex-direction: column;
@@ -433,6 +470,51 @@
           display: flex;
           gap: 10px;
           width: 100%;
+        }
+
+        // API Key Info for auto-managed providers
+        .api-key-info {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 8px 10px;
+          background: rgba(16, 163, 127, 0.1);
+          border: 1px solid rgba(16, 163, 127, 0.3);
+          border-radius: 4px;
+          
+          .success-icon {
+            color: #10a37f;
+            flex-shrink: 0;
+          }
+          
+          span {
+            color: #10a37f;
+            font-size: 14px;
+          }
+        }
+
+        // API Key Warning for unauthenticated users
+        .api-key-warning {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 8px 10px;
+          background: rgba(255, 193, 7, 0.1);
+          border: 1px solid rgba(255, 193, 7, 0.3);
+          border-radius: 4px;
+          
+          .warning-icon {
+            color: #ffc107;
+            flex-shrink: 0;
+          }
+          
+          span {
+            color: #ffc107;
+            font-size: 14px;
+          }
+        }
+
+        .api-key-container {
           
           .api-key-input {
             flex: 1;

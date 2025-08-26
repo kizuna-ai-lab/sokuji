@@ -2,22 +2,12 @@ import { IClient, ConversationItem, SessionConfig, ClientEventHandlers, ApiKeyVa
 import { Provider, ProviderType } from '../../types/Provider';
 import i18n from '../../locales';
 import { Room, RoomEvent, TrackPublication, RemoteParticipant, RemoteTrack, RemoteAudioTrack, LocalAudioTrack, setLogLevel } from 'livekit-client';
+import { isExtension, hasChromeRuntime } from '../../utils/environment';
 
 // Suppress verbose logs from LiveKit client, including silence detection.
 setLogLevel('error');
 
 // --- Helper functions to get the correct worklet path ---
-
-/**
- * Determines if the code is running in a Chrome extension environment.
- * @returns {boolean} True if running in a Chrome extension.
- */
-function isExtensionEnvironment() {
-  return typeof window !== 'undefined' && 
-         typeof window.chrome !== 'undefined' && 
-         typeof window.chrome.runtime !== 'undefined' && 
-         typeof window.chrome.runtime.getURL === 'function';
-}
 
 /**
  * Creates a source URL for the Palabra PCM Processor AudioWorklet.
@@ -26,7 +16,7 @@ function isExtensionEnvironment() {
  * @returns {string} URL to the AudioWorklet code.
  */
 function getPalabraWorkletProcessorSrc(): string {
-  if (isExtensionEnvironment()) {
+  if (isExtension() && hasChromeRuntime() && window.chrome?.runtime?.getURL) {
     return window.chrome.runtime.getURL('worklets/palabra-audio-worklet-processor.js');
   } else {
     return new URL('../worklets/palabra-audio-worklet-processor.js', import.meta.url).href;

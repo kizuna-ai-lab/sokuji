@@ -26,7 +26,7 @@ export interface ConversationItem {
     type: string;
     text?: string;
     audio?: any;
-    transcript?: string;
+    transcript?: string | null;
   }>;
 }
 

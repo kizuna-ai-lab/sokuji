@@ -12,7 +12,12 @@
     "warning": "Waarschuwing",
     "info": "Informatie",
     "logs": "Logs",
-    "clear": "Wissen"
+    "clear": "Wissen",
+    "off": "Uit",
+    "autoDetect": "Automatische Detectie",
+    "signIn": "Inloggen",
+    "signUp": "Aanmelden",
+    "signInRequired": "Log in om Kizuna AI als uw provider te gebruiken"
   },
   "app": {
     "title": "Sokuji",
@@ -95,7 +100,9 @@
     "maxQueueLevel": "Maximale audiobuffer",
     "autoTempo": "Adaptieve Spraaksnelheid",
     "apiKeyValidated": "API-sleutel gevalideerd",
-    "realtimeTranslationAvailable": "Realtime vertaalservice is beschikbaar"
+    "realtimeTranslationAvailable": "Realtime vertaalservice is beschikbaar",
+    "authentication": "Authenticatie",
+    "autoAuthenticated": "Automatisch geauthenticeerd via uw account"
   },
   "audioPanel": {
     "title": "Audio instellingen",
@@ -138,7 +145,8 @@
     "server": "server",
     "event": "Gebeurtenis",
     "of": "van",
-    "unknown": "onbekend"
+    "unknown": "onbekend",
+    "sessionEnded": "Sessie beëindigd"
   },
   "translation": {
     "start": "Vertaling starten",
@@ -164,7 +172,9 @@
     "debug": "Debug",
     "apiKeyRequired": "Voeg eerst een geldige OpenAI API sleutel toe in de instellingen",
     "modelsRequired": "Modellen zijn vereist. Valideer eerst uw API-sleutel om beschikbare modellen te laden.",
-    "modelsLoading": "Beschikbare modellen laden, even geduld..."
+    "modelsLoading": "Beschikbare modellen laden, even geduld...",
+    "basicMode": "Basis",
+    "advancedMode": "Geavanceerd"
   },
   "errors": {
     "microphoneAccess": "Microfoon toegang geweigerd",
@@ -185,6 +195,46 @@
     }
   },
   "onboarding": {
+    "basic": {
+      "steps": {
+        "welcome": {
+          "title": "Welcome to Sokuji",
+          "content": "Welcome to Sokuji! This simple guide will help you start using real-time translation in just a few steps."
+        },
+        "settings": {
+          "title": "Step 1: Open Settings",
+          "content": "Click here to open Settings where you can configure your languages and audio devices."
+        },
+        "uiModeToggle": {
+          "title": "Step 2: UI Mode Toggle",
+          "content": "You can switch between Basic and Advanced modes anytime using this button. Basic mode shows simplified options, while Advanced mode provides full control."
+        },
+        "account": {
+          "title": "Step 3: User Account",
+          "content": "Sign in for a simple experience, or use your own API key without logging in. New users can sign up for kizuna.ai's API service."
+        },
+        "languages": {
+          "title": "Step 4: Choose Languages",
+          "content": "Select your source language (what you speak) and target language (what you want to hear)."
+        },
+        "microphone": {
+          "title": "Step 5: Select Microphone",
+          "content": "Select your microphone from the list. This is what will capture your voice."
+        },
+        "speaker": {
+          "title": "Step 6: Select Speaker",
+          "content": "Choose your speakers or headphones to hear the translation. Headphones are recommended."
+        },
+        "start": {
+          "title": "Step 7: Start Translating",
+          "content": "Click 'Start' to begin translating! Just speak naturally and hear the translation in real-time."
+        },
+        "complete": {
+          "title": "All Set!",
+          "content": "Perfect! You're ready to use Sokuji. Click Start and begin speaking to hear real-time translations."
+        }
+      }
+    },
     "back": "Terug",
     "close": "Sluiten",
     "finish": "Voltooien",
@@ -239,5 +289,135 @@
         "content": "U heeft de setup gids voltooid! Zorg er nu voor dat u daadwerkelijk uw API sleutel invoert en uw instellingen configureert, gebruik dan de Sokuji virtuele microfoon in conferentie applicaties (zoals Google Meet, Zoom, enz.) om realtime vertaling te starten."
       }
     }
+  },
+  "simpleSettings": {
+    "quickSetup": "Snelle Installatie",
+    "quickSetupDesc": "Kies een preset voor veelvoorkomende scenario's",
+    "preset": {
+      "meeting": "Vergadering",
+      "meetingDesc": "Geoptimaliseerd voor zakelijke vergaderingen",
+      "presentation": "Presentatie",
+      "presentationDesc": "Voor conferenties en presentaties",
+      "casual": "Informeel Gesprek",
+      "casualDesc": "Ontspannen gesprekken",
+      "travel": "Reizen",
+      "travelDesc": "Toerisme en reisscenario's"
+    },
+    "apiKey": "API Sleutel",
+    "apiKeyPlaceholder": "Voer uw API sleutel in",
+    "validate": "Valideren",
+    "howToGetApiKey": "Hoe krijg je een API sleutel?",
+    "apiKeyHelp1": "1. Bezoek de website van de provider",
+    "apiKeyHelp2": "2. Registreer of log in bij uw account",
+    "apiKeyHelp3": "3. Ga naar de API sleutels sectie",
+    "apiKeyHelp4": "4. Maak een nieuwe API sleutel aan en kopieer deze hier",
+    "apiKeyHelpTooltip": "Een API sleutel is als een wachtwoord dat Sokuji toestaat om AI vertaaldiensten te gebruiken. Je moet er een krijgen van je gekozen provider (zoals OpenAI).",
+    "apiKeyHelpTooltip2": "Stap-voor-stap gids:",
+    "languages": "Talen",
+    "uiLanguage": "Interface Taal",
+    "audioSettings": "Audio Instellingen",
+    "audioSettingsDesc": "Configureer uw microfoon en luidsprekers in het Audio paneel",
+    "autoAuthenticated": "Automatisch geauthenticeerd via uw account"
+  },
+  "simpleConfig": {
+    "interfaceLanguage": "Interface Taal",
+    "interfaceLanguageDesc": "Dit verandert de taal van Sokuji's menu's en knoppen. Dit heeft GEEN invloed op de talen waartussen je kunt vertalen.",
+    "translationLanguages": "Vertaaltalen",
+    "translationLanguagesDesc": "Kies welke taal je spreekt (Jouw Taal) en in welke taal je de vertaling wilt horen (Doeltaal). Selecteer 'Automatische Detectie' als je niet zeker weet welke brontaal.",
+    "yourLanguage": "Jouw Taal",
+    "userAccount": "Gebruikersaccount",
+    "userAccountTooltip": "Technische gebruikers kunnen hun eigen API-sleutels gebruiken. Gebruikersaccount is ontworpen voor vereenvoudigde setup.",
+    "signInRequired": "U kunt uw eigen API-sleutel gebruiken of zich registreren voor de kizuna.ai-service.",
+    "signInDescription": "Registreer voor een vereenvoudigde ervaring.",
+    "targetLanguage": "Doeltaal",
+    "microphone": "Microfoon",
+    "microphoneDesc": "Selecteer de microfoon om uw spraak op te vangen. Spreek uw taal in deze microfoon, en Sokuji zal alles wat het hoort in realtime vertalen.",
+    "speaker": "Luidspreker",
+    "speakerDesc": "Selecteer een luidspreker om de vertaalde uitvoer te monitoren. Hiermee kunt u horen hoe de vertaling klinkt. U kunt het uitschakelen als monitoring niet nodig is. Of het nu aan of uit staat, de vertaalde audio wordt altijd naar de virtuele microfoon gestuurd zodat andere deelnemers het kunnen horen."
+  },
+  "providers": {
+    "openai": {
+      "name": "OpenAI",
+      "description": "Aangedreven door GPT modellen"
+    },
+    "gemini": {
+      "name": "Google Gemini",
+      "description": "Google's AI technologie"
+    },
+    "cometapi": {
+      "name": "Comet API",
+      "description": "Alternatieve AI provider"
+    },
+    "palabraai": {
+      "name": "Palabra AI",
+      "description": "Gespecialiseerde vertaal AI"
+    },
+    "unknown": {
+      "name": "Onbekend",
+      "description": "Onbekende provider"
+    }
+  },
+  "simplePanel": {
+    "translationActive": "Vertaling Actief",
+    "translationInactive": "Vertaling Inactief",
+    "statusNoApiKey": "Configureer uw API sleutel in instellingen",
+    "statusNoMic": "Selecteer een microfoon in audio instellingen",
+    "statusConnecting": "Verbinden met vertaalservice...",
+    "signInRequired": "Inloggen vereist",
+    "signInToStart": "Log in om vertaling te starten",
+    "statusConnected": "Klaar om te vertalen",
+    "statusDisconnected": "Klik op start om vertaling te beginnen",
+    "languages": "Talen",
+    "provider": "Service",
+    "noConversation": "Nog geen gesprek",
+    "startToBegin": "Klik op Start om realtime vertaling te beginnen",
+    "you": "Jij",
+    "translation": "Vertaling",
+    "noMicSelected": "Geen microfoon geselecteerd",
+    "noSpeakerSelected": "Geen luidspreker geselecteerd",
+    "release": "Loslaten om te stoppen",
+    "holdToSpeak": "Ingedrukt houden om te spreken",
+    "connecting": "Verbinden...",
+    "stop": "Stoppen",
+    "start": "Starten",
+    "sessionDuration": "Duration",
+    "clickToConfigLanguages": "Klik om talen te configureren",
+    "clickToConfigMicrophone": "Klik om de microfoon te configureren",
+    "clickToConfigSpeaker": "Klik om de luidspreker te configureren"
+  },
+  "connectionStatus": {
+    "disconnected": "Verbinding verbroken",
+    "connecting": "Verbinden...",
+    "connected": "Verbonden",
+    "error": "Verbindingsfout",
+    "noApiKey": "API Sleutel Vereist",
+    "noMic": "Microfoon Vereist"
+  },
+  "userTypeSelection": {
+    "title": "Welkom bij Sokuji",
+    "subtitle": "Selecteer uw gebruikerstype om te beginnen",
+    "regular": {
+      "title": "Gewone Gebruiker",
+      "description": "Ik ben nieuw bij AI-services of verkies een eenvoudige ervaring",
+      "feature1": "Geen API-sleutel kennis vereist",
+      "feature2": "Eenvoudige en intuïtieve interface",
+      "feature3": "Geleide setup proces",
+      "action": "Begin met Basismodus"
+    },
+    "experienced": {
+      "title": "Ervaren Gebruiker",
+      "description": "Ik heb mijn eigen API-sleutels en begrijp AI-services",
+      "feature1": "Bezit OpenAI of Gemini API-sleutels",
+      "feature2": "Toegang tot realtime API-functies",
+      "feature3": "Volledige controle over alle instellingen",
+      "action": "Begin met Geavanceerde Modus"
+    }
+  },
+  "tokenUsage": {
+    "title": "Tokengebruik",
+    "used": "gebruikt",
+    "remaining": "resterend",
+    "unableToLoadQuota": "Kan quota-informatie niet laden",
+    "upgradeToPremium": "Upgrade naar Premium"
   }
 }

@@ -33,6 +33,13 @@ jobs:
         run: npm run build
         env:
           CI: false
+          # Production environment variables from GitHub Secrets
+          VITE_CLERK_PUBLISHABLE_KEY: ${{ secrets.VITE_CLERK_PUBLISHABLE_KEY_PROD }}
+          VITE_BACKEND_URL: ${{ secrets.VITE_BACKEND_URL_PROD || 'https://sokuji-api.kizuna.ai' }}
+          VITE_ENVIRONMENT: production
+          VITE_ENABLE_DEBUG: false
+          VITE_ENABLE_ANALYTICS: true
+          VITE_EXTENSION_ID: ${{ secrets.VITE_EXTENSION_ID_PROD }}
 
       - name: Build Electron app with Forge
         run: npm run make
@@ -44,10 +51,15 @@ jobs:
         run: |
           cd extension
           npm ci
-          npm run build
+          # Build extension with production environment
+          NODE_ENV=production npm run build
           cd dist
           zip -r ../sokuji-extension.zip *
-          cd ..          
+          cd ..
+        env:
+          # Production environment variables for extension
+          VITE_CLERK_PUBLISHABLE_KEY: ${{ secrets.VITE_CLERK_PUBLISHABLE_KEY_PROD }}
+          VITE_BACKEND_URL: ${{ secrets.VITE_BACKEND_URL_PROD || 'https://sokuji-api.kizuna.ai' }}          
 
       - name: Generate changelog
         id: changelog

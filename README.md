@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <em>Live speech translation powered by OpenAI, Google Gemini, CometAPI, and Palabra.ai</em>
+  <em>Live speech translation powered by OpenAI, Google Gemini, CometAPI, Palabra.ai, and Kizuna AI</em>
 </p>
 
 <p align="center">
@@ -40,7 +40,7 @@
 
 # Why Sokuji?
 
-Sokuji is a desktop application designed to provide live speech translation using OpenAI, Google Gemini, CometAPI, and Palabra.ai APIs. It bridges language barriers in live conversations by capturing audio input, processing it through advanced AI models, and delivering translated output in real-time.
+Sokuji is a desktop application designed to provide live speech translation using OpenAI, Google Gemini, CometAPI, Palabra.ai, and Kizuna AI APIs. It bridges language barriers in live conversations by capturing audio input, processing it through advanced AI models, and delivering translated output in real-time.
 
 https://github.com/user-attachments/assets/1eaaa333-a7ce-4412-a295-16b7eb2310de
 
@@ -77,32 +77,42 @@ Sokuji goes beyond basic translation by offering a complete audio routing soluti
 
 # Features
 
-1. **Real-time speech translation** using OpenAI, Google Gemini, CometAPI, and Palabra.ai APIs
-2. **Multi-Provider Support**: Seamlessly switch between OpenAI, Google Gemini, CometAPI, and Palabra.ai.
-3. **Supported Models**:
+1. **Real-time speech translation** using OpenAI, Google Gemini, CometAPI, Palabra.ai, and Kizuna AI APIs
+2. **Simple Mode Interface**: Streamlined 6-section configuration for non-technical users:
+   - Interface language selection
+   - Translation language pairs (source/target)
+   - API key management with validation
+   - Microphone selection with "Off" option
+   - Speaker selection with "Off" option
+   - Real-time session duration display
+3. **Multi-Provider Support**: Seamlessly switch between OpenAI, Google Gemini, CometAPI, Palabra.ai, and Kizuna AI.
+4. **Supported Models**:
    - **OpenAI**: `gpt-4o-realtime-preview`, `gpt-4o-mini-realtime-preview`
    - **Google Gemini**: `gemini-2.0-flash-live-001`, `gemini-2.5-flash-preview-native-audio-dialog`
    - **CometAPI**: OpenAI-compatible models with custom endpoints
    - **Palabra.ai**: Real-time speech-to-speech translation via WebRTC
-4. **Automatic turn detection** with multiple modes (Normal, Semantic, Disabled) for OpenAI
-5. **Audio visualization** with waveform display
-6. **Advanced Virtual Microphone** (Linux only) with dual-queue audio mixing system:
+   - **Kizuna AI**: OpenAI-compatible models with backend-managed authentication
+5. **Automatic turn detection** with multiple modes (Normal, Semantic, Disabled) for OpenAI
+6. **Audio visualization** with waveform display
+7. **Advanced Virtual Microphone** (Linux only) with dual-queue audio mixing system:
    - **Regular audio tracks**: Queued and played sequentially
    - **Immediate audio tracks**: Separate queue for real-time audio mixing
    - **Simultaneous playback**: Mix both track types for enhanced audio experience
    - **Chunked audio support**: Efficient handling of large audio streams
-7. **Real-time Voice Passthrough**: Live audio monitoring during recording sessions
-8. **Virtual audio device creation and management** on Linux (using PulseAudio/PipeWire)
-9. **Automatic audio routing between virtual devices** (Linux only)
-10. **Automatic device switching** and configuration persistence
-11. **Audio input and output device selection**
-12. **Comprehensive logs** for tracking API interactions
-13. **Customizable model settings** (temperature, max tokens)
-14. **User transcript model selection** (for OpenAI: `gpt-4o-mini-transcribe`, `gpt-4o-transcribe`, `whisper-1`)
-15. **Noise reduction options** (for OpenAI: None, Near field, Far field)
-16. **API key validation** with real-time feedback
-17. **Configuration persistence** in user's home directory
-18. **Optimized AI Client Performance**: Enhanced conversation management with consistent ID generation
+8. **Real-time Voice Passthrough**: Live audio monitoring during recording sessions
+9. **Virtual audio device creation and management** on Linux (using PulseAudio/PipeWire)
+10. **Automatic audio routing between virtual devices** (Linux only)
+11. **Automatic device switching** and configuration persistence
+12. **Audio input and output device selection**
+13. **Comprehensive logs** for tracking API interactions
+14. **Customizable model settings** (temperature, max tokens)
+15. **User transcript model selection** (for OpenAI: `gpt-4o-mini-transcribe`, `gpt-4o-transcribe`, `whisper-1`)
+16. **Noise reduction options** (for OpenAI: None, Near field, Far field)
+17. **API key validation** with real-time feedback
+18. **Configuration persistence** in user's home directory
+19. **Optimized AI Client Performance**: Enhanced conversation management with consistent ID generation
+20. **Enhanced Tooltips**: Interactive help tooltips powered by @floating-ui for better user guidance
+21. **Multi-language Support**: Complete internationalization with 35+ languages and English fallback
 
 # Audio Architecture
 
@@ -151,7 +161,7 @@ This architecture provides:
 
 # Preparation
 
-- (required) An OpenAI, Google Gemini, CometAPI, or Palabra.ai API key. For Palabra.ai, you will need a Client ID and Client Secret. For CometAPI, you'll need to configure the custom endpoint URL.
+- (required) An OpenAI, Google Gemini, CometAPI, or Palabra.ai API key, OR a Kizuna AI account. For Palabra.ai, you will need a Client ID and Client Secret. For CometAPI, you'll need to configure the custom endpoint URL. For Kizuna AI, sign in to your account to automatically access backend-managed API keys.
 - (optional) Linux with PulseAudio or PipeWire for virtual audio device features (desktop app only)
 
 # Installation
@@ -207,9 +217,10 @@ sudo dpkg -i sokuji_*.deb
    </p>
    
    - Click the Settings button in the top-right corner
-   - Select your desired provider (OpenAI, Gemini, CometAPI, or Palabra).
-   - Enter your API key for the selected provider and click "Validate". For Palabra, you will need to enter a Client ID and Client Secret. For CometAPI, configure both the API key and custom endpoint URL.
-   - Click "Save" to store your API key securely.
+   - Select your desired provider (OpenAI, Gemini, CometAPI, Palabra, or Kizuna AI).
+   - For user-managed providers: Enter your API key and click "Validate". For Palabra, you will need to enter a Client ID and Client Secret. For CometAPI, configure both the API key and custom endpoint URL.
+   - For Kizuna AI: Sign in to your account to automatically access backend-managed API keys.
+   - Click "Save" to store your configuration securely.
 
 2. **Configure audio devices**:
    
@@ -237,6 +248,16 @@ sudo dpkg -i sokuji_*.deb
 
 ## Recent Improvements
 
+### Simple Mode Interface (v0.10.x)
+
+Redesigned user interface for improved accessibility:
+
+- **Streamlined Configuration**: 6-section unified layout replacing complex tabbed interface
+- **Enhanced Tooltips**: Interactive help using @floating-ui library for better user guidance
+- **Session Duration Display**: Real-time tracking of conversation length
+- **Unified Styling**: Consistent UI design with improved visual hierarchy
+- **Multi-language Support**: Complete i18n with 35+ languages and English fallback
+
 ### Modern Audio Processing (v0.9.x)
 
 The audio system now features improved echo cancellation and processing:
@@ -263,19 +284,50 @@ Live audio monitoring capabilities:
 - **Volume Control**: Adjustable passthrough volume for optimal monitoring
 - **Low Latency**: Immediate audio feedback using optimized audio processing
 
+# Architecture
+
+Sokuji features a simplified architecture focused on core functionality:
+
+## Backend (Cloudflare Workers)
+- **Simplified User System**: Only users and usage_logs tables
+- **Real-time Usage Tracking**: Relay server directly writes usage data to database  
+- **Clerk Authentication**: Handles all user authentication and session management
+- **Streamlined API**: Only essential endpoints maintained (/quota, /check, /reset)
+
+## Frontend (React + TypeScript)  
+- **Service Factory Pattern**: Platform-specific implementations (Electron/Browser Extension)
+- **Modern Audio Processing**: AudioWorklet with ScriptProcessor fallback
+- **Unified Components**: SimpleConfigPanel and SimpleMainPanel for streamlined UX
+- **Context-Based State**: React Context API without external state management
+
+## Database Schema
+```sql
+-- Core user table
+users (id, clerk_id, email, subscription, token_quota)
+
+-- Simplified usage tracking (written by relay)
+usage_logs (id, user_id, session_id, model, total_tokens, input_tokens, output_tokens, created_at)
+```
+
 # Technologies Used
 
-- Electron 34+
-- React 18
-- TypeScript
-- OpenAI & Google Gemini APIs
-- Advanced Audio Processing:
+- **Runtime**: Electron 34+ / Chrome Extension Manifest V3
+- **Frontend**: React 18 + TypeScript  
+- **Backend**: Cloudflare Workers + Hono + D1 Database
+- **Authentication**: Clerk
+- **AI Providers**: OpenAI, Google Gemini, CometAPI, Palabra.ai, Kizuna AI
+- **Advanced Audio Processing**:
   - Web Audio API for real-time audio processing
   - MediaRecorder API for reliable audio capture
   - ScriptProcessor for real-time audio analysis
   - Queue-based playback system for smooth streaming
-- SASS for styling
-- Lucide React for icons
+- **UI Libraries**:
+  - @floating-ui/react for advanced tooltip positioning
+  - SASS for styling
+  - Lucide React for icons
+- **Internationalization**:
+  - i18next for multi-language support
+  - 35+ language translations
 
 # License
 

@@ -23,25 +23,11 @@ contextBridge.exposeInMainWorld(
       const validChannels = [
         'invoke-channel', 
         'check-audio-system', 
-        'get-config',
-        'set-config',
-        'get-config-path',
         'open-directory',
         'create-virtual-speaker'
       ];
       if (validChannels.includes(channel)) {
         return ipcRenderer.invoke(channel, data);
-      }
-    },
-    config: {
-      get: (key, defaultValue) => {
-        return ipcRenderer.invoke('get-config', key, defaultValue);
-      },
-      set: (key, value) => {
-        return ipcRenderer.invoke('set-config', key, value);
-      },
-      getPath: () => {
-        return ipcRenderer.invoke('get-config-path');
       }
     }
   }

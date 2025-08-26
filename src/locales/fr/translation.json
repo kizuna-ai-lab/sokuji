@@ -12,7 +12,12 @@
     "warning": "Avertissement",
     "info": "Information",
     "logs": "Journaux",
-    "clear": "Effacer"
+    "clear": "Effacer",
+    "off": "Arrêt",
+    "autoDetect": "Détection Automatique",
+    "signIn": "Se Connecter",
+    "signUp": "S'inscrire",
+    "signInRequired": "Veuillez vous connecter pour utiliser Kizuna AI comme fournisseur"
   },
   "app": {
     "title": "Sokuji",
@@ -95,7 +100,9 @@
     "maxQueueLevel": "Tampon Audio Maximum",
     "autoTempo": "Vitesse de Parole Adaptative",
     "apiKeyValidated": "Clé API validée",
-    "realtimeTranslationAvailable": "Service de traduction en temps réel disponible"
+    "realtimeTranslationAvailable": "Service de traduction en temps réel disponible",
+    "authentication": "Authentification",
+    "autoAuthenticated": "Authentifié automatiquement via votre compte"
   },
   "audioPanel": {
     "title": "Paramètres audio",
@@ -138,7 +145,8 @@
     "server": "serveur",
     "event": "Événement",
     "of": "de",
-    "unknown": "inconnu"
+    "unknown": "inconnu",
+    "sessionEnded": "Session terminée"
   },
   "translation": {
     "start": "Démarrer la traduction",
@@ -164,7 +172,9 @@
     "debug": "Déboguer",
     "apiKeyRequired": "Veuillez d'abord ajouter une clé API OpenAI valide dans les paramètres",
     "modelsRequired": "Des modèles sont requis. Veuillez d'abord valider votre clé API pour charger les modèles disponibles.",
-    "modelsLoading": "Chargement des modèles disponibles, veuillez patienter..."
+    "modelsLoading": "Chargement des modèles disponibles, veuillez patienter...",
+    "basicMode": "Basique",
+    "advancedMode": "Avancé"
   },
   "errors": {
     "microphoneAccess": "Accès au microphone refusé",
@@ -185,6 +195,46 @@
     }
   },
   "onboarding": {
+    "basic": {
+      "steps": {
+        "welcome": {
+          "title": "Bienvenue sur Sokuji",
+          "content": "Bienvenue sur Sokuji ! Ce guide simple vous aidera à commencer à utiliser la traduction en temps réel en quelques étapes seulement."
+        },
+        "settings": {
+          "title": "Étape 1: Ouvrir les Paramètres",
+          "content": "Cliquez ici pour ouvrir les Paramètres où vous pouvez configurer vos langues et dispositifs audio."
+        },
+        "uiModeToggle": {
+          "title": "Étape 2: Basculement Mode UI",
+          "content": "Vous pouvez basculer entre les modes Basique et Avancé à tout moment en utilisant ce bouton. Le mode Basique affiche des options simplifiées, tandis que le mode Avancé offre un contrôle complet."
+        },
+        "account": {
+          "title": "Étape 3: Compte Utilisateur",
+          "content": "Connectez-vous pour une expérience simple, ou utilisez votre propre clé API sans vous connecter. Les nouveaux utilisateurs peuvent s'inscrire au service API de kizuna.ai."
+        },
+        "languages": {
+          "title": "Étape 4: Choisir les Langues",
+          "content": "Sélectionnez votre langue source (ce que vous parlez) et la langue cible (ce que vous voulez entendre)."
+        },
+        "microphone": {
+          "title": "Étape 5: Sélectionner le Microphone",
+          "content": "Sélectionnez votre microphone dans la liste. C'est ce qui capturera votre voix."
+        },
+        "speaker": {
+          "title": "Étape 6: Sélectionner le Haut-parleur",
+          "content": "Choisissez vos haut-parleurs ou écouteurs pour entendre la traduction. Les écouteurs sont recommandés."
+        },
+        "start": {
+          "title": "Étape 7: Commencer la Traduction",
+          "content": "Cliquez sur Démarrer pour commencer à traduire ! Parlez simplement naturellement et écoutez la traduction en temps réel."
+        },
+        "complete": {
+          "title": "Tout est Prêt !",
+          "content": "Parfait ! Vous êtes prêt à utiliser Sokuji. Cliquez sur Démarrer et commencez à parler pour entendre les traductions en temps réel."
+        }
+      }
+    },
     "back": "Retour",
     "close": "Fermer",
     "finish": "Terminer",
@@ -241,5 +291,135 @@
         "content": "Excellent ! Vous avez terminé le guide de configuration et êtes maintenant familier avec l'interface. Pour commencer à utiliser Sokuji, veuillez entrer votre clé API OpenAI dans les paramètres, accordez les permissions du microphone lorsque demandé, et sélectionnez \"Sokuji Virtual Microphone\" comme votre microphone dans votre application de réunion (Google Meet, Zoom, Microsoft Teams, etc.). Vous pouvez redémarrer ce guide à tout moment depuis les paramètres."
       }
     }
+  },
+  "simpleSettings": {
+    "quickSetup": "Configuration Rapide",
+    "quickSetupDesc": "Choisissez un preset pour des scénarios courants",
+    "preset": {
+      "meeting": "Réunion",
+      "meetingDesc": "Optimisé pour les réunions d'affaires",
+      "presentation": "Présentation",
+      "presentationDesc": "Pour les conférences et présentations",
+      "casual": "Discussion Décontractée",
+      "casualDesc": "Conversations détendues",
+      "travel": "Voyage",
+      "travelDesc": "Scénarios de tourisme et de voyage"
+    },
+    "apiKey": "Clé API",
+    "apiKeyPlaceholder": "Entrez votre clé API",
+    "validate": "Valider",
+    "howToGetApiKey": "Comment obtenir une clé API ?",
+    "apiKeyHelp1": "1. Visitez le site web du fournisseur",
+    "apiKeyHelp2": "2. Inscrivez-vous ou connectez-vous à votre compte",
+    "apiKeyHelp3": "3. Naviguez vers la section des clés API",
+    "apiKeyHelp4": "4. Créez une nouvelle clé API et copiez-la ici",
+    "apiKeyHelpTooltip": "Une clé API est comme un mot de passe qui permet à Sokuji d'utiliser les services de traduction AI. Vous devez en obtenir une auprès de votre fournisseur choisi (comme OpenAI).",
+    "apiKeyHelpTooltip2": "Guide étape par étape :",
+    "languages": "Langues",
+    "uiLanguage": "Langue de l'Interface",
+    "audioSettings": "Paramètres Audio",
+    "audioSettingsDesc": "Configurez votre microphone et vos haut-parleurs dans le panneau Audio",
+    "autoAuthenticated": "Authentifié automatiquement via votre compte"
+  },
+  "simpleConfig": {
+    "interfaceLanguage": "Langue de l'Interface",
+    "interfaceLanguageDesc": "Ceci change la langue des menus et boutons de Sokuji. Cela N'AFFECTE PAS les langues entre lesquelles vous pouvez traduire.",
+    "translationLanguages": "Langues de Traduction",
+    "translationLanguagesDesc": "Choisissez quelle langue vous parlez (Votre Langue) et dans quelle langue vous voulez entendre la traduction (Langue Cible). Sélectionnez \"Détection Automatique\" si vous n'êtes pas sûr de la langue source.",
+    "yourLanguage": "Votre Langue",
+    "userAccount": "Compte Utilisateur",
+    "userAccountTooltip": "Pour les utilisateurs ayant des connaissances techniques et leurs propres clés API, vous pouvez utiliser votre propre clé API que vous soyez connecté ou non. Le Compte Utilisateur est conçu pour les nouveaux utilisateurs qui préfèrent une configuration simplifiée sans configuration complexe.",
+    "signInRequired": "Vous pouvez utiliser votre propre fournisseur d'IA et clé API sans vous connecter, ou vous inscrire pour acheter et utiliser le service API de kizuna.ai.",
+    "signInDescription": "Inscrivez-vous pour une expérience pratique sans configuration complexe.",
+    "targetLanguage": "Langue Cible",
+    "microphone": "Microphone",
+    "microphoneDesc": "Sélectionnez le microphone pour capturer votre parole. Parlez dans votre langue dans ce microphone, et Sokuji traduira tout ce qu'il entend en temps réel.",
+    "speaker": "Haut-parleur",
+    "speakerDesc": "Sélectionnez un haut-parleur pour surveiller la sortie traduite. Cela vous permet d'entendre comment sonne la traduction. Vous pouvez l'éteindre si la surveillance n'est pas nécessaire. Qu'il soit allumé ou éteint, l'audio traduit est toujours envoyé au microphone virtuel pour que les autres participants l'entendent."
+  },
+  "providers": {
+    "openai": {
+      "name": "OpenAI",
+      "description": "Alimenté par les modèles GPT"
+    },
+    "gemini": {
+      "name": "Google Gemini",
+      "description": "Technologie AI de Google"
+    },
+    "cometapi": {
+      "name": "Comet API",
+      "description": "Fournisseur AI alternatif"
+    },
+    "palabraai": {
+      "name": "Palabra AI",
+      "description": "IA de traduction spécialisée"
+    },
+    "unknown": {
+      "name": "Inconnu",
+      "description": "Fournisseur inconnu"
+    }
+  },
+  "simplePanel": {
+    "translationActive": "Traduction Active",
+    "translationInactive": "Traduction Inactive",
+    "statusNoApiKey": "Veuillez configurer votre clé API dans les paramètres",
+    "statusNoMic": "Veuillez sélectionner un microphone dans les paramètres audio",
+    "statusConnecting": "Connexion au service de traduction...",
+    "signInRequired": "Connexion requise",
+    "signInToStart": "Veuillez vous connecter pour commencer la traduction",
+    "statusConnected": "Prêt à traduire",
+    "statusDisconnected": "Cliquez sur démarrer pour commencer la traduction",
+    "languages": "Langues",
+    "provider": "Service",
+    "noConversation": "Pas encore de conversation",
+    "startToBegin": "Cliquez sur Démarrer pour commencer la traduction en temps réel",
+    "you": "Vous",
+    "translation": "Traduction",
+    "noMicSelected": "Aucun micro sélectionné",
+    "noSpeakerSelected": "Aucun haut-parleur sélectionné",
+    "release": "Relâchez pour arrêter",
+    "holdToSpeak": "Maintenez pour parler",
+    "connecting": "Connexion...",
+    "stop": "Arrêter",
+    "start": "Démarrer",
+    "sessionDuration": "Duration",
+    "clickToConfigLanguages": "Cliquez pour configurer les langues",
+    "clickToConfigMicrophone": "Cliquez pour configurer le microphone",
+    "clickToConfigSpeaker": "Cliquez pour configurer le haut-parleur"
+  },
+  "connectionStatus": {
+    "disconnected": "Déconnecté",
+    "connecting": "Connexion...",
+    "connected": "Connecté",
+    "error": "Erreur de Connexion",
+    "noApiKey": "Clé API Requise",
+    "noMic": "Microphone Requis"
+  },
+  "userTypeSelection": {
+    "title": "Bienvenue dans Sokuji",
+    "subtitle": "Veuillez sélectionner votre type d'utilisateur pour commencer",
+    "regular": {
+      "title": "Utilisateur Régulier",
+      "description": "Je suis nouveau aux services IA ou préfère une expérience simple",
+      "feature1": "Aucune connaissance de clé API requise",
+      "feature2": "Interface simple et intuitive",
+      "feature3": "Processus de configuration guidé",
+      "action": "Commencer en Mode de Base"
+    },
+    "experienced": {
+      "title": "Utilisateur Expérimenté",
+      "description": "J'ai mes propres clés API et comprends les services IA",
+      "feature1": "Possède des clés API OpenAI ou Gemini",
+      "feature2": "Accès aux fonctionnalités API temps réel",
+      "feature3": "Contrôle total sur tous les paramètres",
+      "action": "Commencer en Mode Avancé"
+    }
+  },
+  "tokenUsage": {
+    "title": "Utilisation des jetons",
+    "used": "utilisé",
+    "remaining": "restant",
+    "unableToLoadQuota": "Impossible de charger les informations de quota",
+    "upgradeToPremium": "Passer à Premium"
   }
 }

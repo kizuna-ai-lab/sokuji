@@ -46,6 +46,7 @@ export interface ProviderConfig {
   // API configuration
   apiKeyLabel: string;
   apiKeyPlaceholder: string;
+  requiresAuth?: boolean; // True if this provider requires backend authentication
   
   // Supported options
   languages: LanguageOption[];

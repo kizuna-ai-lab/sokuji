@@ -5,11 +5,13 @@ import { ProviderConfig } from '../services/providers/ProviderConfig';
 import { FilteredModel, SessionConfig, OpenAISessionConfig, GeminiSessionConfig, PalabraAISessionConfig } from '../services/interfaces/IClient';
 import { ApiKeyValidationResult } from '../services/interfaces/ISettingsService';
 import { Provider, ProviderType } from '../types/Provider';
+import { useAuth } from '../lib/clerk/ClerkProvider';
 
 // Common Settings - applicable to all providers
 export interface CommonSettings {
   provider: ProviderType;
   uiLanguage: string; // UI language setting
+  uiMode: 'basic' | 'advanced'; // UI display mode
   systemInstructions: string;
   templateSystemInstructions: string;
   useTemplateMode: boolean;
@@ -66,6 +68,24 @@ export interface PalabraAISettings {
   desiredQueueLevelMs: number;
   maxQueueLevelMs: number;
   autoTempo: boolean;
+}
+
+// KizunaAI-specific Settings (OpenAI-compatible with non-persistent apiKey from backend)
+export interface KizunaAISettings {
+  apiKey: string; // Non-persistent API key from backend
+  model: string;
+  voice: string; // OpenAI voice options
+  sourceLanguage: string;
+  targetLanguage: string;
+  turnDetectionMode: 'Normal' | 'Semantic' | 'Disabled';
+  threshold: number;
+  prefixPadding: number;
+  silenceDuration: number;
+  semanticEagerness: 'Auto' | 'Low' | 'Medium' | 'High';
+  temperature: number;
+  maxTokens: number | 'inf';
+  transcriptModel: 'gpt-4o-mini-transcribe' | 'gpt-4o-transcribe' | 'whisper-1';
+  noiseReduction: 'None' | 'Near field' | 'Far field';
 }
 
 /**
@@ -176,6 +196,41 @@ export function createPalabraAISessionConfig(
   };
 }
 
+export function createKizunaAISessionConfig(
+  settings: KizunaAISettings, 
+  systemInstructions: string
+): OpenAISessionConfig {
+  // KizunaAI uses OpenAI-compatible API, so we return OpenAISessionConfig
+  return {
+    provider: 'openai',
+    model: settings.model,
+    voice: settings.voice,
+    instructions: systemInstructions,
+    temperature: settings.temperature,
+    maxTokens: settings.maxTokens,
+    turnDetection: settings.turnDetectionMode === 'Disabled' ? { type: 'none' } :
+      settings.turnDetectionMode === 'Normal' ? {
+        type: 'server_vad',
+        createResponse: true,
+        interruptResponse: false,
+        prefixPadding: settings.prefixPadding,
+        silenceDuration: settings.silenceDuration,
+        threshold: settings.threshold
+      } : {
+        type: 'semantic_vad',
+        createResponse: true,
+        interruptResponse: false,
+        eagerness: settings.semanticEagerness?.toLowerCase() as any,
+      },
+    inputAudioNoiseReduction: settings.noiseReduction && settings.noiseReduction !== 'None' ? {
+      type: settings.noiseReduction === 'Near field' ? 'near_field' : 'far_field'
+    } : undefined,
+    inputAudioTranscription: settings.transcriptModel ? {
+      model: settings.transcriptModel
+    } : undefined
+  };
+}
+
 interface SettingsContextType {
   // Common settings
   commonSettings: CommonSettings;
@@ -186,13 +241,15 @@ interface SettingsContextType {
   cometAPISettings: CometAPISettings;
   geminiSettings: GeminiSettings;
   palabraAISettings: PalabraAISettings;
+  kizunaAISettings: KizunaAISettings;
   updateOpenAISettings: (newSettings: Partial<OpenAISettings>) => void;
   updateCometAPISettings: (newSettings: Partial<CometAPISettings>) => void;
   updateGeminiSettings: (newSettings: Partial<GeminiSettings>) => void;
   updatePalabraAISettings: (newSettings: Partial<PalabraAISettings>) => void;
+  updateKizunaAISettings: (newSettings: Partial<KizunaAISettings>) => void;
   
   // Current provider settings (computed from provider-specific settings)
-  getCurrentProviderSettings: () => OpenAISettings | GeminiSettings | CometAPISettings | PalabraAISettings;
+  getCurrentProviderSettings: () => OpenAISettings | GeminiSettings | CometAPISettings | PalabraAISettings | KizunaAISettings;
   
   // Session config creation (type-safe)
   createSessionConfig: (systemInstructions: string) => SessionConfig;
@@ -200,7 +257,7 @@ interface SettingsContextType {
   // Other context methods
   reloadSettings: () => Promise<void>;
   isApiKeyValid: boolean;
-  validateApiKey: () => Promise<{
+  validateApiKey: (getAuthToken?: () => Promise<string | null>) => Promise<{
     valid: boolean | null;
     message: string;
     validating?: boolean;
@@ -208,15 +265,25 @@ interface SettingsContextType {
   getProcessedSystemInstructions: () => string;
   availableModels: FilteredModel[];
   loadingModels: boolean;
-  fetchAvailableModels: () => Promise<void>;
+  fetchAvailableModels: (getAuthToken?: () => Promise<string | null>) => Promise<void>;
   clearAvailableModels: () => void;
   getCurrentProviderConfig: () => ProviderConfig;
+  
+  // Navigation support for settings panel
+  settingsNavigationTarget: string | null;
+  navigateToSettings: (section?: string | null) => void;
+  
+  // Kizuna AI API key management
+  isApiKeyFetching: boolean;
+  apiKeyFetchError: string | null;
+  ensureKizunaApiKey: () => Promise<boolean>;
 }
 
 // Default common settings
 export const defaultCommonSettings: CommonSettings = {
   provider: Provider.OPENAI,
   uiLanguage: 'en',
+  uiMode: 'basic',
   systemInstructions:
     "You are a professional real-time interpreter.\n" +
     "Your only job is to translate every single user input **literally** from Chinese to Japanese—no exceptions.\n" +
@@ -267,7 +334,17 @@ export const defaultOpenAICompatibleSettings: OpenAICompatibleSettings = {
 
 // Default settings for each provider
 export const defaultOpenAISettings: OpenAISettings = defaultOpenAICompatibleSettings;
-export const defaultCometAPISettings: CometAPISettings = defaultOpenAICompatibleSettings;
+export const defaultCometAPISettings: CometAPISettings = {
+  ...defaultOpenAICompatibleSettings,
+  transcriptModel: 'whisper-1',  // CometAPI uses whisper-1 for better compatibility
+};
+
+// Default KizunaAI settings (OpenAI-compatible with backend-managed API key)
+export const defaultKizunaAISettings: KizunaAISettings = {
+  ...defaultOpenAICompatibleSettings,
+  transcriptModel: 'whisper-1',  // KizunaAI uses whisper-1 for better compatibility
+  // Note: apiKey is backend-managed for KizunaAI (fetched from server, not user-provided)
+};
 
 // Default Gemini settings
 export const defaultGeminiSettings: GeminiSettings = {
@@ -313,16 +390,27 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   // Create a reference to our settings service
   const settingsService = ServiceFactory.getSettingsService();
   
+  // Get auth state for KizunaAI auto-fetch functionality
+  const { isSignedIn, getToken } = useAuth();
+  
   // Separate state management for different settings categories
   const [commonSettings, setCommonSettings] = useState<CommonSettings>(defaultCommonSettings);
   const [openAISettings, setOpenAISettings] = useState<OpenAISettings>(defaultOpenAISettings);
   const [cometAPISettings, setCometAPISettings] = useState<CometAPISettings>(defaultCometAPISettings);
   const [geminiSettings, setGeminiSettings] = useState<GeminiSettings>(defaultGeminiSettings);
   const [palabraAISettings, setPalabraAISettings] = useState<PalabraAISettings>(defaultPalabraAISettings);
+  const [kizunaAISettings, setKizunaAISettings] = useState<KizunaAISettings>(defaultKizunaAISettings);
+  
+  // Kizuna AI specific state
+  const [isApiKeyFetching, setIsApiKeyFetching] = useState(false);
+  const [apiKeyFetchError, setApiKeyFetchError] = useState<string | null>(null);
   
   const [isApiKeyValid, setIsApiKeyValid] = useState(false);
   const [availableModels, setAvailableModels] = useState<FilteredModel[]>([]);
   const [loadingModels, setLoadingModels] = useState(false);
+  
+  // Navigation state for settings panel
+  const [settingsNavigationTarget, setSettingsNavigationTarget] = useState<string | null>(null);
   
   // Cache for API validation and models to avoid duplicate requests
   const [modelsCache, setModelsCache] = useState<Map<string, {
@@ -342,7 +430,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   }, [commonSettings.provider]);
 
   // Get current provider's settings
-  const getCurrentProviderSettings = useCallback((): OpenAISettings | GeminiSettings | CometAPISettings | PalabraAISettings => {
+  const getCurrentProviderSettings = useCallback((): OpenAISettings | GeminiSettings | CometAPISettings | PalabraAISettings | KizunaAISettings => {
     switch (commonSettings.provider) {
       case Provider.OPENAI:
         return openAISettings;
@@ -352,10 +440,12 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         return geminiSettings;
       case Provider.PALABRA_AI:
         return palabraAISettings;
+      case Provider.KIZUNA_AI:
+        return kizunaAISettings;
       default:
         return openAISettings;
     }
-  }, [commonSettings.provider, openAISettings, cometAPISettings, geminiSettings, palabraAISettings]);
+  }, [commonSettings.provider, openAISettings, cometAPISettings, geminiSettings, palabraAISettings, kizunaAISettings]);
 
   // Get current API key based on provider
   const getCurrentApiKey = useCallback((): string => {
@@ -368,10 +458,12 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         return geminiSettings.apiKey;
       case Provider.PALABRA_AI:
         return palabraAISettings.clientId; // PalabraAI uses clientId as primary identifier
+      case Provider.KIZUNA_AI:
+        return kizunaAISettings.apiKey || ''; // Use non-persistent API key from settings
       default:
         return openAISettings.apiKey;
     }
-  }, [commonSettings.provider, openAISettings.apiKey, cometAPISettings.apiKey, geminiSettings.apiKey, palabraAISettings.clientId]);
+  }, [commonSettings.provider, openAISettings.apiKey, cometAPISettings.apiKey, geminiSettings.apiKey, palabraAISettings.clientId, kizunaAISettings.apiKey]);
 
   // Generate cache key for current provider and API key
   const getCacheKey = useCallback((): string => {
@@ -388,12 +480,88 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     return Date.now() - timestamp < CACHE_DURATION;
   }, []);
 
+  // Unified API key management for Kizuna AI - uses Clerk token as API key
+  const ensureKizunaApiKey = useCallback(async (): Promise<boolean> => {
+    // Check if we already have a key or are currently fetching
+    if (kizunaAISettings.apiKey && kizunaAISettings.apiKey.trim() !== '') {
+      return true; // Already have a key
+    }
+    
+    if (isApiKeyFetching) {
+      console.log('[SettingsContext] Token fetch already in progress');
+      return false; // Prevent duplicate requests
+    }
+    
+    if (!isSignedIn || !getToken) {
+      console.log('[SettingsContext] Cannot get token - user not signed in');
+      setApiKeyFetchError('User not signed in');
+      return false;
+    }
+    
+    setIsApiKeyFetching(true);
+    setApiKeyFetchError(null);
+    
+    try {
+      console.log('[SettingsContext] Getting Clerk token for Kizuna AI...');
+      // Directly use Clerk token as the "API key"
+      const clerkToken = await getToken();
+      
+      if (clerkToken) {
+        console.log('[SettingsContext] Successfully got Clerk token for Kizuna AI');
+        // Set the Clerk token as the "apiKey" - MainPanel will use it unchanged
+        setKizunaAISettings(prev => ({ ...prev, apiKey: clerkToken }));
+        return true;
+      } else {
+        const error = 'Failed to get Clerk token';
+        console.warn('[SettingsContext] ' + error);
+        setApiKeyFetchError(error);
+        return false;
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error getting Clerk token';
+      console.error('[SettingsContext] Error getting Clerk token for Kizuna AI:', errorMessage);
+      setApiKeyFetchError(errorMessage);
+      return false;
+    } finally {
+      setIsApiKeyFetching(false);
+    }
+  }, [kizunaAISettings.apiKey, isApiKeyFetching, isSignedIn, getToken]);
+
   // Validate API key and fetch models in a single request with caching
-  const validateApiKeyAndFetchModels = useCallback(async (): Promise<{
+  const validateApiKeyAndFetchModels = useCallback(async (getAuthToken?: () => Promise<string | null>): Promise<{
     validation: ApiKeyValidationResult;
     models: FilteredModel[];
   }> => {
-    const apiKey = getCurrentApiKey();
+    // For KizunaAI, ensure we have an API key first
+    if (commonSettings.provider === Provider.KIZUNA_AI) {
+      const hasKey = await ensureKizunaApiKey();
+      if (!hasKey) {
+        return {
+          validation: {
+            valid: false,
+            message: apiKeyFetchError || 'Failed to fetch Kizuna AI API key',
+            validating: false
+          } as ApiKeyValidationResult,
+          models: [] as FilteredModel[]
+        };
+      }
+    }
+    
+    // For Kizuna AI, use the getAuthToken parameter to get fresh token if available
+    let apiKey: string;
+    if (commonSettings.provider === Provider.KIZUNA_AI && getAuthToken) {
+      try {
+        console.log('[SettingsContext] Using getAuthToken to fetch fresh token for validation...');
+        apiKey = await getAuthToken() || '';
+        console.log('[SettingsContext] Successfully got fresh token for validation');
+      } catch (error) {
+        console.error('[SettingsContext] Failed to get fresh token for validation:', error);
+        apiKey = getCurrentApiKey();
+      }
+    } else {
+      apiKey = getCurrentApiKey();
+    }
+    
     const cacheKey = getCacheKey();
     
     // Check cache first
@@ -451,7 +619,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
       };
       return result;
     }
-  }, [commonSettings.provider, getCurrentApiKey, getCacheKey, modelsCache, isCacheValid, settingsService, palabraAISettings.clientSecret]);
+  }, [commonSettings.provider, ensureKizunaApiKey, apiKeyFetchError, getCurrentApiKey, getCacheKey, modelsCache, isCacheValid, settingsService, palabraAISettings.clientSecret]);
 
   // Process system instructions based on the selected mode
   const getProcessedSystemInstructions = useCallback(() => {
@@ -474,9 +642,9 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   }, [commonSettings.useTemplateMode, commonSettings.templateSystemInstructions, commonSettings.systemInstructions, getCurrentProviderConfig, getCurrentProviderSettings]);
 
   // Validate the API key for current provider
-  const validateApiKey = useCallback(async () => {
+  const validateApiKey = useCallback(async (getAuthToken?: () => Promise<string | null>) => {
     try {
-      const result = await validateApiKeyAndFetchModels();
+      const result = await validateApiKeyAndFetchModels(getAuthToken);
       setIsApiKeyValid(Boolean(result.validation.valid));
       setAvailableModels(result.models);
       return result.validation;
@@ -571,6 +739,28 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     });
   }, [settingsService]);
 
+  const updateKizunaAISettings = useCallback((newSettings: Partial<KizunaAISettings>) => {
+    setKizunaAISettings(prev => {
+      const updated = { ...prev, ...newSettings };
+      
+      // Save each updated setting, but skip apiKey (non-persistent)
+      for (const key of Object.keys(newSettings)) {
+        if (key === 'apiKey') {
+          // Skip saving apiKey as it's fetched from backend and should not persist
+          continue;
+        }
+        const fullKey = `settings.kizunaai.${key}`;
+        const value = (newSettings as any)[key];
+        settingsService.setSetting(fullKey, value)
+          .catch(error => console.error(`[Settings] Error saving KizunaAI setting ${key}:`, error));
+      }
+      
+      return updated;
+    });
+  }, [settingsService]);
+
+  // Import ApiKeyService and create function to fetch KizunaAI API key
+
   // Load settings from storage
   const loadSettings = useCallback(async () => {
     try {
@@ -581,6 +771,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         const defaultValue = (defaultCommonSettings as any)[key];
         (loadedCommon as any)[key] = await settingsService.getSetting(fullKey, defaultValue);
       }
+
       setCommonSettings(loadedCommon as CommonSettings);
 
       // Load OpenAI settings
@@ -619,6 +810,15 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
       }
       setPalabraAISettings(loadedPalabraAI as PalabraAISettings);
 
+      // Load KizunaAI settings
+      const loadedKizunaAI: Partial<KizunaAISettings> = {};
+      for (const key of Object.keys(defaultKizunaAISettings)) {
+        const fullKey = `settings.kizunaai.${key}`;
+        const defaultValue = (defaultKizunaAISettings as any)[key];
+        (loadedKizunaAI as any)[key] = await settingsService.getSetting(fullKey, defaultValue);
+      }
+      setKizunaAISettings(loadedKizunaAI as KizunaAISettings);
+
       console.info('[Settings] Loaded settings successfully');
       
       // Note: Auto-validation will be handled by the useEffect that monitors provider/API key changes
@@ -629,10 +829,10 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   }, [settingsService]);
 
   // Fetch available models from current provider
-  const fetchAvailableModels = useCallback(async () => {
+  const fetchAvailableModels = useCallback(async (getAuthToken?: () => Promise<string | null>) => {
     try {
       setLoadingModels(true);
-      const result = await validateApiKeyAndFetchModels();
+      const result = await validateApiKeyAndFetchModels(getAuthToken);
       setIsApiKeyValid(Boolean(result.validation.valid));
       setAvailableModels(result.models);
       console.info('[Settings] Fetched available models:', result.models);
@@ -656,6 +856,14 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     loadSettings();
   }, [loadSettings]);
 
+  // Auto-fetch KizunaAI API key when user logs in or provider changes
+  useEffect(() => {
+    if (commonSettings.provider === Provider.KIZUNA_AI && isSignedIn) {
+      console.log('[SettingsProvider] KizunaAI provider selected, ensuring API key...');
+      ensureKizunaApiKey();
+    }
+  }, [commonSettings.provider, isSignedIn, ensureKizunaApiKey]);
+
   // Auto-validate API key and fetch models when provider or API key changes
   useEffect(() => {
     const currentApiKey = getCurrentApiKey();
@@ -667,7 +875,10 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
       const timeoutId = setTimeout(async () => {
         try {
           setLoadingModels(true);
-          const result = await validateApiKeyAndFetchModels();
+          // For Kizuna AI, pass getToken function to get fresh token
+          const getAuthToken = commonSettings.provider === Provider.KIZUNA_AI && getToken ? 
+            () => getToken({ skipCache: true }) : undefined;
+          const result = await validateApiKeyAndFetchModels(getAuthToken);
           setIsApiKeyValid(Boolean(result.validation.valid));
           setAvailableModels(result.models);
           
@@ -706,10 +917,17 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         return createGeminiSessionConfig(geminiSettings, systemInstructions);
       case Provider.PALABRA_AI:
         return createPalabraAISessionConfig(palabraAISettings, systemInstructions);
+      case Provider.KIZUNA_AI:
+        return createKizunaAISessionConfig(kizunaAISettings, systemInstructions);
       default:
         return createOpenAISessionConfig(openAISettings, systemInstructions);
     }
-  }, [commonSettings.provider, openAISettings, cometAPISettings, geminiSettings, palabraAISettings]);
+  }, [commonSettings.provider, openAISettings, cometAPISettings, geminiSettings, palabraAISettings, kizunaAISettings]);
+
+  // Navigation function for settings panel
+  const navigateToSettings = useCallback((section?: string | null) => {
+    setSettingsNavigationTarget(section || null);
+  }, []);
 
   return (
     <SettingsContext.Provider
@@ -721,10 +939,12 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         cometAPISettings,
         geminiSettings,
         palabraAISettings,
+        kizunaAISettings,
         updateOpenAISettings,
         updateCometAPISettings,
         updateGeminiSettings,
         updatePalabraAISettings,
+        updateKizunaAISettings,
         getCurrentProviderSettings,
         
         // Session config creation
@@ -739,7 +959,15 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         loadingModels,
         fetchAvailableModels,
         clearAvailableModels,
-        getCurrentProviderConfig
+        getCurrentProviderConfig,
+        
+        // Navigation support
+        settingsNavigationTarget,
+        navigateToSettings,
+        // Kizuna AI API key management
+        isApiKeyFetching,
+        apiKeyFetchError,
+        ensureKizunaApiKey
       }}
     >
       {children}

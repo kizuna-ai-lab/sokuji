@@ -3,6 +3,9 @@
 
 /* global chrome */
 
+// Import Clerk client for Chrome extension
+const { createClerkClient } = require('@clerk/chrome-extension/background');
+
 // Uninstall feedback URL - placeholder for survey form
 const UNINSTALL_FEEDBACK_BASE_URL = 'https://kizuna-ai-lab.github.io/sokuji/uninstall_feedback.html';
 
@@ -41,6 +44,49 @@ const tabsWithSidePanelOpen = new Set();
 
 // Store PostHog distinct_id received from frontend
 let currentDistinctId = null;
+
+// Initialize Clerk client
+let clerkClient = null;
+
+// Function to initialize Clerk client
+async function initializeClerkClient() {
+  try {
+    if (!clerkClient) {
+      clerkClient = await createClerkClient({
+        publishableKey: 'pk_test_dG9waWNhbC1pbXBhbGEtNjAuY2xlcmsuYWNjb3VudHMuZGV2JA'
+      });
+      console.debug('[Sokuji] [Background] Clerk client initialized');
+    }
+    return clerkClient;
+  } catch (error) {
+    console.error('[Sokuji] [Background] Error initializing Clerk client:', error);
+    return null;
+  }
+}
+
+// Function to get authentication token
+async function getAuthToken() {
+  try {
+    const clerk = await initializeClerkClient();
+    if (!clerk) {
+      console.warn('[Sokuji] [Background] Clerk client not available');
+      return null;
+    }
+
+    // Check if user has an active session
+    if (clerk.session) {
+      const token = await clerk.session.getToken();
+      console.debug('[Sokuji] [Background] Token retrieved successfully');
+      return token;
+    } else {
+      console.debug('[Sokuji] [Background] No active session');
+      return null;
+    }
+  } catch (error) {
+    console.error('[Sokuji] [Background] Error getting auth token:', error);
+    return null;
+  }
+}
 
 // Function to get stored distinct_id
 async function getStoredDistinctId() {
@@ -107,6 +153,9 @@ chrome.runtime.onInstalled.addListener(async () => {
       await chrome.storage.local.set({ config: DEFAULT_CONFIG });
       console.debug('[Sokuji] [Background] Default configuration initialized');
     }
+    
+    // Initialize Clerk client
+    await initializeClerkClient();
     
     // Set up uninstall URL for feedback collection
     await updateUninstallURL();
@@ -205,6 +254,17 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   
   if (message.type === 'OPEN_SIDE_PANEL') {
     handleOpenSidePanel(message.tabId).then(sendResponse);
+    return true; // Indicates async response
+  }
+  
+  if (message.type === 'GET_AUTH_TOKEN') {
+    // Handle authentication token requests
+    getAuthToken().then((token) => {
+      sendResponse({ success: true, token: token });
+    }).catch((error) => {
+      console.error('[Sokuji] [Background] Error getting auth token:', error);
+      sendResponse({ success: false, error: error.message, token: null });
+    });
     return true; // Indicates async response
   }
   

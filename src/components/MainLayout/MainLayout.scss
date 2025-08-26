@@ -87,6 +87,54 @@
       align-items: center;
       gap: 8px;
       
+      .ui-mode-toggle-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
+        margin-right: 8px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        color: rgba(255, 255, 255, 0.7);
+
+        &:hover {
+          background: rgba(255, 255, 255, 0.1);
+          border-color: rgba(255, 255, 255, 0.2);
+          color: #fff;
+          transform: scale(1.05);
+        }
+
+        &:active {
+          transform: scale(0.95);
+        }
+
+        &.basic {
+          svg {
+            // Simple grid icon for basic mode
+            stroke-width: 2;
+          }
+        }
+
+        &.advanced {
+          svg {
+            // Sliders icon for advanced mode
+            stroke-width: 2;
+          }
+          background: rgba(16, 163, 127, 0.1);
+          border-color: rgba(16, 163, 127, 0.3);
+          color: #10a37f;
+
+          &:hover {
+            background: rgba(16, 163, 127, 0.15);
+            border-color: rgba(16, 163, 127, 0.4);
+          }
+        }
+      }
+      
       .settings-button,
       .audio-button,
       .logs-button {
@@ -126,6 +174,8 @@
     flex: 1;
     display: flex;
     flex-direction: column;
+    overflow: hidden; // Prevent content from overflowing
+    min-height: 0; // Allow shrinking in flex container
   }
   
   .settings-panel-container {

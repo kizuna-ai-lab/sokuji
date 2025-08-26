@@ -16,11 +16,14 @@
   background-color: #2a2a2a;
   border-radius: 8px;
   width: 90%;
-  max-width: 500px;
+  max-width: 700px;
+  max-height: 90vh;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
   color: #fff;
   overflow: hidden;
   animation: modal-appear 0.2s ease-out;
+  display: flex;
+  flex-direction: column;
 }
 
 @keyframes modal-appear {
@@ -69,4 +72,6 @@
 .modal-body {
   padding: 20px;
   line-height: 1.5;
+  overflow-y: auto;
+  flex: 1;
 }

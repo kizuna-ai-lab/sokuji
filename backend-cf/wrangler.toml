@@ -1,0 +1,41 @@
+name = "sokuji-backend"
+main = "src/index.ts"
+compatibility_date = "2024-01-01"
+
+# D1 Database
+[[d1_databases]]
+binding = "DB"
+database_name = "sokuji-db"
+database_id = "33ee2e86-fcfa-4c0b-8c45-7585f4a4b72c"
+
+# KV Namespaces
+[[kv_namespaces]]
+binding = "QUOTA_KV"
+id = "YOUR_KV_NAMESPACE_ID"
+preview_id = "YOUR_KV_PREVIEW_ID"
+
+[[kv_namespaces]]
+binding = "SESSION_KV"
+id = "YOUR_SESSION_KV_ID"
+preview_id = "YOUR_SESSION_KV_PREVIEW_ID"
+
+# Durable Objects removed - using HTTP polling instead
+
+# Environment Variables (use .dev.vars for local development)
+[vars]
+ENVIRONMENT = "production"
+FRONTEND_URL = "https://sokuji.kizuna.ai"
+
+# Routes for Production Environment
+[[routes]]
+pattern = "sokuji.kizuna.ai/api/*"
+zone_name = "kizuna.ai"
+
+[[routes]]
+pattern = "api.sokuji.kizuna.ai/*"
+zone_name = "kizuna.ai"
+
+# Alternative production API endpoint
+[[routes]]
+pattern = "sokuji-api.kizuna.ai/*"
+zone_name = "kizuna.ai"

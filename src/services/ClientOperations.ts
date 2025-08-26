@@ -4,6 +4,7 @@ import { PalabraAIClient } from './clients/PalabraAIClient';
 import { ApiKeyValidationResult } from './interfaces/ISettingsService';
 import { FilteredModel } from './interfaces/IClient';
 import { Provider, ProviderType, SUPPORTED_PROVIDERS } from '../types/Provider';
+import { getBackendUrl } from '../utils/environment';
 
 /**
  * Utility class for client operations
@@ -45,6 +46,13 @@ export class ClientOperations {
             created: Date.now() / 1000 // Current timestamp
           }] // PalabraAI default model
         };
+      case Provider.KIZUNA_AI:
+        // KizunaAI is OpenAI-compatible, use OpenAIClient with proxy
+        // Use environment-specific backend URL
+        return await OpenAIClient.validateApiKeyAndFetchModels(
+          apiKey,
+          getBackendUrl()
+        );
       default:
         throw new Error(`Unsupported provider: ${provider}`);
     }
@@ -64,6 +72,9 @@ export class ClientOperations {
       case Provider.PALABRA_AI:
         // PalabraAI doesn't have model selection, return a default identifier
         return 'realtime-translation';
+      case Provider.KIZUNA_AI:
+        // KizunaAI uses the same model detection logic as OpenAI
+        return OpenAIClient.getLatestRealtimeModel(filteredModels);
       default:
         throw new Error(`Unsupported provider: ${provider}`);
     }
