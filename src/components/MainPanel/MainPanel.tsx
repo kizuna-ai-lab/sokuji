@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { X, Zap, Users, Mic, Wrench, Loader, Play, Volume2 } from 'lucide-react';
+import {X, Zap, Users, Mic, Loader, Play, Volume2, Wrench} from 'lucide-react';
 import './MainPanel.scss';
 import { useSettings } from '../../contexts/SettingsContext';
 import { useSession } from '../../contexts/SessionContext';
@@ -16,12 +16,17 @@ import { v4 as uuidv4 } from 'uuid';
 import { Provider, isOpenAICompatible } from '../../types/Provider';
 import AudioFeedbackWarning from '../AudioFeedbackWarning/AudioFeedbackWarning';
 import { getSafeAudioConfiguration, decodeAudioToWav } from '../../utils/audioUtils';
+import SimpleMainPanel from '../SimpleMainPanel/SimpleMainPanel';
+import { useAuth } from '../../lib/clerk/ClerkProvider';
 
 interface MainPanelProps {}
 
 const MainPanel: React.FC<MainPanelProps> = () => {
   const { t } = useTranslation();
   const { trackEvent } = useAnalytics();
+  
+  // Get authentication state for Kizuna AI dynamic token fetching
+  const { getToken, isSignedIn } = useAuth();
   
   // State for session management
   const [isRecording, setIsRecording] = useState(false);
@@ -35,6 +40,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     cometAPISettings,
     geminiSettings,
     palabraAISettings,
+    kizunaAISettings,
     getCurrentProviderSettings,
     isApiKeyValid,
     getProcessedSystemInstructions,
@@ -388,6 +394,23 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         case Provider.COMET_API:
           apiKey = cometAPISettings.apiKey;
           break;
+        case Provider.KIZUNA_AI:
+          // For Kizuna AI, fetch a fresh token from Clerk to avoid 401 errors
+          if (getToken && isSignedIn) {
+            console.log('[MainPanel] Fetching fresh Clerk token for Kizuna AI...');
+            try {
+              const freshToken = await getToken({ skipCache: true });
+              apiKey = freshToken || '';
+              console.log('[MainPanel] Successfully got fresh Clerk token for Kizuna AI');
+            } catch (error) {
+              console.error('[MainPanel] Failed to get fresh Clerk token:', error);
+              apiKey = kizunaAISettings.apiKey || '';
+            }
+          } else {
+            // Fallback to stored token if getToken is not available
+            apiKey = kizunaAISettings.apiKey || '';
+          }
+          break;
         case Provider.GEMINI:
           apiKey = geminiSettings.apiKey;
           break;
@@ -427,8 +450,12 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
       // Set canPushToTalk based on current turnDetectionMode
       if (isOpenAICompatible(commonSettings.provider)) {
-        const settings = commonSettings.provider === Provider.OPENAI ? openAISettings : cometAPISettings;
-        setCanPushToTalk(settings.turnDetectionMode === 'Disabled');
+        const settings = 
+          commonSettings.provider === Provider.OPENAI ? openAISettings :
+          commonSettings.provider === Provider.COMET_API ? cometAPISettings :
+          commonSettings.provider === Provider.KIZUNA_AI ? kizunaAISettings :
+          null;
+        setCanPushToTalk(settings ? settings.turnDetectionMode === 'Disabled' : false);
       } else {
         setCanPushToTalk(false); // Not supported by Gemini and PalabraAI
       }
@@ -493,8 +520,12 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       // Start recording if using server VAD and input device is turned on
       let turnDetectionDisabled = false;
       if (isOpenAICompatible(commonSettings.provider)) {
-        const settings = commonSettings.provider === Provider.OPENAI ? openAISettings : cometAPISettings;
-        turnDetectionDisabled = settings.turnDetectionMode === 'Disabled';
+        const settings = 
+          commonSettings.provider === Provider.OPENAI ? openAISettings :
+          commonSettings.provider === Provider.COMET_API ? cometAPISettings :
+          commonSettings.provider === Provider.KIZUNA_AI ? kizunaAISettings :
+          null;
+        turnDetectionDisabled = settings ? settings.turnDetectionMode === 'Disabled' : false;
       }
       
       if (!turnDetectionDisabled && isInputDeviceOn && audioServiceRef.current) {
@@ -1017,7 +1048,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     return () => {
       isLoaded = false;
     };
-  }, []);
+  }, [commonSettings.uiMode]);
 
   /**
    * Auto-scroll to the bottom of the conversation when new content is added
@@ -1068,8 +1099,12 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           // If we're in automatic mode, start/resume recording
           let turnDetectionDisabled = false;
           if (isOpenAICompatible(commonSettings.provider)) {
-            const settings = commonSettings.provider === Provider.OPENAI ? openAISettings : cometAPISettings;
-            turnDetectionDisabled = settings.turnDetectionMode === 'Disabled';
+            const settings = 
+              commonSettings.provider === Provider.OPENAI ? openAISettings :
+              commonSettings.provider === Provider.COMET_API ? cometAPISettings :
+              commonSettings.provider === Provider.KIZUNA_AI ? kizunaAISettings :
+              null;
+            turnDetectionDisabled = settings ? settings.turnDetectionMode === 'Disabled' : false;
           }
           if (!turnDetectionDisabled) {
             console.info('[Sokuji] [MainPanel] Input device turned on - starting recording in automatic mode');
@@ -1194,7 +1229,9 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         trackEvent('translation_session_start', {
           source_language: currentSettings.sourceLanguage,
           target_language: currentSettings.targetLanguage,
-          session_id: newSessionId
+          session_id: newSessionId,
+          provider: commonSettings.provider,
+          model: (currentSettings as any).model
         });
       }
     } else {
@@ -1204,7 +1241,8 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         trackEvent('translation_session_end', {
           session_id: sessionId,
           duration,
-          translation_count: translationCount
+          translation_count: translationCount,
+          provider: commonSettings.provider
         });
         // Reset session state
         setSessionId(null);
@@ -1277,8 +1315,29 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     handleDeviceSwitch();
   }, [selectedInputDevice?.deviceId, isSessionActive, isInputDeviceOn]);
 
+  // If in basic mode, render the simplified interface
+  if (commonSettings.uiMode === 'basic') {
+    return (
+      <div className="main-panel-wrapper">
+        <SimpleMainPanel
+          items={items}
+          isSessionActive={isSessionActive}
+          isInitializing={isInitializing}
+          onStartSession={connectConversation}
+          onEndSession={disconnectConversation}
+          canPushToTalk={canPushToTalk}
+          isRecording={isRecording}
+          onStartRecording={startRecording}
+          onStopRecording={stopRecording}
+        />
+      </div>
+    );
+  }
+
+  // Render the advanced interface
   return (
-    <div className="main-panel">
+    <div className="main-panel-wrapper">
+      <div className="main-panel">
       <div className="conversation-container" ref={conversationContainerRef}>
         <div className="conversation-content" data-conversation-content>
           {items.length > 0 ? (
@@ -1299,7 +1358,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                 <div className="conversation-item-content">
                   {(() => {
                     // Handle different item types based on the ItemType structure
-                    // from @openai/realtime-api-beta
+                    // from openai-realtime-api
 
                     // For items with formatted property containing text
                     if (item.formatted && item.formatted.text) {
@@ -1530,6 +1589,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           setFeedbackWarningDismissed(true);
         }}
       />
+      </div>
     </div>
   );
 };

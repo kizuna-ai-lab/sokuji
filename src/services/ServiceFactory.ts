@@ -1,8 +1,8 @@
 import { IAudioService } from './interfaces/IAudioService';
 import { ISettingsService } from './interfaces/ISettingsService';
 import { ModernBrowserAudioService } from '../lib/modern-audio/ModernBrowserAudioService';
-import { ElectronSettingsService } from './electron/ElectronSettingsService';
-import { BrowserSettingsService } from './browser/BrowserSettingsService';
+import { SettingsService } from './SettingsService';
+import { isElectron as checkIsElectron, isExtension as checkIsExtension } from '../utils/environment';
 
 /**
  * Service Factory for creating platform-specific service implementations
@@ -14,40 +14,18 @@ export class ServiceFactory {
   
   /**
    * Detect if the code is running in an Electron environment
+   * Uses centralized detection from utils/environment
    */
   static isElectron(): boolean {
-    // Primary check: Electron's process object with type=renderer
-    // @ts-ignore
-    if (typeof window !== 'undefined' && typeof window.process === 'object' && window.process.type === 'renderer') {
-      return true;
-    }
-    
-    // Secondary check: Look for Electron-specific versions
-    // @ts-ignore
-    if (typeof navigator !== 'undefined' && typeof navigator.userAgent === 'string' && navigator.userAgent.indexOf('Electron') >= 0) {
-      return true;
-    }
-    
-    return false;
+    return checkIsElectron();
   }
   
   /**
    * Detect if the code is running in a browser extension
+   * Uses centralized detection from utils/environment
    */
   static isBrowserExtension(): boolean {
-    // Check for Chrome extension API
-    // @ts-ignore
-    if (typeof chrome !== 'undefined' && typeof chrome.runtime !== 'undefined' && chrome.runtime.id) {
-      return true;
-    }
-    
-    // Check for Firefox extension API (browser namespace)
-    // @ts-ignore
-    if (typeof browser !== 'undefined' && typeof browser.runtime !== 'undefined' && browser.runtime.id) {
-      return true;
-    }
-    
-    return false;
+    return checkIsExtension();
   }
   
   /**
@@ -77,15 +55,21 @@ export class ServiceFactory {
       return ServiceFactory.settingsServiceInstance;
     }
     
-    // Create new instance if needed
-    if (ServiceFactory.isElectron()) {
-      console.info('[Sokuji] [ServiceFactory] Creating Electron settings service');
-      ServiceFactory.settingsServiceInstance = new ElectronSettingsService();
-    } else {
-      console.info('[Sokuji] [ServiceFactory] Creating Browser settings service');
-      ServiceFactory.settingsServiceInstance = new BrowserSettingsService();
-    }
+    // Create unified settings service for all platforms
+    console.info('[Sokuji] [ServiceFactory] Creating unified settings service');
+    ServiceFactory.settingsServiceInstance = new SettingsService();
     
     return ServiceFactory.settingsServiceInstance;
+  }
+  
+  
+  
+  /**
+   * Reset all cached service instances
+   * Useful for testing or when switching users
+   */
+  static resetAllInstances(): void {
+    ServiceFactory.audioServiceInstance = null;
+    ServiceFactory.settingsServiceInstance = null;
   }
 }

@@ -1,5 +1,9 @@
-import { RealtimeClient } from '@openai/realtime-api-beta';
-import { ItemType } from '@openai/realtime-api-beta/dist/lib/client.js';
+import { RealtimeClient } from 'openai-realtime-api';
+import type { 
+  RealtimeEvent as OpenAIRealtimeEvent,
+  Realtime,
+  FormattedItem
+} from 'openai-realtime-api';
 import { IClient, ConversationItem, SessionConfig, ClientEventHandlers, ApiKeyValidationResult, FilteredModel } from '../interfaces/IClient';
 import { RealtimeEvent } from '../../contexts/LogContext';
 import { Provider, ProviderType } from '../../types/Provider';
@@ -35,7 +39,7 @@ export class OpenAIClient implements IClient {
     this.apiHost = this.apiHost.replace(/\/$/, '');
     
     this.client = new RealtimeClient({
-      apiKey,
+      apiKey: apiKey,
       dangerouslyAllowAPIKeyInBrowser: true,
       url: `${this.apiHost}/v1/realtime`
     });
@@ -207,16 +211,13 @@ export class OpenAIClient implements IClient {
   }
 
   private setupEventListeners(): void {
-    // Handle realtime events
-    this.client.on('realtime.event', (realtimeEvent: any) => {
-              // Convert raw OpenAI event to our standardized RealtimeEvent format
-        const standardizedEvent: RealtimeEvent = {
-        source: 'server', // OpenAI events are always from server
+    // Handle realtime events - using 'realtime.event' custom event
+    this.client.on('realtime.event', (realtimeEvent: OpenAIRealtimeEvent) => {
+      const standardizedEvent: RealtimeEvent = {
+        source: realtimeEvent.source || 'server',
         event: {
-          type: realtimeEvent.event?.type || 'unknown',
-          data: realtimeEvent,
-          // Copy all OpenAI-specific properties for backward compatibility
-          ...realtimeEvent
+          type: realtimeEvent.event.type || 'unknown',
+          data: realtimeEvent
         }
       };
       this.eventHandlers.onRealtimeEvent?.(standardizedEvent);
@@ -248,56 +249,61 @@ export class OpenAIClient implements IClient {
     });
 
     // Handle conversation updates
-    this.client.on('conversation.updated', async ({ item, delta }: any) => {
+    this.client.on('conversation.updated', async (event: any) => {
+      const { item, delta } = event;
       const conversationItem = this.convertToConversationItem(item);
       this.eventHandlers.onConversationUpdated?.({ item: conversationItem, delta });
     });
   }
 
-  private convertToConversationItem(item: ItemType): ConversationItem {
+  private convertToConversationItem(item: Realtime.Item | FormattedItem): ConversationItem {
     // Type assertion to access properties that may not be available on all ItemType variants
-    const itemAny = item as any;
+    const itemAny = item;
     
     return {
       id: item.id,
       role: item.role as 'user' | 'assistant' | 'system',
       type: item.type as 'message' | 'function_call' | 'function_call_output',
       status: itemAny.status || 'completed',
-      formatted: item.formatted ? {
-        text: item.formatted.text,
-        transcript: item.formatted.transcript,
-        audio: item.formatted.audio,
-        tool: item.formatted.tool ? {
-          name: item.formatted.tool.name,
-          arguments: item.formatted.tool.arguments
+      formatted: 'formatted' in item && item.formatted ? {
+        text: item.formatted!.text,
+        transcript: item.formatted!.transcript,
+        audio: item.formatted!.audio,
+        tool: item.formatted!.tool ? {
+          name: item.formatted!.tool.name,
+          arguments: item.formatted!.tool.arguments
         } : undefined,
-        output: item.formatted.output,
-        file: item.formatted.file
+        output: item.formatted!.output,
+        file: item.formatted!.file
       } : undefined,
       content: itemAny.content || []
     };
   }
 
   async connect(config: SessionConfig): Promise<void> {
-    // Create new client instance with fresh API key and API host
+    // Create new client instance with fresh API key, API host and model
     this.client = new RealtimeClient({
       apiKey: this.apiKey,
       dangerouslyAllowAPIKeyInBrowser: true,
-      url: `${this.apiHost}/v1/realtime`
+      url: `${this.apiHost}/v1/realtime`,
+      model: config.model
     });
     
     // Re-setup event listeners for new client
     this.setupEventListeners();
 
-    // Update session configuration
-    this.updateSession(config);
-
     // Connect to the API
-    await this.client.realtime.connect({ model: config.model });
+    await this.client.connect();
+
+    // Update session configuration immediately after connection
+    // This is important to send configuration as soon as possible
+    this.updateSession(config);
     
-    // Update session after connection
-    this.client.updateSession();
+    // Wait for the session to be fully created by the server
+    // This ensures MainPanel only allows user interaction after session is ready
+    await this.client.waitForSessionCreated();
     
+    // Only send these events after session is created
     this.eventHandlers.onRealtimeEvent?.({
       source: 'client',
       event: { 
@@ -313,11 +319,14 @@ export class OpenAIClient implements IClient {
         } 
       }
     });
+    
+    // Critical: Only call onOpen after session is truly ready
+    // This ensures MainPanel's setIsSessionActive(true) happens at the right time
     this.eventHandlers.onOpen?.();
   }
 
   async disconnect(): Promise<void> {
-    this.client.reset();
+    this.client.disconnect();
     this.eventHandlers.onRealtimeEvent?.({
       source: 'client',
       event: { 
@@ -334,7 +343,7 @@ export class OpenAIClient implements IClient {
   }
 
   isConnected(): boolean {
-    return this.client.isConnected();
+    return this.client.isConnected;
   }
 
   updateSession(config: Partial<SessionConfig>): void {
@@ -346,8 +355,8 @@ export class OpenAIClient implements IClient {
     if (config.temperature !== undefined) updateParams.temperature = config.temperature;
     if (config.maxTokens !== undefined) updateParams.max_response_output_tokens = config.maxTokens;
 
-    // Handle turn detection
-    if (config.turnDetection) {
+    // Handle turn detection (only for OpenAI/CometAPI configurations)
+    if ('turnDetection' in config && config.turnDetection) {
       const td = config.turnDetection;
       if (td.type === 'none') {
         // No turn detection
@@ -378,8 +387,8 @@ export class OpenAIClient implements IClient {
       }
     }
 
-    // Handle noise reduction
-    if (config.inputAudioNoiseReduction) {
+    // Handle noise reduction (only for OpenAI/CometAPI configurations)
+    if ('inputAudioNoiseReduction' in config && config.inputAudioNoiseReduction) {
       updateParams.input_audio_noise_reduction = {
         type: config.inputAudioNoiseReduction.type === 'near_field' ? 'near_field' :
               config.inputAudioNoiseReduction.type === 'far_field' ? 'far_field' : undefined
@@ -389,10 +398,12 @@ export class OpenAIClient implements IClient {
       }
     }
 
-    // Handle transcription
-    if (config.inputAudioTranscription) {
+    // Handle transcription (only for OpenAI/CometAPI configurations)
+    if ('inputAudioTranscription' in config && config.inputAudioTranscription) {
       updateParams.input_audio_transcription = {
-        model: config.inputAudioTranscription.model
+        model: config.inputAudioTranscription.model,
+        language: undefined,
+        prompt: undefined
       };
     }
 

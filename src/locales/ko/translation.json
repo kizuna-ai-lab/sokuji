@@ -12,7 +12,12 @@
     "warning": "경고",
     "info": "정보",
     "logs": "로그",
-    "clear": "지우기"
+    "clear": "지우기",
+    "off": "끄기",
+    "autoDetect": "자동 감지",
+    "signIn": "로그인",
+    "signUp": "가입",
+    "signInRequired": "Kizuna AI를 제공업체로 사용하려면 로그인하세요"
   },
   "app": {
     "title": "Sokuji",
@@ -95,7 +100,9 @@
     "maxQueueLevel": "최대 오디오 버퍼",
     "autoTempo": "적응형 말하기 속도",
     "apiKeyValidated": "API 키가 확인되었습니다",
-    "realtimeTranslationAvailable": "실시간 번역 서비스를 사용할 수 있습니다"
+    "realtimeTranslationAvailable": "실시간 번역 서비스를 사용할 수 있습니다",
+    "authentication": "인증",
+    "autoAuthenticated": "계정을 통해 자동으로 인증됨"
   },
   "audioPanel": {
     "title": "오디오 설정",
@@ -138,7 +145,8 @@
     "server": "서버",
     "event": "이벤트",
     "of": "의",
-    "unknown": "알 수 없음"
+    "unknown": "알 수 없음",
+    "sessionEnded": "세션 종료"
   },
   "translation": {
     "start": "번역 시작",
@@ -164,7 +172,9 @@
     "debug": "디버그",
     "apiKeyRequired": "먼저 설정에서 유효한 OpenAI API 키를 추가하세요",
     "modelsRequired": "모델이 필요합니다. 사용 가능한 모델을 로드하려면 먼저 API 키를 검증하세요.",
-    "modelsLoading": "사용 가능한 모델을 로딩 중입니다. 잠시 기다려 주세요..."
+    "modelsLoading": "사용 가능한 모델을 로딩 중입니다. 잠시 기다려 주세요...",
+    "basicMode": "기본",
+    "advancedMode": "고급"
   },
   "errors": {
     "microphoneAccess": "마이크 접근이 거부되었습니다",
@@ -185,6 +195,46 @@
     }
   },
   "onboarding": {
+    "basic": {
+      "steps": {
+        "welcome": {
+          "title": "Sokuji에 오신 것을 환영합니다",
+          "content": "Sokuji에 오신 것을 환영합니다! 이 간단한 가이드는 몇 단계만으로 실시간 번역을 시작할 수 있도록 도와드립니다."
+        },
+        "settings": {
+          "title": "1단계: 설정 열기",
+          "content": "여기를 클릭하여 언어와 오디오 장치를 구성할 수 있는 설정을 여세요."
+        },
+        "uiModeToggle": {
+          "title": "2단계: UI 모드 전환",
+          "content": "이 버튼을 사용하여 언제든지 기본 모드와 고급 모드 간에 전환할 수 있습니다. 기본 모드는 간단한 옵션을 보여주며, 고급 모드는 완전한 제어를 제공합니다."
+        },
+        "account": {
+          "title": "3단계: 사용자 계정",
+          "content": "간편한 경험을 위해 로그인하거나, 로그인하지 않고 자신의 API 키를 사용하세요. 새 사용자는 kizuna.ai의 API 서비스에 가입할 수 있습니다."
+        },
+        "languages": {
+          "title": "4단계: 언어 선택",
+          "content": "원본 언어(말하는 언어)와 대상 언어(듣고 싶은 언어)를 선택하세요."
+        },
+        "microphone": {
+          "title": "5단계: 마이크 선택",
+          "content": "목록에서 마이크를 선택하세요. 이것이 당신의 음성을 캡처할 것입니다."
+        },
+        "speaker": {
+          "title": "6단계: 스피커 선택",
+          "content": "번역을 들을 스피커나 헤드폰을 선택하세요. 헤드폰이 권장됩니다."
+        },
+        "start": {
+          "title": "7단계: 번역 시작",
+          "content": "'시작'을 클릭하여 번역을 시작하세요! 자연스럽게 말하면 실시간 번역을 들을 수 있습니다."
+        },
+        "complete": {
+          "title": "모든 준비 완료!",
+          "content": "완벽합니다! 이제 Sokuji를 사용할 준비가 되었습니다. 시작을 클릭하고 말하기 시작하여 실시간 번역을 들어보세요."
+        }
+      }
+    },
     "back": "뒤로",
     "close": "닫기",
     "finish": "완료",
@@ -241,5 +291,135 @@
         "content": "훌륭합니다! 설정 가이드를 완료하고 인터페이스 조작에 익숙해졌습니다. Sokuji 사용을 시작하려면 설정에서 OpenAI API 키를 입력하고, 프롬프트가 표시되면 마이크 권한을 부여하고, 회의 애플리케이션(Google Meet, Zoom, Microsoft Teams 등)에서 \"Sokuji Virtual Microphone\"을 마이크로 선택하세요. 설정에서 언제든지 이 가이드를 다시 시작할 수 있습니다."
       }
     }
+  },
+  "simpleSettings": {
+    "quickSetup": "빠른 설정",
+    "quickSetupDesc": "일반적인 시나리오를 위한 프리셋 선택",
+    "preset": {
+      "meeting": "회의",
+      "meetingDesc": "비즈니스 회의에 최적화",
+      "presentation": "프레젠테이션",
+      "presentationDesc": "컨퍼런스 및 프레젠테이션용",
+      "casual": "캐주얼 대화",
+      "casualDesc": "편안한 대화",
+      "travel": "여행",
+      "travelDesc": "관광 및 여행 시나리오"
+    },
+    "apiKey": "API 키",
+    "apiKeyPlaceholder": "API 키를 입력하세요",
+    "validate": "검증",
+    "howToGetApiKey": "API 키를 얻는 방법?",
+    "apiKeyHelp1": "1. 제공업체 웹사이트 방문",
+    "apiKeyHelp2": "2. 계정에 가입하거나 로그인",
+    "apiKeyHelp3": "3. API 키 섹션으로 이동",
+    "apiKeyHelp4": "4. 새 API 키를 생성하고 여기에 복사",
+    "apiKeyHelpTooltip": "API 키는 Sokuji가 AI 번역 서비스를 사용할 수 있게 하는 비밀번호와 같습니다. 선택한 제공업체(예: OpenAI)에서 하나를 얻어야 합니다.",
+    "apiKeyHelpTooltip2": "단계별 가이드:",
+    "languages": "언어",
+    "uiLanguage": "인터페이스 언어",
+    "audioSettings": "오디오 설정",
+    "audioSettingsDesc": "오디오 패널에서 마이크와 스피커를 설정하세요",
+    "autoAuthenticated": "계정을 통해 자동으로 인증됨"
+  },
+  "simpleConfig": {
+    "interfaceLanguage": "인터페이스 언어",
+    "interfaceLanguageDesc": "Sokuji의 메뉴와 버튼 언어를 변경합니다. 번역할 수 있는 언어에는 영향을 주지 않습니다.",
+    "translationLanguages": "번역 언어",
+    "translationLanguagesDesc": "당신이 말하는 언어(원본 언어)와 번역을 듣고 싶은 언어(대상 언어)를 선택하세요. 원본 언어가 확실하지 않다면 '자동 감지'를 선택하세요.",
+    "yourLanguage": "당신의 언어",
+    "userAccount": "사용자 계정",
+    "userAccountTooltip": "기술적 지식과 자신의 API 키를 가진 사용자의 경우, 로그인 여부와 관계없이 자신의 API 키를 사용할 수 있습니다. 사용자 계정은 복잡한 구성 없이 간단한 설정을 선호하는 신규 사용자를 위해 설계되었습니다.",
+    "signInRequired": "로그인하지 않고도 자신의 AI 제공업체와 API 키를 사용할 수 있거나, kizuna.ai의 API 서비스를 구매하여 사용하려면 가입하십시오.",
+    "signInDescription": "복잡한 구성 없이 편리한 경험을 위해 가입하십시오.",
+    "targetLanguage": "대상 언어",
+    "microphone": "마이크",
+    "microphoneDesc": "음성을 캡처할 마이크를 선택하세요. 이 마이크에 당신의 언어로 말하면, Sokuji가 들리는 모든 것을 실시간으로 번역합니다.",
+    "speaker": "스피커",
+    "speakerDesc": "번역된 출력을 모니터링할 스피커를 선택하세요. 번역이 어떻게 들리는지 확인할 수 있습니다. 모니터링이 필요하지 않으면 끌 수 있습니다. 켜져 있든 꺼져 있든, 번역된 오디오는 항상 가상 마이크로 전송되어 다른 참가자들이 들을 수 있습니다."
+  },
+  "providers": {
+    "openai": {
+      "name": "OpenAI",
+      "description": "GPT 모델 기반"
+    },
+    "gemini": {
+      "name": "구글 제미나이",
+      "description": "구글의 AI 기술"
+    },
+    "cometapi": {
+      "name": "Comet API",
+      "description": "대안 AI 제공업체"
+    },
+    "palabraai": {
+      "name": "Palabra AI",
+      "description": "전문 번역 AI"
+    },
+    "unknown": {
+      "name": "알 수 없음",
+      "description": "알 수 없는 제공업체"
+    }
+  },
+  "simplePanel": {
+    "translationActive": "번역 활성",
+    "translationInactive": "번역 비활성",
+    "statusNoApiKey": "설정에서 API 키를 구성해주세요",
+    "statusNoMic": "오디오 설정에서 마이크를 선택해주세요",
+    "statusConnecting": "번역 서비스에 연결 중...",
+    "signInRequired": "로그인 필요",
+    "signInToStart": "번역을 시작하려면 로그인하십시오",
+    "statusConnected": "번역 준비 완료",
+    "statusDisconnected": "번역을 시작하려면 시작을 클릭하세요",
+    "languages": "언어",
+    "provider": "서비스",
+    "noConversation": "아직 대화가 없습니다",
+    "startToBegin": "실시간 번역을 시작하려면 시작을 클릭하세요",
+    "you": "당신",
+    "translation": "번역",
+    "noMicSelected": "마이크 선택 안됨",
+    "noSpeakerSelected": "스피커 선택 안됨",
+    "release": "놓으면 중지",
+    "holdToSpeak": "누르고 말하기",
+    "connecting": "연결 중...",
+    "stop": "중지",
+    "start": "시작",
+    "sessionDuration": "Duration",
+    "clickToConfigLanguages": "언어를 구성하려면 클릭",
+    "clickToConfigMicrophone": "마이크를 구성하려면 클릭",
+    "clickToConfigSpeaker": "스피커를 구성하려면 클릭"
+  },
+  "connectionStatus": {
+    "disconnected": "연결 해제됨",
+    "connecting": "연결 중...",
+    "connected": "연결됨",
+    "error": "연결 오류",
+    "noApiKey": "API 키 필요",
+    "noMic": "마이크 필요"
+  },
+  "userTypeSelection": {
+    "title": "Sokuji에 오신 것을 환영합니다",
+    "subtitle": "시작하려면 사용자 유형을 선택하세요",
+    "regular": {
+      "title": "일반 사용자",
+      "description": "AI 서비스를 처음 접하거나 간단한 경험을 원합니다",
+      "feature1": "API 키 지식이 필요 없음",
+      "feature2": "간단하고 직관적인 인터페이스",
+      "feature3": "안내된 설정 과정",
+      "action": "기본 모드로 시작"
+    },
+    "experienced": {
+      "title": "숙련된 사용자",
+      "description": "자신의 API 키를 가지고 있고 AI 서비스를 이해합니다",
+      "feature1": "OpenAI 또는 Gemini API 키 보유",
+      "feature2": "실시간 API 기능에 액세스",
+      "feature3": "모든 설정에 대한 완전한 제어",
+      "action": "고급 모드로 시작"
+    }
+  },
+  "tokenUsage": {
+    "title": "토큰 사용량",
+    "used": "사용됨",
+    "remaining": "남음",
+    "unableToLoadQuota": "할당량 정보를 로드할 수 없습니다",
+    "upgradeToPremium": "프리미엄으로 업그레이드"
   }
 }

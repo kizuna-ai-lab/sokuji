@@ -12,7 +12,12 @@
     "warning": "警告",
     "info": "資訊",
     "logs": "日誌",
-    "clear": "清除"
+    "clear": "清除",
+    "off": "關閉",
+    "autoDetect": "自動辨識",
+    "signIn": "登入",
+    "signUp": "註冊",
+    "signInRequired": "請登入以使用Kizuna AI作為您的提供商"
   },
   "app": {
     "title": "Sokuji",
@@ -24,6 +29,66 @@
     "view": "檢視",
     "window": "視窗",
     "help": "說明"
+  },
+  "simpleSettings": {
+    "quickSetup": "快速設定",
+    "apiKey": "API 金鑰",
+    "validate": "驗證",
+    "languages": "語言",
+    "uiLanguage": "介面語言",
+    "audioSettings": "音訊設定",
+    "apiKeyHelpTooltip": "API 金鑰就像密碼，讓 Sokuji 使用 AI 翻譯服務。您需要從選擇的提供商（如 OpenAI）取得一個。",
+    "apiKeyHelpTooltip2": "逐步指南：",
+    "autoAuthenticated": "已通過您的帳戶自動認證"
+  },
+  "simpleConfig": {
+    "interfaceLanguage": "介面語言",
+    "interfaceLanguageDesc": "這會變更 Sokuji 選單和按鈕的語言。不會影響您可以在哪些語言之間翻譯。",
+    "translationLanguages": "翻譯語言",
+    "translationLanguagesDesc": "選擇您說的語言（您的語言）和您想要聽到翻譯的語言（目標語言）。如果您不確定來源語言，請選擇「自動偵測」。",
+    "yourLanguage": "您的語言",
+    "userAccount": "使用者帳戶",
+    "userAccountTooltip": "對於具有技術知識和自己的API金鑰的使用者，無論是否登入都可以使用自己的API金鑰。使用者帳戶是為偏好簡化設定且無需複雜配置的新使用者而設計。",
+    "signInRequired": "您可以在不登入的情況下使用自己的AI提供商和API金鑰，或註冊購買並使用kizuna.ai的API服務。",
+    "signInDescription": "註冊以獲得便利體驗，無需複雜配置。",
+    "targetLanguage": "目標語言",
+    "microphone": "麥克風",
+    "microphoneDesc": "選擇麥克風來捕捉您的語音。對著這個麥克風說您的語言，Sokuji 會即時翻譯它聽到的一切。",
+    "speaker": "揚聲器",
+    "speakerDesc": "選擇揚聲器來監聽翻譯輸出。這讓您能聽到翻譯的聲音效果。如果不需要監聽，可以關閉。無論開啟或關閉，翻譯的音訊都會發送到虛擬麥克風供其他參與者聽到。"
+  },
+  "providers": {
+    "openai": {
+      "name": "OpenAI",
+      "description": "由 GPT 模型驅動"
+    },
+    "gemini": {
+      "name": "Google Gemini",
+      "description": "Google 的 AI 技術"
+    },
+    "unknown": {
+      "name": "未知",
+      "description": "未知的提供商"
+    }
+  },
+  "simplePanel": {
+    "translationActive": "翻譯中",
+    "you": "您",
+    "translation": "翻譯",
+    "stop": "停止",
+    "start": "開始",
+    "sessionDuration": "時長",
+    "startToBegin": "點擊開始進行即時翻譯",
+    "holdToSpeak": "按住說話",
+    "connecting": "連線中...",
+    "clickToConfigLanguages": "點擊配置語言",
+    "clickToConfigMicrophone": "點擊配置麥克風",
+    "clickToConfigSpeaker": "點擊配置揚聲器"
+  },
+  "connectionStatus": {
+    "disconnected": "已斷線",
+    "connected": "已連線",
+    "error": "連線錯誤"
   },
   "settings": {
     "title": "設定",
@@ -95,7 +160,9 @@
     "maxQueueLevel": "最大音訊緩衝區",
     "autoTempo": "自動調整語速",
     "apiKeyValidated": "API金鑰已驗證",
-    "realtimeTranslationAvailable": "即時翻譯服務可用"
+    "realtimeTranslationAvailable": "即時翻譯服務可用",
+    "authentication": "身份認證",
+    "autoAuthenticated": "已通過您的帳戶自動認證"
   },
   "audioPanel": {
     "title": "音訊設定",
@@ -138,7 +205,8 @@
     "server": "伺服器",
     "event": "事件",
     "of": "的",
-    "unknown": "未知"
+    "unknown": "未知",
+    "sessionEnded": "會話結束"
   },
   "translation": {
     "start": "開始翻譯",
@@ -164,7 +232,9 @@
     "debug": "偵錯",
     "apiKeyRequired": "請先在設定中新增有效的OpenAI API金鑰",
     "modelsRequired": "需要模型清單。請先驗證您的API金鑰以載入可用模型。",
-    "modelsLoading": "正在載入可用模型，請稍候..."
+    "modelsLoading": "正在載入可用模型，請稍候...",
+    "basicMode": "基礎",
+    "advancedMode": "進階"
   },
   "errors": {
     "microphoneAccess": "麥克風存取被拒絕",
@@ -185,6 +255,46 @@
     }
   },
   "onboarding": {
+    "basic": {
+      "steps": {
+        "welcome": {
+          "title": "Welcome to Sokuji",
+          "content": "Welcome to Sokuji! This simple guide will help you start using real-time translation in just a few steps."
+        },
+        "settings": {
+          "title": "Step 1: Open Settings",
+          "content": "Click here to open Settings where you can configure your languages and audio devices."
+        },
+        "uiModeToggle": {
+          "title": "Step 2: UI Mode Toggle",
+          "content": "You can switch between Basic and Advanced modes anytime using this button. Basic mode shows simplified options, while Advanced mode provides full control."
+        },
+        "account": {
+          "title": "Step 3: User Account",
+          "content": "Sign in for a simple experience, or use your own API key without logging in. New users can sign up for kizuna.ai's API service."
+        },
+        "languages": {
+          "title": "Step 4: Choose Languages",
+          "content": "Select your source language (what you speak) and target language (what you want to hear)."
+        },
+        "microphone": {
+          "title": "Step 5: Select Microphone",
+          "content": "Select your microphone from the list. This is what will capture your voice."
+        },
+        "speaker": {
+          "title": "Step 6: Select Speaker",
+          "content": "Choose your speakers or headphones to hear the translation. Headphones are recommended."
+        },
+        "start": {
+          "title": "Step 7: Start Translating",
+          "content": "Click 'Start' to begin translating! Just speak naturally and hear the translation in real-time."
+        },
+        "complete": {
+          "title": "All Set!",
+          "content": "Perfect! You're ready to use Sokuji. Click Start and begin speaking to hear real-time translations."
+        }
+      }
+    },
     "back": "返回",
     "close": "關閉",
     "finish": "完成",
@@ -239,5 +349,32 @@
         "content": "您已完成設定指南！現在請確實輸入您的 API 金鑰並配置設定，然後在會議應用程式（如 Google Meet、Zoom 等）中使用 Sokuji 虛擬麥克風開始即時翻譯。"
       }
     }
+  },
+  "userTypeSelection": {
+    "title": "歡迎使用 Sokuji",
+    "subtitle": "請選擇您的使用者類型以開始使用",
+    "regular": {
+      "title": "一般使用者",
+      "description": "我是AI服務新手或希望簡單體驗",
+      "feature1": "無需瞭解API金鑰",
+      "feature2": "簡單直觀的介面",
+      "feature3": "引導式設定流程",
+      "action": "以基礎模式開始"
+    },
+    "experienced": {
+      "title": "經驗使用者",
+      "description": "我有自己的API金鑰並瞭解AI服務",
+      "feature1": "擁有OpenAI或Gemini API金鑰",
+      "feature2": "存取即時API功能",
+      "feature3": "完全控制所有設定",
+      "action": "以進階模式開始"
+    }
+  },
+  "tokenUsage": {
+    "title": "代幣使用量",
+    "used": "已使用",
+    "remaining": "剩餘",
+    "unableToLoadQuota": "無法載入配額資訊",
+    "upgradeToPremium": "升級到高級版"
   }
 }

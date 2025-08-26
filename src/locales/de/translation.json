@@ -12,7 +12,12 @@
     "warning": "Warnung",
     "info": "Information",
     "logs": "Protokolle",
-    "clear": "Löschen"
+    "clear": "Löschen",
+    "off": "Aus",
+    "autoDetect": "Automatische Erkennung",
+    "signIn": "Anmelden",
+    "signUp": "Registrieren",
+    "signInRequired": "Bitte melden Sie sich an, um Kizuna AI als Anbieter zu verwenden"
   },
   "app": {
     "title": "Sokuji",
@@ -95,7 +100,9 @@
     "maxQueueLevel": "Maximaler Audio-Puffer",
     "autoTempo": "Adaptive Sprechgeschwindigkeit",
     "apiKeyValidated": "API-Schlüssel validiert",
-    "realtimeTranslationAvailable": "Echtzeit-Übersetzungsdienst ist verfügbar"
+    "realtimeTranslationAvailable": "Echtzeit-Übersetzungsdienst ist verfügbar",
+    "authentication": "Authentifizierung",
+    "autoAuthenticated": "Automatisch über Ihr Konto authentifiziert"
   },
   "audioPanel": {
     "title": "Audio-Einstellungen",
@@ -138,7 +145,8 @@
     "server": "Server",
     "event": "Ereignis",
     "of": "von",
-    "unknown": "unbekannt"
+    "unknown": "unbekannt",
+    "sessionEnded": "Sitzung beendet"
   },
   "translation": {
     "start": "Übersetzung starten",
@@ -164,7 +172,9 @@
     "debug": "Debug",
     "apiKeyRequired": "Bitte fügen Sie zuerst einen gültigen OpenAI API-Schlüssel in den Einstellungen hinzu",
     "modelsRequired": "Modelle sind erforderlich. Bitte validieren Sie zuerst Ihren API-Schlüssel, um verfügbare Modelle zu laden.",
-    "modelsLoading": "Verfügbare Modelle werden geladen, bitte warten..."
+    "modelsLoading": "Verfügbare Modelle werden geladen, bitte warten...",
+    "basicMode": "Basis",
+    "advancedMode": "Erweitert"
   },
   "errors": {
     "microphoneAccess": "Mikrofonzugriff verweigert",
@@ -185,6 +195,46 @@
     }
   },
   "onboarding": {
+    "basic": {
+      "steps": {
+        "welcome": {
+          "title": "Willkommen bei Sokuji",
+          "content": "Willkommen bei Sokuji! Diese einfache Anleitung hilft Ihnen dabei, die Echtzeit-Übersetzung in nur wenigen Schritten zu nutzen."
+        },
+        "settings": {
+          "title": "Schritt 1: Einstellungen öffnen",
+          "content": "Klicken Sie hier, um die Einstellungen zu öffnen, wo Sie Ihre Sprachen und Audiogeräte konfigurieren können."
+        },
+        "uiModeToggle": {
+          "title": "Schritt 2: UI-Modus Umschalten",
+          "content": "Sie können jederzeit zwischen dem einfachen und dem erweiterten Modus wechseln, indem Sie diese Taste verwenden. Der einfache Modus zeigt vereinfachte Optionen, während der erweiterte Modus volle Kontrolle bietet."
+        },
+        "languages": {
+          "title": "Schritt 4: Sprachen auswählen",
+          "content": "Wählen Sie Ihre Quellsprache (was Sie sprechen) und Zielsprache (was Sie hören möchten) aus."
+        },
+        "account": {
+          "title": "Schritt 3: Benutzerkonto",
+          "content": "Melden Sie sich für eine einfache Erfahrung an oder verwenden Sie Ihren eigenen API-Schlüssel ohne Anmeldung. Neue Benutzer können sich für den API-Service von kizuna.ai anmelden."
+        },
+        "microphone": {
+          "title": "Schritt 5: Mikrofon auswählen",
+          "content": "Wählen Sie Ihr Mikrofon aus der Liste aus. Dies ist das Gerät, das Ihre Stimme aufnimmt."
+        },
+        "speaker": {
+          "title": "Schritt 6: Lautsprecher auswählen",
+          "content": "Wählen Sie Ihre Lautsprecher oder Kopfhörer aus, um die Übersetzung zu hören. Kopfhörer werden empfohlen."
+        },
+        "start": {
+          "title": "Schritt 7: Übersetzen starten",
+          "content": "Klicken Sie auf Start, um mit der Übersetzung zu beginnen! Sprechen Sie einfach natürlich und hören Sie die Übersetzung in Echtzeit."
+        },
+        "complete": {
+          "title": "Alles bereit!",
+          "content": "Perfekt! Sie sind bereit, Sokuji zu verwenden. Klicken Sie auf Start und beginnen Sie zu sprechen, um Echtzeit-Übersetzungen zu hören."
+        }
+      }
+    },
     "back": "Zurück",
     "close": "Schließen",
     "finish": "Fertig",
@@ -241,5 +291,135 @@
         "content": "Großartig! Sie haben die Setup-Anleitung abgeschlossen und sind nun mit der Benutzeroberfläche vertraut. Um Sokuji zu verwenden, geben Sie bitte Ihren OpenAI API-Schlüssel in den Einstellungen ein, gewähren Sie Mikrofonberechtigungen wenn aufgefordert, und wählen Sie \"Sokuji Virtual Microphone\" als Ihr Mikrofon in Ihrer Meeting-Anwendung (Google Meet, Zoom, Microsoft Teams, usw.). Sie können diese Anleitung jederzeit aus den Einstellungen neu starten."
       }
     }
+  },
+  "simpleSettings": {
+    "quickSetup": "Schnelle Einrichtung",
+    "quickSetupDesc": "Wählen Sie ein Preset für häufige Szenarien",
+    "preset": {
+      "meeting": "Besprechung",
+      "meetingDesc": "Optimiert für Geschäftsbesprechungen",
+      "presentation": "Präsentation",
+      "presentationDesc": "Für Vorträge und Präsentationen",
+      "casual": "Zwangloser Chat",
+      "casualDesc": "Entspannte Unterhaltungen",
+      "travel": "Reise",
+      "travelDesc": "Tourismus- und Reiseszenarien"
+    },
+    "apiKey": "API-Schlüssel",
+    "apiKeyPlaceholder": "Geben Sie Ihren API-Schlüssel ein",
+    "validate": "Validieren",
+    "howToGetApiKey": "Wie bekomme ich einen API-Schlüssel?",
+    "apiKeyHelp1": "1. Besuchen Sie die Website des Anbieters",
+    "apiKeyHelp2": "2. Registrieren Sie sich oder melden Sie sich bei Ihrem Konto an",
+    "apiKeyHelp3": "3. Navigieren Sie zum Bereich API-Schlüssel",
+    "apiKeyHelp4": "4. Erstellen Sie einen neuen API-Schlüssel und kopieren Sie ihn hier",
+    "apiKeyHelpTooltip": "Ein API-Schlüssel ist wie ein Passwort, das Sokuji ermöglicht, AI-Übersetzungsdienste zu nutzen. Sie müssen einen von Ihrem gewählten Anbieter (wie OpenAI) erhalten.",
+    "apiKeyHelpTooltip2": "Schritt-für-Schritt-Anleitung:",
+    "languages": "Sprachen",
+    "uiLanguage": "Sprache der Benutzeroberfläche",
+    "audioSettings": "Audio-Einstellungen",
+    "audioSettingsDesc": "Konfigurieren Sie Ihr Mikrofon und Ihre Lautsprecher im Audio-Panel",
+    "autoAuthenticated": "Automatisch über Ihr Konto authentifiziert"
+  },
+  "simpleConfig": {
+    "interfaceLanguage": "Sprache der Benutzeroberfläche",
+    "interfaceLanguageDesc": "Dies ändert die Sprache von Sokujis Menüs und Schaltflächen. Es beeinflusst NICHT, zwischen welchen Sprachen Sie übersetzen können.",
+    "translationLanguages": "Übersetzungssprachen",
+    "translationLanguagesDesc": "Wählen Sie, welche Sprache Sie sprechen (Ihre Sprache) und in welcher Sprache Sie die Übersetzung hören möchten (Zielsprache). Wählen Sie \"Automatische Erkennung\", wenn Sie sich über die Quellsprache unsicher sind.",
+    "yourLanguage": "Ihre Sprache",
+    "userAccount": "Benutzerkonto",
+    "userAccountTooltip": "Für Benutzer mit technischen Kenntnissen und eigenen API-Schlüsseln können Sie Ihren eigenen API-Schlüssel verwenden, egal ob Sie angemeldet sind oder nicht. Das Benutzerkonto ist für neue Benutzer konzipiert, die eine vereinfachte Einrichtung ohne komplexe Konfiguration bevorzugen.",
+    "signInRequired": "Sie können Ihren eigenen KI-Anbieter und API-Schlüssel ohne Anmeldung verwenden, oder sich registrieren, um den API-Service von kizuna.ai zu kaufen und zu nutzen.",
+    "signInDescription": "Registrieren Sie sich für eine bequeme Erfahrung ohne komplexe Konfiguration.",
+    "targetLanguage": "Zielsprache",
+    "microphone": "Mikrofon",
+    "microphoneDesc": "Wählen Sie das Mikrofon zur Aufnahme Ihrer Sprache. Sprechen Sie in Ihrer Sprache in dieses Mikrofon, und Sokuji wird alles, was es hört, in Echtzeit übersetzen.",
+    "speaker": "Lautsprecher",
+    "speakerDesc": "Wählen Sie einen Lautsprecher zur Überwachung der übersetzten Ausgabe. Damit können Sie hören, wie die Übersetzung klingt. Sie können es ausschalten, wenn keine Überwachung erforderlich ist. Ob ein- oder ausgeschaltet, das übersetzte Audio wird immer an das virtuelle Mikrofon gesendet, damit andere Teilnehmer es hören können."
+  },
+  "providers": {
+    "openai": {
+      "name": "OpenAI",
+      "description": "Betrieben von GPT-Modellen"
+    },
+    "gemini": {
+      "name": "Google Gemini",
+      "description": "Googles AI-Technologie"
+    },
+    "cometapi": {
+      "name": "Comet API",
+      "description": "Alternativer AI-Anbieter"
+    },
+    "palabraai": {
+      "name": "Palabra AI",
+      "description": "Spezialisierte Übersetzungs-AI"
+    },
+    "unknown": {
+      "name": "Unbekannt",
+      "description": "Unbekannter Anbieter"
+    }
+  },
+  "simplePanel": {
+    "translationActive": "Übersetzung Aktiv",
+    "translationInactive": "Übersetzung Inaktiv",
+    "statusNoApiKey": "Bitte konfigurieren Sie Ihren API-Schlüssel in den Einstellungen",
+    "statusNoMic": "Bitte wählen Sie ein Mikrofon in den Audio-Einstellungen",
+    "statusConnecting": "Verbindung zum Übersetzungsdienst...",
+    "signInRequired": "Anmeldung erforderlich",
+    "signInToStart": "Bitte melden Sie sich an, um die Übersetzung zu starten",
+    "statusConnected": "Bereit zum Übersetzen",
+    "statusDisconnected": "Klicken Sie auf Start, um die Übersetzung zu beginnen",
+    "languages": "Sprachen",
+    "provider": "Dienst",
+    "noConversation": "Noch kein Gespräch",
+    "startToBegin": "Klicken Sie auf Start, um die Echtzeit-Übersetzung zu beginnen",
+    "you": "Sie",
+    "translation": "Übersetzung",
+    "noMicSelected": "Kein Mikrofon ausgewählt",
+    "noSpeakerSelected": "Kein Lautsprecher ausgewählt",
+    "release": "Loslassen zum Stoppen",
+    "holdToSpeak": "Halten zum Sprechen",
+    "connecting": "Verbinden...",
+    "stop": "Stoppen",
+    "start": "Starten",
+    "sessionDuration": "Duration",
+    "clickToConfigLanguages": "Klicken Sie, um Sprachen zu konfigurieren",
+    "clickToConfigMicrophone": "Klicken Sie, um das Mikrofon zu konfigurieren",
+    "clickToConfigSpeaker": "Klicken Sie, um den Lautsprecher zu konfigurieren"
+  },
+  "connectionStatus": {
+    "disconnected": "Getrennt",
+    "connecting": "Verbinden...",
+    "connected": "Verbunden",
+    "error": "Verbindungsfehler",
+    "noApiKey": "API-Schlüssel Erforderlich",
+    "noMic": "Mikrofon Erforderlich"
+  },
+  "userTypeSelection": {
+    "title": "Willkommen bei Sokuji",
+    "subtitle": "Bitte wählen Sie Ihren Benutzertyp aus, um zu beginnen",
+    "regular": {
+      "title": "Normaler Benutzer",
+      "description": "Ich bin neu bei KI-Diensten oder bevorzuge eine einfache Erfahrung",
+      "feature1": "Keine API-Schlüssel-Kenntnisse erforderlich",
+      "feature2": "Einfache und intuitive Benutzeroberfläche",
+      "feature3": "Geführter Einrichtungsprozess",
+      "action": "Mit dem Basismodus beginnen"
+    },
+    "experienced": {
+      "title": "Erfahrener Benutzer",
+      "description": "Ich habe meine eigenen API-Schlüssel und verstehe KI-Dienste",
+      "feature1": "Besitze OpenAI oder Gemini API-Schlüssel",
+      "feature2": "Zugang zu Echtzeit-API-Funktionen",
+      "feature3": "Vollständige Kontrolle über alle Einstellungen",
+      "action": "Mit dem erweiterten Modus beginnen"
+    }
+  },
+  "tokenUsage": {
+    "title": "Token-Nutzung",
+    "used": "verwendet",
+    "remaining": "verbleibend",
+    "unableToLoadQuota": "Kontingentinformationen können nicht geladen werden",
+    "upgradeToPremium": "Auf Premium upgraden"
   }
 }

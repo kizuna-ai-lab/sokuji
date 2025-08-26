@@ -1,0 +1,59 @@
+/**
+ * Styles for the SignIn page component
+ */
+
+.sign-in-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background: #0d0d0d;
+  padding: 20px;
+  position: relative;
+  
+  .back-button {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 6px;
+    color: #fff;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    
+    &:hover {
+      background: rgba(255, 255, 255, 0.15);
+      border-color: rgba(255, 255, 255, 0.3);
+    }
+    
+    svg {
+      opacity: 0.8;
+    }
+  }
+}
+
+.sign-in-container {
+  width: 100%;
+  max-width: 400px;
+  text-align: center;
+}
+
+.sign-in-title {
+  font-size: 28px;
+  font-weight: 600;
+  color: #fff;
+  margin-bottom: 8px;
+}
+
+.sign-in-subtitle {
+  font-size: 14px;
+  color: #999;
+  margin-bottom: 32px;
+}

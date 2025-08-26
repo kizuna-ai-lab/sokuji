@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from 'react';
-import { ArrowRight, Save, Check, AlertCircle, AlertTriangle, Info, Key, HelpCircle, FlaskConical } from 'lucide-react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { ArrowRight, Save, Check, AlertCircle, AlertTriangle, Info, Key, HelpCircle, FlaskConical, CheckCircle } from 'lucide-react';
 import './SettingsPanel.scss';
 import { useSettings } from '../../contexts/SettingsContext';
 import { useOnboarding } from '../../contexts/OnboardingContext';
@@ -9,12 +9,14 @@ import { ProviderConfigFactory } from '../../services/providers/ProviderConfigFa
 import ProviderSpecificSettings from './ProviderSpecificSettings';
 import { Provider, ProviderType } from '../../types/Provider';
 import { useAnalytics } from '../../lib/analytics';
+import { useAuth } from '../../lib/clerk/ClerkProvider';
 
 interface SettingsPanelProps {
   toggleSettings?: () => void;
 }
 
 const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
+  const { getToken, isSignedIn } = useAuth();
   const { 
     // New structured settings
     commonSettings,
@@ -23,10 +25,12 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
     cometAPISettings,
     geminiSettings,
     palabraAISettings,
+    kizunaAISettings,
     updateOpenAISettings,
     updateCometAPISettings,
     updateGeminiSettings,
     updatePalabraAISettings,
+    updateKizunaAISettings,
     
     // Other context methods and state
     validateApiKey: contextValidateApiKey, 
@@ -81,6 +85,8 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
         updateCometAPISettings(cometAPISettings);
       } else if (commonSettings.provider === Provider.PALABRA_AI) {
         updatePalabraAISettings(palabraAISettings);
+      } else if (commonSettings.provider === Provider.KIZUNA_AI) {
+        updateKizunaAISettings(kizunaAISettings);
       } else {
         updateGeminiSettings(geminiSettings);
       }
@@ -137,7 +143,11 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
       validating: true
     });
     
-    const result = await contextValidateApiKey();
+    // Pass getAuthToken for Kizuna AI provider
+    const getAuthToken = commonSettings.provider === Provider.KIZUNA_AI && isSignedIn && getToken ? 
+      () => getToken() : undefined;
+    
+    const result = await contextValidateApiKey(getAuthToken);
     setApiKeyStatus({
       valid: result.valid === true,
       message: result.message,
@@ -160,6 +170,12 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
   // Note: Auto-fetching models is now handled by SettingsContext
   // This useEffect was removed to prevent duplicate API requests
 
+  // Note: Auto-fetching of Kizuna AI API key is now handled centrally in SettingsContext
+  // This prevents duplicate API calls and ensures consistent state management
+
+
+
+  // Render advanced settings
   return (
     <div className="settings-panel">
       <div className="settings-panel-header">
@@ -300,50 +316,69 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
               </div>
             </>
           ) : (
-            // Other providers use API Key
-            <div className="setting-item">
-              <div className="setting-label">
-                <span>{t('settings.apiKey', 'API Key')}</span>
-              </div>
-              <div className="api-key-container">
-                <input
-                  value={
-                    commonSettings.provider === Provider.OPENAI ? openAISettings.apiKey :
-                    commonSettings.provider === Provider.COMET_API ? cometAPISettings.apiKey :
-                    geminiSettings.apiKey
-                  }
-                  onChange={(e) => {
-                    if (commonSettings.provider === Provider.OPENAI) {
-                      updateOpenAISettings({ apiKey: e.target.value });
-                    } else if (commonSettings.provider === Provider.COMET_API) {
-                      updateCometAPISettings({ apiKey: e.target.value });
-                    } else {
-                      updateGeminiSettings({ apiKey: e.target.value });
+            // Other providers use API Key, but hide for Kizuna AI
+            commonSettings.provider !== Provider.KIZUNA_AI ? (
+              <div className="setting-item">
+                <div className="setting-label">
+                  <span>{t('settings.apiKey', 'API Key')}</span>
+                </div>
+                <div className="api-key-container">
+                  <input
+                    value={
+                      commonSettings.provider === Provider.OPENAI ? openAISettings.apiKey :
+                      commonSettings.provider === Provider.COMET_API ? cometAPISettings.apiKey :
+                      geminiSettings.apiKey
                     }
-                    // Reset validation status when key changes
-                    setApiKeyStatus({ valid: null, message: '', validating: false });
-                  }}
-                  placeholder={currentProviderConfig.apiKeyPlaceholder}
-                  className={`text-input api-key-input ${
-                    apiKeyStatus.valid === true ? 'valid' : 
-                    apiKeyStatus.valid === false ? 'invalid' : ''
-                  }`}
-                  disabled={isSessionActive}
-                />
-                <button 
-                  className="validate-key-button"
-                  onClick={handleValidateApiKey}
-                  disabled={apiKeyStatus.validating || 
-                    (commonSettings.provider === Provider.OPENAI ? !openAISettings.apiKey :
-                     commonSettings.provider === Provider.COMET_API ? !cometAPISettings.apiKey :
-                     !geminiSettings.apiKey) || 
-                    isSessionActive}
-                >
-                  <Key size={16} />
-                  <span>{apiKeyStatus.validating ? t('settings.validating') : t('settings.validate')}</span>
-                </button>
+                    onChange={(e) => {
+                      if (commonSettings.provider === Provider.OPENAI) {
+                        updateOpenAISettings({ apiKey: e.target.value });
+                      } else if (commonSettings.provider === Provider.COMET_API) {
+                        updateCometAPISettings({ apiKey: e.target.value });
+                      } else {
+                        updateGeminiSettings({ apiKey: e.target.value });
+                      }
+                      // Reset validation status when key changes
+                      setApiKeyStatus({ valid: null, message: '', validating: false });
+                    }}
+                    placeholder={currentProviderConfig.apiKeyPlaceholder}
+                    className={`text-input api-key-input ${
+                      apiKeyStatus.valid === true ? 'valid' : 
+                      apiKeyStatus.valid === false ? 'invalid' : ''
+                    }`}
+                    disabled={isSessionActive}
+                  />
+                  <button 
+                    className="validate-key-button"
+                    onClick={handleValidateApiKey}
+                    disabled={apiKeyStatus.validating || 
+                      (commonSettings.provider === Provider.OPENAI ? !openAISettings.apiKey :
+                       commonSettings.provider === Provider.COMET_API ? !cometAPISettings.apiKey :
+                       !geminiSettings.apiKey) || 
+                      isSessionActive}
+                  >
+                    <Key size={16} />
+                    <span>{apiKeyStatus.validating ? t('settings.validating') : t('settings.validate')}</span>
+                  </button>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="setting-item">
+                <div className="setting-label">
+                  <span>{t('settings.authentication', 'Authentication')}</span>
+                </div>
+                {isSignedIn ? (
+                  <div className="api-key-info">
+                    <CheckCircle size={16} className="success-icon" />
+                    <span>{t('settings.autoAuthenticated', 'Automatically authenticated via your account')}</span>
+                  </div>
+                ) : (
+                  <div className="api-key-warning">
+                    <AlertCircle size={16} className="warning-icon" />
+                    <span>{t('common.signInRequired', 'Please sign in to use Kizuna AI as your provider')}</span>
+                  </div>
+                )}
+              </div>
+            )
           )}
           {apiKeyStatus.message && (
             <div className={`api-key-status ${
@@ -378,36 +413,36 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
               }}
               disabled={isSessionActive}
             >
-              <option value="en">🇺🇸 English</option>
-              <option value="zh_CN">🇨🇳 中文 (简体)</option>
-              <option value="hi">🇮🇳 हिन्दी</option>
-              <option value="es">🇪🇸 Español</option>
-              <option value="fr">🇫🇷 Français</option>
-              <option value="ar">🇸🇦 العربية</option>
-              <option value="bn">🇧🇩 বাংলা</option>
-              <option value="pt_BR">🇧🇷 Português (Brasil)</option>
-              <option value="ru">🇷🇺 Русский</option>
-              <option value="ja">🇯🇵 日本語</option>
-              <option value="de">🇩🇪 Deutsch</option>
-              <option value="ko">🇰🇷 한국어</option>
-              <option value="fa">🇮🇷 فارسی</option>
-              <option value="tr">🇹🇷 Türkçe</option>
-              <option value="vi">🇻🇳 Tiếng Việt</option>
-              <option value="it">🇮🇹 Italiano</option>
-              <option value="th">🇹🇭 ไทย</option>
-              <option value="pl">🇵🇱 Polski</option>
-              <option value="id">🇮🇩 Bahasa Indonesia</option>
-              <option value="ms">🇲🇾 Bahasa Melayu</option>
-              <option value="nl">🇳🇱 Nederlands</option>
-              <option value="zh_TW">🇹🇼 中文 (繁體)</option>
-              <option value="pt_PT">🇵🇹 Português (Portugal)</option>
-              <option value="uk">🇺🇦 Українська</option>
-              <option value="ta">🇮🇳 தமிழ்</option>
-              <option value="te">🇮🇳 తెలుగు</option>
-              <option value="he">🇮🇱 עברית</option>
-              <option value="fil">🇵🇭 Filipino</option>
-              <option value="sv">🇸🇪 Svenska</option>
-              <option value="fi">🇫🇮 Suomi</option>
+              <option value="en">English</option>
+              <option value="zh_CN">中文 (简体)</option>
+              <option value="hi">हिन्दी</option>
+              <option value="es">Español</option>
+              <option value="fr">Français</option>
+              <option value="ar">العربية</option>
+              <option value="bn">বাংলা</option>
+              <option value="pt_BR">Português (Brasil)</option>
+              <option value="ru">Русский</option>
+              <option value="ja">日本語</option>
+              <option value="de">Deutsch</option>
+              <option value="ko">한국어</option>
+              <option value="fa">فارسی</option>
+              <option value="tr">Türkçe</option>
+              <option value="vi">Tiếng Việt</option>
+              <option value="it">Italiano</option>
+              <option value="th">ไทย</option>
+              <option value="pl">Polski</option>
+              <option value="id">Bahasa Indonesia</option>
+              <option value="ms">Bahasa Melayu</option>
+              <option value="nl">Nederlands</option>
+              <option value="zh_TW">中文 (繁體)</option>
+              <option value="pt_PT">Português (Portugal)</option>
+              <option value="uk">Українська</option>
+              <option value="ta">தமிழ்</option>
+              <option value="te">తెలుగు</option>
+              <option value="he">עברית</option>
+              <option value="fil">Filipino</option>
+              <option value="sv">Svenska</option>
+              <option value="fi">Suomi</option>
             </select>
           </div>
         </div>

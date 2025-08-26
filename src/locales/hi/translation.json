@@ -12,7 +12,12 @@
     "warning": "चेतावनी",
     "info": "जानकारी",
     "logs": "लॉग्स",
-    "clear": "साफ़ करें"
+    "clear": "साफ़ करें",
+    "off": "बंद",
+    "autoDetect": "स्वचालित पहचान",
+    "signIn": "साइन इन",
+    "signUp": "साइन अप",
+    "signInRequired": "कृपया Kizuna AI को अपने प्रदाता के रूप में उपयोग करने के लिए साइन इन करें"
   },
   "app": {
     "title": "Sokuji",
@@ -56,7 +61,112 @@
     "maxQueueLevel": "अधिकतम ऑडियो बफर",
     "autoTempo": "अनुकूली भाषण गति",
     "apiKeyValidated": "API कुंजी मान्य",
-    "realtimeTranslationAvailable": "रीयल-टाइम अनुवाद सेवा उपलब्ध है"
+    "realtimeTranslationAvailable": "रीयल-टाइम अनुवाद सेवा उपलब्ध है",
+    "authentication": "प्रमाणीकरण",
+    "autoAuthenticated": "आपके खाते के माध्यम से स्वचालित रूप से प्रमाणित"
+  },
+  "simpleSettings": {
+    "quickSetup": "त्वरित सेटअप",
+    "quickSetupDesc": "सामान्य परिदृश्यों के लिए प्रीसेट चुनें",
+    "preset": {
+      "meeting": "मीटिंग",
+      "meetingDesc": "बिज़नेस मीटिंग के लिए अनुकूलित",
+      "presentation": "प्रेज़ेंटेशन",
+      "presentationDesc": "व्याख्यान और प्रेज़ेंटेशन के लिए",
+      "casual": "अनौपचारिक चर्चा",
+      "casualDesc": "आरामदेह बातचीत",
+      "travel": "यात्रा",
+      "travelDesc": "पर्यटन और यात्रा परिदृश्य"
+    },
+    "apiKey": "API की",
+    "apiKeyPlaceholder": "अपनी API की दर्ज करें",
+    "validate": "सत्यापित करें",
+    "howToGetApiKey": "API की कैसे प्राप्त करें?",
+    "apiKeyHelp1": "1. प्रदाता की वेबसाइट पर जाएं",
+    "apiKeyHelp2": "2. साइन अप करें या अपने खाते में लॉग इन करें",
+    "apiKeyHelp3": "3. API कीज़ विभाग पर जाएं",
+    "apiKeyHelp4": "4. एक नई API की बनाएं और इसे यहां कॉपी करें",
+    "apiKeyHelpTooltip": "API की एक पासवर्ड की तरह है जो Sokuji को AI अनुवाद सेवाओं का उपयोग करने देती है। आपको अपने चुने गए प्रदाता (जैसे OpenAI) से एक प्राप्त करनी होगी।",
+    "apiKeyHelpTooltip2": "कदम-दर-कदम गाइड:",
+    "languages": "भाषाएं",
+    "uiLanguage": "इंटरफेस भाषा",
+    "audioSettings": "ऑडियो सेटिंग्स",
+    "audioSettingsDesc": "ऑडियो पैनल में अपना माइक्रोफोन और स्पीकर कॉन्फ़िगर करें",
+    "autoAuthenticated": "आपके खाते के माध्यम से स्वचालित रूप से प्रमाणित"
+  },
+  "simpleConfig": {
+    "interfaceLanguage": "इंटरफेस भाषा",
+    "interfaceLanguageDesc": "यह Sokuji के मेनू और बटन की भाषा बदलता है। यह इस बात को प्रभावित नहीं करता कि आप किन भाषाओं के बीच अनुवाद कर सकते हैं।",
+    "translationLanguages": "अनुवाद भाषाएं",
+    "translationLanguagesDesc": "चुनें कि आप कौन सी भाषा बोलते हैं (आपकी भाषा) और किस भाषा में आप अनुवाद सुनना चाहते हैं (लक्ष्य भाषा)। स्रोत भाषा के बारे में अनिश्चित होने पर \"स्वचालित पहचान\" चुनें।",
+    "yourLanguage": "आपकी भाषा",
+    "userAccount": "उपयोगकर्ता खाता",
+    "userAccountTooltip": "तकनीकी उपयोगकर्ता अपनी स्वयं की API कुंजियों का उपयोग कर सकते हैं। उपयोगकर्ता खाता सरल सेटअप के लिए डिज़ाइन किया गया है।",
+    "signInRequired": "आप अपनी स्वयं की API कुंजी का उपयोग कर सकते हैं या kizuna.ai सेवा के लिए साइन अप कर सकते हैं।",
+    "signInDescription": "सरल अनुभव के लिए साइन अप करें।",
+    "targetLanguage": "लक्ष्य भाषा",
+    "microphone": "माइक्रोफोन",
+    "microphoneDesc": "अपने भाषाण को कैप्चर करने के लिए माइक्रोफोन चुनें। इस माइक्रोफोन में अपनी भाषा में बोलें, और Sokuji रियल-टाइम में जो कुछ भी सुनेगा उसका अनुवाद करेगा।",
+    "speaker": "स्पीकर",
+    "speakerDesc": "अनुवादित आउटपुट की निगरानी के लिए एक स्पीकर चुनें। यह आपको अनुवाद कैसा लगता है सुनने देता है। अगर निगरानी आवश्यक नहीं है तो आप इसे बंद कर सकते हैं। चालू या बंद, अनुवादित ऑडियो हमेशा वर्चुअल माइक्रोफोन में भेजा जाता है ताकि अन्य भागीदार सुन सकें।"
+  },
+  "providers": {
+    "openai": {
+      "name": "OpenAI",
+      "description": "GPT मॉडल द्वारा संचालित"
+    },
+    "gemini": {
+      "name": "Google Gemini",
+      "description": "Google की AI तकनफ0940क"
+    },
+    "cometapi": {
+      "name": "Comet API",
+      "description": "वैकल्पिक AI प्रदाता"
+    },
+    "palabraai": {
+      "name": "Palabra AI",
+      "description": "विशिष्ट अनुवाद AI"
+    },
+    "unknown": {
+      "name": "अज्ञात",
+      "description": "अज्ञात प्रदाता"
+    }
+  },
+  "simplePanel": {
+    "translationActive": "अनुवाद सक्रिय",
+    "translationInactive": "अनुवाद निष्क्रिय",
+    "statusNoApiKey": "कृपया सेटिंग्स में अपनी API की कॉन्फ़िगर करें",
+    "statusNoMic": "कृपया ऑडियो सेटिंग्स में माइक्रोफोन चुनें",
+    "statusConnecting": "अनुवाद सेवा से जुड़ रहे हैं...",
+    "signInRequired": "साइन इन आवश्यक",
+    "signInToStart": "अनुवाद शुरू करने के लिए कृपया साइन इन करें",
+    "statusConnected": "अनुवाद के लिए तैयार",
+    "statusDisconnected": "अनुवाद शुरू करने के लिए स्टार्ट पर क्लिक करें",
+    "languages": "भाषाएं",
+    "provider": "सेवा",
+    "noConversation": "अभी तक कोई बातचीत नहीं",
+    "startToBegin": "रियल-टाइम अनुवाद शुरू करने के लिए स्टार्ट पर क्लिक करें",
+    "you": "आप",
+    "translation": "अनुवाद",
+    "noMicSelected": "कोई माइक नहीं चुना गया",
+    "noSpeakerSelected": "कोई स्पीकर नहीं चुना गया",
+    "release": "रोकने के लिए छोड़ें",
+    "holdToSpeak": "बोलने के लिए दबाकर रखें",
+    "connecting": "जुड़ रहे हैं...",
+    "stop": "रोकें",
+    "start": "शुरू करें",
+    "sessionDuration": "Duration",
+    "clickToConfigLanguages": "भाषाओं को कॉन्फ़िगर करने के लिए क्लिक करें",
+    "clickToConfigMicrophone": "माइक्रोफ़ोन कॉन्फ़िगर करने के लिए क्लिक करें",
+    "clickToConfigSpeaker": "स्पीकर कॉन्फ़िगर करने के लिए क्लिक करें"
+  },
+  "connectionStatus": {
+    "disconnected": "डिस्कनेक्टेड",
+    "connecting": "जुड़ रहे हैं...",
+    "connected": "जुड़ा हुआ",
+    "error": "कनेक्शन एरर",
+    "noApiKey": "API की आवश्यक",
+    "noMic": "माइक्रोफोन आवश्यक"
   },
   "mainPanel": {
     "conversationPlaceholder": "बातचीत यहाँ दिखाई देगी",
@@ -66,7 +176,9 @@
     "initializing": "प्रारंभ हो रहा है...",
     "apiKeyRequired": "कृपया पहले सेटिंग्स में एक वैध OpenAI API की जोड़ें",
     "modelsRequired": "मॉडल आवश्यक हैं। उपलब्ध मॉडल लोड करने के लिए कृपया पहले अपनी API कुंजी को सत्यापित करें।",
-    "modelsLoading": "उपलब्ध मॉडल लोड हो रहे हैं, कृपया प्रतीक्षा करें..."
+    "modelsLoading": "उपलब्ध मॉडल लोड हो रहे हैं, कृपया प्रतीक्षा करें...",
+    "basicMode": "बेसिक",
+    "advancedMode": "उन्नत"
   },
   "audioPanel": {
     "title": "ऑडियो सेटिंग्स",
@@ -76,7 +188,8 @@
     "realVoiceVolume": "मूल ऑडियो वॉल्यूम"
   },
   "logsPanel": {
-    "title": "लॉग्स"
+    "title": "लॉग्स",
+    "sessionEnded": "सत्र समाप्त"
   },
   "translation": {
     "start": "अनुवाद शुरू करें",
@@ -101,6 +214,46 @@
     }
   },
   "onboarding": {
+    "basic": {
+      "steps": {
+        "welcome": {
+          "title": "Welcome to Sokuji",
+          "content": "Welcome to Sokuji! This simple guide will help you start using real-time translation in just a few steps."
+        },
+        "settings": {
+          "title": "Step 1: Open Settings",
+          "content": "Click here to open Settings where you can configure your languages and audio devices."
+        },
+        "uiModeToggle": {
+          "title": "Step 2: UI Mode Toggle",
+          "content": "You can switch between Basic and Advanced modes anytime using this button. Basic mode shows simplified options, while Advanced mode provides full control."
+        },
+        "account": {
+          "title": "Step 3: User Account",
+          "content": "Sign in for a simple experience, or use your own API key without logging in. New users can sign up for kizuna.ai's API service."
+        },
+        "languages": {
+          "title": "Step 4: Choose Languages",
+          "content": "Select your source language (what you speak) and target language (what you want to hear)."
+        },
+        "microphone": {
+          "title": "Step 5: Select Microphone",
+          "content": "Select your microphone from the list. This is what will capture your voice."
+        },
+        "speaker": {
+          "title": "Step 6: Select Speaker",
+          "content": "Choose your speakers or headphones to hear the translation. Headphones are recommended."
+        },
+        "start": {
+          "title": "Step 7: Start Translating",
+          "content": "Click 'Start' to begin translating! Just speak naturally and hear the translation in real-time."
+        },
+        "complete": {
+          "title": "All Set!",
+          "content": "Perfect! You're ready to use Sokuji. Click Start and begin speaking to hear real-time translations."
+        }
+      }
+    },
     "back": "वापस",
     "close": "बंद करें",
     "finish": "समाप्त",
@@ -157,5 +310,32 @@
         "content": "बहुत बढ़िया! आपने सेटअप गाइड पूरा कर लिया है और इंटरफ़ेस के साथ परिचित हो गए हैं। Sokuji का उपयोग शुरू करने के लिए, कृपया सेटिंग्स में अपनी OpenAI API की दर्ज करें, प्रॉम्प्ट मिलने पर माइक्रोफ़ोन अनुमतियाँ प्रदान करें, और अपने मीटिंग एप्लिकेशन (Google Meet, Zoom, Microsoft Teams, आदि) में \"Sokuji Virtual Microphone\" को अपने माइक्रोफ़ोन के रूप में चुनें। आप सेटिंग्स से कभी भी इस गाइड को पुनः आरंभ कर सकते हैं।"
       }
     }
+  },
+  "userTypeSelection": {
+    "title": "Sokuji में आपका स्वागत है",
+    "subtitle": "शुरू करने के लिए कृपया अपना उपयोगकर्ता प्रकार चुनें",
+    "regular": {
+      "title": "नियमित उपयोगकर्ता",
+      "description": "मैं AI सेवाओं में नया हूँ या सरल अनुभव पसंद करता हूँ",
+      "feature1": "API कुंजी जानकारी की आवश्यकता नहीं",
+      "feature2": "सरल और स्वज्ञात इंटरफेस",
+      "feature3": "निर्देशित सेटअप प्रक्रिया",
+      "action": "बेसिक मोड के साथ शुरू करें"
+    },
+    "experienced": {
+      "title": "अनुभवी उपयोगकर्ता",
+      "description": "मेरे पास अपनी API कुंजियाँ हैं और मैं AI सेवाओं को समझता हूँ",
+      "feature1": "OpenAI या Gemini API कुंजियाँ हैं",
+      "feature2": "रीयल-टाइम API सुविधाओं तक पहुंच",
+      "feature3": "सभी सेटिंग्स पर पूरा नियंत्रण",
+      "action": "एडवांस मोड के साथ शुरू करें"
+    }
+  },
+  "tokenUsage": {
+    "title": "टोकन उपयोग",
+    "used": "उपयोग किया गया",
+    "remaining": "शेष",
+    "unableToLoadQuota": "कोटा जानकारी लोड करने में असमर्थ",
+    "upgradeToPremium": "प्रीमियम में अपग्रेड करें"
   }
 }

@@ -12,11 +12,100 @@
     "warning": "எச்சரிக்கை",
     "info": "தகவல்",
     "logs": "பதிவுகள்",
-    "clear": "அழி"
+    "clear": "அழி",
+    "off": "முட்டு",
+    "autoDetect": "தானியங்கு கண்டறிதல்",
+    "signIn": "உள்ளிட வருக",
+    "signUp": "பதிவு செய்யவும்"
   },
   "app": {
     "title": "Sokuji",
     "description": "நேரடி குரல் மொழிபெயர்ப்பு பயன்பாடு"
+  },
+  "simpleSettings": {
+    "quickSetup": "வேகமான அமைப்பு",
+    "quickSetupDesc": "பொதுவான செனாரியோகளுக்கு முன்னிரைவு தெரிந்தெடுக்கவும்",
+    "preset": {
+      "meeting": "கூட்டம்",
+      "meetingDesc": "வெளினேச கூட்டங்களுக்கு உறித்தபடுத்தப்பட்டது",
+      "presentation": "விளக்கக்காட்சி",
+      "presentationDesc": "கலந்துரைகள் மற்றும் விளக்கக்காட்சிகளுக்கு",
+      "casual": "சாதாரண தொல்பேச்சு",
+      "casualDesc": "நிம்மதியான உரையாடல்கள்",
+      "travel": "பயணம்",
+      "travelDesc": "சுற்றுலா மற்றும் பயண செனாரியோகள்"
+    },
+    "apiKey": "API விசை",
+    "apiKeyPlaceholder": "உங்கஷ் API விசையை உள்ளிடவும்",
+    "validate": "சரிபார்",
+    "howToGetApiKey": "API விசை எப்படி பெறுவது?",
+    "apiKeyHelp1": "1. வழங்குநரின் வெப்சைட்டை அனுகவும்",
+    "apiKeyHelp2": "2. பந்தியல் செய்யவும் அல்லது உங்கள் கணக்கில் உள்நுழைவும்",
+    "apiKeyHelp3": "3. API விசைகள் பிரிவுக்கு நேவிகேட் செய்யவும்",
+    "apiKeyHelp4": "4. புதிய API விசையை உருவாக்கி இங்கே நகலேடுக்கவும்",
+    "languages": "மோழிகள்",
+    "uiLanguage": "இடைமுக மோழி",
+    "audioSettings": "ஆடியோ அமைப்புகள்",
+    "audioSettingsDesc": "ஆடியோ பீனலில் உங்கள் இங் மற்றும் ஊங்கிகளை அமைக்கவும்",
+    "autoAuthenticated": "உங்கள் கணக்கு மூலம் தானாக அங்கீகரிக்கப்பட்டது"
+  },
+  "simpleConfig": {
+    "interfaceLanguage": "இடைமுக மோழி",
+    "interfaceLanguageDesc": "இது Sokuji இன் மெனுக்கள் மற்றும் பட்டன்களின் மொழியை மாற்றுகிறது. நீங்கள் மொழிபெயர்க்கக்கூடிய மொழிகளை இது பாதிக்காது.",
+    "translationLanguages": "மோழிபெயர்ப்பு மோழிகள்",
+    "translationLanguagesDesc": "நீங்கள் பேசும் மொழி (உங்கள் மொழி) மற்றும் நீங்கள் மொழிபெயர்ப்பைக் கேட்க விரும்பும் மொழி (இலக்கு மொழி) என்பதைத் தேர்வு செய்யுங்கள். மூல மொழி பற்றி நீங்கள் உறுதியாக இல்லை என்றால் \"தானாக கண்டறி\" என்பதைத் தேர்வு செய்யுங்கள்.",
+    "yourLanguage": "உங்கள் மோழி",
+    "userAccount": "பயன்பாளர் கணக்கு",
+    "userAccountTooltip": "தகவல் வலிய பயன்பாளர்கள் தங்களுடைய API குறியீடுகளைப் பயன்படுத்த முடியும். பயன்பாளர் கணக்கு அறிவியல்வாதிகளுக்கான ஆரம்ப வடிவமைப்புக்காக வடிவமைக்கப்பட்டுள்ளது.",
+    "signInRequired": "நீங்கள் உள்ளிட வராமல் உங்களுடைய AI வழங்குநர் மற்றும் API விசையைப் பயன்படுத்தலாம், அல்லது kizuna.ai சேவைக்காக பந்தியல் செய்யவும்.",
+    "signInDescription": "குழப்பமான வடிவமைப்பின்றி அனுபவத்திற்காக பந்தியல் செய்யவும்.",
+    "targetLanguage": "இலக்கு மோழி",
+    "microphone": "இக்கோ",
+    "microphoneDesc": "உங்கள் பேச்சைப் பிடிக்க மைக்ரோஃபோனைத் தேர்வு செய்யுங்கள். இந்த மைக்ரோஃபோனில் உங்கள் மொழியில் பேசுங்கள், Sokuji அது கேட்கும் அனைத்தையும் நேரடி நேரத்தில் மொழிபெயர்க்கும்.",
+    "speaker": "ஊங்கி",
+    "speakerDesc": "மொழிபெயர்க்கப்பட்ட வெளியீட்டைக் கண்காணிக்க ஸ்பீக்கரைத் தேர்வு செய்யுங்கள். மொழிபெயர்ப்பு எப்படி ஒலிக்கிறது என்பதைக் கேட்க இது உங்களை அனுமதிக்கிறது. கண்காணிப்பு தேவையில்லை என்றால் நீங்கள் அதை அணைக்கலாம். இயக்கத்தில் இருந்தாலும் அல்லது அணைத்திருந்தாலும், மொழிபெயர்க்கப்பட்ட ஆடியோ எப்போதும் மெய்நிகர் மைக்ரோஃபோனுக்கு அனுப்பப்படுகிறது, மற்ற பங்கேற்பாளர்கள் கேட்க முடியும்."
+  },
+  "providers": {
+    "openai": {
+      "name": "OpenAI",
+      "description": "GPT மாதிரிகளால் அல்லதித்தப்படுகிறது"
+    },
+    "gemini": {
+      "name": "Google Gemini",
+      "description": "Google-ன் AI தகவல்"
+    },
+    "cometapi": {
+      "name": "Comet API",
+      "description": "மாற்று AI வழங்குநர்"
+    },
+    "palabraai": {
+      "name": "Palabra AI",
+      "description": "நியங்களித்த மோழிபெயர்ப்பு AI"
+    },
+    "unknown": {
+      "name": "தெரியாதது",
+      "description": "தெரியாத வழங்குநர்"
+    }
+  },
+  "simplePanel": {
+    "translationActive": "மோழிபெயர்ப்பு செயலில்",
+    "translationInactive": "மோழிபெயர்ப்பு செயலற்றது",
+    "you": "நீங்கள்",
+    "translation": "மோழிபெயர்ப்பு",
+    "stop": "நிறுத்து",
+    "start": "துவங்கு",
+    "sessionDuration": "कालावधि",
+    "clickToConfigLanguages": "மொழிகளை உள்ளமைக்க கிளிக் செய்யவும்",
+    "clickToConfigMicrophone": "மைக்ரோஃபோனை உள்ளமைக்க கிளிக் செய்யவும்",
+    "clickToConfigSpeaker": "ஸ்பீக்கரை உள்ளமைக்க கிளிக் செய்யவும்"
+  },
+  "connectionStatus": {
+    "disconnected": "துண்டிக்கப்பட்டது",
+    "connecting": "இணைக்கிறது...",
+    "connected": "இணைக்கப்பட்டது",
+    "error": "இணைப்பு பிழை",
+    "noApiKey": "API விசை தேவை",
+    "noMic": "இக்கோ தேவை"
   },
   "settings": {
     "title": "அமைப்புகள்",
@@ -48,6 +137,7 @@
     "voiceSettings": "குரல் அமைப்புகள்",
     "speechProcessing": "பேச்சு செயலாக்கம்",
     "silenceThreshold": "மௌன வரம்பு",
+    "apiKeyValidated": "API விசை சரிபார்க்கப்பட்டது",
     "sentenceSplitter": "வாக்கிய பிரிப்பான்",
     "enabled": "இயக்கப்பட்டது",
     "translatePartialTranscriptions": "பகுதி டிரான்ஸ்கிரிப்ஷன்களை மொழிபெயர்",
@@ -55,8 +145,9 @@
     "desiredQueueLevel": "இலக்கு ஆடியோ இடையகம்",
     "maxQueueLevel": "அதிகபட்ச ஆடியோ இடையகம்",
     "autoTempo": "ஏற்றவாறு பேச்சு வேகம்",
-    "apiKeyValidated": "API விசை சரிபார்க்கப்பட்டது",
-    "realtimeTranslationAvailable": "நிகழ்நேர மொழிபெயர்ப்பு சேவை கிடைக்கிறது"
+    "realtimeTranslationAvailable": "நிகழ்நேர மொழிபெயர்ப்பு சேவை கிடைக்கிறது",
+    "authentication": "அங்கீகாரம்",
+    "autoAuthenticated": "உங்கள் கணக்கு மூலம் தானாக அங்கீகரிக்கப்பட்டது"
   },
   "mainPanel": {
     "conversationPlaceholder": "உரையாடல் இங்கே தோன்றும்",
@@ -66,7 +157,9 @@
     "initializing": "தொடங்குகிறது...",
     "apiKeyRequired": "முதலில் அமைப்புகளில் சரியான OpenAI API விசையைச் சேர்க்கவும்",
     "modelsRequired": "மாதிரிகள் தேவை. கிடைக்கும் மாதிரிகளை ஏற்றுவதற்கு முதலில் உங்கள் API விசையை சரிபார்க்கவும்.",
-    "modelsLoading": "கிடைக்கும் மாதிரிகள் ஏற்றப்படுகின்றன, தயவுசெய்து காத்திருக்கவும்..."
+    "modelsLoading": "கிடைக்கும் மாதிரிகள் ஏற்றப்படுகின்றன, தயவுசெய்து காத்திருக்கவும்...",
+    "basicMode": "அடிப்படை",
+    "advancedMode": "மேம்பட்ட"
   },
   "audioPanel": {
     "title": "ஆடியோ அமைப்புகள்",
@@ -76,7 +169,8 @@
     "realVoiceVolume": "அசல் ஆடியோ ஒலியளவு"
   },
   "logsPanel": {
-    "title": "பதிவுகள்"
+    "title": "பதிவுகள்",
+    "sessionEnded": "அமர்வு முடிந்தது"
   },
   "translation": {
     "start": "மொழிபெயர்ப்பைத் தொடங்கு",
@@ -101,6 +195,46 @@
     }
   },
   "onboarding": {
+    "basic": {
+      "steps": {
+        "welcome": {
+          "title": "Welcome to Sokuji",
+          "content": "Welcome to Sokuji! This simple guide will help you start using real-time translation in just a few steps."
+        },
+        "settings": {
+          "title": "Step 1: Open Settings",
+          "content": "Click here to open Settings where you can configure your languages and audio devices."
+        },
+        "uiModeToggle": {
+          "title": "Step 2: UI Mode Toggle",
+          "content": "You can switch between Basic and Advanced modes anytime using this button. Basic mode shows simplified options, while Advanced mode provides full control."
+        },
+        "account": {
+          "title": "Step 3: User Account",
+          "content": "Sign in for a simple experience, or use your own API key without logging in. New users can sign up for kizuna.ai's API service."
+        },
+        "languages": {
+          "title": "Step 4: Choose Languages",
+          "content": "Select your source language (what you speak) and target language (what you want to hear)."
+        },
+        "microphone": {
+          "title": "Step 5: Select Microphone",
+          "content": "Select your microphone from the list. This is what will capture your voice."
+        },
+        "speaker": {
+          "title": "Step 6: Select Speaker",
+          "content": "Choose your speakers or headphones to hear the translation. Headphones are recommended."
+        },
+        "start": {
+          "title": "Step 7: Start Translating",
+          "content": "Click 'Start' to begin translating! Just speak naturally and hear the translation in real-time."
+        },
+        "complete": {
+          "title": "All Set!",
+          "content": "Perfect! You're ready to use Sokuji. Click Start and begin speaking to hear real-time translations."
+        }
+      }
+    },
     "back": "பின்செல்",
     "close": "மூடு",
     "finish": "முடி",
@@ -155,5 +289,32 @@
         "content": "நீங்கள் அமைப்பு வழிகாட்டியை முடித்துவிட்டீர்கள்! இப்போது உங்கள் API விசையை உண்மையில் உள்ளிட்டு உங்கள் அமைப்புகளை கட்டமைத்துள்ளீர்கள் என்பதை உறுதிப்படுத்திக் கொள்ளுங்கள், பின்னர் நேரடி மொழிபெயர்ப்பைத் தொடங்க மாநாட்டு பயன்பாடுகளில் (Google Meet, Zoom போன்றவை) Sokuji மெய்நிகர் மைக்ரோஃபோனைப் பயன்படுத்துங்கள்."
       }
     }
+  },
+  "userTypeSelection": {
+    "title": "Sokuji-க்கு வரவேற்பு",
+    "subtitle": "தொடங்குவதற்கு தயவு செய்து உங்கள் பயன்பாளர் வகையைத் தேர்ந்தெடுக்கவும்",
+    "regular": {
+      "title": "சாதாரண பயன்பாளர்",
+      "description": "நான் AI சேவைகளில் புதியவன் அல்லது எளிய அனுபவத்தை விரும்புகிறேன்",
+      "feature1": "API விசை அறிவு தேவையில்லை",
+      "feature2": "எளிமையான மற்றும் உள்ளுணர்வு இடைமுகம்",
+      "feature3": "வழிகாட்டப்பட்ட அமைப்பு செயல்முறை",
+      "action": "அடிப்படை முறையில் தொடங்கவும்"
+    },
+    "experienced": {
+      "title": "அனுபவ பயன்பாளர்",
+      "description": "என்னிடம் சொந்த API விசைகள் உள்ளன மற்றும் AI சேவைகளை நான் புரிந்துகொள்கிறேன்",
+      "feature1": "OpenAI அல்லது Gemini API விசைகள் உள்ளன",
+      "feature2": "நிகழ்நேர API அம்சங்களுக்கான அணுகல்",
+      "feature3": "அனைத்து அமைப்புகளின் முழு கட்டுப்பாடு",
+      "action": "மேம்பட்ட முறையில் தொடங்கவும்"
+    }
+  },
+  "tokenUsage": {
+    "title": "டோக்கன் பயன்பாடு",
+    "used": "பயன்படுத்தப்பட்டது",
+    "remaining": "மீதமுள்ளது",
+    "unableToLoadQuota": "ஒதுக்கீட்டு தகவலை ஏற்ற முடியவில்லை",
+    "upgradeToPremium": "பிரீமியத்திற்கு மேம்படுத்து"
   }
 }

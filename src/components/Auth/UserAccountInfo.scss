@@ -1,0 +1,564 @@
+/**
+ * Styles for the unified UserAccountInfo component
+ */
+
+.user-account-loading {
+  display: flex;
+  justify-content: center;
+  padding: 20px;
+  
+  .loading-spinner {
+    width: 24px;
+    height: 24px;
+    border: 2px solid #333;
+    border-top-color: #10a37f;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes refresh-spin {
+  to { transform: rotate(360deg); }
+}
+
+// Compact view (for header/toolbar)
+.user-account-compact {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px;
+  
+  .user-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    overflow: hidden;
+    flex-shrink: 0;
+    
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    
+    .avatar-placeholder {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #10a37f;
+      color: #fff;
+      font-weight: 600;
+      font-size: 14px;
+    }
+  }
+  
+  .user-info-compact {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    
+    .user-email {
+      font-size: 12px;
+      color: #fff;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    
+    .user-subscription {
+      font-size: 10px;
+      color: #999;
+      text-transform: uppercase;
+    }
+  }
+}
+
+// Full account view
+.user-account {
+  padding: 16px;
+  background: #1a1a1a;
+  border-radius: 8px;
+  border: 1px solid #333;
+  
+  &.user-account-compact-layout {
+    padding: 12px;
+  }
+}
+
+.user-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 16px;
+  
+  .user-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    overflow: hidden;
+    flex-shrink: 0;
+    
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    
+    .avatar-placeholder {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #10a37f;
+      color: #fff;
+      font-weight: 600;
+      font-size: 18px;
+    }
+  }
+}
+
+// Base styles for action buttons - can be used anywhere
+.action-button-compact {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+  
+  &.manage-account {
+    background: #10a37f;
+    color: #fff;
+    
+    &:hover {
+      background: #0e8f6f;
+    }
+  }
+  
+  &.sign-out {
+    background: transparent;
+    color: #e74c3c;
+    border: 1px solid #e74c3c;
+    
+    &:hover {
+      background: rgba(231, 76, 60, 0.1);
+      border-color: #c0392b;
+    }
+  }
+  
+  &.refresh-account {
+    background: transparent;
+    color: #e67e22; // Match usage section color
+    border: 1px solid #e67e22;
+    
+    &:hover {
+      background: rgba(231, 123, 34, 0.1);
+      border-color: #f39c12;
+    }
+    
+    &:active svg {
+      animation: refresh-spin 0.5s ease-in-out;
+    }
+  }
+}
+
+// Compact header with inline actions
+.user-header-compact {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  
+  .user-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    overflow: hidden;
+    flex-shrink: 0;
+    
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    
+    .avatar-placeholder {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #10a37f;
+      color: #fff;
+      font-weight: 600;
+      font-size: 14px;
+    }
+  }
+  
+  .user-info {
+    flex: 1;
+    min-width: 0;
+    
+    .user-name {
+      font-size: 14px;
+      font-weight: 600;
+      color: #fff;
+      margin: 0 0 2px 0;
+    }
+    
+    .user-email {
+      font-size: 12px;
+      color: #999;
+      margin: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  }
+
+  .user-actions-compact {
+    display: flex;
+    gap: 8px;
+  }
+}
+
+.user-info {
+  flex: 1;
+  min-width: 0;
+  
+  .user-name {
+    font-size: 16px;
+    font-weight: 600;
+    color: #fff;
+    margin: 0 0 2px 0;
+  }
+  
+  .user-email {
+    font-size: 13px;
+    color: #999;
+    margin: 0;
+  }
+}
+
+// Action buttons
+.user-actions {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #333;
+  
+  .action-button {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 24px;
+    border: none;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s;
+    
+    &.manage-account {
+      background: #10a37f;
+      color: #fff;
+      
+      &:hover {
+        background: #0e8f6f;
+      }
+    }
+    
+    &.sign-out {
+      background: transparent;
+      color: #e74c3c;
+      border: 1px solid #e74c3c;
+      
+      &:hover {
+        background: rgba(231, 76, 60, 0.1);
+        border-color: #c0392b;
+      }
+    }
+    
+    svg {
+      flex-shrink: 0;
+    }
+  }
+}
+
+
+.upgrade-section {
+  margin-top: 8px;
+  
+  .upgrade-button {
+    width: 100%;
+    padding: 8px;
+    background: #10a37f;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s;
+    
+    &:hover {
+      background: #0e8f6f;
+    }
+  }
+}
+
+// Quota Status Section
+.quota-status-section {
+  
+}
+
+.quota-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  //min-height: 60px;
+  
+  .loading-spinner {
+    width: 20px;
+    height: 20px;
+    border: 2px solid #333;
+    border-top-color: #10a37f;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+}
+
+.quota-error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #e74c3c;
+  font-size: 12px;
+  padding: 8px 0;
+}
+
+.quota-warning {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 4px;
+  margin-bottom: 12px;
+  font-size: 12px;
+  
+  &.warning-low {
+    background: rgba(241, 196, 15, 0.1);
+    color: #f1c40f;
+    border: 1px solid rgba(241, 196, 15, 0.2);
+  }
+  
+  &.warning-critical {
+    background: rgba(230, 126, 34, 0.1);
+    color: #e67e22;
+    border: 1px solid rgba(230, 126, 34, 0.2);
+  }
+  
+  &.warning-exceeded {
+    background: rgba(231, 76, 60, 0.1);
+    color: #e74c3c;
+    border: 1px solid rgba(231, 76, 60, 0.2);
+  }
+}
+
+
+// Ultra-compact single line display with badge and dividers
+.quota-compact-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  flex-wrap: wrap; // Allow wrapping on very small screens
+  
+  // Push refresh button to the right
+  .action-button-compact {
+    margin-left: auto;
+  }
+  
+  .plan-badge {
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    
+    &.plan-badge-free {
+      background: #333;
+      color: #999;
+    }
+    
+    &.plan-badge-starter {
+      background: #2a4e7c;
+      color: #5ba0f2;
+    }
+    
+    &.plan-badge-essentials {
+      background: #4a3c28;
+      color: #f0b429;
+    }
+    
+    &.plan-badge-professional, &.plan-badge-pro {
+      background: #3c2a4a;
+      color: #b77ff0;
+    }
+    
+    &.plan-badge-business {
+      background: #2a4a3c;
+      color: #7ff0b7;
+    }
+    
+    &.plan-badge-enterprise {
+      background: #4a2a3c;
+      color: #f07fb7;
+    }
+    
+    &.plan-badge-unlimited {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #fff;
+    }
+  }
+  
+  .divider {
+    color: #666;
+    font-weight: 300;
+  }
+  
+  .wallet-icon {
+    color: #10a37f;
+    flex-shrink: 0;
+  }
+  
+  .usage-icon {
+    color: #e67e22; // Match the usage section color (amber for spending)
+    flex-shrink: 0;
+  }
+  
+  .balance-section {
+    color: #fff;
+    font-weight: 600;
+    font-size: 14px;
+  }
+  
+  .usage-section {
+    color: #e67e22;  // Amber for spending
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  
+  .quota-section {
+    color: #10a37f;  // Green for income
+    font-size: 13px;
+  }
+}
+
+.quota-details {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  
+  // Legacy metric display styles (kept for compatibility)
+  .quota-metric {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid #333;
+    
+    &:last-child {
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+    
+    .metric-label {
+      font-size: 13px;
+      color: #999;
+    }
+    
+    .metric-value {
+      font-size: 14px;
+      color: #fff;
+      font-weight: 500;
+    }
+  }
+  
+  // Legacy styles kept for compatibility
+  .quota-bar-container {
+    margin-bottom: 0;
+  }
+  
+  .quota-bar {
+    height: 6px;
+    background: #333;
+    border-radius: 3px;
+    overflow: hidden;
+    margin-bottom: 6px;
+    
+    .quota-progress {
+      height: 100%;
+      background: linear-gradient(90deg, #10a37f, #0e8f6f);
+      transition: width 0.3s ease;
+      
+      &.high-usage {
+        background: linear-gradient(90deg, #e67e22, #d35400);
+      }
+    }
+  }
+  
+  .quota-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: #999;
+    
+    .usage-label {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      color: #fff;
+    }
+    
+    .remaining-label {
+      color: #10a37f;
+    }
+  }
+}
+
+// UserProfile overlay and mount point
+.user-profile-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  
+  .user-profile-mount {
+    // The Clerk UserProfile will mount here
+    // It will handle its own styling
+  }
+}

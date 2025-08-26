@@ -9,13 +9,14 @@ export enum Provider {
   OPENAI = 'openai',
   GEMINI = 'gemini',
   COMET_API = 'cometapi',
-  PALABRA_AI = 'palabraai'
+  PALABRA_AI = 'palabraai',
+  KIZUNA_AI = 'kizunaai'
 }
 
 /**
  * Provider type definition
  */
-export type ProviderType = Provider.OPENAI | Provider.GEMINI | Provider.COMET_API | Provider.PALABRA_AI;
+export type ProviderType = Provider.OPENAI | Provider.GEMINI | Provider.COMET_API | Provider.PALABRA_AI | Provider.KIZUNA_AI;
 
 /**
  * Array of all supported providers
@@ -24,7 +25,8 @@ export const SUPPORTED_PROVIDERS: ProviderType[] = [
   Provider.OPENAI,
   Provider.GEMINI,
   Provider.COMET_API,
-  Provider.PALABRA_AI
+  Provider.PALABRA_AI,
+  Provider.KIZUNA_AI
 ];
 
 /**
@@ -32,7 +34,8 @@ export const SUPPORTED_PROVIDERS: ProviderType[] = [
  */
 export const OPENAI_COMPATIBLE_PROVIDERS: ProviderType[] = [
   Provider.OPENAI,
-  Provider.COMET_API
+  Provider.COMET_API,
+  Provider.KIZUNA_AI
 ];
 
 /**
@@ -62,6 +65,8 @@ export function getProviderDisplayName(provider: ProviderType): string {
       return 'CometAPI';
     case Provider.PALABRA_AI:
       return 'PalabraAI';
+    case Provider.KIZUNA_AI:
+      return 'KizunaAI';
     default:
       return provider;
   }

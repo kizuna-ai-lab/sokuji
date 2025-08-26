@@ -26,7 +26,8 @@
   "permissions": [
     "storage",
     "sidePanel",
-    "tabs"
+    "tabs",
+    "identity"
   ],
   "background": {
     "service_worker": "background.js",
@@ -65,6 +66,6 @@
     }
   ],
   "content_security_policy": {
-    "extension_pages": "script-src 'self'; object-src 'self'; worker-src 'self'; connect-src 'self' https://us.i.posthog.com https://api.openai.com https://us-assets.i.posthog.com wss://api.openai.com https://generativelanguage.googleapis.com wss://generativelanguage.googleapis.com https://api.palabra.ai wss://streaming-0.palabra.ai https://api.cometapi.com wss://api.cometapi.com"
+    "extension_pages": "script-src 'self'; object-src 'self'; worker-src 'self'; connect-src 'self' https://us.i.posthog.com https://api.openai.com https://us-assets.i.posthog.com wss://api.openai.com https://generativelanguage.googleapis.com wss://generativelanguage.googleapis.com https://api.palabra.ai wss://streaming-0.palabra.ai https://api.cometapi.com wss://api.cometapi.com https://topical-impala-60.clerk.accounts.dev https://clerk-telemetry.com https://sokuji-api-dev.kizuna.ai https://sokuji-api.kizuna.ai"
   }
 }

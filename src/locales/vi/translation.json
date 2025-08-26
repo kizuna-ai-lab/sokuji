@@ -12,7 +12,11 @@
     "warning": "Cảnh báo",
     "info": "Thông tin",
     "logs": "Nhật ký",
-    "clear": "Xóa"
+    "clear": "Xóa",
+    "off": "Tắt",
+    "autoDetect": "Tự Động Phát Hiện",
+    "signIn": "Đăng nhập",
+    "signUp": "Đăng ký"
   },
   "app": {
     "title": "Sokuji",
@@ -37,10 +41,6 @@
     "sessionActiveNotice": "Cài đặt bị khóa khi phiên đang hoạt động. Vui lòng kết thúc phiên để thay đổi cài đặt.",
     "realtimeModelAvailable": "Mô hình thời gian thực có sẵn",
     "realtimeModelNotAvailable": "Mô hình thời gian thực không có sẵn",
-    "refreshModels": "Làm mới các mô hình có sẵn",
-    "loadingModels": "Đang tải các mô hình có sẵn...",
-    "modelsFound": "{{count}} mô hình có sẵn",
-    "experimentalFeatureTooltip": "Đây là một tính năng thử nghiệm và có thể không ổn định.",
     "help": "Trợ giúp",
     "auto": "Tự động",
     "low": "Thấp",
@@ -60,7 +60,9 @@
     "maxQueueLevel": "Bộ đệm âm thanh tối đa",
     "autoTempo": "Tốc độ nói thích ứng",
     "apiKeyValidated": "Đã xác thực khóa API",
-    "realtimeTranslationAvailable": "Dịch vụ dịch thuật thời gian thực có sẵn"
+    "realtimeTranslationAvailable": "Dịch vụ dịch thuật thời gian thực có sẵn",
+    "authentication": "Xác thực",
+    "autoAuthenticated": "Tự động xác thực qua tài khoản của bạn"
   },
   "mainPanel": {
     "conversationPlaceholder": "Cuộc trò chuyện sẽ xuất hiện ở đây",
@@ -70,7 +72,9 @@
     "initializing": "Đang khởi tạo...",
     "apiKeyRequired": "Vui lòng thêm khóa API OpenAI hợp lệ trong cài đặt trước",
     "modelsRequired": "Cần có các mô hình. Vui lòng xác thực khóa API của bạn trước để tải các mô hình có sẵn.",
-    "modelsLoading": "Đang tải các mô hình có sẵn, vui lòng đợi..."
+    "modelsLoading": "Đang tải các mô hình có sẵn, vui lòng đợi...",
+    "basicMode": "Cơ bản",
+    "advancedMode": "Nâng cao"
   },
   "audioPanel": {
     "title": "Cài đặt âm thanh",
@@ -80,7 +84,8 @@
     "realVoiceVolume": "Âm Lượng Âm Thanh Gốc"
   },
   "logsPanel": {
-    "title": "Nhật ký"
+    "title": "Nhật ký",
+    "sessionEnded": "Phiên kết thúc"
   },
   "translation": {
     "start": "Bắt đầu dịch",
@@ -105,6 +110,46 @@
     }
   },
   "onboarding": {
+    "basic": {
+      "steps": {
+        "welcome": {
+          "title": "Welcome to Sokuji",
+          "content": "Welcome to Sokuji! This simple guide will help you start using real-time translation in just a few steps."
+        },
+        "settings": {
+          "title": "Step 1: Open Settings",
+          "content": "Click here to open Settings where you can configure your languages and audio devices."
+        },
+        "uiModeToggle": {
+          "title": "Step 2: UI Mode Toggle",
+          "content": "You can switch between Basic and Advanced modes anytime using this button. Basic mode shows simplified options, while Advanced mode provides full control."
+        },
+        "account": {
+          "title": "Step 3: User Account",
+          "content": "Sign in for a simple experience, or use your own API key without logging in. New users can sign up for kizuna.ai's API service."
+        },
+        "languages": {
+          "title": "Step 4: Choose Languages",
+          "content": "Select your source language (what you speak) and target language (what you want to hear)."
+        },
+        "microphone": {
+          "title": "Step 5: Select Microphone",
+          "content": "Select your microphone from the list. This is what will capture your voice."
+        },
+        "speaker": {
+          "title": "Step 6: Select Speaker",
+          "content": "Choose your speakers or headphones to hear the translation. Headphones are recommended."
+        },
+        "start": {
+          "title": "Step 7: Start Translating",
+          "content": "Click 'Start' to begin translating! Just speak naturally and hear the translation in real-time."
+        },
+        "complete": {
+          "title": "All Set!",
+          "content": "Perfect! You're ready to use Sokuji. Click Start and begin speaking to hear real-time translations."
+        }
+      }
+    },
     "back": "Quay lại",
     "close": "Đóng",
     "finish": "Hoàn thành",
@@ -159,5 +204,135 @@
         "content": "Bạn đã hoàn thành hướng dẫn thiết lập! Bây giờ hãy đảm bảo thực sự nhập khóa API và cấu hình cài đặt của bạn, sau đó sử dụng microphone ảo Sokuji trong ứng dụng hội nghị (như Google Meet, Zoom, v.v.) để bắt đầu dịch thời gian thực."
       }
     }
+  },
+  "simpleSettings": {
+    "quickSetup": "Cài Đặt Nhanh",
+    "quickSetupDesc": "Chọn preset cho các kịch bản phổ biến",
+    "preset": {
+      "meeting": "Họp",
+      "meetingDesc": "Tối ưu hóa cho các cuộc họp kinh doanh",
+      "presentation": "Thuyết Trình",
+      "presentationDesc": "Cho hội nghị và thuyết trình",
+      "casual": "Trò Chuyện Thường",
+      "casualDesc": "Các cuộc trò chuyện thân mật",
+      "travel": "Du Lịch",
+      "travelDesc": "Các tình huống du lịch và khám phá"
+    },
+    "apiKey": "Khóa API",
+    "apiKeyPlaceholder": "Nhập khóa API của bạn",
+    "validate": "Xác thực",
+    "howToGetApiKey": "Làm sao để có khóa API?",
+    "apiKeyHelp1": "1. Truy cập trang web của nhà cung cấp",
+    "apiKeyHelp2": "2. Đăng ký hoặc đăng nhập vào tài khoản của bạn",
+    "apiKeyHelp3": "3. Đi đến phần khóa API",
+    "apiKeyHelp4": "4. Tạo khóa API mới và sao chép vào đây",
+    "apiKeyHelpTooltip": "Khóa API giống như mật khẩu cho phép Sokuji sử dụng các dịch vụ dịch AI. Bạn cần lấy một cái từ nhà cung cấp bạn chọn (như OpenAI).",
+    "apiKeyHelpTooltip2": "Hướng dẫn từng bước:",
+    "languages": "Ngôn ngữ",
+    "uiLanguage": "Ngôn Ngữ Giao Diện",
+    "audioSettings": "Cài Đặt Âm Thanh",
+    "audioSettingsDesc": "Cấu hình microphone và loa của bạn trong bảng Âm thanh",
+    "autoAuthenticated": "Tự động xác thực qua tài khoản của bạn"
+  },
+  "simpleConfig": {
+    "interfaceLanguage": "Ngôn Ngữ Giao Diện",
+    "interfaceLanguageDesc": "Điều này thay đổi ngôn ngữ của menu và nút của Sokuji. Nó KHÔNG ảnh hưởng đến các ngôn ngữ bạn có thể dịch giữa.",
+    "translationLanguages": "Ngôn Ngữ Dịch",
+    "translationLanguagesDesc": "Chọn ngôn ngữ bạn nói (Ngôn Ngữ Của Bạn) và ngôn ngữ bạn muốn nghe bản dịch (Ngôn Ngữ Đích). Chọn 'Tự Động Phát Hiện' nếu bạn không chắc chắn về ngôn ngữ nguồn.",
+    "yourLanguage": "Ngôn Ngữ Của Bạn",
+    "userAccount": "Tài khoản người dùng",
+    "userAccountTooltip": "Người dùng kỹ thuật có thể sử dụng khóa API riêng của họ. Tài khoản người dùng được thiết kế cho cài đặt đơn giản.",
+    "signInRequired": "Sử dụng khóa API riêng của bạn hoặc đăng ký dịch vụ kizuna.ai.",
+    "signInDescription": "Đăng ký để có trải nghiệm đơn giản.",
+    "targetLanguage": "Ngôn Ngữ Đích",
+    "microphone": "Microphone",
+    "microphoneDesc": "Chọn microphone để ghi lại giọng nói của bạn. Nói bằng ngôn ngữ của bạn vào microphone này, và Sokuji sẽ dịch mọi thứ nó nghe thấy theo thời gian thực.",
+    "speaker": "Loa",
+    "speakerDesc": "Chọn loa để giám sát đầu ra đã dịch. Điều này cho phép bạn nghe bản dịch như thế nào. Bạn có thể tắt nó nếu không cần giám sát. Dù bật hay tắt, âm thanh đã dịch luôn được gửi tới microphone ảo để những người tham gia khác có thể nghe."
+  },
+  "providers": {
+    "openai": {
+      "name": "OpenAI",
+      "description": "Sử dụng các mô hình GPT"
+    },
+    "gemini": {
+      "name": "Google Gemini",
+      "description": "Công nghệ AI của Google"
+    },
+    "cometapi": {
+      "name": "Comet API",
+      "description": "Nhà cung cấp AI thay thế"
+    },
+    "palabraai": {
+      "name": "Palabra AI",
+      "description": "AI dịch chuyên biệt"
+    },
+    "unknown": {
+      "name": "Không rõ",
+      "description": "Nhà cung cấp không rõ"
+    }
+  },
+  "simplePanel": {
+    "translationActive": "Dịch Hoạt Động",
+    "translationInactive": "Dịch Không Hoạt Động",
+    "statusNoApiKey": "Cấu hình khóa API của bạn trong cài đặt",
+    "statusNoMic": "Chọn microphone trong cài đặt âm thanh",
+    "statusConnecting": "Kết nối với dịch vụ dịch...",
+    "signInRequired": "Yêu cầu đăng nhập",
+    "signInToStart": "Vui lòng đăng nhập để bắt đầu dịch",
+    "statusConnected": "Sẵn sàng dịch",
+    "statusDisconnected": "Nhấp vào bắt đầu để bắt đầu dịch",
+    "languages": "Ngôn ngữ",
+    "provider": "Dịch vụ",
+    "noConversation": "Chưa có cuộc trò chuyện",
+    "startToBegin": "Nhấp vào Bắt đầu để bắt đầu dịch thời gian thực",
+    "you": "Bạn",
+    "translation": "Dịch",
+    "noMicSelected": "Chưa chọn microphone",
+    "noSpeakerSelected": "Chưa chọn loa",
+    "release": "Thả ra để dừng",
+    "holdToSpeak": "Giữ để nói",
+    "connecting": "Kết nối...",
+    "stop": "Dừng",
+    "start": "Bắt đầu",
+    "sessionDuration": "Thời lượng",
+    "clickToConfigLanguages": "Nhấp để cấu hình ngôn ngữ",
+    "clickToConfigMicrophone": "Nhấp để cấu hình microphone",
+    "clickToConfigSpeaker": "Nhấp để cấu hình loa"
+  },
+  "connectionStatus": {
+    "disconnected": "Mất kết nối",
+    "connecting": "Kết nối...",
+    "connected": "Đã kết nối",
+    "error": "Lỗi Kết Nối",
+    "noApiKey": "Cần Khóa API",
+    "noMic": "Cần Microphone"
+  },
+  "userTypeSelection": {
+    "title": "Chào mừng đến với Sokuji",
+    "subtitle": "Vui lòng chọn loại người dùng của bạn để bắt đầu",
+    "regular": {
+      "title": "Người dùng thông thường",
+      "description": "Tôi mới sử dụng các dịch vụ AI hoặc thích trải nghiệm đơn giản",
+      "feature1": "Không cần biết về khóa API",
+      "feature2": "Giao diện đơn giản và trực quan",
+      "feature3": "Quy trình thiết lập có hướng dẫn",
+      "action": "Bắt đầu với chế độ cơ bản"
+    },
+    "experienced": {
+      "title": "Người dùng có kinh nghiệm",
+      "description": "Tôi có khóa API riêng và hiểu về các dịch vụ AI",
+      "feature1": "Có khóa API OpenAI hoặc Gemini",
+      "feature2": "Truy cập tính năng API thời gian thực",
+      "feature3": "Kiểm soát đầy đủ tất cả cài đặt",
+      "action": "Bắt đầu với chế độ nâng cao"
+    }
+  },
+  "tokenUsage": {
+    "title": "Sử dụng Token",
+    "used": "đã dùng",
+    "remaining": "còn lại",
+    "unableToLoadQuota": "Không thể tải thông tin hạn ngạch",
+    "upgradeToPremium": "Nâng cấp lên Premium"
   }
 }

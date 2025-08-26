@@ -1,0 +1,130 @@
+.connection-status {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.3s ease;
+
+  &.compact {
+    padding: 6px 10px;
+    gap: 8px;
+    border-radius: 20px;
+    
+    .status-icon {
+      width: auto;
+      height: auto;
+      background: none;
+      padding: 0;
+    }
+  }
+
+  .status-icon {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+    
+    svg {
+      transition: all 0.3s ease;
+    }
+  }
+
+  .status-info {
+    flex: 1;
+    
+    .status-label {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 2px;
+    }
+    
+    .status-message {
+      font-size: 13px;
+      color: rgba(255, 255, 255, 0.7);
+    }
+  }
+
+  // State colors
+  &.disconnected {
+    background: rgba(136, 136, 136, 0.1);
+    border-color: rgba(136, 136, 136, 0.3);
+    
+    .status-icon {
+      background: rgba(136, 136, 136, 0.2);
+      color: #888;
+    }
+  }
+
+  &.connecting {
+    background: rgba(255, 170, 0, 0.1);
+    border-color: rgba(255, 170, 0, 0.3);
+    
+    .status-icon {
+      background: rgba(255, 170, 0, 0.2);
+      color: #ffaa00;
+    }
+  }
+
+  &.connected {
+    background: rgba(68, 255, 68, 0.1);
+    border-color: rgba(68, 255, 68, 0.3);
+    
+    .status-icon {
+      background: rgba(68, 255, 68, 0.2);
+      color: #44ff44;
+    }
+  }
+
+  &.error {
+    background: rgba(255, 68, 68, 0.1);
+    border-color: rgba(255, 68, 68, 0.3);
+    
+    .status-icon {
+      background: rgba(255, 68, 68, 0.2);
+      color: #ff4444;
+    }
+  }
+
+  &.warning {
+    background: rgba(255, 170, 0, 0.1);
+    border-color: rgba(255, 170, 0, 0.3);
+    
+    .status-icon {
+      background: rgba(255, 170, 0, 0.2);
+      color: #ffaa00;
+    }
+  }
+
+  // Animations
+  &.animate-spin {
+    .status-icon svg {
+      animation: spin 1s linear infinite;
+    }
+  }
+
+  &.animate-pulse {
+    animation: statusPulse 2s ease-in-out infinite;
+  }
+
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  @keyframes statusPulse {
+    0%, 100% { 
+      opacity: 1;
+      transform: scale(1);
+    }
+    50% { 
+      opacity: 0.9;
+      transform: scale(0.98);
+    }
+  }
+}
