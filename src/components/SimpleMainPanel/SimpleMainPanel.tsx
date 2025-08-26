@@ -4,7 +4,9 @@ import './SimpleMainPanel.scss';
 import { useSettings } from '../../contexts/SettingsContext';
 import { useSession } from '../../contexts/SessionContext';
 import { useAudioContext } from '../../contexts/AudioContext';
+import { useUserProfile } from '../../contexts/UserProfileContext';
 import { ConversationItem } from '../../services/clients';
+import { Provider } from '../../types/Provider';
 import { useTranslation } from 'react-i18next';
 
 interface SimpleMainPanelProps {
@@ -51,9 +53,32 @@ const SimpleMainPanel: React.FC<SimpleMainPanelProps> = ({
   } = useAudioContext();
 
   const { sessionStartTime } = useSession();
+  const { quota } = useUserProfile();
 
   const currentSettings = getCurrentProviderSettings();
-  const canStartSession = isApiKeyValid && availableModels.length > 0 && !loadingModels && !isInitializing;
+  
+  // Check if wallet has sufficient balance for Kizuna AI provider
+  const hasValidBalance = currentSettings.provider !== Provider.KizunaAI || 
+    (quota && quota.balance !== undefined && quota.balance >= 0 && !quota.frozen);
+  
+  const canStartSession = isApiKeyValid && availableModels.length > 0 && 
+    !loadingModels && !isInitializing && hasValidBalance;
+  
+  // Determine the reason why start is disabled
+  let startDisabledReason = '';
+  if (!isApiKeyValid) {
+    startDisabledReason = t('simplePanel.invalidApiKey', 'Invalid API key');
+  } else if (loadingModels) {
+    startDisabledReason = t('simplePanel.loadingModels', 'Loading models...');
+  } else if (availableModels.length === 0) {
+    startDisabledReason = t('simplePanel.noModelsAvailable', 'No models available');
+  } else if (currentSettings.provider === Provider.KizunaAI && quota) {
+    if (quota.frozen) {
+      startDisabledReason = t('simplePanel.walletFrozen', 'Wallet is frozen. Please contact support.');
+    } else if (quota.balance !== undefined && quota.balance < 0) {
+      startDisabledReason = t('simplePanel.insufficientBalance', 'Insufficient token balance: {{balance}} tokens', { balance: quota.balance });
+    }
+  }
 
   // Filter conversation items to show only user messages and assistant responses
   const filteredItems = items.filter(item => 
@@ -207,6 +232,7 @@ const SimpleMainPanel: React.FC<SimpleMainPanelProps> = ({
             className={`main-action-btn ${isSessionActive ? 'stop' : 'start'}`}
             onClick={isSessionActive ? onEndSession : onStartSession}
             disabled={!canStartSession && !isSessionActive}
+            title={!canStartSession && !isSessionActive ? startDisabledReason : ''}
           >
             {isInitializing ? (
               <>

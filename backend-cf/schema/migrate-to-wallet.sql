@@ -33,7 +33,7 @@ CREATE TABLE IF NOT EXISTS plans (
 CREATE TABLE IF NOT EXISTS wallets (
   subject_type TEXT NOT NULL CHECK (subject_type IN ('user','organization')),
   subject_id   TEXT NOT NULL,
-  balance_tokens INTEGER NOT NULL DEFAULT 0 CHECK (balance_tokens >= 0 OR frozen = 1),
+  balance_tokens INTEGER NOT NULL DEFAULT 0,  -- Allow negative balance for accurate billing
   frozen         INTEGER NOT NULL DEFAULT 0 CHECK (frozen IN (0, 1)),
   updated_at     TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
   PRIMARY KEY (subject_type, subject_id)

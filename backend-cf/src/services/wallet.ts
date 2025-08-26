@@ -317,6 +317,7 @@ export class WalletService {
 
   /**
    * Use tokens (atomic deduction with usage logging and automatic pricing calculation)
+   * Allows negative balance - will deduct tokens unconditionally
    */
   async useTokens(request: UseRequest): Promise<{ success: boolean; remaining?: number; error?: string }> {
     const { 
@@ -350,15 +351,14 @@ export class WalletService {
       const batch = [];
       const ledgerId = crypto.randomUUID();
 
-      // 1. Atomic deduction with balance check
+      // 1. Atomic deduction WITHOUT balance check (allow negative balance)
       const deductResult = await this.env.DB.prepare(`
         UPDATE wallets
         SET balance_tokens = balance_tokens - ?,
             updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now')
         WHERE subject_type = ? AND subject_id = ?
           AND frozen = 0
-          AND balance_tokens >= ?
-      `).bind(tokens, subjectType, subjectId, tokens).run();
+      `).bind(tokens, subjectType, subjectId).run();
 
       if (deductResult.meta.changes === 0) {
         // Check why it failed
@@ -372,9 +372,7 @@ export class WalletService {
         if (wallet.frozen) {
           return { success: false, error: 'Wallet is frozen' };
         }
-        if ((wallet.balance_tokens as number) < tokens) {
-          return { success: false, error: 'Insufficient balance', remaining: wallet.balance_tokens as number };
-        }
+        // No longer check for insufficient balance - we allow negative
         return { success: false, error: 'Unknown error' };
       }
 
@@ -468,7 +466,7 @@ export class WalletService {
 
     } catch (error) {
       console.error('Error using tokens:', error);
-      return { success: false, error: error.message };
+      return { success: false, error: error instanceof Error ? error.message : String(error) };
     }
   }
 
@@ -526,7 +524,7 @@ export class WalletService {
 
     } catch (error) {
       console.error('Error refunding tokens:', error);
-      return { success: false, error: error.message };
+      return { success: false, error: error instanceof Error ? error.message : String(error) };
     }
   }
 
@@ -761,6 +759,92 @@ export class WalletService {
     } catch (error) {
       console.error('Error getting history:', error);
       return [];
+    }
+  }
+
+  /**
+   * Ensure wallet exists for a user - creates if missing
+   * This is used for self-healing when a wallet is expected but not found
+   */
+  async ensureWalletExists(
+    subjectType: 'user' | 'organization',
+    subjectId: string,
+    planId: string = 'free_plan'
+  ): Promise<boolean> {
+    try {
+      // Check if wallet already exists
+      const existing = await this.env.DB.prepare(
+        'SELECT subject_id FROM wallets WHERE subject_type = ? AND subject_id = ?'
+      ).bind(subjectType, subjectId).first();
+      
+      if (existing) {
+        console.log(`Wallet already exists for ${subjectType}:${subjectId}`);
+        return true;
+      }
+      
+      console.log(`Creating new wallet for ${subjectType}:${subjectId} with plan ${planId}`);
+      
+      // Get plan details
+      const plan = await this.env.DB.prepare(
+        'SELECT monthly_quota_tokens FROM plans WHERE plan_id = ?'
+      ).bind(planId).first();
+      
+      const initialTokens = (plan?.monthly_quota_tokens as number) || 0;
+      
+      // Start transaction
+      const batch = [];
+      
+      // 1. Create wallet with initial balance
+      batch.push(
+        this.env.DB.prepare(`
+          INSERT OR IGNORE INTO wallets (subject_type, subject_id, balance_tokens, frozen)
+          VALUES (?, ?, ?, 0)
+        `).bind(subjectType, subjectId, initialTokens)
+      );
+      
+      // 2. Create entitlements
+      batch.push(
+        this.env.DB.prepare(`
+          INSERT OR IGNORE INTO entitlements (subject_type, subject_id, plan_id)
+          VALUES (?, ?, ?)
+        `).bind(subjectType, subjectId, planId)
+      );
+      
+      // 3. If there are initial tokens, record in ledger
+      if (initialTokens && initialTokens > 0) {
+        const ledgerId = crypto.randomUUID();
+        batch.push(
+          this.env.DB.prepare(`
+            INSERT INTO wallet_ledger (
+              id, subject_type, subject_id, amount_tokens, event_type,
+              reference_type, reference_id, plan_id, description
+            ) VALUES (?, ?, ?, ?, 'mint', 'registration', ?, ?, ?)
+          `).bind(
+            ledgerId,
+            subjectType,
+            subjectId,
+            initialTokens,
+            'initial_registration',
+            planId,
+            `Initial ${planId} token allocation`
+          )
+        );
+      }
+      
+      // Execute batch
+      await this.env.DB.batch(batch);
+      
+      console.log(`Successfully created wallet for ${subjectType}:${subjectId} with ${initialTokens} initial tokens`);
+      return true;
+      
+    } catch (error) {
+      console.error('Error ensuring wallet exists:', error);
+      // Check if wallet was created by another process
+      const wallet = await this.env.DB.prepare(
+        'SELECT subject_id FROM wallets WHERE subject_type = ? AND subject_id = ?'
+      ).bind(subjectType, subjectId).first();
+      
+      return !!wallet;
     }
   }
 }

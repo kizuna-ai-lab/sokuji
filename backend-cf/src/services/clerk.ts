@@ -141,7 +141,11 @@ export async function ensureUserExists(userId: string, env: Env): Promise<boolea
     ).bind(userId).first();
     
     if (existingUser) {
-      return true; // User already exists
+      // User exists, ensure wallet also exists
+      const { createWalletService } = await import('./wallet');
+      const walletService = createWalletService(env);
+      await walletService.ensureWalletExists('user', userId, 'free_plan');
+      return true;
     }
     
     console.log(`User ${userId} not found in D1, syncing from Clerk...`);
@@ -192,8 +196,19 @@ export async function ensureUserExists(userId: string, env: Env): Promise<boolea
           })
         );
         console.log(`Successfully synced user ${userId} from Clerk to D1`);
+        
+        // Create wallet for the new user
+        const { createWalletService } = await import('./wallet');
+        const walletService = createWalletService(env);
+        const planId = subscription === 'free' ? 'free_plan' : `${subscription}_plan`;
+        await walletService.ensureWalletExists('user', userId, planId);
+        console.log(`Created wallet for new user ${userId} with plan ${planId}`);
       } else {
         console.log(`User ${userId} was created by another process during sync`);
+        // Ensure wallet exists even if user was created by another process
+        const { createWalletService } = await import('./wallet');
+        const walletService = createWalletService(env);
+        await walletService.ensureWalletExists('user', userId, 'free_plan');
       }
       
       return true;
