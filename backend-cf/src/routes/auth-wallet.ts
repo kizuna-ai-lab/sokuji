@@ -80,11 +80,11 @@ app.post('/webhook/clerk', async (c) => {
   
   console.log(`Processing webhook: ${eventType} (${eventId})`);
   
-  // Check timestamp (reject events older than 5 minutes)
+  // Check timestamp (reject events older than 7 days)
   if (eventTimestamp) {
-    const fiveMinutesAgo = Date.now() - (5 * 60 * 1000);
+    const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
     const eventTime = new Date(eventTimestamp).getTime();
-    if (eventTime < fiveMinutesAgo) {
+    if (eventTime < sevenDaysAgo) {
       console.log(`Rejecting old event ${eventId} from ${new Date(eventTime).toISOString()}`);
       return c.json({ received: true, rejected: 'too_old' });
     }
