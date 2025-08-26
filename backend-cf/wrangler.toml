@@ -2,21 +2,25 @@ name = "sokuji-backend"
 main = "src/index.ts"
 compatibility_date = "2024-01-01"
 
+[observability]
+enabled = true
+head_sampling_rate = 1.0  # logs 100% of requests, adjust as needed
+
 # D1 Database
 [[d1_databases]]
 binding = "DB"
-database_name = "sokuji-db"
-database_id = "33ee2e86-fcfa-4c0b-8c45-7585f4a4b72c"
+database_name = "sokuji-db-prod"
+database_id = "90365899-4d8d-47c7-ad53-e2ab158a4707"
 
 # KV Namespaces
 [[kv_namespaces]]
 binding = "QUOTA_KV"
-id = "YOUR_KV_NAMESPACE_ID"
+id = "2197ef6be6c34270b742d16c62df2ca4"
 preview_id = "YOUR_KV_PREVIEW_ID"
 
 [[kv_namespaces]]
 binding = "SESSION_KV"
-id = "YOUR_SESSION_KV_ID"
+id = "2d3f115a16eb46e59016375014194f86"
 preview_id = "YOUR_SESSION_KV_PREVIEW_ID"
 
 # Durable Objects removed - using HTTP polling instead

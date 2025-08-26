@@ -18,6 +18,7 @@ import AudioFeedbackWarning from '../AudioFeedbackWarning/AudioFeedbackWarning';
 import { getSafeAudioConfiguration, decodeAudioToWav } from '../../utils/audioUtils';
 import SimpleMainPanel from '../SimpleMainPanel/SimpleMainPanel';
 import { useAuth } from '../../lib/clerk/ClerkProvider';
+import { useUserProfile } from '../../contexts/UserProfileContext';
 
 interface MainPanelProps {}
 
@@ -27,6 +28,9 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   
   // Get authentication state for Kizuna AI dynamic token fetching
   const { getToken, isSignedIn } = useAuth();
+  
+  // Get user profile and quota information
+  const { quota, refetchAll } = useUserProfile();
   
   // State for session management
   const [isRecording, setIsRecording] = useState(false);
@@ -366,7 +370,15 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       // Clear the unified AI assistant streaming track
       audioService.clearStreamingTrack('ai-assistant');
     }
-  }, []);
+    
+    // Refresh user profile and quota after session ends
+    // This ensures the token balance is updated after usage
+    if (refetchAll) {
+      refetchAll().catch(error => {
+        console.warn('[Sokuji] [MainPanel] Error refreshing user profile:', error);
+      });
+    }
+  }, [refetchAll]);
 
   /**
    * Connect to conversation:
@@ -1522,7 +1534,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                 connectConversation();
               }
             }}
-            disabled={(!isSessionActive && (!isApiKeyValid || availableModels.length === 0 || loadingModels)) || isInitializing}
+            disabled={(!isSessionActive && (!isApiKeyValid || availableModels.length === 0 || loadingModels || (getCurrentProviderSettings().provider === Provider.KizunaAI && quota && (quota.balance === undefined || quota.balance < 0 || quota.frozen)))) || isInitializing}
           >
             {isInitializing ? (
               <>
@@ -1546,6 +1558,12 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                 )}
                 {isApiKeyValid && loadingModels && (
                   <span className="tooltip">{t('mainPanel.modelsLoading')}</span>
+                )}
+                {isApiKeyValid && getCurrentProviderSettings().provider === Provider.KizunaAI && quota && quota.frozen && (
+                  <span className="tooltip">{t('mainPanel.walletFrozen', 'Wallet is frozen. Please contact support.')}</span>
+                )}
+                {isApiKeyValid && getCurrentProviderSettings().provider === Provider.KizunaAI && quota && quota.balance !== undefined && quota.balance < 0 && (
+                  <span className="tooltip">{t('mainPanel.insufficientBalance', 'Insufficient token balance: {{balance}} tokens', { balance: quota.balance })}</span>
                 )}
               </>
             )}

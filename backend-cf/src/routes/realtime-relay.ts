@@ -90,6 +90,54 @@ async function createRealtimeClient(
   
   // Create wallet service for token deduction
   const walletService = createWalletService(env);
+  
+  // Ensure wallet exists for authenticated users and check balance
+  if (userContext?.userId) {
+    await walletService.ensureWalletExists('user', userContext.userId, 'free_plan');
+    relayLog(`Ensured wallet exists for user ${userContext.userId}`);
+    
+    // Check wallet balance before connecting to OpenAI
+    const walletBalance = await walletService.getBalance('user', userContext.userId);
+    
+    if (walletBalance) {
+      // Check if wallet is frozen
+      if (walletBalance.frozen) {
+        relayError(`Wallet is frozen for user ${userContext.userId}`);
+        const errorMessage = {
+          type: 'error',
+          error: {
+            type: 'wallet_frozen',
+            message: 'Your wallet is frozen. Please contact support.',
+            code: 'wallet_frozen'
+          }
+        };
+        serverSocket.send(JSON.stringify(errorMessage));
+        serverSocket.close(1008, 'Wallet is frozen');
+        return new Response('Wallet is frozen', { status: 403 });
+      }
+      
+      // Check if balance is insufficient (less than 0)
+      if (walletBalance.balanceTokens < 0) {
+        relayError(`Insufficient balance for user ${userContext.userId}: ${walletBalance.balanceTokens} tokens`);
+        const errorMessage = {
+          type: 'error',
+          error: {
+            type: 'insufficient_balance',
+            message: `Insufficient token balance. Current balance: ${walletBalance.balanceTokens} tokens (negative balance).`,
+            code: 'insufficient_balance',
+            balance: walletBalance.balanceTokens
+          }
+        };
+        serverSocket.send(JSON.stringify(errorMessage));
+        serverSocket.close(1008, 'Insufficient balance');
+        return new Response('Insufficient balance', { status: 402 });
+      }
+      
+      relayLog(`Wallet balance check passed for user ${userContext.userId}: ${walletBalance.balanceTokens} tokens`);
+    } else {
+      relayLog(`Warning: Could not get wallet balance for user ${userContext.userId}, proceeding anyway`);
+    }
+  }
 
   const url = new URL(request.url);
   

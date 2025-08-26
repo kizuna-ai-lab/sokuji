@@ -46,6 +46,42 @@ app.all('/*', authMiddleware, async (c) => {
   
   console.log('[Proxy] User authenticated, proceeding with models request');
   
+  // Check wallet balance before making OpenAI request (except for /models endpoint)
+  if (path !== '/models' && userId) {
+    const walletService = createWalletService(c.env);
+    
+    // Ensure wallet exists
+    await walletService.ensureWalletExists('user', userId, 'free_plan');
+    
+    // Check balance
+    const walletBalance = await walletService.getBalance('user', userId);
+    
+    if (walletBalance) {
+      // Check if wallet is frozen
+      if (walletBalance.frozen) {
+        console.log('[Proxy] Wallet is frozen for user:', userId);
+        return c.json({
+          error: 'wallet_frozen',
+          message: 'Your wallet is frozen. Please contact support.'
+        }, 403);
+      }
+      
+      // Check if balance is insufficient (less than 0)
+      if (walletBalance.balanceTokens < 0) {
+        console.log('[Proxy] Insufficient balance for user:', userId, 'Balance:', walletBalance.balanceTokens);
+        return c.json({
+          error: 'insufficient_balance',
+          message: `Insufficient token balance. Current balance: ${walletBalance.balanceTokens} tokens (negative balance).`,
+          balance: walletBalance.balanceTokens
+        }, 402);
+      }
+      
+      console.log('[Proxy] Wallet balance check passed. Balance:', walletBalance.balanceTokens);
+    } else {
+      console.log('[Proxy] Warning: Could not get wallet balance for user, proceeding anyway');
+    }
+  }
+  
   // Forward to OpenAI API
   const openaiUrl = `https://api.openai.com/v1${path}${url.search}`;
   console.log('[Proxy] Forwarding to OpenAI URL:', openaiUrl);
@@ -107,6 +143,9 @@ app.all('/*', authMiddleware, async (c) => {
           
           // Create wallet service
           const walletService = createWalletService(c.env);
+          
+          // Ensure wallet exists before attempting to deduct tokens
+          await walletService.ensureWalletExists('user', userId || 'unknown', 'free_plan');
           
           // Deduct tokens from wallet (pricing calculation happens internally)
           const deductResult = await walletService.useTokens({
