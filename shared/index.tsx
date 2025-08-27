@@ -25,6 +25,19 @@ export const usePostHog = () => {
   return posthog;
 };
 
+// Initialize cookies for Clerk in Electron environment
+const initializeElectronCookies = () => {
+  // Check if we're in Electron environment and have the cookie API
+  if (window.initializeCookies && typeof window.initializeCookies === 'function') {
+    try {
+      window.initializeCookies();
+      console.log('[Sokuji] Electron cookies initialized for Clerk');
+    } catch (error) {
+      console.error('[Sokuji] Failed to initialize Electron cookies:', error);
+    }
+  }
+};
+
 // Dynamically import styles based on environment
 const loadStyles = async () => {
   try {
@@ -111,6 +124,9 @@ const UnifiedApp = () => {
 
   useEffect(() => {
     const initializeApp = async () => {
+      // Initialize Electron cookies for Clerk first
+      initializeElectronCookies();
+      
       // Load styles
       await loadStyles();
       
