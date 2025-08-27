@@ -39,6 +39,11 @@ jobs:
           CI: false
           # Set to false to prevent actual publishing during CI
           CSC_IDENTITY_AUTO_DISCOVERY: false
+          # Clerk environment variables for Electron CI builds
+          VITE_CLERK_PUBLISHABLE_KEY: ${{ secrets.VITE_CLERK_PUBLISHABLE_KEY_PROD }}
+          VITE_CLERK_ORIGIN: 'file://'
+          VITE_BACKEND_URL: 'https://sokuji-api.kizuna.ai'
+          VITE_ENVIRONMENT: production
           
       - name: Build Chrome Extension
         run: |
