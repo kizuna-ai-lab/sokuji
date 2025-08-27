@@ -772,6 +772,16 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         (loadedCommon as any)[key] = await settingsService.getSetting(fullKey, defaultValue);
       }
 
+      // Validate that the loaded provider is still available
+      // If not, fallback to OpenAI
+      const loadedProvider = loadedCommon.provider as ProviderType;
+      if (!ProviderConfigFactory.isProviderSupported(loadedProvider)) {
+        console.warn(`Provider ${loadedProvider} is not available in this build, falling back to OpenAI`);
+        loadedCommon.provider = Provider.OPENAI;
+        // Save the fallback provider
+        await settingsService.setSetting('settings.common.provider', Provider.OPENAI);
+      }
+
       setCommonSettings(loadedCommon as CommonSettings);
 
       // Load OpenAI settings
