@@ -28,6 +28,13 @@ export function SignIn() {
           routing="virtual" 
           oauthFlow={isExtensionEnvironment ? 'popup' : 'redirect'}
           oidcPrompt="select_account"
+          withSignUp={true}
+          appearance={isExtensionEnvironment ? {
+            elements: {
+              socialButtonsRoot: {display: "none"},
+              dividerRow: {display: "none"},
+            }
+          } : undefined}
         />
       </div>
     </div>

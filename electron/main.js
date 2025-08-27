@@ -1,5 +1,6 @@
 const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
+const { clerkAdapter } = require('./clerk-adapter');
 
 // Handle Squirrel events for Windows - only use on Windows platform
 if (process.platform === 'win32') {
@@ -41,7 +42,9 @@ function createWindow() {
   });
 
   // Load the app
-  const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
+  const isDev = import.meta.env.MODE === 'development' || !app.isPackaged;
+  console.log('[Sokuji] [Main] Development mode:', isDev, 'MODE:', import.meta.env.MODE, 'isPackaged:', app.isPackaged);
+  
   if (isDev) {
     mainWindow.loadURL('http://localhost:5173');
   } else {
@@ -113,6 +116,26 @@ function createWindow() {
 
 // Create window when Electron is ready
 app.whenReady().then(async () => {
+  // Initialize Clerk adapter
+  try {
+    const publishableKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+    const origin = import.meta.env.VITE_CLERK_ORIGIN || (import.meta.env.MODE === 'development' ? 'http://localhost:5173' : `file://${__dirname}`);
+
+    console.log(`[Sokuji] [Main] Initializing Clerk adapter with origin: ${origin}, publishableKey: ${publishableKey}`);
+    
+    if (publishableKey) {
+      clerkAdapter({
+        publishableKey,
+        origin
+      });
+      console.log('[Sokuji] [Main] Clerk adapter initialized');
+    } else {
+      console.warn('[Sokuji] [Main] VITE_CLERK_PUBLISHABLE_KEY not found, Clerk adapter not initialized');
+    }
+  } catch (error) {
+    console.error('[Sokuji] [Main] Error initializing Clerk adapter:', error);
+  }
+
   // Clean up any orphaned devices
   try {
     await cleanupOrphanedDevices();
