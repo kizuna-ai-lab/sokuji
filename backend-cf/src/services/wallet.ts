@@ -171,7 +171,28 @@ export class WalletService {
     outputRatio: number;
   } {
     // Get pricing ratios for this model
-    const modelRatios = this.ratios[provider]?.[model]?.[modality];
+    let modelRatios = this.ratios[provider]?.[model]?.[modality];
+    
+    // Try fallback patterns for OpenAI models if exact match not found
+    if (!modelRatios && provider === 'openai') {
+      let fallbackModel: string | null = null;
+      
+      // Check for gpt-4o-mini variants first (more specific)
+      if (model.includes('gpt-4o-mini')) {
+        fallbackModel = 'gpt-4o-mini-realtime-preview';
+      } 
+      // Then check for gpt-4o variants (less specific)
+      else if (model.includes('gpt-4o')) {
+        fallbackModel = 'gpt-4o-realtime-preview';
+      }
+      
+      if (fallbackModel) {
+        modelRatios = this.ratios[provider]?.[fallbackModel]?.[modality];
+        if (modelRatios) {
+          console.log(`Using fallback pricing for ${provider}/${model}/${modality} -> ${fallbackModel}`);
+        }
+      }
+    }
     
     if (!modelRatios) {
       // Unknown model or provider - use conservative 1:1 ratio
