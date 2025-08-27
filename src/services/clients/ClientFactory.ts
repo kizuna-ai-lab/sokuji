@@ -3,7 +3,7 @@ import { OpenAIClient } from './OpenAIClient';
 import { GeminiClient } from './GeminiClient';
 import { PalabraAIClient } from './PalabraAIClient';
 import { Provider, ProviderType } from '../../types/Provider';
-import { getBackendUrl } from '../../utils/environment';
+import { getBackendUrl, isKizunaAIEnabled } from '../../utils/environment';
 
 /**
  * Factory for creating AI client instances
@@ -46,6 +46,10 @@ export class ClientFactory {
         return new PalabraAIClient(apiKey, clientSecret);
         
       case Provider.KIZUNA_AI:
+        // Check if Kizuna AI is enabled before creating the client
+        if (!isKizunaAIEnabled()) {
+          throw new Error(`Provider ${provider} is not available in this build`);
+        }
         // KizunaAI uses OpenAIClient with our Worker proxy
         // The proxy transparently handles both REST and WebSocket connections
         // The apiKey here is actually the auth token from Clerk

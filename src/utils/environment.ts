@@ -138,3 +138,21 @@ export function isProductionMode(): boolean {
   return import.meta.env.MODE === 'production';
 }
 
+/**
+ * Check if Kizuna AI features should be enabled
+ * @returns true if Kizuna AI features should be shown
+ * 
+ * In development mode: always returns true
+ * In production mode: returns false (unless explicitly enabled via VITE_ENABLE_KIZUNA_AI env var)
+ */
+export function isKizunaAIEnabled(): boolean {
+  // In development mode, always show Kizuna AI features
+  if (isDevelopmentMode()) {
+    return true;
+  }
+  
+  // In production, check for explicit environment variable
+  // Default to false if not set
+  return import.meta.env.VITE_ENABLE_KIZUNA_AI === 'true';
+}
+

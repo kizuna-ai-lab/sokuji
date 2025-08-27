@@ -9,10 +9,12 @@ import { useTranslation } from 'react-i18next';
 import { Provider, ProviderType } from '../../types/Provider';
 import { useAnalytics } from '../../lib/analytics';
 import { ProviderConfigFactory } from '../../services/providers/ProviderConfigFactory';
+import { ProviderConfig } from '../../services/providers/ProviderConfig';
 import Tooltip from '../Tooltip/Tooltip';
 import { useAuth } from '../../lib/clerk/ClerkProvider';
 import { UserAccountInfo } from '../Auth/UserAccountInfo';
 import { SignedIn, SignedOut } from '../Auth/AuthGuard';
+import { isKizunaAIEnabled } from '../../utils/environment';
 
 interface SimpleConfigPanelProps {
   toggleSettings?: () => void;
@@ -80,8 +82,18 @@ const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings, h
   const filteredInputDevices = (audioInputDevices || []).filter(device => !isVirtualDevice(device));
   const filteredMonitorDevices = (audioMonitorDevices || []).filter(device => !isVirtualDevice(device));
 
-  // Get provider configuration
-  const providerConfig = ProviderConfigFactory.getConfig(commonSettings.provider);
+  // Get provider configuration with fallback
+  let providerConfig: ProviderConfig;
+  try {
+    providerConfig = ProviderConfigFactory.getConfig(commonSettings.provider);
+  } catch (error) {
+    // If the current provider is not available (e.g., Kizuna AI when disabled),
+    // fallback to OpenAI
+    console.warn(`Provider ${commonSettings.provider} not available, using OpenAI as fallback`);
+    providerConfig = ProviderConfigFactory.getConfig(Provider.OPENAI);
+    // Update the settings to reflect the fallback
+    updateCommonSettings({ provider: Provider.OPENAI });
+  }
   const currentProviderSettings = (() => {
     switch (commonSettings.provider) {
       case Provider.OPENAI:
@@ -344,47 +356,49 @@ const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings, h
           </div>
         )}
 
-        {/* User Account Section */}
-        <div className="config-section" id="user-account-section">
-          <h3>
-            <User size={18} />
-            <span>{t('simpleConfig.userAccount', 'User Account')}</span>
-            <Tooltip
-              content={t('simpleConfig.userAccountTooltip', 'For users with technical knowledge and their own API keys, you can use your own API key whether logged in or not. User Account is designed for new users who prefer a simplified setup without complex configuration.')}
-              position="top"
-            >
-              <CircleHelp className="lucide lucide-circle-help tooltip-trigger" size={14} />
-            </Tooltip>
-          </h3>
-          
-          <SignedIn>
-            <UserAccountInfo />
-          </SignedIn>
-          
-          <SignedOut>
-            <div className="sign-in-prompt">
-              <p>{t('simpleConfig.signInRequired', 'You can use your own AI provider and API key without logging in, or sign up to purchase and use kizuna.ai\'s API service.')}</p>
-              <div className="auth-buttons">
-                <button 
-                  className="sign-in-button"
-                  onClick={() => {
-                    navigate('/sign-in');
-                  }}
-                >
-                  {t('common.signIn', 'Sign In')}
-                </button>
-                <button 
-                  className="sign-up-button"
-                  onClick={() => {
-                    navigate('/sign-up');
-                  }}
-                >
-                  {t('common.signUp', 'Sign Up')}
-                </button>
+        {/* User Account Section - Only show if Kizuna AI is enabled */}
+        {isKizunaAIEnabled() && (
+          <div className="config-section" id="user-account-section">
+            <h3>
+              <User size={18} />
+              <span>{t('simpleConfig.userAccount', 'User Account')}</span>
+              <Tooltip
+                content={t('simpleConfig.userAccountTooltip', 'For users with technical knowledge and their own API keys, you can use your own API key whether logged in or not. User Account is designed for new users who prefer a simplified setup without complex configuration.')}
+                position="top"
+              >
+                <CircleHelp className="lucide lucide-circle-help tooltip-trigger" size={14} />
+              </Tooltip>
+            </h3>
+            
+            <SignedIn>
+              <UserAccountInfo />
+            </SignedIn>
+            
+            <SignedOut>
+              <div className="sign-in-prompt">
+                <p>{t('simpleConfig.signInRequired', 'You can use your own AI provider and API key without logging in, or sign up to purchase and use kizuna.ai\'s API service.')}</p>
+                <div className="auth-buttons">
+                  <button 
+                    className="sign-in-button"
+                    onClick={() => {
+                      navigate('/sign-in');
+                    }}
+                  >
+                    {t('common.signIn', 'Sign In')}
+                  </button>
+                  <button 
+                    className="sign-up-button"
+                    onClick={() => {
+                      navigate('/sign-up');
+                    }}
+                  >
+                    {t('common.signUp', 'Sign Up')}
+                  </button>
+                </div>
               </div>
-            </div>
-          </SignedOut>
-        </div>
+            </SignedOut>
+          </div>
+        )}
 
         {/* Interface Language Section */}
         <div className="config-section">
