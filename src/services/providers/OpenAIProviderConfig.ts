@@ -111,7 +111,7 @@ export class OpenAIProviderConfig {
       defaults: {
         model: 'gpt-4o-realtime-preview',
         voice: 'alloy',
-        temperature: 0.8,
+        temperature: 0.6,
         maxTokens: 4096,
         sourceLanguage: 'en',
         targetLanguage: 'zh_CN',
