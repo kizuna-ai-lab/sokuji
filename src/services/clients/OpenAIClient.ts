@@ -147,7 +147,9 @@ export class OpenAIClient implements IClient {
   private static checkRealtimeModelAvailability(models: any[]): boolean {
     return models.some((model: any) => {
       const modelName = model.id?.toLowerCase() || '';
-      return modelName.includes('realtime') && modelName.includes('4o');
+      // Support both old format (gpt-4o-realtime) and new format (gpt-realtime)
+      return (modelName.includes('realtime') && modelName.includes('4o')) || 
+             modelName.startsWith('gpt-realtime');
     });
   }
   
@@ -183,8 +185,9 @@ export class OpenAIClient implements IClient {
     models.forEach(model => {
       const modelName = model.id.toLowerCase();
       
-      // Check for realtime models (both 4o and mini variants)
-      if (modelName.includes('realtime') && (modelName.includes('4o') || modelName.includes('gpt-4'))) {
+      // Check for realtime models (both 4o/mini variants and new gpt-realtime format)
+      if ((modelName.includes('realtime') && (modelName.includes('4o') || modelName.includes('gpt-4'))) ||
+          modelName.startsWith('gpt-realtime')) {
         relevantModels.push({
           id: model.id,
           type: 'realtime',
