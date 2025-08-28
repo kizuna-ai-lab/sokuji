@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { ArrowRight, Save, Check, AlertCircle, AlertTriangle, Info, Key, HelpCircle, FlaskConical, CheckCircle } from 'lucide-react';
+import { ArrowRight, Save, Check, AlertCircle, AlertTriangle, Info, Key, HelpCircle, FlaskConical, CheckCircle, CircleHelp } from 'lucide-react';
 import './SettingsPanel.scss';
 import { useSettings } from '../../contexts/SettingsContext';
 import { useOnboarding } from '../../contexts/OnboardingContext';
@@ -10,6 +10,7 @@ import ProviderSpecificSettings from './ProviderSpecificSettings';
 import { Provider, ProviderType } from '../../types/Provider';
 import { useAnalytics } from '../../lib/analytics';
 import { useAuth } from '../../lib/clerk/ClerkProvider';
+import Tooltip from '../Tooltip/Tooltip';
 
 interface SettingsPanelProps {
   toggleSettings?: () => void;
@@ -209,7 +210,15 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
           <h2>{t('settings.provider', 'Service Provider')}</h2>
           <div className="setting-item">
             <div className="setting-label">
-              <span>{t('settings.providerType', 'Provider')}</span>
+              <span>
+                {t('settings.providerType', 'Provider')}
+                <Tooltip
+                  content={t('settings.providerTooltip')}
+                  position="top"
+                >
+                  <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '4px', display: 'inline-block', verticalAlign: 'middle' }} />
+                </Tooltip>
+              </span>
             </div>
             <div className="provider-selection-wrapper">
               <select
@@ -262,7 +271,15 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
             <>
               <div className="setting-item">
                 <div className="setting-label">
-                  <span>{t('settings.clientId', 'Client ID')}</span>
+                  <span>
+                    {t('settings.clientId', 'Client ID')}
+                    <Tooltip
+                      content={t('settings.clientIdTooltip')}
+                      position="top"
+                    >
+                      <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '4px', display: 'inline-block', verticalAlign: 'middle' }} />
+                    </Tooltip>
+                  </span>
                 </div>
                 <div className="api-key-container">
                   <input
@@ -283,7 +300,15 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
               </div>
               <div className="setting-item">
                 <div className="setting-label">
-                  <span>{t('settings.clientSecret', 'Client Secret')}</span>
+                  <span>
+                    {t('settings.clientSecret', 'Client Secret')}
+                    <Tooltip
+                      content={t('settings.clientSecretTooltip')}
+                      position="top"
+                    >
+                      <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '4px', display: 'inline-block', verticalAlign: 'middle' }} />
+                    </Tooltip>
+                  </span>
                 </div>
                 <div className="api-key-container">
                   <input
@@ -320,7 +345,15 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
             commonSettings.provider !== Provider.KIZUNA_AI ? (
               <div className="setting-item">
                 <div className="setting-label">
-                  <span>{t('settings.apiKey', 'API Key')}</span>
+                  <span>
+                    {t('settings.apiKey', 'API Key')}
+                    <Tooltip
+                      content={t('settings.apiKeyTooltip')}
+                      position="top"
+                    >
+                      <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '4px', display: 'inline-block', verticalAlign: 'middle' }} />
+                    </Tooltip>
+                  </span>
                 </div>
                 <div className="api-key-container">
                   <input
@@ -393,7 +426,15 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
           <h2>{t('settings.language')}</h2>
           <div className="setting-item">
             <div className="setting-label">
-              <span>{t('settings.uiLanguage')}</span>
+              <span>
+                {t('settings.uiLanguage')}
+                <Tooltip
+                  content={t('settings.uiLanguageTooltip')}
+                  position="top"
+                >
+                  <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '4px', display: 'inline-block', verticalAlign: 'middle' }} />
+                </Tooltip>
+              </span>
             </div>
             <select
               className="select-dropdown"

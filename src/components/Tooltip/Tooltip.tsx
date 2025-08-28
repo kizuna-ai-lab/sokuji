@@ -92,6 +92,27 @@ const Tooltip: React.FC<TooltipProps> = ({
 
   const triggerElement = children || renderIcon();
 
+  // Function to render content with line break support
+  const renderContent = () => {
+    if (typeof content === 'string' && content.includes('\n')) {
+      return content.split('\n').map((line, index) => {
+        const trimmedLine = line.trim();
+        if (!trimmedLine) return null; // Skip empty lines
+        return (
+          <div 
+            key={index} 
+            style={{ 
+              marginBottom: index < content.split('\n').length - 1 ? '4px' : 0 
+            }}
+          >
+            {trimmedLine}
+          </div>
+        );
+      }).filter(Boolean); // Remove null entries
+    }
+    return content;
+  };
+
   return (
     <>
       {isValidElement(triggerElement) ? (
@@ -135,7 +156,7 @@ const Tooltip: React.FC<TooltipProps> = ({
               stroke="#444"
               strokeWidth={1}
             />
-            <div className="tooltip-body">{content}</div>
+            <div className="tooltip-body">{renderContent()}</div>
           </div>
         )}
       </FloatingPortal>
