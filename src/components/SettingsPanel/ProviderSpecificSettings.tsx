@@ -2,7 +2,8 @@ import React, { Fragment } from 'react';
 import { ProviderConfig } from '../../services/providers/ProviderConfig';
 import { useSettings } from '../../contexts/SettingsContext';
 import { useTranslation } from 'react-i18next';
-import { ChevronDown, ChevronRight, RotateCw, Info } from 'lucide-react';
+import { ChevronDown, ChevronRight, RotateCw, Info, CircleHelp } from 'lucide-react';
+import Tooltip from '../Tooltip/Tooltip';
 import { FilteredModel } from '../../services/interfaces/IClient';
 import { Provider, isOpenAICompatible } from '../../types/Provider';
 import { useAnalytics } from '../../lib/analytics';
@@ -107,7 +108,15 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
       <>
         <div className="setting-item">
           <div className="setting-label">
-            <span>{t('settings.sourceLanguage')}</span>
+            <span>
+              {t('settings.sourceLanguage')}
+              <Tooltip
+                content={t('settings.sourceLanguageTooltip')}
+                position="top"
+              >
+                <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '4px', display: 'inline-block', verticalAlign: 'middle' }} />
+              </Tooltip>
+            </span>
           </div>
           <select
             className="select-dropdown"
@@ -157,7 +166,15 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
         </div>
         <div className="setting-item">
           <div className="setting-label">
-            <span>{t('settings.targetLanguage')}</span>
+            <span>
+              {t('settings.targetLanguage')}
+              <Tooltip
+                content={t('settings.targetLanguageTooltip')}
+                position="top"
+              >
+                <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '4px', display: 'inline-block', verticalAlign: 'middle' }} />
+              </Tooltip>
+            </span>
           </div>
           <select
             className="select-dropdown"
@@ -194,7 +211,15 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
 
     return (
       <div className="settings-section voice-settings-section">
-        <h2>{t('settings.voice')}</h2>
+        <h2>
+          {t('settings.voice')}
+          <Tooltip
+            content={t('settings.voiceTooltip')}
+            position="top"
+          >
+            <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '8px' }} />
+          </Tooltip>
+        </h2>
         <div className="setting-item">
           <select 
             className="select-dropdown"
@@ -227,7 +252,15 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
 
     return (
       <div className="settings-section turn-detection-section">
-        <h2>{t('settings.automaticTurnDetection')}</h2>
+        <h2>
+          {t('settings.automaticTurnDetection')}
+          <Tooltip
+            content={t('settings.turnDetectionTooltip')}
+            position="top"
+          >
+            <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '8px' }} />
+          </Tooltip>
+        </h2>
         <div className="setting-item">
           <div className="turn-detection-options">
             {turnDetection.modes.map((mode) => (
@@ -247,7 +280,15 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
           <>
             <div className="setting-item">
               <div className="setting-label">
-                <span>{t('settings.threshold')}</span>
+                <span>
+                  {t('settings.threshold')}
+                  <Tooltip
+                    content={t('settings.thresholdTooltip')}
+                    position="top"
+                  >
+                    <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '4px', display: 'inline-block', verticalAlign: 'middle' }} />
+                  </Tooltip>
+                </span>
                 <span className="setting-value">{compatibleSettings?.threshold.toFixed(2)}</span>
               </div>
               <input 
@@ -264,7 +305,15 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
             {turnDetection.hasPrefixPadding && (
               <div className="setting-item">
                 <div className="setting-label">
-                  <span>{t('settings.prefixPadding')}</span>
+                  <span>
+                    {t('settings.prefixPadding')}
+                    <Tooltip
+                      content={t('settings.prefixPaddingTooltip')}
+                      position="top"
+                    >
+                      <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '4px', display: 'inline-block', verticalAlign: 'middle' }} />
+                    </Tooltip>
+                  </span>
                   <span className="setting-value">{compatibleSettings?.prefixPadding.toFixed(1)}s</span>
                 </div>
                 <input 
@@ -282,7 +331,15 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
             {turnDetection.hasSilenceDuration && (
               <div className="setting-item">
                 <div className="setting-label">
-                  <span>{t('settings.silenceDuration')}</span>
+                  <span>
+                    {t('settings.silenceDuration')}
+                    <Tooltip
+                      content={t('settings.silenceDurationTooltip')}
+                      position="top"
+                    >
+                      <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '4px', display: 'inline-block', verticalAlign: 'middle' }} />
+                    </Tooltip>
+                  </span>
                   <span className="setting-value">{compatibleSettings?.silenceDuration.toFixed(1)}s</span>
                 </div>
                 <input 
@@ -303,7 +360,15 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
         {compatibleSettings?.turnDetectionMode === 'Semantic' && turnDetection.hasSemanticEagerness && (
           <div className="setting-item">
             <div className="setting-label">
-              <span>{t('settings.eagerness')}</span>
+              <span>
+                {t('settings.eagerness')}
+                <Tooltip
+                  content={t('settings.semanticEagernessTooltip')}
+                  position="top"
+                >
+                  <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '4px', display: 'inline-block', verticalAlign: 'middle' }} />
+                </Tooltip>
+              </span>
             </div>
             <select 
               className="select-dropdown"
@@ -347,7 +412,15 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
 
     return (
       <div className="settings-section">
-        <h2>{t('settings.model')}</h2>
+        <h2>
+          {t('settings.model')}
+          <Tooltip
+            content={t('settings.modelTooltip')}
+            position="top"
+          >
+            <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '8px' }} />
+          </Tooltip>
+        </h2>
         <div className="setting-item">
           <div className="model-selection-container">
             <select
@@ -402,7 +475,15 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
 
     return (
       <div className="settings-section">
-        <h2>{t('settings.noiseReduction')}</h2>
+        <h2>
+          {t('settings.noiseReduction')}
+          <Tooltip
+            content={t('settings.noiseReductionTooltip')}
+            position="top"
+          >
+            <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '8px' }} />
+          </Tooltip>
+        </h2>
         <div className="setting-item">
           <select 
             className="select-dropdown"
@@ -433,7 +514,15 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
 
     return (
       <div className="settings-section">
-        <h2>{t('settings.userTranscriptModel')}</h2>
+        <h2>
+          {t('settings.userTranscriptModel')}
+          <Tooltip
+            content={t('settings.transcriptModelTooltip')}
+            position="top"
+          >
+            <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '8px' }} />
+          </Tooltip>
+        </h2>
         <div className="setting-item">
           <select 
             className="select-dropdown"
@@ -462,7 +551,15 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
         <h2>{t('settings.modelConfiguration')}</h2>
         <div className="setting-item">
           <div className="setting-label">
-            <span>{t('settings.temperature')}</span>
+            <span>
+              {t('settings.temperature')}
+              <Tooltip
+                content={t('settings.temperatureTooltip')}
+                position="top"
+              >
+                <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '4px', display: 'inline-block', verticalAlign: 'middle' }} />
+              </Tooltip>
+            </span>
             <span className="setting-value">{(currentProviderSettings as any).temperature.toFixed(2)}</span>
           </div>
           <input 
@@ -478,7 +575,15 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
         </div>
         <div className="setting-item">
           <div className="setting-label">
-            <span>{t('settings.maxTokens')}</span>
+            <span>
+              {t('settings.maxTokens')}
+              <Tooltip
+                content={t('settings.maxTokensTooltip')}
+                position="top"
+              >
+                <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '4px', display: 'inline-block', verticalAlign: 'middle' }} />
+              </Tooltip>
+            </span>
             <span className="setting-value">{(currentProviderSettings as any).maxTokens}</span>
           </div>
           <input 
@@ -604,7 +709,15 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
           <h2>{t('settings.voiceSettings', 'Voice Settings')}</h2>
           <div className="setting-item">
             <div className="setting-label">
-              <span>{t('settings.voice')}</span>
+              <span>
+                {t('settings.voice')}
+                <Tooltip
+                  content={t('settings.voiceTooltip')}
+                  position="top"
+                >
+                  <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '4px', display: 'inline-block', verticalAlign: 'middle' }} />
+                </Tooltip>
+              </span>
             </div>
             <select
               className="select-dropdown"
@@ -772,7 +885,15 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
       {/* System Instructions */}
       {config.capabilities.hasTemplateMode && (
         <div className="settings-section system-instructions-section">
-          <h2>{t('settings.systemInstructions')}</h2>
+          <h2>
+            {t('settings.systemInstructions')}
+            <Tooltip
+              content={t('settings.systemInstructionsTooltip')}
+              position="top"
+            >
+              <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '8px' }} />
+            </Tooltip>
+          </h2>
           <div className="setting-item">
             <div className="turn-detection-options">
               <button 

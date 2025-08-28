@@ -109,7 +109,7 @@ export class OpenAIProviderConfig {
       },
       
       defaults: {
-        model: 'gpt-4o-realtime-preview',
+        model: 'gpt-4o-mini-realtime-preview',
         voice: 'alloy',
         temperature: 0.6,
         maxTokens: 4096,
@@ -121,7 +121,7 @@ export class OpenAIProviderConfig {
         silenceDuration: 0.8,
         semanticEagerness: 'Auto',
         noiseReduction: 'None',
-        transcriptModel: 'gpt-4o-mini-transcribe',
+        transcriptModel: 'whisper-1',
       },
     };
   }

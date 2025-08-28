@@ -26,6 +26,7 @@ export class KizunaAIProviderConfig extends OpenAIProviderConfig {
         threshold: 0.49, // Different from OpenAI's 0.5
         prefixPadding: 0.5, // Different from OpenAI's 0.3
         silenceDuration: 0.5, // Different from OpenAI's 0.8
+        transcriptModel: 'whisper-1', // Different from OpenAI's 'gpt-4o-mini-transcribe'
       },
     };
   }
