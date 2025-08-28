@@ -394,7 +394,7 @@ export class ModernAudioRecorder {
    * @private
    */
   async setupScriptProcessorFallback() {
-    const bufferSize = 4096; // Good balance between latency and performance
+    const bufferSize = 8192; // Increased buffer size to reduce callback frequency (from 6Hz to 3Hz)
     this.scriptProcessor = this.audioContext.createScriptProcessor(bufferSize, 1, 1);
     
     this.scriptProcessor.onaudioprocess = (event) => {
