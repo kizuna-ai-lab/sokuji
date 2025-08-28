@@ -89,9 +89,11 @@ const SimpleMainPanel: React.FC<SimpleMainPanelProps> = ({
   // Auto-scroll to bottom when new items are added
   useEffect(() => {
     if (conversationContainerRef.current) {
-      conversationContainerRef.current.scrollTop = conversationContainerRef.current.scrollHeight;
+      const container = conversationContainerRef.current;
+      container.scrollTop = container.scrollHeight;
     }
   }, [filteredItems]);
+  
 
   // Update session duration
   useEffect(() => {
@@ -151,6 +153,7 @@ const SimpleMainPanel: React.FC<SimpleMainPanelProps> = ({
       window.removeEventListener('keyup', handleKeyUp);
     };
   }, [isSessionActive, canPushToTalk, isInputDeviceOn, onStartRecording, onStopRecording]);
+  
 
   return (
     <div className="simple-main-panel">
