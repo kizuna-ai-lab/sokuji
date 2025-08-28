@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { ArrowRight, Terminal, Trash2, ArrowUp, ArrowDown, FastForward } from 'lucide-react';
 import './LogsPanel.scss';
-import { useLog, LogEntry } from '../../contexts/LogContext';
+import { useLogData, useLogActions } from '../../stores/logStore';
+import type { LogEntry } from '../../stores/logStore';
 import { useTranslation } from 'react-i18next';
 
 interface LogsPanelProps {
@@ -67,7 +68,8 @@ const Event: React.FC<{ logEntry: LogEntry }> = ({ logEntry }) => {
 
 const LogsPanel: React.FC<LogsPanelProps> = ({ toggleLogs }) => {
   const { t } = useTranslation();
-  const { logs, clearLogs } = useLog();
+  const logs = useLogData();
+  const { clearLogs } = useLogActions();
   const [autoScroll, setAutoScroll] = useState(true);
   const logsContentRef = useRef<HTMLDivElement>(null);
 

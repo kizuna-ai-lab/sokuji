@@ -4,7 +4,8 @@ import './MainPanel.scss';
 import { useSettings } from '../../contexts/SettingsContext';
 import { useSession } from '../../contexts/SessionContext';
 import { useAudioContext } from '../../contexts/AudioContext';
-import { useLog, RealtimeEvent } from '../../contexts/LogContext';
+import { useLogActions } from '../../stores/logStore';
+import type { RealtimeEvent } from '../../stores/logStore';
 import { IClient, ConversationItem, SessionConfig, ClientEventHandlers, ClientFactory } from '../../services/clients';
 import { WavRenderer } from '../../utils/wav_renderer';
 import { ServiceFactory } from '../../services/ServiceFactory'; // Import the ServiceFactory
@@ -65,8 +66,8 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     setTranslationCount
   } = useSession();
 
-  // Get log functions from context
-  const { addRealtimeEvent } = useLog();
+  // Get log functions from store
+  const { addRealtimeEvent } = useLogActions();
 
   // Get audio context from context
   const {
@@ -290,8 +291,8 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         }
         // Increment translation count when assistant item is completed
         if (item.status === 'completed' && item.role === 'assistant' && 
-            (item.formatted?.audio || item.formatted?.text || item.formatted?.transcript)) {
-          setTranslationCount(translationCount + 1);
+            (item.formatted?.text || item.formatted?.transcript)) {
+          setTranslationCount(prevCount => prevCount + 1);
           
           // Track translation completion with latency
           if (item.createdAt) {
@@ -322,7 +323,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
     client.setEventHandlers(eventHandlers);
     setItems(client.getConversationItems());
-  }, [addRealtimeEvent, translationCount, isMonitorDeviceOn]);
+  }, [isMonitorDeviceOn]); // addRealtimeEvent from Zustand is stable
 
   /**
    * Disconnect and reset conversation state
@@ -1353,8 +1354,8 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       <div className="conversation-container" ref={conversationContainerRef}>
         <div className="conversation-content" data-conversation-content>
           {items.length > 0 ? (
-            items.map((item, index) => (
-              <div key={index} className={`conversation-item ${item.role}`} style={{ position: 'relative' }}>
+            items.map((item) => (
+              <div key={item.id} className={`conversation-item ${item.role}`} style={{ position: 'relative' }}>
                 <div className="conversation-item-role">
                   {item.role}
                   {isDevelopment() && (item as any).status === 'completed' && item.formatted?.audio && (
