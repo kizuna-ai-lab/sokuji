@@ -1534,7 +1534,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                 connectConversation();
               }
             }}
-            disabled={(!isSessionActive && (!isApiKeyValid || availableModels.length === 0 || loadingModels || (getCurrentProviderSettings().provider === Provider.KizunaAI && quota && (quota.balance === undefined || quota.balance < 0 || quota.frozen)))) || isInitializing}
+            disabled={(!isSessionActive && (!isApiKeyValid || availableModels.length === 0 || loadingModels || (getCurrentProviderSettings().provider === Provider.KIZUNA_AI && quota && (quota.balance === undefined || quota.balance < 0 || quota.frozen)))) || isInitializing}
           >
             {isInitializing ? (
               <>
@@ -1559,10 +1559,10 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                 {isApiKeyValid && loadingModels && (
                   <span className="tooltip">{t('mainPanel.modelsLoading')}</span>
                 )}
-                {isApiKeyValid && getCurrentProviderSettings().provider === Provider.KizunaAI && quota && quota.frozen && (
+                {isApiKeyValid && getCurrentProviderSettings().provider === Provider.KIZUNA_AI && quota && quota.frozen && (
                   <span className="tooltip">{t('mainPanel.walletFrozen', 'Wallet is frozen. Please contact support.')}</span>
                 )}
-                {isApiKeyValid && getCurrentProviderSettings().provider === Provider.KizunaAI && quota && quota.balance !== undefined && quota.balance < 0 && (
+                {isApiKeyValid && getCurrentProviderSettings().provider === Provider.KIZUNA_AI && quota && quota.balance !== undefined && quota.balance < 0 && (
                   <span className="tooltip">{t('mainPanel.insufficientBalance', 'Insufficient token balance: {{balance}} tokens', { balance: quota.balance })}</span>
                 )}
               </>

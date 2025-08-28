@@ -58,12 +58,12 @@ const SimpleMainPanel: React.FC<SimpleMainPanelProps> = ({
   const currentSettings = getCurrentProviderSettings();
   
   // Check if wallet has sufficient balance for Kizuna AI provider
-  const hasValidBalance = currentSettings.provider !== Provider.KizunaAI || 
+  const hasValidBalance = (commonSettings.provider !== Provider.KIZUNA_AI) ||
     (quota && quota.balance !== undefined && quota.balance >= 0 && !quota.frozen);
   
   const canStartSession = isApiKeyValid && availableModels.length > 0 && 
     !loadingModels && !isInitializing && hasValidBalance;
-  
+
   // Determine the reason why start is disabled
   let startDisabledReason = '';
   if (!isApiKeyValid) {
@@ -72,7 +72,7 @@ const SimpleMainPanel: React.FC<SimpleMainPanelProps> = ({
     startDisabledReason = t('simplePanel.loadingModels', 'Loading models...');
   } else if (availableModels.length === 0) {
     startDisabledReason = t('simplePanel.noModelsAvailable', 'No models available');
-  } else if (currentSettings.provider === Provider.KizunaAI && quota) {
+  } else if (commonSettings.provider === Provider.KIZUNA_AI && quota) {
     if (quota.frozen) {
       startDisabledReason = t('simplePanel.walletFrozen', 'Wallet is frozen. Please contact support.');
     } else if (quota.balance !== undefined && quota.balance < 0) {
@@ -232,7 +232,7 @@ const SimpleMainPanel: React.FC<SimpleMainPanelProps> = ({
             className={`main-action-btn ${isSessionActive ? 'stop' : 'start'}`}
             onClick={isSessionActive ? onEndSession : onStartSession}
             disabled={!canStartSession && !isSessionActive}
-            title={!canStartSession && !isSessionActive ? startDisabledReason : ''}
+            title={startDisabledReason ? startDisabledReason : ''}
           >
             {isInitializing ? (
               <>
