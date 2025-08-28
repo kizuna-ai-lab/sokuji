@@ -56,8 +56,8 @@ jobs:
         run: |
           cd extension
           npm ci
-          # Build extension with production environment
-          NODE_ENV=production npm run build
+          # Build extension with production mode explicitly set
+          NODE_ENV=production npm run build -- --mode production
           cd dist
           zip -r ../sokuji-extension.zip *
           cd ..
