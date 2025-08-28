@@ -82,6 +82,11 @@ module.exports = (env, argv) => {
             ? 'https://sokuji-api-dev.kizuna.ai'
             : 'https://sokuji-api.kizuna.ai'
         ),
+        'import.meta.env.VITE_ENABLE_KIZUNA_AI': JSON.stringify(
+          isDevMode 
+            ? 'true'  // Always enable in development
+            : process.env.VITE_ENABLE_KIZUNA_AI || 'false'  // Disabled by default in production unless explicitly enabled
+        ),
         'import.meta.env.DEV': JSON.stringify(isDevMode),
         // Define import.meta.url as empty string to prevent parse errors
         'import.meta.url': JSON.stringify('')
