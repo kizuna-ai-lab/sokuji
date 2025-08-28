@@ -501,12 +501,12 @@ const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings, h
                       <p>{t('simpleSettings.apiKeyHelpTooltip')}</p>
                       <p style={{ marginTop: '8px' }}>{t('simpleSettings.apiKeyHelpTooltip2')}</p>
                       <a 
-                        href="https://kizuna-ai-lab.github.io/sokuji/tutorials/openai-setup.html" 
+                        href="https://kizuna-ai-lab.github.io/sokuji/supported-ai-providers.html"
                         target="_blank" 
                         rel="noopener noreferrer"
                         style={{ color: '#10a37f', textDecoration: 'underline' }}
                       >
-                        https://kizuna-ai-lab.github.io/sokuji/tutorials/openai-setup.html
+                        https://kizuna-ai-lab.github.io/sokuji/supported-ai-providers.html
                       </a>
                     </div>
                   }
