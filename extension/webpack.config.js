@@ -71,6 +71,7 @@ module.exports = (env, argv) => {
       new webpack.DefinePlugin({
         'process.env.NODE_ENV': JSON.stringify(argv.mode || 'development'),
         // Define import.meta for Extension builds to prevent runtime errors
+        'import.meta.env.MODE': JSON.stringify(argv.mode || 'development'),
         'import.meta.env.VITE_CLERK_PUBLISHABLE_KEY': JSON.stringify(
           isDevMode 
             ? 'pk_test_dG9waWNhbC1pbXBhbGEtNjAuY2xlcmsuYWNjb3VudHMuZGV2JA'
