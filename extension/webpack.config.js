@@ -73,14 +73,10 @@ module.exports = (env, argv) => {
         // Define import.meta for Extension builds to prevent runtime errors
         'import.meta.env.MODE': JSON.stringify(argv.mode || 'development'),
         'import.meta.env.VITE_CLERK_PUBLISHABLE_KEY': JSON.stringify(
-          isDevMode 
-            ? 'pk_test_dG9waWNhbC1pbXBhbGEtNjAuY2xlcmsuYWNjb3VudHMuZGV2JA'
-            : process.env.VITE_CLERK_PUBLISHABLE_KEY || 'pk_live_YOUR_PROD_CLERK_PUBLISHABLE_KEY'  // Uses env var in CI/CD
+          process.env.VITE_CLERK_PUBLISHABLE_KEY || ''
         ),
         'import.meta.env.VITE_BACKEND_URL': JSON.stringify(
-          isDevMode 
-            ? 'https://sokuji-api-dev.kizuna.ai'
-            : 'https://sokuji-api.kizuna.ai'
+          process.env.VITE_BACKEND_URL || ''
         ),
         'import.meta.env.VITE_ENABLE_KIZUNA_AI': JSON.stringify(
           isDevMode 

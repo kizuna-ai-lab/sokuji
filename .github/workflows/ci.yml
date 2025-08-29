@@ -55,3 +55,7 @@ jobs:
             echo "Extension build failed: dist directory not found"
             exit 1
           fi
+        env:
+          # Extension environment variables for CI builds
+          VITE_CLERK_PUBLISHABLE_KEY: ${{ secrets.VITE_CLERK_PUBLISHABLE_KEY_PROD }}
+          VITE_BACKEND_URL: 'https://sokuji-api.kizuna.ai'
