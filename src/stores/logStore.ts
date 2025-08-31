@@ -78,9 +78,13 @@ export interface LogEntry {
 
 interface LogStore {
   logs: LogEntry[];
+  pendingLogs: LogEntry[];
+  allLogs: LogEntry[]; // Combined logs for display
+  batchTimer: NodeJS.Timeout | null;
   addLog: (message: string, type?: LogEntry['type']) => void;
   addRealtimeEvent: (event: EventData, source: RealtimeEventSource, eventType: string) => void;
   clearLogs: () => void;
+  flushPendingLogs: () => void;
 }
 
 // Sanitize event data by removing large binary audio fields
@@ -141,21 +145,55 @@ const sanitizeEvent = (event: any): any => {
   return sanitized;
 };
 
+// Batch update configuration
+const BATCH_DELAY_MS = 100; // Batch updates every 100ms
+
 // Create the Zustand store
 const useLogStore = create<LogStore>(
   subscribeWithSelector((set, get) => ({
     logs: [],
+    pendingLogs: [],
+    allLogs: [], // Initialize combined logs
+    batchTimer: null,
+
+    flushPendingLogs: () => {
+      const state = get();
+      if (state.pendingLogs.length > 0) {
+        const newLogs = [...state.logs, ...state.pendingLogs];
+        set({
+          logs: newLogs,
+          pendingLogs: [],
+          allLogs: newLogs, // Update combined logs
+          batchTimer: null
+        });
+      }
+    },
 
     addLog: (message: string, type: LogEntry['type'] = 'info') => {
       const now = new Date();
       const timestamp = now.toLocaleTimeString();
+      const newLog = { timestamp, message, type };
       
-      set(state => ({
-        logs: [
-          ...state.logs,
-          { timestamp, message, type }
-        ]
-      }));
+      set(state => {
+        // Clear existing timer
+        if (state.batchTimer) {
+          clearTimeout(state.batchTimer);
+        }
+        
+        // Set new timer to flush batch
+        const timer = setTimeout(() => {
+          get().flushPendingLogs();
+        }, BATCH_DELAY_MS);
+        
+        const newPendingLogs = [...state.pendingLogs, newLog];
+        const newAllLogs = [...state.logs, ...newPendingLogs];
+        
+        return {
+          pendingLogs: newPendingLogs,
+          allLogs: newAllLogs, // Update combined logs
+          batchTimer: timer
+        };
+      });
     },
 
     addRealtimeEvent: (event: EventData, source: RealtimeEventSource, eventType: string) => {
@@ -251,11 +289,12 @@ const useLogStore = create<LogStore>(
       }
       
       set(state => {
-        const prevLogs = state.logs;
+        // Check both logs and pendingLogs for grouping
+        const allLogs = [...state.logs, ...state.pendingLogs];
         
         // Check if this is a consecutive identical event
-        if (prevLogs.length > 0) {
-          const lastLog = prevLogs[prevLogs.length - 1];
+        if (allLogs.length > 0) {
+          const lastLog = allLogs[allLogs.length - 1];
           
           // Check if the last log has the same event type, source, and grouping key
           if (
@@ -264,41 +303,97 @@ const useLogStore = create<LogStore>(
             lastLog.groupingKey === groupingKey &&
             groupingKey !== undefined
           ) {
-            // Create a new array with all logs except the last one
-            const logsWithoutLast = prevLogs.slice(0, -1);
-            
-            // Update the last log with an incremented count
+            // Update the last log with new event
             const updatedLastLog = {
               ...lastLog,
               timestamp, // Update timestamp to the latest
               events: [...(lastLog.events || []), sanitizedEvent] // Add the sanitized event to the events array
             };
             
-            // Return the updated logs array
-            return { logs: [...logsWithoutLast, updatedLastLog] };
+            // Check if the last log is in pendingLogs or logs
+            if (state.pendingLogs.length > 0 && 
+                state.pendingLogs[state.pendingLogs.length - 1] === lastLog) {
+              // Update in pendingLogs
+              const updatedPendingLogs = [...state.pendingLogs.slice(0, -1), updatedLastLog];
+              
+              // Clear existing timer
+              if (state.batchTimer) {
+                clearTimeout(state.batchTimer);
+              }
+              
+              // Set new timer to flush batch
+              const timer = setTimeout(() => {
+                get().flushPendingLogs();
+              }, BATCH_DELAY_MS);
+              
+              const newAllLogs = [...state.logs, ...updatedPendingLogs];
+              return { 
+                pendingLogs: updatedPendingLogs,
+                allLogs: newAllLogs,
+                batchTimer: timer
+              };
+            } else {
+              // Update in logs and restart batch timer
+              const logsWithoutLast = state.logs.slice(0, -1);
+              
+              // Clear existing timer
+              if (state.batchTimer) {
+                clearTimeout(state.batchTimer);
+              }
+              
+              // Set new timer to flush batch
+              const timer = setTimeout(() => {
+                get().flushPendingLogs();
+              }, BATCH_DELAY_MS);
+              
+              const newLogs = [...logsWithoutLast, updatedLastLog];
+              return { 
+                logs: newLogs,
+                allLogs: [...newLogs, ...state.pendingLogs],
+                batchTimer: timer
+              };
+            }
           }
         }
         
-        // If not a consecutive identical event, add a new log entry
+        // If not a consecutive identical event, add a new log entry to pending
+        const newLog = { 
+          timestamp, 
+          message, 
+          type: 'info' as const, 
+          events: [sanitizedEvent], // Initialize events array with the sanitized event
+          source, 
+          eventType,
+          groupingKey
+        };
+        
+        // Clear existing timer
+        if (state.batchTimer) {
+          clearTimeout(state.batchTimer);
+        }
+        
+        // Set new timer to flush batch
+        const timer = setTimeout(() => {
+          get().flushPendingLogs();
+        }, BATCH_DELAY_MS);
+        
+        const newPendingLogs = [...state.pendingLogs, newLog];
+        const newAllLogs = [...state.logs, ...newPendingLogs];
         return {
-          logs: [
-            ...prevLogs,
-            { 
-              timestamp, 
-              message, 
-              type: 'info' as const, 
-              events: [sanitizedEvent], // Initialize events array with the sanitized event
-              source, 
-              eventType,
-              groupingKey
-            }
-          ]
+          pendingLogs: newPendingLogs,
+          allLogs: newAllLogs,
+          batchTimer: timer
         };
       });
     },
 
     clearLogs: () => {
-      set({ logs: [] });
+      const state = get();
+      // Clear any pending timer
+      if (state.batchTimer) {
+        clearTimeout(state.batchTimer);
+      }
+      set({ logs: [], pendingLogs: [], allLogs: [], batchTimer: null });
     }
   }))
 );
@@ -308,7 +403,8 @@ const useLogStore = create<LogStore>(
 export const useAddLog = () => useLogStore(state => state.addLog);
 export const useAddRealtimeEvent = () => useLogStore(state => state.addRealtimeEvent);
 export const useClearLogs = () => useLogStore(state => state.clearLogs);
-export const useLogData = () => useLogStore(state => state.logs);
+// Use pre-computed allLogs to prevent creating new arrays on every render
+export const useLogData = () => useLogStore(state => state.allLogs);
 
 // For backwards compatibility, provide a combined hook
 export const useLogActions = () => {
