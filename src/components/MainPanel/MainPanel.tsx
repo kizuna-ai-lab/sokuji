@@ -195,6 +195,10 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   
   // Reference to track audio quality metrics
   const audioQualityIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Simple throttling for UI updates to prevent freezing
+  const lastUpdateTimeRef = useRef<number>(0);
+  const UPDATE_THROTTLE_MS = 50; // Throttle UI updates to max 20Hz
 
   /**
    * References for rendering audio visualization (canvas)
@@ -270,7 +274,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         // }
       },
       onConversationUpdated: async ({ item, delta }: { item: ConversationItem; delta?: any }) => {
-        // Send delta audio to audio service for real-time streaming playback
+        // Handle audio delta separately - send to player but skip UI update
         if (delta?.audio) {
           // Always stream assistant audio - monitor on/off is handled by global volume
           // User audio should NOT be played back to avoid echo
@@ -278,7 +282,23 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           
           // Use a consistent trackId for all AI assistant audio to ensure proper queuing
           audioService.addAudioData(delta.audio, 'ai-assistant', shouldPlayAudio);
+          
+          // IMPORTANT: Skip UI update for audio-only deltas to prevent freezing
+          // Audio will play smoothly without updating the React state
+          return;
         }
+        
+        // Simple throttling: skip updates that are too frequent
+        const now = Date.now();
+        const timeSinceLastUpdate = now - lastUpdateTimeRef.current;
+        if (timeSinceLastUpdate < UPDATE_THROTTLE_MS) {
+          // Skip this update if it's too soon after the last one
+          // This prevents UI freezing from rapid updates
+          return;
+        }
+        lastUpdateTimeRef.current = now;
+        
+        // Handle completed audio items
         if (item.status === 'completed' && item.formatted?.audio) {
           const wavFile = await decodeAudioToWav(
             item.formatted.audio as Int16Array,
@@ -289,6 +309,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
             item.formatted.file = wavFile;
           }
         }
+        
         // Increment translation count when assistant item is completed
         if (item.status === 'completed' && item.role === 'assistant' && 
             (item.formatted?.text || item.formatted?.transcript)) {
@@ -313,10 +334,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           }
         }
         
-        // Note: We don't clear the streaming track for individual items anymore
-        // since all AI audio uses the same trackId 'ai-assistant' for proper queuing
-        // The streaming track will be cleared when the session ends or is interrupted
-        
+        // Update UI state
         setItems(client.getConversationItems());
       }
     };
