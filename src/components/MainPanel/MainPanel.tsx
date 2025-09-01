@@ -42,7 +42,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   const { trackEvent } = useAnalytics();
   
   // Get authentication state for Kizuna AI dynamic token fetching
-  const { getToken, isSignedIn } = useAuth();
+  const { getToken, isSignedIn, isLoaded } = useAuth();
   
   // Get user profile and quota information
   const { quota, refetchAll } = useUserProfile();
@@ -354,7 +354,16 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
     client.setEventHandlers(eventHandlers);
     setItems(client.getConversationItems());
-  }, [isMonitorDeviceOn]); // addRealtimeEvent from Zustand is stable
+  }, [
+    isMonitorDeviceOn,
+    provider,
+    sessionId,
+    getCurrentProviderSettings,
+    setTranslationCount,
+    trackEvent,
+    addRealtimeEvent,
+    setIsSessionActive
+  ]); // addRealtimeEvent from Zustand is stable
 
   /**
    * Disconnect and reset conversation state
@@ -440,7 +449,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           break;
         case Provider.KIZUNA_AI:
           // For Kizuna AI, fetch a fresh token from Clerk to avoid 401 errors
-          if (getToken && isSignedIn) {
+          if (getToken && isLoaded && isSignedIn === true) {
             console.log('[MainPanel] Fetching fresh Clerk token for Kizuna AI...');
             try {
               const freshToken = await getToken({ skipCache: true });
@@ -451,7 +460,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
               apiKey = kizunaAISettings.apiKey || '';
             }
           } else {
-            // Fallback to stored token if getToken is not available
+            // Fallback to stored token if getToken is not available or user not signed in
             apiKey = kizunaAISettings.apiKey || '';
           }
           break;
@@ -629,6 +638,11 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     geminiSettings, 
     cometAPISettings, 
     palabraAISettings,
+    kizunaAISettings,
+    provider,
+    isLoaded,
+    isSignedIn,
+    getToken,
     getCurrentProviderSettings, 
     getSessionConfig, 
     setupClientListeners, 
@@ -1566,7 +1580,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                 connectConversation();
               }
             }}
-            disabled={(!isSessionActive && (!isApiKeyValid || availableModels.length === 0 || loadingModels || (getCurrentProviderSettings().provider === Provider.KIZUNA_AI && quota && (quota.balance === undefined || quota.balance < 0 || quota.frozen)))) || isInitializing}
+            disabled={(!isSessionActive && (!isApiKeyValid || availableModels.length === 0 || loadingModels || (provider === Provider.KIZUNA_AI && quota && (quota.balance === undefined || quota.balance < 0 || quota.frozen)))) || isInitializing}
           >
             {isInitializing ? (
               <>
@@ -1591,10 +1605,10 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                 {isApiKeyValid && loadingModels && (
                   <span className="tooltip">{t('mainPanel.modelsLoading')}</span>
                 )}
-                {isApiKeyValid && getCurrentProviderSettings().provider === Provider.KIZUNA_AI && quota && quota.frozen && (
+                {isApiKeyValid && provider === Provider.KIZUNA_AI && quota && quota.frozen && (
                   <span className="tooltip">{t('mainPanel.walletFrozen', 'Wallet is frozen. Please contact support.')}</span>
                 )}
-                {isApiKeyValid && getCurrentProviderSettings().provider === Provider.KIZUNA_AI && quota && quota.balance !== undefined && quota.balance < 0 && (
+                {isApiKeyValid && provider === Provider.KIZUNA_AI && quota && quota.balance !== undefined && quota.balance < 0 && (
                   <span className="tooltip">{t('mainPanel.insufficientBalance', 'Insufficient token balance: {{balance}} tokens', { balance: quota.balance })}</span>
                 )}
               </>
