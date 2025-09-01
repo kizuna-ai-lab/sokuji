@@ -895,8 +895,6 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     });
   }, [settingsService]);
 
-  // Import ApiKeyService and create function to fetch KizunaAI API key
-
   // Load settings from storage
   const loadSettings = useCallback(async () => {
     try {

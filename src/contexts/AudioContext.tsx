@@ -168,7 +168,7 @@ export const AudioProvider = ({ children }: { children: ReactNode }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Empty dependencies - only initialize once on mount
 
-  const selectInputDevice = (device: AudioDevice) => setSelectedInputDevice(device);
+  const selectInputDevice = useCallback((device: AudioDevice) => setSelectedInputDevice(device), []);
   
   // Updated selectMonitorDevice to use the audio service
   const selectMonitorDevice = useCallback((device: AudioDevice) => {
@@ -206,26 +206,27 @@ export const AudioProvider = ({ children }: { children: ReactNode }) => {
   
   // Updated toggleInputDeviceState to use the audio service if needed
   const toggleInputDeviceState = useCallback(() => {
-    setIsInputDeviceOn(!isInputDeviceOn);
-  }, [isInputDeviceOn]);
+    setIsInputDeviceOn(prev => !prev);
+  }, []);
   
   // Updated toggleMonitorDeviceState to use the audio service
   const toggleMonitorDeviceState = useCallback(() => {
     console.info('[Sokuji] [AudioContext] Toggling monitor device state');
-    const newState = !isMonitorDeviceOn;
-    setIsMonitorDeviceOn(newState);
-    
-    // Set monitor volume based on state (0 for off, 1 for on)
-    // This is all we need - no need to disconnect/reconnect devices
-    audioService.current.setMonitorVolume(newState);
-    console.info(`[Sokuji] [AudioContext] Monitor state changed to: ${newState ? 'ON' : 'OFF'}`);
-  }, [isMonitorDeviceOn]);
+    setIsMonitorDeviceOn(prev => {
+      const newState = !prev;
+      // Set monitor volume based on state (0 for off, 1 for on)
+      // This is all we need - no need to disconnect/reconnect devices
+      audioService.current.setMonitorVolume(newState);
+      console.info(`[Sokuji] [AudioContext] Monitor state changed to: ${newState ? 'ON' : 'OFF'}`);
+      return newState;
+    });
+  }, []);
 
   // Real person voice passthrough functions
   const toggleRealVoicePassthrough = useCallback(() => {
     console.info('[Sokuji] [AudioContext] Toggling real voice passthrough');
-    setIsRealVoicePassthroughEnabled(!isRealVoicePassthroughEnabled);
-  }, [isRealVoicePassthroughEnabled]);
+    setIsRealVoicePassthroughEnabled(prev => !prev);
+  }, []);
 
   const setRealVoicePassthroughVolume = useCallback((volume: number) => {
     // Clamp volume between 0 and 0.6 (60%)

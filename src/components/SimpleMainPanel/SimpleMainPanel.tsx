@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Mic, MicOff, Volume2, VolumeX, Loader, MessageSquare } from 'lucide-react';
 import './SimpleMainPanel.scss';
 import { useSettings } from '../../contexts/SettingsContext';
@@ -21,7 +21,7 @@ interface SimpleMainPanelProps {
   onStopRecording: () => void;
 }
 
-const SimpleMainPanel: React.FC<SimpleMainPanelProps> = ({
+const SimpleMainPanel: React.FC<SimpleMainPanelProps> = React.memo(({
   items,
   isSessionActive,
   isInitializing,
@@ -81,9 +81,12 @@ const SimpleMainPanel: React.FC<SimpleMainPanelProps> = ({
   }
 
   // Filter conversation items to show only user messages and assistant responses
-  const filteredItems = items.filter(item => 
-    (item.role === 'user' || item.role === 'assistant') &&
-    (item.formatted?.transcript || item.formatted?.text)
+  const filteredItems = useMemo(
+    () => items.filter(item => 
+      (item.role === 'user' || item.role === 'assistant') &&
+      (item.formatted?.transcript || item.formatted?.text)
+    ),
+    [items]
   );
 
   // Auto-scroll to bottom when new items are added
@@ -258,6 +261,8 @@ const SimpleMainPanel: React.FC<SimpleMainPanelProps> = ({
       </div>
     </div>
   );
-};
+});
+
+SimpleMainPanel.displayName = 'SimpleMainPanel';
 
 export default SimpleMainPanel;

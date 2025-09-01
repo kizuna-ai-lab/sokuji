@@ -45,6 +45,9 @@ export class ModernAudioRecorder {
     this.isProcessing = false;
     this._audioChunkCount = 0;
     
+    // Performance optimization: Pre-bind method to avoid runtime binding
+    this._processAudioData = this._processAudioData.bind(this);
+    
     // First recording and warmup settings
     this._isFirstRecording = true;
     this._enableWarmup = enableWarmup;
