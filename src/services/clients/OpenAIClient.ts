@@ -79,7 +79,7 @@ export class OpenAIClient implements IClient {
         }
       });
 
-      console.info("[Sokuji] [OpenAIClient] Validation response:", response);
+        console.info("[Sokuji] [OpenAIClient] Validation response:", response);
       
       // Handle non-200 responses
       if (!response.ok) {
@@ -100,9 +100,9 @@ export class OpenAIClient implements IClient {
       
       // Check for realtime models availability
       const hasRealtimeModel = this.checkRealtimeModelAvailability(availableModels);
-      
-      console.info("[Sokuji] [OpenAIClient] Available models:", availableModels);
-      console.info("[Sokuji] [OpenAIClient] Has realtime model:", hasRealtimeModel);
+
+        console.info("[Sokuji] [OpenAIClient] Available models:", availableModels);
+        console.info("[Sokuji] [OpenAIClient] Has realtime model:", hasRealtimeModel);
       
       // Filter relevant models
       const filteredModels = this.filterRelevantModels(availableModels);
@@ -114,7 +114,7 @@ export class OpenAIClient implements IClient {
       };
       
     } catch (error: any) {
-      console.error("[Sokuji] [OpenAIClient] API key validation error:", error);
+        console.error("[Sokuji] [OpenAIClient] API key validation error:", error);
       return {
         validation: {
           valid: false,

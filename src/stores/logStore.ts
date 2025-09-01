@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
 import { shallow } from 'zustand/shallow';
+import { useMemo } from 'react';
 import type {
   RealtimeServerEvents,
   RealtimeClientEvents,
@@ -145,8 +146,8 @@ const sanitizeEvent = (event: any): any => {
   return sanitized;
 };
 
-// Batch update configuration
-const BATCH_DELAY_MS = 100; // Batch updates every 100ms
+// Batch update configuration - increased for better performance
+const BATCH_DELAY_MS = 150; // Batch updates every 150ms for better performance
 
 // Create the Zustand store
 const useLogStore = create<LogStore>(
@@ -404,7 +405,7 @@ export const useAddLog = () => useLogStore(state => state.addLog);
 export const useAddRealtimeEvent = () => useLogStore(state => state.addRealtimeEvent);
 export const useClearLogs = () => useLogStore(state => state.clearLogs);
 // Use pre-computed allLogs to prevent creating new arrays on every render
-export const useLogData = () => useLogStore(state => state.allLogs);
+export const useLogData = () => useLogStore(state => state.allLogs, shallow);
 
 // For backwards compatibility, provide a combined hook
 export const useLogActions = () => {
@@ -412,7 +413,10 @@ export const useLogActions = () => {
   const addRealtimeEvent = useAddRealtimeEvent();
   const clearLogs = useClearLogs();
   
-  return { addLog, addRealtimeEvent, clearLogs };
+  return useMemo(
+    () => ({ addLog, addRealtimeEvent, clearLogs }),
+    [addLog, addRealtimeEvent, clearLogs]
+  );
 };
 
 export default useLogStore;
