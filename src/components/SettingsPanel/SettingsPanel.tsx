@@ -4,7 +4,7 @@ import './SettingsPanel.scss';
 import { useSettings } from '../../contexts/SettingsContext';
 import { useOnboarding } from '../../contexts/OnboardingContext';
 import { useTranslation } from 'react-i18next';
-import { useSession } from '../../contexts/SessionContext';
+import { useSession } from '../../stores/sessionStore';
 import { ProviderConfigFactory } from '../../services/providers/ProviderConfigFactory';
 import ProviderSpecificSettings from './ProviderSpecificSettings';
 import { Provider, ProviderType } from '../../types/Provider';

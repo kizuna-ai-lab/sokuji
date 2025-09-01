@@ -1,4 +1,4 @@
-import { AudioDevice } from '../../contexts/AudioContext';
+import { AudioDevice } from '../../stores/audioStore';
 import { ModernAudioPlayer, ModernAudioRecorder } from '../../lib/modern-audio';
 
 export interface AudioDevices {

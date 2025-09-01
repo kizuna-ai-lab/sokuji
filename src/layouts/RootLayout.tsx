@@ -91,7 +91,7 @@ export function RootLayout() {
 
   return (
     <ClerkProvider {...clerkProps}>
-      <Outlet />
+        <Outlet />
     </ClerkProvider>
   );
 }

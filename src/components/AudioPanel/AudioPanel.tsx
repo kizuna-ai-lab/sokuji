@@ -2,15 +2,15 @@ import React, { useState } from 'react';
 import { ArrowRight, Volume2, Mic, RefreshCw, AlertTriangle, AudioLines } from 'lucide-react';
 import './AudioPanel.scss';
 import Modal from '../Modal/Modal';
-import { useAudioContext } from '../../contexts/AudioContext';
+import { useAudioContext } from '../../stores/audioStore';
 import { useTranslation } from 'react-i18next';
 import { useAnalytics } from '../../lib/analytics';
-import { useSession } from '../../contexts/SessionContext';
+import { useIsSessionActive } from '../../stores/sessionStore';
 
 const AudioPanel: React.FC<{ toggleAudio: () => void }> = ({ toggleAudio }) => {
   const { t } = useTranslation();
   const { trackEvent } = useAnalytics();
-  const { isSessionActive } = useSession();
+  const isSessionActive = useIsSessionActive();
   const [showVirtualMicWarning, setShowVirtualMicWarning] = useState(false);
   const [showVirtualSpeakerWarning, setShowVirtualSpeakerWarning] = useState(false);
 
