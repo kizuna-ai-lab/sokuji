@@ -2,8 +2,8 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Mic, MicOff, Volume2, VolumeX, Loader, MessageSquare } from 'lucide-react';
 import './SimpleMainPanel.scss';
 import { useSettings } from '../../contexts/SettingsContext';
-import { useSession } from '../../contexts/SessionContext';
-import { useAudioContext } from '../../contexts/AudioContext';
+import { useSessionStartTime } from '../../stores/sessionStore';
+import { useAudioContext } from '../../stores/audioStore';
 import { useUserProfile } from '../../contexts/UserProfileContext';
 import { ConversationItem } from '../../services/clients';
 import { Provider } from '../../types/Provider';
@@ -52,7 +52,7 @@ const SimpleMainPanel: React.FC<SimpleMainPanelProps> = React.memo(({
     isMonitorDeviceOn,
   } = useAudioContext();
 
-  const { sessionStartTime } = useSession();
+  const sessionStartTime = useSessionStartTime();
   const { quota } = useUserProfile();
 
   const currentSettings = getCurrentProviderSettings();

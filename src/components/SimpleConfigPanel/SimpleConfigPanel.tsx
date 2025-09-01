@@ -3,8 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowRight, Volume2, Key, Globe, CheckCircle, AlertCircle, HelpCircle, CircleHelp, Bot, Sparkles, Zap, AudioLines, Mic, Languages, User, ChevronDown, ChevronUp } from 'lucide-react';
 import './SimpleConfigPanel.scss';
 import { useSettings } from '../../contexts/SettingsContext';
-import { useAudioContext } from '../../contexts/AudioContext';
-import { useSession } from '../../contexts/SessionContext';
+import { useAudioContext } from '../../stores/audioStore';
+import { useIsSessionActive } from '../../stores/sessionStore';
 import { useTranslation } from 'react-i18next';
 import { Provider, ProviderType } from '../../types/Provider';
 import { useAnalytics } from '../../lib/analytics';
@@ -26,7 +26,7 @@ const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings, h
   const { t, i18n } = useTranslation();
   const { trackEvent } = useAnalytics();
   const navigate = useNavigate();
-  const { isSessionActive } = useSession();
+  const isSessionActive = useIsSessionActive();
   const { getToken, isSignedIn } = useAuth();
   
   // Settings context

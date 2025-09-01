@@ -1,23 +1,26 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import MainLayout from '../components/MainLayout/MainLayout';
 import { UserProfileProvider } from '../contexts/UserProfileContext';
 import { SettingsProvider } from '../contexts/SettingsContext';
-import { AudioProvider } from '../contexts/AudioContext';
-import { SessionProvider } from '../contexts/SessionContext';
 import { OnboardingProvider } from '../contexts/OnboardingContext';
+import { useInitializeAudioService } from '../stores/audioStore';
 
 export function Home() {
+  const initializeAudioService = useInitializeAudioService();
+  
+  // Initialize audio service when component mounts
+  useEffect(() => {
+    console.info('[Home] Initializing audio service');
+    initializeAudioService();
+  }, []); // Empty dependency array - only run once on mount
+  
   return (
-    <SessionProvider>
-      <UserProfileProvider>
-        <SettingsProvider>
-          <AudioProvider>
-            <OnboardingProvider>
-              <MainLayout />
-            </OnboardingProvider>
-          </AudioProvider>
-        </SettingsProvider>
-      </UserProfileProvider>
-    </SessionProvider>
+    <UserProfileProvider>
+      <SettingsProvider>
+        <OnboardingProvider>
+          <MainLayout />
+        </OnboardingProvider>
+      </SettingsProvider>
+    </UserProfileProvider>
   );
 }

@@ -5,7 +5,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useAuth, useUser } from '../lib/clerk/ClerkProvider';
-import { useSession } from './SessionContext';
+import { useIsSessionActive } from '../stores/sessionStore';
 
 interface QuotaData {
   // Core wallet data (new fields)
@@ -67,7 +67,7 @@ interface UserProfileProviderProps {
 export function UserProfileProvider({ children }: UserProfileProviderProps) {
   const { isSignedIn, getToken } = useAuth();
   const { user: clerkUser } = useUser();
-  const { isSessionActive } = useSession();
+  const isSessionActive = useIsSessionActive();
   
   const [quota, setQuota] = useState<QuotaData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
