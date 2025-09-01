@@ -74,6 +74,7 @@
     "failedToSaveSetting": "設定の保存に失敗しました: {{key}}",
     "apiKeyValidationCompleted": "APIキー検証が完了しました",
     "errorValidatingApiKey": "APIキー検証中にエラーが発生しました",
+    "regionNotSupported": "お住まいの地域ではこのサービスをご利用いただけません。ネットワーク環境をご確認いただくか、別のプロバイダーをお試しください。",
     "sessionActiveNotice": "セッション中は設定がロックされています。設定を変更するにはセッションを終了してください。",
     "realtimeModelAvailable": "リアルタイムモデルが利用可能です",
     "realtimeModelNotAvailable": "リアルタイムモデルは利用できません",

@@ -1,6 +1,25 @@
 import React, { Fragment } from 'react';
 import { ProviderConfig } from '../../services/providers/ProviderConfig';
-import { useSettings } from '../../contexts/SettingsContext';
+import {
+  useProvider,
+  useSystemInstructions,
+  useTemplateSystemInstructions,
+  useUseTemplateMode,
+  useOpenAISettings,
+  useGeminiSettings,
+  useCometAPISettings,
+  usePalabraAISettings,
+  useKizunaAISettings,
+  useSetSystemInstructions,
+  useSetTemplateSystemInstructions,
+  useSetUseTemplateMode,
+  useUpdateOpenAI,
+  useUpdateGemini,
+  useUpdateCometAPI,
+  useUpdatePalabraAI,
+  useUpdateKizunaAI,
+  useGetCurrentProviderSettings
+} from '../../stores/settingsStore';
 import { useTranslation } from 'react-i18next';
 import { ChevronDown, ChevronRight, RotateCw, Info, CircleHelp } from 'lucide-react';
 import Tooltip from '../Tooltip/Tooltip';
@@ -31,21 +50,27 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
   fetchAvailableModels
 }) => {
   const { getToken } = useAuth();
-  const { 
-    commonSettings, 
-    updateCommonSettings,
-    openAISettings,
-    cometAPISettings,
-    geminiSettings,
-    palabraAISettings,
-    kizunaAISettings,
-    updateOpenAISettings,
-    updateCometAPISettings,
-    updateGeminiSettings,
-    updatePalabraAISettings,
-    updateKizunaAISettings,
-    getCurrentProviderSettings
-  } = useSettings();
+  // Settings from store
+  const provider = useProvider();
+  const systemInstructions = useSystemInstructions();
+  const templateSystemInstructions = useTemplateSystemInstructions();
+  const useTemplateMode = useUseTemplateMode();
+  const openAISettings = useOpenAISettings();
+  const cometAPISettings = useCometAPISettings();
+  const geminiSettings = useGeminiSettings();
+  const palabraAISettings = usePalabraAISettings();
+  const kizunaAISettings = useKizunaAISettings();
+  
+  // Actions from store
+  const setSystemInstructions = useSetSystemInstructions();
+  const setTemplateSystemInstructions = useSetTemplateSystemInstructions();
+  const setUseTemplateMode = useSetUseTemplateMode();
+  const updateOpenAISettings = useUpdateOpenAI();
+  const updateCometAPISettings = useUpdateCometAPI();
+  const updateGeminiSettings = useUpdateGemini();
+  const updatePalabraAISettings = useUpdatePalabraAI();
+  const updateKizunaAISettings = useUpdateKizunaAI();
+  const getCurrentProviderSettings = useGetCurrentProviderSettings();
   const { t } = useTranslation();
   const { trackEvent } = useAnalytics();
 
@@ -54,33 +79,33 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
 
   // Helper functions to update current provider's settings
   const updateCurrentProviderSetting = (key: string, value: any) => {
-    if (commonSettings.provider === Provider.OPENAI) {
+    if (provider === Provider.OPENAI) {
       updateOpenAISettings({ [key]: value });
-    } else if (commonSettings.provider === Provider.COMET_API) {
+    } else if (provider === Provider.COMET_API) {
       updateCometAPISettings({ [key]: value });
-    } else if (commonSettings.provider === Provider.KIZUNA_AI) {
+    } else if (provider === Provider.KIZUNA_AI) {
       updateKizunaAISettings({ [key]: value });
-    } else if (commonSettings.provider === Provider.GEMINI) {
+    } else if (provider === Provider.GEMINI) {
       updateGeminiSettings({ [key]: value });
-    } else if (commonSettings.provider === Provider.PALABRA_AI) {
+    } else if (provider === Provider.PALABRA_AI) {
       updatePalabraAISettings({ [key]: value });
     } else {
-      console.warn('[Sokuji][ProviderSpecificSettings] Unsupported provider:', commonSettings.provider);
+      console.warn('[Sokuji][ProviderSpecificSettings] Unsupported provider:', provider);
     }
   };
 
   // Helper function to check if current provider is OpenAI-compatible
   const isCurrentProviderOpenAICompatible = () => {
-    return isOpenAICompatible(commonSettings.provider);
+    return isOpenAICompatible(provider);
   };
 
   // Helper function to get OpenAI-compatible settings
   const getOpenAICompatibleSettings = () => {
-    if (commonSettings.provider === Provider.OPENAI) {
+    if (provider === Provider.OPENAI) {
       return openAISettings;
-    } else if (commonSettings.provider === Provider.COMET_API) {
+    } else if (provider === Provider.COMET_API) {
       return cometAPISettings;
-    } else if (commonSettings.provider === Provider.KIZUNA_AI) {
+    } else if (provider === Provider.KIZUNA_AI) {
       return kizunaAISettings;
     }
     return null;
@@ -88,17 +113,17 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
 
   // Helper function to update OpenAI-compatible settings
   const updateOpenAICompatibleSettings = (updates: any) => {
-    if (commonSettings.provider === Provider.OPENAI) {
+    if (provider === Provider.OPENAI) {
       updateOpenAISettings(updates);
-    } else if (commonSettings.provider === Provider.COMET_API) {
+    } else if (provider === Provider.COMET_API) {
       updateCometAPISettings(updates);
-    } else if (commonSettings.provider === Provider.KIZUNA_AI) {
+    } else if (provider === Provider.KIZUNA_AI) {
       updateKizunaAISettings(updates);
     }
   };
 
   const renderLanguageSelections = () => {
-    if (!config.capabilities.hasTemplateMode || !commonSettings.useTemplateMode) {
+    if (!config.capabilities.hasTemplateMode || !useTemplateMode) {
       return null;
     }
 
@@ -205,7 +230,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
   };
 
   const renderVoiceSettings = () => {
-    if (!config.capabilities.hasVoiceSettings || commonSettings.provider === Provider.PALABRA_AI) {
+    if (!config.capabilities.hasVoiceSettings || provider === Provider.PALABRA_AI) {
       return null;
     }
 
@@ -389,7 +414,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
 
   const renderModelSettings = () => {
     // PalabraAI doesn't have model selection
-    if (commonSettings.provider === Provider.PALABRA_AI) {
+    if (provider === Provider.PALABRA_AI) {
       return null;
     }
 
@@ -401,7 +426,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
     const handleRefreshModels = async () => {
       try {
         // Pass getAuthToken for Kizuna AI provider
-        const getAuthToken = commonSettings.provider === Provider.KIZUNA_AI && getToken ? 
+        const getAuthToken = provider === Provider.KIZUNA_AI && getToken ? 
           () => getToken() : undefined;
         
         await fetchAvailableModels(getAuthToken);
@@ -540,7 +565,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
   };
 
   const renderModelConfigurationSettings = () => {
-    if (!config.capabilities.hasModelConfiguration || commonSettings.provider === Provider.PALABRA_AI) {
+    if (!config.capabilities.hasModelConfiguration || provider === Provider.PALABRA_AI) {
       return null;
     }
 
@@ -602,7 +627,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
   };
 
   const renderPalabraAISettings = () => {
-    if (commonSettings.provider !== Provider.PALABRA_AI) {
+    if (provider !== Provider.PALABRA_AI) {
       return null;
     }
 
@@ -897,15 +922,15 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
           <div className="setting-item">
             <div className="turn-detection-options">
               <button 
-                className={`option-button ${commonSettings.useTemplateMode ? 'active' : ''}`}
-                onClick={() => updateCommonSettings({ useTemplateMode: true })}
+                className={`option-button ${useTemplateMode ? 'active' : ''}`}
+                onClick={() => setUseTemplateMode(true)}
                 disabled={isSessionActive}
               >
                 {t('settings.simple')}
               </button>
               <button 
-                className={`option-button ${!commonSettings.useTemplateMode ? 'active' : ''}`}
-                onClick={() => updateCommonSettings({ useTemplateMode: false })}
+                className={`option-button ${!useTemplateMode ? 'active' : ''}`}
+                onClick={() => setUseTemplateMode(false)}
                 disabled={isSessionActive}
               >
                 {t('settings.advanced')}
@@ -913,7 +938,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
             </div>
           </div>
           
-          {commonSettings.useTemplateMode ? (
+          {useTemplateMode ? (
             <>
               {renderLanguageSelections()}
               <div className="setting-item">
@@ -937,8 +962,8 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
               <textarea 
                 className="system-instructions" 
                 placeholder={t('settings.enterCustomInstructions')}
-                value={commonSettings.systemInstructions}
-                onChange={(e) => updateCommonSettings({ systemInstructions: e.target.value })}
+                value={systemInstructions}
+                onChange={(e) => setSystemInstructions(e.target.value)}
                 disabled={isSessionActive}
               />
             </div>

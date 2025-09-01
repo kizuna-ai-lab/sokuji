@@ -1,7 +1,21 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {X, Zap, Users, Mic, Loader, Play, Volume2, Wrench} from 'lucide-react';
 import './MainPanel.scss';
-import { useSettings } from '../../contexts/SettingsContext';
+import {
+  useProvider,
+  useUIMode,
+  useOpenAISettings,
+  useGeminiSettings,
+  useCometAPISettings,
+  usePalabraAISettings,
+  useKizunaAISettings,
+  useIsApiKeyValid,
+  useAvailableModels,
+  useLoadingModels,
+  useGetCurrentProviderSettings,
+  useGetProcessedSystemInstructions,
+  useCreateSessionConfig
+} from '../../stores/settingsStore';
 import { useSession } from '../../stores/sessionStore';
 import { useAudioContext } from '../../stores/audioStore';
 import { useLogActions } from '../../stores/logStore';
@@ -38,21 +52,20 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   const [items, setItems] = useState<ConversationItem[]>([]);
   const [isInitializing, setIsInitializing] = useState(false);
   
-  // Get settings from context
-  const {
-    commonSettings,
-    openAISettings,
-    cometAPISettings,
-    geminiSettings,
-    palabraAISettings,
-    kizunaAISettings,
-    getCurrentProviderSettings,
-    isApiKeyValid,
-    getProcessedSystemInstructions,
-    availableModels,
-    loadingModels,
-    createSessionConfig
-  } = useSettings();
+  // Get settings from store
+  const provider = useProvider();
+  const uiMode = useUIMode();
+  const openAISettings = useOpenAISettings();
+  const cometAPISettings = useCometAPISettings();
+  const geminiSettings = useGeminiSettings();
+  const palabraAISettings = usePalabraAISettings();
+  const kizunaAISettings = useKizunaAISettings();
+  const isApiKeyValid = useIsApiKeyValid();
+  const availableModels = useAvailableModels();
+  const loadingModels = useLoadingModels();
+  const getCurrentProviderSettings = useGetCurrentProviderSettings();
+  const getProcessedSystemInstructions = useGetProcessedSystemInstructions();
+  const createSessionConfig = useCreateSessionConfig();
   
   // Get session state from context
   const { 
@@ -228,7 +241,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         
         // Track API errors
         trackEvent('api_error', {
-          provider: commonSettings.provider || Provider.OPENAI,
+          provider: provider || Provider.OPENAI,
           error_message: event.message || event.error || 'Unknown error',
           error_type: event.type === 'error' ? 'client' : 'server'
         });
@@ -239,7 +252,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         // Track disconnection
         trackEvent('connection_status', {
           status: 'disconnected',
-          provider: commonSettings.provider || Provider.OPENAI
+          provider: provider || Provider.OPENAI
         });
         
         // When connection closes, clean up the session state
@@ -323,13 +336,13 @@ const MainPanel: React.FC<MainPanelProps> = () => {
               source_language: getCurrentProviderSettings().sourceLanguage,
               target_language: getCurrentProviderSettings().targetLanguage,
               latency_ms: translationLatency,
-              provider: commonSettings.provider || Provider.OPENAI
+              provider: provider || Provider.OPENAI
             });
             
             trackEvent('latency_measurement', {
               operation: 'translation',
               latency_ms: translationLatency,
-              provider: commonSettings.provider
+              provider: provider
             });
           }
         }
@@ -418,7 +431,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       
       // Get the appropriate API key/credentials based on the current provider
       let apiKey: string;
-      switch (commonSettings.provider) {
+      switch (provider) {
         case Provider.OPENAI:
           apiKey = openAISettings.apiKey;
           break;
@@ -450,26 +463,26 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           apiKey = palabraAISettings.clientId;
           break;
         default:
-          throw new Error(`Unsupported provider: ${commonSettings.provider}`);
+          throw new Error(`Unsupported provider: ${provider}`);
       }
       
       // Get model name based on provider
-      const modelName = commonSettings.provider === Provider.PALABRA_AI 
+      const modelName = provider === Provider.PALABRA_AI 
         ? 'realtime-translation' 
         : (currentProviderSettings as any).model;
       
       // Create client with appropriate parameters
-      if (commonSettings.provider === Provider.PALABRA_AI) {
+      if (provider === Provider.PALABRA_AI) {
         clientRef.current = ClientFactory.createClient(
           modelName,
-          commonSettings.provider,
+          provider,
           apiKey, // clientId
           palabraAISettings.clientSecret // clientSecret
         );
       } else {
         clientRef.current = ClientFactory.createClient(
           modelName,
-          commonSettings.provider,
+          provider,
           apiKey
         );
       }
@@ -480,11 +493,11 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       const client = clientRef.current;
 
       // Set canPushToTalk based on current turnDetectionMode
-      if (isOpenAICompatible(commonSettings.provider)) {
+      if (isOpenAICompatible(provider)) {
         const settings = 
-          commonSettings.provider === Provider.OPENAI ? openAISettings :
-          commonSettings.provider === Provider.COMET_API ? cometAPISettings :
-          commonSettings.provider === Provider.KIZUNA_AI ? kizunaAISettings :
+          provider === Provider.OPENAI ? openAISettings :
+          provider === Provider.COMET_API ? cometAPISettings :
+          provider === Provider.KIZUNA_AI ? kizunaAISettings :
           null;
         setCanPushToTalk(settings ? settings.turnDetectionMode === 'Disabled' : false);
       } else {
@@ -530,18 +543,18 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         trackEvent('latency_measurement', {
           operation: 'websocket',
           latency_ms: connectionLatency,
-          provider: commonSettings.provider
+          provider: provider
         });
         
         trackEvent('connection_status', {
           status: 'connected',
-          provider: commonSettings.provider || Provider.OPENAI,
+          provider: provider || Provider.OPENAI,
           duration_ms: connectionLatency
         });
       } catch (connectError: any) {
         // Track connection failure
         trackEvent('api_error', {
-          provider: commonSettings.provider || Provider.OPENAI,
+          provider: provider || Provider.OPENAI,
           error_message: connectError.message || 'Connection failed',
           error_type: 'network'
         });
@@ -550,11 +563,11 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
       // Start recording if using server VAD and input device is turned on
       let turnDetectionDisabled = false;
-      if (isOpenAICompatible(commonSettings.provider)) {
+      if (isOpenAICompatible(provider)) {
         const settings = 
-          commonSettings.provider === Provider.OPENAI ? openAISettings :
-          commonSettings.provider === Provider.COMET_API ? cometAPISettings :
-          commonSettings.provider === Provider.KIZUNA_AI ? kizunaAISettings :
+          provider === Provider.OPENAI ? openAISettings :
+          provider === Provider.COMET_API ? cometAPISettings :
+          provider === Provider.KIZUNA_AI ? kizunaAISettings :
           null;
         turnDetectionDisabled = settings ? settings.turnDetectionMode === 'Disabled' : false;
       }
@@ -601,7 +614,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         error_message: error.message || 'Failed to initialize session',
         component: 'MainPanel',
         severity: 'high',
-        provider: commonSettings.provider,
+        provider: provider,
         recoverable: true
       });
       
@@ -611,7 +624,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       setIsInitializing(false);
     }
   }, [
-    commonSettings, 
+ 
     openAISettings, 
     geminiSettings, 
     cometAPISettings, 
@@ -1079,7 +1092,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     return () => {
       isLoaded = false;
     };
-  }, [commonSettings.uiMode]);
+  }, [uiMode]);
 
   /**
    * Auto-scroll to the bottom of the conversation when new content is added
@@ -1129,11 +1142,11 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         else {
           // If we're in automatic mode, start/resume recording
           let turnDetectionDisabled = false;
-          if (isOpenAICompatible(commonSettings.provider)) {
+          if (isOpenAICompatible(provider)) {
             const settings = 
-              commonSettings.provider === Provider.OPENAI ? openAISettings :
-              commonSettings.provider === Provider.COMET_API ? cometAPISettings :
-              commonSettings.provider === Provider.KIZUNA_AI ? kizunaAISettings :
+              provider === Provider.OPENAI ? openAISettings :
+              provider === Provider.COMET_API ? cometAPISettings :
+              provider === Provider.KIZUNA_AI ? kizunaAISettings :
               null;
             turnDetectionDisabled = settings ? settings.turnDetectionMode === 'Disabled' : false;
           }
@@ -1162,7 +1175,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     };
 
     updateRecordingState();
-  }, [isInputDeviceOn, isSessionActive, commonSettings.provider, openAISettings.turnDetectionMode, cometAPISettings.turnDetectionMode, selectedInputDevice]);
+  }, [isInputDeviceOn, isSessionActive, provider, openAISettings.turnDetectionMode, cometAPISettings.turnDetectionMode, selectedInputDevice]);
 
   /**
    * Watch for changes to selectedMonitorDevice or isMonitorDeviceOn 
@@ -1261,7 +1274,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           source_language: currentSettings.sourceLanguage,
           target_language: currentSettings.targetLanguage,
           session_id: newSessionId,
-          provider: commonSettings.provider,
+          provider: provider,
           model: (currentSettings as any).model
         });
       }
@@ -1273,7 +1286,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           session_id: sessionId,
           duration,
           translation_count: translationCount,
-          provider: commonSettings.provider
+          provider: provider
         });
         // Reset session state
         setSessionId(null);
@@ -1347,7 +1360,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   }, [selectedInputDevice?.deviceId, isSessionActive, isInputDeviceOn]);
 
   // If in basic mode, render the simplified interface
-  if (commonSettings.uiMode === 'basic') {
+  if (uiMode === 'basic') {
     return (
       <div className="main-panel-wrapper">
         <SimpleMainPanel

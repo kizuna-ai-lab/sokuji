@@ -84,6 +84,19 @@ export class OpenAIClient implements IClient {
       // Handle non-200 responses
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
+        
+        // Check for region restriction error
+        if (errorData.error?.code === 'unsupported_country_region_territory') {
+          return {
+            validation: {
+              valid: false,
+              message: i18n.t('settings.regionNotSupported'),
+              validating: false
+            },
+            models: []
+          };
+        }
+        
         return {
           validation: {
             valid: false,

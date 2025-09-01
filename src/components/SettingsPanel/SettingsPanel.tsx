@@ -1,7 +1,40 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { ArrowRight, Save, Check, AlertCircle, AlertTriangle, Info, Key, HelpCircle, FlaskConical, CheckCircle, CircleHelp } from 'lucide-react';
 import './SettingsPanel.scss';
-import { useSettings } from '../../contexts/SettingsContext';
+import {
+  useProvider,
+  useUIMode,
+  useSystemInstructions,
+  useTemplateSystemInstructions,
+  useUseTemplateMode,
+  useOpenAISettings,
+  useGeminiSettings,
+  useCometAPISettings,
+  usePalabraAISettings,
+  useKizunaAISettings,
+  useAvailableModels,
+  useLoadingModels,
+  useSetProvider,
+  useSetUIMode,
+  useSetUILanguage,
+  useSetSystemInstructions,
+  useSetTemplateSystemInstructions,
+  useSetUseTemplateMode,
+  useUpdateOpenAI,
+  useUpdateGemini,
+  useUpdateCometAPI,
+  useUpdatePalabraAI,
+  useUpdateKizunaAI,
+  useValidateApiKey,
+  useFetchAvailableModels,
+  useClearCache,
+  useGetProcessedSystemInstructions,
+  useIsValidating,
+  useValidationMessage,
+  useIsApiKeyValid,
+  useIsKizunaKeyFetching,
+  useKizunaKeyError
+} from '../../stores/settingsStore';
 import { useOnboarding } from '../../contexts/OnboardingContext';
 import { useTranslation } from 'react-i18next';
 import { useSession } from '../../stores/sessionStore';
@@ -18,29 +51,42 @@ interface SettingsPanelProps {
 
 const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
   const { getToken, isSignedIn } = useAuth();
-  const { 
-    // New structured settings
-    commonSettings,
-    updateCommonSettings,
-    openAISettings,
-    cometAPISettings,
-    geminiSettings,
-    palabraAISettings,
-    kizunaAISettings,
-    updateOpenAISettings,
-    updateCometAPISettings,
-    updateGeminiSettings,
-    updatePalabraAISettings,
-    updateKizunaAISettings,
-    
-    // Other context methods and state
-    validateApiKey: contextValidateApiKey, 
-    getProcessedSystemInstructions,
-    availableModels,
-    loadingModels,
-    fetchAvailableModels,
-    clearAvailableModels
-  } = useSettings();
+  
+  // Settings from store
+  const provider = useProvider();
+  const uiMode = useUIMode();
+  const systemInstructions = useSystemInstructions();
+  const templateSystemInstructions = useTemplateSystemInstructions();
+  const useTemplateMode = useUseTemplateMode();
+  const openAISettings = useOpenAISettings();
+  const cometAPISettings = useCometAPISettings();
+  const geminiSettings = useGeminiSettings();
+  const palabraAISettings = usePalabraAISettings();
+  const kizunaAISettings = useKizunaAISettings();
+  const availableModels = useAvailableModels();
+  const loadingModels = useLoadingModels();
+  
+  // Actions from store
+  const setProvider = useSetProvider();
+  const setUIMode = useSetUIMode();
+  const setUILanguage = useSetUILanguage();
+  const setSystemInstructions = useSetSystemInstructions();
+  const setTemplateSystemInstructions = useSetTemplateSystemInstructions();
+  const setUseTemplateMode = useSetUseTemplateMode();
+  const updateOpenAISettings = useUpdateOpenAI();
+  const updateCometAPISettings = useUpdateCometAPI();
+  const updateGeminiSettings = useUpdateGemini();
+  const updatePalabraAISettings = useUpdatePalabraAI();
+  const updateKizunaAISettings = useUpdateKizunaAI();
+  const contextValidateApiKey = useValidateApiKey();
+  const fetchAvailableModels = useFetchAvailableModels();
+  const clearAvailableModels = useClearCache();
+  const getProcessedSystemInstructions = useGetProcessedSystemInstructions();
+  const isValidating = useIsValidating();
+  const validationMessage = useValidationMessage();
+  const isApiKeyValid = useIsApiKeyValid();
+  const isKizunaKeyFetching = useIsKizunaKeyFetching();
+  const kizunaKeyError = useKizunaKeyError();
   const { startOnboarding } = useOnboarding();
   const { t, i18n } = useTranslation();
   const { isSessionActive } = useSession();
@@ -49,23 +95,17 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
   // Get current provider configuration
   const currentProviderConfig = useMemo(() => {
     try {
-      return ProviderConfigFactory.getConfig(commonSettings.provider || Provider.OPENAI);
+      return ProviderConfigFactory.getConfig(provider || Provider.OPENAI);
     } catch (error) {
-      console.warn(`[SettingsPanel] Unknown provider: ${commonSettings.provider}, falling back to OpenAI`);
+      console.warn(`[SettingsPanel] Unknown provider: ${provider}, falling back to OpenAI`);
       return ProviderConfigFactory.getConfig(Provider.OPENAI);
     }
-  }, [commonSettings.provider]);
+  }, [provider]);
 
   // Get all available providers for the dropdown
   const availableProviders = useMemo(() => {
     return ProviderConfigFactory.getAllConfigs();
   }, []);
-
-  const [apiKeyStatus, setApiKeyStatus] = useState<{
-    valid: boolean | null;
-    validating: boolean;
-    message: string
-  }>({ valid: null, validating: false, message: '' });
   
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [saveStatus, setSaveStatus] = useState<{
@@ -80,19 +120,19 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
     
     try {
       // Save all settings
-      if (commonSettings.provider === Provider.OPENAI) {
+      if (provider === Provider.OPENAI) {
         updateOpenAISettings(openAISettings);
-      } else if (commonSettings.provider === Provider.COMET_API) {
+      } else if (provider === Provider.COMET_API) {
         updateCometAPISettings(cometAPISettings);
-      } else if (commonSettings.provider === Provider.PALABRA_AI) {
+      } else if (provider === Provider.PALABRA_AI) {
         updatePalabraAISettings(palabraAISettings);
-      } else if (commonSettings.provider === Provider.KIZUNA_AI) {
+      } else if (provider === Provider.KIZUNA_AI) {
         updateKizunaAISettings(kizunaAISettings);
       } else {
         updateGeminiSettings(geminiSettings);
       }
       
-      updateCommonSettings(commonSettings);
+      // Common settings are now updated individually via actions
       
       console.info('[Settings] All settings saved successfully');
       setSaveStatus({ type: 'success', message: t('settings.settingsSavedSuccessfully') });
@@ -138,26 +178,15 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
   };
 
   const handleValidateApiKey = async () => {
-    setApiKeyStatus({
-      valid: null,
-      message: t('settings.validatingApiKey'),
-      validating: true
-    });
-    
     // Pass getAuthToken for Kizuna AI provider
-    const getAuthToken = commonSettings.provider === Provider.KIZUNA_AI && isSignedIn && getToken ? 
+    const getAuthToken = provider === Provider.KIZUNA_AI && isSignedIn && getToken ? 
       () => getToken() : undefined;
     
     const result = await contextValidateApiKey(getAuthToken);
-    setApiKeyStatus({
-      valid: result.valid === true,
-      message: result.message,
-      validating: false
-    });
     
     // Track API key validation
     trackEvent('api_key_validated', {
-      provider: commonSettings.provider || Provider.OPENAI,
+      provider: provider || Provider.OPENAI,
       success: result.valid === true,
       error_type: result.valid === false ? result.message.includes('Invalid') ? 'invalid_key' : 'validation_error' : undefined
     });
@@ -223,11 +252,11 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
             <div className="provider-selection-wrapper">
               <select
                 className="select-dropdown"
-                value={commonSettings.provider || Provider.OPENAI}
+                value={provider || Provider.OPENAI}
                 onChange={(e) => {
-                  const oldProvider = commonSettings.provider;
+                  const oldProvider = provider;
                   const newProvider = e.target.value as ProviderType;
-                  updateCommonSettings({ provider: newProvider });
+                  setProvider(newProvider);
                   
                   // Track provider switch
                   trackEvent('provider_switched', {
@@ -235,9 +264,6 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
                     to_provider: newProvider,
                     during_session: isSessionActive
                   });
-                  
-                  // Reset API key validation status when provider changes
-                  setApiKeyStatus({ valid: null, message: '', validating: false });
                   
                   // Clear available models as they are provider-specific
                   clearAvailableModels();
@@ -252,7 +278,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
                   </option>
                 ))}
               </select>
-              {(commonSettings.provider === Provider.GEMINI || commonSettings.provider === Provider.COMET_API || commonSettings.provider === Provider.PALABRA_AI) && (
+              {(provider === Provider.GEMINI || provider === Provider.COMET_API || provider === Provider.PALABRA_AI) && (
                 <div className="experimental-icon-wrapper">
                   <FlaskConical 
                     size={16} 
@@ -266,7 +292,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
             </div>
           </div>
           {/* API Key or Client Credentials section */}
-          {commonSettings.provider === Provider.PALABRA_AI ? (
+          {provider === Provider.PALABRA_AI ? (
             // PalabraAI uses Client ID and Client Secret
             <>
               <div className="setting-item">
@@ -286,13 +312,11 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
                     value={palabraAISettings.clientId}
                     onChange={(e) => {
                       updatePalabraAISettings({ clientId: e.target.value });
-                      // Reset validation status when key changes
-                      setApiKeyStatus({ valid: null, message: '', validating: false });
                     }}
                     placeholder="Enter your PalabraAI Client ID"
                     className={`text-input api-key-input ${
-                      apiKeyStatus.valid === true ? 'valid' : 
-                      apiKeyStatus.valid === false ? 'invalid' : ''
+                      isApiKeyValid === true ? 'valid' : 
+                      isApiKeyValid === false ? 'invalid' : ''
                     }`}
                     disabled={isSessionActive}
                   />
@@ -316,33 +340,31 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
                     value={palabraAISettings.clientSecret}
                     onChange={(e) => {
                       updatePalabraAISettings({ clientSecret: e.target.value });
-                      // Reset validation status when key changes
-                      setApiKeyStatus({ valid: null, message: '', validating: false });
                     }}
                     placeholder="Enter your PalabraAI Client Secret"
                     className={`text-input api-key-input ${
-                      apiKeyStatus.valid === true ? 'valid' : 
-                      apiKeyStatus.valid === false ? 'invalid' : ''
+                      isApiKeyValid === true ? 'valid' : 
+                      isApiKeyValid === false ? 'invalid' : ''
                     }`}
                     disabled={isSessionActive}
                   />
                   <button 
                     className="validate-key-button"
                     onClick={handleValidateApiKey}
-                    disabled={apiKeyStatus.validating || 
+                    disabled={isValidating || 
                       !palabraAISettings.clientId || 
                       !palabraAISettings.clientSecret || 
                       isSessionActive}
                   >
                     <Key size={16} />
-                    <span>{apiKeyStatus.validating ? t('settings.validating') : t('settings.validate')}</span>
+                    <span>{isValidating ? t('settings.validating') : t('settings.validate')}</span>
                   </button>
                 </div>
               </div>
             </>
           ) : (
             // Other providers use API Key, but hide for Kizuna AI
-            commonSettings.provider !== Provider.KIZUNA_AI ? (
+            provider !== Provider.KIZUNA_AI ? (
               <div className="setting-item">
                 <div className="setting-label">
                   <span>
@@ -358,39 +380,37 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
                 <div className="api-key-container">
                   <input
                     value={
-                      commonSettings.provider === Provider.OPENAI ? openAISettings.apiKey :
-                      commonSettings.provider === Provider.COMET_API ? cometAPISettings.apiKey :
+                      provider === Provider.OPENAI ? openAISettings.apiKey :
+                      provider === Provider.COMET_API ? cometAPISettings.apiKey :
                       geminiSettings.apiKey
                     }
                     onChange={(e) => {
-                      if (commonSettings.provider === Provider.OPENAI) {
+                      if (provider === Provider.OPENAI) {
                         updateOpenAISettings({ apiKey: e.target.value });
-                      } else if (commonSettings.provider === Provider.COMET_API) {
+                      } else if (provider === Provider.COMET_API) {
                         updateCometAPISettings({ apiKey: e.target.value });
                       } else {
                         updateGeminiSettings({ apiKey: e.target.value });
                       }
-                      // Reset validation status when key changes
-                      setApiKeyStatus({ valid: null, message: '', validating: false });
                     }}
                     placeholder={currentProviderConfig.apiKeyPlaceholder}
                     className={`text-input api-key-input ${
-                      apiKeyStatus.valid === true ? 'valid' : 
-                      apiKeyStatus.valid === false ? 'invalid' : ''
+                      isApiKeyValid === true ? 'valid' : 
+                      isApiKeyValid === false ? 'invalid' : ''
                     }`}
                     disabled={isSessionActive}
                   />
                   <button 
                     className="validate-key-button"
                     onClick={handleValidateApiKey}
-                    disabled={apiKeyStatus.validating || 
-                      (commonSettings.provider === Provider.OPENAI ? !openAISettings.apiKey :
-                       commonSettings.provider === Provider.COMET_API ? !cometAPISettings.apiKey :
+                    disabled={isValidating || 
+                      (provider === Provider.OPENAI ? !openAISettings.apiKey :
+                       provider === Provider.COMET_API ? !cometAPISettings.apiKey :
                        !geminiSettings.apiKey) || 
                       isSessionActive}
                   >
                     <Key size={16} />
-                    <span>{apiKeyStatus.validating ? t('settings.validating') : t('settings.validate')}</span>
+                    <span>{isValidating ? t('settings.validating') : t('settings.validate')}</span>
                   </button>
                 </div>
               </div>
@@ -400,10 +420,22 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
                   <span>{t('settings.authentication', 'Authentication')}</span>
                 </div>
                 {isSignedIn ? (
-                  <div className="api-key-info">
-                    <CheckCircle size={16} className="success-icon" />
-                    <span>{t('settings.autoAuthenticated', 'Automatically authenticated via your account')}</span>
-                  </div>
+                  isKizunaKeyFetching ? (
+                    <div className="api-key-info">
+                      <span className="spinner" />
+                      <span>{t('settings.fetchingApiKey', 'Fetching API key from your account...')}</span>
+                    </div>
+                  ) : kizunaKeyError ? (
+                    <div className="api-key-warning">
+                      <AlertCircle size={16} className="warning-icon" />
+                      <span>{kizunaKeyError}</span>
+                    </div>
+                  ) : (
+                    <div className="api-key-info">
+                      <CheckCircle size={16} className="success-icon" />
+                      <span>{t('settings.autoAuthenticated', 'Automatically authenticated via your account')}</span>
+                    </div>
+                  )
                 ) : (
                   <div className="api-key-warning">
                     <AlertCircle size={16} className="warning-icon" />
@@ -413,12 +445,12 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
               </div>
             )
           )}
-          {apiKeyStatus.message && (
+          {validationMessage && (
             <div className={`api-key-status ${
-              apiKeyStatus.valid === true ? 'success' : 
-              apiKeyStatus.valid === false ? 'error' : 'info'
+              isApiKeyValid === true ? 'success' : 
+              isApiKeyValid === false ? 'error' : 'info'
             }`}>
-              {apiKeyStatus.message}
+              {validationMessage}
             </div>
           )}
         </div>
@@ -443,7 +475,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
                 const oldLanguage = i18n.language;
                 const newLanguage = e.target.value;
                 i18n.changeLanguage(newLanguage);
-                updateCommonSettings({ uiLanguage: newLanguage });
+                setUILanguage(newLanguage);
                 
                 // Track UI language change
                 trackEvent('language_changed', {

@@ -134,6 +134,7 @@
     "failedToSaveSetting": "設定儲存失敗: {{key}}",
     "apiKeyValidationCompleted": "API金鑰驗證完成",
     "errorValidatingApiKey": "驗證API金鑰時出錯",
+    "regionNotSupported": "該服務在您所在的地區不可用。請檢查您的網路環境或嘗試其他提供商。",
     "sessionActiveNotice": "工作階段啟用時設定已鎖定。請結束工作階段以修改設定。",
     "realtimeModelAvailable": "即時模型可用",
     "realtimeModelNotAvailable": "即時模型不可用",
