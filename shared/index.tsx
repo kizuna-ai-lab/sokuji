@@ -30,8 +30,10 @@ const initializeElectronCookies = () => {
   // Check if we're in Electron environment and have the cookie API
   if (window.initializeCookies && typeof window.initializeCookies === 'function') {
     try {
+      const startTime = performance.now();
       window.initializeCookies();
-      console.log('[Sokuji] Electron cookies initialized for Clerk');
+      const endTime = performance.now();
+      console.log(`[Sokuji] Electron cookies initialized for Clerk in ${Math.round(endTime - startTime)}ms`);
     } catch (error) {
       console.error('[Sokuji] Failed to initialize Electron cookies:', error);
     }
@@ -40,14 +42,19 @@ const initializeElectronCookies = () => {
 
 // Dynamically import styles based on environment
 const loadStyles = async () => {
+  const startTime = performance.now();
   try {
     // Try to import main project styles (Vite environment)
     await import('../src/styles/scrollbar.scss' as any);
     await import('../src/index.scss' as any);
+    const endTime = performance.now();
+    console.log(`[Sokuji] Styles loaded (Vite) in ${Math.round(endTime - startTime)}ms`);
   } catch (e) {
     // If failed, try to import extension environment styles
     try {
       await import('../src/App.scss' as any);
+      const endTime = performance.now();
+      console.log(`[Sokuji] Styles loaded (Extension) in ${Math.round(endTime - startTime)}ms`);
     } catch (e2) {
       console.warn('[Sokuji] Could not load styles:', e2);
     }
@@ -104,12 +111,12 @@ const initializePostHog = async () => {
   
   // Sync distinct_id to background script in extension environment
   if (getPlatform() === 'extension') {
-    // Import and call sync function
+    // Import and call sync function - no delay needed with proper async handling
     import('../src/lib/analytics').then(({ syncDistinctIdToBackground }) => {
-      // Small delay to ensure PostHog is fully initialized
-      setTimeout(() => {
+      // Use microtask queue instead of setTimeout for immediate execution after current stack
+      Promise.resolve().then(() => {
         syncDistinctIdToBackground(posthog);
-      }, 500);
+      });
     }).catch(error => {
       console.warn('[Sokuji] [PostHog] Could not sync distinct_id to background script:', error.message);
     });
@@ -124,24 +131,43 @@ const UnifiedApp = () => {
 
   useEffect(() => {
     const initializeApp = async () => {
-      // Initialize Electron cookies for Clerk first
-      initializeElectronCookies();
+      // Track initialization start time
+      const startTime = performance.now();
       
-      // Load styles
-      await loadStyles();
+      // Run critical initialization tasks in parallel
+      await Promise.all([
+        // Initialize Electron cookies for Clerk
+        Promise.resolve(initializeElectronCookies()),
+        // Load styles (non-blocking)
+        loadStyles().catch(err => console.warn('[Sokuji] Style loading error:', err)),
+      ]);
       
-      // Initialize PostHog client
-      const client = await initializePostHog();
-      setPosthogClient(client);
+      // Log critical initialization time
+      const endTime = performance.now();
+      console.log(`[Sokuji] Critical initialization completed in ${Math.round(endTime - startTime)}ms`);
       
-      // Mark as loaded
+      // Mark as loaded - UI can now render
       setIsLoaded(true);
+      
+      // Defer PostHog initialization to after UI renders
+      requestIdleCallback(() => {
+        const analyticsStart = performance.now();
+        initializePostHog().then(client => {
+          setPosthogClient(client);
+          const analyticsEnd = performance.now();
+          console.log(`[Sokuji] Analytics initialized in ${Math.round(analyticsEnd - analyticsStart)}ms`);
+        }).catch(error => {
+          console.error('[Sokuji] Failed to initialize analytics:', error);
+          // Create a minimal fallback client
+          setPosthogClient(null);
+        });
+      }, { timeout: 1000 }); // Ensure it runs within 1 second
     };
 
     initializeApp();
   }, []);
 
-  if (!isLoaded || !posthogClient) {
+  if (!isLoaded) {
     return (
       <div style={{ 
         display: 'flex', 
@@ -155,11 +181,17 @@ const UnifiedApp = () => {
     );
   }
 
+  // Render app immediately, PostHog will be injected when ready
   return (
     <React.StrictMode>
-      <PostHogProvider client={posthogClient}>
+      {posthogClient ? (
+        <PostHogProvider client={posthogClient}>
+          <App />
+        </PostHogProvider>
+      ) : (
+        // Render without PostHog initially
         <App />
-      </PostHogProvider>
+      )}
     </React.StrictMode>
   );
 };

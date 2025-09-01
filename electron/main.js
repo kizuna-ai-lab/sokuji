@@ -45,7 +45,22 @@ function createWindow() {
   const isDev = import.meta.env.MODE === 'development' || !app.isPackaged;
   console.log('[Sokuji] [Main] Development mode:', isDev, 'MODE:', import.meta.env.MODE, 'isPackaged:', app.isPackaged);
   
+  // Track window load time
+  const loadStartTime = Date.now();
+  
+  // Add performance tracking for page load
+  mainWindow.webContents.on('did-finish-load', () => {
+    const loadEndTime = Date.now();
+    console.log(`[Sokuji] [Main] Page loaded in ${loadEndTime - loadStartTime}ms`);
+  });
+  
+  mainWindow.webContents.on('dom-ready', () => {
+    const domReadyTime = Date.now();
+    console.log(`[Sokuji] [Main] DOM ready in ${domReadyTime - loadStartTime}ms`);
+  });
+  
   if (isDev) {
+    console.log(`[Sokuji] [Main] Loading from http://localhost:5173 at ${loadStartTime}`);
     mainWindow.loadURL('http://localhost:5173');
   } else {
     // Try multiple approaches to find the correct path

@@ -2,6 +2,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { User, Sparkles, Globe } from 'lucide-react';
 import './UserTypeSelection.scss';
+import { changeLanguageWithLoad } from '../../locales';
 
 interface UserTypeSelectionProps {
   onSelectUserType: (type: 'regular' | 'experienced') => void;
@@ -16,7 +17,9 @@ const UserTypeSelection: React.FC<UserTypeSelectionProps> = ({ onSelectUserType 
         <Globe size={16} />
         <select
           value={i18n.language}
-          onChange={(e) => i18n.changeLanguage(e.target.value)}
+          onChange={async (e) => {
+            await changeLanguageWithLoad(e.target.value);
+          }}
           className="language-dropdown"
         >
           <option value="en">English</option>
