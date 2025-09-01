@@ -74,6 +74,7 @@
     "failedToSaveSetting": "设置保存失败: {{key}}",
     "apiKeyValidationCompleted": "API密钥验证完成",
     "errorValidatingApiKey": "验证API密钥时出错",
+    "regionNotSupported": "该服务在您所在的地区不可用。请检查您的网络环境或尝试其他提供商。",
     "sessionActiveNotice": "会话激活时设置已锁定。请结束会话以修改设置。",
     "realtimeModelAvailable": "实时模型可用",
     "realtimeModelNotAvailable": "实时模型不可用",

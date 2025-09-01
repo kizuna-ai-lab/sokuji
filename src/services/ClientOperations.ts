@@ -35,7 +35,15 @@ export class ClientOperations {
         return await GeminiClient.validateApiKeyAndFetchModels(apiKey);
       case Provider.PALABRA_AI:
         if (!clientSecret || !apiKey) {
-          throw new Error(`Client id and Client secret are required for ${provider} provider`);
+          // Return validation result instead of throwing error
+          return {
+            validation: {
+              valid: false,
+              message: 'Both Client ID and Client Secret are required for Palabra AI',
+              validating: false
+            },
+            models: []
+          };
         }
         const validation = await PalabraAIClient.validateApiKey(apiKey, clientSecret);
         return {

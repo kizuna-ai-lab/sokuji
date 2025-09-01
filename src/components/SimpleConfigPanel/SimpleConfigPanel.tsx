@@ -2,7 +2,32 @@ import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowRight, Volume2, Key, Globe, CheckCircle, AlertCircle, HelpCircle, CircleHelp, Bot, Sparkles, Zap, AudioLines, Mic, Languages, User, ChevronDown, ChevronUp } from 'lucide-react';
 import './SimpleConfigPanel.scss';
-import { useSettings } from '../../contexts/SettingsContext';
+import {
+  useProvider,
+  useUILanguage,
+  useOpenAISettings,
+  useGeminiSettings,
+  useCometAPISettings,
+  usePalabraAISettings,
+  useKizunaAISettings,
+  useIsApiKeyValid,
+  useAvailableModels,
+  useLoadingModels,
+  useSettingsNavigationTarget,
+  useSetProvider,
+  useSetUILanguage,
+  useUpdateOpenAI,
+  useUpdateGemini,
+  useUpdateCometAPI,
+  useUpdatePalabraAI,
+  useUpdateKizunaAI,
+  useValidateApiKey,
+  useNavigateToSettings,
+  useIsValidating,
+  useValidationMessage,
+  useIsKizunaKeyFetching,
+  useKizunaKeyError
+} from '../../stores/settingsStore';
 import { useAudioContext } from '../../stores/audioStore';
 import { useIsSessionActive } from '../../stores/sessionStore';
 import { useTranslation } from 'react-i18next';
@@ -29,26 +54,32 @@ const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings, h
   const isSessionActive = useIsSessionActive();
   const { getToken, isSignedIn } = useAuth();
   
-  // Settings context
-  const {
-    commonSettings,
-    openAISettings,
-    geminiSettings,
-    cometAPISettings,
-    palabraAISettings,
-    kizunaAISettings,
-    updateCommonSettings,
-    updateOpenAISettings,
-    updateGeminiSettings,
-    updateCometAPISettings,
-    updatePalabraAISettings,
-    updateKizunaAISettings,
-    validateApiKey,
-    isApiKeyValid,
-    availableModels,
-    loadingModels,
-    navigateToSettings
-  } = useSettings();
+  // Settings store
+  const provider = useProvider();
+  const uiLanguage = useUILanguage();
+  const openAISettings = useOpenAISettings();
+  const geminiSettings = useGeminiSettings();
+  const cometAPISettings = useCometAPISettings();
+  const palabraAISettings = usePalabraAISettings();
+  const kizunaAISettings = useKizunaAISettings();
+  const isApiKeyValid = useIsApiKeyValid();
+  const availableModels = useAvailableModels();
+  const loadingModels = useLoadingModels();
+  const settingsNavigationTarget = useSettingsNavigationTarget();
+  
+  const setProvider = useSetProvider();
+  const setUILanguage = useSetUILanguage();
+  const updateOpenAISettings = useUpdateOpenAI();
+  const updateGeminiSettings = useUpdateGemini();
+  const updateCometAPISettings = useUpdateCometAPI();
+  const updatePalabraAISettings = useUpdatePalabraAI();
+  const updateKizunaAISettings = useUpdateKizunaAI();
+  const validateApiKey = useValidateApiKey();
+  const navigateToSettings = useNavigateToSettings();
+  const isValidating = useIsValidating();
+  const validationMessage = useValidationMessage();
+  const isKizunaKeyFetching = useIsKizunaKeyFetching();
+  const kizunaKeyError = useKizunaKeyError();
   
   // Audio context
   const {
@@ -64,8 +95,6 @@ const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings, h
     toggleMonitorDeviceState
   } = useAudioContext();
 
-  const [isValidating, setIsValidating] = useState(false);
-  const [validationMessage, setValidationMessage] = useState('');
   const [isProviderExpanded, setIsProviderExpanded] = useState(false);
 
   // Get all available providers for the dropdown
@@ -85,17 +114,17 @@ const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings, h
   // Get provider configuration with fallback
   let providerConfig: ProviderConfig;
   try {
-    providerConfig = ProviderConfigFactory.getConfig(commonSettings.provider);
+    providerConfig = ProviderConfigFactory.getConfig(provider);
   } catch (error) {
     // If the current provider is not available (e.g., Kizuna AI when disabled),
     // fallback to OpenAI
-    console.warn(`Provider ${commonSettings.provider} not available, using OpenAI as fallback`);
+    console.warn(`Provider ${provider} not available, using OpenAI as fallback`);
     providerConfig = ProviderConfigFactory.getConfig(Provider.OPENAI);
     // Update the settings to reflect the fallback
-    updateCommonSettings({ provider: Provider.OPENAI });
+    setProvider(Provider.OPENAI);
   }
   const currentProviderSettings = (() => {
-    switch (commonSettings.provider) {
+    switch (provider) {
       case Provider.OPENAI:
         return openAISettings;
       case Provider.GEMINI:
@@ -113,7 +142,7 @@ const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings, h
 
   // Get current API key based on provider
   const getCurrentApiKey = () => {
-    switch (commonSettings.provider) {
+    switch (provider) {
       case Provider.OPENAI:
         return openAISettings.apiKey;
       case Provider.GEMINI:
@@ -131,7 +160,7 @@ const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings, h
 
   // Update API key based on provider
   const updateApiKey = (value: string) => {
-    switch (commonSettings.provider) {
+    switch (provider) {
       case Provider.OPENAI:
         updateOpenAISettings({ apiKey: value });
         break;
@@ -153,7 +182,7 @@ const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings, h
 
   // Update source language
   const updateSourceLanguage = (value: string) => {
-    switch (commonSettings.provider) {
+    switch (provider) {
       case Provider.OPENAI:
         updateOpenAISettings({ sourceLanguage: value });
         break;
@@ -174,7 +203,7 @@ const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings, h
 
   // Update target language
   const updateTargetLanguage = (value: string) => {
-    switch (commonSettings.provider) {
+    switch (provider) {
       case Provider.OPENAI:
         updateOpenAISettings({ targetLanguage: value });
         break;
@@ -196,28 +225,22 @@ const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings, h
 
   // Validate API key
   const handleValidateApiKey = async () => {
-    setIsValidating(true);
-    setValidationMessage('');
-    
     // Pass getAuthToken for Kizuna AI provider
-    const getAuthToken = commonSettings.provider === Provider.KIZUNA_AI && isSignedIn && getToken ? 
+    const getAuthToken = provider === Provider.KIZUNA_AI && isSignedIn && getToken ? 
       () => getToken() : undefined;
     
     const result = await validateApiKey(getAuthToken);
     
-    setIsValidating(false);
-    setValidationMessage(result.message);
-    
     trackEvent('api_key_validated', {
-      provider: commonSettings.provider,
+      provider: provider,
       success: result.valid === true
     });
   };
 
   // Handle provider switching
   const handleProviderChange = (newProvider: ProviderType) => {
-    const oldProvider = commonSettings.provider;
-    updateCommonSettings({ provider: newProvider });
+    const oldProvider = provider;
+    setProvider(newProvider);
     
     // Track provider switch
     trackEvent('provider_switched', {
@@ -226,8 +249,6 @@ const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings, h
       during_session: isSessionActive
     });
     
-    // Reset validation status when provider changes
-    setValidationMessage('');
     // Close the expanded state
     setIsProviderExpanded(false);
   };
@@ -300,21 +321,22 @@ const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings, h
 
   // Get provider display info for current provider
   const getProviderInfo = () => {
-    return getProviderInfoById(commonSettings.provider);
+    return getProviderInfoById(provider);
   };
 
   const providerInfo = getProviderInfo();
   const currentApiKey = getCurrentApiKey();
   
   // Check if API key should be readonly (for backend-managed providers)
-  const isReadOnlyApiKey = commonSettings.provider === Provider.KIZUNA_AI;
+  const isReadOnlyApiKey = provider === Provider.KIZUNA_AI;
 
-  // Handle scrolling and highlighting when highlightSection changes
+  // Handle scrolling and highlighting when highlightSection or settingsNavigationTarget changes
   useEffect(() => {
-    if (highlightSection) {
+    const targetSection = highlightSection || settingsNavigationTarget;
+    if (targetSection) {
       // Small delay to ensure the panel is fully rendered
       setTimeout(() => {
-        const sectionId = `${highlightSection}-section`;
+        const sectionId = `${targetSection}-section`;
         const element = document.getElementById(sectionId);
         if (element) {
           // Scroll to the element
@@ -331,7 +353,7 @@ const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings, h
         }
       }, 100);
     }
-  }, [highlightSection, navigateToSettings]);
+  }, [highlightSection, settingsNavigationTarget, navigateToSettings]);
 
   // Note: Auto-fetching of Kizuna AI API key is now handled centrally in SettingsContext
   // This prevents duplicate API calls and ensures consistent state management
@@ -417,7 +439,7 @@ const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings, h
               value={i18n.language}
               onChange={(e) => {
                 i18n.changeLanguage(e.target.value);
-                updateCommonSettings({ uiLanguage: e.target.value });
+                setUILanguage(e.target.value);
               }}
               disabled={isSessionActive}
               className="language-select"
@@ -538,15 +560,15 @@ const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings, h
                 {isProviderExpanded && !isSessionActive && (
                   <div className="provider-options">
                     {availableProviders
-                      .filter(provider => provider.id !== commonSettings.provider)
-                      .map((provider) => {
-                        const optionInfo = getProviderInfoById(provider.id as ProviderType);
+                      .filter(p => p.id !== provider)
+                      .map((p) => {
+                        const optionInfo = getProviderInfoById(p.id as ProviderType);
                         
                         return (
                           <div
-                            key={provider.id}
+                            key={p.id}
                             className="provider-option"
-                            onClick={() => handleProviderChange(provider.id as ProviderType)}
+                            onClick={() => handleProviderChange(p.id as ProviderType)}
                           >
                             <div className="provider-option-icon">
                               {React.createElement(optionInfo.icon, { size: 20 })}
@@ -562,14 +584,14 @@ const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings, h
                 )}
               </div>
 
-              {commonSettings.provider !== Provider.KIZUNA_AI ? (
+              {provider !== Provider.KIZUNA_AI ? (
                 <div className="api-key-input-group">
                   <input
                     type="password"
                     value={currentApiKey}
                     onChange={(e) => updateApiKey(e.target.value)}
                     placeholder={t('simpleSettings.apiKeyPlaceholder')}
-                    className={`api-key-input ${isApiKeyValid ? 'valid' : ''}`}
+                    className={`api-key-input ${isApiKeyValid === true ? 'valid' : isApiKeyValid === false ? 'invalid' : ''}`}
                     disabled={isSessionActive}
                   />
                   <button
@@ -588,10 +610,22 @@ const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings, h
                 </div>
               ) : (
                 isSignedIn ? (
-                  <div className="api-key-info">
-                    <CheckCircle size={16} className="success-icon" />
-                    <span>{t('simpleSettings.autoAuthenticated', 'Automatically authenticated via your account')}</span>
-                  </div>
+                  isKizunaKeyFetching ? (
+                    <div className="api-key-info">
+                      <span className="spinner" />
+                      <span>{t('simpleSettings.fetchingApiKey', 'Fetching API key from your account...')}</span>
+                    </div>
+                  ) : kizunaKeyError ? (
+                    <div className="api-key-warning">
+                      <AlertCircle size={16} className="warning-icon" />
+                      <span>{kizunaKeyError}</span>
+                    </div>
+                  ) : (
+                    <div className="api-key-info">
+                      <CheckCircle size={16} className="success-icon" />
+                      <span>{t('simpleSettings.autoAuthenticated', 'Automatically authenticated via your account')}</span>
+                    </div>
+                  )
                 ) : (
                   <div className="api-key-warning">
                     <AlertCircle size={16} className="warning-icon" />

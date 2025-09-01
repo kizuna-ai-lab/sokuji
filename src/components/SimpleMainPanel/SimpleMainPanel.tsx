@@ -1,7 +1,14 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Mic, MicOff, Volume2, VolumeX, Loader, MessageSquare } from 'lucide-react';
 import './SimpleMainPanel.scss';
-import { useSettings } from '../../contexts/SettingsContext';
+import {
+  useProvider,
+  useIsApiKeyValid,
+  useAvailableModels,
+  useLoadingModels,
+  useGetCurrentProviderSettings,
+  useNavigateToSettings
+} from '../../stores/settingsStore';
 import { useSessionStartTime } from '../../stores/sessionStore';
 import { useAudioContext } from '../../stores/audioStore';
 import { useUserProfile } from '../../contexts/UserProfileContext';
@@ -36,14 +43,13 @@ const SimpleMainPanel: React.FC<SimpleMainPanelProps> = React.memo(({
   const conversationContainerRef = useRef<HTMLDivElement>(null);
   const [sessionDuration, setSessionDuration] = useState<string>('00:00');
   
-  const {
-    isApiKeyValid,
-    getCurrentProviderSettings,
-    commonSettings,
-    navigateToSettings,
-    availableModels,
-    loadingModels
-  } = useSettings();
+  // Settings from store
+  const provider = useProvider();
+  const isApiKeyValid = useIsApiKeyValid();
+  const availableModels = useAvailableModels();
+  const loadingModels = useLoadingModels();
+  const getCurrentProviderSettings = useGetCurrentProviderSettings();
+  const navigateToSettings = useNavigateToSettings();
   
   const {
     selectedInputDevice,
@@ -58,7 +64,7 @@ const SimpleMainPanel: React.FC<SimpleMainPanelProps> = React.memo(({
   const currentSettings = getCurrentProviderSettings();
   
   // Check if wallet has sufficient balance for Kizuna AI provider
-  const hasValidBalance = (commonSettings.provider !== Provider.KIZUNA_AI) ||
+  const hasValidBalance = (provider !== Provider.KIZUNA_AI) ||
     (quota && quota.balance !== undefined && quota.balance >= 0 && !quota.frozen);
   
   const canStartSession = isApiKeyValid && availableModels.length > 0 && 
@@ -72,7 +78,7 @@ const SimpleMainPanel: React.FC<SimpleMainPanelProps> = React.memo(({
     startDisabledReason = t('simplePanel.loadingModels', 'Loading models...');
   } else if (availableModels.length === 0) {
     startDisabledReason = t('simplePanel.noModelsAvailable', 'No models available');
-  } else if (commonSettings.provider === Provider.KIZUNA_AI && quota) {
+  } else if (provider === Provider.KIZUNA_AI && quota) {
     if (quota.frozen) {
       startDisabledReason = t('simplePanel.walletFrozen', 'Wallet is frozen. Please contact support.');
     } else if (quota.balance !== undefined && quota.balance < 0) {

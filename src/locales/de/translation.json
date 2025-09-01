@@ -74,6 +74,7 @@
     "failedToSaveSetting": "Fehler beim Speichern der Einstellung: {{key}}",
     "apiKeyValidationCompleted": "API-Schlüssel-Validierung abgeschlossen",
     "errorValidatingApiKey": "Fehler bei der Validierung des API-Schlüssels",
+    "regionNotSupported": "Der Dienst ist in Ihrer Region nicht verfügbar. Bitte überprüfen Sie Ihre Netzwerkumgebung oder versuchen Sie einen anderen Anbieter.",
     "sessionActiveNotice": "Die Einstellungen sind gesperrt, während die Sitzung aktiv ist. Beenden Sie die Sitzung, um die Einstellungen zu ändern.",
     "realtimeModelAvailable": "Echtzeitmodell ist verfügbar",
     "realtimeModelNotAvailable": "Echtzeitmodell ist nicht verfügbar",

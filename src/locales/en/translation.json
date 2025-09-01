@@ -34,6 +34,7 @@
     "title": "Settings",
     "authentication": "Authentication",
     "autoAuthenticated": "Automatically authenticated via your account",
+    "fetchingApiKey": "Fetching API key from your account...",
     "provider": "Provider",
     "openaiApiKey": "OpenAI API Key",
     "geminiApiKey": "Gemini API Key",
@@ -132,6 +133,7 @@
     "failedToSaveSetting": "Failed to save setting: {{key}}",
     "apiKeyValidationCompleted": "API key validation completed",
     "errorValidatingApiKey": "Error validating API key",
+    "regionNotSupported": "Service not available in your region. Please check your network environment or try a different provider.",
     "sessionActiveNotice": "Settings are locked while session is active. Please end the session to modify settings.",
     "realtimeModelAvailable": "Realtime model is available",
     "realtimeModelNotAvailable": "Realtime model is not available",
@@ -176,6 +178,7 @@
   },
   "simpleSettings": {
     "autoAuthenticated": "Automatically authenticated via your account",
+    "fetchingApiKey": "Fetching API key from your account...",
     "quickSetup": "Quick Setup",
     "quickSetupDesc": "Choose a preset for common scenarios",
     "preset": {

@@ -10,7 +10,7 @@ import UserTypeSelection from '../UserTypeSelection/UserTypeSelection';
 import { Terminal, Settings, Volume2, LayoutGrid, Sliders } from 'lucide-react';
 import './MainLayout.scss';
 import { useAnalytics } from '../../lib/analytics';
-import { useSettings } from '../../contexts/SettingsContext';
+import { useProvider, useUIMode, useSetProvider, useSetUIMode, useSettingsNavigationTarget } from '../../stores/settingsStore';
 import { useOnboarding } from '../../contexts/OnboardingContext';
 import { useAuth } from '../../lib/clerk/ClerkProvider';
 import { Provider } from '../../types/Provider';
@@ -20,7 +20,11 @@ type PanelName = 'settings' | 'audio' | 'logs' | 'main';
 const MainLayout: React.FC = () => {
   const { t } = useTranslation();
   const { trackEvent } = useAnalytics();
-  const { commonSettings, updateCommonSettings, settingsNavigationTarget } = useSettings();
+  const provider = useProvider();
+  const uiMode = useUIMode();
+  const setProvider = useSetProvider();
+  const setUIMode = useSetUIMode();
+  const settingsNavigationTarget = useSettingsNavigationTarget();
   const { userTypeSelected, setUserType } = useOnboarding();
   const { isSignedIn } = useAuth();
   const [showLogs, setShowLogs] = useState(() => {
@@ -122,14 +126,14 @@ const MainLayout: React.FC = () => {
 
   // Toggle between basic and advanced mode
   const toggleUIMode = useCallback(() => {
-    const newMode = commonSettings.uiMode === 'basic' ? 'advanced' : 'basic';
-    updateCommonSettings({ uiMode: newMode });
+    const newMode = uiMode === 'basic' ? 'advanced' : 'basic';
+    setUIMode(newMode);
     
     trackEvent('ui_mode_toggled', {
-      from_mode: commonSettings.uiMode,
+      from_mode: uiMode,
       to_mode: newMode
     });
-  }, [commonSettings.uiMode, updateCommonSettings, trackEvent]);
+  }, [uiMode, setUIMode, trackEvent]);
 
   // Listen for navigation requests from settings context
   useEffect(() => {
@@ -150,7 +154,7 @@ const MainLayout: React.FC = () => {
   const handleUserTypeSelection = useCallback((type: 'regular' | 'experienced') => {
     // Set UI mode based on user type
     const newMode = type === 'regular' ? 'basic' : 'advanced';
-    updateCommonSettings({ uiMode: newMode });
+    setUIMode(newMode);
     
     // Call the onboarding context to handle the selection
     setUserType(type);
@@ -159,22 +163,22 @@ const MainLayout: React.FC = () => {
       user_type: type,
       ui_mode: newMode
     });
-  }, [updateCommonSettings, setUserType, trackEvent]);
+  }, [setUIMode, setUserType, trackEvent]);
 
   // Auto-switch to KizunaAI when Basic Mode users log in
   useEffect(() => {
     // Check if user just logged in (was false, now true)
     if (!prevIsSignedInRef.current && isSignedIn) {
       // User just logged in
-      if (commonSettings.uiMode === 'basic' && commonSettings.provider !== Provider.KIZUNA_AI) {
+      if (uiMode === 'basic' && provider !== Provider.KIZUNA_AI) {
         // User is in Basic Mode and not using KizunaAI, switch to KizunaAI
-        updateCommonSettings({ provider: Provider.KIZUNA_AI });
+        setProvider(Provider.KIZUNA_AI);
         
         // Track the auto-switch
         trackEvent('settings_modified', {
           setting_name: 'provider',
           new_value: 'kizunaai',
-          old_value: commonSettings.provider,
+          old_value: provider,
           category: 'api'
         });
         
@@ -184,7 +188,7 @@ const MainLayout: React.FC = () => {
     
     // Update the ref for next render
     prevIsSignedInRef.current = isSignedIn;
-  }, [isSignedIn, commonSettings.uiMode, commonSettings.provider, updateCommonSettings, trackEvent]);
+  }, [isSignedIn, uiMode, provider, setProvider, trackEvent]);
 
   // Show user type selection if not selected yet
   if (!userTypeSelected) {
@@ -199,24 +203,24 @@ const MainLayout: React.FC = () => {
           <div className="header-controls">
             <button 
               id="ui-mode-toggle"
-              className={`ui-mode-toggle-icon ${commonSettings.uiMode}`}
+              className={`ui-mode-toggle-icon ${uiMode}`}
               onClick={toggleUIMode}
-              title={t(commonSettings.uiMode === 'basic' ? 'mainPanel.switchToAdvanced' : 'mainPanel.switchToBasic')}
-              aria-label={t(commonSettings.uiMode === 'basic' ? 'mainPanel.switchToAdvanced' : 'mainPanel.switchToBasic')}
+              title={t(uiMode === 'basic' ? 'mainPanel.switchToAdvanced' : 'mainPanel.switchToBasic')}
+              aria-label={t(uiMode === 'basic' ? 'mainPanel.switchToAdvanced' : 'mainPanel.switchToBasic')}
             >
-              {commonSettings.uiMode === 'basic' ? <LayoutGrid size={16} /> : <Sliders size={16} />}
+              {uiMode === 'basic' ? <LayoutGrid size={16} /> : <Sliders size={16} />}
             </button>
             <button className={`settings-button ${showSettings ? 'active' : ''}`} onClick={toggleSettings}>
               <Settings size={16} />
               <span>{t('settings.title')}</span>
             </button>
-            {commonSettings.uiMode === 'advanced' && (
+            {uiMode === 'advanced' && (
               <button className={`audio-button ${showAudio ? 'active' : ''}`} onClick={toggleAudio}>
                 <Volume2 size={16} />
                 <span>{t('settings.audio')}</span>
               </button>
             )}
-            {commonSettings.uiMode === 'advanced' && (
+            {uiMode === 'advanced' && (
               <button className={`logs-button ${showLogs ? 'active' : ''}`} onClick={toggleLogs}>
                 <Terminal size={16} />
                 <span>{t('common.logs')}</span>
@@ -232,7 +236,7 @@ const MainLayout: React.FC = () => {
         <div className="settings-panel-container">
           {showLogs && <LogsPanel toggleLogs={toggleLogs} />}
           {showSettings && (
-            commonSettings.uiMode === 'basic' ? (
+            uiMode === 'basic' ? (
               <SimpleConfigPanel 
                 toggleSettings={toggleSettings} 
                 highlightSection={settingsNavigationTarget}
@@ -242,7 +246,7 @@ const MainLayout: React.FC = () => {
             )
           )}
           {showAudio && (
-            commonSettings.uiMode === 'basic' ? (
+            uiMode === 'basic' ? (
               <SimpleConfigPanel 
                 toggleSettings={toggleAudio} 
                 highlightSection={settingsNavigationTarget}

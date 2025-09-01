@@ -74,6 +74,7 @@
     "failedToSaveSetting": "Error al guardar la configuración: {{key}}",
     "apiKeyValidationCompleted": "Validación de clave API completada",
     "errorValidatingApiKey": "Error al validar la clave API",
+    "regionNotSupported": "El servicio no está disponible en tu región. Por favor, verifica tu entorno de red o prueba con otro proveedor.",
     "sessionActiveNotice": "La configuración está bloqueada mientras la sesión está activa. Termina la sesión para modificar la configuración.",
     "realtimeModelAvailable": "El modelo en tiempo real está disponible",
     "realtimeModelNotAvailable": "El modelo en tiempo real no está disponible",

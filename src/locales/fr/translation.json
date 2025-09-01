@@ -74,6 +74,7 @@
     "failedToSaveSetting": "Échec de l'enregistrement du paramètre : {{key}}",
     "apiKeyValidationCompleted": "Validation de la clé API terminée",
     "errorValidatingApiKey": "Erreur lors de la validation de la clé API",
+    "regionNotSupported": "Le service n'est pas disponible dans votre région. Veuillez vérifier votre environnement réseau ou essayer un autre fournisseur.",
     "sessionActiveNotice": "Les paramètres sont verrouillés pendant que la session est active. Veuillez terminer la session pour modifier les paramètres.",
     "realtimeModelAvailable": "Le modèle en temps réel est disponible",
     "realtimeModelNotAvailable": "Le modèle en temps réel n'est pas disponible",
