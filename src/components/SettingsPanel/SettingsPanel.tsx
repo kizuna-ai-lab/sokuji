@@ -44,6 +44,7 @@ import { Provider, ProviderType } from '../../types/Provider';
 import { useAnalytics } from '../../lib/analytics';
 import { useAuth } from '../../lib/clerk/ClerkProvider';
 import Tooltip from '../Tooltip/Tooltip';
+import { changeLanguageWithLoad } from '../../locales';
 
 interface SettingsPanelProps {
   toggleSettings?: () => void;
@@ -471,10 +472,10 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
             <select
               className="select-dropdown"
               value={i18n.language}
-              onChange={(e) => {
+              onChange={async (e) => {
                 const oldLanguage = i18n.language;
                 const newLanguage = e.target.value;
-                i18n.changeLanguage(newLanguage);
+                await changeLanguageWithLoad(newLanguage);
                 setUILanguage(newLanguage);
                 
                 // Track UI language change

@@ -40,6 +40,7 @@ import { useAuth } from '../../lib/clerk/ClerkProvider';
 import { UserAccountInfo } from '../Auth/UserAccountInfo';
 import { SignedIn, SignedOut } from '../Auth/AuthGuard';
 import { isKizunaAIEnabled } from '../../utils/environment';
+import { changeLanguageWithLoad } from '../../locales';
 
 interface SimpleConfigPanelProps {
   toggleSettings?: () => void;
@@ -437,9 +438,10 @@ const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings, h
           <div className="setting-row">
             <select
               value={i18n.language}
-              onChange={(e) => {
-                i18n.changeLanguage(e.target.value);
-                setUILanguage(e.target.value);
+              onChange={async (e) => {
+                const newLanguage = e.target.value;
+                await changeLanguageWithLoad(newLanguage);
+                setUILanguage(newLanguage);
               }}
               disabled={isSessionActive}
               className="language-select"
