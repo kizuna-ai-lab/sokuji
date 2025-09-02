@@ -48,7 +48,16 @@ const PROVIDER_COSTS = {
   }
 } as const;
 
-type Modality = 'text' | 'audio';
+/**
+ * Time-based costs for providers (per minute)
+ * Used for duration-based billing (e.g., Whisper transcription)
+ */
+const TIME_BASED_COSTS = {
+  'whisper': 0.006,  // $0.006/minute for transcription
+  'transcription': 0.006  // Generic transcription cost
+} as const;
+
+type Modality = 'text' | 'audio' | 'transcription';
 
 export interface MintRequest {
   subjectType: 'user' | 'organization';
@@ -67,9 +76,11 @@ export interface UseRequest {
   model?: string;
   endpoint?: string;
   method?: string;
-  // Raw token counts
+  // Raw token counts (for token-based billing)
   inputTokens?: number;
   outputTokens?: number;
+  // Duration in seconds (for time-based billing like transcription)
+  durationSeconds?: number;
   // Modality type (optional - can be auto-detected)
   modality?: Modality;
   // Session details
@@ -137,9 +148,27 @@ export class WalletService {
   }
   
   /**
+   * Convert duration (seconds) to tokens for time-based billing
+   * Used for Whisper transcription and similar services
+   */
+  private convertDurationToTokens(seconds: number): number {
+    // Whisper: $0.006/minute = $0.0001/second
+    // Our price: $10/1M tokens
+    // Base conversion: 1 second = (0.0001 / 10) * 1,000,000 = 10 tokens
+    // With profit margin: 10 * 1.2 = 12 tokens/second
+    const tokensPerSecond = Math.ceil((TIME_BASED_COSTS.whisper / 60) / OUR_PRICE_PER_1M * 1000000 * PROFIT_MARGIN);
+    return Math.ceil(seconds * tokensPerSecond);
+  }
+  
+  /**
    * Determine modality type based on model name and other factors
    */
   private determineModality(model: string, endpoint?: string, eventType?: string): Modality {
+    // Check if it's a transcription event
+    if (eventType === 'conversation.item.input_audio_transcription.completed') {
+      return 'transcription';
+    }
+    
     // If it's a realtime model, determine based on endpoint and event type
     if (model.includes('realtime')) {
       // REST API endpoints typically use text
@@ -339,33 +368,84 @@ export class WalletService {
   /**
    * Use tokens (atomic deduction with usage logging and automatic pricing calculation)
    * Allows negative balance - will deduct tokens unconditionally
+   * Supports both token-based and duration-based billing
    */
-  async useTokens(request: UseRequest): Promise<{ success: boolean; remaining?: number; error?: string }> {
+  async useTokens(request: UseRequest): Promise<{ success: boolean; remaining?: number; deducted?: number; error?: string }> {
     const { 
       subjectType, subjectId,
       provider, model, endpoint, method,
       inputTokens = 0, outputTokens = 0,
+      durationSeconds,
       modality,
       sessionId, requestId, responseId, eventType,
       metadata 
     } = request;
 
-    // Validate input
-    if (!inputTokens && !outputTokens) {
-      return { success: false, error: 'No tokens to deduct' };
-    }
+    let tokens = 0;
+    let actualInputTokens = inputTokens;
+    let actualOutputTokens = outputTokens;
+    let adjustment: {
+      adjustedInputTokens: number;
+      adjustedOutputTokens: number;
+      totalAdjustedTokens: number;
+      inputRatio: number;
+      outputRatio: number;
+    };
     
-    // Calculate adjusted tokens internally
+    // Determine modality first
     const actualModality = modality || this.determineModality(model || '', endpoint, eventType);
-    const adjustment = this.calculateAdjustedTokens(
-      provider || 'openai',
-      model || 'unknown',
-      actualModality,
-      inputTokens,
-      outputTokens
-    );
     
-    const tokens = adjustment.totalAdjustedTokens;
+    // Handle duration-based billing (e.g., transcription)
+    if (durationSeconds !== undefined && durationSeconds > 0) {
+      // Convert duration to tokens
+      tokens = this.convertDurationToTokens(durationSeconds);
+      actualInputTokens = tokens; // Consider duration as input tokens
+      actualOutputTokens = 0;
+      
+      // Create adjustment object for duration-based billing
+      adjustment = {
+        adjustedInputTokens: tokens,
+        adjustedOutputTokens: 0,
+        totalAdjustedTokens: tokens,
+        inputRatio: 1.2, // Our profit margin for transcription
+        outputRatio: 0
+      };
+      
+      console.log('Duration-based billing:', {
+        durationSeconds,
+        calculatedTokens: tokens,
+        eventType,
+        model
+      });
+    } else {
+      // Handle token-based billing
+      // Validate input - allow zero tokens for some events
+      if (inputTokens < 0 || outputTokens < 0) {
+        return { success: false, error: 'Invalid negative token values' };
+      }
+      
+      // If both are zero, this might be a no-cost event, allow it
+      if (inputTokens === 0 && outputTokens === 0) {
+        console.log('Zero-token event, proceeding without deduction:', { eventType, model });
+        // Get current balance for return value
+        const wallet = await this.env.DB.prepare(
+          'SELECT balance_tokens FROM wallets WHERE subject_type = ? AND subject_id = ?'
+        ).bind(subjectType, subjectId).first();
+        
+        return { success: true, remaining: wallet?.balance_tokens as number || 0, deducted: 0 };
+      }
+      
+      // Calculate adjusted tokens internally
+      adjustment = this.calculateAdjustedTokens(
+        provider || 'openai',
+        model || 'unknown',
+        actualModality,
+        actualInputTokens,
+        actualOutputTokens
+      );
+      
+      tokens = adjustment.totalAdjustedTokens;
+    }
 
     try {
       // Start transaction with batch operations
@@ -459,6 +539,7 @@ export class WalletService {
             ledgerId,
             JSON.stringify({
               ...metadata,
+              duration_seconds: durationSeconds || null,
               adjusted_tokens: {
                 input: adjustment.adjustedInputTokens,
                 output: adjustment.adjustedOutputTokens,
@@ -483,7 +564,7 @@ export class WalletService {
         'SELECT balance_tokens FROM wallets WHERE subject_type = ? AND subject_id = ?'
       ).bind(subjectType, subjectId).first();
 
-      return { success: true, remaining: wallet?.balance_tokens as number };
+      return { success: true, remaining: wallet?.balance_tokens as number, deducted: tokens };
 
     } catch (error) {
       console.error('Error using tokens:', error);
