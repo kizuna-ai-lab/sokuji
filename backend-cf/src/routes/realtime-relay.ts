@@ -20,9 +20,7 @@ const OPENAI_CONFIG = {
 } as const;
 
 function relayLog(...args: unknown[]) {
-  if (DEBUG) {
-    console.log('[realtime-relay]', ...args);
-  }
+  console.log('[realtime-relay]', ...args);
 }
 
 const WEBSOCKET_STATES = {
@@ -267,24 +265,46 @@ async function createRealtimeClient(
           
           // If we have usage data, deduct tokens from wallet
           if (usage && eventsWithUsage.includes(event.type)) {
-            const inputTokens = usage.input_tokens || 0;
-            const outputTokens = usage.output_tokens || 0;
+            let inputTokens = 0;
+            let outputTokens = 0;
+            let durationSeconds: number | undefined;
+            
+            // Check if this is duration-based usage (transcription)
+            if (usage.type === 'duration' && usage.seconds !== undefined) {
+              // Duration-based billing for transcription
+              durationSeconds = usage.seconds;
+              
+              relayLog('Duration-based usage detected:', {
+                eventType: event.type,
+                durationSeconds,
+                model: modelName
+              });
+            } else {
+              // Token-based billing
+              inputTokens = usage.input_tokens || 0;
+              outputTokens = usage.output_tokens || 0;
+            }
             
             // Determine modality based on model and event type
             // Realtime models typically use audio, but may have text components
-            let modality: 'audio' | 'text' = 'audio'; // Default for realtime
+            let modality: 'audio' | 'text' | 'transcription' = 'audio'; // Default for realtime
             
-            // Check if this is specifically a text-based interaction
-            if (event.response?.modalities && Array.isArray(event.response.modalities)) {
+            // Check if this is a transcription event
+            if (event.type === 'conversation.item.input_audio_transcription.completed') {
+              modality = 'transcription';
+            } else if (event.response?.modalities && Array.isArray(event.response.modalities)) {
               // If modalities only includes 'text', use text pricing
               if (event.response.modalities.length === 1 && event.response.modalities[0] === 'text') {
                 modality = 'text';
               }
             }
             
-            totalTokensUsed += inputTokens + outputTokens;
+            // Track total tokens (for duration-based, this will be calculated in wallet service)
+            if (!durationSeconds) {
+              totalTokensUsed += inputTokens + outputTokens;
+            }
             
-            relayLog('Processing token usage:', {
+            relayLog('Processing usage:', {
               userId: userContext.userId,
               eventType: event.type,
               model: modelName,
@@ -292,6 +312,7 @@ async function createRealtimeClient(
               modality: modality,
               inputTokens,
               outputTokens,
+              durationSeconds,
               totalTokens: inputTokens + outputTokens
             });
             
@@ -313,6 +334,11 @@ async function createRealtimeClient(
               if (event.transcript) metadata.transcript_length = event.transcript?.length || 0;
               if (event.content_index !== undefined) metadata.content_index = event.content_index;
               if (conversationId) metadata.conversation_id = conversationId;
+              // Add duration info for transcription
+              if (durationSeconds !== undefined) {
+                metadata.duration_seconds = durationSeconds;
+                metadata.billing_type = 'duration';
+              }
             }
             
             // Deduct tokens from wallet (pricing calculation happens internally)
@@ -324,9 +350,11 @@ async function createRealtimeClient(
               model: modelName,
               endpoint: '/v1/realtime',
               method: 'WS',
-              // Raw token counts
+              // Raw token counts (for token-based billing)
               inputTokens: inputTokens,
               outputTokens: outputTokens,
+              // Duration (for time-based billing)
+              durationSeconds: durationSeconds,
               // Modality
               modality: modality,
               // Session details
@@ -365,7 +393,7 @@ async function createRealtimeClient(
             } else {
               relayLog('Tokens deducted successfully:', {
                 remaining: deductResult.remaining,
-                tokensUsed: inputTokens + outputTokens
+                tokensUsed: deductResult.deducted || 0
               });
             }
           }
