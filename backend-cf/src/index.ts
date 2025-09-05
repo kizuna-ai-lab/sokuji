@@ -101,4 +101,8 @@ app.notFound((c) => {
   return c.json({ error: 'Not found' }, 404);
 });
 
+// Export the main app
 export default app;
+
+// Export Durable Objects
+export { RealtimeRelayDurableObject } from './durable-objects/RealtimeRelayDurableObject';

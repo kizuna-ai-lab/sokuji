@@ -17,6 +17,7 @@ export interface Env {
   DB: D1Database;
   QUOTA_KV: KVNamespace;
   SESSION_KV: KVNamespace;
+  REALTIME_RELAY: DurableObjectNamespace;
   
   // Environment variables
   ENVIRONMENT: 'development' | 'production';

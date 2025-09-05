@@ -23,7 +23,15 @@ binding = "SESSION_KV"
 id = "2d3f115a16eb46e59016375014194f86"
 preview_id = "YOUR_SESSION_KV_PREVIEW_ID"
 
-# Durable Objects removed - using HTTP polling instead
+# Durable Objects for WebSocket connections
+[[durable_objects.bindings]]
+name = "REALTIME_RELAY"
+class_name = "RealtimeRelayDurableObject"
+
+# Durable Object migrations
+[[migrations]]
+tag = "v1"
+new_classes = ["RealtimeRelayDurableObject"]
 
 # Environment Variables (use .dev.vars for local development)
 [vars]
