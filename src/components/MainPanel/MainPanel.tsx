@@ -1403,7 +1403,11 @@ const MainPanel: React.FC<MainPanelProps> = () => {
               <div key={item.id} className={`conversation-item ${item.role}`} style={{ position: 'relative' }}>
                 <div className="conversation-item-role">
                   {item.role}
-                  {isDevelopment() && (item as any).status === 'completed' && item.formatted?.audio && (
+                  {/* TODO: OpenAI Realtime API sometimes returns status="incomplete" even when audio is complete
+                      This happens when response.output_item.done event has item.status="incomplete"
+                      We should investigate why this occurs and handle it properly in the future
+                      For now, we allow both 'completed' and 'incomplete' status to show play button if audio exists */}
+                  {isDevelopment() && ((item as any).status === 'completed' || (item as any).status === 'incomplete') && item.formatted?.audio && (
                     <button 
                       className={`inline-play-button ${playingItemId === item.id ? 'playing' : ''}`}
                       onClick={() => handlePlayAudio(item)}
