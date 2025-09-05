@@ -116,7 +116,7 @@ export class OpenAIProviderConfig {
         model: 'gpt-4o-mini-realtime-preview',
         voice: 'alloy',
         temperature: 0.6,
-        maxTokens: 4096,
+        maxTokens: 'inf' as any,
         sourceLanguage: 'en',
         targetLanguage: 'zh_CN',
         turnDetectionMode: 'Normal',

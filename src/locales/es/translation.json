@@ -120,6 +120,8 @@
     "semanticEagernessTooltip": "Qué tan rápido la IA decide que has terminado (solo modo semántico). \nAuto: La IA decide. \nBajo: Muy paciente. \nMedio: Equilibrado. \nAlto: Respuesta rápida.",
     "temperatureTooltip": "Creatividad de traducción (0.0-1.0). Menor = traducción más literal, palabra por palabra. Mayor = estilo más natural y conversacional. Para traducción, 0.7-0.9 funciona mejor.",
     "maxTokensTooltip": "Longitud máxima de cada traducción. Los tokens son como piezas de palabras - 100 tokens ≈ 75 palabras. 2048-4096 bueno para conversaciones. 'inf' = ilimitado.",
+    "unlimited": "Ilimitado",
+    "custom": "Personalizado",
     "transcriptModelTooltip": "Modelo de reconocimiento de voz. \nwhisper-1: Estándar, confiable. \ngpt-4o-mini: Más rápido, bueno para idiomas comunes. \ngpt-4o: Más preciso para acentos/términos técnicos.",
     "noiseReductionTooltip": "Eliminación de ruido de fondo. \nNinguno: Sin procesamiento, usar en habitaciones silenciosas. \nCampo cercano: Para auriculares/micrófonos cercanos. \nCampo lejano: Para altavoces/salas de conferencias con eco.",
     "systemInstructionsTooltip": "Instrucciones personalizadas para el traductor de IA. Dile tus preferencias como tono formal/informal, manejo de términos técnicos, o estilo de traducción específico."

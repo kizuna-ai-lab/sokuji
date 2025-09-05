@@ -600,7 +600,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
         </div>
         <div className="setting-item">
           <div className="setting-label">
-            <span>
+            <span className="label-with-checkbox">
               {t('settings.maxTokens')}
               <Tooltip
                 content={t('settings.maxTokensTooltip')}
@@ -608,19 +608,40 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
               >
                 <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '4px', display: 'inline-block', verticalAlign: 'middle' }} />
               </Tooltip>
+              <label className="unlimited-checkbox">
+                <input
+                  type="checkbox"
+                  checked={(currentProviderSettings as any).maxTokens === 'inf'}
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      updateCurrentProviderSetting('maxTokens', 'inf');
+                    } else {
+                      updateCurrentProviderSetting('maxTokens', maxTokensRange.max);
+                    }
+                  }}
+                  disabled={isSessionActive}
+                />
+                <span>{t('settings.unlimited', 'Unlimited')}</span>
+              </label>
             </span>
-            <span className="setting-value">{(currentProviderSettings as any).maxTokens}</span>
+            <span className="setting-value">
+              {(currentProviderSettings as any).maxTokens === 'inf' 
+                ? t('settings.unlimited', 'Unlimited') 
+                : (currentProviderSettings as any).maxTokens}
+            </span>
           </div>
-          <input 
-            type="range" 
-            min={maxTokensRange.min} 
-            max={maxTokensRange.max} 
-            step={maxTokensRange.step} 
-            value={typeof (currentProviderSettings as any).maxTokens === 'number' ? (currentProviderSettings as any).maxTokens : maxTokensRange.max}
-            onChange={(e) => updateCurrentProviderSetting('maxTokens', parseInt(e.target.value))}
-            className="slider"
-            disabled={isSessionActive}
-          />
+          {(currentProviderSettings as any).maxTokens !== 'inf' && (
+            <input 
+              type="range" 
+              min={maxTokensRange.min} 
+              max={maxTokensRange.max} 
+              step={maxTokensRange.step} 
+              value={(currentProviderSettings as any).maxTokens}
+              onChange={(e) => updateCurrentProviderSetting('maxTokens', parseInt(e.target.value))}
+              className="slider"
+              disabled={isSessionActive}
+            />
+          )}
         </div>
       </div>
     );
