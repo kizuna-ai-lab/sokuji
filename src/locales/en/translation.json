@@ -172,6 +172,8 @@
     "semanticEagernessTooltip": "How quickly AI decides you're done (Semantic mode only). \nAuto: AI decides. \nLow: Very patient. \nMedium: Balanced. \nHigh: Quick to respond.",
     "temperatureTooltip": "Translation creativity (0.0-1.0). Lower = more literal, word-for-word translation. Higher = more natural, conversational style. For translation, 0.7-0.9 works best.",
     "maxTokensTooltip": "Maximum length of each translation. Tokens are like word pieces - 100 tokens ≈ 75 words. 2048-4096 good for conversations. 'inf' = unlimited.",
+    "unlimited": "Unlimited",
+    "custom": "Custom",
     "transcriptModelTooltip": "Speech recognition model. \nwhisper-1: Standard, reliable. \ngpt-4o-mini: Faster, good for common languages. \ngpt-4o: Most accurate for accents/technical terms.",
     "noiseReductionTooltip": "Background noise removal. \nNone: No processing, use in quiet rooms. \nNear field: For headsets/close microphones. \nFar field: For speakers/conference rooms with echo.",
     "systemInstructionsTooltip": "Custom instructions for the AI translator. Tell it your preferences like formal/casual tone, technical terms handling, or specific translation style."

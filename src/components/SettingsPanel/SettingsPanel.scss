@@ -736,6 +736,42 @@
           }
         }
         
+        .label-with-checkbox {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+        }
+
+        .unlimited-checkbox {
+          display: inline-flex;
+          align-items: center;
+          margin-left: 12px;
+          cursor: pointer;
+          font-size: 12px;
+          color: #999;
+          
+          input[type="checkbox"] {
+            width: 14px;
+            height: 14px;
+            margin-right: 6px;
+            cursor: pointer;
+            accent-color: #10a37f;
+            
+            &:disabled {
+              cursor: not-allowed;
+              opacity: 0.6;
+            }
+          }
+          
+          span {
+            user-select: none;
+          }
+          
+          &:hover:not(:has(input:disabled)) {
+            color: #ccc;
+          }
+        }
+        
         .turn-detection-options {
           display: flex;
           width: 100%;

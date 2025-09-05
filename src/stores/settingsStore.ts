@@ -266,7 +266,7 @@ const defaultOpenAICompatibleSettings: OpenAICompatibleSettings = {
   silenceDuration: 0.5,
   semanticEagerness: 'Auto',
   temperature: 0.8,
-  maxTokens: 4096,
+  maxTokens: 'inf',
   transcriptModel: 'gpt-4o-mini-transcribe',
   noiseReduction: 'None',
 };
@@ -288,7 +288,7 @@ const defaultGeminiSettings: GeminiSettings = {
   sourceLanguage: 'en-US',
   targetLanguage: 'ja-JP',
   temperature: 0.8,
-  maxTokens: 4096,
+  maxTokens: 'inf',
 };
 
 const defaultPalabraAISettings: PalabraAISettings = {

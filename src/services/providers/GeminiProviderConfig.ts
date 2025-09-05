@@ -113,7 +113,7 @@ export class GeminiProviderConfig {
         model: 'gemini-2.0-flash-live-001',
         voice: 'Aoede',
         temperature: 1.0,
-        maxTokens: 8192,
+        maxTokens: 'inf' as any,
         sourceLanguage: 'en-US',
         targetLanguage: 'ja-JP',
         turnDetectionMode: 'Auto', // Gemini handles automatically

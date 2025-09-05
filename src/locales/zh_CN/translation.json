@@ -120,6 +120,8 @@
     "semanticEagernessTooltip": "AI决定您说完的速度（仅语义模式）。\n自动：AI决定。\n低：非常耐心。\n中：平衡。\n高：快速响应。",
     "temperatureTooltip": "翻译创意度（0.0-1.0）。较低=更字面的逐词翻译。较高=更自然的对话风格。翻译用0.7-0.9最好。",
     "maxTokensTooltip": "每次翻译的最大长度。Token就像单词片段-100个token≈75个单词。对话用2048-4096好。'inf'=无限制。",
+    "unlimited": "无限制",
+    "custom": "自定义",
     "transcriptModelTooltip": "语音识别模型。\nwhisper-1：标准，可靠。\ngpt-4o-mini：更快，适合常见语言。\ngpt-4o：对口音/技术术语最准确。",
     "noiseReductionTooltip": "背景噪音消除。\n无：不处理，在安静房间使用。\n近场：用于耳机/近距离麦克风。\n远场：用于有回声的扬声器/会议室。",
     "systemInstructionsTooltip": "AI翻译器的自定义指令。告诉它您的偏好，如正式/随意的语调、技术术语处理或特定的翻译风格。"
