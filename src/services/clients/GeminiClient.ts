@@ -45,6 +45,14 @@ export class GeminiClient implements IClient {
   }
 
   /**
+   * Generate a unique ID for conversation items
+   * @private
+   */
+  private generateItemId(type: string = 'item'): string {
+    return `${this.instanceId}_${type}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  }
+
+  /**
    * Make a request to Gemini API models endpoint with pagination support
    */
   private static async fetchModelsFromAPI(apiKey: string): Promise<any[]> {
@@ -458,7 +466,7 @@ export class GeminiClient implements IClient {
   }
 
   private async finalizeTurn(): Promise<void> {
-    // Create final conversation items from accumulated data
+    // Finalize conversation items - mark them as completed without resending audio
     
     // Finalize input transcription if we have accumulated text
     if (this.currentTurn.inputTranscription.trim()) {
@@ -468,9 +476,9 @@ export class GeminiClient implements IClient {
         this.currentTurn.inputTranscriptionItem.status = 'completed';
         this.eventHandlers.onConversationUpdated?.({ item: this.currentTurn.inputTranscriptionItem });
       } else {
-        // Create new item if none exists
+        // Create new item if none exists (shouldn't happen normally)
         const conversationItem: ConversationItem = {
-          id: this.instanceId,
+          id: this.generateItemId('user'),
           role: 'user',
           type: 'message',
           status: 'completed',
@@ -483,66 +491,69 @@ export class GeminiClient implements IClient {
       }
     }
 
-    // Finalize assistant response (combining modelTurn and outputTranscription)
-    if (this.currentTurn.audioData.length > 0 || this.currentTurn.textParts.length > 0 || this.currentTurn.outputTranscription.trim()) {
-      // Combine all audio data
-      let combinedAudio: Int16Array | undefined;
+    // Finalize assistant response - just update status, don't resend audio
+    if (this.currentTurn.assistantItem) {
+      // Audio has already been sent via delta in modelTurn handler
+      // Just mark the item as completed
+      this.currentTurn.assistantItem.status = 'completed';
+      
+      // Update text fields if they haven't been set yet
+      if (this.currentTurn.assistantItem.formatted) {
+        const combinedText = this.currentTurn.textParts.join('');
+        const outputTranscript = this.currentTurn.outputTranscription.trim();
+        
+        if (combinedText && !this.currentTurn.assistantItem.formatted.text) {
+          this.currentTurn.assistantItem.formatted.text = combinedText;
+        }
+        if (outputTranscript && !this.currentTurn.assistantItem.formatted.transcript) {
+          this.currentTurn.assistantItem.formatted.transcript = outputTranscript;
+        }
+      }
+      
+      // Send update without audio delta (audio was already sent in modelTurn)
+      this.eventHandlers.onConversationUpdated?.({ 
+        item: this.currentTurn.assistantItem
+      });
+    } else if (this.currentTurn.audioData.length > 0 || this.currentTurn.textParts.length > 0 || this.currentTurn.outputTranscription.trim()) {
+      // This shouldn't normally happen if modelTurn created the item
+      // But create it as a fallback
+      const conversationItem: ConversationItem = {
+        id: this.generateItemId('assistant'),
+        role: 'assistant',
+        type: 'message',
+        status: 'completed',
+        formatted: {}
+      };
+
+      // Store the complete audio for reference, but don't send it as delta
       if (this.currentTurn.audioData.length > 0) {
         const totalLength = this.currentTurn.audioData.reduce((sum, arr) => sum + arr.length, 0);
-        combinedAudio = new Int16Array(totalLength);
+        const combinedAudio = new Int16Array(totalLength);
         let offset = 0;
         for (const audioChunk of this.currentTurn.audioData) {
           combinedAudio.set(audioChunk, offset);
           offset += audioChunk.length;
         }
-      }
-
-      // Combine all text parts
-      const combinedText = this.currentTurn.textParts.join('');
-      const outputTranscript = this.currentTurn.outputTranscription.trim();
-
-      if (this.currentTurn.assistantItem && this.currentTurn.assistantItem.formatted) {
-        // Update existing item and mark as completed
-        if (combinedAudio) {
-          this.currentTurn.assistantItem.formatted.audio = combinedAudio;
-        }
-        if (combinedText) {
-          this.currentTurn.assistantItem.formatted.text = combinedText;
-        }
-        if (outputTranscript) {
-          this.currentTurn.assistantItem.formatted.transcript = outputTranscript;
-        }
-        this.currentTurn.assistantItem.status = 'completed';
-        // Don't send audio delta in finalization to avoid duplicate playback
-        this.eventHandlers.onConversationUpdated?.({ 
-          item: this.currentTurn.assistantItem
-        });
-      } else {
-        // Create new item
-        const conversationItem: ConversationItem = {
-          id: this.instanceId,
-          role: 'assistant',
-          type: 'message',
-          status: 'completed',
-          formatted: {}
-        };
-
-        if (combinedAudio && conversationItem.formatted) {
+        if (conversationItem.formatted) {
           conversationItem.formatted.audio = combinedAudio;
         }
-        if (combinedText && conversationItem.formatted) {
-          conversationItem.formatted.text = combinedText;
-        }
-        if (outputTranscript && conversationItem.formatted) {
-          conversationItem.formatted.transcript = outputTranscript;
-        }
-
-        this.conversationItems.push(conversationItem);
-        // Don't send audio delta in finalization to avoid duplicate playback
-        this.eventHandlers.onConversationUpdated?.({ 
-          item: conversationItem
-        });
       }
+
+      const combinedText = this.currentTurn.textParts.join('');
+      const outputTranscript = this.currentTurn.outputTranscription.trim();
+      
+      if (combinedText && conversationItem.formatted) {
+        conversationItem.formatted.text = combinedText;
+      }
+      if (outputTranscript && conversationItem.formatted) {
+        conversationItem.formatted.transcript = outputTranscript;
+      }
+
+      this.conversationItems.push(conversationItem);
+      // Send without audio delta since this is a fallback scenario
+      this.eventHandlers.onConversationUpdated?.({ 
+        item: conversationItem
+      });
     }
   }
 
@@ -599,7 +610,7 @@ export class GeminiClient implements IClient {
         // Create or update the same assistant item that handles modelTurn
         if (!this.currentTurn.assistantItem) {
           this.currentTurn.assistantItem = {
-            id: this.instanceId,
+            id: this.generateItemId('assistant'),
             role: 'assistant',
             type: 'message',
             status: 'in_progress',
@@ -629,7 +640,7 @@ export class GeminiClient implements IClient {
         // Create or update conversation item for real-time display
         if (!this.currentTurn.inputTranscriptionItem) {
           this.currentTurn.inputTranscriptionItem = {
-            id: this.instanceId,
+            id: this.generateItemId('user'),
             role: 'user',
             type: 'message',
             status: 'in_progress',
@@ -688,7 +699,7 @@ export class GeminiClient implements IClient {
       if (hasNewAudio || hasNewText) {
         if (!this.currentTurn.assistantItem) {
           this.currentTurn.assistantItem = {
-            id: this.instanceId,
+            id: this.generateItemId('assistant'),
             role: 'assistant',
             type: 'message',
             status: 'in_progress',
@@ -719,7 +730,7 @@ export class GeminiClient implements IClient {
           // Preserve existing transcript from outputTranscription
           // (transcript field is managed by outputTranscription handler)
 
-          // Only emit delta for new audio chunks to avoid duplicate playback
+          // Always emit delta for new audio chunks immediately
           if (hasNewAudio && newAudioChunks.length > 0) {
             // Combine all new audio chunks from this message
             const totalNewLength = newAudioChunks.reduce((sum, arr) => sum + arr.length, 0);
@@ -730,11 +741,15 @@ export class GeminiClient implements IClient {
               offset += audioChunk.length;
             }
             
+            // Log audio chunk info for debugging
+            console.debug(`[GeminiClient] Sending audio delta: ${combinedNewAudio.length} samples (${(combinedNewAudio.length / 24000).toFixed(2)}s)`);
+            
+            // Send audio delta immediately for real-time playback
             this.eventHandlers.onConversationUpdated?.({ 
               item: this.currentTurn.assistantItem, 
               delta: { audio: combinedNewAudio }
             });
-          } else {
+          } else if (hasNewText) {
             // Update without audio delta if only text changed
             this.eventHandlers.onConversationUpdated?.({ item: this.currentTurn.assistantItem });
           }
@@ -745,10 +760,18 @@ export class GeminiClient implements IClient {
 
   private base64ToArrayBuffer(base64: string): ArrayBuffer {
     const binaryString = atob(base64);
-    const bytes = new Uint8Array(binaryString.length);
-    for (let i = 0; i < binaryString.length; i++) {
-      bytes[i] = binaryString.charCodeAt(i);
+    const len = binaryString.length;
+    const bytes = new Uint8Array(len);
+    
+    // Optimized: Process in chunks for better performance
+    const chunkSize = 0x8000; // 32KB chunks
+    for (let i = 0; i < len; i += chunkSize) {
+      const end = Math.min(i + chunkSize, len);
+      for (let j = i; j < end; j++) {
+        bytes[j] = binaryString.charCodeAt(j);
+      }
     }
+    
     return bytes.buffer;
   }
 
@@ -801,11 +824,16 @@ export class GeminiClient implements IClient {
   }
 
   private arrayBufferToBase64(buffer: ArrayBuffer): string {
+    // Optimized base64 encoding - avoid string concatenation in loop
     const bytes = new Uint8Array(buffer);
+    const chunkSize = 0x8000; // 32KB chunks to avoid call stack size issues
     let binary = '';
-    for (let i = 0; i < bytes.byteLength; i++) {
-      binary += String.fromCharCode(bytes[i]);
+    
+    for (let i = 0; i < bytes.length; i += chunkSize) {
+      const chunk = bytes.subarray(i, Math.min(i + chunkSize, bytes.length));
+      binary += String.fromCharCode.apply(null, Array.from(chunk));
     }
+    
     return btoa(binary);
   }
 

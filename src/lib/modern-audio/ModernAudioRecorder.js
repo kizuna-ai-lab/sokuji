@@ -1,3 +1,5 @@
+import { DEBUG_CONFIG, PERFORMANCE_CONFIG, AUDIO_CONSTRAINT_PROFILES } from '../config/performance.js';
+
 /**
  * Modern Audio Recorder using standard browser APIs
  * Replaces WavRecorder with MediaRecorder API for better echo cancellation support
@@ -16,10 +18,12 @@ export class ModernAudioRecorder {
     enableWarmup = true,
     warmupDuration = 200,
     skipStartupFrames = 5,
+    performanceMode = 'high_quality', // 'high_quality', 'performance', or 'minimal'
   } = {}) {
     // Config
     this.sampleRate = sampleRate;
     this.enablePassthrough = enablePassthrough;
+    this.performanceMode = performanceMode;
     this._deviceChangeCallback = null;
     this._devices = [];
     
@@ -187,6 +191,30 @@ export class ModernAudioRecorder {
   }
 
   /**
+   * Get audio constraints based on performance mode
+   * @private
+   * @param {string} [deviceId] - Device ID
+   * @returns {Object} Audio constraints
+   */
+  getAudioConstraints(deviceId) {
+    const baseConstraints = {
+      deviceId: deviceId ? { exact: deviceId } : undefined,
+      sampleRate: this.sampleRate,
+      channelCount: 1,
+      latency: 0.02 // 20ms low latency
+    };
+    
+    // Get profile from performance config
+    const profileName = this.performanceMode.toUpperCase().replace(' ', '_');
+    const profile = AUDIO_CONSTRAINT_PROFILES[profileName] || AUDIO_CONSTRAINT_PROFILES.HIGH_QUALITY;
+    
+    return {
+      ...baseConstraints,
+      ...profile
+    };
+  }
+
+  /**
    * Get supported MIME type for MediaRecorder
    * @private
    * @returns {string}
@@ -214,31 +242,10 @@ export class ModernAudioRecorder {
       );
     }
 
-    // Modern getUserMedia constraints with best practices for echo cancellation
+    // Select audio constraints based on performance mode
+    const audioConstraints = this.getAudioConstraints(deviceId);
     const constraints = {
-      audio: {
-        deviceId: deviceId ? { exact: deviceId } : undefined,
-        sampleRate: this.sampleRate,
-        
-        // 2024-2025 best practices for echo cancellation
-        echoCancellation: true,
-        echoCancellationType: 'system', // Chrome M68+ prefer system-level AEC
-        noiseSuppression: true,
-        autoGainControl: true,
-        suppressLocalAudioPlayback: true, // Now effective!
-        
-        // Advanced audio processing
-        googEchoCancellation: true,
-        googNoiseSuppression: true,
-        googAutoGainControl: true,
-        googHighpassFilter: true,
-        googTypingNoiseDetection: true,
-        googAudioMirroring: false,
-        
-        // Performance optimization
-        channelCount: 1,
-        latency: 0.02 // 20ms low latency
-      }
+      audio: audioConstraints
     };
 
     try {
@@ -346,10 +353,12 @@ export class ModernAudioRecorder {
           if (event.data.type === 'audioData') {
             const { pcmData, timestamp, frameCount } = event.data;
             
-            // Log periodically to verify data flow
-            this._audioChunkCount = (this._audioChunkCount || 0) + 1;
-            if (this._audioChunkCount % 500 === 0) {
-              console.debug(`[Sokuji] [ModernAudioRecorder] AudioWorklet chunk ${this._audioChunkCount}, PCM length: ${pcmData.length}, timestamp: ${timestamp}`);
+            // Log periodically to verify data flow (reduced in production)
+            if (DEBUG_CONFIG.ENABLE_AUDIO_CHUNK_LOGGING) {
+              this._audioChunkCount = (this._audioChunkCount || 0) + 1;
+              if (this._audioChunkCount % DEBUG_CONFIG.AUDIO_CHUNK_LOG_INTERVAL === 0) {
+                console.debug(`[Sokuji] [ModernAudioRecorder] AudioWorklet chunk ${this._audioChunkCount}, PCM length: ${pcmData.length}, timestamp: ${timestamp}`);
+              }
             }
             
             // Detect and handle silence (potential buffer underrun)
@@ -397,30 +406,45 @@ export class ModernAudioRecorder {
    * @private
    */
   async setupScriptProcessorFallback() {
-    const bufferSize = 8192; // Increased buffer size to reduce callback frequency (from 6Hz to 3Hz)
+    // Performance: Use larger buffer size to reduce callback frequency
+    const bufferSize = PERFORMANCE_CONFIG.SCRIPT_PROCESSOR_BUFFER_SIZE;
     this.scriptProcessor = this.audioContext.createScriptProcessor(bufferSize, 1, 1);
     
     this.scriptProcessor.onaudioprocess = (event) => {
       const inputBuffer = event.inputBuffer;
       const inputData = inputBuffer.getChannelData(0);
       
-      // Log every 1000 calls to verify ScriptProcessor is working
-      this._scriptProcessorCallCount = (this._scriptProcessorCallCount || 0) + 1;
-      if (this._scriptProcessorCallCount % 1000 === 0) {
-        console.debug(`[Sokuji] [ModernAudioRecorder] ScriptProcessor callback: call ${this._scriptProcessorCallCount}, buffer length: ${inputData.length}`);
+      // Log periodically to verify ScriptProcessor is working (reduced in production)
+      if (DEBUG_CONFIG.ENABLE_PROCESSOR_LOGGING) {
+        this._scriptProcessorCallCount = (this._scriptProcessorCallCount || 0) + 1;
+        if (this._scriptProcessorCallCount % DEBUG_CONFIG.PROCESSOR_LOG_INTERVAL === 0) {
+          console.debug(`[Sokuji] [ModernAudioRecorder] ScriptProcessor callback: call ${this._scriptProcessorCallCount}, buffer length: ${inputData.length}`);
+        }
       }
       
-      // Convert to PCM16 for AI processing
+      // Performance: Optimized batch PCM16 conversion
       const pcmData = new Int16Array(inputData.length);
-      for (let i = 0; i < inputData.length; i++) {
-        const sample = Math.max(-1, Math.min(1, inputData[i]));
-        pcmData[i] = sample < 0 ? sample * 32768 : sample * 32767;
+      const len = inputData.length;
+      
+      // Process in chunks for better CPU cache utilization
+      const chunkSize = PERFORMANCE_CONFIG.PCM_CONVERSION_CHUNK_SIZE;
+      for (let i = 0; i < len; i += chunkSize) {
+        const end = Math.min(i + chunkSize, len);
+        for (let j = i; j < end; j++) {
+          const sample = inputData[j];
+          // Simplified clamping and conversion
+          pcmData[j] = sample >= 0 
+            ? Math.min(32767, sample * 32767) 
+            : Math.max(-32768, sample * 32768);
+        }
       }
       
-      // Log every 500 chunks to verify data flow
-      this._audioChunkCount = (this._audioChunkCount || 0) + 1;
-      if (this._audioChunkCount % 500 === 0) {
-        console.debug(`[Sokuji] [ModernAudioRecorder] Audio chunk ${this._audioChunkCount}, PCM length: ${pcmData.length}`);
+      // Log periodically to verify data flow (reduced in production)
+      if (DEBUG_CONFIG.ENABLE_AUDIO_CHUNK_LOGGING) {
+        this._audioChunkCount = (this._audioChunkCount || 0) + 1;
+        if (this._audioChunkCount % DEBUG_CONFIG.AUDIO_CHUNK_LOG_INTERVAL === 0) {
+          console.debug(`[Sokuji] [ModernAudioRecorder] Audio chunk ${this._audioChunkCount}, PCM length: ${pcmData.length}`);
+        }
       }
       
       // Always send audio data through callback if available
