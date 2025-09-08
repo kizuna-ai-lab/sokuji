@@ -97,24 +97,33 @@ export class ModernAudioPlayer {
    * Add audio to passthrough buffer - with optional delay for echo cancellation
    */
   addToPassthroughBuffer(audioData, volume = 1.0, delay = 50) {
+    // Performance: Early return if muted
     if (this.globalVolumeMultiplier === 0) {
       return;
     }
-    const buffer = this.normalizeAudioData(audioData);
+    
     const trackId = 'passthrough';
+    const effectiveVolume = volume * this.globalVolumeMultiplier;
+    
+    // Performance: Skip processing if effective volume is too low
+    if (effectiveVolume < 0.01) {
+      return;
+    }
+    
+    const buffer = this.normalizeAudioData(audioData);
     
     if (delay > 0) {
       // Delayed playback for echo cancellation safety
       setTimeout(() => {
         // Check again in case volume was muted during delay
         if (this.globalVolumeMultiplier > 0) {
-          this.queueAudio(trackId, buffer, volume * this.globalVolumeMultiplier);
+          this.queueAudio(trackId, buffer, effectiveVolume);
           this.processQueue(trackId);
         }
       }, delay);
     } else {
       // Immediate playback
-      this.queueAudio(trackId, buffer, volume * this.globalVolumeMultiplier);
+      this.queueAudio(trackId, buffer, effectiveVolume);
       this.processQueue(trackId);
     }
   }
@@ -139,15 +148,20 @@ export class ModernAudioPlayer {
     if (!this.streamingBuffers.has(trackId)) {
       this.streamingBuffers.set(trackId, {
         buffer: new Int16Array(0),
-        volume: volume
+        volume: volume,
+        chunks: [] // Performance: Store chunks separately to avoid constant reallocation
       });
     }
 
     const streamData = this.streamingBuffers.get(trackId);
-    const newBuffer = new Int16Array(streamData.buffer.length + buffer.length);
-    newBuffer.set(streamData.buffer, 0);
-    newBuffer.set(buffer, streamData.buffer.length);
-    streamData.buffer = newBuffer;
+    
+    // Performance optimization: Store chunks separately instead of concatenating
+    streamData.chunks = streamData.chunks || [];
+    streamData.chunks.push(buffer);
+    
+    // Calculate total length for threshold checking
+    const totalLength = streamData.chunks.reduce((sum, chunk) => sum + chunk.length, 0);
+    streamData.totalLength = totalLength;
   }
 
   /**
@@ -157,9 +171,10 @@ export class ModernAudioPlayer {
     const streamData = this.streamingBuffers.get(trackId);
     if (!streamData) return;
 
-    const minBufferSize = this.sampleRate * 0.1; // 0.1 seconds
+    const minBufferSize = this.sampleRate * 0.05; // Reduced to 0.05 seconds for faster response
+    const totalLength = streamData.totalLength || 0;
     
-    if (streamData.buffer.length >= minBufferSize) {
+    if (totalLength >= minBufferSize) {
       this.flushStreamingBuffer(trackId);
     } else {
       this.scheduleFlush(trackId);
@@ -171,13 +186,28 @@ export class ModernAudioPlayer {
    */
   flushStreamingBuffer(trackId) {
     const streamData = this.streamingBuffers.get(trackId);
-    if (!streamData || streamData.buffer.length === 0) return;
+    if (!streamData || (!streamData.chunks || streamData.chunks.length === 0)) return;
 
-    // Move to queue
-    this.queueAudio(trackId, streamData.buffer, streamData.volume);
+    // Performance: Combine chunks efficiently
+    const chunks = streamData.chunks || [];
+    if (chunks.length > 0) {
+      const totalLength = chunks.reduce((sum, chunk) => sum + chunk.length, 0);
+      const combinedBuffer = new Int16Array(totalLength);
+      let offset = 0;
+      
+      for (const chunk of chunks) {
+        combinedBuffer.set(chunk, offset);
+        offset += chunk.length;
+      }
+      
+      // Move to queue
+      this.queueAudio(trackId, combinedBuffer, streamData.volume);
+      
+      // Clear streaming buffer
+      streamData.chunks = [];
+      streamData.totalLength = 0;
+    }
     
-    // Clear streaming buffer
-    streamData.buffer = new Int16Array(0);
     this.clearTimeout(trackId);
     
     // Process queue if nothing is playing
@@ -194,7 +224,7 @@ export class ModernAudioPlayer {
 
     const timeoutId = setTimeout(() => {
       this.flushStreamingBuffer(trackId);
-    }, 100);
+    }, 50); // Reduced to 50ms for faster flushing
     
     this.streamingTimeouts.set(trackId, timeoutId);
   }
@@ -207,8 +237,12 @@ export class ModernAudioPlayer {
       this.trackQueues.set(trackId, []);
     }
     
+    // Performance optimization: Only copy if necessary (when buffer might be reused)
+    // In most cases, the buffer is not reused, so we can avoid the copy
+    const isSharedBuffer = buffer.buffer && buffer.buffer.byteLength > buffer.byteLength;
+    
     this.trackQueues.get(trackId).push({
-      buffer: new Int16Array(buffer), // Copy to avoid reference issues
+      buffer: isSharedBuffer ? new Int16Array(buffer) : buffer,
       volume: volume
     });
   }

@@ -18,7 +18,8 @@ class AudioRecorderProcessor extends AudioWorkletProcessor {
     
     // Internal buffering for smoother output
     this._internalBuffer = [];
-    this._bufferSize = 2048; // Send data in chunks of 2048 samples (reduces frequency from 47Hz to 12Hz)
+    // Performance: Larger buffer size reduces callback frequency and CPU usage
+    this._bufferSize = 4096; // Send data in chunks of 4096 samples (reduces frequency from 47Hz to 6Hz)
     
     // Listen for control messages from the main thread
     this.port.onmessage = (event) => {
