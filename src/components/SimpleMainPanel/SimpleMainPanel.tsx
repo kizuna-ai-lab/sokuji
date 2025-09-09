@@ -26,6 +26,12 @@ interface SimpleMainPanelProps {
   isRecording: boolean;
   onStartRecording: () => void;
   onStopRecording: () => void;
+  playingItemId?: string | null;
+  playbackProgress?: {
+    currentTime: number;
+    duration: number;
+    bufferedTime: number;
+  } | null;
 }
 
 const SimpleMainPanel: React.FC<SimpleMainPanelProps> = React.memo(({
@@ -37,7 +43,9 @@ const SimpleMainPanel: React.FC<SimpleMainPanelProps> = React.memo(({
   canPushToTalk,
   isRecording,
   onStartRecording,
-  onStopRecording
+  onStopRecording,
+  playingItemId,
+  playbackProgress
 }) => {
   const { t } = useTranslation();
   const conversationContainerRef = useRef<HTMLDivElement>(null);
@@ -94,6 +102,17 @@ const SimpleMainPanel: React.FC<SimpleMainPanelProps> = React.memo(({
     ),
     [items]
   );
+
+  // Calculate progress ratio for karaoke effect
+  const progressRatio = useMemo(() => {
+    if (!playbackProgress) {
+      return 0;
+    }
+    
+    // For streaming audio, bufferedTime is more accurate than duration
+    const divisor = playbackProgress.bufferedTime || playbackProgress.duration || 1;
+    return Math.min(playbackProgress.currentTime / divisor, 1);
+  }, [playbackProgress?.currentTime, playbackProgress?.duration, playbackProgress?.bufferedTime]);
 
   // Auto-scroll to bottom when new items are added
   useEffect(() => {
@@ -176,18 +195,37 @@ const SimpleMainPanel: React.FC<SimpleMainPanelProps> = React.memo(({
           </div>
         ) : (
           <div className="conversation-list">
-            {filteredItems.map((item, index) => (
-              <div key={index} className={`message-bubble ${item.role}`}>
-                <div className="message-header">
-                  <span className="role">
-                    {item.role === 'user' ? t('simplePanel.you', 'You') : t('simplePanel.translation', 'Translation')}
-                  </span>
+            {filteredItems.map((item, index) => {
+              const isPlaying = playingItemId === item.id;
+              const text = item.formatted?.transcript || item.formatted?.text || '';
+              
+              // Calculate highlighted characters for karaoke effect
+              const highlightedChars = isPlaying ? Math.floor(text.length * progressRatio) : 0;
+              
+              return (
+                <div key={index} className={`message-bubble ${item.role} ${isPlaying ? 'playing' : ''}`}>
+                  <div className="message-header">
+                    <span className="role">
+                      {item.role === 'user' ? t('simplePanel.you', 'You') : t('simplePanel.translation', 'Translation')}
+                    </span>
+                  </div>
+                  <div className={`message-content ${isPlaying ? 'karaoke-active' : ''}`}>
+                    {isPlaying ? (
+                      <>
+                        <span className="karaoke-played">
+                          {text.slice(0, highlightedChars)}
+                        </span>
+                        <span className="karaoke-unplayed">
+                          {text.slice(highlightedChars)}
+                        </span>
+                      </>
+                    ) : (
+                      text
+                    )}
+                  </div>
                 </div>
-                <div className="message-content">
-                  {item.formatted?.transcript || item.formatted?.text}
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
