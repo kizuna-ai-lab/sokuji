@@ -95,20 +95,6 @@ export class ModernAudioPlayer {
       return this.handleSequencedAudio(buffer, trackId, volume, metadata);
     }
     
-    // Debug logging for new chunks
-    if (metadata.itemId) {
-      const currentBuffered = this.getBufferedDuration(metadata.itemId);
-      console.log('[Karaoke Debug] New audio chunk added:', {
-        itemId: metadata.itemId,
-        trackId: trackId,
-        chunkSize: buffer.length,
-        chunkDuration: (buffer.length / this.sampleRate).toFixed(3),
-        totalBufferedBefore: currentBuffered.toFixed(3),
-        totalBufferedAfter: (currentBuffered + buffer.length / this.sampleRate).toFixed(3),
-        timestamp: Date.now()
-      });
-    }
-    
     this.accumulateChunk(trackId, buffer, volume, metadata);
     this.checkAndTriggerPlayback(trackId);
     
@@ -556,13 +542,6 @@ export class ModernAudioPlayer {
           const currentCumulative = this.cumulativePlayedTime.get(metadata.itemId) || 0;
           const chunkDuration = audio.duration || 0;
           this.cumulativePlayedTime.set(metadata.itemId, currentCumulative + chunkDuration);
-          
-          console.log('[Karaoke Debug] Chunk ended:', {
-            itemId: metadata.itemId,
-            chunkDuration: chunkDuration.toFixed(3),
-            cumulativeTime: (currentCumulative + chunkDuration).toFixed(3),
-            audioId: audioId
-          });
         }
         
         // Check if this was the last item for this itemId
@@ -928,15 +907,6 @@ export class ModernAudioPlayer {
     
     // Check if we've moved to a new chunk
     const lastAudioId = this.lastChunkAudioId.get(this.currentPlayingItemId);
-    if (lastAudioId && lastAudioId !== currentAudioId) {
-      // We've transitioned to a new chunk but onended might not have fired yet
-      // This handles the gap between chunks
-      console.log('[Karaoke Debug] Chunk transition detected:', {
-        itemId: this.currentPlayingItemId,
-        lastAudioId: lastAudioId,
-        currentAudioId: currentAudioId
-      });
-    }
     this.lastChunkAudioId.set(this.currentPlayingItemId, currentAudioId);
     
     // Calculate total progress: cumulative time + current chunk progress
@@ -954,18 +924,6 @@ export class ModernAudioPlayer {
       isPlaying: !currentAudio.paused && !currentAudio.ended,
       bufferedTime: totalBufferedTime
     };
-    
-    // Debug logging
-    console.log('[Karaoke Debug] getCurrentPlaybackStatus:', {
-      itemId: status.itemId,
-      chunkCurrentTime: currentAudio.currentTime.toFixed(3),
-      cumulativeTime: cumulativeTime.toFixed(3),
-      totalCurrentTime: totalCurrentTime.toFixed(3),
-      effectiveDuration: effectiveDuration.toFixed(3),
-      bufferedTime: status.bufferedTime.toFixed(3),
-      audioId: currentAudioId,
-      timestamp: Date.now()
-    });
     
     return status;
   }
@@ -996,17 +954,6 @@ export class ModernAudioPlayer {
         streamCount++;
         totalDuration += totalLength / this.sampleRate;
       }
-    }
-    
-    // Debug logging - only log periodically to avoid spam
-    if (Math.random() < 0.1) { // Log 10% of calls
-      console.log('[Karaoke Debug] getBufferedDuration:', {
-        itemId: itemId,
-        totalDuration: totalDuration.toFixed(3),
-        queueCount: queueCount,
-        streamCount: streamCount,
-        timestamp: Date.now()
-      });
     }
     
     return totalDuration;
