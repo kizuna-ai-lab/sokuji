@@ -19,6 +19,7 @@ export class ModernBrowserAudioService implements IAudioService {
   private initialized: boolean = false;
   private recordingCallback: AudioRecordingCallback | null = null;
   private currentRecordingDeviceId: string | undefined = undefined;
+  private diagnosticsInterval: NodeJS.Timeout | null = null;
 
   constructor() {
     // Initialize modern audio components
@@ -80,6 +81,27 @@ export class ModernBrowserAudioService implements IAudioService {
 
     this.initialized = true;
     console.info('[Sokuji] [ModernBrowserAudio] Audio service initialized');
+    
+    // Start diagnostics monitoring in development
+    this.startDiagnosticsMonitoring();
+  }
+  
+  /**
+   * Start periodic diagnostics monitoring
+   */
+  private startDiagnosticsMonitoring(): void {
+    // Clear any existing interval
+    if (this.diagnosticsInterval) {
+      clearInterval(this.diagnosticsInterval);
+    }
+    
+    // Log diagnostics every 5 seconds
+    this.diagnosticsInterval = setInterval(() => {
+      const diagnostics = (this.player as any).getSequenceDiagnostics?.();
+      if (diagnostics && (diagnostics.outOfOrderCount > 0 || diagnostics.gaps.length > 0)) {
+        console.warn('[AudioSequence] Diagnostics:', diagnostics);
+      }
+    }, 5000);
   }
 
 

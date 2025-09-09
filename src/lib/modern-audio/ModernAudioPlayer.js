@@ -21,6 +21,11 @@ export class ModernAudioPlayer {
     this.streamingTimeouts = new Map(); // Timeout management
     this.interruptedTracks = new Set(); // Track interrupted trackIds
     
+    // Sequence tracking for ordering
+    this.lastSequenceNumbers = new Map(); // trackId -> last processed sequence number
+    this.outOfOrderBuffers = new Map(); // trackId -> Map of sequence -> buffer data
+    this.sequenceGapTimeout = new Map(); // trackId -> timeout for missing sequences
+    
     // Global volume control for monitor on/off
     // Default to 0 (muted) since isMonitorDeviceOn defaults to false in AudioContext
     this.globalVolumeMultiplier = 0.0;
@@ -76,7 +81,7 @@ export class ModernAudioPlayer {
    * @param {ArrayBuffer|Int16Array} audioData - Audio data to add
    * @param {string} trackId - Track identifier
    * @param {number} volume - Volume level
-   * @param {Object} metadata - Optional metadata (e.g., itemId)
+   * @param {Object} metadata - Optional metadata (e.g., itemId, sequenceNumber)
    */
   addStreamingAudio(audioData, trackId = 'default', volume = 1.0, metadata = {}) {
     if (this.interruptedTracks.has(trackId)) {
@@ -84,6 +89,11 @@ export class ModernAudioPlayer {
     }
 
     const buffer = this.normalizeAudioData(audioData);
+    
+    // Handle sequence ordering if sequence number is provided
+    if (metadata.sequenceNumber !== undefined) {
+      return this.handleSequencedAudio(buffer, trackId, volume, metadata);
+    }
     
     // Debug logging for new chunks
     if (metadata.itemId) {
@@ -103,6 +113,138 @@ export class ModernAudioPlayer {
     this.checkAndTriggerPlayback(trackId);
     
     return buffer;
+  }
+  
+  /**
+   * Handle audio with sequence numbers for proper ordering
+   */
+  handleSequencedAudio(buffer, trackId, volume, metadata) {
+    const sequence = metadata.sequenceNumber;
+    const lastSequence = this.lastSequenceNumbers.get(trackId) || 0;
+    
+    console.log('[AudioSequence] Processing chunk:', {
+      trackId,
+      sequence,
+      lastSequence,
+      isInOrder: sequence === lastSequence + 1,
+      bufferSize: buffer.length
+    });
+    
+    // If this is the next expected sequence, process immediately
+    if (sequence === lastSequence + 1) {
+      this.lastSequenceNumbers.set(trackId, sequence);
+      this.accumulateChunk(trackId, buffer, volume, metadata);
+      this.checkAndTriggerPlayback(trackId);
+      
+      // Check if we can now process any buffered out-of-order chunks
+      this.processBufferedSequences(trackId, volume);
+      
+      return buffer;
+    }
+    
+    // If this is out of order, buffer it
+    if (sequence > lastSequence + 1) {
+      console.warn('[AudioSequence] Out of order chunk detected:', {
+        trackId,
+        sequence,
+        expected: lastSequence + 1,
+        gap: sequence - lastSequence - 1
+      });
+      
+      // Store out-of-order buffer
+      if (!this.outOfOrderBuffers.has(trackId)) {
+        this.outOfOrderBuffers.set(trackId, new Map());
+      }
+      this.outOfOrderBuffers.get(trackId).set(sequence, { buffer, volume, metadata });
+      
+      // Set timeout to process anyway if gap isn't filled
+      this.setSequenceGapTimeout(trackId, volume);
+      
+      return buffer;
+    }
+    
+    // If this is a duplicate or old sequence, skip it
+    console.warn('[AudioSequence] Duplicate or old sequence, skipping:', {
+      trackId,
+      sequence,
+      lastSequence
+    });
+    
+    return buffer;
+  }
+  
+  /**
+   * Process any buffered sequences that are now in order
+   */
+  processBufferedSequences(trackId, volume) {
+    const outOfOrderMap = this.outOfOrderBuffers.get(trackId);
+    if (!outOfOrderMap || outOfOrderMap.size === 0) return;
+    
+    let lastSequence = this.lastSequenceNumbers.get(trackId) || 0;
+    let processed = [];
+    
+    // Process sequences in order
+    while (outOfOrderMap.has(lastSequence + 1)) {
+      const nextSequence = lastSequence + 1;
+      const { buffer, volume: origVolume, metadata } = outOfOrderMap.get(nextSequence);
+      
+      console.log('[AudioSequence] Processing buffered sequence:', nextSequence);
+      
+      this.accumulateChunk(trackId, buffer, origVolume || volume, metadata);
+      this.checkAndTriggerPlayback(trackId);
+      
+      outOfOrderMap.delete(nextSequence);
+      processed.push(nextSequence);
+      lastSequence = nextSequence;
+    }
+    
+    if (processed.length > 0) {
+      this.lastSequenceNumbers.set(trackId, lastSequence);
+      console.log('[AudioSequence] Processed buffered sequences:', processed);
+    }
+  }
+  
+  /**
+   * Set timeout to process buffered audio even if gap isn't filled
+   */
+  setSequenceGapTimeout(trackId, volume) {
+    // Clear existing timeout
+    if (this.sequenceGapTimeout.has(trackId)) {
+      clearTimeout(this.sequenceGapTimeout.get(trackId));
+    }
+    
+    // Set new timeout - wait 100ms for missing sequences
+    const timeoutId = setTimeout(() => {
+      console.warn('[AudioSequence] Gap timeout reached, processing buffered audio anyway');
+      this.forceProcessBufferedSequences(trackId, volume);
+    }, 100);
+    
+    this.sequenceGapTimeout.set(trackId, timeoutId);
+  }
+  
+  /**
+   * Force process buffered sequences even with gaps
+   */
+  forceProcessBufferedSequences(trackId, volume) {
+    const outOfOrderMap = this.outOfOrderBuffers.get(trackId);
+    if (!outOfOrderMap || outOfOrderMap.size === 0) return;
+    
+    // Get all sequences and sort them
+    const sequences = Array.from(outOfOrderMap.keys()).sort((a, b) => a - b);
+    
+    console.warn('[AudioSequence] Force processing sequences with gaps:', sequences);
+    
+    for (const sequence of sequences) {
+      const { buffer, volume: origVolume, metadata } = outOfOrderMap.get(sequence);
+      this.accumulateChunk(trackId, buffer, origVolume || volume, metadata);
+      this.checkAndTriggerPlayback(trackId);
+      outOfOrderMap.delete(sequence);
+    }
+    
+    // Update last sequence to highest processed
+    if (sequences.length > 0) {
+      this.lastSequenceNumbers.set(trackId, sequences[sequences.length - 1]);
+    }
   }
 
   /**
@@ -208,7 +350,7 @@ export class ModernAudioPlayer {
     const streamData = this.streamingBuffers.get(trackId);
     if (!streamData) return;
 
-    const minBufferSize = this.sampleRate * 0.05; // Reduced to 0.05 seconds for faster response
+    const minBufferSize = this.sampleRate * 0.02; // Reduced to 0.02 seconds (20ms) for faster response
     const totalLength = streamData.totalLength || 0;
     
     if (totalLength >= minBufferSize) {
@@ -263,7 +405,7 @@ export class ModernAudioPlayer {
 
     const timeoutId = setTimeout(() => {
       this.flushStreamingBuffer(trackId);
-    }, 50); // Reduced to 50ms for faster flushing
+    }, 20); // Reduced to 20ms for faster flushing
     
     this.streamingTimeouts.set(trackId, timeoutId);
   }
@@ -739,6 +881,14 @@ export class ModernAudioPlayer {
     
     // Remove from interrupted tracks
     this.interruptedTracks.delete(trackId);
+    
+    // Clear sequence tracking
+    this.lastSequenceNumbers.delete(trackId);
+    this.outOfOrderBuffers.delete(trackId);
+    if (this.sequenceGapTimeout.has(trackId)) {
+      clearTimeout(this.sequenceGapTimeout.get(trackId));
+      this.sequenceGapTimeout.delete(trackId);
+    }
   }
   
   /**
@@ -905,6 +1055,72 @@ export class ModernAudioPlayer {
   }
 
   /**
+   * Get diagnostic information for audio sequencing
+   */
+  getSequenceDiagnostics() {
+    const diagnostics = {
+      tracks: {},
+      outOfOrderCount: 0,
+      totalBuffered: 0,
+      gaps: []
+    };
+    
+    for (const [trackId, lastSeq] of this.lastSequenceNumbers) {
+      const outOfOrder = this.outOfOrderBuffers.get(trackId);
+      const outOfOrderSeqs = outOfOrder ? Array.from(outOfOrder.keys()).sort((a, b) => a - b) : [];
+      
+      diagnostics.tracks[trackId] = {
+        lastSequence: lastSeq,
+        outOfOrderSequences: outOfOrderSeqs,
+        gaps: this.findSequenceGaps(lastSeq, outOfOrderSeqs),
+        queueLength: this.trackQueues.get(trackId)?.length || 0
+      };
+      
+      diagnostics.outOfOrderCount += outOfOrderSeqs.length;
+      
+      if (diagnostics.tracks[trackId].gaps.length > 0) {
+        diagnostics.gaps.push(...diagnostics.tracks[trackId].gaps.map(g => ({
+          trackId,
+          ...g
+        })));
+      }
+    }
+    
+    return diagnostics;
+  }
+  
+  /**
+   * Find gaps in sequence numbers
+   */
+  findSequenceGaps(lastSeq, outOfOrderSeqs) {
+    const gaps = [];
+    
+    if (outOfOrderSeqs.length === 0) return gaps;
+    
+    // Check gap between last processed and first buffered
+    if (outOfOrderSeqs[0] > lastSeq + 1) {
+      gaps.push({
+        from: lastSeq + 1,
+        to: outOfOrderSeqs[0] - 1,
+        size: outOfOrderSeqs[0] - lastSeq - 1
+      });
+    }
+    
+    // Check gaps between buffered sequences
+    for (let i = 1; i < outOfOrderSeqs.length; i++) {
+      if (outOfOrderSeqs[i] > outOfOrderSeqs[i - 1] + 1) {
+        gaps.push({
+          from: outOfOrderSeqs[i - 1] + 1,
+          to: outOfOrderSeqs[i] - 1,
+          size: outOfOrderSeqs[i] - outOfOrderSeqs[i - 1] - 1
+        });
+      }
+    }
+    
+    return gaps;
+  }
+  
+  /**
    * Cleanup resources
    */
   cleanup() {
@@ -916,10 +1132,18 @@ export class ModernAudioPlayer {
     }
     this.streamingTimeouts.clear();
     
+    // Clear sequence gap timeouts
+    for (const timeoutId of this.sequenceGapTimeout.values()) {
+      clearTimeout(timeoutId);
+    }
+    this.sequenceGapTimeout.clear();
+    
     // Clear all data
     this.streamingBuffers.clear();
     this.trackQueues.clear();
     this.interruptedTracks.clear();
+    this.lastSequenceNumbers.clear();
+    this.outOfOrderBuffers.clear();
     
     if (this.context && this.context.state !== 'closed') {
       this.context.close().catch(console.error);

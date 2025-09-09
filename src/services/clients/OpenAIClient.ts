@@ -30,6 +30,7 @@ export class OpenAIClient implements IClient {
   private eventHandlers: ClientEventHandlers = {};
   private apiKey: string;
   private apiHost: string;
+  private deltaSequenceNumber: number = 0; // Track delta sequence for ordering
 
   constructor(apiKey: string, apiHost?: string) {
     this.apiKey = apiKey;
@@ -267,6 +268,19 @@ export class OpenAIClient implements IClient {
     // Handle conversation updates
     this.client.on('conversation.updated', async (event: any) => {
       const { item, delta } = event;
+      
+      // Add sequence number to audio deltas for ordering
+      if (delta?.audio) {
+        delta.sequenceNumber = ++this.deltaSequenceNumber;
+        delta.timestamp = Date.now();
+        console.log('[AudioSequence] Delta received:', {
+          itemId: item.id,
+          sequence: delta.sequenceNumber,
+          audioSize: delta.audio.length,
+          timestamp: delta.timestamp
+        });
+      }
+      
       const conversationItem = this.convertToConversationItem(item);
       this.eventHandlers.onConversationUpdated?.({ item: conversationItem, delta });
     });
@@ -297,6 +311,9 @@ export class OpenAIClient implements IClient {
   }
 
   async connect(config: SessionConfig): Promise<void> {
+    // Reset delta sequence number for new session
+    this.deltaSequenceNumber = 0;
+    
     // Create new client instance with fresh API key, API host and model
     this.client = new RealtimeClient({
       apiKey: this.apiKey,
