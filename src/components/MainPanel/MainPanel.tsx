@@ -226,7 +226,6 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   const lastPlayingState = useRef<boolean>(false);
   
   // Constants for karaoke progress tracking
-  const DEBUG_KARAOKE = isDevelopment() && false; // Set to true to enable debug logs
   const PROGRESS_UPDATE_INTERVAL = 100; // ms
   const BACKWARD_TIMEOUT = 2000; // 2秒内防止后退，超时后允许重置
 
@@ -1045,45 +1044,17 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       // 1. Long time since last update (audio likely ended)
       // 2. Very large difference (likely new audio or major change)
       if (timeSinceUpdate > BACKWARD_TIMEOUT || diff > 0.5) {
-        if (DEBUG_KARAOKE) {
-          console.log('[Karaoke Debug] Allowing progress reset:', {
-            timeSinceUpdate,
-            diff: diff.toFixed(3),
-            reason: timeSinceUpdate > BACKWARD_TIMEOUT ? 'timeout' : 'large_diff'
-          });
-        }
-        
         lastMaxProgressRef.current = calculatedRatio;
         lastProgressUpdateTime.current = Date.now();
         return calculatedRatio;
       }
       
       // Short-term protection: prevent backwards movement
-      if (DEBUG_KARAOKE) {
-        console.log('[Karaoke Debug] Progress prevented from going backwards:', {
-          attempted: calculatedRatio.toFixed(3),
-          using: lastMaxProgressRef.current.toFixed(3),
-          timeSinceUpdate
-        });
-      }
-      
       return lastMaxProgressRef.current;
     }
     
     // Update timestamp when progress moves forward
     lastProgressUpdateTime.current = Date.now();
-    
-    // Debug logging only when enabled
-    if (DEBUG_KARAOKE) {
-      console.log('[Karaoke Debug] Progress calculation:', {
-        currentTime: playbackProgress.currentTime.toFixed(3),
-        duration: playbackProgress.duration.toFixed(3),
-        bufferedTime: playbackProgress.bufferedTime.toFixed(3),
-        calculatedRatio: calculatedRatio.toFixed(3),
-        maxProgress: lastMaxProgressRef.current.toFixed(3),
-        timestamp: Date.now()
-      });
-    }
     
     return calculatedRatio;
   }, [playbackProgress?.currentTime, playbackProgress?.duration, playbackProgress?.bufferedTime]);
@@ -1095,10 +1066,6 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     // Reset the maximum progress when we start playing a new item
     lastMaxProgressRef.current = 0;
     lastProgressUpdateTime.current = Date.now();
-    
-    if (DEBUG_KARAOKE) {
-      console.log('[Karaoke Debug] Reset max progress for new item:', playingItemId);
-    }
   }, [playingItemId]);
   
   /**
@@ -1121,10 +1088,6 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     if (lastPlayingState.current && !currentlyPlaying) {
       lastMaxProgressRef.current = 0;
       lastProgressUpdateTime.current = 0;
-      
-      if (DEBUG_KARAOKE) {
-        console.log('[Karaoke Debug] Reset max progress due to playback stop');
-      }
     }
     
     lastPlayingState.current = currentlyPlaying;
@@ -1158,18 +1121,6 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     // Set up progress tracking
     const progressInterval = setInterval(() => {
       const status = player.getCurrentPlaybackStatus();
-      
-      // Debug logging only when enabled
-      if (DEBUG_KARAOKE && status) {
-        console.log('[Karaoke Debug] Status update:', {
-          itemId: status.itemId,
-          currentTime: status.currentTime.toFixed(3),
-          duration: status.duration.toFixed(3),
-          bufferedTime: status.bufferedTime.toFixed(3),
-          isPlaying: status.isPlaying,
-          timestamp: Date.now()
-        });
-      }
       
       if (status && status.isPlaying) {
         setPlaybackProgress({
