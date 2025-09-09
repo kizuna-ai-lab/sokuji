@@ -73,22 +73,38 @@
         padding: 10px;
         border-radius: 8px;
         max-width: 95%;
+        transition: background-color 0.3s ease, box-shadow 0.3s ease;
         
         &.user {
           background-color: #2a2a2a;
           align-self: flex-end;
           margin-left: auto;
+          
+          &.playing {
+            background-color: #353535;
+            box-shadow: 0 0 10px rgba(16, 163, 127, 0.3);
+          }
         }
         
         &.assistant {
           background-color: #10a37f;
           align-self: flex-start;
           margin-right: auto;
+          
+          &.playing {
+            background-color: #12b88f;
+            box-shadow: 0 0 10px rgba(16, 163, 127, 0.5);
+          }
         }
         
         &.system {
           background-color: #444;
           align-self: center;
+          
+          &.playing {
+            background-color: #555;
+            box-shadow: 0 0 10px rgba(16, 163, 127, 0.3);
+          }
           font-style: italic;
           max-width: 90%;
         }
@@ -134,10 +150,26 @@
             &.playing {
               background-color: rgba(16, 163, 127, 0.5);
             }
+          }
+          
+          .playback-progress {
+            display: inline-block;
+            margin-left: 10px;
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.7);
+            font-family: 'Courier New', monospace;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 2px 6px;
+            border-radius: 3px;
+            animation: pulse 2s infinite;
             
-            &:disabled {
-              opacity: 0.5;
-              cursor: not-allowed;
+            @keyframes pulse {
+              0%, 100% {
+                opacity: 0.8;
+              }
+              50% {
+                opacity: 1;
+              }
             }
             
             svg {
@@ -158,6 +190,18 @@
             &.text, &.input_text {
               white-space: pre-wrap;
               word-break: break-word;
+              
+              .karaoke-played {
+                color: #10a37f;
+                font-weight: bold;
+                text-shadow: 0 0 8px rgba(16, 163, 127, 0.6);
+                transition: all 0.2s ease;
+              }
+              
+              .karaoke-unplayed {
+                color: rgba(255, 255, 255, 0.8);
+                transition: all 0.2s ease;
+              }
             }
             
             &.transcript {
@@ -169,6 +213,18 @@
               
               .transcript-content {
                 margin-bottom: 6px;
+                
+                .karaoke-played {
+                  color: #10a37f;
+                  font-weight: bold;
+                  text-shadow: 0 0 8px rgba(16, 163, 127, 0.6);
+                  transition: all 0.2s ease;
+                }
+                
+                .karaoke-unplayed {
+                  color: rgba(255, 255, 255, 0.5);
+                  transition: all 0.2s ease;
+                }
               }
               
               .audio-controls {
@@ -233,6 +289,18 @@
                   font-size: 14px;
                   color: rgba(255, 255, 255, 0.8);
                   flex: 1;
+                  
+                  .karaoke-played {
+                    color: #10a37f;
+                    font-weight: bold;
+                    text-shadow: 0 0 8px rgba(16, 163, 127, 0.6);
+                    transition: all 0.2s ease;
+                  }
+                  
+                  .karaoke-unplayed {
+                    color: rgba(255, 255, 255, 0.5);
+                    transition: all 0.2s ease;
+                  }
                 }
                 
                 .play-button {

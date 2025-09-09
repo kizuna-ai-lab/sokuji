@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import {X, Zap, Users, Mic, Loader, Play, Volume2, Wrench} from 'lucide-react';
 import './MainPanel.scss';
 import {
@@ -103,6 +103,11 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   // Add state variables to track if test tone is playing and currently playing audio item
   const [isTestTonePlaying, setIsTestTonePlaying] = useState(false);
   const [playingItemId, setPlayingItemId] = useState<string | null>(null);
+  const [playbackProgress, setPlaybackProgress] = useState<{
+    currentTime: number;
+    duration: number;
+    bufferedTime: number;
+  } | null>(null);
   
   // Audio feedback warning state
   const [showFeedbackWarning, setShowFeedbackWarning] = useState(false);
@@ -212,6 +217,18 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   // Simple throttling for UI updates to prevent freezing
   const lastUpdateTimeRef = useRef<number>(0);
   const UPDATE_THROTTLE_MS = 50; // Throttle UI updates to max 20Hz
+  
+  // Reference to track the maximum progress ratio to prevent backwards movement
+  const lastMaxProgressRef = useRef<number>(0);
+  
+  // References for intelligent progress tracking
+  const lastProgressUpdateTime = useRef<number>(0);
+  const lastPlayingState = useRef<boolean>(false);
+  
+  // Constants for karaoke progress tracking
+  const DEBUG_KARAOKE = isDevelopment() && false; // Set to true to enable debug logs
+  const PROGRESS_UPDATE_INTERVAL = 100; // ms
+  const BACKWARD_TIMEOUT = 2000; // 2秒内防止后退，超时后允许重置
 
   /**
    * References for rendering audio visualization (canvas)
@@ -294,7 +311,8 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           const shouldPlayAudio = item.role === 'assistant';
           
           // Use a consistent trackId for all AI assistant audio to ensure proper queuing
-          audioService.addAudioData(delta.audio, 'ai-assistant', shouldPlayAudio);
+          // Pass item.id as metadata so we can track which message is playing
+          audioService.addAudioData(delta.audio, 'ai-assistant', shouldPlayAudio, { itemId: item.id });
           
           // IMPORTANT: Skip UI update for audio-only deltas to prevent freezing
           // Audio will play smoothly without updating the React state
@@ -811,9 +829,9 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       const shouldPlayAudio = true; // Always play for manual playback (user's explicit action)
       const itemAudioData = item.formatted.audio;
       if (itemAudioData instanceof Int16Array) {
-        audioService.addAudioData(itemAudioData, item.id, shouldPlayAudio);
+        audioService.addAudioData(itemAudioData, item.id, shouldPlayAudio, { itemId: item.id });
       } else if (itemAudioData instanceof ArrayBuffer) {
-        audioService.addAudioData(new Int16Array(itemAudioData), item.id, shouldPlayAudio);
+        audioService.addAudioData(new Int16Array(itemAudioData), item.id, shouldPlayAudio, { itemId: item.id });
       } else {
         console.error('[Sokuji] [MainPanel] Unsupported audio data type');
         return;
@@ -999,6 +1017,172 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       setIsTestTonePlaying(false);
     }
   }, [isMonitorDeviceOn, selectedMonitorDevice, selectMonitorDevice, isTestTonePlaying]);
+
+  // Memoize progress calculation to reduce re-renders
+  const progressRatio = useMemo(() => {
+    if (!playbackProgress) {
+      return 0;
+    }
+    
+    let calculatedRatio = 0;
+    
+    // For streaming audio, bufferedTime is more accurate than duration
+    // Prioritize bufferedTime when available as it represents the total accumulated audio
+    const divisor = playbackProgress.bufferedTime || playbackProgress.duration || 1;
+    calculatedRatio = Math.min(playbackProgress.currentTime / divisor, 1);
+    
+    // Intelligent progress protection: prevent short-term backwards movement
+    // but allow reset after timeout or when audio ends
+    if (calculatedRatio < lastMaxProgressRef.current) {
+      const timeSinceUpdate = Date.now() - lastProgressUpdateTime.current;
+      const diff = lastMaxProgressRef.current - calculatedRatio;
+      
+      // Allow reset if:
+      // 1. Long time since last update (audio likely ended)
+      // 2. Very large difference (likely new audio or major change)
+      if (timeSinceUpdate > BACKWARD_TIMEOUT || diff > 0.5) {
+        if (DEBUG_KARAOKE) {
+          console.log('[Karaoke Debug] Allowing progress reset:', {
+            timeSinceUpdate,
+            diff: diff.toFixed(3),
+            reason: timeSinceUpdate > BACKWARD_TIMEOUT ? 'timeout' : 'large_diff'
+          });
+        }
+        
+        lastMaxProgressRef.current = calculatedRatio;
+        lastProgressUpdateTime.current = Date.now();
+        return calculatedRatio;
+      }
+      
+      // Short-term protection: prevent backwards movement
+      if (DEBUG_KARAOKE) {
+        console.log('[Karaoke Debug] Progress prevented from going backwards:', {
+          attempted: calculatedRatio.toFixed(3),
+          using: lastMaxProgressRef.current.toFixed(3),
+          timeSinceUpdate
+        });
+      }
+      
+      return lastMaxProgressRef.current;
+    }
+    
+    // Update timestamp when progress moves forward
+    lastProgressUpdateTime.current = Date.now();
+    
+    // Debug logging only when enabled
+    if (DEBUG_KARAOKE) {
+      console.log('[Karaoke Debug] Progress calculation:', {
+        currentTime: playbackProgress.currentTime.toFixed(3),
+        duration: playbackProgress.duration.toFixed(3),
+        bufferedTime: playbackProgress.bufferedTime.toFixed(3),
+        calculatedRatio: calculatedRatio.toFixed(3),
+        maxProgress: lastMaxProgressRef.current.toFixed(3),
+        timestamp: Date.now()
+      });
+    }
+    
+    return calculatedRatio;
+  }, [playbackProgress?.currentTime, playbackProgress?.duration, playbackProgress?.bufferedTime]);
+
+  /**
+   * Reset max progress when playing a new item
+   */
+  useEffect(() => {
+    // Reset the maximum progress when we start playing a new item
+    lastMaxProgressRef.current = 0;
+    lastProgressUpdateTime.current = Date.now();
+    
+    if (DEBUG_KARAOKE) {
+      console.log('[Karaoke Debug] Reset max progress for new item:', playingItemId);
+    }
+  }, [playingItemId]);
+  
+  /**
+   * Update max progress ref after calculation
+   */
+  useEffect(() => {
+    // Update the ref after the render to avoid side effects in useMemo
+    if (progressRatio > lastMaxProgressRef.current) {
+      lastMaxProgressRef.current = progressRatio;
+    }
+  }, [progressRatio]);
+  
+  /**
+   * Reset progress when playback state changes from playing to stopped
+   */
+  useEffect(() => {
+    const currentlyPlaying = playbackProgress !== null;
+    
+    // When playback stops, reset max progress to allow accurate display next time
+    if (lastPlayingState.current && !currentlyPlaying) {
+      lastMaxProgressRef.current = 0;
+      lastProgressUpdateTime.current = 0;
+      
+      if (DEBUG_KARAOKE) {
+        console.log('[Karaoke Debug] Reset max progress due to playback stop');
+      }
+    }
+    
+    lastPlayingState.current = currentlyPlaying;
+  }, [playbackProgress]);
+
+  /**
+   * Set up playback status tracking
+   */
+  useEffect(() => {
+    if (!audioServiceRef.current) return;
+    
+    const player = audioServiceRef.current.getWavStreamPlayer();
+    if (!player) return;
+    
+    // Set up status callback
+    player.setPlaybackStatusCallback((status: any) => {
+      if (status) {
+        if (status.status === 'playing' && status.itemId) {
+          setPlayingItemId(status.itemId);
+        } else if (status.status === 'ended') {
+          // Check if this is really the end or just one chunk ending
+          const currentStatus = player.getCurrentPlaybackStatus();
+          if (!currentStatus || currentStatus.itemId !== status.itemId) {
+            setPlayingItemId(null);
+            setPlaybackProgress(null);
+          }
+        }
+      }
+    });
+    
+    // Set up progress tracking
+    const progressInterval = setInterval(() => {
+      const status = player.getCurrentPlaybackStatus();
+      
+      // Debug logging only when enabled
+      if (DEBUG_KARAOKE && status) {
+        console.log('[Karaoke Debug] Status update:', {
+          itemId: status.itemId,
+          currentTime: status.currentTime.toFixed(3),
+          duration: status.duration.toFixed(3),
+          bufferedTime: status.bufferedTime.toFixed(3),
+          isPlaying: status.isPlaying,
+          timestamp: Date.now()
+        });
+      }
+      
+      if (status && status.isPlaying) {
+        setPlaybackProgress({
+          currentTime: status.currentTime,
+          duration: status.duration,
+          bufferedTime: status.bufferedTime
+        });
+      } else {
+        // Clear progress when nothing is playing to prevent stale data
+        setPlaybackProgress(null);
+      }
+    }, PROGRESS_UPDATE_INTERVAL);
+    
+    return () => {
+      clearInterval(progressInterval);
+    };
+  }, []);
 
   /**
    * Set up render loops for the visualization canvas
@@ -1400,7 +1584,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         <div className="conversation-content" data-conversation-content>
           {items.length > 0 ? (
             items.map((item) => (
-              <div key={item.id} className={`conversation-item ${item.role}`} style={{ position: 'relative' }}>
+              <div key={item.id} className={`conversation-item ${item.role} ${playingItemId === item.id ? 'playing' : ''}`} style={{ position: 'relative' }}>
                 <div className="conversation-item-role">
                   {item.role}
                   {/* TODO: OpenAI Realtime API sometimes returns status="incomplete" even when audio is complete
@@ -1424,22 +1608,56 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
                     // For items with formatted property containing text
                     if (item.formatted && item.formatted.text) {
+                      const isPlaying = playingItemId === item.id;
+                      const text = item.formatted.text;
+                      
+                      // Calculate highlighted characters based on playback progress
+                      const highlightedChars = isPlaying ? Math.floor(text.length * progressRatio) : 0;
+                      
                       return (
                         <div className="content-item text">
-                          {item.formatted.text}
+                          <div className={`text-content ${isPlaying ? 'karaoke-active' : ''}`}>
+                            {isPlaying ? (
+                              <>
+                                <span className="karaoke-played">
+                                  {text.slice(0, highlightedChars)}
+                                </span>
+                                <span className="karaoke-unplayed">
+                                  {text.slice(highlightedChars)}
+                                </span>
+                              </>
+                            ) : (
+                              text
+                            )}
+                          </div>
                         </div>
                       );
                     }
 
                     // For items with formatted property containing transcript
                     if (item.formatted && item.formatted.transcript) {
-                      // Audio playback is now handled in the role label
+                      const isPlaying = playingItemId === item.id;
+                      const transcript = item.formatted.transcript;
+                      
+                      // Calculate highlighted characters based on playback progress
+                      const highlightedChars = isPlaying ? Math.floor(transcript.length * progressRatio) : 0;
+                      
                       return (
                         <div className="content-item transcript">
-                          <div className="transcript-content">
-                            {item.formatted.transcript}
+                          <div className={`transcript-content ${isPlaying ? 'karaoke-active' : ''}`}>
+                            {isPlaying ? (
+                              <>
+                                <span className="karaoke-played">
+                                  {transcript.slice(0, highlightedChars)}
+                                </span>
+                                <span className="karaoke-unplayed">
+                                  {transcript.slice(highlightedChars)}
+                                </span>
+                              </>
+                            ) : (
+                              transcript
+                            )}
                           </div>
-                          {/* Play button moved to role label */}
                         </div>
                       );
                     }
@@ -1465,13 +1683,31 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                           <div key={i} className={`content-item ${contentItem.type}`}>
                             {contentItem.type === 'text' && contentItem.text}
                             {contentItem.type === 'input_text' && contentItem.text}
-                            {contentItem.type === 'audio' && (
-                              <div className="audio-indicator">
-                                <span className="audio-icon"><Volume2 size={16} /></span>
-                                <span className="audio-text">{t('mainPanel.audioContent')}</span>
-                                {/* Play button moved to role label */}
-                              </div>
-                            )}
+                            {contentItem.type === 'audio' && (() => {
+                              const audioText = t('mainPanel.audioContent');
+                              const highlightedChars = isPlaying ? Math.floor(audioText.length * progressRatio) : 0;
+                              
+                              return (
+                                <div className="audio-indicator">
+                                  <span className="audio-icon"><Volume2 size={16} /></span>
+                                  <span className="audio-text">
+                                    {isPlaying ? (
+                                      <>
+                                        <span className="karaoke-played">
+                                          {audioText.slice(0, highlightedChars)}
+                                        </span>
+                                        <span className="karaoke-unplayed">
+                                          {audioText.slice(highlightedChars)}
+                                        </span>
+                                      </>
+                                    ) : (
+                                      audioText
+                                    )}
+                                  </span>
+                                  {/* Play button moved to role label */}
+                                </div>
+                              );
+                            })()}
                             {contentItem.type === 'input_audio' && contentItem.transcript && (
                               <span className="transcript">{contentItem.transcript}</span>
                             )}

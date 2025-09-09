@@ -324,17 +324,20 @@ export class ModernBrowserAudioService implements IAudioService {
    * Add audio data for playback and virtual microphone
    * @param data The audio data to add
    * @param trackId Optional track ID
+   * @param shouldPlay Whether to play the audio (not used, kept for compatibility)
+   * @param metadata Optional metadata (e.g., itemId for tracking)
    */
-  public addAudioData(data: Int16Array, trackId?: string): void {
+  public addAudioData(data: Int16Array, trackId?: string, shouldPlay?: boolean, metadata?: any): void {
     let result = data;
     
     // Always add audio to player - let global volume control handle muting
     // Use streaming audio for real-time playback to avoid audio fragments
-    result = this.player.addStreamingAudio(result, trackId);
+    // Pass metadata to the player for tracking
+    result = this.player.addStreamingAudio(result, trackId, 1.0, metadata);
     
     // Also add to virtual speaker player if available (Electron only)
     if (this.virtualSpeakerPlayer) {
-      this.virtualSpeakerPlayer.addStreamingAudio(data, trackId);
+      this.virtualSpeakerPlayer.addStreamingAudio(data, trackId, 1.0, metadata);
     }
     
     // Always send to virtual microphone (maintain compatibility)
