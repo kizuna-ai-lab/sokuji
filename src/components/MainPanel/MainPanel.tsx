@@ -311,8 +311,12 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           const shouldPlayAudio = item.role === 'assistant';
           
           // Use a consistent trackId for all AI assistant audio to ensure proper queuing
-          // Pass item.id as metadata so we can track which message is playing
-          audioService.addAudioData(delta.audio, 'ai-assistant', shouldPlayAudio, { itemId: item.id });
+          // Pass item.id and sequence info as metadata for ordering and tracking
+          audioService.addAudioData(delta.audio, 'ai-assistant', shouldPlayAudio, { 
+            itemId: item.id,
+            sequenceNumber: delta.sequenceNumber,
+            timestamp: delta.timestamp
+          });
           
           // IMPORTANT: Skip UI update for audio-only deltas to prevent freezing
           // Audio will play smoothly without updating the React state

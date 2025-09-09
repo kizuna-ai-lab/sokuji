@@ -71,8 +71,9 @@ export interface IAudioService {
    * @param data The audio data to add
    * @param trackId Optional track ID to associate with this audio
    * @param shouldPlay Whether to play the audio (defaults to true for backward compatibility)
+   * @param metadata Optional metadata (e.g., itemId, sequenceNumber)
    */
-  addAudioData(data: Int16Array, trackId?: string, shouldPlay?: boolean): void;
+  addAudioData(data: Int16Array, trackId?: string, shouldPlay?: boolean, metadata?: any): void;
   
   /**
    * Interrupts the currently playing audio
