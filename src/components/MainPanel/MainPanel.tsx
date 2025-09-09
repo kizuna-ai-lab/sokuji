@@ -227,7 +227,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   
   // Constants for karaoke progress tracking
   const PROGRESS_UPDATE_INTERVAL = 100; // ms
-  const BACKWARD_TIMEOUT = 2000; // 2秒内防止后退，超时后允许重置
+  const BACKWARD_TIMEOUT = 2000; // Prevent going back within 2 seconds; reset allowed after timeout.
 
   /**
    * References for rendering audio visualization (canvas)
