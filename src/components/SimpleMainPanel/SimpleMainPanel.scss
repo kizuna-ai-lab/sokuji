@@ -86,6 +86,41 @@
           font-size: 15px;
           line-height: 1.4;
           word-wrap: break-word;
+          
+          // Karaoke effect styles
+          &.karaoke-active {
+            .karaoke-played {
+              color: #fff;
+              font-weight: bold;
+              text-shadow: 0 0 8px rgba(255, 255, 255, 0.8);
+              transition: all 0.2s ease;
+            }
+            
+            .karaoke-unplayed {
+              opacity: 0.7;
+              transition: all 0.2s ease;
+            }
+          }
+        }
+        
+        // Adjust karaoke effect colors for user messages
+        &.user {
+          .message-content.karaoke-active {
+            .karaoke-played {
+              color: #10a37f;
+              text-shadow: 0 0 8px rgba(16, 163, 127, 0.6);
+            }
+          }
+        }
+        
+        // Keep assistant messages with white highlight
+        &.assistant {
+          .message-content.karaoke-active {
+            .karaoke-played {
+              color: #fff;
+              text-shadow: 0 0 8px rgba(255, 255, 255, 0.8);
+            }
+          }
         }
       }
     }

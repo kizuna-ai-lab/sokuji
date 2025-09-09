@@ -1526,6 +1526,8 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           isRecording={isRecording}
           onStartRecording={startRecording}
           onStopRecording={stopRecording}
+          playingItemId={playingItemId}
+          playbackProgress={playbackProgress}
         />
       </div>
     );
