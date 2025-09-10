@@ -4,7 +4,7 @@
  */
 
 import { Hono } from 'hono';
-import { Env, User, ApiKey, HonoVariables } from '../types';
+import { Env, User, HonoVariables } from '../types';
 import { authMiddleware } from '../middleware/auth';
 
 const app = new Hono<{ Bindings: Env; Variables: HonoVariables }>();
