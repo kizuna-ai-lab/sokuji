@@ -14,14 +14,8 @@ database_id = "90365899-4d8d-47c7-ad53-e2ab158a4707"
 
 # KV Namespaces
 [[kv_namespaces]]
-binding = "QUOTA_KV"
-id = "2197ef6be6c34270b742d16c62df2ca4"
-preview_id = "YOUR_KV_PREVIEW_ID"
-
-[[kv_namespaces]]
-binding = "SESSION_KV"
-id = "2d3f115a16eb46e59016375014194f86"
-preview_id = "YOUR_SESSION_KV_PREVIEW_ID"
+binding = "WALLET_CACHE"
+id = "5ba622f79af24845bfe54141dc0ba400"
 
 # Durable Objects for WebSocket connections
 [[durable_objects.bindings]]
