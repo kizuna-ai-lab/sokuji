@@ -4,6 +4,7 @@
  */
 
 import { Hono } from 'hono';
+import { HTTPException } from 'hono/http-exception';
 import { cors } from 'hono/cors';
 import authWalletRoutes from './routes/auth-wallet';
 import userRoutes from './routes/user';
@@ -79,18 +80,30 @@ app.route('/v1', v1Routes);
 app.onError((err, c) => {
   console.error('Error:', err);
   
-  if (err.message === 'Unauthorized') {
-    return c.json({ error: 'Unauthorized' }, 401);
+  // Handle HTTPException instances
+  if (err instanceof HTTPException) {
+    return c.json(
+      { error: err.message },
+      err.status
+    );
   }
   
-  if (err.message === 'Not found') {
-    return c.json({ error: 'Not found' }, 404);
+  // Handle errors with a status property
+  if (typeof (err as any).status === 'number') {
+    const statusError = err as any;
+    return c.json(
+      { error: statusError.message || 'An error occurred' },
+      statusError.status
+    );
   }
   
+  // Handle non-HTTP errors (500 Internal Server Error)
+  const isDevelopment = c.env.ENVIRONMENT === 'development';
   return c.json(
     { 
       error: 'Internal server error',
-      message: c.env.ENVIRONMENT === 'development' ? err.message : undefined
+      // Only include detailed error message in development
+      ...(isDevelopment && { message: err.message })
     },
     500
   );
