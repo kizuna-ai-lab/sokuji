@@ -246,7 +246,7 @@ SELECT
   ul.adjusted_output_tokens,
   ul.input_ratio,
   ul.output_ratio,
-  ROUND((ul.adjusted_total_tokens - ul.total_tokens) * 100.0 / ul.total_tokens, 2) as adjustment_percentage,
+  CASE WHEN ul.total_tokens = 0 THEN 0 ELSE ROUND((ul.adjusted_total_tokens - ul.total_tokens) * 100.0 / ul.total_tokens, 2) END as adjustment_percentage,
   ul.created_at
 FROM usage_logs ul
 WHERE ul.adjusted_total_tokens IS NOT NULL;

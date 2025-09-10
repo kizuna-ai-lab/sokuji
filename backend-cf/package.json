@@ -22,7 +22,7 @@
   "dependencies": {
     "@clerk/backend": "^0.38.0",
     "openai-realtime-api": "1.0.8",
-    "hono": "^4.0.0",
+    "hono": "4.9.6",
     "svix": "^1.15.0"
   },
   "devDependencies": {
