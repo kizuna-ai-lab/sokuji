@@ -77,13 +77,19 @@ interface SessionState {
   model: string;
   clientSocket?: WebSocket;
   realtimeClient?: RealtimeClient;
+  walletBalance?: number; // Cache balance in session state
 }
 
 export class RealtimeRelayDurableObject extends DurableObject {
   private sessions: Map<string, SessionState> = new Map();
+  private walletService?: ReturnType<typeof createWalletService>;
+  private walletCache: Map<string, { balance: any; timestamp: number }> = new Map();
+  private static readonly WALLET_CACHE_TTL = 60000; // 1 minute cache for session
 
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
+    // Initialize wallet service with batching enabled for realtime sessions
+    this.walletService = createWalletService(this.env as Env, true);
   }
 
   async fetch(request: Request): Promise<Response> {
@@ -125,15 +131,12 @@ export class RealtimeRelayDurableObject extends DurableObject {
 
     serverSocket.accept();
 
-    // Create wallet service for token deduction
-    const walletService = createWalletService(this.env as Env);
+    // Use the Durable Object's wallet service instance
+    const walletService = this.walletService || createWalletService(this.env as Env, true);
 
-    // Ensure wallet exists for authenticated users and check balance
-    await walletService.ensureWalletExists('user', userId, 'free_plan');
-    relayLog(`Ensured wallet exists for user ${userId}`);
-
-    // Check wallet balance before connecting to OpenAI
-    const walletBalance = await walletService.getBalance('user', userId);
+    // Use optimized getOrCreateWallet to combine existence check and balance retrieval
+    const walletBalance = await walletService.getOrCreateWallet('user', userId, 'free_plan');
+    relayLog(`Got/created wallet for user ${userId}, balance: ${walletBalance?.balanceTokens}`);
 
     if (walletBalance) {
       // Check if wallet is frozen
@@ -331,6 +334,16 @@ export class RealtimeRelayDurableObject extends DurableObject {
 
       // Clean up session state
       this.sessions.delete(sessionKey);
+      
+      // Flush any buffered usage logs for this session
+      if (this.walletService) {
+        try {
+          await this.walletService.flushUsageBuffer();
+          relayLog('Flushed usage buffer for session cleanup');
+        } catch (e) {
+          relayLog('Error flushing usage buffer:', e);
+        }
+      }
 
       // Close connections
       try { 
@@ -520,7 +533,7 @@ export class RealtimeRelayDurableObject extends DurableObject {
           }
         }
 
-        // Deduct tokens from wallet
+        // Deduct tokens from wallet (with batched logging for realtime sessions)
         const deductResult = await walletService.useTokens({
           subjectType: 'user',
           subjectId: sessionState.userId,
@@ -535,7 +548,8 @@ export class RealtimeRelayDurableObject extends DurableObject {
           sessionId: sessionState.sessionId,
           responseId: responseId || undefined,
           eventType: event.type,
-          metadata: metadata
+          metadata: metadata,
+          batchLogging: true  // Enable batching for realtime session usage logs
         });
 
         if (!deductResult.success) {

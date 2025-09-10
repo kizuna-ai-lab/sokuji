@@ -50,11 +50,8 @@ app.all('/*', authMiddleware, async (c) => {
   if (path !== '/models' && userId) {
     const walletService = createWalletService(c.env);
     
-    // Ensure wallet exists
-    await walletService.ensureWalletExists('user', userId, 'free_plan');
-    
-    // Check balance
-    const walletBalance = await walletService.getBalance('user', userId);
+    // Use optimized getOrCreateWallet to check balance and ensure existence in one query
+    const walletBalance = await walletService.getOrCreateWallet('user', userId, 'free_plan');
     
     if (walletBalance) {
       // Check if wallet is frozen
@@ -144,8 +141,8 @@ app.all('/*', authMiddleware, async (c) => {
           // Create wallet service
           const walletService = createWalletService(c.env);
           
-          // Ensure wallet exists before attempting to deduct tokens
-          await walletService.ensureWalletExists('user', userId || 'unknown', 'free_plan');
+          // Ensure wallet exists before attempting to deduct tokens (using optimized method)
+          await walletService.getOrCreateWallet('user', userId || 'unknown', 'free_plan');
           
           // Deduct tokens from wallet (pricing calculation happens internally)
           const deductResult = await walletService.useTokens({

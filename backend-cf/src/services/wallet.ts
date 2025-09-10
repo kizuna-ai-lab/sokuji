@@ -6,6 +6,7 @@
  */
 
 import { Env } from '../types';
+import { TokenUsageBuffer, BufferedUsage } from './token-usage-buffer';
 
 // ============================================
 // PRICING CONFIGURATION
@@ -109,11 +110,146 @@ interface ModelPricingRatios {
 
 export class WalletService {
   private ratios: Record<string, Record<string, Record<Modality, ModelPricingRatios>>>;
+  private static readonly CACHE_TTL = 300; // 5 minutes in seconds
+  private static readonly CACHE_PREFIX = 'wallet:';
+  private usageBuffer?: TokenUsageBuffer;
   
-  constructor(private env: Env) {
+  constructor(private env: Env, private enableBatching: boolean = false) {
     // Calculate ratios based on provider costs and profit margin
     this.ratios = this.calculateRatios();
     console.log('WalletService initialized with integrated pricing, profit margin:', PROFIT_MARGIN);
+    
+    // Initialize usage buffer if batching is enabled
+    if (enableBatching) {
+      this.usageBuffer = new TokenUsageBuffer(env);
+      console.log('Token usage batching enabled');
+    }
+  }
+  
+  /**
+   * Update cache with latest balance data
+   * This ensures cache consistency after database updates
+   */
+  private async updateCache(
+    subjectType: 'user' | 'organization',
+    subjectId: string,
+    walletBalance: WalletBalance
+  ): Promise<void> {
+    if (!this.env.WALLET_CACHE) return;
+    
+    const cacheKey = `${WalletService.CACHE_PREFIX}${subjectType}:${subjectId}`;
+    try {
+      await this.env.WALLET_CACHE.put(
+        cacheKey,
+        JSON.stringify(walletBalance),
+        { expirationTtl: WalletService.CACHE_TTL }
+      );
+      console.log(`Updated cache for ${subjectType}:${subjectId} with balance: ${walletBalance.balanceTokens}`);
+    } catch (error) {
+      console.warn('Error updating cache:', error);
+      // Don't fail the operation if cache update fails
+    }
+  }
+  
+  /**
+   * Invalidate cache for a specific wallet
+   * Used when external processes update the database
+   */
+  async invalidateCache(
+    subjectType: 'user' | 'organization',
+    subjectId: string
+  ): Promise<void> {
+    if (!this.env.WALLET_CACHE) return;
+    
+    const cacheKey = `${WalletService.CACHE_PREFIX}${subjectType}:${subjectId}`;
+    try {
+      await this.env.WALLET_CACHE.delete(cacheKey);
+      console.log(`Invalidated cache for ${subjectType}:${subjectId}`);
+    } catch (error) {
+      console.warn('Error invalidating cache:', error);
+    }
+  }
+  
+  /**
+   * Atomically update wallet balance and return the new balance
+   * This ensures consistency between database and cache
+   */
+  private async updateBalance(
+    subjectType: 'user' | 'organization',
+    subjectId: string,
+    delta: number
+  ): Promise<{ success: boolean; newBalance?: number; frozen?: boolean; error?: string }> {
+    try {
+      // First, update the balance
+      const updateResult = await this.env.DB.prepare(`
+        UPDATE wallets
+        SET balance_tokens = balance_tokens + ?,
+            updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now')
+        WHERE subject_type = ? AND subject_id = ?
+          AND frozen = 0
+      `).bind(delta, subjectType, subjectId).run();
+      
+      if (updateResult.meta.changes === 0) {
+        // Check why it failed
+        const wallet = await this.env.DB.prepare(
+          'SELECT balance_tokens, frozen FROM wallets WHERE subject_type = ? AND subject_id = ?'
+        ).bind(subjectType, subjectId).first();
+        
+        if (!wallet) {
+          return { success: false, error: 'Wallet not found' };
+        }
+        if (wallet.frozen) {
+          return { success: false, error: 'Wallet is frozen', frozen: true };
+        }
+        return { success: false, error: 'Unknown error' };
+      }
+      
+      // Then, get the updated balance (since SQLite doesn't support RETURNING in UPDATE)
+      const updatedWallet = await this.env.DB.prepare(`
+        SELECT 
+          w.subject_type,
+          w.subject_id,
+          w.balance_tokens,
+          w.frozen,
+          e.plan_id,
+          e.features,
+          e.rate_limit_rpm,
+          e.max_concurrent_sessions
+        FROM wallets w
+        LEFT JOIN entitlements e 
+          ON w.subject_type = e.subject_type 
+          AND w.subject_id = e.subject_id
+        WHERE w.subject_type = ? AND w.subject_id = ?
+      `).bind(subjectType, subjectId).first();
+      
+      if (!updatedWallet) {
+        return { success: false, error: 'Failed to retrieve updated balance' };
+      }
+      
+      // Update cache with the latest balance
+      const walletBalance: WalletBalance = {
+        subjectType: updatedWallet.subject_type as 'user' | 'organization',
+        subjectId: updatedWallet.subject_id as string,
+        balanceTokens: updatedWallet.balance_tokens as number,
+        frozen: updatedWallet.frozen === 1,
+        planId: updatedWallet.plan_id as string,
+        features: updatedWallet.features ? JSON.parse(updatedWallet.features as string) : [],
+        rateLimitRpm: updatedWallet.rate_limit_rpm as number || 60,
+        maxConcurrentSessions: updatedWallet.max_concurrent_sessions as number || 1
+      };
+      
+      await this.updateCache(subjectType, subjectId, walletBalance);
+      
+      return { 
+        success: true, 
+        newBalance: updatedWallet.balance_tokens as number,
+        frozen: updatedWallet.frozen === 1
+      };
+      
+    } catch (error) {
+      console.error('Error updating balance:', error);
+      return { success: false, error: error instanceof Error ? error.message : String(error) };
+    }
   }
   
   /**
@@ -356,6 +492,12 @@ export class WalletService {
       // Execute batch
       await this.env.DB.batch(batch);
 
+      // Get the updated wallet balance and update cache
+      const updatedWallet = await this.getBalance(subjectType, subjectId, true); // Skip cache, get fresh from DB
+      if (updatedWallet) {
+        await this.updateCache(subjectType, subjectId, updatedWallet);
+      }
+
       console.log(`Minted ${tokensToMint} tokens for ${subjectType}:${subjectId} (plan: ${planId}, paid: $${amountCents/100})`);
       return { success: true, minted: tokensToMint };
 
@@ -369,8 +511,10 @@ export class WalletService {
    * Use tokens (atomic deduction with usage logging and automatic pricing calculation)
    * Allows negative balance - will deduct tokens unconditionally
    * Supports both token-based and duration-based billing
+   * Can batch usage logs if batching is enabled
+   * Ensures cache consistency by updating cache with latest balance
    */
-  async useTokens(request: UseRequest): Promise<{ success: boolean; remaining?: number; deducted?: number; error?: string }> {
+  async useTokens(request: UseRequest & { batchLogging?: boolean }): Promise<{ success: boolean; remaining?: number; deducted?: number; error?: string }> {
     const { 
       subjectType, subjectId,
       provider, model, endpoint, method,
@@ -448,34 +592,20 @@ export class WalletService {
     }
 
     try {
-      // Start transaction with batch operations
+      // 1. First, atomically update the balance (critical path)
+      const balanceResult = await this.updateBalance(subjectType, subjectId, -tokens);
+      
+      if (!balanceResult.success) {
+        return { 
+          success: false, 
+          error: balanceResult.error,
+          remaining: balanceResult.newBalance
+        };
+      }
+      
+      // Start batch operations for ledger and usage logs
       const batch = [];
       const ledgerId = crypto.randomUUID();
-
-      // 1. Atomic deduction WITHOUT balance check (allow negative balance)
-      const deductResult = await this.env.DB.prepare(`
-        UPDATE wallets
-        SET balance_tokens = balance_tokens - ?,
-            updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now')
-        WHERE subject_type = ? AND subject_id = ?
-          AND frozen = 0
-      `).bind(tokens, subjectType, subjectId).run();
-
-      if (deductResult.meta.changes === 0) {
-        // Check why it failed
-        const wallet = await this.env.DB.prepare(
-          'SELECT balance_tokens, frozen FROM wallets WHERE subject_type = ? AND subject_id = ?'
-        ).bind(subjectType, subjectId).first();
-
-        if (!wallet) {
-          return { success: false, error: 'Wallet not found' };
-        }
-        if (wallet.frozen) {
-          return { success: false, error: 'Wallet is frozen' };
-        }
-        // No longer check for insufficient balance - we allow negative
-        return { success: false, error: 'Unknown error' };
-      }
 
       // 2. Record in wallet_ledger (financial record)
       batch.push(
@@ -505,39 +635,31 @@ export class WalletService {
 
       // 3. Record in usage_logs (detailed API usage)
       if (provider && model) {
-        batch.push(
-          this.env.DB.prepare(`
-            INSERT INTO usage_logs (
-              subject_type, subject_id,
-              provider, model, endpoint, method,
-              input_tokens, output_tokens, total_tokens,
-              adjusted_input_tokens, adjusted_output_tokens, adjusted_total_tokens,
-              input_ratio, output_ratio, modality,
-              session_id, request_id, response_id, event_type,
-              ledger_id, metadata
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-          `).bind(
+        // Check if we should batch the usage log
+        const shouldBatch = (request.batchLogging !== false) && this.usageBuffer && this.enableBatching;
+        
+        if (shouldBatch) {
+          // Add to buffer for batch processing
+          await this.usageBuffer!.add({
             subjectType,
             subjectId,
             provider,
             model,
-            endpoint || null,
-            method || null,
+            endpoint: endpoint || undefined,
+            method: method || undefined,
             inputTokens,
             outputTokens,
-            inputTokens + outputTokens,  // Raw total tokens
-            adjustment.adjustedInputTokens,
-            adjustment.adjustedOutputTokens,
-            adjustment.totalAdjustedTokens,
-            adjustment.inputRatio,
-            adjustment.outputRatio,
-            actualModality,
-            sessionId || null,
-            requestId || null,
-            responseId || null,
-            eventType || null,
-            ledgerId,
-            JSON.stringify({
+            adjustedInputTokens: adjustment.adjustedInputTokens,
+            adjustedOutputTokens: adjustment.adjustedOutputTokens,
+            adjustedTotalTokens: adjustment.totalAdjustedTokens,
+            inputRatio: adjustment.inputRatio,
+            outputRatio: adjustment.outputRatio,
+            modality: actualModality,
+            sessionId: sessionId || undefined,
+            requestId: requestId || undefined,
+            responseId: responseId || undefined,
+            eventType: eventType || undefined,
+            metadata: {
               ...metadata,
               duration_seconds: durationSeconds || null,
               adjusted_tokens: {
@@ -549,22 +671,73 @@ export class WalletService {
                 input: adjustment.inputRatio,
                 output: adjustment.outputRatio
               }
-            })
-          )
-        );
+            },
+            timestamp: new Date().toISOString(),
+            ledgerId
+          });
+        } else {
+          // Immediate write to database
+          batch.push(
+            this.env.DB.prepare(`
+              INSERT INTO usage_logs (
+                subject_type, subject_id,
+                provider, model, endpoint, method,
+                input_tokens, output_tokens, total_tokens,
+                adjusted_input_tokens, adjusted_output_tokens, adjusted_total_tokens,
+                input_ratio, output_ratio, modality,
+                session_id, request_id, response_id, event_type,
+                ledger_id, metadata
+              ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `).bind(
+              subjectType,
+              subjectId,
+              provider,
+              model,
+              endpoint || null,
+              method || null,
+              inputTokens,
+              outputTokens,
+              inputTokens + outputTokens,  // Raw total tokens
+              adjustment.adjustedInputTokens,
+              adjustment.adjustedOutputTokens,
+              adjustment.totalAdjustedTokens,
+              adjustment.inputRatio,
+              adjustment.outputRatio,
+              actualModality,
+              sessionId || null,
+              requestId || null,
+              responseId || null,
+              eventType || null,
+              ledgerId,
+              JSON.stringify({
+                ...metadata,
+                duration_seconds: durationSeconds || null,
+                adjusted_tokens: {
+                  input: adjustment.adjustedInputTokens,
+                  output: adjustment.adjustedOutputTokens,
+                  total: adjustment.totalAdjustedTokens
+                },
+                pricing_ratios: {
+                  input: adjustment.inputRatio,
+                  output: adjustment.outputRatio
+                }
+              })
+            )
+          );
+        }
       }
 
-      // Execute batch operations
+      // Execute batch operations for ledger
       if (batch.length > 0) {
         await this.env.DB.batch(batch);
       }
 
-      // Get remaining balance
-      const wallet = await this.env.DB.prepare(
-        'SELECT balance_tokens FROM wallets WHERE subject_type = ? AND subject_id = ?'
-      ).bind(subjectType, subjectId).first();
-
-      return { success: true, remaining: wallet?.balance_tokens as number, deducted: tokens };
+      // Cache is already updated in updateBalance method
+      return { 
+        success: true, 
+        remaining: balanceResult.newBalance!, 
+        deducted: tokens 
+      };
 
     } catch (error) {
       console.error('Error using tokens:', error);
@@ -622,6 +795,13 @@ export class WalletService {
       );
 
       await this.env.DB.batch(batch);
+      
+      // Get the updated wallet balance and update cache
+      const updatedWallet = await this.getBalance(subjectType, subjectId, true); // Skip cache, get fresh from DB
+      if (updatedWallet) {
+        await this.updateCache(subjectType, subjectId, updatedWallet);
+      }
+      
       return { success: true };
 
     } catch (error) {
@@ -631,12 +811,29 @@ export class WalletService {
   }
 
   /**
-   * Get wallet balance and entitlements
+   * Get wallet balance and entitlements (with caching)
    */
   async getBalance(
     subjectType: 'user' | 'organization',
-    subjectId: string
+    subjectId: string,
+    skipCache: boolean = false
   ): Promise<WalletBalance | null> {
+    const cacheKey = `${WalletService.CACHE_PREFIX}${subjectType}:${subjectId}`;
+    
+    // Try to get from cache first (unless skipCache is true)
+    if (!skipCache && this.env.WALLET_CACHE) {
+      try {
+        const cached = await this.env.WALLET_CACHE.get(cacheKey, 'json');
+        if (cached) {
+          console.log(`Cache hit for wallet ${subjectType}:${subjectId}`);
+          return cached as WalletBalance;
+        }
+      } catch (error) {
+        console.warn('Error reading from cache:', error);
+        // Continue to database query if cache fails
+      }
+    }
+    
     try {
       const result = await this.env.DB.prepare(`
         SELECT 
@@ -668,7 +865,7 @@ export class WalletService {
         };
       }
 
-      return {
+      const walletBalance: WalletBalance = {
         subjectType: result.subject_type as 'user' | 'organization',
         subjectId: result.subject_id as string,
         balanceTokens: result.balance_tokens as number,
@@ -678,6 +875,22 @@ export class WalletService {
         rateLimitRpm: result.rate_limit_rpm as number || 60,
         maxConcurrentSessions: result.max_concurrent_sessions as number || 1
       };
+      
+      // Cache the result
+      if (this.env.WALLET_CACHE) {
+        try {
+          await this.env.WALLET_CACHE.put(
+            cacheKey, 
+            JSON.stringify(walletBalance),
+            { expirationTtl: WalletService.CACHE_TTL }
+          );
+        } catch (error) {
+          console.warn('Error writing to cache:', error);
+          // Don't fail the operation if cache write fails
+        }
+      }
+      
+      return walletBalance;
 
     } catch (error) {
       console.error('Error getting balance:', error);
@@ -700,6 +913,12 @@ export class WalletService {
             updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now')
         WHERE subject_type = ? AND subject_id = ?
       `).bind(frozen ? 1 : 0, subjectType, subjectId).run();
+
+      // Get the updated wallet balance and update cache
+      const updatedWallet = await this.getBalance(subjectType, subjectId, true); // Skip cache, get fresh from DB
+      if (updatedWallet) {
+        await this.updateCache(subjectType, subjectId, updatedWallet);
+      }
 
       return true;
     } catch (error) {
@@ -865,8 +1084,108 @@ export class WalletService {
   }
 
   /**
+   * Get or create wallet - optimized method that combines existence check with balance retrieval
+   * This reduces the number of queries by doing everything in one operation
+   */
+  async getOrCreateWallet(
+    subjectType: 'user' | 'organization',
+    subjectId: string,
+    planId: string = 'free_plan'
+  ): Promise<WalletBalance | null> {
+    // First, try to get the wallet (which includes caching)
+    let walletBalance = await this.getBalance(subjectType, subjectId);
+    
+    // If wallet exists, return it
+    if (walletBalance && walletBalance.balanceTokens !== undefined) {
+      return walletBalance;
+    }
+    
+    // Wallet doesn't exist, create it
+    try {
+      console.log(`Creating new wallet for ${subjectType}:${subjectId} with plan ${planId}`);
+      
+      // Get plan details
+      const plan = await this.env.DB.prepare(
+        'SELECT monthly_quota_tokens FROM plans WHERE plan_id = ?'
+      ).bind(planId).first();
+      
+      const initialTokens = (plan?.monthly_quota_tokens as number) || 0;
+      
+      // Start transaction
+      const batch = [];
+      
+      // 1. Create wallet with initial balance
+      batch.push(
+        this.env.DB.prepare(`
+          INSERT OR IGNORE INTO wallets (subject_type, subject_id, balance_tokens, frozen)
+          VALUES (?, ?, ?, 0)
+        `).bind(subjectType, subjectId, initialTokens)
+      );
+      
+      // 2. Create entitlements
+      const features = this.getPlanFeatures(planId);
+      batch.push(
+        this.env.DB.prepare(`
+          INSERT OR IGNORE INTO entitlements (
+            subject_type, subject_id, plan_id,
+            features, rate_limit_rpm, max_concurrent_sessions
+          )
+          VALUES (?, ?, ?, ?, ?, ?)
+        `).bind(
+          subjectType, subjectId, planId,
+          JSON.stringify(features.features),
+          features.rateLimitRpm,
+          features.maxConcurrentSessions
+        )
+      );
+      
+      // 3. If there are initial tokens, record in ledger
+      if (initialTokens && initialTokens > 0) {
+        const ledgerId = crypto.randomUUID();
+        batch.push(
+          this.env.DB.prepare(`
+            INSERT INTO wallet_ledger (
+              id, subject_type, subject_id, amount_tokens, event_type,
+              reference_type, reference_id, plan_id, description
+            ) VALUES (?, ?, ?, ?, 'mint', 'registration', ?, ?, ?)
+          `).bind(
+            ledgerId,
+            subjectType,
+            subjectId,
+            initialTokens,
+            'initial_registration',
+            planId,
+            `Initial ${planId} token allocation`
+          )
+        );
+      }
+      
+      // Execute batch
+      await this.env.DB.batch(batch);
+      
+      console.log(`Successfully created wallet for ${subjectType}:${subjectId} with ${initialTokens} initial tokens`);
+      
+      // Now get the wallet balance (skip cache since we just created it)
+      walletBalance = await this.getBalance(subjectType, subjectId, true);
+      
+      // Update cache with the newly created wallet
+      if (walletBalance) {
+        await this.updateCache(subjectType, subjectId, walletBalance);
+      }
+      
+      return walletBalance;
+      
+    } catch (error) {
+      console.error('Error creating wallet:', error);
+      // Try to get balance again in case it was created by another process
+      return await this.getBalance(subjectType, subjectId, true);
+    }
+  }
+  
+  /**
    * Ensure wallet exists for a user - creates if missing
    * This is used for self-healing when a wallet is expected but not found
+   * @deprecated Use getOrCreateWallet instead for better performance
    */
   async ensureWalletExists(
     subjectType: 'user' | 'organization',
@@ -949,9 +1268,28 @@ export class WalletService {
       return !!wallet;
     }
   }
+  
+  /**
+   * Flush any buffered usage logs to the database
+   */
+  async flushUsageBuffer(): Promise<void> {
+    if (this.usageBuffer) {
+      await this.usageBuffer.flush();
+    }
+  }
+  
+  /**
+   * Close the wallet service and flush any remaining buffers
+   */
+  async close(): Promise<void> {
+    if (this.usageBuffer) {
+      await this.usageBuffer.close();
+      this.usageBuffer = undefined;
+    }
+  }
 }
 
 // Export singleton factory
-export function createWalletService(env: Env): WalletService {
-  return new WalletService(env);
+export function createWalletService(env: Env, enableBatching: boolean = false): WalletService {
+  return new WalletService(env, enableBatching);
 }

@@ -141,10 +141,10 @@ export async function ensureUserExists(userId: string, env: Env): Promise<boolea
     ).bind(userId).first();
     
     if (existingUser) {
-      // User exists, ensure wallet also exists
+      // User exists, ensure wallet also exists (using optimized method)
       const { createWalletService } = await import('./wallet');
       const walletService = createWalletService(env);
-      await walletService.ensureWalletExists('user', userId, 'free_plan');
+      await walletService.getOrCreateWallet('user', userId, 'free_plan');
       return true;
     }
     
@@ -166,49 +166,38 @@ export async function ensureUserExists(userId: string, env: Env): Promise<boolea
     
     // Get subscription info from Clerk metadata
     const subscription = clerkUser.public_metadata?.subscription || 'free';
-    const tokenQuota = clerkUser.public_metadata?.tokenQuota || getQuotaForPlan(subscription);
     
     try {
       // Create user in D1 using INSERT OR IGNORE to handle race conditions
       const result = await env.DB.prepare(`
-        INSERT OR IGNORE INTO users (clerk_id, email, first_name, last_name, image_url, subscription, token_quota, tokens_used)
-        VALUES (?, ?, ?, ?, ?, ?, ?, 0)
+        INSERT OR IGNORE INTO users (clerk_id, email, first_name, last_name, image_url, subscription)
+        VALUES (?, ?, ?, ?, ?, ?)
       `).bind(
         userId,
         email,
         clerkUser.first_name || null,
         clerkUser.last_name || null,
         clerkUser.image_url || null,
-        subscription,
-        tokenQuota
+        subscription
       ).run();
       
-      // Only initialize KV if user was actually created (not a duplicate)
+      // Only initialize if user was actually created (not a duplicate)
       if (result.meta.changes > 0) {
-        // Initialize quota in KV
-        await env.QUOTA_KV.put(
-          `quota:${userId}`,
-          JSON.stringify({
-            total: tokenQuota,
-            used: 0,
-            remaining: tokenQuota,
-            resetDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
-          })
-        );
+        // Note: Quota is now managed by the wallet system
         console.log(`Successfully synced user ${userId} from Clerk to D1`);
         
-        // Create wallet for the new user
+        // Create wallet for the new user (using optimized method)
         const { createWalletService } = await import('./wallet');
         const walletService = createWalletService(env);
         const planId = subscription === 'free' ? 'free_plan' : `${subscription}_plan`;
-        await walletService.ensureWalletExists('user', userId, planId);
+        await walletService.getOrCreateWallet('user', userId, planId);
         console.log(`Created wallet for new user ${userId} with plan ${planId}`);
       } else {
         console.log(`User ${userId} was created by another process during sync`);
-        // Ensure wallet exists even if user was created by another process
+        // Ensure wallet exists even if user was created by another process (using optimized method)
         const { createWalletService } = await import('./wallet');
         const walletService = createWalletService(env);
-        await walletService.ensureWalletExists('user', userId, 'free_plan');
+        await walletService.getOrCreateWallet('user', userId, 'free_plan');
       }
       
       return true;
@@ -233,21 +222,6 @@ export async function ensureUserExists(userId: string, env: Env): Promise<boolea
   }
 }
 
-/**
- * Get quota for subscription plan
- */
-function getQuotaForPlan(plan: string): number {
-  const quotas: Record<string, number> = {
-    free: 0,                 // 0 tokens
-    starter: 10000000,       // 10M tokens
-    essentials: 50000000,    // 50M tokens
-    professional: 100000000, // 100M tokens
-    business: 500000000,     // 500M tokens
-    enterprise: 1000000000,  // 1B tokens
-    unlimited: -1            // Unlimited
-  };
-  return quotas[plan] || quotas.free;
-}
 
 /**
  * Verify Clerk webhook signature using Svix

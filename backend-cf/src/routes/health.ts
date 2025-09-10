@@ -23,11 +23,11 @@ app.get('/', async (c) => {
     dbStatus = 'error';
   }
 
-  // Check KV connectivity
+  // Check KV connectivity (Wallet Cache)
   let kvStatus = 'unknown';
   try {
-    // Try to read a test key
-    await c.env.QUOTA_KV.get('health:check');
+    // Try to read a test key from wallet cache
+    await c.env.WALLET_CACHE.get('health:check');
     kvStatus = 'healthy';
   } catch (error) {
     kvStatus = 'error';
@@ -67,22 +67,18 @@ app.get('/ping', (c) => {
  */
 app.get('/data-consistency', adminMiddleware, async (c) => {
   try {
-    // Check for orphaned sessions (sessions without corresponding users)
-    const orphanedSessions = await c.env.DB.prepare(`
-      SELECT COUNT(*) as count FROM sessions 
-      WHERE user_id NOT IN (SELECT id FROM users)
-    `).first();
-    
-    // Check for orphaned API keys
-    const orphanedApiKeys = await c.env.DB.prepare(`
-      SELECT COUNT(*) as count FROM api_keys 
-      WHERE user_id NOT IN (SELECT id FROM users)
-    `).first();
-    
     // Check for orphaned usage logs
     const orphanedUsageLogs = await c.env.DB.prepare(`
       SELECT COUNT(*) as count FROM usage_logs 
-      WHERE user_id NOT IN (SELECT id FROM users)
+      WHERE subject_type = 'user' 
+      AND subject_id NOT IN (SELECT clerk_id FROM users)
+    `).first();
+    
+    // Check for orphaned wallet entries
+    const orphanedWallets = await c.env.DB.prepare(`
+      SELECT COUNT(*) as count FROM wallets 
+      WHERE subject_type = 'user' 
+      AND subject_id NOT IN (SELECT clerk_id FROM users)
     `).first();
     
     // Count total users in D1
@@ -90,9 +86,9 @@ app.get('/data-consistency', adminMiddleware, async (c) => {
       'SELECT COUNT(*) as count FROM users'
     ).first();
     
-    // Count total sessions
-    const sessionCount = await c.env.DB.prepare(
-      'SELECT COUNT(*) as count FROM sessions'
+    // Count total wallets
+    const walletCount = await c.env.DB.prepare(
+      'SELECT COUNT(*) as count FROM wallets'
     ).first();
     
     // Get users with no email (potential data integrity issue)
@@ -101,15 +97,20 @@ app.get('/data-consistency', adminMiddleware, async (c) => {
       WHERE email IS NULL OR email = ''
     `).first();
     
-    // Get recent failed webhook events (if we're storing them)
-    // Note: This would require adding a webhook_failures table or KV storage
+    // Get users without wallets
+    const usersWithoutWallets = await c.env.DB.prepare(`
+      SELECT COUNT(*) as count FROM users 
+      WHERE clerk_id NOT IN (
+        SELECT subject_id FROM wallets WHERE subject_type = 'user'
+      )
+    `).first();
     
     // Calculate health score
     const issues = 
-      (orphanedSessions?.count || 0) +
-      (orphanedApiKeys?.count || 0) +
-      (orphanedUsageLogs?.count || 0) +
-      (usersWithoutEmail?.count || 0);
+      (Number(orphanedUsageLogs?.count) || 0) +
+      (Number(orphanedWallets?.count) || 0) +
+      (Number(usersWithoutEmail?.count) || 0) +
+      (Number(usersWithoutWallets?.count) || 0);
     
     const healthScore = issues === 0 ? 'healthy' : issues < 10 ? 'warning' : 'critical';
     
@@ -118,24 +119,24 @@ app.get('/data-consistency', adminMiddleware, async (c) => {
       timestamp: new Date().toISOString(),
       statistics: {
         totalUsers: d1UserCount?.count || 0,
-        totalSessions: sessionCount?.count || 0,
-        orphanedSessions: orphanedSessions?.count || 0,
-        orphanedApiKeys: orphanedApiKeys?.count || 0,
+        totalWallets: walletCount?.count || 0,
         orphanedUsageLogs: orphanedUsageLogs?.count || 0,
-        usersWithoutEmail: usersWithoutEmail?.count || 0
+        orphanedWallets: orphanedWallets?.count || 0,
+        usersWithoutEmail: usersWithoutEmail?.count || 0,
+        usersWithoutWallets: usersWithoutWallets?.count || 0
       },
       recommendations: generateRecommendations({
-        orphanedSessions: orphanedSessions?.count || 0,
-        orphanedApiKeys: orphanedApiKeys?.count || 0,
-        orphanedUsageLogs: orphanedUsageLogs?.count || 0,
-        usersWithoutEmail: usersWithoutEmail?.count || 0
+        orphanedUsageLogs: Number(orphanedUsageLogs?.count) || 0,
+        orphanedWallets: Number(orphanedWallets?.count) || 0,
+        usersWithoutEmail: Number(usersWithoutEmail?.count) || 0,
+        usersWithoutWallets: Number(usersWithoutWallets?.count) || 0
       })
     });
   } catch (error) {
     console.error('Error checking data consistency:', error);
     return c.json({
       status: 'error',
-      error: error.message
+      error: error instanceof Error ? error.message : 'Unknown error'
     }, 500);
   }
 });
@@ -146,30 +147,42 @@ app.get('/data-consistency', adminMiddleware, async (c) => {
  */
 app.post('/cleanup-orphaned', adminMiddleware, async (c) => {
   try {
-    // Delete orphaned sessions
-    const sessionsResult = await c.env.DB.prepare(`
-      DELETE FROM sessions 
-      WHERE user_id NOT IN (SELECT id FROM users)
-    `).run();
-    
-    // Delete orphaned API keys
-    const apiKeysResult = await c.env.DB.prepare(`
-      DELETE FROM api_keys 
-      WHERE user_id NOT IN (SELECT id FROM users)
-    `).run();
-    
     // Delete orphaned usage logs
     const usageLogsResult = await c.env.DB.prepare(`
       DELETE FROM usage_logs 
-      WHERE user_id NOT IN (SELECT id FROM users)
+      WHERE subject_type = 'user' 
+      AND subject_id NOT IN (SELECT clerk_id FROM users)
     `).run();
+    
+    // Delete orphaned wallets
+    const walletsResult = await c.env.DB.prepare(`
+      DELETE FROM wallets 
+      WHERE subject_type = 'user' 
+      AND subject_id NOT IN (SELECT clerk_id FROM users)
+    `).run();
+    
+    // Clear any orphaned cache entries
+    const { createWalletService } = await import('../services/wallet');
+    const walletService = createWalletService(c.env);
+    
+    // Get list of orphaned wallet IDs to clear cache
+    const orphanedWalletIds = await c.env.DB.prepare(`
+      SELECT subject_id FROM wallets 
+      WHERE subject_type = 'user' 
+      AND subject_id NOT IN (SELECT clerk_id FROM users)
+    `).all();
+    
+    // Clear cache for orphaned wallets
+    for (const wallet of orphanedWalletIds.results || []) {
+      await walletService.invalidateCache('user', wallet.subject_id as string);
+    }
     
     return c.json({
       success: true,
       cleaned: {
-        sessions: sessionsResult.meta.changes || 0,
-        apiKeys: apiKeysResult.meta.changes || 0,
-        usageLogs: usageLogsResult.meta.changes || 0
+        usageLogs: usageLogsResult.meta.changes || 0,
+        wallets: walletsResult.meta.changes || 0,
+        cacheEntries: orphanedWalletIds.results?.length || 0
       },
       message: 'Orphaned data cleaned successfully'
     });
@@ -177,7 +190,7 @@ app.post('/cleanup-orphaned', adminMiddleware, async (c) => {
     console.error('Error cleaning orphaned data:', error);
     return c.json({
       success: false,
-      error: error.message
+      error: error instanceof Error ? error.message : 'Unknown error'
     }, 500);
   }
 });
@@ -188,20 +201,20 @@ app.post('/cleanup-orphaned', adminMiddleware, async (c) => {
 function generateRecommendations(issues: Record<string, number>): string[] {
   const recommendations: string[] = [];
   
-  if (issues.orphanedSessions > 0) {
-    recommendations.push(`Found ${issues.orphanedSessions} orphaned sessions. Run /api/health/cleanup-orphaned to remove them.`);
-  }
-  
-  if (issues.orphanedApiKeys > 0) {
-    recommendations.push(`Found ${issues.orphanedApiKeys} orphaned API keys. Run /api/health/cleanup-orphaned to remove them.`);
-  }
-  
   if (issues.orphanedUsageLogs > 0) {
     recommendations.push(`Found ${issues.orphanedUsageLogs} orphaned usage logs. Run /api/health/cleanup-orphaned to remove them.`);
   }
   
+  if (issues.orphanedWallets > 0) {
+    recommendations.push(`Found ${issues.orphanedWallets} orphaned wallets. Run /api/health/cleanup-orphaned to remove them.`);
+  }
+  
   if (issues.usersWithoutEmail > 0) {
     recommendations.push(`Found ${issues.usersWithoutEmail} users without email. Run /api/auth/sync-all-users to re-sync from Clerk.`);
+  }
+  
+  if (issues.usersWithoutWallets > 0) {
+    recommendations.push(`Found ${issues.usersWithoutWallets} users without wallets. These will be created automatically on next use.`);
   }
   
   if (recommendations.length === 0) {
