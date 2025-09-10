@@ -89,13 +89,11 @@ async function createRealtimeClient(
   // Create wallet service for token deduction
   const walletService = createWalletService(env);
   
-  // Ensure wallet exists for authenticated users and check balance
+  // Ensure wallet exists for authenticated users and check balance (using optimized method)
   if (userContext?.userId) {
-    await walletService.ensureWalletExists('user', userContext.userId, 'free_plan');
-    relayLog(`Ensured wallet exists for user ${userContext.userId}`);
-    
-    // Check wallet balance before connecting to OpenAI
-    const walletBalance = await walletService.getBalance('user', userContext.userId);
+    // Use optimized getOrCreateWallet to combine existence check and balance retrieval
+    const walletBalance = await walletService.getOrCreateWallet('user', userContext.userId, 'free_plan');
+    relayLog(`Got/created wallet for user ${userContext.userId}, balance: ${walletBalance?.balanceTokens}`);
     
     if (walletBalance) {
       // Check if wallet is frozen
