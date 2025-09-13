@@ -20,7 +20,9 @@ export default defineConfig(({ command, mode }) => {
           entry: {
             'main': 'electron/main.js',
             'clerk-adapter': 'electron/clerk-adapter.js',
-            'pulseaudio-utils': 'electron/pulseaudio-utils.js'
+            'pulseaudio-utils': 'electron/pulseaudio-utils.js',
+            'windows-audio-utils': 'electron/windows-audio-utils.js',
+            'vb-cable-installer': 'electron/vb-cable-installer.js'
           },
           onstart(args) {
             args.startup()
