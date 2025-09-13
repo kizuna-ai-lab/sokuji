@@ -5,7 +5,7 @@ module.exports = {
   packagerConfig: {
     asar: true,
     extraResource: ['assets'],
-    icon: 'assets/icon',
+    icon: process.platform === 'win32' ? 'assets/icon.ico' : 'assets/icon',
     appId: 'com.kizunaai.sokuji',
     executableName: 'sokuji',
     name: 'Sokuji',
