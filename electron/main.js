@@ -52,11 +52,17 @@ app.commandLine.appendSwitch('jack-name', 'sokuji');
 let mainWindow;
 
 function createWindow() {
+  // Determine the correct icon path based on platform
+  const iconPath = process.platform === 'win32'
+    ? path.join(__dirname, '../assets/icon.ico')
+    : path.join(__dirname, '../assets/icon.png');
+
   // Create the browser window
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
     title: 'Sokuji',
+    icon: iconPath,
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
