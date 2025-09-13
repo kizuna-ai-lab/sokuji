@@ -36,12 +36,16 @@ const AudioPanel: React.FC<{ toggleAudio: () => void }> = ({ toggleAudio }) => {
 
   // Check if a device is the virtual microphone
   const isVirtualMic = (device: {deviceId: string; label: string}) => {
-    return device.label.toLowerCase().includes('sokuji_virtual_mic');
+    const labelLower = device.label.toLowerCase();
+    return labelLower.includes('sokuji_virtual_mic') ||
+           labelLower.includes('cable');
   };
 
   // Check if a device is the virtual speaker
   const isVirtualSpeaker = (device: {deviceId: string; label: string}) => {
-    return device.label.toLowerCase().includes('sokuji_virtual_speaker');
+    const labelLower = device.label.toLowerCase();
+    return labelLower.includes('sokuji_virtual_speaker') ||
+           labelLower.includes('cable');
   };
 
   // Handle input device selection with virtual mic check
