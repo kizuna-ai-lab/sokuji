@@ -128,21 +128,21 @@ export class ModernBrowserAudioService implements IAudioService {
       const inputs = devices
         .filter(device => device.kind === 'audioinput')
         .filter(device => device.deviceId !== 'default')
+        .filter(device => device.deviceId !== 'communications')
         .map(device => ({
           deviceId: device.deviceId,
           label: device.label || `Microphone ${device.deviceId.substring(0, 5)}...`,
-          isVirtual: false,
-          isVBCable: device.label ? device.label.includes('CABLE') : false
+          isVirtual: device.label ? device.label.includes('CABLE') : false
         }));
 
       const outputs = devices
         .filter(device => device.kind === 'audiooutput')
         .filter(device => device.deviceId !== 'default')
+        .filter(device => device.deviceId !== 'communications')
         .map(device => ({
           deviceId: device.deviceId,
           label: device.label || `Speaker ${device.deviceId.substring(0, 5)}...`,
-          isVirtual: false,
-          isVBCable: device.label ? device.label.includes('CABLE') : false
+          isVirtual: device.label ? device.label.includes('CABLE') : false
         }));
       
       return { inputs, outputs };
@@ -226,15 +226,24 @@ export class ModernBrowserAudioService implements IAudioService {
   private async detectAndSetVirtualSpeaker(): Promise<void> {
     try {
       const devices = await this.getDevices();
-      const virtualSpeaker = devices.outputs.find(device => 
+
+      // First priority: Look for Sokuji_Virtual_Speaker
+      let virtualSpeaker = devices.outputs.find(device =>
         device.label.includes('Sokuji_Virtual_Speaker')
       );
-      
+
+      // Second priority: Look for VB-CABLE devices (Windows)
+      if (!virtualSpeaker) {
+        virtualSpeaker = devices.outputs.find(device =>
+          device.label.toUpperCase().includes('CABLE')
+        );
+      }
+
       if (virtualSpeaker && this.virtualSpeakerPlayer) {
         await this.virtualSpeakerPlayer.setSinkId(virtualSpeaker.deviceId);
         console.info('[Sokuji] [ModernBrowserAudio] Virtual speaker detected and configured:', virtualSpeaker.label);
       } else if (this.virtualSpeakerPlayer) {
-        console.warn('[Sokuji] [ModernBrowserAudio] Virtual speaker device not found');
+        console.warn('[Sokuji] [ModernBrowserAudio] Virtual speaker device not found (neither Sokuji_Virtual_Speaker nor VB-CABLE)');
       }
     } catch (error) {
       console.error('[Sokuji] [ModernBrowserAudio] Error detecting virtual speaker:', error);
@@ -697,64 +706,5 @@ export class ModernBrowserAudioService implements IAudioService {
     return result;
   }
 
-  /**
-   * Check if VB-CABLE is installed by looking for CABLE devices
-   * @returns Promise<boolean> True if VB-CABLE devices are found
-   */
-  public async isVBCableInstalled(): Promise<boolean> {
-    try {
-      // Request permissions to see device labels
-      try {
-        await navigator.mediaDevices.getUserMedia({ audio: true });
-      } catch (permissionError) {
-        console.log('[Sokuji] [ModernBrowserAudio] Cannot check VB-CABLE without audio permissions');
-        return false;
-      }
 
-      const devices = await navigator.mediaDevices.enumerateDevices();
-
-      // Check for any device with "CABLE" in its label
-      const hasVBCable = devices.some(device =>
-        device.label && device.label.includes('CABLE')
-      );
-
-      if (hasVBCable) {
-        console.log('[Sokuji] [ModernBrowserAudio] VB-CABLE detected via MediaDevices API');
-
-        // Log the specific VB-CABLE devices found
-        const cableDevices = devices.filter(device =>
-          device.label && device.label.includes('CABLE')
-        );
-
-        cableDevices.forEach(device => {
-          console.log(`[Sokuji] [ModernBrowserAudio] Found VB-CABLE device: ${device.label} (${device.kind})`);
-        });
-      } else {
-        console.log('[Sokuji] [ModernBrowserAudio] VB-CABLE not detected');
-      }
-
-      return hasVBCable;
-    } catch (error) {
-      console.error('[Sokuji] [ModernBrowserAudio] Error checking for VB-CABLE:', error);
-      return false;
-    }
-  }
-
-  /**
-   * Get VB-CABLE device information
-   * @returns Promise<{inputs: Array, outputs: Array}> VB-CABLE devices
-   */
-  public async getVBCableDevices(): Promise<{ inputs: any[], outputs: any[] }> {
-    try {
-      const devices = await this.getAudioDevices();
-
-      return {
-        inputs: devices.inputs.filter((d: any) => d.isVBCable),
-        outputs: devices.outputs.filter((d: any) => d.isVBCable)
-      };
-    } catch (error) {
-      console.error('[Sokuji] [ModernBrowserAudio] Error getting VB-CABLE devices:', error);
-      return { inputs: [], outputs: [] };
-    }
-  }
 }
