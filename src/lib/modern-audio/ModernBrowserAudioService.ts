@@ -131,16 +131,18 @@ export class ModernBrowserAudioService implements IAudioService {
         .map(device => ({
           deviceId: device.deviceId,
           label: device.label || `Microphone ${device.deviceId.substring(0, 5)}...`,
-          isVirtual: false
+          isVirtual: false,
+          isVBCable: device.label ? device.label.includes('CABLE') : false
         }));
-      
+
       const outputs = devices
         .filter(device => device.kind === 'audiooutput')
         .filter(device => device.deviceId !== 'default')
         .map(device => ({
           deviceId: device.deviceId,
           label: device.label || `Speaker ${device.deviceId.substring(0, 5)}...`,
-          isVirtual: false
+          isVirtual: false,
+          isVBCable: device.label ? device.label.includes('CABLE') : false
         }));
       
       return { inputs, outputs };
@@ -687,11 +689,72 @@ export class ModernBrowserAudioService implements IAudioService {
    */
   private applyPassthroughVolume(buffer: Int16Array, volume: number): Int16Array {
     if (volume === 1.0) return buffer;
-    
+
     const result = new Int16Array(buffer.length);
     for (let i = 0; i < buffer.length; i++) {
       result[i] = Math.round(buffer[i] * volume);
     }
     return result;
+  }
+
+  /**
+   * Check if VB-CABLE is installed by looking for CABLE devices
+   * @returns Promise<boolean> True if VB-CABLE devices are found
+   */
+  public async isVBCableInstalled(): Promise<boolean> {
+    try {
+      // Request permissions to see device labels
+      try {
+        await navigator.mediaDevices.getUserMedia({ audio: true });
+      } catch (permissionError) {
+        console.log('[Sokuji] [ModernBrowserAudio] Cannot check VB-CABLE without audio permissions');
+        return false;
+      }
+
+      const devices = await navigator.mediaDevices.enumerateDevices();
+
+      // Check for any device with "CABLE" in its label
+      const hasVBCable = devices.some(device =>
+        device.label && device.label.includes('CABLE')
+      );
+
+      if (hasVBCable) {
+        console.log('[Sokuji] [ModernBrowserAudio] VB-CABLE detected via MediaDevices API');
+
+        // Log the specific VB-CABLE devices found
+        const cableDevices = devices.filter(device =>
+          device.label && device.label.includes('CABLE')
+        );
+
+        cableDevices.forEach(device => {
+          console.log(`[Sokuji] [ModernBrowserAudio] Found VB-CABLE device: ${device.label} (${device.kind})`);
+        });
+      } else {
+        console.log('[Sokuji] [ModernBrowserAudio] VB-CABLE not detected');
+      }
+
+      return hasVBCable;
+    } catch (error) {
+      console.error('[Sokuji] [ModernBrowserAudio] Error checking for VB-CABLE:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Get VB-CABLE device information
+   * @returns Promise<{inputs: Array, outputs: Array}> VB-CABLE devices
+   */
+  public async getVBCableDevices(): Promise<{ inputs: any[], outputs: any[] }> {
+    try {
+      const devices = await this.getAudioDevices();
+
+      return {
+        inputs: devices.inputs.filter((d: any) => d.isVBCable),
+        outputs: devices.outputs.filter((d: any) => d.isVBCable)
+      };
+    } catch (error) {
+      console.error('[Sokuji] [ModernBrowserAudio] Error getting VB-CABLE devices:', error);
+      return { inputs: [], outputs: [] };
+    }
   }
 }

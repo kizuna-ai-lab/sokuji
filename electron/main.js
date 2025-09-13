@@ -13,12 +13,35 @@ if (process.platform === 'win32') {
 }
 
 // Config utility no longer needed - using localStorage in renderer process
-const { 
-  createVirtualAudioDevices, 
-  removeVirtualAudioDevices, 
-  isPulseAudioAvailable,
+
+// Platform-specific audio utilities
+let audioUtils;
+if (process.platform === 'linux') {
+  audioUtils = require('./pulseaudio-utils');
+} else if (process.platform === 'win32') {
+  audioUtils = require('./windows-audio-utils');
+} else {
+  // For macOS and other platforms, provide stub implementations
+  audioUtils = {
+    createVirtualAudioDevices: async () => {
+      console.log('[Sokuji] [Main] Virtual audio devices not supported on this platform');
+      return false;
+    },
+    removeVirtualAudioDevices: () => {
+      console.log('[Sokuji] [Main] Virtual audio device cleanup not needed on this platform');
+    },
+    cleanupOrphanedDevices: async () => {
+      console.log('[Sokuji] [Main] No orphaned devices to clean on this platform');
+      return true;
+    }
+  };
+}
+
+const {
+  createVirtualAudioDevices,
+  removeVirtualAudioDevices,
   cleanupOrphanedDevices
-} = require('./pulseaudio-utils');
+} = audioUtils;
 
 // Set application name for PulseAudio
 app.setName('sokuji');
@@ -243,14 +266,86 @@ app.on('will-quit', cleanupAndExit);
 // IPC handlers for audio functionality
 ipcMain.handle('check-audio-system', async () => {
   try {
-    const pulseAudioAvailable = await isPulseAudioAvailable();
+    let audioSystemAvailable = false;
+    let systemType = 'none';
+
+    if (process.platform === 'linux') {
+      const { isPulseAudioAvailable } = audioUtils;
+      audioSystemAvailable = await isPulseAudioAvailable();
+      systemType = audioSystemAvailable ? 'pulseaudio' : 'none';
+    } else if (process.platform === 'win32') {
+      const { isWindowsAudioAvailable } = audioUtils;
+      audioSystemAvailable = await isWindowsAudioAvailable();
+      // On Windows, VB-CABLE detection happens in the renderer process
+      // We just report that Windows audio is available
+      systemType = audioSystemAvailable ? 'windows' : 'none';
+    }
+
     return {
-      pulseAudioAvailable
+      audioSystemAvailable,
+      systemType,
+      platform: process.platform,
+      note: process.platform === 'win32' ? 'VB-CABLE detection happens in renderer process' : null
     };
   } catch (error) {
     console.error('[Sokuji] [Main] Error checking audio system status:', error);
     return {
-      pulseAudioAvailable: false,
+      audioSystemAvailable: false,
+      systemType: 'none',
+      platform: process.platform,
+      error: error.message
+    };
+  }
+});
+
+// Handler for VB-CABLE detection (called from renderer process)
+ipcMain.handle('check-vbcable', async () => {
+  try {
+    // On Windows, actual VB-CABLE detection happens in the renderer process
+    // This handler is here for consistency and future extensibility
+    if (process.platform === 'win32') {
+      return {
+        platform: 'windows',
+        detectionMethod: 'renderer',
+        message: 'VB-CABLE detection should be done via MediaDevices API in renderer'
+      };
+    } else {
+      return {
+        platform: process.platform,
+        detectionMethod: 'none',
+        message: 'VB-CABLE is Windows-specific'
+      };
+    }
+  } catch (error) {
+    console.error('[Sokuji] [Main] Error in VB-CABLE check:', error);
+    return {
+      error: error.message
+    };
+  }
+});
+
+// Handler for VB-CABLE installation (called from renderer process)
+ipcMain.handle('install-vbcable', async () => {
+  try {
+    if (process.platform === 'win32') {
+      console.log('[Sokuji] [Main] VB-CABLE installation requested from renderer');
+      const installer = require('./vb-cable-installer');
+      const result = await installer.ensureVBCableInstalled();
+      return {
+        success: result,
+        platform: 'windows'
+      };
+    } else {
+      return {
+        success: false,
+        platform: process.platform,
+        message: 'VB-CABLE is Windows-specific'
+      };
+    }
+  } catch (error) {
+    console.error('[Sokuji] [Main] Error installing VB-CABLE:', error);
+    return {
+      success: false,
       error: error.message
     };
   }

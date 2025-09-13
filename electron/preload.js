@@ -72,12 +72,14 @@ contextBridge.exposeInMainWorld(
     },
     invoke: (channel, data) => {
       const validChannels = [
-        'invoke-channel', 
-        'check-audio-system', 
+        'invoke-channel',
+        'check-audio-system',
         'open-directory',
         'create-virtual-speaker',
         'get-cookies',
-        'set-cookie'
+        'set-cookie',
+        'check-vbcable',
+        'install-vbcable'
       ];
       if (validChannels.includes(channel)) {
         return ipcRenderer.invoke(channel, data);
