@@ -124,10 +124,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: windows-artifacts
-          path: |
-            out/make/**/*.exe
-            out/make/**/*.nupkg
-            out/make/**/RELEASES
+          path: out/make/
 
   release:
     # Only run for tag pushes
@@ -148,6 +145,12 @@ jobs:
           name: windows-artifacts
           path: windows-artifacts
 
+      - name: Debug Windows artifacts structure
+        run: |
+          echo "Windows artifacts structure:"
+          ls -R windows-artifacts/ || true
+          find windows-artifacts -name "*.exe" || true
+
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
@@ -155,7 +158,8 @@ jobs:
             linux-artifacts/out/make/**/*.deb
             linux-artifacts/out/make/**/*.zip
             linux-artifacts/extension/sokuji-extension.zip
-            windows-artifacts/out/make/**/*.exe
+            windows-artifacts/squirrel.windows/x64/*.exe
+            windows-artifacts/squirrel.windows/x64/*.nupkg
           body_path: linux-artifacts/CHANGELOG.md
           draft: false
           prerelease: false
