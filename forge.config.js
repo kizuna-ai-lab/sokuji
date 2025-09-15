@@ -65,6 +65,17 @@ module.exports = {
   rebuildConfig: {},
   makers: [
     {
+      name: '@electron-forge/maker-squirrel',
+      config: {
+        name: 'Sokuji',
+        authors: 'Kizuna AI Lab',
+        exe: 'sokuji.exe',
+        description: 'Live speech translation application using OpenAI and Google Gemini APIs',
+        setupIcon: 'assets/icon.ico',
+        noMsi: true
+      }
+    },
+    {
       name: '@electron-forge/maker-zip',
       platforms: ['linux'],
     },

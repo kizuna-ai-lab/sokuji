@@ -12,7 +12,16 @@ permissions:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        include:
+          - os: ubuntu-latest
+            artifact_name: linux
+          - os: windows-latest
+            artifact_name: windows
+
+    runs-on: ${{ matrix.os }}
 
     steps:
       - name: Checkout code
@@ -53,6 +62,7 @@ jobs:
           VITE_ENVIRONMENT: production
 
       - name: Build Chrome Extension
+        if: matrix.os == 'ubuntu-latest'
         run: |
           cd extension
           npm ci
@@ -67,6 +77,7 @@ jobs:
           VITE_BACKEND_URL: ${{ secrets.VITE_BACKEND_URL_PROD || 'https://sokuji-api.kizuna.ai' }}          
 
       - name: Generate changelog
+        if: matrix.os == 'ubuntu-latest'
         id: changelog
         run: |
           PREVIOUS_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
@@ -78,14 +89,53 @@ jobs:
           # Save changelog to a file for the release
           echo "$CHANGELOG" > CHANGELOG.md
 
+      - name: Upload Linux artifacts
+        if: matrix.os == 'ubuntu-latest'
+        uses: actions/upload-artifact@v3
+        with:
+          name: linux-artifacts
+          path: |
+            out/make/**/*.deb
+            out/make/**/*.zip
+            extension/sokuji-extension.zip
+            CHANGELOG.md
+
+      - name: Upload Windows artifacts
+        if: matrix.os == 'windows-latest'
+        uses: actions/upload-artifact@v3
+        with:
+          name: windows-artifacts
+          path: |
+            out/make/**/*.exe
+            out/make/**/*.nupkg
+            out/make/**/RELEASES
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download Linux artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: linux-artifacts
+          path: linux-artifacts
+
+      - name: Download Windows artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: windows-artifacts
+          path: windows-artifacts
+
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            out/make/**/*.deb
-            out/make/**/*.zip
-            extension/sokuji-extension.zip
-          body_path: CHANGELOG.md
+            linux-artifacts/out/make/**/*.deb
+            linux-artifacts/out/make/**/*.zip
+            linux-artifacts/extension/sokuji-extension.zip
+            windows-artifacts/out/make/**/*.exe
+          body_path: linux-artifacts/CHANGELOG.md
           draft: false
           prerelease: false
         env:
