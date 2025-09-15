@@ -1,0 +1,163 @@
+name: Build and Release
+
+on:
+  push:
+    branches: [main, master]
+    tags:
+      - 'v*'
+  pull_request:
+    branches: [main, master]
+
+permissions:
+  contents: write
+  packages: write
+  issues: write
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        # For CI (non-tag), only build on ubuntu-latest
+        # For Release (tag), build on both ubuntu-latest and windows-latest
+        os: ${{ startsWith(github.ref, 'refs/tags/v') && fromJSON('["ubuntu-latest", "windows-latest"]') || fromJSON('["ubuntu-latest"]') }}
+        include:
+          - os: ubuntu-latest
+            artifact_name: linux
+          - os: windows-latest
+            artifact_name: windows
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          # Only need full history for releases (changelog generation)
+          fetch-depth: ${{ startsWith(github.ref, 'refs/tags/v') && 0 || 1 }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build React app
+        run: npm run build
+        env:
+          CI: false
+          # Use production environment variables for releases, simpler ones for CI
+          VITE_CLERK_PUBLISHABLE_KEY: ${{ secrets.VITE_CLERK_PUBLISHABLE_KEY_PROD }}
+          VITE_BACKEND_URL: ${{ secrets.VITE_BACKEND_URL_PROD || 'https://sokuji-api.kizuna.ai' }}
+          VITE_ENVIRONMENT: production
+          # Additional variables only for releases
+          VITE_ENABLE_DEBUG: ${{ startsWith(github.ref, 'refs/tags/v') && 'false' || '' }}
+          VITE_ENABLE_ANALYTICS: ${{ startsWith(github.ref, 'refs/tags/v') && 'true' || '' }}
+          VITE_EXTENSION_ID: ${{ startsWith(github.ref, 'refs/tags/v') && secrets.VITE_EXTENSION_ID_PROD || '' }}
+
+      - name: Build Electron app with Forge
+        run: npm run make
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CI: false
+          # Prevent actual publishing during CI builds
+          CSC_IDENTITY_AUTO_DISCOVERY: ${{ !startsWith(github.ref, 'refs/tags/v') && 'false' || '' }}
+          # Clerk environment variables for Electron
+          VITE_CLERK_PUBLISHABLE_KEY: ${{ secrets.VITE_CLERK_PUBLISHABLE_KEY_PROD }}
+          VITE_CLERK_ORIGIN: ${{ secrets.VITE_CLERK_ORIGIN_PROD || 'file://' }}
+          VITE_BACKEND_URL: ${{ secrets.VITE_BACKEND_URL_PROD || 'https://sokuji-api.kizuna.ai' }}
+          VITE_ENVIRONMENT: production
+
+      - name: Build Chrome Extension
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          cd extension
+          npm ci
+          # Build extension with production mode for releases
+          if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            NODE_ENV=production npm run build -- --mode production
+            cd dist
+            zip -r ../sokuji-extension.zip *
+            cd ..
+          else
+            npm run build
+            # Verify the build output exists
+            if [ ! -d "dist" ]; then
+              echo "Extension build failed: dist directory not found"
+              exit 1
+            fi
+          fi
+        env:
+          # Production environment variables for extension
+          VITE_CLERK_PUBLISHABLE_KEY: ${{ secrets.VITE_CLERK_PUBLISHABLE_KEY_PROD }}
+          VITE_BACKEND_URL: ${{ secrets.VITE_BACKEND_URL_PROD || 'https://sokuji-api.kizuna.ai' }}
+
+      # Release-specific steps
+      - name: Generate changelog
+        if: startsWith(github.ref, 'refs/tags/v') && matrix.os == 'ubuntu-latest'
+        id: changelog
+        run: |
+          PREVIOUS_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+          if [ -z "$PREVIOUS_TAG" ]; then
+            CHANGELOG=$(git log --pretty=format:"- %s")
+          else
+            CHANGELOG=$(git log ${PREVIOUS_TAG}..HEAD --pretty=format:"- %s")
+          fi
+          # Save changelog to a file for the release
+          echo "$CHANGELOG" > CHANGELOG.md
+
+      - name: Upload Linux artifacts
+        if: startsWith(github.ref, 'refs/tags/v') && matrix.os == 'ubuntu-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-artifacts
+          path: |
+            out/make/**/*.deb
+            out/make/**/*.zip
+            extension/sokuji-extension.zip
+            CHANGELOG.md
+
+      - name: Upload Windows artifacts
+        if: startsWith(github.ref, 'refs/tags/v') && matrix.os == 'windows-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-artifacts
+          path: |
+            out/make/**/*.exe
+            out/make/**/*.nupkg
+            out/make/**/RELEASES
+
+  release:
+    # Only run for tag pushes
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download Linux artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: linux-artifacts
+          path: linux-artifacts
+
+      - name: Download Windows artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-artifacts
+          path: windows-artifacts
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            linux-artifacts/out/make/**/*.deb
+            linux-artifacts/out/make/**/*.zip
+            linux-artifacts/extension/sokuji-extension.zip
+            windows-artifacts/out/make/**/*.exe
+          body_path: linux-artifacts/CHANGELOG.md
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
