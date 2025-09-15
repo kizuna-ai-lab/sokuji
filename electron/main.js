@@ -2,13 +2,12 @@ const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 const { clerkAdapter } = require('./clerk-adapter');
 
-// Handle Squirrel events for Windows - only use on Windows platform
+// Handle Squirrel events for Windows
 if (process.platform === 'win32') {
-  try {
-    if (require('electron-squirrel-startup')) app.quit();
-  } catch (error) {
-    console.error('[Sokuji] [Main] Error with electron-squirrel-startup:', error);
-    // Continue execution even if there's an error with squirrel startup
+  const handleSquirrelEvent = require('./squirrel-events');
+  if (handleSquirrelEvent()) {
+    // Squirrel event handled and app will exit, don't do anything else
+    return;
   }
 }
 
