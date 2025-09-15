@@ -7,7 +7,7 @@ if (process.platform === 'win32') {
   const handleSquirrelEvent = require('./squirrel-events');
   if (handleSquirrelEvent()) {
     // Squirrel event handled and app will exit, don't do anything else
-    return;
+    process.exit(0);
   }
 }
 
