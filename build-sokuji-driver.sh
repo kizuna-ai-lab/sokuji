@@ -13,9 +13,13 @@ echo ""
 # Configuration
 DRIVER_NAME="SokujiVirtualAudio"
 BUNDLE_ID="com.sokuji.virtualaudio"
-ICON="BlackHole.icns"
+ICON="Sokuji.icns"
 DEVICE_NAME="SokujiVirtualAudio"  # Simplified to avoid space issues
 CHANNELS=2
+
+# Copy Sokuji icon to BlackHole source directory
+cp assets/icon.icns BlackHole/Sokuji.icns
+echo "  Using Sokuji.icns as driver icon"
 
 # Navigate to BlackHole directory
 cd BlackHole
@@ -62,6 +66,11 @@ if [ -d "build/Release/SokujiVirtualAudio.driver" ]; then
     # Copy the driver (no need to rename, it's already named correctly)
     cp -R build/Release/SokujiVirtualAudio.driver ../resources/drivers/SokujiVirtualAudio.driver
 
+    # Replace the icon with Sokuji icon (rename from BlackHole.icns to Sokuji.icns)
+    rm -f ../resources/drivers/SokujiVirtualAudio.driver/Contents/Resources/BlackHole.icns
+    cp ../assets/icon.icns ../resources/drivers/SokujiVirtualAudio.driver/Contents/Resources/Sokuji.icns
+    echo "  Replaced driver icon with Sokuji.icns"
+
     # Update the Info.plist to ensure correct executable name
     PLIST_FILE="../resources/drivers/SokujiVirtualAudio.driver/Contents/Info.plist"
     if [ -f "$PLIST_FILE" ]; then
@@ -97,4 +106,9 @@ else
 fi
 
 cd ..
+
+# Clean up the temporary icon file from BlackHole source
+rm -f BlackHole/Sokuji.icns
+echo "Cleaned up temporary icon file"
+
 echo "Done!"
