@@ -235,7 +235,7 @@ export class ModernBrowserAudioService implements IAudioService {
       // Second priority: Look for SokujiVirtualAudio (Mac)
       if (!virtualSpeaker) {
         virtualSpeaker = devices.outputs.find(device =>
-          device.label.toLowerCase().includes('sokujivirtualaudio')
+          device.label.includes('SokujiVirtualAudio')
         );
       }
 
