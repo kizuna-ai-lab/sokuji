@@ -6,14 +6,14 @@
   <em>Live speech translation powered by OpenAI, Google Gemini, CometAPI, Palabra.ai, and Kizuna AI</em>
 </p>
 
-<p align="center">
+<p align="center">   
   <a href="LICENSE" target="_blank">
     <img alt="AGPL-3.0 License" src="https://img.shields.io/badge/license-AGPL--3.0-blue.svg?style=flat-square" />
   </a>
   
   <!-- Build and Release Badge -->
-  <a href="https://github.com/kizuna-ai-lab/sokuji/actions/workflows/build-and-release.yml" target="_blank">
-    <img alt="Build and Release" src="https://github.com/kizuna-ai-lab/sokuji/actions/workflows/build-and-release.yml/badge.svg" />
+  <a href="https://github.com/kizuna-ai-lab/sokuji/actions/workflows/build.yml" target="_blank">
+    <img alt="Build and Release" src="https://github.com/kizuna-ai-lab/sokuji/actions/workflows/build.yml/badge.svg" />
   </a>
   
   <!-- OpenAI Badge -->
