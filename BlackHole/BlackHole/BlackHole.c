@@ -13,7 +13,6 @@
 //==================================================================================================
 
 #include <CoreAudio/AudioServerPlugIn.h>
-#include "SokujiConfig.h"  // Sokuji custom configuration
 #include <dispatch/dispatch.h>
 #include <mach/mach_time.h>
 #include <pthread.h>
