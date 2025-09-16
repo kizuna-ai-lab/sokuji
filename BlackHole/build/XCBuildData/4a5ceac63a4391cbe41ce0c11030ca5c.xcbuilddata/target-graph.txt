@@ -1,2 +1,0 @@
-Target dependency graph (1 target)
-Target 'BlackHole' in project 'BlackHole' (no dependencies)

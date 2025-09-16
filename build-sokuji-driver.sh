@@ -14,7 +14,7 @@ echo ""
 DRIVER_NAME="Sokuji"
 BUNDLE_ID="com.sokuji.virtualaudio"
 ICON="BlackHole.icns"
-DEVICE_NAME="Sokuji Virtual Audio"
+DEVICE_NAME="Sokuji"  # Simplified to avoid space issues
 CHANNELS=2
 
 # Navigate to BlackHole directory
@@ -43,18 +43,14 @@ xcodebuild \
   DEVELOPMENT_TEAM="" \
   MACOSX_DEPLOYMENT_TARGET=10.13 \
   PRODUCT_BUNDLE_IDENTIFIER="$BUNDLE_ID" \
-  GCC_PREPROCESSOR_DEFINITIONS='$GCC_PREPROCESSOR_DEFINITIONS
-    kDriver_Name=\"'"$DRIVER_NAME"'\"
-    kPlugIn_BundleID=\"'"$BUNDLE_ID"'\"
-    kPlugIn_Icon=\"'"$ICON"'\"
-    kDevice_Name=\"'"$DEVICE_NAME"'\"
-    kNumber_Of_Channels='"$CHANNELS"
+  PRODUCT_NAME="SokujiVirtualAudio" \
+  GCC_PREPROCESSOR_DEFINITIONS="\$GCC_PREPROCESSOR_DEFINITIONS kDriver_Name=\\\"${DRIVER_NAME}\\\" kPlugIn_BundleID=\\\"${BUNDLE_ID}\\\" kPlugIn_Icon=\\\"${ICON}\\\" kDevice_Name=\\\"${DEVICE_NAME}\\\" kNumber_Of_Channels=${CHANNELS}"
 
 echo "Build completed!"
 echo ""
 
 # Check if build was successful
-if [ -d "build/Release/BlackHole.driver" ]; then
+if [ -d "build/Release/SokujiVirtualAudio.driver" ]; then
     echo "✅ Driver built successfully"
 
     # Copy to resources directory
@@ -63,20 +59,14 @@ if [ -d "build/Release/BlackHole.driver" ]; then
     # Remove old driver if exists
     rm -rf ../resources/drivers/SokujiVirtualAudio.driver
 
-    # Copy and rename the driver
-    cp -R build/Release/BlackHole.driver ../resources/drivers/SokujiVirtualAudio.driver
+    # Copy the driver (no need to rename, it's already named correctly)
+    cp -R build/Release/SokujiVirtualAudio.driver ../resources/drivers/SokujiVirtualAudio.driver
 
     # Update the Info.plist to ensure correct executable name
     PLIST_FILE="../resources/drivers/SokujiVirtualAudio.driver/Contents/Info.plist"
     if [ -f "$PLIST_FILE" ]; then
-        # Update CFBundleExecutable if needed
-        /usr/libexec/PlistBuddy -c "Set :CFBundleExecutable SokujiVirtualAudio" "$PLIST_FILE" 2>/dev/null || true
-
-        # Rename the binary file if it exists
-        if [ -f "../resources/drivers/SokujiVirtualAudio.driver/Contents/MacOS/BlackHole" ]; then
-            mv "../resources/drivers/SokujiVirtualAudio.driver/Contents/MacOS/BlackHole" \
-               "../resources/drivers/SokujiVirtualAudio.driver/Contents/MacOS/SokujiVirtualAudio"
-        fi
+        # Update bundle name to show "Sokuji" in system
+        /usr/libexec/PlistBuddy -c "Set :CFBundleName 'Sokuji'" "$PLIST_FILE" 2>/dev/null || true
     fi
 
     echo "✅ Driver copied to resources/drivers/SokujiVirtualAudio.driver"
