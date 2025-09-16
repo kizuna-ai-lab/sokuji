@@ -115,31 +115,25 @@ ls -la build/Release/SokujiVirtualAudio.driver/
 ### Quick Build Commands
 
 ```bash
-# Basic build (no code signing)
-./build-macos-installer.sh
+# Build the virtual audio driver
+./build-sokuji-driver.sh
 
-# Clean build
-./build-macos-installer.sh --clean
+# Build PKG installer
+./build-pkg.sh
 
-# Signed build (recommended for distribution)
-./build-macos-installer.sh --sign "Developer ID Application: Your Name (XXXXXXXXXX)"
+# Or use npm scripts for Electron app
+npm run make:pkg
 ```
 
 ### Build Scripts
 
-#### Main Build Script (`build-macos-installer.sh`)
+#### Driver Build Script (`build-sokuji-driver.sh`)
 
-```bash
-#!/bin/bash
+Builds the customized Sokuji Virtual Audio driver from BlackHole source.
 
-# Build stages:
-# 1. Check prerequisites
-# 2. Build virtual audio driver
-# 3. Build Electron application
-# 4. Create PKG installer
-# 5. Sign package (if certificate provided)
-# 6. Notarize (if credentials available)
-```
+#### PKG Build Script (`build-pkg.sh`)
+
+Creates an unsigned PKG installer that includes the Sokuji app with installation scripts.
 
 #### PKG Build Script (`build-pkg.sh`)
 
@@ -410,8 +404,8 @@ tccutil reset Microphone com.sokuji.app
 #### Build Failures
 
 ```bash
-# Clean build environment
-./build-macos-installer.sh --clean
+# Clean build artifacts
+rm -rf out/ build/
 
 # Check Xcode version
 xcodebuild -version
@@ -446,7 +440,7 @@ export DEBUG=1
 export VERBOSE=1
 
 # Run build with debug output
-./build-macos-installer.sh --debug
+npm run make:pkg -- --debug
 
 # Check installation logs
 sudo log show --predicate 'process == "installer"' --last 10m
