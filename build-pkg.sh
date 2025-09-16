@@ -75,6 +75,10 @@ if [ -f out/make/Sokuji-unsigned.pkg ]; then
     echo "✅ Successfully created unsigned PKG installer"
     echo "📦 Location: out/make/Sokuji-unsigned.pkg"
     echo "📊 Size: $PKG_SIZE"
+    echo ""
+    echo "⚠️  Note: To avoid installation issues, remove or rename out/Sokuji-darwin-arm64"
+    echo "   before installing the PKG, or run:"
+    echo "   rm -rf out/Sokuji-darwin-arm64"
 else
     echo "❌ Failed to create PKG installer"
     exit 1

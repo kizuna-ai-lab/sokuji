@@ -11,10 +11,10 @@ echo "================================"
 echo ""
 
 # Configuration
-DRIVER_NAME="Sokuji"
+DRIVER_NAME="SokujiVirtualAudio"
 BUNDLE_ID="com.sokuji.virtualaudio"
 ICON="BlackHole.icns"
-DEVICE_NAME="Sokuji"  # Simplified to avoid space issues
+DEVICE_NAME="SokujiVirtualAudio"  # Simplified to avoid space issues
 CHANNELS=2
 
 # Navigate to BlackHole directory
@@ -66,7 +66,7 @@ if [ -d "build/Release/SokujiVirtualAudio.driver" ]; then
     PLIST_FILE="../resources/drivers/SokujiVirtualAudio.driver/Contents/Info.plist"
     if [ -f "$PLIST_FILE" ]; then
         # Update bundle name to show "Sokuji" in system
-        /usr/libexec/PlistBuddy -c "Set :CFBundleName 'Sokuji'" "$PLIST_FILE" 2>/dev/null || true
+        /usr/libexec/PlistBuddy -c "Set :CFBundleName 'SokujiVirtualAudio'" "$PLIST_FILE" 2>/dev/null || true
 
         # Generate unique UUID for Sokuji to avoid conflicts with BlackHole
         SOKUJI_UUID="8a70ea4a-c3ed-4dc1-a01b-0ed9bc34f76a"
