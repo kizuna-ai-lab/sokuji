@@ -452,18 +452,20 @@ export VERBOSE=1
 sudo log show --predicate 'process == "installer"' --last 10m
 ```
 
-### Diagnostic Tools
+### Diagnostic Commands
 
 ```bash
-# Run diagnostics
-./diagnose-audio-driver.sh
+# Check driver installation
+ls -la /Library/Audio/Plug-Ins/HAL/SokujiVirtualAudio.driver
 
-# This checks:
-# - Driver installation status
-# - CoreAudio recognition
-# - Device enumeration
-# - Permission configuration
-# - System compatibility
+# Verify CoreAudio recognition
+system_profiler SPAudioDataType | grep -i sokuji
+
+# Check driver permissions
+stat -f "%Su:%Sg" /Library/Audio/Plug-Ins/HAL/SokujiVirtualAudio.driver
+
+# View recent CoreAudio logs
+log show --predicate 'process == "coreaudiod"' --last 5m | grep -i sokuji
 ```
 
 ## License Compliance
