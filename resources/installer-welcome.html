@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to Sokuji</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            color: #333;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #7f8c8d;
+            margin-bottom: 30px;
+            font-size: 16px;
+        }
+        .feature-list {
+            list-style: none;
+            padding: 0;
+            margin: 20px 0;
+        }
+        .feature-list li {
+            padding: 8px 0;
+            border-bottom: 1px solid #ecf0f1;
+        }
+        .feature-list li:before {
+            content: "✓";
+            color: #27ae60;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        .highlight-box {
+            background: #e8f6f3;
+            border-left: 4px solid #1abc9c;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+        .warning-box {
+            background: #fdf2e9;
+            border-left: 4px solid #e67e22;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+        .system-requirements {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .system-requirements h3 {
+            margin-top: 0;
+            color: #2c3e50;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎙️ Welcome to Sokuji</h1>
+        <p class="subtitle">Real-time AI-powered translation application</p>
+
+        <p>Thank you for choosing Sokuji! This installer will set up the complete translation system on your macOS device.</p>
+
+        <div class="highlight-box">
+            <strong>🎯 What's included in this installation:</strong>
+            <ul class="feature-list">
+                <li><strong>Sokuji Application</strong> - Main translation interface</li>
+                <li><strong>Virtual Audio Driver</strong> - Sokuji Virtual Audio for seamless integration</li>
+                <li><strong>System Integration</strong> - Works with video conferencing apps</li>
+                <li><strong>Multi-Provider Support</strong> - OpenAI, Google Gemini, and more</li>
+            </ul>
+        </div>
+
+        <div class="system-requirements">
+            <h3>📋 System Requirements</h3>
+            <ul>
+                <li><strong>macOS:</strong> 10.15 (Catalina) or later</li>
+                <li><strong>RAM:</strong> 4GB minimum, 8GB recommended</li>
+                <li><strong>Disk Space:</strong> 200MB for application + 10MB for virtual audio driver</li>
+                <li><strong>Internet:</strong> Required for AI translation services</li>
+            </ul>
+        </div>
+
+        <div class="warning-box">
+            <strong>⚠️ Important Installation Notes:</strong>
+            <ul>
+                <li>This installer requires administrator privileges to install the virtual audio driver</li>
+                <li>The CoreAudio service will be restarted during installation</li>
+                <li>Audio applications may need to be restarted to detect the virtual audio device</li>
+                <li>The virtual audio device will appear as "Sokuji Virtual Audio" in System Preferences</li>
+            </ul>
+        </div>
+
+        <div class="highlight-box">
+            <strong>🔒 Privacy & Security:</strong>
+            <p>Sokuji processes audio locally and securely transmits only necessary data to AI providers. Your privacy is our priority.</p>
+        </div>
+
+        <p style="text-align: center; margin-top: 30px;">
+            <strong>Ready to get started?</strong><br>
+            Click "Continue" to proceed with the installation.
+        </p>
+    </div>
+</body>
+</html>

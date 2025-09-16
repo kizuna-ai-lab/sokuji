@@ -1,0 +1,49 @@
+#!/bin/sh
+
+# Sokuji PKG Installer - Postinstall Script
+# Installs the Sokuji Virtual Audio driver
+
+echo "Sokuji postinstall: Starting installation..."
+
+# Set correct permissions on the installed app
+if [ -d "/Applications/Sokuji.app" ]; then
+    echo "Sokuji postinstall: Setting app permissions..."
+    chmod -R 755 /Applications/Sokuji.app
+fi
+
+# Install the virtual audio driver from the app bundle
+DRIVER_SOURCE="/Applications/Sokuji.app/Contents/Resources/resources/drivers/SokujiVirtualAudio.driver"
+DRIVER_DEST="/Library/Audio/Plug-Ins/HAL/SokujiVirtualAudio.driver"
+
+if [ -d "$DRIVER_SOURCE" ]; then
+    echo "Sokuji postinstall: Installing virtual audio driver..."
+
+    # Remove old driver if it exists
+    if [ -d "$DRIVER_DEST" ]; then
+        echo "Sokuji postinstall: Removing old driver..."
+        rm -rf "$DRIVER_DEST"
+    fi
+
+    # Copy the driver to the HAL plugins directory
+    echo "Sokuji postinstall: Copying driver to $DRIVER_DEST..."
+    cp -R "$DRIVER_SOURCE" "$DRIVER_DEST"
+
+    # Set correct permissions on the driver
+    echo "Sokuji postinstall: Setting driver permissions..."
+    chown -R root:wheel "$DRIVER_DEST"
+    chmod -R 755 "$DRIVER_DEST"
+
+    # Restart CoreAudio to load the driver
+    echo "Sokuji postinstall: Restarting CoreAudio to load driver..."
+    # Try multiple methods to ensure CoreAudio restarts regardless of permission level
+    killall coreaudiod 2>/dev/null || \
+    launchctl kickstart -k system/com.apple.audio.coreaudiod 2>/dev/null || \
+    launchctl kill SIGTERM system/com.apple.audio.coreaudiod 2>/dev/null || true
+
+    echo "Sokuji postinstall: Virtual audio driver installed successfully"
+else
+    echo "Sokuji postinstall: Warning - Virtual audio driver not found in app bundle"
+fi
+
+echo "Sokuji postinstall: Installation completed"
+exit 0
