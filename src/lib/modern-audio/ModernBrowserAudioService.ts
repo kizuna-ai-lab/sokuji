@@ -227,12 +227,19 @@ export class ModernBrowserAudioService implements IAudioService {
     try {
       const devices = await this.getDevices();
 
-      // First priority: Look for Sokuji_Virtual_Speaker
+      // First priority: Look for Sokuji_Virtual_Speaker (Linux)
       let virtualSpeaker = devices.outputs.find(device =>
         device.label.includes('Sokuji_Virtual_Speaker')
       );
 
-      // Second priority: Look for VB-CABLE devices (Windows)
+      // Second priority: Look for SokujiVirtualAudio (Mac)
+      if (!virtualSpeaker) {
+        virtualSpeaker = devices.outputs.find(device =>
+          device.label.toLowerCase().includes('sokujivirtualaudio')
+        );
+      }
+
+      // Third priority: Look for VB-CABLE devices (Windows)
       if (!virtualSpeaker) {
         virtualSpeaker = devices.outputs.find(device =>
           device.label.toUpperCase().includes('CABLE')
@@ -243,7 +250,7 @@ export class ModernBrowserAudioService implements IAudioService {
         await this.virtualSpeakerPlayer.setSinkId(virtualSpeaker.deviceId);
         console.info('[Sokuji] [ModernBrowserAudio] Virtual speaker detected and configured:', virtualSpeaker.label);
       } else if (this.virtualSpeakerPlayer) {
-        console.warn('[Sokuji] [ModernBrowserAudio] Virtual speaker device not found (neither Sokuji_Virtual_Speaker nor VB-CABLE)');
+        console.warn('[Sokuji] [ModernBrowserAudio] Virtual speaker device not found (neither Sokuji_Virtual_Speaker, SokujiVirtualAudio, nor VB-CABLE)');
       }
     } catch (error) {
       console.error('[Sokuji] [ModernBrowserAudio] Error detecting virtual speaker:', error);
