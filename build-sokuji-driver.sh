@@ -67,6 +67,18 @@ if [ -d "build/Release/SokujiVirtualAudio.driver" ]; then
     if [ -f "$PLIST_FILE" ]; then
         # Update bundle name to show "Sokuji" in system
         /usr/libexec/PlistBuddy -c "Set :CFBundleName 'Sokuji'" "$PLIST_FILE" 2>/dev/null || true
+
+        # Generate unique UUID for Sokuji to avoid conflicts with BlackHole
+        SOKUJI_UUID="8a70ea4a-c3ed-4dc1-a01b-0ed9bc34f76a"
+
+        # Delete the old BlackHole UUID entry and add new one with Sokuji UUID
+        /usr/libexec/PlistBuddy -c "Delete :CFPlugInFactories:e395c745-4eea-4d94-bb92-46224221047c" "$PLIST_FILE" 2>/dev/null || true
+        /usr/libexec/PlistBuddy -c "Add :CFPlugInFactories:$SOKUJI_UUID string BlackHole_Create" "$PLIST_FILE" 2>/dev/null || true
+
+        # Update the CFPlugInTypes array to use the new UUID
+        /usr/libexec/PlistBuddy -c "Set :CFPlugInTypes:443ABAB8-E7B3-491A-B985-BEB9187030DB:0 $SOKUJI_UUID" "$PLIST_FILE" 2>/dev/null || true
+
+        echo "  Updated plugin UUID to avoid conflicts with BlackHole"
     fi
 
     echo "✅ Driver copied to resources/drivers/SokujiVirtualAudio.driver"
