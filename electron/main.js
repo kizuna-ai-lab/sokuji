@@ -19,8 +19,10 @@ if (process.platform === 'linux') {
   audioUtils = require('./pulseaudio-utils');
 } else if (process.platform === 'win32') {
   audioUtils = require('./windows-audio-utils');
+} else if (process.platform === 'darwin') {
+  audioUtils = require('./macos-audio-utils');
 } else {
-  // For macOS and other platforms, provide stub implementations
+  // For other platforms, provide stub implementations
   audioUtils = {
     createVirtualAudioDevices: async () => {
       console.log('[Sokuji] [Main] Virtual audio devices not supported on this platform');
@@ -284,13 +286,19 @@ ipcMain.handle('check-audio-system', async () => {
       // On Windows, VB-CABLE detection happens in the renderer process
       // We just report that Windows audio is available
       systemType = audioSystemAvailable ? 'windows' : 'none';
+    } else if (process.platform === 'darwin') {
+      const { isMacOSAudioAvailable } = audioUtils;
+      audioSystemAvailable = await isMacOSAudioAvailable();
+      // On macOS, Sokuji Virtual Audio driver is installed by PKG installer
+      systemType = audioSystemAvailable ? 'coreaudio' : 'none';
     }
 
     return {
       audioSystemAvailable,
       systemType,
       platform: process.platform,
-      note: process.platform === 'win32' ? 'VB-CABLE detection happens in renderer process' : null
+      note: process.platform === 'win32' ? 'VB-CABLE detection happens in renderer process' :
+            process.platform === 'darwin' ? 'Sokuji Virtual Audio driver installed by PKG installer' : null
     };
   } catch (error) {
     console.error('[Sokuji] [Main] Error checking audio system status:', error);
@@ -351,6 +359,33 @@ ipcMain.handle('install-vbcable', async () => {
     console.error('[Sokuji] [Main] Error installing VB-CABLE:', error);
     return {
       success: false,
+      error: error.message
+    };
+  }
+});
+
+// Handler for Sokuji Virtual Audio detection (called from renderer process)
+ipcMain.handle('check-sokuji-audio', async () => {
+  try {
+    if (process.platform === 'darwin') {
+      const { isSokujiVirtualAudioInstalled } = audioUtils;
+      const installed = await isSokujiVirtualAudioInstalled();
+      return {
+        installed,
+        platform: 'macos',
+        driverName: 'Sokuji Virtual Audio'
+      };
+    } else {
+      return {
+        installed: false,
+        platform: process.platform,
+        message: 'Sokuji Virtual Audio is macOS-specific'
+      };
+    }
+  } catch (error) {
+    console.error('[Sokuji] [Main] Error in Sokuji Virtual Audio check:', error);
+    return {
+      installed: false,
       error: error.message
     };
   }

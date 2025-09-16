@@ -1,0 +1,27 @@
+#!/bin/sh
+
+# Sokuji PKG Installer - Preinstall Script
+# Prepares the system for Sokuji Virtual Audio driver installation
+
+echo "Sokuji preinstall: Preparing system for installation..."
+
+# Create HAL plugin directory if it doesn't exist
+echo "Sokuji preinstall: Ensuring HAL plugin directory exists..."
+mkdir -p /Library/Audio/Plug-Ins/HAL
+chown root:wheel /Library/Audio/Plug-Ins/HAL
+chmod 755 /Library/Audio/Plug-Ins/HAL
+
+# Remove any existing Sokuji Virtual Audio installation
+if [ -d "/Library/Audio/Plug-Ins/HAL/SokujiVirtualAudio.driver" ]; then
+    echo "Sokuji preinstall: Removing existing Sokuji Virtual Audio driver..."
+    rm -rf /Library/Audio/Plug-Ins/HAL/SokujiVirtualAudio.driver
+    echo "Sokuji preinstall: Old driver removed"
+fi
+
+# Also check for the app in case of reinstallation
+if [ -d "/Applications/Sokuji.app" ]; then
+    echo "Sokuji preinstall: Found existing Sokuji.app, will be replaced..."
+fi
+
+echo "Sokuji preinstall: System preparation complete"
+exit 0
