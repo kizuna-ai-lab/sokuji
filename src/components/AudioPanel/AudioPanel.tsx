@@ -38,6 +38,7 @@ const AudioPanel: React.FC<{ toggleAudio: () => void }> = ({ toggleAudio }) => {
   const isVirtualMic = (device: {deviceId: string; label: string}) => {
     const labelLower = device.label.toLowerCase();
     return labelLower.includes('sokuji_virtual_mic') ||
+           labelLower.includes('sokujivirtualaudio') || // Mac virtual device
            labelLower.includes('cable');
   };
 
@@ -45,6 +46,7 @@ const AudioPanel: React.FC<{ toggleAudio: () => void }> = ({ toggleAudio }) => {
   const isVirtualSpeaker = (device: {deviceId: string; label: string}) => {
     const labelLower = device.label.toLowerCase();
     return labelLower.includes('sokuji_virtual_speaker') ||
+           labelLower.includes('sokujivirtualaudio') || // Mac virtual device
            labelLower.includes('cable');
   };
 

@@ -51,7 +51,9 @@
   "devDependencies": {
     "@electron-forge/cli": "^7.8.0",
     "@electron-forge/maker-deb": "^7.8.0",
+    "@electron-forge/maker-dmg": "^7.9.0",
     "@electron-forge/maker-flatpak": "^7.8.0",
+    "@electron-forge/maker-pkg": "^7.9.0",
     "@electron-forge/maker-snap": "^7.8.0",
     "@electron-forge/maker-squirrel": "^7.8.0",
     "@electron-forge/maker-zip": "^7.8.0",
@@ -84,6 +86,7 @@
     "electron:start": "electron .",
     "package": "npm run build && electron-forge package",
     "make": "npm run build && electron-forge make",
+    "make:pkg": "./build-pkg.sh",
     "postinstall": "electron-rebuild"
   },
   "eslintConfig": {
