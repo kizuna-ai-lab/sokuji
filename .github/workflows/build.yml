@@ -60,12 +60,29 @@ jobs:
           VITE_EXTENSION_ID: ${{ startsWith(github.ref, 'refs/tags/v') && secrets.VITE_EXTENSION_ID_PROD || '' }}
 
       - name: Build Electron app with Forge
+        if: matrix.os != 'macos-latest'
         run: npm run make
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CI: false
           # Prevent actual publishing during CI builds
           CSC_IDENTITY_AUTO_DISCOVERY: ${{ !startsWith(github.ref, 'refs/tags/v') && 'false' || '' }}
+          # Clerk environment variables for Electron
+          VITE_CLERK_PUBLISHABLE_KEY: ${{ secrets.VITE_CLERK_PUBLISHABLE_KEY_PROD }}
+          VITE_CLERK_ORIGIN: ${{ secrets.VITE_CLERK_ORIGIN_PROD || 'file://' }}
+          VITE_BACKEND_URL: ${{ secrets.VITE_BACKEND_URL_PROD || 'https://sokuji-api.kizuna.ai' }}
+          VITE_ENVIRONMENT: production
+
+      - name: Build macOS PKG with versioned filename
+        if: matrix.os == 'macos-latest'
+        run: |
+          chmod +x build-pkg.sh
+          ./build-pkg.sh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CI: false
+          # Always build unsigned for macOS
+          CSC_IDENTITY_AUTO_DISCOVERY: false
           # Clerk environment variables for Electron
           VITE_CLERK_PUBLISHABLE_KEY: ${{ secrets.VITE_CLERK_PUBLISHABLE_KEY_PROD }}
           VITE_CLERK_ORIGIN: ${{ secrets.VITE_CLERK_ORIGIN_PROD || 'file://' }}
@@ -133,7 +150,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: macos-artifacts
-          path: out/make/**/*.pkg
+          path: out/make/*.pkg
 
   release:
     # Only run for tag pushes
