@@ -5,7 +5,9 @@
 
 set -e  # Exit on error
 
-echo "Building unsigned PKG installer for Sokuji..."
+# Extract version from package.json
+VERSION=$(node -p "require('./package.json').version")
+echo "Building unsigned PKG installer for Sokuji v${VERSION}..."
 
 # Step 0: Clean up previous builds (might need sudo if ownership was changed)
 echo "Step 0: Cleaning up previous builds..."
@@ -55,7 +57,7 @@ cp -R out/Sokuji-darwin-arm64/Sokuji.app "$TEMP_DIR/"
 pkgbuild \
     --root "$TEMP_DIR" \
     --identifier com.electron.sokuji \
-    --version 0.9.16 \
+    --version $VERSION \
     --install-location /Applications \
     --scripts pkg-scripts \
     out/make/Sokuji-component.pkg
@@ -63,17 +65,17 @@ pkgbuild \
 # Then create the product package
 productbuild \
     --package out/make/Sokuji-component.pkg \
-    out/make/Sokuji-unsigned.pkg
+    out/make/Sokuji-${VERSION}.pkg
 
 # Clean up
 rm -rf "$TEMP_DIR"
 rm -f out/make/Sokuji-component.pkg
 
 # Step 5: Report success
-if [ -f out/make/Sokuji-unsigned.pkg ]; then
-    PKG_SIZE=$(du -h out/make/Sokuji-unsigned.pkg | cut -f1)
+if [ -f out/make/Sokuji-${VERSION}.pkg ]; then
+    PKG_SIZE=$(du -h out/make/Sokuji-${VERSION}.pkg | cut -f1)
     echo "✅ Successfully created unsigned PKG installer"
-    echo "📦 Location: out/make/Sokuji-unsigned.pkg"
+    echo "📦 Location: out/make/Sokuji-${VERSION}.pkg"
     echo "📊 Size: $PKG_SIZE"
     echo ""
     echo "⚠️  Note: To avoid installation issues, remove or rename out/Sokuji-darwin-arm64"
