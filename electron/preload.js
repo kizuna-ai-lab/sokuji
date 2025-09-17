@@ -79,7 +79,8 @@ contextBridge.exposeInMainWorld(
         'get-cookies',
         'set-cookie',
         'check-vbcable',
-        'install-vbcable'
+        'install-vbcable',
+        'check-sokuji-audio'
       ];
       if (validChannels.includes(channel)) {
         return ipcRenderer.invoke(channel, data);

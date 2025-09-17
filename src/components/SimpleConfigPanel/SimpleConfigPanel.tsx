@@ -106,7 +106,9 @@ const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings, h
   // Filter out virtual devices
   const isVirtualDevice = (device: {label: string}) => {
     const label = device.label.toLowerCase();
-    return label.includes('sokuji_virtual_mic') || label.includes('sokuji_virtual_speaker');
+    return label.includes('sokuji_virtual_mic') ||
+           label.includes('sokuji_virtual_speaker') ||
+           label.includes('sokujivirtualaudio'); // Mac virtual device
   };
 
   const filteredInputDevices = (audioInputDevices || []).filter(device => !isVirtualDevice(device));

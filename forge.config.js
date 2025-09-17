@@ -4,7 +4,7 @@ const { FuseV1Options, FuseVersion } = require('@electron/fuses');
 module.exports = {
   packagerConfig: {
     asar: true,
-    extraResource: ['assets'],
+    extraResource: ['assets', 'resources'],
     icon: process.platform === 'win32' ? 'assets/icon.ico' : 'assets/icon',
     appId: 'com.kizunaai.sokuji',
     executableName: 'sokuji',
@@ -91,7 +91,15 @@ module.exports = {
           bin: 'sokuji'
         }
       },
+    },
+    {
+      name: '@electron-forge/maker-dmg',
+      config: {
+        name: 'Sokuji',
+        overwrite: true
+      }
     }
+    // PKG Installer removed - use npm run make:pkg for unsigned PKG builds
   ],
   plugins: [
     {
