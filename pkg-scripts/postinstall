@@ -15,6 +15,19 @@ fi
 DRIVER_SOURCE="/Applications/Sokuji.app/Contents/Resources/resources/drivers/SokujiVirtualAudio.driver"
 DRIVER_DEST="/Library/Audio/Plug-Ins/HAL/SokujiVirtualAudio.driver"
 
+# Ensure HAL plugins directory exists
+HAL_DIR="/Library/Audio/Plug-Ins/HAL"
+if [ ! -d "$HAL_DIR" ]; then
+    echo "Sokuji postinstall: Creating HAL plugins directory..."
+    mkdir -p "$HAL_DIR"
+    if [ $? -ne 0 ]; then
+        echo "Sokuji postinstall: ERROR - Failed to create HAL plugins directory"
+        exit 1
+    fi
+    chown root:wheel "$HAL_DIR"
+    chmod 755 "$HAL_DIR"
+fi
+
 if [ -d "$DRIVER_SOURCE" ]; then
     echo "Sokuji postinstall: Installing virtual audio driver..."
 
