@@ -13,16 +13,20 @@ PKG installers require a valid code signing certificate. You have two options:
 2. Create a "Developer ID Installer" certificate in Xcode or Developer portal
 3. Download and install the certificate in your Keychain
 
-#### Option B: Self-Signed Certificate (Development/Testing Only)
-```bash
-# Create a self-signed certificate (development only)
-security create-keypair -a rsa -s 2048 -d "Sokuji Development Certificate" \
-  -k ~/Library/Keychains/login.keychain "Developer ID Installer: Sokuji Dev"
+**Note**: Only Apple-issued "Developer ID Installer" certificates can be used for distribution. Do not attempt to create a Developer ID Installer identity locally.
 
-# Trust the certificate for code signing
-security set-key-partition-list -S apple-tool:,apple: \
-  -k ~/Library/Keychains/login.keychain "Developer ID Installer: Sokuji Dev"
+#### Option B: Unsigned for Local Testing (Development Only)
+For local testing without a certificate:
+
+```bash
+# Build unsigned PKG
+npm run make:pkg
+
+# Install locally (Gatekeeper will warn about unsigned package)
+sudo installer -pkg out/make/Sokuji-unsigned.pkg -target /
 ```
+
+**Warning**: Unsigned packages will trigger Gatekeeper warnings and should only be used for local development testing.
 
 ### 2. Enable PKG Maker
 
@@ -34,7 +38,7 @@ In `forge.config.js`, uncomment and configure the PKG maker:
   config: {
     name: 'Sokuji',
     identity: 'Developer ID Installer: Your Certificate Name',
-    scripts: 'build/scripts',
+    scripts: 'pkg-scripts',
     installLocation: '/Applications',
     welcome: 'resources/installer-welcome.html',
     conclusion: 'resources/installer-conclusion.html'
@@ -44,13 +48,13 @@ In `forge.config.js`, uncomment and configure the PKG maker:
 
 ## PKG Installer Components
 
-### Pre-installation Script (`build/scripts/preinstall`)
+### Pre-installation Script (`pkg-scripts/preinstall`)
 - Checks macOS version compatibility (10.15+)
 - Verifies disk space and permissions
 - Creates HAL plugin directory
 - Backs up existing driver installations
 
-### Post-installation Script (`build/scripts/postinstall`)
+### Post-installation Script (`pkg-scripts/postinstall`)
 - Copies SokujiVirtualAudio.driver to system location
 - Sets correct permissions (root:wheel)
 - Restarts CoreAudio daemon
