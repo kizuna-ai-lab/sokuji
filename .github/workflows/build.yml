@@ -17,14 +17,16 @@ jobs:
   build:
     strategy:
       matrix:
-        # For CI (non-tag), only build on ubuntu-latest
-        # For Release (tag), build on both ubuntu-latest and windows-latest
-        os: ${{ startsWith(github.ref, 'refs/tags/v') && fromJSON('["ubuntu-latest", "windows-latest"]') || fromJSON('["ubuntu-latest"]') }}
+        # For CI (non-tag), build on all platforms
+        # For Release (tag), build on ubuntu-latest, windows-latest, and macos-latest
+        os: ${{ startsWith(github.ref, 'refs/tags/v') && fromJSON('["ubuntu-latest", "windows-latest", "macos-latest"]') || fromJSON('["ubuntu-latest", "windows-latest", "macos-latest"]') }}
         include:
           - os: ubuntu-latest
             artifact_name: linux
           - os: windows-latest
             artifact_name: windows
+          - os: macos-latest
+            artifact_name: macos
 
     runs-on: ${{ matrix.os }}
 
@@ -126,6 +128,13 @@ jobs:
           name: windows-artifacts
           path: out/make/
 
+      - name: Upload macOS artifacts
+        if: startsWith(github.ref, 'refs/tags/v') && matrix.os == 'macos-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-artifacts
+          path: out/make/**/*.pkg
+
   release:
     # Only run for tag pushes
     if: startsWith(github.ref, 'refs/tags/v')
@@ -145,11 +154,23 @@ jobs:
           name: windows-artifacts
           path: windows-artifacts
 
+      - name: Download macOS artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: macos-artifacts
+          path: macos-artifacts
+
       - name: Debug Windows artifacts structure
         run: |
           echo "Windows artifacts structure:"
           ls -R windows-artifacts/ || true
           find windows-artifacts -name "*.exe" || true
+
+      - name: Debug macOS artifacts structure
+        run: |
+          echo "macOS artifacts structure:"
+          ls -R macos-artifacts/ || true
+          find macos-artifacts -name "*.pkg" || true
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
@@ -160,6 +181,7 @@ jobs:
             linux-artifacts/extension/sokuji-extension.zip
             windows-artifacts/squirrel.windows/x64/*.exe
             windows-artifacts/squirrel.windows/x64/*.nupkg
+            macos-artifacts/*.pkg
           body_path: linux-artifacts/CHANGELOG.md
           draft: false
           prerelease: false
