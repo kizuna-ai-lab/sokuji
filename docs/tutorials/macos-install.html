@@ -1,0 +1,1137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>macOS Installation Guide - Sokuji</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f8f9fa;
+            scroll-behavior: smooth;
+        }
+
+        /* TOC Styles */
+        .toc-container {
+            position: fixed;
+            left: 20px;
+            top: 150px;
+            width: 250px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+
+        .toc-container h4 {
+            margin: 0 0 15px 0;
+            color: #2c3e50;
+            font-size: 16px;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 8px;
+        }
+
+        .toc-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .toc-list li {
+            margin: 5px 0;
+        }
+
+        .toc-list li.toc-subsection {
+            margin-left: 20px;
+            font-size: 14px;
+        }
+
+        .toc-list a {
+            color: #555;
+            text-decoration: none;
+            display: block;
+            padding: 5px 10px;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+        }
+
+        .toc-list a:hover {
+            background-color: #f8f9fa;
+            color: #3498db;
+        }
+
+        .toc-list a.active {
+            background-color: #e7f3ff;
+            color: #3498db;
+            font-weight: 500;
+        }
+
+        /* Mobile TOC */
+        .mobile-toc {
+            display: none;
+            margin-bottom: 20px;
+        }
+
+        .mobile-toc select {
+            width: 100%;
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: #fff;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 1400px) {
+            .toc-container {
+                display: none;
+            }
+
+            .mobile-toc {
+                display: block;
+            }
+
+            body {
+                max-width: 900px;
+            }
+        }
+
+        @media (min-width: 1401px) {
+            body {
+                margin-left: 300px;
+                max-width: 900px;
+            }
+        }
+
+        .container {
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header img {
+            max-width: 150px;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            color: #2c3e50;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+            text-align: center;
+        }
+
+        h2 {
+            color: #2c3e50;
+            margin-top: 30px;
+        }
+
+        .back-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            padding: 8px 16px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            text-decoration: none;
+            color: #3498db;
+        }
+
+        .back-link:hover {
+            background-color: #e9ecef;
+        }
+
+        .language-selector {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+        }
+
+        .language-selector a {
+            margin: 0 10px;
+            color: #3498db;
+            text-decoration: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+        }
+
+        .language-selector a:hover {
+            background-color: #e9ecef;
+        }
+
+        .language-selector a.active {
+            background-color: #3498db;
+            color: white;
+        }
+
+        .step {
+            background-color: #f8f9fa;
+            border-left: 4px solid #3498db;
+            padding: 15px;
+            margin: 20px 0;
+        }
+
+        .step h3 {
+            margin-top: 0;
+            color: #2c3e50;
+        }
+
+        .warning {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+
+        .warning:before {
+            content: "⚠️ ";
+            color: #f39c12;
+        }
+
+        .info {
+            background-color: #e7f3ff;
+            border: 1px solid #b8daff;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+
+        .info:before {
+            content: "ℹ️ ";
+            color: #0c5460;
+        }
+
+        .success {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+
+        .success:before {
+            content: "✅ ";
+            color: #155724;
+        }
+
+        .screenshot {
+            width: 100%;
+            max-width: 800px;
+            margin: 20px auto;
+            display: block;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            cursor: pointer;
+        }
+
+        .screenshot:hover {
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+
+        code {
+            background-color: #f8f9fa;
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
+
+        pre {
+            background-color: #2c3e50;
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+            margin: 15px 0;
+        }
+
+        pre code {
+            background-color: transparent;
+            color: #ecf0f1;
+            padding: 0;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #3498db;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            margin: 10px 5px;
+        }
+
+        .btn:hover {
+            background-color: #2980b9;
+            text-decoration: none;
+        }
+
+        footer {
+            margin-top: 50px;
+            text-align: center;
+            color: #7f8c8d;
+            font-size: 0.9em;
+            border-top: 1px solid #eee;
+            padding-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Table of Contents for Desktop -->
+    <nav class="toc-container" id="toc-container">
+        <!-- TOC will be dynamically generated -->
+    </nav>
+
+    <div class="container">
+        <a href="../index.html" class="back-link" id="back-link">← Back to Documentation</a>
+
+        <!-- Mobile TOC Dropdown -->
+        <div class="mobile-toc" id="mobile-toc">
+            <!-- Mobile TOC will be dynamically generated -->
+        </div>
+
+        <div class="header">
+            <img src="https://github.com/kizuna-ai-lab/sokuji/raw/main/src/assets/logo.png" alt="Sokuji Logo">
+            <h1 id="page-title">macOS Installation Guide</h1>
+        </div>
+
+        <div class="language-selector">
+            <span id="lang-label">Language:</span>
+            <a href="?lang=en" id="lang-en">English</a>
+            <a href="?lang=zh" id="lang-zh">中文</a>
+            <a href="?lang=ja" id="lang-ja">日本語</a>
+            <a href="?lang=ko" id="lang-ko">한국어</a>
+        </div>
+
+        <div id="content">
+            <!-- Content will be dynamically inserted here -->
+        </div>
+
+        <footer id="footer">
+            &copy; 2025 Kizuna AI Lab. All rights reserved.
+        </footer>
+    </div>
+
+    <script>
+        // Translation data
+        const translations = {
+            en: {
+                pageTitle: "macOS Installation Guide",
+                langLabel: "Language:",
+                backLink: "← Back to Documentation",
+                tocTitle: "Table of Contents",
+                mobileJumpTo: "Jump to section...",
+                overview: "This guide will walk you through installing Sokuji on macOS systems. Sokuji is available as a .dmg disk image for easy installation on both Intel and Apple Silicon Macs.",
+                requirements: {
+                    title: "System Requirements",
+                    items: [
+                        "macOS 10.15 (Catalina) or later",
+                        "Intel or Apple Silicon (M1/M2/M3) processor",
+                        "4GB RAM minimum (8GB recommended)",
+                        "200MB available disk space",
+                        "Internet connection for AI translation services",
+                        "Microphone and speakers/headphones"
+                    ]
+                },
+                steps: [
+                    {
+                        title: "Step 1: Download Sokuji",
+                        content: `Visit the <a href="https://github.com/kizuna-ai-lab/sokuji/releases/latest" target="_blank" rel="noopener noreferrer">official GitHub releases page</a> to download the latest version of Sokuji for macOS.`,
+                        subsections: [
+                            {
+                                title: "Choose the Right Version",
+                                content: `<ul>
+                                    <li><strong>.dmg file (Intel)</strong> - For Intel-based Macs</li>
+                                    <li><strong>-arm64.dmg file</strong> - For Apple Silicon Macs (M1/M2/M3)</li>
+                                </ul>
+                                <p>Not sure which processor you have? Go to Apple Menu → About This Mac to check.</p>`
+                            }
+                        ]
+                    },
+                    {
+                        title: "Step 2: Install from DMG",
+                        content: `Once downloaded, you'll need to mount the DMG file and copy Sokuji to your Applications folder.`,
+                        subsections: [
+                            {
+                                title: "Installation Steps",
+                                content: `<ol>
+                                    <li>Locate the downloaded <code>Sokuji-x.x.x.dmg</code> file in your Downloads folder</li>
+                                    <li>Double-click the DMG file to mount it</li>
+                                    <li>A new window will open showing the Sokuji app icon</li>
+                                    <li>Drag the Sokuji icon to the Applications folder shortcut</li>
+                                    <li>Wait for the copy process to complete</li>
+                                    <li>Eject the DMG by clicking the eject button in Finder or dragging it to Trash</li>
+                                </ol>`
+                            }
+                        ],
+                        info: "The first time you open Sokuji, macOS will verify it's safe to run. This may take a moment."
+                    },
+                    {
+                        title: "Step 3: First Launch",
+                        content: `macOS may prevent Sokuji from opening since it's downloaded from outside the App Store. Here's how to open it:`,
+                        subsections: [
+                            {
+                                title: "Opening Sokuji for the First Time",
+                                content: `<ol>
+                                    <li>Navigate to your Applications folder</li>
+                                    <li>Find Sokuji in the list</li>
+                                    <li>Right-click (or Control-click) on Sokuji</li>
+                                    <li>Select "Open" from the context menu</li>
+                                    <li>When the security dialog appears, click "Open" to confirm</li>
+                                </ol>`
+                            },
+                            {
+                                title: "Alternative Method",
+                                content: `If the above doesn't work:
+                                <ol>
+                                    <li>Open System Preferences → Security & Privacy</li>
+                                    <li>Go to the General tab</li>
+                                    <li>You should see a message about Sokuji being blocked</li>
+                                    <li>Click "Open Anyway"</li>
+                                </ol>`
+                            }
+                        ],
+                        warning: "This security warning only appears on first launch. After that, you can open Sokuji normally from Launchpad or Applications."
+                    },
+                    {
+                        title: "Step 4: Configure Sokuji",
+                        content: `Now that Sokuji is running, let's configure it for first use:`,
+                        subsections: [
+                            {
+                                title: "Initial Setup",
+                                content: `<ol>
+                                    <li>Grant microphone permissions when macOS prompts you</li>
+                                    <li>Select your preferred interface language</li>
+                                    <li>Choose your AI provider (OpenAI, Google Gemini, etc.)</li>
+                                    <li>Enter your API key for the selected provider</li>
+                                    <li>Select source and target languages for translation</li>
+                                    <li>Test your microphone and speaker setup</li>
+                                </ol>`
+                            }
+                        ],
+                        success: "Congratulations! Sokuji is now ready to use. Click the microphone button to start real-time translation."
+                    }
+                ],
+                troubleshooting: {
+                    title: "Troubleshooting",
+                    issues: [
+                        {
+                            title: "\"Sokuji can't be opened because it is from an unidentified developer\"",
+                            content: `This is macOS's Gatekeeper protection. To open Sokuji:
+                            <ol>
+                                <li>Right-click the Sokuji app in Applications</li>
+                                <li>Select "Open" from the menu</li>
+                                <li>Click "Open" in the dialog that appears</li>
+                            </ol>
+                            You only need to do this once.`
+                        },
+                        {
+                            title: "Microphone not working",
+                            content: `If Sokuji can't access your microphone:
+                            <ol>
+                                <li>Open System Preferences → Security & Privacy → Privacy</li>
+                                <li>Select Microphone from the left sidebar</li>
+                                <li>Make sure Sokuji is checked in the list</li>
+                                <li>If it's not listed, restart Sokuji and grant permission when prompted</li>
+                            </ol>`
+                        },
+                        {
+                            title: "No audio output",
+                            content: `If you can't hear the translated audio:
+                            <ol>
+                                <li>Open System Preferences → Sound → Output</li>
+                                <li>Select your preferred output device</li>
+                                <li>Check the output volume is not muted</li>
+                                <li>In Sokuji, verify the correct output device is selected</li>
+                            </ol>`
+                        },
+                        {
+                            title: "App crashes on Apple Silicon Macs",
+                            content: `If Sokuji crashes on M1/M2/M3 Macs:
+                            <ul>
+                                <li>Make sure you downloaded the arm64 version</li>
+                                <li>Try running in Rosetta mode: Right-click Sokuji → Get Info → Check "Open using Rosetta"</li>
+                                <li>Update to the latest macOS version</li>
+                                <li>Check Console.app for crash logs and report them on GitHub</li>
+                            </ul>`
+                        },
+                        {
+                            title: "\"Sokuji is damaged and can't be opened\"",
+                            content: `This can happen if the download was corrupted or quarantine flags are set incorrectly:
+                            <ol>
+                                <li>Open Terminal (found in Applications → Utilities)</li>
+                                <li>Run: <code>xattr -cr /Applications/Sokuji.app</code></li>
+                                <li>Try opening Sokuji again</li>
+                                <li>If it still doesn't work, re-download and reinstall</li>
+                            </ol>`
+                        }
+                    ]
+                },
+                footer: "&copy; 2025 Kizuna AI Lab. All rights reserved."
+            },
+            zh: {
+                pageTitle: "macOS 安装指南",
+                langLabel: "语言：",
+                backLink: "← 返回文档",
+                tocTitle: "目录",
+                mobileJumpTo: "跳转到章节...",
+                overview: "本指南将指导您在 macOS 系统上安装 Sokuji。Sokuji 提供 .dmg 磁盘映像，可在 Intel 和 Apple Silicon Mac 上轻松安装。",
+                requirements: {
+                    title: "系统要求",
+                    items: [
+                        "macOS 10.15 (Catalina) 或更高版本",
+                        "Intel 或 Apple Silicon (M1/M2/M3) 处理器",
+                        "最低4GB内存（推荐8GB）",
+                        "200MB可用磁盘空间",
+                        "用于AI翻译服务的互联网连接",
+                        "麦克风和扬声器/耳机"
+                    ]
+                },
+                steps: [
+                    {
+                        title: "步骤 1：下载 Sokuji",
+                        content: `访问 <a href="https://github.com/kizuna-ai-lab/sokuji/releases/latest" target="_blank" rel="noopener noreferrer">官方 GitHub 发布页面</a> 下载最新的 macOS 版本 Sokuji。`,
+                        subsections: [
+                            {
+                                title: "选择正确的版本",
+                                content: `<ul>
+                                    <li><strong>.dmg 文件 (Intel)</strong> - 用于基于 Intel 的 Mac</li>
+                                    <li><strong>-arm64.dmg 文件</strong> - 用于 Apple Silicon Mac (M1/M2/M3)</li>
+                                </ul>
+                                <p>不确定您的处理器类型？前往 Apple 菜单 → 关于本机 查看。</p>`
+                            }
+                        ]
+                    },
+                    {
+                        title: "步骤 2：从 DMG 安装",
+                        content: `下载完成后，您需要挂载 DMG 文件并将 Sokuji 复制到应用程序文件夹。`,
+                        subsections: [
+                            {
+                                title: "安装步骤",
+                                content: `<ol>
+                                    <li>在下载文件夹中找到下载的 <code>Sokuji-x.x.x.dmg</code> 文件</li>
+                                    <li>双击 DMG 文件进行挂载</li>
+                                    <li>将打开一个新窗口，显示 Sokuji 应用图标</li>
+                                    <li>将 Sokuji 图标拖到应用程序文件夹快捷方式</li>
+                                    <li>等待复制过程完成</li>
+                                    <li>在 Finder 中点击弹出按钮或将其拖到废纸篓来弹出 DMG</li>
+                                </ol>`
+                            }
+                        ],
+                        info: "首次打开 Sokuji 时，macOS 会验证其是否安全运行。这可能需要一些时间。"
+                    },
+                    {
+                        title: "步骤 3：首次启动",
+                        content: `由于 Sokuji 是从 App Store 外下载的，macOS 可能会阻止其打开。以下是打开方法：`,
+                        subsections: [
+                            {
+                                title: "首次打开 Sokuji",
+                                content: `<ol>
+                                    <li>导航到您的应用程序文件夹</li>
+                                    <li>在列表中找到 Sokuji</li>
+                                    <li>右键单击（或按住 Control 单击）Sokuji</li>
+                                    <li>从上下文菜单中选择"打开"</li>
+                                    <li>当安全对话框出现时，点击"打开"确认</li>
+                                </ol>`
+                            },
+                            {
+                                title: "替代方法",
+                                content: `如果上述方法不起作用：
+                                <ol>
+                                    <li>打开系统偏好设置 → 安全性与隐私</li>
+                                    <li>转到通用选项卡</li>
+                                    <li>您应该看到关于 Sokuji 被阻止的消息</li>
+                                    <li>点击"仍要打开"</li>
+                                </ol>`
+                            }
+                        ],
+                        warning: "此安全警告仅在首次启动时出现。之后，您可以从启动台或应用程序正常打开 Sokuji。"
+                    },
+                    {
+                        title: "步骤 4：配置 Sokuji",
+                        content: `现在 Sokuji 正在运行，让我们进行首次使用配置：`,
+                        subsections: [
+                            {
+                                title: "初始设置",
+                                content: `<ol>
+                                    <li>当 macOS 提示时授予麦克风权限</li>
+                                    <li>选择您喜欢的界面语言</li>
+                                    <li>选择您的 AI 提供商（OpenAI、Google Gemini 等）</li>
+                                    <li>输入所选提供商的 API 密钥</li>
+                                    <li>选择翻译的源语言和目标语言</li>
+                                    <li>测试您的麦克风和扬声器设置</li>
+                                </ol>`
+                            }
+                        ],
+                        success: "恭喜！Sokuji 现在已准备就绪。点击麦克风按钮开始实时翻译。"
+                    }
+                ],
+                troubleshooting: {
+                    title: "故障排除",
+                    issues: [
+                        {
+                            title: "无法打开 Sokuji，因为它来自身份不明的开发者",
+                            content: `这是 macOS 的 Gatekeeper 保护。要打开 Sokuji：
+                            <ol>
+                                <li>在应用程序中右键单击 Sokuji 应用</li>
+                                <li>从菜单中选择"打开"</li>
+                                <li>在出现的对话框中点击"打开"</li>
+                            </ol>
+                            您只需要执行一次此操作。`
+                        },
+                        {
+                            title: "麦克风不工作",
+                            content: `如果 Sokuji 无法访问您的麦克风：
+                            <ol>
+                                <li>打开系统偏好设置 → 安全性与隐私 → 隐私</li>
+                                <li>从左侧边栏选择麦克风</li>
+                                <li>确保列表中的 Sokuji 已勾选</li>
+                                <li>如果未列出，请重启 Sokuji 并在提示时授予权限</li>
+                            </ol>`
+                        },
+                        {
+                            title: "无音频输出",
+                            content: `如果您听不到翻译的音频：
+                            <ol>
+                                <li>打开系统偏好设置 → 声音 → 输出</li>
+                                <li>选择您的首选输出设备</li>
+                                <li>检查输出音量是否未静音</li>
+                                <li>在 Sokuji 中，验证是否选择了正确的输出设备</li>
+                            </ol>`
+                        },
+                        {
+                            title: "在 Apple Silicon Mac 上崩溃",
+                            content: `如果 Sokuji 在 M1/M2/M3 Mac 上崩溃：
+                            <ul>
+                                <li>确保您下载了 arm64 版本</li>
+                                <li>尝试在 Rosetta 模式下运行：右键单击 Sokuji → 显示简介 → 勾选"使用 Rosetta 打开"</li>
+                                <li>更新到最新的 macOS 版本</li>
+                                <li>检查控制台应用中的崩溃日志并在 GitHub 上报告</li>
+                            </ul>`
+                        },
+                        {
+                            title: "Sokuji 已损坏，无法打开",
+                            content: `如果下载损坏或隔离标志设置不正确，可能会发生这种情况：
+                            <ol>
+                                <li>打开终端（位于应用程序 → 实用工具）</li>
+                                <li>运行：<code>xattr -cr /Applications/Sokuji.app</code></li>
+                                <li>再次尝试打开 Sokuji</li>
+                                <li>如果仍然无法工作，请重新下载并重新安装</li>
+                            </ol>`
+                        }
+                    ]
+                },
+                footer: "&copy; 2025 Kizuna AI Lab. 保留所有权利。"
+            },
+            ja: {
+                pageTitle: "macOS インストールガイド",
+                langLabel: "言語：",
+                backLink: "← ドキュメントに戻る",
+                tocTitle: "目次",
+                mobileJumpTo: "セクションにジャンプ...",
+                overview: "このガイドでは、macOS システムに Sokuji をインストールする方法を説明します。Sokuji は .dmg ディスクイメージとして提供され、Intel および Apple Silicon Mac で簡単にインストールできます。",
+                requirements: {
+                    title: "システム要件",
+                    items: [
+                        "macOS 10.15 (Catalina) 以降",
+                        "Intel または Apple Silicon (M1/M2/M3) プロセッサ",
+                        "最小4GBのRAM（8GB推奨）",
+                        "200MBの空きディスク容量",
+                        "AI翻訳サービス用のインターネット接続",
+                        "マイクとスピーカー/ヘッドフォン"
+                    ]
+                },
+                steps: [
+                    {
+                        title: "ステップ 1：Sokuji をダウンロード",
+                        content: `<a href="https://github.com/kizuna-ai-lab/sokuji/releases/latest" target="_blank" rel="noopener noreferrer">公式 GitHub リリースページ</a>にアクセスして、macOS 用の Sokuji の最新バージョンをダウンロードします。`,
+                        subsections: [
+                            {
+                                title: "適切なバージョンを選択",
+                                content: `<ul>
+                                    <li><strong>.dmg ファイル (Intel)</strong> - Intel ベースの Mac 用</li>
+                                    <li><strong>-arm64.dmg ファイル</strong> - Apple Silicon Mac (M1/M2/M3) 用</li>
+                                </ul>
+                                <p>お使いのプロセッサがわからない場合は、Apple メニュー → このMacについて で確認してください。</p>`
+                            }
+                        ]
+                    },
+                    {
+                        title: "ステップ 2：DMG からインストール",
+                        content: `ダウンロードが完了したら、DMG ファイルをマウントして Sokuji をアプリケーションフォルダにコピーする必要があります。`,
+                        subsections: [
+                            {
+                                title: "インストール手順",
+                                content: `<ol>
+                                    <li>ダウンロードフォルダーでダウンロードした <code>Sokuji-x.x.x.dmg</code> ファイルを見つけます</li>
+                                    <li>DMG ファイルをダブルクリックしてマウントします</li>
+                                    <li>Sokuji アプリアイコンが表示された新しいウィンドウが開きます</li>
+                                    <li>Sokuji アイコンをアプリケーションフォルダーのショートカットにドラッグします</li>
+                                    <li>コピープロセスが完了するまで待ちます</li>
+                                    <li>Finder で取り出しボタンをクリックするか、ゴミ箱にドラッグして DMG を取り出します</li>
+                                </ol>`
+                            }
+                        ],
+                        info: "Sokuji を初めて開くときに、macOS は安全に実行できることを確認します。これには少し時間がかかることがあります。"
+                    },
+                    {
+                        title: "ステップ 3：初回起動",
+                        content: `Sokuji は App Store 以外からダウンロードされたため、macOS が開くことを妨げる可能性があります。開く方法は次のとおりです：`,
+                        subsections: [
+                            {
+                                title: "Sokuji を初めて開く",
+                                content: `<ol>
+                                    <li>アプリケーションフォルダーに移動します</li>
+                                    <li>リストで Sokuji を見つけます</li>
+                                    <li>Sokuji を右クリック（または Control クリック）します</li>
+                                    <li>コンテキストメニューから「開く」を選択します</li>
+                                    <li>セキュリティダイアログが表示されたら、「開く」をクリックして確認します</li>
+                                </ol>`
+                            },
+                            {
+                                title: "代替方法",
+                                content: `上記がうまくいかない場合：
+                                <ol>
+                                    <li>システム環境設定 → セキュリティとプライバシー を開きます</li>
+                                    <li>一般タブに移動します</li>
+                                    <li>Sokuji がブロックされているというメッセージが表示されるはずです</li>
+                                    <li>「このまま開く」をクリックします</li>
+                                </ol>`
+                            }
+                        ],
+                        warning: "このセキュリティ警告は初回起動時のみ表示されます。その後は、Launchpad またはアプリケーションから通常どおり Sokuji を開くことができます。"
+                    },
+                    {
+                        title: "ステップ 4：Sokuji を設定",
+                        content: `Sokuji が実行されているので、初回使用の設定を行いましょう：`,
+                        subsections: [
+                            {
+                                title: "初期設定",
+                                content: `<ol>
+                                    <li>macOS がプロンプトを表示したらマイクの権限を付与します</li>
+                                    <li>希望のインターフェース言語を選択します</li>
+                                    <li>AI プロバイダー（OpenAI、Google Gemini など）を選択します</li>
+                                    <li>選択したプロバイダーの API キーを入力します</li>
+                                    <li>翻訳のソース言語とターゲット言語を選択します</li>
+                                    <li>マイクとスピーカーの設定をテストします</li>
+                                </ol>`
+                            }
+                        ],
+                        success: "おめでとうございます！Sokuji の準備が整いました。マイクボタンをクリックしてリアルタイム翻訳を開始してください。"
+                    }
+                ],
+                troubleshooting: {
+                    title: "トラブルシューティング",
+                    issues: [
+                        {
+                            title: "「Sokujiは、開発元が未確認のため開けません」",
+                            content: `これは macOS の Gatekeeper 保護です。Sokuji を開くには：
+                            <ol>
+                                <li>アプリケーションで Sokuji アプリを右クリックします</li>
+                                <li>メニューから「開く」を選択します</li>
+                                <li>表示されるダイアログで「開く」をクリックします</li>
+                            </ol>
+                            この操作は一度だけ必要です。`
+                        },
+                        {
+                            title: "マイクが動作しない",
+                            content: `Sokuji がマイクにアクセスできない場合：
+                            <ol>
+                                <li>システム環境設定 → セキュリティとプライバシー → プライバシー を開きます</li>
+                                <li>左側のサイドバーからマイクを選択します</li>
+                                <li>リストで Sokuji がチェックされていることを確認します</li>
+                                <li>リストにない場合は、Sokuji を再起動し、プロンプトが表示されたら権限を付与します</li>
+                            </ol>`
+                        },
+                        {
+                            title: "オーディオ出力がない",
+                            content: `翻訳された音声が聞こえない場合：
+                            <ol>
+                                <li>システム環境設定 → サウンド → 出力 を開きます</li>
+                                <li>希望の出力デバイスを選択します</li>
+                                <li>出力音量がミュートされていないことを確認します</li>
+                                <li>Sokuji で、正しい出力デバイスが選択されていることを確認します</li>
+                            </ol>`
+                        },
+                        {
+                            title: "Apple Silicon Mac でアプリがクラッシュする",
+                            content: `M1/M2/M3 Mac で Sokuji がクラッシュする場合：
+                            <ul>
+                                <li>arm64 バージョンをダウンロードしたことを確認します</li>
+                                <li>Rosetta モードで実行してみてください：Sokuji を右クリック → 情報を見る → 「Rosetta を使用して開く」をチェック</li>
+                                <li>最新の macOS バージョンに更新します</li>
+                                <li>コンソール.app でクラッシュログを確認し、GitHub で報告してください</li>
+                            </ul>`
+                        },
+                        {
+                            title: "「Sokujiは壊れているため開けません」",
+                            content: `ダウンロードが破損したか、隔離フラグが正しく設定されていない場合に発生する可能性があります：
+                            <ol>
+                                <li>ターミナルを開きます（アプリケーション → ユーティリティ にあります）</li>
+                                <li>実行：<code>xattr -cr /Applications/Sokuji.app</code></li>
+                                <li>もう一度 Sokuji を開いてみてください</li>
+                                <li>それでも動作しない場合は、再ダウンロードして再インストールしてください</li>
+                            </ol>`
+                        }
+                    ]
+                },
+                footer: "&copy; 2025 Kizuna AI Lab. All rights reserved."
+            },
+            ko: {
+                pageTitle: "macOS 설치 가이드",
+                langLabel: "언어:",
+                backLink: "← 문서로 돌아가기",
+                tocTitle: "목차",
+                mobileJumpTo: "섹션으로 이동...",
+                overview: "이 가이드는 macOS 시스템에 Sokuji를 설치하는 방법을 안내합니다. Sokuji는 Intel 및 Apple Silicon Mac에서 쉽게 설치할 수 있는 .dmg 디스크 이미지로 제공됩니다.",
+                requirements: {
+                    title: "시스템 요구 사항",
+                    items: [
+                        "macOS 10.15 (Catalina) 이상",
+                        "Intel 또는 Apple Silicon (M1/M2/M3) 프로세서",
+                        "최소 4GB RAM (8GB 권장)",
+                        "200MB 사용 가능한 디스크 공간",
+                        "AI 번역 서비스를 위한 인터넷 연결",
+                        "마이크와 스피커/헤드폰"
+                    ]
+                },
+                steps: [
+                    {
+                        title: "단계 1: Sokuji 다운로드",
+                        content: `<a href="https://github.com/kizuna-ai-lab/sokuji/releases/latest" target="_blank" rel="noopener noreferrer">공식 GitHub 릴리스 페이지</a>를 방문하여 macOS용 Sokuji 최신 버전을 다운로드하세요.`,
+                        subsections: [
+                            {
+                                title: "올바른 버전 선택",
+                                content: `<ul>
+                                    <li><strong>.dmg 파일 (Intel)</strong> - Intel 기반 Mac용</li>
+                                    <li><strong>-arm64.dmg 파일</strong> - Apple Silicon Mac (M1/M2/M3)용</li>
+                                </ul>
+                                <p>어떤 프로세서를 사용하는지 확실하지 않으세요? Apple 메뉴 → 이 Mac에 관하여로 이동하여 확인하세요.</p>`
+                            }
+                        ]
+                    },
+                    {
+                        title: "단계 2: DMG에서 설치",
+                        content: `다운로드가 완료되면 DMG 파일을 마운트하고 Sokuji를 응용 프로그램 폴더에 복사해야 합니다.`,
+                        subsections: [
+                            {
+                                title: "설치 단계",
+                                content: `<ol>
+                                    <li>다운로드 폴더에서 다운로드한 <code>Sokuji-x.x.x.dmg</code> 파일을 찾습니다</li>
+                                    <li>DMG 파일을 더블 클릭하여 마운트합니다</li>
+                                    <li>Sokuji 앱 아이콘이 표시된 새 창이 열립니다</li>
+                                    <li>Sokuji 아이콘을 응용 프로그램 폴더 바로가기로 드래그합니다</li>
+                                    <li>복사 프로세스가 완료될 때까지 기다립니다</li>
+                                    <li>Finder에서 꺼내기 버튼을 클릭하거나 휴지통으로 드래그하여 DMG를 꺼냅니다</li>
+                                </ol>`
+                            }
+                        ],
+                        info: "Sokuji를 처음 열면 macOS가 안전하게 실행할 수 있는지 확인합니다. 이 작업은 시간이 걸릴 수 있습니다."
+                    },
+                    {
+                        title: "단계 3: 첫 실행",
+                        content: `Sokuji는 App Store 외부에서 다운로드되었으므로 macOS가 열기를 차단할 수 있습니다. 여는 방법은 다음과 같습니다:`,
+                        subsections: [
+                            {
+                                title: "처음으로 Sokuji 열기",
+                                content: `<ol>
+                                    <li>응용 프로그램 폴더로 이동합니다</li>
+                                    <li>목록에서 Sokuji를 찾습니다</li>
+                                    <li>Sokuji를 마우스 오른쪽 버튼으로 클릭(또는 Control 클릭)합니다</li>
+                                    <li>컨텍스트 메뉴에서 "열기"를 선택합니다</li>
+                                    <li>보안 대화 상자가 나타나면 "열기"를 클릭하여 확인합니다</li>
+                                </ol>`
+                            },
+                            {
+                                title: "대체 방법",
+                                content: `위 방법이 작동하지 않는 경우:
+                                <ol>
+                                    <li>시스템 환경설정 → 보안 및 개인 정보 보호를 엽니다</li>
+                                    <li>일반 탭으로 이동합니다</li>
+                                    <li>Sokuji가 차단되었다는 메시지가 표시됩니다</li>
+                                    <li>"확인 없이 열기"를 클릭합니다</li>
+                                </ol>`
+                            }
+                        ],
+                        warning: "이 보안 경고는 첫 실행 시에만 나타납니다. 그 후에는 Launchpad 또는 응용 프로그램에서 정상적으로 Sokuji를 열 수 있습니다."
+                    },
+                    {
+                        title: "단계 4: Sokuji 구성",
+                        content: `이제 Sokuji가 실행되고 있으므로 첫 사용을 위해 구성해 보겠습니다:`,
+                        subsections: [
+                            {
+                                title: "초기 설정",
+                                content: `<ol>
+                                    <li>macOS가 메시지를 표시할 때 마이크 권한을 부여합니다</li>
+                                    <li>선호하는 인터페이스 언어를 선택합니다</li>
+                                    <li>AI 공급자(OpenAI, Google Gemini 등)를 선택합니다</li>
+                                    <li>선택한 공급자의 API 키를 입력합니다</li>
+                                    <li>번역을 위한 소스 언어와 대상 언어를 선택합니다</li>
+                                    <li>마이크와 스피커 설정을 테스트합니다</li>
+                                </ol>`
+                            }
+                        ],
+                        success: "축하합니다! 이제 Sokuji를 사용할 준비가 되었습니다. 마이크 버튼을 클릭하여 실시간 번역을 시작하세요."
+                    }
+                ],
+                troubleshooting: {
+                    title: "문제 해결",
+                    issues: [
+                        {
+                            title: "\"Sokuji는 확인되지 않은 개발자가 배포했기 때문에 열 수 없습니다\"",
+                            content: `이것은 macOS의 Gatekeeper 보호입니다. Sokuji를 열려면:
+                            <ol>
+                                <li>응용 프로그램에서 Sokuji 앱을 마우스 오른쪽 버튼으로 클릭합니다</li>
+                                <li>메뉴에서 "열기"를 선택합니다</li>
+                                <li>나타나는 대화 상자에서 "열기"를 클릭합니다</li>
+                            </ol>
+                            이 작업은 한 번만 수행하면 됩니다.`
+                        },
+                        {
+                            title: "마이크가 작동하지 않음",
+                            content: `Sokuji가 마이크에 액세스할 수 없는 경우:
+                            <ol>
+                                <li>시스템 환경설정 → 보안 및 개인 정보 보호 → 개인 정보 보호를 엽니다</li>
+                                <li>왼쪽 사이드바에서 마이크를 선택합니다</li>
+                                <li>목록에서 Sokuji가 체크되어 있는지 확인합니다</li>
+                                <li>목록에 없으면 Sokuji를 다시 시작하고 메시지가 표시되면 권한을 부여합니다</li>
+                            </ol>`
+                        },
+                        {
+                            title: "오디오 출력 없음",
+                            content: `번역된 오디오가 들리지 않는 경우:
+                            <ol>
+                                <li>시스템 환경설정 → 사운드 → 출력을 엽니다</li>
+                                <li>선호하는 출력 장치를 선택합니다</li>
+                                <li>출력 볼륨이 음소거되지 않았는지 확인합니다</li>
+                                <li>Sokuji에서 올바른 출력 장치가 선택되었는지 확인합니다</li>
+                            </ol>`
+                        },
+                        {
+                            title: "Apple Silicon Mac에서 앱이 충돌함",
+                            content: `M1/M2/M3 Mac에서 Sokuji가 충돌하는 경우:
+                            <ul>
+                                <li>arm64 버전을 다운로드했는지 확인합니다</li>
+                                <li>Rosetta 모드에서 실행해 보세요: Sokuji 오른쪽 클릭 → 정보 가져오기 → "Rosetta를 사용하여 열기" 체크</li>
+                                <li>최신 macOS 버전으로 업데이트합니다</li>
+                                <li>콘솔.app에서 충돌 로그를 확인하고 GitHub에 보고합니다</li>
+                            </ul>`
+                        },
+                        {
+                            title: "\"Sokuji가 손상되어 열 수 없습니다\"",
+                            content: `다운로드가 손상되었거나 격리 플래그가 잘못 설정된 경우 발생할 수 있습니다:
+                            <ol>
+                                <li>터미널을 엽니다(응용 프로그램 → 유틸리티에 있음)</li>
+                                <li>실행: <code>xattr -cr /Applications/Sokuji.app</code></li>
+                                <li>다시 Sokuji를 열어보세요</li>
+                                <li>여전히 작동하지 않으면 다시 다운로드하고 재설치하세요</li>
+                            </ol>`
+                        }
+                    ]
+                },
+                footer: "&copy; 2025 Kizuna AI Lab. 모든 권리 보유."
+            }
+        };
+
+        // Get language from URL or default to English
+        function getCurrentLanguage() {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get('lang') || 'en';
+        }
+
+        // Render content based on language
+        function renderContent(lang) {
+            const t = translations[lang] || translations.en;
+
+            // Update page title
+            document.title = t.pageTitle + " - Sokuji";
+            document.getElementById('page-title').textContent = t.pageTitle;
+
+            // Update language selector
+            document.getElementById('lang-label').textContent = t.langLabel;
+            document.getElementById('back-link').textContent = t.backLink;
+
+            // Highlight active language
+            document.querySelectorAll('.language-selector a').forEach(link => {
+                link.classList.remove('active');
+            });
+            document.getElementById('lang-' + lang).classList.add('active');
+
+            // Build content HTML
+            let contentHtml = `
+                <p>${t.overview}</p>
+
+                <div class="step" id="requirements">
+                    <h3>${t.requirements.title}</h3>
+                    <ul>
+                        ${t.requirements.items.map(item => `<li>${item}</li>`).join('')}
+                    </ul>
+                </div>
+            `;
+
+            // Add steps
+            t.steps.forEach((step, index) => {
+                contentHtml += `<h2 id="step${index + 1}">${step.title}</h2>`;
+                contentHtml += `<div class="step">`;
+                contentHtml += `<p>${step.content}</p>`;
+
+                if (step.subsections) {
+                    step.subsections.forEach((sub, subIndex) => {
+                        contentHtml += `
+                            <div id="step${index + 1}-${subIndex + 1}">
+                                <h3>${sub.title}</h3>
+                                ${sub.content}
+                            </div>
+                        `;
+                    });
+                }
+
+                if (step.warning) {
+                    contentHtml += `<div class="warning">${step.warning}</div>`;
+                }
+
+                if (step.info) {
+                    contentHtml += `<div class="info">${step.info}</div>`;
+                }
+
+                if (step.success) {
+                    contentHtml += `<div class="success">${step.success}</div>`;
+                }
+
+                contentHtml += '</div>';
+            });
+
+            // Add troubleshooting section
+            contentHtml += `
+                <h2 id="troubleshooting">${t.troubleshooting.title}</h2>
+            `;
+
+            t.troubleshooting.issues.forEach((issue, index) => {
+                contentHtml += `
+                    <div class="step" id="issue${index + 1}">
+                        <h3>${issue.title}</h3>
+                        ${issue.content}
+                    </div>
+                `;
+            });
+
+            document.getElementById('content').innerHTML = contentHtml;
+            document.getElementById('footer').textContent = t.footer;
+
+            // Generate TOC
+            generateTOC(lang);
+        }
+
+        // Generate Table of Contents
+        function generateTOC(lang) {
+            const t = translations[lang] || translations.en;
+
+            // Desktop TOC
+            let tocHtml = `<h4>${t.tocTitle}</h4><ul class="toc-list">`;
+            tocHtml += `<li><a href="#requirements">${t.requirements.title}</a></li>`;
+
+            t.steps.forEach((step, index) => {
+                tocHtml += `<li><a href="#step${index + 1}">${step.title}</a></li>`;
+                if (step.subsections) {
+                    step.subsections.forEach((sub, subIndex) => {
+                        tocHtml += `<li class="toc-subsection"><a href="#step${index + 1}-${subIndex + 1}">${sub.title}</a></li>`;
+                    });
+                }
+            });
+
+            tocHtml += `<li><a href="#troubleshooting">${t.troubleshooting.title}</a></li>`;
+            t.troubleshooting.issues.forEach((issue, index) => {
+                tocHtml += `<li class="toc-subsection"><a href="#issue${index + 1}">${issue.title}</a></li>`;
+            });
+
+            tocHtml += '</ul>';
+
+            document.getElementById('toc-container').innerHTML = tocHtml;
+
+            // Mobile TOC
+            let mobileTocHtml = `<select onchange="window.location.hash = this.value">`;
+            mobileTocHtml += `<option value="">${t.mobileJumpTo}</option>`;
+            mobileTocHtml += `<option value="#requirements">${t.requirements.title}</option>`;
+
+            t.steps.forEach((step, index) => {
+                mobileTocHtml += `<option value="#step${index + 1}">${step.title}</option>`;
+                if (step.subsections) {
+                    step.subsections.forEach((sub, subIndex) => {
+                        mobileTocHtml += `<option value="#step${index + 1}-${subIndex + 1}">— ${sub.title}</option>`;
+                    });
+                }
+            });
+
+            mobileTocHtml += `<option value="#troubleshooting">${t.troubleshooting.title}</option>`;
+            t.troubleshooting.issues.forEach((issue, index) => {
+                mobileTocHtml += `<option value="#issue${index + 1}">— ${issue.title}</option>`;
+            });
+
+            mobileTocHtml += '</select>';
+
+            document.getElementById('mobile-toc').innerHTML = mobileTocHtml;
+
+            // Add smooth scrolling to TOC links
+            document.querySelectorAll('.toc-list a').forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const targetId = this.getAttribute('href').substring(1);
+                    const targetElement = document.getElementById(targetId);
+                    if (targetElement) {
+                        const offset = 80;
+                        const targetPosition = targetElement.offsetTop - offset;
+                        window.scrollTo({
+                            top: targetPosition,
+                            behavior: 'smooth'
+                        });
+                    }
+                });
+            });
+        }
+
+        // TOC Active Section Highlighting
+        function updateActiveSection() {
+            const sections = document.querySelectorAll('[id]');
+            const tocLinks = document.querySelectorAll('.toc-list a');
+
+            let currentSection = '';
+
+            sections.forEach(section => {
+                const rect = section.getBoundingClientRect();
+                if (rect.top <= 100 && rect.bottom >= 100) {
+                    currentSection = section.id;
+                }
+            });
+
+            tocLinks.forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('href') === '#' + currentSection) {
+                    link.classList.add('active');
+                }
+            });
+        }
+
+        // Event listeners
+        window.addEventListener('scroll', updateActiveSection);
+        window.addEventListener('load', updateActiveSection);
+
+        // Initialize page
+        renderContent(getCurrentLanguage());
+    </script>
+</body>
+</html>
