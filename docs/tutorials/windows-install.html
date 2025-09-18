@@ -909,14 +909,14 @@
                 backLink: "← 문서로 돌아가기",
                 tocTitle: "목차",
                 mobileJumpTo: "섹션으로 이동...",
-                overview: "이 가이드는 Windows 시스템에 Sokuji를 설치하는 방법을 안내합니다. Sokuji는 Windows 10 및 Windows 11에서 쉽게 설치할 수 있는 .exe 설치 프로그램으로 제공됩니다.",
+                overview: "이 가이드는 Windows 시스템에서 Sokuji를 설치하는 과정을 안내합니다. Sokuji는 Windows 10 및 Windows 11에서 손쉽게 설치할 수 있는 .exe 설치 프로그램으로 제공됩니다.",
                 requirements: {
                     title: "시스템 요구 사항",
                     items: [
                         "Windows 10 (버전 1903 이상) 또는 Windows 11",
                         "64비트 프로세서",
                         "최소 4GB RAM (8GB 권장)",
-                        "200MB 사용 가능한 디스크 공간",
+                        "200MB 이상의 사용 가능한 디스크 공간",
                         "AI 번역 서비스를 위한 인터넷 연결",
                         "마이크와 스피커/헤드폰"
                     ]
@@ -924,13 +924,13 @@
                 steps: [
                     {
                         title: "단계 1: Sokuji 다운로드",
-                        content: `<a href="https://github.com/kizuna-ai-lab/sokuji/releases/latest" target="_blank" rel="noopener noreferrer">공식 GitHub 릴리스 페이지</a>를 방문하여 Windows용 Sokuji 최신 버전을 다운로드하세요.`,
+                        content: `최신 Windows용 Sokuji를 다운로드하려면 <a href="https://github.com/kizuna-ai-lab/sokuji/releases/latest" target="_blank" rel="noopener noreferrer">공식 GitHub 릴리스 페이지</a>를 방문하세요.`,
                         subsections: [
                             {
                                 title: "올바른 설치 프로그램 선택",
                                 content: `<ul>
                                     <li><strong>.exe 설치 프로그램</strong> - Windows용 표준 설치 프로그램</li>
-                                    <li><strong>포터블 버전</strong> - 설치 불필요 (사용 가능한 경우)</li>
+                                    <li><strong>포터블 버전</strong> - 설치가 필요 없음 (제공되는 경우)</li>
                                 </ul>`
                             }
                         ]
@@ -940,43 +940,82 @@
                         content: `다운로드가 완료되면 설치 파일을 찾아 실행하여 설치를 시작합니다.`,
                         subsections: [
                             {
-                                title: "설치 단계",
-                                content: `<ol>
-                                    <li>다운로드 폴더에서 다운로드한 <code>Sokuji-Setup-x.x.x.exe</code> 파일을 찾습니다</li>
-                                    <li>설치 프로그램을 더블 클릭하여 설치를 시작합니다</li>
-                                    <li>Windows Defender SmartScreen이 나타나면 "추가 정보"를 클릭한 다음 "실행"을 클릭합니다</li>
-                                    <li>설치 마법사를 따릅니다:
-                                        <ul>
-                                            <li>라이선스 계약에 동의합니다</li>
-                                            <li>설치 디렉토리를 선택합니다 (기본값 권장)</li>
-                                            <li>바탕 화면 바로 가기 생성 여부를 선택합니다</li>
-                                            <li>"설치"를 클릭하여 설치를 시작합니다</li>
-                                        </ul>
-                                    </li>
-                                    <li>설치가 완료될 때까지 기다립니다</li>
-                                    <li>"완료"를 클릭하여 설정을 완료합니다</li>
+                                title: "Windows Defender SmartScreen",
+                                content: `<p>설치 프로그램을 실행할 때 Windows Defender SmartScreen이 앱 시작을 차단할 수 있습니다:</p>
+                                <img src="windows-install/1.png" alt="Windows Defender SmartScreen 경고" class="screenshot">
+                                <ol>
+                                    <li>SmartScreen 경고에서 <strong>"추가 정보"</strong>를 클릭합니다</li>
+                                    <li>창이 확장되어 더 많은 세부 정보가 표시됩니다:</li>
+                                </ol>
+                                <img src="windows-install/2.png" alt="Windows Defender SmartScreen 확장 보기" class="screenshot">
+                                <ol start="3">
+                                    <li><strong>"실행"</strong>을 클릭하여 설치를 계속합니다</li>
                                 </ol>`
                             }
                         ],
-                        warning: "Windows는 서명되지 않은 응용 프로그램에 대해 보안 경고를 표시할 수 있습니다. Sokuji는 안전하게 설치할 수 있습니다. 이러한 경고는 앱이 아직 상업용 인증서로 서명되지 않았기 때문에 나타납니다."
+                        warning: "Windows는 서명되지 않은 애플리케이션에 대해 보안 경고를 표시할 수 있습니다. Sokuji는 안전하게 설치할 수 있습니다. 이 경고는 앱이 아직 상용 인증서로 서명되지 않았기 때문에 나타납니다."
                     },
                     {
-                        title: "단계 3: 첫 실행 설정",
-                        content: `Sokuji를 처음 실행할 때 구성이 필요합니다:`,
+                        title: "단계 3: VB-CABLE 가상 오디오 장치 설치",
+                        content: `Sokuji는 다른 애플리케이션으로 오디오를 라우팅하기 위해 VB-CABLE 가상 오디오 장치를 필요로 합니다. 설치 프로그램이 자동 설치를 안내합니다.`,
                         subsections: [
                             {
-                                title: "초기 구성",
-                                content: `<ol>
-                                    <li>시작 메뉴 또는 바탕 화면 바로 가기에서 Sokuji를 시작합니다</li>
-                                    <li>메시지가 표시되면 마이크 권한을 부여합니다</li>
-                                    <li>선호하는 AI 공급자 (OpenAI, Google Gemini 등)를 구성합니다</li>
-                                    <li>선택한 공급자의 API 키를 입력합니다</li>
-                                    <li>소스 언어와 대상 언어를 선택합니다</li>
-                                    <li>오디오 입력/출력 장치를 테스트합니다</li>
+                                title: "VB-CABLE 설치",
+                                content: `<p>SmartScreen을 우회한 후 VB-CABLE 설치 프롬프트가 표시됩니다:</p>
+                                <img src="windows-install/3.png" alt="VB-CABLE 설치 프롬프트" class="screenshot">
+                                <ol>
+                                    <li><strong>"Install Now"</strong>를 클릭하여 VB-CABLE을 자동으로 다운로드 및 설치합니다</li>
+                                    <li>또는, <a href="https://vb-audio.com/Cable/" target="_blank" rel="noopener noreferrer">vb-audio.com/Cable</a>에서 <em>Download Manually</em>로 직접 다운로드할 수 있습니다</li>
+                                    <li>사용자 계정 컨트롤(UAC) 프롬프트가 나타나면 설치를 허용하기 위해 <strong>"예"</strong>를 클릭합니다:</li>
+                                </ol>
+                                <img src="windows-install/3.5.jpg" alt="VB-CABLE에 대한 사용자 계정 컨트롤 프롬프트" class="screenshot">
+                                <ol start="4">
+                                    <li>VB-CABLE 설치 관리자가 열립니다. <strong>"Install Driver"</strong>를 클릭합니다:</li>
+                                </ol>
+                                <img src="windows-install/4.png" alt="VB-CABLE 설치 관리자 창" class="screenshot">
+                                <ol start="5">
+                                    <li>설치가 완료될 때까지 기다립니다. 성공 메시지가 표시됩니다:</li>
+                                </ol>
+                                <img src="windows-install/5.png" alt="VB-CABLE 설치 완료" class="screenshot">
+                                <ol start="6">
+                                    <li>설치 완료 대화상자에서 <strong>"OK"</strong>를 클릭합니다</li>
+                                    <li>최종 확인이 표시됩니다:</li>
+                                </ol>
+                                <img src="windows-install/6.png" alt="VB-CABLE 설치 성공 확인" class="screenshot">
+                                <ol start="8">
+                                    <li><strong>"OK"</strong>를 클릭하여 VB-CABLE 설치를 마무리합니다</li>
                                 </ol>`
                             }
                         ],
-                        success: "이제 Sokuji를 사용할 준비가 되었습니다! 마이크 버튼을 클릭하여 실시간 번역을 시작할 수 있습니다."
+                        info: "VB-CABLE은 Sokuji가 번역된 오디오를 Zoom, Teams, Google Meet 등의 화상 회의 애플리케이션으로 전달할 수 있도록 하는 가상 오디오 장치를 생성합니다."
+                    },
+                    {
+                        title: "단계 4: 첫 실행 설정",
+                        content: `VB-CABLE 설치 후 Sokuji가 자동으로 실행되며 오디오 구성 페이지가 표시됩니다:`,
+                        subsections: [
+                            {
+                                title: "오디오 장치 확인",
+                                content: `<img src="windows-install/7.png" alt="VB-CABLE 장치가 표시된 Sokuji 오디오 구성" class="screenshot">
+                                <p>오디오 설정 패널에서 다음을 확인할 수 있어야 합니다:</p>
+                                <ul>
+                                    <li><strong>CABLE Output (VB-Audio Virtual Cable)</strong> - 사용 가능한 입력 장치에 표시</li>
+                                    <li><strong>CABLE Input (VB-Audio Virtual Cable)</strong> - 사용 가능한 모니터 장치에 표시</li>
+                                </ul>
+                                <p>이 가상 장치들은 VB-CABLE이 성공적으로 설치되었음을 의미합니다.</p>`
+                            },
+                            {
+                                title: "설정 완료",
+                                content: `<ol>
+                                    <li>선호하는 AI 공급자(OpenAI, Google Gemini 등) 구성</li>
+                                    <li>선택한 공급자의 API 키 입력</li>
+                                    <li>소스 언어와 대상 언어 선택</li>
+                                    <li>오디오 입력/출력 장치 테스트</li>
+                                    <li>물리적 마이크를 오디오 입력 장치로 선택</li>
+                                    <li>스피커/헤드폰을 가상 스피커 모니터 장치로 선택</li>
+                                </ol>`
+                            }
+                        ],
+                        success: "이제 Sokuji를 사용할 준비가 되었습니다! 세션 시작 버튼을 클릭하여 실시간 번역을 시작할 수 있습니다."
                     }
                 ],
                 troubleshooting: {
@@ -989,7 +1028,7 @@
                                 <li>SmartScreen 경고에서 "추가 정보"를 클릭</li>
                                 <li>"실행"을 클릭하여 설치 계속</li>
                             </ol>
-                            이는 서명되지 않은 응용 프로그램의 일반적인 문제이며 보안 문제를 나타내지 않습니다.`
+                            이는 서명되지 않은 애플리케이션의 일반적인 현상이며 보안 문제가 있음을 의미하지는 않습니다.`
                         },
                         {
                             title: "마이크가 감지되지 않음",
@@ -997,7 +1036,7 @@
                             <ol>
                                 <li>Windows 설정 → 개인 정보 → 마이크 열기</li>
                                 <li>"앱이 마이크에 액세스하도록 허용"이 활성화되어 있는지 확인</li>
-                                <li>앱 목록에서 Sokuji가 나열되고 활성화되어 있는지 확인</li>
+                                <li>앱 목록에서 Sokuji가 표시되고 활성화되어 있는지 확인</li>
                                 <li>마이크가 올바르게 연결되고 기본 장치로 설정되어 있는지 확인</li>
                             </ol>`
                         },
@@ -1012,26 +1051,26 @@
                             </ol>`
                         },
                         {
-                            title: "응용 프로그램이 시작되지 않음",
+                            title: "애플리케이션이 시작되지 않음",
                             content: `Sokuji가 시작되지 않는 경우:
                             <ul>
-                                <li>관리자 권한으로 실행 시도 (마우스 오른쪽 버튼 클릭 → 관리자 권한으로 실행)</li>
-                                <li>바이러스 백신 소프트웨어가 응용 프로그램을 차단하는지 확인</li>
-                                <li>응용 프로그램 다시 설치</li>
+                                <li>관리자 권한으로 실행 시도 (마우스 오른쪽 클릭 → 관리자 권한으로 실행)</li>
+                                <li>바이러스 백신 소프트웨어가 애플리케이션을 차단하는지 확인</li>
+                                <li>애플리케이션 재설치</li>
                                 <li>최신 Windows 업데이트가 설치되어 있는지 확인</li>
                             </ul>`
                         },
                         {
                             title: "VB-CABLE 장치가 감지되지 않음",
-                            content: `Sokuji에서 CABLE Output/Input 장치가 표시되지 않는 경우:
+                            content: `Sokuji에서 CABLE Output/Input 장치가 보이지 않는 경우:
                             <ol>
-                                <li><strong>컴퓨터 다시 시작</strong> - 이것은 종종 장치 인식 문제를 해결합니다</li>
+                                <li><strong>컴퓨터 재시작</strong> - 장치 인식 문제를 해결하는 데 도움이 됩니다</li>
                                 <li><strong>Windows 사운드 설정 확인</strong>:
                                     <ul>
                                         <li>시스템 트레이의 스피커 아이콘을 마우스 오른쪽 버튼으로 클릭</li>
                                         <li>"사운드 설정" 선택</li>
-                                        <li>재생 장치에서 "CABLE Input" 찾기</li>
-                                        <li>녹음 장치에서 "CABLE Output" 찾기</li>
+                                        <li>재생 장치에서 "CABLE Input" 확인</li>
+                                        <li>녹음 장치에서 "CABLE Output" 확인</li>
                                     </ul>
                                 </li>
                                 <li><strong>VB-CABLE 수동 재설치</strong>:
@@ -1039,14 +1078,14 @@
                                         <li><a href="https://vb-audio.com/Cable/" target="_blank">vb-audio.com/Cable</a>에서 다운로드</li>
                                         <li>ZIP 파일 압축 해제</li>
                                         <li>관리자 권한으로 VBCABLE_Setup_x64.exe 실행</li>
-                                        <li>설치 후 컴퓨터 다시 시작</li>
+                                        <li>설치 후 컴퓨터 재시작</li>
                                     </ul>
                                 </li>
                                 <li><strong>장치 관리자 확인</strong>:
                                     <ul>
                                         <li>장치 관리자 열기 (Win+X → 장치 관리자)</li>
-                                        <li>"사운드, 비디오 및 게임 컨트롤러" 아래 확인</li>
-                                        <li>"VB-Audio Virtual Cable"이 오류 없이 나열되어 있는지 확인</li>
+                                        <li>"사운드, 비디오 및 게임 컨트롤러" 아래에서 확인</li>
+                                        <li>"VB-Audio Virtual Cable"이 오류 없이 표시되는지 확인</li>
                                     </ul>
                                 </li>
                             </ol>`
