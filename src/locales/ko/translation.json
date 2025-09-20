@@ -373,6 +373,7 @@
     "yunai": {
       "name": "YunAI",
       "description": "Alternative AI provider"
+    },
     "palabraai": {
       "name": "Palabra AI",
       "description": "전문 번역 AI"
