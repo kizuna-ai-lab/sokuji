@@ -1,0 +1,1455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Realtime API Tester - Sokuji</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f8f9fa;
+            scroll-behavior: smooth;
+        }
+
+        /* TOC Styles */
+        .toc-container {
+            position: fixed;
+            left: 20px;
+            top: 150px;
+            width: 250px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+
+        .toc-container h4 {
+            margin: 0 0 15px 0;
+            color: #2c3e50;
+            font-size: 16px;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 8px;
+        }
+
+        .toc-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .toc-list li {
+            margin: 5px 0;
+        }
+
+        .toc-list li.toc-subsection {
+            margin-left: 20px;
+            font-size: 14px;
+        }
+
+        .toc-list a {
+            color: #555;
+            text-decoration: none;
+            display: block;
+            padding: 5px 10px;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+        }
+
+        .toc-list a:hover {
+            background-color: #f8f9fa;
+            color: #3498db;
+        }
+
+        .toc-list a.active {
+            background-color: #e7f3ff;
+            color: #3498db;
+            font-weight: 500;
+        }
+
+        /* Mobile TOC */
+        .mobile-toc {
+            display: none;
+            margin-bottom: 20px;
+        }
+
+        .mobile-toc select {
+            width: 100%;
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: #fff;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 1400px) {
+            .toc-container {
+                display: none;
+            }
+
+            .mobile-toc {
+                display: block;
+            }
+
+            body {
+                max-width: 900px;
+            }
+        }
+
+        @media (min-width: 1401px) {
+            body {
+                margin-left: 300px;
+                max-width: 900px;
+            }
+        }
+        .container {
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .header img {
+            max-width: 150px;
+            margin-bottom: 20px;
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+            text-align: center;
+        }
+        h2 {
+            color: #2c3e50;
+            margin-top: 30px;
+        }
+        .back-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            padding: 8px 16px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            text-decoration: none;
+            color: #3498db;
+        }
+        .back-link:hover {
+            background-color: #e9ecef;
+        }
+        .language-selector {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+        }
+        .language-selector a {
+            margin: 0 10px;
+            color: #3498db;
+            text-decoration: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+        }
+        .language-selector a:hover {
+            background-color: #e9ecef;
+        }
+        .language-selector a.active {
+            background-color: #3498db;
+            color: white;
+        }
+        .step {
+            background-color: #f8f9fa;
+            border-left: 4px solid #3498db;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .step h3 {
+            margin-top: 0;
+            color: #2c3e50;
+        }
+        .warning {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .warning:before {
+            content: "⚠️ ";
+            color: #f39c12;
+        }
+        .step .info, div.info:not(.log-entry) {
+            background-color: #e7f3ff;
+            border: 1px solid #b8daff;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .step .info:before, div.info:not(.log-entry):before {
+            content: "ℹ️ ";
+            color: #0c5460;
+        }
+        code {
+            background-color: #f8f9fa;
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
+        .btn {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #3498db;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            margin: 10px 5px;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .btn:hover {
+            background-color: #2980b9;
+            text-decoration: none;
+        }
+        .btn:disabled {
+            background-color: #7f8c8d;
+            cursor: not-allowed;
+        }
+        .btn-danger {
+            background-color: #e74c3c;
+        }
+        .btn-danger:hover {
+            background-color: #c0392b;
+        }
+        footer {
+            margin-top: 50px;
+            text-align: center;
+            color: #7f8c8d;
+            font-size: 0.9em;
+            border-top: 1px solid #eee;
+            padding-top: 20px;
+        }
+
+        /* Test Interface Styles */
+        .test-interface {
+            margin: 20px 0;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .input-group {
+            margin: 15px 0;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        .input-group input, .input-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            font-family: monospace;
+            box-sizing: border-box;
+        }
+
+        .input-group .helper-text {
+            font-size: 12px;
+            color: #7f8c8d;
+            margin-top: 5px;
+        }
+
+        .preset-buttons {
+            display: flex;
+            gap: 10px;
+            margin: 10px 0;
+            flex-wrap: wrap;
+        }
+
+        .preset-btn {
+            padding: 5px 10px;
+            background-color: #f8f9fa;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s;
+        }
+
+        .preset-btn:hover {
+            background-color: #e7f3ff;
+            border-color: #3498db;
+        }
+
+        .test-results {
+            margin-top: 20px;
+            display: none;
+        }
+
+        .test-step {
+            padding: 12px;
+            margin: 8px 0;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+            background-color: #fff;
+            transition: all 0.3s;
+        }
+
+        .test-step.pending {
+            background-color: #f8f9fa;
+            color: #7f8c8d;
+        }
+
+        .test-step.testing {
+            background-color: #fff3cd;
+            border-color: #ffeaa7;
+            animation: pulse 1.5s infinite;
+        }
+
+        .test-step.success {
+            background-color: #d4edda;
+            border-color: #c3e6cb;
+            color: #155724;
+        }
+
+        .test-step.failed {
+            background-color: #f8d7da;
+            border-color: #f5c6cb;
+            color: #721c24;
+        }
+
+        .test-step .step-title {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .test-step .step-details {
+            font-size: 14px;
+            margin-top: 5px;
+            padding: 5px;
+            background-color: rgba(0, 0, 0, 0.05);
+            border-radius: 3px;
+            font-family: monospace;
+        }
+
+        .test-summary {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 4px;
+        }
+
+        .test-summary.all-passed {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+
+        .test-summary.some-failed {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+
+        @keyframes pulse {
+            0% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.7;
+            }
+            100% {
+                opacity: 1;
+            }
+        }
+
+        .connection-log {
+            max-height: 200px;
+            overflow-y: auto;
+            background-color: #1e1e1e;
+            color: #cccccc;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            margin-top: 10px;
+        }
+
+        .log-entry {
+            margin: 2px 0;
+            color: #cccccc;
+        }
+
+        .log-entry.error {
+            color: #ff4444;
+        }
+
+        .log-entry.success {
+            color: #44ff44;
+        }
+
+    </style>
+</head>
+<body>
+    <!-- Table of Contents for Desktop -->
+    <nav class="toc-container" id="toc-container">
+        <!-- TOC will be dynamically generated -->
+    </nav>
+
+    <div class="container">
+        <a href="../supported-ai-providers.html" class="back-link" id="back-link">← Back to AI Providers</a>
+
+        <!-- Mobile TOC Dropdown -->
+        <div class="mobile-toc" id="mobile-toc">
+            <!-- Mobile TOC will be dynamically generated -->
+        </div>
+
+        <div class="header">
+            <img src="https://github.com/kizuna-ai-lab/sokuji/raw/main/src/assets/logo.png" alt="Sokuji Logo">
+            <h1 id="page-title">Realtime API Tester</h1>
+        </div>
+
+        <div class="language-selector">
+            <span id="lang-label">Language:</span>
+            <a href="?lang=en" id="lang-en">English</a>
+            <a href="?lang=zh" id="lang-zh">中文</a>
+            <a href="?lang=ja" id="lang-ja">日本語</a>
+            <a href="?lang=ko" id="lang-ko">한국어</a>
+        </div>
+
+        <div id="content">
+            <!-- Content will be dynamically inserted here -->
+        </div>
+
+        <footer id="footer">
+            &copy; 2025 Kizuna AI Lab. All rights reserved.
+        </footer>
+    </div>
+
+    <script>
+        // Translation data
+        const translations = {
+            en: {
+                pageTitle: "Realtime API Tester",
+                langLabel: "Language:",
+                backLink: "← Back to AI Providers",
+                tocTitle: "Table of Contents",
+                mobileJumpTo: "Jump to section...",
+                overview: "This tool allows you to test the availability and functionality of OpenAI's Realtime API and OpenAI-compatible services. You can verify API key permissions, test WebSocket connectivity, and send test messages to ensure everything is working correctly.",
+                importantNote: "<strong>⚠️ Security Warning:</strong> This tester runs in your browser and exposes your API key in the WebSocket connection. This method is ONLY for testing purposes and should NEVER be used in production. For production use, implement a secure relay server to handle authentication.",
+                testInterface: "Test Interface",
+                testInterfaceDescription: "Configure your API endpoint and key to test the realtime service availability.",
+                presetServices: "Preset Services",
+                presetServicesDescription: "Click to quickly fill in common service endpoints:",
+                apiEndpoint: "API Endpoint",
+                apiEndpointPlaceholder: "e.g., https://api.openai.com",
+                apiEndpointHelper: "The base URL of the API service (without /v1 or paths)",
+                apiKey: "API Key",
+                apiKeyPlaceholder: "sk-...",
+                apiKeyHelper: "Your API key for authentication",
+                modelSelection: "Model",
+                modelSelectionHelper: "Select the realtime model to test",
+                testButton: "Run Tests",
+                stopButton: "Stop Tests",
+                clearButton: "Clear Results",
+                testSteps: {
+                    title: "Test Steps",
+                    apiKeyValidation: {
+                        title: "API Key Validation",
+                        testing: "Validating API key format and permissions...",
+                        success: "API key is valid and has required permissions",
+                        failed: "API key validation failed"
+                    },
+                    modelAvailability: {
+                        title: "Model Availability",
+                        testing: "Checking if realtime models are available...",
+                        success: "Realtime models found: ",
+                        failed: "No realtime models available"
+                    },
+                    websocketConnection: {
+                        title: "WebSocket Connection",
+                        testing: "Establishing WebSocket connection to realtime API...",
+                        success: "WebSocket connection established successfully",
+                        failed: "WebSocket connection failed"
+                    },
+                    sessionCreation: {
+                        title: "Session Creation",
+                        testing: "Creating realtime session...",
+                        success: "Session created successfully",
+                        failed: "Session creation failed"
+                    },
+                    messageTest: {
+                        title: "Message Test",
+                        testing: "Sending test message 'Hello' and waiting for response...",
+                        success: "Received response: ",
+                        failed: "No response received or message test failed"
+                    }
+                },
+                connectionLog: "Connection Log",
+                testSummary: {
+                    allPassed: "✅ All tests passed! The realtime API is fully functional.",
+                    someFailed: "❌ Some tests failed. Please review the errors above and check your configuration.",
+                    checkList: "Checklist for troubleshooting:"
+                },
+                troubleshooting: {
+                    apiKeyInvalid: "• Verify your API key is correct and has not expired",
+                    noRealtimeAccess: "• Ensure your account has access to realtime models",
+                    networkIssues: "• Check your internet connection and firewall settings",
+                    endpointIncorrect: "• Verify the API endpoint URL is correct",
+                    corsIssues: "• If testing from browser, check for CORS restrictions",
+                    billingIssues: "• Ensure your account has sufficient credits and active billing",
+                    contactProvider: "• Contact your service provider to confirm realtime API is working properly"
+                },
+                howItWorks: "How This Tester Works",
+                howItWorksDescription: "This tester performs a comprehensive validation of realtime API services through the following steps:",
+                howItWorksSteps: [
+                    "Validates the API key format and checks basic API access",
+                    "Queries available models to confirm realtime model access",
+                    "Establishes a WebSocket connection to the realtime endpoint",
+                    "Creates a session with the realtime API",
+                    "Sends a test message and validates the response"
+                ],
+                supportedServices: "Supported Services",
+                supportedServicesDescription: "This tester works with the following services:",
+                supportedServicesList: [
+                    "OpenAI Realtime API (official)",
+                    "CometAPI (OpenAI-compatible)",
+                    "Kizuna AI API (OpenAI-compatible)",
+                    "Any OpenAI-compatible realtime service"
+                ],
+                securityNote: "Security Note",
+                securityNoteDescription: "This tester uses the 'openai-insecure-api-key' WebSocket protocol for browser-based testing, which exposes your API key. This is ONLY suitable for testing and development. For production applications, always use a secure relay server to protect your API credentials.",
+                footer: "&copy; 2025 Kizuna AI Lab. All rights reserved."
+            },
+            zh: {
+                pageTitle: "实时 API 测试器",
+                langLabel: "语言：",
+                backLink: "← 返回 AI 提供商",
+                tocTitle: "目录",
+                mobileJumpTo: "跳转到章节...",
+                overview: "此工具允许您测试 OpenAI 实时 API 和 OpenAI 兼容服务的可用性和功能。您可以验证 API 密钥权限、测试 WebSocket 连接并发送测试消息以确保一切正常工作。",
+                importantNote: "<strong>⚠️ 安全警告：</strong>此测试器在浏览器中运行，会在 WebSocket 连接中暴露您的 API 密钥。此方法仅用于测试目的，绝不应在生产环境中使用。生产环境请实现安全的中继服务器来处理身份验证。",
+                testInterface: "测试界面",
+                testInterfaceDescription: "配置您的 API 端点和密钥以测试实时服务可用性。",
+                presetServices: "预设服务",
+                presetServicesDescription: "点击快速填入常见服务端点：",
+                apiEndpoint: "API 端点",
+                apiEndpointPlaceholder: "例如：https://api.openai.com",
+                apiEndpointHelper: "API 服务的基础 URL（不含 /v1 或路径）",
+                apiKey: "API 密钥",
+                apiKeyPlaceholder: "sk-...",
+                apiKeyHelper: "用于身份验证的 API 密钥",
+                modelSelection: "模型",
+                modelSelectionHelper: "选择要测试的实时模型",
+                testButton: "运行测试",
+                stopButton: "停止测试",
+                clearButton: "清除结果",
+                testSteps: {
+                    title: "测试步骤",
+                    apiKeyValidation: {
+                        title: "API 密钥验证",
+                        testing: "验证 API 密钥格式和权限...",
+                        success: "API 密钥有效且具有所需权限",
+                        failed: "API 密钥验证失败"
+                    },
+                    modelAvailability: {
+                        title: "模型可用性",
+                        testing: "检查实时模型是否可用...",
+                        success: "找到实时模型：",
+                        failed: "没有可用的实时模型"
+                    },
+                    websocketConnection: {
+                        title: "WebSocket 连接",
+                        testing: "建立到实时 API 的 WebSocket 连接...",
+                        success: "WebSocket 连接成功建立",
+                        failed: "WebSocket 连接失败"
+                    },
+                    sessionCreation: {
+                        title: "会话创建",
+                        testing: "创建实时会话...",
+                        success: "会话创建成功",
+                        failed: "会话创建失败"
+                    },
+                    messageTest: {
+                        title: "消息测试",
+                        testing: "发送测试消息 'Hello' 并等待响应...",
+                        success: "收到响应：",
+                        failed: "未收到响应或消息测试失败"
+                    }
+                },
+                connectionLog: "连接日志",
+                testSummary: {
+                    allPassed: "✅ 所有测试通过！实时 API 功能完全正常。",
+                    someFailed: "❌ 部分测试失败。请查看上述错误并检查您的配置。",
+                    checkList: "故障排除清单："
+                },
+                troubleshooting: {
+                    apiKeyInvalid: "• 验证您的 API 密钥是否正确且未过期",
+                    noRealtimeAccess: "• 确保您的账户可以访问实时模型",
+                    networkIssues: "• 检查您的网络连接和防火墙设置",
+                    endpointIncorrect: "• 验证 API 端点 URL 是否正确",
+                    corsIssues: "• 如果从浏览器测试，检查 CORS 限制",
+                    billingIssues: "• 确保您的账户有足够的额度和有效的计费",
+                    contactProvider: "• 联系您的服务提供商确认实时 API 是否正常工作"
+                },
+                howItWorks: "测试器工作原理",
+                howItWorksDescription: "此测试器通过以下步骤对实时 API 服务进行全面验证：",
+                howItWorksSteps: [
+                    "验证 API 密钥格式并检查基本 API 访问",
+                    "查询可用模型以确认实时模型访问权限",
+                    "建立到实时端点的 WebSocket 连接",
+                    "使用实时 API 创建会话",
+                    "发送测试消息并验证响应"
+                ],
+                supportedServices: "支持的服务",
+                supportedServicesDescription: "此测试器适用于以下服务：",
+                supportedServicesList: [
+                    "OpenAI 实时 API（官方）",
+                    "CometAPI（OpenAI 兼容）",
+                    "Kizuna AI API（OpenAI 兼容）",
+                    "任何 OpenAI 兼容的实时服务"
+                ],
+                securityNote: "安全提示",
+                securityNoteDescription: "此测试器使用 'openai-insecure-api-key' WebSocket 协议进行基于浏览器的测试，这会暴露您的 API 密钥。这仅适用于测试和开发。在生产应用中，请始终使用安全的中继服务器来保护您的 API 凭据。",
+                footer: "&copy; 2025 Kizuna AI Lab. 保留所有权利。"
+            },
+            ja: {
+                pageTitle: "リアルタイム API テスター",
+                langLabel: "言語：",
+                backLink: "← AI プロバイダーに戻る",
+                tocTitle: "目次",
+                mobileJumpTo: "セクションにジャンプ...",
+                overview: "このツールを使用して、OpenAI のリアルタイム API と OpenAI 互換サービスの可用性と機能をテストできます。API キーの権限を確認し、WebSocket 接続をテストし、テストメッセージを送信して、すべてが正常に動作していることを確認できます。",
+                importantNote: "<strong>⚠️ セキュリティ警告：</strong>このテスターはブラウザで実行され、WebSocket 接続で API キーが公開されます。この方法はテスト目的のみで、本番環境では絶対に使用しないでください。本番環境では、認証を処理する安全なリレーサーバーを実装してください。",
+                testInterface: "テストインターフェース",
+                testInterfaceDescription: "API エンドポイントとキーを設定して、リアルタイムサービスの可用性をテストします。",
+                presetServices: "プリセットサービス",
+                presetServicesDescription: "クリックして一般的なサービスエンドポイントをすばやく入力：",
+                apiEndpoint: "API エンドポイント",
+                apiEndpointPlaceholder: "例：https://api.openai.com",
+                apiEndpointHelper: "API サービスのベース URL（/v1 やパスを含まない）",
+                apiKey: "API キー",
+                apiKeyPlaceholder: "sk-...",
+                apiKeyHelper: "認証用の API キー",
+                modelSelection: "モデル",
+                modelSelectionHelper: "テストするリアルタイムモデルを選択",
+                testButton: "テストを実行",
+                stopButton: "テストを停止",
+                clearButton: "結果をクリア",
+                testSteps: {
+                    title: "テスト手順",
+                    apiKeyValidation: {
+                        title: "API キー検証",
+                        testing: "API キーの形式と権限を検証中...",
+                        success: "API キーは有効で、必要な権限があります",
+                        failed: "API キーの検証に失敗しました"
+                    },
+                    modelAvailability: {
+                        title: "モデルの可用性",
+                        testing: "リアルタイムモデルが利用可能か確認中...",
+                        success: "リアルタイムモデルが見つかりました：",
+                        failed: "利用可能なリアルタイムモデルがありません"
+                    },
+                    websocketConnection: {
+                        title: "WebSocket 接続",
+                        testing: "リアルタイム API への WebSocket 接続を確立中...",
+                        success: "WebSocket 接続が正常に確立されました",
+                        failed: "WebSocket 接続に失敗しました"
+                    },
+                    sessionCreation: {
+                        title: "セッション作成",
+                        testing: "リアルタイムセッションを作成中...",
+                        success: "セッションが正常に作成されました",
+                        failed: "セッション作成に失敗しました"
+                    },
+                    messageTest: {
+                        title: "メッセージテスト",
+                        testing: "テストメッセージ 'Hello' を送信し、応答を待機中...",
+                        success: "応答を受信しました：",
+                        failed: "応答が受信されなかったか、メッセージテストに失敗しました"
+                    }
+                },
+                connectionLog: "接続ログ",
+                testSummary: {
+                    allPassed: "✅ すべてのテストに合格しました！リアルタイム API は完全に機能しています。",
+                    someFailed: "❌ 一部のテストが失敗しました。上記のエラーを確認し、設定を確認してください。",
+                    checkList: "トラブルシューティングのチェックリスト："
+                },
+                troubleshooting: {
+                    apiKeyInvalid: "• API キーが正しく、期限切れでないことを確認",
+                    noRealtimeAccess: "• アカウントがリアルタイムモデルにアクセスできることを確認",
+                    networkIssues: "• インターネット接続とファイアウォール設定を確認",
+                    endpointIncorrect: "• API エンドポイント URL が正しいことを確認",
+                    corsIssues: "• ブラウザからテストする場合、CORS 制限を確認",
+                    billingIssues: "• アカウントに十分なクレジットとアクティブな請求があることを確認",
+                    contactProvider: "• サービスプロバイダーに連絡してリアルタイム API が正常に動作しているか確認"
+                },
+                howItWorks: "テスターの仕組み",
+                howItWorksDescription: "このテスターは、次の手順でリアルタイム API サービスの包括的な検証を行います：",
+                howItWorksSteps: [
+                    "API キーの形式を検証し、基本的な API アクセスを確認",
+                    "利用可能なモデルをクエリしてリアルタイムモデルアクセスを確認",
+                    "リアルタイムエンドポイントへの WebSocket 接続を確立",
+                    "リアルタイム API でセッションを作成",
+                    "テストメッセージを送信し、応答を検証"
+                ],
+                supportedServices: "対応サービス",
+                supportedServicesDescription: "このテスターは次のサービスで動作します：",
+                supportedServicesList: [
+                    "OpenAI リアルタイム API（公式）",
+                    "CometAPI（OpenAI 互換）",
+                    "Kizuna AI API（OpenAI 互換）",
+                    "OpenAI 互換のリアルタイムサービス"
+                ],
+                securityNote: "セキュリティ通知",
+                securityNoteDescription: "このテスターはブラウザベースのテスト用に 'openai-insecure-api-key' WebSocket プロトコルを使用し、API キーを公開します。これはテストと開発のみに適しています。本番アプリケーションでは、必ず安全なリレーサーバーを使用して API 認証情報を保護してください。",
+                footer: "&copy; 2025 Kizuna AI Lab. All rights reserved."
+            },
+            ko: {
+                pageTitle: "실시간 API 테스터",
+                langLabel: "언어:",
+                backLink: "← AI 제공자로 돌아가기",
+                tocTitle: "목차",
+                mobileJumpTo: "섹션으로 이동...",
+                overview: "이 도구를 사용하면 OpenAI의 실시간 API 및 OpenAI 호환 서비스의 가용성과 기능을 테스트할 수 있습니다. API 키 권한을 확인하고, WebSocket 연결을 테스트하고, 테스트 메시지를 보내 모든 것이 올바르게 작동하는지 확인할 수 있습니다.",
+                importantNote: "<strong>⚠️ 보안 경고:</strong> 이 테스터는 브라우저에서 실행되며 WebSocket 연결에서 API 키가 노출됩니다. 이 방법은 테스트 목적으로만 사용해야 하며 프로덕션에서는 절대 사용하지 마세요. 프로덕션 환경에서는 인증을 처리하는 보안 릴레이 서버를 구현하세요.",
+                testInterface: "테스트 인터페이스",
+                testInterfaceDescription: "실시간 서비스 가용성을 테스트하려면 API 엔드포인트와 키를 구성하세요.",
+                presetServices: "사전 설정 서비스",
+                presetServicesDescription: "일반적인 서비스 엔드포인트를 빠르게 입력하려면 클릭:",
+                apiEndpoint: "API 엔드포인트",
+                apiEndpointPlaceholder: "예: https://api.openai.com",
+                apiEndpointHelper: "API 서비스의 기본 URL (/v1 또는 경로 제외)",
+                apiKey: "API 키",
+                apiKeyPlaceholder: "sk-...",
+                apiKeyHelper: "인증용 API 키",
+                modelSelection: "모델",
+                modelSelectionHelper: "테스트할 실시간 모델 선택",
+                testButton: "테스트 실행",
+                stopButton: "테스트 중지",
+                clearButton: "결과 지우기",
+                testSteps: {
+                    title: "테스트 단계",
+                    apiKeyValidation: {
+                        title: "API 키 검증",
+                        testing: "API 키 형식 및 권한 검증 중...",
+                        success: "API 키가 유효하고 필요한 권한이 있습니다",
+                        failed: "API 키 검증 실패"
+                    },
+                    modelAvailability: {
+                        title: "모델 가용성",
+                        testing: "실시간 모델 사용 가능 여부 확인 중...",
+                        success: "실시간 모델 발견: ",
+                        failed: "사용 가능한 실시간 모델 없음"
+                    },
+                    websocketConnection: {
+                        title: "WebSocket 연결",
+                        testing: "실시간 API에 WebSocket 연결 설정 중...",
+                        success: "WebSocket 연결이 성공적으로 설정되었습니다",
+                        failed: "WebSocket 연결 실패"
+                    },
+                    sessionCreation: {
+                        title: "세션 생성",
+                        testing: "실시간 세션 생성 중...",
+                        success: "세션이 성공적으로 생성되었습니다",
+                        failed: "세션 생성 실패"
+                    },
+                    messageTest: {
+                        title: "메시지 테스트",
+                        testing: "테스트 메시지 'Hello' 전송 및 응답 대기 중...",
+                        success: "응답 수신: ",
+                        failed: "응답을 받지 못했거나 메시지 테스트 실패"
+                    }
+                },
+                connectionLog: "연결 로그",
+                testSummary: {
+                    allPassed: "✅ 모든 테스트 통과! 실시간 API가 완전히 작동합니다.",
+                    someFailed: "❌ 일부 테스트 실패. 위의 오류를 검토하고 구성을 확인하세요.",
+                    checkList: "문제 해결 체크리스트:"
+                },
+                troubleshooting: {
+                    apiKeyInvalid: "• API 키가 올바르고 만료되지 않았는지 확인",
+                    noRealtimeAccess: "• 계정이 실시간 모델에 액세스할 수 있는지 확인",
+                    networkIssues: "• 인터넷 연결 및 방화벽 설정 확인",
+                    endpointIncorrect: "• API 엔드포인트 URL이 올바른지 확인",
+                    corsIssues: "• 브라우저에서 테스트하는 경우 CORS 제한 확인",
+                    billingIssues: "• 계정에 충분한 크레딧과 활성 결제가 있는지 확인",
+                    contactProvider: "• 서비스 제공자에게 연락하여 실시간 API가 정상 작동하는지 확인"
+                },
+                howItWorks: "테스터 작동 방식",
+                howItWorksDescription: "이 테스터는 다음 단계를 통해 실시간 API 서비스를 포괄적으로 검증합니다:",
+                howItWorksSteps: [
+                    "API 키 형식 검증 및 기본 API 액세스 확인",
+                    "실시간 모델 액세스 확인을 위한 사용 가능한 모델 쿼리",
+                    "실시간 엔드포인트에 WebSocket 연결 설정",
+                    "실시간 API로 세션 생성",
+                    "테스트 메시지 전송 및 응답 검증"
+                ],
+                supportedServices: "지원되는 서비스",
+                supportedServicesDescription: "이 테스터는 다음 서비스에서 작동합니다:",
+                supportedServicesList: [
+                    "OpenAI 실시간 API (공식)",
+                    "CometAPI (OpenAI 호환)",
+                    "Kizuna AI API (OpenAI 호환)",
+                    "OpenAI 호환 실시간 서비스"
+                ],
+                securityNote: "보안 공지",
+                securityNoteDescription: "이 테스터는 브라우저 기반 테스트를 위해 'openai-insecure-api-key' WebSocket 프로토콜을 사용하여 API 키를 노출합니다. 이는 테스트 및 개발에만 적합합니다. 프로덕션 애플리케이션에서는 항상 보안 릴레이 서버를 사용하여 API 자격 증명을 보호하세요.",
+                footer: "&copy; 2025 Kizuna AI Lab. 모든 권리 보유."
+            }
+        };
+
+        // Get language from URL or default to English
+        function getCurrentLanguage() {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get('lang') || 'en';
+        }
+
+        // Render content based on language
+        function renderContent(lang) {
+            const t = translations[lang] || translations.en;
+
+            // Update page title
+            document.title = t.pageTitle + " - Sokuji";
+            document.getElementById('page-title').textContent = t.pageTitle;
+
+            // Update language selector
+            document.getElementById('lang-label').textContent = t.langLabel;
+            document.getElementById('back-link').textContent = t.backLink;
+
+            // Highlight active language
+            document.querySelectorAll('.language-selector a').forEach(link => {
+                link.classList.remove('active');
+            });
+            document.getElementById('lang-' + lang).classList.add('active');
+
+            // Build content HTML
+            let contentHtml = `
+                <p>${t.overview}</p>
+                <div class="warning">${t.importantNote}</div>
+
+                <h2 id="test-interface">${t.testInterface}</h2>
+                <div class="step">
+                    <h3>${t.testInterfaceDescription}</h3>
+
+                    <div class="test-interface">
+                        <div class="input-group">
+                            <label for="presetServices">${t.presetServices}</label>
+                            <p class="helper-text">${t.presetServicesDescription}</p>
+                            <div class="preset-buttons">
+                                <button class="preset-btn" onclick="setPreset('openai')">OpenAI</button>
+                                <button class="preset-btn" onclick="setPreset('cometapi')">CometAPI</button>
+                                <button class="preset-btn" onclick="setPreset('kizunaai')">Kizuna AI</button>
+                                <button class="preset-btn" onclick="setPreset('custom')">Custom</button>
+                            </div>
+                        </div>
+
+                        <div class="input-group">
+                            <label for="apiEndpoint">${t.apiEndpoint}</label>
+                            <input type="text" id="apiEndpoint" placeholder="${t.apiEndpointPlaceholder}" value="https://api.openai.com">
+                            <p class="helper-text">${t.apiEndpointHelper}</p>
+                        </div>
+
+                        <div class="input-group">
+                            <label for="apiKey">${t.apiKey}</label>
+                            <input type="password" id="apiKey" placeholder="${t.apiKeyPlaceholder}">
+                            <p class="helper-text">${t.apiKeyHelper}</p>
+                        </div>
+
+                        <div class="input-group">
+                            <label for="modelSelection">${t.modelSelection}</label>
+                            <select id="modelSelection">
+                                <option value="gpt-4o-realtime-preview">gpt-4o-realtime-preview</option>
+                                <option value="gpt-4o-realtime-preview-2024-12-17">gpt-4o-realtime-preview-2024-12-17</option>
+                                <option value="gpt-4o-mini-realtime-preview">gpt-4o-mini-realtime-preview</option>
+                                <option value="gpt-4o-mini-realtime-preview-2024-12-17">gpt-4o-mini-realtime-preview-2024-12-17</option>
+                            </select>
+                            <p class="helper-text">${t.modelSelectionHelper}</p>
+                        </div>
+
+                        <button class="btn" id="testButton" onclick="runTests('${lang}')">${t.testButton}</button>
+                        <button class="btn btn-danger" id="stopButton" onclick="stopTests()" style="display:none;">${t.stopButton}</button>
+                        <button class="btn" id="clearButton" onclick="clearResults()" style="display:none;">${t.clearButton}</button>
+                    </div>
+                </div>
+
+                <div class="test-results" id="testResults">
+                    <h2 id="test-steps">${t.testSteps.title}</h2>
+
+                    <div class="test-step pending" id="step-api-key">
+                        <div class="step-title">1. ${t.testSteps.apiKeyValidation.title}</div>
+                        <div class="step-details" style="display:none;"></div>
+                    </div>
+
+                    <div class="test-step pending" id="step-model">
+                        <div class="step-title">2. ${t.testSteps.modelAvailability.title}</div>
+                        <div class="step-details" style="display:none;"></div>
+                    </div>
+
+                    <div class="test-step pending" id="step-websocket">
+                        <div class="step-title">3. ${t.testSteps.websocketConnection.title}</div>
+                        <div class="step-details" style="display:none;"></div>
+                    </div>
+
+                    <div class="test-step pending" id="step-session">
+                        <div class="step-title">4. ${t.testSteps.sessionCreation.title}</div>
+                        <div class="step-details" style="display:none;"></div>
+                    </div>
+
+                    <div class="test-step pending" id="step-message">
+                        <div class="step-title">5. ${t.testSteps.messageTest.title}</div>
+                        <div class="step-details" style="display:none;"></div>
+                    </div>
+
+                    <h3>${t.connectionLog}</h3>
+                    <div class="connection-log" id="connectionLog"></div>
+
+                    <div class="test-summary" id="testSummary" style="display:none;">
+                    </div>
+                </div>
+
+                <h2 id="how-it-works">${t.howItWorks}</h2>
+                <div class="step">
+                    <p>${t.howItWorksDescription}</p>
+                    <ol>
+                        ${t.howItWorksSteps.map(step => `<li>${step}</li>`).join('')}
+                    </ol>
+                </div>
+
+                <h2 id="supported-services">${t.supportedServices}</h2>
+                <div class="step">
+                    <p>${t.supportedServicesDescription}</p>
+                    <ul>
+                        ${t.supportedServicesList.map(service => `<li>${service}</li>`).join('')}
+                    </ul>
+                </div>
+
+                <div class="info">
+                    <strong>${t.securityNote}:</strong> ${t.securityNoteDescription}
+                </div>
+            `;
+
+            document.getElementById('content').innerHTML = contentHtml;
+            document.getElementById('footer').textContent = t.footer;
+
+            // Generate TOC
+            generateTOC(lang);
+        }
+
+        // Generate Table of Contents
+        function generateTOC(lang) {
+            const t = translations[lang] || translations.en;
+
+            // Desktop TOC
+            let tocHtml = `<h4>${t.tocTitle}</h4><ul class="toc-list">`;
+            tocHtml += `<li><a href="#test-interface">${t.testInterface}</a></li>`;
+            tocHtml += `<li><a href="#test-steps">${t.testSteps.title}</a></li>`;
+            tocHtml += `<li><a href="#how-it-works">${t.howItWorks}</a></li>`;
+            tocHtml += `<li><a href="#supported-services">${t.supportedServices}</a></li>`;
+            tocHtml += '</ul>';
+
+            document.getElementById('toc-container').innerHTML = tocHtml;
+
+            // Mobile TOC
+            let mobileTocHtml = `<select onchange="window.location.hash = this.value">`;
+            mobileTocHtml += `<option value="">${t.mobileJumpTo}</option>`;
+            mobileTocHtml += `<option value="#test-interface">${t.testInterface}</option>`;
+            mobileTocHtml += `<option value="#test-steps">${t.testSteps.title}</option>`;
+            mobileTocHtml += `<option value="#how-it-works">${t.howItWorks}</option>`;
+            mobileTocHtml += `<option value="#supported-services">${t.supportedServices}</option>`;
+            mobileTocHtml += '</select>';
+
+            document.getElementById('mobile-toc').innerHTML = mobileTocHtml;
+
+            // Add smooth scrolling to TOC links
+            document.querySelectorAll('.toc-list a').forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const targetId = this.getAttribute('href').substring(1);
+                    const targetElement = document.getElementById(targetId);
+                    if (targetElement) {
+                        const offset = 80;
+                        const targetPosition = targetElement.offsetTop - offset;
+                        window.scrollTo({
+                            top: targetPosition,
+                            behavior: 'smooth'
+                        });
+                    }
+                });
+            });
+        }
+
+        // Preset configurations
+        function setPreset(service) {
+            const endpointInput = document.getElementById('apiEndpoint');
+            const modelSelect = document.getElementById('modelSelection');
+
+            switch(service) {
+                case 'openai':
+                    endpointInput.value = 'https://api.openai.com';
+                    modelSelect.value = 'gpt-4o-realtime-preview';
+                    break;
+                case 'cometapi':
+                    endpointInput.value = 'https://api.cometapi.com';
+                    modelSelect.value = 'gpt-4o-realtime-preview';
+                    break;
+                case 'kizunaai':
+                    endpointInput.value = 'https://api.kizuna.ai';
+                    modelSelect.value = 'gpt-4o-realtime-preview';
+                    break;
+                case 'custom':
+                    endpointInput.value = '';
+                    endpointInput.focus();
+                    break;
+            }
+        }
+
+        // Global WebSocket variable
+        let ws = null;
+        let testAborted = false;
+
+        // Test execution
+        async function runTests(lang) {
+            const t = translations[lang] || translations.en;
+            const apiEndpoint = document.getElementById('apiEndpoint').value.trim();
+            const apiKey = document.getElementById('apiKey').value.trim();
+            const model = document.getElementById('modelSelection').value;
+
+            if (!apiEndpoint || !apiKey) {
+                alert('Please enter both API endpoint and API key');
+                return;
+            }
+
+            // Clean up endpoint URL
+            let cleanEndpoint = apiEndpoint.replace(/\/+$/, ''); // Remove trailing slashes
+
+            // Reset state
+            testAborted = false;
+            document.getElementById('testResults').style.display = 'block';
+            document.getElementById('testButton').style.display = 'none';
+            document.getElementById('stopButton').style.display = 'inline-block';
+            document.getElementById('clearButton').style.display = 'inline-block';
+            document.getElementById('connectionLog').innerHTML = '';
+            document.getElementById('testSummary').style.display = 'none';
+
+            // Reset all test steps
+            const steps = ['api-key', 'model', 'websocket', 'session', 'message'];
+            steps.forEach(step => {
+                const element = document.getElementById(`step-${step}`);
+                element.className = 'test-step pending';
+                element.querySelector('.step-details').style.display = 'none';
+                element.querySelector('.step-details').innerHTML = '';
+            });
+
+            let passedTests = 0;
+            let totalTests = 5;
+
+            // Helper function to log messages
+            function log(message, type = 'info') {
+                const logDiv = document.getElementById('connectionLog');
+                const entry = document.createElement('div');
+                entry.className = `log-entry ${type}`;
+                const timestamp = new Date().toLocaleTimeString();
+                entry.textContent = `[${timestamp}] ${message}`;
+                logDiv.appendChild(entry);
+                logDiv.scrollTop = logDiv.scrollHeight;
+            }
+
+            // Helper function to update step status
+            function updateStep(stepId, status, details = '') {
+                if (testAborted) return;
+
+                const element = document.getElementById(`step-${stepId}`);
+                element.className = `test-step ${status}`;
+
+                if (details) {
+                    const detailsDiv = element.querySelector('.step-details');
+                    detailsDiv.innerHTML = details;
+                    detailsDiv.style.display = 'block';
+                }
+            }
+
+            try {
+                // Step 1: API Key Validation
+                updateStep('api-key', 'testing');
+                log('Starting API key validation...', 'info');
+
+                const modelsResponse = await fetch(`${cleanEndpoint}/v1/models`, {
+                    headers: {
+                        'Authorization': `Bearer ${apiKey}`
+                    }
+                });
+
+                if (!modelsResponse.ok) {
+                    throw new Error(`API key validation failed: ${modelsResponse.status} ${modelsResponse.statusText}`);
+                }
+
+                const modelsData = await modelsResponse.json();
+                updateStep('api-key', 'success', t.testSteps.apiKeyValidation.success);
+                log('✓ API key validated successfully', 'success');
+                passedTests++;
+
+                if (testAborted) return;
+
+                // Step 2: Model Availability
+                updateStep('model', 'testing');
+                log('Checking for realtime models...', 'info');
+
+                const realtimeModels = modelsData.data.filter(m =>
+                    m.id.includes('realtime') || m.id === model
+                );
+
+                if (realtimeModels.length > 0) {
+                    const modelNames = realtimeModels.map(m => m.id).join(', ');
+                    updateStep('model', 'success', t.testSteps.modelAvailability.success + modelNames);
+                    log(`✓ Found ${realtimeModels.length} realtime model(s): ${modelNames}`, 'success');
+                    passedTests++;
+                } else {
+                    updateStep('model', 'failed', t.testSteps.modelAvailability.failed);
+                    log('✗ No realtime models available', 'error');
+                }
+
+                if (testAborted) return;
+
+                // Step 3: WebSocket Connection
+                updateStep('websocket', 'testing');
+                log('Establishing WebSocket connection...', 'info');
+
+                // Construct WebSocket URL
+                const wsUrl = cleanEndpoint.replace(/^https?:/, 'wss:') + '/v1/realtime?model=' + model;
+
+                // For browser connections, authentication is passed via protocols
+                // Note: This exposes the API key and should only be used for testing
+                ws = new WebSocket(wsUrl, [
+                    'realtime',
+                    `openai-insecure-api-key.${apiKey}`,
+                    'openai-beta.realtime-v1'
+                ]);
+
+                await new Promise((resolve, reject) => {
+                    const timeout = setTimeout(() => {
+                        reject(new Error('WebSocket connection timeout'));
+                    }, 10000);
+
+                    ws.onopen = () => {
+                        clearTimeout(timeout);
+                        updateStep('websocket', 'success', t.testSteps.websocketConnection.success);
+                        log('✓ WebSocket connection established', 'success');
+                        passedTests++;
+                        resolve();
+                    };
+
+                    ws.onerror = (error) => {
+                        clearTimeout(timeout);
+                        reject(new Error('WebSocket connection failed'));
+                    };
+                });
+
+                if (testAborted) return;
+
+                // Step 4: Session Creation
+                updateStep('session', 'testing');
+                log('Creating realtime session...', 'info');
+
+                let sessionCreated = false;
+                let messageResponseReceived = false;
+
+                ws.onmessage = (event) => {
+                    const data = JSON.parse(event.data);
+
+                    // Log all received messages for debugging
+                    log(`Received: ${data.type}`, 'info');
+
+                    // Handle error messages specifically
+                    if (data.type === 'error') {
+                        const errorMsg = data.error?.message || 'Unknown error';
+                        const errorCode = data.error?.code || '';
+                        const errorType = data.error?.type || 'error';
+                        log(`✗ Error: ${errorMsg} ${errorCode ? `(${errorCode})` : ''} [${errorType}]`, 'error');
+
+                        // Log full error details for debugging
+                        if (data.error) {
+                            log(`Error details: ${JSON.stringify(data.error, null, 2)}`, 'error');
+                        }
+
+                        // Update session step if error occurs during session creation
+                        if (!sessionCreated) {
+                            updateStep('session', 'failed', `Error: ${errorMsg}`);
+                        }
+                    } else if (data.type === 'session.created') {
+                        sessionCreated = true;
+                        updateStep('session', 'success', t.testSteps.sessionCreation.success);
+                        log('✓ Session created with ID: ' + data.session.id, 'success');
+                    } else if (data.type === 'response.done' || data.type === 'response.text.done') {
+                        messageResponseReceived = true;
+
+                        // Try different possible response structures
+                        let responseText = 'Response received';
+
+                        // First log the full response for debugging
+                        log('Full response data: ' + JSON.stringify(data, null, 2), 'info');
+
+                        // Try to extract text from different possible locations
+                        if (data.response?.output) {
+                            // Handle array of outputs
+                            if (Array.isArray(data.response.output)) {
+                                for (const output of data.response.output) {
+                                    if (output.content) {
+                                        if (Array.isArray(output.content)) {
+                                            // content is an array
+                                            const textContent = output.content.find(c => c.text || c.transcript);
+                                            if (textContent) {
+                                                responseText = textContent.text || textContent.transcript || responseText;
+                                                break;
+                                            }
+                                        } else if (typeof output.content === 'string') {
+                                            // content is a string
+                                            responseText = output.content;
+                                            break;
+                                        } else if (output.content.text) {
+                                            // content is an object with text
+                                            responseText = output.content.text;
+                                            break;
+                                        }
+                                    } else if (output.text) {
+                                        // direct text property
+                                        responseText = output.text;
+                                        break;
+                                    } else if (output.transcript) {
+                                        // audio transcript
+                                        responseText = output.transcript;
+                                        break;
+                                    }
+                                }
+                            }
+                        } else if (data.text) {
+                            // Direct text on data object
+                            responseText = data.text;
+                        } else if (data.transcript) {
+                            // Direct transcript on data object
+                            responseText = data.transcript;
+                        }
+
+                        updateStep('message', 'success', t.testSteps.messageTest.success + responseText);
+                        log('✓ Received response: ' + responseText, 'success');
+                    } else {
+                        // Log any other message types for visibility
+                        if (data.type) {
+                            log(`Message type: ${data.type}`, 'info');
+                        }
+                    }
+                };
+
+                // Wait for session creation
+                await new Promise((resolve) => {
+                    const checkInterval = setInterval(() => {
+                        if (sessionCreated || testAborted) {
+                            clearInterval(checkInterval);
+                            if (sessionCreated) passedTests++;
+                            resolve();
+                        }
+                    }, 100);
+
+                    setTimeout(() => {
+                        clearInterval(checkInterval);
+                        if (!sessionCreated && !testAborted) {
+                            updateStep('session', 'failed', t.testSteps.sessionCreation.failed);
+                            log('✗ Session creation timeout', 'error');
+                        }
+                        resolve();
+                    }, 5000);
+                });
+
+                if (testAborted || !sessionCreated) return;
+
+                // Step 5: Message Test
+                updateStep('message', 'testing');
+                log('Sending test message...', 'info');
+
+                // Send a test message
+                const testMessage = {
+                    type: 'conversation.item.create',
+                    item: {
+                        type: 'message',
+                        role: 'user',
+                        content: [
+                            {
+                                type: 'input_text',
+                                text: 'Hello! Please respond with a simple greeting.'
+                            }
+                        ]
+                    }
+                };
+
+                ws.send(JSON.stringify(testMessage));
+                log('Sent test message', 'info');
+
+                // Request response
+                ws.send(JSON.stringify({
+                    type: 'response.create'
+                }));
+
+                // Wait for response
+                await new Promise((resolve) => {
+                    const checkInterval = setInterval(() => {
+                        if (messageResponseReceived || testAborted) {
+                            clearInterval(checkInterval);
+                            if (messageResponseReceived) passedTests++;
+                            resolve();
+                        }
+                    }, 100);
+
+                    setTimeout(() => {
+                        clearInterval(checkInterval);
+                        if (!messageResponseReceived && !testAborted) {
+                            updateStep('message', 'failed', t.testSteps.messageTest.failed);
+                            log('✗ No response received within timeout', 'error');
+                        }
+                        resolve();
+                    }, 10000);
+                });
+
+            } catch (error) {
+                log(`Error: ${error.message}`, 'error');
+
+                // Update the step that failed
+                if (document.querySelector('#step-api-key.testing')) {
+                    updateStep('api-key', 'failed', error.message);
+                } else if (document.querySelector('#step-model.testing')) {
+                    updateStep('model', 'failed', error.message);
+                } else if (document.querySelector('#step-websocket.testing')) {
+                    updateStep('websocket', 'failed', error.message);
+                } else if (document.querySelector('#step-session.testing')) {
+                    updateStep('session', 'failed', error.message);
+                } else if (document.querySelector('#step-message.testing')) {
+                    updateStep('message', 'failed', error.message);
+                }
+            } finally {
+                // Clean up
+                if (ws && ws.readyState === WebSocket.OPEN) {
+                    ws.close();
+                    log('WebSocket connection closed', 'info');
+                }
+
+                // Show summary
+                if (!testAborted) {
+                    const summaryDiv = document.getElementById('testSummary');
+                    summaryDiv.style.display = 'block';
+
+                    if (passedTests === totalTests) {
+                        summaryDiv.className = 'test-summary all-passed';
+                        summaryDiv.innerHTML = t.testSummary.allPassed;
+                    } else {
+                        summaryDiv.className = 'test-summary some-failed';
+                        summaryDiv.innerHTML = `
+                            ${t.testSummary.someFailed}
+                            <br><br>
+                            <strong>${t.testSummary.checkList}</strong>
+                            <ul style="margin: 10px 0 0 20px;">
+                                <li>${t.troubleshooting.apiKeyInvalid}</li>
+                                <li>${t.troubleshooting.noRealtimeAccess}</li>
+                                <li>${t.troubleshooting.networkIssues}</li>
+                                <li>${t.troubleshooting.endpointIncorrect}</li>
+                                <li>${t.troubleshooting.corsIssues}</li>
+                                <li>${t.troubleshooting.billingIssues}</li>
+                                <li>${t.troubleshooting.contactProvider}</li>
+                            </ul>
+                        `;
+                    }
+                }
+
+                // Reset buttons
+                document.getElementById('testButton').style.display = 'inline-block';
+                document.getElementById('stopButton').style.display = 'none';
+            }
+        }
+
+        // Stop tests
+        function stopTests() {
+            testAborted = true;
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.close();
+            }
+            document.getElementById('testButton').style.display = 'inline-block';
+            document.getElementById('stopButton').style.display = 'none';
+
+            const logDiv = document.getElementById('connectionLog');
+            const entry = document.createElement('div');
+            entry.className = 'log-entry error';
+            const timestamp = new Date().toLocaleTimeString();
+            entry.textContent = `[${timestamp}] Tests aborted by user`;
+            logDiv.appendChild(entry);
+        }
+
+        // Clear results
+        function clearResults() {
+            document.getElementById('testResults').style.display = 'none';
+            document.getElementById('clearButton').style.display = 'none';
+
+            // Reset all test steps
+            const steps = ['api-key', 'model', 'websocket', 'session', 'message'];
+            steps.forEach(step => {
+                const element = document.getElementById(`step-${step}`);
+                element.className = 'test-step pending';
+                element.querySelector('.step-details').style.display = 'none';
+                element.querySelector('.step-details').innerHTML = '';
+            });
+        }
+
+        // TOC Active Section Highlighting
+        function updateActiveSection() {
+            const sections = document.querySelectorAll('[id]');
+            const tocLinks = document.querySelectorAll('.toc-list a');
+
+            let currentSection = '';
+
+            sections.forEach(section => {
+                const rect = section.getBoundingClientRect();
+                if (rect.top <= 100 && rect.bottom >= 100) {
+                    currentSection = section.id;
+                }
+            });
+
+            tocLinks.forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('href') === '#' + currentSection) {
+                    link.classList.add('active');
+                }
+            });
+        }
+
+        // Event listeners
+        window.addEventListener('scroll', updateActiveSection);
+        window.addEventListener('load', updateActiveSection);
+
+        // Initialize page
+        renderContent(getCurrentLanguage());
+
+        // Add event listener for Enter key on API key input
+        setTimeout(() => {
+            const apiKeyInput = document.getElementById('apiKey');
+            if (apiKeyInput) {
+                apiKeyInput.addEventListener('keypress', function(event) {
+                    if (event.key === 'Enter') {
+                        runTests(getCurrentLanguage());
+                    }
+                });
+            }
+        }, 0);
+    </script>
+</body>
+</html>
