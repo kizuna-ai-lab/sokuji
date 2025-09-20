@@ -139,6 +139,9 @@
       "name": "Comet API",
       "description": "Vaihtoehtoinen tekoälypalveluntarjoaja"
     },
+    "yunai": {
+      "name": "YunAI",
+      "description": "Alternative AI provider"
     "palabraai": {
       "name": "Palabra AI",
       "description": "Erikoistunut käännöstekoäly"

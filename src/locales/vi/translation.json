@@ -282,6 +282,9 @@
       "name": "Comet API",
       "description": "Nhà cung cấp AI thay thế"
     },
+    "yunai": {
+      "name": "YunAI",
+      "description": "Alternative AI provider"
     "palabraai": {
       "name": "Palabra AI",
       "description": "AI dịch chuyên biệt"

@@ -56,6 +56,22 @@
       "name": "Google Gemini",
       "description": "เทคโนโลยี AI ของ Google"
     },
+    "cometapi": {
+      "name": "Comet API",
+      "description": "Alternative AI provider"
+    },
+    "yunai": {
+      "name": "YunAI",
+      "description": "Alternative AI provider"
+    },
+    "palabraai": {
+      "name": "Palabra AI",
+      "description": "Specialized translation AI"
+    },
+    "kizunaai": {
+      "name": "Kizuna AI",
+      "description": "Powered by kizuna.ai service"
+    },
     "unknown": {
       "name": "ไม่ทราบ",
       "description": "ผู้ให้บริการที่ไม่ทราบ"

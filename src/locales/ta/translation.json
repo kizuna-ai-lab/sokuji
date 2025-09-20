@@ -78,6 +78,9 @@
       "name": "Comet API",
       "description": "மாற்று AI வழங்குநர்"
     },
+    "yunai": {
+      "name": "YunAI",
+      "description": "Alternative AI provider"
     "palabraai": {
       "name": "Palabra AI",
       "description": "நியங்களித்த மோழிபெயர்ப்பு AI"

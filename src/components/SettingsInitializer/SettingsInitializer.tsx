@@ -6,6 +6,7 @@ import {
   useOpenAISettings,
   useGeminiSettings,
   useCometAPISettings,
+  useYunAISettings,
   usePalabraAISettings,
   useSettingsLoaded
 } from '../../stores/settingsStore';
@@ -30,6 +31,7 @@ export function SettingsInitializer() {
   const openAISettings = useOpenAISettings();
   const geminiSettings = useGeminiSettings();
   const cometAPISettings = useCometAPISettings();
+  const yunAISettings = useYunAISettings();
   const palabraAISettings = usePalabraAISettings();
 
   // Auto-fetch and validate KizunaAI API key when user logs in or provider changes
@@ -80,6 +82,9 @@ export function SettingsInitializer() {
             break;
           case Provider.COMET_API:
             hasApiKey = !!cometAPISettings.apiKey;
+            break;
+          case Provider.YUN_AI:
+            hasApiKey = !!yunAISettings.apiKey;
             break;
           case Provider.PALABRA_AI:
             hasApiKey = !!palabraAISettings.clientId && !!palabraAISettings.clientSecret;

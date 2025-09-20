@@ -7,6 +7,7 @@ import {
   useOpenAISettings,
   useGeminiSettings,
   useCometAPISettings,
+  useYunAISettings,
   usePalabraAISettings,
   useKizunaAISettings,
   useIsApiKeyValid,
@@ -57,6 +58,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   const uiMode = useUIMode();
   const openAISettings = useOpenAISettings();
   const cometAPISettings = useCometAPISettings();
+  const yunAISettings = useYunAISettings();
   const geminiSettings = useGeminiSettings();
   const palabraAISettings = usePalabraAISettings();
   const kizunaAISettings = useKizunaAISettings();
@@ -468,6 +470,9 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         case Provider.COMET_API:
           apiKey = cometAPISettings.apiKey;
           break;
+        case Provider.YUN_AI:
+          apiKey = yunAISettings.apiKey;
+          break;
         case Provider.KIZUNA_AI:
           // For Kizuna AI, fetch a fresh token from Clerk to avoid 401 errors
           if (getToken && isLoaded && isSignedIn === true) {
@@ -527,6 +532,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         const settings = 
           provider === Provider.OPENAI ? openAISettings :
           provider === Provider.COMET_API ? cometAPISettings :
+          provider === Provider.YUN_AI ? yunAISettings :
           provider === Provider.KIZUNA_AI ? kizunaAISettings :
           null;
         setCanPushToTalk(settings ? settings.turnDetectionMode === 'Disabled' : false);
@@ -598,6 +604,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         const settings = 
           provider === Provider.OPENAI ? openAISettings :
           provider === Provider.COMET_API ? cometAPISettings :
+          provider === Provider.YUN_AI ? yunAISettings :
           provider === Provider.KIZUNA_AI ? kizunaAISettings :
           null;
         turnDetectionDisabled = settings ? settings.turnDetectionMode === 'Disabled' : false;
@@ -1299,9 +1306,10 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           // If we're in automatic mode, start/resume recording
           let turnDetectionDisabled = false;
           if (isOpenAICompatible(provider)) {
-            const settings = 
+            const settings =
               provider === Provider.OPENAI ? openAISettings :
               provider === Provider.COMET_API ? cometAPISettings :
+              provider === Provider.YUN_AI ? yunAISettings :
               provider === Provider.KIZUNA_AI ? kizunaAISettings :
               null;
             turnDetectionDisabled = settings ? settings.turnDetectionMode === 'Disabled' : false;

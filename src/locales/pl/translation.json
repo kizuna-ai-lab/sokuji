@@ -346,6 +346,9 @@
       "name": "Comet API",
       "description": "Alternatywny dostawca AI"
     },
+    "yunai": {
+      "name": "YunAI",
+      "description": "Alternative AI provider"
     "palabraai": {
       "name": "Palabra AI",
       "description": "Wyspecjalizowane AI do tłumaczeń"

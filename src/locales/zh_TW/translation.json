@@ -66,6 +66,22 @@
       "name": "Google Gemini",
       "description": "Google 的 AI 技術"
     },
+    "cometapi": {
+      "name": "Comet API",
+      "description": "Alternative AI provider"
+    },
+    "yunai": {
+      "name": "YunAI",
+      "description": "Alternative AI provider"
+    },
+    "palabraai": {
+      "name": "Palabra AI",
+      "description": "Specialized translation AI"
+    },
+    "kizunaai": {
+      "name": "Kizuna AI",
+      "description": "Powered by kizuna.ai service"
+    },
     "unknown": {
       "name": "未知",
       "description": "未知的提供商"

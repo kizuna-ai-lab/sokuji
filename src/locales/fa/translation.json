@@ -182,6 +182,9 @@
       "name": "Comet API",
       "description": "ارائه‌دهنده هوش مصنوعی جایگزین"
     },
+    "yunai": {
+      "name": "YunAI",
+      "description": "Alternative AI provider"
     "palabraai": {
       "name": "Palabra AI",
       "description": "هوش مصنوعی تخصصی ترجمه"

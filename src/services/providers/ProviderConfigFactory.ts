@@ -2,6 +2,7 @@ import { ProviderConfig } from './ProviderConfig';
 import { OpenAIProviderConfig } from './OpenAIProviderConfig';
 import { GeminiProviderConfig } from './GeminiProviderConfig';
 import { CometAPIProviderConfig } from './CometAPIProviderConfig';
+import { YunAIProviderConfig } from './YunAIProviderConfig';
 import { PalabraAIProviderConfig } from './PalabraAIProviderConfig';
 import { KizunaAIProviderConfig } from './KizunaAIProviderConfig';
 import { Provider, ProviderType } from '../../types/Provider';
@@ -19,8 +20,9 @@ export class ProviderConfigFactory {
     ProviderConfigFactory.configs.set(Provider.OPENAI, new OpenAIProviderConfig());
     ProviderConfigFactory.configs.set(Provider.GEMINI, new GeminiProviderConfig());
     ProviderConfigFactory.configs.set(Provider.COMET_API, new CometAPIProviderConfig());
+    ProviderConfigFactory.configs.set(Provider.YUN_AI, new YunAIProviderConfig());
     ProviderConfigFactory.configs.set(Provider.PALABRA_AI, new PalabraAIProviderConfig());
-    
+
     // Only register Kizuna AI if the feature flag is enabled
     if (isKizunaAIEnabled()) {
       ProviderConfigFactory.configs.set(Provider.KIZUNA_AI, new KizunaAIProviderConfig());
