@@ -8,6 +8,7 @@ import {
   useOpenAISettings,
   useGeminiSettings,
   useCometAPISettings,
+  useYunAISettings,
   usePalabraAISettings,
   useKizunaAISettings,
   useIsApiKeyValid,
@@ -19,6 +20,7 @@ import {
   useUpdateOpenAI,
   useUpdateGemini,
   useUpdateCometAPI,
+  useUpdateYunAI,
   useUpdatePalabraAI,
   useUpdateKizunaAI,
   useValidateApiKey,
@@ -61,6 +63,7 @@ const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings, h
   const openAISettings = useOpenAISettings();
   const geminiSettings = useGeminiSettings();
   const cometAPISettings = useCometAPISettings();
+  const yunAISettings = useYunAISettings();
   const palabraAISettings = usePalabraAISettings();
   const kizunaAISettings = useKizunaAISettings();
   const isApiKeyValid = useIsApiKeyValid();
@@ -73,6 +76,7 @@ const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings, h
   const updateOpenAISettings = useUpdateOpenAI();
   const updateGeminiSettings = useUpdateGemini();
   const updateCometAPISettings = useUpdateCometAPI();
+  const updateYunAISettings = useUpdateYunAI();
   const updatePalabraAISettings = useUpdatePalabraAI();
   const updateKizunaAISettings = useUpdateKizunaAI();
   const validateApiKey = useValidateApiKey();
@@ -134,6 +138,8 @@ const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings, h
         return geminiSettings;
       case Provider.COMET_API:
         return cometAPISettings;
+      case Provider.YUN_AI:
+        return yunAISettings;
       case Provider.PALABRA_AI:
         return palabraAISettings;
       case Provider.KIZUNA_AI:
@@ -152,6 +158,8 @@ const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings, h
         return geminiSettings.apiKey;
       case Provider.COMET_API:
         return cometAPISettings.apiKey;
+      case Provider.YUN_AI:
+        return yunAISettings.apiKey;
       case Provider.PALABRA_AI:
         return palabraAISettings.clientId; // Show client ID as "API key" for simplicity
       case Provider.KIZUNA_AI:
@@ -172,6 +180,9 @@ const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings, h
         break;
       case Provider.COMET_API:
         updateCometAPISettings({ apiKey: value });
+        break;
+      case Provider.YUN_AI:
+        updateYunAISettings({ apiKey: value });
         break;
       case Provider.PALABRA_AI:
         updatePalabraAISettings({ clientId: value });
@@ -195,6 +206,9 @@ const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings, h
       case Provider.COMET_API:
         updateCometAPISettings({ sourceLanguage: value });
         break;
+      case Provider.YUN_AI:
+        updateYunAISettings({ sourceLanguage: value });
+        break;
       case Provider.PALABRA_AI:
         updatePalabraAISettings({ sourceLanguage: value });
         break;
@@ -215,6 +229,9 @@ const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings, h
         break;
       case Provider.COMET_API:
         updateCometAPISettings({ targetLanguage: value });
+        break;
+      case Provider.YUN_AI:
+        updateYunAISettings({ targetLanguage: value });
         break;
       case Provider.PALABRA_AI:
         updatePalabraAISettings({ targetLanguage: value });
@@ -297,6 +314,13 @@ const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings, h
           icon: Zap,
           helpUrl: 'https://cometapi.com',
           description: t('providers.cometapi.description')
+        };
+      case Provider.YUN_AI:
+        return {
+          name: t('providers.yunai.name'),
+          icon: Zap,
+          helpUrl: 'https://new.yunai.link',
+          description: t('providers.yunai.description')
         };
       case Provider.PALABRA_AI:
         return {

@@ -8,6 +8,7 @@ import {
   useOpenAISettings,
   useGeminiSettings,
   useCometAPISettings,
+  useYunAISettings,
   usePalabraAISettings,
   useKizunaAISettings,
   useSetSystemInstructions,
@@ -16,6 +17,7 @@ import {
   useUpdateOpenAI,
   useUpdateGemini,
   useUpdateCometAPI,
+  useUpdateYunAI,
   useUpdatePalabraAI,
   useUpdateKizunaAI,
   useGetCurrentProviderSettings
@@ -57,6 +59,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
   const useTemplateMode = useUseTemplateMode();
   const openAISettings = useOpenAISettings();
   const cometAPISettings = useCometAPISettings();
+  const yunAISettings = useYunAISettings();
   const geminiSettings = useGeminiSettings();
   const palabraAISettings = usePalabraAISettings();
   const kizunaAISettings = useKizunaAISettings();
@@ -67,6 +70,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
   const setUseTemplateMode = useSetUseTemplateMode();
   const updateOpenAISettings = useUpdateOpenAI();
   const updateCometAPISettings = useUpdateCometAPI();
+  const updateYunAISettings = useUpdateYunAI();
   const updateGeminiSettings = useUpdateGemini();
   const updatePalabraAISettings = useUpdatePalabraAI();
   const updateKizunaAISettings = useUpdateKizunaAI();
@@ -83,6 +87,8 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
       updateOpenAISettings({ [key]: value });
     } else if (provider === Provider.COMET_API) {
       updateCometAPISettings({ [key]: value });
+    } else if (provider === Provider.YUN_AI) {
+      updateYunAISettings({ [key]: value });
     } else if (provider === Provider.KIZUNA_AI) {
       updateKizunaAISettings({ [key]: value });
     } else if (provider === Provider.GEMINI) {
@@ -105,6 +111,8 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
       return openAISettings;
     } else if (provider === Provider.COMET_API) {
       return cometAPISettings;
+    } else if (provider === Provider.YUN_AI) {
+      return yunAISettings;
     } else if (provider === Provider.KIZUNA_AI) {
       return kizunaAISettings;
     }
@@ -117,6 +125,8 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
       updateOpenAISettings(updates);
     } else if (provider === Provider.COMET_API) {
       updateCometAPISettings(updates);
+    } else if (provider === Provider.YUN_AI) {
+      updateYunAISettings(updates);
     } else if (provider === Provider.KIZUNA_AI) {
       updateKizunaAISettings(updates);
     }

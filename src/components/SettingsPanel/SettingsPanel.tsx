@@ -10,6 +10,7 @@ import {
   useOpenAISettings,
   useGeminiSettings,
   useCometAPISettings,
+  useYunAISettings,
   usePalabraAISettings,
   useKizunaAISettings,
   useAvailableModels,
@@ -23,6 +24,7 @@ import {
   useUpdateOpenAI,
   useUpdateGemini,
   useUpdateCometAPI,
+  useUpdateYunAI,
   useUpdatePalabraAI,
   useUpdateKizunaAI,
   useValidateApiKey,
@@ -61,6 +63,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
   const useTemplateMode = useUseTemplateMode();
   const openAISettings = useOpenAISettings();
   const cometAPISettings = useCometAPISettings();
+  const yunAISettings = useYunAISettings();
   const geminiSettings = useGeminiSettings();
   const palabraAISettings = usePalabraAISettings();
   const kizunaAISettings = useKizunaAISettings();
@@ -76,6 +79,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
   const setUseTemplateMode = useSetUseTemplateMode();
   const updateOpenAISettings = useUpdateOpenAI();
   const updateCometAPISettings = useUpdateCometAPI();
+  const updateYunAISettings = useUpdateYunAI();
   const updateGeminiSettings = useUpdateGemini();
   const updatePalabraAISettings = useUpdatePalabraAI();
   const updateKizunaAISettings = useUpdateKizunaAI();
@@ -125,6 +129,8 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
         updateOpenAISettings(openAISettings);
       } else if (provider === Provider.COMET_API) {
         updateCometAPISettings(cometAPISettings);
+      } else if (provider === Provider.YUN_AI) {
+        updateYunAISettings(yunAISettings);
       } else if (provider === Provider.PALABRA_AI) {
         updatePalabraAISettings(palabraAISettings);
       } else if (provider === Provider.KIZUNA_AI) {
@@ -279,7 +285,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
                   </option>
                 ))}
               </select>
-              {(provider === Provider.GEMINI || provider === Provider.COMET_API || provider === Provider.PALABRA_AI) && (
+              {(provider === Provider.GEMINI || provider === Provider.COMET_API || provider === Provider.YUN_AI || provider === Provider.PALABRA_AI) && (
                 <div className="experimental-icon-wrapper">
                   <FlaskConical 
                     size={16} 
@@ -383,6 +389,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
                     value={
                       provider === Provider.OPENAI ? openAISettings.apiKey :
                       provider === Provider.COMET_API ? cometAPISettings.apiKey :
+                      provider === Provider.YUN_AI ? yunAISettings.apiKey :
                       geminiSettings.apiKey
                     }
                     onChange={(e) => {
@@ -390,6 +397,8 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
                         updateOpenAISettings({ apiKey: e.target.value });
                       } else if (provider === Provider.COMET_API) {
                         updateCometAPISettings({ apiKey: e.target.value });
+                      } else if (provider === Provider.YUN_AI) {
+                        updateYunAISettings({ apiKey: e.target.value });
                       } else {
                         updateGeminiSettings({ apiKey: e.target.value });
                       }
@@ -407,6 +416,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
                     disabled={isValidating || 
                       (provider === Provider.OPENAI ? !openAISettings.apiKey :
                        provider === Provider.COMET_API ? !cometAPISettings.apiKey :
+                       provider === Provider.YUN_AI ? !yunAISettings.apiKey :
                        !geminiSettings.apiKey) || 
                       isSessionActive}
                   >

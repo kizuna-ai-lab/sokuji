@@ -185,6 +185,9 @@
       "name": "Comet API",
       "description": "مقدم ذكاء اصطناعي بديل"
     },
+    "yunai": {
+      "name": "YunAI",
+      "description": "Alternative AI provider"
     "palabraai": {
       "name": "Palabra AI",
       "description": "ذكاء اصطناعي متخصص في الترجمة"

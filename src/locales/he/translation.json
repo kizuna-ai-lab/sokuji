@@ -178,6 +178,9 @@
       "name": "Comet API",
       "description": "ספק בינה מלאכותית חלופי"
     },
+    "yunai": {
+      "name": "YunAI",
+      "description": "Alternative AI provider"
     "palabraai": {
       "name": "Palabra AI",
       "description": "בינה מלאכותית מתמחה בתרגום"

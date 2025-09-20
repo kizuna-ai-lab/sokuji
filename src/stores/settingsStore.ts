@@ -1,17 +1,17 @@
-import { create } from 'zustand';
-import { subscribeWithSelector } from 'zustand/middleware';
-import { ServiceFactory } from '../services/ServiceFactory';
-import { ProviderConfigFactory } from '../services/providers/ProviderConfigFactory';
-import { ProviderConfig } from '../services/providers/ProviderConfig';
-import { 
-  FilteredModel, 
-  SessionConfig, 
-  OpenAISessionConfig, 
-  GeminiSessionConfig, 
-  PalabraAISessionConfig 
+import {create} from 'zustand';
+import {subscribeWithSelector} from 'zustand/middleware';
+import {ServiceFactory} from '../services/ServiceFactory';
+import {ProviderConfigFactory} from '../services/providers/ProviderConfigFactory';
+import {ProviderConfig} from '../services/providers/ProviderConfig';
+import {
+  FilteredModel,
+  SessionConfig,
+  OpenAISessionConfig,
+  GeminiSessionConfig,
+  PalabraAISessionConfig
 } from '../services/interfaces/IClient';
-import { ApiKeyValidationResult } from '../services/interfaces/ISettingsService';
-import { Provider, ProviderType } from '../types/Provider';
+import {ApiKeyValidationResult} from '../services/interfaces/ISettingsService';
+import {Provider, ProviderType} from '../types/Provider';
 
 // ==================== Type Definitions ====================
 
@@ -45,6 +45,7 @@ export interface OpenAICompatibleSettings {
 
 export type OpenAISettings = OpenAICompatibleSettings;
 export type CometAPISettings = OpenAICompatibleSettings;
+export type YunAISettings = OpenAICompatibleSettings;
 export type KizunaAISettings = OpenAICompatibleSettings;
 
 // Gemini Settings
@@ -404,6 +405,10 @@ const defaultCometAPISettings: CometAPISettings = {
   ...defaultOpenAICompatibleSettings,
   transcriptModel: 'whisper-1',
 };
+const defaultYunAISettings: YunAISettings = {
+  ...defaultOpenAICompatibleSettings,
+  transcriptModel: 'whisper-1',
+};
 const defaultKizunaAISettings: KizunaAISettings = {
   ...defaultOpenAICompatibleSettings,
   transcriptModel: 'whisper-1',
@@ -446,34 +451,35 @@ interface SettingsStore {
   systemInstructions: string;
   templateSystemInstructions: string;
   useTemplateMode: boolean;
-  
+
   // Provider-specific settings
   openai: OpenAISettings;
   gemini: GeminiSettings;
   cometapi: CometAPISettings;
+  yunai: YunAISettings;
   palabraai: PalabraAISettings;
   kizunaai: KizunaAISettings;
-  
+
   // Validation state
   isApiKeyValid: boolean | null;
   isValidating: boolean;
   validationMessage: string;
   validationCache: Map<string, CacheEntry>;
-  
+
   // Models state
   availableModels: FilteredModel[];
   loadingModels: boolean;
-  
+
   // Kizuna AI state
   isKizunaKeyFetching: boolean;
   kizunaKeyError: string | null;
-  
+
   // Navigation state
   settingsNavigationTarget: string | null;
-  
+
   // Settings loading state
   settingsLoaded: boolean;
-  
+
   // === Actions ===
   // Common settings actions
   setProvider: (provider: ProviderType) => void;
@@ -482,23 +488,24 @@ interface SettingsStore {
   setSystemInstructions: (instructions: string) => void;
   setTemplateSystemInstructions: (instructions: string) => void;
   setUseTemplateMode: (useTemplate: boolean) => void;
-  
+
   // Provider settings actions
   updateOpenAI: (settings: Partial<OpenAISettings>) => void;
   updateGemini: (settings: Partial<GeminiSettings>) => void;
   updateCometAPI: (settings: Partial<CometAPISettings>) => void;
+  updateYunAI: (settings: Partial<YunAISettings>) => void;
   updatePalabraAI: (settings: Partial<PalabraAISettings>) => void;
   updateKizunaAI: (settings: Partial<KizunaAISettings>) => void;
-  
+
   // Async actions
   validateApiKey: (getAuthToken?: () => Promise<string | null>) => Promise<ApiKeyValidationResult>;
   fetchAvailableModels: (getAuthToken?: () => Promise<string | null>) => Promise<void>;
   ensureKizunaApiKey: (getToken: () => Promise<string | null>, isSignedIn: boolean) => Promise<boolean>;
   loadSettings: () => Promise<void>;
   clearCache: () => void;
-  
+
   // Helper methods
-  getCurrentProviderSettings: () => OpenAISettings | GeminiSettings | CometAPISettings | PalabraAISettings | KizunaAISettings;
+  getCurrentProviderSettings: () => OpenAISettings | GeminiSettings | CometAPISettings | YunAISettings | PalabraAISettings | KizunaAISettings;
   getCurrentProviderConfig: () => ProviderConfig;
   getProcessedSystemInstructions: () => string;
   createSessionConfig: (systemInstructions: string) => SessionConfig;
@@ -508,7 +515,7 @@ interface SettingsStore {
 // ==================== Helper Functions ====================
 
 function createOpenAISessionConfig(
-  settings: OpenAISettings, 
+  settings: OpenAISettings,
   systemInstructions: string
 ): OpenAISessionConfig {
   return {
@@ -518,7 +525,7 @@ function createOpenAISessionConfig(
     instructions: systemInstructions,
     temperature: settings.temperature,
     maxTokens: settings.maxTokens,
-    turnDetection: settings.turnDetectionMode === 'Disabled' ? { type: 'none' } :
+    turnDetection: settings.turnDetectionMode === 'Disabled' ? {type: 'none'} :
       settings.turnDetectionMode === 'Normal' ? {
         type: 'server_vad',
         createResponse: true,
@@ -542,7 +549,7 @@ function createOpenAISessionConfig(
 }
 
 function createGeminiSessionConfig(
-  settings: GeminiSettings, 
+  settings: GeminiSettings,
   systemInstructions: string
 ): GeminiSessionConfig {
   return {
@@ -556,7 +563,7 @@ function createGeminiSessionConfig(
 }
 
 function createPalabraAISessionConfig(
-  settings: PalabraAISettings, 
+  settings: PalabraAISettings,
   systemInstructions: string
 ): PalabraAISessionConfig {
   return {
@@ -587,34 +594,35 @@ const useSettingsStore = create<SettingsStore>()(
     openai: defaultOpenAISettings,
     gemini: defaultGeminiSettings,
     cometapi: defaultCometAPISettings,
+    yunai: defaultYunAISettings,
     palabraai: defaultPalabraAISettings,
     kizunaai: defaultKizunaAISettings,
-    
+
     isApiKeyValid: null,
     isValidating: false,
     validationMessage: '',
     validationCache: new Map(),
-    
+
     availableModels: [],
     loadingModels: false,
-    
+
     isKizunaKeyFetching: false,
     kizunaKeyError: null,
-    
+
     settingsNavigationTarget: null,
-    
+
     settingsLoaded: false,
-    
+
     // === Common Settings Actions ===
     setProvider: async (provider) => {
-      set({ provider });
+      set({provider});
       const service = ServiceFactory.getSettingsService();
       await service.setSetting('settings.common.provider', provider);
-      
+
       // Clear cache when switching providers
       const state = get();
       state.clearCache();
-      
+
       // Auto-validate API key for the new provider
       // Note: For KizunaAI, this will be handled by SettingsInitializer
       if (provider !== Provider.KIZUNA_AI) {
@@ -624,84 +632,92 @@ const useSettingsStore = create<SettingsStore>()(
         }, 100);
       }
     },
-    
+
     setUILanguage: async (uiLanguage) => {
-      set({ uiLanguage });
+      set({uiLanguage});
       const service = ServiceFactory.getSettingsService();
       await service.setSetting('settings.common.uiLanguage', uiLanguage);
     },
-    
+
     setUIMode: async (uiMode) => {
-      set({ uiMode });
+      set({uiMode});
       const service = ServiceFactory.getSettingsService();
       await service.setSetting('settings.common.uiMode', uiMode);
     },
-    
+
     setSystemInstructions: async (systemInstructions) => {
-      set({ systemInstructions });
+      set({systemInstructions});
       const service = ServiceFactory.getSettingsService();
       await service.setSetting('settings.common.systemInstructions', systemInstructions);
     },
-    
+
     setTemplateSystemInstructions: async (templateSystemInstructions) => {
-      set({ templateSystemInstructions });
+      set({templateSystemInstructions});
       const service = ServiceFactory.getSettingsService();
       await service.setSetting('settings.common.templateSystemInstructions', templateSystemInstructions);
     },
-    
+
     setUseTemplateMode: async (useTemplateMode) => {
-      set({ useTemplateMode });
+      set({useTemplateMode});
       const service = ServiceFactory.getSettingsService();
       await service.setSetting('settings.common.useTemplateMode', useTemplateMode);
     },
-    
+
     // === Provider Settings Actions ===
     updateOpenAI: async (settings) => {
-      set((state) => ({ openai: { ...state.openai, ...settings } }));
+      set((state) => ({openai: {...state.openai, ...settings}}));
       const service = ServiceFactory.getSettingsService();
       for (const [key, value] of Object.entries(settings)) {
         await service.setSetting(`settings.openai.${key}`, value);
       }
     },
-    
+
     updateGemini: async (settings) => {
-      set((state) => ({ gemini: { ...state.gemini, ...settings } }));
+      set((state) => ({gemini: {...state.gemini, ...settings}}));
       const service = ServiceFactory.getSettingsService();
       for (const [key, value] of Object.entries(settings)) {
         await service.setSetting(`settings.gemini.${key}`, value);
       }
     },
-    
+
     updateCometAPI: async (settings) => {
-      set((state) => ({ cometapi: { ...state.cometapi, ...settings } }));
+      set((state) => ({cometapi: {...state.cometapi, ...settings}}));
       const service = ServiceFactory.getSettingsService();
       for (const [key, value] of Object.entries(settings)) {
         await service.setSetting(`settings.cometapi.${key}`, value);
       }
     },
-    
+
+    updateYunAI: async (settings) => {
+      set((state) => ({yunai: {...state.yunai, ...settings}}));
+      const service = ServiceFactory.getSettingsService();
+      for (const [key, value] of Object.entries(settings)) {
+        await service.setSetting(`settings.yunai.${key}`, value);
+      }
+    },
+
     updatePalabraAI: async (settings) => {
-      set((state) => ({ palabraai: { ...state.palabraai, ...settings } }));
+      set((state) => ({palabraai: {...state.palabraai, ...settings}}));
       const service = ServiceFactory.getSettingsService();
       for (const [key, value] of Object.entries(settings)) {
         await service.setSetting(`settings.palabraai.${key}`, value);
       }
     },
-    
+
     updateKizunaAI: async (settings) => {
-      set((state) => ({ kizunaai: { ...state.kizunaai, ...settings } }));
+      set((state) => ({kizunaai: {...state.kizunaai, ...settings}}));
       const service = ServiceFactory.getSettingsService();
       for (const [key, value] of Object.entries(settings)) {
         if (key === 'apiKey') continue; // Don't persist Kizuna AI API key
         await service.setSetting(`settings.kizunaai.${key}`, value);
       }
     },
-    
+
     // === Async Actions ===
     validateApiKey: async (getAuthToken) => {
       const state = get();
       const provider = state.provider;
-      
+
       // For KizunaAI, ensure we have an API key first
       if (provider === Provider.KIZUNA_AI) {
         const hasKey = await state.ensureKizunaApiKey(getAuthToken!, true);
@@ -713,15 +729,15 @@ const useSettingsStore = create<SettingsStore>()(
           };
         }
       }
-      
+
       // Get current API key
       const currentSettings = state.getCurrentProviderSettings();
       let apiKey = '';
-      
+
       if (provider === Provider.PALABRA_AI) {
         const palabraSettings = currentSettings as PalabraAISettings;
         apiKey = palabraSettings.clientId;
-        
+
         // Check if both clientId and clientSecret are present for PalabraAI
         if (!palabraSettings.clientId || !palabraSettings.clientSecret) {
           set({
@@ -732,14 +748,14 @@ const useSettingsStore = create<SettingsStore>()(
             isValidated: false,
             validationError: null
           });
-          return { valid: false, message: '', validating: false };
+          return {valid: false, message: '', validating: false};
         }
       } else if (provider === Provider.KIZUNA_AI && getAuthToken) {
         apiKey = await getAuthToken() || '';
       } else {
         apiKey = (currentSettings as any).apiKey || '';
       }
-      
+
       // Check if API key is empty for non-PalabraAI providers
       if (!apiKey && provider !== Provider.PALABRA_AI) {
         set({
@@ -750,17 +766,17 @@ const useSettingsStore = create<SettingsStore>()(
           isValidated: false,
           validationError: null
         });
-        return { valid: false, message: '', validating: false };
+        return {valid: false, message: '', validating: false};
       }
-      
+
       // Check cache
-      const cacheKey = provider === Provider.PALABRA_AI 
+      const cacheKey = provider === Provider.PALABRA_AI
         ? `${provider}:${apiKey}:${(currentSettings as PalabraAISettings).clientSecret}`
         : `${provider}:${apiKey}`;
-      
+
       const cached = state.validationCache.get(cacheKey);
       if (cached && Date.now() - cached.timestamp < 5 * 60 * 1000) {
-        set({ 
+        set({
           isApiKeyValid: Boolean(cached.validation.valid),
           availableModels: cached.models,
           validationMessage: cached.validation.message,
@@ -771,18 +787,18 @@ const useSettingsStore = create<SettingsStore>()(
         });
         return cached.validation;
       }
-      
+
       // Validate
-      set({ isValidating: true, validationMessage: 'Validating...' });
-      
+      set({isValidating: true, validationMessage: 'Validating...'});
+
       try {
         const service = ServiceFactory.getSettingsService();
         const clientSecret = provider === Provider.PALABRA_AI
-          ? (currentSettings as PalabraAISettings).clientSecret 
+          ? (currentSettings as PalabraAISettings).clientSecret
           : undefined;
-        
+
         const result = await service.validateApiKeyAndFetchModels(apiKey, provider, clientSecret);
-        
+
         // Cache result
         const newCache = new Map(state.validationCache);
         newCache.set(cacheKey, {
@@ -790,7 +806,7 @@ const useSettingsStore = create<SettingsStore>()(
           models: result.models,
           timestamp: Date.now()
         });
-        
+
         set({
           isApiKeyValid: Boolean(result.validation.valid),
           availableModels: result.models,
@@ -801,7 +817,7 @@ const useSettingsStore = create<SettingsStore>()(
           validationError: result.validation.valid ? null : result.validation.message,
           cacheTimestamp: Date.now()
         });
-        
+
         return result.validation;
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Validation failed';
@@ -813,65 +829,65 @@ const useSettingsStore = create<SettingsStore>()(
           isValidated: false,
           validationError: message
         });
-        return { valid: false, message, validating: false };
+        return {valid: false, message, validating: false};
       }
     },
-    
+
     fetchAvailableModels: async (getAuthToken) => {
-      set({ loadingModels: true });
+      set({loadingModels: true});
       const result = await get().validateApiKey(getAuthToken);
-      set({ loadingModels: false });
+      set({loadingModels: false});
     },
-    
+
     ensureKizunaApiKey: async (getToken, isSignedIn) => {
       const state = get();
-      
+
       if (state.kizunaai.apiKey && state.kizunaai.apiKey.trim() !== '') {
         return true;
       }
-      
+
       if (state.isKizunaKeyFetching) {
         console.log('[SettingsStore] Token fetch already in progress');
         return false;
       }
-      
+
       if (!isSignedIn || !getToken) {
         console.log('[SettingsStore] Cannot get token - user not signed in');
-        set({ kizunaKeyError: 'User not signed in' });
+        set({kizunaKeyError: 'User not signed in'});
         return false;
       }
-      
-      set({ isKizunaKeyFetching: true, kizunaKeyError: null });
-      
+
+      set({isKizunaKeyFetching: true, kizunaKeyError: null});
+
       try {
         console.log('[SettingsStore] Getting Clerk token for Kizuna AI...');
         const clerkToken = await getToken();
-        
+
         if (clerkToken) {
           console.log('[SettingsStore] Successfully got Clerk token for Kizuna AI');
-          set((state) => ({ 
-            kizunaai: { ...state.kizunaai, apiKey: clerkToken },
-            isKizunaKeyFetching: false 
+          set((state) => ({
+            kizunaai: {...state.kizunaai, apiKey: clerkToken},
+            isKizunaKeyFetching: false
           }));
           return true;
         } else {
           const error = 'Failed to get Clerk token';
           console.warn('[SettingsStore] ' + error);
-          set({ kizunaKeyError: error, isKizunaKeyFetching: false });
+          set({kizunaKeyError: error, isKizunaKeyFetching: false});
           return false;
         }
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error getting Clerk token';
         console.error('[SettingsStore] Error getting Clerk token for Kizuna AI:', errorMessage);
-        set({ kizunaKeyError: errorMessage, isKizunaKeyFetching: false });
+        set({kizunaKeyError: errorMessage, isKizunaKeyFetching: false});
         return false;
       }
     },
-    
+
     loadSettings: async () => {
       try {
         const service = ServiceFactory.getSettingsService();
-        
+
         // Load common settings
         const provider = await service.getSetting('settings.common.provider', defaultCommonSettings.provider);
         const uiLanguage = await service.getSetting('settings.common.uiLanguage', defaultCommonSettings.uiLanguage);
@@ -879,10 +895,10 @@ const useSettingsStore = create<SettingsStore>()(
         const systemInstructions = await service.getSetting('settings.common.systemInstructions', defaultCommonSettings.systemInstructions);
         const templateSystemInstructions = await service.getSetting('settings.common.templateSystemInstructions', defaultCommonSettings.templateSystemInstructions);
         const useTemplateMode = await service.getSetting('settings.common.useTemplateMode', defaultCommonSettings.useTemplateMode);
-        
+
         // Validate provider availability
         const validProvider = ProviderConfigFactory.isProviderSupported(provider) ? provider : Provider.OPENAI;
-        
+
         // Load provider settings
         const loadProviderSettings = async <T>(prefix: string, defaults: T): Promise<T> => {
           const settings: any = {};
@@ -891,15 +907,16 @@ const useSettingsStore = create<SettingsStore>()(
           }
           return settings as T;
         };
-        
-        const [openai, gemini, cometapi, palabraai, kizunaai] = await Promise.all([
+
+        const [openai, gemini, cometapi, yunai, palabraai, kizunaai] = await Promise.all([
           loadProviderSettings('settings.openai', defaultOpenAISettings),
           loadProviderSettings('settings.gemini', defaultGeminiSettings),
           loadProviderSettings('settings.cometapi', defaultCometAPISettings),
+          loadProviderSettings('settings.yunai', defaultYunAISettings),
           loadProviderSettings('settings.palabraai', defaultPalabraAISettings),
           loadProviderSettings('settings.kizunaai', defaultKizunaAISettings),
         ]);
-        
+
         set({
           provider: validProvider,
           uiLanguage,
@@ -910,25 +927,26 @@ const useSettingsStore = create<SettingsStore>()(
           openai,
           gemini,
           cometapi,
+          yunai,
           palabraai,
           kizunaai,
           settingsLoaded: true,
         });
-        
+
         console.info('[SettingsStore] Settings loaded successfully');
       } catch (error) {
         console.error('[SettingsStore] Error loading settings:', error);
       }
     },
-    
+
     clearCache: () => {
-      set({ 
+      set({
         validationCache: new Map(),
         availableModels: [],
-        isApiKeyValid: null 
+        isApiKeyValid: null
       });
     },
-    
+
     // === Helper Methods ===
     getCurrentProviderSettings: () => {
       const state = get();
@@ -937,6 +955,8 @@ const useSettingsStore = create<SettingsStore>()(
           return state.openai;
         case Provider.COMET_API:
           return state.cometapi;
+        case Provider.YUN_AI:
+          return state.yunai;
         case Provider.GEMINI:
           return state.gemini;
         case Provider.PALABRA_AI:
@@ -947,7 +967,7 @@ const useSettingsStore = create<SettingsStore>()(
           return state.openai;
       }
     },
-    
+
     getCurrentProviderConfig: () => {
       const state = get();
       try {
@@ -957,19 +977,19 @@ const useSettingsStore = create<SettingsStore>()(
         return ProviderConfigFactory.getConfig(Provider.OPENAI);
       }
     },
-    
+
     getProcessedSystemInstructions: () => {
       const state = get();
       if (state.useTemplateMode) {
         const providerConfig = state.getCurrentProviderConfig();
         const currentSettings = state.getCurrentProviderSettings();
-        
+
         const sourceLang = providerConfig.languages.find(l => l.value === currentSettings.sourceLanguage);
         const targetLang = providerConfig.languages.find(l => l.value === currentSettings.targetLanguage);
-        
+
         const sourceLangName = sourceLang?.englishName || currentSettings.sourceLanguage || 'SOURCE_LANGUAGE';
         const targetLangName = targetLang?.englishName || currentSettings.targetLanguage || 'TARGET_LANGUAGE';
-        
+
         return state.templateSystemInstructions
           .replace(/\{\{SOURCE_LANGUAGE\}\}/g, sourceLangName)
           .replace(/\{\{TARGET_LANGUAGE\}\}/g, targetLangName);
@@ -977,7 +997,7 @@ const useSettingsStore = create<SettingsStore>()(
         return state.systemInstructions;
       }
     },
-    
+
     createSessionConfig: (systemInstructions) => {
       const state = get();
       switch (state.provider) {
@@ -985,6 +1005,8 @@ const useSettingsStore = create<SettingsStore>()(
           return createOpenAISessionConfig(state.openai, systemInstructions);
         case Provider.COMET_API:
           return createOpenAISessionConfig(state.cometapi, systemInstructions);
+        case Provider.YUN_AI:
+          return createOpenAISessionConfig(state.yunai, systemInstructions);
         case Provider.GEMINI:
           return createGeminiSessionConfig(state.gemini, systemInstructions);
         case Provider.PALABRA_AI:
@@ -995,9 +1017,9 @@ const useSettingsStore = create<SettingsStore>()(
           return createOpenAISessionConfig(state.openai, systemInstructions);
       }
     },
-    
+
     navigateToSettings: (target) => {
-      set({ settingsNavigationTarget: target });
+      set({settingsNavigationTarget: target});
     },
   }))
 );
@@ -1016,6 +1038,7 @@ export const useUseTemplateMode = () => useSettingsStore((state) => state.useTem
 export const useOpenAISettings = () => useSettingsStore((state) => state.openai);
 export const useGeminiSettings = () => useSettingsStore((state) => state.gemini);
 export const useCometAPISettings = () => useSettingsStore((state) => state.cometapi);
+export const useYunAISettings = () => useSettingsStore((state) => state.yunai);
 export const usePalabraAISettings = () => useSettingsStore((state) => state.palabraai);
 export const useKizunaAISettings = () => useSettingsStore((state) => state.kizunaai);
 
@@ -1049,6 +1072,7 @@ export const useSetUseTemplateMode = () => useSettingsStore((state) => state.set
 export const useUpdateOpenAI = () => useSettingsStore((state) => state.updateOpenAI);
 export const useUpdateGemini = () => useSettingsStore((state) => state.updateGemini);
 export const useUpdateCometAPI = () => useSettingsStore((state) => state.updateCometAPI);
+export const useUpdateYunAI = () => useSettingsStore((state) => state.updateYunAI);
 export const useUpdatePalabraAI = () => useSettingsStore((state) => state.updatePalabraAI);
 export const useUpdateKizunaAI = () => useSettingsStore((state) => state.updateKizunaAI);
 

@@ -35,7 +35,11 @@ export class ClientFactory {
       case Provider.COMET_API:
         // CometAPI uses OpenAIClient with custom host
         return new OpenAIClient(apiKey, 'https://api.cometapi.com');
-        
+
+      case Provider.YUN_AI:
+        // YunAI uses OpenAIClient with custom host
+        return new OpenAIClient(apiKey, 'https://new.yunai.link');
+
       case Provider.GEMINI:
         return new GeminiClient(apiKey);
         

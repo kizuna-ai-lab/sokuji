@@ -212,6 +212,10 @@
       "name": "Comet API",
       "description": "替代AI提供商"
     },
+    "yunai": {
+      "name": "云AI",
+      "description": "替代AI提供商"
+    },
     "palabraai": {
       "name": "Palabra AI",
       "description": "专业翻译AI"
