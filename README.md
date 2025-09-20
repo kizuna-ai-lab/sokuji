@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <em>Live speech translation powered by OpenAI, Google Gemini, CometAPI, Palabra.ai, and Kizuna AI</em>
+  <em>Live speech translation powered by OpenAI, Google Gemini, CometAPI, Palabra.ai, YunAI, and Kizuna AI</em>
 </p>
 
 <p align="center">   
@@ -40,7 +40,7 @@
 
 # Why Sokuji?
 
-Sokuji is a desktop application designed to provide live speech translation using OpenAI, Google Gemini, CometAPI, Palabra.ai, and Kizuna AI APIs. It bridges language barriers in live conversations by capturing audio input, processing it through advanced AI models, and delivering translated output in real-time.
+Sokuji is a cross-platform desktop application designed to provide live speech translation using OpenAI, Google Gemini, CometAPI, Palabra.ai, YunAI, and Kizuna AI APIs. Available for Windows, macOS, and Linux, it bridges language barriers in live conversations by capturing audio input, processing it through advanced AI models, and delivering translated output in real-time.
 
 https://github.com/user-attachments/assets/1eaaa333-a7ce-4412-a295-16b7eb2310de
 
@@ -77,7 +77,7 @@ Sokuji goes beyond basic translation by offering a complete audio routing soluti
 
 # Features
 
-1. **Real-time speech translation** using OpenAI, Google Gemini, CometAPI, Palabra.ai, and Kizuna AI APIs
+1. **Real-time speech translation** using OpenAI, Google Gemini, CometAPI, Palabra.ai, YunAI, and Kizuna AI APIs
 2. **Simple Mode Interface**: Streamlined 6-section configuration for non-technical users:
    - Interface language selection
    - Translation language pairs (source/target)
@@ -85,12 +85,13 @@ Sokuji goes beyond basic translation by offering a complete audio routing soluti
    - Microphone selection with "Off" option
    - Speaker selection with "Off" option
    - Real-time session duration display
-3. **Multi-Provider Support**: Seamlessly switch between OpenAI, Google Gemini, CometAPI, Palabra.ai, and Kizuna AI.
+3. **Multi-Provider Support**: Seamlessly switch between OpenAI, Google Gemini, CometAPI, Palabra.ai, YunAI, and Kizuna AI.
 4. **Supported Models**:
    - **OpenAI**: `gpt-4o-realtime-preview`, `gpt-4o-mini-realtime-preview`
    - **Google Gemini**: `gemini-2.0-flash-live-001`, `gemini-2.5-flash-preview-native-audio-dialog`
    - **CometAPI**: OpenAI-compatible models with custom endpoints
    - **Palabra.ai**: Real-time speech-to-speech translation via WebRTC
+   - **YunAI**: Real-time conversational AI with WebSocket support
    - **Kizuna AI**: OpenAI-compatible models with backend-managed authentication
 5. **Automatic turn detection** with multiple modes (Normal, Semantic, Disabled) for OpenAI
 6. **Audio visualization** with waveform display
@@ -161,7 +162,7 @@ This architecture provides:
 
 # Preparation
 
-- (required) An OpenAI, Google Gemini, CometAPI, or Palabra.ai API key, OR a Kizuna AI account. For Palabra.ai, you will need a Client ID and Client Secret. For CometAPI, you'll need to configure the custom endpoint URL. For Kizuna AI, sign in to your account to automatically access backend-managed API keys.
+- (required) An OpenAI, Google Gemini, CometAPI, Palabra.ai, or YunAI API key, OR a Kizuna AI account. For Palabra.ai, you will need a Client ID and Client Secret. For CometAPI, you'll need to configure the custom endpoint URL. For YunAI, you'll need an API key and endpoint configuration. For Kizuna AI, sign in to your account to automatically access backend-managed API keys.
 - (optional) Linux with PulseAudio or PipeWire for virtual audio device features (desktop app only)
 
 # Installation
@@ -173,7 +174,7 @@ This architecture provides:
 - Node.js (latest LTS version recommended)
 - npm
 - Audio support works on all platforms (Windows, macOS, Linux)
-- Virtual audio devices require Linux with PulseAudio or PipeWire
+- Virtual audio devices require Linux with PulseAudio or PipeWire (desktop app only)
 
 ### Steps
 
@@ -200,13 +201,27 @@ This architecture provides:
 
 ## From Packages
 
-### Debian Package
+Download the appropriate package for your platform from the [releases page](https://github.com/kizuna-ai-lab/sokuji/releases):
 
-Download the latest Debian package from the [releases page](https://github.com/kizuna-ai-lab/sokuji/releases) and install it:
-
-```bash
-sudo dpkg -i sokuji_*.deb
+### Windows
+Download and run the `.exe` installer:
 ```
+Sokuji Setup 0.9.18.exe
+```
+
+### macOS
+Download and install the `.dmg` package:
+```
+Sokuji-0.9.18.dmg
+```
+
+### Linux (Debian/Ubuntu)
+Download and install the `.deb` package:
+```bash
+sudo dpkg -i sokuji_0.9.18_amd64.deb
+```
+
+For other Linux distributions, you can also download the portable `.zip` package and extract it to your preferred location.
 
 # How to Use
 
@@ -217,8 +232,8 @@ sudo dpkg -i sokuji_*.deb
    </p>
    
    - Click the Settings button in the top-right corner
-   - Select your desired provider (OpenAI, Gemini, CometAPI, Palabra, or Kizuna AI).
-   - For user-managed providers: Enter your API key and click "Validate". For Palabra, you will need to enter a Client ID and Client Secret. For CometAPI, configure both the API key and custom endpoint URL.
+   - Select your desired provider (OpenAI, Gemini, CometAPI, Palabra, YunAI, or Kizuna AI).
+   - For user-managed providers: Enter your API key and click "Validate". For Palabra, you will need to enter a Client ID and Client Secret. For CometAPI, configure both the API key and custom endpoint URL. For YunAI, configure the API key and endpoint URL.
    - For Kizuna AI: Sign in to your account to automatically access backend-managed API keys.
    - Click "Save" to store your configuration securely.
 
@@ -311,11 +326,11 @@ usage_logs (id, user_id, session_id, model, total_tokens, input_tokens, output_t
 
 # Technologies Used
 
-- **Runtime**: Electron 34+ / Chrome Extension Manifest V3
+- **Runtime**: Electron 34+ (Windows, macOS, Linux) / Chrome Extension Manifest V3
 - **Frontend**: React 18 + TypeScript  
 - **Backend**: Cloudflare Workers + Hono + D1 Database
 - **Authentication**: Clerk
-- **AI Providers**: OpenAI, Google Gemini, CometAPI, Palabra.ai, Kizuna AI
+- **AI Providers**: OpenAI, Google Gemini, CometAPI, Palabra.ai, YunAI, Kizuna AI
 - **Advanced Audio Processing**:
   - Web Audio API for real-time audio processing
   - MediaRecorder API for reliable audio capture
