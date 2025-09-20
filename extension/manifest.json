@@ -72,6 +72,6 @@
     }
   ],
   "content_security_policy": {
-    "extension_pages": "script-src 'self'; object-src 'self'; worker-src 'self'; connect-src 'self' https://us.i.posthog.com https://api.openai.com https://us-assets.i.posthog.com wss://api.openai.com https://generativelanguage.googleapis.com wss://generativelanguage.googleapis.com https://api.palabra.ai wss://streaming-0.palabra.ai https://api.cometapi.com wss://api.cometapi.com wss://sokuji-api.kizuna.ai wss://sokuji-api-dev.kizuna.ai https://topical-impala-60.clerk.accounts.dev https://clerk-telemetry.com https://clerk.sokuji.kizuna.ai https://sokuji-api-dev.kizuna.ai https://sokuji-api.kizuna.ai"
+    "extension_pages": "script-src 'self'; object-src 'self'; worker-src 'self'; connect-src 'self' https://us.i.posthog.com https://api.openai.com https://us-assets.i.posthog.com wss://api.openai.com https://generativelanguage.googleapis.com wss://generativelanguage.googleapis.com https://api.palabra.ai wss://streaming-0.palabra.ai https://api.cometapi.com https://new.yunai.link wss://api.cometapi.com wss://sokuji-api.kizuna.ai wss://sokuji-api-dev.kizuna.ai https://topical-impala-60.clerk.accounts.dev https://clerk-telemetry.com https://clerk.sokuji.kizuna.ai https://sokuji-api-dev.kizuna.ai https://sokuji-api.kizuna.ai"
   }
 }
