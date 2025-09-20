@@ -407,6 +407,7 @@ const defaultCometAPISettings: CometAPISettings = {
 };
 const defaultYunAISettings: YunAISettings = {
   ...defaultOpenAICompatibleSettings,
+  model: 'gpt-4o-mini-realtime-preview-2024-12-17',
   transcriptModel: 'whisper-1',
 };
 const defaultKizunaAISettings: KizunaAISettings = {

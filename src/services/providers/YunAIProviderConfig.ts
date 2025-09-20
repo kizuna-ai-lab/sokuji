@@ -21,7 +21,12 @@ export class YunAIProviderConfig extends OpenAIProviderConfig {
       models: [
         { id: 'gpt-4o-realtime-preview-2024-12-17', type: 'realtime' },
         { id: 'gpt-4o-mini-realtime-preview-2024-12-17', type: 'realtime' }
-      ]
+      ],
+      // Override specific defaults that differ from OpenAI
+      defaults: {
+        ...baseConfig.defaults,
+        model: 'gpt-4o-mini-realtime-preview-2024-12-17'
+      },
     };
   }
 }
