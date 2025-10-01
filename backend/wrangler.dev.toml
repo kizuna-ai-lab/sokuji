@@ -1,0 +1,25 @@
+name = "sokuji-backend-dev"
+main = "src/index.ts"
+compatibility_date = "2025-03-01"
+compatibility_flags = ["nodejs_compat"]
+
+[observability]
+enabled = true
+head_sampling_rate = 1.0
+
+# Development D1 Database
+[[d1_databases]]
+binding = "DATABASE"
+database_name = "sokuji-db-dev"
+database_id = "sokuji-db-dev"
+
+# Development KV Namespace
+[[kv_namespaces]]
+binding = "KV"
+id = "kv-dev"
+preview_id = "kv-dev"
+
+# Environment Variables
+[vars]
+ENVIRONMENT = "development"
+FRONTEND_URL = "http://localhost:5173"

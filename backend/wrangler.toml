@@ -1,0 +1,37 @@
+name = "sokuji-backend"
+main = "src/index.ts"
+compatibility_date = "2025-03-01"
+compatibility_flags = ["nodejs_compat"]
+
+[observability]
+enabled = true
+head_sampling_rate = 1.0
+
+# Production D1 Database
+[[d1_databases]]
+binding = "DATABASE"
+database_name = "sokuji-db-prod"
+database_id = "90365899-4d8d-47c7-ad53-e2ab158a4707"
+
+# Production KV Namespace
+[[kv_namespaces]]
+binding = "KV"
+id = "5ba622f79af24845bfe54141dc0ba400"
+
+# Environment Variables
+[vars]
+ENVIRONMENT = "production"
+FRONTEND_URL = "https://sokuji.kizuna.ai"
+
+# Production Routes
+[[routes]]
+pattern = "sokuji.kizuna.ai/api/*"
+zone_name = "kizuna.ai"
+
+[[routes]]
+pattern = "api.sokuji.kizuna.ai/*"
+zone_name = "kizuna.ai"
+
+[[routes]]
+pattern = "sokuji-api.kizuna.ai/*"
+zone_name = "kizuna.ai"
