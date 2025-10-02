@@ -861,25 +861,25 @@ const useSettingsStore = create<SettingsStore>()(
       set({isKizunaKeyFetching: true, kizunaKeyError: null});
 
       try {
-        console.log('[SettingsStore] Getting Clerk token for Kizuna AI...');
-        const clerkToken = await getToken();
+        console.log('[SettingsStore] Getting auth session for Kizuna AI...');
+        const authToken = await getToken();
 
-        if (clerkToken) {
-          console.log('[SettingsStore] Successfully got Clerk token for Kizuna AI');
+        if (authToken) {
+          console.log('[SettingsStore] Successfully got auth session for Kizuna AI');
           set((state) => ({
-            kizunaai: {...state.kizunaai, apiKey: clerkToken},
+            kizunaai: {...state.kizunaai, apiKey: authToken},
             isKizunaKeyFetching: false
           }));
           return true;
         } else {
-          const error = 'Failed to get Clerk token';
+          const error = 'Failed to get auth session';
           console.warn('[SettingsStore] ' + error);
           set({kizunaKeyError: error, isKizunaKeyFetching: false});
           return false;
         }
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error getting Clerk token';
-        console.error('[SettingsStore] Error getting Clerk token for Kizuna AI:', errorMessage);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error getting auth session';
+        console.error('[SettingsStore] Error getting auth session for Kizuna AI:', errorMessage);
         set({kizunaKeyError: errorMessage, isKizunaKeyFetching: false});
         return false;
       }

@@ -1,6 +1,6 @@
 const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
-const { clerkAdapter } = require('./clerk-adapter');
+const { betterAuthAdapter } = require('./better-auth-adapter');
 
 // Handle Squirrel events for Windows
 if (process.platform === 'win32') {
@@ -161,24 +161,20 @@ function createWindow() {
 
 // Create window when Electron is ready
 app.whenReady().then(async () => {
-  // Initialize Clerk adapter
+  // Initialize Better Auth adapter
   try {
-    const publishableKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
-    const origin = import.meta.env.VITE_CLERK_ORIGIN || (import.meta.env.MODE === 'development' ? 'http://localhost:5173' : `file://${__dirname}`);
+    const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8787';
+    const origin = import.meta.env.MODE === 'development' ? 'http://localhost:5173' : `file://${__dirname}`;
 
-    console.log(`[Sokuji] [Main] Initializing Clerk adapter with origin: ${origin}, publishableKey: ${publishableKey}`);
-    
-    if (publishableKey) {
-      clerkAdapter({
-        publishableKey,
-        origin
-      });
-      console.log('[Sokuji] [Main] Clerk adapter initialized');
-    } else {
-      console.warn('[Sokuji] [Main] VITE_CLERK_PUBLISHABLE_KEY not found, Clerk adapter not initialized');
-    }
+    console.log(`[Sokuji] [Main] Initializing Better Auth adapter with backend: ${backendUrl}, origin: ${origin}`);
+
+    betterAuthAdapter({
+      backendUrl,
+      origin
+    });
+    console.log('[Sokuji] [Main] Better Auth adapter initialized');
   } catch (error) {
-    console.error('[Sokuji] [Main] Error initializing Clerk adapter:', error);
+    console.error('[Sokuji] [Main] Error initializing Better Auth adapter:', error);
   }
 
   // Clean up any orphaned devices
