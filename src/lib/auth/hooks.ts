@@ -18,13 +18,11 @@ export function useAuth() {
     isSignedIn: !!session,
     userId: session?.user?.id,
     sessionId: session?.session?.id,
-    // Better Auth uses cookie-based sessions, so token is optional
-    // If backend needs a token, it can be extracted from the session
+    // Better Auth session token for header-based authentication
+    // Backend validates this token via Authorization header or WebSocket subprotocol
     getToken: async (): Promise<string | null> => {
-      console.log('useAuth.getToken()', session?.session);
       if (!session?.session) return null;
-      // The session object itself can be used for authentication
-      // Backend will validate via cookies
+      // Return session token for use in Authorization headers or WebSocket connections
       return session.session.token;
     },
     error,

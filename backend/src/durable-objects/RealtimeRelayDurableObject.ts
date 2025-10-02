@@ -10,11 +10,7 @@ import { createWalletService } from '../services/wallet-service';
 import type { CloudflareBindings } from "../env";
 
 // Type alias for compatibility
-type Env = CloudflareBindings & {
-  DB: D1Database;
-  WALLET_CACHE?: KVNamespace;
-  OPENAI_API_KEY: string;
-};
+type Env = CloudflareBindings;
 
 const DEBUG = false; // Set to true for debug logging
 const MODEL = 'gpt-4o-mini-realtime-preview';

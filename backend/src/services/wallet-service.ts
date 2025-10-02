@@ -9,10 +9,7 @@ import type { CloudflareBindings } from "../env";
 import { TokenUsageBuffer, BufferedUsage } from './token-usage-buffer';
 
 // Type alias for compatibility with backend-cf
-type Env = CloudflareBindings & {
-  DB: D1Database;
-  WALLET_CACHE?: KVNamespace;
-};
+type Env = CloudflareBindings;
 
 // ============================================
 // PRICING CONFIGURATION
