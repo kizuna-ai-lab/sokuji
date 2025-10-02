@@ -7,9 +7,7 @@
 import type { CloudflareBindings } from "../env";
 
 // Type alias for compatibility
-type Env = CloudflareBindings & {
-  DB: D1Database;
-};
+type Env = CloudflareBindings;
 
 export interface BufferedUsage {
   subjectType: 'user' | 'organization';
@@ -78,7 +76,7 @@ export class TokenUsageBuffer {
       
       // Prepare batch insert
       const batch = recordsToFlush.map(record => {
-        return this.env.DB.prepare(`
+        return this.env.DATABASE.prepare(`
           INSERT INTO usage_logs (
             subject_type, subject_id,
             provider, model, endpoint, method,
@@ -116,7 +114,7 @@ export class TokenUsageBuffer {
       
       // Execute batch insert
       if (batch.length > 0) {
-        await this.env.DB.batch(batch);
+        await this.env.DATABASE.batch(batch);
         console.log(`Successfully flushed ${batch.length} usage records`);
       }
       
