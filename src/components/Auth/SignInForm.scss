@@ -1,0 +1,132 @@
+.sign-in-form {
+  width: 100%;
+  max-width: 400px;
+  padding: 2rem;
+  background: #1a1a1a;
+  border-radius: 8px;
+  border: 1px solid #333;
+
+  h2 {
+    margin: 0 0 1.5rem 0;
+    font-size: 1.5rem;
+    text-align: center;
+    color: #fff;
+  }
+
+  .error-message {
+    padding: 0.75rem;
+    margin-bottom: 1rem;
+    background: rgba(231, 76, 60, 0.1);
+    border: 1px solid rgba(231, 76, 60, 0.3);
+    border-radius: 4px;
+    color: #e74c3c;
+    font-size: 0.875rem;
+  }
+
+  form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+
+      label {
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #ccc;
+      }
+
+      input {
+        padding: 0.75rem;
+        background: #333;
+        border: 1px solid #444;
+        border-radius: 4px;
+        color: #fff;
+        font-size: 14px;
+        transition: border-color 0.2s;
+
+        &:focus {
+          outline: none;
+          border-color: #10a37f;
+        }
+
+        &:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+
+        &::placeholder {
+          color: #666;
+        }
+      }
+    }
+
+    .submit-button {
+      padding: 0.75rem;
+      margin-top: 0.5rem;
+      background: #10a37f;
+      border: none;
+      border-radius: 4px;
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 44px;
+
+      &:hover:not(:disabled) {
+        background: #0e8f6f;
+      }
+
+      &:disabled {
+        opacity: 0.7;
+        cursor: not-allowed;
+      }
+
+      .loading-spinner {
+        width: 20px;
+        height: 20px;
+        border: 2px solid #ffffff;
+        border-top-color: transparent;
+        border-radius: 50%;
+        animation: spin 0.6s linear infinite;
+      }
+    }
+  }
+
+  .form-footer {
+    margin-top: 1.5rem;
+    text-align: center;
+
+    p {
+      margin: 0;
+      font-size: 0.875rem;
+      color: #ccc;
+
+      a {
+        color: #10a37f;
+        text-decoration: none;
+        font-weight: 500;
+
+        &:hover {
+          text-decoration: underline;
+        }
+      }
+    }
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}

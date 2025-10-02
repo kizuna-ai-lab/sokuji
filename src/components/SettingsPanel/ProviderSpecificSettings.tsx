@@ -28,7 +28,7 @@ import Tooltip from '../Tooltip/Tooltip';
 import { FilteredModel } from '../../services/interfaces/IClient';
 import { Provider, isOpenAICompatible } from '../../types/Provider';
 import { useAnalytics } from '../../lib/analytics';
-import { useAuth } from '../../lib/clerk/ClerkProvider';
+import { useAuth } from '../../lib/auth/hooks';
 
 interface ProviderSpecificSettingsProps {
   config: ProviderConfig;

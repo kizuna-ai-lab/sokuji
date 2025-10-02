@@ -44,7 +44,7 @@ import { ProviderConfigFactory } from '../../services/providers/ProviderConfigFa
 import ProviderSpecificSettings from './ProviderSpecificSettings';
 import { Provider, ProviderType } from '../../types/Provider';
 import { useAnalytics } from '../../lib/analytics';
-import { useAuth } from '../../lib/clerk/ClerkProvider';
+import { useAuth } from '../../lib/auth/hooks';
 import Tooltip from '../Tooltip/Tooltip';
 import { changeLanguageWithLoad } from '../../locales';
 

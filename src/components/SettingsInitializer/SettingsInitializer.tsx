@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
-import { 
-  useProvider, 
+import {
+  useProvider,
   useEnsureKizunaApiKey,
   useValidateApiKey,
   useOpenAISettings,
@@ -10,7 +10,7 @@ import {
   usePalabraAISettings,
   useSettingsLoaded
 } from '../../stores/settingsStore';
-import { useAuth } from '../../lib/clerk/ClerkProvider';
+import { useAuth } from '../../lib/auth/hooks';
 import { Provider } from '../../types/Provider';
 
 /**

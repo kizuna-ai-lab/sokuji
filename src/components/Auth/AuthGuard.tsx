@@ -1,16 +1,16 @@
 /**
- * Authentication guard component using Clerk's control components
+ * Authentication guard component using Better Auth
  */
 
 import React from 'react';
-import { 
-  SignedIn, 
-  SignedOut, 
+import {
+  SignedIn,
+  SignedOut,
   RedirectToSignIn,
   ClerkLoading,
   ClerkLoaded,
-  useUser
-} from '../../lib/clerk/ClerkProvider';
+} from '../../lib/auth/guards';
+import { useUser } from '../../lib/auth/hooks';
 import './AuthGuard.scss';
 
 interface AuthGuardProps {
@@ -86,11 +86,11 @@ function PremiumGuard({
   return <>{children}</>;
 }
 
-// Re-export Clerk's control components for convenience
-export { SignedIn, SignedOut } from '../../lib/clerk/ClerkProvider';
+// Re-export control components for convenience
+export { SignedIn, SignedOut } from '../../lib/auth/guards';
 
 // Custom hook to check authentication status
-import { useAuth } from '../../lib/clerk/ClerkProvider';
+import { useAuth } from '../../lib/auth/hooks';
 
 export function useAuthStatus() {
   const { isLoaded, isSignedIn } = useAuth();

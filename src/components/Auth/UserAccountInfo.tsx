@@ -3,8 +3,9 @@
  */
 
 import {useEffect} from 'react';
-import {SignOutButton, useClerk, useUser} from '../../lib/clerk/ClerkProvider';
+import {useAuth, useUser} from '../../lib/auth/hooks';
 import {useUserProfile} from '../../contexts/UserProfileContext';
+import {authClient} from '../../lib/auth-client';
 import {AlertCircle, LogOut, RefreshCw, TrendingDown, UserCog, Wallet} from 'lucide-react';
 import {formatTokens} from '../../utils/formatters';
 import {useTranslation} from 'react-i18next';
@@ -14,13 +15,13 @@ interface UserAccountInfoProps {
   compact?: boolean;
 }
 
-export function UserAccountInfo({ 
+export function UserAccountInfo({
   compact = false
 }: UserAccountInfoProps) {
   const { t } = useTranslation();
-  const { isLoaded, isSignedIn, user: clerkUser } = useUser();
-  const clerk = useClerk();
-  
+  const { isLoaded, isSignedIn } = useAuth();
+  const { user: betterAuthUser } = useUser();
+
   // Get user profile and quota
   const { user, quota, isLoading: quotaLoading, refetchAll } = useUserProfile();
 
@@ -43,8 +44,8 @@ export function UserAccountInfo({
     return (
       <div className="user-account-compact">
         <div className="user-avatar">
-          {clerkUser?.imageUrl ? (
-            <img src={clerkUser.imageUrl} alt={user.firstName || 'User'} />
+          {betterAuthUser?.image ? (
+            <img src={betterAuthUser.image} alt={user.firstName || 'User'} />
           ) : (
             <div className="avatar-placeholder">
               {(user.firstName?.[0] || user.email[0]).toUpperCase()}
@@ -60,52 +61,25 @@ export function UserAccountInfo({
   }
 
 
-  // Handle manage account click - open UserProfile modal
+  // Handle manage account click - navigate to account management (could be external or custom page)
   const handleManageAccount = () => {
-    clerk.openUserProfile();
+    // TODO: Implement account management page or link to backend account page
+    console.log('Manage account clicked - implement account management');
   };
 
-  // Handle manage subscription click - show UserProfile with billing section
+  // Handle manage subscription click - navigate to subscription management
   const handleManageSubscriptionClick = () => {
-    clerk.openUserProfile({
-      __experimental_startPath: '/billing'
-    });
+    // TODO: Implement subscription management page or link to backend billing page
+    console.log('Manage subscription clicked - implement subscription management');
   };
-
-  // Monitor for Clerk modal close using MutationObserver
-  useEffect(() => {
-    const observer = new MutationObserver((mutations) => {
-      mutations.forEach((mutation) => {
-        // Check if nodes were removed
-        mutation.removedNodes.forEach((node) => {
-          // Check if the removed node is the Clerk modal backdrop
-          if (node.nodeType === Node.ELEMENT_NODE && 
-              (node as Element).classList && 
-              (node as Element).classList.contains('cl-modalBackdrop')) {
-            // Modal was closed, refresh data
-            refetchAll();
-          }
-        });
-      });
-    });
-
-    // Start observing the document body for child list changes
-    observer.observe(document.body, {
-      childList: true,
-      subtree: true
-    });
-
-    // Cleanup observer on unmount
-    return () => observer.disconnect();
-  }, [refetchAll]);
 
   return (
     <div className="user-account user-account-compact-layout">
       {/* Combined User Profile and Actions */}
       <div className="user-header-compact">
         <div className="user-avatar">
-          {clerkUser?.imageUrl ? (
-            <img src={clerkUser.imageUrl} alt={user.firstName || 'User'} />
+          {betterAuthUser?.image ? (
+            <img src={betterAuthUser.image} alt={user.firstName || 'User'} />
           ) : (
             <div className="avatar-placeholder">
               {(user.firstName?.[0] || user.email[0]).toUpperCase()}
@@ -114,28 +88,30 @@ export function UserAccountInfo({
         </div>
         <div className="user-info">
           <h3 className="user-name">
-            {user.firstName || user.lastName 
+            {user.firstName || user.lastName
               ? `${user.firstName || ''} ${user.lastName || ''}`.trim()
               : 'User'}
           </h3>
           <p className="user-email">{user.email}</p>
         </div>
         <div className="user-actions-compact">
-          <button 
+          <button
             className="action-button-compact manage-account"
             onClick={handleManageAccount}
             title="Manage Account"
           >
             <UserCog size={14} />
           </button>
-          <SignOutButton>
-            <button 
-              className="action-button-compact sign-out"
-              title="Sign Out"
-            >
-              <LogOut size={14} />
-            </button>
-          </SignOutButton>
+          <button
+            className="action-button-compact sign-out"
+            title="Sign Out"
+            onClick={async () => {
+              await authClient.signOut();
+              window.location.href = '/';
+            }}
+          >
+            <LogOut size={14} />
+          </button>
         </div>
       </div>
 

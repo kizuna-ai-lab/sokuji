@@ -4,7 +4,7 @@
  */
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { useAuth, useUser } from '../lib/clerk/ClerkProvider';
+import { useAuth, useUser } from '../lib/auth/hooks';
 import { useIsSessionActive } from '../stores/sessionStore';
 
 interface QuotaData {
@@ -66,29 +66,29 @@ interface UserProfileProviderProps {
 
 export function UserProfileProvider({ children }: UserProfileProviderProps) {
   const { isSignedIn, getToken } = useAuth();
-  const { user: clerkUser } = useUser();
+  const { user: betterAuthUser } = useUser();
   const isSessionActive = useIsSessionActive();
-  
+
   const [quota, setQuota] = useState<QuotaData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Transform Clerk user data to our format
-  // Note: subscription now comes from quota API, not from Clerk publicMetadata
-  const user = clerkUser ? {
-    id: clerkUser.id,
-    email: clerkUser.primaryEmailAddress?.emailAddress || '',
-    firstName: clerkUser.firstName || undefined,
-    lastName: clerkUser.lastName || undefined,
-    imageUrl: clerkUser.imageUrl || undefined,
+  // Transform Better Auth user data to our format
+  // Note: subscription now comes from quota API
+  const user = betterAuthUser ? {
+    id: betterAuthUser.id,
+    email: betterAuthUser.email || '',
+    firstName: betterAuthUser.name?.split(' ')[0] || undefined,
+    lastName: betterAuthUser.name?.split(' ').slice(1).join(' ') || undefined,
+    imageUrl: betterAuthUser.image || undefined,
     subscription: (quota?.plan as 'free' | 'starter' | 'essentials' | 'professional' | 'business' | 'enterprise' | 'unlimited') || 'free',  // Get from quota API
-    createdAt: clerkUser.createdAt?.getTime() || Date.now(),
-    updatedAt: clerkUser.updatedAt?.getTime() || Date.now()
+    createdAt: betterAuthUser.createdAt ? new Date(betterAuthUser.createdAt).getTime() : Date.now(),
+    updatedAt: betterAuthUser.updatedAt ? new Date(betterAuthUser.updatedAt).getTime() : Date.now()
   } : null;
 
   // Function to fetch quota data from backend
   const fetchQuota = useCallback(async () => {
-    if (!isSignedIn || !clerkUser) {
+    if (!isSignedIn || !betterAuthUser) {
       setQuota(null);
       return;
     }
@@ -129,11 +129,11 @@ export function UserProfileProvider({ children }: UserProfileProviderProps) {
     } finally {
       setIsLoading(false);
     }
-  }, [isSignedIn, clerkUser, getToken]);
+  }, [isSignedIn, betterAuthUser, getToken]);
 
   // Function to refresh only quota data silently (for periodic updates during sessions)
   const fetchQuotaSilently = useCallback(async () => {
-    if (!isSignedIn || !clerkUser) return;
+    if (!isSignedIn || !betterAuthUser) return;
 
     try {
       const token = await getToken();
@@ -156,7 +156,7 @@ export function UserProfileProvider({ children }: UserProfileProviderProps) {
       console.error('[UserProfileContext] Error fetching quota:', err);
       // Don't set error state for silent refreshes to avoid disrupting UI
     }
-  }, [isSignedIn, clerkUser, getToken]);
+  }, [isSignedIn, betterAuthUser, getToken]);
 
   // Fetch quota on mount and when user changes
   useEffect(() => {
@@ -185,13 +185,11 @@ export function UserProfileProvider({ children }: UserProfileProviderProps) {
     return () => clearInterval(interval);
   }, [isSignedIn, isSessionActive, fetchQuotaSilently]);
 
-  // Function to refresh user profile from Clerk
+  // Function to refresh user profile from Better Auth
   const refetchProfile = useCallback(async () => {
     try {
-      // Reload Clerk user data
-      if ((window as any).Clerk?.user) {
-        await (window as any).Clerk.user.reload();
-      }
+      // Better Auth session is automatically refreshed
+      // No manual reload needed
     } catch (error) {
       console.error('[UserProfileContext] Error refreshing profile:', error);
     }

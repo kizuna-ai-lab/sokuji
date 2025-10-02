@@ -1,40 +1,15 @@
 /**
- * Sign-up page component using Clerk's built-in SignUp component
+ * Sign-up page component using Better Auth
  */
 
-import { useNavigate } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
-import { SignUp as ClerkSignUp, isExtensionEnvironment } from '../lib/clerk/ClerkProvider';
-import '../components/Auth/SignInPage.scss'; // Reuse the same styles
+import React from 'react';
+import { SignUpForm } from '../components/Auth/SignUpForm';
+import { AuthLayout } from '../components/Auth/AuthLayout';
 
 export function SignUp() {
-  const navigate = useNavigate();
-
-  const handleBackClick = () => {
-    // Navigate back to home
-    navigate('/');
-  };
-
   return (
-    <div className="sign-in-page">
-      <button className="back-button" onClick={handleBackClick}>
-        <ArrowLeft size={20} />
-        <span>Back to App</span>
-      </button>
-      
-      <div className="sign-in-container">
-        <ClerkSignUp 
-          routing="virtual" 
-          oauthFlow={isExtensionEnvironment ? 'popup' : 'redirect'}
-          oidcPrompt="select_account"
-          appearance={isExtensionEnvironment ? {
-            elements: {
-              socialButtonsRoot: {display: "none"},
-              dividerRow: {display: "none"},
-            }
-          } : undefined}
-        />
-      </div>
-    </div>
+    <AuthLayout>
+      <SignUpForm />
+    </AuthLayout>
   );
 }
