@@ -1,6 +1,6 @@
 /**
  * User Profile Context
- * Provides user data from Clerk and quota information from backend API
+ * Provides user data from Better Auth and quota information from backend API
  */
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
@@ -11,18 +11,18 @@ interface QuotaData {
   // Core wallet data (new fields)
   balance?: number;      // Wallet balance (never expires)
   frozen?: boolean;      // Whether wallet is frozen
-  
+
   // Usage statistics (new fields)
   monthlyQuota?: number;     // Tokens allocated monthly for this plan
   last30DaysUsage?: number;  // Tokens used in the past 30 days
-  
+
   // Compatibility fields (for frontend UI)
   total: number;         // = balance (for compatibility)
   used: number;          // = 0 (wallet model doesn't track usage)
   remaining: number;     // = balance (if not frozen) or 0 (if frozen)
   resetDate?: string | null;  // = null (no reset in wallet model)
   plan: string;          // Current subscription plan
-  
+
   // Additional features (new fields)
   features?: string[];   // Enabled features for the plan
   rateLimitRpm?: number; // Rate limit (requests per minute)
@@ -30,7 +30,7 @@ interface QuotaData {
 }
 
 interface UserProfileContextValue {
-  // User data directly from Clerk
+  // User data from Better Auth
   user: {
     id: string;
     email: string;
@@ -73,6 +73,9 @@ export function UserProfileProvider({ children }: UserProfileProviderProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Extract stable user ID to prevent infinite loops
+  const userId = betterAuthUser?.id;
+
   // Transform Better Auth user data to our format
   // Note: subscription now comes from quota API
   const user = betterAuthUser ? {
@@ -103,33 +106,34 @@ export function UserProfileProvider({ children }: UserProfileProviderProps) {
       }
 
       const apiUrl = import.meta.env.VITE_BACKEND_URL || 'https://sokuji-api.kizuna.ai';
-      const response = await fetch(`${apiUrl}/api/wallet/status`, {
+      const response = await fetch(`${apiUrl}/wallet/status`, {
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
-        }
+          'Authorization': `Bearer ${token}`,
+        },
       });
 
       if (!response.ok) {
-        if (response.status === 401) {
-          throw new Error('Not authenticated');
-        } else {
-          throw new Error(`Failed to fetch quota: ${response.statusText}`);
-        }
+        const errorMessage = `Failed to fetch quota: ${response.status} ${response.statusText}`;
+        setError(errorMessage);
+        console.error('[UserProfileContext]', errorMessage);
+        return;
       }
-      
+
       const quotaData = await response.json();
       setQuota(quotaData);
       setError(null);
     } catch (err: any) {
+      const errorMessage = err.message || 'Failed to fetch quota';
+      setError(errorMessage);
       console.error('[UserProfileContext] Error fetching quota:', err);
-      setError(err.message || 'Failed to fetch quota');
       setQuota(null);
     } finally {
       setIsLoading(false);
     }
-  }, [isSignedIn, betterAuthUser, getToken]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isSignedIn, userId]); // Use userId instead of betterAuthUser to prevent infinite loops
 
   // Function to refresh only quota data silently (for periodic updates during sessions)
   const fetchQuotaSilently = useCallback(async () => {
@@ -137,53 +141,56 @@ export function UserProfileProvider({ children }: UserProfileProviderProps) {
 
     try {
       const token = await getToken();
-      if (!token) return;
+      if (!token) {
+        console.warn('[UserProfileContext] No token available for silent fetch');
+        return;
+      }
 
       const apiUrl = import.meta.env.VITE_BACKEND_URL || 'https://sokuji-api.kizuna.ai';
-      const response = await fetch(`${apiUrl}/api/wallet/status`, {
+      const response = await fetch(`${apiUrl}/wallet/status`, {
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
-        }
+          'Authorization': `Bearer ${token}`,
+        },
       });
 
       if (response.ok) {
         const quotaData = await response.json();
         setQuota(quotaData);
+        setError(null);
+      } else {
+        console.warn('[UserProfileContext] Silent fetch failed:', response.status, response.statusText);
       }
     } catch (err: any) {
-      console.error('[UserProfileContext] Error fetching quota:', err);
-      // Don't set error state for silent refreshes to avoid disrupting UI
+      console.warn('[UserProfileContext] Silent fetch error:', err);
     }
-  }, [isSignedIn, betterAuthUser, getToken]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isSignedIn, userId]); // Use userId instead of betterAuthUser to prevent infinite loops
 
   // Fetch quota on mount and when user changes
   useEffect(() => {
-    fetchQuota();
-  }, [fetchQuota]);
+    if (isSignedIn && userId) {
+      fetchQuota();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isSignedIn, userId]); // Depend on stable values, not the function
 
-  // Refresh quota every minute when session is active
+  // Refresh quota with dynamic interval based on session state
   useEffect(() => {
-    if (!isSignedIn || !isSessionActive) return;
+    if (!isSignedIn || !userId) return;
 
-    const interval = setInterval(() => {
+    // Use session-aware intervals: 1 min active, 5 min idle
+    const interval = isSessionActive ? 60 * 1000 : 5 * 60 * 1000;
+
+    console.log('[UserProfileContext] Setting up polling with interval:', Math.round(interval / 1000), 'seconds');
+    const intervalId = setInterval(() => {
       fetchQuotaSilently();
-    }, 60 * 1000); // 1 minute
+    }, interval);
 
-    return () => clearInterval(interval);
-  }, [isSignedIn, isSessionActive, fetchQuotaSilently]);
-
-  // Refresh quota every 5 minutes when not in session
-  useEffect(() => {
-    if (!isSignedIn || isSessionActive) return;
-
-    const interval = setInterval(() => {
-      fetchQuotaSilently();
-    }, 5 * 60 * 1000); // 5 minutes
-
-    return () => clearInterval(interval);
-  }, [isSignedIn, isSessionActive, fetchQuotaSilently]);
+    return () => clearInterval(intervalId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isSignedIn, isSessionActive, userId]); // Depend on stable values, not the function
 
   // Function to refresh user profile from Better Auth
   const refetchProfile = useCallback(async () => {
@@ -210,7 +217,7 @@ export function UserProfileProvider({ children }: UserProfileProviderProps) {
     error,
     refetchQuota: fetchQuota,
     refetchProfile,
-    refetchAll
+    refetchAll,
   };
 
   return (

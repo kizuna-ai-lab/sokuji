@@ -1,5 +1,6 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import { bearer } from "better-auth/plugins";
 import { withCloudflare } from "better-auth-cloudflare";
 import { createDb } from "./db";
 import type { CloudflareBindings } from "./env";
@@ -10,6 +11,7 @@ export function createAuth(env: CloudflareBindings, cf?: IncomingRequestCfProper
 
   return betterAuth({
     baseURL: env.BETTER_AUTH_URL || "http://localhost:8787",
+    basePath: "/auth", // Changed from default /api/auth
     database: drizzleAdapter(db, {
       provider: "sqlite",
       schema: {
@@ -50,6 +52,9 @@ export function createAuth(env: CloudflareBindings, cf?: IncomingRequestCfProper
       window: 60, // 1 minute
       max: 100, // 100 requests per minute
     },
+    // Enable Bearer token authentication plugin
+    // This allows clients to authenticate using Authorization: Bearer <token> header
+    plugins: [bearer()],
     // Use Cloudflare-specific features (commented out until better-auth-cloudflare is properly configured)
     // Note: withCloudflare needs to be properly integrated
     // For now, we'll use basic better-auth features

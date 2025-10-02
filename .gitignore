@@ -54,6 +54,8 @@ backend-cf/.env
 # Cloudflare configuration with sensitive data
 backend-cf/wrangler.dev.toml
 backend-cf/wrangler.prod.toml
+backend/wrangler.dev.toml
+backend/wrangler.prod.toml
 
 # Translation backup and temporary files
 *.bak
@@ -61,6 +63,7 @@ backend-cf/wrangler.prod.toml
 
 # Backend dependencies
 backend-cf/node_modules/
+backend/node_modules/
 
 # Local database files
 *.sqlite
