@@ -7,8 +7,8 @@ import {
   SignedIn,
   SignedOut,
   RedirectToSignIn,
-  ClerkLoading,
-  ClerkLoaded,
+  AuthLoading,
+  AuthLoaded,
 } from '../../lib/auth/guards';
 import { useUser } from '../../lib/auth/hooks';
 import './AuthGuard.scss';
@@ -28,16 +28,16 @@ export function AuthGuard({
 }: AuthGuardProps) {
   return (
     <>
-      <ClerkLoading>
+      <AuthLoading>
         {loadingComponent || (
           <div className="auth-guard-loading">
             <div className="loading-spinner" />
             <p>Loading authentication...</p>
           </div>
         )}
-      </ClerkLoading>
-      
-      <ClerkLoaded>
+      </AuthLoading>
+
+      <AuthLoaded>
         <SignedIn>
           {requirePremium ? (
             <PremiumGuard fallback={fallback}>
@@ -47,11 +47,11 @@ export function AuthGuard({
             children
           )}
         </SignedIn>
-        
+
         <SignedOut>
           {fallback || <RedirectToSignIn />}
         </SignedOut>
-      </ClerkLoaded>
+      </AuthLoaded>
     </>
   );
 }

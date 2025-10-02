@@ -1,6 +1,6 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
-// Cookie API for Clerk adapter
+// Cookie API for Better Auth adapter
 const cookieAPI = {
   get: async (name) => {
     const cookies = await ipcRenderer.invoke('get-cookies');

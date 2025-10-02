@@ -35,3 +35,13 @@ zone_name = "kizuna.ai"
 [[routes]]
 pattern = "sokuji-api.kizuna.ai/*"
 zone_name = "kizuna.ai"
+
+# Durable Objects configuration
+[[durable_objects.bindings]]
+name = "REALTIME_RELAY"
+class_name = "RealtimeRelayDurableObject"
+script_name = "sokuji-backend"
+
+[[migrations]]
+tag = "v1"
+new_classes = ["RealtimeRelayDurableObject"]

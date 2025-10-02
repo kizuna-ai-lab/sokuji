@@ -1,7 +1,7 @@
 /**
  * Authentication guard components
  *
- * These components provide Clerk-compatible guards for conditional rendering
+ * These components provide guards for conditional rendering
  * based on authentication state.
  */
 
@@ -58,7 +58,7 @@ export function RedirectToSignIn() {
 /**
  * Loading state component
  */
-export function ClerkLoading({ children }: GuardProps) {
+export function AuthLoading({ children }: GuardProps) {
   const { isLoaded } = useAuth();
 
   return !isLoaded ? <>{children}</> : null;
@@ -67,7 +67,7 @@ export function ClerkLoading({ children }: GuardProps) {
 /**
  * Loaded state component
  */
-export function ClerkLoaded({ children }: GuardProps) {
+export function AuthLoaded({ children }: GuardProps) {
   const { isLoaded } = useAuth();
 
   return isLoaded ? <>{children}</> : null;

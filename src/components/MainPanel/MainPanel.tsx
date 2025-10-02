@@ -474,15 +474,15 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           apiKey = yunAISettings.apiKey;
           break;
         case Provider.KIZUNA_AI:
-          // For Kizuna AI, fetch a fresh token from Clerk to avoid 401 errors
+          // For Kizuna AI, fetch a fresh session token from Better Auth
           if (getToken && isLoaded && isSignedIn === true) {
-            console.log('[MainPanel] Fetching fresh Clerk token for Kizuna AI...');
+            console.log('[MainPanel] Fetching fresh auth session for Kizuna AI...');
             try {
               const freshToken = await getToken({ skipCache: true });
               apiKey = freshToken || '';
-              console.log('[MainPanel] Successfully got fresh Clerk token for Kizuna AI');
+              console.log('[MainPanel] Successfully got fresh auth session for Kizuna AI');
             } catch (error) {
-              console.error('[MainPanel] Failed to get fresh Clerk token:', error);
+              console.error('[MainPanel] Failed to get fresh auth session:', error);
               apiKey = kizunaAISettings.apiKey || '';
             }
           } else {
