@@ -12,7 +12,7 @@ import './MainLayout.scss';
 import { useAnalytics } from '../../lib/analytics';
 import { useProvider, useUIMode, useSetProvider, useSetUIMode, useSettingsNavigationTarget } from '../../stores/settingsStore';
 import { useOnboarding } from '../../contexts/OnboardingContext';
-import { useAuth } from '../../lib/clerk/ClerkProvider';
+import { useAuth } from '../../lib/auth/hooks';
 import { Provider } from '../../types/Provider';
 
 type PanelName = 'settings' | 'audio' | 'logs' | 'main';

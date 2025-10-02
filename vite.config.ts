@@ -64,12 +64,6 @@ export default defineConfig(({ command, mode }) => {
         renderer: {}
       })
     ],
-    resolve: {
-      alias: {
-        // For Electron builds, alias clerk to use clerk-react
-        '@clerk/chrome-extension': '@clerk/clerk-react'
-      }
-    },
     server: {
       port: 5173,
       host: true

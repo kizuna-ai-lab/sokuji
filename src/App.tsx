@@ -6,7 +6,9 @@ import { RootLayout } from './layouts/RootLayout';
 import { Home } from './routes/Home';
 import { SignIn } from './routes/SignIn';
 import { SignUp } from './routes/SignUp';
-import { isExtensionEnvironment } from './lib/clerk/ClerkProvider';
+import { isExtension } from './utils/environment';
+
+const isExtensionEnvironment = isExtension();
 
 // Create the memory router for Chrome extension
 // Memory router is recommended for Chrome extensions as they don't have a URL bar

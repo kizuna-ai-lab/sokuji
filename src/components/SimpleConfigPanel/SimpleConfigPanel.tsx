@@ -38,7 +38,7 @@ import { useAnalytics } from '../../lib/analytics';
 import { ProviderConfigFactory } from '../../services/providers/ProviderConfigFactory';
 import { ProviderConfig } from '../../services/providers/ProviderConfig';
 import Tooltip from '../Tooltip/Tooltip';
-import { useAuth } from '../../lib/clerk/ClerkProvider';
+import { useAuth } from '../../lib/auth/hooks';
 import { UserAccountInfo } from '../Auth/UserAccountInfo';
 import { SignedIn, SignedOut } from '../Auth/AuthGuard';
 import { isKizunaAIEnabled } from '../../utils/environment';

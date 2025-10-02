@@ -33,7 +33,7 @@ import { Provider, isOpenAICompatible } from '../../types/Provider';
 import AudioFeedbackWarning from '../AudioFeedbackWarning/AudioFeedbackWarning';
 import { getSafeAudioConfiguration, decodeAudioToWav } from '../../utils/audioUtils';
 import SimpleMainPanel from '../SimpleMainPanel/SimpleMainPanel';
-import { useAuth } from '../../lib/clerk/ClerkProvider';
+import { useAuth } from '../../lib/auth/hooks';
 import { useUserProfile } from '../../contexts/UserProfileContext';
 
 interface MainPanelProps {}
