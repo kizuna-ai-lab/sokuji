@@ -7,7 +7,7 @@ Kizuna AI is a new AI provider that has been fully integrated into the Sokuji ap
 ## Key Features
 
 - **Backend-Managed API Keys**: Users don't need to input API keys manually
-- **Authentication Required**: Only available to users signed in via Clerk
+- **Authentication Required**: Only available to users signed in via Better Auth
 - **OpenAI Compatibility**: Uses the same technical implementation as OpenAI
 - **Automatic Key Generation**: API keys are generated on first request
 - **Simplified User Experience**: No complex API key management needed
@@ -74,7 +74,7 @@ Kizuna AI is a new AI provider that has been fully integrated into the Sokuji ap
 
 ## Authentication Flow
 
-1. **User Signs In**: Via Clerk authentication system
+1. **User Signs In**: Via Better Auth authentication system
 2. **Provider Selection**: Kizuna AI becomes available in provider dropdown
 3. **Automatic Key Fetch**: `ApiKeyService` fetches API key from backend
 4. **Caching**: Key is cached for 5 minutes to reduce backend calls
@@ -86,7 +86,7 @@ Kizuna AI is a new AI provider that has been fully integrated into the Sokuji ap
 
 **Purpose**: Retrieve or create user's Kizuna AI API key
 
-**Authentication**: Required (Clerk JWT token)
+**Authentication**: Required (Better Auth session token)
 
 **Response**:
 ```json
@@ -158,7 +158,7 @@ interface KizunaAISettings {
 ## Testing and Validation
 
 ### Manual Testing Checklist
-- [ ] User can sign in via Clerk
+- [ ] User can sign in via Better Auth
 - [ ] Kizuna AI appears in provider dropdown when authenticated
 - [ ] API key is automatically fetched from backend
 - [ ] Provider works for real-time translation

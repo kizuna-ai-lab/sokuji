@@ -10,21 +10,12 @@ Production environment variables are managed through GitHub Secrets to keep sens
 
 You need to configure the following secrets in your GitHub repository:
 
-### 1. `VITE_CLERK_PUBLISHABLE_KEY_PROD` (Required)
-- **Description**: Production Clerk publishable key for authentication
-- **Format**: `pk_live_xxxxxxxxxxxxx`
-- **How to get it**: 
-  1. Log in to [Clerk Dashboard](https://dashboard.clerk.com)
-  2. Select your production application
-  3. Go to API Keys section
-  4. Copy the "Publishable key" (starts with `pk_live_`)
-
-### 2. `VITE_BACKEND_URL_PROD` (Optional)
+### 1. `VITE_BACKEND_URL_PROD` (Optional)
 - **Description**: Production backend API URL
 - **Default**: `https://sokuji-api.kizuna.ai`
 - **Note**: Only set this if using a different production API endpoint
 
-### 3. `VITE_EXTENSION_ID_PROD` (Optional)
+### 2. `VITE_EXTENSION_ID_PROD` (Optional)
 - **Description**: Chrome Web Store extension ID
 - **Format**: 32-character string
 - **How to get it**: 
@@ -37,7 +28,7 @@ You need to configure the following secrets in your GitHub repository:
 2. Click on **Settings** (requires admin access)
 3. In the left sidebar, click **Secrets and variables** → **Actions**
 4. Click **New repository secret**
-5. Enter the secret name (e.g., `VITE_CLERK_PUBLISHABLE_KEY_PROD`)
+5. Enter the secret name (e.g., `VITE_BACKEND_URL_PROD`)
 6. Enter the secret value
 7. Click **Add secret**
 
@@ -59,16 +50,14 @@ After setting up the secrets:
 
 ### Electron App
 The Electron app uses these environment variables during build:
-- `VITE_CLERK_PUBLISHABLE_KEY`: Clerk authentication key
-- `VITE_BACKEND_URL`: Backend API endpoint
+- `VITE_BACKEND_URL`: Backend API endpoint (Better Auth backend)
 - `VITE_ENVIRONMENT`: Set to "production"
 - `VITE_ENABLE_DEBUG`: Set to false
 - `VITE_ENABLE_ANALYTICS`: Set to true
 
 ### Chrome Extension
 The Chrome extension build also uses:
-- `VITE_CLERK_PUBLISHABLE_KEY`: Same as Electron
-- `VITE_BACKEND_URL`: Same as Electron
+- `VITE_BACKEND_URL`: Backend API endpoint (Better Auth backend)
 
 ## Local Development
 
@@ -88,10 +77,6 @@ For local development, create `.env.development` and `.env.production` files bas
 
 ## Troubleshooting
 
-### Build Fails with "Unauthorized" Error
-- Verify that `VITE_CLERK_PUBLISHABLE_KEY_PROD` is set correctly
-- Ensure you're using the production key (starts with `pk_live_`)
-
 ### Extension Can't Connect to Backend
 - Check that the backend URL is correct
 - Verify CORS settings allow the extension origin
@@ -104,6 +89,6 @@ For local development, create `.env.development` and `.env.production` files bas
 ## Support
 
 For issues related to:
-- **Clerk Authentication**: Check [Clerk Documentation](https://clerk.com/docs)
+- **Better Auth**: Check [Better Auth Documentation](https://www.better-auth.com/docs)
 - **GitHub Secrets**: See [GitHub Docs on Secrets](https://docs.github.com/en/actions/security-guides/encrypted-secrets)
-- **Build Process**: Review `.github/workflows/build-and-release.yml`
+- **Build Process**: Review `.github/workflows/build.yml`

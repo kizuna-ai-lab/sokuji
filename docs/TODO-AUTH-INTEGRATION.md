@@ -1,7 +1,9 @@
 # TODO: Authentication & Quota Integration Tasks
 
+> **Note**: This document was created during the Clerk to Better Auth migration. Many tasks have been completed with Better Auth implementation. This is kept for historical reference and to track remaining UI/UX improvements.
+
 ## Overview
-This document outlines the remaining tasks needed to complete the authentication and quota management integration for the Sokuji AI translation service.
+This document outlines the remaining tasks needed to complete the authentication and quota management integration for the Sokuji AI translation service (now using Better Auth).
 
 ## ✅ Completed Components
 - [x] Backend API (Cloudflare Workers)
@@ -191,7 +193,7 @@ This document outlines the remaining tasks needed to complete the authentication
 
 ### 3. Configuration Guide
 - [ ] Environment variables setup
-- [ ] Clerk configuration
+- [ ] Better Auth configuration
 - [ ] Stripe setup (optional)
 - [ ] Cloudflare deployment
 
@@ -204,11 +206,11 @@ This document outlines the remaining tasks needed to complete the authentication
 - [ ] Deploy Workers code
 - [ ] Configure custom domain
 
-### 2. Clerk Setup
-- [ ] Create Clerk application
-- [ ] Configure OAuth providers
-- [ ] Set up webhooks
-- [ ] Configure redirect URLs
+### 2. Better Auth Setup
+- [ ] Configure Better Auth backend
+- [ ] Set up OAuth providers
+- [ ] Configure session management
+- [ ] Set up authentication endpoints
 
 ### 3. Stripe Setup (Optional)
 - [ ] Create Stripe products
@@ -258,21 +260,20 @@ This document outlines the remaining tasks needed to complete the authentication
 ```json
 {
   "electron-store": "^8.1.0",  // For Electron secure storage
-  "@clerk/chrome-extension": "^0.3.0",  // For Chrome extension auth
-  "@clerk/clerk-react": "^4.30.0",  // For React components
+  "better-auth": "latest",  // For Better Auth backend
   "recharts": "^2.10.0"  // For usage charts (optional)
 }
 ```
 
 ### External Services Required
-- Clerk account with OAuth providers configured
+- Better Auth configuration
 - Cloudflare account with Workers enabled
 - Stripe account (optional, for payments)
 
 ## 📋 Checklist for Production
 
 - [ ] All environment variables configured
-- [ ] Clerk webhooks verified and active
+- [ ] Better Auth endpoints verified and active
 - [ ] Stripe webhooks configured (if using)
 - [ ] CORS settings updated for production URLs
 - [ ] SSL certificates configured
@@ -292,12 +293,12 @@ This document outlines the remaining tasks needed to complete the authentication
 
 ## 📞 Support & Resources
 
-- [Clerk Documentation](https://clerk.com/docs)
+- [Better Auth Documentation](https://www.better-auth.com/docs)
 - [Cloudflare Workers Docs](https://developers.cloudflare.com/workers/)
 - [Electron Security Guide](https://www.electronjs.org/docs/latest/tutorial/security)
 - [Chrome Extension Best Practices](https://developer.chrome.com/docs/extensions/mv3/security/)
 
 ---
 
-*Last Updated: 2024-01-12*
-*Status: Ready for Implementation*
+*Last Updated: 2025-01-03*
+*Status: Migrated to Better Auth - Partial Implementation Complete*
