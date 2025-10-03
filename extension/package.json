@@ -4,12 +4,11 @@
   "description": "Browser extension version of Sokuji - Live speech translation using OpenAI and Google Gemini APIs",
   "private": true,
   "scripts": {
-    "build": "VITE_CLERK_PUBLISHABLE_KEY=$VITE_CLERK_PUBLISHABLE_KEY VITE_BACKEND_URL=$VITE_BACKEND_URL webpack --mode production",
-    "dev": "VITE_CLERK_PUBLISHABLE_KEY=$VITE_CLERK_PUBLISHABLE_KEY VITE_BACKEND_URL=$VITE_BACKEND_URL webpack --mode development --watch",
+    "build": "VITE_BACKEND_URL=$VITE_BACKEND_URL webpack --mode production",
+    "dev": "VITE_BACKEND_URL=$VITE_BACKEND_URL webpack --mode development --watch",
     "lint": "eslint ."
   },
   "dependencies": {
-    "@clerk/chrome-extension": "^2.5.19",
     "openai-realtime-api": "1.0.8",
     "posthog-js-lite": "^4.1.0"
   },
