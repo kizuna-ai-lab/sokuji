@@ -51,7 +51,6 @@ jobs:
         env:
           CI: false
           # Use production environment variables for releases, simpler ones for CI
-          VITE_CLERK_PUBLISHABLE_KEY: ${{ secrets.VITE_CLERK_PUBLISHABLE_KEY_PROD }}
           VITE_BACKEND_URL: ${{ secrets.VITE_BACKEND_URL_PROD || 'https://sokuji-api.kizuna.ai' }}
           VITE_ENVIRONMENT: production
           # Additional variables only for releases
@@ -67,9 +66,6 @@ jobs:
           CI: false
           # Prevent actual publishing during CI builds
           CSC_IDENTITY_AUTO_DISCOVERY: ${{ !startsWith(github.ref, 'refs/tags/v') && 'false' || '' }}
-          # Clerk environment variables for Electron
-          VITE_CLERK_PUBLISHABLE_KEY: ${{ secrets.VITE_CLERK_PUBLISHABLE_KEY_PROD }}
-          VITE_CLERK_ORIGIN: ${{ secrets.VITE_CLERK_ORIGIN_PROD || 'file://' }}
           VITE_BACKEND_URL: ${{ secrets.VITE_BACKEND_URL_PROD || 'https://sokuji-api.kizuna.ai' }}
           VITE_ENVIRONMENT: production
 
@@ -83,9 +79,6 @@ jobs:
           CI: false
           # Always build unsigned for macOS
           CSC_IDENTITY_AUTO_DISCOVERY: false
-          # Clerk environment variables for Electron
-          VITE_CLERK_PUBLISHABLE_KEY: ${{ secrets.VITE_CLERK_PUBLISHABLE_KEY_PROD }}
-          VITE_CLERK_ORIGIN: ${{ secrets.VITE_CLERK_ORIGIN_PROD || 'file://' }}
           VITE_BACKEND_URL: ${{ secrets.VITE_BACKEND_URL_PROD || 'https://sokuji-api.kizuna.ai' }}
           VITE_ENVIRONMENT: production
 
@@ -110,7 +103,6 @@ jobs:
           fi
         env:
           # Production environment variables for extension
-          VITE_CLERK_PUBLISHABLE_KEY: ${{ secrets.VITE_CLERK_PUBLISHABLE_KEY_PROD }}
           VITE_BACKEND_URL: ${{ secrets.VITE_BACKEND_URL_PROD || 'https://sokuji-api.kizuna.ai' }}
 
       # Release-specific steps
