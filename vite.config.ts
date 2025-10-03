@@ -19,7 +19,6 @@ export default defineConfig(({ command, mode }) => {
           // Entry points for the main process
           entry: {
             'main': 'electron/main.js',
-            'clerk-adapter': 'electron/clerk-adapter.js',
             'pulseaudio-utils': 'electron/pulseaudio-utils.js',
             'windows-audio-utils': 'electron/windows-audio-utils.js',
             'vb-cable-installer': 'electron/vb-cable-installer.js',
