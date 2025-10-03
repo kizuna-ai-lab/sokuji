@@ -292,7 +292,7 @@ if (window.electronAPI) {
 ## Authentication and API Key Management
 
 ### Authentication System
-- **Clerk Integration**: User authentication using Clerk service
+- **Better Auth Integration**: User authentication using Better Auth service
 - **Backend-Managed Keys**: Kizuna AI API keys are automatically managed by the backend
 - **Mixed Authentication**: Supports both user-managed and backend-managed API keys
 - **Cross-Platform**: Authentication works across Electron and browser extension
@@ -302,12 +302,12 @@ if (window.electronAPI) {
 2. **Backend-Managed Keys**: Kizuna AI - keys fetched from authenticated backend service
 
 ### Authentication Flow for Kizuna AI
-1. User signs in via Clerk authentication
+1. User signs in via Better Auth authentication
 2. `ApiKeyService` fetches API key from backend endpoint (`/api/user/api-key`)
 3. API key is cached for 5 minutes to reduce backend load
 4. Provider becomes available in UI only when authenticated and key is available
 
 ### Key Services
 - **ApiKeyService**: Handles fetching API keys from backend with caching
-- **AuthContext**: Manages authentication state and token lifecycle
+- **AuthContext**: Manages authentication state and token lifecycle (Better Auth)
 - **Service Integration**: All AI clients check authentication before operations
