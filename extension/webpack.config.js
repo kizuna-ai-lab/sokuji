@@ -72,14 +72,11 @@ module.exports = (env, argv) => {
         'process.env.NODE_ENV': JSON.stringify(argv.mode || 'development'),
         // Define import.meta for Extension builds to prevent runtime errors
         'import.meta.env.MODE': JSON.stringify(argv.mode || 'development'),
-        'import.meta.env.VITE_CLERK_PUBLISHABLE_KEY': JSON.stringify(
-          process.env.VITE_CLERK_PUBLISHABLE_KEY || ''
-        ),
         'import.meta.env.VITE_BACKEND_URL': JSON.stringify(
           process.env.VITE_BACKEND_URL || ''
         ),
         'import.meta.env.VITE_ENABLE_KIZUNA_AI': JSON.stringify(
-          isDevMode 
+          isDevMode
             ? 'true'  // Always enable in development
             : process.env.VITE_ENABLE_KIZUNA_AI || 'false'  // Disabled by default in production unless explicitly enabled
         ),
