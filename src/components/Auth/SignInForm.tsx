@@ -23,28 +23,38 @@ export function SignInForm() {
     setError('');
     setLoading(true);
 
-    try {
-      await authClient.signIn.email({
-        email,
-        password,
-      });
+    const { data, error } = await authClient.signIn.email({
+      email,
+      password,
+    });
 
-      // Navigate to home on successful sign in
-      navigate('/', { replace: true });
-    } catch (err: any) {
-      console.error('Sign in error:', err);
+    if (error) {
+      console.error('Sign in error:', error);
 
-      // Handle specific error messages
-      if (err.message?.includes('Invalid')) {
+      // Handle specific error codes
+      if (error.code === 'INVALID_EMAIL_OR_PASSWORD') {
         setError(t('auth.invalidCredentials', 'Invalid email or password'));
-      } else if (err.message?.includes('not found')) {
-        setError(t('auth.userNotFound', 'User not found'));
+      } else if (error.code === 'USER_NOT_FOUND') {
+        setError(t('auth.userNotFound', 'No account found with this email'));
+      } else if (error.status === 403) {
+        // Email verification required
+        setError(t('auth.emailVerificationRequired', 'Please verify your email address before signing in'));
+      } else if (error.status === 429) {
+        // Rate limiting
+        setError(t('auth.rateLimitExceeded', 'Too many requests. Please wait a moment and try again'));
+      } else if (error.message?.toLowerCase().includes('network') || error.message?.toLowerCase().includes('fetch')) {
+        setError(t('auth.networkError', 'Network error. Please check your connection'));
       } else {
-        setError(t('auth.signInError', 'An error occurred. Please try again.'));
+        // Generic error with server message if available
+        setError(error.message || t('auth.signInError', 'Sign in failed. Please try again'));
       }
-    } finally {
       setLoading(false);
+      return;
     }
+
+    // Navigate to home on successful sign in
+    setLoading(false);
+    navigate('/', { replace: true });
   };
 
   return (

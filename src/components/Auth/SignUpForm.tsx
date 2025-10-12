@@ -38,29 +38,38 @@ export function SignUpForm() {
 
     setLoading(true);
 
-    try {
-      await authClient.signUp.email({
-        email,
-        password,
-        name,
-      });
+    const { data, error } = await authClient.signUp.email({
+      email,
+      password,
+      name,
+    });
 
-      // Navigate to home on successful sign up
-      navigate('/', { replace: true });
-    } catch (err: any) {
-      console.error('Sign up error:', err);
+    if (error) {
+      console.error('Sign up error:', error);
 
-      // Handle specific error messages
-      if (err.message?.includes('already exists')) {
+      // Handle specific error codes
+      if (error.code === 'USER_ALREADY_EXISTS') {
         setError(t('auth.emailExists', 'An account with this email already exists'));
-      } else if (err.message?.includes('Invalid email')) {
+      } else if (error.code === 'INVALID_EMAIL') {
         setError(t('auth.invalidEmail', 'Please enter a valid email address'));
+      } else if (error.code === 'WEAK_PASSWORD') {
+        setError(t('auth.weakPassword', 'Password is too weak. Use at least 8 characters with letters and numbers'));
+      } else if (error.status === 429) {
+        // Rate limiting
+        setError(t('auth.rateLimitExceeded', 'Too many requests. Please wait a moment and try again'));
+      } else if (error.message?.toLowerCase().includes('network') || error.message?.toLowerCase().includes('fetch')) {
+        setError(t('auth.networkError', 'Network error. Please check your connection'));
       } else {
-        setError(t('auth.signUpError', 'An error occurred. Please try again.'));
+        // Generic error with server message if available
+        setError(error.message || t('auth.signUpError', 'Sign up failed. Please try again'));
       }
-    } finally {
       setLoading(false);
+      return;
     }
+
+    // Navigate to home on successful sign up
+    setLoading(false);
+    navigate('/', { replace: true });
   };
 
   return (
