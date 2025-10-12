@@ -69,8 +69,8 @@ npm run electron:build
 │         ┌──────────▼───────────┐           │
 │         │   AI Providers       │           │
 │         │  OpenAI | Gemini     │           │
-│         │  Palabra | CometAPI  │           │
-│         │  Kizuna AI           │           │
+│         │  Palabra | Kizuna AI │           │
+│         │  OpenAI Compatible   │           │
 │         └──────────────────────┘           │
 └─────────────────────────────────────────────┘
 ```
@@ -81,7 +81,7 @@ npm run electron:build
 - **Authentication**: Better Auth (migrated from Clerk)
 - **Desktop**: Electron 34+
 - **Extension**: Chrome Manifest V3
-- **AI Providers**: OpenAI, Google Gemini, CometAPI, Palabra.ai, Kizuna AI
+- **AI Providers**: OpenAI, Google Gemini, Palabra.ai, Kizuna AI, and OpenAI-compatible endpoints
 
 ### Core Components
 - **Service Factory Pattern**: Platform-specific implementations (Electron/Browser)

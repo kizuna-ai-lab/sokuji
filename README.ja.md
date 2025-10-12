@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <em>OpenAI, Google Gemini, CometAPI, Palabra.ai, YunAI, Kizuna AI による リアルタイム音声翻訳</em>
+  <em>OpenAI, Google Gemini, Palabra.ai, Kizuna AI による リアルタイム音声翻訳</em>
 </p>
 
 <p align="center">
@@ -40,7 +40,7 @@
 
 # なぜSokujiなのか？
 
-SokujiはOpenAI, Google Gemini, CometAPI, Palabra.ai, YunAI, Kizuna AI APIを使用してリアルタイム音声翻訳を提供するクロスプラットフォームデスクトップアプリケーションです。Windows、macOS、Linuxで利用でき、音声入力をキャプチャし、高度なAIモデルで処理し、リアルタイムで翻訳された出力を配信することで、ライブ会話における言語の壁を取り除きます。
+SokujiはOpenAI, Google Gemini, Palabra.ai, Kizuna AI APIを使用してリアルタイム音声翻訳を提供するクロスプラットフォームデスクトップアプリケーションです。Windows、macOS、Linuxで利用でき、音声入力をキャプチャし、高度なAIモデルで処理し、リアルタイムで翻訳された出力を配信することで、ライブ会話における言語の壁を取り除きます。また、柔軟性のためにOpenAI互換のAPIエンドポイントもサポートしています。
 
 https://github.com/user-attachments/assets/1eaaa333-a7ce-4412-a295-16b7eb2310de
 
@@ -77,15 +77,14 @@ Sokujiは基本的な翻訳を超えて、仮想デバイス管理（Linuxのみ
 
 # 機能
 
-1. **OpenAI, Google Gemini, CometAPI, Palabra.ai, YunAI, Kizuna AI APIを使用したリアルタイム音声翻訳**
-2. **マルチプロバイダーサポート**: OpenAI, Google Gemini, CometAPI, Palabra.ai, YunAI, Kizuna AIをシームレスに切り替え
+1. **OpenAI, Google Gemini, Palabra.ai, Kizuna AI APIを使用したリアルタイム音声翻訳**
+2. **マルチプロバイダーサポート**: OpenAI, Google Gemini, Palabra.ai, Kizuna AIをシームレスに切り替え
 3. **サポートされているモデル**:
-   - **OpenAI**: `gpt-4o-realtime-preview`, `gpt-4o-mini-realtime-preview`
+   - **OpenAI**: `gpt-4o-realtime-preview`, `gpt-4o-mini-realtime-preview`, `gpt-realtime`, `gpt-realtime-2025-08-28`
    - **Google Gemini**: `gemini-2.0-flash-live-001`, `gemini-2.5-flash-preview-native-audio-dialog`
-   - **CometAPI**: カスタムエンドポイントでOpenAI互換モデル
    - **Palabra.ai**: WebRTCによるリアルタイム音声翻訳
-   - **YunAI**: WebSocketサポートによるリアルタイム会話AI
    - **Kizuna AI**: バックエンド管理認証によるOpenAI互換モデル
+   - **OpenAI互換**: カスタムOpenAI互換APIエンドポイントのサポート（Electronのみ）
 4. **自動ターン検出** OpenAI用の複数モード（通常、セマンティック、無効）
 5. **波形表示による音声可視化**
 6. **デュアルキュー音声ミキシングシステムを備えた高度な仮想マイク**（Linuxのみ）:
@@ -153,7 +152,7 @@ Sokujiのオーディオフロー：
 
 # 準備
 
-- (必須) OpenAI, Google Gemini, CometAPI, Palabra.ai, YunAI のAPIキー、またはKizuna AIアカウント。Palabra.aiの場合、クライアントIDとクライアントシークレットが必要です。CometAPIの場合、カスタムエンドポイントURLの設定が必要です。YunAIの場合、APIキーとエンドポイント設定が必要です。Kizuna AIの場合、アカウントにサインインしてバックエンド管理のAPIキーに自動アクセスします。
+- (必須) OpenAI, Google Gemini, Palabra.ai のAPIキー、またはKizuna AIアカウント。Palabra.aiの場合、クライアントIDとクライアントシークレットが必要です。Kizuna AIの場合、アカウントにサインインしてバックエンド管理のAPIキーに自動アクセスします。OpenAI互換エンドポイントの場合、設定でカスタムAPIエンドポイントURLを設定します（Electronのみ）。
 - (オプション) 仮想オーディオデバイス機能のためのPulseAudioまたはPipeWireを搭載したLinux（デスクトップアプリのみ）
 
 # インストール
@@ -223,10 +222,10 @@ sudo dpkg -i sokuji_0.9.18_amd64.deb
    </p>
    
    - 右上の設定ボタンをクリック
-   - 希望のプロバイダー（OpenAI, Gemini, CometAPI, Palabra, YunAI, またはKizuna AI）を選択
-   - ユーザー管理プロバイダーの場合：APIキーを入力し、「検証」をクリック。Palabraの場合、クライアントIDとクライアントシークレットを入力する必要があります。CometAPIの場合、APIキーとカスタムエンドポイントURLの両方を設定します。YunAIの場合、APIキーとエンドポイントURLを設定します。
+   - 希望のプロバイダー（OpenAI, Gemini, Palabra, またはKizuna AI）を選択
+   - ユーザー管理プロバイダーの場合：APIキーを入力し、「検証」をクリック。Palabraの場合、クライアントIDとクライアントシークレットを入力する必要があります。OpenAI互換エンドポイントの場合（Electronのみ）、APIキーとカスタムエンドポイントURLの両方を設定します。
    - Kizuna AIの場合：アカウントにサインインしてバックエンド管理のAPIキーに自動アクセスします。
-   - 「保存」をクリックしてAPIキーを安全に保存
+   - 「保存」をクリックして設定を安全に保存
 
 2. **オーディオデバイスを設定**:
    
@@ -301,10 +300,11 @@ Google Geminiクライアントのパフォーマンス向上：
 
 # 使用技術
 
-- Electron 34+ (Windows、macOS、Linux)
-- React 18
-- TypeScript
-- OpenAI, Google Gemini, CometAPI, Palabra.ai, YunAI, Kizuna AI APIs
+- **ランタイム**: Electron 34+ (Windows、macOS、Linux) / Chrome Extension Manifest V3
+- **フロントエンド**: React 18 + TypeScript
+- **バックエンド**: Cloudflare Workers + Hono + D1 Database
+- **認証**: Better Auth
+- **AIプロバイダー**: OpenAI, Google Gemini, Palabra.ai, Kizuna AI, およびOpenAI互換エンドポイント
 - 高度な音声処理:
   - リアルタイム音声処理のためのWeb Audio API
   - 信頼性の高い音声キャプチャのためのMediaRecorder API
