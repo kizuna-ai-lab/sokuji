@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Sokuji is a real-time AI-powered translation application available as both an Electron desktop app and a browser extension. It provides live speech translation using OpenAI, Google Gemini, CometAPI, Palabra.ai, and Kizuna AI APIs with modern audio processing capabilities.
+Sokuji is a real-time AI-powered translation application available as both an Electron desktop app and a browser extension. It provides live speech translation using OpenAI, Google Gemini, Palabra.ai, and Kizuna AI APIs with modern audio processing capabilities. It also supports OpenAI-compatible API endpoints for flexibility.
 
 ## Development Commands
 
@@ -66,10 +66,10 @@ The codebase supports both Electron desktop app and Chrome/Edge browser extensio
 
 2. **AI Client Architecture**
    - `ClientFactory` creates provider-specific clients
-   - Providers: OpenAI, Gemini, CometAPI, PalabraAI, KizunaAI
+   - Providers: OpenAI, Gemini, PalabraAI, KizunaAI, OpenAI Compatible
    - Each client implements `IClient` interface
    - Real-time communication via WebSocket or REST APIs
-   - CometAPI uses OpenAIClient with custom host configuration
+   - OpenAI Compatible provider allows custom API endpoints (Electron only)
    - KizunaAI uses OpenAI-compatible API with backend-managed authentication
 
 3. **Audio Processing Pipeline**
@@ -286,7 +286,7 @@ if (window.electronAPI) {
 
 ### Security Policy
 - Strict CSP configuration for extension pages
-- Allowed connections to AI provider APIs (OpenAI, Google, Palabra, CometAPI, Kizuna AI)
+- Allowed connections to AI provider APIs (OpenAI, Google, Palabra, Kizuna AI, and OpenAI-compatible endpoints)
 - PostHog analytics integration for usage tracking
 
 ## Authentication and API Key Management
@@ -298,7 +298,7 @@ if (window.electronAPI) {
 - **Cross-Platform**: Authentication works across Electron and browser extension
 
 ### API Key Types
-1. **User-Managed Keys**: OpenAI, Gemini, CometAPI, Palabra AI - users input their own keys
+1. **User-Managed Keys**: OpenAI, Gemini, Palabra AI, OpenAI Compatible - users input their own keys
 2. **Backend-Managed Keys**: Kizuna AI - keys fetched from authenticated backend service
 
 ### Authentication Flow for Kizuna AI
