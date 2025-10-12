@@ -96,34 +96,42 @@ const ENABLED_SITES = [
 const SITE_INFO = {
   'meet.google.com': {
     name: 'Google Meet',
+    shortName: 'Meet',
     icon: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAACB0lEQVR4AWPAB0bBKHjlYmzzfRXPkT97mO+TjHcz3/69m6X//34GDrItf+Vs9vnHMt6Xv/ew/CcXAx0TT7blr5xN/39fwP+TQgfMJ9tysAPmCfynlgO0V4XymKwIWm6yIvi8yfIQB/yWIxzwlxoOMF8SJAO0+DQQ/wdh4xXB8/FZjnDAUr63lDrAaEWQBdDS51DLMR2wNTLf9axf2NdzfiH/0fGXFUKniUn1uBywb5PkWqCFv0GW4nSAU+vXeqfWL/+x4pbPocSkHXSLf+1h+dM9X/aVymSXSyAL6eqAz7vY/oRP0Pwv0WDxX3miyzO6OuD+Vq5f1p0GIMshDpjg9ItuDji3gf+9VqsJyGI4Vup3+k8XB+xZLXRDptEcZjH9HaAx3eMS0MKBcwDIUO3ZXs8lGwfQASCsO9/3i2SzJcIBE5z+0M0BMGy4JOCbTJsNNBc4v6anAxAWLAv8KNdt91llkst1gg6Qy75RrpBz/T8mvvHDYFbBNqCG/URgbHH9W3eB30aCDpBIu1wvmX7pPzasPyfrFUgD6RhhkcnKoHqyHaA3s/AP6RZjWmS6PCgcyP9OsgN0ZxSTaTmmRcarQm2QquXJdAwBBLBYHqAAihIQjeSAi/G4HGAwJ/sNJQ4wWR6cTTALKSTc5wBathqIf6M7wHBB0i0yLf8NxOsN1gcI4LN7FIwCACcjGypcbDtgAAAAAElFTkSuQmCC'
   },
   'teams.live.com': {
-    name: 'Microsoft Teams Live',
+    name: 'Microsoft Teams Free',
+    shortName: 'Teams Free',
     icon: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAACD0lEQVR4Ae2XA2wlURiF7zq2VuEiztq2rdq27bWNeG3bCNa2VT/V7vy9fzmeaR/Kk5yH0fnm+pJWq7i1+vExq7WXYlZr0tH4G49ZJJyGRVMzMSkaYDs2RVuJ58z+5hjEDuZDmLUksKj5oXzjNYSlJbYv5i6yevZ8sdXTfPzG/0YAaNKVATTp3PCnwDcetwgAvrEYAB5vEoBv6Jsb/mHvge2QmJ+SVYDFLgaAxwlq3rI7a+cuu1s2d+kdaJxvw+yFh8HG8RxCCBuh2hJQDFeAmLNwGwIIu6HaNqAYouBFyw/o/MPfZ4oPRMq9QACgIAEAMVICgLKyynrXiXVMADBqrA+ssjsh2huikrLBxfcLiDfCZ6VLrJ6tla2C8vJKYBiGf1wRgAeBgZIQ5gZAY5ikOwA6ADoAjBmKjQewfmYwdjIyBgAHoutGTcdTZu6hAL6yABGJmZKj4CLr5yOIGo2dGJSKbyq0H0yfs1YWIDDyPyMIt35WucTqqStRKxuXC0cxRMq2zhekSyAh8zB928N0Gv5Xbeunh5bbPh9IGiO/yI+DXbzuMc6ed0BgrzvgF/ZOYomuKY5ZretLTCH6sGRegKLjVus2EVMJADrFpmjPqg2PXa05ceAAdCOm1M6d0CN2jS4hZrWmRGZnVEpLa2siQGdiLsVuzO0ft1q7hgY9ooG51H+pn1CvT9yg6UVak6oAILzSjyQsMWUAAAAASUVORK5CYII='
   },
   'teams.microsoft.com': {
-    name: 'Microsoft Teams',
+    name: 'Microsoft Teams (work or school)',
+    shortName: 'Teams',
     icon: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAACD0lEQVR4Ae2XA2wlURiF7zq2VuEiztq2rdq27bWNeG3bCNa2VT/V7vy9fzmeaR/Kk5yH0fnm+pJWq7i1+vExq7WXYlZr0tH4G49ZJJyGRVMzMSkaYDs2RVuJ58z+5hjEDuZDmLUksKj5oXzjNYSlJbYv5i6yevZ8sdXTfPzG/0YAaNKVATTp3PCnwDcetwgAvrEYAB5vEoBv6Jsb/mHvge2QmJ+SVYDFLgaAxwlq3rI7a+cuu1s2d+kdaJxvw+yFh8HG8RxCCBuh2hJQDFeAmLNwGwIIu6HaNqAYouBFyw/o/MPfZ4oPRMq9QACgIAEAMVICgLKyynrXiXVMADBqrA+ssjsh2huikrLBxfcLiDfCZ6VLrJ6tla2C8vJKYBiGf1wRgAeBgZIQ5gZAY5ikOwA6ADoAjBmKjQewfmYwdjIyBgAHoutGTcdTZu6hAL6yABGJmZKj4CLr5yOIGo2dGJSKbyq0H0yfs1YWIDDyPyMIt35WucTqqStRKxuXC0cxRMq2zhekSyAh8zB928N0Gv5Xbeunh5bbPh9IGiO/yI+DXbzuMc6ed0BgrzvgF/ZOYomuKY5ZretLTCH6sGRegKLjVus2EVMJADrFpmjPqg2PXa05ceAAdCOm1M6d0CN2jS4hZrWmRGZnVEpLa2siQGdiLsVuzO0ft1q7hgY9ooG51H+pn1CvT9yg6UVak6oAILzSjyQsMWUAAAAASUVORK5CYII='
   },
   'app.zoom.us': {
     name: 'Zoom',
+    shortName: 'Zoom',
     icon: 'data:image/png;base64,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'
   },
   'app.gather.town': {
     name: 'Gather Town',
+    shortName: 'Gather',
     icon: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABwAAAAcCAMAAABF0y+mAAAATlBMVEVHcExDWNhDWNhDWNhDWNhDWNhDWNhDWNhDWNhDWNhDWNgvSdY+VNjw8vx8iOI3T9e6wO8mQ9X///9mdt7Y2/aRmuakrOpSZNsKM9PN0fPNVdxhAAAAC3RSTlMAOobD6f+HYvIY4+LiGjgAAAEfSURBVHgBbJJVAgMhDAXXUgsQeEh273/QWqh3PhkgOjwZp3khWubdOHyzP9CTw/5DHU/0wen49iMRsfvQ44fz4a890hWJPn1a+9niMWJOQiSpBzjd8ySTxQNROAI9wC3nQ5fIKQSpyA1iFVk2V1wAs2qKZRWo6zntHrKlDYiKzXu2s2mYuxQOIEXOW6TOPCwWMVSpWBMCJ2YylsHcBg/xHj4FoDzsXTqFrL5xq8JoiiYm7VtFZjSmIA66lij929maB3iuALSgIFspcy+FNTOjrmVLLWZ5lDKS4egmt5JEExmjtc/07dtcAf9onzXekFyVEdhbtnsb2fOtc/TM9vQatmHtsMb3NRo/bL1MDCiHlogQZvOD5fAlTcKJGm92AABfuxfNfG+19AAAAABJRU5ErkJggg=='
   },
   'whereby.com': {
     name: 'Whereby',
+    shortName: 'Whereby',
     icon: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABwAAAAcCAMAAABF0y+mAAAAulBMVEX429X53Nb12NLv0szt0Mrqzcfx0s39493y1c/94dv//fb/9/D///z////56+bt1s+DcG2lkIx7aWZ0YmCfioZpWlYAAAD/6uTZ0M5DNTM+ODaPg4BmX13NuraflJEkJSUTDQy2qabk4N6onJjy4NlFQD+opaT/+fddWVeYl5d2c3O3op6CfHoyMDDw5ePax8NKPDrg1NBYTUovJCGtr62/v7r75+EYHBzJzMwoGxcZFRbFsq2Ufnra2tqLdargAAABL0lEQVR4AcSPBZYCMRBEo/gIVsC44+52/2PhhHl7ga14fiv5P9G3XlfCWB4xLl6SgjLGC8WiKFHFypVKtVJ7SBO61GsG18r8S6kw6/W62Wi22ujo3R5gVYkK3bEBOK7nIwijBwsQV/mHlRItRZD1+2GAQexkQwuj/jculdUxMEmEPn0cs1l/DltBwow+sOguqy3A7siCBlfnqkupmUBW5FVgtUxIB/1cryWiA+3I1dbAJul7qSYpybm2ge2OIUDD0PZGp0R+KhXnQENL3QZwmB81SfIS0QLonrQzsBnVX7UqUb7LgNWlGq2x6L1KzYkl1zUwEzsPGOuqHJXVxqUvySFAZDDyB+42uJKS0TFN3VCOKu7SjARlu8wt/xwVLXcev4wUd3mm6H3gIGMCUQMIAHDuG3vTJfIlAAAAAElFTkSuQmCC'
   },
   'discord.com': {
     name: 'Discord',
+    shortName: 'Discord',
     icon: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABwAAAAcCAMAAABF0y+mAAAASFBMVEVHcExYZPFXZPJXZPFXZPFXZPFXZPFXZPFYZPJYZfJYZPJXZfFWY/JhbfNsd/OSmvbS1fv////x8/6pr/hQXvLl5/2Bi/XAxfpYg8U1AAAADHRSTlMADzmFwOT8YtP/sloPkm6kAAABAklEQVR4AYWTBbLFIAxFcXs4lf3vFEg1X2+9JzITIZco40IqJQVnlGBRbewtoxFmziI59rCPRGhIfn5hiLKDYSkJkemZz98689IB9YlCjPMlxnBgr4ejgTebcqltqJacLFBDCQPHJZWX0gIOjHB4Lusbrgu4ciKQI3IVRALMGGaAkqgZNdQRK4U8foc0MtQw46oDbmC9pBkQomwHlBPOlOsW9lL2sK1XUknETNnKpNOl5slKm1AQfsFaxw2eF+RQBB9HwLq3PedxG3CPMyc7yufDqF6b5Q2+jfoFf5SPaH/WPXhQuCqvn5bNVqEXR1GzkST7e0wwxeyX0fSO/T/Uf65DBzQNHUMopTvLAAAAAElFTkSuQmCC'
   },
   'app.slack.com': {
     name: 'Slack',
+    shortName: 'Slack',
     icon: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAD2klEQVR4Ab2VBYzjVhRFn7OMomUKlMk/1AwVUkGZubHLzK2oGChzK1ZJVFGZnLGdMgXKzLiMAXsY3bvgKvXau55Za450B/KV944/mdyQKGkh5KlEqfEHfhdaytoxbaVuzhwPqxmOqVmBlzMf8UrmJ6ZkHmBKdhF5QWtZ4xLFxneI0ZShts+79qEd8Gr2dF5OG/9PRiEvSJT1syzNzXxHIKzkpqNhH2JYMhJV7tqb9pSWUuNWWwHkyMrAVEz5UmtzM1iacz1YAv0QNBuyE2gvdk3n1cxyJwGmpgXyAmy8uyZewEJLUWtvKWk3Q+YOM8kv9MkTJOCMJwJHfNbLtVa62lqL2jXIdU7BDFzTVtYYNRGRc64FWuTcfKakz2ZqhpFJS1kPYT0/Q4wxpDP5S++U7ccw60oAl9Ot+GzAPKK8klaYnFlAKPYcYow1mI1HCYRdzABuxQ7bcSV9JwS0+rgEilrfcb8bPjd7AI1utxfIlAn3+8/jnIFfCRxauGcGGgzbN8juRwDT/YDtuJx+jVDoynEI9LVU9CNoB1jLa1FwyNLgHXMc7wU7gRHMwPGEJeASJT2For3ummsabsfjqImOdx7hsLOvwrXcj8KjEHo18f59swjYzoCSrkffuquVFXIcmSQ/656Kp1rYUmkscgpewQtxZCeTAy0f3DM1quTmkoWImpsdLmQWbctb6QU4jpPIjjUhcdaqvS+cvS37XTJlp/H9L5hqJGHtgCHFuIYcm72rdCmxmdTMyoDI/eMXD1u5IrX2nxUp47/4U1fQDjYFL5m9coXwEj4fWekXflsVTEXJQi0fPrn6Jlu75U3e2G0k9otWiIeqcpQjFBRQeBQx7ASMs170/bNC+MIy3g1p1tQ8hcIDiDGGDFY7w0lCse8Qw0kAgmfZja/E9wg01Pg0PJG75pZU3+RfIDTSHRqIBDD1j9sKIuv2vXzalnxkgX0DV0vxGZ4w9crOzYXRVUFxHwIQecJJYMNe50/XpZivKrHvxzkD99PK4PkHoNhvTYX7Me1XEnAjQECToktQ8JcxNB+tSny51smWbm8SusD3T0A8C41vXBsUVxBwK9B0BKfWJHYupvWhXaWaZ/fW8+w4XYlz5Aa3At7jUqAuhWdjD1zdlFQtH10+YQJVKbzcZncPQOT0CRKImALW1Az5uCm0p/zjFx5zEli730XTsPGWOR6zfPgoDwRE0VYA7wQCupqYiWaDdket/mbkQC+WwIeGf1oERtb6xTjtYIvEX2kVwDn/kLxilV84CC+k13Zc29/gvjgHYpw5jg3nw1Jch8a/IlUIPbslz/zkgn8BeVEBTo2yH6AAAAAASUVORK5CYII='
   }
 };
@@ -292,18 +300,13 @@ function showUnsupportedState(hostname) {
       <strong>${getMessage('notSupported')}</strong><br>
       ${getMessage('currentlyOn', [`<code>${hostname}</code>`])}
     </div>
-    
+
     <div class="supported-sites">
       <ul class="sites-list" id="sitesList">
         ${generateSitesList()}
       </ul>
-      ${ENABLED_SITES.length > 3 ? `
-        <button class="toggle-sites-button" id="toggleSitesButton">
-          ${getMessage('showMoreSites', [ENABLED_SITES.length - 3])}
-        </button>
-      ` : ''}
     </div>
-    
+
     <div class="instructions">
       <p><strong>${getMessage('needMoreSites')}</strong> ${getMessage('contactUs')} <a href="mailto:support@kizuna.ai" target="_blank">support@kizuna.ai</a> ${getMessage('contributeCode')} <a href="https://github.com/kizuna-ai-lab/sokuji" target="_blank">${getMessage('openSourceProject')}</a>.</p>
     </div>
@@ -324,59 +327,34 @@ function showErrorState() {
       <strong>${getMessage('unableToDetect')}</strong><br>
       ${getMessage('refreshAndTry')}
     </div>
-    
+
     <div class="supported-sites">
       <ul class="sites-list" id="sitesList">
         ${generateSitesList()}
       </ul>
-      ${ENABLED_SITES.length > 3 ? `
-        <button class="toggle-sites-button" id="toggleSitesButton">
-          ${getMessage('showMoreSites', [ENABLED_SITES.length - 3])}
-        </button>
-      ` : ''}
     </div>
-    
+
     <div class="instructions">
       <p><strong>${getMessage('needMoreSitesShort')}</strong> <a href="mailto:support@kizuna.ai" target="_blank">${getMessage('contactUsShort')}</a> ${getMessage('contributeCode')} <a href="https://github.com/kizuna-ai-lab/sokuji" target="_blank">${getMessage('contributeCodeShort')}</a>.</p>
     </div>
   `;
 }
 
-// Helper function to generate sites list HTML with initial 3 sites visible
-function generateSitesList(showAll = false) {
-  const sitesToShow = showAll ? ENABLED_SITES : ENABLED_SITES.slice(0, 3);
-  const hiddenSites = showAll ? [] : ENABLED_SITES.slice(3);
-  
-  let html = sitesToShow.map(site => {
+// Helper function to generate sites list HTML
+function generateSitesList() {
+  return ENABLED_SITES.map(site => {
     const info = SITE_INFO[site];
+    const tooltipText = `${info.name}\n${site}`;
     return `
-      <li class="site-item">
+      <li class="site-item" title="${tooltipText}">
         <img src="${info.icon}" alt="${info.name}" class="site-icon" onerror="this.style.display='none'">
         <div class="site-info">
-          <div class="site-name">${info.name}</div>
+          <div class="site-name">${info.shortName}</div>
           <div class="site-url">${site}</div>
         </div>
       </li>
     `;
   }).join('');
-  
-  // Add hidden sites with a class for styling
-  if (!showAll && hiddenSites.length > 0) {
-    html += hiddenSites.map(site => {
-      const info = SITE_INFO[site];
-      return `
-        <li class="site-item hidden-site">
-          <img src="${info.icon}" alt="${info.name}" class="site-icon" onerror="this.style.display='none'">
-          <div class="site-info">
-            <div class="site-name">${info.name}</div>
-            <div class="site-url">${site}</div>
-          </div>
-        </li>
-      `;
-    }).join('');
-  }
-  
-  return html;
 }
 
 function setupEventListeners(tabId, isSupported, currentHostname) {
@@ -439,54 +417,6 @@ function setupEventListeners(tabId, isSupported, currentHostname) {
           alert('Unable to open Sokuji. Please try refreshing the page.');
         }
       }
-    });
-  }
-
-  // Handle toggle sites button
-  const toggleButton = document.getElementById('toggleSitesButton');
-  if (toggleButton) {
-    let showingAll = false;
-    
-    toggleButton.addEventListener('click', () => {
-      const sitesList = document.getElementById('sitesList');
-      const allSiteItems = document.querySelectorAll('.site-item');
-      
-      showingAll = !showingAll;
-      
-      if (showingAll) {
-        // Show all sites by removing the hidden-site class from items beyond index 2
-        allSiteItems.forEach((site, index) => {
-          if (index >= 3) {
-            site.classList.remove('hidden-site');
-          }
-        });
-        toggleButton.textContent = getMessage('showLessSites');
-        
-        // Track show more clicked
-        trackEvent('popup_show_more_sites_clicked', {
-          total_sites: ENABLED_SITES.length,
-          hidden_sites_count: ENABLED_SITES.length - 3,
-          is_supported_site: isSupported
-        });
-      } else {
-        // Hide extra sites by adding the hidden-site class to items beyond index 2
-        allSiteItems.forEach((site, index) => {
-          if (index >= 3) {
-            site.classList.add('hidden-site');
-          }
-        });
-        toggleButton.textContent = getMessage('showMoreSites', [ENABLED_SITES.length - 3]);
-        
-        // Track show less clicked
-        trackEvent('popup_show_less_sites_clicked', {
-          total_sites: ENABLED_SITES.length,
-          hidden_sites_count: ENABLED_SITES.length - 3,
-          is_supported_site: isSupported
-        });
-      }
-      
-      // Re-attach click handlers to newly visible site items
-      setupSiteItemClickHandlers(isSupported, currentHostname);
     });
   }
 
