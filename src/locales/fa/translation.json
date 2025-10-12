@@ -178,6 +178,13 @@
       "name": "Google Gemini",
       "description": "فناوری هوش مصنوعی Google"
     },
+    "openaiCompatible": {
+      "name": "API سازگار با OpenAI",
+      "description": "نقطه پایانی سفارشی سازگار با OpenAI",
+      "customEndpoint": "نقطه پایانی API",
+      "customEndpointHelp": "URL نقطه پایانی API سفارشی سازگار با OpenAI خود را وارد کنید",
+      "customEndpointPlaceholder": "https://your-api-endpoint.com"
+    },
     "cometapi": {
       "name": "Comet API",
       "description": "ارائه‌دهنده هوش مصنوعی جایگزین"

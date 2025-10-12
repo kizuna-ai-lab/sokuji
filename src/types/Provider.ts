@@ -10,27 +10,27 @@ import { isKizunaAIEnabled } from '../utils/environment';
 export enum Provider {
   OPENAI = 'openai',
   GEMINI = 'gemini',
-  COMET_API = 'cometapi',
-  YUN_AI = 'yunai',
   PALABRA_AI = 'palabraai',
-  KIZUNA_AI = 'kizunaai'
+  KIZUNA_AI = 'kizunaai',
+  OPENAI_COMPATIBLE = 'openai_compatible'
 }
 
 /**
  * Provider type definition
  */
-export type ProviderType = Provider.OPENAI | Provider.GEMINI | Provider.COMET_API | Provider.YUN_AI | Provider.PALABRA_AI | Provider.KIZUNA_AI;
+export type ProviderType = Provider.OPENAI | Provider.GEMINI | Provider.PALABRA_AI | Provider.KIZUNA_AI | Provider.OPENAI_COMPATIBLE;
 
 /**
  * Array of all supported providers
+ * Note: OPENAI_COMPATIBLE is only available in Electron environment
+ * and will be filtered at the UI layer
  */
 export const SUPPORTED_PROVIDERS: ProviderType[] = [
   Provider.OPENAI,
   Provider.GEMINI,
-  Provider.COMET_API,
-  Provider.YUN_AI,
   Provider.PALABRA_AI,
-  ...(isKizunaAIEnabled() ? [Provider.KIZUNA_AI] : [])
+  ...(isKizunaAIEnabled() ? [Provider.KIZUNA_AI] : []),
+  Provider.OPENAI_COMPATIBLE
 ];
 
 /**
@@ -38,8 +38,7 @@ export const SUPPORTED_PROVIDERS: ProviderType[] = [
  */
 export const OPENAI_COMPATIBLE_PROVIDERS: ProviderType[] = [
   Provider.OPENAI,
-  Provider.COMET_API,
-  Provider.YUN_AI,
+  Provider.OPENAI_COMPATIBLE,
   ...(isKizunaAIEnabled() ? [Provider.KIZUNA_AI] : [])
 ];
 
@@ -66,14 +65,12 @@ export function getProviderDisplayName(provider: ProviderType): string {
       return 'OpenAI';
     case Provider.GEMINI:
       return 'Gemini';
-    case Provider.COMET_API:
-      return 'CometAPI';
-    case Provider.YUN_AI:
-      return 'YunAI';
     case Provider.PALABRA_AI:
       return 'PalabraAI';
     case Provider.KIZUNA_AI:
       return 'KizunaAI';
+    case Provider.OPENAI_COMPATIBLE:
+      return 'OpenAI Compatible API';
     default:
       return provider;
   }

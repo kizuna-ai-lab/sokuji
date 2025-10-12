@@ -15,9 +15,10 @@ export class ClientOperations {
    * Validate API key and fetch available models in a single request
    */
   static async validateApiKeyAndFetchModels(
-    apiKey: string, 
+    apiKey: string,
     provider: ProviderType,
-    clientSecret?: string
+    clientSecret?: string,
+    customEndpoint?: string
   ): Promise<{
     validation: ApiKeyValidationResult;
     models: FilteredModel[];
@@ -25,18 +26,19 @@ export class ClientOperations {
     switch (provider) {
       case Provider.OPENAI:
         return await OpenAIClient.validateApiKeyAndFetchModels(apiKey);
-      case Provider.COMET_API:
-        // CometAPI is OpenAI-compatible, use OpenAIClient with custom host
-        return await OpenAIClient.validateApiKeyAndFetchModels(
-          apiKey,
-          'https://api.cometapi.com'
-        );
-      case Provider.YUN_AI:
-        // YunAI is OpenAI-compatible, use OpenAIClient with custom host
-        return await OpenAIClient.validateApiKeyAndFetchModels(
-          apiKey,
-          'https://new.yunai.link'
-        );
+      case Provider.OPENAI_COMPATIBLE:
+        // OpenAI Compatible provider requires a custom endpoint
+        if (!customEndpoint) {
+          return {
+            validation: {
+              valid: false,
+              message: 'Custom API endpoint is required for OpenAI Compatible provider',
+              validating: false
+            },
+            models: []
+          };
+        }
+        return await OpenAIClient.validateApiKeyAndFetchModels(apiKey, customEndpoint);
       case Provider.GEMINI:
         return await GeminiClient.validateApiKeyAndFetchModels(apiKey);
       case Provider.PALABRA_AI:
@@ -78,9 +80,8 @@ export class ClientOperations {
   static getLatestRealtimeModel(filteredModels: FilteredModel[], provider: ProviderType): string {
     switch (provider) {
       case Provider.OPENAI:
-      case Provider.COMET_API:
-      case Provider.YUN_AI:
-        // OpenAI, CometAPI and YunAI use the same model detection logic
+      case Provider.OPENAI_COMPATIBLE:
+        // OpenAI and OpenAI Compatible use the same model detection logic
         return OpenAIClient.getLatestRealtimeModel(filteredModels);
       case Provider.GEMINI:
         return GeminiClient.getLatestRealtimeModel(filteredModels);

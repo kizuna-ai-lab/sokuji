@@ -208,6 +208,13 @@
       "name": "Google Gemini",
       "description": "谷歌AI技术"
     },
+    "openaiCompatible": {
+      "name": "OpenAI 兼容 API",
+      "description": "自定义 OpenAI 兼容端点",
+      "customEndpoint": "API 端点",
+      "customEndpointHelp": "输入您的自定义 OpenAI 兼容 API 端点 URL",
+      "customEndpointPlaceholder": "https://your-api-endpoint.com"
+    },
     "cometapi": {
       "name": "Comet API",
       "description": "替代AI提供商"

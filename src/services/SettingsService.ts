@@ -217,15 +217,21 @@ export class SettingsService implements ISettingsService {
    * Validate API key and fetch available models in a single request
    */
   async validateApiKeyAndFetchModels(
-    apiKey: string, 
+    apiKey: string,
     provider: ProviderType,
-    clientSecret?: string
+    clientSecret?: string,
+    customEndpoint?: string
   ): Promise<{
     validation: ApiKeyValidationResult;
     models: FilteredModel[];
   }> {
     try {
-      return await ClientOperations.validateApiKeyAndFetchModels(apiKey, provider, clientSecret);
+      return await ClientOperations.validateApiKeyAndFetchModels(
+        apiKey,
+        provider,
+        clientSecret,
+        customEndpoint
+      );
     } catch (error: any) {
       console.error(`[Sokuji] [SettingsService] Error validating API key and fetching models for ${provider}:`, error);
       return {

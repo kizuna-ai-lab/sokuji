@@ -52,11 +52,13 @@ export interface ISettingsService {
    * @param apiKey The API key to validate and use for fetching models
    * @param provider The service provider to validate against
    * @param clientSecret The client secret for PalabraAI (optional)
+   * @param customEndpoint The custom API endpoint for OpenAI Compatible provider (optional)
    */
   validateApiKeyAndFetchModels(
-    apiKey: string, 
+    apiKey: string,
     provider: ProviderType,
-    clientSecret?: string
+    clientSecret?: string,
+    customEndpoint?: string
   ): Promise<{
     validation: ApiKeyValidationResult;
     models: FilteredModel[];

@@ -384,6 +384,40 @@
         }
       }
 
+      // API Endpoint Input
+      .endpoint-input-group {
+        margin-bottom: 12px;
+
+        .endpoint-input {
+          width: 100%;
+          box-sizing: border-box;
+          background: #333;
+          border: 1px solid #444;
+          color: #fff;
+          padding: 8px 10px;
+          border-radius: 4px;
+          font-size: 14px;
+          transition: all 0.2s ease;
+
+          &:focus {
+            outline: none;
+            border-color: #10a37f;
+            background: #333;
+          }
+
+          &:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            background-color: #2a2a2a;
+            color: #777;
+          }
+
+          &::placeholder {
+            color: #666;
+          }
+        }
+      }
+
       // API Key Input
       .api-key-input-group {
         display: flex;
@@ -460,6 +494,10 @@
           &:disabled {
             opacity: 0.5;
             cursor: not-allowed;
+          }
+
+          &::placeholder {
+            color: #666;
           }
         }
 

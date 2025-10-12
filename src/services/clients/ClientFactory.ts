@@ -16,13 +16,15 @@ export class ClientFactory {
    * @param provider - The provider type
    * @param apiKey - The API key for the specified provider
    * @param clientSecret - The client secret for PalabraAI (optional)
+   * @param customEndpoint - The custom API endpoint for OpenAI Compatible provider (optional)
    * @returns IClient instance
    */
   static createClient(
     model: string,
     provider: ProviderType,
     apiKey: string,
-    clientSecret?: string
+    clientSecret?: string,
+    customEndpoint?: string
   ): IClient {
     if (!apiKey) {
       throw new Error(`API key is required for ${provider} provider`);
@@ -31,24 +33,23 @@ export class ClientFactory {
     switch (provider) {
       case Provider.OPENAI:
         return new OpenAIClient(apiKey);
-        
-      case Provider.COMET_API:
-        // CometAPI uses OpenAIClient with custom host
-        return new OpenAIClient(apiKey, 'https://api.cometapi.com');
 
-      case Provider.YUN_AI:
-        // YunAI uses OpenAIClient with custom host
-        return new OpenAIClient(apiKey, 'https://new.yunai.link');
+      case Provider.OPENAI_COMPATIBLE:
+        // OpenAI Compatible uses OpenAIClient with custom endpoint
+        if (!customEndpoint) {
+          throw new Error(`Custom endpoint is required for ${provider} provider`);
+        }
+        return new OpenAIClient(apiKey, customEndpoint);
 
       case Provider.GEMINI:
         return new GeminiClient(apiKey);
-        
+
       case Provider.PALABRA_AI:
         if (!clientSecret) {
           throw new Error(`Client secret is required for ${provider} provider`);
         }
         return new PalabraAIClient(apiKey, clientSecret);
-        
+
       case Provider.KIZUNA_AI:
         // Check if Kizuna AI is enabled before creating the client
         if (!isKizunaAIEnabled()) {
@@ -59,7 +60,7 @@ export class ClientFactory {
         // The apiKey here is actually the auth session from Better Auth
         // Use environment-specific backend URL
         return new OpenAIClient(apiKey, getBackendUrl());
-        
+
       default:
         throw new Error(`Unsupported provider: ${provider}`);
     }

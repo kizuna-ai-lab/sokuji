@@ -56,6 +56,13 @@
       "name": "Google Gemini",
       "description": "Технологія AI від Google"
     },
+    "openaiCompatible": {
+      "name": "API сумісний з OpenAI",
+      "description": "Користувацька кінцева точка сумісна з OpenAI",
+      "customEndpoint": "Кінцева Точка API",
+      "customEndpointHelp": "Введіть URL користувацької кінцевої точки API сумісної з OpenAI",
+      "customEndpointPlaceholder": "https://your-api-endpoint.com"
+    },
     "cometapi": {
       "name": "Comet API",
       "description": "Alternative AI provider"

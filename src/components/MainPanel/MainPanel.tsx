@@ -6,8 +6,7 @@ import {
   useUIMode,
   useOpenAISettings,
   useGeminiSettings,
-  useCometAPISettings,
-  useYunAISettings,
+  useOpenAICompatibleSettings,
   usePalabraAISettings,
   useKizunaAISettings,
   useIsApiKeyValid,
@@ -57,8 +56,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   const provider = useProvider();
   const uiMode = useUIMode();
   const openAISettings = useOpenAISettings();
-  const cometAPISettings = useCometAPISettings();
-  const yunAISettings = useYunAISettings();
+  const openAICompatibleSettings = useOpenAICompatibleSettings();
   const geminiSettings = useGeminiSettings();
   const palabraAISettings = usePalabraAISettings();
   const kizunaAISettings = useKizunaAISettings();
@@ -467,11 +465,8 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         case Provider.OPENAI:
           apiKey = openAISettings.apiKey;
           break;
-        case Provider.COMET_API:
-          apiKey = cometAPISettings.apiKey;
-          break;
-        case Provider.YUN_AI:
-          apiKey = yunAISettings.apiKey;
+        case Provider.OPENAI_COMPATIBLE:
+          apiKey = openAICompatibleSettings.apiKey;
           break;
         case Provider.KIZUNA_AI:
           // For Kizuna AI, fetch a fresh session token from Better Auth
@@ -500,12 +495,17 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         default:
           throw new Error(`Unsupported provider: ${provider}`);
       }
-      
+
       // Get model name based on provider
-      const modelName = provider === Provider.PALABRA_AI 
-        ? 'realtime-translation' 
+      const modelName = provider === Provider.PALABRA_AI
+        ? 'realtime-translation'
         : (currentProviderSettings as any).model;
-      
+
+      // Get custom endpoint for OpenAI Compatible provider
+      const customEndpoint = provider === Provider.OPENAI_COMPATIBLE
+        ? openAICompatibleSettings.customEndpoint
+        : undefined;
+
       // Create client with appropriate parameters
       if (provider === Provider.PALABRA_AI) {
         clientRef.current = ClientFactory.createClient(
@@ -518,7 +518,9 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         clientRef.current = ClientFactory.createClient(
           modelName,
           provider,
-          apiKey
+          apiKey,
+          undefined, // clientSecret
+          customEndpoint // customEndpoint
         );
       }
 
@@ -529,10 +531,9 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
       // Set canPushToTalk based on current turnDetectionMode
       if (isOpenAICompatible(provider)) {
-        const settings = 
+        const settings =
           provider === Provider.OPENAI ? openAISettings :
-          provider === Provider.COMET_API ? cometAPISettings :
-          provider === Provider.YUN_AI ? yunAISettings :
+          provider === Provider.OPENAI_COMPATIBLE ? openAICompatibleSettings :
           provider === Provider.KIZUNA_AI ? kizunaAISettings :
           null;
         setCanPushToTalk(settings ? settings.turnDetectionMode === 'Disabled' : false);
@@ -601,10 +602,9 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       // Start recording if using server VAD and input device is turned on
       let turnDetectionDisabled = false;
       if (isOpenAICompatible(provider)) {
-        const settings = 
+        const settings =
           provider === Provider.OPENAI ? openAISettings :
-          provider === Provider.COMET_API ? cometAPISettings :
-          provider === Provider.YUN_AI ? yunAISettings :
+          provider === Provider.OPENAI_COMPATIBLE ? openAICompatibleSettings :
           provider === Provider.KIZUNA_AI ? kizunaAISettings :
           null;
         turnDetectionDisabled = settings ? settings.turnDetectionMode === 'Disabled' : false;
@@ -662,23 +662,22 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       setIsInitializing(false);
     }
   }, [
- 
-    openAISettings, 
-    geminiSettings, 
-    cometAPISettings, 
+    openAISettings,
+    geminiSettings,
+    openAICompatibleSettings,
     palabraAISettings,
     kizunaAISettings,
     provider,
     isLoaded,
     isSignedIn,
     getToken,
-    getCurrentProviderSettings, 
-    getSessionConfig, 
-    setupClientListeners, 
-    selectedInputDevice, 
-    isInputDeviceOn, 
-    isMonitorDeviceOn, 
-    selectedMonitorDevice, 
+    getCurrentProviderSettings,
+    getSessionConfig,
+    setupClientListeners,
+    selectedInputDevice,
+    isInputDeviceOn,
+    isMonitorDeviceOn,
+    selectedMonitorDevice,
     selectMonitorDevice,
     isRealVoicePassthroughEnabled,
     realVoicePassthroughVolume
@@ -1308,8 +1307,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           if (isOpenAICompatible(provider)) {
             const settings =
               provider === Provider.OPENAI ? openAISettings :
-              provider === Provider.COMET_API ? cometAPISettings :
-              provider === Provider.YUN_AI ? yunAISettings :
+              provider === Provider.OPENAI_COMPATIBLE ? openAICompatibleSettings :
               provider === Provider.KIZUNA_AI ? kizunaAISettings :
               null;
             turnDetectionDisabled = settings ? settings.turnDetectionMode === 'Disabled' : false;
@@ -1339,7 +1337,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     };
 
     updateRecordingState();
-  }, [isInputDeviceOn, isSessionActive, provider, openAISettings.turnDetectionMode, cometAPISettings.turnDetectionMode, selectedInputDevice]);
+  }, [isInputDeviceOn, isSessionActive, provider, openAISettings.turnDetectionMode, openAICompatibleSettings.turnDetectionMode, kizunaAISettings.turnDetectionMode, selectedInputDevice]);
 
   /**
    * Watch for changes to selectedMonitorDevice or isMonitorDeviceOn 

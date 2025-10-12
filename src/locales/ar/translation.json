@@ -181,6 +181,13 @@
       "name": "Google Gemini",
       "description": "تقنية الذكاء الاصطناعي من Google"
     },
+    "openaiCompatible": {
+      "name": "واجهة برمجة التطبيقات المتوافقة مع OpenAI",
+      "description": "نقطة نهاية مخصصة متوافقة مع OpenAI",
+      "customEndpoint": "نقطة نهاية API",
+      "customEndpointHelp": "أدخل عنوان URL المخصص لنقطة نهاية API المتوافقة مع OpenAI",
+      "customEndpointPlaceholder": "https://your-api-endpoint.com"
+    },
     "cometapi": {
       "name": "Comet API",
       "description": "مقدم ذكاء اصطناعي بديل"

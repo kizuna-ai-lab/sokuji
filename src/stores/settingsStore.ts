@@ -25,8 +25,8 @@ export interface CommonSettings {
   useTemplateMode: boolean;
 }
 
-// OpenAI-compatible Settings (used by OpenAI, CometAPI, and KizunaAI)
-export interface OpenAICompatibleSettings {
+// OpenAI-compatible Settings (used by OpenAI and KizunaAI)
+export interface OpenAICompatibleSettingsBase {
   apiKey: string;
   model: string;
   voice: string;
@@ -43,10 +43,13 @@ export interface OpenAICompatibleSettings {
   noiseReduction: 'None' | 'Near field' | 'Far field';
 }
 
-export type OpenAISettings = OpenAICompatibleSettings;
-export type CometAPISettings = OpenAICompatibleSettings;
-export type YunAISettings = OpenAICompatibleSettings;
-export type KizunaAISettings = OpenAICompatibleSettings;
+// OpenAI Compatible Settings (with custom endpoint support)
+export interface OpenAICompatibleSettings extends OpenAICompatibleSettingsBase {
+  customEndpoint: string;
+}
+
+export type OpenAISettings = OpenAICompatibleSettingsBase;
+export type KizunaAISettings = OpenAICompatibleSettingsBase;
 
 // Gemini Settings
 export interface GeminiSettings {
@@ -383,7 +386,7 @@ const defaultCommonSettings: CommonSettings = {
   useTemplateMode: true,
 };
 
-const defaultOpenAICompatibleSettings: OpenAICompatibleSettings = {
+const defaultOpenAICompatibleSettingsBase: OpenAICompatibleSettingsBase = {
   apiKey: '',
   model: 'gpt-4o-mini-realtime-preview',
   voice: 'alloy',
@@ -400,18 +403,15 @@ const defaultOpenAICompatibleSettings: OpenAICompatibleSettings = {
   noiseReduction: 'None',
 };
 
-const defaultOpenAISettings: OpenAISettings = defaultOpenAICompatibleSettings;
-const defaultCometAPISettings: CometAPISettings = {
-  ...defaultOpenAICompatibleSettings,
-  transcriptModel: 'whisper-1',
+const defaultOpenAISettings: OpenAISettings = defaultOpenAICompatibleSettingsBase;
+
+const defaultOpenAICompatibleSettings: OpenAICompatibleSettings = {
+  ...defaultOpenAICompatibleSettingsBase,
+  customEndpoint: '',
 };
-const defaultYunAISettings: YunAISettings = {
-  ...defaultOpenAICompatibleSettings,
-  model: 'gpt-4o-mini-realtime-preview-2024-12-17',
-  transcriptModel: 'whisper-1',
-};
+
 const defaultKizunaAISettings: KizunaAISettings = {
-  ...defaultOpenAICompatibleSettings,
+  ...defaultOpenAICompatibleSettingsBase,
   transcriptModel: 'whisper-1',
 };
 
@@ -456,8 +456,7 @@ interface SettingsStore {
   // Provider-specific settings
   openai: OpenAISettings;
   gemini: GeminiSettings;
-  cometapi: CometAPISettings;
-  yunai: YunAISettings;
+  openaiCompatible: OpenAICompatibleSettings;
   palabraai: PalabraAISettings;
   kizunaai: KizunaAISettings;
 
@@ -493,8 +492,7 @@ interface SettingsStore {
   // Provider settings actions
   updateOpenAI: (settings: Partial<OpenAISettings>) => void;
   updateGemini: (settings: Partial<GeminiSettings>) => void;
-  updateCometAPI: (settings: Partial<CometAPISettings>) => void;
-  updateYunAI: (settings: Partial<YunAISettings>) => void;
+  updateOpenAICompatible: (settings: Partial<OpenAICompatibleSettings>) => void;
   updatePalabraAI: (settings: Partial<PalabraAISettings>) => void;
   updateKizunaAI: (settings: Partial<KizunaAISettings>) => void;
 
@@ -506,7 +504,7 @@ interface SettingsStore {
   clearCache: () => void;
 
   // Helper methods
-  getCurrentProviderSettings: () => OpenAISettings | GeminiSettings | CometAPISettings | YunAISettings | PalabraAISettings | KizunaAISettings;
+  getCurrentProviderSettings: () => OpenAISettings | GeminiSettings | OpenAICompatibleSettings | PalabraAISettings | KizunaAISettings;
   getCurrentProviderConfig: () => ProviderConfig;
   getProcessedSystemInstructions: () => string;
   createSessionConfig: (systemInstructions: string) => SessionConfig;
@@ -594,8 +592,7 @@ const useSettingsStore = create<SettingsStore>()(
     ...defaultCommonSettings,
     openai: defaultOpenAISettings,
     gemini: defaultGeminiSettings,
-    cometapi: defaultCometAPISettings,
-    yunai: defaultYunAISettings,
+    openaiCompatible: defaultOpenAICompatibleSettings,
     palabraai: defaultPalabraAISettings,
     kizunaai: defaultKizunaAISettings,
 
@@ -681,19 +678,11 @@ const useSettingsStore = create<SettingsStore>()(
       }
     },
 
-    updateCometAPI: async (settings) => {
-      set((state) => ({cometapi: {...state.cometapi, ...settings}}));
+    updateOpenAICompatible: async (settings) => {
+      set((state) => ({openaiCompatible: {...state.openaiCompatible, ...settings}}));
       const service = ServiceFactory.getSettingsService();
       for (const [key, value] of Object.entries(settings)) {
-        await service.setSetting(`settings.cometapi.${key}`, value);
-      }
-    },
-
-    updateYunAI: async (settings) => {
-      set((state) => ({yunai: {...state.yunai, ...settings}}));
-      const service = ServiceFactory.getSettingsService();
-      for (const [key, value] of Object.entries(settings)) {
-        await service.setSetting(`settings.yunai.${key}`, value);
+        await service.setSetting(`settings.openaiCompatible.${key}`, value);
       }
     },
 
@@ -731,9 +720,10 @@ const useSettingsStore = create<SettingsStore>()(
         }
       }
 
-      // Get current API key
+      // Get current API key and custom endpoint (if applicable)
       const currentSettings = state.getCurrentProviderSettings();
       let apiKey = '';
+      let customEndpoint: string | undefined = undefined;
 
       if (provider === Provider.PALABRA_AI) {
         const palabraSettings = currentSettings as PalabraAISettings;
@@ -751,6 +741,11 @@ const useSettingsStore = create<SettingsStore>()(
           });
           return {valid: false, message: '', validating: false};
         }
+      } else if (provider === Provider.OPENAI_COMPATIBLE) {
+        // OpenAI Compatible provider requires both API key and custom endpoint
+        const compatSettings = currentSettings as OpenAICompatibleSettings;
+        apiKey = compatSettings.apiKey || '';
+        customEndpoint = compatSettings.customEndpoint;
       } else if (provider === Provider.KIZUNA_AI && getAuthToken) {
         apiKey = await getAuthToken() || '';
       } else {
@@ -798,7 +793,12 @@ const useSettingsStore = create<SettingsStore>()(
           ? (currentSettings as PalabraAISettings).clientSecret
           : undefined;
 
-        const result = await service.validateApiKeyAndFetchModels(apiKey, provider, clientSecret);
+        const result = await service.validateApiKeyAndFetchModels(
+          apiKey,
+          provider,
+          clientSecret,
+          customEndpoint  // Pass custom endpoint for OpenAI Compatible
+        );
 
         // Cache result
         const newCache = new Map(state.validationCache);
@@ -909,11 +909,10 @@ const useSettingsStore = create<SettingsStore>()(
           return settings as T;
         };
 
-        const [openai, gemini, cometapi, yunai, palabraai, kizunaai] = await Promise.all([
+        const [openai, gemini, openaiCompatible, palabraai, kizunaai] = await Promise.all([
           loadProviderSettings('settings.openai', defaultOpenAISettings),
           loadProviderSettings('settings.gemini', defaultGeminiSettings),
-          loadProviderSettings('settings.cometapi', defaultCometAPISettings),
-          loadProviderSettings('settings.yunai', defaultYunAISettings),
+          loadProviderSettings('settings.openaiCompatible', defaultOpenAICompatibleSettings),
           loadProviderSettings('settings.palabraai', defaultPalabraAISettings),
           loadProviderSettings('settings.kizunaai', defaultKizunaAISettings),
         ]);
@@ -927,8 +926,7 @@ const useSettingsStore = create<SettingsStore>()(
           useTemplateMode,
           openai,
           gemini,
-          cometapi,
-          yunai,
+          openaiCompatible,
           palabraai,
           kizunaai,
           settingsLoaded: true,
@@ -954,10 +952,8 @@ const useSettingsStore = create<SettingsStore>()(
       switch (state.provider) {
         case Provider.OPENAI:
           return state.openai;
-        case Provider.COMET_API:
-          return state.cometapi;
-        case Provider.YUN_AI:
-          return state.yunai;
+        case Provider.OPENAI_COMPATIBLE:
+          return state.openaiCompatible;
         case Provider.GEMINI:
           return state.gemini;
         case Provider.PALABRA_AI:
@@ -1004,10 +1000,8 @@ const useSettingsStore = create<SettingsStore>()(
       switch (state.provider) {
         case Provider.OPENAI:
           return createOpenAISessionConfig(state.openai, systemInstructions);
-        case Provider.COMET_API:
-          return createOpenAISessionConfig(state.cometapi, systemInstructions);
-        case Provider.YUN_AI:
-          return createOpenAISessionConfig(state.yunai, systemInstructions);
+        case Provider.OPENAI_COMPATIBLE:
+          return createOpenAISessionConfig(state.openaiCompatible, systemInstructions);
         case Provider.GEMINI:
           return createGeminiSessionConfig(state.gemini, systemInstructions);
         case Provider.PALABRA_AI:
@@ -1038,8 +1032,7 @@ export const useUseTemplateMode = () => useSettingsStore((state) => state.useTem
 // Provider settings
 export const useOpenAISettings = () => useSettingsStore((state) => state.openai);
 export const useGeminiSettings = () => useSettingsStore((state) => state.gemini);
-export const useCometAPISettings = () => useSettingsStore((state) => state.cometapi);
-export const useYunAISettings = () => useSettingsStore((state) => state.yunai);
+export const useOpenAICompatibleSettings = () => useSettingsStore((state) => state.openaiCompatible);
 export const usePalabraAISettings = () => useSettingsStore((state) => state.palabraai);
 export const useKizunaAISettings = () => useSettingsStore((state) => state.kizunaai);
 
@@ -1072,8 +1065,7 @@ export const useSetUseTemplateMode = () => useSettingsStore((state) => state.set
 
 export const useUpdateOpenAI = () => useSettingsStore((state) => state.updateOpenAI);
 export const useUpdateGemini = () => useSettingsStore((state) => state.updateGemini);
-export const useUpdateCometAPI = () => useSettingsStore((state) => state.updateCometAPI);
-export const useUpdateYunAI = () => useSettingsStore((state) => state.updateYunAI);
+export const useUpdateOpenAICompatible = () => useSettingsStore((state) => state.updateOpenAICompatible);
 export const useUpdatePalabraAI = () => useSettingsStore((state) => state.updatePalabraAI);
 export const useUpdateKizunaAI = () => useSettingsStore((state) => state.updateKizunaAI);
 

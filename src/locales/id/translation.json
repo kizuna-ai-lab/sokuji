@@ -175,6 +175,13 @@
       "name": "Google Gemini",
       "description": "Teknologi AI Google"
     },
+    "openaiCompatible": {
+      "name": "API Kompatibel OpenAI",
+      "description": "Endpoint kustom yang kompatibel dengan OpenAI",
+      "customEndpoint": "Endpoint API",
+      "customEndpointHelp": "Masukkan URL endpoint API kustom yang kompatibel dengan OpenAI",
+      "customEndpointPlaceholder": "https://your-api-endpoint.com"
+    },
     "cometapi": {
       "name": "Comet API",
       "description": "Penyedia AI alternatif"

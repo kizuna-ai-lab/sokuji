@@ -74,6 +74,13 @@
       "name": "Google Gemini",
       "description": "Google-ன் AI தகவல்"
     },
+    "openaiCompatible": {
+      "name": "OpenAI இணக்கமான API",
+      "description": "தனிப்பயன் OpenAI-இணக்கமான எண்ட்பாயிண்ட்",
+      "customEndpoint": "API எண்ட்பாயிண்ட்",
+      "customEndpointHelp": "உங்கள் தனிப்பயன் OpenAI-இணக்கமான API எண்ட்பாயிண்ட் URL ஐ உள்ளிடவும்",
+      "customEndpointPlaceholder": "https://your-api-endpoint.com"
+    },
     "cometapi": {
       "name": "Comet API",
       "description": "மாற்று AI வழங்குநர்"

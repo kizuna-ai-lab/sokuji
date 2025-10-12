@@ -368,6 +368,13 @@
       "name": "Google Gemini",
       "description": "GoogleのAI技術"
     },
+    "openaiCompatible": {
+      "name": "OpenAI 互換 API",
+      "description": "カスタム OpenAI 互換エンドポイント",
+      "customEndpoint": "API エンドポイント",
+      "customEndpointHelp": "カスタム OpenAI 互換 API エンドポイント URL を入力してください",
+      "customEndpointPlaceholder": "https://your-api-endpoint.com"
+    },
     "cometapi": {
       "name": "Comet API",
       "description": "代替AIプロバイダー"

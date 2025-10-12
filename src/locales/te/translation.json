@@ -56,6 +56,13 @@
       "name": "Google Gemini",
       "description": "Google AI టెక్నాలజీ"
     },
+    "openaiCompatible": {
+      "name": "OpenAI అనుకూల API",
+      "description": "అనుకూల OpenAI-అనుకూల ఎండ్‌పాయింట్",
+      "customEndpoint": "API ఎండ్‌పాయింట్",
+      "customEndpointHelp": "మీ అనుకూల OpenAI-అనుకూల API ఎండ్‌పాయింట్ URL ను ఎంటర్ చేయండి",
+      "customEndpointPlaceholder": "https://your-api-endpoint.com"
+    },
     "cometapi": {
       "name": "Comet API",
       "description": "Alternative AI provider"
