@@ -175,6 +175,13 @@
       "name": "Google Gemini",
       "description": "Google এর AI প্রযুক্তি"
     },
+    "openaiCompatible": {
+      "name": "OpenAI সামঞ্জস্যপূর্ণ API",
+      "description": "কাস্টম OpenAI-সামঞ্জস্যপূর্ণ এন্ডপয়েন্ট",
+      "customEndpoint": "API এন্ডপয়েন্ট",
+      "customEndpointHelp": "আপনার কাস্টম OpenAI-সামঞ্জস্যপূর্ণ API এন্ডপয়েন্ট URL লিখুন",
+      "customEndpointPlaceholder": "https://your-api-endpoint.com"
+    },
     "cometapi": {
       "name": "Comet API",
       "description": "বিকল্প AI প্রদানকারী"

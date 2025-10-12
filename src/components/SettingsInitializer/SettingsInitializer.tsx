@@ -5,8 +5,7 @@ import {
   useValidateApiKey,
   useOpenAISettings,
   useGeminiSettings,
-  useCometAPISettings,
-  useYunAISettings,
+  useOpenAICompatibleSettings,
   usePalabraAISettings,
   useSettingsLoaded
 } from '../../stores/settingsStore';
@@ -30,8 +29,7 @@ export function SettingsInitializer() {
   // Get all provider settings to monitor API key changes
   const openAISettings = useOpenAISettings();
   const geminiSettings = useGeminiSettings();
-  const cometAPISettings = useCometAPISettings();
-  const yunAISettings = useYunAISettings();
+  const openAICompatibleSettings = useOpenAICompatibleSettings();
   const palabraAISettings = usePalabraAISettings();
 
   // Auto-fetch and validate KizunaAI API key when user logs in or provider changes
@@ -80,11 +78,8 @@ export function SettingsInitializer() {
           case Provider.GEMINI:
             hasApiKey = !!geminiSettings.apiKey;
             break;
-          case Provider.COMET_API:
-            hasApiKey = !!cometAPISettings.apiKey;
-            break;
-          case Provider.YUN_AI:
-            hasApiKey = !!yunAISettings.apiKey;
+          case Provider.OPENAI_COMPATIBLE:
+            hasApiKey = !!openAICompatibleSettings.apiKey;
             break;
           case Provider.PALABRA_AI:
             hasApiKey = !!palabraAISettings.clientId && !!palabraAISettings.clientSecret;
@@ -101,7 +96,7 @@ export function SettingsInitializer() {
         }
       }
     }
-  }, [settingsLoaded, provider, openAISettings.apiKey, geminiSettings.apiKey, cometAPISettings.apiKey, 
+  }, [settingsLoaded, provider, openAISettings.apiKey, geminiSettings.apiKey, openAICompatibleSettings.apiKey,
       palabraAISettings.clientId, palabraAISettings.clientSecret, validateApiKey]);
 
   // This component doesn't render anything

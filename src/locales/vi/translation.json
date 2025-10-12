@@ -278,6 +278,13 @@
       "name": "Google Gemini",
       "description": "Công nghệ AI của Google"
     },
+    "openaiCompatible": {
+      "name": "API Tương Thích OpenAI",
+      "description": "Điểm cuối tùy chỉnh tương thích với OpenAI",
+      "customEndpoint": "Điểm Cuối API",
+      "customEndpointHelp": "Nhập URL điểm cuối API tùy chỉnh tương thích với OpenAI của bạn",
+      "customEndpointPlaceholder": "https://your-api-endpoint.com"
+    },
     "cometapi": {
       "name": "Comet API",
       "description": "Nhà cung cấp AI thay thế"

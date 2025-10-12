@@ -7,8 +7,7 @@ import {
   useUseTemplateMode,
   useOpenAISettings,
   useGeminiSettings,
-  useCometAPISettings,
-  useYunAISettings,
+  useOpenAICompatibleSettings,
   usePalabraAISettings,
   useKizunaAISettings,
   useSetSystemInstructions,
@@ -16,8 +15,7 @@ import {
   useSetUseTemplateMode,
   useUpdateOpenAI,
   useUpdateGemini,
-  useUpdateCometAPI,
-  useUpdateYunAI,
+  useUpdateOpenAICompatible,
   useUpdatePalabraAI,
   useUpdateKizunaAI,
   useGetCurrentProviderSettings
@@ -58,19 +56,17 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
   const templateSystemInstructions = useTemplateSystemInstructions();
   const useTemplateMode = useUseTemplateMode();
   const openAISettings = useOpenAISettings();
-  const cometAPISettings = useCometAPISettings();
-  const yunAISettings = useYunAISettings();
+  const openAICompatibleSettings = useOpenAICompatibleSettings();
   const geminiSettings = useGeminiSettings();
   const palabraAISettings = usePalabraAISettings();
   const kizunaAISettings = useKizunaAISettings();
-  
+
   // Actions from store
   const setSystemInstructions = useSetSystemInstructions();
   const setTemplateSystemInstructions = useSetTemplateSystemInstructions();
   const setUseTemplateMode = useSetUseTemplateMode();
   const updateOpenAISettings = useUpdateOpenAI();
-  const updateCometAPISettings = useUpdateCometAPI();
-  const updateYunAISettings = useUpdateYunAI();
+  const updateOpenAICompatibleSettings = useUpdateOpenAICompatible();
   const updateGeminiSettings = useUpdateGemini();
   const updatePalabraAISettings = useUpdatePalabraAI();
   const updateKizunaAISettings = useUpdateKizunaAI();
@@ -85,10 +81,8 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
   const updateCurrentProviderSetting = (key: string, value: any) => {
     if (provider === Provider.OPENAI) {
       updateOpenAISettings({ [key]: value });
-    } else if (provider === Provider.COMET_API) {
-      updateCometAPISettings({ [key]: value });
-    } else if (provider === Provider.YUN_AI) {
-      updateYunAISettings({ [key]: value });
+    } else if (provider === Provider.OPENAI_COMPATIBLE) {
+      updateOpenAICompatibleSettings({ [key]: value });
     } else if (provider === Provider.KIZUNA_AI) {
       updateKizunaAISettings({ [key]: value });
     } else if (provider === Provider.GEMINI) {
@@ -109,10 +103,8 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
   const getOpenAICompatibleSettings = () => {
     if (provider === Provider.OPENAI) {
       return openAISettings;
-    } else if (provider === Provider.COMET_API) {
-      return cometAPISettings;
-    } else if (provider === Provider.YUN_AI) {
-      return yunAISettings;
+    } else if (provider === Provider.OPENAI_COMPATIBLE) {
+      return openAICompatibleSettings;
     } else if (provider === Provider.KIZUNA_AI) {
       return kizunaAISettings;
     }
@@ -120,13 +112,11 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
   };
 
   // Helper function to update OpenAI-compatible settings
-  const updateOpenAICompatibleSettings = (updates: any) => {
+  const updateOpenAICompatibleSettingsHelper = (updates: any) => {
     if (provider === Provider.OPENAI) {
       updateOpenAISettings(updates);
-    } else if (provider === Provider.COMET_API) {
-      updateCometAPISettings(updates);
-    } else if (provider === Provider.YUN_AI) {
-      updateYunAISettings(updates);
+    } else if (provider === Provider.OPENAI_COMPATIBLE) {
+      updateOpenAICompatibleSettings(updates);
     } else if (provider === Provider.KIZUNA_AI) {
       updateKizunaAISettings(updates);
     }
@@ -299,10 +289,10 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
         <div className="setting-item">
           <div className="turn-detection-options">
             {turnDetection.modes.map((mode) => (
-              <button 
+              <button
                 key={mode}
                 className={`option-button ${compatibleSettings?.turnDetectionMode === mode ? 'active' : ''}`}
-                onClick={() => updateOpenAICompatibleSettings({ turnDetectionMode: mode as 'Normal' | 'Semantic' | 'Disabled' })}
+                onClick={() => updateOpenAICompatibleSettingsHelper({ turnDetectionMode: mode as 'Normal' | 'Semantic' | 'Disabled' })}
                 disabled={isSessionActive}
               >
                 {t(`settings.${mode.toLowerCase()}`)}
@@ -326,13 +316,13 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
                 </span>
                 <span className="setting-value">{compatibleSettings?.threshold.toFixed(2)}</span>
               </div>
-              <input 
-                type="range" 
-                min="0" 
-                max="1" 
-                step="0.01" 
+              <input
+                type="range"
+                min="0"
+                max="1"
+                step="0.01"
                 value={compatibleSettings?.threshold || 0}
-                onChange={(e) => updateOpenAICompatibleSettings({ threshold: parseFloat(e.target.value) })}
+                onChange={(e) => updateOpenAICompatibleSettingsHelper({ threshold: parseFloat(e.target.value) })}
                 className="slider"
                 disabled={isSessionActive}
               />
@@ -351,13 +341,13 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
                   </span>
                   <span className="setting-value">{compatibleSettings?.prefixPadding.toFixed(2)}s</span>
                 </div>
-                <input 
-                  type="range" 
-                  min="0" 
-                  max="2" 
-                  step="0.01" 
+                <input
+                  type="range"
+                  min="0"
+                  max="2"
+                  step="0.01"
                   value={compatibleSettings?.prefixPadding || 0}
-                  onChange={(e) => updateOpenAICompatibleSettings({ prefixPadding: parseFloat(e.target.value) })}
+                  onChange={(e) => updateOpenAICompatibleSettingsHelper({ prefixPadding: parseFloat(e.target.value) })}
                   className="slider"
                   disabled={isSessionActive}
                 />
@@ -377,13 +367,13 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
                   </span>
                   <span className="setting-value">{compatibleSettings?.silenceDuration.toFixed(2)}s</span>
                 </div>
-                <input 
-                  type="range" 
-                  min="0" 
-                  max="2" 
-                  step="0.01" 
+                <input
+                  type="range"
+                  min="0"
+                  max="2"
+                  step="0.01"
                   value={compatibleSettings?.silenceDuration || 0}
-                  onChange={(e) => updateOpenAICompatibleSettings({ silenceDuration: parseFloat(e.target.value) })}
+                  onChange={(e) => updateOpenAICompatibleSettingsHelper({ silenceDuration: parseFloat(e.target.value) })}
                   className="slider"
                   disabled={isSessionActive}
                 />
@@ -405,10 +395,10 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
                 </Tooltip>
               </span>
             </div>
-            <select 
+            <select
               className="select-dropdown"
               value={compatibleSettings?.semanticEagerness}
-              onChange={(e) => updateOpenAICompatibleSettings({ semanticEagerness: e.target.value as 'Auto' | 'Low' | 'Medium' | 'High' })}
+              onChange={(e) => updateOpenAICompatibleSettingsHelper({ semanticEagerness: e.target.value as 'Auto' | 'Low' | 'Medium' | 'High' })}
               disabled={isSessionActive}
             >
               <option value="Auto">{t('settings.auto')}</option>
@@ -520,10 +510,10 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
           </Tooltip>
         </h2>
         <div className="setting-item">
-          <select 
+          <select
             className="select-dropdown"
             value={compatibleSettings?.noiseReduction}
-            onChange={(e) => updateOpenAICompatibleSettings({ noiseReduction: e.target.value as 'None' | 'Near field' | 'Far field' })}
+            onChange={(e) => updateOpenAICompatibleSettingsHelper({ noiseReduction: e.target.value as 'None' | 'Near field' | 'Far field' })}
             disabled={isSessionActive}
           >
             {config.noiseReductionModes.map((mode) => (
@@ -559,10 +549,10 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
           </Tooltip>
         </h2>
         <div className="setting-item">
-          <select 
+          <select
             className="select-dropdown"
             value={compatibleSettings?.transcriptModel}
-            onChange={(e) => updateOpenAICompatibleSettings({ transcriptModel: e.target.value as 'gpt-4o-mini-transcribe' | 'gpt-4o-transcribe' | 'whisper-1' })}
+            onChange={(e) => updateOpenAICompatibleSettingsHelper({ transcriptModel: e.target.value as 'gpt-4o-mini-transcribe' | 'gpt-4o-transcribe' | 'whisper-1' })}
             disabled={isSessionActive}
           >
             {config.transcriptModels.map((model) => (

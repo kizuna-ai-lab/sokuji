@@ -138,6 +138,13 @@
       "name": "Google Gemini",
       "description": "Google की AI तकनफ0940क"
     },
+    "openaiCompatible": {
+      "name": "OpenAI संगत API",
+      "description": "कस्टम OpenAI-संगत एंडपॉइंट",
+      "customEndpoint": "API एंडपॉइंट",
+      "customEndpointHelp": "अपना कस्टम OpenAI-संगत API एंडपॉइंट URL दर्ज करें",
+      "customEndpointPlaceholder": "https://your-api-endpoint.com"
+    },
     "cometapi": {
       "name": "Comet API",
       "description": "वैकल्पिक AI प्रदाता"

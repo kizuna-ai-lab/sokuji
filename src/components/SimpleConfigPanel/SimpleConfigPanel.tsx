@@ -7,8 +7,7 @@ import {
   useUILanguage,
   useOpenAISettings,
   useGeminiSettings,
-  useCometAPISettings,
-  useYunAISettings,
+  useOpenAICompatibleSettings,
   usePalabraAISettings,
   useKizunaAISettings,
   useIsApiKeyValid,
@@ -19,8 +18,7 @@ import {
   useSetUILanguage,
   useUpdateOpenAI,
   useUpdateGemini,
-  useUpdateCometAPI,
-  useUpdateYunAI,
+  useUpdateOpenAICompatible,
   useUpdatePalabraAI,
   useUpdateKizunaAI,
   useValidateApiKey,
@@ -62,21 +60,19 @@ const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings, h
   const uiLanguage = useUILanguage();
   const openAISettings = useOpenAISettings();
   const geminiSettings = useGeminiSettings();
-  const cometAPISettings = useCometAPISettings();
-  const yunAISettings = useYunAISettings();
+  const openAICompatibleSettings = useOpenAICompatibleSettings();
   const palabraAISettings = usePalabraAISettings();
   const kizunaAISettings = useKizunaAISettings();
   const isApiKeyValid = useIsApiKeyValid();
   const availableModels = useAvailableModels();
   const loadingModels = useLoadingModels();
   const settingsNavigationTarget = useSettingsNavigationTarget();
-  
+
   const setProvider = useSetProvider();
   const setUILanguage = useSetUILanguage();
   const updateOpenAISettings = useUpdateOpenAI();
   const updateGeminiSettings = useUpdateGemini();
-  const updateCometAPISettings = useUpdateCometAPI();
-  const updateYunAISettings = useUpdateYunAI();
+  const updateOpenAICompatibleSettings = useUpdateOpenAICompatible();
   const updatePalabraAISettings = useUpdatePalabraAI();
   const updateKizunaAISettings = useUpdateKizunaAI();
   const validateApiKey = useValidateApiKey();
@@ -136,10 +132,8 @@ const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings, h
         return openAISettings;
       case Provider.GEMINI:
         return geminiSettings;
-      case Provider.COMET_API:
-        return cometAPISettings;
-      case Provider.YUN_AI:
-        return yunAISettings;
+      case Provider.OPENAI_COMPATIBLE:
+        return openAICompatibleSettings;
       case Provider.PALABRA_AI:
         return palabraAISettings;
       case Provider.KIZUNA_AI:
@@ -156,10 +150,8 @@ const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings, h
         return openAISettings.apiKey;
       case Provider.GEMINI:
         return geminiSettings.apiKey;
-      case Provider.COMET_API:
-        return cometAPISettings.apiKey;
-      case Provider.YUN_AI:
-        return yunAISettings.apiKey;
+      case Provider.OPENAI_COMPATIBLE:
+        return openAICompatibleSettings.apiKey;
       case Provider.PALABRA_AI:
         return palabraAISettings.clientId; // Show client ID as "API key" for simplicity
       case Provider.KIZUNA_AI:
@@ -178,11 +170,8 @@ const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings, h
       case Provider.GEMINI:
         updateGeminiSettings({ apiKey: value });
         break;
-      case Provider.COMET_API:
-        updateCometAPISettings({ apiKey: value });
-        break;
-      case Provider.YUN_AI:
-        updateYunAISettings({ apiKey: value });
+      case Provider.OPENAI_COMPATIBLE:
+        updateOpenAICompatibleSettings({ apiKey: value });
         break;
       case Provider.PALABRA_AI:
         updatePalabraAISettings({ clientId: value });
@@ -203,11 +192,8 @@ const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings, h
       case Provider.GEMINI:
         updateGeminiSettings({ sourceLanguage: value });
         break;
-      case Provider.COMET_API:
-        updateCometAPISettings({ sourceLanguage: value });
-        break;
-      case Provider.YUN_AI:
-        updateYunAISettings({ sourceLanguage: value });
+      case Provider.OPENAI_COMPATIBLE:
+        updateOpenAICompatibleSettings({ sourceLanguage: value });
         break;
       case Provider.PALABRA_AI:
         updatePalabraAISettings({ sourceLanguage: value });
@@ -227,11 +213,8 @@ const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings, h
       case Provider.GEMINI:
         updateGeminiSettings({ targetLanguage: value });
         break;
-      case Provider.COMET_API:
-        updateCometAPISettings({ targetLanguage: value });
-        break;
-      case Provider.YUN_AI:
-        updateYunAISettings({ targetLanguage: value });
+      case Provider.OPENAI_COMPATIBLE:
+        updateOpenAICompatibleSettings({ targetLanguage: value });
         break;
       case Provider.PALABRA_AI:
         updatePalabraAISettings({ targetLanguage: value });
@@ -246,9 +229,9 @@ const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings, h
   // Validate API key
   const handleValidateApiKey = async () => {
     // Pass getAuthToken for Kizuna AI provider
-    const getAuthToken = provider === Provider.KIZUNA_AI && isSignedIn && getToken ? 
+    const getAuthToken = provider === Provider.KIZUNA_AI && isSignedIn && getToken ?
       () => getToken() : undefined;
-    
+
     const result = await validateApiKey(getAuthToken);
     
     trackEvent('api_key_validated', {
@@ -308,19 +291,12 @@ const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings, h
           helpUrl: 'https://makersuite.google.com/app/apikey',
           description: t('providers.gemini.description')
         };
-      case Provider.COMET_API:
+      case Provider.OPENAI_COMPATIBLE:
         return {
-          name: t('providers.cometapi.name'),
+          name: t('providers.openaiCompatible.name', 'OpenAI Compatible API'),
           icon: Zap,
-          helpUrl: 'https://cometapi.com',
-          description: t('providers.cometapi.description')
-        };
-      case Provider.YUN_AI:
-        return {
-          name: t('providers.yunai.name'),
-          icon: Zap,
-          helpUrl: 'https://new.yunai.link',
-          description: t('providers.yunai.description')
+          helpUrl: 'https://platform.openai.com/docs/api-reference',
+          description: t('providers.openaiCompatible.description', 'Custom OpenAI-compatible endpoint')
         };
       case Provider.PALABRA_AI:
         return {
@@ -540,7 +516,7 @@ const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings, h
           </div>
         </div>
 
-            {/* API Key Section */}
+        {/* API Key Section */}
             <div className="config-section" id="api-key-section">
               <h3>
                 <Key size={18} />
@@ -611,6 +587,20 @@ const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings, h
                   </div>
                 )}
               </div>
+
+              {/* API Endpoint Input - Only for OpenAI Compatible */}
+              {provider === Provider.OPENAI_COMPATIBLE && (
+                <div className="endpoint-input-group">
+                  <input
+                    type="text"
+                    value={openAICompatibleSettings.customEndpoint}
+                    onChange={(e) => updateOpenAICompatibleSettings({ customEndpoint: e.target.value })}
+                    placeholder={t('providers.openaiCompatible.customEndpointPlaceholder', 'https://your-api-endpoint.com')}
+                    className="endpoint-input"
+                    disabled={isSessionActive}
+                  />
+                </div>
+              )}
 
               {provider !== Provider.KIZUNA_AI ? (
                 <div className="api-key-input-group">

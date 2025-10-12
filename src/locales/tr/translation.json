@@ -276,6 +276,13 @@
       "name": "Google Gemini",
       "description": "Google'un AI teknolojisi"
     },
+    "openaiCompatible": {
+      "name": "OpenAI Uyumlu API",
+      "description": "Özel OpenAI uyumlu uç nokta",
+      "customEndpoint": "API Uç Noktası",
+      "customEndpointHelp": "Özel OpenAI uyumlu API uç nokta URL'nizi girin",
+      "customEndpointPlaceholder": "https://your-api-endpoint.com"
+    },
     "cometapi": {
       "name": "Comet API",
       "description": "Alternatif AI sağlayıcısı"

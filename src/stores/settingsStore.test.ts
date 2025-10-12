@@ -111,14 +111,14 @@ describe('settingsStore', () => {
     it('should persist provider change to settings service', async () => {
       const store = useSettingsStore.getState();
       const settingsService = ServiceFactory.getSettingsService();
-      
+
       // Switch provider
-      await store.setProvider(Provider.COMET_API);
-      
+      await store.setProvider(Provider.OPENAI_COMPATIBLE);
+
       // Check that settings service was called
       expect(settingsService.setSetting).toHaveBeenCalledWith(
         'settings.common.provider',
-        Provider.COMET_API
+        Provider.OPENAI_COMPATIBLE
       );
     });
   });

@@ -135,6 +135,13 @@
       "name": "Google Gemini",
       "description": "Googlen tekoälyteknologia"
     },
+    "openaiCompatible": {
+      "name": "OpenAI-yhteensopiva API",
+      "description": "Mukautettu OpenAI-yhteensopiva päätepiste",
+      "customEndpoint": "API-päätepiste",
+      "customEndpointHelp": "Syötä mukautettu OpenAI-yhteensopiva API-päätepisteen URL",
+      "customEndpointPlaceholder": "https://your-api-endpoint.com"
+    },
     "cometapi": {
       "name": "Comet API",
       "description": "Vaihtoehtoinen tekoälypalveluntarjoaja"

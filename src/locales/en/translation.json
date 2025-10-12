@@ -271,8 +271,15 @@
       "description": "Powered by GPT models"
     },
     "gemini": {
-      "name": "Google Gemini", 
+      "name": "Google Gemini",
       "description": "Google's AI technology"
+    },
+    "openaiCompatible": {
+      "name": "OpenAI Compatible API",
+      "description": "Custom OpenAI-compatible endpoint",
+      "customEndpoint": "API Endpoint",
+      "customEndpointHelp": "Enter your custom OpenAI-compatible API endpoint URL",
+      "customEndpointPlaceholder": "https://your-api-endpoint.com"
     },
     "cometapi": {
       "name": "Comet API",

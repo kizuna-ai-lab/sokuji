@@ -366,6 +366,13 @@
       "name": "구글 제미나이",
       "description": "구글의 AI 기술"
     },
+    "openaiCompatible": {
+      "name": "OpenAI 호환 API",
+      "description": "사용자 정의 OpenAI 호환 엔드포인트",
+      "customEndpoint": "API 엔드포인트",
+      "customEndpointHelp": "사용자 정의 OpenAI 호환 API 엔드포인트 URL을 입력하세요",
+      "customEndpointPlaceholder": "https://your-api-endpoint.com"
+    },
     "cometapi": {
       "name": "Comet API",
       "description": "대안 AI 제공업체"

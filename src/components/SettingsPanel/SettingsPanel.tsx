@@ -9,8 +9,7 @@ import {
   useUseTemplateMode,
   useOpenAISettings,
   useGeminiSettings,
-  useCometAPISettings,
-  useYunAISettings,
+  useOpenAICompatibleSettings,
   usePalabraAISettings,
   useKizunaAISettings,
   useAvailableModels,
@@ -23,8 +22,7 @@ import {
   useSetUseTemplateMode,
   useUpdateOpenAI,
   useUpdateGemini,
-  useUpdateCometAPI,
-  useUpdateYunAI,
+  useUpdateOpenAICompatible,
   useUpdatePalabraAI,
   useUpdateKizunaAI,
   useValidateApiKey,
@@ -62,14 +60,13 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
   const templateSystemInstructions = useTemplateSystemInstructions();
   const useTemplateMode = useUseTemplateMode();
   const openAISettings = useOpenAISettings();
-  const cometAPISettings = useCometAPISettings();
-  const yunAISettings = useYunAISettings();
+  const openAICompatibleSettings = useOpenAICompatibleSettings();
   const geminiSettings = useGeminiSettings();
   const palabraAISettings = usePalabraAISettings();
   const kizunaAISettings = useKizunaAISettings();
   const availableModels = useAvailableModels();
   const loadingModels = useLoadingModels();
-  
+
   // Actions from store
   const setProvider = useSetProvider();
   const setUIMode = useSetUIMode();
@@ -78,8 +75,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
   const setTemplateSystemInstructions = useSetTemplateSystemInstructions();
   const setUseTemplateMode = useSetUseTemplateMode();
   const updateOpenAISettings = useUpdateOpenAI();
-  const updateCometAPISettings = useUpdateCometAPI();
-  const updateYunAISettings = useUpdateYunAI();
+  const updateOpenAICompatibleSettings = useUpdateOpenAICompatible();
   const updateGeminiSettings = useUpdateGemini();
   const updatePalabraAISettings = useUpdatePalabraAI();
   const updateKizunaAISettings = useUpdateKizunaAI();
@@ -127,10 +123,8 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
       // Save all settings
       if (provider === Provider.OPENAI) {
         updateOpenAISettings(openAISettings);
-      } else if (provider === Provider.COMET_API) {
-        updateCometAPISettings(cometAPISettings);
-      } else if (provider === Provider.YUN_AI) {
-        updateYunAISettings(yunAISettings);
+      } else if (provider === Provider.OPENAI_COMPATIBLE) {
+        updateOpenAICompatibleSettings(openAICompatibleSettings);
       } else if (provider === Provider.PALABRA_AI) {
         updatePalabraAISettings(palabraAISettings);
       } else if (provider === Provider.KIZUNA_AI) {
@@ -186,9 +180,9 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
 
   const handleValidateApiKey = async () => {
     // Pass getAuthToken for Kizuna AI provider
-    const getAuthToken = provider === Provider.KIZUNA_AI && isSignedIn && getToken ? 
+    const getAuthToken = provider === Provider.KIZUNA_AI && isSignedIn && getToken ?
       () => getToken() : undefined;
-    
+
     const result = await contextValidateApiKey(getAuthToken);
     
     // Track API key validation
@@ -285,11 +279,11 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
                   </option>
                 ))}
               </select>
-              {(provider === Provider.GEMINI || provider === Provider.COMET_API || provider === Provider.YUN_AI || provider === Provider.PALABRA_AI) && (
+              {(provider === Provider.GEMINI || provider === Provider.PALABRA_AI) && (
                 <div className="experimental-icon-wrapper">
-                  <FlaskConical 
-                    size={16} 
-                    className="experimental-icon" 
+                  <FlaskConical
+                    size={16}
+                    className="experimental-icon"
                   />
                   <div className="experimental-tooltip">
                     {t('settings.experimentalFeatureTooltip', 'This is an experimental feature and may be unstable.')}
@@ -298,6 +292,34 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
               )}
             </div>
           </div>
+
+          {/* API Endpoint section - Only for OpenAI Compatible */}
+          {provider === Provider.OPENAI_COMPATIBLE && (
+            <div className="setting-item">
+              <div className="setting-label">
+                <span>
+                  {t('providers.openaiCompatible.customEndpoint', 'API Endpoint')}
+                  <Tooltip
+                    content={t('providers.openaiCompatible.customEndpointHelp', 'Enter your custom OpenAI-compatible API endpoint URL')}
+                    position="top"
+                  >
+                    <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '4px', display: 'inline-block', verticalAlign: 'middle' }} />
+                  </Tooltip>
+                </span>
+              </div>
+              <div className="api-key-container">
+                <input
+                  type="text"
+                  value={openAICompatibleSettings.customEndpoint}
+                  onChange={(e) => updateOpenAICompatibleSettings({ customEndpoint: e.target.value })}
+                  placeholder={t('providers.openaiCompatible.customEndpointPlaceholder', 'https://your-api-endpoint.com')}
+                  className="text-input api-key-input"
+                  disabled={isSessionActive}
+                />
+              </div>
+            </div>
+          )}
+
           {/* API Key or Client Credentials section */}
           {provider === Provider.PALABRA_AI ? (
             // PalabraAI uses Client ID and Client Secret
@@ -388,36 +410,32 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
                   <input
                     value={
                       provider === Provider.OPENAI ? openAISettings.apiKey :
-                      provider === Provider.COMET_API ? cometAPISettings.apiKey :
-                      provider === Provider.YUN_AI ? yunAISettings.apiKey :
+                      provider === Provider.OPENAI_COMPATIBLE ? openAICompatibleSettings.apiKey :
                       geminiSettings.apiKey
                     }
                     onChange={(e) => {
                       if (provider === Provider.OPENAI) {
                         updateOpenAISettings({ apiKey: e.target.value });
-                      } else if (provider === Provider.COMET_API) {
-                        updateCometAPISettings({ apiKey: e.target.value });
-                      } else if (provider === Provider.YUN_AI) {
-                        updateYunAISettings({ apiKey: e.target.value });
+                      } else if (provider === Provider.OPENAI_COMPATIBLE) {
+                        updateOpenAICompatibleSettings({ apiKey: e.target.value });
                       } else {
                         updateGeminiSettings({ apiKey: e.target.value });
                       }
                     }}
                     placeholder={currentProviderConfig.apiKeyPlaceholder}
                     className={`text-input api-key-input ${
-                      isApiKeyValid === true ? 'valid' : 
+                      isApiKeyValid === true ? 'valid' :
                       isApiKeyValid === false ? 'invalid' : ''
                     }`}
                     disabled={isSessionActive}
                   />
-                  <button 
+                  <button
                     className="validate-key-button"
                     onClick={handleValidateApiKey}
-                    disabled={isValidating || 
+                    disabled={isValidating ||
                       (provider === Provider.OPENAI ? !openAISettings.apiKey :
-                       provider === Provider.COMET_API ? !cometAPISettings.apiKey :
-                       provider === Provider.YUN_AI ? !yunAISettings.apiKey :
-                       !geminiSettings.apiKey) || 
+                       provider === Provider.OPENAI_COMPATIBLE ? !openAICompatibleSettings.apiKey :
+                       !geminiSettings.apiKey) ||
                       isSessionActive}
                   >
                     <Key size={16} />

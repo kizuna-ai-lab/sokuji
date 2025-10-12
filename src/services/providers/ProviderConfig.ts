@@ -42,11 +42,14 @@ export interface ProviderConfig {
   // Basic info
   id: 'openai' | 'gemini' | string;
   displayName: string;
-  
+
   // API configuration
   apiKeyLabel: string;
   apiKeyPlaceholder: string;
   requiresAuth?: boolean; // True if this provider requires backend authentication
+  supportsCustomEndpoint?: boolean; // True if this provider supports custom API endpoint
+  customEndpointLabel?: string; // Label for custom endpoint input
+  customEndpointPlaceholder?: string; // Placeholder for custom endpoint input
   
   // Supported options
   languages: LanguageOption[];
