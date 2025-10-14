@@ -56,6 +56,24 @@ app.get("/", async c => {
         .danger-btn { background: #ef4444; color: white; border-color: #ef4444; }
         footer { position: fixed; bottom: 0; left: 0; right: 0; text-align: center; padding: 16px; font-size: 0.875rem; color: #6b7280; background: white; border-top: 1px solid #e5e7eb; }
         footer a { color: #3b82f6; text-decoration: underline; }
+
+        /* Tab styles */
+        .tabs { display: flex; border-bottom: 2px solid #e5e7eb; margin-bottom: 20px; }
+        .tab { padding: 10px 20px; cursor: pointer; border: none; background: none; color: #6b7280; font-size: 0.875rem; }
+        .tab.active { color: #3b82f6; border-bottom: 2px solid #3b82f6; margin-bottom: -2px; }
+        .tab:hover { color: #3b82f6; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        /* Form styles */
+        .form-group { margin-bottom: 16px; }
+        .form-group label { display: block; margin-bottom: 8px; font-size: 0.875rem; font-weight: 500; color: #374151; }
+        .form-group input { width: 100%; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 4px; font-size: 0.875rem; box-sizing: border-box; }
+        .form-group input:focus { outline: none; border-color: #3b82f6; }
+        .form-group .checkbox-wrapper { display: flex; align-items: center; }
+        .form-group .checkbox-wrapper input[type="checkbox"] { width: auto; margin-right: 8px; }
+        .error-message { color: #ef4444; font-size: 0.875rem; margin-top: 8px; }
+        .success-message { color: #10b981; font-size: 0.875rem; margin-top: 8px; }
     </style>
 </head>
 <body>
@@ -66,9 +84,61 @@ app.get("/", async c => {
         </div>
         
         <div id="status">Loading...</div>
-        
+
         <div id="not-logged-in" style="display:none;">
-            <button onclick="loginAnonymously()" class="primary-btn">Login Anonymously</button>
+            <div class="tabs">
+                <button class="tab active" onclick="switchTab('anonymous')">Anonymous</button>
+                <button class="tab" onclick="switchTab('signin')">Sign In</button>
+                <button class="tab" onclick="switchTab('signup')">Sign Up</button>
+            </div>
+
+            <!-- Anonymous Login Tab -->
+            <div id="tab-anonymous" class="tab-content active">
+                <p style="color: #6b7280; font-size: 0.875rem; margin-bottom: 16px;">Quick access without creating an account</p>
+                <button onclick="loginAnonymously()" class="primary-btn">Login Anonymously</button>
+            </div>
+
+            <!-- Sign In Tab -->
+            <div id="tab-signin" class="tab-content">
+                <form onsubmit="event.preventDefault(); signInWithEmail();">
+                    <div class="form-group">
+                        <label for="signin-email">Email</label>
+                        <input type="email" id="signin-email" required placeholder="you@example.com">
+                    </div>
+                    <div class="form-group">
+                        <label for="signin-password">Password</label>
+                        <input type="password" id="signin-password" required placeholder="Enter your password">
+                    </div>
+                    <div class="form-group">
+                        <div class="checkbox-wrapper">
+                            <input type="checkbox" id="signin-remember" checked>
+                            <label for="signin-remember" style="margin: 0;">Remember me</label>
+                        </div>
+                    </div>
+                    <div id="signin-message"></div>
+                    <button type="submit" class="primary-btn">Sign In</button>
+                </form>
+            </div>
+
+            <!-- Sign Up Tab -->
+            <div id="tab-signup" class="tab-content">
+                <form onsubmit="event.preventDefault(); signUpWithEmail();">
+                    <div class="form-group">
+                        <label for="signup-name">Name</label>
+                        <input type="text" id="signup-name" required placeholder="John Doe">
+                    </div>
+                    <div class="form-group">
+                        <label for="signup-email">Email</label>
+                        <input type="email" id="signup-email" required placeholder="you@example.com">
+                    </div>
+                    <div class="form-group">
+                        <label for="signup-password">Password</label>
+                        <input type="password" id="signup-password" required placeholder="Minimum 8 characters" minlength="8">
+                    </div>
+                    <div id="signup-message"></div>
+                    <button type="submit" class="primary-btn">Create Account</button>
+                </form>
+            </div>
         </div>
         
         <div id="logged-in" style="display:none;">
@@ -128,6 +198,96 @@ app.get("/", async c => {
             }
         }
 
+        function switchTab(tab) {
+            // Remove active class from all tabs and tab contents
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(tc => tc.classList.remove('active'));
+
+            // Add active class to selected tab and content
+            event.target.classList.add('active');
+            document.getElementById('tab-' + tab).classList.add('active');
+
+            // Clear messages
+            document.getElementById('signin-message').innerHTML = '';
+            document.getElementById('signup-message').innerHTML = '';
+        }
+
+        async function signUpWithEmail() {
+            const name = document.getElementById('signup-name').value;
+            const email = document.getElementById('signup-email').value;
+            const password = document.getElementById('signup-password').value;
+            const messageEl = document.getElementById('signup-message');
+
+            messageEl.innerHTML = '';
+
+            try {
+                const response = await fetch('/api/auth/sign-up/email', {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ name, email, password })
+                });
+
+                const result = await response.json();
+
+                if (!response.ok) {
+                    messageEl.innerHTML = '<div class="error-message">' + (result.error?.message || 'Sign up failed') + '</div>';
+                    return;
+                }
+
+                if (result.user) {
+                    currentUser = result.user;
+                    messageEl.innerHTML = '<div class="success-message">Account created successfully!</div>';
+                    setTimeout(() => showLoggedIn(), 500);
+                } else {
+                    messageEl.innerHTML = '<div class="error-message">Sign up failed</div>';
+                }
+            } catch (error) {
+                console.error('Sign up error:', error);
+                messageEl.innerHTML = '<div class="error-message">Sign up failed: ' + error.message + '</div>';
+            }
+        }
+
+        async function signInWithEmail() {
+            const email = document.getElementById('signin-email').value;
+            const password = document.getElementById('signin-password').value;
+            const rememberMe = document.getElementById('signin-remember').checked;
+            const messageEl = document.getElementById('signin-message');
+
+            messageEl.innerHTML = '';
+
+            try {
+                const response = await fetch('/api/auth/sign-in/email', {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ email, password, rememberMe })
+                });
+
+                const result = await response.json();
+
+                if (!response.ok) {
+                    messageEl.innerHTML = '<div class="error-message">' + (result.error?.message || 'Sign in failed') + '</div>';
+                    return;
+                }
+
+                if (result.user) {
+                    currentUser = result.user;
+                    messageEl.innerHTML = '<div class="success-message">Signed in successfully!</div>';
+                    setTimeout(() => showLoggedIn(), 500);
+                } else {
+                    messageEl.innerHTML = '<div class="error-message">Sign in failed</div>';
+                }
+            } catch (error) {
+                console.error('Sign in error:', error);
+                messageEl.innerHTML = '<div class="error-message">Sign in failed: ' + error.message + '</div>';
+            }
+        }
+
         async function loginAnonymously() {
             try {
                 // First check if already logged in
@@ -135,7 +295,7 @@ app.get("/", async c => {
                 if (currentUser) {
                     return;
                 }
-                
+
                 const response = await fetch('/api/auth/sign-in/anonymous', {
                     method: 'POST',
                     credentials: 'include',
@@ -144,9 +304,9 @@ app.get("/", async c => {
                     },
                     body: JSON.stringify({})
                 });
-                
+
                 const text = await response.text();
-                
+
                 if (!response.ok) {
                     // Handle specific error for already anonymous
                     if (text.includes('ANONYMOUS_USERS_CANNOT_SIGN_IN_AGAIN_ANONYMOUSLY')) {
@@ -157,9 +317,9 @@ app.get("/", async c => {
                     alert('Anonymous login failed: HTTP ' + response.status + ' - ' + text);
                     return;
                 }
-                
+
                 const result = JSON.parse(text);
-                
+
                 if (result.user) {
                     currentUser = result.user;
                     await showLoggedIn();

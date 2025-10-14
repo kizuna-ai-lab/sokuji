@@ -6,11 +6,13 @@ This example demonstrates how to integrate [Better Auth](https://github.com/bett
 
 - 🚀 **Hono Framework**: Lightning-fast web framework for Cloudflare Workers
 - 🗄️ **D1 Database Integration**: SQLite database via Cloudflare D1
-- 🔌 **KV Storage Integration**: Session caching via Cloudflare KV
+- 🔌 **KV Storage Integration**: Session caching with proper TTL handling via Cloudflare KV
 - 📍 **Automatic Geolocation Tracking**: Enriches sessions with location data
 - 🌐 **Cloudflare IP Detection**: Automatic IP address detection
+- 📧 **Email/Password Authentication**: User registration and login with password hashing
 - 👤 **Anonymous Authentication**: Built-in anonymous user authentication
 - 🔐 **Session Management**: Secure session handling with geolocation
+- ⚡ **Rate Limiting**: KV-based rate limiting with 60s window (Cloudflare KV requirement)
 
 ## Getting Started
 
@@ -122,14 +124,45 @@ wrangler.toml            # Cloudflare Worker configuration
 
 ### API Endpoints
 
-- `GET /` - Demo page with anonymous authentication UI
+- `GET /` - Demo page with email/password and anonymous authentication UI
 - `GET /health` - Health check endpoint
 - `GET /protected` - Protected route demo
 - `ALL /api/auth/*` - All Better Auth routes (handled by better-auth)
-- `POST /api/auth/sign-in/anonymous` - Anonymous login
-- `POST /api/auth/sign-out` - Sign out
-- `GET /api/auth/get-session` - Get current session
-- `GET /api/auth/cloudflare/geolocation` - Get geolocation data
+
+#### Authentication Endpoints
+
+**Email/Password Authentication:**
+- `POST /api/auth/sign-up/email` - Register new user with email and password
+  - Body: `{ name: string, email: string, password: string }`
+- `POST /api/auth/sign-in/email` - Sign in with email and password
+  - Body: `{ email: string, password: string, rememberMe?: boolean }`
+
+**Anonymous Authentication:**
+- `POST /api/auth/sign-in/anonymous` - Anonymous login (no credentials needed)
+
+**Session Management:**
+- `POST /api/auth/sign-out` - Sign out and clear session
+- `GET /api/auth/get-session` - Get current session information
+- `GET /api/auth/cloudflare/geolocation` - Get geolocation data for current session
+
+### Authentication Methods
+
+The demo page provides three authentication methods:
+
+1. **Email/Password Sign Up**:
+   - Create a new account with name, email, and password
+   - Password must be at least 8 characters
+   - Email must be unique
+
+2. **Email/Password Sign In**:
+   - Log in with existing credentials
+   - Optional "Remember me" for extended sessions
+   - Secure password hashing with Better Auth
+
+3. **Anonymous Login**:
+   - Quick access without creating an account
+   - Ideal for temporary or demo usage
+   - Can be linked to an email later
 
 ### Geolocation Tracking
 
@@ -193,10 +226,15 @@ function createAuth(env?: CloudflareBindings, cf?: IncomingRequestCfProperties) 
                 kv: env?.KV,
             },
             {
+                emailAndPassword: {
+                    enabled: true, // Enable email/password authentication
+                },
                 plugins: [anonymous()], // Enable anonymous authentication
                 rateLimit: {
-                    // Enable rate limiting
                     enabled: true,
+                    storage: "secondary-storage", // Use KV with proper TTL handling
+                    window: 60, // 60 second window (Cloudflare KV minimum)
+                    max: 100, // Max 100 requests per window
                 },
             }
         ),
