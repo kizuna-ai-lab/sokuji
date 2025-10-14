@@ -1,0 +1,30 @@
+{
+  "name": "backend-cf",
+  "scripts": {
+    "dev": "wrangler dev",
+    "build": "npx tsc --noEmit",
+    "deploy": "wrangler deploy --minify",
+    "cf-typegen": "wrangler types --env-interface CloudflareBindings",
+    "auth:generate": "npx --yes @better-auth/cli@latest generate --config src/auth/index.ts --output src/db/auth.schema.ts -y",
+    "auth:format": "npx --yes prettier --write src/db/auth.schema.ts",
+    "auth:update": "npm run auth:generate && npm run auth:format",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate:dev": "wrangler d1 migrations apply DATABASE --local",
+    "db:migrate:prod": "wrangler d1 migrations apply DATABASE --remote",
+    "db:studio:dev": "drizzle-kit studio",
+    "db:studio:prod": "NODE_ENV=production drizzle-kit studio"
+  },
+  "dependencies": {
+    "@cloudflare/workers-types": "^4.20250606.0",
+    "better-auth": "^1.2.8",
+    "better-auth-cloudflare": "latest",
+    "drizzle-orm": "^0.44.5",
+    "hono": "^4.7.11"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.30",
+    "drizzle-kit": "^0.31.1",
+    "typescript": "^5.8.3",
+    "wrangler": "^4.4.0"
+  }
+}

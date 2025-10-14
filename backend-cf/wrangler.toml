@@ -1,0 +1,23 @@
+# For more details on how to configure Wrangler, refer to:
+# https://developers.cloudflare.com/workers/wrangler/configuration/
+
+name = "backend-cf"
+main = "src/index.ts"
+compatibility_date = "2025-03-01"
+compatibility_flags = ["nodejs_compat"]
+
+[observability]
+enabled = true
+
+[placement]
+mode = "smart"
+
+[[d1_databases]]
+binding = "DATABASE"
+database_name = "sokuji-database"
+database_id = "be43cbaf-b73a-4c83-992e-24e5603d0a0b"
+migrations_dir = "drizzle"
+
+[[kv_namespaces]]
+binding = "KV"
+id = "54ce6449db9a4aa383e7d22aa8aaa1db"
