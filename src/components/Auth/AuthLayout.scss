@@ -9,34 +9,57 @@
   .auth-container {
     width: 100%;
     max-width: 500px;
-    display: flex;
-    flex-direction: column;
-    gap: 2rem;
+    position: relative;
 
-    .auth-logo {
-      text-align: center;
+    .auth-close-button {
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 36px;
+      height: 36px;
+      padding: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
 
-      h1 {
-        margin: 0 0 0.5rem 0;
-        font-size: 2rem;
-        font-weight: 700;
+      // Rectangle design
+      border-radius: 6px;
+
+      // Border styling
+      border: 1.5px solid #444;
+      background: #1a1a1a;
+
+      // Icon color
+      color: #aaa;
+
+      // Smooth transition
+      transition: all 0.2s ease;
+
+      &:hover {
+        // Theme color fill
+        border-color: #10a37f;
+        background: #10a37f;
         color: #fff;
-        background: linear-gradient(135deg, #10a37f 0%, #0e8f6f 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
+
+        // Shadow effect
+        box-shadow: 0 2px 8px rgba(16, 163, 127, 0.3);
       }
 
-      p {
-        margin: 0;
-        font-size: 0.875rem;
-        color: #888;
+      &:active {
+        transform: scale(0.95);
+      }
+
+      &:focus-visible {
+        outline: 2px solid #10a37f;
+        outline-offset: 2px;
       }
     }
 
     .auth-content {
       display: flex;
       justify-content: center;
+      padding-top: 1rem;
     }
   }
 }

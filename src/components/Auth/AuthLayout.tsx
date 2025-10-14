@@ -4,21 +4,24 @@
  * Provides a consistent layout for authentication pages
  */
 
-import React, { ReactNode } from 'react';
+import { ReactNode } from 'react';
+import { X } from 'lucide-react';
 import './AuthLayout.scss';
 
 interface AuthLayoutProps {
   children: ReactNode;
+  onClose?: () => void;
 }
 
-export function AuthLayout({ children }: AuthLayoutProps) {
+export function AuthLayout({ children, onClose }: AuthLayoutProps) {
   return (
     <div className="auth-layout">
       <div className="auth-container">
-        <div className="auth-logo">
-          <h1>Sokuji</h1>
-          <p>Real-time AI Translation</p>
-        </div>
+        {onClose && (
+          <button className="auth-close-button" onClick={onClose} aria-label="Close">
+            <X size={20} />
+          </button>
+        )}
 
         <div className="auth-content">
           {children}
