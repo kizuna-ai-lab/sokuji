@@ -7,26 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.19] - 2025-02-01
+
+### Added
+
+- **Better Auth Cloudflare Backend**: Initialized Cloudflare Workers backend with Better Auth integration (WIP)
+- **Authentication Improvements**: Added close button to authentication pages for better UX
+- **Extension Popup Layout**: Optimized popup layout with compact 4-column grid design
+
 ### Changed
 
-- **Audio Architecture Overhaul**: Completely redesigned audio system using modern Web Audio APIs
-- **Removed Virtual Devices**: Eliminated virtual audio device dependencies for better cross-platform compatibility
-- **Modern Audio Components**: Replaced WavRecorder/WavStreamPlayer with ModernAudioRecorder/ModernAudioPlayer
-- **Improved Echo Cancellation**: Enhanced echo cancellation using latest browser APIs (suppressLocalAudioPlayback, etc.)
-- **Unified Audio Service**: Both Electron and browser extension now use the same ModernBrowserAudioService
-- **Event-Driven Playback**: Replaced polling-based audio playback with efficient event-driven architecture
+- **Updated README**: Enhanced backend-cf README and index implementation documentation
 
 ### Fixed
 
-- **Audio Echo Issues**: Fixed echo problems by implementing proper echo cancellation in the recording pipeline
-- **Device Switching**: Improved device switching reliability and removed race conditions
-- **Audio Visualization**: Fixed frequency analysis display issues with proper AudioContext connections
+- **Better Auth Error Handling**: Implemented proper error handling for Better Auth authentication flows
 
 ### Removed
 
-- **PulseAudio Dependencies**: Removed all PulseAudio/PipeWire virtual device creation code
-- **Platform-Specific Audio Services**: Removed separate BrowserAudioService and ElectronAudioService classes
-- **Virtual Device Warnings**: Removed UI warnings for virtual microphone/speaker selection
+- **Backend Directory Cleanup**: Removed obsolete backend-cf directory during refactoring
 
 ## [0.9.4] - 2025-01-31
 
