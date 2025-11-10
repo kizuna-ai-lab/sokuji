@@ -7,8 +7,8 @@ import { ANALYTICS_CONFIG, isDevelopment, getPlatform, getEnvironment } from '..
 // Create PostHog context for React
 const PostHogContext = createContext<PostHog | null>(null);
 
-// PostHog Provider component
-export const PostHogProvider: React.FC<{ client: PostHog; children: React.ReactNode }> = ({ client, children }) => {
+// PostHog Provider component - accepts null client for async initialization
+export const PostHogProvider: React.FC<{ client: PostHog | null; children: React.ReactNode }> = ({ client, children }) => {
   return (
     <PostHogContext.Provider value={client}>
       {children}
@@ -19,9 +19,8 @@ export const PostHogProvider: React.FC<{ client: PostHog; children: React.ReactN
 // Hook to use PostHog in components
 export const usePostHog = () => {
   const posthog = useContext(PostHogContext);
-  if (!posthog) {
-    console.warn('[Sokuji] usePostHog called outside of PostHogProvider');
-  }
+  // PostHog can be null during async initialization, this is expected
+  // The useAnalytics hook already handles null checks properly
   return posthog;
 };
 
@@ -165,17 +164,12 @@ const UnifiedApp = () => {
     );
   }
 
-  // Render app immediately, PostHog will be injected when ready
+  // Render app immediately with PostHogProvider (client can be null during initialization)
   return (
     <React.StrictMode>
-      {posthogClient ? (
-        <PostHogProvider client={posthogClient}>
-          <App />
-        </PostHogProvider>
-      ) : (
-        // Render without PostHog initially
+      <PostHogProvider client={posthogClient}>
         <App />
-      )}
+      </PostHogProvider>
     </React.StrictMode>
   );
 };
