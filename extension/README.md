@@ -16,7 +16,7 @@ AI-powered instant speech translation for all video meetings. Break language bar
 - **Microsoft Teams** (teams.microsoft.com)
 - **Microsoft Teams Live** (teams.live.com)
 - **Zoom** (app.zoom.us)
-- **Gather Town** (app.gather.town)
+- **Gather Town** (app.gather.town, app.v2.gather.town)
 
 ## How to Use
 
@@ -39,7 +39,7 @@ When you click the Sokuji extension icon:
 ### 3. Platform-Specific Notes
 
 #### Gather Town
-- Works seamlessly with Gather Town's spatial audio features
+- Works seamlessly with Gather Town's spatial audio features (both classic and v2 versions)
 - Select "Sokuji Virtual Microphone" in Gather Town's audio settings
 - The extension automatically detects when you're in a Gather Town space
 - Supports both proximity-based conversations and larger group meetings

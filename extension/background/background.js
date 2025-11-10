@@ -31,6 +31,7 @@ const ENABLED_SITES = [
   'teams.microsoft.com',
   'app.zoom.us',
   'app.gather.town',
+  'app.v2.gather.town',
   'whereby.com',
   'discord.com',
   'slack.com'

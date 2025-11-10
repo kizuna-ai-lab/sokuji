@@ -86,7 +86,7 @@ function injectSitePluginsScript() {
   const hostname = window.location.hostname;
   let title, guidance;
   
-  if (hostname === 'app.gather.town') {
+  if (hostname === 'app.gather.town' || hostname === 'app.v2.gather.town') {
     title = chrome.i18n.getMessage('gatherTownTitle');
     guidance = chrome.i18n.getMessage('gatherTownGuidance');
   } else if (hostname === 'whereby.com') {
