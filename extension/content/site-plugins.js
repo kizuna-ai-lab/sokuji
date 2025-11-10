@@ -242,37 +242,6 @@ function showCommonGuidanceNotification(config) {
   console.info(`[Sokuji] [${pluginName}] ${pluginName} audio guidance notification shown`);
 }
 
-/**
- * Helper function to get debug info for a site plugin
- * @param {string} hostname - The hostname for localStorage key
- * @returns {Object} Debug information object
- */
-function getPluginDebugInfo(hostname) {
-  return {
-    guidanceDismissed: (() => {
-      try {
-        return localStorage.getItem(`sokuji-${hostname}-guidance-dismissed`) === 'true';
-      } catch (e) {
-        return false;
-      }
-    })()
-  };
-}
-
-/**
- * Helper function to reset guidance dismissal for a site plugin
- * @param {string} hostname - The hostname for localStorage key
- * @returns {boolean} Success status
- */
-function resetPluginGuidanceDismissal(hostname) {
-  try {
-    localStorage.removeItem(`sokuji-${hostname}-guidance-dismissed`);
-    return true;
-  } catch (e) {
-    return false;
-  }
-}
-
 // ============================================================================
 // Site Plugins
 // ============================================================================
@@ -297,19 +266,10 @@ const gatherTownPlugin = {
     
     showCommonGuidanceNotification({
       pluginName: 'Gather',
-      hostname: this.hostname,
+      hostname: window.location.hostname,
       backgroundColor: 'linear-gradient(135deg, #6666FF 0%, #4444CC 100%)',
       messages: i18n
     });
-  },
-
-  // Helper functions for debugging
-  getDebugInfo() {
-    return getPluginDebugInfo(this.hostname);
-  },
-
-  resetGuidanceDismissal() {
-    return resetPluginGuidanceDismissal(this.hostname);
   }
 };
 
@@ -333,19 +293,10 @@ const wherebyPlugin = {
     
     showCommonGuidanceNotification({
       pluginName: 'Whereby',
-      hostname: this.hostname,
+      hostname: window.location.hostname,
       backgroundColor: 'linear-gradient(135deg, #006654 0%, #004d40 100%)',
       messages: i18n
     });
-  },
-
-  // Helper functions for debugging
-  getDebugInfo() {
-    return getPluginDebugInfo(this.hostname);
-  },
-
-  resetGuidanceDismissal() {
-    return resetPluginGuidanceDismissal(this.hostname);
   }
 };
 
@@ -369,19 +320,10 @@ const discordPlugin = {
     
     showCommonGuidanceNotification({
       pluginName: 'Discord',
-      hostname: this.hostname,
+      hostname: window.location.hostname,
       backgroundColor: 'linear-gradient(135deg, #5865F2 0%, #4752C4 100%)',
       messages: i18n
     });
-  },
-
-  // Helper functions for debugging
-  getDebugInfo() {
-    return getPluginDebugInfo(this.hostname);
-  },
-
-  resetGuidanceDismissal() {
-    return resetPluginGuidanceDismissal(this.hostname);
   }
 };
 
@@ -405,25 +347,17 @@ const slackPlugin = {
     
     showCommonGuidanceNotification({
       pluginName: 'Slack',
-      hostname: this.hostname,
+      hostname: window.location.hostname,
       backgroundColor: 'linear-gradient(135deg, #4A154B 0%, #350d36 100%)',
       messages: i18n
     });
-  },
-
-  // Helper functions for debugging
-  getDebugInfo() {
-    return getPluginDebugInfo(this.hostname);
-  },
-
-  resetGuidanceDismissal() {
-    return resetPluginGuidanceDismissal(this.hostname);
   }
 };
 
 // Site plugins registry - maps hostname to plugin
 const sitePluginsRegistry = {
   'app.gather.town': gatherTownPlugin,
+  'app.v2.gather.town': gatherTownPlugin,
   'whereby.com': wherebyPlugin,
   'discord.com': discordPlugin,
   'app.slack.com': slackPlugin
