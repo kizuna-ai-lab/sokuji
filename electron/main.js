@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow, ipcMain, Menu, dialog, shell } = require('electron');
 const path = require('path');
 const { betterAuthAdapter } = require('./better-auth-adapter');
 
@@ -51,6 +51,152 @@ app.commandLine.appendSwitch('jack-name', 'sokuji');
 
 // Keep a global reference of the window object to prevent garbage collection
 let mainWindow;
+
+// Create application menu
+function createApplicationMenu() {
+  const isMac = process.platform === 'darwin';
+
+  const menuTemplate = [
+    // App menu (macOS only)
+    ...(isMac ? [{
+      label: app.getName(),
+      submenu: [
+        {
+          label: `About ${app.getName()}`,
+          click: () => {
+            dialog.showMessageBox({
+              type: 'info',
+              title: `About ${app.getName()}`,
+              message: 'Sokuji - Real-time AI Translation',
+              detail: `Version: ${app.getVersion()}\n\nAI-powered real-time translation application\n\n© 2024 Kizuna AI Lab`,
+              buttons: ['OK'],
+              icon: path.join(__dirname, '../assets/icon.png')
+            });
+          }
+        },
+        { type: 'separator' },
+        { role: 'services', submenu: [] },
+        { type: 'separator' },
+        { role: 'hide' },
+        { role: 'hideOthers' },
+        { role: 'unhide' },
+        { type: 'separator' },
+        { role: 'quit' }
+      ]
+    }] : []),
+
+    // File menu
+    {
+      label: 'File',
+      submenu: [
+        isMac ? { role: 'close' } : { role: 'quit' }
+      ]
+    },
+
+    // Edit menu
+    {
+      label: 'Edit',
+      submenu: [
+        { role: 'undo' },
+        { role: 'redo' },
+        { type: 'separator' },
+        { role: 'cut' },
+        { role: 'copy' },
+        { role: 'paste' },
+        ...(isMac ? [
+          { role: 'pasteAndMatchStyle' },
+          { role: 'delete' },
+          { role: 'selectAll' },
+          { type: 'separator' },
+          {
+            label: 'Speech',
+            submenu: [
+              { role: 'startSpeaking' },
+              { role: 'stopSpeaking' }
+            ]
+          }
+        ] : [
+          { role: 'delete' },
+          { type: 'separator' },
+          { role: 'selectAll' }
+        ])
+      ]
+    },
+
+    // View menu
+    {
+      label: 'View',
+      submenu: [
+        { role: 'reload' },
+        { role: 'forceReload' },
+        { role: 'toggleDevTools' },
+        { type: 'separator' },
+        { role: 'resetZoom' },
+        { role: 'zoomIn' },
+        { role: 'zoomOut' },
+        { type: 'separator' },
+        { role: 'togglefullscreen' }
+      ]
+    },
+
+    // Window menu
+    {
+      label: 'Window',
+      submenu: [
+        { role: 'minimize' },
+        { role: 'close' },
+        ...(isMac ? [
+          { type: 'separator' },
+          { role: 'front' },
+          { type: 'separator' },
+          { role: 'window' }
+        ] : [])
+      ]
+    },
+
+    // Help menu
+    {
+      role: 'help',
+      submenu: [
+        ...(isMac ? [] : [{
+          label: `About ${app.getName()}`,
+          click: () => {
+            dialog.showMessageBox({
+              type: 'info',
+              title: `About ${app.getName()}`,
+              message: 'Sokuji - Real-time AI Translation',
+              detail: `Version: ${app.getVersion()}\n\nAI-powered real-time translation application\n\n© 2024 Kizuna AI Lab`,
+              buttons: ['OK'],
+              icon: path.join(__dirname, '../assets/icon.png')
+            });
+          }
+        },
+        { type: 'separator' }]),
+        {
+          label: 'Official Website',
+          click: async () => {
+            await shell.openExternal('https://sokuji.kizuna.ai/');
+          }
+        },
+        {
+          label: 'Source Code',
+          click: async () => {
+            await shell.openExternal('https://github.com/kizuna-ai-lab/sokuji');
+          }
+        },
+        {
+          label: 'Report Issue',
+          click: async () => {
+            await shell.openExternal('https://github.com/kizuna-ai-lab/sokuji/issues');
+          }
+        }
+      ]
+    }
+  ];
+
+  const menu = Menu.buildFromTemplate(menuTemplate);
+  Menu.setApplicationMenu(menu);
+}
 
 function createWindow() {
   // Determine the correct icon path based on platform
@@ -215,7 +361,10 @@ app.whenReady().then(async () => {
   } catch (error) {
     console.error('[Sokuji] [Main] Error creating virtual audio devices:', error);
   }
-  
+
+  // Create the application menu
+  createApplicationMenu();
+
   createWindow();
 });
 
