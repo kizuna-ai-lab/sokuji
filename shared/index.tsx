@@ -19,9 +19,8 @@ export const PostHogProvider: React.FC<{ client: PostHog; children: React.ReactN
 // Hook to use PostHog in components
 export const usePostHog = () => {
   const posthog = useContext(PostHogContext);
-  if (!posthog) {
-    console.warn('[Sokuji] usePostHog called outside of PostHogProvider');
-  }
+  // PostHog context now always exists, but client may be null during initialization
+  // No warning needed as this is expected behavior during startup
   return posthog;
 };
 
@@ -165,17 +164,12 @@ const UnifiedApp = () => {
     );
   }
 
-  // Render app immediately, PostHog will be injected when ready
+  // Render app immediately with PostHogProvider (client can be null initially)
   return (
     <React.StrictMode>
-      {posthogClient ? (
-        <PostHogProvider client={posthogClient}>
-          <App />
-        </PostHogProvider>
-      ) : (
-        // Render without PostHog initially
+      <PostHogProvider client={posthogClient as PostHog}>
         <App />
-      )}
+      </PostHogProvider>
     </React.StrictMode>
   );
 };
