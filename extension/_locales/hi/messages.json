@@ -121,5 +121,11 @@
   },
   "showLessSites": {
     "message": "कम साइटें दिखाएं"
+  },
+  "teamsTitle": {
+    "message": "Microsoft Teams के लिए Sokuji"
+  },
+  "teamsGuidance": {
+    "message": "यदि आप Teams सेटिंग्स में पूरी ऑडियो डिवाइस सूची नहीं देखते हैं:<br><strong>1)</strong> Sokuji एक्सटेंशन को अस्थायी रूप से अक्षम करें और पेज रिफ्रेश करें<br><strong>2)</strong> संकेत मिलने पर Teams को अपने माइक्रोफ़ोन और कैमरे तक पहुंचने की अनुमति दें<br><strong>3)</strong> Sokuji एक्सटेंशन को फिर से सक्षम करें और पेज को फिर से रिफ्रेश करें<br><strong>4)</strong> संकेत मिलने पर Sokuji को अपने माइक्रोफ़ोन तक पहुंचने की अनुमति दें। अब आपको अपनी सेटिंग्स में वास्तविक डिवाइस और <strong>\"Sokuji Virtual Microphone\"</strong> दोनों दिखाई देने चाहिए।"
   }
 }

@@ -121,5 +121,11 @@
   },
   "showLessSites": {
     "message": "Show less sites"
+  },
+  "teamsTitle": {
+    "message": "Microsoft Teams க்கான Sokuji"
+  },
+  "teamsGuidance": {
+    "message": "Teams அமைப்புகளில் முழுமையான ஆடியோ சாதன பட்டியலைக் காணவில்லை என்றால்:<br><strong>1)</strong> Sokuji நீட்டிப்பை தற்காலிகமாக முடக்கி பக்கத்தை புதுப்பிக்கவும்<br><strong>2)</strong> கேட்கப்படும்போது Teams உங்கள் மைக்ரோஃபோன் மற்றும் கேமராவை அணுக அனுமதிக்கவும்<br><strong>3)</strong> Sokuji நீட்டிப்பை மீண்டும் இயக்கி பக்கத்தை மீண்டும் புதுப்பிக்கவும்<br><strong>4)</strong> கேட்கப்படும்போது Sokuji உங்கள் மைக்ரோஃபோனை அணுக அனுமதிக்கவும். இப்போது உங்கள் அமைப்புகளில் உண்மையான சாதனங்கள் மற்றும் <strong>\"Sokuji Virtual Microphone\"</strong> இரண்டையும் பார்க்க வேண்டும்."
   }
 }

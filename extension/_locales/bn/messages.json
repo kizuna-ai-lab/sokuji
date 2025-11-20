@@ -121,5 +121,11 @@
   },
   "showLessSites": {
     "message": "কম সাইট দেখান"
+  },
+  "teamsTitle": {
+    "message": "Microsoft Teams-এর জন্য Sokuji"
+  },
+  "teamsGuidance": {
+    "message": "যদি আপনি Teams সেটিংসে সম্পূর্ণ অডিও ডিভাইস তালিকা না দেখেন:<br><strong>1)</strong> Sokuji এক্সটেনশন সাময়িকভাবে নিষ্ক্রিয় করুন এবং পৃষ্ঠাটি রিফ্রেশ করুন<br><strong>2)</strong> অনুরোধ করা হলে Teams-কে আপনার মাইক্রোফোন এবং ক্যামেরা অ্যাক্সেস করার অনুমতি দিন<br><strong>3)</strong> Sokuji এক্সটেনশন পুনরায় সক্ষম করুন এবং পৃষ্ঠাটি আবার রিফ্রেশ করুন<br><strong>4)</strong> অনুরোধ করা হলে Sokuji-কে আপনার মাইক্রোফোন অ্যাক্সেস করার অনুমতি দিন। এখন আপনার সেটিংসে প্রকৃত ডিভাইস এবং <strong>\"Sokuji Virtual Microphone\"</strong> উভয়ই দেখতে পাবেন।"
   }
 }

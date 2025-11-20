@@ -121,5 +121,11 @@
   },
   "showLessSites": {
     "message": "Show less sites"
+  },
+  "teamsTitle": {
+    "message": "ለMicrosoft Teams Sokuji"
+  },
+  "teamsGuidance": {
+    "message": "በTeams ቅንብሮች ውስጥ ሙሉውን የድምጽ መሣሪያ ዝርዝር ካላዩ፡<br><strong>1)</strong> የSokuji ቅጥያውን ለጊዜው ያሰናክሉ እና ገጹን ያድሱ<br><strong>2)</strong> ሲጠየቁ Teams ማይክሮፎንዎን እና ካሜራዎን እንዲደርስ ይፍቀዱ<br><strong>3)</strong> የSokuji ቅጥያውን እንደገና ያነቁ እና ገጹን እንደገና ያድሱ<br><strong>4)</strong> ሲጠየቁ Sokuji ማይክሮፎንዎን እንዲደርስ ይፍቀዱ። አሁን በቅንብሮችዎ ውስጥ ሁለቱንም እውነተኛ መሣሪያዎችን እና <strong>\"Sokuji Virtual Microphone\"</strong>ን ማየት ይችላሉ።"
   }
 }

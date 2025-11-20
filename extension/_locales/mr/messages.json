@@ -121,5 +121,11 @@
   },
   "showLessSites": {
     "message": "Show less sites"
+  },
+  "teamsTitle": {
+    "message": "Microsoft Teams साठी Sokuji"
+  },
+  "teamsGuidance": {
+    "message": "Teams सेटिंग्जमध्ये संपूर्ण ऑडिओ डिव्हाइस यादी दिसत नसल्यास:<br><strong>1)</strong> Sokuji विस्तार तात्पुरता अक्षम करा आणि पृष्ठ रिफ्रेश करा<br><strong>2)</strong> विचारल्यावर Teams ला तुमचा मायक्रोफोन आणि कॅमेरा ॲक्सेस करण्याची परवानगी द्या<br><strong>3)</strong> Sokuji विस्तार पुन्हा सक्षम करा आणि पृष्ठ पुन्हा रिफ्रेश करा<br><strong>4)</strong> विचारल्यावर Sokuji ला तुमचा मायक्रोफोन ॲक्सेस करण्याची परवानगी द्या. आता तुम्हाला तुमच्या सेटिंग्जमध्ये वास्तविक डिव्हाइसेस आणि <strong>\"Sokuji Virtual Microphone\"</strong> दोन्ही दिसले पाहिजेत."
   }
 }

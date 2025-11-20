@@ -121,5 +121,11 @@
   },
   "showLessSites": {
     "message": "عرض مواقع أقل"
+  },
+  "teamsTitle": {
+    "message": "Sokuji لـ Microsoft Teams"
+  },
+  "teamsGuidance": {
+    "message": "إذا لم تشاهد القائمة الكاملة لأجهزة الصوت في إعدادات Teams:<br><strong>1)</strong> قم بتعطيل ملحق Sokuji مؤقتًا وحدّث الصفحة<br><strong>2)</strong> اسمح لـ Teams بالوصول إلى الميكروفون والكاميرا عند المطالبة<br><strong>3)</strong> أعد تمكين ملحق Sokuji وحدّث الصفحة مرة أخرى<br><strong>4)</strong> اسمح لـ Sokuji بالوصول إلى الميكروفون عند المطالبة. الآن يجب أن ترى كلاً من الأجهزة الحقيقية و <strong>\"Sokuji Virtual Microphone\"</strong> في إعداداتك."
   }
 }

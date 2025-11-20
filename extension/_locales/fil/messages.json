@@ -121,5 +121,11 @@
   },
   "showLessSites": {
     "message": "Show less sites"
+  },
+  "teamsTitle": {
+    "message": "Sokuji para sa Microsoft Teams"
+  },
+  "teamsGuidance": {
+    "message": "Kung hindi mo nakikita ang kumpletong listahan ng audio device sa mga setting ng Teams:<br><strong>1)</strong> Pansamantalang i-disable ang Sokuji extension at i-refresh ang page<br><strong>2)</strong> Payagan ang Teams na ma-access ang iyong microphone at camera kapag hiniling<br><strong>3)</strong> I-enable muli ang Sokuji extension at i-refresh muli ang page<br><strong>4)</strong> Payagan ang Sokuji na ma-access ang iyong microphone kapag hiniling. Ngayon ay dapat mong makita ang parehong mga tunay na device at <strong>\"Sokuji Virtual Microphone\"</strong> sa iyong mga setting."
   }
 }

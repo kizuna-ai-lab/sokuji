@@ -121,5 +121,11 @@
   },
   "showLessSites": {
     "message": "收起网站列表"
+  },
+  "teamsTitle": {
+    "message": "Sokuji for Microsoft Teams"
+  },
+  "teamsGuidance": {
+    "message": "如果您在 Teams 设置中看不到完整的音频设备列表：<br><strong>1)</strong> 暂时禁用 Sokuji 扩展并刷新页面<br><strong>2)</strong> 在提示时允许 Teams 访问您的麦克风和摄像头<br><strong>3)</strong> 重新启用 Sokuji 扩展并再次刷新页面<br><strong>4)</strong> 在提示时允许 Sokuji 访问您的麦克风。<br>现在您应该可以在设置中看到真实设备和 <strong>\"Sokuji Virtual Microphone\"</strong> 虚拟设备了。"
   }
 }

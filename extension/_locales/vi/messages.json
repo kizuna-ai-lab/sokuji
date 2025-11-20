@@ -121,5 +121,11 @@
   },
   "showLessSites": {
     "message": "Hiển thị ít trang web hơn"
+  },
+  "teamsTitle": {
+    "message": "Sokuji cho Microsoft Teams"
+  },
+  "teamsGuidance": {
+    "message": "Nếu bạn không thấy danh sách thiết bị âm thanh đầy đủ trong cài đặt Teams:<br><strong>1)</strong> Tạm thời tắt tiện ích Sokuji và làm mới trang<br><strong>2)</strong> Cho phép Teams truy cập micro và camera của bạn khi được nhắc<br><strong>3)</strong> Bật lại tiện ích Sokuji và làm mới trang lần nữa<br><strong>4)</strong> Cho phép Sokuji truy cập micro của bạn khi được nhắc. Bây giờ bạn sẽ thấy cả thiết bị thực và <strong>\"Sokuji Virtual Microphone\"</strong> trong cài đặt của mình."
   }
 }

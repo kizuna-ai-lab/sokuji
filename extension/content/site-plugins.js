@@ -128,57 +128,112 @@ function showCommonGuidanceNotification(config) {
     border: 1px solid rgba(255, 255, 255, 0.2);
   `;
 
-  // Create notification content
-  notification.innerHTML = `
-    <div style="display: flex; align-items: flex-start; gap: 12px;">
-      <div style="flex-shrink: 0; margin-top: 2px;">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-          <path d="M2 17l10 5 10-5"/>
-          <path d="M2 12l10 5 10-5"/>
-        </svg>
-      </div>
-      <div style="flex: 1;">
-        <div style="font-weight: 600; margin-bottom: 8px; color: #fff;">
-          ${messages.title}
-        </div>
-        <div style="margin-bottom: 12px; color: rgba(255, 255, 255, 0.9);">
-          ${messages.guidance}
-        </div>
-        <div style="display: flex; gap: 8px; align-items: center;">
-          <button data-action="dismiss" style="
-            background: rgba(255, 255, 255, 0.2);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            color: white;
-            padding: 6px 12px;
-            border-radius: 4px;
-            font-size: 12px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-          ">
-            ${messages.gotIt}
-          </button>
-          <button data-action="remind-later" style="
-            background: transparent;
-            border: none;
-            color: rgba(255, 255, 255, 0.7);
-            padding: 6px 8px;
-            font-size: 12px;
-            cursor: pointer;
-            text-decoration: underline;
-            transition: color 0.2s ease;
-          ">
-            ${messages.remindLater}
-          </button>
-        </div>
-      </div>
-    </div>
+  // Create notification content using DOM methods (Trusted Types compatible)
+  const container = document.createElement('div');
+  container.style.cssText = 'display: flex; align-items: flex-start; gap: 12px;';
+
+  // Create icon container
+  const iconContainer = document.createElement('div');
+  iconContainer.style.cssText = 'flex-shrink: 0; margin-top: 2px;';
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('width', '20');
+  svg.setAttribute('height', '20');
+  svg.setAttribute('viewBox', '0 0 24 24');
+  svg.setAttribute('fill', 'none');
+  svg.setAttribute('stroke', 'currentColor');
+  svg.setAttribute('stroke-width', '2');
+  const path1 = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path1.setAttribute('d', 'M12 2L2 7l10 5 10-5-10-5z');
+  const path2 = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path2.setAttribute('d', 'M2 17l10 5 10-5');
+  const path3 = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path3.setAttribute('d', 'M2 12l10 5 10-5');
+  svg.appendChild(path1);
+  svg.appendChild(path2);
+  svg.appendChild(path3);
+  iconContainer.appendChild(svg);
+
+  // Create content container
+  const contentContainer = document.createElement('div');
+  contentContainer.style.cssText = 'flex: 1;';
+
+  // Create title
+  const titleDiv = document.createElement('div');
+  titleDiv.style.cssText = 'font-weight: 600; margin-bottom: 8px; color: #fff;';
+  titleDiv.textContent = messages.title;
+
+  // Create guidance with HTML support
+  const guidanceDiv = document.createElement('div');
+  guidanceDiv.style.cssText = 'margin-bottom: 12px; color: rgba(255, 255, 255, 0.9);';
+
+  // Parse HTML in guidance text safely (supports <strong> and <br> tags)
+  const guidanceText = messages.guidance;
+  // Split by both <strong>, </strong>, and <br> tags
+  const parts = guidanceText.split(/(<\/?strong>|<br>)/g);
+  let isStrong = false;
+  parts.forEach(part => {
+    if (part === '<strong>') {
+      isStrong = true;
+    } else if (part === '</strong>') {
+      isStrong = false;
+    } else if (part === '<br>') {
+      guidanceDiv.appendChild(document.createElement('br'));
+    } else if (part) {
+      if (isStrong) {
+        const strong = document.createElement('strong');
+        strong.textContent = part;
+        guidanceDiv.appendChild(strong);
+      } else {
+        guidanceDiv.appendChild(document.createTextNode(part));
+      }
+    }
+  });
+
+  // Create button container
+  const buttonContainer = document.createElement('div');
+  buttonContainer.style.cssText = 'display: flex; gap: 8px; align-items: center;';
+
+  // Create dismiss button
+  const dismissBtn = document.createElement('button');
+  dismissBtn.setAttribute('data-action', 'dismiss');
+  dismissBtn.style.cssText = `
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: white;
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
   `;
+  dismissBtn.textContent = messages.gotIt;
 
-  // Add event listeners for buttons
-  const dismissBtn = notification.querySelector('[data-action="dismiss"]');
-  const remindLaterBtn = notification.querySelector('[data-action="remind-later"]');
+  // Create remind later button
+  const remindLaterBtn = document.createElement('button');
+  remindLaterBtn.setAttribute('data-action', 'remind-later');
+  remindLaterBtn.style.cssText = `
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.7);
+    padding: 6px 8px;
+    font-size: 12px;
+    cursor: pointer;
+    text-decoration: underline;
+    transition: color 0.2s ease;
+  `;
+  remindLaterBtn.textContent = messages.remindLater;
 
+  // Assemble the notification
+  buttonContainer.appendChild(dismissBtn);
+  buttonContainer.appendChild(remindLaterBtn);
+  contentContainer.appendChild(titleDiv);
+  contentContainer.appendChild(guidanceDiv);
+  contentContainer.appendChild(buttonContainer);
+  container.appendChild(iconContainer);
+  container.appendChild(contentContainer);
+  notification.appendChild(container);
+
+  // Add event listeners for buttons (already have references from above)
   if (dismissBtn) {
     dismissBtn.addEventListener('click', () => {
       notification.remove();
@@ -331,7 +386,7 @@ const discordPlugin = {
 const slackPlugin = {
   name: 'Slack',
   hostname: 'app.slack.com',
-  
+
   init() {
     console.info('[Sokuji] [Slack] Slack plugin initialized');
   },
@@ -344,11 +399,38 @@ const slackPlugin = {
       gotIt: 'Got it',
       remindLater: 'Remind me later'
     };
-    
+
     showCommonGuidanceNotification({
       pluginName: 'Slack',
       hostname: window.location.hostname,
       backgroundColor: 'linear-gradient(135deg, #4A154B 0%, #350d36 100%)',
+      messages: i18n
+    });
+  }
+};
+
+// Microsoft Teams plugin implementation
+const teamsPlugin = {
+  name: 'Teams',
+  hostname: ['teams.live.com', 'teams.microsoft.com'],
+
+  init() {
+    console.info('[Sokuji] [Teams] Microsoft Teams plugin initialized');
+  },
+
+  showGuidance(messages) {
+    // Use provided messages or fallback to default English
+    const i18n = messages || {
+      title: 'Sokuji for Microsoft Teams',
+      guidance: 'If you don\'t see the complete audio device list in Teams settings: <strong>1)</strong> Temporarily disable the Sokuji extension and refresh the page <strong>2)</strong> Allow Teams to access your microphone and camera when prompted <strong>3)</strong> Re-enable Sokuji extension and refresh the page again <strong>4)</strong> Allow Sokuji to access your microphone when prompted. Now you should see both real and <strong>"Sokuji Virtual Microphone"</strong> devices in your settings.',
+      gotIt: 'Got it',
+      remindLater: 'Remind me later'
+    };
+
+    showCommonGuidanceNotification({
+      pluginName: 'Teams',
+      hostname: window.location.hostname,
+      backgroundColor: 'linear-gradient(135deg, #5B5FC7 0%, #464775 100%)',
       messages: i18n
     });
   }
@@ -360,10 +442,11 @@ const sitePluginsRegistry = {
   'app.v2.gather.town': gatherTownPlugin,
   'whereby.com': wherebyPlugin,
   'discord.com': discordPlugin,
-  'app.slack.com': slackPlugin
+  'app.slack.com': slackPlugin,
+  'teams.live.com': teamsPlugin,
+  'teams.microsoft.com': teamsPlugin
   // Add more site plugins here as needed
   // 'meet.google.com': googleMeetPlugin,
-  // 'teams.live.com': teamsPlugin,
   // etc.
 };
 

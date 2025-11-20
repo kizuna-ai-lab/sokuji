@@ -121,5 +121,11 @@
   },
   "showLessSites": {
     "message": "Show less sites"
+  },
+  "teamsTitle": {
+    "message": "Sokuji kwa ajili ya Microsoft Teams"
+  },
+  "teamsGuidance": {
+    "message": "Ikiwa huoni orodha kamili ya vifaa vya sauti katika mipangilio ya Teams:<br><strong>1)</strong> Zima kwa muda ugani wa Sokuji na onyesha upya ukurasa<br><strong>2)</strong> Ruhusu Teams kufikia maikrofoni na kamera yako unapoombwa<br><strong>3)</strong> Washa tena ugani wa Sokuji na onyesha upya ukurasa tena<br><strong>4)</strong> Ruhusu Sokuji kufikia maikrofoni yako unapoombwa. Sasa unapaswa kuona vifaa halisi na <strong>\"Sokuji Virtual Microphone\"</strong> katika mipangilio yako."
   }
 }

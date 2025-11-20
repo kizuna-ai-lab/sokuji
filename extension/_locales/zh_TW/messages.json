@@ -121,5 +121,11 @@
   },
   "showLessSites": {
     "message": "顯示較少網站"
+  },
+  "teamsTitle": {
+    "message": "Sokuji for Microsoft Teams"
+  },
+  "teamsGuidance": {
+    "message": "如果您在 Teams 設定中看不到完整的音訊裝置清單：<br><strong>1)</strong> 暫時停用 Sokuji 擴充功能並重新整理頁面<br><strong>2)</strong> 在提示時允許 Teams 存取您的麥克風和攝影機<br><strong>3)</strong> 重新啟用 Sokuji 擴充功能並再次重新整理頁面<br><strong>4)</strong> 在提示時允許 Sokuji 存取您的麥克風。現在您應該可以在設定中看到真實裝置和 <strong>\"Sokuji Virtual Microphone\"</strong> 虛擬裝置了。"
   }
 }

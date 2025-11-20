@@ -121,5 +121,11 @@
   },
   "showLessSites": {
     "message": "Vis færre nettsteder"
+  },
+  "teamsTitle": {
+    "message": "Sokuji for Microsoft Teams"
+  },
+  "teamsGuidance": {
+    "message": "Hvis du ikke ser den fullstendige lydenhetslis ten i Teams-innstillingene:<br><strong>1)</strong> Deaktiver Sokuji-utvidelsen midlertidig og oppdater siden<br><strong>2)</strong> Tillat Teams å få tilgang til mikrofonen og kameraet ditt når du blir bedt om det<br><strong>3)</strong> Aktiver Sokuji-utvidelsen på nytt og oppdater siden igjen<br><strong>4)</strong> Tillat Sokuji å få tilgang til mikrofonen din når du blir bedt om det. Nå skal du se både virkelige enheter og <strong>\"Sokuji Virtual Microphone\"</strong> i innstillingene dine."
   }
 }

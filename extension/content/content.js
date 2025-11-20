@@ -98,6 +98,9 @@ function injectSitePluginsScript() {
   } else if (hostname === 'app.slack.com') {
     title = chrome.i18n.getMessage('slackTitle');
     guidance = chrome.i18n.getMessage('slackGuidance');
+  } else if (hostname === 'teams.live.com' || hostname === 'teams.microsoft.com') {
+    title = chrome.i18n.getMessage('teamsTitle');
+    guidance = chrome.i18n.getMessage('teamsGuidance');
   } else {
     // Default fallback
     title = chrome.i18n.getMessage('defaultTitle');
