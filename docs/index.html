@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sokuji Extension Documentation</title>
+    <title>Sokuji - AI-powered Live Speech Translation</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
             line-height: 1.6;
             color: #333;
-            max-width: 800px;
+            max-width: 900px;
             margin: 0 auto;
             padding: 20px;
         }
@@ -17,6 +17,17 @@
             color: #2c3e50;
             border-bottom: 2px solid #eee;
             padding-bottom: 10px;
+        }
+        h2 {
+            color: #34495e;
+            margin-top: 40px;
+            margin-bottom: 20px;
+        }
+        h3 {
+            color: #546e7a;
+            margin-top: 25px;
+            margin-bottom: 15px;
+            font-size: 1.1em;
         }
         a {
             color: #3498db;
@@ -39,8 +50,61 @@
             max-width: 200px;
             margin-bottom: 20px;
         }
+        .intro {
+            text-align: center;
+            margin-bottom: 40px;
+            color: #555;
+            font-size: 1.1em;
+        }
+        .platform-selection {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+        .platform-card {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            border: 2px solid #e9ecef;
+            transition: border-color 0.3s;
+        }
+        .platform-card:hover {
+            border-color: #3498db;
+        }
+        .platform-card h3 {
+            margin-top: 0;
+            color: #2c3e50;
+            text-align: center;
+        }
+        .platform-links {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .platform-links a {
+            display: block;
+            padding: 10px 15px;
+            background-color: #fff;
+            border-radius: 4px;
+            text-align: center;
+            border: 1px solid #dee2e6;
+        }
+        .platform-links a:hover {
+            background-color: #e9ecef;
+            text-decoration: none;
+        }
+        .platform-note {
+            margin-top: 10px;
+            font-size: 14px;
+            color: #666;
+            text-align: center;
+        }
+        .section {
+            margin-top: 40px;
+        }
         .links {
-            margin-top: 30px;
+            margin-top: 20px;
         }
         .links a {
             display: block;
@@ -51,15 +115,6 @@
         }
         .links a:hover {
             background-color: #e9ecef;
-        }
-        .extension-links {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 10px;
-        }
-        .extension-links a {
-            flex: 1;
-            margin-bottom: 0;
         }
         footer {
             margin-top: 50px;
@@ -75,39 +130,58 @@
     <div class="container">
         <div class="header">
             <img src="https://github.com/kizuna-ai-lab/sokuji/raw/main/src/assets/logo.png" alt="Sokuji Logo">
-            <h1>Sokuji Extension Documentation</h1>
+            <h1>Sokuji - AI-powered Live Speech Translation</h1>
         </div>
 
-        <p>Welcome to the Sokuji Extension documentation. Sokuji is a browser extension that provides real-time language interpretation using OpenAI's Realtime API.</p>
+        <div class="intro">
+            <p>Real-time language interpretation powered by AI, available as browser extensions and desktop applications for Windows, macOS, and Linux.</p>
+        </div>
 
-        <div class="links">
-            <h2>Download & Install</h2>
-            <div class="extension-links">
-                <a href="https://chromewebstore.google.com/detail/sokuji-extension/ppmihnhelgfpjomhjhpecobloelicnak">Chrome Extension</a>
-                <a href="https://microsoftedge.microsoft.com/addons/detail/sokuji-aipowered-live-/dcmmcdkeibkalgdjlahlembodjhijhkm">Edge Add-ons</a>
+        <h2>Choose Your Platform</h2>
+        <div class="platform-selection">
+            <div class="platform-card">
+                <h3>Browser Extensions</h3>
+                <div class="platform-links">
+                    <a href="https://chromewebstore.google.com/detail/sokuji-extension/ppmihnhelgfpjomhjhpecobloelicnak">Chrome Web Store</a>
+                    <a href="https://microsoftedge.microsoft.com/addons/detail/sokuji-aipowered-live-/dcmmcdkeibkalgdjlahlembodjhijhkm">Edge Add-ons</a>
+                </div>
+                <p class="platform-note">For online meetings (Google Meet, Zoom, Teams, etc.)</p>
             </div>
-            <a href="https://github.com/kizuna-ai-lab/sokuji/releases">Desktop Apps (Windows, macOS, Linux)</a>
-            <p style="margin: 10px 0; font-size: 14px; color: #666;">
-                Visit the <a href="https://github.com/kizuna-ai-lab/sokuji/releases" style="color: #3498db;">releases page</a> and download:
-                <br>• Windows: <code>.exe</code> installer
-                <br>• macOS: <code>.pkg</code> installer
-                <br>• Linux: <code>.deb</code> package
-            </p>
-            
+
+            <div class="platform-card">
+                <h3>Desktop Applications</h3>
+                <div class="platform-links">
+                    <a href="https://github.com/kizuna-ai-lab/sokuji/releases">Windows Installer (.exe)</a>
+                    <a href="https://github.com/kizuna-ai-lab/sokuji/releases">macOS Installer (.pkg)</a>
+                    <a href="https://github.com/kizuna-ai-lab/sokuji/releases">Linux Package (.deb)</a>
+                </div>
+                <p class="platform-note">For all scenarios - any website, app, or system audio</p>
+            </div>
+        </div>
+
+        <div class="section">
             <h2>Installation Guides</h2>
-            <a href="tutorials/linux-install.html">Linux Installation Guide</a>
-            <a href="tutorials/windows-install.html">Windows Installation Guide</a>
-            <a href="tutorials/macos-install.html">macOS Installation Guide</a>
+            <div class="links">
+                <a href="tutorials/windows-install.html">Windows Installation Guide</a>
+                <a href="tutorials/macos-install.html">macOS Installation Guide</a>
+                <a href="tutorials/linux-install.html">Linux Installation Guide</a>
+            </div>
+        </div>
 
-            <h2>Supported Websites</h2>
-            <a href="supported-sites.html">View All Supported Platforms</a>
+        <div class="section">
+            <h2>Features & Resources</h2>
+            <div class="links">
+                <a href="supported-sites.html">Supported Websites & Platforms</a>
+                <a href="supported-ai-providers.html">AI Providers</a>
+            </div>
+        </div>
 
-            <h2>AI Providers</h2>
-            <a href="supported-ai-providers.html">View Supported AI Providers</a>
-
-            <h2>Documentation</h2>
-            <a href="privacy-policy.html">Privacy Policy</a>
-            <a href="https://github.com/kizuna-ai-lab/sokuji">GitHub Repository</a>
+        <div class="section">
+            <h2>Learn More</h2>
+            <div class="links">
+                <a href="privacy-policy.html">Privacy Policy</a>
+                <a href="https://github.com/kizuna-ai-lab/sokuji">GitHub Repository</a>
+            </div>
         </div>
 
         <footer>
