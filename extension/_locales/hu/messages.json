@@ -121,5 +121,11 @@
   },
   "showLessSites": {
     "message": "Show less sites"
+  },
+  "teamsTitle": {
+    "message": "Sokuji a Microsoft Teamshez"
+  },
+  "teamsGuidance": {
+    "message": "Ha nem látja a teljes hangeszközlistát a Teams beállításaiban:<br><strong>1)</strong> Ideiglenesen tiltsa le a Sokuji bővítményt és frissítse az oldalt<br><strong>2)</strong> Engedélyezze a Teams számára a mikrofon és a kamera elérését, amikor a rendszer kéri<br><strong>3)</strong> Engedélyezze újra a Sokuji bővítményt és frissítse újra az oldalt<br><strong>4)</strong> Engedélyezze a Sokuji számára a mikrofon elérését, amikor a rendszer kéri. Most már látnia kell mind a valódi eszközöket, mind a <strong>\"Sokuji Virtual Microphone\"</strong> virtuális eszközt a beállításaiban."
   }
 }

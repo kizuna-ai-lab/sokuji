@@ -121,5 +121,11 @@
   },
   "showLessSites": {
     "message": "Show less sites"
+  },
+  "teamsTitle": {
+    "message": "Sokuji priekš Microsoft Teams"
+  },
+  "teamsGuidance": {
+    "message": "Ja neredzat pilnu audio ierīču sarakstu Teams iestatījumos:<br><strong>1)</strong> Īslaicīgi atspējojiet Sokuji paplašinājumu un atsvaidziniet lapu<br><strong>2)</strong> Atļaujiet Teams piekļūt mikrofonam un kamerai, kad tiek lūgts<br><strong>3)</strong> Vēlreiz iespējojiet Sokuji paplašinājumu un vēlreiz atsvaidziniet lapu<br><strong>4)</strong> Atļaujiet Sokuji piekļūt mikrofonam, kad tiek lūgts. Tagad jums vajadzētu redzēt gan īstās ierīces, gan <strong>\"Sokuji Virtual Microphone\"</strong> iestatījumos."
   }
 }

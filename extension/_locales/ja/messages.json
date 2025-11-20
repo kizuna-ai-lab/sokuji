@@ -121,5 +121,11 @@
   },
   "showLessSites": {
     "message": "サイトを折りたたむ"
+  },
+  "teamsTitle": {
+    "message": "Sokuji for Microsoft Teams"
+  },
+  "teamsGuidance": {
+    "message": "Teams の設定で完全なオーディオデバイスリストが表示されない場合：<br><strong>1)</strong> Sokuji 拡張機能を一時的に無効にしてページを更新<br><strong>2)</strong> プロンプトが表示されたら Teams にマイクとカメラへのアクセスを許可<br><strong>3)</strong> Sokuji 拡張機能を再度有効にしてページを再度更新<br><strong>4)</strong> プロンプトが表示されたら Sokuji にマイクへのアクセスを許可。これで、設定に実際のデバイスと <strong>\"Sokuji Virtual Microphone\"</strong> 仮想デバイスの両方が表示されるはずです。"
   }
 }

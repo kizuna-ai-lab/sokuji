@@ -110,6 +110,12 @@
   "slackGuidance": {
     "message": "To use Sokuji in Slack Huddles, please <strong>start a Huddle</strong>, then select <strong>\"Sokuji Virtual Microphone\"</strong> in your Video and Mic settings, and <strong>disable Noise Suppression</strong> in Audio & Video preferences for better performance."
   },
+  "teamsTitle": {
+    "message": "Sokuji for Microsoft Teams"
+  },
+  "teamsGuidance": {
+    "message": "If you don't see the complete audio device list in Teams settings:<br><strong>1)</strong> Temporarily disable the Sokuji extension and refresh the page<br><strong>2)</strong> Allow Teams to access your microphone and camera when prompted<br><strong>3)</strong> Re-enable Sokuji extension and refresh the page again<br><strong>4)</strong> Allow Sokuji to access your microphone when prompted<br>Now you should see both real and <strong>\"Sokuji Virtual Microphone\"</strong> devices in your settings."
+  },
   "showMoreSites": {
     "message": "Show $COUNT$ more sites",
     "placeholders": {

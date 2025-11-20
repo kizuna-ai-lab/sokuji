@@ -121,5 +121,11 @@
   },
   "showLessSites": {
     "message": "Daha az site göster"
+  },
+  "teamsTitle": {
+    "message": "Microsoft Teams için Sokuji"
+  },
+  "teamsGuidance": {
+    "message": "Teams ayarlarında tam ses cihazı listesini görmüyorsanız:<br><strong>1)</strong> Sokuji uzantısını geçici olarak devre dışı bırakın ve sayfayı yenileyin<br><strong>2)</strong> İstendiğinde Teams'in mikrofonunuza ve kameranıza erişmesine izin verin<br><strong>3)</strong> Sokuji uzantısını tekrar etkinleştirin ve sayfayı tekrar yenileyin<br><strong>4)</strong> İstendiğinde Sokuji'nin mikrofonunuza erişmesine izin verin. Artık ayarlarınızda hem gerçek cihazları hem de <strong>\"Sokuji Virtual Microphone\"</strong> sanal cihazı görmelisiniz."
   }
 }

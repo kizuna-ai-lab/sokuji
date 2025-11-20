@@ -121,5 +121,11 @@
   },
   "showLessSites": {
     "message": "Näytä vähemmän sivustoja"
+  },
+  "teamsTitle": {
+    "message": "Sokuji Microsoft Teamsille"
+  },
+  "teamsGuidance": {
+    "message": "Jos et näe täydellistä äänilaitteen luetteloa Teams-asetuksissa:<br><strong>1)</strong> Poista Sokuji-laajennus väliaikaisesti käytöstä ja päivitä sivu<br><strong>2)</strong> Salli Teamsin käyttää mikrofonia ja kameraa pyydettäessä<br><strong>3)</strong> Ota Sokuji-laajennus uudelleen käyttöön ja päivitä sivu uudelleen<br><strong>4)</strong> Salli Sokujin käyttää mikrofonia pyydettäessä. Nyt sinun pitäisi nähdä sekä todelliset laitteet että <strong>\"Sokuji Virtual Microphone\"</strong> asetuksissasi."
   }
 }

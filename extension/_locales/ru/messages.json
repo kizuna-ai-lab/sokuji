@@ -121,5 +121,11 @@
   },
   "showLessSites": {
     "message": "Свернуть список сайтов"
+  },
+  "teamsTitle": {
+    "message": "Sokuji для Microsoft Teams"
+  },
+  "teamsGuidance": {
+    "message": "Если вы не видите полный список аудиоустройств в настройках Teams:<br><strong>1)</strong> Временно отключите расширение Sokuji и обновите страницу<br><strong>2)</strong> Разрешите Teams доступ к микрофону и камере при появлении запроса<br><strong>3)</strong> Снова включите расширение Sokuji и обновите страницу<br><strong>4)</strong> Разрешите Sokuji доступ к микрофону при появлении запроса. Теперь вы должны увидеть как реальные устройства, так и <strong>\"Sokuji Virtual Microphone\"</strong> в настройках."
   }
 }

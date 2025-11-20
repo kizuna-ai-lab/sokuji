@@ -121,5 +121,11 @@
   },
   "showLessSites": {
     "message": "Show less sites"
+  },
+  "teamsTitle": {
+    "message": "Sokuji skirtas Microsoft Teams"
+  },
+  "teamsGuidance": {
+    "message": "Jei nematote viso garso įrenginių sąrašo Teams nustatymuose:<br><strong>1)</strong> Laikinai išjunkite Sokuji plėtinį ir atnaujinkite puslapį<br><strong>2)</strong> Leiskite Teams prieiti prie mikrofono ir kameros, kai bus paprašyta<br><strong>3)</strong> Vėl įjunkite Sokuji plėtinį ir dar kartą atnaujinkite puslapį<br><strong>4)</strong> Leiskite Sokuji prieiti prie mikrofono, kai bus paprašyta. Dabar turėtumėte matyti tiek tikrus įrenginius, tiek <strong>\"Sokuji Virtual Microphone\"</strong> savo nustatymuose."
   }
 }

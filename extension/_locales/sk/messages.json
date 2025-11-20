@@ -121,5 +121,11 @@
   },
   "showLessSites": {
     "message": "Show less sites"
+  },
+  "teamsTitle": {
+    "message": "Sokuji pre Microsoft Teams"
+  },
+  "teamsGuidance": {
+    "message": "Ak nevidíte úplný zoznam zvukových zariadení v nastaveniach Teams:<br><strong>1)</strong> Dočasne zakážte rozšírenie Sokuji a obnovte stránku<br><strong>2)</strong> Po výzve povoľte Teams prístup k mikrofónu a kamere<br><strong>3)</strong> Znova povoľte rozšírenie Sokuji a obnovte stránku znova<br><strong>4)</strong> Po výzve povoľte Sokuji prístup k mikrofónu. Teraz by ste mali vidieť ako skutočné zariadenia, tak <strong>\"Sokuji Virtual Microphone\"</strong> vo svojich nastaveniach."
   }
 }

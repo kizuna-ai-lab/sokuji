@@ -121,5 +121,11 @@
   },
   "showLessSites": {
     "message": "Show less sites"
+  },
+  "teamsTitle": {
+    "message": "Sokuji untuk Microsoft Teams"
+  },
+  "teamsGuidance": {
+    "message": "Jika anda tidak melihat senarai peranti audio lengkap dalam tetapan Teams:<br><strong>1)</strong> Lumpuhkan sementara sambungan Sokuji dan muat semula halaman<br><strong>2)</strong> Benarkan Teams mengakses mikrofon dan kamera anda apabila diminta<br><strong>3)</strong> Aktifkan semula sambungan Sokuji dan muat semula halaman sekali lagi<br><strong>4)</strong> Benarkan Sokuji mengakses mikrofon anda apabila diminta. Kini anda sepatutnya melihat kedua-dua peranti sebenar dan <strong>\"Sokuji Virtual Microphone\"</strong> dalam tetapan anda."
   }
 }
