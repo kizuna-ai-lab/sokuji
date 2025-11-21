@@ -106,8 +106,16 @@ export function UserAccountInfo({
             className="action-button-compact sign-out"
             title="Sign Out"
             onClick={async () => {
-              await authClient.signOut();
-              window.location.href = '/';
+              try {
+                await authClient.signOut();
+              } catch (error) {
+                console.error('Sign out error:', error);
+                // Even if backend returns 403 or other errors, clear frontend state
+                // This ensures users can always "log out"
+              } finally {
+                // Force page reload to clear all state
+                window.location.href = '/';
+              }
             }}
           >
             <LogOut size={14} />

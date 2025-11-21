@@ -96,6 +96,25 @@ export function UserProfileProvider({ children }: UserProfileProviderProps) {
       return;
     }
 
+    // ❌ Temporarily disabled: backend-cf doesn't have wallet API endpoint
+    // TODO: Re-enable when backend-cf adds wallet API support
+    setIsLoading(false);
+    setError(null);
+
+    // Set default empty quota data
+    setQuota({
+      total: 0,
+      used: 0,
+      remaining: 0,
+      plan: 'free',
+      resetDate: null,
+    });
+
+    return;
+
+    // Code below is disabled - waiting for backend-cf wallet endpoint
+    /* eslint-disable no-unreachable */
+    /*
     setIsLoading(true);
     setError(null);
 
@@ -132,6 +151,8 @@ export function UserProfileProvider({ children }: UserProfileProviderProps) {
     } finally {
       setIsLoading(false);
     }
+    */
+    /* eslint-enable no-unreachable */
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isSignedIn, userId]); // Use userId instead of betterAuthUser to prevent infinite loops
 
@@ -139,6 +160,11 @@ export function UserProfileProvider({ children }: UserProfileProviderProps) {
   const fetchQuotaSilently = useCallback(async () => {
     if (!isSignedIn || !betterAuthUser) return;
 
+    // ❌ Temporarily disabled - waiting for backend-cf wallet endpoint
+    return;
+
+    /* eslint-disable no-unreachable */
+    /*
     try {
       const token = await getToken();
       if (!token) {
@@ -165,6 +191,8 @@ export function UserProfileProvider({ children }: UserProfileProviderProps) {
     } catch (err: any) {
       console.warn('[UserProfileContext] Silent fetch error:', err);
     }
+    */
+    /* eslint-enable no-unreachable */
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isSignedIn, userId]); // Use userId instead of betterAuthUser to prevent infinite loops
 
