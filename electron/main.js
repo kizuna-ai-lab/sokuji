@@ -205,6 +205,8 @@ function createWindow() {
     : path.join(__dirname, '../assets/icon.png');
 
   // Create the browser window
+  const isDev = import.meta.env.MODE === 'development' || !app.isPackaged;
+
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
@@ -213,12 +215,13 @@ function createWindow() {
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
-      preload: path.join(__dirname, 'preload.js')
+      preload: path.join(__dirname, 'preload.js'),
+      // Disable web security in development to allow CORS requests
+      webSecurity: !isDev
     }
   });
 
   // Load the app
-  const isDev = import.meta.env.MODE === 'development' || !app.isPackaged;
   console.log('[Sokuji] [Main] Development mode:', isDev, 'MODE:', import.meta.env.MODE, 'isPackaged:', app.isPackaged);
   
   // Track window load time

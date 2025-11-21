@@ -10,7 +10,7 @@ import { createAuthClient } from "better-auth/react";
 const backendUrl = import.meta.env.VITE_BACKEND_URL || "http://localhost:8787";
 
 export const authClient = createAuthClient({
-  baseURL: `${backendUrl}/auth`,
+  baseURL: backendUrl,
 });
 
 // Export hooks for convenience

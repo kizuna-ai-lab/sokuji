@@ -34,6 +34,11 @@ function createAuth(env?: CloudflareBindings, cf?: IncomingRequestCfProperties) 
                     enabled: true,
                 },
                 plugins: [anonymous()],
+                // Add trustedOrigins to allow requests from frontend
+                trustedOrigins: [
+                    "http://localhost:5173",  // Vite dev server
+                    "http://localhost:3000",  // Alternative dev port
+                ],
                 rateLimit: {
                     enabled: true,
                     storage: "secondary-storage", // Use secondary storage (KV with proper TTL handling)
