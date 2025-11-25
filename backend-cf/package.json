@@ -1,5 +1,6 @@
 {
   "name": "backend-cf",
+  "type": "module",
   "scripts": {
     "dev": "wrangler dev",
     "build": "npx tsc --noEmit",
@@ -16,10 +17,12 @@
   },
   "dependencies": {
     "@cloudflare/workers-types": "^4.20250606.0",
+    "@types/nodemailer": "^7.0.4",
     "better-auth": "^1.2.8",
     "better-auth-cloudflare": "latest",
     "drizzle-orm": "^0.44.5",
-    "hono": "^4.7.11"
+    "hono": "^4.7.11",
+    "nodemailer": "^7.0.10"
   },
   "devDependencies": {
     "@types/node": "^22.15.30",

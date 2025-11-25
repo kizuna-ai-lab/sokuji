@@ -96,6 +96,9 @@ export function SignInForm() {
             disabled={loading}
             placeholder={t('auth.passwordPlaceholder', 'Enter your password')}
           />
+          <Link to="/forgot-password" className="forgot-password-link">
+            {t('auth.forgotPassword', 'Forgot Password?')}
+          </Link>
         </div>
 
         <button

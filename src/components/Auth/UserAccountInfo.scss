@@ -224,6 +224,40 @@
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+
+      .email-verified-icon {
+        color: #10a37f;
+        flex-shrink: 0;
+      }
+
+      .email-unverified-button {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 2px 6px;
+        font-size: 10px;
+        color: #e67e22;
+        background: rgba(230, 126, 34, 0.1);
+        border: 1px solid rgba(230, 126, 34, 0.3);
+        border-radius: 3px;
+        cursor: pointer;
+        transition: all 0.2s;
+        flex-shrink: 0;
+
+        &:hover:not(:disabled) {
+          background: rgba(230, 126, 34, 0.2);
+          border-color: rgba(230, 126, 34, 0.5);
+        }
+
+        &:disabled,
+        &.loading {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+      }
     }
   }
 
@@ -321,9 +355,42 @@
   }
 }
 
+// Email verification message
+.verification-message {
+  padding: 8px 12px;
+  margin-bottom: 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  text-align: center;
+  animation: fadeIn 0.3s ease;
+
+  &.success {
+    background: rgba(16, 163, 127, 0.1);
+    color: #10a37f;
+    border: 1px solid rgba(16, 163, 127, 0.3);
+  }
+
+  &.error {
+    background: rgba(231, 76, 60, 0.1);
+    color: #e74c3c;
+    border: 1px solid rgba(231, 76, 60, 0.3);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 // Quota Status Section
 .quota-status-section {
-  
+
 }
 
 .quota-loading {

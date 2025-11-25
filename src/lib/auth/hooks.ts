@@ -34,7 +34,7 @@ export function useAuth() {
  * Provides API for accessing user data
  */
 export function useUser() {
-  const { data: session, isPending } = useBetterAuthSession();
+  const { data: session, isPending, refetch } = useBetterAuthSession();
 
   return {
     isLoaded: !isPending,
@@ -47,6 +47,7 @@ export function useUser() {
       createdAt: session.user.createdAt,
       updatedAt: session.user.updatedAt,
     } : null,
+    refetch, // Expose refetch method to refresh session data
   };
 }
 
