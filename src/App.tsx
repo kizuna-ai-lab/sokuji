@@ -6,6 +6,7 @@ import { RootLayout } from './layouts/RootLayout';
 import { Home } from './routes/Home';
 import { SignIn } from './routes/SignIn';
 import { SignUp } from './routes/SignUp';
+import { ForgotPassword } from './routes/ForgotPassword';
 import { isExtension } from './utils/environment';
 
 const isExtensionEnvironment = isExtension();
@@ -28,6 +29,10 @@ const router = createMemoryRouter([
       {
         path: 'sign-up/*',
         element: <SignUp />,
+      },
+      {
+        path: 'forgot-password',
+        element: <ForgotPassword />,
       },
     ],
   },

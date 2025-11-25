@@ -62,6 +62,18 @@
           color: #666;
         }
       }
+
+      .forgot-password-link {
+        align-self: flex-end;
+        font-size: 0.75rem;
+        color: #10a37f;
+        text-decoration: none;
+        margin-top: 4px;
+
+        &:hover {
+          text-decoration: underline;
+        }
+      }
     }
 
     .submit-button {
