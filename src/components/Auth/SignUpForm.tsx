@@ -8,11 +8,13 @@ import React, { useState, FormEvent } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { authClient } from '../../lib/auth-client';
 import { useTranslation } from 'react-i18next';
+import { useAnalytics } from '../../lib/analytics';
 import './SignUpForm.scss';
 
 export function SignUpForm() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { trackEvent, identifyUser } = useAnalytics();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -38,6 +40,9 @@ export function SignUpForm() {
 
     setLoading(true);
 
+    // Track sign up attempt
+    trackEvent('sign_up_attempted', { method: 'email' });
+
     const { data, error } = await authClient.signUp.email({
       email,
       password,
@@ -46,6 +51,25 @@ export function SignUpForm() {
 
     if (error) {
       console.error('Sign up error:', error);
+
+      // Determine error type for analytics
+      let errorType = 'unknown';
+      if (error.code === 'USER_ALREADY_EXISTS') {
+        errorType = 'user_already_exists';
+      } else if (error.code === 'INVALID_EMAIL') {
+        errorType = 'invalid_email';
+      } else if (error.code === 'WEAK_PASSWORD') {
+        errorType = 'weak_password';
+      } else if (error.status === 429) {
+        errorType = 'rate_limit';
+      } else if (error.message?.toLowerCase().includes('network') || error.message?.toLowerCase().includes('fetch')) {
+        errorType = 'network';
+      } else {
+        errorType = 'server';
+      }
+
+      // Track sign up failure
+      trackEvent('sign_up_failed', { method: 'email', error_type: errorType });
 
       // Handle specific error codes
       if (error.code === 'USER_ALREADY_EXISTS') {
@@ -65,6 +89,12 @@ export function SignUpForm() {
       }
       setLoading(false);
       return;
+    }
+
+    // Track sign up success and identify user with email
+    trackEvent('sign_up_succeeded', { method: 'email' });
+    if (data?.user?.id) {
+      identifyUser(data.user.id, data.user.email, { name: data.user.name });
     }
 
     // Navigate to home on successful sign up
@@ -163,7 +193,7 @@ export function SignUpForm() {
       <div className="form-footer">
         <p>
           {t('auth.haveAccount', 'Already have an account?')}{' '}
-          <Link to="/sign-in">
+          <Link to="/sign-in" onClick={() => trackEvent('sign_in_link_clicked', {})}>
             {t('auth.signIn', 'Sign In')}
           </Link>
         </p>

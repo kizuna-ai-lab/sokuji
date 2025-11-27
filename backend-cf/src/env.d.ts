@@ -4,4 +4,6 @@ export interface CloudflareBindings {
     // Zoho Mail SMTP Configuration
     ZOHO_MAIL_USER: string;
     ZOHO_MAIL_PASSWORD: string;
+    // PostHog Analytics
+    POSTHOG_API_KEY: string;
 }

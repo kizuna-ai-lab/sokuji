@@ -10,6 +10,7 @@ import React, { useState, useEffect, FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { authClient } from '../../lib/auth-client';
 import { useTranslation } from 'react-i18next';
+import { useAnalytics } from '../../lib/analytics';
 import './ForgotPasswordForm.scss';
 
 type Step = 'email' | 'otp';
@@ -17,6 +18,12 @@ type Step = 'email' | 'otp';
 export function ForgotPasswordForm() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { trackEvent } = useAnalytics();
+
+  // Track password reset initiated on component mount
+  useEffect(() => {
+    trackEvent('password_reset_initiated', {});
+  }, []);
 
   // Form state
   const [step, setStep] = useState<Step>('email');
@@ -47,6 +54,9 @@ export function ForgotPasswordForm() {
 
     setLoading(true);
 
+    // Track OTP request
+    trackEvent('otp_requested', {});
+
     const result = await authClient.emailOtp.sendVerificationOtp({
       email,
       type: 'forget-password',
@@ -55,17 +65,28 @@ export function ForgotPasswordForm() {
     if (result?.error) {
       console.error('Send OTP error:', result.error);
 
+      // Determine error type for analytics
+      let errorType: 'rate_limit' | 'invalid_email' | 'network' | 'server' = 'server';
       if (result.error.status === 429 || result.error.message?.includes('Too many')) {
+        errorType = 'rate_limit';
         setError(t('auth.rateLimitExceeded'));
         setCooldownSeconds(60);
       } else if (result.error.message?.toLowerCase().includes('network') || result.error.message?.toLowerCase().includes('fetch')) {
+        errorType = 'network';
         setError(t('auth.networkError'));
       } else {
         setError(result.error.message || t('auth.forgotPasswordError'));
       }
+
+      // Track OTP request failure
+      trackEvent('otp_request_failed', { error_type: errorType });
+
       setLoading(false);
       return;
     }
+
+    // Track OTP request success
+    trackEvent('otp_request_succeeded', {});
 
     // Success - move to OTP step
     setStep('otp');
@@ -76,6 +97,9 @@ export function ForgotPasswordForm() {
   // Resend OTP
   const handleResendOTP = async () => {
     if (cooldownSeconds > 0) return;
+
+    // Track OTP resend click
+    trackEvent('otp_resend_clicked', {});
 
     setError('');
     setLoading(true);
@@ -106,16 +130,21 @@ export function ForgotPasswordForm() {
     // Validate passwords match
     if (newPassword !== confirmPassword) {
       setError(t('auth.passwordsDoNotMatch'));
+      trackEvent('password_reset_failed', { error_type: 'validation_error' });
       return;
     }
 
     // Validate password length
     if (newPassword.length < 8) {
       setError(t('auth.passwordTooShort'));
+      trackEvent('password_reset_failed', { error_type: 'validation_error' });
       return;
     }
 
     setLoading(true);
+
+    // Track password reset submission
+    trackEvent('password_reset_submitted', {});
 
     const result = await authClient.emailOtp.resetPassword({
       email,
@@ -126,18 +155,33 @@ export function ForgotPasswordForm() {
     if (result?.error) {
       console.error('Reset password error:', result.error);
 
+      // Determine error type for analytics
+      let errorType: 'invalid_otp' | 'expired_otp' | 'validation_error' | 'network' = 'validation_error';
+
       if (result.error.code === 'INVALID_OTP' || result.error.message?.toLowerCase().includes('invalid')) {
+        errorType = 'invalid_otp';
         setError(t('auth.invalidOTP'));
       } else if (result.error.code === 'OTP_EXPIRED' || result.error.message?.toLowerCase().includes('expired')) {
+        errorType = 'expired_otp';
         setError(t('auth.otpExpired'));
       } else if (result.error.status === 429 || result.error.message?.includes('Too many')) {
         setError(t('auth.rateLimitExceeded'));
+      } else if (result.error.message?.toLowerCase().includes('network') || result.error.message?.toLowerCase().includes('fetch')) {
+        errorType = 'network';
+        setError(t('auth.networkError'));
       } else {
         setError(result.error.message || t('auth.resetPasswordError'));
       }
+
+      // Track password reset failure
+      trackEvent('password_reset_failed', { error_type: errorType });
+
       setLoading(false);
       return;
     }
+
+    // Track password reset success
+    trackEvent('password_reset_succeeded', {});
 
     // Success - redirect to sign in
     setLoading(false);
@@ -297,7 +341,7 @@ export function ForgotPasswordForm() {
 
       <div className="form-footer">
         <p>
-          <Link to="/sign-in">
+          <Link to="/sign-in" onClick={() => trackEvent('sign_in_link_clicked', {})}>
             {t('auth.backToSignIn')}
           </Link>
         </p>

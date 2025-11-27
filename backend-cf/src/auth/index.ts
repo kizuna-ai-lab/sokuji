@@ -7,6 +7,7 @@ import { drizzle } from "drizzle-orm/d1";
 import { schema } from "../db";
 import type { CloudflareBindings } from "../env";
 import { sendVerificationEmail, sendPasswordResetEmail, sendEmailChangeConfirmation, sendOTPEmail } from "../lib/email";
+import { getPostHogClient, trackServerEvent } from "../lib/posthog";
 
 // Single auth configuration that handles both CLI and runtime scenarios
 function createAuth(env?: CloudflareBindings, cf?: IncomingRequestCfProperties) {
@@ -18,6 +19,9 @@ function createAuth(env?: CloudflareBindings, cf?: IncomingRequestCfProperties) 
         user: env.ZOHO_MAIL_USER,
         password: env.ZOHO_MAIL_PASSWORD,
     } : { user: '', password: '' };
+
+    // PostHog client for analytics (only in runtime, not CLI)
+    const posthogApiKey = env?.POSTHOG_API_KEY;
 
     return betterAuth({
         ...withCloudflare(
@@ -138,6 +142,43 @@ function createAuth(env?: CloudflareBindings, cf?: IncomingRequestCfProperties) 
                       debugLogs: true
                   }),
               }),
+        // Database hooks for analytics tracking (only in runtime)
+        ...(posthogApiKey
+            ? {
+                  databaseHooks: {
+                      user: {
+                          create: {
+                              after: async (user: any) => {
+                                  // Track new user sign up
+                                  try {
+                                      const client = getPostHogClient(posthogApiKey);
+                                      await trackServerEvent(client, user.id, "server_sign_up_completed", {
+                                          method: "email",
+                                      });
+                                  } catch (error) {
+                                      console.error("[PostHog] Failed to track sign up:", error);
+                                  }
+                              },
+                          },
+                      },
+                      session: {
+                          create: {
+                              after: async (session: any) => {
+                                  // Track new session (sign in)
+                                  try {
+                                      const client = getPostHogClient(posthogApiKey);
+                                      await trackServerEvent(client, session.userId, "server_session_created", {
+                                          session_id: session.id,
+                                      });
+                                  } catch (error) {
+                                      console.error("[PostHog] Failed to track session created:", error);
+                                  }
+                              },
+                          },
+                      },
+                  },
+              }
+            : {}),
     });
 }
 

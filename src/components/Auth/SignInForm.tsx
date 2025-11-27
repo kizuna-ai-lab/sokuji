@@ -8,11 +8,13 @@ import React, { useState, FormEvent } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { authClient } from '../../lib/auth-client';
 import { useTranslation } from 'react-i18next';
+import { useAnalytics } from '../../lib/analytics';
 import './SignInForm.scss';
 
 export function SignInForm() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { trackEvent, identifyUser } = useAnalytics();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -23,6 +25,9 @@ export function SignInForm() {
     setError('');
     setLoading(true);
 
+    // Track sign in attempt
+    trackEvent('sign_in_attempted', { method: 'email' });
+
     const { data, error } = await authClient.signIn.email({
       email,
       password,
@@ -30,6 +35,19 @@ export function SignInForm() {
 
     if (error) {
       console.error('Sign in error:', error);
+
+      // Determine error type for analytics
+      let errorType: 'invalid_credentials' | 'network' | 'rate_limit' | 'server' = 'server';
+      if (error.code === 'INVALID_EMAIL_OR_PASSWORD' || error.code === 'USER_NOT_FOUND') {
+        errorType = 'invalid_credentials';
+      } else if (error.status === 429) {
+        errorType = 'rate_limit';
+      } else if (error.message?.toLowerCase().includes('network') || error.message?.toLowerCase().includes('fetch')) {
+        errorType = 'network';
+      }
+
+      // Track sign in failure
+      trackEvent('sign_in_failed', { method: 'email', error_type: errorType });
 
       // Handle specific error codes
       if (error.code === 'INVALID_EMAIL_OR_PASSWORD') {
@@ -50,6 +68,12 @@ export function SignInForm() {
       }
       setLoading(false);
       return;
+    }
+
+    // Track sign in success and identify user with email
+    trackEvent('sign_in_succeeded', { method: 'email' });
+    if (data?.user?.id) {
+      identifyUser(data.user.id, data.user.email, { name: data.user.name });
     }
 
     // Navigate to home on successful sign in
@@ -96,7 +120,11 @@ export function SignInForm() {
             disabled={loading}
             placeholder={t('auth.passwordPlaceholder', 'Enter your password')}
           />
-          <Link to="/forgot-password" className="forgot-password-link">
+          <Link
+            to="/forgot-password"
+            className="forgot-password-link"
+            onClick={() => trackEvent('forgot_password_link_clicked', {})}
+          >
             {t('auth.forgotPassword', 'Forgot Password?')}
           </Link>
         </div>
@@ -117,7 +145,7 @@ export function SignInForm() {
       <div className="form-footer">
         <p>
           {t('auth.noAccount', "Don't have an account?")}{' '}
-          <Link to="/sign-up">
+          <Link to="/sign-up" onClick={() => trackEvent('sign_up_link_clicked', {})}>
             {t('auth.signUp', 'Sign Up')}
           </Link>
         </p>

@@ -217,6 +217,44 @@ export interface AnalyticsEvents {
     feature_name: string;
     time_since_install_hours?: number;
   };
+
+  // Authentication events
+  'sign_in_attempted': { method: 'email' };
+  'sign_in_succeeded': { method: 'email' };
+  'sign_in_failed': { method: 'email'; error_type: 'invalid_credentials' | 'network' | 'rate_limit' | 'server' };
+  'sign_up_attempted': { method: 'email' };
+  'sign_up_succeeded': { method: 'email' };
+  'sign_up_failed': { method: 'email'; error_type: string };
+  'sign_out_clicked': Record<string, never>;
+  'sign_out_succeeded': Record<string, never>;
+  'sign_out_failed': { error_code?: number };
+
+  // Password reset events
+  'password_reset_initiated': Record<string, never>;
+  'otp_requested': Record<string, never>;
+  'otp_request_succeeded': Record<string, never>;
+  'otp_request_failed': { error_type: 'rate_limit' | 'invalid_email' | 'network' | 'server' };
+  'otp_resend_clicked': Record<string, never>;
+  'password_reset_submitted': Record<string, never>;
+  'password_reset_succeeded': Record<string, never>;
+  'password_reset_failed': { error_type: 'invalid_otp' | 'expired_otp' | 'validation_error' | 'network' };
+
+  // Email verification events
+  'email_verification_requested': { trigger: 'manual' | 'auto' };
+  'email_verification_sent': Record<string, never>;
+  'email_verification_failed': { error_type: 'rate_limit' | 'network' };
+  'email_verification_completed': Record<string, never>;
+
+  // User profile events
+  'user_profile_loaded': { has_subscription: boolean; email_verified: boolean };
+  'user_profile_refresh_clicked': Record<string, never>;
+  'account_management_clicked': Record<string, never>;
+  'subscription_management_clicked': Record<string, never>;
+
+  // Navigation events
+  'forgot_password_link_clicked': Record<string, never>;
+  'sign_up_link_clicked': Record<string, never>;
+  'sign_in_link_clicked': Record<string, never>;
 }
 
 // Sensitive fields that should be excluded from analytics
@@ -292,12 +330,23 @@ export function useAnalytics() {
     }
   };
 
-  const identifyUser = (userId: string, traits?: Record<string, any>) => {
+  /**
+   * Identify a user with PostHog
+   * @param userId - The user's unique ID
+   * @param email - The user's email (stored as $email in PostHog, a special property)
+   * @param traits - Additional user properties (will be sanitized)
+   */
+  const identifyUser = (userId: string, email?: string, traits?: Record<string, any>) => {
     try {
       if (posthog) {
         const sanitizedTraits = traits ? sanitizeData(traits) : {};
+        // $email is a special PostHog property for user identification
+        // It's intentionally not sanitized as it's meant for user lookup in PostHog
+        if (email) {
+          sanitizedTraits.$email = email;
+        }
         posthog.identify(userId, sanitizedTraits);
-        
+
         // Sync distinct_id to background script after identifying user
         setTimeout(() => {
           syncDistinctIdToBackground(posthog);

@@ -1,14 +1,21 @@
-import { useState, FormEvent } from 'react';
+import { useState, useEffect, FormEvent } from 'react';
 import { useSession, authClient } from '@/lib/auth-client';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { Alert } from '@/components/ui/Alert';
 import { User, Mail, Check } from 'lucide-react';
+import { useAnalytics } from '@/lib/analytics';
 import './Profile.scss';
 
 export function Profile() {
   const { data: session, refetch } = useSession();
+  const { trackEvent } = useAnalytics();
   const user = session?.user;
+
+  // Track page view on mount
+  useEffect(() => {
+    trackEvent('dashboard_page_viewed', { page: 'profile' });
+  }, []);
 
   // Profile form state
   const [name, setName] = useState(user?.name || '');
@@ -43,6 +50,8 @@ export function Profile() {
         return;
       }
 
+      // Track profile update
+      trackEvent('dashboard_profile_updated', { fields_updated: ['name'] });
       setProfileSuccess('Profile updated successfully');
       await refetch();
     } catch {
@@ -70,6 +79,8 @@ export function Profile() {
         return;
       }
 
+      // Track email change request
+      trackEvent('dashboard_email_changed', {});
       setEmailSuccess('Verification email sent to your new address. Please check your inbox.');
       setNewEmail('');
     } catch {

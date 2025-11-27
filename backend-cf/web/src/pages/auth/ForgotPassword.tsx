@@ -6,11 +6,13 @@ import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { Alert } from '@/components/ui/Alert';
 import { authClient } from '@/lib/auth-client';
+import { useAnalytics } from '@/lib/analytics';
 
 type Step = 'email' | 'otp';
 
 export function ForgotPassword() {
   const navigate = useNavigate();
+  const { trackEvent } = useAnalytics();
   const [step, setStep] = useState<Step>('email');
   const [email, setEmail] = useState('');
   const [otp, setOtp] = useState('');
@@ -19,6 +21,11 @@ export function ForgotPassword() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [cooldownSeconds, setCooldownSeconds] = useState(0);
+
+  // Track page view on mount
+  useEffect(() => {
+    trackEvent('dashboard_password_reset_initiated', {});
+  }, []);
 
   // Cooldown timer
   useEffect(() => {
@@ -44,6 +51,7 @@ export function ForgotPassword() {
       });
 
       if (result?.error) {
+        trackEvent('dashboard_password_reset_failed', { error_type: result.error.status === 429 ? 'rate_limit' : 'send_otp_failed' });
         if (result.error.status === 429) {
           setError('Too many requests. Please wait a moment and try again');
           setCooldownSeconds(60);
@@ -55,9 +63,11 @@ export function ForgotPassword() {
       }
 
       // Success - move to OTP step
+      trackEvent('dashboard_password_reset_email_sent', {});
       setStep('otp');
       setCooldownSeconds(60);
     } catch {
+      trackEvent('dashboard_password_reset_failed', { error_type: 'unexpected' });
       setError('An unexpected error occurred');
     } finally {
       setLoading(false);
@@ -118,20 +128,26 @@ export function ForgotPassword() {
       });
 
       if (result?.error) {
+        let errorType = 'unknown';
         if (result.error.code === 'INVALID_OTP') {
+          errorType = 'invalid_otp';
           setError('Invalid verification code');
         } else if (result.error.code === 'OTP_EXPIRED') {
+          errorType = 'otp_expired';
           setError('Verification code has expired. Please request a new one.');
         } else {
           setError(result.error.message || 'Failed to reset password');
         }
+        trackEvent('dashboard_password_reset_failed', { error_type: errorType });
         setLoading(false);
         return;
       }
 
       // Success - redirect to sign in
+      trackEvent('dashboard_password_reset_succeeded', {});
       navigate('/sign-in', { replace: true });
     } catch {
+      trackEvent('dashboard_password_reset_failed', { error_type: 'unexpected' });
       setError('An unexpected error occurred');
       setLoading(false);
     }

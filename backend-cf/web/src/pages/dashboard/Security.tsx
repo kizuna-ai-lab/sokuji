@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { Alert } from '@/components/ui/Alert';
 import { Shield, Key, Trash2, AlertTriangle, Monitor, Smartphone, Globe, X } from 'lucide-react';
+import { useAnalytics } from '@/lib/analytics';
 import './Security.scss';
 
 interface Session {
@@ -23,6 +24,7 @@ interface Session {
 export function Security() {
   const navigate = useNavigate();
   const { data: session, refetch } = useSession();
+  const { trackEvent, resetUser } = useAnalytics();
   const user = session?.user;
   const currentSessionToken = session?.session?.token;
 
@@ -45,6 +47,11 @@ export function Security() {
   const [sessionsLoading, setSessionsLoading] = useState(true);
   const [sessionsError, setSessionsError] = useState('');
   const [revokeLoading, setRevokeLoading] = useState<string | null>(null);
+
+  // Track page view on mount
+  useEffect(() => {
+    trackEvent('dashboard_page_viewed', { page: 'security' });
+  }, []);
 
   // Fetch all sessions
   const fetchSessions = async () => {
@@ -76,6 +83,8 @@ export function Security() {
       if (error) {
         setSessionsError(error.message || 'Failed to revoke session');
       } else {
+        // Track session revocation
+        trackEvent('dashboard_session_revoked', { session_id: sessionToken });
         await fetchSessions();
       }
     } catch {
@@ -93,6 +102,8 @@ export function Security() {
       if (error) {
         setSessionsError(error.message || 'Failed to revoke other sessions');
       } else {
+        // Track all sessions revoked
+        trackEvent('dashboard_all_sessions_revoked', {});
         await fetchSessions();
       }
     } catch {
@@ -173,6 +184,8 @@ export function Security() {
         return;
       }
 
+      // Track password change
+      trackEvent('dashboard_password_changed', {});
       setPasswordSuccess('Password changed successfully. Other sessions have been logged out.');
       setCurrentPassword('');
       setNewPassword('');
@@ -204,6 +217,10 @@ export function Security() {
         setDeleteLoading(false);
         return;
       }
+
+      // Track account deletion and reset user identity
+      trackEvent('dashboard_account_deleted', {});
+      resetUser();
 
       // Sign out and redirect
       await signOut();
