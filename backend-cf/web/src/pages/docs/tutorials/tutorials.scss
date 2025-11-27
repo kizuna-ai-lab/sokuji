@@ -1,0 +1,571 @@
+/**
+ * Tutorial Pages Shared Styles
+ */
+
+.tutorial-page {
+  &__back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    color: var(--color-accent);
+    padding: var(--spacing-sm) var(--spacing-md);
+    background: var(--color-bg-tertiary);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--spacing-lg);
+    transition: all var(--transition-fast);
+
+    &:hover {
+      background: var(--color-bg-secondary);
+      text-decoration: none;
+    }
+  }
+
+  &__section {
+    margin-bottom: var(--spacing-xl);
+  }
+
+  &__step {
+    background: var(--color-bg-tertiary);
+    border-left: 4px solid var(--color-accent);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-lg);
+    margin-bottom: var(--spacing-lg);
+
+    h3 {
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-sm);
+      margin: 0 0 var(--spacing-md) 0;
+      color: var(--color-text-primary);
+    }
+
+    p {
+      margin-bottom: var(--spacing-md);
+
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+  }
+
+  &__step-number {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    background: var(--color-accent);
+    color: white;
+    border-radius: 50%;
+    font-size: var(--font-sm);
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+
+  &__screenshot {
+    max-width: 100%;
+    height: auto;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    margin: var(--spacing-md) 0;
+    box-shadow: var(--shadow-md);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+
+    &:hover {
+      transform: scale(1.01);
+      box-shadow: var(--shadow-lg);
+    }
+  }
+
+  &__tip {
+    background: rgba(59, 130, 246, 0.1);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-md);
+    margin: var(--spacing-md) 0;
+
+    h4 {
+      color: var(--color-accent);
+      margin: 0 0 var(--spacing-sm) 0;
+      font-size: var(--font-md);
+    }
+
+    p, ul {
+      margin: 0;
+      color: var(--color-text-secondary);
+    }
+
+    ul {
+      padding-left: var(--spacing-lg);
+
+      li {
+        margin-bottom: var(--spacing-xs);
+      }
+    }
+  }
+
+  &__faq {
+    h2 {
+      margin-bottom: var(--spacing-lg);
+    }
+  }
+
+  &__faq-item {
+    background: var(--color-bg-tertiary);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+
+    h4 {
+      color: var(--color-text-primary);
+      margin: 0 0 var(--spacing-sm) 0;
+      font-size: var(--font-md);
+    }
+
+    p {
+      margin: 0;
+      color: var(--color-text-secondary);
+    }
+  }
+
+  // Warning and Info boxes
+  &__warning {
+    background: var(--color-warning-light);
+    border: 1px solid rgba(241, 196, 15, 0.3);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-md);
+    margin: var(--spacing-md) 0;
+
+    &::before {
+      content: "⚠️ ";
+    }
+  }
+
+  &__info {
+    background: rgba(59, 130, 246, 0.1);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-md);
+    margin: var(--spacing-md) 0;
+
+    &::before {
+      content: "ℹ️ ";
+    }
+  }
+}
+
+// API Key Verifier (for OpenAI Setup)
+.api-key-verifier {
+  margin: var(--spacing-lg) 0;
+
+  &__input-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-md);
+
+    label {
+      font-weight: 500;
+      color: var(--color-text-primary);
+    }
+
+    input {
+      padding: var(--spacing-sm) var(--spacing-md);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      font-family: monospace;
+      background: var(--color-bg-secondary);
+      color: var(--color-text-primary);
+
+      &:focus {
+        outline: none;
+        border-color: var(--color-accent);
+      }
+    }
+  }
+
+  &__buttons {
+    display: flex;
+    gap: var(--spacing-sm);
+  }
+
+  &__btn {
+    padding: var(--spacing-sm) var(--spacing-lg);
+    border: none;
+    border-radius: var(--radius-md);
+    font-size: var(--font-md);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+
+    &--primary {
+      background: var(--color-accent);
+      color: white;
+
+      &:hover:not(:disabled) {
+        background: var(--color-accent-hover);
+      }
+
+      &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+    }
+
+    &--secondary {
+      background: var(--color-bg-tertiary);
+      color: var(--color-text-secondary);
+
+      &:hover {
+        background: var(--color-bg-secondary);
+      }
+    }
+  }
+
+  &__results {
+    margin-top: var(--spacing-lg);
+
+    h4 {
+      margin-bottom: var(--spacing-md);
+      color: var(--color-text-primary);
+    }
+  }
+
+  &__result {
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--spacing-sm);
+
+    &--success {
+      background: var(--color-success-light);
+      border: 1px solid rgba(46, 204, 113, 0.3);
+      color: #155724;
+    }
+
+    &--error {
+      background: rgba(231, 76, 60, 0.1);
+      border: 1px solid rgba(231, 76, 60, 0.3);
+      color: #721c24;
+    }
+
+    &--loading {
+      color: var(--color-text-muted);
+    }
+  }
+
+  &__summary {
+    margin-top: var(--spacing-lg);
+    padding: var(--spacing-md);
+    border-radius: var(--radius-md);
+
+    &--success {
+      background: var(--color-success-light);
+      border: 1px solid rgba(46, 204, 113, 0.3);
+      color: #155724;
+    }
+
+    &--error {
+      background: rgba(231, 76, 60, 0.1);
+      border: 1px solid rgba(231, 76, 60, 0.3);
+      color: #721c24;
+    }
+  }
+}
+
+// TOC for longer tutorials (like OpenAI Setup)
+.tutorial-toc {
+  position: fixed;
+  left: 20px;
+  top: 150px;
+  width: 220px;
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-md);
+  max-height: 60vh;
+  overflow-y: auto;
+  box-shadow: var(--shadow-md);
+
+  @media (max-width: 1400px) {
+    display: none;
+  }
+
+  &__title {
+    font-size: var(--font-sm);
+    font-weight: 600;
+    color: var(--color-text-primary);
+    margin-bottom: var(--spacing-sm);
+    padding-bottom: var(--spacing-sm);
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  &__list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+
+    li {
+      margin: var(--spacing-xs) 0;
+
+      &.toc-subsection {
+        margin-left: var(--spacing-md);
+        font-size: var(--font-xs);
+      }
+    }
+
+    a {
+      display: block;
+      padding: var(--spacing-xs) var(--spacing-sm);
+      color: var(--color-text-secondary);
+      border-radius: var(--radius-sm);
+      font-size: var(--font-sm);
+      transition: all var(--transition-fast);
+
+      &:hover {
+        background: var(--color-bg-tertiary);
+        color: var(--color-text-primary);
+        text-decoration: none;
+      }
+
+      &.active {
+        background: var(--color-accent-light);
+        color: var(--color-accent);
+      }
+    }
+  }
+}
+
+// Mobile TOC dropdown
+.tutorial-mobile-toc {
+  display: none;
+  margin-bottom: var(--spacing-lg);
+
+  @media (max-width: 1400px) {
+    display: block;
+  }
+
+  select {
+    width: 100%;
+    padding: var(--spacing-sm) var(--spacing-md);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background: var(--color-bg-secondary);
+    color: var(--color-text-primary);
+    font-size: var(--font-md);
+
+    &:focus {
+      outline: none;
+      border-color: var(--color-accent);
+    }
+  }
+}
+
+// Realtime API Tester
+.api-tester {
+  background: var(--color-bg-tertiary);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+
+  &__field {
+    margin-bottom: var(--spacing-lg);
+
+    label {
+      display: block;
+      font-weight: 500;
+      color: var(--color-text-primary);
+      margin-bottom: var(--spacing-xs);
+    }
+
+    input, select {
+      width: 100%;
+      padding: var(--spacing-sm) var(--spacing-md);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      font-family: monospace;
+      font-size: var(--font-md);
+      background: var(--color-bg-secondary);
+      color: var(--color-text-primary);
+      box-sizing: border-box;
+
+      &:focus {
+        outline: none;
+        border-color: var(--color-accent);
+      }
+    }
+  }
+
+  &__helper {
+    font-size: var(--font-sm);
+    color: var(--color-text-muted);
+    margin-top: var(--spacing-xs);
+  }
+
+  &__presets {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-sm);
+    margin-top: var(--spacing-sm);
+
+    button {
+      padding: var(--spacing-xs) var(--spacing-md);
+      background: var(--color-bg-secondary);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      font-size: var(--font-sm);
+      color: var(--color-text-secondary);
+      cursor: pointer;
+      transition: all var(--transition-fast);
+
+      &:hover {
+        background: var(--color-accent-light);
+        border-color: var(--color-accent);
+        color: var(--color-accent);
+      }
+    }
+  }
+
+  &__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-sm);
+    margin-top: var(--spacing-lg);
+  }
+
+  &__btn {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    padding: var(--spacing-sm) var(--spacing-lg);
+    border: none;
+    border-radius: var(--radius-md);
+    font-size: var(--font-md);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    background: var(--color-bg-secondary);
+    color: var(--color-text-secondary);
+
+    &:hover {
+      background: var(--color-bg-primary);
+    }
+
+    &--primary {
+      background: var(--color-accent);
+      color: white;
+
+      &:hover {
+        background: var(--color-accent-hover);
+      }
+    }
+
+    &--danger {
+      background: #e74c3c;
+      color: white;
+
+      &:hover {
+        background: #c0392b;
+      }
+    }
+  }
+
+  &__results {
+    margin-top: var(--spacing-lg);
+  }
+
+  &__step {
+    padding: var(--spacing-md);
+    margin-bottom: var(--spacing-sm);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-border);
+    background: var(--color-bg-secondary);
+    transition: all var(--transition-fast);
+
+    &--pending {
+      background: var(--color-bg-tertiary);
+      color: var(--color-text-muted);
+    }
+
+    &--testing {
+      background: var(--color-warning-light);
+      border-color: rgba(241, 196, 15, 0.5);
+      animation: pulse 1.5s infinite;
+    }
+
+    &--success {
+      background: var(--color-success-light);
+      border-color: rgba(46, 204, 113, 0.5);
+      color: #155724;
+    }
+
+    &--failed {
+      background: rgba(231, 76, 60, 0.1);
+      border-color: rgba(231, 76, 60, 0.5);
+      color: #721c24;
+    }
+  }
+
+  &__step-title {
+    font-weight: 600;
+    margin-bottom: var(--spacing-xs);
+  }
+
+  &__step-details {
+    font-size: var(--font-sm);
+    padding: var(--spacing-xs);
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: var(--radius-sm);
+    font-family: monospace;
+    margin-top: var(--spacing-xs);
+  }
+
+  &__log {
+    max-height: 200px;
+    overflow-y: auto;
+    background: #1e1e1e;
+    color: #cccccc;
+    padding: var(--spacing-md);
+    border-radius: var(--radius-md);
+    font-family: monospace;
+    font-size: var(--font-sm);
+    margin-top: var(--spacing-md);
+  }
+
+  &__log-entry {
+    margin: 2px 0;
+    color: #cccccc;
+
+    &--error {
+      color: #ff4444;
+    }
+
+    &--success {
+      color: #44ff44;
+    }
+  }
+
+  &__summary {
+    margin-top: var(--spacing-lg);
+    padding: var(--spacing-md);
+    border-radius: var(--radius-md);
+
+    &--success {
+      background: var(--color-success-light);
+      border: 1px solid rgba(46, 204, 113, 0.3);
+      color: #155724;
+    }
+
+    &--failed {
+      background: rgba(231, 76, 60, 0.1);
+      border: 1px solid rgba(231, 76, 60, 0.3);
+      color: #721c24;
+
+      ul {
+        margin: var(--spacing-sm) 0 0 var(--spacing-lg);
+      }
+    }
+  }
+
+  @keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.7; }
+    100% { opacity: 1; }
+  }
+}
