@@ -22,7 +22,7 @@
     "db:studio:prod": "drizzle-kit studio --config drizzle.config.ts"
   },
   "dependencies": {
-    "better-auth": "^1.0.28",
+    "better-auth": "^1.4.3",
     "better-auth-cloudflare": "^0.1.0",
     "drizzle-orm": "^0.36.4",
     "hono": "^4.9.6",
