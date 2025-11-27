@@ -15,6 +15,7 @@ import {
   ExternalLink,
 } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
+import { Logo } from '@/components/ui/Logo';
 import './Landing.scss';
 
 export function Landing() {
@@ -63,11 +64,7 @@ export function Landing() {
 
         <div className="landing__hero-visual">
           <div className="landing__hero-logo">
-            <svg width="200" height="200" viewBox="0 0 100 100" fill="none">
-              <circle cx="50" cy="50" r="45" fill="#10a37f" />
-              <path d="M30 50C30 38.954 38.954 30 50 30V70C38.954 70 30 61.046 30 50Z" fill="white" />
-              <circle cx="60" cy="50" r="10" fill="white" />
-            </svg>
+            <Logo size={200} />
           </div>
         </div>
       </section>

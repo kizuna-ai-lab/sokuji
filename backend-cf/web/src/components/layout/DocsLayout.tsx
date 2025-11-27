@@ -20,6 +20,7 @@ import {
   ExternalLink,
 } from 'lucide-react';
 import { useI18n, localeNames, Locale } from '@/lib/i18n';
+import { Logo } from '@/components/ui/Logo';
 import './DocsLayout.scss';
 
 interface NavItem {
@@ -113,11 +114,7 @@ export function DocsLayout() {
           </button>
 
           <Link to="/" className="docs-layout__logo">
-            <svg width="32" height="32" viewBox="0 0 100 100" fill="none">
-              <circle cx="50" cy="50" r="45" fill="#10a37f" />
-              <path d="M30 50C30 38.954 38.954 30 50 30V70C38.954 70 30 61.046 30 50Z" fill="white" />
-              <circle cx="60" cy="50" r="10" fill="white" />
-            </svg>
+            <Logo size={32} />
             <span>Sokuji</span>
           </Link>
 
