@@ -5,9 +5,11 @@ import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { Alert } from '@/components/ui/Alert';
 import { authClient } from '@/lib/auth-client';
+import { useAnalytics } from '@/lib/analytics';
 
 export function SignIn() {
   const navigate = useNavigate();
+  const { trackEvent, identifyUser } = useAnalytics();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -18,13 +20,29 @@ export function SignIn() {
     setError('');
     setLoading(true);
 
+    // Track sign in attempt
+    trackEvent('dashboard_sign_in_attempted', { method: 'email' });
+
     try {
-      const { error: signInError } = await authClient.signIn.email({
+      const { data, error: signInError } = await authClient.signIn.email({
         email,
         password,
       });
 
       if (signInError) {
+        // Determine error type for analytics
+        let errorType = 'unknown';
+        if (signInError.code === 'INVALID_EMAIL_OR_PASSWORD' || signInError.code === 'USER_NOT_FOUND') {
+          errorType = 'invalid_credentials';
+        } else if (signInError.status === 403) {
+          errorType = 'email_not_verified';
+        } else if (signInError.status === 429) {
+          errorType = 'rate_limit';
+        }
+
+        // Track sign in failure
+        trackEvent('dashboard_sign_in_failed', { method: 'email', error_type: errorType });
+
         // Handle specific error codes
         if (signInError.code === 'INVALID_EMAIL_OR_PASSWORD') {
           setError('Invalid email or password');
@@ -41,9 +59,16 @@ export function SignIn() {
         return;
       }
 
+      // Track sign in success and identify user with email
+      trackEvent('dashboard_sign_in_succeeded', { method: 'email' });
+      if (data?.user?.id) {
+        identifyUser(data.user.id, data.user.email, { name: data.user.name });
+      }
+
       // Navigate to dashboard on success
       navigate('/dashboard', { replace: true });
     } catch {
+      trackEvent('dashboard_sign_in_failed', { method: 'email', error_type: 'unexpected' });
       setError('An unexpected error occurred. Please try again');
       setLoading(false);
     }
@@ -90,7 +115,10 @@ export function SignIn() {
         </div>
 
         <p className="auth-form__link">
-          Don't have an account? <Link to="/sign-up">Sign up</Link>
+          Don't have an account?{' '}
+          <Link to="/sign-up" onClick={() => trackEvent('dashboard_sign_up_link_clicked', {})}>
+            Sign up
+          </Link>
         </p>
       </form>
     </AuthLayout>

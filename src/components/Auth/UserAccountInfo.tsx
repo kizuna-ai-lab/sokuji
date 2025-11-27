@@ -9,6 +9,7 @@ import {authClient} from '../../lib/auth-client';
 import {AlertCircle, CheckCircle, LogOut, Mail, RefreshCw, TrendingDown, UserCog, Wallet} from 'lucide-react';
 import {formatTokens} from '../../utils/formatters';
 import {useTranslation} from 'react-i18next';
+import {useAnalytics} from '../../lib/analytics';
 import './UserAccountInfo.scss';
 
 interface UserAccountInfoProps {
@@ -19,6 +20,7 @@ export function UserAccountInfo({
   compact = false
 }: UserAccountInfoProps) {
   const { t } = useTranslation();
+  const { trackEvent } = useAnalytics();
   const { isLoaded, isSignedIn } = useAuth();
   const { user: betterAuthUser, refetch: refetchSession } = useUser();
 
@@ -96,6 +98,7 @@ export function UserAccountInfo({
         authClient.getSession().then((session) => {
           if (session?.data?.user?.emailVerified) {
             // User verified! Update UI immediately
+            trackEvent('email_verification_completed', {});
             refetchSession?.();
             setCooldownSeconds(0);
             setVerificationMessage(null);
@@ -107,11 +110,14 @@ export function UserAccountInfo({
 
       return () => clearTimeout(timer);
     }
-  }, [cooldownSeconds, betterAuthUser?.emailVerified, refetchSession]);
+  }, [cooldownSeconds, betterAuthUser?.emailVerified, refetchSession, trackEvent]);
 
   // Handle resend verification email
   const handleResendVerification = async () => {
     if (isResendingVerification || cooldownSeconds > 0 || !user?.email) return;
+
+    // Track email verification request
+    trackEvent('email_verification_requested', { trigger: 'manual' });
 
     setIsResendingVerification(true);
     setVerificationMessage(null);
@@ -141,12 +147,17 @@ export function UserAccountInfo({
         if (result.error.status === 429 || result.error.message?.includes('Too many')) {
           setVerificationMessage(t('auth.rateLimitExceeded'));
           setCooldownSeconds(60);
+          trackEvent('email_verification_failed', { error_type: 'rate_limit' });
         } else {
           setVerificationMessage(t('auth.verificationEmailFailed'));
+          trackEvent('email_verification_failed', { error_type: 'network' });
         }
         setTimeout(() => setVerificationMessage(null), 5000);
         return;
       }
+
+      // Track verification email sent
+      trackEvent('email_verification_sent', {});
 
       setVerificationMessage(t('auth.verificationEmailSent'));
       setCooldownSeconds(60); // Start 60-second cooldown
@@ -157,8 +168,10 @@ export function UserAccountInfo({
       if (error?.status === 429 || error?.message?.includes('Too many')) {
         setVerificationMessage(t('auth.rateLimitExceeded'));
         setCooldownSeconds(60);
+        trackEvent('email_verification_failed', { error_type: 'rate_limit' });
       } else {
         setVerificationMessage(t('auth.verificationEmailFailed'));
+        trackEvent('email_verification_failed', { error_type: 'network' });
       }
       setTimeout(() => setVerificationMessage(null), 5000);
     } finally {
@@ -168,14 +181,24 @@ export function UserAccountInfo({
 
   // Handle manage account click - navigate to account management (could be external or custom page)
   const handleManageAccount = () => {
+    // Track account management click
+    trackEvent('account_management_clicked', {});
     // TODO: Implement account management page or link to backend account page
     console.log('Manage account clicked - implement account management');
   };
 
   // Handle manage subscription click - navigate to subscription management
   const handleManageSubscriptionClick = () => {
+    // Track subscription management click
+    trackEvent('subscription_management_clicked', {});
     // TODO: Implement subscription management page or link to backend billing page
     console.log('Manage subscription clicked - implement subscription management');
+  };
+
+  // Handle refresh click
+  const handleRefresh = () => {
+    trackEvent('user_profile_refresh_clicked', {});
+    refetchAll();
   };
 
   return (
@@ -226,10 +249,16 @@ export function UserAccountInfo({
             className="action-button-compact sign-out"
             title="Sign Out"
             onClick={async () => {
+              // Track sign out click
+              trackEvent('sign_out_clicked', {});
               try {
                 await authClient.signOut();
-              } catch (error) {
+                // Track sign out success
+                trackEvent('sign_out_succeeded', {});
+              } catch (error: any) {
                 console.error('Sign out error:', error);
+                // Track sign out failure
+                trackEvent('sign_out_failed', { error_code: error?.status });
                 // Even if backend returns 403 or other errors, clear frontend state
                 // This ensures users can always "log out"
               } finally {
@@ -278,9 +307,9 @@ export function UserAccountInfo({
                 <TrendingDown size={14} className="usage-icon" />
                 30D: {formatTokens(quota.last30DaysUsage || 0)}
               </span>
-              <button 
-                className="action-button-compact refresh-account" 
-                onClick={refetchAll}
+              <button
+                className="action-button-compact refresh-account"
+                onClick={handleRefresh}
                 title="Refresh"
               >
                 <RefreshCw size={14} />

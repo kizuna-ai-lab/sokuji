@@ -29,3 +29,9 @@ migrations_dir = "drizzle"
 [[kv_namespaces]]
 binding = "KV"
 id = "54ce6449db9a4aa383e7d22aa8aaa1db"
+
+# Environment variables
+# Note: POSTHOG_API_KEY should be set as a secret via wrangler secret put
+# For now, we use the same key as the frontend
+[vars]
+POSTHOG_API_KEY = "phc_EMOuUDTntTI5SuzKQATy11qHgxVrlhJsgNFbBaWEhet"

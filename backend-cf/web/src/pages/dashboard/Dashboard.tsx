@@ -1,11 +1,19 @@
+import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useSession } from '@/lib/auth-client';
 import { User, Mail, Calendar, Shield } from 'lucide-react';
+import { useAnalytics } from '@/lib/analytics';
 import './Dashboard.scss';
 
 export function Dashboard() {
   const { data: session } = useSession();
+  const { trackEvent } = useAnalytics();
   const user = session?.user;
+
+  // Track page view on mount
+  useEffect(() => {
+    trackEvent('dashboard_page_viewed', { page: 'home' });
+  }, []);
 
   const formatDate = (date: Date | string | undefined) => {
     if (!date) return 'N/A';

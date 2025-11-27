@@ -5,9 +5,11 @@ import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { Alert } from '@/components/ui/Alert';
 import { authClient } from '@/lib/auth-client';
+import { useAnalytics } from '@/lib/analytics';
 
 export function SignUp() {
   const navigate = useNavigate();
+  const { trackEvent, identifyUser } = useAnalytics();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -28,14 +30,28 @@ export function SignUp() {
       return;
     }
 
+    // Track sign up attempt
+    trackEvent('dashboard_sign_up_attempted', { method: 'email' });
+
     try {
-      const { error: signUpError } = await authClient.signUp.email({
+      const { data, error: signUpError } = await authClient.signUp.email({
         name,
         email,
         password,
       });
 
       if (signUpError) {
+        // Determine error type for analytics
+        let errorType = 'unknown';
+        if (signUpError.code === 'USER_ALREADY_EXISTS') {
+          errorType = 'user_already_exists';
+        } else if (signUpError.status === 429) {
+          errorType = 'rate_limit';
+        }
+
+        // Track sign up failure
+        trackEvent('dashboard_sign_up_failed', { method: 'email', error_type: errorType });
+
         if (signUpError.code === 'USER_ALREADY_EXISTS') {
           setError('An account with this email already exists');
         } else if (signUpError.status === 429) {
@@ -47,12 +63,19 @@ export function SignUp() {
         return;
       }
 
+      // Track sign up success and identify user with email
+      trackEvent('dashboard_sign_up_succeeded', { method: 'email' });
+      if (data?.user?.id) {
+        identifyUser(data.user.id, data.user.email, { name: data.user.name });
+      }
+
       // Show success message and redirect
       setSuccess('Account created! Check your email to verify your account.');
       setTimeout(() => {
         navigate('/sign-in', { replace: true });
       }, 2000);
     } catch {
+      trackEvent('dashboard_sign_up_failed', { method: 'email', error_type: 'unexpected' });
       setError('An unexpected error occurred. Please try again');
       setLoading(false);
     }
@@ -108,7 +131,10 @@ export function SignUp() {
         </div>
 
         <p className="auth-form__link">
-          Already have an account? <Link to="/sign-in">Sign in</Link>
+          Already have an account?{' '}
+          <Link to="/sign-in" onClick={() => trackEvent('dashboard_sign_in_link_clicked', {})}>
+            Sign in
+          </Link>
         </p>
       </form>
     </AuthLayout>
