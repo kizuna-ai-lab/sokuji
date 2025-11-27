@@ -1,0 +1,95 @@
+.input-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+
+  &__label {
+    font-size: var(--font-sm);
+    font-weight: 500;
+    color: var(--color-text-secondary);
+  }
+
+  &__wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+
+  &__input {
+    width: 100%;
+    padding: 0.75rem;
+    background: var(--color-bg-input);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    color: var(--color-text-primary);
+    font-size: var(--font-md);
+    transition: border-color var(--transition-fast);
+
+    &:focus {
+      outline: none;
+      border-color: var(--color-accent);
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    &::placeholder {
+      color: var(--color-text-placeholder);
+    }
+
+    // Add padding for password toggle
+    &[type='password'],
+    &[type='text'] {
+      padding-right: 44px;
+    }
+  }
+
+  &__toggle {
+    position: absolute;
+    right: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    background: transparent;
+    border: none;
+    border-radius: var(--radius-sm);
+    color: var(--color-text-muted);
+    cursor: pointer;
+    transition: color var(--transition-fast);
+
+    &:hover {
+      color: var(--color-text-secondary);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--color-accent);
+      outline-offset: 2px;
+    }
+  }
+
+  &__error {
+    font-size: var(--font-xs);
+    color: var(--color-error);
+  }
+
+  &__hint {
+    font-size: var(--font-xs);
+    color: var(--color-text-muted);
+  }
+
+  // Error state
+  &--error {
+    .input-group__input {
+      border-color: var(--color-error);
+
+      &:focus {
+        border-color: var(--color-error);
+      }
+    }
+  }
+}

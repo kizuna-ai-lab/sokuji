@@ -1,0 +1,135 @@
+// Global styles for Sokuji Web Dashboard
+// Design system based on main Sokuji app
+
+:root {
+  // Colors
+  --color-bg-primary: #0d0d0d;
+  --color-bg-secondary: #1a1a1a;
+  --color-bg-tertiary: #252525;
+  --color-bg-input: #333;
+
+  --color-border: #444;
+  --color-border-light: #555;
+
+  --color-text-primary: #fff;
+  --color-text-secondary: #ccc;
+  --color-text-muted: #888;
+  --color-text-placeholder: #666;
+
+  --color-accent: #10a37f;
+  --color-accent-hover: #0e8f6f;
+  --color-accent-light: rgba(16, 163, 127, 0.1);
+
+  --color-error: #e74c3c;
+  --color-error-light: rgba(231, 76, 60, 0.1);
+
+  --color-success: #2ecc71;
+  --color-success-light: rgba(46, 204, 113, 0.1);
+
+  --color-warning: #f1c40f;
+  --color-warning-light: rgba(241, 196, 15, 0.1);
+
+  // Spacing
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  --spacing-2xl: 48px;
+
+  // Border radius
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+
+  // Font sizes
+  --font-xs: 0.75rem;
+  --font-sm: 0.875rem;
+  --font-md: 1rem;
+  --font-lg: 1.125rem;
+  --font-xl: 1.25rem;
+  --font-2xl: 1.5rem;
+  --font-3xl: 2rem;
+
+  // Transitions
+  --transition-fast: 0.15s ease;
+  --transition-normal: 0.2s ease;
+  --transition-slow: 0.3s ease;
+
+  // Shadows
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.3);
+  --shadow-accent: 0 2px 8px rgba(16, 163, 127, 0.3);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  background-color: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+a {
+  color: var(--color-accent);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+input, textarea, select {
+  font-family: inherit;
+}
+
+// Utility classes
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+// Scrollbar styling
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-bg-secondary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: var(--radius-sm);
+
+  &:hover {
+    background: var(--color-border-light);
+  }
+}

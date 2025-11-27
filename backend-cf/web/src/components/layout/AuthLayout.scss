@@ -1,0 +1,127 @@
+.auth-layout {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: var(--spacing-lg);
+  background: var(--color-bg-primary);
+
+  &__container {
+    width: 100%;
+    max-width: 420px;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-lg);
+  }
+
+  &__header {
+    display: flex;
+    justify-content: center;
+  }
+
+  &__logo {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    color: var(--color-text-primary);
+    text-decoration: none;
+    font-size: var(--font-xl);
+    font-weight: 600;
+
+    &:hover {
+      text-decoration: none;
+    }
+  }
+
+  &__card {
+    background: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-xl);
+  }
+
+  &__card-header {
+    text-align: center;
+    margin-bottom: var(--spacing-lg);
+  }
+
+  &__title {
+    font-size: var(--font-2xl);
+    font-weight: 600;
+    color: var(--color-text-primary);
+    margin: 0 0 var(--spacing-xs) 0;
+  }
+
+  &__subtitle {
+    font-size: var(--font-sm);
+    color: var(--color-text-muted);
+    margin: 0;
+  }
+
+  &__content {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+  }
+
+  &__footer {
+    text-align: center;
+
+    p {
+      font-size: var(--font-xs);
+      color: var(--color-text-muted);
+      margin: 0;
+    }
+  }
+}
+
+// Shared form styles for auth pages
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+
+  &__actions {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+    margin-top: var(--spacing-sm);
+  }
+
+  &__divider {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    color: var(--color-text-muted);
+    font-size: var(--font-sm);
+
+    &::before,
+    &::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--color-border);
+    }
+  }
+
+  &__link {
+    text-align: center;
+    font-size: var(--font-sm);
+    color: var(--color-text-secondary);
+
+    a {
+      color: var(--color-accent);
+      font-weight: 500;
+    }
+  }
+
+  &__inline-link {
+    display: flex;
+    justify-content: flex-end;
+
+    a {
+      font-size: var(--font-xs);
+      color: var(--color-accent);
+    }
+  }
+}
