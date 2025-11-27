@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useSession } from './lib/auth-client';
 
@@ -44,8 +45,16 @@ import { RealtimeAPITester } from './pages/docs/tutorials/RealtimeAPITester';
 // Protected route wrapper
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { data: session, isPending } = useSession();
+  const [initialLoad, setInitialLoad] = useState(true);
 
-  if (isPending) {
+  useEffect(() => {
+    if (!isPending) {
+      setInitialLoad(false);
+    }
+  }, [isPending]);
+
+  // Only show loading on initial load, not on refetch (e.g., tab switch)
+  if (isPending && initialLoad) {
     return (
       <div className="loading-screen">
         <div className="loading-spinner" />
@@ -63,8 +72,16 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 // Public route wrapper (redirect if authenticated)
 function PublicRoute({ children }: { children: React.ReactNode }) {
   const { data: session, isPending } = useSession();
+  const [initialLoad, setInitialLoad] = useState(true);
 
-  if (isPending) {
+  useEffect(() => {
+    if (!isPending) {
+      setInitialLoad(false);
+    }
+  }, [isPending]);
+
+  // Only show loading on initial load, not on refetch (e.g., tab switch)
+  if (isPending && initialLoad) {
     return (
       <div className="loading-screen">
         <div className="loading-spinner" />
