@@ -6,6 +6,14 @@ main = "src/index.ts"
 compatibility_date = "2025-03-01"
 compatibility_flags = ["nodejs_compat"]
 
+# Serve static assets from web/dist
+[assets]
+directory = "web/dist"
+# SPA routing - serve index.html for 404s
+not_found_handling = "single-page-application"
+# Bind assets to allow Worker to serve them
+binding = "ASSETS"
+
 [observability]
 enabled = true
 

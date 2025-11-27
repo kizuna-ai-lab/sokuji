@@ -71,6 +71,9 @@ function createAuth(env?: CloudflareBindings, cf?: IncomingRequestCfProperties) 
                             }, emailConfig);
                         },
                     },
+                    deleteUser: {
+                        enabled: true,
+                    },
                 },
                 plugins: [
                     anonymous(),
