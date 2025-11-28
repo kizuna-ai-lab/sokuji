@@ -509,5 +509,28 @@
     "backToSignIn": "返回登录",
     "forgotPasswordError": "发送验证码失败。请重试。",
     "resetPasswordError": "重置密码失败。请重试。"
+  },
+  "feedback": {
+    "title": "发送反馈",
+    "description": "报告问题、建议功能或分享您的想法。我们会阅读每一条消息！",
+    "email": "您的邮箱",
+    "emailPlaceholder": "your@email.com",
+    "type": "反馈类型",
+    "typeBug": "问题报告",
+    "typeSuggestion": "功能建议",
+    "typeOther": "其他",
+    "message": "消息内容",
+    "messagePlaceholder": "请详细描述您的反馈...",
+    "submit": "发送反馈",
+    "submitting": "发送中...",
+    "success": "感谢您！您的反馈已成功发送。",
+    "error": "发送失败。请重试。",
+    "sendingAs": "发送邮箱",
+    "signInRequired": "需要登录",
+    "signInRequiredDesc": "请登录后再提交反馈。我们需要您的账户信息以便回复您的反馈。",
+    "verificationRequired": "需要验证邮箱",
+    "verificationRequiredDesc": "请先验证您的邮箱地址再提交反馈。我们需要已验证的邮箱以便回复您的反馈。",
+    "remainingCount": "今日剩余 {{remaining}} / {{limit}} 条反馈",
+    "limitReached": "今日反馈已达上限，明天再来吧。"
   }
 }

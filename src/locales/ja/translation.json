@@ -512,5 +512,28 @@
     "backToSignIn": "サインインに戻る",
     "forgotPasswordError": "認証コードの送信に失敗しました。もう一度お試しください。",
     "resetPasswordError": "パスワードのリセットに失敗しました。もう一度お試しください。"
+  },
+  "feedback": {
+    "title": "フィードバックを送信",
+    "description": "バグ報告、機能の提案、またはご意見をお聞かせください。すべてのメッセージを確認しています！",
+    "email": "メールアドレス",
+    "emailPlaceholder": "your@email.com",
+    "type": "フィードバックの種類",
+    "typeBug": "バグ報告",
+    "typeSuggestion": "機能の提案",
+    "typeOther": "その他",
+    "message": "メッセージ",
+    "messagePlaceholder": "フィードバックの詳細を記入してください...",
+    "submit": "フィードバックを送信",
+    "submitting": "送信中...",
+    "success": "ありがとうございます！フィードバックが正常に送信されました。",
+    "error": "送信に失敗しました。もう一度お試しください。",
+    "sendingAs": "送信元",
+    "signInRequired": "サインインが必要です",
+    "signInRequiredDesc": "フィードバックを送信するにはサインインしてください。返信のためにアカウント情報が必要です。",
+    "verificationRequired": "メール認証が必要です",
+    "verificationRequiredDesc": "フィードバックを送信する前にメールアドレスを認証してください。返信のために認証済みのメールが必要です。",
+    "remainingCount": "本日あと {{remaining}} / {{limit}} 件のフィードバックを送信できます",
+    "limitReached": "本日の送信上限に達しました。明日また送信できます。"
   }
 }

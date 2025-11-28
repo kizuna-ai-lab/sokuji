@@ -24,6 +24,7 @@ const en: Record<string, string> = {
   'nav.aiProviders': 'AI Providers',
   'nav.providersOverview': 'Overview',
   'nav.privacy': 'Privacy',
+  'nav.feedback': 'Feedback',
   'nav.github': 'GitHub',
 
   // Tutorials

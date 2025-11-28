@@ -26,6 +26,9 @@ import { SupportedSites } from './pages/docs/SupportedSites';
 import { AIProviders } from './pages/docs/AIProviders';
 import { PrivacyPolicy } from './pages/docs/PrivacyPolicy';
 
+// Dashboard pages - Feedback
+import { Feedback } from './pages/dashboard/Feedback';
+
 // Tutorial pages - Platform tutorials
 import { ZoomTutorial } from './pages/docs/tutorials/ZoomTutorial';
 import { GoogleMeetTutorial } from './pages/docs/tutorials/GoogleMeetTutorial';
@@ -170,6 +173,7 @@ export default function App() {
         <Route index element={<Dashboard />} />
         <Route path="profile" element={<Profile />} />
         <Route path="security" element={<Security />} />
+        <Route path="feedback" element={<Feedback />} />
       </Route>
 
       {/* Fallback redirect */}

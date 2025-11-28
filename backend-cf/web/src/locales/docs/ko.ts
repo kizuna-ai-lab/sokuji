@@ -24,6 +24,7 @@ const ko: Record<string, string> = {
   'nav.aiProviders': 'AI 제공자',
   'nav.providersOverview': '개요',
   'nav.privacy': '개인정보 보호',
+  'nav.feedback': '피드백',
   'nav.github': 'GitHub',
 
   // Tutorials

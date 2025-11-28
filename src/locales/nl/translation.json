@@ -493,4 +493,21 @@
     "forgotPasswordError": "Kon verificatiecode niet verzenden. Probeer het opnieuw.",
     "resetPasswordError": "Kon wachtwoord niet resetten. Probeer het opnieuw."
   }
+,
+  "feedback": {
+    "title": "Send Feedback",
+    "description": "Report bugs, suggest features, or share your thoughts. We read every message!",
+    "email": "Your Email",
+    "emailPlaceholder": "your@email.com",
+    "type": "Feedback Type",
+    "typeBug": "Bug Report",
+    "typeSuggestion": "Feature Suggestion",
+    "typeOther": "Other",
+    "message": "Message",
+    "messagePlaceholder": "Describe your feedback in detail...",
+    "submit": "Send Feedback",
+    "submitting": "Sending...",
+    "success": "Thank you! Your feedback has been sent successfully.",
+    "error": "Failed to send feedback. Please try again."
+  }
 }
