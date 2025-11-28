@@ -4,6 +4,7 @@ import {
   LayoutDashboard,
   User,
   Shield,
+  MessageCircle,
   Menu,
   X,
   LogOut,
@@ -17,6 +18,7 @@ const navItems = [
   { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { path: '/dashboard/profile', icon: User, label: 'Profile' },
   { path: '/dashboard/security', icon: Shield, label: 'Security' },
+  { path: '/dashboard/feedback', icon: MessageCircle, label: 'Feedback' },
 ];
 
 export function DashboardLayout() {

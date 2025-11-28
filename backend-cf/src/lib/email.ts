@@ -3,8 +3,9 @@ import nodemailer from 'nodemailer';
 interface EmailOptions {
   to: string;
   subject: string;
-  html: string;
+  html?: string;
   text?: string;
+  replyTo?: string;
 }
 
 interface EmailConfig {
@@ -31,19 +32,37 @@ function createTransporter(config: EmailConfig) {
  * Send email (generic function)
  */
 export async function sendEmail(
-  { to, subject, html, text }: EmailOptions,
+  { to, subject, html, text, replyTo }: EmailOptions,
   config: EmailConfig
 ): Promise<void> {
   try {
     const transporter = createTransporter(config);
 
-    const mailOptions = {
+    const mailOptions: {
+      from: string;
+      to: string;
+      subject: string;
+      html?: string;
+      text?: string;
+      replyTo?: string;
+    } = {
       from: `"Sokuji" <${config.user}>`,
       to,
       subject,
-      html,
-      text: text || html.replace(/<[^>]*>/g, ''), // Auto extract plain text from HTML
     };
+
+    // Support both HTML and plain text emails
+    if (html) {
+      mailOptions.html = html;
+      mailOptions.text = text || html.replace(/<[^>]*>/g, '');
+    } else if (text) {
+      mailOptions.text = text;
+    }
+
+    // Add Reply-To if provided
+    if (replyTo) {
+      mailOptions.replyTo = replyTo;
+    }
 
     const info = await transporter.sendMail(mailOptions);
 
@@ -346,6 +365,63 @@ export async function sendEmailChangeConfirmation(
       to: email,
       subject: 'Confirm Your Email Change - Sokuji',
       html,
+    },
+    config
+  );
+}
+
+/**
+ * Send feedback/bug report email to support
+ * Uses plain text format for easy reply workflow
+ */
+export async function sendFeedbackEmail(
+  {
+    fromEmail,
+    feedbackType,
+    message,
+    userId,
+    userAgent,
+  }: {
+    fromEmail: string;
+    feedbackType: 'bug' | 'suggestion' | 'other';
+    message: string;
+    userId?: string;
+    userAgent?: string;
+  },
+  config: EmailConfig
+): Promise<void> {
+  const typeLabels = {
+    bug: 'Bug Report',
+    suggestion: 'Feature Suggestion',
+    other: 'General Feedback',
+  };
+
+  const title = typeLabels[feedbackType];
+  const timestamp = new Date().toISOString();
+  const supportEmail = 'support@kizuna.ai';
+
+  // Simple plain text format for easy reply workflow
+  const text = `New Feedback Received
+=====================
+
+Type: ${title}
+From: ${fromEmail}
+User ID: ${userId || 'N/A'}
+Time: ${timestamp}
+
+Message:
+${message}
+
+---
+User Agent: ${userAgent || 'Unknown'}
+`;
+
+  await sendEmail(
+    {
+      to: supportEmail,
+      replyTo: fromEmail,
+      subject: `[Sokuji ${title}] From ${fromEmail}`,
+      text,
     },
     config
   );

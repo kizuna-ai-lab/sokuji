@@ -24,6 +24,7 @@ const zh: Record<string, string> = {
   'nav.aiProviders': 'AI 提供商',
   'nav.providersOverview': '概述',
   'nav.privacy': '隐私政策',
+  'nav.feedback': '反馈',
   'nav.github': 'GitHub',
 
   // Tutorials

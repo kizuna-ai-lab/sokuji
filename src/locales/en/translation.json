@@ -579,5 +579,28 @@
     "remaining": "remaining",
     "unableToLoadQuota": "Unable to load quota information",
     "upgradeToPremium": "Upgrade to Premium"
+  },
+  "feedback": {
+    "title": "Send Feedback",
+    "description": "Report bugs, suggest features, or share your thoughts. We read every message!",
+    "email": "Your Email",
+    "emailPlaceholder": "your@email.com",
+    "type": "Feedback Type",
+    "typeBug": "Bug Report",
+    "typeSuggestion": "Feature Suggestion",
+    "typeOther": "Other",
+    "message": "Message",
+    "messagePlaceholder": "Describe your feedback in detail...",
+    "submit": "Send Feedback",
+    "submitting": "Sending...",
+    "success": "Thank you! Your feedback has been sent successfully.",
+    "error": "Failed to send feedback. Please try again.",
+    "sendingAs": "Sending as",
+    "signInRequired": "Sign In Required",
+    "signInRequiredDesc": "Please sign in to submit feedback. We need your account to respond to your feedback.",
+    "verificationRequired": "Email Verification Required",
+    "verificationRequiredDesc": "Please verify your email address before submitting feedback. We need a verified email to respond to your feedback.",
+    "remainingCount": "You have {{remaining}} of {{limit}} feedback messages remaining today",
+    "limitReached": "Daily limit reached. You can send more feedback tomorrow."
   }
 } 
