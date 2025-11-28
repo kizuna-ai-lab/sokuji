@@ -117,11 +117,26 @@ export function Security() {
   const getDeviceInfo = (userAgent?: string) => {
     if (!userAgent) return { type: 'unknown', name: 'Unknown Device' };
 
+    // Check for Sokuji Electron app first (custom UA format: "Sokuji/x.x.x Electron/x.x.x (platform)")
+    const sokujiMatch = userAgent.match(/Sokuji\/([\d.]+)\s+Electron\/([\d.]+)\s+\((\w+)\)/);
+    if (sokujiMatch) {
+      const [, appVersion, , platform] = sokujiMatch;
+      let os = 'Unknown OS';
+      if (platform === 'linux') os = 'Linux';
+      else if (platform === 'darwin') os = 'macOS';
+      else if (platform === 'win32') os = 'Windows';
+      return {
+        type: 'desktop',
+        name: `Sokuji App v${appVersion} on ${os}`,
+      };
+    }
+
     const isMobile = /Mobile|Android|iPhone|iPad/i.test(userAgent);
     const isTablet = /iPad|Tablet/i.test(userAgent);
 
     let browser = 'Unknown Browser';
-    if (userAgent.includes('Chrome')) browser = 'Chrome';
+    if (userAgent.includes('Electron')) browser = 'Electron';
+    else if (userAgent.includes('Chrome')) browser = 'Chrome';
     else if (userAgent.includes('Firefox')) browser = 'Firefox';
     else if (userAgent.includes('Safari')) browser = 'Safari';
     else if (userAgent.includes('Edge')) browser = 'Edge';
