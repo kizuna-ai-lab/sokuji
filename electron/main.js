@@ -554,6 +554,18 @@ ipcMain.handle('open-directory', (event, dirPath) => {
   }
 });
 
+// Handler to open external URL in system default browser
+ipcMain.handle('open-external', async (event, url) => {
+  try {
+    const { shell } = require('electron');
+    await shell.openExternal(url);
+    return { success: true };
+  } catch (error) {
+    console.error('[Sokuji] [Main] Error opening external URL:', error);
+    return { success: false, error: error.message };
+  }
+});
+
 
 
 

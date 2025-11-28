@@ -46,6 +46,11 @@ export interface DashboardAnalyticsEvents {
   'dashboard_forgot_password_link_clicked': Record<string, never>;
   'dashboard_sign_up_link_clicked': Record<string, never>;
   'dashboard_sign_in_link_clicked': Record<string, never>;
+
+  // One-Time Token verification events
+  'ott_verification_started': Record<string, never>;
+  'ott_verification_succeeded': Record<string, never>;
+  'ott_verification_failed': { error_type: string };
 }
 
 // PostHog context

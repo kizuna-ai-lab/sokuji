@@ -75,6 +75,7 @@ contextBridge.exposeInMainWorld(
         'invoke-channel',
         'check-audio-system',
         'open-directory',
+        'open-external',
         'create-virtual-speaker',
         'get-cookies',
         'set-cookie',

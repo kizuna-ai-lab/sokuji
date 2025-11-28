@@ -161,14 +161,26 @@
     background: transparent;
     color: #e67e22; // Match usage section color
     border: 1px solid #e67e22;
-    
+
     &:hover {
       background: rgba(231, 123, 34, 0.1);
       border-color: #f39c12;
     }
-    
+
     &:active svg {
       animation: refresh-spin 0.5s ease-in-out;
+    }
+  }
+
+  &.feedback-button {
+    background: transparent;
+    color: #10a37f;
+    border: 1px solid #10a37f;
+
+    &:hover {
+      background: rgba(16, 163, 127, 0.1);
+      color: #0e8f6f;
+      border-color: #0e8f6f;
     }
   }
 }

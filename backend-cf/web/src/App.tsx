@@ -7,6 +7,7 @@ import { SignIn } from './pages/auth/SignIn';
 import { SignUp } from './pages/auth/SignUp';
 import { ForgotPassword } from './pages/auth/ForgotPassword';
 import { ResetPassword } from './pages/auth/ResetPassword';
+import { VerifyToken } from './pages/auth/VerifyToken';
 
 // Dashboard pages
 import { DashboardLayout } from './components/layout/DashboardLayout';
@@ -160,6 +161,7 @@ export default function App() {
         }
       />
       <Route path="/reset-password" element={<ResetPassword />} />
+      <Route path="/auth/verify" element={<VerifyToken />} />
 
       {/* Protected dashboard routes */}
       <Route
