@@ -4,7 +4,7 @@ import { PalabraAIClient } from './clients/PalabraAIClient';
 import { ApiKeyValidationResult } from './interfaces/ISettingsService';
 import { FilteredModel } from './interfaces/IClient';
 import { Provider, ProviderType, SUPPORTED_PROVIDERS } from '../types/Provider';
-import { getBackendUrl } from '../utils/environment';
+import { getApiUrl } from '../utils/environment';
 
 /**
  * Utility class for client operations
@@ -67,7 +67,7 @@ export class ClientOperations {
         // Use environment-specific backend URL
         return await OpenAIClient.validateApiKeyAndFetchModels(
           apiKey,
-          getBackendUrl()
+          getApiUrl()
         );
       default:
         throw new Error(`Unsupported provider: ${provider}`);

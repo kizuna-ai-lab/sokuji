@@ -5,13 +5,12 @@
  * The client handles all authentication operations including sign in, sign up, and session management.
  */
 
-import { createAuthClient } from "better-auth/react";
-import { emailOTPClient, oneTimeTokenClient } from "better-auth/client/plugins";
-
-const backendUrl = import.meta.env.VITE_BACKEND_URL || "http://localhost:8787";
+import {createAuthClient} from "better-auth/react";
+import {emailOTPClient, oneTimeTokenClient} from "better-auth/client/plugins";
+import {getBackendUrl} from "../utils/environment";
 
 export const authClient = createAuthClient({
-  baseURL: backendUrl,
+  baseURL: getBackendUrl(),
   plugins: [
     emailOTPClient(),
     oneTimeTokenClient(),

@@ -3,7 +3,7 @@ import { OpenAIClient } from './OpenAIClient';
 import { GeminiClient } from './GeminiClient';
 import { PalabraAIClient } from './PalabraAIClient';
 import { Provider, ProviderType } from '../../types/Provider';
-import { getBackendUrl, isKizunaAIEnabled } from '../../utils/environment';
+import { getApiUrl, isKizunaAIEnabled } from '../../utils/environment';
 
 /**
  * Factory for creating AI client instances
@@ -59,7 +59,7 @@ export class ClientFactory {
         // The proxy transparently handles both REST and WebSocket connections
         // The apiKey here is actually the auth session from Better Auth
         // Use environment-specific backend URL
-        return new OpenAIClient(apiKey, getBackendUrl());
+        return new OpenAIClient(apiKey, getApiUrl());
 
       default:
         throw new Error(`Unsupported provider: ${provider}`);

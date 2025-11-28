@@ -6,11 +6,21 @@ import {useEffect, useState} from 'react';
 import {useAuth, useUser} from '../../lib/auth/hooks';
 import {useUserProfile} from '../../contexts/UserProfileContext';
 import {authClient} from '../../lib/auth-client';
-import {AlertCircle, CheckCircle, LogOut, Mail, MessageCircleQuestion, RefreshCw, TrendingDown, UserCog, Wallet} from 'lucide-react';
+import {
+  AlertCircle,
+  CheckCircle,
+  LogOut,
+  Mail,
+  MessageCircleQuestion,
+  RefreshCw,
+  TrendingDown,
+  UserCog,
+  Wallet
+} from 'lucide-react';
 import {formatTokens} from '../../utils/formatters';
 import {useTranslation} from 'react-i18next';
 import {useAnalytics} from '../../lib/analytics';
-import {isElectron} from '../../utils/environment';
+import {isElectron, getBackendUrl, getApiUrl} from '../../utils/environment';
 import './UserAccountInfo.scss';
 
 interface UserAccountInfoProps {
@@ -18,20 +28,20 @@ interface UserAccountInfoProps {
 }
 
 export function UserAccountInfo({
-  compact = false,
-}: UserAccountInfoProps) {
-  const { t } = useTranslation();
-  const { trackEvent } = useAnalytics();
-  const { isLoaded, isSignedIn } = useAuth();
-  const { user: betterAuthUser, refetch: refetchSession } = useUser();
+                                  compact = false,
+                                }: UserAccountInfoProps) {
+  const {t} = useTranslation();
+  const {trackEvent} = useAnalytics();
+  const {isLoaded, isSignedIn} = useAuth();
+  const {user: betterAuthUser, refetch: refetchSession} = useUser();
 
   // Get user profile and quota
-  const { user, quota, isLoading: quotaLoading, refetchAll } = useUserProfile();
+  const {user, quota, isLoading: quotaLoading, refetchAll} = useUserProfile();
 
   if (!isLoaded) {
     return (
       <div className="user-account-loading">
-        <div className="loading-spinner" />
+        <div className="loading-spinner"/>
       </div>
     );
   }
@@ -48,7 +58,7 @@ export function UserAccountInfo({
       <div className="user-account-compact">
         <div className="user-avatar">
           {betterAuthUser?.image ? (
-            <img src={betterAuthUser.image} alt={user.firstName || 'User'} />
+            <img src={betterAuthUser.image} alt={user.firstName || 'User'}/>
           ) : (
             <div className="avatar-placeholder">
               {(user.firstName?.[0] || user.email[0]).toUpperCase()}
@@ -118,7 +128,7 @@ export function UserAccountInfo({
     if (isResendingVerification || cooldownSeconds > 0 || !user?.email) return;
 
     // Track email verification request
-    trackEvent('email_verification_requested', { trigger: 'manual' });
+    trackEvent('email_verification_requested', {trigger: 'manual'});
 
     setIsResendingVerification(true);
     setVerificationMessage(null);
@@ -148,10 +158,10 @@ export function UserAccountInfo({
         if (result.error.status === 429 || result.error.message?.includes('Too many')) {
           setVerificationMessage(t('auth.rateLimitExceeded'));
           setCooldownSeconds(60);
-          trackEvent('email_verification_failed', { error_type: 'rate_limit' });
+          trackEvent('email_verification_failed', {error_type: 'rate_limit'});
         } else {
           setVerificationMessage(t('auth.verificationEmailFailed'));
-          trackEvent('email_verification_failed', { error_type: 'network' });
+          trackEvent('email_verification_failed', {error_type: 'network'});
         }
         setTimeout(() => setVerificationMessage(null), 5000);
         return;
@@ -169,10 +179,10 @@ export function UserAccountInfo({
       if (error?.status === 429 || error?.message?.includes('Too many')) {
         setVerificationMessage(t('auth.rateLimitExceeded'));
         setCooldownSeconds(60);
-        trackEvent('email_verification_failed', { error_type: 'rate_limit' });
+        trackEvent('email_verification_failed', {error_type: 'rate_limit'});
       } else {
         setVerificationMessage(t('auth.verificationEmailFailed'));
-        trackEvent('email_verification_failed', { error_type: 'network' });
+        trackEvent('email_verification_failed', {error_type: 'network'});
       }
       setTimeout(() => setVerificationMessage(null), 5000);
     } finally {
@@ -182,18 +192,19 @@ export function UserAccountInfo({
 
   // Open external URL with One-Time Token for automatic authentication
   const openExternalWithAuth = async (targetPath: string) => {
-    const baseUrl = 'http://localhost:8787';
-    let url = `${baseUrl}${targetPath}`;
+    const siteUrl = getBackendUrl();
+    const apiUrl = getApiUrl();
+    let url = `${siteUrl}${targetPath}`;
 
     // If signed in, generate OTT token for automatic login
     // Use our wrapper endpoint that calls Better Auth's verify and forwards the signed cookie
     if (isSignedIn) {
       try {
-        const { data, error } = await authClient.oneTimeToken.generate();
+        const {data, error} = await authClient.oneTimeToken.generate();
         if (data?.token && !error) {
           // Use our GET wrapper endpoint that internally calls POST /api/auth/one-time-token/verify
           // The after hook sets the signed cookie, and this endpoint forwards it with redirect
-          url = `${baseUrl}/api/ott/verify?token=${data.token}&redirect=${encodeURIComponent(targetPath)}`;
+          url = `${apiUrl}/ott/verify?token=${data.token}&redirect=${encodeURIComponent(targetPath)}`;
         }
       } catch (e) {
         // Token generation failed, use original URL (user needs to sign in manually)
@@ -241,7 +252,7 @@ export function UserAccountInfo({
       <div className="user-header-compact">
         <div className="user-avatar">
           {betterAuthUser?.image ? (
-            <img src={betterAuthUser.image} alt={user.firstName || 'User'} />
+            <img src={betterAuthUser.image} alt={user.firstName || 'User'}/>
           ) : (
             <div className="avatar-placeholder">
               {(user.firstName?.[0] || user.email[0]).toUpperCase()}
@@ -257,15 +268,15 @@ export function UserAccountInfo({
           <p className="user-email">
             {user.email}
             {betterAuthUser?.emailVerified ? (
-              <CheckCircle size={12} className="email-verified-icon" title={t('auth.emailVerified')} />
+              <CheckCircle size={12} className="email-verified-icon" title={t('auth.emailVerified')}/>
             ) : (
               <button
                 className={`email-unverified-button ${isResendingVerification || cooldownSeconds > 0 ? 'loading' : ''}`}
                 onClick={handleResendVerification}
-                title={cooldownSeconds > 0 ? t('auth.cooldownMessage', { seconds: cooldownSeconds }) : t('auth.emailNotVerified')}
+                title={cooldownSeconds > 0 ? t('auth.cooldownMessage', {seconds: cooldownSeconds}) : t('auth.emailNotVerified')}
                 disabled={isResendingVerification || cooldownSeconds > 0}
               >
-                <Mail size={12} />
+                <Mail size={12}/>
                 <span>{isResendingVerification ? '...' : cooldownSeconds > 0 ? `${cooldownSeconds}s` : t('auth.verify')}</span>
               </button>
             )}
@@ -277,14 +288,14 @@ export function UserAccountInfo({
             onClick={handleFeedbackClick}
             title={t('feedback.title')}
           >
-            <MessageCircleQuestion size={14} />
+            <MessageCircleQuestion size={14}/>
           </button>
           <button
             className="action-button-compact manage-account"
             onClick={handleManageAccount}
             title="Manage Account"
           >
-            <UserCog size={14} />
+            <UserCog size={14}/>
           </button>
           <button
             className="action-button-compact sign-out"
@@ -299,7 +310,7 @@ export function UserAccountInfo({
               } catch (error: any) {
                 console.error('Sign out error:', error);
                 // Track sign out failure
-                trackEvent('sign_out_failed', { error_code: error?.status });
+                trackEvent('sign_out_failed', {error_code: error?.status});
                 // Even if backend returns 403 or other errors, clear frontend state
                 // This ensures users can always "log out"
               } finally {
@@ -308,7 +319,7 @@ export function UserAccountInfo({
               }
             }}
           >
-            <LogOut size={14} />
+            <LogOut size={14}/>
           </button>
         </div>
       </div>
@@ -324,11 +335,11 @@ export function UserAccountInfo({
       <div className="quota-status-section">
         {quotaLoading ? (
           <div className="quota-loading">
-            <div className="loading-spinner" />
+            <div className="loading-spinner"/>
           </div>
         ) : !quota ? (
           <div className="quota-error">
-            <AlertCircle size={14} />
+            <AlertCircle size={14}/>
             <span>{t('tokenUsage.unableToLoadQuota')}</span>
           </div>
         ) : (
@@ -339,13 +350,13 @@ export function UserAccountInfo({
                 {subscription.toUpperCase()}
               </span>
               <span className="divider">|</span>
-              <Wallet size={14} className="wallet-icon" />
+              <Wallet size={14} className="wallet-icon"/>
               <span className="balance-section">
                 {formatTokens(quota.balance || quota.remaining)} tokens
               </span>
               <span className="divider">|</span>
               <span className="usage-section">
-                <TrendingDown size={14} className="usage-icon" />
+                <TrendingDown size={14} className="usage-icon"/>
                 30D: {formatTokens(quota.last30DaysUsage || 0)}
               </span>
               <button
@@ -353,7 +364,7 @@ export function UserAccountInfo({
                 onClick={handleRefresh}
                 title="Refresh"
               >
-                <RefreshCw size={14} />
+                <RefreshCw size={14}/>
               </button>
             </div>
           </>
@@ -362,7 +373,7 @@ export function UserAccountInfo({
 
       {subscription === 'free' && (
         <div className="upgrade-section">
-          <button 
+          <button
             className="upgrade-button"
             onClick={handleManageSubscriptionClick}
           >
