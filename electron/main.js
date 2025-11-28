@@ -207,6 +207,11 @@ function createWindow() {
   // Create the browser window
   const isDev = import.meta.env.MODE === 'development' || !app.isPackaged;
 
+  // Build custom User Agent to identify Electron app
+  const electronVersion = process.versions.electron;
+  const appVersion = app.getVersion();
+  const customUserAgent = `Sokuji/${appVersion} Electron/${electronVersion} (${process.platform})`;
+
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
@@ -220,6 +225,10 @@ function createWindow() {
       webSecurity: !isDev
     }
   });
+
+  // Set custom User Agent for the window
+  mainWindow.webContents.setUserAgent(customUserAgent);
+  console.log('[Sokuji] [Main] Custom User Agent set:', customUserAgent);
 
   // Load the app
   console.log('[Sokuji] [Main] Development mode:', isDev, 'MODE:', import.meta.env.MODE, 'isPackaged:', app.isPackaged);
