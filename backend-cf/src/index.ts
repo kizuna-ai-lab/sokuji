@@ -65,13 +65,20 @@ app.get("/api/ott/verify", async (c) => {
 
         // Create a POST request to the internal verify endpoint
         // This will trigger the after hook which sets the signed cookie
+        // IMPORTANT: Forward the original Cookie header so the hook can check for existing sessions
+        const headers: HeadersInit = {
+            "Content-Type": "application/json",
+        };
+        const cookie = c.req.header("cookie");
+        if (cookie) {
+            headers["Cookie"] = cookie;
+        }
+
         const verifyRequest = new Request(
             new URL("/api/auth/one-time-token/verify", c.req.url).toString(),
             {
                 method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
+                headers,
                 body: JSON.stringify({ token }),
             }
         );

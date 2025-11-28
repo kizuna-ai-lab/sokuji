@@ -154,16 +154,34 @@ function createAuth(env?: CloudflareBindings, cf?: IncomingRequestCfProperties) 
                     return; // Let other requests proceed normally
                 }
 
-                // When OTT verification succeeds, create a NEW independent session
-                // This ensures that logging out on web doesn't invalidate the app session
+                // When OTT verification succeeds, check for existing session first
+                // If user already has a valid session in browser, reuse it instead of creating new one
                 // See: https://github.com/better-auth/better-auth/issues/3851
                 const originalSession = (ctx.context as any).returned?.session;
                 const user = (ctx.context as any).returned?.user;
 
                 if (originalSession && user?.id) {
                     try {
-                        // Create a new independent session instead of sharing the original one
+                        const cookieName = (ctx.context as any).authCookies.sessionToken.name;
                         const internalAdapter = (ctx.context as any).internalAdapter;
+
+                        // Check if there's already a valid session cookie in the request
+                        const existingSessionToken = await ctx.getSignedCookie(
+                            cookieName,
+                            (ctx.context as any).secret
+                        );
+
+                        if (existingSessionToken) {
+                            // Verify the existing session is valid and belongs to the same user
+                            const existingSession = await internalAdapter.findSession(existingSessionToken);
+
+                            if (existingSession && existingSession.session.userId === user.id) {
+                                // Reuse existing session - don't create new one, don't set new cookie
+                                return;
+                            }
+                        }
+
+                        // No valid existing session, create a new independent session
                         const newSession = await internalAdapter.createSession(
                             user.id,
                             ctx,   // Pass full context object (not ctx.request)
@@ -173,7 +191,7 @@ function createAuth(env?: CloudflareBindings, cf?: IncomingRequestCfProperties) 
 
                         if (newSession?.token) {
                             await ctx.setSignedCookie(
-                                (ctx.context as any).authCookies.sessionToken.name,
+                                cookieName,
                                 newSession.token,
                                 (ctx.context as any).secret,
                                 {
@@ -185,8 +203,8 @@ function createAuth(env?: CloudflareBindings, cf?: IncomingRequestCfProperties) 
                             );
                         }
                     } catch (error) {
-                        console.error("[OTT] Failed to create new session:", error);
-                        // Fallback to original session if new session creation fails
+                        console.error("[OTT] Failed to handle session:", error);
+                        // Fallback to original session if session handling fails
                         if (originalSession?.token) {
                             await ctx.setSignedCookie(
                                 (ctx.context as any).authCookies.sessionToken.name,
