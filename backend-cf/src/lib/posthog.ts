@@ -7,26 +7,24 @@
 
 import { PostHog } from "posthog-node";
 
-// PostHog client instance (will be lazily initialized)
-let posthogClient: PostHog | null = null;
-
 /**
- * Get or create PostHog client instance
+ * Create a new PostHog client instance
  * Configured for Cloudflare Workers with immediate flush
+ *
+ * IMPORTANT: In Cloudflare Workers, we must create a new client for each request
+ * because the global singleton pattern causes the client to hang on subsequent
+ * flush() calls after the first one completes.
  */
 export function getPostHogClient(apiKey: string): PostHog {
-    if (!posthogClient) {
-        posthogClient = new PostHog(apiKey, {
-            host: "https://us.i.posthog.com",
-            // Critical for Cloudflare Workers:
-            // - flushAt: 1 - Send immediately without batching
-            // - flushInterval: 0 - Don't wait for interval
-            // This prevents data loss when Worker terminates
-            flushAt: 1,
-            flushInterval: 0,
-        });
-    }
-    return posthogClient;
+    return new PostHog(apiKey, {
+        host: "https://us.i.posthog.com",
+        // Critical for Cloudflare Workers:
+        // - flushAt: 1 - Send immediately without batching
+        // - flushInterval: 0 - Don't wait for interval
+        // This prevents data loss when Worker terminates
+        flushAt: 1,
+        flushInterval: 0,
+    });
 }
 
 /**
@@ -66,10 +64,10 @@ export type ServerAuthEvent =
 
 /**
  * Shutdown PostHog client gracefully
+ * Note: With per-request client creation, this is only needed if you keep a reference
  */
-export async function shutdownPostHog(): Promise<void> {
-    if (posthogClient) {
-        await posthogClient.shutdown();
-        posthogClient = null;
+export async function shutdownPostHog(client: PostHog): Promise<void> {
+    if (client) {
+        await client.shutdown();
     }
 }

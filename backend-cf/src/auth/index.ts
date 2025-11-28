@@ -149,23 +149,57 @@ function createAuth(env?: CloudflareBindings, cf?: IncomingRequestCfProperties) 
         // Hooks for handling one-time token verification cookie setting
         hooks: {
             after: createAuthMiddleware(async (ctx) => {
-                // When OTT verification succeeds, set the session cookie
-                // This is needed because verifyOneTimeToken doesn't automatically set cookies
+                // Only handle OTT verification path
+                if (ctx.path !== "/one-time-token/verify") {
+                    return; // Let other requests proceed normally
+                }
+
+                // When OTT verification succeeds, create a NEW independent session
+                // This ensures that logging out on web doesn't invalidate the app session
                 // See: https://github.com/better-auth/better-auth/issues/3851
-                if (ctx.path === "/one-time-token/verify") {
-                    const session = (ctx.context as any).returned?.session;
-                    if (session?.token) {
-                        await ctx.setSignedCookie(
-                            (ctx.context as any).authCookies.sessionToken.name,
-                            session.token,
-                            (ctx.context as any).secret,
-                            {
-                                maxAge: 7 * 24 * 60 * 60, // 7 days
-                                httpOnly: true,
-                                sameSite: "lax",
-                                path: "/",
-                            }
+                const originalSession = (ctx.context as any).returned?.session;
+                const user = (ctx.context as any).returned?.user;
+
+                if (originalSession && user?.id) {
+                    try {
+                        // Create a new independent session instead of sharing the original one
+                        const internalAdapter = (ctx.context as any).internalAdapter;
+                        const newSession = await internalAdapter.createSession(
+                            user.id,
+                            ctx.request,
+                            false, // Don't delete other sessions
+                            null   // No specific session to link
                         );
+
+                        if (newSession?.token) {
+                            await ctx.setSignedCookie(
+                                (ctx.context as any).authCookies.sessionToken.name,
+                                newSession.token,
+                                (ctx.context as any).secret,
+                                {
+                                    maxAge: 7 * 24 * 60 * 60, // 7 days
+                                    httpOnly: true,
+                                    sameSite: "lax",
+                                    path: "/",
+                                }
+                            );
+                        }
+                    } catch (error) {
+                        console.error("[OTT] Failed to create new session:", error);
+                        // Fallback to original session if new session creation fails
+                        if (originalSession?.token) {
+                            await ctx.setSignedCookie(
+                                (ctx.context as any).authCookies.sessionToken.name,
+                                originalSession.token,
+                                (ctx.context as any).secret,
+                                {
+                                    maxAge: 7 * 24 * 60 * 60, // 7 days
+                                    httpOnly: true,
+                                    sameSite: "lax",
+                                    path: "/",
+                                }
+                            );
+                        }
                     }
                 }
             }),
