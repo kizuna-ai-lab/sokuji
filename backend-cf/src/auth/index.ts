@@ -166,7 +166,7 @@ function createAuth(env?: CloudflareBindings, cf?: IncomingRequestCfProperties) 
                         const internalAdapter = (ctx.context as any).internalAdapter;
                         const newSession = await internalAdapter.createSession(
                             user.id,
-                            ctx.request,
+                            ctx,   // Pass full context object (not ctx.request)
                             false, // Don't delete other sessions
                             null   // No specific session to link
                         );
