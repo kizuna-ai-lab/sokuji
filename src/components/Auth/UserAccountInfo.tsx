@@ -6,10 +6,11 @@ import {useEffect, useState} from 'react';
 import {useAuth, useUser} from '../../lib/auth/hooks';
 import {useUserProfile} from '../../contexts/UserProfileContext';
 import {authClient} from '../../lib/auth-client';
-import {AlertCircle, CheckCircle, LogOut, Mail, RefreshCw, TrendingDown, UserCog, Wallet} from 'lucide-react';
+import {AlertCircle, CheckCircle, LogOut, Mail, MessageCircleQuestion, RefreshCw, TrendingDown, UserCog, Wallet} from 'lucide-react';
 import {formatTokens} from '../../utils/formatters';
 import {useTranslation} from 'react-i18next';
 import {useAnalytics} from '../../lib/analytics';
+import {isElectron} from '../../utils/environment';
 import './UserAccountInfo.scss';
 
 interface UserAccountInfoProps {
@@ -17,7 +18,7 @@ interface UserAccountInfoProps {
 }
 
 export function UserAccountInfo({
-  compact = false
+  compact = false,
 }: UserAccountInfoProps) {
   const { t } = useTranslation();
   const { trackEvent } = useAnalytics();
@@ -179,12 +180,45 @@ export function UserAccountInfo({
     }
   };
 
-  // Handle manage account click - navigate to account management (could be external or custom page)
+  // Open external URL with One-Time Token for automatic authentication
+  const openExternalWithAuth = async (targetPath: string) => {
+    const baseUrl = 'http://localhost:8787';
+    let url = `${baseUrl}${targetPath}`;
+
+    // If signed in, generate OTT token for automatic login
+    // Use our wrapper endpoint that calls Better Auth's verify and forwards the signed cookie
+    if (isSignedIn) {
+      try {
+        const { data, error } = await authClient.oneTimeToken.generate();
+        if (data?.token && !error) {
+          // Use our GET wrapper endpoint that internally calls POST /api/auth/one-time-token/verify
+          // The after hook sets the signed cookie, and this endpoint forwards it with redirect
+          url = `${baseUrl}/api/ott/verify?token=${data.token}&redirect=${encodeURIComponent(targetPath)}`;
+        }
+      } catch (e) {
+        // Token generation failed, use original URL (user needs to sign in manually)
+        console.warn('Failed to generate OTT token:', e);
+      }
+    }
+
+    // Open in system browser (Electron) or new tab (browser)
+    if (isElectron() && (window as any).electron?.invoke) {
+      (window as any).electron.invoke('open-external', url);
+    } else {
+      window.open(url, '_blank');
+    }
+  };
+
+  // Handle manage account click - open dashboard in system default browser
   const handleManageAccount = () => {
-    // Track account management click
     trackEvent('account_management_clicked', {});
-    // TODO: Implement account management page or link to backend account page
-    console.log('Manage account clicked - implement account management');
+    openExternalWithAuth('/dashboard');
+  };
+
+  // Handle feedback click - open feedback page in system default browser
+  const handleFeedbackClick = () => {
+    trackEvent('feedback_clicked', {});
+    openExternalWithAuth('/dashboard/feedback');
   };
 
   // Handle manage subscription click - navigate to subscription management
@@ -238,6 +272,13 @@ export function UserAccountInfo({
           </p>
         </div>
         <div className="user-actions-compact">
+          <button
+            className="action-button-compact feedback-button"
+            onClick={handleFeedbackClick}
+            title={t('feedback.title')}
+          >
+            <MessageCircleQuestion size={14} />
+          </button>
           <button
             className="action-button-compact manage-account"
             onClick={handleManageAccount}

@@ -1,7 +1,8 @@
 import type { D1Database, IncomingRequestCfProperties } from "@cloudflare/workers-types";
 import { betterAuth } from "better-auth";
+import { createAuthMiddleware } from "better-auth/api";
 import { withCloudflare } from "better-auth-cloudflare";
-import { anonymous, emailOTP } from "better-auth/plugins";
+import { anonymous, emailOTP, oneTimeToken } from "better-auth/plugins";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { drizzle } from "drizzle-orm/d1";
 import { schema } from "../db";
@@ -88,6 +89,9 @@ function createAuth(env?: CloudflareBindings, cf?: IncomingRequestCfProperties) 
                         otpLength: 6,
                         expiresIn: 600, // 10 minutes
                     }),
+                    oneTimeToken({
+                        expiresIn: 180, // 3 minutes
+                    }),
                 ],
                 // Add trustedOrigins to allow requests from frontend
                 trustedOrigins: [
@@ -142,6 +146,30 @@ function createAuth(env?: CloudflareBindings, cf?: IncomingRequestCfProperties) 
                       debugLogs: true
                   }),
               }),
+        // Hooks for handling one-time token verification cookie setting
+        hooks: {
+            after: createAuthMiddleware(async (ctx) => {
+                // When OTT verification succeeds, set the session cookie
+                // This is needed because verifyOneTimeToken doesn't automatically set cookies
+                // See: https://github.com/better-auth/better-auth/issues/3851
+                if (ctx.path === "/one-time-token/verify") {
+                    const session = (ctx.context as any).returned?.session;
+                    if (session?.token) {
+                        await ctx.setSignedCookie(
+                            (ctx.context as any).authCookies.sessionToken.name,
+                            session.token,
+                            (ctx.context as any).secret,
+                            {
+                                maxAge: 7 * 24 * 60 * 60, // 7 days
+                                httpOnly: true,
+                                sameSite: "lax",
+                                path: "/",
+                            }
+                        );
+                    }
+                }
+            }),
+        },
         // Database hooks for analytics tracking (only in runtime)
         ...(posthogApiKey
             ? {

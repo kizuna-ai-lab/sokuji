@@ -1,8 +1,7 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Volume2, Key, Globe, CheckCircle, AlertCircle, HelpCircle, CircleHelp, Bot, Sparkles, Zap, AudioLines, Mic, Languages, User, ChevronDown, ChevronUp, MessageCircle } from 'lucide-react';
+import { ArrowRight, Volume2, Key, Globe, CheckCircle, AlertCircle, HelpCircle, CircleHelp, Bot, Sparkles, Zap, AudioLines, Mic, Languages, User, ChevronDown, ChevronUp } from 'lucide-react';
 import './SimpleConfigPanel.scss';
-import FeedbackModal from '../FeedbackModal/FeedbackModal';
 import {
   useProvider,
   useUILanguage,
@@ -98,7 +97,6 @@ const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings, h
   } = useAudioContext();
 
   const [isProviderExpanded, setIsProviderExpanded] = useState(false);
-  const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
 
   // Get all available providers for the dropdown
   const availableProviders = useMemo(() => {
@@ -748,23 +746,7 @@ const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings, h
           </div>
         </div>
 
-        {/* Feedback Button */}
-        <div className="config-footer">
-          <button
-            className="feedback-button"
-            onClick={() => setIsFeedbackModalOpen(true)}
-          >
-            <MessageCircle size={14} />
-            <span>{t('feedback.title')}</span>
-          </button>
-        </div>
       </div>
-
-      {/* Feedback Modal */}
-      <FeedbackModal
-        isOpen={isFeedbackModalOpen}
-        onClose={() => setIsFeedbackModalOpen(false)}
-      />
     </div>
   );
 };

@@ -3,7 +3,7 @@
  */
 
 import { createAuthClient } from 'better-auth/react';
-import { emailOTPClient } from 'better-auth/client/plugins';
+import { emailOTPClient, oneTimeTokenClient } from 'better-auth/client/plugins';
 
 // Get backend URL from environment or use relative path for same-origin
 const getBackendUrl = (): string => {
@@ -16,6 +16,7 @@ export const authClient = createAuthClient({
   baseURL: getBackendUrl(),
   plugins: [
     emailOTPClient(),
+    oneTimeTokenClient(),
   ],
 });
 

@@ -639,35 +639,6 @@
       }
     }
 
-    // Footer with feedback button
-    .config-footer {
-      padding: 16px 20px;
-      border-top: 1px solid #333;
-      margin-top: 12px;
-      display: flex;
-      justify-content: center;
-
-      .feedback-button {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        padding: 8px 16px;
-        background: transparent;
-        border: 1px solid #444;
-        border-radius: 4px;
-        color: #aaa;
-        font-size: 13px;
-        cursor: pointer;
-        transition: all 0.2s;
-
-        &:hover {
-          color: #10a37f;
-          border-color: #10a37f;
-          background: rgba(16, 163, 127, 0.1);
-        }
-      }
-    }
-
     // Device Lists (for microphone and speaker sections)
     .device-list {
       .device-option {

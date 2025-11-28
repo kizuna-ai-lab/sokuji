@@ -49,6 +49,58 @@ app.get("/api/health", (c) => {
     return c.json({ status: "ok", timestamp: new Date().toISOString() });
 });
 
+// One-Time Token verification wrapper
+// This GET endpoint wraps the POST /api/auth/one-time-token/verify to support browser redirects
+// The after hook in auth config will set the signed session cookie
+app.get("/api/ott/verify", async (c) => {
+    const token = c.req.query("token");
+    const redirect = c.req.query("redirect") || "/dashboard";
+
+    if (!token) {
+        return c.redirect(`/sign-in?error=missing_token`);
+    }
+
+    try {
+        const auth = c.get("auth");
+
+        // Create a POST request to the internal verify endpoint
+        // This will trigger the after hook which sets the signed cookie
+        const verifyRequest = new Request(
+            new URL("/api/auth/one-time-token/verify", c.req.url).toString(),
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ token }),
+            }
+        );
+
+        // Call the auth handler directly
+        const response = await auth.handler(verifyRequest);
+
+        if (!response.ok) {
+            return c.redirect(`/sign-in?error=invalid_token`);
+        }
+
+        // Get the Set-Cookie header from the response (set by our after hook)
+        const setCookie = response.headers.get("Set-Cookie");
+
+        // Create redirect response
+        const redirectResponse = c.redirect(redirect);
+
+        // Forward the cookie header if present
+        if (setCookie) {
+            redirectResponse.headers.set("Set-Cookie", setCookie);
+        }
+
+        return redirectResponse;
+    } catch (error) {
+        console.error("OTT verification error:", error);
+        return c.redirect(`/sign-in?error=verification_failed`);
+    }
+});
+
 // CORS for feedback routes
 app.use(
     "/api/feedback/*",
