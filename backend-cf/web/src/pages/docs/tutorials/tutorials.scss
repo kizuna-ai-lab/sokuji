@@ -46,6 +46,23 @@
         margin-bottom: 0;
       }
     }
+
+    // Handle images inside step content (from dangerouslySetInnerHTML)
+    img {
+      max-width: 100%;
+      height: auto;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      margin: var(--spacing-md) 0;
+      box-shadow: var(--shadow-md);
+      cursor: pointer;
+      transition: all var(--transition-fast);
+
+      &:hover {
+        transform: scale(1.01);
+        box-shadow: var(--shadow-lg);
+      }
+    }
   }
 
   &__step-number {

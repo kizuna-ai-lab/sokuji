@@ -505,4 +505,35 @@
       text-decoration: none;
     }
   }
+
+  &__screenshot {
+    max-width: 100%;
+    height: auto;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    margin: var(--spacing-md) 0;
+    cursor: pointer;
+    transition: box-shadow var(--transition-fast);
+
+    &:hover {
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+  }
+
+  // Also handle images inside step content
+  &__step {
+    img {
+      max-width: 100%;
+      height: auto;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      margin: var(--spacing-md) 0;
+      cursor: pointer;
+      transition: box-shadow var(--transition-fast);
+
+      &:hover {
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      }
+    }
+  }
 }
