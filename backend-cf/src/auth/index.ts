@@ -98,8 +98,8 @@ function createAuth(env?: CloudflareBindings, cf?: IncomingRequestCfProperties) 
                     "http://localhost:5173",  // Vite dev server
                     "http://localhost:3000",  // Alternative dev port
                     "https://sokuji.kizuna.ai",
-                    // Chrome/Edge extensions - use function to match any extension ID
-                    (origin) => origin.startsWith("chrome-extension://"),
+                    // Chrome/Edge extensions - use wildcard pattern
+                    "chrome-extension://*",
                 ],
                 rateLimit: {
                     enabled: true,
