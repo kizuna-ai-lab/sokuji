@@ -5,11 +5,13 @@ import { Button } from '@/components/ui/Button';
 import { Alert } from '@/components/ui/Alert';
 import { User, Mail, Check } from 'lucide-react';
 import { useAnalytics } from '@/lib/analytics';
+import { useI18n } from '@/lib/i18n';
 import './Profile.scss';
 
 export function Profile() {
   const { data: session, refetch } = useSession();
   const { trackEvent } = useAnalytics();
+  const { t } = useI18n();
   const user = session?.user;
 
   // Track page view on mount
@@ -52,7 +54,7 @@ export function Profile() {
 
       // Track profile update
       trackEvent('dashboard_profile_updated', { fields_updated: ['name'] });
-      setProfileSuccess('Profile updated successfully');
+      setProfileSuccess(t('dashboard.profile.profileUpdated'));
       await refetch();
     } catch {
       setProfileError('An unexpected error occurred');
@@ -81,7 +83,7 @@ export function Profile() {
 
       // Track email change request
       trackEvent('dashboard_email_changed', {});
-      setEmailSuccess('Verification email sent to your new address. Please check your inbox.');
+      setEmailSuccess(t('dashboard.profile.emailChangeSent'));
       setNewEmail('');
     } catch {
       setEmailError('An unexpected error occurred');
@@ -106,7 +108,7 @@ export function Profile() {
         return;
       }
 
-      setVerificationMessage('Verification email sent! Check your inbox.');
+      setVerificationMessage(t('dashboard.profile.verificationSent'));
     } catch {
       setVerificationMessage('An unexpected error occurred');
     } finally {
@@ -117,8 +119,8 @@ export function Profile() {
   return (
     <div className="profile-page">
       <div className="profile-page__header">
-        <h1>Profile Settings</h1>
-        <p>Manage your personal information</p>
+        <h1>{t('dashboard.profile.title')}</h1>
+        <p>{t('dashboard.profile.subtitle')}</p>
       </div>
 
       <div className="profile-page__content">
@@ -127,8 +129,8 @@ export function Profile() {
           <div className="profile-section__header">
             <User size={20} />
             <div>
-              <h2>Personal Information</h2>
-              <p>Update your name and basic information</p>
+              <h2>{t('dashboard.profile.personalInfo')}</h2>
+              <p>{t('dashboard.profile.personalInfoDesc')}</p>
             </div>
           </div>
 
@@ -137,17 +139,17 @@ export function Profile() {
             {profileSuccess && <Alert variant="success">{profileSuccess}</Alert>}
 
             <Input
-              label="Name"
+              label={t('dashboard.profile.nameLabel')}
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Your name"
+              placeholder={t('dashboard.profile.namePlaceholder')}
               disabled={profileLoading}
             />
 
             <div className="profile-section__actions">
               <Button type="submit" loading={profileLoading}>
-                Save Changes
+                {t('dashboard.profile.saveChanges')}
               </Button>
             </div>
           </form>
@@ -158,27 +160,27 @@ export function Profile() {
           <div className="profile-section__header">
             <Mail size={20} />
             <div>
-              <h2>Email Address</h2>
-              <p>Manage your email address and verification status</p>
+              <h2>{t('dashboard.profile.emailAddress')}</h2>
+              <p>{t('dashboard.profile.emailAddressDesc')}</p>
             </div>
           </div>
 
           <div className="profile-section__content">
             <div className="profile-section__current-email">
               <div className="profile-section__email-info">
-                <span className="profile-section__label">Current Email</span>
+                <span className="profile-section__label">{t('dashboard.profile.currentEmail')}</span>
                 <span className="profile-section__value">{user?.email}</span>
               </div>
               <div className="profile-section__email-status">
                 {user?.emailVerified ? (
                   <span className="profile-section__badge profile-section__badge--success">
                     <Check size={14} />
-                    Verified
+                    {t('dashboard.profile.verified')}
                   </span>
                 ) : (
                   <div className="profile-section__unverified">
                     <span className="profile-section__badge profile-section__badge--warning">
-                      Not Verified
+                      {t('dashboard.profile.notVerified')}
                     </span>
                     <Button
                       variant="ghost"
@@ -186,7 +188,7 @@ export function Profile() {
                       onClick={handleResendVerification}
                       loading={verificationLoading}
                     >
-                      Resend Verification
+                      {t('dashboard.profile.resendVerification')}
                     </Button>
                   </div>
                 )}
@@ -201,24 +203,24 @@ export function Profile() {
           <div className="profile-section__divider" />
 
           <form className="profile-section__form" onSubmit={handleEmailChange}>
-            <h3>Change Email Address</h3>
+            <h3>{t('dashboard.profile.changeEmailTitle')}</h3>
 
             {emailError && <Alert variant="error">{emailError}</Alert>}
             {emailSuccess && <Alert variant="success">{emailSuccess}</Alert>}
 
             <Input
-              label="New Email Address"
+              label={t('dashboard.profile.newEmailLabel')}
               type="email"
               value={newEmail}
               onChange={(e) => setNewEmail(e.target.value)}
-              placeholder="new@email.com"
+              placeholder={t('dashboard.profile.newEmailPlaceholder')}
               disabled={emailLoading}
-              hint="A verification email will be sent to the new address"
+              hint={t('dashboard.profile.newEmailHint')}
             />
 
             <div className="profile-section__actions">
               <Button type="submit" loading={emailLoading} disabled={!newEmail}>
-                Change Email
+                {t('dashboard.profile.changeEmail')}
               </Button>
             </div>
           </form>
