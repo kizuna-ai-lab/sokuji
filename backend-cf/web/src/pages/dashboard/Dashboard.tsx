@@ -3,11 +3,14 @@ import { Link } from 'react-router-dom';
 import { useSession } from '@/lib/auth-client';
 import { User, Mail, Calendar, Shield } from 'lucide-react';
 import { useAnalytics } from '@/lib/analytics';
+import { useTranslation } from '@/lib/i18n';
+import { Alert } from '@/components/ui/Alert';
 import './Dashboard.scss';
 
 export function Dashboard() {
   const { data: session } = useSession();
   const { trackEvent } = useAnalytics();
+  const { t } = useTranslation();
   const user = session?.user;
 
   // Track page view on mount
@@ -26,6 +29,10 @@ export function Dashboard() {
 
   return (
     <div className="dashboard-page">
+      <Alert variant="info" className="dashboard-page__notice">
+        {t('dashboard.notice.comingSoon')}
+      </Alert>
+
       <div className="dashboard-page__header">
         <h1>Welcome back, {user?.name || 'User'}</h1>
         <p>Manage your account settings and preferences</p>

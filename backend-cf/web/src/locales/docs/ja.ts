@@ -236,6 +236,9 @@ const ja: Record<string, string> = {
 
   'privacy.consent.title': '同意',
   'privacy.consent.content': '私たちの拡張機能を使用することで、このプライバシーポリシーに同意したことになります。分析については、別途明示的な同意を求めます。',
+
+  // Dashboard
+  'dashboard.notice.comingSoon': 'Kizuna AI Realtime API（プロキシサービス）およびKizuna AI独自のRealtimeサービスは現在開発中です。近日公開予定です。',
 };
 
 export default ja;
