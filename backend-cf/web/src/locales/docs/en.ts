@@ -236,6 +236,9 @@ const en: Record<string, string> = {
 
   'privacy.consent.title': 'Consent',
   'privacy.consent.content': 'By using our extension, you consent to this Privacy Policy. For analytics, we will request separate explicit consent.',
+
+  // Dashboard
+  'dashboard.notice.comingSoon': 'Kizuna AI Realtime API (proxy service) and Kizuna AI\'s proprietary Realtime service are currently under development and will be available soon.',
 };
 
 export default en;

@@ -236,6 +236,9 @@ const ko: Record<string, string> = {
 
   'privacy.consent.title': '동의',
   'privacy.consent.content': '당사의 확장 프로그램을 사용함으로써 이 개인정보 보호정책에 동의합니다. 분석에 대해서는 별도의 명시적 동의를 요청합니다.',
+
+  // Dashboard
+  'dashboard.notice.comingSoon': 'Kizuna AI Realtime API(프록시 서비스)와 Kizuna AI 자체 Realtime 서비스가 현재 개발 중이며 곧 출시될 예정입니다.',
 };
 
 export default ko;

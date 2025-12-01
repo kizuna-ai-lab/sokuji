@@ -236,6 +236,9 @@ const zh: Record<string, string> = {
 
   'privacy.consent.title': '同意',
   'privacy.consent.content': '使用我们的扩展，即表示您同意本隐私政策。对于分析，我们将单独请求明确同意。',
+
+  // Dashboard
+  'dashboard.notice.comingSoon': 'Kizuna AI Realtime API（代理服务）和 Kizuna AI 自研 Realtime 服务正在开发中，即将上线。',
 };
 
 export default zh;
