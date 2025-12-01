@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/Button';
 import { Alert } from '@/components/ui/Alert';
 import { Shield, Key, Trash2, AlertTriangle, Monitor, Smartphone, Globe, X } from 'lucide-react';
 import { useAnalytics } from '@/lib/analytics';
+import { useI18n } from '@/lib/i18n';
 import './Security.scss';
 
 interface Session {
@@ -25,6 +26,7 @@ export function Security() {
   const navigate = useNavigate();
   const { data: session, refetch } = useSession();
   const { trackEvent, resetUser } = useAnalytics();
+  const { t, locale } = useI18n();
   const user = session?.user;
   const currentSessionToken = session?.session?.token;
 
@@ -156,7 +158,13 @@ export function Security() {
 
   // Format date
   const formatDate = (date: Date | string) => {
-    return new Date(date).toLocaleDateString('en-US', {
+    const localeMap: Record<string, string> = {
+      en: 'en-US',
+      zh: 'zh-CN',
+      ja: 'ja-JP',
+      ko: 'ko-KR',
+    };
+    return new Date(date).toLocaleDateString(localeMap[locale] || 'en-US', {
       month: 'short',
       day: 'numeric',
       hour: '2-digit',
@@ -171,12 +179,12 @@ export function Security() {
 
     // Validation
     if (newPassword.length < 8) {
-      setPasswordError('New password must be at least 8 characters');
+      setPasswordError(t('dashboard.security.passwordMinLength'));
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      setPasswordError('Passwords do not match');
+      setPasswordError(t('dashboard.security.passwordMismatch'));
       return;
     }
 
@@ -191,7 +199,7 @@ export function Security() {
 
       if (error) {
         if (error.code === 'INVALID_PASSWORD' || error.status === 400) {
-          setPasswordError('Current password is incorrect');
+          setPasswordError(t('dashboard.security.passwordIncorrect'));
         } else {
           setPasswordError(error.message || 'Failed to change password');
         }
@@ -201,7 +209,7 @@ export function Security() {
 
       // Track password change
       trackEvent('dashboard_password_changed', {});
-      setPasswordSuccess('Password changed successfully. Other sessions have been logged out.');
+      setPasswordSuccess(t('dashboard.security.passwordSuccess'));
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
@@ -218,7 +226,7 @@ export function Security() {
     setDeleteError('');
 
     if (deleteConfirm !== 'DELETE') {
-      setDeleteError('Please type DELETE to confirm');
+      setDeleteError(t('dashboard.security.typeDelete'));
       return;
     }
 
@@ -251,8 +259,8 @@ export function Security() {
   return (
     <div className="security-page">
       <div className="security-page__header">
-        <h1>Security Settings</h1>
-        <p>Manage your password and account security</p>
+        <h1>{t('dashboard.security.title')}</h1>
+        <p>{t('dashboard.security.subtitle')}</p>
       </div>
 
       <div className="security-page__content">
@@ -261,15 +269,15 @@ export function Security() {
           <div className="security-section__header">
             <Key size={20} />
             <div>
-              <h2>Change Password</h2>
-              <p>Update your password to keep your account secure</p>
+              <h2>{t('dashboard.security.changePassword')}</h2>
+              <p>{t('dashboard.security.changePasswordDesc')}</p>
             </div>
           </div>
 
           {isAnonymous ? (
             <div className="security-section__content">
               <Alert variant="info">
-                Anonymous accounts cannot change passwords. Please convert to a full account first.
+                {t('dashboard.security.anonymousNote')}
               </Alert>
             </div>
           ) : (
@@ -278,38 +286,38 @@ export function Security() {
               {passwordSuccess && <Alert variant="success">{passwordSuccess}</Alert>}
 
               <Input
-                label="Current Password"
+                label={t('dashboard.security.currentPassword')}
                 type="password"
                 value={currentPassword}
                 onChange={(e) => setCurrentPassword(e.target.value)}
-                placeholder="Enter current password"
+                placeholder={t('dashboard.security.currentPasswordPlaceholder')}
                 disabled={passwordLoading}
                 required
               />
 
               <Input
-                label="New Password"
+                label={t('dashboard.security.newPassword')}
                 type="password"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
-                placeholder="Minimum 8 characters"
+                placeholder={t('dashboard.security.newPasswordPlaceholder')}
                 disabled={passwordLoading}
                 required
               />
 
               <Input
-                label="Confirm New Password"
+                label={t('dashboard.security.confirmPassword')}
                 type="password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="Confirm new password"
+                placeholder={t('dashboard.security.confirmPasswordPlaceholder')}
                 disabled={passwordLoading}
                 required
               />
 
               <div className="security-section__actions">
                 <Button type="submit" loading={passwordLoading}>
-                  Change Password
+                  {t('dashboard.security.changePasswordBtn')}
                 </Button>
               </div>
             </form>
@@ -321,8 +329,8 @@ export function Security() {
           <div className="security-section__header">
             <Shield size={20} />
             <div>
-              <h2>Active Sessions</h2>
-              <p>Manage your active login sessions ({sessions.length} active)</p>
+              <h2>{t('dashboard.security.activeSessions')}</h2>
+              <p>{t('dashboard.security.activeSessionsDesc').replace('{count}', String(sessions.length))}</p>
             </div>
           </div>
 
@@ -330,7 +338,7 @@ export function Security() {
             {sessionsError && <Alert variant="error">{sessionsError}</Alert>}
 
             {sessionsLoading ? (
-              <div className="security-section__loading">Loading sessions...</div>
+              <div className="security-section__loading">{t('dashboard.security.loadingSessions')}</div>
             ) : (
               <div className="security-section__sessions-list">
                 {sessions.map((s) => {
@@ -351,7 +359,7 @@ export function Security() {
                           {deviceInfo.name}
                           {isCurrentSession && (
                             <span className="security-section__badge security-section__badge--success">
-                              Current
+                              {t('dashboard.security.current')}
                             </span>
                           )}
                         </div>
@@ -362,7 +370,7 @@ export function Security() {
                             </span>
                           )}
                           {s.ipAddress && <span>IP: {s.ipAddress}</span>}
-                          <span>Last active: {formatDate(s.updatedAt)}</span>
+                          <span>{t('dashboard.security.lastActive').replace('{time}', formatDate(s.updatedAt))}</span>
                         </div>
                       </div>
                       {!isCurrentSession && (
@@ -370,7 +378,7 @@ export function Security() {
                           className="security-section__session-revoke"
                           onClick={() => handleRevokeSession(s.token)}
                           disabled={revokeLoading === s.token}
-                          title="Sign out this session"
+                          title={t('dashboard.nav.signOut')}
                         >
                           {revokeLoading === s.token ? (
                             <span className="security-section__spinner" />
@@ -392,7 +400,7 @@ export function Security() {
                 loading={revokeLoading === 'all'}
                 disabled={revokeLoading !== null}
               >
-                Sign Out All Other Sessions
+                {t('dashboard.security.signOutOther')}
               </Button>
             )}
           </div>
@@ -403,8 +411,8 @@ export function Security() {
           <div className="security-section__header">
             <Trash2 size={20} />
             <div>
-              <h2>Delete Account</h2>
-              <p>Permanently delete your account and all associated data</p>
+              <h2>{t('dashboard.security.deleteAccount')}</h2>
+              <p>{t('dashboard.security.deleteAccountDesc')}</p>
             </div>
           </div>
 
@@ -413,14 +421,14 @@ export function Security() {
               <>
                 <Alert variant="warning">
                   <AlertTriangle size={16} style={{ marginRight: '8px' }} />
-                  This action is irreversible. All your data will be permanently deleted.
+                  {t('dashboard.security.deleteWarning')}
                 </Alert>
 
                 <Button
                   variant="danger"
                   onClick={() => setShowDeleteConfirm(true)}
                 >
-                  Delete My Account
+                  {t('dashboard.security.deleteBtn')}
                 </Button>
               </>
             ) : (
@@ -428,14 +436,14 @@ export function Security() {
                 {deleteError && <Alert variant="error">{deleteError}</Alert>}
 
                 <p className="security-section__warning-text">
-                  To confirm deletion, please type <strong>DELETE</strong> below:
+                  {t('dashboard.security.deleteConfirmText')}
                 </p>
 
                 <Input
                   type="text"
                   value={deleteConfirm}
                   onChange={(e) => setDeleteConfirm(e.target.value)}
-                  placeholder="Type DELETE to confirm"
+                  placeholder={t('dashboard.security.deleteConfirmPlaceholder')}
                   disabled={deleteLoading}
                 />
 
@@ -449,7 +457,7 @@ export function Security() {
                     }}
                     disabled={deleteLoading}
                   >
-                    Cancel
+                    {t('dashboard.security.cancel')}
                   </Button>
                   <Button
                     type="submit"
@@ -457,7 +465,7 @@ export function Security() {
                     loading={deleteLoading}
                     disabled={deleteConfirm !== 'DELETE'}
                   >
-                    Delete Account
+                    {t('dashboard.security.deleteAccount')}
                   </Button>
                 </div>
               </form>

@@ -4,12 +4,14 @@ import { useSession } from '@/lib/auth-client';
 import { Button } from '@/components/ui/Button';
 import { Alert } from '@/components/ui/Alert';
 import { MessageCircle, Bug, Lightbulb, HelpCircle, AlertTriangle } from 'lucide-react';
+import { useI18n } from '@/lib/i18n';
 import './Feedback.scss';
 
 type FeedbackType = 'bug' | 'suggestion' | 'other';
 
 export function Feedback() {
   const { data: session } = useSession();
+  const { t } = useI18n();
   const user = session?.user;
   const isEmailVerified = user?.emailVerified;
 
@@ -65,7 +67,7 @@ export function Feedback() {
         return;
       }
 
-      setSuccess('Thank you! Your feedback has been sent successfully.');
+      setSuccess(t('dashboard.feedback.thankYou'));
       setMessage('');
       if (data.remaining !== undefined) {
         setRemaining(data.remaining);
@@ -77,10 +79,10 @@ export function Feedback() {
     }
   };
 
-  const feedbackTypes: { value: FeedbackType; label: string; icon: typeof Bug; description: string }[] = [
-    { value: 'bug', label: 'Bug Report', icon: Bug, description: 'Report a problem or issue' },
-    { value: 'suggestion', label: 'Feature Suggestion', icon: Lightbulb, description: 'Suggest a new feature or improvement' },
-    { value: 'other', label: 'Other', icon: HelpCircle, description: 'General feedback or questions' },
+  const feedbackTypes: { value: FeedbackType; labelKey: string; icon: typeof Bug; descKey: string }[] = [
+    { value: 'bug', labelKey: 'dashboard.feedback.bugReport', icon: Bug, descKey: 'dashboard.feedback.bugReportDesc' },
+    { value: 'suggestion', labelKey: 'dashboard.feedback.suggestion', icon: Lightbulb, descKey: 'dashboard.feedback.suggestionDesc' },
+    { value: 'other', labelKey: 'dashboard.feedback.other', icon: HelpCircle, descKey: 'dashboard.feedback.otherDesc' },
   ];
 
   // Show verification required message if email is not verified
@@ -88,24 +90,18 @@ export function Feedback() {
     return (
       <div className="feedback-page">
         <div className="feedback-page__header">
-          <h1>Send Feedback</h1>
-          <p>
-            Report bugs, suggest features, or share your thoughts.
-            We read every message and appreciate your input!
-          </p>
+          <h1>{t('dashboard.feedback.title')}</h1>
+          <p>{t('dashboard.feedback.subtitle')}</p>
         </div>
 
         <div className="feedback-page__content">
           <div className="feedback-section">
             <div className="feedback-section__verification-required">
               <AlertTriangle size={48} />
-              <h2>Email Verification Required</h2>
-              <p>
-                Please verify your email address before submitting feedback.
-                We need a verified email to respond to your feedback.
-              </p>
+              <h2>{t('dashboard.feedback.verificationRequired')}</h2>
+              <p>{t('dashboard.feedback.verificationRequiredDesc')}</p>
               <Link to="/dashboard/profile">
-                <Button>Go to Profile Settings</Button>
+                <Button>{t('dashboard.feedback.goToProfile')}</Button>
               </Link>
             </div>
           </div>
@@ -117,11 +113,8 @@ export function Feedback() {
   return (
     <div className="feedback-page">
       <div className="feedback-page__header">
-        <h1>Send Feedback</h1>
-        <p>
-          Report bugs, suggest features, or share your thoughts.
-          We read every message and appreciate your input!
-        </p>
+        <h1>{t('dashboard.feedback.title')}</h1>
+        <p>{t('dashboard.feedback.subtitle')}</p>
       </div>
 
       <div className="feedback-page__content">
@@ -129,17 +122,17 @@ export function Feedback() {
           <div className="feedback-section__header">
             <MessageCircle size={20} />
             <div>
-              <h2>Your Feedback</h2>
-              <p>Sending as {user?.email}</p>
+              <h2>{t('dashboard.feedback.yourFeedback')}</h2>
+              <p>{t('dashboard.feedback.sendingAs').replace('{email}', user?.email || '')}</p>
             </div>
           </div>
 
           {remaining !== null && (
             <div className={`feedback-section__remaining ${remaining === 0 ? 'feedback-section__remaining--exhausted' : ''}`}>
               {remaining > 0 ? (
-                <span>You have <strong>{remaining}</strong> of {dailyLimit} feedback messages remaining today</span>
+                <span>{t('dashboard.feedback.remainingCount').replace('{remaining}', String(remaining)).replace('{limit}', String(dailyLimit))}</span>
               ) : (
-                <span>Daily limit reached. You can send more feedback tomorrow.</span>
+                <span>{t('dashboard.feedback.limitReached')}</span>
               )}
             </div>
           )}
@@ -149,9 +142,9 @@ export function Feedback() {
             {success && <Alert variant="success">{success}</Alert>}
 
             <div className="feedback-form__field">
-              <label className="feedback-form__label">Feedback Type</label>
+              <label className="feedback-form__label">{t('dashboard.feedback.feedbackType')}</label>
               <div className="feedback-form__types">
-                {feedbackTypes.map(({ value, label, icon: Icon, description }) => (
+                {feedbackTypes.map(({ value, labelKey, icon: Icon, descKey }) => (
                   <button
                     key={value}
                     type="button"
@@ -161,8 +154,8 @@ export function Feedback() {
                   >
                     <Icon size={20} />
                     <div className="feedback-type__content">
-                      <span className="feedback-type__label">{label}</span>
-                      <span className="feedback-type__description">{description}</span>
+                      <span className="feedback-type__label">{t(labelKey)}</span>
+                      <span className="feedback-type__description">{t(descKey)}</span>
                     </div>
                   </button>
                 ))}
@@ -171,14 +164,14 @@ export function Feedback() {
 
             <div className="feedback-form__field">
               <label htmlFor="message" className="feedback-form__label">
-                Message
+                {t('dashboard.feedback.message')}
               </label>
               <textarea
                 id="message"
                 className="feedback-form__textarea"
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
-                placeholder="Describe your feedback in detail..."
+                placeholder={t('dashboard.feedback.messagePlaceholder')}
                 disabled={loading}
                 rows={6}
                 required
@@ -186,13 +179,13 @@ export function Feedback() {
                 maxLength={5000}
               />
               <span className="feedback-form__hint">
-                {message.length}/5000 characters (minimum 10)
+                {t('dashboard.feedback.messageHint').replace('{count}', String(message.length))}
               </span>
             </div>
 
             <div className="feedback-form__actions">
               <Button type="submit" loading={loading} disabled={message.length < 10 || remaining === 0}>
-                Send Feedback
+                {t('dashboard.feedback.sendFeedback')}
               </Button>
             </div>
           </form>
