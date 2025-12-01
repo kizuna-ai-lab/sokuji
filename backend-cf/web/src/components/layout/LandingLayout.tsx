@@ -6,7 +6,7 @@
  */
 
 import { useState } from 'react';
-import { Link, Outlet } from 'react-router-dom';
+import { Link, Outlet, useSearchParams } from 'react-router-dom';
 import {
   Menu,
   X,
@@ -22,6 +22,10 @@ export function LandingLayout() {
   const { t, locale, setLocale } = useI18n();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [langMenuOpen, setLangMenuOpen] = useState(false);
+  const [searchParams] = useSearchParams();
+
+  // Show sign-in button only when special query param is present
+  const showSignIn = searchParams.has('dev');
 
   const handleLocaleChange = (newLocale: Locale) => {
     setLocale(newLocale);
@@ -86,9 +90,11 @@ export function LandingLayout() {
               )}
             </div>
 
-            <Link to="/sign-in" className="landing-layout__sign-in-btn">
-              {t('common.signIn')}
-            </Link>
+            {showSignIn && (
+              <Link to="/sign-in" className="landing-layout__sign-in-btn">
+                {t('common.signIn')}
+              </Link>
+            )}
 
             <button
               className="landing-layout__mobile-menu-btn"
@@ -133,14 +139,18 @@ export function LandingLayout() {
               GitHub
               <ExternalLink size={14} />
             </a>
-            <div className="landing-layout__mobile-divider" />
-            <Link
-              to="/sign-in"
-              className="landing-layout__mobile-cta"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              {t('common.signIn')}
-            </Link>
+            {showSignIn && (
+              <>
+                <div className="landing-layout__mobile-divider" />
+                <Link
+                  to="/sign-in"
+                  className="landing-layout__mobile-cta"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  {t('common.signIn')}
+                </Link>
+              </>
+            )}
           </div>
         )}
       </header>
