@@ -27,7 +27,8 @@
     "drizzle-orm": "^0.44.5",
     "hono": "^4.7.11",
     "nodemailer": "^7.0.10",
-    "posthog-node": "^4.6.0"
+    "posthog-node": "^4.6.0",
+    "stripe": "^20.0.0"
   },
   "devDependencies": {
     "@types/node": "^22.15.30",

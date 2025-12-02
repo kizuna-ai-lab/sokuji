@@ -14,6 +14,7 @@ import { DashboardLayout } from './components/layout/DashboardLayout';
 import { Dashboard } from './pages/dashboard/Dashboard';
 import { Profile } from './pages/dashboard/Profile';
 import { Security } from './pages/dashboard/Security';
+import { Wallet } from './pages/dashboard/Wallet';
 
 // Public pages
 import { LandingLayout } from './components/layout/LandingLayout';
@@ -175,6 +176,7 @@ export default function App() {
         <Route index element={<Dashboard />} />
         <Route path="profile" element={<Profile />} />
         <Route path="security" element={<Security />} />
+        <Route path="wallet" element={<Wallet />} />
         <Route path="feedback" element={<Feedback />} />
       </Route>
 

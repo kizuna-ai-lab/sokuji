@@ -51,6 +51,12 @@ export interface DashboardAnalyticsEvents {
   'ott_verification_started': Record<string, never>;
   'ott_verification_succeeded': Record<string, never>;
   'ott_verification_failed': { error_type: string };
+
+  // Wallet and payment events
+  'wallet_page_viewed': { page: string };
+  'payment_initiated': { amount: number };
+  'payment_completed': { source: string };
+  'payment_error': { error: string };
 }
 
 // PostHog context

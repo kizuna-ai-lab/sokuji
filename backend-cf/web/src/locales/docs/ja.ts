@@ -348,6 +348,34 @@ const ja: Record<string, string> = {
   'dashboard.feedback.verificationRequiredDesc': 'フィードバックを送信する前にメールアドレスを認証してください。返信のため認証済みメールが必要です。',
   'dashboard.feedback.goToProfile': 'プロフィール設定へ',
   'dashboard.feedback.thankYou': 'ありがとうございます！フィードバックが送信されました。',
+
+  // Dashboard Wallet
+  'dashboard.wallet.title': 'ウォレット',
+  'dashboard.wallet.subtitle': 'トークン残高とチャージを管理',
+  'dashboard.wallet.balance': 'トークン残高',
+  'dashboard.wallet.tokens': 'トークン',
+  'dashboard.wallet.plan': '現在のプラン',
+  'dashboard.wallet.last30Days': '過去30日間',
+  'dashboard.wallet.accountFrozen': 'アカウントが凍結されています。サポートにお問い合わせください。',
+  'dashboard.wallet.topUp': 'チャージ',
+  'dashboard.wallet.customAmount': 'カスタム金額',
+  'dashboard.wallet.amountRange': '最小：{min} - 最大：{max}',
+  'dashboard.wallet.youWillReceive': '獲得予定',
+  'dashboard.wallet.payWithCard': 'カードで支払う',
+  'dashboard.wallet.processing': '処理中...',
+  'dashboard.wallet.rateInfo': '$1 USD = 100万トークン',
+  'dashboard.wallet.paymentHistory': '支払い履歴',
+  'dashboard.wallet.noHistory': '支払い履歴はありません',
+  'dashboard.wallet.loading': 'ウォレットを読み込み中...',
+  'dashboard.wallet.paymentSuccess': '支払いが完了しました！トークンが追加されました。',
+  'dashboard.wallet.paymentUnavailable': 'オンライン決済は現在利用できません。後でもう一度お試しください。',
+  'dashboard.wallet.errorFetchingBalance': 'ウォレット残高の取得に失敗しました',
+  'dashboard.wallet.minAmountError': '最小金額は {min} です',
+  'dashboard.wallet.maxAmountError': '最大金額は {max} です',
+  'dashboard.wallet.paymentError': '支払いに失敗しました。もう一度お試しください。',
+
+  // Dashboard Navigation - Wallet
+  'dashboard.nav.wallet': 'ウォレット',
 };
 
 export default ja;

@@ -1,7 +1,12 @@
-import * as authSchema from "./auth.schema"; // This will be generated in a later step
+import * as authSchema from "./auth.schema";
+import * as walletSchema from "./wallet.schema";
 
 // Combine all schemas here for migrations
 export const schema = {
     ...authSchema,
-    // ... your other application schemas
+    ...walletSchema,
 } as const;
+
+// Re-export for convenience
+export * from "./auth.schema";
+export * from "./wallet.schema";
