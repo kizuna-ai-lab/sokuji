@@ -1,7 +1,9 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
+import Stripe from "stripe";
 import { createAuth } from "./auth";
 import { sendFeedbackEmail } from "./lib/email";
+import { createWalletService } from "./services/wallet-service";
 import type { CloudflareBindings } from "./env";
 
 // Feedback rate limiting
@@ -279,6 +281,277 @@ app.post("/api/feedback", async (c) => {
             },
             500
         );
+    }
+});
+
+// CORS for payment routes
+app.use(
+    "/api/payment/*",
+    cors({
+        origin: "*",
+        allowHeaders: ["Content-Type", "Authorization", "Stripe-Signature"],
+        allowMethods: ["GET", "POST", "OPTIONS"],
+        maxAge: 600,
+    })
+);
+app.use(
+    "/api/payment",
+    cors({
+        origin: "*",
+        allowHeaders: ["Content-Type", "Authorization", "Stripe-Signature"],
+        allowMethods: ["GET", "POST", "OPTIONS"],
+        maxAge: 600,
+    })
+);
+
+// CORS for wallet routes
+app.use(
+    "/api/wallet/*",
+    cors({
+        origin: "*",
+        allowHeaders: ["Content-Type", "Authorization"],
+        allowMethods: ["GET", "POST", "OPTIONS"],
+        maxAge: 600,
+    })
+);
+app.use(
+    "/api/wallet",
+    cors({
+        origin: "*",
+        allowHeaders: ["Content-Type", "Authorization"],
+        allowMethods: ["GET", "POST", "OPTIONS"],
+        maxAge: 600,
+    })
+);
+
+// Payment configuration (public)
+app.get("/api/payment/config", async (c) => {
+    return c.json({
+        publishableKey: c.env.STRIPE_PUBLISHABLE_KEY || "",
+        minAmount: 500, // $5.00 in cents
+        maxAmount: 50000, // $500.00 in cents
+        tokensPerDollar: 1_000_000,
+    });
+});
+
+// Create Stripe checkout session
+app.post("/api/payment/create-checkout-session", async (c) => {
+    try {
+        const auth = c.get("auth");
+        const session = await auth.api.getSession({
+            headers: c.req.raw.headers,
+        });
+
+        if (!session?.user) {
+            return c.json({ error: "Authentication required" }, 401);
+        }
+
+        const { amount } = await c.req.json();
+
+        // Validate amount (in cents)
+        if (!amount || typeof amount !== "number") {
+            return c.json({ error: "Invalid amount" }, 400);
+        }
+
+        if (amount < 500 || amount > 50000) {
+            return c.json({ error: "Amount must be between $5 and $500" }, 400);
+        }
+
+        if (!c.env.STRIPE_SECRET_KEY) {
+            return c.json({ error: "Stripe not configured" }, 500);
+        }
+
+        const stripe = new Stripe(c.env.STRIPE_SECRET_KEY, {
+            apiVersion: "2025-04-30.basil",
+        });
+
+        const checkoutSession = await stripe.checkout.sessions.create({
+            mode: "payment",
+            payment_method_types: ["card"],
+            line_items: [
+                {
+                    price_data: {
+                        currency: "usd",
+                        product_data: {
+                            name: "Token Top-up",
+                            description: `${((amount / 100) * 1_000_000).toLocaleString()} tokens`,
+                        },
+                        unit_amount: amount,
+                    },
+                    quantity: 1,
+                },
+            ],
+            metadata: {
+                userId: session.user.id,
+                userEmail: session.user.email,
+                amountCents: amount.toString(),
+            },
+            customer_email: session.user.email,
+            success_url: `${new URL(c.req.url).origin}/dashboard/wallet?success=true`,
+            cancel_url: `${new URL(c.req.url).origin}/dashboard/wallet?canceled=true`,
+        });
+
+        return c.json({ url: checkoutSession.url });
+    } catch (error) {
+        console.error("Create checkout session error:", error);
+        return c.json({ error: "Failed to create checkout session" }, 500);
+    }
+});
+
+// Stripe webhook handler
+app.post("/api/payment/webhook", async (c) => {
+    try {
+        if (!c.env.STRIPE_SECRET_KEY || !c.env.STRIPE_WEBHOOK_SECRET) {
+            console.error("Stripe not configured");
+            return c.json({ error: "Stripe not configured" }, 500);
+        }
+
+        const stripe = new Stripe(c.env.STRIPE_SECRET_KEY, {
+            apiVersion: "2025-04-30.basil",
+        });
+
+        const signature = c.req.header("stripe-signature");
+        if (!signature) {
+            return c.json({ error: "Missing signature" }, 400);
+        }
+
+        const body = await c.req.text();
+
+        let event: Stripe.Event;
+        try {
+            event = await stripe.webhooks.constructEventAsync(
+                body,
+                signature,
+                c.env.STRIPE_WEBHOOK_SECRET
+            );
+        } catch (err) {
+            console.error("Webhook signature verification failed:", err);
+            return c.json({ error: "Invalid signature" }, 400);
+        }
+
+        // Log webhook for audit trail
+        try {
+            await c.env.DATABASE.prepare(`
+                INSERT INTO webhook_logs (event_id, event_type, raw_payload, headers, created_at, processing_status)
+                VALUES (?, ?, ?, ?, ?, 'pending')
+            `).bind(
+                event.id,
+                event.type,
+                body,
+                JSON.stringify({ signature: signature?.substring(0, 50) + "..." }),
+                Date.now()
+            ).run();
+        } catch (logError) {
+            console.warn("Failed to log webhook:", logError);
+        }
+
+        // Handle checkout.session.completed event
+        if (event.type === "checkout.session.completed") {
+            const checkoutSession = event.data.object as Stripe.Checkout.Session;
+
+            if (checkoutSession.payment_status === "paid") {
+                const userId = checkoutSession.metadata?.userId;
+                const amountCents = parseInt(checkoutSession.metadata?.amountCents || "0");
+
+                if (!userId || !amountCents) {
+                    console.error("Missing metadata in checkout session");
+                    return c.json({ error: "Missing metadata" }, 400);
+                }
+
+                const walletService = createWalletService(c.env);
+                const result = await walletService.mintTokensFromTopUp({
+                    subjectType: "user",
+                    subjectId: userId,
+                    amountCents,
+                    externalEventId: event.id,
+                    stripeSessionId: checkoutSession.id,
+                    stripePaymentIntentId: checkoutSession.payment_intent as string,
+                    metadata: {
+                        customerEmail: checkoutSession.customer_email,
+                    },
+                });
+
+                if (!result.success) {
+                    console.error("Failed to mint tokens:", result.error);
+                    // Update webhook log
+                    await c.env.DATABASE.prepare(`
+                        UPDATE webhook_logs SET processing_status = 'failed', error_message = ?, processed_at = ?
+                        WHERE event_id = ?
+                    `).bind(result.error, Date.now(), event.id).run();
+                    return c.json({ error: result.error }, 500);
+                }
+
+                // Update webhook log as successful
+                await c.env.DATABASE.prepare(`
+                    UPDATE webhook_logs SET processing_status = 'success', user_id = ?, processed_at = ?
+                    WHERE event_id = ?
+                `).bind(userId, Date.now(), event.id).run();
+
+                console.log(`Successfully processed payment for user ${userId}: ${result.minted} tokens`);
+            }
+        }
+
+        return c.json({ received: true });
+    } catch (error) {
+        console.error("Webhook error:", error);
+        return c.json({ error: "Webhook processing failed" }, 500);
+    }
+});
+
+// Get payment history
+app.get("/api/payment/history", async (c) => {
+    try {
+        const auth = c.get("auth");
+        const session = await auth.api.getSession({
+            headers: c.req.raw.headers,
+        });
+
+        if (!session?.user) {
+            return c.json({ error: "Authentication required" }, 401);
+        }
+
+        const walletService = createWalletService(c.env);
+        const limit = parseInt(c.req.query("limit") || "50");
+        const offset = parseInt(c.req.query("offset") || "0");
+
+        const { payments, total } = await walletService.getPaymentHistory(
+            "user",
+            session.user.id,
+            Math.min(limit, 100),
+            offset
+        );
+
+        return c.json({ payments, total });
+    } catch (error) {
+        console.error("Get payment history error:", error);
+        return c.json({ error: "Failed to get payment history" }, 500);
+    }
+});
+
+// Get wallet status
+app.get("/api/wallet/status", async (c) => {
+    try {
+        const auth = c.get("auth");
+        const session = await auth.api.getSession({
+            headers: c.req.raw.headers,
+        });
+
+        if (!session?.user) {
+            return c.json({ error: "Authentication required" }, 401);
+        }
+
+        const walletService = createWalletService(c.env);
+        const balance = await walletService.getBalance("user", session.user.id);
+        const usage = await walletService.getUsageStats("user", session.user.id);
+
+        return c.json({
+            balance: balance?.balanceTokens || 0,
+            frozen: balance?.frozen || false,
+            usage: usage?.last30DaysUsage || 0,
+        });
+    } catch (error) {
+        console.error("Get wallet status error:", error);
+        return c.json({ error: "Failed to get wallet status" }, 500);
     }
 });
 

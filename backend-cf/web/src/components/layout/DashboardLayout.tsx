@@ -10,6 +10,7 @@ import {
   LogOut,
   ChevronDown,
   Globe,
+  Wallet,
 } from 'lucide-react';
 import { useSession, signOut } from '@/lib/auth-client';
 import { useI18n, localeNames, Locale } from '@/lib/i18n';
@@ -20,6 +21,7 @@ const navItems = [
   { path: '/dashboard', icon: LayoutDashboard, labelKey: 'dashboard.nav.dashboard' },
   { path: '/dashboard/profile', icon: User, labelKey: 'dashboard.nav.profile' },
   { path: '/dashboard/security', icon: Shield, labelKey: 'dashboard.nav.security' },
+  { path: '/dashboard/wallet', icon: Wallet, labelKey: 'dashboard.nav.wallet' },
   { path: '/dashboard/feedback', icon: MessageCircle, labelKey: 'dashboard.nav.feedback' },
 ];
 

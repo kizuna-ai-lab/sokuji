@@ -348,6 +348,34 @@ const en: Record<string, string> = {
   'dashboard.feedback.verificationRequiredDesc': 'Please verify your email address before submitting feedback. We need a verified email to respond to your feedback.',
   'dashboard.feedback.goToProfile': 'Go to Profile Settings',
   'dashboard.feedback.thankYou': 'Thank you! Your feedback has been sent successfully.',
+
+  // Dashboard Wallet
+  'dashboard.wallet.title': 'Wallet',
+  'dashboard.wallet.subtitle': 'Manage your token balance and top-up',
+  'dashboard.wallet.balance': 'Token Balance',
+  'dashboard.wallet.tokens': 'tokens',
+  'dashboard.wallet.plan': 'Current Plan',
+  'dashboard.wallet.last30Days': 'Last 30 Days',
+  'dashboard.wallet.accountFrozen': 'Your account is frozen. Please contact support.',
+  'dashboard.wallet.topUp': 'Top Up',
+  'dashboard.wallet.customAmount': 'Custom Amount',
+  'dashboard.wallet.amountRange': 'Min: {min} - Max: {max}',
+  'dashboard.wallet.youWillReceive': 'You will receive',
+  'dashboard.wallet.payWithCard': 'Pay with Card',
+  'dashboard.wallet.processing': 'Processing...',
+  'dashboard.wallet.rateInfo': '$1 USD = 1M tokens',
+  'dashboard.wallet.paymentHistory': 'Payment History',
+  'dashboard.wallet.noHistory': 'No payment history yet',
+  'dashboard.wallet.loading': 'Loading wallet...',
+  'dashboard.wallet.paymentSuccess': 'Payment successful! Your tokens have been added.',
+  'dashboard.wallet.paymentUnavailable': 'Online payments are currently unavailable. Please try again later.',
+  'dashboard.wallet.errorFetchingBalance': 'Failed to fetch wallet balance',
+  'dashboard.wallet.minAmountError': 'Minimum amount is {min}',
+  'dashboard.wallet.maxAmountError': 'Maximum amount is {max}',
+  'dashboard.wallet.paymentError': 'Payment failed. Please try again.',
+
+  // Dashboard Navigation - Wallet
+  'dashboard.nav.wallet': 'Wallet',
 };
 
 export default en;

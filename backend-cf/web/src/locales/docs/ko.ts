@@ -348,6 +348,34 @@ const ko: Record<string, string> = {
   'dashboard.feedback.verificationRequiredDesc': '피드백을 제출하기 전에 이메일 주소를 인증해 주세요. 답변을 위해 인증된 이메일이 필요합니다.',
   'dashboard.feedback.goToProfile': '프로필 설정으로 이동',
   'dashboard.feedback.thankYou': '감사합니다! 피드백이 성공적으로 전송되었습니다.',
+
+  // Dashboard Wallet
+  'dashboard.wallet.title': '지갑',
+  'dashboard.wallet.subtitle': '토큰 잔액 및 충전 관리',
+  'dashboard.wallet.balance': '토큰 잔액',
+  'dashboard.wallet.tokens': '토큰',
+  'dashboard.wallet.plan': '현재 플랜',
+  'dashboard.wallet.last30Days': '최근 30일',
+  'dashboard.wallet.accountFrozen': '계정이 정지되었습니다. 고객 지원에 문의하세요.',
+  'dashboard.wallet.topUp': '충전',
+  'dashboard.wallet.customAmount': '직접 입력',
+  'dashboard.wallet.amountRange': '최소: {min} - 최대: {max}',
+  'dashboard.wallet.youWillReceive': '받게 될 토큰',
+  'dashboard.wallet.payWithCard': '카드로 결제',
+  'dashboard.wallet.processing': '처리 중...',
+  'dashboard.wallet.rateInfo': '$1 USD = 100만 토큰',
+  'dashboard.wallet.paymentHistory': '결제 내역',
+  'dashboard.wallet.noHistory': '결제 내역이 없습니다',
+  'dashboard.wallet.loading': '지갑 로딩 중...',
+  'dashboard.wallet.paymentSuccess': '결제가 완료되었습니다! 토큰이 추가되었습니다.',
+  'dashboard.wallet.paymentUnavailable': '온라인 결제를 현재 사용할 수 없습니다. 나중에 다시 시도해 주세요.',
+  'dashboard.wallet.errorFetchingBalance': '지갑 잔액을 가져오지 못했습니다',
+  'dashboard.wallet.minAmountError': '최소 금액은 {min}입니다',
+  'dashboard.wallet.maxAmountError': '최대 금액은 {max}입니다',
+  'dashboard.wallet.paymentError': '결제에 실패했습니다. 다시 시도해 주세요.',
+
+  // Dashboard Navigation - Wallet
+  'dashboard.nav.wallet': '지갑',
 };
 
 export default ko;

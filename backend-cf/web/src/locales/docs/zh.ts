@@ -348,6 +348,34 @@ const zh: Record<string, string> = {
   'dashboard.feedback.verificationRequiredDesc': '请先验证您的邮箱地址再提交反馈。我们需要已验证的邮箱来回复您的反馈。',
   'dashboard.feedback.goToProfile': '前往个人资料设置',
   'dashboard.feedback.thankYou': '感谢您的反馈！已成功发送。',
+
+  // Dashboard Wallet
+  'dashboard.wallet.title': '钱包',
+  'dashboard.wallet.subtitle': '管理您的代币余额和充值',
+  'dashboard.wallet.balance': '代币余额',
+  'dashboard.wallet.tokens': '代币',
+  'dashboard.wallet.plan': '当前套餐',
+  'dashboard.wallet.last30Days': '近30天使用',
+  'dashboard.wallet.accountFrozen': '您的账户已被冻结，请联系客服。',
+  'dashboard.wallet.topUp': '充值',
+  'dashboard.wallet.customAmount': '自定义金额',
+  'dashboard.wallet.amountRange': '最低：{min} - 最高：{max}',
+  'dashboard.wallet.youWillReceive': '您将获得',
+  'dashboard.wallet.payWithCard': '银行卡支付',
+  'dashboard.wallet.processing': '处理中...',
+  'dashboard.wallet.rateInfo': '$1 美元 = 100万代币',
+  'dashboard.wallet.paymentHistory': '充值记录',
+  'dashboard.wallet.noHistory': '暂无充值记录',
+  'dashboard.wallet.loading': '加载钱包中...',
+  'dashboard.wallet.paymentSuccess': '支付成功！代币已添加到您的账户。',
+  'dashboard.wallet.paymentUnavailable': '在线支付暂时不可用，请稍后再试。',
+  'dashboard.wallet.errorFetchingBalance': '获取钱包余额失败',
+  'dashboard.wallet.minAmountError': '最低金额为 {min}',
+  'dashboard.wallet.maxAmountError': '最高金额为 {max}',
+  'dashboard.wallet.paymentError': '支付失败，请重试。',
+
+  // Dashboard Navigation - Wallet
+  'dashboard.nav.wallet': '钱包',
 };
 
 export default zh;

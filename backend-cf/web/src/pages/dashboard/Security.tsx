@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { Alert } from '@/components/ui/Alert';
-import { Shield, Key, Trash2, AlertTriangle, Monitor, Smartphone, Globe, X } from 'lucide-react';
+import { Shield, Key, Trash2, Monitor, Smartphone, Globe, X } from 'lucide-react';
 import { useAnalytics } from '@/lib/analytics';
 import { useI18n } from '@/lib/i18n';
 import './Security.scss';
@@ -420,7 +420,6 @@ export function Security() {
             {!showDeleteConfirm ? (
               <>
                 <Alert variant="warning">
-                  <AlertTriangle size={16} style={{ marginRight: '8px' }} />
                   {t('dashboard.security.deleteWarning')}
                 </Alert>
 

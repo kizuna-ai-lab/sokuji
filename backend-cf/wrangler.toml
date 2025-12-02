@@ -35,3 +35,8 @@ id = "54ce6449db9a4aa383e7d22aa8aaa1db"
 # For now, we use the same key as the frontend
 [vars]
 POSTHOG_API_KEY = "phc_EMOuUDTntTI5SuzKQATy11qHgxVrlhJsgNFbBaWEhet"
+
+# Stripe configuration - set via wrangler secret put:
+# wrangler secret put STRIPE_PUBLISHABLE_KEY
+# wrangler secret put STRIPE_SECRET_KEY
+# wrangler secret put STRIPE_WEBHOOK_SECRET
