@@ -10,6 +10,7 @@ import {
   LogOut,
   ChevronDown,
   Globe,
+// @ts-ignore
   Wallet,
 } from 'lucide-react';
 import { useSession, signOut } from '@/lib/auth-client';
@@ -21,7 +22,7 @@ const navItems = [
   { path: '/dashboard', icon: LayoutDashboard, labelKey: 'dashboard.nav.dashboard' },
   { path: '/dashboard/profile', icon: User, labelKey: 'dashboard.nav.profile' },
   { path: '/dashboard/security', icon: Shield, labelKey: 'dashboard.nav.security' },
-  { path: '/dashboard/wallet', icon: Wallet, labelKey: 'dashboard.nav.wallet' },
+  // { path: '/dashboard/wallet', icon: Wallet, labelKey: 'dashboard.nav.wallet' }, // Hidden until ready
   { path: '/dashboard/feedback', icon: MessageCircle, labelKey: 'dashboard.nav.feedback' },
 ];
 
