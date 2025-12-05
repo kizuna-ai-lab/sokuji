@@ -60,9 +60,9 @@ The codebase supports both Electron desktop app and Chrome/Edge browser extensio
 ### Key Architectural Components
 
 1. **Service Layer Pattern**
-   - `ServiceFactory` creates platform-specific implementations
+   - `ServiceFactory` creates platform-specific implementations with singleton caching
    - All services implement interfaces (IAudioService, ISettingsService)
-   - Platform detection: `window.electronAPI` indicates Electron environment
+   - Platform detection via `src/utils/environment.ts` utilities
 
 2. **AI Client Architecture**
    - `ClientFactory` creates provider-specific clients
@@ -81,9 +81,13 @@ The codebase supports both Electron desktop app and Chrome/Edge browser extensio
    - Unified audio service across all platforms with virtual device support in Electron (Linux only)
 
 4. **State Management**
-   - React Context API for global state
-   - Key contexts: AudioContext, SessionContext, SettingsContext, LogContext, OnboardingContext, AuthContext
-   - No external state management libraries
+   - **Zustand stores** in `src/stores/` for primary application state:
+     - `settingsStore.ts`: Provider settings, API keys, validation state, UI mode
+     - `sessionStore.ts`: Active session state and conversation items
+     - `audioStore.ts`: Audio device selection and playback state
+     - `logStore.ts`: Application logs and diagnostics
+   - React Context for specific features: OnboardingContext, UserProfileContext
+   - Zustand's `subscribeWithSelector` middleware for efficient re-renders
    - Backend-managed API key integration for authenticated providers
 
 5. **Audio Service Management**
@@ -94,29 +98,51 @@ The codebase supports both Electron desktop app and Chrome/Edge browser extensio
 ## Important Patterns and Conventions
 
 ### Code Organization
-- Components in `src/components/` - functional React components with TypeScript
-  - `SimpleConfigPanel/` - Streamlined 6-section configuration interface
-  - `SimpleMainPanel/` - Focused conversation view with session duration
-  - `Tooltip/` - Enhanced tooltip using @floating-ui/react
-  - `ConnectionStatus/` - Real-time connection status display
-- Services in `src/services/` - implement interface contracts
-- AI clients in `src/services/clients/` - provider-specific implementations
-- Audio modules in `src/lib/modern-audio/` - Web Audio API based (JavaScript, not TypeScript)
-- Provider configurations in `src/services/providers/` - provider-specific settings
+- `src/components/` - Functional React components with TypeScript
+- `src/stores/` - Zustand state management stores
+- `src/services/` - Service layer with interface contracts
+- `src/services/clients/` - AI provider client implementations
+- `src/services/providers/` - Provider-specific configurations
+- `src/lib/modern-audio/` - Web Audio API modules (JavaScript, not TypeScript)
+- `src/utils/` - Shared utilities including environment detection
+- `src/contexts/` - React Context providers (OnboardingContext, UserProfileContext)
 
 ### Error Handling
 - All API calls wrapped in try-catch blocks
-- Errors logged to LogContext for user visibility
+- Errors logged to logStore for user visibility via LogsPanel
 - Graceful degradation when features unavailable
 
 ### Platform-Specific Code
+Use centralized utilities from `src/utils/environment.ts`:
 ```typescript
-// Check if running in Electron
-if (window.electronAPI) {
+import { isElectron, isExtension, isWeb, getEnvironment } from '../utils/environment';
+
+// Preferred: use centralized detection
+if (isElectron()) {
   // Electron-specific code
-} else {
+} else if (isExtension()) {
   // Browser extension code
 }
+
+// Get backend URL (respects VITE_BACKEND_URL env var)
+import { getBackendUrl, getApiUrl } from '../utils/environment';
+const apiUrl = getApiUrl(); // https://sokuji.kizuna.ai/api
+```
+
+### Zustand Store Patterns
+```typescript
+// Using optimized selectors (preferred - prevents unnecessary re-renders)
+const provider = useProvider();
+const setProvider = useSetProvider();
+
+// Direct store access for multiple values
+const { provider, uiLanguage, uiMode } = useSettingsStore();
+
+// Subscribing to changes outside React
+useSettingsStore.subscribe(
+  (state) => state.provider,
+  (provider) => console.log('Provider changed:', provider)
+);
 ```
 
 ### Audio Handling
@@ -148,6 +174,11 @@ if (window.electronAPI) {
 - Base path relative for both Electron and extension
 - Source maps enabled for debugging
 
+### Environment Variables
+- `VITE_BACKEND_URL`: Backend API URL (default: `https://sokuji.kizuna.ai`)
+- `VITE_ENABLE_KIZUNA_AI`: Enable Kizuna AI provider in production (`true`/`false`)
+- Environment detection via `src/utils/environment.ts`
+
 ### TypeScript Configuration
 - Target ES2020
 - Strict mode enabled
@@ -163,10 +194,13 @@ if (window.electronAPI) {
 ## Dependencies
 
 ### Key Libraries
+- **zustand**: State management with `subscribeWithSelector` middleware
 - **@floating-ui/react**: Advanced tooltip positioning and floating elements
 - **i18next & react-i18next**: Internationalization framework
 - **openai-realtime-api**: OpenAI real-time API client (strongly-typed fork)
 - **@google/genai**: Google Gemini SDK
+- **livekit-client**: LiveKit SDK for Palabra AI WebRTC integration
+- **better-auth**: Authentication library for user sessions
 - **lucide-react**: Icon library
 - **ws**: WebSocket client for real-time communication
 
@@ -183,7 +217,9 @@ if (window.electronAPI) {
 2. Add provider config extending `ProviderConfig` in `src/services/providers/`
 3. Update `ClientFactory` to handle new provider
 4. Add provider to `Provider` enum in `src/types/Provider.ts`
-5. Update UI controls in SettingsPanel
+5. Add provider settings interface and defaults in `src/stores/settingsStore.ts`
+6. Update `ProviderConfigFactory` to register the new provider
+7. Update UI controls in SimpleConfigPanel
 
 ### Modifying Audio Pipeline
 1. Audio processing modules in `src/lib/modern-audio/` (JavaScript files)
@@ -211,52 +247,16 @@ if (window.electronAPI) {
 ## UI Components
 
 ### Simple Mode Components
-- **SimpleConfigPanel**: Unified 6-section configuration interface
-  - User Account - Authentication and backend-managed API key access
-  - Interface Language - UI language selection
-  - Translation Languages - source/target language pair selection
-  - API Key - provider authentication with real-time validation
-  - Microphone - input device selection with enhanced descriptions
-  - Speaker - output device selection with monitoring explanations
-  - Single scrollable layout replacing tabbed interface
-
-- **SimpleMainPanel**: Streamlined conversation interface
-  - Focus on conversation content display
-  - Real-time session duration tracking (MM:SS or HH:MM:SS format)
-  - Simplified footer with optimized control sizes
-  - Device status icons with clickable navigation to settings
-  - Maximum space for conversation history
-
-- **Enhanced Tooltip**: Interactive help system
-  - Powered by @floating-ui/react for accurate positioning
-  - Support for hover, click, and focus triggers
-  - FloatingPortal and FloatingArrow for proper rendering
-  - Comprehensive help text with provider links
-
-- **ConnectionStatus**: Visual connection indicator
-  - Real-time connection state display
-  - Color-coded status indicators
+- **SimpleConfigPanel**: 6-section configuration (account, language, translation, API key, mic, speaker)
+- **SimpleMainPanel**: Conversation view with session duration and device status
+- **Tooltip**: @floating-ui/react powered tooltips with hover/click/focus triggers
+- **ConnectionStatus**: Real-time connection state indicator
 
 ### UI Design System
-- **Color Scheme**:
-  - Input backgrounds: #333
-  - Borders: #444
-  - Primary action color: #10a37f
-  - Secondary action color: #444
-  - Error/Stop state: #e74c3c
-- **Typography**:
-  - Input fields: 14px
-  - Descriptions: 12px
-  - Footer controls: 12px (unified)
-  - Status text: 13px
-- **Icon Sizing**:
-  - Status indicators: 14px
-  - Action buttons: 16px
-- **Consistent Styling**:
-  - Unified dropdown styles with custom arrows
-  - Standardized padding and margins
-  - Consistent border-radius values (4px)
-  - Button height: 24px for optimal click targets
+- Dark theme with consistent styling across components
+- Primary action color: `#10a37f` (green), Error state: `#e74c3c` (red)
+- Component styles defined in colocated SCSS files (e.g., `SimpleConfigPanel.scss`)
+- Lucide React icons with consistent sizing (14-16px)
 
 ## Platform Requirements
 
