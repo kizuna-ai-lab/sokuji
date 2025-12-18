@@ -317,8 +317,8 @@ export class GeminiClient implements IClient {
           }
         }
       } : undefined,
-      inputAudioTranscription: true,
-      outputAudioTranscription: true,
+      inputAudioTranscription: {},
+      outputAudioTranscription: {},
       realtimeInputConfig: {
         activityHandling: ActivityHandling.NO_INTERRUPTION,
       }

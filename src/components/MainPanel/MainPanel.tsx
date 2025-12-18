@@ -1573,42 +1573,14 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                     // Handle different item types based on the ItemType structure
                     // from openai-realtime-api
 
-                    // For items with formatted property containing text
-                    if (item.formatted && item.formatted.text) {
-                      const isPlaying = playingItemId === item.id;
-                      const text = item.formatted.text;
-                      
-                      // Calculate highlighted characters based on playback progress
-                      const highlightedChars = isPlaying ? Math.floor(text.length * progressRatio) : 0;
-                      
-                      return (
-                        <div className="content-item text">
-                          <div className={`text-content ${isPlaying ? 'karaoke-active' : ''}`}>
-                            {isPlaying ? (
-                              <>
-                                <span className="karaoke-played">
-                                  {text.slice(0, highlightedChars)}
-                                </span>
-                                <span className="karaoke-unplayed">
-                                  {text.slice(highlightedChars)}
-                                </span>
-                              </>
-                            ) : (
-                              text
-                            )}
-                          </div>
-                        </div>
-                      );
-                    }
-
-                    // For items with formatted property containing transcript
+                    // For items with formatted property containing transcript (priority)
                     if (item.formatted && item.formatted.transcript) {
                       const isPlaying = playingItemId === item.id;
                       const transcript = item.formatted.transcript;
-                      
+
                       // Calculate highlighted characters based on playback progress
                       const highlightedChars = isPlaying ? Math.floor(transcript.length * progressRatio) : 0;
-                      
+
                       return (
                         <div className="content-item transcript">
                           <div className={`transcript-content ${isPlaying ? 'karaoke-active' : ''}`}>
@@ -1623,6 +1595,34 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                               </>
                             ) : (
                               transcript
+                            )}
+                          </div>
+                        </div>
+                      );
+                    }
+
+                    // For items with formatted property containing text (fallback)
+                    if (item.formatted && item.formatted.text) {
+                      const isPlaying = playingItemId === item.id;
+                      const text = item.formatted.text;
+
+                      // Calculate highlighted characters based on playback progress
+                      const highlightedChars = isPlaying ? Math.floor(text.length * progressRatio) : 0;
+
+                      return (
+                        <div className="content-item text">
+                          <div className={`text-content ${isPlaying ? 'karaoke-active' : ''}`}>
+                            {isPlaying ? (
+                              <>
+                                <span className="karaoke-played">
+                                  {text.slice(0, highlightedChars)}
+                                </span>
+                                <span className="karaoke-unplayed">
+                                  {text.slice(highlightedChars)}
+                                </span>
+                              </>
+                            ) : (
+                              text
                             )}
                           </div>
                         </div>
