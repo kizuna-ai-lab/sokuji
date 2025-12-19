@@ -271,7 +271,9 @@
     "advancedMode": "উন্নত",
     "basicMode": "বেসিক",
     "switchToAdvanced": "উন্নত মোডে স্যুইচ করুন",
-    "switchToBasic": "বেসিক মোডে স্যুইচ করুন"
+    "switchToBasic": "বেসিক মোডে স্যুইচ করুন",
+    "typeMessage": "অনুবাদ করতে টেক্সট...",
+    "send": "পাঠান"
   },
   "simplePanel": {
     "translationActive": "অনুবাদ সক্রিয়",
@@ -299,7 +301,9 @@
     "sessionDuration": "Duration",
     "clickToConfigLanguages": "ভাষা কনফিগার করতে ক্লিক করুন",
     "clickToConfigMicrophone": "মাইক্রোফোন কনফিগার করতে ক্লিক করুন",
-    "clickToConfigSpeaker": "স্পিকার কনফিগার করতে ক্লিক করুন"
+    "clickToConfigSpeaker": "স্পিকার কনফিগার করতে ক্লিক করুন",
+    "typeMessage": "অনুবাদ করতে টেক্সট...",
+    "send": "পাঠান"
   },
   "errors": {
     "microphoneAccess": "মাইক্রোফোন অ্যাক্সেস অস্বীকৃত",
@@ -460,7 +464,7 @@
     "emailPlaceholder": "your@email.com",
     "passwordPlaceholder": "আপনার পাসওয়ার্ড লিখুন",
     "namePlaceholder": "আপনার নাম",
-    "confirmPasswordPlaceholder": "আপনার পাসওয়ার্ড নিশ্চিত করুন",
+    "confirmPasswordPlaceholder": "নতুন পাসওয়ার্ড নিশ্চিত করুন",
     "passwordHint": "কমপক্ষে ৮ অক্ষর",
     "noAccount": "অ্যাকাউন্ট নেই?",
     "haveAccount": "ইতিমধ্যে অ্যাকাউন্ট আছে?",
@@ -502,8 +506,6 @@
     "verificationCode": "যাচাইকরণ কোড",
     "newPassword": "নতুন পাসওয়ার্ড",
     "newPasswordPlaceholder": "নতুন পাসওয়ার্ড লিখুন",
-    "confirmPassword": "পাসওয়ার্ড নিশ্চিত করুন",
-    "confirmPasswordPlaceholder": "নতুন পাসওয়ার্ড নিশ্চিত করুন",
     "passwordsDoNotMatch": "পাসওয়ার্ড মিলছে না",
     "invalidOTP": "অবৈধ যাচাইকরণ কোড। অনুগ্রহ করে পরীক্ষা করুন এবং আবার চেষ্টা করুন।",
     "otpExpired": "যাচাইকরণ কোডের মেয়াদ শেষ হয়ে গেছে। অনুগ্রহ করে একটি নতুন অনুরোধ করুন।",
@@ -512,8 +514,7 @@
     "backToSignIn": "সাইন ইনে ফিরে যান",
     "forgotPasswordError": "যাচাইকরণ কোড পাঠাতে ব্যর্থ। অনুগ্রহ করে আবার চেষ্টা করুন।",
     "resetPasswordError": "পাসওয়ার্ড রিসেট করতে ব্যর্থ। অনুগ্রহ করে আবার চেষ্টা করুন।"
-  }
-,
+  },
   "feedback": {
     "title": "Send Feedback",
     "description": "Report bugs, suggest features, or share your thoughts. We read every message!",

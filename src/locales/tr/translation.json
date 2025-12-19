@@ -91,7 +91,9 @@
     "modelsRequired": "Modeller gereklidir. Mevcut modelleri yüklemek için lütfen önce API anahtarınızı doğrulayın.",
     "modelsLoading": "Mevcut modeller yükleniyor, lütfen bekleyin...",
     "basicMode": "Temel",
-    "advancedMode": "Gelişmiş"
+    "advancedMode": "Gelişmiş",
+    "typeMessage": "Çevrilecek metin...",
+    "send": "Gönder"
   },
   "audioPanel": {
     "title": "Ses Ayarları",
@@ -326,7 +328,9 @@
     "sessionDuration": "Süre",
     "clickToConfigLanguages": "Dilleri yapılandırmak için tıklayın",
     "clickToConfigMicrophone": "Mikrofonu yapılandırmak için tıklayın",
-    "clickToConfigSpeaker": "Hoparlörü yapılandırmak için tıklayın"
+    "clickToConfigSpeaker": "Hoparlörü yapılandırmak için tıklayın",
+    "typeMessage": "Çevrilecek metin...",
+    "send": "Gönder"
   },
   "connectionStatus": {
     "disconnected": "Bağlantı kesildi",
@@ -373,7 +377,7 @@
     "emailPlaceholder": "your@email.com",
     "passwordPlaceholder": "Şifrenizi girin",
     "namePlaceholder": "Adınız",
-    "confirmPasswordPlaceholder": "Şifrenizi onaylayın",
+    "confirmPasswordPlaceholder": "Yeni şifreyi onaylayın",
     "passwordHint": "En az 8 karakter",
     "noAccount": "Hesabınız yok mu?",
     "haveAccount": "Zaten hesabınız var mı?",
@@ -415,8 +419,6 @@
     "verificationCode": "Doğrulama Kodu",
     "newPassword": "Yeni Şifre",
     "newPasswordPlaceholder": "Yeni şifre girin",
-    "confirmPassword": "Şifreyi Onayla",
-    "confirmPasswordPlaceholder": "Yeni şifreyi onaylayın",
     "passwordsDoNotMatch": "Şifreler eşleşmiyor",
     "invalidOTP": "Geçersiz doğrulama kodu. Lütfen kontrol edip tekrar deneyin.",
     "otpExpired": "Doğrulama kodunun süresi doldu. Lütfen yeni bir kod isteyin.",
@@ -425,8 +427,7 @@
     "backToSignIn": "Giriş Yap'a Dön",
     "forgotPasswordError": "Doğrulama kodu gönderilemedi. Lütfen tekrar deneyin.",
     "resetPasswordError": "Şifre sıfırlanamadı. Lütfen tekrar deneyin."
-  }
-,
+  },
   "feedback": {
     "title": "Send Feedback",
     "description": "Report bugs, suggest features, or share your thoughts. We read every message!",

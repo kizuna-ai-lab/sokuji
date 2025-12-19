@@ -93,7 +93,9 @@
     "sessionDuration": "ระยะเวลา",
     "clickToConfigLanguages": "คลิกเพื่อกำหนดค่าภาษา",
     "clickToConfigMicrophone": "คลิกเพื่อกำหนดค่าไมโครโฟน",
-    "clickToConfigSpeaker": "คลิกเพื่อกำหนดค่าลำโพง"
+    "clickToConfigSpeaker": "คลิกเพื่อกำหนดค่าลำโพง",
+    "typeMessage": "ข้อความที่จะแปล...",
+    "send": "ส่ง"
   },
   "connectionStatus": {
     "disconnected": "ตัดการเชื่อมต่อ",
@@ -169,7 +171,9 @@
     "modelsRequired": "จำเป็นต้องมีโมเดล กรุณาตรวจสอบคีย์ API ของคุณก่อนเพื่อโหลดโมเดลที่มีอยู่",
     "modelsLoading": "กำลังโหลดโมเดลที่มีอยู่ กรุณารอสักครู่...",
     "basicMode": "พื้นฐาน",
-    "advancedMode": "ขั้นสูง"
+    "advancedMode": "ขั้นสูง",
+    "typeMessage": "ข้อความที่จะแปล...",
+    "send": "ส่ง"
   },
   "audioPanel": {
     "title": "การตั้งค่าเสียง",
@@ -343,7 +347,7 @@
     "emailPlaceholder": "your@email.com",
     "passwordPlaceholder": "ใส่รหัสผ่าน",
     "namePlaceholder": "ชื่อของคุณ",
-    "confirmPasswordPlaceholder": "ยืนยันรหัสผ่าน",
+    "confirmPasswordPlaceholder": "ยืนยันรหัสผ่านใหม่",
     "passwordHint": "อย่างน้อย 8 ตัวอักษร",
     "noAccount": "ยังไม่มีบัญชี?",
     "haveAccount": "มีบัญชีอยู่แล้ว?",
@@ -379,7 +383,6 @@
     "verificationCode": "รหัสยืนยัน",
     "newPassword": "รหัสผ่านใหม่",
     "newPasswordPlaceholder": "ใส่รหัสผ่านใหม่",
-    "confirmPasswordPlaceholder": "ยืนยันรหัสผ่านใหม่",
     "passwordsDoNotMatch": "รหัสผ่านไม่ตรงกัน",
     "invalidOTP": "รหัสยืนยันไม่ถูกต้อง กรุณาตรวจสอบและลองใหม่",
     "otpExpired": "รหัสยืนยันหมดอายุแล้ว กรุณาขอรหัสใหม่",
@@ -388,8 +391,7 @@
     "backToSignIn": "กลับไปเข้าสู่ระบบ",
     "forgotPasswordError": "ไม่สามารถส่งรหัสยืนยันได้ กรุณาลองใหม่",
     "resetPasswordError": "ไม่สามารถรีเซ็ตรหัสผ่านได้ กรุณาลองใหม่"
-  }
-,
+  },
   "feedback": {
     "title": "Send Feedback",
     "description": "Report bugs, suggest features, or share your thoughts. We read every message!",

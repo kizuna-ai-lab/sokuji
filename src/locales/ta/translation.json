@@ -108,7 +108,9 @@
     "sessionDuration": "कालावधि",
     "clickToConfigLanguages": "மொழிகளை உள்ளமைக்க கிளிக் செய்யவும்",
     "clickToConfigMicrophone": "மைக்ரோஃபோனை உள்ளமைக்க கிளிக் செய்யவும்",
-    "clickToConfigSpeaker": "ஸ்பீக்கரை உள்ளமைக்க கிளிக் செய்யவும்"
+    "clickToConfigSpeaker": "ஸ்பீக்கரை உள்ளமைக்க கிளிக் செய்யவும்",
+    "typeMessage": "மொழிபெயர்க்க உரை...",
+    "send": "அனுப்பு"
   },
   "connectionStatus": {
     "disconnected": "துண்டிக்கப்பட்டது",
@@ -170,7 +172,9 @@
     "modelsRequired": "மாதிரிகள் தேவை. கிடைக்கும் மாதிரிகளை ஏற்றுவதற்கு முதலில் உங்கள் API விசையை சரிபார்க்கவும்.",
     "modelsLoading": "கிடைக்கும் மாதிரிகள் ஏற்றப்படுகின்றன, தயவுசெய்து காத்திருக்கவும்...",
     "basicMode": "அடிப்படை",
-    "advancedMode": "மேம்பட்ட"
+    "advancedMode": "மேம்பட்ட",
+    "typeMessage": "மொழிபெயர்க்க உரை...",
+    "send": "அனுப்பு"
   },
   "audioPanel": {
     "title": "ஆடியோ அமைப்புகள்",
@@ -338,7 +342,7 @@
     "emailPlaceholder": "your@email.com",
     "passwordPlaceholder": "உங்கள் கடவுச்சொல்லை உள்ளிடுங்கள்",
     "namePlaceholder": "உங்கள் பெயர்",
-    "confirmPasswordPlaceholder": "உங்கள் கடவுச்சொல்லை உறுதிப்படுத்துங்கள்",
+    "confirmPasswordPlaceholder": "புதிய கடவுச்சொல்லை உறுதிப்படுத்தவும்",
     "passwordHint": "குறைந்தது 8 எழுத்துக்கள்",
     "noAccount": "கணக்கு இல்லையா?",
     "haveAccount": "ஏற்கனவே கணக்கு உள்ளதா?",
@@ -380,8 +384,6 @@
     "verificationCode": "சரிபார்ப்பு குறியீடு",
     "newPassword": "புதிய கடவுச்சொல்",
     "newPasswordPlaceholder": "புதிய கடவுச்சொல்லை உள்ளிடவும்",
-    "confirmPassword": "கடவுச்சொல்லை உறுதிப்படுத்து",
-    "confirmPasswordPlaceholder": "புதிய கடவுச்சொல்லை உறுதிப்படுத்தவும்",
     "passwordsDoNotMatch": "கடவுச்சொற்கள் பொருந்தவில்லை",
     "invalidOTP": "தவறான சரிபார்ப்பு குறியீடு. தயவுசெய்து சரிபார்த்து மீண்டும் முயற்சிக்கவும்.",
     "otpExpired": "சரிபார்ப்பு குறியீட்டின் காலாவதி ஆகிவிட்டது. தயவுசெய்து புதியதைக் கோரவும்.",
@@ -390,8 +392,7 @@
     "backToSignIn": "உள்நுழைவுக்குத் திரும்பு",
     "forgotPasswordError": "சரிபார்ப்பு குறியீட்டை அனுப்ப முடியவில்லை. தயவுசெய்து மீண்டும் முயற்சிக்கவும்.",
     "resetPasswordError": "கடவுச்சொல்லை மீட்டமைக்க முடியவில்லை. தயவுசெய்து மீண்டும் முயற்சிக்கவும்."
-  }
-,
+  },
   "feedback": {
     "title": "Send Feedback",
     "description": "Report bugs, suggest features, or share your thoughts. We read every message!",

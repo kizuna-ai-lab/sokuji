@@ -193,7 +193,9 @@
     "modelsRequired": "Modelos são necessários. Por favor, valide sua chave da API primeiro para carregar os modelos disponíveis.",
     "modelsLoading": "Carregando modelos disponíveis, por favor aguarde...",
     "basicMode": "Básico",
-    "advancedMode": "Avançado"
+    "advancedMode": "Avançado",
+    "typeMessage": "Texto para traduzir...",
+    "send": "Enviar"
   },
   "errors": {
     "microphoneAccess": "Acesso ao microfone negado",
@@ -415,7 +417,9 @@
     "sessionDuration": "Duration",
     "clickToConfigLanguages": "Clique para configurar idiomas",
     "clickToConfigMicrophone": "Clique para configurar o microfone",
-    "clickToConfigSpeaker": "Clique para configurar o alto-falante"
+    "clickToConfigSpeaker": "Clique para configurar o alto-falante",
+    "typeMessage": "Texto para traduzir...",
+    "send": "Enviar"
   },
   "connectionStatus": {
     "disconnected": "Desconectado",
@@ -468,7 +472,7 @@
     "emailPlaceholder": "seu@email.com",
     "passwordPlaceholder": "Digite sua senha",
     "namePlaceholder": "Seu nome",
-    "confirmPasswordPlaceholder": "Confirme sua senha",
+    "confirmPasswordPlaceholder": "Confirme a nova senha",
     "passwordHint": "Pelo menos 8 caracteres",
     "noAccount": "Não tem uma conta?",
     "haveAccount": "Já tem uma conta?",
@@ -504,7 +508,6 @@
     "verificationCode": "Código de verificação",
     "newPassword": "Nova senha",
     "newPasswordPlaceholder": "Digite a nova senha",
-    "confirmPasswordPlaceholder": "Confirme a nova senha",
     "passwordsDoNotMatch": "As senhas não coincidem",
     "invalidOTP": "Código de verificação inválido. Verifique e tente novamente.",
     "otpExpired": "O código de verificação expirou. Solicite um novo.",
@@ -513,8 +516,7 @@
     "backToSignIn": "Voltar para entrar",
     "forgotPasswordError": "Falha ao enviar código de verificação. Tente novamente.",
     "resetPasswordError": "Falha ao redefinir senha. Tente novamente."
-  }
-,
+  },
   "feedback": {
     "title": "Send Feedback",
     "description": "Report bugs, suggest features, or share your thoughts. We read every message!",

@@ -196,7 +196,9 @@
     "modelsRequired": "Modelle sind erforderlich. Bitte validieren Sie zuerst Ihren API-Schlüssel, um verfügbare Modelle zu laden.",
     "modelsLoading": "Verfügbare Modelle werden geladen, bitte warten...",
     "basicMode": "Basis",
-    "advancedMode": "Erweitert"
+    "advancedMode": "Erweitert",
+    "typeMessage": "Text zum Übersetzen...",
+    "send": "Senden"
   },
   "errors": {
     "microphoneAccess": "Mikrofonzugriff verweigert",
@@ -418,7 +420,9 @@
     "sessionDuration": "Duration",
     "clickToConfigLanguages": "Klicken Sie, um Sprachen zu konfigurieren",
     "clickToConfigMicrophone": "Klicken Sie, um das Mikrofon zu konfigurieren",
-    "clickToConfigSpeaker": "Klicken Sie, um den Lautsprecher zu konfigurieren"
+    "clickToConfigSpeaker": "Klicken Sie, um den Lautsprecher zu konfigurieren",
+    "typeMessage": "Text zum Übersetzen...",
+    "send": "Senden"
   },
   "connectionStatus": {
     "disconnected": "Getrennt",
@@ -471,7 +475,7 @@
     "emailPlaceholder": "ihre@email.com",
     "passwordPlaceholder": "Passwort eingeben",
     "namePlaceholder": "Ihr Name",
-    "confirmPasswordPlaceholder": "Passwort bestätigen",
+    "confirmPasswordPlaceholder": "Neues Passwort bestätigen",
     "passwordHint": "Mindestens 8 Zeichen",
     "noAccount": "Noch kein Konto?",
     "haveAccount": "Bereits ein Konto?",
@@ -507,7 +511,6 @@
     "verificationCode": "Bestätigungscode",
     "newPassword": "Neues Passwort",
     "newPasswordPlaceholder": "Neues Passwort eingeben",
-    "confirmPasswordPlaceholder": "Neues Passwort bestätigen",
     "passwordsDoNotMatch": "Passwörter stimmen nicht überein",
     "invalidOTP": "Ungültiger Bestätigungscode. Bitte überprüfen und erneut versuchen.",
     "otpExpired": "Bestätigungscode ist abgelaufen. Bitte fordern Sie einen neuen an.",
@@ -516,8 +519,7 @@
     "backToSignIn": "Zurück zur Anmeldung",
     "forgotPasswordError": "Bestätigungscode konnte nicht gesendet werden. Bitte versuchen Sie es erneut.",
     "resetPasswordError": "Passwort konnte nicht zurückgesetzt werden. Bitte versuchen Sie es erneut."
-  }
-,
+  },
   "feedback": {
     "title": "Send Feedback",
     "description": "Report bugs, suggest features, or share your thoughts. We read every message!",

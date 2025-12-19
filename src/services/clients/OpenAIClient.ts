@@ -451,6 +451,18 @@ export class OpenAIClient implements IClient {
     this.client.appendInputAudio(audioData);
   }
 
+  appendInputText(text: string): void {
+    if (!text.trim()) {
+      console.warn('[OpenAIClient] Empty text input, ignoring');
+      return;
+    }
+
+    // Send user message content - the library auto-creates ConversationItem
+    this.client.sendUserMessageContent([
+      { type: 'input_text', text: text.trim() }
+    ]);
+  }
+
   createResponse(): void {
     this.client.createResponse();
   }

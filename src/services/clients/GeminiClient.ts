@@ -823,6 +823,37 @@ export class GeminiClient implements IClient {
     });
   }
 
+  appendInputText(text: string): void {
+    if (!this.session) {
+      console.warn('[GeminiClient] No active session for text input');
+      return;
+    }
+
+    if (!text.trim()) {
+      console.warn('[GeminiClient] Empty text input, ignoring');
+      return;
+    }
+
+    const trimmedText = text.trim();
+
+    // Create user conversation item (Gemini doesn't auto-track user messages)
+    const userItem: ConversationItem = {
+      id: this.generateItemId('user_text'),
+      role: 'user',
+      type: 'message',
+      status: 'completed',
+      formatted: {
+        text: trimmedText,
+        transcript: trimmedText
+      }
+    };
+    this.conversationItems.push(userItem);
+    this.eventHandlers.onConversationUpdated?.({ item: userItem });
+
+    // Send text via sendRealtimeInput
+    this.session.sendRealtimeInput({ text: trimmedText });
+  }
+
   private arrayBufferToBase64(buffer: ArrayBuffer): string {
     // Optimized base64 encoding - avoid string concatenation in loop
     const bytes = new Uint8Array(buffer);

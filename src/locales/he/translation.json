@@ -224,7 +224,9 @@
     "sessionDuration": "Duration",
     "clickToConfigLanguages": "לחץ כדי להגדיר שפות",
     "clickToConfigMicrophone": "לחץ כדי להגדיר מיקרופון",
-    "clickToConfigSpeaker": "לחץ כדי להגדיר רמקול"
+    "clickToConfigSpeaker": "לחץ כדי להגדיר רמקול",
+    "typeMessage": "טקסט לתרגום...",
+    "send": "שלח"
   },
   "connectionStatus": {
     "disconnected": "מנותק",
@@ -304,7 +306,9 @@
     "modelsRequired": "נדרשים מודלים. אנא אמת תחילה את מפתח ה-API שלך כדי לטעון מודלים זמינים.",
     "modelsLoading": "טוען מודלים זמינים, אנא המתן...",
     "basicMode": "בסיסי",
-    "advancedMode": "מתקדם"
+    "advancedMode": "מתקדם",
+    "typeMessage": "טקסט לתרגום...",
+    "send": "שלח"
   },
   "errors": {
     "microphoneAccess": "גישה למיקרופון נדחתה",
@@ -457,7 +461,7 @@
     "emailPlaceholder": "your@email.com",
     "passwordPlaceholder": "הזן את הסיסמה שלך",
     "namePlaceholder": "השם שלך",
-    "confirmPasswordPlaceholder": "אשר את הסיסמה שלך",
+    "confirmPasswordPlaceholder": "אשר את הסיסמה החדשה",
     "passwordHint": "לפחות 8 תווים",
     "noAccount": "אין לך חשבון?",
     "haveAccount": "כבר יש לך חשבון?",
@@ -499,8 +503,6 @@
     "verificationCode": "קוד אימות",
     "newPassword": "סיסמה חדשה",
     "newPasswordPlaceholder": "הזן סיסמה חדשה",
-    "confirmPassword": "אשר סיסמה",
-    "confirmPasswordPlaceholder": "אשר את הסיסמה החדשה",
     "passwordsDoNotMatch": "הסיסמאות אינן תואמות",
     "invalidOTP": "קוד אימות לא תקין. אנא בדוק ונסה שוב.",
     "otpExpired": "קוד האימות פג תוקף. אנא בקש קוד חדש.",
@@ -509,8 +511,7 @@
     "backToSignIn": "חזרה להתחברות",
     "forgotPasswordError": "שליחת קוד אימות נכשלה. אנא נסה שוב.",
     "resetPasswordError": "איפוס הסיסמה נכשל. אנא נסה שוב."
-  }
-,
+  },
   "feedback": {
     "title": "Send Feedback",
     "description": "Report bugs, suggest features, or share your thoughts. We read every message!",

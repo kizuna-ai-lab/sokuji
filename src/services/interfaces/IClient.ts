@@ -147,6 +147,9 @@ export interface IClient {
   
   // Audio input
   appendInputAudio(audioData: Int16Array): void;
+
+  // Text input
+  appendInputText(text: string): void;
   
   // Response generation
   createResponse(): void;

@@ -185,7 +185,9 @@
     "sessionDuration": "Duration",
     "clickToConfigLanguages": "I-click upang i-configure ang mga wika",
     "clickToConfigMicrophone": "I-click upang i-configure ang mikropono",
-    "clickToConfigSpeaker": "I-click upang i-configure ang speaker"
+    "clickToConfigSpeaker": "I-click upang i-configure ang speaker",
+    "typeMessage": "Teksto para isalin...",
+    "send": "Ipadala"
   },
   "connectionStatus": {
     "disconnected": "Nakadiskonekta",
@@ -205,7 +207,9 @@
     "modelsRequired": "Kailangan ang mga modelo. Mangyaring i-validate muna ang inyong API key upang ma-load ang mga available na modelo.",
     "modelsLoading": "Naglo-load ng mga available na modelo, mangyaring maghintay...",
     "basicMode": "Pangunahin",
-    "advancedMode": "Advanced"
+    "advancedMode": "Advanced",
+    "typeMessage": "Teksto para isalin...",
+    "send": "Ipadala"
   },
   "audioPanel": {
     "title": "Mga Setting ng Audio",
@@ -373,7 +377,7 @@
     "emailPlaceholder": "iyong@email.com",
     "passwordPlaceholder": "Ilagay ang iyong password",
     "namePlaceholder": "Iyong pangalan",
-    "confirmPasswordPlaceholder": "Kumpirmahin ang iyong password",
+    "confirmPasswordPlaceholder": "Kumpirmahin ang bagong password",
     "passwordHint": "Hindi bababa sa 8 karakter",
     "noAccount": "Wala pang account?",
     "haveAccount": "May account na?",
@@ -415,8 +419,6 @@
     "verificationCode": "Verification Code",
     "newPassword": "Bagong Password",
     "newPasswordPlaceholder": "Ilagay ang bagong password",
-    "confirmPassword": "Kumpirmahin ang Password",
-    "confirmPasswordPlaceholder": "Kumpirmahin ang bagong password",
     "passwordsDoNotMatch": "Hindi magkatugma ang mga password",
     "invalidOTP": "Hindi valid ang verification code. Pakisuri at subukang muli.",
     "otpExpired": "Nag-expire na ang verification code. Pakihingi ng bago.",
@@ -425,8 +427,7 @@
     "backToSignIn": "Bumalik sa Pag-sign In",
     "forgotPasswordError": "Hindi naipadala ang verification code. Pakisubukang muli.",
     "resetPasswordError": "Hindi na-reset ang password. Pakisubukang muli."
-  }
-,
+  },
   "feedback": {
     "title": "Send Feedback",
     "description": "Report bugs, suggest features, or share your thoughts. We read every message!",

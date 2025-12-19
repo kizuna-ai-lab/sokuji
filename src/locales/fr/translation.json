@@ -196,7 +196,9 @@
     "modelsRequired": "Des modèles sont requis. Veuillez d'abord valider votre clé API pour charger les modèles disponibles.",
     "modelsLoading": "Chargement des modèles disponibles, veuillez patienter...",
     "basicMode": "Basique",
-    "advancedMode": "Avancé"
+    "advancedMode": "Avancé",
+    "typeMessage": "Texte à traduire...",
+    "send": "Envoyer"
   },
   "errors": {
     "microphoneAccess": "Accès au microphone refusé",
@@ -418,7 +420,9 @@
     "sessionDuration": "Duration",
     "clickToConfigLanguages": "Cliquez pour configurer les langues",
     "clickToConfigMicrophone": "Cliquez pour configurer le microphone",
-    "clickToConfigSpeaker": "Cliquez pour configurer le haut-parleur"
+    "clickToConfigSpeaker": "Cliquez pour configurer le haut-parleur",
+    "typeMessage": "Texte à traduire...",
+    "send": "Envoyer"
   },
   "connectionStatus": {
     "disconnected": "Déconnecté",
@@ -471,7 +475,7 @@
     "emailPlaceholder": "votre@email.com",
     "passwordPlaceholder": "Entrez votre mot de passe",
     "namePlaceholder": "Votre nom",
-    "confirmPasswordPlaceholder": "Confirmez votre mot de passe",
+    "confirmPasswordPlaceholder": "Confirmez le nouveau mot de passe",
     "passwordHint": "Au moins 8 caractères",
     "noAccount": "Vous n'avez pas de compte ?",
     "haveAccount": "Vous avez déjà un compte ?",
@@ -507,7 +511,6 @@
     "verificationCode": "Code de vérification",
     "newPassword": "Nouveau mot de passe",
     "newPasswordPlaceholder": "Entrez le nouveau mot de passe",
-    "confirmPasswordPlaceholder": "Confirmez le nouveau mot de passe",
     "passwordsDoNotMatch": "Les mots de passe ne correspondent pas",
     "invalidOTP": "Code de vérification invalide. Veuillez vérifier et réessayer.",
     "otpExpired": "Le code de vérification a expiré. Veuillez en demander un nouveau.",
@@ -516,8 +519,7 @@
     "backToSignIn": "Retour à la connexion",
     "forgotPasswordError": "Échec de l'envoi du code de vérification. Veuillez réessayer.",
     "resetPasswordError": "Échec de la réinitialisation du mot de passe. Veuillez réessayer."
-  }
-,
+  },
   "feedback": {
     "title": "Send Feedback",
     "description": "Report bugs, suggest features, or share your thoughts. We read every message!",

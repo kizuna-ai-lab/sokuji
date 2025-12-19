@@ -400,7 +400,9 @@
     "advancedMode": "Advanced",
     "basicMode": "Basic",
     "switchToAdvanced": "Switch to advanced mode",
-    "switchToBasic": "Switch to basic mode"
+    "switchToBasic": "Switch to basic mode",
+    "typeMessage": "Text to translate...",
+    "send": "Send"
   },
   "simplePanel": {
     "clickToConfigLanguages": "Click to configure languages",
@@ -427,7 +429,9 @@
     "connecting": "Connecting...",
     "stop": "Stop",
     "start": "Start",
-    "sessionDuration": "Duration"
+    "sessionDuration": "Duration",
+    "typeMessage": "Text to translate...",
+    "send": "Send"
   },
   "errors": {
     "microphoneAccess": "Microphone access denied",

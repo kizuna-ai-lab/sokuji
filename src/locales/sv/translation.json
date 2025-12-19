@@ -69,7 +69,9 @@
     "modelsRequired": "Modeller krävs. Vänligen validera din API-nyckel först för att ladda tillgängliga modeller.",
     "modelsLoading": "Laddar tillgängliga modeller, vänligen vänta...",
     "basicMode": "Grundläggande",
-    "advancedMode": "Avancerad"
+    "advancedMode": "Avancerad",
+    "typeMessage": "Text att översätta...",
+    "send": "Skicka"
   },
   "audioPanel": {
     "title": "Ljudinställningar",
@@ -309,7 +311,9 @@
     "sessionDuration": "Varaktighet",
     "clickToConfigLanguages": "Klicka för att konfigurera språk",
     "clickToConfigMicrophone": "Klicka för att konfigurera mikrofon",
-    "clickToConfigSpeaker": "Klicka för att konfigurera högtalare"
+    "clickToConfigSpeaker": "Klicka för att konfigurera högtalare",
+    "typeMessage": "Text att översätta...",
+    "send": "Skicka"
   },
   "connectionStatus": {
     "disconnected": "Frånkopplad",
@@ -362,7 +366,7 @@
     "emailPlaceholder": "din@email.com",
     "passwordPlaceholder": "Ange ditt lösenord",
     "namePlaceholder": "Ditt namn",
-    "confirmPasswordPlaceholder": "Bekräfta ditt lösenord",
+    "confirmPasswordPlaceholder": "Bekräfta nytt lösenord",
     "passwordHint": "Minst 8 tecken",
     "noAccount": "Har du inget konto?",
     "haveAccount": "Har du redan ett konto?",
@@ -398,7 +402,6 @@
     "verificationCode": "Verifieringskod",
     "newPassword": "Nytt lösenord",
     "newPasswordPlaceholder": "Ange nytt lösenord",
-    "confirmPasswordPlaceholder": "Bekräfta nytt lösenord",
     "passwordsDoNotMatch": "Lösenorden matchar inte",
     "invalidOTP": "Ogiltig verifieringskod. Kontrollera och försök igen.",
     "otpExpired": "Verifieringskoden har gått ut. Begär en ny.",
@@ -407,8 +410,7 @@
     "backToSignIn": "Tillbaka till inloggning",
     "forgotPasswordError": "Kunde inte skicka verifieringskod. Försök igen.",
     "resetPasswordError": "Kunde inte återställa lösenord. Försök igen."
-  }
-,
+  },
   "feedback": {
     "title": "Send Feedback",
     "description": "Report bugs, suggest features, or share your thoughts. We read every message!",

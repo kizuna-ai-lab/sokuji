@@ -193,7 +193,9 @@
     "modelsRequired": "Sono richiesti modelli. Per favore valida prima la tua chiave API per caricare i modelli disponibili.",
     "modelsLoading": "Caricamento modelli disponibili, attendere prego...",
     "basicMode": "Base",
-    "advancedMode": "Avanzato"
+    "advancedMode": "Avanzato",
+    "typeMessage": "Testo da tradurre...",
+    "send": "Invia"
   },
   "errors": {
     "microphoneAccess": "Accesso al microfono negato",
@@ -415,7 +417,9 @@
     "sessionDuration": "Duration",
     "clickToConfigLanguages": "Clicca per configurare le lingue",
     "clickToConfigMicrophone": "Clicca per configurare il microfono",
-    "clickToConfigSpeaker": "Clicca per configurare l'altoparlante"
+    "clickToConfigSpeaker": "Clicca per configurare l'altoparlante",
+    "typeMessage": "Testo da tradurre...",
+    "send": "Invia"
   },
   "connectionStatus": {
     "disconnected": "Disconnesso",
@@ -468,7 +472,7 @@
     "emailPlaceholder": "tua@email.com",
     "passwordPlaceholder": "Inserisci la tua password",
     "namePlaceholder": "Il tuo nome",
-    "confirmPasswordPlaceholder": "Conferma la tua password",
+    "confirmPasswordPlaceholder": "Conferma la nuova password",
     "passwordHint": "Almeno 8 caratteri",
     "noAccount": "Non hai un account?",
     "haveAccount": "Hai già un account?",
@@ -504,7 +508,6 @@
     "verificationCode": "Codice di verifica",
     "newPassword": "Nuova password",
     "newPasswordPlaceholder": "Inserisci la nuova password",
-    "confirmPasswordPlaceholder": "Conferma la nuova password",
     "passwordsDoNotMatch": "Le password non corrispondono",
     "invalidOTP": "Codice di verifica non valido. Controlla e riprova.",
     "otpExpired": "Il codice di verifica è scaduto. Richiedine uno nuovo.",
@@ -513,8 +516,7 @@
     "backToSignIn": "Torna all'accesso",
     "forgotPasswordError": "Impossibile inviare il codice di verifica. Riprova.",
     "resetPasswordError": "Impossibile reimpostare la password. Riprova."
-  }
-,
+  },
   "feedback": {
     "title": "Send Feedback",
     "description": "Report bugs, suggest features, or share your thoughts. We read every message!",
