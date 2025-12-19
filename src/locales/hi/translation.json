@@ -188,7 +188,9 @@
     "sessionDuration": "Duration",
     "clickToConfigLanguages": "भाषाओं को कॉन्फ़िगर करने के लिए क्लिक करें",
     "clickToConfigMicrophone": "माइक्रोफ़ोन कॉन्फ़िगर करने के लिए क्लिक करें",
-    "clickToConfigSpeaker": "स्पीकर कॉन्फ़िगर करने के लिए क्लिक करें"
+    "clickToConfigSpeaker": "स्पीकर कॉन्फ़िगर करने के लिए क्लिक करें",
+    "typeMessage": "अनुवाद के लिए टेक्स्ट...",
+    "send": "भेजें"
   },
   "connectionStatus": {
     "disconnected": "डिस्कनेक्टेड",
@@ -208,7 +210,9 @@
     "modelsRequired": "मॉडल आवश्यक हैं। उपलब्ध मॉडल लोड करने के लिए कृपया पहले अपनी API कुंजी को सत्यापित करें।",
     "modelsLoading": "उपलब्ध मॉडल लोड हो रहे हैं, कृपया प्रतीक्षा करें...",
     "basicMode": "बेसिक",
-    "advancedMode": "उन्नत"
+    "advancedMode": "उन्नत",
+    "typeMessage": "अनुवाद के लिए टेक्स्ट...",
+    "send": "भेजें"
   },
   "audioPanel": {
     "title": "ऑडियो सेटिंग्स",
@@ -378,7 +382,7 @@
     "emailPlaceholder": "your@email.com",
     "passwordPlaceholder": "अपना पासवर्ड दर्ज करें",
     "namePlaceholder": "आपका नाम",
-    "confirmPasswordPlaceholder": "अपने पासवर्ड की पुष्टि करें",
+    "confirmPasswordPlaceholder": "नए पासवर्ड की पुष्टि करें",
     "passwordHint": "कम से कम 8 अक्षर",
     "noAccount": "खाता नहीं है?",
     "haveAccount": "पहले से खाता है?",
@@ -420,8 +424,6 @@
     "verificationCode": "सत्यापन कोड",
     "newPassword": "नया पासवर्ड",
     "newPasswordPlaceholder": "नया पासवर्ड दर्ज करें",
-    "confirmPassword": "पासवर्ड की पुष्टि करें",
-    "confirmPasswordPlaceholder": "नए पासवर्ड की पुष्टि करें",
     "passwordsDoNotMatch": "पासवर्ड मेल नहीं खाते",
     "invalidOTP": "अमान्य सत्यापन कोड। कृपया जांचें और पुनः प्रयास करें।",
     "otpExpired": "सत्यापन कोड समाप्त हो गया है। कृपया एक नया अनुरोध करें।",
@@ -430,8 +432,7 @@
     "backToSignIn": "साइन इन पर वापस जाएं",
     "forgotPasswordError": "सत्यापन कोड भेजने में विफल। कृपया पुनः प्रयास करें।",
     "resetPasswordError": "पासवर्ड रीसेट करने में विफल। कृपया पुनः प्रयास करें।"
-  }
-,
+  },
   "feedback": {
     "title": "Send Feedback",
     "description": "Report bugs, suggest features, or share your thoughts. We read every message!",

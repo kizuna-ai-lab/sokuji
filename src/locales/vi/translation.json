@@ -93,7 +93,9 @@
     "modelsRequired": "Cần có các mô hình. Vui lòng xác thực khóa API của bạn trước để tải các mô hình có sẵn.",
     "modelsLoading": "Đang tải các mô hình có sẵn, vui lòng đợi...",
     "basicMode": "Cơ bản",
-    "advancedMode": "Nâng cao"
+    "advancedMode": "Nâng cao",
+    "typeMessage": "Văn bản cần dịch...",
+    "send": "Gửi"
   },
   "audioPanel": {
     "title": "Cài đặt âm thanh",
@@ -328,7 +330,9 @@
     "sessionDuration": "Thời lượng",
     "clickToConfigLanguages": "Nhấp để cấu hình ngôn ngữ",
     "clickToConfigMicrophone": "Nhấp để cấu hình microphone",
-    "clickToConfigSpeaker": "Nhấp để cấu hình loa"
+    "clickToConfigSpeaker": "Nhấp để cấu hình loa",
+    "typeMessage": "Văn bản cần dịch...",
+    "send": "Gửi"
   },
   "connectionStatus": {
     "disconnected": "Mất kết nối",
@@ -381,7 +385,7 @@
     "emailPlaceholder": "your@email.com",
     "passwordPlaceholder": "Nhập mật khẩu",
     "namePlaceholder": "Tên của bạn",
-    "confirmPasswordPlaceholder": "Xác nhận mật khẩu",
+    "confirmPasswordPlaceholder": "Xác nhận mật khẩu mới",
     "passwordHint": "Ít nhất 8 ký tự",
     "noAccount": "Chưa có tài khoản?",
     "haveAccount": "Đã có tài khoản?",
@@ -417,7 +421,6 @@
     "verificationCode": "Mã xác minh",
     "newPassword": "Mật khẩu mới",
     "newPasswordPlaceholder": "Nhập mật khẩu mới",
-    "confirmPasswordPlaceholder": "Xác nhận mật khẩu mới",
     "passwordsDoNotMatch": "Mật khẩu không khớp",
     "invalidOTP": "Mã xác minh không hợp lệ. Vui lòng kiểm tra và thử lại.",
     "otpExpired": "Mã xác minh đã hết hạn. Vui lòng yêu cầu mã mới.",
@@ -426,8 +429,7 @@
     "backToSignIn": "Quay lại đăng nhập",
     "forgotPasswordError": "Không thể gửi mã xác minh. Vui lòng thử lại.",
     "resetPasswordError": "Không thể đặt lại mật khẩu. Vui lòng thử lại."
-  }
-,
+  },
   "feedback": {
     "title": "Send Feedback",
     "description": "Report bugs, suggest features, or share your thoughts. We read every message!",

@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { Mic, MicOff, Volume2, VolumeX, Loader, MessageSquare } from 'lucide-react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { Mic, MicOff, Volume2, VolumeX, Loader, MessageSquare, Send } from 'lucide-react';
 import './SimpleMainPanel.scss';
 import {
   useProvider,
@@ -32,6 +32,9 @@ interface SimpleMainPanelProps {
     duration: number;
     bufferedTime: number;
   } | null;
+  // Text input props
+  supportsTextInput: boolean;
+  onSendText: (text: string) => void;
 }
 
 const SimpleMainPanel: React.FC<SimpleMainPanelProps> = React.memo(({
@@ -45,12 +48,37 @@ const SimpleMainPanel: React.FC<SimpleMainPanelProps> = React.memo(({
   onStartRecording,
   onStopRecording,
   playingItemId,
-  playbackProgress
+  playbackProgress,
+  supportsTextInput,
+  onSendText
 }) => {
   const { t } = useTranslation();
   const conversationContainerRef = useRef<HTMLDivElement>(null);
   const [sessionDuration, setSessionDuration] = useState<string>('00:00');
-  
+
+  // Text input state
+  const [textInput, setTextInput] = useState('');
+  const [isSendingText, setIsSendingText] = useState(false);
+
+  // Text input handlers
+  const handleTextSubmit = useCallback(() => {
+    if (!textInput.trim() || !isSessionActive || isSendingText) return;
+
+    setIsSendingText(true);
+    onSendText(textInput.trim());
+    setTextInput('');
+
+    // Brief delay before allowing next submission
+    setTimeout(() => setIsSendingText(false), 300);
+  }, [textInput, isSessionActive, isSendingText, onSendText]);
+
+  const handleTextKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleTextSubmit();
+    }
+  }, [handleTextSubmit]);
+
   // Settings from store
   const provider = useProvider();
   const isApiKeyValid = useIsApiKeyValid();
@@ -160,6 +188,13 @@ const SimpleMainPanel: React.FC<SimpleMainPanelProps> = React.memo(({
     if (!isSessionActive || !canPushToTalk || !isInputDeviceOn) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Skip if focus is on an input element (e.g., text input field)
+      const activeElement = document.activeElement;
+      const isInputFocused = activeElement?.tagName === 'INPUT' ||
+                             activeElement?.tagName === 'TEXTAREA' ||
+                             activeElement?.getAttribute('contenteditable') === 'true';
+      if (isInputFocused) return;
+
       if (e.code === 'Space' && !e.repeat) {
         e.preventDefault();
         onStartRecording();
@@ -167,6 +202,13 @@ const SimpleMainPanel: React.FC<SimpleMainPanelProps> = React.memo(({
     };
 
     const handleKeyUp = (e: KeyboardEvent) => {
+      // Skip if focus is on an input element (e.g., text input field)
+      const activeElement = document.activeElement;
+      const isInputFocused = activeElement?.tagName === 'INPUT' ||
+                             activeElement?.tagName === 'TEXTAREA' ||
+                             activeElement?.getAttribute('contenteditable') === 'true';
+      if (isInputFocused) return;
+
       if (e.code === 'Space') {
         e.preventDefault();
         onStopRecording();
@@ -229,6 +271,32 @@ const SimpleMainPanel: React.FC<SimpleMainPanelProps> = React.memo(({
           </div>
         )}
       </div>
+
+      {/* Text Input Section */}
+      {isSessionActive && supportsTextInput && (
+        <div className="text-input-section">
+          <div className="text-input-container">
+            <input
+              type="text"
+              className="text-input"
+              placeholder={t('simplePanel.typeMessage', 'Text to translate...')}
+              value={textInput}
+              onChange={(e) => setTextInput(e.target.value)}
+              onKeyDown={handleTextKeyDown}
+              maxLength={1000}
+            />
+            <button
+              className={`send-btn ${!textInput.trim() ? 'disabled' : ''}`}
+              onClick={handleTextSubmit}
+              onMouseDown={(e) => e.preventDefault()}
+              disabled={!textInput.trim() || isSendingText}
+              title={t('simplePanel.send', 'Send')}
+            >
+              <Send size={16} />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Control Footer */}
       <div className="control-footer">

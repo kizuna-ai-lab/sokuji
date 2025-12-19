@@ -174,7 +174,9 @@
     "modelsRequired": "Modellen zijn vereist. Valideer eerst uw API-sleutel om beschikbare modellen te laden.",
     "modelsLoading": "Beschikbare modellen laden, even geduld...",
     "basicMode": "Basis",
-    "advancedMode": "Geavanceerd"
+    "advancedMode": "Geavanceerd",
+    "typeMessage": "Te vertalen tekst...",
+    "send": "Verzenden"
   },
   "errors": {
     "microphoneAccess": "Microfoon toegang geweigerd",
@@ -394,7 +396,9 @@
     "sessionDuration": "Duration",
     "clickToConfigLanguages": "Klik om talen te configureren",
     "clickToConfigMicrophone": "Klik om de microfoon te configureren",
-    "clickToConfigSpeaker": "Klik om de luidspreker te configureren"
+    "clickToConfigSpeaker": "Klik om de luidspreker te configureren",
+    "typeMessage": "Te vertalen tekst...",
+    "send": "Verzenden"
   },
   "connectionStatus": {
     "disconnected": "Verbinding verbroken",
@@ -447,7 +451,7 @@
     "emailPlaceholder": "jouw@email.com",
     "passwordPlaceholder": "Voer je wachtwoord in",
     "namePlaceholder": "Je naam",
-    "confirmPasswordPlaceholder": "Bevestig je wachtwoord",
+    "confirmPasswordPlaceholder": "Bevestig nieuw wachtwoord",
     "passwordHint": "Minimaal 8 tekens",
     "noAccount": "Heb je geen account?",
     "haveAccount": "Heb je al een account?",
@@ -483,7 +487,6 @@
     "verificationCode": "Verificatiecode",
     "newPassword": "Nieuw wachtwoord",
     "newPasswordPlaceholder": "Voer nieuw wachtwoord in",
-    "confirmPasswordPlaceholder": "Bevestig nieuw wachtwoord",
     "passwordsDoNotMatch": "Wachtwoorden komen niet overeen",
     "invalidOTP": "Ongeldige verificatiecode. Controleer en probeer opnieuw.",
     "otpExpired": "Verificatiecode is verlopen. Vraag een nieuwe aan.",
@@ -492,8 +495,7 @@
     "backToSignIn": "Terug naar inloggen",
     "forgotPasswordError": "Kon verificatiecode niet verzenden. Probeer het opnieuw.",
     "resetPasswordError": "Kon wachtwoord niet resetten. Probeer het opnieuw."
-  }
-,
+  },
   "feedback": {
     "title": "Send Feedback",
     "description": "Report bugs, suggest features, or share your thoughts. We read every message!",

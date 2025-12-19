@@ -207,7 +207,9 @@
     "sessionDuration": "Duration",
     "clickToConfigLanguages": "Clique para configurar idiomas",
     "clickToConfigMicrophone": "Clique para configurar o microfone",
-    "clickToConfigSpeaker": "Clique para configurar o altifalante"
+    "clickToConfigSpeaker": "Clique para configurar o altifalante",
+    "typeMessage": "Texto para traduzir...",
+    "send": "Enviar"
   },
   "connectionStatus": {
     "disconnected": "Desligado",
@@ -287,7 +289,9 @@
     "modelsRequired": "São necessários modelos. Por favor, valide primeiro a sua chave da API para carregar os modelos disponíveis.",
     "modelsLoading": "A carregar modelos disponíveis, por favor aguarde...",
     "basicMode": "Básico",
-    "advancedMode": "Avançado"
+    "advancedMode": "Avançado",
+    "typeMessage": "Texto para traduzir...",
+    "send": "Enviar"
   },
   "errors": {
     "microphoneAccess": "Acesso ao microfone negado",
@@ -446,7 +450,7 @@
     "emailPlaceholder": "seu@email.com",
     "passwordPlaceholder": "Introduza a sua palavra-passe",
     "namePlaceholder": "O seu nome",
-    "confirmPasswordPlaceholder": "Confirme a sua palavra-passe",
+    "confirmPasswordPlaceholder": "Confirme a nova palavra-passe",
     "passwordHint": "Pelo menos 8 caracteres",
     "noAccount": "Não tem uma conta?",
     "haveAccount": "Já tem uma conta?",
@@ -482,7 +486,6 @@
     "verificationCode": "Código de verificação",
     "newPassword": "Nova palavra-passe",
     "newPasswordPlaceholder": "Introduza a nova palavra-passe",
-    "confirmPasswordPlaceholder": "Confirme a nova palavra-passe",
     "passwordsDoNotMatch": "As palavras-passe não coincidem",
     "invalidOTP": "Código de verificação inválido. Verifique e tente novamente.",
     "otpExpired": "O código de verificação expirou. Solicite um novo.",
@@ -491,8 +494,7 @@
     "backToSignIn": "Voltar para iniciar sessão",
     "forgotPasswordError": "Falha ao enviar código de verificação. Tente novamente.",
     "resetPasswordError": "Falha ao redefinir palavra-passe. Tente novamente."
-  }
-,
+  },
   "feedback": {
     "title": "Send Feedback",
     "description": "Report bugs, suggest features, or share your thoughts. We read every message!",

@@ -93,7 +93,9 @@
     "sessionDuration": "కాలవధి",
     "clickToConfigLanguages": "భాషలను కాన్ఫిగర్ చేయడానికి క్లిక్ చేయండి",
     "clickToConfigMicrophone": "మైక్రోఫోన్‌ను కాన్ఫిగర్ చేయడానికి క్లిక్ చేయండి",
-    "clickToConfigSpeaker": "స్పీకర్‌ను కాన్ఫిగర్ చేయడానికి క్లిక్ చేయండి"
+    "clickToConfigSpeaker": "స్పీకర్‌ను కాన్ఫిగర్ చేయడానికి క్లిక్ చేయండి",
+    "typeMessage": "అనువదించడానికి టెక్స్ట్...",
+    "send": "పంపు"
   },
   "connectionStatus": {
     "disconnected": "విచ్ఛేదించబడింది",
@@ -152,7 +154,9 @@
     "modelsRequired": "మోడల్స్ అవసరం. అందుబాటులో ఉన్న మోడల్స్‌ను లోడ్ చేయడానికి దయచేసి మొదట మీ API కీని ధృవీకరించండి.",
     "modelsLoading": "అందుబాటులో ఉన్న మోడల్స్‌ను లోడ్ చేస్తోంది, దయచేసి వేచి ఉండండి...",
     "basicMode": "ప్రాథమిక",
-    "advancedMode": "అధునాతన"
+    "advancedMode": "అధునాతన",
+    "typeMessage": "అనువదించడానికి టెక్స్ట్...",
+    "send": "పంపు"
   },
   "audioPanel": {
     "title": "ఆడియో సెట్టింగ్‌లు",
@@ -320,7 +324,7 @@
     "emailPlaceholder": "your@email.com",
     "passwordPlaceholder": "మీ పాస్వర్డ్ నమోదు చేయండి",
     "namePlaceholder": "మీ పేరు",
-    "confirmPasswordPlaceholder": "మీ పాస్వర్డ్ నిర్ధారించండి",
+    "confirmPasswordPlaceholder": "కొత్త పాస్వర్డ్ నిర్ధారించండి",
     "passwordHint": "కనీసం 8 అక్షరాలు",
     "noAccount": "ఖాతా లేదా?",
     "haveAccount": "ఇప్పటికే ఖాతా ఉందా?",
@@ -362,8 +366,6 @@
     "verificationCode": "ధృవీకరణ కోడ్",
     "newPassword": "కొత్త పాస్వర్డ్",
     "newPasswordPlaceholder": "కొత్త పాస్వర్డ్ నమోదు చేయండి",
-    "confirmPassword": "పాస్వర్డ్ నిర్ధారించండి",
-    "confirmPasswordPlaceholder": "కొత్త పాస్వర్డ్ నిర్ధారించండి",
     "passwordsDoNotMatch": "పాస్వర్డ్‌లు సరిపోలడం లేదు",
     "invalidOTP": "చెల్లని ధృవీకరణ కోడ్. దయచేసి తనిఖీ చేసి మళ్ళీ ప్రయత్నించండి.",
     "otpExpired": "ధృవీకరణ కోడ్ గడువు ముగిసింది. దయచేసి కొత్తది అభ్యర్థించండి.",
@@ -372,8 +374,7 @@
     "backToSignIn": "సైన్ ఇన్‌కు తిరిగి వెళ్ళండి",
     "forgotPasswordError": "ధృవీకరణ కోడ్ పంపడంలో విఫలమైంది. దయచేసి మళ్ళీ ప్రయత్నించండి.",
     "resetPasswordError": "పాస్వర్డ్ రీసెట్ చేయడంలో విఫలమైంది. దయచేసి మళ్ళీ ప్రయత్నించండి."
-  }
-,
+  },
   "feedback": {
     "title": "Send Feedback",
     "description": "Report bugs, suggest features, or share your thoughts. We read every message!",

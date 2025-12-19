@@ -196,7 +196,9 @@
     "modelsRequired": "Se requieren modelos. Por favor, valide su clave API primero para cargar los modelos disponibles.",
     "modelsLoading": "Cargando modelos disponibles, por favor espere...",
     "basicMode": "Básico",
-    "advancedMode": "Avanzado"
+    "advancedMode": "Avanzado",
+    "typeMessage": "Texto a traducir...",
+    "send": "Enviar"
   },
   "errors": {
     "microphoneAccess": "Acceso al micrófono denegado",
@@ -418,7 +420,9 @@
     "sessionDuration": "Duration",
     "clickToConfigLanguages": "Haz clic para configurar idiomas",
     "clickToConfigMicrophone": "Haz clic para configurar el micrófono",
-    "clickToConfigSpeaker": "Haz clic para configurar el altavoz"
+    "clickToConfigSpeaker": "Haz clic para configurar el altavoz",
+    "typeMessage": "Texto a traducir...",
+    "send": "Enviar"
   },
   "connectionStatus": {
     "disconnected": "Desconectado",
@@ -471,7 +475,7 @@
     "emailPlaceholder": "tu@correo.com",
     "passwordPlaceholder": "Ingresa tu contraseña",
     "namePlaceholder": "Tu nombre",
-    "confirmPasswordPlaceholder": "Confirma tu contraseña",
+    "confirmPasswordPlaceholder": "Confirma la nueva contraseña",
     "passwordHint": "Al menos 8 caracteres",
     "noAccount": "¿No tienes una cuenta?",
     "haveAccount": "¿Ya tienes una cuenta?",
@@ -507,7 +511,6 @@
     "verificationCode": "Código de verificación",
     "newPassword": "Nueva contraseña",
     "newPasswordPlaceholder": "Ingresa la nueva contraseña",
-    "confirmPasswordPlaceholder": "Confirma la nueva contraseña",
     "passwordsDoNotMatch": "Las contraseñas no coinciden",
     "invalidOTP": "Código de verificación inválido. Por favor, verifica e inténtalo de nuevo.",
     "otpExpired": "El código de verificación ha expirado. Por favor, solicita uno nuevo.",
@@ -516,8 +519,7 @@
     "backToSignIn": "Volver a iniciar sesión",
     "forgotPasswordError": "Error al enviar el código de verificación. Por favor, inténtalo de nuevo.",
     "resetPasswordError": "Error al restablecer la contraseña. Por favor, inténtalo de nuevo."
-  }
-,
+  },
   "feedback": {
     "title": "Send Feedback",
     "description": "Report bugs, suggest features, or share your thoughts. We read every message!",

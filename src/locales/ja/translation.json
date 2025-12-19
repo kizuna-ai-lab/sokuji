@@ -196,7 +196,9 @@
     "modelsRequired": "モデルが必要です。利用可能なモデルを読み込むために、まずAPIキーを検証してください。",
     "modelsLoading": "利用可能なモデルを読み込み中です。お待ちください...",
     "basicMode": "ベーシック",
-    "advancedMode": "アドバンスト"
+    "advancedMode": "アドバンスト",
+    "typeMessage": "翻訳するテキスト...",
+    "send": "送信"
   },
   "errors": {
     "microphoneAccess": "マイクへのアクセスが拒否されました",
@@ -418,7 +420,9 @@
     "sessionDuration": "Duration",
     "clickToConfigLanguages": "言語を設定するにはクリック",
     "clickToConfigMicrophone": "マイクを設定するにはクリック",
-    "clickToConfigSpeaker": "スピーカーを設定するにはクリック"
+    "clickToConfigSpeaker": "スピーカーを設定するにはクリック",
+    "typeMessage": "翻訳するテキスト...",
+    "send": "送信"
   },
   "connectionStatus": {
     "disconnected": "切断済み",

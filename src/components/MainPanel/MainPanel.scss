@@ -268,7 +268,31 @@
                 }
               }
             }
-            
+
+            &.text {
+              font-style: normal;
+              color: rgba(255, 255, 255, 0.9);
+              font-size: 0.95em;
+              padding-left: 8px;
+              border-left: 2px solid rgba(16, 163, 127, 0.5);  // Green tint for text input
+
+              .text-content {
+                margin-bottom: 6px;
+
+                .karaoke-played {
+                  color: #10a37f;
+                  font-weight: bold;
+                  text-shadow: 0 0 8px rgba(16, 163, 127, 0.6);
+                  transition: all 0.2s ease;
+                }
+
+                .karaoke-unplayed {
+                  color: rgba(255, 255, 255, 0.7);
+                  transition: all 0.2s ease;
+                }
+              }
+            }
+
             &.audio {
               .audio-indicator {
                 display: flex;
@@ -428,7 +452,78 @@
       }
     }
   }
-  
+
+  // Text Input Section
+  .text-input-section {
+    position: absolute;
+    bottom: 60px;  // Above audio-visualization (15px + 40px + 5px gap)
+    left: 10px;
+    right: 10px;
+    background: #252525;
+    border-radius: 8px;
+    padding: 8px 12px;
+    z-index: 10;
+
+    .text-input-container {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+
+      .text-input {
+        flex: 1;
+        background: #1e1e1e;
+        border: 1px solid #444;
+        border-radius: 20px;
+        padding: 8px 16px;
+        color: #fff;
+        font-size: 14px;
+        outline: none;
+        transition: border-color 0.2s ease;
+
+        &::placeholder {
+          color: #666;
+        }
+
+        &:focus {
+          border-color: #10a37f;
+        }
+
+        &:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+      }
+
+      .send-btn {
+        background: #10a37f;
+        border: none;
+        color: #fff;
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        flex-shrink: 0;
+
+        &:hover:not(:disabled) {
+          background: #0d8c6d;
+          transform: scale(1.05);
+        }
+
+        &:disabled,
+        &.disabled {
+          background: #444;
+          color: #666;
+          cursor: not-allowed;
+          transform: none;
+        }
+      }
+    }
+  }
+
   .audio-visualization {
     display: flex;
     align-items: center;

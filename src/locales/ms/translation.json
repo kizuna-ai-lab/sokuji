@@ -207,7 +207,9 @@
     "sessionDuration": "Duration",
     "clickToConfigLanguages": "Klik untuk mengkonfigurasi bahasa",
     "clickToConfigMicrophone": "Klik untuk mengkonfigurasi mikrofon",
-    "clickToConfigSpeaker": "Klik untuk mengkonfigurasi pembesar suara"
+    "clickToConfigSpeaker": "Klik untuk mengkonfigurasi pembesar suara",
+    "typeMessage": "Teks untuk diterjemah...",
+    "send": "Hantar"
   },
   "connectionStatus": {
     "disconnected": "Terputus",
@@ -287,7 +289,9 @@
     "modelsRequired": "Model diperlukan. Sila sahkan kunci API anda terlebih dahulu untuk memuatkan model yang tersedia.",
     "modelsLoading": "Memuatkan model yang tersedia, sila tunggu...",
     "basicMode": "Asas",
-    "advancedMode": "Lanjutan"
+    "advancedMode": "Lanjutan",
+    "typeMessage": "Teks untuk diterjemah...",
+    "send": "Hantar"
   },
   "errors": {
     "microphoneAccess": "Akses mikrofon ditolak",
@@ -440,7 +444,7 @@
     "emailPlaceholder": "emel@anda.com",
     "passwordPlaceholder": "Masukkan kata laluan anda",
     "namePlaceholder": "Nama anda",
-    "confirmPasswordPlaceholder": "Sahkan kata laluan anda",
+    "confirmPasswordPlaceholder": "Sahkan kata laluan baru",
     "passwordHint": "Sekurang-kurangnya 8 aksara",
     "noAccount": "Tiada akaun?",
     "haveAccount": "Sudah ada akaun?",
@@ -482,8 +486,6 @@
     "verificationCode": "Kod Pengesahan",
     "newPassword": "Kata Laluan Baru",
     "newPasswordPlaceholder": "Masukkan kata laluan baru",
-    "confirmPassword": "Sahkan Kata Laluan",
-    "confirmPasswordPlaceholder": "Sahkan kata laluan baru",
     "passwordsDoNotMatch": "Kata laluan tidak sepadan",
     "invalidOTP": "Kod pengesahan tidak sah. Sila semak dan cuba lagi.",
     "otpExpired": "Kod pengesahan telah tamat tempoh. Sila minta yang baru.",
@@ -492,8 +494,7 @@
     "backToSignIn": "Kembali ke Log Masuk",
     "forgotPasswordError": "Gagal menghantar kod pengesahan. Sila cuba lagi.",
     "resetPasswordError": "Gagal menetapkan semula kata laluan. Sila cuba lagi."
-  }
-,
+  },
   "feedback": {
     "title": "Send Feedback",
     "description": "Report bugs, suggest features, or share your thoughts. We read every message!",

@@ -191,7 +191,9 @@
     "modelsRequired": "Требуются модели. Пожалуйста, сначала проверьте ваш API-ключ для загрузки доступных моделей.",
     "modelsLoading": "Загрузка доступных моделей, пожалуйста подождите...",
     "basicMode": "Базовый",
-    "advancedMode": "Расширенный"
+    "advancedMode": "Расширенный",
+    "typeMessage": "Текст для перевода...",
+    "send": "Отправить"
   },
   "errors": {
     "microphoneAccess": "Доступ к микрофону запрещен",
@@ -413,7 +415,9 @@
     "sessionDuration": "Duration",
     "clickToConfigLanguages": "Нажмите для настройки языков",
     "clickToConfigMicrophone": "Нажмите для настройки микрофона",
-    "clickToConfigSpeaker": "Нажмите для настройки динамика"
+    "clickToConfigSpeaker": "Нажмите для настройки динамика",
+    "typeMessage": "Текст для перевода...",
+    "send": "Отправить"
   },
   "connectionStatus": {
     "disconnected": "Отключен",
@@ -466,7 +470,7 @@
     "emailPlaceholder": "ваш@email.com",
     "passwordPlaceholder": "Введите пароль",
     "namePlaceholder": "Ваше имя",
-    "confirmPasswordPlaceholder": "Подтвердите пароль",
+    "confirmPasswordPlaceholder": "Подтвердите новый пароль",
     "passwordHint": "Минимум 8 символов",
     "noAccount": "Нет аккаунта?",
     "haveAccount": "Уже есть аккаунт?",
@@ -502,7 +506,6 @@
     "verificationCode": "Код подтверждения",
     "newPassword": "Новый пароль",
     "newPasswordPlaceholder": "Введите новый пароль",
-    "confirmPasswordPlaceholder": "Подтвердите новый пароль",
     "passwordsDoNotMatch": "Пароли не совпадают",
     "invalidOTP": "Неверный код. Проверьте и попробуйте снова.",
     "otpExpired": "Код истёк. Запросите новый.",
@@ -511,8 +514,7 @@
     "backToSignIn": "Вернуться ко входу",
     "forgotPasswordError": "Не удалось отправить код. Попробуйте снова.",
     "resetPasswordError": "Не удалось сбросить пароль. Попробуйте снова."
-  }
-,
+  },
   "feedback": {
     "title": "Send Feedback",
     "description": "Report bugs, suggest features, or share your thoughts. We read every message!",

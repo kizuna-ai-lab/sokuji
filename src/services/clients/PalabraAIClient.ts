@@ -363,6 +363,11 @@ export class PalabraAIClient implements IClient {
     }
   }
 
+  appendInputText(text: string): void {
+    // PalabraAI doesn't support text input - it's audio-only
+    console.warn('[PalabraAIClient] Text input not supported');
+  }
+
   createResponse(): void {
     // PalabraAI handles response generation automatically
     // No explicit response creation needed

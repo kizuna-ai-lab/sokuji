@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
-import {X, Zap, Users, Mic, Loader, Play, Volume2, Wrench} from 'lucide-react';
+import {X, Zap, Users, Mic, Loader, Play, Volume2, Wrench, Send} from 'lucide-react';
 import './MainPanel.scss';
 import {
   useProvider,
@@ -96,6 +96,18 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   // canPushToTalk is true only when turnDetectionMode is 'Disabled'
   const [canPushToTalk, setCanPushToTalk] = useState(false);
 
+  // supportsTextInput is true for providers that support text input
+  const supportsTextInput = useMemo(() => {
+    return provider === Provider.OPENAI ||
+           provider === Provider.GEMINI ||
+           provider === Provider.OPENAI_COMPATIBLE ||
+           provider === Provider.KIZUNA_AI;
+  }, [provider]);
+
+  // Advanced mode text input state
+  const [advancedTextInput, setAdvancedTextInput] = useState('');
+  const [isAdvancedSending, setIsAdvancedSending] = useState(false);
+
   // Reference for conversation container to enable auto-scrolling
   const conversationContainerRef = useRef<HTMLDivElement>(null);
   const isInitializedRef = useRef(false);
@@ -112,6 +124,10 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   // Audio feedback warning state
   const [showFeedbackWarning, setShowFeedbackWarning] = useState(false);
   const [feedbackWarningDismissed, setFeedbackWarningDismissed] = useState(false);
+
+  // AI response state for text input queueing (OpenAI only)
+  const [isAIResponding, setIsAIResponding] = useState(false);
+  const pendingTextRef = useRef<string | null>(null);
 
   /**
    * Convert settings to SessionConfig
@@ -247,10 +263,27 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     const eventHandlers: ClientEventHandlers = {
       onRealtimeEvent: (realtimeEvent: RealtimeEvent) => {
         addRealtimeEvent(
-          realtimeEvent.event, 
-          realtimeEvent.source, 
+          realtimeEvent.event,
+          realtimeEvent.source,
           realtimeEvent.event?.type || 'unknown'
         );
+
+        // Track AI response state for text input queueing (OpenAI only)
+        const eventType = realtimeEvent.event?.type;
+        if (eventType === 'response.created') {
+          setIsAIResponding(true);
+        } else if (eventType === 'response.done') {
+          setIsAIResponding(false);
+          // Send queued text if any
+          if (pendingTextRef.current) {
+            const text = pendingTextRef.current;
+            pendingTextRef.current = null;
+            // Small delay to ensure response is fully processed
+            setTimeout(() => {
+              clientRef.current?.appendInputText(text);
+            }, 100);
+          }
+        }
       },
       onError: (event: any) => {
         console.error('[Sokuji] [MainPanel]', event);
@@ -273,7 +306,9 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         
         // When connection closes, clean up the session state
         setIsSessionActive(false);
-        
+        setIsAIResponding(false);
+        pendingTextRef.current = null;
+
         // Clean up audio recording
         const audioService = audioServiceRef.current;
         if (audioService) {
@@ -391,7 +426,9 @@ const MainPanel: React.FC<MainPanelProps> = () => {
    */
   const disconnectConversation = useCallback(async () => {
     setIsSessionActive(false);
-    
+    setIsAIResponding(false);
+    pendingTextRef.current = null;
+
     // Clear audio quality tracking interval
     if (audioQualityIntervalRef.current) {
       clearInterval(audioQualityIntervalRef.current);
@@ -405,8 +442,11 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       // First pause the recorder to stop sending audio chunks
       try {
         await audioService.pauseRecording();
-      } catch (error) {
-        console.warn('[Sokuji] [MainPanel] Error pausing recorder during disconnect:', error);
+      } catch (error: any) {
+        // Silently ignore if recording was never started (expected in push-to-talk mode)
+        if (!error?.message?.includes('begin()')) {
+          console.warn('[Sokuji] [MainPanel] Error pausing recorder during disconnect:', error);
+        }
       }
     }
 
@@ -423,8 +463,11 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     if (audioService) {
       try {
         await audioService.stopRecording();
-      } catch (error) {
-        console.warn('[Sokuji] [MainPanel] Error ending recorder:', error);
+      } catch (error: any) {
+        // Silently ignore if recording was never started (expected in push-to-talk mode)
+        if (!error?.message?.includes('begin()')) {
+          console.warn('[Sokuji] [MainPanel] Error ending recorder:', error);
+        }
       }
 
       // Interrupt any playing audio
@@ -791,6 +834,75 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       setIsRecording(false);
     }
   }, [isRecording]);
+
+  /**
+   * Send text input for translation
+   */
+  const handleSendText = useCallback((text: string) => {
+    const client = clientRef.current;
+    if (!client || !isSessionActive) {
+      console.warn('[MainPanel] Cannot send text: no active session');
+      return;
+    }
+
+    // If AI is responding (OpenAI), queue the message for later
+    if (isAIResponding && (provider === Provider.OPENAI || provider === Provider.OPENAI_COMPATIBLE || provider === Provider.KIZUNA_AI)) {
+      console.log('[MainPanel] AI is responding, queuing text message');
+      pendingTextRef.current = text;
+      return;
+    }
+
+    try {
+      client.appendInputText(text);
+
+      // Update items to reflect the sent message
+      setItems(client.getConversationItems());
+
+      // Track text input usage
+      if (sessionId) {
+        trackEvent('text_input_sent', {
+          session_id: sessionId,
+          provider: provider,
+          text_length: text.length
+        });
+      }
+    } catch (error: any) {
+      console.error('[MainPanel] Error sending text:', error);
+
+      trackEvent('error_occurred', {
+        error_type: 'text_input',
+        error_message: error.message || 'Failed to send text',
+        component: 'MainPanel',
+        severity: 'medium',
+        provider: provider,
+        recoverable: true
+      });
+    }
+  }, [isSessionActive, isAIResponding, sessionId, provider, trackEvent]);
+
+  /**
+   * Submit text input in advanced mode
+   */
+  const handleAdvancedTextSubmit = useCallback(() => {
+    if (!advancedTextInput.trim() || !isSessionActive || isAdvancedSending) return;
+
+    setIsAdvancedSending(true);
+    handleSendText(advancedTextInput.trim());
+    setAdvancedTextInput('');
+
+    // Brief delay before allowing next submission
+    setTimeout(() => setIsAdvancedSending(false), 300);
+  }, [advancedTextInput, isSessionActive, isAdvancedSending, handleSendText]);
+
+  /**
+   * Handle Enter key for text input in advanced mode
+   */
+  const handleAdvancedTextKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleAdvancedTextSubmit();
+    }
+  }, [handleAdvancedTextSubmit]);
 
   /**
    * Play audio from a conversation item
@@ -1388,6 +1500,13 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
     // Handle key down (start recording)
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Skip if focus is on an input element (e.g., text input field)
+      const activeElement = document.activeElement;
+      const isInputFocused = activeElement?.tagName === 'INPUT' ||
+                             activeElement?.tagName === 'TEXTAREA' ||
+                             activeElement?.getAttribute('contenteditable') === 'true';
+      if (isInputFocused) return;
+
       if (!isPushToTalkEnabled || e.repeat || e.code !== 'Space') return;
       e.preventDefault(); // Prevent page scrolling
       startRecording();
@@ -1395,6 +1514,13 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
     // Handle key up (stop recording)
     const handleKeyUp = (e: KeyboardEvent) => {
+      // Skip if focus is on an input element (e.g., text input field)
+      const activeElement = document.activeElement;
+      const isInputFocused = activeElement?.tagName === 'INPUT' ||
+                             activeElement?.tagName === 'TEXTAREA' ||
+                             activeElement?.getAttribute('contenteditable') === 'true';
+      if (isInputFocused) return;
+
       if (!isPushToTalkEnabled || e.code !== 'Space') return;
       e.preventDefault(); // Prevent page scrolling
       stopRecording();
@@ -1538,6 +1664,8 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           onStopRecording={stopRecording}
           playingItemId={playingItemId}
           playbackProgress={playbackProgress}
+          supportsTextInput={supportsTextInput}
+          onSendText={handleSendText}
         />
       </div>
     );
@@ -1749,6 +1877,32 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           )}
         </div>
       </div>
+
+      {/* Text Input Section - Advanced Mode */}
+      {isSessionActive && supportsTextInput && (
+        <div className="text-input-section">
+          <div className="text-input-container">
+            <input
+              type="text"
+              className="text-input"
+              placeholder={t('mainPanel.typeMessage', 'Text to translate...')}
+              value={advancedTextInput}
+              onChange={(e) => setAdvancedTextInput(e.target.value)}
+              onKeyDown={handleAdvancedTextKeyDown}
+              maxLength={1000}
+            />
+            <button
+              className={`send-btn ${!advancedTextInput.trim() ? 'disabled' : ''}`}
+              onClick={handleAdvancedTextSubmit}
+              onMouseDown={(e) => e.preventDefault()}
+              disabled={!advancedTextInput.trim() || isAdvancedSending}
+              title={t('mainPanel.send', 'Send')}
+            >
+              <Send size={16} />
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="audio-visualization">
         <div className="visualization-container">

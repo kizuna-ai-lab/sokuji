@@ -172,7 +172,9 @@
     "modelsRequired": "Wymagane są modele. Proszę najpierw zweryfikować klucz API, aby załadować dostępne modele.",
     "modelsLoading": "Ładowanie dostępnych modeli, proszę czekać...",
     "basicMode": "Podstawowy",
-    "advancedMode": "Zaawansowany"
+    "advancedMode": "Zaawansowany",
+    "typeMessage": "Tekst do przetłumaczenia...",
+    "send": "Wyślij"
   },
   "errors": {
     "microphoneAccess": "Dostęp do mikrofonu został odrzucony",
@@ -392,7 +394,9 @@
     "sessionDuration": "Duration",
     "clickToConfigLanguages": "Kliknij, aby skonfigurować języki",
     "clickToConfigMicrophone": "Kliknij, aby skonfigurować mikrofon",
-    "clickToConfigSpeaker": "Kliknij, aby skonfigurować głośnik"
+    "clickToConfigSpeaker": "Kliknij, aby skonfigurować głośnik",
+    "typeMessage": "Tekst do przetłumaczenia...",
+    "send": "Wyślij"
   },
   "connectionStatus": {
     "disconnected": "Rozłączony",
@@ -445,7 +449,7 @@
     "emailPlaceholder": "twoj@email.com",
     "passwordPlaceholder": "Wprowadź hasło",
     "namePlaceholder": "Twoje imię",
-    "confirmPasswordPlaceholder": "Potwierdź hasło",
+    "confirmPasswordPlaceholder": "Potwierdź nowe hasło",
     "passwordHint": "Minimum 8 znaków",
     "noAccount": "Nie masz konta?",
     "haveAccount": "Masz już konto?",
@@ -481,7 +485,6 @@
     "verificationCode": "Kod weryfikacyjny",
     "newPassword": "Nowe hasło",
     "newPasswordPlaceholder": "Wprowadź nowe hasło",
-    "confirmPasswordPlaceholder": "Potwierdź nowe hasło",
     "passwordsDoNotMatch": "Hasła nie są zgodne",
     "invalidOTP": "Nieprawidłowy kod weryfikacyjny. Sprawdź i spróbuj ponownie.",
     "otpExpired": "Kod weryfikacyjny wygasł. Poproś o nowy.",
@@ -490,8 +493,7 @@
     "backToSignIn": "Powrót do logowania",
     "forgotPasswordError": "Nie udało się wysłać kodu weryfikacyjnego. Spróbuj ponownie.",
     "resetPasswordError": "Nie udało się zresetować hasła. Spróbuj ponownie."
-  }
-,
+  },
   "feedback": {
     "title": "Send Feedback",
     "description": "Report bugs, suggest features, or share your thoughts. We read every message!",

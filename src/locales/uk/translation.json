@@ -93,7 +93,9 @@
     "sessionDuration": "Тривалість",
     "clickToConfigLanguages": "Натисніть для налаштування мов",
     "clickToConfigMicrophone": "Натисніть для налаштування мікрофона",
-    "clickToConfigSpeaker": "Натисніть для налаштування динаміка"
+    "clickToConfigSpeaker": "Натисніть для налаштування динаміка",
+    "typeMessage": "Текст для перекладу...",
+    "send": "Надіслати"
   },
   "connectionStatus": {
     "disconnected": "Відключено",
@@ -147,7 +149,9 @@
     "modelsRequired": "Потрібні моделі. Будь ласка, спочатку перевірте ваш API-ключ для завантаження доступних моделей.",
     "modelsLoading": "Завантаження доступних моделей, будь ласка, зачекайте...",
     "basicMode": "Базовий",
-    "advancedMode": "Розширений"
+    "advancedMode": "Розширений",
+    "typeMessage": "Текст для перекладу...",
+    "send": "Надіслати"
   },
   "audioPanel": {
     "title": "Налаштування аудіо",
@@ -328,7 +332,7 @@
     "emailPlaceholder": "ваш@email.com",
     "passwordPlaceholder": "Введіть пароль",
     "namePlaceholder": "Ваше ім'я",
-    "confirmPasswordPlaceholder": "Підтвердіть пароль",
+    "confirmPasswordPlaceholder": "Підтвердіть новий пароль",
     "passwordHint": "Мінімум 8 символів",
     "noAccount": "Немає акаунту?",
     "haveAccount": "Вже є акаунт?",
@@ -364,7 +368,6 @@
     "verificationCode": "Код підтвердження",
     "newPassword": "Новий пароль",
     "newPasswordPlaceholder": "Введіть новий пароль",
-    "confirmPasswordPlaceholder": "Підтвердіть новий пароль",
     "passwordsDoNotMatch": "Паролі не збігаються",
     "invalidOTP": "Невірний код. Перевірте та спробуйте знову.",
     "otpExpired": "Код закінчився. Запросіть новий.",
@@ -373,8 +376,7 @@
     "backToSignIn": "Повернутися до входу",
     "forgotPasswordError": "Не вдалося надіслати код. Спробуйте знову.",
     "resetPasswordError": "Не вдалося скинути пароль. Спробуйте знову."
-  }
-,
+  },
   "feedback": {
     "title": "Send Feedback",
     "description": "Report bugs, suggest features, or share your thoughts. We read every message!",
