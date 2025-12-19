@@ -1,7 +1,6 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { bearer } from "better-auth/plugins";
-import { withCloudflare } from "better-auth-cloudflare";
 import { createDb } from "./db";
 import type { CloudflareBindings } from "./env";
 import * as schema from "./db/schema";
