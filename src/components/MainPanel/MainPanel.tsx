@@ -90,7 +90,11 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     isMonitorDeviceOn,
     isRealVoicePassthroughEnabled,
     realVoicePassthroughVolume,
-    selectMonitorDevice // Import the selectMonitorDevice function from context
+    selectMonitorDevice, // Import the selectMonitorDevice function from context
+    // System audio capture
+    selectedSystemAudioSource,
+    systemAudioLoopbackSourceId,
+    isSystemAudioCaptureEnabled
   } = useAudioContext();
 
   // canPushToTalk is true only when turnDetectionMode is 'Disabled'
@@ -220,7 +224,11 @@ const MainPanel: React.FC<MainPanelProps> = () => {
    */
 
   const clientRef = useRef<IClient | null>(null);
-  
+
+  // System audio client ref (for translating other participants)
+  const systemAudioClientRef = useRef<IClient | null>(null);
+  const [systemAudioItems, setSystemAudioItems] = useState<ConversationItem[]>([]);
+
   // Reference to audio service for accessing ModernAudioPlayer
   const audioServiceRef = useRef<IAudioService | null>(null);
   
@@ -434,7 +442,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       clearInterval(audioQualityIntervalRef.current);
       audioQualityIntervalRef.current = null;
     }
-    
+
     // setItems([]);
 
     const audioService = audioServiceRef.current;
@@ -448,6 +456,16 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           console.warn('[Sokuji] [MainPanel] Error pausing recorder during disconnect:', error);
         }
       }
+
+      // Stop system audio recording (but keep loopback for next session)
+      if (audioService.isSystemAudioRecordingActive()) {
+        try {
+          await audioService.stopSystemAudioRecording();
+          console.info('[Sokuji] [MainPanel] Stopped system audio recording');
+        } catch (error) {
+          console.warn('[Sokuji] [MainPanel] Error stopping system audio recording:', error);
+        }
+      }
     }
 
     // Small delay to ensure any in-flight audio processing completes
@@ -457,6 +475,19 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     if (client) {
       await client.disconnect();
       client.reset();
+    }
+
+    // Disconnect system audio client
+    const systemClient = systemAudioClientRef.current;
+    if (systemClient) {
+      try {
+        await systemClient.disconnect();
+        systemClient.reset();
+        systemAudioClientRef.current = null;
+        console.info('[Sokuji] [MainPanel] Disconnected system audio client');
+      } catch (error) {
+        console.warn('[Sokuji] [MainPanel] Error disconnecting system audio client:', error);
+      }
     }
 
     // Now fully end the recorder after client is reset
@@ -474,8 +505,10 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       await audioService.interruptAudio();
       // Clear the unified AI assistant streaming track
       audioService.clearStreamingTrack('ai-assistant');
+      // Clear system audio assistant streaming track
+      audioService.clearStreamingTrack('system-audio-assistant');
     }
-    
+
     // Refresh user profile and quota after session ends
     // This ensures the token balance is updated after usage
     if (refetchAll) {
@@ -600,6 +633,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       // If output device is ON, ensure monitor device is connected immediately
       if (isMonitorDeviceOn && selectedMonitorDevice &&
         !selectedMonitorDevice.label.toLowerCase().includes('sokuji_virtual') &&
+        !selectedMonitorDevice.label.toLowerCase().includes('sokuji_system_audio') &&
         !selectedMonitorDevice.label.includes('Sokuji Virtual Output') &&
         !selectedMonitorDevice.label.toLowerCase().includes('sokujivirtualaudio')) {
         console.debug('[Sokuji] [MainPanel] Setting up monitor device to:', selectedMonitorDevice.label);
@@ -667,10 +701,78 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         });
       }
 
+      // Start system audio client if a source is selected and loopback is active
+      if (isSystemAudioCaptureEnabled && selectedSystemAudioSource && systemAudioLoopbackSourceId && audioServiceRef.current) {
+        try {
+          console.info('[Sokuji] [MainPanel] Starting system audio client...');
+
+          // Create second AI client with same configuration for system audio
+          if (provider === Provider.PALABRA_AI) {
+            systemAudioClientRef.current = ClientFactory.createClient(
+              modelName,
+              provider,
+              apiKey, // clientId
+              palabraAISettings.clientSecret // clientSecret
+            );
+          } else {
+            systemAudioClientRef.current = ClientFactory.createClient(
+              modelName,
+              provider,
+              apiKey,
+              undefined, // clientSecret
+              customEndpoint // customEndpoint
+            );
+          }
+
+          // Setup event handlers for system audio client
+          const systemClient = systemAudioClientRef.current;
+          systemClient.setEventHandlers({
+            onConversationUpdated: async ({ item, delta }) => {
+              // Tag item with source
+              (item as any).source = 'system_audio';
+
+              // Handle audio delta
+              if (delta?.audio && audioServiceRef.current) {
+                audioServiceRef.current.addAudioData(delta.audio, 'system-audio-assistant', true, {
+                  itemId: item.id
+                });
+                return;
+              }
+
+              // Update system audio items state
+              setSystemAudioItems(systemClient.getConversationItems());
+            },
+            onClose: async () => {
+              console.info('[Sokuji] [MainPanel] System audio client closed');
+            }
+          });
+
+          // Connect system audio client
+          await systemClient.connect(sessionConfig);
+          console.info('[Sokuji] [MainPanel] System audio client connected');
+
+          // Start recording from the system audio virtual mic
+          let systemAudioCallbackCount = 0;
+          await audioServiceRef.current.startSystemAudioRecording((data) => {
+            if (systemClient) {
+              if (systemAudioCallbackCount % 100 === 0) {
+                console.debug(`[Sokuji] [MainPanel] Sending system audio to client: chunk ${systemAudioCallbackCount}, PCM length: ${data.mono.length}`);
+              }
+              systemAudioCallbackCount++;
+              systemClient.appendInputAudio(data.mono);
+            }
+          });
+          console.info('[Sokuji] [MainPanel] System audio recording started');
+        } catch (error) {
+          console.error('[Sokuji] [MainPanel] Failed to start system audio client:', error);
+          // Don't fail the whole session, just log the error
+        }
+      }
+
       // Set state variables after successful initialization
       setIsSessionActive(true);
       setItems(client.getConversationItems());
-      
+
       // Start tracking audio quality metrics during session
       audioQualityIntervalRef.current = setInterval(() => {
         if (audioServiceRef.current) {
@@ -723,7 +825,11 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     selectedMonitorDevice,
     selectMonitorDevice,
     isRealVoicePassthroughEnabled,
-    realVoicePassthroughVolume
+    realVoicePassthroughVolume,
+    // System audio capture
+    isSystemAudioCaptureEnabled,
+    selectedSystemAudioSource,
+    systemAudioLoopbackSourceId
   ]);
 
   /**
@@ -941,6 +1047,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       // If output device is ON, ensure monitor device is connected
       if (isMonitorDeviceOn && selectedMonitorDevice &&
         !selectedMonitorDevice.label.toLowerCase().includes('sokuji_virtual') &&
+        !selectedMonitorDevice.label.toLowerCase().includes('sokuji_system_audio') &&
         !selectedMonitorDevice.label.includes('Sokuji Virtual Output') &&
         !selectedMonitorDevice.label.toLowerCase().includes('sokujivirtualaudio')) {
         selectMonitorDevice(selectedMonitorDevice);
@@ -1126,6 +1233,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       // If output device is ON, ensure monitor device is connected immediately
       if (isMonitorDeviceOn && selectedMonitorDevice &&
         !selectedMonitorDevice.label.toLowerCase().includes('sokuji_virtual') &&
+        !selectedMonitorDevice.label.toLowerCase().includes('sokuji_system_audio') &&
         !selectedMonitorDevice.label.includes('Sokuji Virtual Output') &&
         !selectedMonitorDevice.label.toLowerCase().includes('sokujivirtualaudio')) {
         console.info('[Sokuji] [MainPanel] Test tone: Ensuring monitor device is connected:', selectedMonitorDevice.label);
@@ -1467,6 +1575,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       try {
         // Check if the selectedMonitorDevice is a virtual device (which shouldn't be used as monitor)
         const isVirtualDevice = selectedMonitorDevice?.label.toLowerCase().includes('sokuji_virtual') ||
+          selectedMonitorDevice?.label.toLowerCase().includes('sokuji_system_audio') ||
           selectedMonitorDevice?.label.includes('Sokuji Virtual Output') ||
           selectedMonitorDevice?.label.toLowerCase().includes('sokujivirtualaudio');
 

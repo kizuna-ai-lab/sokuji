@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, Menu, dialog, shell } = require('electron');
+const { app, BrowserWindow, ipcMain, Menu, dialog, shell, session } = require('electron');
 const path = require('path');
 const { betterAuthAdapter } = require('./better-auth-adapter');
 
@@ -41,7 +41,12 @@ if (process.platform === 'linux') {
 const {
   createVirtualAudioDevices,
   removeVirtualAudioDevices,
-  cleanupOrphanedDevices
+  cleanupOrphanedDevices,
+  // System audio capture functions (Linux only)
+  listSystemAudioSources,
+  connectSystemAudioSource,
+  disconnectSystemAudioSource,
+  supportsSystemAudioCapture
 } = audioUtils;
 
 // Set application name for PulseAudio
@@ -222,7 +227,10 @@ function createWindow() {
       contextIsolation: true,
       preload: path.join(__dirname, 'preload.js'),
       // Disable web security in development to allow CORS requests
-      webSecurity: !isDev
+      webSecurity: !isDev,
+      // Use persistent partition in development mode to preserve localStorage across restarts
+      // The 'persist:' prefix ensures data is saved to disk rather than kept in memory
+      partition: isDev ? 'persist:sokuji-dev' : undefined
     }
   });
 
@@ -593,4 +601,33 @@ ipcMain.handle('create-virtual-speaker', async () => {
       error: error.message || 'Failed to create virtual audio devices'
     };
   }
+});
+
+// System audio capture IPC handlers (Linux only)
+ipcMain.handle('supports-system-audio-capture', async () => {
+  if (supportsSystemAudioCapture) {
+    return await supportsSystemAudioCapture();
+  }
+  return false;
+});
+
+ipcMain.handle('list-system-audio-sources', async () => {
+  if (listSystemAudioSources) {
+    return await listSystemAudioSources();
+  }
+  return [];
+});
+
+ipcMain.handle('connect-system-audio-source', async (event, sinkName) => {
+  if (connectSystemAudioSource) {
+    return await connectSystemAudioSource(sinkName);
+  }
+  return { success: false, error: 'System audio capture not supported on this platform' };
+});
+
+ipcMain.handle('disconnect-system-audio-source', async () => {
+  if (disconnectSystemAudioSource) {
+    return await disconnectSystemAudioSource();
+  }
+  return { success: false };
 });

@@ -2,9 +2,19 @@ import { IAudioService, AudioDevices, AudioOperationResult, AudioRecordingCallba
 import { ModernAudioRecorder } from './ModernAudioRecorder';
 import { ModernAudioPlayer } from './ModernAudioPlayer';
 import { ServiceFactory } from '../../services/ServiceFactory';
+import { AudioDevice } from '../../stores/audioStore';
 
 // Declare chrome namespace for extension messaging
 declare const chrome: any;
+
+// Declare electron window interface
+declare global {
+  interface Window {
+    electron?: {
+      invoke: (channel: string, data?: any) => Promise<any>;
+    };
+  }
+}
 
 /**
  * Modern Browser Audio Service using standard APIs for better echo cancellation
@@ -20,6 +30,15 @@ export class ModernBrowserAudioService implements IAudioService {
   private recordingCallback: AudioRecordingCallback | null = null;
   private currentRecordingDeviceId: string | undefined = undefined;
   private diagnosticsInterval: NodeJS.Timeout | null = null;
+
+  // System audio capture state
+  // Connection state (switched via pw-link when user selects device)
+  private systemAudioSourceConnected: boolean = false;
+  private currentSystemAudioSinkId: string | undefined = undefined; // The sink being captured
+  // Recording state (started when session starts)
+  private systemAudioRecorder: ModernAudioRecorder | null = null;
+  private systemAudioCallback: AudioRecordingCallback | null = null;
+  private systemAudioRecordingActive: boolean = false;
 
   constructor() {
     // Initialize modern audio components
@@ -713,5 +732,200 @@ export class ModernBrowserAudioService implements IAudioService {
     return result;
   }
 
+  // ============================================
+  // System Audio Capture Methods
+  // ============================================
 
+  /**
+   * Check if system audio capture is supported
+   * Currently only supported on Linux with Electron
+   */
+  public supportsSystemAudioCapture(): boolean {
+    // Check if we're in Electron and on Linux
+    if (ServiceFactory.isElectron() && window.electron) {
+      // The actual platform check is done in the main process
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * Get available system audio sources (audio outputs that can be captured)
+   */
+  public async getSystemAudioSources(): Promise<AudioDevice[]> {
+    if (!ServiceFactory.isElectron() || !window.electron) {
+      return [];
+    }
+
+    try {
+      // Check if platform supports system audio capture
+      const supported = await window.electron.invoke('supports-system-audio-capture');
+      if (!supported) {
+        console.info('[Sokuji] [ModernBrowserAudio] System audio capture not supported on this platform');
+        return [];
+      }
+
+      // Get list of audio sinks from the main process
+      const sources = await window.electron.invoke('list-system-audio-sources');
+      console.info('[Sokuji] [ModernBrowserAudio] Found system audio sources:', sources?.length || 0);
+      return sources || [];
+    } catch (error) {
+      console.error('[Sokuji] [ModernBrowserAudio] Error getting system audio sources:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Connect a system audio source to the virtual mic
+   * Called when user selects a system audio device
+   * Only switches pw-link connections, does not recreate modules
+   * @param sourceDeviceId The sink name to capture audio from
+   */
+  public async connectSystemAudioSource(sourceDeviceId: string): Promise<void> {
+    if (!ServiceFactory.isElectron() || !window.electron) {
+      throw new Error('System audio capture is only supported in Electron');
+    }
+
+    try {
+      console.info(`[Sokuji] [ModernBrowserAudio] Connecting system audio source: ${sourceDeviceId}`);
+
+      // Switch connection in the main process
+      const result = await window.electron.invoke('connect-system-audio-source', sourceDeviceId);
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to connect system audio source');
+      }
+
+      // Store the connection info
+      this.systemAudioSourceConnected = true;
+      this.currentSystemAudioSinkId = sourceDeviceId;
+
+      console.info(`[Sokuji] [ModernBrowserAudio] System audio source connected: ${sourceDeviceId}`);
+    } catch (error) {
+      console.error('[Sokuji] [ModernBrowserAudio] Failed to connect system audio source:', error);
+      // Reset state on failure
+      this.systemAudioSourceConnected = false;
+      this.currentSystemAudioSinkId = undefined;
+      throw error;
+    }
+  }
+
+  /**
+   * Disconnect the current system audio source
+   * Called when user deselects the system audio device
+   */
+  public async disconnectSystemAudioSource(): Promise<void> {
+    console.info('[Sokuji] [ModernBrowserAudio] Disconnecting system audio source');
+
+    // Stop recording first if active
+    if (this.systemAudioRecordingActive) {
+      await this.stopSystemAudioRecording();
+    }
+
+    // Disconnect in the main process
+    if (ServiceFactory.isElectron() && window.electron) {
+      try {
+        await window.electron.invoke('disconnect-system-audio-source');
+      } catch (error) {
+        console.warn('[Sokuji] [ModernBrowserAudio] Error disconnecting system audio source:', error);
+      }
+    }
+
+    this.systemAudioSourceConnected = false;
+    this.currentSystemAudioSinkId = undefined;
+    console.info('[Sokuji] [ModernBrowserAudio] System audio source disconnected');
+  }
+
+  /**
+   * Check if a system audio source is currently connected
+   */
+  public isSystemAudioSourceConnected(): boolean {
+    return this.systemAudioSourceConnected;
+  }
+
+  /**
+   * Start recording from the system audio virtual mic
+   * Called when session starts
+   * @param callback Function to receive audio data chunks
+   */
+  public async startSystemAudioRecording(callback: AudioRecordingCallback): Promise<void> {
+    if (!this.systemAudioSourceConnected) {
+      throw new Error('System audio source not connected. Connect a source first.');
+    }
+
+    // Stop any existing recording
+    if (this.systemAudioRecordingActive) {
+      await this.stopSystemAudioRecording();
+    }
+
+    try {
+      console.info('[Sokuji] [ModernBrowserAudio] Starting system audio recording');
+
+      // Find the browser deviceId for our system audio mic by label
+      // The browser uses UUIDs as deviceIds, not PulseAudio source names
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const systemAudioDevice = devices.find(
+        d => d.kind === 'audioinput' && d.label.includes('Sokuji_System_Audio')
+      );
+
+      if (!systemAudioDevice) {
+        throw new Error('System audio device not found. Virtual devices may not have been created at startup.');
+      }
+
+      console.info(`[Sokuji] [ModernBrowserAudio] Found system audio device: ${systemAudioDevice.label} (${systemAudioDevice.deviceId})`);
+
+      // Create a new recorder for system audio with disabled echo cancellation
+      this.systemAudioRecorder = new ModernAudioRecorder({
+        sampleRate: 24000,
+        enablePassthrough: false // No passthrough for system audio
+      });
+
+      // Store the callback
+      this.systemAudioCallback = callback;
+
+      // Start recording using the browser's deviceId
+      await this.systemAudioRecorder.begin(systemAudioDevice.deviceId);
+      await this.systemAudioRecorder.record((data) => {
+        if (this.systemAudioCallback) {
+          this.systemAudioCallback(data);
+        }
+      });
+
+      this.systemAudioRecordingActive = true;
+      console.info('[Sokuji] [ModernBrowserAudio] System audio recording started successfully');
+    } catch (error) {
+      console.error('[Sokuji] [ModernBrowserAudio] Failed to start system audio recording:', error);
+      // Clean up on failure
+      await this.stopSystemAudioRecording();
+      throw error;
+    }
+  }
+
+  /**
+   * Stop recording from system audio (but keep connection)
+   * Called when session ends
+   */
+  public async stopSystemAudioRecording(): Promise<void> {
+    console.info('[Sokuji] [ModernBrowserAudio] Stopping system audio recording');
+
+    // Stop the system audio recorder
+    if (this.systemAudioRecorder) {
+      try {
+        await this.systemAudioRecorder.end();
+      } catch (error) {
+        console.warn('[Sokuji] [ModernBrowserAudio] Error ending system audio recorder:', error);
+      }
+      this.systemAudioRecorder = null;
+    }
+
+    this.systemAudioCallback = null;
+    this.systemAudioRecordingActive = false;
+    console.info('[Sokuji] [ModernBrowserAudio] System audio recording stopped (loopback still active)');
+  }
+
+  /**
+   * Check if system audio recording is currently active
+   */
+  public isSystemAudioRecordingActive(): boolean {
+    return this.systemAudioRecordingActive;
+  }
 }

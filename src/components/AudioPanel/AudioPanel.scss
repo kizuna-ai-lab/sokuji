@@ -104,7 +104,7 @@
           
           .device-info {
             flex: 1;
-            
+
             .device-name {
               font-size: 14px;
               margin-bottom: 5px;
@@ -112,6 +112,13 @@
               overflow: hidden;
               text-overflow: ellipsis;
               max-width: 200px;
+            }
+
+            .device-description {
+              font-size: 12px;
+              color: #aaa;
+              line-height: 1.4;
+              margin-top: 2px;
             }
           }
         }
@@ -321,15 +328,6 @@
 
   // Voice Passthrough Section Styles
   .voice-passthrough-section {
-    .device-info {
-      .device-description {
-        font-size: 12px;
-        color: #aaa;
-        line-height: 1.4;
-        margin-top: 2px;
-      }
-    }
-    
     .device-list {
       .volume-control {
         background-color: #2a2a2a;
@@ -434,4 +432,5 @@
       }
     }
   }
+
 }

@@ -21,10 +21,17 @@ interface AudioStore {
   isLoading: boolean;
   isRealVoicePassthroughEnabled: boolean;
   realVoicePassthroughVolume: number;
-  
+
+  // System audio capture state (for translating other participants)
+  systemAudioSources: AudioDevice[];
+  selectedSystemAudioSource: AudioDevice | null;
+  isSystemAudioCaptureEnabled: boolean;
+  isSystemAudioCaptureActive: boolean;
+  systemAudioLoopbackSourceId: string | null; // e.g., 'sokuji_system_capture.monitor'
+
   // Audio service reference
   audioService: IAudioService | null;
-  
+
   // Actions
   setAudioService: (service: IAudioService) => void;
   setInputDevices: (devices: AudioDevice[]) => void;
@@ -36,7 +43,15 @@ interface AudioStore {
   toggleRealVoicePassthrough: () => void;
   setRealVoicePassthroughVolume: (volume: number) => void;
   setIsLoading: (loading: boolean) => void;
-  
+
+  // System audio capture actions
+  setSystemAudioSources: (sources: AudioDevice[]) => void;
+  selectSystemAudioSource: (source: AudioDevice | null) => void;
+  toggleSystemAudioCapture: () => void;
+  setSystemAudioCaptureActive: (active: boolean) => void;
+  setSystemAudioLoopbackSourceId: (id: string | null) => void;
+  refreshSystemAudioSources: () => Promise<void>;
+
   // Complex actions
   refreshDevices: () => Promise<{ defaultInputDevice: AudioDevice | null; defaultMonitorDevice: AudioDevice | null }>;
   connectMonitorDevice: (deviceId: string, label: string) => Promise<AudioOperationResult>;
@@ -55,6 +70,14 @@ const useAudioStore = create<AudioStore>()(
     isLoading: true,
     isRealVoicePassthroughEnabled: false,
     realVoicePassthroughVolume: 0.2,
+
+    // System audio capture state
+    systemAudioSources: [],
+    selectedSystemAudioSource: null,
+    isSystemAudioCaptureEnabled: false,
+    isSystemAudioCaptureActive: false,
+    systemAudioLoopbackSourceId: null,
+
     audioService: null,
     
     // Basic setters
@@ -116,7 +139,52 @@ const useAudioStore = create<AudioStore>()(
       console.info('[Sokuji] [AudioStore] Setting real voice passthrough volume:', clampedVolume);
       set({ realVoicePassthroughVolume: clampedVolume });
     },
-    
+
+    // System audio capture actions
+    setSystemAudioSources: (sources) => set({ systemAudioSources: sources }),
+
+    selectSystemAudioSource: (source) => {
+      console.info('[Sokuji] [AudioStore] Selected system audio source:', source?.label || 'None');
+      set({ selectedSystemAudioSource: source });
+    },
+
+    toggleSystemAudioCapture: () => {
+      console.info('[Sokuji] [AudioStore] Toggling system audio capture');
+      set((state) => ({ isSystemAudioCaptureEnabled: !state.isSystemAudioCaptureEnabled }));
+    },
+
+    setSystemAudioCaptureActive: (active) => {
+      console.info('[Sokuji] [AudioStore] Setting system audio capture active:', active);
+      set({ isSystemAudioCaptureActive: active });
+    },
+
+    setSystemAudioLoopbackSourceId: (id) => {
+      console.info('[Sokuji] [AudioStore] Setting system audio loopback source ID:', id);
+      set({ systemAudioLoopbackSourceId: id });
+    },
+
+    refreshSystemAudioSources: async () => {
+      try {
+        const { audioService } = get();
+        if (!audioService) return;
+
+        // Get system audio sources from the audio service
+        const sources = await audioService.getSystemAudioSources?.();
+        if (sources) {
+          set({ systemAudioSources: sources });
+          console.info('[Sokuji] [AudioStore] Refreshed system audio sources:', sources.length);
+
+          // Select first source if none selected
+          const currentSource = get().selectedSystemAudioSource;
+          if (!currentSource && sources.length > 0) {
+            set({ selectedSystemAudioSource: sources[0] });
+          }
+        }
+      } catch (error) {
+        console.error('[Sokuji] [AudioStore] Error refreshing system audio sources:', error);
+      }
+    },
+
     // Complex actions
     refreshDevices: async () => {
       set({ isLoading: true });
@@ -254,6 +322,13 @@ export const useIsAudioLoading = () => useAudioStore((state) => state.isLoading)
 export const useIsRealVoicePassthroughEnabled = () => useAudioStore((state) => state.isRealVoicePassthroughEnabled);
 export const useRealVoicePassthroughVolume = () => useAudioStore((state) => state.realVoicePassthroughVolume);
 
+// System audio capture selectors
+export const useSystemAudioSources = () => useAudioStore((state) => state.systemAudioSources);
+export const useSelectedSystemAudioSource = () => useAudioStore((state) => state.selectedSystemAudioSource);
+export const useIsSystemAudioCaptureEnabled = () => useAudioStore((state) => state.isSystemAudioCaptureEnabled);
+export const useIsSystemAudioCaptureActive = () => useAudioStore((state) => state.isSystemAudioCaptureActive);
+export const useSystemAudioLoopbackSourceId = () => useAudioStore((state) => state.systemAudioLoopbackSourceId);
+
 // Export individual action selectors to avoid recreating objects
 export const useSelectInputDevice = () => useAudioStore((state) => state.selectInputDevice);
 export const useSelectMonitorDevice = () => useAudioStore((state) => state.selectMonitorDevice);
@@ -263,6 +338,13 @@ export const useToggleRealVoicePassthrough = () => useAudioStore((state) => stat
 export const useSetRealVoicePassthroughVolume = () => useAudioStore((state) => state.setRealVoicePassthroughVolume);
 export const useRefreshDevices = () => useAudioStore((state) => state.refreshDevices);
 export const useInitializeAudioService = () => useAudioStore((state) => state.initializeAudioService);
+
+// System audio capture action selectors
+export const useSelectSystemAudioSource = () => useAudioStore((state) => state.selectSystemAudioSource);
+export const useToggleSystemAudioCapture = () => useAudioStore((state) => state.toggleSystemAudioCapture);
+export const useSetSystemAudioCaptureActive = () => useAudioStore((state) => state.setSystemAudioCaptureActive);
+export const useSetSystemAudioLoopbackSourceId = () => useAudioStore((state) => state.setSystemAudioLoopbackSourceId);
+export const useRefreshSystemAudioSources = () => useAudioStore((state) => state.refreshSystemAudioSources);
 
 // Export actions with memoization to prevent recreating objects
 export const useAudioActions = () => {
@@ -274,7 +356,12 @@ export const useAudioActions = () => {
   const setRealVoicePassthroughVolume = useSetRealVoicePassthroughVolume();
   const refreshDevices = useRefreshDevices();
   const initializeAudioService = useInitializeAudioService();
-  
+  const selectSystemAudioSource = useSelectSystemAudioSource();
+  const toggleSystemAudioCapture = useToggleSystemAudioCapture();
+  const setSystemAudioCaptureActive = useSetSystemAudioCaptureActive();
+  const setSystemAudioLoopbackSourceId = useSetSystemAudioLoopbackSourceId();
+  const refreshSystemAudioSources = useRefreshSystemAudioSources();
+
   return useMemo(
     () => ({
       selectInputDevice,
@@ -285,6 +372,11 @@ export const useAudioActions = () => {
       setRealVoicePassthroughVolume,
       refreshDevices,
       initializeAudioService,
+      selectSystemAudioSource,
+      toggleSystemAudioCapture,
+      setSystemAudioCaptureActive,
+      setSystemAudioLoopbackSourceId,
+      refreshSystemAudioSources,
     }),
     [
       selectInputDevice,
@@ -295,6 +387,11 @@ export const useAudioActions = () => {
       setRealVoicePassthroughVolume,
       refreshDevices,
       initializeAudioService,
+      selectSystemAudioSource,
+      toggleSystemAudioCapture,
+      setSystemAudioCaptureActive,
+      setSystemAudioLoopbackSourceId,
+      refreshSystemAudioSources,
     ]
   );
 };
@@ -310,8 +407,13 @@ export const useAudioContext = () => {
   const isLoading = useIsAudioLoading();
   const isRealVoicePassthroughEnabled = useIsRealVoicePassthroughEnabled();
   const realVoicePassthroughVolume = useRealVoicePassthroughVolume();
+  const systemAudioSources = useSystemAudioSources();
+  const selectedSystemAudioSource = useSelectedSystemAudioSource();
+  const isSystemAudioCaptureEnabled = useIsSystemAudioCaptureEnabled();
+  const isSystemAudioCaptureActive = useIsSystemAudioCaptureActive();
+  const systemAudioLoopbackSourceId = useSystemAudioLoopbackSourceId();
   const actions = useAudioActions();
-  
+
   return useMemo(
     () => ({
       audioInputDevices,
@@ -323,6 +425,11 @@ export const useAudioContext = () => {
       isLoading,
       isRealVoicePassthroughEnabled,
       realVoicePassthroughVolume,
+      systemAudioSources,
+      selectedSystemAudioSource,
+      isSystemAudioCaptureEnabled,
+      isSystemAudioCaptureActive,
+      systemAudioLoopbackSourceId,
       ...actions,
     }),
     [
@@ -335,6 +442,11 @@ export const useAudioContext = () => {
       isLoading,
       isRealVoicePassthroughEnabled,
       realVoicePassthroughVolume,
+      systemAudioSources,
+      selectedSystemAudioSource,
+      isSystemAudioCaptureEnabled,
+      isSystemAudioCaptureActive,
+      systemAudioLoopbackSourceId,
       actions,
     ]
   );

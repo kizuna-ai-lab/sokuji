@@ -133,4 +133,57 @@ export interface IAudioService {
    * @param volume The volume level
    */
   handlePassthroughAudio(audioData: Int16Array, volume: number): void;
+
+  // System audio capture methods (for translating other participants)
+  // Architecture: Virtual mic is created at startup, connection switching is dynamic
+  // - connectSystemAudioSource: Switches pw-link connection when user selects a device
+  // - disconnectSystemAudioSource: Disconnects pw-link when user deselects
+  // - startSystemAudioRecording: Starts recording from the system audio mic when session starts
+  // - stopSystemAudioRecording: Stops recording but keeps virtual mic
+
+  /**
+   * Check if system audio capture is supported
+   */
+  supportsSystemAudioCapture(): boolean;
+
+  /**
+   * Get available system audio sources (audio outputs that can be captured)
+   */
+  getSystemAudioSources?(): Promise<AudioDevice[]>;
+
+  /**
+   * Connect a system audio source to the virtual mic
+   * Called when user selects a system audio device
+   * @param sourceDeviceId The sink name to capture audio from
+   */
+  connectSystemAudioSource(sourceDeviceId: string): Promise<void>;
+
+  /**
+   * Disconnect the current system audio source
+   * Called when user deselects the system audio device
+   */
+  disconnectSystemAudioSource(): Promise<void>;
+
+  /**
+   * Check if a system audio source is currently connected
+   */
+  isSystemAudioSourceConnected(): boolean;
+
+  /**
+   * Start recording from the system audio virtual mic
+   * Called when session starts
+   * @param callback Function to receive audio data chunks
+   */
+  startSystemAudioRecording(callback: AudioRecordingCallback): Promise<void>;
+
+  /**
+   * Stop recording from system audio (but keep connection)
+   * Called when session ends
+   */
+  stopSystemAudioRecording(): Promise<void>;
+
+  /**
+   * Check if system audio recording is currently active
+   */
+  isSystemAudioRecordingActive(): boolean;
 }

@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { ArrowRight, Volume2, Mic, RefreshCw, AlertTriangle, AudioLines } from 'lucide-react';
+import { ServiceFactory } from '../../services/ServiceFactory';
+import { useSetSystemAudioLoopbackSourceId } from '../../stores/audioStore';
 import './AudioPanel.scss';
 import Modal from '../Modal/Modal';
 import { useAudioContext } from '../../stores/audioStore';
@@ -25,19 +27,30 @@ const AudioPanel: React.FC<{ toggleAudio: () => void }> = ({ toggleAudio }) => {
     // Real person voice passthrough settings
     isRealVoicePassthroughEnabled,
     realVoicePassthroughVolume,
+    // System audio capture settings
+    systemAudioSources,
+    selectedSystemAudioSource,
+    isSystemAudioCaptureEnabled,
     selectInputDevice,
     selectMonitorDevice,
     toggleInputDeviceState,
     toggleMonitorDeviceState,
     toggleRealVoicePassthrough,
     setRealVoicePassthroughVolume,
+    selectSystemAudioSource,
+    toggleSystemAudioCapture,
+    setSystemAudioCaptureActive,
+    refreshSystemAudioSources,
     refreshDevices
   } = useAudioContext();
+  const setSystemAudioLoopbackSourceId = useSetSystemAudioLoopbackSourceId();
+  const [isSystemAudioLoading, setIsSystemAudioLoading] = useState(false);
 
   // Check if a device is the virtual microphone
   const isVirtualMic = (device: {deviceId: string; label: string}) => {
     const labelLower = device.label.toLowerCase();
     return labelLower.includes('sokuji_virtual_mic') ||
+           labelLower.includes('sokuji_system_audio') ||
            labelLower.includes('sokujivirtualaudio') || // Mac virtual device
            labelLower.includes('cable');
   };
@@ -46,6 +59,7 @@ const AudioPanel: React.FC<{ toggleAudio: () => void }> = ({ toggleAudio }) => {
   const isVirtualSpeaker = (device: {deviceId: string; label: string}) => {
     const labelLower = device.label.toLowerCase();
     return labelLower.includes('sokuji_virtual_speaker') ||
+           labelLower.includes('sokuji_system_audio') ||
            labelLower.includes('sokujivirtualaudio') || // Mac virtual device
            labelLower.includes('cable');
   };
@@ -87,6 +101,67 @@ const AudioPanel: React.FC<{ toggleAudio: () => void }> = ({ toggleAudio }) => {
       });
     }
   };
+
+  // Initialize system audio sources
+  useEffect(() => {
+    if (refreshSystemAudioSources) {
+      refreshSystemAudioSources();
+    }
+  }, [refreshSystemAudioSources]);
+
+  // Handle system audio source selection
+  const handleSystemAudioSourceSelect = useCallback(async (source: { deviceId: string; label: string } | null) => {
+    if (isSystemAudioLoading) return;
+
+    try {
+      setIsSystemAudioLoading(true);
+      const audioService = ServiceFactory.getAudioService();
+
+      if (source) {
+        // User selected a device - connect via pw-link
+        console.info(`[Sokuji] [AudioPanel] Connecting system audio source: ${source.label}`);
+        await audioService.connectSystemAudioSource(source.deviceId);
+
+        // Update state - always use 'sokuji_system_audio_mic' (stable deviceId)
+        setSystemAudioLoopbackSourceId('sokuji_system_audio_mic');
+        selectSystemAudioSource(source);
+        if (!isSystemAudioCaptureEnabled) {
+          toggleSystemAudioCapture();
+        }
+        setSystemAudioCaptureActive(true);
+        trackEvent('audio_device_changed', {
+          device_type: 'input',
+          device_name: `[System Audio] ${source.label}`,
+          change_type: 'connected',
+          during_session: isSessionActive
+        });
+        console.info(`[Sokuji] [AudioPanel] System audio source connected: ${source.label}`);
+      } else {
+        // User selected "Off" - disconnect
+        console.info('[Sokuji] [AudioPanel] Disconnecting system audio source');
+        await audioService.disconnectSystemAudioSource();
+
+        // Update state
+        setSystemAudioLoopbackSourceId(null);
+        selectSystemAudioSource(null);
+        if (isSystemAudioCaptureEnabled) {
+          toggleSystemAudioCapture();
+        }
+        setSystemAudioCaptureActive(false);
+        trackEvent('audio_device_changed', {
+          device_type: 'input',
+          device_name: '[System Audio] Off',
+          change_type: 'disconnected',
+          during_session: isSessionActive
+        });
+        console.info('[Sokuji] [AudioPanel] System audio source disconnected');
+      }
+    } catch (error) {
+      console.error('[Sokuji] [AudioPanel] Error handling system audio source:', error);
+    } finally {
+      setIsSystemAudioLoading(false);
+    }
+  }, [isSystemAudioLoading, isSystemAudioCaptureEnabled, selectSystemAudioSource, toggleSystemAudioCapture, setSystemAudioCaptureActive, setSystemAudioLoopbackSourceId, trackEvent]);
 
   return (
     <div className="audio-panel">
@@ -257,6 +332,57 @@ const AudioPanel: React.FC<{ toggleAudio: () => void }> = ({ toggleAudio }) => {
             ))}
           </div>
         </div>
+
+        {/* System Audio Capture Section - Only show if there are sources available */}
+        {systemAudioSources && systemAudioSources.length > 0 && (
+          <div className="audio-section">
+            <h3>{t('simpleConfig.systemAudio', 'Participant Audio')}</h3>
+            <div className="device-selector">
+              <div className="device-status">
+                <div className={`device-icon ${isSystemAudioCaptureEnabled ? 'active' : 'inactive'}`}>
+                  <AudioLines size={18} />
+                </div>
+                <div className="device-info">
+                  <div className="device-name">
+                    {isSystemAudioLoading ? t('audioPanel.loadingDevices') : (selectedSystemAudioSource?.label || t('audioPanel.noDeviceSelected'))}
+                  </div>
+                  <div className="device-description">{t('simpleConfig.systemAudioDesc', 'Capture and translate audio from other meeting participants.')}</div>
+                </div>
+              </div>
+              <button
+                className={`device-toggle-button ${isSystemAudioCaptureEnabled ? 'on' : 'off'}`}
+                onClick={() => handleSystemAudioSourceSelect(isSystemAudioCaptureEnabled ? null : systemAudioSources[0])}
+                disabled={isSystemAudioLoading}
+              >
+                {isSystemAudioLoading ? '...' : (isSystemAudioCaptureEnabled ? t('audioPanel.turnOff') : t('audioPanel.turnOn'))}
+              </button>
+            </div>
+
+            <div className="device-list">
+              <div className="device-list-header">
+                <h4>{t('audioPanel.availableSystemAudioSources', 'Available Sources')}</h4>
+                <button
+                  className="refresh-button"
+                  onClick={() => refreshSystemAudioSources && refreshSystemAudioSources()}
+                  disabled={isLoading || isSystemAudioLoading}
+                  title={t('audioPanel.refreshSystemAudioSources', 'Refresh sources')}
+                >
+                  <RefreshCw size={14} />
+                </button>
+              </div>
+              {systemAudioSources.map((source) => (
+                <div
+                  key={source.deviceId}
+                  className={`device-option ${selectedSystemAudioSource?.deviceId === source.deviceId ? 'selected' : ''} ${isSystemAudioLoading ? 'loading' : ''}`}
+                  onClick={() => handleSystemAudioSourceSelect(source)}
+                >
+                  <span>{source.label || t('audioPanel.unknownDevice')}</span>
+                  {selectedSystemAudioSource?.deviceId === source.deviceId && <div className="selected-indicator" />}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Real Person Voice Passthrough Section */}
         <div className="audio-section voice-passthrough-section">
