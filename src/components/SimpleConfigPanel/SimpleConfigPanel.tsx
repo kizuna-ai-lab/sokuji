@@ -1,7 +1,8 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Volume2, Key, Globe, CheckCircle, AlertCircle, HelpCircle, CircleHelp, Bot, Sparkles, Zap, AudioLines, Mic, Languages, User, ChevronDown, ChevronUp } from 'lucide-react';
+import { ArrowRight, Volume2, Key, Globe, CheckCircle, AlertCircle, HelpCircle, CircleHelp, Bot, Sparkles, Zap, AudioLines, Mic, Languages, User, ChevronDown, ChevronUp, AlertTriangle } from 'lucide-react';
 import './SimpleConfigPanel.scss';
+import Modal from '../Modal/Modal';
 import {
   useProvider,
   useUILanguage,
@@ -108,6 +109,8 @@ const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings, h
   const setSystemAudioLoopbackSourceId = useSetSystemAudioLoopbackSourceId();
   const [isProviderExpanded, setIsProviderExpanded] = useState(false);
   const [isSystemAudioLoading, setIsSystemAudioLoading] = useState(false);
+  const [showMutualExclusivityWarning, setShowMutualExclusivityWarning] = useState(false);
+  const [mutualExclusivityWarningType, setMutualExclusivityWarningType] = useState<'speaker' | 'participant'>('speaker');
 
   // Refresh system audio sources on mount
   useEffect(() => {
@@ -424,6 +427,38 @@ const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings, h
 
   return (
     <div className="simple-config-panel">
+      <Modal
+        isOpen={showMutualExclusivityWarning}
+        onClose={() => setShowMutualExclusivityWarning(false)}
+        title={t('audioPanel.mutualExclusivityNotice', 'Audio Conflict')}
+      >
+        <div className="mutual-exclusivity-warning">
+          <div className="warning-icon">
+            <AlertTriangle size={24} color="#f0ad4e" />
+          </div>
+          <p>
+            <strong>
+              {mutualExclusivityWarningType === 'speaker'
+                ? t('audioPanel.mutualExclusivitySpeakerTitle', 'Cannot enable Speaker')
+                : t('audioPanel.mutualExclusivityParticipantTitle', 'Cannot enable Participant Audio')
+              }
+            </strong>
+          </p>
+          <p>
+            {mutualExclusivityWarningType === 'speaker'
+              ? t('audioPanel.mutualExclusivitySpeakerText', 'Please turn off Participant Audio before enabling Speaker.')
+              : t('audioPanel.mutualExclusivityParticipantText', 'Please turn off Speaker before enabling Participant Audio.')
+            }
+          </p>
+          <button
+            className="understand-button"
+            onClick={() => setShowMutualExclusivityWarning(false)}
+          >
+            {t('audioPanel.iUnderstand')}
+          </button>
+        </div>
+      </Modal>
+
       <div className="config-header">
         <h2>{t('settings.title')}</h2>
         <button className="close-button" onClick={toggleSettings}>
@@ -792,8 +827,14 @@ const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings, h
             {filteredMonitorDevices.map((device) => (
               <div
                 key={device.deviceId}
-                className={`device-option ${isMonitorDeviceOn && selectedMonitorDevice?.deviceId === device.deviceId ? 'selected' : ''}`}
+                className={`device-option ${isMonitorDeviceOn && selectedMonitorDevice?.deviceId === device.deviceId ? 'selected' : ''} ${isSystemAudioCaptureEnabled ? 'disabled' : ''}`}
                 onClick={() => {
+                  // Mutual exclusivity: if System Audio is ON, show warning
+                  if (isSystemAudioCaptureEnabled) {
+                    setShowMutualExclusivityWarning(true);
+                    setMutualExclusivityWarningType('speaker');
+                    return;
+                  }
                   if (!isMonitorDeviceOn) {
                     toggleMonitorDeviceState();
                   }
@@ -832,8 +873,16 @@ const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings, h
               {systemAudioSources.map((source) => (
                 <div
                   key={source.deviceId}
-                  className={`device-option ${isSystemAudioCaptureEnabled && selectedSystemAudioSource?.deviceId === source.deviceId ? 'selected' : ''} ${isSystemAudioLoading ? 'loading' : ''}`}
-                  onClick={() => handleSystemAudioSourceSelect(source)}
+                  className={`device-option ${isSystemAudioCaptureEnabled && selectedSystemAudioSource?.deviceId === source.deviceId ? 'selected' : ''} ${isSystemAudioLoading ? 'loading' : ''} ${isMonitorDeviceOn ? 'disabled' : ''}`}
+                  onClick={() => {
+                    // Mutual exclusivity: if Monitor Device is ON, show warning
+                    if (isMonitorDeviceOn) {
+                      setShowMutualExclusivityWarning(true);
+                      setMutualExclusivityWarningType('participant');
+                      return;
+                    }
+                    handleSystemAudioSourceSelect(source);
+                  }}
                 >
                   <span>{source.label || t('audioPanel.unknownDevice')}</span>
                   {isSystemAudioCaptureEnabled && selectedSystemAudioSource?.deviceId === source.deviceId && <div className="selected-indicator" />}

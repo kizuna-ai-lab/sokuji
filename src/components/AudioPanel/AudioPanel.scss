@@ -218,12 +218,21 @@
           &.virtual-device {
             border-left: 3px solid #f0ad4e;
             background-color: rgba(240, 173, 78, 0.05);
-            
+
             &:hover {
               background-color: rgba(240, 173, 78, 0.1);
             }
           }
-          
+
+          &.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+
+            &:hover {
+              background-color: #2a2a2a;
+            }
+          }
+
           span {
             font-size: 13px;
             white-space: nowrap;

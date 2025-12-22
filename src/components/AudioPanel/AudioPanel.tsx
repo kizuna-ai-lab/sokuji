@@ -15,6 +15,8 @@ const AudioPanel: React.FC<{ toggleAudio: () => void }> = ({ toggleAudio }) => {
   const isSessionActive = useIsSessionActive();
   const [showVirtualMicWarning, setShowVirtualMicWarning] = useState(false);
   const [showVirtualSpeakerWarning, setShowVirtualSpeakerWarning] = useState(false);
+  const [showMutualExclusivityWarning, setShowMutualExclusivityWarning] = useState(false);
+  const [mutualExclusivityWarningType, setMutualExclusivityWarningType] = useState<'speaker' | 'participant'>('speaker');
 
   const {
     audioInputDevices,
@@ -216,9 +218,41 @@ const AudioPanel: React.FC<{ toggleAudio: () => void }> = ({ toggleAudio }) => {
           <p>
             {t('audioPanel.virtualSpeakerWarningText4')}
           </p>
-          <button 
-            className="understand-button" 
+          <button
+            className="understand-button"
             onClick={() => setShowVirtualSpeakerWarning(false)}
+          >
+            {t('audioPanel.iUnderstand')}
+          </button>
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={showMutualExclusivityWarning}
+        onClose={() => setShowMutualExclusivityWarning(false)}
+        title={t('audioPanel.mutualExclusivityNotice', 'Audio Conflict')}
+      >
+        <div className="virtual-mic-warning">
+          <div className="warning-icon">
+            <AlertTriangle size={24} color="#f0ad4e" />
+          </div>
+          <p>
+            <strong>
+              {mutualExclusivityWarningType === 'speaker'
+                ? t('audioPanel.mutualExclusivitySpeakerTitle', 'Cannot enable Speaker')
+                : t('audioPanel.mutualExclusivityParticipantTitle', 'Cannot enable Participant Audio')
+              }
+            </strong>
+          </p>
+          <p>
+            {mutualExclusivityWarningType === 'speaker'
+              ? t('audioPanel.mutualExclusivitySpeakerText', 'Please turn off Participant Audio before enabling Speaker.')
+              : t('audioPanel.mutualExclusivityParticipantText', 'Please turn off Speaker before enabling Participant Audio.')
+            }
+          </p>
+          <button
+            className="understand-button"
+            onClick={() => setShowMutualExclusivityWarning(false)}
           >
             {t('audioPanel.iUnderstand')}
           </button>
@@ -295,9 +329,17 @@ const AudioPanel: React.FC<{ toggleAudio: () => void }> = ({ toggleAudio }) => {
                 <div className="device-name">{isLoading ? t('audioPanel.loadingDevices') : (selectedMonitorDevice?.label || t('audioPanel.noDeviceSelected'))}</div>
               </div>
             </div>
-            <button 
+            <button
               className={`device-toggle-button ${isMonitorDeviceOn ? 'on' : 'off'}`}
-              onClick={toggleMonitorDeviceState}
+              onClick={() => {
+                // Mutual exclusivity: if turning ON and System Audio is ON, show warning
+                if (!isMonitorDeviceOn && isSystemAudioCaptureEnabled) {
+                  setShowMutualExclusivityWarning(true);
+                  setMutualExclusivityWarningType('speaker');
+                  return;
+                }
+                toggleMonitorDeviceState();
+              }}
             >
               {isMonitorDeviceOn ? t('audioPanel.turnOff') : t('audioPanel.turnOn')}
             </button>
@@ -351,7 +393,15 @@ const AudioPanel: React.FC<{ toggleAudio: () => void }> = ({ toggleAudio }) => {
               </div>
               <button
                 className={`device-toggle-button ${isSystemAudioCaptureEnabled ? 'on' : 'off'}`}
-                onClick={() => handleSystemAudioSourceSelect(isSystemAudioCaptureEnabled ? null : systemAudioSources[0])}
+                onClick={() => {
+                  // Mutual exclusivity: if turning ON and Monitor Device is ON, show warning
+                  if (!isSystemAudioCaptureEnabled && isMonitorDeviceOn) {
+                    setShowMutualExclusivityWarning(true);
+                    setMutualExclusivityWarningType('participant');
+                    return;
+                  }
+                  handleSystemAudioSourceSelect(isSystemAudioCaptureEnabled ? null : systemAudioSources[0]);
+                }}
                 disabled={isSystemAudioLoading}
               >
                 {isSystemAudioLoading ? '...' : (isSystemAudioCaptureEnabled ? t('audioPanel.turnOff') : t('audioPanel.turnOn'))}
@@ -373,8 +423,16 @@ const AudioPanel: React.FC<{ toggleAudio: () => void }> = ({ toggleAudio }) => {
               {systemAudioSources.map((source) => (
                 <div
                   key={source.deviceId}
-                  className={`device-option ${selectedSystemAudioSource?.deviceId === source.deviceId ? 'selected' : ''} ${isSystemAudioLoading ? 'loading' : ''}`}
-                  onClick={() => handleSystemAudioSourceSelect(source)}
+                  className={`device-option ${selectedSystemAudioSource?.deviceId === source.deviceId ? 'selected' : ''} ${isSystemAudioLoading ? 'loading' : ''} ${isMonitorDeviceOn ? 'disabled' : ''}`}
+                  onClick={() => {
+                    // Mutual exclusivity: if Monitor Device is ON, show warning
+                    if (isMonitorDeviceOn) {
+                      setShowMutualExclusivityWarning(true);
+                      setMutualExclusivityWarningType('participant');
+                      return;
+                    }
+                    handleSystemAudioSourceSelect(source);
+                  }}
                 >
                   <span>{source.label || t('audioPanel.unknownDevice')}</span>
                   {selectedSystemAudioSource?.deviceId === source.deviceId && <div className="selected-indicator" />}
