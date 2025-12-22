@@ -55,7 +55,9 @@
     "microphone": "麥克風",
     "microphoneDesc": "選擇麥克風來捕捉您的語音。對著這個麥克風說您的語言，Sokuji 會即時翻譯它聽到的一切。",
     "speaker": "揚聲器",
-    "speakerDesc": "選擇揚聲器來監聽翻譯輸出。這讓您能聽到翻譯的聲音效果。如果不需要監聽，可以關閉。無論開啟或關閉，翻譯的音訊都會發送到虛擬麥克風供其他參與者聽到。"
+    "speakerDesc": "選擇揚聲器來監聽翻譯輸出。這讓您能聽到翻譯的聲音效果。如果不需要監聽，可以關閉。無論開啟或關閉，翻譯的音訊都會發送到虛擬麥克風供其他參與者聽到。",
+    "systemAudio": "參與者音訊",
+    "systemAudioDesc": "擷取並翻譯其他會議參與者的音訊。選擇要擷取的音訊輸出裝置以翻譯他們的語音。"
   },
   "providers": {
     "openai": {
@@ -237,7 +239,12 @@
     "realVoicePassthrough": "原聲直通",
     "enableRealVoicePassthrough": "啟用原聲直通",
     "realVoicePassthroughDescription": "將您的原聲（說話者聲音）直接傳遞到虛擬麥克風，讓聽眾同時聽到原聲和譯聲",
-    "realVoiceVolume": "原聲音量"
+    "realVoiceVolume": "原聲音量",
+    "mutualExclusivityNotice": "音訊衝突",
+    "mutualExclusivitySpeakerTitle": "無法啟用揚聲器",
+    "mutualExclusivityParticipantTitle": "無法啟用參與者音訊",
+    "mutualExclusivitySpeakerText": "啟用揚聲器之前，請先關閉參與者音訊。",
+    "mutualExclusivityParticipantText": "啟用參與者音訊之前，請先關閉揚聲器。"
   },
   "logsPanel": {
     "title": "日誌",

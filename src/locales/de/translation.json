@@ -154,7 +154,12 @@
     "realVoicePassthrough": "Original-Audio-Durchleitung",
     "enableRealVoicePassthrough": "Original-Audio-Durchleitung aktivieren",
     "realVoicePassthroughDescription": "Ihr Original-Audio (Sprecherstimme) direkt an das virtuelle Mikrofon weiterleiten, damit Zuhörer sowohl das Original- als auch das übersetzte Audio hören können",
-    "realVoiceVolume": "Original-Audio-Lautstärke"
+    "realVoiceVolume": "Original-Audio-Lautstärke",
+    "mutualExclusivityNotice": "Audio-Konflikt",
+    "mutualExclusivitySpeakerTitle": "Lautsprecher kann nicht aktiviert werden",
+    "mutualExclusivityParticipantTitle": "Teilnehmer-Audio kann nicht aktiviert werden",
+    "mutualExclusivitySpeakerText": "Bitte schalten Sie Teilnehmer-Audio aus, bevor Sie den Lautsprecher aktivieren.",
+    "mutualExclusivityParticipantText": "Bitte schalten Sie den Lautsprecher aus, bevor Sie Teilnehmer-Audio aktivieren."
   },
   "logsPanel": {
     "title": "Protokolle",
@@ -359,7 +364,9 @@
     "microphone": "Mikrofon",
     "microphoneDesc": "Wählen Sie das Mikrofon zur Aufnahme Ihrer Sprache. Sprechen Sie in Ihrer Sprache in dieses Mikrofon, und Sokuji wird alles, was es hört, in Echtzeit übersetzen.",
     "speaker": "Lautsprecher",
-    "speakerDesc": "Wählen Sie einen Lautsprecher zur Überwachung der übersetzten Ausgabe. Damit können Sie hören, wie die Übersetzung klingt. Sie können es ausschalten, wenn keine Überwachung erforderlich ist. Ob ein- oder ausgeschaltet, das übersetzte Audio wird immer an das virtuelle Mikrofon gesendet, damit andere Teilnehmer es hören können."
+    "speakerDesc": "Wählen Sie einen Lautsprecher zur Überwachung der übersetzten Ausgabe. Damit können Sie hören, wie die Übersetzung klingt. Sie können es ausschalten, wenn keine Überwachung erforderlich ist. Ob ein- oder ausgeschaltet, das übersetzte Audio wird immer an das virtuelle Mikrofon gesendet, damit andere Teilnehmer es hören können.",
+    "systemAudio": "Teilnehmer-Audio",
+    "systemAudioDesc": "Audio von anderen Meeting-Teilnehmern aufnehmen und übersetzen. Wählen Sie aus, welches Audio-Ausgabegerät aufgenommen werden soll, um deren Sprache zu übersetzen."
   },
   "providers": {
     "openai": {

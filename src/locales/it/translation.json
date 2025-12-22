@@ -151,7 +151,12 @@
     "realVoicePassthrough": "Passaggio Audio Originale",
     "enableRealVoicePassthrough": "Abilita Passaggio Audio Originale",
     "realVoicePassthroughDescription": "Passa il tuo audio originale (voce del parlante) direttamente al microfono virtuale in modo che gli ascoltatori possano sentire sia l'audio originale che quello tradotto",
-    "realVoiceVolume": "Volume Audio Originale"
+    "realVoiceVolume": "Volume Audio Originale",
+    "mutualExclusivityNotice": "Conflitto Audio",
+    "mutualExclusivitySpeakerTitle": "Impossibile abilitare l'Altoparlante",
+    "mutualExclusivityParticipantTitle": "Impossibile abilitare l'Audio dei Partecipanti",
+    "mutualExclusivitySpeakerText": "Si prega di disattivare l'Audio dei Partecipanti prima di abilitare l'Altoparlante.",
+    "mutualExclusivityParticipantText": "Si prega di disattivare l'Altoparlante prima di abilitare l'Audio dei Partecipanti."
   },
   "logsPanel": {
     "title": "Log",
@@ -356,7 +361,9 @@
     "microphone": "Microfono",
     "microphoneDesc": "Seleziona il microfono per catturare il tuo parlato. Parla nella tua lingua in questo microfono, e Sokuji tradurrà tutto ciò che sente in tempo reale.",
     "speaker": "Altoparlante",
-    "speakerDesc": "Seleziona un altoparlante per monitorare l'output tradotto. Questo ti permette di sentire come suona la traduzione. Puoi spegnerlo se il monitoraggio non è necessario. Che sia acceso o spento, l'audio tradotto viene sempre inviato al microfono virtuale perché altri partecipanti possano sentirlo."
+    "speakerDesc": "Seleziona un altoparlante per monitorare l'output tradotto. Questo ti permette di sentire come suona la traduzione. Puoi spegnerlo se il monitoraggio non è necessario. Che sia acceso o spento, l'audio tradotto viene sempre inviato al microfono virtuale perché altri partecipanti possano sentirlo.",
+    "systemAudio": "Audio dei Partecipanti",
+    "systemAudioDesc": "Cattura e traduci l'audio degli altri partecipanti alla riunione. Seleziona quale dispositivo di uscita audio catturare per tradurre il loro discorso."
   },
   "providers": {
     "openai": {

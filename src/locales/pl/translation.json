@@ -130,7 +130,12 @@
     "realVoicePassthrough": "Przepuszczanie Oryginalnego Dźwięku",
     "enableRealVoicePassthrough": "Włącz Przepuszczanie Oryginalnego Dźwięku",
     "realVoicePassthroughDescription": "Przekazuj swój oryginalny dźwięk (głos mówcy) bezpośrednio do wirtualnego mikrofonu, aby słuchacze mogli słyszeć zarówno oryginalny, jak i przetłumaczony dźwięk",
-    "realVoiceVolume": "Głośność Oryginalnego Dźwięku"
+    "realVoiceVolume": "Głośność Oryginalnego Dźwięku",
+    "mutualExclusivityNotice": "Konflikt dźwięku",
+    "mutualExclusivitySpeakerTitle": "Nie można włączyć Głośnika",
+    "mutualExclusivityParticipantTitle": "Nie można włączyć Dźwięku uczestnika",
+    "mutualExclusivitySpeakerText": "Proszę wyłączyć Dźwięk uczestnika przed włączeniem Głośnika.",
+    "mutualExclusivityParticipantText": "Proszę wyłączyć Głośnik przed włączeniem Dźwięku uczestnika."
   },
   "logsPanel": {
     "title": "Logi",
@@ -333,7 +338,9 @@
     "microphone": "Mikrofon",
     "microphoneDesc": "Wybierz mikrofon do przechwytywania swojej mowy. Mów w swoim języku do tego mikrofonu, a Sokuji będzie tłumaczyć wszystko co usłyszy w czasie rzeczywistym.",
     "speaker": "Głośnik",
-    "speakerDesc": "Wybierz głośnik do monitorowania przetłumaczonego wyjścia. Pozwala to słyszeć jak brzmi tłumaczenie. Możesz to wyłączyć jeśli monitorowanie nie jest potrzebne. Niezależnie od tego czy jest włączone czy wyłączone, przetłumaczone audio jest zawsze wysyłane do wirtualnego mikrofonu aby inni uczestnicy mogli je słyszeć."
+    "speakerDesc": "Wybierz głośnik do monitorowania przetłumaczonego wyjścia. Pozwala to słyszeć jak brzmi tłumaczenie. Możesz to wyłączyć jeśli monitorowanie nie jest potrzebne. Niezależnie od tego czy jest włączone czy wyłączone, przetłumaczone audio jest zawsze wysyłane do wirtualnego mikrofonu aby inni uczestnicy mogli je słyszeć.",
+    "systemAudio": "Dźwięk uczestnika",
+    "systemAudioDesc": "Przechwytuj i tłumacz dźwięk od innych uczestników spotkania. Wybierz urządzenie wyjściowe audio do przechwytywania ich mowy do tłumaczenia."
   },
   "providers": {
     "openai": {

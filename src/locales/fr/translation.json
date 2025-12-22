@@ -154,7 +154,12 @@
     "realVoicePassthrough": "Passage Audio Original",
     "enableRealVoicePassthrough": "Activer le Passage Audio Original",
     "realVoicePassthroughDescription": "Transmettre votre audio original (voix du locuteur) directement au microphone virtuel pour que les auditeurs puissent entendre à la fois l'audio original et traduit",
-    "realVoiceVolume": "Volume Audio Original"
+    "realVoiceVolume": "Volume Audio Original",
+    "mutualExclusivityNotice": "Conflit Audio",
+    "mutualExclusivitySpeakerTitle": "Impossible d'activer le Haut-parleur",
+    "mutualExclusivityParticipantTitle": "Impossible d'activer l'Audio des Participants",
+    "mutualExclusivitySpeakerText": "Veuillez désactiver l'Audio des Participants avant d'activer le Haut-parleur.",
+    "mutualExclusivityParticipantText": "Veuillez désactiver le Haut-parleur avant d'activer l'Audio des Participants."
   },
   "logsPanel": {
     "title": "Journaux",
@@ -359,7 +364,9 @@
     "microphone": "Microphone",
     "microphoneDesc": "Sélectionnez le microphone pour capturer votre parole. Parlez dans votre langue dans ce microphone, et Sokuji traduira tout ce qu'il entend en temps réel.",
     "speaker": "Haut-parleur",
-    "speakerDesc": "Sélectionnez un haut-parleur pour surveiller la sortie traduite. Cela vous permet d'entendre comment sonne la traduction. Vous pouvez l'éteindre si la surveillance n'est pas nécessaire. Qu'il soit allumé ou éteint, l'audio traduit est toujours envoyé au microphone virtuel pour que les autres participants l'entendent."
+    "speakerDesc": "Sélectionnez un haut-parleur pour surveiller la sortie traduite. Cela vous permet d'entendre comment sonne la traduction. Vous pouvez l'éteindre si la surveillance n'est pas nécessaire. Qu'il soit allumé ou éteint, l'audio traduit est toujours envoyé au microphone virtuel pour que les autres participants l'entendent.",
+    "systemAudio": "Audio des Participants",
+    "systemAudioDesc": "Capturez et traduisez l'audio des autres participants à la réunion. Sélectionnez quel périphérique de sortie audio capturer pour traduire leur parole."
   },
   "providers": {
     "openai": {

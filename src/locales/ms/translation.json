@@ -146,7 +146,9 @@
     "microphone": "Mikrofon",
     "microphoneDesc": "Pilih mikrofon untuk menangkap pertuturan anda. Bercakap dalam bahasa anda ke mikrofon ini, dan Sokuji akan menterjemah semua yang didengarinya dalam masa nyata.",
     "speaker": "Pembesar Suara",
-    "speakerDesc": "Pilih pembesar suara untuk memantau output terjemahan. Ini membolehkan anda mendengar bagaimana terjemahan kedengaran. Anda boleh mematikannya jika pemantauan tidak diperlukan. Sama ada hidup atau mati, audio terjemahan sentiasa dihantar ke mikrofon maya agar peserta lain dapat mendengar."
+    "speakerDesc": "Pilih pembesar suara untuk memantau output terjemahan. Ini membolehkan anda mendengar bagaimana terjemahan kedengaran. Anda boleh mematikannya jika pemantauan tidak diperlukan. Sama ada hidup atau mati, audio terjemahan sentiasa dihantar ke mikrofon maya agar peserta lain dapat mendengar.",
+    "systemAudio": "Audio Peserta",
+    "systemAudioDesc": "Tangkap dan terjemahkan audio daripada peserta mesyuarat lain. Pilih peranti output audio mana untuk ditangkap bagi menterjemahkan pertuturan mereka."
   },
   "providers": {
     "openai": {
@@ -247,7 +249,12 @@
     "realVoicePassthrough": "Laluan Audio Asal",
     "enableRealVoicePassthrough": "Dayakan Laluan Audio Asal",
     "realVoicePassthroughDescription": "Hantar audio asal anda (suara penutur) terus ke mikrofon maya supaya pendengar boleh mendengar kedua-dua audio asal dan terjemahan",
-    "realVoiceVolume": "Volum Audio Asal"
+    "realVoiceVolume": "Volum Audio Asal",
+    "mutualExclusivityNotice": "Konflik Audio",
+    "mutualExclusivitySpeakerTitle": "Tidak Dapat Dayakan Pembesar Suara",
+    "mutualExclusivityParticipantTitle": "Tidak Dapat Dayakan Audio Peserta",
+    "mutualExclusivitySpeakerText": "Sila matikan Audio Peserta sebelum mendayakan Pembesar Suara.",
+    "mutualExclusivityParticipantText": "Sila matikan Pembesar Suara sebelum mendayakan Audio Peserta."
   },
   "logsPanel": {
     "title": "Log",

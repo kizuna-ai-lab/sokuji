@@ -100,7 +100,12 @@
     "realVoicePassthrough": "Orijinal Ses Geçişi",
     "enableRealVoicePassthrough": "Orijinal Ses Geçişini Etkinleştir",
     "realVoicePassthroughDescription": "Orijinal sesinizi (konuşmacının sesi) doğrudan sanal mikrofona iletin, böylece dinleyiciler hem orijinal hem de çevrilmiş sesi duyabilir",
-    "realVoiceVolume": "Orijinal Ses Seviyesi"
+    "realVoiceVolume": "Orijinal Ses Seviyesi",
+    "mutualExclusivityNotice": "Ses Çakışması",
+    "mutualExclusivitySpeakerTitle": "Hoparlör Etkinleştirilemiyor",
+    "mutualExclusivityParticipantTitle": "Katılımcı Sesi Etkinleştirilemiyor",
+    "mutualExclusivitySpeakerText": "Hoparlörü etkinleştirmeden önce lütfen Katılımcı Sesini kapatın.",
+    "mutualExclusivityParticipantText": "Katılımcı Sesini etkinleştirmeden önce lütfen Hoparlörü kapatın."
   },
   "logsPanel": {
     "title": "Günlükler",
@@ -267,7 +272,9 @@
     "microphone": "Mikrofon",
     "microphoneDesc": "Konuşmanızı yakalamak için mikrofonu seçin. Bu mikrofona dilinizle konuşun, Sokuji duyduğu her şeyi gerçek zamanda çevirecektir.",
     "speaker": "Hoparlör",
-    "speakerDesc": "Çevrilmiş çıktıyı izlemek için bir hoparlör seçin. Bu, çevirinin nasıl geldiğini duymanızı sağlar. İzleme gerekmiyorsa kapatabilirsiniz. Açık veya kapalı olsun, çevrilmiş ses her zaman sanal mikrofona gönderilir ve diğer katılımcılar duyar."
+    "speakerDesc": "Çevrilmiş çıktıyı izlemek için bir hoparlör seçin. Bu, çevirinin nasıl geldiğini duymanızı sağlar. İzleme gerekmiyorsa kapatabilirsiniz. Açık veya kapalı olsun, çevrilmiş ses her zaman sanal mikrofona gönderilir ve diğer katılımcılar duyar.",
+    "systemAudio": "Katılımcı Sesi",
+    "systemAudioDesc": "Diğer toplantı katılımcılarından gelen sesi yakalayın ve çevirin. Konuşmalarını çevirmek için hangi ses çıkış cihazının yakalanacağını seçin."
   },
   "providers": {
     "openai": {

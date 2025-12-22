@@ -124,7 +124,9 @@
     "microphone": "Microphone",
     "microphoneDesc": "Piliin ang microphone para ma-capture ang inyong pagsasalita. Magsalita sa inyong wika sa microphone na ito, at i-translate ng Sokuji ang lahat ng maririnig niya nang real-time.",
     "speaker": "Speaker",
-    "speakerDesc": "Piliin ang speaker para ma-monitor ang translated na output. Pinapahintulutan ninyo nitong marinig kung paano tumutunog ang translation. Pwede ninyong i-off ito kung hindi kailangan ang monitoring. Naka-on man o naka-off, laging napapadala ang translated na audio sa virtual microphone para marinig ng ibang participants."
+    "speakerDesc": "Piliin ang speaker para ma-monitor ang translated na output. Pinapahintulutan ninyo nitong marinig kung paano tumutunog ang translation. Pwede ninyong i-off ito kung hindi kailangan ang monitoring. Naka-on man o naka-off, laging napapadala ang translated na audio sa virtual microphone para marinig ng ibang participants.",
+    "systemAudio": "Audio ng Kalahok",
+    "systemAudioDesc": "I-capture at i-translate ang audio mula sa ibang kalahok sa meeting. Piliin kung aling audio output device ang i-capture para isalin ang kanilang pagsasalita."
   },
   "providers": {
     "openai": {
@@ -216,7 +218,12 @@
     "realVoicePassthrough": "Original Audio Passthrough",
     "enableRealVoicePassthrough": "I-enable ang Original Audio Passthrough",
     "realVoicePassthroughDescription": "Ipasa ang inyong orihinal na audio (boses ng nagsasalita) direkta sa virtual microphone para marinig ng mga nakikinig ang parehong orihinal at translated na audio",
-    "realVoiceVolume": "Original Audio Volume"
+    "realVoiceVolume": "Original Audio Volume",
+    "mutualExclusivityNotice": "Conflict sa Audio",
+    "mutualExclusivitySpeakerTitle": "Hindi Makapag-enable ng Speaker",
+    "mutualExclusivityParticipantTitle": "Hindi Makapag-enable ng Audio ng Kalahok",
+    "mutualExclusivitySpeakerText": "Pakiusap na i-off muna ang Audio ng Kalahok bago i-enable ang Speaker.",
+    "mutualExclusivityParticipantText": "Pakiusap na i-off muna ang Speaker bago i-enable ang Audio ng Kalahok."
   },
   "logsPanel": {
     "title": "Mga Log",

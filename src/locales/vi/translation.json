@@ -102,7 +102,12 @@
     "realVoicePassthrough": "Truyền Âm Thanh Gốc",
     "enableRealVoicePassthrough": "Bật Truyền Âm Thanh Gốc",
     "realVoicePassthroughDescription": "Truyền âm thanh gốc của bạn (giọng nói của người nói) trực tiếp đến microphone ảo để người nghe có thể nghe cả âm thanh gốc và âm thanh đã dịch",
-    "realVoiceVolume": "Âm Lượng Âm Thanh Gốc"
+    "realVoiceVolume": "Âm Lượng Âm Thanh Gốc",
+    "mutualExclusivityNotice": "Xung Đột Âm Thanh",
+    "mutualExclusivitySpeakerTitle": "Không Thể Bật Loa",
+    "mutualExclusivityParticipantTitle": "Không Thể Bật Âm Thanh Người Tham Gia",
+    "mutualExclusivitySpeakerText": "Vui lòng tắt Âm Thanh Người Tham Gia trước khi bật Loa.",
+    "mutualExclusivityParticipantText": "Vui lòng tắt Loa trước khi bật Âm Thanh Người Tham Gia."
   },
   "logsPanel": {
     "title": "Nhật ký",
@@ -269,7 +274,9 @@
     "microphone": "Microphone",
     "microphoneDesc": "Chọn microphone để ghi lại giọng nói của bạn. Nói bằng ngôn ngữ của bạn vào microphone này, và Sokuji sẽ dịch mọi thứ nó nghe thấy theo thời gian thực.",
     "speaker": "Loa",
-    "speakerDesc": "Chọn loa để giám sát đầu ra đã dịch. Điều này cho phép bạn nghe bản dịch như thế nào. Bạn có thể tắt nó nếu không cần giám sát. Dù bật hay tắt, âm thanh đã dịch luôn được gửi tới microphone ảo để những người tham gia khác có thể nghe."
+    "speakerDesc": "Chọn loa để giám sát đầu ra đã dịch. Điều này cho phép bạn nghe bản dịch như thế nào. Bạn có thể tắt nó nếu không cần giám sát. Dù bật hay tắt, âm thanh đã dịch luôn được gửi tới microphone ảo để những người tham gia khác có thể nghe.",
+    "systemAudio": "Âm Thanh Người Tham Gia",
+    "systemAudioDesc": "Ghi lại và dịch âm thanh từ những người tham gia cuộc họp khác. Chọn thiết bị đầu ra âm thanh nào để ghi lại nhằm dịch lời nói của họ."
   },
   "providers": {
     "openai": {

@@ -146,7 +146,9 @@
     "microphone": "Microfone",
     "microphoneDesc": "Seleccione o microfone para capturar a sua fala. Fale no seu idioma para este microfone, e o Sokuji traduzirá tudo o que ouvir em tempo real.",
     "speaker": "Altifalante",
-    "speakerDesc": "Seleccione um altifalante para monitorizar a saída traduzida. Isto permite-lhe ouvir como soa a tradução. Pode desligá-lo se a monitorização não for necessária. Esteja ligado ou desligado, o áudio traduzido é sempre enviado para o microfone virtual para outros participantes ouvirem."
+    "speakerDesc": "Seleccione um altifalante para monitorizar a saída traduzida. Isto permite-lhe ouvir como soa a tradução. Pode desligá-lo se a monitorização não for necessária. Esteja ligado ou desligado, o áudio traduzido é sempre enviado para o microfone virtual para outros participantes ouvirem.",
+    "systemAudio": "Áudio de Participantes",
+    "systemAudioDesc": "Capture e traduza o áudio de outros participantes da reunião. Seleccione qual dispositivo de saída de áudio capturar para traduzir a fala deles."
   },
   "providers": {
     "openai": {
@@ -247,7 +249,12 @@
     "realVoicePassthrough": "Passagem de Áudio Original",
     "enableRealVoicePassthrough": "Activar Passagem de Áudio Original",
     "realVoicePassthroughDescription": "Passe o seu áudio original (voz do orador) directamente para o microfone virtual para que os ouvintes possam ouvir tanto o áudio original como o traduzido",
-    "realVoiceVolume": "Volume do Áudio Original"
+    "realVoiceVolume": "Volume do Áudio Original",
+    "mutualExclusivityNotice": "Conflito de Áudio",
+    "mutualExclusivitySpeakerTitle": "Não é possível activar o Altifalante",
+    "mutualExclusivityParticipantTitle": "Não é possível activar Áudio de Participantes",
+    "mutualExclusivitySpeakerText": "Por favor, desligue o Áudio de Participantes antes de activar o Altifalante.",
+    "mutualExclusivityParticipantText": "Por favor, desligue o Altifalante antes de activar o Áudio de Participantes."
   },
   "logsPanel": {
     "title": "Registos",

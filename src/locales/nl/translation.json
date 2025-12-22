@@ -132,7 +132,12 @@
     "realVoicePassthrough": "Originele Audio Doorvoer",
     "enableRealVoicePassthrough": "Originele Audio Doorvoer Inschakelen",
     "realVoicePassthroughDescription": "Geef uw originele audio (stem van de spreker) rechtstreeks door aan de virtuele microfoon zodat luisteraars zowel de originele als de vertaalde audio kunnen horen",
-    "realVoiceVolume": "Originele Audio Volume"
+    "realVoiceVolume": "Originele Audio Volume",
+    "mutualExclusivityNotice": "Audioconflict",
+    "mutualExclusivitySpeakerTitle": "Kan Luidspreker niet Inschakelen",
+    "mutualExclusivityParticipantTitle": "Kan Deelnemer Audio niet Inschakelen",
+    "mutualExclusivitySpeakerText": "Schakel eerst Deelnemer Audio uit voordat u Luidspreker inschakelt.",
+    "mutualExclusivityParticipantText": "Schakel eerst Luidspreker uit voordat u Deelnemer Audio inschakelt."
   },
   "logsPanel": {
     "title": "Logs",
@@ -335,7 +340,9 @@
     "microphone": "Microfoon",
     "microphoneDesc": "Selecteer de microfoon om uw spraak op te vangen. Spreek uw taal in deze microfoon, en Sokuji zal alles wat het hoort in realtime vertalen.",
     "speaker": "Luidspreker",
-    "speakerDesc": "Selecteer een luidspreker om de vertaalde uitvoer te monitoren. Hiermee kunt u horen hoe de vertaling klinkt. U kunt het uitschakelen als monitoring niet nodig is. Of het nu aan of uit staat, de vertaalde audio wordt altijd naar de virtuele microfoon gestuurd zodat andere deelnemers het kunnen horen."
+    "speakerDesc": "Selecteer een luidspreker om de vertaalde uitvoer te monitoren. Hiermee kunt u horen hoe de vertaling klinkt. U kunt het uitschakelen als monitoring niet nodig is. Of het nu aan of uit staat, de vertaalde audio wordt altijd naar de virtuele microfoon gestuurd zodat andere deelnemers het kunnen horen.",
+    "systemAudio": "Deelnemer Audio",
+    "systemAudioDesc": "Leg audio vast en vertaal deze van andere deelnemers aan de vergadering. Selecteer welk audio-uitvoerapparaat moet worden vastgelegd om hun spraak te vertalen."
   },
   "providers": {
     "openai": {

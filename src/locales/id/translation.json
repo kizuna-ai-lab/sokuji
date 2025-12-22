@@ -164,7 +164,9 @@
     "microphone": "Mikrofon",
     "microphoneDesc": "Pilih mikrofon untuk menangkap ucapan Anda. Berbicara dalam bahasa Anda ke mikrofon ini, dan Sokuji akan menerjemahkan semua yang didengarnya secara real-time.",
     "speaker": "Speaker",
-    "speakerDesc": "Pilih speaker untuk memantau output terjemahan. Ini memungkinkan Anda mendengar bagaimana terjemahan terdengar. Anda dapat mematikannya jika pemantauan tidak diperlukan. Baik hidup atau mati, audio terjemahan selalu dikirim ke mikrofon virtual agar peserta lain dapat mendengar."
+    "speakerDesc": "Pilih speaker untuk memantau output terjemahan. Ini memungkinkan Anda mendengar bagaimana terjemahan terdengar. Anda dapat mematikannya jika pemantauan tidak diperlukan. Baik hidup atau mati, audio terjemahan selalu dikirim ke mikrofon virtual agar peserta lain dapat mendengar.",
+    "systemAudio": "Audio Peserta",
+    "systemAudioDesc": "Tangkap dan terjemahkan audio dari peserta rapat lainnya. Pilih perangkat output audio mana yang akan ditangkap untuk menerjemahkan ucapan mereka."
   },
   "providers": {
     "openai": {
@@ -265,7 +267,12 @@
     "realVoicePassthrough": "Passthrough Audio Asli",
     "enableRealVoicePassthrough": "Aktifkan Passthrough Audio Asli",
     "realVoicePassthroughDescription": "Teruskan audio asli Anda (suara pembicara) langsung ke mikrofon virtual agar pendengar dapat mendengar audio asli dan terjemahan",
-    "realVoiceVolume": "Volume Audio Asli"
+    "realVoiceVolume": "Volume Audio Asli",
+    "mutualExclusivityNotice": "Konflik Audio",
+    "mutualExclusivitySpeakerTitle": "Tidak Dapat Mengaktifkan Speaker",
+    "mutualExclusivityParticipantTitle": "Tidak Dapat Mengaktifkan Audio Peserta",
+    "mutualExclusivitySpeakerText": "Harap matikan Audio Peserta sebelum mengaktifkan Speaker.",
+    "mutualExclusivityParticipantText": "Harap matikan Speaker sebelum mengaktifkan Audio Peserta."
   },
   "logsPanel": {
     "title": "Log",

@@ -154,7 +154,12 @@
     "realVoicePassthrough": "Paso de Audio Original",
     "enableRealVoicePassthrough": "Habilitar Paso de Audio Original",
     "realVoicePassthroughDescription": "Pasar tu audio original (voz del hablante) directamente al micrófono virtual para que los oyentes puedan escuchar tanto el audio original como el traducido",
-    "realVoiceVolume": "Volumen de Audio Original"
+    "realVoiceVolume": "Volumen de Audio Original",
+    "mutualExclusivityNotice": "Conflicto de Audio",
+    "mutualExclusivitySpeakerTitle": "No se puede habilitar el Altavoz",
+    "mutualExclusivityParticipantTitle": "No se puede habilitar el Audio de Participantes",
+    "mutualExclusivitySpeakerText": "Por favor, desactive el Audio de Participantes antes de habilitar el Altavoz.",
+    "mutualExclusivityParticipantText": "Por favor, desactive el Altavoz antes de habilitar el Audio de Participantes."
   },
   "logsPanel": {
     "title": "Registros",
@@ -359,7 +364,9 @@
     "microphone": "Micrófono",
     "microphoneDesc": "Selecciona el micrófono para capturar tu voz. Habla en tu idioma hacia este micrófono, y Sokuji traducirá todo lo que escuche en tiempo real.",
     "speaker": "Altavoz",
-    "speakerDesc": "Selecciona un altavoz para monitorear la salida traducida. Esto te permite escuchar cómo suena la traducción. Puedes desactivarlo si no necesitas monitorear. Esté activado o desactivado, el audio traducido siempre se envía al micrófono virtual para que otros participantes lo escuchen."
+    "speakerDesc": "Selecciona un altavoz para monitorear la salida traducida. Esto te permite escuchar cómo suena la traducción. Puedes desactivarlo si no necesitas monitorear. Esté activado o desactivado, el audio traducido siempre se envía al micrófono virtual para que otros participantes lo escuchen.",
+    "systemAudio": "Audio de Participantes",
+    "systemAudioDesc": "Captura y traduce el audio de otros participantes de la reunión. Selecciona qué dispositivo de salida de audio capturar para traducir su habla."
   },
   "providers": {
     "openai": {

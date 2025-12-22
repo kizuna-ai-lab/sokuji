@@ -124,7 +124,9 @@
     "microphone": "Mikrofoni",
     "microphoneDesc": "Valitse mikrofoni puheesi kaappaamiseen. Puhu kielelläsi tähän mikrofoniin, niin Sokuji kääntää kaiken mitä se kuulee reaaliajassa.",
     "speaker": "Kaiutin",
-    "speakerDesc": "Valitse kaiutin käännetyn tulosteen valvomiseen. Tämä antaa sinun kuulla miltä käännös kuulostaa. Voit sammuttaa sen, jos valvonta ei ole tarpeen. Oli se päällä tai pois, käännetty ääni lähetetään aina virtuaaliseen mikrofoniin muiden osallistujien kuultavaksi."
+    "speakerDesc": "Valitse kaiutin käännetyn tulosteen valvomiseen. Tämä antaa sinun kuulla miltä käännös kuulostaa. Voit sammuttaa sen, jos valvonta ei ole tarpeen. Oli se päällä tai pois, käännetty ääni lähetetään aina virtuaaliseen mikrofoniin muiden osallistujien kuultavaksi.",
+    "systemAudio": "Osallistujan ääni",
+    "systemAudioDesc": "Kaappaa ja käännä ääni muilta kokouksen osallistujilta. Valitse mistä äänilähteestä haluat kaapata heidän puheensa käännettäväksi."
   },
   "providers": {
     "openai": {
@@ -216,7 +218,12 @@
     "realVoicePassthrough": "Alkuperäisen äänen läpiviennti",
     "enableRealVoicePassthrough": "Ota alkuperäisen äänen läpiviennti käyttöön",
     "realVoicePassthroughDescription": "Välitä alkuperäinen äänesi (puhujan ääni) suoraan virtuaalimikrofoniin, jotta kuulijat voivat kuulla sekä alkuperäisen että käännetyn äänen",
-    "realVoiceVolume": "Alkuperäisen äänen äänenvoimakkuus"
+    "realVoiceVolume": "Alkuperäisen äänen äänenvoimakkuus",
+    "mutualExclusivityNotice": "Äänikonfliktit",
+    "mutualExclusivitySpeakerTitle": "Kaiutinta ei voi ottaa käyttöön",
+    "mutualExclusivityParticipantTitle": "Osallistujan ääntä ei voi ottaa käyttöön",
+    "mutualExclusivitySpeakerText": "Ole hyvä ja sammuta Osallistujan ääni ennen Kaiuttimen käyttöönottoa.",
+    "mutualExclusivityParticipantText": "Ole hyvä ja sammuta Kaiutin ennen Osallistujan äänen käyttöönottoa."
   },
   "logsPanel": {
     "title": "Lokit",
