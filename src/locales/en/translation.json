@@ -239,7 +239,12 @@
     "realVoicePassthrough": "Original Audio Passthrough",
     "enableRealVoicePassthrough": "Enable Original Audio Passthrough",
     "realVoicePassthroughDescription": "Pass your original audio (speaker's voice) directly to the virtual microphone so listeners can hear both original and translated audio",
-    "realVoiceVolume": "Original Audio Volume"
+    "realVoiceVolume": "Original Audio Volume",
+    "mutualExclusivityNotice": "Audio Conflict",
+    "mutualExclusivitySpeakerTitle": "Cannot enable Speaker",
+    "mutualExclusivityParticipantTitle": "Cannot enable Participant Audio",
+    "mutualExclusivitySpeakerText": "Please turn off Participant Audio before enabling Speaker.",
+    "mutualExclusivityParticipantText": "Please turn off Speaker before enabling Participant Audio."
   },
   "auth": {
     "signInToUseKizunaAI": "Please sign in to use Kizuna AI service",

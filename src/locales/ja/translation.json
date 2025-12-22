@@ -154,7 +154,12 @@
     "realVoicePassthrough": "原音パススルー",
     "enableRealVoicePassthrough": "原音パススルーを有効にする",
     "realVoicePassthroughDescription": "あなたの原音（話者の声）を仮想マイクに直接送信し、聞き手が原音と通訳音声の両方を聞けるようにします",
-    "realVoiceVolume": "原音ボリューム"
+    "realVoiceVolume": "原音ボリューム",
+    "mutualExclusivityNotice": "音声の競合",
+    "mutualExclusivitySpeakerTitle": "スピーカーを有効にできません",
+    "mutualExclusivityParticipantTitle": "参加者オーディオを有効にできません",
+    "mutualExclusivitySpeakerText": "スピーカーを有効にするには、先に参加者オーディオをオフにしてください。",
+    "mutualExclusivityParticipantText": "参加者オーディオを有効にするには、先にスピーカーをオフにしてください。"
   },
   "logsPanel": {
     "title": "ログ",

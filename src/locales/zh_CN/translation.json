@@ -264,7 +264,12 @@
     "realVoicePassthrough": "原声直通",
     "enableRealVoicePassthrough": "启用原声直通",
     "realVoicePassthroughDescription": "将您的原声（说话者声音）直接传递到虚拟麦克风，让听众同时听到原声和译声",
-    "realVoiceVolume": "原声音量"
+    "realVoiceVolume": "原声音量",
+    "mutualExclusivityNotice": "音频冲突",
+    "mutualExclusivitySpeakerTitle": "无法启用扬声器",
+    "mutualExclusivityParticipantTitle": "无法启用参与者音频",
+    "mutualExclusivitySpeakerText": "请先关闭参与者音频，再启用扬声器。",
+    "mutualExclusivityParticipantText": "请先关闭扬声器，再启用参与者音频。"
   },
   "logsPanel": {
     "title": "日志",
