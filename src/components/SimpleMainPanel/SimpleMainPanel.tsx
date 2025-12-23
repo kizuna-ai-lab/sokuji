@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { Mic, MicOff, Volume2, VolumeX, Loader, MessageSquare, Send } from 'lucide-react';
+import { Mic, MicOff, Volume2, VolumeX, Loader, MessageSquare, Send, AlertCircle } from 'lucide-react';
 import './SimpleMainPanel.scss';
 import {
   useProvider,
@@ -243,6 +243,27 @@ const SimpleMainPanel: React.FC<SimpleMainPanelProps> = React.memo(({
               
               // Calculate highlighted characters for karaoke effect
               const highlightedChars = isPlaying ? Math.floor(text.length * progressRatio) : 0;
+              
+              // Handle error messages
+              if (item.error) {
+                const errorMessage = item.error.message || item.error.code || t('mainPanel.unknownError', 'Unknown error');
+                return (
+                  <div key={index} className={`message-bubble ${item.role} error`}>
+                    <div className="message-header">
+                      <span className="role">
+                        <AlertCircle size={12} style={{ marginRight: '4px' }} />
+                        {t('mainPanel.error', 'Error')}
+                      </span>
+                    </div>
+                    <div className="message-content error-content">
+                      <div className="error-message-text">{errorMessage}</div>
+                      {item.error.param && (
+                        <div className="error-param">{t('mainPanel.errorParam', 'Parameter')}: {item.error.param}</div>
+                      )}
+                    </div>
+                  </div>
+                );
+              }
               
               return (
                 <div key={index} className={`message-bubble ${item.role} ${isPlaying ? 'playing' : ''}`}>

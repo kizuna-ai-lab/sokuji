@@ -402,7 +402,10 @@
     "switchToAdvanced": "Switch to advanced mode",
     "switchToBasic": "Switch to basic mode",
     "typeMessage": "Text to translate...",
-    "send": "Send"
+    "send": "Send",
+    "error": "Error",
+    "unknownError": "Unknown error",
+    "errorParam": "Parameter"
   },
   "simplePanel": {
     "clickToConfigLanguages": "Click to configure languages",

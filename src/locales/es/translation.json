@@ -198,7 +198,10 @@
     "basicMode": "Básico",
     "advancedMode": "Avanzado",
     "typeMessage": "Texto a traducir...",
-    "send": "Enviar"
+    "send": "Enviar",
+    "error": "Error",
+    "unknownError": "Error desconocido",
+    "errorParam": "Parámetro"
   },
   "errors": {
     "microphoneAccess": "Acceso al micrófono denegado",

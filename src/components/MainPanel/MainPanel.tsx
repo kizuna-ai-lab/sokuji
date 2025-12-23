@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
-import {X, Zap, Users, Mic, Loader, Play, Volume2, Wrench, Send} from 'lucide-react';
+import {X, Zap, Users, Mic, Loader, Play, Volume2, Wrench, Send, AlertCircle} from 'lucide-react';
 import './MainPanel.scss';
 import {
   useProvider,
@@ -268,8 +268,45 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           realtimeEvent.event?.type || 'unknown'
         );
 
-        // Track AI response state for text input queueing (OpenAI only)
+        // Handle OpenAI server error events
         const eventType = realtimeEvent.event?.type;
+        if (eventType === 'error' && realtimeEvent.source === 'server') {
+          // The error data structure: realtimeEvent.event.data contains the original OpenAI event
+          // Original structure: { source: 'server', event: { type: 'error', error: {...} } }
+          const errorData = realtimeEvent.event?.data;
+          const errorEvent = errorData?.event || realtimeEvent.event;
+          
+          if (errorEvent?.error) {
+            // Create an error conversation item
+            const errorItem: ConversationItem = {
+              id: `error_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+              role: 'system',
+              type: 'message',
+              status: 'completed',
+              formatted: {
+                text: errorEvent.error.message || errorEvent.error.code || 'Unknown error',
+              },
+              content: [{
+                type: 'text',
+                text: errorEvent.error.message || errorEvent.error.code || 'Unknown error'
+              }],
+              // Store error metadata for display
+              error: {
+                type: errorEvent.error.type || 'error',
+                code: errorEvent.error.code,
+                message: errorEvent.error.message,
+                param: errorEvent.error.param,
+                eventId: errorEvent.event_id || errorData?.event_id
+              },
+              createdAt: Date.now()
+            };
+            
+            // Add error item to conversation
+            setItems(prevItems => [...prevItems, errorItem]);
+          }
+        }
+
+        // Track AI response state for text input queueing (OpenAI only)
         if (eventType === 'response.created') {
           setIsAIResponding(true);
         } else if (eventType === 'response.done') {
@@ -1679,9 +1716,16 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         <div className="conversation-content" data-conversation-content>
           {items.length > 0 ? (
             items.map((item) => (
-              <div key={item.id} className={`conversation-item ${item.role} ${playingItemId === item.id ? 'playing' : ''}`} style={{ position: 'relative' }}>
+              <div key={item.id} className={`conversation-item ${item.role} ${item.error ? 'error' : ''} ${playingItemId === item.id ? 'playing' : ''}`} style={{ position: 'relative' }}>
                 <div className="conversation-item-role">
-                  {item.role}
+                  {item.error ? (
+                    <>
+                      <AlertCircle size={12} />
+                      {t('mainPanel.error', 'Error')}
+                    </>
+                  ) : (
+                    item.role
+                  )}
                   {/* TODO: OpenAI Realtime API sometimes returns status="incomplete" even when audio is complete
                       This happens when response.output_item.done event has item.status="incomplete"
                       We should investigate why this occurs and handle it properly in the future
@@ -1698,6 +1742,30 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                 </div>
                 <div className="conversation-item-content">
                   {(() => {
+                    // Handle error messages first
+                    if (item.error) {
+                      const errorMessage = item.error.message || item.error.code || t('mainPanel.unknownError', 'Unknown error');
+                      const errorType = item.error.type || 'error';
+                      const errorParam = item.error.param;
+                      
+                      return (
+                        <div className="content-item error-message">
+                          <div className="error-header">
+                            <span className="error-type">{errorType}</span>
+                            {errorParam && (
+                              <span className="error-param">{t('mainPanel.errorParam', 'Parameter')}: {errorParam}</span>
+                            )}
+                          </div>
+                          <div className="error-content">{errorMessage}</div>
+                          {item.createdAt && (
+                            <div className="error-timestamp">
+                              {new Date(item.createdAt).toLocaleTimeString()}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    }
+
                     // Handle different item types based on the ItemType structure
                     // from openai-realtime-api
 
