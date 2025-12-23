@@ -112,7 +112,8 @@
     "clickToConfigMicrophone": "மைக்ரோஃபோனை உள்ளமைக்க கிளிக் செய்யவும்",
     "clickToConfigSpeaker": "ஸ்பீக்கரை உள்ளமைக்க கிளிக் செய்யவும்",
     "typeMessage": "மொழிபெயர்க்க உரை...",
-    "send": "அனுப்பு"
+    "send": "அனுப்பு",
+    "participant": "பங்கேற்பாளர்"
   },
   "connectionStatus": {
     "disconnected": "துண்டிக்கப்பட்டது",
@@ -192,7 +193,9 @@
   },
   "logsPanel": {
     "title": "பதிவுகள்",
-    "sessionEnded": "அமர்வு முடிந்தது"
+    "sessionEnded": "அமர்வு முடிந்தது",
+    "speakerClient": "பேச்சாளர்",
+    "participantClient": "பங்கேற்பாளர்"
   },
   "translation": {
     "start": "மொழிபெயர்ப்பைத் தொடங்கு",

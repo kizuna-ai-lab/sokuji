@@ -168,7 +168,9 @@
     "event": "Событие",
     "of": "из",
     "unknown": "неизвестно",
-    "sessionEnded": "Сеанс завершен"
+    "sessionEnded": "Сеанс завершен",
+    "speakerClient": "Спикер",
+    "participantClient": "Участник"
   },
   "translation": {
     "start": "Начать перевод",
@@ -424,7 +426,8 @@
     "clickToConfigMicrophone": "Нажмите для настройки микрофона",
     "clickToConfigSpeaker": "Нажмите для настройки динамика",
     "typeMessage": "Текст для перевода...",
-    "send": "Отправить"
+    "send": "Отправить",
+    "participant": "Участник"
   },
   "connectionStatus": {
     "disconnected": "Отключен",

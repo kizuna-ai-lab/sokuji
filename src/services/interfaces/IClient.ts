@@ -11,6 +11,7 @@ export interface ConversationItem {
   role: 'user' | 'assistant' | 'system';
   type: 'message' | 'function_call' | 'function_call_output';
   status: 'in_progress' | 'completed' | 'incomplete' | 'cancelled';
+  createdAt?: number; // Timestamp for accurate sorting
   formatted?: {
     text?: string;
     transcript?: string;
@@ -39,6 +40,7 @@ export interface BaseSessionConfig {
   instructions?: string;
   temperature?: number;
   maxTokens?: number | string;
+  textOnly?: boolean; // If true, only generate text responses (no audio output)
 }
 
 /**

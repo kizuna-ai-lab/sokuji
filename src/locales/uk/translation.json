@@ -97,7 +97,8 @@
     "clickToConfigMicrophone": "Натисніть для налаштування мікрофона",
     "clickToConfigSpeaker": "Натисніть для налаштування динаміка",
     "typeMessage": "Текст для перекладу...",
-    "send": "Надіслати"
+    "send": "Надіслати",
+    "participant": "Учасник"
   },
   "connectionStatus": {
     "disconnected": "Відключено",
@@ -169,7 +170,9 @@
   },
   "logsPanel": {
     "title": "Логи",
-    "sessionEnded": "Сеанс завершено"
+    "sessionEnded": "Сеанс завершено",
+    "speakerClient": "Спікер",
+    "participantClient": "Учасник"
   },
   "translation": {
     "start": "Почати переклад",

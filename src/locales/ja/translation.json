@@ -173,7 +173,9 @@
     "event": "イベント",
     "of": "の",
     "unknown": "不明",
-    "sessionEnded": "セッション終了"
+    "sessionEnded": "セッション終了",
+    "speakerClient": "スピーカー",
+    "participantClient": "参加者"
   },
   "translation": {
     "start": "翻訳開始",
@@ -429,7 +431,8 @@
     "clickToConfigMicrophone": "マイクを設定するにはクリック",
     "clickToConfigSpeaker": "スピーカーを設定するにはクリック",
     "typeMessage": "翻訳するテキスト...",
-    "send": "送信"
+    "send": "送信",
+    "participant": "参加者"
   },
   "connectionStatus": {
     "disconnected": "切断済み",
@@ -472,11 +475,11 @@
     "email": "Email",
     "password": "Password",
     "name": "Name",
-    "confirmPassword": "Confirm Password",
+    "confirmPassword": "パスワードを確認",
     "emailPlaceholder": "your@email.com",
     "passwordPlaceholder": "Enter your password",
     "namePlaceholder": "Your name",
-    "confirmPasswordPlaceholder": "Confirm your password",
+    "confirmPasswordPlaceholder": "パスワードを再入力",
     "passwordHint": "At least 8 characters",
     "noAccount": "Don't have an account?",
     "haveAccount": "Already have an account?",
@@ -490,7 +493,7 @@
     "passwordMismatch": "Passwords do not match",
     "passwordTooShort": "Password must be at least 8 characters",
     "tooManyAttempts": "Too many attempts. Please try again later",
-    "rateLimitExceeded": "Too many requests. Please wait a moment and try again",
+    "rateLimitExceeded": "リクエストが多すぎます。しばらくお待ちください。",
     "signInError": "Sign in failed. Please try again",
     "signUpError": "Sign up failed. Please try again",
     "networkError": "Network error. Please check your connection",
@@ -501,7 +504,6 @@
     "verificationEmailSent": "認証メールを送信しました！受信トレイを確認してください",
     "verificationEmailFailed": "認証メールの送信に失敗しました。もう一度お試しください",
     "alreadyVerified": "メールは既に認証されています！",
-    "rateLimitExceeded": "リクエストが多すぎます。しばらくお待ちください。",
     "cooldownMessage": "{{seconds}}秒お待ちください",
     "checkYourEmail": "認証メールを送信しました。受信トレイを確認してください。",
     "forgotPassword": "パスワードをお忘れですか？",
@@ -513,8 +515,6 @@
     "verificationCode": "認証コード",
     "newPassword": "新しいパスワード",
     "newPasswordPlaceholder": "新しいパスワードを入力",
-    "confirmPassword": "パスワードを確認",
-    "confirmPasswordPlaceholder": "パスワードを再入力",
     "passwordsDoNotMatch": "パスワードが一致しません",
     "invalidOTP": "認証コードが無効です。確認してもう一度お試しください。",
     "otpExpired": "認証コードの有効期限が切れました。新しいコードをリクエストしてください。",

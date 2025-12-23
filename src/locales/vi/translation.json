@@ -111,7 +111,9 @@
   },
   "logsPanel": {
     "title": "Nhật ký",
-    "sessionEnded": "Phiên kết thúc"
+    "sessionEnded": "Phiên kết thúc",
+    "speakerClient": "Người nói",
+    "participantClient": "Người tham gia"
   },
   "translation": {
     "start": "Bắt đầu dịch",
@@ -339,7 +341,8 @@
     "clickToConfigMicrophone": "Nhấp để cấu hình microphone",
     "clickToConfigSpeaker": "Nhấp để cấu hình loa",
     "typeMessage": "Văn bản cần dịch...",
-    "send": "Gửi"
+    "send": "Gửi",
+    "participant": "Người tham gia"
   },
   "connectionStatus": {
     "disconnected": "Mất kết nối",

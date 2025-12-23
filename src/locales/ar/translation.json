@@ -254,7 +254,9 @@
     "event": "حدث",
     "of": "من",
     "unknown": "غير معروف",
-    "sessionEnded": "انتهت الجلسة"
+    "sessionEnded": "انتهت الجلسة",
+    "speakerClient": "المتحدث",
+    "participantClient": "المشارك"
   },
   "translation": {
     "start": "بدء الترجمة",
@@ -316,7 +318,8 @@
     "clickToConfigMicrophone": "انقر لتكوين الميكروفون",
     "clickToConfigSpeaker": "انقر لتكوين السماعة",
     "typeMessage": "نص للترجمة...",
-    "send": "إرسال"
+    "send": "إرسال",
+    "participant": "المشارك"
   },
   "errors": {
     "microphoneAccess": "تم رفض الوصول إلى الميكروفون",

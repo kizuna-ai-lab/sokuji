@@ -189,7 +189,8 @@
     "clickToConfigMicrophone": "Napsauta määrittääksesi mikrofonin",
     "clickToConfigSpeaker": "Napsauta määrittääksesi kaiuttimen",
     "typeMessage": "Käännettävä teksti...",
-    "send": "Lähetä"
+    "send": "Lähetä",
+    "participant": "Osallistuja"
   },
   "connectionStatus": {
     "disconnected": "Yhteys katkaistu",
@@ -227,7 +228,9 @@
   },
   "logsPanel": {
     "title": "Lokit",
-    "sessionEnded": "Istunto päättyi"
+    "sessionEnded": "Istunto päättyi",
+    "speakerClient": "Puhuja",
+    "participantClient": "Osallistuja"
   },
   "translation": {
     "start": "Aloita käännös",

@@ -251,7 +251,9 @@
     "event": "رویداد",
     "of": "از",
     "unknown": "نامشخص",
-    "sessionEnded": "جلسه پایان یافت"
+    "sessionEnded": "جلسه پایان یافت",
+    "speakerClient": "گوینده",
+    "participantClient": "شرکت‌کننده"
   },
   "translation": {
     "start": "شروع ترجمه",
@@ -313,7 +315,8 @@
     "clickToConfigMicrophone": "برای پیکربندی میکروفن کلیک کنید",
     "clickToConfigSpeaker": "برای پیکربندی بلندگو کلیک کنید",
     "typeMessage": "متن برای ترجمه...",
-    "send": "ارسال"
+    "send": "ارسال",
+    "participant": "شرکت‌کننده"
   },
   "errors": {
     "microphoneAccess": "دسترسی به میکروفون رد شد",

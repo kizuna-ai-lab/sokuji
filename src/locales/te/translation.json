@@ -97,7 +97,8 @@
     "clickToConfigMicrophone": "మైక్రోఫోన్‌ను కాన్ఫిగర్ చేయడానికి క్లిక్ చేయండి",
     "clickToConfigSpeaker": "స్పీకర్‌ను కాన్ఫిగర్ చేయడానికి క్లిక్ చేయండి",
     "typeMessage": "అనువదించడానికి టెక్స్ట్...",
-    "send": "పంపు"
+    "send": "పంపు",
+    "participant": "భాగస్వామి"
   },
   "connectionStatus": {
     "disconnected": "విచ్ఛేదించబడింది",
@@ -174,7 +175,9 @@
   },
   "logsPanel": {
     "title": "లాగ్స్",
-    "sessionEnded": "సెషన్ ముగిసింది"
+    "sessionEnded": "సెషన్ ముగిసింది",
+    "speakerClient": "వక్త",
+    "participantClient": "భాగస్వామి"
   },
   "translation": {
     "start": "అనువాదం ప్రారంభించు",

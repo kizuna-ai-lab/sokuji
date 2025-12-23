@@ -228,7 +228,8 @@
     "clickToConfigMicrophone": "לחץ כדי להגדיר מיקרופון",
     "clickToConfigSpeaker": "לחץ כדי להגדיר רמקול",
     "typeMessage": "טקסט לתרגום...",
-    "send": "שלח"
+    "send": "שלח",
+    "participant": "משתתף"
   },
   "connectionStatus": {
     "disconnected": "מנותק",
@@ -285,7 +286,9 @@
     "event": "אירוע",
     "of": "מתוך",
     "unknown": "לא ידוע",
-    "sessionEnded": "ההפעלה הסתיימה"
+    "sessionEnded": "ההפעלה הסתיימה",
+    "speakerClient": "דובר",
+    "participantClient": "משתתף"
   },
   "translation": {
     "start": "התחל תרגום",

@@ -74,6 +74,19 @@
           border-bottom-left-radius: 4px;
         }
 
+        // Participant source styling (from system audio capture)
+        &.participant-source {
+          border-left: 3px solid #f39c12;
+
+          &.user {
+            background: rgba(243, 156, 18, 0.15);
+          }
+
+          &.assistant {
+            background: #e67e22;
+          }
+        }
+
         .message-header {
           font-size: 11px;
           text-transform: uppercase;

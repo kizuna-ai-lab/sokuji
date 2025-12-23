@@ -170,7 +170,9 @@
     "event": "Evento",
     "of": "de",
     "unknown": "desconhecido",
-    "sessionEnded": "Sessão encerrada"
+    "sessionEnded": "Sessão encerrada",
+    "speakerClient": "Locutor",
+    "participantClient": "Participante"
   },
   "translation": {
     "start": "Iniciar tradução",
@@ -426,7 +428,8 @@
     "clickToConfigMicrophone": "Clique para configurar o microfone",
     "clickToConfigSpeaker": "Clique para configurar o alto-falante",
     "typeMessage": "Texto para traduzir...",
-    "send": "Enviar"
+    "send": "Enviar",
+    "participant": "Participante"
   },
   "connectionStatus": {
     "disconnected": "Desconectado",

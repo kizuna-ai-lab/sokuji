@@ -201,7 +201,8 @@
     "clickToConfigMicrophone": "点击配置麦克风",
     "clickToConfigSpeaker": "点击配置扬声器",
     "typeMessage": "输入要翻译的文字...",
-    "send": "发送"
+    "send": "发送",
+    "participant": "参与者"
   },
   "providers": {
     "openai": {
@@ -283,7 +284,9 @@
     "event": "事件",
     "of": "的",
     "unknown": "未知",
-    "sessionEnded": "会话结束"
+    "sessionEnded": "会话结束",
+    "speakerClient": "讲者",
+    "participantClient": "参与者"
   },
   "translation": {
     "start": "开始翻译",
@@ -468,7 +471,7 @@
     "emailPlaceholder": "your@email.com",
     "passwordPlaceholder": "输入您的密码",
     "namePlaceholder": "您的姓名",
-    "confirmPasswordPlaceholder": "确认您的密码",
+    "confirmPasswordPlaceholder": "确认新密码",
     "passwordHint": "至少8个字符",
     "noAccount": "没有账户？",
     "haveAccount": "已有账户？",
@@ -510,8 +513,6 @@
     "verificationCode": "验证码",
     "newPassword": "新密码",
     "newPasswordPlaceholder": "输入新密码",
-    "confirmPassword": "确认密码",
-    "confirmPasswordPlaceholder": "确认新密码",
     "passwordsDoNotMatch": "密码不匹配",
     "invalidOTP": "验证码无效。请检查后重试。",
     "otpExpired": "验证码已过期。请重新获取。",

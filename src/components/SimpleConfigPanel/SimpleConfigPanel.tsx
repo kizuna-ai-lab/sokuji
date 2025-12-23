@@ -864,8 +864,11 @@ const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings, h
 
             <div className="device-list">
               <div
-                className={`device-option ${!isSystemAudioCaptureEnabled ? 'selected' : ''} ${isSystemAudioLoading ? 'loading' : ''}`}
-                onClick={() => handleSystemAudioSourceSelect(null)}
+                className={`device-option ${!isSystemAudioCaptureEnabled ? 'selected' : ''} ${isSystemAudioLoading || isSessionActive ? 'loading' : ''}`}
+                onClick={() => {
+                  if (isSessionActive) return;
+                  handleSystemAudioSourceSelect(null);
+                }}
               >
                 <span>{t('common.off')}</span>
                 {!isSystemAudioCaptureEnabled && <div className="selected-indicator" />}
@@ -873,8 +876,10 @@ const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings, h
               {systemAudioSources.map((source) => (
                 <div
                   key={source.deviceId}
-                  className={`device-option ${isSystemAudioCaptureEnabled && selectedSystemAudioSource?.deviceId === source.deviceId ? 'selected' : ''} ${isSystemAudioLoading ? 'loading' : ''} ${isMonitorDeviceOn ? 'disabled' : ''}`}
+                  className={`device-option ${isSystemAudioCaptureEnabled && selectedSystemAudioSource?.deviceId === source.deviceId ? 'selected' : ''} ${isSystemAudioLoading ? 'loading' : ''} ${isMonitorDeviceOn || isSessionActive ? 'disabled' : ''}`}
                   onClick={() => {
+                    // Cannot change during active session
+                    if (isSessionActive) return;
                     // Mutual exclusivity: if Monitor Device is ON, show warning
                     if (isMonitorDeviceOn) {
                       setShowMutualExclusivityWarning(true);

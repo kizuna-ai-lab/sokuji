@@ -192,7 +192,8 @@
     "clickToConfigMicrophone": "माइक्रोफ़ोन कॉन्फ़िगर करने के लिए क्लिक करें",
     "clickToConfigSpeaker": "स्पीकर कॉन्फ़िगर करने के लिए क्लिक करें",
     "typeMessage": "अनुवाद के लिए टेक्स्ट...",
-    "send": "भेजें"
+    "send": "भेजें",
+    "participant": "प्रतिभागी"
   },
   "connectionStatus": {
     "disconnected": "डिस्कनेक्टेड",
@@ -230,7 +231,9 @@
   },
   "logsPanel": {
     "title": "लॉग्स",
-    "sessionEnded": "सत्र समाप्त"
+    "sessionEnded": "सत्र समाप्त",
+    "speakerClient": "वक्ता",
+    "participantClient": "प्रतिभागी"
   },
   "translation": {
     "start": "अनुवाद शुरू करें",

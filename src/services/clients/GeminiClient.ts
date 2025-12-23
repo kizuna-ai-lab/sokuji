@@ -301,16 +301,19 @@ export class GeminiClient implements IClient {
     }
 
     this.currentModel = config.model;
-    
+
+    // Determine response modalities based on textOnly flag
+    const responseModalities = config.textOnly ? [Modality.TEXT] : [Modality.AUDIO];
+
     // Convert SessionConfig to LiveConnectConfig
     const liveConfig: LiveConnectConfig = {
-      responseModalities: [Modality.AUDIO],
+      responseModalities,
       temperature: config.temperature,
       maxOutputTokens: typeof config.maxTokens === 'number' ? config.maxTokens : undefined,
       systemInstruction: config.instructions ? {
         parts: [{ text: config.instructions }]
       } : undefined,
-      speechConfig: config.voice ? {
+      speechConfig: config.voice && !config.textOnly ? {
         voiceConfig: {
           prebuiltVoiceConfig: {
             voiceName: config.voice
@@ -318,7 +321,7 @@ export class GeminiClient implements IClient {
         }
       } : undefined,
       inputAudioTranscription: {},
-      outputAudioTranscription: {},
+      outputAudioTranscription: config.textOnly ? undefined : {},
       realtimeInputConfig: {
         activityHandling: ActivityHandling.NO_INTERRUPTION,
       }
@@ -482,6 +485,7 @@ export class GeminiClient implements IClient {
           role: 'user',
           type: 'message',
           status: 'completed',
+          createdAt: Date.now(),
           formatted: {
             transcript: this.currentTurn.inputTranscription.trim()
           }
@@ -522,6 +526,7 @@ export class GeminiClient implements IClient {
         role: 'assistant',
         type: 'message',
         status: 'completed',
+        createdAt: Date.now(),
         formatted: {}
       };
 
@@ -614,6 +619,7 @@ export class GeminiClient implements IClient {
             role: 'assistant',
             type: 'message',
             status: 'in_progress',
+            createdAt: Date.now(),
             formatted: {}
           };
           this.conversationItems.push(this.currentTurn.assistantItem);
@@ -644,6 +650,7 @@ export class GeminiClient implements IClient {
             role: 'user',
             type: 'message',
             status: 'in_progress',
+            createdAt: Date.now(),
             formatted: {
               transcript: this.currentTurn.inputTranscription
             }
@@ -703,6 +710,7 @@ export class GeminiClient implements IClient {
             role: 'assistant',
             type: 'message',
             status: 'in_progress',
+            createdAt: Date.now(),
             formatted: {}
           };
           this.conversationItems.push(this.currentTurn.assistantItem);
@@ -842,6 +850,7 @@ export class GeminiClient implements IClient {
       role: 'user',
       type: 'message',
       status: 'completed',
+      createdAt: Date.now(),
       formatted: {
         text: trimmedText,
         transcript: trimmedText

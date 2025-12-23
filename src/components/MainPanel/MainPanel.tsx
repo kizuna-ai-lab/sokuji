@@ -229,6 +229,32 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   const systemAudioClientRef = useRef<IClient | null>(null);
   const [systemAudioItems, setSystemAudioItems] = useState<ConversationItem[]>([]);
 
+  // Combine speaker and participant items for display with source tagging
+  const combinedItems = useMemo(() => {
+    // Tag speaker items
+    const speakerItems = items.map(item => {
+      if (!(item as any).source) {
+        return { ...item, source: 'speaker' } as ConversationItem & { source: string };
+      }
+      return item as ConversationItem & { source: string };
+    });
+
+    // Tag participant items (they should already be tagged, but ensure it)
+    const participantItems = systemAudioItems.map(item => {
+      if (!(item as any).source) {
+        return { ...item, source: 'participant' } as ConversationItem & { source: string };
+      }
+      return item as ConversationItem & { source: string };
+    });
+
+    // Merge and sort by createdAt timestamp for accurate ordering
+    return [...speakerItems, ...participantItems].sort((a, b) => {
+      const aTime = a.createdAt || 0;
+      const bTime = b.createdAt || 0;
+      return aTime - bTime;
+    });
+  }, [items, systemAudioItems]);
+
   // Reference to audio service for accessing ModernAudioPlayer
   const audioServiceRef = useRef<IAudioService | null>(null);
   
@@ -273,7 +299,8 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         addRealtimeEvent(
           realtimeEvent.event,
           realtimeEvent.source,
-          realtimeEvent.event?.type || 'unknown'
+          realtimeEvent.event?.type || 'unknown',
+          'speaker'
         );
 
         // Track AI response state for text input queueing (OpenAI only)
@@ -727,15 +754,21 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           // Setup event handlers for system audio client
           const systemClient = systemAudioClientRef.current;
           systemClient.setEventHandlers({
+            onRealtimeEvent: (realtimeEvent: RealtimeEvent) => {
+              // Log events for participant client
+              addRealtimeEvent(
+                realtimeEvent.event,
+                realtimeEvent.source,
+                realtimeEvent.event?.type || 'unknown',
+                'participant'
+              );
+            },
             onConversationUpdated: async ({ item, delta }) => {
-              // Tag item with source
-              (item as any).source = 'system_audio';
+              // Tag item with source for display
+              (item as any).source = 'participant';
 
-              // Handle audio delta
-              if (delta?.audio && audioServiceRef.current) {
-                audioServiceRef.current.addAudioData(delta.audio, 'system-audio-assistant', true, {
-                  itemId: item.id
-                });
+              // Skip audio delta - participant client is text-only
+              if (delta?.audio) {
                 return;
               }
 
@@ -747,9 +780,24 @@ const MainPanel: React.FC<MainPanelProps> = () => {
             }
           });
 
-          // Connect system audio client
-          await systemClient.connect(sessionConfig);
-          console.info('[Sokuji] [MainPanel] System audio client connected');
+          // Create participant session config with:
+          // 1. Swapped source/target languages in system instructions
+          // 2. Text-only mode (no audio output)
+          // 3. Semantic VAD for turn detection (better for system audio)
+          const swappedSystemInstructions = getProcessedSystemInstructions(true);
+          const participantSessionConfig = {
+            ...createSessionConfig(swappedSystemInstructions),
+            textOnly: true,
+            // Override turn detection to use semantic VAD for participant audio
+            turnDetection: {
+              type: 'semantic_vad' as const,
+              createResponse: true,
+              interruptResponse: false,
+              eagerness: 'medium',
+            }
+          };
+          await systemClient.connect(participantSessionConfig);
+          console.info('[Sokuji] [MainPanel] System audio client connected (text-only, swapped languages, semantic VAD)');
 
           // Start recording from the system audio virtual mic
           let systemAudioCallbackCount = 0;
@@ -1478,6 +1526,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
   /**
    * Auto-scroll to the bottom of the conversation when new content is added
+   * Watches both speaker items and participant items for changes
    */
   useEffect(() => {
     if (conversationContainerRef.current) {
@@ -1492,7 +1541,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         }, 100);
       });
     }
-  }, [items]);
+  }, [items, systemAudioItems]);
 
   /**
    * Watch for changes to isInputDeviceOn and update recording state accordingly
@@ -1762,7 +1811,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     return (
       <div className="main-panel-wrapper">
         <SimpleMainPanel
-          items={items}
+          items={combinedItems}
           isSessionActive={isSessionActive}
           isInitializing={isInitializing}
           onStartSession={connectConversation}
@@ -1786,11 +1835,13 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       <div className="main-panel">
       <div className="conversation-container" ref={conversationContainerRef}>
         <div className="conversation-content" data-conversation-content>
-          {items.length > 0 ? (
-            items.map((item) => (
-              <div key={item.id} className={`conversation-item ${item.role} ${playingItemId === item.id ? 'playing' : ''}`} style={{ position: 'relative' }}>
+          {combinedItems.length > 0 ? (
+            combinedItems.map((item) => (
+              <div key={item.id} className={`conversation-item ${item.role} ${(item as any).source === 'participant' ? 'participant-source' : 'speaker-source'} ${playingItemId === item.id ? 'playing' : ''}`} style={{ position: 'relative' }}>
                 <div className="conversation-item-role">
-                  {item.role}
+                  {(item as any).source === 'participant' && item.role === 'user'
+                    ? t('simplePanel.participant', 'Participant')
+                    : item.role}
                   {/* TODO: OpenAI Realtime API sometimes returns status="incomplete" even when audio is complete
                       This happens when response.output_item.done event has item.status="incomplete"
                       We should investigate why this occurs and handle it properly in the future

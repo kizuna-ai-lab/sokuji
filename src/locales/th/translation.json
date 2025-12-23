@@ -97,7 +97,8 @@
     "clickToConfigMicrophone": "คลิกเพื่อกำหนดค่าไมโครโฟน",
     "clickToConfigSpeaker": "คลิกเพื่อกำหนดค่าลำโพง",
     "typeMessage": "ข้อความที่จะแปล...",
-    "send": "ส่ง"
+    "send": "ส่ง",
+    "participant": "ผู้เข้าร่วม"
   },
   "connectionStatus": {
     "disconnected": "ตัดการเชื่อมต่อ",
@@ -191,7 +192,9 @@
   },
   "logsPanel": {
     "title": "บันทึก",
-    "sessionEnded": "สิ้นสุดเซสชัน"
+    "sessionEnded": "สิ้นสุดเซสชัน",
+    "speakerClient": "ผู้พูด",
+    "participantClient": "ผู้เข้าร่วม"
   },
   "translation": {
     "start": "เริ่มการแปล",

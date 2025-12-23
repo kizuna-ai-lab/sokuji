@@ -151,7 +151,9 @@
     "event": "Gebeurtenis",
     "of": "van",
     "unknown": "onbekend",
-    "sessionEnded": "Sessie beëindigd"
+    "sessionEnded": "Sessie beëindigd",
+    "speakerClient": "Spreker",
+    "participantClient": "Deelnemer"
   },
   "translation": {
     "start": "Vertaling starten",
@@ -405,7 +407,8 @@
     "clickToConfigMicrophone": "Klik om de microfoon te configureren",
     "clickToConfigSpeaker": "Klik om de luidspreker te configureren",
     "typeMessage": "Te vertalen tekst...",
-    "send": "Verzenden"
+    "send": "Verzenden",
+    "participant": "Deelnemer"
   },
   "connectionStatus": {
     "disconnected": "Verbinding verbroken",

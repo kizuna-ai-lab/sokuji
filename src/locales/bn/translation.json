@@ -248,7 +248,9 @@
     "event": "ইভেন্ট",
     "of": "এর",
     "unknown": "অজানা",
-    "sessionEnded": "সেশন শেষ"
+    "sessionEnded": "সেশন শেষ",
+    "speakerClient": "বক্তা",
+    "participantClient": "অংশগ্রহণকারী"
   },
   "translation": {
     "start": "অনুবাদ শুরু করুন",
@@ -310,7 +312,8 @@
     "clickToConfigMicrophone": "মাইক্রোফোন কনফিগার করতে ক্লিক করুন",
     "clickToConfigSpeaker": "স্পিকার কনফিগার করতে ক্লিক করুন",
     "typeMessage": "অনুবাদ করতে টেক্সট...",
-    "send": "পাঠান"
+    "send": "পাঠান",
+    "participant": "অংশগ্রহণকারী"
   },
   "errors": {
     "microphoneAccess": "মাইক্রোফোন অ্যাক্সেস অস্বীকৃত",

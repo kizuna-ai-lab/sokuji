@@ -211,7 +211,8 @@
     "clickToConfigMicrophone": "Clique para configurar o microfone",
     "clickToConfigSpeaker": "Clique para configurar o altifalante",
     "typeMessage": "Texto para traduzir...",
-    "send": "Enviar"
+    "send": "Enviar",
+    "participant": "Participante"
   },
   "connectionStatus": {
     "disconnected": "Desligado",
@@ -268,7 +269,9 @@
     "event": "Evento",
     "of": "de",
     "unknown": "desconhecido",
-    "sessionEnded": "Sessão encerrada"
+    "sessionEnded": "Sessão encerrada",
+    "speakerClient": "Orador",
+    "participantClient": "Participante"
   },
   "translation": {
     "start": "Iniciar tradução",

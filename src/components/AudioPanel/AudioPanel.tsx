@@ -402,7 +402,7 @@ const AudioPanel: React.FC<{ toggleAudio: () => void }> = ({ toggleAudio }) => {
                   }
                   handleSystemAudioSourceSelect(isSystemAudioCaptureEnabled ? null : systemAudioSources[0]);
                 }}
-                disabled={isSystemAudioLoading}
+                disabled={isSystemAudioLoading || isSessionActive}
               >
                 {isSystemAudioLoading ? '...' : (isSystemAudioCaptureEnabled ? t('audioPanel.turnOff') : t('audioPanel.turnOn'))}
               </button>
@@ -423,8 +423,10 @@ const AudioPanel: React.FC<{ toggleAudio: () => void }> = ({ toggleAudio }) => {
               {systemAudioSources.map((source) => (
                 <div
                   key={source.deviceId}
-                  className={`device-option ${selectedSystemAudioSource?.deviceId === source.deviceId ? 'selected' : ''} ${isSystemAudioLoading ? 'loading' : ''} ${isMonitorDeviceOn ? 'disabled' : ''}`}
+                  className={`device-option ${selectedSystemAudioSource?.deviceId === source.deviceId ? 'selected' : ''} ${isSystemAudioLoading ? 'loading' : ''} ${isMonitorDeviceOn || isSessionActive ? 'disabled' : ''}`}
                   onClick={() => {
+                    // Cannot change during active session
+                    if (isSessionActive) return;
                     // Mutual exclusivity: if Monitor Device is ON, show warning
                     if (isMonitorDeviceOn) {
                       setShowMutualExclusivityWarning(true);

@@ -377,7 +377,9 @@
     "event": "Event",
     "of": "of",
     "unknown": "unknown",
-    "sessionEnded": "Session Ended"
+    "sessionEnded": "Session Ended",
+    "speakerClient": "Speaker",
+    "participantClient": "Participant"
   },
   "translation": {
     "start": "Start Translation",
@@ -428,6 +430,7 @@
     "noConversation": "No conversation yet",
     "startToBegin": "Click Start to begin real-time translation",
     "you": "You",
+    "participant": "Participant",
     "translation": "Translation",
     "noMicSelected": "No mic selected",
     "noSpeakerSelected": "No speaker selected",

@@ -110,7 +110,8 @@
     "clickToConfigMicrophone": "點擊配置麥克風",
     "clickToConfigSpeaker": "點擊配置揚聲器",
     "typeMessage": "輸入要翻譯的文字...",
-    "send": "發送"
+    "send": "發送",
+    "participant": "參與者"
   },
   "connectionStatus": {
     "disconnected": "已斷線",
@@ -258,7 +259,9 @@
     "event": "事件",
     "of": "的",
     "unknown": "未知",
-    "sessionEnded": "會話結束"
+    "sessionEnded": "會話結束",
+    "speakerClient": "講者",
+    "participantClient": "參與者"
   },
   "translation": {
     "start": "開始翻譯",
@@ -441,7 +444,7 @@
     "emailPlaceholder": "your@email.com",
     "passwordPlaceholder": "輸入您的密碼",
     "namePlaceholder": "您的姓名",
-    "confirmPasswordPlaceholder": "確認您的密碼",
+    "confirmPasswordPlaceholder": "確認新密碼",
     "passwordHint": "至少8個字元",
     "noAccount": "沒有帳戶？",
     "haveAccount": "已有帳戶？",
@@ -483,8 +486,6 @@
     "verificationCode": "驗證碼",
     "newPassword": "新密碼",
     "newPasswordPlaceholder": "輸入新密碼",
-    "confirmPassword": "確認密碼",
-    "confirmPasswordPlaceholder": "確認新密碼",
     "passwordsDoNotMatch": "密碼不相符",
     "invalidOTP": "驗證碼無效。請檢查後再試。",
     "otpExpired": "驗證碼已過期。請重新申請。",
@@ -493,8 +494,7 @@
     "backToSignIn": "返回登入",
     "forgotPasswordError": "發送驗證碼失敗。請再試一次。",
     "resetPasswordError": "重設密碼失敗。請再試一次。"
-  }
-,
+  },
   "feedback": {
     "title": "Send Feedback",
     "description": "Report bugs, suggest features, or share your thoughts. We read every message!",

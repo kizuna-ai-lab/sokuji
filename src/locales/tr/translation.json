@@ -109,7 +109,9 @@
   },
   "logsPanel": {
     "title": "Günlükler",
-    "sessionEnded": "Oturum Sonlandı"
+    "sessionEnded": "Oturum Sonlandı",
+    "speakerClient": "Konuşmacı",
+    "participantClient": "Katılımcı"
   },
   "translation": {
     "start": "Çeviriyi başlat",
@@ -337,7 +339,8 @@
     "clickToConfigMicrophone": "Mikrofonu yapılandırmak için tıklayın",
     "clickToConfigSpeaker": "Hoparlörü yapılandırmak için tıklayın",
     "typeMessage": "Çevrilecek metin...",
-    "send": "Gönder"
+    "send": "Gönder",
+    "participant": "Katılımcı"
   },
   "connectionStatus": {
     "disconnected": "Bağlantı kesildi",

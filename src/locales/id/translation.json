@@ -229,7 +229,8 @@
     "clickToConfigMicrophone": "Klik untuk mengonfigurasi mikrofon",
     "clickToConfigSpeaker": "Klik untuk mengonfigurasi speaker",
     "typeMessage": "Teks untuk diterjemahkan...",
-    "send": "Kirim"
+    "send": "Kirim",
+    "participant": "Peserta"
   },
   "connectionStatus": {
     "disconnected": "Terputus",
@@ -286,7 +287,9 @@
     "event": "Peristiwa",
     "of": "dari",
     "unknown": "tidak diketahui",
-    "sessionEnded": "Sesi Berakhir"
+    "sessionEnded": "Sesi Berakhir",
+    "speakerClient": "Pembicara",
+    "participantClient": "Peserta"
   },
   "translation": {
     "start": "Mulai terjemahan",

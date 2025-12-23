@@ -189,7 +189,8 @@
     "clickToConfigMicrophone": "I-click upang i-configure ang mikropono",
     "clickToConfigSpeaker": "I-click upang i-configure ang speaker",
     "typeMessage": "Teksto para isalin...",
-    "send": "Ipadala"
+    "send": "Ipadala",
+    "participant": "Kalahok"
   },
   "connectionStatus": {
     "disconnected": "Nakadiskonekta",
@@ -227,7 +228,9 @@
   },
   "logsPanel": {
     "title": "Mga Log",
-    "sessionEnded": "Natapos ang Session"
+    "sessionEnded": "Natapos ang Session",
+    "speakerClient": "Tagapagsalita",
+    "participantClient": "Kalahok"
   },
   "translation": {
     "start": "Simulan ang pagsasalin",

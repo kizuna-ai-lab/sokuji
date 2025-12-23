@@ -87,7 +87,9 @@
   },
   "logsPanel": {
     "title": "Loggar",
-    "sessionEnded": "Session avslutad"
+    "sessionEnded": "Session avslutad",
+    "speakerClient": "Talare",
+    "participantClient": "Deltagare"
   },
   "translation": {
     "start": "Starta översättning",
@@ -320,7 +322,8 @@
     "clickToConfigMicrophone": "Klicka för att konfigurera mikrofon",
     "clickToConfigSpeaker": "Klicka för att konfigurera högtalare",
     "typeMessage": "Text att översätta...",
-    "send": "Skicka"
+    "send": "Skicka",
+    "participant": "Deltagare"
   },
   "connectionStatus": {
     "disconnected": "Frånkopplad",
