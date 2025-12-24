@@ -291,7 +291,9 @@
     "basicMode": "Básico",
     "advancedMode": "Avançado",
     "typeMessage": "Texto para traduzir...",
-    "send": "Enviar"
+    "send": "Enviar",
+    "error": "Erro",
+    "unknownError": "Erro desconhecido"
   },
   "errors": {
     "microphoneAccess": "Acesso ao microfone negado",

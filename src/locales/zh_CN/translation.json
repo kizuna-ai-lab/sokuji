@@ -306,7 +306,9 @@
     "basicMode": "基础",
     "advancedMode": "高级",
     "typeMessage": "输入要翻译的文字...",
-    "send": "发送"
+    "send": "发送",
+    "error": "错误",
+    "unknownError": "未知错误"
   },
   "errors": {
     "microphoneAccess": "麦克风访问被拒绝",

@@ -193,7 +193,9 @@
     "basicMode": "Базовый",
     "advancedMode": "Расширенный",
     "typeMessage": "Текст для перевода...",
-    "send": "Отправить"
+    "send": "Отправить",
+    "error": "Ошибка",
+    "unknownError": "Неизвестная ошибка"
   },
   "errors": {
     "microphoneAccess": "Доступ к микрофону запрещен",

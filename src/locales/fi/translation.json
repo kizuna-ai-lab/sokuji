@@ -187,7 +187,9 @@
     "clickToConfigMicrophone": "Napsauta määrittääksesi mikrofonin",
     "clickToConfigSpeaker": "Napsauta määrittääksesi kaiuttimen",
     "typeMessage": "Käännettävä teksti...",
-    "send": "Lähetä"
+    "send": "Lähetä",
+    "error": "Virhe",
+    "unknownError": "Tuntematon virhe"
   },
   "connectionStatus": {
     "disconnected": "Yhteys katkaistu",
