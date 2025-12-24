@@ -9,7 +9,7 @@ import { ProviderType } from '../../types/Provider';
 export interface ConversationItem {
   id: string;
   role: 'user' | 'assistant' | 'system';
-  type: 'message' | 'function_call' | 'function_call_output';
+  type: 'message' | 'function_call' | 'function_call_output' | 'error';
   status: 'in_progress' | 'completed' | 'incomplete' | 'cancelled';
   formatted?: {
     text?: string;

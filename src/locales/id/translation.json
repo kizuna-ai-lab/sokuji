@@ -227,7 +227,9 @@
     "clickToConfigMicrophone": "Klik untuk mengonfigurasi mikrofon",
     "clickToConfigSpeaker": "Klik untuk mengonfigurasi speaker",
     "typeMessage": "Teks untuk diterjemahkan...",
-    "send": "Kirim"
+    "send": "Kirim",
+    "error": "Kesalahan",
+    "unknownError": "Kesalahan tidak diketahui"
   },
   "connectionStatus": {
     "disconnected": "Terputus",

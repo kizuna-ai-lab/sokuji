@@ -273,7 +273,9 @@
     "switchToAdvanced": "উন্নত মোডে স্যুইচ করুন",
     "switchToBasic": "বেসিক মোডে স্যুইচ করুন",
     "typeMessage": "অনুবাদ করতে টেক্সট...",
-    "send": "পাঠান"
+    "send": "পাঠান",
+    "error": "ত্রুটি",
+    "unknownError": "অজানা ত্রুটি"
   },
   "simplePanel": {
     "translationActive": "অনুবাদ সক্রিয়",

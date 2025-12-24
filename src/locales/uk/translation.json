@@ -151,7 +151,9 @@
     "basicMode": "Базовий",
     "advancedMode": "Розширений",
     "typeMessage": "Текст для перекладу...",
-    "send": "Надіслати"
+    "send": "Надіслати",
+    "error": "Помилка",
+    "unknownError": "Невідома помилка"
   },
   "audioPanel": {
     "title": "Налаштування аудіо",

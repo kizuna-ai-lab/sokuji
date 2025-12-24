@@ -173,7 +173,9 @@
     "basicMode": "พื้นฐาน",
     "advancedMode": "ขั้นสูง",
     "typeMessage": "ข้อความที่จะแปล...",
-    "send": "ส่ง"
+    "send": "ส่ง",
+    "error": "ข้อผิดพลาด",
+    "unknownError": "ข้อผิดพลาดที่ไม่รู้จัก"
   },
   "audioPanel": {
     "title": "การตั้งค่าเสียง",

@@ -226,7 +226,9 @@
     "clickToConfigMicrophone": "לחץ כדי להגדיר מיקרופון",
     "clickToConfigSpeaker": "לחץ כדי להגדיר רמקול",
     "typeMessage": "טקסט לתרגום...",
-    "send": "שלח"
+    "send": "שלח",
+    "error": "שגיאה",
+    "unknownError": "שגיאה לא ידועה"
   },
   "connectionStatus": {
     "disconnected": "מנותק",

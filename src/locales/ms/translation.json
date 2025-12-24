@@ -291,7 +291,9 @@
     "basicMode": "Asas",
     "advancedMode": "Lanjutan",
     "typeMessage": "Teks untuk diterjemah...",
-    "send": "Hantar"
+    "send": "Hantar",
+    "error": "Ralat",
+    "unknownError": "Ralat tidak diketahui"
   },
   "errors": {
     "microphoneAccess": "Akses mikrofon ditolak",
