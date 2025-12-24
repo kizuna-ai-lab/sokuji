@@ -190,7 +190,6 @@
     "send": "Ipadala",
     "error": "Error",
     "unknownError": "Hindi kilalang error",
-    "errorParam": "Parameter"
   },
   "connectionStatus": {
     "disconnected": "Nakadiskonekta",

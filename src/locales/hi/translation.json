@@ -193,7 +193,6 @@
     "send": "भेजें",
     "error": "त्रुटि",
     "unknownError": "अज्ञात त्रुटि",
-    "errorParam": "पैरामीटर"
   },
   "connectionStatus": {
     "disconnected": "डिस्कनेक्टेड",

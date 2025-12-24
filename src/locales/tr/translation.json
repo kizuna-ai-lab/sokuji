@@ -96,7 +96,6 @@
     "send": "Gönder",
     "error": "Hata",
     "unknownError": "Bilinmeyen hata",
-    "errorParam": "Parametre: {{param}}"
   },
   "audioPanel": {
     "title": "Ses Ayarları",

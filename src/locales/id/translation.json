@@ -230,7 +230,6 @@
     "send": "Kirim",
     "error": "Kesalahan",
     "unknownError": "Kesalahan tidak diketahui",
-    "errorParam": "Parameter"
   },
   "connectionStatus": {
     "disconnected": "Terputus",

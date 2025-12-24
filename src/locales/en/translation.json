@@ -405,7 +405,6 @@
     "send": "Send",
     "error": "Error",
     "unknownError": "Unknown error",
-    "errorParam": "Parameter"
   },
   "simplePanel": {
     "clickToConfigLanguages": "Click to configure languages",

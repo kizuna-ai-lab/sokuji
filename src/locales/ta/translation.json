@@ -177,7 +177,6 @@
     "send": "அனுப்பு",
     "error": "பிழை",
     "unknownError": "அறியப்படாத பிழை",
-    "errorParam": "அளவுரு: {{param}}"
   },
   "audioPanel": {
     "title": "ஆடியோ அமைப்புகள்",

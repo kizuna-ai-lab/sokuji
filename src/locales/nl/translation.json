@@ -179,7 +179,6 @@
     "send": "Verzenden",
     "error": "Fout",
     "unknownError": "Onbekende fout",
-    "errorParam": "Parameter: {{param}}"
   },
   "errors": {
     "microphoneAccess": "Microfoon toegang geweigerd",

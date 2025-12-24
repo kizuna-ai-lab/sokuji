@@ -177,7 +177,6 @@
     "send": "Wyślij",
     "error": "Błąd",
     "unknownError": "Nieznany błąd",
-    "errorParam": "Parametr: {{param}}"
   },
   "errors": {
     "microphoneAccess": "Dostęp do mikrofonu został odrzucony",

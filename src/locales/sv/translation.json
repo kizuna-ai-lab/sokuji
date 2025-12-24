@@ -74,7 +74,6 @@
     "send": "Skicka",
     "error": "Fel",
     "unknownError": "Okänt fel",
-    "errorParam": "Parameter: {{param}}"
   },
   "audioPanel": {
     "title": "Ljudinställningar",

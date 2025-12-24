@@ -198,7 +198,6 @@
     "send": "Invia",
     "error": "Errore",
     "unknownError": "Errore sconosciuto",
-    "errorParam": "Parametro"
   },
   "errors": {
     "microphoneAccess": "Accesso al microfono negato",

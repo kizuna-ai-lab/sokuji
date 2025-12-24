@@ -284,7 +284,6 @@
     "send": "發送",
     "error": "錯誤",
     "unknownError": "未知錯誤",
-    "errorParam": "參數：{{param}}"
   },
   "errors": {
     "microphoneAccess": "麥克風存取被拒絕",

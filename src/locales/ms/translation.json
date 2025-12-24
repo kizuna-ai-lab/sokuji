@@ -294,7 +294,6 @@
     "send": "Hantar",
     "error": "Ralat",
     "unknownError": "Ralat tidak diketahui",
-    "errorParam": "Parameter: {{param}}"
   },
   "errors": {
     "microphoneAccess": "Akses mikrofon ditolak",

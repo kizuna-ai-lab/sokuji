@@ -196,7 +196,6 @@
     "send": "Отправить",
     "error": "Ошибка",
     "unknownError": "Неизвестная ошибка",
-    "errorParam": "Параметр: {{param}}"
   },
   "errors": {
     "microphoneAccess": "Доступ к микрофону запрещен",

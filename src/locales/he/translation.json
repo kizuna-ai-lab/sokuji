@@ -229,7 +229,6 @@
     "send": "שלח",
     "error": "שגיאה",
     "unknownError": "שגיאה לא ידועה",
-    "errorParam": "פרמטר"
   },
   "connectionStatus": {
     "disconnected": "מנותק",

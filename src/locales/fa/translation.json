@@ -279,7 +279,6 @@
     "send": "ارسال",
     "error": "خطا",
     "unknownError": "خطای ناشناخته",
-    "errorParam": "پارامتر"
   },
   "simplePanel": {
     "translationActive": "ترجمه فعال",

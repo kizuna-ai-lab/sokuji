@@ -159,7 +159,6 @@
     "send": "పంపు",
     "error": "లోపం",
     "unknownError": "తెలియని లోపం",
-    "errorParam": "పారామీటర్: {{param}}"
   },
   "audioPanel": {
     "title": "ఆడియో సెట్టింగ్‌లు",

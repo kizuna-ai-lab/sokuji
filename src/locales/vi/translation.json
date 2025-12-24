@@ -98,7 +98,6 @@
     "send": "Gửi",
     "error": "Lỗi",
     "unknownError": "Lỗi không xác định",
-    "errorParam": "Tham số: {{param}}"
   },
   "audioPanel": {
     "title": "Cài đặt âm thanh",

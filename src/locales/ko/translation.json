@@ -199,7 +199,6 @@
     "send": "전송",
     "error": "오류",
     "unknownError": "알 수 없는 오류",
-    "errorParam": "매개변수: {{param}}"
   },
   "errors": {
     "microphoneAccess": "마이크 접근이 거부되었습니다",

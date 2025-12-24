@@ -154,7 +154,6 @@
     "send": "Надіслати",
     "error": "Помилка",
     "unknownError": "Невідома помилка",
-    "errorParam": "Параметр: {{param}}"
   },
   "audioPanel": {
     "title": "Налаштування аудіо",
