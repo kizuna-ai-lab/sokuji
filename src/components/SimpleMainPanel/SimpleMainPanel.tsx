@@ -244,9 +244,8 @@ const SimpleMainPanel: React.FC<SimpleMainPanelProps> = React.memo(({
               // Calculate highlighted characters for karaoke effect
               const highlightedChars = isPlaying ? Math.floor(text.length * progressRatio) : 0;
               
-              // Handle error messages
-              if (item.error) {
-                const errorMessage = item.error.message || item.error.code || t('mainPanel.unknownError', 'Unknown error');
+              // Handle error messages - use formatted.text which contains "[errorType] errorMessage"
+              if (item.type === 'error') {
                 return (
                   <div key={index} className={`message-bubble ${item.role} error`}>
                     <div className="message-header">
@@ -256,10 +255,7 @@ const SimpleMainPanel: React.FC<SimpleMainPanelProps> = React.memo(({
                       </span>
                     </div>
                     <div className="message-content error-content">
-                      <div className="error-message-text">{errorMessage}</div>
-                      {item.error.param && (
-                        <div className="error-param">{t('mainPanel.errorParam', 'Parameter')}: {item.error.param}</div>
-                      )}
+                      <div className="error-message-text">{item.formatted?.text || t('mainPanel.unknownError', 'Unknown error')}</div>
                     </div>
                   </div>
                 );

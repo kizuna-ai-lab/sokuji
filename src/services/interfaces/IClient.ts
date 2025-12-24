@@ -9,7 +9,7 @@ import { ProviderType } from '../../types/Provider';
 export interface ConversationItem {
   id: string;
   role: 'user' | 'assistant' | 'system';
-  type: 'message' | 'function_call' | 'function_call_output';
+  type: 'message' | 'function_call' | 'function_call_output' | 'error';
   status: 'in_progress' | 'completed' | 'incomplete' | 'cancelled';
   formatted?: {
     text?: string;
@@ -28,15 +28,6 @@ export interface ConversationItem {
     audio?: any;
     transcript?: string | null;
   }>;
-  // Error metadata for server error messages
-  error?: {
-    type?: string;
-    code?: string;
-    message?: string;
-    param?: string;
-    eventId?: string;
-  };
-  createdAt?: string | number; // Timestamp for error messages
 }
 
 /**

@@ -268,45 +268,11 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           realtimeEvent.event?.type || 'unknown'
         );
 
-        // Handle OpenAI server error events
-        const eventType = realtimeEvent.event?.type;
-        if (eventType === 'error' && realtimeEvent.source === 'server') {
-          // The error data structure: realtimeEvent.event.data contains the original OpenAI event
-          // Original structure: { source: 'server', event: { type: 'error', error: {...} } }
-          const errorData = realtimeEvent.event?.data;
-          const errorEvent = errorData?.event || realtimeEvent.event;
-          
-          if (errorEvent?.error) {
-            // Create an error conversation item
-            const errorItem: ConversationItem = {
-              id: `error_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-              role: 'system',
-              type: 'message',
-              status: 'completed',
-              formatted: {
-                text: errorEvent.error.message || errorEvent.error.code || 'Unknown error',
-              },
-              content: [{
-                type: 'text',
-                text: errorEvent.error.message || errorEvent.error.code || 'Unknown error'
-              }],
-              // Store error metadata for display
-              error: {
-                type: errorEvent.error.type || 'error',
-                code: errorEvent.error.code,
-                message: errorEvent.error.message,
-                param: errorEvent.error.param,
-                eventId: errorEvent.event_id || errorData?.event_id
-              },
-              createdAt: Date.now()
-            };
-            
-            // Add error item to conversation
-            setItems(prevItems => [...prevItems, errorItem]);
-          }
-        }
+        // Note: Error ConversationItems are now created in OpenAIClient.ts
+        // to maintain consistent architecture with other clients
 
         // Track AI response state for text input queueing (OpenAI only)
+        const eventType = realtimeEvent.event?.type;
         if (eventType === 'response.created') {
           setIsAIResponding(true);
         } else if (eventType === 'response.done') {
@@ -375,6 +341,12 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         // }
       },
       onConversationUpdated: async ({ item, delta }: { item: ConversationItem; delta?: any }) => {
+        // Handle error items specially - they are not stored in client's internal list
+        if (item.type === 'error') {
+          setItems(prevItems => [...prevItems, item]);
+          return;
+        }
+
         // Handle audio delta separately - send to player but skip UI update
         if (delta?.audio) {
           // Always stream assistant audio - monitor on/off is handled by global volume
@@ -1716,9 +1688,9 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         <div className="conversation-content" data-conversation-content>
           {items.length > 0 ? (
             items.map((item) => (
-              <div key={item.id} className={`conversation-item ${item.role} ${item.error ? 'error' : ''} ${playingItemId === item.id ? 'playing' : ''}`} style={{ position: 'relative' }}>
+              <div key={item.id} className={`conversation-item ${item.role} ${item.type === 'error' ? 'error' : ''} ${playingItemId === item.id ? 'playing' : ''}`} style={{ position: 'relative' }}>
                 <div className="conversation-item-role">
-                  {item.error ? (
+                  {item.type === 'error' ? (
                     <>
                       <AlertCircle size={12} />
                       {t('mainPanel.error', 'Error')}
@@ -1742,26 +1714,11 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                 </div>
                 <div className="conversation-item-content">
                   {(() => {
-                    // Handle error messages first
-                    if (item.error) {
-                      const errorMessage = item.error.message || item.error.code || t('mainPanel.unknownError', 'Unknown error');
-                      const errorType = item.error.type || 'error';
-                      const errorParam = item.error.param;
-                      
+                    // Handle error messages - use formatted.text which contains "[errorType] errorMessage"
+                    if (item.type === 'error') {
                       return (
                         <div className="content-item error-message">
-                          <div className="error-header">
-                            <span className="error-type">{errorType}</span>
-                            {errorParam && (
-                              <span className="error-param">{t('mainPanel.errorParam', 'Parameter')}: {errorParam}</span>
-                            )}
-                          </div>
-                          <div className="error-content">{errorMessage}</div>
-                          {item.createdAt && (
-                            <div className="error-timestamp">
-                              {new Date(item.createdAt).toLocaleTimeString()}
-                            </div>
-                          )}
+                          <div className="error-content">{item.formatted?.text || t('mainPanel.unknownError', 'Unknown error')}</div>
                         </div>
                       );
                     }

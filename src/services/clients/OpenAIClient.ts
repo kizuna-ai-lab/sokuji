@@ -238,14 +238,39 @@ export class OpenAIClient implements IClient {
         }
       };
       this.eventHandlers.onRealtimeEvent?.(standardizedEvent);
+
+      // Handle server-side error events
+      if (realtimeEvent.event.type === 'error' && realtimeEvent.source === 'server') {
+        const errorEvent = realtimeEvent.event as any;
+        if (errorEvent?.error) {
+          const errorType = errorEvent.error.type || 'error';
+          const errorMessage = errorEvent.error.message || errorEvent.error.code || 'Unknown error';
+          const errorItem: ConversationItem = {
+            id: `error_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
+            role: 'system',
+            type: 'error',
+            status: 'completed',
+            formatted: {
+              text: `[${errorType}] ${errorMessage}`,
+            },
+            content: [{
+              type: 'text',
+              text: errorMessage
+            }]
+          };
+
+          // Notify UI about the error item
+          this.eventHandlers.onConversationUpdated?.({ item: errorItem });
+        }
+      }
     });
 
     // Handle errors
     this.client.on('error', (event: any) => {
       this.eventHandlers.onRealtimeEvent?.({
         source: 'client',
-        event: { 
-          type: 'session.error', 
+        event: {
+          type: 'session.error',
           data: {
             message: event.message || event.toString(),
             type: event.type || 'error',
@@ -257,6 +282,26 @@ export class OpenAIClient implements IClient {
           }
         }
       });
+
+      // Create error ConversationItem for display in UI
+      const errorType = event.error?.type || event.type || 'error';
+      const errorMessage = event.error?.message || event.message || 'Unknown error';
+      const errorItem: ConversationItem = {
+        id: `error_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
+        role: 'system',
+        type: 'error',
+        status: 'completed',
+        formatted: {
+          text: `[${errorType}] ${errorMessage}`,
+        },
+        content: [{
+          type: 'text',
+          text: errorMessage
+        }]
+      };
+
+      // Notify UI about the error item
+      this.eventHandlers.onConversationUpdated?.({ item: errorItem });
       this.eventHandlers.onError?.(event);
     });
 
