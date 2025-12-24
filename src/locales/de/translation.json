@@ -198,7 +198,10 @@
     "basicMode": "Basis",
     "advancedMode": "Erweitert",
     "typeMessage": "Text zum Übersetzen...",
-    "send": "Senden"
+    "send": "Senden",
+    "error": "Fehler",
+    "unknownError": "Unbekannter Fehler",
+    "errorParam": "Parameter"
   },
   "errors": {
     "microphoneAccess": "Mikrofonzugriff verweigert",
