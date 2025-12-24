@@ -368,7 +368,9 @@
     "speaker": "Haut-parleur",
     "speakerDesc": "Sélectionnez un haut-parleur pour surveiller la sortie traduite. Cela vous permet d'entendre comment sonne la traduction. Vous pouvez l'éteindre si la surveillance n'est pas nécessaire. Qu'il soit allumé ou éteint, l'audio traduit est toujours envoyé au microphone virtuel pour que les autres participants l'entendent.",
     "systemAudio": "Audio des Participants",
-    "systemAudioDesc": "Capturez et traduisez l'audio des autres participants à la réunion. Sélectionnez quel périphérique de sortie audio capturer pour traduire leur parole."
+    "systemAudioDesc": "Capturez et traduisez l'audio des autres participants à la réunion. Sélectionnez quel périphérique de sortie audio capturer pour traduire leur parole.",
+    "systemAudioDescExtension": "Capturez et traduisez l'audio de l'onglet actuel. Cela vous permet d'entendre les traductions des autres participants à la réunion.",
+    "currentTab": "Onglet Actuel"
   },
   "providers": {
     "openai": {

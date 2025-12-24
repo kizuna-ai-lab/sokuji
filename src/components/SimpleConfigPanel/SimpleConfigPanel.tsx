@@ -41,7 +41,7 @@ import Tooltip from '../Tooltip/Tooltip';
 import { useAuth } from '../../lib/auth/hooks';
 import { UserAccountInfo } from '../Auth/UserAccountInfo';
 import { SignedIn, SignedOut } from '../Auth/AuthGuard';
-import { isKizunaAIEnabled } from '../../utils/environment';
+import { isKizunaAIEnabled, isExtension, isElectron } from '../../utils/environment';
 import { changeLanguageWithLoad } from '../../locales';
 
 interface SimpleConfigPanelProps {
@@ -848,14 +848,19 @@ const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings, h
           </div>
         </div>
 
-        {/* System Audio Capture Section - Only show if there are sources available */}
-        {systemAudioSources && systemAudioSources.length > 0 && (
+        {/* System Audio / Tab Audio Capture Section */}
+        {/* For Electron: show if there are sources available */}
+        {/* For Extension: always show with simplified toggle */}
+        {(isElectron() ? (systemAudioSources && systemAudioSources.length > 0) : isExtension()) && (
           <div className="config-section" id="system-audio-section">
             <h3>
               <AudioLines size={18} />
               <span>{t('simpleConfig.systemAudio', 'Participant Audio')}</span>
               <Tooltip
-                content={t('simpleConfig.systemAudioDesc', 'Capture and translate audio from other meeting participants. Select which audio output to capture.')}
+                content={isExtension()
+                  ? t('simpleConfig.systemAudioDescExtension', 'Capture and translate audio from the current tab. This allows you to hear translations of other meeting participants.')
+                  : t('simpleConfig.systemAudioDesc', 'Capture and translate audio from other meeting participants. Select which audio output to capture.')
+                }
                 position="top"
                 icon="help"
                 maxWidth={300}
@@ -863,36 +868,69 @@ const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings, h
             </h3>
 
             <div className="device-list">
-              <div
-                className={`device-option ${!isSystemAudioCaptureEnabled ? 'selected' : ''} ${isSystemAudioLoading || isSessionActive ? 'loading' : ''}`}
-                onClick={() => {
-                  if (isSessionActive) return;
-                  handleSystemAudioSourceSelect(null);
-                }}
-              >
-                <span>{t('common.off')}</span>
-                {!isSystemAudioCaptureEnabled && <div className="selected-indicator" />}
-              </div>
-              {systemAudioSources.map((source) => (
-                <div
-                  key={source.deviceId}
-                  className={`device-option ${isSystemAudioCaptureEnabled && selectedSystemAudioSource?.deviceId === source.deviceId ? 'selected' : ''} ${isSystemAudioLoading ? 'loading' : ''} ${isMonitorDeviceOn || isSessionActive ? 'disabled' : ''}`}
-                  onClick={() => {
-                    // Cannot change during active session
-                    if (isSessionActive) return;
-                    // Mutual exclusivity: if Monitor Device is ON, show warning
-                    if (isMonitorDeviceOn) {
-                      setShowMutualExclusivityWarning(true);
-                      setMutualExclusivityWarningType('participant');
-                      return;
-                    }
-                    handleSystemAudioSourceSelect(source);
-                  }}
-                >
-                  <span>{source.label || t('audioPanel.unknownDevice')}</span>
-                  {isSystemAudioCaptureEnabled && selectedSystemAudioSource?.deviceId === source.deviceId && <div className="selected-indicator" />}
-                </div>
-              ))}
+              {isExtension() ? (
+                // Extension: Simple toggle (auto-captures current tab)
+                <>
+                  <div
+                    className={`device-option ${!isSystemAudioCaptureEnabled ? 'selected' : ''} ${isSessionActive ? 'disabled' : ''}`}
+                    onClick={() => {
+                      if (isSessionActive) return;
+                      if (isSystemAudioCaptureEnabled) {
+                        toggleSystemAudioCapture();
+                      }
+                    }}
+                  >
+                    <span>{t('common.off')}</span>
+                    {!isSystemAudioCaptureEnabled && <div className="selected-indicator" />}
+                  </div>
+                  <div
+                    className={`device-option ${isSystemAudioCaptureEnabled ? 'selected' : ''} ${isSessionActive ? 'disabled' : ''}`}
+                    onClick={() => {
+                      if (isSessionActive) return;
+                      if (!isSystemAudioCaptureEnabled) {
+                        toggleSystemAudioCapture();
+                      }
+                    }}
+                  >
+                    <span>{t('simpleConfig.currentTab', 'Current Tab')}</span>
+                    {isSystemAudioCaptureEnabled && <div className="selected-indicator" />}
+                  </div>
+                </>
+              ) : (
+                // Electron: Show source selection dropdown
+                <>
+                  <div
+                    className={`device-option ${!isSystemAudioCaptureEnabled ? 'selected' : ''} ${isSystemAudioLoading || isSessionActive ? 'loading' : ''}`}
+                    onClick={() => {
+                      if (isSessionActive) return;
+                      handleSystemAudioSourceSelect(null);
+                    }}
+                  >
+                    <span>{t('common.off')}</span>
+                    {!isSystemAudioCaptureEnabled && <div className="selected-indicator" />}
+                  </div>
+                  {systemAudioSources.map((source) => (
+                    <div
+                      key={source.deviceId}
+                      className={`device-option ${isSystemAudioCaptureEnabled && selectedSystemAudioSource?.deviceId === source.deviceId ? 'selected' : ''} ${isSystemAudioLoading ? 'loading' : ''} ${isMonitorDeviceOn || isSessionActive ? 'disabled' : ''}`}
+                      onClick={() => {
+                        // Cannot change during active session
+                        if (isSessionActive) return;
+                        // Mutual exclusivity: if Monitor Device is ON, show warning
+                        if (isMonitorDeviceOn) {
+                          setShowMutualExclusivityWarning(true);
+                          setMutualExclusivityWarningType('participant');
+                          return;
+                        }
+                        handleSystemAudioSourceSelect(source);
+                      }}
+                    >
+                      <span>{source.label || t('audioPanel.unknownDevice')}</span>
+                      {isSystemAudioCaptureEnabled && selectedSystemAudioSource?.deviceId === source.deviceId && <div className="selected-indicator" />}
+                    </div>
+                  ))}
+                </>
+              )}
             </div>
           </div>
         )}

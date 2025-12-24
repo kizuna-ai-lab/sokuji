@@ -40,6 +40,9 @@ const ENABLED_SITES = [
 // Track which tabs have the side panel open
 const tabsWithSidePanelOpen = new Set();
 
+// Track active tab audio captures
+const activeTabCaptures = new Map(); // tabId -> { streamId, active }
+
 // Store PostHog distinct_id received from frontend
 let currentDistinctId = null;
 
@@ -190,6 +193,12 @@ chrome.tabs.onRemoved.addListener((tabId) => {
     tabsWithSidePanelOpen.delete(tabId);
     console.debug('[Sokuji] [Background] Removed closed tab from side panel tracking:', tabId);
   }
+
+  // Clean up any active tab audio captures
+  if (activeTabCaptures.has(tabId)) {
+    activeTabCaptures.delete(tabId);
+    console.debug('[Sokuji] [Background] Cleaned up tab capture for closed tab:', tabId);
+  }
 });
 
 // Handle messages from popup and content scripts
@@ -231,6 +240,18 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         sendResponse({ success: false, error: error.message });
       });
     }
+    return true; // Indicates async response
+  }
+
+  // Handle START_TAB_CAPTURE message from side panel
+  if (message.type === 'START_TAB_CAPTURE') {
+    handleStartTabCapture(message.tabId).then(sendResponse);
+    return true; // Indicates async response
+  }
+
+  // Handle STOP_TAB_CAPTURE message from side panel
+  if (message.type === 'STOP_TAB_CAPTURE') {
+    handleStopTabCapture(message.tabId || sender.tab?.id).then(sendResponse);
     return true; // Indicates async response
   }
 });
@@ -280,6 +301,78 @@ async function handleOpenSidePanel(tabId) {
     return { success: true };
   } catch (error) {
     console.error('[Sokuji] [Background] Error opening side panel:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+// Start tab audio capture and return streamId
+async function handleStartTabCapture(tabId) {
+  try {
+    console.info('[Sokuji] [Background] Starting tab capture for tab:', tabId);
+
+    // Validate tabId
+    if (!tabId) {
+      return { success: false, error: 'Tab ID is required' };
+    }
+
+    // Check if already capturing this tab
+    if (activeTabCaptures.has(tabId)) {
+      const existing = activeTabCaptures.get(tabId);
+      if (existing.active) {
+        console.info('[Sokuji] [Background] Tab already being captured, returning existing streamId');
+        return { success: true, streamId: existing.streamId };
+      }
+    }
+
+    // Verify the tab exists
+    try {
+      await chrome.tabs.get(tabId);
+    } catch (error) {
+      console.error('[Sokuji] [Background] Tab not found:', tabId);
+      return { success: false, error: 'Tab not found' };
+    }
+
+    // Request media stream ID for the tab using tabCapture API
+    const streamId = await new Promise((resolve, reject) => {
+      chrome.tabCapture.getMediaStreamId(
+        { targetTabId: tabId },
+        (streamId) => {
+          if (chrome.runtime.lastError) {
+            reject(new Error(chrome.runtime.lastError.message));
+          } else if (!streamId) {
+            reject(new Error('Failed to get stream ID'));
+          } else {
+            resolve(streamId);
+          }
+        }
+      );
+    });
+
+    // Store the active capture
+    activeTabCaptures.set(tabId, { streamId, active: true });
+
+    console.info('[Sokuji] [Background] Tab capture started successfully, streamId:', streamId);
+    return { success: true, streamId };
+
+  } catch (error) {
+    console.error('[Sokuji] [Background] Failed to start tab capture:', error);
+    return { success: false, error: error.message || 'Failed to start tab capture' };
+  }
+}
+
+// Stop tab audio capture
+async function handleStopTabCapture(tabId) {
+  try {
+    console.info('[Sokuji] [Background] Stopping tab capture for tab:', tabId);
+
+    if (tabId && activeTabCaptures.has(tabId)) {
+      activeTabCaptures.delete(tabId);
+      console.info('[Sokuji] [Background] Tab capture stopped for tab:', tabId);
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error('[Sokuji] [Background] Failed to stop tab capture:', error);
     return { success: false, error: error.message };
   }
 }

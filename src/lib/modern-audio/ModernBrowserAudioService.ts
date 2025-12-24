@@ -1,8 +1,10 @@
 import { IAudioService, AudioDevices, AudioOperationResult, AudioRecordingCallback } from '../../services/interfaces/IAudioService';
 import { ModernAudioRecorder } from './ModernAudioRecorder';
 import { ModernAudioPlayer } from './ModernAudioPlayer';
+import { TabAudioRecorder } from './TabAudioRecorder';
 import { ServiceFactory } from '../../services/ServiceFactory';
 import { AudioDevice } from '../../stores/audioStore';
+import { isExtension } from '../../utils/environment';
 
 // Declare chrome namespace for extension messaging
 declare const chrome: any;
@@ -31,7 +33,7 @@ export class ModernBrowserAudioService implements IAudioService {
   private currentRecordingDeviceId: string | undefined = undefined;
   private diagnosticsInterval: NodeJS.Timeout | null = null;
 
-  // System audio capture state
+  // System audio capture state (Electron - uses PipeWire/PulseAudio)
   // Connection state (switched via pw-link when user selects device)
   private systemAudioSourceConnected: boolean = false;
   private currentSystemAudioSinkId: string | undefined = undefined; // The sink being captured
@@ -39,6 +41,11 @@ export class ModernBrowserAudioService implements IAudioService {
   private systemAudioRecorder: ModernAudioRecorder | null = null;
   private systemAudioCallback: AudioRecordingCallback | null = null;
   private systemAudioRecordingActive: boolean = false;
+
+  // Tab audio capture state (Extension - uses Chrome tabCapture API)
+  private tabAudioRecorder: TabAudioRecorder | null = null;
+  private tabAudioCallback: AudioRecordingCallback | null = null;
+  private tabAudioRecordingActive: boolean = false;
 
   constructor() {
     // Initialize modern audio components
@@ -738,12 +745,18 @@ export class ModernBrowserAudioService implements IAudioService {
 
   /**
    * Check if system audio capture is supported
-   * Currently only supported on Linux with Electron
+   * Supported on:
+   * - Linux with Electron (uses PipeWire/PulseAudio)
+   * - Browser extension (uses Chrome tabCapture API)
    */
   public supportsSystemAudioCapture(): boolean {
-    // Check if we're in Electron and on Linux
+    // Check if we're in Electron
     if (ServiceFactory.isElectron() && window.electron) {
       // The actual platform check is done in the main process
+      return true;
+    }
+    // Check if we're in browser extension
+    if (isExtension()) {
       return true;
     }
     return false;
@@ -927,5 +940,121 @@ export class ModernBrowserAudioService implements IAudioService {
    */
   public isSystemAudioRecordingActive(): boolean {
     return this.systemAudioRecordingActive;
+  }
+
+  // ============================================
+  // Tab Audio Capture Methods (Extension)
+  // ============================================
+
+  /**
+   * Check if tab audio capture is supported (extension only)
+   */
+  public supportsTabAudioCapture(): boolean {
+    return isExtension();
+  }
+
+  /**
+   * Get the target tab ID for audio capture
+   * Uses the tabId from URL params set by background script
+   */
+  private getTargetTabIdForCapture(): number | null {
+    // Use cached value if available
+    if (this.targetTabId !== null) {
+      return this.targetTabId;
+    }
+
+    // Try to get from URL params
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      const tabIdParam = urlParams.get('tabId');
+      if (tabIdParam) {
+        this.targetTabId = parseInt(tabIdParam, 10);
+        return this.targetTabId;
+      }
+    } catch (error) {
+      console.error('[Sokuji] [ModernBrowserAudio] Error getting tabId:', error);
+    }
+
+    return null;
+  }
+
+  /**
+   * Start recording from the current tab's audio
+   * Called when session starts with tab audio enabled
+   * @param callback Function to receive audio data chunks
+   */
+  public async startTabAudioRecording(callback: AudioRecordingCallback): Promise<void> {
+    if (!isExtension()) {
+      throw new Error('Tab audio capture is only supported in browser extension');
+    }
+
+    // Stop any existing recording
+    if (this.tabAudioRecordingActive) {
+      await this.stopTabAudioRecording();
+    }
+
+    try {
+      console.info('[Sokuji] [ModernBrowserAudio] Starting tab audio recording');
+
+      // Get the target tab ID
+      const tabId = this.getTargetTabIdForCapture();
+      if (!tabId) {
+        throw new Error('Could not determine target tab ID for audio capture');
+      }
+
+      // Create a new TabAudioRecorder
+      this.tabAudioRecorder = new TabAudioRecorder(24000); // 24kHz sample rate
+
+      // Store the callback
+      this.tabAudioCallback = callback;
+
+      // Start the recorder
+      const success = await this.tabAudioRecorder.begin(tabId);
+      if (!success) {
+        throw new Error('Failed to begin tab audio capture');
+      }
+
+      // Start recording with the callback
+      await this.tabAudioRecorder.record((data) => {
+        if (this.tabAudioCallback) {
+          this.tabAudioCallback(data);
+        }
+      });
+
+      this.tabAudioRecordingActive = true;
+      console.info('[Sokuji] [ModernBrowserAudio] Tab audio recording started successfully');
+    } catch (error) {
+      console.error('[Sokuji] [ModernBrowserAudio] Failed to start tab audio recording:', error);
+      await this.stopTabAudioRecording();
+      throw error;
+    }
+  }
+
+  /**
+   * Stop recording from tab audio
+   * Called when session ends
+   */
+  public async stopTabAudioRecording(): Promise<void> {
+    console.info('[Sokuji] [ModernBrowserAudio] Stopping tab audio recording');
+
+    if (this.tabAudioRecorder) {
+      try {
+        await this.tabAudioRecorder.end();
+      } catch (error) {
+        console.warn('[Sokuji] [ModernBrowserAudio] Error ending tab audio recorder:', error);
+      }
+      this.tabAudioRecorder = null;
+    }
+
+    this.tabAudioCallback = null;
+    this.tabAudioRecordingActive = false;
+    console.info('[Sokuji] [ModernBrowserAudio] Tab audio recording stopped');
+  }
+
+  /**
+   * Check if tab audio recording is currently active
+   */
+  public isTabAudioRecordingActive(): boolean {
+    return this.tabAudioRecordingActive;
   }
 }

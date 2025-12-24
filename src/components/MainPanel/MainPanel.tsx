@@ -34,6 +34,7 @@ import { getSafeAudioConfiguration, decodeAudioToWav } from '../../utils/audioUt
 import SimpleMainPanel from '../SimpleMainPanel/SimpleMainPanel';
 import { useAuth } from '../../lib/auth/hooks';
 import { useUserProfile } from '../../contexts/UserProfileContext';
+import { isExtension } from '../../utils/environment';
 
 interface MainPanelProps {}
 
@@ -493,6 +494,16 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           console.warn('[Sokuji] [MainPanel] Error stopping system audio recording:', error);
         }
       }
+
+      // Stop tab audio recording (extension environment)
+      if (audioService.isTabAudioRecordingActive?.()) {
+        try {
+          await audioService.stopTabAudioRecording();
+          console.info('[Sokuji] [MainPanel] Stopped tab audio recording');
+        } catch (error) {
+          console.warn('[Sokuji] [MainPanel] Error stopping tab audio recording:', error);
+        }
+      }
     }
 
     // Small delay to ensure any in-flight audio processing completes
@@ -813,6 +824,87 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           console.info('[Sokuji] [MainPanel] System audio recording started');
         } catch (error) {
           console.error('[Sokuji] [MainPanel] Failed to start system audio client:', error);
+          // Don't fail the whole session, just log the error
+        }
+      }
+
+      // Start tab audio client for Extension environment
+      // (uses Chrome tabCapture API to capture audio from current tab)
+      if (isExtension() && isSystemAudioCaptureEnabled && audioServiceRef.current) {
+        try {
+          console.info('[Sokuji] [MainPanel] Starting tab audio client (extension)...');
+
+          // Create second AI client with same configuration for tab audio
+          if (provider === Provider.PALABRA_AI) {
+            systemAudioClientRef.current = ClientFactory.createClient(
+              modelName,
+              provider,
+              apiKey, // clientId
+              palabraAISettings.clientSecret // clientSecret
+            );
+          } else {
+            systemAudioClientRef.current = ClientFactory.createClient(
+              modelName,
+              provider,
+              apiKey,
+              undefined, // clientSecret
+              customEndpoint // customEndpoint
+            );
+          }
+
+          // Setup event handlers for tab audio client (same as system audio)
+          const tabClient = systemAudioClientRef.current;
+          tabClient.setEventHandlers({
+            onRealtimeEvent: (realtimeEvent: RealtimeEvent) => {
+              addRealtimeEvent(
+                realtimeEvent.event,
+                realtimeEvent.source,
+                realtimeEvent.event?.type || 'unknown',
+                'participant'
+              );
+            },
+            onConversationUpdated: async ({ item, delta }) => {
+              (item as any).source = 'participant';
+              // Skip audio delta - participant client is text-only
+              if (delta?.audio) {
+                return;
+              }
+              setSystemAudioItems(tabClient.getConversationItems());
+            },
+            onClose: async () => {
+              console.info('[Sokuji] [MainPanel] Tab audio client closed');
+            }
+          });
+
+          // Create participant session config (same as system audio)
+          const swappedSystemInstructions = getProcessedSystemInstructions(true);
+          const participantSessionConfig = {
+            ...createSessionConfig(swappedSystemInstructions),
+            textOnly: true,
+            turnDetection: {
+              type: 'semantic_vad' as const,
+              createResponse: true,
+              interruptResponse: false,
+              eagerness: 'medium',
+            }
+          };
+          await tabClient.connect(participantSessionConfig);
+          console.info('[Sokuji] [MainPanel] Tab audio client connected (text-only, swapped languages, semantic VAD)');
+
+          // Start recording from the tab
+          let tabAudioCallbackCount = 0;
+          await audioServiceRef.current.startTabAudioRecording((data) => {
+            if (tabClient) {
+              if (tabAudioCallbackCount % 100 === 0) {
+                console.debug(`[Sokuji] [MainPanel] Sending tab audio to client: chunk ${tabAudioCallbackCount}, PCM length: ${data.mono.length}`);
+              }
+              tabAudioCallbackCount++;
+              tabClient.appendInputAudio(data.mono);
+            }
+          });
+          console.info('[Sokuji] [MainPanel] Tab audio recording started');
+        } catch (error) {
+          console.error('[Sokuji] [MainPanel] Failed to start tab audio client:', error);
           // Don't fail the whole session, just log the error
         }
       }

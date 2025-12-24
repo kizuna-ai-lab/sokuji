@@ -368,7 +368,9 @@
     "speaker": "Altavoz",
     "speakerDesc": "Selecciona un altavoz para monitorear la salida traducida. Esto te permite escuchar cómo suena la traducción. Puedes desactivarlo si no necesitas monitorear. Esté activado o desactivado, el audio traducido siempre se envía al micrófono virtual para que otros participantes lo escuchen.",
     "systemAudio": "Audio de Participantes",
-    "systemAudioDesc": "Captura y traduce el audio de otros participantes de la reunión. Selecciona qué dispositivo de salida de audio capturar para traducir su habla."
+    "systemAudioDesc": "Captura y traduce el audio de otros participantes de la reunión. Selecciona qué dispositivo de salida de audio capturar para traducir su habla.",
+    "systemAudioDescExtension": "Captura y traduce el audio de la pestaña actual. Esto te permite escuchar las traducciones de otros participantes de la reunión.",
+    "currentTab": "Pestaña Actual"
   },
   "providers": {
     "openai": {
