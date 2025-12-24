@@ -122,10 +122,10 @@ const SimpleMainPanel: React.FC<SimpleMainPanelProps> = React.memo(({
     }
   }
 
-  // Filter conversation items to show only user messages and assistant responses
+  // Filter conversation items to show only user messages, assistant responses, and errors
   const filteredItems = useMemo(
-    () => items.filter(item => 
-      (item.role === 'user' || item.role === 'assistant') &&
+    () => items.filter(item =>
+      (item.type === 'error' || item.role === 'user' || item.role === 'assistant') &&
       (item.formatted?.transcript || item.formatted?.text)
     ),
     [items]
