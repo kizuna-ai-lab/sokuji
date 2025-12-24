@@ -228,7 +228,7 @@
     "typeMessage": "טקסט לתרגום...",
     "send": "שלח",
     "error": "שגיאה",
-    "unknownError": "שגיאה לא ידועה",
+    "unknownError": "שגיאה לא ידועה"
   },
   "connectionStatus": {
     "disconnected": "מנותק",

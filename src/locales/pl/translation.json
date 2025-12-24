@@ -176,7 +176,7 @@
     "typeMessage": "Tekst do przetłumaczenia...",
     "send": "Wyślij",
     "error": "Błąd",
-    "unknownError": "Nieznany błąd",
+    "unknownError": "Nieznany błąd"
   },
   "errors": {
     "microphoneAccess": "Dostęp do mikrofonu został odrzucony",

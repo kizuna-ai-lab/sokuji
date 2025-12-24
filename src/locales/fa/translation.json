@@ -278,7 +278,7 @@
     "typeMessage": "متن برای ترجمه...",
     "send": "ارسال",
     "error": "خطا",
-    "unknownError": "خطای ناشناخته",
+    "unknownError": "خطای ناشناخته"
   },
   "simplePanel": {
     "translationActive": "ترجمه فعال",

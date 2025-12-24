@@ -158,7 +158,7 @@
     "typeMessage": "అనువదించడానికి టెక్స్ట్...",
     "send": "పంపు",
     "error": "లోపం",
-    "unknownError": "తెలియని లోపం",
+    "unknownError": "తెలియని లోపం"
   },
   "audioPanel": {
     "title": "ఆడియో సెట్టింగ్‌లు",

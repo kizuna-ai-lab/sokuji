@@ -200,7 +200,7 @@
     "typeMessage": "Texte à traduire...",
     "send": "Envoyer",
     "error": "Erreur",
-    "unknownError": "Erreur inconnue",
+    "unknownError": "Erreur inconnue"
   },
   "errors": {
     "microphoneAccess": "Accès au microphone refusé",

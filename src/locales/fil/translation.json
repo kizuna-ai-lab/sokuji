@@ -189,7 +189,7 @@
     "typeMessage": "Teksto para isalin...",
     "send": "Ipadala",
     "error": "Error",
-    "unknownError": "Hindi kilalang error",
+    "unknownError": "Hindi kilalang error"
   },
   "connectionStatus": {
     "disconnected": "Nakadiskonekta",

@@ -404,7 +404,7 @@
     "typeMessage": "Text to translate...",
     "send": "Send",
     "error": "Error",
-    "unknownError": "Unknown error",
+    "unknownError": "Unknown error"
   },
   "simplePanel": {
     "clickToConfigLanguages": "Click to configure languages",

@@ -281,7 +281,7 @@
     "typeMessage": "نص للترجمة...",
     "send": "إرسال",
     "error": "خطأ",
-    "unknownError": "خطأ غير معروف",
+    "unknownError": "خطأ غير معروف"
   },
   "simplePanel": {
     "translationActive": "الترجمة نشطة",

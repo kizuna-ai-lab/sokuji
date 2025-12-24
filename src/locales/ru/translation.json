@@ -195,7 +195,7 @@
     "typeMessage": "Текст для перевода...",
     "send": "Отправить",
     "error": "Ошибка",
-    "unknownError": "Неизвестная ошибка",
+    "unknownError": "Неизвестная ошибка"
   },
   "errors": {
     "microphoneAccess": "Доступ к микрофону запрещен",

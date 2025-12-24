@@ -229,7 +229,7 @@
     "typeMessage": "Teks untuk diterjemahkan...",
     "send": "Kirim",
     "error": "Kesalahan",
-    "unknownError": "Kesalahan tidak diketahui",
+    "unknownError": "Kesalahan tidak diketahui"
   },
   "connectionStatus": {
     "disconnected": "Terputus",

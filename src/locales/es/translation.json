@@ -200,7 +200,7 @@
     "typeMessage": "Texto a traducir...",
     "send": "Enviar",
     "error": "Error",
-    "unknownError": "Error desconocido",
+    "unknownError": "Error desconocido"
   },
   "errors": {
     "microphoneAccess": "Acceso al micrófono denegado",

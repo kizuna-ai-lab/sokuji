@@ -73,7 +73,7 @@
     "typeMessage": "Text att översätta...",
     "send": "Skicka",
     "error": "Fel",
-    "unknownError": "Okänt fel",
+    "unknownError": "Okänt fel"
   },
   "audioPanel": {
     "title": "Ljudinställningar",

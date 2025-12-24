@@ -200,7 +200,7 @@
     "typeMessage": "翻訳するテキスト...",
     "send": "送信",
     "error": "エラー",
-    "unknownError": "不明なエラー",
+    "unknownError": "不明なエラー"
   },
   "errors": {
     "microphoneAccess": "マイクへのアクセスが拒否されました",

@@ -200,7 +200,7 @@
     "typeMessage": "Text zum Übersetzen...",
     "send": "Senden",
     "error": "Fehler",
-    "unknownError": "Unbekannter Fehler",
+    "unknownError": "Unbekannter Fehler"
   },
   "errors": {
     "microphoneAccess": "Mikrofonzugriff verweigert",

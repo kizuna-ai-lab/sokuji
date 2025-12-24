@@ -293,7 +293,7 @@
     "typeMessage": "Teks untuk diterjemah...",
     "send": "Hantar",
     "error": "Ralat",
-    "unknownError": "Ralat tidak diketahui",
+    "unknownError": "Ralat tidak diketahui"
   },
   "errors": {
     "microphoneAccess": "Akses mikrofon ditolak",

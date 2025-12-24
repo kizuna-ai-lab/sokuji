@@ -95,7 +95,7 @@
     "typeMessage": "Çevrilecek metin...",
     "send": "Gönder",
     "error": "Hata",
-    "unknownError": "Bilinmeyen hata",
+    "unknownError": "Bilinmeyen hata"
   },
   "audioPanel": {
     "title": "Ses Ayarları",

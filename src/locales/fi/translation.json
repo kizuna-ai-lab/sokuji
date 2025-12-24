@@ -189,7 +189,7 @@
     "typeMessage": "Käännettävä teksti...",
     "send": "Lähetä",
     "error": "Virhe",
-    "unknownError": "Tuntematon virhe",
+    "unknownError": "Tuntematon virhe"
   },
   "connectionStatus": {
     "disconnected": "Yhteys katkaistu",

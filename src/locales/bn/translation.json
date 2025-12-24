@@ -275,7 +275,7 @@
     "typeMessage": "অনুবাদ করতে টেক্সট...",
     "send": "পাঠান",
     "error": "ত্রুটি",
-    "unknownError": "অজানা ত্রুটি",
+    "unknownError": "অজানা ত্রুটি"
   },
   "simplePanel": {
     "translationActive": "অনুবাদ সক্রিয়",
