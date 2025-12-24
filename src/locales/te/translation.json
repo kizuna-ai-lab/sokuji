@@ -156,7 +156,10 @@
     "basicMode": "ప్రాథమిక",
     "advancedMode": "అధునాతన",
     "typeMessage": "అనువదించడానికి టెక్స్ట్...",
-    "send": "పంపు"
+    "send": "పంపు",
+    "error": "లోపం",
+    "unknownError": "తెలియని లోపం",
+    "errorParam": "పారామీటర్: {{param}}"
   },
   "audioPanel": {
     "title": "ఆడియో సెట్టింగ్‌లు",

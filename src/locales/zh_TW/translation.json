@@ -281,7 +281,10 @@
     "basicMode": "基礎",
     "advancedMode": "進階",
     "typeMessage": "輸入要翻譯的文字...",
-    "send": "發送"
+    "send": "發送",
+    "error": "錯誤",
+    "unknownError": "未知錯誤",
+    "errorParam": "參數：{{param}}"
   },
   "errors": {
     "microphoneAccess": "麥克風存取被拒絕",

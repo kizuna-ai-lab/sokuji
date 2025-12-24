@@ -187,7 +187,10 @@
     "clickToConfigMicrophone": "I-click upang i-configure ang mikropono",
     "clickToConfigSpeaker": "I-click upang i-configure ang speaker",
     "typeMessage": "Teksto para isalin...",
-    "send": "Ipadala"
+    "send": "Ipadala",
+    "error": "Error",
+    "unknownError": "Hindi kilalang error",
+    "errorParam": "Parameter"
   },
   "connectionStatus": {
     "disconnected": "Nakadiskonekta",

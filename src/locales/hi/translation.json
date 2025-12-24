@@ -190,7 +190,10 @@
     "clickToConfigMicrophone": "माइक्रोफ़ोन कॉन्फ़िगर करने के लिए क्लिक करें",
     "clickToConfigSpeaker": "स्पीकर कॉन्फ़िगर करने के लिए क्लिक करें",
     "typeMessage": "अनुवाद के लिए टेक्स्ट...",
-    "send": "भेजें"
+    "send": "भेजें",
+    "error": "त्रुटि",
+    "unknownError": "अज्ञात त्रुटि",
+    "errorParam": "पैरामीटर"
   },
   "connectionStatus": {
     "disconnected": "डिस्कनेक्टेड",
