@@ -982,8 +982,9 @@ export class ModernBrowserAudioService implements IAudioService {
    * Start recording from the current tab's audio
    * Called when session starts with tab audio enabled
    * @param callback Function to receive audio data chunks
+   * @param outputDeviceId Optional output device ID for audio playback
    */
-  public async startTabAudioRecording(callback: AudioRecordingCallback): Promise<void> {
+  public async startTabAudioRecording(callback: AudioRecordingCallback, outputDeviceId?: string): Promise<void> {
     if (!isExtension()) {
       throw new Error('Tab audio capture is only supported in browser extension');
     }
@@ -1008,8 +1009,8 @@ export class ModernBrowserAudioService implements IAudioService {
       // Store the callback
       this.tabAudioCallback = callback;
 
-      // Start the recorder
-      const success = await this.tabAudioRecorder.begin(tabId);
+      // Start the recorder with optional output device
+      const success = await this.tabAudioRecorder.begin(tabId, outputDeviceId);
       if (!success) {
         throw new Error('Failed to begin tab audio capture');
       }

@@ -333,15 +333,19 @@ async function handleStartTabCapture(tabId) {
     }
 
     // Request media stream ID for the tab using tabCapture API
+    console.info('[Sokuji] [Background] Calling chrome.tabCapture.getMediaStreamId for tabId:', tabId);
     const streamId = await new Promise((resolve, reject) => {
       chrome.tabCapture.getMediaStreamId(
         { targetTabId: tabId },
         (streamId) => {
           if (chrome.runtime.lastError) {
+            console.error('[Sokuji] [Background] tabCapture.getMediaStreamId failed:', chrome.runtime.lastError.message);
             reject(new Error(chrome.runtime.lastError.message));
           } else if (!streamId) {
+            console.error('[Sokuji] [Background] tabCapture.getMediaStreamId returned empty streamId');
             reject(new Error('Failed to get stream ID'));
           } else {
+            console.info('[Sokuji] [Background] tabCapture.getMediaStreamId succeeded, streamId:', streamId);
             resolve(streamId);
           }
         }

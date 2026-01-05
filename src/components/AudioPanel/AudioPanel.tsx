@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { ArrowRight, Volume2, Mic, RefreshCw, AlertTriangle, AudioLines } from 'lucide-react';
+import { ArrowRight, RefreshCw, AlertTriangle } from 'lucide-react';
+import Tooltip from '../Tooltip/Tooltip';
 import { ServiceFactory } from '../../services/ServiceFactory';
 import { useSetSystemAudioLoopbackSourceId } from '../../stores/audioStore';
 import './AudioPanel.scss';
@@ -8,6 +9,7 @@ import { useAudioContext } from '../../stores/audioStore';
 import { useTranslation } from 'react-i18next';
 import { useAnalytics } from '../../lib/analytics';
 import { useIsSessionActive } from '../../stores/sessionStore';
+import { isExtension } from '../../utils/environment';
 
 const AudioPanel: React.FC<{ toggleAudio: () => void }> = ({ toggleAudio }) => {
   const { t } = useTranslation();
@@ -33,6 +35,7 @@ const AudioPanel: React.FC<{ toggleAudio: () => void }> = ({ toggleAudio }) => {
     systemAudioSources,
     selectedSystemAudioSource,
     isSystemAudioCaptureEnabled,
+    participantAudioOutputDevice,
     selectInputDevice,
     selectMonitorDevice,
     toggleInputDeviceState,
@@ -42,6 +45,7 @@ const AudioPanel: React.FC<{ toggleAudio: () => void }> = ({ toggleAudio }) => {
     selectSystemAudioSource,
     toggleSystemAudioCapture,
     setSystemAudioCaptureActive,
+    selectParticipantAudioOutputDevice,
     refreshSystemAudioSources,
     refreshDevices
   } = useAudioContext();
@@ -269,28 +273,19 @@ const AudioPanel: React.FC<{ toggleAudio: () => void }> = ({ toggleAudio }) => {
       <div className="audio-content">
         {/* Input Device Section */}
         <div className="audio-section microphone-section">
-          <h3>{t('audioPanel.audioInputDevice')}</h3>
-          <div className="device-selector">
-            <div className="device-status">
-              <div className={`device-icon ${isInputDeviceOn ? 'active' : 'inactive'}`}>
-                <Mic size={18} />
-              </div>
-              <div className="device-info">
-                <div className="device-name">{isLoading ? t('audioPanel.loadingDevices') : (selectedInputDevice?.label || t('audioPanel.noDeviceSelected'))}</div>
-              </div>
-            </div>
-            <button 
-              className={`device-toggle-button ${isInputDeviceOn ? 'on' : 'off'}`}
-              onClick={toggleInputDeviceState}
-            >
-              {isInputDeviceOn ? t('audioPanel.turnOff') : t('audioPanel.turnOn')}
-            </button>
-          </div>
-          
+          <h3>
+            {t('audioPanel.audioInputDevice')}
+            <Tooltip
+              content={t('simpleConfig.microphoneDesc')}
+              position="top"
+              icon="help"
+              maxWidth={300}
+            />
+          </h3>
           <div className="device-list">
             <div className="device-list-header">
               <h4>{t('audioPanel.availableInputDevices')}</h4>
-              <button 
+              <button
                 className="refresh-button"
                 onClick={() => refreshDevices()}
                 disabled={isLoading}
@@ -299,11 +294,29 @@ const AudioPanel: React.FC<{ toggleAudio: () => void }> = ({ toggleAudio }) => {
                 <RefreshCw size={14} />
               </button>
             </div>
+            {/* Off option */}
+            <div
+              className={`device-option ${!isInputDeviceOn ? 'selected' : ''}`}
+              onClick={() => {
+                if (isInputDeviceOn) {
+                  toggleInputDeviceState();
+                }
+              }}
+            >
+              <span>{t('common.off', 'Off')}</span>
+              {!isInputDeviceOn && <div className="selected-indicator" />}
+            </div>
+            {/* Device options */}
             {audioInputDevices.map((device, index) => (
-              <div 
-                key={index} 
-                className={`device-option ${selectedInputDevice?.deviceId === device.deviceId ? 'selected' : ''}`}
-                onClick={() => handleInputDeviceSelection(device)}
+              <div
+                key={index}
+                className={`device-option ${isInputDeviceOn && selectedInputDevice?.deviceId === device.deviceId ? 'selected' : ''}`}
+                onClick={() => {
+                  if (!isInputDeviceOn) {
+                    toggleInputDeviceState();
+                  }
+                  handleInputDeviceSelection(device);
+                }}
               >
                 <span>{device.label}</span>
                 {isVirtualMic(device) && (
@@ -311,7 +324,7 @@ const AudioPanel: React.FC<{ toggleAudio: () => void }> = ({ toggleAudio }) => {
                     <AlertTriangle size={14} color="#f0ad4e" />
                   </div>
                 )}
-                {selectedInputDevice?.deviceId === device.deviceId && <div className="selected-indicator" />}
+                {isInputDeviceOn && selectedInputDevice?.deviceId === device.deviceId && <div className="selected-indicator" />}
               </div>
             ))}
           </div>
@@ -319,36 +332,19 @@ const AudioPanel: React.FC<{ toggleAudio: () => void }> = ({ toggleAudio }) => {
 
         {/* Monitor Device Section */}
         <div className="audio-section speaker-section">
-          <h3>{t('audioPanel.virtualSpeakerMonitorDevice')}</h3>
-          <div className="device-selector">
-            <div className="device-status">
-              <div className={`device-icon ${isMonitorDeviceOn ? 'active' : 'inactive'}`}>
-                <Volume2 size={18} />
-              </div>
-              <div className="device-info">
-                <div className="device-name">{isLoading ? t('audioPanel.loadingDevices') : (selectedMonitorDevice?.label || t('audioPanel.noDeviceSelected'))}</div>
-              </div>
-            </div>
-            <button
-              className={`device-toggle-button ${isMonitorDeviceOn ? 'on' : 'off'}`}
-              onClick={() => {
-                // Mutual exclusivity: if turning ON and System Audio is ON, show warning
-                if (!isMonitorDeviceOn && isSystemAudioCaptureEnabled) {
-                  setShowMutualExclusivityWarning(true);
-                  setMutualExclusivityWarningType('speaker');
-                  return;
-                }
-                toggleMonitorDeviceState();
-              }}
-            >
-              {isMonitorDeviceOn ? t('audioPanel.turnOff') : t('audioPanel.turnOn')}
-            </button>
-          </div>
-          
+          <h3>
+            {t('audioPanel.virtualSpeakerMonitorDevice')}
+            <Tooltip
+              content={t('simpleConfig.speakerDesc')}
+              position="top"
+              icon="help"
+              maxWidth={300}
+            />
+          </h3>
           <div className="device-list">
             <div className="device-list-header">
               <h4>{t('audioPanel.availableMonitorDevices')}</h4>
-              <button 
+              <button
                 className="refresh-button"
                 onClick={() => refreshDevices()}
                 disabled={isLoading}
@@ -357,11 +353,36 @@ const AudioPanel: React.FC<{ toggleAudio: () => void }> = ({ toggleAudio }) => {
                 <RefreshCw size={14} />
               </button>
             </div>
+            {/* Off option */}
+            <div
+              className={`device-option ${!isMonitorDeviceOn ? 'selected' : ''}`}
+              onClick={() => {
+                if (isMonitorDeviceOn) {
+                  toggleMonitorDeviceState();
+                }
+              }}
+            >
+              <span>{t('common.off', 'Off')}</span>
+              {!isMonitorDeviceOn && <div className="selected-indicator" />}
+            </div>
+            {/* Device options */}
             {audioMonitorDevices.map((device, index) => (
-              <div 
-                key={index} 
-                className={`device-option ${selectedMonitorDevice?.deviceId === device.deviceId ? 'selected' : ''}`}
-                onClick={() => handleMonitorDeviceSelection(device)}
+              <div
+                key={index}
+                className={`device-option ${isMonitorDeviceOn && selectedMonitorDevice?.deviceId === device.deviceId ? 'selected' : ''} ${isSystemAudioCaptureEnabled ? 'disabled' : ''}`}
+                onClick={() => {
+                  // Mutual exclusivity: if System Audio is ON, show warning
+                  if (isSystemAudioCaptureEnabled) {
+                    setShowMutualExclusivityWarning(true);
+                    setMutualExclusivityWarningType('speaker');
+                    return;
+                  }
+                  // Select device and enable if not already on
+                  if (!isMonitorDeviceOn) {
+                    toggleMonitorDeviceState();
+                  }
+                  handleMonitorDeviceSelection(device);
+                }}
               >
                 <span>{device.label}</span>
                 {isVirtualSpeaker(device) && (
@@ -369,141 +390,217 @@ const AudioPanel: React.FC<{ toggleAudio: () => void }> = ({ toggleAudio }) => {
                     <AlertTriangle size={14} color="#f0ad4e" />
                   </div>
                 )}
-                {selectedMonitorDevice?.deviceId === device.deviceId && <div className="selected-indicator" />}
+                {isMonitorDeviceOn && selectedMonitorDevice?.deviceId === device.deviceId && <div className="selected-indicator" />}
               </div>
             ))}
           </div>
         </div>
 
-        {/* System Audio Capture Section - Only show if there are sources available */}
-        {systemAudioSources && systemAudioSources.length > 0 && (
+        {/* System Audio Capture Section - Show for Extension (tab capture) or Electron (system audio sources) */}
+        {(isExtension() || (systemAudioSources && systemAudioSources.length > 0)) && (
           <div className="audio-section">
-            <h3>{t('simpleConfig.systemAudio', 'Participant Audio')}</h3>
-            <div className="device-selector">
-              <div className="device-status">
-                <div className={`device-icon ${isSystemAudioCaptureEnabled ? 'active' : 'inactive'}`}>
-                  <AudioLines size={18} />
-                </div>
-                <div className="device-info">
-                  <div className="device-name">
-                    {isSystemAudioLoading ? t('audioPanel.loadingDevices') : (selectedSystemAudioSource?.label || t('audioPanel.noDeviceSelected'))}
-                  </div>
-                  <div className="device-description">{t('simpleConfig.systemAudioDesc', 'Capture and translate audio from other meeting participants.')}</div>
-                </div>
-              </div>
-              <button
-                className={`device-toggle-button ${isSystemAudioCaptureEnabled ? 'on' : 'off'}`}
-                onClick={() => {
-                  // Mutual exclusivity: if turning ON and Monitor Device is ON, show warning
-                  if (!isSystemAudioCaptureEnabled && isMonitorDeviceOn) {
-                    setShowMutualExclusivityWarning(true);
-                    setMutualExclusivityWarningType('participant');
-                    return;
-                  }
-                  handleSystemAudioSourceSelect(isSystemAudioCaptureEnabled ? null : systemAudioSources[0]);
-                }}
-                disabled={isSystemAudioLoading || isSessionActive}
-              >
-                {isSystemAudioLoading ? '...' : (isSystemAudioCaptureEnabled ? t('audioPanel.turnOff') : t('audioPanel.turnOn'))}
-              </button>
-            </div>
+            <h3>
+              {t('simpleConfig.systemAudio', 'Participant Audio')}
+              <Tooltip
+                content={isExtension()
+                  ? t('simpleConfig.systemAudioDescExtension')
+                  : t('simpleConfig.systemAudioDesc')
+                }
+                position="top"
+                icon="help"
+                maxWidth={300}
+              />
+            </h3>
 
-            <div className="device-list">
-              <div className="device-list-header">
-                <h4>{t('audioPanel.availableSystemAudioSources', 'Available Sources')}</h4>
-                <button
-                  className="refresh-button"
-                  onClick={() => refreshSystemAudioSources && refreshSystemAudioSources()}
-                  disabled={isLoading || isSystemAudioLoading}
-                  title={t('audioPanel.refreshSystemAudioSources', 'Refresh sources')}
-                >
-                  <RefreshCw size={14} />
-                </button>
-              </div>
-              {systemAudioSources.map((source) => (
+            {/* Extension: Output device selection with Off option */}
+            {isExtension() && (
+              <div className="device-list">
+                <div className="device-list-header">
+                  <h4>{t('audioPanel.outputDevice', 'Output Device')}</h4>
+                  <button
+                    className="refresh-button"
+                    onClick={() => refreshDevices()}
+                    disabled={isLoading || isSessionActive}
+                    title={t('audioPanel.refreshMonitorDevices')}
+                  >
+                    <RefreshCw size={14} />
+                  </button>
+                </div>
+                {/* Off option */}
                 <div
-                  key={source.deviceId}
-                  className={`device-option ${selectedSystemAudioSource?.deviceId === source.deviceId ? 'selected' : ''} ${isSystemAudioLoading ? 'loading' : ''} ${isMonitorDeviceOn || isSessionActive ? 'disabled' : ''}`}
+                  className={`device-option ${!isSystemAudioCaptureEnabled ? 'selected' : ''} ${isSessionActive ? 'disabled' : ''}`}
                   onClick={() => {
-                    // Cannot change during active session
                     if (isSessionActive) return;
-                    // Mutual exclusivity: if Monitor Device is ON, show warning
-                    if (isMonitorDeviceOn) {
-                      setShowMutualExclusivityWarning(true);
-                      setMutualExclusivityWarningType('participant');
-                      return;
+                    if (isSystemAudioCaptureEnabled) {
+                      toggleSystemAudioCapture();
                     }
-                    handleSystemAudioSourceSelect(source);
                   }}
                 >
-                  <span>{source.label || t('audioPanel.unknownDevice')}</span>
-                  {selectedSystemAudioSource?.deviceId === source.deviceId && <div className="selected-indicator" />}
+                  <span>{t('common.off', 'Off')}</span>
+                  {!isSystemAudioCaptureEnabled && <div className="selected-indicator" />}
                 </div>
-              ))}
-            </div>
+                {/* Device options */}
+                {audioMonitorDevices.filter(device => !device.label.toLowerCase().includes('sokuji')).map((device) => (
+                  <div
+                    key={device.deviceId}
+                    className={`device-option ${isSystemAudioCaptureEnabled && participantAudioOutputDevice?.deviceId === device.deviceId ? 'selected' : ''} ${isSessionActive || isMonitorDeviceOn ? 'disabled' : ''}`}
+                    onClick={() => {
+                      if (isSessionActive) return;
+                      // Mutual exclusivity: if Monitor Device is ON, show warning
+                      if (isMonitorDeviceOn) {
+                        setShowMutualExclusivityWarning(true);
+                        setMutualExclusivityWarningType('participant');
+                        return;
+                      }
+                      // Select device and enable if not already on
+                      if (!isSystemAudioCaptureEnabled) {
+                        toggleSystemAudioCapture();
+                      }
+                      selectParticipantAudioOutputDevice(device);
+                      trackEvent('audio_device_changed', {
+                        device_type: 'participant_output',
+                        device_name: device.label,
+                        change_type: 'selected',
+                        during_session: isSessionActive
+                      });
+                    }}
+                  >
+                    <span>{device.label || t('audioPanel.unknownDevice')}</span>
+                    {isSystemAudioCaptureEnabled && participantAudioOutputDevice?.deviceId === device.deviceId && <div className="selected-indicator" />}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Electron: Source selection list with Off option */}
+            {!isExtension() && systemAudioSources && systemAudioSources.length > 0 && (
+              <div className="device-list">
+                <div className="device-list-header">
+                  <h4>{t('audioPanel.availableSystemAudioSources', 'Available Sources')}</h4>
+                  <button
+                    className="refresh-button"
+                    onClick={() => refreshSystemAudioSources && refreshSystemAudioSources()}
+                    disabled={isLoading || isSystemAudioLoading}
+                    title={t('audioPanel.refreshSystemAudioSources', 'Refresh sources')}
+                  >
+                    <RefreshCw size={14} />
+                  </button>
+                </div>
+                {/* Off option */}
+                <div
+                  className={`device-option ${!isSystemAudioCaptureEnabled ? 'selected' : ''} ${isSystemAudioLoading || isSessionActive ? 'disabled' : ''}`}
+                  onClick={() => {
+                    if (isSessionActive) return;
+                    handleSystemAudioSourceSelect(null);
+                  }}
+                >
+                  <span>{t('common.off', 'Off')}</span>
+                  {!isSystemAudioCaptureEnabled && <div className="selected-indicator" />}
+                </div>
+                {/* Source options */}
+                {systemAudioSources.map((source) => (
+                  <div
+                    key={source.deviceId}
+                    className={`device-option ${isSystemAudioCaptureEnabled && selectedSystemAudioSource?.deviceId === source.deviceId ? 'selected' : ''} ${isSystemAudioLoading ? 'loading' : ''} ${isMonitorDeviceOn || isSessionActive ? 'disabled' : ''}`}
+                    onClick={() => {
+                      // Cannot change during active session
+                      if (isSessionActive) return;
+                      // Mutual exclusivity: if Monitor Device is ON, show warning
+                      if (isMonitorDeviceOn) {
+                        setShowMutualExclusivityWarning(true);
+                        setMutualExclusivityWarningType('participant');
+                        return;
+                      }
+                      handleSystemAudioSourceSelect(source);
+                    }}
+                  >
+                    <span>{source.label || t('audioPanel.unknownDevice')}</span>
+                    {isSystemAudioCaptureEnabled && selectedSystemAudioSource?.deviceId === source.deviceId && <div className="selected-indicator" />}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
         {/* Real Person Voice Passthrough Section */}
         <div className="audio-section voice-passthrough-section">
-          <h3>{t('audioPanel.realVoicePassthrough')}</h3>
-          <div className="device-selector">
-            <div className="device-status">
-              <div className={`device-icon ${isRealVoicePassthroughEnabled ? 'active' : 'inactive'}`}>
-                <AudioLines size={18} />
-              </div>
-              <div className="device-info">
-                <div className="device-name">{t('audioPanel.enableRealVoicePassthrough')}</div>
-                <div className="device-description">{t('audioPanel.realVoicePassthroughDescription')}</div>
-              </div>
-            </div>
-            <button 
-              className={`device-toggle-button ${isRealVoicePassthroughEnabled ? 'on' : 'off'}`}
+          <h3>
+            {t('audioPanel.realVoicePassthrough')}
+            <Tooltip
+              content={t('audioPanel.realVoicePassthroughDescription')}
+              position="top"
+              icon="help"
+              maxWidth={300}
+            />
+          </h3>
+          <div className="device-list">
+            {/* Off option */}
+            <div
+              className={`device-option ${!isRealVoicePassthroughEnabled ? 'selected' : ''}`}
               onClick={() => {
-                toggleRealVoicePassthrough();
-                trackEvent('audio_passthrough_toggled', {
-                  enabled: !isRealVoicePassthroughEnabled,
-                  volume_level: realVoicePassthroughVolume
-                });
+                if (isRealVoicePassthroughEnabled) {
+                  toggleRealVoicePassthrough();
+                  trackEvent('audio_passthrough_toggled', {
+                    enabled: false,
+                    volume_level: realVoicePassthroughVolume
+                  });
+                }
               }}
             >
-              {isRealVoicePassthroughEnabled ? t('audioPanel.turnOff') : t('audioPanel.turnOn')}
-            </button>
-          </div>
-          
-          <div className="device-list">
-            <div className={`volume-control ${!isRealVoicePassthroughEnabled ? 'disabled' : ''}`}>
-              <div className="setting-label">
-                <span>{t('audioPanel.realVoiceVolume')}</span>
-                <span className="setting-value">{Math.round(realVoicePassthroughVolume * 100)}%</span>
-              </div>
-              <input 
-                type="range" 
-                min="0" 
-                max="0.6" 
-                step="0.01" 
-                value={realVoicePassthroughVolume}
-                onChange={(e) => {
-                  const newVolume = parseFloat(e.target.value);
-                  setRealVoicePassthroughVolume(newVolume);
-                }}
-                onMouseUp={(e) => {
-                  // Track volume change on mouse up to avoid too many events
-                  trackEvent('ui_interaction', {
-                    component: 'AudioPanel',
-                    action: 'passthrough_volume_changed',
-                    element: 'volume_slider',
-                    value: parseFloat((e.target as HTMLInputElement).value)
-                  });
-                }}
-                className="volume-slider"
-                disabled={!isRealVoicePassthroughEnabled}
-              />
-              <div className="volume-limits">
-                <span>0%</span>
-                <span>60%</span>
-              </div>
+              <span>{t('common.off', 'Off')}</span>
+              {!isRealVoicePassthroughEnabled && <div className="selected-indicator" />}
             </div>
+            {/* On option */}
+            <div
+              className={`device-option ${isRealVoicePassthroughEnabled ? 'selected' : ''}`}
+              onClick={() => {
+                if (!isRealVoicePassthroughEnabled) {
+                  toggleRealVoicePassthrough();
+                  trackEvent('audio_passthrough_toggled', {
+                    enabled: true,
+                    volume_level: realVoicePassthroughVolume
+                  });
+                }
+              }}
+            >
+              <span>{t('common.on', 'On')}</span>
+              {isRealVoicePassthroughEnabled && <div className="selected-indicator" />}
+            </div>
+            {/* Volume slider - shown when enabled */}
+            {isRealVoicePassthroughEnabled && (
+              <div className="volume-control">
+                <div className="setting-label">
+                  <span>{t('audioPanel.realVoiceVolume')}</span>
+                  <span className="setting-value">{Math.round(realVoicePassthroughVolume * 100)}%</span>
+                </div>
+                <input
+                  type="range"
+                  min="0"
+                  max="0.6"
+                  step="0.01"
+                  value={realVoicePassthroughVolume}
+                  onChange={(e) => {
+                    const newVolume = parseFloat(e.target.value);
+                    setRealVoicePassthroughVolume(newVolume);
+                  }}
+                  onMouseUp={(e) => {
+                    // Track volume change on mouse up to avoid too many events
+                    trackEvent('ui_interaction', {
+                      component: 'AudioPanel',
+                      action: 'passthrough_volume_changed',
+                      element: 'volume_slider',
+                      value: parseFloat((e.target as HTMLInputElement).value)
+                    });
+                  }}
+                  className="volume-slider"
+                />
+                <div className="volume-limits">
+                  <span>0%</span>
+                  <span>60%</span>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

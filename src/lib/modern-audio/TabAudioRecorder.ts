@@ -18,13 +18,13 @@ export class TabAudioRecorder {
   private mediaStreamSource: MediaStreamAudioSourceNode | null = null;
   private audioWorkletNode: AudioWorkletNode | null = null;
   private scriptProcessor: ScriptProcessorNode | null = null;
-  private dummyGain: GainNode | null = null;
   private useAudioWorklet: boolean = false;
   private recording: boolean = false;
   private onAudioData: ((data: { mono: Int16Array; raw: Int16Array }) => void) | null = null;
   private _audioChunkCount: number = 0;
   private tabId: number | null = null;
   private streamId: string | null = null;
+  private outputDeviceId: string | null = null;
 
   /**
    * Create a new TabAudioRecorder instance
@@ -86,8 +86,9 @@ export class TabAudioRecorder {
   /**
    * Begin capturing audio from the tab
    * @param tabId - Optional tab ID (will auto-detect if not provided)
+   * @param outputDeviceId - Optional output device ID for audio playback
    */
-  async begin(tabId?: number): Promise<boolean> {
+  async begin(tabId?: number, outputDeviceId?: string): Promise<boolean> {
     if (this.stream) {
       throw new Error('TabAudioRecorder: Already connected. Please call .end() to start over');
     }
@@ -112,30 +113,53 @@ export class TabAudioRecorder {
       }
 
       this.streamId = response.streamId;
-      console.info('[TabAudioRecorder] Got stream ID:', this.streamId);
+      console.info('[TabAudioRecorder] Side panel received streamId from background:', this.streamId);
 
       // Get the media stream using the stream ID
       // Chrome uses chromeMediaSource and chromeMediaSourceId constraints
-      this.stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          // @ts-expect-error Chrome-specific constraints
-          mandatory: {
-            chromeMediaSource: 'tab',
-            chromeMediaSourceId: this.streamId
-          }
-        },
-        video: false
-      });
+      console.info('[TabAudioRecorder] Side panel calling getUserMedia with chromeMediaSource: tab, streamId:', this.streamId);
+      try {
+        this.stream = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            // @ts-expect-error Chrome-specific constraints
+            mandatory: {
+              chromeMediaSource: 'tab',
+              chromeMediaSourceId: this.streamId
+            }
+          },
+          video: false
+        });
+        console.info('[TabAudioRecorder] Side panel getUserMedia succeeded, got MediaStream:', this.stream.id);
+      } catch (getUserMediaError) {
+        console.error('[TabAudioRecorder] Side panel getUserMedia failed:', getUserMediaError);
+        throw getUserMediaError;
+      }
 
       // Verify track settings
       const track = this.stream.getAudioTracks()[0];
+      console.info('[TabAudioRecorder] Audio track obtained:', track.label, 'enabled:', track.enabled, 'readyState:', track.readyState);
       const settings = track.getSettings();
       console.info('[TabAudioRecorder] Track settings:', settings);
+
+      // Store output device ID for later use
+      this.outputDeviceId = outputDeviceId || null;
 
       // Create AudioContext
       this.audioContext = new AudioContext({ sampleRate: this.sampleRate });
       if (this.audioContext.state === 'suspended') {
         await this.audioContext.resume();
+      }
+
+      // Set output device if specified (Chrome 110+)
+      // @ts-expect-error setSinkId is not in the TypeScript types yet
+      if (outputDeviceId && this.audioContext.setSinkId) {
+        try {
+          // @ts-expect-error setSinkId is not in the TypeScript types yet
+          await this.audioContext.setSinkId(outputDeviceId);
+          console.info('[TabAudioRecorder] Set audio output device:', outputDeviceId);
+        } catch (sinkError) {
+          console.warn('[TabAudioRecorder] Failed to set output device, using default:', sinkError);
+        }
       }
 
       // Setup audio processing
@@ -231,14 +255,14 @@ export class TabAudioRecorder {
           }
         };
 
-        // Connect nodes
+        // Connect nodes: mediaStreamSource -> audioWorkletNode (for processing/sending to OpenAI)
         this.mediaStreamSource.connect(this.audioWorkletNode);
 
-        // Create dummy gain node to keep worklet active
-        this.dummyGain = this.audioContext.createGain();
-        this.dummyGain.gain.value = 0;
-        this.audioWorkletNode.connect(this.dummyGain);
-        this.dummyGain.connect(this.audioContext.destination);
+        // Per Chrome tabCapture docs: "When a MediaStream is obtained for a tab,
+        // audio in that tab will no longer be played to the user."
+        // So we need to manually play the captured audio back to the user.
+        // Connect mediaStreamSource directly to destination to play the original audio
+        this.mediaStreamSource.connect(this.audioContext.destination);
 
       } catch (error) {
         console.warn('[TabAudioRecorder] AudioWorklet setup failed, falling back to ScriptProcessor:', error);
@@ -294,14 +318,16 @@ export class TabAudioRecorder {
       this._processAudioData(pcmData);
     };
 
-    // Connect the nodes
+    // Connect the nodes: mediaStreamSource -> scriptProcessor (for processing/sending to OpenAI)
     this.mediaStreamSource.connect(this.scriptProcessor);
+    // ScriptProcessor needs to be connected to destination to work (even though it doesn't output anything useful)
+    this.scriptProcessor.connect(this.audioContext.destination);
 
-    // Create a dummy gain node with zero volume
-    this.dummyGain = this.audioContext.createGain();
-    this.dummyGain.gain.value = 0;
-    this.scriptProcessor.connect(this.dummyGain);
-    this.dummyGain.connect(this.audioContext.destination);
+    // Per Chrome tabCapture docs: "When a MediaStream is obtained for a tab,
+    // audio in that tab will no longer be played to the user."
+    // So we need to manually play the captured audio back to the user.
+    // Connect mediaStreamSource directly to destination to play the original audio
+    this.mediaStreamSource.connect(this.audioContext.destination);
   }
 
   /**
@@ -355,15 +381,15 @@ export class TabAudioRecorder {
    * End recording session and clean up
    */
   async end(): Promise<void> {
-    console.info('[TabAudioRecorder] Stopping tab audio capture');
+    console.info('[TabAudioRecorder] Stopping tab audio capture for tab:', this.tabId);
 
     // Stop recording if active
     if (this.recording) {
       await this.pause();
     }
 
-    // Notify background script to stop capture
-    await this.sendMessageToBackground({ type: 'STOP_TAB_CAPTURE' });
+    // Notify background script to stop capture (must be before cleanup which clears tabId)
+    await this.sendMessageToBackground({ type: 'STOP_TAB_CAPTURE', tabId: this.tabId });
 
     // Clean up resources
     await this.cleanup();
@@ -390,11 +416,6 @@ export class TabAudioRecorder {
     if (this.scriptProcessor) {
       this.scriptProcessor.disconnect();
       this.scriptProcessor = null;
-    }
-
-    if (this.dummyGain) {
-      this.dummyGain.disconnect();
-      this.dummyGain = null;
     }
 
     if (this.mediaStreamSource) {

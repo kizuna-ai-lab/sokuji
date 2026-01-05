@@ -100,9 +100,11 @@ const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings, h
     systemAudioSources,
     selectedSystemAudioSource,
     isSystemAudioCaptureEnabled,
+    participantAudioOutputDevice,
     selectSystemAudioSource,
     toggleSystemAudioCapture,
     setSystemAudioCaptureActive,
+    selectParticipantAudioOutputDevice,
     refreshSystemAudioSources
   } = useAudioContext();
 
@@ -869,7 +871,7 @@ const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings, h
 
             <div className="device-list">
               {isExtension() ? (
-                // Extension: Simple toggle (auto-captures current tab)
+                // Extension: Toggle with output device selection
                 <>
                   <div
                     className={`device-option ${!isSystemAudioCaptureEnabled ? 'selected' : ''} ${isSessionActive ? 'disabled' : ''}`}
@@ -883,18 +885,31 @@ const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings, h
                     <span>{t('common.off')}</span>
                     {!isSystemAudioCaptureEnabled && <div className="selected-indicator" />}
                   </div>
-                  <div
-                    className={`device-option ${isSystemAudioCaptureEnabled ? 'selected' : ''} ${isSessionActive ? 'disabled' : ''}`}
-                    onClick={() => {
-                      if (isSessionActive) return;
-                      if (!isSystemAudioCaptureEnabled) {
-                        toggleSystemAudioCapture();
-                      }
-                    }}
-                  >
-                    <span>{t('simpleConfig.currentTab', 'Current Tab')}</span>
-                    {isSystemAudioCaptureEnabled && <div className="selected-indicator" />}
-                  </div>
+                  {/* Output device options - select device = enable + use */}
+                  {audioMonitorDevices.filter(device => !device.label.toLowerCase().includes('sokuji')).map((device) => (
+                    <div
+                      key={device.deviceId}
+                      className={`device-option ${isSystemAudioCaptureEnabled && participantAudioOutputDevice?.deviceId === device.deviceId ? 'selected' : ''} ${isSessionActive || isMonitorDeviceOn ? 'disabled' : ''}`}
+                      onClick={() => {
+                        if (isSessionActive) return;
+                        // Mutual exclusivity: if Monitor Device is ON, show warning
+                        if (isMonitorDeviceOn) {
+                          setShowMutualExclusivityWarning(true);
+                          setMutualExclusivityWarningType('participant');
+                          return;
+                        }
+                        // Enable capture if not already enabled
+                        if (!isSystemAudioCaptureEnabled) {
+                          toggleSystemAudioCapture();
+                        }
+                        // Select this device as output
+                        selectParticipantAudioOutputDevice(device);
+                      }}
+                    >
+                      <span>{device.label || t('audioPanel.unknownDevice')}</span>
+                      {isSystemAudioCaptureEnabled && participantAudioOutputDevice?.deviceId === device.deviceId && <div className="selected-indicator" />}
+                    </div>
+                  ))}
                 </>
               ) : (
                 // Electron: Show source selection dropdown

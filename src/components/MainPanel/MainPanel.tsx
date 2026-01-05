@@ -95,7 +95,8 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     // System audio capture
     selectedSystemAudioSource,
     systemAudioLoopbackSourceId,
-    isSystemAudioCaptureEnabled
+    isSystemAudioCaptureEnabled,
+    participantAudioOutputDevice
   } = useAudioContext();
 
   // canPushToTalk is true only when turnDetectionMode is 'Disabled'
@@ -891,8 +892,10 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           await tabClient.connect(participantSessionConfig);
           console.info('[Sokuji] [MainPanel] Tab audio client connected (text-only, swapped languages, semantic VAD)');
 
-          // Start recording from the tab
+          // Start recording from the tab with optional output device
           let tabAudioCallbackCount = 0;
+          const outputDeviceId = participantAudioOutputDevice?.deviceId;
+          console.info('[Sokuji] [MainPanel] Starting tab audio recording with output device:', outputDeviceId || 'default');
           await audioServiceRef.current.startTabAudioRecording((data) => {
             if (tabClient) {
               if (tabAudioCallbackCount % 100 === 0) {
@@ -901,7 +904,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
               tabAudioCallbackCount++;
               tabClient.appendInputAudio(data.mono);
             }
-          });
+          }, outputDeviceId);
           console.info('[Sokuji] [MainPanel] Tab audio recording started');
         } catch (error) {
           console.error('[Sokuji] [MainPanel] Failed to start tab audio client:', error);

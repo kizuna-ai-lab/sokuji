@@ -28,6 +28,7 @@ interface AudioStore {
   isSystemAudioCaptureEnabled: boolean;
   isSystemAudioCaptureActive: boolean;
   systemAudioLoopbackSourceId: string | null; // e.g., 'sokuji_system_capture.monitor'
+  participantAudioOutputDevice: AudioDevice | null; // Output device for participant audio (Extension only)
 
   // Audio service reference
   audioService: IAudioService | null;
@@ -51,6 +52,7 @@ interface AudioStore {
   setSystemAudioCaptureActive: (active: boolean) => void;
   setSystemAudioLoopbackSourceId: (id: string | null) => void;
   refreshSystemAudioSources: () => Promise<void>;
+  selectParticipantAudioOutputDevice: (device: AudioDevice | null) => void;
 
   // Complex actions
   refreshDevices: () => Promise<{ defaultInputDevice: AudioDevice | null; defaultMonitorDevice: AudioDevice | null }>;
@@ -77,6 +79,7 @@ const useAudioStore = create<AudioStore>()(
     isSystemAudioCaptureEnabled: false,
     isSystemAudioCaptureActive: false,
     systemAudioLoopbackSourceId: null,
+    participantAudioOutputDevice: null,
 
     audioService: null,
     
@@ -183,6 +186,11 @@ const useAudioStore = create<AudioStore>()(
       } catch (error) {
         console.error('[Sokuji] [AudioStore] Error refreshing system audio sources:', error);
       }
+    },
+
+    selectParticipantAudioOutputDevice: (device) => {
+      console.info('[Sokuji] [AudioStore] Selected participant audio output device:', device?.label || 'None');
+      set({ participantAudioOutputDevice: device });
     },
 
     // Complex actions
@@ -328,6 +336,7 @@ export const useSelectedSystemAudioSource = () => useAudioStore((state) => state
 export const useIsSystemAudioCaptureEnabled = () => useAudioStore((state) => state.isSystemAudioCaptureEnabled);
 export const useIsSystemAudioCaptureActive = () => useAudioStore((state) => state.isSystemAudioCaptureActive);
 export const useSystemAudioLoopbackSourceId = () => useAudioStore((state) => state.systemAudioLoopbackSourceId);
+export const useParticipantAudioOutputDevice = () => useAudioStore((state) => state.participantAudioOutputDevice);
 
 // Export individual action selectors to avoid recreating objects
 export const useSelectInputDevice = () => useAudioStore((state) => state.selectInputDevice);
@@ -345,6 +354,7 @@ export const useToggleSystemAudioCapture = () => useAudioStore((state) => state.
 export const useSetSystemAudioCaptureActive = () => useAudioStore((state) => state.setSystemAudioCaptureActive);
 export const useSetSystemAudioLoopbackSourceId = () => useAudioStore((state) => state.setSystemAudioLoopbackSourceId);
 export const useRefreshSystemAudioSources = () => useAudioStore((state) => state.refreshSystemAudioSources);
+export const useSelectParticipantAudioOutputDevice = () => useAudioStore((state) => state.selectParticipantAudioOutputDevice);
 
 // Export actions with memoization to prevent recreating objects
 export const useAudioActions = () => {
@@ -361,6 +371,7 @@ export const useAudioActions = () => {
   const setSystemAudioCaptureActive = useSetSystemAudioCaptureActive();
   const setSystemAudioLoopbackSourceId = useSetSystemAudioLoopbackSourceId();
   const refreshSystemAudioSources = useRefreshSystemAudioSources();
+  const selectParticipantAudioOutputDevice = useSelectParticipantAudioOutputDevice();
 
   return useMemo(
     () => ({
@@ -377,6 +388,7 @@ export const useAudioActions = () => {
       setSystemAudioCaptureActive,
       setSystemAudioLoopbackSourceId,
       refreshSystemAudioSources,
+      selectParticipantAudioOutputDevice,
     }),
     [
       selectInputDevice,
@@ -392,6 +404,7 @@ export const useAudioActions = () => {
       setSystemAudioCaptureActive,
       setSystemAudioLoopbackSourceId,
       refreshSystemAudioSources,
+      selectParticipantAudioOutputDevice,
     ]
   );
 };
@@ -412,6 +425,7 @@ export const useAudioContext = () => {
   const isSystemAudioCaptureEnabled = useIsSystemAudioCaptureEnabled();
   const isSystemAudioCaptureActive = useIsSystemAudioCaptureActive();
   const systemAudioLoopbackSourceId = useSystemAudioLoopbackSourceId();
+  const participantAudioOutputDevice = useParticipantAudioOutputDevice();
   const actions = useAudioActions();
 
   return useMemo(
@@ -430,6 +444,7 @@ export const useAudioContext = () => {
       isSystemAudioCaptureEnabled,
       isSystemAudioCaptureActive,
       systemAudioLoopbackSourceId,
+      participantAudioOutputDevice,
       ...actions,
     }),
     [
@@ -447,6 +462,7 @@ export const useAudioContext = () => {
       isSystemAudioCaptureEnabled,
       isSystemAudioCaptureActive,
       systemAudioLoopbackSourceId,
+      participantAudioOutputDevice,
       actions,
     ]
   );
