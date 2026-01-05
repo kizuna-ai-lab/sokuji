@@ -259,7 +259,8 @@
     "speaker": "Högtalare",
     "speakerDesc": "Välj en högtalare för att övervaka den översatta utmatningen. Detta låter dig höra hur översättningen låter. Du kan stänga av den om övervakning inte behövs. Oavsett om den är på eller av, skickas det översatta ljudet alltid till den virtuella mikrofonen för andra deltagare att höra.",
     "systemAudio": "Deltagarljud",
-    "systemAudioDesc": "Fånga och översätt ljud från andra mötesdeltagare. Välj vilken ljudutgång som ska fångas för att översätta deras tal."
+    "systemAudioDesc": "Fånga och översätt ljud från andra mötesdeltagare. Välj vilken ljudutgång som ska fångas för att översätta deras tal.",
+    "systemAudioDescExtension": "Fånga och transkribera ljud från den aktuella fliken. Se transkriptioner och översättningar av andra mötesdeltagares tal."
   },
   "providers": {
     "openai": {

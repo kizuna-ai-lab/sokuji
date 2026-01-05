@@ -276,7 +276,8 @@
     "speaker": "Hoparlör",
     "speakerDesc": "Çevrilmiş çıktıyı izlemek için bir hoparlör seçin. Bu, çevirinin nasıl geldiğini duymanızı sağlar. İzleme gerekmiyorsa kapatabilirsiniz. Açık veya kapalı olsun, çevrilmiş ses her zaman sanal mikrofona gönderilir ve diğer katılımcılar duyar.",
     "systemAudio": "Katılımcı Sesi",
-    "systemAudioDesc": "Diğer toplantı katılımcılarından gelen sesi yakalayın ve çevirin. Konuşmalarını çevirmek için hangi ses çıkış cihazının yakalanacağını seçin."
+    "systemAudioDesc": "Diğer toplantı katılımcılarından gelen sesi yakalayın ve çevirin. Konuşmalarını çevirmek için hangi ses çıkış cihazının yakalanacağını seçin.",
+    "systemAudioDescExtension": "Geçerli sekmeden sesi yakalayın ve metne dönüştürün. Diğer toplantı katılımcılarının konuşmalarının transkripsiyonlarını ve çevirilerini görüntüleyin."
   },
   "providers": {
     "openai": {

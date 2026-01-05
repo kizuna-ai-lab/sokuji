@@ -327,7 +327,7 @@
     "speakerDesc": "Select a speaker for monitoring the translated output. This lets you hear how the translation sounds. You can turn it off if monitoring is not needed. Whether on or off, the translated audio is always sent to the virtual microphone for other participants to hear.",
     "systemAudio": "Participant Audio",
     "systemAudioDesc": "Capture and translate audio from other meeting participants. Select which audio output device to capture for translating their speech.",
-    "systemAudioDescExtension": "Capture and translate audio from the current tab. This allows you to hear translations of other meeting participants.",
+    "systemAudioDescExtension": "Capture and transcribe audio from the current tab. View transcriptions and translations of other meeting participants' speech.",
     "currentTab": "Current Tab"
   },
   "providers": {

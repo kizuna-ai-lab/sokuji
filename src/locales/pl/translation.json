@@ -342,7 +342,8 @@
     "speaker": "Głośnik",
     "speakerDesc": "Wybierz głośnik do monitorowania przetłumaczonego wyjścia. Pozwala to słyszeć jak brzmi tłumaczenie. Możesz to wyłączyć jeśli monitorowanie nie jest potrzebne. Niezależnie od tego czy jest włączone czy wyłączone, przetłumaczone audio jest zawsze wysyłane do wirtualnego mikrofonu aby inni uczestnicy mogli je słyszeć.",
     "systemAudio": "Dźwięk uczestnika",
-    "systemAudioDesc": "Przechwytuj i tłumacz dźwięk od innych uczestników spotkania. Wybierz urządzenie wyjściowe audio do przechwytywania ich mowy do tłumaczenia."
+    "systemAudioDesc": "Przechwytuj i tłumacz dźwięk od innych uczestników spotkania. Wybierz urządzenie wyjściowe audio do przechwytywania ich mowy do tłumaczenia.",
+    "systemAudioDescExtension": "Przechwytuj i transkrybuj dźwięk z bieżącej karty. Przeglądaj transkrypcje i tłumaczenia wypowiedzi innych uczestników spotkania."
   },
   "providers": {
     "openai": {

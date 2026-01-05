@@ -278,7 +278,8 @@
     "speaker": "Loa",
     "speakerDesc": "Chọn loa để giám sát đầu ra đã dịch. Điều này cho phép bạn nghe bản dịch như thế nào. Bạn có thể tắt nó nếu không cần giám sát. Dù bật hay tắt, âm thanh đã dịch luôn được gửi tới microphone ảo để những người tham gia khác có thể nghe.",
     "systemAudio": "Âm Thanh Người Tham Gia",
-    "systemAudioDesc": "Ghi lại và dịch âm thanh từ những người tham gia cuộc họp khác. Chọn thiết bị đầu ra âm thanh nào để ghi lại nhằm dịch lời nói của họ."
+    "systemAudioDesc": "Ghi lại và dịch âm thanh từ những người tham gia cuộc họp khác. Chọn thiết bị đầu ra âm thanh nào để ghi lại nhằm dịch lời nói của họ.",
+    "systemAudioDescExtension": "Ghi lại và phiên âm âm thanh từ tab hiện tại. Xem bản phiên âm và bản dịch lời nói của các thành viên cuộc họp khác."
   },
   "providers": {
     "openai": {

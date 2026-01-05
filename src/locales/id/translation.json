@@ -166,7 +166,8 @@
     "speaker": "Speaker",
     "speakerDesc": "Pilih speaker untuk memantau output terjemahan. Ini memungkinkan Anda mendengar bagaimana terjemahan terdengar. Anda dapat mematikannya jika pemantauan tidak diperlukan. Baik hidup atau mati, audio terjemahan selalu dikirim ke mikrofon virtual agar peserta lain dapat mendengar.",
     "systemAudio": "Audio Peserta",
-    "systemAudioDesc": "Tangkap dan terjemahkan audio dari peserta rapat lainnya. Pilih perangkat output audio mana yang akan ditangkap untuk menerjemahkan ucapan mereka."
+    "systemAudioDesc": "Tangkap dan terjemahkan audio dari peserta rapat lainnya. Pilih perangkat output audio mana yang akan ditangkap untuk menerjemahkan ucapan mereka.",
+    "systemAudioDescExtension": "Tangkap dan transkrip audio dari tab saat ini. Lihat transkripsi dan terjemahan ucapan peserta rapat lainnya."
   },
   "providers": {
     "openai": {

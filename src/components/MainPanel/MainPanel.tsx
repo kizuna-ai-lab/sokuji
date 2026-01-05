@@ -915,6 +915,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       // Set state variables after successful initialization
       setIsSessionActive(true);
       setItems(client.getConversationItems());
+      setSystemAudioItems([]); // Clear participant conversation from previous session
 
       // Start tracking audio quality metrics during session
       audioQualityIntervalRef.current = setInterval(() => {
