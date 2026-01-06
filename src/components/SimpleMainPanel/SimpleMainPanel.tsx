@@ -244,7 +244,7 @@ const SimpleMainPanel: React.FC<SimpleMainPanelProps> = React.memo(({
               // Calculate highlighted characters for karaoke effect
               const highlightedChars = isPlaying ? Math.floor(text.length * progressRatio) : 0;
 
-              const isParticipant = (item as any).source === 'participant';
+              const isParticipant = item.source === 'participant';
 
               // Handle error messages - use formatted.text which contains "[errorType] errorMessage"
               if (item.type === 'error') {

@@ -11,6 +11,7 @@ export interface ConversationItem {
   role: 'user' | 'assistant' | 'system';
   type: 'message' | 'function_call' | 'function_call_output' | 'error';
   status: 'in_progress' | 'completed' | 'incomplete' | 'cancelled';
+  source?: 'speaker' | 'participant'; // Source of the conversation item (speaker's mic or participant's system audio)
   createdAt?: number; // Timestamp for accurate sorting
   formatted?: {
     text?: string;

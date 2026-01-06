@@ -235,7 +235,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   const combinedItems = useMemo(() => {
     // Tag speaker items
     const speakerItems = items.map(item => {
-      if (!(item as any).source) {
+      if (!item.source) {
         return { ...item, source: 'speaker' } as ConversationItem & { source: string };
       }
       return item as ConversationItem & { source: string };
@@ -243,7 +243,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
     // Tag participant items (they should already be tagged, but ensure it)
     const participantItems = systemAudioItems.map(item => {
-      if (!(item as any).source) {
+      if (!item.source) {
         return { ...item, source: 'participant' } as ConversationItem & { source: string };
       }
       return item as ConversationItem & { source: string };
@@ -786,7 +786,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
             },
             onConversationUpdated: async ({ item, delta }) => {
               // Tag item with source for display
-              (item as any).source = 'participant';
+              item.source = 'participant';
 
               // Skip audio delta - participant client is text-only
               if (delta?.audio) {
@@ -874,7 +874,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
               );
             },
             onConversationUpdated: async ({ item, delta }) => {
-              (item as any).source = 'participant';
+              item.source = 'participant';
               // Skip audio delta - participant client is text-only
               if (delta?.audio) {
                 return;
@@ -1942,14 +1942,14 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         <div className="conversation-content" data-conversation-content>
           {combinedItems.length > 0 ? (
             combinedItems.map((item) => (
-              <div key={item.id} className={`conversation-item ${item.role} ${(item as any).source === 'participant' ? 'participant-source' : 'speaker-source'} ${item.type === 'error' ? 'error' : ''} ${playingItemId === item.id ? 'playing' : ''}`} style={{ position: 'relative' }}>
+              <div key={item.id} className={`conversation-item ${item.role} ${item.source === 'participant' ? 'participant-source' : 'speaker-source'} ${item.type === 'error' ? 'error' : ''} ${playingItemId === item.id ? 'playing' : ''}`} style={{ position: 'relative' }}>
                 <div className="conversation-item-role">
                   {item.type === 'error' ? (
                     <>
                       <AlertCircle size={12} />
                       {t('mainPanel.error', 'Error')}
                     </>
-                  ) : (item as any).source === 'participant' && item.role === 'user' ? (
+                  ) : item.source === 'participant' && item.role === 'user' ? (
                     t('simplePanel.participant', 'Participant')
                   ) : (
                     item.role
