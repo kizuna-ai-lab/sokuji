@@ -247,8 +247,8 @@
     "mutualExclusivityParticipantTitle": "無法啟用參與者音訊",
     "mutualExclusivitySpeakerText": "啟用揚聲器之前，請先關閉參與者音訊。",
     "mutualExclusivityParticipantText": "啟用參與者音訊之前，請先關閉揚聲器。",
-    "availableSystemAudioSources": "可用來源",
-    "refreshSystemAudioSources": "重新整理來源"
+    "availableSystemAudioSources": "可捕獲的系統音訊裝置",
+    "refreshSystemAudioSources": "重新整理裝置列表"
   },
   "logsPanel": {
     "title": "日誌",

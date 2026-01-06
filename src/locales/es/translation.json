@@ -160,8 +160,8 @@
     "mutualExclusivityParticipantTitle": "No se puede habilitar el Audio de Participantes",
     "mutualExclusivitySpeakerText": "Por favor, desactive el Audio de Participantes antes de habilitar el Altavoz.",
     "mutualExclusivityParticipantText": "Por favor, desactive el Altavoz antes de habilitar el Audio de Participantes.",
-    "availableSystemAudioSources": "Fuentes Disponibles",
-    "refreshSystemAudioSources": "Actualizar fuentes"
+    "availableSystemAudioSources": "Dispositivos de audio del sistema capturables",
+    "refreshSystemAudioSources": "Actualizar lista de dispositivos"
   },
   "logsPanel": {
     "title": "Registros",

@@ -160,8 +160,8 @@
     "mutualExclusivityParticipantTitle": "参加者オーディオを有効にできません",
     "mutualExclusivitySpeakerText": "スピーカーを有効にするには、先に参加者オーディオをオフにしてください。",
     "mutualExclusivityParticipantText": "参加者オーディオを有効にするには、先にスピーカーをオフにしてください。",
-    "availableSystemAudioSources": "利用可能なソース",
-    "refreshSystemAudioSources": "ソースを更新"
+    "availableSystemAudioSources": "キャプチャ可能なシステムオーディオデバイス",
+    "refreshSystemAudioSources": "デバイスリストを更新"
   },
   "logsPanel": {
     "title": "ログ",

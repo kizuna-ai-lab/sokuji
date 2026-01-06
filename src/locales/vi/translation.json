@@ -112,8 +112,8 @@
     "mutualExclusivityParticipantTitle": "Không Thể Bật Âm Thanh Người Tham Gia",
     "mutualExclusivitySpeakerText": "Vui lòng tắt Âm Thanh Người Tham Gia trước khi bật Loa.",
     "mutualExclusivityParticipantText": "Vui lòng tắt Loa trước khi bật Âm Thanh Người Tham Gia.",
-    "availableSystemAudioSources": "Nguồn Có Sẵn",
-    "refreshSystemAudioSources": "Làm mới nguồn"
+    "availableSystemAudioSources": "Thiết bị âm thanh hệ thống có thể ghi",
+    "refreshSystemAudioSources": "Làm mới danh sách thiết bị"
   },
   "logsPanel": {
     "title": "Nhật ký",

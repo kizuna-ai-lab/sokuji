@@ -195,8 +195,8 @@
     "mutualExclusivityParticipantTitle": "பங்கேற்பாளர் ஆடியோவை இயக்க முடியாது",
     "mutualExclusivitySpeakerText": "ஸ்பீக்கரை இயக்குவதற்கு முன் தயவுசெய்து பங்கேற்பாளர் ஆடியோவை அணைக்கவும்.",
     "mutualExclusivityParticipantText": "பங்கேற்பாளர் ஆடியோவை இயக்குவதற்கு முன் தயவுசெய்து ஸ்பீக்கரை அணைக்கவும்.",
-    "availableSystemAudioSources": "கிடைக்கும் ஆதாரங்கள்",
-    "refreshSystemAudioSources": "ஆதாரங்களைப் புதுப்பி"
+    "availableSystemAudioSources": "பிடிக்கக்கூடிய கணினி ஆடியோ சாதனங்கள்",
+    "refreshSystemAudioSources": "சாதன பட்டியலைப் புதுப்பி"
   },
   "logsPanel": {
     "title": "பதிவுகள்",

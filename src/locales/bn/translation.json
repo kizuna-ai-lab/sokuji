@@ -236,8 +236,8 @@
     "mutualExclusivityParticipantTitle": "অংশগ্রহণকারী অডিও সক্রিয় করা যাবে না",
     "mutualExclusivitySpeakerText": "স্পীকার সক্রিয় করার আগে অনুগ্রহ করে অংশগ্রহণকারী অডিও বন্ধ করুন।",
     "mutualExclusivityParticipantText": "অংশগ্রহণকারী অডিও সক্রিয় করার আগে অনুগ্রহ করে স্পীকার বন্ধ করুন।",
-    "availableSystemAudioSources": "উপলব্ধ উৎস",
-    "refreshSystemAudioSources": "উৎসগুলি রিফ্রেশ করুন"
+    "availableSystemAudioSources": "ক্যাপচারযোগ্য সিস্টেম অডিও ডিভাইস",
+    "refreshSystemAudioSources": "ডিভাইস তালিকা রিফ্রেশ করুন"
   },
   "logsPanel": {
     "title": "লগ",

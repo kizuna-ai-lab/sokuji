@@ -136,8 +136,8 @@
     "mutualExclusivityParticipantTitle": "Nie można włączyć Dźwięku uczestnika",
     "mutualExclusivitySpeakerText": "Proszę wyłączyć Dźwięk uczestnika przed włączeniem Głośnika.",
     "mutualExclusivityParticipantText": "Proszę wyłączyć Głośnik przed włączeniem Dźwięku uczestnika.",
-    "availableSystemAudioSources": "Dostępne źródła",
-    "refreshSystemAudioSources": "Odśwież źródła"
+    "availableSystemAudioSources": "Przechwytywalne systemowe urządzenia audio",
+    "refreshSystemAudioSources": "Odśwież listę urządzeń"
   },
   "logsPanel": {
     "title": "Logi",

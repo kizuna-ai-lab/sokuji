@@ -257,8 +257,8 @@
     "mutualExclusivityParticipantTitle": "Não é possível activar Áudio de Participantes",
     "mutualExclusivitySpeakerText": "Por favor, desligue o Áudio de Participantes antes de activar o Altifalante.",
     "mutualExclusivityParticipantText": "Por favor, desligue o Altifalante antes de activar o Áudio de Participantes.",
-    "availableSystemAudioSources": "Fontes Disponíveis",
-    "refreshSystemAudioSources": "Atualizar fontes"
+    "availableSystemAudioSources": "Dispositivos de áudio do sistema capturáveis",
+    "refreshSystemAudioSources": "Atualizar lista de dispositivos"
   },
   "logsPanel": {
     "title": "Registos",

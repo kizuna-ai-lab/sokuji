@@ -230,8 +230,8 @@
     "mutualExclusivityParticipantTitle": "Hindi Makapag-enable ng Audio ng Kalahok",
     "mutualExclusivitySpeakerText": "Pakiusap na i-off muna ang Audio ng Kalahok bago i-enable ang Speaker.",
     "mutualExclusivityParticipantText": "Pakiusap na i-off muna ang Speaker bago i-enable ang Audio ng Kalahok.",
-    "availableSystemAudioSources": "Mga Available na Pinagmulan",
-    "refreshSystemAudioSources": "I-refresh ang mga pinagmulan"
+    "availableSystemAudioSources": "Mga Nakukuhang Device ng Audio ng Sistema",
+    "refreshSystemAudioSources": "I-refresh ang listahan ng device"
   },
   "logsPanel": {
     "title": "Mga Log",

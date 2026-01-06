@@ -155,8 +155,8 @@
     "mutualExclusivityParticipantTitle": "Невозможно включить Аудио участников",
     "mutualExclusivitySpeakerText": "Пожалуйста, выключите Аудио участников перед включением Динамика.",
     "mutualExclusivityParticipantText": "Пожалуйста, выключите Динамик перед включением Аудио участников.",
-    "availableSystemAudioSources": "Доступные источники",
-    "refreshSystemAudioSources": "Обновить источники"
+    "availableSystemAudioSources": "Захватываемые системные аудиоустройства",
+    "refreshSystemAudioSources": "Обновить список устройств"
   },
   "logsPanel": {
     "title": "Логи",

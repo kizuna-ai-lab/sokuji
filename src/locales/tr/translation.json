@@ -110,8 +110,8 @@
     "mutualExclusivityParticipantTitle": "Katılımcı Sesi Etkinleştirilemiyor",
     "mutualExclusivitySpeakerText": "Hoparlörü etkinleştirmeden önce lütfen Katılımcı Sesini kapatın.",
     "mutualExclusivityParticipantText": "Katılımcı Sesini etkinleştirmeden önce lütfen Hoparlörü kapatın.",
-    "availableSystemAudioSources": "Kullanılabilir Kaynaklar",
-    "refreshSystemAudioSources": "Kaynakları yenile"
+    "availableSystemAudioSources": "Yakalanabilir Sistem Ses Cihazları",
+    "refreshSystemAudioSources": "Cihaz listesini yenile"
   },
   "logsPanel": {
     "title": "Günlükler",

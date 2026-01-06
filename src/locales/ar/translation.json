@@ -242,8 +242,8 @@
     "mutualExclusivityParticipantTitle": "لا يمكن تمكين صوت المشاركين",
     "mutualExclusivitySpeakerText": "يرجى إيقاف صوت المشاركين قبل تفعيل السماعة.",
     "mutualExclusivityParticipantText": "يرجى إيقاف السماعة قبل تفعيل صوت المشاركين.",
-    "availableSystemAudioSources": "المصادر المتاحة",
-    "refreshSystemAudioSources": "تحديث المصادر"
+    "availableSystemAudioSources": "أجهزة صوت النظام القابلة للالتقاط",
+    "refreshSystemAudioSources": "تحديث قائمة الأجهزة"
   },
   "logsPanel": {
     "title": "السجلات",

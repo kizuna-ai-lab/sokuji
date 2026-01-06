@@ -138,8 +138,8 @@
     "mutualExclusivityParticipantTitle": "Kan Deelnemer Audio niet Inschakelen",
     "mutualExclusivitySpeakerText": "Schakel eerst Deelnemer Audio uit voordat u Luidspreker inschakelt.",
     "mutualExclusivityParticipantText": "Schakel eerst Luidspreker uit voordat u Deelnemer Audio inschakelt.",
-    "availableSystemAudioSources": "Beschikbare Bronnen",
-    "refreshSystemAudioSources": "Bronnen vernieuwen"
+    "availableSystemAudioSources": "Opneembare systeemaudioapparaten",
+    "refreshSystemAudioSources": "Apparatenlijst vernieuwen"
   },
   "logsPanel": {
     "title": "Logs",

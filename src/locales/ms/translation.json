@@ -257,8 +257,8 @@
     "mutualExclusivityParticipantTitle": "Tidak Dapat Dayakan Audio Peserta",
     "mutualExclusivitySpeakerText": "Sila matikan Audio Peserta sebelum mendayakan Pembesar Suara.",
     "mutualExclusivityParticipantText": "Sila matikan Pembesar Suara sebelum mendayakan Audio Peserta.",
-    "availableSystemAudioSources": "Sumber Tersedia",
-    "refreshSystemAudioSources": "Muat Semula Sumber"
+    "availableSystemAudioSources": "Peranti Audio Sistem Boleh Tangkap",
+    "refreshSystemAudioSources": "Muat semula senarai peranti"
   },
   "logsPanel": {
     "title": "Log",
