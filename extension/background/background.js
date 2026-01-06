@@ -245,7 +245,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
   // Handle START_TAB_CAPTURE message from side panel
   if (message.type === 'START_TAB_CAPTURE') {
-    handleStartTabCapture(message.tabId).then(sendResponse);
+    handleStartTabCapture(message.tabId || sender.tab?.id).then(sendResponse);
     return true; // Indicates async response
   }
 
