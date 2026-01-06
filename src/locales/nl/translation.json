@@ -48,8 +48,8 @@
     "userTranscriptModel": "Gebruiker transcript model",
     "noiseReduction": "Ruisonderdrukking",
     "modelConfiguration": "Model configuratie",
-    "sourceLanguage": "Brontaal",
-    "targetLanguage": "Doeltaal",
+    "sourceLanguage": "Mijn taal",
+    "targetLanguage": "Taal van de ander",
     "preview": "Voorbeeld",
     "simple": "Eenvoudig",
     "advanced": "Geavanceerd",
@@ -132,7 +132,14 @@
     "realVoicePassthrough": "Originele Audio Doorvoer",
     "enableRealVoicePassthrough": "Originele Audio Doorvoer Inschakelen",
     "realVoicePassthroughDescription": "Geef uw originele audio (stem van de spreker) rechtstreeks door aan de virtuele microfoon zodat luisteraars zowel de originele als de vertaalde audio kunnen horen",
-    "realVoiceVolume": "Originele Audio Volume"
+    "realVoiceVolume": "Originele Audio Volume",
+    "mutualExclusivityNotice": "Audioconflict",
+    "mutualExclusivitySpeakerTitle": "Kan Luidspreker niet Inschakelen",
+    "mutualExclusivityParticipantTitle": "Kan Deelnemer Audio niet Inschakelen",
+    "mutualExclusivitySpeakerText": "Schakel eerst Deelnemer Audio uit voordat u Luidspreker inschakelt.",
+    "mutualExclusivityParticipantText": "Schakel eerst Luidspreker uit voordat u Deelnemer Audio inschakelt.",
+    "availableSystemAudioSources": "Opneembare systeemaudioapparaten",
+    "refreshSystemAudioSources": "Apparatenlijst vernieuwen"
   },
   "logsPanel": {
     "title": "Logs",
@@ -146,15 +153,9 @@
     "event": "Gebeurtenis",
     "of": "van",
     "unknown": "onbekend",
-    "sessionEnded": "Sessie beëindigd"
-  },
-  "translation": {
-    "start": "Vertaling starten",
-    "stop": "Vertaling stoppen",
-    "listening": "Luisteren...",
-    "translating": "Vertalen...",
-    "sourceLanguage": "Brontaal",
-    "targetLanguage": "Doeltaal"
+    "sessionEnded": "Sessie beëindigd",
+    "speakerClient": "Spreker",
+    "participantClient": "Deelnemer"
   },
   "mainPanel": {
     "conversationPlaceholder": "Gesprek verschijnt hier",
@@ -328,16 +329,19 @@
     "interfaceLanguageDesc": "Dit verandert de taal van Sokuji's menu's en knoppen. Dit heeft GEEN invloed op de talen waartussen je kunt vertalen.",
     "translationLanguages": "Vertaaltalen",
     "translationLanguagesDesc": "Kies welke taal je spreekt (Jouw Taal) en in welke taal je de vertaling wilt horen (Doeltaal). Selecteer 'Automatische Detectie' als je niet zeker weet welke brontaal.",
-    "yourLanguage": "Jouw Taal",
+    "yourLanguage": "Mijn taal",
     "userAccount": "Gebruikersaccount",
     "userAccountTooltip": "Technische gebruikers kunnen hun eigen API-sleutels gebruiken. Gebruikersaccount is ontworpen voor vereenvoudigde setup.",
     "signInRequired": "U kunt uw eigen API-sleutel gebruiken of zich registreren voor de kizuna.ai-service.",
     "signInDescription": "Registreer voor een vereenvoudigde ervaring.",
-    "targetLanguage": "Doeltaal",
+    "targetLanguage": "Taal van de ander",
     "microphone": "Microfoon",
     "microphoneDesc": "Selecteer de microfoon om uw spraak op te vangen. Spreek uw taal in deze microfoon, en Sokuji zal alles wat het hoort in realtime vertalen.",
     "speaker": "Luidspreker",
-    "speakerDesc": "Selecteer een luidspreker om de vertaalde uitvoer te monitoren. Hiermee kunt u horen hoe de vertaling klinkt. U kunt het uitschakelen als monitoring niet nodig is. Of het nu aan of uit staat, de vertaalde audio wordt altijd naar de virtuele microfoon gestuurd zodat andere deelnemers het kunnen horen."
+    "speakerDesc": "Selecteer een luidspreker om de vertaalde uitvoer te monitoren. Hiermee kunt u horen hoe de vertaling klinkt. U kunt het uitschakelen als monitoring niet nodig is. Of het nu aan of uit staat, de vertaalde audio wordt altijd naar de virtuele microfoon gestuurd zodat andere deelnemers het kunnen horen.",
+    "systemAudio": "Deelnemer Audio",
+    "systemAudioDesc": "Leg audio vast en vertaal deze van andere deelnemers aan de vergadering. Selecteer welk audio-uitvoerapparaat moet worden vastgelegd om hun spraak te vertalen.",
+    "systemAudioDescExtension": "Leg audio vast en transcribeer van het huidige tabblad. Bekijk transcripties en vertalingen van de spraak van andere vergaderdeelnemers."
   },
   "providers": {
     "openai": {
@@ -400,7 +404,8 @@
     "clickToConfigMicrophone": "Klik om de microfoon te configureren",
     "clickToConfigSpeaker": "Klik om de luidspreker te configureren",
     "typeMessage": "Te vertalen tekst...",
-    "send": "Verzenden"
+    "send": "Verzenden",
+    "participant": "Deelnemer"
   },
   "connectionStatus": {
     "disconnected": "Verbinding verbroken",

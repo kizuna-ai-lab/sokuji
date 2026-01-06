@@ -34,6 +34,7 @@ import { getSafeAudioConfiguration, decodeAudioToWav } from '../../utils/audioUt
 import SimpleMainPanel from '../SimpleMainPanel/SimpleMainPanel';
 import { useAuth } from '../../lib/auth/hooks';
 import { useUserProfile } from '../../contexts/UserProfileContext';
+import { isExtension } from '../../utils/environment';
 
 interface MainPanelProps {}
 
@@ -90,7 +91,12 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     isMonitorDeviceOn,
     isRealVoicePassthroughEnabled,
     realVoicePassthroughVolume,
-    selectMonitorDevice // Import the selectMonitorDevice function from context
+    selectMonitorDevice, // Import the selectMonitorDevice function from context
+    // System audio capture
+    selectedSystemAudioSource,
+    systemAudioLoopbackSourceId,
+    isSystemAudioCaptureEnabled,
+    participantAudioOutputDevice
   } = useAudioContext();
 
   // canPushToTalk is true only when turnDetectionMode is 'Disabled'
@@ -220,7 +226,37 @@ const MainPanel: React.FC<MainPanelProps> = () => {
    */
 
   const clientRef = useRef<IClient | null>(null);
-  
+
+  // System audio client ref (for translating other participants)
+  const systemAudioClientRef = useRef<IClient | null>(null);
+  const [systemAudioItems, setSystemAudioItems] = useState<ConversationItem[]>([]);
+
+  // Combine speaker and participant items for display with source tagging
+  const combinedItems = useMemo(() => {
+    // Tag speaker items
+    const speakerItems = items.map(item => {
+      if (!item.source) {
+        return { ...item, source: 'speaker' } as ConversationItem & { source: string };
+      }
+      return item as ConversationItem & { source: string };
+    });
+
+    // Tag participant items (they should already be tagged, but ensure it)
+    const participantItems = systemAudioItems.map(item => {
+      if (!item.source) {
+        return { ...item, source: 'participant' } as ConversationItem & { source: string };
+      }
+      return item as ConversationItem & { source: string };
+    });
+
+    // Merge and sort by createdAt timestamp for accurate ordering
+    return [...speakerItems, ...participantItems].sort((a, b) => {
+      const aTime = a.createdAt || 0;
+      const bTime = b.createdAt || 0;
+      return aTime - bTime;
+    });
+  }, [items, systemAudioItems]);
+
   // Reference to audio service for accessing ModernAudioPlayer
   const audioServiceRef = useRef<IAudioService | null>(null);
   
@@ -265,7 +301,8 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         addRealtimeEvent(
           realtimeEvent.event,
           realtimeEvent.source,
-          realtimeEvent.event?.type || 'unknown'
+          realtimeEvent.event?.type || 'unknown',
+          'speaker'
         );
 
         // Note: Error ConversationItems are now created in OpenAIClient.ts
@@ -443,7 +480,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       clearInterval(audioQualityIntervalRef.current);
       audioQualityIntervalRef.current = null;
     }
-    
+
     // setItems([]);
 
     const audioService = audioServiceRef.current;
@@ -457,6 +494,26 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           console.warn('[Sokuji] [MainPanel] Error pausing recorder during disconnect:', error);
         }
       }
+
+      // Stop system audio recording (but keep loopback for next session)
+      if (audioService.isSystemAudioRecordingActive()) {
+        try {
+          await audioService.stopSystemAudioRecording();
+          console.info('[Sokuji] [MainPanel] Stopped system audio recording');
+        } catch (error) {
+          console.warn('[Sokuji] [MainPanel] Error stopping system audio recording:', error);
+        }
+      }
+
+      // Stop tab audio recording (extension environment)
+      if (audioService.isTabAudioRecordingActive?.()) {
+        try {
+          await audioService.stopTabAudioRecording();
+          console.info('[Sokuji] [MainPanel] Stopped tab audio recording');
+        } catch (error) {
+          console.warn('[Sokuji] [MainPanel] Error stopping tab audio recording:', error);
+        }
+      }
     }
 
     // Small delay to ensure any in-flight audio processing completes
@@ -466,6 +523,19 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     if (client) {
       await client.disconnect();
       client.reset();
+    }
+
+    // Disconnect system audio client
+    const systemClient = systemAudioClientRef.current;
+    if (systemClient) {
+      try {
+        await systemClient.disconnect();
+        systemClient.reset();
+        systemAudioClientRef.current = null;
+        console.info('[Sokuji] [MainPanel] Disconnected system audio client');
+      } catch (error) {
+        console.warn('[Sokuji] [MainPanel] Error disconnecting system audio client:', error);
+      }
     }
 
     // Now fully end the recorder after client is reset
@@ -483,8 +553,10 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       await audioService.interruptAudio();
       // Clear the unified AI assistant streaming track
       audioService.clearStreamingTrack('ai-assistant');
+      // Clear system audio assistant streaming track
+      audioService.clearStreamingTrack('system-audio-assistant');
     }
-    
+
     // Refresh user profile and quota after session ends
     // This ensures the token balance is updated after usage
     if (refetchAll) {
@@ -609,6 +681,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       // If output device is ON, ensure monitor device is connected immediately
       if (isMonitorDeviceOn && selectedMonitorDevice &&
         !selectedMonitorDevice.label.toLowerCase().includes('sokuji_virtual') &&
+        !selectedMonitorDevice.label.toLowerCase().includes('sokuji_system_audio') &&
         !selectedMonitorDevice.label.includes('Sokuji Virtual Output') &&
         !selectedMonitorDevice.label.toLowerCase().includes('sokujivirtualaudio')) {
         console.debug('[Sokuji] [MainPanel] Setting up monitor device to:', selectedMonitorDevice.label);
@@ -676,10 +749,183 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         });
       }
 
+      // Start system audio client if a source is selected and loopback is active
+      if (isSystemAudioCaptureEnabled && selectedSystemAudioSource && systemAudioLoopbackSourceId && audioServiceRef.current) {
+        try {
+          console.info('[Sokuji] [MainPanel] Starting system audio client...');
+
+          // Create second AI client with same configuration for system audio
+          if (provider === Provider.PALABRA_AI) {
+            systemAudioClientRef.current = ClientFactory.createClient(
+              modelName,
+              provider,
+              apiKey, // clientId
+              palabraAISettings.clientSecret // clientSecret
+            );
+          } else {
+            systemAudioClientRef.current = ClientFactory.createClient(
+              modelName,
+              provider,
+              apiKey,
+              undefined, // clientSecret
+              customEndpoint // customEndpoint
+            );
+          }
+
+          // Setup event handlers for system audio client
+          const systemClient = systemAudioClientRef.current;
+          systemClient.setEventHandlers({
+            onRealtimeEvent: (realtimeEvent: RealtimeEvent) => {
+              // Log events for participant client
+              addRealtimeEvent(
+                realtimeEvent.event,
+                realtimeEvent.source,
+                realtimeEvent.event?.type || 'unknown',
+                'participant'
+              );
+            },
+            onConversationUpdated: async ({ item, delta }) => {
+              // Tag item with source for display
+              item.source = 'participant';
+
+              // Skip audio delta - participant client is text-only
+              if (delta?.audio) {
+                return;
+              }
+
+              // Update system audio items state
+              setSystemAudioItems(systemClient.getConversationItems());
+            },
+            onClose: async () => {
+              console.info('[Sokuji] [MainPanel] System audio client closed');
+            }
+          });
+
+          // Create participant session config with:
+          // 1. Swapped source/target languages in system instructions
+          // 2. Text-only mode (no audio output)
+          // 3. Semantic VAD for turn detection (better for system audio)
+          const swappedSystemInstructions = getProcessedSystemInstructions(true);
+          const participantSessionConfig = {
+            ...createSessionConfig(swappedSystemInstructions),
+            textOnly: true,
+            // Override turn detection to use semantic VAD for participant audio
+            turnDetection: {
+              type: 'semantic_vad' as const,
+              createResponse: true,
+              interruptResponse: false,
+              eagerness: 'high',
+            }
+          };
+          await systemClient.connect(participantSessionConfig);
+          console.info('[Sokuji] [MainPanel] System audio client connected (text-only, swapped languages, semantic VAD)');
+
+          // Start recording from the system audio virtual mic
+          let systemAudioCallbackCount = 0;
+          await audioServiceRef.current.startSystemAudioRecording((data) => {
+            if (systemClient) {
+              if (systemAudioCallbackCount % 100 === 0) {
+                console.debug(`[Sokuji] [MainPanel] Sending system audio to client: chunk ${systemAudioCallbackCount}, PCM length: ${data.mono.length}`);
+              }
+              systemAudioCallbackCount++;
+              systemClient.appendInputAudio(data.mono);
+            }
+          });
+          console.info('[Sokuji] [MainPanel] System audio recording started');
+        } catch (error) {
+          console.error('[Sokuji] [MainPanel] Failed to start system audio client:', error);
+          // Don't fail the whole session, just log the error
+        }
+      }
+
+      // Start tab audio client for Extension environment
+      // (uses Chrome tabCapture API to capture audio from current tab)
+      if (isExtension() && isSystemAudioCaptureEnabled && audioServiceRef.current) {
+        try {
+          console.info('[Sokuji] [MainPanel] Starting tab audio client (extension)...');
+
+          // Create second AI client with same configuration for tab audio
+          if (provider === Provider.PALABRA_AI) {
+            systemAudioClientRef.current = ClientFactory.createClient(
+              modelName,
+              provider,
+              apiKey, // clientId
+              palabraAISettings.clientSecret // clientSecret
+            );
+          } else {
+            systemAudioClientRef.current = ClientFactory.createClient(
+              modelName,
+              provider,
+              apiKey,
+              undefined, // clientSecret
+              customEndpoint // customEndpoint
+            );
+          }
+
+          // Setup event handlers for tab audio client (same as system audio)
+          const tabClient = systemAudioClientRef.current;
+          tabClient.setEventHandlers({
+            onRealtimeEvent: (realtimeEvent: RealtimeEvent) => {
+              addRealtimeEvent(
+                realtimeEvent.event,
+                realtimeEvent.source,
+                realtimeEvent.event?.type || 'unknown',
+                'participant'
+              );
+            },
+            onConversationUpdated: async ({ item, delta }) => {
+              item.source = 'participant';
+              // Skip audio delta - participant client is text-only
+              if (delta?.audio) {
+                return;
+              }
+              setSystemAudioItems(tabClient.getConversationItems());
+            },
+            onClose: async () => {
+              console.info('[Sokuji] [MainPanel] Tab audio client closed');
+            }
+          });
+
+          // Create participant session config (same as system audio)
+          const swappedSystemInstructions = getProcessedSystemInstructions(true);
+          const participantSessionConfig = {
+            ...createSessionConfig(swappedSystemInstructions),
+            textOnly: true,
+            turnDetection: {
+              type: 'semantic_vad' as const,
+              createResponse: true,
+              interruptResponse: false,
+              eagerness: 'high',
+            }
+          };
+          await tabClient.connect(participantSessionConfig);
+          console.info('[Sokuji] [MainPanel] Tab audio client connected (text-only, swapped languages, semantic VAD)');
+
+          // Start recording from the tab with optional output device
+          let tabAudioCallbackCount = 0;
+          const outputDeviceId = participantAudioOutputDevice?.deviceId;
+          console.info('[Sokuji] [MainPanel] Starting tab audio recording with output device:', outputDeviceId || 'default');
+          await audioServiceRef.current.startTabAudioRecording((data) => {
+            if (tabClient) {
+              if (tabAudioCallbackCount % 100 === 0) {
+                console.debug(`[Sokuji] [MainPanel] Sending tab audio to client: chunk ${tabAudioCallbackCount}, PCM length: ${data.mono.length}`);
+              }
+              tabAudioCallbackCount++;
+              tabClient.appendInputAudio(data.mono);
+            }
+          }, outputDeviceId);
+          console.info('[Sokuji] [MainPanel] Tab audio recording started');
+        } catch (error) {
+          console.error('[Sokuji] [MainPanel] Failed to start tab audio client:', error);
+          // Don't fail the whole session, just log the error
+        }
+      }
+
       // Set state variables after successful initialization
       setIsSessionActive(true);
       setItems(client.getConversationItems());
-      
+      setSystemAudioItems([]); // Clear participant conversation from previous session
+
       // Start tracking audio quality metrics during session
       audioQualityIntervalRef.current = setInterval(() => {
         if (audioServiceRef.current) {
@@ -732,7 +978,11 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     selectedMonitorDevice,
     selectMonitorDevice,
     isRealVoicePassthroughEnabled,
-    realVoicePassthroughVolume
+    realVoicePassthroughVolume,
+    // System audio capture
+    isSystemAudioCaptureEnabled,
+    selectedSystemAudioSource,
+    systemAudioLoopbackSourceId
   ]);
 
   /**
@@ -950,6 +1200,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       // If output device is ON, ensure monitor device is connected
       if (isMonitorDeviceOn && selectedMonitorDevice &&
         !selectedMonitorDevice.label.toLowerCase().includes('sokuji_virtual') &&
+        !selectedMonitorDevice.label.toLowerCase().includes('sokuji_system_audio') &&
         !selectedMonitorDevice.label.includes('Sokuji Virtual Output') &&
         !selectedMonitorDevice.label.toLowerCase().includes('sokujivirtualaudio')) {
         selectMonitorDevice(selectedMonitorDevice);
@@ -1135,6 +1386,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       // If output device is ON, ensure monitor device is connected immediately
       if (isMonitorDeviceOn && selectedMonitorDevice &&
         !selectedMonitorDevice.label.toLowerCase().includes('sokuji_virtual') &&
+        !selectedMonitorDevice.label.toLowerCase().includes('sokuji_system_audio') &&
         !selectedMonitorDevice.label.includes('Sokuji Virtual Output') &&
         !selectedMonitorDevice.label.toLowerCase().includes('sokujivirtualaudio')) {
         console.info('[Sokuji] [MainPanel] Test tone: Ensuring monitor device is connected:', selectedMonitorDevice.label);
@@ -1379,6 +1631,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
   /**
    * Auto-scroll to the bottom of the conversation when new content is added
+   * Watches both speaker items and participant items for changes
    */
   useEffect(() => {
     if (conversationContainerRef.current) {
@@ -1393,7 +1646,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         }, 100);
       });
     }
-  }, [items]);
+  }, [items, systemAudioItems]);
 
   /**
    * Watch for changes to isInputDeviceOn and update recording state accordingly
@@ -1476,6 +1729,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       try {
         // Check if the selectedMonitorDevice is a virtual device (which shouldn't be used as monitor)
         const isVirtualDevice = selectedMonitorDevice?.label.toLowerCase().includes('sokuji_virtual') ||
+          selectedMonitorDevice?.label.toLowerCase().includes('sokuji_system_audio') ||
           selectedMonitorDevice?.label.includes('Sokuji Virtual Output') ||
           selectedMonitorDevice?.label.toLowerCase().includes('sokujivirtualaudio');
 
@@ -1662,7 +1916,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     return (
       <div className="main-panel-wrapper">
         <SimpleMainPanel
-          items={items}
+          items={combinedItems}
           isSessionActive={isSessionActive}
           isInitializing={isInitializing}
           onStartSession={connectConversation}
@@ -1686,15 +1940,17 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       <div className="main-panel">
       <div className="conversation-container" ref={conversationContainerRef}>
         <div className="conversation-content" data-conversation-content>
-          {items.length > 0 ? (
-            items.map((item) => (
-              <div key={item.id} className={`conversation-item ${item.role} ${item.type === 'error' ? 'error' : ''} ${playingItemId === item.id ? 'playing' : ''}`} style={{ position: 'relative' }}>
+          {combinedItems.length > 0 ? (
+            combinedItems.map((item) => (
+              <div key={item.id} className={`conversation-item ${item.role} ${item.source === 'participant' ? 'participant-source' : 'speaker-source'} ${item.type === 'error' ? 'error' : ''} ${playingItemId === item.id ? 'playing' : ''}`} style={{ position: 'relative' }}>
                 <div className="conversation-item-role">
                   {item.type === 'error' ? (
                     <>
                       <AlertCircle size={12} />
                       {t('mainPanel.error', 'Error')}
                     </>
+                  ) : item.source === 'participant' && item.role === 'user' ? (
+                    t('simplePanel.participant', 'Participant')
                   ) : (
                     item.role
                   )}

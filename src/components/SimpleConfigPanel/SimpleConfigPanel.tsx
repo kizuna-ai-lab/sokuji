@@ -1,7 +1,8 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Volume2, Key, Globe, CheckCircle, AlertCircle, HelpCircle, CircleHelp, Bot, Sparkles, Zap, AudioLines, Mic, Languages, User, ChevronDown, ChevronUp } from 'lucide-react';
+import { ArrowRight, Volume2, Key, Globe, CheckCircle, AlertCircle, HelpCircle, CircleHelp, Bot, Sparkles, Zap, AudioLines, Mic, Languages, User, ChevronDown, ChevronUp, AlertTriangle } from 'lucide-react';
 import './SimpleConfigPanel.scss';
+import Modal from '../Modal/Modal';
 import {
   useProvider,
   useUILanguage,
@@ -28,7 +29,8 @@ import {
   useIsKizunaKeyFetching,
   useKizunaKeyError
 } from '../../stores/settingsStore';
-import { useAudioContext } from '../../stores/audioStore';
+import { useAudioContext, useSetSystemAudioLoopbackSourceId } from '../../stores/audioStore';
+import { ServiceFactory } from '../../services/ServiceFactory';
 import { useIsSessionActive } from '../../stores/sessionStore';
 import { useTranslation } from 'react-i18next';
 import { Provider, ProviderType } from '../../types/Provider';
@@ -39,7 +41,7 @@ import Tooltip from '../Tooltip/Tooltip';
 import { useAuth } from '../../lib/auth/hooks';
 import { UserAccountInfo } from '../Auth/UserAccountInfo';
 import { SignedIn, SignedOut } from '../Auth/AuthGuard';
-import { isKizunaAIEnabled } from '../../utils/environment';
+import { isKizunaAIEnabled, isExtension, isElectron } from '../../utils/environment';
 import { changeLanguageWithLoad } from '../../locales';
 
 interface SimpleConfigPanelProps {
@@ -93,10 +95,73 @@ const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings, h
     isInputDeviceOn,
     isMonitorDeviceOn,
     toggleInputDeviceState,
-    toggleMonitorDeviceState
+    toggleMonitorDeviceState,
+    // System audio capture
+    systemAudioSources,
+    selectedSystemAudioSource,
+    isSystemAudioCaptureEnabled,
+    participantAudioOutputDevice,
+    selectSystemAudioSource,
+    toggleSystemAudioCapture,
+    setSystemAudioCaptureActive,
+    selectParticipantAudioOutputDevice,
+    refreshSystemAudioSources
   } = useAudioContext();
 
+  const setSystemAudioLoopbackSourceId = useSetSystemAudioLoopbackSourceId();
   const [isProviderExpanded, setIsProviderExpanded] = useState(false);
+  const [isSystemAudioLoading, setIsSystemAudioLoading] = useState(false);
+  const [showMutualExclusivityWarning, setShowMutualExclusivityWarning] = useState(false);
+  const [mutualExclusivityWarningType, setMutualExclusivityWarningType] = useState<'speaker' | 'participant'>('speaker');
+
+  // Refresh system audio sources on mount
+  useEffect(() => {
+    if (refreshSystemAudioSources) {
+      refreshSystemAudioSources();
+    }
+  }, [refreshSystemAudioSources]);
+
+  // Handle system audio source selection - creates/removes loopback
+  const handleSystemAudioSourceSelect = useCallback(async (source: { deviceId: string; label: string } | null) => {
+    if (isSystemAudioLoading) return;
+
+    try {
+      setIsSystemAudioLoading(true);
+      const audioService = ServiceFactory.getAudioService();
+
+      if (source) {
+        // User selected a device - connect via pw-link
+        console.info(`[Sokuji] [SimpleConfigPanel] Connecting system audio source: ${source.label}`);
+        await audioService.connectSystemAudioSource(source.deviceId);
+
+        // Update state - always use 'sokuji_system_audio_mic' (stable deviceId)
+        setSystemAudioLoopbackSourceId('sokuji_system_audio_mic');
+        selectSystemAudioSource(source);
+        if (!isSystemAudioCaptureEnabled) {
+          toggleSystemAudioCapture();
+        }
+        setSystemAudioCaptureActive(true);
+        console.info(`[Sokuji] [SimpleConfigPanel] System audio source connected: ${source.label}`);
+      } else {
+        // User selected "Off" - disconnect
+        console.info('[Sokuji] [SimpleConfigPanel] Disconnecting system audio source');
+        await audioService.disconnectSystemAudioSource();
+
+        // Update state
+        setSystemAudioLoopbackSourceId(null);
+        selectSystemAudioSource(null);
+        if (isSystemAudioCaptureEnabled) {
+          toggleSystemAudioCapture();
+        }
+        setSystemAudioCaptureActive(false);
+        console.info('[Sokuji] [SimpleConfigPanel] System audio source disconnected');
+      }
+    } catch (error) {
+      console.error('[Sokuji] [SimpleConfigPanel] Error handling system audio source:', error);
+    } finally {
+      setIsSystemAudioLoading(false);
+    }
+  }, [isSystemAudioLoading, isSystemAudioCaptureEnabled, selectSystemAudioSource, toggleSystemAudioCapture, setSystemAudioCaptureActive, setSystemAudioLoopbackSourceId]);
 
   // Get all available providers for the dropdown
   const availableProviders = useMemo(() => {
@@ -108,6 +173,7 @@ const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings, h
     const label = device.label.toLowerCase();
     return label.includes('sokuji_virtual_mic') ||
            label.includes('sokuji_virtual_speaker') ||
+           label.includes('sokuji_system_audio') ||
            label.includes('sokujivirtualaudio'); // Mac virtual device
   };
 
@@ -363,6 +429,38 @@ const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings, h
 
   return (
     <div className="simple-config-panel">
+      <Modal
+        isOpen={showMutualExclusivityWarning}
+        onClose={() => setShowMutualExclusivityWarning(false)}
+        title={t('audioPanel.mutualExclusivityNotice', 'Audio Conflict')}
+      >
+        <div className="mutual-exclusivity-warning">
+          <div className="warning-icon">
+            <AlertTriangle size={24} color="#f0ad4e" />
+          </div>
+          <p>
+            <strong>
+              {mutualExclusivityWarningType === 'speaker'
+                ? t('audioPanel.mutualExclusivitySpeakerTitle', 'Cannot enable Speaker')
+                : t('audioPanel.mutualExclusivityParticipantTitle', 'Cannot enable Participant Audio')
+              }
+            </strong>
+          </p>
+          <p>
+            {mutualExclusivityWarningType === 'speaker'
+              ? t('audioPanel.mutualExclusivitySpeakerText', 'Please turn off Participant Audio before enabling Speaker.')
+              : t('audioPanel.mutualExclusivityParticipantText', 'Please turn off Speaker before enabling Participant Audio.')
+            }
+          </p>
+          <button
+            className="understand-button"
+            onClick={() => setShowMutualExclusivityWarning(false)}
+          >
+            {t('audioPanel.iUnderstand')}
+          </button>
+        </div>
+      </Modal>
+
       <div className="config-header">
         <h2>{t('settings.title')}</h2>
         <button className="close-button" onClick={toggleSettings}>
@@ -731,8 +829,14 @@ const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings, h
             {filteredMonitorDevices.map((device) => (
               <div
                 key={device.deviceId}
-                className={`device-option ${isMonitorDeviceOn && selectedMonitorDevice?.deviceId === device.deviceId ? 'selected' : ''}`}
+                className={`device-option ${isMonitorDeviceOn && selectedMonitorDevice?.deviceId === device.deviceId ? 'selected' : ''} ${isSystemAudioCaptureEnabled ? 'disabled' : ''}`}
                 onClick={() => {
+                  // Mutual exclusivity: if System Audio is ON, show warning
+                  if (isSystemAudioCaptureEnabled) {
+                    setShowMutualExclusivityWarning(true);
+                    setMutualExclusivityWarningType('speaker');
+                    return;
+                  }
                   if (!isMonitorDeviceOn) {
                     toggleMonitorDeviceState();
                   }
@@ -745,6 +849,115 @@ const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings, h
             ))}
           </div>
         </div>
+
+        {/* System Audio / Tab Audio Capture Section */}
+        {/* For Electron: show if there are sources available */}
+        {/* For Extension: always show with simplified toggle */}
+        {(isElectron() ? (systemAudioSources && systemAudioSources.length > 0) : isExtension()) && (
+          <div className="config-section" id="system-audio-section">
+            <h3>
+              <AudioLines size={18} />
+              <span>{t('simpleConfig.systemAudio', 'Participant Audio')}</span>
+              <Tooltip
+                content={isExtension()
+                  ? t('simpleConfig.systemAudioDescExtension', 'Capture and translate audio from the current tab. This allows you to hear translations of other meeting participants.')
+                  : t('simpleConfig.systemAudioDesc', 'Capture and translate audio from other meeting participants. Select which audio output to capture.')
+                }
+                position="top"
+                icon="help"
+                maxWidth={300}
+              />
+              {provider === Provider.GEMINI && isSystemAudioCaptureEnabled && (
+                <Tooltip
+                  content={t('settings.geminiParticipantTokenWarning', 'Gemini participant mode generates audio responses that are discarded, resulting in additional token usage.')}
+                  position="top"
+                  maxWidth={280}
+                >
+                  <AlertTriangle size={16} style={{ color: '#f59e0b', marginLeft: '4px' }} />
+                </Tooltip>
+              )}
+            </h3>
+
+            <div className="device-list">
+              {isExtension() ? (
+                // Extension: Toggle with output device selection
+                <>
+                  <div
+                    className={`device-option ${!isSystemAudioCaptureEnabled ? 'selected' : ''} ${isSessionActive ? 'disabled' : ''}`}
+                    onClick={() => {
+                      if (isSessionActive) return;
+                      if (isSystemAudioCaptureEnabled) {
+                        toggleSystemAudioCapture();
+                      }
+                    }}
+                  >
+                    <span>{t('common.off')}</span>
+                    {!isSystemAudioCaptureEnabled && <div className="selected-indicator" />}
+                  </div>
+                  {/* Output device options - select device = enable + use */}
+                  {audioMonitorDevices.filter(device => !device.label.toLowerCase().includes('sokuji')).map((device) => (
+                    <div
+                      key={device.deviceId}
+                      className={`device-option ${isSystemAudioCaptureEnabled && participantAudioOutputDevice?.deviceId === device.deviceId ? 'selected' : ''} ${isSessionActive || isMonitorDeviceOn ? 'disabled' : ''}`}
+                      onClick={() => {
+                        if (isSessionActive) return;
+                        // Mutual exclusivity: if Monitor Device is ON, show warning
+                        if (isMonitorDeviceOn) {
+                          setShowMutualExclusivityWarning(true);
+                          setMutualExclusivityWarningType('participant');
+                          return;
+                        }
+                        // Enable capture if not already enabled
+                        if (!isSystemAudioCaptureEnabled) {
+                          toggleSystemAudioCapture();
+                        }
+                        // Select this device as output
+                        selectParticipantAudioOutputDevice(device);
+                      }}
+                    >
+                      <span>{device.label || t('audioPanel.unknownDevice')}</span>
+                      {isSystemAudioCaptureEnabled && participantAudioOutputDevice?.deviceId === device.deviceId && <div className="selected-indicator" />}
+                    </div>
+                  ))}
+                </>
+              ) : (
+                // Electron: Show source selection dropdown
+                <>
+                  <div
+                    className={`device-option ${!isSystemAudioCaptureEnabled ? 'selected' : ''} ${isSystemAudioLoading || isSessionActive ? 'loading' : ''}`}
+                    onClick={() => {
+                      if (isSessionActive) return;
+                      handleSystemAudioSourceSelect(null);
+                    }}
+                  >
+                    <span>{t('common.off')}</span>
+                    {!isSystemAudioCaptureEnabled && <div className="selected-indicator" />}
+                  </div>
+                  {systemAudioSources.map((source) => (
+                    <div
+                      key={source.deviceId}
+                      className={`device-option ${isSystemAudioCaptureEnabled && selectedSystemAudioSource?.deviceId === source.deviceId ? 'selected' : ''} ${isSystemAudioLoading ? 'loading' : ''} ${isMonitorDeviceOn || isSessionActive ? 'disabled' : ''}`}
+                      onClick={() => {
+                        // Cannot change during active session
+                        if (isSessionActive) return;
+                        // Mutual exclusivity: if Monitor Device is ON, show warning
+                        if (isMonitorDeviceOn) {
+                          setShowMutualExclusivityWarning(true);
+                          setMutualExclusivityWarningType('participant');
+                          return;
+                        }
+                        handleSystemAudioSourceSelect(source);
+                      }}
+                    >
+                      <span>{source.label || t('audioPanel.unknownDevice')}</span>
+                      {isSystemAudioCaptureEnabled && selectedSystemAudioSource?.deviceId === source.deviceId && <div className="selected-indicator" />}
+                    </div>
+                  ))}
+                </>
+              )}
+            </div>
+          </div>
+        )}
 
       </div>
     </div>

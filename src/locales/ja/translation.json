@@ -48,8 +48,8 @@
     "userTranscriptModel": "ユーザー転写モデル",
     "noiseReduction": "ノイズ低減",
     "modelConfiguration": "モデル設定",
-    "sourceLanguage": "元の言語",
-    "targetLanguage": "翻訳先言語",
+    "sourceLanguage": "自分の言語",
+    "targetLanguage": "相手の言語",
     "preview": "プレビュー",
     "simple": "シンプル",
     "advanced": "詳細",
@@ -82,6 +82,7 @@
     "loadingModels": "利用可能なモデルを読み込み中...",
     "modelsFound": "{{count}}個のモデルが利用可能",
     "experimentalFeatureTooltip": "これは実験的な機能であり、不安定な場合があります。",
+    "geminiParticipantTokenWarning": "Gemini参加者モードは音声応答を生成しますが、テキスト変換のみを使用するため、追加のトークン消費が発生します。",
     "help": "ヘルプ",
     "auto": "自動",
     "low": "低",
@@ -154,7 +155,14 @@
     "realVoicePassthrough": "原音パススルー",
     "enableRealVoicePassthrough": "原音パススルーを有効にする",
     "realVoicePassthroughDescription": "あなたの原音（話者の声）を仮想マイクに直接送信し、聞き手が原音と通訳音声の両方を聞けるようにします",
-    "realVoiceVolume": "原音ボリューム"
+    "realVoiceVolume": "原音ボリューム",
+    "mutualExclusivityNotice": "音声の競合",
+    "mutualExclusivitySpeakerTitle": "話者モードを有効にできません",
+    "mutualExclusivityParticipantTitle": "参加者の音声を有効にできません",
+    "mutualExclusivitySpeakerText": "話者モードを有効にするには、先に参加者の音声をオフにしてください。",
+    "mutualExclusivityParticipantText": "参加者の音声を有効にするには、先に話者モードをオフにしてください。",
+    "availableSystemAudioSources": "キャプチャ可能なシステムオーディオデバイス",
+    "refreshSystemAudioSources": "デバイスリストを更新"
   },
   "logsPanel": {
     "title": "ログ",
@@ -168,15 +176,9 @@
     "event": "イベント",
     "of": "の",
     "unknown": "不明",
-    "sessionEnded": "セッション終了"
-  },
-  "translation": {
-    "start": "翻訳開始",
-    "stop": "翻訳停止",
-    "listening": "聞き取り中...",
-    "translating": "翻訳中...",
-    "sourceLanguage": "元の言語",
-    "targetLanguage": "翻訳先言語"
+    "sessionEnded": "セッション終了",
+    "speakerClient": "話者",
+    "participantClient": "参加者"
   },
   "mainPanel": {
     "conversationPlaceholder": "会話がここに表示されます",
@@ -352,16 +354,20 @@
     "interfaceLanguageDesc": "これはSokujiのメニューとボタンの言語を変更します。翻訳可能な言語には影響しません。",
     "translationLanguages": "翻訳言語",
     "translationLanguagesDesc": "話す言語（あなたの言語）と翻訳を聞きたい言語（ターゲット言語）を選択します。ソース言語が不明な場合は「自動検出」を選択してください。",
-    "yourLanguage": "あなたの言語",
+    "yourLanguage": "自分の言語",
     "userAccount": "ユーザーアカウント",
     "userAccountTooltip": "技術的な知識と独自のAPIキーをお持ちのユーザーは、ログインの有無に関わらず独自のAPIキーを使用できます。ユーザーアカウントは、複雑な設定なしで簡単にセットアップしたい新規ユーザー向けに設計されています。",
     "signInRequired": "ログインせずに独自のAIプロバイダーとAPIキーを使用するか、kizuna.aiのAPIサービスを購入して使用するために登録できます。",
     "signInDescription": "複雑な設定なしで便利な体験をするために登録してください。",
-    "targetLanguage": "ターゲット言語",
+    "targetLanguage": "相手の言語",
     "microphone": "マイクロフォン",
     "microphoneDesc": "音声を取り込むマイクを選択してください。このマイクに向かってあなたの言語で話すと、Sokujiがリアルタイムで聞こえるすべてを翻訳します。",
     "speaker": "スピーカー",
-    "speakerDesc": "翻訳された出力を監視するためのスピーカーを選択してください。これにより翻訳がどのように聞こえるかを確認できます。監視が不要な場合はオフにできます。オンでもオフでも、翻訳された音声は常に仮想マイクに送信され、他の参加者が聞くことができます。"
+    "speakerDesc": "翻訳された出力を監視するためのスピーカーを選択してください。これにより翻訳がどのように聞こえるかを確認できます。監視が不要な場合はオフにできます。オンでもオフでも、翻訳された音声は常に仮想マイクに送信され、他の参加者が聞くことができます。",
+    "systemAudio": "参加者の音声",
+    "systemAudioDesc": "他の会議参加者の音声をキャプチャして翻訳します。彼らの発言を翻訳するためにキャプチャするオーディオ出力デバイスを選択してください。",
+    "systemAudioDescExtension": "現在のタブの音声をキャプチャして文字起こしします。他の会議参加者の発言の文字起こしと翻訳を表示します。",
+    "currentTab": "現在のタブ"
   },
   "providers": {
     "openai": {
@@ -424,7 +430,8 @@
     "clickToConfigMicrophone": "マイクを設定するにはクリック",
     "clickToConfigSpeaker": "スピーカーを設定するにはクリック",
     "typeMessage": "翻訳するテキスト...",
-    "send": "送信"
+    "send": "送信",
+    "participant": "参加者"
   },
   "connectionStatus": {
     "disconnected": "切断済み",
@@ -467,11 +474,11 @@
     "email": "Email",
     "password": "Password",
     "name": "Name",
-    "confirmPassword": "Confirm Password",
+    "confirmPassword": "パスワードを確認",
     "emailPlaceholder": "your@email.com",
     "passwordPlaceholder": "Enter your password",
     "namePlaceholder": "Your name",
-    "confirmPasswordPlaceholder": "Confirm your password",
+    "confirmPasswordPlaceholder": "パスワードを再入力",
     "passwordHint": "At least 8 characters",
     "noAccount": "Don't have an account?",
     "haveAccount": "Already have an account?",
@@ -485,7 +492,7 @@
     "passwordMismatch": "Passwords do not match",
     "passwordTooShort": "Password must be at least 8 characters",
     "tooManyAttempts": "Too many attempts. Please try again later",
-    "rateLimitExceeded": "Too many requests. Please wait a moment and try again",
+    "rateLimitExceeded": "リクエストが多すぎます。しばらくお待ちください。",
     "signInError": "Sign in failed. Please try again",
     "signUpError": "Sign up failed. Please try again",
     "networkError": "Network error. Please check your connection",
@@ -496,7 +503,6 @@
     "verificationEmailSent": "認証メールを送信しました！受信トレイを確認してください",
     "verificationEmailFailed": "認証メールの送信に失敗しました。もう一度お試しください",
     "alreadyVerified": "メールは既に認証されています！",
-    "rateLimitExceeded": "リクエストが多すぎます。しばらくお待ちください。",
     "cooldownMessage": "{{seconds}}秒お待ちください",
     "checkYourEmail": "認証メールを送信しました。受信トレイを確認してください。",
     "forgotPassword": "パスワードをお忘れですか？",
@@ -508,8 +514,6 @@
     "verificationCode": "認証コード",
     "newPassword": "新しいパスワード",
     "newPasswordPlaceholder": "新しいパスワードを入力",
-    "confirmPassword": "パスワードを確認",
-    "confirmPasswordPlaceholder": "パスワードを再入力",
     "passwordsDoNotMatch": "パスワードが一致しません",
     "invalidOTP": "認証コードが無効です。確認してもう一度お試しください。",
     "otpExpired": "認証コードの有効期限が切れました。新しいコードをリクエストしてください。",

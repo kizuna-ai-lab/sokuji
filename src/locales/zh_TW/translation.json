@@ -46,16 +46,19 @@
     "interfaceLanguageDesc": "這會變更 Sokuji 選單和按鈕的語言。不會影響您可以在哪些語言之間翻譯。",
     "translationLanguages": "翻譯語言",
     "translationLanguagesDesc": "選擇您說的語言（您的語言）和您想要聽到翻譯的語言（目標語言）。如果您不確定來源語言，請選擇「自動偵測」。",
-    "yourLanguage": "您的語言",
+    "yourLanguage": "我的語言",
     "userAccount": "使用者帳戶",
     "userAccountTooltip": "對於具有技術知識和自己的API金鑰的使用者，無論是否登入都可以使用自己的API金鑰。使用者帳戶是為偏好簡化設定且無需複雜配置的新使用者而設計。",
     "signInRequired": "您可以在不登入的情況下使用自己的AI提供商和API金鑰，或註冊購買並使用kizuna.ai的API服務。",
     "signInDescription": "註冊以獲得便利體驗，無需複雜配置。",
-    "targetLanguage": "目標語言",
+    "targetLanguage": "對方語言",
     "microphone": "麥克風",
     "microphoneDesc": "選擇麥克風來捕捉您的語音。對著這個麥克風說您的語言，Sokuji 會即時翻譯它聽到的一切。",
     "speaker": "揚聲器",
-    "speakerDesc": "選擇揚聲器來監聽翻譯輸出。這讓您能聽到翻譯的聲音效果。如果不需要監聽，可以關閉。無論開啟或關閉，翻譯的音訊都會發送到虛擬麥克風供其他參與者聽到。"
+    "speakerDesc": "選擇揚聲器來監聽翻譯輸出。這讓您能聽到翻譯的聲音效果。如果不需要監聽，可以關閉。無論開啟或關閉，翻譯的音訊都會發送到虛擬麥克風供其他參與者聽到。",
+    "systemAudio": "參與者音訊",
+    "systemAudioDesc": "擷取並翻譯其他會議參與者的音訊。選擇要擷取的音訊輸出裝置以翻譯他們的語音。",
+    "systemAudioDescExtension": "擷取並轉錄當前分頁的音訊。查看其他會議參與者發言的轉錄和翻譯內容。"
   },
   "providers": {
     "openai": {
@@ -108,7 +111,8 @@
     "clickToConfigMicrophone": "點擊配置麥克風",
     "clickToConfigSpeaker": "點擊配置揚聲器",
     "typeMessage": "輸入要翻譯的文字...",
-    "send": "發送"
+    "send": "發送",
+    "participant": "參與者"
   },
   "connectionStatus": {
     "disconnected": "已斷線",
@@ -133,8 +137,8 @@
     "userTranscriptModel": "使用者轉錄模型",
     "noiseReduction": "降噪",
     "modelConfiguration": "模型設定",
-    "sourceLanguage": "來源語言",
-    "targetLanguage": "目標語言",
+    "sourceLanguage": "我的語言",
+    "targetLanguage": "對方語言",
     "preview": "預覽",
     "simple": "簡單",
     "advanced": "進階",
@@ -167,6 +171,7 @@
     "loadingModels": "載入可用模型中...",
     "modelsFound": "找到 {{count}} 個模型",
     "experimentalFeatureTooltip": "這是一個實驗性功能，可能會不穩定。",
+    "geminiParticipantTokenWarning": "Gemini participant mode generates audio responses that are discarded, resulting in additional token usage.",
     "help": "說明",
     "auto": "自動",
     "low": "低",
@@ -237,7 +242,14 @@
     "realVoicePassthrough": "原聲直通",
     "enableRealVoicePassthrough": "啟用原聲直通",
     "realVoicePassthroughDescription": "將您的原聲（說話者聲音）直接傳遞到虛擬麥克風，讓聽眾同時聽到原聲和譯聲",
-    "realVoiceVolume": "原聲音量"
+    "realVoiceVolume": "原聲音量",
+    "mutualExclusivityNotice": "音訊衝突",
+    "mutualExclusivitySpeakerTitle": "無法啟用揚聲器",
+    "mutualExclusivityParticipantTitle": "無法啟用參與者音訊",
+    "mutualExclusivitySpeakerText": "啟用揚聲器之前，請先關閉參與者音訊。",
+    "mutualExclusivityParticipantText": "啟用參與者音訊之前，請先關閉揚聲器。",
+    "availableSystemAudioSources": "可捕獲的系統音訊裝置",
+    "refreshSystemAudioSources": "重新整理裝置列表"
   },
   "logsPanel": {
     "title": "日誌",
@@ -251,15 +263,9 @@
     "event": "事件",
     "of": "的",
     "unknown": "未知",
-    "sessionEnded": "會話結束"
-  },
-  "translation": {
-    "start": "開始翻譯",
-    "stop": "停止翻譯",
-    "listening": "正在聆聽...",
-    "translating": "翻譯中...",
-    "sourceLanguage": "來源語言",
-    "targetLanguage": "目標語言"
+    "sessionEnded": "會話結束",
+    "speakerClient": "講者",
+    "participantClient": "參與者"
   },
   "mainPanel": {
     "conversationPlaceholder": "對話將在此處顯示",
@@ -436,7 +442,7 @@
     "emailPlaceholder": "your@email.com",
     "passwordPlaceholder": "輸入您的密碼",
     "namePlaceholder": "您的姓名",
-    "confirmPasswordPlaceholder": "確認您的密碼",
+    "confirmPasswordPlaceholder": "確認新密碼",
     "passwordHint": "至少8個字元",
     "noAccount": "沒有帳戶？",
     "haveAccount": "已有帳戶？",
@@ -478,8 +484,6 @@
     "verificationCode": "驗證碼",
     "newPassword": "新密碼",
     "newPasswordPlaceholder": "輸入新密碼",
-    "confirmPassword": "確認密碼",
-    "confirmPasswordPlaceholder": "確認新密碼",
     "passwordsDoNotMatch": "密碼不相符",
     "invalidOTP": "驗證碼無效。請檢查後再試。",
     "otpExpired": "驗證碼已過期。請重新申請。",
@@ -488,8 +492,7 @@
     "backToSignIn": "返回登入",
     "forgotPasswordError": "發送驗證碼失敗。請再試一次。",
     "resetPasswordError": "重設密碼失敗。請再試一次。"
-  }
-,
+  },
   "feedback": {
     "title": "Send Feedback",
     "description": "Report bugs, suggest features, or share your thoughts. We read every message!",

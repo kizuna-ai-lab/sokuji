@@ -100,7 +100,7 @@
         &.system {
           background-color: #444;
           align-self: center;
-          
+
           &.playing {
             background-color: #555;
             box-shadow: 0 0 10px rgba(16, 163, 127, 0.3);
@@ -108,28 +108,51 @@
           font-style: italic;
           max-width: 90%;
         }
-        
+
+        // Participant source styling (from system audio capture)
+        &.participant-source {
+          border-left: 3px solid #f39c12;
+
+          &.user {
+            background-color: rgba(243, 156, 18, 0.15);
+
+            &.playing {
+              background-color: rgba(243, 156, 18, 0.25);
+              box-shadow: 0 0 10px rgba(243, 156, 18, 0.3);
+            }
+          }
+
+          &.assistant {
+            background-color: #e67e22;
+
+            &.playing {
+              background-color: #f39c12;
+              box-shadow: 0 0 10px rgba(243, 156, 18, 0.5);
+            }
+          }
+        }
+
         &.error {
           background-color: #5a1a1a;
           border: 1px solid #cc4444;
           align-self: center;
-          
+
           &.playing {
             background-color: #6a2a2a;
             box-shadow: 0 0 10px rgba(204, 68, 68, 0.3);
           }
           max-width: 90%;
-          
+
           .conversation-item-role {
             color: #ff6b6b;
             font-weight: 600;
-            
+
             svg {
               margin-right: 4px;
             }
           }
         }
-        
+
         .conversation-item-role {
           font-size: 10px;
           color: rgba(255, 255, 255, 0.6);

@@ -279,7 +279,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ toggleSettings }) => {
                   </option>
                 ))}
               </select>
-              {(provider === Provider.GEMINI || provider === Provider.PALABRA_AI) && (
+              {provider === Provider.PALABRA_AI && (
                 <div className="experimental-icon-wrapper">
                   <FlaskConical
                     size={16}

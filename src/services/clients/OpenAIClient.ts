@@ -25,12 +25,13 @@ interface OpenAIModel {
  */
 export class OpenAIClient implements IClient {
   private static readonly DEFAULT_API_HOST = 'https://api.openai.com';
-  
+
   private client: RealtimeClient;
   private eventHandlers: ClientEventHandlers = {};
   private apiKey: string;
   private apiHost: string;
   private deltaSequenceNumber: number = 0; // Track delta sequence for ordering
+  private itemCreatedAtMap: Map<string, number> = new Map(); // Track item creation times
 
   constructor(apiKey: string, apiHost?: string) {
     this.apiKey = apiKey;
@@ -334,12 +335,18 @@ export class OpenAIClient implements IClient {
   private convertToConversationItem(item: Realtime.Item | FormattedItem): ConversationItem {
     // Type assertion to access properties that may not be available on all ItemType variants
     const itemAny = item;
-    
+
+    // Track creation time - set only on first encounter
+    if (!this.itemCreatedAtMap.has(item.id)) {
+      this.itemCreatedAtMap.set(item.id, Date.now());
+    }
+
     return {
       id: item.id,
       role: item.role as 'user' | 'assistant' | 'system',
       type: item.type as 'message' | 'function_call' | 'function_call_output',
       status: itemAny.status || 'completed',
+      createdAt: this.itemCreatedAtMap.get(item.id),
       formatted: 'formatted' in item && item.formatted ? {
         text: item.formatted!.text,
         transcript: item.formatted!.transcript,
@@ -412,8 +419,9 @@ export class OpenAIClient implements IClient {
   }
 
   async connect(config: SessionConfig): Promise<void> {
-    // Reset delta sequence number for new session
+    // Reset delta sequence number and item creation times for new session
     this.deltaSequenceNumber = 0;
+    this.itemCreatedAtMap.clear();
 
     // Create new client instance with fresh API key, API host and model
     this.client = new RealtimeClient({
@@ -490,6 +498,11 @@ export class OpenAIClient implements IClient {
     if (config.temperature !== undefined) updateParams.temperature = config.temperature;
     if (config.maxTokens !== undefined) updateParams.max_response_output_tokens = config.maxTokens;
 
+    // Handle text-only mode (no audio output)
+    if ('textOnly' in config && config.textOnly) {
+      updateParams.modalities = ['text'];
+    }
+
     // Handle turn detection (only for OpenAI/CometAPI configurations)
     if ('turnDetection' in config && config.turnDetection) {
       const td = config.turnDetection;
@@ -547,6 +560,7 @@ export class OpenAIClient implements IClient {
 
   reset(): void {
     this.client.reset();
+    this.itemCreatedAtMap.clear();
   }
 
   appendInputAudio(audioData: Int16Array): void {

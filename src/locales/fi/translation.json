@@ -79,7 +79,9 @@
     "realVoiceVolumeTooltip": "Säätää alkuperäisen äänesi äänenvoimakkuutta läpiviennissä. Aseta matalammalle tehdäksesi käännöksen näkyvämmäksi.",
     "desiredQueueLevelTooltip": "Hallitsee äänipuskurointia sujuvan toiston varmistamiseksi. Korkeammat arvot vähentävät keskeytyksiä, mutta lisäävät pieni viive.",
     "maxQueueLevelTooltip": "Maksimimäärä ääntä puskurointia varten. Estää liiallisen viiveen jos käsittely hidastuu.",
-    "autoTempoTooltip": "Säätää automaattisesti toistonopeutta ylläpitääkseen sujuvan äänivirran. Hyödyllinen vaihtelevia verkkonopeuksia varten."
+    "autoTempoTooltip": "Säätää automaattisesti toistonopeutta ylläpitääkseen sujuvan äänivirran. Hyödyllinen vaihtelevia verkkonopeuksia varten.",
+    "sourceLanguage": "Minun kieleni",
+    "targetLanguage": "Toisen kieli"
   },
   "simpleSettings": {
     "quickSetup": "Pika-asennus",
@@ -115,16 +117,19 @@
     "interfaceLanguageDesc": "Tämä muuttaa Sokuji:n valikoiden ja painikkeiden kieltä. Se EI vaikuta siihen, minkä kielten välillä voit kääntää.",
     "translationLanguages": "Käännöskielet",
     "translationLanguagesDesc": "Valitse mikä kieli puhut (Sinun kielesi) ja mikä kieli haluat kuulla käännöksen (Kohdekieli). Valitse \"Automaattinen tunnistus\" jos et ole varma lähdekielestä.",
-    "yourLanguage": "Sinun kielesi",
+    "yourLanguage": "Minun kieleni",
     "userAccount": "Käyttäjätili",
     "userAccountTooltip": "Tekniset käyttäjät voivat käyttää omia API-avaimiaan. Käyttäjätili on suunniteltu yksinkertaistettuun asennukseen.",
     "signInRequired": "Voit käyttää omaa API-avaintasi tai rekisteröityä kizuna.ai-palveluun.",
     "signInDescription": "Rekisteröidy yksinkertaistettua kokemusta varten.",
-    "targetLanguage": "Kohdekieli",
+    "targetLanguage": "Toisen kieli",
     "microphone": "Mikrofoni",
     "microphoneDesc": "Valitse mikrofoni puheesi kaappaamiseen. Puhu kielelläsi tähän mikrofoniin, niin Sokuji kääntää kaiken mitä se kuulee reaaliajassa.",
     "speaker": "Kaiutin",
-    "speakerDesc": "Valitse kaiutin käännetyn tulosteen valvomiseen. Tämä antaa sinun kuulla miltä käännös kuulostaa. Voit sammuttaa sen, jos valvonta ei ole tarpeen. Oli se päällä tai pois, käännetty ääni lähetetään aina virtuaaliseen mikrofoniin muiden osallistujien kuultavaksi."
+    "speakerDesc": "Valitse kaiutin käännetyn tulosteen valvomiseen. Tämä antaa sinun kuulla miltä käännös kuulostaa. Voit sammuttaa sen, jos valvonta ei ole tarpeen. Oli se päällä tai pois, käännetty ääni lähetetään aina virtuaaliseen mikrofoniin muiden osallistujien kuultavaksi.",
+    "systemAudio": "Osallistujan ääni",
+    "systemAudioDesc": "Kaappaa ja käännä ääni muilta kokouksen osallistujilta. Valitse mistä äänilähteestä haluat kaapata heidän puheensa käännettäväksi.",
+    "systemAudioDescExtension": "Tallenna ja litteroi ääni nykyisestä välilehdestä. Katso muiden kokouksen osallistujien puheen litteroinnit ja käännökset."
   },
   "providers": {
     "openai": {
@@ -188,6 +193,7 @@
     "clickToConfigSpeaker": "Napsauta määrittääksesi kaiuttimen",
     "typeMessage": "Käännettävä teksti...",
     "send": "Lähetä",
+    "participant": "Osallistuja",
     "error": "Virhe",
     "unknownError": "Tuntematon virhe"
   },
@@ -218,15 +224,20 @@
     "realVoicePassthrough": "Alkuperäisen äänen läpiviennti",
     "enableRealVoicePassthrough": "Ota alkuperäisen äänen läpiviennti käyttöön",
     "realVoicePassthroughDescription": "Välitä alkuperäinen äänesi (puhujan ääni) suoraan virtuaalimikrofoniin, jotta kuulijat voivat kuulla sekä alkuperäisen että käännetyn äänen",
-    "realVoiceVolume": "Alkuperäisen äänen äänenvoimakkuus"
+    "realVoiceVolume": "Alkuperäisen äänen äänenvoimakkuus",
+    "mutualExclusivityNotice": "Äänikonfliktit",
+    "mutualExclusivitySpeakerTitle": "Kaiutinta ei voi ottaa käyttöön",
+    "mutualExclusivityParticipantTitle": "Osallistujan ääntä ei voi ottaa käyttöön",
+    "mutualExclusivitySpeakerText": "Ole hyvä ja sammuta Osallistujan ääni ennen Kaiuttimen käyttöönottoa.",
+    "mutualExclusivityParticipantText": "Ole hyvä ja sammuta Kaiutin ennen Osallistujan äänen käyttöönottoa.",
+    "availableSystemAudioSources": "Kaapattavat järjestelmän äänilaitteet",
+    "refreshSystemAudioSources": "Päivitä laiteluettelo"
   },
   "logsPanel": {
     "title": "Lokit",
-    "sessionEnded": "Istunto päättyi"
-  },
-  "translation": {
-    "start": "Aloita käännös",
-    "stop": "Lopeta käännös"
+    "sessionEnded": "Istunto päättyi",
+    "speakerClient": "Puhuja",
+    "participantClient": "Osallistuja"
   },
   "errors": {
     "microphoneAccess": "Mikrofonin käyttö evätty",

@@ -48,8 +48,8 @@
     "userTranscriptModel": "用户转录模型",
     "noiseReduction": "降噪",
     "modelConfiguration": "模型配置",
-    "sourceLanguage": "源语言",
-    "targetLanguage": "目标语言",
+    "sourceLanguage": "我的语言",
+    "targetLanguage": "对方语言",
     "preview": "预览",
     "simple": "简单",
     "advanced": "高级",
@@ -82,6 +82,7 @@
     "loadingModels": "正在加载可用模型...",
     "modelsFound": "找到{{count}}个模型",
     "experimentalFeatureTooltip": "这是一个实验性功能，可能会不稳定。",
+    "geminiParticipantTokenWarning": "Gemini参与者模式会生成音频响应但只使用文本转录，导致额外的token消耗。",
     "help": "帮助",
     "auto": "自动",
     "low": "低",
@@ -160,16 +161,20 @@
     "interfaceLanguageDesc": "这会更改Sokuji菜单和按钮的语言。它不会影响您可以在哪些语言之间翻译。",
     "translationLanguages": "翻译语言",
     "translationLanguagesDesc": "选择您说的语言（您的语言）和您想要听到翻译的语言（目标语言）。如果您不确定源语言，请选择\"自动检测\"。",
-    "yourLanguage": "您的语言",
+    "yourLanguage": "我的语言",
     "userAccount": "用户账户",
     "userAccountTooltip": "对于拥有技术知识和自己API密钥的用户，无论是否登录都可以使用自己的API密钥。用户账户是为希望简化设置、无需复杂配置的新用户设计的。",
     "signInRequired": "您可以在不登录的情况下使用自己的AI提供商和API密钥，或者注册购买使用kizuna.ai提供的API服务。",
     "signInDescription": "注册即可享受便捷体验，无需复杂配置。",
-    "targetLanguage": "目标语言",
+    "targetLanguage": "对方语言",
     "microphone": "麦克风",
     "microphoneDesc": "选择用于捕获您语音的麦克风。对着此麦克风说您的语言，Sokuji会实时翻译麦克风接收到的所有内容。",
     "speaker": "扬声器",
-    "speakerDesc": "选择用于监听翻译输出的扬声器。这让您能听到翻译的效果。如果不需要监听可以关闭。无论开启或关闭，翻译的音频都会发送到虚拟麦克风供其他参与者听到。"
+    "speakerDesc": "选择用于监听翻译输出的扬声器。这让您能听到翻译的效果。如果不需要监听可以关闭。无论开启或关闭，翻译的音频都会发送到虚拟麦克风供其他参与者听到。",
+    "systemAudio": "参会者音频",
+    "systemAudioDesc": "捕获并翻译其他会议参与者的音频。选择要捕获的音频输出设备以翻译他们的发言。",
+    "systemAudioDescExtension": "捕获并转录当前标签页的音频。查看其他会议参与者发言的转录和翻译内容。",
+    "currentTab": "当前标签页"
   },
   "simplePanel": {
     "translationActive": "翻译进行中",
@@ -199,7 +204,8 @@
     "clickToConfigMicrophone": "点击配置麦克风",
     "clickToConfigSpeaker": "点击配置扬声器",
     "typeMessage": "输入要翻译的文字...",
-    "send": "发送"
+    "send": "发送",
+    "participant": "参与者"
   },
   "providers": {
     "openai": {
@@ -262,7 +268,14 @@
     "realVoicePassthrough": "原声直通",
     "enableRealVoicePassthrough": "启用原声直通",
     "realVoicePassthroughDescription": "将您的原声（说话者声音）直接传递到虚拟麦克风，让听众同时听到原声和译声",
-    "realVoiceVolume": "原声音量"
+    "realVoiceVolume": "原声音量",
+    "mutualExclusivityNotice": "音频冲突",
+    "mutualExclusivitySpeakerTitle": "无法启用扬声器",
+    "mutualExclusivityParticipantTitle": "无法启用参与者音频",
+    "mutualExclusivitySpeakerText": "请先关闭参与者音频，再启用扬声器。",
+    "mutualExclusivityParticipantText": "请先关闭扬声器，再启用参与者音频。",
+    "availableSystemAudioSources": "可捕获的系统音频设备",
+    "refreshSystemAudioSources": "刷新设备列表"
   },
   "logsPanel": {
     "title": "日志",
@@ -276,15 +289,9 @@
     "event": "事件",
     "of": "的",
     "unknown": "未知",
-    "sessionEnded": "会话结束"
-  },
-  "translation": {
-    "start": "开始翻译",
-    "stop": "停止翻译",
-    "listening": "正在听取...",
-    "translating": "翻译中...",
-    "sourceLanguage": "源语言",
-    "targetLanguage": "目标语言"
+    "sessionEnded": "会话结束",
+    "speakerClient": "讲者",
+    "participantClient": "参与者"
   },
   "mainPanel": {
     "conversationPlaceholder": "对话将在此处显示",
@@ -463,7 +470,7 @@
     "emailPlaceholder": "your@email.com",
     "passwordPlaceholder": "输入您的密码",
     "namePlaceholder": "您的姓名",
-    "confirmPasswordPlaceholder": "确认您的密码",
+    "confirmPasswordPlaceholder": "确认新密码",
     "passwordHint": "至少8个字符",
     "noAccount": "没有账户？",
     "haveAccount": "已有账户？",
@@ -505,8 +512,6 @@
     "verificationCode": "验证码",
     "newPassword": "新密码",
     "newPasswordPlaceholder": "输入新密码",
-    "confirmPassword": "确认密码",
-    "confirmPasswordPlaceholder": "确认新密码",
     "passwordsDoNotMatch": "密码不匹配",
     "invalidOTP": "验证码无效。请检查后重试。",
     "otpExpired": "验证码已过期。请重新获取。",
