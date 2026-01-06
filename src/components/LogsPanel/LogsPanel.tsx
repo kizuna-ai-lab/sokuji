@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback, memo } from 'react';
-import { ArrowRight, Terminal, Trash2, ArrowUp, ArrowDown, FastForward } from 'lucide-react';
+import { ArrowRight, Terminal, Trash2, ArrowUp, ArrowDown, FastForward, Mic, Users } from 'lucide-react';
 import './LogsPanel.scss';
 import { useLogData, useLogActions } from '../../stores/logStore';
-import type { LogEntry } from '../../stores/logStore';
+import type { LogEntry, ClientId } from '../../stores/logStore';
 import { useTranslation } from 'react-i18next';
 
 interface LogsPanelProps {
@@ -110,23 +110,29 @@ const LogsPanel: React.FC<LogsPanelProps> = ({ toggleLogs }) => {
   const [visibleRange, setVisibleRange] = useState({ start: 0, end: 50 });
   const logsContentRef = useRef<HTMLDivElement>(null);
   const scrollTimeoutRef = useRef<NodeJS.Timeout>();
+  const [activeTab, setActiveTab] = useState<ClientId>('speaker');
+
+  // Filter logs based on active tab
+  const filteredLogs = useMemo(() => {
+    return logs.filter(log => log.clientId === activeTab || log.clientId === undefined);
+  }, [logs, activeTab]);
 
   // Calculate visible range based on scroll position
   const updateVisibleRange = useCallback(() => {
     if (!logsContentRef.current) return;
-    
+
     const container = logsContentRef.current;
     const scrollTop = container.scrollTop;
     const containerHeight = container.clientHeight;
-    
+
     const start = Math.max(0, Math.floor(scrollTop / ITEM_HEIGHT_ESTIMATE) - BUFFER_SIZE);
     const end = Math.min(
-      logs.length,
+      filteredLogs.length,
       Math.ceil((scrollTop + containerHeight) / ITEM_HEIGHT_ESTIMATE) + BUFFER_SIZE
     );
-    
+
     setVisibleRange({ start, end });
-  }, [logs.length]);
+  }, [filteredLogs.length]);
   
   // Throttled scroll handler
   const handleScroll = useCallback(() => {
@@ -155,7 +161,7 @@ const LogsPanel: React.FC<LogsPanelProps> = ({ toggleLogs }) => {
         current.scrollTop = current.scrollHeight;
       });
     }
-  }, [logs.length, autoScroll]); // Only depend on logs.length, not the entire array
+  }, [filteredLogs.length, autoScroll]); // Only depend on filteredLogs.length, not the entire array
   
   // Update visible range on mount and resize
   useEffect(() => {
@@ -219,8 +225,8 @@ const LogsPanel: React.FC<LogsPanelProps> = ({ toggleLogs }) => {
   
   // Memoize visible logs
   const visibleLogs = useMemo(() => {
-    return logs.slice(visibleRange.start, visibleRange.end);
-  }, [logs, visibleRange]);
+    return filteredLogs.slice(visibleRange.start, visibleRange.end);
+  }, [filteredLogs, visibleRange]);
   
   // Calculate spacers for virtual scrolling
   const spacerTop = useMemo(() => {
@@ -228,8 +234,8 @@ const LogsPanel: React.FC<LogsPanelProps> = ({ toggleLogs }) => {
   }, [visibleRange.start]);
   
   const spacerBottom = useMemo(() => {
-    return (logs.length - visibleRange.end) * ITEM_HEIGHT_ESTIMATE;
-  }, [logs.length, visibleRange.end]);
+    return (filteredLogs.length - visibleRange.end) * ITEM_HEIGHT_ESTIMATE;
+  }, [filteredLogs.length, visibleRange.end]);
 
   return (
     <div className="logs-panel">
@@ -256,17 +262,33 @@ const LogsPanel: React.FC<LogsPanelProps> = ({ toggleLogs }) => {
           </button>
         </div>
       </div>
+      <div className="logs-tabs">
+        <button
+          className={`logs-tab ${activeTab === 'speaker' ? 'active' : ''}`}
+          onClick={() => setActiveTab('speaker')}
+        >
+          <Mic size={14} />
+          <span>{t('logsPanel.speakerClient')}</span>
+        </button>
+        <button
+          className={`logs-tab ${activeTab === 'participant' ? 'active' : ''}`}
+          onClick={() => setActiveTab('participant')}
+        >
+          <Users size={14} />
+          <span>{t('logsPanel.participantClient')}</span>
+        </button>
+      </div>
       <div className="logs-content" ref={logsContentRef} onScroll={handleScroll}>
-        {logs.length > 0 ? (
+        {filteredLogs.length > 0 ? (
           <>
             {/* Top spacer for virtual scrolling */}
             {spacerTop > 0 && <div style={{ height: spacerTop }} />}
-            
+
             {/* Render only visible logs */}
-            {visibleLogs.map((log, index) => 
+            {visibleLogs.map((log, index) =>
               renderLogEntry(log, visibleRange.start + index)
             )}
-            
+
             {/* Bottom spacer for virtual scrolling */}
             {spacerBottom > 0 && <div style={{ height: spacerBottom }} />}
           </>

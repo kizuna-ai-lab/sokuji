@@ -28,7 +28,8 @@
     "storage",
     "sidePanel",
     "tabs",
-    "identity"
+    "identity",
+    "tabCapture"
   ],
   "host_permissions": [
     "https://sokuji-api.kizuna.ai/*",

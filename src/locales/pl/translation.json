@@ -47,8 +47,8 @@
     "userTranscriptModel": "Model transkrypcji użytkownika",
     "noiseReduction": "Redukcja szumów",
     "modelConfiguration": "Konfiguracja modelu",
-    "sourceLanguage": "Język źródłowy",
-    "targetLanguage": "Język docelowy",
+    "sourceLanguage": "Mój język",
+    "targetLanguage": "Język rozmówcy",
     "preview": "Podgląd",
     "simple": "Prosty",
     "advanced": "Zaawansowany",
@@ -130,7 +130,14 @@
     "realVoicePassthrough": "Przepuszczanie Oryginalnego Dźwięku",
     "enableRealVoicePassthrough": "Włącz Przepuszczanie Oryginalnego Dźwięku",
     "realVoicePassthroughDescription": "Przekazuj swój oryginalny dźwięk (głos mówcy) bezpośrednio do wirtualnego mikrofonu, aby słuchacze mogli słyszeć zarówno oryginalny, jak i przetłumaczony dźwięk",
-    "realVoiceVolume": "Głośność Oryginalnego Dźwięku"
+    "realVoiceVolume": "Głośność Oryginalnego Dźwięku",
+    "mutualExclusivityNotice": "Konflikt dźwięku",
+    "mutualExclusivitySpeakerTitle": "Nie można włączyć Głośnika",
+    "mutualExclusivityParticipantTitle": "Nie można włączyć Dźwięku uczestnika",
+    "mutualExclusivitySpeakerText": "Proszę wyłączyć Dźwięk uczestnika przed włączeniem Głośnika.",
+    "mutualExclusivityParticipantText": "Proszę wyłączyć Głośnik przed włączeniem Dźwięku uczestnika.",
+    "availableSystemAudioSources": "Przechwytywalne systemowe urządzenia audio",
+    "refreshSystemAudioSources": "Odśwież listę urządzeń"
   },
   "logsPanel": {
     "title": "Logi",
@@ -144,15 +151,9 @@
     "event": "Zdarzenie",
     "of": "z",
     "unknown": "nieznane",
-    "sessionEnded": "Sesja zakończona"
-  },
-  "translation": {
-    "start": "Rozpocznij tłumaczenie",
-    "stop": "Zatrzymaj tłumaczenie",
-    "listening": "Słucham...",
-    "translating": "Tłumaczę...",
-    "sourceLanguage": "Język źródłowy",
-    "targetLanguage": "Język docelowy"
+    "sessionEnded": "Sesja zakończona",
+    "speakerClient": "Mówca",
+    "participantClient": "Uczestnik"
   },
   "mainPanel": {
     "conversationPlaceholder": "Rozmowa pojawi się tutaj",
@@ -326,16 +327,19 @@
     "interfaceLanguageDesc": "To zmienia język menu i przycisków Sokuji. NIE wpływa na języki, między którymi możesz tłumaczyć.",
     "translationLanguages": "Języki Tłumaczenia",
     "translationLanguagesDesc": "Wybierz język, którym mówisz (Twój Język) i język, w którym chcesz słyszeć tłumaczenie (Język Docelowy). Wybierz 'Automatyczne Wykrywanie', jeśli nie jesteś pewien języka źródłowego.",
-    "yourLanguage": "Twój Język",
+    "yourLanguage": "Mój język",
     "userAccount": "Konto Użytkownika",
     "userAccountTooltip": "Użytkownicy techniczni mogą używać własnych kluczy API. Konto Użytkownika jest zaprojektowane dla uproszczonej konfiguracji.",
     "signInRequired": "Możesz użyć własnego klucza API lub zarejestrować się w usłudze kizuna.ai.",
     "signInDescription": "Zarejestruj się dla uproszczonego doświadczenia.",
-    "targetLanguage": "Język Docelowy",
+    "targetLanguage": "Język rozmówcy",
     "microphone": "Mikrofon",
     "microphoneDesc": "Wybierz mikrofon do przechwytywania swojej mowy. Mów w swoim języku do tego mikrofonu, a Sokuji będzie tłumaczyć wszystko co usłyszy w czasie rzeczywistym.",
     "speaker": "Głośnik",
-    "speakerDesc": "Wybierz głośnik do monitorowania przetłumaczonego wyjścia. Pozwala to słyszeć jak brzmi tłumaczenie. Możesz to wyłączyć jeśli monitorowanie nie jest potrzebne. Niezależnie od tego czy jest włączone czy wyłączone, przetłumaczone audio jest zawsze wysyłane do wirtualnego mikrofonu aby inni uczestnicy mogli je słyszeć."
+    "speakerDesc": "Wybierz głośnik do monitorowania przetłumaczonego wyjścia. Pozwala to słyszeć jak brzmi tłumaczenie. Możesz to wyłączyć jeśli monitorowanie nie jest potrzebne. Niezależnie od tego czy jest włączone czy wyłączone, przetłumaczone audio jest zawsze wysyłane do wirtualnego mikrofonu aby inni uczestnicy mogli je słyszeć.",
+    "systemAudio": "Dźwięk uczestnika",
+    "systemAudioDesc": "Przechwytuj i tłumacz dźwięk od innych uczestników spotkania. Wybierz urządzenie wyjściowe audio do przechwytywania ich mowy do tłumaczenia.",
+    "systemAudioDescExtension": "Przechwytuj i transkrybuj dźwięk z bieżącej karty. Przeglądaj transkrypcje i tłumaczenia wypowiedzi innych uczestników spotkania."
   },
   "providers": {
     "openai": {
@@ -398,7 +402,8 @@
     "clickToConfigMicrophone": "Kliknij, aby skonfigurować mikrofon",
     "clickToConfigSpeaker": "Kliknij, aby skonfigurować głośnik",
     "typeMessage": "Tekst do przetłumaczenia...",
-    "send": "Wyślij"
+    "send": "Wyślij",
+    "participant": "Uczestnik"
   },
   "connectionStatus": {
     "disconnected": "Rozłączony",

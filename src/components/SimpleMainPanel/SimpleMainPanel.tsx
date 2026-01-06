@@ -243,7 +243,9 @@ const SimpleMainPanel: React.FC<SimpleMainPanelProps> = React.memo(({
               
               // Calculate highlighted characters for karaoke effect
               const highlightedChars = isPlaying ? Math.floor(text.length * progressRatio) : 0;
-              
+
+              const isParticipant = item.source === 'participant';
+
               // Handle error messages - use formatted.text which contains "[errorType] errorMessage"
               if (item.type === 'error') {
                 return (
@@ -260,12 +262,14 @@ const SimpleMainPanel: React.FC<SimpleMainPanelProps> = React.memo(({
                   </div>
                 );
               }
-              
+
               return (
-                <div key={index} className={`message-bubble ${item.role} ${isPlaying ? 'playing' : ''}`}>
+                <div key={index} className={`message-bubble ${item.role} ${isParticipant ? 'participant-source' : 'speaker-source'} ${isPlaying ? 'playing' : ''}`}>
                   <div className="message-header">
                     <span className="role">
-                      {item.role === 'user' ? t('simplePanel.you', 'You') : t('simplePanel.translation', 'Translation')}
+                      {item.role === 'user'
+                        ? (isParticipant ? t('simplePanel.participant', 'Participant') : t('simplePanel.you', 'You'))
+                        : t('simplePanel.translation', 'Translation')}
                     </span>
                   </div>
                   <div className={`message-content ${isPlaying ? 'karaoke-active' : ''}`}>

@@ -107,8 +107,8 @@
     "userTranscriptModel": "User transcript model",
     "noiseReduction": "Noise reduction",
     "modelConfiguration": "Model configuration",
-    "sourceLanguage": "Source Language",
-    "targetLanguage": "Target Language",
+    "sourceLanguage": "My Language",
+    "targetLanguage": "Other's Language",
     "preview": "Preview",
     "simple": "Simple",
     "advanced": "Advanced",
@@ -141,6 +141,7 @@
     "loadingModels": "Loading available models...",
     "modelsFound": "{{count}} models available",
     "experimentalFeatureTooltip": "This is an experimental feature and may be unstable.",
+    "geminiParticipantTokenWarning": "Gemini participant mode generates audio responses that are discarded, resulting in additional token usage.",
     "help": "Help",
     "auto": "Auto",
     "low": "Low",
@@ -152,7 +153,6 @@
     "switchToBasic": "Switch to basic mode",
     "advancedMode": "Advanced",
     "basicMode": "Basic",
-    "apiKey": "API Key",
     "apiKeyManagedByBackend": "Backend-managed API key",
     "autoManaged": "Auto-managed",
     "kizunaApiKeyInfo": "This API key is automatically managed by our backend service.",
@@ -239,7 +239,14 @@
     "realVoicePassthrough": "Original Audio Passthrough",
     "enableRealVoicePassthrough": "Enable Original Audio Passthrough",
     "realVoicePassthroughDescription": "Pass your original audio (speaker's voice) directly to the virtual microphone so listeners can hear both original and translated audio",
-    "realVoiceVolume": "Original Audio Volume"
+    "realVoiceVolume": "Original Audio Volume",
+    "mutualExclusivityNotice": "Audio Conflict",
+    "mutualExclusivitySpeakerTitle": "Cannot enable Speaker",
+    "mutualExclusivityParticipantTitle": "Cannot enable Participant Audio",
+    "mutualExclusivitySpeakerText": "Please turn off Participant Audio before enabling Speaker.",
+    "mutualExclusivityParticipantText": "Please turn off Speaker before enabling Participant Audio.",
+    "availableSystemAudioSources": "Capturable System Audio Devices",
+    "refreshSystemAudioSources": "Refresh device list"
   },
   "auth": {
     "signInToUseKizunaAI": "Please sign in to use Kizuna AI service",
@@ -257,7 +264,7 @@
     "emailPlaceholder": "your@email.com",
     "passwordPlaceholder": "Enter your password",
     "namePlaceholder": "Your name",
-    "confirmPasswordPlaceholder": "Confirm your password",
+    "confirmPasswordPlaceholder": "Confirm new password",
     "passwordHint": "At least 8 characters",
     "noAccount": "Don't have an account?",
     "haveAccount": "Already have an account?",
@@ -271,7 +278,7 @@
     "passwordMismatch": "Passwords do not match",
     "passwordTooShort": "Password must be at least 8 characters",
     "tooManyAttempts": "Too many attempts. Please try again later",
-    "rateLimitExceeded": "Too many requests. Please wait a moment and try again",
+    "rateLimitExceeded": "Too many requests. Please wait a moment.",
     "signInError": "Sign in failed. Please try again",
     "signUpError": "Sign up failed. Please try again",
     "networkError": "Network error. Please check your connection",
@@ -282,7 +289,6 @@
     "verificationEmailSent": "Verification email sent! Please check your inbox",
     "verificationEmailFailed": "Failed to send verification email. Please try again",
     "alreadyVerified": "Your email is already verified!",
-    "rateLimitExceeded": "Too many requests. Please wait a moment.",
     "cooldownMessage": "Please wait {{seconds}} seconds",
     "checkYourEmail": "Verification email sent. Please check your inbox.",
     "forgotPassword": "Forgot Password?",
@@ -294,8 +300,6 @@
     "verificationCode": "Verification Code",
     "newPassword": "New Password",
     "newPasswordPlaceholder": "Enter new password",
-    "confirmPassword": "Confirm Password",
-    "confirmPasswordPlaceholder": "Confirm new password",
     "passwordsDoNotMatch": "Passwords do not match",
     "invalidOTP": "Invalid verification code. Please check and try again.",
     "otpExpired": "Verification code has expired. Please request a new one.",
@@ -310,16 +314,20 @@
     "interfaceLanguageDesc": "This changes the language of Sokuji's menus and buttons. It does NOT affect which languages you can translate between.",
     "translationLanguages": "Translation Languages",
     "translationLanguagesDesc": "Choose which language you speak (Your Language) and which language you want to hear the translation in (Target Language). Select \"Auto Detect\" if you're unsure about the source language.",
-    "yourLanguage": "Your Language",
+    "yourLanguage": "My Language",
     "userAccount": "User Account",
     "userAccountTooltip": "For users with technical knowledge and their own API keys, you can use your own API key whether logged in or not. User Account is designed for new users who prefer a simplified setup without complex configuration.",
     "signInDescription": "Sign up for a convenient experience without complex configuration.",
     "signInRequired": "You can use your own AI provider and API key without logging in, or sign up to purchase and use kizuna.ai's API service.",
-    "targetLanguage": "Target Language",
+    "targetLanguage": "Other's Language",
     "microphone": "Microphone",
     "microphoneDesc": "Select the microphone to capture your speech. Speak your language into this microphone, and Sokuji will translate everything it hears in real-time.",
     "speaker": "Speaker",
-    "speakerDesc": "Select a speaker for monitoring the translated output. This lets you hear how the translation sounds. You can turn it off if monitoring is not needed. Whether on or off, the translated audio is always sent to the virtual microphone for other participants to hear."
+    "speakerDesc": "Select a speaker for monitoring the translated output. This lets you hear how the translation sounds. You can turn it off if monitoring is not needed. Whether on or off, the translated audio is always sent to the virtual microphone for other participants to hear.",
+    "systemAudio": "Participant Audio",
+    "systemAudioDesc": "Capture and translate audio from other meeting participants. Select which audio output device to capture for translating their speech.",
+    "systemAudioDescExtension": "Capture and transcribe audio from the current tab. View transcriptions and translations of other meeting participants' speech.",
+    "currentTab": "Current Tab"
   },
   "providers": {
     "openai": {
@@ -370,15 +378,9 @@
     "event": "Event",
     "of": "of",
     "unknown": "unknown",
-    "sessionEnded": "Session Ended"
-  },
-  "translation": {
-    "start": "Start Translation",
-    "stop": "Stop Translation",
-    "listening": "Listening...",
-    "translating": "Translating...",
-    "sourceLanguage": "Source Language",
-    "targetLanguage": "Target Language"
+    "sessionEnded": "Session Ended",
+    "speakerClient": "Speaker",
+    "participantClient": "Participant"
   },
   "mainPanel": {
     "conversationPlaceholder": "Conversation will appear here",
@@ -423,6 +425,7 @@
     "noConversation": "No conversation yet",
     "startToBegin": "Click Start to begin real-time translation",
     "you": "You",
+    "participant": "Participant",
     "translation": "Translation",
     "noMicSelected": "No mic selected",
     "noSpeakerSelected": "No speaker selected",
@@ -609,4 +612,4 @@
     "remainingCount": "You have {{remaining}} of {{limit}} feedback messages remaining today",
     "limitReached": "Daily limit reached. You can send more feedback tomorrow."
   }
-} 
+}

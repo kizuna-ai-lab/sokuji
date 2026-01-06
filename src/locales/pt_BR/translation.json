@@ -48,8 +48,8 @@
     "userTranscriptModel": "Modelo de transcrição do usuário",
     "noiseReduction": "Redução de ruído",
     "modelConfiguration": "Configuração do modelo",
-    "sourceLanguage": "Idioma de origem",
-    "targetLanguage": "Idioma de destino",
+    "sourceLanguage": "Meu idioma",
+    "targetLanguage": "Idioma do outro",
     "preview": "Visualizar",
     "simple": "Simples",
     "advanced": "Avançado",
@@ -81,6 +81,7 @@
     "loadingModels": "Carregando modelos disponíveis...",
     "modelsFound": "{{count}} modelos disponíveis",
     "experimentalFeatureTooltip": "Este é um recurso experimental e pode ser instável.",
+    "geminiParticipantTokenWarning": "Gemini participant mode generates audio responses that are discarded, resulting in additional token usage.",
     "help": "Ajuda",
     "auto": "Auto",
     "low": "Baixo",
@@ -151,7 +152,14 @@
     "realVoicePassthrough": "Passagem de Áudio Original",
     "enableRealVoicePassthrough": "Ativar Passagem de Áudio Original",
     "realVoicePassthroughDescription": "Passe seu áudio original (voz do falante) diretamente para o microfone virtual para que os ouvintes possam ouvir tanto o áudio original quanto o traduzido",
-    "realVoiceVolume": "Volume do Áudio Original"
+    "realVoiceVolume": "Volume do Áudio Original",
+    "mutualExclusivityNotice": "Conflito de Áudio",
+    "mutualExclusivitySpeakerTitle": "Não é possível ativar o Alto-falante",
+    "mutualExclusivityParticipantTitle": "Não é possível ativar Áudio de Participantes",
+    "mutualExclusivitySpeakerText": "Por favor, desligue o Áudio de Participantes antes de ativar o Alto-falante.",
+    "mutualExclusivityParticipantText": "Por favor, desligue o Alto-falante antes de ativar o Áudio de Participantes.",
+    "availableSystemAudioSources": "Dispositivos de áudio do sistema capturáveis",
+    "refreshSystemAudioSources": "Atualizar lista de dispositivos"
   },
   "logsPanel": {
     "title": "Logs",
@@ -165,15 +173,9 @@
     "event": "Evento",
     "of": "de",
     "unknown": "desconhecido",
-    "sessionEnded": "Sessão encerrada"
-  },
-  "translation": {
-    "start": "Iniciar tradução",
-    "stop": "Parar tradução",
-    "listening": "Ouvindo...",
-    "translating": "Traduzindo...",
-    "sourceLanguage": "Idioma de origem",
-    "targetLanguage": "Idioma de destino"
+    "sessionEnded": "Sessão encerrada",
+    "speakerClient": "Locutor",
+    "participantClient": "Participante"
   },
   "mainPanel": {
     "conversationPlaceholder": "A conversa aparecerá aqui",
@@ -349,16 +351,19 @@
     "interfaceLanguageDesc": "Isso muda o idioma dos menus e botões do Sokuji. NÃO afeta quais idiomas você pode traduzir.",
     "translationLanguages": "Idiomas de Tradução",
     "translationLanguagesDesc": "Escolha qual idioma você fala (Seu Idioma) e em qual idioma você quer ouvir a tradução (Idioma de Destino). Selecione \"Detecção Automática\" se não tiver certeza sobre o idioma de origem.",
-    "yourLanguage": "Seu Idioma",
+    "yourLanguage": "Meu idioma",
     "userAccount": "Conta de Usuário",
     "userAccountTooltip": "Para usuários com conhecimento técnico e suas próprias chaves de API, você pode usar sua própria chave de API estando logado ou não. A Conta de Usuário é projetada para novos usuários que preferem uma configuração simplificada sem configuração complexa.",
     "signInRequired": "Você pode usar seu próprio provedor de IA e chave de API sem fazer login, ou se cadastrar para comprar e usar o serviço de API da kizuna.ai.",
     "signInDescription": "Cadastre-se para uma experiência conveniente sem configuração complexa.",
-    "targetLanguage": "Idioma de Destino",
+    "targetLanguage": "Idioma do outro",
     "microphone": "Microfone",
     "microphoneDesc": "Selecione o microfone para capturar sua fala. Fale seu idioma neste microfone, e o Sokuji traduzirá tudo que ouvir em tempo real.",
     "speaker": "Alto-falante",
-    "speakerDesc": "Selecione um alto-falante para monitorar a saída traduzida. Isso permite ouvir como a tradução soa. Você pode desligar se o monitoramento não for necessário. Ligado ou desligado, o áudio traduzido sempre é enviado para o microfone virtual para outros participantes ouvirem."
+    "speakerDesc": "Selecione um alto-falante para monitorar a saída traduzida. Isso permite ouvir como a tradução soa. Você pode desligar se o monitoramento não for necessário. Ligado ou desligado, o áudio traduzido sempre é enviado para o microfone virtual para outros participantes ouvirem.",
+    "systemAudio": "Áudio de Participantes",
+    "systemAudioDesc": "Capture e traduza o áudio de outros participantes da reunião. Selecione qual dispositivo de saída de áudio capturar para traduzir a fala deles.",
+    "systemAudioDescExtension": "Capture e transcreva o áudio da aba atual. Visualize as transcrições e traduções da fala dos outros participantes da reunião."
   },
   "providers": {
     "openai": {
@@ -421,7 +426,8 @@
     "clickToConfigMicrophone": "Clique para configurar o microfone",
     "clickToConfigSpeaker": "Clique para configurar o alto-falante",
     "typeMessage": "Texto para traduzir...",
-    "send": "Enviar"
+    "send": "Enviar",
+    "participant": "Participante"
   },
   "connectionStatus": {
     "disconnected": "Desconectado",

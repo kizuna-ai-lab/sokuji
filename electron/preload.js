@@ -81,7 +81,12 @@ contextBridge.exposeInMainWorld(
         'set-cookie',
         'check-vbcable',
         'install-vbcable',
-        'check-sokuji-audio'
+        'check-sokuji-audio',
+        // System audio capture channels
+        'supports-system-audio-capture',
+        'list-system-audio-sources',
+        'connect-system-audio-source',
+        'disconnect-system-audio-source'
       ];
       if (validChannels.includes(channel)) {
         return ipcRenderer.invoke(channel, data);

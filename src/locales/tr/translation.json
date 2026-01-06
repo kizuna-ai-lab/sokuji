@@ -79,7 +79,9 @@
     "realVoiceVolumeTooltip": "Geçişteki orijinal sesinizin ses seviyesini ayarlar. Çeviriyi daha belirgin hale getirmek için daha düşük ayarlayın.",
     "desiredQueueLevelTooltip": "Sorunsuz oynatma için ses arabelleğini yönetir. Daha yüksek değerler kesintileri azaltır ancak küçük bir gecikme ekler.",
     "maxQueueLevelTooltip": "Arabellek için maksimum ses miktarı. İşleme yavaşlarsa aşırı gecikmeyi önler.",
-    "autoTempoTooltip": "Sorunsuz ses akışını korumak için oynatma hızını otomatik olarak ayarlar. Değişken ağ hızları için kullanışlıdır."
+    "autoTempoTooltip": "Sorunsuz ses akışını korumak için oynatma hızını otomatik olarak ayarlar. Değişken ağ hızları için kullanışlıdır.",
+    "sourceLanguage": "Benim dilim",
+    "targetLanguage": "Karşı tarafın dili"
   },
   "mainPanel": {
     "conversationPlaceholder": "Konuşma burada görünecek",
@@ -102,15 +104,20 @@
     "realVoicePassthrough": "Orijinal Ses Geçişi",
     "enableRealVoicePassthrough": "Orijinal Ses Geçişini Etkinleştir",
     "realVoicePassthroughDescription": "Orijinal sesinizi (konuşmacının sesi) doğrudan sanal mikrofona iletin, böylece dinleyiciler hem orijinal hem de çevrilmiş sesi duyabilir",
-    "realVoiceVolume": "Orijinal Ses Seviyesi"
+    "realVoiceVolume": "Orijinal Ses Seviyesi",
+    "mutualExclusivityNotice": "Ses Çakışması",
+    "mutualExclusivitySpeakerTitle": "Hoparlör Etkinleştirilemiyor",
+    "mutualExclusivityParticipantTitle": "Katılımcı Sesi Etkinleştirilemiyor",
+    "mutualExclusivitySpeakerText": "Hoparlörü etkinleştirmeden önce lütfen Katılımcı Sesini kapatın.",
+    "mutualExclusivityParticipantText": "Katılımcı Sesini etkinleştirmeden önce lütfen Hoparlörü kapatın.",
+    "availableSystemAudioSources": "Yakalanabilir Sistem Ses Cihazları",
+    "refreshSystemAudioSources": "Cihaz listesini yenile"
   },
   "logsPanel": {
     "title": "Günlükler",
-    "sessionEnded": "Oturum Sonlandı"
-  },
-  "translation": {
-    "start": "Çeviriyi başlat",
-    "stop": "Çeviriyi durdur"
+    "sessionEnded": "Oturum Sonlandı",
+    "speakerClient": "Konuşmacı",
+    "participantClient": "Katılımcı"
   },
   "errors": {
     "microphoneAccess": "Mikrofon erişimi reddedildi",
@@ -260,16 +267,19 @@
     "interfaceLanguageDesc": "Bu, Sokuji'nin menülerinin ve düğmelerinin dilini değiştirir. Çeviri yapabileceğiniz dilleri ETKİLEMEZ.",
     "translationLanguages": "Çeviri Dilleri",
     "translationLanguagesDesc": "Hangi dilde konuştuğunuzu (Diliniz) ve çeviriyi hangi dilde duymak istediğinizi (Hedef Dil) seçin. Kaynak dili hakkinda emin değilseniz 'Otomatik Algılama'yı seçin.",
-    "yourLanguage": "Diliniz",
+    "yourLanguage": "Benim dilim",
     "userAccount": "Kullanıcı Hesabı",
     "userAccountTooltip": "Teknik kullanıcılar kendi API anahtarlarını kullanabilir. Kullanıcı hesabı basitleştirilmiş kurulum için tasarlanmıştır.",
     "signInRequired": "Kendi API anahtarınızı kullanın veya kizuna.ai hizmeti için kaydolun.",
     "signInDescription": "Basitleştirilmiş deneyim için kaydolun.",
-    "targetLanguage": "Hedef Dil",
+    "targetLanguage": "Karşı tarafın dili",
     "microphone": "Mikrofon",
     "microphoneDesc": "Konuşmanızı yakalamak için mikrofonu seçin. Bu mikrofona dilinizle konuşun, Sokuji duyduğu her şeyi gerçek zamanda çevirecektir.",
     "speaker": "Hoparlör",
-    "speakerDesc": "Çevrilmiş çıktıyı izlemek için bir hoparlör seçin. Bu, çevirinin nasıl geldiğini duymanızı sağlar. İzleme gerekmiyorsa kapatabilirsiniz. Açık veya kapalı olsun, çevrilmiş ses her zaman sanal mikrofona gönderilir ve diğer katılımcılar duyar."
+    "speakerDesc": "Çevrilmiş çıktıyı izlemek için bir hoparlör seçin. Bu, çevirinin nasıl geldiğini duymanızı sağlar. İzleme gerekmiyorsa kapatabilirsiniz. Açık veya kapalı olsun, çevrilmiş ses her zaman sanal mikrofona gönderilir ve diğer katılımcılar duyar.",
+    "systemAudio": "Katılımcı Sesi",
+    "systemAudioDesc": "Diğer toplantı katılımcılarından gelen sesi yakalayın ve çevirin. Konuşmalarını çevirmek için hangi ses çıkış cihazının yakalanacağını seçin.",
+    "systemAudioDescExtension": "Geçerli sekmeden sesi yakalayın ve metne dönüştürün. Diğer toplantı katılımcılarının konuşmalarının transkripsiyonlarını ve çevirilerini görüntüleyin."
   },
   "providers": {
     "openai": {
@@ -332,7 +342,8 @@
     "clickToConfigMicrophone": "Mikrofonu yapılandırmak için tıklayın",
     "clickToConfigSpeaker": "Hoparlörü yapılandırmak için tıklayın",
     "typeMessage": "Çevrilecek metin...",
-    "send": "Gönder"
+    "send": "Gönder",
+    "participant": "Katılımcı"
   },
   "connectionStatus": {
     "disconnected": "Bağlantı kesildi",

@@ -48,8 +48,8 @@
     "userTranscriptModel": "نموذج نسخة المستخدم",
     "noiseReduction": "تقليل الضوضاء",
     "modelConfiguration": "تكوين النموذج",
-    "sourceLanguage": "اللغة المصدر",
-    "targetLanguage": "اللغة الهدف",
+    "sourceLanguage": "لغتي",
+    "targetLanguage": "لغة الآخر",
     "preview": "معاينة",
     "simple": "بسيط",
     "advanced": "متقدم",
@@ -161,16 +161,19 @@
     "interfaceLanguageDesc": "هذا يغير لغة قوائم وأزرار Sokuji. لا يؤثر على اللغات التي يمكنك الترجمة بينها.",
     "translationLanguages": "لغات الترجمة",
     "translationLanguagesDesc": "اختر اللغة التي تتحدث بها (لغتك) واللغة التي تريد سماع الترجمة بها (اللغة الهدف). اختر \"اكتشاف تلقائي\" إذا لم تكن متأكداً من اللغة المصدر.",
-    "yourLanguage": "لغتك",
+    "yourLanguage": "لغتي",
     "userAccount": "حساب المستخدم",
     "userAccountTooltip": "للمستخدمين الذين لديهم معرفة تقنية ومفاتيح API الخاصة بهم، يمكنكم استخدام مفتاح API الخاص بكم سواء كنتم مسجلين الدخول أم لا. حساب المستخدم مصمم للمستخدمين الجدد الذين يفضلون إعداداً مبسطاً بدون تكوين معقد.",
     "signInRequired": "يمكنكم استخدام مزود الذكاء الاصطناعي ومفتاح API الخاصين بكم بدون تسجيل الدخول، أو التسجيل لشراء واستخدام خدمة API من kizuna.ai.",
     "signInDescription": "سجلوا للحصول على تجربة مريحة بدون تكوين معقد.",
-    "targetLanguage": "اللغة الهدف",
+    "targetLanguage": "لغة الآخر",
     "microphone": "ميكروفون",
     "microphoneDesc": "اختر الميكروفون لالتقاط كلامك. تحدث بلغتك في هذا الميكروفون، وسيترجم Sokuji كل ما يسمعه في الوقت الفعلي.",
     "speaker": "سماعة",
-    "speakerDesc": "اختر مكبر صوت لمراقبة المخرجات المترجمة. يتيح لك هذا سماع كيف يبدو الترجمة. يمكنك إيقافه إذا لم تكن المراقبة ضرورية. سواء كان مفتوحاً أو مغلقاً، يتم إرسال الصوت المترجم دائماً إلى الميكروفون الافتراضي ليسمعه المشاركون الآخرون."
+    "speakerDesc": "اختر مكبر صوت لمراقبة المخرجات المترجمة. يتيح لك هذا سماع كيف يبدو الترجمة. يمكنك إيقافه إذا لم تكن المراقبة ضرورية. سواء كان مفتوحاً أو مغلقاً، يتم إرسال الصوت المترجم دائماً إلى الميكروفون الافتراضي ليسمعه المشاركون الآخرون.",
+    "systemAudio": "صوت المشاركين",
+    "systemAudioDesc": "التقط وترجم الصوت من المشاركين الآخرين في الاجتماع. اختر جهاز إخراج الصوت الذي ترغب في التقاطه لترجمة كلامهم.",
+    "systemAudioDescExtension": "التقط ونسخ الصوت من علامة التبويب الحالية. اعرض النسخ والترجمات لكلام المشاركين الآخرين في الاجتماع."
   },
   "providers": {
     "openai": {
@@ -233,7 +236,14 @@
     "realVoicePassthrough": "تمرير الصوت الأصلي",
     "enableRealVoicePassthrough": "تمكين تمرير الصوت الأصلي",
     "realVoicePassthroughDescription": "تمرير صوتك الأصلي (صوت المتحدث) مباشرة إلى الميكروفون الافتراضي حتى يتمكن المستمعون من سماع الصوت الأصلي والمترجم معاً",
-    "realVoiceVolume": "مستوى الصوت الأصلي"
+    "realVoiceVolume": "مستوى الصوت الأصلي",
+    "mutualExclusivityNotice": "تعارض الصوت",
+    "mutualExclusivitySpeakerTitle": "لا يمكن تمكين السماعة",
+    "mutualExclusivityParticipantTitle": "لا يمكن تمكين صوت المشاركين",
+    "mutualExclusivitySpeakerText": "يرجى إيقاف صوت المشاركين قبل تفعيل السماعة.",
+    "mutualExclusivityParticipantText": "يرجى إيقاف السماعة قبل تفعيل صوت المشاركين.",
+    "availableSystemAudioSources": "أجهزة صوت النظام القابلة للالتقاط",
+    "refreshSystemAudioSources": "تحديث قائمة الأجهزة"
   },
   "logsPanel": {
     "title": "السجلات",
@@ -247,15 +257,9 @@
     "event": "حدث",
     "of": "من",
     "unknown": "غير معروف",
-    "sessionEnded": "انتهت الجلسة"
-  },
-  "translation": {
-    "start": "بدء الترجمة",
-    "stop": "إيقاف الترجمة",
-    "listening": "جاري الاستماع...",
-    "translating": "جاري الترجمة...",
-    "sourceLanguage": "اللغة المصدر",
-    "targetLanguage": "اللغة الهدف"
+    "sessionEnded": "انتهت الجلسة",
+    "speakerClient": "المتحدث",
+    "participantClient": "المشارك"
   },
   "mainPanel": {
     "conversationPlaceholder": "ستظهر المحادثة هنا",
@@ -311,7 +315,8 @@
     "clickToConfigMicrophone": "انقر لتكوين الميكروفون",
     "clickToConfigSpeaker": "انقر لتكوين السماعة",
     "typeMessage": "نص للترجمة...",
-    "send": "إرسال"
+    "send": "إرسال",
+    "participant": "المشارك"
   },
   "errors": {
     "microphoneAccess": "تم رفض الوصول إلى الميكروفون",

@@ -108,6 +108,7 @@ npm run electron:build
   - [Audio Flow Analysis](./audio-analysis/audio-flow-analysis.md)
   - [Audio System README](./audio-analysis/README.md)
   - [Audio Recording Process](./AUDIO_RECORDING_PROCESS.md)
+  - [System Audio Capture (Participant Translation)](./SYSTEM_AUDIO_CAPTURE.md)
 
 - **Backend Architecture**
   - [Better Auth Backend](../backend/README.md)

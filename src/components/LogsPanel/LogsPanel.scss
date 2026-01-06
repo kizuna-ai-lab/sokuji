@@ -102,7 +102,47 @@
       }
     }
   }
-  
+
+  .logs-tabs {
+    display: flex;
+    border-bottom: 1px solid #333;
+    padding: 0 15px;
+    background-color: #1a1a1a;
+
+    .logs-tab {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 10px 16px;
+      background: none;
+      border: none;
+      border-bottom: 2px solid transparent;
+      color: #888;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-bottom: -1px;
+
+      svg {
+        flex-shrink: 0;
+      }
+
+      &:hover {
+        color: #ccc;
+        background-color: rgba(255, 255, 255, 0.05);
+      }
+
+      &.active {
+        color: #10a37f;
+        border-bottom-color: #10a37f;
+
+        &:hover {
+          background-color: rgba(16, 163, 127, 0.1);
+        }
+      }
+    }
+  }
+
   .logs-content {
     flex: 1;
     overflow-y: auto;

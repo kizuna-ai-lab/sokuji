@@ -506,7 +506,7 @@ interface SettingsStore {
   // Helper methods
   getCurrentProviderSettings: () => OpenAISettings | GeminiSettings | OpenAICompatibleSettings | PalabraAISettings | KizunaAISettings;
   getCurrentProviderConfig: () => ProviderConfig;
-  getProcessedSystemInstructions: () => string;
+  getProcessedSystemInstructions: (swapLanguages?: boolean) => string;
   createSessionConfig: (systemInstructions: string) => SessionConfig;
   navigateToSettings: (target: string | null) => void;
 }
@@ -975,7 +975,7 @@ const useSettingsStore = create<SettingsStore>()(
       }
     },
 
-    getProcessedSystemInstructions: () => {
+    getProcessedSystemInstructions: (swapLanguages = false) => {
       const state = get();
       if (state.useTemplateMode) {
         const providerConfig = state.getCurrentProviderConfig();
@@ -987,9 +987,13 @@ const useSettingsStore = create<SettingsStore>()(
         const sourceLangName = sourceLang?.englishName || currentSettings.sourceLanguage || 'SOURCE_LANGUAGE';
         const targetLangName = targetLang?.englishName || currentSettings.targetLanguage || 'TARGET_LANGUAGE';
 
+        // If swapLanguages is true, swap source and target (for participant audio translation)
+        const effectiveSource = swapLanguages ? targetLangName : sourceLangName;
+        const effectiveTarget = swapLanguages ? sourceLangName : targetLangName;
+
         return state.templateSystemInstructions
-          .replace(/\{\{SOURCE_LANGUAGE\}\}/g, sourceLangName)
-          .replace(/\{\{TARGET_LANGUAGE\}\}/g, targetLangName);
+          .replace(/\{\{SOURCE_LANGUAGE\}\}/g, effectiveSource)
+          .replace(/\{\{TARGET_LANGUAGE\}\}/g, effectiveTarget);
       } else {
         return state.systemInstructions;
       }

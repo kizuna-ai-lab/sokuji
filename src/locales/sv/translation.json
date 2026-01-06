@@ -57,7 +57,9 @@
     "apiKeyValidated": "API-nyckel validerad",
     "realtimeTranslationAvailable": "Realtidsöversättningstjänst är tillgänglig",
     "authentication": "Autentisering",
-    "autoAuthenticated": "Automatiskt autentiserad via ditt konto"
+    "autoAuthenticated": "Automatiskt autentiserad via ditt konto",
+    "sourceLanguage": "Mitt språk",
+    "targetLanguage": "Den andras språk"
   },
   "mainPanel": {
     "conversationPlaceholder": "Konversationen kommer att visas här",
@@ -80,15 +82,20 @@
     "realVoicePassthrough": "Original Audio Genomströmning",
     "enableRealVoicePassthrough": "Aktivera Original Audio Genomströmning",
     "realVoicePassthroughDescription": "Skicka ditt ursprungliga ljud (talarens röst) direkt till den virtuella mikrofonen så att lyssnarna kan höra både det ursprungliga och översatta ljudet",
-    "realVoiceVolume": "Original Audio Volym"
+    "realVoiceVolume": "Original Audio Volym",
+    "mutualExclusivityNotice": "Ljudkonflikt",
+    "mutualExclusivitySpeakerTitle": "Kan inte aktivera Högtalare",
+    "mutualExclusivityParticipantTitle": "Kan inte aktivera Deltagarljud",
+    "mutualExclusivitySpeakerText": "Stäng av Deltagarljud innan du aktiverar Högtalare.",
+    "mutualExclusivityParticipantText": "Stäng av Högtalare innan du aktiverar Deltagarljud.",
+    "availableSystemAudioSources": "Fångningsbara systemaudioenheter",
+    "refreshSystemAudioSources": "Uppdatera enhetslista"
   },
   "logsPanel": {
     "title": "Loggar",
-    "sessionEnded": "Session avslutad"
-  },
-  "translation": {
-    "start": "Starta översättning",
-    "stop": "Stoppa översättning"
+    "sessionEnded": "Session avslutad",
+    "speakerClient": "Talare",
+    "participantClient": "Deltagare"
   },
   "errors": {
     "microphoneAccess": "Mikrofonåtkomst nekad",
@@ -243,16 +250,19 @@
     "interfaceLanguageDesc": "Detta ändrar språket för Sokujis menyer och knappar. Det påverkar INTE språken du kan översätta mellan.",
     "translationLanguages": "Översättningsspråk",
     "translationLanguagesDesc": "Välj vilket språk du talar (Ditt Språk) och vilket språk du vill höra översättningen på (Målspråk). Välj 'Automatisk Detektion' om du inte är säker på källspråket.",
-    "yourLanguage": "Ditt Språk",
+    "yourLanguage": "Mitt språk",
     "userAccount": "Användarkonto",
     "userAccountTooltip": "Tekniska användare kan använda sina egna API-nycklar. Användarkonto designat för förenklad installation.",
     "signInRequired": "Använd din egen API-nyckel eller registrera dig för kizuna.ai-tjänsten.",
     "signInDescription": "Registrera dig för förenklad upplevelse.",
-    "targetLanguage": "Målspråk",
+    "targetLanguage": "Den andras språk",
     "microphone": "Mikrofon",
     "microphoneDesc": "Välj mikrofon för att fånga ditt tal. Tala ditt språk i denna mikrofon, och Sokuji kommer att översätta allt den hör i realtid.",
     "speaker": "Högtalare",
-    "speakerDesc": "Välj en högtalare för att övervaka den översatta utmatningen. Detta låter dig höra hur översättningen låter. Du kan stänga av den om övervakning inte behövs. Oavsett om den är på eller av, skickas det översatta ljudet alltid till den virtuella mikrofonen för andra deltagare att höra."
+    "speakerDesc": "Välj en högtalare för att övervaka den översatta utmatningen. Detta låter dig höra hur översättningen låter. Du kan stänga av den om övervakning inte behövs. Oavsett om den är på eller av, skickas det översatta ljudet alltid till den virtuella mikrofonen för andra deltagare att höra.",
+    "systemAudio": "Deltagarljud",
+    "systemAudioDesc": "Fånga och översätt ljud från andra mötesdeltagare. Välj vilken ljudutgång som ska fångas för att översätta deras tal.",
+    "systemAudioDescExtension": "Fånga och transkribera ljud från den aktuella fliken. Se transkriptioner och översättningar av andra mötesdeltagares tal."
   },
   "providers": {
     "openai": {
@@ -315,7 +325,8 @@
     "clickToConfigMicrophone": "Klicka för att konfigurera mikrofon",
     "clickToConfigSpeaker": "Klicka för att konfigurera högtalare",
     "typeMessage": "Text att översätta...",
-    "send": "Skicka"
+    "send": "Skicka",
+    "participant": "Deltagare"
   },
   "connectionStatus": {
     "disconnected": "Frånkopplad",

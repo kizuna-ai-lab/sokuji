@@ -48,8 +48,8 @@
     "userTranscriptModel": "Modello di trascrizione utente",
     "noiseReduction": "Riduzione del rumore",
     "modelConfiguration": "Configurazione del modello",
-    "sourceLanguage": "Lingua di origine",
-    "targetLanguage": "Lingua di destinazione",
+    "sourceLanguage": "La mia lingua",
+    "targetLanguage": "Lingua dell'altro",
     "preview": "Anteprima",
     "simple": "Semplice",
     "advanced": "Avanzato",
@@ -151,7 +151,14 @@
     "realVoicePassthrough": "Passaggio Audio Originale",
     "enableRealVoicePassthrough": "Abilita Passaggio Audio Originale",
     "realVoicePassthroughDescription": "Passa il tuo audio originale (voce del parlante) direttamente al microfono virtuale in modo che gli ascoltatori possano sentire sia l'audio originale che quello tradotto",
-    "realVoiceVolume": "Volume Audio Originale"
+    "realVoiceVolume": "Volume Audio Originale",
+    "mutualExclusivityNotice": "Conflitto Audio",
+    "mutualExclusivitySpeakerTitle": "Impossibile abilitare l'Altoparlante",
+    "mutualExclusivityParticipantTitle": "Impossibile abilitare l'Audio dei Partecipanti",
+    "mutualExclusivitySpeakerText": "Si prega di disattivare l'Audio dei Partecipanti prima di abilitare l'Altoparlante.",
+    "mutualExclusivityParticipantText": "Si prega di disattivare l'Altoparlante prima di abilitare l'Audio dei Partecipanti.",
+    "availableSystemAudioSources": "Dispositivi audio di sistema catturabili",
+    "refreshSystemAudioSources": "Aggiorna elenco dispositivi"
   },
   "logsPanel": {
     "title": "Log",
@@ -165,15 +172,9 @@
     "event": "Evento",
     "of": "di",
     "unknown": "sconosciuto",
-    "sessionEnded": "Sessione terminata"
-  },
-  "translation": {
-    "start": "Inizia traduzione",
-    "stop": "Ferma traduzione",
-    "listening": "In ascolto...",
-    "translating": "Traduzione...",
-    "sourceLanguage": "Lingua di origine",
-    "targetLanguage": "Lingua di destinazione"
+    "sessionEnded": "Sessione terminata",
+    "speakerClient": "Oratore",
+    "participantClient": "Partecipante"
   },
   "mainPanel": {
     "conversationPlaceholder": "La conversazione apparirà qui",
@@ -349,16 +350,19 @@
     "interfaceLanguageDesc": "Questo cambia la lingua dei menu e pulsanti di Sokuji. NON influisce sulle lingue tra cui puoi tradurre.",
     "translationLanguages": "Lingue di Traduzione",
     "translationLanguagesDesc": "Scegli quale lingua parli (La Tua Lingua) e in quale lingua vuoi sentire la traduzione (Lingua di Destinazione). Seleziona \"Rilevamento Automatico\" se non sei sicuro della lingua di origine.",
-    "yourLanguage": "La Tua Lingua",
+    "yourLanguage": "La mia lingua",
     "userAccount": "Account Utente",
     "userAccountTooltip": "Per gli utenti con conoscenze tecniche e le proprie chiavi API, potete utilizzare la vostra chiave API sia che siate collegati o meno. L'Account Utente è progettato per i nuovi utenti che preferiscono una configurazione semplificata senza configurazioni complesse.",
     "signInRequired": "Potete utilizzare il vostro fornitore di AI e la chiave API senza accedere, oppure registrarvi per acquistare e utilizzare il servizio API di kizuna.ai.",
     "signInDescription": "Registratevi per un'esperienza comoda senza configurazioni complesse.",
-    "targetLanguage": "Lingua di Destinazione",
+    "targetLanguage": "Lingua dell'altro",
     "microphone": "Microfono",
     "microphoneDesc": "Seleziona il microfono per catturare il tuo parlato. Parla nella tua lingua in questo microfono, e Sokuji tradurrà tutto ciò che sente in tempo reale.",
     "speaker": "Altoparlante",
-    "speakerDesc": "Seleziona un altoparlante per monitorare l'output tradotto. Questo ti permette di sentire come suona la traduzione. Puoi spegnerlo se il monitoraggio non è necessario. Che sia acceso o spento, l'audio tradotto viene sempre inviato al microfono virtuale perché altri partecipanti possano sentirlo."
+    "speakerDesc": "Seleziona un altoparlante per monitorare l'output tradotto. Questo ti permette di sentire come suona la traduzione. Puoi spegnerlo se il monitoraggio non è necessario. Che sia acceso o spento, l'audio tradotto viene sempre inviato al microfono virtuale perché altri partecipanti possano sentirlo.",
+    "systemAudio": "Audio dei Partecipanti",
+    "systemAudioDesc": "Cattura e traduci l'audio degli altri partecipanti alla riunione. Seleziona quale dispositivo di uscita audio catturare per tradurre il loro discorso.",
+    "systemAudioDescExtension": "Cattura e trascrivi l'audio della scheda corrente. Visualizza le trascrizioni e le traduzioni del discorso degli altri partecipanti alla riunione."
   },
   "providers": {
     "openai": {
@@ -421,7 +425,8 @@
     "clickToConfigMicrophone": "Clicca per configurare il microfono",
     "clickToConfigSpeaker": "Clicca per configurare l'altoparlante",
     "typeMessage": "Testo da tradurre...",
-    "send": "Invia"
+    "send": "Invia",
+    "participant": "Partecipante"
   },
   "connectionStatus": {
     "disconnected": "Disconnesso",

@@ -47,8 +47,8 @@
     "userTranscriptModel": "Model transkrip pengguna",
     "noiseReduction": "Pengurangan bunyi bising",
     "modelConfiguration": "Konfigurasi model",
-    "sourceLanguage": "Bahasa sumber",
-    "targetLanguage": "Bahasa sasaran",
+    "sourceLanguage": "Bahasa saya",
+    "targetLanguage": "Bahasa pihak lain",
     "preview": "Pratonton",
     "simple": "Mudah",
     "advanced": "Lanjutan",
@@ -137,16 +137,19 @@
     "interfaceLanguageDesc": "Ini mengubah bahasa menu dan butang Sokuji. Ia TIDAK mempengaruhi bahasa mana yang boleh anda terjemahkan.",
     "translationLanguages": "Bahasa Terjemahan",
     "translationLanguagesDesc": "Pilih bahasa yang anda gunakan (Bahasa Anda) dan bahasa yang anda mahu dengar terjemahannya (Bahasa Sasaran). Pilih \"Kesan Automatik\" jika anda tidak pasti tentang bahasa sumber.",
-    "yourLanguage": "Bahasa Anda",
+    "yourLanguage": "Bahasa saya",
     "userAccount": "Akaun Pengguna",
     "userAccountTooltip": "Pengguna teknikal boleh menggunakan kunci API mereka sendiri. Akaun Pengguna direka untuk persediaan yang dipermudahkan.",
     "signInRequired": "Anda boleh menggunakan kunci API sendiri atau mendaftar untuk perkhidmatan kizuna.ai.",
     "signInDescription": "Daftar untuk pengalaman yang dipermudahkan.",
-    "targetLanguage": "Bahasa Sasaran",
+    "targetLanguage": "Bahasa pihak lain",
     "microphone": "Mikrofon",
     "microphoneDesc": "Pilih mikrofon untuk menangkap pertuturan anda. Bercakap dalam bahasa anda ke mikrofon ini, dan Sokuji akan menterjemah semua yang didengarinya dalam masa nyata.",
     "speaker": "Pembesar Suara",
-    "speakerDesc": "Pilih pembesar suara untuk memantau output terjemahan. Ini membolehkan anda mendengar bagaimana terjemahan kedengaran. Anda boleh mematikannya jika pemantauan tidak diperlukan. Sama ada hidup atau mati, audio terjemahan sentiasa dihantar ke mikrofon maya agar peserta lain dapat mendengar."
+    "speakerDesc": "Pilih pembesar suara untuk memantau output terjemahan. Ini membolehkan anda mendengar bagaimana terjemahan kedengaran. Anda boleh mematikannya jika pemantauan tidak diperlukan. Sama ada hidup atau mati, audio terjemahan sentiasa dihantar ke mikrofon maya agar peserta lain dapat mendengar.",
+    "systemAudio": "Audio Peserta",
+    "systemAudioDesc": "Tangkap dan terjemahkan audio daripada peserta mesyuarat lain. Pilih peranti output audio yang akan ditangkap bagi menterjemahkan pertuturan mereka.",
+    "systemAudioDescExtension": "Tangkap dan transkripkan audio dari tab semasa. Lihat transkripsi dan terjemahan ucapan peserta mesyuarat lain."
   },
   "providers": {
     "openai": {
@@ -209,7 +212,8 @@
     "clickToConfigMicrophone": "Klik untuk mengkonfigurasi mikrofon",
     "clickToConfigSpeaker": "Klik untuk mengkonfigurasi pembesar suara",
     "typeMessage": "Teks untuk diterjemah...",
-    "send": "Hantar"
+    "send": "Hantar",
+    "participant": "Peserta"
   },
   "connectionStatus": {
     "disconnected": "Terputus",
@@ -247,7 +251,14 @@
     "realVoicePassthrough": "Laluan Audio Asal",
     "enableRealVoicePassthrough": "Dayakan Laluan Audio Asal",
     "realVoicePassthroughDescription": "Hantar audio asal anda (suara penutur) terus ke mikrofon maya supaya pendengar boleh mendengar kedua-dua audio asal dan terjemahan",
-    "realVoiceVolume": "Volum Audio Asal"
+    "realVoiceVolume": "Volum Audio Asal",
+    "mutualExclusivityNotice": "Konflik Audio",
+    "mutualExclusivitySpeakerTitle": "Tidak Dapat Dayakan Pembesar Suara",
+    "mutualExclusivityParticipantTitle": "Tidak Dapat Dayakan Audio Peserta",
+    "mutualExclusivitySpeakerText": "Sila matikan Audio Peserta sebelum mendayakan Pembesar Suara.",
+    "mutualExclusivityParticipantText": "Sila matikan Pembesar Suara sebelum mendayakan Audio Peserta.",
+    "availableSystemAudioSources": "Peranti Audio Sistem Boleh Tangkap",
+    "refreshSystemAudioSources": "Muat semula senarai peranti"
   },
   "logsPanel": {
     "title": "Log",
@@ -261,15 +272,9 @@
     "event": "Peristiwa",
     "of": "daripada",
     "unknown": "tidak diketahui",
-    "sessionEnded": "Sesi Tamat"
-  },
-  "translation": {
-    "start": "Mula terjemahan",
-    "stop": "Henti terjemahan",
-    "listening": "Mendengar...",
-    "translating": "Menterjemah...",
-    "sourceLanguage": "Bahasa sumber",
-    "targetLanguage": "Bahasa sasaran"
+    "sessionEnded": "Sesi Tamat",
+    "speakerClient": "Penceramah",
+    "participantClient": "Peserta"
   },
   "mainPanel": {
     "conversationPlaceholder": "Perbualan akan muncul di sini",
