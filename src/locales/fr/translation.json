@@ -159,7 +159,9 @@
     "mutualExclusivitySpeakerTitle": "Impossible d'activer le Haut-parleur",
     "mutualExclusivityParticipantTitle": "Impossible d'activer l'Audio des Participants",
     "mutualExclusivitySpeakerText": "Veuillez désactiver l'Audio des Participants avant d'activer le Haut-parleur.",
-    "mutualExclusivityParticipantText": "Veuillez désactiver le Haut-parleur avant d'activer l'Audio des Participants."
+    "mutualExclusivityParticipantText": "Veuillez désactiver le Haut-parleur avant d'activer l'Audio des Participants.",
+    "availableSystemAudioSources": "Sources Disponibles",
+    "refreshSystemAudioSources": "Actualiser les sources"
   },
   "logsPanel": {
     "title": "Journaux",

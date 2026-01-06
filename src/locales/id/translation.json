@@ -276,7 +276,9 @@
     "mutualExclusivitySpeakerTitle": "Tidak Dapat Mengaktifkan Speaker",
     "mutualExclusivityParticipantTitle": "Tidak Dapat Mengaktifkan Audio Peserta",
     "mutualExclusivitySpeakerText": "Harap matikan Audio Peserta sebelum mengaktifkan Speaker.",
-    "mutualExclusivityParticipantText": "Harap matikan Speaker sebelum mengaktifkan Audio Peserta."
+    "mutualExclusivityParticipantText": "Harap matikan Speaker sebelum mengaktifkan Audio Peserta.",
+    "availableSystemAudioSources": "Sumber Tersedia",
+    "refreshSystemAudioSources": "Segarkan sumber"
   },
   "logsPanel": {
     "title": "Log",

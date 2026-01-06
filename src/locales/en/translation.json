@@ -243,7 +243,9 @@
     "mutualExclusivitySpeakerTitle": "Cannot enable Speaker",
     "mutualExclusivityParticipantTitle": "Cannot enable Participant Audio",
     "mutualExclusivitySpeakerText": "Please turn off Participant Audio before enabling Speaker.",
-    "mutualExclusivityParticipantText": "Please turn off Speaker before enabling Participant Audio."
+    "mutualExclusivityParticipantText": "Please turn off Speaker before enabling Participant Audio.",
+    "availableSystemAudioSources": "Available Sources",
+    "refreshSystemAudioSources": "Refresh sources"
   },
   "auth": {
     "signInToUseKizunaAI": "Please sign in to use Kizuna AI service",

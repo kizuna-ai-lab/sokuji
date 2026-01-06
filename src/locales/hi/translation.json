@@ -232,7 +232,9 @@
     "mutualExclusivitySpeakerTitle": "स्पीकर सक्षम नहीं कर सकते",
     "mutualExclusivityParticipantTitle": "प्रतिभागी ऑडियो सक्षम नहीं कर सकते",
     "mutualExclusivitySpeakerText": "स्पीकर सक्षम करने से पहले कृपया प्रतिभागी ऑडियो बंद करें।",
-    "mutualExclusivityParticipantText": "प्रतिभागी ऑडियो सक्षम करने से पहले कृपया स्पीकर बंद करें।"
+    "mutualExclusivityParticipantText": "प्रतिभागी ऑडियो सक्षम करने से पहले कृपया स्पीकर बंद करें।",
+    "availableSystemAudioSources": "उपलब्ध स्रोत",
+    "refreshSystemAudioSources": "स्रोतों को रिफ्रेश करें"
   },
   "logsPanel": {
     "title": "लॉग्स",

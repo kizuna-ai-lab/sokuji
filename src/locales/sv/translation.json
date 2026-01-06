@@ -87,7 +87,9 @@
     "mutualExclusivitySpeakerTitle": "Kan inte aktivera Högtalare",
     "mutualExclusivityParticipantTitle": "Kan inte aktivera Deltagarljud",
     "mutualExclusivitySpeakerText": "Stäng av Deltagarljud innan du aktiverar Högtalare.",
-    "mutualExclusivityParticipantText": "Stäng av Högtalare innan du aktiverar Deltagarljud."
+    "mutualExclusivityParticipantText": "Stäng av Högtalare innan du aktiverar Deltagarljud.",
+    "availableSystemAudioSources": "Tillgängliga källor",
+    "refreshSystemAudioSources": "Uppdatera källor"
   },
   "logsPanel": {
     "title": "Loggar",

@@ -157,7 +157,9 @@
     "mutualExclusivitySpeakerTitle": "스피커를 활성화할 수 없습니다",
     "mutualExclusivityParticipantTitle": "참가자 오디오를 활성화할 수 없습니다",
     "mutualExclusivitySpeakerText": "스피커를 활성화하기 전에 참가자 오디오를 끄세요.",
-    "mutualExclusivityParticipantText": "참가자 오디오를 활성화하기 전에 스피커를 끄세요."
+    "mutualExclusivityParticipantText": "참가자 오디오를 활성화하기 전에 스피커를 끄세요.",
+    "availableSystemAudioSources": "사용 가능한 소스",
+    "refreshSystemAudioSources": "소스 새로고침"
   },
   "logsPanel": {
     "title": "로그",

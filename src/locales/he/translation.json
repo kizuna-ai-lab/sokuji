@@ -275,7 +275,9 @@
     "mutualExclusivitySpeakerTitle": "לא ניתן להפעיל רמקול",
     "mutualExclusivityParticipantTitle": "לא ניתן להפעיל שמע משתתפים",
     "mutualExclusivitySpeakerText": "אנא כבה את שמע המשתתפים לפני הפעלת הרמקול.",
-    "mutualExclusivityParticipantText": "אנא כבה את הרמקול לפני הפעלת שמע המשתתפים."
+    "mutualExclusivityParticipantText": "אנא כבה את הרמקול לפני הפעלת שמע המשתתפים.",
+    "availableSystemAudioSources": "מקורות זמינים",
+    "refreshSystemAudioSources": "רענן מקורות"
   },
   "logsPanel": {
     "title": "יומנים",

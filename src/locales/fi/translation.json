@@ -229,7 +229,9 @@
     "mutualExclusivitySpeakerTitle": "Kaiutinta ei voi ottaa käyttöön",
     "mutualExclusivityParticipantTitle": "Osallistujan ääntä ei voi ottaa käyttöön",
     "mutualExclusivitySpeakerText": "Ole hyvä ja sammuta Osallistujan ääni ennen Kaiuttimen käyttöönottoa.",
-    "mutualExclusivityParticipantText": "Ole hyvä ja sammuta Kaiutin ennen Osallistujan äänen käyttöönottoa."
+    "mutualExclusivityParticipantText": "Ole hyvä ja sammuta Kaiutin ennen Osallistujan äänen käyttöönottoa.",
+    "availableSystemAudioSources": "Saatavilla olevat lähteet",
+    "refreshSystemAudioSources": "Päivitä lähteet"
   },
   "logsPanel": {
     "title": "Lokit",

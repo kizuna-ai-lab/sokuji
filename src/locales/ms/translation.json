@@ -256,7 +256,9 @@
     "mutualExclusivitySpeakerTitle": "Tidak Dapat Dayakan Pembesar Suara",
     "mutualExclusivityParticipantTitle": "Tidak Dapat Dayakan Audio Peserta",
     "mutualExclusivitySpeakerText": "Sila matikan Audio Peserta sebelum mendayakan Pembesar Suara.",
-    "mutualExclusivityParticipantText": "Sila matikan Pembesar Suara sebelum mendayakan Audio Peserta."
+    "mutualExclusivityParticipantText": "Sila matikan Pembesar Suara sebelum mendayakan Audio Peserta.",
+    "availableSystemAudioSources": "Sumber Tersedia",
+    "refreshSystemAudioSources": "Muat Semula Sumber"
   },
   "logsPanel": {
     "title": "Log",

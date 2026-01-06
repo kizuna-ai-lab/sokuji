@@ -109,7 +109,9 @@
     "mutualExclusivitySpeakerTitle": "Hoparlör Etkinleştirilemiyor",
     "mutualExclusivityParticipantTitle": "Katılımcı Sesi Etkinleştirilemiyor",
     "mutualExclusivitySpeakerText": "Hoparlörü etkinleştirmeden önce lütfen Katılımcı Sesini kapatın.",
-    "mutualExclusivityParticipantText": "Katılımcı Sesini etkinleştirmeden önce lütfen Hoparlörü kapatın."
+    "mutualExclusivityParticipantText": "Katılımcı Sesini etkinleştirmeden önce lütfen Hoparlörü kapatın.",
+    "availableSystemAudioSources": "Kullanılabilir Kaynaklar",
+    "refreshSystemAudioSources": "Kaynakları yenile"
   },
   "logsPanel": {
     "title": "Günlükler",

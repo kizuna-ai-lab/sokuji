@@ -159,7 +159,9 @@
     "mutualExclusivitySpeakerTitle": "Lautsprecher kann nicht aktiviert werden",
     "mutualExclusivityParticipantTitle": "Teilnehmer-Audio kann nicht aktiviert werden",
     "mutualExclusivitySpeakerText": "Bitte schalten Sie Teilnehmer-Audio aus, bevor Sie den Lautsprecher aktivieren.",
-    "mutualExclusivityParticipantText": "Bitte schalten Sie den Lautsprecher aus, bevor Sie Teilnehmer-Audio aktivieren."
+    "mutualExclusivityParticipantText": "Bitte schalten Sie den Lautsprecher aus, bevor Sie Teilnehmer-Audio aktivieren.",
+    "availableSystemAudioSources": "Verfügbare Quellen",
+    "refreshSystemAudioSources": "Quellen aktualisieren"
   },
   "logsPanel": {
     "title": "Protokolle",

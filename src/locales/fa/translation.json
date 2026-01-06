@@ -238,7 +238,9 @@
     "mutualExclusivitySpeakerTitle": "نمی‌توان بلندگو را فعال کرد",
     "mutualExclusivityParticipantTitle": "نمی‌توان صدای شرکت‌کنندگان را فعال کرد",
     "mutualExclusivitySpeakerText": "لطفاً قبل از فعال‌سازی بلندگو، صدای شرکت‌کنندگان را خاموش کنید.",
-    "mutualExclusivityParticipantText": "لطفاً قبل از فعال‌سازی صدای شرکت‌کنندگان، بلندگو را خاموش کنید."
+    "mutualExclusivityParticipantText": "لطفاً قبل از فعال‌سازی صدای شرکت‌کنندگان، بلندگو را خاموش کنید.",
+    "availableSystemAudioSources": "منابع موجود",
+    "refreshSystemAudioSources": "بازخوانی منابع"
   },
   "logsPanel": {
     "title": "گزارش‌ها",

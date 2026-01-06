@@ -241,7 +241,9 @@
     "mutualExclusivitySpeakerTitle": "لا يمكن تمكين السماعة",
     "mutualExclusivityParticipantTitle": "لا يمكن تمكين صوت المشاركين",
     "mutualExclusivitySpeakerText": "يرجى إيقاف صوت المشاركين قبل تفعيل السماعة.",
-    "mutualExclusivityParticipantText": "يرجى إيقاف السماعة قبل تفعيل صوت المشاركين."
+    "mutualExclusivityParticipantText": "يرجى إيقاف السماعة قبل تفعيل صوت المشاركين.",
+    "availableSystemAudioSources": "المصادر المتاحة",
+    "refreshSystemAudioSources": "تحديث المصادر"
   },
   "logsPanel": {
     "title": "السجلات",

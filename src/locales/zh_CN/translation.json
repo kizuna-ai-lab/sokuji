@@ -272,7 +272,9 @@
     "mutualExclusivitySpeakerTitle": "无法启用扬声器",
     "mutualExclusivityParticipantTitle": "无法启用参与者音频",
     "mutualExclusivitySpeakerText": "请先关闭参与者音频，再启用扬声器。",
-    "mutualExclusivityParticipantText": "请先关闭扬声器，再启用参与者音频。"
+    "mutualExclusivityParticipantText": "请先关闭扬声器，再启用参与者音频。",
+    "availableSystemAudioSources": "可用源",
+    "refreshSystemAudioSources": "刷新源"
   },
   "logsPanel": {
     "title": "日志",

@@ -176,7 +176,9 @@
     "mutualExclusivitySpeakerTitle": "స్పీకర్‌ను ప్రారంభించలేము",
     "mutualExclusivityParticipantTitle": "పార్టిసిపెంట్ ఆడియోను ప్రారంభించలేము",
     "mutualExclusivitySpeakerText": "స్పీకర్‌ను ప్రారంభించే ముందు దయచేసి పార్టిసిపెంట్ ఆడియోను ఆఫ్ చేయండి.",
-    "mutualExclusivityParticipantText": "పార్టిసిపెంట్ ఆడియోను ప్రారంభించే ముందు దయచేసి స్పీకర్‌ను ఆఫ్ చేయండి."
+    "mutualExclusivityParticipantText": "పార్టిసిపెంట్ ఆడియోను ప్రారంభించే ముందు దయచేసి స్పీకర్‌ను ఆఫ్ చేయండి.",
+    "availableSystemAudioSources": "అందుబాటులో ఉన్న మూలాలు",
+    "refreshSystemAudioSources": "మూలాలను రిఫ్రెష్ చేయండి"
   },
   "logsPanel": {
     "title": "లాగ్స్",

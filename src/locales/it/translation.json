@@ -156,7 +156,9 @@
     "mutualExclusivitySpeakerTitle": "Impossibile abilitare l'Altoparlante",
     "mutualExclusivityParticipantTitle": "Impossibile abilitare l'Audio dei Partecipanti",
     "mutualExclusivitySpeakerText": "Si prega di disattivare l'Audio dei Partecipanti prima di abilitare l'Altoparlante.",
-    "mutualExclusivityParticipantText": "Si prega di disattivare l'Altoparlante prima di abilitare l'Audio dei Partecipanti."
+    "mutualExclusivityParticipantText": "Si prega di disattivare l'Altoparlante prima di abilitare l'Audio dei Partecipanti.",
+    "availableSystemAudioSources": "Fonti Disponibili",
+    "refreshSystemAudioSources": "Aggiorna fonti"
   },
   "logsPanel": {
     "title": "Log",

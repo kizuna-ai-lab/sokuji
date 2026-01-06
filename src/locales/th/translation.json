@@ -193,7 +193,9 @@
     "mutualExclusivitySpeakerTitle": "ไม่สามารถเปิดใช้งานลำโพง",
     "mutualExclusivityParticipantTitle": "ไม่สามารถเปิดใช้งานเสียงผู้เข้าร่วม",
     "mutualExclusivitySpeakerText": "กรุณาปิดเสียงผู้เข้าร่วมก่อนเปิดใช้งานลำโพง",
-    "mutualExclusivityParticipantText": "กรุณาปิดลำโพงก่อนเปิดใช้งานเสียงผู้เข้าร่วม"
+    "mutualExclusivityParticipantText": "กรุณาปิดลำโพงก่อนเปิดใช้งานเสียงผู้เข้าร่วม",
+    "availableSystemAudioSources": "แหล่งที่มาที่มีอยู่",
+    "refreshSystemAudioSources": "รีเฟรชแหล่งที่มา"
   },
   "logsPanel": {
     "title": "บันทึก",

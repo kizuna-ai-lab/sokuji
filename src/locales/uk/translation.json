@@ -171,7 +171,9 @@
     "mutualExclusivitySpeakerTitle": "Неможливо увімкнути Динамік",
     "mutualExclusivityParticipantTitle": "Неможливо увімкнути Аудіо учасників",
     "mutualExclusivitySpeakerText": "Будь ласка, вимкніть Аудіо учасників перед увімкненням Динаміка.",
-    "mutualExclusivityParticipantText": "Будь ласка, вимкніть Динамік перед увімкненням Аудіо учасників."
+    "mutualExclusivityParticipantText": "Будь ласка, вимкніть Динамік перед увімкненням Аудіо учасників.",
+    "availableSystemAudioSources": "Доступні джерела",
+    "refreshSystemAudioSources": "Оновити джерела"
   },
   "logsPanel": {
     "title": "Логи",
