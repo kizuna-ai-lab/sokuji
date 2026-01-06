@@ -82,6 +82,7 @@
     "loadingModels": "Verfügbare Modelle werden geladen...",
     "modelsFound": "{{count}} Modelle verfügbar",
     "experimentalFeatureTooltip": "Dies ist eine experimentelle Funktion und kann instabil sein.",
+    "geminiParticipantTokenWarning": "Gemini participant mode generates audio responses that are discarded, resulting in additional token usage.",
     "help": "Hilfe",
     "auto": "Auto",
     "low": "Niedrig",

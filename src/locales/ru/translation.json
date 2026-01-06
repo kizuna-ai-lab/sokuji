@@ -81,6 +81,7 @@
     "loadingModels": "Загрузка доступных моделей...",
     "modelsFound": "{{count}} моделей доступно",
     "experimentalFeatureTooltip": "Это экспериментальная функция, которая может быть нестабильной.",
+    "geminiParticipantTokenWarning": "Gemini participant mode generates audio responses that are discarded, resulting in additional token usage.",
     "help": "Помощь",
     "auto": "Авто",
     "low": "Низкий",

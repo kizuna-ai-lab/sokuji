@@ -867,6 +867,15 @@ const SimpleConfigPanel: React.FC<SimpleConfigPanelProps> = ({ toggleSettings, h
                 icon="help"
                 maxWidth={300}
               />
+              {provider === Provider.GEMINI && isSystemAudioCaptureEnabled && (
+                <Tooltip
+                  content={t('settings.geminiParticipantTokenWarning', 'Gemini participant mode generates audio responses that are discarded, resulting in additional token usage.')}
+                  position="top"
+                  maxWidth={280}
+                >
+                  <AlertTriangle size={16} style={{ color: '#f59e0b', marginLeft: '4px' }} />
+                </Tooltip>
+              )}
             </h3>
 
             <div className="device-list">

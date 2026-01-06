@@ -171,6 +171,7 @@
     "loadingModels": "載入可用模型中...",
     "modelsFound": "找到 {{count}} 個模型",
     "experimentalFeatureTooltip": "這是一個實驗性功能，可能會不穩定。",
+    "geminiParticipantTokenWarning": "Gemini participant mode generates audio responses that are discarded, resulting in additional token usage.",
     "help": "說明",
     "auto": "自動",
     "low": "低",

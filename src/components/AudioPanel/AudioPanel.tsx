@@ -10,11 +10,14 @@ import { useTranslation } from 'react-i18next';
 import { useAnalytics } from '../../lib/analytics';
 import { useIsSessionActive } from '../../stores/sessionStore';
 import { isExtension } from '../../utils/environment';
+import { useProvider } from '../../stores/settingsStore';
+import { Provider } from '../../types/Provider';
 
 const AudioPanel: React.FC<{ toggleAudio: () => void }> = ({ toggleAudio }) => {
   const { t } = useTranslation();
   const { trackEvent } = useAnalytics();
   const isSessionActive = useIsSessionActive();
+  const provider = useProvider();
   const [showVirtualMicWarning, setShowVirtualMicWarning] = useState(false);
   const [showVirtualSpeakerWarning, setShowVirtualSpeakerWarning] = useState(false);
   const [showMutualExclusivityWarning, setShowMutualExclusivityWarning] = useState(false);
@@ -410,6 +413,15 @@ const AudioPanel: React.FC<{ toggleAudio: () => void }> = ({ toggleAudio }) => {
                 icon="help"
                 maxWidth={300}
               />
+              {provider === Provider.GEMINI && isSystemAudioCaptureEnabled && (
+                <Tooltip
+                  content={t('settings.geminiParticipantTokenWarning', 'Gemini participant mode generates audio responses that are discarded, resulting in additional token usage.')}
+                  position="top"
+                  maxWidth={280}
+                >
+                  <AlertTriangle size={16} style={{ color: '#f59e0b', marginLeft: '4px' }} />
+                </Tooltip>
+              )}
             </h3>
 
             {/* Extension: Output device selection with Off option */}

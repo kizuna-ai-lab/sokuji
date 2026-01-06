@@ -82,6 +82,7 @@
     "loadingModels": "正在加载可用模型...",
     "modelsFound": "找到{{count}}个模型",
     "experimentalFeatureTooltip": "这是一个实验性功能，可能会不稳定。",
+    "geminiParticipantTokenWarning": "Gemini参与者模式会生成音频响应但只使用文本转录，导致额外的token消耗。",
     "help": "帮助",
     "auto": "自动",
     "low": "低",
