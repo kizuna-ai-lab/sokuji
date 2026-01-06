@@ -230,7 +230,9 @@
     "clickToConfigSpeaker": "לחץ כדי להגדיר רמקול",
     "typeMessage": "טקסט לתרגום...",
     "send": "שלח",
-    "participant": "משתתף"
+    "participant": "משתתף",
+    "error": "שגיאה",
+    "unknownError": "שגיאה לא ידועה"
   },
   "connectionStatus": {
     "disconnected": "מנותק",

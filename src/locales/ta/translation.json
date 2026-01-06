@@ -180,7 +180,9 @@
     "basicMode": "அடிப்படை",
     "advancedMode": "மேம்பட்ட",
     "typeMessage": "மொழிபெயர்க்க உரை...",
-    "send": "அனுப்பு"
+    "send": "அனுப்பு",
+    "error": "பிழை",
+    "unknownError": "அறியப்படாத பிழை"
   },
   "audioPanel": {
     "title": "ஆடியோ அமைப்புகள்",

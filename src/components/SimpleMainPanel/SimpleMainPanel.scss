@@ -87,6 +87,38 @@
           }
         }
 
+        &.error {
+          align-self: center;
+          background: #5a1a1a;
+          border: 1px solid #cc4444;
+          margin-left: auto;
+          margin-right: auto;
+
+          .message-header {
+            color: #ff6b6b;
+            font-weight: 600;
+
+            svg {
+              margin-right: 4px;
+            }
+          }
+
+          .message-content.error-content {
+            color: #ff6b6b;
+
+            .error-message-text {
+              font-size: 14px;
+              margin-bottom: 4px;
+            }
+
+            .error-param {
+              font-size: 12px;
+              color: #ffaaaa;
+              opacity: 0.8;
+            }
+          }
+        }
+
         .message-header {
           font-size: 11px;
           text-transform: uppercase;

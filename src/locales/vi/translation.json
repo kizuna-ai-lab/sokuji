@@ -97,7 +97,9 @@
     "basicMode": "Cơ bản",
     "advancedMode": "Nâng cao",
     "typeMessage": "Văn bản cần dịch...",
-    "send": "Gửi"
+    "send": "Gửi",
+    "error": "Lỗi",
+    "unknownError": "Lỗi không xác định"
   },
   "audioPanel": {
     "title": "Cài đặt âm thanh",

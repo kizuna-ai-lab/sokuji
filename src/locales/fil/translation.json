@@ -193,7 +193,9 @@
     "clickToConfigSpeaker": "I-click upang i-configure ang speaker",
     "typeMessage": "Teksto para isalin...",
     "send": "Ipadala",
-    "participant": "Kalahok"
+    "participant": "Kalahok",
+    "error": "Error",
+    "unknownError": "Hindi kilalang error"
   },
   "connectionStatus": {
     "disconnected": "Nakadiskonekta",

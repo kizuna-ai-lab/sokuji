@@ -175,7 +175,9 @@
     "basicMode": "Basis",
     "advancedMode": "Geavanceerd",
     "typeMessage": "Te vertalen tekst...",
-    "send": "Verzenden"
+    "send": "Verzenden",
+    "error": "Fout",
+    "unknownError": "Onbekende fout"
   },
   "errors": {
     "microphoneAccess": "Microfoon toegang geweigerd",

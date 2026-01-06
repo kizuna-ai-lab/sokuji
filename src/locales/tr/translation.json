@@ -95,7 +95,9 @@
     "basicMode": "Temel",
     "advancedMode": "Gelişmiş",
     "typeMessage": "Çevrilecek metin...",
-    "send": "Gönder"
+    "send": "Gönder",
+    "error": "Hata",
+    "unknownError": "Bilinmeyen hata"
   },
   "audioPanel": {
     "title": "Ses Ayarları",

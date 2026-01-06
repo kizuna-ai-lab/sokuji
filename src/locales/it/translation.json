@@ -194,7 +194,9 @@
     "basicMode": "Base",
     "advancedMode": "Avanzato",
     "typeMessage": "Testo da tradurre...",
-    "send": "Invia"
+    "send": "Invia",
+    "error": "Errore",
+    "unknownError": "Errore sconosciuto"
   },
   "errors": {
     "microphoneAccess": "Accesso al microfono negato",

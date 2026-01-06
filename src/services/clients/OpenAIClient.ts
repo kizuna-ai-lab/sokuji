@@ -239,14 +239,39 @@ export class OpenAIClient implements IClient {
         }
       };
       this.eventHandlers.onRealtimeEvent?.(standardizedEvent);
+
+      // Handle server-side error events
+      if (realtimeEvent.event.type === 'error' && realtimeEvent.source === 'server') {
+        const errorEvent = realtimeEvent.event as any;
+        if (errorEvent?.error) {
+          const errorType = errorEvent.error.type || 'error';
+          const errorMessage = errorEvent.error.message || errorEvent.error.code || 'Unknown error';
+          const errorItem: ConversationItem = {
+            id: `error_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
+            role: 'system',
+            type: 'error',
+            status: 'completed',
+            formatted: {
+              text: `[${errorType}] ${errorMessage}`,
+            },
+            content: [{
+              type: 'text',
+              text: errorMessage
+            }]
+          };
+
+          // Notify UI about the error item
+          this.eventHandlers.onConversationUpdated?.({ item: errorItem });
+        }
+      }
     });
 
     // Handle errors
     this.client.on('error', (event: any) => {
       this.eventHandlers.onRealtimeEvent?.({
         source: 'client',
-        event: { 
-          type: 'session.error', 
+        event: {
+          type: 'session.error',
           data: {
             message: event.message || event.toString(),
             type: event.type || 'error',
@@ -258,6 +283,26 @@ export class OpenAIClient implements IClient {
           }
         }
       });
+
+      // Create error ConversationItem for display in UI
+      const errorType = event.error?.type || event.type || 'error';
+      const errorMessage = event.error?.message || event.message || 'Unknown error';
+      const errorItem: ConversationItem = {
+        id: `error_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
+        role: 'system',
+        type: 'error',
+        status: 'completed',
+        formatted: {
+          text: `[${errorType}] ${errorMessage}`,
+        },
+        content: [{
+          type: 'text',
+          text: errorMessage
+        }]
+      };
+
+      // Notify UI about the error item
+      this.eventHandlers.onConversationUpdated?.({ item: errorItem });
       this.eventHandlers.onError?.(event);
     });
 
@@ -317,11 +362,67 @@ export class OpenAIClient implements IClient {
     };
   }
 
+  /**
+   * Wait for session creation with error handling and timeout
+   * This wraps waitForSessionCreated() to handle:
+   * 1. Server errors that occur during session creation (e.g., API errors, connection failures)
+   * 2. Timeout protection to prevent infinite waiting
+   */
+  private waitForSessionWithErrorHandling(): Promise<void> {
+    const SESSION_TIMEOUT = 30000; // 30 seconds timeout
+
+    return new Promise<void>((resolve, reject) => {
+      let isSettled = false;
+
+      // Timeout handler
+      const timeout = setTimeout(() => {
+        if (!isSettled) {
+          isSettled = true;
+          this.client.off('realtime.event', errorHandler);
+          reject(new Error('Session creation timeout - server did not respond in time'));
+        }
+      }, SESSION_TIMEOUT);
+
+      // Error event handler - listens for server errors during session creation
+      const errorHandler = (event: any) => {
+        if (event.event?.type === 'error' && !isSettled) {
+          isSettled = true;
+          clearTimeout(timeout);
+          this.client.off('realtime.event', errorHandler);
+          const errorMessage = event.event.error?.message || event.event.error?.code || 'Session creation failed';
+          reject(new Error(errorMessage));
+        }
+      };
+
+      // Register error handler
+      this.client.on('realtime.event', errorHandler);
+
+      // Wait for session creation
+      this.client.waitForSessionCreated()
+        .then(() => {
+          if (!isSettled) {
+            isSettled = true;
+            clearTimeout(timeout);
+            this.client.off('realtime.event', errorHandler);
+            resolve();
+          }
+        })
+        .catch((error: Error) => {
+          if (!isSettled) {
+            isSettled = true;
+            clearTimeout(timeout);
+            this.client.off('realtime.event', errorHandler);
+            reject(error);
+          }
+        });
+    });
+  }
+
   async connect(config: SessionConfig): Promise<void> {
     // Reset delta sequence number and item creation times for new session
     this.deltaSequenceNumber = 0;
     this.itemCreatedAtMap.clear();
-    
+
     // Create new client instance with fresh API key, API host and model
     this.client = new RealtimeClient({
       apiKey: this.apiKey,
@@ -329,7 +430,7 @@ export class OpenAIClient implements IClient {
       url: `${this.apiHost}/v1/realtime`,
       model: config.model
     });
-    
+
     // Re-setup event listeners for new client
     this.setupEventListeners();
 
@@ -339,10 +440,11 @@ export class OpenAIClient implements IClient {
     // Update session configuration immediately after connection
     // This is important to send configuration as soon as possible
     this.updateSession(config);
-    
-    // Wait for the session to be fully created by the server
+
+    // Wait for the session to be fully created by the server with error handling and timeout
     // This ensures MainPanel only allows user interaction after session is ready
-    await this.client.waitForSessionCreated();
+    // Also handles server errors that occur during session creation
+    await this.waitForSessionWithErrorHandling();
     
     // Only send these events after session is created
     this.eventHandlers.onRealtimeEvent?.({

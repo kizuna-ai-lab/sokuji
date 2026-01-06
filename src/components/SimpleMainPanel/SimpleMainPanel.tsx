@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { Mic, MicOff, Volume2, VolumeX, Loader, MessageSquare, Send } from 'lucide-react';
+import { Mic, MicOff, Volume2, VolumeX, Loader, MessageSquare, Send, AlertCircle } from 'lucide-react';
 import './SimpleMainPanel.scss';
 import {
   useProvider,
@@ -122,10 +122,10 @@ const SimpleMainPanel: React.FC<SimpleMainPanelProps> = React.memo(({
     }
   }
 
-  // Filter conversation items to show only user messages and assistant responses
+  // Filter conversation items to show only user messages, assistant responses, and errors
   const filteredItems = useMemo(
-    () => items.filter(item => 
-      (item.role === 'user' || item.role === 'assistant') &&
+    () => items.filter(item =>
+      (item.type === 'error' || item.role === 'user' || item.role === 'assistant') &&
       (item.formatted?.transcript || item.formatted?.text)
     ),
     [items]
@@ -243,8 +243,26 @@ const SimpleMainPanel: React.FC<SimpleMainPanelProps> = React.memo(({
               
               // Calculate highlighted characters for karaoke effect
               const highlightedChars = isPlaying ? Math.floor(text.length * progressRatio) : 0;
-              
+
               const isParticipant = (item as any).source === 'participant';
+
+              // Handle error messages - use formatted.text which contains "[errorType] errorMessage"
+              if (item.type === 'error') {
+                return (
+                  <div key={index} className={`message-bubble ${item.role} error`}>
+                    <div className="message-header">
+                      <span className="role">
+                        <AlertCircle size={12} style={{ marginRight: '4px' }} />
+                        {t('mainPanel.error', 'Error')}
+                      </span>
+                    </div>
+                    <div className="message-content error-content">
+                      <div className="error-message-text">{item.formatted?.text || t('mainPanel.unknownError', 'Unknown error')}</div>
+                    </div>
+                  </div>
+                );
+              }
+
               return (
                 <div key={index} className={`message-bubble ${item.role} ${isParticipant ? 'participant-source' : 'speaker-source'} ${isPlaying ? 'playing' : ''}`}>
                   <div className="message-header">

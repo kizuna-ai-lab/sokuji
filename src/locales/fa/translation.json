@@ -278,7 +278,9 @@
     "switchToAdvanced": "تغییر به حالت پیشرفته",
     "switchToBasic": "تغییر به حالت پایه",
     "typeMessage": "متن برای ترجمه...",
-    "send": "ارسال"
+    "send": "ارسال",
+    "error": "خطا",
+    "unknownError": "خطای ناشناخته"
   },
   "simplePanel": {
     "translationActive": "ترجمه فعال",

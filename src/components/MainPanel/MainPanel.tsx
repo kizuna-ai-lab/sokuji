@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
-import {X, Zap, Users, Mic, Loader, Play, Volume2, Wrench, Send} from 'lucide-react';
+import {X, Zap, Users, Mic, Loader, Play, Volume2, Wrench, Send, AlertCircle} from 'lucide-react';
 import './MainPanel.scss';
 import {
   useProvider,
@@ -305,6 +305,9 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           'speaker'
         );
 
+        // Note: Error ConversationItems are now created in OpenAIClient.ts
+        // to maintain consistent architecture with other clients
+
         // Track AI response state for text input queueing (OpenAI only)
         const eventType = realtimeEvent.event?.type;
         if (eventType === 'response.created') {
@@ -375,6 +378,12 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         // }
       },
       onConversationUpdated: async ({ item, delta }: { item: ConversationItem; delta?: any }) => {
+        // Handle error items specially - they are not stored in client's internal list
+        if (item.type === 'error') {
+          setItems(prevItems => [...prevItems, item]);
+          return;
+        }
+
         // Handle audio delta separately - send to player but skip UI update
         if (delta?.audio) {
           // Always stream assistant audio - monitor on/off is handled by global volume
@@ -1933,11 +1942,18 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         <div className="conversation-content" data-conversation-content>
           {combinedItems.length > 0 ? (
             combinedItems.map((item) => (
-              <div key={item.id} className={`conversation-item ${item.role} ${(item as any).source === 'participant' ? 'participant-source' : 'speaker-source'} ${playingItemId === item.id ? 'playing' : ''}`} style={{ position: 'relative' }}>
+              <div key={item.id} className={`conversation-item ${item.role} ${(item as any).source === 'participant' ? 'participant-source' : 'speaker-source'} ${item.type === 'error' ? 'error' : ''} ${playingItemId === item.id ? 'playing' : ''}`} style={{ position: 'relative' }}>
                 <div className="conversation-item-role">
-                  {(item as any).source === 'participant' && item.role === 'user'
-                    ? t('simplePanel.participant', 'Participant')
-                    : item.role}
+                  {item.type === 'error' ? (
+                    <>
+                      <AlertCircle size={12} />
+                      {t('mainPanel.error', 'Error')}
+                    </>
+                  ) : (item as any).source === 'participant' && item.role === 'user' ? (
+                    t('simplePanel.participant', 'Participant')
+                  ) : (
+                    item.role
+                  )}
                   {/* TODO: OpenAI Realtime API sometimes returns status="incomplete" even when audio is complete
                       This happens when response.output_item.done event has item.status="incomplete"
                       We should investigate why this occurs and handle it properly in the future
@@ -1954,6 +1970,15 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                 </div>
                 <div className="conversation-item-content">
                   {(() => {
+                    // Handle error messages - use formatted.text which contains "[errorType] errorMessage"
+                    if (item.type === 'error') {
+                      return (
+                        <div className="content-item error-message">
+                          <div className="error-content">{item.formatted?.text || t('mainPanel.unknownError', 'Unknown error')}</div>
+                        </div>
+                      );
+                    }
+
                     // Handle different item types based on the ItemType structure
                     // from openai-realtime-api
 

@@ -73,7 +73,9 @@
     "basicMode": "Grundläggande",
     "advancedMode": "Avancerad",
     "typeMessage": "Text att översätta...",
-    "send": "Skicka"
+    "send": "Skicka",
+    "error": "Fel",
+    "unknownError": "Okänt fel"
   },
   "audioPanel": {
     "title": "Ljudinställningar",

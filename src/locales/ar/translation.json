@@ -281,7 +281,9 @@
     "switchToAdvanced": "التبديل إلى الوضع المتقدم",
     "switchToBasic": "التبديل إلى الوضع الأساسي",
     "typeMessage": "نص للترجمة...",
-    "send": "إرسال"
+    "send": "إرسال",
+    "error": "خطأ",
+    "unknownError": "خطأ غير معروف"
   },
   "simplePanel": {
     "translationActive": "الترجمة نشطة",

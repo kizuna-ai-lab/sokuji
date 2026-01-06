@@ -231,7 +231,9 @@
     "clickToConfigSpeaker": "Klik untuk mengonfigurasi speaker",
     "typeMessage": "Teks untuk diterjemahkan...",
     "send": "Kirim",
-    "participant": "Peserta"
+    "participant": "Peserta",
+    "error": "Kesalahan",
+    "unknownError": "Kesalahan tidak diketahui"
   },
   "connectionStatus": {
     "disconnected": "Terputus",

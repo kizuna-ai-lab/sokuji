@@ -193,7 +193,9 @@
     "clickToConfigSpeaker": "Napsauta määrittääksesi kaiuttimen",
     "typeMessage": "Käännettävä teksti...",
     "send": "Lähetä",
-    "participant": "Osallistuja"
+    "participant": "Osallistuja",
+    "error": "Virhe",
+    "unknownError": "Tuntematon virhe"
   },
   "connectionStatus": {
     "disconnected": "Yhteys katkaistu",
