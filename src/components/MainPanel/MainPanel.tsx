@@ -814,7 +814,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
               type: 'semantic_vad' as const,
               createResponse: true,
               interruptResponse: false,
-              eagerness: 'medium',
+              eagerness: 'high',
             }
           };
           await systemClient.connect(participantSessionConfig);
@@ -895,7 +895,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
               type: 'semantic_vad' as const,
               createResponse: true,
               interruptResponse: false,
-              eagerness: 'medium',
+              eagerness: 'high',
             }
           };
           await tabClient.connect(participantSessionConfig);

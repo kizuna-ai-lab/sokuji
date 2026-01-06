@@ -107,7 +107,7 @@ The participant client is configured differently from the speaker client:
 | **Language Direction** | `sourceLanguage → targetLanguage` | `targetLanguage → sourceLanguage` (swapped) |
 | **Audio Output** | Enabled (TTS playback) | **Disabled** (`textOnly: true`) |
 | **Turn Detection** | User's setting (Normal/Semantic/Disabled) | **Always `semantic_vad`** |
-| **VAD Eagerness** | User's setting | **Fixed: `medium`** |
+| **VAD Eagerness** | User's setting | **Fixed: `high`** |
 | **Response Interruption** | Based on user setting | **Disabled** (`interruptResponse: false`) |
 
 ### Code Example
@@ -123,7 +123,7 @@ const participantSessionConfig = {
     type: 'semantic_vad' as const,
     createResponse: true,
     interruptResponse: false,
-    eagerness: 'medium',
+    eagerness: 'high',
   }
 };
 
