@@ -81,7 +81,9 @@
     "maxTokensTooltip": "Độ dài tối đa của mỗi bản dịch. Token giống như các mảnh từ - 100 token ≈ 75 từ. 2048-4096 tốt cho hội thoại. 'inf' = không giới hạn.",
     "transcriptModelTooltip": "Mô hình nhận dạng giọng nói. \nwhisper-1: Chuẩn, đáng tin cậy. \ngpt-4o-mini: Nhanh hơn, tốt cho ngôn ngữ phổ biến. \ngpt-4o: Chính xác nhất cho giọng địa phương/thuật ngữ kỹ thuật.",
     "noiseReductionTooltip": "Loại bỏ tiếng ồn nền. \nKhông: Không xử lý, dùng trong phòng yên tĩnh. \nGần: Cho tai nghe/microphone gần. \nXa: Cho loa/phòng hội nghị có tiếng vọng.",
-    "systemInstructionsTooltip": "Hướng dẫn tùy chỉnh cho AI dịch. Cho biết sở thích của bạn như giọng điệu trang trọng/thân mật, xử lý thuật ngữ kỹ thuật, hoặc phong cách dịch cụ thể."
+    "systemInstructionsTooltip": "Hướng dẫn tùy chỉnh cho AI dịch. Cho biết sở thích của bạn như giọng điệu trang trọng/thân mật, xử lý thuật ngữ kỹ thuật, hoặc phong cách dịch cụ thể.",
+    "sourceLanguage": "Ngôn ngữ của tôi",
+    "targetLanguage": "Ngôn ngữ đối phương"
   },
   "mainPanel": {
     "conversationPlaceholder": "Cuộc trò chuyện sẽ xuất hiện ở đây",
@@ -114,10 +116,6 @@
     "sessionEnded": "Phiên kết thúc",
     "speakerClient": "Người nói",
     "participantClient": "Người tham gia"
-  },
-  "translation": {
-    "start": "Bắt đầu dịch",
-    "stop": "Dừng dịch"
   },
   "errors": {
     "microphoneAccess": "Quyền truy cập microphone bị từ chối",
@@ -267,12 +265,12 @@
     "interfaceLanguageDesc": "Điều này thay đổi ngôn ngữ của menu và nút của Sokuji. Nó KHÔNG ảnh hưởng đến các ngôn ngữ bạn có thể dịch giữa.",
     "translationLanguages": "Ngôn Ngữ Dịch",
     "translationLanguagesDesc": "Chọn ngôn ngữ bạn nói (Ngôn Ngữ Của Bạn) và ngôn ngữ bạn muốn nghe bản dịch (Ngôn Ngữ Đích). Chọn 'Tự Động Phát Hiện' nếu bạn không chắc chắn về ngôn ngữ nguồn.",
-    "yourLanguage": "Ngôn Ngữ Của Bạn",
+    "yourLanguage": "Ngôn ngữ của tôi",
     "userAccount": "Tài khoản người dùng",
     "userAccountTooltip": "Người dùng kỹ thuật có thể sử dụng khóa API riêng của họ. Tài khoản người dùng được thiết kế cho cài đặt đơn giản.",
     "signInRequired": "Sử dụng khóa API riêng của bạn hoặc đăng ký dịch vụ kizuna.ai.",
     "signInDescription": "Đăng ký để có trải nghiệm đơn giản.",
-    "targetLanguage": "Ngôn Ngữ Đích",
+    "targetLanguage": "Ngôn ngữ đối phương",
     "microphone": "Microphone",
     "microphoneDesc": "Chọn microphone để ghi lại giọng nói của bạn. Nói bằng ngôn ngữ của bạn vào microphone này, và Sokuji sẽ dịch mọi thứ nó nghe thấy theo thời gian thực.",
     "speaker": "Loa",

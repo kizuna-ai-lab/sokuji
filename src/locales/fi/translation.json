@@ -79,7 +79,9 @@
     "realVoiceVolumeTooltip": "Säätää alkuperäisen äänesi äänenvoimakkuutta läpiviennissä. Aseta matalammalle tehdäksesi käännöksen näkyvämmäksi.",
     "desiredQueueLevelTooltip": "Hallitsee äänipuskurointia sujuvan toiston varmistamiseksi. Korkeammat arvot vähentävät keskeytyksiä, mutta lisäävät pieni viive.",
     "maxQueueLevelTooltip": "Maksimimäärä ääntä puskurointia varten. Estää liiallisen viiveen jos käsittely hidastuu.",
-    "autoTempoTooltip": "Säätää automaattisesti toistonopeutta ylläpitääkseen sujuvan äänivirran. Hyödyllinen vaihtelevia verkkonopeuksia varten."
+    "autoTempoTooltip": "Säätää automaattisesti toistonopeutta ylläpitääkseen sujuvan äänivirran. Hyödyllinen vaihtelevia verkkonopeuksia varten.",
+    "sourceLanguage": "Minun kieleni",
+    "targetLanguage": "Toisen kieli"
   },
   "simpleSettings": {
     "quickSetup": "Pika-asennus",
@@ -115,12 +117,12 @@
     "interfaceLanguageDesc": "Tämä muuttaa Sokuji:n valikoiden ja painikkeiden kieltä. Se EI vaikuta siihen, minkä kielten välillä voit kääntää.",
     "translationLanguages": "Käännöskielet",
     "translationLanguagesDesc": "Valitse mikä kieli puhut (Sinun kielesi) ja mikä kieli haluat kuulla käännöksen (Kohdekieli). Valitse \"Automaattinen tunnistus\" jos et ole varma lähdekielestä.",
-    "yourLanguage": "Sinun kielesi",
+    "yourLanguage": "Minun kieleni",
     "userAccount": "Käyttäjätili",
     "userAccountTooltip": "Tekniset käyttäjät voivat käyttää omia API-avaimiaan. Käyttäjätili on suunniteltu yksinkertaistettuun asennukseen.",
     "signInRequired": "Voit käyttää omaa API-avaintasi tai rekisteröityä kizuna.ai-palveluun.",
     "signInDescription": "Rekisteröidy yksinkertaistettua kokemusta varten.",
-    "targetLanguage": "Kohdekieli",
+    "targetLanguage": "Toisen kieli",
     "microphone": "Mikrofoni",
     "microphoneDesc": "Valitse mikrofoni puheesi kaappaamiseen. Puhu kielelläsi tähän mikrofoniin, niin Sokuji kääntää kaiken mitä se kuulee reaaliajassa.",
     "speaker": "Kaiutin",
@@ -232,10 +234,6 @@
     "sessionEnded": "Istunto päättyi",
     "speakerClient": "Puhuja",
     "participantClient": "Osallistuja"
-  },
-  "translation": {
-    "start": "Aloita käännös",
-    "stop": "Lopeta käännös"
   },
   "errors": {
     "microphoneAccess": "Mikrofonin käyttö evätty",

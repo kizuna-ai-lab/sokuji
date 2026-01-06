@@ -79,7 +79,9 @@
     "realVoiceVolumeTooltip": "Nag-aayos ng volume level ng inyong orihinal na boses sa passthrough. I-set nang mas mababa upang gawing mas prominent ang pagsasalin.",
     "desiredQueueLevelTooltip": "Namamahala sa audio buffering para sa smooth na playback. Ang mas mataas na values ay binabawasan ang mga interruption ngunit nagdadagdag ng kaunting delay.",
     "maxQueueLevelTooltip": "Maximum na halaga ng audio para sa buffering. Pinipigilan ang sobrang delay kapag bumagal ang processing.",
-    "autoTempoTooltip": "Awtomatikong nag-aayos ng playback speed upang mapanatili ang smooth na audio flow. Kapaki-pakinabang para sa mga variable na network speeds."
+    "autoTempoTooltip": "Awtomatikong nag-aayos ng playback speed upang mapanatili ang smooth na audio flow. Kapaki-pakinabang para sa mga variable na network speeds.",
+    "sourceLanguage": "Aking wika",
+    "targetLanguage": "Wika ng kausap"
   },
   "simpleSettings": {
     "quickSetup": "Mabilisang Setup",
@@ -115,12 +117,12 @@
     "interfaceLanguageDesc": "Binabago nito ang wika ng mga menu at button ng Sokuji. HINDI nito naaapektuhan kung anong mga wika ang pwede ninyong i-translate.",
     "translationLanguages": "Mga Wika ng Translation",
     "translationLanguagesDesc": "Piliin kung anong wika ang ginagamit ninyo (Inyong Wika) at kung anong wika ang gusto ninyong marinig sa translation (Target na Wika). Piliin ang \"Awtomatikong Detekta\" kung hindi kayo sigurado sa source language.",
-    "yourLanguage": "Inyong Wika",
+    "yourLanguage": "Aking wika",
     "userAccount": "Account ng User",
     "userAccountTooltip": "Ang mga technical na user ay pwedeng gumamit ng sarili nilang API keys. Ang User Account ay ginawa para sa simplified na setup.",
     "signInRequired": "Pwede ninyong gamitin ang sarili ninyong API key o mag-sign up sa kizuna.ai na serbisyo.",
     "signInDescription": "Mag-sign up para sa simplified na experience.",
-    "targetLanguage": "Target na Wika",
+    "targetLanguage": "Wika ng kausap",
     "microphone": "Microphone",
     "microphoneDesc": "Piliin ang microphone para ma-capture ang inyong pagsasalita. Magsalita sa inyong wika sa microphone na ito, at i-translate ng Sokuji ang lahat ng maririnig niya nang real-time.",
     "speaker": "Speaker",
@@ -232,10 +234,6 @@
     "sessionEnded": "Natapos ang Session",
     "speakerClient": "Tagapagsalita",
     "participantClient": "Kalahok"
-  },
-  "translation": {
-    "start": "Simulan ang pagsasalin",
-    "stop": "Itigil ang pagsasalin"
   },
   "errors": {
     "microphoneAccess": "Hindi pinahintulutan ang access sa microphone",

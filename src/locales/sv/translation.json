@@ -57,7 +57,9 @@
     "apiKeyValidated": "API-nyckel validerad",
     "realtimeTranslationAvailable": "Realtidsöversättningstjänst är tillgänglig",
     "authentication": "Autentisering",
-    "autoAuthenticated": "Automatiskt autentiserad via ditt konto"
+    "autoAuthenticated": "Automatiskt autentiserad via ditt konto",
+    "sourceLanguage": "Mitt språk",
+    "targetLanguage": "Den andras språk"
   },
   "mainPanel": {
     "conversationPlaceholder": "Konversationen kommer att visas här",
@@ -90,10 +92,6 @@
     "sessionEnded": "Session avslutad",
     "speakerClient": "Talare",
     "participantClient": "Deltagare"
-  },
-  "translation": {
-    "start": "Starta översättning",
-    "stop": "Stoppa översättning"
   },
   "errors": {
     "microphoneAccess": "Mikrofonåtkomst nekad",
@@ -248,12 +246,12 @@
     "interfaceLanguageDesc": "Detta ändrar språket för Sokujis menyer och knappar. Det påverkar INTE språken du kan översätta mellan.",
     "translationLanguages": "Översättningsspråk",
     "translationLanguagesDesc": "Välj vilket språk du talar (Ditt Språk) och vilket språk du vill höra översättningen på (Målspråk). Välj 'Automatisk Detektion' om du inte är säker på källspråket.",
-    "yourLanguage": "Ditt Språk",
+    "yourLanguage": "Mitt språk",
     "userAccount": "Användarkonto",
     "userAccountTooltip": "Tekniska användare kan använda sina egna API-nycklar. Användarkonto designat för förenklad installation.",
     "signInRequired": "Använd din egen API-nyckel eller registrera dig för kizuna.ai-tjänsten.",
     "signInDescription": "Registrera dig för förenklad upplevelse.",
-    "targetLanguage": "Målspråk",
+    "targetLanguage": "Den andras språk",
     "microphone": "Mikrofon",
     "microphoneDesc": "Välj mikrofon för att fånga ditt tal. Tala ditt språk i denna mikrofon, och Sokuji kommer att översätta allt den hör i realtid.",
     "speaker": "Högtalare",

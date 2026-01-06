@@ -79,7 +79,9 @@
     "realVoiceVolumeTooltip": "Geçişteki orijinal sesinizin ses seviyesini ayarlar. Çeviriyi daha belirgin hale getirmek için daha düşük ayarlayın.",
     "desiredQueueLevelTooltip": "Sorunsuz oynatma için ses arabelleğini yönetir. Daha yüksek değerler kesintileri azaltır ancak küçük bir gecikme ekler.",
     "maxQueueLevelTooltip": "Arabellek için maksimum ses miktarı. İşleme yavaşlarsa aşırı gecikmeyi önler.",
-    "autoTempoTooltip": "Sorunsuz ses akışını korumak için oynatma hızını otomatik olarak ayarlar. Değişken ağ hızları için kullanışlıdır."
+    "autoTempoTooltip": "Sorunsuz ses akışını korumak için oynatma hızını otomatik olarak ayarlar. Değişken ağ hızları için kullanışlıdır.",
+    "sourceLanguage": "Benim dilim",
+    "targetLanguage": "Karşı tarafın dili"
   },
   "mainPanel": {
     "conversationPlaceholder": "Konuşma burada görünecek",
@@ -112,10 +114,6 @@
     "sessionEnded": "Oturum Sonlandı",
     "speakerClient": "Konuşmacı",
     "participantClient": "Katılımcı"
-  },
-  "translation": {
-    "start": "Çeviriyi başlat",
-    "stop": "Çeviriyi durdur"
   },
   "errors": {
     "microphoneAccess": "Mikrofon erişimi reddedildi",
@@ -265,12 +263,12 @@
     "interfaceLanguageDesc": "Bu, Sokuji'nin menülerinin ve düğmelerinin dilini değiştirir. Çeviri yapabileceğiniz dilleri ETKİLEMEZ.",
     "translationLanguages": "Çeviri Dilleri",
     "translationLanguagesDesc": "Hangi dilde konuştuğunuzu (Diliniz) ve çeviriyi hangi dilde duymak istediğinizi (Hedef Dil) seçin. Kaynak dili hakkinda emin değilseniz 'Otomatik Algılama'yı seçin.",
-    "yourLanguage": "Diliniz",
+    "yourLanguage": "Benim dilim",
     "userAccount": "Kullanıcı Hesabı",
     "userAccountTooltip": "Teknik kullanıcılar kendi API anahtarlarını kullanabilir. Kullanıcı hesabı basitleştirilmiş kurulum için tasarlanmıştır.",
     "signInRequired": "Kendi API anahtarınızı kullanın veya kizuna.ai hizmeti için kaydolun.",
     "signInDescription": "Basitleştirilmiş deneyim için kaydolun.",
-    "targetLanguage": "Hedef Dil",
+    "targetLanguage": "Karşı tarafın dili",
     "microphone": "Mikrofon",
     "microphoneDesc": "Konuşmanızı yakalamak için mikrofonu seçin. Bu mikrofona dilinizle konuşun, Sokuji duyduğu her şeyi gerçek zamanda çevirecektir.",
     "speaker": "Hoparlör",
