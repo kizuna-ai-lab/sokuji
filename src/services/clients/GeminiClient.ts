@@ -18,7 +18,8 @@ export class GeminiClient implements IClient {
   private isConnectedState = false;
   private currentModel = '';
   private instanceId: string;
-  
+  private textOnlyMode = false;
+
   // Turn accumulation state
   private currentTurn: {
     inputTranscription: string;
@@ -301,9 +302,11 @@ export class GeminiClient implements IClient {
     }
 
     this.currentModel = config.model;
+    this.textOnlyMode = config.textOnly || false;
 
-    // Determine response modalities based on textOnly flag
-    const responseModalities = config.textOnly ? [Modality.TEXT] : [Modality.AUDIO];
+    // Gemini native-audio models require AUDIO modality even for text-only output
+    // We use inputAudioTranscription/outputAudioTranscription for text and ignore audio delta when textOnly
+    const responseModalities = [Modality.AUDIO];
 
     // Convert SessionConfig to LiveConnectConfig
     const liveConfig: LiveConnectConfig = {
@@ -321,7 +324,7 @@ export class GeminiClient implements IClient {
         }
       } : undefined,
       inputAudioTranscription: {},
-      outputAudioTranscription: config.textOnly ? undefined : {},
+      outputAudioTranscription: {},  // Always enable for transcript in both normal and textOnly modes
       realtimeInputConfig: {
         activityHandling: ActivityHandling.NO_INTERRUPTION,
       }
@@ -738,8 +741,8 @@ export class GeminiClient implements IClient {
           // Preserve existing transcript from outputTranscription
           // (transcript field is managed by outputTranscription handler)
 
-          // Always emit delta for new audio chunks immediately
-          if (hasNewAudio && newAudioChunks.length > 0) {
+          // Emit delta for new audio chunks only if not in textOnly mode
+          if (hasNewAudio && newAudioChunks.length > 0 && !this.textOnlyMode) {
             // Combine all new audio chunks from this message
             const totalNewLength = newAudioChunks.reduce((sum, arr) => sum + arr.length, 0);
             const combinedNewAudio = new Int16Array(totalNewLength);
@@ -748,17 +751,17 @@ export class GeminiClient implements IClient {
               combinedNewAudio.set(audioChunk, offset);
               offset += audioChunk.length;
             }
-            
+
             // Log audio chunk info for debugging
             console.debug(`[GeminiClient] Sending audio delta: ${combinedNewAudio.length} samples (${(combinedNewAudio.length / 24000).toFixed(2)}s)`);
-            
+
             // Send audio delta immediately for real-time playback
-            this.eventHandlers.onConversationUpdated?.({ 
-              item: this.currentTurn.assistantItem, 
+            this.eventHandlers.onConversationUpdated?.({
+              item: this.currentTurn.assistantItem,
               delta: { audio: combinedNewAudio }
             });
-          } else if (hasNewText) {
-            // Update without audio delta if only text changed
+          } else if (hasNewText || (hasNewAudio && this.textOnlyMode)) {
+            // Update without audio delta if text-only mode or only text changed
             this.eventHandlers.onConversationUpdated?.({ item: this.currentTurn.assistantItem });
           }
         }
