@@ -156,10 +156,10 @@
     "realVoicePassthroughDescription": "あなたの原音（話者の声）を仮想マイクに直接送信し、聞き手が原音と通訳音声の両方を聞けるようにします",
     "realVoiceVolume": "原音ボリューム",
     "mutualExclusivityNotice": "音声の競合",
-    "mutualExclusivitySpeakerTitle": "スピーカーを有効にできません",
-    "mutualExclusivityParticipantTitle": "参加者オーディオを有効にできません",
-    "mutualExclusivitySpeakerText": "スピーカーを有効にするには、先に参加者オーディオをオフにしてください。",
-    "mutualExclusivityParticipantText": "参加者オーディオを有効にするには、先にスピーカーをオフにしてください。",
+    "mutualExclusivitySpeakerTitle": "話者モードを有効にできません",
+    "mutualExclusivityParticipantTitle": "参加者の音声を有効にできません",
+    "mutualExclusivitySpeakerText": "話者モードを有効にするには、先に参加者の音声をオフにしてください。",
+    "mutualExclusivityParticipantText": "参加者の音声を有効にするには、先に話者モードをオフにしてください。",
     "availableSystemAudioSources": "キャプチャ可能なシステムオーディオデバイス",
     "refreshSystemAudioSources": "デバイスリストを更新"
   },
@@ -176,7 +176,7 @@
     "of": "の",
     "unknown": "不明",
     "sessionEnded": "セッション終了",
-    "speakerClient": "スピーカー",
+    "speakerClient": "話者",
     "participantClient": "参加者"
   },
   "mainPanel": {
