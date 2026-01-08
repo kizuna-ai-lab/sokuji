@@ -37,6 +37,14 @@ export abstract class ParticipantRecorder extends BaseAudioRecorder implements I
   protected abstract onCleanup(): Promise<void>;
 
   /**
+   * Hook called after AudioContext is created, before audio processing setup.
+   * Subclasses can override to configure AudioContext (e.g., setSinkId for tab capture).
+   */
+  protected async onAudioContextCreated(_options?: ParticipantAudioOptions): Promise<void> {
+    // Default: no-op. Subclasses can override.
+  }
+
+  /**
    * Begin capturing audio
    */
   async begin(options?: ParticipantAudioOptions): Promise<boolean> {
@@ -55,6 +63,9 @@ export abstract class ParticipantRecorder extends BaseAudioRecorder implements I
       if (this.audioContext.state === 'suspended') {
         await this.audioContext.resume();
       }
+
+      // Allow subclasses to configure AudioContext (e.g., set output device for tab capture)
+      await this.onAudioContextCreated(options);
 
       // Setup audio processing (from BaseAudioRecorder)
       await this.setupRealtimeAudioProcessing();

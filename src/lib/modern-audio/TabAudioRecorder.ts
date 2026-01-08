@@ -11,6 +11,7 @@ import { ParticipantAudioOptions } from './IParticipantAudioRecorder';
 export class TabAudioRecorder extends ParticipantRecorder {
   private tabId: number | null = null;
   private streamId: string | null = null;
+  private outputDeviceId: string | null = null;
 
   protected getLogPrefix(): string {
     return '[TabAudioRecorder]';
@@ -18,6 +19,26 @@ export class TabAudioRecorder extends ParticipantRecorder {
 
   protected shouldConnectToDestination(): boolean {
     return true; // Tab audio needs passthrough (play back to user)
+  }
+
+  /**
+   * Configure AudioContext output device for tab audio passthrough.
+   * Chrome tabCapture stops original tab audio, so we must manually route it to the output device.
+   */
+  protected async onAudioContextCreated(options?: ParticipantAudioOptions): Promise<void> {
+    this.outputDeviceId = options?.outputDeviceId || null;
+
+    // Set output device if specified (Chrome 110+ supports setSinkId)
+    // Required for tab capture: Chrome stops original audio when tab is captured
+    if (this.outputDeviceId && this.audioContext && 'setSinkId' in this.audioContext) {
+      try {
+        // @ts-expect-error setSinkId is not in TypeScript types yet
+        await this.audioContext.setSinkId(this.outputDeviceId);
+        console.info(`${this.getLogPrefix()} Set audio output device:`, this.outputDeviceId);
+      } catch (sinkError) {
+        console.warn(`${this.getLogPrefix()} Failed to set output device, using default:`, sinkError);
+      }
+    }
   }
 
   protected async acquireStream(options?: ParticipantAudioOptions): Promise<MediaStream> {
