@@ -1,4 +1,12 @@
 // Type definitions for Chrome extension API
+interface ChromeTab {
+  id?: number;
+  url?: string;
+  title?: string;
+  active?: boolean;
+  windowId?: number;
+}
+
 interface Chrome {
   runtime: {
     getURL(path: string): string;
@@ -11,6 +19,10 @@ interface Chrome {
       addListener(callback: (message: any, sender: any, sendResponse: (response?: any) => void) => void): void;
       removeListener(callback: (message: any, sender: any, sendResponse: (response?: any) => void) => void): void;
     };
+  };
+  tabs?: {
+    query(queryInfo: { active?: boolean; currentWindow?: boolean }, callback: (tabs: ChromeTab[]) => void): void;
+    query(queryInfo: { active?: boolean; currentWindow?: boolean }): Promise<ChromeTab[]>;
   };
   storage: {
     sync: {
@@ -31,3 +43,6 @@ interface Chrome {
 interface Window {
   chrome?: Chrome;
 }
+
+// Declare chrome as a global variable
+declare const chrome: Chrome | undefined;

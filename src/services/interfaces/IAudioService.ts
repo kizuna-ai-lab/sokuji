@@ -186,4 +186,60 @@ export interface IAudioService {
    * Check if system audio recording is currently active
    */
   isSystemAudioRecordingActive(): boolean;
+
+  // Tab audio capture methods (for browser extension - translating other participants)
+
+  /**
+   * Check if tab audio capture is supported (browser extension only)
+   */
+  supportsTabAudioCapture(): boolean;
+
+  /**
+   * Start recording from the current tab's audio
+   * @param callback Function to receive audio data chunks
+   * @param outputDeviceId Optional output device ID for audio passthrough
+   */
+  startTabAudioRecording(callback: AudioRecordingCallback, outputDeviceId?: string): Promise<void>;
+
+  /**
+   * Stop recording from tab audio
+   */
+  stopTabAudioRecording(): Promise<void>;
+
+  /**
+   * Check if tab audio recording is currently active
+   */
+  isTabAudioRecordingActive(): boolean;
+
+  // Unified participant audio capture (abstracts both system audio and tab audio)
+
+  /**
+   * Options for participant audio recording
+   */
+  // Note: ParticipantAudioOptions defined below
+
+  /**
+   * Start recording participant audio (auto-detects environment)
+   * - Extension: uses tab audio capture via Chrome tabCapture API
+   * - Electron: uses system audio capture via PipeWire/PulseAudio loopback
+   * @param callback Function to receive audio data chunks
+   * @param options Optional configuration (outputDeviceId for passthrough)
+   */
+  startParticipantAudioRecording(callback: AudioRecordingCallback, options?: { outputDeviceId?: string }): Promise<void>;
+
+  /**
+   * Stop participant audio recording
+   */
+  stopParticipantAudioRecording(): Promise<void>;
+
+  /**
+   * Check if participant audio recording is currently active
+   */
+  isParticipantAudioRecordingActive(): boolean;
+
+  /**
+   * Check if participant audio capture is available
+   * Returns true if either system audio (Electron) or tab audio (Extension) is available
+   */
+  supportsParticipantAudioCapture(): boolean;
 }
