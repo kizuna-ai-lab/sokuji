@@ -1009,8 +1009,8 @@ export class ModernBrowserAudioService implements IAudioService {
       // Store the callback
       this.tabAudioCallback = callback;
 
-      // Start the recorder with optional output device
-      const success = await this.tabAudioRecorder.begin(tabId, outputDeviceId);
+      // Start the recorder with optional output device (using ParticipantAudioOptions)
+      const success = await this.tabAudioRecorder.begin({ tabId: tabId || undefined, outputDeviceId });
       if (!success) {
         throw new Error('Failed to begin tab audio capture');
       }
@@ -1057,5 +1057,68 @@ export class ModernBrowserAudioService implements IAudioService {
    */
   public isTabAudioRecordingActive(): boolean {
     return this.tabAudioRecordingActive;
+  }
+
+  // ============================================
+  // Unified Participant Audio Methods
+  // ============================================
+
+  /**
+   * Check if participant audio capture is available
+   * Returns true if either system audio (Electron) or tab audio (Extension) is available
+   */
+  public supportsParticipantAudioCapture(): boolean {
+    return this.supportsSystemAudioCapture() || this.supportsTabAudioCapture();
+  }
+
+  /**
+   * Start recording participant audio (auto-detects environment)
+   * - Extension: uses tab audio capture via Chrome tabCapture API
+   * - Electron: uses system audio capture via PipeWire/PulseAudio loopback
+   * @param callback Function to receive audio data chunks
+   * @param options Optional configuration (outputDeviceId for passthrough)
+   */
+  public async startParticipantAudioRecording(
+    callback: AudioRecordingCallback,
+    options?: { outputDeviceId?: string }
+  ): Promise<void> {
+    // Extension environment: use tab audio capture
+    if (isExtension()) {
+      console.info('[Sokuji] [ModernBrowserAudio] Starting participant audio via tab capture');
+      return this.startTabAudioRecording(callback, options?.outputDeviceId);
+    }
+
+    // Electron environment: use system audio capture
+    if (this.systemAudioSourceConnected) {
+      console.info('[Sokuji] [ModernBrowserAudio] Starting participant audio via system audio');
+      return this.startSystemAudioRecording(callback);
+    }
+
+    throw new Error('No participant audio source available. Connect a system audio source or use in browser extension.');
+  }
+
+  /**
+   * Stop participant audio recording
+   */
+  public async stopParticipantAudioRecording(): Promise<void> {
+    // Stop whichever recording is active
+    if (this.tabAudioRecordingActive) {
+      console.info('[Sokuji] [ModernBrowserAudio] Stopping participant audio (tab capture)');
+      return this.stopTabAudioRecording();
+    }
+
+    if (this.systemAudioRecordingActive) {
+      console.info('[Sokuji] [ModernBrowserAudio] Stopping participant audio (system audio)');
+      return this.stopSystemAudioRecording();
+    }
+
+    console.info('[Sokuji] [ModernBrowserAudio] No participant audio recording to stop');
+  }
+
+  /**
+   * Check if participant audio recording is currently active
+   */
+  public isParticipantAudioRecordingActive(): boolean {
+    return this.tabAudioRecordingActive || this.systemAudioRecordingActive;
   }
 }
