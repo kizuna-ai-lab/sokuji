@@ -75,3 +75,6 @@ BlackHole/build/
 
 # Claude settings (contains local configuration)
 .claude/settings.local.json
+
+# Local development scripts
+scripts/cf-*.mjs
