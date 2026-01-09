@@ -3,9 +3,16 @@
  * Echo cancellation friendly audio processing using standard browser APIs
  */
 
-export { ModernAudioRecorder } from './ModernAudioRecorder.js';
+export { ModernAudioRecorder } from './ModernAudioRecorder';
 export { ModernAudioPlayer } from './ModernAudioPlayer.js';
 export { ModernBrowserAudioService } from './ModernBrowserAudioService';
+export { SystemAudioRecorder } from './SystemAudioRecorder';
+export { TabAudioRecorder } from './TabAudioRecorder';
+
+// Participant audio interface and base classes
+export { IParticipantAudioRecorder, ParticipantAudioOptions, AudioDataCallback, isParticipantAudioRecorder } from './IParticipantAudioRecorder';
+export { BaseAudioRecorder } from './BaseAudioRecorder';
+export { ParticipantRecorder } from './ParticipantRecorder';
 
 // Re-export for compatibility
 export const WavRecorder = ModernAudioRecorder;
