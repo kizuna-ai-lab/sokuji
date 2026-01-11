@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, Menu, dialog, shell, session, systemPreferences } = require('electron');
+const { app, BrowserWindow, ipcMain, Menu, dialog, shell, session, systemPreferences, desktopCapturer } = require('electron');
 const path = require('path');
 const { betterAuthAdapter } = require('./better-auth-adapter');
 
@@ -399,6 +399,26 @@ app.whenReady().then(async () => {
   }
 
   createWindow();
+
+  // Setup display media request handler for system audio capture on Windows
+  // This enables getDisplayMedia() in renderer to capture system audio via loopback
+  if (process.platform === 'win32') {
+    session.defaultSession.setDisplayMediaRequestHandler((request, callback) => {
+      desktopCapturer.getSources({ types: ['screen'] }).then((sources) => {
+        if (sources.length > 0) {
+          // Grant access to first screen with loopback audio (captures all system audio)
+          callback({ video: sources[0], audio: 'loopback' });
+        } else {
+          console.warn('[Sokuji] [Main] No screen sources available for display media');
+          callback(null);
+        }
+      }).catch(error => {
+        console.error('[Sokuji] [Main] Error getting desktop sources:', error);
+        callback(null);
+      });
+    });
+    console.log('[Sokuji] [Main] Display media request handler configured for Windows system audio capture');
+  }
 });
 
 // Ensure cleanup happens before app exits
