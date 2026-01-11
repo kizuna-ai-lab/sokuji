@@ -207,6 +207,59 @@ async function getAudioDevices() {
   };
 }
 
+// ============================================================================
+// System Audio Capture Functions (Windows via desktopCapturer)
+// ============================================================================
+
+/**
+ * Check if system audio capture is supported
+ * On Windows, this is always true when running in Electron (uses desktopCapturer loopback)
+ * @returns {Promise<boolean>} True if system audio capture is supported
+ */
+async function supportsSystemAudioCapture() {
+  console.log('[Sokuji] [Windows Audio] System audio capture is supported via desktopCapturer loopback');
+  return true;
+}
+
+/**
+ * List available system audio sources
+ * On Windows, we provide a single "System Audio" source that captures all system audio
+ * via the desktopCapturer loopback feature
+ * @returns {Promise<Array<{deviceId: string, label: string}>>} Array of system audio sources
+ */
+async function listSystemAudioSources() {
+  console.log('[Sokuji] [Windows Audio] Listing system audio sources');
+  // Windows captures ALL system audio via loopback, so we return a single source
+  return [{
+    deviceId: 'desktop-audio-loopback',
+    label: 'System Audio (All Applications)'
+  }];
+}
+
+/**
+ * Connect to a system audio source
+ * On Windows, this is a no-op since the actual capture is done via getDisplayMedia in the renderer
+ * @param {string} sourceId - The source ID to connect to
+ * @returns {Promise<{success: boolean, error?: string}>} Result object
+ */
+async function connectSystemAudioSource(sourceId) {
+  console.log(`[Sokuji] [Windows Audio] Connect system audio source: ${sourceId}`);
+  // On Windows, the "connection" happens when getDisplayMedia is called in the renderer
+  // This function just acknowledges the intent to capture
+  return { success: true };
+}
+
+/**
+ * Disconnect from the current system audio source
+ * On Windows, this is a no-op since cleanup happens in the renderer
+ * @returns {Promise<{success: boolean}>} Result object
+ */
+async function disconnectSystemAudioSource() {
+  console.log('[Sokuji] [Windows Audio] Disconnect system audio source');
+  // Cleanup happens in the renderer when the MediaStream is stopped
+  return { success: true };
+}
+
 module.exports = {
   createVirtualAudioDevices,
   removeVirtualAudioDevices,
@@ -214,5 +267,10 @@ module.exports = {
   cleanupOrphanedDevices,
   isVBCableInstalled,
   getVBCableInfo,
-  getAudioDevices
+  getAudioDevices,
+  // System audio capture functions
+  supportsSystemAudioCapture,
+  listSystemAudioSources,
+  connectSystemAudioSource,
+  disconnectSystemAudioSource
 };
