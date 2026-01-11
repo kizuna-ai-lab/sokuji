@@ -132,10 +132,10 @@ const createAdvancedOnboardingSteps = (t: any): OnboardingStep[] => [
     content: (
       <span>
         {t('onboarding.steps.apiKey.content', 'Enter your OpenAI API key here. You can get one from the')}{' '}
-        <a 
-          href="https://platform.openai.com/account/api-keys" 
-          target="_blank" 
-          rel="noopener noreferrer" 
+        <a
+          href="https://platform.openai.com/account/api-keys"
+          target="_blank"
+          rel="noopener noreferrer"
           style={{ color: '#007bff', textDecoration: 'underline' }}
         >
           {t('onboarding.steps.apiKey.linkText', 'OpenAI page')}
@@ -165,27 +165,21 @@ const createAdvancedOnboardingSteps = (t: any): OnboardingStep[] => [
     placement: 'left',
   },
   {
-    target: '.audio-button',
-    content: t('onboarding.steps.audioSettings.content', 'Next, let\'s configure your audio settings. Click here to open the Audio panel and set up your microphone and speakers.'),
-    title: t('onboarding.steps.audioSettings.title', 'Step 6: Audio Settings'),
-    placement: 'bottom',
-  },
-  {
     target: '.microphone-section',
     content: t('onboarding.steps.microphoneSetup.content', 'Select your microphone device here. Make sure to choose the correct input device for the best audio quality.'),
-    title: t('onboarding.steps.microphoneSetup.title', 'Step 7: Microphone Setup'),
+    title: t('onboarding.steps.microphoneSetup.title', 'Step 6: Microphone Setup'),
     placement: 'left',
   },
   {
     target: '.speaker-section',
     content: t('onboarding.steps.speakerSetup.content', 'Select a monitoring device to listen to the translated audio and verify if it meets your requirements. It is recommended to use headphones for monitoring to avoid interference with microphone input. When you are satisfied with the translation settings, it is suggested to turn off monitoring so you can focus more on your expression without microphone interference.'),
-    title: t('onboarding.steps.speakerSetup.title', 'Step 8: Speaker Setup'),
+    title: t('onboarding.steps.speakerSetup.title', 'Step 7: Speaker Setup'),
     placement: 'left',
   },
   {
-    target: '.session-button',
+    target: '.main-action-btn',
     content: t('onboarding.steps.startSession.content', 'Click the "Start Session" button to begin using Sokuji. Once started, you can speak naturally for live translation. If Automatic turn detection is disabled, use "Push to Talk" (Space key) to speak.'),
-    title: t('onboarding.steps.startSession.title', 'Step 9: Start Session'),
+    title: t('onboarding.steps.startSession.title', 'Step 8: Start Session'),
     placement: 'top',
   },
   {
