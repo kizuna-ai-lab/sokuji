@@ -45,27 +45,6 @@ const Onboarding: React.FC = () => {
         }
       }
       
-      // Check if we're on step 6 and user clicked the spotlight over audio button
-      if (currentStepIndex === 6) {
-        const isSpotlightClick = target.classList.contains('react-joyride__spotlight') || 
-                                target.closest('.react-joyride__spotlight');
-        const isAudioButtonClick = target.closest('.audio-button');
-        
-        if (isSpotlightClick || isAudioButtonClick) {
-          // Find the actual audio button and click it
-          const audioButton = document.querySelector('.audio-button') as HTMLElement;
-          if (audioButton && !isAudioButtonClick) {
-            // If we clicked on spotlight, trigger the actual button click
-            audioButton.click();
-          }
-          
-          // Small delay to let the panel open first
-          setTimeout(() => {
-            nextStep();
-          }, 200);
-          return;
-        }
-      }
     };
 
     document.addEventListener('click', handleElementClick, true);
@@ -89,19 +68,6 @@ const Onboarding: React.FC = () => {
           const settingsButton = document.querySelector('.settings-button') as HTMLElement;
           if (settingsButton) {
             settingsButton.click();
-          }
-          // Small delay to let the panel open before advancing
-          setTimeout(() => {
-            nextStep();
-          }, 200);
-          return;
-        }
-        
-        // Step 6: Auto-click audio button if user clicked Next
-        if (currentStepIndex === 6) {
-          const audioButton = document.querySelector('.audio-button') as HTMLElement;
-          if (audioButton) {
-            audioButton.click();
           }
           // Small delay to let the panel open before advancing
           setTimeout(() => {

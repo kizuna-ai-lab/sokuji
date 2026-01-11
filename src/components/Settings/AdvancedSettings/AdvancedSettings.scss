@@ -1,0 +1,90 @@
+.advanced-settings {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  box-sizing: border-box;
+  overflow-x: hidden;
+  color: #fff;
+
+  .settings-content {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 15px;
+    scrollbar-gutter: stable;
+    box-sizing: border-box;
+    width: 100%;
+
+    .session-active-notice {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background-color: rgba(255, 193, 7, 0.15);
+      border: 1px solid rgba(255, 193, 7, 0.3);
+      border-radius: 6px;
+      padding: 12px;
+      margin-bottom: 20px;
+      color: #ffc107;
+      font-size: 13px;
+      line-height: 1.4;
+
+      svg {
+        flex-shrink: 0;
+        margin-top: 1px;
+      }
+
+      span {
+        flex: 1;
+      }
+    }
+
+    .settings-section {
+      margin-bottom: 20px;
+
+      h2 {
+        font-size: 14px;
+        font-weight: 500;
+        margin-bottom: 10px;
+        color: #ccc;
+      }
+
+      .setting-item {
+        margin-bottom: 12px;
+      }
+
+      // Audio section grouping
+      &.audio-section {
+        .config-section {
+          margin-bottom: 15px;
+        }
+      }
+    }
+
+    // Restart onboarding button
+    .restart-onboarding-button {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 16px;
+      background: transparent;
+      border: 1px solid #444;
+      border-radius: 6px;
+      color: #aaa;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.05);
+        border-color: #555;
+        color: #fff;
+      }
+
+      svg {
+        width: 16px;
+        height: 16px;
+      }
+    }
+  }
+}

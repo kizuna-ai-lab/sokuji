@@ -1,5 +1,5 @@
 import React, { Fragment } from 'react';
-import { ProviderConfig } from '../../services/providers/ProviderConfig';
+import { ProviderConfig } from '../../../services/providers/ProviderConfig';
 import {
   useProvider,
   useSystemInstructions,
@@ -19,14 +19,14 @@ import {
   useUpdatePalabraAI,
   useUpdateKizunaAI,
   useGetCurrentProviderSettings
-} from '../../stores/settingsStore';
+} from '../../../stores/settingsStore';
 import { useTranslation } from 'react-i18next';
 import { ChevronDown, ChevronRight, RotateCw, Info, CircleHelp } from 'lucide-react';
-import Tooltip from '../Tooltip/Tooltip';
-import { FilteredModel } from '../../services/interfaces/IClient';
-import { Provider, isOpenAICompatible } from '../../types/Provider';
-import { useAnalytics } from '../../lib/analytics';
-import { useAuth } from '../../lib/auth/hooks';
+import Tooltip from '../../Tooltip/Tooltip';
+import { FilteredModel } from '../../../services/interfaces/IClient';
+import { Provider, isOpenAICompatible } from '../../../types/Provider';
+import { useAnalytics } from '../../../lib/analytics';
+import { useAuth } from '../../../lib/auth/hooks';
 
 interface ProviderSpecificSettingsProps {
   config: ProviderConfig;

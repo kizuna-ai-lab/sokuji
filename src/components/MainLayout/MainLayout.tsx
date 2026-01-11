@@ -1,13 +1,11 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import MainPanel from '../MainPanel/MainPanel';
-import SettingsPanel from '../SettingsPanel/SettingsPanel';
 import LogsPanel from '../LogsPanel/LogsPanel';
-import AudioPanel from '../AudioPanel/AudioPanel';
-import SimpleConfigPanel from '../SimpleConfigPanel/SimpleConfigPanel';
+import { Settings as SettingsComponent } from '../Settings';
 import Onboarding from '../Onboarding/Onboarding';
 import UserTypeSelection from '../UserTypeSelection/UserTypeSelection';
-import { Terminal, Settings, Volume2, LayoutGrid, Sliders } from 'lucide-react';
+import { Terminal, Settings, LayoutGrid, Sliders } from 'lucide-react';
 import './MainLayout.scss';
 import { useAnalytics } from '../../lib/analytics';
 import { useProvider, useUIMode, useSetProvider, useSetUIMode, useSettingsNavigationTarget } from '../../stores/settingsStore';
@@ -210,16 +208,10 @@ const MainLayout: React.FC = () => {
             >
               {uiMode === 'basic' ? <LayoutGrid size={16} /> : <Sliders size={16} />}
             </button>
-            <button className={`settings-button ${showSettings ? 'active' : ''}`} onClick={toggleSettings}>
+            <button className={`settings-button ${showSettings || showAudio ? 'active' : ''}`} onClick={toggleSettings}>
               <Settings size={16} />
               <span>{t('settings.title')}</span>
             </button>
-            {uiMode === 'advanced' && (
-              <button className={`audio-button ${showAudio ? 'active' : ''}`} onClick={toggleAudio}>
-                <Volume2 size={16} />
-                <span>{t('settings.audio')}</span>
-              </button>
-            )}
             {uiMode === 'advanced' && (
               <button className={`logs-button ${showLogs ? 'active' : ''}`} onClick={toggleLogs}>
                 <Terminal size={16} />
@@ -232,28 +224,14 @@ const MainLayout: React.FC = () => {
           <MainPanel />
         </div>
       </div>
-      {(showLogs || showSettings || showAudio) && (
+      {(showLogs || showSettings) && (
         <div className="settings-panel-container">
           {showLogs && <LogsPanel toggleLogs={toggleLogs} />}
           {showSettings && (
-            uiMode === 'basic' ? (
-              <SimpleConfigPanel 
-                toggleSettings={toggleSettings} 
-                highlightSection={settingsNavigationTarget}
-              />
-            ) : (
-              <SettingsPanel toggleSettings={toggleSettings} />
-            )
-          )}
-          {showAudio && (
-            uiMode === 'basic' ? (
-              <SimpleConfigPanel 
-                toggleSettings={toggleAudio} 
-                highlightSection={settingsNavigationTarget}
-              />
-            ) : (
-              <AudioPanel toggleAudio={toggleAudio} />
-            )
+            <SettingsComponent
+              toggleSettings={toggleSettings}
+              highlightSection={settingsNavigationTarget}
+            />
           )}
         </div>
       )}
