@@ -4,6 +4,7 @@ import { ModernAudioPlayer } from './ModernAudioPlayer';
 import { TabAudioRecorder } from './TabAudioRecorder';
 import { LoopbackRecorder } from './LoopbackRecorder';
 import { LinuxLoopbackRecorder } from './LinuxLoopbackRecorder';
+import { IParticipantAudioRecorder } from './IParticipantAudioRecorder';
 import { ServiceFactory } from '../../services/ServiceFactory';
 import { AudioDevice } from '../../stores/audioStore';
 import { isExtension } from '../../utils/environment';
@@ -48,8 +49,7 @@ export class ModernBrowserAudioService implements IAudioService {
   private systemAudioSourceConnected: boolean = false;
   private currentSystemAudioSinkId: string | undefined = undefined; // The sink being captured
   // Recording state (started when session starts)
-  private systemAudioRecorder: LinuxLoopbackRecorder | null = null; // For Linux (PulseAudio virtual mic)
-  private loopbackRecorder: LoopbackRecorder | null = null; // For Windows/macOS (electron-audio-loopback)
+  private systemAudioRecorder: IParticipantAudioRecorder | null = null; // Platform-specific (Linux/Windows/macOS)
   private systemAudioCallback: AudioRecordingCallback | null = null;
   private systemAudioRecordingActive: boolean = false;
 
@@ -911,19 +911,19 @@ export class ModernBrowserAudioService implements IAudioService {
       console.info(`[Sokuji] [ModernBrowserAudio] Starting ${platform} system audio recording via electron-audio-loopback`);
 
       // Create loopback recorder (uses electron-audio-loopback library)
-      this.loopbackRecorder = new LoopbackRecorder(24000);
+      this.systemAudioRecorder = new LoopbackRecorder(24000);
 
       // Store the callback
       this.systemAudioCallback = callback;
 
       // Start capture
-      const success = await this.loopbackRecorder.begin();
+      const success = await this.systemAudioRecorder.begin();
       if (!success) {
         throw new Error('Failed to begin loopback audio capture');
       }
 
       // Start recording with callback
-      await this.loopbackRecorder.record((data) => {
+      await this.systemAudioRecorder.record((data: { mono: Int16Array; raw: Int16Array }) => {
         if (this.systemAudioCallback) {
           this.systemAudioCallback(data);
         }
@@ -992,22 +992,10 @@ export class ModernBrowserAudioService implements IAudioService {
   /**
    * Stop recording from system audio (but keep connection)
    * Called when session ends
-   * Handles cleanup for Windows/macOS (electron-audio-loopback) and Linux (PulseAudio)
    */
   public async stopSystemAudioRecording(): Promise<void> {
     console.info('[Sokuji] [ModernBrowserAudio] Stopping system audio recording');
 
-    // Stop the loopback recorder (Windows/macOS)
-    if (this.loopbackRecorder) {
-      try {
-        await this.loopbackRecorder.end();
-      } catch (error) {
-        console.warn('[Sokuji] [ModernBrowserAudio] Error ending loopback recorder:', error);
-      }
-      this.loopbackRecorder = null;
-    }
-
-    // Stop the system audio recorder (Linux)
     if (this.systemAudioRecorder) {
       try {
         await this.systemAudioRecorder.end();
