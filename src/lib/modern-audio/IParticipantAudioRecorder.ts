@@ -1,6 +1,6 @@
 /**
  * Interface for participant audio recorders
- * LinuxLoopbackRecorder, WindowsLoopbackRecorder, and TabAudioRecorder implement this interface
+ * LinuxLoopbackRecorder, LoopbackRecorder (Windows/macOS), and TabAudioRecorder implement this interface
  * to provide a unified API for capturing "other participant" audio
  */
 

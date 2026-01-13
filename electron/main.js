@@ -49,6 +49,14 @@ const {
   supportsSystemAudioCapture
 } = audioUtils;
 
+// Initialize electron-audio-loopback for Windows and macOS system audio capture
+// MUST be called before app is ready
+if (process.platform === 'win32' || process.platform === 'darwin') {
+  const { initMain } = require('electron-audio-loopback');
+  initMain();
+  console.log('[Sokuji] [Main] electron-audio-loopback initialized for', process.platform);
+}
+
 // Set application name for PulseAudio
 app.setName('sokuji');
 app.commandLine.appendSwitch('application-name', 'sokuji');
@@ -227,10 +235,7 @@ function createWindow() {
       contextIsolation: true,
       preload: path.join(__dirname, 'preload.js'),
       // Disable web security in development to allow CORS requests
-      webSecurity: !isDev,
-      // Use persistent partition in development mode to preserve localStorage across restarts
-      // The 'persist:' prefix ensures data is saved to disk rather than kept in memory
-      partition: isDev ? 'persist:sokuji-dev' : undefined
+      webSecurity: !isDev
     }
   });
 
@@ -400,25 +405,7 @@ app.whenReady().then(async () => {
 
   createWindow();
 
-  // Setup display media request handler for system audio capture on Windows
-  // This enables getDisplayMedia() in renderer to capture system audio via loopback
-  if (process.platform === 'win32') {
-    session.defaultSession.setDisplayMediaRequestHandler((request, callback) => {
-      desktopCapturer.getSources({ types: ['screen'] }).then((sources) => {
-        if (sources.length > 0) {
-          // Grant access to first screen with loopback audio (captures all system audio)
-          callback({ video: sources[0], audio: 'loopback' });
-        } else {
-          console.warn('[Sokuji] [Main] No screen sources available for display media');
-          callback(null);
-        }
-      }).catch(error => {
-        console.error('[Sokuji] [Main] Error getting desktop sources:', error);
-        callback(null);
-      });
-    });
-    console.log('[Sokuji] [Main] Display media request handler configured for Windows system audio capture');
-  }
+  // electron-audio-loopback handles setDisplayMediaRequestHandler automatically via initMain()
 });
 
 // Ensure cleanup happens before app exits
@@ -664,3 +651,4 @@ ipcMain.handle('disconnect-system-audio-source', async () => {
   }
   return { success: false };
 });
+

@@ -86,7 +86,10 @@ contextBridge.exposeInMainWorld(
         'supports-system-audio-capture',
         'list-system-audio-sources',
         'connect-system-audio-source',
-        'disconnect-system-audio-source'
+        'disconnect-system-audio-source',
+        // electron-audio-loopback channels (auto-registered by initMain())
+        'enable-loopback-audio',
+        'disable-loopback-audio',
       ];
       if (validChannels.includes(channel)) {
         return ipcRenderer.invoke(channel, data);
