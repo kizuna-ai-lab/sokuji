@@ -3,6 +3,7 @@ import { ModernAudioRecorder } from './ModernAudioRecorder';
 import { ModernAudioPlayer } from './ModernAudioPlayer';
 import { TabAudioRecorder } from './TabAudioRecorder';
 import { LoopbackRecorder } from './LoopbackRecorder';
+import { LinuxLoopbackRecorder } from './LinuxLoopbackRecorder';
 import { ServiceFactory } from '../../services/ServiceFactory';
 import { AudioDevice } from '../../stores/audioStore';
 import { isExtension } from '../../utils/environment';
@@ -47,7 +48,7 @@ export class ModernBrowserAudioService implements IAudioService {
   private systemAudioSourceConnected: boolean = false;
   private currentSystemAudioSinkId: string | undefined = undefined; // The sink being captured
   // Recording state (started when session starts)
-  private systemAudioRecorder: ModernAudioRecorder | null = null; // For Linux (PulseAudio virtual mic)
+  private systemAudioRecorder: LinuxLoopbackRecorder | null = null; // For Linux (PulseAudio virtual mic)
   private loopbackRecorder: LoopbackRecorder | null = null; // For Windows/macOS (electron-audio-loopback)
   private systemAudioCallback: AudioRecordingCallback | null = null;
   private systemAudioRecordingActive: boolean = false;
@@ -959,17 +960,19 @@ export class ModernBrowserAudioService implements IAudioService {
 
       console.info(`[Sokuji] [ModernBrowserAudio] Found system audio device: ${systemAudioDevice.label} (${systemAudioDevice.deviceId})`);
 
-      // Create a new recorder for system audio with disabled echo cancellation
-      this.systemAudioRecorder = new ModernAudioRecorder({
-        sampleRate: 24000,
-        enablePassthrough: false // No passthrough for system audio
-      });
+      // Create LinuxLoopbackRecorder (uses ParticipantRecorder with proper audio constraints)
+      this.systemAudioRecorder = new LinuxLoopbackRecorder(24000);
 
       // Store the callback
       this.systemAudioCallback = callback;
 
       // Start recording using the browser's deviceId
-      await this.systemAudioRecorder.begin(systemAudioDevice.deviceId);
+      const success = await this.systemAudioRecorder.begin({
+        deviceId: systemAudioDevice.deviceId
+      });
+      if (!success) {
+        throw new Error('Failed to start Linux loopback recorder');
+      }
       await this.systemAudioRecorder.record((data) => {
         if (this.systemAudioCallback) {
           this.systemAudioCallback(data);
