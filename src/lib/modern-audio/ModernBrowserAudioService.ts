@@ -22,6 +22,7 @@ const isMacOSPlatform = (): boolean => {
 };
 
 // Helper to detect platforms that support electron-audio-loopback
+// Note: Linux is not supported, uses LinuxLoopbackRecorder with PulseAudio/PipeWire instead
 const isLoopbackPlatform = (): boolean => {
   return isWindowsPlatform() || isMacOSPlatform();
 };

@@ -51,6 +51,7 @@ const {
 
 // Initialize electron-audio-loopback for Windows and macOS system audio capture
 // MUST be called before app is ready
+// Note: Linux is not supported by electron-audio-loopback, uses LinuxLoopbackRecorder instead
 if (process.platform === 'win32' || process.platform === 'darwin') {
   const { initMain } = require('electron-audio-loopback');
   initMain();
