@@ -2,7 +2,7 @@ import { IAudioService, AudioDevices, AudioOperationResult, AudioRecordingCallba
 import { ModernAudioRecorder } from './ModernAudioRecorder';
 import { ModernAudioPlayer } from './ModernAudioPlayer';
 import { TabAudioRecorder } from './TabAudioRecorder';
-import { WindowsLoopbackRecorder } from './WindowsLoopbackRecorder';
+import { LoopbackRecorder } from './LoopbackRecorder';
 import { ServiceFactory } from '../../services/ServiceFactory';
 import { AudioDevice } from '../../stores/audioStore';
 import { isExtension } from '../../utils/environment';
@@ -11,6 +11,17 @@ import { isExtension } from '../../utils/environment';
 const isWindowsPlatform = (): boolean => {
   return typeof navigator !== 'undefined' &&
          navigator.platform.toLowerCase().includes('win');
+};
+
+// Helper to detect macOS platform
+const isMacOSPlatform = (): boolean => {
+  return typeof navigator !== 'undefined' &&
+         navigator.platform.toLowerCase().includes('mac');
+};
+
+// Helper to detect platforms that support electron-audio-loopback
+const isLoopbackPlatform = (): boolean => {
+  return isWindowsPlatform() || isMacOSPlatform();
 };
 
 // Declare chrome namespace for extension messaging
@@ -37,7 +48,7 @@ export class ModernBrowserAudioService implements IAudioService {
   private currentSystemAudioSinkId: string | undefined = undefined; // The sink being captured
   // Recording state (started when session starts)
   private systemAudioRecorder: ModernAudioRecorder | null = null; // For Linux (PulseAudio virtual mic)
-  private windowsLoopbackRecorder: WindowsLoopbackRecorder | null = null; // For Windows (desktopCapturer loopback)
+  private loopbackRecorder: LoopbackRecorder | null = null; // For Windows/macOS (electron-audio-loopback)
   private systemAudioCallback: AudioRecordingCallback | null = null;
   private systemAudioRecordingActive: boolean = false;
 
@@ -802,10 +813,11 @@ export class ModernBrowserAudioService implements IAudioService {
     try {
       console.info(`[Sokuji] [ModernBrowserAudio] Connecting system audio source: ${sourceDeviceId}`);
 
-      if (isWindowsPlatform()) {
-        // Windows: Just set state flags, actual capture via getDisplayMedia
-        console.info('[Sokuji] [ModernBrowserAudio] Windows detected - using desktopCapturer loopback');
-        // Still call IPC for consistency (it's a no-op on Windows)
+      if (isLoopbackPlatform()) {
+        // Windows/macOS: Just set state flags, actual capture via electron-audio-loopback
+        const platform = isWindowsPlatform() ? 'Windows' : 'macOS';
+        console.info(`[Sokuji] [ModernBrowserAudio] ${platform} detected - using electron-audio-loopback`);
+        // Still call IPC for consistency (it's a no-op on Windows/macOS)
         await window.electron.invoke('connect-system-audio-source', sourceDeviceId);
       } else {
         // Linux: Switch connection in the main process via pw-link
@@ -880,44 +892,46 @@ export class ModernBrowserAudioService implements IAudioService {
     }
 
     // Route to platform-specific implementation
-    if (isWindowsPlatform()) {
-      await this.startWindowsSystemAudioRecording(callback);
+    // Windows and macOS use electron-audio-loopback, Linux uses PulseAudio virtual mic
+    if (isLoopbackPlatform()) {
+      await this.startLoopbackRecording(callback);
     } else {
       await this.startLinuxSystemAudioRecording(callback);
     }
   }
 
   /**
-   * Start system audio recording on Windows using desktopCapturer loopback
+   * Start system audio recording on Windows/macOS using electron-audio-loopback
    * @param callback Function to receive audio data chunks
    */
-  private async startWindowsSystemAudioRecording(callback: AudioRecordingCallback): Promise<void> {
+  private async startLoopbackRecording(callback: AudioRecordingCallback): Promise<void> {
     try {
-      console.info('[Sokuji] [ModernBrowserAudio] Starting Windows system audio recording via desktopCapturer');
+      const platform = isWindowsPlatform() ? 'Windows' : 'macOS';
+      console.info(`[Sokuji] [ModernBrowserAudio] Starting ${platform} system audio recording via electron-audio-loopback`);
 
-      // Create desktop audio recorder (uses getDisplayMedia with loopback audio)
-      this.windowsLoopbackRecorder = new WindowsLoopbackRecorder(24000);
+      // Create loopback recorder (uses electron-audio-loopback library)
+      this.loopbackRecorder = new LoopbackRecorder(24000);
 
       // Store the callback
       this.systemAudioCallback = callback;
 
-      // Start capture - this will trigger the screen picker dialog
-      const success = await this.windowsLoopbackRecorder.begin();
+      // Start capture
+      const success = await this.loopbackRecorder.begin();
       if (!success) {
-        throw new Error('Failed to begin desktop audio capture');
+        throw new Error('Failed to begin loopback audio capture');
       }
 
       // Start recording with callback
-      await this.windowsLoopbackRecorder.record((data) => {
+      await this.loopbackRecorder.record((data) => {
         if (this.systemAudioCallback) {
           this.systemAudioCallback(data);
         }
       });
 
       this.systemAudioRecordingActive = true;
-      console.info('[Sokuji] [ModernBrowserAudio] Windows system audio recording started successfully');
+      console.info(`[Sokuji] [ModernBrowserAudio] ${platform} system audio recording started successfully`);
     } catch (error) {
-      console.error('[Sokuji] [ModernBrowserAudio] Failed to start Windows system audio recording:', error);
+      console.error('[Sokuji] [ModernBrowserAudio] Failed to start loopback recording:', error);
       // Clean up on failure
       await this.stopSystemAudioRecording();
       throw error;
@@ -975,19 +989,19 @@ export class ModernBrowserAudioService implements IAudioService {
   /**
    * Stop recording from system audio (but keep connection)
    * Called when session ends
-   * Handles cleanup for both Windows (desktopCapturer) and Linux (PulseAudio)
+   * Handles cleanup for Windows/macOS (electron-audio-loopback) and Linux (PulseAudio)
    */
   public async stopSystemAudioRecording(): Promise<void> {
     console.info('[Sokuji] [ModernBrowserAudio] Stopping system audio recording');
 
-    // Stop the desktop audio recorder (Windows)
-    if (this.windowsLoopbackRecorder) {
+    // Stop the loopback recorder (Windows/macOS)
+    if (this.loopbackRecorder) {
       try {
-        await this.windowsLoopbackRecorder.end();
+        await this.loopbackRecorder.end();
       } catch (error) {
-        console.warn('[Sokuji] [ModernBrowserAudio] Error ending desktop audio recorder:', error);
+        console.warn('[Sokuji] [ModernBrowserAudio] Error ending loopback recorder:', error);
       }
-      this.windowsLoopbackRecorder = null;
+      this.loopbackRecorder = null;
     }
 
     // Stop the system audio recorder (Linux)
