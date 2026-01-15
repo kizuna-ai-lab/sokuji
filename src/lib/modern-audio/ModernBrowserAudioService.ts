@@ -1028,7 +1028,7 @@ export class ModernBrowserAudioService implements IAudioService {
    * Check and request screen recording permission for loopback audio
    * Only applicable for Windows/macOS where electron-audio-loopback is used
    * This triggers the system permission dialog if needed, without acquiring a stream
-   * Returns: 'granted' | 'denied' | 'cancelled'
+   * @returns Promise<boolean> - true if permission granted, false otherwise
    */
   public async requestLoopbackAudioStream(): Promise<boolean> {
     // Only applicable for loopback platforms (Windows/macOS)
