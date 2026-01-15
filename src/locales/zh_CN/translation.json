@@ -274,6 +274,11 @@
     "mutualExclusivityParticipantTitle": "无法启用参与者音频",
     "mutualExclusivitySpeakerText": "请先关闭参与者音频，再启用扬声器。",
     "mutualExclusivityParticipantText": "请先关闭扬声器，再启用参与者音频。",
+    "screenRecordingDeniedNotice": "需要权限",
+    "screenRecordingDeniedTitle": "屏幕录制权限被拒绝",
+    "screenRecordingDeniedText1": "参与者音频需要屏幕录制权限才能捕获系统音频。",
+    "screenRecordingDeniedText2": "请前往 系统偏好设置 > 隐私与安全性 > 屏幕录制，启用 Sokuji。",
+    "screenRecordingDeniedText3": "启用权限后，请重新启动应用。",
     "availableSystemAudioSources": "可捕获的系统音频设备",
     "refreshSystemAudioSources": "刷新设备列表"
   },

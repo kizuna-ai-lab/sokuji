@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, Menu, dialog, shell, session, systemPreferences } = require('electron');
+const { app, BrowserWindow, ipcMain, Menu, dialog, shell, session, systemPreferences, desktopCapturer } = require('electron');
 const path = require('path');
 const { betterAuthAdapter } = require('./better-auth-adapter');
 
@@ -48,6 +48,15 @@ const {
   disconnectSystemAudioSource,
   supportsSystemAudioCapture
 } = audioUtils;
+
+// Initialize electron-audio-loopback for Windows and macOS system audio capture
+// MUST be called before app is ready
+// Note: Linux is not supported by electron-audio-loopback, uses LinuxLoopbackRecorder instead
+if (process.platform === 'win32' || process.platform === 'darwin') {
+  const { initMain } = require('electron-audio-loopback');
+  initMain();
+  console.log('[Sokuji] [Main] electron-audio-loopback initialized for', process.platform);
+}
 
 // Set application name for PulseAudio
 app.setName('sokuji');
@@ -227,10 +236,7 @@ function createWindow() {
       contextIsolation: true,
       preload: path.join(__dirname, 'preload.js'),
       // Disable web security in development to allow CORS requests
-      webSecurity: !isDev,
-      // Use persistent partition in development mode to preserve localStorage across restarts
-      // The 'persist:' prefix ensures data is saved to disk rather than kept in memory
-      partition: isDev ? 'persist:sokuji-dev' : undefined
+      webSecurity: !isDev
     }
   });
 
@@ -399,6 +405,8 @@ app.whenReady().then(async () => {
   }
 
   createWindow();
+
+  // electron-audio-loopback handles setDisplayMediaRequestHandler automatically via initMain()
 });
 
 // Ensure cleanup happens before app exits
@@ -644,3 +652,25 @@ ipcMain.handle('disconnect-system-audio-source', async () => {
   }
   return { success: false };
 });
+
+// Screen recording permission check for macOS system audio capture
+// This only checks the permission status, does NOT trigger any permission dialogs
+// The renderer should call getDisplayMedia() to trigger the system dialog when needed
+ipcMain.handle('check-screen-recording-permission', async () => {
+  if (process.platform !== 'darwin') {
+    // Windows doesn't need screen recording permission for loopback audio
+    return { status: 'granted', platform: process.platform };
+  }
+
+  try {
+    const status = systemPreferences.getMediaAccessStatus('screen');
+    console.log('[Sokuji] [Main] Screen recording permission status:', status);
+    // Just return the raw status - don't try to trigger permission here
+    // Calling desktopCapturer.getSources() would change 'not-determined' to 'denied'
+    return { status, platform: 'darwin' };
+  } catch (error) {
+    console.error('[Sokuji] [Main] Error checking screen recording permission:', error);
+    return { status: 'unknown', platform: 'darwin', error: error.message };
+  }
+});
+

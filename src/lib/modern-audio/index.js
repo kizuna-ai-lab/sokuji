@@ -6,7 +6,8 @@
 export { ModernAudioRecorder } from './ModernAudioRecorder';
 export { ModernAudioPlayer } from './ModernAudioPlayer.js';
 export { ModernBrowserAudioService } from './ModernBrowserAudioService';
-export { SystemAudioRecorder } from './SystemAudioRecorder';
+export { LinuxLoopbackRecorder } from './LinuxLoopbackRecorder';
+export { LoopbackRecorder } from './LoopbackRecorder';
 export { TabAudioRecorder } from './TabAudioRecorder';
 
 // Participant audio interface and base classes
