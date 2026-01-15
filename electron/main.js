@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, Menu, dialog, shell, session } = require('electron');
+const { app, BrowserWindow, ipcMain, Menu, dialog, shell, session, systemPreferences } = require('electron');
 const path = require('path');
 const { betterAuthAdapter } = require('./better-auth-adapter');
 
@@ -384,6 +384,19 @@ app.whenReady().then(async () => {
 
   // Create the application menu
   createApplicationMenu();
+
+  // Request microphone permission on macOS before creating window
+  if (process.platform === 'darwin') {
+    const micStatus = systemPreferences.getMediaAccessStatus('microphone');
+    console.log('[Sokuji] [Main] Microphone permission status:', micStatus);
+
+    if (micStatus === 'not-determined') {
+      const granted = await systemPreferences.askForMediaAccess('microphone');
+      console.log('[Sokuji] [Main] Microphone permission granted:', granted);
+    } else if (micStatus === 'denied') {
+      console.warn('[Sokuji] [Main] Microphone permission denied - please enable in System Preferences > Privacy & Security > Microphone');
+    }
+  }
 
   createWindow();
 });
