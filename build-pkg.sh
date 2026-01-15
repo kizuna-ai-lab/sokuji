@@ -42,6 +42,11 @@ if [ ! -w "out/Sokuji-darwin-arm64/Sokuji.app" ]; then
     sudo chown -R $(whoami):staff out/Sokuji-darwin-arm64/Sokuji.app
 fi
 
+# Step 2.6: Ad-hoc sign the app (required for macOS to show permission dialogs)
+echo "Step 2.6: Ad-hoc signing the app..."
+codesign --force --deep --sign - out/Sokuji-darwin-arm64/Sokuji.app
+echo "✅ App signed successfully"
+
 # Step 3: Create output directory if it doesn't exist
 echo "Step 3: Preparing output directory..."
 mkdir -p out/make
