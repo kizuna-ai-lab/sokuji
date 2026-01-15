@@ -53,6 +53,16 @@ const WarningModal: React.FC<WarningModalProps> = ({ isOpen, onClose, type }) =>
             t('audioPanel.mutualExclusivityParticipantText', 'Please turn off Speaker before enabling Participant Audio.')
           ]
         };
+      case 'screen-recording-denied':
+        return {
+          title: t('audioPanel.screenRecordingDeniedNotice', 'Permission Required'),
+          titleText: t('audioPanel.screenRecordingDeniedTitle', 'Screen Recording Permission Denied'),
+          paragraphs: [
+            t('audioPanel.screenRecordingDeniedText1', 'Participant Audio requires Screen Recording permission to capture system audio.'),
+            t('audioPanel.screenRecordingDeniedText2', 'Please go to System Preferences > Privacy & Security > Screen Recording and enable Sokuji.'),
+            t('audioPanel.screenRecordingDeniedText3', 'After enabling the permission, please restart the app.')
+          ]
+        };
       default:
         return null;
     }

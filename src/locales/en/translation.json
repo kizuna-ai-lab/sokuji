@@ -245,6 +245,11 @@
     "mutualExclusivityParticipantTitle": "Cannot enable Participant Audio",
     "mutualExclusivitySpeakerText": "Please turn off Participant Audio before enabling Speaker.",
     "mutualExclusivityParticipantText": "Please turn off Speaker before enabling Participant Audio.",
+    "screenRecordingDeniedNotice": "Permission Required",
+    "screenRecordingDeniedTitle": "Screen Recording Permission Denied",
+    "screenRecordingDeniedText1": "Participant Audio requires Screen Recording permission to capture system audio.",
+    "screenRecordingDeniedText2": "Please go to System Preferences > Privacy & Security > Screen Recording and enable Sokuji.",
+    "screenRecordingDeniedText3": "After enabling the permission, please restart the app.",
     "availableSystemAudioSources": "Capturable System Audio Devices",
     "refreshSystemAudioSources": "Refresh device list"
   },

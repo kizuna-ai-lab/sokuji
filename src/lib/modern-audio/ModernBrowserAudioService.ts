@@ -59,6 +59,7 @@ export class ModernBrowserAudioService implements IAudioService {
   private tabAudioCallback: AudioRecordingCallback | null = null;
   private tabAudioRecordingActive: boolean = false;
 
+
   constructor() {
     // Initialize modern audio components
     this.recorder = new ModernAudioRecorder({ 
@@ -601,6 +602,7 @@ export class ModernBrowserAudioService implements IAudioService {
     // Also clear interrupted tracks in the player
     this.player.clearInterruptedTracks();
     
+
     // Also clear from virtual speaker player
     if (this.virtualSpeakerPlayer) {
       this.virtualSpeakerPlayer.clearInterruptedTracks();
@@ -1017,6 +1019,97 @@ export class ModernBrowserAudioService implements IAudioService {
   public isSystemAudioRecordingActive(): boolean {
     return this.systemAudioRecordingActive;
   }
+
+  // ============================================
+  // Loopback Stream Pre-acquisition (Windows/macOS)
+  // ============================================
+
+  /**
+   * Check and request screen recording permission for loopback audio
+   * Only applicable for Windows/macOS where electron-audio-loopback is used
+   * This triggers the system permission dialog if needed, without acquiring a stream
+   * Returns: 'granted' | 'denied' | 'cancelled'
+   */
+  public async requestLoopbackAudioStream(): Promise<boolean> {
+    // Only applicable for loopback platforms (Windows/macOS)
+    if (!isLoopbackPlatform()) {
+      console.info('[Sokuji] [ModernBrowserAudio] requestLoopbackAudioStream: Not a loopback platform, skipping');
+      return true; // Return true since Linux doesn't need this
+    }
+
+    // Check if running in Electron
+    if (!ServiceFactory.isElectron() || !window.electron) {
+      console.info('[Sokuji] [ModernBrowserAudio] requestLoopbackAudioStream: Not in Electron, skipping');
+      return true;
+    }
+
+    try {
+      console.info('[Sokuji] [ModernBrowserAudio] Checking screen recording permission...');
+
+      // Check screen recording permission (macOS only, Windows always returns 'granted')
+      const permissionResult = await window.electron.invoke('check-screen-recording-permission');
+      console.info('[Sokuji] [ModernBrowserAudio] Screen recording permission check result:', permissionResult);
+
+      // Permission already granted - no need to show dialog
+      if (permissionResult.status === 'granted') {
+        console.info('[Sokuji] [ModernBrowserAudio] Screen recording permission already granted');
+        return true;
+      }
+
+      // Permission explicitly denied - user must manually enable in System Preferences
+      // Don't try to call enable-loopback-audio because it will crash the app with unhandled rejection
+      if (permissionResult.status === 'denied') {
+        console.warn('[Sokuji] [ModernBrowserAudio] Screen recording permission denied. User must enable in System Preferences.');
+        return false;
+      }
+
+      // Permission not determined or unknown - try to trigger permission dialog
+      // In Electron, getDisplayMedia requires the electron-audio-loopback handler to be active
+      // We need to enable-loopback-audio first, then call getDisplayMedia
+      console.info('[Sokuji] [ModernBrowserAudio] Permission not determined (status:', permissionResult.status, '), triggering system dialog...');
+
+      try {
+        // Enable loopback audio handler first - this might fail if permission not granted
+        // but we catch the error and still try getDisplayMedia
+        console.info('[Sokuji] [ModernBrowserAudio] Enabling loopback audio handler...');
+        await window.electron.invoke('enable-loopback-audio');
+        console.info('[Sokuji] [ModernBrowserAudio] Loopback audio handler enabled');
+      } catch (enableError) {
+        console.warn('[Sokuji] [ModernBrowserAudio] Failed to enable loopback audio (expected if permission not granted):', enableError);
+        // Continue anyway - getDisplayMedia might still trigger the permission dialog
+      }
+
+      try {
+        // Call getDisplayMedia to trigger system permission dialog
+        console.info('[Sokuji] [ModernBrowserAudio] Calling navigator.mediaDevices.getDisplayMedia()...');
+        const tempStream = await navigator.mediaDevices.getDisplayMedia({
+          video: true,
+          audio: true
+        });
+        console.info('[Sokuji] [ModernBrowserAudio] getDisplayMedia() succeeded, got stream:', tempStream);
+        console.info('[Sokuji] [ModernBrowserAudio] Stream tracks:', tempStream.getTracks().map(t => ({ kind: t.kind, label: t.label, readyState: t.readyState })));
+        // Stop the stream immediately - we just wanted to trigger the permission dialog
+        tempStream.getTracks().forEach(track => track.stop());
+        // Disable loopback audio after we're done
+        await window.electron.invoke('disable-loopback-audio').catch(() => {});
+        console.info('[Sokuji] [ModernBrowserAudio] Permission granted');
+        return true;
+      } catch (error) {
+        // Disable loopback audio on error
+        await window.electron.invoke('disable-loopback-audio').catch(() => {});
+        console.error('[Sokuji] [ModernBrowserAudio] getDisplayMedia() failed:', error);
+        console.error('[Sokuji] [ModernBrowserAudio] Error name:', error instanceof Error ? error.name : 'unknown');
+        console.error('[Sokuji] [ModernBrowserAudio] Error message:', error instanceof Error ? error.message : String(error));
+        // User cancelled or permission denied
+        return false;
+      }
+
+    } catch (error) {
+      console.error('[Sokuji] [ModernBrowserAudio] Error checking screen recording permission:', error);
+      return false;
+    }
+  }
+
 
   // ============================================
   // Tab Audio Capture Methods (Extension)

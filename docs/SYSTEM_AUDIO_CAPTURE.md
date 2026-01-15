@@ -16,10 +16,11 @@ This enables bidirectional real-time translation in meetings without audio feedb
 | Platform | Capture Method | Implementation |
 |----------|---------------|----------------|
 | **Electron (Linux)** | System loopback audio via PipeWire/PulseAudio | `LinuxLoopbackRecorder.ts` |
-| **Electron (Windows)** | System loopback audio via desktopCapturer | `WindowsLoopbackRecorder.ts` |
+| **Electron (Windows)** | System loopback audio via electron-audio-loopback | `LoopbackRecorder.ts` |
+| **Electron (macOS)** | System loopback audio via electron-audio-loopback | `LoopbackRecorder.ts` |
 | **Chrome Extension** | Chrome `tabCapture` API | `TabAudioRecorder.ts` |
 
-> **Note**: Electron system audio capture supports Linux (PipeWire/PulseAudio) and Windows (desktopCapturer loopback). macOS support may be added in future releases.
+> **Note**: Electron system audio capture supports all major platforms: Linux (PipeWire/PulseAudio), Windows, and macOS. Windows and macOS use the `electron-audio-loopback` library which provides native loopback audio capture via `getDisplayMedia()` with the `audio: 'loopback'` parameter.
 
 ## Architecture
 
@@ -97,19 +98,20 @@ System Audio Output (PipeWire/PulseAudio Monitor)
 └─────────────────┘
 ```
 
-#### Electron (System Audio - Windows)
+#### Electron (System Audio - Windows/macOS)
 
 ```
-System Audio Output (desktopCapturer loopback)
+System Audio Output (electron-audio-loopback)
        │
        ▼
-┌─────────────────────────┐
-│ WindowsLoopbackRecorder │ ─── getDisplayMedia() with loopback audio
-├─────────────────────────┤
-│ • No echo cancel        │ ─── Audio already processed
-│ • No noise suppress     │
-│ • AudioWorklet          │ ─── Processes PCM audio chunks
-└─────────┬───────────────┘
+┌───────────────────────┐
+│ LoopbackRecorder      │ ─── getDisplayMedia() with loopback audio
+├───────────────────────┤     (via setDisplayMediaRequestHandler)
+│ • No echo cancel      │ ─── Audio already processed
+│ • No noise suppress   │
+│ • Auto source select  │ ─── electron-audio-loopback auto-selects first screen
+│ • AudioWorklet        │ ─── Processes PCM audio chunks
+└─────────┬─────────────┘
           │ PCM Int16 @ 24kHz
           ▼
 ┌─────────────────┐
@@ -117,6 +119,8 @@ System Audio Output (desktopCapturer loopback)
 │ AI Client       │ ─── Transcription + Translation (text only)
 └─────────────────┘
 ```
+
+> **Note for macOS**: Screen recording permission is required. When first enabling Participant Audio, the system will prompt for permission. On macOS, users must grant Screen Recording permission in System Preferences > Security & Privacy > Privacy > Screen Recording.
 
 ## Participant Client Configuration
 
@@ -177,13 +181,15 @@ This ensures that when the user speaks English (source) to be translated to Japa
 |------|---------|
 | `src/lib/modern-audio/TabAudioRecorder.ts` | Chrome extension tab audio capture using `tabCapture` API |
 | `src/lib/modern-audio/LinuxLoopbackRecorder.ts` | Electron system loopback audio capture on Linux (PulseAudio/PipeWire) |
-| `src/lib/modern-audio/WindowsLoopbackRecorder.ts` | Electron system loopback audio capture on Windows (desktopCapturer) |
+| `src/lib/modern-audio/LoopbackRecorder.ts` | Electron system loopback audio capture on Windows/macOS (electron-audio-loopback) |
 | `src/lib/modern-audio/ModernBrowserAudioService.ts` | Audio service with `startTabAudioRecording()` and `startSystemAudioRecording()` methods |
 | `src/components/MainPanel/MainPanel.tsx` | Dual-client session management and conversation display |
 | `extension/background/background.js` | Background script for coordinating `chrome.tabCapture` API calls |
 | `src/stores/audioStore.ts` | Audio device state including `participantAudioOutputDevice` |
 | `src/stores/logStore.ts` | Dual-client logging with `ClientId` type (`'speaker' | 'participant'`) |
 | `src/stores/settingsStore.ts` | `getProcessedSystemInstructions()` with language swap support |
+| `electron/macos-audio-utils.js` | macOS audio utilities including system audio capture support |
+| `electron/windows-audio-utils.js` | Windows audio utilities including system audio capture support |
 
 ## Implementation Details
 
@@ -227,15 +233,27 @@ The `TabAudioRecorder` class handles tab audio capture:
 
 3. **Silent Output**: Uses a gain node with zero volume to keep audio processing active without audible output
 
-#### Windows (`WindowsLoopbackRecorder`)
+#### Windows/macOS (`LoopbackRecorder`)
 
-1. **Screen Capture API**: Uses `getDisplayMedia()` with loopback audio provided by `setDisplayMediaRequestHandler`
+1. **electron-audio-loopback Integration**: Main process initializes the library before app is ready:
+   ```javascript
+   const { initMain } = require('electron-audio-loopback');
+   initMain();
+   ```
 
-2. **Video Track Discard**: The video track is immediately stopped and removed (only audio is needed)
+2. **Screen Capture API**: Uses `getDisplayMedia()` with loopback audio provided by `setDisplayMediaRequestHandler`:
+   ```typescript
+   const stream = await navigator.mediaDevices.getDisplayMedia({
+     video: true,  // Required by API, video track is discarded
+     audio: true   // Gets loopback audio
+   });
+   ```
 
-3. **No External Software**: Unlike VB-CABLE approach, uses native Electron desktopCapturer API
+3. **Video Track Discard**: The video track is immediately stopped and removed (only audio is needed)
 
-4. **User Interaction**: Screen picker dialog appears when starting capture (Windows requirement)
+4. **No External Software**: Uses native Electron/Chrome APIs via electron-audio-loopback
+
+5. **User Interaction**: Screen picker dialog appears when starting capture (platform requirement)
 
 ### Session Management
 
@@ -309,10 +327,11 @@ The feature includes safeguards to prevent audio feedback:
 
 ## Limitations
 
-1. **Platform Support**: System audio capture requires:
-   - Linux: PipeWire or PulseAudio
-   - Windows: Screen picker dialog (user must select a screen)
-   - macOS: Not yet supported
-2. **Extension Permissions**: Chrome extension requires `tabCapture` permission
-3. **No Audio Output**: Participant translations are text-only to prevent feedback
-4. **Same Provider**: Both speaker and participant clients use the same AI provider and model
+1. **Platform Requirements**: System audio capture requires:
+   - Linux: PipeWire or PulseAudio installed and running
+   - macOS: Screen Recording permission must be granted in System Preferences
+   - Windows: No special requirements
+2. **No Per-Application Audio Routing**: Cannot capture audio from specific applications only (captures all system audio)
+3. **Extension Permissions**: Chrome extension requires `tabCapture` permission
+4. **No Audio Output**: Participant translations are text-only to prevent feedback
+5. **Same Provider**: Both speaker and participant clients use the same AI provider and model

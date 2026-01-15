@@ -78,7 +78,8 @@ export type WarningType =
   | 'virtual-mic'
   | 'virtual-speaker'
   | 'mutual-exclusivity-speaker'
-  | 'mutual-exclusivity-participant';
+  | 'mutual-exclusivity-participant'
+  | 'screen-recording-denied';
 
 /**
  * Hook to manage warning modal state
@@ -91,7 +92,8 @@ export const useWarningModal = () => {
       VIRTUAL_MIC: 'virtual-mic' as WarningType,
       VIRTUAL_SPEAKER: 'virtual-speaker' as WarningType,
       MUTUAL_EXCLUSIVITY_SPEAKER: 'mutual-exclusivity-speaker' as WarningType,
-      MUTUAL_EXCLUSIVITY_PARTICIPANT: 'mutual-exclusivity-participant' as WarningType
+      MUTUAL_EXCLUSIVITY_PARTICIPANT: 'mutual-exclusivity-participant' as WarningType,
+      SCREEN_RECORDING_DENIED: 'screen-recording-denied' as WarningType
     }
   };
 };
