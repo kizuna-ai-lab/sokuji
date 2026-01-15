@@ -2,13 +2,14 @@ import { ParticipantRecorder } from './ParticipantRecorder';
 import { ParticipantAudioOptions } from './IParticipantAudioRecorder';
 
 /**
- * System Audio Recorder for capturing system/loopback audio
- * Used for translating other meeting participants' voices in Electron (Linux PipeWire)
+ * Linux Loopback Recorder for capturing system audio on Linux
+ * Uses PulseAudio/PipeWire virtual microphone to capture system audio output
+ * Used for translating other meeting participants' voices in Electron on Linux
  */
-export class SystemAudioRecorder extends ParticipantRecorder {
+export class LinuxLoopbackRecorder extends ParticipantRecorder {
 
   protected getLogPrefix(): string {
-    return '[Sokuji] [SystemAudioRecorder]';
+    return '[Sokuji] [LinuxLoopbackRecorder]';
   }
 
   protected shouldConnectToDestination(): boolean {

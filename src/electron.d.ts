@@ -8,9 +8,9 @@ interface ElectronAPI {
     getPath: () => Promise<{ configDir: string; configFile: string }>;
   };
   openai: {
-    generateToken: (options?: { 
-      model?: string; 
-      voice?: string; 
+    generateToken: (options?: {
+      model?: string;
+      voice?: string;
       turnDetectionMode?: 'Normal' | 'Semantic' | 'Disabled';
       threshold?: number;
       prefixPadding?: number;
@@ -21,10 +21,10 @@ interface ElectronAPI {
       transcriptModel?: 'gpt-4o-mini-transcribe' | 'gpt-4o-transcribe' | 'whisper-1';
       noiseReduction?: 'None' | 'Near field' | 'Far field';
       systemInstructions?: string;
-    }) => Promise<{ 
-      success: boolean; 
-      data?: any; 
-      error?: string 
+    }) => Promise<{
+      success: boolean;
+      data?: any;
+      error?: string
     }>;
   };
 }
