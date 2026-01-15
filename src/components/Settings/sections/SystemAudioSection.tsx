@@ -43,7 +43,7 @@ const SystemAudioSection: React.FC<SystemAudioSectionProps> = ({
     setSystemAudioCaptureActive,
     selectParticipantAudioOutputDevice,
     refreshSystemAudioSources,
-    refreshDevices
+    refreshDevices,
   } = useAudioContext();
 
   const setSystemAudioLoopbackSourceId = useSetSystemAudioLoopbackSourceId();
@@ -67,6 +67,31 @@ const SystemAudioSection: React.FC<SystemAudioSectionProps> = ({
 
       if (source) {
         console.info(`[Sokuji] [SystemAudioSection] Connecting system audio source: ${source.label}`);
+
+        // For Windows/macOS Electron, request loopback audio stream early
+        // This tests the capture and holds the stream for when session starts
+        if (isElectron() && !isExtension()) {
+          const isLoopbackPlatform = navigator.platform.toLowerCase().includes('win') ||
+                                      navigator.platform.toLowerCase().includes('mac');
+
+          if (isLoopbackPlatform) {
+            console.info('[Sokuji] [SystemAudioSection] Checking screen recording permission...');
+            const permissionGranted = await audioService.requestLoopbackAudioStream();
+
+            if (!permissionGranted) {
+              console.error('[Sokuji] [SystemAudioSection] Screen recording permission not granted');
+              setIsSystemAudioLoading(false);
+              // Show permission denied warning on macOS
+              if (navigator.platform.toLowerCase().includes('mac')) {
+                setWarningType('screen-recording-denied');
+              }
+              return; // Don't proceed if permission not granted
+            }
+
+            console.info('[Sokuji] [SystemAudioSection] Screen recording permission granted');
+          }
+        }
+
         await audioService.connectSystemAudioSource(source.deviceId);
 
         setSystemAudioLoopbackSourceId('sokuji_system_audio_mic');
@@ -84,6 +109,7 @@ const SystemAudioSection: React.FC<SystemAudioSectionProps> = ({
         console.info(`[Sokuji] [SystemAudioSection] System audio source connected: ${source.label}`);
       } else {
         console.info('[Sokuji] [SystemAudioSection] Disconnecting system audio source');
+
         await audioService.disconnectSystemAudioSource();
 
         setSystemAudioLoopbackSourceId(null);

@@ -161,6 +161,11 @@
     "mutualExclusivityParticipantTitle": "参加者の音声を有効にできません",
     "mutualExclusivitySpeakerText": "話者モードを有効にするには、先に参加者の音声をオフにしてください。",
     "mutualExclusivityParticipantText": "参加者の音声を有効にするには、先に話者モードをオフにしてください。",
+    "screenRecordingDeniedNotice": "権限が必要です",
+    "screenRecordingDeniedTitle": "画面録画の権限が拒否されました",
+    "screenRecordingDeniedText1": "参加者の音声にはシステムオーディオをキャプチャするために画面録画の権限が必要です。",
+    "screenRecordingDeniedText2": "システム環境設定 > プライバシーとセキュリティ > 画面録画 で Sokuji を有効にしてください。",
+    "screenRecordingDeniedText3": "権限を有効にした後、アプリを再起動してください。",
     "availableSystemAudioSources": "キャプチャ可能なシステムオーディオデバイス",
     "refreshSystemAudioSources": "デバイスリストを更新"
   },

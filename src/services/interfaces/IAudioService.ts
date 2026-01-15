@@ -187,6 +187,16 @@ export interface IAudioService {
    */
   isSystemAudioRecordingActive(): boolean;
 
+  // Loopback audio permission check (Windows/macOS only)
+
+  /**
+   * Check and request screen recording permission for loopback audio
+   * Only applicable for Windows/macOS where electron-audio-loopback is used
+   * Triggers the system permission dialog if needed
+   * @returns Promise resolving to true if permission granted, false if denied/cancelled
+   */
+  requestLoopbackAudioStream(): Promise<boolean>;
+
   // Tab audio capture methods (for browser extension - translating other participants)
 
   /**

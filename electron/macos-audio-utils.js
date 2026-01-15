@@ -238,11 +238,70 @@ async function getAudioDevices() {
   }
 }
 
+// ============================================================================
+// System Audio Capture Functions (macOS via electron-audio-loopback)
+// ============================================================================
+
+/**
+ * Check if system audio capture is supported
+ * On macOS, this is always true when running in Electron (uses electron-audio-loopback)
+ * @returns {Promise<boolean>} True if system audio capture is supported
+ */
+async function supportsSystemAudioCapture() {
+  console.log('[Sokuji] [macOS Audio] System audio capture is supported via electron-audio-loopback');
+  return true;
+}
+
+/**
+ * List available system audio sources
+ * On macOS, we provide a single "System Audio" source that captures all system audio
+ * via the electron-audio-loopback feature (uses getDisplayMedia with loopback audio)
+ * @returns {Promise<Array<{deviceId: string, label: string}>>} Array of system audio sources
+ */
+async function listSystemAudioSources() {
+  console.log('[Sokuji] [macOS Audio] Listing system audio sources');
+  // macOS captures system audio via screen selection, so we return a single source
+  return [{
+    deviceId: 'desktop-audio-loopback',
+    label: 'System Audio (Screen Selection Required)'
+  }];
+}
+
+/**
+ * Connect to a system audio source
+ * On macOS, this is a no-op since the actual capture is done via getDisplayMedia in the renderer
+ * The user will select a screen/window when starting participant audio capture
+ * @param {string} sourceId - The source ID to connect to
+ * @returns {Promise<{success: boolean, error?: string}>} Result object
+ */
+async function connectSystemAudioSource(sourceId) {
+  console.log(`[Sokuji] [macOS Audio] Connect system audio source: ${sourceId}`);
+  // On macOS, the "connection" happens when getDisplayMedia is called in the renderer
+  // This function just acknowledges the intent to capture
+  return { success: true };
+}
+
+/**
+ * Disconnect from the current system audio source
+ * On macOS, this is a no-op since cleanup happens in the renderer
+ * @returns {Promise<{success: boolean}>} Result object
+ */
+async function disconnectSystemAudioSource() {
+  console.log('[Sokuji] [macOS Audio] Disconnect system audio source');
+  // Cleanup happens in the renderer when the MediaStream is stopped
+  return { success: true };
+}
+
 module.exports = {
   createVirtualAudioDevices,
   removeVirtualAudioDevices,
   isMacOSAudioAvailable,
   cleanupOrphanedDevices,
   isSokujiVirtualAudioInstalled,
-  getAudioDevices
+  getAudioDevices,
+  // System audio capture functions
+  supportsSystemAudioCapture,
+  listSystemAudioSources,
+  connectSystemAudioSource,
+  disconnectSystemAudioSource
 };

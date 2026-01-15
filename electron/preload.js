@@ -87,6 +87,8 @@ contextBridge.exposeInMainWorld(
         'list-system-audio-sources',
         'connect-system-audio-source',
         'disconnect-system-audio-source',
+        // Screen recording permission check (macOS)
+        'check-screen-recording-permission',
         // electron-audio-loopback channels (auto-registered by initMain())
         'enable-loopback-audio',
         'disable-loopback-audio',
