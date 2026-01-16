@@ -22,6 +22,105 @@ This enables bidirectional real-time translation in meetings without audio feedb
 
 > **Note**: Electron system audio capture supports all major platforms: Linux (PipeWire/PulseAudio), Windows, and macOS. Windows and macOS use the `electron-audio-loopback` library which provides native loopback audio capture via `getDisplayMedia()` with the `audio: 'loopback'` parameter.
 
+## Platform Comparison
+
+### Feature Matrix
+
+| Aspect | Linux (Electron) | Windows (Electron) | macOS (Electron) | Browser Extension |
+|--------|------------------|-------------------|------------------|-------------------|
+| **Capture Method** | PulseAudio/PipeWire Monitor | electron-audio-loopback | electron-audio-loopback | chrome.tabCapture |
+| **Recorder Class** | `LinuxLoopbackRecorder` | `LoopbackRecorder` | `LoopbackRecorder` | `TabAudioRecorder` |
+| **Permission Required** | None | None | Screen Recording | Tab Capture |
+| **Capture Scope** | Selected audio sink | All system audio | All system audio | Current tab only |
+| **Device Selection** | Multiple sinks available | Single "System Audio" | Single "System Audio" | Output device only |
+| **Refresh Button** | Yes (multiple sources) | No | No | Yes (output devices) |
+| **Audio Passthrough** | No (already playing) | No (already playing) | No (already playing) | Yes (tab is muted) |
+| **User Interaction** | Device dropdown | Permission prompt | Permission prompt | Output device dropdown |
+
+### UI Interaction Comparison
+
+Each platform provides a different user experience when enabling participant audio capture:
+
+#### Linux Electron
+
+- **Device Selection**: Shows a dropdown with available PulseAudio/PipeWire monitor sources
+- **User Workflow**: User selects which audio output device to capture from the list
+- **Refresh Button**: Available to update the source list when new audio devices are connected
+- **Permissions**: No permission prompts needed - monitor sources are always accessible
+- **Audio Behavior**: No passthrough needed since audio is already playing on system speakers
+
+#### Windows/macOS Electron
+
+- **Device Selection**: Shows a single "System Audio" option (no choice between sources)
+- **User Workflow**: First enable triggers the system's screen picker dialog (platform requirement)
+- **Permissions**:
+  - Windows: No special permissions needed
+  - macOS: Requires Screen Recording permission in System Preferences > Security & Privacy > Privacy > Screen Recording
+- **Refresh Button**: Not displayed since only one source is available
+- **Audio Behavior**: No passthrough needed since audio is already playing on system speakers
+
+#### Browser Extension
+
+- **Device Selection**: Shows dropdown of output devices (speakers/headphones)
+- **User Workflow**: Tab capture starts automatically when enabled; user selects output device for passthrough
+- **Purpose of Device Selection**: Controls where the captured audio is played back (passthrough routing)
+- **Refresh Button**: Available to update the output device list
+- **Audio Behavior**: Tab audio is muted by Chrome when captured; passthrough restores audio to selected speaker
+
+### Implementation Comparison
+
+The underlying technical implementation varies significantly across platforms:
+
+#### Linux (`LinuxLoopbackRecorder`)
+
+```
+Audio Flow: System Audio → PulseAudio/PipeWire Monitor → getUserMedia() → AudioWorklet → AI Client
+```
+
+- **API Used**: Standard `getUserMedia()` with monitor device ID from `enumerateDevices()`
+- **Dependencies**: No extra libraries needed - uses native PulseAudio/PipeWire monitor functionality
+- **Audio Processing**: Disabled (echoCancellation, noiseSuppression, autoGainControl all false)
+- **Passthrough**: Not needed - audio already plays on system speakers
+- **Device Discovery**: `enumerateDevices()` returns monitor sources as input devices
+
+#### Windows/macOS (`LoopbackRecorder`)
+
+```
+Audio Flow: System Audio → electron-audio-loopback → getDisplayMedia() → AudioWorklet → AI Client
+```
+
+- **API Used**: `getDisplayMedia()` with loopback audio configuration
+- **Dependencies**: `electron-audio-loopback` library initialized in main process
+- **Main Process Setup**:
+  ```javascript
+  const { initMain } = require('electron-audio-loopback');
+  initMain(); // Sets up setDisplayMediaRequestHandler
+  ```
+- **Video Track Handling**: Video track is acquired (required by API) but immediately stopped and discarded
+- **Passthrough**: Not needed - audio already plays on system speakers
+- **Permission Flow**: Screen picker dialog appears on first capture (Electron auto-selects first screen)
+
+#### Browser Extension (`TabAudioRecorder`)
+
+```
+Audio Flow: Tab Audio → chrome.tabCapture → getUserMedia() → AudioWorklet → AI Client
+                                                         ↘ AudioContext.destination (passthrough)
+```
+
+- **API Used**: Chrome `tabCapture` API via background script, then `getUserMedia()` with stream ID
+- **Background Script Communication**:
+  ```javascript
+  // background.js
+  chrome.tabCapture.getMediaStreamId({ targetTabId }, (streamId) => { ... });
+  ```
+- **Tab Muting**: Chrome automatically mutes the tab when captured (user would otherwise hear nothing)
+- **Passthrough Implementation**:
+  ```javascript
+  this.mediaStreamSource.connect(this.audioContext.destination); // Restores audio
+  ```
+- **Output Device Selection**: Supports `setSinkId()` to route passthrough to specific speaker
+- **Device Discovery**: `enumerateDevices()` returns output devices for passthrough routing
+
 ## Architecture
 
 ### Dual-Client Design
