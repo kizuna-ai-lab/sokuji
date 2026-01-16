@@ -149,7 +149,7 @@
     "speakerDesc": "Pilih pembesar suara untuk memantau output terjemahan. Ini membolehkan anda mendengar bagaimana terjemahan kedengaran. Anda boleh mematikannya jika pemantauan tidak diperlukan. Sama ada hidup atau mati, audio terjemahan sentiasa dihantar ke mikrofon maya agar peserta lain dapat mendengar.",
     "systemAudio": "Audio Peserta",
     "systemAudioDesc": "Tangkap dan terjemahkan audio daripada peserta mesyuarat lain. Pilih peranti output audio yang akan ditangkap bagi menterjemahkan pertuturan mereka.",
-    "systemAudioDescExtension": "Tangkap dan transkripkan audio dari tab semasa. Lihat transkripsi dan terjemahan ucapan peserta mesyuarat lain."
+    "systemAudioDescExtension": "Tangkap dan transkripkan audio dari tab semasa. Pilih peranti output untuk mendengar audio mesyuarat semasa menulis transkripsi."
   },
   "providers": {
     "openai": {

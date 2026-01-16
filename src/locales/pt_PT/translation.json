@@ -150,7 +150,7 @@
     "speakerDesc": "Seleccione um altifalante para monitorizar a saída traduzida. Isto permite-lhe ouvir como soa a tradução. Pode desligá-lo se a monitorização não for necessária. Esteja ligado ou desligado, o áudio traduzido é sempre enviado para o microfone virtual para outros participantes ouvirem.",
     "systemAudio": "Áudio de Participantes",
     "systemAudioDesc": "Capture e traduza o áudio de outros participantes da reunião. Seleccione qual dispositivo de saída de áudio capturar para traduzir a fala deles.",
-    "systemAudioDescExtension": "Capture e transcreva o áudio do separador actual. Visualize as transcrições e traduções da fala dos outros participantes da reunião."
+    "systemAudioDescExtension": "Capture e transcreva o áudio do separador actual. Seleccione um dispositivo de saída para ouvir o áudio da reunião durante a transcrição."
   },
   "providers": {
     "openai": {

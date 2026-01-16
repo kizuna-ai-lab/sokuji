@@ -129,7 +129,7 @@
     "speakerDesc": "Valitse kaiutin käännetyn tulosteen valvomiseen. Tämä antaa sinun kuulla miltä käännös kuulostaa. Voit sammuttaa sen, jos valvonta ei ole tarpeen. Oli se päällä tai pois, käännetty ääni lähetetään aina virtuaaliseen mikrofoniin muiden osallistujien kuultavaksi.",
     "systemAudio": "Osallistujan ääni",
     "systemAudioDesc": "Kaappaa ja käännä ääni muilta kokouksen osallistujilta. Valitse mistä äänilähteestä haluat kaapata heidän puheensa käännettäväksi.",
-    "systemAudioDescExtension": "Tallenna ja litteroi ääni nykyisestä välilehdestä. Katso muiden kokouksen osallistujien puheen litteroinnit ja käännökset."
+    "systemAudioDescExtension": "Tallenna ja litteroi ääni nykyisestä välilehdestä. Valitse lähtölaite kuullaksesi kokouksen äänen litteroinnin aikana."
   },
   "providers": {
     "openai": {

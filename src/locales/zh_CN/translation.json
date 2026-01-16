@@ -173,7 +173,7 @@
     "speakerDesc": "选择用于监听翻译输出的扬声器。这让您能听到翻译的效果。如果不需要监听可以关闭。无论开启或关闭，翻译的音频都会发送到虚拟麦克风供其他参与者听到。",
     "systemAudio": "参会者音频",
     "systemAudioDesc": "捕获并翻译其他会议参与者的音频。选择要捕获的音频输出设备以翻译他们的发言。",
-    "systemAudioDescExtension": "捕获并转录当前标签页的音频。查看其他会议参与者发言的转录和翻译内容。",
+    "systemAudioDescExtension": "捕获并转录当前标签页的音频。选择输出设备以在转录时收听会议音频。",
     "currentTab": "当前标签页"
   },
   "simplePanel": {
