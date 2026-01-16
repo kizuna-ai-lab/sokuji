@@ -169,3 +169,58 @@ export function isKizunaAIEnabled(): boolean {
   return import.meta.env.VITE_ENABLE_KIZUNA_AI === 'true';
 }
 
+// ============================================================================
+// Operating System Detection
+// ============================================================================
+
+/**
+ * Operating system types that can be detected
+ */
+export type OperatingSystem = 'windows' | 'macos' | 'linux' | 'unknown';
+
+/**
+ * Get the current operating system
+ * Uses navigator.platform for browser-side detection
+ * @returns The detected operating system
+ */
+export function getOperatingSystem(): OperatingSystem {
+  if (typeof navigator === 'undefined') return 'unknown';
+
+  const platform = navigator.platform.toLowerCase();
+
+  if (platform.includes('win')) return 'windows';
+  if (platform.includes('mac')) return 'macos';
+  if (platform.includes('linux')) return 'linux';
+
+  return 'unknown';
+}
+
+/**
+ * Check if running on Windows
+ */
+export function isWindows(): boolean {
+  return getOperatingSystem() === 'windows';
+}
+
+/**
+ * Check if running on macOS
+ */
+export function isMacOS(): boolean {
+  return getOperatingSystem() === 'macos';
+}
+
+/**
+ * Check if running on Linux
+ */
+export function isLinux(): boolean {
+  return getOperatingSystem() === 'linux';
+}
+
+/**
+ * Check if running on a platform that supports loopback audio capture
+ * (Windows and macOS use electron-audio-loopback, Linux uses PulseAudio)
+ */
+export function isLoopbackPlatform(): boolean {
+  return isWindows() || isMacOS();
+}
+

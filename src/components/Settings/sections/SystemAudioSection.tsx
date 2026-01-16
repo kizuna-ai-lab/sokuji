@@ -7,7 +7,7 @@ import { WarningType, AudioDevice } from '../shared/hooks';
 import { useAudioContext, useSetSystemAudioLoopbackSourceId } from '../../../stores/audioStore';
 import { useProvider } from '../../../stores/settingsStore';
 import { ServiceFactory } from '../../../services/ServiceFactory';
-import { isExtension, isElectron } from '../../../utils/environment';
+import { isExtension, isElectron, isLoopbackPlatform, isMacOS, isLinux } from '../../../utils/environment';
 import { Provider } from '../../../types/Provider';
 import { useAnalytics } from '../../../lib/analytics';
 
@@ -71,10 +71,7 @@ const SystemAudioSection: React.FC<SystemAudioSectionProps> = ({
         // For Windows/macOS Electron, request loopback audio stream early
         // This tests the capture and holds the stream for when session starts
         if (isElectron() && !isExtension()) {
-          const isLoopbackPlatform = navigator.platform.toLowerCase().includes('win') ||
-                                      navigator.platform.toLowerCase().includes('mac');
-
-          if (isLoopbackPlatform) {
+          if (isLoopbackPlatform()) {
             console.info('[Sokuji] [SystemAudioSection] Checking screen recording permission...');
             const permissionGranted = await audioService.requestLoopbackAudioStream();
 
@@ -82,7 +79,7 @@ const SystemAudioSection: React.FC<SystemAudioSectionProps> = ({
               console.error('[Sokuji] [SystemAudioSection] Screen recording permission not granted');
               setIsSystemAudioLoading(false);
               // Show permission denied warning on macOS
-              if (navigator.platform.toLowerCase().includes('mac')) {
+              if (isMacOS()) {
                 setWarningType('screen-recording-denied');
               }
               return; // Don't proceed if permission not granted
@@ -216,7 +213,7 @@ const SystemAudioSection: React.FC<SystemAudioSectionProps> = ({
           )}
           {/* Show refresh button for Extension (output devices) and Linux Electron (multiple sinks) */}
           {/* Windows/macOS Electron only has single "System Audio" source, no refresh needed */}
-          {(isExtension() || navigator.platform.toLowerCase().includes('linux')) && (
+          {(isExtension() || isLinux()) && (
             <button
               className="section-refresh-button"
               onClick={() => {

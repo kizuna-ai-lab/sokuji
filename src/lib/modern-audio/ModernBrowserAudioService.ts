@@ -7,25 +7,7 @@ import { LinuxLoopbackRecorder } from './LinuxLoopbackRecorder';
 import { IParticipantAudioRecorder } from './IParticipantAudioRecorder';
 import { ServiceFactory } from '../../services/ServiceFactory';
 import { AudioDevice } from '../../stores/audioStore';
-import { isExtension } from '../../utils/environment';
-
-// Helper to detect Windows platform
-const isWindowsPlatform = (): boolean => {
-  return typeof navigator !== 'undefined' &&
-         navigator.platform.toLowerCase().includes('win');
-};
-
-// Helper to detect macOS platform
-const isMacOSPlatform = (): boolean => {
-  return typeof navigator !== 'undefined' &&
-         navigator.platform.toLowerCase().includes('mac');
-};
-
-// Helper to detect platforms that support electron-audio-loopback
-// Note: Linux is not supported, uses LinuxLoopbackRecorder with PulseAudio/PipeWire instead
-const isLoopbackPlatform = (): boolean => {
-  return isWindowsPlatform() || isMacOSPlatform();
-};
+import { isExtension, isWindows, isMacOS, isLoopbackPlatform } from '../../utils/environment';
 
 // Declare chrome namespace for extension messaging
 declare const chrome: any;
@@ -819,7 +801,7 @@ export class ModernBrowserAudioService implements IAudioService {
 
       if (isLoopbackPlatform()) {
         // Windows/macOS: Just set state flags, actual capture via electron-audio-loopback
-        const platform = isWindowsPlatform() ? 'Windows' : 'macOS';
+        const platform = isWindows() ? 'Windows' : 'macOS';
         console.info(`[Sokuji] [ModernBrowserAudio] ${platform} detected - using electron-audio-loopback`);
         // Still call IPC for consistency (it's a no-op on Windows/macOS)
         await window.electron.invoke('connect-system-audio-source', sourceDeviceId);
@@ -910,7 +892,7 @@ export class ModernBrowserAudioService implements IAudioService {
    */
   private async startLoopbackRecording(callback: AudioRecordingCallback): Promise<void> {
     try {
-      const platform = isWindowsPlatform() ? 'Windows' : 'macOS';
+      const platform = isWindows() ? 'Windows' : 'macOS';
       console.info(`[Sokuji] [ModernBrowserAudio] Starting ${platform} system audio recording via electron-audio-loopback`);
 
       // Create loopback recorder (uses electron-audio-loopback library)
