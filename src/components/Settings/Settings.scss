@@ -125,6 +125,39 @@
     font-weight: 500;
     color: #ccc;
     position: relative;
+
+    .section-refresh-button {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: transparent;
+      border: none;
+      color: #666;
+      cursor: pointer;
+      padding: 4px;
+      border-radius: 4px;
+      transition: all 0.2s;
+
+      &:hover:not(:disabled) {
+        color: #aaa;
+        background: rgba(255, 255, 255, 0.05);
+      }
+
+      &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      svg {
+        width: 14px;
+        height: 14px;
+
+        &.spinning {
+          animation: spin 1s linear infinite;
+        }
+      }
+    }
   }
 
   .sign-in-prompt {
@@ -686,52 +719,6 @@
 
 // Device list styles (shared)
 .device-list {
-  .device-list-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 8px;
-
-    h4 {
-      margin: 0;
-      font-size: 12px;
-      color: #888;
-      font-weight: 500;
-    }
-
-    .refresh-button {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: transparent;
-      border: none;
-      color: #666;
-      cursor: pointer;
-      padding: 4px;
-      border-radius: 4px;
-      transition: all 0.2s;
-
-      &:hover:not(:disabled) {
-        color: #aaa;
-        background: rgba(255, 255, 255, 0.05);
-      }
-
-      &:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-      }
-
-      svg {
-        width: 14px;
-        height: 14px;
-
-        &.spinning {
-          animation: spin 1s linear infinite;
-        }
-      }
-    }
-  }
-
   .device-option {
     display: flex;
     align-items: center;
