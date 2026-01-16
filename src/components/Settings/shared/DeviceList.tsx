@@ -1,5 +1,5 @@
 import React from 'react';
-import { AlertTriangle, RefreshCw } from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { AudioDevice, isVirtualMic, isVirtualSpeaker } from './hooks';
 
@@ -9,14 +9,9 @@ interface DeviceListProps {
   isDeviceOn: boolean;
   onSelect: (device: AudioDevice) => void;
   onToggleOff: () => void;
-  onRefresh?: () => void;
-  isLoading?: boolean;
   disabled?: boolean;
   /** 'input' for microphone, 'output' for speaker */
   deviceType: 'input' | 'output';
-  /** Show header with title and refresh button */
-  showHeader?: boolean;
-  headerTitle?: string;
   /** Filter out virtual devices from the list */
   filterVirtual?: boolean;
   /** Show virtual device indicators */
@@ -33,12 +28,8 @@ const DeviceList: React.FC<DeviceListProps> = ({
   isDeviceOn,
   onSelect,
   onToggleOff,
-  onRefresh,
-  isLoading = false,
   disabled = false,
   deviceType,
-  showHeader = true,
-  headerTitle,
   filterVirtual = false,
   showVirtualIndicators = true,
   onVirtualDeviceClick,
@@ -82,22 +73,6 @@ const DeviceList: React.FC<DeviceListProps> = ({
 
   return (
     <div className={`device-list ${className}`}>
-      {showHeader && (
-        <div className="device-list-header">
-          <h4>{headerTitle || t('audioPanel.availableDevices')}</h4>
-          {onRefresh && (
-            <button
-              className="refresh-button"
-              onClick={onRefresh}
-              disabled={isLoading || disabled}
-              title={t('audioPanel.refreshDevices')}
-            >
-              <RefreshCw size={14} className={isLoading ? 'spinning' : ''} />
-            </button>
-          )}
-        </div>
-      )}
-
       {/* Off option */}
       <div
         className={`device-option ${!isDeviceOn ? 'selected' : ''} ${disabled ? 'disabled' : ''}`}

@@ -214,6 +214,20 @@ const SystemAudioSection: React.FC<SystemAudioSectionProps> = ({
               <AlertTriangle size={16} style={{ color: '#f59e0b', marginLeft: '4px' }} />
             </Tooltip>
           )}
+          <button
+            className="section-refresh-button"
+            onClick={() => {
+              if (isExtension()) {
+                refreshDevices();
+              } else {
+                refreshSystemAudioSources && refreshSystemAudioSources();
+              }
+            }}
+            disabled={isLoading || isSystemAudioLoading || isSessionActive}
+            title={t('audioPanel.refreshDevices')}
+          >
+            <RefreshCw size={14} className={isLoading || isSystemAudioLoading ? 'spinning' : ''} />
+          </button>
         </h3>
 
         <div className="device-list">
@@ -246,17 +260,6 @@ const SystemAudioSection: React.FC<SystemAudioSectionProps> = ({
           ) : (
             // Electron: Show source selection
             <>
-              <div className="device-list-header">
-                <h4>{t('audioPanel.availableSystemAudioSources', 'Available Sources')}</h4>
-                <button
-                  className="refresh-button"
-                  onClick={() => refreshSystemAudioSources && refreshSystemAudioSources()}
-                  disabled={isLoading || isSystemAudioLoading}
-                  title={t('audioPanel.refreshSystemAudioSources', 'Refresh sources')}
-                >
-                  <RefreshCw size={14} />
-                </button>
-              </div>
               <div
                 className={`device-option ${!isSystemAudioCaptureEnabled ? 'selected' : ''} ${isSystemAudioLoading || isSessionActive ? 'loading' : ''}`}
                 onClick={() => {

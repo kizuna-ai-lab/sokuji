@@ -127,6 +127,14 @@ const AudioDeviceSection: React.FC<AudioDeviceSectionProps> = ({
               icon="help"
               maxWidth={300}
             />
+            <button
+              className="section-refresh-button"
+              onClick={refreshDevices}
+              disabled={isLoading}
+              title={t('audioPanel.refreshDevices')}
+            >
+              <RefreshCw size={14} className={isLoading ? 'spinning' : ''} />
+            </button>
           </h3>
 
           <DeviceList
@@ -135,10 +143,7 @@ const AudioDeviceSection: React.FC<AudioDeviceSectionProps> = ({
             isDeviceOn={isInputDeviceOn}
             onSelect={handleInputDeviceSelect}
             onToggleOff={toggleInputDeviceState}
-            onRefresh={refreshDevices}
-            isLoading={isLoading}
             deviceType="input"
-            showHeader={false}
             filterVirtual={false}
             showVirtualIndicators={true}
             onVirtualDeviceClick={handleInputVirtualDeviceClick}
@@ -158,6 +163,14 @@ const AudioDeviceSection: React.FC<AudioDeviceSectionProps> = ({
               icon="help"
               maxWidth={300}
             />
+            <button
+              className="section-refresh-button"
+              onClick={refreshDevices}
+              disabled={isLoading || isSystemAudioEnabled}
+              title={t('audioPanel.refreshDevices')}
+            >
+              <RefreshCw size={14} className={isLoading ? 'spinning' : ''} />
+            </button>
           </h3>
 
           <DeviceList
@@ -166,11 +179,8 @@ const AudioDeviceSection: React.FC<AudioDeviceSectionProps> = ({
             isDeviceOn={isMonitorDeviceOn}
             onSelect={handleMonitorDeviceSelect}
             onToggleOff={toggleMonitorDeviceState}
-            onRefresh={refreshDevices}
-            isLoading={isLoading}
             disabled={isSystemAudioEnabled}
             deviceType="output"
-            showHeader={false}
             filterVirtual={false}
             showVirtualIndicators={true}
             onVirtualDeviceClick={handleOutputVirtualDeviceClick}
