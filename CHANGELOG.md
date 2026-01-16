@@ -7,6 +7,71 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.1] - 2026-01-17
+
+### Added
+
+- **Device Refresh Button**: Restored device refresh button in audio settings section header for better UX
+
+### Changed
+
+- **OS Detection Centralization**: Centralized OS detection utilities in environment.ts for consistent platform detection
+- **Participant Audio Device Selection**: Clarified UI text for participant audio device selection purpose in browser extension
+
+### Fixed
+
+- **Platform-Specific UI**: Hide participant audio refresh button on Windows/macOS where it's not applicable
+
+## [0.11.0] - 2026-01-16
+
+### Added
+
+- **Cross-Platform System Audio Capture**: Integrated electron-audio-loopback for Windows and macOS system audio capture
+- **Windows System Audio**: Added Windows system audio capture support using native loopback audio
+- **macOS Permission Check**: Added macOS screen recording permission check for participant audio capture
+
+### Changed
+
+- **Linux Audio Recorder**: Refactored to use LinuxLoopbackRecorder for Linux system audio capture, maintaining PulseAudio/PipeWire integration
+- **Audio Recorder Architecture**: Unified system audio recorder variables using a common interface across all platforms
+- **Recorder Class Naming**: Renamed audio recorder classes for better clarity and cross-platform consistency
+
+### Technical Improvements
+
+- **Documentation**: Fixed JSDoc return type for requestLoopbackAudioStream and clarified Linux implementation details
+
+## [0.10.2] - 2026-01-15
+
+### Fixed
+
+- **macOS Microphone Permission**: Request microphone permission on startup for better user experience
+- **Security Vulnerabilities**: Upgraded better-auth and override axios to fix security issues
+- **Critical Vulnerability**: Override form-data dependency to fix critical vulnerability
+- **React Router Security**: Upgraded react-router-dom to 7.12.0 for security fixes
+- **CI Compatibility**: Added npmrc with legacy-peer-deps for better-auth compatibility
+
+### Changed
+
+- **Settings Components**: Unified settings components with Simple/Advanced modes for cleaner architecture
+- **Extension Feedback URL**: Updated uninstall feedback URL to backend service
+
+## [0.10.1] - 2026-01-09
+
+### Changed
+
+- **Audio Recorder Architecture**: Implemented three-layer inheritance hierarchy for audio recorders, improving code organization and maintainability
+
+## [0.10.0] - 2026-01-07
+
+### Added
+
+- **System Audio Capture**: Added system audio capture for participant translation, enabling translation of other participants' speech in video calls (Electron app only, Linux initially)
+- **Enhanced Error Display**: Improved OpenAI error message display with more descriptive and user-friendly error messages
+
+### Changed
+
+- **Backend Migration**: Removed backend directory from repository (moved to separate sokuji-backend repo)
+
 ## [0.9.19] - 2025-02-01
 
 ### Added
