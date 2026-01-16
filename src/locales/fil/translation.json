@@ -129,7 +129,7 @@
     "speakerDesc": "Piliin ang speaker para ma-monitor ang translated na output. Pinapahintulutan ninyo nitong marinig kung paano tumutunog ang translation. Pwede ninyong i-off ito kung hindi kailangan ang monitoring. Naka-on man o naka-off, laging napapadala ang translated na audio sa virtual microphone para marinig ng ibang participants.",
     "systemAudio": "Audio ng Kalahok",
     "systemAudioDesc": "I-capture at i-translate ang audio mula sa ibang kalahok sa meeting. Piliin kung aling audio output device ang i-capture para isalin ang kanilang pagsasalita.",
-    "systemAudioDescExtension": "Kuhanin at i-transcribe ang audio mula sa kasalukuyang tab. Tingnan ang mga transcription at pagsasalin ng pagsasalita ng ibang mga kalahok sa meeting."
+    "systemAudioDescExtension": "Kuhanin at i-transcribe ang audio mula sa kasalukuyang tab. Pumili ng output device para marinig ang audio ng meeting habang nag-transcribe."
   },
   "providers": {
     "openai": {

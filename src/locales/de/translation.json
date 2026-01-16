@@ -366,7 +366,7 @@
     "speakerDesc": "Wählen Sie einen Lautsprecher zur Überwachung der übersetzten Ausgabe. Damit können Sie hören, wie die Übersetzung klingt. Sie können es ausschalten, wenn keine Überwachung erforderlich ist. Ob ein- oder ausgeschaltet, das übersetzte Audio wird immer an das virtuelle Mikrofon gesendet, damit andere Teilnehmer es hören können.",
     "systemAudio": "Teilnehmer-Audio",
     "systemAudioDesc": "Audio von anderen Meeting-Teilnehmern aufnehmen und übersetzen. Wählen Sie aus, welches Audio-Ausgabegerät aufgenommen werden soll, um deren Sprache zu übersetzen.",
-    "systemAudioDescExtension": "Audio vom aktuellen Tab aufnehmen und transkribieren. Transkriptionen und Übersetzungen der Sprache anderer Meeting-Teilnehmer anzeigen.",
+    "systemAudioDescExtension": "Audio vom aktuellen Tab aufnehmen und transkribieren. Wählen Sie ein Ausgabegerät, um während der Transkription das Meeting-Audio zu hören.",
     "currentTab": "Aktueller Tab"
   },
   "providers": {
