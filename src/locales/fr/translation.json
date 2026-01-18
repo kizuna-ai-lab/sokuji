@@ -125,7 +125,11 @@
     "custom": "Personnalisé",
     "transcriptModelTooltip": "Modèle de reconnaissance vocale. \nwhisper-1: Standard, fiable. \ngpt-4o-mini: Plus rapide, bon pour les langues courantes. \ngpt-4o: Le plus précis pour les accents/termes techniques.",
     "noiseReductionTooltip": "Suppression du bruit de fond. \nAucun: Pas de traitement, utiliser dans des pièces silencieuses. \nChamp proche: Pour casques/microphones proches. \nChamp lointain: Pour haut-parleurs/salles de conférence avec écho.",
-    "systemInstructionsTooltip": "Instructions personnalisées pour le traducteur IA. Dites vos préférences comme ton formel/décontracté, gestion des termes techniques, ou style de traduction spécifique."
+    "systemInstructionsTooltip": "Instructions personnalisées pour le traducteur IA. Dites vos préférences comme ton formel/décontracté, gestion des termes techniques, ou style de traduction spécifique.",
+    "transportType": "Type de connexion",
+    "transportTypeTooltip": "WebRTC : Latence plus faible, recommandé pour la plupart des utilisateurs.\nWebSocket : Meilleure compatibilité avec les réseaux restrictifs. À utiliser si la connexion WebRTC échoue.",
+    "websocket": "WebSocket (Stable)",
+    "webrtc": "WebRTC (Faible latence)"
   },
   "audioPanel": {
     "title": "Paramètres audio",

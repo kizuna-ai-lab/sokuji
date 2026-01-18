@@ -125,7 +125,11 @@
     "custom": "自定义",
     "transcriptModelTooltip": "语音识别模型。\nwhisper-1：标准，可靠。\ngpt-4o-mini：更快，适合常见语言。\ngpt-4o：对口音/技术术语最准确。",
     "noiseReductionTooltip": "背景噪音消除。\n无：不处理，在安静房间使用。\n近场：用于耳机/近距离麦克风。\n远场：用于有回声的扬声器/会议室。",
-    "systemInstructionsTooltip": "AI翻译器的自定义指令。告诉它您的偏好，如正式/随意的语调、技术术语处理或特定的翻译风格。"
+    "systemInstructionsTooltip": "AI翻译器的自定义指令。告诉它您的偏好，如正式/随意的语调、技术术语处理或特定的翻译风格。",
+    "transportType": "连接类型",
+    "transportTypeTooltip": "WebRTC：延迟更低，推荐大多数用户使用。\nWebSocket：网络兼容性更好，适合受限网络环境。如果 WebRTC 连接失败可切换使用。",
+    "websocket": "WebSocket（稳定）",
+    "webrtc": "WebRTC（低延迟）"
   },
   "simpleSettings": {
     "quickSetup": "快速设置",

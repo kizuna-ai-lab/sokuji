@@ -125,7 +125,11 @@
     "custom": "カスタム",
     "transcriptModelTooltip": "音声認識モデル。\nwhisper-1：標準、信頼性が高い。\ngpt-4o-mini：高速、一般的な言語に適している。\ngpt-4o：アクセントや専門用語に最も正確。",
     "noiseReductionTooltip": "背景ノイズの除去。\nなし：処理なし、静かな部屋で使用。\n近距離：ヘッドセット/近いマイク用。\n遠距離：エコーのあるスピーカー/会議室用。",
-    "systemInstructionsTooltip": "AI翻訳者のカスタム指示。フォーマル/カジュアルなトーン、専門用語の扱い、特定の翻訳スタイルなどの好みを伝えてください。"
+    "systemInstructionsTooltip": "AI翻訳者のカスタム指示。フォーマル/カジュアルなトーン、専門用語の扱い、特定の翻訳スタイルなどの好みを伝えてください。",
+    "transportType": "接続タイプ",
+    "transportTypeTooltip": "WebRTC：低遅延、ほとんどのユーザーにおすすめ。\nWebSocket：制限のあるネットワークでも安定接続。WebRTCが失敗した場合に使用してください。",
+    "websocket": "WebSocket（安定）",
+    "webrtc": "WebRTC（低遅延）"
   },
   "audioPanel": {
     "title": "オーディオ設定",

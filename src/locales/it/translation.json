@@ -121,7 +121,11 @@
     "maxTokensTooltip": "Lunghezza massima di ogni traduzione. I token sono come pezzi di parole - 100 token ≈ 75 parole. 2048-4096 buono per conversazioni. 'inf' = illimitato.",
     "transcriptModelTooltip": "Modello riconoscimento vocale. \nwhisper-1: Standard, affidabile. \ngpt-4o-mini: Più veloce, buono per lingue comuni. \ngpt-4o: Più accurato per accenti/termini tecnici.",
     "noiseReductionTooltip": "Rimozione rumore di fondo. \nNessuna: Nessuna elaborazione, usare in stanze silenziose. \nCampo vicino: Per cuffie/microfoni vicini. \nCampo lontano: Per altoparlanti/sale conferenze con eco.",
-    "systemInstructionsTooltip": "Istruzioni personalizzate per il traduttore IA. Indica le tue preferenze come tono formale/informale, gestione termini tecnici, o stile di traduzione specifico."
+    "systemInstructionsTooltip": "Istruzioni personalizzate per il traduttore IA. Indica le tue preferenze come tono formale/informale, gestione termini tecnici, o stile di traduzione specifico.",
+    "transportType": "Tipo di connessione",
+    "transportTypeTooltip": "WebRTC: Latenza inferiore, consigliato per la maggior parte degli utenti.\nWebSocket: Migliore compatibilità con reti restrittive. Usalo se la connessione WebRTC fallisce.",
+    "websocket": "WebSocket (Stabile)",
+    "webrtc": "WebRTC (Bassa latenza)"
   },
   "audioPanel": {
     "title": "Impostazioni audio",

@@ -101,7 +101,11 @@
     "apiKeyValidated": "Kunci API disahkan",
     "realtimeTranslationAvailable": "Perkhidmatan terjemahan masa nyata tersedia",
     "authentication": "Pengesahan",
-    "autoAuthenticated": "Disahkan secara automatik melalui akaun anda"
+    "autoAuthenticated": "Disahkan secara automatik melalui akaun anda",
+    "transportType": "Jenis Sambungan",
+    "transportTypeTooltip": "WebRTC: Kependaman lebih rendah, disyorkan untuk kebanyakan pengguna.\nWebSocket: Keserasian lebih baik dengan rangkaian terhad. Gunakan jika sambungan WebRTC gagal.",
+    "websocket": "WebSocket (Stabil)",
+    "webrtc": "WebRTC (Kependaman Rendah)"
   },
   "simpleSettings": {
     "quickSetup": "Persediaan Pantas",

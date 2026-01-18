@@ -131,7 +131,11 @@
     "uiLanguage": "Idioma da Interface",
     "audioSettings": "Definições de Áudio",
     "audioSettingsDesc": "Configure o seu microfone e altifalantes no painel de Áudio",
-    "autoAuthenticated": "Autenticado automaticamente através da sua conta"
+    "autoAuthenticated": "Autenticado automaticamente através da sua conta",
+    "transportType": "Tipo de ligação",
+    "transportTypeTooltip": "WebRTC: Menor latência, recomendado para a maioria dos utilizadores.\nWebSocket: Melhor compatibilidade com redes restritivas. Utilize se a ligação WebRTC falhar.",
+    "websocket": "WebSocket (Estável)",
+    "webrtc": "WebRTC (Baixa latência)"
   },
   "simpleConfig": {
     "interfaceLanguage": "Idioma da Interface",

@@ -125,7 +125,11 @@
     "custom": "Benutzerdefiniert",
     "transcriptModelTooltip": "Spracherkennungsmodell. \nwhisper-1: Standard, zuverlässig. \ngpt-4o-mini: Schneller, gut für gängige Sprachen. \ngpt-4o: Am genauesten für Akzente/Fachbegriffe.",
     "noiseReductionTooltip": "Hintergrundgeräuschentfernung. \nKeine: Keine Verarbeitung, in ruhigen Räumen verwenden. \nNahfeld: Für Headsets/nahe Mikrofone. \nFernfeld: Für Lautsprecher/Konferenzräume mit Echo.",
-    "systemInstructionsTooltip": "Benutzerdefinierte Anweisungen für den KI-Übersetzer. Teilen Sie Ihre Vorlieben wie formeller/lockerer Ton, Behandlung von Fachbegriffen oder spezifischer Übersetzungsstil mit."
+    "systemInstructionsTooltip": "Benutzerdefinierte Anweisungen für den KI-Übersetzer. Teilen Sie Ihre Vorlieben wie formeller/lockerer Ton, Behandlung von Fachbegriffen oder spezifischer Übersetzungsstil mit.",
+    "transportType": "Verbindungstyp",
+    "transportTypeTooltip": "WebRTC: Geringere Latenz, für die meisten Benutzer empfohlen.\nWebSocket: Bessere Kompatibilität mit eingeschränkten Netzwerken. Verwenden Sie es, wenn die WebRTC-Verbindung fehlschlägt.",
+    "websocket": "WebSocket (Stabil)",
+    "webrtc": "WebRTC (Niedrige Latenz)"
   },
   "audioPanel": {
     "title": "Audio-Einstellungen",

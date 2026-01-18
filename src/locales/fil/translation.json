@@ -81,7 +81,11 @@
     "maxQueueLevelTooltip": "Maximum na halaga ng audio para sa buffering. Pinipigilan ang sobrang delay kapag bumagal ang processing.",
     "autoTempoTooltip": "Awtomatikong nag-aayos ng playback speed upang mapanatili ang smooth na audio flow. Kapaki-pakinabang para sa mga variable na network speeds.",
     "sourceLanguage": "Aking wika",
-    "targetLanguage": "Wika ng kausap"
+    "targetLanguage": "Wika ng kausap",
+    "transportType": "Uri ng Koneksyon",
+    "transportTypeTooltip": "WebRTC: Mas mababang latency, inirerekomenda para sa karamihan ng mga user.\nWebSocket: Mas magandang compatibility sa mga restricted network. Gamitin kung nabigo ang WebRTC connection.",
+    "websocket": "WebSocket (Stable)",
+    "webrtc": "WebRTC (Mababang Latency)"
   },
   "simpleSettings": {
     "quickSetup": "Mabilisang Setup",
