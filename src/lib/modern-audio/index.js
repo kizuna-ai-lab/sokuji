@@ -14,6 +14,7 @@ export { TabAudioRecorder } from './TabAudioRecorder';
 export { IParticipantAudioRecorder, ParticipantAudioOptions, AudioDataCallback, isParticipantAudioRecorder } from './IParticipantAudioRecorder';
 export { BaseAudioRecorder } from './BaseAudioRecorder';
 export { ParticipantRecorder } from './ParticipantRecorder';
+export { WebRTCAudioBridge } from './WebRTCAudioBridge';
 
 // Re-export for compatibility
 export const WavRecorder = ModernAudioRecorder;
