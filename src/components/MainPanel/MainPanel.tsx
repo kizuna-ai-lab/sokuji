@@ -14,7 +14,8 @@ import {
   useLoadingModels,
   useGetCurrentProviderSettings,
   useGetProcessedSystemInstructions,
-  useCreateSessionConfig
+  useCreateSessionConfig,
+  useTransportType
 } from '../../stores/settingsStore';
 import { useSession } from '../../stores/sessionStore';
 import { useAudioContext } from '../../stores/audioStore';
@@ -61,6 +62,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   const geminiSettings = useGeminiSettings();
   const palabraAISettings = usePalabraAISettings();
   const kizunaAISettings = useKizunaAISettings();
+  const transportType = useTransportType();
   const isApiKeyValid = useIsApiKeyValid();
   const availableModels = useAvailableModels();
   const loadingModels = useLoadingModels();
@@ -149,7 +151,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   /**
    * Helper to create AI client with appropriate parameters based on provider
    */
-  const createAIClient = useCallback((modelName: string, apiKey: string): IClient => {
+  const createAIClient = useCallback((modelName: string, apiKey: string, useWebRTC: boolean = false): IClient => {
     const customEndpoint = provider === Provider.OPENAI_COMPATIBLE
       ? openAICompatibleSettings.customEndpoint
       : undefined;
@@ -163,14 +165,25 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       );
     }
 
+    // Determine transport type for OpenAI-compatible providers
+    const effectiveTransportType = useWebRTC ? 'webrtc' : 'websocket';
+
+    // WebRTC options for device selection
+    const webrtcOptions = useWebRTC ? {
+      inputDeviceId: selectedInputDevice?.deviceId,
+      outputDeviceId: selectedMonitorDevice?.deviceId
+    } : undefined;
+
     return ClientFactory.createClient(
       modelName,
       provider,
       apiKey,
       undefined,
-      customEndpoint
+      customEndpoint,
+      effectiveTransportType,
+      webrtcOptions
     );
-  }, [provider, openAICompatibleSettings.customEndpoint, palabraAISettings.clientSecret]);
+  }, [provider, openAICompatibleSettings.customEndpoint, palabraAISettings.clientSecret, selectedInputDevice?.deviceId, selectedMonitorDevice?.deviceId]);
 
   /**
    * Helper to create event handlers for participant audio client
@@ -700,8 +713,11 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         ? 'realtime-translation'
         : (currentProviderSettings as any).model;
 
+      // Determine if WebRTC transport should be used
+      let useWebRTC = transportType === 'webrtc' && ClientFactory.supportsWebRTC(provider);
+
       // Create speaker client using helper
-      clientRef.current = createAIClient(modelName, apiKey);
+      clientRef.current = createAIClient(modelName, apiKey, useWebRTC);
 
       // Setup listeners for the new client instance
       await setupClientListeners();
@@ -751,35 +767,86 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
       // Track connection attempt and measure latency
       const connectionStartTime = Date.now();
-      
+
       try {
         // Connect to the AI service
         await client.connect(sessionConfig);
-        
+
         // Track successful connection with latency
         const connectionLatency = Date.now() - connectionStartTime;
         trackEvent('latency_measurement', {
-          operation: 'websocket',
+          operation: useWebRTC ? 'webrtc' : 'websocket',
           latency_ms: connectionLatency,
           provider: provider
         });
-        
+
         trackEvent('connection_status', {
           status: 'connected',
           provider: provider || Provider.OPENAI,
-          duration_ms: connectionLatency
+          duration_ms: connectionLatency,
+          transport: useWebRTC ? 'webrtc' : 'websocket'
         });
       } catch (connectError: any) {
-        // Track connection failure
-        trackEvent('api_error', {
-          provider: provider || Provider.OPENAI,
-          error_message: connectError.message || 'Connection failed',
-          error_type: 'network'
-        });
-        throw connectError;
+        // If WebRTC connection failed, try fallback to WebSocket
+        if (useWebRTC) {
+          console.warn('[Sokuji] [MainPanel] WebRTC connection failed, falling back to WebSocket:', connectError);
+
+          // Create a new client with WebSocket transport
+          useWebRTC = false;
+          clientRef.current = createAIClient(modelName, apiKey, false);
+
+          // Re-setup listeners for the new client instance
+          await setupClientListeners();
+
+          const fallbackClient = clientRef.current;
+
+          try {
+            await fallbackClient.connect(sessionConfig);
+
+            // Track successful fallback connection
+            const connectionLatency = Date.now() - connectionStartTime;
+            trackEvent('latency_measurement', {
+              operation: 'websocket_fallback',
+              latency_ms: connectionLatency,
+              provider: provider
+            });
+
+            trackEvent('connection_status', {
+              status: 'connected',
+              provider: provider || Provider.OPENAI,
+              duration_ms: connectionLatency,
+              transport: 'websocket_fallback'
+            });
+
+            // Notify user about the fallback
+            addLog({
+              type: 'warning',
+              message: t('logs.webrtcFallback', 'WebRTC connection failed, using WebSocket instead')
+            });
+
+            console.info('[Sokuji] [MainPanel] WebSocket fallback connection established');
+          } catch (fallbackError: any) {
+            // Track fallback connection failure
+            trackEvent('api_error', {
+              provider: provider || Provider.OPENAI,
+              error_message: fallbackError.message || 'Fallback connection failed',
+              error_type: 'network'
+            });
+            throw fallbackError;
+          }
+        } else {
+          // Track connection failure (no fallback available)
+          trackEvent('api_error', {
+            provider: provider || Provider.OPENAI,
+            error_message: connectError.message || 'Connection failed',
+            error_type: 'network'
+          });
+          throw connectError;
+        }
       }
 
       // Start recording if using server VAD and input device is turned on
+      // Note: Skip manual recording for WebRTC mode - audio flows via MediaStreamTrack
       let turnDetectionDisabled = false;
       if (isOpenAICompatible(provider)) {
         const settings =
@@ -789,19 +856,24 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           null;
         turnDetectionDisabled = settings ? settings.turnDetectionMode === 'Disabled' : false;
       }
-      
-      if (!turnDetectionDisabled && isInputDeviceOn && audioServiceRef.current) {
+
+      // In WebRTC mode, audio is automatically captured via MediaStreamTrack
+      // No need to manually record and send audio chunks
+      // Note: Use clientRef.current instead of client variable to handle WebRTC fallback scenario
+      if (!useWebRTC && !turnDetectionDisabled && isInputDeviceOn && audioServiceRef.current) {
         let audioCallbackCount = 0;
         await audioServiceRef.current.startRecording(selectedInputDevice?.deviceId, (data) => {
-          if (client) {
+          if (clientRef.current) {
             // Debug logging every 100 calls to verify AI client receives data
             if (audioCallbackCount % 100 === 0) {
               console.debug(`[Sokuji] [MainPanel] Sending audio to client: chunk ${audioCallbackCount}, PCM length: ${data.mono.length}`);
             }
             audioCallbackCount++;
-            client.appendInputAudio(data.mono);
+            clientRef.current.appendInputAudio(data.mono);
           }
         });
+      } else if (useWebRTC) {
+        console.info('[Sokuji] [MainPanel] WebRTC mode - audio flows automatically via MediaStreamTrack');
       }
 
       // Start participant audio client (unified for both Electron system audio and Extension tab audio)
@@ -863,8 +935,9 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       }
 
       // Set state variables after successful initialization
+      // Note: Use clientRef.current instead of client variable to handle WebRTC fallback scenario
       setIsSessionActive(true);
-      setItems(client.getConversationItems());
+      setItems(clientRef.current?.getConversationItems() || []);
       setSystemAudioItems([]); // Clear participant conversation from previous session
 
       // Start tracking audio quality metrics during session
@@ -907,12 +980,14 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     palabraAISettings,
     kizunaAISettings,
     provider,
+    transportType,
     isLoaded,
     isSignedIn,
     getToken,
     getCurrentProviderSettings,
     getSessionConfig,
     setupClientListeners,
+    createAIClient,
     selectedInputDevice,
     isInputDeviceOn,
     isMonitorDeviceOn,

@@ -176,7 +176,11 @@
     "custom": "Custom",
     "transcriptModelTooltip": "Speech recognition model. \nwhisper-1: Standard, reliable. \ngpt-4o-mini: Faster, good for common languages. \ngpt-4o: Most accurate for accents/technical terms.",
     "noiseReductionTooltip": "Background noise removal. \nNone: No processing, use in quiet rooms. \nNear field: For headsets/close microphones. \nFar field: For speakers/conference rooms with echo.",
-    "systemInstructionsTooltip": "Custom instructions for the AI translator. Tell it your preferences like formal/casual tone, technical terms handling, or specific translation style."
+    "systemInstructionsTooltip": "Custom instructions for the AI translator. Tell it your preferences like formal/casual tone, technical terms handling, or specific translation style.",
+    "transportType": "Connection Type",
+    "transportTypeTooltip": "How to connect to the AI service. WebSocket is the standard method. WebRTC offers lower latency with native audio handling (experimental).",
+    "websocket": "WebSocket",
+    "webrtc": "WebRTC (Low Latency)"
   },
   "simpleSettings": {
     "autoAuthenticated": "Automatically authenticated via your account",
@@ -593,6 +597,9 @@
     "remaining": "remaining",
     "unableToLoadQuota": "Unable to load quota information",
     "upgradeToPremium": "Upgrade to Premium"
+  },
+  "logs": {
+    "webrtcFallback": "WebRTC connection failed, using WebSocket instead"
   },
   "feedback": {
     "title": "Send Feedback",

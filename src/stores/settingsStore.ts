@@ -25,6 +25,9 @@ export interface CommonSettings {
   useTemplateMode: boolean;
 }
 
+// Transport type for OpenAI Realtime API
+export type TransportType = 'websocket' | 'webrtc';
+
 // OpenAI-compatible Settings (used by OpenAI and KizunaAI)
 export interface OpenAICompatibleSettingsBase {
   apiKey: string;
@@ -41,6 +44,7 @@ export interface OpenAICompatibleSettingsBase {
   maxTokens: number | 'inf';
   transcriptModel: 'gpt-4o-mini-transcribe' | 'gpt-4o-transcribe' | 'whisper-1';
   noiseReduction: 'None' | 'Near field' | 'Far field';
+  transportType: TransportType;
 }
 
 // OpenAI Compatible Settings (with custom endpoint support)
@@ -401,6 +405,7 @@ const defaultOpenAICompatibleSettingsBase: OpenAICompatibleSettingsBase = {
   maxTokens: 'inf',
   transcriptModel: 'gpt-4o-mini-transcribe',
   noiseReduction: 'None',
+  transportType: 'webrtc',
 };
 
 const defaultOpenAISettings: OpenAISettings = defaultOpenAICompatibleSettingsBase;
@@ -1039,6 +1044,9 @@ export const useGeminiSettings = () => useSettingsStore((state) => state.gemini)
 export const useOpenAICompatibleSettings = () => useSettingsStore((state) => state.openaiCompatible);
 export const usePalabraAISettings = () => useSettingsStore((state) => state.palabraai);
 export const useKizunaAISettings = () => useSettingsStore((state) => state.kizunaai);
+
+// Transport type selector (for OpenAI provider)
+export const useTransportType = () => useSettingsStore((state) => state.openai.transportType);
 
 // Validation state
 export const useIsApiKeyValid = () => useSettingsStore((state) => state.isApiKeyValid);

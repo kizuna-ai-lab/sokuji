@@ -18,8 +18,10 @@ import {
   useUpdateOpenAICompatible,
   useUpdatePalabraAI,
   useUpdateKizunaAI,
-  useGetCurrentProviderSettings
+  useGetCurrentProviderSettings,
+  TransportType
 } from '../../../stores/settingsStore';
+import { ClientFactory } from '../../../services/clients';
 import { useTranslation } from 'react-i18next';
 import { ChevronDown, ChevronRight, RotateCw, Info, CircleHelp } from 'lucide-react';
 import Tooltip from '../../Tooltip/Tooltip';
@@ -525,6 +527,50 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
     );
   };
 
+  const renderTransportTypeSettings = () => {
+    // Only show for providers that support WebRTC
+    if (!ClientFactory.supportsWebRTC(provider)) {
+      return null;
+    }
+
+    const compatibleSettings = getOpenAICompatibleSettings();
+    if (!compatibleSettings) {
+      return null;
+    }
+
+    return (
+      <div className="settings-section">
+        <h2>
+          {t('settings.transportType')}
+          <Tooltip
+            content={t('settings.transportTypeTooltip')}
+            position="top"
+          >
+            <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '8px' }} />
+          </Tooltip>
+        </h2>
+        <div className="setting-item">
+          <div className="turn-detection-options">
+            <button
+              className={`option-button ${compatibleSettings.transportType === 'websocket' ? 'active' : ''}`}
+              onClick={() => updateOpenAICompatibleSettingsHelper({ transportType: 'websocket' as TransportType })}
+              disabled={isSessionActive}
+            >
+              {t('settings.websocket')}
+            </button>
+            <button
+              className={`option-button ${compatibleSettings.transportType === 'webrtc' ? 'active' : ''}`}
+              onClick={() => updateOpenAICompatibleSettingsHelper({ transportType: 'webrtc' as TransportType })}
+              disabled={isSessionActive}
+            >
+              {t('settings.webrtc')}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const renderTranscriptSettings = () => {
     if (config.transcriptModels.length === 0) {
       return null;
@@ -998,6 +1044,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
       {renderModelSettings()}
       {renderTranscriptSettings()}
       {renderNoiseReductionSettings()}
+      {renderTransportTypeSettings()}
       {renderModelConfigurationSettings()}
       {renderPalabraAISettings()}
     </Fragment>

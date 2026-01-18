@@ -1,4 +1,6 @@
 export type { IClient, ConversationItem, SessionConfig, ClientEventHandlers } from '../interfaces/IClient';
 export { OpenAIClient } from './OpenAIClient';
+export { OpenAIWebRTCClient } from './OpenAIWebRTCClient';
 export { GeminiClient } from './GeminiClient';
-export { ClientFactory } from './ClientFactory'; 
+export { ClientFactory } from './ClientFactory';
+export type { WebRTCClientOptions } from './ClientFactory'; 
