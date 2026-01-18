@@ -123,7 +123,11 @@
     "maxTokensTooltip": "각 번역의 최대 길이. 토큰은 단어 조각과 같습니다 - 100 토큰 ≈ 75 단어. 대화에는 2048-4096이 좋습니다. 'inf' = 무제한.",
     "transcriptModelTooltip": "음성 인식 모델. \nwhisper-1: 표준, 신뢰할 수 있음. \ngpt-4o-mini: 더 빠름, 일반적인 언어에 좋음. \ngpt-4o: 액센트/기술 용어에 가장 정확함.",
     "noiseReductionTooltip": "배경 소음 제거. \n없음: 처리 없음, 조용한 방에서 사용. \n근거리: 헤드셋/가까운 마이크용. \n원거리: 에코가 있는 스피커/회의실용.",
-    "systemInstructionsTooltip": "AI 번역기를 위한 사용자 지정 지침. 격식/비격식 톤, 기술 용어 처리 또는 특정 번역 스타일과 같은 선호 사항을 알려주세요."
+    "systemInstructionsTooltip": "AI 번역기를 위한 사용자 지정 지침. 격식/비격식 톤, 기술 용어 처리 또는 특정 번역 스타일과 같은 선호 사항을 알려주세요.",
+    "transportType": "연결 유형",
+    "transportTypeTooltip": "WebRTC: 지연 시간이 낮으며 대부분의 사용자에게 권장됩니다.\nWebSocket: 제한된 네트워크에서도 안정적으로 연결됩니다. WebRTC 연결이 실패하면 사용하세요.",
+    "websocket": "WebSocket (안정적)",
+    "webrtc": "WebRTC (저지연)"
   },
   "audioPanel": {
     "title": "오디오 설정",

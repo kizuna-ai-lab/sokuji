@@ -166,7 +166,11 @@
     "authentication": "அங்கீகாரம்",
     "autoAuthenticated": "உங்கள் கணக்கு மூலம் தானாக அங்கீகரிக்கப்பட்டது",
     "sourceLanguage": "என் மொழி",
-    "targetLanguage": "மற்றவரின் மொழி"
+    "targetLanguage": "மற்றவரின் மொழி",
+    "transportType": "இணைப்பு வகை",
+    "transportTypeTooltip": "WebRTC: குறைந்த தாமதம், பெரும்பாலான பயனர்களுக்கு பரிந்துரைக்கப்படுகிறது.\nWebSocket: கட்டுப்படுத்தப்பட்ட நெட்வொர்க்குகளுடன் சிறந்த இணக்கம். WebRTC இணைப்பு தோல்வியுற்றால் பயன்படுத்தவும்.",
+    "websocket": "WebSocket (நிலையான)",
+    "webrtc": "WebRTC (குறைந்த தாமதம்)"
   },
   "mainPanel": {
     "conversationPlaceholder": "உரையாடல் இங்கே தோன்றும்",

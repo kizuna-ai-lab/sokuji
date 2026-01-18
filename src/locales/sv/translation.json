@@ -59,7 +59,11 @@
     "authentication": "Autentisering",
     "autoAuthenticated": "Automatiskt autentiserad via ditt konto",
     "sourceLanguage": "Mitt språk",
-    "targetLanguage": "Den andras språk"
+    "targetLanguage": "Den andras språk",
+    "transportType": "Anslutningstyp",
+    "transportTypeTooltip": "WebRTC: Lägre latens, rekommenderas för de flesta användare.\nWebSocket: Bättre kompatibilitet med begränsade nätverk. Använd om WebRTC-anslutningen misslyckas.",
+    "websocket": "WebSocket (Stabil)",
+    "webrtc": "WebRTC (Låg latens)"
   },
   "mainPanel": {
     "conversationPlaceholder": "Konversationen kommer att visas här",

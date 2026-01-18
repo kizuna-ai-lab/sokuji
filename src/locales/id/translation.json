@@ -119,7 +119,11 @@
     "maxTokensTooltip": "Panjang maksimum setiap terjemahan. Token seperti potongan kata - 100 token ≈ 75 kata. 2048-4096 bagus untuk percakapan. 'inf' = tak terbatas.",
     "transcriptModelTooltip": "Model pengenalan ucapan. \nwhisper-1: Standar, dapat diandalkan. \ngpt-4o-mini: Lebih cepat, bagus untuk bahasa umum. \ngpt-4o: Paling akurat untuk aksen/istilah teknis.",
     "noiseReductionTooltip": "Penghilangan noise latar belakang. \nTidak ada: Tanpa pemrosesan, gunakan di ruangan sunyi. \nJarak dekat: Untuk headset/mikrofon dekat. \nJarak jauh: Untuk speaker/ruang konferensi dengan gema.",
-    "systemInstructionsTooltip": "Instruksi khusus untuk penerjemah AI. Beri tahu preferensi Anda seperti nada formal/kasual, penanganan istilah teknis, atau gaya terjemahan tertentu."
+    "systemInstructionsTooltip": "Instruksi khusus untuk penerjemah AI. Beri tahu preferensi Anda seperti nada formal/kasual, penanganan istilah teknis, atau gaya terjemahan tertentu.",
+    "transportType": "Jenis Koneksi",
+    "transportTypeTooltip": "WebRTC: Latensi lebih rendah, direkomendasikan untuk sebagian besar pengguna.\nWebSocket: Kompatibilitas lebih baik dengan jaringan terbatas. Gunakan jika koneksi WebRTC gagal.",
+    "websocket": "WebSocket (Stabil)",
+    "webrtc": "WebRTC (Latensi Rendah)"
   },
   "simpleSettings": {
     "quickSetup": "Pengaturan Cepat",

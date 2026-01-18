@@ -100,7 +100,11 @@
     "apiKeyValidated": "Klucz API zweryfikowany",
     "realtimeTranslationAvailable": "Usługa tłumaczenia w czasie rzeczywistym jest dostępna",
     "authentication": "Uwierzytelnianie",
-    "autoAuthenticated": "Automatycznie uwierzytelniono za pomocą konta"
+    "autoAuthenticated": "Automatycznie uwierzytelniono za pomocą konta",
+    "transportType": "Typ połączenia",
+    "transportTypeTooltip": "WebRTC: Niższe opóźnienie, zalecane dla większości użytkowników.\nWebSocket: Lepsza kompatybilność z ograniczonymi sieciami. Użyj, jeśli połączenie WebRTC nie powiedzie się.",
+    "websocket": "WebSocket (Stabilny)",
+    "webrtc": "WebRTC (Niskie opóźnienie)"
   },
   "audioPanel": {
     "title": "Ustawienia audio",

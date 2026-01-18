@@ -148,7 +148,11 @@
     "authentication": "ప్రామాణీకరణ",
     "autoAuthenticated": "మీ ఖాతా ద్వారా స్వయంచాలకంగా ప్రామాణీకరించబడింది",
     "sourceLanguage": "నా భాష",
-    "targetLanguage": "ఇతరుల భాష"
+    "targetLanguage": "ఇతరుల భాష",
+    "transportType": "కనెక్షన్ రకం",
+    "transportTypeTooltip": "WebRTC: తక్కువ జాప్యం, చాలా మంది వినియోగదారులకు సిఫార్సు చేయబడింది.\nWebSocket: పరిమిత నెట్‌వర్క్‌లతో మెరుగైన అనుకూలత. WebRTC కనెక్షన్ విఫలమైతే ఉపయోగించండి.",
+    "websocket": "WebSocket (స్థిరమైన)",
+    "webrtc": "WebRTC (తక్కువ జాప్యం)"
   },
   "mainPanel": {
     "conversationPlaceholder": "సంభాషణ ఇక్కడ కనిపిస్తుంది",

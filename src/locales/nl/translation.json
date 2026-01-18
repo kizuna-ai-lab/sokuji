@@ -102,7 +102,11 @@
     "apiKeyValidated": "API-sleutel gevalideerd",
     "realtimeTranslationAvailable": "Realtime vertaalservice is beschikbaar",
     "authentication": "Authenticatie",
-    "autoAuthenticated": "Automatisch geauthenticeerd via uw account"
+    "autoAuthenticated": "Automatisch geauthenticeerd via uw account",
+    "transportType": "Verbindingstype",
+    "transportTypeTooltip": "WebRTC: Lagere latentie, aanbevolen voor de meeste gebruikers.\nWebSocket: Betere compatibiliteit met beperkte netwerken. Gebruik dit als de WebRTC-verbinding mislukt.",
+    "websocket": "WebSocket (Stabiel)",
+    "webrtc": "WebRTC (Lage latentie)"
   },
   "audioPanel": {
     "title": "Audio instellingen",

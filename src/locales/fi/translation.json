@@ -81,7 +81,11 @@
     "maxQueueLevelTooltip": "Maksimimäärä ääntä puskurointia varten. Estää liiallisen viiveen jos käsittely hidastuu.",
     "autoTempoTooltip": "Säätää automaattisesti toistonopeutta ylläpitääkseen sujuvan äänivirran. Hyödyllinen vaihtelevia verkkonopeuksia varten.",
     "sourceLanguage": "Minun kieleni",
-    "targetLanguage": "Toisen kieli"
+    "targetLanguage": "Toisen kieli",
+    "transportType": "Yhteystyyppi",
+    "transportTypeTooltip": "WebRTC: Pienempi viive, suositellaan useimmille käyttäjille.\nWebSocket: Parempi yhteensopivuus rajoitettujen verkkojen kanssa. Käytä, jos WebRTC-yhteys epäonnistuu.",
+    "websocket": "WebSocket (Vakaa)",
+    "webrtc": "WebRTC (Matala viive)"
   },
   "simpleSettings": {
     "quickSetup": "Pika-asennus",

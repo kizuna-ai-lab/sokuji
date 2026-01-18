@@ -81,7 +81,11 @@
     "maxQueueLevelTooltip": "Arabellek için maksimum ses miktarı. İşleme yavaşlarsa aşırı gecikmeyi önler.",
     "autoTempoTooltip": "Sorunsuz ses akışını korumak için oynatma hızını otomatik olarak ayarlar. Değişken ağ hızları için kullanışlıdır.",
     "sourceLanguage": "Benim dilim",
-    "targetLanguage": "Karşı tarafın dili"
+    "targetLanguage": "Karşı tarafın dili",
+    "transportType": "Bağlantı Türü",
+    "transportTypeTooltip": "WebRTC: Daha düşük gecikme, çoğu kullanıcı için önerilir.\nWebSocket: Kısıtlı ağlarla daha iyi uyumluluk. WebRTC bağlantısı başarısız olursa kullanın.",
+    "websocket": "WebSocket (Kararlı)",
+    "webrtc": "WebRTC (Düşük Gecikme)"
   },
   "mainPanel": {
     "conversationPlaceholder": "Konuşma burada görünecek",

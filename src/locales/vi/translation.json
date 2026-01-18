@@ -83,7 +83,11 @@
     "noiseReductionTooltip": "Loại bỏ tiếng ồn nền. \nKhông: Không xử lý, dùng trong phòng yên tĩnh. \nGần: Cho tai nghe/microphone gần. \nXa: Cho loa/phòng hội nghị có tiếng vọng.",
     "systemInstructionsTooltip": "Hướng dẫn tùy chỉnh cho AI dịch. Cho biết sở thích của bạn như giọng điệu trang trọng/thân mật, xử lý thuật ngữ kỹ thuật, hoặc phong cách dịch cụ thể.",
     "sourceLanguage": "Ngôn ngữ của tôi",
-    "targetLanguage": "Ngôn ngữ đối phương"
+    "targetLanguage": "Ngôn ngữ đối phương",
+    "transportType": "Loại kết nối",
+    "transportTypeTooltip": "WebRTC: Độ trễ thấp hơn, được khuyến nghị cho hầu hết người dùng.\nWebSocket: Tương thích tốt hơn với mạng hạn chế. Sử dụng nếu kết nối WebRTC thất bại.",
+    "websocket": "WebSocket (Ổn định)",
+    "webrtc": "WebRTC (Độ trễ thấp)"
   },
   "mainPanel": {
     "conversationPlaceholder": "Cuộc trò chuyện sẽ xuất hiện ở đây",

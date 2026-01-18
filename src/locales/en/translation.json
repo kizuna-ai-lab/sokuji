@@ -178,8 +178,8 @@
     "noiseReductionTooltip": "Background noise removal. \nNone: No processing, use in quiet rooms. \nNear field: For headsets/close microphones. \nFar field: For speakers/conference rooms with echo.",
     "systemInstructionsTooltip": "Custom instructions for the AI translator. Tell it your preferences like formal/casual tone, technical terms handling, or specific translation style.",
     "transportType": "Connection Type",
-    "transportTypeTooltip": "How to connect to the AI service. WebSocket is the standard method. WebRTC offers lower latency with native audio handling (experimental).",
-    "websocket": "WebSocket",
+    "transportTypeTooltip": "WebRTC: Lower latency, recommended for most users.\nWebSocket: Better compatibility with restrictive networks. Use if WebRTC connection fails.",
+    "websocket": "WebSocket (Stable)",
     "webrtc": "WebRTC (Low Latency)"
   },
   "simpleSettings": {

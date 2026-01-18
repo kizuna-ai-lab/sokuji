@@ -143,7 +143,11 @@
     "authentication": "Автентифікація",
     "autoAuthenticated": "Автоматично автентифіковано через ваш обліковий запис",
     "sourceLanguage": "Моя мова",
-    "targetLanguage": "Мова співрозмовника"
+    "targetLanguage": "Мова співрозмовника",
+    "transportType": "Тип з'єднання",
+    "transportTypeTooltip": "WebRTC: Менша затримка, рекомендовано для більшості користувачів.\nWebSocket: Краща сумісність з обмеженими мережами. Використовуйте, якщо з'єднання WebRTC не вдалося.",
+    "websocket": "WebSocket (Стабільний)",
+    "webrtc": "WebRTC (Низька затримка)"
   },
   "mainPanel": {
     "conversationPlaceholder": "Розмова з'явиться тут",

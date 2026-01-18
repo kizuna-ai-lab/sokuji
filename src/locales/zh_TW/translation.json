@@ -212,7 +212,11 @@
     "maxTokensTooltip": "每次翻譯的最大長度。Token就像單詞片段-100個token≈75個單詞。對話用2048-4096好。'inf'=無限制。",
     "transcriptModelTooltip": "語音辨識模型。\nwhisper-1：標準，可靠。\ngpt-4o-mini：更快，適合常見語言。\ngpt-4o：對口音/技術術語最準確。",
     "noiseReductionTooltip": "背景噪音消除。\n無：不處理，在安靜房間使用。\n近場：用於耳機/近距離麥克風。\n遠場：用於有回音的喇叭/會議室。",
-    "systemInstructionsTooltip": "AI翻譯器的自訂指令。告訴它您的偏好，如正式/隨意的語調、技術術語處理或特定的翻譯風格。"
+    "systemInstructionsTooltip": "AI翻譯器的自訂指令。告訴它您的偏好，如正式/隨意的語調、技術術語處理或特定的翻譯風格。",
+    "transportType": "連線類型",
+    "transportTypeTooltip": "WebRTC：延遲更低，推薦大多數使用者使用。\nWebSocket：網路相容性更好，適合受限網路環境。如果 WebRTC 連線失敗可切換使用。",
+    "websocket": "WebSocket（穩定）",
+    "webrtc": "WebRTC（低延遲）"
   },
   "audioPanel": {
     "title": "音訊設定",
