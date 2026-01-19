@@ -143,29 +143,35 @@ export interface IClient {
   connect(config: SessionConfig): Promise<void>;
   disconnect(): Promise<void>;
   isConnected(): boolean;
-  
+
   // Session management
   updateSession(config: Partial<SessionConfig>): void;
   reset(): void;
-  
+
   // Audio input
   appendInputAudio(audioData: Int16Array): void;
 
   // Text input
   appendInputText(text: string): void;
-  
+
   // Response generation
   createResponse(): void;
   cancelResponse(trackId?: string, offset?: number): void;
-  
+
   // Conversation management
   getConversationItems(): ConversationItem[];
-  
+
   // Event handling
   setEventHandlers(handlers: ClientEventHandlers): void;
-  
+
   // Provider-specific information
   getProvider(): ProviderType;
+
+  // Optional device control methods (WebRTC only)
+  switchInputDevice?(deviceId: string): Promise<void>;
+  switchOutputDevice?(deviceId: string): Promise<void>;
+  setOutputMuted?(muted: boolean): void;
+  setOutputVolume?(volume: number): void;
 }
 
 /**

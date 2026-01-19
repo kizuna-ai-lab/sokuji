@@ -104,6 +104,9 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   // canPushToTalk is true only when turnDetectionMode is 'Disabled'
   const [canPushToTalk, setCanPushToTalk] = useState(false);
 
+  // Track if current session is using WebRTC transport
+  const [isUsingWebRTC, setIsUsingWebRTC] = useState(false);
+
   // supportsTextInput is true for providers that support text input
   const supportsTextInput = useMemo(() => {
     return provider === Provider.OPENAI ||
@@ -561,6 +564,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   const disconnectConversation = useCallback(async () => {
     setIsSessionActive(false);
     setIsAIResponding(false);
+    setIsUsingWebRTC(false);
     pendingTextRef.current = null;
 
     // Clear audio quality tracking interval
@@ -874,7 +878,16 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         });
       } else if (useWebRTC) {
         console.info('[Sokuji] [MainPanel] WebRTC mode - audio flows automatically via MediaStreamTrack');
+
+        // Apply initial mute state based on isMonitorDeviceOn
+        if (typeof clientRef.current?.setOutputMuted === 'function') {
+          clientRef.current.setOutputMuted(!isMonitorDeviceOn);
+          console.debug('[Sokuji] [MainPanel] WebRTC initial mute state:', !isMonitorDeviceOn);
+        }
       }
+
+      // Track if using WebRTC (after fallback logic is complete)
+      setIsUsingWebRTC(useWebRTC);
 
       // Start participant audio client (unified for both Electron system audio and Extension tab audio)
       // Both capture "other participant" audio and send to AI for translation
@@ -1926,6 +1939,57 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
     handleDeviceSwitch();
   }, [selectedInputDevice?.deviceId, isSessionActive, isInputDeviceOn]);
+
+  /**
+   * Handle monitor device on/off state for WebRTC clients
+   */
+  useEffect(() => {
+    const client = clientRef.current;
+    if (!isSessionActive || !isUsingWebRTC || !client) return;
+
+    // Check if client supports muting
+    if (typeof client.setOutputMuted === 'function') {
+      client.setOutputMuted(!isMonitorDeviceOn);
+      console.debug('[Sokuji] [MainPanel] WebRTC output muted:', !isMonitorDeviceOn);
+    }
+  }, [isMonitorDeviceOn, isSessionActive, isUsingWebRTC]);
+
+  /**
+   * Handle input device switching for WebRTC clients
+   */
+  useEffect(() => {
+    const client = clientRef.current;
+    if (!isSessionActive || !isUsingWebRTC || !client) return;
+
+    // Don't switch on initial mount (already set during connect)
+    if (!isInitializedRef.current) return;
+
+    // Switch input device if supported
+    if (selectedInputDevice?.deviceId && typeof client.switchInputDevice === 'function') {
+      client.switchInputDevice(selectedInputDevice.deviceId)
+        .then(() => {
+          console.debug('[Sokuji] [MainPanel] WebRTC input device switched to:', selectedInputDevice.deviceId);
+        })
+        .catch(err => console.error('[Sokuji] [MainPanel] Failed to switch WebRTC input device:', err));
+    }
+  }, [selectedInputDevice?.deviceId, isSessionActive, isUsingWebRTC]);
+
+  /**
+   * Handle output device switching for WebRTC clients
+   */
+  useEffect(() => {
+    const client = clientRef.current;
+    if (!isSessionActive || !isUsingWebRTC || !client) return;
+
+    // Switch output device if supported
+    if (selectedMonitorDevice?.deviceId && typeof client.switchOutputDevice === 'function') {
+      client.switchOutputDevice(selectedMonitorDevice.deviceId)
+        .then(() => {
+          console.debug('[Sokuji] [MainPanel] WebRTC output device switched to:', selectedMonitorDevice.deviceId);
+        })
+        .catch(err => console.error('[Sokuji] [MainPanel] Failed to switch WebRTC output device:', err));
+    }
+  }, [selectedMonitorDevice?.deviceId, isSessionActive, isUsingWebRTC]);
 
   // If in basic mode, render the simplified interface
   if (uiMode === 'basic') {
