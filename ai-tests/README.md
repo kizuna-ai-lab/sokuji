@@ -109,19 +109,77 @@ Results follow the schema in `schemas/test-result.schema.json` and include:
 
 ## Running Tests
 
-> **Note**: Test runner implementation is planned for future development.
+The test runner is implemented as a Node.js CLI tool using `tsx`.
 
-When implemented, tests will be run via:
+### Prerequisites
+
+Set up required environment variables (or create a `.env` file in the project root):
+
+```bash
+# Required: At least one API key
+OPENAI_API_KEY=sk-...
+
+# Optional: Additional providers
+GEMINI_API_KEY=...
+PALABRA_API_KEY=...
+KIZUNA_API_KEY=...
+
+# Optional: LLM Judge configuration (defaults to OpenAI GPT-4o)
+JUDGE_PROVIDER=openai
+JUDGE_MODEL=gpt-4o
+```
+
+### Commands
 
 ```bash
 # Run all test cases
 npm run ai-test
 
-# Run specific test case
-npm run ai-test -- --case realtime-ja-en-001
+# List available test cases
+npm run ai-test:list
 
-# Run with specific provider
+# Validate test case schemas
+npm run ai-test:validate
+
+# Run specific test case
+npm run ai-test -- --case regression-meta-commentary-001
+
+# Run tests by provider
 npm run ai-test -- --provider openai
+
+# Run tests by tag
+npm run ai-test -- --tag regression
+
+# Skip LLM evaluation (only record outputs)
+npm run ai-test -- --skip-evaluation
+
+# Enable verbose output
+npm run ai-test -- --verbose
+
+# Show help
+npm run ai-test -- --help
+```
+
+### Test Runner Architecture
+
+```
+ai-tests/runner/
+├── index.ts                 # CLI entry point
+├── cli.ts                   # Command line parsing
+├── config.ts                # Environment configuration
+├── types.ts                 # TypeScript definitions
+├── core/
+│   ├── TestRunner.ts        # Main orchestrator
+│   ├── TestCaseLoader.ts    # Load and validate test cases
+│   ├── TestExecutor.ts      # Execute individual tests
+│   └── ResultWriter.ts      # Write results to JSON
+├── clients/
+│   ├── NodeClientFactory.ts # Client factory
+│   └── NodeOpenAIClient.ts  # OpenAI Realtime API client
+├── audio/
+│   └── AudioLoader.ts       # Load WAV/FLAC files
+└── evaluation/
+    └── LLMJudge.ts          # LLM-as-Judge evaluator
 ```
 
 ## Adding Test Cases

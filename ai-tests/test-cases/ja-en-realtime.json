@@ -5,7 +5,7 @@
   "tags": ["realtime", "translation", "ja-en", "business"],
   "provider": "openai",
   "config": {
-    "model": "gpt-4o-realtime-preview-2024-12-17",
+    "model": "gpt-realtime-mini",
     "systemInstruction": "You are a professional Japanese-English interpreter. Translate the user's Japanese speech into natural, fluent English. Maintain the original tone and nuance. Do not add explanations.",
     "temperature": 0.6,
     "voice": "alloy",
@@ -25,7 +25,7 @@
     {
       "id": "audio-001",
       "type": "audio",
-      "audioFile": "audio/ja-greeting-formal.wav",
+      "audioFile": "audio/ja-greeting-formal.flac",
       "sourceLanguage": "ja",
       "targetLanguage": "en",
       "expectedTranscription": "Good morning. Thank you for your continued support.",
