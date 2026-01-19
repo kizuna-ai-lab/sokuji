@@ -716,6 +716,14 @@ export class OpenAIWebRTCClient implements IClient {
   }
 
   /**
+   * Set output muted state
+   */
+  setOutputMuted(muted: boolean): void {
+    this.audioBridge.setMuted(muted);
+    console.debug('[OpenAIWebRTCClient] Output muted:', muted);
+  }
+
+  /**
    * Get frequency data for visualization
    */
   getFrequencies(): { values: Float32Array } | null {
