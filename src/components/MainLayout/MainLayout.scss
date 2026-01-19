@@ -1,7 +1,9 @@
 .main-layout {
   display: flex;
-  height: 100vh;
+  height: 100%;
+  min-height: 0; /* Allow shrinking for nested scrolling */
   width: 100%;
+  flex: 1; /* Take up available space from parent */
   background-color: #1e1e1e;
   color: white;
   overflow: hidden; /* Prevent overflow from causing scrollbars on the body */
@@ -58,6 +60,7 @@
     flex-direction: column;
     flex: 1;
     min-width: 0; /* Allow content to shrink below its minimum content size */
+    min-height: 0; /* Allow content to shrink for nested scrolling to work */
     
     &.with-panel {
       border-right: 1px solid #333;
