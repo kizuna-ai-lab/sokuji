@@ -13,17 +13,31 @@
     <link rel="manifest" href="/manifest.json" />
     <title>Sokuji</title>
     <style>
-      body {
+      html, body {
         margin: 0;
         padding: 0;
         width: 100%;
-        height: 100vh;
+        height: 100%;
         overflow: hidden;
       }
-      
+
+      /* Use 100% instead of 100vh for better side panel compatibility */
+      body {
+        /* Fallback for environments where dvh is not supported */
+        height: 100vh;
+        height: 100dvh; /* Dynamic viewport height - better for mobile and side panels */
+        position: fixed; /* Prevent iOS bounce scroll */
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+      }
+
       #root {
         width: 100%;
         height: 100%;
+        display: flex;
+        flex-direction: column;
       }
     </style>
   </head>

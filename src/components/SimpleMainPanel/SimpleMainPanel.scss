@@ -3,6 +3,7 @@
   flex-direction: column;
   flex: 1; // Take up available space in flex container
   min-height: 0; // Important: Allow the container to shrink
+  height: 100%; // Explicit height for better compatibility
   background-color: #1e1e1e;
   color: #fff;
 
@@ -11,8 +12,11 @@
     flex: 1;
     min-height: 0; // Prevent flex item from exceeding container
     overflow-y: auto;
+    overflow-x: hidden; // Prevent horizontal scroll
     padding: 20px;
     scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch; // Smooth scrolling on iOS/macOS
+    overscroll-behavior: contain; // Prevent scroll chaining to parent
 
     &::-webkit-scrollbar {
       width: 6px;
