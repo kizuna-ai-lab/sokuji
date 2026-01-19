@@ -6,6 +6,9 @@ node_modules
 # testing
 /coverage
 
+# AI model test results (not version controlled)
+ai-tests/results/
+
 # production
 /build
 /dist
