@@ -353,6 +353,19 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   
   // Reference to track push-to-talk duration
   const pushToTalkStartTimeRef = useRef<number | null>(null);
+
+  // Reference to track non-silent audio chunks during push-to-talk
+  const pttVoiceChunkCountRef = useRef<number>(0);
+
+  // Detect if audio data is silent (threshold-based detection)
+  const isSilentAudio = useCallback((audioData: Int16Array, threshold = 0.01): boolean => {
+    if (!audioData?.length) return true;
+    let sum = 0;
+    for (let i = 0; i < audioData.length; i++) {
+      sum += Math.abs(audioData[i] / 32768);
+    }
+    return sum / audioData.length < threshold;
+  }, []);
   
   // Reference to track audio quality metrics
   const audioQualityIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -1057,6 +1070,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       }
 
       // Start recording
+      pttVoiceChunkCountRef.current = 0;  // Reset non-silent chunk counter
       let pttAudioCallbackCount = 0;
       await audioService.startRecording(selectedInputDevice?.deviceId, (data) => {
         if (client) {
@@ -1065,6 +1079,12 @@ const MainPanel: React.FC<MainPanelProps> = () => {
             console.debug(`[Sokuji] [MainPanel] PTT: Sending audio to client: chunk ${pttAudioCallbackCount}, PCM length: ${data.mono.length}`);
           }
           pttAudioCallbackCount++;
+
+          // Track non-silent audio chunks for empty request detection
+          if (!isSilentAudio(data.mono)) {
+            pttVoiceChunkCountRef.current++;
+          }
+
           client.appendInputAudio(data.mono);
         }
       });
@@ -1109,9 +1129,12 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         // Stop recording
         await audioService.pauseRecording();
 
-        // Create response
-        if (client) {
+        // Only create response if we detected enough voice audio (prevents empty requests)
+        const MIN_VOICE_CHUNKS = 5; // At least 5 non-silent chunks (~0.5 seconds of speech)
+        if (client && pttVoiceChunkCountRef.current >= MIN_VOICE_CHUNKS) {
           client.createResponse();
+        } else if (client) {
+          console.debug(`[Sokuji] [MainPanel] PTT: Skipping response - only ${pttVoiceChunkCountRef.current} voice chunks detected (minimum: ${MIN_VOICE_CHUNKS})`);
         }
       }
     } catch (error) {
