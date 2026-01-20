@@ -85,7 +85,9 @@
     "transportType": "Yhteystyyppi",
     "transportTypeTooltip": "WebRTC: Pienempi viive, suositellaan useimmille käyttäjille.\nWebSocket: Parempi yhteensopivuus rajoitettujen verkkojen kanssa. Käytä, jos WebRTC-yhteys epäonnistuu.",
     "websocket": "WebSocket (Vakaa)",
-    "webrtc": "WebRTC (Matala viive)"
+    "webrtc": "WebRTC (Matala viive)",
+    "participantInstructions": "Osallistujan ohjeet",
+    "participantInstructionsTooltip": "Järjestelmäohjeet osallistujien äänen kääntämiseen. Jos tyhjä, käytetään yllä olevia pääohjeita.\n\nTärkeää: Pääohjeillasi voi olla väärä kielisuunta osallistujille. Esimerkki: Jos puhut kiinaa ja pääohjeesi kääntävät kiina→japani, mutta osallistujat puhuvat japania, pääohjeet yrittäisivät virheellisesti kääntää japani→japani. Aseta erilliset osallistujaohjeet kääntääksesi japani→kiina."
   },
   "simpleSettings": {
     "quickSetup": "Pika-asennus",

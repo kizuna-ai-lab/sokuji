@@ -106,7 +106,9 @@
     "transportType": "Verbindingstype",
     "transportTypeTooltip": "WebRTC: Lagere latentie, aanbevolen voor de meeste gebruikers.\nWebSocket: Betere compatibiliteit met beperkte netwerken. Gebruik dit als de WebRTC-verbinding mislukt.",
     "websocket": "WebSocket (Stabiel)",
-    "webrtc": "WebRTC (Lage latentie)"
+    "webrtc": "WebRTC (Lage latentie)",
+    "participantInstructions": "Deelnemer Instructies",
+    "participantInstructionsTooltip": "Systeeminstructies voor het vertalen van deelnemersaudio. Indien leeg, worden de hoofdinstructies hierboven gebruikt.\n\nBelangrijk: Uw hoofdinstructies kunnen de verkeerde taalrichting hebben voor deelnemers. Voorbeeld: Als u Chinees spreekt en uw hoofdinstructies vertalen Chinees→Japans, maar deelnemers spreken Japans, zouden de hoofdinstructies onjuist proberen Japans→Japans te vertalen. Stel aparte deelnemerinstructies in om Japans→Chinees te vertalen."
   },
   "audioPanel": {
     "title": "Audio instellingen",

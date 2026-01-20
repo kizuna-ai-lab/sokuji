@@ -87,7 +87,9 @@
     "transportType": "Loại kết nối",
     "transportTypeTooltip": "WebRTC: Độ trễ thấp hơn, được khuyến nghị cho hầu hết người dùng.\nWebSocket: Tương thích tốt hơn với mạng hạn chế. Sử dụng nếu kết nối WebRTC thất bại.",
     "websocket": "WebSocket (Ổn định)",
-    "webrtc": "WebRTC (Độ trễ thấp)"
+    "webrtc": "WebRTC (Độ trễ thấp)",
+    "participantInstructions": "Hướng dẫn cho người tham gia",
+    "participantInstructionsTooltip": "Hướng dẫn hệ thống để dịch âm thanh người tham gia. Nếu để trống, sẽ sử dụng hướng dẫn chính ở trên.\n\nQuan trọng: Hướng dẫn chính của bạn có thể có hướng ngôn ngữ sai cho người tham gia. Ví dụ: Nếu bạn nói tiếng Trung và hướng dẫn chính dịch Trung→Nhật, nhưng người tham gia nói tiếng Nhật, hướng dẫn chính sẽ cố gắng dịch Nhật→Nhật một cách sai. Đặt hướng dẫn riêng cho người tham gia để dịch Nhật→Trung."
   },
   "mainPanel": {
     "conversationPlaceholder": "Cuộc trò chuyện sẽ xuất hiện ở đây",
