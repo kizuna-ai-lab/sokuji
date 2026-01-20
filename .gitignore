@@ -6,9 +6,9 @@ node_modules
 # testing
 /coverage
 
-# AI model test results and audio files (not version controlled)
-ai-tests/results/
-ai-tests/audio/
+# Evaluation results and audio files (not version controlled)
+evals/results/
+evals/audio/
 
 # production
 /build

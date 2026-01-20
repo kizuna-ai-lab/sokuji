@@ -1,5 +1,5 @@
 /**
- * TypeScript type definitions for AI Model Testing Framework
+ * TypeScript type definitions for Evaluation Framework
  */
 
 // Provider types (aligned with src/types/Provider.ts)
@@ -215,6 +215,7 @@ export interface TestResult {
   evaluation?: EvaluationResult;
   environment?: EnvironmentInfo;
   error?: ErrorInfo;
+  instructionSource?: string;  // Name of instruction override used (if any)
 }
 
 /**
@@ -227,6 +228,8 @@ export interface CLIOptions {
   skipEvaluation?: boolean;
   verbose?: boolean;
   outputDir?: string;
+  instruction?: string;      // Load instruction from evals/instructions/<name>.md
+  instructionFile?: string;  // Load instruction from arbitrary file path
 }
 
 /**
@@ -237,6 +240,7 @@ export interface RunnerConfig {
   resultsDir: string;
   audioDir: string;
   schemasDir: string;
+  instructionsDir: string;  // Directory for system instruction files
   apiKeys: {
     openai?: string;
     gemini?: string;

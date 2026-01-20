@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 /**
- * AI Model Test Runner - Entry Point
+ * Sokuji Evaluation Runner - Entry Point
  *
- * CLI tool for running AI model translation quality tests.
+ * CLI tool for running AI model translation quality evaluations.
  */
 
 import { parseArgs, printStatus, printSeparator } from './cli.js';
@@ -17,7 +17,7 @@ async function main(): Promise<void> {
   const config = loadConfig({ verbose: options.verbose });
 
   // Print header
-  console.log(`\n🧪 AI Model Test Runner v${getAppVersion()}`);
+  console.log(`\n🧪 Sokuji Evaluation Runner v${getAppVersion()}`);
   printSeparator('═');
 
   // Handle different commands

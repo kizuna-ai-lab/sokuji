@@ -94,9 +94,9 @@
     "make": "npm run build && electron-forge make",
     "make:pkg": "./build-pkg.sh",
     "postinstall": "electron-rebuild",
-    "ai-test": "tsx ai-tests/runner/index.ts",
-    "ai-test:validate": "tsx ai-tests/runner/index.ts validate",
-    "ai-test:list": "tsx ai-tests/runner/index.ts list"
+    "eval": "tsx evals/runner/index.ts",
+    "eval:validate": "tsx evals/runner/index.ts validate",
+    "eval:list": "tsx evals/runner/index.ts list"
   },
   "eslintConfig": {
     "extends": [
