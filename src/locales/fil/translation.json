@@ -85,7 +85,9 @@
     "transportType": "Uri ng Koneksyon",
     "transportTypeTooltip": "WebRTC: Mas mababang latency, inirerekomenda para sa karamihan ng mga user.\nWebSocket: Mas magandang compatibility sa mga restricted network. Gamitin kung nabigo ang WebRTC connection.",
     "websocket": "WebSocket (Stable)",
-    "webrtc": "WebRTC (Mababang Latency)"
+    "webrtc": "WebRTC (Mababang Latency)",
+    "participantInstructions": "Mga Tagubilin para sa Kalahok",
+    "participantInstructionsTooltip": "Mga tagubilin ng sistema para sa pagsasalin ng audio ng kalahok. Kung walang laman, gagamitin ang mga pangunahing tagubilin sa itaas.\n\nMahalaga: Ang inyong mga pangunahing tagubilin ay maaaring may maling direksyon ng wika para sa mga kalahok. Halimbawa: Kung nagsasalita kayo ng Tsino at ang inyong mga pangunahing tagubilin ay nagsasalin ng Tsino→Hapon, ngunit ang mga kalahok ay nagsasalita ng Hapon, mali na susubukan ng mga pangunahing tagubilin na isalin ang Hapon→Hapon. Magtakda ng hiwalay na mga tagubilin para sa kalahok upang isalin ang Hapon→Tsino."
   },
   "simpleSettings": {
     "quickSetup": "Mabilisang Setup",

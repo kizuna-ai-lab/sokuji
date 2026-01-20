@@ -1,0 +1,254 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://sokuji.kizuna.ai/schemas/test-case.schema.json",
+  "title": "AI Model Test Case",
+  "description": "Schema for defining AI model test cases for Realtime API translation testing",
+  "type": "object",
+  "required": ["id", "name", "provider", "config", "inputs", "evaluation"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Unique identifier for the test case",
+      "pattern": "^[a-z0-9-]+$"
+    },
+    "name": {
+      "type": "string",
+      "description": "Human-readable test case name"
+    },
+    "description": {
+      "type": "string",
+      "description": "Detailed description of the test purpose"
+    },
+    "tags": {
+      "type": "array",
+      "description": "Tags for categorization and filtering",
+      "items": {
+        "type": "string"
+      }
+    },
+    "provider": {
+      "type": "string",
+      "description": "AI provider to use for the test",
+      "enum": ["openai", "gemini", "palabra_ai", "kizuna_ai", "openai_compatible"]
+    },
+    "config": {
+      "type": "object",
+      "description": "Provider-specific configuration",
+      "properties": {
+        "model": {
+          "type": "string",
+          "description": "Model identifier (e.g., gpt-4o-realtime-preview)"
+        },
+        "systemInstruction": {
+          "type": "string",
+          "description": "System instruction/prompt for translation"
+        },
+        "temperature": {
+          "type": "number",
+          "description": "Sampling temperature",
+          "minimum": 0,
+          "maximum": 2
+        },
+        "voice": {
+          "type": "string",
+          "description": "TTS voice setting"
+        },
+        "inputAudioFormat": {
+          "type": "string",
+          "description": "Input audio encoding format",
+          "enum": ["pcm16", "g711_ulaw", "g711_alaw"]
+        },
+        "outputAudioFormat": {
+          "type": "string",
+          "description": "Output audio encoding format",
+          "enum": ["pcm16", "g711_ulaw", "g711_alaw"]
+        },
+        "inputAudioTranscription": {
+          "type": "object",
+          "description": "Input audio transcription settings",
+          "properties": {
+            "model": {
+              "type": "string",
+              "description": "ASR model for input transcription (e.g., whisper-1)"
+            }
+          }
+        },
+        "turnDetection": {
+          "type": "object",
+          "description": "Voice activity detection settings",
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": ["server_vad", "none"]
+            },
+            "threshold": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "prefixPaddingMs": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "silenceDurationMs": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        },
+        "additionalParams": {
+          "type": "object",
+          "description": "Additional provider-specific parameters"
+        }
+      }
+    },
+    "inputs": {
+      "type": "array",
+      "description": "List of test inputs (audio or text)",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "type"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifier for this input"
+          },
+          "type": {
+            "type": "string",
+            "description": "Input type: audio file or text",
+            "enum": ["audio", "text"]
+          },
+          "audioFile": {
+            "type": "string",
+            "description": "Relative path to audio file (when type=audio)"
+          },
+          "textContent": {
+            "type": "string",
+            "description": "Text content to translate (when type=text)"
+          },
+          "sourceLanguage": {
+            "type": "string",
+            "description": "Source language code (e.g., ja, en, zh)"
+          },
+          "targetLanguage": {
+            "type": "string",
+            "description": "Target language code"
+          },
+          "expectedTranscription": {
+            "type": "string",
+            "description": "Expected translation result (ground truth)"
+          },
+          "context": {
+            "type": "object",
+            "description": "Additional context information",
+            "properties": {
+              "domain": {
+                "type": "string",
+                "description": "Domain/topic (e.g., business, casual, technical)"
+              },
+              "formality": {
+                "type": "string",
+                "description": "Formality level (e.g., formal, informal, polite)"
+              },
+              "speakerInfo": {
+                "type": "string",
+                "description": "Speaker characteristics"
+              }
+            }
+          }
+        },
+        "if": {
+          "properties": { "type": { "const": "audio" } }
+        },
+        "then": {
+          "required": ["audioFile"]
+        },
+        "else": {
+          "if": {
+            "properties": { "type": { "const": "text" } }
+          },
+          "then": {
+            "required": ["textContent"]
+          }
+        }
+      }
+    },
+    "evaluation": {
+      "type": "object",
+      "description": "LLM-as-Judge evaluation configuration",
+      "required": ["type", "judgeConfig"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "llm-judge",
+          "description": "Evaluation method (currently only llm-judge supported)"
+        },
+        "judgeConfig": {
+          "type": "object",
+          "description": "Configuration for the LLM judge",
+          "properties": {
+            "provider": {
+              "type": "string",
+              "description": "Provider for the judge model"
+            },
+            "model": {
+              "type": "string",
+              "description": "Model to use as judge"
+            },
+            "systemPrompt": {
+              "type": "string",
+              "description": "System prompt for the judge"
+            },
+            "scoringRubric": {
+              "type": "object",
+              "description": "Scoring dimensions and weights",
+              "additionalProperties": {
+                "type": "object",
+                "properties": {
+                  "weight": {
+                    "type": "number",
+                    "description": "Weight for this dimension (0-1)",
+                    "minimum": 0,
+                    "maximum": 1
+                  },
+                  "description": {
+                    "type": "string",
+                    "description": "Description of this scoring dimension"
+                  }
+                },
+                "required": ["weight", "description"]
+              }
+            }
+          }
+        },
+        "passThreshold": {
+          "type": "number",
+          "description": "Minimum overall score to pass (0-1)",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Test case metadata",
+      "properties": {
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "author": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

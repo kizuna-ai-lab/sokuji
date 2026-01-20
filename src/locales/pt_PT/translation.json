@@ -102,7 +102,9 @@
     "apiKeyValidated": "Chave de API validada",
     "realtimeTranslationAvailable": "Serviço de tradução em tempo real disponível",
     "authentication": "Autenticação",
-    "autoAuthenticated": "Autenticado automaticamente através da sua conta"
+    "autoAuthenticated": "Autenticado automaticamente através da sua conta",
+    "participantInstructions": "Instruções do Participante",
+    "participantInstructionsTooltip": "Instruções do sistema para traduzir áudio dos participantes. Se vazio, as instruções principais acima serão utilizadas.\n\nImportante: As suas instruções principais podem ter a direção de idioma errada para os participantes. Exemplo: Se fala chinês e as suas instruções principais traduzem chinês→japonês, mas os participantes falam japonês, as instruções principais tentariam incorretamente traduzir japonês→japonês. Defina instruções separadas para participantes para traduzir japonês→chinês."
   },
   "simpleSettings": {
     "quickSetup": "Configuração Rápida",
