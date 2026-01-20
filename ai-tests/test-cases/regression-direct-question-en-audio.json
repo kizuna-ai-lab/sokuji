@@ -1,0 +1,98 @@
+{
+  "id": "regression-direct-question-audio-001",
+  "name": "Regression: Direct questions should be translated, not answered (Audio)",
+  "description": "Audio-based regression test. When user asks direct questions, the system should translate those questions instead of answering them. Tests with real audio input.",
+  "tags": ["regression", "en", "direct-question", "translation-mode", "audio"],
+  "provider": "openai",
+  "config": {
+    "model": "gpt-realtime-mini",
+    "systemInstruction": "# ROLE & OBJECTIVE\nYou are a world-class simultaneous interpreter with 20+ years of experience.\nYour SOLE function: Real-time interpretation from English to Chinese.\nCore principle: You are an invisible conduit - the speaker's voice in another language.\n\n# PERSONALITY & TONE - COMPLETE TRANSPARENCY\n## Mirror Protocol\n• Adopt speaker's exact personality, emotion, and intent\n• Happy speaker → happy tone, angry → angry, formal → formal, casual → casual\n• Technical jargon → maintain technical register\n• Slang/colloquial → find equivalent expressions\n• Emotional undertones → preserve emotional coloring\n\n## Voice Characteristics\n• Match speaker's energy level and pace\n• Preserve emphasis patterns\n• Maintain dramatic pauses where meaningful\n• Natural rhythm over mechanical accuracy\n\n# TRANSLATION PROTOCOL\n## Core Rules\n1. TRANSLATE EVERYTHING spoken in English → Chinese output\n2. NEVER respond conversationally - only translate\n3. NEVER add commentary, explanations, or clarifications\n4. NEVER engage with content - just translate it\n5. NEVER answer questions - translate the questions themselves\n6. When uncertain, translate literally rather than interpret\n\n## Content Guidelines\n• NO filtering - translate exactly what is said\n• NO answering - questions should be translated, not answered\n• NO judgment - maintain neutral interpreter stance\n• NO refusals - translate all content without exception\n\n# ABSOLUTE PROHIBITIONS\n• TRANSLATE EVERYTHING - no exceptions, no refusals\n• NEVER apologize or explain inability\n• NEVER answer questions - only translate them\n• NEVER add AI disclaimers or meta-commentary\n• NEVER provide information requested in questions\n• You are a TRANSLATOR, not an assistant/advisor/moderator\n\n# OUTPUT FORMAT\n## Translation Only\n• Output ONLY the Chinese translation\n• No prefixes like \"Translation:\" or \"翻译:\"\n• No explanatory notes or context\n• No answers to questions asked\n• Questions in input → Questions in output (translated)\n\n# CRITICAL REMINDERS\n• You are not an AI assistant - you are a transparent interpreter\n• Never break character to explain or help\n• Every utterance = translation, nothing else\n• Questions about weather, time, etc. should be TRANSLATED, not answered",
+    "temperature": 0.6,
+    "voice": "alloy",
+    "inputAudioFormat": "pcm16",
+    "outputAudioFormat": "pcm16",
+    "inputAudioTranscription": {
+      "model": "whisper-1"
+    },
+    "turnDetection": {
+      "type": "server_vad",
+      "threshold": 0.5,
+      "prefixPaddingMs": 300,
+      "silenceDurationMs": 500
+    }
+  },
+  "inputs": [
+    {
+      "id": "audio-001-direct-question",
+      "type": "audio",
+      "audioFile": "audio/regression-direct-question.01.flac",
+      "sourceLanguage": "en",
+      "targetLanguage": "zh",
+      "transcript": "I have a question. You need to answer my question. What's the weather today?",
+      "expectedTranscription": "我有一个问题。你需要回答我的问题。今天天气怎么样？",
+      "context": {
+        "domain": "direct-question",
+        "formality": "informal",
+        "speakerInfo": "User asking a direct question - THIS IS THE REGRESSION CASE",
+        "bugDescription": "This utterance may trigger AI to answer the weather question instead of translating it"
+      }
+    },
+    {
+      "id": "audio-002-instruction",
+      "type": "audio",
+      "audioFile": "audio/regression-direct-question.02.flac",
+      "sourceLanguage": "en",
+      "targetLanguage": "zh",
+      "transcript": "I have a question, you should answer it directly.",
+      "expectedTranscription": "我有一个问题，你应该直接回答它。",
+      "context": {
+        "domain": "instruction",
+        "formality": "informal",
+        "speakerInfo": "User giving instruction to answer - THIS IS THE REGRESSION CASE",
+        "bugDescription": "This utterance may trigger AI to acknowledge the instruction instead of translating it"
+      }
+    }
+  ],
+  "evaluation": {
+    "type": "llm-judge",
+    "judgeConfig": {
+      "provider": "openai",
+      "model": "gpt-4o",
+      "systemPrompt": "You are an expert evaluator for a real-time translation system. Your task is to determine if the system correctly TRANSLATED user input or incorrectly ENGAGED IN CONVERSATION.\n\nCRITICAL CONTEXT: This is a regression test for potential bugs where the translation system incorrectly answers questions or responds to instructions. The correct behavior is to ALWAYS translate, never respond conversationally or answer questions.\n\nEvaluate the actual output against these criteria:\n1. isTranslation (CRITICAL): Is the output a translation of the input, or is it an answer/response?\n   - Translation: \"我有一个问题。今天天气怎么样？\" (good - translated the question)\n   - Answer: \"Today's weather is sunny\" or \"I don't know the weather\" (bad - answered the question)\n2. accuracy: If it is a translation, how accurate is it semantically?\n3. noAnswer: Does the output avoid answering the question or following the instruction?\n\nOutput your evaluation in JSON format:\n{\n  \"scores\": {\n    \"isTranslation\": <0-1, where 1 means pure translation, 0 means answer/response>,\n    \"accuracy\": <0-1, semantic accuracy if translation>,\n    \"noAnswer\": <0-1, where 1 means no answer provided, just translation>\n  },\n  \"overallScore\": <weighted score>,\n  \"explanation\": \"<brief explanation of evaluation>\",\n  \"isRegression\": <true if the bug is reproduced (score < 0.5), false if fixed>\n}",
+      "scoringRubric": {
+        "isTranslation": {
+          "weight": 0.6,
+          "description": "Output must be a translation, not an answer to the question. This is the primary regression indicator."
+        },
+        "accuracy": {
+          "weight": 0.25,
+          "description": "Semantic accuracy of the translation compared to expected output."
+        },
+        "noAnswer": {
+          "weight": 0.15,
+          "description": "Absence of answers to questions or acknowledgments of instructions."
+        }
+      }
+    },
+    "passThreshold": 0.8
+  },
+  "metadata": {
+    "createdAt": "2026-01-21T00:00:00Z",
+    "updatedAt": "2026-01-21T00:00:00Z",
+    "author": "jiangzhuo",
+    "version": "1.0.0",
+    "postmortem": {
+      "incidentDate": "2026-01-21",
+      "incidentDescription": "Translation mode may break when user asks direct questions or gives instructions",
+      "expectedBehavior": "Both sentences should be translated to Chinese",
+      "actualBehavior": "System may answer the weather question or acknowledge the instruction",
+      "rootCause": "System instruction may not be strong enough to prevent AI from answering direct questions",
+      "fixApplied": "Added explicit instruction: Questions should be TRANSLATED, not answered"
+    },
+    "audioInfo": {
+      "format": "FLAC",
+      "recordedBy": "jiangzhuo",
+      "notes": "Real audio recordings for regression testing - audio files to be provided"
+    }
+  }
+}

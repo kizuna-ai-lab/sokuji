@@ -288,7 +288,12 @@ export class LLMJudge {
 
       const parsed = JSON.parse(jsonStr.trim());
 
-      // Validate required fields
+      // Handle array format: { evaluations: [...] }
+      if (Array.isArray(parsed.evaluations) && parsed.evaluations.length > 0) {
+        return this.aggregateEvaluations(parsed.evaluations);
+      }
+
+      // Handle single evaluation format: { scores: {...}, ... }
       if (typeof parsed.scores !== 'object') {
         throw new Error('Missing scores object');
       }
@@ -317,6 +322,71 @@ export class LLMJudge {
         explanation: 'Failed to parse evaluation response',
       };
     }
+  }
+
+  /**
+   * Aggregate multiple evaluations into a single response
+   */
+  private aggregateEvaluations(evaluations: Array<{
+    input?: string;
+    scores: Record<string, number>;
+    overallScore: number;
+    explanation: string;
+    isRegression?: boolean;
+  }>): JudgeResponse {
+    // Aggregate scores by averaging across all evaluations
+    const aggregatedScores: Record<string, number[]> = {};
+    const overallScores: number[] = [];
+    const explanations: string[] = [];
+    let hasRegression = false;
+
+    for (const evaluation of evaluations) {
+      // Collect overall scores
+      if (typeof evaluation.overallScore === 'number') {
+        overallScores.push(evaluation.overallScore);
+      }
+
+      // Collect dimension scores
+      if (evaluation.scores) {
+        for (const [dimension, score] of Object.entries(evaluation.scores)) {
+          if (typeof score === 'number') {
+            if (!aggregatedScores[dimension]) {
+              aggregatedScores[dimension] = [];
+            }
+            aggregatedScores[dimension].push(score);
+          }
+        }
+      }
+
+      // Collect explanations
+      if (evaluation.explanation) {
+        const inputLabel = evaluation.input ? `[${evaluation.input}] ` : '';
+        explanations.push(`${inputLabel}${evaluation.explanation}`);
+      }
+
+      // Check for regression
+      if (evaluation.isRegression) {
+        hasRegression = true;
+      }
+    }
+
+    // Calculate average scores
+    const finalScores: Record<string, number> = {};
+    for (const [dimension, scores] of Object.entries(aggregatedScores)) {
+      finalScores[dimension] = scores.reduce((a, b) => a + b, 0) / scores.length;
+    }
+
+    // Calculate average overall score
+    const finalOverallScore = overallScores.length > 0
+      ? overallScores.reduce((a, b) => a + b, 0) / overallScores.length
+      : 0;
+
+    return {
+      scores: finalScores,
+      overallScore: finalOverallScore,
+      explanation: explanations.join('\n\n'),
+      isRegression: hasRegression,
+    };
   }
 
   /**
