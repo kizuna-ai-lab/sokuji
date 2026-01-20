@@ -63,7 +63,9 @@
     "transportType": "Anslutningstyp",
     "transportTypeTooltip": "WebRTC: Lägre latens, rekommenderas för de flesta användare.\nWebSocket: Bättre kompatibilitet med begränsade nätverk. Använd om WebRTC-anslutningen misslyckas.",
     "websocket": "WebSocket (Stabil)",
-    "webrtc": "WebRTC (Låg latens)"
+    "webrtc": "WebRTC (Låg latens)",
+    "participantInstructions": "Deltagarinstruktioner",
+    "participantInstructionsTooltip": "Systeminstruktioner för att översätta deltagarljud. Om tom används huvudinstruktionerna ovan.\n\nViktigt: Dina huvudinstruktioner kan ha fel språkriktning för deltagare. Exempel: Om du talar kinesiska och dina huvudinstruktioner översätter kinesiska→japanska, men deltagarna talar japanska, skulle huvudinstruktionerna felaktigt försöka översätta japanska→japanska. Ställ in separata deltagarinstruktioner för att översätta japanska→kinesiska."
   },
   "mainPanel": {
     "conversationPlaceholder": "Konversationen kommer att visas här",

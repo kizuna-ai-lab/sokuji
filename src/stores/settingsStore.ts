@@ -23,6 +23,7 @@ export interface CommonSettings {
   systemInstructions: string;
   templateSystemInstructions: string;
   useTemplateMode: boolean;
+  participantSystemInstructions: string;
 }
 
 // Transport type for OpenAI Realtime API
@@ -388,6 +389,7 @@ const defaultCommonSettings: CommonSettings = {
     "• Your success = being invisible while perfectly conveying meaning\n" +
     "• Focus on enabling communication, not participating in it",
   useTemplateMode: true,
+  participantSystemInstructions: '',
 };
 
 const defaultOpenAICompatibleSettingsBase: OpenAICompatibleSettingsBase = {
@@ -457,6 +459,7 @@ interface SettingsStore {
   systemInstructions: string;
   templateSystemInstructions: string;
   useTemplateMode: boolean;
+  participantSystemInstructions: string;
 
   // Provider-specific settings
   openai: OpenAISettings;
@@ -493,6 +496,7 @@ interface SettingsStore {
   setSystemInstructions: (instructions: string) => void;
   setTemplateSystemInstructions: (instructions: string) => void;
   setUseTemplateMode: (useTemplate: boolean) => void;
+  setParticipantSystemInstructions: (instructions: string) => void;
 
   // Provider settings actions
   updateOpenAI: (settings: Partial<OpenAISettings>) => void;
@@ -511,7 +515,7 @@ interface SettingsStore {
   // Helper methods
   getCurrentProviderSettings: () => OpenAISettings | GeminiSettings | OpenAICompatibleSettings | PalabraAISettings | KizunaAISettings;
   getCurrentProviderConfig: () => ProviderConfig;
-  getProcessedSystemInstructions: (swapLanguages?: boolean) => string;
+  getProcessedSystemInstructions: (forParticipant?: boolean) => string;
   createSessionConfig: (systemInstructions: string) => SessionConfig;
   navigateToSettings: (target: string | null) => void;
 }
@@ -664,6 +668,12 @@ const useSettingsStore = create<SettingsStore>()(
       set({useTemplateMode});
       const service = ServiceFactory.getSettingsService();
       await service.setSetting('settings.common.useTemplateMode', useTemplateMode);
+    },
+
+    setParticipantSystemInstructions: async (participantSystemInstructions) => {
+      set({participantSystemInstructions});
+      const service = ServiceFactory.getSettingsService();
+      await service.setSetting('settings.common.participantSystemInstructions', participantSystemInstructions);
     },
 
     // === Provider Settings Actions ===
@@ -901,6 +911,7 @@ const useSettingsStore = create<SettingsStore>()(
         const systemInstructions = await service.getSetting('settings.common.systemInstructions', defaultCommonSettings.systemInstructions);
         const templateSystemInstructions = await service.getSetting('settings.common.templateSystemInstructions', defaultCommonSettings.templateSystemInstructions);
         const useTemplateMode = await service.getSetting('settings.common.useTemplateMode', defaultCommonSettings.useTemplateMode);
+        const participantSystemInstructions = await service.getSetting('settings.common.participantSystemInstructions', defaultCommonSettings.participantSystemInstructions);
 
         // Validate provider availability
         const validProvider = ProviderConfigFactory.isProviderSupported(provider) ? provider : Provider.OPENAI;
@@ -929,6 +940,7 @@ const useSettingsStore = create<SettingsStore>()(
           systemInstructions,
           templateSystemInstructions,
           useTemplateMode,
+          participantSystemInstructions,
           openai,
           gemini,
           openaiCompatible,
@@ -980,9 +992,10 @@ const useSettingsStore = create<SettingsStore>()(
       }
     },
 
-    getProcessedSystemInstructions: (swapLanguages = false) => {
+    getProcessedSystemInstructions: (forParticipant = false) => {
       const state = get();
       if (state.useTemplateMode) {
+        // Simple mode: swap languages for participant audio translation
         const providerConfig = state.getCurrentProviderConfig();
         const currentSettings = state.getCurrentProviderSettings();
 
@@ -992,14 +1005,19 @@ const useSettingsStore = create<SettingsStore>()(
         const sourceLangName = sourceLang?.englishName || currentSettings.sourceLanguage || 'SOURCE_LANGUAGE';
         const targetLangName = targetLang?.englishName || currentSettings.targetLanguage || 'TARGET_LANGUAGE';
 
-        // If swapLanguages is true, swap source and target (for participant audio translation)
-        const effectiveSource = swapLanguages ? targetLangName : sourceLangName;
-        const effectiveTarget = swapLanguages ? sourceLangName : targetLangName;
+        // If forParticipant is true, swap source and target (for participant audio translation)
+        const effectiveSource = forParticipant ? targetLangName : sourceLangName;
+        const effectiveTarget = forParticipant ? sourceLangName : targetLangName;
 
         return state.templateSystemInstructions
           .replace(/\{\{SOURCE_LANGUAGE\}\}/g, effectiveSource)
           .replace(/\{\{TARGET_LANGUAGE\}\}/g, effectiveTarget);
       } else {
+        // Advanced mode: use participant instructions if available
+        if (forParticipant) {
+          const instructions = state.participantSystemInstructions.trim();
+          return instructions || state.systemInstructions; // Fall back to main instructions if empty
+        }
         return state.systemInstructions;
       }
     },
@@ -1037,6 +1055,7 @@ export const useUIMode = () => useSettingsStore((state) => state.uiMode);
 export const useSystemInstructions = () => useSettingsStore((state) => state.systemInstructions);
 export const useTemplateSystemInstructions = () => useSettingsStore((state) => state.templateSystemInstructions);
 export const useUseTemplateMode = () => useSettingsStore((state) => state.useTemplateMode);
+export const useParticipantSystemInstructions = () => useSettingsStore((state) => state.participantSystemInstructions);
 
 // Provider settings
 export const useOpenAISettings = () => useSettingsStore((state) => state.openai);
@@ -1074,6 +1093,7 @@ export const useSetUIMode = () => useSettingsStore((state) => state.setUIMode);
 export const useSetSystemInstructions = () => useSettingsStore((state) => state.setSystemInstructions);
 export const useSetTemplateSystemInstructions = () => useSettingsStore((state) => state.setTemplateSystemInstructions);
 export const useSetUseTemplateMode = () => useSettingsStore((state) => state.setUseTemplateMode);
+export const useSetParticipantSystemInstructions = () => useSettingsStore((state) => state.setParticipantSystemInstructions);
 
 export const useUpdateOpenAI = () => useSettingsStore((state) => state.updateOpenAI);
 export const useUpdateGemini = () => useSettingsStore((state) => state.updateGemini);
