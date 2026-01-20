@@ -1,10 +1,11 @@
 /**
- * Test Runner - Main orchestrator for AI model testing
+ * Test Runner - Main orchestrator for evaluation framework
  */
 
 import { TestCaseLoader } from './TestCaseLoader.js';
 import { TestExecutor } from './TestExecutor.js';
 import { ResultWriter } from './ResultWriter.js';
+import { InstructionLoader } from './InstructionLoader.js';
 import { LLMJudge } from '../evaluation/LLMJudge.js';
 import { isProviderSupported } from '../clients/NodeClientFactory.js';
 import type {
@@ -43,12 +44,21 @@ export class TestRunner {
   private executor: TestExecutor;
   private writer: ResultWriter;
   private judge: LLMJudge;
+  private instructionLoader: InstructionLoader;
+  private options: CLIOptions;
 
   constructor(config: RunnerConfig, options: CLIOptions = {}) {
     this.config = config;
+    this.options = options;
     this.loader = new TestCaseLoader(config);
     this.executor = new TestExecutor(config);
-    this.writer = new ResultWriter(config, options.outputDir);
+    this.instructionLoader = new InstructionLoader(config);
+
+    // Determine instruction override for ResultWriter subdirectory
+    const instructionData = this.instructionLoader.getInstructionFromOptions(options);
+    const instructionName = instructionData?.name;
+
+    this.writer = new ResultWriter(config, options.outputDir, instructionName);
     this.judge = new LLMJudge(config);
   }
 
@@ -64,6 +74,21 @@ export class TestRunner {
       skipped: 0,
       duration: 0,
     };
+
+    // Check for instruction override
+    let instructionData: { name: string; content: string } | null = null;
+    if (this.instructionLoader.hasInstructionOverride(options)) {
+      try {
+        instructionData = this.instructionLoader.getInstructionFromOptions(options);
+        if (instructionData) {
+          printStatus('info', `Using instruction override: ${instructionData.name}`);
+        }
+      } catch (error) {
+        printStatus('error', `Failed to load instruction override: ${error}`);
+        summary.errors = 1;
+        return summary;
+      }
+    }
 
     // Load and filter test cases
     let testCases: TestCase[];
@@ -84,9 +109,20 @@ export class TestRunner {
     printStatus('info', `Found ${testCases.length} test case(s) to run`);
     printSeparator();
 
+    // Apply instruction override to test cases if specified
+    if (instructionData) {
+      testCases = testCases.map(tc => ({
+        ...tc,
+        config: {
+          ...tc.config,
+          systemInstruction: instructionData!.content,
+        },
+      }));
+    }
+
     // Run each test case
     for (const testCase of testCases) {
-      const result = await this.runTestCase(testCase, options);
+      const result = await this.runTestCase(testCase, options, instructionData?.name);
 
       switch (result.status) {
         case 'passed':
@@ -115,7 +151,7 @@ export class TestRunner {
   /**
    * Run a single test case
    */
-  async runTestCase(testCase: TestCase, options: CLIOptions = {}): Promise<TestResult> {
+  async runTestCase(testCase: TestCase, options: CLIOptions = {}, instructionSource?: string): Promise<TestResult> {
     printTestCaseSummary(testCase);
 
     // Check if provider is supported
@@ -123,6 +159,7 @@ export class TestRunner {
       printStatus('skipped', `Provider not supported: ${testCase.provider}`);
       const result = this.writer.createResult(testCase.id, 'skipped', {
         outputs: [],
+        instructionSource,
       });
       this.writer.writeResult(result);
       return result;
@@ -178,6 +215,7 @@ export class TestRunner {
         config: testCase.config,
         outputs: executionResult.outputs,
         evaluation,
+        instructionSource,
       });
 
       const resultPath = this.writer.writeResult(result);
@@ -216,6 +254,7 @@ export class TestRunner {
           message: errorObj.message,
           stack: errorObj.stack,
         },
+        instructionSource,
       });
 
       this.writer.writeResult(result);

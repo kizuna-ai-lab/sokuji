@@ -1,5 +1,5 @@
 /**
- * Environment configuration loader for AI Model Testing Framework
+ * Environment configuration loader for Evaluation Framework
  */
 
 import { resolve, dirname } from 'path';
@@ -11,8 +11,8 @@ import type { RunnerConfig } from './types.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-// Base directory for ai-tests
-const AI_TESTS_DIR = resolve(__dirname, '..');
+// Base directory for evals
+const EVALS_DIR = resolve(__dirname, '..');
 
 /**
  * Load environment variables from .env file if it exists
@@ -51,10 +51,11 @@ export function loadConfig(options: { verbose?: boolean } = {}): RunnerConfig {
   loadDotEnv();
 
   const config: RunnerConfig = {
-    testCasesDir: resolve(AI_TESTS_DIR, 'test-cases'),
-    resultsDir: resolve(AI_TESTS_DIR, 'results'),
-    audioDir: resolve(AI_TESTS_DIR, 'audio'),
-    schemasDir: resolve(AI_TESTS_DIR, 'schemas'),
+    testCasesDir: resolve(EVALS_DIR, 'test-cases'),
+    resultsDir: resolve(EVALS_DIR, 'results'),
+    audioDir: resolve(EVALS_DIR, 'audio'),
+    schemasDir: resolve(EVALS_DIR, 'schemas'),
+    instructionsDir: resolve(EVALS_DIR, 'instructions'),
     apiKeys: {
       openai: process.env.OPENAI_API_KEY,
       gemini: process.env.GEMINI_API_KEY,
@@ -116,10 +117,10 @@ export function getApiKeyForProvider(config: RunnerConfig, provider: string): st
 }
 
 /**
- * Get the base directory for AI tests
+ * Get the base directory for evals
  */
-export function getAITestsDir(): string {
-  return AI_TESTS_DIR;
+export function getEvalsDir(): string {
+  return EVALS_DIR;
 }
 
 /**
@@ -138,4 +139,4 @@ export function getAppVersion(): string {
   return 'unknown';
 }
 
-export { AI_TESTS_DIR };
+export { EVALS_DIR };

@@ -1,18 +1,23 @@
-# AI Model Testing
+# Sokuji Evaluation Framework
 
-This directory contains test cases and infrastructure for testing AI model translation quality in Sokuji.
+This directory contains test cases and infrastructure for evaluating AI model translation quality in Sokuji.
 
 ## Directory Structure
 
 ```
-ai-tests/
+evals/
 ├── test-cases/          # Test case definitions (JSON)
 │   └── ja-en-realtime.json
 ├── audio/               # Test audio files
 │   └── (audio files for testing)
+├── instructions/        # System instruction overrides (.md files)
+│   ├── strict-translator.md
+│   ├── casual-interpreter.md
+│   └── technical-translator.md
 ├── results/             # Test results (not version controlled)
 │   └── YYYY-MM-DD/      # Organized by date
-│       └── run-XXX.json
+│       ├── original/    # Results using test case's instruction
+│       └── {instruction}/ # Results using override instruction
 ├── schemas/             # JSON Schema definitions
 │   ├── test-case.schema.json
 │   └── test-result.schema.json
@@ -21,7 +26,7 @@ ai-tests/
 
 ## Purpose
 
-This testing infrastructure supports:
+This evaluation infrastructure supports:
 
 1. **Instruction Debugging** - Test different system instructions to optimize translation quality
 2. **Parameter Tuning** - Experiment with temperature, VAD settings, and other parameters
@@ -107,9 +112,9 @@ Results follow the schema in `schemas/test-result.schema.json` and include:
 - LLM Judge evaluation scores
 - Environment information
 
-## Running Tests
+## Running Evaluations
 
-The test runner is implemented as a Node.js CLI tool using `tsx`.
+The evaluation runner is implemented as a Node.js CLI tool using `tsx`.
 
 ### Prerequisites
 
@@ -133,37 +138,43 @@ JUDGE_MODEL=gpt-4o
 
 ```bash
 # Run all test cases
-npm run ai-test
+npm run eval
 
 # List available test cases
-npm run ai-test:list
+npm run eval:list
 
 # Validate test case schemas
-npm run ai-test:validate
+npm run eval:validate
 
 # Run specific test case
-npm run ai-test -- --case regression-meta-commentary-001
+npm run eval -- --case regression-meta-commentary-001
 
 # Run tests by provider
-npm run ai-test -- --provider openai
+npm run eval -- --provider openai
 
 # Run tests by tag
-npm run ai-test -- --tag regression
+npm run eval -- --tag regression
 
 # Skip LLM evaluation (only record outputs)
-npm run ai-test -- --skip-evaluation
+npm run eval -- --skip-evaluation
 
 # Enable verbose output
-npm run ai-test -- --verbose
+npm run eval -- --verbose
 
 # Show help
-npm run ai-test -- --help
+npm run eval -- --help
+
+# Override system instruction (from evals/instructions/<name>.md)
+npm run eval -- --instruction strict-translator --case realtime-ja-en-001
+
+# Override system instruction (from arbitrary file path)
+npm run eval -- --instruction-file ~/my-prompt.md --case realtime-ja-en-001
 ```
 
-### Test Runner Architecture
+### Runner Architecture
 
 ```
-ai-tests/runner/
+evals/runner/
 ├── index.ts                 # CLI entry point
 ├── cli.ts                   # Command line parsing
 ├── config.ts                # Environment configuration
@@ -172,7 +183,8 @@ ai-tests/runner/
 │   ├── TestRunner.ts        # Main orchestrator
 │   ├── TestCaseLoader.ts    # Load and validate test cases
 │   ├── TestExecutor.ts      # Execute individual tests
-│   └── ResultWriter.ts      # Write results to JSON
+│   ├── ResultWriter.ts      # Write results to JSON
+│   └── InstructionLoader.ts # Load instruction overrides
 ├── clients/
 │   ├── NodeClientFactory.ts # Client factory
 │   └── NodeOpenAIClient.ts  # OpenAI Realtime API client
@@ -181,6 +193,74 @@ ai-tests/runner/
 └── evaluation/
     └── LLMJudge.ts          # LLM-as-Judge evaluator
 ```
+
+## System Instruction Override
+
+The instruction override feature allows you to test the same test cases with different system instructions, enabling A/B testing of prompts.
+
+### Usage
+
+```bash
+# Use a named instruction from evals/instructions/
+npm run eval -- --instruction strict-translator --case realtime-ja-en-001
+
+# Use an instruction from any file path
+npm run eval -- --instruction-file ~/prompts/my-custom-prompt.md --case realtime-ja-en-001
+```
+
+### Creating Instructions
+
+Create Markdown (`.md`) files in the `evals/instructions/` directory:
+
+```markdown
+# Strict Translator
+
+You are a professional translator. Your task is to translate the input speech accurately.
+
+## Guidelines
+- Translate the exact meaning without adding or removing information
+- Use natural expressions in the target language
+- Do NOT add commentary or meta-remarks
+
+## Output
+Output only the translated text. No prefixes, no explanations.
+```
+
+### Result Organization
+
+When using instruction overrides, results are organized into subdirectories:
+
+```
+results/
+└── 2024-01-15/
+    ├── original/               # Results without instruction override
+    │   └── realtime-ja-en-001_2024-01-15T10-30-00.json
+    ├── strict-translator/      # Results with --instruction strict-translator
+    │   └── realtime-ja-en-001_2024-01-15T10-35-00.json
+    └── casual-interpreter/     # Results with --instruction casual-interpreter
+        └── realtime-ja-en-001_2024-01-15T10-40-00.json
+```
+
+The `instructionSource` field in the result JSON indicates which instruction was used:
+
+```json
+{
+  "runId": "run_1705312200000_abc123",
+  "testCaseId": "realtime-ja-en-001",
+  "instructionSource": "strict-translator",
+  ...
+}
+```
+
+### Included Instructions
+
+The framework includes sample instructions for common use cases:
+
+| Name | Description |
+|------|-------------|
+| `strict-translator` | Professional translator with strict accuracy focus |
+| `casual-interpreter` | Friendly interpreter with conversational style |
+| `technical-translator` | Specialist for technical/software content |
 
 ## Adding Test Cases
 

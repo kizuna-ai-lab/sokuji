@@ -1,8 +1,8 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://sokuji.kizuna.ai/schemas/test-result.schema.json",
-  "title": "AI Model Test Result",
-  "description": "Schema for storing AI model test results from Realtime API translation testing",
+  "title": "Evaluation Test Result",
+  "description": "Schema for storing evaluation results from Realtime API translation quality assessment",
   "type": "object",
   "required": ["runId", "testCaseId", "timestamp", "status", "outputs"],
   "properties": {

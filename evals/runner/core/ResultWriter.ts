@@ -17,9 +17,11 @@ export class ResultWriter {
   private ajv: Ajv;
   private schema: object | null = null;
   private outputDir: string;
+  private instructionName: string | undefined;
 
-  constructor(config: RunnerConfig, customOutputDir?: string) {
+  constructor(config: RunnerConfig, customOutputDir?: string, instructionName?: string) {
     this.config = config;
+    this.instructionName = instructionName;
     this.ajv = new Ajv({ allErrors: true, strict: false });
     addFormats(this.ajv);
     this.loadSchema();
@@ -30,7 +32,21 @@ export class ResultWriter {
     } else {
       // Use date-based directory structure: results/YYYY-MM-DD/
       const today = new Date().toISOString().split('T')[0];
-      this.outputDir = resolve(this.config.resultsDir, today);
+      let baseDir = resolve(this.config.resultsDir, today);
+
+      // Add instruction subdirectory if instruction override is specified
+      if (instructionName) {
+        // Sanitize instruction name for use as directory name
+        const sanitizedInstructionName = instructionName
+          .replace(/[/\\]/g, '-')
+          .replace(/\.\./g, '-')
+          .replace(/[\x00-\x1f\x7f]/g, '')
+          .trim();
+        this.outputDir = resolve(baseDir, sanitizedInstructionName);
+      } else {
+        // Use 'original' subdirectory when no instruction override
+        this.outputDir = resolve(baseDir, 'original');
+      }
     }
 
     // Ensure output directory exists
@@ -157,6 +173,7 @@ export class ResultWriter {
       outputs?: TestResult['outputs'];
       evaluation?: TestResult['evaluation'];
       error?: TestResult['error'];
+      instructionSource?: string;
     } = {}
   ): TestResult {
     const result: TestResult = {
@@ -182,6 +199,10 @@ export class ResultWriter {
 
     if (options.error) {
       result.error = options.error;
+    }
+
+    if (options.instructionSource) {
+      result.instructionSource = options.instructionSource;
     }
 
     return result;

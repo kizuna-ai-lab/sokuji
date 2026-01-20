@@ -1,5 +1,5 @@
 /**
- * CLI command parsing for AI Model Testing Framework
+ * CLI command parsing for Evaluation Framework
  */
 
 import type { CLIOptions, TestProvider } from './types.js';
@@ -10,30 +10,36 @@ interface ParsedCommand {
 }
 
 const HELP_TEXT = `
-AI Model Test Runner
+Sokuji Evaluation Runner
 
 Usage:
-  npm run ai-test                     Run all tests
-  npm run ai-test -- list             List available test cases
-  npm run ai-test -- validate         Validate test case schemas
-  npm run ai-test -- [options]        Run tests with options
+  npm run eval                     Run all test cases
+  npm run eval -- list             List available test cases
+  npm run eval -- validate         Validate test case schemas
+  npm run eval -- [options]        Run tests with options
 
 Options:
-  --case <id>           Run specific test case by ID
-  --provider <name>     Filter by provider (openai, gemini, etc.)
-  --tag <tag>           Filter by tag
-  --skip-evaluation     Skip LLM evaluation (only record outputs)
-  --verbose             Enable verbose output
-  --output-dir <path>   Custom output directory for results
-  -h, --help            Show this help message
+  --case <id>              Run specific test case by ID
+  --provider <name>        Filter by provider (openai, gemini, etc.)
+  --tag <tag>              Filter by tag
+  --skip-evaluation        Skip LLM evaluation (only record outputs)
+  --verbose                Enable verbose output
+  --output-dir <path>      Custom output directory for results
+  --instruction <name>     Override system instruction (loads from evals/instructions/<name>.md)
+  --instruction-file <path>  Override system instruction from arbitrary file path
+  -h, --help               Show this help message
 
 Examples:
-  npm run ai-test -- --case regression-meta-commentary-001
-  npm run ai-test -- --provider openai
-  npm run ai-test -- --tag regression
-  npm run ai-test -- --tag regression --skip-evaluation
-  npm run ai-test -- list
-  npm run ai-test -- validate
+  npm run eval -- --case regression-meta-commentary-001
+  npm run eval -- --provider openai
+  npm run eval -- --tag regression
+  npm run eval -- --tag regression --skip-evaluation
+  npm run eval -- list
+  npm run eval -- validate
+
+  # Override system instruction:
+  npm run eval -- --instruction strict-translator --case realtime-ja-en-001
+  npm run eval -- --instruction-file ~/my-prompt.md --case realtime-ja-en-001
 
 Environment Variables:
   OPENAI_API_KEY        OpenAI API key
@@ -115,6 +121,24 @@ export function parseArgs(args: string[]): ParsedCommand {
         i++;
         break;
 
+      case '--instruction':
+        if (!nextArg || nextArg.startsWith('-')) {
+          console.error('Error: --instruction requires a name (e.g., strict-translator)');
+          process.exit(1);
+        }
+        options.instruction = nextArg;
+        i++;
+        break;
+
+      case '--instruction-file':
+        if (!nextArg || nextArg.startsWith('-')) {
+          console.error('Error: --instruction-file requires a file path');
+          process.exit(1);
+        }
+        options.instructionFile = nextArg;
+        i++;
+        break;
+
       default:
         if (arg.startsWith('-')) {
           console.error(`Unknown option: ${arg}`);
@@ -139,7 +163,7 @@ export function printHelp(): void {
  * Print version
  */
 export function printVersion(version: string): void {
-  console.log(`AI Model Test Runner v${version}`);
+  console.log(`Sokuji Evaluation Runner v${version}`);
 }
 
 /**
