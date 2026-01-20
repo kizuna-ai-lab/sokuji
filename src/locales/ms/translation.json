@@ -105,7 +105,9 @@
     "transportType": "Jenis Sambungan",
     "transportTypeTooltip": "WebRTC: Kependaman lebih rendah, disyorkan untuk kebanyakan pengguna.\nWebSocket: Keserasian lebih baik dengan rangkaian terhad. Gunakan jika sambungan WebRTC gagal.",
     "websocket": "WebSocket (Stabil)",
-    "webrtc": "WebRTC (Kependaman Rendah)"
+    "webrtc": "WebRTC (Kependaman Rendah)",
+    "participantInstructions": "Arahan Peserta",
+    "participantInstructionsTooltip": "Arahan sistem untuk menterjemah audio peserta. Jika kosong, arahan utama di atas akan digunakan.\n\nPenting: Arahan utama anda mungkin mempunyai arah bahasa yang salah untuk peserta. Contoh: Jika anda bercakap dalam bahasa Cina dan arahan utama menterjemah Cina→Jepun, tetapi peserta bercakap bahasa Jepun, arahan utama akan salah mencuba menterjemah Jepun→Jepun. Tetapkan arahan peserta yang berasingan untuk menterjemah Jepun→Cina."
   },
   "simpleSettings": {
     "quickSetup": "Persediaan Pantas",

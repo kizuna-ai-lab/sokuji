@@ -1,0 +1,174 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://sokuji.kizuna.ai/schemas/test-result.schema.json",
+  "title": "AI Model Test Result",
+  "description": "Schema for storing AI model test results from Realtime API translation testing",
+  "type": "object",
+  "required": ["runId", "testCaseId", "timestamp", "status", "outputs"],
+  "properties": {
+    "runId": {
+      "type": "string",
+      "description": "Unique identifier for this test run"
+    },
+    "testCaseId": {
+      "type": "string",
+      "description": "Reference to the test case that was executed"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the test was executed"
+    },
+    "status": {
+      "type": "string",
+      "description": "Overall test status",
+      "enum": ["passed", "failed", "error", "skipped"]
+    },
+    "duration": {
+      "type": "number",
+      "description": "Total execution time in milliseconds"
+    },
+    "config": {
+      "type": "object",
+      "description": "Actual configuration used (may differ from test case if overridden)"
+    },
+    "outputs": {
+      "type": "array",
+      "description": "Results for each input in the test case",
+      "items": {
+        "type": "object",
+        "required": ["inputId"],
+        "properties": {
+          "inputId": {
+            "type": "string",
+            "description": "Reference to the input that was processed"
+          },
+          "inputTranscription": {
+            "type": "string",
+            "description": "ASR transcription of input audio (if applicable)"
+          },
+          "outputTranscription": {
+            "type": "string",
+            "description": "Translation output text from Realtime API"
+          },
+          "expectedTranscription": {
+            "type": "string",
+            "description": "Expected translation (copied from test case for convenience)"
+          },
+          "audioResponseFile": {
+            "type": "string",
+            "description": "Path to saved audio response file (optional)"
+          },
+          "latency": {
+            "type": "object",
+            "description": "Latency measurements",
+            "properties": {
+              "firstByte": {
+                "type": "number",
+                "description": "Time to first byte in milliseconds"
+              },
+              "total": {
+                "type": "number",
+                "description": "Total response time in milliseconds"
+              }
+            }
+          },
+          "tokenUsage": {
+            "type": "object",
+            "description": "Token usage statistics",
+            "properties": {
+              "inputTokens": {
+                "type": "integer",
+                "description": "Number of input tokens"
+              },
+              "outputTokens": {
+                "type": "integer",
+                "description": "Number of output tokens"
+              },
+              "totalTokens": {
+                "type": "integer",
+                "description": "Total tokens used"
+              }
+            }
+          },
+          "rawEvents": {
+            "type": "array",
+            "description": "Raw Realtime API events for debugging (optional)",
+            "items": {
+              "type": "object"
+            }
+          }
+        }
+      }
+    },
+    "evaluation": {
+      "type": "object",
+      "description": "LLM Judge evaluation results",
+      "properties": {
+        "overallScore": {
+          "type": "number",
+          "description": "Weighted overall score (0-1)",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "passed": {
+          "type": "boolean",
+          "description": "Whether the test passed the threshold"
+        },
+        "dimensionScores": {
+          "type": "object",
+          "description": "Individual scores for each evaluation dimension",
+          "additionalProperties": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          }
+        },
+        "judgeResponse": {
+          "type": "string",
+          "description": "Full response text from the LLM judge"
+        },
+        "notes": {
+          "type": "string",
+          "description": "Additional notes or observations"
+        }
+      }
+    },
+    "environment": {
+      "type": "object",
+      "description": "Environment information",
+      "properties": {
+        "platform": {
+          "type": "string",
+          "description": "Operating system platform"
+        },
+        "nodeVersion": {
+          "type": "string",
+          "description": "Node.js version"
+        },
+        "appVersion": {
+          "type": "string",
+          "description": "Sokuji application version"
+        }
+      }
+    },
+    "error": {
+      "type": "object",
+      "description": "Error information if the test failed with an error",
+      "properties": {
+        "message": {
+          "type": "string",
+          "description": "Error message"
+        },
+        "stack": {
+          "type": "string",
+          "description": "Stack trace"
+        },
+        "code": {
+          "type": "string",
+          "description": "Error code if available"
+        }
+      }
+    }
+  }
+}

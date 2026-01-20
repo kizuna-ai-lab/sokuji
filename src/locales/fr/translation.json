@@ -129,7 +129,9 @@
     "transportType": "Type de connexion",
     "transportTypeTooltip": "WebRTC : Latence plus faible, recommandé pour la plupart des utilisateurs.\nWebSocket : Meilleure compatibilité avec les réseaux restrictifs. À utiliser si la connexion WebRTC échoue.",
     "websocket": "WebSocket (Stable)",
-    "webrtc": "WebRTC (Faible latence)"
+    "webrtc": "WebRTC (Faible latence)",
+    "participantInstructions": "Instructions pour les Participants",
+    "participantInstructionsTooltip": "Instructions système pour traduire l'audio des participants. Si vide, les instructions principales ci-dessus seront utilisées.\n\nImportant: Vos instructions principales peuvent avoir la mauvaise direction de langue pour les participants. Exemple: Si vous parlez chinois et que vos instructions principales traduisent chinois→japonais, mais que les participants parlent japonais, les instructions principales essaieraient incorrectement de traduire japonais→japonais. Définissez des instructions séparées pour les participants pour traduire japonais→chinois."
   },
   "audioPanel": {
     "title": "Paramètres audio",

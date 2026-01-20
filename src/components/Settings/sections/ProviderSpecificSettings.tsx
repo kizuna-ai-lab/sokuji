@@ -5,6 +5,7 @@ import {
   useSystemInstructions,
   useTemplateSystemInstructions,
   useUseTemplateMode,
+  useParticipantSystemInstructions,
   useOpenAISettings,
   useGeminiSettings,
   useOpenAICompatibleSettings,
@@ -13,6 +14,7 @@ import {
   useSetSystemInstructions,
   useSetTemplateSystemInstructions,
   useSetUseTemplateMode,
+  useSetParticipantSystemInstructions,
   useUpdateOpenAI,
   useUpdateGemini,
   useUpdateOpenAICompatible,
@@ -57,6 +59,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
   const systemInstructions = useSystemInstructions();
   const templateSystemInstructions = useTemplateSystemInstructions();
   const useTemplateMode = useUseTemplateMode();
+  const participantSystemInstructions = useParticipantSystemInstructions();
   const openAISettings = useOpenAISettings();
   const openAICompatibleSettings = useOpenAICompatibleSettings();
   const geminiSettings = useGeminiSettings();
@@ -67,6 +70,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
   const setSystemInstructions = useSetSystemInstructions();
   const setTemplateSystemInstructions = useSetTemplateSystemInstructions();
   const setUseTemplateMode = useSetUseTemplateMode();
+  const setParticipantSystemInstructions = useSetParticipantSystemInstructions();
   const updateOpenAISettings = useUpdateOpenAI();
   const updateOpenAICompatibleSettings = useUpdateOpenAICompatible();
   const updateGeminiSettings = useUpdateGemini();
@@ -1025,15 +1029,37 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
               </div>
             </>
           ) : (
-            <div className="setting-item">
-              <textarea 
-                className="system-instructions" 
-                placeholder={t('settings.enterCustomInstructions')}
-                value={systemInstructions}
-                onChange={(e) => setSystemInstructions(e.target.value)}
-                disabled={isSessionActive}
-              />
-            </div>
+            <>
+              <div className="setting-item">
+                <textarea
+                  className="system-instructions"
+                  placeholder={t('settings.enterCustomInstructions')}
+                  value={systemInstructions}
+                  onChange={(e) => setSystemInstructions(e.target.value)}
+                  disabled={isSessionActive}
+                />
+              </div>
+              <div className="setting-item">
+                <div className="setting-label">
+                  <span>
+                    {t('settings.participantInstructions', 'Participant Instructions')}
+                    <Tooltip
+                      content={t('settings.participantInstructionsTooltip', 'System instructions for participant audio translation. Leave empty to use main instructions.')}
+                      position="top"
+                    >
+                      <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '4px', display: 'inline-block', verticalAlign: 'middle' }} />
+                    </Tooltip>
+                  </span>
+                </div>
+                <textarea
+                  className="system-instructions"
+                  placeholder={t('settings.participantInstructionsTooltip', 'Leave empty to use main instructions...')}
+                  value={participantSystemInstructions}
+                  onChange={(e) => setParticipantSystemInstructions(e.target.value)}
+                  disabled={isSessionActive}
+                />
+              </div>
+            </>
           )}
         </div>
       )}

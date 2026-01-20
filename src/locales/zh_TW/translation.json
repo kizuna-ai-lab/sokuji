@@ -216,7 +216,9 @@
     "transportType": "連線類型",
     "transportTypeTooltip": "WebRTC：延遲更低，推薦大多數使用者使用。\nWebSocket：網路相容性更好，適合受限網路環境。如果 WebRTC 連線失敗可切換使用。",
     "websocket": "WebSocket（穩定）",
-    "webrtc": "WebRTC（低延遲）"
+    "webrtc": "WebRTC（低延遲）",
+    "participantInstructions": "參與者指令",
+    "participantInstructionsTooltip": "用於翻譯參與者音訊的系統指令。留空則使用上方的主指令。\n\n注意：主指令中的語言方向可能與參與者不符。例如：如果您說中文、主指令翻譯中文→日語，但參與者說日語，使用主指令會錯誤地嘗試翻譯日語→日語。請設置單獨的參與者指令來翻譯日語→中文。"
   },
   "audioPanel": {
     "title": "音訊設定",

@@ -123,7 +123,9 @@
     "transportType": "Jenis Koneksi",
     "transportTypeTooltip": "WebRTC: Latensi lebih rendah, direkomendasikan untuk sebagian besar pengguna.\nWebSocket: Kompatibilitas lebih baik dengan jaringan terbatas. Gunakan jika koneksi WebRTC gagal.",
     "websocket": "WebSocket (Stabil)",
-    "webrtc": "WebRTC (Latensi Rendah)"
+    "webrtc": "WebRTC (Latensi Rendah)",
+    "participantInstructions": "Instruksi Peserta",
+    "participantInstructionsTooltip": "Instruksi sistem untuk menerjemahkan audio peserta. Jika kosong, instruksi utama di atas akan digunakan.\n\nPenting: Instruksi utama Anda mungkin memiliki arah bahasa yang salah untuk peserta. Contoh: Jika Anda berbicara bahasa Cina dan instruksi utama menerjemahkan Cina→Jepang, tetapi peserta berbicara bahasa Jepang, instruksi utama akan secara keliru mencoba menerjemahkan Jepang→Jepang. Atur instruksi peserta terpisah untuk menerjemahkan Jepang→Cina."
   },
   "simpleSettings": {
     "quickSetup": "Pengaturan Cepat",

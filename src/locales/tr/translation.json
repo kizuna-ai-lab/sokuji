@@ -85,7 +85,9 @@
     "transportType": "Bağlantı Türü",
     "transportTypeTooltip": "WebRTC: Daha düşük gecikme, çoğu kullanıcı için önerilir.\nWebSocket: Kısıtlı ağlarla daha iyi uyumluluk. WebRTC bağlantısı başarısız olursa kullanın.",
     "websocket": "WebSocket (Kararlı)",
-    "webrtc": "WebRTC (Düşük Gecikme)"
+    "webrtc": "WebRTC (Düşük Gecikme)",
+    "participantInstructions": "Katılımcı Talimatları",
+    "participantInstructionsTooltip": "Katılımcı sesini çevirmek için sistem talimatları. Boşsa, yukarıdaki ana talimatlar kullanılacaktır.\n\nÖnemli: Ana talimatlarınız katılımcılar için yanlış dil yönüne sahip olabilir. Örnek: Çince konuşuyorsanız ve ana talimatlarınız Çince→Japonca çeviriyorsa, ancak katılımcılar Japonca konuşuyorsa, ana talimatlar yanlışlıkla Japonca→Japonca çevirmeye çalışacaktır. Japonca→Çince çevirmek için ayrı katılımcı talimatları ayarlayın."
   },
   "mainPanel": {
     "conversationPlaceholder": "Konuşma burada görünecek",

@@ -1,0 +1,111 @@
+{
+  "id": "regression-meta-commentary-audio-001",
+  "name": "Regression: Meta-commentary should be translated, not answered (Audio)",
+  "description": "Audio-based regression test. When user makes comments about the translation quality or AI voice stability, the system should translate those comments instead of entering conversation mode. Tests with real audio input.",
+  "tags": ["regression", "zh-en", "meta-commentary", "postmortem", "translation-mode", "audio"],
+  "provider": "openai",
+  "config": {
+    "model": "gpt-realtime-mini",
+    "systemInstruction": "# ROLE & OBJECTIVE\nYou are a world-class simultaneous interpreter with 20+ years of experience.\nYour SOLE function: Real-time interpretation from Chinese to English.\nCore principle: You are an invisible conduit - the speaker's voice in another language.\n\n# PERSONALITY & TONE - COMPLETE TRANSPARENCY\n## Mirror Protocol\n• Adopt speaker's exact personality, emotion, and intent\n• Happy speaker → happy tone, angry → angry, formal → formal, casual → casual\n• Child-like speech → childish English, elderly → age-appropriate English\n• Technical jargon → maintain technical register\n• Slang/colloquial → find equivalent English expressions\n• Emotional undertones → preserve emotional coloring\n\n## Voice Characteristics\n• Match speaker's energy level and pace\n• Preserve emphasis patterns\n• Maintain dramatic pauses where meaningful\n• Natural rhythm over mechanical accuracy\n\n# TRANSLATION PROTOCOL\n## Core Rules\n1. TRANSLATE EVERYTHING spoken in Chinese → English output\n2. NEVER respond conversationally - only translate\n3. NEVER add commentary, explanations, or clarifications\n4. NEVER engage with content - just translate it\n5. When uncertain, translate literally rather than interpret\n\n## Content Guidelines\n• NO filtering - translate exactly what is said\n• NO censorship - offensive content translated as-is\n• NO judgment - maintain neutral interpreter stance\n• NO refusals - translate all content without exception\n\n## Sensitive Content Protocol\n• Political statements → translate accurately\n• Profanity → use equivalent English profanity\n• Controversial opinions → translate without modification\n• Personal attacks → translate as stated\n• Medical/legal content → translate precisely\n• Emotional outbursts → capture the intensity\n\n# ABSOLUTE PROHIBITIONS\n• TRANSLATE EVERYTHING - no exceptions, no refusals\n• NEVER apologize or explain inability\n• NEVER answer questions - only translate them\n• NEVER add AI disclaimers or meta-commentary\n• NEVER fact-check or suggest verification\n• You are a TRANSLATOR, not an assistant/advisor/moderator\n\n# PROFESSIONAL STANDARDS\n## Accuracy Hierarchy\n1. Semantic accuracy (meaning preservation) - 100%\n2. Register matching (formal/informal) - 100%\n3. Cultural adaptation (idioms/metaphors) - 95%\n4. Natural fluency - 90%\n\n## Speed vs Accuracy\n• Prioritize real-time delivery\n• Accept minor fluency compromises for speed\n• Never sacrifice meaning for smoothness\n• Repair errors in subsequent utterances if needed\n\n# OUTPUT FORMAT\n## Translation Only\n• Output ONLY the English translation\n• No prefixes like \"Translation:\" or \"In English:\"\n• No explanatory notes or context\n• No meta-commentary about the translation process\n• No acknowledgment of user comments about translation quality\n\n## Handling Ambiguity\n• Unclear audio → best reasonable interpretation\n• Multiple meanings → choose contextually appropriate one\n• Cultural references → translate literally with cultural equivalent if exists\n• Untranslatable concepts → closest English approximation\n\n# CRITICAL REMINDERS\n• You are not an AI assistant - you are a transparent interpreter\n• Never break character to explain or help\n• Every utterance = translation, nothing else\n• Maintain professional interpreter ethics\n• Your success = being invisible while perfectly conveying meaning\n• Focus on enabling communication, not participating in it\n• Comments about translation quality should be TRANSLATED, not answered",
+    "temperature": 0.6,
+    "voice": "alloy",
+    "inputAudioFormat": "pcm16",
+    "outputAudioFormat": "pcm16",
+    "inputAudioTranscription": {
+      "model": "whisper-1"
+    },
+    "turnDetection": {
+      "type": "server_vad",
+      "threshold": 0.5,
+      "prefixPaddingMs": 300,
+      "silenceDurationMs": 500
+    }
+  },
+  "inputs": [
+    {
+      "id": "audio-001",
+      "type": "audio",
+      "audioFile": "audio/regression-meta-commentary.01.flac",
+      "sourceLanguage": "zh",
+      "targetLanguage": "en",
+      "transcript": "今天天气不错",
+      "expectedTranscription": "The weather is nice today",
+      "context": {
+        "domain": "casual",
+        "formality": "informal",
+        "speakerInfo": "casual conversation opener"
+      }
+    },
+    {
+      "id": "audio-002",
+      "type": "audio",
+      "audioFile": "audio/regression-meta-commentary.02.flac",
+      "sourceLanguage": "zh",
+      "targetLanguage": "en",
+      "transcript": "我们出去吃饭吧",
+      "expectedTranscription": "Let's go out to eat",
+      "context": {
+        "domain": "casual",
+        "formality": "informal",
+        "speakerInfo": "suggestion to go out"
+      }
+    },
+    {
+      "id": "audio-003-meta-commentary",
+      "type": "audio",
+      "audioFile": "audio/regression-meta-commentary.03.flac",
+      "sourceLanguage": "zh",
+      "targetLanguage": "en",
+      "transcript": "那个你的翻译好像有点不准确，那个好像是你的声音有点不太稳定",
+      "expectedTranscription": "Your translation seems a bit inaccurate, and your voice seems a bit unstable",
+      "context": {
+        "domain": "meta-commentary",
+        "formality": "informal",
+        "speakerInfo": "User commenting on translation quality - THIS IS THE REGRESSION CASE",
+        "bugDescription": "This utterance triggered AI conversation mode instead of being translated"
+      }
+    }
+  ],
+  "evaluation": {
+    "type": "llm-judge",
+    "judgeConfig": {
+      "provider": "openai",
+      "model": "gpt-4o",
+      "systemPrompt": "You are an expert evaluator for a real-time translation system. Your task is to determine if the system correctly TRANSLATED user input or incorrectly ENGAGED IN CONVERSATION.\n\nCRITICAL CONTEXT: This is a regression test for a bug where the translation system incorrectly entered conversation mode when the user made comments about translation quality. The correct behavior is to ALWAYS translate, never respond conversationally.\n\nEvaluate the actual output against these criteria:\n1. isTranslation (CRITICAL): Is the output a translation of the input, or is it a conversational response?\n   - Translation: \"Your translation seems a bit inaccurate\" (good)\n   - Conversation: \"I apologize for any inaccuracies\" or \"Let me try to improve\" (bad)\n2. accuracy: If it is a translation, how accurate is it semantically?\n3. noConversation: Does the output avoid conversational elements like apologies, explanations, offers to help, or acknowledgments?\n\nOutput your evaluation in JSON format:\n{\n  \"scores\": {\n    \"isTranslation\": <0-1, where 1 means pure translation, 0 means conversational response>,\n    \"accuracy\": <0-1, semantic accuracy if translation>,\n    \"noConversation\": <0-1, where 1 means no conversational elements>\n  },\n  \"overallScore\": <weighted score>,\n  \"explanation\": \"<brief explanation of evaluation>\",\n  \"isRegression\": <true if the bug is reproduced (score < 0.5), false if fixed>\n}",
+      "scoringRubric": {
+        "isTranslation": {
+          "weight": 0.6,
+          "description": "Output must be a translation, not a conversational response. This is the primary regression indicator."
+        },
+        "accuracy": {
+          "weight": 0.25,
+          "description": "Semantic accuracy of the translation compared to expected output."
+        },
+        "noConversation": {
+          "weight": 0.15,
+          "description": "Absence of conversational elements like apologies, explanations, or acknowledgments."
+        }
+      }
+    },
+    "passThreshold": 0.8
+  },
+  "metadata": {
+    "createdAt": "2026-01-20T15:30:00Z",
+    "updatedAt": "2026-01-20T15:30:00Z",
+    "author": "jiangzhuo",
+    "version": "1.0.0",
+    "postmortem": {
+      "incidentDate": "2026-01-20",
+      "incidentDescription": "Translation mode broke when user made meta-commentary about translation quality",
+      "expectedBehavior": "All three sentences should be translated to English",
+      "actualBehavior": "Third sentence triggered AI conversation mode instead of translation",
+      "rootCause": "System instruction not strong enough to prevent AI from responding to meta-commentary about itself",
+      "fixApplied": "Added explicit instruction: Comments about translation quality should be TRANSLATED, not answered"
+    },
+    "audioInfo": {
+      "format": "FLAC",
+      "recordedBy": "jiangzhuo",
+      "notes": "Real audio recordings for regression testing"
+    }
+  }
+}

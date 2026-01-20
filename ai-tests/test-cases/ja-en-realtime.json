@@ -1,0 +1,96 @@
+{
+  "id": "realtime-ja-en-001",
+  "name": "Japanese to English Realtime Translation",
+  "description": "Test Japanese to English real-time translation quality using OpenAI Realtime API",
+  "tags": ["realtime", "translation", "ja-en", "business"],
+  "provider": "openai",
+  "config": {
+    "model": "gpt-realtime-mini",
+    "systemInstruction": "You are a professional Japanese-English interpreter. Translate the user's Japanese speech into natural, fluent English. Maintain the original tone and nuance. Do not add explanations.",
+    "temperature": 0.6,
+    "voice": "alloy",
+    "inputAudioFormat": "pcm16",
+    "outputAudioFormat": "pcm16",
+    "inputAudioTranscription": {
+      "model": "whisper-1"
+    },
+    "turnDetection": {
+      "type": "server_vad",
+      "threshold": 0.5,
+      "prefixPaddingMs": 300,
+      "silenceDurationMs": 500
+    }
+  },
+  "inputs": [
+    {
+      "id": "audio-001",
+      "type": "audio",
+      "audioFile": "audio/ja-greeting-formal.flac",
+      "sourceLanguage": "ja",
+      "targetLanguage": "en",
+      "expectedTranscription": "Good morning. Thank you for your continued support.",
+      "context": {
+        "domain": "business",
+        "formality": "formal",
+        "speakerInfo": "male, 40s, business context"
+      }
+    },
+    {
+      "id": "text-001",
+      "type": "text",
+      "textContent": "今日の会議は何時からですか？",
+      "sourceLanguage": "ja",
+      "targetLanguage": "en",
+      "expectedTranscription": "What time does today's meeting start?",
+      "context": {
+        "domain": "business",
+        "formality": "polite"
+      }
+    },
+    {
+      "id": "text-002",
+      "type": "text",
+      "textContent": "申し訳ございませんが、少々お待ちいただけますでしょうか。",
+      "sourceLanguage": "ja",
+      "targetLanguage": "en",
+      "expectedTranscription": "I'm sorry, but could you please wait a moment?",
+      "context": {
+        "domain": "business",
+        "formality": "very formal"
+      }
+    }
+  ],
+  "evaluation": {
+    "type": "llm-judge",
+    "judgeConfig": {
+      "provider": "openai",
+      "model": "gpt-4o",
+      "systemPrompt": "You are an expert translation evaluator specializing in Japanese-English translation. Compare the actual translation with the expected translation and evaluate based on the provided scoring rubric. Output your evaluation in JSON format with scores (0-1) for each dimension and an overall weighted score.\n\nFormat your response as:\n{\n  \"scores\": {\n    \"accuracy\": <0-1>,\n    \"naturalness\": <0-1>,\n    \"formality\": <0-1>,\n    \"completeness\": <0-1>\n  },\n  \"overallScore\": <0-1>,\n  \"explanation\": \"<brief explanation>\"\n}",
+      "scoringRubric": {
+        "accuracy": {
+          "weight": 0.4,
+          "description": "Semantic accuracy - Does the translation accurately convey the original meaning?"
+        },
+        "naturalness": {
+          "weight": 0.3,
+          "description": "Naturalness - Is the target language fluent and natural-sounding?"
+        },
+        "formality": {
+          "weight": 0.2,
+          "description": "Register matching - Does the formality level match appropriately?"
+        },
+        "completeness": {
+          "weight": 0.1,
+          "description": "Completeness - Is there any missing or extra content?"
+        }
+      }
+    },
+    "passThreshold": 0.7
+  },
+  "metadata": {
+    "createdAt": "2026-01-20T10:00:00Z",
+    "updatedAt": "2026-01-20T10:00:00Z",
+    "author": "jiangzhuo",
+    "version": "1.0.0"
+  }
+}
