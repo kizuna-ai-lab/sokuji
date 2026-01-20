@@ -142,13 +142,22 @@ export class TestRunner {
 
       // Evaluate with LLM Judge (unless skipped)
       let evaluation: TestResult['evaluation'];
+      let evaluationFailed = false;
       if (!options.skipEvaluation) {
         printStatus('running', 'Evaluating with LLM Judge...');
         try {
           evaluation = await this.judge.evaluate(testCase, executionResult.outputs);
         } catch (error) {
           printStatus('error', `LLM evaluation failed: ${error}`);
-          // Continue without evaluation
+          evaluationFailed = true;
+          // Capture error into evaluation object so downstream consumers know evaluation was attempted but failed
+          evaluation = {
+            overallScore: 0,
+            passed: false,
+            dimensionScores: {},
+            notes: `Evaluation failed: ${String(error)}`,
+            error: String(error),
+          };
         }
       }
 
@@ -159,7 +168,8 @@ export class TestRunner {
         evaluation
       );
 
-      const status: TestStatus = evalResult.passed ? 'passed' : 'failed';
+      // If evaluation failed, mark the test as error status
+      const status: TestStatus = evaluationFailed ? 'error' : (evalResult.passed ? 'passed' : 'failed');
       const duration = Date.now() - startTime;
 
       // Create and write result

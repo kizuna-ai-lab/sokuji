@@ -297,5 +297,7 @@ export class NodeOpenAIClient {
       this.client = null;
     }
     this.currentOutputTranscript = '';
+    // Invoke onClose callback to notify consumers of disconnection
+    this.eventHandlers.onClose?.({ code: 1000, reason: 'Client disconnected' });
   }
 }
