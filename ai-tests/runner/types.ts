@@ -180,6 +180,7 @@ export interface EvaluationResult {
   dimensionScores?: Record<string, number>;
   judgeResponse?: string;
   notes?: string;
+  error?: string;
 }
 
 /**

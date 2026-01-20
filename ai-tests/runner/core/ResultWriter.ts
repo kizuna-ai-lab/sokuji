@@ -97,6 +97,27 @@ export class ResultWriter {
   }
 
   /**
+   * Sanitize a test case ID to prevent path traversal attacks
+   */
+  private sanitizeTestCaseId(testCaseId: string): string {
+    // Remove path separators, null bytes, and control characters
+    // Replace unsafe characters with '-'
+    let sanitized = testCaseId
+      .replace(/[/\\]/g, '-')          // Path separators
+      .replace(/\x00/g, '')            // Null bytes
+      .replace(/[\x00-\x1f\x7f]/g, '') // Control characters
+      .replace(/\.\./g, '-')           // Directory traversal sequences
+      .trim();
+
+    // Ensure non-empty result
+    if (!sanitized) {
+      sanitized = this.generateRunId();
+    }
+
+    return sanitized;
+  }
+
+  /**
    * Write a test result to a file
    */
   writeResult(result: TestResult): string {
@@ -106,9 +127,12 @@ export class ResultWriter {
       console.warn(`Warning: Result validation failed:\n  ${validation.errors.join('\n  ')}`);
     }
 
+    // Sanitize testCaseId to prevent path traversal
+    const sanitizedTestCaseId = this.sanitizeTestCaseId(result.testCaseId);
+
     // Generate filename
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const filename = `${result.testCaseId}_${timestamp}.json`;
+    const filename = `${sanitizedTestCaseId}_${timestamp}.json`;
     const filePath = join(this.outputDir, filename);
 
     // Write to file

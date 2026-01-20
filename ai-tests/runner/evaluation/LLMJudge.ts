@@ -46,7 +46,15 @@ export class LLMJudge {
 
   constructor(config: RunnerConfig) {
     this.config = config;
-    this.apiKey = config.apiKeys.openai || config.apiKeys.gemini;
+    // Select API key based on configured judge provider, with fallback to alternate provider
+    const provider = config.judge.provider;
+    if (provider === 'openai') {
+      this.apiKey = config.apiKeys.openai || config.apiKeys.gemini;
+    } else if (provider === 'gemini') {
+      this.apiKey = config.apiKeys.gemini || config.apiKeys.openai;
+    } else {
+      this.apiKey = config.apiKeys.openai || config.apiKeys.gemini;
+    }
   }
 
   /**
