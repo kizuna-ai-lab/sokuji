@@ -202,16 +202,15 @@ export class LLMJudge {
    * Call OpenAI API
    */
   private async callOpenAI(model: string, prompt: string): Promise<string> {
-    const apiKey = this.config.apiKeys.openai;
-    if (!apiKey) {
-      throw new Error('OpenAI API key not configured');
+    if (!this.apiKey) {
+      throw new Error('No API key available for LLM Judge (OpenAI)');
     }
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
+        'Authorization': `Bearer ${this.apiKey}`,
       },
       body: JSON.stringify({
         model: model,
@@ -239,13 +238,12 @@ export class LLMJudge {
    * Call Gemini API
    */
   private async callGemini(model: string, prompt: string): Promise<string> {
-    const apiKey = this.config.apiKeys.gemini;
-    if (!apiKey) {
-      throw new Error('Gemini API key not configured');
+    if (!this.apiKey) {
+      throw new Error('No API key available for LLM Judge (Gemini)');
     }
 
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${this.apiKey}`,
       {
         method: 'POST',
         headers: {
