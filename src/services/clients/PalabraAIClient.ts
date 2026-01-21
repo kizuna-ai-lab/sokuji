@@ -1,27 +1,11 @@
 import { IClient, ConversationItem, SessionConfig, ClientEventHandlers, ApiKeyValidationResult, PalabraAISessionConfig, isPalabraAISessionConfig } from '../interfaces/IClient';
 import { Provider, ProviderType } from '../../types/Provider';
 import i18n from '../../locales';
-import { Room, RoomEvent, TrackPublication, RemoteParticipant, RemoteTrack, RemoteAudioTrack, LocalAudioTrack, setLogLevel } from 'livekit-client';
-import { isExtension, hasChromeRuntime } from '../../utils/environment';
+import { Room, RoomEvent, TrackPublication, RemoteParticipant, RemoteTrack, RemoteAudioTrack, Track, setLogLevel } from 'livekit-client';
+import { WebRTCAudioBridge, BufferedAudioMetadata } from '../../lib/modern-audio/WebRTCAudioBridge';
 
 // Suppress verbose logs from LiveKit client, including silence detection.
 setLogLevel('error');
-
-// --- Helper functions to get the correct worklet path ---
-
-/**
- * Creates a source URL for the Palabra PCM Processor AudioWorklet.
- * This function handles the different pathing requirements for
- * Chrome Extensions and Electron/web environments.
- * @returns {string} URL to the AudioWorklet code.
- */
-function getPalabraWorkletProcessorSrc(): string {
-  if (isExtension() && hasChromeRuntime() && window.chrome?.runtime?.getURL) {
-    return window.chrome.runtime.getURL('worklets/palabra-audio-worklet-processor.js');
-  } else {
-    return new URL('../worklets/palabra-audio-worklet-processor.js', import.meta.url).href;
-  }
-}
 
 /**
  * PalabraAI API session configuration interface (returned by the API)
@@ -119,21 +103,19 @@ export class PalabraAIClient implements IClient {
   private instanceId: string;
   private currentSessionId: string | null = null;
   
-  // Audio handling
-  private audioContext: AudioContext | null = null;
-  private audioDestination: MediaStreamAudioDestinationNode | null = null;
-  private customAudioTrack: LocalAudioTrack | null = null;
-  private hiddenAudioElement: HTMLAudioElement | null = null;
+  // Local audio handling via WebRTCAudioBridge (native MediaStreamTrack for echo cancellation)
+  private localAudioBridge: WebRTCAudioBridge | null = null;
+  private inputDeviceId?: string;
+  private outputDeviceId?: string;
 
-  // Additional members for remote audio capture
-  private remoteAudioContext: AudioContext | null = null;
-  private remoteAudioSource: MediaStreamAudioSourceNode | null = null;
-  private remoteAudioWorkletNode: AudioWorkletNode | null = null;
-  private remoteAudioStream: MediaStream | null = null;
+  // Remote audio handling via WebRTCAudioBridge
+  private audioBridge: WebRTCAudioBridge | null = null;
 
-  constructor(clientId: string, clientSecret: string) {
+  constructor(clientId: string, clientSecret: string, inputDeviceId?: string, outputDeviceId?: string) {
     this.clientId = clientId;
     this.clientSecret = clientSecret;
+    this.inputDeviceId = inputDeviceId;
+    this.outputDeviceId = outputDeviceId;
     // Generate a unique instance ID that remains constant for this client instance
     this.instanceId = `palabra_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   }
@@ -305,62 +287,10 @@ export class PalabraAIClient implements IClient {
     // We would need to disconnect and reconnect to reset
   }
 
-  appendInputAudio(audioData: Int16Array): void {
-    if (!this.audioContext || !this.audioDestination) {
-      console.warn("[Sokuji] [PalabraAIClient] Audio context not initialized");
-      return;
-    }
-    
-    try {
-      // Handle different input types - cast to any to allow type checking
-      const data = audioData as any;
-      let int16Array: Int16Array;
-      
-      if (data instanceof Float32Array) {
-        // Convert Float32Array to Int16Array
-        int16Array = new Int16Array(data.length);
-        for (let i = 0; i < data.length; i++) {
-          // Convert from Float32 (-1.0 to 1.0) to Int16 (-32768 to 32767)
-          int16Array[i] = Math.max(-32768, Math.min(32767, data[i] * 32767));
-        }
-      } else if (data instanceof Int16Array) {
-        int16Array = data;
-      } else if (data instanceof ArrayBuffer) {
-        int16Array = new Int16Array(data);
-      } else if (data && typeof data === 'object' && data.buffer instanceof ArrayBuffer) {
-        // Handle Uint8Array or other TypedArray
-        int16Array = new Int16Array(data.buffer, data.byteOffset, data.byteLength / 2);
-      } else {
-        console.warn("[Sokuji] [PalabraAIClient] Invalid audio data type:", typeof data, data);
-        return;
-      }
-      
-      // Check if we have valid audio data
-      if (!int16Array || int16Array.length === 0) {
-        console.warn("[Sokuji] [PalabraAIClient] Empty audio data received");
-        return;
-      }
-      
-      // Optional: log input audio buffer length for troubleshooting
-      
-      // Convert Int16Array to AudioBuffer
-      const audioBuffer = this.audioContext.createBuffer(1, int16Array.length, 24000);
-      const channelData = audioBuffer.getChannelData(0);
-      
-      // Convert Int16 to Float32 and normalize
-      for (let i = 0; i < int16Array.length; i++) {
-        channelData[i] = int16Array[i] / 32768.0;
-      }
-      
-      // Create AudioBufferSourceNode and play the audio
-      const source = this.audioContext.createBufferSource();
-      source.buffer = audioBuffer;
-      source.connect(this.audioDestination);
-      source.start();
-      
-    } catch (error) {
-      console.error("[Sokuji] [PalabraAIClient] Error processing audio data:", error);
-    }
+  appendInputAudio(_audioData: Int16Array): void {
+    // Native MediaStreamTrack mode: audio flows automatically from microphone to LiveKit
+    // This method is kept for interface compatibility but does not perform any operation
+    // The browser's native echo cancellation handles audio processing
   }
 
   appendInputText(text: string): void {
@@ -439,31 +369,42 @@ export class PalabraAIClient implements IClient {
       throw new Error('Room not connected');
     }
 
-    // Create audio context and destination for custom audio processing
-    this.audioContext = new AudioContext({ sampleRate: 24000 });
-    this.audioDestination = this.audioContext.createMediaStreamDestination();
-    
-    // Get the MediaStreamTrack from the destination
-    const audioTrack = this.audioDestination.stream.getAudioTracks()[0];
-    
-    if (!audioTrack) {
-      throw new Error('Failed to create audio track from MediaStreamAudioDestinationNode');
+    // Skip audio setup if no input device specified (input device is "off")
+    if (!this.inputDeviceId) {
+      console.info("[Sokuji] [PalabraAIClient] Input device is off, skipping audio setup");
+      return;
     }
-    
-    // Create a custom audio track from the MediaStreamTrack
-    this.customAudioTrack = new LocalAudioTrack(audioTrack, undefined, true, this.audioContext);
-    
-    // Publish the custom audio track
-    await this.room.localParticipant.publishTrack(this.customAudioTrack, { 
-      dtx: false, // Required to be disabled for proper work of Palabra translation pipeline
-      red: false, 
-      audioPreset: {
-        maxBitrate: 32000, 
-        priority: "high"
-      }
+
+    // Use WebRTCAudioBridge to get native microphone stream with browser echo cancellation
+    // This is the same approach used by OpenAI WebRTC client to prevent audio feedback
+    this.localAudioBridge = new WebRTCAudioBridge({
+      sampleRate: 24000,
+      echoCancellation: true,
+      noiseSuppression: true,
+      autoGainControl: true
     });
-    
-    console.info("[Sokuji] [PalabraAIClient] Custom audio setup complete");
+
+    // Get native MediaStream from microphone with specified device
+    const localStream = await this.localAudioBridge.getLocalStream(this.inputDeviceId);
+    const audioTrack = localStream.getAudioTracks()[0];
+
+    if (!audioTrack) {
+      throw new Error('Failed to get audio track from microphone');
+    }
+
+    // Publish the native MediaStreamTrack directly to LiveKit
+    // This preserves browser's echo cancellation since we're not doing manual PCM processing
+    await this.room.localParticipant.publishTrack(audioTrack, {
+      dtx: false,  // Required to be disabled for proper work of Palabra translation pipeline
+      red: false,
+      audioPreset: {
+        maxBitrate: 32000,
+        priority: "high"
+      },
+      source: Track.Source.Microphone
+    });
+
+    console.info("[Sokuji] [PalabraAIClient] Native microphone audio setup complete");
   }
 
   private async startTranslation(): Promise<void> {
@@ -551,7 +492,7 @@ export class PalabraAIClient implements IClient {
   private handleTrackSubscribed(track: RemoteTrack, publication: TrackPublication, participant: RemoteParticipant): void {
     console.info("[Sokuji] [PalabraAIClient] Track subscribed:", track.kind);
     // Verbose logs (publication, participant) removed for cleaner output
-    
+
     // Notify about track subscription event
     this.eventHandlers.onRealtimeEvent?.({
       source: 'server',
@@ -566,62 +507,67 @@ export class PalabraAIClient implements IClient {
         }
       }
     });
-    
+
     if (track.kind === 'audio') {
       const audioTrack = track as RemoteAudioTrack;
-      // Step 0: Attach track to a hidden, muted audio element to activate the WebRTC decoder
-      this.hiddenAudioElement = audioTrack.attach();
-      this.hiddenAudioElement.muted = true;
-      this.hiddenAudioElement.volume = 0;
-      this.hiddenAudioElement.style.display = 'none';
-      document.body.appendChild(this.hiddenAudioElement);
 
-      // The setup is asynchronous, so we'll wrap it in a function.
-      const setupAudioWorklet = async () => {
+      const setupAudioBridge = async () => {
         try {
-          // Step 1: Obtain MediaStreamTrack
-          const mediaStream = new MediaStream([audioTrack.mediaStreamTrack]);
-          this.remoteAudioStream = mediaStream;
+          // Create audio bridge with PCM buffering enabled (like OpenAI WebRTC)
+          // This routes audio through ModernAudioPlayer for Virtual Mic + device switching support
+          this.audioBridge = new WebRTCAudioBridge({
+            sampleRate: 24000,
+            enablePCMBuffering: true,
+            pcmBufferThresholdMs: 150,
+            pcmFlushTimeoutMs: 100
+          });
 
-          // Step 2: Create AudioContext
-          this.remoteAudioContext = new AudioContext({ sampleRate: 24000 });
-          
-          // Step 3: Get the dynamically resolved worklet path
-          const workletUrl = getPalabraWorkletProcessorSrc();
-
-          // Step 4: Add the audio worklet module
-          await this.remoteAudioContext.audioWorklet.addModule(workletUrl);
-
-          // Step 5: Create an AudioWorkletNode
-          this.remoteAudioWorkletNode = new AudioWorkletNode(this.remoteAudioContext, 'palabra-pcm-processor');
-
-          // Step 6: Create MediaStreamAudioSourceNode and connect the processing nodes
-          this.remoteAudioSource = this.remoteAudioContext.createMediaStreamSource(mediaStream);
-          this.remoteAudioSource.connect(this.remoteAudioWorkletNode);
-          this.remoteAudioWorkletNode.connect(this.remoteAudioContext.destination);
-
-          // Step 7: Process PCM data received from the worklet
-          this.remoteAudioWorkletNode.port.onmessage = (event) => {
-            const pcm = event.data as Int16Array;
-            // Push data to MainPanel
-            this.eventHandlers.onConversationUpdated?.({
-              item: {
-                id: this.instanceId,
-                role: 'assistant',
-                type: 'message',
-                status: 'in_progress',
-                formatted: { audio: pcm }
-              },
-              delta: { audio: pcm }
-            });
+          // Set up buffered audio callback - routes to conversation updates
+          this.audioBridge.onBufferedAudioData = (pcmData: Int16Array, metadata: BufferedAudioMetadata) => {
+            this.handleBufferedAudio(pcmData, metadata);
           };
+
+          // Use handleLiveKitTrack (PCM extraction, like OpenAI)
+          // instead of handleLiveKitTrackWithPlayback (direct playback)
+          // This enables Virtual Mic output and device switching during session
+          await this.audioBridge.handleLiveKitTrack(audioTrack, {
+            appendToBody: true
+          });
+
+          console.info("[Sokuji] [PalabraAIClient] Audio bridge with PCM extraction set up successfully");
         } catch (error) {
-          console.error("[Sokuji] [PalabraAIClient] Failed to set up audio worklet:", error);
+          console.error("[Sokuji] [PalabraAIClient] Failed to set up audio bridge:", error);
         }
       };
 
-      setupAudioWorklet();
+      setupAudioBridge();
     }
+  }
+
+  /**
+   * Handle buffered audio data from WebRTCAudioBridge
+   * Emits audio delta events for conversation updates (same format as OpenAI client)
+   */
+  private handleBufferedAudio(pcmData: Int16Array, metadata: BufferedAudioMetadata): void {
+    // Use a consistent item ID pattern for PalabraAI audio
+    const itemId = `palabra_audio_${Date.now()}`;
+
+    // Emit audio delta event - same format as OpenAI WebRTC client
+    // This allows MainPanel to route audio through ModernAudioPlayer
+    this.eventHandlers.onConversationUpdated?.({
+      item: {
+        id: itemId,
+        role: 'assistant',
+        type: 'message',
+        status: 'in_progress',
+        formatted: { audio: pcmData }
+      },
+      delta: {
+        audio: pcmData,
+        sequenceNumber: metadata.sequenceNumber,
+        timestamp: metadata.timestamp
+      }
+    });
   }
 
   private handleDataReceived(payload: Uint8Array): void {
@@ -985,21 +931,115 @@ export class PalabraAIClient implements IClient {
   }
 
   private cleanupAudio(): void {
-    if (this.audioDestination) {
-      this.audioDestination.disconnect();
-      this.audioDestination = null;
+    // Clean up local audio bridge (microphone stream)
+    if (this.localAudioBridge) {
+      this.localAudioBridge.cleanup();
+      this.localAudioBridge = null;
     }
-    
-    if (this.customAudioTrack) {
-      this.customAudioTrack.stop();
-      this.customAudioTrack = null;
-    }
-    
-    if (this.audioContext) {
-      this.audioContext.close();
-      this.audioContext = null;
-    }
+
     this.cleanupRemoteAudio();
+  }
+
+  /**
+   * Switch input device during active session
+   * @param deviceId - The device ID to switch to
+   */
+  async switchInputDevice(deviceId: string): Promise<void> {
+    if (!this.room || !this.localAudioBridge) {
+      console.warn('[PalabraAIClient] Cannot switch device: room or audio bridge not initialized');
+      return;
+    }
+
+    try {
+      this.inputDeviceId = deviceId;
+
+      // Get new audio stream from the specified device
+      const newStream = await this.localAudioBridge.getLocalStream(deviceId);
+      const newTrack = newStream.getAudioTracks()[0];
+
+      if (!newTrack) {
+        throw new Error('Failed to get audio track from new device');
+      }
+
+      // Unpublish the old track
+      const publications = this.room.localParticipant.audioTrackPublications;
+      for (const [, publication] of publications) {
+        if (publication.track) {
+          await this.room.localParticipant.unpublishTrack(publication.track);
+          break;
+        }
+      }
+
+      // Publish the new track
+      await this.room.localParticipant.publishTrack(newTrack, {
+        dtx: false,
+        red: false,
+        audioPreset: {
+          maxBitrate: 32000,
+          priority: "high"
+        },
+        source: Track.Source.Microphone
+      });
+
+      console.info('[Sokuji] [PalabraAIClient] Switched input device to:', deviceId);
+    } catch (error) {
+      console.error('[Sokuji] [PalabraAIClient] Failed to switch input device:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Switch output device during active session
+   * @param deviceId - The device ID to switch to
+   */
+  async switchOutputDevice(deviceId: string): Promise<void> {
+    this.outputDeviceId = deviceId;
+    if (this.audioBridge) {
+      await this.audioBridge.setOutputDevice(deviceId);
+      console.info('[Sokuji] [PalabraAIClient] Switched output device to:', deviceId);
+    }
+  }
+
+  /**
+   * Set volume for remote audio playback
+   * @param volume - Volume level (0.0 to 1.0)
+   */
+  setVolume(volume: number): void {
+    if (this.audioBridge) {
+      this.audioBridge.setVolume(volume);
+    }
+  }
+
+  /**
+   * Get current volume level
+   */
+  getVolume(): number {
+    return this.audioBridge?.getVolume() ?? 1;
+  }
+
+  /**
+   * Mute/unmute remote audio
+   */
+  setMuted(muted: boolean): void {
+    if (this.audioBridge) {
+      this.audioBridge.setMuted(muted);
+    }
+  }
+
+  /**
+   * Check if remote audio is muted
+   */
+  isMuted(): boolean {
+    return this.audioBridge?.isMuted() ?? false;
+  }
+
+  /**
+   * Set output muted state (for monitor device control)
+   * This is a no-op because audio playback is now handled by ModernAudioPlayer.
+   * Volume/mute control is managed through audioStore's global volume settings.
+   */
+  setOutputMuted(muted: boolean): void {
+    console.debug('[PalabraAIClient] Output muted request (no-op, handled by audioStore):', muted);
   }
 
   /**
@@ -1110,24 +1150,9 @@ export class PalabraAIClient implements IClient {
   }
 
   private cleanupRemoteAudio(): void {
-    if (this.hiddenAudioElement) {
-      this.hiddenAudioElement.remove();
-      this.hiddenAudioElement = null;
+    if (this.audioBridge) {
+      this.audioBridge.cleanup();
+      this.audioBridge = null;
     }
-
-    if (this.remoteAudioWorkletNode) {
-      this.remoteAudioWorkletNode.port.onmessage = null;
-      this.remoteAudioWorkletNode.disconnect();
-      this.remoteAudioWorkletNode = null;
-    }
-    if (this.remoteAudioSource) {
-      this.remoteAudioSource.disconnect();
-      this.remoteAudioSource = null;
-    }
-    if (this.remoteAudioContext) {
-      this.remoteAudioContext.close();
-      this.remoteAudioContext = null;
-    }
-    this.remoteAudioStream = null;
   }
 } 

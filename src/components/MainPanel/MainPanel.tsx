@@ -159,21 +159,20 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       ? openAICompatibleSettings.customEndpoint
       : undefined;
 
-    if (provider === Provider.PALABRA_AI) {
-      return ClientFactory.createClient(
-        modelName,
-        provider,
-        apiKey,
-        palabraAISettings.clientSecret
-      );
-    }
+    // Determine transport type based on provider and useWebRTC flag
+    // For PalabraAI (LiveKit), treat as 'webrtc' mode for unified handling
+    const effectiveTransportType = (useWebRTC || provider === Provider.PALABRA_AI) ? 'webrtc' : 'websocket';
 
-    // Determine transport type for OpenAI-compatible providers
-    const effectiveTransportType = useWebRTC ? 'webrtc' : 'websocket';
+    // Check if this provider uses native audio capture (WebRTC or PalabraAI/LiveKit)
+    // Both need device IDs for MediaStreamTrack configuration
+    const usesNativeCapture = ClientFactory.usesNativeAudioCapture(provider, effectiveTransportType);
 
-    // WebRTC options for device selection
-    const webrtcOptions = useWebRTC ? {
-      inputDeviceId: selectedInputDevice?.deviceId,
+    // WebRTC options for native audio capture (OpenAI WebRTC and PalabraAI/LiveKit)
+    // The outputDeviceId enables direct audio playback through HTMLAudioElement, allowing
+    // the browser's AEC to see the remote audio and cancel it from microphone input
+    // When isInputDeviceOn is false (input device "off"), don't pass inputDeviceId to prevent audio capture
+    const webrtcOptions = usesNativeCapture ? {
+      inputDeviceId: isInputDeviceOn ? selectedInputDevice?.deviceId : undefined,
       outputDeviceId: selectedMonitorDevice?.deviceId
     } : undefined;
 
@@ -181,12 +180,12 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       modelName,
       provider,
       apiKey,
-      undefined,
+      provider === Provider.PALABRA_AI ? palabraAISettings.clientSecret : undefined,
       customEndpoint,
       effectiveTransportType,
       webrtcOptions
     );
-  }, [provider, openAICompatibleSettings.customEndpoint, palabraAISettings.clientSecret, selectedInputDevice?.deviceId, selectedMonitorDevice?.deviceId]);
+  }, [provider, openAICompatibleSettings.customEndpoint, palabraAISettings.clientSecret, selectedInputDevice?.deviceId, selectedMonitorDevice?.deviceId, isInputDeviceOn]);
 
   /**
    * Helper to create event handlers for participant audio client
@@ -875,10 +874,13 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         turnDetectionDisabled = settings ? settings.turnDetectionMode === 'Disabled' : false;
       }
 
-      // In WebRTC mode, audio is automatically captured via MediaStreamTrack
+      // Check if provider uses native audio capture (OpenAI WebRTC or PalabraAI/LiveKit)
+      // In native capture mode, audio is automatically captured via MediaStreamTrack
       // No need to manually record and send audio chunks
+      const usesNativeCapture = ClientFactory.usesNativeAudioCapture(provider, useWebRTC ? 'webrtc' : 'websocket');
+
       // Note: Use clientRef.current instead of client variable to handle WebRTC fallback scenario
-      if (!useWebRTC && !turnDetectionDisabled && isInputDeviceOn && audioServiceRef.current) {
+      if (!usesNativeCapture && !turnDetectionDisabled && isInputDeviceOn && audioServiceRef.current) {
         let audioCallbackCount = 0;
         await audioServiceRef.current.startRecording(selectedInputDevice?.deviceId, (data) => {
           if (clientRef.current) {
@@ -890,18 +892,19 @@ const MainPanel: React.FC<MainPanelProps> = () => {
             clientRef.current.appendInputAudio(data.mono);
           }
         });
-      } else if (useWebRTC) {
-        console.info('[Sokuji] [MainPanel] WebRTC mode - audio flows automatically via MediaStreamTrack');
+      } else if (usesNativeCapture) {
+        console.info('[Sokuji] [MainPanel] Native MediaStreamTrack mode - audio flows automatically');
 
-        // Apply initial mute state based on isMonitorDeviceOn
-        if (typeof clientRef.current?.setOutputMuted === 'function') {
+        // Apply initial mute state based on isMonitorDeviceOn (WebRTC only, not PalabraAI)
+        if (useWebRTC && typeof clientRef.current?.setOutputMuted === 'function') {
           clientRef.current.setOutputMuted(!isMonitorDeviceOn);
           console.debug('[Sokuji] [MainPanel] WebRTC initial mute state:', !isMonitorDeviceOn);
         }
       }
 
       // Track if using WebRTC (after fallback logic is complete)
-      setIsUsingWebRTC(useWebRTC);
+      // PalabraAI also uses the same audio architecture as OpenAI WebRTC
+      setIsUsingWebRTC(useWebRTC || provider === Provider.PALABRA_AI);
 
       // Start participant audio client (unified for both Electron system audio and Extension tab audio)
       // Both capture "other participant" audio and send to AI for translation

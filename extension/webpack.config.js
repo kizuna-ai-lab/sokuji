@@ -105,8 +105,8 @@ module.exports = (env, argv) => {
             noErrorOnMissing: true 
           },
           {
-            from: '../src/services/worklets/palabra-audio-worklet-processor.js',
-            to: 'worklets/palabra-audio-worklet-processor.js',
+            from: '../src/services/worklets/pcm-audio-worklet-processor.js',
+            to: 'worklets/pcm-audio-worklet-processor.js',
             noErrorOnMissing: true
           },
           {
