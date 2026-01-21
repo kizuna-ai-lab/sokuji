@@ -1188,6 +1188,23 @@
   }
 }
 
+// PalabraAI credentials group (Client ID + Client Secret)
+.palabraai-credentials-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  .api-key-input-group {
+    margin-bottom: 0;
+
+    &:first-child {
+      .api-key-input {
+        border-radius: 4px;
+      }
+    }
+  }
+}
+
 // API key info/warning styles
 .api-key-info {
   display: flex;
