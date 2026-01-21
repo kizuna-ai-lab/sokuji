@@ -11,6 +11,7 @@
  */
 
 import { isExtension, hasChromeRuntime } from '../../utils/environment';
+import type { RemoteAudioTrack } from 'livekit-client';
 
 /**
  * Gets the URL for the PCM processor AudioWorklet.
@@ -18,12 +19,29 @@ import { isExtension, hasChromeRuntime } from '../../utils/environment';
  */
 function getPCMWorkletProcessorSrc(): string {
   if (isExtension() && hasChromeRuntime() && window.chrome?.runtime?.getURL) {
-    return window.chrome.runtime.getURL('worklets/palabra-audio-worklet-processor.js');
+    return window.chrome.runtime.getURL('worklets/pcm-audio-worklet-processor.js');
   } else {
-    // Use the existing palabra worklet processor - it does the same Float32 to Int16 conversion
-    return new URL('../../services/worklets/palabra-audio-worklet-processor.js', import.meta.url).href;
+    return new URL('../../services/worklets/pcm-audio-worklet-processor.js', import.meta.url).href;
   }
 }
+
+/**
+ * Metadata for buffered audio data
+ */
+export interface BufferedAudioMetadata {
+  /** Sequence number for ordering audio chunks */
+  sequenceNumber: number;
+  /** Timestamp when buffer was flushed */
+  timestamp: number;
+}
+
+/**
+ * Callback type for buffered audio data with metadata
+ */
+export type OnBufferedAudioDataCallback = (
+  data: Int16Array,
+  metadata: BufferedAudioMetadata
+) => void;
 
 export interface WebRTCAudioBridgeOptions {
   /** Sample rate for audio processing (default: 24000) */
@@ -34,15 +52,24 @@ export interface WebRTCAudioBridgeOptions {
   noiseSuppression?: boolean;
   /** Auto gain control enabled (default: true) */
   autoGainControl?: boolean;
-  /** Callback for PCM audio data extracted from remote stream */
+  /** Callback for raw PCM audio data (unbuffered) extracted from remote stream */
   onAudioData?: (pcmData: Int16Array) => void;
+  /** Enable PCM buffering to prevent audio stuttering (default: false) */
+  enablePCMBuffering?: boolean;
+  /** Buffer threshold in milliseconds before flushing (default: 150ms) */
+  pcmBufferThresholdMs?: number;
+  /** Maximum time to hold buffer before flushing (default: 100ms) */
+  pcmFlushTimeoutMs?: number;
 }
 
 const DEFAULT_OPTIONS: WebRTCAudioBridgeOptions = {
   sampleRate: 24000,
   echoCancellation: true,
   noiseSuppression: true,
-  autoGainControl: true
+  autoGainControl: true,
+  enablePCMBuffering: false,
+  pcmBufferThresholdMs: 150,
+  pcmFlushTimeoutMs: 100
 };
 
 export class WebRTCAudioBridge {
@@ -57,9 +84,26 @@ export class WebRTCAudioBridge {
   private currentOutputDeviceId: string | undefined;
   private onAudioData: ((pcmData: Int16Array) => void) | undefined;
 
+  // PCM buffering properties
+  private pcmBuffer: Int16Array = new Int16Array(0);
+  private pcmBufferThreshold: number;
+  private pcmFlushTimeoutMs: number;
+  private flushTimeoutId: ReturnType<typeof setTimeout> | null = null;
+  private sequenceNumber: number = 0;
+
+  /** Callback for buffered audio data with metadata */
+  public onBufferedAudioData?: OnBufferedAudioDataCallback;
+
   constructor(options?: WebRTCAudioBridgeOptions) {
     this.options = { ...DEFAULT_OPTIONS, ...options };
     this.onAudioData = options?.onAudioData;
+
+    // Calculate PCM buffer threshold in samples from milliseconds
+    // sampleRate samples per second, so threshold_ms * sampleRate / 1000 = samples
+    const sampleRate = this.options.sampleRate ?? 24000;
+    const thresholdMs = this.options.pcmBufferThresholdMs ?? 150;
+    this.pcmBufferThreshold = Math.floor(sampleRate * thresholdMs / 1000);
+    this.pcmFlushTimeoutMs = this.options.pcmFlushTimeoutMs ?? 100;
   }
 
   /**
@@ -68,6 +112,75 @@ export class WebRTCAudioBridge {
    */
   setOnAudioData(callback: (pcmData: Int16Array) => void): void {
     this.onAudioData = callback;
+  }
+
+  /**
+   * Handle incoming PCM audio data
+   * If buffering is enabled, accumulates data and emits when threshold is reached
+   * Otherwise, emits immediately via onAudioData callback
+   */
+  private handlePcmData(pcmData: Int16Array): void {
+    if (this.options.enablePCMBuffering && this.onBufferedAudioData) {
+      // Accumulate PCM data into buffer
+      const newBuffer = new Int16Array(this.pcmBuffer.length + pcmData.length);
+      newBuffer.set(this.pcmBuffer);
+      newBuffer.set(pcmData, this.pcmBuffer.length);
+      this.pcmBuffer = newBuffer;
+
+      // Check if buffer has reached threshold for smooth playback
+      if (this.pcmBuffer.length >= this.pcmBufferThreshold) {
+        this.flushPcmBuffer();
+      } else {
+        // Schedule a flush to ensure we don't hold audio too long
+        this.scheduleFlush();
+      }
+    } else {
+      // No buffering - emit immediately
+      this.onAudioData?.(pcmData);
+    }
+  }
+
+  /**
+   * Flush accumulated PCM buffer and emit buffered audio data
+   */
+  private flushPcmBuffer(): void {
+    if (this.pcmBuffer.length === 0) return;
+
+    this.clearFlushTimeout();
+
+    const sequenceNumber = ++this.sequenceNumber;
+    const timestamp = Date.now();
+
+    // Emit aggregated audio data with metadata
+    this.onBufferedAudioData?.(this.pcmBuffer, { sequenceNumber, timestamp });
+
+    // Clear buffer after sending
+    this.pcmBuffer = new Int16Array(0);
+  }
+
+  /**
+   * Schedule a buffer flush after timeout to prevent holding audio too long
+   */
+  private scheduleFlush(): void {
+    // Don't schedule if one is already pending
+    if (this.flushTimeoutId) return;
+
+    this.flushTimeoutId = setTimeout(() => {
+      this.flushTimeoutId = null;
+      if (this.pcmBuffer.length > 0) {
+        this.flushPcmBuffer();
+      }
+    }, this.pcmFlushTimeoutMs);
+  }
+
+  /**
+   * Clear any pending flush timeout
+   */
+  private clearFlushTimeout(): void {
+    if (this.flushTimeoutId) {
+      clearTimeout(this.flushTimeoutId);
+      this.flushTimeoutId = null;
+    }
   }
 
   /**
@@ -143,6 +256,122 @@ export class WebRTCAudioBridge {
   }
 
   /**
+   * Handle LiveKit remote audio track
+   * Creates an audio element to activate the decoder and extracts PCM data
+   * @param track - The LiveKit RemoteAudioTrack
+   * @param options - Options for handling the track
+   */
+  async handleLiveKitTrack(
+    track: RemoteAudioTrack,
+    options?: {
+      /** Append audio element to document body (required for some browsers) */
+      appendToBody?: boolean;
+    }
+  ): Promise<void> {
+    // Clean up existing remote audio
+    this.cleanupRemoteAudio();
+
+    // Step 1: Attach track to a hidden, muted audio element to activate the WebRTC decoder
+    // This is required for LiveKit to properly decode the audio stream
+    this.remoteAudioElement = track.attach();
+    this.remoteAudioElement.muted = true;
+    this.remoteAudioElement.volume = 0;
+    this.remoteAudioElement.style.display = 'none';
+
+    // Some browsers (especially in extensions) require the audio element to be in the DOM
+    if (options?.appendToBody) {
+      document.body.appendChild(this.remoteAudioElement);
+    }
+
+    // Step 2: Get the MediaStream from the track
+    const stream = new MediaStream([track.mediaStreamTrack]);
+
+    // Step 3: Set up audio processing (same as handleRemoteStream)
+    await this.setupAudioProcessing(stream);
+
+    console.debug('[WebRTCAudioBridge] LiveKit track connected');
+  }
+
+  /**
+   * Handle LiveKit remote audio track WITH direct playback
+   * This allows browser AEC to see the audio output, preventing echo feedback.
+   * Unlike handleLiveKitTrack(), this method plays audio directly through HTMLAudioElement
+   * instead of extracting PCM data for ModernAudioPlayer.
+   *
+   * @param track - The LiveKit RemoteAudioTrack
+   * @param options - Options for handling the track
+   */
+  async handleLiveKitTrackWithPlayback(
+    track: RemoteAudioTrack,
+    options?: {
+      /** Append audio element to document body (required for some browsers) */
+      appendToBody?: boolean;
+      /** Output device ID for setSinkId */
+      outputDeviceId?: string;
+    }
+  ): Promise<void> {
+    // Clean up existing remote audio
+    this.cleanupRemoteAudio();
+
+    // Attach track to audio element - NOT muted, for AEC visibility
+    // The browser's AEC needs to see the audio output to cancel it from microphone input
+    this.remoteAudioElement = track.attach();
+    this.remoteAudioElement.autoplay = true;
+    this.remoteAudioElement.muted = false;  // Key: don't mute, let AEC see the audio
+    this.remoteAudioElement.volume = 1.0;   // Key: full volume for proper AEC operation
+
+    // Set output device if supported and specified
+    if (options?.outputDeviceId && 'setSinkId' in this.remoteAudioElement) {
+      try {
+        await (this.remoteAudioElement as any).setSinkId(options.outputDeviceId);
+        this.currentOutputDeviceId = options.outputDeviceId;
+        console.debug('[WebRTCAudioBridge] Set output device to:', options.outputDeviceId);
+      } catch (error) {
+        console.warn('[WebRTCAudioBridge] Failed to set output device:', error);
+      }
+    }
+
+    // Append to body if required (needed for some browsers, especially extensions)
+    if (options?.appendToBody) {
+      document.body.appendChild(this.remoteAudioElement);
+    }
+
+    // Set up audio context for visualization only (no PCM extraction needed)
+    // Since we're playing directly through HTMLAudioElement, we don't need to extract PCM
+    const stream = new MediaStream([track.mediaStreamTrack]);
+    await this.setupAudioProcessingForVisualizationOnly(stream);
+
+    console.debug('[WebRTCAudioBridge] LiveKit track with direct playback connected');
+  }
+
+  /**
+   * Set up audio processing for visualization only (no PCM extraction)
+   * Used when audio is played directly through HTMLAudioElement and we only need
+   * frequency data for visualization purposes.
+   */
+  private async setupAudioProcessingForVisualizationOnly(stream: MediaStream): Promise<void> {
+    try {
+      const sampleRate = this.options.sampleRate ?? 24000;
+      this.audioContext = new AudioContext({ sampleRate });
+
+      // Create source node from stream
+      this.remoteSourceNode = this.audioContext.createMediaStreamSource(stream);
+
+      // Set up analyser for visualization only
+      this.analyserNode = this.audioContext.createAnalyser();
+      this.analyserNode.fftSize = 256;
+      this.analyserNode.smoothingTimeConstant = 0.8;
+      this.remoteSourceNode.connect(this.analyserNode);
+      // Note: Don't connect to destination - audio plays via HTMLAudioElement
+      // Note: Don't set up PCM worklet - we don't need to extract PCM data
+
+      console.debug('[WebRTCAudioBridge] Audio processing for visualization set up');
+    } catch (error) {
+      console.warn('[WebRTCAudioBridge] Failed to set up visualization audio processing:', error);
+    }
+  }
+
+  /**
    * Set up audio processing with AudioWorklet for PCM extraction
    */
   private async setupAudioProcessing(stream: MediaStream): Promise<void> {
@@ -161,22 +390,22 @@ export class WebRTCAudioBridge {
       // Note: analyser doesn't need to connect to destination
 
       // Set up AudioWorklet for PCM extraction if callback is provided
-      if (this.onAudioData) {
+      if (this.onAudioData || this.onBufferedAudioData) {
         try {
           const workletUrl = getPCMWorkletProcessorSrc();
           await this.audioContext.audioWorklet.addModule(workletUrl);
 
-          this.pcmWorkletNode = new AudioWorkletNode(this.audioContext, 'palabra-pcm-processor');
+          this.pcmWorkletNode = new AudioWorkletNode(this.audioContext, 'pcm-processor');
 
           // Connect: source -> worklet -> destination (muted, just to keep worklet active)
           this.remoteSourceNode.connect(this.pcmWorkletNode);
           // Don't connect worklet to destination - we don't want double audio playback
           // The HTMLAudioElement handles playback, worklet just extracts PCM
 
-          // Handle PCM data from worklet
+          // Handle PCM data from worklet - routes through buffering if enabled
           this.pcmWorkletNode.port.onmessage = (event) => {
             const pcmData = event.data as Int16Array;
-            this.onAudioData?.(pcmData);
+            this.handlePcmData(pcmData);
           };
 
           console.debug('[WebRTCAudioBridge] AudioWorklet set up for PCM extraction');
@@ -287,6 +516,14 @@ export class WebRTCAudioBridge {
    * Clean up remote audio resources
    */
   private cleanupRemoteAudio(): void {
+    // Clear PCM buffering state
+    this.clearFlushTimeout();
+    // Flush any remaining buffer before cleanup
+    if (this.pcmBuffer.length > 0 && this.onBufferedAudioData) {
+      this.flushPcmBuffer();
+    }
+    this.pcmBuffer = new Int16Array(0);
+
     if (this.pcmWorkletNode) {
       this.pcmWorkletNode.port.onmessage = null;
       this.pcmWorkletNode.disconnect();
@@ -311,6 +548,10 @@ export class WebRTCAudioBridge {
     if (this.remoteAudioElement) {
       this.remoteAudioElement.pause();
       this.remoteAudioElement.srcObject = null;
+      // Remove from DOM if it was appended (for LiveKit)
+      if (this.remoteAudioElement.parentNode) {
+        this.remoteAudioElement.parentNode.removeChild(this.remoteAudioElement);
+      }
       this.remoteAudioElement = null;
     }
   }

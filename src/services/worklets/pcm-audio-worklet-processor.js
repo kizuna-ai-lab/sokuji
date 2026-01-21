@@ -1,4 +1,4 @@
-class PalabraPCMProcessor extends AudioWorkletProcessor {
+class PCMProcessor extends AudioWorkletProcessor {
   constructor() {
     super();
     // Silence detection threshold (RMS below this is considered silence)
@@ -56,4 +56,4 @@ class PalabraPCMProcessor extends AudioWorkletProcessor {
   }
 }
 
-registerProcessor('palabra-pcm-processor', PalabraPCMProcessor); 
+registerProcessor('pcm-processor', PCMProcessor);
