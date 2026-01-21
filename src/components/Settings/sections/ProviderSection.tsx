@@ -330,29 +330,70 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
 
       {/* API Key Input or Kizuna AI Status */}
       {provider !== Provider.KIZUNA_AI ? (
-        <div className="api-key-input-group">
-          <input
-            type="password"
-            value={currentApiKey}
-            onChange={(e) => updateApiKey(e.target.value)}
-            placeholder={t('simpleSettings.apiKeyPlaceholder')}
-            className={`api-key-input ${isApiKeyValid === true ? 'valid' : isApiKeyValid === false ? 'invalid' : ''}`}
-            disabled={isSessionActive}
-          />
-          <button
-            className="validate-button"
-            onClick={handleValidateApiKey}
-            disabled={!currentApiKey || isValidating || isSessionActive}
-          >
-            {isValidating ? (
-              <span className="spinner" />
-            ) : isApiKeyValid ? (
-              <CheckCircle size={16} />
-            ) : (
-              t('simpleSettings.validate')
-            )}
-          </button>
-        </div>
+        provider === Provider.PALABRA_AI ? (
+          // PalabraAI requires both Client ID and Client Secret
+          <div className="palabraai-credentials-group">
+            <div className="api-key-input-group">
+              <input
+                type="password"
+                value={palabraAISettings.clientId}
+                onChange={(e) => updatePalabraAISettings({ clientId: e.target.value })}
+                placeholder={t('providers.palabraai.clientIdPlaceholder', 'Client ID')}
+                className={`api-key-input ${isApiKeyValid === true ? 'valid' : isApiKeyValid === false ? 'invalid' : ''}`}
+                disabled={isSessionActive}
+              />
+            </div>
+            <div className="api-key-input-group">
+              <input
+                type="password"
+                value={palabraAISettings.clientSecret}
+                onChange={(e) => updatePalabraAISettings({ clientSecret: e.target.value })}
+                placeholder={t('providers.palabraai.clientSecretPlaceholder', 'Client Secret')}
+                className={`api-key-input ${isApiKeyValid === true ? 'valid' : isApiKeyValid === false ? 'invalid' : ''}`}
+                disabled={isSessionActive}
+              />
+              <button
+                className="validate-button"
+                onClick={handleValidateApiKey}
+                disabled={!palabraAISettings.clientId || !palabraAISettings.clientSecret || isValidating || isSessionActive}
+                title={t('simpleSettings.validate')}
+              >
+                {isValidating ? (
+                  <span className="spinner" />
+                ) : isApiKeyValid ? (
+                  <CheckCircle size={16} />
+                ) : (
+                  t('simpleSettings.validate')
+                )}
+              </button>
+            </div>
+          </div>
+        ) : (
+          // Standard API key input for other providers
+          <div className="api-key-input-group">
+            <input
+              type="password"
+              value={currentApiKey}
+              onChange={(e) => updateApiKey(e.target.value)}
+              placeholder={t('simpleSettings.apiKeyPlaceholder')}
+              className={`api-key-input ${isApiKeyValid === true ? 'valid' : isApiKeyValid === false ? 'invalid' : ''}`}
+              disabled={isSessionActive}
+            />
+            <button
+              className="validate-button"
+              onClick={handleValidateApiKey}
+              disabled={!currentApiKey || isValidating || isSessionActive}
+            >
+              {isValidating ? (
+                <span className="spinner" />
+              ) : isApiKeyValid ? (
+                <CheckCircle size={16} />
+              ) : (
+                t('simpleSettings.validate')
+              )}
+            </button>
+          </div>
+        )
       ) : (
         isSignedIn ? (
           isKizunaKeyFetching ? (
