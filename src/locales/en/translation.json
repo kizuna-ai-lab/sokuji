@@ -181,7 +181,6 @@
     "transportTypeTooltip": "WebRTC: Lower latency, recommended for most users.\nWebSocket: Better compatibility with restrictive networks. Use if WebRTC connection fails.",
     "websocket": "WebSocket (Stable)",
     "webrtc": "WebRTC (Low Latency)",
-    "webrtcDisabledTooltip": "WebRTC is temporarily disabled due to known issues. Please use WebSocket instead.",
     "participantInstructions": "Participant Instructions",
     "participantInstructionsTooltip": "System instructions for translating participant audio. If empty, the main instructions above will be used.\n\nImportant: Your main instructions may have the wrong language direction for participants. Example: If you speak Chinese and your main instructions translate Chinese→Japanese, but participants speak Japanese, the main instructions would incorrectly try to translate Japanese→Japanese. Set separate participant instructions to translate Japanese→Chinese."
   },

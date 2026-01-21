@@ -63,13 +63,103 @@ export class OpenAIWebRTCClient implements IClient {
   private currentModel: string = '';
   private currentVoice: string = '';
   private turnDetectionDisabled: boolean = false;
+  private audioSequenceNumber: number = 0;
+  private currentResponseItemId: string | null = null;
+
+  // PCM buffer for aggregating small audio chunks to prevent stuttering
+  private pcmBuffer: Int16Array = new Int16Array(0);
+  private readonly pcmBufferThreshold: number = 24000 * 0.15; // 150ms at 24kHz = 3600 samples
+  private flushTimeoutId: ReturnType<typeof setTimeout> | null = null;
 
   constructor(options: WebRTCClientOptions) {
     this.apiKey = options.apiKey;
     this.apiHost = (options.apiHost || OpenAIWebRTCClient.DEFAULT_API_HOST).replace(/\/$/, '');
     this.inputDeviceId = options.inputDeviceId;
     this.outputDeviceId = options.outputDeviceId;
-    this.audioBridge = new WebRTCAudioBridge();
+
+    // Create audio bridge with PCM callback for virtual microphone support
+    this.audioBridge = new WebRTCAudioBridge({
+      onAudioData: (pcmData: Int16Array) => {
+        this.handleRemoteAudioPCM(pcmData);
+      }
+    });
+  }
+
+  /**
+   * Handle PCM audio data extracted from remote WebRTC stream
+   * Buffers small chunks and emits aggregated audio delta events to prevent stuttering
+   */
+  private handleRemoteAudioPCM(pcmData: Int16Array): void {
+    // Accumulate PCM data into buffer
+    const newBuffer = new Int16Array(this.pcmBuffer.length + pcmData.length);
+    newBuffer.set(this.pcmBuffer);
+    newBuffer.set(pcmData, this.pcmBuffer.length);
+    this.pcmBuffer = newBuffer;
+
+    // Check if buffer has reached threshold for smooth playback
+    if (this.pcmBuffer.length >= this.pcmBufferThreshold) {
+      this.flushPcmBuffer();
+    } else {
+      // Schedule a flush to ensure we don't hold audio too long
+      this.scheduleFlush();
+    }
+  }
+
+  /**
+   * Flush accumulated PCM buffer and emit audio delta event
+   */
+  private flushPcmBuffer(): void {
+    if (this.pcmBuffer.length === 0) return;
+
+    this.clearFlushTimeout();
+
+    const itemId = this.currentResponseItemId || `webrtc_audio_${Date.now()}`;
+    const sequenceNumber = ++this.audioSequenceNumber;
+    const timestamp = Date.now();
+
+    // Emit aggregated audio delta event - same format as WebSocket client
+    this.eventHandlers.onConversationUpdated?.({
+      item: {
+        id: itemId,
+        role: 'assistant',
+        type: 'message',
+        status: 'in_progress',
+        formatted: { audio: this.pcmBuffer }
+      },
+      delta: {
+        audio: this.pcmBuffer,
+        sequenceNumber,
+        timestamp
+      }
+    });
+
+    // Clear buffer after sending
+    this.pcmBuffer = new Int16Array(0);
+  }
+
+  /**
+   * Schedule a buffer flush after timeout to prevent holding audio too long
+   */
+  private scheduleFlush(): void {
+    // Don't schedule if one is already pending
+    if (this.flushTimeoutId) return;
+
+    this.flushTimeoutId = setTimeout(() => {
+      this.flushTimeoutId = null;
+      if (this.pcmBuffer.length > 0) {
+        this.flushPcmBuffer();
+      }
+    }, 100); // 100ms timeout ensures audio is never held too long
+  }
+
+  /**
+   * Clear any pending flush timeout
+   */
+  private clearFlushTimeout(): void {
+    if (this.flushTimeoutId) {
+      clearTimeout(this.flushTimeoutId);
+      this.flushTimeoutId = null;
+    }
   }
 
   /**
@@ -352,6 +442,11 @@ export class OpenAIWebRTCClient implements IClient {
       content: item.content || []
     };
 
+    // Track current assistant response item for audio PCM association
+    if (conversationItem.role === 'assistant') {
+      this.currentResponseItemId = item.id;
+    }
+
     this.conversationItems.push(conversationItem);
     this.eventHandlers.onConversationUpdated?.({ item: conversationItem });
   }
@@ -428,6 +523,9 @@ export class OpenAIWebRTCClient implements IClient {
         this.eventHandlers.onConversationUpdated?.({ item });
       }
     }
+
+    // Clear current response item ID when response is complete
+    this.currentResponseItemId = null;
   }
 
   /**
@@ -572,6 +670,14 @@ export class OpenAIWebRTCClient implements IClient {
    */
   async disconnect(): Promise<void> {
     console.info('[OpenAIWebRTCClient] Disconnecting...');
+
+    // Flush any remaining PCM buffer before disconnecting
+    this.clearFlushTimeout();
+    if (this.pcmBuffer.length > 0) {
+      this.flushPcmBuffer();
+    }
+    this.pcmBuffer = new Int16Array(0);
+
     this.cleanup();
   }
 
@@ -597,6 +703,12 @@ export class OpenAIWebRTCClient implements IClient {
   reset(): void {
     this.conversationItems = [];
     this.itemCreatedAtMap.clear();
+    this.audioSequenceNumber = 0;
+    this.currentResponseItemId = null;
+
+    // Clear PCM buffer state
+    this.clearFlushTimeout();
+    this.pcmBuffer = new Int16Array(0);
   }
 
   /**
@@ -717,10 +829,14 @@ export class OpenAIWebRTCClient implements IClient {
 
   /**
    * Set output muted state
+   * Note: This is a no-op because audio playback is handled by ModernAudioPlayer,
+   * not by the WebRTC HTMLAudioElement (which is always muted).
+   * Volume/mute control is managed through audioStore's global volume settings.
    */
   setOutputMuted(muted: boolean): void {
-    this.audioBridge.setMuted(muted);
-    console.debug('[OpenAIWebRTCClient] Output muted:', muted);
+    // Do NOT call audioBridge.setMuted() - the HTMLAudioElement must stay muted
+    // to prevent double audio playback. ModernAudioPlayer is the sole audio source.
+    console.debug('[OpenAIWebRTCClient] Output muted request (no-op, handled by audioStore):', muted);
   }
 
   /**

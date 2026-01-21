@@ -933,17 +933,6 @@ const useSettingsStore = create<SettingsStore>()(
           loadProviderSettings('settings.kizunaai', defaultKizunaAISettings),
         ]);
 
-        // Force WebRTC to WebSocket (WebRTC is temporarily disabled due to bugs)
-        if ((openai as any).transportType === 'webrtc') {
-          (openai as any).transportType = 'websocket';
-        }
-        if ((openaiCompatible as any).transportType === 'webrtc') {
-          (openaiCompatible as any).transportType = 'websocket';
-        }
-        if ((kizunaai as any).transportType === 'webrtc') {
-          (kizunaai as any).transportType = 'websocket';
-        }
-
         set({
           provider: validProvider,
           uiLanguage,

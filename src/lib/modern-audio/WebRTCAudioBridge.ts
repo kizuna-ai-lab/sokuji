@@ -5,9 +5,25 @@
  * Provides methods to:
  * - Get local microphone stream for WebRTC
  * - Handle remote audio stream from WebRTC
+ * - Extract PCM audio data for virtual microphone injection
  * - Support device switching
  * - Provide frequency data for visualization
  */
+
+import { isExtension, hasChromeRuntime } from '../../utils/environment';
+
+/**
+ * Gets the URL for the PCM processor AudioWorklet.
+ * Handles different pathing requirements for Chrome Extensions and Electron/web environments.
+ */
+function getPCMWorkletProcessorSrc(): string {
+  if (isExtension() && hasChromeRuntime() && window.chrome?.runtime?.getURL) {
+    return window.chrome.runtime.getURL('worklets/palabra-audio-worklet-processor.js');
+  } else {
+    // Use the existing palabra worklet processor - it does the same Float32 to Int16 conversion
+    return new URL('../../services/worklets/palabra-audio-worklet-processor.js', import.meta.url).href;
+  }
+}
 
 export interface WebRTCAudioBridgeOptions {
   /** Sample rate for audio processing (default: 24000) */
@@ -18,6 +34,8 @@ export interface WebRTCAudioBridgeOptions {
   noiseSuppression?: boolean;
   /** Auto gain control enabled (default: true) */
   autoGainControl?: boolean;
+  /** Callback for PCM audio data extracted from remote stream */
+  onAudioData?: (pcmData: Int16Array) => void;
 }
 
 const DEFAULT_OPTIONS: WebRTCAudioBridgeOptions = {
@@ -28,17 +46,28 @@ const DEFAULT_OPTIONS: WebRTCAudioBridgeOptions = {
 };
 
 export class WebRTCAudioBridge {
-  private options: Required<WebRTCAudioBridgeOptions>;
+  private options: WebRTCAudioBridgeOptions;
   private localStream: MediaStream | null = null;
   private remoteAudioElement: HTMLAudioElement | null = null;
   private audioContext: AudioContext | null = null;
   private analyserNode: AnalyserNode | null = null;
   private remoteSourceNode: MediaStreamAudioSourceNode | null = null;
+  private pcmWorkletNode: AudioWorkletNode | null = null;
   private currentInputDeviceId: string | undefined;
   private currentOutputDeviceId: string | undefined;
+  private onAudioData: ((pcmData: Int16Array) => void) | undefined;
 
   constructor(options?: WebRTCAudioBridgeOptions) {
-    this.options = { ...DEFAULT_OPTIONS, ...options } as Required<WebRTCAudioBridgeOptions>;
+    this.options = { ...DEFAULT_OPTIONS, ...options };
+    this.onAudioData = options?.onAudioData;
+  }
+
+  /**
+   * Set the callback for PCM audio data
+   * @param callback - Function to receive PCM data from remote stream
+   */
+  setOnAudioData(callback: (pcmData: Int16Array) => void): void {
+    this.onAudioData = callback;
   }
 
   /**
@@ -82,7 +111,7 @@ export class WebRTCAudioBridge {
 
   /**
    * Handle remote audio stream from WebRTC
-   * Creates an audio element to play the remote stream
+   * Creates an audio element to play the remote stream and extracts PCM data
    * @param stream - The remote MediaStream from WebRTC
    * @param outputDeviceId - Optional output device ID
    */
@@ -94,6 +123,7 @@ export class WebRTCAudioBridge {
     this.remoteAudioElement = new Audio();
     this.remoteAudioElement.srcObject = stream;
     this.remoteAudioElement.autoplay = true;
+    this.remoteAudioElement.muted = true;
 
     // Set output device if supported and specified
     if (outputDeviceId && 'setSinkId' in this.remoteAudioElement) {
@@ -106,32 +136,58 @@ export class WebRTCAudioBridge {
       }
     }
 
-    // Create audio context for visualization
-    this.setupAnalyser(stream);
+    // Create audio context for visualization and PCM extraction
+    await this.setupAudioProcessing(stream);
 
     console.debug('[WebRTCAudioBridge] Remote stream connected');
   }
 
   /**
-   * Set up analyser node for frequency visualization
+   * Set up audio processing with AudioWorklet for PCM extraction
    */
-  private setupAnalyser(stream: MediaStream): void {
+  private async setupAudioProcessing(stream: MediaStream): Promise<void> {
     try {
-      this.audioContext = new AudioContext({
-        sampleRate: this.options.sampleRate
-      });
+      const sampleRate = this.options.sampleRate ?? 24000;
+      this.audioContext = new AudioContext({ sampleRate });
 
+      // Create source node from stream
+      this.remoteSourceNode = this.audioContext.createMediaStreamSource(stream);
+
+      // Set up analyser for visualization
       this.analyserNode = this.audioContext.createAnalyser();
       this.analyserNode.fftSize = 256;
       this.analyserNode.smoothingTimeConstant = 0.8;
-
-      this.remoteSourceNode = this.audioContext.createMediaStreamSource(stream);
       this.remoteSourceNode.connect(this.analyserNode);
-      // Note: We don't connect to destination since HTMLAudioElement handles playback
+      // Note: analyser doesn't need to connect to destination
 
-      console.debug('[WebRTCAudioBridge] Analyser set up for visualization');
+      // Set up AudioWorklet for PCM extraction if callback is provided
+      if (this.onAudioData) {
+        try {
+          const workletUrl = getPCMWorkletProcessorSrc();
+          await this.audioContext.audioWorklet.addModule(workletUrl);
+
+          this.pcmWorkletNode = new AudioWorkletNode(this.audioContext, 'palabra-pcm-processor');
+
+          // Connect: source -> worklet -> destination (muted, just to keep worklet active)
+          this.remoteSourceNode.connect(this.pcmWorkletNode);
+          // Don't connect worklet to destination - we don't want double audio playback
+          // The HTMLAudioElement handles playback, worklet just extracts PCM
+
+          // Handle PCM data from worklet
+          this.pcmWorkletNode.port.onmessage = (event) => {
+            const pcmData = event.data as Int16Array;
+            this.onAudioData?.(pcmData);
+          };
+
+          console.debug('[WebRTCAudioBridge] AudioWorklet set up for PCM extraction');
+        } catch (error) {
+          console.warn('[WebRTCAudioBridge] Failed to set up AudioWorklet, PCM extraction disabled:', error);
+        }
+      }
+
+      console.debug('[WebRTCAudioBridge] Audio processing set up');
     } catch (error) {
-      console.warn('[WebRTCAudioBridge] Failed to set up analyser:', error);
+      console.warn('[WebRTCAudioBridge] Failed to set up audio processing:', error);
     }
   }
 
@@ -231,6 +287,12 @@ export class WebRTCAudioBridge {
    * Clean up remote audio resources
    */
   private cleanupRemoteAudio(): void {
+    if (this.pcmWorkletNode) {
+      this.pcmWorkletNode.port.onmessage = null;
+      this.pcmWorkletNode.disconnect();
+      this.pcmWorkletNode = null;
+    }
+
     if (this.remoteSourceNode) {
       this.remoteSourceNode.disconnect();
       this.remoteSourceNode = null;
