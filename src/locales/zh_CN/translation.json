@@ -130,7 +130,6 @@
     "transportTypeTooltip": "WebRTC：延迟更低，推荐大多数用户使用。\nWebSocket：网络兼容性更好，适合受限网络环境。如果 WebRTC 连接失败可切换使用。",
     "websocket": "WebSocket（稳定）",
     "webrtc": "WebRTC（低延迟）",
-    "webrtcDisabledTooltip": "WebRTC 由于已知问题暂时禁用。请使用 WebSocket 代替。",
     "participantInstructions": "参会者指令",
     "participantInstructionsTooltip": "用于翻译参会者音频的系统指令。留空则使用上方的主指令。\n\n注意：主指令中的语言方向可能与参会者不符。例如：如果您说中文、主指令翻译中文→日语，但参会者说日语，使用主指令会错误地尝试翻译日语→日语。请设置单独的参会者指令来翻译日语→中文。"
   },

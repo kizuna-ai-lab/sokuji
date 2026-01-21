@@ -563,10 +563,9 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
               {t('settings.websocket')}
             </button>
             <button
-              className="option-button"
-              disabled={true}
-              style={{ opacity: 0.5, cursor: 'not-allowed' }}
-              title={t('settings.webrtcDisabledTooltip', 'WebRTC is temporarily disabled due to known issues. Please use WebSocket instead.')}
+              className={`option-button ${compatibleSettings.transportType === 'webrtc' ? 'active' : ''}`}
+              onClick={() => updateOpenAICompatibleSettingsHelper({ transportType: 'webrtc' as TransportType })}
+              disabled={isSessionActive}
             >
               {t('settings.webrtc')}
             </button>
