@@ -169,6 +169,17 @@ export function isKizunaAIEnabled(): boolean {
   return import.meta.env.VITE_ENABLE_KIZUNA_AI === 'true';
 }
 
+/**
+ * Check if Palabra AI features should be enabled
+ * @returns true if Palabra AI features should be shown
+ *
+ * Currently disabled due to stability issues.
+ * Set VITE_ENABLE_PALABRA_AI=true to re-enable.
+ */
+export function isPalabraAIEnabled(): boolean {
+  return import.meta.env?.VITE_ENABLE_PALABRA_AI === 'true';
+}
+
 // ============================================================================
 // Operating System Detection
 // ============================================================================

@@ -5,7 +5,7 @@ import { OpenAICompatibleProviderConfig } from './OpenAICompatibleProviderConfig
 import { PalabraAIProviderConfig } from './PalabraAIProviderConfig';
 import { KizunaAIProviderConfig } from './KizunaAIProviderConfig';
 import { Provider, ProviderType } from '../../types/Provider';
-import { isKizunaAIEnabled, isElectron } from '../../utils/environment';
+import { isKizunaAIEnabled, isPalabraAIEnabled, isElectron } from '../../utils/environment';
 
 interface ProviderConfigInstance {
   getConfig(): ProviderConfig;
@@ -18,7 +18,11 @@ export class ProviderConfigFactory {
     // Initialize configurations
     ProviderConfigFactory.configs.set(Provider.OPENAI, new OpenAIProviderConfig());
     ProviderConfigFactory.configs.set(Provider.GEMINI, new GeminiProviderConfig());
-    ProviderConfigFactory.configs.set(Provider.PALABRA_AI, new PalabraAIProviderConfig());
+
+    // Only register Palabra AI if the feature flag is enabled
+    if (isPalabraAIEnabled()) {
+      ProviderConfigFactory.configs.set(Provider.PALABRA_AI, new PalabraAIProviderConfig());
+    }
 
     // Only register Kizuna AI if the feature flag is enabled
     if (isKizunaAIEnabled()) {

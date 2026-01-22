@@ -80,6 +80,9 @@ module.exports = (env, argv) => {
             ? 'true'  // Always enable in development
             : process.env.VITE_ENABLE_KIZUNA_AI || 'false'  // Disabled by default in production unless explicitly enabled
         ),
+        'import.meta.env.VITE_ENABLE_PALABRA_AI': JSON.stringify(
+          process.env.VITE_ENABLE_PALABRA_AI || 'false'  // Disabled by default, can be enabled via env var
+        ),
         'import.meta.env.DEV': JSON.stringify(isDevMode),
         // Define import.meta.url as empty string to prevent parse errors
         'import.meta.url': JSON.stringify('')
