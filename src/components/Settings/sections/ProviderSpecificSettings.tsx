@@ -273,13 +273,16 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
     }
 
     const { turnDetection } = config.capabilities;
-    
+
     // Turn detection is OpenAI-compatible (OpenAI and CometAPI)
     if (!isCurrentProviderOpenAICompatible()) {
       return null;
     }
 
     const compatibleSettings = getOpenAICompatibleSettings();
+
+    // Check if WebRTC mode is active - server VAD causes audio truncation in WebRTC
+    const isWebRTCMode = compatibleSettings?.transportType === 'webrtc';
 
     return (
       <div className="settings-section turn-detection-section">
@@ -294,17 +297,38 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
         </h2>
         <div className="setting-item">
           <div className="turn-detection-options">
-            {turnDetection.modes.map((mode) => (
-              <button
-                key={mode}
-                className={`option-button ${compatibleSettings?.turnDetectionMode === mode ? 'active' : ''}`}
-                onClick={() => updateOpenAICompatibleSettingsHelper({ turnDetectionMode: mode as 'Normal' | 'Semantic' | 'Disabled' })}
-                disabled={isSessionActive}
-              >
-                {t(`settings.${mode.toLowerCase()}`)}
-              </button>
-            ))}
+            {turnDetection.modes.map((mode) => {
+              // In WebRTC mode, Normal and Semantic VAD modes cause audio truncation
+              const isVADMode = mode === 'Normal' || mode === 'Semantic';
+              const isDisabled = isSessionActive || (isWebRTCMode && isVADMode);
+
+              return (
+                <button
+                  key={mode}
+                  className={`option-button ${compatibleSettings?.turnDetectionMode === mode ? 'active' : ''}`}
+                  onClick={() => updateOpenAICompatibleSettingsHelper({ turnDetectionMode: mode as 'Normal' | 'Semantic' | 'Disabled' })}
+                  disabled={isDisabled}
+                  title={isWebRTCMode && isVADMode ? t('settings.webrtcVadDisabledTitle', 'Server VAD is not available in WebRTC mode') : undefined}
+                >
+                  {t(`settings.${mode.toLowerCase()}`)}
+                </button>
+              );
+            })}
           </div>
+          {isWebRTCMode && (
+            <div className="webrtc-vad-notice" style={{
+              marginTop: '8px',
+              padding: '8px 12px',
+              backgroundColor: 'rgba(255, 193, 7, 0.1)',
+              border: '1px solid rgba(255, 193, 7, 0.3)',
+              borderRadius: '4px',
+              fontSize: '12px',
+              color: '#ffc107'
+            }}>
+              <Info size={14} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
+              {t('settings.webrtcVadNotice', 'Server VAD is disabled in WebRTC mode. The server automatically truncates audio when it detects speech, which interrupts translations.')}
+            </div>
+          )}
         </div>
 
         {compatibleSettings?.turnDetectionMode === 'Normal' && turnDetection.hasThreshold && (

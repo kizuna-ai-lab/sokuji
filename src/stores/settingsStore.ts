@@ -678,9 +678,25 @@ const useSettingsStore = create<SettingsStore>()(
 
     // === Provider Settings Actions ===
     updateOpenAI: async (settings) => {
-      set((state) => ({openai: {...state.openai, ...settings}}));
+      set((state) => {
+        const updatedSettings = { ...state.openai, ...settings };
+
+        // WebRTC mode: Server automatically truncates audio on user speech (API design)
+        // Force disable server VAD to prevent translation interruption
+        if (settings.transportType === 'webrtc' && updatedSettings.turnDetectionMode !== 'Disabled') {
+          updatedSettings.turnDetectionMode = 'Disabled';
+        }
+
+        return { openai: updatedSettings };
+      });
+
       const service = ServiceFactory.getSettingsService();
-      for (const [key, value] of Object.entries(settings)) {
+      const state = get();
+      // Save all updated settings including auto-changed turnDetectionMode
+      const settingsToSave = settings.transportType === 'webrtc' && state.openai.turnDetectionMode === 'Disabled'
+        ? { ...settings, turnDetectionMode: 'Disabled' }
+        : settings;
+      for (const [key, value] of Object.entries(settingsToSave)) {
         await service.setSetting(`settings.openai.${key}`, value);
       }
     },
@@ -694,9 +710,25 @@ const useSettingsStore = create<SettingsStore>()(
     },
 
     updateOpenAICompatible: async (settings) => {
-      set((state) => ({openaiCompatible: {...state.openaiCompatible, ...settings}}));
+      set((state) => {
+        const updatedSettings = { ...state.openaiCompatible, ...settings };
+
+        // WebRTC mode: Server automatically truncates audio on user speech (API design)
+        // Force disable server VAD to prevent translation interruption
+        if (settings.transportType === 'webrtc' && updatedSettings.turnDetectionMode !== 'Disabled') {
+          updatedSettings.turnDetectionMode = 'Disabled';
+        }
+
+        return { openaiCompatible: updatedSettings };
+      });
+
       const service = ServiceFactory.getSettingsService();
-      for (const [key, value] of Object.entries(settings)) {
+      const state = get();
+      // Save all updated settings including auto-changed turnDetectionMode
+      const settingsToSave = settings.transportType === 'webrtc' && state.openaiCompatible.turnDetectionMode === 'Disabled'
+        ? { ...settings, turnDetectionMode: 'Disabled' }
+        : settings;
+      for (const [key, value] of Object.entries(settingsToSave)) {
         await service.setSetting(`settings.openaiCompatible.${key}`, value);
       }
     },
@@ -710,9 +742,25 @@ const useSettingsStore = create<SettingsStore>()(
     },
 
     updateKizunaAI: async (settings) => {
-      set((state) => ({kizunaai: {...state.kizunaai, ...settings}}));
+      set((state) => {
+        const updatedSettings = { ...state.kizunaai, ...settings };
+
+        // WebRTC mode: Server automatically truncates audio on user speech (API design)
+        // Force disable server VAD to prevent translation interruption
+        if (settings.transportType === 'webrtc' && updatedSettings.turnDetectionMode !== 'Disabled') {
+          updatedSettings.turnDetectionMode = 'Disabled';
+        }
+
+        return { kizunaai: updatedSettings };
+      });
+
       const service = ServiceFactory.getSettingsService();
-      for (const [key, value] of Object.entries(settings)) {
+      const state = get();
+      // Save all updated settings including auto-changed turnDetectionMode
+      const settingsToSave = settings.transportType === 'webrtc' && state.kizunaai.turnDetectionMode === 'Disabled'
+        ? { ...settings, turnDetectionMode: 'Disabled' }
+        : settings;
+      for (const [key, value] of Object.entries(settingsToSave)) {
         if (key === 'apiKey') continue; // Don't persist Kizuna AI API key
         await service.setSetting(`settings.kizunaai.${key}`, value);
       }
