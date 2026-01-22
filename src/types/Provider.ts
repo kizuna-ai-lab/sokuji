@@ -2,7 +2,7 @@
  * Provider types and enums for AI service providers
  */
 
-import { isKizunaAIEnabled } from '../utils/environment';
+import { isKizunaAIEnabled, isPalabraAIEnabled } from '../utils/environment';
 
 /**
  * Supported AI service providers
@@ -28,7 +28,7 @@ export type ProviderType = Provider.OPENAI | Provider.GEMINI | Provider.PALABRA_
 export const SUPPORTED_PROVIDERS: ProviderType[] = [
   Provider.OPENAI,
   Provider.GEMINI,
-  Provider.PALABRA_AI,
+  ...(isPalabraAIEnabled() ? [Provider.PALABRA_AI] : []),
   ...(isKizunaAIEnabled() ? [Provider.KIZUNA_AI] : []),
   Provider.OPENAI_COMPATIBLE
 ];
