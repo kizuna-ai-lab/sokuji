@@ -266,6 +266,12 @@ const useAudioStore = create<AudioStore>()(
         if (savedMonitorDeviceOn !== null) {
           console.info('[Sokuji] [AudioStore] Restored monitor device on state:', savedMonitorDeviceOn);
           set({ isMonitorDeviceOn: savedMonitorDeviceOn });
+
+          // Sync audioService volume to match restored state
+          const { audioService } = get();
+          if (audioService) {
+            audioService.setMonitorVolume(savedMonitorDeviceOn);
+          }
         }
 
         // Try to restore saved input device, or select default
