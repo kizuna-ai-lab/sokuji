@@ -64,7 +64,7 @@ export function loadConfig(options: { verbose?: boolean } = {}): RunnerConfig {
     },
     judge: {
       provider: process.env.JUDGE_PROVIDER || 'openai',
-      model: process.env.JUDGE_MODEL || 'gpt-4o',
+      model: process.env.JUDGE_MODEL || 'gpt-4o-mini',
     },
     verbose: options.verbose || process.env.VERBOSE === 'true',
   };

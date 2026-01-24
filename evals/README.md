@@ -70,7 +70,7 @@ Test cases are defined in JSON format following the schema in `schemas/test-case
     "type": "llm-judge",
     "judgeConfig": {
       "provider": "openai",
-      "model": "gpt-4o",
+      "model": "gpt-4o-mini",
       "scoringRubric": {
         "accuracy": { "weight": 0.4, "description": "Semantic accuracy" },
         "naturalness": { "weight": 0.3, "description": "Natural fluency" }
@@ -83,7 +83,7 @@ Test cases are defined in JSON format following the schema in `schemas/test-case
 
 ## Evaluation: LLM-as-Judge
 
-We use another LLM (typically GPT-4o) to evaluate translation quality. This approach:
+We use another LLM (typically GPT-4o-mini) to evaluate translation quality. This approach:
 
 - **Scales well** - Can evaluate many translations quickly
 - **Consistent** - Same rubric applied uniformly
@@ -129,9 +129,9 @@ GEMINI_API_KEY=...
 PALABRA_API_KEY=...
 KIZUNA_API_KEY=...
 
-# Optional: LLM Judge configuration (defaults to OpenAI GPT-4o)
+# Optional: LLM Judge configuration (defaults to OpenAI GPT-4o-mini)
 JUDGE_PROVIDER=openai
-JUDGE_MODEL=gpt-4o
+JUDGE_MODEL=gpt-4o-mini
 ```
 
 ### Commands
