@@ -1,6 +1,8 @@
 class PCMProcessor extends AudioWorkletProcessor {
   constructor() {
     super();
+    // Silence detection enabled by default (can be disabled via port message)
+    this.silenceDetectionEnabled = true;
     // Silence detection threshold (RMS below this is considered silence)
     // Typical speech RMS is 0.01-0.3, silence is < 0.001
     this.silenceThreshold = 0.005;
@@ -8,6 +10,17 @@ class PCMProcessor extends AudioWorkletProcessor {
     this.silentFrameCount = 0;
     // Send a few frames after speech ends to avoid cutting off audio
     this.trailingSilenceFrames = 10; // ~25ms at 128 samples/frame
+
+    // Listen for configuration messages
+    this.port.onmessage = (event) => {
+      const config = event.data;
+      if (config.silenceDetectionEnabled !== undefined) {
+        this.silenceDetectionEnabled = config.silenceDetectionEnabled;
+      }
+      if (config.silenceThreshold !== undefined) {
+        this.silenceThreshold = config.silenceThreshold;
+      }
+    };
   }
 
   process(inputs) {
@@ -19,25 +32,28 @@ class PCMProcessor extends AudioWorkletProcessor {
       return true;
     }
 
-    // Calculate RMS (Root Mean Square) for silence detection
-    let sumSquares = 0;
-    for (let i = 0; i < inputChannel.length; i++) {
-      sumSquares += inputChannel[i] * inputChannel[i];
-    }
-    const rms = Math.sqrt(sumSquares / inputChannel.length);
-
-    // Check if this frame is silence
-    const isSilent = rms < this.silenceThreshold;
-
-    if (isSilent) {
-      this.silentFrameCount++;
-      // Skip sending if we've been silent for too long
-      if (this.silentFrameCount > this.trailingSilenceFrames) {
-        return true;
+    // Only apply silence detection if enabled
+    if (this.silenceDetectionEnabled) {
+      // Calculate RMS (Root Mean Square) for silence detection
+      let sumSquares = 0;
+      for (let i = 0; i < inputChannel.length; i++) {
+        sumSquares += inputChannel[i] * inputChannel[i];
       }
-    } else {
-      // Reset silent frame count when we detect audio
-      this.silentFrameCount = 0;
+      const rms = Math.sqrt(sumSquares / inputChannel.length);
+
+      // Check if this frame is silence
+      const isSilent = rms < this.silenceThreshold;
+
+      if (isSilent) {
+        this.silentFrameCount++;
+        // Skip sending if we've been silent for too long
+        if (this.silentFrameCount > this.trailingSilenceFrames) {
+          return true;
+        }
+      } else {
+        // Reset silent frame count when we detect audio
+        this.silentFrameCount = 0;
+      }
     }
 
     // Convert Float32Array to Int16Array (PCM)

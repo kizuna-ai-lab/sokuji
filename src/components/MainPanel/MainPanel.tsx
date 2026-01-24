@@ -903,8 +903,8 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       }
 
       // Track if using WebRTC (after fallback logic is complete)
-      // PalabraAI also uses the same audio architecture as OpenAI WebRTC
-      setIsUsingWebRTC(useWebRTC || provider === Provider.PALABRA_AI);
+      // Note: PalabraAI uses appendInputAudio pattern, not native WebRTC audio
+      setIsUsingWebRTC(useWebRTC);
 
       // Start participant audio client (unified for both Electron system audio and Extension tab audio)
       // Both capture "other participant" audio and send to AI for translation
