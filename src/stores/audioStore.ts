@@ -4,6 +4,14 @@ import { useMemo } from 'react';
 import { ServiceFactory } from '../services/ServiceFactory';
 import { IAudioService, AudioOperationResult } from '../services/interfaces/IAudioService';
 
+// Storage keys for persisting audio device preferences
+const STORAGE_KEYS = {
+  SELECTED_INPUT_DEVICE_ID: 'audio.selectedInputDeviceId',
+  SELECTED_MONITOR_DEVICE_ID: 'audio.selectedMonitorDeviceId',
+  IS_INPUT_DEVICE_ON: 'audio.isInputDeviceOn',
+  IS_MONITOR_DEVICE_ON: 'audio.isMonitorDeviceOn',
+};
+
 export interface AudioDevice {
   deviceId: string;
   label: string;
@@ -87,14 +95,27 @@ const useAudioStore = create<AudioStore>()(
     setAudioService: (service) => set({ audioService: service }),
     setInputDevices: (devices) => set({ audioInputDevices: devices }),
     setMonitorDevices: (devices) => set({ audioMonitorDevices: devices }),
-    selectInputDevice: (device) => set({ selectedInputDevice: device }),
+    selectInputDevice: (device) => {
+      console.info(`[Sokuji] [AudioStore] Selected input device: ${device.label} (${device.deviceId})`);
+      set({ selectedInputDevice: device });
+
+      // Persist the selected device ID
+      const service = ServiceFactory.getSettingsService();
+      service.setSetting(STORAGE_KEYS.SELECTED_INPUT_DEVICE_ID, device.deviceId)
+        .catch(error => console.error('[Sokuji] [AudioStore] Failed to save input device preference:', error));
+    },
     selectMonitorDevice: (device) => {
       console.info(`[Sokuji] [AudioStore] Selected monitor device: ${device.label} (${device.deviceId})`);
       set({ selectedMonitorDevice: device });
-      
+
+      // Persist the selected device ID
+      const settingsService = ServiceFactory.getSettingsService();
+      settingsService.setSetting(STORAGE_KEYS.SELECTED_MONITOR_DEVICE_ID, device.deviceId)
+        .catch(error => console.error('[Sokuji] [AudioStore] Failed to save monitor device preference:', error));
+
       // Connect to the selected monitor device
       const { audioService } = get();
-      if (audioService && device) {
+      if (audioService) {
         audioService.connectMonitoringDevice(device.deviceId, device.label)
           .then((result: AudioOperationResult) => {
             if (result.success) {
@@ -112,21 +133,33 @@ const useAudioStore = create<AudioStore>()(
     
     // Toggle functions with callbacks
     toggleInputDeviceState: () => {
-      set((state) => ({ isInputDeviceOn: !state.isInputDeviceOn }));
+      set((state) => {
+        const newState = !state.isInputDeviceOn;
+        // Persist the state
+        const settingsService = ServiceFactory.getSettingsService();
+        settingsService.setSetting(STORAGE_KEYS.IS_INPUT_DEVICE_ON, newState)
+          .catch(error => console.error('[Sokuji] [AudioStore] Failed to save input device on state:', error));
+        return { isInputDeviceOn: newState };
+      });
     },
     
     toggleMonitorDeviceState: () => {
       console.info('[Sokuji] [AudioStore] Toggling monitor device state');
       set((state) => {
         const newState = !state.isMonitorDeviceOn;
-        
+
+        // Persist the state
+        const settingsService = ServiceFactory.getSettingsService();
+        settingsService.setSetting(STORAGE_KEYS.IS_MONITOR_DEVICE_ON, newState)
+          .catch(error => console.error('[Sokuji] [AudioStore] Failed to save monitor device on state:', error));
+
         // Set monitor volume based on state
         const { audioService } = get();
         if (audioService) {
           audioService.setMonitorVolume(newState);
           console.info(`[Sokuji] [AudioStore] Monitor state changed to: ${newState ? 'ON' : 'OFF'}`);
         }
-        
+
         return { isMonitorDeviceOn: newState };
       });
     },
@@ -196,48 +229,106 @@ const useAudioStore = create<AudioStore>()(
     // Complex actions
     refreshDevices: async () => {
       set({ isLoading: true });
-      
+
       try {
         const { audioService } = get();
         if (!audioService) {
           const service = ServiceFactory.getAudioService();
           set({ audioService: service });
         }
-        
+
         const service = get().audioService;
         if (!service) {
           throw new Error('Audio service not initialized');
         }
-        
+
         const devices = await service.getDevices();
-        
-        set({ 
+
+        set({
           audioInputDevices: devices.inputs,
-          audioMonitorDevices: devices.outputs 
+          audioMonitorDevices: devices.outputs
         });
-        
-        // Select first non-virtual input device if not already selected
+
+        // Load saved device preferences and on/off states
+        const settingsService = ServiceFactory.getSettingsService();
+        const savedInputDeviceId = await settingsService.getSetting<string>(STORAGE_KEYS.SELECTED_INPUT_DEVICE_ID, '');
+        const savedMonitorDeviceId = await settingsService.getSetting<string>(STORAGE_KEYS.SELECTED_MONITOR_DEVICE_ID, '');
+        const savedInputDeviceOn = await settingsService.getSetting<boolean | null>(STORAGE_KEYS.IS_INPUT_DEVICE_ON, null);
+        const savedMonitorDeviceOn = await settingsService.getSetting<boolean | null>(STORAGE_KEYS.IS_MONITOR_DEVICE_ON, null);
+
+        // Restore input device on/off state if saved
+        if (savedInputDeviceOn !== null) {
+          console.info('[Sokuji] [AudioStore] Restored input device on state:', savedInputDeviceOn);
+          set({ isInputDeviceOn: savedInputDeviceOn });
+        }
+
+        // Restore monitor device on/off state if saved
+        if (savedMonitorDeviceOn !== null) {
+          console.info('[Sokuji] [AudioStore] Restored monitor device on state:', savedMonitorDeviceOn);
+          set({ isMonitorDeviceOn: savedMonitorDeviceOn });
+        }
+
+        // Try to restore saved input device, or select default
         const currentInputDevice = get().selectedInputDevice;
-        if (devices.inputs.length > 0 && (!currentInputDevice || !devices.inputs.some(d => d.deviceId === currentInputDevice?.deviceId))) {
-          const nonVirtualInputs = devices.inputs.filter(device => !device.isVirtual);
-          if (nonVirtualInputs.length > 0) {
-            set({ selectedInputDevice: nonVirtualInputs[0] });
+        if (!currentInputDevice || !devices.inputs.some(d => d.deviceId === currentInputDevice?.deviceId)) {
+          if (savedInputDeviceId) {
+            // Try to restore saved input device
+            const savedInputDevice = devices.inputs.find(d => d.deviceId === savedInputDeviceId);
+            if (savedInputDevice) {
+              console.info('[Sokuji] [AudioStore] Restored saved input device:', savedInputDevice.label);
+              set({ selectedInputDevice: savedInputDevice });
+            } else if (devices.inputs.length > 0) {
+              // Saved device not found, fall back to first non-virtual input device
+              const nonVirtualInputs = devices.inputs.filter(device => !device.isVirtual);
+              if (nonVirtualInputs.length > 0) {
+                set({ selectedInputDevice: nonVirtualInputs[0] });
+              } else {
+                set({ selectedInputDevice: devices.inputs[0] });
+              }
+            }
           } else if (devices.inputs.length > 0) {
-            set({ selectedInputDevice: devices.inputs[0] });
+            // No saved preference, select first non-virtual input device
+            const nonVirtualInputs = devices.inputs.filter(device => !device.isVirtual);
+            if (nonVirtualInputs.length > 0) {
+              set({ selectedInputDevice: nonVirtualInputs[0] });
+            } else {
+              set({ selectedInputDevice: devices.inputs[0] });
+            }
           }
         }
-        
-        // Select first non-virtual monitor device if not already selected
+
+        // Try to restore saved monitor device, or select default
         let defaultMonitorDevice = null;
         const currentMonitorDevice = get().selectedMonitorDevice;
-        if (devices.outputs.length > 0 && (!currentMonitorDevice || !devices.outputs.some(d => d.deviceId === currentMonitorDevice?.deviceId))) {
-          const nonVirtualOutputs = devices.outputs.filter(device => !device.isVirtual);
-          if (nonVirtualOutputs.length > 0) {
-            defaultMonitorDevice = nonVirtualOutputs[0];
-            set({ selectedMonitorDevice: defaultMonitorDevice });
+        if (!currentMonitorDevice || !devices.outputs.some(d => d.deviceId === currentMonitorDevice?.deviceId)) {
+          if (savedMonitorDeviceId) {
+            // Try to restore saved monitor device
+            const savedMonitorDevice = devices.outputs.find(d => d.deviceId === savedMonitorDeviceId);
+            if (savedMonitorDevice) {
+              console.info('[Sokuji] [AudioStore] Restored saved monitor device:', savedMonitorDevice.label);
+              defaultMonitorDevice = savedMonitorDevice;
+              set({ selectedMonitorDevice: defaultMonitorDevice });
+            } else if (devices.outputs.length > 0) {
+              // Saved device not found, fall back to first non-virtual output device
+              const nonVirtualOutputs = devices.outputs.filter(device => !device.isVirtual);
+              if (nonVirtualOutputs.length > 0) {
+                defaultMonitorDevice = nonVirtualOutputs[0];
+                set({ selectedMonitorDevice: defaultMonitorDevice });
+              } else {
+                defaultMonitorDevice = devices.outputs[0];
+                set({ selectedMonitorDevice: defaultMonitorDevice });
+              }
+            }
           } else if (devices.outputs.length > 0) {
-            defaultMonitorDevice = devices.outputs[0];
-            set({ selectedMonitorDevice: defaultMonitorDevice });
+            // No saved preference, select first non-virtual output device
+            const nonVirtualOutputs = devices.outputs.filter(device => !device.isVirtual);
+            if (nonVirtualOutputs.length > 0) {
+              defaultMonitorDevice = nonVirtualOutputs[0];
+              set({ selectedMonitorDevice: defaultMonitorDevice });
+            } else {
+              defaultMonitorDevice = devices.outputs[0];
+              set({ selectedMonitorDevice: defaultMonitorDevice });
+            }
           }
         }
         
