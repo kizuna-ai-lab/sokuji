@@ -173,10 +173,16 @@ export function isKizunaAIEnabled(): boolean {
  * Check if Palabra AI features should be enabled
  * @returns true if Palabra AI features should be shown
  *
- * Currently disabled due to stability issues.
- * Set VITE_ENABLE_PALABRA_AI=true to re-enable.
+ * In development mode: always returns true
+ * In production mode: returns false (unless explicitly enabled via VITE_ENABLE_PALABRA_AI env var)
  */
 export function isPalabraAIEnabled(): boolean {
+  // In development mode, always show Palabra AI features
+  if (isDevelopmentMode()) {
+    return true;
+  }
+
+  // In production, check for explicit environment variable
   return import.meta.env?.VITE_ENABLE_PALABRA_AI === 'true';
 }
 

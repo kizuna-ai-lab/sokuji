@@ -79,10 +79,8 @@ export class ClientFactory {
         if (!clientSecret) {
           throw new Error(`Client secret is required for ${provider} provider`);
         }
-        // Pass inputDeviceId and outputDeviceId for native MediaStreamTrack with echo cancellation
-        // The outputDeviceId is used for direct playback through HTMLAudioElement, which allows
-        // the browser's AEC to see the remote audio and cancel it from microphone input
-        return new PalabraAIClient(apiKey, clientSecret, webrtcOptions?.inputDeviceId, webrtcOptions?.outputDeviceId);
+        // PalabraAI uses the original appendInputAudio pattern, not native audio capture
+        return new PalabraAIClient(apiKey, clientSecret);
 
       case Provider.KIZUNA_AI:
         // Check if Kizuna AI is enabled before creating the client
@@ -110,14 +108,13 @@ export class ClientFactory {
 
   /**
    * Check if a provider uses native audio capture via MediaStreamTrack
-   * This includes both OpenAI WebRTC and PalabraAI (LiveKit)
+   * This includes OpenAI WebRTC (but NOT PalabraAI which uses appendInputAudio pattern)
    * @param provider - The provider type
    * @param transportType - The transport type (optional, used to determine WebRTC mode)
    * @returns true if the provider uses native audio capture
    */
   static usesNativeAudioCapture(provider: ProviderType, transportType?: TransportType): boolean {
-    // PalabraAI always uses native audio capture via LiveKit
-    if (provider === Provider.PALABRA_AI) return true;
+    // PalabraAI uses appendInputAudio pattern, NOT native audio capture
     // OpenAI/OpenAI Compatible use native audio capture only in WebRTC mode
     return transportType === 'webrtc' && this.supportsWebRTC(provider);
   }
