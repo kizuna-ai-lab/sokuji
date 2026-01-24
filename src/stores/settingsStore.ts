@@ -201,7 +201,7 @@ const defaultCommonSettings: CommonSettings = {
 
 const defaultOpenAICompatibleSettingsBase: OpenAICompatibleSettingsBase = {
   apiKey: '',
-  model: 'gpt-4o-mini-realtime-preview',
+  model: 'gpt-realtime-mini',
   voice: 'alloy',
   sourceLanguage: 'en',
   targetLanguage: 'zh_CN',
