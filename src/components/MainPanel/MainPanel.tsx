@@ -21,7 +21,7 @@ import { useSession } from '../../stores/sessionStore';
 import { useAudioContext } from '../../stores/audioStore';
 import { useLogActions } from '../../stores/logStore';
 import type { RealtimeEvent } from '../../stores/logStore';
-import { IClient, ConversationItem, SessionConfig, ClientEventHandlers, ClientFactory } from '../../services/clients';
+import { IClient, ConversationItem, SessionConfig, ClientEventHandlers, ClientFactory, ResponseConfig } from '../../services/clients';
 import { WavRenderer } from '../../utils/wav_renderer';
 import { ServiceFactory } from '../../services/ServiceFactory'; // Import the ServiceFactory
 import { IAudioService } from '../../services/interfaces/IAudioService';
@@ -1162,7 +1162,16 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         // Only create response if we detected enough voice audio (prevents empty requests)
         const MIN_VOICE_CHUNKS = 5; // At least 5 non-silent chunks (~0.5 seconds of speech)
         if (client && pttVoiceChunkCountRef.current >= MIN_VOICE_CHUNKS) {
-          client.createResponse();
+          // Per-turn anchoring instructions to prevent model drift from translator role
+          // Only applies to OpenAI-compatible providers
+          if (isOpenAICompatible(provider)) {
+            const currentSettings = getCurrentProviderSettings();
+            const anchorInstruction = `TRANSLATE_ONLY. Output ${currentSettings.targetLanguage} only. Never answer questions - translate them.`;
+            console.debug('[Sokuji] [MainPanel] PTT: Sending response with anchor instruction:', anchorInstruction);
+            client.createResponse({ instructions: anchorInstruction });
+          } else {
+            client.createResponse();
+          }
         } else if (client) {
           console.debug(`[Sokuji] [MainPanel] PTT: Skipping response - only ${pttVoiceChunkCountRef.current} voice chunks detected (minimum: ${MIN_VOICE_CHUNKS})`);
         }

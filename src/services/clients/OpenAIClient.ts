@@ -4,7 +4,7 @@ import type {
   Realtime,
   FormattedItem
 } from 'openai-realtime-api';
-import { IClient, ConversationItem, SessionConfig, ClientEventHandlers, ApiKeyValidationResult, FilteredModel } from '../interfaces/IClient';
+import { IClient, ConversationItem, SessionConfig, ClientEventHandlers, ApiKeyValidationResult, FilteredModel, ResponseConfig } from '../interfaces/IClient';
 import { RealtimeEvent } from '../../contexts/LogContext';
 import { Provider, ProviderType } from '../../types/Provider';
 import i18n from '../../locales';
@@ -498,6 +498,11 @@ export class OpenAIClient implements IClient {
     if (config.temperature !== undefined) updateParams.temperature = config.temperature;
     if (config.maxTokens !== undefined) updateParams.max_response_output_tokens = config.maxTokens;
 
+    // Explicitly disable tools to prevent model drift from translator role
+    // This ensures the model stays focused on translation and doesn't attempt tool calls
+    updateParams.tool_choice = 'none';
+    updateParams.tools = [];
+
     // Handle text-only mode (no audio output)
     if ('textOnly' in config && config.textOnly) {
       updateParams.modalities = ['text'];
@@ -579,8 +584,46 @@ export class OpenAIClient implements IClient {
     ]);
   }
 
-  createResponse(): void {
-    this.client.createResponse();
+  /**
+   * Create a response from the AI model
+   * @param config Optional configuration to override session-level settings for this response
+   *               Used for per-turn instructions to prevent model drift
+   */
+  createResponse(config?: ResponseConfig): void {
+    if (config) {
+      // When bypassing the library's createResponse(), we need to manually commit
+      // the input audio buffer first (same as what the library does internally)
+      // This is required when turn detection is disabled (PTT mode)
+      // The library checks: !this.getTurnDetectionType() && this.inputAudioBuffer.byteLength > 0
+      // We always commit here since this path is only used in PTT mode
+      this.client.realtime.send('input_audio_buffer.commit');
+
+      // Send response.create event with per-turn configuration
+      const responseEvent: any = {
+        response: {}
+      };
+
+      // Add per-turn instructions if provided (key mechanism for preventing drift)
+      if (config.instructions) {
+        responseEvent.response.instructions = config.instructions;
+      }
+
+      // Add conversation mode if specified
+      if (config.conversation) {
+        responseEvent.response.conversation = config.conversation;
+      }
+
+      // Add modalities if specified
+      if (config.modalities) {
+        responseEvent.response.modalities = config.modalities;
+      }
+
+      // Use the underlying realtime API to send the event
+      this.client.realtime.send('response.create', responseEvent);
+    } else {
+      // Use the default library method when no config is provided
+      this.client.createResponse();
+    }
   }
 
   cancelResponse(trackId?: string, offset?: number): void {

@@ -1,4 +1,4 @@
-export type { IClient, ConversationItem, SessionConfig, ClientEventHandlers } from '../interfaces/IClient';
+export type { IClient, ConversationItem, SessionConfig, ClientEventHandlers, ResponseConfig } from '../interfaces/IClient';
 export { OpenAIClient } from './OpenAIClient';
 export { OpenAIWebRTCClient } from './OpenAIWebRTCClient';
 export { GeminiClient } from './GeminiClient';
