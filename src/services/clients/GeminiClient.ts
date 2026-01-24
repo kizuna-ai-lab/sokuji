@@ -1,5 +1,5 @@
 import { ActivityHandling, GoogleGenAI, LiveConnectConfig, LiveServerContent, LiveServerMessage, Modality, Session } from '@google/genai';
-import { IClient, ConversationItem, SessionConfig, ClientEventHandlers, ApiKeyValidationResult, FilteredModel, IClientStatic } from '../interfaces/IClient';
+import { IClient, ConversationItem, SessionConfig, ClientEventHandlers, ApiKeyValidationResult, FilteredModel, IClientStatic, ResponseConfig } from '../interfaces/IClient';
 import i18n from '../../locales';
 import { Provider, ProviderType } from '../../types/Provider';
 
@@ -880,9 +880,10 @@ export class GeminiClient implements IClient {
     return btoa(binary);
   }
 
-  createResponse(): void {
+  createResponse(_config?: ResponseConfig): void {
     // Gemini Live API automatically generates responses based on turn detection
     // This is handled internally by the API
+    // Note: ResponseConfig is accepted for interface compatibility but not used by Gemini
     console.debug('[GeminiClient] Response creation is handled automatically by Gemini Live API');
   }
 
