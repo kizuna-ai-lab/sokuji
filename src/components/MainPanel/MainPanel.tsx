@@ -214,7 +214,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       setSystemAudioItems(client.getConversationItems());
     },
     onClose: async () => {
-      console.info('[Sokuji] [MainPanel] Participant audio client closed');
+      console.info('[Sokuji] [MainPanel] Participant audio client closed (triggered by speaker disconnect or manual stop)');
     }
   }), [addRealtimeEvent]);
 
@@ -440,17 +440,43 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       },
       onClose: async (event: any) => {
         console.info('[Sokuji] [MainPanel] Connection closed, cleaning up session', event);
-        
+
         // Track disconnection
         trackEvent('connection_status', {
           status: 'disconnected',
           provider: provider || Provider.OPENAI
         });
-        
+
         // When connection closes, clean up the session state
         setIsSessionActive(false);
         setIsAIResponding(false);
         pendingTextRef.current = null;
+
+        // Disconnect participant client when speaker disconnects
+        const systemClient = systemAudioClientRef.current;
+        if (systemClient) {
+          try {
+            console.info('[Sokuji] [MainPanel] Speaker disconnected, also disconnecting participant client');
+            await systemClient.disconnect();
+            systemClient.reset();
+            systemAudioClientRef.current = null;
+
+            // Stop participant audio recording
+            const audioService = audioServiceRef.current;
+            if (audioService) {
+              if (audioService.isSystemAudioRecordingActive()) {
+                await audioService.stopSystemAudioRecording();
+              }
+              if (audioService.isTabAudioRecordingActive?.()) {
+                await audioService.stopTabAudioRecording();
+              }
+              // Clear participant streaming track
+              audioService.clearStreamingTrack('system-audio-assistant');
+            }
+          } catch (error) {
+            console.warn('[Sokuji] [MainPanel] Error disconnecting participant client:', error);
+          }
+        }
 
         // Clean up audio recording
         const audioService = audioServiceRef.current;
@@ -464,7 +490,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           } catch (error) {
             console.warn('[Sokuji] [MainPanel] Error cleaning up recorder on close:', error);
           }
-          
+
           // Interrupt any playing audio
           await audioService.interruptAudio();
         }
