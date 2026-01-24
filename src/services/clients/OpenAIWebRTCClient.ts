@@ -17,7 +17,8 @@ import {
   SessionConfig,
   ClientEventHandlers,
   OpenAISessionConfig,
-  isOpenAISessionConfig
+  isOpenAISessionConfig,
+  ResponseConfig
 } from '../interfaces/IClient';
 import { RealtimeEvent } from '../../stores/logStore';
 import { Provider, ProviderType } from '../../types/Provider';
@@ -511,7 +512,10 @@ export class OpenAIWebRTCClient implements IClient {
         input_audio_format: 'pcm16',
         output_audio_format: 'pcm16',
         temperature: config.temperature ?? 0.8,
-        max_response_output_tokens: config.maxTokens === 'inf' ? 'inf' : config.maxTokens
+        max_response_output_tokens: config.maxTokens === 'inf' ? 'inf' : config.maxTokens,
+        // Explicitly disable tools to prevent model drift from translator role
+        tool_choice: 'none',
+        tools: []
       }
     };
 
@@ -678,16 +682,44 @@ export class OpenAIWebRTCClient implements IClient {
   }
 
   /**
-   * Create a response
+   * Create a response from the AI model
    * When VAD is disabled, commits the input audio buffer first
+   * @param config Optional configuration to override session-level settings for this response
+   *               Used for per-turn instructions to prevent model drift
    */
-  createResponse(): void {
+  createResponse(config?: ResponseConfig): void {
     // When turn detection is disabled, we need to commit the input audio buffer first
     // so the server knows the user has finished speaking
     if (this.turnDetectionDisabled) {
       this.sendEvent({ type: 'input_audio_buffer.commit' });
     }
-    this.sendEvent({ type: 'response.create' });
+
+    if (config) {
+      // Send response.create event with per-turn configuration
+      const responseEvent: any = {
+        type: 'response.create',
+        response: {}
+      };
+
+      // Add per-turn instructions if provided (key mechanism for preventing drift)
+      if (config.instructions) {
+        responseEvent.response.instructions = config.instructions;
+      }
+
+      // Add conversation mode if specified
+      if (config.conversation) {
+        responseEvent.response.conversation = config.conversation;
+      }
+
+      // Add modalities if specified
+      if (config.modalities) {
+        responseEvent.response.modalities = config.modalities;
+      }
+
+      this.sendEvent(responseEvent);
+    } else {
+      this.sendEvent({ type: 'response.create' });
+    }
   }
 
   /**

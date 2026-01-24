@@ -110,6 +110,33 @@ export function isPalabraAISessionConfig(config: SessionConfig): config is Palab
   return config.provider === 'palabraai';
 }
 
+/**
+ * Response configuration for per-turn instructions
+ * Used to override session-level settings for individual responses
+ * This is the core mechanism for preventing model drift by reinforcing
+ * the translator role at each response generation
+ */
+export interface ResponseConfig {
+  /**
+   * Per-turn instructions that override session-level instructions
+   * Should be short anchoring instructions to prevent model drift
+   * Example: "TRANSLATE_ONLY; NO_ANSWERS; OUTPUT=Japanese"
+   */
+  instructions?: string;
+
+  /**
+   * Optional conversation ID for out-of-band responses
+   * Set to 'none' to create responses without affecting conversation state
+   */
+  conversation?: 'auto' | 'none';
+
+  /**
+   * Output modalities for this response
+   * Useful for creating text-only responses in certain scenarios
+   */
+  modalities?: ('text' | 'audio')[];
+}
+
 export interface ClientEventHandlers {
   onOpen?: () => void;
   onClose?: (event: any) => void;
@@ -155,7 +182,12 @@ export interface IClient {
   appendInputText(text: string): void;
 
   // Response generation
-  createResponse(): void;
+  /**
+   * Create a response from the AI model
+   * @param config Optional configuration to override session-level settings for this response
+   *               Used for per-turn instructions to prevent model drift
+   */
+  createResponse(config?: ResponseConfig): void;
   cancelResponse(trackId?: string, offset?: number): void;
 
   // Conversation management

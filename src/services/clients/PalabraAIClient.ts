@@ -1,4 +1,4 @@
-import { IClient, ConversationItem, SessionConfig, ClientEventHandlers, ApiKeyValidationResult, PalabraAISessionConfig, isPalabraAISessionConfig } from '../interfaces/IClient';
+import { IClient, ConversationItem, SessionConfig, ClientEventHandlers, ApiKeyValidationResult, PalabraAISessionConfig, isPalabraAISessionConfig, ResponseConfig } from '../interfaces/IClient';
 import { Provider, ProviderType } from '../../types/Provider';
 import i18n from '../../locales';
 import { Room, RoomEvent, TrackPublication, RemoteParticipant, RemoteTrack, RemoteAudioTrack, LocalAudioTrack, setLogLevel } from 'livekit-client';
@@ -368,9 +368,10 @@ export class PalabraAIClient implements IClient {
     console.warn('[PalabraAIClient] Text input not supported');
   }
 
-  createResponse(): void {
+  createResponse(_config?: ResponseConfig): void {
     // PalabraAI handles response generation automatically
     // No explicit response creation needed
+    // Note: ResponseConfig is accepted for interface compatibility but not used by PalabraAI
   }
 
   cancelResponse(trackId?: string, offset?: number): void {
