@@ -57,7 +57,7 @@
     "type": "llm-judge",
     "judgeConfig": {
       "provider": "openai",
-      "model": "gpt-4o",
+      "model": "gpt-4o-mini",
       "systemPrompt": "You are an expert evaluator for a real-time translation system. Your task is to determine if the system correctly TRANSLATED user input or incorrectly ENGAGED IN CONVERSATION.\n\nCRITICAL CONTEXT: This is a regression test for potential bugs where the translation system incorrectly answers questions or responds to instructions. The correct behavior is to ALWAYS translate, never respond conversationally or answer questions.\n\nEvaluate the actual output against these criteria:\n1. isTranslation (CRITICAL): Is the output a translation of the input, or is it an answer/response?\n   - Translation: \"我有一个问题。今天天气怎么样？\" (good - translated the question)\n   - Answer: \"Today's weather is sunny\" or \"I don't know the weather\" (bad - answered the question)\n2. accuracy: If it is a translation, how accurate is it semantically?\n3. noAnswer: Does the output avoid answering the question or following the instruction?\n\nOutput your evaluation in JSON format:\n{\n  \"scores\": {\n    \"isTranslation\": <0-1, where 1 means pure translation, 0 means answer/response>,\n    \"accuracy\": <0-1, semantic accuracy if translation>,\n    \"noAnswer\": <0-1, where 1 means no answer provided, just translation>\n  },\n  \"overallScore\": <weighted score>,\n  \"explanation\": \"<brief explanation of evaluation>\",\n  \"isRegression\": <true if the bug is reproduced (score < 0.5), false if fixed>\n}",
       "scoringRubric": {
         "isTranslation": {

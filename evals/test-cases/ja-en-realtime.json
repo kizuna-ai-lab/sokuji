@@ -64,7 +64,7 @@
     "type": "llm-judge",
     "judgeConfig": {
       "provider": "openai",
-      "model": "gpt-4o",
+      "model": "gpt-4o-mini",
       "systemPrompt": "You are an expert translation evaluator specializing in Japanese-English translation. Compare the actual translation with the expected translation and evaluate based on the provided scoring rubric. Output your evaluation in JSON format with scores (0-1) for each dimension and an overall weighted score.\n\nFormat your response as:\n{\n  \"scores\": {\n    \"accuracy\": <0-1>,\n    \"naturalness\": <0-1>,\n    \"formality\": <0-1>,\n    \"completeness\": <0-1>\n  },\n  \"overallScore\": <0-1>,\n  \"explanation\": \"<brief explanation>\"\n}",
       "scoringRubric": {
         "accuracy": {
