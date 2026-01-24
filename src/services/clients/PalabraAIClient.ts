@@ -941,7 +941,7 @@ export class PalabraAIClient implements IClient {
 
   private handleError(data: any): void {
     const errorData = typeof data === 'string' ? JSON.parse(data) : data;
-    
+
     // Notify about error event
     this.eventHandlers.onRealtimeEvent?.({
       source: 'server',
@@ -950,8 +950,28 @@ export class PalabraAIClient implements IClient {
         data: errorData
       }
     });
-    
+
     console.error("[Sokuji] [PalabraAIClient] Received error:", errorData);
+
+    // Create error ConversationItem for display in UI
+    const errorType = errorData.type || errorData.code || 'error';
+    const errorMessage = errorData.message || errorData.error || JSON.stringify(errorData);
+    const errorItem: ConversationItem = {
+      id: `error_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
+      role: 'system',
+      type: 'error',
+      status: 'completed',
+      formatted: {
+        text: `[${errorType}] ${errorMessage}`,
+      },
+      content: [{
+        type: 'text',
+        text: errorMessage
+      }]
+    };
+
+    // Notify UI about the error item
+    this.eventHandlers.onConversationUpdated?.({ item: errorItem });
   }
 
   private handleRoomConnected(): void {
