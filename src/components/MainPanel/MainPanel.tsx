@@ -1162,16 +1162,8 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         // Only create response if we detected enough voice audio (prevents empty requests)
         const MIN_VOICE_CHUNKS = 5; // At least 5 non-silent chunks (~0.5 seconds of speech)
         if (client && pttVoiceChunkCountRef.current >= MIN_VOICE_CHUNKS) {
-          // Per-turn anchoring instructions to prevent model drift from translator role
-          // Only applies to OpenAI-compatible providers
-          if (isOpenAICompatible(provider)) {
-            const currentSettings = getCurrentProviderSettings();
-            const anchorInstruction = `TRANSLATE_ONLY. Output ${currentSettings.targetLanguage} only. Never answer questions - translate them.`;
-            console.debug('[Sokuji] [MainPanel] PTT: Sending response with anchor instruction:', anchorInstruction);
-            client.createResponse({ instructions: anchorInstruction });
-          } else {
-            client.createResponse();
-          }
+          // Model drift prevention is handled by the silent anchor mechanism (useEffect)
+          client.createResponse();
         } else if (client) {
           console.debug(`[Sokuji] [MainPanel] PTT: Skipping response - only ${pttVoiceChunkCountRef.current} voice chunks detected (minimum: ${MIN_VOICE_CHUNKS})`);
         }
@@ -1938,6 +1930,96 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       }
     }
   }, [isSessionActive, sessionId, sessionStartTime, translationCount, getCurrentProviderSettings, setSessionId, setSessionStartTime, setTranslationCount, trackEvent]);
+
+  /**
+   * Custom hook for silent anchor mechanism to prevent model drift
+   * Sends out-of-band responses periodically to reinforce translator role
+   * - Sends once at session start (when lastAnchorCount is -1)
+   * - Then sends every N translations (configurable interval)
+   * Uses conversation: 'none' so it doesn't affect conversation history
+   * Uses modalities: ['text'] so it doesn't produce audio output
+   */
+  const useAnchorMechanism = useCallback((
+    client: IClient | null,
+    anchorItems: ConversationItem[],
+    isActive: boolean,
+    sessionType: 'speaker' | 'participant',
+    getSystemInstructions: () => string,
+    lastAnchorCountRef: React.MutableRefObject<number>,
+    interval: number = 5
+  ) => {
+    // Only active during sessions with OpenAI-compatible providers
+    if (!isActive || !isOpenAICompatible(provider)) {
+      // Reset anchor count when session ends (use -1 to trigger initial anchor on next session)
+      if (!isActive) {
+        lastAnchorCountRef.current = -1;
+      }
+      return;
+    }
+
+    // Count completed assistant items
+    const completedTranslations = anchorItems.filter(
+      item => item.role === 'assistant' && item.status === 'completed'
+    ).length;
+
+    // Send anchor at session start (when lastAnchorCount is -1)
+    // and every N translations after that
+    const shouldSendAnchorAtStart = lastAnchorCountRef.current === -1;
+    const shouldSendAnchorAfterInterval = completedTranslations > 0 &&
+      completedTranslations % interval === 0 &&
+      completedTranslations !== lastAnchorCountRef.current;
+    const shouldSendAnchor = shouldSendAnchorAtStart || shouldSendAnchorAfterInterval;
+
+    if (shouldSendAnchor && client) {
+      // Mark this count as processed before sending
+      lastAnchorCountRef.current = completedTranslations;
+
+      // Get system instructions for this session type
+      const systemInstructions = getSystemInstructions();
+
+      // Send silent out-of-band anchor response
+      client.createResponse({
+        conversation: 'none',
+        modalities: ['text'],
+        instructions: systemInstructions,
+        metadata: { purpose: 'anchor', sessionType }
+      });
+    }
+  }, [provider]);
+
+  // Track anchor counts separately for speaker and participant sessions
+  const speakerAnchorCountRef = useRef<number>(-1);
+  const participantAnchorCountRef = useRef<number>(-1);
+
+  // Speaker session anchor mechanism
+  useEffect(() => {
+    useAnchorMechanism(
+      clientRef.current,
+      items,
+      isSessionActive,
+      'speaker',
+      () => getProcessedSystemInstructions(false),
+      speakerAnchorCountRef,
+      5
+    );
+  }, [items, isSessionActive, useAnchorMechanism, getProcessedSystemInstructions]);
+
+  // Participant session anchor mechanism
+  useEffect(() => {
+    // Only activate when participant session exists (systemAudioClientRef is set)
+    const participantClient = systemAudioClientRef.current;
+    const isParticipantActive = isSessionActive && participantClient !== null;
+
+    useAnchorMechanism(
+      participantClient,
+      systemAudioItems,
+      isParticipantActive,
+      'participant',
+      () => getProcessedSystemInstructions(true), // Swapped languages for participant
+      participantAnchorCountRef,
+      5
+    );
+  }, [systemAudioItems, isSessionActive, useAnchorMechanism, getProcessedSystemInstructions]);
 
   /**
    * Handle input device changes during active session

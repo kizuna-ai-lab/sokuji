@@ -692,7 +692,11 @@ export class OpenAIWebRTCClient implements IClient {
   createResponse(config?: ResponseConfig): void {
     // When turn detection is disabled, we need to commit the input audio buffer first
     // so the server knows the user has finished speaking
-    if (this.turnDetectionDisabled) {
+    //
+    // IMPORTANT: Skip audio buffer commit for out-of-band anchor messages
+    // (conversation: 'none') as they don't use audio input and committing
+    // an empty buffer causes "buffer too small" errors
+    if (this.turnDetectionDisabled && config?.conversation !== 'none') {
       this.sendEvent({ type: 'input_audio_buffer.commit' });
     }
 
@@ -716,6 +720,21 @@ export class OpenAIWebRTCClient implements IClient {
       // Add modalities if specified
       if (config.modalities) {
         responseEvent.response.modalities = config.modalities;
+      }
+
+      // Add metadata if specified (for tracking/filtering purposes)
+      if (config.metadata) {
+        responseEvent.response.metadata = config.metadata;
+      }
+
+      // Log out-of-band anchor requests for debugging
+      if (config.conversation === 'none') {
+        console.debug('[OpenAIWebRTCClient] Sending out-of-band response:', {
+          conversation: config.conversation,
+          modalities: config.modalities,
+          hasInstructions: !!config.instructions,
+          metadata: config.metadata
+        });
       }
 
       this.sendEvent(responseEvent);
