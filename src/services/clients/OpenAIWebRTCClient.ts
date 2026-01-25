@@ -678,7 +678,9 @@ export class OpenAIWebRTCClient implements IClient {
     };
 
     this.sendEvent(event);
-    this.createResponse();
+    // Send response.create directly without committing audio buffer
+    // Text input should not affect the audio input stream
+    this.sendEvent({ type: 'response.create' });
   }
 
   /**
