@@ -135,6 +135,12 @@ export interface ResponseConfig {
    * Useful for creating text-only responses in certain scenarios
    */
   modalities?: ('text' | 'audio')[];
+
+  /**
+   * Optional metadata for response tracking and filtering
+   * Used to identify special responses like anchors that should be filtered from UI
+   */
+  metadata?: Record<string, string>;
 }
 
 export interface ClientEventHandlers {
