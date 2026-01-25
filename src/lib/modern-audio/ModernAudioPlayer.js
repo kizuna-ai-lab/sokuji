@@ -108,7 +108,7 @@ export class ModernAudioPlayer {
     const sequence = metadata.sequenceNumber;
     const lastSequence = this.lastSequenceNumbers.get(trackId) || 0;
     
-    console.log('[AudioSequence] Processing chunk:', {
+    console.debug('[AudioSequence] Processing chunk:', {
       trackId,
       sequence,
       lastSequence,
@@ -174,7 +174,7 @@ export class ModernAudioPlayer {
       const nextSequence = lastSequence + 1;
       const { buffer, volume: origVolume, metadata } = outOfOrderMap.get(nextSequence);
       
-      console.log('[AudioSequence] Processing buffered sequence:', nextSequence);
+      console.debug('[AudioSequence] Processing buffered sequence:', nextSequence);
       
       this.accumulateChunk(trackId, buffer, origVolume || volume, metadata);
       this.checkAndTriggerPlayback(trackId);
@@ -186,7 +186,7 @@ export class ModernAudioPlayer {
     
     if (processed.length > 0) {
       this.lastSequenceNumbers.set(trackId, lastSequence);
-      console.log('[AudioSequence] Processed buffered sequences:', processed);
+      console.debug('[AudioSequence] Processed buffered sequences:', processed);
     }
   }
   

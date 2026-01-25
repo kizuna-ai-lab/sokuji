@@ -319,7 +319,7 @@ export class OpenAIClient implements IClient {
       if (delta?.audio) {
         delta.sequenceNumber = ++this.deltaSequenceNumber;
         delta.timestamp = Date.now();
-        console.log('[AudioSequence] Delta received:', {
+        console.debug('[AudioSequence] Delta received:', {
           itemId: item.id,
           sequence: delta.sequenceNumber,
           audioSize: delta.audio.length,
@@ -595,8 +595,13 @@ export class OpenAIClient implements IClient {
       // the input audio buffer first (same as what the library does internally)
       // This is required when turn detection is disabled (PTT mode)
       // The library checks: !this.getTurnDetectionType() && this.inputAudioBuffer.byteLength > 0
-      // We always commit here since this path is only used in PTT mode
-      this.client.realtime.send('input_audio_buffer.commit');
+      //
+      // IMPORTANT: Skip audio buffer commit for out-of-band anchor messages
+      // (conversation: 'none') as they don't use audio input and committing
+      // an empty buffer causes "buffer too small" errors
+      if (config.conversation !== 'none') {
+        this.client.realtime.send('input_audio_buffer.commit');
+      }
 
       // Send response.create event with per-turn configuration
       const responseEvent: any = {
@@ -616,6 +621,21 @@ export class OpenAIClient implements IClient {
       // Add modalities if specified
       if (config.modalities) {
         responseEvent.response.modalities = config.modalities;
+      }
+
+      // Add metadata if specified (for tracking/filtering purposes)
+      if (config.metadata) {
+        responseEvent.response.metadata = config.metadata;
+      }
+
+      // Log out-of-band anchor requests for debugging
+      if (config.conversation === 'none') {
+        console.debug('[OpenAIClient] Sending out-of-band response:', {
+          conversation: config.conversation,
+          modalities: config.modalities,
+          hasInstructions: !!config.instructions,
+          metadata: config.metadata
+        });
       }
 
       // Use the underlying realtime API to send the event
