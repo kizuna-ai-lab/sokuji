@@ -1932,14 +1932,14 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   }, [isSessionActive, sessionId, sessionStartTime, translationCount, getCurrentProviderSettings, setSessionId, setSessionStartTime, setTranslationCount, trackEvent]);
 
   /**
-   * Custom hook for silent anchor mechanism to prevent model drift
+   * Send anchor message if needed to prevent model drift
    * Sends out-of-band responses periodically to reinforce translator role
    * - Sends once at session start (when lastAnchorCount is -1)
    * - Then sends every N translations (configurable interval)
    * Uses conversation: 'none' so it doesn't affect conversation history
    * Uses modalities: ['text'] so it doesn't produce audio output
    */
-  const useAnchorMechanism = useCallback((
+  const sendAnchorIfNeeded = useCallback((
     client: IClient | null,
     anchorItems: ConversationItem[],
     isActive: boolean,
@@ -1993,7 +1993,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
   // Speaker session anchor mechanism
   useEffect(() => {
-    useAnchorMechanism(
+    sendAnchorIfNeeded(
       clientRef.current,
       items,
       isSessionActive,
@@ -2002,7 +2002,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       speakerAnchorCountRef,
       5
     );
-  }, [items, isSessionActive, useAnchorMechanism, getProcessedSystemInstructions]);
+  }, [items, isSessionActive, sendAnchorIfNeeded, getProcessedSystemInstructions]);
 
   // Participant session anchor mechanism
   useEffect(() => {
@@ -2010,7 +2010,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     const participantClient = systemAudioClientRef.current;
     const isParticipantActive = isSessionActive && participantClient !== null;
 
-    useAnchorMechanism(
+    sendAnchorIfNeeded(
       participantClient,
       systemAudioItems,
       isParticipantActive,
@@ -2019,7 +2019,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       participantAnchorCountRef,
       5
     );
-  }, [systemAudioItems, isSessionActive, useAnchorMechanism, getProcessedSystemInstructions]);
+  }, [systemAudioItems, isSessionActive, sendAnchorIfNeeded, getProcessedSystemInstructions]);
 
   /**
    * Handle input device changes during active session
