@@ -80,6 +80,8 @@
     "loadingModels": "بارگذاری مدل‌های موجود...",
     "modelsFound": "{{count}} مدل موجود",
     "experimentalFeatureTooltip": "این یک ویژگی آزمایشی است و ممکن است ناپایدار باشد.",
+    "volcengineInfo": "Volcengine Info",
+    "volcengineInfoText": "Volcengine Real-time Speech Translation provides text-only translation output. Audio synthesis is not supported in this mode.",
     "help": "راهنما",
     "auto": "خودکار",
     "low": "کم",
@@ -205,6 +207,12 @@
     "palabraai": {
       "name": "Palabra AI",
       "description": "هوش مصنوعی تخصصی ترجمه"
+    },
+    "volcengine": {
+      "name": "Volcengine",
+      "description": "ByteDance speech translation",
+      "accessKeyIdPlaceholder": "Access Key ID",
+      "secretAccessKeyPlaceholder": "Secret Access Key"
     },
     "unknown": {
       "name": "نامشخص",

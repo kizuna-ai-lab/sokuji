@@ -133,7 +133,9 @@
     "webrtcVadDisabledTitle": "WebRTCモードではサーバーVADは利用できません",
     "webrtcVadNotice": "WebRTCモードではサーバーVADは無効になっています。WebRTCでは、サーバーが音声を検出すると自動的にオーディオを切り捨てるため、翻訳が中断されます。",
     "participantInstructions": "参加者指示",
-    "participantInstructionsTooltip": "参加者の音声を翻訳するためのシステム指示。空欄の場合、上記のメイン指示が使用されます。\n\n重要：メイン指示の言語方向が参加者に適さない場合があります。例：あなたが中国語を話し、メイン指示が中国語→日本語に翻訳する場合、参加者が日本語を話すと、メイン指示は日本語→日本語と誤って翻訳しようとします。日本語→中国語に翻訳するための別の参加者指示を設定してください。"
+    "participantInstructionsTooltip": "参加者の音声を翻訳するためのシステム指示。空欄の場合、上記のメイン指示が使用されます。\n\n重要：メイン指示の言語方向が参加者に適さない場合があります。例：あなたが中国語を話し、メイン指示が中国語→日本語に翻訳する場合、参加者が日本語を話すと、メイン指示は日本語→日本語と誤って翻訳しようとします。日本語→中国語に翻訳するための別の参加者指示を設定してください。",
+    "volcengineInfo": "火山エンジンについて",
+    "volcengineInfoText": "火山エンジンのリアルタイム音声翻訳は、テキストのみの翻訳出力を提供します。このモードでは音声合成はサポートされていません。"
   },
   "audioPanel": {
     "title": "オーディオ設定",
@@ -409,6 +411,16 @@
     "palabraai": {
       "name": "Palabra AI",
       "description": "専門翻訳AI"
+    },
+    "kizunaai": {
+      "name": "Kizuna AI",
+      "description": "kizuna.aiサービス搭載"
+    },
+    "volcengine": {
+      "name": "火山エンジン",
+      "description": "ByteDanceリアルタイム音声翻訳",
+      "accessKeyIdPlaceholder": "Access Key ID",
+      "secretAccessKeyPlaceholder": "Secret Access Key"
     },
     "unknown": {
       "name": "不明",

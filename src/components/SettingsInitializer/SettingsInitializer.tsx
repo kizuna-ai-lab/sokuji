@@ -7,6 +7,7 @@ import {
   useGeminiSettings,
   useOpenAICompatibleSettings,
   usePalabraAISettings,
+  useVolcengineSettings,
   useSettingsLoaded
 } from '../../stores/settingsStore';
 import { useAuth } from '../../lib/auth/hooks';
@@ -31,6 +32,7 @@ export function SettingsInitializer() {
   const geminiSettings = useGeminiSettings();
   const openAICompatibleSettings = useOpenAICompatibleSettings();
   const palabraAISettings = usePalabraAISettings();
+  const volcengineSettings = useVolcengineSettings();
 
   // Auto-fetch and validate KizunaAI API key when user logs in or provider changes
   useEffect(() => {
@@ -84,6 +86,9 @@ export function SettingsInitializer() {
           case Provider.PALABRA_AI:
             hasApiKey = !!palabraAISettings.clientId && !!palabraAISettings.clientSecret;
             break;
+          case Provider.VOLCENGINE:
+            hasApiKey = !!volcengineSettings.accessKeyId && !!volcengineSettings.secretAccessKey;
+            break;
         }
         
         if (hasApiKey) {
@@ -97,7 +102,8 @@ export function SettingsInitializer() {
       }
     }
   }, [settingsLoaded, provider, openAISettings.apiKey, geminiSettings.apiKey, openAICompatibleSettings.apiKey,
-      palabraAISettings.clientId, palabraAISettings.clientSecret, validateApiKey]);
+      palabraAISettings.clientId, palabraAISettings.clientSecret, volcengineSettings.accessKeyId,
+      volcengineSettings.secretAccessKey, validateApiKey]);
 
   // This component doesn't render anything
   return null;

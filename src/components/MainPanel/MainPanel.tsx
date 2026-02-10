@@ -9,6 +9,7 @@ import {
   useOpenAICompatibleSettings,
   usePalabraAISettings,
   useKizunaAISettings,
+  useVolcengineSettings,
   useIsApiKeyValid,
   useAvailableModels,
   useLoadingModels,
@@ -62,6 +63,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   const geminiSettings = useGeminiSettings();
   const palabraAISettings = usePalabraAISettings();
   const kizunaAISettings = useKizunaAISettings();
+  const volcengineSettings = useVolcengineSettings();
   const transportType = useTransportType();
   const isApiKeyValid = useIsApiKeyValid();
   const availableModels = useAvailableModels();
@@ -176,16 +178,24 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       outputDeviceId: selectedMonitorDevice?.deviceId
     } : undefined;
 
+    // Get client secret for providers that need it
+    let clientSecret: string | undefined;
+    if (provider === Provider.PALABRA_AI) {
+      clientSecret = palabraAISettings.clientSecret;
+    } else if (provider === Provider.VOLCENGINE) {
+      clientSecret = volcengineSettings.secretAccessKey;
+    }
+
     return ClientFactory.createClient(
       modelName,
       provider,
       apiKey,
-      provider === Provider.PALABRA_AI ? palabraAISettings.clientSecret : undefined,
+      clientSecret,
       customEndpoint,
       effectiveTransportType,
       webrtcOptions
     );
-  }, [provider, openAICompatibleSettings.customEndpoint, palabraAISettings.clientSecret, selectedInputDevice?.deviceId, selectedMonitorDevice?.deviceId, isInputDeviceOn]);
+  }, [provider, openAICompatibleSettings.customEndpoint, palabraAISettings.clientSecret, volcengineSettings.secretAccessKey, selectedInputDevice?.deviceId, selectedMonitorDevice?.deviceId, isInputDeviceOn]);
 
   /**
    * Helper to create event handlers for participant audio client
@@ -371,6 +381,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   
   // Simple throttling for UI updates to prevent freezing
   const lastUpdateTimeRef = useRef<number>(0);
+  const throttleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const UPDATE_THROTTLE_MS = 50; // Throttle UI updates to max 20Hz
   
   // Reference to track the maximum progress ratio to prevent backwards movement
@@ -534,11 +545,16 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         }
         
         // Simple throttling: skip updates that are too frequent
+        // Uses trailing timeout to ensure the last update always renders
         const now = Date.now();
         const timeSinceLastUpdate = now - lastUpdateTimeRef.current;
         if (timeSinceLastUpdate < UPDATE_THROTTLE_MS) {
-          // Skip this update if it's too soon after the last one
-          // This prevents UI freezing from rapid updates
+          // Schedule a trailing update so the last message always renders
+          if (throttleTimerRef.current) clearTimeout(throttleTimerRef.current);
+          throttleTimerRef.current = setTimeout(() => {
+            lastUpdateTimeRef.current = Date.now();
+            setItems(client.getConversationItems());
+          }, UPDATE_THROTTLE_MS);
           return;
         }
         lastUpdateTimeRef.current = now;
@@ -746,6 +762,10 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         case Provider.PALABRA_AI:
           // PalabraAI uses clientId as the "apiKey" parameter for ClientFactory
           apiKey = palabraAISettings.clientId;
+          break;
+        case Provider.VOLCENGINE:
+          // Volcengine uses accessKeyId as the "apiKey" parameter for ClientFactory
+          apiKey = volcengineSettings.accessKeyId;
           break;
         default:
           throw new Error(`Unsupported provider: ${provider}`);
@@ -1035,6 +1055,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     openAICompatibleSettings,
     palabraAISettings,
     kizunaAISettings,
+    volcengineSettings,
     provider,
     transportType,
     isLoaded,

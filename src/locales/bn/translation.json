@@ -77,6 +77,8 @@
     "loadingModels": "উপলব্ধ মডেল লোড হচ্ছে...",
     "modelsFound": "{{count}}টি মডেল উপলব্ধ",
     "experimentalFeatureTooltip": "এটি একটি পরীক্ষামূলক বৈশিষ্ট্য এবং অস্থির হতে পারে।",
+    "volcengineInfo": "Volcengine Info",
+    "volcengineInfoText": "Volcengine Real-time Speech Translation provides text-only translation output. Audio synthesis is not supported in this mode.",
     "help": "সাহায্য",
     "auto": "স্বয়ংক্রিয়",
     "low": "নিম্ন",
@@ -202,6 +204,12 @@
     "palabraai": {
       "name": "Palabra AI",
       "description": "বিশেষায়িত অনুবাদ AI"
+    },
+    "volcengine": {
+      "name": "Volcengine",
+      "description": "ByteDance speech translation",
+      "accessKeyIdPlaceholder": "Access Key ID",
+      "secretAccessKeyPlaceholder": "Secret Access Key"
     },
     "unknown": {
       "name": "অজানা",

@@ -39,7 +39,6 @@
     "sass": "^1.78.0",
     "uuid": "^11.1.0",
     "web-vitals": "^2.1.4",
-    "ws": "^8.18.0",
     "zustand": "^5.0.8"
   },
   "optionalDependencies": {
@@ -66,6 +65,7 @@
     "@types/react-router-dom": "^5.3.3",
     "@types/ws": "^8.18.1",
     "@vitejs/plugin-react": "^4.2.1",
+    "@volcengine/openapi": "^1.35.0",
     "ajv": "^8.17.1",
     "ajv-formats": "^3.0.1",
     "concurrently": "^8.2.2",
@@ -79,7 +79,8 @@
     "vite-plugin-electron": "0.28.8",
     "vite-plugin-electron-renderer": "^0.14.6",
     "vitest": "^1.5.0",
-    "wait-on": "^7.2.0"
+    "wait-on": "^7.2.0",
+    "ws": "^8.19.0"
   },
   "scripts": {
     "dev": "vite",

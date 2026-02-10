@@ -186,6 +186,23 @@ export function isPalabraAIEnabled(): boolean {
   return import.meta.env?.VITE_ENABLE_PALABRA_AI === 'true';
 }
 
+/**
+ * Check if Volcengine features should be enabled
+ * @returns true if Volcengine features should be shown
+ *
+ * In development mode: always returns true
+ * In production mode: returns false (unless explicitly enabled via VITE_ENABLE_VOLCENGINE env var)
+ */
+export function isVolcengineEnabled(): boolean {
+  // In development mode, always show Volcengine features
+  if (isDevelopmentMode()) {
+    return true;
+  }
+
+  // In production, check for explicit environment variable
+  return import.meta.env?.VITE_ENABLE_VOLCENGINE === 'true';
+}
+
 // ============================================================================
 // Operating System Detection
 // ============================================================================

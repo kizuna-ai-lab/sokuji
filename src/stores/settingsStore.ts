@@ -8,7 +8,8 @@ import {
   SessionConfig,
   OpenAISessionConfig,
   GeminiSessionConfig,
-  PalabraAISessionConfig
+  PalabraAISessionConfig,
+  VolcengineSessionConfig
 } from '../services/interfaces/IClient';
 import {ApiKeyValidationResult} from '../services/interfaces/ISettingsService';
 import {Provider, ProviderType} from '../types/Provider';
@@ -82,6 +83,14 @@ export interface PalabraAISettings {
   desiredQueueLevelMs: number;
   maxQueueLevelMs: number;
   autoTempo: boolean;
+}
+
+// Volcengine Settings
+export interface VolcengineSettings {
+  accessKeyId: string;
+  secretAccessKey: string;
+  sourceLanguage: string;
+  targetLanguage: string;
 }
 
 // Cache Entry
@@ -207,6 +216,13 @@ const defaultPalabraAISettings: PalabraAISettings = {
   autoTempo: false,
 };
 
+const defaultVolcengineSettings: VolcengineSettings = {
+  accessKeyId: '',
+  secretAccessKey: '',
+  sourceLanguage: 'zh',
+  targetLanguage: 'en',
+};
+
 // ==================== Store Definition ====================
 
 interface SettingsStore {
@@ -226,6 +242,7 @@ interface SettingsStore {
   openaiCompatible: OpenAICompatibleSettings;
   palabraai: PalabraAISettings;
   kizunaai: KizunaAISettings;
+  volcengine: VolcengineSettings;
 
   // Validation state
   isApiKeyValid: boolean | null;
@@ -263,6 +280,7 @@ interface SettingsStore {
   updateOpenAICompatible: (settings: Partial<OpenAICompatibleSettings>) => void;
   updatePalabraAI: (settings: Partial<PalabraAISettings>) => void;
   updateKizunaAI: (settings: Partial<KizunaAISettings>) => void;
+  updateVolcengine: (settings: Partial<VolcengineSettings>) => void;
 
   // Async actions
   validateApiKey: (getAuthToken?: () => Promise<string | null>) => Promise<ApiKeyValidationResult>;
@@ -272,7 +290,7 @@ interface SettingsStore {
   clearCache: () => void;
 
   // Helper methods
-  getCurrentProviderSettings: () => OpenAISettings | GeminiSettings | OpenAICompatibleSettings | PalabraAISettings | KizunaAISettings;
+  getCurrentProviderSettings: () => OpenAISettings | GeminiSettings | OpenAICompatibleSettings | PalabraAISettings | KizunaAISettings | VolcengineSettings;
   getCurrentProviderConfig: () => ProviderConfig;
   getProcessedSystemInstructions: (forParticipant?: boolean) => string;
   createSessionConfig: (systemInstructions: string) => SessionConfig;
@@ -352,6 +370,19 @@ function createPalabraAISessionConfig(
   };
 }
 
+function createVolcengineSessionConfig(
+  settings: VolcengineSettings,
+  systemInstructions: string
+): VolcengineSessionConfig {
+  return {
+    provider: 'volcengine',
+    model: 'speech-translate-v1',
+    instructions: systemInstructions,
+    sourceLanguage: settings.sourceLanguage,
+    targetLanguages: [settings.targetLanguage],
+  };
+}
+
 // ==================== Store Implementation ====================
 
 const useSettingsStore = create<SettingsStore>()(
@@ -363,6 +394,7 @@ const useSettingsStore = create<SettingsStore>()(
     openaiCompatible: defaultOpenAICompatibleSettings,
     palabraai: defaultPalabraAISettings,
     kizunaai: defaultKizunaAISettings,
+    volcengine: defaultVolcengineSettings,
 
     isApiKeyValid: null,
     isValidating: false,
@@ -525,6 +557,14 @@ const useSettingsStore = create<SettingsStore>()(
       }
     },
 
+    updateVolcengine: async (settings) => {
+      set((state) => ({volcengine: {...state.volcengine, ...settings}}));
+      const service = ServiceFactory.getSettingsService();
+      for (const [key, value] of Object.entries(settings)) {
+        await service.setSetting(`settings.volcengine.${key}`, value);
+      }
+    },
+
     // === Async Actions ===
     validateApiKey: async (getAuthToken) => {
       const state = get();
@@ -570,6 +610,21 @@ const useSettingsStore = create<SettingsStore>()(
         customEndpoint = compatSettings.customEndpoint;
       } else if (provider === Provider.KIZUNA_AI && getAuthToken) {
         apiKey = await getAuthToken() || '';
+      } else if (provider === Provider.VOLCENGINE) {
+        // Volcengine uses accessKeyId as apiKey and secretAccessKey as clientSecret
+        const volcSettings = currentSettings as VolcengineSettings;
+        apiKey = volcSettings.accessKeyId || '';
+
+        // Check if both accessKeyId and secretAccessKey are present
+        if (!volcSettings.accessKeyId || !volcSettings.secretAccessKey) {
+          set({
+            isApiKeyValid: null,
+            availableModels: [],
+            validationMessage: '',
+            isValidating: false,
+          });
+          return {valid: false, message: '', validating: false};
+        }
       } else {
         apiKey = (currentSettings as any).apiKey || '';
       }
@@ -588,9 +643,14 @@ const useSettingsStore = create<SettingsStore>()(
       }
 
       // Check cache
-      const cacheKey = provider === Provider.PALABRA_AI
-        ? `${provider}:${apiKey}:${(currentSettings as PalabraAISettings).clientSecret}`
-        : `${provider}:${apiKey}`;
+      let cacheKey: string;
+      if (provider === Provider.PALABRA_AI) {
+        cacheKey = `${provider}:${apiKey}:${(currentSettings as PalabraAISettings).clientSecret}`;
+      } else if (provider === Provider.VOLCENGINE) {
+        cacheKey = `${provider}:${apiKey}:${(currentSettings as VolcengineSettings).secretAccessKey}`;
+      } else {
+        cacheKey = `${provider}:${apiKey}`;
+      }
 
       const cached = state.validationCache.get(cacheKey);
       if (cached && Date.now() - cached.timestamp < 5 * 60 * 1000) {
@@ -611,9 +671,13 @@ const useSettingsStore = create<SettingsStore>()(
 
       try {
         const service = ServiceFactory.getSettingsService();
-        const clientSecret = provider === Provider.PALABRA_AI
-          ? (currentSettings as PalabraAISettings).clientSecret
-          : undefined;
+        // Get client secret for providers that need it
+        let clientSecret: string | undefined;
+        if (provider === Provider.PALABRA_AI) {
+          clientSecret = (currentSettings as PalabraAISettings).clientSecret;
+        } else if (provider === Provider.VOLCENGINE) {
+          clientSecret = (currentSettings as VolcengineSettings).secretAccessKey;
+        }
 
         const result = await service.validateApiKeyAndFetchModels(
           apiKey,
@@ -732,12 +796,13 @@ const useSettingsStore = create<SettingsStore>()(
           return settings as T;
         };
 
-        const [openai, gemini, openaiCompatible, palabraai, kizunaai] = await Promise.all([
+        const [openai, gemini, openaiCompatible, palabraai, kizunaai, volcengine] = await Promise.all([
           loadProviderSettings('settings.openai', defaultOpenAISettings),
           loadProviderSettings('settings.gemini', defaultGeminiSettings),
           loadProviderSettings('settings.openaiCompatible', defaultOpenAICompatibleSettings),
           loadProviderSettings('settings.palabraai', defaultPalabraAISettings),
           loadProviderSettings('settings.kizunaai', defaultKizunaAISettings),
+          loadProviderSettings('settings.volcengine', defaultVolcengineSettings),
         ]);
 
         set({
@@ -753,6 +818,7 @@ const useSettingsStore = create<SettingsStore>()(
           openaiCompatible,
           palabraai,
           kizunaai,
+          volcengine,
           settingsLoaded: true,
         });
 
@@ -784,6 +850,8 @@ const useSettingsStore = create<SettingsStore>()(
           return state.palabraai;
         case Provider.KIZUNA_AI:
           return state.kizunaai;
+        case Provider.VOLCENGINE:
+          return state.volcengine;
         default:
           return state.openai;
       }
@@ -842,6 +910,8 @@ const useSettingsStore = create<SettingsStore>()(
           return createPalabraAISessionConfig(state.palabraai, systemInstructions);
         case Provider.KIZUNA_AI:
           return createOpenAISessionConfig(state.kizunaai, systemInstructions);
+        case Provider.VOLCENGINE:
+          return createVolcengineSessionConfig(state.volcengine, systemInstructions);
         default:
           return createOpenAISessionConfig(state.openai, systemInstructions);
       }
@@ -870,6 +940,7 @@ export const useGeminiSettings = () => useSettingsStore((state) => state.gemini)
 export const useOpenAICompatibleSettings = () => useSettingsStore((state) => state.openaiCompatible);
 export const usePalabraAISettings = () => useSettingsStore((state) => state.palabraai);
 export const useKizunaAISettings = () => useSettingsStore((state) => state.kizunaai);
+export const useVolcengineSettings = () => useSettingsStore((state) => state.volcengine);
 
 // Transport type selector (for OpenAI provider)
 export const useTransportType = () => useSettingsStore((state) => state.openai.transportType);
@@ -907,6 +978,7 @@ export const useUpdateGemini = () => useSettingsStore((state) => state.updateGem
 export const useUpdateOpenAICompatible = () => useSettingsStore((state) => state.updateOpenAICompatible);
 export const useUpdatePalabraAI = () => useSettingsStore((state) => state.updatePalabraAI);
 export const useUpdateKizunaAI = () => useSettingsStore((state) => state.updateKizunaAI);
+export const useUpdateVolcengine = () => useSettingsStore((state) => state.updateVolcengine);
 
 export const useValidateApiKey = () => useSettingsStore((state) => state.validateApiKey);
 export const useFetchAvailableModels = () => useSettingsStore((state) => state.fetchAvailableModels);

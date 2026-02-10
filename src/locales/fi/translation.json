@@ -36,6 +36,8 @@
     "loadingModels": "Ladataan saatavilla olevia malleja...",
     "modelsFound": "{{count}} mallia saatavilla",
     "experimentalFeatureTooltip": "Tämä on kokeellinen ominaisuus ja voi olla epävakaa.",
+    "volcengineInfo": "Volcengine Info",
+    "volcengineInfoText": "Volcengine Real-time Speech Translation provides text-only translation output. Audio synthesis is not supported in this mode.",
     "apiKeyValidationCompleted": "API-avaimen validointi valmis",
     "errorValidatingApiKey": "Virhe API-avainta validoidessa",
     "sessionActiveNotice": "Asetukset on lukittu istunnon ollessa aktiivinen. Lopeta istunto muuttaaksesi asetuksia.",
@@ -164,6 +166,12 @@
     "palabraai": {
       "name": "Palabra AI",
       "description": "Erikoistunut käännöstekoäly"
+    },
+    "volcengine": {
+      "name": "Volcengine",
+      "description": "ByteDance speech translation",
+      "accessKeyIdPlaceholder": "Access Key ID",
+      "secretAccessKeyPlaceholder": "Secret Access Key"
     },
     "unknown": {
       "name": "Tuntematon",

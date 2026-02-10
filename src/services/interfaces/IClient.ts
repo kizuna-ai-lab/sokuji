@@ -91,9 +91,19 @@ export interface PalabraAISessionConfig extends BaseSessionConfig {
 }
 
 /**
+ * Volcengine-specific session configuration
+ */
+export interface VolcengineSessionConfig extends BaseSessionConfig {
+  provider: 'volcengine';
+  sourceLanguage: string;
+  targetLanguages: string[];
+  hotWordList?: Array<{ Word: string; Scale: number }>;
+}
+
+/**
  * Union type for all possible session configurations
  */
-export type SessionConfig = OpenAISessionConfig | GeminiSessionConfig | PalabraAISessionConfig;
+export type SessionConfig = OpenAISessionConfig | GeminiSessionConfig | PalabraAISessionConfig | VolcengineSessionConfig;
 
 /**
  * Type guards for session configurations
@@ -108,6 +118,10 @@ export function isGeminiSessionConfig(config: SessionConfig): config is GeminiSe
 
 export function isPalabraAISessionConfig(config: SessionConfig): config is PalabraAISessionConfig {
   return config.provider === 'palabraai';
+}
+
+export function isVolcengineSessionConfig(config: SessionConfig): config is VolcengineSessionConfig {
+  return config.provider === 'volcengine';
 }
 
 /**

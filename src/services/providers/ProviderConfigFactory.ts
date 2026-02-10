@@ -4,8 +4,9 @@ import { GeminiProviderConfig } from './GeminiProviderConfig';
 import { OpenAICompatibleProviderConfig } from './OpenAICompatibleProviderConfig';
 import { PalabraAIProviderConfig } from './PalabraAIProviderConfig';
 import { KizunaAIProviderConfig } from './KizunaAIProviderConfig';
+import { VolcengineProviderConfig } from './VolcengineProviderConfig';
 import { Provider, ProviderType } from '../../types/Provider';
-import { isKizunaAIEnabled, isPalabraAIEnabled, isElectron } from '../../utils/environment';
+import { isKizunaAIEnabled, isPalabraAIEnabled, isVolcengineEnabled, isElectron } from '../../utils/environment';
 
 interface ProviderConfigInstance {
   getConfig(): ProviderConfig;
@@ -32,6 +33,11 @@ export class ProviderConfigFactory {
     // Only register OpenAI Compatible provider in Electron environment
     if (isElectron()) {
       ProviderConfigFactory.configs.set(Provider.OPENAI_COMPATIBLE, new OpenAICompatibleProviderConfig());
+    }
+
+    // Only register Volcengine if the feature flag is enabled
+    if (isVolcengineEnabled()) {
+      ProviderConfigFactory.configs.set(Provider.VOLCENGINE, new VolcengineProviderConfig());
     }
   }
 

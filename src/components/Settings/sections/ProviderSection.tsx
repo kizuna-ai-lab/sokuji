@@ -9,12 +9,14 @@ import {
   useOpenAICompatibleSettings,
   usePalabraAISettings,
   useKizunaAISettings,
+  useVolcengineSettings,
   useIsApiKeyValid,
   useSetProvider,
   useUpdateOpenAI,
   useUpdateGemini,
   useUpdateOpenAICompatible,
   useUpdatePalabraAI,
+  useUpdateVolcengine,
   useValidateApiKey,
   useIsValidating,
   useValidationMessage,
@@ -53,6 +55,7 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
   const openAICompatibleSettings = useOpenAICompatibleSettings();
   const palabraAISettings = usePalabraAISettings();
   const kizunaAISettings = useKizunaAISettings();
+  const volcengineSettings = useVolcengineSettings();
   const isApiKeyValid = useIsApiKeyValid();
 
   const setProvider = useSetProvider();
@@ -60,6 +63,7 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
   const updateGeminiSettings = useUpdateGemini();
   const updateOpenAICompatibleSettings = useUpdateOpenAICompatible();
   const updatePalabraAISettings = useUpdatePalabraAI();
+  const updateVolcengineSettings = useUpdateVolcengine();
   const validateApiKey = useValidateApiKey();
   const isValidating = useIsValidating();
   const validationMessage = useValidationMessage();
@@ -86,6 +90,8 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
         return palabraAISettings.clientId;
       case Provider.KIZUNA_AI:
         return kizunaAISettings.apiKey || '';
+      case Provider.VOLCENGINE:
+        return volcengineSettings.accessKeyId;
       default:
         return '';
     }
@@ -108,6 +114,9 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
         break;
       case Provider.KIZUNA_AI:
         console.warn('KizunaAI API key is managed automatically');
+        break;
+      case Provider.VOLCENGINE:
+        updateVolcengineSettings({ accessKeyId: value });
         break;
     }
   };
@@ -189,6 +198,12 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
           name: t('providers.kizunaai.name'),
           icon: User,
           description: t('providers.kizunaai.description')
+        };
+      case Provider.VOLCENGINE:
+        return {
+          name: t('providers.volcengine.name'),
+          icon: AudioLines,
+          description: t('providers.volcengine.description')
         };
       default:
         return {
@@ -330,7 +345,45 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
 
       {/* API Key Input or Kizuna AI Status */}
       {provider !== Provider.KIZUNA_AI ? (
-        provider === Provider.PALABRA_AI ? (
+        provider === Provider.VOLCENGINE ? (
+          // Volcengine requires both Access Key ID and Secret Access Key
+          <div className="volcengine-credentials-group">
+            <div className="api-key-input-group">
+              <input
+                type="text"
+                value={volcengineSettings.accessKeyId}
+                onChange={(e) => updateVolcengineSettings({ accessKeyId: e.target.value })}
+                placeholder={t('providers.volcengine.accessKeyIdPlaceholder', 'Access Key ID')}
+                className={`api-key-input ${isApiKeyValid === true ? 'valid' : isApiKeyValid === false ? 'invalid' : ''}`}
+                disabled={isSessionActive}
+              />
+            </div>
+            <div className="api-key-input-group">
+              <input
+                type="password"
+                value={volcengineSettings.secretAccessKey}
+                onChange={(e) => updateVolcengineSettings({ secretAccessKey: e.target.value })}
+                placeholder={t('providers.volcengine.secretAccessKeyPlaceholder', 'Secret Access Key')}
+                className={`api-key-input ${isApiKeyValid === true ? 'valid' : isApiKeyValid === false ? 'invalid' : ''}`}
+                disabled={isSessionActive}
+              />
+              <button
+                className="validate-button"
+                onClick={handleValidateApiKey}
+                disabled={!volcengineSettings.accessKeyId || !volcengineSettings.secretAccessKey || isValidating || isSessionActive}
+                title={t('simpleSettings.validate')}
+              >
+                {isValidating ? (
+                  <span className="spinner" />
+                ) : isApiKeyValid ? (
+                  <CheckCircle size={16} />
+                ) : (
+                  t('simpleSettings.validate')
+                )}
+              </button>
+            </div>
+          </div>
+        ) : provider === Provider.PALABRA_AI ? (
           // PalabraAI requires both Client ID and Client Secret
           <div className="palabraai-credentials-group">
             <div className="api-key-input-group">
