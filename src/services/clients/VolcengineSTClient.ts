@@ -6,15 +6,15 @@ import {
   ApiKeyValidationResult,
   FilteredModel,
   ResponseConfig,
-  VolcengineSessionConfig
+  VolcengineSTSessionConfig
 } from '../interfaces/IClient';
 import { Provider, ProviderType } from '../../types/Provider';
 import i18n from '../../locales';
 
 /**
- * Volcengine Real-time Speech Translation response subtitle
+ * Volcengine ST Real-time Speech Translation response subtitle
  */
-interface VolcengineSubtitle {
+interface VolcengineSTSubtitle {
   Text: string;
   BeginTime: number;
   EndTime: number;
@@ -24,9 +24,9 @@ interface VolcengineSubtitle {
 }
 
 /**
- * Volcengine WebSocket message types
+ * Volcengine ST WebSocket message types
  */
-interface VolcengineConfigMessage {
+interface VolcengineSTConfigMessage {
   Configuration: {
     SourceLanguage: string;
     TargetLanguages: string[];
@@ -34,11 +34,11 @@ interface VolcengineConfigMessage {
   };
 }
 
-interface VolcengineAudioMessage {
+interface VolcengineSTAudioMessage {
   AudioData: string; // Base64 encoded PCM audio
 }
 
-interface VolcengineEndMessage {
+interface VolcengineSTEndMessage {
   End: boolean;
 }
 
@@ -291,7 +291,7 @@ class VolcengineV4Signer {
  * Authentication: HMAC-SHA256 V4 signature
  * Audio Format: 16kHz, 16-bit, Mono, PCM, Base64 encoded
  */
-export class VolcengineClient implements IClient {
+export class VolcengineSTClient implements IClient {
   private static readonly WEBSOCKET_HOST = 'translate.volces.com';
   private static readonly WEBSOCKET_PATH = '/api/translate/speech/v1/';
   private static readonly API_VERSION = '2020-06-01';
@@ -307,11 +307,11 @@ export class VolcengineClient implements IClient {
   private conversationItems: ConversationItem[] = [];
   private isConnectedState = false;
   private instanceId: string;
-  private currentConfig: VolcengineSessionConfig | null = null;
+  private currentConfig: VolcengineSTSessionConfig | null = null;
 
   // Track current recognition/translation state
   private currentSequence = 0;
-  private pendingSubtitles: Map<number, VolcengineSubtitle> = new Map();
+  private pendingSubtitles: Map<number, VolcengineSTSubtitle> = new Map();
 
   constructor(accessKeyId: string, secretAccessKey: string) {
     this.accessKeyId = accessKeyId;
@@ -319,10 +319,10 @@ export class VolcengineClient implements IClient {
     this.signer = new VolcengineV4Signer(
       accessKeyId,
       secretAccessKey,
-      VolcengineClient.API_REGION,
-      VolcengineClient.API_SERVICE
+      VolcengineSTClient.API_REGION,
+      VolcengineSTClient.API_SERVICE
     );
-    this.instanceId = `volcengine_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    this.instanceId = `volcengine_st_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   }
 
   /**
@@ -377,8 +377,8 @@ export class VolcengineClient implements IClient {
       const signer = new VolcengineV4Signer(
         accessKeyId,
         secretAccessKey,
-        VolcengineClient.API_REGION,
-        VolcengineClient.API_SERVICE
+        VolcengineSTClient.API_REGION,
+        VolcengineSTClient.API_SERVICE
       );
 
       // Simple test translation request body
@@ -413,7 +413,7 @@ export class VolcengineClient implements IClient {
       // Check for authentication errors
       if (result.ResponseMetadata?.Error) {
         const error = result.ResponseMetadata.Error;
-        console.error('[VolcengineClient] API validation error:', error);
+        console.error('[VolcengineSTClient] API validation error:', error);
 
         // Authentication error codes (credentials are invalid)
         const authErrorCodes = [
@@ -463,7 +463,7 @@ export class VolcengineClient implements IClient {
       }
 
       // Success - credentials are valid
-      console.log('[VolcengineClient] Credentials validated successfully');
+      console.log('[VolcengineSTClient] Credentials validated successfully');
       return {
         validation: {
           valid: true,
@@ -475,7 +475,7 @@ export class VolcengineClient implements IClient {
         ]
       };
     } catch (error: any) {
-      console.error('[VolcengineClient] API key validation error:', error);
+      console.error('[VolcengineSTClient] API key validation error:', error);
       return {
         validation: {
           valid: false,
@@ -488,11 +488,11 @@ export class VolcengineClient implements IClient {
   }
 
   async connect(config: SessionConfig): Promise<void> {
-    if (config.provider !== 'volcengine') {
-      throw new Error('Invalid session config for Volcengine client');
+    if (config.provider !== 'volcengine_st') {
+      throw new Error('Invalid session config for VolcengineST client');
     }
 
-    this.currentConfig = config as VolcengineSessionConfig;
+    this.currentConfig = config as VolcengineSTSessionConfig;
     this.conversationItems = [];
     this.currentSequence = 0;
     this.pendingSubtitles.clear();
@@ -500,16 +500,16 @@ export class VolcengineClient implements IClient {
     return new Promise(async (resolve, reject) => {
       try {
         const signedUrl = await this.signer.generateSignedUrl(
-          VolcengineClient.WEBSOCKET_HOST,
-          VolcengineClient.WEBSOCKET_PATH,
-          VolcengineClient.API_ACTION,
-          VolcengineClient.API_VERSION
+          VolcengineSTClient.WEBSOCKET_HOST,
+          VolcengineSTClient.WEBSOCKET_PATH,
+          VolcengineSTClient.API_ACTION,
+          VolcengineSTClient.API_VERSION
         );
 
         this.websocket = new WebSocket(signedUrl);
 
         this.websocket.onopen = () => {
-          console.log('[VolcengineClient] WebSocket connected');
+          console.log('[VolcengineSTClient] WebSocket connected');
           this.isConnectedState = true;
 
           // Send configuration message
@@ -521,7 +521,7 @@ export class VolcengineClient implements IClient {
               type: 'session.opened',
               data: {
                 status: 'connected',
-                provider: 'volcengine',
+                provider: 'volcengine_st',
                 timestamp: Date.now(),
                 sourceLanguage: this.currentConfig?.sourceLanguage,
                 targetLanguages: this.currentConfig?.targetLanguages,
@@ -544,13 +544,13 @@ export class VolcengineClient implements IClient {
         };
 
         this.websocket.onerror = (error) => {
-          console.error('[VolcengineClient] WebSocket error:', error);
+          console.error('[VolcengineSTClient] WebSocket error:', error);
           this.eventHandlers.onError?.(error);
           reject(error);
         };
 
         this.websocket.onclose = (event) => {
-          console.log('[VolcengineClient] WebSocket closed:', event.code, event.reason);
+          console.log('[VolcengineSTClient] WebSocket closed:', event.code, event.reason);
           this.isConnectedState = false;
 
           this.eventHandlers.onRealtimeEvent?.({
@@ -559,7 +559,7 @@ export class VolcengineClient implements IClient {
               type: 'session.closed',
               data: {
                 status: 'disconnected',
-                provider: 'volcengine',
+                provider: 'volcengine_st',
                 timestamp: Date.now(),
                 code: event.code,
                 reason: event.reason,
@@ -570,7 +570,7 @@ export class VolcengineClient implements IClient {
           this.eventHandlers.onClose?.(event);
         };
       } catch (error) {
-        console.error('[VolcengineClient] Connection error:', error);
+        console.error('[VolcengineSTClient] Connection error:', error);
         reject(error);
       }
     });
@@ -582,7 +582,7 @@ export class VolcengineClient implements IClient {
   private sendConfiguration(): void {
     if (!this.websocket || !this.currentConfig) return;
 
-    const configMessage: VolcengineConfigMessage = {
+    const configMessage: VolcengineSTConfigMessage = {
       Configuration: {
         SourceLanguage: this.currentConfig.sourceLanguage,
         TargetLanguages: this.currentConfig.targetLanguages,
@@ -641,7 +641,7 @@ export class VolcengineClient implements IClient {
         this.eventHandlers.onConversationUpdated?.({ item: errorItem });
       }
     } catch (error) {
-      console.error('[VolcengineClient] Error parsing message:', error, data);
+      console.error('[VolcengineSTClient] Error parsing message:', error, data);
     }
   }
 
@@ -650,7 +650,7 @@ export class VolcengineClient implements IClient {
    * Source language subtitles are transcriptions (role: 'user')
    * Target language subtitles are translations (role: 'assistant')
    */
-  private handleSubtitle(subtitle: VolcengineSubtitle): void {
+  private handleSubtitle(subtitle: VolcengineSTSubtitle): void {
     // Store or update the subtitle
     this.pendingSubtitles.set(subtitle.Sequence, subtitle);
 
@@ -698,7 +698,7 @@ export class VolcengineClient implements IClient {
   async disconnect(): Promise<void> {
     if (this.websocket) {
       // Send end signal
-      const endMessage: VolcengineEndMessage = { End: true };
+      const endMessage: VolcengineSTEndMessage = { End: true };
       try {
         this.websocket.send(JSON.stringify(endMessage));
       } catch (e) {
@@ -717,7 +717,7 @@ export class VolcengineClient implements IClient {
         type: 'session.closed',
         data: {
           status: 'disconnected',
-          provider: 'volcengine',
+          provider: 'volcengine_st',
           timestamp: Date.now(),
           reason: 'client_disconnect'
         }
@@ -733,7 +733,7 @@ export class VolcengineClient implements IClient {
 
   updateSession(config: Partial<SessionConfig>): void {
     // Volcengine doesn't support session updates - configuration is set at connection time
-    console.warn('[VolcengineClient] Session updates are not supported. Reconnect to change configuration.');
+    console.warn('[VolcengineSTClient] Session updates are not supported. Reconnect to change configuration.');
   }
 
   reset(): void {
@@ -748,7 +748,7 @@ export class VolcengineClient implements IClient {
    */
   appendInputAudio(audioData: Int16Array): void {
     if (!this.websocket || this.websocket.readyState !== WebSocket.OPEN) {
-      console.warn('[VolcengineClient] Cannot send audio - WebSocket not connected');
+      console.warn('[VolcengineSTClient] Cannot send audio - WebSocket not connected');
       return;
     }
 
@@ -756,7 +756,7 @@ export class VolcengineClient implements IClient {
     const buffer = new Uint8Array(audioData.buffer, audioData.byteOffset, audioData.byteLength);
     const base64Audio = this.arrayBufferToBase64(buffer);
 
-    const audioMessage: VolcengineAudioMessage = {
+    const audioMessage: VolcengineSTAudioMessage = {
       AudioData: base64Audio
     };
 
@@ -779,7 +779,7 @@ export class VolcengineClient implements IClient {
    * Text input is not supported for Volcengine speech translation
    */
   appendInputText(text: string): void {
-    console.warn('[VolcengineClient] Text input is not supported for speech translation');
+    console.warn('[VolcengineSTClient] Text input is not supported for speech translation');
   }
 
   /**
@@ -794,7 +794,7 @@ export class VolcengineClient implements IClient {
    * Cancel response is not supported
    */
   cancelResponse(trackId?: string, offset?: number): void {
-    console.warn('[VolcengineClient] Cancel response is not supported');
+    console.warn('[VolcengineSTClient] Cancel response is not supported');
   }
 
   getConversationItems(): ConversationItem[] {
@@ -806,6 +806,6 @@ export class VolcengineClient implements IClient {
   }
 
   getProvider(): ProviderType {
-    return Provider.VOLCENGINE;
+    return Provider.VOLCENGINE_ST;
   }
 }

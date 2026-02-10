@@ -91,10 +91,10 @@ export interface PalabraAISessionConfig extends BaseSessionConfig {
 }
 
 /**
- * Volcengine-specific session configuration
+ * Volcengine Speech Translate session configuration
  */
-export interface VolcengineSessionConfig extends BaseSessionConfig {
-  provider: 'volcengine';
+export interface VolcengineSTSessionConfig extends BaseSessionConfig {
+  provider: 'volcengine_st';
   sourceLanguage: string;
   targetLanguages: string[];
   hotWordList?: Array<{ Word: string; Scale: number }>;
@@ -103,7 +103,7 @@ export interface VolcengineSessionConfig extends BaseSessionConfig {
 /**
  * Union type for all possible session configurations
  */
-export type SessionConfig = OpenAISessionConfig | GeminiSessionConfig | PalabraAISessionConfig | VolcengineSessionConfig;
+export type SessionConfig = OpenAISessionConfig | GeminiSessionConfig | PalabraAISessionConfig | VolcengineSTSessionConfig;
 
 /**
  * Type guards for session configurations
@@ -120,8 +120,8 @@ export function isPalabraAISessionConfig(config: SessionConfig): config is Palab
   return config.provider === 'palabraai';
 }
 
-export function isVolcengineSessionConfig(config: SessionConfig): config is VolcengineSessionConfig {
-  return config.provider === 'volcengine';
+export function isVolcengineSTSessionConfig(config: SessionConfig): config is VolcengineSTSessionConfig {
+  return config.provider === 'volcengine_st';
 }
 
 /**

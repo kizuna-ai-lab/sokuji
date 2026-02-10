@@ -36,8 +36,8 @@
     "loadingModels": "Naglo-load ng mga available na model...",
     "modelsFound": "{{count}} na mga model ang available",
     "experimentalFeatureTooltip": "Ito ay isang experimental na feature at maaaring hindi stable.",
-    "volcengineInfo": "Volcengine Info",
-    "volcengineInfoText": "Volcengine Real-time Speech Translation provides text-only translation output. Audio synthesis is not supported in this mode.",
+    "volcengineSTInfo": "Volcengine Info",
+    "volcengineSTInfoText": "Volcengine Real-time Speech Translation provides text-only translation output. Audio synthesis is not supported in this mode.",
     "help": "Tulong",
     "auto": "Awtomatiko",
     "low": "Mababa",
@@ -167,7 +167,7 @@
       "name": "Palabra AI",
       "description": "Specialized na translation AI"
     },
-    "volcengine": {
+    "volcengine_st": {
       "name": "Volcengine",
       "description": "ByteDance speech translation",
       "accessKeyIdPlaceholder": "Access Key ID",

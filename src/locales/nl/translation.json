@@ -81,8 +81,8 @@
     "loadingModels": "Beschikbare modellen laden...",
     "modelsFound": "{{count}} modellen beschikbaar",
     "experimentalFeatureTooltip": "Dit is een experimentele functie en kan instabiel zijn.",
-    "volcengineInfo": "Volcengine Info",
-    "volcengineInfoText": "Volcengine Real-time Speech Translation provides text-only translation output. Audio synthesis is not supported in this mode.",
+    "volcengineSTInfo": "Volcengine Info",
+    "volcengineSTInfoText": "Volcengine Real-time Speech Translation provides text-only translation output. Audio synthesis is not supported in this mode.",
     "help": "Help",
     "auto": "Auto",
     "low": "Laag",
@@ -379,7 +379,7 @@
       "name": "Palabra AI",
       "description": "Gespecialiseerde vertaal AI"
     },
-    "volcengine": {
+    "volcengine_st": {
       "name": "Volcengine",
       "description": "ByteDance speech translation",
       "accessKeyIdPlaceholder": "Access Key ID",

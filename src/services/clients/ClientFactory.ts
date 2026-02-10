@@ -3,9 +3,9 @@ import { OpenAIClient } from './OpenAIClient';
 import { OpenAIWebRTCClient } from './OpenAIWebRTCClient';
 import { GeminiClient } from './GeminiClient';
 import { PalabraAIClient } from './PalabraAIClient';
-import { VolcengineClient } from './VolcengineClient';
+import { VolcengineSTClient } from './VolcengineSTClient';
 import { Provider, ProviderType } from '../../types/Provider';
-import { getApiUrl, isKizunaAIEnabled, isVolcengineEnabled } from '../../utils/environment';
+import { getApiUrl, isKizunaAIEnabled, isVolcengineSTEnabled } from '../../utils/environment';
 import { TransportType } from '../../stores/settingsStore';
 
 /**
@@ -95,17 +95,17 @@ export class ClientFactory {
         // Note: WebRTC is not yet supported for Kizuna AI (would require backend proxy)
         return new OpenAIClient(apiKey, getApiUrl());
 
-      case Provider.VOLCENGINE:
-        // Check if Volcengine is enabled before creating the client
-        if (!isVolcengineEnabled()) {
+      case Provider.VOLCENGINE_ST:
+        // Check if Volcengine ST is enabled before creating the client
+        if (!isVolcengineSTEnabled()) {
           throw new Error(`Provider ${provider} is not available in this build`);
         }
         if (!clientSecret) {
           throw new Error(`Secret Access Key is required for ${provider} provider`);
         }
-        // Volcengine uses its own WebSocket-based real-time speech translation API
+        // Volcengine ST uses its own WebSocket-based real-time speech translation API
         // apiKey is the Access Key ID, clientSecret is the Secret Access Key
-        return new VolcengineClient(apiKey, clientSecret);
+        return new VolcengineSTClient(apiKey, clientSecret);
 
       default:
         throw new Error(`Unsupported provider: ${provider}`);

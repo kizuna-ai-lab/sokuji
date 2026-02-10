@@ -4,9 +4,9 @@ import { GeminiProviderConfig } from './GeminiProviderConfig';
 import { OpenAICompatibleProviderConfig } from './OpenAICompatibleProviderConfig';
 import { PalabraAIProviderConfig } from './PalabraAIProviderConfig';
 import { KizunaAIProviderConfig } from './KizunaAIProviderConfig';
-import { VolcengineProviderConfig } from './VolcengineProviderConfig';
+import { VolcengineSTProviderConfig } from './VolcengineSTProviderConfig';
 import { Provider, ProviderType } from '../../types/Provider';
-import { isKizunaAIEnabled, isPalabraAIEnabled, isVolcengineEnabled, isElectron } from '../../utils/environment';
+import { isKizunaAIEnabled, isPalabraAIEnabled, isVolcengineSTEnabled, isElectron } from '../../utils/environment';
 
 interface ProviderConfigInstance {
   getConfig(): ProviderConfig;
@@ -35,9 +35,9 @@ export class ProviderConfigFactory {
       ProviderConfigFactory.configs.set(Provider.OPENAI_COMPATIBLE, new OpenAICompatibleProviderConfig());
     }
 
-    // Only register Volcengine if the feature flag is enabled
-    if (isVolcengineEnabled()) {
-      ProviderConfigFactory.configs.set(Provider.VOLCENGINE, new VolcengineProviderConfig());
+    // Only register Volcengine Speech Translate if the feature flag is enabled
+    if (isVolcengineSTEnabled()) {
+      ProviderConfigFactory.configs.set(Provider.VOLCENGINE_ST, new VolcengineSTProviderConfig());
     }
   }
 

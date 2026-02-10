@@ -1,7 +1,7 @@
 import { OpenAIClient } from './clients/OpenAIClient';
 import { GeminiClient } from './clients/GeminiClient';
 import { PalabraAIClient } from './clients/PalabraAIClient';
-import { VolcengineClient } from './clients/VolcengineClient';
+import { VolcengineSTClient } from './clients/VolcengineSTClient';
 import { ApiKeyValidationResult } from './interfaces/ISettingsService';
 import { FilteredModel } from './interfaces/IClient';
 import { Provider, ProviderType, SUPPORTED_PROVIDERS } from '../types/Provider';
@@ -70,19 +70,19 @@ export class ClientOperations {
           apiKey,
           getApiUrl()
         );
-      case Provider.VOLCENGINE:
-        // Volcengine requires both Access Key ID and Secret Access Key
+      case Provider.VOLCENGINE_ST:
+        // Volcengine ST requires both Access Key ID and Secret Access Key
         if (!clientSecret || !apiKey) {
           return {
             validation: {
               valid: false,
-              message: 'Both Access Key ID and Secret Access Key are required for Volcengine',
+              message: 'Both Access Key ID and Secret Access Key are required for Volcengine Speech Translate',
               validating: false
             },
             models: []
           };
         }
-        return await VolcengineClient.validateApiKeyAndFetchModels(apiKey, clientSecret);
+        return await VolcengineSTClient.validateApiKeyAndFetchModels(apiKey, clientSecret);
       default:
         throw new Error(`Unsupported provider: ${provider}`);
     }
@@ -105,8 +105,8 @@ export class ClientOperations {
       case Provider.KIZUNA_AI:
         // KizunaAI uses the same model detection logic as OpenAI
         return OpenAIClient.getLatestRealtimeModel(filteredModels);
-      case Provider.VOLCENGINE:
-        // Volcengine has a fixed model for speech translation
+      case Provider.VOLCENGINE_ST:
+        // Volcengine ST has a fixed model for speech translation
         return 'speech-translate-v1';
       default:
         throw new Error(`Unsupported provider: ${provider}`);

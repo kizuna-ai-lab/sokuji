@@ -1,6 +1,6 @@
 import { ProviderConfig, LanguageOption, VoiceOption, ModelOption } from './ProviderConfig';
 
-export class VolcengineProviderConfig {
+export class VolcengineSTProviderConfig {
   // Volcengine Real-time Speech Translation supported source languages
   // Based on API documentation: zh, ja, en
   private static readonly SOURCE_LANGUAGES: LanguageOption[] = [
@@ -43,16 +43,16 @@ export class VolcengineProviderConfig {
   ];
 
   // Combined languages for UI display (using source languages as base)
-  private static readonly LANGUAGES: LanguageOption[] = VolcengineProviderConfig.SOURCE_LANGUAGES;
+  private static readonly LANGUAGES: LanguageOption[] = VolcengineSTProviderConfig.SOURCE_LANGUAGES;
 
   // Helper method to get target languages
   static getTargetLanguages(): LanguageOption[] {
-    return VolcengineProviderConfig.TARGET_LANGUAGES;
+    return VolcengineSTProviderConfig.TARGET_LANGUAGES;
   }
 
   // Helper method to get source languages
   static getSourceLanguages(): LanguageOption[] {
-    return VolcengineProviderConfig.SOURCE_LANGUAGES;
+    return VolcengineSTProviderConfig.SOURCE_LANGUAGES;
   }
 
   // Volcengine doesn't have voice selection for real-time translation (text output only)
@@ -65,15 +65,15 @@ export class VolcengineProviderConfig {
 
   getConfig(): ProviderConfig {
     return {
-      id: 'volcengine',
-      displayName: 'Volcengine',
+      id: 'volcengine_st',
+      displayName: 'Volcengine Speech Translate',
 
       apiKeyLabel: 'Access Key ID',
       apiKeyPlaceholder: 'Enter your Volcengine Access Key ID',
 
-      languages: VolcengineProviderConfig.LANGUAGES,
-      voices: VolcengineProviderConfig.VOICES,
-      models: VolcengineProviderConfig.MODELS,
+      languages: VolcengineSTProviderConfig.LANGUAGES,
+      voices: VolcengineSTProviderConfig.VOICES,
+      models: VolcengineSTProviderConfig.MODELS,
       noiseReductionModes: [], // Volcengine handles audio processing internally
       transcriptModels: [], // Volcengine handles transcription internally
 

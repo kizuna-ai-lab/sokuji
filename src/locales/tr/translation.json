@@ -36,8 +36,8 @@
     "loadingModels": "Mevcut modeller yükleniyor...",
     "modelsFound": "{{count}} model mevcut",
     "experimentalFeatureTooltip": "Bu deneysel bir özelliktir ve kararsız olabilir.",
-    "volcengineInfo": "Volcengine Info",
-    "volcengineInfoText": "Volcengine Real-time Speech Translation provides text-only translation output. Audio synthesis is not supported in this mode.",
+    "volcengineSTInfo": "Volcengine Info",
+    "volcengineSTInfoText": "Volcengine Real-time Speech Translation provides text-only translation output. Audio synthesis is not supported in this mode.",
     "apiKeyValidationCompleted": "API anahtarı doğrulaması tamamlandı",
     "errorValidatingApiKey": "API anahtarını doğrularken hata",
     "sessionActiveNotice": "Oturum aktifken ayarlar kilitlenir. Ayarları değiştirmek için lütfen oturumu sonlandırın.",
@@ -317,7 +317,7 @@
       "name": "Palabra AI",
       "description": "Uzmanlaşmış çeviri AI'si"
     },
-    "volcengine": {
+    "volcengine_st": {
       "name": "Volcengine",
       "description": "ByteDance speech translation",
       "accessKeyIdPlaceholder": "Access Key ID",

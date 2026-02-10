@@ -9,14 +9,14 @@ import {
   useOpenAICompatibleSettings,
   usePalabraAISettings,
   useKizunaAISettings,
-  useVolcengineSettings,
+  useVolcengineSTSettings,
   useIsApiKeyValid,
   useSetProvider,
   useUpdateOpenAI,
   useUpdateGemini,
   useUpdateOpenAICompatible,
   useUpdatePalabraAI,
-  useUpdateVolcengine,
+  useUpdateVolcengineST,
   useValidateApiKey,
   useIsValidating,
   useValidationMessage,
@@ -55,7 +55,7 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
   const openAICompatibleSettings = useOpenAICompatibleSettings();
   const palabraAISettings = usePalabraAISettings();
   const kizunaAISettings = useKizunaAISettings();
-  const volcengineSettings = useVolcengineSettings();
+  const volcengineSTSettings = useVolcengineSTSettings();
   const isApiKeyValid = useIsApiKeyValid();
 
   const setProvider = useSetProvider();
@@ -63,7 +63,7 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
   const updateGeminiSettings = useUpdateGemini();
   const updateOpenAICompatibleSettings = useUpdateOpenAICompatible();
   const updatePalabraAISettings = useUpdatePalabraAI();
-  const updateVolcengineSettings = useUpdateVolcengine();
+  const updateVolcengineSTSettings = useUpdateVolcengineST();
   const validateApiKey = useValidateApiKey();
   const isValidating = useIsValidating();
   const validationMessage = useValidationMessage();
@@ -90,8 +90,8 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
         return palabraAISettings.clientId;
       case Provider.KIZUNA_AI:
         return kizunaAISettings.apiKey || '';
-      case Provider.VOLCENGINE:
-        return volcengineSettings.accessKeyId;
+      case Provider.VOLCENGINE_ST:
+        return volcengineSTSettings.accessKeyId;
       default:
         return '';
     }
@@ -115,8 +115,8 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
       case Provider.KIZUNA_AI:
         console.warn('KizunaAI API key is managed automatically');
         break;
-      case Provider.VOLCENGINE:
-        updateVolcengineSettings({ accessKeyId: value });
+      case Provider.VOLCENGINE_ST:
+        updateVolcengineSTSettings({ accessKeyId: value });
         break;
     }
   };
@@ -199,11 +199,11 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
           icon: User,
           description: t('providers.kizunaai.description')
         };
-      case Provider.VOLCENGINE:
+      case Provider.VOLCENGINE_ST:
         return {
-          name: t('providers.volcengine.name'),
+          name: t('providers.volcengine_st.name'),
           icon: AudioLines,
-          description: t('providers.volcengine.description')
+          description: t('providers.volcengine_st.description')
         };
       default:
         return {
@@ -345,15 +345,15 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
 
       {/* API Key Input or Kizuna AI Status */}
       {provider !== Provider.KIZUNA_AI ? (
-        provider === Provider.VOLCENGINE ? (
-          // Volcengine requires both Access Key ID and Secret Access Key
-          <div className="volcengine-credentials-group">
+        provider === Provider.VOLCENGINE_ST ? (
+          // Volcengine ST requires both Access Key ID and Secret Access Key
+          <div className="volcengine-st-credentials-group">
             <div className="api-key-input-group">
               <input
                 type="text"
-                value={volcengineSettings.accessKeyId}
-                onChange={(e) => updateVolcengineSettings({ accessKeyId: e.target.value })}
-                placeholder={t('providers.volcengine.accessKeyIdPlaceholder', 'Access Key ID')}
+                value={volcengineSTSettings.accessKeyId}
+                onChange={(e) => updateVolcengineSTSettings({ accessKeyId: e.target.value })}
+                placeholder={t('providers.volcengine_st.accessKeyIdPlaceholder', 'Access Key ID')}
                 className={`api-key-input ${isApiKeyValid === true ? 'valid' : isApiKeyValid === false ? 'invalid' : ''}`}
                 disabled={isSessionActive}
               />
@@ -361,16 +361,16 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
             <div className="api-key-input-group">
               <input
                 type="password"
-                value={volcengineSettings.secretAccessKey}
-                onChange={(e) => updateVolcengineSettings({ secretAccessKey: e.target.value })}
-                placeholder={t('providers.volcengine.secretAccessKeyPlaceholder', 'Secret Access Key')}
+                value={volcengineSTSettings.secretAccessKey}
+                onChange={(e) => updateVolcengineSTSettings({ secretAccessKey: e.target.value })}
+                placeholder={t('providers.volcengine_st.secretAccessKeyPlaceholder', 'Secret Access Key')}
                 className={`api-key-input ${isApiKeyValid === true ? 'valid' : isApiKeyValid === false ? 'invalid' : ''}`}
                 disabled={isSessionActive}
               />
               <button
                 className="validate-button"
                 onClick={handleValidateApiKey}
-                disabled={!volcengineSettings.accessKeyId || !volcengineSettings.secretAccessKey || isValidating || isSessionActive}
+                disabled={!volcengineSTSettings.accessKeyId || !volcengineSTSettings.secretAccessKey || isValidating || isSessionActive}
                 title={t('simpleSettings.validate')}
               >
                 {isValidating ? (

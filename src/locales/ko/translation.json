@@ -82,8 +82,8 @@
     "loadingModels": "사용 가능한 모델 로딩 중...",
     "modelsFound": "{{count}}개의 모델 사용 가능",
     "experimentalFeatureTooltip": "이것은 실험적인 기능이며 불안정할 수 있습니다.",
-    "volcengineInfo": "Volcengine Info",
-    "volcengineInfoText": "Volcengine Real-time Speech Translation provides text-only translation output. Audio synthesis is not supported in this mode.",
+    "volcengineSTInfo": "Volcengine Info",
+    "volcengineSTInfoText": "Volcengine Real-time Speech Translation provides text-only translation output. Audio synthesis is not supported in this mode.",
     "geminiParticipantTokenWarning": "Gemini participant mode generates audio responses that are discarded, resulting in additional token usage.",
     "help": "도움말",
     "auto": "자동",
@@ -402,7 +402,7 @@
       "name": "Palabra AI",
       "description": "전문 번역 AI"
     },
-    "volcengine": {
+    "volcengine_st": {
       "name": "Volcengine",
       "description": "ByteDance speech translation",
       "accessKeyIdPlaceholder": "Access Key ID",

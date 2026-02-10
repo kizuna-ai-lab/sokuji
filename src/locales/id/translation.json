@@ -81,8 +81,8 @@
     "loadingModels": "Memuat model yang tersedia...",
     "modelsFound": "{{count}} model tersedia",
     "experimentalFeatureTooltip": "Ini adalah fitur eksperimental dan mungkin tidak stabil.",
-    "volcengineInfo": "Volcengine Info",
-    "volcengineInfoText": "Volcengine Real-time Speech Translation provides text-only translation output. Audio synthesis is not supported in this mode.",
+    "volcengineSTInfo": "Volcengine Info",
+    "volcengineSTInfoText": "Volcengine Real-time Speech Translation provides text-only translation output. Audio synthesis is not supported in this mode.",
     "help": "Bantuan",
     "medium": "Sedang",
     "high": "Tinggi",
@@ -205,7 +205,7 @@
       "name": "Palabra AI",
       "description": "AI terjemahan khusus"
     },
-    "volcengine": {
+    "volcengine_st": {
       "name": "Volcengine",
       "description": "ByteDance speech translation",
       "accessKeyIdPlaceholder": "Access Key ID",

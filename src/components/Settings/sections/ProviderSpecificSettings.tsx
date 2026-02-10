@@ -1,6 +1,6 @@
 import React, { Fragment } from 'react';
 import { ProviderConfig } from '../../../services/providers/ProviderConfig';
-import { VolcengineProviderConfig } from '../../../services/providers/VolcengineProviderConfig';
+import { VolcengineSTProviderConfig } from '../../../services/providers/VolcengineSTProviderConfig';
 import {
   useProvider,
   useSystemInstructions,
@@ -12,7 +12,7 @@ import {
   useOpenAICompatibleSettings,
   usePalabraAISettings,
   useKizunaAISettings,
-  useVolcengineSettings,
+  useVolcengineSTSettings,
   useSetSystemInstructions,
   useSetTemplateSystemInstructions,
   useSetUseTemplateMode,
@@ -22,7 +22,7 @@ import {
   useUpdateOpenAICompatible,
   useUpdatePalabraAI,
   useUpdateKizunaAI,
-  useUpdateVolcengine,
+  useUpdateVolcengineST,
   useGetCurrentProviderSettings,
   TransportType
 } from '../../../stores/settingsStore';
@@ -68,7 +68,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
   const geminiSettings = useGeminiSettings();
   const palabraAISettings = usePalabraAISettings();
   const kizunaAISettings = useKizunaAISettings();
-  const volcengineSettings = useVolcengineSettings();
+  const volcengineSTSettings = useVolcengineSTSettings();
 
   // Actions from store
   const setSystemInstructions = useSetSystemInstructions();
@@ -80,7 +80,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
   const updateGeminiSettings = useUpdateGemini();
   const updatePalabraAISettings = useUpdatePalabraAI();
   const updateKizunaAISettings = useUpdateKizunaAI();
-  const updateVolcengineSettings = useUpdateVolcengine();
+  const updateVolcengineSTSettings = useUpdateVolcengineST();
   const getCurrentProviderSettings = useGetCurrentProviderSettings();
   const { t } = useTranslation();
   const { trackEvent } = useAnalytics();
@@ -100,8 +100,8 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
       updateGeminiSettings({ [key]: value });
     } else if (provider === Provider.PALABRA_AI) {
       updatePalabraAISettings({ [key]: value });
-    } else if (provider === Provider.VOLCENGINE) {
-      updateVolcengineSettings({ [key]: value });
+    } else if (provider === Provider.VOLCENGINE_ST) {
+      updateVolcengineSTSettings({ [key]: value });
     } else {
       console.warn('[Sokuji][ProviderSpecificSettings] Unsupported provider:', provider);
     }
@@ -1007,14 +1007,14 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
     );
   };
 
-  const renderVolcengineSettings = () => {
-    if (provider !== Provider.VOLCENGINE) {
+  const renderVolcengineSTSettings = () => {
+    if (provider !== Provider.VOLCENGINE_ST) {
       return null;
     }
 
     // Get target and source languages from the provider config
-    const targetLanguages = VolcengineProviderConfig.getTargetLanguages();
-    const sourceLanguages = VolcengineProviderConfig.getSourceLanguages();
+    const targetLanguages = VolcengineSTProviderConfig.getTargetLanguages();
+    const sourceLanguages = VolcengineSTProviderConfig.getSourceLanguages();
 
     return (
       <>
@@ -1026,11 +1026,11 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
             </div>
             <select
               className="select-dropdown"
-              value={volcengineSettings.sourceLanguage}
+              value={volcengineSTSettings.sourceLanguage}
               onChange={(e) => {
-                const oldSourceLang = volcengineSettings.sourceLanguage;
+                const oldSourceLang = volcengineSTSettings.sourceLanguage;
                 const newSourceLang = e.target.value;
-                updateVolcengineSettings({ sourceLanguage: newSourceLang });
+                updateVolcengineSTSettings({ sourceLanguage: newSourceLang });
 
                 trackEvent('language_changed', {
                   from_language: oldSourceLang,
@@ -1051,11 +1051,11 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
             </div>
             <select
               className="select-dropdown"
-              value={volcengineSettings.targetLanguage}
+              value={volcengineSTSettings.targetLanguage}
               onChange={(e) => {
-                const oldTargetLang = volcengineSettings.targetLanguage;
+                const oldTargetLang = volcengineSTSettings.targetLanguage;
                 const newTargetLang = e.target.value;
-                updateVolcengineSettings({ targetLanguage: newTargetLang });
+                updateVolcengineSTSettings({ targetLanguage: newTargetLang });
 
                 trackEvent('language_changed', {
                   from_language: oldTargetLang,
@@ -1073,9 +1073,9 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
         </div>
 
         <div className="settings-section">
-          <h2>{t('settings.volcengineInfo', 'Volcengine Info')}</h2>
+          <h2>{t('settings.volcengineSTInfo', 'Volcengine Speech Translate Info')}</h2>
           <div className="setting-item">
-            <div className="volcengine-info-notice" style={{
+            <div className="volcengine-st-info-notice" style={{
               padding: '12px',
               backgroundColor: 'rgba(16, 163, 127, 0.1)',
               border: '1px solid rgba(16, 163, 127, 0.3)',
@@ -1084,7 +1084,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
               color: '#aaa'
             }}>
               <Info size={14} style={{ marginRight: '8px', verticalAlign: 'middle', color: '#10a37f' }} />
-              {t('settings.volcengineInfoText', 'Volcengine Real-time Speech Translation provides text-only translation output. Audio synthesis is not supported in this mode.')}
+              {t('settings.volcengineSTInfoText', 'Volcengine Real-time Speech Translation provides text-only translation output. Audio synthesis is not supported in this mode.')}
             </div>
           </div>
         </div>
@@ -1189,7 +1189,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
       {renderTransportTypeSettings()}
       {renderModelConfigurationSettings()}
       {renderPalabraAISettings()}
-      {renderVolcengineSettings()}
+      {renderVolcengineSTSettings()}
     </Fragment>
   );
 };

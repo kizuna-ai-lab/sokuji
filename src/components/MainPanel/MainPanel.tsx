@@ -9,7 +9,7 @@ import {
   useOpenAICompatibleSettings,
   usePalabraAISettings,
   useKizunaAISettings,
-  useVolcengineSettings,
+  useVolcengineSTSettings,
   useIsApiKeyValid,
   useAvailableModels,
   useLoadingModels,
@@ -63,7 +63,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   const geminiSettings = useGeminiSettings();
   const palabraAISettings = usePalabraAISettings();
   const kizunaAISettings = useKizunaAISettings();
-  const volcengineSettings = useVolcengineSettings();
+  const volcengineSTSettings = useVolcengineSTSettings();
   const transportType = useTransportType();
   const isApiKeyValid = useIsApiKeyValid();
   const availableModels = useAvailableModels();
@@ -182,8 +182,8 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     let clientSecret: string | undefined;
     if (provider === Provider.PALABRA_AI) {
       clientSecret = palabraAISettings.clientSecret;
-    } else if (provider === Provider.VOLCENGINE) {
-      clientSecret = volcengineSettings.secretAccessKey;
+    } else if (provider === Provider.VOLCENGINE_ST) {
+      clientSecret = volcengineSTSettings.secretAccessKey;
     }
 
     return ClientFactory.createClient(
@@ -195,7 +195,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       effectiveTransportType,
       webrtcOptions
     );
-  }, [provider, openAICompatibleSettings.customEndpoint, palabraAISettings.clientSecret, volcengineSettings.secretAccessKey, selectedInputDevice?.deviceId, selectedMonitorDevice?.deviceId, isInputDeviceOn]);
+  }, [provider, openAICompatibleSettings.customEndpoint, palabraAISettings.clientSecret, volcengineSTSettings.secretAccessKey, selectedInputDevice?.deviceId, selectedMonitorDevice?.deviceId, isInputDeviceOn]);
 
   /**
    * Helper to create event handlers for participant audio client
@@ -763,9 +763,9 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           // PalabraAI uses clientId as the "apiKey" parameter for ClientFactory
           apiKey = palabraAISettings.clientId;
           break;
-        case Provider.VOLCENGINE:
-          // Volcengine uses accessKeyId as the "apiKey" parameter for ClientFactory
-          apiKey = volcengineSettings.accessKeyId;
+        case Provider.VOLCENGINE_ST:
+          // Volcengine ST uses accessKeyId as the "apiKey" parameter for ClientFactory
+          apiKey = volcengineSTSettings.accessKeyId;
           break;
         default:
           throw new Error(`Unsupported provider: ${provider}`);
@@ -1055,7 +1055,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     openAICompatibleSettings,
     palabraAISettings,
     kizunaAISettings,
-    volcengineSettings,
+    volcengineSTSettings,
     provider,
     transportType,
     isLoaded,
