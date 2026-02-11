@@ -5,8 +5,9 @@ import { OpenAICompatibleProviderConfig } from './OpenAICompatibleProviderConfig
 import { PalabraAIProviderConfig } from './PalabraAIProviderConfig';
 import { KizunaAIProviderConfig } from './KizunaAIProviderConfig';
 import { VolcengineSTProviderConfig } from './VolcengineSTProviderConfig';
+import { VolcengineAST2ProviderConfig } from './VolcengineAST2ProviderConfig';
 import { Provider, ProviderType } from '../../types/Provider';
-import { isKizunaAIEnabled, isPalabraAIEnabled, isVolcengineSTEnabled, isElectron } from '../../utils/environment';
+import { isKizunaAIEnabled, isPalabraAIEnabled, isVolcengineSTEnabled, isVolcengineAST2Enabled, isElectron } from '../../utils/environment';
 
 interface ProviderConfigInstance {
   getConfig(): ProviderConfig;
@@ -38,6 +39,11 @@ export class ProviderConfigFactory {
     // Only register Volcengine Speech Translate if the feature flag is enabled
     if (isVolcengineSTEnabled()) {
       ProviderConfigFactory.configs.set(Provider.VOLCENGINE_ST, new VolcengineSTProviderConfig());
+    }
+
+    // Only register Volcengine AST 2.0 in Electron (requires header injection for WebSocket auth)
+    if (isElectron() && isVolcengineAST2Enabled()) {
+      ProviderConfigFactory.configs.set(Provider.VOLCENGINE_AST2, new VolcengineAST2ProviderConfig());
     }
   }
 

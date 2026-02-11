@@ -64,10 +64,41 @@ contextBridge.exposeInMainWorld(
       }
     },
     receive: (channel, func) => {
-      const validChannels = ['fromMain', 'audio-status'];
+      const validChannels = [
+        'fromMain',
+        'audio-status',
+        // Volcengine AST 2.0 WebSocket proxy events (main → renderer)
+        'volcengine-ast2-message',
+        'volcengine-ast2-error',
+        'volcengine-ast2-close',
+      ];
       if (validChannels.includes(channel)) {
-        // Deliberately strip event as it includes `sender` 
+        // Deliberately strip event as it includes `sender`
         ipcRenderer.on(channel, (event, ...args) => func(...args));
+      }
+    },
+    removeListener: (channel, func) => {
+      const validChannels = [
+        'fromMain',
+        'audio-status',
+        'volcengine-ast2-message',
+        'volcengine-ast2-error',
+        'volcengine-ast2-close',
+      ];
+      if (validChannels.includes(channel)) {
+        ipcRenderer.removeListener(channel, func);
+      }
+    },
+    removeAllListeners: (channel) => {
+      const validChannels = [
+        'fromMain',
+        'audio-status',
+        'volcengine-ast2-message',
+        'volcengine-ast2-error',
+        'volcengine-ast2-close',
+      ];
+      if (validChannels.includes(channel)) {
+        ipcRenderer.removeAllListeners(channel);
       }
     },
     invoke: (channel, data) => {
@@ -92,6 +123,10 @@ contextBridge.exposeInMainWorld(
         // electron-audio-loopback channels (auto-registered by initMain())
         'enable-loopback-audio',
         'disable-loopback-audio',
+        // Volcengine AST 2.0 WebSocket proxy (renderer → main)
+        'volcengine-ast2-connect',
+        'volcengine-ast2-send',
+        'volcengine-ast2-disconnect',
       ];
       if (validChannels.includes(channel)) {
         return ipcRenderer.invoke(channel, data);

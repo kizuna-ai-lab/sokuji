@@ -1,6 +1,7 @@
 import React, { Fragment } from 'react';
 import { ProviderConfig } from '../../../services/providers/ProviderConfig';
 import { VolcengineSTProviderConfig } from '../../../services/providers/VolcengineSTProviderConfig';
+import { VolcengineAST2ProviderConfig } from '../../../services/providers/VolcengineAST2ProviderConfig';
 import {
   useProvider,
   useSystemInstructions,
@@ -13,6 +14,7 @@ import {
   usePalabraAISettings,
   useKizunaAISettings,
   useVolcengineSTSettings,
+  useVolcengineAST2Settings,
   useSetSystemInstructions,
   useSetTemplateSystemInstructions,
   useSetUseTemplateMode,
@@ -23,6 +25,7 @@ import {
   useUpdatePalabraAI,
   useUpdateKizunaAI,
   useUpdateVolcengineST,
+  useUpdateVolcengineAST2,
   useGetCurrentProviderSettings,
   TransportType
 } from '../../../stores/settingsStore';
@@ -69,6 +72,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
   const palabraAISettings = usePalabraAISettings();
   const kizunaAISettings = useKizunaAISettings();
   const volcengineSTSettings = useVolcengineSTSettings();
+  const volcengineAST2Settings = useVolcengineAST2Settings();
 
   // Actions from store
   const setSystemInstructions = useSetSystemInstructions();
@@ -81,6 +85,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
   const updatePalabraAISettings = useUpdatePalabraAI();
   const updateKizunaAISettings = useUpdateKizunaAI();
   const updateVolcengineSTSettings = useUpdateVolcengineST();
+  const updateVolcengineAST2Settings = useUpdateVolcengineAST2();
   const getCurrentProviderSettings = useGetCurrentProviderSettings();
   const { t } = useTranslation();
   const { trackEvent } = useAnalytics();
@@ -102,6 +107,8 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
       updatePalabraAISettings({ [key]: value });
     } else if (provider === Provider.VOLCENGINE_ST) {
       updateVolcengineSTSettings({ [key]: value });
+    } else if (provider === Provider.VOLCENGINE_AST2) {
+      updateVolcengineAST2Settings({ [key]: value });
     } else {
       console.warn('[Sokuji][ProviderSpecificSettings] Unsupported provider:', provider);
     }
@@ -1007,6 +1014,90 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
     );
   };
 
+  const renderVolcengineAST2Settings = () => {
+    if (provider !== Provider.VOLCENGINE_AST2) {
+      return null;
+    }
+
+    const sourceLanguages = VolcengineAST2ProviderConfig.getSourceLanguages();
+    const targetLanguages = VolcengineAST2ProviderConfig.getTargetLanguages();
+
+    return (
+      <>
+        <div className="settings-section">
+          <h2>{t('settings.languageSettings', 'Language Settings')}</h2>
+          <div className="setting-item">
+            <div className="setting-label">
+              <span>{t('settings.sourceLanguage')}</span>
+            </div>
+            <select
+              className="select-dropdown"
+              value={volcengineAST2Settings.sourceLanguage}
+              onChange={(e) => {
+                const oldSourceLang = volcengineAST2Settings.sourceLanguage;
+                const newSourceLang = e.target.value;
+                updateVolcengineAST2Settings({ sourceLanguage: newSourceLang });
+
+                trackEvent('language_changed', {
+                  from_language: oldSourceLang,
+                  to_language: newSourceLang,
+                  language_type: 'source'
+                });
+              }}
+              disabled={isSessionActive}
+            >
+              {sourceLanguages.map((lang: any) => (
+                <option key={lang.value} value={lang.value}>{lang.name}</option>
+              ))}
+            </select>
+          </div>
+          <div className="setting-item">
+            <div className="setting-label">
+              <span>{t('settings.targetLanguage')}</span>
+            </div>
+            <select
+              className="select-dropdown"
+              value={volcengineAST2Settings.targetLanguage}
+              onChange={(e) => {
+                const oldTargetLang = volcengineAST2Settings.targetLanguage;
+                const newTargetLang = e.target.value;
+                updateVolcengineAST2Settings({ targetLanguage: newTargetLang });
+
+                trackEvent('language_changed', {
+                  from_language: oldTargetLang,
+                  to_language: newTargetLang,
+                  language_type: 'target'
+                });
+              }}
+              disabled={isSessionActive}
+            >
+              {targetLanguages.map((lang: any) => (
+                <option key={lang.value} value={lang.value}>{lang.name}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className="settings-section">
+          <h2>{t('settings.volcengineAST2Info', 'Volcengine AST Info')}</h2>
+          <div className="setting-item">
+            <div className="volcengine-st-info-notice" style={{
+              padding: '12px',
+              backgroundColor: 'rgba(16, 163, 127, 0.1)',
+              border: '1px solid rgba(16, 163, 127, 0.3)',
+              borderRadius: '8px',
+              fontSize: '13px',
+              color: '#aaa'
+            }}>
+              <Info size={14} style={{ marginRight: '8px', verticalAlign: 'middle', color: '#10a37f' }} />
+              {t('settings.volcengineAST2InfoText', 'Volcengine AST 2.0 provides speech-to-speech translation with automatic voice cloning. The translated audio preserves the original speaker\'s voice characteristics.')}
+            </div>
+          </div>
+        </div>
+      </>
+    );
+  };
+
   const renderVolcengineSTSettings = () => {
     if (provider !== Provider.VOLCENGINE_ST) {
       return null;
@@ -1190,6 +1281,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
       {renderModelConfigurationSettings()}
       {renderPalabraAISettings()}
       {renderVolcengineSTSettings()}
+      {renderVolcengineAST2Settings()}
     </Fragment>
   );
 };

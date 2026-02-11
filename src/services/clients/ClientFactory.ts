@@ -4,8 +4,9 @@ import { OpenAIWebRTCClient } from './OpenAIWebRTCClient';
 import { GeminiClient } from './GeminiClient';
 import { PalabraAIClient } from './PalabraAIClient';
 import { VolcengineSTClient } from './VolcengineSTClient';
+import { VolcengineAST2Client } from './VolcengineAST2Client';
 import { Provider, ProviderType } from '../../types/Provider';
-import { getApiUrl, isKizunaAIEnabled, isVolcengineSTEnabled } from '../../utils/environment';
+import { getApiUrl, isKizunaAIEnabled, isVolcengineSTEnabled, isVolcengineAST2Enabled } from '../../utils/environment';
 import { TransportType } from '../../stores/settingsStore';
 
 /**
@@ -106,6 +107,18 @@ export class ClientFactory {
         // Volcengine ST uses its own WebSocket-based real-time speech translation API
         // apiKey is the Access Key ID, clientSecret is the Secret Access Key
         return new VolcengineSTClient(apiKey, clientSecret);
+
+      case Provider.VOLCENGINE_AST2:
+        // Check if Volcengine AST2 is enabled before creating the client
+        if (!isVolcengineAST2Enabled()) {
+          throw new Error(`Provider ${provider} is not available in this build`);
+        }
+        if (!clientSecret) {
+          throw new Error(`Access Token is required for ${provider} provider`);
+        }
+        // Volcengine AST2 uses protobuf binary over WebSocket
+        // apiKey is the APP ID, clientSecret is the Access Token
+        return new VolcengineAST2Client(apiKey, clientSecret);
 
       default:
         throw new Error(`Unsupported provider: ${provider}`);

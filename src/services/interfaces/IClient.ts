@@ -101,9 +101,18 @@ export interface VolcengineSTSessionConfig extends BaseSessionConfig {
 }
 
 /**
+ * Volcengine AST 2.0 session configuration (s2s mode)
+ */
+export interface VolcengineAST2SessionConfig extends BaseSessionConfig {
+  provider: 'volcengine_ast2';
+  sourceLanguage: string;
+  targetLanguage: string;
+}
+
+/**
  * Union type for all possible session configurations
  */
-export type SessionConfig = OpenAISessionConfig | GeminiSessionConfig | PalabraAISessionConfig | VolcengineSTSessionConfig;
+export type SessionConfig = OpenAISessionConfig | GeminiSessionConfig | PalabraAISessionConfig | VolcengineSTSessionConfig | VolcengineAST2SessionConfig;
 
 /**
  * Type guards for session configurations
@@ -122,6 +131,10 @@ export function isPalabraAISessionConfig(config: SessionConfig): config is Palab
 
 export function isVolcengineSTSessionConfig(config: SessionConfig): config is VolcengineSTSessionConfig {
   return config.provider === 'volcengine_st';
+}
+
+export function isVolcengineAST2SessionConfig(config: SessionConfig): config is VolcengineAST2SessionConfig {
+  return config.provider === 'volcengine_ast2';
 }
 
 /**

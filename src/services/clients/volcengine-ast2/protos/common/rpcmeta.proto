@@ -1,0 +1,97 @@
+syntax = "proto3";
+
+package data.speech.common;
+
+// NOTE(lucas): We define the fields of RequestMeta and ResponseMeta using
+// PascalCase, which does not comform to normal practice, so that they are
+// mostly compatible with the original definition declared as Go structs in:
+// code.byted.org/lab-speech/gocommon/v2/srvutil/rpcmeta
+
+message RequestMeta {
+  // Required.
+  // Backend endpoint name. Gateway will also use it to infer HTTP/WebSocket URL
+  // path.
+  string Endpoint = 1 [ json_name = "endpoint" ];
+  // Required.
+  // For historical reasons, this can be either a volcanic appid or a sail
+  // platform appKey. If both are transmitted at the same time, you need to put
+  // the volcengine appid in the AppID
+  string AppKey = 2 [ json_name = "app_key" ];
+  // Optional.
+  // appID in volcengine
+  string AppID = 3 [ json_name = "app_id" ];
+  // - Required by gateway, you must provide a ResourceID on calling gateway.
+  // - Optional for backend services, gateway doesn't need to pass this to
+  // backend.
+  string ResourceID = 4 [ json_name = "resource_id" ];
+  // Required for Websocket connection (SDK -> Gateway), optional otherwise.
+  // In websocket communication, a connection can be reused for multiple
+  // simultaneous sessions. Servers use this ID mainly for debugging purposes.
+  string ConnectionID = 5 [ json_name = "connection_id" ];
+  // Required. Session is the minimum unit that performs a specific task. The
+  // request data in a session can be devided into a number data packets
+  // transmitted (but not necessarily processed by the server) in a sequential
+  // manner. Each data packet can be denoted by a "Sequence" number (although
+  // populating the "Sequence" field is not mandatory). In the simplest case,
+  // all request data in a session is sent as a lump (ie, only one packet).
+  string SessionID = 6 [ json_name = "session_id" ];
+  // Optional, if not passed, default value 0 will be assumed. For streaming
+  // RPC, this field can be omitted (because the order of sending is preserved
+  // at the receiving side) unless the client needs the acknowledgement of
+  // packet receipt from the server side.
+  int32 Sequence = 7 [ json_name = "sequence" ];
+}
+
+message BillingItem {
+  // Required.
+  // Billing unit, eg:
+  // - minute (billed by the number of minutes used)
+  // - word (billed by the number of words submitted or generated)
+  // - call (billed by the number of RPC/HTTP/Websocket calls)
+  string Unit = 1 [ json_name = "unit" ];
+  // Optional.
+  // The amount that the consumer consumed counted by `BillingItem.Unit`. We use
+  // a float number because sometimes we want precision better than whole
+  // numbers.
+  float Quantity = 2 [ json_name = "quantity" ];
+}
+
+message Billing {
+  // Optional.
+  // For new billing items, use this field. This is a list because there may be
+  // more than one billing items in one request/session.
+  repeated BillingItem Items = 1 [ json_name = "items" ];
+
+  /*
+   * The following are reserved for compatibility. For new billing items, use
+   * field `Items`.
+   * We do NOT recommend using `Items` and the fields below at the same time.
+   */
+
+  // Optional.
+  // For commodities that are priced w.r.t (typically audio/video) duration in
+  // milliseconds.
+  int64 DurationMsec = 2 [ json_name = "duration_msec" ];
+  // Optional.
+  // For commodities priced w.r.t text length (number of words/tokens).
+  int64 WordCount = 3 [ json_name = "word_count" ];
+}
+
+message ResponseMeta {
+  // Required.
+  // The same SessionID in RequestMeta.
+  string SessionID = 1 [ json_name = "session_id" ];
+  // Optional.
+  // The same sequence in RequestMeta (except that server *may* turn a positive
+  // sequence to its negative counterpart).
+  int32 Sequence = 2 [ json_name = "sequence" ];
+  // Optional.
+  // Response status code.
+  int32 StatusCode = 3 [ json_name = "status_code" ];
+  // Optional.
+  // Detailed status information.
+  string Message = 4 [ json_name = "message" ];
+  // Billing information in case only backend servers can collect this
+  // information.
+  optional Billing Billing = 5 [ json_name = "billing" ];
+}
