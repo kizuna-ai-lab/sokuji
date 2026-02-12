@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
-import { Key, Bot, Sparkles, Zap, AudioLines, User, HelpCircle, CircleHelp, ChevronDown, ChevronUp, CheckCircle, AlertCircle, FlaskConical } from 'lucide-react';
+import { Key, Zap, HelpCircle, CircleHelp, ChevronDown, ChevronUp, CheckCircle, AlertCircle, FlaskConical } from 'lucide-react';
+import { OpenAIIcon, GeminiIcon, PalabraAIIcon, KizunaAIIcon, VolcengineIcon } from '../../Icons/ProviderIcons';
 import { useTranslation } from 'react-i18next';
 import Tooltip from '../../Tooltip/Tooltip';
 import {
@@ -181,13 +182,13 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
       case Provider.OPENAI:
         return {
           name: t('providers.openai.name'),
-          icon: Bot,
+          icon: OpenAIIcon,
           description: t('providers.openai.description')
         };
       case Provider.GEMINI:
         return {
           name: t('providers.gemini.name'),
-          icon: Sparkles,
+          icon: GeminiIcon,
           description: t('providers.gemini.description')
         };
       case Provider.OPENAI_COMPATIBLE:
@@ -199,25 +200,25 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
       case Provider.PALABRA_AI:
         return {
           name: t('providers.palabraai.name'),
-          icon: AudioLines,
+          icon: PalabraAIIcon,
           description: t('providers.palabraai.description')
         };
       case Provider.KIZUNA_AI:
         return {
           name: t('providers.kizunaai.name'),
-          icon: User,
+          icon: KizunaAIIcon,
           description: t('providers.kizunaai.description')
         };
       case Provider.VOLCENGINE_ST:
         return {
           name: t('providers.volcengine_st.name'),
-          icon: AudioLines,
+          icon: VolcengineIcon,
           description: t('providers.volcengine_st.description')
         };
       case Provider.VOLCENGINE_AST2:
         return {
           name: t('providers.volcengine_ast2.name'),
-          icon: AudioLines,
+          icon: VolcengineIcon,
           description: t('providers.volcengine_ast2.description')
         };
       default:
