@@ -741,6 +741,76 @@ ipcMain.handle('volcengine-ast2-disconnect', () => {
   return { success: true };
 });
 
+// Volcengine AST 2.0: Lightweight credential validation via WebSocket connect-disconnect
+// Opens a WebSocket with auth headers, checks if it's accepted, then closes immediately.
+// Uses a separate variable so it doesn't interfere with an active session.
+let volcengineValidateWs = null;
+
+ipcMain.handle('volcengine-ast2-validate', async (event, { appId, accessToken, resourceId }) => {
+  // Clean up any lingering validation socket
+  if (volcengineValidateWs) {
+    try { volcengineValidateWs.close(); } catch (e) { /* ignore */ }
+    volcengineValidateWs = null;
+  }
+
+  const endpoint = 'wss://openspeech.bytedance.com/api/v4/ast/v2/translate';
+  const connectionId = require('crypto').randomUUID();
+  console.log('[Sokuji] [Main] Volcengine AST2: validating credentials');
+
+  return new Promise((resolve) => {
+    let resolved = false;
+
+    const ws = new WebSocket(endpoint, {
+      headers: {
+        'X-Api-App-Key': appId,
+        'X-Api-Access-Key': accessToken,
+        'X-Api-Resource-Id': resourceId,
+        'X-Api-Connect-Id': connectionId,
+      },
+    });
+    volcengineValidateWs = ws;
+
+    const finish = (result) => {
+      if (resolved) return;
+      resolved = true;
+      clearTimeout(timer);
+      try { ws.close(); } catch (e) { /* ignore */ }
+      if (volcengineValidateWs === ws) {
+        volcengineValidateWs = null;
+      }
+      resolve(result);
+    };
+
+    // 5-second timeout
+    const timer = setTimeout(() => {
+      finish({ success: false, error: 'Connection timed out — credentials could not be verified' });
+    }, 5000);
+
+    ws.on('open', () => {
+      console.log('[Sokuji] [Main] Volcengine AST2: validation succeeded (WebSocket accepted)');
+      finish({ success: true });
+    });
+
+    ws.on('error', (err) => {
+      console.error('[Sokuji] [Main] Volcengine AST2: validation failed:', err.message);
+      finish({ success: false, error: err.message });
+    });
+
+    ws.on('close', (code, reason) => {
+      finish({ success: false, error: `Connection rejected (code ${code}: ${reason.toString()})` });
+    });
+
+    ws.on('unexpected-response', (req, res) => {
+      let body = '';
+      res.on('data', (chunk) => { body += chunk; });
+      res.on('end', () => {
+        console.error(`[Sokuji] [Main] Volcengine AST2: validation rejected: HTTP ${res.statusCode} — ${body.substring(0, 200)}`);
+        finish({ success: false, error: `Server rejected connection: HTTP ${res.statusCode} ${res.statusMessage}` });
+      });
+    });
+  });
+});
+
 // Screen recording permission check for macOS system audio capture
 // This only checks the permission status, does NOT trigger any permission dialogs
 // The renderer should call getDisplayMedia() to trigger the system dialog when needed

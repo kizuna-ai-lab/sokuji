@@ -127,6 +127,7 @@ contextBridge.exposeInMainWorld(
         'volcengine-ast2-connect',
         'volcengine-ast2-send',
         'volcengine-ast2-disconnect',
+        'volcengine-ast2-validate',
       ];
       if (validChannels.includes(channel)) {
         return ipcRenderer.invoke(channel, data);

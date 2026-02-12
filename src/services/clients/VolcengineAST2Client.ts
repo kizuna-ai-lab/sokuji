@@ -712,7 +712,8 @@ export class VolcengineAST2Client implements IClient {
 
   /**
    * Validate API credentials
-   * For AST2, we do a simple format check since there's no lightweight validation endpoint
+   * In Electron: performs a real WebSocket connect-disconnect to verify credentials with the server.
+   * In browser: format-only check (browser WebSocket API can't send custom headers).
    */
   static async validateApiKeyAndFetchModels(
     appId: string,
@@ -737,18 +738,51 @@ export class VolcengineAST2Client implements IClient {
       };
     }
 
-    // Credentials appear valid (format check only - actual validation happens on connect)
+    const models: FilteredModel[] = [{
+      id: 'ast-v2-s2s',
+      type: 'realtime',
+      created: Date.now() / 1000
+    }];
+
+    // In Electron, perform real credential validation via IPC WebSocket proxy
+    if (isElectron() && window.electron?.invoke) {
+      try {
+        const result = await window.electron.invoke('volcengine-ast2-validate', {
+          appId: appIdStr.trim(),
+          accessToken: accessTokenStr.trim(),
+          resourceId: 'volc.bigasr.sauc.duration',
+        });
+        if (result?.success) {
+          return {
+            validation: { valid: true, message: 'API credentials verified', validating: false },
+            models,
+          };
+        }
+        return {
+          validation: {
+            valid: false,
+            message: result?.error || 'Credential verification failed',
+            validating: false,
+          },
+          models: [],
+        };
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : 'Credential verification failed';
+        return {
+          validation: { valid: false, message, validating: false },
+          models: [],
+        };
+      }
+    }
+
+    // Browser fallback: format-only check (WebSocket API can't send custom headers)
     return {
       validation: {
         valid: true,
         message: 'Credentials format valid (will be verified on connection)',
         validating: false,
       },
-      models: [{
-        id: 'ast-v2-s2s',
-        type: 'realtime',
-        created: Date.now() / 1000
-      }]
+      models,
     };
   }
 }
