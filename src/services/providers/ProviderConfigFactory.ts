@@ -7,7 +7,7 @@ import { KizunaAIProviderConfig } from './KizunaAIProviderConfig';
 import { VolcengineSTProviderConfig } from './VolcengineSTProviderConfig';
 import { VolcengineAST2ProviderConfig } from './VolcengineAST2ProviderConfig';
 import { Provider, ProviderType } from '../../types/Provider';
-import { isKizunaAIEnabled, isPalabraAIEnabled, isVolcengineSTEnabled, isVolcengineAST2Enabled, isElectron } from '../../utils/environment';
+import { isKizunaAIEnabled, isPalabraAIEnabled, isVolcengineSTEnabled, isVolcengineAST2Enabled, isElectron, isExtension } from '../../utils/environment';
 
 interface ProviderConfigInstance {
   getConfig(): ProviderConfig;
@@ -41,8 +41,8 @@ export class ProviderConfigFactory {
       ProviderConfigFactory.configs.set(Provider.VOLCENGINE_ST, new VolcengineSTProviderConfig());
     }
 
-    // Only register Volcengine AST 2.0 in Electron (requires header injection for WebSocket auth)
-    if (isElectron() && isVolcengineAST2Enabled()) {
+    // Register Volcengine AST 2.0 in Electron (IPC proxy) and Extension (declarativeNetRequest header injection)
+    if ((isElectron() || isExtension()) && isVolcengineAST2Enabled()) {
       ProviderConfigFactory.configs.set(Provider.VOLCENGINE_AST2, new VolcengineAST2ProviderConfig());
     }
   }

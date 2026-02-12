@@ -4,8 +4,8 @@
   "description": "Browser extension version of Sokuji - Live speech translation using OpenAI and Google Gemini APIs",
   "private": true,
   "scripts": {
-    "build": "VITE_BACKEND_URL=$VITE_BACKEND_URL webpack --mode production",
-    "dev": "VITE_BACKEND_URL=$VITE_BACKEND_URL webpack --mode development --watch",
+    "build": "webpack --mode production",
+    "dev": "webpack --mode development --watch",
     "lint": "eslint ."
   },
   "dependencies": {

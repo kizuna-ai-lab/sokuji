@@ -4,10 +4,11 @@
  * Uses protobuf binary over WebSocket with simple HTTP header auth.
  * Endpoint: wss://openspeech.bytedance.com/api/v4/ast/v2/translate
  *
- * In Electron, the WebSocket runs in the main process (Node.js `ws` library
- * supports custom HTTP headers) and data is bridged to the renderer via IPC.
- * Browser WebSocket API does NOT support custom headers, so the browser path
- * is kept as a fallback but is not expected to work without a proxy.
+ * Platform-specific WebSocket strategies:
+ *   - Electron: IPC proxy — main process creates WebSocket with custom headers via Node.js `ws`.
+ *   - Extension: declarativeNetRequest — background service worker injects auth headers into
+ *     the WebSocket upgrade request, then the side panel opens a plain browser WebSocket.
+ *   - Web: fallback — plain WebSocket without auth headers (not expected to work).
  *
  * Protocol flow:
  *   1. Connect WebSocket with auth headers
@@ -31,7 +32,7 @@ import {
   FilteredModel,
 } from '../interfaces/IClient';
 import { Provider, ProviderType } from '../../types/Provider';
-import { isElectron } from '../../utils/environment';
+import { isElectron, isExtension } from '../../utils/environment';
 // @ts-ignore - generated proto file
 import { data } from './volcengine-ast2/ast2-proto.js';
 
@@ -105,6 +106,9 @@ export class VolcengineAST2Client implements IClient {
 
     if (isElectron() && window.electron?.invoke) {
       return this.connectViaIpc();
+    }
+    if (isExtension()) {
+      return this.connectViaExtensionDNR();
     }
     return this.connectViaBrowserWebSocket();
   }
@@ -196,6 +200,41 @@ export class VolcengineAST2Client implements IClient {
       window.electron.removeAllListeners('volcengine-ast2-error');
       window.electron.removeAllListeners('volcengine-ast2-close');
     }
+  }
+
+  // ─── Extension path: declarativeNetRequest injects headers ─────────
+  private async connectViaExtensionDNR(): Promise<void> {
+    this.useIpc = false;
+
+    // Ask background service worker to register DNR rules that inject
+    // auth headers into the WebSocket upgrade request
+    const dnrResult = await new Promise<{ success: boolean; error?: string }>((resolve) => {
+      chrome!.runtime.sendMessage(
+        {
+          type: 'VOLCENGINE_AST2_SET_HEADERS',
+          credentials: {
+            appKey: this.appId,
+            accessKey: this.accessToken,
+            resourceId: this.resourceId,
+            connectId: this.connectionId,
+          },
+        },
+        (response: { success: boolean; error?: string }) => {
+          if (chrome!.runtime.lastError) {
+            resolve({ success: false, error: chrome!.runtime.lastError.message });
+          } else {
+            resolve(response || { success: false, error: 'No response from background' });
+          }
+        }
+      );
+    });
+
+    if (!dnrResult.success) {
+      throw new Error(`Failed to set DNR headers: ${dnrResult.error}`);
+    }
+
+    // Now open a plain browser WebSocket — DNR rules will inject the auth headers
+    return this.connectViaBrowserWebSocket();
   }
 
   // ─── Browser WebSocket fallback (no custom headers — may not auth) ─
@@ -343,7 +382,7 @@ export class VolcengineAST2Client implements IClient {
       // Check for error status — Volcengine uses 20000000 as the success code (like HTTP 200)
       const statusCode = response.responseMeta?.StatusCode;
       if (statusCode && statusCode !== 0 && statusCode !== 20000000) {
-        const errorMsg = response.responseMeta.Message || `Status code: ${response.responseMeta.StatusCode}`;
+        const errorMsg = response.responseMeta?.Message || `Status code: ${response.responseMeta?.StatusCode}`;
         console.error('[VolcengineAST2Client] Server error:', errorMsg);
 
         if (this.sessionStartedReject) {
@@ -620,6 +659,15 @@ export class VolcengineAST2Client implements IClient {
       this.websocket = null;
     }
 
+    // Clean up DNR rules in extension context
+    if (isExtension()) {
+      try {
+        chrome!.runtime.sendMessage({ type: 'VOLCENGINE_AST2_CLEAR_HEADERS' });
+      } catch (e) {
+        // Ignore cleanup errors
+      }
+    }
+
     this.isConnectedState = false;
     this.ttsChunks = [];
 
@@ -775,7 +823,122 @@ export class VolcengineAST2Client implements IClient {
       }
     }
 
-    // Browser fallback: format-only check (WebSocket API can't send custom headers)
+    // Extension: real validation via DNR header injection + WebSocket connect-disconnect
+    if (isExtension()) {
+      try {
+        const connectionId = uuidv4();
+
+        // Register DNR rules for this validation attempt
+        const dnrResult = await new Promise<{ success: boolean; error?: string }>((resolve) => {
+          chrome!.runtime.sendMessage(
+            {
+              type: 'VOLCENGINE_AST2_SET_HEADERS',
+              credentials: {
+                appKey: appIdStr.trim(),
+                accessKey: accessTokenStr.trim(),
+                resourceId: 'volc.bigasr.sauc.duration',
+                connectId: connectionId,
+              },
+            },
+            (response: { success: boolean; error?: string }) => {
+              if (chrome!.runtime.lastError) {
+                resolve({ success: false, error: chrome!.runtime.lastError.message });
+              } else {
+                resolve(response || { success: false, error: 'No response' });
+              }
+            }
+          );
+        });
+
+        if (!dnrResult.success) {
+          return {
+            validation: { valid: false, message: `DNR setup failed: ${dnrResult.error}`, validating: false },
+            models: [],
+          };
+        }
+
+        // Try to connect a WebSocket — DNR rules will inject auth headers
+        const validationResult = await new Promise<{ valid: boolean; message: string }>((resolve) => {
+          const timeout = setTimeout(() => {
+            ws.close();
+            resolve({ valid: false, message: 'Connection timeout' });
+          }, 8000);
+
+          const ws = new WebSocket(WS_ENDPOINT);
+          ws.binaryType = 'arraybuffer';
+
+          ws.onopen = () => {
+            // Connection accepted — server recognized the auth headers
+            clearTimeout(timeout);
+
+            // Send a minimal StartSession to fully verify credentials
+            const sessionId = uuidv4();
+            const startReq = TranslateRequest.encode({
+              requestMeta: {
+                Endpoint: 'volc.bigasr.sauc.duration',
+                AppKey: appIdStr.trim(),
+                ResourceID: 'volc.bigasr.sauc.duration',
+                ConnectionID: connectionId,
+                SessionID: sessionId,
+                Sequence: 0,
+              },
+              event: EventType.StartSession,
+              user: { uid: 'validation', platform: 'extension' },
+              sourceAudio: { format: 'pcm', rate: 16000, bits: 16, channel: 1 },
+              targetAudio: { format: 'pcm', rate: 24000, bits: 16, channel: 1 },
+              request: { mode: 's2s', sourceLanguage: 'zh', targetLanguage: 'en' },
+            }).finish();
+            ws.send(startReq);
+          };
+
+          ws.onmessage = (evt) => {
+            try {
+              const response = TranslateResponse.decode(new Uint8Array(evt.data as ArrayBuffer));
+              const statusCode = response.responseMeta?.StatusCode;
+
+              if (statusCode && statusCode !== 0 && statusCode !== 20000000) {
+                clearTimeout(timeout);
+                ws.close();
+                resolve({ valid: false, message: response.responseMeta?.Message || `Error: ${statusCode}` });
+              } else if (response.event === EventType.SessionStarted) {
+                clearTimeout(timeout);
+                // Send FinishSession then close
+                const finishReq = TranslateRequest.encode({
+                  requestMeta: { ConnectionID: connectionId, Sequence: 1 },
+                  event: EventType.FinishSession,
+                }).finish();
+                ws.send(finishReq);
+                setTimeout(() => ws.close(), 300);
+                resolve({ valid: true, message: 'API credentials verified' });
+              }
+            } catch (e) {
+              // Continue waiting for more messages
+            }
+          };
+
+          ws.onerror = () => {
+            clearTimeout(timeout);
+            resolve({ valid: false, message: 'Connection failed — credentials may be invalid' });
+          };
+        });
+
+        // Clean up DNR rules after validation
+        chrome!.runtime.sendMessage({ type: 'VOLCENGINE_AST2_CLEAR_HEADERS' });
+
+        return {
+          validation: { ...validationResult, validating: false },
+          models: validationResult.valid ? models : [],
+        };
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : 'Credential verification failed';
+        return {
+          validation: { valid: false, message, validating: false },
+          models: [],
+        };
+      }
+    }
+
+    // Web fallback: format-only check (WebSocket API can't send custom headers)
     return {
       validation: {
         valid: true,

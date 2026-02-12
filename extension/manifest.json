@@ -30,11 +30,14 @@
     "tabs",
     "identity",
     "tabCapture",
-    "activeTab"
+    "activeTab",
+    "declarativeNetRequest",
+    "declarativeNetRequestFeedback"
   ],
   "host_permissions": [
     "https://sokuji-api.kizuna.ai/*",
-    "https://sokuji.kizuna.ai/*"
+    "https://sokuji.kizuna.ai/*",
+    "wss://openspeech.bytedance.com/*"
   ],
   "background": {
     "service_worker": "background.js",

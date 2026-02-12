@@ -201,6 +201,63 @@ chrome.tabs.onRemoved.addListener((tabId) => {
   }
 });
 
+// ─── Volcengine AST2 declarativeNetRequest header injection ───────────────
+// Browser WebSocket API cannot send custom headers. We use declarativeNetRequest
+// dynamic rules to inject auth headers into the WebSocket upgrade request.
+const VOLCENGINE_DNR_RULE_ID_BASE = 2000;
+const VOLCENGINE_WS_HOST = 'openspeech.bytedance.com';
+
+async function volcengineSetDNRHeaders(credentials) {
+  const { appKey, accessKey, resourceId, connectId } = credentials;
+
+  const headers = [
+    { header: 'X-Api-App-Key', value: appKey },
+    { header: 'X-Api-Access-Key', value: accessKey },
+    { header: 'X-Api-Resource-Id', value: resourceId },
+    { header: 'X-Api-Connect-Id', value: connectId },
+  ];
+
+  const rules = headers.map((h, i) => ({
+    id: VOLCENGINE_DNR_RULE_ID_BASE + i,
+    priority: 1,
+    action: {
+      type: 'modifyHeaders',
+      requestHeaders: [
+        { header: h.header, operation: 'set', value: h.value },
+      ],
+    },
+    condition: {
+      urlFilter: `||${VOLCENGINE_WS_HOST}`,
+      resourceTypes: ['websocket'],
+    },
+  }));
+
+  // Remove any existing Volcengine rules first
+  const existingRuleIds = (await chrome.declarativeNetRequest.getDynamicRules())
+    .filter(r => r.id >= VOLCENGINE_DNR_RULE_ID_BASE && r.id < VOLCENGINE_DNR_RULE_ID_BASE + 10)
+    .map(r => r.id);
+
+  await chrome.declarativeNetRequest.updateDynamicRules({
+    removeRuleIds: existingRuleIds,
+    addRules: rules,
+  });
+
+  console.debug('[Sokuji] [Background] Volcengine AST2 DNR rules registered:', rules.length);
+}
+
+async function volgengineClearDNRHeaders() {
+  const existingRuleIds = (await chrome.declarativeNetRequest.getDynamicRules())
+    .filter(r => r.id >= VOLCENGINE_DNR_RULE_ID_BASE && r.id < VOLCENGINE_DNR_RULE_ID_BASE + 10)
+    .map(r => r.id);
+
+  if (existingRuleIds.length > 0) {
+    await chrome.declarativeNetRequest.updateDynamicRules({
+      removeRuleIds: existingRuleIds,
+    });
+    console.debug('[Sokuji] [Background] Volcengine AST2 DNR rules cleared');
+  }
+}
+
 // Handle messages from popup and content scripts
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === 'GET_CONFIG') {
@@ -241,6 +298,27 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       });
     }
     return true; // Indicates async response
+  }
+
+  // Handle Volcengine AST2 DNR header injection
+  if (message.type === 'VOLCENGINE_AST2_SET_HEADERS') {
+    volcengineSetDNRHeaders(message.credentials)
+      .then(() => sendResponse({ success: true }))
+      .catch((error) => {
+        console.error('[Sokuji] [Background] Failed to set Volcengine DNR headers:', error);
+        sendResponse({ success: false, error: error.message });
+      });
+    return true;
+  }
+
+  if (message.type === 'VOLCENGINE_AST2_CLEAR_HEADERS') {
+    volgengineClearDNRHeaders()
+      .then(() => sendResponse({ success: true }))
+      .catch((error) => {
+        console.error('[Sokuji] [Background] Failed to clear Volcengine DNR headers:', error);
+        sendResponse({ success: false, error: error.message });
+      });
+    return true;
   }
 
   // Handle START_TAB_CAPTURE message from side panel

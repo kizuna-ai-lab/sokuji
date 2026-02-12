@@ -183,7 +183,7 @@ export function isPalabraAIEnabled(): boolean {
   }
 
   // In production, check for explicit environment variable
-  return import.meta.env?.VITE_ENABLE_PALABRA_AI === 'true';
+  return import.meta.env.VITE_ENABLE_PALABRA_AI === 'true';
 }
 
 /**
@@ -200,7 +200,7 @@ export function isVolcengineSTEnabled(): boolean {
   }
 
   // In production, check for explicit environment variable
-  return import.meta.env?.VITE_ENABLE_VOLCENGINE_ST === 'true';
+  return import.meta.env.VITE_ENABLE_VOLCENGINE_ST === 'true';
 }
 
 /**
@@ -214,7 +214,7 @@ export function isVolcengineAST2Enabled(): boolean {
   if (isDevelopmentMode()) {
     return true;
   }
-  return import.meta.env?.VITE_ENABLE_VOLCENGINE_AST2 === 'true';
+  return import.meta.env.VITE_ENABLE_VOLCENGINE_AST2 === 'true';
 }
 
 // ============================================================================
