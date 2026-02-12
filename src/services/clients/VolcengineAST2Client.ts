@@ -42,8 +42,10 @@ const EventType = data.speech.event.Type;
 
 const WS_ENDPOINT = 'wss://openspeech.bytedance.com/api/v4/ast/v2/translate';
 
-// Output audio sample rate from server
-const OUTPUT_SAMPLE_RATE = 16000;
+// Audio sample rates
+const INPUT_SAMPLE_RATE = 16000;  // Server expects 16kHz input PCM
+const OUTPUT_SAMPLE_RATE = 24000;
+const DOWNSAMPLE_RATIO = 24000 / INPUT_SAMPLE_RATE; // 1.5 (pipeline sends 24kHz)
 
 export class VolcengineAST2Client implements IClient {
   private appId: string;
@@ -65,6 +67,7 @@ export class VolcengineAST2Client implements IClient {
   // Track current subtitle items for incremental updates
   private currentSourceItemId: string | null = null;
   private currentTranslationItemId: string | null = null;
+  private lastCompletedTranslationItemId: string | null = null;
 
   // TTS audio accumulation — server sends Ogg Opus chunks that must be
   // concatenated per sentence before decoding
@@ -103,6 +106,7 @@ export class VolcengineAST2Client implements IClient {
     this.itemCounter = 0;
     this.currentSourceItemId = null;
     this.currentTranslationItemId = null;
+    this.lastCompletedTranslationItemId = null;
 
     if (isElectron() && window.electron?.invoke) {
       return this.connectViaIpc();
@@ -327,7 +331,7 @@ export class VolcengineAST2Client implements IClient {
       },
       sourceAudio: {
         format: 'pcm',
-        rate: 16000,
+        rate: INPUT_SAMPLE_RATE,
         bits: 16,
         channel: 1,
       },
@@ -551,6 +555,7 @@ export class VolcengineAST2Client implements IClient {
 
     if (isDefinite) {
       this.conversationItems.push(item);
+      this.lastCompletedTranslationItemId = this.currentTranslationItemId;
       this.currentTranslationItemId = null;
     }
 
@@ -596,7 +601,7 @@ export class VolcengineAST2Client implements IClient {
     try {
       // Lazily create a reusable AudioContext for decoding
       if (!this.decodeContext || this.decodeContext.state === 'closed') {
-        this.decodeContext = new AudioContext({ sampleRate: OUTPUT_SAMPLE_RATE });
+        this.decodeContext = new AudioContext({ sampleRate: 24000 });
       }
 
       const audioBuffer = await this.decodeContext.decodeAudioData(opusData.buffer);
@@ -609,21 +614,53 @@ export class VolcengineAST2Client implements IClient {
         int16Array[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
       }
 
-      const itemId = this.currentTranslationItemId || this.generateItemId('tts_audio');
-      const item: ConversationItem = {
-        id: itemId,
-        role: 'assistant',
-        type: 'message',
-        status: 'in_progress',
-        createdAt: Date.now(),
-        formatted: { audio: int16Array },
-        content: [{ type: 'audio' }]
-      };
+      // Try to attach audio to the most recent completed translation item
+      const targetItemId = this.currentTranslationItemId || this.lastCompletedTranslationItemId;
+      const existingItem = targetItemId
+        ? this.conversationItems.find(i => i.id === targetItemId)
+        : null;
 
-      this.eventHandlers.onConversationUpdated?.({
-        item,
-        delta: { audio: int16Array }
-      });
+      if (existingItem) {
+        // Concatenate audio if the item already has some (multiple TTS sentences)
+        if (existingItem.formatted?.audio && existingItem.formatted.audio instanceof Int16Array) {
+          const prev = existingItem.formatted.audio;
+          const combined = new Int16Array(prev.length + int16Array.length);
+          combined.set(prev);
+          combined.set(int16Array, prev.length);
+          existingItem.formatted.audio = combined;
+        } else {
+          if (!existingItem.formatted) existingItem.formatted = {};
+          existingItem.formatted.audio = int16Array;
+        }
+
+        // Emit delta with audio for real-time playback
+        this.eventHandlers.onConversationUpdated?.({
+          item: existingItem,
+          delta: { audio: int16Array }
+        });
+
+        // Emit again without delta to trigger UI update (WAV creation + play button)
+        this.eventHandlers.onConversationUpdated?.({
+          item: existingItem,
+        });
+      } else {
+        // Fallback: no matching translation item — create standalone completed audio item
+        const item: ConversationItem = {
+          id: this.generateItemId('tts_audio'),
+          role: 'assistant',
+          type: 'message',
+          status: 'completed',
+          createdAt: Date.now(),
+          formatted: { audio: int16Array },
+          content: [{ type: 'audio' }]
+        };
+        this.conversationItems.push(item);
+
+        this.eventHandlers.onConversationUpdated?.({
+          item,
+          delta: { audio: int16Array }
+        });
+      }
     } catch (error) {
       console.error('[VolcengineAST2Client] Failed to decode TTS Opus audio:', error);
     }
@@ -709,6 +746,7 @@ export class VolcengineAST2Client implements IClient {
     this.sequence = 0;
     this.currentSourceItemId = null;
     this.currentTranslationItemId = null;
+    this.lastCompletedTranslationItemId = null;
   }
 
   appendInputAudio(audioData: Int16Array): void {
@@ -716,8 +754,11 @@ export class VolcengineAST2Client implements IClient {
       return;
     }
 
+    // Downsample 24kHz → 16kHz to match server expectation (linear interpolation)
+    const downsampled = this.downsample24kTo16k(audioData);
+
     // Convert Int16Array to raw bytes for protobuf binary_data field
-    const rawBytes = new Uint8Array(audioData.buffer, audioData.byteOffset, audioData.byteLength);
+    const rawBytes = new Uint8Array(downsampled.buffer, downsampled.byteOffset, downsampled.byteLength);
 
     const request = TranslateRequest.encode({
       requestMeta: {
@@ -732,6 +773,23 @@ export class VolcengineAST2Client implements IClient {
     }).finish();
 
     this.sendData(request);
+  }
+
+  /**
+   * Downsample 24kHz Int16 PCM to 16kHz using linear interpolation.
+   * Ratio is 3:2 so every 3 input samples produce 2 output samples.
+   */
+  private downsample24kTo16k(input: Int16Array): Int16Array {
+    const outputLength = Math.floor(input.length / DOWNSAMPLE_RATIO);
+    const output = new Int16Array(outputLength);
+    for (let i = 0; i < outputLength; i++) {
+      const srcIndex = i * DOWNSAMPLE_RATIO;
+      const lower = Math.floor(srcIndex);
+      const upper = Math.min(lower + 1, input.length - 1);
+      const frac = srcIndex - lower;
+      output[i] = Math.round(input[lower] * (1 - frac) + input[upper] * frac);
+    }
+    return output;
   }
 
   appendInputText(text: string): void {
@@ -884,8 +942,8 @@ export class VolcengineAST2Client implements IClient {
               },
               event: EventType.StartSession,
               user: { uid: 'validation', platform: 'extension' },
-              sourceAudio: { format: 'pcm', rate: 16000, bits: 16, channel: 1 },
-              targetAudio: { format: 'pcm', rate: 24000, bits: 16, channel: 1 },
+              sourceAudio: { format: 'pcm', rate: INPUT_SAMPLE_RATE, bits: 16, channel: 1 },
+              targetAudio: { format: 'ogg_opus', rate: OUTPUT_SAMPLE_RATE, bits: 16, channel: 1 },
               request: { mode: 's2s', sourceLanguage: 'zh', targetLanguage: 'en' },
             }).finish();
             ws.send(startReq);
