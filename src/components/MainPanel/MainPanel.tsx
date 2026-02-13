@@ -803,6 +803,8 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           provider === Provider.KIZUNA_AI ? kizunaAISettings :
           null;
         setCanPushToTalk(settings ? settings.turnDetectionMode === 'Disabled' : false);
+      } else if (provider === Provider.VOLCENGINE_AST2) {
+        setCanPushToTalk(volcengineAST2Settings.turnDetectionMode === 'Push-to-Talk');
       } else {
         setCanPushToTalk(false); // Not supported by Gemini and PalabraAI
       }
@@ -926,6 +928,8 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           provider === Provider.KIZUNA_AI ? kizunaAISettings :
           null;
         turnDetectionDisabled = settings ? settings.turnDetectionMode === 'Disabled' : false;
+      } else if (provider === Provider.VOLCENGINE_AST2) {
+        turnDetectionDisabled = volcengineAST2Settings.turnDetectionMode === 'Push-to-Talk';
       }
 
       // Check if provider uses native audio capture (OpenAI WebRTC or PalabraAI/LiveKit)
@@ -1186,26 +1190,39 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       // Only try to pause if we're actually recording
       const recorder = audioService.getRecorder();
       if (recorder.isRecording()) {
+        // For Volcengine AST2 PTT: send ~500ms of silence frames before stopping
+        // This helps the server-side VAD detect end of speech
+        if (provider === Provider.VOLCENGINE_AST2 && client) {
+          const silenceFrameSize = 2400; // 24kHz * 0.1s = 2400 samples per 100ms frame (client downsamples to 16kHz internally)
+          const silenceFrames = 5; // 5 frames = 500ms
+          const silence = new Int16Array(silenceFrameSize);
+          for (let i = 0; i < silenceFrames; i++) {
+            client.appendInputAudio(silence);
+          }
+          console.debug('[Sokuji] [MainPanel] PTT: Sent 500ms silence frames for AST2 VAD end detection');
+        }
+
         // Stop recording
         await audioService.pauseRecording();
 
         // Only create response if we detected enough voice audio (prevents empty requests)
+        // Note: AST2 handles response creation server-side via VAD, so skip client.createResponse() for it
         const MIN_VOICE_CHUNKS = 5; // At least 5 non-silent chunks (~0.5 seconds of speech)
-        if (client && pttVoiceChunkCountRef.current >= MIN_VOICE_CHUNKS) {
+        if (client && provider !== Provider.VOLCENGINE_AST2 && pttVoiceChunkCountRef.current >= MIN_VOICE_CHUNKS) {
           // Model drift prevention is handled by the silent anchor mechanism (useEffect)
           client.createResponse();
-        } else if (client) {
+        } else if (client && provider !== Provider.VOLCENGINE_AST2) {
           console.debug(`[Sokuji] [MainPanel] PTT: Skipping response - only ${pttVoiceChunkCountRef.current} voice chunks detected (minimum: ${MIN_VOICE_CHUNKS})`);
         }
       }
     } catch (error) {
       // If there's an error during pause (e.g., already paused), log it but don't crash
       console.error('[Sokuji] [MainPanel] Error stopping recording:', error);
-      
+
       // Reset the recording state to ensure UI is consistent
       setIsRecording(false);
     }
-  }, [isRecording]);
+  }, [isRecording, provider]);
 
   /**
    * Send text input for translation
@@ -1798,6 +1815,8 @@ const MainPanel: React.FC<MainPanelProps> = () => {
               provider === Provider.KIZUNA_AI ? kizunaAISettings :
               null;
             turnDetectionDisabled = settings ? settings.turnDetectionMode === 'Disabled' : false;
+          } else if (provider === Provider.VOLCENGINE_AST2) {
+            turnDetectionDisabled = volcengineAST2Settings.turnDetectionMode === 'Push-to-Talk';
           }
           if (!turnDetectionDisabled) {
             console.info('[Sokuji] [MainPanel] Input device turned on - starting recording in automatic mode');
@@ -1824,7 +1843,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     };
 
     updateRecordingState();
-  }, [isInputDeviceOn, isSessionActive, provider, openAISettings.turnDetectionMode, openAICompatibleSettings.turnDetectionMode, kizunaAISettings.turnDetectionMode, selectedInputDevice]);
+  }, [isInputDeviceOn, isSessionActive, provider, openAISettings.turnDetectionMode, openAICompatibleSettings.turnDetectionMode, kizunaAISettings.turnDetectionMode, volcengineAST2Settings.turnDetectionMode, selectedInputDevice]);
 
   /**
    * Watch for changes to selectedMonitorDevice or isMonitorDeviceOn 
