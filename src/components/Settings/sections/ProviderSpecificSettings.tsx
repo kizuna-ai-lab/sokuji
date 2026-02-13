@@ -1078,6 +1078,36 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
           </div>
         </div>
 
+        <div className="settings-section turn-detection-section">
+          <h2>
+            {t('settings.automaticTurnDetection')}
+            <Tooltip
+              content={t('settings.volcengineAST2TurnDetectionTooltip', 'Auto mode uses server-side voice activity detection. Push-to-Talk lets you manually control when to send audio by holding Space or the mic button.')}
+              position="top"
+            >
+              <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '8px' }} />
+            </Tooltip>
+          </h2>
+          <div className="setting-item">
+            <div className="turn-detection-options">
+              <button
+                className={`option-button ${volcengineAST2Settings.turnDetectionMode === 'Auto' ? 'active' : ''}`}
+                onClick={() => updateVolcengineAST2Settings({ turnDetectionMode: 'Auto' })}
+                disabled={isSessionActive}
+              >
+                {t('settings.auto')}
+              </button>
+              <button
+                className={`option-button ${volcengineAST2Settings.turnDetectionMode === 'Push-to-Talk' ? 'active' : ''}`}
+                onClick={() => updateVolcengineAST2Settings({ turnDetectionMode: 'Push-to-Talk' })}
+                disabled={isSessionActive}
+              >
+                {t('settings.pushToTalk')}
+              </button>
+            </div>
+          </div>
+        </div>
+
         <div className="settings-section">
           <h2>{t('settings.volcengineAST2Info', 'Volcengine AST Info')}</h2>
           <div className="setting-item">

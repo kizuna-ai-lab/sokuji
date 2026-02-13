@@ -50,13 +50,13 @@ export class VolcengineAST2ProviderConfig {
 
       capabilities: {
         hasTemplateMode: false,
-        hasTurnDetection: false,
+        hasTurnDetection: true,
         hasVoiceSettings: false,
         hasNoiseReduction: false,
         hasModelConfiguration: false,
 
         turnDetection: {
-          modes: [],
+          modes: ['Auto', 'Push-to-Talk'],
           hasThreshold: false,
           hasPrefixPadding: false,
           hasSilenceDuration: false,

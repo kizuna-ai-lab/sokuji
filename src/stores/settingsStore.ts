@@ -100,6 +100,7 @@ export interface VolcengineAST2Settings {
   accessToken: string;
   sourceLanguage: string;
   targetLanguage: string;
+  turnDetectionMode: 'Auto' | 'Push-to-Talk';
 }
 
 // Cache Entry
@@ -237,6 +238,7 @@ const defaultVolcengineAST2Settings: VolcengineAST2Settings = {
   accessToken: '',
   sourceLanguage: 'zh',
   targetLanguage: 'en',
+  turnDetectionMode: 'Auto',
 };
 
 // ==================== Store Definition ====================
@@ -411,6 +413,7 @@ function createVolcengineAST2SessionConfig(
     instructions: systemInstructions,
     sourceLanguage: settings.sourceLanguage,
     targetLanguage: settings.targetLanguage,
+    turnDetectionMode: settings.turnDetectionMode,
   };
 }
 

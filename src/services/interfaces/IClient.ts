@@ -107,6 +107,7 @@ export interface VolcengineAST2SessionConfig extends BaseSessionConfig {
   provider: 'volcengine_ast2';
   sourceLanguage: string;
   targetLanguage: string;
+  turnDetectionMode?: 'Auto' | 'Push-to-Talk';
 }
 
 /**
