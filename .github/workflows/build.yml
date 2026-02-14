@@ -69,6 +69,7 @@ jobs:
           CSC_IDENTITY_AUTO_DISCOVERY: ${{ !startsWith(github.ref, 'refs/tags/v') && 'false' || '' }}
           VITE_BACKEND_URL: ${{ secrets.VITE_BACKEND_URL_PROD || 'https://sokuji-api.kizuna.ai' }}
           VITE_ENVIRONMENT: production
+          VITE_POSTHOG_KEY: ${{ secrets.VITE_POSTHOG_KEY }}
 
       - name: Build macOS PKG with versioned filename
         if: matrix.os == 'macos-latest'
@@ -81,6 +82,7 @@ jobs:
           # Always build unsigned for macOS
           CSC_IDENTITY_AUTO_DISCOVERY: false
           VITE_BACKEND_URL: ${{ secrets.VITE_BACKEND_URL_PROD || 'https://sokuji-api.kizuna.ai' }}
+          VITE_POSTHOG_KEY: ${{ secrets.VITE_POSTHOG_KEY }}
           VITE_ENVIRONMENT: production
 
       - name: Build Chrome Extension
