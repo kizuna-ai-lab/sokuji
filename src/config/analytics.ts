@@ -1,12 +1,17 @@
-// Analytics configuration that works in both Electron and extension environments
-// This replaces the need for environment variables
+// Analytics configuration using environment variables
+// Fork projects can disable analytics by not setting VITE_POSTHOG_KEY
 
 import { isElectron, isExtension, isWeb } from '../utils/environment';
 
 export const ANALYTICS_CONFIG = {
-  POSTHOG_KEY: 'phc_EMOuUDTntTI5SuzKQATy11qHgxVrlhJsgNFbBaWEhet',
-  POSTHOG_HOST: 'https://us.i.posthog.com',
+  POSTHOG_KEY: import.meta.env.VITE_POSTHOG_KEY || '',
+  POSTHOG_HOST: import.meta.env.VITE_POSTHOG_HOST || 'https://us.i.posthog.com',
 } as const;
+
+// Helper to check if analytics is configured
+export const isAnalyticsEnabled = (): boolean => {
+  return Boolean(ANALYTICS_CONFIG.POSTHOG_KEY);
+};
 
 // Environment detection that works in both Electron and extension
 export const getEnvironment = (): 'development' | 'production' => {

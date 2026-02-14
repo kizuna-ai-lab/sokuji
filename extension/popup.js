@@ -3,11 +3,21 @@
 // Import PostHog from installed package
 import PostHog from 'posthog-js-lite';
 
-// Analytics configuration - matches main app config
+// Analytics configuration - uses environment variables
+// Fork projects can disable analytics by not setting POSTHOG_KEY in webpack config
 const ANALYTICS_CONFIG = {
-  POSTHOG_KEY: 'phc_EMOuUDTntTI5SuzKQATy11qHgxVrlhJsgNFbBaWEhet',
-  POSTHOG_HOST: 'https://us.i.posthog.com'
+  POSTHOG_KEY: typeof process !== 'undefined' && process.env && process.env.POSTHOG_KEY
+    ? process.env.POSTHOG_KEY
+    : '',
+  POSTHOG_HOST: typeof process !== 'undefined' && process.env && process.env.POSTHOG_HOST
+    ? process.env.POSTHOG_HOST
+    : 'https://us.i.posthog.com'
 };
+
+// Helper to check if analytics is enabled
+function isAnalyticsEnabled() {
+  return Boolean(ANALYTICS_CONFIG.POSTHOG_KEY);
+}
 
 // PostHog instance
 let posthogInstance = null;
@@ -15,7 +25,13 @@ let posthogInstance = null;
 // Initialize PostHog
 function initializePostHog() {
   if (posthogInstance || typeof window === 'undefined') return;
-  
+
+  // Skip initialization if no key configured (fork projects without PostHog)
+  if (!isAnalyticsEnabled()) {
+    console.debug('[Sokuji] [Popup] PostHog analytics disabled (POSTHOG_KEY not set)');
+    return;
+  }
+
   try {
     // Initialize PostHog with posthog-js-lite
     posthogInstance = new PostHog(ANALYTICS_CONFIG.POSTHOG_KEY, {
