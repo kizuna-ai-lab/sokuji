@@ -2,7 +2,7 @@ import React, { useState, useEffect, createContext, useContext } from 'react';
 import ReactDOM from 'react-dom/client';
 import App from '../src/App';
 import PostHog from 'posthog-js-lite';
-import { ANALYTICS_CONFIG, isDevelopment, getPlatform, getEnvironment } from '../src/config/analytics';
+import { ANALYTICS_CONFIG, isDevelopment, getPlatform, getEnvironment, isAnalyticsEnabled } from '../src/config/analytics';
 
 // Create PostHog context for React
 const PostHogContext = createContext<PostHog | null>(null);
@@ -57,7 +57,13 @@ const getPackageInfo = async () => {
   }
 };
 
-const initializePostHog = async () => {
+const initializePostHog = async (): Promise<PostHog | null> => {
+  // Skip initialization if no key configured (fork projects without PostHog)
+  if (!isAnalyticsEnabled()) {
+    console.info('[Sokuji] PostHog analytics disabled (VITE_POSTHOG_KEY not set)');
+    return null;
+  }
+
   const packageInfo = await getPackageInfo();
 
   const options = {

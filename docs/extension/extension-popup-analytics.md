@@ -14,19 +14,28 @@ The extension popup now tracks user interactions and page context to provide ins
 
 ### PostHog Installation and Initialization
 
-The popup uses the locally installed `posthog-js` package (not CDN) for better security and offline support:
+The popup uses the locally installed `posthog-js-lite` package for better security and offline support:
 
 ```javascript
 // Import PostHog from installed package
-import posthog from 'posthog-js';
+import PostHog from 'posthog-js-lite';
 
+// Analytics configuration - set via environment or leave empty to disable
 const ANALYTICS_CONFIG = {
-  POSTHOG_KEY: 'phc_EMOuUDTntTI5SuzKQATy11qHgxVrlhJsgNFbBaWEhet',
-  POSTHOG_HOST: 'https://us.i.posthog.com'
+  POSTHOG_KEY: process.env.POSTHOG_KEY || '',
+  POSTHOG_HOST: process.env.POSTHOG_HOST || 'https://us.i.posthog.com'
 };
+
+// Helper to check if analytics is enabled
+function isAnalyticsEnabled() {
+  return Boolean(ANALYTICS_CONFIG.POSTHOG_KEY);
+}
 ```
 
-The extension has `posthog-js` as a dependency and bundles it via webpack for production use.
+**For Fork Projects:**
+Fork projects can disable analytics by not setting `POSTHOG_KEY` in their build environment. The extension will work normally without analytics.
+
+The extension has `posthog-js-lite` as a dependency and bundles it via webpack for production use.
 
 ### Benefits of Local Installation
 

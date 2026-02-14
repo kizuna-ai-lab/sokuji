@@ -10,16 +10,31 @@ The application uses PostHog for comprehensive analytics tracking, including use
 
 ### Configuration
 
-PostHog credentials are now hardcoded in the source code for both Electron and extension environments. The configuration is located in `src/config/analytics.ts`:
+PostHog credentials are configured via environment variables in `src/config/analytics.ts`:
 
 ```typescript
 export const ANALYTICS_CONFIG = {
-  POSTHOG_KEY: 'phc_EMOuUDTntTI5SuzKQATy11qHgxVrlhJsgNFbBaWEhet',
-  POSTHOG_HOST: 'https://us.i.posthog.com',
+  POSTHOG_KEY: import.meta.env.VITE_POSTHOG_KEY || '',
+  POSTHOG_HOST: import.meta.env.VITE_POSTHOG_HOST || 'https://us.i.posthog.com',
 } as const;
+
+// Helper to check if analytics is configured
+export const isAnalyticsEnabled = (): boolean => {
+  return Boolean(ANALYTICS_CONFIG.POSTHOG_KEY);
+};
 ```
 
-This approach ensures compatibility across all environments (Electron app, browser extension, and web) without requiring environment variable configuration.
+**Environment Variables:**
+- `VITE_POSTHOG_KEY`: Your PostHog project API key (leave empty to disable analytics)
+- `VITE_POSTHOG_HOST`: PostHog host URL (defaults to `https://us.i.posthog.com`)
+
+**For Fork Projects:**
+Fork projects can simply not set `VITE_POSTHOG_KEY` to disable analytics entirely. No code changes required.
+
+**Setup:**
+1. Copy `.env.example` to `.env`
+2. Set `VITE_POSTHOG_KEY` to your PostHog project API key
+3. Run the application
 
 ### Development vs Production Behavior
 

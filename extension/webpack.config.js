@@ -70,6 +70,9 @@ module.exports = (env, argv) => {
     plugins: [
       new webpack.DefinePlugin({
         'process.env.NODE_ENV': JSON.stringify(argv.mode || 'development'),
+        // PostHog analytics configuration - set via environment or leave empty to disable
+        'process.env.POSTHOG_KEY': JSON.stringify(process.env.POSTHOG_KEY || ''),
+        'process.env.POSTHOG_HOST': JSON.stringify(process.env.POSTHOG_HOST || 'https://us.i.posthog.com'),
         // Define import.meta for Extension builds to prevent runtime errors
         'import.meta.env.MODE': JSON.stringify(argv.mode || 'development'),
         'import.meta.env.VITE_BACKEND_URL': JSON.stringify(
@@ -83,6 +86,9 @@ module.exports = (env, argv) => {
         'import.meta.env.VITE_ENABLE_PALABRA_AI': JSON.stringify(
           process.env.VITE_ENABLE_PALABRA_AI || 'false'  // Disabled by default, can be enabled via env var
         ),
+        // PostHog analytics configuration for shared/index.tsx (fullpage entry)
+        'import.meta.env.VITE_POSTHOG_KEY': JSON.stringify(process.env.POSTHOG_KEY || ''),
+        'import.meta.env.VITE_POSTHOG_HOST': JSON.stringify(process.env.POSTHOG_HOST || 'https://us.i.posthog.com'),
         'import.meta.env.DEV': JSON.stringify(isDevMode),
         // Define import.meta.url as empty string to prevent parse errors
         'import.meta.url': JSON.stringify('')
