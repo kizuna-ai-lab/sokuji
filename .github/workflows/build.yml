@@ -53,6 +53,7 @@ jobs:
           # Use production environment variables for releases, simpler ones for CI
           VITE_BACKEND_URL: ${{ secrets.VITE_BACKEND_URL_PROD || 'https://sokuji-api.kizuna.ai' }}
           VITE_ENVIRONMENT: production
+          VITE_POSTHOG_KEY: ${{ secrets.VITE_POSTHOG_KEY }}
           # Additional variables only for releases
           VITE_ENABLE_DEBUG: ${{ startsWith(github.ref, 'refs/tags/v') && 'false' || '' }}
           VITE_ENABLE_ANALYTICS: ${{ startsWith(github.ref, 'refs/tags/v') && 'true' || '' }}
@@ -104,6 +105,7 @@ jobs:
         env:
           # Production environment variables for extension
           VITE_BACKEND_URL: ${{ secrets.VITE_BACKEND_URL_PROD || 'https://sokuji-api.kizuna.ai' }}
+          POSTHOG_KEY: ${{ secrets.VITE_POSTHOG_KEY }}
 
       # Release-specific steps
       - name: Generate changelog
