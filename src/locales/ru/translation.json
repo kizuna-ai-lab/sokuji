@@ -81,8 +81,12 @@
     "loadingModels": "Загрузка доступных моделей...",
     "modelsFound": "{{count}} моделей доступно",
     "experimentalFeatureTooltip": "Это экспериментальная функция, которая может быть нестабильной.",
-    "volcengineSTInfo": "Volcengine Info",
-    "volcengineSTInfoText": "Volcengine Real-time Speech Translation provides text-only translation output. Audio synthesis is not supported in this mode.",
+    "volcengineSTInfo": "Информация о Volcengine",
+    "volcengineSTInfoText": "Голосовой перевод Volcengine в реальном времени обеспечивает только текстовый вывод перевода. Синтез звука в этом режиме не поддерживается.",
+    "invalidApiKeyFormat": "Неверный формат API-ключа",
+    "volcengineAST2Info": "Информация о Volcengine AST",
+    "volcengineAST2InfoText": "Volcengine AST 2.0 обеспечивает перевод речи в речь с автоматическим клонированием голоса. Переведённое аудио сохраняет голосовые характеристики оригинального говорящего.",
+    "volcengineAST2TurnDetectionTooltip": "Автоматический режим использует серверное обнаружение голосовой активности. Режим Push-to-Talk позволяет вручную управлять отправкой аудио, удерживая пробел или кнопку микрофона.",
     "geminiParticipantTokenWarning": "Gemini participant mode generates audio responses that are discarded, resulting in additional token usage.",
     "help": "Помощь",
     "auto": "Авто",
@@ -400,10 +404,16 @@
       "description": "Специализированный переводческий ИИ"
     },
     "volcengine_st": {
-      "name": "Volcengine",
-      "description": "ByteDance speech translation",
+      "name": "Volcengine Голосовой Перевод",
+      "description": "Голосовой перевод ByteDance",
       "accessKeyIdPlaceholder": "Access Key ID",
       "secretAccessKeyPlaceholder": "Secret Access Key"
+    },
+    "volcengine_ast2": {
+      "name": "Volcengine AST",
+      "description": "Синхронный перевод ByteDance",
+      "appIdPlaceholder": "APP ID",
+      "accessTokenPlaceholder": "Access Token"
     },
     "unknown": {
       "name": "Неизвестно",

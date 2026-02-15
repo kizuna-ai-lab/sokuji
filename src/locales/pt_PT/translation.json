@@ -80,8 +80,12 @@
     "loadingModels": "A carregar modelos disponíveis...",
     "modelsFound": "{{count}} modelos disponíveis",
     "experimentalFeatureTooltip": "Esta é uma funcionalidade experimental e pode ser instável.",
-    "volcengineSTInfo": "Volcengine Info",
-    "volcengineSTInfoText": "Volcengine Real-time Speech Translation provides text-only translation output. Audio synthesis is not supported in this mode.",
+    "volcengineSTInfo": "Informações do Volcengine",
+    "volcengineSTInfoText": "A tradução de voz em tempo real do Volcengine fornece apenas tradução em texto. A síntese de áudio não é suportada neste modo.",
+    "invalidApiKeyFormat": "Formato de chave de API inválido",
+    "volcengineAST2Info": "Informações do Volcengine AST",
+    "volcengineAST2InfoText": "O Volcengine AST 2.0 fornece tradução de voz para voz com clonagem automática de voz. O áudio traduzido preserva as características vocais do orador original.",
+    "volcengineAST2TurnDetectionTooltip": "O modo automático utiliza a deteção de atividade de voz do lado do servidor. O Push-to-Talk permite controlar manualmente quando enviar áudio mantendo premida a barra de espaços ou o botão do microfone.",
     "geminiParticipantTokenWarning": "Gemini participant mode generates audio responses that are discarded, resulting in additional token usage.",
     "help": "Ajuda",
     "auto": "Auto",
@@ -189,10 +193,16 @@
       "description": "AI de tradução especializada"
     },
     "volcengine_st": {
-      "name": "Volcengine",
-      "description": "ByteDance speech translation",
+      "name": "Volcengine Tradução de Voz",
+      "description": "Tradução de voz ByteDance",
       "accessKeyIdPlaceholder": "Access Key ID",
       "secretAccessKeyPlaceholder": "Secret Access Key"
+    },
+    "volcengine_ast2": {
+      "name": "Volcengine AST",
+      "description": "Tradução simultânea ByteDance",
+      "appIdPlaceholder": "APP ID",
+      "accessTokenPlaceholder": "Access Token"
     },
     "unknown": {
       "name": "Desconhecido",

@@ -80,8 +80,12 @@
     "loadingModels": "بارگذاری مدل‌های موجود...",
     "modelsFound": "{{count}} مدل موجود",
     "experimentalFeatureTooltip": "این یک ویژگی آزمایشی است و ممکن است ناپایدار باشد.",
-    "volcengineSTInfo": "Volcengine Info",
-    "volcengineSTInfoText": "Volcengine Real-time Speech Translation provides text-only translation output. Audio synthesis is not supported in this mode.",
+    "volcengineSTInfo": "اطلاعات Volcengine",
+    "volcengineSTInfoText": "ترجمه گفتار بلادرنگ Volcengine فقط خروجی ترجمه متنی ارائه می‌دهد. سنتز صوتی در این حالت پشتیبانی نمی‌شود.",
+    "invalidApiKeyFormat": "فرمت کلید API نامعتبر",
+    "volcengineAST2Info": "اطلاعات Volcengine AST",
+    "volcengineAST2InfoText": "Volcengine AST 2.0 ترجمه گفتار به گفتار با شبیه‌سازی خودکار صدا ارائه می‌دهد. صدای ترجمه شده ویژگی‌های صوتی گوینده اصلی را حفظ می‌کند.",
+    "volcengineAST2TurnDetectionTooltip": "حالت خودکار از تشخیص فعالیت صوتی سمت سرور استفاده می‌کند. فشار برای صحبت به شما امکان می‌دهد با نگه داشتن کلید فاصله یا دکمه میکروفون، ارسال صدا را به صورت دستی کنترل کنید.",
     "help": "راهنما",
     "auto": "خودکار",
     "low": "کم",
@@ -209,10 +213,16 @@
       "description": "هوش مصنوعی تخصصی ترجمه"
     },
     "volcengine_st": {
-      "name": "Volcengine",
-      "description": "ByteDance speech translation",
+      "name": "Volcengine ترجمه گفتار",
+      "description": "ترجمه گفتار ByteDance",
       "accessKeyIdPlaceholder": "Access Key ID",
       "secretAccessKeyPlaceholder": "Secret Access Key"
+    },
+    "volcengine_ast2": {
+      "name": "Volcengine AST",
+      "description": "ترجمه همزمان ByteDance",
+      "appIdPlaceholder": "APP ID",
+      "accessTokenPlaceholder": "Access Token"
     },
     "unknown": {
       "name": "نامشخص",

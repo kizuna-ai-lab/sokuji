@@ -81,8 +81,12 @@
     "loadingModels": "Beschikbare modellen laden...",
     "modelsFound": "{{count}} modellen beschikbaar",
     "experimentalFeatureTooltip": "Dit is een experimentele functie en kan instabiel zijn.",
-    "volcengineSTInfo": "Volcengine Info",
-    "volcengineSTInfoText": "Volcengine Real-time Speech Translation provides text-only translation output. Audio synthesis is not supported in this mode.",
+    "volcengineSTInfo": "Volcengine-informatie",
+    "volcengineSTInfoText": "Volcengine realtime spraakvertaling biedt alleen tekstvertaling als uitvoer. Audiosynthese wordt in deze modus niet ondersteund.",
+    "invalidApiKeyFormat": "Ongeldig API-sleutelformaat",
+    "volcengineAST2Info": "Volcengine AST-informatie",
+    "volcengineAST2InfoText": "Volcengine AST 2.0 biedt spraak-naar-spraakvertaling met automatische stemkloning. De vertaalde audio behoudt de stemkenmerken van de oorspronkelijke spreker.",
+    "volcengineAST2TurnDetectionTooltip": "Automatische modus gebruikt servergestuurde spraakactiviteitsdetectie. Push-to-Talk laat u handmatig bepalen wanneer audio wordt verzonden door de spatiebalk of microfoonknop ingedrukt te houden.",
     "help": "Help",
     "auto": "Auto",
     "low": "Laag",
@@ -380,10 +384,16 @@
       "description": "Gespecialiseerde vertaal AI"
     },
     "volcengine_st": {
-      "name": "Volcengine",
-      "description": "ByteDance speech translation",
+      "name": "Volcengine Spraakvertaling",
+      "description": "ByteDance spraakvertaling",
       "accessKeyIdPlaceholder": "Access Key ID",
       "secretAccessKeyPlaceholder": "Secret Access Key"
+    },
+    "volcengine_ast2": {
+      "name": "Volcengine AST",
+      "description": "ByteDance simultaanvertaling",
+      "appIdPlaceholder": "APP ID",
+      "accessTokenPlaceholder": "Access Token"
     },
     "unknown": {
       "name": "Onbekend",

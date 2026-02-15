@@ -83,10 +83,16 @@
       "description": "Powered by kizuna.ai service"
     },
     "volcengine_st": {
-      "name": "Volcengine",
-      "description": "ByteDance speech translation",
+      "name": "Volcengine స్పీచ్ ట్రాన్స్‌లేట్",
+      "description": "ByteDance స్పీచ్ ట్రాన్స్‌లేషన్",
       "accessKeyIdPlaceholder": "Access Key ID",
       "secretAccessKeyPlaceholder": "Secret Access Key"
+    },
+    "volcengine_ast2": {
+      "name": "Volcengine AST",
+      "description": "ByteDance సైమల్టేనియస్ ట్రాన్స్‌లేషన్",
+      "appIdPlaceholder": "APP ID",
+      "accessTokenPlaceholder": "Access Token"
     },
     "unknown": {
       "name": "తెలియనిది",
@@ -126,8 +132,12 @@
     "loadingModels": "అందుబాటులో ఉన్న మోడల్‌లు లోడ్ అవుతున్నాయి...",
     "modelsFound": "{{count}} మోడల్‌లు అందుబాటులో ఉన్నాయి",
     "experimentalFeatureTooltip": "ఇది ప్రయోగాత్మక ఫీచర్ మరియు అస్థిరంగా ఉండవచ్చు.",
-    "volcengineSTInfo": "Volcengine Info",
-    "volcengineSTInfoText": "Volcengine Real-time Speech Translation provides text-only translation output. Audio synthesis is not supported in this mode.",
+    "invalidApiKeyFormat": "చెల్లని API కీ ఫార్మాట్",
+    "volcengineSTInfo": "Volcengine సమాచారం",
+    "volcengineSTInfoText": "Volcengine రియల్-టైమ్ స్పీచ్ ట్రాన్స్‌లేషన్ టెక్స్ట్ మాత్రమే అనువాద అవుట్‌పుట్‌ను అందిస్తుంది. ఈ మోడ్‌లో ఆడియో సింథసిస్ మద్దతు లేదు.",
+    "volcengineAST2Info": "Volcengine AST సమాచారం",
+    "volcengineAST2InfoText": "Volcengine AST 2.0 ఆటోమేటిక్ వాయిస్ క్లోనింగ్‌తో స్పీచ్-టు-స్పీచ్ అనువాదాన్ని అందిస్తుంది. అనువదించిన ఆడియో అసలు స్పీకర్ యొక్క వాయిస్ లక్షణాలను భద్రపరుస్తుంది.",
+    "volcengineAST2TurnDetectionTooltip": "ఆటో మోడ్ సర్వర్-సైడ్ వాయిస్ యాక్టివిటీ డిటెక్షన్‌ను ఉపయోగిస్తుంది. పుష్-టు-టాక్ స్పేస్ లేదా మైక్ బటన్‌ను నొక్కి పట్టుకోవడం ద్వారా ఆడియోను ఎప్పుడు పంపాలో మాన్యువల్‌గా నియంత్రించడానికి మిమ్మల్ని అనుమతిస్తుంది.",
     "apiKeyValidationCompleted": "API కీ ధృవీకరణ పూర్తయింది",
     "errorValidatingApiKey": "API కీ ధృవీకరణలో లోపం",
     "sessionActiveNotice": "సెషన్ చురుకుగా ఉన్నప్పుడు సెట్టింగ్‌లు లాక్ చేయబడ్డాయి. సెట్టింగ్‌లను మార్చడానికి దయచేసి సెషన్‌ను ముగించండి.",

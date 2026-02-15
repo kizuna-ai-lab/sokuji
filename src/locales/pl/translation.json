@@ -80,8 +80,12 @@
     "loadingModels": "Ładowanie dostępnych modeli...",
     "modelsFound": "{{count}} modeli dostępnych",
     "experimentalFeatureTooltip": "To jest funkcja eksperymentalna i może być niestabilna.",
-    "volcengineSTInfo": "Volcengine Info",
-    "volcengineSTInfoText": "Volcengine Real-time Speech Translation provides text-only translation output. Audio synthesis is not supported in this mode.",
+    "invalidApiKeyFormat": "Nieprawidłowy format klucza API",
+    "volcengineSTInfo": "Informacje o Volcengine",
+    "volcengineSTInfoText": "Tłumaczenie mowy w czasie rzeczywistym Volcengine zapewnia wyłącznie tekstowe wyjście tłumaczenia. Synteza dźwięku nie jest obsługiwana w tym trybie.",
+    "volcengineAST2Info": "Informacje o Volcengine AST",
+    "volcengineAST2InfoText": "Volcengine AST 2.0 zapewnia tłumaczenie mowy na mowę z automatycznym klonowaniem głosu. Przetłumaczony dźwięk zachowuje cechy głosowe oryginalnego mówcy.",
+    "volcengineAST2TurnDetectionTooltip": "Tryb automatyczny wykorzystuje wykrywanie aktywności głosowej po stronie serwera. Push-to-Talk pozwala ręcznie kontrolować wysyłanie dźwięku, przytrzymując spację lub przycisk mikrofonu.",
     "auto": "Auto",
     "low": "Niski",
     "medium": "Średni",
@@ -378,10 +382,16 @@
       "description": "Wyspecjalizowane AI do tłumaczeń"
     },
     "volcengine_st": {
-      "name": "Volcengine",
-      "description": "ByteDance speech translation",
+      "name": "Volcengine Tłumaczenie Mowy",
+      "description": "Tłumaczenie mowy ByteDance",
       "accessKeyIdPlaceholder": "Access Key ID",
       "secretAccessKeyPlaceholder": "Secret Access Key"
+    },
+    "volcengine_ast2": {
+      "name": "Volcengine AST",
+      "description": "Tłumaczenie symultaniczne ByteDance",
+      "appIdPlaceholder": "APP ID",
+      "accessTokenPlaceholder": "Access Token"
     },
     "unknown": {
       "name": "Nieznany",
