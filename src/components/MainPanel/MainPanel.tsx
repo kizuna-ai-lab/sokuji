@@ -741,6 +741,10 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     try {
       setIsInitializing(true);
 
+      // Clear previous session's conversation items immediately
+      setItems([]);
+      setSystemAudioItems([]);
+
       // Initialize the audio service if not already done
       if (!audioServiceRef.current) {
         audioServiceRef.current = ServiceFactory.getAudioService();
@@ -1042,7 +1046,6 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       // Note: Use clientRef.current instead of client variable to handle WebRTC fallback scenario
       setIsSessionActive(true);
       setItems(clientRef.current?.getConversationItems() || []);
-      setSystemAudioItems([]); // Clear participant conversation from previous session
 
       // Start tracking audio quality metrics during session
       audioQualityIntervalRef.current = setInterval(() => {
