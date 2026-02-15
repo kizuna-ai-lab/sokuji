@@ -24,6 +24,7 @@ import { useAudioContext } from '../../stores/audioStore';
 import { useLogActions } from '../../stores/logStore';
 import type { RealtimeEvent } from '../../stores/logStore';
 import { IClient, ConversationItem, SessionConfig, ClientEventHandlers, ClientFactory, ResponseConfig } from '../../services/clients';
+import type { VolcengineAST2SessionConfig, VolcengineSTSessionConfig } from '../../services/interfaces/IClient';
 import { WavRenderer } from '../../utils/wav_renderer';
 import { ServiceFactory } from '../../services/ServiceFactory'; // Import the ServiceFactory
 import { IAudioService } from '../../services/interfaces/IAudioService';
@@ -237,7 +238,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
    */
   const createParticipantSessionConfig = useCallback(() => {
     const swappedSystemInstructions = getProcessedSystemInstructions(true);
-    return {
+    const config = {
       ...createSessionConfig(swappedSystemInstructions),
       textOnly: true,
       // Override turn detection to use semantic VAD for participant audio
@@ -248,6 +249,21 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         eagerness: 'high',
       }
     };
+
+    // Volcengine providers carry language direction in explicit config fields
+    // (not system instructions), so we must swap sourceLanguage/targetLanguage
+    // for the participant session to reverse the translation direction.
+    if (config.provider === 'volcengine_ast2') {
+      const ast2 = config as VolcengineAST2SessionConfig;
+      [ast2.sourceLanguage, ast2.targetLanguage] = [ast2.targetLanguage, ast2.sourceLanguage];
+    } else if (config.provider === 'volcengine_st') {
+      const st = config as VolcengineSTSessionConfig;
+      const oldSource = st.sourceLanguage;
+      st.sourceLanguage = st.targetLanguages[0] || oldSource;
+      st.targetLanguages = [oldSource];
+    }
+
+    return config;
   }, [getProcessedSystemInstructions, createSessionConfig]);
 
   /**
