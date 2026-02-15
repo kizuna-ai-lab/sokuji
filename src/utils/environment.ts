@@ -183,7 +183,38 @@ export function isPalabraAIEnabled(): boolean {
   }
 
   // In production, check for explicit environment variable
-  return import.meta.env?.VITE_ENABLE_PALABRA_AI === 'true';
+  return import.meta.env.VITE_ENABLE_PALABRA_AI === 'true';
+}
+
+/**
+ * Check if Volcengine Speech Translate features should be enabled
+ * @returns true if Volcengine Speech Translate features should be shown
+ *
+ * In development mode: always returns true
+ * In production mode: returns false (unless explicitly enabled via VITE_ENABLE_VOLCENGINE_ST env var)
+ */
+export function isVolcengineSTEnabled(): boolean {
+  // In development mode, always show Volcengine Speech Translate features
+  if (isDevelopmentMode()) {
+    return true;
+  }
+
+  // In production, check for explicit environment variable
+  return import.meta.env.VITE_ENABLE_VOLCENGINE_ST === 'true';
+}
+
+/**
+ * Check if Volcengine AST 2.0 features should be enabled
+ * @returns true if Volcengine AST 2.0 features should be shown
+ *
+ * In development mode: always returns true
+ * In production mode: returns false (unless explicitly enabled via VITE_ENABLE_VOLCENGINE_AST2 env var)
+ */
+export function isVolcengineAST2Enabled(): boolean {
+  if (isDevelopmentMode()) {
+    return true;
+  }
+  return import.meta.env.VITE_ENABLE_VOLCENGINE_AST2 === 'true';
 }
 
 // ============================================================================

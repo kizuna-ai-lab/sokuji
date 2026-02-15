@@ -4,8 +4,10 @@ import { GeminiProviderConfig } from './GeminiProviderConfig';
 import { OpenAICompatibleProviderConfig } from './OpenAICompatibleProviderConfig';
 import { PalabraAIProviderConfig } from './PalabraAIProviderConfig';
 import { KizunaAIProviderConfig } from './KizunaAIProviderConfig';
+import { VolcengineSTProviderConfig } from './VolcengineSTProviderConfig';
+import { VolcengineAST2ProviderConfig } from './VolcengineAST2ProviderConfig';
 import { Provider, ProviderType } from '../../types/Provider';
-import { isKizunaAIEnabled, isPalabraAIEnabled, isElectron } from '../../utils/environment';
+import { isKizunaAIEnabled, isPalabraAIEnabled, isVolcengineSTEnabled, isVolcengineAST2Enabled, isElectron, isExtension } from '../../utils/environment';
 
 interface ProviderConfigInstance {
   getConfig(): ProviderConfig;
@@ -32,6 +34,16 @@ export class ProviderConfigFactory {
     // Only register OpenAI Compatible provider in Electron environment
     if (isElectron()) {
       ProviderConfigFactory.configs.set(Provider.OPENAI_COMPATIBLE, new OpenAICompatibleProviderConfig());
+    }
+
+    // Only register Volcengine Speech Translate if the feature flag is enabled
+    if (isVolcengineSTEnabled()) {
+      ProviderConfigFactory.configs.set(Provider.VOLCENGINE_ST, new VolcengineSTProviderConfig());
+    }
+
+    // Register Volcengine AST 2.0 in Electron (IPC proxy) and Extension (declarativeNetRequest header injection)
+    if ((isElectron() || isExtension()) && isVolcengineAST2Enabled()) {
+      ProviderConfigFactory.configs.set(Provider.VOLCENGINE_AST2, new VolcengineAST2ProviderConfig());
     }
   }
 

@@ -82,6 +82,9 @@
     "loadingModels": "正在加载可用模型...",
     "modelsFound": "找到{{count}}个模型",
     "experimentalFeatureTooltip": "这是一个实验性功能，可能会不稳定。",
+    "invalidApiKeyFormat": "API密钥格式无效",
+    "volcengineSTInfo": "火山引擎信息",
+    "volcengineSTInfoText": "火山引擎实时语音翻译仅提供文本翻译输出，此模式不支持语音合成。",
     "geminiParticipantTokenWarning": "Gemini参与者模式会生成音频响应但只使用文本转录，导致额外的token消耗。",
     "help": "帮助",
     "auto": "自动",
@@ -242,6 +245,16 @@
     "palabraai": {
       "name": "Palabra AI",
       "description": "专业翻译AI"
+    },
+    "kizunaai": {
+      "name": "Kizuna AI",
+      "description": "由 kizuna.ai 服务提供支持"
+    },
+    "volcengine_st": {
+      "name": "火山引擎语音翻译",
+      "description": "字节跳动实时语音翻译",
+      "accessKeyIdPlaceholder": "Access Key ID",
+      "secretAccessKeyPlaceholder": "Secret Access Key"
     },
     "unknown": {
       "name": "未知",

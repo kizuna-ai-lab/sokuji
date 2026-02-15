@@ -281,6 +281,22 @@ const useLogStore = create<LogStore>(
         // Group PalabraAI current task response events together
         groupingKey = 'palabraai_current_task';
       }
+      // Volcengine AST2-specific grouping
+      else if (eventType === 'SourceSubtitleResponse' || eventType === 'SourceSubtitleStart' || eventType === 'SourceSubtitleEnd') {
+        groupingKey = 'volcengine_source_subtitle';
+      }
+      else if (eventType === 'TranslationSubtitleResponse' || eventType === 'TranslationSubtitleStart' || eventType === 'TranslationSubtitleEnd') {
+        groupingKey = 'volcengine_translation_subtitle';
+      }
+      else if (eventType === 'TTSResponse' || eventType === 'TTSSentenceStart' || eventType === 'TTSSentenceEnd') {
+        groupingKey = 'volcengine_tts';
+      }
+      else if (eventType === 'UsageResponse') {
+        groupingKey = 'volcengine_usage';
+      }
+      else if (eventType === 'AudioMuted' || eventType === 'AudioUnmuted') {
+        groupingKey = 'volcengine_audio_mute';
+      }
       // For other events, extract item_id if it exists (OpenAI)
       // Note: Use sanitizedEvent for checking item_id to avoid accessing removed audio data
       else {

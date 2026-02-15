@@ -80,6 +80,8 @@
     "loadingModels": "טוען מודלים זמינים...",
     "modelsFound": "{{count}} מודלים זמינים",
     "experimentalFeatureTooltip": "זוהי תכונה ניסיונית ועלולה להיות לא יציבה.",
+    "volcengineSTInfo": "Volcengine Info",
+    "volcengineSTInfoText": "Volcengine Real-time Speech Translation provides text-only translation output. Audio synthesis is not supported in this mode.",
     "help": "עזרה",
     "auto": "אוטומטי",
     "low": "נמוך",
@@ -201,6 +203,12 @@
     "palabraai": {
       "name": "Palabra AI",
       "description": "בינה מלאכותית מתמחה בתרגום"
+    },
+    "volcengine_st": {
+      "name": "Volcengine",
+      "description": "ByteDance speech translation",
+      "accessKeyIdPlaceholder": "Access Key ID",
+      "secretAccessKeyPlaceholder": "Secret Access Key"
     },
     "unknown": {
       "name": "לא ידוע",

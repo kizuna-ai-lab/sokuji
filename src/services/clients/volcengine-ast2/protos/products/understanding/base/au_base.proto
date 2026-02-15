@@ -1,0 +1,200 @@
+// Copyright 2025 ByteDance Inc. All rights reserved.
+// Author: Yu WenTeng (yuwenteng@bytedance.com)
+
+syntax = "proto3";
+
+package data.speech.understanding;
+
+enum Code {
+  ERROR_UNSPECIFIED = 0;
+
+  SUCCESS = 21000;
+
+  // request related
+  INVALID_REQUEST = 11100;
+  PERMISSION_DENIED = 11200;
+  LIMIT_QPS = 11301;
+  LIMIT_COUNT = 11302;
+  SERVER_BUSY = 11303;
+  INTERRUPTED = 21300;
+  ERROR_PARAMS = 11500;
+
+  // audio related
+  LONG_AUDIO = 11101;
+  LARGE_PACKET = 11102;
+  INVALID_FORMAT = 11103;
+  SILENT_AUDIO = 11104;
+  EMPTY_AUDIO = 11105;
+  AUDIO_DOWNLOAD_FAIL = 21701;
+
+  // recognition related
+  TIMEOUT_WAITING = 21200;
+  TIMEOUT_PROCESSING = 21201;
+  ERROR_PROCESSING = 21100;
+
+  // others
+  ERROR_UNKNOWN = 29900;
+}
+
+message Word {
+  string text = 1;
+  int32 start_time = 2;
+  int32 end_time = 3;
+  int32 blank_duration = 4;
+  string pronounce = 5;
+  double confidence = 6;
+}
+message UtteranceAddition {}
+
+message ResultAddition {}
+
+message Utterance {
+  string text = 1;
+  int32 start_time = 2;
+  int32 end_time = 3;
+  optional bool definite = 4;
+  repeated Word words = 5;
+  string language = 6;
+  double confidence = 7;
+  int32 speaker = 8;
+  int32 channel_id = 9;
+
+  map<string, string> additions = 100;
+}
+
+message LanguageDetail {
+  // language probability
+  double prob = 1;
+}
+
+message Result {
+  string text = 1;
+  repeated Utterance utterances = 2;
+  double confidence = 3;
+  double global_confidence = 4;
+  string language = 5;
+  map<string, LanguageDetail> language_details = 6;
+  optional bool termination = 7;
+  double volume = 8;
+  double speech_rate = 9;
+  string result_type = 10;
+  string ori_text = 11;
+  optional bool prefetch = 12;
+
+  map<string, string> additions = 100;
+}
+
+message AudioInfo {
+  int64 duration = 1;
+  double speech_rate = 2;
+}
+
+message App { string work_flow_name = 1; }
+
+message User {
+  string uid = 1;
+  string did = 2;
+  // android or ios info
+  string platform = 3;
+  string sdk_version = 4;
+  string app_version = 5;
+}
+
+message Audio {
+  string data = 1;
+  string url = 2;
+  // url; vid...
+  string url_type = 3;
+  string format = 4;
+  string codec = 5;
+  string language = 6;
+  int32 rate = 7;
+  int32 bits = 8;
+  int32 channel = 9;
+  string tos_bucket = 10;
+  string tos_access_key = 11;
+  string audio_tos_object = 12;
+  string role_trn = 13;
+  bytes binary_data = 14;
+}
+
+enum AsrNotificationCode {
+  NOTIFICATION_UNSPECIFIED = 0;
+  DISCONNECT = 1000;
+}
+
+message AsrNotification {
+  AsrNotificationCode code = 1;
+  string message = 2;
+}
+
+message ReqParams {
+  string model_name = 1;  // 用于映射集群
+  string config_name = 2; // 用于映射tcc配置
+  optional bool enable_vad = 3;
+  optional bool enable_punc = 4;
+  optional bool enable_itn = 5;
+  optional bool enable_ddc = 6;
+  optional bool enable_resample = 7;
+  optional bool vad_signal = 8;
+  optional bool enable_translate = 9;
+  optional bool disable_end_punc = 10;
+  optional bool enable_speaker_info = 11;
+  optional bool enable_channel_split = 12;
+  string app_lang = 13;
+  string country = 14;
+  string audio_type = 15;
+  optional bool enable_lid = 16;
+  int32 reco2act_num_spk = 17;
+  int32 reco2max_num_spk = 18;
+  optional bool enable_interrupt = 19;
+  optional bool vad_segment = 20;
+  optional bool enable_ori_text = 21;
+  optional bool enable_nonstream = 22;
+
+  optional bool show_utterances = 31;
+  optional bool show_words = 32;
+  optional bool show_duration = 33;
+  optional bool show_language = 34;
+  optional bool show_volume = 35;
+  optional bool show_volume_v = 362;
+  optional bool show_speech_rate = 37;
+  optional bool show_prefetch = 38;
+  string result_type = 39;
+
+  int32 start_silence_time = 61;
+  int32 end_silence_time = 62;
+  int32 vad_silence_time = 63;
+  int32 min_silence_time = 64;
+  string vad_mode = 65;
+  int32 vad_segment_duration = 66;
+  int32 end_window_size = 67;
+  int32 force_to_speech_time = 68;
+
+  Corpus corpus = 100;
+  AsrNotification notification = 101;
+  string sensitive_words_filter = 102;
+}
+
+message Corpus {
+  // json格式，包含热词，冷词，篇章，纠错词表等
+  string context = 1;
+  string boosting_table_id = 2;
+  string boosting_table_name = 3;
+  string boosting_id = 4;
+  string nnlm_id = 5;
+  string correct_table_id = 6;
+  string correct_table_name = 7;
+  string punc_hot_words = 8;
+  repeated string hot_words_list = 9;
+  map<string, string> glossary_list = 10;
+  string correct_words = 11;
+  string regex_correct_table_id = 12;
+  string regex_correct_table_name = 13;
+  string glossary_table_id = 14;
+  string glossary_table_name = 15;
+
+  optional bool show_match_hot_words = 61;
+  optional bool show_all_match_hot_words = 62;
+  optional bool show_effective_hot_words = 63;
+}

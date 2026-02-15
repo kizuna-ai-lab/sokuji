@@ -82,6 +82,8 @@
     "loadingModels": "Chargement des modèles disponibles...",
     "modelsFound": "{{count}} modèles disponibles",
     "experimentalFeatureTooltip": "Il s'agit d'une fonctionnalité expérimentale qui peut être instable.",
+    "volcengineSTInfo": "Volcengine Info",
+    "volcengineSTInfoText": "Volcengine Real-time Speech Translation provides text-only translation output. Audio synthesis is not supported in this mode.",
     "geminiParticipantTokenWarning": "Gemini participant mode generates audio responses that are discarded, resulting in additional token usage.",
     "help": "Aide",
     "auto": "Auto",
@@ -402,6 +404,12 @@
     "palabraai": {
       "name": "Palabra AI",
       "description": "IA de traduction spécialisée"
+    },
+    "volcengine_st": {
+      "name": "Volcengine",
+      "description": "ByteDance speech translation",
+      "accessKeyIdPlaceholder": "Access Key ID",
+      "secretAccessKeyPlaceholder": "Secret Access Key"
     },
     "unknown": {
       "name": "Inconnu",

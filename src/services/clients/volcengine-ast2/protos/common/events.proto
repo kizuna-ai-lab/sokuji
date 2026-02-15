@@ -1,0 +1,130 @@
+syntax = "proto3";
+
+package data.speech.event;
+
+enum Type {
+  option allow_alias = true;
+  /*
+   * All following event names do not conform to CONSTANT_CASE naming style
+   * because we intentionally make them consistant with the existing SAMI
+   * string-typed events so that these enum values can be easily converted to
+   * event strings by simply call their `String()` method (eg,
+   * `event.Type_StartTTS.String() == "StartTTS"`).
+   */
+
+  // 默认事件，适用于不使用事件的方案或不需要传递事件的情况，
+  // 或者对于使用事件的方案，可以通过非0值来校验事件的合法性
+  None = 0;
+
+  /*
+   * 1 ~ 300 为与业务无关的通用事件
+   */
+
+  /*** 1 ～ 99 为Connection相关事件 ***/
+
+  // 1 ~ 49 为上行Connection事件
+  StartConnection = 1;
+  StartTask = 1; // Alias of "StartConnection"
+  FinishConnection = 2;
+  FinishTask = 2; // Alias of "FinishConnection"
+
+  // 50 ~ 99 为下行Connection事件
+  // 成功建连
+  ConnectionStarted = 50;
+  TaskStarted = 50; // Alias of "ConnectionStarted"
+  // 建连失败（可能是无法通过权限认证）
+  ConnectionFailed = 51;
+  TaskFailed = 51; // Alias of "ConnectionFailed"
+  // 连接结束
+  ConnectionFinished = 52;
+  TaskFinished = 52; // Alias of "ConnectionFinished"
+
+  /*** 100 ~ 199 为Session、用量等类型事件 ***/
+
+  // 100 ~ 149 为上行Session事件
+  StartSession = 100;
+  CancelSession = 101;
+  FinishSession = 102;
+
+  // 150 ～ 199 为下行Session事件
+  SessionStarted = 150;
+  SessionCanceled = 151;
+  SessionFinished = 152;
+  SessionFailed = 153;
+
+  // 用量事件
+  UsageResponse = 154;
+  ChargeData = 154; // Alias of "UsageResponse"
+
+  /*** 200 ～ 299 为不跟特定方案绑定的通用事件，会被解决方案及下游消费 ***/
+
+  // 200 ~ 249 为上行通用事件
+  TaskRequest = 200;
+  UpdateConfig = 201;
+
+  ImageRequest = 202;
+
+  // 250 ~ 299 为下行通用事件
+  AudioMuted = 250;
+
+  /*
+   * 300及以上为业务相关的事件
+   */
+
+  /*** 300 ~ 399 为TTS相关事件 ***/
+
+  // 300 ~ 349 为上行TTS事件
+  SayHello = 300;
+
+  // 350 ~ 399 为下行TTS事件
+  TTSSentenceStart = 350;
+  TTSSentenceEnd = 351;
+  TTSResponse = 352;
+  TTSEnded = 359;
+  PodcastRoundStart = 360;
+  PodcastRoundResponse = 361;
+  PodcastRoundEnd = 362;
+
+  /*** 400 ~ 499 为ASR相关事件 ***/
+
+  // 400 ~ 449 为上行ASR事件
+
+  // 450 ~ 499 为下行ASR事件
+  ASRInfo = 450;
+  ASRResponse = 451;
+  ASREnded = 459;
+
+  /*** 500 ~ 599 为对话相关事件 ***/
+
+  // 500 ~ 549 为上行对话事件
+  // (Ground-Truth-Alignment) text for speech synthesis
+  ChatTTSText = 500;
+  ChatTextQuery = 501;
+
+  // 550 ~ 599 为下行对话事件
+  ChatResponse = 550;
+  ChimeInStart = 551;
+  ChimeInEnd = 552;
+  ChatEnded = 559;
+  ThinkStart = 560;
+  ThinkResponse = 561;
+  ThinkEnd = 562;
+  ToolOutput = 563;
+  FCResponseStart = 564;
+  FCResponse = 565;
+  FCResponseEnd = 566;
+
+  /*** 600 ~ 699 为Machine Translation相关事件 ***/
+
+  // 600 ~ 649 为上行对话事件
+
+  // 650 ~ 699 为下行对话事件
+  // Events for source (original) language subtitle.
+  SourceSubtitleStart = 650;
+  SourceSubtitleResponse = 651;
+  SourceSubtitleEnd = 652;
+  // Events for target (translation) language subtitle.
+  TranslationSubtitleStart = 653;
+  TranslationSubtitleResponse = 654;
+  TranslationSubtitleEnd = 655;
+}

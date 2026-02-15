@@ -36,6 +36,8 @@
     "loadingModels": "Đang tải các mô hình có sẵn...",
     "modelsFound": "{{count}} mô hình có sẵn",
     "experimentalFeatureTooltip": "Đây là một tính năng thử nghiệm và có thể không ổn định.",
+    "volcengineSTInfo": "Volcengine Info",
+    "volcengineSTInfoText": "Volcengine Real-time Speech Translation provides text-only translation output. Audio synthesis is not supported in this mode.",
     "apiKeyValidationCompleted": "Xác thực khóa API hoàn tất",
     "errorValidatingApiKey": "Lỗi khi xác thực khóa API",
     "sessionActiveNotice": "Cài đặt bị khóa khi phiên đang hoạt động. Vui lòng kết thúc phiên để thay đổi cài đặt.",
@@ -316,6 +318,12 @@
     "palabraai": {
       "name": "Palabra AI",
       "description": "AI dịch chuyên biệt"
+    },
+    "volcengine_st": {
+      "name": "Volcengine",
+      "description": "ByteDance speech translation",
+      "accessKeyIdPlaceholder": "Access Key ID",
+      "secretAccessKeyPlaceholder": "Secret Access Key"
     },
     "unknown": {
       "name": "Không rõ",
