@@ -312,6 +312,8 @@ export class VolcengineSTClient implements IClient {
   // Track current recognition/translation state
   private currentSequence = 0;
   private pendingSubtitles: Map<number, VolcengineSTSubtitle> = new Map();
+  private currentSourceItemId: string | null = null;
+  private currentTranslationItemId: string | null = null;
 
   constructor(accessKeyId: string, secretAccessKey: string) {
     this.accessKeyId = accessKeyId;
@@ -496,6 +498,8 @@ export class VolcengineSTClient implements IClient {
     this.conversationItems = [];
     this.currentSequence = 0;
     this.pendingSubtitles.clear();
+    this.currentSourceItemId = null;
+    this.currentTranslationItemId = null;
 
     return new Promise(async (resolve, reject) => {
       try {
@@ -664,16 +668,26 @@ export class VolcengineSTClient implements IClient {
    * Target language subtitles are translations (role: 'assistant')
    */
   private handleSubtitle(subtitle: VolcengineSTSubtitle): void {
-    // Store or update the subtitle
     this.pendingSubtitles.set(subtitle.Sequence, subtitle);
 
-    // Determine if this is a source transcription or target translation
     const isSourceLanguage = this.currentConfig?.sourceLanguage &&
       subtitle.Language.toLowerCase() === this.currentConfig.sourceLanguage.toLowerCase();
     const role: 'user' | 'assistant' = isSourceLanguage ? 'user' : 'assistant';
 
-    // Create or update conversation item
-    const itemId = this.generateItemId(`subtitle_${subtitle.Language}_${subtitle.Sequence}`);
+    // Reuse persistent item ID for the current segment, create one if absent
+    if (isSourceLanguage) {
+      if (!this.currentSourceItemId) {
+        this.currentSourceItemId = this.generateItemId('source');
+      }
+    } else {
+      if (!this.currentTranslationItemId) {
+        this.currentTranslationItemId = this.generateItemId('translation');
+      }
+    }
+
+    const itemId = isSourceLanguage
+      ? this.currentSourceItemId!
+      : this.currentTranslationItemId!;
 
     const conversationItem: ConversationItem = {
       id: itemId,
@@ -691,9 +705,14 @@ export class VolcengineSTClient implements IClient {
       }]
     };
 
-    // If definite, add to conversation items
+    // Finalized — push to history and clear tracked ID
     if (subtitle.Definite) {
       this.conversationItems.push(conversationItem);
+      if (isSourceLanguage) {
+        this.currentSourceItemId = null;
+      } else {
+        this.currentTranslationItemId = null;
+      }
     }
 
     this.eventHandlers.onConversationUpdated?.({
@@ -753,6 +772,8 @@ export class VolcengineSTClient implements IClient {
     this.conversationItems = [];
     this.currentSequence = 0;
     this.pendingSubtitles.clear();
+    this.currentSourceItemId = null;
+    this.currentTranslationItemId = null;
   }
 
   /**
