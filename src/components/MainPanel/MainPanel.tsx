@@ -9,6 +9,8 @@ import {
   useOpenAICompatibleSettings,
   usePalabraAISettings,
   useKizunaAISettings,
+  useVolcengineSTSettings,
+  useVolcengineAST2Settings,
   useIsApiKeyValid,
   useAvailableModels,
   useLoadingModels,
@@ -62,6 +64,8 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   const geminiSettings = useGeminiSettings();
   const palabraAISettings = usePalabraAISettings();
   const kizunaAISettings = useKizunaAISettings();
+  const volcengineSTSettings = useVolcengineSTSettings();
+  const volcengineAST2Settings = useVolcengineAST2Settings();
   const transportType = useTransportType();
   const isApiKeyValid = useIsApiKeyValid();
   const availableModels = useAvailableModels();
@@ -176,16 +180,26 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       outputDeviceId: selectedMonitorDevice?.deviceId
     } : undefined;
 
+    // Get client secret for providers that need it
+    let clientSecret: string | undefined;
+    if (provider === Provider.PALABRA_AI) {
+      clientSecret = palabraAISettings.clientSecret;
+    } else if (provider === Provider.VOLCENGINE_ST) {
+      clientSecret = volcengineSTSettings.secretAccessKey;
+    } else if (provider === Provider.VOLCENGINE_AST2) {
+      clientSecret = volcengineAST2Settings.accessToken;
+    }
+
     return ClientFactory.createClient(
       modelName,
       provider,
       apiKey,
-      provider === Provider.PALABRA_AI ? palabraAISettings.clientSecret : undefined,
+      clientSecret,
       customEndpoint,
       effectiveTransportType,
       webrtcOptions
     );
-  }, [provider, openAICompatibleSettings.customEndpoint, palabraAISettings.clientSecret, selectedInputDevice?.deviceId, selectedMonitorDevice?.deviceId, isInputDeviceOn]);
+  }, [provider, openAICompatibleSettings.customEndpoint, palabraAISettings.clientSecret, volcengineSTSettings.secretAccessKey, volcengineAST2Settings.accessToken, selectedInputDevice?.deviceId, selectedMonitorDevice?.deviceId, isInputDeviceOn]);
 
   /**
    * Helper to create event handlers for participant audio client
@@ -371,6 +385,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   
   // Simple throttling for UI updates to prevent freezing
   const lastUpdateTimeRef = useRef<number>(0);
+  const throttleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const UPDATE_THROTTLE_MS = 50; // Throttle UI updates to max 20Hz
   
   // Reference to track the maximum progress ratio to prevent backwards movement
@@ -534,11 +549,16 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         }
         
         // Simple throttling: skip updates that are too frequent
+        // Uses trailing timeout to ensure the last update always renders
         const now = Date.now();
         const timeSinceLastUpdate = now - lastUpdateTimeRef.current;
         if (timeSinceLastUpdate < UPDATE_THROTTLE_MS) {
-          // Skip this update if it's too soon after the last one
-          // This prevents UI freezing from rapid updates
+          // Schedule a trailing update so the last message always renders
+          if (throttleTimerRef.current) clearTimeout(throttleTimerRef.current);
+          throttleTimerRef.current = setTimeout(() => {
+            lastUpdateTimeRef.current = Date.now();
+            setItems(client.getConversationItems());
+          }, UPDATE_THROTTLE_MS);
           return;
         }
         lastUpdateTimeRef.current = now;
@@ -747,6 +767,14 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           // PalabraAI uses clientId as the "apiKey" parameter for ClientFactory
           apiKey = palabraAISettings.clientId;
           break;
+        case Provider.VOLCENGINE_ST:
+          // Volcengine ST uses accessKeyId as the "apiKey" parameter for ClientFactory
+          apiKey = volcengineSTSettings.accessKeyId;
+          break;
+        case Provider.VOLCENGINE_AST2:
+          // Volcengine AST2 uses appId as the "apiKey" parameter for ClientFactory
+          apiKey = volcengineAST2Settings.appId;
+          break;
         default:
           throw new Error(`Unsupported provider: ${provider}`);
       }
@@ -775,6 +803,8 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           provider === Provider.KIZUNA_AI ? kizunaAISettings :
           null;
         setCanPushToTalk(settings ? settings.turnDetectionMode === 'Disabled' : false);
+      } else if (provider === Provider.VOLCENGINE_AST2) {
+        setCanPushToTalk(volcengineAST2Settings.turnDetectionMode === 'Push-to-Talk');
       } else {
         setCanPushToTalk(false); // Not supported by Gemini and PalabraAI
       }
@@ -898,6 +928,8 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           provider === Provider.KIZUNA_AI ? kizunaAISettings :
           null;
         turnDetectionDisabled = settings ? settings.turnDetectionMode === 'Disabled' : false;
+      } else if (provider === Provider.VOLCENGINE_AST2) {
+        turnDetectionDisabled = volcengineAST2Settings.turnDetectionMode === 'Push-to-Talk';
       }
 
       // Check if provider uses native audio capture (OpenAI WebRTC or PalabraAI/LiveKit)
@@ -1035,6 +1067,8 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     openAICompatibleSettings,
     palabraAISettings,
     kizunaAISettings,
+    volcengineSTSettings,
+    volcengineAST2Settings,
     provider,
     transportType,
     isLoaded,
@@ -1156,26 +1190,39 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       // Only try to pause if we're actually recording
       const recorder = audioService.getRecorder();
       if (recorder.isRecording()) {
+        // For Volcengine AST2 PTT: send ~500ms of silence frames before stopping
+        // This helps the server-side VAD detect end of speech
+        if (provider === Provider.VOLCENGINE_AST2 && client) {
+          const silenceFrameSize = 2400; // 24kHz * 0.1s = 2400 samples per 100ms frame (client downsamples to 16kHz internally)
+          const silenceFrames = 5; // 5 frames = 500ms
+          const silence = new Int16Array(silenceFrameSize);
+          for (let i = 0; i < silenceFrames; i++) {
+            client.appendInputAudio(silence);
+          }
+          console.debug('[Sokuji] [MainPanel] PTT: Sent 500ms silence frames for AST2 VAD end detection');
+        }
+
         // Stop recording
         await audioService.pauseRecording();
 
         // Only create response if we detected enough voice audio (prevents empty requests)
+        // Note: AST2 handles response creation server-side via VAD, so skip client.createResponse() for it
         const MIN_VOICE_CHUNKS = 5; // At least 5 non-silent chunks (~0.5 seconds of speech)
-        if (client && pttVoiceChunkCountRef.current >= MIN_VOICE_CHUNKS) {
+        if (client && provider !== Provider.VOLCENGINE_AST2 && pttVoiceChunkCountRef.current >= MIN_VOICE_CHUNKS) {
           // Model drift prevention is handled by the silent anchor mechanism (useEffect)
           client.createResponse();
-        } else if (client) {
+        } else if (client && provider !== Provider.VOLCENGINE_AST2) {
           console.debug(`[Sokuji] [MainPanel] PTT: Skipping response - only ${pttVoiceChunkCountRef.current} voice chunks detected (minimum: ${MIN_VOICE_CHUNKS})`);
         }
       }
     } catch (error) {
       // If there's an error during pause (e.g., already paused), log it but don't crash
       console.error('[Sokuji] [MainPanel] Error stopping recording:', error);
-      
+
       // Reset the recording state to ensure UI is consistent
       setIsRecording(false);
     }
-  }, [isRecording]);
+  }, [isRecording, provider]);
 
   /**
    * Send text input for translation
@@ -1768,6 +1815,8 @@ const MainPanel: React.FC<MainPanelProps> = () => {
               provider === Provider.KIZUNA_AI ? kizunaAISettings :
               null;
             turnDetectionDisabled = settings ? settings.turnDetectionMode === 'Disabled' : false;
+          } else if (provider === Provider.VOLCENGINE_AST2) {
+            turnDetectionDisabled = volcengineAST2Settings.turnDetectionMode === 'Push-to-Talk';
           }
           if (!turnDetectionDisabled) {
             console.info('[Sokuji] [MainPanel] Input device turned on - starting recording in automatic mode');
@@ -1794,7 +1843,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     };
 
     updateRecordingState();
-  }, [isInputDeviceOn, isSessionActive, provider, openAISettings.turnDetectionMode, openAICompatibleSettings.turnDetectionMode, kizunaAISettings.turnDetectionMode, selectedInputDevice]);
+  }, [isInputDeviceOn, isSessionActive, provider, openAISettings.turnDetectionMode, openAICompatibleSettings.turnDetectionMode, kizunaAISettings.turnDetectionMode, volcengineAST2Settings.turnDetectionMode, selectedInputDevice]);
 
   /**
    * Watch for changes to selectedMonitorDevice or isMonitorDeviceOn 

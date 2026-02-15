@@ -1,6 +1,8 @@
 import { OpenAIClient } from './clients/OpenAIClient';
 import { GeminiClient } from './clients/GeminiClient';
 import { PalabraAIClient } from './clients/PalabraAIClient';
+import { VolcengineSTClient } from './clients/VolcengineSTClient';
+import { VolcengineAST2Client } from './clients/VolcengineAST2Client';
 import { ApiKeyValidationResult } from './interfaces/ISettingsService';
 import { FilteredModel } from './interfaces/IClient';
 import { Provider, ProviderType, SUPPORTED_PROVIDERS } from '../types/Provider';
@@ -69,6 +71,32 @@ export class ClientOperations {
           apiKey,
           getApiUrl()
         );
+      case Provider.VOLCENGINE_ST:
+        // Volcengine ST requires both Access Key ID and Secret Access Key
+        if (!clientSecret || !apiKey) {
+          return {
+            validation: {
+              valid: false,
+              message: 'Both Access Key ID and Secret Access Key are required for Volcengine Speech Translate',
+              validating: false
+            },
+            models: []
+          };
+        }
+        return await VolcengineSTClient.validateApiKeyAndFetchModels(apiKey, clientSecret);
+      case Provider.VOLCENGINE_AST2:
+        // Volcengine AST2 requires both APP ID and Access Token
+        if (!clientSecret || !apiKey) {
+          return {
+            validation: {
+              valid: false,
+              message: 'Both APP ID and Access Token are required for Volcengine AST',
+              validating: false
+            },
+            models: []
+          };
+        }
+        return await VolcengineAST2Client.validateApiKeyAndFetchModels(apiKey, clientSecret);
       default:
         throw new Error(`Unsupported provider: ${provider}`);
     }
@@ -91,6 +119,11 @@ export class ClientOperations {
       case Provider.KIZUNA_AI:
         // KizunaAI uses the same model detection logic as OpenAI
         return OpenAIClient.getLatestRealtimeModel(filteredModels);
+      case Provider.VOLCENGINE_ST:
+        // Volcengine ST has a fixed model for speech translation
+        return 'speech-translate-v1';
+      case Provider.VOLCENGINE_AST2:
+        return 'ast-v2-s2s';
       default:
         throw new Error(`Unsupported provider: ${provider}`);
     }

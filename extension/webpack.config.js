@@ -1,7 +1,26 @@
 const path = require('path');
+const fs = require('fs');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const CopyWebpackPlugin = require('copy-webpack-plugin');
 const webpack = require('webpack');
+
+// Load root .env file so production builds pick up feature flags
+// without needing `export` or manual env var forwarding
+const rootEnvPath = path.resolve(__dirname, '../.env');
+if (fs.existsSync(rootEnvPath)) {
+  for (const line of fs.readFileSync(rootEnvPath, 'utf-8').split('\n')) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('#')) continue;
+    const eqIndex = trimmed.indexOf('=');
+    if (eqIndex === -1) continue;
+    const key = trimmed.slice(0, eqIndex);
+    const value = trimmed.slice(eqIndex + 1);
+    // Don't override explicitly set env vars
+    if (!(key in process.env)) {
+      process.env[key] = value;
+    }
+  }
+}
 
 module.exports = (env, argv) => {
   const isDevMode = argv.mode === 'development';
@@ -85,6 +104,16 @@ module.exports = (env, argv) => {
         ),
         'import.meta.env.VITE_ENABLE_PALABRA_AI': JSON.stringify(
           process.env.VITE_ENABLE_PALABRA_AI || 'false'  // Disabled by default, can be enabled via env var
+        ),
+        'import.meta.env.VITE_ENABLE_VOLCENGINE_ST': JSON.stringify(
+          isDevMode
+            ? 'true'
+            : process.env.VITE_ENABLE_VOLCENGINE_ST || 'false'
+        ),
+        'import.meta.env.VITE_ENABLE_VOLCENGINE_AST2': JSON.stringify(
+          isDevMode
+            ? 'true'
+            : process.env.VITE_ENABLE_VOLCENGINE_AST2 || 'false'
         ),
         // PostHog analytics configuration for shared/index.tsx (fullpage entry)
         'import.meta.env.VITE_POSTHOG_KEY': JSON.stringify(process.env.POSTHOG_KEY || ''),

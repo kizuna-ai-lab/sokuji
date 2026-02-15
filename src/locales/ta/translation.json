@@ -96,6 +96,12 @@
       "name": "Palabra AI",
       "description": "நியங்களித்த மோழிபெயர்ப்பு AI"
     },
+    "volcengine_st": {
+      "name": "Volcengine",
+      "description": "ByteDance speech translation",
+      "accessKeyIdPlaceholder": "Access Key ID",
+      "secretAccessKeyPlaceholder": "Secret Access Key"
+    },
     "unknown": {
       "name": "தெரியாதது",
       "description": "தெரியாத வழங்குநர்"
@@ -138,6 +144,8 @@
     "loadingModels": "கிடைக்கக்கூடிய மாதிரிகள் ஏற்றப்படுகின்றன...",
     "modelsFound": "{{count}} மாதிரிகள் உள்ளன",
     "experimentalFeatureTooltip": "இது ஒரு சோதனை அம்சம் மற்றும் நிலையற்றதாக இருக்கலாம்.",
+    "volcengineSTInfo": "Volcengine Info",
+    "volcengineSTInfoText": "Volcengine Real-time Speech Translation provides text-only translation output. Audio synthesis is not supported in this mode.",
     "apiKeyValidationCompleted": "API கீ சரிபார்ப்பு முடிந்தது",
     "errorValidatingApiKey": "API கீ சரிபார்ப்பதில் பிழை",
     "sessionActiveNotice": "அமர்வு செயலில் இருக்கும் போது அமைப்புகள் பூட்டப்பட்டுள்ளன. அமைப்புகளை மாற்ற அமர்வை முடிக்கவும்.",

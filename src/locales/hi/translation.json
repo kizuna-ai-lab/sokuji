@@ -37,6 +37,8 @@
     "loadingModels": "उपलब्ध मॉडल लोड हो रहे हैं...",
     "modelsFound": "{{count}} मॉडल उपलब्ध हैं",
     "experimentalFeatureTooltip": "यह एक प्रायोगिक सुविधा है और अस्थिर हो सकती है।",
+    "volcengineSTInfo": "Volcengine Info",
+    "volcengineSTInfoText": "Volcengine Real-time Speech Translation provides text-only translation output. Audio synthesis is not supported in this mode.",
     "apiKeyValidationCompleted": "API कुंजी सत्यापन पूरा हुआ",
     "errorValidatingApiKey": "API कुंजी सत्यापन में त्रुटि",
     "sessionActiveNotice": "सत्र सक्रिय होने पर सेटिंग्स लॉक हैं। सेटिंग्स बदलने के लिए कृपया सत्र समाप्त करें।",
@@ -167,6 +169,12 @@
     "palabraai": {
       "name": "Palabra AI",
       "description": "विशिष्ट अनुवाद AI"
+    },
+    "volcengine_st": {
+      "name": "Volcengine",
+      "description": "ByteDance speech translation",
+      "accessKeyIdPlaceholder": "Access Key ID",
+      "secretAccessKeyPlaceholder": "Secret Access Key"
     },
     "unknown": {
       "name": "अज्ञात",

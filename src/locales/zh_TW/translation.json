@@ -92,6 +92,12 @@
       "name": "Kizuna AI",
       "description": "Powered by kizuna.ai service"
     },
+    "volcengine_st": {
+      "name": "Volcengine",
+      "description": "ByteDance speech translation",
+      "accessKeyIdPlaceholder": "Access Key ID",
+      "secretAccessKeyPlaceholder": "Secret Access Key"
+    },
     "unknown": {
       "name": "未知",
       "description": "未知的提供商"
@@ -171,6 +177,8 @@
     "loadingModels": "載入可用模型中...",
     "modelsFound": "找到 {{count}} 個模型",
     "experimentalFeatureTooltip": "這是一個實驗性功能，可能會不穩定。",
+    "volcengineSTInfo": "Volcengine Info",
+    "volcengineSTInfoText": "Volcengine Real-time Speech Translation provides text-only translation output. Audio synthesis is not supported in this mode.",
     "geminiParticipantTokenWarning": "Gemini participant mode generates audio responses that are discarded, resulting in additional token usage.",
     "help": "說明",
     "auto": "自動",

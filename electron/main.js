@@ -653,6 +653,164 @@ ipcMain.handle('disconnect-system-audio-source', async () => {
   return { success: false };
 });
 
+// Volcengine AST 2.0: WebSocket proxy via main process
+// Browser WebSocket API doesn't support custom headers, so we run the WebSocket
+// in the main process (Node.js `ws` library supports headers) and bridge via IPC.
+const WebSocket = require('ws');
+
+let volcengineWs = null;
+
+ipcMain.handle('volcengine-ast2-connect', async (event, { appId, accessToken, resourceId, connectionId }) => {
+  // Close any existing connection
+  if (volcengineWs) {
+    try { volcengineWs.close(); } catch (e) { /* ignore */ }
+    volcengineWs = null;
+  }
+
+  const endpoint = 'wss://openspeech.bytedance.com/api/v4/ast/v2/translate';
+  console.log('[Sokuji] [Main] Volcengine AST2: connecting to', endpoint);
+
+  return new Promise((resolve) => {
+    const ws = new WebSocket(endpoint, {
+      headers: {
+        'X-Api-App-Key': appId,
+        'X-Api-Access-Key': accessToken,
+        'X-Api-Resource-Id': resourceId,
+        'X-Api-Connect-Id': connectionId,
+      },
+    });
+
+    ws.on('open', () => {
+      console.log('[Sokuji] [Main] Volcengine AST2: WebSocket connected');
+      volcengineWs = ws;
+      resolve({ success: true });
+    });
+
+    ws.on('message', (data) => {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        // Forward binary message to renderer as Uint8Array
+        const buffer = data instanceof Buffer ? data : Buffer.from(data);
+        mainWindow.webContents.send('volcengine-ast2-message', buffer);
+      }
+    });
+
+    ws.on('error', (err) => {
+      console.error('[Sokuji] [Main] Volcengine AST2: WebSocket error:', err.message);
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('volcengine-ast2-error', err.message);
+      }
+      // If we haven't resolved yet (error during connection), resolve with failure
+      if (!volcengineWs) {
+        resolve({ success: false, error: err.message });
+      }
+    });
+
+    ws.on('close', (code, reason) => {
+      console.log(`[Sokuji] [Main] Volcengine AST2: WebSocket closed: ${code} ${reason.toString()}`);
+      volcengineWs = null;
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('volcengine-ast2-close', { code, reason: reason.toString() });
+      }
+      // If we haven't resolved yet (closed before open), resolve with failure
+      resolve({ success: false, error: `WebSocket closed: ${code} ${reason.toString()}` });
+    });
+  });
+});
+
+ipcMain.handle('volcengine-ast2-send', (event, data) => {
+  if (!volcengineWs || volcengineWs.readyState !== WebSocket.OPEN) {
+    return { success: false, error: 'WebSocket not connected' };
+  }
+  try {
+    // data arrives as ArrayBuffer or Uint8Array from renderer — convert to Buffer for ws
+    const buffer = Buffer.from(data);
+    volcengineWs.send(buffer);
+    return { success: true };
+  } catch (err) {
+    console.error('[Sokuji] [Main] Volcengine AST2: send error:', err.message);
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle('volcengine-ast2-disconnect', () => {
+  console.log('[Sokuji] [Main] Volcengine AST2: disconnecting');
+  if (volcengineWs) {
+    try { volcengineWs.close(); } catch (e) { /* ignore */ }
+    volcengineWs = null;
+  }
+  return { success: true };
+});
+
+// Volcengine AST 2.0: Lightweight credential validation via WebSocket connect-disconnect
+// Opens a WebSocket with auth headers, checks if it's accepted, then closes immediately.
+// Uses a separate variable so it doesn't interfere with an active session.
+let volcengineValidateWs = null;
+
+ipcMain.handle('volcengine-ast2-validate', async (event, { appId, accessToken, resourceId }) => {
+  // Clean up any lingering validation socket
+  if (volcengineValidateWs) {
+    try { volcengineValidateWs.close(); } catch (e) { /* ignore */ }
+    volcengineValidateWs = null;
+  }
+
+  const endpoint = 'wss://openspeech.bytedance.com/api/v4/ast/v2/translate';
+  const connectionId = require('crypto').randomUUID();
+  console.log('[Sokuji] [Main] Volcengine AST2: validating credentials');
+
+  return new Promise((resolve) => {
+    let resolved = false;
+
+    const ws = new WebSocket(endpoint, {
+      headers: {
+        'X-Api-App-Key': appId,
+        'X-Api-Access-Key': accessToken,
+        'X-Api-Resource-Id': resourceId,
+        'X-Api-Connect-Id': connectionId,
+      },
+    });
+    volcengineValidateWs = ws;
+
+    const finish = (result) => {
+      if (resolved) return;
+      resolved = true;
+      clearTimeout(timer);
+      try { ws.close(); } catch (e) { /* ignore */ }
+      if (volcengineValidateWs === ws) {
+        volcengineValidateWs = null;
+      }
+      resolve(result);
+    };
+
+    // 5-second timeout
+    const timer = setTimeout(() => {
+      finish({ success: false, error: 'Connection timed out — credentials could not be verified' });
+    }, 5000);
+
+    ws.on('open', () => {
+      console.log('[Sokuji] [Main] Volcengine AST2: validation succeeded (WebSocket accepted)');
+      finish({ success: true });
+    });
+
+    ws.on('error', (err) => {
+      console.error('[Sokuji] [Main] Volcengine AST2: validation failed:', err.message);
+      finish({ success: false, error: err.message });
+    });
+
+    ws.on('close', (code, reason) => {
+      finish({ success: false, error: `Connection rejected (code ${code}: ${reason.toString()})` });
+    });
+
+    ws.on('unexpected-response', (req, res) => {
+      let body = '';
+      res.on('data', (chunk) => { body += chunk; });
+      res.on('end', () => {
+        console.error(`[Sokuji] [Main] Volcengine AST2: validation rejected: HTTP ${res.statusCode} — ${body.substring(0, 200)}`);
+        finish({ success: false, error: `Server rejected connection: HTTP ${res.statusCode} ${res.statusMessage}` });
+      });
+    });
+  });
+});
+
 // Screen recording permission check for macOS system audio capture
 // This only checks the permission status, does NOT trigger any permission dialogs
 // The renderer should call getDisplayMedia() to trigger the system dialog when needed

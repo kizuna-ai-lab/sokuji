@@ -82,6 +82,12 @@
       "name": "Kizuna AI",
       "description": "Powered by kizuna.ai service"
     },
+    "volcengine_st": {
+      "name": "Volcengine",
+      "description": "ByteDance speech translation",
+      "accessKeyIdPlaceholder": "Access Key ID",
+      "secretAccessKeyPlaceholder": "Secret Access Key"
+    },
     "unknown": {
       "name": "తెలియనిది",
       "description": "తెలియని ప్రదాత"
@@ -120,6 +126,8 @@
     "loadingModels": "అందుబాటులో ఉన్న మోడల్‌లు లోడ్ అవుతున్నాయి...",
     "modelsFound": "{{count}} మోడల్‌లు అందుబాటులో ఉన్నాయి",
     "experimentalFeatureTooltip": "ఇది ప్రయోగాత్మక ఫీచర్ మరియు అస్థిరంగా ఉండవచ్చు.",
+    "volcengineSTInfo": "Volcengine Info",
+    "volcengineSTInfoText": "Volcengine Real-time Speech Translation provides text-only translation output. Audio synthesis is not supported in this mode.",
     "apiKeyValidationCompleted": "API కీ ధృవీకరణ పూర్తయింది",
     "errorValidatingApiKey": "API కీ ధృవీకరణలో లోపం",
     "sessionActiveNotice": "సెషన్ చురుకుగా ఉన్నప్పుడు సెట్టింగ్‌లు లాక్ చేయబడ్డాయి. సెట్టింగ్‌లను మార్చడానికి దయచేసి సెషన్‌ను ముగించండి.",
