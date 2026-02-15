@@ -83,10 +83,16 @@
       "description": "Powered by kizuna.ai service"
     },
     "volcengine_st": {
-      "name": "Volcengine",
-      "description": "ByteDance speech translation",
+      "name": "Volcengine การแปลเสียงพูด",
+      "description": "การแปลเสียงพูด ByteDance",
       "accessKeyIdPlaceholder": "Access Key ID",
       "secretAccessKeyPlaceholder": "Secret Access Key"
+    },
+    "volcengine_ast2": {
+      "name": "Volcengine AST",
+      "description": "การแปลพร้อมกัน ByteDance",
+      "appIdPlaceholder": "APP ID",
+      "accessTokenPlaceholder": "Access Token"
     },
     "unknown": {
       "name": "ไม่ทราบ",
@@ -126,8 +132,12 @@
     "loadingModels": "กำลังโหลดโมเดลที่ใช้ได้...",
     "modelsFound": "มีโมเดล {{count}} ตัวที่ใช้ได้",
     "experimentalFeatureTooltip": "นี่เป็นฟีเจอร์ทดลองและอาจไม่เสถียร",
-    "volcengineSTInfo": "Volcengine Info",
-    "volcengineSTInfoText": "Volcengine Real-time Speech Translation provides text-only translation output. Audio synthesis is not supported in this mode.",
+    "volcengineSTInfo": "ข้อมูล Volcengine",
+    "volcengineSTInfoText": "การแปลเสียงพูดแบบเรียลไทม์ของ Volcengine ให้ผลลัพธ์การแปลเป็นข้อความเท่านั้น โหมดนี้ไม่รองรับการสังเคราะห์เสียง",
+    "invalidApiKeyFormat": "รูปแบบคีย์ API ไม่ถูกต้อง",
+    "volcengineAST2Info": "ข้อมูล Volcengine AST",
+    "volcengineAST2InfoText": "Volcengine AST 2.0 ให้บริการแปลเสียงพูดเป็นเสียงพูดพร้อมการโคลนเสียงอัตโนมัติ เสียงที่แปลจะรักษาคุณลักษณะเสียงของผู้พูดต้นฉบับไว้",
+    "volcengineAST2TurnDetectionTooltip": "โหมดอัตโนมัติใช้การตรวจจับกิจกรรมเสียงฝั่งเซิร์ฟเวอร์ กดค้างเพื่อพูดให้คุณควบคุมการส่งเสียงด้วยตนเองโดยกดค้างที่แป้นเว้นวรรคหรือปุ่มไมโครโฟน",
     "apiKeyValidationCompleted": "การตรวจสอบ API key เสร็จสิ้น",
     "errorValidatingApiKey": "เกิดข้อผิดพลาดในการตรวจสอบ API key",
     "sessionActiveNotice": "การตั้งค่าถูกล็อกขณะที่เซสชันทำงานอยู่ กรุณาสิ้นสุดเซสชันเพื่อแก้ไขการตั้งค่า",

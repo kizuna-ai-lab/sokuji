@@ -81,8 +81,12 @@
     "loadingModels": "جاري تحميل النماذج المتاحة...",
     "modelsFound": "{{count}} نماذج متاحة",
     "experimentalFeatureTooltip": "هذه ميزة تجريبية وقد تكون غير مستقرة.",
-    "volcengineSTInfo": "Volcengine Info",
-    "volcengineSTInfoText": "Volcengine Real-time Speech Translation provides text-only translation output. Audio synthesis is not supported in this mode.",
+    "volcengineSTInfo": "معلومات Volcengine",
+    "volcengineSTInfoText": "توفر ترجمة الكلام في الوقت الفعلي من Volcengine مخرجات ترجمة نصية فقط. لا يتم دعم تركيب الصوت في هذا الوضع.",
+    "invalidApiKeyFormat": "تنسيق مفتاح API غير صالح",
+    "volcengineAST2Info": "معلومات Volcengine AST",
+    "volcengineAST2InfoText": "يوفر Volcengine AST 2.0 ترجمة من كلام إلى كلام مع استنساخ تلقائي للصوت. يحافظ الصوت المترجم على خصائص صوت المتحدث الأصلي.",
+    "volcengineAST2TurnDetectionTooltip": "يستخدم الوضع التلقائي اكتشاف نشاط الصوت من جانب الخادم. يتيح لك وضع اضغط للتحدث التحكم يدوياً في إرسال الصوت بالضغط مع الاستمرار على مفتاح المسافة أو زر الميكروفون.",
     "help": "مساعدة",
     "auto": "تلقائي",
     "low": "منخفض",
@@ -212,10 +216,16 @@
       "description": "ذكاء اصطناعي متخصص في الترجمة"
     },
     "volcengine_st": {
-      "name": "Volcengine",
-      "description": "ByteDance speech translation",
+      "name": "Volcengine ترجمة الكلام",
+      "description": "ترجمة الكلام من ByteDance",
       "accessKeyIdPlaceholder": "Access Key ID",
       "secretAccessKeyPlaceholder": "Secret Access Key"
+    },
+    "volcengine_ast2": {
+      "name": "Volcengine AST",
+      "description": "الترجمة الفورية من ByteDance",
+      "appIdPlaceholder": "APP ID",
+      "accessTokenPlaceholder": "Access Token"
     },
     "unknown": {
       "name": "غير معروف",

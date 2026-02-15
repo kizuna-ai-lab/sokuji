@@ -36,8 +36,12 @@
     "loadingModels": "Mevcut modeller yükleniyor...",
     "modelsFound": "{{count}} model mevcut",
     "experimentalFeatureTooltip": "Bu deneysel bir özelliktir ve kararsız olabilir.",
-    "volcengineSTInfo": "Volcengine Info",
-    "volcengineSTInfoText": "Volcengine Real-time Speech Translation provides text-only translation output. Audio synthesis is not supported in this mode.",
+    "invalidApiKeyFormat": "Geçersiz API anahtarı formatı",
+    "volcengineSTInfo": "Volcengine Bilgileri",
+    "volcengineSTInfoText": "Volcengine gerçek zamanlı konuşma çevirisi yalnızca metin çeviri çıktısı sağlar. Bu modda ses sentezi desteklenmez.",
+    "volcengineAST2Info": "Volcengine AST Bilgileri",
+    "volcengineAST2InfoText": "Volcengine AST 2.0, otomatik ses klonlama ile konuşmadan konuşmaya çeviri sağlar. Çevrilen ses, orijinal konuşmacının ses özelliklerini korur.",
+    "volcengineAST2TurnDetectionTooltip": "Otomatik mod, sunucu taraflı ses etkinliği algılamayı kullanır. Bas-Konuş, boşluk tuşunu veya mikrofon düğmesini basılı tutarak ses gönderimini manuel olarak kontrol etmenizi sağlar.",
     "apiKeyValidationCompleted": "API anahtarı doğrulaması tamamlandı",
     "errorValidatingApiKey": "API anahtarını doğrularken hata",
     "sessionActiveNotice": "Oturum aktifken ayarlar kilitlenir. Ayarları değiştirmek için lütfen oturumu sonlandırın.",
@@ -318,10 +322,16 @@
       "description": "Uzmanlaşmış çeviri AI'si"
     },
     "volcengine_st": {
-      "name": "Volcengine",
-      "description": "ByteDance speech translation",
+      "name": "Volcengine Konuşma Çevirisi",
+      "description": "ByteDance konuşma çevirisi",
       "accessKeyIdPlaceholder": "Access Key ID",
       "secretAccessKeyPlaceholder": "Secret Access Key"
+    },
+    "volcengine_ast2": {
+      "name": "Volcengine AST",
+      "description": "ByteDance eşzamanlı çeviri",
+      "appIdPlaceholder": "APP ID",
+      "accessTokenPlaceholder": "Access Token"
     },
     "unknown": {
       "name": "Bilinmeyen",

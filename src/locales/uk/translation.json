@@ -83,10 +83,16 @@
       "description": "Powered by kizuna.ai service"
     },
     "volcengine_st": {
-      "name": "Volcengine",
-      "description": "ByteDance speech translation",
+      "name": "Volcengine Голосовий Переклад",
+      "description": "Голосовий переклад ByteDance",
       "accessKeyIdPlaceholder": "Access Key ID",
       "secretAccessKeyPlaceholder": "Secret Access Key"
+    },
+    "volcengine_ast2": {
+      "name": "Volcengine AST",
+      "description": "Синхронний переклад ByteDance",
+      "appIdPlaceholder": "APP ID",
+      "accessTokenPlaceholder": "Access Token"
     },
     "unknown": {
       "name": "Невідомо",
@@ -126,8 +132,12 @@
     "loadingModels": "Завантаження доступних моделей...",
     "modelsFound": "{{count}} моделей доступно",
     "experimentalFeatureTooltip": "Це експериментальна функція і може бути нестабільною.",
-    "volcengineSTInfo": "Volcengine Info",
-    "volcengineSTInfoText": "Volcengine Real-time Speech Translation provides text-only translation output. Audio synthesis is not supported in this mode.",
+    "invalidApiKeyFormat": "Невірний формат API-ключа",
+    "volcengineSTInfo": "Інформація про Volcengine",
+    "volcengineSTInfoText": "Голосовий переклад Volcengine у реальному часі забезпечує лише текстовий вивід перекладу. Синтез звуку в цьому режимі не підтримується.",
+    "volcengineAST2Info": "Інформація про Volcengine AST",
+    "volcengineAST2InfoText": "Volcengine AST 2.0 забезпечує переклад мовлення в мовлення з автоматичним клонуванням голосу. Перекладене аудіо зберігає голосові характеристики оригінального мовця.",
+    "volcengineAST2TurnDetectionTooltip": "Автоматичний режим використовує серверне виявлення голосової активності. Push-to-Talk дозволяє вручну керувати надсиланням аудіо, утримуючи пробіл або кнопку мікрофона.",
     "help": "Допомога",
     "auto": "Авто",
     "low": "Низький",

@@ -77,8 +77,12 @@
     "loadingModels": "উপলব্ধ মডেল লোড হচ্ছে...",
     "modelsFound": "{{count}}টি মডেল উপলব্ধ",
     "experimentalFeatureTooltip": "এটি একটি পরীক্ষামূলক বৈশিষ্ট্য এবং অস্থির হতে পারে।",
-    "volcengineSTInfo": "Volcengine Info",
-    "volcengineSTInfoText": "Volcengine Real-time Speech Translation provides text-only translation output. Audio synthesis is not supported in this mode.",
+    "invalidApiKeyFormat": "অবৈধ API কী ফরম্যাট",
+    "volcengineSTInfo": "Volcengine তথ্য",
+    "volcengineSTInfoText": "Volcengine রিয়েল-টাইম স্পিচ ট্রান্সলেশন শুধুমাত্র টেক্সট অনুবাদ আউটপুট প্রদান করে। এই মোডে অডিও সংশ্লেষণ সমর্থিত নয়।",
+    "volcengineAST2Info": "Volcengine AST তথ্য",
+    "volcengineAST2InfoText": "Volcengine AST 2.0 স্বয়ংক্রিয় ভয়েস ক্লোনিং সহ স্পিচ-টু-স্পিচ অনুবাদ প্রদান করে। অনুবাদিত অডিও মূল বক্তার কণ্ঠস্বরের বৈশিষ্ট্য সংরক্ষণ করে।",
+    "volcengineAST2TurnDetectionTooltip": "অটো মোড সার্ভার-সাইড ভয়েস অ্যাক্টিভিটি ডিটেকশন ব্যবহার করে। পুশ-টু-টক আপনাকে স্পেস বা মাইক বোতাম ধরে রেখে ম্যানুয়ালি অডিও পাঠানো নিয়ন্ত্রণ করতে দেয়।",
     "help": "সাহায্য",
     "auto": "স্বয়ংক্রিয়",
     "low": "নিম্ন",
@@ -206,10 +210,16 @@
       "description": "বিশেষায়িত অনুবাদ AI"
     },
     "volcengine_st": {
-      "name": "Volcengine",
-      "description": "ByteDance speech translation",
+      "name": "Volcengine স্পিচ ট্রান্সলেট",
+      "description": "ByteDance স্পিচ ট্রান্সলেশন",
       "accessKeyIdPlaceholder": "Access Key ID",
       "secretAccessKeyPlaceholder": "Secret Access Key"
+    },
+    "volcengine_ast2": {
+      "name": "Volcengine AST",
+      "description": "ByteDance সিমালটেনিয়াস ট্রান্সলেশন",
+      "appIdPlaceholder": "APP ID",
+      "accessTokenPlaceholder": "Access Token"
     },
     "unknown": {
       "name": "অজানা",

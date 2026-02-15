@@ -36,8 +36,12 @@
     "loadingModels": "Naglo-load ng mga available na model...",
     "modelsFound": "{{count}} na mga model ang available",
     "experimentalFeatureTooltip": "Ito ay isang experimental na feature at maaaring hindi stable.",
-    "volcengineSTInfo": "Volcengine Info",
-    "volcengineSTInfoText": "Volcengine Real-time Speech Translation provides text-only translation output. Audio synthesis is not supported in this mode.",
+    "volcengineSTInfo": "Impormasyon ng Volcengine",
+    "volcengineSTInfoText": "Ang real-time na pagsasalin ng pananalita ng Volcengine ay nagbibigay lamang ng output na pagsasalin ng teksto. Hindi sinusuportahan ang audio synthesis sa mode na ito.",
+    "invalidApiKeyFormat": "Hindi wastong format ng API key",
+    "volcengineAST2Info": "Impormasyon ng Volcengine AST",
+    "volcengineAST2InfoText": "Ang Volcengine AST 2.0 ay nagbibigay ng pagsasalin ng pananalita-sa-pananalita na may awtomatikong voice cloning. Pinapanatili ng naisaling audio ang mga katangian ng boses ng orihinal na nagsasalita.",
+    "volcengineAST2TurnDetectionTooltip": "Ang auto mode ay gumagamit ng server-side voice activity detection. Ang Push-to-Talk ay nagpapahintulot sa iyo na manu-manong kontrolin kung kailan magpadala ng audio sa pamamagitan ng pagpindot ng Space o ang mic button.",
     "help": "Tulong",
     "auto": "Awtomatiko",
     "low": "Mababa",
@@ -168,10 +172,16 @@
       "description": "Specialized na translation AI"
     },
     "volcengine_st": {
-      "name": "Volcengine",
-      "description": "ByteDance speech translation",
+      "name": "Volcengine Pagsasalin ng Pananalita",
+      "description": "ByteDance pagsasalin ng pananalita",
       "accessKeyIdPlaceholder": "Access Key ID",
       "secretAccessKeyPlaceholder": "Secret Access Key"
+    },
+    "volcengine_ast2": {
+      "name": "Volcengine AST",
+      "description": "ByteDance sabay-sabay na pagsasalin",
+      "appIdPlaceholder": "APP ID",
+      "accessTokenPlaceholder": "Access Token"
     },
     "unknown": {
       "name": "Hindi Kilala",

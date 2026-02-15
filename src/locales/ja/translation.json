@@ -135,7 +135,11 @@
     "participantInstructions": "参加者指示",
     "participantInstructionsTooltip": "参加者の音声を翻訳するためのシステム指示。空欄の場合、上記のメイン指示が使用されます。\n\n重要：メイン指示の言語方向が参加者に適さない場合があります。例：あなたが中国語を話し、メイン指示が中国語→日本語に翻訳する場合、参加者が日本語を話すと、メイン指示は日本語→日本語と誤って翻訳しようとします。日本語→中国語に翻訳するための別の参加者指示を設定してください。",
     "volcengineSTInfo": "火山エンジンについて",
-    "volcengineSTInfoText": "火山エンジンのリアルタイム音声翻訳は、テキストのみの翻訳出力を提供します。このモードでは音声合成はサポートされていません。"
+    "volcengineSTInfoText": "火山エンジンのリアルタイム音声翻訳は、テキストのみの翻訳出力を提供します。このモードでは音声合成はサポートされていません。",
+    "invalidApiKeyFormat": "APIキーの形式が無効です",
+    "volcengineAST2Info": "火山エンジン AST について",
+    "volcengineAST2InfoText": "火山エンジン AST 2.0は、自動音声クローニングによる音声対音声翻訳を提供します。翻訳された音声は、元の話者の声の特徴を保持します。",
+    "volcengineAST2TurnDetectionTooltip": "自動モードはサーバー側の音声活動検出を使用します。プッシュトゥトークでは、スペースまたはマイクボタンを押して音声の送信を手動で制御できます。"
   },
   "audioPanel": {
     "title": "オーディオ設定",
@@ -421,6 +425,12 @@
       "description": "ByteDanceリアルタイム音声翻訳",
       "accessKeyIdPlaceholder": "Access Key ID",
       "secretAccessKeyPlaceholder": "Secret Access Key"
+    },
+    "volcengine_ast2": {
+      "name": "火山エンジン AST",
+      "description": "ByteDance同時翻訳",
+      "appIdPlaceholder": "APP ID",
+      "accessTokenPlaceholder": "Access Token"
     },
     "unknown": {
       "name": "不明",

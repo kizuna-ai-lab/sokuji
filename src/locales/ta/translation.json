@@ -97,10 +97,16 @@
       "description": "நியங்களித்த மோழிபெயர்ப்பு AI"
     },
     "volcengine_st": {
-      "name": "Volcengine",
-      "description": "ByteDance speech translation",
+      "name": "Volcengine பேச்சு மொழிபெயர்ப்பு",
+      "description": "ByteDance பேச்சு மொழிபெயர்ப்பு",
       "accessKeyIdPlaceholder": "Access Key ID",
       "secretAccessKeyPlaceholder": "Secret Access Key"
+    },
+    "volcengine_ast2": {
+      "name": "Volcengine AST",
+      "description": "ByteDance ஒரே நேர மொழிபெயர்ப்பு",
+      "appIdPlaceholder": "APP ID",
+      "accessTokenPlaceholder": "Access Token"
     },
     "unknown": {
       "name": "தெரியாதது",
@@ -144,8 +150,12 @@
     "loadingModels": "கிடைக்கக்கூடிய மாதிரிகள் ஏற்றப்படுகின்றன...",
     "modelsFound": "{{count}} மாதிரிகள் உள்ளன",
     "experimentalFeatureTooltip": "இது ஒரு சோதனை அம்சம் மற்றும் நிலையற்றதாக இருக்கலாம்.",
-    "volcengineSTInfo": "Volcengine Info",
-    "volcengineSTInfoText": "Volcengine Real-time Speech Translation provides text-only translation output. Audio synthesis is not supported in this mode.",
+    "invalidApiKeyFormat": "தவறான API விசை வடிவம்",
+    "volcengineSTInfo": "Volcengine தகவல்",
+    "volcengineSTInfoText": "Volcengine நிகழ்நேர பேச்சு மொழிபெயர்ப்பு உரை மட்டும் மொழிபெயர்ப்பு வெளியீட்டை வழங்குகிறது. இந்த பயன்முறையில் ஒலி தொகுப்பு ஆதரிக்கப்படவில்லை.",
+    "volcengineAST2Info": "Volcengine AST தகவல்",
+    "volcengineAST2InfoText": "Volcengine AST 2.0 தானியங்கி குரல் குளோனிங்குடன் பேச்சிலிருந்து பேச்சுக்கான மொழிபெயர்ப்பை வழங்குகிறது. மொழிபெயர்க்கப்பட்ட ஒலி அசல் பேச்சாளரின் குரல் பண்புகளைப் பாதுகாக்கிறது.",
+    "volcengineAST2TurnDetectionTooltip": "தானியங்கி பயன்முறை சர்வர் பக்க குரல் செயல்பாடு கண்டறிதலைப் பயன்படுத்துகிறது. புஷ்-டு-டாக் ஸ்பேஸ் அல்லது மைக் பொத்தானை அழுத்திப் பிடித்து ஒலியை எப்போது அனுப்ப வேண்டும் என்பதை கைமுறையாக கட்டுப்படுத்த உங்களை அனுமதிக்கிறது.",
     "apiKeyValidationCompleted": "API கீ சரிபார்ப்பு முடிந்தது",
     "errorValidatingApiKey": "API கீ சரிபார்ப்பதில் பிழை",
     "sessionActiveNotice": "அமர்வு செயலில் இருக்கும் போது அமைப்புகள் பூட்டப்பட்டுள்ளன. அமைப்புகளை மாற்ற அமர்வை முடிக்கவும்.",
