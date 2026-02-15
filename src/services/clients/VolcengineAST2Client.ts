@@ -74,6 +74,10 @@ export class VolcengineAST2Client implements IClient {
   private ttsChunks: Uint8Array[] = [];
   private decodeContext: AudioContext | null = null;
 
+  // Keepalive: send silent audio frames when mic is muted to prevent server timeout
+  private keepaliveInterval: ReturnType<typeof setInterval> | null = null;
+  private lastAudioSentTime: number = 0;
+
   // IPC handler references for targeted removal (Electron only)
   private ipcMessageHandler: ((payload: any) => void) | null = null;
   private ipcErrorHandler: ((payload: any) => void) | null = null;
@@ -536,8 +540,43 @@ export class VolcengineAST2Client implements IClient {
     }
   }
 
+  private startKeepalive(): void {
+    this.stopKeepalive();
+    const KEEPALIVE_INTERVAL_MS = 80;   // Send every 80ms — matches silence frame duration for 1x real-time audio rate
+    const SILENCE_TIMEOUT_MS = 60;      // Trigger quickly (< interval, so first tick always sends)
+    // 1280 samples = 80ms of 16kHz silence — matches Volcengine recommended packet size ("建议80ms 一包")
+    const SILENCE_FRAME = new Uint8Array(2560); // 1280 Int16 samples = 2560 bytes of zeros
+
+    this.keepaliveInterval = setInterval(() => {
+      if (!this.isConnectedState) return;
+      if (Date.now() - this.lastAudioSentTime > SILENCE_TIMEOUT_MS) {
+        const request = TranslateRequest.encode({
+          requestMeta: {
+            SessionID: this.sessionId,
+            ConnectionID: this.connectionId,
+            Sequence: this.sequence++,
+          },
+          event: EventType.TaskRequest,
+          sourceAudio: {
+            binaryData: SILENCE_FRAME,
+          },
+        }).finish();
+        this.sendData(request);
+        this.lastAudioSentTime = Date.now();
+      }
+    }, KEEPALIVE_INTERVAL_MS);
+  }
+
+  private stopKeepalive(): void {
+    if (this.keepaliveInterval) {
+      clearInterval(this.keepaliveInterval);
+      this.keepaliveInterval = null;
+    }
+  }
+
   private handleSessionStarted(): void {
     console.log('[VolcengineAST2Client] Session started successfully');
+    this.startKeepalive();
 
     if (this.sessionStartedResolve) {
       this.sessionStartedResolve();
@@ -719,6 +758,7 @@ export class VolcengineAST2Client implements IClient {
   }
 
   async disconnect(): Promise<void> {
+    this.stopKeepalive();
     // Send FinishSession before closing
     try {
       const request = TranslateRequest.encode({
@@ -794,6 +834,7 @@ export class VolcengineAST2Client implements IClient {
   }
 
   reset(): void {
+    this.stopKeepalive();
     this.conversationItems = [];
     this.sequence = 0;
     this.currentSourceItemId = null;
@@ -825,6 +866,7 @@ export class VolcengineAST2Client implements IClient {
     }).finish();
 
     this.sendData(request);
+    this.lastAudioSentTime = Date.now();
   }
 
   /**
