@@ -1843,7 +1843,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     };
 
     updateRecordingState();
-  }, [isInputDeviceOn, isSessionActive, provider, openAISettings.turnDetectionMode, openAICompatibleSettings.turnDetectionMode, kizunaAISettings.turnDetectionMode, volcengineAST2Settings.turnDetectionMode, selectedInputDevice]);
+  }, [isInputDeviceOn, isSessionActive, provider, openAISettings.turnDetectionMode, openAICompatibleSettings.turnDetectionMode, kizunaAISettings.turnDetectionMode, volcengineAST2Settings.turnDetectionMode, selectedInputDevice?.deviceId]);
 
   /**
    * Watch for changes to selectedMonitorDevice or isMonitorDeviceOn 
