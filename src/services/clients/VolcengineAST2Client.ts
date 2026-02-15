@@ -74,6 +74,11 @@ export class VolcengineAST2Client implements IClient {
   private ttsChunks: Uint8Array[] = [];
   private decodeContext: AudioContext | null = null;
 
+  // IPC handler references for targeted removal (Electron only)
+  private ipcMessageHandler: ((payload: any) => void) | null = null;
+  private ipcErrorHandler: ((payload: any) => void) | null = null;
+  private ipcCloseHandler: ((payload: any) => void) | null = null;
+
   constructor(appId: string, accessToken: string, resourceId: string = 'volc.bigasr.sauc.duration') {
     this.appId = appId;
     this.accessToken = accessToken;
@@ -88,7 +93,7 @@ export class VolcengineAST2Client implements IClient {
   private sendData(data: Uint8Array): void {
     if (this.useIpc) {
       // Fire-and-forget send via IPC — errors are logged by main process
-      window.electron.invoke('volcengine-ast2-send', data);
+      window.electron.invoke('volcengine-ast2-send', { connectionId: this.connectionId, data });
     } else if (this.websocket && this.websocket.readyState === WebSocket.OPEN) {
       this.websocket.send(data);
     }
@@ -123,20 +128,23 @@ export class VolcengineAST2Client implements IClient {
 
     return new Promise(async (resolve, reject) => {
       try {
-        // Register IPC listeners BEFORE connecting so we don't miss early messages
-        window.electron.receive('volcengine-ast2-message', (data: Buffer | Uint8Array) => {
-          // Data arrives as Buffer from main process — convert to ArrayBuffer
-          const bytes = data instanceof Uint8Array ? data : new Uint8Array(data);
+        // Register IPC listeners BEFORE connecting so we don't miss early messages.
+        // Each handler filters by connectionId so multiple clients don't interfere.
+        this.ipcMessageHandler = (payload: { connectionId: string; data: Buffer | Uint8Array }) => {
+          if (payload.connectionId !== this.connectionId) return;
+          const bytes = payload.data instanceof Uint8Array ? payload.data : new Uint8Array(payload.data);
           this.handleMessage(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength));
-        });
+        };
 
-        window.electron.receive('volcengine-ast2-error', (errMsg: string) => {
-          console.error('[VolcengineAST2Client] IPC WebSocket error:', errMsg);
-          this.eventHandlers.onError?.(new Error(errMsg));
-        });
+        this.ipcErrorHandler = (payload: { connectionId: string; error: string }) => {
+          if (payload.connectionId !== this.connectionId) return;
+          console.error('[VolcengineAST2Client] IPC WebSocket error:', payload.error);
+          this.eventHandlers.onError?.(new Error(payload.error));
+        };
 
-        window.electron.receive('volcengine-ast2-close', (evt: { code: number; reason: string }) => {
-          console.log('[VolcengineAST2Client] IPC WebSocket closed:', evt.code, evt.reason);
+        this.ipcCloseHandler = (payload: { connectionId: string; code: number; reason: string }) => {
+          if (payload.connectionId !== this.connectionId) return;
+          console.log('[VolcengineAST2Client] IPC WebSocket closed:', payload.code, payload.reason);
           this.isConnectedState = false;
 
           this.eventHandlers.onRealtimeEvent?.({
@@ -147,14 +155,18 @@ export class VolcengineAST2Client implements IClient {
                 status: 'disconnected',
                 provider: 'volcengine_ast2',
                 timestamp: Date.now(),
-                code: evt.code,
-                reason: evt.reason,
+                code: payload.code,
+                reason: payload.reason,
               }
             }
           });
 
-          this.eventHandlers.onClose?.(evt);
-        });
+          this.eventHandlers.onClose?.(payload);
+        };
+
+        window.electron.receive('volcengine-ast2-message', this.ipcMessageHandler);
+        window.electron.receive('volcengine-ast2-error', this.ipcErrorHandler);
+        window.electron.receive('volcengine-ast2-close', this.ipcCloseHandler);
 
         // Ask main process to create the WebSocket with custom headers
         const result = await window.electron.invoke('volcengine-ast2-connect', {
@@ -189,7 +201,7 @@ export class VolcengineAST2Client implements IClient {
           this.sessionStartedResolve = null;
           this.sessionStartedReject = null;
           this.cleanupIpcListeners();
-          window.electron.invoke('volcengine-ast2-disconnect').catch(() => {});
+          window.electron.invoke('volcengine-ast2-disconnect', { connectionId: this.connectionId }).catch(() => {});
           this.isConnectedState = false;
           reject(new Error('Volcengine AST2 connection timeout'));
         }, CONNECTION_TIMEOUT);
@@ -212,10 +224,19 @@ export class VolcengineAST2Client implements IClient {
   }
 
   private cleanupIpcListeners(): void {
-    if (window.electron?.removeAllListeners) {
-      window.electron.removeAllListeners('volcengine-ast2-message');
-      window.electron.removeAllListeners('volcengine-ast2-error');
-      window.electron.removeAllListeners('volcengine-ast2-close');
+    if (window.electron?.removeListener) {
+      if (this.ipcMessageHandler) {
+        window.electron.removeListener('volcengine-ast2-message', this.ipcMessageHandler);
+        this.ipcMessageHandler = null;
+      }
+      if (this.ipcErrorHandler) {
+        window.electron.removeListener('volcengine-ast2-error', this.ipcErrorHandler);
+        this.ipcErrorHandler = null;
+      }
+      if (this.ipcCloseHandler) {
+        window.electron.removeListener('volcengine-ast2-close', this.ipcCloseHandler);
+        this.ipcCloseHandler = null;
+      }
     }
   }
 
@@ -717,7 +738,7 @@ export class VolcengineAST2Client implements IClient {
     if (this.useIpc) {
       // Disconnect the main-process WebSocket and clean up IPC listeners
       try {
-        await window.electron.invoke('volcengine-ast2-disconnect');
+        await window.electron.invoke('volcengine-ast2-disconnect', { connectionId: this.connectionId });
       } catch (e) {
         // Ignore cleanup errors
       }

@@ -318,6 +318,12 @@ function createWindow() {
 
   // Emitted when the window is closed
   mainWindow.on('closed', function () {
+    // Close all Volcengine AST2 WebSocket connections
+    for (const [id, ws] of volcengineConnections) {
+      try { ws.close(); } catch (e) { /* ignore */ }
+    }
+    volcengineConnections.clear();
+
     // Ensure audio devices are cleaned up when window is closed
     if (process.platform === 'darwin') {
       // On macOS, we only clean up devices if the app is actually quitting
@@ -658,19 +664,17 @@ ipcMain.handle('disconnect-system-audio-source', async () => {
 // in the main process (Node.js `ws` library supports headers) and bridge via IPC.
 const WebSocket = require('ws');
 
-let volcengineWs = null;
+// Multiple concurrent WebSocket connections keyed by connectionId.
+// Each VolcengineAST2Client instance (speaker, participant) gets its own entry.
+const volcengineConnections = new Map(); // connectionId → WebSocket
 
 ipcMain.handle('volcengine-ast2-connect', async (event, { appId, accessToken, resourceId, connectionId }) => {
-  // Close any existing connection
-  if (volcengineWs) {
-    try { volcengineWs.close(); } catch (e) { /* ignore */ }
-    volcengineWs = null;
-  }
-
   const endpoint = 'wss://openspeech.bytedance.com/api/v4/ast/v2/translate';
-  console.log('[Sokuji] [Main] Volcengine AST2: connecting to', endpoint);
+  console.log(`[Sokuji] [Main] Volcengine AST2 [${connectionId}]: connecting to`, endpoint);
 
   return new Promise((resolve) => {
+    let resolved = false;
+
     const ws = new WebSocket(endpoint, {
       headers: {
         'X-Api-App-Key': appId,
@@ -681,62 +685,65 @@ ipcMain.handle('volcengine-ast2-connect', async (event, { appId, accessToken, re
     });
 
     ws.on('open', () => {
-      console.log('[Sokuji] [Main] Volcengine AST2: WebSocket connected');
-      volcengineWs = ws;
+      console.log(`[Sokuji] [Main] Volcengine AST2 [${connectionId}]: WebSocket connected`);
+      volcengineConnections.set(connectionId, ws);
+      resolved = true;
       resolve({ success: true });
     });
 
     ws.on('message', (data) => {
       if (mainWindow && !mainWindow.isDestroyed()) {
-        // Forward binary message to renderer as Uint8Array
         const buffer = data instanceof Buffer ? data : Buffer.from(data);
-        mainWindow.webContents.send('volcengine-ast2-message', buffer);
+        mainWindow.webContents.send('volcengine-ast2-message', { connectionId, data: buffer });
       }
     });
 
     ws.on('error', (err) => {
-      console.error('[Sokuji] [Main] Volcengine AST2: WebSocket error:', err.message);
+      console.error(`[Sokuji] [Main] Volcengine AST2 [${connectionId}]: WebSocket error:`, err.message);
       if (mainWindow && !mainWindow.isDestroyed()) {
-        mainWindow.webContents.send('volcengine-ast2-error', err.message);
+        mainWindow.webContents.send('volcengine-ast2-error', { connectionId, error: err.message });
       }
-      // If we haven't resolved yet (error during connection), resolve with failure
-      if (!volcengineWs) {
+      if (!resolved) {
+        resolved = true;
         resolve({ success: false, error: err.message });
       }
     });
 
     ws.on('close', (code, reason) => {
-      console.log(`[Sokuji] [Main] Volcengine AST2: WebSocket closed: ${code} ${reason.toString()}`);
-      volcengineWs = null;
+      console.log(`[Sokuji] [Main] Volcengine AST2 [${connectionId}]: WebSocket closed: ${code} ${reason.toString()}`);
+      volcengineConnections.delete(connectionId);
       if (mainWindow && !mainWindow.isDestroyed()) {
-        mainWindow.webContents.send('volcengine-ast2-close', { code, reason: reason.toString() });
+        mainWindow.webContents.send('volcengine-ast2-close', { connectionId, code, reason: reason.toString() });
       }
-      // If we haven't resolved yet (closed before open), resolve with failure
-      resolve({ success: false, error: `WebSocket closed: ${code} ${reason.toString()}` });
+      if (!resolved) {
+        resolved = true;
+        resolve({ success: false, error: `WebSocket closed: ${code} ${reason.toString()}` });
+      }
     });
   });
 });
 
-ipcMain.handle('volcengine-ast2-send', (event, data) => {
-  if (!volcengineWs || volcengineWs.readyState !== WebSocket.OPEN) {
+ipcMain.handle('volcengine-ast2-send', (event, { connectionId, data }) => {
+  const ws = volcengineConnections.get(connectionId);
+  if (!ws || ws.readyState !== WebSocket.OPEN) {
     return { success: false, error: 'WebSocket not connected' };
   }
   try {
-    // data arrives as ArrayBuffer or Uint8Array from renderer — convert to Buffer for ws
     const buffer = Buffer.from(data);
-    volcengineWs.send(buffer);
+    ws.send(buffer);
     return { success: true };
   } catch (err) {
-    console.error('[Sokuji] [Main] Volcengine AST2: send error:', err.message);
+    console.error(`[Sokuji] [Main] Volcengine AST2 [${connectionId}]: send error:`, err.message);
     return { success: false, error: err.message };
   }
 });
 
-ipcMain.handle('volcengine-ast2-disconnect', () => {
-  console.log('[Sokuji] [Main] Volcengine AST2: disconnecting');
-  if (volcengineWs) {
-    try { volcengineWs.close(); } catch (e) { /* ignore */ }
-    volcengineWs = null;
+ipcMain.handle('volcengine-ast2-disconnect', (event, { connectionId } = {}) => {
+  console.log(`[Sokuji] [Main] Volcengine AST2 [${connectionId}]: disconnecting`);
+  const ws = volcengineConnections.get(connectionId);
+  if (ws) {
+    try { ws.close(); } catch (e) { /* ignore */ }
+    volcengineConnections.delete(connectionId);
   }
   return { success: true };
 });
