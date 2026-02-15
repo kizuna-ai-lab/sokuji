@@ -51,6 +51,18 @@ function initializeCookies() {
 contextBridge.exposeInMainWorld('cookieAPI', cookieAPI);
 contextBridge.exposeInMainWorld('initializeCookies', initializeCookies);
 
+// Track original callback → wrapper for correct removeListener behavior
+const listenerMap = new WeakMap();
+
+const validReceiveChannels = [
+  'fromMain',
+  'audio-status',
+  // Volcengine AST 2.0 WebSocket proxy events (main → renderer)
+  'volcengine-ast2-message',
+  'volcengine-ast2-error',
+  'volcengine-ast2-close',
+];
+
 // Expose protected methods that allow the renderer process to use
 // the ipcRenderer without exposing the entire object
 contextBridge.exposeInMainWorld(
@@ -64,40 +76,24 @@ contextBridge.exposeInMainWorld(
       }
     },
     receive: (channel, func) => {
-      const validChannels = [
-        'fromMain',
-        'audio-status',
-        // Volcengine AST 2.0 WebSocket proxy events (main → renderer)
-        'volcengine-ast2-message',
-        'volcengine-ast2-error',
-        'volcengine-ast2-close',
-      ];
-      if (validChannels.includes(channel)) {
+      if (validReceiveChannels.includes(channel)) {
         // Deliberately strip event as it includes `sender`
-        ipcRenderer.on(channel, (event, ...args) => func(...args));
+        const wrapper = (event, ...args) => func(...args);
+        listenerMap.set(func, wrapper);
+        ipcRenderer.on(channel, wrapper);
       }
     },
     removeListener: (channel, func) => {
-      const validChannels = [
-        'fromMain',
-        'audio-status',
-        'volcengine-ast2-message',
-        'volcengine-ast2-error',
-        'volcengine-ast2-close',
-      ];
-      if (validChannels.includes(channel)) {
-        ipcRenderer.removeListener(channel, func);
+      if (validReceiveChannels.includes(channel)) {
+        const wrapper = listenerMap.get(func);
+        if (wrapper) {
+          ipcRenderer.removeListener(channel, wrapper);
+          listenerMap.delete(func);
+        }
       }
     },
     removeAllListeners: (channel) => {
-      const validChannels = [
-        'fromMain',
-        'audio-status',
-        'volcengine-ast2-message',
-        'volcengine-ast2-error',
-        'volcengine-ast2-close',
-      ];
-      if (validChannels.includes(channel)) {
+      if (validReceiveChannels.includes(channel)) {
         ipcRenderer.removeAllListeners(channel);
       }
     },
