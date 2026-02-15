@@ -501,72 +501,73 @@ export class VolcengineSTClient implements IClient {
     this.currentSourceItemId = null;
     this.currentTranslationItemId = null;
 
-    return new Promise(async (resolve, reject) => {
-      try {
-        const signedUrl = await this.signer.generateSignedUrl(
-          VolcengineSTClient.WEBSOCKET_HOST,
-          VolcengineSTClient.WEBSOCKET_PATH,
-          VolcengineSTClient.API_ACTION,
-          VolcengineSTClient.API_VERSION
-        );
+    return new Promise((resolve, reject) => {
+      const doConnect = async () => {
+        try {
+          const signedUrl = await this.signer.generateSignedUrl(
+            VolcengineSTClient.WEBSOCKET_HOST,
+            VolcengineSTClient.WEBSOCKET_PATH,
+            VolcengineSTClient.API_ACTION,
+            VolcengineSTClient.API_VERSION
+          );
 
-        this.websocket = new WebSocket(signedUrl);
+          this.websocket = new WebSocket(signedUrl);
 
-        const CONNECTION_TIMEOUT = 15000;
-        const connectionTimer = setTimeout(() => {
-          if (this.websocket) {
-            this.websocket.close();
-            this.websocket = null;
-          }
-          this.isConnectedState = false;
-          reject(new Error('WebSocket connection timeout'));
-        }, CONNECTION_TIMEOUT);
-
-        this.websocket.onopen = () => {
-          clearTimeout(connectionTimer);
-          console.log('[VolcengineSTClient] WebSocket connected');
-          this.isConnectedState = true;
-
-          // Send configuration message
-          this.sendConfiguration();
-
-          this.eventHandlers.onRealtimeEvent?.({
-            source: 'client',
-            event: {
-              type: 'session.opened',
-              data: {
-                status: 'connected',
-                provider: 'volcengine_st',
-                timestamp: Date.now(),
-                sourceLanguage: this.currentConfig?.sourceLanguage,
-                targetLanguages: this.currentConfig?.targetLanguages,
-              }
+          const CONNECTION_TIMEOUT = 15000;
+          const connectionTimer = setTimeout(() => {
+            if (this.websocket) {
+              this.websocket.close();
+              this.websocket = null;
             }
-          });
+            this.isConnectedState = false;
+            reject(new Error('WebSocket connection timeout'));
+          }, CONNECTION_TIMEOUT);
 
-          this.eventHandlers.onOpen?.();
-          resolve();
-        };
+          this.websocket.onopen = () => {
+            clearTimeout(connectionTimer);
+            console.log('[VolcengineSTClient] WebSocket connected');
+            this.isConnectedState = true;
 
-        this.websocket.onmessage = async (event) => {
-          let data: string;
-          if (event.data instanceof Blob) {
-            data = await event.data.text();
-          } else {
-            data = event.data;
-          }
-          this.handleMessage(data);
-        };
+            // Send configuration message
+            this.sendConfiguration();
 
-        this.websocket.onerror = (error) => {
-          clearTimeout(connectionTimer);
-          console.error('[VolcengineSTClient] WebSocket error:', error);
-          this.eventHandlers.onError?.(error);
-          reject(error);
-        };
+            this.eventHandlers.onRealtimeEvent?.({
+              source: 'client',
+              event: {
+                type: 'session.opened',
+                data: {
+                  status: 'connected',
+                  provider: 'volcengine_st',
+                  timestamp: Date.now(),
+                  sourceLanguage: this.currentConfig?.sourceLanguage,
+                  targetLanguages: this.currentConfig?.targetLanguages,
+                }
+              }
+            });
 
-        this.websocket.onclose = (event) => {
-          clearTimeout(connectionTimer);
+            this.eventHandlers.onOpen?.();
+            resolve();
+          };
+
+          this.websocket.onmessage = async (event) => {
+            let data: string;
+            if (event.data instanceof Blob) {
+              data = await event.data.text();
+            } else {
+              data = event.data;
+            }
+            this.handleMessage(data);
+          };
+
+          this.websocket.onerror = (error) => {
+            clearTimeout(connectionTimer);
+            console.error('[VolcengineSTClient] WebSocket error:', error);
+            this.eventHandlers.onError?.(error);
+            reject(error);
+          };
+
+          this.websocket.onclose = (event) => {
+            clearTimeout(connectionTimer);
           console.log('[VolcengineSTClient] WebSocket closed:', event.code, event.reason);
           this.isConnectedState = false;
 
@@ -586,10 +587,12 @@ export class VolcengineSTClient implements IClient {
 
           this.eventHandlers.onClose?.(event);
         };
-      } catch (error) {
-        console.error('[VolcengineSTClient] Connection error:', error);
-        reject(error);
-      }
+        } catch (error) {
+          console.error('[VolcengineSTClient] Connection error:', error);
+          reject(error);
+        }
+      };
+      doConnect();
     });
   }
 

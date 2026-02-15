@@ -594,17 +594,25 @@ const useSettingsStore = create<SettingsStore>()(
 
     updateVolcengineST: async (settings) => {
       set((state) => ({volcengineST: {...state.volcengineST, ...settings}}));
-      const service = ServiceFactory.getSettingsService();
-      for (const [key, value] of Object.entries(settings)) {
-        await service.setSetting(`settings.volcengineST.${key}`, value);
+      try {
+        const service = ServiceFactory.getSettingsService();
+        for (const [key, value] of Object.entries(settings)) {
+          await service.setSetting(`settings.volcengineST.${key}`, value);
+        }
+      } catch (error) {
+        console.error('[SettingsStore] Error persisting Volcengine ST settings:', error);
       }
     },
 
     updateVolcengineAST2: async (settings) => {
       set((state) => ({volcengineAST2: {...state.volcengineAST2, ...settings}}));
-      const service = ServiceFactory.getSettingsService();
-      for (const [key, value] of Object.entries(settings)) {
-        await service.setSetting(`settings.volcengineAST2.${key}`, value);
+      try {
+        const service = ServiceFactory.getSettingsService();
+        for (const [key, value] of Object.entries(settings)) {
+          await service.setSetting(`settings.volcengineAST2.${key}`, value);
+        }
+      } catch (error) {
+        console.error('[SettingsStore] Error persisting Volcengine AST2 settings:', error);
       }
     },
 

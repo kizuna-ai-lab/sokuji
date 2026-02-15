@@ -207,55 +207,63 @@ chrome.tabs.onRemoved.addListener((tabId) => {
 const VOLCENGINE_DNR_RULE_ID_BASE = 2000;
 const VOLCENGINE_WS_HOST = 'openspeech.bytedance.com';
 
+let dnrUpdatePromise = Promise.resolve();
+
 async function volcengineSetDNRHeaders(credentials) {
-  const { appKey, accessKey, resourceId, connectId } = credentials;
+  dnrUpdatePromise = dnrUpdatePromise.then(async () => {
+    const { appKey, accessKey, resourceId, connectId } = credentials;
 
-  const headers = [
-    { header: 'X-Api-App-Key', value: appKey },
-    { header: 'X-Api-Access-Key', value: accessKey },
-    { header: 'X-Api-Resource-Id', value: resourceId },
-    { header: 'X-Api-Connect-Id', value: connectId },
-  ];
+    const headers = [
+      { header: 'X-Api-App-Key', value: appKey },
+      { header: 'X-Api-Access-Key', value: accessKey },
+      { header: 'X-Api-Resource-Id', value: resourceId },
+      { header: 'X-Api-Connect-Id', value: connectId },
+    ];
 
-  const rules = headers.map((h, i) => ({
-    id: VOLCENGINE_DNR_RULE_ID_BASE + i,
-    priority: 1,
-    action: {
-      type: 'modifyHeaders',
-      requestHeaders: [
-        { header: h.header, operation: 'set', value: h.value },
-      ],
-    },
-    condition: {
-      urlFilter: `||${VOLCENGINE_WS_HOST}`,
-      resourceTypes: ['websocket'],
-    },
-  }));
+    const rules = headers.map((h, i) => ({
+      id: VOLCENGINE_DNR_RULE_ID_BASE + i,
+      priority: 1,
+      action: {
+        type: 'modifyHeaders',
+        requestHeaders: [
+          { header: h.header, operation: 'set', value: h.value },
+        ],
+      },
+      condition: {
+        urlFilter: `||${VOLCENGINE_WS_HOST}`,
+        resourceTypes: ['websocket'],
+      },
+    }));
 
-  // Remove any existing Volcengine rules first
-  const existingRuleIds = (await chrome.declarativeNetRequest.getDynamicRules())
-    .filter(r => r.id >= VOLCENGINE_DNR_RULE_ID_BASE && r.id < VOLCENGINE_DNR_RULE_ID_BASE + 10)
-    .map(r => r.id);
+    // Remove any existing Volcengine rules first
+    const existingRuleIds = (await chrome.declarativeNetRequest.getDynamicRules())
+      .filter(r => r.id >= VOLCENGINE_DNR_RULE_ID_BASE && r.id < VOLCENGINE_DNR_RULE_ID_BASE + 10)
+      .map(r => r.id);
 
-  await chrome.declarativeNetRequest.updateDynamicRules({
-    removeRuleIds: existingRuleIds,
-    addRules: rules,
+    await chrome.declarativeNetRequest.updateDynamicRules({
+      removeRuleIds: existingRuleIds,
+      addRules: rules,
+    });
+
+    console.debug('[Sokuji] [Background] Volcengine AST2 DNR rules registered:', rules.length);
   });
-
-  console.debug('[Sokuji] [Background] Volcengine AST2 DNR rules registered:', rules.length);
+  return dnrUpdatePromise;
 }
 
 async function volgengineClearDNRHeaders() {
-  const existingRuleIds = (await chrome.declarativeNetRequest.getDynamicRules())
-    .filter(r => r.id >= VOLCENGINE_DNR_RULE_ID_BASE && r.id < VOLCENGINE_DNR_RULE_ID_BASE + 10)
-    .map(r => r.id);
+  dnrUpdatePromise = dnrUpdatePromise.then(async () => {
+    const existingRuleIds = (await chrome.declarativeNetRequest.getDynamicRules())
+      .filter(r => r.id >= VOLCENGINE_DNR_RULE_ID_BASE && r.id < VOLCENGINE_DNR_RULE_ID_BASE + 10)
+      .map(r => r.id);
 
-  if (existingRuleIds.length > 0) {
-    await chrome.declarativeNetRequest.updateDynamicRules({
-      removeRuleIds: existingRuleIds,
-    });
-    console.debug('[Sokuji] [Background] Volcengine AST2 DNR rules cleared');
-  }
+    if (existingRuleIds.length > 0) {
+      await chrome.declarativeNetRequest.updateDynamicRules({
+        removeRuleIds: existingRuleIds,
+      });
+      console.debug('[Sokuji] [Background] Volcengine AST2 DNR rules cleared');
+    }
+  });
+  return dnrUpdatePromise;
 }
 
 // Handle messages from popup and content scripts
