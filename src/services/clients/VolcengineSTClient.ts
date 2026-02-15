@@ -508,7 +508,18 @@ export class VolcengineSTClient implements IClient {
 
         this.websocket = new WebSocket(signedUrl);
 
+        const CONNECTION_TIMEOUT = 15000;
+        const connectionTimer = setTimeout(() => {
+          if (this.websocket) {
+            this.websocket.close();
+            this.websocket = null;
+          }
+          this.isConnectedState = false;
+          reject(new Error('WebSocket connection timeout'));
+        }, CONNECTION_TIMEOUT);
+
         this.websocket.onopen = () => {
+          clearTimeout(connectionTimer);
           console.log('[VolcengineSTClient] WebSocket connected');
           this.isConnectedState = true;
 
@@ -544,12 +555,14 @@ export class VolcengineSTClient implements IClient {
         };
 
         this.websocket.onerror = (error) => {
+          clearTimeout(connectionTimer);
           console.error('[VolcengineSTClient] WebSocket error:', error);
           this.eventHandlers.onError?.(error);
           reject(error);
         };
 
         this.websocket.onclose = (event) => {
+          clearTimeout(connectionTimer);
           console.log('[VolcengineSTClient] WebSocket closed:', event.code, event.reason);
           this.isConnectedState = false;
 

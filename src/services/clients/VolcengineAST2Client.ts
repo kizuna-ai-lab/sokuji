@@ -181,15 +181,28 @@ export class VolcengineAST2Client implements IClient {
           }
         });
 
-        // Wait for SessionStarted before resolving
+        // Send StartSession and wait for SessionStarted with timeout
+        this.sendStartSession();
+
+        const CONNECTION_TIMEOUT = 30000;
+        const connectionTimer = setTimeout(() => {
+          this.sessionStartedResolve = null;
+          this.sessionStartedReject = null;
+          this.cleanupIpcListeners();
+          window.electron.invoke('volcengine-ast2-disconnect').catch(() => {});
+          this.isConnectedState = false;
+          reject(new Error('Volcengine AST2 connection timeout'));
+        }, CONNECTION_TIMEOUT);
+
         this.sessionStartedResolve = () => {
+          clearTimeout(connectionTimer);
           this.eventHandlers.onOpen?.();
           resolve();
         };
-        this.sessionStartedReject = reject;
-
-        // Send StartSession
-        this.sendStartSession();
+        this.sessionStartedReject = (error: Error) => {
+          clearTimeout(connectionTimer);
+          reject(error);
+        };
       } catch (error) {
         console.error('[VolcengineAST2Client] IPC connection error:', error);
         this.cleanupIpcListeners();
@@ -271,12 +284,14 @@ export class VolcengineAST2Client implements IClient {
         };
 
         this.websocket.onerror = (error) => {
+          clearTimeout(connectionTimer);
           console.error('[VolcengineAST2Client] WebSocket error:', error);
           this.eventHandlers.onError?.(error);
           reject(error);
         };
 
         this.websocket.onclose = (event) => {
+          clearTimeout(connectionTimer);
           console.log('[VolcengineAST2Client] WebSocket closed:', event.code, event.reason);
           this.isConnectedState = false;
 
@@ -297,12 +312,28 @@ export class VolcengineAST2Client implements IClient {
           this.eventHandlers.onClose?.(event);
         };
 
+        const CONNECTION_TIMEOUT = 30000;
+        const connectionTimer = setTimeout(() => {
+          this.sessionStartedResolve = null;
+          this.sessionStartedReject = null;
+          if (this.websocket) {
+            this.websocket.close();
+            this.websocket = null;
+          }
+          this.isConnectedState = false;
+          reject(new Error('Volcengine AST2 connection timeout'));
+        }, CONNECTION_TIMEOUT);
+
         // Wait for SessionStarted before resolving
         this.sessionStartedResolve = () => {
+          clearTimeout(connectionTimer);
           this.eventHandlers.onOpen?.();
           resolve();
         };
-        this.sessionStartedReject = reject;
+        this.sessionStartedReject = (error: Error) => {
+          clearTimeout(connectionTimer);
+          reject(error);
+        };
 
       } catch (error) {
         console.error('[VolcengineAST2Client] Connection error:', error);
