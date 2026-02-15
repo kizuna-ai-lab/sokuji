@@ -2,7 +2,7 @@
  * Provider types and enums for AI service providers
  */
 
-import { isKizunaAIEnabled, isPalabraAIEnabled } from '../utils/environment';
+import { isKizunaAIEnabled, isPalabraAIEnabled, isVolcengineSTEnabled, isVolcengineAST2Enabled } from '../utils/environment';
 
 /**
  * Supported AI service providers
@@ -12,13 +12,15 @@ export enum Provider {
   GEMINI = 'gemini',
   PALABRA_AI = 'palabraai',
   KIZUNA_AI = 'kizunaai',
-  OPENAI_COMPATIBLE = 'openai_compatible'
+  OPENAI_COMPATIBLE = 'openai_compatible',
+  VOLCENGINE_ST = 'volcengine_st',
+  VOLCENGINE_AST2 = 'volcengine_ast2'
 }
 
 /**
  * Provider type definition
  */
-export type ProviderType = Provider.OPENAI | Provider.GEMINI | Provider.PALABRA_AI | Provider.KIZUNA_AI | Provider.OPENAI_COMPATIBLE;
+export type ProviderType = Provider.OPENAI | Provider.GEMINI | Provider.PALABRA_AI | Provider.KIZUNA_AI | Provider.OPENAI_COMPATIBLE | Provider.VOLCENGINE_ST | Provider.VOLCENGINE_AST2;
 
 /**
  * Array of all supported providers
@@ -30,6 +32,8 @@ export const SUPPORTED_PROVIDERS: ProviderType[] = [
   Provider.GEMINI,
   ...(isPalabraAIEnabled() ? [Provider.PALABRA_AI] : []),
   ...(isKizunaAIEnabled() ? [Provider.KIZUNA_AI] : []),
+  ...(isVolcengineSTEnabled() ? [Provider.VOLCENGINE_ST] : []),
+  ...(isVolcengineAST2Enabled() ? [Provider.VOLCENGINE_AST2] : []),
   Provider.OPENAI_COMPATIBLE
 ];
 
@@ -71,6 +75,10 @@ export function getProviderDisplayName(provider: ProviderType): string {
       return 'KizunaAI';
     case Provider.OPENAI_COMPATIBLE:
       return 'OpenAI Compatible API';
+    case Provider.VOLCENGINE_ST:
+      return 'Volcengine Speech Translate';
+    case Provider.VOLCENGINE_AST2:
+      return 'Volcengine AST';
     default:
       return provider;
   }

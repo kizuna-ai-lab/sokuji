@@ -82,6 +82,12 @@
       "name": "Kizuna AI",
       "description": "Powered by kizuna.ai service"
     },
+    "volcengine_st": {
+      "name": "Volcengine",
+      "description": "ByteDance speech translation",
+      "accessKeyIdPlaceholder": "Access Key ID",
+      "secretAccessKeyPlaceholder": "Secret Access Key"
+    },
     "unknown": {
       "name": "ไม่ทราบ",
       "description": "ผู้ให้บริการที่ไม่ทราบ"
@@ -120,6 +126,8 @@
     "loadingModels": "กำลังโหลดโมเดลที่ใช้ได้...",
     "modelsFound": "มีโมเดล {{count}} ตัวที่ใช้ได้",
     "experimentalFeatureTooltip": "นี่เป็นฟีเจอร์ทดลองและอาจไม่เสถียร",
+    "volcengineSTInfo": "Volcengine Info",
+    "volcengineSTInfoText": "Volcengine Real-time Speech Translation provides text-only translation output. Audio synthesis is not supported in this mode.",
     "apiKeyValidationCompleted": "การตรวจสอบ API key เสร็จสิ้น",
     "errorValidatingApiKey": "เกิดข้อผิดพลาดในการตรวจสอบ API key",
     "sessionActiveNotice": "การตั้งค่าถูกล็อกขณะที่เซสชันทำงานอยู่ กรุณาสิ้นสุดเซสชันเพื่อแก้ไขการตั้งค่า",

@@ -1,0 +1,43 @@
+syntax = "proto3";
+
+import "common/events.proto";
+import "common/rpcmeta.proto";
+import "products/understanding/base/au_base.proto";
+
+package data.speech.ast;
+
+message ReqParams {
+  string mode = 1;            // 可能是s2t , s2s 选一个, 控制是否需要语音
+  string source_language = 2; // 源语言
+  string target_language = 3; // 目标语言
+  string speaker_id = 4;
+
+  understanding.Corpus corpus = 100;
+}
+
+message TranslateRequest {
+  optional common.RequestMeta request_meta = 1;
+  event.Type event = 2;
+  understanding.User user = 3;
+  // bytes data = 2;               // request binary data
+  understanding.Audio source_audio = 4; // 源音频信息
+  // 目标音频信息，只需要传format（pcm/ogg）、rate、bits、channel这些
+  understanding.Audio target_audio = 5;
+  ReqParams request = 6;     // 请求参数
+  optional bool denoise = 7; // 是否开启降噪
+}
+
+message TranslateResponse {
+  optional common.ResponseMeta response_meta = 1;
+  event.Type event = 2;
+  bytes data = 3;  // response binary data
+  string text = 4; // 原文或者译文
+  int32 start_time = 5;
+  int32 end_time = 6;
+  bool spk_chg = 7;
+  int32 muted_duration_ms = 8;
+}
+
+service ASTService {
+  rpc Translate(stream TranslateRequest) returns (stream TranslateResponse);
+}

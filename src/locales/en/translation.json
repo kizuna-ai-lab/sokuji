@@ -141,6 +141,12 @@
     "loadingModels": "Loading available models...",
     "modelsFound": "{{count}} models available",
     "experimentalFeatureTooltip": "This is an experimental feature and may be unstable.",
+    "invalidApiKeyFormat": "Invalid API key format",
+    "volcengineSTInfo": "Volcengine Info",
+    "volcengineSTInfoText": "Volcengine Real-time Speech Translation provides text-only translation output. Audio synthesis is not supported in this mode.",
+    "volcengineAST2Info": "Volcengine AST Info",
+    "volcengineAST2InfoText": "Volcengine AST 2.0 provides speech-to-speech translation with automatic voice cloning. The translated audio preserves the original speaker's voice characteristics.",
+    "volcengineAST2TurnDetectionTooltip": "Auto mode uses server-side voice activity detection. Push-to-Talk lets you manually control when to send audio by holding Space or the mic button.",
     "geminiParticipantTokenWarning": "Gemini participant mode generates audio responses that are discarded, resulting in additional token usage.",
     "help": "Help",
     "auto": "Auto",
@@ -373,6 +379,18 @@
     "kizunaai": {
       "name": "Kizuna AI",
       "description": "Powered by kizuna.ai service"
+    },
+    "volcengine_st": {
+      "name": "Volcengine Speech Translate",
+      "description": "ByteDance speech translation",
+      "accessKeyIdPlaceholder": "Access Key ID",
+      "secretAccessKeyPlaceholder": "Secret Access Key"
+    },
+    "volcengine_ast2": {
+      "name": "Volcengine AST",
+      "description": "ByteDance simultaneous translation",
+      "appIdPlaceholder": "APP ID",
+      "accessTokenPlaceholder": "Access Token"
     },
     "unknown": {
       "name": "Unknown",
