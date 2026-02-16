@@ -27,7 +27,7 @@ export class ModernBrowserAudioService implements IAudioService {
   private currentRecordingDeviceId: string | undefined = undefined;
   private diagnosticsInterval: NodeJS.Timeout | null = null;
 
-  // System audio capture state (Electron - uses PipeWire/PulseAudio on Linux, desktopCapturer on Windows)
+  // System audio capture state (Electron - uses PipeWire/PulseAudio on Linux, electron-audio-loopback on Windows/macOS)
   // Connection state (switched via pw-link when user selects device on Linux, state flags on Windows)
   private systemAudioSourceConnected: boolean = false;
   private currentSystemAudioSinkId: string | undefined = undefined; // The sink being captured
@@ -743,6 +743,7 @@ export class ModernBrowserAudioService implements IAudioService {
    * Check if system audio capture is supported
    * Supported on:
    * - Linux with Electron (uses PipeWire/PulseAudio)
+   * - Windows/macOS with Electron (uses electron-audio-loopback)
    * - Browser extension (uses Chrome tabCapture API)
    */
   public supportsSystemAudioCapture(): boolean {
@@ -864,7 +865,7 @@ export class ModernBrowserAudioService implements IAudioService {
    * Start recording from the system audio source
    * Called when session starts
    * - Linux: Uses PulseAudio virtual mic (Sokuji_System_Audio)
-   * - Windows: Uses desktopCapturer loopback via getDisplayMedia
+   * - Windows/macOS: Uses electron-audio-loopback via getDisplayMedia
    * @param callback Function to receive audio data chunks
    */
   public async startSystemAudioRecording(callback: AudioRecordingCallback): Promise<void> {
