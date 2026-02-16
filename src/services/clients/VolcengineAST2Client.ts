@@ -74,6 +74,10 @@ export class VolcengineAST2Client implements IClient {
   private ttsChunks: Uint8Array[] = [];
   private decodeContext: AudioContext | null = null;
 
+  // Message matching reliability — track server-side Sequence and lock TTS to correct translation item
+  private lastResponseSequence: number = -1;
+  private ttsSentenceTargetItemId: string | null = null;
+
   // Keepalive: send silent audio frames when mic is muted to prevent server timeout
   private keepaliveInterval: ReturnType<typeof setInterval> | null = null;
   private lastAudioSentTime: number = 0;
@@ -116,6 +120,8 @@ export class VolcengineAST2Client implements IClient {
     this.currentSourceItemId = null;
     this.currentTranslationItemId = null;
     this.lastCompletedTranslationItemId = null;
+    this.lastResponseSequence = -1;
+    this.ttsSentenceTargetItemId = null;
 
     if (isElectron() && window.electron?.invoke) {
       return this.connectViaIpc();
@@ -464,6 +470,23 @@ export class VolcengineAST2Client implements IClient {
         return;
       }
 
+      // Validate SessionID matches current session
+      const responseSessionId = response.responseMeta?.SessionID;
+      if (responseSessionId && responseSessionId !== this.sessionId) {
+        console.warn('[VolcengineAST2Client] SessionID mismatch - expected:', this.sessionId, 'got:', responseSessionId);
+        return;
+      }
+
+      // Check Sequence for regression (Sequence is per-utterance — all events within one
+      // speech segment share the same value, so only warn on actual decrease)
+      const responseSeq = response.responseMeta?.Sequence;
+      if (responseSeq != null && responseSeq > 0) {
+        if (responseSeq < this.lastResponseSequence) {
+          console.warn('[VolcengineAST2Client] Out-of-order response - last:', this.lastResponseSequence, 'got:', responseSeq, 'event:', EventType[eventType]);
+        }
+        this.lastResponseSequence = responseSeq;
+      }
+
       switch (eventType) {
         case EventType.SessionStarted:
           this.handleSessionStarted();
@@ -512,6 +535,9 @@ export class VolcengineAST2Client implements IClient {
         // TTS lifecycle
         case EventType.TTSSentenceStart:
           this.ttsChunks = [];
+          // Lock the current translation item — TTS audio should associate with the
+          // translation active when TTS starts, not when it ends
+          this.ttsSentenceTargetItemId = this.currentTranslationItemId || this.lastCompletedTranslationItemId;
           break;
         case EventType.TTSSentenceEnd:
           this.decodeTTSAndPlay();
@@ -705,8 +731,9 @@ export class VolcengineAST2Client implements IClient {
         int16Array[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
       }
 
-      // Try to attach audio to the most recent completed translation item
-      const targetItemId = this.currentTranslationItemId || this.lastCompletedTranslationItemId;
+      // Use the item ID locked at TTSSentenceStart, falling back to current state
+      const targetItemId = this.ttsSentenceTargetItemId || this.currentTranslationItemId || this.lastCompletedTranslationItemId;
+      this.ttsSentenceTargetItemId = null; // consumed — reset for next TTS sentence
       const existingItem = targetItemId
         ? this.conversationItems.find(i => i.id === targetItemId)
         : null;
@@ -840,6 +867,8 @@ export class VolcengineAST2Client implements IClient {
     this.currentSourceItemId = null;
     this.currentTranslationItemId = null;
     this.lastCompletedTranslationItemId = null;
+    this.lastResponseSequence = -1;
+    this.ttsSentenceTargetItemId = null;
   }
 
   appendInputAudio(audioData: Int16Array): void {
