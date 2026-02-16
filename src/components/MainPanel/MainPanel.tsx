@@ -106,7 +106,8 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     participantAudioOutputDevice
   } = useAudioContext();
 
-  // canPushToTalk is true only when turnDetectionMode is 'Disabled'
+  // canPushToTalk is true when manual turn detection is used
+  // (OpenAI-compatible: 'Disabled', Volcengine AST2: 'Push-to-Talk')
   const [canPushToTalk, setCanPushToTalk] = useState(false);
 
   // Track if current session is using WebRTC transport
@@ -826,7 +827,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       } else if (provider === Provider.VOLCENGINE_AST2) {
         setCanPushToTalk(volcengineAST2Settings.turnDetectionMode === 'Push-to-Talk');
       } else {
-        setCanPushToTalk(false); // Not supported by Gemini and PalabraAI
+        setCanPushToTalk(false); // Not supported by Gemini, PalabraAI, and Volcengine ST
       }
 
       // Connect to microphone only if input device is turned on
