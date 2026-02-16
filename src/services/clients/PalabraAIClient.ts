@@ -131,6 +131,12 @@ export class PalabraAIClient implements IClient {
   private remoteAudioWorkletNode: AudioWorkletNode | null = null;
   private remoteAudioStream: MediaStream | null = null;
 
+  // PCM buffer — accumulates small worklet chunks into larger ones for virtual mic
+  private static readonly AUDIO_BUFFER_TARGET = 4800; // 200ms at 24kHz
+  private remoteAudioBuffer: Int16Array[] = [];
+  private remoteAudioBufferLength: number = 0;
+  private remoteAudioFlushTimer: ReturnType<typeof setTimeout> | null = null;
+
   constructor(clientId: string, clientSecret: string) {
     this.clientId = clientId;
     this.clientSecret = clientSecret;
@@ -603,22 +609,26 @@ export class PalabraAIClient implements IClient {
           // Step 6: Create MediaStreamAudioSourceNode and connect the processing nodes
           this.remoteAudioSource = this.remoteAudioContext.createMediaStreamSource(mediaStream);
           this.remoteAudioSource.connect(this.remoteAudioWorkletNode);
-          this.remoteAudioWorkletNode.connect(this.remoteAudioContext.destination);
 
-          // Step 7: Process PCM data received from the worklet
+          // Step 7: Buffer PCM data from worklet and emit in larger chunks for virtual mic
+          // The worklet sends ~480 samples (~20ms) at a time. Emitting each one individually
+          // causes crackling in the virtual speaker player (WAV blob per chunk).
+          // We accumulate to ~4800 samples (200ms) before emitting.
           this.remoteAudioWorkletNode.port.onmessage = (event) => {
             const pcm = event.data as Int16Array;
-            // Push data to MainPanel
-            this.eventHandlers.onConversationUpdated?.({
-              item: {
-                id: this.instanceId,
-                role: 'assistant',
-                type: 'message',
-                status: 'in_progress',
-                formatted: { audio: pcm }
-              },
-              delta: { audio: pcm }
-            });
+            this.remoteAudioBuffer.push(pcm);
+            this.remoteAudioBufferLength += pcm.length;
+
+            if (this.remoteAudioFlushTimer) {
+              clearTimeout(this.remoteAudioFlushTimer);
+            }
+
+            if (this.remoteAudioBufferLength >= PalabraAIClient.AUDIO_BUFFER_TARGET) {
+              this.flushRemoteAudioBuffer();
+            } else {
+              // Flush after 100ms of no new data to handle pauses/end-of-speech
+              this.remoteAudioFlushTimer = setTimeout(() => this.flushRemoteAudioBuffer(), 100);
+            }
           };
         } catch (error) {
           console.error("[Sokuji] [PalabraAIClient] Failed to set up audio worklet:", error);
@@ -1134,7 +1144,39 @@ export class PalabraAIClient implements IClient {
     }
   }
 
+  private flushRemoteAudioBuffer(): void {
+    if (this.remoteAudioBufferLength === 0) return;
+
+    const merged = new Int16Array(this.remoteAudioBufferLength);
+    let offset = 0;
+    for (const chunk of this.remoteAudioBuffer) {
+      merged.set(chunk, offset);
+      offset += chunk.length;
+    }
+    this.remoteAudioBuffer = [];
+    this.remoteAudioBufferLength = 0;
+
+    this.eventHandlers.onConversationUpdated?.({
+      item: {
+        id: this.instanceId,
+        role: 'assistant',
+        type: 'message',
+        status: 'in_progress',
+        formatted: { audio: merged }
+      },
+      delta: { audio: merged }
+    });
+  }
+
   private cleanupRemoteAudio(): void {
+    // Clear PCM buffer
+    if (this.remoteAudioFlushTimer) {
+      clearTimeout(this.remoteAudioFlushTimer);
+      this.remoteAudioFlushTimer = null;
+    }
+    this.remoteAudioBuffer = [];
+    this.remoteAudioBufferLength = 0;
+
     if (this.hiddenAudioElement) {
       this.hiddenAudioElement.remove();
       this.hiddenAudioElement = null;
