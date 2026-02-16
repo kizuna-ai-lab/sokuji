@@ -89,8 +89,8 @@
       "secretAccessKeyPlaceholder": "Secret Access Key"
     },
     "volcengine_ast2": {
-      "name": "Volcengine AST",
-      "description": "Синхронний переклад ByteDance",
+      "name": "Doubao AST 2.0",
+      "description": "Синхронний переклад Doubao",
       "appIdPlaceholder": "APP ID",
       "accessTokenPlaceholder": "Access Token"
     },
@@ -135,8 +135,8 @@
     "invalidApiKeyFormat": "Невірний формат API-ключа",
     "volcengineSTInfo": "Інформація про Volcengine",
     "volcengineSTInfoText": "Голосовий переклад Volcengine у реальному часі забезпечує лише текстовий вивід перекладу. Синтез звуку в цьому режимі не підтримується.",
-    "volcengineAST2Info": "Інформація про Volcengine AST",
-    "volcengineAST2InfoText": "Volcengine AST 2.0 забезпечує переклад мовлення в мовлення з автоматичним клонуванням голосу. Перекладене аудіо зберігає голосові характеристики оригінального мовця.",
+    "volcengineAST2Info": "Інформація про Doubao AST 2.0",
+    "volcengineAST2InfoText": "Doubao AST 2.0 забезпечує переклад мовлення в мовлення з автоматичним клонуванням голосу. Перекладене аудіо зберігає голосові характеристики оригінального мовця.",
     "volcengineAST2TurnDetectionTooltip": "Автоматичний режим використовує серверне виявлення голосової активності. Push-to-Talk дозволяє вручну керувати надсиланням аудіо, утримуючи пробіл або кнопку мікрофона.",
     "help": "Допомога",
     "auto": "Авто",

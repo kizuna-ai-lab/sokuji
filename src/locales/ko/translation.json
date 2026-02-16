@@ -85,8 +85,8 @@
     "volcengineSTInfo": "Volcengine 정보",
     "volcengineSTInfoText": "Volcengine 실시간 음성 번역은 텍스트 전용 번역 출력을 제공합니다. 이 모드에서는 음성 합성이 지원되지 않습니다.",
     "invalidApiKeyFormat": "API 키 형식이 올바르지 않습니다",
-    "volcengineAST2Info": "Volcengine AST 정보",
-    "volcengineAST2InfoText": "Volcengine AST 2.0은 자동 음성 복제를 통한 음성 대 음성 번역을 제공합니다. 번역된 오디오는 원래 화자의 음성 특성을 유지합니다.",
+    "volcengineAST2Info": "Doubao AST 2.0 정보",
+    "volcengineAST2InfoText": "Doubao AST 2.0은 자동 음성 복제를 통한 음성 대 음성 번역을 제공합니다. 번역된 오디오는 원래 화자의 음성 특성을 유지합니다.",
     "volcengineAST2TurnDetectionTooltip": "자동 모드는 서버 측 음성 활동 감지를 사용합니다. 푸시투토크를 사용하면 스페이스바 또는 마이크 버튼을 눌러 오디오 전송을 수동으로 제어할 수 있습니다.",
     "geminiParticipantTokenWarning": "Gemini participant mode generates audio responses that are discarded, resulting in additional token usage.",
     "help": "도움말",
@@ -413,8 +413,8 @@
       "secretAccessKeyPlaceholder": "Secret Access Key"
     },
     "volcengine_ast2": {
-      "name": "Volcengine AST",
-      "description": "ByteDance 동시 통역",
+      "name": "Doubao AST 2.0",
+      "description": "Doubao 동시 통역",
       "appIdPlaceholder": "APP ID",
       "accessTokenPlaceholder": "Access Token"
     },

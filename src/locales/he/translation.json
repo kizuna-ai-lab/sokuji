@@ -83,8 +83,8 @@
     "volcengineSTInfo": "מידע על Volcengine",
     "volcengineSTInfoText": "תרגום דיבור בזמן אמת של Volcengine מספק פלט תרגום טקסט בלבד. סינתזת שמע אינה נתמכת במצב זה.",
     "invalidApiKeyFormat": "פורמט מפתח API לא תקין",
-    "volcengineAST2Info": "מידע על Volcengine AST",
-    "volcengineAST2InfoText": "Volcengine AST 2.0 מספק תרגום דיבור לדיבור עם שכפול קול אוטומטי. השמע המתורגם שומר על מאפייני הקול של הדובר המקורי.",
+    "volcengineAST2Info": "מידע על Doubao AST 2.0",
+    "volcengineAST2InfoText": "Doubao AST 2.0 מספק תרגום דיבור לדיבור עם שכפול קול אוטומטי. השמע המתורגם שומר על מאפייני הקול של הדובר המקורי.",
     "volcengineAST2TurnDetectionTooltip": "מצב אוטומטי משתמש בזיהוי פעילות קולית בצד השרת. לחץ-כדי-לדבר מאפשר לך לשלוט ידנית מתי לשלוח שמע על ידי החזקת מקש הרווח או כפתור המיקרופון.",
     "help": "עזרה",
     "auto": "אוטומטי",
@@ -215,8 +215,8 @@
       "secretAccessKeyPlaceholder": "Secret Access Key"
     },
     "volcengine_ast2": {
-      "name": "Volcengine AST",
-      "description": "תרגום סימולטני ByteDance",
+      "name": "Doubao AST 2.0",
+      "description": "תרגום סימולטני Doubao",
       "appIdPlaceholder": "APP ID",
       "accessTokenPlaceholder": "Access Token"
     },

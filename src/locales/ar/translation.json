@@ -84,8 +84,8 @@
     "volcengineSTInfo": "معلومات Volcengine",
     "volcengineSTInfoText": "توفر ترجمة الكلام في الوقت الفعلي من Volcengine مخرجات ترجمة نصية فقط. لا يتم دعم تركيب الصوت في هذا الوضع.",
     "invalidApiKeyFormat": "تنسيق مفتاح API غير صالح",
-    "volcengineAST2Info": "معلومات Volcengine AST",
-    "volcengineAST2InfoText": "يوفر Volcengine AST 2.0 ترجمة من كلام إلى كلام مع استنساخ تلقائي للصوت. يحافظ الصوت المترجم على خصائص صوت المتحدث الأصلي.",
+    "volcengineAST2Info": "معلومات Doubao AST 2.0",
+    "volcengineAST2InfoText": "يوفر Doubao AST 2.0 ترجمة من كلام إلى كلام مع استنساخ تلقائي للصوت. يحافظ الصوت المترجم على خصائص صوت المتحدث الأصلي.",
     "volcengineAST2TurnDetectionTooltip": "يستخدم الوضع التلقائي اكتشاف نشاط الصوت من جانب الخادم. يتيح لك وضع اضغط للتحدث التحكم يدوياً في إرسال الصوت بالضغط مع الاستمرار على مفتاح المسافة أو زر الميكروفون.",
     "help": "مساعدة",
     "auto": "تلقائي",
@@ -222,8 +222,8 @@
       "secretAccessKeyPlaceholder": "Secret Access Key"
     },
     "volcengine_ast2": {
-      "name": "Volcengine AST",
-      "description": "الترجمة الفورية من ByteDance",
+      "name": "Doubao AST 2.0",
+      "description": "الترجمة الفورية من Doubao",
       "appIdPlaceholder": "APP ID",
       "accessTokenPlaceholder": "Access Token"
     },

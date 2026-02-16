@@ -39,8 +39,8 @@
     "volcengineSTInfo": "Impormasyon ng Volcengine",
     "volcengineSTInfoText": "Ang real-time na pagsasalin ng pananalita ng Volcengine ay nagbibigay lamang ng output na pagsasalin ng teksto. Hindi sinusuportahan ang audio synthesis sa mode na ito.",
     "invalidApiKeyFormat": "Hindi wastong format ng API key",
-    "volcengineAST2Info": "Impormasyon ng Volcengine AST",
-    "volcengineAST2InfoText": "Ang Volcengine AST 2.0 ay nagbibigay ng pagsasalin ng pananalita-sa-pananalita na may awtomatikong voice cloning. Pinapanatili ng naisaling audio ang mga katangian ng boses ng orihinal na nagsasalita.",
+    "volcengineAST2Info": "Impormasyon ng Doubao AST 2.0",
+    "volcengineAST2InfoText": "Ang Doubao AST 2.0 ay nagbibigay ng pagsasalin ng pananalita-sa-pananalita na may awtomatikong voice cloning. Pinapanatili ng naisaling audio ang mga katangian ng boses ng orihinal na nagsasalita.",
     "volcengineAST2TurnDetectionTooltip": "Ang auto mode ay gumagamit ng server-side voice activity detection. Ang Push-to-Talk ay nagpapahintulot sa iyo na manu-manong kontrolin kung kailan magpadala ng audio sa pamamagitan ng pagpindot ng Space o ang mic button.",
     "help": "Tulong",
     "auto": "Awtomatiko",
@@ -178,8 +178,8 @@
       "secretAccessKeyPlaceholder": "Secret Access Key"
     },
     "volcengine_ast2": {
-      "name": "Volcengine AST",
-      "description": "ByteDance sabay-sabay na pagsasalin",
+      "name": "Doubao AST 2.0",
+      "description": "Doubao sabay-sabay na pagsasalin",
       "appIdPlaceholder": "APP ID",
       "accessTokenPlaceholder": "Access Token"
     },

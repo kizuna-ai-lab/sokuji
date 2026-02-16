@@ -89,8 +89,8 @@
       "secretAccessKeyPlaceholder": "Secret Access Key"
     },
     "volcengine_ast2": {
-      "name": "Volcengine AST",
-      "description": "การแปลพร้อมกัน ByteDance",
+      "name": "Doubao AST 2.0",
+      "description": "การแปลพร้อมกัน Doubao",
       "appIdPlaceholder": "APP ID",
       "accessTokenPlaceholder": "Access Token"
     },
@@ -135,8 +135,8 @@
     "volcengineSTInfo": "ข้อมูล Volcengine",
     "volcengineSTInfoText": "การแปลเสียงพูดแบบเรียลไทม์ของ Volcengine ให้ผลลัพธ์การแปลเป็นข้อความเท่านั้น โหมดนี้ไม่รองรับการสังเคราะห์เสียง",
     "invalidApiKeyFormat": "รูปแบบคีย์ API ไม่ถูกต้อง",
-    "volcengineAST2Info": "ข้อมูล Volcengine AST",
-    "volcengineAST2InfoText": "Volcengine AST 2.0 ให้บริการแปลเสียงพูดเป็นเสียงพูดพร้อมการโคลนเสียงอัตโนมัติ เสียงที่แปลจะรักษาคุณลักษณะเสียงของผู้พูดต้นฉบับไว้",
+    "volcengineAST2Info": "ข้อมูล Doubao AST 2.0",
+    "volcengineAST2InfoText": "Doubao AST 2.0 ให้บริการแปลเสียงพูดเป็นเสียงพูดพร้อมการโคลนเสียงอัตโนมัติ เสียงที่แปลจะรักษาคุณลักษณะเสียงของผู้พูดต้นฉบับไว้",
     "volcengineAST2TurnDetectionTooltip": "โหมดอัตโนมัติใช้การตรวจจับกิจกรรมเสียงฝั่งเซิร์ฟเวอร์ กดค้างเพื่อพูดให้คุณควบคุมการส่งเสียงด้วยตนเองโดยกดค้างที่แป้นเว้นวรรคหรือปุ่มไมโครโฟน",
     "apiKeyValidationCompleted": "การตรวจสอบ API key เสร็จสิ้น",
     "errorValidatingApiKey": "เกิดข้อผิดพลาดในการตรวจสอบ API key",

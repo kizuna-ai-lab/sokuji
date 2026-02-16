@@ -83,8 +83,8 @@
     "volcengineSTInfo": "Maklumat Volcengine",
     "volcengineSTInfoText": "Terjemahan pertuturan masa nyata Volcengine hanya menyediakan output terjemahan teks. Sintesis audio tidak disokong dalam mod ini.",
     "invalidApiKeyFormat": "Format kunci API tidak sah",
-    "volcengineAST2Info": "Maklumat Volcengine AST",
-    "volcengineAST2InfoText": "Volcengine AST 2.0 menyediakan terjemahan pertuturan ke pertuturan dengan pengklonan suara automatik. Audio yang diterjemahkan mengekalkan ciri-ciri suara penutur asal.",
+    "volcengineAST2Info": "Maklumat Doubao AST 2.0",
+    "volcengineAST2InfoText": "Doubao AST 2.0 menyediakan terjemahan pertuturan ke pertuturan dengan pengklonan suara automatik. Audio yang diterjemahkan mengekalkan ciri-ciri suara penutur asal.",
     "volcengineAST2TurnDetectionTooltip": "Mod automatik menggunakan pengesanan aktiviti suara di bahagian pelayan. Tekan-untuk-Bercakap membolehkan anda mengawal penghantaran audio secara manual dengan menahan kekunci ruang atau butang mikrofon.",
     "help": "Bantuan",
     "auto": "Automatik",
@@ -198,8 +198,8 @@
       "secretAccessKeyPlaceholder": "Secret Access Key"
     },
     "volcengine_ast2": {
-      "name": "Volcengine AST",
-      "description": "Terjemahan serentak ByteDance",
+      "name": "Doubao AST 2.0",
+      "description": "Terjemahan serentak Doubao",
       "appIdPlaceholder": "APP ID",
       "accessTokenPlaceholder": "Access Token"
     },
