@@ -90,7 +90,7 @@ export class ClientOperations {
           return {
             validation: {
               valid: false,
-              message: 'Both APP ID and Access Token are required for Volcengine AST',
+              message: 'Both APP ID and Access Token are required for Doubao AST 2.0',
               validating: false
             },
             models: []

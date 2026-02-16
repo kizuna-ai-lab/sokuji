@@ -39,8 +39,8 @@
     "volcengineSTInfo": "Volcengine-tiedot",
     "volcengineSTInfoText": "Volcengine reaaliaikainen puheenkääntäminen tarjoaa vain tekstimuotoisen käännöstuloksen. Äänisynteesiä ei tueta tässä tilassa.",
     "invalidApiKeyFormat": "Virheellinen API-avaimen muoto",
-    "volcengineAST2Info": "Volcengine AST -tiedot",
-    "volcengineAST2InfoText": "Volcengine AST 2.0 tarjoaa puheesta puheeseen -kääntämisen automaattisella äänikloonauksella. Käännetty ääni säilyttää alkuperäisen puhujan ääniominaisuudet.",
+    "volcengineAST2Info": "Doubao AST 2.0 -tiedot",
+    "volcengineAST2InfoText": "Doubao AST 2.0 tarjoaa puheesta puheeseen -kääntämisen automaattisella äänikloonauksella. Käännetty ääni säilyttää alkuperäisen puhujan ääniominaisuudet.",
     "volcengineAST2TurnDetectionTooltip": "Automaattinen tila käyttää palvelinpuolen puheentunnistusta. Push-to-Talk antaa sinun manuaalisesti hallita äänen lähettämistä pitämällä välilyöntiä tai mikrofonipainiketta painettuna.",
     "apiKeyValidationCompleted": "API-avaimen validointi valmis",
     "errorValidatingApiKey": "Virhe API-avainta validoidessa",
@@ -178,8 +178,8 @@
       "secretAccessKeyPlaceholder": "Secret Access Key"
     },
     "volcengine_ast2": {
-      "name": "Volcengine AST",
-      "description": "ByteDance simultaanitulkkaus",
+      "name": "Doubao AST 2.0",
+      "description": "Doubao simultaanitulkkaus",
       "appIdPlaceholder": "APP ID",
       "accessTokenPlaceholder": "Access Token"
     },

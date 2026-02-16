@@ -39,8 +39,8 @@
     "volcengineSTInfo": "Thông tin Volcengine",
     "volcengineSTInfoText": "Dịch giọng nói thời gian thực của Volcengine chỉ cung cấp đầu ra dịch văn bản. Tổng hợp âm thanh không được hỗ trợ trong chế độ này.",
     "invalidApiKeyFormat": "Định dạng khóa API không hợp lệ",
-    "volcengineAST2Info": "Thông tin Volcengine AST",
-    "volcengineAST2InfoText": "Volcengine AST 2.0 cung cấp dịch giọng nói sang giọng nói với nhân bản giọng nói tự động. Âm thanh đã dịch giữ nguyên đặc điểm giọng nói của người nói gốc.",
+    "volcengineAST2Info": "Thông tin Doubao AST 2.0",
+    "volcengineAST2InfoText": "Doubao AST 2.0 cung cấp dịch giọng nói sang giọng nói với nhân bản giọng nói tự động. Âm thanh đã dịch giữ nguyên đặc điểm giọng nói của người nói gốc.",
     "volcengineAST2TurnDetectionTooltip": "Chế độ tự động sử dụng phát hiện hoạt động giọng nói phía máy chủ. Nhấn-để-nói cho phép bạn kiểm soát thủ công khi nào gửi âm thanh bằng cách giữ phím cách hoặc nút micrô.",
     "apiKeyValidationCompleted": "Xác thực khóa API hoàn tất",
     "errorValidatingApiKey": "Lỗi khi xác thực khóa API",
@@ -330,8 +330,8 @@
       "secretAccessKeyPlaceholder": "Secret Access Key"
     },
     "volcengine_ast2": {
-      "name": "Volcengine AST",
-      "description": "Dịch đồng thời ByteDance",
+      "name": "Doubao AST 2.0",
+      "description": "Dịch đồng thời Doubao",
       "appIdPlaceholder": "APP ID",
       "accessTokenPlaceholder": "Access Token"
     },

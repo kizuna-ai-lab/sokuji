@@ -37,7 +37,7 @@ export class VolcengineAST2ProviderConfig {
   getConfig(): ProviderConfig {
     return {
       id: 'volcengine_ast2',
-      displayName: 'Volcengine AST',
+      displayName: 'Doubao AST 2.0',
 
       apiKeyLabel: 'App Key',
       apiKeyPlaceholder: 'Enter your Volcengine App Key',

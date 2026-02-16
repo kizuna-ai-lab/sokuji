@@ -83,8 +83,8 @@
     "volcengineSTInfo": "اطلاعات Volcengine",
     "volcengineSTInfoText": "ترجمه گفتار بلادرنگ Volcengine فقط خروجی ترجمه متنی ارائه می‌دهد. سنتز صوتی در این حالت پشتیبانی نمی‌شود.",
     "invalidApiKeyFormat": "فرمت کلید API نامعتبر",
-    "volcengineAST2Info": "اطلاعات Volcengine AST",
-    "volcengineAST2InfoText": "Volcengine AST 2.0 ترجمه گفتار به گفتار با شبیه‌سازی خودکار صدا ارائه می‌دهد. صدای ترجمه شده ویژگی‌های صوتی گوینده اصلی را حفظ می‌کند.",
+    "volcengineAST2Info": "اطلاعات Doubao AST 2.0",
+    "volcengineAST2InfoText": "Doubao AST 2.0 ترجمه گفتار به گفتار با شبیه‌سازی خودکار صدا ارائه می‌دهد. صدای ترجمه شده ویژگی‌های صوتی گوینده اصلی را حفظ می‌کند.",
     "volcengineAST2TurnDetectionTooltip": "حالت خودکار از تشخیص فعالیت صوتی سمت سرور استفاده می‌کند. فشار برای صحبت به شما امکان می‌دهد با نگه داشتن کلید فاصله یا دکمه میکروفون، ارسال صدا را به صورت دستی کنترل کنید.",
     "help": "راهنما",
     "auto": "خودکار",
@@ -219,8 +219,8 @@
       "secretAccessKeyPlaceholder": "Secret Access Key"
     },
     "volcengine_ast2": {
-      "name": "Volcengine AST",
-      "description": "ترجمه همزمان ByteDance",
+      "name": "Doubao AST 2.0",
+      "description": "ترجمه همزمان Doubao",
       "appIdPlaceholder": "APP ID",
       "accessTokenPlaceholder": "Access Token"
     },

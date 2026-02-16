@@ -83,8 +83,8 @@
     "invalidApiKeyFormat": "Nieprawidłowy format klucza API",
     "volcengineSTInfo": "Informacje o Volcengine",
     "volcengineSTInfoText": "Tłumaczenie mowy w czasie rzeczywistym Volcengine zapewnia wyłącznie tekstowe wyjście tłumaczenia. Synteza dźwięku nie jest obsługiwana w tym trybie.",
-    "volcengineAST2Info": "Informacje o Volcengine AST",
-    "volcengineAST2InfoText": "Volcengine AST 2.0 zapewnia tłumaczenie mowy na mowę z automatycznym klonowaniem głosu. Przetłumaczony dźwięk zachowuje cechy głosowe oryginalnego mówcy.",
+    "volcengineAST2Info": "Informacje o Doubao AST 2.0",
+    "volcengineAST2InfoText": "Doubao AST 2.0 zapewnia tłumaczenie mowy na mowę z automatycznym klonowaniem głosu. Przetłumaczony dźwięk zachowuje cechy głosowe oryginalnego mówcy.",
     "volcengineAST2TurnDetectionTooltip": "Tryb automatyczny wykorzystuje wykrywanie aktywności głosowej po stronie serwera. Push-to-Talk pozwala ręcznie kontrolować wysyłanie dźwięku, przytrzymując spację lub przycisk mikrofonu.",
     "auto": "Auto",
     "low": "Niski",
@@ -388,8 +388,8 @@
       "secretAccessKeyPlaceholder": "Secret Access Key"
     },
     "volcengine_ast2": {
-      "name": "Volcengine AST",
-      "description": "Tłumaczenie symultaniczne ByteDance",
+      "name": "Doubao AST 2.0",
+      "description": "Tłumaczenie symultaniczne Doubao",
       "appIdPlaceholder": "APP ID",
       "accessTokenPlaceholder": "Access Token"
     },

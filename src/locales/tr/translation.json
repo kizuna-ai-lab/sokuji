@@ -39,8 +39,8 @@
     "invalidApiKeyFormat": "Geçersiz API anahtarı formatı",
     "volcengineSTInfo": "Volcengine Bilgileri",
     "volcengineSTInfoText": "Volcengine gerçek zamanlı konuşma çevirisi yalnızca metin çeviri çıktısı sağlar. Bu modda ses sentezi desteklenmez.",
-    "volcengineAST2Info": "Volcengine AST Bilgileri",
-    "volcengineAST2InfoText": "Volcengine AST 2.0, otomatik ses klonlama ile konuşmadan konuşmaya çeviri sağlar. Çevrilen ses, orijinal konuşmacının ses özelliklerini korur.",
+    "volcengineAST2Info": "Doubao AST 2.0 Bilgileri",
+    "volcengineAST2InfoText": "Doubao AST 2.0, otomatik ses klonlama ile konuşmadan konuşmaya çeviri sağlar. Çevrilen ses, orijinal konuşmacının ses özelliklerini korur.",
     "volcengineAST2TurnDetectionTooltip": "Otomatik mod, sunucu taraflı ses etkinliği algılamayı kullanır. Bas-Konuş, boşluk tuşunu veya mikrofon düğmesini basılı tutarak ses gönderimini manuel olarak kontrol etmenizi sağlar.",
     "apiKeyValidationCompleted": "API anahtarı doğrulaması tamamlandı",
     "errorValidatingApiKey": "API anahtarını doğrularken hata",
@@ -328,8 +328,8 @@
       "secretAccessKeyPlaceholder": "Secret Access Key"
     },
     "volcengine_ast2": {
-      "name": "Volcengine AST",
-      "description": "ByteDance eşzamanlı çeviri",
+      "name": "Doubao AST 2.0",
+      "description": "Doubao eşzamanlı çeviri",
       "appIdPlaceholder": "APP ID",
       "accessTokenPlaceholder": "Access Token"
     },

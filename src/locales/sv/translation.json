@@ -39,8 +39,8 @@
     "volcengineSTInfo": "Volcengine-information",
     "volcengineSTInfoText": "Volcengine realtidsröstöversättning ger enbart textöversättning som utdata. Ljudsyntes stöds inte i detta läge.",
     "invalidApiKeyFormat": "Ogiltigt API-nyckelformat",
-    "volcengineAST2Info": "Volcengine AST-information",
-    "volcengineAST2InfoText": "Volcengine AST 2.0 erbjuder röst-till-röst-översättning med automatisk röstkloning. Det översatta ljudet bevarar den ursprungliga talarens röstegenskaper.",
+    "volcengineAST2Info": "Doubao AST 2.0-information",
+    "volcengineAST2InfoText": "Doubao AST 2.0 erbjuder röst-till-röst-översättning med automatisk röstkloning. Det översatta ljudet bevarar den ursprungliga talarens röstegenskaper.",
     "volcengineAST2TurnDetectionTooltip": "Automatiskt läge använder röstaktivitetsdetektering på serversidan. Push-to-Talk låter dig manuellt styra när ljud skickas genom att hålla ned mellanslag eller mikrofonknappen.",
     "help": "Hjälp",
     "auto": "Auto",
@@ -311,8 +311,8 @@
       "secretAccessKeyPlaceholder": "Secret Access Key"
     },
     "volcengine_ast2": {
-      "name": "Volcengine AST",
-      "description": "ByteDance simultanöversättning",
+      "name": "Doubao AST 2.0",
+      "description": "Doubao simultanöversättning",
       "appIdPlaceholder": "APP ID",
       "accessTokenPlaceholder": "Access Token"
     },

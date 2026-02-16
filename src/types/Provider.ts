@@ -78,7 +78,7 @@ export function getProviderDisplayName(provider: ProviderType): string {
     case Provider.VOLCENGINE_ST:
       return 'Volcengine Speech Translate';
     case Provider.VOLCENGINE_AST2:
-      return 'Volcengine AST';
+      return 'Doubao AST 2.0';
     default:
       return provider;
   }

@@ -84,8 +84,8 @@
     "volcengineSTInfo": "Volcengine-informatie",
     "volcengineSTInfoText": "Volcengine realtime spraakvertaling biedt alleen tekstvertaling als uitvoer. Audiosynthese wordt in deze modus niet ondersteund.",
     "invalidApiKeyFormat": "Ongeldig API-sleutelformaat",
-    "volcengineAST2Info": "Volcengine AST-informatie",
-    "volcengineAST2InfoText": "Volcengine AST 2.0 biedt spraak-naar-spraakvertaling met automatische stemkloning. De vertaalde audio behoudt de stemkenmerken van de oorspronkelijke spreker.",
+    "volcengineAST2Info": "Doubao AST 2.0-informatie",
+    "volcengineAST2InfoText": "Doubao AST 2.0 biedt spraak-naar-spraakvertaling met automatische stemkloning. De vertaalde audio behoudt de stemkenmerken van de oorspronkelijke spreker.",
     "volcengineAST2TurnDetectionTooltip": "Automatische modus gebruikt servergestuurde spraakactiviteitsdetectie. Push-to-Talk laat u handmatig bepalen wanneer audio wordt verzonden door de spatiebalk of microfoonknop ingedrukt te houden.",
     "help": "Help",
     "auto": "Auto",
@@ -390,8 +390,8 @@
       "secretAccessKeyPlaceholder": "Secret Access Key"
     },
     "volcengine_ast2": {
-      "name": "Volcengine AST",
-      "description": "ByteDance simultaanvertaling",
+      "name": "Doubao AST 2.0",
+      "description": "Doubao simultaanvertaling",
       "appIdPlaceholder": "APP ID",
       "accessTokenPlaceholder": "Access Token"
     },

@@ -85,8 +85,8 @@
     "invalidApiKeyFormat": "API密钥格式无效",
     "volcengineSTInfo": "火山引擎信息",
     "volcengineSTInfoText": "火山引擎实时语音翻译仅提供文本翻译输出，此模式不支持语音合成。",
-    "volcengineAST2Info": "火山引擎 AST 信息",
-    "volcengineAST2InfoText": "火山引擎 AST 2.0 提供语音到语音的同声传译，支持自动声音克隆。翻译后的音频保留原始说话者的声音特征。",
+    "volcengineAST2Info": "豆包同声传译 2.0 信息",
+    "volcengineAST2InfoText": "豆包同声传译 2.0 提供语音到语音的同声传译，支持自动声音克隆。翻译后的音频保留原始说话者的声音特征。",
     "volcengineAST2TurnDetectionTooltip": "自动模式使用服务器端语音活动检测。按住说话模式让您通过按住空格键或麦克风按钮手动控制何时发送音频。",
     "geminiParticipantTokenWarning": "Gemini参与者模式会生成音频响应但只使用文本转录，导致额外的token消耗。",
     "help": "帮助",
@@ -260,8 +260,8 @@
       "secretAccessKeyPlaceholder": "Secret Access Key"
     },
     "volcengine_ast2": {
-      "name": "火山引擎 AST",
-      "description": "字节跳动同声传译",
+      "name": "豆包同声传译 2.0",
+      "description": "豆包语音同声传译",
       "appIdPlaceholder": "APP ID",
       "accessTokenPlaceholder": "Access Token"
     },

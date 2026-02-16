@@ -99,8 +99,8 @@
       "secretAccessKeyPlaceholder": "Secret Access Key"
     },
     "volcengine_ast2": {
-      "name": "火山引擎 AST",
-      "description": "字節跳動同聲傳譯",
+      "name": "豆包同聲傳譯 2.0",
+      "description": "豆包語音同聲傳譯",
       "appIdPlaceholder": "APP ID",
       "accessTokenPlaceholder": "Access Token"
     },
@@ -186,8 +186,8 @@
     "volcengineSTInfo": "火山引擎資訊",
     "volcengineSTInfoText": "火山引擎即時語音翻譯僅提供文字翻譯輸出，此模式不支援語音合成。",
     "invalidApiKeyFormat": "API 金鑰格式無效",
-    "volcengineAST2Info": "火山引擎 AST 資訊",
-    "volcengineAST2InfoText": "火山引擎 AST 2.0 提供語音到語音的同聲傳譯，支援自動聲音複製。翻譯後的音訊保留原始說話者的聲音特徵。",
+    "volcengineAST2Info": "豆包同聲傳譯 2.0 資訊",
+    "volcengineAST2InfoText": "豆包同聲傳譯 2.0 提供語音到語音的同聲傳譯，支援自動聲音複製。翻譯後的音訊保留原始說話者的聲音特徵。",
     "volcengineAST2TurnDetectionTooltip": "自動模式使用伺服器端語音活動偵測。按住說話模式讓您透過按住空白鍵或麥克風按鈕手動控制何時傳送音訊。",
     "geminiParticipantTokenWarning": "Gemini participant mode generates audio responses that are discarded, resulting in additional token usage.",
     "help": "說明",

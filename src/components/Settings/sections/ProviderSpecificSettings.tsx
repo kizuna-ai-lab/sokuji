@@ -1109,7 +1109,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
         </div>
 
         <div className="settings-section">
-          <h2>{t('settings.volcengineAST2Info', 'Volcengine AST Info')}</h2>
+          <h2>{t('settings.volcengineAST2Info', 'Doubao AST 2.0 Info')}</h2>
           <div className="setting-item">
             <div className="volcengine-st-info-notice" style={{
               padding: '12px',
@@ -1120,7 +1120,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
               color: '#aaa'
             }}>
               <Info size={14} style={{ marginRight: '8px', verticalAlign: 'middle', color: '#10a37f' }} />
-              {t('settings.volcengineAST2InfoText', 'Volcengine AST 2.0 provides speech-to-speech translation with automatic voice cloning. The translated audio preserves the original speaker\'s voice characteristics.')}
+              {t('settings.volcengineAST2InfoText', 'Doubao AST 2.0 provides speech-to-speech translation with automatic voice cloning. The translated audio preserves the original speaker\'s voice characteristics.')}
             </div>
           </div>
         </div>

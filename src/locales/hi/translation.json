@@ -40,8 +40,8 @@
     "invalidApiKeyFormat": "अमान्य API कुंजी प्रारूप",
     "volcengineSTInfo": "Volcengine जानकारी",
     "volcengineSTInfoText": "Volcengine रीयल-टाइम स्पीच ट्रांसलेशन केवल टेक्स्ट अनुवाद आउटपुट प्रदान करता है। इस मोड में ऑडियो संश्लेषण समर्थित नहीं है।",
-    "volcengineAST2Info": "Volcengine AST जानकारी",
-    "volcengineAST2InfoText": "Volcengine AST 2.0 स्वचालित आवाज़ क्लोनिंग के साथ स्पीच-टू-स्पीच अनुवाद प्रदान करता है। अनुवादित ऑडियो मूल वक्ता की आवाज़ की विशेषताओं को संरक्षित करता है।",
+    "volcengineAST2Info": "Doubao AST 2.0 जानकारी",
+    "volcengineAST2InfoText": "Doubao AST 2.0 स्वचालित आवाज़ क्लोनिंग के साथ स्पीच-टू-स्पीच अनुवाद प्रदान करता है। अनुवादित ऑडियो मूल वक्ता की आवाज़ की विशेषताओं को संरक्षित करता है।",
     "volcengineAST2TurnDetectionTooltip": "ऑटो मोड सर्वर-साइड वॉयस एक्टिविटी डिटेक्शन का उपयोग करता है। पुश-टू-टॉक आपको स्पेस या माइक बटन दबाकर ऑडियो भेजने को मैन्युअल रूप से नियंत्रित करने देता है।",
     "apiKeyValidationCompleted": "API कुंजी सत्यापन पूरा हुआ",
     "errorValidatingApiKey": "API कुंजी सत्यापन में त्रुटि",
@@ -181,8 +181,8 @@
       "secretAccessKeyPlaceholder": "Secret Access Key"
     },
     "volcengine_ast2": {
-      "name": "Volcengine AST",
-      "description": "ByteDance सिमल्टेनियस ट्रांसलेशन",
+      "name": "Doubao AST 2.0",
+      "description": "Doubao सिमल्टेनियस ट्रांसलेशन",
       "appIdPlaceholder": "APP ID",
       "accessTokenPlaceholder": "Access Token"
     },

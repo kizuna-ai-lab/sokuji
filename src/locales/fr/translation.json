@@ -85,8 +85,8 @@
     "volcengineSTInfo": "Informations Volcengine",
     "volcengineSTInfoText": "La traduction vocale en temps réel Volcengine fournit uniquement une sortie de traduction textuelle. La synthèse audio n'est pas prise en charge dans ce mode.",
     "invalidApiKeyFormat": "Format de clé API invalide",
-    "volcengineAST2Info": "Informations Volcengine AST",
-    "volcengineAST2InfoText": "Volcengine AST 2.0 fournit une traduction vocale avec clonage automatique de la voix. L'audio traduit préserve les caractéristiques vocales du locuteur d'origine.",
+    "volcengineAST2Info": "Informations Doubao AST 2.0",
+    "volcengineAST2InfoText": "Doubao AST 2.0 fournit une traduction vocale avec clonage automatique de la voix. L'audio traduit préserve les caractéristiques vocales du locuteur d'origine.",
     "volcengineAST2TurnDetectionTooltip": "Le mode automatique utilise la détection d'activité vocale côté serveur. Le Push-to-Talk vous permet de contrôler manuellement l'envoi de l'audio en maintenant la barre d'espace ou le bouton du microphone.",
     "geminiParticipantTokenWarning": "Gemini participant mode generates audio responses that are discarded, resulting in additional token usage.",
     "help": "Aide",
@@ -416,8 +416,8 @@
       "secretAccessKeyPlaceholder": "Secret Access Key"
     },
     "volcengine_ast2": {
-      "name": "Volcengine AST",
-      "description": "Traduction simultanée ByteDance",
+      "name": "Doubao AST 2.0",
+      "description": "Traduction simultanée Doubao",
       "appIdPlaceholder": "APP ID",
       "accessTokenPlaceholder": "Access Token"
     },

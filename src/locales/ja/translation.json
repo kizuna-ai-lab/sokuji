@@ -137,8 +137,8 @@
     "volcengineSTInfo": "火山エンジンについて",
     "volcengineSTInfoText": "火山エンジンのリアルタイム音声翻訳は、テキストのみの翻訳出力を提供します。このモードでは音声合成はサポートされていません。",
     "invalidApiKeyFormat": "APIキーの形式が無効です",
-    "volcengineAST2Info": "火山エンジン AST について",
-    "volcengineAST2InfoText": "火山エンジン AST 2.0は、自動音声クローニングによる音声対音声翻訳を提供します。翻訳された音声は、元の話者の声の特徴を保持します。",
+    "volcengineAST2Info": "Doubao AST 2.0 について",
+    "volcengineAST2InfoText": "Doubao AST 2.0は、自動音声クローニングによる音声対音声翻訳を提供します。翻訳された音声は、元の話者の声の特徴を保持します。",
     "volcengineAST2TurnDetectionTooltip": "自動モードはサーバー側の音声活動検出を使用します。プッシュトゥトークでは、スペースまたはマイクボタンを押して音声の送信を手動で制御できます。"
   },
   "audioPanel": {
@@ -427,8 +427,8 @@
       "secretAccessKeyPlaceholder": "Secret Access Key"
     },
     "volcengine_ast2": {
-      "name": "火山エンジン AST",
-      "description": "ByteDance同時翻訳",
+      "name": "Doubao AST 2.0",
+      "description": "Doubao 同時通訳",
       "appIdPlaceholder": "APP ID",
       "accessTokenPlaceholder": "Access Token"
     },
