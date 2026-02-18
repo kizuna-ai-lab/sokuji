@@ -76,7 +76,7 @@ export class OpenAIWebRTCClient implements IClient {
     this.audioBridge = new WebRTCAudioBridge({
       sampleRate: 24000,
       enablePCMBuffering: true,
-      pcmBufferThresholdMs: 150,
+      pcmBufferThresholdMs: 200,
       pcmFlushTimeoutMs: 100
     });
 
