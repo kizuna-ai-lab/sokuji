@@ -7,6 +7,165 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.13.3] - 2026-02-17
+
+### Fixed
+
+- **Volcengine TTS Matching**: Improved TTS-to-translation matching and added message validation
+- **CI**: Pass VITE_ENABLE_PALABRA_AI secret to all build steps
+
+## [0.13.2] - 2026-02-17
+
+### Fixed
+
+- **Volcengine Branding**: Rebrand Volcengine AST to Doubao AST 2.0 across all languages
+- **PalabraAI Audio Crackling**: Buffer PalabraAI PCM chunks to eliminate audio crackling
+- **Documentation**: Update outdated comments for Volcengine providers and macOS support
+
+## [0.13.1] - 2026-02-16
+
+### Fixed
+
+- **Volcengine i18n**: Add missing Volcengine translation keys for all languages
+
+## [0.13.0] - 2026-02-16
+
+### Added
+
+- **Volcengine Speech Translation**: Integrate ByteDance Volcengine as a new provider with two engines:
+  - **Volcengine ST**: SpeechTranslate API with V4 signature auth and WebSocket communication
+  - **Doubao AST 2.0**: Speech-to-speech translation using protobuf-over-WebSocket protocol
+- **Volcengine i18n**: Add translation keys for all 30 locales
+
+### Fixed
+
+- **Extension Store Title**: Shorten store title to comply with Edge Add-ons policy 1.1.2
+
+## [0.12.12] - 2026-02-15
+
+### Fixed
+
+- **CI**: Pass VITE_POSTHOG_KEY to Electron and macOS build steps
+
+## [0.12.11] - 2026-02-15
+
+### Added
+
+- **Analytics Security**: Move PostHog key from hardcoded value to environment variables
+
+### Fixed
+
+- **CI**: Pass VITE_POSTHOG_KEY to build steps
+
+## [0.12.10] - 2026-01-26
+
+### Fixed
+
+- **Audio Buffer**: Skip audio buffer commit for anchor messages to prevent incorrect audio handling
+
+## [0.12.9] - 2026-01-25
+
+### Added
+
+- **Per-Turn Instructions**: Add ResponseConfig for per-turn instruction customization in OpenAI clients
+- **Audio Device Memory**: Remember last selected input and output audio devices across sessions
+
+### Fixed
+
+- **Audio Volume Sync**: Sync audioService volume when restoring monitor state
+
+## [0.12.8] - 2026-01-25
+
+### Fixed
+
+- **PalabraAI Client**: Restore PalabraAI to working state and unify PCM worklet across providers
+- **Audio Cleanup**: Disconnect participant client when speaker disconnects
+
+### Added
+
+- **PalabraAI Error Display**: Display PalabraAI errors in Conversation UI for better debugging
+
+### Changed
+
+- **Default Model**: Change default OpenAI model to gpt-realtime-mini
+- **System Instructions**: Simplify system instruction template for better translation focus
+- **Evals**: Change judge model from gpt-4o to gpt-4o-mini; add regression test cases for direct question translation
+
+## [0.12.7] - 2026-01-22
+
+### Fixed
+
+- **WebRTC VAD**: Disable server VAD in WebRTC mode to prevent translation playback interruption when user speaks
+
+## [0.12.6] - 2026-01-22
+
+### Added
+
+- **PalabraAI Feature Flag**: Hide PalabraAI from UI with environment variable feature flag
+
+### Fixed
+
+- **WebRTC Playback**: Prevent translation playback interruption on user speech
+- **PalabraAI Layout**: Add margin between PalabraAI inputs and validation message
+
+### Changed
+
+- **Audio Architecture**: Unify PCM buffering and native audio capture handling across providers
+
+## [0.12.5] - 2026-01-22
+
+### Fixed
+
+- **Extension CSP**: Add wss://streaming.palabra.ai to Content Security Policy connect-src
+
+## [0.12.4] - 2026-01-22
+
+### Fixed
+
+- **WebRTC Audio Stuttering**: Resolve audio stuttering and re-enable WebRTC transport
+- **PalabraAI Settings**: Add Client Secret input field for PalabraAI provider
+
+## [0.12.3] - 2026-01-21
+
+### Fixed
+
+- **WebRTC Transport**: Temporarily disable WebRTC transport option due to audio issues
+- **Evals**: Handle array format in LLM Judge response parsing
+
+### Changed
+
+- **Evals**: Rename ai-tests to evals and add instruction override feature
+
+## [0.12.2] - 2026-01-21
+
+### Added
+
+- **AI Evaluation Infrastructure**: Add complete testing infrastructure for evaluating AI translation quality, including test runner, LLM-as-Judge evaluation, and JSON schemas for test cases
+- **Participant Instructions i18n**: Add participant instructions with translations for 30 locales
+
+### Fixed
+
+- **Evals Security**: Improve error handling and security in test runner; use constructor-resolved apiKey in LLMJudge API calls
+
+## [0.12.1] - 2026-01-19
+
+### Fixed
+
+- **WebRTC Device Switching**: Enable dynamic device switching and monitor control in WebRTC mode
+- **Layout**: Resolve scroll issues in side panel and mobile environments
+- **Push-to-Talk**: Prevent empty audio requests in push-to-talk mode
+
+## [0.12.0] - 2026-01-19
+
+### Added
+
+- **WebRTC Transport**: Add WebRTC as an alternative transport to WebSocket for OpenAI and OpenAI Compatible providers, providing lower latency audio streaming with automatic fallback to WebSocket
+- **Transport Type i18n**: Add transport type translations for 30 languages
+
+### Fixed
+
+- **Security**: Resolve preact JSON VNode injection vulnerability
+
 ## [0.11.1] - 2026-01-17
 
 ### Added
