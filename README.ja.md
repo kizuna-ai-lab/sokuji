@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <em>OpenAI, Google Gemini, Palabra.ai, Kizuna AI による リアルタイム音声翻訳</em>
+  <em>OpenAI, Google Gemini, Palabra.ai, Kizuna AI, Volcengine などによるリアルタイム音声翻訳</em>
 </p>
 
 <p align="center">
@@ -12,8 +12,8 @@
   </a>
   
   <!-- Build and Release Badge -->
-  <a href="https://github.com/kizuna-ai-lab/sokuji/actions/workflows/build-and-release.yml" target="_blank">
-    <img alt="Build and Release" src="https://github.com/kizuna-ai-lab/sokuji/actions/workflows/build-and-release.yml/badge.svg" />
+  <a href="https://github.com/kizuna-ai-lab/sokuji/actions/workflows/build.yml" target="_blank">
+    <img alt="Build and Release" src="https://github.com/kizuna-ai-lab/sokuji/actions/workflows/build.yml/badge.svg" />
   </a>
   
   <!-- OpenAI Badge -->
@@ -40,13 +40,13 @@
 
 # なぜSokujiなのか？
 
-SokujiはOpenAI, Google Gemini, Palabra.ai, Kizuna AI APIを使用してリアルタイム音声翻訳を提供するクロスプラットフォームデスクトップアプリケーションです。Windows、macOS、Linuxで利用でき、音声入力をキャプチャし、高度なAIモデルで処理し、リアルタイムで翻訳された出力を配信することで、ライブ会話における言語の壁を取り除きます。また、柔軟性のためにOpenAI互換のAPIエンドポイントもサポートしています。
+Sokujiは、OpenAI、Google Gemini、Palabra.ai、Kizuna AI、Volcengine ST、Doubao AST 2.0、OpenAI互換APIを使用してリアルタイム音声翻訳を提供するクロスプラットフォームデスクトップアプリケーション兼ブラウザ拡張機能です。Windows、macOS、Linuxで利用でき、音声入力をキャプチャし、高度なAIモデルで処理し、リアルタイムで翻訳された出力を配信することで、ライブ会話における言語の壁を取り除きます。
 
 https://github.com/user-attachments/assets/1eaaa333-a7ce-4412-a295-16b7eb2310de
 
 # ブラウザ拡張機能が利用可能！
 
-デスクトップアプリケーションをインストールしたくない場合は、Chrome、Edge、その他のChromiumベースのブラウザ用のブラウザ拡張機能をお試しください。Google MeetやMicrosoft Teamsとの特別な統合により、ブラウザ内で直接同じ強力なリアルタイム音声翻訳機能を提供します。
+デスクトップアプリケーションをインストールしたくない場合は、Chrome、Edge、その他のChromiumベースのブラウザ用のブラウザ拡張機能をお試しください。Google Meet、Microsoft Teams、Zoom、Discord、Slack、Gather.town、Wherebyなどの主要なビデオ会議プラットフォームとの統合により、ブラウザ内で直接同じ強力なリアルタイム音声翻訳機能を提供します。
 
 <p>
   <a href="https://chromewebstore.google.com/detail/ppmihnhelgfpjomhjhpecobloelicnak?utm_source=item-share-cb" target="_blank">
@@ -73,62 +73,81 @@ https://github.com/user-attachments/assets/1eaaa333-a7ce-4412-a295-16b7eb2310de
 
 # 翻訳以上の機能
 
-Sokujiは基本的な翻訳を超えて、仮想デバイス管理（Linuxのみ）による完全なオーディオルーティングソリューションを提供し、他のアプリケーションとのシームレスな統合を可能にします。リアルタイムオーディオ可視化と包括的なログ記録を備えた、モダンで直感的なインターフェースを提供します。
+Sokujiは基本的な翻訳を超えて、クロスプラットフォーム仮想デバイス管理とシステムオーディオキャプチャによる完全なオーディオルーティングソリューションを提供し、ビデオ会議やその他のアプリケーションとのシームレスな統合を可能にします。リアルタイムオーディオ可視化と包括的なログ記録を備えた、モダンで直感的なインターフェースを提供します。
 
 # 機能
 
-1. **OpenAI, Google Gemini, Palabra.ai, Kizuna AI APIを使用したリアルタイム音声翻訳**
-2. **マルチプロバイダーサポート**: OpenAI, Google Gemini, Palabra.ai, Kizuna AIをシームレスに切り替え
-3. **サポートされているモデル**:
+1. **OpenAI、Google Gemini、Palabra.ai、Kizuna AI、Volcengine ST、Doubao AST 2.0、OpenAI互換APIを使用したリアルタイム音声翻訳**
+2. **シンプルモードインターフェース**: 非技術ユーザー向けの合理化された6セクション設定:
+   - インターフェース言語選択
+   - 翻訳言語ペア（ソース/ターゲット）
+   - バリデーション付きAPIキー管理
+   - 「オフ」オプション付きマイク選択
+   - 「オフ」オプション付きスピーカー選択
+   - リアルタイムセッション時間表示
+3. **マルチプロバイダーサポート**: 7つのAIプロバイダー（OpenAI、Google Gemini、Palabra.ai、Kizuna AI、Volcengine ST、Doubao AST 2.0、OpenAI互換）をシームレスに切り替え
+4. **サポートされているモデル**:
    - **OpenAI**: `gpt-4o-realtime-preview`, `gpt-4o-mini-realtime-preview`, `gpt-realtime`, `gpt-realtime-2025-08-28`
    - **Google Gemini**: `gemini-2.0-flash-live-001`, `gemini-2.5-flash-preview-native-audio-dialog`
    - **Palabra.ai**: WebRTCによるリアルタイム音声翻訳
    - **Kizuna AI**: バックエンド管理認証によるOpenAI互換モデル
    - **OpenAI互換**: カスタムOpenAI互換APIエンドポイントのサポート（Electronのみ）
-4. **自動ターン検出** OpenAI用の複数モード（通常、セマンティック、無効）
-5. **波形表示による音声可視化**
-6. **デュアルキュー音声ミキシングシステムを備えた高度な仮想マイク**（Linuxのみ）:
+   - **Volcengine ST**: V4署名認証によるリアルタイム音声翻訳
+   - **Doubao AST 2.0**: protobuf-over-WebSocketによる音声翻訳
+5. **自動ターン検出** OpenAI用の複数モード（通常、セマンティック、無効）
+6. **波形表示による音声可視化**
+7. **デュアルキュー音声ミキシングシステムを備えた高度な仮想マイク**:
    - **通常音声トラック**: キューに入れられ、順次再生
    - **即時音声トラック**: リアルタイム音声ミキシング用の別キュー
    - **同時再生**: 両方のトラックタイプをミックスしてオーディオ体験を向上
    - **チャンク化音声対応**: 大規模な音声ストリームの効率的な処理
-7. **リアルタイム音声パススルー**: 録音セッション中のライブ音声モニタリング
-8. **Linux上での仮想オーディオデバイス**の作成と管理（PulseAudio/PipeWire使用）
-9. **仮想デバイス間の自動オーディオルーティング**（Linuxのみ）
-10. **自動デバイス切り替えと設定の永続化**
-11. **オーディオ入力・出力デバイス選択**
-12. **API相互作用を追跡する包括的なログ**
-13. **カスタマイズ可能なモデル設定**（温度、最大トークン）
-14. **ユーザー転写モデル選択**（OpenAI用: `gpt-4o-mini-transcribe`, `gpt-4o-transcribe`, `whisper-1`）
-15. **ノイズリダクションオプション**（OpenAI用: なし、近距離、遠距離）
-16. **リアルタイムフィードバック付きAPIキー検証**
-17. **ユーザーのホームディレクトリでの設定永続化**
-18. **最適化されたAIクライアントパフォーマンス**: 一貫したID生成による会話管理の強化
+   - **クロスプラットフォーム対応**: Windows（VB-Cable）、macOS（仮想オーディオドライバー）、Linux（PulseAudio/PipeWire）
+8. **リアルタイム音声パススルー**: 録音セッション中のライブ音声モニタリング
+9. **システムオーディオキャプチャ**: ビデオ通話中の参加者音声をキャプチャして翻訳（全プラットフォーム）
+10. **仮想オーディオデバイス**の作成と管理（Windows、macOS、Linux）
+11. **仮想デバイス間の自動オーディオルーティング**
+12. **自動デバイス切り替えと設定の永続化**
+13. **オーディオ入力・出力デバイス選択**
+14. **API相互作用を追跡する包括的なログ**
+15. **カスタマイズ可能なモデル設定**（温度、最大トークン）
+16. **ユーザー転写モデル選択**（OpenAI用: `gpt-4o-mini-transcribe`, `gpt-4o-transcribe`, `whisper-1`）
+17. **ノイズリダクションオプション**（OpenAI用: なし、近距離、遠距離）
+18. **WebRTCトランスポート**: OpenAIプロバイダー向けの低遅延代替トランスポート
+19. **プッシュトゥトークモード**: 正確な翻訳タイミングのための手動音声制御
+20. **リアルタイムフィードバック付きAPIキー検証**
+21. **ユーザーのホームディレクトリでの設定永続化**
+22. **最適化されたAIクライアントパフォーマンス**: 一貫したID生成による会話管理の強化
+23. **強化ツールチップ**: @floating-uiによるインタラクティブヘルプツールチップ
+24. **多言語サポート**: 30言語の完全な国際化と英語フォールバック
+25. **アナリティクス**: 匿名使用状況追跡のためのPostHog統合
 
 # オーディオアーキテクチャ
 
-SokujiはWeb Audio APIを基盤とした最新の音声処理パイプラインを使用し、Linux上では追加の仮想デバイス機能を提供します：
+SokujiはWeb Audio APIを基盤とした最新の音声処理パイプラインを使用し、クロスプラットフォームの仮想デバイス機能を提供します：
 
 - **ModernAudioRecorder**: 高度なエコーキャンセレーション機能付きの入力キャプチャ
 - **ModernAudioPlayer**: キューベースの音声管理による再生処理
 - **リアルタイム処理**: チャンク再生による低遅延音声ストリーミング
-- **仮想デバイスサポート**: Linux上では、アプリケーション統合のための仮想オーディオデバイスを作成
+- **仮想デバイスサポート**: Windows（VB-Cable）、macOS（仮想オーディオドライバー）、Linux（PulseAudio/PipeWire）で仮想オーディオデバイスを作成
+- **システムオーディオキャプチャ**: `electron-audio-loopback`（Electron）またはタブキャプチャ（拡張機能）によるビデオ通話の参加者音声キャプチャ
+- **WebRTCオーディオブリッジ**: 対応プロバイダー向けの低遅延代替トランスポート
 
 ### オーディオフロー
 
 Sokujiのオーディオフロー：
 
 1. **入力キャプチャ**: エコーキャンセレーションを有効にしてマイク音声をキャプチャ
-2. **AI処理**: 選択したAIプロバイダーに音声を送信して翻訳
-3. **再生**: 翻訳された音声を選択したモニターデバイスで再生
-4. **仮想デバイス出力**（Linuxのみ）: 音声は他のアプリケーション用の仮想マイクにもルーティング
-5. **オプションのパススルー**: 元の音声をリアルタイムでモニタリング可能
+2. **システムオーディオキャプチャ**（オプション）: ビデオ通話の参加者音声を個別にキャプチャ
+3. **AI処理**: 選択したAIプロバイダーに音声を送信して翻訳
+4. **再生**: 翻訳された音声を選択したモニターデバイスで再生
+5. **仮想デバイス出力**: 音声は他のアプリケーション用の仮想マイクにもルーティング（全プラットフォーム）
+6. **オプションのパススルー**: 元の音声をリアルタイムでモニタリング可能
 
 このアーキテクチャにより以下を実現：
 - モダンなブラウザAPIを使用したより優れたエコーキャンセレーション
 - 最適化されたオーディオパイプラインによる低遅延
-- Linuxでのシームレスなアプリ間オーディオルーティングのための仮想デバイス統合
-- 優雅なデグレーデーションによるクロスプラットフォーム互換性
+- クロスプラットフォームのシームレスなアプリ間オーディオルーティングのための仮想デバイス統合
+- ビデオ会議翻訳のためのシステムオーディオキャプチャ
 
 ## 開発者ノート
 
@@ -152,8 +171,18 @@ Sokujiのオーディオフロー：
 
 # 準備
 
-- (必須) OpenAI, Google Gemini, Palabra.ai のAPIキー、またはKizuna AIアカウント。Palabra.aiの場合、クライアントIDとクライアントシークレットが必要です。Kizuna AIの場合、アカウントにサインインしてバックエンド管理のAPIキーに自動アクセスします。OpenAI互換エンドポイントの場合、設定でカスタムAPIエンドポイントURLを設定します（Electronのみ）。
-- (オプション) 仮想オーディオデバイス機能のためのPulseAudioまたはPipeWireを搭載したLinux（デスクトップアプリのみ）
+- (必須) 少なくとも1つのプロバイダーのAPIキー：
+  - **OpenAI**: OpenAIのAPIキー
+  - **Google Gemini**: Google AI StudioのAPIキー
+  - **Palabra.ai**: クライアントIDとクライアントシークレット
+  - **Kizuna AI**: アカウントにサインインしてバックエンド管理のAPIキーに自動アクセス
+  - **Volcengine ST**: アクセスキーIDとシークレットアクセスキー
+  - **Doubao AST 2.0**: APP IDとアクセストークン
+  - **OpenAI互換**: APIキーとカスタムエンドポイントURL（Electronのみ）
+- (オプション) アプリ間オーディオルーティングのための仮想オーディオデバイスソフトウェア：
+  - Windows: VB-Cableまたは同様の仮想オーディオケーブル
+  - macOS: 仮想オーディオドライバー
+  - Linux: PulseAudioまたはPipeWire（デスクトップアプリのみ）
 
 # インストール
 
@@ -164,7 +193,7 @@ Sokujiのオーディオフロー：
 - Node.js（最新のLTSバージョンを推奨）
 - npm
 - 音声サポートはすべてのプラットフォーム（Windows、macOS、Linux）で動作します
-- 仮想オーディオデバイスにはPulseAudioまたはPipeWireを搭載したLinuxが必要です（デスクトップアプリのみ）
+- 仮想オーディオデバイスは全プラットフォーム対応（Windows: VB-Cable、macOS: 仮想オーディオドライバー、Linux: PulseAudio/PipeWire）
 
 ### 手順
 
@@ -196,19 +225,19 @@ Sokujiのオーディオフロー：
 ### Windows
 `.exe`インストーラーをダウンロードして実行します：
 ```
-Sokuji Setup 0.9.18.exe
+Sokuji Setup x.y.z.exe
 ```
 
 ### macOS
 `.dmg`パッケージをダウンロードしてインストールします：
 ```
-Sokuji-0.9.18.dmg
+Sokuji-x.y.z.dmg
 ```
 
 ### Linux (Debian/Ubuntu)
 `.deb`パッケージをダウンロードしてインストールします：
 ```bash
-sudo dpkg -i sokuji_0.9.18_amd64.deb
+sudo dpkg -i sokuji_x.y.z_amd64.deb
 ```
 
 他のLinuxディストリビューションの場合は、ポータブル`.zip`パッケージをダウンロードして任意の場所に展開することもできます。
@@ -222,8 +251,8 @@ sudo dpkg -i sokuji_0.9.18_amd64.deb
    </p>
    
    - 右上の設定ボタンをクリック
-   - 希望のプロバイダー（OpenAI, Gemini, Palabra, またはKizuna AI）を選択
-   - ユーザー管理プロバイダーの場合：APIキーを入力し、「検証」をクリック。Palabraの場合、クライアントIDとクライアントシークレットを入力する必要があります。OpenAI互換エンドポイントの場合（Electronのみ）、APIキーとカスタムエンドポイントURLの両方を設定します。
+   - 希望のプロバイダー（OpenAI、Gemini、Palabra、Kizuna AI、Volcengine ST、Doubao AST 2.0、またはOpenAI互換）を選択
+   - ユーザー管理プロバイダーの場合：APIキーを入力し、「検証」をクリック。Palabraの場合、クライアントIDとクライアントシークレットを入力。Volcengine STの場合、アクセスキーIDとシークレットを入力。Doubao AST 2.0の場合、APP IDとアクセストークンを入力。OpenAI互換エンドポイントの場合（Electronのみ）、APIキーとカスタムエンドポイントURLの両方を設定します。
    - Kizuna AIの場合：アカウントにサインインしてバックエンド管理のAPIキーに自動アクセスします。
    - 「保存」をクリックして設定を安全に保存
 
@@ -247,9 +276,10 @@ sudo dpkg -i sokuji_0.9.18_amd64.deb
    - ライブモニタリングのためのリアル音声パススルーを有効化
    - 必要に応じてパススルーボリュームを調整
 
-5. **他のアプリケーションで使用**（Linuxのみ）:
-   - ターゲットアプリケーションのマイク入力として「Sokuji_Virtual_Mic」を選択
+5. **他のアプリケーションで使用**（全プラットフォーム）:
+   - ターゲットアプリケーションのマイク入力としてSokuji仮想マイクを選択
    - 翻訳された音声が高度なミキシングをサポートしてそのアプリケーションに送信されます
+   - 仮想オーディオデバイスソフトウェアが必要です（準備セクションを参照）
 
 # 貢献
 
@@ -268,35 +298,33 @@ sudo dpkg -i sokuji_0.9.18_amd64.deb
 - コミットメッセージは明確で説明的にする
 - ドキュメントを更新
 
-# ライセンス
-
 ## 最近の改善
 
-### モダンな音声処理 (v0.9.x)
+### Volcengine/Doubao統合 (v0.13.x)
 
-音声システムには改善されたエコーキャンセレーションと処理機能が搭載されています：
+中国語市場向けの2つの新しいAIプロバイダー：
 
-- **エコーキャンセレーション**: 最新のWeb Audio APIを使用した高度なエコー抑制
-- **キューベースの再生**: インテリジェントなバッファリングによるスムーズな音声ストリーミング
-- **リアルタイムパススルー**: 調整可能なボリュームコントロールで音声をモニター
-- **イベント駆動アーキテクチャ**: 効率的なイベント処理によるCPU使用率の削減
-- **クロスプラットフォームサポート**: すべてのプラットフォームでの統一された音声処理
+- **Volcengine ST**: V4署名認証によるリアルタイム音声翻訳
+- **Doubao AST 2.0**: protobuf-over-WebSocketによる音声翻訳
+- **TTS-翻訳マッチング**: Volcengineプロバイダーの音声テキスト同期の改善
 
-### AIクライアントの最適化 (v0.8.x)
+### WebRTCトランスポート＆クロスプラットフォームオーディオ (v0.12.x)
 
-Google Geminiクライアントのパフォーマンス向上：
+強化されたオーディオ機能：
 
-- **一貫したID生成**: 固定インスタンスIDによる最適化された会話アイテム管理
-- **メモリ使用の改善**: 冗長なID生成呼び出しの削減
-- **パフォーマンスの向上**: より速い応答時間のための合理化された会話処理
+- **WebRTCトランスポート**: OpenAIプロバイダー向けの低遅延代替トランスポート
+- **システムオーディオキャプチャ**: 全プラットフォームでビデオ通話の参加者音声をキャプチャ
+- **クロスプラットフォーム仮想デバイス**: Windows、macOS、Linuxでの仮想マイクサポート
+- **プッシュトゥトークモード**: 正確な翻訳タイミングのための手動音声制御
 
-### リアルタイム音声パススルー
+### シンプルモードインターフェース (v0.10.x)
 
-ライブ音声モニタリング機能：
+アクセシビリティ向上のための再設計されたユーザーインターフェース：
 
-- **リアルタイムフィードバック**: より良いユーザー体験のために録音中に自分の声を聞く
-- **ボリュームコントロール**: 最適なモニタリングのための調整可能なパススルーボリューム
-- **低遅延**: 最適化された音声処理による即時音声フィードバック
+- **合理化された設定**: 複雑なタブインターフェースに代わる6セクション統一レイアウト
+- **強化ツールチップ**: @floating-uiライブラリによるインタラクティブヘルプ
+- **セッション時間表示**: 会話時間のリアルタイム追跡
+- **多言語サポート**: 30言語の完全なi18nと英語フォールバック
 
 # 使用技術
 
@@ -304,14 +332,24 @@ Google Geminiクライアントのパフォーマンス向上：
 - **フロントエンド**: React 18 + TypeScript
 - **バックエンド**: Cloudflare Workers + Hono + D1 Database
 - **認証**: Better Auth
-- **AIプロバイダー**: OpenAI, Google Gemini, Palabra.ai, Kizuna AI, およびOpenAI互換エンドポイント
-- 高度な音声処理:
+- **AIプロバイダー**: OpenAI、Google Gemini、Palabra.ai、Kizuna AI、Volcengine ST、Doubao AST 2.0、およびOpenAI互換エンドポイント
+- **高度な音声処理**:
   - リアルタイム音声処理のためのWeb Audio API
   - 信頼性の高い音声キャプチャのためのMediaRecorder API
-  - リアルタイム音声分析のためのScriptProcessor
+  - リアルタイム音声分析のためのScriptProcessor/AudioWorklet
   - スムーズなストリーミングのためのキューベース再生システム
-- スタイリングのためのSASS
-- アイコンのためのLucide React
+  - 低遅延トランスポートのためのWebRTCオーディオブリッジ
+  - システムオーディオキャプチャのためのelectron-audio-loopback
+- **シリアライゼーション**: Volcengine AST2プロトコルのためのprotobufjs
+- **アナリティクス**: 匿名使用状況追跡のためのposthog-js-lite
+- **ルーティング**: アプリケーションナビゲーションのためのreact-router-dom
+- **UIライブラリ**:
+  - 高度なツールチップ配置のための@floating-ui/react
+  - スタイリングのためのSASS
+  - アイコンのためのLucide React
+- **国際化**:
+  - 多言語サポートのためのi18next
+  - 30言語翻訳
 
 # ライセンス
 
@@ -329,6 +367,7 @@ Google Geminiクライアントのパフォーマンス向上：
 
 - OpenAI - リアルタイムAPI
 - Google - Gemini API
+- Volcengine - 音声翻訳API
 - Electron - クロスプラットフォームデスクトップアプリケーションフレームワーク
 - React - ユーザーインターフェースライブラリ
 - PulseAudio/PipeWire - Linuxオーディオシステム

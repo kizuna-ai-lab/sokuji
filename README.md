@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <em>Live speech translation powered by OpenAI, Google Gemini, Palabra.ai, and Kizuna AI</em>
+  <em>Live speech translation powered by OpenAI, Google Gemini, Palabra.ai, Kizuna AI, Volcengine, and more</em>
 </p>
 
 <p align="center">   
@@ -40,13 +40,13 @@
 
 # Why Sokuji?
 
-Sokuji is a cross-platform desktop application designed to provide live speech translation using OpenAI, Google Gemini, Palabra.ai, and Kizuna AI APIs. Available for Windows, macOS, and Linux, it bridges language barriers in live conversations by capturing audio input, processing it through advanced AI models, and delivering translated output in real-time. It also supports OpenAI-compatible API endpoints for flexibility.
+Sokuji is a cross-platform desktop application and browser extension designed to provide live speech translation using OpenAI, Google Gemini, Palabra.ai, Kizuna AI, Volcengine ST, Doubao AST 2.0, and OpenAI-compatible APIs. Available for Windows, macOS, and Linux, it bridges language barriers in live conversations by capturing audio input, processing it through advanced AI models, and delivering translated output in real-time.
 
 https://github.com/user-attachments/assets/1eaaa333-a7ce-4412-a295-16b7eb2310de
 
 # Browser Extension Available!
 
-Prefer not to install a desktop application? Try our browser extension for Chrome, Edge, and other Chromium-based browsers. It offers the same powerful live speech translation features directly in your browser, with special integration for Google Meet and Microsoft Teams.
+Prefer not to install a desktop application? Try our browser extension for Chrome, Edge, and other Chromium-based browsers. It offers the same powerful live speech translation features directly in your browser, with integration for popular video conferencing platforms including Google Meet, Microsoft Teams, Zoom, Discord, Slack, Gather.town, and Whereby.
 
 <p>
   <a href="https://chromewebstore.google.com/detail/ppmihnhelgfpjomhjhpecobloelicnak?utm_source=item-share-cb" target="_blank">
@@ -73,11 +73,11 @@ If you want to install the latest version of the browser extension:
 
 # More than just translation
 
-Sokuji goes beyond basic translation by offering a complete audio routing solution with virtual device management (Linux only), allowing for seamless integration with other applications. It provides a modern, intuitive interface with real-time audio visualization and comprehensive logging.
+Sokuji goes beyond basic translation by offering a complete audio routing solution with cross-platform virtual device management and system audio capture, allowing for seamless integration with video conferencing and other applications. It provides a modern, intuitive interface with real-time audio visualization and comprehensive logging.
 
 # Features
 
-1. **Real-time speech translation** using OpenAI, Google Gemini, Palabra.ai, and Kizuna AI APIs
+1. **Real-time speech translation** using OpenAI, Google Gemini, Palabra.ai, Kizuna AI, Volcengine ST, Doubao AST 2.0, and OpenAI-compatible APIs
 2. **Simple Mode Interface**: Streamlined 6-section configuration for non-technical users:
    - Interface language selection
    - Translation language pairs (source/target)
@@ -85,59 +85,69 @@ Sokuji goes beyond basic translation by offering a complete audio routing soluti
    - Microphone selection with "Off" option
    - Speaker selection with "Off" option
    - Real-time session duration display
-3. **Multi-Provider Support**: Seamlessly switch between OpenAI, Google Gemini, Palabra.ai, and Kizuna AI.
+3. **Multi-Provider Support**: Seamlessly switch between 7 AI providers (OpenAI, Google Gemini, Palabra.ai, Kizuna AI, Volcengine ST, Doubao AST 2.0, and OpenAI Compatible).
 4. **Supported Models**:
    - **OpenAI**: `gpt-4o-realtime-preview`, `gpt-4o-mini-realtime-preview`, `gpt-realtime`, `gpt-realtime-2025-08-28`
    - **Google Gemini**: `gemini-2.0-flash-live-001`, `gemini-2.5-flash-preview-native-audio-dialog`
    - **Palabra.ai**: Real-time speech-to-speech translation via WebRTC
    - **Kizuna AI**: OpenAI-compatible models with backend-managed authentication
    - **OpenAI Compatible**: Support for custom OpenAI-compatible API endpoints (Electron only)
+   - **Volcengine ST**: Real-time speech translation with V4 signature authentication
+   - **Doubao AST 2.0**: Speech-to-speech translation via protobuf-over-WebSocket
 5. **Automatic turn detection** with multiple modes (Normal, Semantic, Disabled) for OpenAI
 6. **Audio visualization** with waveform display
-7. **Advanced Virtual Microphone** (Linux only) with dual-queue audio mixing system:
+7. **Advanced Virtual Microphone** with dual-queue audio mixing system:
    - **Regular audio tracks**: Queued and played sequentially
    - **Immediate audio tracks**: Separate queue for real-time audio mixing
    - **Simultaneous playback**: Mix both track types for enhanced audio experience
    - **Chunked audio support**: Efficient handling of large audio streams
+   - **Cross-platform support**: Windows (VB-Cable), macOS (virtual audio driver), Linux (PulseAudio/PipeWire)
 8. **Real-time Voice Passthrough**: Live audio monitoring during recording sessions
-9. **Virtual audio device creation and management** on Linux (using PulseAudio/PipeWire)
-10. **Automatic audio routing between virtual devices** (Linux only)
-11. **Automatic device switching** and configuration persistence
-12. **Audio input and output device selection**
-13. **Comprehensive logs** for tracking API interactions
-14. **Customizable model settings** (temperature, max tokens)
-15. **User transcript model selection** (for OpenAI: `gpt-4o-mini-transcribe`, `gpt-4o-transcribe`, `whisper-1`)
-16. **Noise reduction options** (for OpenAI: None, Near field, Far field)
-17. **API key validation** with real-time feedback
-18. **Configuration persistence** in user's home directory
-19. **Optimized AI Client Performance**: Enhanced conversation management with consistent ID generation
-20. **Enhanced Tooltips**: Interactive help tooltips powered by @floating-ui for better user guidance
-21. **Multi-language Support**: Complete internationalization with 35+ languages and English fallback
+9. **System Audio Capture**: Capture participant audio in video calls for translation (all platforms)
+10. **Virtual audio device creation and management** (Windows, macOS, Linux)
+11. **Automatic audio routing between virtual devices**
+12. **Automatic device switching** and configuration persistence
+13. **Audio input and output device selection**
+14. **Comprehensive logs** for tracking API interactions
+15. **Customizable model settings** (temperature, max tokens)
+16. **User transcript model selection** (for OpenAI: `gpt-4o-mini-transcribe`, `gpt-4o-transcribe`, `whisper-1`)
+17. **Noise reduction options** (for OpenAI: None, Near field, Far field)
+18. **WebRTC Transport**: Alternative low-latency transport for OpenAI providers
+19. **Push-to-Talk Mode**: Manual speech control for precise translation timing
+20. **API key validation** with real-time feedback
+21. **Configuration persistence** in user's home directory
+22. **Optimized AI Client Performance**: Enhanced conversation management with consistent ID generation
+23. **Enhanced Tooltips**: Interactive help tooltips powered by @floating-ui for better user guidance
+24. **Multi-language Support**: Complete internationalization with 30 languages and English fallback
+25. **Analytics**: PostHog integration for anonymous usage tracking
 
 # Audio Architecture
 
-Sokuji uses a modern audio processing pipeline built on Web Audio API, with additional virtual device capabilities on Linux:
+Sokuji uses a modern audio processing pipeline built on Web Audio API, with cross-platform virtual device capabilities:
 
 - **ModernAudioRecorder**: Captures input with advanced echo cancellation
 - **ModernAudioPlayer**: Handles playback with queue-based audio management
 - **Real-time Processing**: Low-latency audio streaming with chunked playback
-- **Virtual Device Support**: On Linux, creates virtual audio devices for application integration
+- **Virtual Device Support**: Creates virtual audio devices on Windows (VB-Cable), macOS (virtual audio driver), and Linux (PulseAudio/PipeWire)
+- **System Audio Capture**: Captures participant audio from video calls via `electron-audio-loopback` (Electron) or tab capture (extension)
+- **WebRTC Audio Bridge**: Alternative low-latency transport for supported providers
 
 ### Audio Flow
 
 The audio flow in Sokuji:
 
 1. **Input Capture**: Microphone audio is captured with echo cancellation enabled
-2. **AI Processing**: Audio is sent to the selected AI provider for translation
-3. **Playback**: Translated audio is played through the selected monitor device
-4. **Virtual Device Output** (Linux only): Audio is also routed to virtual microphone for other applications
-5. **Optional Passthrough**: Original voice can be monitored in real-time
+2. **System Audio Capture** (optional): Participant audio from video calls is captured separately
+3. **AI Processing**: Audio is sent to the selected AI provider for translation
+4. **Playback**: Translated audio is played through the selected monitor device
+5. **Virtual Device Output**: Audio is also routed to virtual microphone for other applications (all platforms)
+6. **Optional Passthrough**: Original voice can be monitored in real-time
 
 This architecture provides:
 - Better echo cancellation using modern browser APIs
 - Lower latency through optimized audio pipelines
-- Virtual device integration on Linux for seamless app-to-app audio routing
-- Cross-platform compatibility with graceful degradation
+- Cross-platform virtual device integration for seamless app-to-app audio routing
+- System audio capture for video conferencing translation
 
 ## Developer Notes
 
@@ -161,8 +171,18 @@ This architecture provides:
 
 # Preparation
 
-- (required) An OpenAI, Google Gemini, or Palabra.ai API key, OR a Kizuna AI account. For Palabra.ai, you will need a Client ID and Client Secret. For Kizuna AI, sign in to your account to automatically access backend-managed API keys. For OpenAI-compatible endpoints, configure your custom API endpoint URL in the settings (Electron only).
-- (optional) Linux with PulseAudio or PipeWire for virtual audio device features (desktop app only)
+- (required) An API key for at least one provider:
+  - **OpenAI**: API key from OpenAI
+  - **Google Gemini**: API key from Google AI Studio
+  - **Palabra.ai**: Client ID and Client Secret
+  - **Kizuna AI**: Sign in to your account for backend-managed API keys
+  - **Volcengine ST**: Access Key ID and Secret Access Key
+  - **Doubao AST 2.0**: APP ID and Access Token
+  - **OpenAI Compatible**: API key and custom endpoint URL (Electron only)
+- (optional) Virtual audio device software for app-to-app audio routing:
+  - Windows: VB-Cable or similar virtual audio cable
+  - macOS: Virtual audio driver
+  - Linux: PulseAudio or PipeWire (desktop app only)
 
 # Installation
 
@@ -173,7 +193,7 @@ This architecture provides:
 - Node.js (latest LTS version recommended)
 - npm
 - Audio support works on all platforms (Windows, macOS, Linux)
-- Virtual audio devices require Linux with PulseAudio or PipeWire (desktop app only)
+- Virtual audio devices supported on all platforms (Windows via VB-Cable, macOS via virtual audio driver, Linux via PulseAudio/PipeWire)
 
 ### Steps
 
@@ -205,19 +225,19 @@ Download the appropriate package for your platform from the [releases page](http
 ### Windows
 Download and run the `.exe` installer:
 ```
-Sokuji Setup 0.9.18.exe
+Sokuji Setup x.y.z.exe
 ```
 
 ### macOS
 Download and install the `.dmg` package:
 ```
-Sokuji-0.9.18.dmg
+Sokuji-x.y.z.dmg
 ```
 
 ### Linux (Debian/Ubuntu)
 Download and install the `.deb` package:
 ```bash
-sudo dpkg -i sokuji_0.9.18_amd64.deb
+sudo dpkg -i sokuji_x.y.z_amd64.deb
 ```
 
 For other Linux distributions, you can also download the portable `.zip` package and extract it to your preferred location.
@@ -231,8 +251,8 @@ For other Linux distributions, you can also download the portable `.zip` package
    </p>
    
    - Click the Settings button in the top-right corner
-   - Select your desired provider (OpenAI, Gemini, Palabra, or Kizuna AI).
-   - For user-managed providers: Enter your API key and click "Validate". For Palabra, you will need to enter a Client ID and Client Secret. For OpenAI Compatible endpoints (Electron only), configure both the API key and custom endpoint URL.
+   - Select your desired provider (OpenAI, Gemini, Palabra, Kizuna AI, Volcengine ST, Doubao AST 2.0, or OpenAI Compatible).
+   - For user-managed providers: Enter your API key and click "Validate". For Palabra, enter a Client ID and Client Secret. For Volcengine ST, enter your Access Key ID and Secret. For Doubao AST 2.0, enter your APP ID and Access Token. For OpenAI Compatible endpoints (Electron only), configure both the API key and custom endpoint URL.
    - For Kizuna AI: Sign in to your account to automatically access backend-managed API keys.
    - Click "Save" to store your configuration securely.
 
@@ -256,11 +276,29 @@ For other Linux distributions, you can also download the portable `.zip` package
    - Enable real voice passthrough for live monitoring
    - Adjust passthrough volume as needed
 
-5. **Use with other applications** (Linux only):
-   - Select "Sokuji_Virtual_Mic" as the microphone input in your target application
+5. **Use with other applications** (all platforms):
+   - Select the Sokuji virtual microphone as the input in your target application
    - Translated audio will be sent to that application with advanced mixing support
+   - Requires virtual audio device software (see Preparation section)
 
 ## Recent Improvements
+
+### Volcengine/Doubao Integration (v0.13.x)
+
+Two new AI providers for Chinese language markets:
+
+- **Volcengine ST**: Real-time speech translation with V4 signature authentication
+- **Doubao AST 2.0**: Speech-to-speech translation via protobuf-over-WebSocket
+- **TTS-to-Translation Matching**: Improved audio-text synchronization for Volcengine providers
+
+### WebRTC Transport & Cross-Platform Audio (v0.12.x)
+
+Enhanced audio capabilities:
+
+- **WebRTC Transport**: Alternative low-latency transport for OpenAI providers
+- **System Audio Capture**: Capture participant audio from video calls on all platforms
+- **Cross-Platform Virtual Devices**: Virtual microphone support on Windows, macOS, and Linux
+- **Push-to-Talk Mode**: Manual speech control for precise translation timing
 
 ### Simple Mode Interface (v0.10.x)
 
@@ -269,34 +307,7 @@ Redesigned user interface for improved accessibility:
 - **Streamlined Configuration**: 6-section unified layout replacing complex tabbed interface
 - **Enhanced Tooltips**: Interactive help using @floating-ui library for better user guidance
 - **Session Duration Display**: Real-time tracking of conversation length
-- **Unified Styling**: Consistent UI design with improved visual hierarchy
-- **Multi-language Support**: Complete i18n with 35+ languages and English fallback
-
-### Modern Audio Processing (v0.9.x)
-
-The audio system now features improved echo cancellation and processing:
-
-- **Echo Cancellation**: Advanced echo suppression using modern Web Audio APIs
-- **Queue-Based Playback**: Smooth audio streaming with intelligent buffering
-- **Real-time Passthrough**: Monitor your voice with adjustable volume control
-- **Event-Driven Architecture**: Reduced CPU usage through efficient event handling
-- **Cross-Platform Support**: Unified audio handling across all platforms
-
-### AI Client Optimization (v0.8.x)
-
-Enhanced Google Gemini client performance:
-
-- **Consistent ID Generation**: Optimized conversation item management with fixed instance IDs
-- **Improved Memory Usage**: Reduced redundant ID generation calls
-- **Better Performance**: Streamlined conversation handling for faster response times
-
-### Real-time Voice Passthrough
-
-Live audio monitoring capabilities:
-
-- **Real-time Feedback**: Hear your voice while recording for better user experience
-- **Volume Control**: Adjustable passthrough volume for optimal monitoring
-- **Low Latency**: Immediate audio feedback using optimized audio processing
+- **Multi-language Support**: Complete i18n with 30 languages and English fallback
 
 # Architecture
 
@@ -329,19 +340,24 @@ usage_logs (id, user_id, session_id, model, total_tokens, input_tokens, output_t
 - **Frontend**: React 18 + TypeScript
 - **Backend**: Cloudflare Workers + Hono + D1 Database
 - **Authentication**: Better Auth
-- **AI Providers**: OpenAI, Google Gemini, Palabra.ai, Kizuna AI, and OpenAI-compatible endpoints
+- **AI Providers**: OpenAI, Google Gemini, Palabra.ai, Kizuna AI, Volcengine ST, Doubao AST 2.0, and OpenAI-compatible endpoints
 - **Advanced Audio Processing**:
   - Web Audio API for real-time audio processing
   - MediaRecorder API for reliable audio capture
-  - ScriptProcessor for real-time audio analysis
+  - ScriptProcessor/AudioWorklet for real-time audio analysis
   - Queue-based playback system for smooth streaming
+  - WebRTC audio bridge for low-latency transport
+  - electron-audio-loopback for system audio capture
+- **Serialization**: protobufjs for Volcengine AST2 protocol
+- **Analytics**: posthog-js-lite for anonymous usage tracking
+- **Routing**: react-router-dom for application navigation
 - **UI Libraries**:
   - @floating-ui/react for advanced tooltip positioning
   - SASS for styling
   - Lucide React for icons
 - **Internationalization**:
   - i18next for multi-language support
-  - 35+ language translations
+  - 30 language translations
 
 # License
 
