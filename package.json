@@ -65,7 +65,7 @@
     "@types/node": "^24",
     "@types/react-router-dom": "^5.3.3",
     "@types/ws": "^8.18.1",
-    "@vitejs/plugin-react": "^4.2.1",
+    "@vitejs/plugin-react": "^5.1.4",
     "ajv": "^8.17.1",
     "ajv-formats": "^3.0.1",
     "concurrently": "^8.2.2",
@@ -76,10 +76,10 @@
     "protobufjs-cli": "^2.0.0",
     "tsx": "^4.21.0",
     "typescript": "^5.8.3",
-    "vite": "^5.2.8",
+    "vite": "^7.3.1",
     "vite-plugin-electron": "0.29.0",
     "vite-plugin-electron-renderer": "^0.14.6",
-    "vitest": "^1.5.0",
+    "vitest": "^4.0.18",
     "wait-on": "^7.2.0",
     "ws": "^8.19.0"
   },
@@ -98,7 +98,9 @@
     "postinstall": "electron-rebuild",
     "eval": "tsx evals/runner/index.ts",
     "eval:validate": "tsx evals/runner/index.ts validate",
-    "eval:list": "tsx evals/runner/index.ts list"
+    "eval:list": "tsx evals/runner/index.ts list",
+    "extension:build": "cd extension && npx vite build",
+    "extension:dev": "cd extension && npx vite build --watch --mode development"
   },
   "eslintConfig": {
     "extends": [

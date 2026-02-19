@@ -4,14 +4,10 @@
 import PostHog from 'posthog-js-lite';
 
 // Analytics configuration - uses environment variables
-// Fork projects can disable analytics by not setting POSTHOG_KEY in webpack config
+// Fork projects can disable analytics by not setting POSTHOG_KEY
 const ANALYTICS_CONFIG = {
-  POSTHOG_KEY: typeof process !== 'undefined' && process.env && process.env.POSTHOG_KEY
-    ? process.env.POSTHOG_KEY
-    : '',
-  POSTHOG_HOST: typeof process !== 'undefined' && process.env && process.env.POSTHOG_HOST
-    ? process.env.POSTHOG_HOST
-    : 'https://us.i.posthog.com'
+  POSTHOG_KEY: import.meta.env.VITE_POSTHOG_KEY || '',
+  POSTHOG_HOST: import.meta.env.VITE_POSTHOG_HOST || 'https://us.i.posthog.com'
 };
 
 // Helper to check if analytics is enabled
