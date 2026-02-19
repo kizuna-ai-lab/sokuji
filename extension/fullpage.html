@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#000000" />
+    <meta
+      name="description"
+      content="Sokuji - Live speech translation application"
+    />
+    <title>Sokuji</title>
+    <style>
+      html, body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+      }
+
+      /* Use 100% instead of 100vh for better side panel compatibility */
+      body {
+        /* Fallback for environments where dvh is not supported */
+        height: 100vh;
+        height: 100dvh; /* Dynamic viewport height - better for mobile and side panels */
+        position: fixed; /* Prevent iOS bounce scroll */
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+      }
+
+      #root {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+      }
+    </style>
+  </head>
+  <body>
+    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <div id="root"></div>
+    <script type="module" src="../shared/index.tsx"></script>
+  </body>
+</html>

@@ -12,7 +12,7 @@ vi.mock('../services/ServiceFactory', () => ({
 }));
 
 // Import after mocking
-const { useSettingsStore } = await import('./settingsStore');
+const { default: useSettingsStore } = await import('./settingsStore');
 const { ServiceFactory } = await import('../services/ServiceFactory');
 
 describe('settingsStore', () => {

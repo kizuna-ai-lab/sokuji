@@ -81,9 +81,7 @@ export default defineConfig(({ command, mode }) => {
     },
     css: {
       preprocessorOptions: {
-        scss: {
-          silenceDeprecations: ["legacy-js-api"],
-        }
+        scss: {}
       }
     },
     optimizeDeps: {
