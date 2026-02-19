@@ -15,20 +15,22 @@ permissions:
 
 jobs:
   build:
+    name: build (${{ matrix.name }})
     strategy:
       matrix:
-        # For CI (non-tag), build on all platforms
-        # For Release (tag), build on ubuntu-latest, windows-latest, and macos (arm64 + x64)
-        os: ${{ startsWith(github.ref, 'refs/tags/v') && fromJSON('["ubuntu-latest", "windows-latest", "macos-latest", "macos-13"]') || fromJSON('["ubuntu-latest", "windows-latest", "macos-latest", "macos-13"]') }}
         include:
           - os: ubuntu-latest
             artifact_name: linux
+            name: linux
           - os: windows-latest
             artifact_name: windows
+            name: windows
           - os: macos-latest
             artifact_name: macos-arm64
-          - os: macos-13
+            name: macos-arm64
+          - os: macos-15-large
             artifact_name: macos-x64
+            name: macos-x64
 
     runs-on: ${{ matrix.os }}
 
