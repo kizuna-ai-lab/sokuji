@@ -18,15 +18,17 @@ jobs:
     strategy:
       matrix:
         # For CI (non-tag), build on all platforms
-        # For Release (tag), build on ubuntu-latest, windows-latest, and macos-latest
-        os: ${{ startsWith(github.ref, 'refs/tags/v') && fromJSON('["ubuntu-latest", "windows-latest", "macos-latest"]') || fromJSON('["ubuntu-latest", "windows-latest", "macos-latest"]') }}
+        # For Release (tag), build on ubuntu-latest, windows-latest, and macos (arm64 + x64)
+        os: ${{ startsWith(github.ref, 'refs/tags/v') && fromJSON('["ubuntu-latest", "windows-latest", "macos-latest", "macos-13"]') || fromJSON('["ubuntu-latest", "windows-latest", "macos-latest", "macos-13"]') }}
         include:
           - os: ubuntu-latest
             artifact_name: linux
           - os: windows-latest
             artifact_name: windows
           - os: macos-latest
-            artifact_name: macos
+            artifact_name: macos-arm64
+          - os: macos-13
+            artifact_name: macos-x64
 
     runs-on: ${{ matrix.os }}
 
@@ -63,7 +65,7 @@ jobs:
           VITE_EXTENSION_ID: ${{ startsWith(github.ref, 'refs/tags/v') && secrets.VITE_EXTENSION_ID_PROD || '' }}
 
       - name: Build Electron app with Forge
-        if: matrix.os != 'macos-latest'
+        if: runner.os != 'macOS'
         run: npm run make
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -78,7 +80,7 @@ jobs:
           VITE_ENABLE_PALABRA_AI: ${{ secrets.VITE_ENABLE_PALABRA_AI }}
 
       - name: Build macOS PKG with versioned filename
-        if: matrix.os == 'macos-latest'
+        if: runner.os == 'macOS'
         run: |
           chmod +x build-pkg.sh
           ./build-pkg.sh
@@ -154,10 +156,10 @@ jobs:
           path: out/make/
 
       - name: Upload macOS artifacts
-        if: startsWith(github.ref, 'refs/tags/v') && matrix.os == 'macos-latest'
+        if: startsWith(github.ref, 'refs/tags/v') && runner.os == 'macOS'
         uses: actions/upload-artifact@v4
         with:
-          name: macos-artifacts
+          name: ${{ matrix.artifact_name }}-artifacts
           path: out/make/*.pkg
 
   release:
@@ -179,11 +181,17 @@ jobs:
           name: windows-artifacts
           path: windows-artifacts
 
-      - name: Download macOS artifacts
+      - name: Download macOS ARM64 artifacts
         uses: actions/download-artifact@v4
         with:
-          name: macos-artifacts
-          path: macos-artifacts
+          name: macos-arm64-artifacts
+          path: macos-arm64-artifacts
+
+      - name: Download macOS x64 artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: macos-x64-artifacts
+          path: macos-x64-artifacts
 
       - name: Debug Windows artifacts structure
         run: |
@@ -193,9 +201,12 @@ jobs:
 
       - name: Debug macOS artifacts structure
         run: |
-          echo "macOS artifacts structure:"
-          ls -R macos-artifacts/ || true
-          find macos-artifacts -name "*.pkg" || true
+          echo "macOS ARM64 artifacts structure:"
+          ls -R macos-arm64-artifacts/ || true
+          find macos-arm64-artifacts -name "*.pkg" || true
+          echo "macOS x64 artifacts structure:"
+          ls -R macos-x64-artifacts/ || true
+          find macos-x64-artifacts -name "*.pkg" || true
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
@@ -206,7 +217,8 @@ jobs:
             linux-artifacts/extension/sokuji-extension.zip
             windows-artifacts/squirrel.windows/x64/*.exe
             windows-artifacts/squirrel.windows/x64/*.nupkg
-            macos-artifacts/*.pkg
+            macos-arm64-artifacts/*.pkg
+            macos-x64-artifacts/*.pkg
           body_path: linux-artifacts/CHANGELOG.md
           draft: false
           prerelease: false
