@@ -17,6 +17,7 @@ jobs:
   build:
     name: build (${{ matrix.name }})
     strategy:
+      fail-fast: false
       matrix:
         include:
           - os: ubuntu-latest
