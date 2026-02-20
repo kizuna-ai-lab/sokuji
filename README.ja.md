@@ -253,7 +253,7 @@ Sokujiのオーディオフロー：
 
 # 使用技術
 
-- **ランタイム**: Electron 34+ (Windows、macOS、Linux) / Chrome Extension Manifest V3
+- **ランタイム**: Electron 40+ (Windows、macOS、Linux) / Chrome Extension Manifest V3
 - **フロントエンド**: React 18 + TypeScript
 - **バックエンド**: Cloudflare Workers + Hono + D1 Database
 - **認証**: Better Auth
