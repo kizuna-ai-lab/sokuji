@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.14.0] - 2026-02-20
+
+### Added
+
+- **Intel macOS Build**: Add Intel (x64) macOS build support alongside Apple Silicon
+
+### Changed
+
+- **Electron 40**: Upgrade Electron 34 → 40 with toolchain updates
+- **Extension Build System**: Migrate browser extension from webpack to vite and upgrade dependencies
+- **CI**: Use free macos-15-intel runner instead of paid macos-15-large for x64 builds
+
+### Fixed
+
+- **OpenAI Audio Crackling**: Increase WebRTC PCM buffer threshold to reduce audio crackling
+- **CI**: Add fail-fast: false so x64 billing issue doesn't cancel other jobs
+- **CI**: Replace retired macos-13 runner with macos-15-large for x64 builds
+
+### Removed
+
+- **Legacy Config**: Remove unused .electronforge.config.js
+
 ## [0.13.3] - 2026-02-17
 
 ### Fixed

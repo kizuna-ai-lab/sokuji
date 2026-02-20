@@ -278,7 +278,7 @@ usage_logs (id, user_id, session_id, model, total_tokens, input_tokens, output_t
 
 # Technologies Used
 
-- **Runtime**: Electron 34+ (Windows, macOS, Linux) / Chrome Extension Manifest V3
+- **Runtime**: Electron 40+ (Windows, macOS, Linux) / Chrome Extension Manifest V3
 - **Frontend**: React 18 + TypeScript
 - **Backend**: Cloudflare Workers + Hono + D1 Database
 - **Authentication**: Better Auth
