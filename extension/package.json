@@ -13,11 +13,8 @@
     "posthog-js-lite": "^4.1.0"
   },
   "devDependencies": {
-    "@vitejs/plugin-react": "^5.1.4",
     "eslint": "^8.50.0",
     "eslint-plugin-react": "^7.33.2",
-    "sass": "^1.68.0",
-    "vite": "^7.3.1",
     "vite-plugin-static-copy": "^3.0.0"
   }
 }
