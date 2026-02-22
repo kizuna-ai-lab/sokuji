@@ -27,7 +27,8 @@ export default defineConfig(({ command, mode }) => {
             'squirrel-events': 'electron/squirrel-events.js'
           },
           onstart(args) {
-            args.startup()
+            // Override default [".", "--no-sandbox"] to fix DevTools crash on Linux
+            args.startup(["."])
           },
           vite: {
             build: {
