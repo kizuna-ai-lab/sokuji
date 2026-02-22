@@ -82,3 +82,6 @@ BlackHole/build/
 
 # Local development scripts
 scripts/cf-*.mjs
+
+# Research documents (local only)
+docs/research/
