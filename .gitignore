@@ -85,3 +85,6 @@ scripts/cf-*.mjs
 
 # Research documents (local only)
 docs/research/
+
+# sherpa-onnx WASM prebuilt packages (download via scripts/download-sherpa-wasm.sh)
+public/wasm/
