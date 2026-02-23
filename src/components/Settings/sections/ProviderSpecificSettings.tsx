@@ -15,6 +15,7 @@ import {
   useKizunaAISettings,
   useVolcengineSTSettings,
   useVolcengineAST2Settings,
+  useLocalInferenceSettings,
   useSetSystemInstructions,
   useSetTemplateSystemInstructions,
   useSetUseTemplateMode,
@@ -26,6 +27,7 @@ import {
   useUpdateKizunaAI,
   useUpdateVolcengineST,
   useUpdateVolcengineAST2,
+  useUpdateLocalInference,
   useGetCurrentProviderSettings,
   TransportType
 } from '../../../stores/settingsStore';
@@ -35,6 +37,7 @@ import { ChevronDown, ChevronRight, RotateCw, Info, CircleHelp } from 'lucide-re
 import Tooltip from '../../Tooltip/Tooltip';
 import { FilteredModel } from '../../../services/interfaces/IClient';
 import { Provider, isOpenAICompatible } from '../../../types/Provider';
+import { ASR_MODELS, TTS_MODELS, TRANSLATION_MODELS } from '../../../lib/local-inference/types';
 import { useAnalytics } from '../../../lib/analytics';
 import { useAuth } from '../../../lib/auth/hooks';
 
@@ -73,6 +76,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
   const kizunaAISettings = useKizunaAISettings();
   const volcengineSTSettings = useVolcengineSTSettings();
   const volcengineAST2Settings = useVolcengineAST2Settings();
+  const localInferenceSettings = useLocalInferenceSettings();
 
   // Actions from store
   const setSystemInstructions = useSetSystemInstructions();
@@ -86,6 +90,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
   const updateKizunaAISettings = useUpdateKizunaAI();
   const updateVolcengineSTSettings = useUpdateVolcengineST();
   const updateVolcengineAST2Settings = useUpdateVolcengineAST2();
+  const updateLocalInferenceSettings = useUpdateLocalInference();
   const getCurrentProviderSettings = useGetCurrentProviderSettings();
   const { t } = useTranslation();
   const { trackEvent } = useAnalytics();
@@ -109,6 +114,8 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
       updateVolcengineSTSettings({ [key]: value });
     } else if (provider === Provider.VOLCENGINE_AST2) {
       updateVolcengineAST2Settings({ [key]: value });
+    } else if (provider === Provider.LOCAL_INFERENCE) {
+      updateLocalInferenceSettings({ [key]: value });
     } else {
       console.warn('[Sokuji][ProviderSpecificSettings] Unsupported provider:', provider);
     }
@@ -457,8 +464,8 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
   };
 
   const renderModelSettings = () => {
-    // PalabraAI doesn't have model selection
-    if (provider === Provider.PALABRA_AI) {
+    // PalabraAI and Local Inference don't have model selection
+    if (provider === Provider.PALABRA_AI || provider === Provider.LOCAL_INFERENCE) {
       return null;
     }
 
@@ -1213,6 +1220,185 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
     );
   };
 
+  const renderLocalInferenceSettings = () => {
+    if (provider !== Provider.LOCAL_INFERENCE) {
+      return null;
+    }
+
+    return (
+      <>
+        <div className="settings-section">
+          <h2>{t('settings.languageSettings', 'Language Settings')}</h2>
+          <div className="setting-item">
+            <div className="setting-label">
+              <span>{t('settings.sourceLanguage')}</span>
+            </div>
+            <select
+              className="select-dropdown"
+              value={localInferenceSettings.sourceLanguage}
+              onChange={(e) => {
+                const newSourceLang = e.target.value;
+                if (newSourceLang === localInferenceSettings.targetLanguage) {
+                  const newTargetLang = config.languages.find(lang =>
+                    lang.value !== newSourceLang
+                  )?.value || 'en';
+                  updateLocalInferenceSettings({ sourceLanguage: newSourceLang, targetLanguage: newTargetLang });
+                } else {
+                  updateLocalInferenceSettings({ sourceLanguage: newSourceLang });
+                }
+                trackEvent('language_changed', {
+                  from_language: localInferenceSettings.sourceLanguage,
+                  to_language: newSourceLang,
+                  language_type: 'source'
+                });
+              }}
+              disabled={isSessionActive}
+            >
+              {config.languages.map((lang) => (
+                <option key={lang.value} value={lang.value}>{lang.name}</option>
+              ))}
+            </select>
+          </div>
+          <div className="setting-item">
+            <div className="setting-label">
+              <span>{t('settings.targetLanguage')}</span>
+            </div>
+            <select
+              className="select-dropdown"
+              value={localInferenceSettings.targetLanguage}
+              onChange={(e) => {
+                const newTargetLang = e.target.value;
+                updateLocalInferenceSettings({ targetLanguage: newTargetLang });
+                trackEvent('language_changed', {
+                  from_language: localInferenceSettings.targetLanguage,
+                  to_language: newTargetLang,
+                  language_type: 'target'
+                });
+              }}
+              disabled={isSessionActive}
+            >
+              {config.languages
+                .filter(lang => lang.value !== localInferenceSettings.sourceLanguage)
+                .map((lang) => (
+                  <option key={lang.value} value={lang.value}>{lang.name}</option>
+                ))}
+            </select>
+          </div>
+        </div>
+
+        <div className="settings-section">
+          <h2>{t('settings.asrModel', 'ASR Model')}</h2>
+          <div className="setting-item">
+            <select
+              className="select-dropdown"
+              value={localInferenceSettings.asrModel}
+              onChange={(e) => updateLocalInferenceSettings({ asrModel: e.target.value })}
+              disabled={isSessionActive}
+            >
+              {ASR_MODELS.map((model) => (
+                <option key={model.id} value={model.id}>{model.label} (~{model.sizeMb}MB)</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className="settings-section">
+          <h2>{t('settings.translationModel', 'Translation Model')}</h2>
+          <div className="setting-item">
+            {(() => {
+              const availableTranslationModels = TRANSLATION_MODELS.filter(
+                (m) => m.sourceLang === localInferenceSettings.sourceLanguage && m.targetLang === localInferenceSettings.targetLanguage
+              );
+              if (availableTranslationModels.length === 0) {
+                return (
+                  <div style={{
+                    padding: '8px 12px',
+                    backgroundColor: 'rgba(255, 193, 7, 0.1)',
+                    border: '1px solid rgba(255, 193, 7, 0.3)',
+                    borderRadius: '4px',
+                    fontSize: '12px',
+                    color: '#ffc107'
+                  }}>
+                    <Info size={14} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
+                    {t('settings.noTranslationModel', 'No translation model available for {{source}} → {{target}}. Please select a supported language pair.', {
+                      source: localInferenceSettings.sourceLanguage,
+                      target: localInferenceSettings.targetLanguage
+                    })}
+                  </div>
+                );
+              }
+              return (
+                <select
+                  className="select-dropdown"
+                  value={availableTranslationModels[0].id}
+                  disabled={isSessionActive || availableTranslationModels.length <= 1}
+                >
+                  {availableTranslationModels.map((model) => (
+                    <option key={model.id} value={model.id}>{model.label}</option>
+                  ))}
+                </select>
+              );
+            })()}
+          </div>
+        </div>
+
+        <div className="settings-section">
+          <h2>{t('settings.ttsModel', 'TTS Model')}</h2>
+          <div className="setting-item">
+            <select
+              className="select-dropdown"
+              value={localInferenceSettings.ttsModel}
+              onChange={(e) => updateLocalInferenceSettings({ ttsModel: e.target.value })}
+              disabled={isSessionActive}
+            >
+              <option value="">{t('settings.ttsAutoSelect', 'Auto (match target language)')}</option>
+              {TTS_MODELS.map((model) => (
+                <option key={model.id} value={model.id}>{model.label} (~{model.sizeMb}MB)</option>
+              ))}
+              <option value="none">{t('settings.ttsNone', 'None (text only)')}</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="settings-section">
+          <h2>{t('settings.ttsSettings', 'TTS Settings')}</h2>
+          <div className="setting-item">
+            <div className="setting-label">
+              <span>{t('settings.ttsSpeed', 'Speech Speed')}</span>
+              <span className="setting-value">{localInferenceSettings.ttsSpeed.toFixed(1)}x</span>
+            </div>
+            <input
+              type="range"
+              min="0.5"
+              max="2.0"
+              step="0.1"
+              value={localInferenceSettings.ttsSpeed}
+              onChange={(e) => updateLocalInferenceSettings({ ttsSpeed: parseFloat(e.target.value) })}
+              className="slider"
+              disabled={isSessionActive}
+            />
+          </div>
+          <div className="setting-item">
+            <div className="setting-label">
+              <span>{t('settings.ttsSpeakerId', 'Speaker ID')}</span>
+              <span className="setting-value">{localInferenceSettings.ttsSpeakerId}</span>
+            </div>
+            <input
+              type="range"
+              min="0"
+              max="99"
+              step="1"
+              value={localInferenceSettings.ttsSpeakerId}
+              onChange={(e) => updateLocalInferenceSettings({ ttsSpeakerId: parseInt(e.target.value) })}
+              className="slider"
+              disabled={isSessionActive}
+            />
+          </div>
+        </div>
+      </>
+    );
+  };
+
   return (
     <Fragment>
       {/* System Instructions */}
@@ -1312,6 +1498,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
       {renderPalabraAISettings()}
       {renderVolcengineSTSettings()}
       {renderVolcengineAST2Settings()}
+      {renderLocalInferenceSettings()}
     </Fragment>
   );
 };

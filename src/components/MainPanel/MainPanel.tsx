@@ -118,7 +118,8 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     return provider === Provider.OPENAI ||
            provider === Provider.GEMINI ||
            provider === Provider.OPENAI_COMPATIBLE ||
-           provider === Provider.KIZUNA_AI;
+           provider === Provider.KIZUNA_AI ||
+           provider === Provider.LOCAL_INFERENCE;
   }, [provider]);
 
   // Advanced mode text input state
@@ -796,6 +797,10 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           // Volcengine AST2 uses appId as the "apiKey" parameter for ClientFactory
           apiKey = volcengineAST2Settings.appId;
           break;
+        case Provider.LOCAL_INFERENCE:
+          // Local inference doesn't need an API key; placeholder for ClientFactory
+          apiKey = 'local';
+          break;
         default:
           throw new Error(`Unsupported provider: ${provider}`);
       }
@@ -803,6 +808,8 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       // Get model name based on provider
       const modelName = provider === Provider.PALABRA_AI
         ? 'realtime-translation'
+        : provider === Provider.LOCAL_INFERENCE
+        ? 'local-asr-translate'
         : (currentProviderSettings as any).model;
 
       // Determine if WebRTC transport should be used
