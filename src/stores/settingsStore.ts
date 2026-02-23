@@ -13,7 +13,7 @@ import {
   VolcengineAST2SessionConfig,
   LocalInferenceSessionConfig
 } from '../services/interfaces/IClient';
-import { TTS_MODELS } from '../lib/local-inference/types';
+import { getTtsModelsForLanguage } from '../lib/local-inference/modelManifest';
 import {ApiKeyValidationResult} from '../services/interfaces/ISettingsService';
 import {Provider, ProviderType} from '../types/Provider';
 
@@ -108,7 +108,8 @@ export interface VolcengineAST2Settings {
 // Local Inference Settings
 export interface LocalInferenceSettings {
   asrModel: string;
-  ttsModel: string;        // '' (auto) | 'piper-en' | 'piper-de' | 'none'
+  translationModel: string; // '' (auto) | 'opus-mt-ja-en' | ...
+  ttsModel: string;        // '' (auto) | 'piper-en' | 'piper-de'
   ttsSpeakerId: number;
   ttsSpeed: number;
   sourceLanguage: string;
@@ -255,6 +256,7 @@ const defaultVolcengineAST2Settings: VolcengineAST2Settings = {
 
 const defaultLocalInferenceSettings: LocalInferenceSettings = {
   asrModel: 'sensevoice',
+  translationModel: '',  // Auto-select based on language pair
   ttsModel: '',  // Auto-select based on target language
   ttsSpeakerId: 0,
   ttsSpeed: 1.0,
@@ -445,9 +447,7 @@ function createLocalInferenceSessionConfig(
   systemInstructions: string
 ): LocalInferenceSessionConfig {
   // Auto-select TTS model: find one matching the target language
-  const ttsModelId = settings.ttsModel === 'none'
-    ? undefined
-    : settings.ttsModel || TTS_MODELS.find(m => m.language === settings.targetLanguage)?.id;
+  const ttsModelId = settings.ttsModel || getTtsModelsForLanguage(settings.targetLanguage)[0]?.id;
 
   return {
     provider: 'local_inference',
@@ -512,14 +512,12 @@ const useSettingsStore = create<SettingsStore>()(
         }, 100);
       }
 
-      // For local inference, immediately mark as valid
+      // For local inference, trigger model readiness validation
       if (provider === Provider.LOCAL_INFERENCE) {
-        set({
-          isApiKeyValid: true,
-          availableModels: [{ id: 'local-asr-translate', type: 'realtime' as const, created: 0 }],
-          validationMessage: '',
-          isValidating: false,
-        });
+        const state = get();
+        setTimeout(() => {
+          state.validateApiKey();
+        }, 100);
       }
     },
 
@@ -690,15 +688,32 @@ const useSettingsStore = create<SettingsStore>()(
       const state = get();
       const provider = state.provider;
 
-      // Local inference doesn't need API key validation
+      // Local inference: check model readiness instead of API key
       if (provider === Provider.LOCAL_INFERENCE) {
+        const localSettings = get().localInference;
+        // Dynamically import modelStore to check model readiness
+        const { useModelStore } = await import('./modelStore');
+        const modelState = useModelStore.getState();
+
+        // Initialize model store if not yet done
+        if (!modelState.initialized) {
+          await modelState.initialize();
+        }
+
+        const ready = modelState.isProviderReady(
+          localSettings.sourceLanguage,
+          localSettings.targetLanguage,
+        );
+
         set({
-          isApiKeyValid: true,
-          availableModels: [{ id: 'local-asr-translate', type: 'realtime' as const, created: 0 }],
-          validationMessage: '',
+          isApiKeyValid: ready,
+          availableModels: ready
+            ? [{ id: 'local-asr-translate', type: 'realtime' as const, created: 0 }]
+            : [],
+          validationMessage: ready ? '' : 'Download required models to start a session',
           isValidating: false,
         });
-        return { valid: true, message: '', validating: false };
+        return { valid: ready, message: ready ? '' : 'Download required models', validating: false };
       }
 
       // For KizunaAI, ensure we have an API key first

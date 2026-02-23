@@ -6,11 +6,13 @@
  * because sherpa-onnx Emscripten glue requires importScripts().
  */
 
-import type {
-  TtsWorkerOutMessage,
-  TtsModelConfig,
-} from '../types';
-import { TTS_MODELS } from '../types';
+import type { TtsWorkerOutMessage } from '../types';
+import {
+  getManifestEntry,
+  getManifestByType,
+  type ModelManifestEntry,
+} from '../modelManifest';
+import { ModelManager } from '../ModelManager';
 
 export interface TtsResult {
   samples: Float32Array;
@@ -24,7 +26,7 @@ type ErrorCallback = (error: string) => void;
 export class TtsEngine {
   private worker: Worker | null = null;
   private isReady = false;
-  private currentModel: TtsModelConfig | null = null;
+  private currentModel: ModelManifestEntry | null = null;
   private _numSpeakers = 0;
   private _sampleRate = 0;
   private pendingGenerate: {
@@ -43,11 +45,10 @@ export class TtsEngine {
    * @returns Promise that resolves with load info when ready
    */
   async init(modelId: string): Promise<{ loadTimeMs: number; numSpeakers: number; sampleRate: number }> {
-    const model = TTS_MODELS.find(m => m.id === modelId);
-    if (!model) {
-      throw new Error(
-        `Unknown TTS model: ${modelId}. Available: ${TTS_MODELS.map(m => m.id).join(', ')}`
-      );
+    const model = getManifestEntry(modelId);
+    if (!model || model.type !== 'tts') {
+      const available = getManifestByType('tts').map(m => m.id).join(', ');
+      throw new Error(`Unknown TTS model: ${modelId}. Available: ${available}`);
     }
 
     // If already loaded with same model, skip
@@ -59,6 +60,13 @@ export class TtsEngine {
     if (this.worker) {
       this.dispose();
     }
+
+    // Load model file blob URLs from IndexedDB
+    const manager = ModelManager.getInstance();
+    if (!await manager.isModelReady(modelId)) {
+      throw new Error(`TTS model "${modelId}" is not downloaded. Download it first via Model Management.`);
+    }
+    const fileUrls = await manager.getModelBlobUrls(modelId);
 
     return new Promise((resolve, reject) => {
       const workerUrl = '/workers/tts.worker.js';
@@ -72,6 +80,7 @@ export class TtsEngine {
             this.currentModel = model;
             this._numSpeakers = msg.numSpeakers;
             this._sampleRate = msg.sampleRate;
+            manager.revokeBlobUrls(fileUrls);
             resolve({
               loadTimeMs: msg.loadTimeMs,
               numSpeakers: msg.numSpeakers,
@@ -97,6 +106,7 @@ export class TtsEngine {
           case 'error':
             this.onError?.(msg.error);
             if (!this.isReady) {
+              manager.revokeBlobUrls(fileUrls);
               reject(new Error(msg.error));
             }
             if (this.pendingGenerate) {
@@ -114,6 +124,7 @@ export class TtsEngine {
         const message = error.message || 'TTS Worker error';
         this.onError?.(message);
         if (!this.isReady) {
+          manager.revokeBlobUrls(fileUrls);
           reject(new Error(message));
         }
         if (this.pendingGenerate) {
@@ -122,8 +133,7 @@ export class TtsEngine {
         }
       };
 
-      const wasmBaseUrl = `/wasm/${model.wasmDir}/`;
-      this.worker.postMessage({ type: 'init', wasmBaseUrl, modelFile: model.modelFile });
+      this.worker.postMessage({ type: 'init', modelFile: model.modelFile || 'model.onnx', fileUrls });
     });
   }
 
@@ -153,15 +163,15 @@ export class TtsEngine {
   /**
    * Get list of available TTS models.
    */
-  static getModels(): TtsModelConfig[] {
-    return TTS_MODELS;
+  static getModels(): ModelManifestEntry[] {
+    return getManifestByType('tts');
   }
 
   get ready(): boolean {
     return this.isReady;
   }
 
-  get model(): TtsModelConfig | null {
+  get model(): ModelManifestEntry | null {
     return this.currentModel;
   }
 

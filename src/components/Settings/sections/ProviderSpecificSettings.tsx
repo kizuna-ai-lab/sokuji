@@ -37,7 +37,9 @@ import { ChevronDown, ChevronRight, RotateCw, Info, CircleHelp } from 'lucide-re
 import Tooltip from '../../Tooltip/Tooltip';
 import { FilteredModel } from '../../../services/interfaces/IClient';
 import { Provider, isOpenAICompatible } from '../../../types/Provider';
-import { ASR_MODELS, TTS_MODELS, TRANSLATION_MODELS } from '../../../lib/local-inference/types';
+import { getManifestByType } from '../../../lib/local-inference/modelManifest';
+import { useModelStatuses } from '../../../stores/modelStore';
+import { ModelManagementSection } from './ModelManagementSection';
 import { useAnalytics } from '../../../lib/analytics';
 import { useAuth } from '../../../lib/auth/hooks';
 
@@ -77,6 +79,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
   const volcengineSTSettings = useVolcengineSTSettings();
   const volcengineAST2Settings = useVolcengineAST2Settings();
   const localInferenceSettings = useLocalInferenceSettings();
+  const modelStatuses = useModelStatuses();
 
   // Actions from store
   const setSystemInstructions = useSetSystemInstructions();
@@ -1238,14 +1241,50 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
               value={localInferenceSettings.sourceLanguage}
               onChange={(e) => {
                 const newSourceLang = e.target.value;
-                if (newSourceLang === localInferenceSettings.targetLanguage) {
-                  const newTargetLang = config.languages.find(lang =>
+                const updates: Record<string, any> = { sourceLanguage: newSourceLang };
+
+                // If source === target, swap target to another language
+                let effectiveTargetLang = localInferenceSettings.targetLanguage;
+                if (newSourceLang === effectiveTargetLang) {
+                  effectiveTargetLang = config.languages.find(lang =>
                     lang.value !== newSourceLang
                   )?.value || 'en';
-                  updateLocalInferenceSettings({ sourceLanguage: newSourceLang, targetLanguage: newTargetLang });
-                } else {
-                  updateLocalInferenceSettings({ sourceLanguage: newSourceLang });
+                  updates.targetLanguage = effectiveTargetLang;
                 }
+
+                // Auto-select ASR model for new source language
+                const allAsr = getManifestByType('asr');
+                const currentAsr = allAsr.find(m => m.id === localInferenceSettings.asrModel);
+                if (!currentAsr || !currentAsr.languages.includes(newSourceLang)) {
+                  const firstMatch = allAsr.find(m =>
+                    m.languages.includes(newSourceLang) && modelStatuses[m.id] === 'downloaded'
+                  );
+                  updates.asrModel = firstMatch?.id || '';
+                }
+
+                // Auto-select TTS model for effective target language
+                {
+                  const allTts = getManifestByType('tts');
+                  const currentTtsEntry = allTts.find(m => m.id === localInferenceSettings.ttsModel);
+                  if (!currentTtsEntry || !currentTtsEntry.languages.includes(effectiveTargetLang)) {
+                    const firstMatch = allTts.find(m =>
+                      m.languages.includes(effectiveTargetLang) && modelStatuses[m.id] === 'downloaded'
+                    );
+                    updates.ttsModel = firstMatch?.id || '';
+                  }
+                }
+
+                // Auto-select translation model for new language pair
+                const allTranslation = getManifestByType('translation');
+                const currentTransEntry = allTranslation.find(m => m.id === localInferenceSettings.translationModel);
+                if (!currentTransEntry || currentTransEntry.sourceLang !== newSourceLang || currentTransEntry.targetLang !== effectiveTargetLang) {
+                  const firstMatch = allTranslation.find(m =>
+                    m.sourceLang === newSourceLang && m.targetLang === effectiveTargetLang && modelStatuses[m.id] === 'downloaded'
+                  );
+                  updates.translationModel = firstMatch?.id || '';
+                }
+
+                updateLocalInferenceSettings(updates);
                 trackEvent('language_changed', {
                   from_language: localInferenceSettings.sourceLanguage,
                   to_language: newSourceLang,
@@ -1268,7 +1307,30 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
               value={localInferenceSettings.targetLanguage}
               onChange={(e) => {
                 const newTargetLang = e.target.value;
-                updateLocalInferenceSettings({ targetLanguage: newTargetLang });
+                const updates: Record<string, any> = { targetLanguage: newTargetLang };
+
+                // Auto-select TTS model for new target language
+                const allTts = getManifestByType('tts');
+                const currentTtsEntry = allTts.find(m => m.id === localInferenceSettings.ttsModel);
+                if (!currentTtsEntry || !currentTtsEntry.languages.includes(newTargetLang)) {
+                  const firstMatch = allTts.find(m =>
+                    m.languages.includes(newTargetLang) && modelStatuses[m.id] === 'downloaded'
+                  );
+                  updates.ttsModel = firstMatch?.id || '';
+                }
+
+                // Auto-select translation model for new language pair
+                const allTranslation = getManifestByType('translation');
+                const currentTransEntry = allTranslation.find(m => m.id === localInferenceSettings.translationModel);
+                const effectiveSourceLang = localInferenceSettings.sourceLanguage;
+                if (!currentTransEntry || currentTransEntry.sourceLang !== effectiveSourceLang || currentTransEntry.targetLang !== newTargetLang) {
+                  const firstMatch = allTranslation.find(m =>
+                    m.sourceLang === effectiveSourceLang && m.targetLang === newTargetLang && modelStatuses[m.id] === 'downloaded'
+                  );
+                  updates.translationModel = firstMatch?.id || '';
+                }
+
+                updateLocalInferenceSettings(updates);
                 trackEvent('language_changed', {
                   from_language: localInferenceSettings.targetLanguage,
                   to_language: newTargetLang,
@@ -1286,79 +1348,11 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
           </div>
         </div>
 
-        <div className="settings-section">
-          <h2>{t('settings.asrModel', 'ASR Model')}</h2>
-          <div className="setting-item">
-            <select
-              className="select-dropdown"
-              value={localInferenceSettings.asrModel}
-              onChange={(e) => updateLocalInferenceSettings({ asrModel: e.target.value })}
-              disabled={isSessionActive}
-            >
-              {ASR_MODELS.map((model) => (
-                <option key={model.id} value={model.id}>{model.label} (~{model.sizeMb}MB)</option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        <div className="settings-section">
-          <h2>{t('settings.translationModel', 'Translation Model')}</h2>
-          <div className="setting-item">
-            {(() => {
-              const availableTranslationModels = TRANSLATION_MODELS.filter(
-                (m) => m.sourceLang === localInferenceSettings.sourceLanguage && m.targetLang === localInferenceSettings.targetLanguage
-              );
-              if (availableTranslationModels.length === 0) {
-                return (
-                  <div style={{
-                    padding: '8px 12px',
-                    backgroundColor: 'rgba(255, 193, 7, 0.1)',
-                    border: '1px solid rgba(255, 193, 7, 0.3)',
-                    borderRadius: '4px',
-                    fontSize: '12px',
-                    color: '#ffc107'
-                  }}>
-                    <Info size={14} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
-                    {t('settings.noTranslationModel', 'No translation model available for {{source}} → {{target}}. Please select a supported language pair.', {
-                      source: localInferenceSettings.sourceLanguage,
-                      target: localInferenceSettings.targetLanguage
-                    })}
-                  </div>
-                );
-              }
-              return (
-                <select
-                  className="select-dropdown"
-                  value={availableTranslationModels[0].id}
-                  disabled={isSessionActive || availableTranslationModels.length <= 1}
-                >
-                  {availableTranslationModels.map((model) => (
-                    <option key={model.id} value={model.id}>{model.label}</option>
-                  ))}
-                </select>
-              );
-            })()}
-          </div>
-        </div>
-
-        <div className="settings-section">
-          <h2>{t('settings.ttsModel', 'TTS Model')}</h2>
-          <div className="setting-item">
-            <select
-              className="select-dropdown"
-              value={localInferenceSettings.ttsModel}
-              onChange={(e) => updateLocalInferenceSettings({ ttsModel: e.target.value })}
-              disabled={isSessionActive}
-            >
-              <option value="">{t('settings.ttsAutoSelect', 'Auto (match target language)')}</option>
-              {TTS_MODELS.map((model) => (
-                <option key={model.id} value={model.id}>{model.label} (~{model.sizeMb}MB)</option>
-              ))}
-              <option value="none">{t('settings.ttsNone', 'None (text only)')}</option>
-            </select>
-          </div>
-        </div>
+        <ModelManagementSection
+          isSessionActive={isSessionActive}
+          localInferenceSettings={localInferenceSettings}
+          onUpdateSettings={updateLocalInferenceSettings}
+        />
 
         <div className="settings-section">
           <h2>{t('settings.ttsSettings', 'TTS Settings')}</h2>
@@ -1395,6 +1389,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
             />
           </div>
         </div>
+
       </>
     );
   };

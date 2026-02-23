@@ -6,11 +6,13 @@
  * because sherpa-onnx Emscripten glue requires importScripts().
  */
 
-import type {
-  AsrWorkerOutMessage,
-  AsrModelConfig,
-} from '../types';
-import { ASR_MODELS } from '../types';
+import type { AsrWorkerOutMessage } from '../types';
+import {
+  getManifestEntry,
+  getManifestByType,
+  type ModelManifestEntry,
+} from '../modelManifest';
+import { ModelManager } from '../ModelManager';
 
 export interface AsrResult {
   text: string;
@@ -26,7 +28,7 @@ type ErrorCallback = (error: string) => void;
 export class AsrEngine {
   private worker: Worker | null = null;
   private isReady = false;
-  private currentModel: AsrModelConfig | null = null;
+  private currentModel: ModelManifestEntry | null = null;
 
   onResult: ResultCallback | null = null;
   onStatus: StatusCallback | null = null;
@@ -40,11 +42,10 @@ export class AsrEngine {
    * @returns Promise that resolves with load time when ready
    */
   async init(modelId: string): Promise<{ loadTimeMs: number }> {
-    const model = ASR_MODELS.find(m => m.id === modelId);
-    if (!model) {
-      throw new Error(
-        `Unknown ASR model: ${modelId}. Available: ${ASR_MODELS.map(m => m.id).join(', ')}`
-      );
+    const model = getManifestEntry(modelId);
+    if (!model || model.type !== 'asr') {
+      const available = getManifestByType('asr').map(m => m.id).join(', ');
+      throw new Error(`Unknown ASR model: ${modelId}. Available: ${available}`);
     }
 
     // If already loaded with same model, skip
@@ -57,9 +58,14 @@ export class AsrEngine {
       this.dispose();
     }
 
+    // Load model file blob URLs from IndexedDB
+    const manager = ModelManager.getInstance();
+    if (!await manager.isModelReady(modelId)) {
+      throw new Error(`ASR model "${modelId}" is not downloaded. Download it first via Model Management.`);
+    }
+    const fileUrls = await manager.getModelBlobUrls(modelId);
+
     return new Promise((resolve, reject) => {
-      // Worker loads from public/workers/ (tracked in git).
-      // The WASM/model files are in public/wasm/<model>/ (gitignored, downloaded separately).
       const workerUrl = '/workers/asr.worker.js';
       this.worker = new Worker(workerUrl);
 
@@ -69,6 +75,8 @@ export class AsrEngine {
           case 'ready':
             this.isReady = true;
             this.currentModel = model;
+            // Revoke blob URLs after worker has loaded (frees memory, worker has its own copies)
+            manager.revokeBlobUrls(fileUrls);
             resolve({ loadTimeMs: msg.loadTimeMs });
             break;
 
@@ -88,6 +96,7 @@ export class AsrEngine {
           case 'error':
             this.onError?.(msg.error);
             if (!this.isReady) {
+              manager.revokeBlobUrls(fileUrls);
               reject(new Error(msg.error));
             }
             break;
@@ -101,13 +110,12 @@ export class AsrEngine {
         const message = error.message || 'ASR Worker error';
         this.onError?.(message);
         if (!this.isReady) {
+          manager.revokeBlobUrls(fileUrls);
           reject(new Error(message));
         }
       };
 
-      // WASM + model files are in the model-specific directory
-      const wasmBaseUrl = `/wasm/${model.wasmDir}/`;
-      this.worker.postMessage({ type: 'init', wasmBaseUrl });
+      this.worker.postMessage({ type: 'init', fileUrls });
     });
   }
 
@@ -132,15 +140,15 @@ export class AsrEngine {
   /**
    * Get list of available ASR models.
    */
-  static getModels(): AsrModelConfig[] {
-    return ASR_MODELS;
+  static getModels(): ModelManifestEntry[] {
+    return getManifestByType('asr');
   }
 
   get ready(): boolean {
     return this.isReady;
   }
 
-  get model(): AsrModelConfig | null {
+  get model(): ModelManifestEntry | null {
     return this.currentModel;
   }
 

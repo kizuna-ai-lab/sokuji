@@ -6,7 +6,7 @@
  *
  * Protocol:
  *   Main → Worker:
- *     { type: 'init', wasmBaseUrl: string }
+ *     { type: 'init', fileUrls: Record<string, string> }
  *     { type: 'audio', samples: Int16Array, sampleRate: number }
  *     { type: 'dispose' }
  *
@@ -153,10 +153,10 @@ function initOfflineRecognizer() {
  * Called when main thread sends { type: 'init' }.
  */
 function handleInit(msg) {
-  var wasmBaseUrl = msg.wasmBaseUrl;
-  // Ensure trailing slash
-  if (wasmBaseUrl && !wasmBaseUrl.endsWith('/')) {
-    wasmBaseUrl += '/';
+  var fileUrls = msg.fileUrls;
+  if (!fileUrls) {
+    postMessage({ type: 'error', error: 'fileUrls is required — model must be downloaded first' });
+    return;
   }
 
   var startTime = performance.now();
@@ -167,8 +167,11 @@ function handleInit(msg) {
   // Must be set BEFORE importScripts loads the Emscripten JS.
   Module = {};
   Module.locateFile = function(path) {
-    // Resolve .wasm and .data files relative to the model's WASM base URL
-    return wasmBaseUrl + path;
+    var url = fileUrls[path];
+    if (!url) {
+      postMessage({ type: 'error', error: 'Missing file URL for: ' + path });
+    }
+    return url;
   };
 
   Module.setStatus = function(status) {
@@ -206,14 +209,14 @@ function handleInit(msg) {
   //   - OfflineRecognizer, OfflineStream (from sherpa-onnx-asr.js)
   try {
     importScripts(
-      wasmBaseUrl + 'sherpa-onnx-wasm-main-vad-asr.js',
-      wasmBaseUrl + 'sherpa-onnx-vad.js',
-      wasmBaseUrl + 'sherpa-onnx-asr.js'
+      fileUrls['sherpa-onnx-wasm-main-vad-asr.js'],
+      fileUrls['sherpa-onnx-vad.js'],
+      fileUrls['sherpa-onnx-asr.js']
     );
   } catch (e) {
     postMessage({
       type: 'error',
-      error: 'Failed to load WASM scripts from ' + wasmBaseUrl + ': ' + (e.message || e)
+      error: 'Failed to load WASM scripts: ' + (e.message || e)
     });
   }
 }
