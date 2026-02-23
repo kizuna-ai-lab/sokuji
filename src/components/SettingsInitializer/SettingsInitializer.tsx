@@ -94,6 +94,9 @@ export function SettingsInitializer() {
           case Provider.VOLCENGINE_AST2:
             hasApiKey = !!volcengineAST2Settings.appId && !!volcengineAST2Settings.accessToken;
             break;
+          case Provider.LOCAL_INFERENCE:
+            hasApiKey = true;  // No API key needed
+            break;
         }
         
         if (hasApiKey) {
