@@ -9,8 +9,10 @@ import {
   usePalabraAISettings,
   useVolcengineSTSettings,
   useVolcengineAST2Settings,
-  useSettingsLoaded
+  useSettingsLoaded,
+  useLocalInferenceSettings
 } from '../../stores/settingsStore';
+import { useModelStatuses } from '../../stores/modelStore';
 import { useAuth } from '../../lib/auth/hooks';
 import { Provider } from '../../types/Provider';
 
@@ -35,6 +37,10 @@ export function SettingsInitializer() {
   const palabraAISettings = usePalabraAISettings();
   const volcengineSTSettings = useVolcengineSTSettings();
   const volcengineAST2Settings = useVolcengineAST2Settings();
+
+  // Monitor model download statuses and local inference settings for LOCAL_INFERENCE provider gating
+  const modelStatuses = useModelStatuses();
+  const localInferenceSettings = useLocalInferenceSettings();
 
   // Auto-fetch and validate KizunaAI API key when user logs in or provider changes
   useEffect(() => {
@@ -113,6 +119,21 @@ export function SettingsInitializer() {
       palabraAISettings.clientId, palabraAISettings.clientSecret, volcengineSTSettings.accessKeyId,
       volcengineSTSettings.secretAccessKey, volcengineAST2Settings.appId, volcengineAST2Settings.accessToken,
       validateApiKey]);
+
+  // Re-validate when model download statuses change and LOCAL_INFERENCE is selected
+  useEffect(() => {
+    if (!settingsLoaded) return;
+    if (provider !== Provider.LOCAL_INFERENCE) return;
+
+    // Model status changed — re-validate to update start button state
+    if (!isValidatingRef.current) {
+      isValidatingRef.current = true;
+      setTimeout(async () => {
+        await validateApiKey();
+        isValidatingRef.current = false;
+      }, 100);
+    }
+  }, [settingsLoaded, provider, modelStatuses, validateApiKey, localInferenceSettings]);
 
   // This component doesn't render anything
   return null;

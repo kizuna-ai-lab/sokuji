@@ -9,13 +9,14 @@
 
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { TtsEngine, TtsResult } from './engine/TtsEngine';
-import { TTS_MODELS } from './types';
+import { getManifestByType } from './modelManifest';
 
 export function TtsProto() {
   const engineRef = useRef<TtsEngine | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
 
-  const [modelId, setModelId] = useState(TTS_MODELS[0].id);
+  const ttsModels = getManifestByType('tts');
+  const [modelId, setModelId] = useState(ttsModels[0].id);
   const [status, setStatus] = useState<'idle' | 'loading' | 'ready' | 'generating' | 'error'>('idle');
   const [loadTime, setLoadTime] = useState<number | null>(null);
   const [numSpeakers, setNumSpeakers] = useState(0);
@@ -177,9 +178,9 @@ export function TtsProto() {
           disabled={status !== 'idle'}
           style={selectStyle}
         >
-          {TTS_MODELS.map(m => (
+          {ttsModels.map(m => (
             <option key={m.id} value={m.id}>
-              {m.label} (~{m.sizeMb}MB)
+              {m.name} (~{m.totalSizeMb}MB)
             </option>
           ))}
         </select>

@@ -9,7 +9,7 @@
 
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { AsrEngine, AsrResult } from './engine/AsrEngine';
-import { ASR_MODELS } from './types';
+import { getManifestByType } from './modelManifest';
 
 const RECORDING_SAMPLE_RATE = 16000; // Use 16kHz directly for simplicity in proto
 const BUFFER_SIZE = 4096;
@@ -20,7 +20,8 @@ export function AsrProto() {
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const processorRef = useRef<ScriptProcessorNode | null>(null);
 
-  const [modelId, setModelId] = useState(ASR_MODELS[0].id);
+  const asrModels = getManifestByType('asr');
+  const [modelId, setModelId] = useState(asrModels[0].id);
   const [status, setStatus] = useState<'idle' | 'loading' | 'ready' | 'recording' | 'error'>('idle');
   const [loadTime, setLoadTime] = useState<number | null>(null);
   const [statusMessage, setStatusMessage] = useState('');
@@ -191,9 +192,9 @@ export function AsrProto() {
           disabled={status !== 'idle'}
           style={selectStyle}
         >
-          {ASR_MODELS.map(m => (
+          {asrModels.map(m => (
             <option key={m.id} value={m.id}>
-              {m.label} (~{m.sizeMb}MB)
+              {m.name} (~{m.totalSizeMb}MB)
             </option>
           ))}
         </select>

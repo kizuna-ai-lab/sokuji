@@ -3,21 +3,7 @@
  * Provides a simple async API for translating text via Opus-MT.
  */
 
-// Opus-MT model ID mapping: language pair → HuggingFace model
-const OPUS_MT_MODELS: Record<string, string> = {
-  'ja-en': 'Xenova/opus-mt-ja-en',
-  'en-ja': 'Xenova/opus-mt-en-ja',
-  'zh-en': 'Xenova/opus-mt-zh-en',
-  'en-zh': 'Xenova/opus-mt-en-zh',
-  'ko-en': 'Xenova/opus-mt-ko-en',
-  'en-ko': 'Xenova/opus-mt-en-ko',
-  'de-en': 'Xenova/opus-mt-de-en',
-  'en-de': 'Xenova/opus-mt-en-de',
-  'fr-en': 'Xenova/opus-mt-fr-en',
-  'en-fr': 'Xenova/opus-mt-en-fr',
-  'es-en': 'Xenova/opus-mt-es-en',
-  'en-es': 'Xenova/opus-mt-en-es',
-};
+import { getTranslationModel, getManifestByType } from '../modelManifest';
 
 export interface TranslationProgress {
   modelId: string;
@@ -53,11 +39,12 @@ export class TranslationEngine {
    * Initialize with a language pair (e.g. 'ja', 'en')
    */
   async init(sourceLang: string, targetLang: string): Promise<{ loadTimeMs: number }> {
-    const pair = `${sourceLang}-${targetLang}`;
-    const modelId = OPUS_MT_MODELS[pair];
-    if (!modelId) {
-      throw new Error(`No Opus-MT model available for language pair: ${pair}. Available: ${Object.keys(OPUS_MT_MODELS).join(', ')}`);
+    const entry = getTranslationModel(sourceLang, targetLang);
+    if (!entry?.hfModelId) {
+      const available = getManifestByType('translation').map(m => `${m.sourceLang}-${m.targetLang}`).join(', ');
+      throw new Error(`No Opus-MT model available for language pair: ${sourceLang}-${targetLang}. Available: ${available}`);
     }
+    const modelId = entry.hfModelId;
 
     // If already loaded with same model, skip
     if (this.isReady && this.currentModelId === modelId) {
@@ -159,17 +146,38 @@ export class TranslationEngine {
   }
 
   /**
+   * Pre-download a translation model into the browser's Cache API.
+   * Used by the model management UI for explicit pre-download.
+   *
+   * @param hfModelId - HuggingFace model ID (e.g. 'Xenova/opus-mt-ja-en')
+   * @param onProgress - Optional progress callback
+   */
+  static async preDownloadModel(
+    hfModelId: string,
+    onProgress?: (progress: { loaded: number; total: number; file: string }) => void,
+  ): Promise<void> {
+    const { pipeline } = await import('@huggingface/transformers');
+    await pipeline('translation', hfModelId, {
+      progress_callback: (p: any) => {
+        if (p.status === 'progress' && p.total) {
+          onProgress?.({ loaded: p.loaded || 0, total: p.total, file: p.file || hfModelId });
+        }
+      },
+    });
+  }
+
+  /**
    * Get available language pairs
    */
   static getAvailableLanguagePairs(): string[] {
-    return Object.keys(OPUS_MT_MODELS);
+    return getManifestByType('translation').map(m => `${m.sourceLang}-${m.targetLang}`);
   }
 
   /**
    * Check if a language pair is supported
    */
   static isLanguagePairSupported(sourceLang: string, targetLang: string): boolean {
-    return `${sourceLang}-${targetLang}` in OPUS_MT_MODELS;
+    return !!getTranslationModel(sourceLang, targetLang);
   }
 
   get ready(): boolean {

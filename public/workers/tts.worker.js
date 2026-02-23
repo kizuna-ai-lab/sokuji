@@ -6,7 +6,7 @@
  *
  * Protocol:
  *   Main → Worker:
- *     { type: 'init', wasmBaseUrl: string, modelFile: string }
+ *     { type: 'init', fileUrls: Record<string, string>, modelFile: string }
  *     { type: 'generate', text: string, sid: number, speed: number }
  *     { type: 'dispose' }
  *
@@ -29,11 +29,12 @@ var isReady = false;
  * Called when main thread sends { type: 'init' }.
  */
 function handleInit(msg) {
-  var wasmBaseUrl = msg.wasmBaseUrl;
+  var fileUrls = msg.fileUrls;
   var modelFile = msg.modelFile || './model.onnx';
-  // Ensure trailing slash
-  if (wasmBaseUrl && !wasmBaseUrl.endsWith('/')) {
-    wasmBaseUrl += '/';
+
+  if (!fileUrls) {
+    postMessage({ type: 'error', error: 'fileUrls is required — model must be downloaded first' });
+    return;
   }
 
   var startTime = performance.now();
@@ -43,7 +44,11 @@ function handleInit(msg) {
   // Configure the Emscripten Module object before loading the glue code.
   Module = {};
   Module.locateFile = function(path) {
-    return wasmBaseUrl + path;
+    var url = fileUrls[path];
+    if (!url) {
+      postMessage({ type: 'error', error: 'Missing file URL for: ' + path });
+    }
+    return url;
   };
 
   Module.setStatus = function(status) {
@@ -123,13 +128,13 @@ function handleInit(msg) {
   //   - OfflineTts, createOfflineTts (from sherpa-onnx-tts.js)
   try {
     importScripts(
-      wasmBaseUrl + 'sherpa-onnx-wasm-main-tts.js',
-      wasmBaseUrl + 'sherpa-onnx-tts.js'
+      fileUrls['sherpa-onnx-wasm-main-tts.js'],
+      fileUrls['sherpa-onnx-tts.js']
     );
   } catch (e) {
     postMessage({
       type: 'error',
-      error: 'Failed to load TTS WASM scripts from ' + wasmBaseUrl + ': ' + (e.message || e)
+      error: 'Failed to load TTS WASM scripts: ' + (e.message || e)
     });
   }
 }
