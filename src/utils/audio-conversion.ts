@@ -46,6 +46,36 @@ export function downsampleInt16ToFloat32(
 }
 
 /**
+ * Resample Float32Array audio from one sample rate to another.
+ * Uses linear interpolation. Used for TTS output resampling (e.g. 22050Hz → 24000Hz).
+ *
+ * @param input Float32Array in range [-1.0, 1.0]
+ * @param inputSampleRate Source sample rate (e.g. 22050)
+ * @param outputSampleRate Target sample rate (e.g. 24000)
+ * @returns Float32Array at the target rate
+ */
+export function resampleFloat32(
+  input: Float32Array,
+  inputSampleRate: number,
+  outputSampleRate: number,
+): Float32Array {
+  if (inputSampleRate === outputSampleRate) return input;
+
+  const ratio = inputSampleRate / outputSampleRate;
+  const outputLength = Math.round(input.length / ratio);
+  const output = new Float32Array(outputLength);
+
+  for (let i = 0; i < outputLength; i++) {
+    const srcIndex = i * ratio;
+    const srcFloor = Math.floor(srcIndex);
+    const srcCeil = Math.min(srcFloor + 1, input.length - 1);
+    const frac = srcIndex - srcFloor;
+    output[i] = input[srcFloor] * (1 - frac) + input[srcCeil] * frac;
+  }
+  return output;
+}
+
+/**
  * Convert Float32Array audio to Int16Array.
  * Used when converting TTS output back to Int16 format.
  *

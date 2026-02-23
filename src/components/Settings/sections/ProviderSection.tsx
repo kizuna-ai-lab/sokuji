@@ -221,6 +221,12 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
           icon: VolcengineIcon,
           description: t('providers.volcengine_ast2.description')
         };
+      case Provider.LOCAL_INFERENCE:
+        return {
+          name: t('providers.local_inference.name', 'Local (Offline)'),
+          icon: Zap,
+          description: t('providers.local_inference.description', 'Offline ASR + Translation + TTS')
+        };
       default:
         return {
           name: t('providers.unknown.name'),
@@ -359,8 +365,13 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
         </div>
       )}
 
-      {/* API Key Input or Kizuna AI Status */}
-      {provider !== Provider.KIZUNA_AI ? (
+      {/* API Key Input or Kizuna AI Status or Local Inference (no key needed) */}
+      {provider === Provider.LOCAL_INFERENCE ? (
+        <div className="api-key-info">
+          <CheckCircle size={16} className="success-icon" />
+          <span>{t('providers.local_inference.noKeyRequired', 'No API key required — runs entirely on your device')}</span>
+        </div>
+      ) : provider !== Provider.KIZUNA_AI ? (
         provider === Provider.VOLCENGINE_AST2 ? (
           // Volcengine AST2 requires both APP ID and Access Token
           <div className="volcengine-st-credentials-group">

@@ -10,6 +10,7 @@ import { ForgotPassword } from './routes/ForgotPassword';
 import { isExtension } from './utils/environment';
 import { TranslationProto } from './lib/local-inference/TranslationProto';
 import { AsrProto } from './lib/local-inference/AsrProto';
+import { TtsProto } from './lib/local-inference/TtsProto';
 
 const isExtensionEnvironment = isExtension();
 
@@ -45,6 +46,8 @@ function App() {
   const [showProto, setShowProto] = useState(false);
   // DEV ONLY: Ctrl+Shift+A toggles ASR prototype overlay
   const [showAsrProto, setShowAsrProto] = useState(false);
+  // DEV ONLY: Ctrl+Shift+S toggles TTS prototype overlay
+  const [showTtsProto, setShowTtsProto] = useState(false);
   useEffect(() => {
     if (!import.meta.env.DEV) return;
     const handler = (e: KeyboardEvent) => {
@@ -55,6 +58,10 @@ function App() {
       if (e.ctrlKey && e.shiftKey && e.key === 'A') {
         e.preventDefault();
         setShowAsrProto(prev => !prev);
+      }
+      if (e.ctrlKey && e.shiftKey && e.key === 'S') {
+        e.preventDefault();
+        setShowTtsProto(prev => !prev);
       }
     };
     window.addEventListener('keydown', handler);
@@ -80,6 +87,15 @@ function App() {
           boxShadow: '0 4px 20px rgba(0,0,0,0.5)', borderRadius: 8,
         }}>
           <AsrProto />
+        </div>
+      )}
+      {import.meta.env.DEV && showTtsProto && (
+        <div style={{
+          position: 'fixed', bottom: 10, right: 10, zIndex: 99999,
+          maxHeight: '90vh', overflow: 'auto',
+          boxShadow: '0 4px 20px rgba(0,0,0,0.5)', borderRadius: 8,
+        }}>
+          <TtsProto />
         </div>
       )}
     </div>

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Download sherpa-onnx WASM prebuilt packages for ASR (and TTS in future).
-# Usage: bash scripts/download-sherpa-wasm.sh [sensevoice|reazonspeech|all]
+# Download sherpa-onnx WASM prebuilt packages for ASR and TTS.
+# Usage: bash scripts/download-sherpa-wasm.sh [sensevoice|reazonspeech|piper-en|piper-de|all-asr|all-tts|all]
 #
 # Packages are extracted into public/wasm/ and excluded from git via .gitignore.
 
@@ -12,13 +12,29 @@ DEST_DIR="public/wasm"
 
 # Package definitions: name -> tarball filename -> target directory
 declare -A PACKAGES=(
+  # ASR packages
   [sensevoice]="sherpa-onnx-wasm-simd-${VERSION}-vad-asr-zh_en_ja_ko_cantonese-sense_voice_small.tar.bz2"
   [reazonspeech]="sherpa-onnx-wasm-simd-${VERSION}-vad-asr-ja-zipformer_reazonspeech.tar.bz2"
+  # TTS packages
+  [piper-en]="sherpa-onnx-wasm-simd-${VERSION}-vits-piper-en_US-libritts_r-medium.tar.bz2"
+  [piper-de]="sherpa-onnx-wasm-simd-${VERSION}-vits-piper-de_DE-thorsten_emotional-medium.tar.bz2"
 )
 
 declare -A TARGET_DIRS=(
+  # ASR target directories
   [sensevoice]="sherpa-onnx-asr-sensevoice"
   [reazonspeech]="sherpa-onnx-asr-reazonspeech"
+  # TTS target directories
+  [piper-en]="sherpa-onnx-tts-piper-en"
+  [piper-de]="sherpa-onnx-tts-piper-de"
+)
+
+# Check files to detect if package is already extracted
+declare -A CHECK_FILES=(
+  [sensevoice]="sherpa-onnx-wasm-main-vad-asr.wasm"
+  [reazonspeech]="sherpa-onnx-wasm-main-vad-asr.wasm"
+  [piper-en]="sherpa-onnx-wasm-main-tts.wasm"
+  [piper-de]="sherpa-onnx-wasm-main-tts.wasm"
 )
 
 download_package() {
@@ -27,7 +43,8 @@ download_package() {
   local target_dir="${DEST_DIR}/${TARGET_DIRS[$name]}"
   local url="${BASE_URL}/${tarball}"
 
-  if [ -d "$target_dir" ] && [ -f "${target_dir}/sherpa-onnx-wasm-main-vad-asr.wasm" ]; then
+  local check_file="${CHECK_FILES[$name]}"
+  if [ -d "$target_dir" ] && [ -f "${target_dir}/${check_file}" ]; then
     echo "✓ ${name} already exists at ${target_dir}, skipping."
     return 0
   fi
@@ -70,20 +87,28 @@ setup_active_model() {
 }
 
 usage() {
-  echo "Usage: $0 [sensevoice|reazonspeech|all] [--activate <name>]"
+  echo "Usage: $0 [sensevoice|reazonspeech|piper-en|piper-de|all-asr|all-tts|all] [--activate <name>]"
   echo ""
-  echo "Commands:"
+  echo "ASR Packages:"
   echo "  sensevoice    Download SenseVoice multilingual (ja/zh/en/ko/cantonese, ~158MB)"
   echo "  reazonspeech  Download ReazonSpeech Japanese-only (~137MB)"
-  echo "  all           Download both packages"
+  echo "  all-asr       Download all ASR packages"
+  echo ""
+  echo "TTS Packages:"
+  echo "  piper-en      Download Piper LibriTTS-R English multi-speaker (~81MB)"
+  echo "  piper-de      Download Piper Thorsten Emotional German (~79MB)"
+  echo "  all-tts       Download all TTS packages"
+  echo ""
+  echo "  all           Download all ASR + TTS packages"
   echo ""
   echo "Options:"
   echo "  --activate <name>  Set the active ASR model (creates symlink at public/wasm/sherpa-onnx-asr)"
   echo ""
   echo "Examples:"
   echo "  $0 sensevoice                    # Download SenseVoice only"
-  echo "  $0 all --activate sensevoice     # Download both, activate SenseVoice"
-  echo "  $0 --activate reazonspeech       # Switch active model (already downloaded)"
+  echo "  $0 piper-en                      # Download English TTS only"
+  echo "  $0 all --activate sensevoice     # Download everything, activate SenseVoice for ASR"
+  echo "  $0 --activate reazonspeech       # Switch active ASR model (already downloaded)"
 }
 
 # Parse arguments
@@ -114,9 +139,26 @@ case "$COMMAND" in
     download_package "reazonspeech"
     ACTIVATE="${ACTIVATE:-reazonspeech}"
     ;;
+  piper-en)
+    download_package "piper-en"
+    ;;
+  piper-de)
+    download_package "piper-de"
+    ;;
+  all-asr)
+    download_package "sensevoice"
+    download_package "reazonspeech"
+    ACTIVATE="${ACTIVATE:-sensevoice}"
+    ;;
+  all-tts)
+    download_package "piper-en"
+    download_package "piper-de"
+    ;;
   all)
     download_package "sensevoice"
     download_package "reazonspeech"
+    download_package "piper-en"
+    download_package "piper-de"
     ACTIVATE="${ACTIVATE:-sensevoice}"
     ;;
   --activate)

@@ -111,9 +111,22 @@ export interface VolcengineAST2SessionConfig extends BaseSessionConfig {
 }
 
 /**
+ * Local inference session configuration
+ */
+export interface LocalInferenceSessionConfig extends BaseSessionConfig {
+  provider: 'local_inference';
+  sourceLanguage: string;
+  targetLanguage: string;
+  asrModelId: string;
+  ttsModelId?: string;
+  ttsSpeakerId: number;
+  ttsSpeed: number;
+}
+
+/**
  * Union type for all possible session configurations
  */
-export type SessionConfig = OpenAISessionConfig | GeminiSessionConfig | PalabraAISessionConfig | VolcengineSTSessionConfig | VolcengineAST2SessionConfig;
+export type SessionConfig = OpenAISessionConfig | GeminiSessionConfig | PalabraAISessionConfig | VolcengineSTSessionConfig | VolcengineAST2SessionConfig | LocalInferenceSessionConfig;
 
 /**
  * Type guards for session configurations
@@ -136,6 +149,10 @@ export function isVolcengineSTSessionConfig(config: SessionConfig): config is Vo
 
 export function isVolcengineAST2SessionConfig(config: SessionConfig): config is VolcengineAST2SessionConfig {
   return config.provider === 'volcengine_ast2';
+}
+
+export function isLocalInferenceSessionConfig(config: SessionConfig): config is LocalInferenceSessionConfig {
+  return config.provider === 'local_inference';
 }
 
 /**

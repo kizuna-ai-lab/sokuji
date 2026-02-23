@@ -6,6 +6,7 @@ import { PalabraAIProviderConfig } from './PalabraAIProviderConfig';
 import { KizunaAIProviderConfig } from './KizunaAIProviderConfig';
 import { VolcengineSTProviderConfig } from './VolcengineSTProviderConfig';
 import { VolcengineAST2ProviderConfig } from './VolcengineAST2ProviderConfig';
+import { LocalInferenceProviderConfig } from './LocalInferenceProviderConfig';
 import { Provider, ProviderType } from '../../types/Provider';
 import { isKizunaAIEnabled, isPalabraAIEnabled, isVolcengineSTEnabled, isVolcengineAST2Enabled, isElectron, isExtension } from '../../utils/environment';
 
@@ -45,6 +46,9 @@ export class ProviderConfigFactory {
     if ((isElectron() || isExtension()) && isVolcengineAST2Enabled()) {
       ProviderConfigFactory.configs.set(Provider.VOLCENGINE_AST2, new VolcengineAST2ProviderConfig());
     }
+
+    // Local inference is always available (no API key or feature flag required)
+    ProviderConfigFactory.configs.set(Provider.LOCAL_INFERENCE, new LocalInferenceProviderConfig());
   }
 
   /**
