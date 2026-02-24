@@ -18,8 +18,10 @@ import {
 } from '../interfaces/IClient';
 import { Provider, ProviderType } from '../../types/Provider';
 import { AsrEngine } from '../../lib/local-inference/engine/AsrEngine';
+import { StreamingAsrEngine } from '../../lib/local-inference/engine/StreamingAsrEngine';
 import { TranslationEngine } from '../../lib/local-inference/engine/TranslationEngine';
 import { TtsEngine } from '../../lib/local-inference/engine/TtsEngine';
+import { getManifestEntry } from '../../lib/local-inference/modelManifest';
 import { resampleFloat32, float32ToInt16 } from '../../utils/audio-conversion';
 
 interface PipelineJob {
@@ -27,7 +29,7 @@ interface PipelineJob {
 }
 
 export class LocalInferenceClient implements IClient {
-  private asrEngine: AsrEngine | null = null;
+  private asrEngine: AsrEngine | StreamingAsrEngine | null = null;
   private translationEngine: TranslationEngine | null = null;
   private ttsEngine: TtsEngine | null = null;
 
@@ -37,6 +39,9 @@ export class LocalInferenceClient implements IClient {
   private connected = false;
   private disposed = false;
   private itemCounter = 0;
+
+  // Streaming ASR: in-progress partial result item
+  private partialUserItem: ConversationItem | null = null;
 
   // TTS queue for serial processing
   private ttsQueue: PipelineJob[] = [];
@@ -53,28 +58,58 @@ export class LocalInferenceClient implements IClient {
     this.itemCounter = 0;
 
     try {
-      // Initialize ASR engine
-      console.info('[LocalInference] Initializing ASR engine:', config.asrModelId);
-      this.asrEngine = new AsrEngine();
+      // Initialize ASR engine — detect streaming vs offline model
+      const asrModel = getManifestEntry(config.asrModelId);
+      console.info('[LocalInference] Initializing ASR engine:', config.asrModelId, '(type:', asrModel?.type, ')');
 
-      this.asrEngine.onResult = (result) => {
-        if (this.disposed) return;
-        const text = result.text.trim();
-        if (!text) return;
-        console.debug('[LocalInference] ASR result:', text, `(${result.durationMs}ms speech, ${result.recognitionTimeMs}ms recognition)`);
-        this.handleAsrResult(text);
-      };
+      if (asrModel?.type === 'asr-stream') {
+        // Streaming ASR: OnlineRecognizer with partial results
+        const engine = new StreamingAsrEngine();
 
-      this.asrEngine.onError = (error) => {
-        console.error('[LocalInference] ASR error:', error);
-        this.handlers.onError?.(new Error(`ASR: ${error}`));
-      };
+        engine.onPartialResult = (text) => {
+          if (this.disposed) return;
+          this.handlePartialAsrResult(text);
+        };
 
-      await this.asrEngine.init(config.asrModelId, {
-        threshold: config.vadThreshold,
-        minSilenceDuration: config.vadMinSilenceDuration,
-        minSpeechDuration: config.vadMinSpeechDuration,
-      });
+        engine.onResult = (result) => {
+          if (this.disposed) return;
+          const text = result.text.trim();
+          if (!text) return;
+          console.debug('[LocalInference] Streaming ASR result:', text, `(${result.durationMs}ms, ${result.recognitionTimeMs}ms recognition)`);
+          this.handleAsrResult(text);
+        };
+
+        engine.onError = (error) => {
+          console.error('[LocalInference] Streaming ASR error:', error);
+          this.handlers.onError?.(new Error(`ASR: ${error}`));
+        };
+
+        this.asrEngine = engine;
+        await engine.init(config.asrModelId);
+      } else {
+        // Offline ASR: VAD + OfflineRecognizer
+        const engine = new AsrEngine();
+
+        engine.onResult = (result) => {
+          if (this.disposed) return;
+          const text = result.text.trim();
+          if (!text) return;
+          console.debug('[LocalInference] ASR result:', text, `(${result.durationMs}ms speech, ${result.recognitionTimeMs}ms recognition)`);
+          this.handleAsrResult(text);
+        };
+
+        engine.onError = (error) => {
+          console.error('[LocalInference] ASR error:', error);
+          this.handlers.onError?.(new Error(`ASR: ${error}`));
+        };
+
+        this.asrEngine = engine;
+        await engine.init(config.asrModelId, {
+          threshold: config.vadThreshold,
+          minSilenceDuration: config.vadMinSilenceDuration,
+          minSpeechDuration: config.vadMinSpeechDuration,
+        });
+      }
       console.info('[LocalInference] ASR engine ready');
 
       // Initialize Translation engine
@@ -118,6 +153,7 @@ export class LocalInferenceClient implements IClient {
     this.connected = false;
     this.ttsQueue = [];
     this.ttsProcessing = false;
+    this.partialUserItem = null;
 
     this.asrEngine?.dispose();
     this.asrEngine = null;
@@ -177,20 +213,54 @@ export class LocalInferenceClient implements IClient {
 
   // ─── Pipeline ─────────────────────────────────────────────
 
+  /**
+   * Handle partial (interim) ASR result from streaming recognizer.
+   * Creates or updates an in_progress user item with interim text.
+   */
+  private handlePartialAsrResult(text: string): void {
+    if (this.partialUserItem) {
+      // Update existing partial item
+      this.partialUserItem.formatted!.transcript = text;
+      this.handlers.onConversationUpdated?.({ item: this.partialUserItem });
+    } else {
+      // Create new in_progress item
+      this.partialUserItem = {
+        id: `local_user_${++this.itemCounter}`,
+        role: 'user',
+        type: 'message',
+        status: 'in_progress',
+        createdAt: Date.now(),
+        formatted: {
+          transcript: text,
+        },
+      };
+      this.conversationItems.push(this.partialUserItem);
+      this.handlers.onConversationUpdated?.({ item: this.partialUserItem });
+    }
+  }
+
   private handleAsrResult(text: string): void {
-    // Create user conversation item
-    const userItem: ConversationItem = {
-      id: `local_user_${++this.itemCounter}`,
-      role: 'user',
-      type: 'message',
-      status: 'completed',
-      createdAt: Date.now(),
-      formatted: {
-        transcript: text,
-      },
-    };
-    this.conversationItems.push(userItem);
-    this.handlers.onConversationUpdated?.({ item: userItem });
+    if (this.partialUserItem) {
+      // Finalize the partial item from streaming ASR
+      this.partialUserItem.formatted!.transcript = text;
+      this.partialUserItem.status = 'completed';
+      this.handlers.onConversationUpdated?.({ item: this.partialUserItem });
+      this.partialUserItem = null;
+    } else {
+      // Create new completed user item (offline ASR path)
+      const userItem: ConversationItem = {
+        id: `local_user_${++this.itemCounter}`,
+        role: 'user',
+        type: 'message',
+        status: 'completed',
+        createdAt: Date.now(),
+        formatted: {
+          transcript: text,
+        },
+      };
+      this.conversationItems.push(userItem);
+      this.handlers.onConversationUpdated?.({ item: userItem });
+    }
 
     // Enqueue translation + TTS
     this.ttsQueue.push({ text });

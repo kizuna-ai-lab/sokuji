@@ -275,11 +275,12 @@ export function ModelManagementSection({
     if (!initialized) return;
     const updates: Partial<LocalInferenceSettings> = {};
 
-    // ASR: must support sourceLanguage and be downloaded
-    const currentAsr = asrModel ? getManifestByType('asr').find(m => m.id === asrModel) : null;
+    // ASR: must support sourceLanguage and be downloaded (includes streaming models)
+    const allAsrModels = [...getManifestByType('asr'), ...getManifestByType('asr-stream')];
+    const currentAsr = asrModel ? allAsrModels.find(m => m.id === asrModel) : null;
     const asrOk = currentAsr && currentAsr.languages.includes(sourceLanguage) && statuses[asrModel] === 'downloaded';
     if (!asrOk) {
-      const match = getManifestByType('asr').find(m =>
+      const match = allAsrModels.find(m =>
         m.languages.includes(sourceLanguage) && statuses[m.id] === 'downloaded'
       );
       const newId = match?.id || '';
@@ -319,7 +320,7 @@ export function ModelManagementSection({
   // ── Memoized model lists ──────────────────────────────────────────────
 
   const asrModels = useMemo(() => {
-    const all = getManifestByType('asr');
+    const all = [...getManifestByType('asr'), ...getManifestByType('asr-stream')];
     return sortModels(all, statuses, (m) => m.languages.includes(sourceLanguage));
   }, [statuses, sourceLanguage]);
 

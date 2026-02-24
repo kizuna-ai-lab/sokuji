@@ -37,7 +37,7 @@ import { ChevronDown, ChevronRight, RotateCw, Info, CircleHelp } from 'lucide-re
 import Tooltip from '../../Tooltip/Tooltip';
 import { FilteredModel } from '../../../services/interfaces/IClient';
 import { Provider, isOpenAICompatible } from '../../../types/Provider';
-import { getManifestByType } from '../../../lib/local-inference/modelManifest';
+import { getManifestByType, getManifestEntry } from '../../../lib/local-inference/modelManifest';
 import { useModelStatuses } from '../../../stores/modelStore';
 import { ModelManagementSection } from './ModelManagementSection';
 import { useAnalytics } from '../../../lib/analytics';
@@ -1252,8 +1252,8 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
                   updates.targetLanguage = effectiveTargetLang;
                 }
 
-                // Auto-select ASR model for new source language
-                const allAsr = getManifestByType('asr');
+                // Auto-select ASR model for new source language (includes streaming models)
+                const allAsr = [...getManifestByType('asr'), ...getManifestByType('asr-stream')];
                 const currentAsr = allAsr.find(m => m.id === localInferenceSettings.asrModel);
                 if (!currentAsr || !currentAsr.languages.includes(newSourceLang)) {
                   const firstMatch = allAsr.find(m =>
@@ -1374,6 +1374,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
           </div>
         </div>
 
+        {getManifestEntry(localInferenceSettings.asrModel)?.type !== 'asr-stream' && (
         <div className="settings-section">
           <h2>
             {t('settings.vadSettings', 'VAD Settings')}
@@ -1457,6 +1458,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
             />
           </div>
         </div>
+        )}
 
       </>
     );
