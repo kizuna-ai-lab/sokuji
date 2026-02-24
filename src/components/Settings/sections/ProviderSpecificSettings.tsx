@@ -1372,6 +1372,24 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
               disabled={isSessionActive}
             />
           </div>
+          {getManifestEntry(localInferenceSettings.ttsModel)?.modelFile && (
+          <div className="setting-item">
+            <div className="setting-label">
+              <span>{t('settings.ttsSpeakerId', 'Speaker ID')}</span>
+              <span className="setting-value">{localInferenceSettings.ttsSpeakerId}</span>
+            </div>
+            <input
+              type="range"
+              min="0"
+              max="903"
+              step="1"
+              value={localInferenceSettings.ttsSpeakerId}
+              onChange={(e) => updateLocalInferenceSettings({ ttsSpeakerId: parseInt(e.target.value) })}
+              className="slider"
+              disabled={isSessionActive}
+            />
+          </div>
+          )}
         </div>
 
         {getManifestEntry(localInferenceSettings.asrModel)?.type !== 'asr-stream' && (
