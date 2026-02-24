@@ -8,6 +8,12 @@ export interface AsrInitMessage {
   type: 'init';
   /** Map of filename → blob URL for loading model files from IndexedDB */
   fileUrls: Record<string, string>;
+  /** Optional VAD configuration to override defaults */
+  vadConfig?: {
+    threshold?: number;
+    minSilenceDuration?: number;
+    minSpeechDuration?: number;
+  };
 }
 
 export interface AsrAudioMessage {

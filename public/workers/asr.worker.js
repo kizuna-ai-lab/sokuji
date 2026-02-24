@@ -123,7 +123,7 @@ function initOfflineRecognizer() {
     };
     postMessage({ type: 'status', message: 'Detected Paraformer model' });
   } else if (fileExists('telespeech.onnx')) {
-    config.modelConfig.telespeechCtc = './telespeech.onnx';
+    config.modelConfig.teleSpeechCtc = './telespeech.onnx';
     postMessage({ type: 'status', message: 'Detected TeleSpeech model' });
   } else if (fileExists('moonshine-preprocessor.onnx')) {
     config.modelConfig.moonshine = {
@@ -154,6 +154,7 @@ function initOfflineRecognizer() {
  */
 function handleInit(msg) {
   var fileUrls = msg.fileUrls;
+  var vadConfig = msg.vadConfig;
   if (!fileUrls) {
     postMessage({ type: 'error', error: 'fileUrls is required — model must be downloaded first' });
     return;
@@ -184,7 +185,26 @@ function handleInit(msg) {
 
       // createVad is defined in sherpa-onnx-vad.js, uses Silero VAD model
       // pre-loaded into the virtual filesystem via the .data file
-      vad = createVad(Module);
+      if (vadConfig) {
+        var customVadConfig = {
+          sileroVad: {
+            model: './silero_vad.onnx',
+            threshold: vadConfig.threshold || 0.50,
+            minSilenceDuration: vadConfig.minSilenceDuration || 0.50,
+            minSpeechDuration: vadConfig.minSpeechDuration || 0.25,
+            maxSpeechDuration: 20,
+            windowSize: 512,
+          },
+          sampleRate: 16000,
+          numThreads: 1,
+          provider: 'cpu',
+          debug: 1,
+          bufferSizeInSeconds: 30,
+        };
+        vad = createVad(Module, customVadConfig);
+      } else {
+        vad = createVad(Module);
+      }
 
       // Circular buffer: 30 seconds of audio at 16kHz
       buffer = new CircularBuffer(30 * EXPECTED_SAMPLE_RATE, Module);

@@ -114,6 +114,9 @@ export interface LocalInferenceSettings {
   ttsSpeed: number;
   sourceLanguage: string;
   targetLanguage: string;
+  vadThreshold: number;         // 0.0-1.0, default 0.5
+  vadMinSilenceDuration: number; // seconds, default 0.5
+  vadMinSpeechDuration: number;  // seconds, default 0.25
 }
 
 // Cache Entry
@@ -262,6 +265,9 @@ const defaultLocalInferenceSettings: LocalInferenceSettings = {
   ttsSpeed: 1.0,
   sourceLanguage: 'ja',
   targetLanguage: 'en',
+  vadThreshold: 0.5,
+  vadMinSilenceDuration: 0.5,
+  vadMinSpeechDuration: 0.25,
 };
 
 // ==================== Store Definition ====================
@@ -459,6 +465,9 @@ function createLocalInferenceSessionConfig(
     ttsModelId,
     ttsSpeakerId: settings.ttsSpeakerId,
     ttsSpeed: settings.ttsSpeed,
+    vadThreshold: settings.vadThreshold,
+    vadMinSilenceDuration: settings.vadMinSilenceDuration,
+    vadMinSpeechDuration: settings.vadMinSpeechDuration,
   };
 }
 

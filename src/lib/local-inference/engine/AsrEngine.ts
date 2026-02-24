@@ -41,7 +41,7 @@ export class AsrEngine {
    * @param modelId - Model identifier (e.g. 'sensevoice', 'reazonspeech')
    * @returns Promise that resolves with load time when ready
    */
-  async init(modelId: string): Promise<{ loadTimeMs: number }> {
+  async init(modelId: string, vadConfig?: { threshold?: number; minSilenceDuration?: number; minSpeechDuration?: number }): Promise<{ loadTimeMs: number }> {
     const model = getManifestEntry(modelId);
     if (!model || model.type !== 'asr') {
       const available = getManifestByType('asr').map(m => m.id).join(', ');
@@ -115,7 +115,7 @@ export class AsrEngine {
         }
       };
 
-      this.worker.postMessage({ type: 'init', fileUrls });
+      this.worker.postMessage({ type: 'init', fileUrls, vadConfig });
     });
   }
 
