@@ -30,7 +30,7 @@ var isReady = false;
  */
 function handleInit(msg) {
   var fileUrls = msg.fileUrls;
-  var modelFile = msg.modelFile || './model.onnx';
+  var modelFile = msg.modelFile || '';
 
   if (!fileUrls) {
     postMessage({ type: 'error', error: 'fileUrls is required — model must be downloaded first' });
@@ -59,55 +59,61 @@ function handleInit(msg) {
     try {
       postMessage({ type: 'status', message: 'Creating TTS engine...' });
 
-      // Build custom config with the correct model filename for this package.
-      // The default createOfflineTts() hardcodes './model.onnx' which doesn't
-      // match prebuilt Piper packages (e.g. 'en_US-libritts_r-medium.onnx').
-      var config = {
-        offlineTtsModelConfig: {
-          offlineTtsVitsModelConfig: {
-            model: './' + modelFile,
-            lexicon: '',
-            tokens: './tokens.txt',
-            dataDir: './espeak-ng-data',
-            noiseScale: 0.667,
-            noiseScaleW: 0.8,
-            lengthScale: 1.0,
+      if (modelFile) {
+        // Piper/VITS: needs custom config because prebuilt packages have
+        // non-default model filenames (e.g. 'en_US-libritts_r-medium.onnx').
+        var config = {
+          offlineTtsModelConfig: {
+            offlineTtsVitsModelConfig: {
+              model: './' + modelFile,
+              lexicon: '',
+              tokens: './tokens.txt',
+              dataDir: './espeak-ng-data',
+              noiseScale: 0.667,
+              noiseScaleW: 0.8,
+              lengthScale: 1.0,
+            },
+            offlineTtsMatchaModelConfig: {
+              acousticModel: '',
+              vocoder: '',
+              lexicon: '',
+              tokens: '',
+              dataDir: '',
+              noiseScale: 0.667,
+              lengthScale: 1.0,
+            },
+            offlineTtsKokoroModelConfig: {
+              model: '',
+              voices: '',
+              tokens: '',
+              dataDir: '',
+              lengthScale: 1.0,
+              lexicon: '',
+              lang: '',
+            },
+            offlineTtsKittenModelConfig: {
+              model: '',
+              voices: '',
+              tokens: '',
+              dataDir: '',
+              lengthScale: 1.0,
+            },
+            numThreads: 1,
+            debug: 1,
+            provider: 'cpu',
           },
-          offlineTtsMatchaModelConfig: {
-            acousticModel: '',
-            vocoder: '',
-            lexicon: '',
-            tokens: '',
-            dataDir: '',
-            noiseScale: 0.667,
-            lengthScale: 1.0,
-          },
-          offlineTtsKokoroModelConfig: {
-            model: '',
-            voices: '',
-            tokens: '',
-            dataDir: '',
-            lengthScale: 1.0,
-            lexicon: '',
-            lang: '',
-          },
-          offlineTtsKittenModelConfig: {
-            model: '',
-            voices: '',
-            tokens: '',
-            dataDir: '',
-            lengthScale: 1.0,
-          },
-          numThreads: 1,
-          debug: 1,
-          provider: 'cpu',
-        },
-        ruleFsts: '',
-        ruleFars: '',
-        maxNumSentences: 1,
-      };
-
-      tts = createOfflineTts(Module, config);
+          ruleFsts: '',
+          ruleFars: '',
+          maxNumSentences: 1,
+        };
+        tts = createOfflineTts(Module, config);
+      } else {
+        // Matcha (and other auto-detect models): let the baked-in
+        // createOfflineTts() auto-detection handle model config.
+        // Each package's sherpa-onnx-tts.js has a `let type = N` that
+        // correctly sets acousticModel, vocoder, tokens, etc.
+        tts = createOfflineTts(Module);
+      }
 
       isReady = true;
       var elapsed = Math.round(performance.now() - startTime);
