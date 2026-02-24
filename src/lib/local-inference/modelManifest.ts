@@ -14,7 +14,7 @@ export interface ModelFileEntry {
   sizeBytes: number;
 }
 
-export type ModelType = 'asr' | 'tts' | 'translation';
+export type ModelType = 'asr' | 'asr-stream' | 'tts' | 'translation';
 export type ModelStatus = 'not_downloaded' | 'downloading' | 'downloaded' | 'error';
 
 export interface ModelManifestEntry {
@@ -63,14 +63,24 @@ export function getModelFileUrl(cdnPath: string, filename: string): string {
 }
 
 // ─── Shared File Lists ───────────────────────────────────────────────────────
-// ASR models (sensevoice / reazonspeech) share the same WASM binary structure
-// but with different .data files containing different models.
+// Offline VAD+ASR models share the same WASM binary structure (same .js/.wasm
+// filenames) with different .data files containing different models.
+// Sizes are from sensevoice; other models have similar .js/.wasm but different .data.
 
 const ASR_FILES: ModelFileEntry[] = [
   { filename: 'sherpa-onnx-wasm-main-vad-asr.js', sizeBytes: 95_318 },
   { filename: 'sherpa-onnx-wasm-main-vad-asr.wasm', sizeBytes: 11_700_583 },
   { filename: 'sherpa-onnx-wasm-main-vad-asr.data', sizeBytes: 240_193_589 },
   { filename: 'sherpa-onnx-vad.js', sizeBytes: 7_764 },
+  { filename: 'sherpa-onnx-asr.js', sizeBytes: 46_198 },
+];
+
+// Streaming ASR models use a different WASM binary (no VAD, different main file names).
+// Sizes are from stream-en; other streaming models have different .data sizes.
+const STREAM_ASR_FILES: ModelFileEntry[] = [
+  { filename: 'sherpa-onnx-wasm-main-asr.js', sizeBytes: 92_240 },
+  { filename: 'sherpa-onnx-wasm-main-asr.wasm', sizeBytes: 11_547_795 },
+  { filename: 'sherpa-onnx-wasm-main-asr.data', sizeBytes: 190_951_044 },
   { filename: 'sherpa-onnx-asr.js', sizeBytes: 46_198 },
 ];
 
@@ -96,7 +106,7 @@ const TRANSLATION_FILES: ModelFileEntry[] = [
 
 export const MODEL_MANIFEST: ModelManifestEntry[] = [
 
-  // ── ASR Models ───────────────────────────────────────────────────────────
+  // ── Offline VAD+ASR Models ─────────────────────────────────────────────
   {
     id: 'sensevoice',
     type: 'asr',
@@ -115,8 +125,137 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'sherpa-onnx-asr-reazonspeech',
     files: ASR_FILES,
   },
+  {
+    id: 'whisper-en',
+    type: 'asr',
+    name: 'Whisper Tiny (English)',
+    languages: ['en'],
+    totalSizeMb: 51,
+    cdnPath: 'sherpa-onnx-asr-whisper-en',
+    files: ASR_FILES,
+  },
+  {
+    id: 'zipformer-en',
+    type: 'asr',
+    name: 'Zipformer GigaSpeech (English)',
+    languages: ['en'],
+    totalSizeMb: 59,
+    cdnPath: 'sherpa-onnx-asr-zipformer-en',
+    files: ASR_FILES,
+  },
+  {
+    id: 'moonshine-en',
+    type: 'asr',
+    name: 'Moonshine Tiny (English)',
+    languages: ['en'],
+    totalSizeMb: 105,
+    cdnPath: 'sherpa-onnx-asr-moonshine-en',
+    files: ASR_FILES,
+  },
+  {
+    id: 'paraformer-small',
+    type: 'asr',
+    name: 'Paraformer Small (zh/en)',
+    languages: ['zh', 'en'],
+    totalSizeMb: 77,
+    cdnPath: 'sherpa-onnx-asr-paraformer-small',
+    files: ASR_FILES,
+  },
+  {
+    id: 'paraformer-large',
+    type: 'asr',
+    name: 'Paraformer Large (zh/en)',
+    languages: ['zh', 'en'],
+    totalSizeMb: 225,
+    cdnPath: 'sherpa-onnx-asr-paraformer-large',
+    files: ASR_FILES,
+  },
+  {
+    id: 'wenetspeech',
+    type: 'asr',
+    name: 'Zipformer WenetSpeech (Chinese)',
+    languages: ['zh'],
+    totalSizeMb: 69,
+    cdnPath: 'sherpa-onnx-asr-wenetspeech',
+    files: ASR_FILES,
+  },
+  {
+    id: 'telespeech',
+    type: 'asr',
+    name: 'TeleSpeech (Chinese)',
+    languages: ['zh'],
+    totalSizeMb: 177,
+    cdnPath: 'sherpa-onnx-asr-telespeech',
+    files: ASR_FILES,
+  },
+  {
+    id: 'zipformer-ctc-zh',
+    type: 'asr',
+    name: 'Zipformer CTC (Chinese)',
+    languages: ['zh'],
+    totalSizeMb: 290,
+    cdnPath: 'sherpa-onnx-asr-zipformer-ctc-zh',
+    files: ASR_FILES,
+  },
+  {
+    id: 'dolphin',
+    type: 'asr',
+    name: 'Dolphin CTC (multilingual)',
+    languages: ['zh', 'en', 'ja', 'ko', 'de', 'fr', 'es'],
+    totalSizeMb: 80,
+    cdnPath: 'sherpa-onnx-asr-dolphin',
+    files: ASR_FILES,
+  },
+  {
+    id: 'gigaspeech2-th',
+    type: 'asr',
+    name: 'Zipformer GigaSpeech2 (Thai)',
+    languages: ['th'],
+    totalSizeMb: 126,
+    cdnPath: 'sherpa-onnx-asr-gigaspeech2-th',
+    files: ASR_FILES,
+  },
 
-  // ── TTS Models ───────────────────────────────────────────────────────────
+  // ── Streaming ASR Models ───────────────────────────────────────────────
+  // These use a different WASM binary (no VAD) and require a streaming engine.
+  {
+    id: 'stream-en',
+    type: 'asr-stream',
+    name: 'Streaming Zipformer (English)',
+    languages: ['en'],
+    totalSizeMb: 167,
+    cdnPath: 'sherpa-onnx-asr-stream-en',
+    files: STREAM_ASR_FILES,
+  },
+  {
+    id: 'stream-zh-en',
+    type: 'asr-stream',
+    name: 'Streaming Zipformer (zh/en)',
+    languages: ['zh', 'en'],
+    totalSizeMb: 173,
+    cdnPath: 'sherpa-onnx-asr-stream-zh-en',
+    files: STREAM_ASR_FILES,
+  },
+  {
+    id: 'stream-paraformer',
+    type: 'asr-stream',
+    name: 'Streaming Paraformer (zh/en)',
+    languages: ['zh', 'en'],
+    totalSizeMb: 218,
+    cdnPath: 'sherpa-onnx-asr-stream-paraformer',
+    files: STREAM_ASR_FILES,
+  },
+  {
+    id: 'stream-paraformer-cantonese',
+    type: 'asr-stream',
+    name: 'Streaming Paraformer (zh/cantonese/en)',
+    languages: ['zh', 'cantonese', 'en'],
+    totalSizeMb: 219,
+    cdnPath: 'sherpa-onnx-asr-stream-paraformer-cantonese',
+    files: STREAM_ASR_FILES,
+  },
+
+  // ── TTS: Piper Models ─────────────────────────────────────────────────
   {
     id: 'piper-en',
     type: 'tts',
@@ -135,6 +274,37 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     totalSizeMb: 79,
     cdnPath: 'sherpa-onnx-tts-piper-de',
     modelFile: 'de_DE-thorsten_emotional-medium.onnx',
+    files: TTS_FILES,
+  },
+
+  // ── TTS: Matcha Models ────────────────────────────────────────────────
+  // Matcha models share file structure with Piper but use a different model
+  // config internally. The TTS worker needs Matcha config support to use these.
+  {
+    id: 'matcha-en',
+    type: 'tts',
+    name: 'Matcha LJSpeech (English)',
+    languages: ['en'],
+    totalSizeMb: 125,
+    cdnPath: 'sherpa-onnx-tts-matcha-en',
+    files: TTS_FILES,
+  },
+  {
+    id: 'matcha-zh',
+    type: 'tts',
+    name: 'Matcha Baker (Chinese)',
+    languages: ['zh'],
+    totalSizeMb: 120,
+    cdnPath: 'sherpa-onnx-tts-matcha-zh',
+    files: TTS_FILES,
+  },
+  {
+    id: 'matcha-zh-en',
+    type: 'tts',
+    name: 'Matcha (zh/en bilingual)',
+    languages: ['zh', 'en'],
+    totalSizeMb: 127,
+    cdnPath: 'sherpa-onnx-tts-matcha-zh-en',
     files: TTS_FILES,
   },
 
