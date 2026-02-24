@@ -8,7 +8,6 @@
 import {
   getManifestEntry,
   getModelFileUrl,
-  type ModelManifestEntry,
 } from './modelManifest';
 import * as storage from './modelStorage';
 
@@ -41,7 +40,7 @@ export class ModelManager {
   // ─── Download ────────────────────────────────────────────────────────────
 
   /**
-   * Download a sherpa-onnx model (ASR or TTS).
+   * Download a model (ASR, TTS, or translation).
    * Fetches each file with streaming progress, stores Blobs in IndexedDB.
    * Skips files that are already stored (resume on retry).
    */
@@ -51,10 +50,6 @@ export class ModelManager {
   ): Promise<void> {
     const entry = getManifestEntry(modelId);
     if (!entry) throw new Error(`Unknown model: ${modelId}`);
-
-    if (entry.type === 'translation') {
-      return this.downloadTranslationModel(entry, onProgress);
-    }
 
     if (!entry.files || !entry.cdnPath) {
       throw new Error(`Model ${modelId} has no file manifest`);
@@ -150,69 +145,6 @@ export class ModelManager {
     }
   }
 
-  /**
-   * Download a translation model via Transformers.js pipeline pre-download.
-   * This triggers the HuggingFace model download into the browser's Cache API.
-   */
-  private async downloadTranslationModel(
-    entry: ModelManifestEntry,
-    onProgress?: ProgressCallback,
-  ): Promise<void> {
-    if (!entry.hfModelId) {
-      throw new Error(`Translation model ${entry.id} has no hfModelId`);
-    }
-
-    const controller = new AbortController();
-    this.activeDownloads.set(entry.id, controller);
-
-    try {
-      await storage.setMetadata(entry.id, {
-        modelId: entry.id,
-        status: 'downloading',
-        downloadedAt: null,
-        totalSizeBytes: entry.totalSizeMb * 1024 * 1024,
-        version: '1',
-      });
-
-      // Dynamically import Transformers.js to avoid loading it eagerly
-      const { pipeline } = await import('@huggingface/transformers');
-
-      await pipeline('translation', entry.hfModelId, {
-        progress_callback: (progress: any) => {
-          if (progress.status === 'progress' && progress.total) {
-            onProgress?.({
-              modelId: entry.id,
-              downloadedBytes: progress.loaded || 0,
-              totalBytes: progress.total || entry.totalSizeMb * 1024 * 1024,
-              currentFile: progress.file || entry.hfModelId!,
-              percent: Math.round(((progress.loaded || 0) / (progress.total || 1)) * 100),
-            });
-          }
-        },
-      });
-
-      await storage.setMetadata(entry.id, {
-        modelId: entry.id,
-        status: 'downloaded',
-        downloadedAt: Date.now(),
-        totalSizeBytes: entry.totalSizeMb * 1024 * 1024,
-        version: '1',
-      });
-    } catch (err: any) {
-      if (err.name === 'AbortError') throw err;
-      await storage.setMetadata(entry.id, {
-        modelId: entry.id,
-        status: 'error',
-        downloadedAt: null,
-        totalSizeBytes: entry.totalSizeMb * 1024 * 1024,
-        version: '1',
-      });
-      throw err;
-    } finally {
-      this.activeDownloads.delete(entry.id);
-    }
-  }
-
   /** Cancel an in-progress download */
   cancelDownload(modelId: string): void {
     const controller = this.activeDownloads.get(modelId);
@@ -237,7 +169,12 @@ export class ModelManager {
     for (const file of entry.files) {
       const blob = await storage.getFile(modelId, file.filename);
       if (blob) {
-        urls[file.filename] = URL.createObjectURL(blob);
+        // Re-wrap with correct MIME type so WebAssembly.instantiateStreaming
+        // works for .wasm files (requires Content-Type: application/wasm)
+        const typed = blob.type
+          ? blob
+          : new Blob([blob], { type: ModelManager.getMimeType(file.filename) });
+        urls[file.filename] = URL.createObjectURL(typed);
       }
     }
     return urls;
@@ -252,66 +189,25 @@ export class ModelManager {
 
   // ─── Status Queries ──────────────────────────────────────────────────────
 
-  /** Check if all files for a sherpa-onnx model are present in IndexedDB */
+  /** Check if all files for a model are present in IndexedDB */
   async isModelReady(modelId: string): Promise<boolean> {
     const entry = getManifestEntry(modelId);
-    if (!entry) return false;
-
-    // Translation models are cached by Transformers.js in Cache API
-    if (entry.type === 'translation') {
-      return this.isTranslationModelCached(entry.hfModelId!);
-    }
-
-    if (!entry.files) return false;
+    if (!entry?.files) return false;
     return storage.hasAllFiles(modelId, entry.files.map(f => f.filename));
   }
 
   /** Delete a model from IndexedDB */
   async deleteModel(modelId: string): Promise<void> {
-    const entry = getManifestEntry(modelId);
-    if (!entry) return;
-
-    if (entry.type === 'translation' && entry.hfModelId) {
-      await this.deleteTranslationModelCache(entry.hfModelId);
-    }
-
     await storage.deleteModel(modelId);
   }
 
-  /**
-   * Probe Cache API for a Transformers.js cached translation model.
-   * Transformers.js uses a cache named 'transformers-cache'.
-   */
-  async isTranslationModelCached(hfModelId: string): Promise<boolean> {
-    try {
-      // Transformers.js stores files under URLs like:
-      // https://huggingface.co/{modelId}/resolve/main/{file}
-      const cache = await caches.open('transformers-cache');
-      const keys = await cache.keys();
-      // Check if any cached URL contains the model ID
-      return keys.some(req => req.url.includes(hfModelId.replace('/', '%2F')) || req.url.includes(hfModelId));
-    } catch {
-      // Cache API not available or other error
-      return false;
-    }
-  }
-
-  /** Delete a translation model from the Transformers.js cache */
-  private async deleteTranslationModelCache(hfModelId: string): Promise<void> {
-    try {
-      const cache = await caches.open('transformers-cache');
-      const keys = await cache.keys();
-      for (const req of keys) {
-        if (req.url.includes(hfModelId.replace('/', '%2F')) || req.url.includes(hfModelId)) {
-          await cache.delete(req);
-        }
-      }
-    } catch {
-      // Ignore if Cache API unavailable
-    }
-  }
-
   // ─── Helpers ─────────────────────────────────────────────────────────────
+
+  private static getMimeType(filename: string): string {
+    if (filename.endsWith('.wasm')) return 'application/wasm';
+    if (filename.endsWith('.json')) return 'application/json';
+    return 'application/octet-stream';
+  }
 
   /**
    * Stream a fetch response into a Blob with byte-level progress.
