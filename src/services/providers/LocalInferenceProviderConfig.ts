@@ -1,24 +1,13 @@
-import { ProviderConfig, LanguageOption, ModelOption } from './ProviderConfig';
+import { ProviderConfig, ModelOption } from './ProviderConfig';
+import { getTranslationSourceLanguages } from '../../lib/local-inference/modelManifest';
 
 /**
  * Provider configuration for Local (Offline) inference.
  * Uses sherpa-onnx ASR + Opus-MT translation + Piper TTS.
  *
- * Source languages are constrained by ASR model support (SenseVoice: ja/zh/en/ko).
- * Target languages are constrained by available Opus-MT translation pairs.
+ * Languages are derived dynamically from the model manifest.
  */
 export class LocalInferenceProviderConfig {
-  // Source languages supported by SenseVoice ASR
-  private static readonly LANGUAGES: LanguageOption[] = [
-    { name: '日本語', value: 'ja', englishName: 'Japanese' },
-    { name: '中文', value: 'zh', englishName: 'Chinese' },
-    { name: 'English', value: 'en', englishName: 'English' },
-    { name: '한국어', value: 'ko', englishName: 'Korean' },
-    { name: 'Deutsch', value: 'de', englishName: 'German' },
-    { name: 'Français', value: 'fr', englishName: 'French' },
-    { name: 'Español', value: 'es', englishName: 'Spanish' },
-  ];
-
   private static readonly MODELS: ModelOption[] = [
     { id: 'local-asr-translate', type: 'realtime' },
   ];
@@ -31,7 +20,7 @@ export class LocalInferenceProviderConfig {
       apiKeyLabel: '',
       apiKeyPlaceholder: '',
 
-      languages: LocalInferenceProviderConfig.LANGUAGES,
+      languages: getTranslationSourceLanguages(),
       voices: [],
       models: LocalInferenceProviderConfig.MODELS,
       noiseReductionModes: [],
