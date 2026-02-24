@@ -337,9 +337,11 @@ export function getManifestByType(type: ModelType): ModelManifestEntry[] {
   return MODEL_MANIFEST.filter(m => m.type === type);
 }
 
-/** Get ASR models that support a given language */
+/** Get ASR models (offline + streaming) that support a given language */
 export function getAsrModelsForLanguage(lang: string): ModelManifestEntry[] {
-  return MODEL_MANIFEST.filter(m => m.type === 'asr' && m.languages.includes(lang));
+  return MODEL_MANIFEST.filter(
+    m => (m.type === 'asr' || m.type === 'asr-stream') && m.languages.includes(lang)
+  );
 }
 
 /** Get translation model for a language pair */

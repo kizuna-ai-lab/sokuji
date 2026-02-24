@@ -69,6 +69,31 @@ export type AsrWorkerOutMessage =
   | AsrErrorMessage
   | AsrDisposedMessage;
 
+// ─── Streaming ASR Worker Messages (Worker → Main) ──────────────────────────
+// Inbound messages reuse AsrInitMessage (without vadConfig), AsrAudioMessage, AsrDisposeMessage.
+
+/** Streaming ASR: partial (interim) result message */
+export interface StreamingAsrPartialMessage {
+  type: 'partial';
+  text: string;
+}
+
+/** Streaming ASR: final result (at endpoint) */
+export interface StreamingAsrResultMessage {
+  type: 'result';
+  text: string;
+  durationMs: number;
+  recognitionTimeMs: number;
+}
+
+export type StreamingAsrWorkerOutMessage =
+  | AsrReadyMessage
+  | AsrStatusMessage
+  | StreamingAsrPartialMessage
+  | StreamingAsrResultMessage
+  | AsrErrorMessage
+  | AsrDisposedMessage;
+
 // ─── TTS Worker Messages (Main → Worker) ─────────────────────────────────────
 
 export interface TtsInitMessage {
