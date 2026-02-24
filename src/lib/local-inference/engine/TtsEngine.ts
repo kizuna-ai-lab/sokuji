@@ -133,7 +133,7 @@ export class TtsEngine {
         }
       };
 
-      this.worker.postMessage({ type: 'init', modelFile: model.modelFile || 'model.onnx', fileUrls });
+      this.worker.postMessage({ type: 'init', modelFile: model.modelFile || '', fileUrls });
     });
   }
 
