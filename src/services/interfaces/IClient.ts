@@ -121,6 +121,9 @@ export interface LocalInferenceSessionConfig extends BaseSessionConfig {
   ttsModelId?: string;
   ttsSpeakerId: number;
   ttsSpeed: number;
+  vadThreshold?: number;
+  vadMinSilenceDuration?: number;
+  vadMinSpeechDuration?: number;
 }
 
 /**

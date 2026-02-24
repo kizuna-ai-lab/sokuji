@@ -1390,6 +1390,90 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
           </div>
         </div>
 
+        <div className="settings-section">
+          <h2>
+            {t('settings.vadSettings', 'VAD Settings')}
+            <Tooltip
+              content={t('settings.vadSettingsTooltip', 'Voice Activity Detection parameters. Controls how speech segments are detected and split. Changes take effect on next session start.')}
+              position="top"
+            >
+              <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '8px' }} />
+            </Tooltip>
+          </h2>
+          <div className="setting-item">
+            <div className="setting-label">
+              <span>
+                {t('settings.vadThreshold', 'Speech Threshold')}
+                <Tooltip
+                  content={t('settings.vadThresholdTooltip', 'Speech detection sensitivity. Higher values require louder/clearer speech to trigger recognition. Lower values are more sensitive to quiet speech.')}
+                  position="top"
+                >
+                  <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '4px', display: 'inline-block', verticalAlign: 'middle' }} />
+                </Tooltip>
+              </span>
+              <span className="setting-value">{localInferenceSettings.vadThreshold.toFixed(2)}</span>
+            </div>
+            <input
+              type="range"
+              min="0.1"
+              max="0.95"
+              step="0.05"
+              value={localInferenceSettings.vadThreshold}
+              onChange={(e) => updateLocalInferenceSettings({ vadThreshold: parseFloat(e.target.value) })}
+              className="slider"
+              disabled={isSessionActive}
+            />
+          </div>
+          <div className="setting-item">
+            <div className="setting-label">
+              <span>
+                {t('settings.vadMinSilenceDuration', 'Min Silence Duration')}
+                <Tooltip
+                  content={t('settings.vadMinSilenceDurationTooltip', 'Minimum silence duration to split speech segments. Shorter values split sentences faster, longer values wait for more natural pauses.')}
+                  position="top"
+                >
+                  <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '4px', display: 'inline-block', verticalAlign: 'middle' }} />
+                </Tooltip>
+              </span>
+              <span className="setting-value">{localInferenceSettings.vadMinSilenceDuration.toFixed(1)}s</span>
+            </div>
+            <input
+              type="range"
+              min="0.1"
+              max="2.0"
+              step="0.1"
+              value={localInferenceSettings.vadMinSilenceDuration}
+              onChange={(e) => updateLocalInferenceSettings({ vadMinSilenceDuration: parseFloat(e.target.value) })}
+              className="slider"
+              disabled={isSessionActive}
+            />
+          </div>
+          <div className="setting-item">
+            <div className="setting-label">
+              <span>
+                {t('settings.vadMinSpeechDuration', 'Min Speech Duration')}
+                <Tooltip
+                  content={t('settings.vadMinSpeechDurationTooltip', 'Minimum speech duration to consider as valid speech. Filters out very short sounds like clicks or coughs.')}
+                  position="top"
+                >
+                  <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '4px', display: 'inline-block', verticalAlign: 'middle' }} />
+                </Tooltip>
+              </span>
+              <span className="setting-value">{localInferenceSettings.vadMinSpeechDuration.toFixed(2)}s</span>
+            </div>
+            <input
+              type="range"
+              min="0.05"
+              max="1.0"
+              step="0.05"
+              value={localInferenceSettings.vadMinSpeechDuration}
+              onChange={(e) => updateLocalInferenceSettings({ vadMinSpeechDuration: parseFloat(e.target.value) })}
+              className="slider"
+              disabled={isSessionActive}
+            />
+          </div>
+        </div>
+
       </>
     );
   };

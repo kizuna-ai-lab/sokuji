@@ -70,7 +70,11 @@ export class LocalInferenceClient implements IClient {
         this.handlers.onError?.(new Error(`ASR: ${error}`));
       };
 
-      await this.asrEngine.init(config.asrModelId);
+      await this.asrEngine.init(config.asrModelId, {
+        threshold: config.vadThreshold,
+        minSilenceDuration: config.vadMinSilenceDuration,
+        minSpeechDuration: config.vadMinSpeechDuration,
+      });
       console.info('[LocalInference] ASR engine ready');
 
       // Initialize Translation engine
@@ -263,6 +267,9 @@ export class LocalInferenceClient implements IClient {
       this.handlers.onConversationUpdated?.({ item: assistantItem });
 
     } catch (error) {
+      // Session ending — expected, not an error
+      if (this.disposed) return;
+
       console.error('[LocalInference] Pipeline error:', error);
 
       // Create error item
