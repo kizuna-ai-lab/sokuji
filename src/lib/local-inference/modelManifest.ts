@@ -382,6 +382,27 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
   { id: 'opus-mt-es-ru', type: 'translation', name: 'Opus-MT (es → ru)', languages: ['es', 'ru'], totalSizeMb: 110, cdnPath: 'opus-mt-es-ru', files: TRANSLATION_FILES, hfModelId: 'Xenova/opus-mt-es-ru', sourceLang: 'es', targetLang: 'ru' },
 ];
 
+// ─── Language Helpers ────────────────────────────────────────────────────────
+
+import { getLanguageOption } from '../../utils/languages';
+import type { LanguageOption } from '../../services/providers/ProviderConfig';
+
+/** Get all unique source languages available across translation models */
+export function getTranslationSourceLanguages(): LanguageOption[] {
+  const codes = new Set(
+    MODEL_MANIFEST.filter(m => m.type === 'translation').map(m => m.sourceLang!)
+  );
+  return [...codes].map(getLanguageOption).sort((a, b) => a.englishName.localeCompare(b.englishName));
+}
+
+/** Get available target languages for a given source language */
+export function getTranslationTargetLanguages(sourceLang: string): LanguageOption[] {
+  const codes = new Set(
+    MODEL_MANIFEST.filter(m => m.type === 'translation' && m.sourceLang === sourceLang).map(m => m.targetLang!)
+  );
+  return [...codes].map(getLanguageOption).sort((a, b) => a.englishName.localeCompare(b.englishName));
+}
+
 // ─── Query Helpers ───────────────────────────────────────────────────────────
 
 /** Get a manifest entry by model ID */

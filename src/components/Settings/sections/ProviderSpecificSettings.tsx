@@ -37,7 +37,7 @@ import { ChevronDown, ChevronRight, RotateCw, Info, CircleHelp } from 'lucide-re
 import Tooltip from '../../Tooltip/Tooltip';
 import { FilteredModel } from '../../../services/interfaces/IClient';
 import { Provider, isOpenAICompatible } from '../../../types/Provider';
-import { getManifestByType, getManifestEntry } from '../../../lib/local-inference/modelManifest';
+import { getManifestByType, getManifestEntry, getTranslationTargetLanguages } from '../../../lib/local-inference/modelManifest';
 import { useModelStatuses } from '../../../stores/modelStore';
 import { ModelManagementSection } from './ModelManagementSection';
 import { useAnalytics } from '../../../lib/analytics';
@@ -1243,12 +1243,11 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
                 const newSourceLang = e.target.value;
                 const updates: Record<string, any> = { sourceLanguage: newSourceLang };
 
-                // If source === target, swap target to another language
+                // If current target is invalid for new source, pick first available target
                 let effectiveTargetLang = localInferenceSettings.targetLanguage;
-                if (newSourceLang === effectiveTargetLang) {
-                  effectiveTargetLang = config.languages.find(lang =>
-                    lang.value !== newSourceLang
-                  )?.value || 'en';
+                const availableTargets = getTranslationTargetLanguages(newSourceLang);
+                if (!availableTargets.some(t => t.value === effectiveTargetLang)) {
+                  effectiveTargetLang = availableTargets[0]?.value || 'en';
                   updates.targetLanguage = effectiveTargetLang;
                 }
 
@@ -1339,8 +1338,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
               }}
               disabled={isSessionActive}
             >
-              {config.languages
-                .filter(lang => lang.value !== localInferenceSettings.sourceLanguage)
+              {getTranslationTargetLanguages(localInferenceSettings.sourceLanguage)
                 .map((lang) => (
                   <option key={lang.value} value={lang.value}>{lang.name}</option>
                 ))}
