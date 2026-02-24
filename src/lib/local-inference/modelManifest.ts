@@ -81,6 +81,17 @@ const TTS_FILES: ModelFileEntry[] = [
   { filename: 'sherpa-onnx-tts.js', sizeBytes: 25_896 },
 ];
 
+// Translation models (Opus-MT via Transformers.js) share the same file structure.
+// Sizes are from Xenova/opus-mt-ja-en; other pairs are similar.
+const TRANSLATION_FILES: ModelFileEntry[] = [
+  { filename: 'config.json', sizeBytes: 1_376 },
+  { filename: 'generation_config.json', sizeBytes: 293 },
+  { filename: 'tokenizer.json', sizeBytes: 5_991_485 },
+  { filename: 'tokenizer_config.json', sizeBytes: 280 },
+  { filename: 'onnx/encoder_model_quantized.onnx', sizeBytes: 50_705_822 },
+  { filename: 'onnx/decoder_model_merged_quantized.onnx', sizeBytes: 58_001_744 },
+];
+
 // ─── Model Manifest ──────────────────────────────────────────────────────────
 
 export const MODEL_MANIFEST: ModelManifestEntry[] = [
@@ -128,18 +139,20 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
   },
 
   // ── Translation Models ───────────────────────────────────────────────────
-  { id: 'opus-mt-ja-en', type: 'translation', name: 'Opus-MT (ja → en)', languages: ['ja', 'en'], totalSizeMb: 45, hfModelId: 'Xenova/opus-mt-ja-en', sourceLang: 'ja', targetLang: 'en' },
-  { id: 'opus-mt-en-ja', type: 'translation', name: 'Opus-MT (en → ja)', languages: ['en', 'ja'], totalSizeMb: 45, hfModelId: 'Xenova/opus-mt-en-ja', sourceLang: 'en', targetLang: 'ja' },
-  { id: 'opus-mt-zh-en', type: 'translation', name: 'Opus-MT (zh → en)', languages: ['zh', 'en'], totalSizeMb: 45, hfModelId: 'Xenova/opus-mt-zh-en', sourceLang: 'zh', targetLang: 'en' },
-  { id: 'opus-mt-en-zh', type: 'translation', name: 'Opus-MT (en → zh)', languages: ['en', 'zh'], totalSizeMb: 45, hfModelId: 'Xenova/opus-mt-en-zh', sourceLang: 'en', targetLang: 'zh' },
-  { id: 'opus-mt-ko-en', type: 'translation', name: 'Opus-MT (ko → en)', languages: ['ko', 'en'], totalSizeMb: 45, hfModelId: 'Xenova/opus-mt-ko-en', sourceLang: 'ko', targetLang: 'en' },
-  { id: 'opus-mt-en-ko', type: 'translation', name: 'Opus-MT (en → ko)', languages: ['en', 'ko'], totalSizeMb: 45, hfModelId: 'Xenova/opus-mt-en-ko', sourceLang: 'en', targetLang: 'ko' },
-  { id: 'opus-mt-de-en', type: 'translation', name: 'Opus-MT (de → en)', languages: ['de', 'en'], totalSizeMb: 45, hfModelId: 'Xenova/opus-mt-de-en', sourceLang: 'de', targetLang: 'en' },
-  { id: 'opus-mt-en-de', type: 'translation', name: 'Opus-MT (en → de)', languages: ['en', 'de'], totalSizeMb: 45, hfModelId: 'Xenova/opus-mt-en-de', sourceLang: 'en', targetLang: 'de' },
-  { id: 'opus-mt-fr-en', type: 'translation', name: 'Opus-MT (fr → en)', languages: ['fr', 'en'], totalSizeMb: 45, hfModelId: 'Xenova/opus-mt-fr-en', sourceLang: 'fr', targetLang: 'en' },
-  { id: 'opus-mt-en-fr', type: 'translation', name: 'Opus-MT (en → fr)', languages: ['en', 'fr'], totalSizeMb: 45, hfModelId: 'Xenova/opus-mt-en-fr', sourceLang: 'en', targetLang: 'fr' },
-  { id: 'opus-mt-es-en', type: 'translation', name: 'Opus-MT (es → en)', languages: ['es', 'en'], totalSizeMb: 45, hfModelId: 'Xenova/opus-mt-es-en', sourceLang: 'es', targetLang: 'en' },
-  { id: 'opus-mt-en-es', type: 'translation', name: 'Opus-MT (en → es)', languages: ['en', 'es'], totalSizeMb: 45, hfModelId: 'Xenova/opus-mt-en-es', sourceLang: 'en', targetLang: 'es' },
+  // All translation models use CDN + IndexedDB (same as ASR/TTS).
+  // hfModelId is still needed by the worker for pipeline() identification.
+  { id: 'opus-mt-ja-en', type: 'translation', name: 'Opus-MT (ja → en)', languages: ['ja', 'en'], totalSizeMb: 110, cdnPath: 'opus-mt-ja-en', files: TRANSLATION_FILES, hfModelId: 'Xenova/opus-mt-ja-en', sourceLang: 'ja', targetLang: 'en' },
+  { id: 'opus-mt-en-ja', type: 'translation', name: 'Opus-MT (en → ja)', languages: ['en', 'ja'], totalSizeMb: 110, cdnPath: 'opus-mt-en-ja', files: TRANSLATION_FILES, hfModelId: 'Xenova/opus-mt-en-ja', sourceLang: 'en', targetLang: 'ja' },
+  { id: 'opus-mt-zh-en', type: 'translation', name: 'Opus-MT (zh → en)', languages: ['zh', 'en'], totalSizeMb: 110, cdnPath: 'opus-mt-zh-en', files: TRANSLATION_FILES, hfModelId: 'Xenova/opus-mt-zh-en', sourceLang: 'zh', targetLang: 'en' },
+  { id: 'opus-mt-en-zh', type: 'translation', name: 'Opus-MT (en → zh)', languages: ['en', 'zh'], totalSizeMb: 110, cdnPath: 'opus-mt-en-zh', files: TRANSLATION_FILES, hfModelId: 'Xenova/opus-mt-en-zh', sourceLang: 'en', targetLang: 'zh' },
+  { id: 'opus-mt-ko-en', type: 'translation', name: 'Opus-MT (ko → en)', languages: ['ko', 'en'], totalSizeMb: 110, cdnPath: 'opus-mt-ko-en', files: TRANSLATION_FILES, hfModelId: 'Xenova/opus-mt-ko-en', sourceLang: 'ko', targetLang: 'en' },
+  { id: 'opus-mt-en-ko', type: 'translation', name: 'Opus-MT (en → ko)', languages: ['en', 'ko'], totalSizeMb: 110, cdnPath: 'opus-mt-en-ko', files: TRANSLATION_FILES, hfModelId: 'Xenova/opus-mt-en-ko', sourceLang: 'en', targetLang: 'ko' },
+  { id: 'opus-mt-de-en', type: 'translation', name: 'Opus-MT (de → en)', languages: ['de', 'en'], totalSizeMb: 110, cdnPath: 'opus-mt-de-en', files: TRANSLATION_FILES, hfModelId: 'Xenova/opus-mt-de-en', sourceLang: 'de', targetLang: 'en' },
+  { id: 'opus-mt-en-de', type: 'translation', name: 'Opus-MT (en → de)', languages: ['en', 'de'], totalSizeMb: 110, cdnPath: 'opus-mt-en-de', files: TRANSLATION_FILES, hfModelId: 'Xenova/opus-mt-en-de', sourceLang: 'en', targetLang: 'de' },
+  { id: 'opus-mt-fr-en', type: 'translation', name: 'Opus-MT (fr → en)', languages: ['fr', 'en'], totalSizeMb: 110, cdnPath: 'opus-mt-fr-en', files: TRANSLATION_FILES, hfModelId: 'Xenova/opus-mt-fr-en', sourceLang: 'fr', targetLang: 'en' },
+  { id: 'opus-mt-en-fr', type: 'translation', name: 'Opus-MT (en → fr)', languages: ['en', 'fr'], totalSizeMb: 110, cdnPath: 'opus-mt-en-fr', files: TRANSLATION_FILES, hfModelId: 'Xenova/opus-mt-en-fr', sourceLang: 'en', targetLang: 'fr' },
+  { id: 'opus-mt-es-en', type: 'translation', name: 'Opus-MT (es → en)', languages: ['es', 'en'], totalSizeMb: 110, cdnPath: 'opus-mt-es-en', files: TRANSLATION_FILES, hfModelId: 'Xenova/opus-mt-es-en', sourceLang: 'es', targetLang: 'en' },
+  { id: 'opus-mt-en-es', type: 'translation', name: 'Opus-MT (en → es)', languages: ['en', 'es'], totalSizeMb: 110, cdnPath: 'opus-mt-en-es', files: TRANSLATION_FILES, hfModelId: 'Xenova/opus-mt-en-es', sourceLang: 'en', targetLang: 'es' },
 ];
 
 // ─── Query Helpers ───────────────────────────────────────────────────────────

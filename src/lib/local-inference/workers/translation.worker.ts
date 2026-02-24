@@ -1,13 +1,15 @@
 /**
  * Translation Web Worker — Opus-MT via @huggingface/transformers
  * Runs ONNX inference in a background thread.
+ *
+ * Model files are pre-downloaded into IndexedDB and passed in as blob URLs.
+ * A customCache bridge lets Transformers.js find those files without any
+ * network requests to HuggingFace Hub.
  */
 
 import { pipeline, env } from '@huggingface/transformers';
 import type { TranslationPipeline } from '@huggingface/transformers';
 
-// Disable local model check (always fetch from HuggingFace Hub)
-env.allowLocalModels = false;
 // Use WASM backend (no WebGPU in workers yet in most browsers)
 if (env.backends?.onnx?.wasm) {
   env.backends.onnx.wasm.proxy = false;
@@ -15,7 +17,8 @@ if (env.backends?.onnx?.wasm) {
 
 interface InitMessage {
   type: 'init';
-  modelId: string; // e.g. 'Xenova/opus-mt-ja-en'
+  hfModelId: string; // e.g. 'Xenova/opus-mt-ja-en'
+  fileUrls: Record<string, string>; // filename → blob URL
 }
 
 interface TranslateMessage {
@@ -34,37 +37,75 @@ let translator: TranslationPipeline | null = null;
 let currentModelId: string | null = null;
 void currentModelId; // Used for tracking, suppress unused warning
 
+/**
+ * Create a custom cache object that serves pre-downloaded blob URLs
+ * to Transformers.js, avoiding any HuggingFace Hub network requests.
+ *
+ * Transformers.js requests files via URLs like:
+ *   https://huggingface.co/Xenova/opus-mt-ja-en/resolve/main/config.json
+ *   https://huggingface.co/Xenova/opus-mt-ja-en/resolve/main/onnx/encoder_model_quantized.onnx
+ *
+ * We extract the path after /resolve/main/ and look it up in our fileUrls map.
+ */
+function createBlobUrlCache(fileUrls: Record<string, string>) {
+  return {
+    async match(request: string | Request | undefined): Promise<Response | undefined> {
+      if (!request) return undefined;
+
+      const url = typeof request === 'string' ? request : request.url;
+
+      // Extract filename from HuggingFace URL pattern:
+      // https://huggingface.co/{org}/{model}/resolve/main/{path}
+      const resolveMainMarker = '/resolve/main/';
+      const idx = url.indexOf(resolveMainMarker);
+      if (idx === -1) return undefined;
+
+      const filename = url.slice(idx + resolveMainMarker.length);
+      const blobUrl = fileUrls[filename];
+      if (!blobUrl) return undefined;
+
+      // Fetch the blob URL to get a proper Response object
+      const response = await fetch(blobUrl);
+      return response;
+    },
+
+    // No-op: files are already stored in IndexedDB
+    async put(_request: string | Request, _response: Response): Promise<void> {},
+  };
+}
+
 async function handleInit(msg: InitMessage) {
   try {
     const startTime = performance.now();
-    self.postMessage({ type: 'status', status: 'loading', modelId: msg.modelId });
+    self.postMessage({ type: 'status', status: 'loading', modelId: msg.hfModelId });
 
-    // Create the translation pipeline
-    // @huggingface/transformers handles:
-    // - Model download from HuggingFace Hub
-    // - ONNX session creation with onnxruntime-web WASM backend
-    // - Tokenizer loading (SentencePiece)
-    // - Caching in browser Cache API
-    translator = await (pipeline as any)('translation', msg.modelId, {
-      dtype: 'q8',  // Use quantized model for smaller size
+    // Configure Transformers.js to use our blob URL cache instead of network
+    env.allowRemoteModels = false;
+    env.allowLocalModels = true;
+    env.useBrowserCache = false;
+    env.useCustomCache = true;
+    env.customCache = createBlobUrlCache(msg.fileUrls);
+
+    // Suppress known "MarianTokenizer is not yet supported by fast tokenizers" warning
+    // from @huggingface/transformers — all Opus-MT models trigger this; it's informational only
+    const _warn = console.warn;
+    console.warn = (...args: unknown[]) => {
+      if (typeof args[0] === 'string' && args[0].includes('MarianTokenizer')) return;
+      _warn.apply(console, args);
+    };
+
+    // Create the translation pipeline — Transformers.js finds all files via customCache
+    translator = await (pipeline as any)('translation', msg.hfModelId, {
+      dtype: 'q8',
       device: 'wasm',
-      progress_callback: (progress: any) => {
-        if (progress.status === 'progress') {
-          self.postMessage({
-            type: 'progress',
-            modelId: msg.modelId,
-            file: progress.file,
-            loaded: progress.loaded,
-            total: progress.total,
-            progress: progress.progress,
-          });
-        }
-      },
     }) as TranslationPipeline;
 
-    currentModelId = msg.modelId;
+    // Restore original console.warn
+    console.warn = _warn;
+
+    currentModelId = msg.hfModelId;
     const elapsed = Math.round(performance.now() - startTime);
-    self.postMessage({ type: 'ready', modelId: msg.modelId, loadTimeMs: elapsed });
+    self.postMessage({ type: 'ready', modelId: msg.hfModelId, loadTimeMs: elapsed });
   } catch (error: any) {
     self.postMessage({ type: 'error', error: error.message || String(error) });
   }

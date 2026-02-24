@@ -7,7 +7,7 @@
  */
 
 import { useState, useRef, useCallback } from 'react';
-import { TranslationEngine, TranslationProgress } from './engine/TranslationEngine';
+import { TranslationEngine } from './engine/TranslationEngine';
 
 const LANG_PAIRS = TranslationEngine.getAvailableLanguagePairs();
 
@@ -21,7 +21,6 @@ export function TranslationProto() {
   const [status, setStatus] = useState<'idle' | 'loading' | 'ready' | 'translating' | 'error'>('idle');
   const [loadTime, setLoadTime] = useState<number | null>(null);
   const [inferenceTime, setInferenceTime] = useState<number | null>(null);
-  const [progress, setProgress] = useState<TranslationProgress | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [log, setLog] = useState<string[]>([]);
 
@@ -35,7 +34,6 @@ export function TranslationProto() {
     setError(null);
     setOutputText('');
     setInferenceTime(null);
-    setProgress(null);
     addLog(`Initializing ${sourceLang} → ${targetLang}...`);
 
     // Dispose previous engine
@@ -46,11 +44,6 @@ export function TranslationProto() {
 
     const engine = new TranslationEngine();
     engineRef.current = engine;
-
-    engine.onProgress = (p) => {
-      setProgress(p);
-      addLog(`Downloading ${p.file}: ${Math.round(p.progress)}%`);
-    };
 
     engine.onError = (err) => {
       setError(err);
@@ -95,7 +88,6 @@ export function TranslationProto() {
     setStatus('idle');
     setLoadTime(null);
     setInferenceTime(null);
-    setProgress(null);
     addLog('Engine disposed');
   }, [addLog]);
 
@@ -164,24 +156,6 @@ export function TranslationProto() {
           Dispose
         </button>
       </div>
-
-      {/* Progress */}
-      {progress && status === 'loading' && (
-        <div style={{ marginBottom: 8 }}>
-          <div style={{ fontSize: 11, marginBottom: 4 }}>
-            Downloading: {progress.file} ({Math.round(progress.progress)}%)
-          </div>
-          <div style={{ background: '#333', borderRadius: 4, height: 6 }}>
-            <div style={{
-              background: '#10a37f',
-              borderRadius: 4,
-              height: 6,
-              width: `${progress.progress}%`,
-              transition: 'width 0.3s',
-            }} />
-          </div>
-        </div>
-      )}
 
       {/* Stats */}
       <div style={{ fontSize: 11, marginBottom: 12, color: '#888' }}>

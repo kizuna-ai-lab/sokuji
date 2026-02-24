@@ -1,17 +1,12 @@
 /**
  * TranslationEngine — Main thread wrapper for the translation Web Worker.
  * Provides a simple async API for translating text via Opus-MT.
+ *
+ * Model files are loaded from IndexedDB as blob URLs (same pattern as ASR/TTS).
  */
 
 import { getTranslationModel, getManifestByType } from '../modelManifest';
-
-export interface TranslationProgress {
-  modelId: string;
-  file: string;
-  loaded: number;
-  total: number;
-  progress: number; // 0-100
-}
+import { ModelManager } from '../ModelManager';
 
 export interface TranslationResult {
   sourceText: string;
@@ -19,7 +14,6 @@ export interface TranslationResult {
   inferenceTimeMs: number;
 }
 
-type ProgressCallback = (progress: TranslationProgress) => void;
 type ErrorCallback = (error: string) => void;
 
 export class TranslationEngine {
@@ -32,11 +26,11 @@ export class TranslationEngine {
   }>();
   private requestCounter = 0;
 
-  onProgress: ProgressCallback | null = null;
   onError: ErrorCallback | null = null;
 
   /**
-   * Initialize with a language pair (e.g. 'ja', 'en')
+   * Initialize with a language pair (e.g. 'ja', 'en').
+   * Loads model files from IndexedDB and passes blob URLs to the worker.
    */
   async init(sourceLang: string, targetLang: string): Promise<{ loadTimeMs: number }> {
     const entry = getTranslationModel(sourceLang, targetLang);
@@ -44,10 +38,10 @@ export class TranslationEngine {
       const available = getManifestByType('translation').map(m => `${m.sourceLang}-${m.targetLang}`).join(', ');
       throw new Error(`No Opus-MT model available for language pair: ${sourceLang}-${targetLang}. Available: ${available}`);
     }
-    const modelId = entry.hfModelId;
+    const hfModelId = entry.hfModelId;
 
     // If already loaded with same model, skip
-    if (this.isReady && this.currentModelId === modelId) {
+    if (this.isReady && this.currentModelId === hfModelId) {
       return { loadTimeMs: 0 };
     }
 
@@ -55,6 +49,13 @@ export class TranslationEngine {
     if (this.worker) {
       this.dispose();
     }
+
+    // Load model file blob URLs from IndexedDB
+    const manager = ModelManager.getInstance();
+    if (!await manager.isModelReady(entry.id)) {
+      throw new Error(`Translation model "${entry.id}" is not downloaded. Download it first via Model Management.`);
+    }
+    const fileUrls = await manager.getModelBlobUrls(entry.id);
 
     return new Promise((resolve, reject) => {
       // Create the Web Worker
@@ -68,18 +69,10 @@ export class TranslationEngine {
         switch (msg.type) {
           case 'ready':
             this.isReady = true;
-            this.currentModelId = modelId;
+            this.currentModelId = hfModelId;
+            // Revoke blob URLs after worker has loaded (frees memory)
+            manager.revokeBlobUrls(fileUrls);
             resolve({ loadTimeMs: msg.loadTimeMs });
-            break;
-
-          case 'progress':
-            this.onProgress?.({
-              modelId: msg.modelId,
-              file: msg.file,
-              loaded: msg.loaded,
-              total: msg.total,
-              progress: msg.progress,
-            });
             break;
 
           case 'result': {
@@ -105,6 +98,7 @@ export class TranslationEngine {
             } else {
               this.onError?.(msg.error);
               if (!this.isReady) {
+                manager.revokeBlobUrls(fileUrls);
                 reject(new Error(msg.error));
               }
             }
@@ -120,12 +114,13 @@ export class TranslationEngine {
         const message = error.message || 'Worker error';
         this.onError?.(message);
         if (!this.isReady) {
+          manager.revokeBlobUrls(fileUrls);
           reject(new Error(message));
         }
       };
 
-      // Send init message
-      this.worker.postMessage({ type: 'init', modelId });
+      // Send init message with blob URLs
+      this.worker.postMessage({ type: 'init', hfModelId, fileUrls });
     });
   }
 
@@ -142,27 +137,6 @@ export class TranslationEngine {
     return new Promise((resolve, reject) => {
       this.pendingRequests.set(id, { resolve, reject });
       this.worker!.postMessage({ type: 'translate', id, text });
-    });
-  }
-
-  /**
-   * Pre-download a translation model into the browser's Cache API.
-   * Used by the model management UI for explicit pre-download.
-   *
-   * @param hfModelId - HuggingFace model ID (e.g. 'Xenova/opus-mt-ja-en')
-   * @param onProgress - Optional progress callback
-   */
-  static async preDownloadModel(
-    hfModelId: string,
-    onProgress?: (progress: { loaded: number; total: number; file: string }) => void,
-  ): Promise<void> {
-    const { pipeline } = await import('@huggingface/transformers');
-    await pipeline('translation', hfModelId, {
-      progress_callback: (p: any) => {
-        if (p.status === 'progress' && p.total) {
-          onProgress?.({ loaded: p.loaded || 0, total: p.total, file: p.file || hfModelId });
-        }
-      },
     });
   }
 
