@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TTS Browser Demos</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #1a1a2e;
+      color: #e0e0e0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 3rem 1rem;
+    }
+    h1 { font-size: 1.8rem; margin-bottom: 0.5rem; color: #fff; }
+    .subtitle { color: #888; font-size: 0.95rem; margin-bottom: 2.5rem; }
+    .cards { display: flex; gap: 1.5rem; flex-wrap: wrap; justify-content: center; }
+    .card {
+      background: #16213e;
+      border-radius: 12px;
+      padding: 2rem;
+      width: 300px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+      text-decoration: none;
+      color: inherit;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .card:hover { transform: translateY(-4px); box-shadow: 0 8px 30px rgba(0,0,0,0.5); }
+    .card h2 { font-size: 1.2rem; color: #fff; margin-bottom: 0.5rem; }
+    .card p { font-size: 0.85rem; color: #aaa; line-height: 1.5; }
+    .card .tag {
+      display: inline-block;
+      margin-top: 1rem;
+      padding: 0.25rem 0.75rem;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .tag-fast { background: #1a3a2a; color: #51cf66; }
+    .tag-multi { background: #2a2a3e; color: #748ffc; }
+    code {
+      display: block;
+      margin-top: 2.5rem;
+      background: #0a0a1a;
+      border-radius: 8px;
+      padding: 1rem 1.5rem;
+      font-size: 0.8rem;
+      color: #888;
+      max-width: 640px;
+      width: 100%;
+    }
+    code span { color: #51cf66; }
+    .section-title {
+      width: 100%;
+      max-width: 960px;
+      font-size: 1.1rem;
+      color: #748ffc;
+      margin-top: 2rem;
+      margin-bottom: 0.5rem;
+      padding-bottom: 0.3rem;
+      border-bottom: 1px solid #333;
+    }
+    .section-title:first-of-type { margin-top: 0; }
+  </style>
+</head>
+<body>
+
+<h1>TTS Browser Demos</h1>
+<p class="subtitle">sherpa-onnx TTS running entirely in your browser via WebAssembly</p>
+
+<h3 class="section-title">Kitten</h3>
+<div class="cards">
+  <a class="card" href="kitten.html">
+    <h2>Kitten Nano EN v0.2</h2>
+    <p>Fast, lightweight English TTS. fp16 model (~40 MB). Great for quick testing.</p>
+    <span class="tag tag-fast">Fast &middot; English</span>
+  </a>
+
+  <a class="card" href="kitten.html?model=kitten-v0_1">
+    <h2>Kitten Nano EN v0.1</h2>
+    <p>Older Nano version. fp16 model (~40 MB). For comparison with v0.2.</p>
+    <span class="tag tag-fast">Fast &middot; English</span>
+  </a>
+
+  <a class="card" href="kitten.html?model=kitten-mini">
+    <h2>Kitten Mini EN</h2>
+    <p>Larger/better quality than Nano. fp16 model (~60 MB). 8 speakers.</p>
+    <span class="tag tag-multi">English &middot; 8 speakers</span>
+  </a>
+
+</div>
+
+<h3 class="section-title">Kokoro</h3>
+<div class="cards">
+  <a class="card" href="kokoro.html">
+    <h2>Kokoro v1.0 Multi-Lang (int8)</h2>
+    <p>9 languages, 53 speakers. int8 model (~126 MB). Includes Japanese, Chinese, Korean, and more.</p>
+    <span class="tag tag-multi">Multi-Lang &middot; 53 speakers</span>
+    <p style="margin-top:0.5rem;font-size:0.75rem;color:#ff6b6b;">Bug: silent audio (NaN) &mdash; upstream issue #2236</p>
+  </a>
+
+  <a class="card" href="kokoro.html?model=kokoro-v1_1">
+    <h2>Kokoro v1.1 Multi-Lang (int8)</h2>
+    <p>Newer version, 9 languages, 103 speakers. int8 model (~130 MB).</p>
+    <span class="tag tag-multi">Multi-Lang &middot; 103 speakers</span>
+    <p style="margin-top:0.5rem;font-size:0.75rem;color:#ff6b6b;">Bug: may have same NaN issue as v1.0 int8</p>
+  </a>
+
+  <a class="card" href="kokoro.html?model=kokoro-v1_0-fp32">
+    <h2>Kokoro v1.0 Multi-Lang (fp32)</h2>
+    <p>Non-quantized v1.0, 9 languages, 53 speakers. fp32 model (~310 MB).</p>
+    <span class="tag tag-multi">Multi-Lang &middot; 53 speakers</span>
+    <p style="margin-top:0.5rem;font-size:0.75rem;color:#51cf66;">fp32 &mdash; may work around int8 NaN bug</p>
+  </a>
+
+  <a class="card" href="kokoro.html?model=kokoro-fp32">
+    <h2>Kokoro v1.1 Multi-Lang (fp32)</h2>
+    <p>Non-quantized v1.1, 9 languages, 103 speakers. fp32 model (~310 MB).</p>
+    <span class="tag tag-multi">Multi-Lang &middot; 103 speakers</span>
+    <p style="margin-top:0.5rem;font-size:0.75rem;color:#51cf66;">fp32 &mdash; may work around int8 NaN bug</p>
+  </a>
+
+  <a class="card" href="kokoro.html?model=kokoro-en">
+    <h2>Kokoro EN v0.19 (fp32)</h2>
+    <p>English-only Kokoro. fp32 model (~330 MB). 11 speakers.</p>
+    <span class="tag tag-fast">English &middot; 11 speakers</span>
+  </a>
+
+  <a class="card" href="kokoro.html?model=kokoro-en-int8">
+    <h2>Kokoro EN v0.19 (int8)</h2>
+    <p>English-only Kokoro. int8 model (~90 MB). 11 speakers.</p>
+    <span class="tag tag-fast">English &middot; 11 speakers</span>
+    <p style="margin-top:0.5rem;font-size:0.75rem;color:#ff6b6b;">May have NaN issue (int8)</p>
+  </a>
+
+</div>
+
+<h3 class="section-title">Matcha</h3>
+<div class="cards">
+  <a class="card" href="matcha.html">
+    <h2>Matcha EN (LJSpeech)</h2>
+    <p>English Matcha TTS. 22kHz with vocos vocoder. ~125 MB.</p>
+    <span class="tag tag-fast">English &middot; 22kHz</span>
+  </a>
+
+  <a class="card" href="matcha.html?model=matcha-zh">
+    <h2>Matcha ZH (Baker)</h2>
+    <p>Chinese Matcha TTS. 22kHz with vocos vocoder. ~125 MB.</p>
+    <span class="tag tag-fast">Chinese &middot; 22kHz</span>
+  </a>
+
+  <a class="card" href="matcha.html?model=matcha-zh-en">
+    <h2>Matcha ZH-EN</h2>
+    <p>Chinese-English bilingual Matcha TTS. 16kHz with vocos vocoder. ~130 MB.</p>
+    <span class="tag tag-multi">ZH-EN &middot; 16kHz</span>
+  </a>
+
+  <a class="card" href="matcha.html?model=matcha-fa-en-khadijah">
+    <h2>Matcha FA-EN (Khadijah)</h2>
+    <p>Farsi-English Matcha TTS. 22kHz, female voice. ~125 MB.</p>
+    <span class="tag tag-multi">FA-EN &middot; 22kHz</span>
+  </a>
+
+  <a class="card" href="matcha.html?model=matcha-fa-en-musa">
+    <h2>Matcha FA-EN (Musa)</h2>
+    <p>Farsi-English Matcha TTS. 22kHz, male voice. ~125 MB.</p>
+    <span class="tag tag-multi">FA-EN &middot; 22kHz</span>
+  </a>
+</div>
+
+<h3 class="section-title">ZipVoice</h3>
+<div class="cards">
+  <a class="card" href="zipvoice.html">
+    <h2>ZipVoice Distill ZH-EN (int8)</h2>
+    <p>Distilled ZipVoice, Chinese-English. int8 model + vocos vocoder. ~160 MB.</p>
+    <span class="tag tag-multi">ZH-EN &middot; 24kHz</span>
+    <p style="margin-top:0.5rem;font-size:0.75rem;color:#ff6b6b;">Not implemented: ZipVoice generate() not yet supported in WASM build</p>
+  </a>
+
+  <a class="card" href="zipvoice.html?model=zipvoice-distill-fp32">
+    <h2>ZipVoice Distill ZH-EN (fp32)</h2>
+    <p>Distilled ZipVoice, Chinese-English. fp32 model + vocos vocoder. ~510 MB.</p>
+    <span class="tag tag-multi">ZH-EN &middot; 24kHz</span>
+    <p style="margin-top:0.5rem;font-size:0.75rem;color:#ff6b6b;">Not implemented: ZipVoice generate() not yet supported in WASM build</p>
+  </a>
+</div>
+
+<h3 class="section-title">Pocket</h3>
+<div class="cards">
+  <a class="card" href="pocket.html">
+    <h2>Pocket TTS (int8)</h2>
+    <p>Compact Pocket TTS. int8 model (~94 MB). Novel 5-component architecture.</p>
+    <span class="tag tag-fast">Compact &middot; int8</span>
+    <p style="margin-top:0.5rem;font-size:0.75rem;color:#ff6b6b;">Not implemented: Pocket TTS generate() not yet supported in WASM build</p>
+  </a>
+
+  <a class="card" href="pocket.html?model=pocket">
+    <h2>Pocket TTS (fp32)</h2>
+    <p>Full-precision Pocket TTS. fp32 model (~160 MB). Novel 5-component architecture.</p>
+    <span class="tag tag-fast">Full precision &middot; fp32</span>
+    <p style="margin-top:0.5rem;font-size:0.75rem;color:#ff6b6b;">Not implemented: Pocket TTS generate() not yet supported in WASM build</p>
+  </a>
+</div>
+
+<h3 class="section-title">Piper</h3>
+<div class="cards">
+  <a class="card" href="piper.html?model=piper-en">
+    <h2>Piper EN (US)</h2>
+    <p>English multi-speaker VITS. 904 speakers. fp32 / int8 precision selectable.</p>
+    <span class="tag tag-multi">English &middot; 904 speakers</span>
+  </a>
+
+  <a class="card" href="piper.html?model=piper-zh">
+    <h2>Piper ZH (CN)</h2>
+    <p>Chinese (Mandarin) VITS. Single speaker. fp32 / int8 precision selectable.</p>
+    <span class="tag tag-fast">Chinese &middot; 1 speaker</span>
+  </a>
+
+  <a class="card" href="piper.html?model=piper-de">
+    <h2>Piper DE</h2>
+    <p>German emotional VITS. Single speaker. fp32 / int8 precision selectable.</p>
+    <span class="tag tag-fast">German &middot; 1 speaker</span>
+  </a>
+
+  <a class="card" href="piper.html?model=piper-ar">
+    <h2>Piper AR (Arabic)</h2>
+    <p>AR (Arabic) VITS. 1 speaker. fp32 / int8 selectable.</p>
+    <span class="tag tag-fast">AR (Arabic) &middot; 1 speaker</span>
+  </a>
+
+  <a class="card" href="piper.html?model=piper-ca">
+    <h2>Piper CA (Catalan)</h2>
+    <p>CA (Catalan) VITS. 1 speaker. fp32 / int8 selectable.</p>
+    <span class="tag tag-fast">CA (Catalan) &middot; 1 speaker</span>
+  </a>
+
+  <a class="card" href="piper.html?model=piper-cs">
+    <h2>Piper CS (Czech)</h2>
+    <p>CS (Czech) VITS. 1 speaker. fp32 / int8 selectable.</p>
+    <span class="tag tag-fast">CS (Czech) &middot; 1 speaker</span>
+  </a>
+
+  <a class="card" href="piper.html?model=piper-cy">
+    <h2>Piper CY (Welsh)</h2>
+    <p>CY (Welsh) VITS. 1 speaker. fp32 / int8 selectable.</p>
+    <span class="tag tag-fast">CY (Welsh) &middot; 1 speaker</span>
+  </a>
+
+  <a class="card" href="piper.html?model=piper-da">
+    <h2>Piper DA (Danish)</h2>
+    <p>DA (Danish) VITS. 1 speaker. fp32 / int8 selectable.</p>
+    <span class="tag tag-fast">DA (Danish) &middot; 1 speaker</span>
+  </a>
+
+  <a class="card" href="piper.html?model=piper-el">
+    <h2>Piper EL (Greek)</h2>
+    <p>EL (Greek) VITS. 1 speaker. fp32 / int8 selectable.</p>
+    <span class="tag tag-fast">EL (Greek) &middot; 1 speaker</span>
+  </a>
+
+  <a class="card" href="piper.html?model=piper-en-gb">
+    <h2>Piper EN (GB)</h2>
+    <p>EN (GB) VITS. 1 speaker. fp32 / int8 selectable.</p>
+    <span class="tag tag-fast">EN (GB) &middot; 1 speaker</span>
+  </a>
+
+  <a class="card" href="piper.html?model=piper-es">
+    <h2>Piper ES (Spain)</h2>
+    <p>ES (Spain) VITS. 1 speaker. fp32 / int8 selectable.</p>
+    <span class="tag tag-fast">ES (Spain) &middot; 1 speaker</span>
+  </a>
+
+  <a class="card" href="piper.html?model=piper-es-ar">
+    <h2>Piper ES (Argentina)</h2>
+    <p>ES (Argentina) VITS. 1 speaker. fp32 / int8 selectable.</p>
+    <span class="tag tag-fast">ES (Argentina) &middot; 1 speaker</span>
+  </a>
+
+  <a class="card" href="piper.html?model=piper-es-mx">
+    <h2>Piper ES (Mexico)</h2>
+    <p>ES (Mexico) VITS. 1 speaker. fp32 / int8 selectable.</p>
+    <span class="tag tag-fast">ES (Mexico) &middot; 1 speaker</span>
+  </a>
+
+  <a class="card" href="piper.html?model=piper-fa">
+    <h2>Piper FA (Persian)</h2>
+    <p>FA (Persian) VITS. 1 speaker. fp32 / int8 selectable.</p>
+    <span class="tag tag-fast">FA (Persian) &middot; 1 speaker</span>
+  </a>
+
+  <a class="card" href="piper.html?model=piper-fa-en">
+    <h2>Piper FA-EN (Bilingual)</h2>
+    <p>FA-EN (Bilingual) VITS. 1 speaker. fp32 / int8 selectable.</p>
+    <span class="tag tag-fast">FA-EN (Bilingual) &middot; 1 speaker</span>
+  </a>
+
+  <a class="card" href="piper.html?model=piper-fi">
+    <h2>Piper FI (Finnish)</h2>
+    <p>FI (Finnish) VITS. 1 speaker. fp32 / int8 selectable.</p>
+    <span class="tag tag-fast">FI (Finnish) &middot; 1 speaker</span>
+  </a>
+
+  <a class="card" href="piper.html?model=piper-fr">
+    <h2>Piper FR (French)</h2>
+    <p>FR (French) VITS. 1 speaker. fp32 / int8 selectable.</p>
+    <span class="tag tag-fast">FR (French) &middot; 1 speaker</span>
+  </a>
+
+  <a class="card" href="piper.html?model=piper-hi">
+    <h2>Piper HI (Hindi)</h2>
+    <p>HI (Hindi) VITS. 1 speaker. fp32 / int8 selectable.</p>
+    <span class="tag tag-fast">HI (Hindi) &middot; 1 speaker</span>
+  </a>
+
+  <a class="card" href="piper.html?model=piper-hu">
+    <h2>Piper HU (Hungarian)</h2>
+    <p>HU (Hungarian) VITS. 1 speaker. fp32 / int8 selectable.</p>
+    <span class="tag tag-fast">HU (Hungarian) &middot; 1 speaker</span>
+  </a>
+
+  <a class="card" href="piper.html?model=piper-id">
+    <h2>Piper ID (Indonesian)</h2>
+    <p>ID (Indonesian) VITS. 1 speaker. fp32 / int8 selectable.</p>
+    <span class="tag tag-fast">ID (Indonesian) &middot; 1 speaker</span>
+  </a>
+
+  <a class="card" href="piper.html?model=piper-is">
+    <h2>Piper IS (Icelandic)</h2>
+    <p>IS (Icelandic) VITS. 1 speaker. fp32 / int8 selectable.</p>
+    <span class="tag tag-fast">IS (Icelandic) &middot; 1 speaker</span>
+  </a>
+
+  <a class="card" href="piper.html?model=piper-it">
+    <h2>Piper IT (Italian)</h2>
+    <p>IT (Italian) VITS. 1 speaker. fp32 / int8 selectable.</p>
+    <span class="tag tag-fast">IT (Italian) &middot; 1 speaker</span>
+  </a>
+
+  <a class="card" href="piper.html?model=piper-ka">
+    <h2>Piper KA (Georgian)</h2>
+    <p>KA (Georgian) VITS. 1 speaker. fp32 / int8 selectable.</p>
+    <span class="tag tag-fast">KA (Georgian) &middot; 1 speaker</span>
+  </a>
+
+  <a class="card" href="piper.html?model=piper-kk">
+    <h2>Piper KK (Kazakh)</h2>
+    <p>KK (Kazakh) VITS. 2 speakers. fp32 / int8 selectable.</p>
+    <span class="tag tag-fast">KK (Kazakh) &middot; 2 speakers</span>
+  </a>
+
+  <a class="card" href="piper.html?model=piper-lb">
+    <h2>Piper LB (Luxembourgish)</h2>
+    <p>LB (Luxembourgish) VITS. 1 speaker. fp32 / int8 selectable.</p>
+    <span class="tag tag-fast">LB (Luxembourgish) &middot; 1 speaker</span>
+  </a>
+
+  <a class="card" href="piper.html?model=piper-lv">
+    <h2>Piper LV (Latvian)</h2>
+    <p>LV (Latvian) VITS. 1 speaker. fp32 / int8 selectable.</p>
+    <span class="tag tag-fast">LV (Latvian) &middot; 1 speaker</span>
+  </a>
+
+  <a class="card" href="piper.html?model=piper-ml">
+    <h2>Piper ML (Malayalam)</h2>
+    <p>ML (Malayalam) VITS. 1 speaker. fp32 / int8 selectable.</p>
+    <span class="tag tag-fast">ML (Malayalam) &middot; 1 speaker</span>
+  </a>
+
+  <a class="card" href="piper.html?model=piper-ne">
+    <h2>Piper NE (Nepali)</h2>
+    <p>NE (Nepali) VITS. 1 speaker. fp32 / int8 selectable.</p>
+    <span class="tag tag-fast">NE (Nepali) &middot; 1 speaker</span>
+  </a>
+
+  <a class="card" href="piper.html?model=piper-nl">
+    <h2>Piper NL (Netherlands)</h2>
+    <p>NL (Netherlands) VITS. 1 speaker. fp32 / int8 selectable.</p>
+    <span class="tag tag-fast">NL (Netherlands) &middot; 1 speaker</span>
+  </a>
+
+  <a class="card" href="piper.html?model=piper-nl-be">
+    <h2>Piper NL (Belgium)</h2>
+    <p>NL (Belgium) VITS. 1 speaker. fp32 / int8 selectable.</p>
+    <span class="tag tag-fast">NL (Belgium) &middot; 1 speaker</span>
+  </a>
+
+  <a class="card" href="piper.html?model=piper-no">
+    <h2>Piper NO (Norwegian)</h2>
+    <p>NO (Norwegian) VITS. 1 speaker. fp32 / int8 selectable.</p>
+    <span class="tag tag-fast">NO (Norwegian) &middot; 1 speaker</span>
+  </a>
+
+  <a class="card" href="piper.html?model=piper-pl">
+    <h2>Piper PL (Polish)</h2>
+    <p>PL (Polish) VITS. 1 speaker. fp32 / int8 selectable.</p>
+    <span class="tag tag-fast">PL (Polish) &middot; 1 speaker</span>
+  </a>
+
+  <a class="card" href="piper.html?model=piper-pt">
+    <h2>Piper PT (Portugal)</h2>
+    <p>PT (Portugal) VITS. 1 speaker. fp32 / int8 selectable.</p>
+    <span class="tag tag-fast">PT (Portugal) &middot; 1 speaker</span>
+  </a>
+
+  <a class="card" href="piper.html?model=piper-pt-br">
+    <h2>Piper PT (Brazil)</h2>
+    <p>PT (Brazil) VITS. 1 speaker. fp32 / int8 selectable.</p>
+    <span class="tag tag-fast">PT (Brazil) &middot; 1 speaker</span>
+  </a>
+
+  <a class="card" href="piper.html?model=piper-ro">
+    <h2>Piper RO (Romanian)</h2>
+    <p>RO (Romanian) VITS. 1 speaker. fp32 / int8 selectable.</p>
+    <span class="tag tag-fast">RO (Romanian) &middot; 1 speaker</span>
+  </a>
+
+  <a class="card" href="piper.html?model=piper-ru">
+    <h2>Piper RU (Russian)</h2>
+    <p>RU (Russian) VITS. 1 speaker. fp32 / int8 selectable.</p>
+    <span class="tag tag-fast">RU (Russian) &middot; 1 speaker</span>
+  </a>
+
+  <a class="card" href="piper.html?model=piper-sk">
+    <h2>Piper SK (Slovak)</h2>
+    <p>SK (Slovak) VITS. 1 speaker. fp32 / int8 selectable.</p>
+    <span class="tag tag-fast">SK (Slovak) &middot; 1 speaker</span>
+  </a>
+
+  <a class="card" href="piper.html?model=piper-sl">
+    <h2>Piper SL (Slovenian)</h2>
+    <p>SL (Slovenian) VITS. 1 speaker. fp32 / int8 selectable.</p>
+    <span class="tag tag-fast">SL (Slovenian) &middot; 1 speaker</span>
+  </a>
+
+  <a class="card" href="piper.html?model=piper-sr">
+    <h2>Piper SR (Serbian)</h2>
+    <p>SR (Serbian) VITS. 1 speaker. fp32 / int8 selectable.</p>
+    <span class="tag tag-fast">SR (Serbian) &middot; 1 speaker</span>
+  </a>
+
+  <a class="card" href="piper.html?model=piper-sv">
+    <h2>Piper SV (Swedish)</h2>
+    <p>SV (Swedish) VITS. 1 speaker. fp32 / int8 selectable.</p>
+    <span class="tag tag-fast">SV (Swedish) &middot; 1 speaker</span>
+  </a>
+
+  <a class="card" href="piper.html?model=piper-sw">
+    <h2>Piper SW (Swahili)</h2>
+    <p>SW (Swahili) VITS. 1 speaker. fp32 / int8 selectable.</p>
+    <span class="tag tag-fast">SW (Swahili) &middot; 1 speaker</span>
+  </a>
+
+  <a class="card" href="piper.html?model=piper-tr">
+    <h2>Piper TR (Turkish)</h2>
+    <p>TR (Turkish) VITS. 1 speaker. fp32 / int8 selectable.</p>
+    <span class="tag tag-fast">TR (Turkish) &middot; 1 speaker</span>
+  </a>
+
+  <a class="card" href="piper.html?model=piper-uk">
+    <h2>Piper UK (Ukrainian)</h2>
+    <p>UK (Ukrainian) VITS. 1 speaker. fp32 / int8 selectable.</p>
+    <span class="tag tag-fast">UK (Ukrainian) &middot; 1 speaker</span>
+  </a>
+
+  <a class="card" href="piper.html?model=piper-vi">
+    <h2>Piper VI (Vietnamese)</h2>
+    <p>VI (Vietnamese) VITS. 1 speaker. fp32 / int8 selectable.</p>
+    <span class="tag tag-fast">VI (Vietnamese) &middot; 1 speaker</span>
+  </a>
+</div>
+
+<code>
+  <span># Pack models before use:</span><br>
+  python3 pack.py kitten&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;# Kitten Nano EN v0.2<br>
+  python3 pack.py kitten-mini&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;# Kitten Mini EN (8 speakers)<br>
+  python3 pack.py kokoro&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;# Kokoro v1.0 int8<br>
+  python3 pack.py kokoro-fp32&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;# Kokoro v1.1 fp32<br>
+  python3 pack.py matcha-en&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;# Matcha EN + vocos vocoder<br>
+  python3 pack.py matcha-zh&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;# Matcha ZH + vocos vocoder<br>
+  python3 pack.py zipvoice-distill-int8&nbsp;&nbsp;&nbsp;# ZipVoice int8 + vocos<br>
+  python3 pack.py zipvoice-distill-fp32&nbsp;&nbsp;&nbsp;# ZipVoice fp32 + vocos<br>
+  python3 pack.py pocket-int8&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;# Pocket TTS int8<br>
+  python3 pack.py pocket&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;# Pocket TTS fp32<br>
+  python3 pack.py piper-en&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;# Piper EN (fp32 + int8)<br>
+  python3 pack.py all&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;# all models, all variants<br>
+  <br>
+  python3 -m http.server 8080
+</code>
+
+</body>
+</html>
