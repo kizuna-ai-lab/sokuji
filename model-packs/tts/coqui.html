@@ -153,27 +153,27 @@
 <script>
 // --- Coqui VITS model registry ---
 var COQUI_MODELS = {
-  'coqui-bg': {
+  'coqui-bg-cv': {
     onnx: 'model.onnx', name: 'Coqui BG (Bulgarian)', lang: 'bg',
     dataDir: '', defaultText: 'Здравейте! Това е тест на българския модел за синтез на реч Coqui.'
   },
-  'coqui-bn': {
+  'coqui-bn-custom_female': {
     onnx: 'model.onnx', name: 'Coqui BN (Bengali)', lang: 'bn',
     dataDir: '', defaultText: 'নমস্কার! এটি কোকুই বাংলা টেক্সট টু স্পিচ মডেলের একটি পরীক্ষা।'
   },
-  'coqui-cs': {
+  'coqui-cs-cv': {
     onnx: 'model.onnx', name: 'Coqui CS (Czech)', lang: 'cs',
     dataDir: '', defaultText: 'Ahoj! Toto je test českého modelu syntézy řeči Coqui.'
   },
-  'coqui-da': {
+  'coqui-da-cv': {
     onnx: 'model.onnx', name: 'Coqui DA (Danish)', lang: 'da',
     dataDir: '', defaultText: 'Hej! Dette er en test af den danske Coqui tekst til tale model.'
   },
-  'coqui-de': {
+  'coqui-de-css10': {
     onnx: 'model.onnx', name: 'Coqui DE (German)', lang: 'de',
     dataDir: '', defaultText: 'Hallo! Dies ist ein Test des deutschen Coqui Text-zu-Sprache-Modells.'
   },
-  'coqui-en': {
+  'coqui-en-ljspeech': {
     onnx: 'model.onnx', name: 'Coqui EN (LJSpeech)', lang: 'en',
     dataDir: './espeak-ng-data', defaultText: 'Hello! This is a test of the Coqui English text to speech model running in your browser.'
   },
@@ -185,79 +185,79 @@ var COQUI_MODELS = {
     onnx: 'model.onnx', name: 'Coqui EN (VCTK, 109 speakers)', lang: 'en',
     dataDir: './espeak-ng-data', defaultText: 'Hello! This is a test of the Coqui VCTK multi-speaker model with one hundred and nine speakers.'
   },
-  'coqui-es': {
+  'coqui-es-css10': {
     onnx: 'model.onnx', name: 'Coqui ES (Spanish)', lang: 'es',
     dataDir: '', defaultText: 'Hola! Esta es una prueba del modelo de síntesis de voz Coqui en español.'
   },
-  'coqui-et': {
+  'coqui-et-cv': {
     onnx: 'model.onnx', name: 'Coqui ET (Estonian)', lang: 'et',
     dataDir: '', defaultText: 'Tere! See on eesti keele Coqui kõnesünteesi mudeli test.'
   },
-  'coqui-fi': {
+  'coqui-fi-css10': {
     onnx: 'model.onnx', name: 'Coqui FI (Finnish)', lang: 'fi',
     dataDir: '', defaultText: 'Hei! Tämä on testi suomenkielisestä Coqui puhesynteesimallista.'
   },
-  'coqui-fr': {
+  'coqui-fr-css10': {
     onnx: 'model.onnx', name: 'Coqui FR (French)', lang: 'fr',
     dataDir: '', defaultText: 'Bonjour! Ceci est un test du modèle de synthèse vocale Coqui en français.'
   },
-  'coqui-ga': {
+  'coqui-ga-cv': {
     onnx: 'model.onnx', name: 'Coqui GA (Irish)', lang: 'ga',
     dataDir: '', defaultText: 'Dia duit! Is tástáil é seo ar an múnla sintéise cainte Gaeilge Coqui.'
   },
-  'coqui-hr': {
+  'coqui-hr-cv': {
     onnx: 'model.onnx', name: 'Coqui HR (Croatian)', lang: 'hr',
     dataDir: '', defaultText: 'Bok! Ovo je test hrvatskog modela za sintezu govora Coqui.'
   },
-  'coqui-lt': {
+  'coqui-lt-cv': {
     onnx: 'model.onnx', name: 'Coqui LT (Lithuanian)', lang: 'lt',
     dataDir: '', defaultText: 'Sveiki! Tai yra lietuviško Coqui teksto į kalbą modelio testas.'
   },
-  'coqui-lv': {
+  'coqui-lv-cv': {
     onnx: 'model.onnx', name: 'Coqui LV (Latvian)', lang: 'lv',
     dataDir: '', defaultText: 'Sveiki! Šis ir Coqui latviešu teksta pārvēršanas runā modeļa tests.'
   },
-  'coqui-mt': {
+  'coqui-mt-cv': {
     onnx: 'model.onnx', name: 'Coqui MT (Maltese)', lang: 'mt',
     dataDir: '', defaultText: 'Bongu! Dan huwa test tal-mudell Coqui tat-test għas-sinteżi tal-kliem bil-Malti.'
   },
-  'coqui-nl': {
+  'coqui-nl-css10': {
     onnx: 'model.onnx', name: 'Coqui NL (Dutch)', lang: 'nl',
     dataDir: '', defaultText: 'Hallo! Dit is een test van het Nederlandse Coqui tekst-naar-spraak model.'
   },
-  'coqui-pl': {
+  'coqui-pl-mai_female': {
     onnx: 'model.onnx', name: 'Coqui PL (Polish)', lang: 'pl',
     dataDir: '', defaultText: 'Cześć! To jest test polskiego modelu syntezy mowy Coqui.'
   },
-  'coqui-pt': {
+  'coqui-pt-cv': {
     onnx: 'model.onnx', name: 'Coqui PT (Portuguese)', lang: 'pt',
     dataDir: '', defaultText: 'Olá! Este é um teste do modelo de síntese de fala Coqui em português.'
   },
-  'coqui-ro': {
+  'coqui-ro-cv': {
     onnx: 'model.onnx', name: 'Coqui RO (Romanian)', lang: 'ro',
     dataDir: '', defaultText: 'Bună! Acesta este un test al modelului de sinteză vocală Coqui în limba română.'
   },
-  'coqui-sk': {
+  'coqui-sk-cv': {
     onnx: 'model.onnx', name: 'Coqui SK (Slovak)', lang: 'sk',
     dataDir: '', defaultText: 'Ahoj! Toto je test slovenského modelu syntézy reči Coqui.'
   },
-  'coqui-sl': {
+  'coqui-sl-cv': {
     onnx: 'model.onnx', name: 'Coqui SL (Slovenian)', lang: 'sl',
     dataDir: '', defaultText: 'Živijo! To je test slovenskega modela za sintezo govora Coqui.'
   },
-  'coqui-sv': {
+  'coqui-sv-cv': {
     onnx: 'model.onnx', name: 'Coqui SV (Swedish)', lang: 'sv',
     dataDir: '', defaultText: 'Hej! Det här är ett test av den svenska Coqui text-till-tal-modellen.'
   },
-  'coqui-uk': {
+  'coqui-uk-mai': {
     onnx: 'model.onnx', name: 'Coqui UK (Ukrainian)', lang: 'uk',
     dataDir: '', defaultText: 'Привіт! Це тест української моделі синтезу мовлення Coqui.'
   }
 };
 
 var params = new URLSearchParams(window.location.search);
-var modelKey = params.get('model') || 'coqui-en';
-if (!COQUI_MODELS[modelKey]) modelKey = 'coqui-en';
+var modelKey = params.get('model') || 'coqui-en-ljspeech';
+if (!COQUI_MODELS[modelKey]) modelKey = 'coqui-en-ljspeech';
 var modelCfg = COQUI_MODELS[modelKey];
 
 // CDN base: use HF Dataset for remote, relative paths for localhost

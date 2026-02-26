@@ -153,18 +153,18 @@
 <script>
 // --- Model variant routing ---
 var MATCHA_VARIANTS = {
-  'matcha-en': {
-    dir: 'wasm-matcha-en', label: 'Matcha EN (LJSpeech)', detail: '22kHz, ~125 MB',
+  'matcha-en-ljspeech': {
+    dir: 'wasm-matcha-en-ljspeech', label: 'Matcha EN (LJSpeech)', detail: '22kHz, ~125 MB',
     acousticModel: './model-steps-3.onnx', vocoder: './vocos-22khz-univ.onnx',
     tokens: './tokens.txt', dataDir: './espeak-ng-data', lexicon: '',
-    ruleFsts: '', packCmd: 'matcha-en',
+    ruleFsts: '', packCmd: 'matcha-en-ljspeech',
     defaultText: 'Hello! This is a test of the Matcha text to speech model running in your browser with WebAssembly.'
   },
-  'matcha-zh': {
-    dir: 'wasm-matcha-zh', label: 'Matcha ZH (Baker)', detail: '22kHz, ~125 MB',
+  'matcha-zh-baker': {
+    dir: 'wasm-matcha-zh-baker', label: 'Matcha ZH (Baker)', detail: '22kHz, ~125 MB',
     acousticModel: './model-steps-3.onnx', vocoder: './vocos-22khz-univ.onnx',
     tokens: './tokens.txt', dataDir: '', lexicon: './lexicon.txt',
-    ruleFsts: './date.fst,./phone.fst', packCmd: 'matcha-zh',
+    ruleFsts: './date.fst,./phone.fst', packCmd: 'matcha-zh-baker',
     defaultText: '\u4f60\u597d\uff01\u8fd9\u662f\u4e00\u4e2a\u5728\u6d4f\u89c8\u5668\u4e2d\u8fd0\u884c\u7684\u6587\u672c\u8f6c\u8bed\u97f3\u6d4b\u8bd5\u3002\u6211\u4eec\u6b63\u5728\u4f7f\u7528 WebAssembly \u6280\u672f\u6765\u5b9e\u73b0\u5b9e\u65f6\u8bed\u97f3\u5408\u6210\u3002'
   },
   'matcha-zh-en': {
@@ -191,8 +191,8 @@ var MATCHA_VARIANTS = {
 };
 
 var params = new URLSearchParams(window.location.search);
-var modelKey = params.get('model') || 'matcha-en';
-if (!MATCHA_VARIANTS[modelKey]) modelKey = 'matcha-en';
+var modelKey = params.get('model') || 'matcha-en-ljspeech';
+if (!MATCHA_VARIANTS[modelKey]) modelKey = 'matcha-en-ljspeech';
 var MODEL = MATCHA_VARIANTS[modelKey];
 
 // CDN base: use HF Dataset for remote, relative paths for localhost
