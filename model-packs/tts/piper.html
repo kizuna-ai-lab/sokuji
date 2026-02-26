@@ -493,6 +493,10 @@ var PIPER_MODELS = {
 // --- Models that only have fp32 (no fp16/int8 on upstream) ---
 var FP32_ONLY = ['piper-zh', 'piper-fa-en', 'piper-nl-be', 'piper-ro'];
 
+// CDN base: use HF Dataset for remote, relative paths for localhost
+var CDN_BASE = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
+  ? '' : 'https://huggingface.co/datasets/jiangzhuo9357/sherpa-onnx-tts-models/resolve/main/';
+
 // --- Read model and precision from URL params ---
 var urlParams = new URLSearchParams(window.location.search);
 var modelKey = urlParams.get('model') || 'piper-en';
@@ -569,9 +573,9 @@ document.getElementById('precisionGroup').addEventListener('click', function(e) 
 // --- Compute wasmDir based on precision ---
 function getWasmDir() {
   if (precision === 'fp32') {
-    return 'wasm-' + modelKey + '/';
+    return CDN_BASE + 'wasm-' + modelKey + '/';
   }
-  return 'wasm-' + modelKey + '-' + precision + '/';
+  return CDN_BASE + 'wasm-' + modelKey + '-' + precision + '/';
 }
 
 // --- Logging ---
