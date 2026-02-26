@@ -189,6 +189,15 @@ MODELS = {
     "mimic3-pl": {"url": BASE_URL + "vits-mimic3-pl_PL-m-ailabs_low.tar.bz2", "tarball": "vits-mimic3-pl_PL-m-ailabs_low.tar.bz2", "dir_hint": "mimic3"},
     "mimic3-tn": {"url": BASE_URL + "vits-mimic3-tn_ZA-google-nwu_low.tar.bz2", "tarball": "vits-mimic3-tn_ZA-google-nwu_low.tar.bz2", "dir_hint": "mimic3"},
     "mimic3-vi": {"url": BASE_URL + "vits-mimic3-vi_VN-vais1000_low.tar.bz2", "tarball": "vits-mimic3-vi_VN-vais1000_low.tar.bz2", "dir_hint": "mimic3"},
+    # --- MeloTTS VITS models: lexicon-based, optional dict+ruleFsts for Chinese ---
+    "melo-tts-en": {"url": BASE_URL + "vits-melo-tts-en.tar.bz2", "tarball": "vits-melo-tts-en.tar.bz2", "dir_hint": "melo"},
+    "melo-tts-zh-en": {"url": BASE_URL + "vits-melo-tts-zh_en.tar.bz2", "tarball": "vits-melo-tts-zh_en.tar.bz2", "dir_hint": "melo"},
+    # --- Cantonese VITS model: lexicon + rule.fst ---
+    "cantonese": {"url": BASE_URL + "vits-cantonese-hf-xiaomaiiwn.tar.bz2", "tarball": "vits-cantonese-hf-xiaomaiiwn.tar.bz2", "dir_hint": "cantonese"},
+    # --- Icefall VITS models: lexicon + ruleFsts/ruleFars ---
+    "icefall-zh-aishell3": {"url": BASE_URL + "vits-icefall-zh-aishell3.tar.bz2", "tarball": "vits-icefall-zh-aishell3.tar.bz2", "dir_hint": "icefall"},
+    # --- Chinese VITS zh-ll: lexicon + dict + ruleFsts ---
+    "zh-ll": {"url": BASE_URL + "sherpa-onnx-vits-zh-ll.tar.bz2", "tarball": "sherpa-onnx-vits-zh-ll.tar.bz2", "dir_hint": "zh-ll"},
     # --- MMS VITS models: grapheme tokenization, no espeak-ng ---
     "mms-deu": {"url": BASE_URL + "vits-mms-deu.tar.bz2", "tarball": "vits-mms-deu.tar.bz2", "dir_hint": "mms"},
     "mms-eng": {"url": BASE_URL + "vits-mms-eng.tar.bz2", "tarball": "vits-mms-eng.tar.bz2", "dir_hint": "mms"},
@@ -749,6 +758,12 @@ def main():
         print(f"  Open http://localhost:8080/mms.html?model={key}")
     if len(mms_keys) > 3:
         print(f"  ... and {len(mms_keys) - 3} more MMS languages")
+
+    # Show special VITS model URLs
+    special_vits_keys = ["melo-tts-en", "melo-tts-zh-en", "cantonese", "icefall-zh-aishell3", "zh-ll"]
+    for key in special_vits_keys:
+        if key in MODELS:
+            print(f"  Open http://localhost:8080/vits.html?model={key}")
 
     # Show a few representative Piper URLs
     piper_keys = [k for k in MODELS if _is_piper(MODELS[k])]

@@ -758,6 +758,39 @@
   </a>
 </div>
 
+<h3 class="section-title">MeloTTS / Cantonese / Icefall / zh-ll (Special VITS)</h3>
+<div class="cards">
+  <a class="card" href="vits.html?model=melo-tts-en">
+    <h2>MeloTTS English</h2>
+    <p>English MeloTTS VITS with lexicon. Single speaker. ~163 MB ONNX.</p>
+    <span class="tag tag-fast">English &middot; 1 speaker</span>
+  </a>
+
+  <a class="card" href="vits.html?model=melo-tts-zh-en">
+    <h2>MeloTTS Chinese-English</h2>
+    <p>Bilingual ZH-EN MeloTTS VITS with lexicon + jieba dict + FSTs. ~163 MB ONNX.</p>
+    <span class="tag tag-multi">ZH-EN &middot; 1 speaker</span>
+  </a>
+
+  <a class="card" href="vits.html?model=cantonese">
+    <h2>Cantonese (xiaomaiiwn)</h2>
+    <p>Cantonese VITS with lexicon + rule FST. ~109 MB ONNX.</p>
+    <span class="tag tag-fast">Cantonese &middot; 1 speaker</span>
+  </a>
+
+  <a class="card" href="vits.html?model=icefall-zh-aishell3">
+    <h2>Icefall AISHELL3 (Chinese)</h2>
+    <p>Chinese VITS with lexicon + FSTs. 174 speakers. Only ~29 MB ONNX (fastest Chinese).</p>
+    <span class="tag tag-multi">Chinese &middot; 174 speakers</span>
+  </a>
+
+  <a class="card" href="vits.html?model=zh-ll">
+    <h2>Chinese zh-ll</h2>
+    <p>Chinese VITS with lexicon + jieba dict + FSTs. 2 speakers. ~116 MB ONNX.</p>
+    <span class="tag tag-multi">Chinese &middot; 2 speakers</span>
+  </a>
+</div>
+
 <code>
   <span># Pack models before use:</span><br>
   python3 pack.py kitten&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;# Kitten Nano EN v0.2<br>
@@ -773,6 +806,11 @@
   python3 pack.py coqui-en&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;# Coqui EN (LJSpeech)<br>
   python3 pack.py mimic3-ko&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;# Mimic3 Korean<br>
   python3 pack.py mms-eng&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;# MMS English<br>
+  python3 pack.py melo-tts-en&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;# MeloTTS English<br>
+  python3 pack.py melo-tts-zh-en&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;# MeloTTS Chinese-English<br>
+  python3 pack.py cantonese&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;# Cantonese<br>
+  python3 pack.py icefall-zh-aishell3&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;# Icefall AISHELL3 (174 speakers)<br>
+  python3 pack.py zh-ll&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;# Chinese zh-ll (2 speakers)<br>
   python3 pack.py piper-en&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;# Piper EN (fp32 + int8)<br>
   python3 pack.py all&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;# all models, all variants<br>
   <br>
