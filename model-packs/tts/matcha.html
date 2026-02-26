@@ -195,6 +195,10 @@ var modelKey = params.get('model') || 'matcha-en';
 if (!MATCHA_VARIANTS[modelKey]) modelKey = 'matcha-en';
 var MODEL = MATCHA_VARIANTS[modelKey];
 
+// CDN base: use HF Dataset for remote, relative paths for localhost
+var CDN_BASE = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
+  ? '' : 'https://huggingface.co/datasets/jiangzhuo9357/sherpa-onnx-tts-models/resolve/main/';
+
 document.getElementById('pageTitle').textContent = MODEL.label + ' TTS Browser Demo';
 document.getElementById('pageSubtitle').innerHTML =
   'sherpa-onnx ' + MODEL.label + ' (' + MODEL.detail + ') &mdash; <a href="index.html">All demos</a>';
@@ -216,7 +220,7 @@ function _setStatusBar(html, cls) {
 
 var Module = {
   locateFile: function(path) {
-    return MODEL.dir + '/' + path;
+    return CDN_BASE + MODEL.dir + '/' + path;
   },
   setStatus: function(text) {
     _log('Module: ' + text);
@@ -287,8 +291,8 @@ _log('Page loaded, waiting for WASM module...');
     s.src = src;
     document.body.appendChild(s);
   }
-  loadScript(MODEL.dir + '/sherpa-onnx-wasm-main-tts.js');
-  loadScript(MODEL.dir + '/sherpa-onnx-tts.js');
+  loadScript(CDN_BASE + MODEL.dir + '/sherpa-onnx-wasm-main-tts.js');
+  loadScript(CDN_BASE + MODEL.dir + '/sherpa-onnx-tts.js');
 })();
 </script>
 
