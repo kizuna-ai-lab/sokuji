@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Coqui TTS Browser Demo</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #1a1a2e;
+      color: #e0e0e0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem 1rem;
+    }
+    h1 { font-size: 1.5rem; margin-bottom: 0.5rem; color: #fff; }
+    .subtitle { color: #888; font-size: 0.9rem; margin-bottom: 1.5rem; }
+    .subtitle a { color: #51cf66; text-decoration: none; }
+    .subtitle a:hover { text-decoration: underline; }
+    .container {
+      width: 100%;
+      max-width: 640px;
+      background: #16213e;
+      border-radius: 12px;
+      padding: 1.5rem;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    }
+    .status-bar {
+      background: #0f3460;
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      margin-bottom: 1.5rem;
+      font-size: 0.85rem;
+      min-height: 2.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .status-bar.error { background: #4a1528; color: #ff6b6b; }
+    .status-bar.ready { background: #1a3a2a; color: #51cf66; }
+    .spinner {
+      width: 16px; height: 16px;
+      border: 2px solid #555;
+      border-top-color: #51cf66;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    label { display: block; font-size: 0.85rem; color: #aaa; margin-bottom: 0.3rem; }
+    .field { margin-bottom: 1rem; }
+    textarea {
+      width: 100%;
+      background: #0f3460;
+      color: #e0e0e0;
+      border: 1px solid #333;
+      border-radius: 8px;
+      padding: 0.75rem;
+      font-size: 0.95rem;
+      font-family: inherit;
+      resize: vertical;
+      min-height: 80px;
+    }
+    textarea:focus { outline: none; border-color: #51cf66; }
+    .row { display: flex; gap: 1rem; }
+    .row .field { flex: 1; }
+    input[type="number"], input[type="range"] {
+      width: 100%;
+      background: #0f3460;
+      color: #e0e0e0;
+      border: 1px solid #333;
+      border-radius: 6px;
+      padding: 0.5rem 0.75rem;
+      font-size: 0.9rem;
+    }
+    input[type="range"] { padding: 0.25rem 0; }
+    input:focus { outline: none; border-color: #51cf66; }
+    .range-row { display: flex; align-items: center; gap: 0.75rem; }
+    button#generate {
+      width: 100%;
+      padding: 0.75rem;
+      background: #10a37f;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    button#generate:hover:not(:disabled) { background: #0d8c6c; }
+    button#generate:disabled { opacity: 0.4; cursor: not-allowed; }
+    .audio-output { margin-top: 1.5rem; }
+    .audio-output audio { width: 100%; margin-top: 0.5rem; }
+    .timing { font-size: 0.8rem; color: #888; margin-top: 0.3rem; }
+    .log {
+      margin-top: 1.5rem;
+      background: #0a0a1a;
+      border-radius: 8px;
+      padding: 0.75rem;
+      font-family: monospace;
+      font-size: 0.75rem;
+      color: #888;
+      max-height: 200px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+  </style>
+</head>
+<body>
+
+<h1 id="pageTitle">Coqui TTS Browser Demo</h1>
+<p id="pageSubtitle" class="subtitle">sherpa-onnx Coqui VITS &mdash; <a href="index.html">All demos</a></p>
+
+<div class="container">
+  <div id="status" class="status-bar">
+    <div class="spinner"></div>
+    <span>Loading WASM module...</span>
+  </div>
+
+  <div class="field">
+    <label for="text">Text to synthesize</label>
+    <textarea id="text" rows="3">Hello! This is a test of the Coqui text to speech model running in your browser with WebAssembly.</textarea>
+  </div>
+
+  <div class="row">
+    <div class="field">
+      <label for="sid">Speaker ID</label>
+      <input type="number" id="sid" value="0" min="0" step="1">
+    </div>
+    <div class="field">
+      <label for="speed">Speed: <span id="speedVal">1.0</span></label>
+      <div class="range-row">
+        <input type="range" id="speed" min="0.3" max="3.0" step="0.1" value="1.0">
+      </div>
+    </div>
+  </div>
+
+  <button id="generate" disabled>Generate</button>
+
+  <div id="audioOutput" class="audio-output" style="display:none">
+    <label>Output</label>
+    <audio id="player" controls></audio>
+    <div id="timing" class="timing"></div>
+  </div>
+
+  <div id="log" class="log"></div>
+</div>
+
+<script>
+// --- Coqui VITS model registry ---
+var COQUI_MODELS = {
+  'coqui-bg': {
+    onnx: 'model.onnx', name: 'Coqui BG (Bulgarian)', lang: 'bg',
+    dataDir: '', defaultText: 'Здравейте! Това е тест на българския модел за синтез на реч Coqui.'
+  },
+  'coqui-bn': {
+    onnx: 'model.onnx', name: 'Coqui BN (Bengali)', lang: 'bn',
+    dataDir: '', defaultText: 'নমস্কার! এটি কোকুই বাংলা টেক্সট টু স্পিচ মডেলের একটি পরীক্ষা।'
+  },
+  'coqui-cs': {
+    onnx: 'model.onnx', name: 'Coqui CS (Czech)', lang: 'cs',
+    dataDir: '', defaultText: 'Ahoj! Toto je test českého modelu syntézy řeči Coqui.'
+  },
+  'coqui-da': {
+    onnx: 'model.onnx', name: 'Coqui DA (Danish)', lang: 'da',
+    dataDir: '', defaultText: 'Hej! Dette er en test af den danske Coqui tekst til tale model.'
+  },
+  'coqui-de': {
+    onnx: 'model.onnx', name: 'Coqui DE (German)', lang: 'de',
+    dataDir: '', defaultText: 'Hallo! Dies ist ein Test des deutschen Coqui Text-zu-Sprache-Modells.'
+  },
+  'coqui-en': {
+    onnx: 'model.onnx', name: 'Coqui EN (LJSpeech)', lang: 'en',
+    dataDir: './espeak-ng-data', defaultText: 'Hello! This is a test of the Coqui English text to speech model running in your browser.'
+  },
+  'coqui-en-neon': {
+    onnx: 'model.onnx', name: 'Coqui EN (LJSpeech Neon)', lang: 'en',
+    dataDir: './espeak-ng-data', defaultText: 'Hello! This is a test of the Coqui English Neon text to speech model running in your browser.'
+  },
+  'coqui-en-vctk': {
+    onnx: 'model.onnx', name: 'Coqui EN (VCTK, 109 speakers)', lang: 'en',
+    dataDir: './espeak-ng-data', defaultText: 'Hello! This is a test of the Coqui VCTK multi-speaker model with one hundred and nine speakers.'
+  },
+  'coqui-es': {
+    onnx: 'model.onnx', name: 'Coqui ES (Spanish)', lang: 'es',
+    dataDir: '', defaultText: 'Hola! Esta es una prueba del modelo de síntesis de voz Coqui en español.'
+  },
+  'coqui-et': {
+    onnx: 'model.onnx', name: 'Coqui ET (Estonian)', lang: 'et',
+    dataDir: '', defaultText: 'Tere! See on eesti keele Coqui kõnesünteesi mudeli test.'
+  },
+  'coqui-fi': {
+    onnx: 'model.onnx', name: 'Coqui FI (Finnish)', lang: 'fi',
+    dataDir: '', defaultText: 'Hei! Tämä on testi suomenkielisestä Coqui puhesynteesimallista.'
+  },
+  'coqui-fr': {
+    onnx: 'model.onnx', name: 'Coqui FR (French)', lang: 'fr',
+    dataDir: '', defaultText: 'Bonjour! Ceci est un test du modèle de synthèse vocale Coqui en français.'
+  },
+  'coqui-ga': {
+    onnx: 'model.onnx', name: 'Coqui GA (Irish)', lang: 'ga',
+    dataDir: '', defaultText: 'Dia duit! Is tástáil é seo ar an múnla sintéise cainte Gaeilge Coqui.'
+  },
+  'coqui-hr': {
+    onnx: 'model.onnx', name: 'Coqui HR (Croatian)', lang: 'hr',
+    dataDir: '', defaultText: 'Bok! Ovo je test hrvatskog modela za sintezu govora Coqui.'
+  },
+  'coqui-lt': {
+    onnx: 'model.onnx', name: 'Coqui LT (Lithuanian)', lang: 'lt',
+    dataDir: '', defaultText: 'Sveiki! Tai yra lietuviško Coqui teksto į kalbą modelio testas.'
+  },
+  'coqui-lv': {
+    onnx: 'model.onnx', name: 'Coqui LV (Latvian)', lang: 'lv',
+    dataDir: '', defaultText: 'Sveiki! Šis ir Coqui latviešu teksta pārvēršanas runā modeļa tests.'
+  },
+  'coqui-mt': {
+    onnx: 'model.onnx', name: 'Coqui MT (Maltese)', lang: 'mt',
+    dataDir: '', defaultText: 'Bongu! Dan huwa test tal-mudell Coqui tat-test għas-sinteżi tal-kliem bil-Malti.'
+  },
+  'coqui-nl': {
+    onnx: 'model.onnx', name: 'Coqui NL (Dutch)', lang: 'nl',
+    dataDir: '', defaultText: 'Hallo! Dit is een test van het Nederlandse Coqui tekst-naar-spraak model.'
+  },
+  'coqui-pl': {
+    onnx: 'model.onnx', name: 'Coqui PL (Polish)', lang: 'pl',
+    dataDir: '', defaultText: 'Cześć! To jest test polskiego modelu syntezy mowy Coqui.'
+  },
+  'coqui-pt': {
+    onnx: 'model.onnx', name: 'Coqui PT (Portuguese)', lang: 'pt',
+    dataDir: '', defaultText: 'Olá! Este é um teste do modelo de síntese de fala Coqui em português.'
+  },
+  'coqui-ro': {
+    onnx: 'model.onnx', name: 'Coqui RO (Romanian)', lang: 'ro',
+    dataDir: '', defaultText: 'Bună! Acesta este un test al modelului de sinteză vocală Coqui în limba română.'
+  },
+  'coqui-sk': {
+    onnx: 'model.onnx', name: 'Coqui SK (Slovak)', lang: 'sk',
+    dataDir: '', defaultText: 'Ahoj! Toto je test slovenského modelu syntézy reči Coqui.'
+  },
+  'coqui-sl': {
+    onnx: 'model.onnx', name: 'Coqui SL (Slovenian)', lang: 'sl',
+    dataDir: '', defaultText: 'Živijo! To je test slovenskega modela za sintezo govora Coqui.'
+  },
+  'coqui-sv': {
+    onnx: 'model.onnx', name: 'Coqui SV (Swedish)', lang: 'sv',
+    dataDir: '', defaultText: 'Hej! Det här är ett test av den svenska Coqui text-till-tal-modellen.'
+  },
+  'coqui-uk': {
+    onnx: 'model.onnx', name: 'Coqui UK (Ukrainian)', lang: 'uk',
+    dataDir: '', defaultText: 'Привіт! Це тест української моделі синтезу мовлення Coqui.'
+  }
+};
+
+var params = new URLSearchParams(window.location.search);
+var modelKey = params.get('model') || 'coqui-en';
+if (!COQUI_MODELS[modelKey]) modelKey = 'coqui-en';
+var modelCfg = COQUI_MODELS[modelKey];
+
+// CDN base: use HF Dataset for remote, relative paths for localhost
+var CDN_BASE = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
+  ? '' : 'https://huggingface.co/datasets/jiangzhuo9357/sherpa-onnx-tts-models/resolve/main/';
+
+var wasmDir = CDN_BASE + 'wasm-' + modelKey + '/';
+
+document.getElementById('pageTitle').textContent = modelCfg.name + ' TTS Browser Demo';
+document.title = modelCfg.name + ' TTS Browser Demo';
+document.getElementById('pageSubtitle').innerHTML =
+  'sherpa-onnx ' + modelCfg.name + ' &mdash; <a href="index.html">All demos</a>';
+document.getElementById('text').value = modelCfg.defaultText;
+
+function _log(msg) {
+  var logEl = document.getElementById('log');
+  var ts = new Date().toLocaleTimeString();
+  logEl.textContent += '[' + ts + '] ' + msg + '\n';
+  logEl.scrollTop = logEl.scrollHeight;
+  console.log(msg);
+}
+
+function _setStatusBar(html, cls) {
+  var el = document.getElementById('status');
+  el.className = 'status-bar' + (cls ? ' ' + cls : '');
+  el.innerHTML = html;
+}
+
+var Module = {
+  locateFile: function(path) {
+    return wasmDir + path;
+  },
+  setStatus: function(text) {
+    _log('Module: ' + text);
+    if (!text) {
+      _initTts();
+      return;
+    }
+    var m = text.match(/Downloading data\.\.\. \((\d+)\/(\d+)\)/);
+    if (m) {
+      var pct = (parseInt(m[1]) / parseInt(m[2]) * 100).toFixed(1);
+      _setStatusBar('<div class="spinner"></div><span>Downloading model... ' + pct + '%</span>');
+    } else {
+      _setStatusBar('<div class="spinner"></div><span>' + text + '</span>');
+    }
+  }
+};
+
+function _initTts() {
+  _log('WASM runtime initialized, creating OfflineTts...');
+  _setStatusBar('<div class="spinner"></div><span>Initializing ' + modelCfg.name + ' model...</span>');
+
+  try {
+    var t0 = performance.now();
+
+    window._tts = createOfflineTts(Module, {
+      offlineTtsModelConfig: {
+        offlineTtsVitsModelConfig: {
+          model: './' + modelCfg.onnx,
+          lexicon: '',
+          tokens: './tokens.txt',
+          dataDir: modelCfg.dataDir,
+          noiseScale: 0.667,
+          noiseScaleW: 0.8,
+          lengthScale: 1.0,
+        },
+        numThreads: 1,
+        debug: 1,
+        provider: 'cpu',
+      },
+      ruleFsts: '',
+      ruleFars: '',
+      maxNumSentences: 1,
+    });
+
+    var elapsed = (performance.now() - t0).toFixed(0);
+    _log(modelCfg.name + ' model loaded in ' + elapsed + 'ms');
+    _log('Sample rate: ' + window._tts.sampleRate + ', Speakers: ' + window._tts.numSpeakers);
+
+    document.getElementById('sid').max = Math.max(0, window._tts.numSpeakers - 1);
+    document.getElementById('generate').disabled = false;
+    _setStatusBar('Ready &mdash; ' + modelCfg.name + ' &mdash; ' + window._tts.numSpeakers + ' speaker(s), ' + window._tts.sampleRate + ' Hz', 'ready');
+
+  } catch (err) {
+    _log('ERROR initializing TTS: ' + err.message);
+    console.error(err);
+    _setStatusBar('Failed to initialize model. Run: python3 pack.py ' + modelKey, 'error');
+  }
+}
+
+_log('Page loaded, model=' + modelKey + ' (' + modelCfg.name + ')');
+</script>
+
+<script>
+// Dynamically load the WASM scripts from the correct model directory
+(function() {
+  var scripts = [
+    wasmDir + 'sherpa-onnx-wasm-main-tts.js',
+    wasmDir + 'sherpa-onnx-tts.js'
+  ];
+  var loaded = 0;
+  function loadNext() {
+    if (loaded >= scripts.length) return;
+    var s = document.createElement('script');
+    s.src = scripts[loaded];
+    s.onload = function() { loaded++; loadNext(); };
+    s.onerror = function() {
+      _log('ERROR loading script: ' + scripts[loaded]);
+      _setStatusBar('Failed to load WASM scripts. Run: python3 pack.py ' + modelKey, 'error');
+    };
+    document.body.appendChild(s);
+  }
+  loadNext();
+})();
+</script>
+
+<script>
+(function() {
+  var textEl = document.getElementById('text');
+  var sidEl = document.getElementById('sid');
+  var speedEl = document.getElementById('speed');
+  var speedValEl = document.getElementById('speedVal');
+  var generateBtn = document.getElementById('generate');
+  var audioOutput = document.getElementById('audioOutput');
+  var playerEl = document.getElementById('player');
+  var timingEl = document.getElementById('timing');
+  var audioCtx = null;
+
+  speedEl.addEventListener('input', function() {
+    speedValEl.textContent = parseFloat(speedEl.value).toFixed(1);
+  });
+
+  generateBtn.addEventListener('click', function() {
+    var text = textEl.value.trim();
+    if (!text) { alert('Please enter some text.'); return; }
+    if (!window._tts) { alert('TTS not ready yet.'); return; }
+
+    var sid = parseInt(sidEl.value, 10) || 0;
+    var speed = parseFloat(speedEl.value) || 1.0;
+
+    _log('Generating: sid=' + sid + ', speed=' + speed + ', text="' + text.substring(0, 60) + '..."');
+    generateBtn.disabled = true;
+    generateBtn.textContent = 'Generating...';
+
+    setTimeout(function() {
+      try {
+        var t0 = performance.now();
+        var result = window._tts.generate({ text: text, sid: sid, speed: speed });
+        var elapsed = (performance.now() - t0).toFixed(0);
+
+        var duration = (result.samples.length / result.sampleRate).toFixed(2);
+        _log('Generated ' + result.samples.length + ' samples in ' + elapsed + 'ms (' + duration + 's audio @ ' + result.sampleRate + 'Hz)');
+
+        playAudio(result);
+        timingEl.textContent = duration + 's audio generated in ' + elapsed + 'ms (' + result.sampleRate + ' Hz)';
+      } catch (err) {
+        _log('ERROR generating: ' + err.message);
+        console.error(err);
+        alert('Generation failed. See console/log.');
+      } finally {
+        generateBtn.disabled = false;
+        generateBtn.textContent = 'Generate';
+      }
+    }, 50);
+  });
+
+  function playAudio(result) {
+    var wav = createWavBlob(result.samples, result.sampleRate);
+    var url = URL.createObjectURL(wav);
+    if (playerEl.src && playerEl.src.indexOf('blob:') === 0) {
+      URL.revokeObjectURL(playerEl.src);
+    }
+    playerEl.src = url;
+    audioOutput.style.display = 'block';
+    if (!audioCtx) { audioCtx = new AudioContext({ sampleRate: result.sampleRate }); }
+    var buffer = audioCtx.createBuffer(1, result.samples.length, result.sampleRate);
+    buffer.getChannelData(0).set(result.samples);
+    var source = audioCtx.createBufferSource();
+    source.buffer = buffer;
+    source.connect(audioCtx.destination);
+    source.start();
+  }
+
+  function createWavBlob(samples, sampleRate) {
+    var int16 = new Int16Array(samples.length);
+    for (var i = 0; i < samples.length; i++) {
+      var s = Math.max(-1, Math.min(1, samples[i]));
+      int16[i] = s * 32767;
+    }
+    var buf = new ArrayBuffer(44 + int16.length * 2);
+    var v = new DataView(buf);
+    v.setUint32(0, 0x46464952, true);
+    v.setUint32(4, 36 + int16.length * 2, true);
+    v.setUint32(8, 0x45564157, true);
+    v.setUint32(12, 0x20746d66, true);
+    v.setUint32(16, 16, true);
+    v.setUint16(20, 1, true);
+    v.setUint16(22, 1, true);
+    v.setUint32(24, sampleRate, true);
+    v.setUint32(28, sampleRate * 2, true);
+    v.setUint16(32, 2, true);
+    v.setUint16(34, 16, true);
+    v.setUint32(36, 0x61746164, true);
+    v.setUint32(40, int16.length * 2, true);
+    var offset = 44;
+    for (var i = 0; i < int16.length; i++) {
+      v.setInt16(offset, int16[i], true);
+      offset += 2;
+    }
+    return new Blob([v], { type: 'audio/wav' });
+  }
+})();
+</script>
+
+</body>
+</html>

@@ -149,6 +149,55 @@ MODELS = {
         "tarball": "sherpa-onnx-pocket-tts-int8-2026-01-26.tar.bz2",
         "dir_hint": "pocket",
     },
+    # --- Coqui VITS models: character-level tokenization, no espeak-ng (except en-vctk) ---
+    "coqui-bg": {"url": BASE_URL + "vits-coqui-bg-cv.tar.bz2", "tarball": "vits-coqui-bg-cv.tar.bz2", "dir_hint": "coqui"},
+    "coqui-bn": {"url": BASE_URL + "vits-coqui-bn-custom_female.tar.bz2", "tarball": "vits-coqui-bn-custom_female.tar.bz2", "dir_hint": "coqui"},
+    "coqui-cs": {"url": BASE_URL + "vits-coqui-cs-cv.tar.bz2", "tarball": "vits-coqui-cs-cv.tar.bz2", "dir_hint": "coqui"},
+    "coqui-da": {"url": BASE_URL + "vits-coqui-da-cv.tar.bz2", "tarball": "vits-coqui-da-cv.tar.bz2", "dir_hint": "coqui"},
+    "coqui-de": {"url": BASE_URL + "vits-coqui-de-css10.tar.bz2", "tarball": "vits-coqui-de-css10.tar.bz2", "dir_hint": "coqui"},
+    "coqui-en": {"url": BASE_URL + "vits-coqui-en-ljspeech.tar.bz2", "tarball": "vits-coqui-en-ljspeech.tar.bz2", "dir_hint": "coqui"},
+    "coqui-en-neon": {"url": BASE_URL + "vits-coqui-en-ljspeech-neon.tar.bz2", "tarball": "vits-coqui-en-ljspeech-neon.tar.bz2", "dir_hint": "coqui"},
+    "coqui-en-vctk": {"url": BASE_URL + "vits-coqui-en-vctk.tar.bz2", "tarball": "vits-coqui-en-vctk.tar.bz2", "dir_hint": "coqui"},
+    "coqui-es": {"url": BASE_URL + "vits-coqui-es-css10.tar.bz2", "tarball": "vits-coqui-es-css10.tar.bz2", "dir_hint": "coqui"},
+    "coqui-et": {"url": BASE_URL + "vits-coqui-et-cv.tar.bz2", "tarball": "vits-coqui-et-cv.tar.bz2", "dir_hint": "coqui"},
+    "coqui-fi": {"url": BASE_URL + "vits-coqui-fi-css10.tar.bz2", "tarball": "vits-coqui-fi-css10.tar.bz2", "dir_hint": "coqui"},
+    "coqui-fr": {"url": BASE_URL + "vits-coqui-fr-css10.tar.bz2", "tarball": "vits-coqui-fr-css10.tar.bz2", "dir_hint": "coqui"},
+    "coqui-ga": {"url": BASE_URL + "vits-coqui-ga-cv.tar.bz2", "tarball": "vits-coqui-ga-cv.tar.bz2", "dir_hint": "coqui"},
+    "coqui-hr": {"url": BASE_URL + "vits-coqui-hr-cv.tar.bz2", "tarball": "vits-coqui-hr-cv.tar.bz2", "dir_hint": "coqui"},
+    "coqui-lt": {"url": BASE_URL + "vits-coqui-lt-cv.tar.bz2", "tarball": "vits-coqui-lt-cv.tar.bz2", "dir_hint": "coqui"},
+    "coqui-lv": {"url": BASE_URL + "vits-coqui-lv-cv.tar.bz2", "tarball": "vits-coqui-lv-cv.tar.bz2", "dir_hint": "coqui"},
+    "coqui-mt": {"url": BASE_URL + "vits-coqui-mt-cv.tar.bz2", "tarball": "vits-coqui-mt-cv.tar.bz2", "dir_hint": "coqui"},
+    "coqui-nl": {"url": BASE_URL + "vits-coqui-nl-css10.tar.bz2", "tarball": "vits-coqui-nl-css10.tar.bz2", "dir_hint": "coqui"},
+    "coqui-pl": {"url": BASE_URL + "vits-coqui-pl-mai_female.tar.bz2", "tarball": "vits-coqui-pl-mai_female.tar.bz2", "dir_hint": "coqui"},
+    "coqui-pt": {"url": BASE_URL + "vits-coqui-pt-cv.tar.bz2", "tarball": "vits-coqui-pt-cv.tar.bz2", "dir_hint": "coqui"},
+    "coqui-ro": {"url": BASE_URL + "vits-coqui-ro-cv.tar.bz2", "tarball": "vits-coqui-ro-cv.tar.bz2", "dir_hint": "coqui"},
+    "coqui-sk": {"url": BASE_URL + "vits-coqui-sk-cv.tar.bz2", "tarball": "vits-coqui-sk-cv.tar.bz2", "dir_hint": "coqui"},
+    "coqui-sl": {"url": BASE_URL + "vits-coqui-sl-cv.tar.bz2", "tarball": "vits-coqui-sl-cv.tar.bz2", "dir_hint": "coqui"},
+    "coqui-sv": {"url": BASE_URL + "vits-coqui-sv-cv.tar.bz2", "tarball": "vits-coqui-sv-cv.tar.bz2", "dir_hint": "coqui"},
+    "coqui-uk": {"url": BASE_URL + "vits-coqui-uk-mai.tar.bz2", "tarball": "vits-coqui-uk-mai.tar.bz2", "dir_hint": "coqui"},
+    # --- Mimic3 VITS models: IPA tokenization, espeak-ng-data ALWAYS required ---
+    "mimic3-af": {"url": BASE_URL + "vits-mimic3-af_ZA-google-nwu_low.tar.bz2", "tarball": "vits-mimic3-af_ZA-google-nwu_low.tar.bz2", "dir_hint": "mimic3"},
+    "mimic3-bn": {"url": BASE_URL + "vits-mimic3-bn-multi_low.tar.bz2", "tarball": "vits-mimic3-bn-multi_low.tar.bz2", "dir_hint": "mimic3"},
+    "mimic3-el": {"url": BASE_URL + "vits-mimic3-el_GR-rapunzelina_low.tar.bz2", "tarball": "vits-mimic3-el_GR-rapunzelina_low.tar.bz2", "dir_hint": "mimic3"},
+    "mimic3-es": {"url": BASE_URL + "vits-mimic3-es_ES-m-ailabs_low.tar.bz2", "tarball": "vits-mimic3-es_ES-m-ailabs_low.tar.bz2", "dir_hint": "mimic3"},
+    "mimic3-fa": {"url": BASE_URL + "vits-mimic3-fa-haaniye_low.tar.bz2", "tarball": "vits-mimic3-fa-haaniye_low.tar.bz2", "dir_hint": "mimic3"},
+    "mimic3-fi": {"url": BASE_URL + "vits-mimic3-fi_FI-harri-tapani-ylilammi_low.tar.bz2", "tarball": "vits-mimic3-fi_FI-harri-tapani-ylilammi_low.tar.bz2", "dir_hint": "mimic3"},
+    "mimic3-gu": {"url": BASE_URL + "vits-mimic3-gu_IN-cmu-indic_low.tar.bz2", "tarball": "vits-mimic3-gu_IN-cmu-indic_low.tar.bz2", "dir_hint": "mimic3"},
+    "mimic3-hu": {"url": BASE_URL + "vits-mimic3-hu_HU-diana-majlinger_low.tar.bz2", "tarball": "vits-mimic3-hu_HU-diana-majlinger_low.tar.bz2", "dir_hint": "mimic3"},
+    "mimic3-ko": {"url": BASE_URL + "vits-mimic3-ko_KO-kss_low.tar.bz2", "tarball": "vits-mimic3-ko_KO-kss_low.tar.bz2", "dir_hint": "mimic3"},
+    "mimic3-ne": {"url": BASE_URL + "vits-mimic3-ne_NP-ne-google_low.tar.bz2", "tarball": "vits-mimic3-ne_NP-ne-google_low.tar.bz2", "dir_hint": "mimic3"},
+    "mimic3-pl": {"url": BASE_URL + "vits-mimic3-pl_PL-m-ailabs_low.tar.bz2", "tarball": "vits-mimic3-pl_PL-m-ailabs_low.tar.bz2", "dir_hint": "mimic3"},
+    "mimic3-tn": {"url": BASE_URL + "vits-mimic3-tn_ZA-google-nwu_low.tar.bz2", "tarball": "vits-mimic3-tn_ZA-google-nwu_low.tar.bz2", "dir_hint": "mimic3"},
+    "mimic3-vi": {"url": BASE_URL + "vits-mimic3-vi_VN-vais1000_low.tar.bz2", "tarball": "vits-mimic3-vi_VN-vais1000_low.tar.bz2", "dir_hint": "mimic3"},
+    # --- MMS VITS models: grapheme tokenization, no espeak-ng ---
+    "mms-deu": {"url": BASE_URL + "vits-mms-deu.tar.bz2", "tarball": "vits-mms-deu.tar.bz2", "dir_hint": "mms"},
+    "mms-eng": {"url": BASE_URL + "vits-mms-eng.tar.bz2", "tarball": "vits-mms-eng.tar.bz2", "dir_hint": "mms"},
+    "mms-fra": {"url": BASE_URL + "vits-mms-fra.tar.bz2", "tarball": "vits-mms-fra.tar.bz2", "dir_hint": "mms"},
+    "mms-nan": {"url": BASE_URL + "vits-mms-nan.tar.bz2", "tarball": "vits-mms-nan.tar.bz2", "dir_hint": "mms"},
+    "mms-rus": {"url": BASE_URL + "vits-mms-rus.tar.bz2", "tarball": "vits-mms-rus.tar.bz2", "dir_hint": "mms"},
+    "mms-spa": {"url": BASE_URL + "vits-mms-spa.tar.bz2", "tarball": "vits-mms-spa.tar.bz2", "dir_hint": "mms"},
+    "mms-tha": {"url": BASE_URL + "vits-mms-tha.tar.bz2", "tarball": "vits-mms-tha.tar.bz2", "dir_hint": "mms"},
+    "mms-ukr": {"url": BASE_URL + "vits-mms-ukr.tar.bz2", "tarball": "vits-mms-ukr.tar.bz2", "dir_hint": "mms"},
     # --- Piper models: base_tarball pattern, supports fp32/fp16/int8 variants ---
     "piper-en": {
         "base_tarball": "vits-piper-en_US-libritts_r-medium",
@@ -332,8 +381,8 @@ MODELS = {
     },
 }
 
-# Relative to this script's parent (sokuji-react/)
-PIPER_EN_DIR = Path(__file__).resolve().parent.parent / "public" / "wasm" / "sherpa-onnx-tts-piper-en"
+# Relative to project root (sokuji-react/): script is at model-packs/tts/pack.py
+PIPER_EN_DIR = Path(__file__).resolve().parent.parent.parent / "public" / "wasm" / "sherpa-onnx-tts-piper-en"
 SCRIPT_DIR = Path(__file__).resolve().parent
 
 
@@ -679,6 +728,27 @@ def main():
     print("  Open http://localhost:8080/matcha.html")
     print("  Open http://localhost:8080/zipvoice.html")
     print("  Open http://localhost:8080/pocket.html")
+
+    # Show a few representative Coqui URLs
+    coqui_keys = [k for k in MODELS if k.startswith("coqui-")]
+    for key in coqui_keys[:3]:
+        print(f"  Open http://localhost:8080/coqui.html?model={key}")
+    if len(coqui_keys) > 3:
+        print(f"  ... and {len(coqui_keys) - 3} more Coqui languages")
+
+    # Show a few representative Mimic3 URLs
+    mimic3_keys = [k for k in MODELS if k.startswith("mimic3-")]
+    for key in mimic3_keys[:3]:
+        print(f"  Open http://localhost:8080/mimic3.html?model={key}")
+    if len(mimic3_keys) > 3:
+        print(f"  ... and {len(mimic3_keys) - 3} more Mimic3 languages")
+
+    # Show a few representative MMS URLs
+    mms_keys = [k for k in MODELS if k.startswith("mms-")]
+    for key in mms_keys[:3]:
+        print(f"  Open http://localhost:8080/mms.html?model={key}")
+    if len(mms_keys) > 3:
+        print(f"  ... and {len(mms_keys) - 3} more MMS languages")
 
     # Show a few representative Piper URLs
     piper_keys = [k for k in MODELS if _is_piper(MODELS[k])]
