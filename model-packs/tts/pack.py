@@ -13,8 +13,8 @@ Usage:
     python3 pack.py                   # pack all models (all variants for Piper)
     python3 pack.py kitten            # Kitten Nano EN (fp16)
     python3 pack.py kokoro            # Kokoro Multi-Lang int8
-    python3 pack.py piper-en          # both variants (fp32, int8)
-    python3 pack.py piper-en:int8     # int8 only
+    python3 pack.py piper-en-libritts_r-medium        # both variants (fp32, int8)
+    python3 pack.py piper-en-libritts_r-medium:int8   # int8 only
     python3 pack.py all               # all models, all variants
     python3 pack.py all:int8          # all models, int8 only
 
@@ -34,6 +34,7 @@ import subprocess
 import sys
 import tarfile
 import tempfile
+import urllib.error
 import urllib.request
 from pathlib import Path
 
@@ -95,13 +96,13 @@ MODELS = {
         "dir_hint": "kitten",
     },
     # --- Matcha models: acoustic model + external vocoder ---
-    "matcha-en": {
+    "matcha-en-ljspeech": {
         "url": BASE_URL + "matcha-icefall-en_US-ljspeech.tar.bz2",
         "tarball": "matcha-icefall-en_US-ljspeech.tar.bz2",
         "dir_hint": "matcha",
         "vocoder": "vocos-22khz-univ.onnx",
     },
-    "matcha-zh": {
+    "matcha-zh-baker": {
         "url": BASE_URL + "matcha-icefall-zh-baker.tar.bz2",
         "tarball": "matcha-icefall-zh-baker.tar.bz2",
         "dir_hint": "matcha",
@@ -150,51 +151,53 @@ MODELS = {
         "dir_hint": "pocket",
     },
     # --- Coqui VITS models: character-level tokenization, no espeak-ng (except en-vctk) ---
-    "coqui-bg": {"url": BASE_URL + "vits-coqui-bg-cv.tar.bz2", "tarball": "vits-coqui-bg-cv.tar.bz2", "dir_hint": "coqui"},
-    "coqui-bn": {"url": BASE_URL + "vits-coqui-bn-custom_female.tar.bz2", "tarball": "vits-coqui-bn-custom_female.tar.bz2", "dir_hint": "coqui"},
-    "coqui-cs": {"url": BASE_URL + "vits-coqui-cs-cv.tar.bz2", "tarball": "vits-coqui-cs-cv.tar.bz2", "dir_hint": "coqui"},
-    "coqui-da": {"url": BASE_URL + "vits-coqui-da-cv.tar.bz2", "tarball": "vits-coqui-da-cv.tar.bz2", "dir_hint": "coqui"},
-    "coqui-de": {"url": BASE_URL + "vits-coqui-de-css10.tar.bz2", "tarball": "vits-coqui-de-css10.tar.bz2", "dir_hint": "coqui"},
-    "coqui-en": {"url": BASE_URL + "vits-coqui-en-ljspeech.tar.bz2", "tarball": "vits-coqui-en-ljspeech.tar.bz2", "dir_hint": "coqui"},
+    "coqui-bg-cv": {"url": BASE_URL + "vits-coqui-bg-cv.tar.bz2", "tarball": "vits-coqui-bg-cv.tar.bz2", "dir_hint": "coqui"},
+    "coqui-bn-custom_female": {"url": BASE_URL + "vits-coqui-bn-custom_female.tar.bz2", "tarball": "vits-coqui-bn-custom_female.tar.bz2", "dir_hint": "coqui"},
+    "coqui-cs-cv": {"url": BASE_URL + "vits-coqui-cs-cv.tar.bz2", "tarball": "vits-coqui-cs-cv.tar.bz2", "dir_hint": "coqui"},
+    "coqui-da-cv": {"url": BASE_URL + "vits-coqui-da-cv.tar.bz2", "tarball": "vits-coqui-da-cv.tar.bz2", "dir_hint": "coqui"},
+    "coqui-de-css10": {"url": BASE_URL + "vits-coqui-de-css10.tar.bz2", "tarball": "vits-coqui-de-css10.tar.bz2", "dir_hint": "coqui"},
+    "coqui-en-ljspeech": {"url": BASE_URL + "vits-coqui-en-ljspeech.tar.bz2", "tarball": "vits-coqui-en-ljspeech.tar.bz2", "dir_hint": "coqui"},
     "coqui-en-neon": {"url": BASE_URL + "vits-coqui-en-ljspeech-neon.tar.bz2", "tarball": "vits-coqui-en-ljspeech-neon.tar.bz2", "dir_hint": "coqui"},
     "coqui-en-vctk": {"url": BASE_URL + "vits-coqui-en-vctk.tar.bz2", "tarball": "vits-coqui-en-vctk.tar.bz2", "dir_hint": "coqui"},
-    "coqui-es": {"url": BASE_URL + "vits-coqui-es-css10.tar.bz2", "tarball": "vits-coqui-es-css10.tar.bz2", "dir_hint": "coqui"},
-    "coqui-et": {"url": BASE_URL + "vits-coqui-et-cv.tar.bz2", "tarball": "vits-coqui-et-cv.tar.bz2", "dir_hint": "coqui"},
-    "coqui-fi": {"url": BASE_URL + "vits-coqui-fi-css10.tar.bz2", "tarball": "vits-coqui-fi-css10.tar.bz2", "dir_hint": "coqui"},
-    "coqui-fr": {"url": BASE_URL + "vits-coqui-fr-css10.tar.bz2", "tarball": "vits-coqui-fr-css10.tar.bz2", "dir_hint": "coqui"},
-    "coqui-ga": {"url": BASE_URL + "vits-coqui-ga-cv.tar.bz2", "tarball": "vits-coqui-ga-cv.tar.bz2", "dir_hint": "coqui"},
-    "coqui-hr": {"url": BASE_URL + "vits-coqui-hr-cv.tar.bz2", "tarball": "vits-coqui-hr-cv.tar.bz2", "dir_hint": "coqui"},
-    "coqui-lt": {"url": BASE_URL + "vits-coqui-lt-cv.tar.bz2", "tarball": "vits-coqui-lt-cv.tar.bz2", "dir_hint": "coqui"},
-    "coqui-lv": {"url": BASE_URL + "vits-coqui-lv-cv.tar.bz2", "tarball": "vits-coqui-lv-cv.tar.bz2", "dir_hint": "coqui"},
-    "coqui-mt": {"url": BASE_URL + "vits-coqui-mt-cv.tar.bz2", "tarball": "vits-coqui-mt-cv.tar.bz2", "dir_hint": "coqui"},
-    "coqui-nl": {"url": BASE_URL + "vits-coqui-nl-css10.tar.bz2", "tarball": "vits-coqui-nl-css10.tar.bz2", "dir_hint": "coqui"},
-    "coqui-pl": {"url": BASE_URL + "vits-coqui-pl-mai_female.tar.bz2", "tarball": "vits-coqui-pl-mai_female.tar.bz2", "dir_hint": "coqui"},
-    "coqui-pt": {"url": BASE_URL + "vits-coqui-pt-cv.tar.bz2", "tarball": "vits-coqui-pt-cv.tar.bz2", "dir_hint": "coqui"},
-    "coqui-ro": {"url": BASE_URL + "vits-coqui-ro-cv.tar.bz2", "tarball": "vits-coqui-ro-cv.tar.bz2", "dir_hint": "coqui"},
-    "coqui-sk": {"url": BASE_URL + "vits-coqui-sk-cv.tar.bz2", "tarball": "vits-coqui-sk-cv.tar.bz2", "dir_hint": "coqui"},
-    "coqui-sl": {"url": BASE_URL + "vits-coqui-sl-cv.tar.bz2", "tarball": "vits-coqui-sl-cv.tar.bz2", "dir_hint": "coqui"},
-    "coqui-sv": {"url": BASE_URL + "vits-coqui-sv-cv.tar.bz2", "tarball": "vits-coqui-sv-cv.tar.bz2", "dir_hint": "coqui"},
-    "coqui-uk": {"url": BASE_URL + "vits-coqui-uk-mai.tar.bz2", "tarball": "vits-coqui-uk-mai.tar.bz2", "dir_hint": "coqui"},
+    "coqui-es-css10": {"url": BASE_URL + "vits-coqui-es-css10.tar.bz2", "tarball": "vits-coqui-es-css10.tar.bz2", "dir_hint": "coqui"},
+    "coqui-et-cv": {"url": BASE_URL + "vits-coqui-et-cv.tar.bz2", "tarball": "vits-coqui-et-cv.tar.bz2", "dir_hint": "coqui"},
+    "coqui-fi-css10": {"url": BASE_URL + "vits-coqui-fi-css10.tar.bz2", "tarball": "vits-coqui-fi-css10.tar.bz2", "dir_hint": "coqui"},
+    "coqui-fr-css10": {"url": BASE_URL + "vits-coqui-fr-css10.tar.bz2", "tarball": "vits-coqui-fr-css10.tar.bz2", "dir_hint": "coqui"},
+    "coqui-ga-cv": {"url": BASE_URL + "vits-coqui-ga-cv.tar.bz2", "tarball": "vits-coqui-ga-cv.tar.bz2", "dir_hint": "coqui"},
+    "coqui-hr-cv": {"url": BASE_URL + "vits-coqui-hr-cv.tar.bz2", "tarball": "vits-coqui-hr-cv.tar.bz2", "dir_hint": "coqui"},
+    "coqui-lt-cv": {"url": BASE_URL + "vits-coqui-lt-cv.tar.bz2", "tarball": "vits-coqui-lt-cv.tar.bz2", "dir_hint": "coqui"},
+    "coqui-lv-cv": {"url": BASE_URL + "vits-coqui-lv-cv.tar.bz2", "tarball": "vits-coqui-lv-cv.tar.bz2", "dir_hint": "coqui"},
+    "coqui-mt-cv": {"url": BASE_URL + "vits-coqui-mt-cv.tar.bz2", "tarball": "vits-coqui-mt-cv.tar.bz2", "dir_hint": "coqui"},
+    "coqui-nl-css10": {"url": BASE_URL + "vits-coqui-nl-css10.tar.bz2", "tarball": "vits-coqui-nl-css10.tar.bz2", "dir_hint": "coqui"},
+    "coqui-pl-mai_female": {"url": BASE_URL + "vits-coqui-pl-mai_female.tar.bz2", "tarball": "vits-coqui-pl-mai_female.tar.bz2", "dir_hint": "coqui"},
+    "coqui-pt-cv": {"url": BASE_URL + "vits-coqui-pt-cv.tar.bz2", "tarball": "vits-coqui-pt-cv.tar.bz2", "dir_hint": "coqui"},
+    "coqui-ro-cv": {"url": BASE_URL + "vits-coqui-ro-cv.tar.bz2", "tarball": "vits-coqui-ro-cv.tar.bz2", "dir_hint": "coqui"},
+    "coqui-sk-cv": {"url": BASE_URL + "vits-coqui-sk-cv.tar.bz2", "tarball": "vits-coqui-sk-cv.tar.bz2", "dir_hint": "coqui"},
+    "coqui-sl-cv": {"url": BASE_URL + "vits-coqui-sl-cv.tar.bz2", "tarball": "vits-coqui-sl-cv.tar.bz2", "dir_hint": "coqui"},
+    "coqui-sv-cv": {"url": BASE_URL + "vits-coqui-sv-cv.tar.bz2", "tarball": "vits-coqui-sv-cv.tar.bz2", "dir_hint": "coqui"},
+    "coqui-uk-mai": {"url": BASE_URL + "vits-coqui-uk-mai.tar.bz2", "tarball": "vits-coqui-uk-mai.tar.bz2", "dir_hint": "coqui"},
     # --- Mimic3 VITS models: IPA tokenization, espeak-ng-data ALWAYS required ---
-    "mimic3-af": {"url": BASE_URL + "vits-mimic3-af_ZA-google-nwu_low.tar.bz2", "tarball": "vits-mimic3-af_ZA-google-nwu_low.tar.bz2", "dir_hint": "mimic3"},
-    "mimic3-bn": {"url": BASE_URL + "vits-mimic3-bn-multi_low.tar.bz2", "tarball": "vits-mimic3-bn-multi_low.tar.bz2", "dir_hint": "mimic3"},
-    "mimic3-el": {"url": BASE_URL + "vits-mimic3-el_GR-rapunzelina_low.tar.bz2", "tarball": "vits-mimic3-el_GR-rapunzelina_low.tar.bz2", "dir_hint": "mimic3"},
-    "mimic3-es": {"url": BASE_URL + "vits-mimic3-es_ES-m-ailabs_low.tar.bz2", "tarball": "vits-mimic3-es_ES-m-ailabs_low.tar.bz2", "dir_hint": "mimic3"},
-    "mimic3-fa": {"url": BASE_URL + "vits-mimic3-fa-haaniye_low.tar.bz2", "tarball": "vits-mimic3-fa-haaniye_low.tar.bz2", "dir_hint": "mimic3"},
-    "mimic3-fi": {"url": BASE_URL + "vits-mimic3-fi_FI-harri-tapani-ylilammi_low.tar.bz2", "tarball": "vits-mimic3-fi_FI-harri-tapani-ylilammi_low.tar.bz2", "dir_hint": "mimic3"},
-    "mimic3-gu": {"url": BASE_URL + "vits-mimic3-gu_IN-cmu-indic_low.tar.bz2", "tarball": "vits-mimic3-gu_IN-cmu-indic_low.tar.bz2", "dir_hint": "mimic3"},
-    "mimic3-hu": {"url": BASE_URL + "vits-mimic3-hu_HU-diana-majlinger_low.tar.bz2", "tarball": "vits-mimic3-hu_HU-diana-majlinger_low.tar.bz2", "dir_hint": "mimic3"},
-    "mimic3-ko": {"url": BASE_URL + "vits-mimic3-ko_KO-kss_low.tar.bz2", "tarball": "vits-mimic3-ko_KO-kss_low.tar.bz2", "dir_hint": "mimic3"},
-    "mimic3-ne": {"url": BASE_URL + "vits-mimic3-ne_NP-ne-google_low.tar.bz2", "tarball": "vits-mimic3-ne_NP-ne-google_low.tar.bz2", "dir_hint": "mimic3"},
-    "mimic3-pl": {"url": BASE_URL + "vits-mimic3-pl_PL-m-ailabs_low.tar.bz2", "tarball": "vits-mimic3-pl_PL-m-ailabs_low.tar.bz2", "dir_hint": "mimic3"},
-    "mimic3-tn": {"url": BASE_URL + "vits-mimic3-tn_ZA-google-nwu_low.tar.bz2", "tarball": "vits-mimic3-tn_ZA-google-nwu_low.tar.bz2", "dir_hint": "mimic3"},
-    "mimic3-vi": {"url": BASE_URL + "vits-mimic3-vi_VN-vais1000_low.tar.bz2", "tarball": "vits-mimic3-vi_VN-vais1000_low.tar.bz2", "dir_hint": "mimic3"},
+    "mimic3-af-google_nwu-low": {"url": BASE_URL + "vits-mimic3-af_ZA-google-nwu_low.tar.bz2", "tarball": "vits-mimic3-af_ZA-google-nwu_low.tar.bz2", "dir_hint": "mimic3"},
+    "mimic3-bn-multi-low": {"url": BASE_URL + "vits-mimic3-bn-multi_low.tar.bz2", "tarball": "vits-mimic3-bn-multi_low.tar.bz2", "dir_hint": "mimic3"},
+    "mimic3-el-rapunzelina-low": {"url": BASE_URL + "vits-mimic3-el_GR-rapunzelina_low.tar.bz2", "tarball": "vits-mimic3-el_GR-rapunzelina_low.tar.bz2", "dir_hint": "mimic3"},
+    "mimic3-es-m_ailabs-low": {"url": BASE_URL + "vits-mimic3-es_ES-m-ailabs_low.tar.bz2", "tarball": "vits-mimic3-es_ES-m-ailabs_low.tar.bz2", "dir_hint": "mimic3"},
+    "mimic3-fa-haaniye-low": {"url": BASE_URL + "vits-mimic3-fa-haaniye_low.tar.bz2", "tarball": "vits-mimic3-fa-haaniye_low.tar.bz2", "dir_hint": "mimic3"},
+    "mimic3-fi-harri_tapani_ylilammi-low": {"url": BASE_URL + "vits-mimic3-fi_FI-harri-tapani-ylilammi_low.tar.bz2", "tarball": "vits-mimic3-fi_FI-harri-tapani-ylilammi_low.tar.bz2", "dir_hint": "mimic3"},
+    "mimic3-gu-cmu_indic-low": {"url": BASE_URL + "vits-mimic3-gu_IN-cmu-indic_low.tar.bz2", "tarball": "vits-mimic3-gu_IN-cmu-indic_low.tar.bz2", "dir_hint": "mimic3"},
+    "mimic3-hu-diana_majlinger-low": {"url": BASE_URL + "vits-mimic3-hu_HU-diana-majlinger_low.tar.bz2", "tarball": "vits-mimic3-hu_HU-diana-majlinger_low.tar.bz2", "dir_hint": "mimic3"},
+    "mimic3-ko-kss-low": {"url": BASE_URL + "vits-mimic3-ko_KO-kss_low.tar.bz2", "tarball": "vits-mimic3-ko_KO-kss_low.tar.bz2", "dir_hint": "mimic3"},
+    "mimic3-ne-ne_google-low": {"url": BASE_URL + "vits-mimic3-ne_NP-ne-google_low.tar.bz2", "tarball": "vits-mimic3-ne_NP-ne-google_low.tar.bz2", "dir_hint": "mimic3"},
+    "mimic3-pl-m_ailabs-low": {"url": BASE_URL + "vits-mimic3-pl_PL-m-ailabs_low.tar.bz2", "tarball": "vits-mimic3-pl_PL-m-ailabs_low.tar.bz2", "dir_hint": "mimic3"},
+    "mimic3-tn-google_nwu-low": {"url": BASE_URL + "vits-mimic3-tn_ZA-google-nwu_low.tar.bz2", "tarball": "vits-mimic3-tn_ZA-google-nwu_low.tar.bz2", "dir_hint": "mimic3"},
+    "mimic3-vi-vais1000-low": {"url": BASE_URL + "vits-mimic3-vi_VN-vais1000_low.tar.bz2", "tarball": "vits-mimic3-vi_VN-vais1000_low.tar.bz2", "dir_hint": "mimic3"},
     # --- MeloTTS VITS models: lexicon-based, optional dict+ruleFsts for Chinese ---
     "melo-tts-en": {"url": BASE_URL + "vits-melo-tts-en.tar.bz2", "tarball": "vits-melo-tts-en.tar.bz2", "dir_hint": "melo"},
     "melo-tts-zh-en": {"url": BASE_URL + "vits-melo-tts-zh_en.tar.bz2", "tarball": "vits-melo-tts-zh_en.tar.bz2", "dir_hint": "melo"},
     # --- Cantonese VITS model: lexicon + rule.fst ---
     "cantonese": {"url": BASE_URL + "vits-cantonese-hf-xiaomaiiwn.tar.bz2", "tarball": "vits-cantonese-hf-xiaomaiiwn.tar.bz2", "dir_hint": "cantonese"},
-    # --- Icefall VITS models: lexicon + ruleFsts/ruleFars ---
+    # --- Icefall VITS models ---
+    "icefall-en-ljspeech-low": {"url": BASE_URL + "vits-icefall-en_US-ljspeech-low.tar.bz2", "tarball": "vits-icefall-en_US-ljspeech-low.tar.bz2", "dir_hint": "icefall"},
+    "icefall-en-ljspeech-medium": {"url": BASE_URL + "vits-icefall-en_US-ljspeech-medium.tar.bz2", "tarball": "vits-icefall-en_US-ljspeech-medium.tar.bz2", "dir_hint": "icefall"},
     "icefall-zh-aishell3": {"url": BASE_URL + "vits-icefall-zh-aishell3.tar.bz2", "tarball": "vits-icefall-zh-aishell3.tar.bz2", "dir_hint": "icefall"},
     # --- Chinese VITS zh-ll: lexicon + dict + ruleFsts ---
     "zh-ll": {"url": BASE_URL + "sherpa-onnx-vits-zh-ll.tar.bz2", "tarball": "sherpa-onnx-vits-zh-ll.tar.bz2", "dir_hint": "zh-ll"},
@@ -208,184 +211,654 @@ MODELS = {
     "mms-tha": {"url": BASE_URL + "vits-mms-tha.tar.bz2", "tarball": "vits-mms-tha.tar.bz2", "dir_hint": "mms"},
     "mms-ukr": {"url": BASE_URL + "vits-mms-ukr.tar.bz2", "tarball": "vits-mms-ukr.tar.bz2", "dir_hint": "mms"},
     # --- Piper models: base_tarball pattern, supports fp32/fp16/int8 variants ---
-    "piper-en": {
+    "piper-en-libritts_r-medium": {
         "base_tarball": "vits-piper-en_US-libritts_r-medium",
         "dir_hint": "piper",
     },
-    "piper-zh": {
+    "piper-zh-huayan-medium": {
         "base_tarball": "vits-piper-zh_CN-huayan-medium",
         "dir_hint": "piper",
         "variants": ["fp32"],
     },
-    "piper-de": {
+    "piper-de-thorsten_emotional-medium": {
         "base_tarball": "vits-piper-de_DE-thorsten_emotional-medium",
         "dir_hint": "piper",
     },
-    "piper-ar": {
+    "piper-ar-kareem-medium": {
         "base_tarball": "vits-piper-ar_JO-kareem-medium",
         "dir_hint": "piper",
     },
-    "piper-ca": {
+    "piper-ca-upc_ona-medium": {
         "base_tarball": "vits-piper-ca_ES-upc_ona-medium",
         "dir_hint": "piper",
     },
-    "piper-cs": {
+    "piper-cs-jirka-medium": {
         "base_tarball": "vits-piper-cs_CZ-jirka-medium",
         "dir_hint": "piper",
     },
-    "piper-cy": {
+    "piper-cy-gwryw_gogleddol-medium": {
         "base_tarball": "vits-piper-cy_GB-gwryw_gogleddol-medium",
         "dir_hint": "piper",
     },
-    "piper-da": {
+    "piper-da-talesyntese-medium": {
         "base_tarball": "vits-piper-da_DK-talesyntese-medium",
         "dir_hint": "piper",
     },
-    "piper-el": {
+    "piper-el-rapunzelina-low": {
         "base_tarball": "vits-piper-el_GR-rapunzelina-low",
         "dir_hint": "piper",
     },
-    "piper-en-gb": {
+    "piper-en-gb-northern_english_male-medium": {
         "base_tarball": "vits-piper-en_GB-northern_english_male-medium",
         "dir_hint": "piper",
     },
-    "piper-es": {
+    "piper-es-davefx-medium": {
         "base_tarball": "vits-piper-es_ES-davefx-medium",
         "dir_hint": "piper",
     },
-    "piper-es-ar": {
+    "piper-es-ar-daniela-high": {
         "base_tarball": "vits-piper-es_AR-daniela-high",
         "dir_hint": "piper",
     },
-    "piper-es-mx": {
+    "piper-es-mx-ald-medium": {
         "base_tarball": "vits-piper-es_MX-ald-medium",
         "dir_hint": "piper",
     },
-    "piper-fa": {
+    "piper-fa-amir-medium": {
         "base_tarball": "vits-piper-fa_IR-amir-medium",
         "dir_hint": "piper",
     },
-    "piper-fa-en": {
+    "piper-fa-en-rezahedayatfar-ibrahimwalk-medium": {
         "base_tarball": "vits-piper-fa_en-rezahedayatfar-ibrahimwalk-medium",
         "dir_hint": "piper",
         "variants": ["fp32"],
     },
-    "piper-fi": {
+    "piper-fi-harri-medium": {
         "base_tarball": "vits-piper-fi_FI-harri-medium",
         "dir_hint": "piper",
     },
-    "piper-fr": {
+    "piper-fr-tom-medium": {
         "base_tarball": "vits-piper-fr_FR-tom-medium",
         "dir_hint": "piper",
     },
-    "piper-hi": {
+    "piper-hi-rohan-medium": {
         "base_tarball": "vits-piper-hi_IN-rohan-medium",
         "dir_hint": "piper",
     },
-    "piper-hu": {
+    "piper-hu-anna-medium": {
         "base_tarball": "vits-piper-hu_HU-anna-medium",
         "dir_hint": "piper",
     },
-    "piper-id": {
+    "piper-id-news_tts-medium": {
         "base_tarball": "vits-piper-id_ID-news_tts-medium",
         "dir_hint": "piper",
     },
-    "piper-is": {
+    "piper-is-bui-medium": {
         "base_tarball": "vits-piper-is_IS-bui-medium",
         "dir_hint": "piper",
     },
-    "piper-it": {
+    "piper-it-paola-medium": {
         "base_tarball": "vits-piper-it_IT-paola-medium",
         "dir_hint": "piper",
     },
-    "piper-ka": {
+    "piper-ka-natia-medium": {
         "base_tarball": "vits-piper-ka_GE-natia-medium",
         "dir_hint": "piper",
     },
-    "piper-kk": {
+    "piper-kk-issai-high": {
         "base_tarball": "vits-piper-kk_KZ-issai-high",
         "dir_hint": "piper",
     },
-    "piper-lb": {
+    "piper-lb-marylux-medium": {
         "base_tarball": "vits-piper-lb_LU-marylux-medium",
         "dir_hint": "piper",
     },
-    "piper-lv": {
+    "piper-lv-aivars-medium": {
         "base_tarball": "vits-piper-lv_LV-aivars-medium",
         "dir_hint": "piper",
     },
-    "piper-ml": {
+    "piper-ml-meera-medium": {
         "base_tarball": "vits-piper-ml_IN-meera-medium",
         "dir_hint": "piper",
     },
-    "piper-ne": {
+    "piper-ne-chitwan-medium": {
         "base_tarball": "vits-piper-ne_NP-chitwan-medium",
         "dir_hint": "piper",
     },
-    "piper-nl": {
+    "piper-nl-ronnie-medium": {
         "base_tarball": "vits-piper-nl_NL-ronnie-medium",
         "dir_hint": "piper",
     },
-    "piper-nl-be": {
+    "piper-nl-be-rdh-medium": {
         "base_tarball": "vits-piper-nl_BE-rdh-medium",
         "dir_hint": "piper",
         "variants": ["fp32"],
     },
-    "piper-no": {
+    "piper-no-talesyntese-medium": {
         "base_tarball": "vits-piper-no_NO-talesyntese-medium",
         "dir_hint": "piper",
     },
-    "piper-pl": {
+    "piper-pl-darkman-medium": {
         "base_tarball": "vits-piper-pl_PL-darkman-medium",
         "dir_hint": "piper",
     },
-    "piper-pt": {
+    "piper-pt-tugao-medium": {
         "base_tarball": "vits-piper-pt_PT-tugao-medium",
         "dir_hint": "piper",
     },
-    "piper-pt-br": {
+    "piper-pt-br-faber-medium": {
         "base_tarball": "vits-piper-pt_BR-faber-medium",
         "dir_hint": "piper",
     },
-    "piper-ro": {
+    "piper-ro-mihai-medium": {
         "base_tarball": "vits-piper-ro_RO-mihai-medium",
         "dir_hint": "piper",
         "variants": ["fp32"],
     },
-    "piper-ru": {
+    "piper-ru-irina-medium": {
         "base_tarball": "vits-piper-ru_RU-irina-medium",
         "dir_hint": "piper",
     },
-    "piper-sk": {
+    "piper-sk-lili-medium": {
         "base_tarball": "vits-piper-sk_SK-lili-medium",
         "dir_hint": "piper",
     },
-    "piper-sl": {
+    "piper-sl-artur-medium": {
         "base_tarball": "vits-piper-sl_SI-artur-medium",
         "dir_hint": "piper",
     },
-    "piper-sr": {
+    "piper-sr-serbski_institut-medium": {
         "base_tarball": "vits-piper-sr_RS-serbski_institut-medium",
         "dir_hint": "piper",
     },
-    "piper-sv": {
+    "piper-sv-nst-medium": {
         "base_tarball": "vits-piper-sv_SE-nst-medium",
         "dir_hint": "piper",
     },
-    "piper-sw": {
+    "piper-sw-lanfrica-medium": {
         "base_tarball": "vits-piper-sw_CD-lanfrica-medium",
         "dir_hint": "piper",
     },
-    "piper-tr": {
+    "piper-tr-fettah-medium": {
         "base_tarball": "vits-piper-tr_TR-fettah-medium",
         "dir_hint": "piper",
     },
-    "piper-uk": {
+    "piper-uk-ukrainian_tts-medium": {
         "base_tarball": "vits-piper-uk_UA-ukrainian_tts-medium",
         "dir_hint": "piper",
     },
-    "piper-vi": {
+    "piper-vi-vais1000-medium": {
         "base_tarball": "vits-piper-vi_VN-vais1000-medium",
+        "dir_hint": "piper",
+    },
+    # --- Additional Piper voice variants (alternative voices per language) ---
+    "piper-nl-be-rdh-x_low": {
+        "base_tarball": "vits-piper-nl_BE-rdh-x_low",
+        "dir_hint": "piper",
+        "variants": ["fp32"],
+    },
+    "piper-ca-upc_ona-x_low": {
+        "base_tarball": "vits-piper-ca_ES-upc_ona-x_low",
+        "dir_hint": "piper",
+    },
+    "piper-ca-upc_pau-x_low": {
+        "base_tarball": "vits-piper-ca_ES-upc_pau-x_low",
+        "dir_hint": "piper",
+    },
+    "piper-de-eva_k-x_low": {
+        "base_tarball": "vits-piper-de_DE-eva_k-x_low",
+        "dir_hint": "piper",
+    },
+    "piper-es-carlfm-x_low": {
+        "base_tarball": "vits-piper-es_ES-carlfm-x_low",
+        "dir_hint": "piper",
+    },
+    "piper-it-riccardo-x_low": {
+        "base_tarball": "vits-piper-it_IT-riccardo-x_low",
+        "dir_hint": "piper",
+    },
+    "piper-kk-iseke-x_low": {
+        "base_tarball": "vits-piper-kk_KZ-iseke-x_low",
+        "dir_hint": "piper",
+    },
+    "piper-kk-raya-x_low": {
+        "base_tarball": "vits-piper-kk_KZ-raya-x_low",
+        "dir_hint": "piper",
+    },
+    "piper-nl-be-nathalie-x_low": {
+        "base_tarball": "vits-piper-nl_BE-nathalie-x_low",
+        "dir_hint": "piper",
+    },
+    "piper-uk-lada-x_low": {
+        "base_tarball": "vits-piper-uk_UA-lada-x_low",
+        "dir_hint": "piper",
+    },
+    "piper-ne-google-x_low": {
+        "base_tarball": "vits-piper-ne_NP-google-x_low",
+        "dir_hint": "piper",
+    },
+    "piper-vi-vivos-x_low": {
+        "base_tarball": "vits-piper-vi_VN-vivos-x_low",
+        "dir_hint": "piper",
+    },
+    "piper-fr-siwis-low": {
+        "base_tarball": "vits-piper-fr_FR-siwis-low",
+        "dir_hint": "piper",
+    },
+    "piper-ar-kareem-low": {
+        "base_tarball": "vits-piper-ar_JO-kareem-low",
+        "dir_hint": "piper",
+    },
+    "piper-cs-jirka-low": {
+        "base_tarball": "vits-piper-cs_CZ-jirka-low",
+        "dir_hint": "piper",
+    },
+    "piper-de-glados-low": {
+        "base_tarball": "vits-piper-de_DE-glados-low",
+        "dir_hint": "piper",
+    },
+    "piper-de-glados_turret-low": {
+        "base_tarball": "vits-piper-de_DE-glados_turret-low",
+        "dir_hint": "piper",
+    },
+    "piper-de-karlsson-low": {
+        "base_tarball": "vits-piper-de_DE-karlsson-low",
+        "dir_hint": "piper",
+    },
+    "piper-de-kerstin-low": {
+        "base_tarball": "vits-piper-de_DE-kerstin-low",
+        "dir_hint": "piper",
+    },
+    "piper-de-pavoque-low": {
+        "base_tarball": "vits-piper-de_DE-pavoque-low",
+        "dir_hint": "piper",
+    },
+    "piper-de-ramona-low": {
+        "base_tarball": "vits-piper-de_DE-ramona-low",
+        "dir_hint": "piper",
+    },
+    "piper-de-thorsten-low": {
+        "base_tarball": "vits-piper-de_DE-thorsten-low",
+        "dir_hint": "piper",
+    },
+    "piper-en-gb-alan-low": {
+        "base_tarball": "vits-piper-en_GB-alan-low",
+        "dir_hint": "piper",
+    },
+    "piper-en-gb-south-female-low": {
+        "base_tarball": "vits-piper-en_GB-southern_english_female-low",
+        "dir_hint": "piper",
+    },
+    "piper-en-amy-low": {
+        "base_tarball": "vits-piper-en_US-amy-low",
+        "dir_hint": "piper",
+    },
+    "piper-en-danny-low": {
+        "base_tarball": "vits-piper-en_US-danny-low",
+        "dir_hint": "piper",
+    },
+    "piper-en-kathleen-low": {
+        "base_tarball": "vits-piper-en_US-kathleen-low",
+        "dir_hint": "piper",
+    },
+    "piper-en-lessac-low": {
+        "base_tarball": "vits-piper-en_US-lessac-low",
+        "dir_hint": "piper",
+    },
+    "piper-en-ryan-low": {
+        "base_tarball": "vits-piper-en_US-ryan-low",
+        "dir_hint": "piper",
+    },
+    "piper-fi-harri-low": {
+        "base_tarball": "vits-piper-fi_FI-harri-low",
+        "dir_hint": "piper",
+    },
+    "piper-fr-gilles-low": {
+        "base_tarball": "vits-piper-fr_FR-gilles-low",
+        "dir_hint": "piper",
+    },
+    "piper-pt-br-edresson-low": {
+        "base_tarball": "vits-piper-pt_BR-edresson-low",
+        "dir_hint": "piper",
+    },
+    "piper-vi-25hours-low": {
+        "base_tarball": "vits-piper-vi_VN-25hours_single-low",
+        "dir_hint": "piper",
+    },
+    "piper-de-glados-medium": {
+        "base_tarball": "vits-piper-de_DE-glados-medium",
+        "dir_hint": "piper",
+    },
+    "piper-de-glados_turret-medium": {
+        "base_tarball": "vits-piper-de_DE-glados_turret-medium",
+        "dir_hint": "piper",
+    },
+    "piper-de-thorsten-medium": {
+        "base_tarball": "vits-piper-de_DE-thorsten-medium",
+        "dir_hint": "piper",
+    },
+    "piper-en-gb-alan-medium": {
+        "base_tarball": "vits-piper-en_GB-alan-medium",
+        "dir_hint": "piper",
+    },
+    "piper-en-gb-alba-medium": {
+        "base_tarball": "vits-piper-en_GB-alba-medium",
+        "dir_hint": "piper",
+    },
+    "piper-en-gb-cori-medium": {
+        "base_tarball": "vits-piper-en_GB-cori-medium",
+        "dir_hint": "piper",
+    },
+    "piper-en-gb-jenny-medium": {
+        "base_tarball": "vits-piper-en_GB-jenny_dioco-medium",
+        "dir_hint": "piper",
+    },
+    "piper-en-amy-medium": {
+        "base_tarball": "vits-piper-en_US-amy-medium",
+        "dir_hint": "piper",
+    },
+    "piper-en-bryce-medium": {
+        "base_tarball": "vits-piper-en_US-bryce-medium",
+        "dir_hint": "piper",
+    },
+    "piper-en-hfc_female-medium": {
+        "base_tarball": "vits-piper-en_US-hfc_female-medium",
+        "dir_hint": "piper",
+    },
+    "piper-en-hfc_male-medium": {
+        "base_tarball": "vits-piper-en_US-hfc_male-medium",
+        "dir_hint": "piper",
+    },
+    "piper-en-joe-medium": {
+        "base_tarball": "vits-piper-en_US-joe-medium",
+        "dir_hint": "piper",
+    },
+    "piper-en-john-medium": {
+        "base_tarball": "vits-piper-en_US-john-medium",
+        "dir_hint": "piper",
+    },
+    "piper-en-kristin-medium": {
+        "base_tarball": "vits-piper-en_US-kristin-medium",
+        "dir_hint": "piper",
+    },
+    "piper-en-kusal-medium": {
+        "base_tarball": "vits-piper-en_US-kusal-medium",
+        "dir_hint": "piper",
+    },
+    "piper-en-lessac-medium": {
+        "base_tarball": "vits-piper-en_US-lessac-medium",
+        "dir_hint": "piper",
+    },
+    "piper-en-ljspeech-medium": {
+        "base_tarball": "vits-piper-en_US-ljspeech-medium",
+        "dir_hint": "piper",
+    },
+    "piper-en-norman-medium": {
+        "base_tarball": "vits-piper-en_US-norman-medium",
+        "dir_hint": "piper",
+    },
+    "piper-en-reza-medium": {
+        "base_tarball": "vits-piper-en_US-reza_ibrahim-medium",
+        "dir_hint": "piper",
+    },
+    "piper-en-ryan-medium": {
+        "base_tarball": "vits-piper-en_US-ryan-medium",
+        "dir_hint": "piper",
+    },
+    "piper-en-sam-medium": {
+        "base_tarball": "vits-piper-en_US-sam-medium",
+        "dir_hint": "piper",
+    },
+    "piper-es-glados-medium": {
+        "base_tarball": "vits-piper-es_ES-glados-medium",
+        "dir_hint": "piper",
+    },
+    "piper-es-mx-claude-high": {
+        "base_tarball": "vits-piper-es_MX-claude-high",
+        "dir_hint": "piper",
+    },
+    "piper-fa-ganji-medium": {
+        "base_tarball": "vits-piper-fa_IR-ganji-medium",
+        "dir_hint": "piper",
+    },
+    "piper-fa-ganji_adabi-medium": {
+        "base_tarball": "vits-piper-fa_IR-ganji_adabi-medium",
+        "dir_hint": "piper",
+    },
+    "piper-fa-gyro-medium": {
+        "base_tarball": "vits-piper-fa_IR-gyro-medium",
+        "dir_hint": "piper",
+    },
+    "piper-fa-reza-medium": {
+        "base_tarball": "vits-piper-fa_IR-reza_ibrahim-medium",
+        "dir_hint": "piper",
+    },
+    "piper-fr-siwis-medium": {
+        "base_tarball": "vits-piper-fr_FR-siwis-medium",
+        "dir_hint": "piper",
+    },
+    "piper-fr-tjiho1-medium": {
+        "base_tarball": "vits-piper-fr_FR-tjiho-model1",
+        "dir_hint": "piper",
+    },
+    "piper-fr-tjiho2-medium": {
+        "base_tarball": "vits-piper-fr_FR-tjiho-model2",
+        "dir_hint": "piper",
+    },
+    "piper-fr-tjiho3-medium": {
+        "base_tarball": "vits-piper-fr_FR-tjiho-model3",
+        "dir_hint": "piper",
+    },
+    "piper-hi-pratham-medium": {
+        "base_tarball": "vits-piper-hi_IN-pratham-medium",
+        "dir_hint": "piper",
+    },
+    "piper-hi-priyamvada-medium": {
+        "base_tarball": "vits-piper-hi_IN-priyamvada-medium",
+        "dir_hint": "piper",
+    },
+    "piper-hu-berta-medium": {
+        "base_tarball": "vits-piper-hu_HU-berta-medium",
+        "dir_hint": "piper",
+    },
+    "piper-hu-imre-medium": {
+        "base_tarball": "vits-piper-hu_HU-imre-medium",
+        "dir_hint": "piper",
+    },
+    "piper-is-salka-medium": {
+        "base_tarball": "vits-piper-is_IS-salka-medium",
+        "dir_hint": "piper",
+    },
+    "piper-is-steinn-medium": {
+        "base_tarball": "vits-piper-is_IS-steinn-medium",
+        "dir_hint": "piper",
+    },
+    "piper-is-ugla-medium": {
+        "base_tarball": "vits-piper-is_IS-ugla-medium",
+        "dir_hint": "piper",
+    },
+    "piper-ml-arjun-medium": {
+        "base_tarball": "vits-piper-ml_IN-arjun-medium",
+        "dir_hint": "piper",
+    },
+    "piper-nl-pim-medium": {
+        "base_tarball": "vits-piper-nl_NL-pim-medium",
+        "dir_hint": "piper",
+    },
+    "piper-nl-be-nathalie-medium": {
+        "base_tarball": "vits-piper-nl_BE-nathalie-medium",
+        "dir_hint": "piper",
+    },
+    "piper-pl-gosia-medium": {
+        "base_tarball": "vits-piper-pl_PL-gosia-medium",
+        "dir_hint": "piper",
+    },
+    "piper-pl-jarvis-medium": {
+        "base_tarball": "vits-piper-pl_PL-jarvis_wg_glos-medium",
+        "dir_hint": "piper",
+    },
+    "piper-pl-justyna-medium": {
+        "base_tarball": "vits-piper-pl_PL-justyna_wg_glos-medium",
+        "dir_hint": "piper",
+    },
+    "piper-pl-mc_speech-medium": {
+        "base_tarball": "vits-piper-pl_PL-mc_speech-medium",
+        "dir_hint": "piper",
+    },
+    "piper-pl-meski-medium": {
+        "base_tarball": "vits-piper-pl_PL-meski_wg_glos-medium",
+        "dir_hint": "piper",
+    },
+    "piper-pl-zenski-medium": {
+        "base_tarball": "vits-piper-pl_PL-zenski_wg_glos-medium",
+        "dir_hint": "piper",
+    },
+    "piper-pt-br-cadu-medium": {
+        "base_tarball": "vits-piper-pt_BR-cadu-medium",
+        "dir_hint": "piper",
+    },
+    "piper-pt-br-jeff-medium": {
+        "base_tarball": "vits-piper-pt_BR-jeff-medium",
+        "dir_hint": "piper",
+    },
+    "piper-ru-denis-medium": {
+        "base_tarball": "vits-piper-ru_RU-denis-medium",
+        "dir_hint": "piper",
+    },
+    "piper-ru-dmitri-medium": {
+        "base_tarball": "vits-piper-ru_RU-dmitri-medium",
+        "dir_hint": "piper",
+    },
+    "piper-ru-ruslan-medium": {
+        "base_tarball": "vits-piper-ru_RU-ruslan-medium",
+        "dir_hint": "piper",
+    },
+    "piper-sv-lisa-medium": {
+        "base_tarball": "vits-piper-sv_SE-lisa-medium",
+        "dir_hint": "piper",
+    },
+    "piper-tr-dfki-medium": {
+        "base_tarball": "vits-piper-tr_TR-dfki-medium",
+        "dir_hint": "piper",
+    },
+    "piper-tr-fahrettin-medium": {
+        "base_tarball": "vits-piper-tr_TR-fahrettin-medium",
+        "dir_hint": "piper",
+    },
+    "piper-cy-bu_tts-medium": {
+        "base_tarball": "vits-piper-cy_GB-bu_tts-medium",
+        "dir_hint": "piper",
+    },
+    "piper-en-gb-aru-medium": {
+        "base_tarball": "vits-piper-en_GB-aru-medium",
+        "dir_hint": "piper",
+    },
+    "piper-en-gb-semaine-medium": {
+        "base_tarball": "vits-piper-en_GB-semaine-medium",
+        "dir_hint": "piper",
+    },
+    "piper-en-gb-south-female-medium": {
+        "base_tarball": "vits-piper-en_GB-southern_english_female-medium",
+        "dir_hint": "piper",
+    },
+    "piper-en-gb-south-male-medium": {
+        "base_tarball": "vits-piper-en_GB-southern_english_male-medium",
+        "dir_hint": "piper",
+    },
+    "piper-en-gb-vctk-medium": {
+        "base_tarball": "vits-piper-en_GB-vctk-medium",
+        "dir_hint": "piper",
+    },
+    "piper-en-arctic-medium": {
+        "base_tarball": "vits-piper-en_US-arctic-medium",
+        "dir_hint": "piper",
+    },
+    "piper-en-l2arctic-medium": {
+        "base_tarball": "vits-piper-en_US-l2arctic-medium",
+        "dir_hint": "piper",
+    },
+    "piper-es-sharvard-medium": {
+        "base_tarball": "vits-piper-es_ES-sharvard-medium",
+        "dir_hint": "piper",
+    },
+    "piper-fr-upmc-medium": {
+        "base_tarball": "vits-piper-fr_FR-upmc-medium",
+        "dir_hint": "piper",
+    },
+    "piper-ne-google-medium": {
+        "base_tarball": "vits-piper-ne_NP-google-medium",
+        "dir_hint": "piper",
+    },
+    "piper-ar-dii-high": {
+        "base_tarball": "vits-piper-ar_JO-SA_dii-high",
+        "dir_hint": "piper",
+    },
+    "piper-ar-miro-high": {
+        "base_tarball": "vits-piper-ar_JO-SA_miro-high",
+        "dir_hint": "piper",
+    },
+    "piper-ar-miro_v2-high": {
+        "base_tarball": "vits-piper-ar_JO-SA_miro_V2-high",
+        "dir_hint": "piper",
+    },
+    "piper-de-dii-high": {
+        "base_tarball": "vits-piper-de_DE-dii-high",
+        "dir_hint": "piper",
+    },
+    "piper-de-miro-high": {
+        "base_tarball": "vits-piper-de_DE-miro-high",
+        "dir_hint": "piper",
+    },
+    "piper-en-gb-dii-high": {
+        "base_tarball": "vits-piper-en_GB-dii-high",
+        "dir_hint": "piper",
+    },
+    "piper-en-gb-miro-high": {
+        "base_tarball": "vits-piper-en_GB-miro-high",
+        "dir_hint": "piper",
+    },
+    "piper-en-miro-high": {
+        "base_tarball": "vits-piper-en_US-miro-high",
+        "dir_hint": "piper",
+    },
+    "piper-es-miro-high": {
+        "base_tarball": "vits-piper-es_ES-miro-high",
+        "dir_hint": "piper",
+    },
+    "piper-fr-miro-high": {
+        "base_tarball": "vits-piper-fr_FR-miro-high",
+        "dir_hint": "piper",
+    },
+    "piper-it-dii-high": {
+        "base_tarball": "vits-piper-it_IT-dii-high",
+        "dir_hint": "piper",
+    },
+    "piper-it-miro-high": {
+        "base_tarball": "vits-piper-it_IT-miro-high",
+        "dir_hint": "piper",
+    },
+    "piper-nl-dii-high": {
+        "base_tarball": "vits-piper-nl_NL-dii-high",
+        "dir_hint": "piper",
+    },
+    "piper-nl-miro-high": {
+        "base_tarball": "vits-piper-nl_NL-miro-high",
+        "dir_hint": "piper",
+    },
+    "piper-pt-br-dii-high": {
+        "base_tarball": "vits-piper-pt_BR-dii-high",
+        "dir_hint": "piper",
+    },
+    "piper-pt-br-miro-high": {
+        "base_tarball": "vits-piper-pt_BR-miro-high",
+        "dir_hint": "piper",
+    },
+    "piper-pt-dii-high": {
+        "base_tarball": "vits-piper-pt_PT-dii-high",
+        "dir_hint": "piper",
+    },
+    "piper-pt-miro-high": {
+        "base_tarball": "vits-piper-pt_PT-miro-high",
         "dir_hint": "piper",
     },
 }
@@ -601,11 +1074,18 @@ def patch_glue_js(piper_js_path: Path, output_js_path: Path, metadata: list[dict
     print(f"  Patched glue JS: {output_js_path.name}")
 
 
-def pack_model(model_name: str, model_cfg: dict, variant: str):
+def pack_model(model_name: str, model_cfg: dict, variant: str, skip_existing: bool = False):
     """Pack a single model variant into its own wasm-{name}[-{variant}]/ directory."""
     dir_name = _output_dir_name(model_name, variant)
     output_dir = SCRIPT_DIR / dir_name
     tarball_name, url = _resolve_tarball_and_url(model_cfg, variant)
+
+    # Skip if output directory already has a .data file (i.e. fully packed)
+    if skip_existing:
+        data_files = list(output_dir.glob("*.data")) if output_dir.exists() else []
+        if data_files:
+            print(f"\n  SKIP (already packed): {dir_name}/")
+            return
 
     print(f"\n{'='*50}")
     print(f"Packing model: {model_name} ({variant}) -> {dir_name}/")
@@ -672,8 +1152,8 @@ def _parse_arg(arg: str) -> list[tuple[str, list[str]]]:
     Parse a CLI argument into a list of (model_name, [variants]).
 
     Examples:
-        "piper-en"       -> [("piper-en", ["fp32", "fp16", "int8"])]  (all variants for Piper)
-        "piper-en:fp16"  -> [("piper-en", ["fp16"])]
+        "piper-en-libritts_r-medium"       -> [("piper-en-libritts_r-medium", ["fp32", "fp16", "int8"])]  (all variants for Piper)
+        "piper-en-libritts_r-medium:fp16"  -> [("piper-en-libritts_r-medium", ["fp16"])]
         "kitten"         -> [("kitten", ["fp32"])]                    (non-Piper, ignore variant)
         "kitten:int8"    -> [("kitten", ["fp32"])]                    (non-Piper, ignore variant)
         "all"            -> all models, all variants
@@ -722,11 +1202,26 @@ def _parse_arg(arg: str) -> list[tuple[str, list[str]]]:
 def main():
     arg = sys.argv[1] if len(sys.argv) > 1 else "all"
     jobs = _parse_arg(arg)
+    is_all = arg.split(":")[0] == "all"
+    skip_existing = is_all
+    failed = []
 
     for name, variants in jobs:
         cfg = MODELS[name]
         for variant in variants:
-            pack_model(name, cfg, variant)
+            try:
+                pack_model(name, cfg, variant, skip_existing=skip_existing)
+            except urllib.error.HTTPError as e:
+                if e.code == 404 and is_all:
+                    print(f"  SKIP (404 not found): {name} ({variant})")
+                    failed.append(f"{name}:{variant}")
+                else:
+                    raise
+
+    if failed:
+        print(f"\nSkipped {len(failed)} models due to 404:")
+        for f in failed:
+            print(f"  - {f}")
 
     print()
     print("To test:")
@@ -760,7 +1255,7 @@ def main():
         print(f"  ... and {len(mms_keys) - 3} more MMS languages")
 
     # Show special VITS model URLs
-    special_vits_keys = ["melo-tts-en", "melo-tts-zh-en", "cantonese", "icefall-zh-aishell3", "zh-ll"]
+    special_vits_keys = ["melo-tts-en", "melo-tts-zh-en", "cantonese", "icefall-en-ljspeech-low", "icefall-en-ljspeech-medium", "icefall-zh-aishell3", "zh-ll"]
     for key in special_vits_keys:
         if key in MODELS:
             print(f"  Open http://localhost:8080/vits.html?model={key}")

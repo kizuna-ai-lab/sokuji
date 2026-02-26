@@ -154,63 +154,63 @@
 // --- Mimic3 VITS model registry ---
 // Each model has a UNIQUE .onnx filename; all require espeak-ng-data
 var MIMIC3_MODELS = {
-  'mimic3-af': {
+  'mimic3-af-google_nwu-low': {
     onnx: 'af_ZA-google-nwu_low.onnx', name: 'Mimic3 AF (Afrikaans)', lang: 'af',
     dataDir: './espeak-ng-data', defaultText: 'Hallo! Dit is n toets van die Afrikaanse Mimic3 teks-na-spraak model.'
   },
-  'mimic3-bn': {
+  'mimic3-bn-multi-low': {
     onnx: 'bn-multi_low.onnx', name: 'Mimic3 BN (Bengali)', lang: 'bn',
     dataDir: './espeak-ng-data', defaultText: 'নমস্কার! এটি মিমিক৩ বাংলা টেক্সট টু স্পিচ মডেলের একটি পরীক্ষা।'
   },
-  'mimic3-el': {
+  'mimic3-el-rapunzelina-low': {
     onnx: 'el_GR-rapunzelina_low.onnx', name: 'Mimic3 EL (Greek)', lang: 'el',
     dataDir: './espeak-ng-data', defaultText: 'Γεια σας! Αυτή είναι μια δοκιμή του ελληνικού μοντέλου σύνθεσης ομιλίας Mimic3.'
   },
-  'mimic3-es': {
+  'mimic3-es-m_ailabs-low': {
     onnx: 'es_ES-m-ailabs_low.onnx', name: 'Mimic3 ES (Spanish)', lang: 'es',
     dataDir: './espeak-ng-data', defaultText: 'Hola! Esta es una prueba del modelo de síntesis de voz Mimic3 en español.'
   },
-  'mimic3-fa': {
+  'mimic3-fa-haaniye-low': {
     onnx: 'fa-haaniye_low.onnx', name: 'Mimic3 FA (Persian)', lang: 'fa',
     dataDir: './espeak-ng-data', defaultText: 'سلام! این یک آزمایش مدل تبدیل متن به گفتار فارسی میمیک۳ است.'
   },
-  'mimic3-fi': {
+  'mimic3-fi-harri_tapani_ylilammi-low': {
     onnx: 'fi_FI-harri-tapani-ylilammi_low.onnx', name: 'Mimic3 FI (Finnish)', lang: 'fi',
     dataDir: './espeak-ng-data', defaultText: 'Hei! Tämä on testi suomenkielisestä Mimic3 puhesynteesimallista.'
   },
-  'mimic3-gu': {
+  'mimic3-gu-cmu_indic-low': {
     onnx: 'gu_IN-cmu-indic_low.onnx', name: 'Mimic3 GU (Gujarati)', lang: 'gu',
     dataDir: './espeak-ng-data', defaultText: 'નમસ્તે! આ ગુજરાતી Mimic3 ટેક્સ્ટ ટુ સ્પીચ મોડલનું પરીક્ષણ છે.'
   },
-  'mimic3-hu': {
+  'mimic3-hu-diana_majlinger-low': {
     onnx: 'hu_HU-diana-majlinger_low.onnx', name: 'Mimic3 HU (Hungarian)', lang: 'hu',
     dataDir: './espeak-ng-data', defaultText: 'Szia! Ez a magyar Mimic3 szövegfelolvasó modell tesztje.'
   },
-  'mimic3-ko': {
+  'mimic3-ko-kss-low': {
     onnx: 'ko_KO-kss_low.onnx', name: 'Mimic3 KO (Korean)', lang: 'ko',
     dataDir: './espeak-ng-data', defaultText: '안녕하세요! 이것은 한국어 Mimic3 텍스트 음성 변환 모델의 테스트입니다.'
   },
-  'mimic3-ne': {
+  'mimic3-ne-ne_google-low': {
     onnx: 'ne_NP-ne-google_low.onnx', name: 'Mimic3 NE (Nepali)', lang: 'ne',
     dataDir: './espeak-ng-data', defaultText: 'नमस्ते! यो नेपाली Mimic3 पाठ वाचन मोडेलको परीक्षण हो।'
   },
-  'mimic3-pl': {
+  'mimic3-pl-m_ailabs-low': {
     onnx: 'pl_PL-m-ailabs_low.onnx', name: 'Mimic3 PL (Polish)', lang: 'pl',
     dataDir: './espeak-ng-data', defaultText: 'Cześć! To jest test polskiego modelu syntezy mowy Mimic3.'
   },
-  'mimic3-tn': {
+  'mimic3-tn-google_nwu-low': {
     onnx: 'tn_ZA-google-nwu_low.onnx', name: 'Mimic3 TN (Tswana)', lang: 'tn',
     dataDir: './espeak-ng-data', defaultText: 'Dumela! Se ke teko ya mohlala wa go bala molaetsa wa Setswana wa Mimic3.'
   },
-  'mimic3-vi': {
+  'mimic3-vi-vais1000-low': {
     onnx: 'vi_VN-vais1000_low.onnx', name: 'Mimic3 VI (Vietnamese)', lang: 'vi',
     dataDir: './espeak-ng-data', defaultText: 'Xin chào! Đây là bài kiểm tra mô hình chuyển văn bản thành giọng nói Mimic3 tiếng Việt.'
   }
 };
 
 var params = new URLSearchParams(window.location.search);
-var modelKey = params.get('model') || 'mimic3-ko';
-if (!MIMIC3_MODELS[modelKey]) modelKey = 'mimic3-ko';
+var modelKey = params.get('model') || 'mimic3-ko-kss-low';
+if (!MIMIC3_MODELS[modelKey]) modelKey = 'mimic3-ko-kss-low';
 var modelCfg = MIMIC3_MODELS[modelKey];
 
 // CDN base: use HF Dataset for remote, relative paths for localhost
