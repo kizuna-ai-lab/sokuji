@@ -127,6 +127,7 @@ export class LocalInferenceClient implements IClient {
           console.info('[LocalInference] TTS engine ready (sampleRate:', this.ttsEngine.sampleRate, ', speakers:', this.ttsEngine.numSpeakers, ')');
         } catch (error) {
           console.warn('[LocalInference] TTS init failed, continuing without TTS:', error);
+          this.handlers.onError?.(error instanceof Error ? error : new Error(String(error)));
           this.ttsEngine?.dispose();
           this.ttsEngine = null;
         }
@@ -329,6 +330,7 @@ export class LocalInferenceClient implements IClient {
           });
         } catch (ttsError) {
           console.warn('[LocalInference] TTS failed for text, continuing without audio:', ttsError);
+          this.handlers.onError?.(ttsError instanceof Error ? ttsError : new Error(String(ttsError)));
         }
       }
 

@@ -88,7 +88,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   } = useSession();
 
   // Get log functions from store
-  const { addRealtimeEvent } = useLogActions();
+  const { addLog, addRealtimeEvent } = useLogActions();
 
   // Get audio context from context
   const {
@@ -463,11 +463,15 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       },
       onError: (event: any) => {
         console.error('[Sokuji] [MainPanel]', event);
-        
+
+        // Surface error to LogsPanel so users can see it
+        const errorMessage = event.message || event.error || 'Unknown error';
+        addLog(errorMessage, 'error');
+
         // Track API errors
         trackEvent('api_error', {
           provider: provider || Provider.OPENAI,
-          error_message: event.message || event.error || 'Unknown error',
+          error_message: errorMessage,
           error_type: event.type === 'error' ? 'client' : 'server'
         });
       },
@@ -920,10 +924,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
             });
 
             // Notify user about the fallback
-            addLog({
-              type: 'warning',
-              message: t('logs.webrtcFallback', 'WebRTC connection failed, using WebSocket instead')
-            });
+            addLog(t('logs.webrtcFallback', 'WebRTC connection failed, using WebSocket instead'), 'warning');
 
             console.info('[Sokuji] [MainPanel] WebSocket fallback connection established');
           } catch (fallbackError: any) {

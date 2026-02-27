@@ -31,6 +31,8 @@ interface ModelStoreState {
   modelStatuses: Record<string, ModelStatus>;
   /** Active download progress by model ID */
   downloads: Record<string, DownloadState>;
+  /** Error messages by model ID (set on download failure) */
+  downloadErrors: Record<string, string>;
   /** Total storage used in MB */
   storageUsedMb: number;
   /** Whether the store has been initialized */
@@ -58,6 +60,7 @@ export const useModelStore = create<ModelStoreState>()(
   subscribeWithSelector((set, get) => ({
     modelStatuses: {},
     downloads: {},
+    downloadErrors: {},
     storageUsedMb: 0,
     initialized: false,
 
@@ -97,13 +100,18 @@ export const useModelStore = create<ModelStoreState>()(
     downloadModel: async (modelId: string) => {
       const manager = ModelManager.getInstance();
 
-      set(state => ({
-        modelStatuses: { ...state.modelStatuses, [modelId]: 'downloading' },
-        downloads: {
-          ...state.downloads,
-          [modelId]: { downloadedBytes: 0, totalBytes: 0, currentFile: '', percent: 0 },
-        },
-      }));
+      set(state => {
+        const newErrors = { ...state.downloadErrors };
+        delete newErrors[modelId];
+        return {
+          modelStatuses: { ...state.modelStatuses, [modelId]: 'downloading' },
+          downloads: {
+            ...state.downloads,
+            [modelId]: { downloadedBytes: 0, totalBytes: 0, currentFile: '', percent: 0 },
+          },
+          downloadErrors: newErrors,
+        };
+      });
 
       try {
         await manager.downloadModel(modelId, (progress: DownloadProgress) => {
@@ -150,6 +158,7 @@ export const useModelStore = create<ModelStoreState>()(
             return {
               modelStatuses: { ...state.modelStatuses, [modelId]: 'error' },
               downloads: newDownloads,
+              downloadErrors: { ...state.downloadErrors, [modelId]: err.message || String(err) },
             };
           });
         }
@@ -205,6 +214,7 @@ export const useModelStore = create<ModelStoreState>()(
 
 export const useModelStatuses = () => useModelStore(s => s.modelStatuses);
 export const useModelDownloads = () => useModelStore(s => s.downloads);
+export const useDownloadErrors = () => useModelStore(s => s.downloadErrors);
 export const useStorageUsedMb = () => useModelStore(s => s.storageUsedMb);
 export const useModelInitialized = () => useModelStore(s => s.initialized);
 export const useIsProviderReady = () => useModelStore(s => s.isProviderReady);
