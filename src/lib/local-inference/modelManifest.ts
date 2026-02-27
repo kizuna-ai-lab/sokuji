@@ -1842,12 +1842,12 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
   { id: 'opus-mt-en-uk', type: 'translation', name: 'Opus-MT (en → uk)', languages: ['en', 'uk'], files: translationFiles(1_376, 293, 6_922_026, 280, 51_151_774, 58_451_180), hfModelId: 'Xenova/opus-mt-en-uk', sourceLang: 'en', targetLang: 'uk' },
   { id: 'opus-mt-en-vi', type: 'translation', name: 'Opus-MT (en → vi)', languages: ['en', 'vi'], files: translationFiles(1_389, 293, 5_163_544, 282, 47_105_950, 54_373_748), hfModelId: 'Xenova/opus-mt-en-vi', sourceLang: 'en', targetLang: 'vi' },
   { id: 'opus-mt-en-xh', type: 'translation', name: 'Opus-MT (en → xh)', languages: ['en', 'xh'], files: translationFiles(1_376, 293, 5_890_672, 280, 50_997_150, 58_295_348), hfModelId: 'Xenova/opus-mt-en-xh', sourceLang: 'en', targetLang: 'xh' },
-  { id: 'opus-mt-en-ROMANCE', type: 'translation', name: 'Opus-MT (en → Romance)', languages: ['en', 'fr', 'es', 'it', 'pt', 'ro'], files: translationFiles(1_508, 293, 6_117_691, 503, 52_899_742, 60_212_804), hfModelId: 'Xenova/opus-mt-en-ROMANCE', sourceLang: 'en', targetLang: 'ROMANCE' },
+  // { id: 'opus-mt-en-ROMANCE', type: 'translation', name: 'Opus-MT (en → Romance)', languages: ['en', 'fr', 'es', 'it', 'pt', 'ro'], files: translationFiles(1_508, 293, 6_117_691, 503, 52_899_742, 60_212_804), hfModelId: 'Xenova/opus-mt-en-ROMANCE', sourceLang: 'en', targetLang: 'ROMANCE' },
 
   // ── Other Languages → English ──────────────────────────────────────────
   { id: 'opus-mt-af-en', type: 'translation', name: 'Opus-MT (af → en)', languages: ['af', 'en'], files: translationFiles(1_376, 293, 5_569_368, 280, 49_031_070, 56_313_908), hfModelId: 'Xenova/opus-mt-af-en', sourceLang: 'af', targetLang: 'en' },
   { id: 'opus-mt-ar-en', type: 'translation', name: 'Opus-MT (ar → en)', languages: ['ar', 'en'], files: translationFiles(1_376, 293, 6_734_647, 280, 51_790_238, 59_094_632), hfModelId: 'Xenova/opus-mt-ar-en', sourceLang: 'ar', targetLang: 'en' },
-  { id: 'opus-mt-bat-en', type: 'translation', name: 'Opus-MT (bat → en)', languages: ['bat', 'en'], files: translationFiles(1_390, 293, 5_787_203, 282, 49_855_902, 57_145_184), hfModelId: 'Xenova/opus-mt-bat-en', sourceLang: 'bat', targetLang: 'en' },
+  // { id: 'opus-mt-bat-en', type: 'translation', name: 'Opus-MT (bat → en)', languages: ['bat', 'en'], files: translationFiles(1_390, 293, 5_787_203, 282, 49_855_902, 57_145_184), hfModelId: 'Xenova/opus-mt-bat-en', sourceLang: 'bat', targetLang: 'en' },
   { id: 'opus-mt-cs-en', type: 'translation', name: 'Opus-MT (cs → en)', languages: ['cs', 'en'], files: translationFiles(1_376, 293, 6_142_807, 280, 51_623_838, 58_926_932), hfModelId: 'Xenova/opus-mt-cs-en', sourceLang: 'cs', targetLang: 'en' },
   { id: 'opus-mt-da-en', type: 'translation', name: 'Opus-MT (da → en)', languages: ['da', 'en'], files: translationFiles(1_376, 293, 5_685_484, 280, 49_791_389, 57_080_167), hfModelId: 'Xenova/opus-mt-da-en', sourceLang: 'da', targetLang: 'en' },
   { id: 'opus-mt-et-en', type: 'translation', name: 'Opus-MT (et → en)', languages: ['et', 'en'], files: translationFiles(1_376, 293, 5_687_431, 280, 49_758_622, 57_047_144), hfModelId: 'Xenova/opus-mt-et-en', sourceLang: 'et', targetLang: 'en' },
@@ -1867,7 +1867,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
   { id: 'opus-mt-uk-en', type: 'translation', name: 'Opus-MT (uk → en)', languages: ['uk', 'en'], files: translationFiles(1_376, 293, 6_922_026, 280, 51_151_774, 58_451_180), hfModelId: 'Xenova/opus-mt-uk-en', sourceLang: 'uk', targetLang: 'en' },
   { id: 'opus-mt-vi-en', type: 'translation', name: 'Opus-MT (vi → en)', languages: ['vi', 'en'], files: translationFiles(1_389, 293, 5_169_708, 282, 47_133_597, 54_401_611), hfModelId: 'Xenova/opus-mt-vi-en', sourceLang: 'vi', targetLang: 'en' },
   { id: 'opus-mt-xh-en', type: 'translation', name: 'Opus-MT (xh → en)', languages: ['xh', 'en'], files: translationFiles(1_376, 293, 5_890_672, 280, 50_997_150, 58_295_348), hfModelId: 'Xenova/opus-mt-xh-en', sourceLang: 'xh', targetLang: 'en' },
-  { id: 'opus-mt-ROMANCE-en', type: 'translation', name: 'Opus-MT (Romance → en)', languages: ['fr', 'es', 'it', 'pt', 'ro', 'en'], files: translationFiles(1_361, 293, 6_120_151, 503, 52_899_741, 60_212_803), hfModelId: 'Xenova/opus-mt-ROMANCE-en', sourceLang: 'ROMANCE', targetLang: 'en' },
+  // { id: 'opus-mt-ROMANCE-en', type: 'translation', name: 'Opus-MT (Romance → en)', languages: ['fr', 'es', 'it', 'pt', 'ro', 'en'], files: translationFiles(1_361, 293, 6_120_151, 503, 52_899_741, 60_212_803), hfModelId: 'Xenova/opus-mt-ROMANCE-en', sourceLang: 'ROMANCE', targetLang: 'en' },
 
   // ── Non-English Pairs ──────────────────────────────────────────────────
   { id: 'opus-mt-da-de', type: 'translation', name: 'Opus-MT (da → de)', languages: ['da', 'de'], files: translationFiles(1_376, 293, 5_538_319, 280, 48_817_054, 56_098_220), hfModelId: 'Xenova/opus-mt-da-de', sourceLang: 'da', targetLang: 'de' },
@@ -1893,8 +1893,8 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
   { id: 'opus-mt-uk-ru', type: 'translation', name: 'Opus-MT (uk → ru)', languages: ['uk', 'ru'], files: translationFiles(1_389, 293, 7_632_973, 282, 49_201_054, 56_485_220), hfModelId: 'Xenova/opus-mt-uk-ru', sourceLang: 'uk', targetLang: 'ru' },
 
   // ── Language Family Models ─────────────────────────────────────────────
-  { id: 'opus-mt-gem-gem', type: 'translation', name: 'Opus-MT (Germanic ↔ Germanic)', languages: ['de', 'en', 'nl', 'da', 'sv', 'no'], files: translationFiles(1_391, 293, 3_640_084, 282, 38_944_670, 46_148_708), hfModelId: 'Xenova/opus-mt-gem-gem', sourceLang: 'gem', targetLang: 'gem' },
-  { id: 'opus-mt-gmw-gmw', type: 'translation', name: 'Opus-MT (West Germanic ↔ West Germanic)', languages: ['de', 'en', 'nl', 'af'], files: translationFiles(1_391, 293, 3_431_142, 282, 37_776_798, 44_971_712), hfModelId: 'Xenova/opus-mt-gmw-gmw', sourceLang: 'gmw', targetLang: 'gmw' },
+  // { id: 'opus-mt-gem-gem', type: 'translation', name: 'Opus-MT (Germanic ↔ Germanic)', languages: ['de', 'en', 'nl', 'da', 'sv', 'no'], files: translationFiles(1_391, 293, 3_640_084, 282, 38_944_670, 46_148_708), hfModelId: 'Xenova/opus-mt-gem-gem', sourceLang: 'gem', targetLang: 'gem' },
+  // { id: 'opus-mt-gmw-gmw', type: 'translation', name: 'Opus-MT (West Germanic ↔ West Germanic)', languages: ['de', 'en', 'nl', 'af'], files: translationFiles(1_391, 293, 3_431_142, 282, 37_776_798, 44_971_712), hfModelId: 'Xenova/opus-mt-gmw-gmw', sourceLang: 'gmw', targetLang: 'gmw' },
 ];
 
 // ─── Language Helpers ────────────────────────────────────────────────────────
