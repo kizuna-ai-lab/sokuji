@@ -1,7 +1,32 @@
-import { defineConfig, loadEnv } from 'vite'
+import { defineConfig, loadEnv, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 import electron from 'vite-plugin-electron/simple'
 import path from 'path'
+import fs from 'fs'
+
+/**
+ * Dev-only plugin: serve model-packs/tts/ files at /model-packs/tts/ URLs.
+ * TTS model .data and package-metadata.json files live in model-packs/tts/wasm-*
+ * and need to be accessible to the browser during development.
+ */
+function serveModelPacks(): Plugin {
+  return {
+    name: 'serve-model-packs',
+    configureServer(server) {
+      server.middlewares.use((req, res, next) => {
+        if (!req.url?.startsWith('/model-packs/tts/')) return next()
+        const filePath = path.join(process.cwd(), decodeURIComponent(req.url))
+        if (!fs.existsSync(filePath)) return next()
+        const stat = fs.statSync(filePath)
+        if (!stat.isFile()) return next()
+        res.setHeader('Content-Length', stat.size)
+        if (filePath.endsWith('.json')) res.setHeader('Content-Type', 'application/json')
+        else res.setHeader('Content-Type', 'application/octet-stream')
+        fs.createReadStream(filePath).pipe(res)
+      })
+    },
+  }
+}
 
 // https://vitejs.dev/config/
 export default defineConfig(({ command, mode }) => {
@@ -13,6 +38,7 @@ export default defineConfig(({ command, mode }) => {
   
   return {
     plugins: [
+      isServe && serveModelPacks(),
       react(),
       electron({
         main: {
@@ -67,7 +93,7 @@ export default defineConfig(({ command, mode }) => {
     ],
     server: {
       port: 5173,
-      host: true
+      host: true,
     },
     build: {
       outDir: 'build',

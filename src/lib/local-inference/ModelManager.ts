@@ -93,7 +93,7 @@ export class ModelManager {
         }
 
         // Fetch with streaming progress
-        const url = getModelFileUrl(entry.cdnPath!, file.filename);
+        const url = getModelFileUrl(entry.cdnPath!, file.filename, entry.type);
         const response = await fetch(url, { signal: controller.signal });
         if (!response.ok) {
           throw new Error(`Failed to fetch ${file.filename}: ${response.status}`);
@@ -116,27 +116,39 @@ export class ModelManager {
 
         // Validate downloaded content before storing
         const ext = file.filename.split('.').pop()?.toLowerCase();
+        const header = new Uint8Array(await blob.slice(0, 4).arrayBuffer());
 
-        // 1. Size check for JS/WASM files only (these are shared across models
-        //    so manifest sizeBytes is accurate; .data files vary per model)
-        if ((ext === 'js' || ext === 'wasm') && file.sizeBytes > 0
+        // 1. HTML check — any file type could get a 404/error HTML page from CDN
+        if (header[0] === 0x3C) { // '<' = HTML
+          throw new Error(
+            `Invalid file ${file.filename}: received HTML instead of expected content (likely 404 or CDN error)`
+          );
+        }
+
+        // 2. Size check for files with known sizes (sizeBytes > 0 in manifest)
+        if (file.sizeBytes > 0
             && Math.abs(blob.size - file.sizeBytes) / file.sizeBytes > 0.2) {
           throw new Error(
             `Size mismatch for ${file.filename}: expected ~${file.sizeBytes} bytes, got ${blob.size} bytes`
           );
         }
 
-        // 2. Content validation for JS and WASM files
-        if (ext === 'js' || ext === 'wasm') {
-          const header = new Uint8Array(await blob.slice(0, 4).arrayBuffer());
-          if (ext === 'js' && header[0] === 0x3C) { // '<' = HTML response
+        // 3. WASM magic number check
+        if (ext === 'wasm'
+            && !(header[0] === 0x00 && header[1] === 0x61 && header[2] === 0x73 && header[3] === 0x6D)) {
+          throw new Error(
+            `Invalid WASM file ${file.filename}: missing WASM magic number`
+          );
+        }
+
+        // 4. JSON structure check — must be parseable JSON
+        if (ext === 'json') {
+          try {
+            const text = await blob.text();
+            JSON.parse(text);
+          } catch {
             throw new Error(
-              `Invalid JS file ${file.filename}: received HTML instead (likely 404 or CDN error)`
-            );
-          }
-          if (ext === 'wasm' && !(header[0] === 0x00 && header[1] === 0x61 && header[2] === 0x73 && header[3] === 0x6D)) {
-            throw new Error(
-              `Invalid WASM file ${file.filename}: missing WASM magic number`
+              `Invalid JSON file ${file.filename}: content is not valid JSON`
             );
           }
         }
