@@ -134,11 +134,14 @@ const STREAM_ASR_FILES: ModelFileEntry[] = [
 ];
 
 // TTS runtime JS/WASM are bundled with the app at /wasm/sherpa-onnx-tts/
-// (identical across all 387 models). Only model-specific files need downloading.
-const TTS_FILES: ModelFileEntry[] = [
-  { filename: 'sherpa-onnx-wasm-main-tts.data', sizeBytes: 0 },        // varies per model
-  { filename: 'package-metadata.json', sizeBytes: 0 },                  // ~27KB, Emscripten FS layout
-];
+// (identical across all models). Only model-specific files need downloading.
+/** Build per-model TTS file list with accurate sizes from HuggingFace. */
+function ttsFiles(dataSize: number, metadataSize: number): ModelFileEntry[] {
+  return [
+    { filename: 'sherpa-onnx-wasm-main-tts.data', sizeBytes: dataSize },
+    { filename: 'package-metadata.json', sizeBytes: metadataSize },
+  ];
+}
 
 // Translation models (Opus-MT via Transformers.js) have per-model file sizes
 // fetched from HuggingFace API. Downloaded directly from HuggingFace Hub.
@@ -322,7 +325,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-mimic3-af-google_nwu-low',
     modelFile: 'af_ZA-google-nwu_low.onnx',
     engine: 'mimic3',
-    files: TTS_FILES,
+    files: ttsFiles(94_350_372, 27_242),
   },
   {
     id: 'piper-ar-kareem-low',
@@ -333,7 +336,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-ar-kareem-low',
     modelFile: 'ar_JO-kareem-low.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(81_147_091, 27_109),
   },
   {
     id: 'piper-ar-kareem-medium',
@@ -344,7 +347,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-ar-kareem-medium',
     modelFile: 'ar_JO-kareem-medium.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(81_147_102, 27_115),
   },
   {
     id: 'coqui-bg-cv',
@@ -354,7 +357,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     totalSizeMb: 79,
     cdnPath: 'wasm-coqui-bg-cv',
     engine: 'coqui',
-    files: TTS_FILES,
+    files: ttsFiles(71_061_552, 452),
   },
   {
     id: 'mimic3-bn-multi-low',
@@ -365,7 +368,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-mimic3-bn-multi-low',
     modelFile: 'bn-multi_low.onnx',
     engine: 'mimic3',
-    files: TTS_FILES,
+    files: ttsFiles(94_362_149, 27_226),
   },
   {
     id: 'coqui-bn-custom_female',
@@ -375,7 +378,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     totalSizeMb: 121,
     cdnPath: 'wasm-coqui-bn-custom_female',
     engine: 'coqui',
-    files: TTS_FILES,
+    files: ttsFiles(114_323_070, 337),
   },
   {
     id: 'piper-ca-upc_pau-x_low',
@@ -386,7 +389,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-ca-upc_pau-x_low',
     modelFile: 'ca_ES-upc_pau-x_low.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(38_575_551, 27_115),
   },
   {
     id: 'piper-ca-upc_ona-x_low',
@@ -397,7 +400,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-ca-upc_ona-x_low',
     modelFile: 'ca_ES-upc_ona-x_low.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(38_573_100, 27_115),
   },
   {
     id: 'piper-ca-upc_ona-medium',
@@ -408,7 +411,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-ca-upc_ona-medium',
     modelFile: 'ca_ES-upc_ona-medium.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(81_146_935, 27_117),
   },
   {
     id: 'piper-cs-jirka-low',
@@ -419,7 +422,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-cs-jirka-low',
     modelFile: 'cs_CZ-jirka-low.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(81_147_090, 27_107),
   },
   {
     id: 'piper-cs-jirka-medium',
@@ -430,7 +433,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-cs-jirka-medium',
     modelFile: 'cs_CZ-jirka-medium.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(81_147_099, 27_113),
   },
   {
     id: 'piper-cy-gwryw_gogleddol-medium',
@@ -441,7 +444,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-cy-gwryw_gogleddol-medium',
     modelFile: 'cy_GB-gwryw_gogleddol-medium.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(81_151_674, 27_133),
   },
   {
     id: 'piper-cy-bu_tts-medium',
@@ -452,7 +455,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-cy-bu_tts-medium',
     modelFile: 'cy_GB-bu_tts-medium.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(94_697_365, 27_115),
   },
   {
     id: 'piper-da-talesyntese-medium',
@@ -463,7 +466,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-da-talesyntese-medium',
     modelFile: 'da_DK-talesyntese-medium.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(81_146_948, 27_125),
   },
   {
     id: 'piper-de-eva_k-x_low',
@@ -474,7 +477,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-de-eva_k-x_low',
     modelFile: 'de_DE-eva_k-x_low.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(38_573_085, 27_111),
   },
   {
     id: 'piper-de-glados-low',
@@ -485,7 +488,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-de-glados-low',
     modelFile: 'de_DE-glados-low.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(81_153_811, 27_157),
   },
   {
     id: 'piper-de-glados_turret-low',
@@ -496,7 +499,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-de-glados_turret-low',
     modelFile: 'de_DE-glados_turret-low.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(81_153_827, 27_171),
   },
   {
     id: 'piper-de-ramona-low',
@@ -507,7 +510,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-de-ramona-low',
     modelFile: 'de_DE-ramona-low.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(81_049_248, 27_109),
   },
   {
     id: 'piper-de-thorsten-low',
@@ -518,7 +521,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-de-thorsten-low',
     modelFile: 'de_DE-thorsten-low.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(81_049_269, 27_113),
   },
   {
     id: 'piper-de-pavoque-low',
@@ -529,7 +532,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-de-pavoque-low',
     modelFile: 'de_DE-pavoque-low.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(81_049_303, 27_111),
   },
   {
     id: 'piper-de-kerstin-low',
@@ -540,7 +543,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-de-kerstin-low',
     modelFile: 'de_DE-kerstin-low.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(81_049_266, 27_111),
   },
   {
     id: 'piper-de-karlsson-low',
@@ -551,7 +554,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-de-karlsson-low',
     modelFile: 'de_DE-karlsson-low.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(81_049_284, 27_113),
   },
   {
     id: 'piper-el-rapunzelina-low',
@@ -562,7 +565,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-el-rapunzelina-low',
     modelFile: 'el_GR-rapunzelina-low.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(81_049_365, 27_119),
   },
   {
     id: 'mimic3-el-rapunzelina-low',
@@ -573,7 +576,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-mimic3-el-rapunzelina-low',
     modelFile: 'el_GR-rapunzelina_low.onnx',
     engine: 'mimic3',
-    files: TTS_FILES,
+    files: ttsFiles(80_786_071, 27_244),
   },
   {
     id: 'piper-en-amy-low',
@@ -584,7 +587,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-en-amy-low',
     modelFile: 'en_US-amy-low.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(81_101_508, 27_103),
   },
   {
     id: 'piper-en-gb-alan-low',
@@ -595,7 +598,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-en-gb-alan-low',
     modelFile: 'en_GB-alan-low.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(81_101_555, 27_105),
   },
   {
     id: 'piper-en-gb-south-female-low',
@@ -606,7 +609,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-en-gb-south-female-low',
     modelFile: 'en_GB-southern_english_female-low.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(81_101_561, 27_143),
   },
   {
     id: 'piper-en-kathleen-low',
@@ -617,7 +620,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-en-kathleen-low',
     modelFile: 'en_US-kathleen-low.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(81_049_294, 27_113),
   },
   {
     id: 'piper-en-lessac-low',
@@ -628,7 +631,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-en-lessac-low',
     modelFile: 'en_US-lessac-low.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(81_146_997, 27_109),
   },
   {
     id: 'piper-en-ryan-low',
@@ -639,7 +642,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-en-ryan-low',
     modelFile: 'en_US-ryan-low.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(81_049_272, 27_105),
   },
   {
     id: 'piper-en-danny-low',
@@ -650,7 +653,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-en-danny-low',
     modelFile: 'en_US-danny-low.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(81_049_285, 27_107),
   },
   {
     id: 'piper-en-arctic-medium',
@@ -661,7 +664,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-en-arctic-medium',
     modelFile: 'en_US-arctic-medium.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(94_713_318, 27_115),
   },
   {
     id: 'piper-en-libritts_r-medium',
@@ -672,7 +675,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-en-libritts_r-medium',
     modelFile: 'en_US-libritts_r-medium.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(96_542_847, 27_123),
   },
   {
     id: 'piper-en-gb-vctk-medium',
@@ -683,7 +686,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-en-gb-vctk-medium',
     modelFile: 'en_GB-vctk-medium.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(94_952_426, 27_111),
   },
   {
     id: 'piper-en-gb-semaine-medium',
@@ -694,7 +697,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-en-gb-semaine-medium',
     modelFile: 'en_GB-semaine-medium.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(94_735_846, 27_117),
   },
   {
     id: 'piper-en-l2arctic-medium',
@@ -705,7 +708,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-en-l2arctic-medium',
     modelFile: 'en_US-l2arctic-medium.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(94_776_994, 27_119),
   },
   {
     id: 'piper-en-gb-aru-medium',
@@ -716,7 +719,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-en-gb-aru-medium',
     modelFile: 'en_GB-aru-medium.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(94_752_222, 27_109),
   },
   {
     id: 'piper-es-carlfm-x_low',
@@ -727,7 +730,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-es-carlfm-x_low',
     modelFile: 'es_ES-carlfm-x_low.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(38_575_543, 27_113),
   },
   {
     id: 'piper-es-glados-medium',
@@ -738,7 +741,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-es-glados-medium',
     modelFile: 'es_ES-glados-medium.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(80_949_089, 27_114),
   },
   {
     id: 'piper-es-mx-claude-high',
@@ -749,7 +752,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-es-mx-claude-high',
     modelFile: 'es_MX-claude-high.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(80_947_123, 27_111),
   },
   {
     id: 'piper-es-mx-ald-medium',
@@ -760,7 +763,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-es-mx-ald-medium',
     modelFile: 'es_MX-ald-medium.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(81_146_970, 27_109),
   },
   {
     id: 'piper-es-sharvard-medium',
@@ -771,7 +774,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-es-sharvard-medium',
     modelFile: 'es_ES-sharvard-medium.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(94_680_398, 27_119),
   },
   {
     id: 'piper-es-davefx-medium',
@@ -782,7 +785,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-es-davefx-medium',
     modelFile: 'es_ES-davefx-medium.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(81_146_842, 27_115),
   },
   {
     id: 'coqui-et-cv',
@@ -792,7 +795,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     totalSizeMb: 79,
     cdnPath: 'wasm-coqui-et-cv',
     engine: 'coqui',
-    files: TTS_FILES,
+    files: ttsFiles(71_067_536, 452),
   },
   {
     id: 'piper-fa-reza-medium',
@@ -803,7 +806,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-fa-reza-medium',
     modelFile: 'fa_IR-reza_ibrahim-medium.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(81_151_968, 26_649),
   },
   {
     id: 'mimic3-fa-haaniye-low',
@@ -814,7 +817,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-mimic3-fa-haaniye-low',
     modelFile: 'fa-haaniye_low.onnx',
     engine: 'mimic3',
-    files: TTS_FILES,
+    files: ttsFiles(80_782_423, 26_752),
   },
   {
     id: 'piper-fa-en-rezahedayatfar-ibrahimwalk-medium',
@@ -825,7 +828,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-fa-en-rezahedayatfar-ibrahimwalk-medium',
     modelFile: 'fa_en-rezahedayatfar-ibrahimwalk-medium.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(81_515_497, 26_801),
   },
   {
     id: 'piper-fa-ganji_adabi-medium',
@@ -836,7 +839,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-fa-ganji_adabi-medium',
     modelFile: 'fa_IR-ganji_adabi-medium.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(81_142_990, 26_647),
   },
   {
     id: 'piper-fa-amir-medium',
@@ -847,7 +850,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-fa-amir-medium',
     modelFile: 'fa_IR-amir-medium.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(81_150_783, 26_633),
   },
   {
     id: 'piper-fa-gyro-medium',
@@ -858,7 +861,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-fa-gyro-medium',
     modelFile: 'fa_IR-gyro-medium.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(80_949_377, 26_633),
   },
   {
     id: 'piper-fa-ganji-medium',
@@ -869,7 +872,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-fa-ganji-medium',
     modelFile: 'fa_IR-ganji-medium.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(81_142_978, 26_635),
   },
   {
     id: 'matcha-fa-en-khadijah',
@@ -884,7 +887,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
       vocoder: './vocos-22khz-univ.onnx',
       dataDir: './espeak-ng-data',
     },
-    files: TTS_FILES,
+    files: ttsFiles(146_151_530, 26_614),
   },
   {
     id: 'piper-fi-harri-low',
@@ -895,7 +898,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-fi-harri-low',
     modelFile: 'fi_FI-harri-low.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(81_049_277, 26_629),
   },
   {
     id: 'piper-fi-harri-medium',
@@ -906,7 +909,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-fi-harri-medium',
     modelFile: 'fi_FI-harri-medium.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(81_146_941, 26_635),
   },
   {
     id: 'piper-fr-siwis-low',
@@ -917,7 +920,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-fr-siwis-low',
     modelFile: 'fr_FR-siwis-low.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(38_575_563, 26_629),
   },
   {
     id: 'piper-fr-gilles-low',
@@ -928,7 +931,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-fr-gilles-low',
     modelFile: 'fr_FR-gilles-low.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(81_049_294, 26_631),
   },
   {
     id: 'piper-fr-siwis-medium',
@@ -939,7 +942,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-fr-siwis-medium',
     modelFile: 'fr_FR-siwis-medium.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(81_146_921, 26_635),
   },
   {
     id: 'piper-fr-upmc-medium',
@@ -950,7 +953,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-fr-upmc-medium',
     modelFile: 'fr_FR-upmc-medium.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(94_680_432, 26_633),
   },
   {
     id: 'piper-fr-tjiho3-medium',
@@ -961,7 +964,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-fr-tjiho3-medium',
     modelFile: 'fr_FR-tjiho-model3.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(81_187_463, 26_695),
   },
   {
     id: 'piper-fr-tom-medium',
@@ -972,7 +975,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-fr-tom-medium',
     modelFile: 'fr_FR-tom-medium.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(81_151_556, 26_631),
   },
   {
     id: 'piper-fr-tjiho1-medium',
@@ -983,7 +986,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-fr-tjiho1-medium',
     modelFile: 'fr_FR-tjiho-model1.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(81_187_463, 26_695),
   },
   {
     id: 'piper-fr-tjiho2-medium',
@@ -994,7 +997,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-fr-tjiho2-medium',
     modelFile: 'fr_FR-tjiho-model2.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(81_187_463, 26_695),
   },
   {
     id: 'coqui-ga-cv',
@@ -1004,7 +1007,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     totalSizeMb: 79,
     cdnPath: 'wasm-coqui-ga-cv',
     engine: 'coqui',
-    files: TTS_FILES,
+    files: ttsFiles(71_060_990, 452),
   },
   {
     id: 'mimic3-gu-cmu_indic-low',
@@ -1015,7 +1018,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-mimic3-gu-cmu_indic-low',
     modelFile: 'gu_IN-cmu-indic_low.onnx',
     engine: 'mimic3',
-    files: TTS_FILES,
+    files: ttsFiles(94_333_214, 26_762),
   },
   {
     id: 'piper-hi-priyamvada-medium',
@@ -1026,7 +1029,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-hi-priyamvada-medium',
     modelFile: 'hi_IN-priyamvada-medium.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(81_143_049, 26_645),
   },
   {
     id: 'piper-hi-pratham-medium',
@@ -1037,7 +1040,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-hi-pratham-medium',
     modelFile: 'hi_IN-pratham-medium.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(81_143_043, 26_639),
   },
   {
     id: 'piper-hi-rohan-medium',
@@ -1048,7 +1051,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-hi-rohan-medium',
     modelFile: 'hi_IN-rohan-medium.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(80_944_447, 26_635),
   },
   {
     id: 'coqui-hr-cv',
@@ -1058,7 +1061,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     totalSizeMb: 79,
     cdnPath: 'wasm-coqui-hr-cv',
     engine: 'coqui',
-    files: TTS_FILES,
+    files: ttsFiles(71_081_001, 452),
   },
   {
     id: 'piper-hu-imre-medium',
@@ -1069,7 +1072,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-hu-imre-medium',
     modelFile: 'hu_HU-imre-medium.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(81_147_097, 26_633),
   },
   {
     id: 'piper-hu-berta-medium',
@@ -1080,7 +1083,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-hu-berta-medium',
     modelFile: 'hu_HU-berta-medium.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(81_147_026, 26_635),
   },
   {
     id: 'piper-hu-anna-medium',
@@ -1091,7 +1094,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-hu-anna-medium',
     modelFile: 'hu_HU-anna-medium.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(81_147_096, 26_633),
   },
   {
     id: 'piper-id-news_tts-medium',
@@ -1102,7 +1105,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-id-news_tts-medium',
     modelFile: 'id_ID-news_tts-medium.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(80_944_415, 26_641),
   },
   {
     id: 'piper-is-salka-medium',
@@ -1113,7 +1116,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-is-salka-medium',
     modelFile: 'is_IS-salka-medium.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(80_849_369, 26_635),
   },
   {
     id: 'piper-is-ugla-medium',
@@ -1124,7 +1127,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-is-ugla-medium',
     modelFile: 'is_IS-ugla-medium.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(80_849_367, 26_633),
   },
   {
     id: 'piper-is-bui-medium',
@@ -1135,7 +1138,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-is-bui-medium',
     modelFile: 'is_IS-bui-medium.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(80_849_372, 26_631),
   },
   {
     id: 'piper-is-steinn-medium',
@@ -1146,7 +1149,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-is-steinn-medium',
     modelFile: 'is_IS-steinn-medium.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(80_849_371, 26_637),
   },
   {
     id: 'piper-it-riccardo-x_low',
@@ -1157,7 +1160,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-it-riccardo-x_low',
     modelFile: 'it_IT-riccardo-x_low.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(38_575_555, 26_639),
   },
   {
     id: 'piper-it-paola-medium',
@@ -1168,7 +1171,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-it-paola-medium',
     modelFile: 'it_IT-paola-medium.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(81_153_749, 26_635),
   },
   {
     id: 'piper-ka-natia-medium',
@@ -1179,7 +1182,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-ka-natia-medium',
     modelFile: 'ka_GE-natia-medium.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(81_199_111, 26_635),
   },
   {
     id: 'piper-kk-iseke-x_low',
@@ -1190,7 +1193,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-kk-iseke-x_low',
     modelFile: 'kk_KZ-iseke-x_low.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(46_127_739, 26_633),
   },
   {
     id: 'piper-kk-raya-x_low',
@@ -1201,7 +1204,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-kk-raya-x_low',
     modelFile: 'kk_KZ-raya-x_low.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(38_575_537, 26_631),
   },
   {
     id: 'piper-kk-issai-high',
@@ -1212,7 +1215,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-kk-issai-high',
     modelFile: 'kk_KZ-issai-high.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(145_861_394, 26_637),
   },
   {
     id: 'mimic3-ko-kss-low',
@@ -1223,7 +1226,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-mimic3-ko-kss-low',
     modelFile: 'ko_KO-kss_low.onnx',
     engine: 'mimic3',
-    files: TTS_FILES,
+    files: ttsFiles(80_791_421, 26_750),
   },
   {
     id: 'piper-lb-marylux-medium',
@@ -1234,7 +1237,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-lb-marylux-medium',
     modelFile: 'lb_LU-marylux-medium.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(81_147_104, 26_639),
   },
   {
     id: 'coqui-lt-cv',
@@ -1244,7 +1247,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     totalSizeMb: 79,
     cdnPath: 'wasm-coqui-lt-cv',
     engine: 'coqui',
-    files: TTS_FILES,
+    files: ttsFiles(71_069_879, 452),
   },
   {
     id: 'piper-lv-aivars-medium',
@@ -1255,7 +1258,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-lv-aivars-medium',
     modelFile: 'lv_LV-aivars-medium.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(81_153_865, 26_637),
   },
   {
     id: 'piper-ml-arjun-medium',
@@ -1266,7 +1269,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-ml-arjun-medium',
     modelFile: 'ml_IN-arjun-medium.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(80_944_407, 26_635),
   },
   {
     id: 'piper-ml-meera-medium',
@@ -1277,7 +1280,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-ml-meera-medium',
     modelFile: 'ml_IN-meera-medium.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(80_948_146, 26_635),
   },
   {
     id: 'coqui-mt-cv',
@@ -1287,7 +1290,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     totalSizeMb: 79,
     cdnPath: 'wasm-coqui-mt-cv',
     engine: 'coqui',
-    files: TTS_FILES,
+    files: ttsFiles(71_079_440, 452),
   },
   {
     id: 'kokoro',
@@ -1302,7 +1305,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
       lexicon: './lexicon-us-en.txt,./lexicon-zh.txt',
       ruleFsts: './date-zh.fst,./number-zh.fst,./phone-zh.fst',
     },
-    files: TTS_FILES,
+    files: ttsFiles(189_453_314, 28_293),
   },
   {
     id: 'mms-nan',
@@ -1312,7 +1315,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     totalSizeMb: 120,
     cdnPath: 'wasm-mms-nan',
     engine: 'mms',
-    files: TTS_FILES,
+    files: ttsFiles(114_032_230, 381),
   },
   {
     id: 'piper-ne-google-x_low',
@@ -1323,7 +1326,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-ne-google-x_low',
     modelFile: 'ne_NP-google-x_low.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(45_638_768, 26_635),
   },
   {
     id: 'piper-ne-google-medium',
@@ -1334,7 +1337,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-ne-google-medium',
     modelFile: 'ne_NP-google-medium.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(94_713_353, 26_637),
   },
   {
     id: 'piper-ne-chitwan-medium',
@@ -1345,7 +1348,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-ne-chitwan-medium',
     modelFile: 'ne_NP-chitwan-medium.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(80_944_399, 26_639),
   },
   {
     id: 'piper-nl-be-nathalie-x_low',
@@ -1356,7 +1359,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-nl-be-nathalie-x_low',
     modelFile: 'nl_BE-nathalie-x_low.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(38_573_088, 26_639),
   },
   {
     id: 'piper-nl-be-nathalie-medium',
@@ -1367,7 +1370,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-nl-be-nathalie-medium',
     modelFile: 'nl_BE-nathalie-medium.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(81_146_923, 26_641),
   },
   {
     id: 'piper-nl-pim-medium',
@@ -1378,7 +1381,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-nl-pim-medium',
     modelFile: 'nl_NL-pim-medium.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(81_143_110, 26_631),
   },
   {
     id: 'piper-nl-ronnie-medium',
@@ -1389,7 +1392,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-nl-ronnie-medium',
     modelFile: 'nl_NL-ronnie-medium.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(80_944_366, 26_637),
   },
   {
     id: 'piper-no-talesyntese-medium',
@@ -1400,7 +1403,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-no-talesyntese-medium',
     modelFile: 'no_NO-talesyntese-medium.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(81_199_188, 26_647),
   },
   {
     id: 'piper-pl-darkman-medium',
@@ -1411,7 +1414,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-pl-darkman-medium',
     modelFile: 'pl_PL-darkman-medium.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(81_199_071, 26_639),
   },
   {
     id: 'piper-pl-gosia-medium',
@@ -1422,7 +1425,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-pl-gosia-medium',
     modelFile: 'pl_PL-gosia-medium.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(81_199_067, 26_635),
   },
   {
     id: 'piper-pl-zenski-medium',
@@ -1433,7 +1436,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-pl-zenski-medium',
     modelFile: 'pl_PL-zenski_wg_glos-medium.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(81_517_197, 26_654),
   },
   {
     id: 'piper-pl-mc_speech-medium',
@@ -1444,7 +1447,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-pl-mc_speech-medium',
     modelFile: 'pl_PL-mc_speech-medium.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(81_147_038, 26_643),
   },
   {
     id: 'piper-pl-meski-medium',
@@ -1455,7 +1458,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-pl-meski-medium',
     modelFile: 'pl_PL-meski_wg_glos-medium.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(81_517_196, 26_652),
   },
   {
     id: 'piper-pl-justyna-medium',
@@ -1466,7 +1469,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-pl-justyna-medium',
     modelFile: 'pl_PL-justyna_wg_glos-medium.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(81_146_201, 26_656),
   },
   {
     id: 'piper-pl-jarvis-medium',
@@ -1477,7 +1480,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-pl-jarvis-medium',
     modelFile: 'pl_PL-jarvis_wg_glos-medium.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(81_517_197, 26_654),
   },
   {
     id: 'piper-pt-br-edresson-low',
@@ -1488,7 +1491,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-pt-br-edresson-low',
     modelFile: 'pt_BR-edresson-low.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(81_049_301, 26_635),
   },
   {
     id: 'piper-pt-br-faber-medium',
@@ -1499,7 +1502,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-pt-br-faber-medium',
     modelFile: 'pt_BR-faber-medium.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(81_146_895, 26_635),
   },
   {
     id: 'piper-pt-tugao-medium',
@@ -1510,7 +1513,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-pt-tugao-medium',
     modelFile: 'pt_PT-tugao-medium.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(81_199_337, 26_635),
   },
   {
     id: 'piper-pt-br-jeff-medium',
@@ -1521,7 +1524,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-pt-br-jeff-medium',
     modelFile: 'pt_BR-jeff-medium.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(80_944_381, 26_633),
   },
   {
     id: 'piper-ro-mihai-medium',
@@ -1532,7 +1535,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-ro-mihai-medium',
     modelFile: 'ro_RO-mihai-medium.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(81_146_920, 26_635),
   },
   {
     id: 'piper-ru-denis-medium',
@@ -1543,7 +1546,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-ru-denis-medium',
     modelFile: 'ru_RU-denis-medium.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(81_146_848, 26_635),
   },
   {
     id: 'piper-ru-dmitri-medium',
@@ -1554,7 +1557,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-ru-dmitri-medium',
     modelFile: 'ru_RU-dmitri-medium.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(81_146_850, 26_637),
   },
   {
     id: 'piper-ru-ruslan-medium',
@@ -1565,7 +1568,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-ru-ruslan-medium',
     modelFile: 'ru_RU-ruslan-medium.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(81_146_959, 26_637),
   },
   {
     id: 'piper-ru-irina-medium',
@@ -1576,7 +1579,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-ru-irina-medium',
     modelFile: 'ru_RU-irina-medium.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(81_146_778, 26_635),
   },
   {
     id: 'piper-sk-lili-medium',
@@ -1587,7 +1590,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-sk-lili-medium',
     modelFile: 'sk_SK-lili-medium.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(81_199_250, 26_633),
   },
   {
     id: 'piper-sl-artur-medium',
@@ -1598,7 +1601,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-sl-artur-medium',
     modelFile: 'sl_SI-artur-medium.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(81_198_512, 26_635),
   },
   {
     id: 'piper-sr-serbski_institut-medium',
@@ -1609,7 +1612,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-sr-serbski_institut-medium',
     modelFile: 'sr_RS-serbski_institut-medium.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(94_680_464, 26_657),
   },
   {
     id: 'piper-sv-nst-medium',
@@ -1620,7 +1623,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-sv-nst-medium',
     modelFile: 'sv_SE-nst-medium.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(81_049_301, 26_631),
   },
   {
     id: 'piper-sv-lisa-medium',
@@ -1631,7 +1634,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-sv-lisa-medium',
     modelFile: 'sv_SE-lisa-medium.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(81_153_803, 26_633),
   },
   {
     id: 'piper-sw-lanfrica-medium',
@@ -1642,7 +1645,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-sw-lanfrica-medium',
     modelFile: 'sw_CD-lanfrica-medium.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(81_147_016, 26_641),
   },
   {
     id: 'mms-tha',
@@ -1652,7 +1655,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     totalSizeMb: 120,
     cdnPath: 'wasm-mms-tha',
     engine: 'mms',
-    files: TTS_FILES,
+    files: ttsFiles(114_049_893, 381),
   },
   {
     id: 'mimic3-tn-google_nwu-low',
@@ -1663,7 +1666,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-mimic3-tn-google_nwu-low',
     modelFile: 'tn_ZA-google-nwu_low.onnx',
     engine: 'mimic3',
-    files: TTS_FILES,
+    files: ttsFiles(94_375_856, 26_764),
   },
   {
     id: 'piper-tr-fettah-medium',
@@ -1674,7 +1677,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-tr-fettah-medium',
     modelFile: 'tr_TR-fettah-medium.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(81_199_147, 26_637),
   },
   {
     id: 'piper-tr-dfki-medium',
@@ -1685,7 +1688,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-tr-dfki-medium',
     modelFile: 'tr_TR-dfki-medium.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(81_147_043, 26_633),
   },
   {
     id: 'piper-tr-fahrettin-medium',
@@ -1696,7 +1699,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-tr-fahrettin-medium',
     modelFile: 'tr_TR-fahrettin-medium.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(81_147_098, 26_643),
   },
   {
     id: 'piper-uk-lada-x_low',
@@ -1707,7 +1710,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-uk-lada-x_low',
     modelFile: 'uk_UA-lada-x_low.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(38_573_140, 26_631),
   },
   {
     id: 'piper-uk-ukrainian_tts-medium',
@@ -1718,7 +1721,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-uk-ukrainian_tts-medium',
     modelFile: 'uk_UA-ukrainian_tts-medium.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(94_678_775, 26_651),
   },
   {
     id: 'piper-vi-vivos-x_low',
@@ -1729,7 +1732,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-vi-vivos-x_low',
     modelFile: 'vi_VN-vivos-x_low.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(45_736_171, 26_633),
   },
   {
     id: 'piper-vi-25hours-low',
@@ -1740,7 +1743,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-vi-25hours-low',
     modelFile: 'vi_VN-25hours_single-low.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(81_101_590, 26_647),
   },
   {
     id: 'mimic3-vi-vais1000-low',
@@ -1751,7 +1754,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-mimic3-vi-vais1000-low',
     modelFile: 'vi_VN-vais1000_low.onnx',
     engine: 'mimic3',
-    files: TTS_FILES,
+    files: ttsFiles(80_795_551, 26_760),
   },
   {
     id: 'piper-vi-vais1000-medium',
@@ -1762,7 +1765,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-vi-vais1000-medium',
     modelFile: 'vi_VN-vais1000-medium.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(81_146_991, 26_641),
   },
   {
     id: 'cantonese',
@@ -1777,7 +1780,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
       lexicon: './lexicon.txt',
       ruleFsts: './rule.fst',
     },
-    files: TTS_FILES,
+    files: ttsFiles(114_426_339, 447),
   },
   {
     id: 'icefall-zh-aishell3',
@@ -1792,7 +1795,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
       ruleFsts: './date.fst,./number.fst,./phone.fst,./new_heteronym.fst',
       ruleFars: './rule.far',
     },
-    files: TTS_FILES,
+    files: ttsFiles(213_479_522, 569),
   },
   {
     id: 'piper-zh-huayan-medium',
@@ -1803,7 +1806,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-piper-zh-huayan-medium',
     modelFile: 'zh_CN-huayan-medium.onnx',
     engine: 'piper',
-    files: TTS_FILES,
+    files: ttsFiles(81_203_080, 26_761),
   },
   {
     id: 'matcha-zh-baker',
@@ -1819,7 +1822,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
       lexicon: './lexicon.txt',
       ruleFsts: './date.fst,./phone.fst',
     },
-    files: TTS_FILES,
+    files: ttsFiles(145_676_954, 1_280),
   },
 
   // ── Translation Models ───────────────────────────────────────────────────
