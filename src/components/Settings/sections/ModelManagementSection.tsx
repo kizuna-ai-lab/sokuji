@@ -11,6 +11,7 @@ import {
 } from '../../../stores/modelStore';
 import {
   getManifestByType,
+  getModelSizeMb,
   type ModelManifestEntry,
   type ModelStatus,
 } from '../../../lib/local-inference/modelManifest';
@@ -105,7 +106,7 @@ function ModelCard({
           <div className="model-card__info">
             <div className="model-card__header">
               <span className="model-card__name">{entry.name}</span>
-              <span className="model-card__size">~{entry.totalSizeMb} MB</span>
+              <span className="model-card__size">{getModelSizeMb(entry)} MB</span>
             </div>
             <div className="model-card__meta">
               <div className="model-card__languages">

@@ -1270,6 +1270,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
                       m.languages.includes(effectiveTargetLang) && modelStatuses[m.id] === 'downloaded'
                     );
                     updates.ttsModel = firstMatch?.id || '';
+                    updates.ttsSpeakerId = 0;
                   }
                 }
 
@@ -1316,6 +1317,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
                     m.languages.includes(newTargetLang) && modelStatuses[m.id] === 'downloaded'
                   );
                   updates.ttsModel = firstMatch?.id || '';
+                  updates.ttsSpeakerId = 0;
                 }
 
                 // Auto-select translation model for new language pair
@@ -1370,7 +1372,10 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
               disabled={isSessionActive}
             />
           </div>
-          {getManifestEntry(localInferenceSettings.ttsModel)?.modelFile && (
+          {(() => {
+            const ttsEntry = getManifestEntry(localInferenceSettings.ttsModel);
+            const numSpeakers = ttsEntry?.numSpeakers ?? 1;
+            return ttsEntry?.modelFile && numSpeakers > 1 ? (
           <div className="setting-item">
             <div className="setting-label">
               <span>{t('settings.ttsSpeakerId', 'Speaker ID')}</span>
@@ -1379,15 +1384,16 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
             <input
               type="range"
               min="0"
-              max="903"
+              max={numSpeakers - 1}
               step="1"
-              value={localInferenceSettings.ttsSpeakerId}
+              value={Math.min(localInferenceSettings.ttsSpeakerId, numSpeakers - 1)}
               onChange={(e) => updateLocalInferenceSettings({ ttsSpeakerId: parseInt(e.target.value) })}
               className="slider"
               disabled={isSessionActive}
             />
           </div>
-          )}
+            ) : null;
+          })()}
         </div>
 
         {getManifestEntry(localInferenceSettings.asrModel)?.type !== 'asr-stream' && (
