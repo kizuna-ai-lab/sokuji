@@ -2,11 +2,12 @@
  * TTS Worker — Classic Web Worker (not ES module) for sherpa-onnx WASM.
  *
  * Uses importScripts() to load Emscripten glue code + sherpa-onnx TTS JS API.
- * Handles OfflineTts for text-to-speech synthesis.
+ * Builds engine-specific configs based on each model's engine type,
+ * following the patterns from the model-packs/tts demo pages.
  *
  * Protocol:
  *   Main → Worker:
- *     { type: 'init', fileUrls: Record<string, string>, modelFile: string }
+ *     { type: 'init', fileUrls: Record<string, string>, modelFile: string, engine: string, ttsConfig: object }
  *     { type: 'generate', text: string, sid: number, speed: number }
  *     { type: 'dispose' }
  *
@@ -22,6 +23,231 @@
 var tts = null;
 var isReady = false;
 
+// ─── Per-Engine Config Builders ─────────────────────────────────────────────
+//
+// Each builder returns the full config object for createOfflineTts(Module, config).
+// Patterns reference model-packs/tts/{engine}.html demo pages.
+
+/**
+ * Base config shell — all engines share these outer fields.
+ * The engine-specific builder fills in offlineTtsModelConfig.
+ */
+function baseConfig(modelConfig, ruleFsts, ruleFars) {
+  return {
+    offlineTtsModelConfig: Object.assign({
+      numThreads: 1,
+      debug: 1,
+      provider: 'cpu',
+    }, modelConfig),
+    ruleFsts: ruleFsts || '',
+    ruleFars: ruleFars || '',
+    maxNumSentences: 1,
+  };
+}
+
+/** Empty VITS config section (required when other VITS-type fields are populated). */
+function emptyVits() {
+  return {
+    offlineTtsVitsModelConfig: {
+      model: '', lexicon: '', tokens: '', dataDir: '',
+      noiseScale: 0.667, noiseScaleW: 0.8, lengthScale: 1.0,
+    },
+  };
+}
+
+/** Empty Matcha config section. */
+function emptyMatcha() {
+  return {
+    offlineTtsMatchaModelConfig: {
+      acousticModel: '', vocoder: '', lexicon: '', tokens: '', dataDir: '',
+      noiseScale: 0.667, lengthScale: 1.0,
+    },
+  };
+}
+
+/** Empty Kokoro config section. */
+function emptyKokoro() {
+  return {
+    offlineTtsKokoroModelConfig: {
+      model: '', voices: '', tokens: '', dataDir: '',
+      lengthScale: 1.0, lexicon: '', lang: '',
+    },
+  };
+}
+
+/** Empty Kitten config section. */
+function emptyKitten() {
+  return {
+    offlineTtsKittenModelConfig: {
+      model: '', voices: '', tokens: '', dataDir: '',
+      lengthScale: 1.0,
+    },
+  };
+}
+
+// ─── Piper (piper.html) ─────────────────────────────────────────────────────
+// VITS engine with custom .onnx filename, espeak-ng phonemizer.
+function buildPiperConfig(modelFile) {
+  return baseConfig({
+    offlineTtsVitsModelConfig: {
+      model: './' + modelFile,
+      lexicon: '',
+      tokens: './tokens.txt',
+      dataDir: './espeak-ng-data',
+      noiseScale: 0.667,
+      noiseScaleW: 0.8,
+      lengthScale: 1.0,
+    },
+    ...emptyMatcha(),
+    ...emptyKokoro(),
+    ...emptyKitten(),
+  });
+}
+
+// ─── Coqui (coqui.html) ────────────────────────────────────────────────────
+// VITS engine, always model.onnx. Non-English: grapheme-based (no espeak).
+// English variants would use espeak-ng-data, but we handle via ttsConfig.dataDir.
+function buildCoquiConfig(ttsConfig) {
+  return baseConfig({
+    offlineTtsVitsModelConfig: {
+      model: './model.onnx',
+      lexicon: '',
+      tokens: './tokens.txt',
+      dataDir: (ttsConfig && ttsConfig.dataDir) || '',
+      noiseScale: 0.667,
+      noiseScaleW: 0.8,
+      lengthScale: 1.0,
+    },
+    ...emptyMatcha(),
+    ...emptyKokoro(),
+    ...emptyKitten(),
+  });
+}
+
+// ─── Mimic3 (mimic3.html) ──────────────────────────────────────────────────
+// VITS engine with unique .onnx filenames, always espeak-ng phonemizer.
+function buildMimic3Config(modelFile) {
+  return baseConfig({
+    offlineTtsVitsModelConfig: {
+      model: './' + modelFile,
+      lexicon: '',
+      tokens: './tokens.txt',
+      dataDir: './espeak-ng-data',
+      noiseScale: 0.667,
+      noiseScaleW: 0.8,
+      lengthScale: 1.0,
+    },
+    ...emptyMatcha(),
+    ...emptyKokoro(),
+    ...emptyKitten(),
+  });
+}
+
+// ─── MMS (mms.html) ────────────────────────────────────────────────────────
+// VITS engine, always model.onnx, grapheme-based (no espeak-ng, no dataDir).
+function buildMmsConfig() {
+  return baseConfig({
+    offlineTtsVitsModelConfig: {
+      model: './model.onnx',
+      lexicon: '',
+      tokens: './tokens.txt',
+      dataDir: '',
+      noiseScale: 0.667,
+      noiseScaleW: 0.8,
+      lengthScale: 1.0,
+    },
+    ...emptyMatcha(),
+    ...emptyKokoro(),
+    ...emptyKitten(),
+  });
+}
+
+// ─── Matcha (matcha.html) ───────────────────────────────────────────────────
+// Uses offlineTtsMatchaModelConfig with separate acoustic model + vocoder.
+// Config fields come from ttsConfig in the manifest.
+function buildMatchaConfig(ttsConfig) {
+  return baseConfig({
+    ...emptyVits(),
+    offlineTtsMatchaModelConfig: {
+      acousticModel: ttsConfig.acousticModel || './model-steps-3.onnx',
+      vocoder: ttsConfig.vocoder || './vocos-22khz-univ.onnx',
+      lexicon: ttsConfig.lexicon || '',
+      tokens: './tokens.txt',
+      dataDir: ttsConfig.dataDir || '',
+      noiseScale: 0.667,
+      lengthScale: 1.0,
+    },
+    ...emptyKokoro(),
+    ...emptyKitten(),
+  }, ttsConfig.ruleFsts);
+}
+
+// ─── Kokoro (kokoro.html) ───────────────────────────────────────────────────
+// Uses offlineTtsKokoroModelConfig with voices.bin + optional lexicons.
+function buildKokoroConfig(modelFile, ttsConfig) {
+  return baseConfig({
+    ...emptyVits(),
+    ...emptyMatcha(),
+    offlineTtsKokoroModelConfig: {
+      model: './' + (modelFile || 'model.int8.onnx'),
+      voices: './voices.bin',
+      tokens: './tokens.txt',
+      dataDir: './espeak-ng-data',
+      lengthScale: 1.0,
+      lexicon: (ttsConfig && ttsConfig.lexicon) || '',
+      lang: '',
+    },
+    ...emptyKitten(),
+  }, (ttsConfig && ttsConfig.ruleFsts) || '');
+}
+
+// ─── VITS Special (vits.html) ───────────────────────────────────────────────
+// Advanced VITS models with lexicon, dictDir, ruleFsts, ruleFars.
+// Used for: Cantonese, Icefall, MeloTTS, zh-ll.
+function buildVitsConfig(modelFile, ttsConfig) {
+  return baseConfig({
+    offlineTtsVitsModelConfig: {
+      model: './' + (modelFile || 'model.onnx'),
+      lexicon: (ttsConfig && ttsConfig.lexicon) || '',
+      tokens: './tokens.txt',
+      dataDir: (ttsConfig && ttsConfig.dataDir) || '',
+      dictDir: (ttsConfig && ttsConfig.dictDir) || '',
+      noiseScale: 0.667,
+      noiseScaleW: 0.8,
+      lengthScale: 1.0,
+    },
+    ...emptyMatcha(),
+    ...emptyKokoro(),
+    ...emptyKitten(),
+  }, (ttsConfig && ttsConfig.ruleFsts) || '', (ttsConfig && ttsConfig.ruleFars) || '');
+}
+
+// ─── Engine Router ──────────────────────────────────────────────────────────
+
+/**
+ * Build the sherpa-onnx config for createOfflineTts based on engine type.
+ */
+function buildEngineConfig(engine, modelFile, ttsConfig) {
+  switch (engine) {
+    case 'piper':
+      return buildPiperConfig(modelFile);
+    case 'coqui':
+      return buildCoquiConfig(ttsConfig);
+    case 'mimic3':
+      return buildMimic3Config(modelFile);
+    case 'mms':
+      return buildMmsConfig();
+    case 'matcha':
+      return buildMatchaConfig(ttsConfig || {});
+    case 'kokoro':
+      return buildKokoroConfig(modelFile, ttsConfig);
+    case 'vits':
+      return buildVitsConfig(modelFile, ttsConfig);
+    default:
+      throw new Error('Unknown TTS engine: ' + engine);
+  }
+}
+
 // ─── Emscripten Module Setup ─────────────────────────────────────────────────
 
 /**
@@ -31,15 +257,22 @@ var isReady = false;
 function handleInit(msg) {
   var fileUrls = msg.fileUrls;
   var modelFile = msg.modelFile || '';
+  var engine = msg.engine || '';
+  var ttsConfig = msg.ttsConfig || {};
 
   if (!fileUrls) {
     postMessage({ type: 'error', error: 'fileUrls is required — model must be downloaded first' });
     return;
   }
 
+  if (!engine) {
+    postMessage({ type: 'error', error: 'engine is required — model must specify an engine type' });
+    return;
+  }
+
   var startTime = performance.now();
 
-  postMessage({ type: 'status', message: 'Loading TTS WASM module...' });
+  postMessage({ type: 'status', message: 'Loading TTS WASM module (' + engine + ')...' });
 
   // Configure the Emscripten Module object before loading the glue code.
   Module = {};
@@ -57,63 +290,10 @@ function handleInit(msg) {
 
   Module.onRuntimeInitialized = function() {
     try {
-      postMessage({ type: 'status', message: 'Creating TTS engine...' });
+      postMessage({ type: 'status', message: 'Creating TTS engine (' + engine + ')...' });
 
-      if (modelFile) {
-        // Piper/VITS: needs custom config because prebuilt packages have
-        // non-default model filenames (e.g. 'en_US-libritts_r-medium.onnx').
-        var config = {
-          offlineTtsModelConfig: {
-            offlineTtsVitsModelConfig: {
-              model: './' + modelFile,
-              lexicon: '',
-              tokens: './tokens.txt',
-              dataDir: './espeak-ng-data',
-              noiseScale: 0.667,
-              noiseScaleW: 0.8,
-              lengthScale: 1.0,
-            },
-            offlineTtsMatchaModelConfig: {
-              acousticModel: '',
-              vocoder: '',
-              lexicon: '',
-              tokens: '',
-              dataDir: '',
-              noiseScale: 0.667,
-              lengthScale: 1.0,
-            },
-            offlineTtsKokoroModelConfig: {
-              model: '',
-              voices: '',
-              tokens: '',
-              dataDir: '',
-              lengthScale: 1.0,
-              lexicon: '',
-              lang: '',
-            },
-            offlineTtsKittenModelConfig: {
-              model: '',
-              voices: '',
-              tokens: '',
-              dataDir: '',
-              lengthScale: 1.0,
-            },
-            numThreads: 1,
-            debug: 1,
-            provider: 'cpu',
-          },
-          ruleFsts: '',
-          ruleFars: '',
-          maxNumSentences: 1,
-        };
-        tts = createOfflineTts(Module, config);
-      } else {
-        // Matcha (and other auto-detect models): let the baked-in
-        // createOfflineTts() auto-detection handle model config.
-        // Each package's sherpa-onnx-tts.js has a `let type = N` that
-        // correctly sets acousticModel, vocoder, tokens, etc.
-        tts = createOfflineTts(Module);
-      }
+      var config = buildEngineConfig(engine, modelFile, ttsConfig);
+      tts = createOfflineTts(Module, config);
 
       isReady = true;
       var elapsed = Math.round(performance.now() - startTime);
@@ -124,7 +304,7 @@ function handleInit(msg) {
         sampleRate: tts.sampleRate,
       });
     } catch (e) {
-      postMessage({ type: 'error', error: 'TTS init failed: ' + (e.message || e) });
+      postMessage({ type: 'error', error: 'TTS init failed (' + engine + '): ' + (e.message || e) });
     }
   };
 
