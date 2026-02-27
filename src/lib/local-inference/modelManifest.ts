@@ -59,37 +59,49 @@ export interface ModelManifestEntry {
   targetLang?: string;
 }
 
-// ─── CDN URL Configuration ───────────────────────────────────────────────────
+// ─── Download URL Configuration ─────────────────────────────────────────────
+
+/** Default HF base URLs for each model type. */
+const ASR_HF_BASE = 'https://huggingface.co/datasets/jiangzhuo9357/sherpa-onnx-asr-models/resolve/main';
+const TTS_HF_BASE = 'https://huggingface.co/datasets/jiangzhuo9357/sherpa-onnx-tts-models/resolve/main';
+const TRANSLATION_HF_BASE = 'https://huggingface.co';
 
 /**
- * Base URL for ASR/translation model file downloads.
- * - Development: Vite dev server serves from public/wasm/ (default)
- * - Production: Set VITE_MODEL_CDN_URL env var to a CDN endpoint
+ * CDN base URL for each model type. Override defaults with env vars
+ * to use a self-hosted CDN that mirrors HuggingFace's URL structure.
+ *
+ * - VITE_ASR_CDN_BASE: ASR models (default: HF dataset repo)
+ * - VITE_TTS_CDN_BASE: TTS models (default: HF dataset repo)
+ * - VITE_TRANSLATION_CDN_BASE: Translation models (default: HF hub)
  */
-export function getModelCdnBaseUrl(): string {
-  return (import.meta as any).env?.VITE_MODEL_CDN_URL || '/wasm';
+function getAsrCdnBase(): string {
+  return (import.meta as any).env?.VITE_ASR_CDN_BASE || ASR_HF_BASE;
+}
+function getTtsCdnBase(): string {
+  return (import.meta as any).env?.VITE_TTS_CDN_BASE || TTS_HF_BASE;
+}
+function getTranslationCdnBase(): string {
+  return (import.meta as any).env?.VITE_TRANSLATION_CDN_BASE || TRANSLATION_HF_BASE;
 }
 
 /**
- * Base URL for TTS model data file downloads.
- * - Development: Vite dev server serves from public/model-packs/tts/ (default)
- * - Production: Set VITE_TTS_CDN_URL env var (e.g. HuggingFace dataset URL)
+ * Download URL for a model file. Each type has its own configurable base.
+ * - ASR:         {ASR_BASE}/{cdnPath}/{filename}
+ * - TTS:         {TTS_BASE}/{cdnPath}/{filename}
+ * - Translation: {TRANSLATION_BASE}/{hfModelId}/resolve/main/{filename}
  */
-export function getTtsCdnBaseUrl(): string {
-  return (import.meta as any).env?.VITE_TTS_CDN_URL || '/model-packs/tts';
-}
-
-/**
- * Get the download URL for a specific file within a model.
- */
-export function getModelFileUrl(cdnPath: string, filename: string, type?: ModelType): string {
-  const base = type === 'tts' ? getTtsCdnBaseUrl() : getModelCdnBaseUrl();
-  return `${base}/${cdnPath}/${filename}`;
-}
-
-/** HuggingFace Hub direct download URL for a model file. */
-export function getHfModelFileUrl(hfModelId: string, filename: string): string {
-  return `https://huggingface.co/${hfModelId}/resolve/main/${filename}`;
+export function getModelDownloadUrl(
+  entry: { type: ModelType; cdnPath?: string; hfModelId?: string },
+  filename: string,
+): string {
+  switch (entry.type) {
+    case 'translation':
+      return `${getTranslationCdnBase()}/${entry.hfModelId}/resolve/main/${filename}`;
+    case 'tts':
+      return `${getTtsCdnBase()}/${entry.cdnPath}/${filename}`;
+    default: // asr, asr-stream
+      return `${getAsrCdnBase()}/${entry.cdnPath}/${filename}`;
+  }
 }
 
 /**
