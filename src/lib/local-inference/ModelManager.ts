@@ -7,8 +7,7 @@
 
 import {
   getManifestEntry,
-  getModelFileUrl,
-  getHfModelFileUrl,
+  getModelDownloadUrl,
 } from './modelManifest';
 import * as storage from './modelStorage';
 
@@ -52,7 +51,7 @@ export class ModelManager {
     const entry = getManifestEntry(modelId);
     if (!entry) throw new Error(`Unknown model: ${modelId}`);
 
-    if (!entry.files || (!entry.cdnPath && !(entry.type === 'translation' && entry.hfModelId))) {
+    if (!entry.files || (!entry.cdnPath && !entry.hfModelId)) {
       throw new Error(`Model ${modelId} has no download path (cdnPath or hfModelId)`);
     }
 
@@ -94,9 +93,7 @@ export class ModelManager {
         }
 
         // Fetch with streaming progress
-        const url = entry.type === 'translation' && entry.hfModelId
-          ? getHfModelFileUrl(entry.hfModelId, file.filename)
-          : getModelFileUrl(entry.cdnPath!, file.filename, entry.type);
+        const url = getModelDownloadUrl(entry, file.filename);
         const response = await fetch(url, { signal: controller.signal });
         if (!response.ok) {
           throw new Error(`Failed to fetch ${file.filename}: ${response.status}`);
