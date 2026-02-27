@@ -87,4 +87,6 @@ scripts/cf-*.mjs
 docs/research/
 
 # sherpa-onnx WASM prebuilt packages (download via scripts/download-sherpa-wasm.sh)
-public/wasm/
+public/wasm/*
+# Bundled TTS runtime (shared across all models, committed to avoid Chrome extension restrictions)
+!public/wasm/sherpa-onnx-tts/

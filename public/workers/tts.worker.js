@@ -5,9 +5,16 @@
  * Builds engine-specific configs based on each model's engine type,
  * following the patterns from the model-packs/tts demo pages.
  *
+ * The shared JS/WASM runtime is bundled with the app (identical across all
+ * TTS models). Only the model-specific .data file is downloaded from CDN.
+ * The Emscripten loadPackage metadata (filesystem layout of the .data file)
+ * is injected via Module._dataPackageMetadata before loading the glue JS.
+ *
  * Protocol:
  *   Main → Worker:
- *     { type: 'init', fileUrls: Record<string, string>, modelFile: string, engine: string, ttsConfig: object }
+ *     { type: 'init', fileUrls: Record<string, string>, modelFile: string,
+ *       engine: string, ttsConfig: object, runtimeBaseUrl: string,
+ *       dataPackageMetadata: object }
  *     { type: 'generate', text: string, sid: number, speed: number }
  *     { type: 'dispose' }
  *
@@ -259,6 +266,8 @@ function handleInit(msg) {
   var modelFile = msg.modelFile || '';
   var engine = msg.engine || '';
   var ttsConfig = msg.ttsConfig || {};
+  var runtimeBaseUrl = msg.runtimeBaseUrl || '';
+  var dataPackageMetadata = msg.dataPackageMetadata || null;
 
   if (!fileUrls) {
     postMessage({ type: 'error', error: 'fileUrls is required — model must be downloaded first' });
@@ -270,18 +279,35 @@ function handleInit(msg) {
     return;
   }
 
+  if (!runtimeBaseUrl) {
+    postMessage({ type: 'error', error: 'runtimeBaseUrl is required — bundled runtime path missing' });
+    return;
+  }
+
+  if (!dataPackageMetadata) {
+    postMessage({ type: 'error', error: 'dataPackageMetadata is required — model metadata missing' });
+    return;
+  }
+
   var startTime = performance.now();
 
   postMessage({ type: 'status', message: 'Loading TTS WASM module (' + engine + ')...' });
 
   // Configure the Emscripten Module object before loading the glue code.
   Module = {};
+
+  // Inject the data package metadata so the patched glue JS uses it
+  // instead of the hardcoded loadPackage({...}) that was stripped out.
+  Module._dataPackageMetadata = dataPackageMetadata;
+
+  // locateFile resolves .wasm to bundled path, .data to IndexedDB blob URL.
   Module.locateFile = function(path) {
-    var url = fileUrls[path];
-    if (!url) {
-      postMessage({ type: 'error', error: 'Missing file URL for: ' + path });
+    // .data file comes from IndexedDB (model-specific, downloaded from CDN)
+    if (fileUrls[path]) {
+      return fileUrls[path];
     }
-    return url;
+    // .wasm file is bundled with the app
+    return runtimeBaseUrl + '/' + path;
   };
 
   Module.setStatus = function(status) {
@@ -308,14 +334,16 @@ function handleInit(msg) {
     }
   };
 
-  // Load Emscripten glue code + sherpa-onnx TTS JS API wrapper.
+  // Load bundled Emscripten glue code + sherpa-onnx TTS JS API wrapper.
+  // The glue JS is patched to use Module._dataPackageMetadata instead of
+  // hardcoded loadPackage({...}) metadata.
   // After importScripts, these globals become available:
   //   - Module (enhanced by Emscripten glue)
   //   - OfflineTts, createOfflineTts (from sherpa-onnx-tts.js)
   try {
     importScripts(
-      fileUrls['sherpa-onnx-wasm-main-tts.js'],
-      fileUrls['sherpa-onnx-tts.js']
+      runtimeBaseUrl + '/sherpa-onnx-wasm-main-tts.js',
+      runtimeBaseUrl + '/sherpa-onnx-tts.js'
     );
   } catch (e) {
     postMessage({

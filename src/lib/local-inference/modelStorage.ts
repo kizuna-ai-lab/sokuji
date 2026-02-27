@@ -97,8 +97,8 @@ export async function deleteModelFiles(modelId: string): Promise<void> {
   const tx = db.transaction('files', 'readwrite');
   const store = tx.objectStore('files');
 
-  // Iterate all keys and delete those matching the model prefix
-  let cursor = await store.openKeyCursor();
+  // Iterate all entries and delete those matching the model prefix
+  let cursor = await store.openCursor();
   const prefix = `${modelId}/`;
   while (cursor) {
     if (typeof cursor.key === 'string' && cursor.key.startsWith(prefix)) {
