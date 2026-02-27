@@ -5,6 +5,7 @@ import {
   useModelStore,
   useModelStatuses,
   useModelDownloads,
+  useDownloadErrors,
   useStorageUsedMb,
   useModelInitialized,
 } from '../../../stores/modelStore';
@@ -30,6 +31,7 @@ function ModelCard({
   entry,
   status,
   download,
+  errorMessage,
   isSessionActive,
   isSelected,
   isCompatible,
@@ -44,6 +46,7 @@ function ModelCard({
   entry: ModelManifestEntry | null; // null = "None" card
   status: ModelStatus;
   download?: { downloadedBytes: number; totalBytes: number; currentFile: string; percent: number };
+  errorMessage?: string;
   isSessionActive: boolean;
   isSelected: boolean;
   isCompatible: boolean;
@@ -177,7 +180,7 @@ function ModelCard({
             {status === 'error' && (
               <div className="model-card__error">
                 <span className="model-card__status-icon"><AlertCircle size={14} /></span>
-                <span>{t('models.error', 'Error')}</span>
+                <span title={errorMessage}>{t('models.error', 'Error')}</span>
                 <button
                   className="model-card__btn model-card__btn--download"
                   onClick={(e) => { e.stopPropagation(); onDownload(); }}
@@ -186,6 +189,9 @@ function ModelCard({
                 >
                   <Download size={14} />
                 </button>
+                {errorMessage && (
+                  <div className="model-card__error-message">{errorMessage}</div>
+                )}
               </div>
             )}
           </div>
@@ -256,6 +262,7 @@ export function ModelManagementSection({
   const { t } = useTranslation();
   const statuses = useModelStatuses();
   const downloads = useModelDownloads();
+  const downloadErrors = useDownloadErrors();
   const storageUsedMb = useStorageUsedMb();
   const initialized = useModelInitialized();
   const { initialize, downloadModel, cancelDownload, deleteModel } = useModelStore();
@@ -394,6 +401,7 @@ export function ModelManagementSection({
               entry={entry}
               status={statuses[entry.id] || 'not_downloaded'}
               download={downloads[entry.id]}
+              errorMessage={downloadErrors[entry.id]}
               isSessionActive={isSessionActive}
               isSelected={asrModel === entry.id}
               isCompatible={true}
@@ -460,6 +468,7 @@ export function ModelManagementSection({
               entry={entry}
               status={statuses[entry.id] || 'not_downloaded'}
               download={downloads[entry.id]}
+              errorMessage={downloadErrors[entry.id]}
               isSessionActive={isSessionActive}
               isSelected={translationModel === entry.id}
               isCompatible={true}
@@ -531,6 +540,7 @@ export function ModelManagementSection({
               entry={entry}
               status={statuses[entry.id] || 'not_downloaded'}
               download={downloads[entry.id]}
+              errorMessage={downloadErrors[entry.id]}
               isSessionActive={isSessionActive}
               isSelected={ttsModel === entry.id}
               isCompatible={true}
