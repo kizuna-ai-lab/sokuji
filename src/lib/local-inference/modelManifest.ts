@@ -87,6 +87,11 @@ export function getModelFileUrl(cdnPath: string, filename: string, type?: ModelT
   return `${base}/${cdnPath}/${filename}`;
 }
 
+/** HuggingFace Hub direct download URL for a model file. */
+export function getHfModelFileUrl(hfModelId: string, filename: string): string {
+  return `https://huggingface.co/${hfModelId}/resolve/main/${filename}`;
+}
+
 /**
  * Base path for bundled TTS runtime files (JS/WASM shared across all models).
  * These are shipped with the app at build time to avoid Chrome extension
@@ -123,16 +128,22 @@ const TTS_FILES: ModelFileEntry[] = [
   { filename: 'package-metadata.json', sizeBytes: 0 },                  // ~27KB, Emscripten FS layout
 ];
 
-// Translation models (Opus-MT via Transformers.js) share the same file structure.
-// Sizes are from Xenova/opus-mt-ja-en; other pairs are similar.
-const TRANSLATION_FILES: ModelFileEntry[] = [
-  { filename: 'config.json', sizeBytes: 1_376 },
-  { filename: 'generation_config.json', sizeBytes: 293 },
-  { filename: 'tokenizer.json', sizeBytes: 5_991_485 },
-  { filename: 'tokenizer_config.json', sizeBytes: 280 },
-  { filename: 'onnx/encoder_model_quantized.onnx', sizeBytes: 50_705_822 },
-  { filename: 'onnx/decoder_model_merged_quantized.onnx', sizeBytes: 58_001_744 },
-];
+// Translation models (Opus-MT via Transformers.js) have per-model file sizes
+// fetched from HuggingFace API. Downloaded directly from HuggingFace Hub.
+/** Build per-model translation file list with accurate sizes from HuggingFace. */
+function translationFiles(
+  config: number, genConfig: number, tokenizer: number,
+  tokenizerConfig: number, encoder: number, decoder: number,
+): ModelFileEntry[] {
+  return [
+    { filename: 'config.json', sizeBytes: config },
+    { filename: 'generation_config.json', sizeBytes: genConfig },
+    { filename: 'tokenizer.json', sizeBytes: tokenizer },
+    { filename: 'tokenizer_config.json', sizeBytes: tokenizerConfig },
+    { filename: 'onnx/encoder_model_quantized.onnx', sizeBytes: encoder },
+    { filename: 'onnx/decoder_model_merged_quantized.onnx', sizeBytes: decoder },
+  ];
+}
 
 // ─── Model Manifest ──────────────────────────────────────────────────────────
 
@@ -1800,77 +1811,92 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
   },
 
   // ── Translation Models ───────────────────────────────────────────────────
-  // All translation models use CDN + IndexedDB (same as ASR/TTS).
-  // hfModelId is still needed by the worker for pipeline() identification.
+  // Downloaded directly from HuggingFace Hub. Per-model file sizes from HF API.
+  // hfModelId is needed by the worker for pipeline() identification.
 
-  // ── Existing Core Pairs (ja/zh/ko/de/fr/es ↔ en) ──────────────────────
-  { id: 'opus-mt-ja-en', type: 'translation', name: 'Opus-MT (ja → en)', languages: ['ja', 'en'], totalSizeMb: 110, cdnPath: 'opus-mt-ja-en', files: TRANSLATION_FILES, hfModelId: 'Xenova/opus-mt-ja-en', sourceLang: 'ja', targetLang: 'en' },
-  { id: 'opus-mt-en-jap', type: 'translation', name: 'Opus-MT (en → ja)', languages: ['en', 'ja'], totalSizeMb: 110, cdnPath: 'opus-mt-en-jap', files: TRANSLATION_FILES, hfModelId: 'Xenova/opus-mt-en-jap', sourceLang: 'en', targetLang: 'ja' },
-  { id: 'opus-mt-zh-en', type: 'translation', name: 'Opus-MT (zh → en)', languages: ['zh', 'en'], totalSizeMb: 110, cdnPath: 'opus-mt-zh-en', files: TRANSLATION_FILES, hfModelId: 'Xenova/opus-mt-zh-en', sourceLang: 'zh', targetLang: 'en' },
-  { id: 'opus-mt-en-zh', type: 'translation', name: 'Opus-MT (en → zh)', languages: ['en', 'zh'], totalSizeMb: 110, cdnPath: 'opus-mt-en-zh', files: TRANSLATION_FILES, hfModelId: 'Xenova/opus-mt-en-zh', sourceLang: 'en', targetLang: 'zh' },
-  { id: 'opus-mt-ko-en', type: 'translation', name: 'Opus-MT (ko → en)', languages: ['ko', 'en'], totalSizeMb: 110, cdnPath: 'opus-mt-ko-en', files: TRANSLATION_FILES, hfModelId: 'Xenova/opus-mt-ko-en', sourceLang: 'ko', targetLang: 'en' },
-  { id: 'opus-mt-en-ko', type: 'translation', name: 'Opus-MT (en → ko)', languages: ['en', 'ko'], totalSizeMb: 110, cdnPath: 'opus-mt-en-ko', files: TRANSLATION_FILES, hfModelId: 'Xenova/opus-mt-en-ko', sourceLang: 'en', targetLang: 'ko' },
-  { id: 'opus-mt-de-en', type: 'translation', name: 'Opus-MT (de → en)', languages: ['de', 'en'], totalSizeMb: 110, cdnPath: 'opus-mt-de-en', files: TRANSLATION_FILES, hfModelId: 'Xenova/opus-mt-de-en', sourceLang: 'de', targetLang: 'en' },
-  { id: 'opus-mt-en-de', type: 'translation', name: 'Opus-MT (en → de)', languages: ['en', 'de'], totalSizeMb: 110, cdnPath: 'opus-mt-en-de', files: TRANSLATION_FILES, hfModelId: 'Xenova/opus-mt-en-de', sourceLang: 'en', targetLang: 'de' },
-  { id: 'opus-mt-fr-en', type: 'translation', name: 'Opus-MT (fr → en)', languages: ['fr', 'en'], totalSizeMb: 110, cdnPath: 'opus-mt-fr-en', files: TRANSLATION_FILES, hfModelId: 'Xenova/opus-mt-fr-en', sourceLang: 'fr', targetLang: 'en' },
-  { id: 'opus-mt-en-fr', type: 'translation', name: 'Opus-MT (en → fr)', languages: ['en', 'fr'], totalSizeMb: 110, cdnPath: 'opus-mt-en-fr', files: TRANSLATION_FILES, hfModelId: 'Xenova/opus-mt-en-fr', sourceLang: 'en', targetLang: 'fr' },
-  { id: 'opus-mt-es-en', type: 'translation', name: 'Opus-MT (es → en)', languages: ['es', 'en'], totalSizeMb: 110, cdnPath: 'opus-mt-es-en', files: TRANSLATION_FILES, hfModelId: 'Xenova/opus-mt-es-en', sourceLang: 'es', targetLang: 'en' },
-  { id: 'opus-mt-en-es', type: 'translation', name: 'Opus-MT (en → es)', languages: ['en', 'es'], totalSizeMb: 110, cdnPath: 'opus-mt-en-es', files: TRANSLATION_FILES, hfModelId: 'Xenova/opus-mt-en-es', sourceLang: 'en', targetLang: 'es' },
+  // ── Core Pairs (ja/zh/ko/de/fr/es ↔ en) ───────────────────────────────
+  { id: 'opus-mt-ja-en', type: 'translation', name: 'Opus-MT (ja → en)', languages: ['ja', 'en'], totalSizeMb: 109, files: translationFiles(1_376, 293, 5_991_485, 280, 50_705_822, 58_001_744), hfModelId: 'Xenova/opus-mt-ja-en', sourceLang: 'ja', targetLang: 'en' },
+  { id: 'opus-mt-en-jap', type: 'translation', name: 'Opus-MT (en → ja)', languages: ['en', 'ja'], totalSizeMb: 94, files: translationFiles(1_377, 293, 5_068_572, 281, 43_312_542, 50_550_704), hfModelId: 'Xenova/opus-mt-en-jap', sourceLang: 'en', targetLang: 'ja' },
+  { id: 'opus-mt-zh-en', type: 'translation', name: 'Opus-MT (zh → en)', languages: ['zh', 'en'], totalSizeMb: 114, files: translationFiles(1_389, 293, 6_381_339, 282, 52_899_742, 60_212_804), hfModelId: 'Xenova/opus-mt-zh-en', sourceLang: 'zh', targetLang: 'en' },
+  { id: 'opus-mt-en-zh', type: 'translation', name: 'Opus-MT (en → zh)', languages: ['en', 'zh'], totalSizeMb: 114, files: translationFiles(1_503, 293, 6_380_952, 282, 52_899_742, 60_212_804), hfModelId: 'Xenova/opus-mt-en-zh', sourceLang: 'en', targetLang: 'zh' },
+  { id: 'opus-mt-ko-en', type: 'translation', name: 'Opus-MT (ko → en)', languages: ['ko', 'en'], totalSizeMb: 114, files: translationFiles(1_389, 293, 6_487_044, 282, 52_899_741, 60_212_803), hfModelId: 'Xenova/opus-mt-ko-en', sourceLang: 'ko', targetLang: 'en' },
+  { id: 'opus-mt-de-en', type: 'translation', name: 'Opus-MT (de → en)', languages: ['de', 'en'], totalSizeMb: 106, files: translationFiles(1_376, 293, 5_498_450, 280, 49_366_942, 56_652_404), hfModelId: 'Xenova/opus-mt-de-en', sourceLang: 'de', targetLang: 'en' },
+  { id: 'opus-mt-en-de', type: 'translation', name: 'Opus-MT (en → de)', languages: ['en', 'de'], totalSizeMb: 106, files: translationFiles(1_411, 293, 5_498_450, 280, 49_366_942, 56_652_404), hfModelId: 'Xenova/opus-mt-en-de', sourceLang: 'en', targetLang: 'de' },
+  { id: 'opus-mt-fr-en', type: 'translation', name: 'Opus-MT (fr → en)', languages: ['fr', 'en'], totalSizeMb: 108, files: translationFiles(1_411, 293, 5_637_839, 280, 50_090_398, 57_381_512), hfModelId: 'Xenova/opus-mt-fr-en', sourceLang: 'fr', targetLang: 'en' },
+  { id: 'opus-mt-en-fr', type: 'translation', name: 'Opus-MT (en → fr)', languages: ['en', 'fr'], totalSizeMb: 108, files: translationFiles(1_411, 293, 5_637_839, 280, 50_090_398, 57_381_512), hfModelId: 'Xenova/opus-mt-en-fr', sourceLang: 'en', targetLang: 'fr' },
+  { id: 'opus-mt-es-en', type: 'translation', name: 'Opus-MT (es → en)', languages: ['es', 'en'], totalSizeMb: 114, files: translationFiles(1_433, 293, 6_262_682, 282, 52_899_742, 60_212_804), hfModelId: 'Xenova/opus-mt-es-en', sourceLang: 'es', targetLang: 'en' },
+  { id: 'opus-mt-en-es', type: 'translation', name: 'Opus-MT (en → es)', languages: ['en', 'es'], totalSizeMb: 114, files: translationFiles(1_468, 293, 6_262_682, 282, 52_899_742, 60_212_804), hfModelId: 'Xenova/opus-mt-en-es', sourceLang: 'en', targetLang: 'es' },
 
   // ── English → Other Languages ──────────────────────────────────────────
-  { id: 'opus-mt-en-af', type: 'translation', name: 'Opus-MT (en → af)', languages: ['en', 'af'], totalSizeMb: 110, cdnPath: 'opus-mt-en-af', files: TRANSLATION_FILES, hfModelId: 'Xenova/opus-mt-en-af', sourceLang: 'en', targetLang: 'af' },
-  { id: 'opus-mt-en-ar', type: 'translation', name: 'Opus-MT (en → ar)', languages: ['en', 'ar'], totalSizeMb: 110, cdnPath: 'opus-mt-en-ar', files: TRANSLATION_FILES, hfModelId: 'Xenova/opus-mt-en-ar', sourceLang: 'en', targetLang: 'ar' },
-  { id: 'opus-mt-en-cs', type: 'translation', name: 'Opus-MT (en → cs)', languages: ['en', 'cs'], totalSizeMb: 110, cdnPath: 'opus-mt-en-cs', files: TRANSLATION_FILES, hfModelId: 'Xenova/opus-mt-en-cs', sourceLang: 'en', targetLang: 'cs' },
-  { id: 'opus-mt-en-da', type: 'translation', name: 'Opus-MT (en → da)', languages: ['en', 'da'], totalSizeMb: 110, cdnPath: 'opus-mt-en-da', files: TRANSLATION_FILES, hfModelId: 'Xenova/opus-mt-en-da', sourceLang: 'en', targetLang: 'da' },
-  { id: 'opus-mt-en-nl', type: 'translation', name: 'Opus-MT (en → nl)', languages: ['en', 'nl'], totalSizeMb: 110, cdnPath: 'opus-mt-en-nl', files: TRANSLATION_FILES, hfModelId: 'Xenova/opus-mt-en-nl', sourceLang: 'en', targetLang: 'nl' },
-  { id: 'opus-mt-en-fi', type: 'translation', name: 'Opus-MT (en → fi)', languages: ['en', 'fi'], totalSizeMb: 110, cdnPath: 'opus-mt-en-fi', files: TRANSLATION_FILES, hfModelId: 'Xenova/opus-mt-en-fi', sourceLang: 'en', targetLang: 'fi' },
-  { id: 'opus-mt-en-hi', type: 'translation', name: 'Opus-MT (en → hi)', languages: ['en', 'hi'], totalSizeMb: 110, cdnPath: 'opus-mt-en-hi', files: TRANSLATION_FILES, hfModelId: 'Xenova/opus-mt-en-hi', sourceLang: 'en', targetLang: 'hi' },
-  { id: 'opus-mt-en-hu', type: 'translation', name: 'Opus-MT (en → hu)', languages: ['en', 'hu'], totalSizeMb: 110, cdnPath: 'opus-mt-en-hu', files: TRANSLATION_FILES, hfModelId: 'Xenova/opus-mt-en-hu', sourceLang: 'en', targetLang: 'hu' },
-  { id: 'opus-mt-en-id', type: 'translation', name: 'Opus-MT (en → id)', languages: ['en', 'id'], totalSizeMb: 110, cdnPath: 'opus-mt-en-id', files: TRANSLATION_FILES, hfModelId: 'Xenova/opus-mt-en-id', sourceLang: 'en', targetLang: 'id' },
-  { id: 'opus-mt-en-mul', type: 'translation', name: 'Opus-MT (en → mul)', languages: ['en', 'mul'], totalSizeMb: 110, cdnPath: 'opus-mt-en-mul', files: TRANSLATION_FILES, hfModelId: 'Xenova/opus-mt-en-mul', sourceLang: 'en', targetLang: 'mul' },
-  { id: 'opus-mt-en-ro', type: 'translation', name: 'Opus-MT (en → ro)', languages: ['en', 'ro'], totalSizeMb: 110, cdnPath: 'opus-mt-en-ro', files: TRANSLATION_FILES, hfModelId: 'Xenova/opus-mt-en-ro', sourceLang: 'en', targetLang: 'ro' },
-  { id: 'opus-mt-en-ru', type: 'translation', name: 'Opus-MT (en → ru)', languages: ['en', 'ru'], totalSizeMb: 110, cdnPath: 'opus-mt-en-ru', files: TRANSLATION_FILES, hfModelId: 'Xenova/opus-mt-en-ru', sourceLang: 'en', targetLang: 'ru' },
-  { id: 'opus-mt-en-sv', type: 'translation', name: 'Opus-MT (en → sv)', languages: ['en', 'sv'], totalSizeMb: 110, cdnPath: 'opus-mt-en-sv', files: TRANSLATION_FILES, hfModelId: 'Xenova/opus-mt-en-sv', sourceLang: 'en', targetLang: 'sv' },
-  { id: 'opus-mt-en-uk', type: 'translation', name: 'Opus-MT (en → uk)', languages: ['en', 'uk'], totalSizeMb: 110, cdnPath: 'opus-mt-en-uk', files: TRANSLATION_FILES, hfModelId: 'Xenova/opus-mt-en-uk', sourceLang: 'en', targetLang: 'uk' },
-  { id: 'opus-mt-en-vi', type: 'translation', name: 'Opus-MT (en → vi)', languages: ['en', 'vi'], totalSizeMb: 110, cdnPath: 'opus-mt-en-vi', files: TRANSLATION_FILES, hfModelId: 'Xenova/opus-mt-en-vi', sourceLang: 'en', targetLang: 'vi' },
-  { id: 'opus-mt-en-xh', type: 'translation', name: 'Opus-MT (en → xh)', languages: ['en', 'xh'], totalSizeMb: 110, cdnPath: 'opus-mt-en-xh', files: TRANSLATION_FILES, hfModelId: 'Xenova/opus-mt-en-xh', sourceLang: 'en', targetLang: 'xh' },
+  { id: 'opus-mt-en-af', type: 'translation', name: 'Opus-MT (en → af)', languages: ['en', 'af'], totalSizeMb: 106, files: translationFiles(1_376, 293, 5_569_368, 280, 49_031_070, 56_313_908), hfModelId: 'Xenova/opus-mt-en-af', sourceLang: 'en', targetLang: 'af' },
+  { id: 'opus-mt-en-ar', type: 'translation', name: 'Opus-MT (en → ar)', languages: ['en', 'ar'], totalSizeMb: 112, files: translationFiles(1_389, 293, 6_748_848, 282, 51_773_854, 59_078_120), hfModelId: 'Xenova/opus-mt-en-ar', sourceLang: 'en', targetLang: 'ar' },
+  { id: 'opus-mt-en-cs', type: 'translation', name: 'Opus-MT (en → cs)', languages: ['en', 'cs'], totalSizeMb: 111, files: translationFiles(1_376, 293, 6_142_807, 280, 51_623_838, 58_926_932), hfModelId: 'Xenova/opus-mt-en-cs', sourceLang: 'en', targetLang: 'cs' },
+  { id: 'opus-mt-en-da', type: 'translation', name: 'Opus-MT (en → da)', languages: ['en', 'da'], totalSizeMb: 107, files: translationFiles(1_376, 293, 5_685_484, 280, 49_791_390, 57_080_168), hfModelId: 'Xenova/opus-mt-en-da', sourceLang: 'en', targetLang: 'da' },
+  { id: 'opus-mt-en-nl', type: 'translation', name: 'Opus-MT (en → nl)', languages: ['en', 'nl'], totalSizeMb: 116, files: translationFiles(1_376, 293, 6_433_167, 280, 53_937_565, 61_258_735), hfModelId: 'Xenova/opus-mt-en-nl', sourceLang: 'en', targetLang: 'nl' },
+  { id: 'opus-mt-en-fi', type: 'translation', name: 'Opus-MT (en → fi)', languages: ['en', 'fi'], totalSizeMb: 114, files: translationFiles(1_356, 293, 6_315_513, 280, 52_899_742, 60_212_804), hfModelId: 'Xenova/opus-mt-en-fi', sourceLang: 'en', targetLang: 'fi' },
+  { id: 'opus-mt-en-hi', type: 'translation', name: 'Opus-MT (en → hi)', languages: ['en', 'hi'], totalSizeMb: 111, files: translationFiles(1_389, 293, 6_679_560, 282, 51_337_630, 58_638_488), hfModelId: 'Xenova/opus-mt-en-hi', sourceLang: 'en', targetLang: 'hi' },
+  { id: 'opus-mt-en-hu', type: 'translation', name: 'Opus-MT (en → hu)', languages: ['en', 'hu'], totalSizeMb: 111, files: translationFiles(1_376, 293, 6_133_233, 280, 51_630_494, 58_933_640), hfModelId: 'Xenova/opus-mt-en-hu', sourceLang: 'en', targetLang: 'hu' },
+  { id: 'opus-mt-en-id', type: 'translation', name: 'Opus-MT (en → id)', languages: ['en', 'id'], totalSizeMb: 103, files: translationFiles(1_376, 293, 5_291_338, 280, 47_674_781, 54_947_023), hfModelId: 'Xenova/opus-mt-en-id', sourceLang: 'en', targetLang: 'id' },
+  { id: 'opus-mt-en-it', type: 'translation', name: 'Opus-MT (en → it)', languages: ['en', 'it'], totalSizeMb: 130, files: translationFiles(1_376, 293, 7_904_597, 280, 60_597_150, 67_970_348), hfModelId: 'Xenova/opus-mt-en-it', sourceLang: 'en', targetLang: 'it' },
+  { id: 'opus-mt-en-ro', type: 'translation', name: 'Opus-MT (en → ro)', languages: ['en', 'ro'], totalSizeMb: 108, files: translationFiles(1_376, 293, 5_743_335, 280, 50_105_246, 57_396_476), hfModelId: 'Xenova/opus-mt-en-ro', sourceLang: 'en', targetLang: 'ro' },
+  { id: 'opus-mt-en-ru', type: 'translation', name: 'Opus-MT (en → ru)', languages: ['en', 'ru'], totalSizeMb: 112, files: translationFiles(1_376, 293, 7_205_388, 280, 51_628_446, 58_931_576), hfModelId: 'Xenova/opus-mt-en-ru', sourceLang: 'en', targetLang: 'ru' },
+  { id: 'opus-mt-en-sv', type: 'translation', name: 'Opus-MT (en → sv)', languages: ['en', 'sv'], totalSizeMb: 105, files: translationFiles(1_376, 293, 5_450_794, 280, 48_513_438, 55_792_232), hfModelId: 'Xenova/opus-mt-en-sv', sourceLang: 'en', targetLang: 'sv' },
+  { id: 'opus-mt-en-uk', type: 'translation', name: 'Opus-MT (en → uk)', languages: ['en', 'uk'], totalSizeMb: 111, files: translationFiles(1_376, 293, 6_922_026, 280, 51_151_774, 58_451_180), hfModelId: 'Xenova/opus-mt-en-uk', sourceLang: 'en', targetLang: 'uk' },
+  { id: 'opus-mt-en-vi', type: 'translation', name: 'Opus-MT (en → vi)', languages: ['en', 'vi'], totalSizeMb: 102, files: translationFiles(1_389, 293, 5_163_544, 282, 47_105_950, 54_373_748), hfModelId: 'Xenova/opus-mt-en-vi', sourceLang: 'en', targetLang: 'vi' },
+  { id: 'opus-mt-en-xh', type: 'translation', name: 'Opus-MT (en → xh)', languages: ['en', 'xh'], totalSizeMb: 110, files: translationFiles(1_376, 293, 5_890_672, 280, 50_997_150, 58_295_348), hfModelId: 'Xenova/opus-mt-en-xh', sourceLang: 'en', targetLang: 'xh' },
+  { id: 'opus-mt-en-ROMANCE', type: 'translation', name: 'Opus-MT (en → Romance)', languages: ['en', 'fr', 'es', 'it', 'pt', 'ro'], totalSizeMb: 114, files: translationFiles(1_508, 293, 6_117_691, 503, 52_899_742, 60_212_804), hfModelId: 'Xenova/opus-mt-en-ROMANCE', sourceLang: 'en', targetLang: 'ROMANCE' },
 
   // ── Other Languages → English ──────────────────────────────────────────
-  { id: 'opus-mt-af-en', type: 'translation', name: 'Opus-MT (af → en)', languages: ['af', 'en'], totalSizeMb: 110, cdnPath: 'opus-mt-af-en', files: TRANSLATION_FILES, hfModelId: 'Xenova/opus-mt-af-en', sourceLang: 'af', targetLang: 'en' },
-  { id: 'opus-mt-ar-en', type: 'translation', name: 'Opus-MT (ar → en)', languages: ['ar', 'en'], totalSizeMb: 110, cdnPath: 'opus-mt-ar-en', files: TRANSLATION_FILES, hfModelId: 'Xenova/opus-mt-ar-en', sourceLang: 'ar', targetLang: 'en' },
-  { id: 'opus-mt-bat-en', type: 'translation', name: 'Opus-MT (bat → en)', languages: ['bat', 'en'], totalSizeMb: 110, cdnPath: 'opus-mt-bat-en', files: TRANSLATION_FILES, hfModelId: 'Xenova/opus-mt-bat-en', sourceLang: 'bat', targetLang: 'en' },
-  { id: 'opus-mt-cs-en', type: 'translation', name: 'Opus-MT (cs → en)', languages: ['cs', 'en'], totalSizeMb: 110, cdnPath: 'opus-mt-cs-en', files: TRANSLATION_FILES, hfModelId: 'Xenova/opus-mt-cs-en', sourceLang: 'cs', targetLang: 'en' },
-  { id: 'opus-mt-hi-en', type: 'translation', name: 'Opus-MT (hi → en)', languages: ['hi', 'en'], totalSizeMb: 110, cdnPath: 'opus-mt-hi-en', files: TRANSLATION_FILES, hfModelId: 'Xenova/opus-mt-hi-en', sourceLang: 'hi', targetLang: 'en' },
-  { id: 'opus-mt-id-en', type: 'translation', name: 'Opus-MT (id → en)', languages: ['id', 'en'], totalSizeMb: 110, cdnPath: 'opus-mt-id-en', files: TRANSLATION_FILES, hfModelId: 'Xenova/opus-mt-id-en', sourceLang: 'id', targetLang: 'en' },
-  { id: 'opus-mt-it-en', type: 'translation', name: 'Opus-MT (it → en)', languages: ['it', 'en'], totalSizeMb: 110, cdnPath: 'opus-mt-it-en', files: TRANSLATION_FILES, hfModelId: 'Xenova/opus-mt-it-en', sourceLang: 'it', targetLang: 'en' },
-  { id: 'opus-mt-nl-en', type: 'translation', name: 'Opus-MT (nl → en)', languages: ['nl', 'en'], totalSizeMb: 110, cdnPath: 'opus-mt-nl-en', files: TRANSLATION_FILES, hfModelId: 'Xenova/opus-mt-nl-en', sourceLang: 'nl', targetLang: 'en' },
-  { id: 'opus-mt-pl-en', type: 'translation', name: 'Opus-MT (pl → en)', languages: ['pl', 'en'], totalSizeMb: 110, cdnPath: 'opus-mt-pl-en', files: TRANSLATION_FILES, hfModelId: 'Xenova/opus-mt-pl-en', sourceLang: 'pl', targetLang: 'en' },
-  { id: 'opus-mt-ru-en', type: 'translation', name: 'Opus-MT (ru → en)', languages: ['ru', 'en'], totalSizeMb: 110, cdnPath: 'opus-mt-ru-en', files: TRANSLATION_FILES, hfModelId: 'Xenova/opus-mt-ru-en', sourceLang: 'ru', targetLang: 'en' },
-  { id: 'opus-mt-sv-en', type: 'translation', name: 'Opus-MT (sv → en)', languages: ['sv', 'en'], totalSizeMb: 110, cdnPath: 'opus-mt-sv-en', files: TRANSLATION_FILES, hfModelId: 'Xenova/opus-mt-sv-en', sourceLang: 'sv', targetLang: 'en' },
-  { id: 'opus-mt-tr-en', type: 'translation', name: 'Opus-MT (tr → en)', languages: ['tr', 'en'], totalSizeMb: 110, cdnPath: 'opus-mt-tr-en', files: TRANSLATION_FILES, hfModelId: 'Xenova/opus-mt-tr-en', sourceLang: 'tr', targetLang: 'en' },
-  { id: 'opus-mt-uk-en', type: 'translation', name: 'Opus-MT (uk → en)', languages: ['uk', 'en'], totalSizeMb: 110, cdnPath: 'opus-mt-uk-en', files: TRANSLATION_FILES, hfModelId: 'Xenova/opus-mt-uk-en', sourceLang: 'uk', targetLang: 'en' },
-  { id: 'opus-mt-xh-en', type: 'translation', name: 'Opus-MT (xh → en)', languages: ['xh', 'en'], totalSizeMb: 110, cdnPath: 'opus-mt-xh-en', files: TRANSLATION_FILES, hfModelId: 'Xenova/opus-mt-xh-en', sourceLang: 'xh', targetLang: 'en' },
+  { id: 'opus-mt-af-en', type: 'translation', name: 'Opus-MT (af → en)', languages: ['af', 'en'], totalSizeMb: 106, files: translationFiles(1_376, 293, 5_569_368, 280, 49_031_070, 56_313_908), hfModelId: 'Xenova/opus-mt-af-en', sourceLang: 'af', targetLang: 'en' },
+  { id: 'opus-mt-ar-en', type: 'translation', name: 'Opus-MT (ar → en)', languages: ['ar', 'en'], totalSizeMb: 112, files: translationFiles(1_376, 293, 6_734_647, 280, 51_790_238, 59_094_632), hfModelId: 'Xenova/opus-mt-ar-en', sourceLang: 'ar', targetLang: 'en' },
+  { id: 'opus-mt-bat-en', type: 'translation', name: 'Opus-MT (bat → en)', languages: ['bat', 'en'], totalSizeMb: 108, files: translationFiles(1_390, 293, 5_787_203, 282, 49_855_902, 57_145_184), hfModelId: 'Xenova/opus-mt-bat-en', sourceLang: 'bat', targetLang: 'en' },
+  { id: 'opus-mt-cs-en', type: 'translation', name: 'Opus-MT (cs → en)', languages: ['cs', 'en'], totalSizeMb: 111, files: translationFiles(1_376, 293, 6_142_807, 280, 51_623_838, 58_926_932), hfModelId: 'Xenova/opus-mt-cs-en', sourceLang: 'cs', targetLang: 'en' },
+  { id: 'opus-mt-da-en', type: 'translation', name: 'Opus-MT (da → en)', languages: ['da', 'en'], totalSizeMb: 107, files: translationFiles(1_376, 293, 5_685_484, 280, 49_791_389, 57_080_167), hfModelId: 'Xenova/opus-mt-da-en', sourceLang: 'da', targetLang: 'en' },
+  { id: 'opus-mt-et-en', type: 'translation', name: 'Opus-MT (et → en)', languages: ['et', 'en'], totalSizeMb: 107, files: translationFiles(1_376, 293, 5_687_431, 280, 49_758_622, 57_047_144), hfModelId: 'Xenova/opus-mt-et-en', sourceLang: 'et', targetLang: 'en' },
+  { id: 'opus-mt-fi-en', type: 'translation', name: 'Opus-MT (fi → en)', languages: ['fi', 'en'], totalSizeMb: 108, files: translationFiles(1_389, 293, 5_772_430, 282, 50_164_638, 57_456_332), hfModelId: 'Xenova/opus-mt-fi-en', sourceLang: 'fi', targetLang: 'en' },
+  { id: 'opus-mt-hi-en', type: 'translation', name: 'Opus-MT (hi → en)', languages: ['hi', 'en'], totalSizeMb: 110, files: translationFiles(1_376, 293, 6_578_153, 280, 50_916_254, 58_213_820), hfModelId: 'Xenova/opus-mt-hi-en', sourceLang: 'hi', targetLang: 'en' },
+  { id: 'opus-mt-hu-en', type: 'translation', name: 'Opus-MT (hu → en)', languages: ['hu', 'en'], totalSizeMb: 111, files: translationFiles(1_376, 293, 6_133_233, 280, 51_630_494, 58_933_640), hfModelId: 'Xenova/opus-mt-hu-en', sourceLang: 'hu', targetLang: 'en' },
+  { id: 'opus-mt-id-en', type: 'translation', name: 'Opus-MT (id → en)', languages: ['id', 'en'], totalSizeMb: 103, files: translationFiles(1_376, 293, 5_291_338, 280, 47_674_782, 54_947_024), hfModelId: 'Xenova/opus-mt-id-en', sourceLang: 'id', targetLang: 'en' },
+  { id: 'opus-mt-it-en', type: 'translation', name: 'Opus-MT (it → en)', languages: ['it', 'en'], totalSizeMb: 131, files: translationFiles(1_376, 293, 7_942_314, 280, 60_773_278, 68_147_852), hfModelId: 'Xenova/opus-mt-it-en', sourceLang: 'it', targetLang: 'en' },
+  { id: 'opus-mt-jap-en', type: 'translation', name: 'Opus-MT (jap → en)', languages: ['ja', 'en'], totalSizeMb: 94, files: translationFiles(1_377, 293, 5_068_572, 281, 43_312_542, 50_550_704), hfModelId: 'Xenova/opus-mt-jap-en', sourceLang: 'jap', targetLang: 'en' },
+  { id: 'opus-mt-nl-en', type: 'translation', name: 'Opus-MT (nl → en)', languages: ['nl', 'en'], totalSizeMb: 116, files: translationFiles(1_376, 293, 6_433_167, 280, 53_937_566, 61_258_736), hfModelId: 'Xenova/opus-mt-nl-en', sourceLang: 'nl', targetLang: 'en' },
+  { id: 'opus-mt-pl-en', type: 'translation', name: 'Opus-MT (pl → en)', languages: ['pl', 'en'], totalSizeMb: 112, files: translationFiles(1_376, 293, 6_118_576, 280, 52_095_390, 59_402_168), hfModelId: 'Xenova/opus-mt-pl-en', sourceLang: 'pl', targetLang: 'en' },
+  { id: 'opus-mt-ru-en', type: 'translation', name: 'Opus-MT (ru → en)', languages: ['ru', 'en'], totalSizeMb: 112, files: translationFiles(1_376, 293, 7_205_388, 280, 51_628_446, 58_931_576), hfModelId: 'Xenova/opus-mt-ru-en', sourceLang: 'ru', targetLang: 'en' },
+  { id: 'opus-mt-sv-en', type: 'translation', name: 'Opus-MT (sv → en)', languages: ['sv', 'en'], totalSizeMb: 105, files: translationFiles(1_376, 293, 5_450_794, 280, 48_513_438, 55_792_232), hfModelId: 'Xenova/opus-mt-sv-en', sourceLang: 'sv', targetLang: 'en' },
+  { id: 'opus-mt-tc-big-tr-en', type: 'translation', name: 'Opus-MT (tr → en, big)', languages: ['tr', 'en'], totalSizeMb: 289, files: translationFiles(1_104, 301, 5_606_923, 280, 135_755_056, 162_043_892), hfModelId: 'Xenova/opus-mt-tc-big-tr-en', sourceLang: 'tr', targetLang: 'en' },
+  { id: 'opus-mt-th-en', type: 'translation', name: 'Opus-MT (th → en)', languages: ['th', 'en'], totalSizeMb: 112, files: translationFiles(1_389, 293, 7_011_245, 282, 51_520_414, 58_822_700), hfModelId: 'Xenova/opus-mt-th-en', sourceLang: 'th', targetLang: 'en' },
+  { id: 'opus-mt-tr-en', type: 'translation', name: 'Opus-MT (tr → en)', languages: ['tr', 'en'], totalSizeMb: 111, files: translationFiles(1_376, 293, 6_123_578, 280, 51_562_398, 58_865_012), hfModelId: 'Xenova/opus-mt-tr-en', sourceLang: 'tr', targetLang: 'en' },
+  { id: 'opus-mt-uk-en', type: 'translation', name: 'Opus-MT (uk → en)', languages: ['uk', 'en'], totalSizeMb: 111, files: translationFiles(1_376, 293, 6_922_026, 280, 51_151_774, 58_451_180), hfModelId: 'Xenova/opus-mt-uk-en', sourceLang: 'uk', targetLang: 'en' },
+  { id: 'opus-mt-vi-en', type: 'translation', name: 'Opus-MT (vi → en)', languages: ['vi', 'en'], totalSizeMb: 102, files: translationFiles(1_389, 293, 5_169_708, 282, 47_133_597, 54_401_611), hfModelId: 'Xenova/opus-mt-vi-en', sourceLang: 'vi', targetLang: 'en' },
+  { id: 'opus-mt-xh-en', type: 'translation', name: 'Opus-MT (xh → en)', languages: ['xh', 'en'], totalSizeMb: 110, files: translationFiles(1_376, 293, 5_890_672, 280, 50_997_150, 58_295_348), hfModelId: 'Xenova/opus-mt-xh-en', sourceLang: 'xh', targetLang: 'en' },
+  { id: 'opus-mt-ROMANCE-en', type: 'translation', name: 'Opus-MT (Romance → en)', languages: ['fr', 'es', 'it', 'pt', 'ro', 'en'], totalSizeMb: 114, files: translationFiles(1_361, 293, 6_120_151, 503, 52_899_741, 60_212_803), hfModelId: 'Xenova/opus-mt-ROMANCE-en', sourceLang: 'ROMANCE', targetLang: 'en' },
 
   // ── Non-English Pairs ──────────────────────────────────────────────────
-  { id: 'opus-mt-da-de', type: 'translation', name: 'Opus-MT (da → de)', languages: ['da', 'de'], totalSizeMb: 110, cdnPath: 'opus-mt-da-de', files: TRANSLATION_FILES, hfModelId: 'Xenova/opus-mt-da-de', sourceLang: 'da', targetLang: 'de' },
-  { id: 'opus-mt-fi-de', type: 'translation', name: 'Opus-MT (fi → de)', languages: ['fi', 'de'], totalSizeMb: 110, cdnPath: 'opus-mt-fi-de', files: TRANSLATION_FILES, hfModelId: 'Xenova/opus-mt-fi-de', sourceLang: 'fi', targetLang: 'de' },
-  { id: 'opus-mt-fr-de', type: 'translation', name: 'Opus-MT (fr → de)', languages: ['fr', 'de'], totalSizeMb: 110, cdnPath: 'opus-mt-fr-de', files: TRANSLATION_FILES, hfModelId: 'Xenova/opus-mt-fr-de', sourceLang: 'fr', targetLang: 'de' },
-  { id: 'opus-mt-de-fr', type: 'translation', name: 'Opus-MT (de → fr)', languages: ['de', 'fr'], totalSizeMb: 110, cdnPath: 'opus-mt-de-fr', files: TRANSLATION_FILES, hfModelId: 'Xenova/opus-mt-de-fr', sourceLang: 'de', targetLang: 'fr' },
-  { id: 'opus-mt-fr-ro', type: 'translation', name: 'Opus-MT (fr → ro)', languages: ['fr', 'ro'], totalSizeMb: 110, cdnPath: 'opus-mt-fr-ro', files: TRANSLATION_FILES, hfModelId: 'Xenova/opus-mt-fr-ro', sourceLang: 'fr', targetLang: 'ro' },
-  { id: 'opus-mt-ro-fr', type: 'translation', name: 'Opus-MT (ro → fr)', languages: ['ro', 'fr'], totalSizeMb: 110, cdnPath: 'opus-mt-ro-fr', files: TRANSLATION_FILES, hfModelId: 'Xenova/opus-mt-ro-fr', sourceLang: 'ro', targetLang: 'fr' },
-  { id: 'opus-mt-fr-ru', type: 'translation', name: 'Opus-MT (fr → ru)', languages: ['fr', 'ru'], totalSizeMb: 110, cdnPath: 'opus-mt-fr-ru', files: TRANSLATION_FILES, hfModelId: 'Xenova/opus-mt-fr-ru', sourceLang: 'fr', targetLang: 'ru' },
-  { id: 'opus-mt-ru-fr', type: 'translation', name: 'Opus-MT (ru → fr)', languages: ['ru', 'fr'], totalSizeMb: 110, cdnPath: 'opus-mt-ru-fr', files: TRANSLATION_FILES, hfModelId: 'Xenova/opus-mt-ru-fr', sourceLang: 'ru', targetLang: 'fr' },
-  { id: 'opus-mt-fr-es', type: 'translation', name: 'Opus-MT (fr → es)', languages: ['fr', 'es'], totalSizeMb: 110, cdnPath: 'opus-mt-fr-es', files: TRANSLATION_FILES, hfModelId: 'Xenova/opus-mt-fr-es', sourceLang: 'fr', targetLang: 'es' },
-  { id: 'opus-mt-es-fr', type: 'translation', name: 'Opus-MT (es → fr)', languages: ['es', 'fr'], totalSizeMb: 110, cdnPath: 'opus-mt-es-fr', files: TRANSLATION_FILES, hfModelId: 'Xenova/opus-mt-es-fr', sourceLang: 'es', targetLang: 'fr' },
-  { id: 'opus-mt-de-es', type: 'translation', name: 'Opus-MT (de → es)', languages: ['de', 'es'], totalSizeMb: 110, cdnPath: 'opus-mt-de-es', files: TRANSLATION_FILES, hfModelId: 'Xenova/opus-mt-de-es', sourceLang: 'de', targetLang: 'es' },
-  { id: 'opus-mt-es-de', type: 'translation', name: 'Opus-MT (es → de)', languages: ['es', 'de'], totalSizeMb: 110, cdnPath: 'opus-mt-es-de', files: TRANSLATION_FILES, hfModelId: 'Xenova/opus-mt-es-de', sourceLang: 'es', targetLang: 'de' },
-  { id: 'opus-mt-it-fr', type: 'translation', name: 'Opus-MT (it → fr)', languages: ['it', 'fr'], totalSizeMb: 110, cdnPath: 'opus-mt-it-fr', files: TRANSLATION_FILES, hfModelId: 'Xenova/opus-mt-it-fr', sourceLang: 'it', targetLang: 'fr' },
-  { id: 'opus-mt-it-es', type: 'translation', name: 'Opus-MT (it → es)', languages: ['it', 'es'], totalSizeMb: 110, cdnPath: 'opus-mt-it-es', files: TRANSLATION_FILES, hfModelId: 'Xenova/opus-mt-it-es', sourceLang: 'it', targetLang: 'es' },
-  { id: 'opus-mt-es-it', type: 'translation', name: 'Opus-MT (es → it)', languages: ['es', 'it'], totalSizeMb: 110, cdnPath: 'opus-mt-es-it', files: TRANSLATION_FILES, hfModelId: 'Xenova/opus-mt-es-it', sourceLang: 'es', targetLang: 'it' },
-  { id: 'opus-mt-no-de', type: 'translation', name: 'Opus-MT (no → de)', languages: ['no', 'de'], totalSizeMb: 110, cdnPath: 'opus-mt-no-de', files: TRANSLATION_FILES, hfModelId: 'Xenova/opus-mt-no-de', sourceLang: 'no', targetLang: 'de' },
-  { id: 'opus-mt-ru-uk', type: 'translation', name: 'Opus-MT (ru → uk)', languages: ['ru', 'uk'], totalSizeMb: 110, cdnPath: 'opus-mt-ru-uk', files: TRANSLATION_FILES, hfModelId: 'Xenova/opus-mt-ru-uk', sourceLang: 'ru', targetLang: 'uk' },
-  { id: 'opus-mt-uk-ru', type: 'translation', name: 'Opus-MT (uk → ru)', languages: ['uk', 'ru'], totalSizeMb: 110, cdnPath: 'opus-mt-uk-ru', files: TRANSLATION_FILES, hfModelId: 'Xenova/opus-mt-uk-ru', sourceLang: 'uk', targetLang: 'ru' },
-  { id: 'opus-mt-es-ru', type: 'translation', name: 'Opus-MT (es → ru)', languages: ['es', 'ru'], totalSizeMb: 110, cdnPath: 'opus-mt-es-ru', files: TRANSLATION_FILES, hfModelId: 'Xenova/opus-mt-es-ru', sourceLang: 'es', targetLang: 'ru' },
+  { id: 'opus-mt-da-de', type: 'translation', name: 'Opus-MT (da → de)', languages: ['da', 'de'], totalSizeMb: 105, files: translationFiles(1_376, 293, 5_538_319, 280, 48_817_054, 56_098_220), hfModelId: 'Xenova/opus-mt-da-de', sourceLang: 'da', targetLang: 'de' },
+  { id: 'opus-mt-de-es', type: 'translation', name: 'Opus-MT (de → es)', languages: ['de', 'es'], totalSizeMb: 110, files: translationFiles(1_376, 293, 5_944_958, 280, 51_005_342, 58_303_604), hfModelId: 'Xenova/opus-mt-de-es', sourceLang: 'de', targetLang: 'es' },
+  { id: 'opus-mt-de-fr', type: 'translation', name: 'Opus-MT (de → fr)', languages: ['de', 'fr'], totalSizeMb: 110, files: translationFiles(1_376, 293, 5_930_679, 280, 50_929_565, 58_227_235), hfModelId: 'Xenova/opus-mt-de-fr', sourceLang: 'de', targetLang: 'fr' },
+  { id: 'opus-mt-es-de', type: 'translation', name: 'Opus-MT (es → de)', languages: ['es', 'de'], totalSizeMb: 110, files: translationFiles(1_376, 293, 5_944_958, 280, 51_005_342, 58_303_604), hfModelId: 'Xenova/opus-mt-es-de', sourceLang: 'es', targetLang: 'de' },
+  { id: 'opus-mt-es-fr', type: 'translation', name: 'Opus-MT (es → fr)', languages: ['es', 'fr'], totalSizeMb: 125, files: translationFiles(1_376, 293, 7_583_355, 280, 57_928_094, 65_280_440), hfModelId: 'Xenova/opus-mt-es-fr', sourceLang: 'es', targetLang: 'fr' },
+  { id: 'opus-mt-es-it', type: 'translation', name: 'Opus-MT (es → it)', languages: ['es', 'it'], totalSizeMb: 107, files: translationFiles(1_376, 293, 5_711_996, 280, 49_843_102, 57_132_284), hfModelId: 'Xenova/opus-mt-es-it', sourceLang: 'es', targetLang: 'it' },
+  { id: 'opus-mt-es-ru', type: 'translation', name: 'Opus-MT (es → ru)', languages: ['es', 'ru'], totalSizeMb: 113, files: translationFiles(1_376, 293, 7_259_220, 280, 52_095_390, 59_402_168), hfModelId: 'Xenova/opus-mt-es-ru', sourceLang: 'es', targetLang: 'ru' },
+  { id: 'opus-mt-fi-de', type: 'translation', name: 'Opus-MT (fi → de)', languages: ['fi', 'de'], totalSizeMb: 108, files: translationFiles(1_376, 293, 5_823_405, 280, 50_068_382, 57_359_324), hfModelId: 'Xenova/opus-mt-fi-de', sourceLang: 'fi', targetLang: 'de' },
+  { id: 'opus-mt-fr-de', type: 'translation', name: 'Opus-MT (fr → de)', languages: ['fr', 'de'], totalSizeMb: 110, files: translationFiles(1_376, 293, 5_930_679, 280, 50_929_566, 58_227_236), hfModelId: 'Xenova/opus-mt-fr-de', sourceLang: 'fr', targetLang: 'de' },
+  { id: 'opus-mt-fr-es', type: 'translation', name: 'Opus-MT (fr → es)', languages: ['fr', 'es'], totalSizeMb: 125, files: translationFiles(1_376, 293, 7_583_355, 280, 57_928_094, 65_280_440), hfModelId: 'Xenova/opus-mt-fr-es', sourceLang: 'fr', targetLang: 'es' },
+  { id: 'opus-mt-fr-ro', type: 'translation', name: 'Opus-MT (fr → ro)', languages: ['fr', 'ro'], totalSizeMb: 105, files: translationFiles(1_376, 293, 5_528_391, 280, 48_615_837, 55_895_431), hfModelId: 'Xenova/opus-mt-fr-ro', sourceLang: 'fr', targetLang: 'ro' },
+  { id: 'opus-mt-fr-ru', type: 'translation', name: 'Opus-MT (fr → ru)', languages: ['fr', 'ru'], totalSizeMb: 114, files: translationFiles(1_376, 293, 7_356_933, 280, 52_580_253, 59_890_819), hfModelId: 'Xenova/opus-mt-fr-ru', sourceLang: 'fr', targetLang: 'ru' },
+  { id: 'opus-mt-it-es', type: 'translation', name: 'Opus-MT (it → es)', languages: ['it', 'es'], totalSizeMb: 107, files: translationFiles(1_376, 293, 5_711_996, 280, 49_843_102, 57_132_284), hfModelId: 'Xenova/opus-mt-it-es', sourceLang: 'it', targetLang: 'es' },
+  { id: 'opus-mt-it-fr', type: 'translation', name: 'Opus-MT (it → fr)', languages: ['it', 'fr'], totalSizeMb: 108, files: translationFiles(1_376, 293, 5_750_861, 280, 50_006_942, 57_297_404), hfModelId: 'Xenova/opus-mt-it-fr', sourceLang: 'it', targetLang: 'fr' },
+  { id: 'opus-mt-nl-fr', type: 'translation', name: 'Opus-MT (nl → fr)', languages: ['nl', 'fr'], totalSizeMb: 106, files: translationFiles(1_376, 293, 5_580_536, 280, 49_131_934, 56_415_560), hfModelId: 'Xenova/opus-mt-nl-fr', sourceLang: 'nl', targetLang: 'fr' },
+  { id: 'opus-mt-no-de', type: 'translation', name: 'Opus-MT (no → de)', languages: ['no', 'de'], totalSizeMb: 52, files: translationFiles(1_383, 290, 664_998, 282, 23_212_445, 30_293_569), hfModelId: 'Xenova/opus-mt-no-de', sourceLang: 'no', targetLang: 'de' },
+  { id: 'opus-mt-ro-fr', type: 'translation', name: 'Opus-MT (ro → fr)', languages: ['ro', 'fr'], totalSizeMb: 105, files: translationFiles(1_376, 293, 5_528_391, 280, 48_615_838, 55_895_432), hfModelId: 'Xenova/opus-mt-ro-fr', sourceLang: 'ro', targetLang: 'fr' },
+  { id: 'opus-mt-ru-es', type: 'translation', name: 'Opus-MT (ru → es)', languages: ['ru', 'es'], totalSizeMb: 113, files: translationFiles(1_376, 293, 7_259_220, 280, 52_095_390, 59_402_168), hfModelId: 'Xenova/opus-mt-ru-es', sourceLang: 'ru', targetLang: 'es' },
+  { id: 'opus-mt-ru-fr', type: 'translation', name: 'Opus-MT (ru → fr)', languages: ['ru', 'fr'], totalSizeMb: 114, files: translationFiles(1_411, 293, 7_356_933, 280, 52_580_253, 59_890_819), hfModelId: 'Xenova/opus-mt-ru-fr', sourceLang: 'ru', targetLang: 'fr' },
+  { id: 'opus-mt-ru-uk', type: 'translation', name: 'Opus-MT (ru → uk)', languages: ['ru', 'uk'], totalSizeMb: 108, files: translationFiles(1_389, 293, 7_632_973, 282, 49_201_054, 56_485_220), hfModelId: 'Xenova/opus-mt-ru-uk', sourceLang: 'ru', targetLang: 'uk' },
+  { id: 'opus-mt-uk-ru', type: 'translation', name: 'Opus-MT (uk → ru)', languages: ['uk', 'ru'], totalSizeMb: 108, files: translationFiles(1_389, 293, 7_632_973, 282, 49_201_054, 56_485_220), hfModelId: 'Xenova/opus-mt-uk-ru', sourceLang: 'uk', targetLang: 'ru' },
+
+  // ── Language Family Models ─────────────────────────────────────────────
+  { id: 'opus-mt-gem-gem', type: 'translation', name: 'Opus-MT (Germanic ↔ Germanic)', languages: ['de', 'en', 'nl', 'da', 'sv', 'no'], totalSizeMb: 85, files: translationFiles(1_391, 293, 3_640_084, 282, 38_944_670, 46_148_708), hfModelId: 'Xenova/opus-mt-gem-gem', sourceLang: 'gem', targetLang: 'gem' },
+  { id: 'opus-mt-gmw-gmw', type: 'translation', name: 'Opus-MT (West Germanic ↔ West Germanic)', languages: ['de', 'en', 'nl', 'af'], totalSizeMb: 82, files: translationFiles(1_391, 293, 3_431_142, 282, 37_776_798, 44_971_712), hfModelId: 'Xenova/opus-mt-gmw-gmw', sourceLang: 'gmw', targetLang: 'gmw' },
 ];
 
 // ─── Language Helpers ────────────────────────────────────────────────────────
