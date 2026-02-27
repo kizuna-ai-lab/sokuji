@@ -4,7 +4,7 @@ import { LanguageOption } from '../services/providers/ProviderConfig';
 export const LANGUAGE_OPTIONS: Record<string, LanguageOption> = {
   af: { name: 'Afrikaans', value: 'af', englishName: 'Afrikaans' },
   ar: { name: 'العربية', value: 'ar', englishName: 'Arabic' },
-  bat: { name: 'Baltic', value: 'bat', englishName: 'Baltic Languages' },
+  // bat: { name: 'Baltic', value: 'bat', englishName: 'Baltic Languages' },
   cs: { name: 'Čeština', value: 'cs', englishName: 'Czech' },
   da: { name: 'Dansk', value: 'da', englishName: 'Danish' },
   de: { name: 'Deutsch', value: 'de', englishName: 'German' },
