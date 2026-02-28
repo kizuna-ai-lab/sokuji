@@ -24,8 +24,14 @@ import { TtsEngine } from '../../lib/local-inference/engine/TtsEngine';
 import { getManifestEntry } from '../../lib/local-inference/modelManifest';
 import { resampleFloat32, float32ToInt16 } from '../../utils/audio-conversion';
 
+interface AsrTiming {
+  durationMs: number;
+  recognitionTimeMs: number;
+}
+
 interface PipelineJob {
   text: string;
+  asrTiming?: AsrTiming;
 }
 
 export class LocalInferenceClient implements IClient {
@@ -76,11 +82,12 @@ export class LocalInferenceClient implements IClient {
           const text = result.text.trim();
           if (!text) return;
           console.debug('[LocalInference] Streaming ASR result:', text, `(${result.durationMs}ms, ${result.recognitionTimeMs}ms recognition)`);
-          this.handleAsrResult(text);
+          this.handleAsrResult(text, { durationMs: result.durationMs, recognitionTimeMs: result.recognitionTimeMs });
         };
 
         engine.onError = (error) => {
           console.error('[LocalInference] Streaming ASR error:', error);
+          this.emitEvent('local.asr.error', 'server', { error });
           this.handlers.onError?.(new Error(`ASR: ${error}`));
         };
 
@@ -95,11 +102,12 @@ export class LocalInferenceClient implements IClient {
           const text = result.text.trim();
           if (!text) return;
           console.debug('[LocalInference] ASR result:', text, `(${result.durationMs}ms speech, ${result.recognitionTimeMs}ms recognition)`);
-          this.handleAsrResult(text);
+          this.handleAsrResult(text, { durationMs: result.durationMs, recognitionTimeMs: result.recognitionTimeMs });
         };
 
         engine.onError = (error) => {
           console.error('[LocalInference] ASR error:', error);
+          this.emitEvent('local.asr.error', 'server', { error });
           this.handlers.onError?.(new Error(`ASR: ${error}`));
         };
 
@@ -136,6 +144,11 @@ export class LocalInferenceClient implements IClient {
       }
 
       this.connected = true;
+      this.emitEvent('local.session.opened', 'client', {
+        asrModel: config.asrModelId,
+        translationPair: `${config.sourceLanguage} → ${config.targetLanguage}`,
+        ttsModel: config.ttsModelId ?? null,
+      });
       this.handlers.onOpen?.();
     } catch (error) {
       // Clean up on failure
@@ -163,6 +176,7 @@ export class LocalInferenceClient implements IClient {
     this.ttsEngine?.dispose();
     this.ttsEngine = null;
 
+    this.emitEvent('local.session.closed', 'client', { reason: 'user_disconnect' });
     this.handlers.onClose?.({});
   }
 
@@ -212,6 +226,15 @@ export class LocalInferenceClient implements IClient {
     return Provider.LOCAL_INFERENCE;
   }
 
+  // ─── Event Emission ──────────────────────────────────────
+
+  private emitEvent(type: string, source: 'client' | 'server', data: Record<string, any>): void {
+    this.handlers.onRealtimeEvent?.({
+      source,
+      event: { type, data },
+    });
+  }
+
   // ─── Pipeline ─────────────────────────────────────────────
 
   /**
@@ -219,6 +242,8 @@ export class LocalInferenceClient implements IClient {
    * Creates or updates an in_progress user item with interim text.
    */
   private handlePartialAsrResult(text: string): void {
+    this.emitEvent('local.asr.partial', 'server', { text });
+
     if (this.partialUserItem) {
       // Update existing partial item
       this.partialUserItem.formatted!.transcript = text;
@@ -240,7 +265,7 @@ export class LocalInferenceClient implements IClient {
     }
   }
 
-  private handleAsrResult(text: string): void {
+  private handleAsrResult(text: string, timing?: AsrTiming): void {
     if (this.partialUserItem) {
       // Finalize the partial item from streaming ASR
       this.partialUserItem.formatted!.transcript = text;
@@ -263,8 +288,13 @@ export class LocalInferenceClient implements IClient {
       this.handlers.onConversationUpdated?.({ item: userItem });
     }
 
+    this.emitEvent('local.asr.end', 'server', {
+      text,
+      ...(timing && { durationMs: timing.durationMs, recognitionTimeMs: timing.recognitionTimeMs }),
+    });
+
     // Enqueue translation + TTS
-    this.ttsQueue.push({ text });
+    this.ttsQueue.push({ text, asrTiming: timing });
     this.processQueue();
   }
 
@@ -297,11 +327,17 @@ export class LocalInferenceClient implements IClient {
     try {
       // Translate
       if (!this.translationEngine || this.disposed) return;
+      this.emitEvent('local.translation.start', 'client', { sourceText: job.text });
       const translationResult = await this.translationEngine.translate(job.text);
       if (this.disposed) return;
 
       const translatedText = translationResult.translatedText;
       console.debug('[LocalInference] Translation:', job.text, '→', translatedText, `(${translationResult.inferenceTimeMs}ms)`);
+      this.emitEvent('local.translation.end', 'server', {
+        sourceText: job.text,
+        translatedText,
+        inferenceTimeMs: translationResult.inferenceTimeMs,
+      });
 
       // Update assistant item with translation
       assistantItem.formatted!.transcript = translatedText;
@@ -310,6 +346,7 @@ export class LocalInferenceClient implements IClient {
       // TTS (optional)
       if (this.ttsEngine && this.config && !this.disposed) {
         try {
+          this.emitEvent('local.tts.start', 'client', { text: translatedText });
           const ttsResult = await this.ttsEngine.generate(
             translatedText,
             this.config.ttsSpeakerId,
@@ -318,6 +355,11 @@ export class LocalInferenceClient implements IClient {
           if (this.disposed) return;
 
           console.debug('[LocalInference] TTS generated:', ttsResult.samples.length, 'samples @', ttsResult.sampleRate, 'Hz', `(${ttsResult.generationTimeMs}ms)`);
+          this.emitEvent('local.tts.end', 'server', {
+            sampleCount: ttsResult.samples.length,
+            sampleRate: ttsResult.sampleRate,
+            generationTimeMs: ttsResult.generationTimeMs,
+          });
 
           // Resample to 24kHz and convert to Int16
           const resampled = resampleFloat32(ttsResult.samples, ttsResult.sampleRate, 24000);
@@ -330,6 +372,9 @@ export class LocalInferenceClient implements IClient {
           });
         } catch (ttsError) {
           console.warn('[LocalInference] TTS failed for text, continuing without audio:', ttsError);
+          this.emitEvent('local.tts.error', 'server', {
+            error: ttsError instanceof Error ? ttsError.message : String(ttsError),
+          });
           this.handlers.onError?.(ttsError instanceof Error ? ttsError : new Error(String(ttsError)));
         }
       }
@@ -343,6 +388,9 @@ export class LocalInferenceClient implements IClient {
       if (this.disposed) return;
 
       console.error('[LocalInference] Pipeline error:', error);
+      this.emitEvent('local.pipeline.error', 'server', {
+        error: error instanceof Error ? error.message : String(error),
+      });
 
       // Create error item
       assistantItem.type = 'error';
