@@ -113,7 +113,8 @@
     "websocket": "WebSocket (Stabil)",
     "webrtc": "WebRTC (Kependaman Rendah)",
     "participantInstructions": "Arahan Peserta",
-    "participantInstructionsTooltip": "Arahan sistem untuk menterjemah audio peserta. Jika kosong, arahan utama di atas akan digunakan.\n\nPenting: Arahan utama anda mungkin mempunyai arah bahasa yang salah untuk peserta. Contoh: Jika anda bercakap dalam bahasa Cina dan arahan utama menterjemah Cina→Jepun, tetapi peserta bercakap bahasa Jepun, arahan utama akan salah mencuba menterjemah Jepun→Jepun. Tetapkan arahan peserta yang berasingan untuk menterjemah Jepun→Cina."
+    "participantInstructionsTooltip": "Arahan sistem untuk menterjemah audio peserta. Jika kosong, arahan utama di atas akan digunakan.\n\nPenting: Arahan utama anda mungkin mempunyai arah bahasa yang salah untuk peserta. Contoh: Jika anda bercakap dalam bahasa Cina dan arahan utama menterjemah Cina→Jepun, tetapi peserta bercakap bahasa Jepun, arahan utama akan salah mencuba menterjemah Jepun→Jepun. Tetapkan arahan peserta yang berasingan untuk menterjemah Jepun→Cina.",
+    "webgpuNotSupported": "Tidak tersedia dalam persekitaran semasa"
   },
   "simpleSettings": {
     "quickSetup": "Persediaan Pantas",

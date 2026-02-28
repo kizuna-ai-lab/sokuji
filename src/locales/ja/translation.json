@@ -139,7 +139,8 @@
     "invalidApiKeyFormat": "APIキーの形式が無効です",
     "volcengineAST2Info": "Doubao AST 2.0 について",
     "volcengineAST2InfoText": "Doubao AST 2.0は、自動音声クローニングによる音声対音声翻訳を提供します。翻訳された音声は、元の話者の声の特徴を保持します。",
-    "volcengineAST2TurnDetectionTooltip": "自動モードはサーバー側の音声活動検出を使用します。プッシュトゥトークでは、スペースまたはマイクボタンを押して音声の送信を手動で制御できます。"
+    "volcengineAST2TurnDetectionTooltip": "自動モードはサーバー側の音声活動検出を使用します。プッシュトゥトークでは、スペースまたはマイクボタンを押して音声の送信を手動で制御できます。",
+    "webgpuNotSupported": "現在の環境では利用できません"
   },
   "audioPanel": {
     "title": "オーディオ設定",

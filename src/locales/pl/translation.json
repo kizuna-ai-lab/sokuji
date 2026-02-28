@@ -112,7 +112,8 @@
     "websocket": "WebSocket (Stabilny)",
     "webrtc": "WebRTC (Niskie opóźnienie)",
     "participantInstructions": "Instrukcje dla uczestników",
-    "participantInstructionsTooltip": "Instrukcje systemowe do tłumaczenia dźwięku uczestników. Jeśli puste, zostaną użyte główne instrukcje powyżej.\n\nWażne: Twoje główne instrukcje mogą mieć niewłaściwy kierunek językowy dla uczestników. Przykład: Jeśli mówisz po chińsku i twoje główne instrukcje tłumaczą chiński→japoński, ale uczestnicy mówią po japońsku, główne instrukcje będą błędnie próbować tłumaczyć japoński→japoński. Ustaw oddzielne instrukcje dla uczestników, aby tłumaczyć japoński→chiński."
+    "participantInstructionsTooltip": "Instrukcje systemowe do tłumaczenia dźwięku uczestników. Jeśli puste, zostaną użyte główne instrukcje powyżej.\n\nWażne: Twoje główne instrukcje mogą mieć niewłaściwy kierunek językowy dla uczestników. Przykład: Jeśli mówisz po chińsku i twoje główne instrukcje tłumaczą chiński→japoński, ale uczestnicy mówią po japońsku, główne instrukcje będą błędnie próbować tłumaczyć japoński→japoński. Ustaw oddzielne instrukcje dla uczestników, aby tłumaczyć japoński→chiński.",
+    "webgpuNotSupported": "Niedostępne w bieżącym środowisku"
   },
   "audioPanel": {
     "title": "Ustawienia audio",
