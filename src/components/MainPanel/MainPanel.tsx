@@ -2437,12 +2437,8 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                       );
                     }
 
-                    // Fallback for other content types
-                    return (
-                      <div className="content-item">
-                        <pre>{JSON.stringify(item, null, 2)}</pre>
-                      </div>
-                    );
+                    // Fallback: show nothing for items still loading content
+                    return null;
                   })()}
                 </div>
               </div>
