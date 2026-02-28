@@ -35,6 +35,8 @@ interface SimpleMainPanelProps {
   // Text input props
   supportsTextInput: boolean;
   onSendText: (text: string) => void;
+  // Init progress for LOCAL_INFERENCE
+  initProgress?: { completed: number; total: number } | null;
 }
 
 const SimpleMainPanel: React.FC<SimpleMainPanelProps> = React.memo(({
@@ -50,7 +52,8 @@ const SimpleMainPanel: React.FC<SimpleMainPanelProps> = React.memo(({
   playingItemId,
   playbackProgress,
   supportsTextInput,
-  onSendText
+  onSendText,
+  initProgress
 }) => {
   const { t } = useTranslation();
   const conversationContainerRef = useRef<HTMLDivElement>(null);
@@ -376,7 +379,11 @@ const SimpleMainPanel: React.FC<SimpleMainPanelProps> = React.memo(({
             {isInitializing ? (
               <>
                 <Loader className="spinning" size={16} />
-                <span className="btn-text">{t('simplePanel.connecting', 'Connecting...')}</span>
+                <span className="btn-text">
+                  {initProgress
+                    ? t('simplePanel.initProgress', 'Loading ({{completed}}/{{total}})...', { completed: initProgress.completed, total: initProgress.total })
+                    : t('simplePanel.connecting', 'Connecting...')}
+                </span>
               </>
             ) : isSessionActive ? (
               <>

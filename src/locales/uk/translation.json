@@ -111,7 +111,8 @@
     "clickToConfigSpeaker": "Натисніть для налаштування динаміка",
     "typeMessage": "Текст для перекладу...",
     "send": "Надіслати",
-    "participant": "Учасник"
+    "participant": "Учасник",
+    "initProgress": "Завантаження ({{completed}}/{{total}})..."
   },
   "connectionStatus": {
     "disconnected": "Відключено",
@@ -183,7 +184,8 @@
     "typeMessage": "Текст для перекладу...",
     "send": "Надіслати",
     "error": "Помилка",
-    "unknownError": "Невідома помилка"
+    "unknownError": "Невідома помилка",
+    "initProgress": "Завантаження ({{completed}}/{{total}})..."
   },
   "audioPanel": {
     "title": "Налаштування аудіо",

@@ -111,7 +111,8 @@
     "typeMessage": "Văn bản cần dịch...",
     "send": "Gửi",
     "error": "Lỗi",
-    "unknownError": "Lỗi không xác định"
+    "unknownError": "Lỗi không xác định",
+    "initProgress": "Đang tải ({{completed}}/{{total}})..."
   },
   "audioPanel": {
     "title": "Cài đặt âm thanh",
@@ -369,7 +370,8 @@
     "clickToConfigSpeaker": "Nhấp để cấu hình loa",
     "typeMessage": "Văn bản cần dịch...",
     "send": "Gửi",
-    "participant": "Người tham gia"
+    "participant": "Người tham gia",
+    "initProgress": "Đang tải ({{completed}}/{{total}})..."
   },
   "connectionStatus": {
     "disconnected": "Mất kết nối",

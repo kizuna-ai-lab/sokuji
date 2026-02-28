@@ -209,7 +209,8 @@
     "typeMessage": "Текст для перевода...",
     "send": "Отправить",
     "error": "Ошибка",
-    "unknownError": "Неизвестная ошибка"
+    "unknownError": "Неизвестная ошибка",
+    "initProgress": "Загрузка ({{completed}}/{{total}})..."
   },
   "errors": {
     "microphoneAccess": "Доступ к микрофону запрещен",
@@ -449,7 +450,8 @@
     "clickToConfigSpeaker": "Нажмите для настройки динамика",
     "typeMessage": "Текст для перевода...",
     "send": "Отправить",
-    "participant": "Участник"
+    "participant": "Участник",
+    "initProgress": "Загрузка ({{completed}}/{{total}})..."
   },
   "connectionStatus": {
     "disconnected": "Отключен",

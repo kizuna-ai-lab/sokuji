@@ -53,6 +53,27 @@ export class LocalInferenceClient implements IClient {
   private ttsQueue: PipelineJob[] = [];
   private ttsProcessing = false;
 
+  /**
+   * Helper to wrap an engine init call with progress event emission.
+   */
+  private async trackInit<T>(
+    engineName: string,
+    initFn: () => Promise<T>,
+  ): Promise<T> {
+    this.emitEvent('local.init.engine.start', 'client', { engine: engineName });
+    try {
+      const result = await initFn();
+      this.emitEvent('local.init.engine.ready', 'client', { engine: engineName });
+      return result;
+    } catch (error) {
+      this.emitEvent('local.init.engine.error', 'client', {
+        engine: engineName,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      throw error;
+    }
+  }
+
   async connect(config: SessionConfig): Promise<void> {
     if (!isLocalInferenceSessionConfig(config)) {
       throw new Error('LocalInferenceClient requires LocalInferenceSessionConfig');
@@ -63,13 +84,19 @@ export class LocalInferenceClient implements IClient {
     this.conversationItems = [];
     this.itemCounter = 0;
 
+    // Determine which engines will be initialized
+    const engines = ['asr', 'translation'];
+    if (config.ttsModelId) engines.push('tts');
+    this.emitEvent('local.init.start', 'client', { engines: [...engines] });
+
     try {
-      // Initialize ASR engine — detect streaming vs offline model
+      // --- Create engines & set callbacks synchronously ---
+
+      // ASR engine — detect streaming vs offline model
       const asrModel = getManifestEntry(config.asrModelId);
       console.info('[LocalInference] Initializing ASR engine:', config.asrModelId, '(type:', asrModel?.type, ')');
 
       if (asrModel?.type === 'asr-stream') {
-        // Streaming ASR: OnlineRecognizer with partial results
         const engine = new StreamingAsrEngine();
 
         engine.onPartialResult = (text) => {
@@ -92,9 +119,7 @@ export class LocalInferenceClient implements IClient {
         };
 
         this.asrEngine = engine;
-        await engine.init(config.asrModelId);
       } else {
-        // Offline ASR: VAD + OfflineRecognizer
         const engine = new AsrEngine();
 
         engine.onResult = (result) => {
@@ -112,35 +137,66 @@ export class LocalInferenceClient implements IClient {
         };
 
         this.asrEngine = engine;
-        await engine.init(config.asrModelId, {
-          threshold: config.vadThreshold,
-          minSilenceDuration: config.vadMinSilenceDuration,
-          minSpeechDuration: config.vadMinSpeechDuration,
-        });
+      }
+
+      // Translation engine
+      console.info('[LocalInference] Initializing Translation engine:', config.sourceLanguage, '→', config.targetLanguage);
+      this.translationEngine = new TranslationEngine();
+
+      // TTS engine (optional)
+      if (config.ttsModelId) {
+        console.info('[LocalInference] Initializing TTS engine:', config.ttsModelId);
+        this.ttsEngine = new TtsEngine();
+      } else {
+        console.info('[LocalInference] No TTS model configured, text-only mode');
+      }
+
+      // --- Fire all init() calls in parallel ---
+
+      const asrPromise = this.trackInit('asr', () => {
+        if (asrModel?.type === 'asr-stream') {
+          return (this.asrEngine as StreamingAsrEngine).init(config.asrModelId);
+        } else {
+          return (this.asrEngine as AsrEngine).init(config.asrModelId, {
+            threshold: config.vadThreshold,
+            minSilenceDuration: config.vadMinSilenceDuration,
+            minSpeechDuration: config.vadMinSpeechDuration,
+          });
+        }
+      });
+
+      const translationPromise = this.trackInit('translation', () =>
+        this.translationEngine!.init(config.sourceLanguage, config.targetLanguage),
+      );
+
+      // TTS catches its own errors for graceful degradation
+      const ttsPromise = this.ttsEngine
+        ? this.trackInit('tts', () => this.ttsEngine!.init(config.ttsModelId!)).catch((error) => {
+            console.warn('[LocalInference] TTS init failed, continuing without TTS:', error);
+            this.handlers.onError?.(error instanceof Error ? error : new Error(String(error)));
+            this.ttsEngine?.dispose();
+            this.ttsEngine = null;
+            return null;
+          })
+        : Promise.resolve(null);
+
+      const results = await Promise.allSettled([asrPromise, translationPromise, ttsPromise]);
+
+      // Check ASR result
+      if (results[0].status === 'rejected') {
+        throw new Error(`ASR engine init failed: ${results[0].reason instanceof Error ? results[0].reason.message : String(results[0].reason)}`);
       }
       console.info('[LocalInference] ASR engine ready');
 
-      // Initialize Translation engine
-      console.info('[LocalInference] Initializing Translation engine:', config.sourceLanguage, '→', config.targetLanguage);
-      this.translationEngine = new TranslationEngine();
-      await this.translationEngine.init(config.sourceLanguage, config.targetLanguage);
+      // Check Translation result
+      if (results[1].status === 'rejected') {
+        throw new Error(`Translation engine init failed: ${results[1].reason instanceof Error ? results[1].reason.message : String(results[1].reason)}`);
+      }
       console.info('[LocalInference] Translation engine ready');
 
-      // Initialize TTS engine (optional, degrades gracefully)
-      if (config.ttsModelId) {
-        try {
-          console.info('[LocalInference] Initializing TTS engine:', config.ttsModelId);
-          this.ttsEngine = new TtsEngine();
-          await this.ttsEngine.init(config.ttsModelId);
-          console.info('[LocalInference] TTS engine ready (sampleRate:', this.ttsEngine.sampleRate, ', speakers:', this.ttsEngine.numSpeakers, ')');
-        } catch (error) {
-          console.warn('[LocalInference] TTS init failed, continuing without TTS:', error);
-          this.handlers.onError?.(error instanceof Error ? error : new Error(String(error)));
-          this.ttsEngine?.dispose();
-          this.ttsEngine = null;
-        }
-      } else {
-        console.info('[LocalInference] No TTS model configured, text-only mode');
+      // TTS result (already handled via catch above, just log success)
+      if (this.ttsEngine) {
+        console.info('[LocalInference] TTS engine ready (sampleRate:', this.ttsEngine.sampleRate, ', speakers:', this.ttsEngine.numSpeakers, ')');
       }
 
       this.connected = true;

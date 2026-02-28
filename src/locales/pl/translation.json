@@ -189,7 +189,8 @@
     "typeMessage": "Tekst do przetłumaczenia...",
     "send": "Wyślij",
     "error": "Błąd",
-    "unknownError": "Nieznany błąd"
+    "unknownError": "Nieznany błąd",
+    "initProgress": "Ładowanie ({{completed}}/{{total}})..."
   },
   "errors": {
     "microphoneAccess": "Dostęp do mikrofonu został odrzucony",
@@ -427,7 +428,8 @@
     "clickToConfigSpeaker": "Kliknij, aby skonfigurować głośnik",
     "typeMessage": "Tekst do przetłumaczenia...",
     "send": "Wyślij",
-    "participant": "Uczestnik"
+    "participant": "Uczestnik",
+    "initProgress": "Ładowanie ({{completed}}/{{total}})..."
   },
   "connectionStatus": {
     "disconnected": "Rozłączony",

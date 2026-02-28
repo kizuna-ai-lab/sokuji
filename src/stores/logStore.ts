@@ -61,7 +61,12 @@ export interface EventData {
     | 'local.tts.start'
     | 'local.tts.end'
     | 'local.tts.error'
-    | 'local.pipeline.error';
+    | 'local.pipeline.error'
+    // LocalInference init progress event types
+    | 'local.init.start'
+    | 'local.init.engine.start'
+    | 'local.init.engine.ready'
+    | 'local.init.engine.error';
   data: any;
   // Support additional properties for flexible event handling (e.g., OpenAI properties)
   [key: string]: any;

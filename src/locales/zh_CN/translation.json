@@ -219,7 +219,8 @@
     "clickToConfigSpeaker": "点击配置扬声器",
     "typeMessage": "输入要翻译的文字...",
     "send": "发送",
-    "participant": "参与者"
+    "participant": "参与者",
+    "initProgress": "加载中 ({{completed}}/{{total}})..."
   },
   "providers": {
     "openai": {
@@ -350,7 +351,8 @@
     "typeMessage": "输入要翻译的文字...",
     "send": "发送",
     "error": "错误",
-    "unknownError": "未知错误"
+    "unknownError": "未知错误",
+    "initProgress": "加载中 ({{completed}}/{{total}})..."
   },
   "errors": {
     "microphoneAccess": "麦克风访问被拒绝",

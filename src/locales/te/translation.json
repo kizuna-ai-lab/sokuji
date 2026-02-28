@@ -111,7 +111,8 @@
     "clickToConfigSpeaker": "స్పీకర్‌ను కాన్ఫిగర్ చేయడానికి క్లిక్ చేయండి",
     "typeMessage": "అనువదించడానికి టెక్స్ట్...",
     "send": "పంపు",
-    "participant": "భాగస్వామి"
+    "participant": "భాగస్వామి",
+    "initProgress": "లోడ్ అవుతోంది ({{completed}}/{{total}})..."
   },
   "connectionStatus": {
     "disconnected": "విచ్ఛేదించబడింది",
@@ -188,7 +189,8 @@
     "typeMessage": "అనువదించడానికి టెక్స్ట్...",
     "send": "పంపు",
     "error": "లోపం",
-    "unknownError": "తెలియని లోపం"
+    "unknownError": "తెలియని లోపం",
+    "initProgress": "లోడ్ అవుతోంది ({{completed}}/{{total}})..."
   },
   "audioPanel": {
     "title": "ఆడియో సెట్టింగ్‌లు",

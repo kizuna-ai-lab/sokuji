@@ -124,7 +124,8 @@
     "clickToConfigSpeaker": "點擊配置揚聲器",
     "typeMessage": "輸入要翻譯的文字...",
     "send": "發送",
-    "participant": "參與者"
+    "participant": "參與者",
+    "initProgress": "載入中 ({{completed}}/{{total}})..."
   },
   "connectionStatus": {
     "disconnected": "已斷線",
@@ -313,7 +314,8 @@
     "typeMessage": "輸入要翻譯的文字...",
     "send": "發送",
     "error": "錯誤",
-    "unknownError": "未知錯誤"
+    "unknownError": "未知錯誤",
+    "initProgress": "載入中 ({{completed}}/{{total}})..."
   },
   "errors": {
     "microphoneAccess": "麥克風存取被拒絕",

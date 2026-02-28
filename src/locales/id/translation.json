@@ -257,7 +257,8 @@
     "send": "Kirim",
     "participant": "Peserta",
     "error": "Kesalahan",
-    "unknownError": "Kesalahan tidak diketahui"
+    "unknownError": "Kesalahan tidak diketahui",
+    "initProgress": "Memuat ({{completed}}/{{total}})..."
   },
   "connectionStatus": {
     "disconnected": "Terputus",
@@ -340,7 +341,8 @@
     "basicMode": "Dasar",
     "advancedMode": "Lanjutan",
     "typeMessage": "Teks untuk diterjemahkan...",
-    "send": "Kirim"
+    "send": "Kirim",
+    "initProgress": "Memuat ({{completed}}/{{total}})..."
   },
   "errors": {
     "microphoneAccess": "Akses mikrofon ditolak",

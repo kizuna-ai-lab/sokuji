@@ -309,7 +309,8 @@
     "typeMessage": "نص للترجمة...",
     "send": "إرسال",
     "error": "خطأ",
-    "unknownError": "خطأ غير معروف"
+    "unknownError": "خطأ غير معروف",
+    "initProgress": "جاري التحميل ({{completed}}/{{total}})..."
   },
   "simplePanel": {
     "translationActive": "الترجمة نشطة",
@@ -340,7 +341,8 @@
     "clickToConfigSpeaker": "انقر لتكوين السماعة",
     "typeMessage": "نص للترجمة...",
     "send": "إرسال",
-    "participant": "المشارك"
+    "participant": "المشارك",
+    "initProgress": "جاري التحميل ({{completed}}/{{total}})..."
   },
   "errors": {
     "microphoneAccess": "تم رفض الوصول إلى الميكروفون",

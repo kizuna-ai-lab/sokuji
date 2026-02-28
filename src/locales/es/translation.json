@@ -214,7 +214,8 @@
     "typeMessage": "Texto a traducir...",
     "send": "Enviar",
     "error": "Error",
-    "unknownError": "Error desconocido"
+    "unknownError": "Error desconocido",
+    "initProgress": "Cargando ({{completed}}/{{total}})..."
   },
   "errors": {
     "microphoneAccess": "Acceso al micrófono denegado",
@@ -455,7 +456,8 @@
     "clickToConfigSpeaker": "Haz clic para configurar el altavoz",
     "typeMessage": "Texto a traducir...",
     "send": "Enviar",
-    "participant": "Participante"
+    "participant": "Participante",
+    "initProgress": "Cargando ({{completed}}/{{total}})..."
   },
   "connectionStatus": {
     "disconnected": "Desconectado",

@@ -219,7 +219,8 @@
     "send": "Ipadala",
     "participant": "Kalahok",
     "error": "Error",
-    "unknownError": "Hindi kilalang error"
+    "unknownError": "Hindi kilalang error",
+    "initProgress": "Naglo-load ({{completed}}/{{total}})..."
   },
   "connectionStatus": {
     "disconnected": "Nakadiskonekta",
@@ -241,7 +242,8 @@
     "basicMode": "Pangunahin",
     "advancedMode": "Advanced",
     "typeMessage": "Teksto para isalin...",
-    "send": "Ipadala"
+    "send": "Ipadala",
+    "initProgress": "Naglo-load ({{completed}}/{{total}})..."
   },
   "audioPanel": {
     "title": "Mga Setting ng Audio",
