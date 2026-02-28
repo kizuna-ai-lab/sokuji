@@ -8,10 +8,12 @@ import {
   useDownloadErrors,
   useStorageUsedMb,
   useModelInitialized,
+  useWebGPUAvailable,
 } from '../../../stores/modelStore';
 import {
   getManifestByType,
   getModelSizeMb,
+  isTranslationModelCompatible,
   type ModelManifestEntry,
   type ModelStatus,
 } from '../../../lib/local-inference/modelManifest';
@@ -266,6 +268,7 @@ export function ModelManagementSection({
   const downloadErrors = useDownloadErrors();
   const storageUsedMb = useStorageUsedMb();
   const initialized = useModelInitialized();
+  const webgpuAvailable = useWebGPUAvailable();
   const { initialize, downloadModel, cancelDownload, deleteModel } = useModelStore();
 
   const [showAllTranslation, setShowAllTranslation] = useState(false);
@@ -295,15 +298,17 @@ export function ModelManagementSection({
       if (newId !== asrModel) updates.asrModel = newId;
     }
 
-    // Translation: must match source→target pair and be downloaded
+    // Translation: must be compatible with source→target pair, downloaded, and device-ready
     const currentTrans = translationModel ? getManifestByType('translation').find(m => m.id === translationModel) : null;
     const transOk = currentTrans
-      && currentTrans.sourceLang === sourceLanguage
-      && currentTrans.targetLang === targetLanguage
-      && statuses[translationModel] === 'downloaded';
+      && isTranslationModelCompatible(currentTrans, sourceLanguage, targetLanguage)
+      && statuses[translationModel] === 'downloaded'
+      && !(currentTrans.requiredDevice === 'webgpu' && !webgpuAvailable);
     if (!transOk) {
       const match = getManifestByType('translation').find(m =>
-        m.sourceLang === sourceLanguage && m.targetLang === targetLanguage && statuses[m.id] === 'downloaded'
+        isTranslationModelCompatible(m, sourceLanguage, targetLanguage)
+        && statuses[m.id] === 'downloaded'
+        && !(m.requiredDevice === 'webgpu' && !webgpuAvailable)
       );
       const newId = match?.id || '';
       if (newId !== translationModel) updates.translationModel = newId;
@@ -323,7 +328,7 @@ export function ModelManagementSection({
     if (Object.keys(updates).length > 0) {
       onUpdateSettings(updates);
     }
-  }, [initialized, statuses, sourceLanguage, targetLanguage, asrModel, translationModel, ttsModel, onUpdateSettings]);
+  }, [initialized, statuses, sourceLanguage, targetLanguage, asrModel, translationModel, ttsModel, webgpuAvailable, onUpdateSettings]);
 
   // ── Memoized model lists ──────────────────────────────────────────────
 
@@ -335,22 +340,25 @@ export function ModelManagementSection({
   const translationModels = useMemo(() => {
     const all = getManifestByType('translation');
     return sortModels(all, statuses, (m) =>
-      m.sourceLang === sourceLanguage && m.targetLang === targetLanguage
+      isTranslationModelCompatible(m, sourceLanguage, targetLanguage)
+      && !(m.requiredDevice === 'webgpu' && !webgpuAvailable)
     );
-  }, [statuses, sourceLanguage, targetLanguage]);
+  }, [statuses, sourceLanguage, targetLanguage, webgpuAvailable]);
 
   const compatibleTranslationModels = useMemo(
     () => translationModels.filter(m =>
-      m.sourceLang === sourceLanguage && m.targetLang === targetLanguage
+      isTranslationModelCompatible(m, sourceLanguage, targetLanguage)
+      && !(m.requiredDevice === 'webgpu' && !webgpuAvailable)
     ),
-    [translationModels, sourceLanguage, targetLanguage],
+    [translationModels, sourceLanguage, targetLanguage, webgpuAvailable],
   );
 
   const incompatibleTranslationModels = useMemo(
     () => translationModels.filter(m =>
-      !(m.sourceLang === sourceLanguage && m.targetLang === targetLanguage)
+      !isTranslationModelCompatible(m, sourceLanguage, targetLanguage)
+      || (m.requiredDevice === 'webgpu' && !webgpuAvailable)
     ),
-    [translationModels, sourceLanguage, targetLanguage],
+    [translationModels, sourceLanguage, targetLanguage, webgpuAvailable],
   );
 
   const ttsModels = useMemo(() => {
@@ -514,7 +522,11 @@ export function ModelManagementSection({
                 isSelected={translationModel === entry.id}
                 isCompatible={false}
                 showRadio={true}
-                compatibilityHint={t('settings.langMismatch', 'language mismatch')}
+                compatibilityHint={
+                  entry.requiredDevice === 'webgpu' && !webgpuAvailable
+                    ? t('settings.webgpuRequired', 'requires WebGPU')
+                    : t('settings.langMismatch', 'language mismatch')
+                }
                 onSelect={() => onUpdateSettings({ translationModel: entry.id })}
                 onDownload={() => handleDownload(entry.id)}
                 onCancel={() => cancelDownload(entry.id)}
