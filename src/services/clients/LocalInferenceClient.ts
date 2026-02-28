@@ -313,19 +313,10 @@ export class LocalInferenceClient implements IClient {
   }
 
   private async processPipelineJob(job: PipelineJob): Promise<void> {
-    // Create assistant item (in_progress)
-    const assistantItem: ConversationItem = {
-      id: `local_asst_${++this.itemCounter}`,
-      role: 'assistant',
-      type: 'message',
-      status: 'in_progress',
-      createdAt: Date.now(),
-      formatted: {},
-    };
-    this.conversationItems.push(assistantItem);
+    const itemId = `local_asst_${++this.itemCounter}`;
 
     try {
-      // Translate
+      // Translate first — don't push item until we have content
       if (!this.translationEngine || this.disposed) return;
       this.emitEvent('local.translation.start', 'client', { sourceText: job.text });
       const translationResult = await this.translationEngine.translate(job.text);
@@ -339,8 +330,16 @@ export class LocalInferenceClient implements IClient {
         inferenceTimeMs: translationResult.inferenceTimeMs,
       });
 
-      // Update assistant item with translation
-      assistantItem.formatted!.transcript = translatedText;
+      // Create assistant item with translation already set
+      const assistantItem: ConversationItem = {
+        id: itemId,
+        role: 'assistant',
+        type: 'message',
+        status: 'in_progress',
+        createdAt: Date.now(),
+        formatted: { transcript: translatedText },
+      };
+      this.conversationItems.push(assistantItem);
       this.handlers.onConversationUpdated?.({ item: assistantItem });
 
       // TTS (optional)
@@ -392,11 +391,17 @@ export class LocalInferenceClient implements IClient {
         error: error instanceof Error ? error.message : String(error),
       });
 
-      // Create error item
-      assistantItem.type = 'error';
-      assistantItem.status = 'completed';
-      assistantItem.formatted!.transcript = `Translation error: ${error instanceof Error ? error.message : 'Unknown error'}`;
-      this.handlers.onConversationUpdated?.({ item: assistantItem });
+      // Create error item with message already set
+      const errorItem: ConversationItem = {
+        id: itemId,
+        role: 'assistant',
+        type: 'error',
+        status: 'completed',
+        createdAt: Date.now(),
+        formatted: { transcript: `Translation error: ${error instanceof Error ? error.message : 'Unknown error'}` },
+      };
+      this.conversationItems.push(errorItem);
+      this.handlers.onConversationUpdated?.({ item: errorItem });
     }
   }
 }
