@@ -237,7 +237,8 @@
     "clickToConfigSpeaker": "Klik untuk mengkonfigurasi pembesar suara",
     "typeMessage": "Teks untuk diterjemah...",
     "send": "Hantar",
-    "participant": "Peserta"
+    "participant": "Peserta",
+    "initProgress": "Memuatkan ({{completed}}/{{total}})..."
   },
   "connectionStatus": {
     "disconnected": "Terputus",
@@ -322,7 +323,8 @@
     "typeMessage": "Teks untuk diterjemah...",
     "send": "Hantar",
     "error": "Ralat",
-    "unknownError": "Ralat tidak diketahui"
+    "unknownError": "Ralat tidak diketahui",
+    "initProgress": "Memuatkan ({{completed}}/{{total}})..."
   },
   "errors": {
     "microphoneAccess": "Akses mikrofon ditolak",

@@ -56,6 +56,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   const [isRecording, setIsRecording] = useState(false);
   const [items, setItems] = useState<ConversationItem[]>([]);
   const [isInitializing, setIsInitializing] = useState(false);
+  const [initProgress, setInitProgress] = useState<{ completed: number; total: number } | null>(null);
   
   // Get settings from store
   const provider = useProvider();
@@ -444,8 +445,16 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         // Note: Error ConversationItems are now created in OpenAIClient.ts
         // to maintain consistent architecture with other clients
 
-        // Track AI response state for text input queueing (OpenAI only)
+        // Track local inference init progress
         const eventType = realtimeEvent.event?.type;
+        if (eventType === 'local.init.start') {
+          const total = realtimeEvent.event?.data?.engines?.length ?? 3;
+          setInitProgress({ completed: 0, total });
+        } else if (eventType === 'local.init.engine.ready') {
+          setInitProgress(prev => prev ? { ...prev, completed: prev.completed + 1 } : prev);
+        }
+
+        // Track AI response state for text input queueing (OpenAI only)
         if (eventType === 'response.created') {
           setIsAIResponding(true);
         } else if (eventType === 'response.done') {
@@ -746,6 +755,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   const connectConversation = useCallback(async () => {
     try {
       setIsInitializing(true);
+      setInitProgress(null);
 
       // Clear previous session's conversation items immediately
       setItems([]);
@@ -2230,6 +2240,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           playbackProgress={playbackProgress}
           supportsTextInput={supportsTextInput}
           onSendText={handleSendText}
+          initProgress={initProgress}
         />
       </div>
     );
@@ -2524,7 +2535,11 @@ const MainPanel: React.FC<MainPanelProps> = () => {
             {isInitializing ? (
               <>
                 <Loader size={14} className="spinner" />
-                <span>{t('mainPanel.initializing')}</span>
+                <span>
+                  {initProgress
+                    ? t('mainPanel.initProgress', 'Loading ({{completed}}/{{total}})...', { completed: initProgress.completed, total: initProgress.total })
+                    : t('mainPanel.initializing')}
+                </span>
               </>
             ) : isSessionActive ? (
               <>

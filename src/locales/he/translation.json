@@ -256,7 +256,8 @@
     "send": "שלח",
     "participant": "משתתף",
     "error": "שגיאה",
-    "unknownError": "שגיאה לא ידועה"
+    "unknownError": "שגיאה לא ידועה",
+    "initProgress": "טוען ({{completed}}/{{total}})..."
   },
   "connectionStatus": {
     "disconnected": "מנותק",
@@ -339,7 +340,8 @@
     "basicMode": "בסיסי",
     "advancedMode": "מתקדם",
     "typeMessage": "טקסט לתרגום...",
-    "send": "שלח"
+    "send": "שלח",
+    "initProgress": "טוען ({{completed}}/{{total}})..."
   },
   "errors": {
     "microphoneAccess": "גישה למיקרופון נדחתה",

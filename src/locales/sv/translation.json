@@ -87,7 +87,8 @@
     "typeMessage": "Text att översätta...",
     "send": "Skicka",
     "error": "Fel",
-    "unknownError": "Okänt fel"
+    "unknownError": "Okänt fel",
+    "initProgress": "Laddar ({{completed}}/{{total}})..."
   },
   "audioPanel": {
     "title": "Ljudinställningar",
@@ -350,7 +351,8 @@
     "clickToConfigSpeaker": "Klicka för att konfigurera högtalare",
     "typeMessage": "Text att översätta...",
     "send": "Skicka",
-    "participant": "Deltagare"
+    "participant": "Deltagare",
+    "initProgress": "Laddar ({{completed}}/{{total}})..."
   },
   "connectionStatus": {
     "disconnected": "Frånkopplad",

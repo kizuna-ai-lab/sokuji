@@ -126,7 +126,8 @@
     "clickToConfigSpeaker": "ஸ்பீக்கரை உள்ளமைக்க கிளிக் செய்யவும்",
     "typeMessage": "மொழிபெயர்க்க உரை...",
     "send": "அனுப்பு",
-    "participant": "பங்கேற்பாளர்"
+    "participant": "பங்கேற்பாளர்",
+    "initProgress": "ஏற்றுகிறது ({{completed}}/{{total}})..."
   },
   "connectionStatus": {
     "disconnected": "துண்டிக்கப்பட்டது",
@@ -206,7 +207,8 @@
     "typeMessage": "மொழிபெயர்க்க உரை...",
     "send": "அனுப்பு",
     "error": "பிழை",
-    "unknownError": "அறியப்படாத பிழை"
+    "unknownError": "அறியப்படாத பிழை",
+    "initProgress": "ஏற்றுகிறது ({{completed}}/{{total}})..."
   },
   "audioPanel": {
     "title": "ஆடியோ அமைப்புகள்",

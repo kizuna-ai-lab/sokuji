@@ -214,7 +214,8 @@
     "typeMessage": "Texte à traduire...",
     "send": "Envoyer",
     "error": "Erreur",
-    "unknownError": "Erreur inconnue"
+    "unknownError": "Erreur inconnue",
+    "initProgress": "Chargement ({{completed}}/{{total}})..."
   },
   "errors": {
     "microphoneAccess": "Accès au microphone refusé",
@@ -455,7 +456,8 @@
     "clickToConfigSpeaker": "Cliquez pour configurer le haut-parleur",
     "typeMessage": "Texte à traduire...",
     "send": "Envoyer",
-    "participant": "Participant"
+    "participant": "Participant",
+    "initProgress": "Chargement ({{completed}}/{{total}})..."
   },
   "connectionStatus": {
     "disconnected": "Déconnecté",

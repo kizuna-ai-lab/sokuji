@@ -191,7 +191,8 @@
     "typeMessage": "Te vertalen tekst...",
     "send": "Verzenden",
     "error": "Fout",
-    "unknownError": "Onbekende fout"
+    "unknownError": "Onbekende fout",
+    "initProgress": "Laden ({{completed}}/{{total}})..."
   },
   "errors": {
     "microphoneAccess": "Microfoon toegang geweigerd",
@@ -429,7 +430,8 @@
     "clickToConfigSpeaker": "Klik om de luidspreker te configureren",
     "typeMessage": "Te vertalen tekst...",
     "send": "Verzenden",
-    "participant": "Deelnemer"
+    "participant": "Deelnemer",
+    "initProgress": "Laden ({{completed}}/{{total}})..."
   },
   "connectionStatus": {
     "disconnected": "Verbinding verbroken",

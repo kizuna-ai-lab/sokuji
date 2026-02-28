@@ -214,7 +214,8 @@
     "typeMessage": "Text zum Übersetzen...",
     "send": "Senden",
     "error": "Fehler",
-    "unknownError": "Unbekannter Fehler"
+    "unknownError": "Unbekannter Fehler",
+    "initProgress": "Laden ({{completed}}/{{total}})..."
   },
   "errors": {
     "microphoneAccess": "Mikrofonzugriff verweigert",
@@ -455,7 +456,8 @@
     "clickToConfigSpeaker": "Klicken Sie, um den Lautsprecher zu konfigurieren",
     "typeMessage": "Text zum Übersetzen...",
     "send": "Senden",
-    "participant": "Teilnehmer"
+    "participant": "Teilnehmer",
+    "initProgress": "Laden ({{completed}}/{{total}})..."
   },
   "connectionStatus": {
     "disconnected": "Getrennt",

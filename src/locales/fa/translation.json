@@ -306,7 +306,8 @@
     "typeMessage": "متن برای ترجمه...",
     "send": "ارسال",
     "error": "خطا",
-    "unknownError": "خطای ناشناخته"
+    "unknownError": "خطای ناشناخته",
+    "initProgress": "در حال بارگذاری ({{completed}}/{{total}})..."
   },
   "simplePanel": {
     "translationActive": "ترجمه فعال",
@@ -337,7 +338,8 @@
     "clickToConfigSpeaker": "برای پیکربندی بلندگو کلیک کنید",
     "typeMessage": "متن برای ترجمه...",
     "send": "ارسال",
-    "participant": "شرکت‌کننده"
+    "participant": "شرکت‌کننده",
+    "initProgress": "در حال بارگذاری ({{completed}}/{{total}})..."
   },
   "errors": {
     "microphoneAccess": "دسترسی به میکروفون رد شد",

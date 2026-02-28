@@ -111,7 +111,8 @@
     "clickToConfigSpeaker": "คลิกเพื่อกำหนดค่าลำโพง",
     "typeMessage": "ข้อความที่จะแปล...",
     "send": "ส่ง",
-    "participant": "ผู้เข้าร่วม"
+    "participant": "ผู้เข้าร่วม",
+    "initProgress": "กำลังโหลด ({{completed}}/{{total}})..."
   },
   "connectionStatus": {
     "disconnected": "ตัดการเชื่อมต่อ",
@@ -205,7 +206,8 @@
     "typeMessage": "ข้อความที่จะแปล...",
     "send": "ส่ง",
     "error": "ข้อผิดพลาด",
-    "unknownError": "ข้อผิดพลาดที่ไม่รู้จัก"
+    "unknownError": "ข้อผิดพลาดที่ไม่รู้จัก",
+    "initProgress": "กำลังโหลด ({{completed}}/{{total}})..."
   },
   "audioPanel": {
     "title": "การตั้งค่าเสียง",

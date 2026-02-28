@@ -109,7 +109,8 @@
     "typeMessage": "Çevrilecek metin...",
     "send": "Gönder",
     "error": "Hata",
-    "unknownError": "Bilinmeyen hata"
+    "unknownError": "Bilinmeyen hata",
+    "initProgress": "Yükleniyor ({{completed}}/{{total}})..."
   },
   "audioPanel": {
     "title": "Ses Ayarları",
@@ -367,7 +368,8 @@
     "clickToConfigSpeaker": "Hoparlörü yapılandırmak için tıklayın",
     "typeMessage": "Çevrilecek metin...",
     "send": "Gönder",
-    "participant": "Katılımcı"
+    "participant": "Katılımcı",
+    "initProgress": "Yükleniyor ({{completed}}/{{total}})..."
   },
   "connectionStatus": {
     "disconnected": "Bağlantı kesildi",

@@ -219,7 +219,8 @@
     "send": "Lähetä",
     "participant": "Osallistuja",
     "error": "Virhe",
-    "unknownError": "Tuntematon virhe"
+    "unknownError": "Tuntematon virhe",
+    "initProgress": "Ladataan ({{completed}}/{{total}})..."
   },
   "connectionStatus": {
     "disconnected": "Yhteys katkaistu",
@@ -241,7 +242,8 @@
     "basicMode": "Perus",
     "advancedMode": "Edistynyt",
     "typeMessage": "Käännettävä teksti...",
-    "send": "Lähetä"
+    "send": "Lähetä",
+    "initProgress": "Ladataan ({{completed}}/{{total}})..."
   },
   "audioPanel": {
     "title": "Ääniasetukset",
