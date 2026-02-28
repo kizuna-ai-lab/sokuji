@@ -137,7 +137,8 @@
     "websocket": "WebSocket (Estable)",
     "webrtc": "WebRTC (Baja latencia)",
     "participantInstructions": "Instrucciones para Participantes",
-    "participantInstructionsTooltip": "Instrucciones del sistema para traducir el audio de los participantes. Si está vacío, se usarán las instrucciones principales de arriba.\n\nImportante: Sus instrucciones principales pueden tener la dirección de idioma incorrecta para los participantes. Ejemplo: Si usted habla chino y sus instrucciones principales traducen chino→japonés, pero los participantes hablan japonés, las instrucciones principales intentarían traducir incorrectamente japonés→japonés. Configure instrucciones separadas para participantes para traducir japonés→chino."
+    "participantInstructionsTooltip": "Instrucciones del sistema para traducir el audio de los participantes. Si está vacío, se usarán las instrucciones principales de arriba.\n\nImportante: Sus instrucciones principales pueden tener la dirección de idioma incorrecta para los participantes. Ejemplo: Si usted habla chino y sus instrucciones principales traducen chino→japonés, pero los participantes hablan japonés, las instrucciones principales intentarían traducir incorrectamente japonés→japonés. Configure instrucciones separadas para participantes para traducir japonés→chino.",
+    "webgpuNotSupported": "No disponible en el entorno actual"
   },
   "audioPanel": {
     "title": "Configuración de audio",

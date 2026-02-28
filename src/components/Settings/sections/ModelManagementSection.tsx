@@ -524,7 +524,7 @@ export function ModelManagementSection({
                 showRadio={true}
                 compatibilityHint={
                   entry.requiredDevice === 'webgpu' && !webgpuAvailable
-                    ? t('settings.webgpuRequired', 'requires WebGPU')
+                    ? t('settings.webgpuNotSupported', 'Not available in current environment')
                     : t('settings.langMismatch', 'language mismatch')
                 }
                 onSelect={() => onUpdateSettings({ translationModel: entry.id })}

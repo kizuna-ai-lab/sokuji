@@ -93,7 +93,8 @@
     "websocket": "WebSocket (Kararlı)",
     "webrtc": "WebRTC (Düşük Gecikme)",
     "participantInstructions": "Katılımcı Talimatları",
-    "participantInstructionsTooltip": "Katılımcı sesini çevirmek için sistem talimatları. Boşsa, yukarıdaki ana talimatlar kullanılacaktır.\n\nÖnemli: Ana talimatlarınız katılımcılar için yanlış dil yönüne sahip olabilir. Örnek: Çince konuşuyorsanız ve ana talimatlarınız Çince→Japonca çeviriyorsa, ancak katılımcılar Japonca konuşuyorsa, ana talimatlar yanlışlıkla Japonca→Japonca çevirmeye çalışacaktır. Japonca→Çince çevirmek için ayrı katılımcı talimatları ayarlayın."
+    "participantInstructionsTooltip": "Katılımcı sesini çevirmek için sistem talimatları. Boşsa, yukarıdaki ana talimatlar kullanılacaktır.\n\nÖnemli: Ana talimatlarınız katılımcılar için yanlış dil yönüne sahip olabilir. Örnek: Çince konuşuyorsanız ve ana talimatlarınız Çince→Japonca çeviriyorsa, ancak katılımcılar Japonca konuşuyorsa, ana talimatlar yanlışlıkla Japonca→Japonca çevirmeye çalışacaktır. Japonca→Çince çevirmek için ayrı katılımcı talimatları ayarlayın.",
+    "webgpuNotSupported": "Mevcut ortamda kullanılamaz"
   },
   "mainPanel": {
     "conversationPlaceholder": "Konuşma burada görünecek",

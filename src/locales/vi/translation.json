@@ -95,7 +95,8 @@
     "websocket": "WebSocket (Ổn định)",
     "webrtc": "WebRTC (Độ trễ thấp)",
     "participantInstructions": "Hướng dẫn cho người tham gia",
-    "participantInstructionsTooltip": "Hướng dẫn hệ thống để dịch âm thanh người tham gia. Nếu để trống, sẽ sử dụng hướng dẫn chính ở trên.\n\nQuan trọng: Hướng dẫn chính của bạn có thể có hướng ngôn ngữ sai cho người tham gia. Ví dụ: Nếu bạn nói tiếng Trung và hướng dẫn chính dịch Trung→Nhật, nhưng người tham gia nói tiếng Nhật, hướng dẫn chính sẽ cố gắng dịch Nhật→Nhật một cách sai. Đặt hướng dẫn riêng cho người tham gia để dịch Nhật→Trung."
+    "participantInstructionsTooltip": "Hướng dẫn hệ thống để dịch âm thanh người tham gia. Nếu để trống, sẽ sử dụng hướng dẫn chính ở trên.\n\nQuan trọng: Hướng dẫn chính của bạn có thể có hướng ngôn ngữ sai cho người tham gia. Ví dụ: Nếu bạn nói tiếng Trung và hướng dẫn chính dịch Trung→Nhật, nhưng người tham gia nói tiếng Nhật, hướng dẫn chính sẽ cố gắng dịch Nhật→Nhật một cách sai. Đặt hướng dẫn riêng cho người tham gia để dịch Nhật→Trung.",
+    "webgpuNotSupported": "Không khả dụng trong môi trường hiện tại"
   },
   "mainPanel": {
     "conversationPlaceholder": "Cuộc trò chuyện sẽ xuất hiện ở đây",

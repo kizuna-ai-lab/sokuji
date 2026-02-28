@@ -190,7 +190,8 @@
     "webrtcVadDisabledTitle": "Server VAD is not available in WebRTC mode",
     "webrtcVadNotice": "Server VAD is disabled in WebRTC mode. In WebRTC, the server automatically truncates audio when it detects speech, which interrupts translations.",
     "participantInstructions": "Participant Instructions",
-    "participantInstructionsTooltip": "System instructions for translating participant audio. If empty, the main instructions above will be used.\n\nImportant: Your main instructions may have the wrong language direction for participants. Example: If you speak Chinese and your main instructions translate Chinese→Japanese, but participants speak Japanese, the main instructions would incorrectly try to translate Japanese→Japanese. Set separate participant instructions to translate Japanese→Chinese."
+    "participantInstructionsTooltip": "System instructions for translating participant audio. If empty, the main instructions above will be used.\n\nImportant: Your main instructions may have the wrong language direction for participants. Example: If you speak Chinese and your main instructions translate Chinese→Japanese, but participants speak Japanese, the main instructions would incorrectly try to translate Japanese→Japanese. Set separate participant instructions to translate Japanese→Chinese.",
+    "webgpuNotSupported": "Not available in current environment"
   },
   "simpleSettings": {
     "autoAuthenticated": "Automatically authenticated via your account",

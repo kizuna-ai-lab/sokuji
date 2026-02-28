@@ -93,7 +93,8 @@
     "websocket": "WebSocket (Stable)",
     "webrtc": "WebRTC (Mababang Latency)",
     "participantInstructions": "Mga Tagubilin para sa Kalahok",
-    "participantInstructionsTooltip": "Mga tagubilin ng sistema para sa pagsasalin ng audio ng kalahok. Kung walang laman, gagamitin ang mga pangunahing tagubilin sa itaas.\n\nMahalaga: Ang inyong mga pangunahing tagubilin ay maaaring may maling direksyon ng wika para sa mga kalahok. Halimbawa: Kung nagsasalita kayo ng Tsino at ang inyong mga pangunahing tagubilin ay nagsasalin ng Tsino→Hapon, ngunit ang mga kalahok ay nagsasalita ng Hapon, mali na susubukan ng mga pangunahing tagubilin na isalin ang Hapon→Hapon. Magtakda ng hiwalay na mga tagubilin para sa kalahok upang isalin ang Hapon→Tsino."
+    "participantInstructionsTooltip": "Mga tagubilin ng sistema para sa pagsasalin ng audio ng kalahok. Kung walang laman, gagamitin ang mga pangunahing tagubilin sa itaas.\n\nMahalaga: Ang inyong mga pangunahing tagubilin ay maaaring may maling direksyon ng wika para sa mga kalahok. Halimbawa: Kung nagsasalita kayo ng Tsino at ang inyong mga pangunahing tagubilin ay nagsasalin ng Tsino→Hapon, ngunit ang mga kalahok ay nagsasalita ng Hapon, mali na susubukan ng mga pangunahing tagubilin na isalin ang Hapon→Hapon. Magtakda ng hiwalay na mga tagubilin para sa kalahok upang isalin ang Hapon→Tsino.",
+    "webgpuNotSupported": "Hindi available sa kasalukuyang environment"
   },
   "simpleSettings": {
     "quickSetup": "Mabilisang Setup",

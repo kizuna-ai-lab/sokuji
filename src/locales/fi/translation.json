@@ -93,7 +93,8 @@
     "websocket": "WebSocket (Vakaa)",
     "webrtc": "WebRTC (Matala viive)",
     "participantInstructions": "Osallistujan ohjeet",
-    "participantInstructionsTooltip": "Järjestelmäohjeet osallistujien äänen kääntämiseen. Jos tyhjä, käytetään yllä olevia pääohjeita.\n\nTärkeää: Pääohjeillasi voi olla väärä kielisuunta osallistujille. Esimerkki: Jos puhut kiinaa ja pääohjeesi kääntävät kiina→japani, mutta osallistujat puhuvat japania, pääohjeet yrittäisivät virheellisesti kääntää japani→japani. Aseta erilliset osallistujaohjeet kääntääksesi japani→kiina."
+    "participantInstructionsTooltip": "Järjestelmäohjeet osallistujien äänen kääntämiseen. Jos tyhjä, käytetään yllä olevia pääohjeita.\n\nTärkeää: Pääohjeillasi voi olla väärä kielisuunta osallistujille. Esimerkki: Jos puhut kiinaa ja pääohjeesi kääntävät kiina→japani, mutta osallistujat puhuvat japania, pääohjeet yrittäisivät virheellisesti kääntää japani→japani. Aseta erilliset osallistujaohjeet kääntääksesi japani→kiina.",
+    "webgpuNotSupported": "Ei saatavilla nykyisessä ympäristössä"
   },
   "simpleSettings": {
     "quickSetup": "Pika-asennus",
