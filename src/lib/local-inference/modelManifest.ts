@@ -56,6 +56,10 @@ export interface ModelManifestEntry {
   hfModelId?: string;
   sourceLang?: string;
   targetLang?: string;
+  /** True for models supporting any pair of their listed languages */
+  multilingual?: boolean;
+  /** Hardware requirement — model filtered out if device unavailable */
+  requiredDevice?: 'webgpu';
 }
 
 // ─── Download URL Configuration ─────────────────────────────────────────────
@@ -156,6 +160,17 @@ function translationFiles(
     { filename: 'tokenizer_config.json', sizeBytes: tokenizerConfig },
     { filename: 'onnx/encoder_model_quantized.onnx', sizeBytes: encoder },
     { filename: 'onnx/decoder_model_merged_quantized.onnx', sizeBytes: decoder },
+  ];
+}
+
+/** Qwen2.5-0.5B-Instruct file list (q4 ONNX via WebGPU). */
+function qwenTranslationFiles(): ModelFileEntry[] {
+  return [
+    { filename: 'config.json', sizeBytes: 678 },
+    { filename: 'generation_config.json', sizeBytes: 242 },
+    { filename: 'tokenizer.json', sizeBytes: 7_031_673 },
+    { filename: 'tokenizer_config.json', sizeBytes: 7_306 },
+    { filename: 'onnx/model_q4.onnx', sizeBytes: 786_156_820 },
   ];
 }
 
@@ -1892,6 +1907,23 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
   { id: 'opus-mt-ru-uk', type: 'translation', name: 'Opus-MT (ru → uk)', languages: ['ru', 'uk'], files: translationFiles(1_389, 293, 7_632_973, 282, 49_201_054, 56_485_220), hfModelId: 'Xenova/opus-mt-ru-uk', sourceLang: 'ru', targetLang: 'uk' },
   { id: 'opus-mt-uk-ru', type: 'translation', name: 'Opus-MT (uk → ru)', languages: ['uk', 'ru'], files: translationFiles(1_389, 293, 7_632_973, 282, 49_201_054, 56_485_220), hfModelId: 'Xenova/opus-mt-uk-ru', sourceLang: 'uk', targetLang: 'ru' },
 
+  // ── Multilingual Translation Models ───────────────────────────────────
+  {
+    id: 'qwen2.5-0.5b-translation',
+    type: 'translation',
+    name: 'Qwen 2.5 0.5B (multilingual, WebGPU)',
+    languages: [
+      'ja', 'zh', 'en', 'ko', 'de', 'fr', 'es', 'ru',
+      'ar', 'pt', 'th', 'vi', 'id', 'tr', 'nl', 'pl',
+      'it', 'hi', 'sv', 'da', 'fi', 'hu', 'ro', 'no',
+      'uk', 'cs', 'et', 'af',
+    ],
+    multilingual: true,
+    requiredDevice: 'webgpu',
+    hfModelId: 'onnx-community/Qwen2.5-0.5B-Instruct',
+    files: qwenTranslationFiles(),
+  },
+
   // ── Language Family Models ─────────────────────────────────────────────
   // { id: 'opus-mt-gem-gem', type: 'translation', name: 'Opus-MT (Germanic ↔ Germanic)', languages: ['de', 'en', 'nl', 'da', 'sv', 'no'], files: translationFiles(1_391, 293, 3_640_084, 282, 38_944_670, 46_148_708), hfModelId: 'Xenova/opus-mt-gem-gem', sourceLang: 'gem', targetLang: 'gem' },
   // { id: 'opus-mt-gmw-gmw', type: 'translation', name: 'Opus-MT (West Germanic ↔ West Germanic)', languages: ['de', 'en', 'nl', 'af'], files: translationFiles(1_391, 293, 3_431_142, 282, 37_776_798, 44_971_712), hfModelId: 'Xenova/opus-mt-gmw-gmw', sourceLang: 'gmw', targetLang: 'gmw' },
@@ -1904,17 +1936,27 @@ import type { LanguageOption } from '../../services/providers/ProviderConfig';
 
 /** Get all unique source languages available across translation models */
 export function getTranslationSourceLanguages(): LanguageOption[] {
-  const codes = new Set(
-    MODEL_MANIFEST.filter(m => m.type === 'translation').map(m => m.sourceLang!)
-  );
+  const codes = new Set<string>();
+  for (const m of MODEL_MANIFEST.filter(m => m.type === 'translation')) {
+    if (m.multilingual) {
+      m.languages.forEach(l => codes.add(l));
+    } else if (m.sourceLang) {
+      codes.add(m.sourceLang);
+    }
+  }
   return [...codes].map(getLanguageOption).sort((a, b) => a.englishName.localeCompare(b.englishName));
 }
 
 /** Get available target languages for a given source language */
 export function getTranslationTargetLanguages(sourceLang: string): LanguageOption[] {
-  const codes = new Set(
-    MODEL_MANIFEST.filter(m => m.type === 'translation' && m.sourceLang === sourceLang).map(m => m.targetLang!)
-  );
+  const codes = new Set<string>();
+  for (const m of MODEL_MANIFEST.filter(m => m.type === 'translation')) {
+    if (m.multilingual && m.languages.includes(sourceLang)) {
+      m.languages.forEach(l => { if (l !== sourceLang) codes.add(l); });
+    } else if (m.sourceLang === sourceLang && m.targetLang) {
+      codes.add(m.targetLang);
+    }
+  }
   return [...codes].map(getLanguageOption).sort((a, b) => a.englishName.localeCompare(b.englishName));
 }
 
@@ -1937,11 +1979,30 @@ export function getAsrModelsForLanguage(lang: string): ModelManifestEntry[] {
   );
 }
 
-/** Get translation model for a language pair */
+/** Get translation model for a language pair.
+ *  Prefers pair-specific models (faster, higher quality) over multilingual fallback. */
 export function getTranslationModel(sourceLang: string, targetLang: string): ModelManifestEntry | undefined {
-  return MODEL_MANIFEST.find(
+  // Prefer pair-specific models (higher quality, faster)
+  const pairModel = MODEL_MANIFEST.find(
     m => m.type === 'translation' && m.sourceLang === sourceLang && m.targetLang === targetLang
   );
+  if (pairModel) return pairModel;
+  // Fallback: multilingual model supporting both languages
+  return MODEL_MANIFEST.find(
+    m => m.type === 'translation' && m.multilingual
+      && m.languages.includes(sourceLang) && m.languages.includes(targetLang)
+  );
+}
+
+/** Check if a translation model is compatible with a given language pair. */
+export function isTranslationModelCompatible(
+  entry: ModelManifestEntry, sourceLang: string, targetLang: string,
+): boolean {
+  if (entry.type !== 'translation') return false;
+  if (entry.multilingual) {
+    return entry.languages.includes(sourceLang) && entry.languages.includes(targetLang);
+  }
+  return entry.sourceLang === sourceLang && entry.targetLang === targetLang;
 }
 
 /** Get TTS models that support a given language */

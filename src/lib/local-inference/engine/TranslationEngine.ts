@@ -20,6 +20,8 @@ export class TranslationEngine {
   private worker: Worker | null = null;
   private isReady = false;
   private currentModelId: string | null = null;
+  private sourceLang = '';
+  private targetLang = '';
   private pendingRequests = new Map<string, {
     resolve: (result: TranslationResult) => void;
     reject: (error: Error) => void;
@@ -31,24 +33,32 @@ export class TranslationEngine {
   /**
    * Initialize with a language pair (e.g. 'ja', 'en').
    * Loads model files from IndexedDB and passes blob URLs to the worker.
+   * Selects Opus-MT worker (pair-specific WASM) or Qwen worker (multilingual WebGPU)
+   * based on the matched manifest entry.
    */
-  async init(sourceLang: string, targetLang: string): Promise<{ loadTimeMs: number }> {
+  async init(sourceLang: string, targetLang: string): Promise<{ loadTimeMs: number; device: string }> {
     const entry = getTranslationModel(sourceLang, targetLang);
     if (!entry?.hfModelId) {
-      const available = getManifestByType('translation').map(m => `${m.sourceLang}-${m.targetLang}`).join(', ');
-      throw new Error(`No Opus-MT model available for language pair: ${sourceLang}-${targetLang}. Available: ${available}`);
+      const available = getManifestByType('translation').map(m =>
+        m.multilingual ? `${m.id} (multilingual)` : `${m.sourceLang}-${m.targetLang}`
+      ).join(', ');
+      throw new Error(`No translation model available for language pair: ${sourceLang}-${targetLang}. Available: ${available}`);
     }
     const hfModelId = entry.hfModelId;
 
-    // If already loaded with same model, skip
-    if (this.isReady && this.currentModelId === hfModelId) {
-      return { loadTimeMs: 0 };
+    // If already loaded with same model and same language pair, skip
+    if (this.isReady && this.currentModelId === hfModelId
+      && this.sourceLang === sourceLang && this.targetLang === targetLang) {
+      return { loadTimeMs: 0, device: entry.multilingual ? 'webgpu' : 'wasm' };
     }
 
     // Dispose previous worker if switching models
     if (this.worker) {
       this.dispose();
     }
+
+    this.sourceLang = sourceLang;
+    this.targetLang = targetLang;
 
     // Load model file blob URLs from IndexedDB
     const manager = ModelManager.getInstance();
@@ -58,11 +68,18 @@ export class TranslationEngine {
     const fileUrls = await manager.getModelBlobUrls(entry.id);
 
     return new Promise((resolve, reject) => {
-      // Create the Web Worker
-      this.worker = new Worker(
-        new URL('../workers/translation.worker.ts', import.meta.url),
-        { type: 'module' }
-      );
+      // Create the Web Worker — select based on model type
+      if (entry.multilingual) {
+        this.worker = new Worker(
+          new URL('../workers/qwen-translation.worker.ts', import.meta.url),
+          { type: 'module' }
+        );
+      } else {
+        this.worker = new Worker(
+          new URL('../workers/translation.worker.ts', import.meta.url),
+          { type: 'module' }
+        );
+      }
 
       this.worker.onmessage = (event) => {
         const msg = event.data;
@@ -72,7 +89,7 @@ export class TranslationEngine {
             this.currentModelId = hfModelId;
             // Revoke blob URLs after worker has loaded (frees memory)
             manager.revokeBlobUrls(fileUrls);
-            resolve({ loadTimeMs: msg.loadTimeMs });
+            resolve({ loadTimeMs: msg.loadTimeMs, device: msg.device || 'wasm' });
             break;
 
           case 'result': {
@@ -119,8 +136,8 @@ export class TranslationEngine {
         }
       };
 
-      // Send init message with blob URLs
-      this.worker.postMessage({ type: 'init', hfModelId, fileUrls });
+      // Send init message with blob URLs + language info
+      this.worker.postMessage({ type: 'init', hfModelId, fileUrls, sourceLang, targetLang });
     });
   }
 
@@ -136,7 +153,10 @@ export class TranslationEngine {
 
     return new Promise((resolve, reject) => {
       this.pendingRequests.set(id, { resolve, reject });
-      this.worker!.postMessage({ type: 'translate', id, text });
+      this.worker!.postMessage({
+        type: 'translate', id, text,
+        sourceLang: this.sourceLang, targetLang: this.targetLang,
+      });
     });
   }
 
@@ -144,7 +164,15 @@ export class TranslationEngine {
    * Get available language pairs
    */
   static getAvailableLanguagePairs(): string[] {
-    return getManifestByType('translation').map(m => `${m.sourceLang}-${m.targetLang}`);
+    const pairs: string[] = [];
+    for (const m of getManifestByType('translation')) {
+      if (m.multilingual) {
+        pairs.push(`${m.id} (multilingual: ${m.languages.join(',')})`);
+      } else {
+        pairs.push(`${m.sourceLang}-${m.targetLang}`);
+      }
+    }
+    return pairs;
   }
 
   /**
@@ -170,6 +198,8 @@ export class TranslationEngine {
     }
     this.isReady = false;
     this.currentModelId = null;
+    this.sourceLang = '';
+    this.targetLang = '';
 
     // Reject all pending requests
     for (const [, pending] of this.pendingRequests) {

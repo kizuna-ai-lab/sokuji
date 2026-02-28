@@ -16,6 +16,7 @@ import {
   type ModelStatus,
 } from '../lib/local-inference/modelManifest';
 import * as modelStorage from '../lib/local-inference/modelStorage';
+import { checkWebGPU } from '../utils/webgpu';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -37,6 +38,8 @@ interface ModelStoreState {
   storageUsedMb: number;
   /** Whether the store has been initialized */
   initialized: boolean;
+  /** Whether WebGPU is available on this device */
+  webgpuAvailable: boolean;
 
   /** Initialize: scan IndexedDB for existing models */
   initialize: () => Promise<void>;
@@ -63,6 +66,7 @@ export const useModelStore = create<ModelStoreState>()(
     downloadErrors: {},
     storageUsedMb: 0,
     initialized: false,
+    webgpuAvailable: false,
 
     initialize: async () => {
       if (get().initialized) return;
@@ -87,13 +91,17 @@ export const useModelStore = create<ModelStoreState>()(
         }
       }
 
-      // Estimate storage
-      const usedBytes = await modelStorage.estimateStorageUsedBytes();
+      // Estimate storage + check WebGPU
+      const [usedBytes, webgpuAvailable] = await Promise.all([
+        modelStorage.estimateStorageUsedBytes(),
+        checkWebGPU(),
+      ]);
 
       set({
         modelStatuses: statuses,
         storageUsedMb: Math.round(usedBytes / (1024 * 1024)),
         initialized: true,
+        webgpuAvailable,
       });
     },
 
@@ -184,7 +192,7 @@ export const useModelStore = create<ModelStoreState>()(
     },
 
     isProviderReady: (sourceLang: string, targetLang: string): boolean => {
-      const { modelStatuses } = get();
+      const { modelStatuses, webgpuAvailable } = get();
 
       // 1. At least 1 ASR model supporting sourceLang is downloaded
       const asrModels = getAsrModelsForLanguage(sourceLang);
@@ -193,10 +201,11 @@ export const useModelStore = create<ModelStoreState>()(
       );
       if (!hasAsr) return false;
 
-      // 2. Translation model for src→tgt is downloaded
+      // 2. Translation model for src→tgt is downloaded (+ WebGPU gate)
       const translationEntry = getTranslationModel(sourceLang, targetLang);
       if (!translationEntry) return false;
       if (modelStatuses[translationEntry.id] !== 'downloaded') return false;
+      if (translationEntry.requiredDevice === 'webgpu' && !webgpuAvailable) return false;
 
       // 3. At least 1 TTS model supporting targetLang is downloaded
       const ttsModels = getTtsModelsForLanguage(targetLang);
@@ -218,3 +227,4 @@ export const useDownloadErrors = () => useModelStore(s => s.downloadErrors);
 export const useStorageUsedMb = () => useModelStore(s => s.storageUsedMb);
 export const useModelInitialized = () => useModelStore(s => s.initialized);
 export const useIsProviderReady = () => useModelStore(s => s.isProviderReady);
+export const useWebGPUAvailable = () => useModelStore(s => s.webgpuAvailable);

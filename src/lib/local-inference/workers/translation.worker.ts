@@ -10,21 +10,37 @@
 import { pipeline, env } from '@huggingface/transformers';
 import type { TranslationPipeline } from '@huggingface/transformers';
 
-// Use WASM backend (no WebGPU in workers yet in most browsers)
+// Disable WASM proxy (we're already in a worker)
 if (env.backends?.onnx?.wasm) {
   env.backends.onnx.wasm.proxy = false;
+}
+
+/** Detect WebGPU availability in this worker context */
+async function hasWebGPU(): Promise<boolean> {
+  try {
+    const gpu = (self as any).navigator?.gpu;
+    if (!gpu) return false;
+    const adapter = await gpu.requestAdapter();
+    return !!adapter;
+  } catch {
+    return false;
+  }
 }
 
 interface InitMessage {
   type: 'init';
   hfModelId: string; // e.g. 'Xenova/opus-mt-ja-en'
   fileUrls: Record<string, string>; // filename → blob URL
+  sourceLang?: string; // provided by engine, ignored by Opus-MT
+  targetLang?: string;
 }
 
 interface TranslateMessage {
   type: 'translate';
   id: string;
   text: string;
+  sourceLang?: string; // provided by engine, ignored by Opus-MT
+  targetLang?: string;
 }
 
 interface DisposeMessage {
@@ -94,10 +110,16 @@ async function handleInit(msg: InitMessage) {
       _warn.apply(console, args);
     };
 
+    // WASM is faster than WebGPU for small Opus-MT models (~50MB).
+    // WebGPU overhead (shader compilation, CPU↔GPU transfer per token) outweighs
+    // the parallelism benefit. Reserve WebGPU for large models like NLLB-200 (600MB+).
+    const device = 'wasm';
+    self.postMessage({ type: 'status', status: 'loading', modelId: msg.hfModelId, device });
+
     // Create the translation pipeline — Transformers.js finds all files via customCache
     translator = await (pipeline as any)('translation', msg.hfModelId, {
       dtype: 'q8',
-      device: 'wasm',
+      device,
     }) as TranslationPipeline;
 
     // Restore original console.warn
@@ -105,7 +127,7 @@ async function handleInit(msg: InitMessage) {
 
     currentModelId = msg.hfModelId;
     const elapsed = Math.round(performance.now() - startTime);
-    self.postMessage({ type: 'ready', modelId: msg.hfModelId, loadTimeMs: elapsed });
+    self.postMessage({ type: 'ready', modelId: msg.hfModelId, loadTimeMs: elapsed, device });
   } catch (error: any) {
     self.postMessage({ type: 'error', error: error.message || String(error) });
   }
