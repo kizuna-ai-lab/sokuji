@@ -1254,9 +1254,9 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
                 // Auto-select ASR model for new source language (includes streaming models)
                 const allAsr = [...getManifestByType('asr'), ...getManifestByType('asr-stream')];
                 const currentAsr = allAsr.find(m => m.id === localInferenceSettings.asrModel);
-                if (!currentAsr || !currentAsr.languages.includes(newSourceLang)) {
+                if (!currentAsr || !(currentAsr.multilingual || currentAsr.languages.includes(newSourceLang))) {
                   const firstMatch = allAsr.find(m =>
-                    m.languages.includes(newSourceLang) && modelStatuses[m.id] === 'downloaded'
+                    (m.multilingual || m.languages.includes(newSourceLang)) && modelStatuses[m.id] === 'downloaded'
                   );
                   updates.asrModel = firstMatch?.id || '';
                 }
