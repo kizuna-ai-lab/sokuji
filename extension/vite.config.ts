@@ -1,8 +1,27 @@
-import { defineConfig, loadEnv } from 'vite'
+import { defineConfig, loadEnv, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 import { viteStaticCopy } from 'vite-plugin-static-copy'
 import path from 'path'
 import fs from 'fs'
+
+/**
+ * Rollup emits ort-wasm-*.wasm into assets/ because onnxruntime-web uses
+ * `new URL('...wasm', import.meta.url)`. Our workers override wasmPaths to
+ * load from wasm/ort/ (copied via viteStaticCopy), so the assets/ copy is
+ * never fetched at runtime. Drop it to avoid ~26 MB duplication.
+ */
+function dropDuplicateOrtWasm(): Plugin {
+  return {
+    name: 'drop-duplicate-ort-wasm',
+    generateBundle(_, bundle) {
+      for (const key of Object.keys(bundle)) {
+        if (key.includes('ort-wasm') && key.endsWith('.wasm')) {
+          delete bundle[key]
+        }
+      }
+    },
+  }
+}
 
 export default defineConfig(({ mode }) => {
   // Load root .env so production builds pick up feature flags
@@ -31,6 +50,7 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [
       react(),
+      dropDuplicateOrtWasm(),
       viteStaticCopy({
         targets: [
           // Content scripts and background (vanilla JS, no bundling needed)
@@ -58,6 +78,8 @@ export default defineConfig(({ mode }) => {
           { src: 'requestPermission.js', dest: '.' },
           // Popup styles
           { src: 'popup.css', dest: '.' },
+          // Bundled ONNX Runtime WASM (avoids cdn.jsdelivr.net CSP violation)
+          { src: '../public/wasm/ort/*', dest: 'wasm/ort' },
           // Dev-only assets
           ...(isDevMode
             ? [{ src: '../public/assets/test-tone.mp3', dest: 'assets' }]

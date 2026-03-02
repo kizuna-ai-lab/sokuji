@@ -8,9 +8,11 @@
 
 import { pipeline, env } from '@huggingface/transformers';
 
-// Disable WASM proxy (we're already in a worker)
+// Disable WASM proxy (we're already in a worker) and use bundled ORT WASM
+// files instead of fetching from cdn.jsdelivr.net (required for extension CSP).
 if (env.backends?.onnx?.wasm) {
   env.backends.onnx.wasm.proxy = false;
+  env.backends.onnx.wasm.wasmPaths = '/wasm/ort/';
 }
 
 // ─── Language name map for prompts ─────────────────────────────────────────
