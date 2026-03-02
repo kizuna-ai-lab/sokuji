@@ -289,10 +289,10 @@ export function ModelManagementSection({
     // ASR: must support sourceLanguage and be downloaded (includes streaming models)
     const allAsrModels = [...getManifestByType('asr'), ...getManifestByType('asr-stream')];
     const currentAsr = asrModel ? allAsrModels.find(m => m.id === asrModel) : null;
-    const asrOk = currentAsr && currentAsr.languages.includes(sourceLanguage) && statuses[asrModel] === 'downloaded';
+    const asrOk = currentAsr && (currentAsr.multilingual || currentAsr.languages.includes(sourceLanguage)) && statuses[asrModel] === 'downloaded';
     if (!asrOk) {
       const match = allAsrModels.find(m =>
-        m.languages.includes(sourceLanguage) && statuses[m.id] === 'downloaded'
+        (m.multilingual || m.languages.includes(sourceLanguage)) && statuses[m.id] === 'downloaded'
       );
       const newId = match?.id || '';
       if (newId !== asrModel) updates.asrModel = newId;
@@ -367,11 +367,11 @@ export function ModelManagementSection({
   }, [statuses, targetLanguage]);
 
   const compatibleAsrModels = useMemo(
-    () => asrModels.filter(m => m.languages.includes(sourceLanguage)),
+    () => asrModels.filter(m => m.multilingual || m.languages.includes(sourceLanguage)),
     [asrModels, sourceLanguage],
   );
   const incompatibleAsrModels = useMemo(
-    () => asrModels.filter(m => !m.languages.includes(sourceLanguage)),
+    () => asrModels.filter(m => !m.multilingual && !m.languages.includes(sourceLanguage)),
     [asrModels, sourceLanguage],
   );
 

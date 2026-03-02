@@ -365,6 +365,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     type: 'asr',
     name: 'Whisper Tiny (99+ languages)',
     languages: ['multilingual'],
+    multilingual: true,
     cdnPath: 'wasm-whisper-tiny',
     files: asrFiles(153_613_465, 304),
     asrEngine: 'whisper',
@@ -385,6 +386,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     type: 'asr',
     name: 'Omnilingual 300M v2 (int8, 1147 languages)',
     languages: ['multilingual'],
+    multilingual: true,
     cdnPath: 'wasm-omnilingual-300m-int8-v2',
     files: asrFiles(366_576_518, 275),
     asrEngine: 'omnilingual',
@@ -2166,7 +2168,8 @@ export function getManifestByType(type: ModelType): ModelManifestEntry[] {
 /** Get ASR models (offline + streaming) that support a given language */
 export function getAsrModelsForLanguage(lang: string): ModelManifestEntry[] {
   return MODEL_MANIFEST.filter(
-    m => (m.type === 'asr' || m.type === 'asr-stream') && m.languages.includes(lang)
+    m => (m.type === 'asr' || m.type === 'asr-stream')
+      && (m.multilingual || m.languages.includes(lang))
   );
 }
 
