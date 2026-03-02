@@ -6,7 +6,7 @@
 
 export interface AsrInitMessage {
   type: 'init';
-  /** Map of filename → blob URL for loading model files from IndexedDB */
+  /** Map of filename → blob URL for model-specific files (.data only) */
   fileUrls: Record<string, string>;
   /** ASR engine type — determines which config builder the worker uses */
   asrEngine: string;
@@ -16,6 +16,10 @@ export interface AsrInitMessage {
     minSilenceDuration?: number;
     minSpeechDuration?: number;
   };
+  /** Base URL for bundled ASR runtime (JS/WASM shared across all models) */
+  runtimeBaseUrl: string;
+  /** Emscripten loadPackage metadata (file offsets/sizes from package-metadata.json) */
+  dataPackageMetadata: Record<string, unknown>;
 }
 
 export interface AsrAudioMessage {
@@ -75,10 +79,14 @@ export type AsrWorkerOutMessage =
 
 export interface StreamingAsrInitMessage {
   type: 'init';
-  /** Map of filename → blob URL for loading model files from IndexedDB */
+  /** Map of filename → blob URL for model-specific files (.data only) */
   fileUrls: Record<string, string>;
   /** ASR engine type — for future use when streaming models get explicit config */
   asrEngine?: string;
+  /** Base URL for bundled streaming ASR runtime (JS/WASM shared across all models) */
+  runtimeBaseUrl: string;
+  /** Emscripten loadPackage metadata (file offsets/sizes from package-metadata.json) */
+  dataPackageMetadata: Record<string, unknown>;
 }
 
 // ─── Streaming ASR Worker Messages (Worker → Main) ──────────────────────────
