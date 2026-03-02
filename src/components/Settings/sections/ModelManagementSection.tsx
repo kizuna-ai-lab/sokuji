@@ -237,22 +237,26 @@ function ModelGroup({
   );
 }
 
-// ─── Sort helper ───────────────────────────────────────────────────────────
+// ─── Sort helpers (type-specific) ──────────────────────────────────────────
 
-function sortModels(
-  models: ModelManifestEntry[],
-  statuses: Record<string, ModelStatus>,
-  isCompatible: (entry: ModelManifestEntry) => boolean,
-): ModelManifestEntry[] {
+/** ASR: single-language → explicit multi-language → multilingual; within tiers by language count */
+function sortAsrModels(models: ModelManifestEntry[]): ModelManifestEntry[] {
   return [...models].sort((a, b) => {
-    const aCompat = isCompatible(a) ? 0 : 1;
-    const bCompat = isCompatible(b) ? 0 : 1;
-    if (aCompat !== bCompat) return aCompat - bCompat;
-
-    const aDown = statuses[a.id] === 'downloaded' ? 0 : 1;
-    const bDown = statuses[b.id] === 'downloaded' ? 0 : 1;
-    return aDown - bDown;
+    const tierA = a.multilingual ? 2 : a.languages.length === 1 ? 0 : 1;
+    const tierB = b.multilingual ? 2 : b.languages.length === 1 ? 0 : 1;
+    if (tierA !== tierB) return tierA - tierB;
+    return a.languages.length - b.languages.length;
   });
+}
+
+/** Translation: fewer languages first */
+function sortTranslationModels(models: ModelManifestEntry[]): ModelManifestEntry[] {
+  return [...models].sort((a, b) => a.languages.length - b.languages.length);
+}
+
+/** TTS: alphabetical by name */
+function sortTtsModels(models: ModelManifestEntry[]): ModelManifestEntry[] {
+  return [...models].sort((a, b) => a.name.localeCompare(b.name));
 }
 
 // ─── Main Component ────────────────────────────────────────────────────────
@@ -334,16 +338,13 @@ export function ModelManagementSection({
 
   const asrModels = useMemo(() => {
     const all = [...getManifestByType('asr'), ...getManifestByType('asr-stream')];
-    return sortModels(all, statuses, (m) => m.languages.includes(sourceLanguage));
-  }, [statuses, sourceLanguage]);
+    return sortAsrModels(all);
+  }, []);
 
   const translationModels = useMemo(() => {
     const all = getManifestByType('translation');
-    return sortModels(all, statuses, (m) =>
-      isTranslationModelCompatible(m, sourceLanguage, targetLanguage)
-      && !(m.requiredDevice === 'webgpu' && !webgpuAvailable)
-    );
-  }, [statuses, sourceLanguage, targetLanguage, webgpuAvailable]);
+    return sortTranslationModels(all);
+  }, []);
 
   const compatibleTranslationModels = useMemo(
     () => translationModels.filter(m =>
@@ -363,8 +364,8 @@ export function ModelManagementSection({
 
   const ttsModels = useMemo(() => {
     const all = getManifestByType('tts');
-    return sortModels(all, statuses, (m) => m.languages.includes(targetLanguage));
-  }, [statuses, targetLanguage]);
+    return sortTtsModels(all);
+  }, []);
 
   const compatibleAsrModels = useMemo(
     () => asrModels.filter(m => m.multilingual || m.languages.includes(sourceLanguage)),
