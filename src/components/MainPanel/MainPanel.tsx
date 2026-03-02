@@ -11,6 +11,7 @@ import {
   useKizunaAISettings,
   useVolcengineSTSettings,
   useVolcengineAST2Settings,
+  useLocalInferenceSettings,
   useIsApiKeyValid,
   useAvailableModels,
   useLoadingModels,
@@ -68,6 +69,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   const kizunaAISettings = useKizunaAISettings();
   const volcengineSTSettings = useVolcengineSTSettings();
   const volcengineAST2Settings = useVolcengineAST2Settings();
+  const localInferenceSettings = useLocalInferenceSettings();
   const transportType = useTransportType();
   const isApiKeyValid = useIsApiKeyValid();
   const availableModels = useAvailableModels();
@@ -847,6 +849,8 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         setCanPushToTalk(settings ? settings.turnDetectionMode === 'Disabled' : false);
       } else if (provider === Provider.VOLCENGINE_AST2) {
         setCanPushToTalk(volcengineAST2Settings.turnDetectionMode === 'Push-to-Talk');
+      } else if (provider === Provider.LOCAL_INFERENCE) {
+        setCanPushToTalk(localInferenceSettings.turnDetectionMode === 'Push-to-Talk');
       } else {
         setCanPushToTalk(false); // Not supported by Gemini, PalabraAI, and Volcengine ST
       }
@@ -969,6 +973,8 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         turnDetectionDisabled = settings ? settings.turnDetectionMode === 'Disabled' : false;
       } else if (provider === Provider.VOLCENGINE_AST2) {
         turnDetectionDisabled = volcengineAST2Settings.turnDetectionMode === 'Push-to-Talk';
+      } else if (provider === Provider.LOCAL_INFERENCE) {
+        turnDetectionDisabled = localInferenceSettings.turnDetectionMode === 'Push-to-Talk';
       }
 
       // Check if provider uses native audio capture (OpenAI WebRTC or PalabraAI/LiveKit)
@@ -1107,6 +1113,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     kizunaAISettings,
     volcengineSTSettings,
     volcengineAST2Settings,
+    localInferenceSettings,
     provider,
     transportType,
     isLoaded,
@@ -1228,16 +1235,16 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       // Only try to pause if we're actually recording
       const recorder = audioService.getRecorder();
       if (recorder.isRecording()) {
-        // For Volcengine AST2 PTT: send ~500ms of silence frames before stopping
-        // This helps the server-side VAD detect end of speech
-        if (provider === Provider.VOLCENGINE_AST2 && client) {
+        // For Volcengine AST2 and LocalOffline PTT: send silence frames before stopping
+        // This helps the VAD detect end of speech
+        if ((provider === Provider.VOLCENGINE_AST2 || provider === Provider.LOCAL_INFERENCE) && client) {
           const silenceFrameSize = 2400; // 24kHz * 0.1s = 2400 samples per 100ms frame (client downsamples to 16kHz internally)
-          const silenceFrames = 5; // 5 frames = 500ms
-          const silence = new Int16Array(silenceFrameSize);
+          const silenceFrames = provider === Provider.LOCAL_INFERENCE ? 7 : 5; // 700ms for Silero VAD (minSilenceDuration=0.5s + margin), 500ms for AST2
           for (let i = 0; i < silenceFrames; i++) {
-            client.appendInputAudio(silence);
+            // New buffer each iteration — worker postMessage transfers (detaches) the ArrayBuffer
+            client.appendInputAudio(new Int16Array(silenceFrameSize));
           }
-          console.debug('[Sokuji] [MainPanel] PTT: Sent 500ms silence frames for AST2 VAD end detection');
+          console.debug(`[Sokuji] [MainPanel] PTT: Sent ${silenceFrames * 100}ms silence frames for VAD end detection`);
         }
 
         // Stop recording
@@ -1245,8 +1252,12 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
         // Only create response if we detected enough voice audio (prevents empty requests)
         // Note: AST2 handles response creation server-side via VAD, so skip client.createResponse() for it
+        // Note: LOCAL_INFERENCE always calls createResponse() — for streaming ASR it flushes the
+        //       pending utterance; for offline ASR (VAD-based) it's harmless (silence frames handle it)
         const MIN_VOICE_CHUNKS = 5; // At least 5 non-silent chunks (~0.5 seconds of speech)
-        if (client && provider !== Provider.VOLCENGINE_AST2 && pttVoiceChunkCountRef.current >= MIN_VOICE_CHUNKS) {
+        if (client && provider === Provider.LOCAL_INFERENCE) {
+          client.createResponse();
+        } else if (client && provider !== Provider.VOLCENGINE_AST2 && pttVoiceChunkCountRef.current >= MIN_VOICE_CHUNKS) {
           // Model drift prevention is handled by the silent anchor mechanism (useEffect)
           client.createResponse();
         } else if (client && provider !== Provider.VOLCENGINE_AST2) {
@@ -1855,6 +1866,8 @@ const MainPanel: React.FC<MainPanelProps> = () => {
             turnDetectionDisabled = settings ? settings.turnDetectionMode === 'Disabled' : false;
           } else if (provider === Provider.VOLCENGINE_AST2) {
             turnDetectionDisabled = volcengineAST2Settings.turnDetectionMode === 'Push-to-Talk';
+          } else if (provider === Provider.LOCAL_INFERENCE) {
+            turnDetectionDisabled = localInferenceSettings.turnDetectionMode === 'Push-to-Talk';
           }
           if (!turnDetectionDisabled) {
             console.info('[Sokuji] [MainPanel] Input device turned on - starting recording in automatic mode');
@@ -1881,7 +1894,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     };
 
     updateRecordingState();
-  }, [isInputDeviceOn, isSessionActive, provider, openAISettings.turnDetectionMode, openAICompatibleSettings.turnDetectionMode, kizunaAISettings.turnDetectionMode, volcengineAST2Settings.turnDetectionMode, selectedInputDevice?.deviceId]);
+  }, [isInputDeviceOn, isSessionActive, provider, openAISettings.turnDetectionMode, openAICompatibleSettings.turnDetectionMode, kizunaAISettings.turnDetectionMode, volcengineAST2Settings.turnDetectionMode, localInferenceSettings.turnDetectionMode, selectedInputDevice?.deviceId]);
 
   /**
    * Watch for changes to selectedMonitorDevice or isMonitorDeviceOn 

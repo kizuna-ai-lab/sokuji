@@ -201,6 +201,41 @@ function handleAudio(msg) {
   }
 }
 
+// ─── Flush (force-finalize pending utterance) ────────────────────────────────
+
+/**
+ * Force-emit the current partial result as a final result and reset.
+ * Used by Push-to-Talk: when the user releases the key, any in-progress
+ * recognition should be finalized immediately rather than waiting for
+ * endpoint detection from more audio.
+ */
+function handleFlush() {
+  if (!isReady || !recognizer || !recognizerStream) return;
+
+  // Decode any remaining buffered frames
+  while (recognizer.isReady(recognizerStream)) {
+    recognizer.decode(recognizerStream);
+  }
+
+  var result = recognizer.getResult(recognizerStream);
+  var text = (result.text || '').trim();
+
+  if (text) {
+    var now = performance.now();
+    postMessage({
+      type: 'result',
+      text: text,
+      durationMs: Math.round(now - utteranceStartTime),
+      recognitionTimeMs: Math.round(now - utteranceStartTime),
+    });
+  }
+
+  // Reset for next utterance
+  recognizer.reset(recognizerStream);
+  utteranceStartTime = performance.now();
+  lastPartialText = '';
+}
+
 // ─── Dispose ─────────────────────────────────────────────────────────────────
 
 function handleDispose() {
@@ -228,6 +263,9 @@ self.onmessage = function(event) {
       break;
     case 'audio':
       handleAudio(msg);
+      break;
+    case 'flush':
+      handleFlush();
       break;
     case 'dispose':
       handleDispose();

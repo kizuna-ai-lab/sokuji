@@ -1400,7 +1400,37 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
           })()}
         </div>
 
-        {getManifestEntry(localInferenceSettings.asrModel)?.type !== 'asr-stream' && (
+        <div className="settings-section turn-detection-section">
+          <h2>
+            {t('settings.automaticTurnDetection')}
+            <Tooltip
+              content={t('settings.localInferenceTurnDetectionTooltip', 'Auto mode uses Voice Activity Detection to automatically detect speech. Push-to-Talk lets you manually control when to send audio by holding Space or the mic button.')}
+              position="top"
+            >
+              <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '8px' }} />
+            </Tooltip>
+          </h2>
+          <div className="setting-item">
+            <div className="turn-detection-options">
+              <button
+                className={`option-button ${localInferenceSettings.turnDetectionMode === 'Auto' ? 'active' : ''}`}
+                onClick={() => updateLocalInferenceSettings({ turnDetectionMode: 'Auto' })}
+                disabled={isSessionActive}
+              >
+                {t('settings.auto')}
+              </button>
+              <button
+                className={`option-button ${localInferenceSettings.turnDetectionMode === 'Push-to-Talk' ? 'active' : ''}`}
+                onClick={() => updateLocalInferenceSettings({ turnDetectionMode: 'Push-to-Talk' })}
+                disabled={isSessionActive}
+              >
+                {t('settings.pushToTalk')}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {localInferenceSettings.turnDetectionMode === 'Auto' && getManifestEntry(localInferenceSettings.asrModel)?.type !== 'asr-stream' && (
         <div className="settings-section">
           <h2>
             {t('settings.vadSettings', 'VAD Settings')}

@@ -125,6 +125,7 @@ export interface LocalInferenceSessionConfig extends BaseSessionConfig {
   vadThreshold?: number;
   vadMinSilenceDuration?: number;
   vadMinSpeechDuration?: number;
+  turnDetectionMode?: 'Auto' | 'Push-to-Talk';
 }
 
 /**
