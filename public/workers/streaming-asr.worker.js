@@ -72,20 +72,20 @@ function downsampleInt16ToFloat32(input, inputSampleRate, outputSampleRate) {
  */
 function handleInit(msg) {
   var fileUrls = msg.fileUrls;
+  var runtimeBaseUrl = msg.runtimeBaseUrl;
+  var dataPackageMetadata = msg.dataPackageMetadata;
+
   if (!fileUrls) {
     postMessage({ type: 'error', error: 'Missing fileUrls in init message' });
     return;
   }
-
-  // Determine the wasmBaseUrl from any file URL (strip filename)
-  var wasmBaseUrl = '';
-  var keys = Object.keys(fileUrls);
-  for (var i = 0; i < keys.length; i++) {
-    var url = fileUrls[keys[i]];
-    if (url && url.lastIndexOf('/') >= 0) {
-      wasmBaseUrl = url.substring(0, url.lastIndexOf('/') + 1);
-      break;
-    }
+  if (!runtimeBaseUrl) {
+    postMessage({ type: 'error', error: 'runtimeBaseUrl is required — bundled streaming ASR runtime path missing' });
+    return;
+  }
+  if (!dataPackageMetadata) {
+    postMessage({ type: 'error', error: 'dataPackageMetadata is required — model metadata missing' });
+    return;
   }
 
   var startTime = performance.now();
@@ -94,13 +94,19 @@ function handleInit(msg) {
 
   // Configure the Emscripten Module object before loading the glue code.
   Module = {};
+
+  // Inject the data package metadata so the patched glue JS uses it
+  // instead of the hardcoded loadPackage({...}) that was stripped out.
+  Module._dataPackageMetadata = dataPackageMetadata;
+
+  // locateFile resolves .data to IndexedDB blob URL, .wasm to bundled path.
   Module.locateFile = function(path) {
-    // Check if we have a blob URL for this file
+    // .data file comes from IndexedDB (model-specific, downloaded from CDN)
     if (fileUrls[path]) {
       return fileUrls[path];
     }
-    // Fallback to base URL
-    return wasmBaseUrl + path;
+    // .wasm file is bundled with the app
+    return runtimeBaseUrl + '/' + path;
   };
 
   Module.setStatus = function(status) {
@@ -128,15 +134,17 @@ function handleInit(msg) {
     }
   };
 
-  // Load Emscripten glue code + sherpa-onnx JS API wrapper.
-  // Streaming ASR uses different WASM binary (no VAD) and only needs sherpa-onnx-asr.js.
+  // Load bundled Emscripten glue code + sherpa-onnx JS API wrapper.
+  // The glue JS is patched to use Module._dataPackageMetadata instead of
+  // hardcoded loadPackage({...}) metadata.
   // After importScripts, these globals become available:
   //   - Module (enhanced by Emscripten glue)
   //   - OnlineRecognizer, OnlineStream, createOnlineRecognizer (from sherpa-onnx-asr.js)
   try {
-    var glueUrl = fileUrls['sherpa-onnx-wasm-main-asr.js'] || (wasmBaseUrl + 'sherpa-onnx-wasm-main-asr.js');
-    var asrApiUrl = fileUrls['sherpa-onnx-asr.js'] || (wasmBaseUrl + 'sherpa-onnx-asr.js');
-    importScripts(glueUrl, asrApiUrl);
+    importScripts(
+      runtimeBaseUrl + '/sherpa-onnx-wasm-main-asr.js',
+      runtimeBaseUrl + '/sherpa-onnx-asr.js'
+    );
   } catch (e) {
     postMessage({
       type: 'error',

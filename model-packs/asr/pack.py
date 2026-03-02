@@ -687,6 +687,16 @@ def pack_model(model_name: str, model_cfg: dict, skip_existing: bool = False):
         shutil.copy2(src, dst)
         print(f"  Copied {filename}")
 
+    # Step 7: Write package-metadata.json (for bundled runtime pattern)
+    # This allows the app to bundle shared JS/WASM and only download
+    # .data + metadata per model. The metadata tells the Emscripten
+    # glue how to unpack the .data into the virtual filesystem.
+    pkg_metadata = {"files": metadata, "remote_package_size": data_size}
+    metadata_path = output_dir / "package-metadata.json"
+    with open(metadata_path, "w") as f:
+        json.dump(pkg_metadata, f, separators=(",", ":"))
+    print(f"  Wrote package-metadata.json ({len(metadata)} files)")
+
     print(f"  Done: {dir_name}/")
 
 

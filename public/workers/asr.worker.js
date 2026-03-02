@@ -6,7 +6,7 @@
  *
  * Protocol:
  *   Main → Worker:
- *     { type: 'init', fileUrls: Record<string, string>, asrEngine: string }
+ *     { type: 'init', fileUrls, asrEngine, vadConfig?, runtimeBaseUrl, dataPackageMetadata }
  *     { type: 'audio', samples: Int16Array, sampleRate: number }
  *     { type: 'dispose' }
  *
@@ -210,12 +210,23 @@ function handleInit(msg) {
   var fileUrls = msg.fileUrls;
   var asrEngine = msg.asrEngine;
   var vadConfig = msg.vadConfig;
+  var runtimeBaseUrl = msg.runtimeBaseUrl;
+  var dataPackageMetadata = msg.dataPackageMetadata;
+
   if (!fileUrls) {
     postMessage({ type: 'error', error: 'fileUrls is required — model must be downloaded first' });
     return;
   }
   if (!asrEngine) {
     postMessage({ type: 'error', error: 'asrEngine is required — model manifest must specify engine type' });
+    return;
+  }
+  if (!runtimeBaseUrl) {
+    postMessage({ type: 'error', error: 'runtimeBaseUrl is required — bundled ASR runtime path missing' });
+    return;
+  }
+  if (!dataPackageMetadata) {
+    postMessage({ type: 'error', error: 'dataPackageMetadata is required — model metadata missing' });
     return;
   }
 
@@ -226,12 +237,19 @@ function handleInit(msg) {
   // Configure the Emscripten Module object before loading the glue code.
   // Must be set BEFORE importScripts loads the Emscripten JS.
   Module = {};
+
+  // Inject the data package metadata so the patched glue JS uses it
+  // instead of the hardcoded loadPackage({...}) that was stripped out.
+  Module._dataPackageMetadata = dataPackageMetadata;
+
+  // locateFile resolves .data to IndexedDB blob URL, .wasm to bundled path.
   Module.locateFile = function(path) {
-    var url = fileUrls[path];
-    if (!url) {
-      postMessage({ type: 'error', error: 'Missing file URL for: ' + path });
+    // .data file comes from IndexedDB (model-specific, downloaded from CDN)
+    if (fileUrls[path]) {
+      return fileUrls[path];
     }
-    return url;
+    // .wasm file is bundled with the app
+    return runtimeBaseUrl + '/' + path;
   };
 
   Module.setStatus = function(status) {
@@ -281,16 +299,18 @@ function handleInit(msg) {
     }
   };
 
-  // Load Emscripten glue code + sherpa-onnx JS API wrappers.
+  // Load bundled Emscripten glue code + sherpa-onnx JS API wrappers.
+  // The glue JS is patched to use Module._dataPackageMetadata instead of
+  // hardcoded loadPackage({...}) metadata.
   // After importScripts, these globals become available:
   //   - Module (enhanced by Emscripten glue)
   //   - CircularBuffer, Vad, createVad (from sherpa-onnx-vad.js)
   //   - OfflineRecognizer, OfflineStream (from sherpa-onnx-asr.js)
   try {
     importScripts(
-      fileUrls['sherpa-onnx-wasm-main-vad-asr.js'],
-      fileUrls['sherpa-onnx-vad.js'],
-      fileUrls['sherpa-onnx-asr.js']
+      runtimeBaseUrl + '/sherpa-onnx-wasm-main-vad-asr.js',
+      runtimeBaseUrl + '/sherpa-onnx-vad.js',
+      runtimeBaseUrl + '/sherpa-onnx-asr.js'
     );
   } catch (e) {
     postMessage({

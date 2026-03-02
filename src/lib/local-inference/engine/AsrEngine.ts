@@ -10,6 +10,7 @@ import type { AsrWorkerOutMessage } from '../types';
 import {
   getManifestEntry,
   getManifestByType,
+  ASR_BUNDLED_RUNTIME_PATH,
   type ModelManifestEntry,
 } from '../modelManifest';
 import { ModelManager } from '../ModelManager';
@@ -58,12 +59,28 @@ export class AsrEngine {
       this.dispose();
     }
 
-    // Load model file blob URLs from IndexedDB
+    // Load model file blob URLs from IndexedDB (only .data + package-metadata.json)
     const manager = ModelManager.getInstance();
     if (!await manager.isModelReady(modelId)) {
       throw new Error(`ASR model "${modelId}" is not downloaded. Download it first via Model Management.`);
     }
     const fileUrls = await manager.getModelBlobUrls(modelId);
+
+    // Read the Emscripten loadPackage metadata from the downloaded JSON
+    const metadataBlobUrl = fileUrls['package-metadata.json'];
+    if (!metadataBlobUrl) {
+      throw new Error(`Missing package-metadata.json for ASR model "${modelId}"`);
+    }
+    const metadataResponse = await fetch(metadataBlobUrl);
+    const dataPackageMetadata = await metadataResponse.json();
+
+    // Only pass the .data blob URL to the worker (metadata is sent as JSON)
+    const dataFileUrls: Record<string, string> = {};
+    for (const [name, url] of Object.entries(fileUrls)) {
+      if (name !== 'package-metadata.json') {
+        dataFileUrls[name] = url;
+      }
+    }
 
     return new Promise((resolve, reject) => {
       const workerUrl = '/workers/asr.worker.js';
@@ -115,7 +132,16 @@ export class AsrEngine {
         }
       };
 
-      this.worker.postMessage({ type: 'init', fileUrls, asrEngine: model.asrEngine, vadConfig });
+      // JS/WASM runtime is bundled at ASR_BUNDLED_RUNTIME_PATH.
+      // Only .data blob URL + metadata JSON are model-specific.
+      this.worker.postMessage({
+        type: 'init',
+        fileUrls: dataFileUrls,
+        asrEngine: model.asrEngine,
+        vadConfig,
+        runtimeBaseUrl: ASR_BUNDLED_RUNTIME_PATH,
+        dataPackageMetadata,
+      });
     });
   }
 

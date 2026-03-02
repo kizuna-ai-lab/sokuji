@@ -127,28 +127,35 @@ export function getModelDownloadUrl(
  */
 export const TTS_BUNDLED_RUNTIME_PATH = '/wasm/sherpa-onnx-tts';
 
+/**
+ * Base path for bundled ASR runtime files (JS/WASM shared across all offline models).
+ * Offline ASR includes VAD + OfflineRecognizer.
+ */
+export const ASR_BUNDLED_RUNTIME_PATH = '/wasm/sherpa-onnx-asr';
+
+/**
+ * Base path for bundled streaming ASR runtime files (JS/WASM shared across all streaming models).
+ * Streaming ASR uses OnlineRecognizer (no VAD).
+ */
+export const ASR_STREAM_BUNDLED_RUNTIME_PATH = '/wasm/sherpa-onnx-asr-stream';
+
 // ─── Shared File Lists ───────────────────────────────────────────────────────
-// Offline VAD+ASR and streaming ASR models share the same WASM binary within
-// their type, but .data and glue .js sizes differ per model.
+// ASR runtime JS/WASM are bundled with the app (identical across all models).
+// Only model-specific .data + package-metadata.json need downloading.
 
 /** Build per-model offline ASR file list with accurate sizes. */
-function asrFiles(dataSize: number, jsSize: number): ModelFileEntry[] {
+function asrFiles(dataSize: number, metadataSize: number): ModelFileEntry[] {
   return [
-    { filename: 'sherpa-onnx-wasm-main-vad-asr.js', sizeBytes: jsSize },
-    { filename: 'sherpa-onnx-wasm-main-vad-asr.wasm', sizeBytes: 11_721_289 },
     { filename: 'sherpa-onnx-wasm-main-vad-asr.data', sizeBytes: dataSize },
-    { filename: 'sherpa-onnx-vad.js', sizeBytes: 7_764 },
-    { filename: 'sherpa-onnx-asr.js', sizeBytes: 47_391 },
+    { filename: 'package-metadata.json', sizeBytes: metadataSize },
   ];
 }
 
 /** Build per-model streaming ASR file list with accurate sizes. */
-function streamAsrFiles(dataSize: number, jsSize: number): ModelFileEntry[] {
+function streamAsrFiles(dataSize: number, metadataSize: number): ModelFileEntry[] {
   return [
-    { filename: 'sherpa-onnx-wasm-main-asr.js', sizeBytes: jsSize },
-    { filename: 'sherpa-onnx-wasm-main-asr.wasm', sizeBytes: 11_547_795 },
     { filename: 'sherpa-onnx-wasm-main-asr.data', sizeBytes: dataSize },
-    { filename: 'sherpa-onnx-asr.js', sizeBytes: 46_198 },
+    { filename: 'package-metadata.json', sizeBytes: metadataSize },
   ];
 }
 
@@ -202,7 +209,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     name: 'SenseVoice (int8)',
     languages: ['zh', 'en', 'ja', 'ko', 'cantonese'],
     cdnPath: 'wasm-sensevoice-int8',
-    files: asrFiles(238_075_295, 95_288),
+    files: asrFiles(238_075_295, 229),
     asrEngine: 'sensevoice',
   },
   {
@@ -211,7 +218,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     name: 'SenseVoice Nano (int8)',
     languages: ['zh', 'en', 'ja', 'ko', 'cantonese'],
     cdnPath: 'wasm-sensevoice-nano-int8',
-    files: asrFiles(265_115_571, 95_288),
+    files: asrFiles(265_115_571, 229),
     asrEngine: 'sensevoice',
   },
   // Moonshine
@@ -221,7 +228,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     name: 'Moonshine Tiny EN (quantized)',
     languages: ['en'],
     cdnPath: 'wasm-moonshine-tiny-en-quant',
-    files: asrFiles(44_900_404, 95_414),
+    files: asrFiles(44_900_404, 355),
     asrEngine: 'moonshine-v2',
   },
   {
@@ -230,7 +237,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     name: 'Moonshine Tiny JA (quantized)',
     languages: ['ja'],
     cdnPath: 'wasm-moonshine-tiny-ja-quant',
-    files: asrFiles(72_772_004, 95_414),
+    files: asrFiles(72_772_004, 355),
     asrEngine: 'moonshine-v2',
   },
   {
@@ -239,7 +246,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     name: 'Moonshine Tiny KO (quantized)',
     languages: ['ko'],
     cdnPath: 'wasm-moonshine-tiny-ko-quant',
-    files: asrFiles(72_772_060, 95_414),
+    files: asrFiles(72_772_060, 355),
     asrEngine: 'moonshine-v2',
   },
   {
@@ -248,7 +255,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     name: 'Moonshine Base ZH (quantized)',
     languages: ['zh'],
     cdnPath: 'wasm-moonshine-base-zh-quant',
-    files: asrFiles(141_957_884, 95_422),
+    files: asrFiles(141_957_884, 363),
     asrEngine: 'moonshine-v2',
   },
   {
@@ -257,7 +264,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     name: 'Moonshine Base JA (quantized)',
     languages: ['ja'],
     cdnPath: 'wasm-moonshine-base-ja-quant',
-    files: asrFiles(141_957_788, 95_422),
+    files: asrFiles(141_957_788, 363),
     asrEngine: 'moonshine-v2',
   },
   {
@@ -266,7 +273,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     name: 'Moonshine Base ES (quantized)',
     languages: ['es'],
     cdnPath: 'wasm-moonshine-base-es-quant',
-    files: asrFiles(65_765_808, 95_414),
+    files: asrFiles(65_765_808, 355),
     asrEngine: 'moonshine-v2',
   },
   {
@@ -275,7 +282,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     name: 'Moonshine Base AR (quantized)',
     languages: ['ar'],
     cdnPath: 'wasm-moonshine-base-ar-quant',
-    files: asrFiles(141_957_924, 95_422),
+    files: asrFiles(141_957_924, 363),
     asrEngine: 'moonshine-v2',
   },
   {
@@ -284,7 +291,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     name: 'Moonshine Base UK (quantized)',
     languages: ['uk'],
     cdnPath: 'wasm-moonshine-base-uk-quant',
-    files: asrFiles(141_957_788, 95_422),
+    files: asrFiles(141_957_788, 363),
     asrEngine: 'moonshine-v2',
   },
   {
@@ -293,7 +300,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     name: 'Moonshine Base VI (quantized)',
     languages: ['vi'],
     cdnPath: 'wasm-moonshine-base-vi-quant',
-    files: asrFiles(141_957_884, 95_422),
+    files: asrFiles(141_957_884, 363),
     asrEngine: 'moonshine-v2',
   },
   // NeMo
@@ -303,7 +310,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     name: 'NeMo Canary (int8)',
     languages: ['en', 'es', 'de', 'fr'],
     cdnPath: 'wasm-nemo-canary-int8',
-    files: asrFiles(207_813_900, 95_359),
+    files: asrFiles(207_813_900, 300),
     asrEngine: 'canary',
   },
   {
@@ -312,7 +319,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     name: 'NeMo FastConformer Multi (int8)',
     languages: ['be', 'de', 'en', 'es', 'fr', 'hr', 'it', 'pl', 'ru', 'uk'],
     cdnPath: 'wasm-nemo-fastconf-multi-int8',
-    files: asrFiles(133_113_045, 95_285),
+    files: asrFiles(133_113_045, 226),
     asrEngine: 'nemo-ctc',
   },
   {
@@ -321,7 +328,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     name: 'NeMo FastConformer DE (int8)',
     languages: ['de'],
     cdnPath: 'wasm-nemo-fastconf-de-int8',
-    files: asrFiles(132_307_485, 95_285),
+    files: asrFiles(132_307_485, 226),
     asrEngine: 'nemo-ctc',
   },
   {
@@ -330,7 +337,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     name: 'NeMo FastConformer ES (int8)',
     languages: ['es'],
     cdnPath: 'wasm-nemo-fastconf-es-int8',
-    files: asrFiles(132_307_170, 95_285),
+    files: asrFiles(132_307_170, 226),
     asrEngine: 'nemo-ctc',
   },
   {
@@ -339,7 +346,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     name: 'NeMo FastConformer PT (int8)',
     languages: ['pt'],
     cdnPath: 'wasm-nemo-fastconf-pt-int8',
-    files: asrFiles(131_924_353, 95_285),
+    files: asrFiles(131_924_353, 226),
     asrEngine: 'nemo-ctc',
   },
   // Dolphin
@@ -349,7 +356,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     name: 'Dolphin Base CTC Multi (int8)',
     languages: ['zh', 'ja', 'ko', 'th', 'vi', 'ar', 'hi', 'bn', 'ru'],
     cdnPath: 'wasm-dolphin-base-int8',
-    files: asrFiles(104_878_318, 95_284),
+    files: asrFiles(104_878_318, 225),
     asrEngine: 'dolphin',
   },
   // Whisper
@@ -359,7 +366,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     name: 'Whisper Tiny (99+ languages)',
     languages: ['multilingual'],
     cdnPath: 'wasm-whisper-tiny',
-    files: asrFiles(153_613_465, 95_363),
+    files: asrFiles(153_613_465, 304),
     asrEngine: 'whisper',
   },
   // WenetSpeech
@@ -369,7 +376,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     name: 'WenetSpeech Yue U2++ (int8)',
     languages: ['zh', 'cantonese', 'en'],
     cdnPath: 'wasm-wenetspeech-yue-int8',
-    files: asrFiles(135_427_715, 95_286),
+    files: asrFiles(135_427_715, 227),
     asrEngine: 'wenet-ctc',
   },
   // Omnilingual
@@ -379,7 +386,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     name: 'Omnilingual 300M v2 (int8, 1147 languages)',
     languages: ['multilingual'],
     cdnPath: 'wasm-omnilingual-300m-int8-v2',
-    files: asrFiles(366_576_518, 95_334),
+    files: asrFiles(366_576_518, 275),
     asrEngine: 'omnilingual',
   },
   // Zipformer
@@ -389,7 +396,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     name: 'Zipformer RU (int8)',
     languages: ['ru'],
     cdnPath: 'wasm-zipformer-ru-int8',
-    files: asrFiles(74_125_561, 95_484),
+    files: asrFiles(74_125_561, 425),
     asrEngine: 'transducer',
   },
   {
@@ -398,7 +405,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     name: 'Zipformer VI 30M (int8)',
     languages: ['vi'],
     cdnPath: 'wasm-zipformer-vi-30m-int8',
-    files: asrFiles(34_832_762, 95_484),
+    files: asrFiles(34_832_762, 425),
     asrEngine: 'transducer',
   },
 
@@ -410,7 +417,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     name: 'Streaming Zipformer EN Kroko',
     languages: ['en'],
     cdnPath: 'wasm-stream-en-kroko',
-    files: streamAsrFiles(71_053_214, 92_107),
+    files: streamAsrFiles(71_053_214, 272),
     asrEngine: 'stream-transducer',
   },
   {
@@ -419,7 +426,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     name: 'Streaming Zipformer FR Kroko',
     languages: ['fr'],
     cdnPath: 'wasm-stream-fr-kroko',
-    files: streamAsrFiles(71_052_319, 92_107),
+    files: streamAsrFiles(71_052_319, 272),
     asrEngine: 'stream-transducer',
   },
   {
@@ -428,7 +435,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     name: 'Streaming Zipformer DE Kroko',
     languages: ['de'],
     cdnPath: 'wasm-stream-de-kroko',
-    files: streamAsrFiles(71_051_469, 92_107),
+    files: streamAsrFiles(71_051_469, 272),
     asrEngine: 'stream-transducer',
   },
   {
@@ -437,7 +444,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     name: 'Streaming Zipformer ES Kroko',
     languages: ['es'],
     cdnPath: 'wasm-stream-es-kroko',
-    files: streamAsrFiles(155_838_792, 92_113),
+    files: streamAsrFiles(155_838_792, 278),
     asrEngine: 'stream-transducer',
   },
   {
@@ -446,7 +453,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     name: 'Streaming Zipformer ZH (int8)',
     languages: ['zh'],
     cdnPath: 'wasm-stream-zh-int8',
-    files: streamAsrFiles(76_585_296, 92_163),
+    files: streamAsrFiles(76_585_296, 328),
     asrEngine: 'stream-transducer',
   },
   {
@@ -455,7 +462,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     name: 'Streaming Zipformer ZH 2025 (int8)',
     languages: ['zh'],
     cdnPath: 'wasm-stream-zh-2025-int8',
-    files: streamAsrFiles(167_360_920, 92_115),
+    files: streamAsrFiles(167_360_920, 280),
     asrEngine: 'stream-transducer',
   },
   {
@@ -464,7 +471,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     name: 'Streaming Zipformer RU Vosk (int8)',
     languages: ['ru'],
     cdnPath: 'wasm-stream-ru-vosk-int8',
-    files: streamAsrFiles(28_819_129, 92_163),
+    files: streamAsrFiles(28_819_129, 328),
     asrEngine: 'stream-transducer',
   },
   {
@@ -473,7 +480,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     name: 'Streaming Zipformer Multi (8-lang)',
     languages: ['ar', 'en', 'id', 'ja', 'ru', 'th', 'vi', 'zh'],
     cdnPath: 'wasm-stream-multi-8lang',
-    files: streamAsrFiles(339_349_396, 92_171),
+    files: streamAsrFiles(339_349_396, 336),
     asrEngine: 'stream-transducer',
   },
   {
@@ -482,7 +489,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     name: 'Streaming Zipformer BN Vosk',
     languages: ['bn'],
     cdnPath: 'wasm-stream-bn-vosk',
-    files: streamAsrFiles(94_137_204, 92_225),
+    files: streamAsrFiles(94_137_204, 390),
     asrEngine: 'stream-transducer',
   },
   {
@@ -491,7 +498,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     name: 'NeMo Streaming FastConformer CTC EN 80ms (int8)',
     languages: ['en'],
     cdnPath: 'wasm-stream-nemo-ctc-en-80ms-int8',
-    files: streamAsrFiles(132_060_302, 91_995),
+    files: streamAsrFiles(132_060_302, 160),
     asrEngine: 'stream-nemo-ctc',
   },
 
