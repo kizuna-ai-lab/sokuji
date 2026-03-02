@@ -37,7 +37,7 @@ import { ChevronDown, ChevronRight, RotateCw, Info, CircleHelp } from 'lucide-re
 import Tooltip from '../../Tooltip/Tooltip';
 import { FilteredModel } from '../../../services/interfaces/IClient';
 import { Provider, isOpenAICompatible } from '../../../types/Provider';
-import { getManifestByType, getManifestEntry, getTranslationTargetLanguages } from '../../../lib/local-inference/modelManifest';
+import { getManifestByType, getManifestEntry, getTranslationTargetLanguages, isTranslationModelCompatible } from '../../../lib/local-inference/modelManifest';
 import { useModelStatuses } from '../../../stores/modelStore';
 import { ModelManagementSection } from './ModelManagementSection';
 import { useAnalytics } from '../../../lib/analytics';
@@ -1277,9 +1277,11 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
                 // Auto-select translation model for new language pair
                 const allTranslation = getManifestByType('translation');
                 const currentTransEntry = allTranslation.find(m => m.id === localInferenceSettings.translationModel);
-                if (!currentTransEntry || currentTransEntry.sourceLang !== newSourceLang || currentTransEntry.targetLang !== effectiveTargetLang) {
+                const isCurrentTransCompatible = currentTransEntry && isTranslationModelCompatible(currentTransEntry, newSourceLang, effectiveTargetLang);
+                if (!isCurrentTransCompatible) {
+                  // Prefer pair-specific, then multilingual
                   const firstMatch = allTranslation.find(m =>
-                    m.sourceLang === newSourceLang && m.targetLang === effectiveTargetLang && modelStatuses[m.id] === 'downloaded'
+                    isTranslationModelCompatible(m, newSourceLang, effectiveTargetLang) && modelStatuses[m.id] === 'downloaded'
                   );
                   updates.translationModel = firstMatch?.id || '';
                 }
@@ -1324,9 +1326,11 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
                 const allTranslation = getManifestByType('translation');
                 const currentTransEntry = allTranslation.find(m => m.id === localInferenceSettings.translationModel);
                 const effectiveSourceLang = localInferenceSettings.sourceLanguage;
-                if (!currentTransEntry || currentTransEntry.sourceLang !== effectiveSourceLang || currentTransEntry.targetLang !== newTargetLang) {
+                const isCurrentTransCompatible = currentTransEntry && isTranslationModelCompatible(currentTransEntry, effectiveSourceLang, newTargetLang);
+                if (!isCurrentTransCompatible) {
+                  // Prefer pair-specific, then multilingual
                   const firstMatch = allTranslation.find(m =>
-                    m.sourceLang === effectiveSourceLang && m.targetLang === newTargetLang && modelStatuses[m.id] === 'downloaded'
+                    isTranslationModelCompatible(m, effectiveSourceLang, newTargetLang) && modelStatuses[m.id] === 'downloaded'
                   );
                   updates.translationModel = firstMatch?.id || '';
                 }

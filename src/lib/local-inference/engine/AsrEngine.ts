@@ -38,7 +38,7 @@ export class AsrEngine {
    * Initialize the ASR engine with a specific model.
    * Downloads WASM and model data, creates VAD + OfflineRecognizer.
    *
-   * @param modelId - Model identifier (e.g. 'sensevoice', 'reazonspeech')
+   * @param modelId - Model identifier (e.g. 'sensevoice-int8', 'moonshine-tiny-en-quant')
    * @returns Promise that resolves with load time when ready
    */
   async init(modelId: string, vadConfig?: { threshold?: number; minSilenceDuration?: number; minSpeechDuration?: number }): Promise<{ loadTimeMs: number }> {
@@ -115,7 +115,7 @@ export class AsrEngine {
         }
       };
 
-      this.worker.postMessage({ type: 'init', fileUrls, vadConfig });
+      this.worker.postMessage({ type: 'init', fileUrls, asrEngine: model.asrEngine, vadConfig });
     });
   }
 

@@ -44,7 +44,7 @@ export class StreamingAsrEngine {
    * Initialize the streaming ASR engine with a specific model.
    * Downloads WASM and model data, creates OnlineRecognizer.
    *
-   * @param modelId - Model identifier (e.g. 'stream-en', 'stream-zh-en')
+   * @param modelId - Model identifier (e.g. 'stream-en-kroko', 'stream-zh-int8')
    * @returns Promise that resolves with load time when ready
    */
   async init(modelId: string): Promise<{ loadTimeMs: number }> {
@@ -124,7 +124,7 @@ export class StreamingAsrEngine {
         }
       };
 
-      this.worker.postMessage({ type: 'init', fileUrls });
+      this.worker.postMessage({ type: 'init', fileUrls, asrEngine: model.asrEngine });
     });
   }
 

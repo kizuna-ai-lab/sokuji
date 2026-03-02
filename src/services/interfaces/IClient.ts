@@ -118,6 +118,7 @@ export interface LocalInferenceSessionConfig extends BaseSessionConfig {
   sourceLanguage: string;
   targetLanguage: string;
   asrModelId: string;
+  translationModelId?: string;
   ttsModelId?: string;
   ttsSpeakerId: number;
   ttsSpeed: number;

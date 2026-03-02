@@ -8,6 +8,8 @@ export interface AsrInitMessage {
   type: 'init';
   /** Map of filename → blob URL for loading model files from IndexedDB */
   fileUrls: Record<string, string>;
+  /** ASR engine type — determines which config builder the worker uses */
+  asrEngine: string;
   /** Optional VAD configuration to override defaults */
   vadConfig?: {
     threshold?: number;
@@ -69,8 +71,18 @@ export type AsrWorkerOutMessage =
   | AsrErrorMessage
   | AsrDisposedMessage;
 
+// ─── Streaming ASR Worker Messages (Main → Worker) ──────────────────────────
+
+export interface StreamingAsrInitMessage {
+  type: 'init';
+  /** Map of filename → blob URL for loading model files from IndexedDB */
+  fileUrls: Record<string, string>;
+  /** ASR engine type — for future use when streaming models get explicit config */
+  asrEngine?: string;
+}
+
 // ─── Streaming ASR Worker Messages (Worker → Main) ──────────────────────────
-// Inbound messages reuse AsrInitMessage (without vadConfig), AsrAudioMessage, AsrDisposeMessage.
+// Inbound messages reuse StreamingAsrInitMessage, AsrAudioMessage, AsrDisposeMessage.
 
 /** Streaming ASR: partial (interim) result message */
 export interface StreamingAsrPartialMessage {

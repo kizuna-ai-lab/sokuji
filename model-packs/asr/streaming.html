@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Streaming ASR Browser Demo</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #1a1a2e;
+      color: #e0e0e0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem 1rem;
+    }
+    h1 { font-size: 1.5rem; margin-bottom: 0.5rem; color: #fff; }
+    .subtitle { color: #888; font-size: 0.9rem; margin-bottom: 1.5rem; }
+    .subtitle a { color: #51cf66; text-decoration: none; }
+    .subtitle a:hover { text-decoration: underline; }
+    .container {
+      width: 100%;
+      max-width: 640px;
+      background: #16213e;
+      border-radius: 12px;
+      padding: 1.5rem;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    }
+    .status-bar {
+      background: #0f3460;
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      margin-bottom: 1.5rem;
+      font-size: 0.85rem;
+      min-height: 2.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .status-bar.error { background: #4a1528; color: #ff6b6b; }
+    .status-bar.ready { background: #1a3a2a; color: #51cf66; }
+    .spinner {
+      width: 16px; height: 16px;
+      border: 2px solid #555;
+      border-top-color: #51cf66;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    label { display: block; font-size: 0.85rem; color: #aaa; margin-bottom: 0.3rem; }
+    .field { margin-bottom: 1rem; }
+    textarea {
+      width: 100%;
+      background: #0f3460;
+      color: #e0e0e0;
+      border: 1px solid #333;
+      border-radius: 8px;
+      padding: 0.75rem;
+      font-size: 0.95rem;
+      font-family: inherit;
+      resize: vertical;
+      min-height: 80px;
+    }
+    textarea:focus { outline: none; border-color: #51cf66; }
+    .row { display: flex; gap: 1rem; }
+    .row .field { flex: 1; }
+    input[type="number"], input[type="range"] {
+      width: 100%;
+      background: #0f3460;
+      color: #e0e0e0;
+      border: 1px solid #333;
+      border-radius: 6px;
+      padding: 0.5rem 0.75rem;
+      font-size: 0.9rem;
+    }
+    input[type="range"] { padding: 0.25rem 0; }
+    input:focus { outline: none; border-color: #51cf66; }
+    .range-row { display: flex; align-items: center; gap: 0.75rem; }
+    button#decode {
+      width: 100%;
+      padding: 0.75rem;
+      background: #10a37f;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    button#decode:hover:not(:disabled) { background: #0d8c6c; }
+    button#decode:disabled { opacity: 0.4; cursor: not-allowed; }
+    .audio-output { margin-top: 1.5rem; }
+    .audio-output audio { width: 100%; margin-top: 0.5rem; }
+    .timing { font-size: 0.8rem; color: #888; margin-top: 0.3rem; }
+    .log {
+      margin-top: 1.5rem;
+      background: #0a0a1a;
+      border-radius: 8px;
+      padding: 0.75rem;
+      font-family: monospace;
+      font-size: 0.75rem;
+      color: #888;
+      max-height: 200px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+    select {
+      width: 100%;
+      background: #0f3460;
+      color: #e0e0e0;
+      border: 1px solid #333;
+      border-radius: 6px;
+      padding: 0.5rem 0.75rem;
+      font-size: 0.9rem;
+    }
+    select:focus { outline: none; border-color: #51cf66; }
+    .upload-row { display: flex; gap: 0.5rem; align-items: center; margin-top: 0.5rem; }
+    .upload-row input[type="file"] { flex: 1; font-size: 0.85rem; color: #aaa; }
+    #transcript {
+      width: 100%;
+      background: #0f3460;
+      color: #e0e0e0;
+      border: 1px solid #333;
+      border-radius: 8px;
+      padding: 0.75rem;
+      font-size: 0.95rem;
+      font-family: inherit;
+      resize: vertical;
+      min-height: 120px;
+    }
+  </style>
+</head>
+<body>
+
+<h1 id="pageTitle">Streaming ASR Browser Demo</h1>
+<p id="pageSubtitle" class="subtitle"></p>
+
+<div class="container">
+  <div id="status" class="status-bar">
+    <div class="spinner"></div>
+    <span>Loading WASM module...</span>
+  </div>
+
+  <div class="field">
+    <label for="wavSelect">Test audio</label>
+    <select id="wavSelect"></select>
+    <div class="upload-row">
+      <input type="file" id="wavUpload" accept=".wav,audio/wav">
+      <span style="font-size:0.8rem;color:#888">or upload your own WAV</span>
+    </div>
+  </div>
+
+  <button id="decode" disabled>Decode (Streaming)</button>
+
+  <div class="field" style="margin-top:1.5rem">
+    <label>Transcript (progressive)</label>
+    <textarea id="transcript" readonly placeholder="Streaming transcription will appear here..."></textarea>
+    <div id="timing" class="timing"></div>
+  </div>
+
+  <div id="log" class="log"></div>
+</div>
+
+<script>
+// --- Model variant routing ---
+var VARIANTS = {
+  'stream-en-kroko': { dir: 'wasm-stream-en-kroko', label: 'Streaming Zipformer EN Kroko', detail: '55 MB, en', wavs: ['en.wav'] },
+  'stream-fr-kroko': { dir: 'wasm-stream-fr-kroko', label: 'Streaming Zipformer FR Kroko', detail: '55 MB, fr', wavs: ['fr.wav'] },
+  'stream-de-kroko': { dir: 'wasm-stream-de-kroko', label: 'Streaming Zipformer DE Kroko', detail: '55 MB, de', wavs: ['de.wav'] },
+  'stream-es-kroko': { dir: 'wasm-stream-es-kroko', label: 'Streaming Zipformer ES Kroko', detail: '119 MB, es', wavs: ['es.wav'] },
+  'stream-zh-int8': { dir: 'wasm-stream-zh-int8', label: 'Streaming Zipformer ZH (int8)', detail: '59 MB, zh', wavs: ['zh.wav'] },
+  'stream-ru-vosk-int8': { dir: 'wasm-stream-ru-vosk-int8', label: 'Streaming Zipformer RU Vosk (int8)', detail: '23 MB, ru', wavs: ['russian_test_short_from_t_one.wav'] },
+  'stream-multi-8lang': { dir: 'wasm-stream-multi-8lang', label: 'Streaming Zipformer Multi (8-lang)', detail: '247 MB, ar/en/id/ja/ru/th/vi/zh', wavs: ['ar.wav', 'en.wav', 'ja.wav', 'russian_test_short_from_t_one.wav', 'vi.wav', 'zh.wav'] },
+  'stream-bn-vosk': { dir: 'wasm-stream-bn-vosk', label: 'Streaming Zipformer BN Vosk', detail: '83 MB, bn', wavs: ['bn.wav'] },
+  'stream-nemo-ctc-en-80ms-int8': { dir: 'wasm-stream-nemo-ctc-en-80ms-int8', label: 'NeMo Streaming FastConformer CTC EN 80ms (int8)', detail: '126 MB, en', wavs: ['en.wav'] },
+  'stream-zh-2025-int8': { dir: 'wasm-stream-zh-2025-int8', label: 'Streaming Zipformer ZH 2025 (int8)', detail: '160 MB, zh', wavs: ['zh.wav'] },
+};
+
+var params = new URLSearchParams(window.location.search);
+var modelKey = params.get('model') || 'stream-en-kroko';
+if (!VARIANTS[modelKey]) modelKey = 'stream-en-kroko';
+var MODEL = VARIANTS[modelKey];
+
+var WAV_LABELS = {
+  'en.wav': 'English', 'zh.wav': 'Chinese', 'ja.wav': 'Japanese', 'ko.wav': 'Korean',
+  'de.wav': 'German', 'es.wav': 'Spanish', 'fr.wav': 'French', 'pt_br.wav': 'Portuguese',
+  'ar.wav': 'Arabic', 'bn.wav': 'Bengali', 'vi.wav': 'Vietnamese', 'uk.wav': 'Ukrainian',
+  'russian_test_short_from_t_one.wav': 'Russian', 'itn-zh-number.wav': 'Cantonese'
+};
+(function() {
+  var sel = document.getElementById('wavSelect');
+  (MODEL.wavs || []).forEach(function(f) {
+    var opt = document.createElement('option');
+    opt.value = f; opt.textContent = f + ' (' + (WAV_LABELS[f] || f) + ')';
+    sel.appendChild(opt);
+  });
+})();
+
+var WAV_BASE = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
+  ? 'test-wavs/' : CDN_BASE + 'test-wavs/';
+var CDN_BASE = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
+  ? '' : 'https://huggingface.co/datasets/jiangzhuo9357/sherpa-onnx-asr-models/resolve/main/';
+
+document.getElementById('pageTitle').textContent = MODEL.label + ' ASR Browser Demo';
+document.getElementById('pageSubtitle').innerHTML =
+  'sherpa-onnx ' + MODEL.label + ' (' + MODEL.detail + ') &mdash; <a href="index.html">All demos</a>';
+
+var recognizer = null;
+
+function _log(msg) {
+  var logEl = document.getElementById('log');
+  var ts = new Date().toLocaleTimeString();
+  logEl.textContent += '[' + ts + '] ' + msg + '\n';
+  logEl.scrollTop = logEl.scrollHeight;
+  console.log(msg);
+}
+
+function _setStatusBar(html, cls) {
+  var el = document.getElementById('status');
+  el.className = 'status-bar' + (cls ? ' ' + cls : '');
+  el.innerHTML = html;
+}
+
+var Module = {
+  locateFile: function(path) {
+    return CDN_BASE + MODEL.dir + '/' + path;
+  },
+  setStatus: function(text) {
+    _log('Module: ' + text);
+    if (!text) {
+      _initStreamingAsr();
+      return;
+    }
+    var m = text.match(/Downloading data\.\.\. \((\d+)\/(\d+)\)/);
+    if (m) {
+      var pct = (parseInt(m[1]) / parseInt(m[2]) * 100).toFixed(1);
+      _setStatusBar('<div class="spinner"></div><span>Downloading model... ' + pct + '%</span>');
+    } else {
+      _setStatusBar('<div class="spinner"></div><span>' + text + '</span>');
+    }
+  }
+};
+
+function _initStreamingAsr() {
+  _log('WASM runtime initialized, creating OnlineRecognizer...');
+  _setStatusBar('<div class="spinner"></div><span>Initializing ' + MODEL.label + '...</span>');
+
+  try {
+    var t0 = performance.now();
+    recognizer = createOnlineRecognizer(Module);
+    var elapsed = (performance.now() - t0).toFixed(0);
+    _log(MODEL.label + ' ready in ' + elapsed + 'ms');
+    document.getElementById('decode').disabled = false;
+    _setStatusBar('Ready &mdash; ' + MODEL.label, 'ready');
+  } catch (err) {
+    _log('ERROR initializing streaming ASR: ' + err.message);
+    console.error(err);
+    _setStatusBar('Failed to initialize model.', 'error');
+  }
+}
+
+function parseWav(arrayBuffer) {
+  var view = new DataView(arrayBuffer);
+  var numChannels = view.getUint16(22, true);
+  var sampleRate = view.getUint32(24, true);
+  var bitsPerSample = view.getUint16(34, true);
+  var offset = 12;
+  while (offset < view.byteLength - 8) {
+    var id = String.fromCharCode(
+      view.getUint8(offset), view.getUint8(offset+1),
+      view.getUint8(offset+2), view.getUint8(offset+3)
+    );
+    var size = view.getUint32(offset + 4, true);
+    if (id === 'data') { offset += 8; break; }
+    offset += 8 + size;
+  }
+  var bytesPerSample = bitsPerSample / 8;
+  var numSamples = Math.floor((view.byteLength - offset) / bytesPerSample / numChannels);
+  var samples = new Float32Array(numSamples);
+  for (var i = 0; i < numSamples; i++) {
+    if (bitsPerSample === 16) {
+      samples[i] = view.getInt16(offset + i * numChannels * 2, true) / 32768.0;
+    } else if (bitsPerSample === 32) {
+      samples[i] = view.getFloat32(offset + i * numChannels * 4, true);
+    }
+  }
+  if (sampleRate !== 16000) {
+    samples = resampleTo16k(samples, sampleRate);
+  }
+  return { samples: samples, sampleRate: 16000, originalRate: sampleRate, duration: numSamples / sampleRate };
+}
+
+function resampleTo16k(samples, fromRate) {
+  var ratio = fromRate / 16000;
+  var newLen = Math.round(samples.length / ratio);
+  var result = new Float32Array(newLen);
+  for (var i = 0; i < newLen; i++) {
+    var srcIdx = i * ratio;
+    var idx = Math.floor(srcIdx);
+    var frac = srcIdx - idx;
+    if (idx + 1 < samples.length) {
+      result[i] = samples[idx] * (1 - frac) + samples[idx + 1] * frac;
+    } else {
+      result[i] = samples[Math.min(idx, samples.length - 1)];
+    }
+  }
+  return result;
+}
+
+function fetchAndDecodeWav(url) {
+  return fetch(url)
+    .then(function(r) { return r.arrayBuffer(); })
+    .then(function(buf) { return parseWav(buf); });
+}
+
+function decodeStreaming(samples) {
+  var stream = recognizer.createStream();
+  var CHUNK_SAMPLES = 3200; // 200ms at 16kHz
+  var offset = 0;
+  var transcriptEl = document.getElementById('transcript');
+  var timingEl = document.getElementById('timing');
+  var decodeBtn = document.getElementById('decode');
+  var t0 = performance.now();
+  var audioDuration = samples.length / 16000;
+  var allSegments = [];
+
+  transcriptEl.value = '';
+  timingEl.textContent = 'Streaming...';
+
+  function processChunk() {
+    if (offset >= samples.length) {
+      // Final: flush with tail padding
+      var tailPadding = new Float32Array(16000); // 1s silence
+      stream.acceptWaveform(16000, tailPadding);
+      while (recognizer.isReady(stream)) {
+        recognizer.decode(stream);
+      }
+      var finalResult = recognizer.getResult(stream).text;
+      if (finalResult) {
+        allSegments.push(finalResult);
+      }
+      var fullText = allSegments.join(' ').trim();
+      if (fullText) transcriptEl.value = fullText;
+
+      var elapsed = performance.now() - t0;
+      var rtf = (elapsed / 1000 / audioDuration).toFixed(3);
+      timingEl.textContent = 'Decoded in ' + elapsed.toFixed(0) + 'ms (audio: ' + audioDuration.toFixed(2) + 's, RTF: ' + rtf + ')';
+      _log('Streaming decode done: ' + elapsed.toFixed(0) + 'ms, RTF=' + rtf);
+      stream.free();
+      decodeBtn.disabled = false;
+      decodeBtn.textContent = 'Decode (Streaming)';
+      return;
+    }
+
+    var end = Math.min(offset + CHUNK_SAMPLES, samples.length);
+    var chunk = samples.subarray(offset, end);
+    stream.acceptWaveform(16000, chunk);
+    offset = end;
+
+    while (recognizer.isReady(stream)) {
+      recognizer.decode(stream);
+    }
+
+    // Show progressive result
+    var result = recognizer.getResult(stream).text;
+    var displayParts = allSegments.slice();
+    if (result) displayParts.push(result);
+    var displayText = displayParts.join(' ').trim();
+    if (displayText) transcriptEl.value = displayText;
+
+    // Update progress
+    var pct = (offset / samples.length * 100).toFixed(0);
+    timingEl.textContent = 'Streaming... ' + pct + '%';
+
+    // Check endpoint
+    if (recognizer.isEndpoint(stream)) {
+      var segResult = recognizer.getResult(stream).text;
+      if (segResult) allSegments.push(segResult);
+      recognizer.reset(stream);
+    }
+
+    // Schedule next chunk (simulate real-time)
+    setTimeout(processChunk, 10);
+  }
+
+  processChunk();
+}
+
+_log('Page loaded, waiting for WASM module...');
+</script>
+
+<script>
+// Load 2 scripts (no vad.js for streaming)
+(function() {
+  function loadScript(src) {
+    var s = document.createElement('script');
+    s.src = src;
+    document.body.appendChild(s);
+  }
+  loadScript(CDN_BASE + MODEL.dir + '/sherpa-onnx-wasm-main-asr.js');
+  loadScript(CDN_BASE + MODEL.dir + '/sherpa-onnx-asr.js');
+})();
+</script>
+
+<script>
+(function() {
+  var wavSelect = document.getElementById('wavSelect');
+  var wavUpload = document.getElementById('wavUpload');
+  var decodeBtn = document.getElementById('decode');
+  var transcript = document.getElementById('transcript');
+  var timingEl = document.getElementById('timing');
+  var customWavFile = null;
+
+  wavUpload.addEventListener('change', function() {
+    if (wavUpload.files.length > 0) {
+      customWavFile = wavUpload.files[0];
+      wavSelect.style.opacity = '0.5';
+      _log('Custom WAV selected: ' + customWavFile.name);
+    }
+  });
+
+  wavSelect.addEventListener('change', function() {
+    customWavFile = null;
+    wavUpload.value = '';
+    wavSelect.style.opacity = '1';
+  });
+
+  decodeBtn.addEventListener('click', function() {
+    if (!recognizer) { alert('Streaming ASR not ready yet.'); return; }
+
+    if (customWavFile) {
+      decodeBtn.disabled = true;
+      decodeBtn.textContent = 'Decoding...';
+      var reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          var wav = parseWav(e.target.result);
+          _log('Custom WAV: ' + wav.duration.toFixed(2) + 's @ ' + wav.originalRate + 'Hz');
+          decodeStreaming(wav.samples);
+        } catch (err) {
+          _log('ERROR decoding: ' + err.message);
+          transcript.value = 'Error: ' + err.message;
+          decodeBtn.disabled = false;
+          decodeBtn.textContent = 'Decode (Streaming)';
+        }
+      };
+      reader.readAsArrayBuffer(customWavFile);
+      return;
+    }
+
+    var wavUrl = WAV_BASE + wavSelect.value;
+    decodeBtn.disabled = true;
+    decodeBtn.textContent = 'Fetching WAV...';
+    _log('Fetching ' + wavSelect.value + '...');
+
+    fetchAndDecodeWav(wavUrl).then(function(wav) {
+      _log('WAV loaded: ' + wav.duration.toFixed(2) + 's @ ' + wav.originalRate + 'Hz');
+      decodeBtn.textContent = 'Decoding...';
+      decodeStreaming(wav.samples);
+    }).catch(function(err) {
+      _log('ERROR: ' + err.message);
+      transcript.value = 'Error: ' + err.message;
+      decodeBtn.disabled = false;
+      decodeBtn.textContent = 'Decode (Streaming)';
+    });
+  });
+})();
+</script>
+
+</body>
+</html>
