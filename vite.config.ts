@@ -28,6 +28,35 @@ function serveModelPacks(): Plugin {
   }
 }
 
+/**
+ * Dev-only plugin: serve ORT WASM files from node_modules/onnxruntime-web/dist/
+ * at /wasm/ort/ URLs, bypassing Vite's module transform pipeline which rejects
+ * dynamic imports of .mjs files from public/.
+ */
+function serveOrtWasm(): Plugin {
+  return {
+    name: 'serve-ort-wasm',
+    configureServer(server) {
+      server.middlewares.use((req, res, next) => {
+        if (!req.url?.startsWith('/wasm/ort/')) return next()
+        const filename = decodeURIComponent(req.url.replace('/wasm/ort/', '').replace(/\?.*$/, ''))
+        const filePath = path.join(process.cwd(), 'node_modules/onnxruntime-web/dist', filename)
+        if (!fs.existsSync(filePath)) return next()
+        const stat = fs.statSync(filePath)
+        if (!stat.isFile()) return next()
+        res.setHeader('Content-Length', stat.size)
+        if (filePath.endsWith('.mjs') || filePath.endsWith('.js'))
+          res.setHeader('Content-Type', 'application/javascript')
+        else if (filePath.endsWith('.wasm'))
+          res.setHeader('Content-Type', 'application/wasm')
+        else
+          res.setHeader('Content-Type', 'application/octet-stream')
+        fs.createReadStream(filePath).pipe(res)
+      })
+    },
+  }
+}
+
 // https://vitejs.dev/config/
 export default defineConfig(({ command, mode }) => {
   // Load env file based on `mode` in the current working directory
@@ -39,6 +68,7 @@ export default defineConfig(({ command, mode }) => {
   return {
     plugins: [
       isServe && serveModelPacks(),
+      isServe && serveOrtWasm(),
       react(),
       electron({
         main: {
