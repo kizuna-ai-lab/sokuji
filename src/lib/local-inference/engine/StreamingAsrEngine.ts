@@ -173,6 +173,16 @@ export class StreamingAsrEngine {
   }
 
   /**
+   * Force-finalize any pending utterance.
+   * Used by Push-to-Talk to immediately emit the current partial result
+   * as a final result when the user releases the PTT key.
+   */
+  flush(): void {
+    if (!this.worker || !this.isReady) return;
+    this.worker.postMessage({ type: 'flush' });
+  }
+
+  /**
    * Get list of available streaming ASR models.
    */
   static getModels(): ModelManifestEntry[] {
