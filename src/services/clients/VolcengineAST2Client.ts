@@ -620,6 +620,13 @@ export class VolcengineAST2Client implements IClient {
       this.currentSourceItemId = this.generateItemId('source');
     }
 
+    // Discard empty segments (server-side VAD false positives: Start+End with no text)
+    if (isDefinite && !text.trim()) {
+      console.log('[VolcengineAST2Client] Discarding empty source subtitle segment:', this.currentSourceItemId);
+      this.currentSourceItemId = null;
+      return;
+    }
+
     const itemId = this.currentSourceItemId || this.generateItemId('source');
 
     const item: ConversationItem = {
@@ -656,6 +663,13 @@ export class VolcengineAST2Client implements IClient {
     if (phase === 'start') {
       // New translation subtitle segment - create new item
       this.currentTranslationItemId = this.generateItemId('translation');
+    }
+
+    // Discard empty segments (server-side VAD false positives: Start+End with no text)
+    if (isDefinite && !text.trim()) {
+      console.log('[VolcengineAST2Client] Discarding empty translation subtitle segment:', this.currentTranslationItemId);
+      this.currentTranslationItemId = null;
+      return;
     }
 
     const itemId = this.currentTranslationItemId || this.generateItemId('translation');
