@@ -10,6 +10,7 @@ import { subscribeWithSelector } from 'zustand/middleware';
 import { ModelManager, type DownloadProgress } from '../lib/local-inference/ModelManager';
 import {
   MODEL_MANIFEST,
+  getManifestEntry,
   getAsrModelsForLanguage,
   getTranslationModel,
   getTtsModelsForLanguage,
@@ -53,8 +54,15 @@ interface ModelStoreState {
    * Check if the LOCAL_INFERENCE provider has required models for a language pair.
    * Returns true when: ASR model for sourceLang + translation model for src→tgt
    * + TTS model for targetLang are all downloaded.
+   *
+   * When a selected model ID is provided (non-empty string), that specific model
+   * must be downloaded. Otherwise falls back to the default lookup
+   * (any compatible model for ASR/TTS, or getTranslationModel preference for translation).
    */
-  isProviderReady: (sourceLang: string, targetLang: string) => boolean;
+  isProviderReady: (
+    sourceLang: string, targetLang: string,
+    selectedAsrModel?: string, selectedTranslationModel?: string, selectedTtsModel?: string,
+  ) => boolean;
 }
 
 // ─── Store ───────────────────────────────────────────────────────────────────
@@ -191,28 +199,45 @@ export const useModelStore = create<ModelStoreState>()(
       }));
     },
 
-    isProviderReady: (sourceLang: string, targetLang: string): boolean => {
+    isProviderReady: (sourceLang: string, targetLang: string, selectedAsrModel?: string, selectedTranslationModel?: string, selectedTtsModel?: string): boolean => {
       const { modelStatuses, webgpuAvailable } = get();
 
-      // 1. At least 1 ASR model supporting sourceLang is downloaded
-      const asrModels = getAsrModelsForLanguage(sourceLang);
-      const hasAsr = asrModels.some(
-        model => modelStatuses[model.id] === 'downloaded'
-      );
-      if (!hasAsr) return false;
+      // 1. ASR: if a specific model is selected, it must be downloaded;
+      //    otherwise at least 1 ASR model for sourceLang must be downloaded
+      if (selectedAsrModel) {
+        if (modelStatuses[selectedAsrModel] !== 'downloaded') return false;
+      } else {
+        const asrModels = getAsrModelsForLanguage(sourceLang);
+        const hasAsr = asrModels.some(
+          model => modelStatuses[model.id] === 'downloaded'
+        );
+        if (!hasAsr) return false;
+      }
 
-      // 2. Translation model for src→tgt is downloaded (+ WebGPU gate)
-      const translationEntry = getTranslationModel(sourceLang, targetLang);
-      if (!translationEntry) return false;
-      if (modelStatuses[translationEntry.id] !== 'downloaded') return false;
-      if (translationEntry.requiredDevice === 'webgpu' && !webgpuAvailable) return false;
+      // 2. Translation: if a specific model is selected, check it directly;
+      //    otherwise use getTranslationModel preference (pair-specific > multilingual)
+      if (selectedTranslationModel) {
+        if (modelStatuses[selectedTranslationModel] !== 'downloaded') return false;
+        const entry = getManifestEntry(selectedTranslationModel);
+        if (entry?.requiredDevice === 'webgpu' && !webgpuAvailable) return false;
+      } else {
+        const translationEntry = getTranslationModel(sourceLang, targetLang);
+        if (!translationEntry) return false;
+        if (modelStatuses[translationEntry.id] !== 'downloaded') return false;
+        if (translationEntry.requiredDevice === 'webgpu' && !webgpuAvailable) return false;
+      }
 
-      // 3. At least 1 TTS model supporting targetLang is downloaded
-      const ttsModels = getTtsModelsForLanguage(targetLang);
-      const hasTts = ttsModels.some(
-        model => modelStatuses[model.id] === 'downloaded'
-      );
-      if (!hasTts) return false;
+      // 3. TTS: if a specific model is selected, it must be downloaded;
+      //    otherwise at least 1 TTS model for targetLang must be downloaded
+      if (selectedTtsModel) {
+        if (modelStatuses[selectedTtsModel] !== 'downloaded') return false;
+      } else {
+        const ttsModels = getTtsModelsForLanguage(targetLang);
+        const hasTts = ttsModels.some(
+          model => modelStatuses[model.id] === 'downloaded'
+        );
+        if (!hasTts) return false;
+      }
 
       return true;
     },

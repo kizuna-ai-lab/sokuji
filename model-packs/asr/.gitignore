@@ -1,0 +1,12 @@
+# Build output directories (one per model)
+wasm-*/
+
+# Downloaded model tarballs (cached by pack.py)
+*.tar.bz2
+
+# Test WAV files (downloaded for local testing)
+test-wavs/
+
+# Python cache
+__pycache__/
+*.pyc

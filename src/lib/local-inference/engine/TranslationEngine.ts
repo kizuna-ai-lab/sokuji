@@ -5,7 +5,7 @@
  * Model files are loaded from IndexedDB as blob URLs (same pattern as ASR/TTS).
  */
 
-import { getTranslationModel, getManifestByType } from '../modelManifest';
+import { getTranslationModel, getManifestEntry, getManifestByType } from '../modelManifest';
 import { ModelManager } from '../ModelManager';
 
 export interface TranslationResult {
@@ -35,9 +35,12 @@ export class TranslationEngine {
    * Loads model files from IndexedDB and passes blob URLs to the worker.
    * Selects Opus-MT worker (pair-specific WASM) or Qwen worker (multilingual WebGPU)
    * based on the matched manifest entry.
+   *
+   * @param modelId - Optional specific model ID to use (from user selection).
+   *                  When omitted, auto-selects via getTranslationModel() preference.
    */
-  async init(sourceLang: string, targetLang: string): Promise<{ loadTimeMs: number; device: string }> {
-    const entry = getTranslationModel(sourceLang, targetLang);
+  async init(sourceLang: string, targetLang: string, modelId?: string): Promise<{ loadTimeMs: number; device: string }> {
+    const entry = modelId ? getManifestEntry(modelId) : getTranslationModel(sourceLang, targetLang);
     if (!entry?.hfModelId) {
       const available = getManifestByType('translation').map(m =>
         m.multilingual ? `${m.id} (multilingual)` : `${m.sourceLang}-${m.targetLang}`

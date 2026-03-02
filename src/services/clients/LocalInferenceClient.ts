@@ -166,7 +166,7 @@ export class LocalInferenceClient implements IClient {
       });
 
       const translationPromise = this.trackInit('translation', () =>
-        this.translationEngine!.init(config.sourceLanguage, config.targetLanguage),
+        this.translationEngine!.init(config.sourceLanguage, config.targetLanguage, config.translationModelId),
       );
 
       // TTS catches its own errors for graceful degradation

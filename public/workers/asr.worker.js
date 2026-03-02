@@ -6,7 +6,7 @@
  *
  * Protocol:
  *   Main → Worker:
- *     { type: 'init', fileUrls: Record<string, string> }
+ *     { type: 'init', fileUrls: Record<string, string>, asrEngine: string }
  *     { type: 'audio', samples: Int16Array, sampleRate: number }
  *     { type: 'dispose' }
  *
@@ -58,92 +58,146 @@ function downsampleInt16ToFloat32(input, inputSampleRate, outputSampleRate) {
   return output;
 }
 
-// ─── sherpa-onnx Initialization Helpers ──────────────────────────────────────
-// These replicate the logic from app-vad-asr.js demo since that file
-// includes DOM code and can't be imported into a worker.
+// ─── Per-Engine Config Builders ──────────────────────────────────────────────
+// Each builder returns the modelConfig fields specific to its engine type.
+// The engine type is passed explicitly from the manifest via AsrEngine.ts,
+// matching the TTS worker pattern (no filesystem probing).
 
-/**
- * Check if a file exists in the Emscripten virtual filesystem.
- * Uses the C API exposed by sherpa-onnx WASM.
- */
-function fileExists(filename) {
-  var filenameLen = Module.lengthBytesUTF8(filename) + 1;
-  var buf = Module._malloc(filenameLen);
-  Module.stringToUTF8(filename, buf, filenameLen);
-  var exists = Module._SherpaOnnxFileExists(buf);
-  Module._free(buf);
-  return exists === 1;
+function buildSenseVoiceConfig() {
+  return {
+    senseVoice: { model: './sense-voice.onnx', useInverseTextNormalization: 1 },
+  };
 }
 
-/**
- * Detect which ASR model is available in the virtual filesystem
- * and create an OfflineRecognizer with the appropriate config.
- * Supports: SenseVoice, Whisper, Transducer (zipformer/nemo), Paraformer,
- * TeleSpeech, Moonshine, Dolphin, Zipformer-CTC.
- */
-function initOfflineRecognizer() {
-  var config = {
-    modelConfig: {
-      debug: 1,
-      tokens: './tokens.txt',
-    },
+function buildWhisperConfig() {
+  return {
+    whisper: { encoder: './whisper-encoder.onnx', decoder: './whisper-decoder.onnx' },
   };
+}
 
-  if (fileExists('sense-voice.onnx')) {
-    config.modelConfig.senseVoice = {
-      model: './sense-voice.onnx',
-      useInverseTextNormalization: 1,
-    };
-    postMessage({ type: 'status', message: 'Detected SenseVoice model' });
-  } else if (fileExists('whisper-encoder.onnx')) {
-    config.modelConfig.whisper = {
-      encoder: './whisper-encoder.onnx',
-      decoder: './whisper-decoder.onnx',
-    };
-    postMessage({ type: 'status', message: 'Detected Whisper model' });
-  } else if (fileExists('transducer-encoder.onnx')) {
-    config.modelConfig.transducer = {
+function buildTransducerConfig() {
+  return {
+    transducer: {
       encoder: './transducer-encoder.onnx',
       decoder: './transducer-decoder.onnx',
       joiner: './transducer-joiner.onnx',
-    };
-    config.modelConfig.modelType = 'transducer';
-    postMessage({ type: 'status', message: 'Detected Transducer model' });
-  } else if (fileExists('nemo-transducer-encoder.onnx')) {
-    config.modelConfig.transducer = {
+    },
+    modelType: 'transducer',
+  };
+}
+
+function buildNemoTransducerConfig() {
+  return {
+    transducer: {
       encoder: './nemo-transducer-encoder.onnx',
       decoder: './nemo-transducer-decoder.onnx',
       joiner: './nemo-transducer-joiner.onnx',
-    };
-    config.modelConfig.modelType = 'nemo_transducer';
-    postMessage({ type: 'status', message: 'Detected NeMo Transducer model' });
-  } else if (fileExists('paraformer.onnx')) {
-    config.modelConfig.paraformer = {
-      model: './paraformer.onnx',
-    };
-    postMessage({ type: 'status', message: 'Detected Paraformer model' });
-  } else if (fileExists('telespeech.onnx')) {
-    config.modelConfig.teleSpeechCtc = './telespeech.onnx';
-    postMessage({ type: 'status', message: 'Detected TeleSpeech model' });
-  } else if (fileExists('moonshine-preprocessor.onnx')) {
-    config.modelConfig.moonshine = {
+    },
+    modelType: 'nemo_transducer',
+  };
+}
+
+function buildParaformerConfig() {
+  return {
+    paraformer: { model: './paraformer.onnx' },
+  };
+}
+
+function buildTelespeechConfig() {
+  return {
+    teleSpeechCtc: './telespeech.onnx',
+  };
+}
+
+function buildMoonshineConfig() {
+  return {
+    moonshine: {
       preprocessor: './moonshine-preprocessor.onnx',
       encoder: './moonshine-encoder.onnx',
       uncachedDecoder: './moonshine-uncached-decoder.onnx',
       cachedDecoder: './moonshine-cached-decoder.onnx',
-    };
-    postMessage({ type: 'status', message: 'Detected Moonshine model' });
-  } else if (fileExists('dolphin.onnx')) {
-    config.modelConfig.dolphin = { model: './dolphin.onnx' };
-    postMessage({ type: 'status', message: 'Detected Dolphin model' });
-  } else if (fileExists('zipformer-ctc.onnx')) {
-    config.modelConfig.zipformerCtc = { model: './zipformer-ctc.onnx' };
-    postMessage({ type: 'status', message: 'Detected Zipformer-CTC model' });
-  } else {
-    throw new Error('No supported ASR model found in the WASM virtual filesystem');
+    },
+  };
+}
+
+function buildMoonshineV2Config() {
+  return {
+    moonshine: {
+      encoder: './moonshine-encoder.ort',
+      mergedDecoder: './moonshine-merged-decoder.ort',
+    },
+  };
+}
+
+function buildDolphinConfig() {
+  return {
+    dolphin: { model: './dolphin.onnx' },
+  };
+}
+
+function buildZipformerCtcConfig() {
+  return {
+    zipformerCtc: { model: './zipformer-ctc.onnx' },
+  };
+}
+
+function buildNemoCtcConfig() {
+  return {
+    nemoCtc: { model: './nemo-ctc.onnx' },
+  };
+}
+
+function buildCanaryConfig() {
+  return {
+    canary: { encoder: './canary-encoder.onnx', decoder: './canary-decoder.onnx' },
+  };
+}
+
+function buildWenetCtcConfig() {
+  return {
+    wenetCtc: { model: './wenet-ctc.onnx' },
+  };
+}
+
+function buildOmnilingualConfig() {
+  return {
+    omnilingual: { model: './omnilingual.onnx' },
+  };
+}
+
+/**
+ * Build OfflineRecognizer config for the given engine type.
+ * Engine type comes from modelManifest.ts asrEngine field.
+ */
+function buildAsrConfig(engine) {
+  var base = { modelConfig: { debug: 1, tokens: './tokens.txt' } };
+  var engineConfig;
+
+  switch (engine) {
+    case 'sensevoice':       engineConfig = buildSenseVoiceConfig(); break;
+    case 'whisper':          engineConfig = buildWhisperConfig(); break;
+    case 'transducer':       engineConfig = buildTransducerConfig(); break;
+    case 'nemo-transducer':  engineConfig = buildNemoTransducerConfig(); break;
+    case 'paraformer':       engineConfig = buildParaformerConfig(); break;
+    case 'telespeech':       engineConfig = buildTelespeechConfig(); break;
+    case 'moonshine':        engineConfig = buildMoonshineConfig(); break;
+    case 'moonshine-v2':     engineConfig = buildMoonshineV2Config(); break;
+    case 'dolphin':          engineConfig = buildDolphinConfig(); break;
+    case 'zipformer-ctc':    engineConfig = buildZipformerCtcConfig(); break;
+    case 'nemo-ctc':         engineConfig = buildNemoCtcConfig(); break;
+    case 'canary':           engineConfig = buildCanaryConfig(); break;
+    case 'wenet-ctc':        engineConfig = buildWenetCtcConfig(); break;
+    case 'omnilingual':      engineConfig = buildOmnilingualConfig(); break;
+    default:
+      throw new Error('Unknown ASR engine: ' + engine);
   }
 
-  return new OfflineRecognizer(config, Module);
+  // Merge engine-specific fields into modelConfig
+  for (var key in engineConfig) {
+    base.modelConfig[key] = engineConfig[key];
+  }
+
+  return base;
 }
 
 // ─── Emscripten Module Setup ─────────────────────────────────────────────────
@@ -154,9 +208,14 @@ function initOfflineRecognizer() {
  */
 function handleInit(msg) {
   var fileUrls = msg.fileUrls;
+  var asrEngine = msg.asrEngine;
   var vadConfig = msg.vadConfig;
   if (!fileUrls) {
     postMessage({ type: 'error', error: 'fileUrls is required — model must be downloaded first' });
+    return;
+  }
+  if (!asrEngine) {
+    postMessage({ type: 'error', error: 'asrEngine is required — model manifest must specify engine type' });
     return;
   }
 
@@ -209,10 +268,10 @@ function handleInit(msg) {
       // Circular buffer: 30 seconds of audio at 16kHz
       buffer = new CircularBuffer(30 * EXPECTED_SAMPLE_RATE, Module);
 
-      postMessage({ type: 'status', message: 'Creating recognizer...' });
+      postMessage({ type: 'status', message: 'Creating recognizer (' + asrEngine + ')...' });
 
-      // Detect model type and create OfflineRecognizer
-      recognizer = initOfflineRecognizer();
+      // Build engine-specific config and create OfflineRecognizer
+      recognizer = new OfflineRecognizer(buildAsrConfig(asrEngine), Module);
 
       isReady = true;
       var elapsed = Math.round(performance.now() - startTime);
@@ -287,6 +346,8 @@ function handleAudio(msg) {
     var durationMs = Math.round((speechSamples.length / EXPECTED_SAMPLE_RATE) * 1000);
 
     var text = (result.text || '').trim();
+    // Remove spaces between CJK characters (common with Moonshine zh/ja/ko models)
+    text = text.replace(/([\u3000-\u9fff\uF900-\uFAFF])\s+(?=[\u3000-\u9fff\uF900-\uFAFF])/g, '$1');
     if (text) {
       postMessage({
         type: 'result',

@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Omnilingual ASR Browser Demo</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #1a1a2e;
+      color: #e0e0e0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem 1rem;
+    }
+    h1 { font-size: 1.5rem; margin-bottom: 0.5rem; color: #fff; }
+    .subtitle { color: #888; font-size: 0.9rem; margin-bottom: 1.5rem; }
+    .subtitle a { color: #51cf66; text-decoration: none; }
+    .subtitle a:hover { text-decoration: underline; }
+    .container {
+      width: 100%;
+      max-width: 640px;
+      background: #16213e;
+      border-radius: 12px;
+      padding: 1.5rem;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    }
+    .status-bar {
+      background: #0f3460;
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      margin-bottom: 1.5rem;
+      font-size: 0.85rem;
+      min-height: 2.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .status-bar.error { background: #4a1528; color: #ff6b6b; }
+    .status-bar.ready { background: #1a3a2a; color: #51cf66; }
+    .spinner {
+      width: 16px; height: 16px;
+      border: 2px solid #555;
+      border-top-color: #51cf66;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    label { display: block; font-size: 0.85rem; color: #aaa; margin-bottom: 0.3rem; }
+    .field { margin-bottom: 1rem; }
+    textarea {
+      width: 100%;
+      background: #0f3460;
+      color: #e0e0e0;
+      border: 1px solid #333;
+      border-radius: 8px;
+      padding: 0.75rem;
+      font-size: 0.95rem;
+      font-family: inherit;
+      resize: vertical;
+      min-height: 80px;
+    }
+    textarea:focus { outline: none; border-color: #51cf66; }
+    .row { display: flex; gap: 1rem; }
+    .row .field { flex: 1; }
+    input[type="number"], input[type="range"] {
+      width: 100%;
+      background: #0f3460;
+      color: #e0e0e0;
+      border: 1px solid #333;
+      border-radius: 6px;
+      padding: 0.5rem 0.75rem;
+      font-size: 0.9rem;
+    }
+    input[type="range"] { padding: 0.25rem 0; }
+    input:focus { outline: none; border-color: #51cf66; }
+    .range-row { display: flex; align-items: center; gap: 0.75rem; }
+    button#decode {
+      width: 100%;
+      padding: 0.75rem;
+      background: #10a37f;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    button#decode:hover:not(:disabled) { background: #0d8c6c; }
+    button#decode:disabled { opacity: 0.4; cursor: not-allowed; }
+    .audio-output { margin-top: 1.5rem; }
+    .audio-output audio { width: 100%; margin-top: 0.5rem; }
+    .timing { font-size: 0.8rem; color: #888; margin-top: 0.3rem; }
+    .log {
+      margin-top: 1.5rem;
+      background: #0a0a1a;
+      border-radius: 8px;
+      padding: 0.75rem;
+      font-family: monospace;
+      font-size: 0.75rem;
+      color: #888;
+      max-height: 200px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+    select {
+      width: 100%;
+      background: #0f3460;
+      color: #e0e0e0;
+      border: 1px solid #333;
+      border-radius: 6px;
+      padding: 0.5rem 0.75rem;
+      font-size: 0.9rem;
+    }
+    select:focus { outline: none; border-color: #51cf66; }
+    .upload-row { display: flex; gap: 0.5rem; align-items: center; margin-top: 0.5rem; }
+    .upload-row input[type="file"] { flex: 1; font-size: 0.85rem; color: #aaa; }
+    #transcript {
+      width: 100%;
+      background: #0f3460;
+      color: #e0e0e0;
+      border: 1px solid #333;
+      border-radius: 8px;
+      padding: 0.75rem;
+      font-size: 0.95rem;
+      font-family: inherit;
+      resize: vertical;
+      min-height: 120px;
+    }
+  </style>
+</head>
+<body>
+
+<h1 id="pageTitle">Omnilingual ASR Browser Demo</h1>
+<p id="pageSubtitle" class="subtitle"></p>
+
+<div class="container">
+  <div id="status" class="status-bar">
+    <div class="spinner"></div>
+    <span>Loading WASM module...</span>
+  </div>
+
+  <div class="field">
+    <label for="wavSelect">Test audio</label>
+    <select id="wavSelect">
+      <option value="en.wav">en.wav (English)</option>
+      <option value="zh.wav">zh.wav (Chinese)</option>
+      <option value="ja.wav">ja.wav (Japanese)</option>
+      <option value="ko.wav">ko.wav (Korean)</option>
+      <option value="de.wav">de.wav (German)</option>
+      <option value="es.wav">es.wav (Spanish)</option>
+      <option value="fr.wav">fr.wav (French)</option>
+      <option value="pt_br.wav">pt_br.wav (Portuguese)</option>
+      <option value="ar.wav">ar.wav (Arabic)</option>
+      <option value="vi.wav">vi.wav (Vietnamese)</option>
+      <option value="bn.wav">bn.wav (Bengali)</option>
+      <option value="uk.wav">uk.wav (Ukrainian)</option>
+      <option value="russian_test_short_from_t_one.wav">russian_test_short_from_t_one.wav (Russian)</option>
+    </select>
+    <div class="upload-row">
+      <input type="file" id="wavUpload" accept=".wav,audio/wav">
+      <span style="font-size:0.8rem;color:#888">or upload your own WAV</span>
+    </div>
+  </div>
+
+  <button id="decode" disabled>Decode</button>
+
+  <div class="field" style="margin-top:1.5rem">
+    <label>Transcript</label>
+    <textarea id="transcript" readonly placeholder="Transcription will appear here..."></textarea>
+    <div id="timing" class="timing"></div>
+  </div>
+
+  <div id="log" class="log"></div>
+</div>
+
+<script>
+var VARIANTS = {
+  'omnilingual-300m-int8-v2': { dir: 'wasm-omnilingual-300m-int8-v2', label: 'Omnilingual 300M v2 (int8)', detail: '279 MB, 1147 languages (ISO 639-3)' },
+};
+
+var params = new URLSearchParams(window.location.search);
+var modelKey = params.get('model') || 'omnilingual-300m-int8-v2';
+if (!VARIANTS[modelKey]) modelKey = 'omnilingual-300m-int8-v2';
+var MODEL = VARIANTS[modelKey];
+
+var CDN_BASE = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
+  ? '' : 'https://huggingface.co/datasets/jiangzhuo9357/sherpa-onnx-asr-models/resolve/main/';
+
+var WAV_BASE = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
+  ? 'test-wavs/' : CDN_BASE + 'test-wavs/';
+
+document.getElementById('pageTitle').textContent = MODEL.label + ' ASR Browser Demo';
+document.getElementById('pageSubtitle').innerHTML =
+  'sherpa-onnx ' + MODEL.label + ' (' + MODEL.detail + ') &mdash; <a href="index.html">All demos</a>';
+
+var recognizer = null, vad = null, buffer = null;
+
+function _log(msg) { var logEl = document.getElementById('log'); var ts = new Date().toLocaleTimeString(); logEl.textContent += '[' + ts + '] ' + msg + '\n'; logEl.scrollTop = logEl.scrollHeight; console.log(msg); }
+function _setStatusBar(html, cls) { var el = document.getElementById('status'); el.className = 'status-bar' + (cls ? ' ' + cls : ''); el.innerHTML = html; }
+
+var Module = {
+  locateFile: function(path) { return CDN_BASE + MODEL.dir + '/' + path; },
+  setStatus: function(text) {
+    _log('Module: ' + text);
+    if (!text) { _initAsr(); return; }
+    var m = text.match(/Downloading data\.\.\. \((\d+)\/(\d+)\)/);
+    if (m) { var pct = (parseInt(m[1]) / parseInt(m[2]) * 100).toFixed(1); _setStatusBar('<div class="spinner"></div><span>Downloading model... ' + pct + '%</span>'); }
+    else { _setStatusBar('<div class="spinner"></div><span>' + text + '</span>'); }
+  }
+};
+
+function fileExists(filename) { var filenameLen = Module.lengthBytesUTF8(filename) + 1; var buf = Module._malloc(filenameLen); Module.stringToUTF8(filename, buf, filenameLen); var exists = Module._SherpaOnnxFileExists(buf); Module._free(buf); return exists; }
+
+function initOfflineRecognizer() {
+  var config = { modelConfig: { debug: 1, tokens: './tokens.txt' } };
+  if (fileExists('sense-voice.onnx') == 1) { config.modelConfig.senseVoice = { model: './sense-voice.onnx', useInverseTextNormalization: 1 }; }
+  else if (fileExists('whisper-encoder.onnx') == 1) { config.modelConfig.whisper = { encoder: './whisper-encoder.onnx', decoder: './whisper-decoder.onnx' }; }
+  else if (fileExists('transducer-encoder.onnx') == 1) { config.modelConfig.transducer = { encoder: './transducer-encoder.onnx', decoder: './transducer-decoder.onnx', joiner: './transducer-joiner.onnx' }; config.modelConfig.modelType = 'transducer'; }
+  else if (fileExists('nemo-transducer-encoder.onnx') == 1) { config.modelConfig.transducer = { encoder: './nemo-transducer-encoder.onnx', decoder: './nemo-transducer-decoder.onnx', joiner: './nemo-transducer-joiner.onnx' }; config.modelConfig.modelType = 'nemo_transducer'; }
+  else if (fileExists('paraformer.onnx') == 1) { config.modelConfig.paraformer = { model: './paraformer.onnx' }; }
+  else if (fileExists('telespeech.onnx') == 1) { config.modelConfig.telespeechCtc = './telespeech.onnx'; }
+  else if (fileExists('moonshine-preprocessor.onnx') == 1) { config.modelConfig.moonshine = { preprocessor: './moonshine-preprocessor.onnx', encoder: './moonshine-encoder.onnx', uncachedDecoder: './moonshine-uncached-decoder.onnx', cachedDecoder: './moonshine-cached-decoder.onnx' }; }
+  else if (fileExists('dolphin.onnx') == 1) { config.modelConfig.dolphin = { model: './dolphin.onnx' }; }
+  else if (fileExists('zipformer-ctc.onnx') == 1) { config.modelConfig.zipformerCtc = { model: './zipformer-ctc.onnx' }; }
+  else if (fileExists('nemo-ctc.onnx') == 1) { config.modelConfig.nemoCtc = { model: './nemo-ctc.onnx' }; }
+  else if (fileExists('canary-encoder.onnx') == 1) { config.modelConfig.canary = { encoder: './canary-encoder.onnx', decoder: './canary-decoder.onnx' }; }
+  else if (fileExists('wenet-ctc.onnx') == 1) { config.modelConfig.wenetCtc = { model: './wenet-ctc.onnx' }; }
+  else if (fileExists('omnilingual.onnx') == 1) { config.modelConfig.omnilingual = { model: './omnilingual.onnx' }; }
+  else { _log('ERROR: Could not detect model type'); return; }
+  recognizer = new OfflineRecognizer(config, Module);
+  _log('OfflineRecognizer created');
+}
+
+function _initAsr() {
+  _log('WASM runtime initialized, creating VAD + recognizer...');
+  _setStatusBar('<div class="spinner"></div><span>Initializing ' + MODEL.label + '...</span>');
+  try {
+    var t0 = performance.now();
+    vad = createVad(Module); buffer = new CircularBuffer(30 * 16000, Module); initOfflineRecognizer();
+    _log(MODEL.label + ' ready in ' + (performance.now() - t0).toFixed(0) + 'ms');
+    document.getElementById('decode').disabled = false;
+    _setStatusBar('Ready &mdash; ' + MODEL.label, 'ready');
+  } catch (err) { _log('ERROR initializing ASR: ' + err.message); console.error(err); _setStatusBar('Failed to initialize model.', 'error'); }
+}
+
+function parseWav(arrayBuffer) {
+  var view = new DataView(arrayBuffer);
+  var numChannels = view.getUint16(22, true), sampleRate = view.getUint32(24, true), bitsPerSample = view.getUint16(34, true);
+  var offset = 12;
+  while (offset < view.byteLength - 8) { var id = String.fromCharCode(view.getUint8(offset), view.getUint8(offset+1), view.getUint8(offset+2), view.getUint8(offset+3)); var size = view.getUint32(offset + 4, true); if (id === 'data') { offset += 8; break; } offset += 8 + size; }
+  var bytesPerSample = bitsPerSample / 8, numSamples = Math.floor((view.byteLength - offset) / bytesPerSample / numChannels);
+  var samples = new Float32Array(numSamples);
+  for (var i = 0; i < numSamples; i++) { if (bitsPerSample === 16) { samples[i] = view.getInt16(offset + i * numChannels * 2, true) / 32768.0; } else if (bitsPerSample === 32) { samples[i] = view.getFloat32(offset + i * numChannels * 4, true); } }
+  if (sampleRate !== 16000) { samples = resampleTo16k(samples, sampleRate); }
+  return { samples: samples, sampleRate: 16000, originalRate: sampleRate, duration: numSamples / sampleRate };
+}
+
+function resampleTo16k(samples, fromRate) {
+  var ratio = fromRate / 16000, newLen = Math.round(samples.length / ratio), result = new Float32Array(newLen);
+  for (var i = 0; i < newLen; i++) { var srcIdx = i * ratio, idx = Math.floor(srcIdx), frac = srcIdx - idx; if (idx + 1 < samples.length) { result[i] = samples[idx] * (1 - frac) + samples[idx + 1] * frac; } else { result[i] = samples[Math.min(idx, samples.length - 1)]; } }
+  return result;
+}
+
+function fetchAndDecodeWav(url) { return fetch(url).then(function(r) { return r.arrayBuffer(); }).then(function(buf) { return parseWav(buf); }); }
+
+function decodeAudio(samples) {
+  var t0 = performance.now(), results = [], CHUNK_SIZE = vad.config.sileroVad.windowSize;
+  buffer.reset(); vad.reset(); buffer.push(samples);
+  while (buffer.size() >= CHUNK_SIZE) { var chunk = buffer.get(buffer.head(), CHUNK_SIZE); vad.acceptWaveform(chunk); buffer.pop(CHUNK_SIZE); while (!vad.isEmpty()) { var segment = vad.front(); vad.pop(); var stream = recognizer.createStream(); stream.acceptWaveform(16000, segment.samples); recognizer.decode(stream); var result = recognizer.getResult(stream); stream.free(); if (result.text) results.push(result.text); } }
+  vad.flush();
+  while (!vad.isEmpty()) { var segment = vad.front(); vad.pop(); var stream = recognizer.createStream(); stream.acceptWaveform(16000, segment.samples); recognizer.decode(stream); var result = recognizer.getResult(stream); stream.free(); if (result.text) results.push(result.text); }
+  return { text: results.join(' '), elapsed: performance.now() - t0 };
+}
+
+_log('Page loaded, waiting for WASM module...');
+</script>
+
+<script>
+(function() {
+  function loadScript(src) { var s = document.createElement('script'); s.src = src; document.body.appendChild(s); }
+  loadScript(CDN_BASE + MODEL.dir + '/sherpa-onnx-wasm-main-vad-asr.js');
+  loadScript(CDN_BASE + MODEL.dir + '/sherpa-onnx-asr.js');
+  loadScript(CDN_BASE + MODEL.dir + '/sherpa-onnx-vad.js');
+})();
+</script>
+
+<script>
+(function() {
+  var wavSelect = document.getElementById('wavSelect'), wavUpload = document.getElementById('wavUpload'), decodeBtn = document.getElementById('decode'), transcript = document.getElementById('transcript'), timingEl = document.getElementById('timing'), customWavFile = null;
+  wavUpload.addEventListener('change', function() { if (wavUpload.files.length > 0) { customWavFile = wavUpload.files[0]; wavSelect.style.opacity = '0.5'; _log('Custom WAV selected: ' + customWavFile.name); } });
+  wavSelect.addEventListener('change', function() { customWavFile = null; wavUpload.value = ''; wavSelect.style.opacity = '1'; });
+  decodeBtn.addEventListener('click', function() {
+    if (!recognizer) { alert('ASR not ready yet.'); return; }
+    if (customWavFile) {
+      decodeBtn.disabled = true; decodeBtn.textContent = 'Decoding...';
+      var reader = new FileReader();
+      reader.onload = function(e) { try { var wav = parseWav(e.target.result); _log('Custom WAV: ' + wav.duration.toFixed(2) + 's @ ' + wav.originalRate + 'Hz'); var result = decodeAudio(wav.samples); transcript.value = result.text; timingEl.textContent = 'Decoded in ' + result.elapsed.toFixed(0) + 'ms (audio: ' + wav.duration.toFixed(2) + 's, RTF: ' + (result.elapsed / 1000 / wav.duration).toFixed(3) + ')'; } catch (err) { _log('ERROR decoding: ' + err.message); transcript.value = 'Error: ' + err.message; } finally { decodeBtn.disabled = false; decodeBtn.textContent = 'Decode'; } };
+      reader.readAsArrayBuffer(customWavFile); return;
+    }
+    var wavUrl = WAV_BASE + wavSelect.value; decodeBtn.disabled = true; decodeBtn.textContent = 'Decoding...'; _log('Fetching ' + wavSelect.value + '...');
+    fetchAndDecodeWav(wavUrl).then(function(wav) { _log('WAV loaded: ' + wav.duration.toFixed(2) + 's @ ' + wav.originalRate + 'Hz'); var result = decodeAudio(wav.samples); transcript.value = result.text; timingEl.textContent = 'Decoded in ' + result.elapsed.toFixed(0) + 'ms (audio: ' + wav.duration.toFixed(2) + 's, RTF: ' + (result.elapsed / 1000 / wav.duration).toFixed(3) + ')'; })
+    .catch(function(err) { _log('ERROR: ' + err.message); transcript.value = 'Error: ' + err.message; })
+    .finally(function() { decodeBtn.disabled = false; decodeBtn.textContent = 'Decode'; });
+  });
+})();
+</script>
+
+</body>
+</html>

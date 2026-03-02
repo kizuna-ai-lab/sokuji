@@ -258,7 +258,7 @@ const defaultVolcengineAST2Settings: VolcengineAST2Settings = {
 };
 
 const defaultLocalInferenceSettings: LocalInferenceSettings = {
-  asrModel: 'sensevoice',
+  asrModel: 'sensevoice-int8',
   translationModel: '',  // Auto-select based on language pair
   ttsModel: '',  // Auto-select based on target language
   ttsSpeakerId: 0,
@@ -462,6 +462,7 @@ function createLocalInferenceSessionConfig(
     sourceLanguage: settings.sourceLanguage,
     targetLanguage: settings.targetLanguage,
     asrModelId: settings.asrModel,
+    translationModelId: settings.translationModel || undefined,
     ttsModelId,
     ttsSpeakerId: settings.ttsSpeakerId,
     ttsSpeed: settings.ttsSpeed,
@@ -712,6 +713,9 @@ const useSettingsStore = create<SettingsStore>()(
         const ready = modelState.isProviderReady(
           localSettings.sourceLanguage,
           localSettings.targetLanguage,
+          localSettings.asrModel || undefined,
+          localSettings.translationModel || undefined,
+          localSettings.ttsModel || undefined,
         );
 
         set({
