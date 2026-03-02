@@ -80,6 +80,12 @@ export default defineConfig(({ mode }) => {
           { src: 'popup.css', dest: '.' },
           // Bundled ONNX Runtime WASM (avoids cdn.jsdelivr.net CSP violation)
           { src: '../public/wasm/ort/*', dest: 'wasm/ort' },
+          // Classic workers for ASR/TTS (sherpa-onnx uses importScripts, can't be ES modules)
+          { src: '../public/workers/*', dest: 'workers' },
+          // sherpa-onnx WASM runtimes (loaded by workers via importScripts)
+          { src: '../public/wasm/sherpa-onnx-asr/*', dest: 'wasm/sherpa-onnx-asr' },
+          { src: '../public/wasm/sherpa-onnx-tts/*', dest: 'wasm/sherpa-onnx-tts' },
+          { src: '../public/wasm/sherpa-onnx-asr-stream/*', dest: 'wasm/sherpa-onnx-asr-stream' },
           // Dev-only assets
           ...(isDevMode
             ? [{ src: '../public/assets/test-tone.mp3', dest: 'assets' }]
