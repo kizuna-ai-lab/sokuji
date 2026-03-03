@@ -2167,9 +2167,6 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     dtype: 'q4',
     translationWorkerType: 'qwen',
   },
-  // Qwen3.5 hidden: VLM split-session architecture causes ~15x slowdown vs single-file models.
-  // Each token requires two ONNX session GPU roundtrips (embed_tokens + decoder_model_merged).
-  // Revisit when onnx-community provides a single-file text-only variant.
   {
     id: 'qwen3.5-0.8b-translation',
     type: 'translation',
