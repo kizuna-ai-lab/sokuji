@@ -52,7 +52,7 @@ export class TranslationEngine {
     // If already loaded with same model and same language pair, skip
     if (this.isReady && this.currentModelId === hfModelId
       && this.sourceLang === sourceLang && this.targetLang === targetLang) {
-      return { loadTimeMs: 0, device: entry.multilingual ? 'webgpu' : 'wasm' };
+      return { loadTimeMs: 0, device: entry.requiredDevice || 'wasm' };
     }
 
     // Dispose previous worker if switching models
@@ -71,17 +71,29 @@ export class TranslationEngine {
     const fileUrls = await manager.getModelBlobUrls(entry.id);
 
     return new Promise((resolve, reject) => {
-      // Create the Web Worker — select based on model type
-      if (entry.multilingual) {
-        this.worker = new Worker(
-          new URL('../workers/qwen-translation.worker.ts', import.meta.url),
-          { type: 'module' }
-        );
-      } else {
-        this.worker = new Worker(
-          new URL('../workers/translation.worker.ts', import.meta.url),
-          { type: 'module' }
-        );
+      // Create the Web Worker — select based on worker type
+      const workerType = entry.translationWorkerType
+        || (entry.multilingual ? 'qwen' : 'opus-mt');
+
+      switch (workerType) {
+        case 'qwen35':
+          this.worker = new Worker(
+            new URL('../workers/qwen35-translation.worker.ts', import.meta.url),
+            { type: 'module' }
+          );
+          break;
+        case 'qwen':
+          this.worker = new Worker(
+            new URL('../workers/qwen-translation.worker.ts', import.meta.url),
+            { type: 'module' }
+          );
+          break;
+        default: // opus-mt
+          this.worker = new Worker(
+            new URL('../workers/translation.worker.ts', import.meta.url),
+            { type: 'module' }
+          );
+          break;
       }
 
       this.worker.onmessage = (event) => {
@@ -139,8 +151,8 @@ export class TranslationEngine {
         }
       };
 
-      // Send init message with blob URLs + language info
-      this.worker.postMessage({ type: 'init', hfModelId, fileUrls, sourceLang, targetLang });
+      // Send init message with blob URLs + language info + dtype
+      this.worker.postMessage({ type: 'init', hfModelId, fileUrls, sourceLang, targetLang, dtype: entry.dtype });
     });
   }
 

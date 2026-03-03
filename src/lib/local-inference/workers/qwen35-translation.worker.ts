@@ -1,15 +1,19 @@
 /**
- * Qwen Translation Worker — Qwen2.5-0.5B-Instruct via WebGPU
+ * Qwen3.5 Translation Worker — Qwen3.5-0.8B-ONNX via WebGPU
  *
- * Production worker for multilingual translation using a decoder-only LLM.
- * Model files are pre-downloaded into IndexedDB and served via blob URL cache
- * (same pattern as the Opus-MT translation worker).
+ * Uses from_pretrained API with Qwen3_5ForConditionalGeneration + AutoProcessor
+ * (VLM architecture, but used text-only for translation).
+ * Model files are pre-downloaded into IndexedDB and served via blob URL cache.
  */
 
-import { pipeline, env } from '@huggingface/transformers';
+import {
+  AutoProcessor,
+  Qwen3_5ForConditionalGeneration,
+  TextStreamer,
+  env,
+} from '@huggingface/transformers';
 
 // Disable WASM proxy (we're already in a worker) and use bundled ORT WASM
-// files instead of fetching from cdn.jsdelivr.net (required for extension CSP).
 if (env.backends?.onnx?.wasm) {
   env.backends.onnx.wasm.proxy = false;
   env.backends.onnx.wasm.wasmPaths = '/wasm/ort/';
@@ -35,7 +39,7 @@ interface InitMessage {
   fileUrls: Record<string, string>;
   sourceLang: string;
   targetLang: string;
-  dtype?: string;
+  dtype?: Record<string, string>;
 }
 
 interface TranslateMessage {
@@ -52,9 +56,10 @@ interface DisposeMessage {
 
 type WorkerMessage = InitMessage | TranslateMessage | DisposeMessage;
 
-let generator: any = null;
+let model: any = null;
+let processor: any = null;
 
-// ─── Blob URL cache (same pattern as translation.worker.ts) ────────────────
+// ─── Blob URL cache (same pattern as other workers) ──────────────────────
 
 function createBlobUrlCache(fileUrls: Record<string, string>) {
   return {
@@ -86,12 +91,12 @@ async function handleInit(msg: InitMessage) {
     // WebGPU check
     const gpu = (self as any).navigator?.gpu;
     if (!gpu) {
-      self.postMessage({ type: 'error', error: 'WebGPU not available. Qwen translation requires WebGPU.' });
+      self.postMessage({ type: 'error', error: 'WebGPU not available. Qwen3.5 translation requires WebGPU.' });
       return;
     }
     const adapter = await gpu.requestAdapter();
     if (!adapter) {
-      self.postMessage({ type: 'error', error: 'No WebGPU adapter found. Qwen translation requires WebGPU.' });
+      self.postMessage({ type: 'error', error: 'No WebGPU adapter found. Qwen3.5 translation requires WebGPU.' });
       return;
     }
 
@@ -104,8 +109,17 @@ async function handleInit(msg: InitMessage) {
 
     self.postMessage({ type: 'status', status: 'loading', modelId: msg.hfModelId, device: 'webgpu' });
 
-    generator = await (pipeline as any)('text-generation', msg.hfModelId, {
-      dtype: msg.dtype || 'q4',
+    // Load processor and model (VLM architecture)
+    processor = await AutoProcessor.from_pretrained(msg.hfModelId);
+
+    const dtype = msg.dtype || {
+      embed_tokens: 'q4' as const,
+      vision_encoder: 'q4' as const,
+      decoder_model_merged: 'q4' as const,
+    };
+
+    model = await Qwen3_5ForConditionalGeneration.from_pretrained(msg.hfModelId, {
+      dtype: dtype as any,
       device: 'webgpu',
     });
 
@@ -119,8 +133,8 @@ async function handleInit(msg: InitMessage) {
 // ─── Translate handler ─────────────────────────────────────────────────────
 
 async function handleTranslate(msg: TranslateMessage) {
-  if (!generator) {
-    self.postMessage({ type: 'error', id: msg.id, error: 'Qwen model not loaded' });
+  if (!model || !processor) {
+    self.postMessage({ type: 'error', id: msg.id, error: 'Qwen3.5 model not loaded' });
     return;
   }
 
@@ -131,41 +145,49 @@ async function handleTranslate(msg: TranslateMessage) {
     const tgtName = LANG_NAMES[msg.targetLang] || msg.targetLang;
 
     const systemPrompt =
-      `Translate ${srcName} → ${tgtName}. Input is ASR speech. /no_think\n` +
+      `Translate ${srcName} → ${tgtName}. Input is ASR speech.\n` +
       `Drop fillers (um, uh, えーと, あのー, 那个). Fix stuttering and repetitions.\n` +
       `Output ONLY the ${tgtName} translation. Nothing else.`;
 
+    // Text-only messages (no image content)
     const messages = [
       { role: 'system', content: systemPrompt },
       { role: 'user', content: msg.text },
     ];
 
-    const result = await generator(messages, {
+    // Apply chat template with thinking disabled
+    const text = processor.apply_chat_template(messages, {
+      add_generation_prompt: true,
+      tokenizer_kwargs: { enable_thinking: false },
+    });
+
+    // Process text-only input (no images)
+    const inputs = await processor(text);
+
+    // Collect generated tokens
+    let translatedText = '';
+    const streamer = new TextStreamer(processor.tokenizer, {
+      skip_prompt: true,
+      skip_special_tokens: true,
+      callback_function: (token: string) => {
+        translatedText += token;
+      },
+    });
+
+    await model.generate({
+      ...inputs,
       max_new_tokens: 256,
       do_sample: false,
-      temperature: 0.0,
+      streamer,
     });
+
+    translatedText = translatedText.trim();
+
+    // Strip any <think>...</think> blocks
+    translatedText = translatedText.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
 
     const elapsed = Math.round(performance.now() - startTime);
 
-    // Extract generated text from chat output
-    let translatedText = '';
-    if (Array.isArray(result) && result.length > 0) {
-      const output = result[0] as any;
-      if (output.generated_text) {
-        if (Array.isArray(output.generated_text)) {
-          const lastMsg = output.generated_text[output.generated_text.length - 1];
-          translatedText = lastMsg?.content || '';
-        } else {
-          translatedText = output.generated_text;
-        }
-      }
-    }
-
-    // Strip any <think>...</think> blocks (Qwen3 thinking mode leakage)
-    translatedText = translatedText.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
-
-    // Same output format as Opus-MT worker
     self.postMessage({
       type: 'result',
       id: msg.id,
@@ -181,10 +203,11 @@ async function handleTranslate(msg: TranslateMessage) {
 // ─── Dispose handler ───────────────────────────────────────────────────────
 
 async function handleDispose() {
-  if (generator) {
-    await generator?.dispose?.();
-    generator = null;
+  if (model) {
+    await model?.dispose?.();
+    model = null;
   }
+  processor = null;
   self.postMessage({ type: 'disposed' });
 }
 
