@@ -73,6 +73,10 @@ export interface ModelManifestEntry {
   multilingual?: boolean;
   /** Hardware requirement — model filtered out if device unavailable */
   requiredDevice?: 'webgpu';
+  /** ONNX dtype for WebGPU models. String for single-file, Record for multi-component VLMs. */
+  dtype?: string | Record<string, string>;
+  /** Which translation worker to use. Defaults to opus-mt if omitted. */
+  translationWorkerType?: 'opus-mt' | 'qwen' | 'qwen35';
 }
 
 // ─── Download URL Configuration ─────────────────────────────────────────────
@@ -194,6 +198,35 @@ function qwenTranslationFiles(): ModelFileEntry[] {
     { filename: 'tokenizer.json', sizeBytes: 7_031_673 },
     { filename: 'tokenizer_config.json', sizeBytes: 7_306 },
     { filename: 'onnx/model_q4.onnx', sizeBytes: 786_156_820 },
+  ];
+}
+
+/** Qwen3-0.6B-ONNX file list (q4 ONNX via WebGPU). Using q4 instead of q4f16 for wider GPU compatibility (q4f16 requires shader-f16). */
+function qwen3TranslationFiles(): ModelFileEntry[] {
+  return [
+    { filename: 'config.json', sizeBytes: 912 },
+    { filename: 'generation_config.json', sizeBytes: 219 },
+    { filename: 'tokenizer.json', sizeBytes: 9_117_040 },
+    { filename: 'tokenizer_config.json', sizeBytes: 9_705 },
+    { filename: 'onnx/model_q4.onnx', sizeBytes: 919_096_585 },
+  ];
+}
+
+/** Qwen3.5-0.8B-ONNX file list (q4 mixed dtype via WebGPU, VLM architecture). */
+function qwen35TranslationFiles(): ModelFileEntry[] {
+  return [
+    { filename: 'config.json', sizeBytes: 2_849 },
+    { filename: 'generation_config.json', sizeBytes: 248 },
+    { filename: 'preprocessor_config.json', sizeBytes: 336 },
+    { filename: 'processor_config.json', sizeBytes: 1_300 },
+    { filename: 'tokenizer.json', sizeBytes: 19_226_111 },
+    { filename: 'tokenizer_config.json', sizeBytes: 9_161 },
+    { filename: 'onnx/embed_tokens_q4.onnx', sizeBytes: 857 },
+    { filename: 'onnx/embed_tokens_q4.onnx_data', sizeBytes: 162_897_920 },
+    { filename: 'onnx/vision_encoder_q4.onnx', sizeBytes: 184_854 },
+    { filename: 'onnx/vision_encoder_q4.onnx_data', sizeBytes: 68_267_008 },
+    { filename: 'onnx/decoder_model_merged_q4.onnx', sizeBytes: 881_569 },
+    { filename: 'onnx/decoder_model_merged_q4.onnx_data', sizeBytes: 485_425_152 },
   ];
 }
 
@@ -2115,6 +2148,44 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     requiredDevice: 'webgpu',
     hfModelId: 'onnx-community/Qwen2.5-0.5B-Instruct',
     files: qwenTranslationFiles(),
+    translationWorkerType: 'qwen',
+  },
+  {
+    id: 'qwen3-0.6b-translation',
+    type: 'translation',
+    name: 'Qwen 3 0.6B (multilingual, WebGPU)',
+    languages: [
+      'ja', 'zh', 'en', 'ko', 'de', 'fr', 'es', 'ru',
+      'ar', 'pt', 'th', 'vi', 'id', 'tr', 'nl', 'pl',
+      'it', 'hi', 'sv', 'da', 'fi', 'hu', 'ro', 'no',
+      'uk', 'cs', 'et', 'af',
+    ],
+    multilingual: true,
+    requiredDevice: 'webgpu',
+    hfModelId: 'onnx-community/Qwen3-0.6B-ONNX',
+    files: qwen3TranslationFiles(),
+    dtype: 'q4',
+    translationWorkerType: 'qwen',
+  },
+  // Qwen3.5 hidden: VLM split-session architecture causes ~15x slowdown vs single-file models.
+  // Each token requires two ONNX session GPU roundtrips (embed_tokens + decoder_model_merged).
+  // Revisit when onnx-community provides a single-file text-only variant.
+  {
+    id: 'qwen3.5-0.8b-translation',
+    type: 'translation',
+    name: 'Qwen 3.5 0.8B (multilingual, WebGPU)',
+    languages: [
+      'ja', 'zh', 'en', 'ko', 'de', 'fr', 'es', 'ru',
+      'ar', 'pt', 'th', 'vi', 'id', 'tr', 'nl', 'pl',
+      'it', 'hi', 'sv', 'da', 'fi', 'hu', 'ro', 'no',
+      'uk', 'cs', 'et', 'af',
+    ],
+    multilingual: true,
+    requiredDevice: 'webgpu',
+    hfModelId: 'onnx-community/Qwen3.5-0.8B-ONNX',
+    files: qwen35TranslationFiles(),
+    dtype: { embed_tokens: 'q4', vision_encoder: 'q4', decoder_model_merged: 'q4' },
+    translationWorkerType: 'qwen35',
   },
 
   // ── Language Family Models ─────────────────────────────────────────────
