@@ -59,6 +59,8 @@ export interface ModelManifestEntry {
   engine?: TtsEngineType;
   /** ASR engine type — determines which config builder the offline ASR worker uses */
   asrEngine?: AsrEngineType | StreamAsrEngineType;
+  /** Which ASR worker to use. Defaults to sherpa-onnx if omitted. */
+  asrWorkerType?: 'sherpa-onnx' | 'whisper-webgpu';
   /** Engine-specific config for matcha/kokoro/vits models */
   ttsConfig?: TtsModelConfig;
   /** Number of speaker voices available (TTS only, 1 = single-speaker) */
@@ -120,6 +122,10 @@ export function getModelDownloadUrl(
     case 'tts':
       return `${getTtsCdnBase()}/${entry.cdnPath}/${filename}`;
     default: // asr, asr-stream
+      // ASR models with hfModelId (e.g. Whisper WebGPU) download from HuggingFace directly
+      if (entry.hfModelId && !entry.cdnPath) {
+        return `${getTranslationCdnBase()}/${entry.hfModelId}/resolve/main/${filename}`;
+      }
       return `${getAsrCdnBase()}/${entry.cdnPath}/${filename}`;
   }
 }
@@ -228,6 +234,35 @@ function qwen35TranslationFiles(): ModelFileEntry[] {
     { filename: 'onnx/decoder_model_merged_q4.onnx', sizeBytes: 881_569 },
     { filename: 'onnx/decoder_model_merged_q4.onnx_data', sizeBytes: 485_425_152 },
   ];
+}
+
+/**
+ * Whisper WebGPU ASR models (via @huggingface/transformers).
+ * Files downloaded directly from HuggingFace Hub. Sizes from HF API.
+ * dtype: encoder_model=fp32, decoder_model_merged=q4 for WebGPU.
+ */
+function whisperFiles(
+  config: number, genConfig: number, preprocessor: number,
+  tokenizer: number, tokenizerConfig: number,
+  encoder: number, decoder: number,
+  extra?: { normalizer?: number; addedTokens?: number; specialTokensMap?: number;
+            vocab?: number; merges?: number },
+): ModelFileEntry[] {
+  const files: ModelFileEntry[] = [
+    { filename: 'config.json', sizeBytes: config },
+    { filename: 'generation_config.json', sizeBytes: genConfig },
+    { filename: 'preprocessor_config.json', sizeBytes: preprocessor },
+    { filename: 'tokenizer.json', sizeBytes: tokenizer },
+    { filename: 'tokenizer_config.json', sizeBytes: tokenizerConfig },
+    { filename: 'onnx/encoder_model.onnx', sizeBytes: encoder },
+    { filename: 'onnx/decoder_model_merged_q4.onnx', sizeBytes: decoder },
+  ];
+  if (extra?.normalizer) files.push({ filename: 'normalizer.json', sizeBytes: extra.normalizer });
+  if (extra?.addedTokens) files.push({ filename: 'added_tokens.json', sizeBytes: extra.addedTokens });
+  if (extra?.specialTokensMap) files.push({ filename: 'special_tokens_map.json', sizeBytes: extra.specialTokensMap });
+  if (extra?.vocab) files.push({ filename: 'vocab.json', sizeBytes: extra.vocab });
+  if (extra?.merges) files.push({ filename: 'merges.txt', sizeBytes: extra.merges });
+  return files;
 }
 
 // ─── Model Manifest ──────────────────────────────────────────────────────────
@@ -535,6 +570,86 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-stream-nemo-ctc-en-80ms-int8',
     files: streamAsrFiles(132_060_302, 160),
     asrEngine: 'stream-nemo-ctc',
+  },
+
+  // ── Whisper WebGPU ASR Models ──────────────────────────────────────────
+  // Whisper via @huggingface/transformers with built-in Silero VAD.
+  // dtype: encoder_model=fp32, decoder_model_merged=q4 for WebGPU.
+  // Shared extra files for multilingual models
+  {
+    id: 'whisper-tiny-en-webgpu',
+    type: 'asr',
+    name: 'Whisper Tiny EN (WebGPU)',
+    languages: ['en'],
+    hfModelId: 'onnx-community/whisper-tiny.en',
+    requiredDevice: 'webgpu',
+    asrWorkerType: 'whisper-webgpu',
+    dtype: { encoder_model: 'fp32', decoder_model_merged: 'q4' },
+    files: whisperFiles(
+      2_197, 1_646, 339,   // config, genConfig, preprocessor
+      2_405_679, 282_662,  // tokenizer, tokenizerConfig
+      32_904_992,          // encoder_model.onnx (fp32)
+      86_712_166,          // decoder_model_merged_q4.onnx
+      { normalizer: 52_666, addedTokens: 34_604, specialTokensMap: 2_173,
+        vocab: 999_186, merges: 456_318 },
+    ),
+  },
+  {
+    id: 'whisper-tiny-webgpu',
+    type: 'asr',
+    name: 'Whisper Tiny (WebGPU, 99+ languages)',
+    languages: ['multilingual'],
+    multilingual: true,
+    hfModelId: 'onnx-community/whisper-tiny',
+    requiredDevice: 'webgpu',
+    asrWorkerType: 'whisper-webgpu',
+    dtype: { encoder_model: 'fp32', decoder_model_merged: 'q4' },
+    files: whisperFiles(
+      2_243, 3_772, 339,   // config, genConfig, preprocessor
+      2_480_466, 282_683,  // tokenizer, tokenizerConfig
+      32_904_992,          // encoder_model.onnx (fp32)
+      86_713_702,          // decoder_model_merged_q4.onnx
+      { normalizer: 52_666, addedTokens: 34_604, specialTokensMap: 2_194,
+        vocab: 1_036_584, merges: 493_869 },
+    ),
+  },
+  {
+    id: 'whisper-base-webgpu',
+    type: 'asr',
+    name: 'Whisper Base (WebGPU, 99+ languages)',
+    languages: ['multilingual'],
+    multilingual: true,
+    hfModelId: 'onnx-community/whisper-base',
+    requiredDevice: 'webgpu',
+    asrWorkerType: 'whisper-webgpu',
+    dtype: { encoder_model: 'fp32', decoder_model_merged: 'q4' },
+    files: whisperFiles(
+      2_243, 3_832, 339,   // config, genConfig, preprocessor
+      2_480_466, 282_682,  // tokenizer, tokenizerConfig
+      82_468_078,          // encoder_model.onnx (fp32)
+      123_602_419,         // decoder_model_merged_q4.onnx
+      { normalizer: 52_666, addedTokens: 34_604, specialTokensMap: 2_194,
+        vocab: 1_036_584, merges: 493_869 },
+    ),
+  },
+  {
+    id: 'whisper-small-webgpu',
+    type: 'asr',
+    name: 'Whisper Small (WebGPU, 99+ languages)',
+    languages: ['multilingual'],
+    multilingual: true,
+    hfModelId: 'onnx-community/whisper-small',
+    requiredDevice: 'webgpu',
+    asrWorkerType: 'whisper-webgpu',
+    dtype: { encoder_model: 'fp32', decoder_model_merged: 'q4' },
+    files: whisperFiles(
+      2_227, 3_893, 339,   // config, genConfig, preprocessor
+      2_480_466, 282_683,  // tokenizer, tokenizerConfig
+      352_825_870,         // encoder_model.onnx (fp32)
+      233_149_327,         // decoder_model_merged_q4.onnx
+      { normalizer: 52_666, addedTokens: 34_604, specialTokensMap: 2_194,
+        vocab: 1_036_584, merges: 493_869 },
+    ),
   },
 
   // ── TTS Models ─────────────────────────────────────────────────────────

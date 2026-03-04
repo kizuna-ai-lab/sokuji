@@ -161,7 +161,7 @@ export class LocalInferenceClient implements IClient {
             threshold: config.vadThreshold,
             minSilenceDuration: config.vadMinSilenceDuration,
             minSpeechDuration: config.vadMinSpeechDuration,
-          });
+          }, config.sourceLanguage);
         }
       });
 

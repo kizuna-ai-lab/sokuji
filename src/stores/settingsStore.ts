@@ -115,9 +115,9 @@ export interface LocalInferenceSettings {
   sourceLanguage: string;
   targetLanguage: string;
   turnDetectionMode: 'Auto' | 'Push-to-Talk';
-  vadThreshold: number;         // 0.0-1.0, default 0.5
-  vadMinSilenceDuration: number; // seconds, default 0.5
-  vadMinSpeechDuration: number;  // seconds, default 0.25
+  vadThreshold: number;         // 0.0-1.0, default 0.3 (matching vad-web)
+  vadMinSilenceDuration: number; // seconds, default 1.4 (redemptionMs in vad-web)
+  vadMinSpeechDuration: number;  // seconds, default 0.4 (matching vad-web)
 }
 
 // Cache Entry
@@ -267,9 +267,9 @@ const defaultLocalInferenceSettings: LocalInferenceSettings = {
   sourceLanguage: 'ja',
   targetLanguage: 'en',
   turnDetectionMode: 'Auto',
-  vadThreshold: 0.5,
-  vadMinSilenceDuration: 0.5,
-  vadMinSpeechDuration: 0.25,
+  vadThreshold: 0.3,
+  vadMinSilenceDuration: 1.4,
+  vadMinSpeechDuration: 0.4,
 };
 
 // ==================== Store Definition ====================
