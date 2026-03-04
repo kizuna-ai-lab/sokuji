@@ -206,7 +206,8 @@
     "webrtcVadNotice": "VAD الخادم معطّل في وضع WebRTC. في WebRTC، يقطع الخادم الصوت تلقائيًا عند اكتشاف الكلام، مما يقطع الترجمات.",
     "unlimited": "غير محدود",
     "custom": "مخصص",
-    "regionNotSupported": "الخدمة غير متوفرة في منطقتك. يرجى التحقق من بيئة الشبكة أو تجربة مزود آخر."
+    "regionNotSupported": "الخدمة غير متوفرة في منطقتك. يرجى التحقق من بيئة الشبكة أو تجربة مزود آخر.",
+    "geminiParticipantTokenWarning": "تحذير: حد رموز مشاركي Gemini"
   },
   "simpleSettings": {
     "quickSetup": "إعداد سريع",

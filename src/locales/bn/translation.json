@@ -200,7 +200,20 @@
     "webrtcVadNotice": "WebRTC মোডে সার্ভার VAD অক্ষম। WebRTC-তে, সার্ভার কথা শনাক্ত করলে স্বয়ংক্রিয়ভাবে অডিও কেটে দেয়, যা অনুবাদ ব্যাহত করে।",
     "unlimited": "সীমাহীন",
     "custom": "কাস্টম",
-    "regionNotSupported": "আপনার অঞ্চলে সেবা উপলব্ধ নয়। আপনার নেটওয়ার্ক পরিবেশ পরীক্ষা করুন বা অন্য প্রদানকারী চেষ্টা করুন।"
+    "regionNotSupported": "আপনার অঞ্চলে সেবা উপলব্ধ নয়। আপনার নেটওয়ার্ক পরিবেশ পরীক্ষা করুন বা অন্য প্রদানকারী চেষ্টা করুন।",
+    "sessionActiveNotice": "সক্রিয় সেশনের সময় সেটিংস পরিবর্তন করা যাবে না",
+    "realtimeModelAvailable": "রিয়েল-টাইম মডেল উপলব্ধ",
+    "realtimeModelNotAvailable": "রিয়েল-টাইম মডেল উপলব্ধ নয়",
+    "geminiParticipantTokenWarning": "সতর্কতা: Gemini অংশগ্রহণকারী টোকেন সীমা",
+    "apiKeyTooltip": "প্রদানকারীর কাছ থেকে প্রাপ্ত API কী লিখুন",
+    "clientIdTooltip": "ক্লায়েন্ট আইডি লিখুন",
+    "clientSecretTooltip": "ক্লায়েন্ট সিক্রেট লিখুন",
+    "uiLanguageTooltip": "UI প্রদর্শন ভাষা নির্বাচন করুন",
+    "sourceLanguageTooltip": "ইনপুট অডিওর ভাষা নির্বাচন করুন",
+    "targetLanguageTooltip": "লক্ষ্য ভাষা নির্বাচন করুন",
+    "thresholdTooltip": "ভয়েস সনাক্তকরণের থ্রেশহোল্ড সামঞ্জস্য করুন",
+    "prefixPaddingTooltip": "বক্তৃতার আগে প্যাডিং যোগ করুন",
+    "silenceDurationTooltip": "বক্তৃতা শেষ বলে বিবেচনা করার আগে নীরবতার সময়কাল"
   },
   "simpleSettings": {
     "quickSetup": "দ্রুত সেটআপ",
