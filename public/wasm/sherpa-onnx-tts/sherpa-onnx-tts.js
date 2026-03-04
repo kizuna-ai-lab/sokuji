@@ -723,6 +723,11 @@ class OfflineTts {
     const h = this.Module._SherpaOnnxOfflineTtsGenerate(
         this.handle, textPtr, config.sid, config.speed);
 
+    if (!h) {
+      this.Module._free(textPtr);
+      throw new Error('Failed to generate audio');
+    }
+
     const numSamples = this.Module.HEAP32[h / 4 + 1];
     const sampleRate = this.Module.HEAP32[h / 4 + 2];
 
@@ -733,6 +738,7 @@ class OfflineTts {
     }
 
     this.Module._SherpaOnnxDestroyOfflineTtsGeneratedAudio(h);
+    this.Module._free(textPtr);
     return {samples: samples, sampleRate: sampleRate};
   }
 
