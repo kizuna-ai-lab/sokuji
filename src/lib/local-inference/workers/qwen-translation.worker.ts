@@ -144,6 +144,7 @@ async function handleTranslate(msg: TranslateMessage) {
       max_new_tokens: 256,
       do_sample: false,
       temperature: 0.0,
+      tokenizer_encode_kwargs: { enable_thinking: false },
     });
 
     const elapsed = Math.round(performance.now() - startTime);
@@ -162,8 +163,8 @@ async function handleTranslate(msg: TranslateMessage) {
       }
     }
 
-    // Strip any <think>...</think> blocks (Qwen3 thinking mode leakage)
-    translatedText = translatedText.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
+    // Strip <think> blocks: closed ones, and unclosed trailing ones (hit max_new_tokens)
+    translatedText = translatedText.replace(/<think>[\s\S]*?(<\/think>|$)/g, '').trim();
 
     // Same output format as Opus-MT worker
     self.postMessage({
