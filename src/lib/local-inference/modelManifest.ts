@@ -219,7 +219,7 @@ function qwen3TranslationFiles(): ModelFileEntry[] {
 }
 
 /** Qwen3.5-0.8B-ONNX file list (q4 mixed dtype via WebGPU, VLM architecture). */
-function qwen35TranslationFiles(): ModelFileEntry[] {
+function qwen35_08bTranslationFiles(): ModelFileEntry[] {
   return [
     { filename: 'config.json', sizeBytes: 2_849 },
     { filename: 'generation_config.json', sizeBytes: 248 },
@@ -233,6 +233,24 @@ function qwen35TranslationFiles(): ModelFileEntry[] {
     { filename: 'onnx/vision_encoder_q4.onnx_data', sizeBytes: 68_267_008 },
     { filename: 'onnx/decoder_model_merged_q4.onnx', sizeBytes: 881_569 },
     { filename: 'onnx/decoder_model_merged_q4.onnx_data', sizeBytes: 485_425_152 },
+  ];
+}
+
+/** Qwen3.5-2B-ONNX file list (q4 mixed dtype via WebGPU, VLM architecture). */
+function qwen35_2bTranslationFiles(): ModelFileEntry[] {
+  return [
+    { filename: 'config.json', sizeBytes: 2_993 },
+    { filename: 'generation_config.json', sizeBytes: 248 },
+    { filename: 'preprocessor_config.json', sizeBytes: 336 },
+    { filename: 'processor_config.json', sizeBytes: 1_300 },
+    { filename: 'tokenizer.json', sizeBytes: 19_226_111 },
+    { filename: 'tokenizer_config.json', sizeBytes: 9_161 },
+    { filename: 'onnx/embed_tokens_q4.onnx', sizeBytes: 857 },
+    { filename: 'onnx/embed_tokens_q4.onnx_data', sizeBytes: 325_795_840 },
+    { filename: 'onnx/vision_encoder_q4.onnx', sizeBytes: 338_758 },
+    { filename: 'onnx/vision_encoder_q4.onnx_data', sizeBytes: 217_952_256 },
+    { filename: 'onnx/decoder_model_merged_q4.onnx', sizeBytes: 885_982 },
+    { filename: 'onnx/decoder_model_merged_q4.onnx_data', sizeBytes: 1_209_126_912 },
   ];
 }
 
@@ -2340,7 +2358,24 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     multilingual: true,
     requiredDevice: 'webgpu',
     hfModelId: 'onnx-community/Qwen3.5-0.8B-ONNX',
-    files: qwen35TranslationFiles(),
+    files: qwen35_08bTranslationFiles(),
+    dtype: { embed_tokens: 'q4', vision_encoder: 'q4', decoder_model_merged: 'q4' },
+    translationWorkerType: 'qwen35',
+  },
+  {
+    id: 'qwen3.5-2b-translation',
+    type: 'translation',
+    name: 'Qwen 3.5 2B (multilingual, WebGPU)',
+    languages: [
+      'ja', 'zh', 'en', 'ko', 'de', 'fr', 'es', 'ru',
+      'ar', 'pt', 'th', 'vi', 'id', 'tr', 'nl', 'pl',
+      'it', 'hi', 'sv', 'da', 'fi', 'hu', 'ro', 'no',
+      'uk', 'cs', 'et', 'af',
+    ],
+    multilingual: true,
+    requiredDevice: 'webgpu',
+    hfModelId: 'onnx-community/Qwen3.5-2B-ONNX',
+    files: qwen35_2bTranslationFiles(),
     dtype: { embed_tokens: 'q4', vision_encoder: 'q4', decoder_model_merged: 'q4' },
     translationWorkerType: 'qwen35',
   },
