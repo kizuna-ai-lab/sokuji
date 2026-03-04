@@ -41,6 +41,7 @@ export interface TtsModelConfig {
 }
 
 export interface ModelManifestEntry {
+  // ─── Identity ──────────────────────────────────────────────────────────
   /** Unique model identifier (e.g. 'sensevoice', 'piper-en', 'opus-mt-ja-en') */
   id: string;
   type: ModelType;
@@ -48,86 +49,113 @@ export interface ModelManifestEntry {
   name: string;
   /** Languages supported by this model */
   languages: string[];
-  // ─── sherpa-onnx specific (ASR / TTS) ──────────────────────────────────
+  /** True for models supporting any pair of their listed languages */
+  multilingual?: boolean;
+
+  // ─── Download & hosting ────────────────────────────────────────────────
+  // Models are hosted in two ways:
+  //   1. Self-hosted HF datasets: cdnPath → {type-specific-base}/{cdnPath}/{file}
+  //      Used by: sherpa-onnx ASR, streaming ASR, TTS
+  //   2. Third-party HF Hub repos: hfModelId → {hf-hub-base}/{hfModelId}/resolve/main/{file}
+  //      Used by: Whisper WebGPU ASR, Opus-MT translation, Qwen translation
   /** List of files that must be downloaded */
   files?: ModelFileEntry[];
-  /** CDN path segment for download URL construction (e.g. 'sherpa-onnx-asr-sensevoice') */
+  /** Self-hosted HF dataset path segment (e.g. 'wasm-sensevoice-int8') */
   cdnPath?: string;
+  /** Third-party HuggingFace Hub model ID (e.g. 'onnx-community/whisper-tiny.en', 'Xenova/opus-mt-ja-en') */
+  hfModelId?: string;
+
+  // ─── Hardware requirements ─────────────────────────────────────────────
+  /** Hardware requirement — model filtered out if device unavailable */
+  requiredDevice?: 'webgpu';
+  /** ONNX dtype for WebGPU models. String for single-file, Record for multi-component models. */
+  dtype?: string | Record<string, string>;
+
+  // ─── ASR configuration ─────────────────────────────────────────────────
+  /** ASR engine type — determines which config builder the worker uses */
+  asrEngine?: AsrEngineType | StreamAsrEngineType;
+  /** Which ASR worker to use. Defaults to 'sherpa-onnx' if omitted. */
+  asrWorkerType?: 'sherpa-onnx' | 'whisper-webgpu';
+
+  // ─── TTS configuration ─────────────────────────────────────────────────
   /** TTS .onnx model filename */
   modelFile?: string;
   /** TTS engine type — determines how the worker builds the sherpa-onnx config */
   engine?: TtsEngineType;
-  /** ASR engine type — determines which config builder the offline ASR worker uses */
-  asrEngine?: AsrEngineType | StreamAsrEngineType;
-  /** Which ASR worker to use. Defaults to sherpa-onnx if omitted. */
-  asrWorkerType?: 'sherpa-onnx' | 'whisper-webgpu';
   /** Engine-specific config for matcha/kokoro/vits models */
   ttsConfig?: TtsModelConfig;
-  /** Number of speaker voices available (TTS only, 1 = single-speaker) */
+  /** Number of speaker voices available (1 = single-speaker) */
   numSpeakers?: number;
 
-  // ─── Translation specific ──────────────────────────────────────────────
-  /** HuggingFace model ID (e.g. 'Xenova/opus-mt-ja-en') */
-  hfModelId?: string;
+  // ─── Translation configuration ─────────────────────────────────────────
   sourceLang?: string;
   targetLang?: string;
-  /** True for models supporting any pair of their listed languages */
-  multilingual?: boolean;
-  /** Hardware requirement — model filtered out if device unavailable */
-  requiredDevice?: 'webgpu';
-  /** ONNX dtype for WebGPU models. String for single-file, Record for multi-component VLMs. */
-  dtype?: string | Record<string, string>;
-  /** Which translation worker to use. Defaults to opus-mt if omitted. */
+  /** Which translation worker to use. Defaults to 'opus-mt' if omitted. */
   translationWorkerType?: 'opus-mt' | 'qwen' | 'qwen35';
 }
 
 // ─── Download URL Configuration ─────────────────────────────────────────────
 
-/** Default HF base URLs for each model type. */
-const ASR_HF_BASE = 'https://huggingface.co/datasets/jiangzhuo9357/sherpa-onnx-asr-models/resolve/main';
-const TTS_HF_BASE = 'https://huggingface.co/datasets/jiangzhuo9357/sherpa-onnx-tts-models/resolve/main';
-const TRANSLATION_HF_BASE = 'https://huggingface.co';
-
 /**
- * CDN base URL for each model type. Override defaults with env vars
- * to use a self-hosted CDN that mirrors HuggingFace's URL structure.
+ * Two hosting patterns for model files:
  *
- * - VITE_ASR_CDN_BASE: ASR models (default: HF dataset repo)
- * - VITE_TTS_CDN_BASE: TTS models (default: HF dataset repo)
- * - VITE_TRANSLATION_CDN_BASE: Translation models (default: HF hub)
+ * 1. Self-hosted HF datasets: Files hosted in our own HuggingFace dataset repos.
+ *    URL pattern: {BASE}/{cdnPath}/{filename}
+ *    Used by: sherpa-onnx ASR, streaming ASR, TTS models
+ *
+ * 2. Third-party HF Hub: Files hosted in public HF model repos by other organizations.
+ *    URL pattern: {BASE}/{hfModelId}/resolve/main/{filename}
+ *    Used by: Whisper WebGPU ASR, Opus-MT translation, Qwen translation models
  */
-function getAsrCdnBase(): string {
-  return (import.meta as any).env?.VITE_ASR_CDN_BASE || ASR_HF_BASE;
+const SELF_HOSTED_ASR_BASE = 'https://huggingface.co/datasets/jiangzhuo9357/sherpa-onnx-asr-models/resolve/main';
+const SELF_HOSTED_TTS_BASE = 'https://huggingface.co/datasets/jiangzhuo9357/sherpa-onnx-tts-models/resolve/main';
+const HF_HUB_BASE = 'https://huggingface.co';
+
+/**
+ * CDN base URLs. Override defaults with env vars for self-hosted CDN mirrors.
+ *
+ * - VITE_ASR_CDN_BASE: Self-hosted ASR models (default: HF dataset repo)
+ * - VITE_TTS_CDN_BASE: Self-hosted TTS models (default: HF dataset repo)
+ * - VITE_HF_HUB_BASE:  Third-party HF Hub models (default: huggingface.co)
+ *   (VITE_TRANSLATION_CDN_BASE also accepted for backward compatibility)
+ */
+function getSelfHostedAsrBase(): string {
+  return (import.meta as any).env?.VITE_ASR_CDN_BASE || SELF_HOSTED_ASR_BASE;
 }
-function getTtsCdnBase(): string {
-  return (import.meta as any).env?.VITE_TTS_CDN_BASE || TTS_HF_BASE;
+function getSelfHostedTtsBase(): string {
+  return (import.meta as any).env?.VITE_TTS_CDN_BASE || SELF_HOSTED_TTS_BASE;
 }
-function getTranslationCdnBase(): string {
-  return (import.meta as any).env?.VITE_TRANSLATION_CDN_BASE || TRANSLATION_HF_BASE;
+function getHfHubBase(): string {
+  return (import.meta as any).env?.VITE_HF_HUB_BASE
+    || (import.meta as any).env?.VITE_TRANSLATION_CDN_BASE
+    || HF_HUB_BASE;
 }
 
 /**
- * Download URL for a model file. Each type has its own configurable base.
- * - ASR:         {ASR_BASE}/{cdnPath}/{filename}
- * - TTS:         {TTS_BASE}/{cdnPath}/{filename}
- * - Translation: {TRANSLATION_BASE}/{hfModelId}/resolve/main/{filename}
+ * Download URL for a model file. Dispatches by hosting source:
+ *
+ * - hfModelId set → third-party HF Hub: {HF_HUB_BASE}/{hfModelId}/resolve/main/{filename}
+ * - cdnPath set   → self-hosted dataset: {TYPE_BASE}/{cdnPath}/{filename}
+ *
+ * Exactly one of hfModelId or cdnPath should be set on each manifest entry.
  */
 export function getModelDownloadUrl(
   entry: { type: ModelType; cdnPath?: string; hfModelId?: string },
   filename: string,
 ): string {
-  switch (entry.type) {
-    case 'translation':
-      return `${getTranslationCdnBase()}/${entry.hfModelId}/resolve/main/${filename}`;
-    case 'tts':
-      return `${getTtsCdnBase()}/${entry.cdnPath}/${filename}`;
-    default: // asr, asr-stream
-      // ASR models with hfModelId (e.g. Whisper WebGPU) download from HuggingFace directly
-      if (entry.hfModelId && !entry.cdnPath) {
-        return `${getTranslationCdnBase()}/${entry.hfModelId}/resolve/main/${filename}`;
-      }
-      return `${getAsrCdnBase()}/${entry.cdnPath}/${filename}`;
+  // Third-party HF Hub models (Whisper WebGPU, Opus-MT, Qwen)
+  if (entry.hfModelId) {
+    return `${getHfHubBase()}/${entry.hfModelId}/resolve/main/${filename}`;
   }
+
+  // Self-hosted HF dataset models (sherpa-onnx ASR, streaming ASR, TTS)
+  if (entry.cdnPath) {
+    return entry.type === 'tts'
+      ? `${getSelfHostedTtsBase()}/${entry.cdnPath}/${filename}`
+      : `${getSelfHostedAsrBase()}/${entry.cdnPath}/${filename}`;
+  }
+
+  throw new Error(`Model has no download path: neither cdnPath nor hfModelId is set`);
 }
 
 /**
@@ -289,7 +317,8 @@ function whisperFiles(
 
 export const MODEL_MANIFEST: ModelManifestEntry[] = [
 
-  // ── Offline VAD+ASR Models (22) ──────────────────────────────────────────
+  // ── Offline VAD+ASR Models — self-hosted (22) ───────────────────────────
+  // Downloaded from jiangzhuo9357/sherpa-onnx-asr-models dataset. Uses cdnPath.
   // SenseVoice
   {
     id: 'sensevoice-int8',
@@ -499,7 +528,8 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     asrEngine: 'transducer',
   },
 
-  // ── Streaming ASR Models (10) ──────────────────────────────────────────
+  // ── Streaming ASR Models — self-hosted (10) ─────────────────────────────
+  // Downloaded from jiangzhuo9357/sherpa-onnx-asr-models dataset. Uses cdnPath.
   // These use a different WASM binary (no VAD) and require a streaming engine.
   {
     id: 'stream-en-kroko',
@@ -592,7 +622,8 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     asrEngine: 'stream-nemo-ctc',
   },
 
-  // ── Whisper WebGPU ASR Models ──────────────────────────────────────────
+  // ── Whisper WebGPU ASR Models — third-party HF Hub ──────────────────────
+  // Downloaded from onnx-community repos on HuggingFace Hub. Uses hfModelId.
   // Whisper via @huggingface/transformers with built-in Silero VAD.
   // dtype: encoder_model=fp32, decoder_model_merged=q4 for WebGPU.
   // Shared extra files for multilingual models
@@ -715,7 +746,8 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
   // (LiteWhisperForConditionalGeneration + low_rank_config) is incompatible with
   // Transformers.js WhisperForConditionalGeneration pipeline. Produces garbage output.
 
-  // ── TTS Models ─────────────────────────────────────────────────────────
+  // ── TTS Models — self-hosted (136) ──────────────────────────────────────
+  // Downloaded from jiangzhuo9357/sherpa-onnx-tts-models dataset. Uses cdnPath.
   // 136 models across 53 languages, selected by speed benchmark.
   // Per language+gender: top 2 fastest, plus similar-speed Piper speakers.
   {
@@ -2227,9 +2259,9 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     numSpeakers: 1,
   },
 
-  // ── Translation Models ───────────────────────────────────────────────────
-  // Downloaded directly from HuggingFace Hub. Per-model file sizes from HF API.
-  // hfModelId is needed by the worker for pipeline() identification.
+  // ── Translation Models — third-party HF Hub ─────────────────────────────
+  // Downloaded from Xenova/onnx-community repos on HuggingFace Hub. Uses hfModelId.
+  // hfModelId is also needed by the worker for pipeline() / from_pretrained() identification.
 
   // ── Core Pairs (ja/zh/ko/de/fr/es ↔ en) ───────────────────────────────
   { id: 'opus-mt-ja-en', type: 'translation', name: 'Opus-MT (ja → en)', languages: ['ja', 'en'], files: translationFiles(1_376, 293, 5_991_485, 280, 50_705_822, 58_001_744), hfModelId: 'Xenova/opus-mt-ja-en', sourceLang: 'ja', targetLang: 'en' },
