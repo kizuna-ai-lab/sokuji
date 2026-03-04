@@ -183,8 +183,8 @@ async function handleTranslate(msg: TranslateMessage) {
 
     translatedText = translatedText.trim();
 
-    // Strip any <think>...</think> blocks
-    translatedText = translatedText.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
+    // Strip <think> blocks: closed ones, and unclosed trailing ones (hit max_new_tokens)
+    translatedText = translatedText.replace(/<think>[\s\S]*?(<\/think>|$)/g, '').trim();
 
     const elapsed = Math.round(performance.now() - startTime);
 

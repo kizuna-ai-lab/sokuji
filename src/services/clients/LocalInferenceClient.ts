@@ -386,6 +386,12 @@ export class LocalInferenceClient implements IClient {
 
       const translatedText = translationResult.translatedText;
       console.debug('[LocalInference] Translation:', job.text, '→', translatedText, `(${translationResult.inferenceTimeMs}ms)`);
+
+      // Skip empty translations (e.g. thinking-mode leakage stripped to nothing)
+      if (!translatedText) {
+        console.debug('[LocalInference] Translation empty — skipping:', job.text);
+        return;
+      }
       this.emitEvent('local.translation.end', 'server', {
         sourceText: job.text,
         translatedText,
