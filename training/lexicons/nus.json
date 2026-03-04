@@ -1,0 +1,866 @@
+{
+  "language_code": "nus",
+  "language_name": "Nuer",
+  "language_native": "Thok Nath",
+  "language_family": "Nilotic",
+  "entry_count": 107,
+  "complete_entries": 0,
+  "entries": [
+    {
+      "word": "[TODO:nus:hello]",
+      "ipa": "",
+      "meaning_en": "hello",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:nus:goodbye]",
+      "ipa": "",
+      "meaning_en": "goodbye",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:nus:good morning]",
+      "ipa": "",
+      "meaning_en": "good morning",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:nus:good evening]",
+      "ipa": "",
+      "meaning_en": "good evening",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:nus:thank you]",
+      "ipa": "",
+      "meaning_en": "thank you",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:nus:please]",
+      "ipa": "",
+      "meaning_en": "please",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:nus:yes]",
+      "ipa": "",
+      "meaning_en": "yes",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:nus:no]",
+      "ipa": "",
+      "meaning_en": "no",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:nus:excuse me]",
+      "ipa": "",
+      "meaning_en": "excuse me",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:nus:sorry]",
+      "ipa": "",
+      "meaning_en": "sorry",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:nus:one]",
+      "ipa": "",
+      "meaning_en": "one",
+      "pos": "numeral",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:nus:two]",
+      "ipa": "",
+      "meaning_en": "two",
+      "pos": "numeral",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:nus:three]",
+      "ipa": "",
+      "meaning_en": "three",
+      "pos": "numeral",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:nus:four]",
+      "ipa": "",
+      "meaning_en": "four",
+      "pos": "numeral",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:nus:five]",
+      "ipa": "",
+      "meaning_en": "five",
+      "pos": "numeral",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:nus:six]",
+      "ipa": "",
+      "meaning_en": "six",
+      "pos": "numeral",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:nus:seven]",
+      "ipa": "",
+      "meaning_en": "seven",
+      "pos": "numeral",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:nus:eight]",
+      "ipa": "",
+      "meaning_en": "eight",
+      "pos": "numeral",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:nus:nine]",
+      "ipa": "",
+      "meaning_en": "nine",
+      "pos": "numeral",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:nus:ten]",
+      "ipa": "",
+      "meaning_en": "ten",
+      "pos": "numeral",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:nus:hundred]",
+      "ipa": "",
+      "meaning_en": "hundred",
+      "pos": "numeral",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:nus:thousand]",
+      "ipa": "",
+      "meaning_en": "thousand",
+      "pos": "numeral",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:nus:mother]",
+      "ipa": "",
+      "meaning_en": "mother",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:nus:father]",
+      "ipa": "",
+      "meaning_en": "father",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:nus:sister]",
+      "ipa": "",
+      "meaning_en": "sister",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:nus:brother]",
+      "ipa": "",
+      "meaning_en": "brother",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:nus:child]",
+      "ipa": "",
+      "meaning_en": "child",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:nus:grandmother]",
+      "ipa": "",
+      "meaning_en": "grandmother",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:nus:grandfather]",
+      "ipa": "",
+      "meaning_en": "grandfather",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:nus:husband]",
+      "ipa": "",
+      "meaning_en": "husband",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:nus:wife]",
+      "ipa": "",
+      "meaning_en": "wife",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:nus:family]",
+      "ipa": "",
+      "meaning_en": "family",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:nus:head]",
+      "ipa": "",
+      "meaning_en": "head",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:nus:hand]",
+      "ipa": "",
+      "meaning_en": "hand",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:nus:eye]",
+      "ipa": "",
+      "meaning_en": "eye",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:nus:mouth]",
+      "ipa": "",
+      "meaning_en": "mouth",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:nus:ear]",
+      "ipa": "",
+      "meaning_en": "ear",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:nus:nose]",
+      "ipa": "",
+      "meaning_en": "nose",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:nus:foot]",
+      "ipa": "",
+      "meaning_en": "foot",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:nus:heart]",
+      "ipa": "",
+      "meaning_en": "heart",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:nus:blood]",
+      "ipa": "",
+      "meaning_en": "blood",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:nus:bone]",
+      "ipa": "",
+      "meaning_en": "bone",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:nus:water]",
+      "ipa": "",
+      "meaning_en": "water",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:nus:fire]",
+      "ipa": "",
+      "meaning_en": "fire",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:nus:earth]",
+      "ipa": "",
+      "meaning_en": "earth",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:nus:sky]",
+      "ipa": "",
+      "meaning_en": "sky",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:nus:sun]",
+      "ipa": "",
+      "meaning_en": "sun",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:nus:moon]",
+      "ipa": "",
+      "meaning_en": "moon",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:nus:star]",
+      "ipa": "",
+      "meaning_en": "star",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:nus:rain]",
+      "ipa": "",
+      "meaning_en": "rain",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:nus:wind]",
+      "ipa": "",
+      "meaning_en": "wind",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:nus:tree]",
+      "ipa": "",
+      "meaning_en": "tree",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:nus:rice]",
+      "ipa": "",
+      "meaning_en": "rice",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:nus:bread]",
+      "ipa": "",
+      "meaning_en": "bread",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:nus:fish]",
+      "ipa": "",
+      "meaning_en": "fish",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:nus:meat]",
+      "ipa": "",
+      "meaning_en": "meat",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:nus:fruit]",
+      "ipa": "",
+      "meaning_en": "fruit",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:nus:milk]",
+      "ipa": "",
+      "meaning_en": "milk",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:nus:salt]",
+      "ipa": "",
+      "meaning_en": "salt",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:nus:sugar]",
+      "ipa": "",
+      "meaning_en": "sugar",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:nus:egg]",
+      "ipa": "",
+      "meaning_en": "egg",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:nus:oil]",
+      "ipa": "",
+      "meaning_en": "oil",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:nus:eat]",
+      "ipa": "",
+      "meaning_en": "eat",
+      "pos": "verb",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:nus:drink]",
+      "ipa": "",
+      "meaning_en": "drink",
+      "pos": "verb",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:nus:sleep]",
+      "ipa": "",
+      "meaning_en": "sleep",
+      "pos": "verb",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:nus:walk]",
+      "ipa": "",
+      "meaning_en": "walk",
+      "pos": "verb",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:nus:speak]",
+      "ipa": "",
+      "meaning_en": "speak",
+      "pos": "verb",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:nus:see]",
+      "ipa": "",
+      "meaning_en": "see",
+      "pos": "verb",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:nus:hear]",
+      "ipa": "",
+      "meaning_en": "hear",
+      "pos": "verb",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:nus:give]",
+      "ipa": "",
+      "meaning_en": "give",
+      "pos": "verb",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:nus:come]",
+      "ipa": "",
+      "meaning_en": "come",
+      "pos": "verb",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:nus:go]",
+      "ipa": "",
+      "meaning_en": "go",
+      "pos": "verb",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:nus:know]",
+      "ipa": "",
+      "meaning_en": "know",
+      "pos": "verb",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:nus:want]",
+      "ipa": "",
+      "meaning_en": "want",
+      "pos": "verb",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:nus:love]",
+      "ipa": "",
+      "meaning_en": "love",
+      "pos": "verb",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:nus:work]",
+      "ipa": "",
+      "meaning_en": "work",
+      "pos": "verb",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:nus:live]",
+      "ipa": "",
+      "meaning_en": "live",
+      "pos": "verb",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:nus:big]",
+      "ipa": "",
+      "meaning_en": "big",
+      "pos": "adjective",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:nus:small]",
+      "ipa": "",
+      "meaning_en": "small",
+      "pos": "adjective",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:nus:good]",
+      "ipa": "",
+      "meaning_en": "good",
+      "pos": "adjective",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:nus:bad]",
+      "ipa": "",
+      "meaning_en": "bad",
+      "pos": "adjective",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:nus:hot]",
+      "ipa": "",
+      "meaning_en": "hot",
+      "pos": "adjective",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:nus:cold]",
+      "ipa": "",
+      "meaning_en": "cold",
+      "pos": "adjective",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:nus:new]",
+      "ipa": "",
+      "meaning_en": "new",
+      "pos": "adjective",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:nus:old]",
+      "ipa": "",
+      "meaning_en": "old",
+      "pos": "adjective",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:nus:beautiful]",
+      "ipa": "",
+      "meaning_en": "beautiful",
+      "pos": "adjective",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:nus:strong]",
+      "ipa": "",
+      "meaning_en": "strong",
+      "pos": "adjective",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:nus:today]",
+      "ipa": "",
+      "meaning_en": "today",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:nus:tomorrow]",
+      "ipa": "",
+      "meaning_en": "tomorrow",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:nus:yesterday]",
+      "ipa": "",
+      "meaning_en": "yesterday",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:nus:morning]",
+      "ipa": "",
+      "meaning_en": "morning",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:nus:night]",
+      "ipa": "",
+      "meaning_en": "night",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:nus:year]",
+      "ipa": "",
+      "meaning_en": "year",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:nus:month]",
+      "ipa": "",
+      "meaning_en": "month",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:nus:week]",
+      "ipa": "",
+      "meaning_en": "week",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:nus:day]",
+      "ipa": "",
+      "meaning_en": "day",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:nus:hour]",
+      "ipa": "",
+      "meaning_en": "hour",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:nus:house]",
+      "ipa": "",
+      "meaning_en": "house",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:nus:village]",
+      "ipa": "",
+      "meaning_en": "village",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:nus:city]",
+      "ipa": "",
+      "meaning_en": "city",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:nus:market]",
+      "ipa": "",
+      "meaning_en": "market",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:nus:school]",
+      "ipa": "",
+      "meaning_en": "school",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:nus:church]",
+      "ipa": "",
+      "meaning_en": "church",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:nus:river]",
+      "ipa": "",
+      "meaning_en": "river",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:nus:mountain]",
+      "ipa": "",
+      "meaning_en": "mountain",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:nus:road]",
+      "ipa": "",
+      "meaning_en": "road",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:nus:field]",
+      "ipa": "",
+      "meaning_en": "field",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    }
+  ]
+}

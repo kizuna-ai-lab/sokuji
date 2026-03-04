@@ -1,10 +1,10 @@
-# Sokuji Audio Flow Path Analysis (Updated)
+# Eburon Audio Flow Path Analysis (Updated)
 
 ## 1. Modern Audio Flow Path Diagram
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────────────┐
-│                              Sokuji Modern Audio Flow                              │
+│                              Eburon Modern Audio Flow                              │
 └─────────────────────────────────────────────────────────────────────────────────────┘
 
 ┌───────────────┐    ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
@@ -231,7 +231,7 @@ Both Electron and Extension environments use the same `ModernBrowserAudioService
 │                     ↓                                  ↓                    │
 │                  Passthrough                    Monitor Device              │
 │                     ↓                           Virtual Speaker             │
-│              Virtual Speaker                  (Sokuji_Virtual_Speaker)      │
+│              Virtual Speaker                  (Eburon_Virtual_Speaker)      │
 │                                                                             │
 │ Key Features:                                                               │
 │ - Supports virtual audio devices via PulseAudio (Linux)                    │
@@ -262,7 +262,7 @@ Both Electron and Extension environments use the same `ModernBrowserAudioService
 
 | Feature | Electron | Extension |
 |---------|----------|-----------|
-| Virtual Audio Devices | ✅ Sokuji_Virtual_Speaker/Mic | ❌ Uses browser APIs |
+| Virtual Audio Devices | ✅ Eburon_Virtual_Speaker/Mic | ❌ Uses browser APIs |
 | Virtual Output | Direct via PulseAudio | Chrome messaging to tabs |
 | Passthrough Routing | Monitor + Virtual Speaker | Monitor + Virtual Microphone |
 | Platform Support | Windows/macOS/Linux | Chrome/Edge browsers |
@@ -298,7 +298,7 @@ Both Electron and Extension environments use the same `ModernBrowserAudioService
    - Volume is pre-applied to passthrough audio before sending
 
 4. **Virtual Speaker (Electron)**:
-   - Auto-detects `Sokuji_Virtual_Speaker` device
+   - Auto-detects `Eburon_Virtual_Speaker` device
    - Direct audio output via Web Audio API
    - Not affected by monitor volume control
 

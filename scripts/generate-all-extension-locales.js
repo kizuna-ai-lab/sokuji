@@ -13,17 +13,17 @@ const allLanguages = [
 
 // Base English template
 const englishTranslations = {
-  extensionName: 'Sokuji - AI-powered Live Speech Translation for Online Meetings',
+  extensionName: 'Eburon - AI-powered Live Speech Translation for Online Meetings',
   extensionDescription: 'AI-powered instant speech translation for all video meetings. Break language barriers with real-time voice translation.',
-  popupTitle: 'Sokuji - Supported Sites',
-  openSokuji: 'Open Sokuji',
+  popupTitle: 'Eburon - Supported Sites',
+  openEburon: 'Open Eburon',
   chromeWebStore: 'Chrome Web Store',
-  sokujiAvailable: '✓ Sokuji is available on $SITE_NAME$!',
-  clickToStart: 'Click "Open Sokuji" below to start real-time translation.',
+  EburonAvailable: '✓ Eburon is available on $SITE_NAME$!',
+  clickToStart: 'Click "Open Eburon" below to start real-time translation.',
   quickStart: 'Quick Start:',
-  quickStartInstructions: 'Configure your OpenAI API key → Select "Sokuji_Virtual_Mic" as microphone → Start speaking!',
+  quickStartInstructions: 'Configure your OpenAI API key → Select "Eburon_Virtual_Mic" as microphone → Start speaking!',
   notSupported: '⚠ Not supported on this site',
-  currentlyOn: 'Currently on $HOSTNAME$. Sokuji works on these platforms:',
+  currentlyOn: 'Currently on $HOSTNAME$. Eburon works on these platforms:',
   needMoreSites: 'Need support for more sites?',
   contactUs: 'Contact us at',
   contributeCode: 'contribute to our',
@@ -40,17 +40,17 @@ const englishTranslations = {
 // Specific translations for key languages
 const specificTranslations = {
   'ar': {
-    extensionName: 'Sokuji - ترجمة الكلام المباشر بالذكاء الاصطناعي للاجتماعات الإلكترونية',
+    extensionName: 'Eburon - ترجمة الكلام المباشر بالذكاء الاصطناعي للاجتماعات الإلكترونية',
     extensionDescription: 'ترجمة فورية للكلام بالذكاء الاصطناعي لجميع اجتماعات الفيديو. كسر حواجز اللغة مع الترجمة الصوتية في الوقت الفعلي.',
-    popupTitle: 'Sokuji - المواقع المدعومة',
-    openSokuji: 'فتح Sokuji',
+    popupTitle: 'Eburon - المواقع المدعومة',
+    openEburon: 'فتح Eburon',
     chromeWebStore: 'متجر Chrome الإلكتروني',
-    sokujiAvailable: '✓ Sokuji متاح على $SITE_NAME$!',
-    clickToStart: 'انقر على "فتح Sokuji" أدناه لبدء الترجمة في الوقت الفعلي.',
+    EburonAvailable: '✓ Eburon متاح على $SITE_NAME$!',
+    clickToStart: 'انقر على "فتح Eburon" أدناه لبدء الترجمة في الوقت الفعلي.',
     quickStart: 'البدء السريع:',
-    quickStartInstructions: 'قم بتكوين مفتاح OpenAI API الخاص بك ← حدد "Sokuji_Virtual_Mic" كميكروفون ← ابدأ بالتحدث!',
+    quickStartInstructions: 'قم بتكوين مفتاح OpenAI API الخاص بك ← حدد "Eburon_Virtual_Mic" كميكروفون ← ابدأ بالتحدث!',
     notSupported: '⚠ غير مدعوم على هذا الموقع',
-    currentlyOn: 'حالياً على $HOSTNAME$. Sokuji يعمل على هذه المنصات:',
+    currentlyOn: 'حالياً على $HOSTNAME$. Eburon يعمل على هذه المنصات:',
     needMoreSites: 'تحتاج دعم لمواقع أكثر؟',
     contactUs: 'اتصل بنا على',
     contributeCode: 'ساهم في',
@@ -62,17 +62,17 @@ const specificTranslations = {
     contributeCodeShort: 'ساهم بالكود'
   },
   'zh_CN': {
-    extensionName: 'Sokuji - AI驱动的在线会议实时语音翻译',
+    extensionName: 'Eburon - AI驱动的在线会议实时语音翻译',
     extensionDescription: 'AI驱动的即时语音翻译，适用于所有视频会议。通过实时语音翻译打破语言障碍。',
-    popupTitle: 'Sokuji - 支持的网站',
-    openSokuji: '打开 Sokuji',
+    popupTitle: 'Eburon - 支持的网站',
+    openEburon: '打开 Eburon',
     chromeWebStore: 'Chrome 网上应用店',
-    sokujiAvailable: '✓ Sokuji 在 $SITE_NAME$ 上可用！',
-    clickToStart: '点击下方的"打开 Sokuji"开始实时翻译。',
+    EburonAvailable: '✓ Eburon 在 $SITE_NAME$ 上可用！',
+    clickToStart: '点击下方的"打开 Eburon"开始实时翻译。',
     quickStart: '快速开始：',
-    quickStartInstructions: '配置您的 OpenAI API 密钥 ← 选择"Sokuji_Virtual_Mic"作为麦克风 ← 开始说话！',
+    quickStartInstructions: '配置您的 OpenAI API 密钥 ← 选择"Eburon_Virtual_Mic"作为麦克风 ← 开始说话！',
     notSupported: '⚠ 此网站不支持',
-    currentlyOn: '当前在 $HOSTNAME$。Sokuji 支持这些平台：',
+    currentlyOn: '当前在 $HOSTNAME$。Eburon 支持这些平台：',
     needMoreSites: '需要支持更多网站？',
     contactUs: '联系我们：',
     contributeCode: '为我们的',
@@ -86,17 +86,17 @@ const specificTranslations = {
     showLessSites: '收起网站列表'
   },
   'es': {
-    extensionName: 'Sokuji - Traducción de Voz en Vivo con IA para Reuniones Online',
+    extensionName: 'Eburon - Traducción de Voz en Vivo con IA para Reuniones Online',
     extensionDescription: 'Traducción instantánea de voz con IA para todas las videollamadas. Rompe las barreras del idioma con traducción de voz en tiempo real.',
-    popupTitle: 'Sokuji - Sitios Compatibles',
-    openSokuji: 'Abrir Sokuji',
+    popupTitle: 'Eburon - Sitios Compatibles',
+    openEburon: 'Abrir Eburon',
     chromeWebStore: 'Chrome Web Store',
-    sokujiAvailable: '✓ ¡Sokuji está disponible en $SITE_NAME$!',
-    clickToStart: 'Haz clic en "Abrir Sokuji" a continuación para comenzar la traducción en tiempo real.',
+    EburonAvailable: '✓ ¡Eburon está disponible en $SITE_NAME$!',
+    clickToStart: 'Haz clic en "Abrir Eburon" a continuación para comenzar la traducción en tiempo real.',
     quickStart: 'Inicio Rápido:',
-    quickStartInstructions: 'Configura tu clave API de OpenAI → Selecciona "Sokuji_Virtual_Mic" como micrófono → ¡Comienza a hablar!',
+    quickStartInstructions: 'Configura tu clave API de OpenAI → Selecciona "Eburon_Virtual_Mic" como micrófono → ¡Comienza a hablar!',
     notSupported: '⚠ No compatible con este sitio',
-    currentlyOn: 'Actualmente en $HOSTNAME$. Sokuji funciona en estas plataformas:',
+    currentlyOn: 'Actualmente en $HOSTNAME$. Eburon funciona en estas plataformas:',
     needMoreSites: '¿Necesitas soporte para más sitios?',
     contactUs: 'Contáctanos en',
     contributeCode: 'contribuye a nuestro',
@@ -110,17 +110,17 @@ const specificTranslations = {
     showLessSites: 'Mostrar menos sitios'
   },
   'fr': {
-    extensionName: 'Sokuji - Traduction Vocale en Direct par IA pour Réunions en Ligne',
+    extensionName: 'Eburon - Traduction Vocale en Direct par IA pour Réunions en Ligne',
     extensionDescription: 'Traduction vocale instantanée par IA pour toutes les visioconférences. Brisez les barrières linguistiques avec la traduction vocale en temps réel.',
-    popupTitle: 'Sokuji - Sites Pris en Charge',
-    openSokuji: 'Ouvrir Sokuji',
+    popupTitle: 'Eburon - Sites Pris en Charge',
+    openEburon: 'Ouvrir Eburon',
     chromeWebStore: 'Chrome Web Store',
-    sokujiAvailable: '✓ Sokuji est disponible sur $SITE_NAME$ !',
-    clickToStart: 'Cliquez sur "Ouvrir Sokuji" ci-dessous pour commencer la traduction en temps réel.',
+    EburonAvailable: '✓ Eburon est disponible sur $SITE_NAME$ !',
+    clickToStart: 'Cliquez sur "Ouvrir Eburon" ci-dessous pour commencer la traduction en temps réel.',
     quickStart: 'Démarrage Rapide :',
-    quickStartInstructions: 'Configurez votre clé API OpenAI → Sélectionnez "Sokuji_Virtual_Mic" comme microphone → Commencez à parler !',
+    quickStartInstructions: 'Configurez votre clé API OpenAI → Sélectionnez "Eburon_Virtual_Mic" comme microphone → Commencez à parler !',
     notSupported: '⚠ Non pris en charge sur ce site',
-    currentlyOn: 'Actuellement sur $HOSTNAME$. Sokuji fonctionne sur ces plateformes :',
+    currentlyOn: 'Actuellement sur $HOSTNAME$. Eburon fonctionne sur ces plateformes :',
     needMoreSites: 'Besoin de support pour plus de sites ?',
     contactUs: 'Contactez-nous à',
     contributeCode: 'contribuez à notre',
@@ -134,17 +134,17 @@ const specificTranslations = {
     showLessSites: 'Afficher moins de sites'
   },
   'ja': {
-    extensionName: 'Sokuji - オンライン会議用AI音声翻訳',
+    extensionName: 'Eburon - オンライン会議用AI音声翻訳',
     extensionDescription: 'すべてのビデオ会議用のAI音声翻訳。リアルタイム音声翻訳で言語の壁を破る。',
-    popupTitle: 'Sokuji - 対応サイト',
-    openSokuji: 'Sokujiを開く',
+    popupTitle: 'Eburon - 対応サイト',
+    openEburon: 'Eburonを開く',
     chromeWebStore: 'Chrome ウェブストア',
-    sokujiAvailable: '✓ Sokujiは$SITE_NAME$で利用可能です！',
-    clickToStart: 'リアルタイム翻訳を開始するには、下の「Sokujiを開く」をクリックしてください。',
+    EburonAvailable: '✓ Eburonは$SITE_NAME$で利用可能です！',
+    clickToStart: 'リアルタイム翻訳を開始するには、下の「Eburonを開く」をクリックしてください。',
     quickStart: 'クイックスタート：',
-    quickStartInstructions: 'OpenAI APIキーを設定 ← マイクとして「Sokuji_Virtual_Mic」を選択 ← 話し始める！',
+    quickStartInstructions: 'OpenAI APIキーを設定 ← マイクとして「Eburon_Virtual_Mic」を選択 ← 話し始める！',
     notSupported: '⚠ このサイトではサポートされていません',
-    currentlyOn: '現在$HOSTNAME$にいます。Sokujiはこれらのプラットフォームで動作します：',
+    currentlyOn: '現在$HOSTNAME$にいます。Eburonはこれらのプラットフォームで動作します：',
     needMoreSites: 'より多くのサイトのサポートが必要ですか？',
     contactUs: 'お問い合わせ',
     contributeCode: '私たちの',
@@ -171,14 +171,14 @@ const createMessagesJson = (translations) => {
     "popupTitle": {
       "message": translations.popupTitle
     },
-    "openSokuji": {
-      "message": translations.openSokuji
+    "openEburon": {
+      "message": translations.openEburon
     },
     "chromeWebStore": {
       "message": translations.chromeWebStore
     },
-    "sokujiAvailable": {
-      "message": translations.sokujiAvailable,
+    "EburonAvailable": {
+      "message": translations.EburonAvailable,
       "placeholders": {
         "site_name": {
           "content": "$1",

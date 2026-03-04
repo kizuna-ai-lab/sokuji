@@ -19,7 +19,7 @@
     "signUp": "הרשמה"
   },
   "app": {
-    "title": "Sokuji",
+    "title": "Eburon",
     "description": "אפליקציית תרגום קולי בזמן אמת"
   },
   "menu": {
@@ -153,7 +153,7 @@
     "apiKeyHelp2": "2. הירשם או התחבר לחשבון שלך",
     "apiKeyHelp3": "3. נווט לקטע מפתחות API",
     "apiKeyHelp4": "4. צור מפתח API חדש והעתק אותו לכאן",
-    "apiKeyHelpTooltip": "מפתח API הוא כמו סיסמה שמאפשרת ל-Sokuji להשתמש בשירותי תרגום בינה מלאכותית. אתה צריך להשיג אחד מהספק שבחרת (כמו OpenAI).",
+    "apiKeyHelpTooltip": "מפתח API הוא כמו סיסמה שמאפשרת ל-Eburon להשתמש בשירותי תרגום בינה מלאכותית. אתה צריך להשיג אחד מהספק שבחרת (כמו OpenAI).",
     "apiKeyHelpTooltip2": "מדריך שלב אחר שלב:",
     "languages": "שפות",
     "uiLanguage": "שפת ממשק",
@@ -163,7 +163,7 @@
   },
   "simpleConfig": {
     "interfaceLanguage": "שפת ממשק",
-    "interfaceLanguageDesc": "זה משנה את השפה של התפריטים והכפתורים של Sokuji. זה לא משפיע על איזה שפות אתה יכול לתרגם ביניהן.",
+    "interfaceLanguageDesc": "זה משנה את השפה של התפריטים והכפתורים של Eburon. זה לא משפיע על איזה שפות אתה יכול לתרגם ביניהן.",
     "translationLanguages": "שפות תרגום",
     "translationLanguagesDesc": "בחר איזו שפה אתה מדבר (השפה שלך) ואיזו שפה אתה רוצה לשמוע בתרגום (שפת יעד). בחר \"זיהוי אוטומטי\" אם אתה לא בטוח לגבי שפת המקור.",
     "yourLanguage": "השפה שלי",
@@ -173,7 +173,7 @@
     "signInDescription": "הירשם לחוויה פשוטה.",
     "targetLanguage": "שפת הצד השני",
     "microphone": "מיקרופון",
-    "microphoneDesc": "בחר מיקרופון לליכוד הדיבור שלך. דבר בשפתך אל המיקרופון הזה, ו-Sokuji יתרגם כל מה שהוא שומע בזמן אמת.",
+    "microphoneDesc": "בחר מיקרופון לליכוד הדיבור שלך. דבר בשפתך אל המיקרופון הזה, ו-Eburon יתרגם כל מה שהוא שומע בזמן אמת.",
     "speaker": "רמקול",
     "speakerDesc": "בחר רמקול לניטור הפלט המתורגם. זה מאפשר לך לשמוע איך נשמע התרגום. אתה יכול לכבות אותו אם ניטור לא נדרש. בין אם דלוק או כבוי, השמע המתורגם נשלח תמיד למיקרופון הווירטואלי כדי שמשתתפים אחרים יוכלו לשמוע.",
     "systemAudio": "שמע משתתפים",
@@ -283,12 +283,12 @@
     "virtualMicrophoneNotice": "הודעת מיקרופון וירטואלי",
     "virtualSpeakerNotice": "הודעת רמקול וירטואלי",
     "iUnderstand": "אני מבין",
-    "virtualMicWarningTitle": "זהו מיקרופון וירטואלי שנוצר על ידי Sokuji.",
+    "virtualMicWarningTitle": "זהו מיקרופון וירטואלי שנוצר על ידי Eburon.",
     "virtualMicWarningText1": "אנא אל תבחר התקן זה כאן. במקום זאת, השתמש במיקרופון הוירטואלי הזה באפליקציות ועידת הווידאו שלך (כמו Google Meet, Zoom, Microsoft Teams וכו') כדי לקבל פלט תרגום קולי בזמן אמת.",
-    "virtualMicWarningText2": "כדי ש-Sokuji יעבוד כראוי, בחר את המיקרופון הפיזי האמיתי שלך מהרשימה.",
-    "virtualSpeakerWarningTitle": "זהו רמקול וירטואלי שנוצר על ידי Sokuji.",
-    "virtualSpeakerWarningText1": "אנא אל תבחר התקן זה כמוניטור שלך. Sokuji_Virtual_Speaker משמש את Sokuji לשליחת אודיו לאפליקציות הוועידה שלך.",
-    "virtualSpeakerWarningText2": "חיבור המוניטור שלך להתקן הפלט של Sokuji ייצור לולאת משוב אודיו, מה שיגרום לקלט שלך להכיל את הפלט המנוטר שלך.",
+    "virtualMicWarningText2": "כדי ש-Eburon יעבוד כראוי, בחר את המיקרופון הפיזי האמיתי שלך מהרשימה.",
+    "virtualSpeakerWarningTitle": "זהו רמקול וירטואלי שנוצר על ידי Eburon.",
+    "virtualSpeakerWarningText1": "אנא אל תבחר התקן זה כמוניטור שלך. Eburon_Virtual_Speaker משמש את Eburon לשליחת אודיו לאפליקציות הוועידה שלך.",
+    "virtualSpeakerWarningText2": "חיבור המוניטור שלך להתקן הפלט של Eburon ייצור לולאת משוב אודיו, מה שיגרום לקלט שלך להכיל את הפלט המנוטר שלך.",
     "virtualSpeakerWarningText3": "מתג \"הפעל\" מחבר את הרמקול הוירטואלי להתקן הניטור שנבחר, מה שמאפשר לך לשמוע מה שנשלח לאפליקציית הוועידה שלך. מתג \"כבה\" מנתק את חיבור הניטור הזה.",
     "virtualSpeakerWarningText4": "לפעולה נכונה, בחר התקן ניטור שונה (כמו האוזניות או הרמקולים שלך) מהרשימה.",
     "realVoicePassthrough": "העברת שמע מקורי",
@@ -363,8 +363,8 @@
     "basic": {
       "steps": {
         "welcome": {
-          "title": "Welcome to Sokuji",
-          "content": "Welcome to Sokuji! This simple guide will help you start using real-time translation in just a few steps."
+          "title": "Welcome to Eburon",
+          "content": "Welcome to Eburon! This simple guide will help you start using real-time translation in just a few steps."
         },
         "settings": {
           "title": "Step 1: Open Settings",
@@ -396,7 +396,7 @@
         },
         "complete": {
           "title": "All Set!",
-          "content": "Perfect! You're ready to use Sokuji. Click Start and begin speaking to hear real-time translations."
+          "content": "Perfect! You're ready to use Eburon. Click Start and begin speaking to hear real-time translations."
         }
       }
     },
@@ -410,7 +410,7 @@
     "restartTour": "הפעל מחדש את מדריך ההגדרה",
     "steps": {
       "welcome": {
-        "title": "ברוכים הבאים ל-Sokuji!",
+        "title": "ברוכים הבאים ל-Eburon!",
         "content": "ברוכים הבאים לאפליקציית תרגום קולי בזמן אמת! בואו נגדיר במהירות את ההגדרות שלכם לחוויה מיטבית."
       },
       "openSettings": {
@@ -447,16 +447,16 @@
       },
       "startSession": {
         "title": "התחל את ההפעלה שלך",
-        "content": "הכל מוכן! לחצו על כפתור \"התחל הפעלה\" כדי להתחיל תרגום בזמן אמת. זכרו לבחור את המיקרופון הוירטואלי של Sokuji כהתקן קלט באפליקציית הוועידה שלכם."
+        "content": "הכל מוכן! לחצו על כפתור \"התחל הפעלה\" כדי להתחיל תרגום בזמן אמת. זכרו לבחור את המיקרופון הוירטואלי של Eburon כהתקן קלט באפליקציית הוועידה שלכם."
       },
       "completion": {
         "title": "מדריך ההגדרה הושלם!",
-        "content": "השלמתם את מדריך ההגדרה! כעת וודאו שאכן הזנתם את מפתח ה-API שלכם והגדרתם את ההגדרות שלכם, ואז השתמשו במיקרופון הוירטואלי של Sokuji באפליקציות ועידה (כמו Google Meet, Zoom וכו') כדי להתחיל תרגום בזמן אמת."
+        "content": "השלמתם את מדריך ההגדרה! כעת וודאו שאכן הזנתם את מפתח ה-API שלכם והגדרתם את ההגדרות שלכם, ואז השתמשו במיקרופון הוירטואלי של Eburon באפליקציות ועידה (כמו Google Meet, Zoom וכו') כדי להתחיל תרגום בזמן אמת."
       }
     }
   },
   "userTypeSelection": {
-    "title": "ברוכים הבאים ל-Sokuji",
+    "title": "ברוכים הבאים ל-Eburon",
     "subtitle": "אנא בחר את סוג המשתמש שלך כדי להתחיל",
     "regular": {
       "title": "משתמש רגיל",

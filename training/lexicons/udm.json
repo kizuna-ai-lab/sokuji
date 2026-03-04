@@ -1,0 +1,866 @@
+{
+  "language_code": "udm",
+  "language_name": "Udmurt",
+  "language_native": "Удмурт",
+  "language_family": "Uralic",
+  "entry_count": 107,
+  "complete_entries": 0,
+  "entries": [
+    {
+      "word": "[TODO:udm:hello]",
+      "ipa": "",
+      "meaning_en": "hello",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:udm:goodbye]",
+      "ipa": "",
+      "meaning_en": "goodbye",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:udm:good morning]",
+      "ipa": "",
+      "meaning_en": "good morning",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:udm:good evening]",
+      "ipa": "",
+      "meaning_en": "good evening",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:udm:thank you]",
+      "ipa": "",
+      "meaning_en": "thank you",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:udm:please]",
+      "ipa": "",
+      "meaning_en": "please",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:udm:yes]",
+      "ipa": "",
+      "meaning_en": "yes",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:udm:no]",
+      "ipa": "",
+      "meaning_en": "no",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:udm:excuse me]",
+      "ipa": "",
+      "meaning_en": "excuse me",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:udm:sorry]",
+      "ipa": "",
+      "meaning_en": "sorry",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:udm:one]",
+      "ipa": "",
+      "meaning_en": "one",
+      "pos": "numeral",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:udm:two]",
+      "ipa": "",
+      "meaning_en": "two",
+      "pos": "numeral",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:udm:three]",
+      "ipa": "",
+      "meaning_en": "three",
+      "pos": "numeral",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:udm:four]",
+      "ipa": "",
+      "meaning_en": "four",
+      "pos": "numeral",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:udm:five]",
+      "ipa": "",
+      "meaning_en": "five",
+      "pos": "numeral",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:udm:six]",
+      "ipa": "",
+      "meaning_en": "six",
+      "pos": "numeral",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:udm:seven]",
+      "ipa": "",
+      "meaning_en": "seven",
+      "pos": "numeral",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:udm:eight]",
+      "ipa": "",
+      "meaning_en": "eight",
+      "pos": "numeral",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:udm:nine]",
+      "ipa": "",
+      "meaning_en": "nine",
+      "pos": "numeral",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:udm:ten]",
+      "ipa": "",
+      "meaning_en": "ten",
+      "pos": "numeral",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:udm:hundred]",
+      "ipa": "",
+      "meaning_en": "hundred",
+      "pos": "numeral",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:udm:thousand]",
+      "ipa": "",
+      "meaning_en": "thousand",
+      "pos": "numeral",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:udm:mother]",
+      "ipa": "",
+      "meaning_en": "mother",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:udm:father]",
+      "ipa": "",
+      "meaning_en": "father",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:udm:sister]",
+      "ipa": "",
+      "meaning_en": "sister",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:udm:brother]",
+      "ipa": "",
+      "meaning_en": "brother",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:udm:child]",
+      "ipa": "",
+      "meaning_en": "child",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:udm:grandmother]",
+      "ipa": "",
+      "meaning_en": "grandmother",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:udm:grandfather]",
+      "ipa": "",
+      "meaning_en": "grandfather",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:udm:husband]",
+      "ipa": "",
+      "meaning_en": "husband",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:udm:wife]",
+      "ipa": "",
+      "meaning_en": "wife",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:udm:family]",
+      "ipa": "",
+      "meaning_en": "family",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:udm:head]",
+      "ipa": "",
+      "meaning_en": "head",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:udm:hand]",
+      "ipa": "",
+      "meaning_en": "hand",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:udm:eye]",
+      "ipa": "",
+      "meaning_en": "eye",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:udm:mouth]",
+      "ipa": "",
+      "meaning_en": "mouth",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:udm:ear]",
+      "ipa": "",
+      "meaning_en": "ear",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:udm:nose]",
+      "ipa": "",
+      "meaning_en": "nose",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:udm:foot]",
+      "ipa": "",
+      "meaning_en": "foot",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:udm:heart]",
+      "ipa": "",
+      "meaning_en": "heart",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:udm:blood]",
+      "ipa": "",
+      "meaning_en": "blood",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:udm:bone]",
+      "ipa": "",
+      "meaning_en": "bone",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:udm:water]",
+      "ipa": "",
+      "meaning_en": "water",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:udm:fire]",
+      "ipa": "",
+      "meaning_en": "fire",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:udm:earth]",
+      "ipa": "",
+      "meaning_en": "earth",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:udm:sky]",
+      "ipa": "",
+      "meaning_en": "sky",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:udm:sun]",
+      "ipa": "",
+      "meaning_en": "sun",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:udm:moon]",
+      "ipa": "",
+      "meaning_en": "moon",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:udm:star]",
+      "ipa": "",
+      "meaning_en": "star",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:udm:rain]",
+      "ipa": "",
+      "meaning_en": "rain",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:udm:wind]",
+      "ipa": "",
+      "meaning_en": "wind",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:udm:tree]",
+      "ipa": "",
+      "meaning_en": "tree",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:udm:rice]",
+      "ipa": "",
+      "meaning_en": "rice",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:udm:bread]",
+      "ipa": "",
+      "meaning_en": "bread",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:udm:fish]",
+      "ipa": "",
+      "meaning_en": "fish",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:udm:meat]",
+      "ipa": "",
+      "meaning_en": "meat",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:udm:fruit]",
+      "ipa": "",
+      "meaning_en": "fruit",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:udm:milk]",
+      "ipa": "",
+      "meaning_en": "milk",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:udm:salt]",
+      "ipa": "",
+      "meaning_en": "salt",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:udm:sugar]",
+      "ipa": "",
+      "meaning_en": "sugar",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:udm:egg]",
+      "ipa": "",
+      "meaning_en": "egg",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:udm:oil]",
+      "ipa": "",
+      "meaning_en": "oil",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:udm:eat]",
+      "ipa": "",
+      "meaning_en": "eat",
+      "pos": "verb",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:udm:drink]",
+      "ipa": "",
+      "meaning_en": "drink",
+      "pos": "verb",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:udm:sleep]",
+      "ipa": "",
+      "meaning_en": "sleep",
+      "pos": "verb",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:udm:walk]",
+      "ipa": "",
+      "meaning_en": "walk",
+      "pos": "verb",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:udm:speak]",
+      "ipa": "",
+      "meaning_en": "speak",
+      "pos": "verb",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:udm:see]",
+      "ipa": "",
+      "meaning_en": "see",
+      "pos": "verb",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:udm:hear]",
+      "ipa": "",
+      "meaning_en": "hear",
+      "pos": "verb",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:udm:give]",
+      "ipa": "",
+      "meaning_en": "give",
+      "pos": "verb",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:udm:come]",
+      "ipa": "",
+      "meaning_en": "come",
+      "pos": "verb",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:udm:go]",
+      "ipa": "",
+      "meaning_en": "go",
+      "pos": "verb",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:udm:know]",
+      "ipa": "",
+      "meaning_en": "know",
+      "pos": "verb",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:udm:want]",
+      "ipa": "",
+      "meaning_en": "want",
+      "pos": "verb",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:udm:love]",
+      "ipa": "",
+      "meaning_en": "love",
+      "pos": "verb",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:udm:work]",
+      "ipa": "",
+      "meaning_en": "work",
+      "pos": "verb",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:udm:live]",
+      "ipa": "",
+      "meaning_en": "live",
+      "pos": "verb",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:udm:big]",
+      "ipa": "",
+      "meaning_en": "big",
+      "pos": "adjective",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:udm:small]",
+      "ipa": "",
+      "meaning_en": "small",
+      "pos": "adjective",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:udm:good]",
+      "ipa": "",
+      "meaning_en": "good",
+      "pos": "adjective",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:udm:bad]",
+      "ipa": "",
+      "meaning_en": "bad",
+      "pos": "adjective",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:udm:hot]",
+      "ipa": "",
+      "meaning_en": "hot",
+      "pos": "adjective",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:udm:cold]",
+      "ipa": "",
+      "meaning_en": "cold",
+      "pos": "adjective",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:udm:new]",
+      "ipa": "",
+      "meaning_en": "new",
+      "pos": "adjective",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:udm:old]",
+      "ipa": "",
+      "meaning_en": "old",
+      "pos": "adjective",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:udm:beautiful]",
+      "ipa": "",
+      "meaning_en": "beautiful",
+      "pos": "adjective",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:udm:strong]",
+      "ipa": "",
+      "meaning_en": "strong",
+      "pos": "adjective",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:udm:today]",
+      "ipa": "",
+      "meaning_en": "today",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:udm:tomorrow]",
+      "ipa": "",
+      "meaning_en": "tomorrow",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:udm:yesterday]",
+      "ipa": "",
+      "meaning_en": "yesterday",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:udm:morning]",
+      "ipa": "",
+      "meaning_en": "morning",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:udm:night]",
+      "ipa": "",
+      "meaning_en": "night",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:udm:year]",
+      "ipa": "",
+      "meaning_en": "year",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:udm:month]",
+      "ipa": "",
+      "meaning_en": "month",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:udm:week]",
+      "ipa": "",
+      "meaning_en": "week",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:udm:day]",
+      "ipa": "",
+      "meaning_en": "day",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:udm:hour]",
+      "ipa": "",
+      "meaning_en": "hour",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:udm:house]",
+      "ipa": "",
+      "meaning_en": "house",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:udm:village]",
+      "ipa": "",
+      "meaning_en": "village",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:udm:city]",
+      "ipa": "",
+      "meaning_en": "city",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:udm:market]",
+      "ipa": "",
+      "meaning_en": "market",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:udm:school]",
+      "ipa": "",
+      "meaning_en": "school",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:udm:church]",
+      "ipa": "",
+      "meaning_en": "church",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:udm:river]",
+      "ipa": "",
+      "meaning_en": "river",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:udm:mountain]",
+      "ipa": "",
+      "meaning_en": "mountain",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:udm:road]",
+      "ipa": "",
+      "meaning_en": "road",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    },
+    {
+      "word": "[TODO:udm:field]",
+      "ipa": "",
+      "meaning_en": "field",
+      "pos": "noun",
+      "example": "",
+      "_needs_translation": true
+    }
+  ]
+}

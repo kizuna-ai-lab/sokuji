@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sokuji Extension Feedback</title>
+    <title>Eburon Extension Feedback</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
@@ -144,8 +144,8 @@
 <body>
     <div class="container">
         <div class="header">
-            <img src="https://github.com/kizuna-ai-lab/sokuji/raw/main/src/assets/logo.png" alt="Sokuji Logo">
-            <h1>Sokuji Extension Feedback</h1>
+            <img src="https://github.com/kizuna-ai-lab/Eburon/raw/main/src/assets/logo.png" alt="Eburon Logo">
+            <h1>Eburon Extension Feedback</h1>
         </div>
 
         <!-- Loading Step -->
@@ -175,9 +175,9 @@
         <div id="thank-you-step" class="survey-step">
             <div class="thank-you">
                 <h2>Thank you for your feedback!</h2>
-                <p>We appreciate you taking the time to share your thoughts with us. Your feedback will help us improve Sokuji for future users.</p>
-                <p>If you change your mind, you can always reinstall Sokuji from the Chrome Web Store. We'd love to have you back!</p>
-                <a href="https://chromewebstore.google.com/detail/sokuji-extension/ppmihnhelgfpjomhjhpecobloelicnak"
+                <p>We appreciate you taking the time to share your thoughts with us. Your feedback will help us improve Eburon for future users.</p>
+                <p>If you change your mind, you can always reinstall Eburon from the Chrome Web Store. We'd love to have you back!</p>
+                <a href="https://chromewebstore.google.com/detail/Eburon-extension/ppmihnhelgfpjomhjhpecobloelicnak"
                    target="_blank"
                    class="chrome-store-link">
                     Reinstall from Chrome Web Store
@@ -186,14 +186,14 @@
                 <div style="margin-top: 30px; padding-top: 30px; border-top: 1px solid #eee;">
                     <h3 style="color: #2c3e50; margin-bottom: 15px;">Need More Features?</h3>
                     <p style="color: #666; margin-bottom: 20px;">
-                        If you encountered unsupported websites, need to use Sokuji in other applications,
+                        If you encountered unsupported websites, need to use Eburon in other applications,
                         or want to use custom API providers, try our desktop client!
                     </p>
-                    <a href="https://sokuji.kizuna.ai/"
+                    <a href="https://Eburon.kizuna.ai/"
                        target="_blank"
                        class="chrome-store-link"
                        style="background-color: #10a37f;">
-                        Try Sokuji Desktop Client
+                        Try Eburon Desktop Client
                     </a>
                 </div>
 
@@ -240,7 +240,7 @@
                 loaded: function(posthog) {
                     // If distinct_id is provided in URL, identify the user immediately
                     if (distinctIdFromURL) {
-                        console.debug('[Sokuji] [Uninstall Feedback] Using distinct_id from URL');
+                        console.debug('[Eburon] [Uninstall Feedback] Using distinct_id from URL');
                         posthog.identify(distinctIdFromURL);
                     }
                 }
@@ -248,7 +248,7 @@
 
             posthog.init(POSTHOG_KEY, posthogConfig);
         } else {
-            console.info('[Sokuji] [Uninstall Feedback] PostHog analytics disabled (no key configured)');
+            console.info('[Eburon] [Uninstall Feedback] PostHog analytics disabled (no key configured)');
             // Create a stub posthog object for the rest of the page
             window.posthog = {
                 capture: function() {},
@@ -268,7 +268,7 @@
             // User identification is already handled in PostHog initialization
             // if distinct_id was provided in URL
             if (distinctIdFromURL) {
-                console.debug('[Sokuji] [Uninstall Feedback] Survey initialized with distinct_id from URL');
+                console.debug('[Eburon] [Uninstall Feedback] Survey initialized with distinct_id from URL');
             }
             
             fetchAndInitializeSurvey();

@@ -1,14 +1,14 @@
-# Sokuji Extension - Gather Town Integration
+# Eburon Extension - Gather Town Integration
 
 ## Overview
 
-This document describes the Gather Town integration for the Sokuji browser extension, which enables live speech translation functionality within Gather Town virtual spaces. The integration uses a **plugin-based architecture** that allows for easy addition of new platform support.
+This document describes the Gather Town integration for the Eburon browser extension, which enables live speech translation functionality within Gather Town virtual spaces. The integration uses a **plugin-based architecture** that allows for easy addition of new platform support.
 
 ## Architecture
 
 ### Plugin System
 
-The Sokuji extension now uses a modular plugin system with proper context separation:
+The Eburon extension now uses a modular plugin system with proper context separation:
 
 - **`content/content.js`**: Universal content script (runs in content script context)
   - Injects scripts into page context
@@ -49,7 +49,7 @@ The Sokuji extension now uses a modular plugin system with proper context separa
 ### Core Functionality
 
 1. **Virtual Microphone Integration**
-   - Injects Sokuji Virtual Microphone into Gather Town's WebRTC audio system
+   - Injects Eburon Virtual Microphone into Gather Town's WebRTC audio system
    - Compatible with Gather Town's spatial audio features
    - Seamless audio routing for translation
 
@@ -110,7 +110,7 @@ The plugin monitors for Gather Town's audio interface elements:
 
 #### Virtual Microphone Detection
 
-Checks for "Sokuji Virtual Microphone" in:
+Checks for "Eburon Virtual Microphone" in:
 - Select dropdown options
 - Combobox role elements
 - Audio settings interfaces
@@ -125,11 +125,11 @@ Checks for "Sokuji Virtual Microphone" in:
 
 2. **Setup Audio**
    - Open Gather Town's audio settings
-   - Select "Sokuji Virtual Microphone" from the microphone dropdown
+   - Select "Eburon Virtual Microphone" from the microphone dropdown
    - The guidance notification will provide platform-specific instructions
 
 3. **Use Translation Features**
-   - Open Sokuji side panel
+   - Open Eburon side panel
    - Configure translation settings
    - Start speaking - translation will work through spatial audio
 
@@ -159,7 +159,7 @@ const newPlatformPlugin = {
 
 2. **Register Plugin**:
 ```javascript
-window.sokujiSitePlugins = {
+window.EburonSitePlugins = {
   'platform.domain.com': newPlatformPlugin,
   // ... other plugins
 };
@@ -184,22 +184,22 @@ window.sokujiSitePlugins = {
 
 ```javascript
 // Check content script status
-window.sokujiContentScript.getStatus()
+window.EburonContentScript.getStatus()
 
 // Check page context status (plugins run in page context)
-window.sokujiPageContext.getStatus()
+window.EburonPageContext.getStatus()
 
 // Get current plugin (page context)
-window.sokujiPageContext.getCurrentPlugin()
+window.EburonPageContext.getCurrentPlugin()
 
 // Get available plugins (page context)
-window.sokujiPageContext.getAvailablePlugins()
+window.EburonPageContext.getAvailablePlugins()
 
 // Gather Town specific debugging (page context)
-window.sokujiSitePlugins['app.gather.town'].getDebugInfo()
+window.EburonSitePlugins['app.gather.town'].getDebugInfo()
 
 // Reset guidance dismissal (page context)
-window.sokujiSitePlugins['app.gather.town'].resetGuidanceDismissal()
+window.EburonSitePlugins['app.gather.town'].resetGuidanceDismissal()
 ```
 
 ### Common Issues

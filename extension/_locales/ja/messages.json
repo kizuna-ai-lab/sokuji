@@ -1,15 +1,15 @@
 {
   "extensionName": {
-    "message": "Sokuji - AI会議翻訳"
+    "message": "Eburon - AI会議翻訳"
   },
   "extensionDescription": {
     "message": "すべてのビデオ会議用のAI音声翻訳。リアルタイム音声翻訳で言語の壁を破る。"
   },
   "popupTitle": {
-    "message": "Sokuji - 対応サイト"
+    "message": "Eburon - 対応サイト"
   },
-  "openSokuji": {
-    "message": "Sokujiを開く"
+  "openEburon": {
+    "message": "Eburonを開く"
   },
   "chromeWebStore": {
     "message": "Chrome ウェブストア"
@@ -17,8 +17,8 @@
   "edgeAddons": {
     "message": "Edge アドオン"
   },
-  "sokujiAvailable": {
-    "message": "✓ Sokujiは$SITE_NAME$で利用可能です！",
+  "EburonAvailable": {
+    "message": "✓ Eburonは$SITE_NAME$で利用可能です！",
     "placeholders": {
       "site_name": {
         "content": "$1",
@@ -27,19 +27,19 @@
     }
   },
   "clickToStart": {
-    "message": "リアルタイム翻訳を開始するには、下の「Sokujiを開く」をクリックしてください。"
+    "message": "リアルタイム翻訳を開始するには、下の「Eburonを開く」をクリックしてください。"
   },
   "quickStart": {
     "message": "クイックスタート："
   },
   "quickStartInstructions": {
-    "message": "APIキー（OpenAI または Gemini）を設定 ← マイクとして「Sokuji_Virtual_Mic」を選択 ← 話し始める！"
+    "message": "APIキー（OpenAI または Gemini）を設定 ← マイクとして「Eburon_Virtual_Mic」を選択 ← 話し始める！"
   },
   "notSupported": {
     "message": "⚠ このサイトではサポートされていません"
   },
   "currentlyOn": {
-    "message": "現在$HOSTNAME$にいます。Sokujiはこれらのプラットフォームで動作します：",
+    "message": "現在$HOSTNAME$にいます。Eburonはこれらのプラットフォームで動作します：",
     "placeholders": {
       "hostname": {
         "content": "$1",
@@ -75,16 +75,16 @@
     "message": "コード貢献"
   },
   "gatherTownTitle": {
-    "message": "Sokuji for Gather Town"
+    "message": "Eburon for Gather Town"
   },
   "gatherTownGuidance": {
-    "message": "Sokujiを使用するには、マイク設定で<strong>「Sokuji Virtual Microphone」</strong>を選択してください。"
+    "message": "Eburonを使用するには、マイク設定で<strong>「Eburon Virtual Microphone」</strong>を選択してください。"
   },
   "wherebyTitle": {
-    "message": "Sokuji for Whereby"
+    "message": "Eburon for Whereby"
   },
   "wherebyGuidance": {
-    "message": "Sokujiを使用するには、マイク設定で<strong>\"Sokuji Virtual Microphone\"</strong>を選択し、より良いパフォーマンスのために<strong>ノイズ除去を無効</strong>にしてください。"
+    "message": "Eburonを使用するには、マイク設定で<strong>\"Eburon Virtual Microphone\"</strong>を選択し、より良いパフォーマンスのために<strong>ノイズ除去を無効</strong>にしてください。"
   },
   "gotIt": {
     "message": "わかりました"
@@ -93,22 +93,22 @@
     "message": "後で通知"
   },
   "defaultTitle": {
-    "message": "Sokuji"
+    "message": "Eburon"
   },
   "defaultGuidance": {
-    "message": "Sokujiを使用するには、マイクの設定で「Sokuji Virtual Microphone」を選択してください。"
+    "message": "Eburonを使用するには、マイクの設定で「Eburon Virtual Microphone」を選択してください。"
   },
   "discordTitle": {
-    "message": "Sokuji for Discord"
+    "message": "Eburon for Discord"
   },
   "discordGuidance": {
-    "message": "Sokujiを使用するには、マイクの設定で<strong>「Sokuji Virtual Microphone」</strong>を選択し、より良いパフォーマンスのためにDiscordの音声設定で<strong>ノイズ抑制を無効</strong>にしてください。"
+    "message": "Eburonを使用するには、マイクの設定で<strong>「Eburon Virtual Microphone」</strong>を選択し、より良いパフォーマンスのためにDiscordの音声設定で<strong>ノイズ抑制を無効</strong>にしてください。"
   },
   "slackTitle": {
-    "message": "Sokuji for Slack"
+    "message": "Eburon for Slack"
   },
   "slackGuidance": {
-    "message": "Slack Huddlesで Sokuji を使用するには、<strong>Huddleを開始</strong>し、ビデオとマイクの設定で<strong>「Sokuji Virtual Microphone」</strong>を選択し、より良いパフォーマンスのために音声・ビデオ設定で<strong>ノイズ抑制を無効</strong>にしてください。"
+    "message": "Slack Huddlesで Eburon を使用するには、<strong>Huddleを開始</strong>し、ビデオとマイクの設定で<strong>「Eburon Virtual Microphone」</strong>を選択し、より良いパフォーマンスのために音声・ビデオ設定で<strong>ノイズ抑制を無効</strong>にしてください。"
   },
   "showMoreSites": {
     "message": "さらに$COUNT$サイトを表示",
@@ -123,9 +123,9 @@
     "message": "サイトを折りたたむ"
   },
   "teamsTitle": {
-    "message": "Sokuji for Microsoft Teams"
+    "message": "Eburon for Microsoft Teams"
   },
   "teamsGuidance": {
-    "message": "Teams の設定で完全なオーディオデバイスリストが表示されない場合：<br><strong>1)</strong> Sokuji 拡張機能を一時的に無効にしてページを更新<br><strong>2)</strong> プロンプトが表示されたら Teams にマイクとカメラへのアクセスを許可<br><strong>3)</strong> Sokuji 拡張機能を再度有効にしてページを再度更新<br><strong>4)</strong> プロンプトが表示されたら Sokuji にマイクへのアクセスを許可。これで、設定に実際のデバイスと <strong>\"Sokuji Virtual Microphone\"</strong> 仮想デバイスの両方が表示されるはずです。"
+    "message": "Teams の設定で完全なオーディオデバイスリストが表示されない場合：<br><strong>1)</strong> Eburon 拡張機能を一時的に無効にしてページを更新<br><strong>2)</strong> プロンプトが表示されたら Teams にマイクとカメラへのアクセスを許可<br><strong>3)</strong> Eburon 拡張機能を再度有効にしてページを再度更新<br><strong>4)</strong> プロンプトが表示されたら Eburon にマイクへのアクセスを許可。これで、設定に実際のデバイスと <strong>\"Eburon Virtual Microphone\"</strong> 仮想デバイスの両方が表示されるはずです。"
   }
 }

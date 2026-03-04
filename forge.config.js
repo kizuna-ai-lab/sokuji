@@ -6,9 +6,9 @@ module.exports = {
     asar: true,
     extraResource: ['assets', 'resources'],
     icon: process.platform === 'win32' ? 'assets/icon.ico' : 'assets/icon',
-    appId: 'com.kizunaai.sokuji',
-    executableName: 'sokuji',
-    name: 'Sokuji',
+    appId: 'com.kizunaai.Eburon',
+    executableName: 'Eburon',
+    name: 'Eburon',
     // Ignore development files and directories
     ignore: [
       // Development source files (but keep the build directory)
@@ -67,12 +67,12 @@ module.exports = {
     {
       name: '@electron-forge/maker-squirrel',
       config: {
-        name: 'Sokuji',
+        name: 'Eburon',
         authors: 'Kizuna AI Lab',
-        exe: 'sokuji.exe',
+        exe: 'Eburon.exe',
         description: 'Live speech translation application using OpenAI and Google Gemini APIs',
         setupIcon: 'assets/icon.ico',
-        iconUrl: 'https://raw.githubusercontent.com/kizuna-ai-lab/sokuji/main/assets/icon.ico',
+        iconUrl: 'https://raw.githubusercontent.com/kizuna-ai-lab/Eburon/main/assets/icon.ico',
         noMsi: true
       }
     },
@@ -86,16 +86,16 @@ module.exports = {
         options: {
           categories: ['Audio'],
           icon: 'assets/icon.png',
-          name: 'sokuji',
-          productName: 'Sokuji',
-          bin: 'sokuji'
+          name: 'Eburon',
+          productName: 'Eburon',
+          bin: 'Eburon'
         }
       },
     },
     {
       name: '@electron-forge/maker-dmg',
       config: {
-        name: 'Sokuji',
+        name: 'Eburon',
         overwrite: true
       }
     }

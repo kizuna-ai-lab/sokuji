@@ -1,15 +1,15 @@
 {
   "extensionName": {
-    "message": "Sokuji - Traducteur IA de Réunions"
+    "message": "Eburon - Traducteur IA de Réunions"
   },
   "extensionDescription": {
     "message": "Traduction vocale instantanée par IA pour toutes les visioconférences. Brisez les barrières linguistiques avec la traduction vocale en temps réel."
   },
   "popupTitle": {
-    "message": "Sokuji - Sites Pris en Charge"
+    "message": "Eburon - Sites Pris en Charge"
   },
-  "openSokuji": {
-    "message": "Ouvrir Sokuji"
+  "openEburon": {
+    "message": "Ouvrir Eburon"
   },
   "chromeWebStore": {
     "message": "Chrome Web Store"
@@ -17,8 +17,8 @@
   "edgeAddons": {
     "message": "Modules complémentaires Edge"
   },
-  "sokujiAvailable": {
-    "message": "✓ Sokuji est disponible sur $SITE_NAME$ !",
+  "EburonAvailable": {
+    "message": "✓ Eburon est disponible sur $SITE_NAME$ !",
     "placeholders": {
       "site_name": {
         "content": "$1",
@@ -27,19 +27,19 @@
     }
   },
   "clickToStart": {
-    "message": "Cliquez sur \"Ouvrir Sokuji\" ci-dessous pour commencer la traduction en temps réel."
+    "message": "Cliquez sur \"Ouvrir Eburon\" ci-dessous pour commencer la traduction en temps réel."
   },
   "quickStart": {
     "message": "Démarrage Rapide :"
   },
   "quickStartInstructions": {
-    "message": "Configurez votre clé API OpenAI → Sélectionnez \"Sokuji_Virtual_Mic\" comme microphone → Commencez à parler !"
+    "message": "Configurez votre clé API OpenAI → Sélectionnez \"Eburon_Virtual_Mic\" comme microphone → Commencez à parler !"
   },
   "notSupported": {
     "message": "⚠ Non pris en charge sur ce site"
   },
   "currentlyOn": {
-    "message": "Actuellement sur $HOSTNAME$. Sokuji fonctionne sur ces plateformes :",
+    "message": "Actuellement sur $HOSTNAME$. Eburon fonctionne sur ces plateformes :",
     "placeholders": {
       "hostname": {
         "content": "$1",
@@ -75,16 +75,16 @@
     "message": "contribuer au code"
   },
   "gatherTownTitle": {
-    "message": "Sokuji pour Gather Town"
+    "message": "Eburon pour Gather Town"
   },
   "gatherTownGuidance": {
-    "message": "Pour utiliser Sokuji, sélectionnez <strong>\"Sokuji Virtual Microphone\"</strong> dans les paramètres de votre microphone."
+    "message": "Pour utiliser Eburon, sélectionnez <strong>\"Eburon Virtual Microphone\"</strong> dans les paramètres de votre microphone."
   },
   "wherebyTitle": {
-    "message": "Sokuji pour Whereby"
+    "message": "Eburon pour Whereby"
   },
   "wherebyGuidance": {
-    "message": "Pour utiliser Sokuji, sélectionnez <strong>\"Sokuji Virtual Microphone\"</strong> dans les paramètres du microphone et <strong>désactivez la réduction de bruit</strong> pour de meilleures performances."
+    "message": "Pour utiliser Eburon, sélectionnez <strong>\"Eburon Virtual Microphone\"</strong> dans les paramètres du microphone et <strong>désactivez la réduction de bruit</strong> pour de meilleures performances."
   },
   "gotIt": {
     "message": "Compris"
@@ -93,22 +93,22 @@
     "message": "Rappeler plus tard"
   },
   "defaultTitle": {
-    "message": "Sokuji"
+    "message": "Eburon"
   },
   "defaultGuidance": {
-    "message": "Pour utiliser Sokuji, veuillez sélectionner \"Sokuji Virtual Microphone\" dans les paramètres de votre microphone."
+    "message": "Pour utiliser Eburon, veuillez sélectionner \"Eburon Virtual Microphone\" dans les paramètres de votre microphone."
   },
   "discordTitle": {
-    "message": "Sokuji pour Discord"
+    "message": "Eburon pour Discord"
   },
   "discordGuidance": {
-    "message": "Pour utiliser Sokuji, veuillez sélectionner <strong>\"Sokuji Virtual Microphone\"</strong> dans les paramètres de votre microphone et <strong>désactiver la Suppression du bruit</strong> dans les paramètres vocaux de Discord pour de meilleures performances."
+    "message": "Pour utiliser Eburon, veuillez sélectionner <strong>\"Eburon Virtual Microphone\"</strong> dans les paramètres de votre microphone et <strong>désactiver la Suppression du bruit</strong> dans les paramètres vocaux de Discord pour de meilleures performances."
   },
   "slackTitle": {
-    "message": "Sokuji pour Slack"
+    "message": "Eburon pour Slack"
   },
   "slackGuidance": {
-    "message": "Pour utiliser Sokuji dans les Huddles Slack, veuillez <strong>démarrer un Huddle</strong>, puis sélectionner <strong>\"Sokuji Virtual Microphone\"</strong> dans vos paramètres Vidéo et Micro, et <strong>désactiver la Suppression du bruit</strong> dans les préférences Audio et Vidéo pour de meilleures performances."
+    "message": "Pour utiliser Eburon dans les Huddles Slack, veuillez <strong>démarrer un Huddle</strong>, puis sélectionner <strong>\"Eburon Virtual Microphone\"</strong> dans vos paramètres Vidéo et Micro, et <strong>désactiver la Suppression du bruit</strong> dans les préférences Audio et Vidéo pour de meilleures performances."
   },
   "showMoreSites": {
     "message": "Afficher $COUNT$ sites de plus",
@@ -123,9 +123,9 @@
     "message": "Afficher moins de sites"
   },
   "teamsTitle": {
-    "message": "Sokuji pour Microsoft Teams"
+    "message": "Eburon pour Microsoft Teams"
   },
   "teamsGuidance": {
-    "message": "Si vous ne voyez pas la liste complète des périphériques audio dans les paramètres Teams :<br><strong>1)</strong> Désactivez temporairement l'extension Sokuji et actualisez la page<br><strong>2)</strong> Autorisez Teams à accéder à votre microphone et caméra lorsque vous y êtes invité<br><strong>3)</strong> Réactivez l'extension Sokuji et actualisez à nouveau la page<br><strong>4)</strong> Autorisez Sokuji à accéder à votre microphone lorsque vous y êtes invité. Vous devriez maintenant voir à la fois les périphériques réels et <strong>\"Sokuji Virtual Microphone\"</strong> dans vos paramètres."
+    "message": "Si vous ne voyez pas la liste complète des périphériques audio dans les paramètres Teams :<br><strong>1)</strong> Désactivez temporairement l'extension Eburon et actualisez la page<br><strong>2)</strong> Autorisez Teams à accéder à votre microphone et caméra lorsque vous y êtes invité<br><strong>3)</strong> Réactivez l'extension Eburon et actualisez à nouveau la page<br><strong>4)</strong> Autorisez Eburon à accéder à votre microphone lorsque vous y êtes invité. Vous devriez maintenant voir à la fois les périphériques réels et <strong>\"Eburon Virtual Microphone\"</strong> dans vos paramètres."
   }
 }

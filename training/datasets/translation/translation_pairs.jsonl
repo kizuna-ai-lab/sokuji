@@ -1,0 +1,119 @@
+{"source_lang": "en", "target_lang": "bik", "source_text": "hello", "target_text": "kumusta", "domain": "lexicon", "pos": "noun", "ipa": "/ku.ˈmus.ta/"}
+{"source_lang": "en", "target_lang": "bik", "source_text": "thank you", "target_text": "salamat", "domain": "lexicon", "pos": "noun", "ipa": "/sa.ˈla.mat/"}
+{"source_lang": "en", "target_lang": "ceb", "source_text": "hello", "target_text": "kumusta", "domain": "lexicon", "pos": "noun", "ipa": "/ku.ˈmus.ta/"}
+{"source_lang": "en", "target_lang": "ceb", "source_text": "goodbye", "target_text": "babay", "domain": "lexicon", "pos": "noun", "ipa": "/ba.ˈbaj/"}
+{"source_lang": "en", "target_lang": "ceb", "source_text": "thank you", "target_text": "salamat", "domain": "lexicon", "pos": "noun", "ipa": "/sa.ˈla.mat/"}
+{"source_lang": "en", "target_lang": "ceb", "source_text": "yes", "target_text": "oo", "domain": "lexicon", "pos": "noun", "ipa": "/ˈo.o/"}
+{"source_lang": "en", "target_lang": "ceb", "source_text": "no", "target_text": "dili", "domain": "lexicon", "pos": "noun", "ipa": "/ˈdi.li/"}
+{"source_lang": "en", "target_lang": "ceb", "source_text": "one", "target_text": "usa", "domain": "lexicon", "pos": "numeral", "ipa": "/ˈu.sa/"}
+{"source_lang": "en", "target_lang": "ceb", "source_text": "two", "target_text": "duha", "domain": "lexicon", "pos": "numeral", "ipa": "/ˈdu.ha/"}
+{"source_lang": "en", "target_lang": "ceb", "source_text": "three", "target_text": "tulo", "domain": "lexicon", "pos": "numeral", "ipa": "/ˈtu.lo/"}
+{"source_lang": "en", "target_lang": "ceb", "source_text": "four", "target_text": "upat", "domain": "lexicon", "pos": "numeral", "ipa": "/ˈu.pat/"}
+{"source_lang": "en", "target_lang": "ceb", "source_text": "five", "target_text": "lima", "domain": "lexicon", "pos": "numeral", "ipa": "/ˈli.ma/"}
+{"source_lang": "en", "target_lang": "ceb", "source_text": "mother", "target_text": "inahan", "domain": "lexicon", "pos": "noun", "ipa": "/i.ˈna.han/"}
+{"source_lang": "en", "target_lang": "ceb", "source_text": "father", "target_text": "amahan", "domain": "lexicon", "pos": "noun", "ipa": "/a.ˈma.han/"}
+{"source_lang": "en", "target_lang": "ceb", "source_text": "child", "target_text": "bata", "domain": "lexicon", "pos": "noun", "ipa": "/ˈba.ta/"}
+{"source_lang": "en", "target_lang": "ceb", "source_text": "house", "target_text": "balay", "domain": "lexicon", "pos": "noun", "ipa": "/ba.ˈlaj/"}
+{"source_lang": "en", "target_lang": "hil", "source_text": "hello", "target_text": "kamusta", "domain": "lexicon", "pos": "noun", "ipa": "/ka.ˈmus.ta/"}
+{"source_lang": "en", "target_lang": "hil", "source_text": "thank you", "target_text": "salamat", "domain": "lexicon", "pos": "noun", "ipa": "/sa.ˈla.mat/"}
+{"source_lang": "en", "target_lang": "hil", "source_text": "yes", "target_text": "huo", "domain": "lexicon", "pos": "noun", "ipa": "/hu.ˈo/"}
+{"source_lang": "en", "target_lang": "hil", "source_text": "no", "target_text": "indi", "domain": "lexicon", "pos": "noun", "ipa": "/ˈin.di/"}
+{"source_lang": "en", "target_lang": "hil", "source_text": "one", "target_text": "isa", "domain": "lexicon", "pos": "numeral", "ipa": "/ˈi.sa/"}
+{"source_lang": "en", "target_lang": "hil", "source_text": "two", "target_text": "duha", "domain": "lexicon", "pos": "numeral", "ipa": "/ˈdu.ha/"}
+{"source_lang": "en", "target_lang": "hil", "source_text": "three", "target_text": "tatlo", "domain": "lexicon", "pos": "numeral", "ipa": "/ˈtat.lo/"}
+{"source_lang": "en", "target_lang": "ilo", "source_text": "hello", "target_text": "naimbag", "domain": "lexicon", "pos": "noun", "ipa": "/na.ˈim.bag/"}
+{"source_lang": "en", "target_lang": "ilo", "source_text": "thank you", "target_text": "agyamanak", "domain": "lexicon", "pos": "noun", "ipa": "/ag.ja.ˈma.nak/"}
+{"source_lang": "en", "target_lang": "ilo", "source_text": "yes", "target_text": "wen", "domain": "lexicon", "pos": "noun", "ipa": "/ˈwɛn/"}
+{"source_lang": "en", "target_lang": "ilo", "source_text": "no", "target_text": "haan", "domain": "lexicon", "pos": "noun", "ipa": "/ha.ˈan/"}
+{"source_lang": "en", "target_lang": "ilo", "source_text": "one", "target_text": "maysa", "domain": "lexicon", "pos": "numeral", "ipa": "/ˈmaj.sa/"}
+{"source_lang": "en", "target_lang": "ilo", "source_text": "two", "target_text": "dua", "domain": "lexicon", "pos": "numeral", "ipa": "/ˈdu.a/"}
+{"source_lang": "en", "target_lang": "ilo", "source_text": "three", "target_text": "tallo", "domain": "lexicon", "pos": "numeral", "ipa": "/ˈtal.lo/"}
+{"source_lang": "en", "target_lang": "ilo", "source_text": "four", "target_text": "uppat", "domain": "lexicon", "pos": "numeral", "ipa": "/ˈup.pat/"}
+{"source_lang": "en", "target_lang": "ilo", "source_text": "five", "target_text": "lima", "domain": "lexicon", "pos": "numeral", "ipa": "/ˈli.ma/"}
+{"source_lang": "en", "target_lang": "lg", "source_text": "hello", "target_text": "ki kati", "domain": "lexicon", "pos": "noun", "ipa": "/ki ˈka.ti/"}
+{"source_lang": "en", "target_lang": "lg", "source_text": "thank you", "target_text": "webale", "domain": "lexicon", "pos": "noun", "ipa": "/we.ˈba.le/"}
+{"source_lang": "en", "target_lang": "li", "source_text": "hello", "target_text": "hallo", "domain": "lexicon", "pos": "noun", "ipa": "/ˈhɑ.lo/"}
+{"source_lang": "en", "target_lang": "li", "source_text": "thank you", "target_text": "danke", "domain": "lexicon", "pos": "noun", "ipa": "/ˈdɑŋ.kə/"}
+{"source_lang": "en", "target_lang": "nds-NL", "source_text": "hello", "target_text": "moin", "domain": "lexicon", "pos": "noun", "ipa": "/mɔɪ̯n/"}
+{"source_lang": "en", "target_lang": "nds-NL", "source_text": "thank you", "target_text": "bedankt", "domain": "lexicon", "pos": "noun", "ipa": "/bə.ˈdɑŋkt/"}
+{"source_lang": "en", "target_lang": "nl-SR", "source_text": "hello", "target_text": "hallo", "domain": "lexicon", "pos": "noun", "ipa": "/ˈɦɑ.lo/"}
+{"source_lang": "en", "target_lang": "nl-SR", "source_text": "thank you", "target_text": "dankuwel", "domain": "lexicon", "pos": "noun", "ipa": "/ˈdɑŋ.ky.ʋɛl/"}
+{"source_lang": "en", "target_lang": "pam", "source_text": "hello", "target_text": "kumusta", "domain": "lexicon", "pos": "noun", "ipa": "/ku.ˈmus.ta/"}
+{"source_lang": "en", "target_lang": "pam", "source_text": "thank you", "target_text": "salamat", "domain": "lexicon", "pos": "noun", "ipa": "/sa.ˈla.mat/"}
+{"source_lang": "en", "target_lang": "pam", "source_text": "yes", "target_text": "wa", "domain": "lexicon", "pos": "noun", "ipa": "/ˈwa/"}
+{"source_lang": "en", "target_lang": "pam", "source_text": "no", "target_text": "ali", "domain": "lexicon", "pos": "noun", "ipa": "/ˈa.li/"}
+{"source_lang": "en", "target_lang": "rw", "source_text": "hello", "target_text": "muraho", "domain": "lexicon", "pos": "noun", "ipa": "/mu.ˈɾa.ho/"}
+{"source_lang": "en", "target_lang": "rw", "source_text": "thank you", "target_text": "murakoze", "domain": "lexicon", "pos": "noun", "ipa": "/mu.ɾa.ˈko.ze/"}
+{"source_lang": "en", "target_lang": "sn", "source_text": "hello", "target_text": "mhoro", "domain": "lexicon", "pos": "noun", "ipa": "/ˈmɦɔ.ɾɔ/"}
+{"source_lang": "en", "target_lang": "sn", "source_text": "thank you", "target_text": "mazvita", "domain": "lexicon", "pos": "noun", "ipa": "/ma.ˈzvi.ta/"}
+{"source_lang": "en", "target_lang": "war", "source_text": "hello", "target_text": "kumusta", "domain": "lexicon", "pos": "noun", "ipa": "/ku.ˈmus.ta/"}
+{"source_lang": "en", "target_lang": "war", "source_text": "thank you", "target_text": "salamat", "domain": "lexicon", "pos": "noun", "ipa": "/sa.ˈla.mat/"}
+{"source_lang": "en", "target_lang": "xh", "source_text": "hello", "target_text": "molo", "domain": "lexicon", "pos": "noun", "ipa": "/ˈmɔ.lɔ/"}
+{"source_lang": "en", "target_lang": "xh", "source_text": "thank you", "target_text": "enkosi", "domain": "lexicon", "pos": "noun", "ipa": "/ɛn.ˈkɔ.si/"}
+{"source_lang": "en", "target_lang": "zea", "source_text": "hello", "target_text": "aoij", "domain": "lexicon", "pos": "noun", "ipa": "/aːuj/"}
+{"source_lang": "en", "target_lang": "zea", "source_text": "thank you", "target_text": "bedankt", "domain": "lexicon", "pos": "noun", "ipa": "/bə.ˈdɑŋkt/"}
+{"source_lang": "en", "target_lang": "zu", "source_text": "hello", "target_text": "sawubona", "domain": "lexicon", "pos": "noun", "ipa": "/sa.wu.ˈbɔ.na/"}
+{"source_lang": "en", "target_lang": "zu", "source_text": "thank you", "target_text": "ngiyabonga", "domain": "lexicon", "pos": "noun", "ipa": "/ŋi.ja.ˈbɔ.ŋa/"}
+{"source_lang": "en", "target_lang": "zu", "source_text": "yes", "target_text": "yebo", "domain": "lexicon", "pos": "noun", "ipa": "/ˈjɛ.bɔ/"}
+{"source_lang": "en", "target_lang": "zu", "source_text": "no", "target_text": "cha", "domain": "lexicon", "pos": "noun", "ipa": "/ˈt͡ʃa/"}
+{"source_lang": "en", "target_lang": "zu", "source_text": "one", "target_text": "kunye", "domain": "lexicon", "pos": "numeral", "ipa": "/ˈku.ɲe/"}
+{"source_lang": "en", "target_lang": "zu", "source_text": "two", "target_text": "kubili", "domain": "lexicon", "pos": "numeral", "ipa": "/ku.ˈbi.li/"}
+{"source_lang": "en", "target_lang": "zu", "source_text": "three", "target_text": "kuthathu", "domain": "lexicon", "pos": "numeral", "ipa": "/ku.ˈtʰa.tʰu/"}
+{"source_lang": "en", "target_lang": "ceb", "source_text": "Hello, how are you?", "target_text": "Kumusta, kumusta ka?", "domain": "greetings"}
+{"source_lang": "en", "target_lang": "ceb", "source_text": "Good morning.", "target_text": "Maayong buntag.", "domain": "greetings"}
+{"source_lang": "en", "target_lang": "ceb", "source_text": "Thank you very much.", "target_text": "Salamat kaayo.", "domain": "greetings"}
+{"source_lang": "en", "target_lang": "ceb", "source_text": "Goodbye, see you later.", "target_text": "Babay, magkita ta.", "domain": "greetings"}
+{"source_lang": "en", "target_lang": "ceb", "source_text": "What is your name?", "target_text": "Unsa imong ngalan?", "domain": "basic_conversation"}
+{"source_lang": "en", "target_lang": "ceb", "source_text": "I do not understand.", "target_text": "Wala ko kasabot.", "domain": "basic_conversation"}
+{"source_lang": "en", "target_lang": "ilo", "source_text": "Hello, how are you?", "target_text": "Naimbag, kumusta ka?", "domain": "greetings"}
+{"source_lang": "en", "target_lang": "ilo", "source_text": "Good morning.", "target_text": "Naimbag a bigat.", "domain": "greetings"}
+{"source_lang": "en", "target_lang": "ilo", "source_text": "Thank you very much.", "target_text": "Agyamanak unay.", "domain": "greetings"}
+{"source_lang": "en", "target_lang": "ilo", "source_text": "What is your name?", "target_text": "Anya ti naganmo?", "domain": "basic_conversation"}
+{"source_lang": "en", "target_lang": "hil", "source_text": "Hello, how are you?", "target_text": "Kamusta, kamusta ka?", "domain": "greetings"}
+{"source_lang": "en", "target_lang": "hil", "source_text": "Good morning.", "target_text": "Maayong aga.", "domain": "greetings"}
+{"source_lang": "en", "target_lang": "hil", "source_text": "Thank you very much.", "target_text": "Salamat gid.", "domain": "greetings"}
+{"source_lang": "en", "target_lang": "zu", "source_text": "Hello, how are you?", "target_text": "Sawubona, unjani?", "domain": "greetings"}
+{"source_lang": "en", "target_lang": "zu", "source_text": "Good morning.", "target_text": "Sawubona ekuseni.", "domain": "greetings"}
+{"source_lang": "en", "target_lang": "zu", "source_text": "Thank you very much.", "target_text": "Ngiyabonga kakhulu.", "domain": "greetings"}
+{"source_lang": "en", "target_lang": "zu", "source_text": "What is your name?", "target_text": "Ngubani igama lakho?", "domain": "basic_conversation"}
+{"source_lang": "en", "target_lang": "zu", "source_text": "I do not understand.", "target_text": "Angiqondi.", "domain": "basic_conversation"}
+{"source_lang": "en", "target_lang": "xh", "source_text": "Hello, how are you?", "target_text": "Molo, unjani?", "domain": "greetings"}
+{"source_lang": "en", "target_lang": "xh", "source_text": "Good morning.", "target_text": "Molo ngentsasa.", "domain": "greetings"}
+{"source_lang": "en", "target_lang": "xh", "source_text": "Thank you very much.", "target_text": "Enkosi kakhulu.", "domain": "greetings"}
+{"source_lang": "en", "target_lang": "yo", "source_text": "Hello, how are you?", "target_text": "Bawo ni, se daadaa ni?", "domain": "greetings"}
+{"source_lang": "en", "target_lang": "yo", "source_text": "Good morning.", "target_text": "E kaaro.", "domain": "greetings"}
+{"source_lang": "en", "target_lang": "yo", "source_text": "Thank you very much.", "target_text": "E se pupo.", "domain": "greetings"}
+{"source_lang": "en", "target_lang": "ig", "source_text": "Hello, how are you?", "target_text": "Kedu, kedu ka i mere?", "domain": "greetings"}
+{"source_lang": "en", "target_lang": "ig", "source_text": "Good morning.", "target_text": "Ụtụtụ ọma.", "domain": "greetings"}
+{"source_lang": "en", "target_lang": "ig", "source_text": "Thank you very much.", "target_text": "Daalụ nke ukwuu.", "domain": "greetings"}
+{"source_lang": "en", "target_lang": "ha", "source_text": "Hello, how are you?", "target_text": "Sannu, yaya kake?", "domain": "greetings"}
+{"source_lang": "en", "target_lang": "ha", "source_text": "Good morning.", "target_text": "Ina kwana.", "domain": "greetings"}
+{"source_lang": "en", "target_lang": "ha", "source_text": "Thank you very much.", "target_text": "Na gode sosai.", "domain": "greetings"}
+{"source_lang": "en", "target_lang": "rw", "source_text": "Hello, how are you?", "target_text": "Muraho, amakuru?", "domain": "greetings"}
+{"source_lang": "en", "target_lang": "rw", "source_text": "Thank you very much.", "target_text": "Murakoze cyane.", "domain": "greetings"}
+{"source_lang": "en", "target_lang": "sn", "source_text": "Hello, how are you?", "target_text": "Mhoro, makadii?", "domain": "greetings"}
+{"source_lang": "en", "target_lang": "sn", "source_text": "Thank you very much.", "target_text": "Mazvita chaizvo.", "domain": "greetings"}
+{"source_lang": "en", "target_lang": "lg", "source_text": "Hello, how are you?", "target_text": "Ki kati, oli otya?", "domain": "greetings"}
+{"source_lang": "en", "target_lang": "lg", "source_text": "Thank you very much.", "target_text": "Webale nnyo.", "domain": "greetings"}
+{"source_lang": "en", "target_lang": "sm", "source_text": "Hello, how are you?", "target_text": "Talofa, o a mai oe?", "domain": "greetings"}
+{"source_lang": "en", "target_lang": "sm", "source_text": "Thank you very much.", "target_text": "Faafetai tele lava.", "domain": "greetings"}
+{"source_lang": "en", "target_lang": "to", "source_text": "Hello, how are you?", "target_text": "Mālō e lelei, fēfē hake?", "domain": "greetings"}
+{"source_lang": "en", "target_lang": "to", "source_text": "Thank you very much.", "target_text": "Mālō ʻaupito.", "domain": "greetings"}
+{"source_lang": "en", "target_lang": "fj", "source_text": "Hello, how are you?", "target_text": "Bula, o yadra vakacava?", "domain": "greetings"}
+{"source_lang": "en", "target_lang": "fj", "source_text": "Thank you very much.", "target_text": "Vinaka vakalevu.", "domain": "greetings"}
+{"source_lang": "en", "target_lang": "mi", "source_text": "Hello, how are you?", "target_text": "Kia ora, kei te pēhea koe?", "domain": "greetings"}
+{"source_lang": "en", "target_lang": "mi", "source_text": "Thank you very much.", "target_text": "Tēnā koe.", "domain": "greetings"}
+{"source_lang": "en", "target_lang": "ht", "source_text": "Hello, how are you?", "target_text": "Bonjou, kijan ou ye?", "domain": "greetings"}
+{"source_lang": "en", "target_lang": "ht", "source_text": "Thank you very much.", "target_text": "Mèsi anpil.", "domain": "greetings"}
+{"source_lang": "en", "target_lang": "pap", "source_text": "Hello, how are you?", "target_text": "Bon dia, kon ta bai?", "domain": "greetings"}
+{"source_lang": "en", "target_lang": "pap", "source_text": "Thank you very much.", "target_text": "Masha danki.", "domain": "greetings"}
+{"source_lang": "en", "target_lang": "eu", "source_text": "Hello, how are you?", "target_text": "Kaixo, zer moduz?", "domain": "greetings"}
+{"source_lang": "en", "target_lang": "eu", "source_text": "Thank you very much.", "target_text": "Eskerrik asko.", "domain": "greetings"}
+{"source_lang": "en", "target_lang": "br", "source_text": "Hello, how are you?", "target_text": "Demat, penaos emañ?", "domain": "greetings"}
+{"source_lang": "en", "target_lang": "br", "source_text": "Thank you very much.", "target_text": "Trugarez bras.", "domain": "greetings"}
+{"source_lang": "en", "target_lang": "ga", "source_text": "Hello, how are you?", "target_text": "Dia dhuit, conas atá tú?", "domain": "greetings"}
+{"source_lang": "en", "target_lang": "ga", "source_text": "Thank you very much.", "target_text": "Go raibh maith agat.", "domain": "greetings"}
+{"source_lang": "en", "target_lang": "cy", "source_text": "Hello, how are you?", "target_text": "Helo, sut wyt ti?", "domain": "greetings"}
+{"source_lang": "en", "target_lang": "cy", "source_text": "Thank you very much.", "target_text": "Diolch yn fawr.", "domain": "greetings"}
+{"source_lang": "en", "target_lang": "gd", "source_text": "Hello, how are you?", "target_text": "Halò, ciamar a tha thu?", "domain": "greetings"}
+{"source_lang": "en", "target_lang": "gd", "source_text": "Thank you very much.", "target_text": "Tapadh leat gu mòr.", "domain": "greetings"}

@@ -1,6 +1,6 @@
-# Sokuji Analytics Events Documentation
+# Eburon Analytics Events Documentation
 
-This document provides a comprehensive overview of all analytics events tracked in the Sokuji real-time translation application. All events are sent to PostHog for product analytics.
+This document provides a comprehensive overview of all analytics events tracked in the Eburon real-time translation application. All events are sent to PostHog for product analytics.
 
 ## Table of Contents
 1. [Application Lifecycle Events](#application-lifecycle-events)

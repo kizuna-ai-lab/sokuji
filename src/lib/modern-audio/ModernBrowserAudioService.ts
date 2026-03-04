@@ -56,7 +56,7 @@ export class ModernBrowserAudioService implements IAudioService {
     // Initialize virtual speaker player only in Electron
     this.virtualSpeakerPlayer = null;
     if (ServiceFactory.isElectron()) {
-      console.info('[Sokuji] [ModernBrowserAudio] Initializing virtual speaker player for Electron');
+      console.info('[Eburon] [ModernBrowserAudio] Initializing virtual speaker player for Electron');
       this.virtualSpeakerPlayer = new ModernAudioPlayer({ 
         sampleRate: 24000 
       });
@@ -69,7 +69,7 @@ export class ModernBrowserAudioService implements IAudioService {
   async initialize(): Promise<void> {
     // Make initialization idempotent
     if (this.initialized) {
-      console.info('[Sokuji] [ModernBrowserAudio] Audio service already initialized');
+      console.info('[Eburon] [ModernBrowserAudio] Audio service already initialized');
       return;
     }
 
@@ -93,15 +93,15 @@ export class ModernBrowserAudioService implements IAudioService {
       
       if (tabIdParam) {
         this.targetTabId = parseInt(tabIdParam, 10);
-        console.info(`[Sokuji] [ModernBrowserAudio] Initialized with target tabId: ${this.targetTabId}`);
+        console.info(`[Eburon] [ModernBrowserAudio] Initialized with target tabId: ${this.targetTabId}`);
       }
       
     } catch (error) {
-      console.error('[Sokuji] [ModernBrowserAudio] Error parsing URL parameters:', error);
+      console.error('[Eburon] [ModernBrowserAudio] Error parsing URL parameters:', error);
     }
 
     this.initialized = true;
-    console.info('[Sokuji] [ModernBrowserAudio] Audio service initialized');
+    console.info('[Eburon] [ModernBrowserAudio] Audio service initialized');
     
     // Start diagnostics monitoring in development
     this.startDiagnosticsMonitoring();
@@ -135,7 +135,7 @@ export class ModernBrowserAudioService implements IAudioService {
       try {
         await navigator.mediaDevices.getUserMedia({ audio: true });
       } catch (permissionError: any) {
-        console.error('[Sokuji] [ModernBrowserAudio] Microphone permission denied:', permissionError);
+        console.error('[Eburon] [ModernBrowserAudio] Microphone permission denied:', permissionError);
         
         // Show user-friendly error message
         this.showPermissionError(permissionError);
@@ -168,7 +168,7 @@ export class ModernBrowserAudioService implements IAudioService {
       
       return { inputs, outputs };
     } catch (error) {
-      console.error('[Sokuji] [ModernBrowserAudio] Failed to get audio devices:', error);
+      console.error('[Eburon] [ModernBrowserAudio] Failed to get audio devices:', error);
       return { inputs: [], outputs: [] };
     }
   }
@@ -214,10 +214,10 @@ export class ModernBrowserAudioService implements IAudioService {
    */
   private displayErrorNotification(errorMessage: string): void {
     // Create or update error notification element
-    let notification = document.getElementById('sokuji-mic-error');
+    let notification = document.getElementById('Eburon-mic-error');
     if (!notification) {
       notification = document.createElement('div');
-      notification.id = 'sokuji-mic-error';
+      notification.id = 'Eburon-mic-error';
       notification.style.cssText = 'position:fixed; top:10px; left:50%; transform:translateX(-50%); '
         + 'background:#f44336; color:white; padding:12px 24px; border-radius:4px; z-index:9999; '
         + 'max-width:80%; text-align:center; box-shadow:0 2px 5px rgba(0,0,0,0.3); font-family:sans-serif;';
@@ -248,15 +248,15 @@ export class ModernBrowserAudioService implements IAudioService {
     try {
       const devices = await this.getDevices();
 
-      // First priority: Look for Sokuji_Virtual_Speaker (Linux)
+      // First priority: Look for Eburon_Virtual_Speaker (Linux)
       let virtualSpeaker = devices.outputs.find(device =>
-        device.label.includes('Sokuji_Virtual_Speaker')
+        device.label.includes('Eburon_Virtual_Speaker')
       );
 
-      // Second priority: Look for SokujiVirtualAudio (Mac)
+      // Second priority: Look for EburonVirtualAudio (Mac)
       if (!virtualSpeaker) {
         virtualSpeaker = devices.outputs.find(device =>
-          device.label.includes('SokujiVirtualAudio')
+          device.label.includes('EburonVirtualAudio')
         );
       }
 
@@ -269,12 +269,12 @@ export class ModernBrowserAudioService implements IAudioService {
 
       if (virtualSpeaker && this.virtualSpeakerPlayer) {
         await this.virtualSpeakerPlayer.setSinkId(virtualSpeaker.deviceId);
-        console.info('[Sokuji] [ModernBrowserAudio] Virtual speaker detected and configured:', virtualSpeaker.label);
+        console.info('[Eburon] [ModernBrowserAudio] Virtual speaker detected and configured:', virtualSpeaker.label);
       } else if (this.virtualSpeakerPlayer) {
-        console.warn('[Sokuji] [ModernBrowserAudio] Virtual speaker device not found (neither Sokuji_Virtual_Speaker, SokujiVirtualAudio, nor VB-CABLE)');
+        console.warn('[Eburon] [ModernBrowserAudio] Virtual speaker device not found (neither Eburon_Virtual_Speaker, EburonVirtualAudio, nor VB-CABLE)');
       }
     } catch (error) {
-      console.error('[Sokuji] [ModernBrowserAudio] Error detecting virtual speaker:', error);
+      console.error('[Eburon] [ModernBrowserAudio] Error detecting virtual speaker:', error);
     }
   }
 
@@ -283,7 +283,7 @@ export class ModernBrowserAudioService implements IAudioService {
    */
   async connectMonitoringDevice(deviceId: string, label: string): Promise<AudioOperationResult> {
     try {
-      console.debug(`[Sokuji] [ModernBrowserAudio] Connecting monitoring device: ${label} (${deviceId})`);
+      console.debug(`[Eburon] [ModernBrowserAudio] Connecting monitoring device: ${label} (${deviceId})`);
       
       const success = await this.player.setSinkId(deviceId);
       
@@ -304,7 +304,7 @@ export class ModernBrowserAudioService implements IAudioService {
         };
       }
     } catch (error: any) {
-      console.error('[Sokuji] [ModernBrowserAudio] Error connecting monitoring device:', error);
+      console.error('[Eburon] [ModernBrowserAudio] Error connecting monitoring device:', error);
       return {
         success: false,
         error: error.message || 'Failed to connect monitoring device'
@@ -355,7 +355,7 @@ export class ModernBrowserAudioService implements IAudioService {
   async setupVirtualAudioOutput(): Promise<boolean> {
     // Modern implementation doesn't need special virtual output setup
     // HTMLAudioElement handles echo cancellation automatically
-    console.info('[Sokuji] [ModernBrowserAudio] Virtual audio output ready with modern implementation');
+    console.info('[Eburon] [ModernBrowserAudio] Virtual audio output ready with modern implementation');
     return true;
   }
 
@@ -373,7 +373,7 @@ export class ModernBrowserAudioService implements IAudioService {
   public setMonitorVolume(enabled: boolean): void {
     const volume = enabled ? 1.0 : 0.0;
     this.player.setGlobalVolume(volume);
-    console.debug(`[Sokuji] [ModernBrowserAudio] Monitor volume set to: ${volume}`);
+    console.debug(`[Eburon] [ModernBrowserAudio] Monitor volume set to: ${volume}`);
     
     // Virtual speaker always plays at full volume (not affected by monitor toggle)
     if (this.virtualSpeakerPlayer) {
@@ -412,7 +412,7 @@ export class ModernBrowserAudioService implements IAudioService {
   public sendPcmDataToTabs(data: Int16Array, trackId?: string): void {
     // Skip empty data
     if (!data || data.length === 0) {
-      console.debug('[Sokuji] [ModernBrowserAudio] Attempted to send empty audio data');
+      console.debug('[Eburon] [ModernBrowserAudio] Attempted to send empty audio data');
       return;
     }
     
@@ -427,7 +427,7 @@ export class ModernBrowserAudioService implements IAudioService {
     const totalChunks = Math.ceil(data.length / chunkSize);
     
     if (isLargeFile) {
-      console.info(`[Sokuji] [ModernBrowserAudio] Sending audio data (${data.length} samples, ~${(data.length / sampleRate).toFixed(2)}s) in ${totalChunks} chunks`);
+      console.info(`[Eburon] [ModernBrowserAudio] Sending audio data (${data.length} samples, ~${(data.length / sampleRate).toFixed(2)}s) in ${totalChunks} chunks`);
     }
     
     // Process chunks recursively
@@ -504,7 +504,7 @@ export class ModernBrowserAudioService implements IAudioService {
       // Tab exists, send the message
       chrome.tabs.sendMessage(tabId, message, (_response: any) => {
         if (chrome.runtime.lastError) {
-          console.warn(`[Sokuji] [ModernBrowserAudio] Error sending to tab ${tabId}: ${chrome.runtime.lastError.message}`);
+          console.warn(`[Eburon] [ModernBrowserAudio] Error sending to tab ${tabId}: ${chrome.runtime.lastError.message}`);
         }
       });
     });
@@ -530,7 +530,7 @@ export class ModernBrowserAudioService implements IAudioService {
         chrome.tabs.sendMessage(tab.id, message, (_response: any) => {
           // Ignore errors, as not all tabs will have our content script
           if (chrome.runtime.lastError) {
-            console.debug(`[Sokuji] [ModernBrowserAudio] Tab ${tab.id} not ready: ${chrome.runtime.lastError.message}`);
+            console.debug(`[Eburon] [ModernBrowserAudio] Tab ${tab.id} not ready: ${chrome.runtime.lastError.message}`);
           }
         });
       }
@@ -590,7 +590,7 @@ export class ModernBrowserAudioService implements IAudioService {
       this.virtualSpeakerPlayer.clearInterruptedTracks();
     }
     
-    console.debug('[Sokuji] [ModernBrowserAudio] Cleared interrupted tracks');
+    console.debug('[Eburon] [ModernBrowserAudio] Cleared interrupted tracks');
   }
 
   /**
@@ -599,14 +599,14 @@ export class ModernBrowserAudioService implements IAudioService {
   public async startRecording(deviceId: string | undefined, callback: AudioRecordingCallback): Promise<void> {
     this.recordingCallback = callback;
 
-    console.debug(`[Sokuji] [ModernBrowserAudio] Starting recording from device: ${deviceId}`);
+    console.debug(`[Eburon] [ModernBrowserAudio] Starting recording from device: ${deviceId}`);
     
     // Check if we need to switch devices
     const recorderStatus = this.recorder.getStatus();
     const needsDeviceSwitch = this.currentRecordingDeviceId !== deviceId && recorderStatus !== 'ended';
     
     if (needsDeviceSwitch) {
-      console.info(`[Sokuji] [ModernBrowserAudio] Switching recording device from ${this.currentRecordingDeviceId} to ${deviceId}`);
+      console.info(`[Eburon] [ModernBrowserAudio] Switching recording device from ${this.currentRecordingDeviceId} to ${deviceId}`);
       // Need to end current recording session to switch devices
       await this.recorder.end();
     }
@@ -655,11 +655,11 @@ export class ModernBrowserAudioService implements IAudioService {
    */
   public async switchRecordingDevice(deviceId: string | undefined): Promise<void> {
     if (this.currentRecordingDeviceId === deviceId) {
-      console.debug(`[Sokuji] [ModernBrowserAudio] Already using device: ${deviceId}`);
+      console.debug(`[Eburon] [ModernBrowserAudio] Already using device: ${deviceId}`);
       return;
     }
 
-    console.info(`[Sokuji] [ModernBrowserAudio] Switching recording device from ${this.currentRecordingDeviceId} to ${deviceId}`);
+    console.info(`[Eburon] [ModernBrowserAudio] Switching recording device from ${this.currentRecordingDeviceId} to ${deviceId}`);
     
     // Save the current recording state
     const wasRecording = this.recorder.getStatus() === 'recording';
@@ -771,16 +771,16 @@ export class ModernBrowserAudioService implements IAudioService {
       // Check if platform supports system audio capture
       const supported = await window.electron.invoke('supports-system-audio-capture');
       if (!supported) {
-        console.info('[Sokuji] [ModernBrowserAudio] System audio capture not supported on this platform');
+        console.info('[Eburon] [ModernBrowserAudio] System audio capture not supported on this platform');
         return [];
       }
 
       // Get list of audio sinks from the main process
       const sources = await window.electron.invoke('list-system-audio-sources');
-      console.info('[Sokuji] [ModernBrowserAudio] Found system audio sources:', sources?.length || 0);
+      console.info('[Eburon] [ModernBrowserAudio] Found system audio sources:', sources?.length || 0);
       return sources || [];
     } catch (error) {
-      console.error('[Sokuji] [ModernBrowserAudio] Error getting system audio sources:', error);
+      console.error('[Eburon] [ModernBrowserAudio] Error getting system audio sources:', error);
       return [];
     }
   }
@@ -798,12 +798,12 @@ export class ModernBrowserAudioService implements IAudioService {
     }
 
     try {
-      console.info(`[Sokuji] [ModernBrowserAudio] Connecting system audio source: ${sourceDeviceId}`);
+      console.info(`[Eburon] [ModernBrowserAudio] Connecting system audio source: ${sourceDeviceId}`);
 
       if (isLoopbackPlatform()) {
         // Windows/macOS: Just set state flags, actual capture via electron-audio-loopback
         const platform = isWindows() ? 'Windows' : 'macOS';
-        console.info(`[Sokuji] [ModernBrowserAudio] ${platform} detected - using electron-audio-loopback`);
+        console.info(`[Eburon] [ModernBrowserAudio] ${platform} detected - using electron-audio-loopback`);
         // Still call IPC for consistency (it's a no-op on Windows/macOS)
         await window.electron.invoke('connect-system-audio-source', sourceDeviceId);
       } else {
@@ -818,9 +818,9 @@ export class ModernBrowserAudioService implements IAudioService {
       this.systemAudioSourceConnected = true;
       this.currentSystemAudioSinkId = sourceDeviceId;
 
-      console.info(`[Sokuji] [ModernBrowserAudio] System audio source connected: ${sourceDeviceId}`);
+      console.info(`[Eburon] [ModernBrowserAudio] System audio source connected: ${sourceDeviceId}`);
     } catch (error) {
-      console.error('[Sokuji] [ModernBrowserAudio] Failed to connect system audio source:', error);
+      console.error('[Eburon] [ModernBrowserAudio] Failed to connect system audio source:', error);
       // Reset state on failure
       this.systemAudioSourceConnected = false;
       this.currentSystemAudioSinkId = undefined;
@@ -833,7 +833,7 @@ export class ModernBrowserAudioService implements IAudioService {
    * Called when user deselects the system audio device
    */
   public async disconnectSystemAudioSource(): Promise<void> {
-    console.info('[Sokuji] [ModernBrowserAudio] Disconnecting system audio source');
+    console.info('[Eburon] [ModernBrowserAudio] Disconnecting system audio source');
 
     // Stop recording first if active
     if (this.systemAudioRecordingActive) {
@@ -845,13 +845,13 @@ export class ModernBrowserAudioService implements IAudioService {
       try {
         await window.electron.invoke('disconnect-system-audio-source');
       } catch (error) {
-        console.warn('[Sokuji] [ModernBrowserAudio] Error disconnecting system audio source:', error);
+        console.warn('[Eburon] [ModernBrowserAudio] Error disconnecting system audio source:', error);
       }
     }
 
     this.systemAudioSourceConnected = false;
     this.currentSystemAudioSinkId = undefined;
-    console.info('[Sokuji] [ModernBrowserAudio] System audio source disconnected');
+    console.info('[Eburon] [ModernBrowserAudio] System audio source disconnected');
   }
 
   /**
@@ -864,7 +864,7 @@ export class ModernBrowserAudioService implements IAudioService {
   /**
    * Start recording from the system audio source
    * Called when session starts
-   * - Linux: Uses PulseAudio virtual mic (Sokuji_System_Audio)
+   * - Linux: Uses PulseAudio virtual mic (Eburon_System_Audio)
    * - Windows/macOS: Uses electron-audio-loopback via getDisplayMedia
    * @param callback Function to receive audio data chunks
    */
@@ -894,7 +894,7 @@ export class ModernBrowserAudioService implements IAudioService {
   private async startLoopbackRecording(callback: AudioRecordingCallback): Promise<void> {
     try {
       const platform = isWindows() ? 'Windows' : 'macOS';
-      console.info(`[Sokuji] [ModernBrowserAudio] Starting ${platform} system audio recording via electron-audio-loopback`);
+      console.info(`[Eburon] [ModernBrowserAudio] Starting ${platform} system audio recording via electron-audio-loopback`);
 
       // Create loopback recorder (uses electron-audio-loopback library)
       this.systemAudioRecorder = new LoopbackRecorder(24000);
@@ -916,9 +916,9 @@ export class ModernBrowserAudioService implements IAudioService {
       });
 
       this.systemAudioRecordingActive = true;
-      console.info(`[Sokuji] [ModernBrowserAudio] ${platform} system audio recording started successfully`);
+      console.info(`[Eburon] [ModernBrowserAudio] ${platform} system audio recording started successfully`);
     } catch (error) {
-      console.error('[Sokuji] [ModernBrowserAudio] Failed to start loopback recording:', error);
+      console.error('[Eburon] [ModernBrowserAudio] Failed to start loopback recording:', error);
       // Clean up on failure
       await this.stopSystemAudioRecording();
       throw error;
@@ -931,20 +931,20 @@ export class ModernBrowserAudioService implements IAudioService {
    */
   private async startLinuxSystemAudioRecording(callback: AudioRecordingCallback): Promise<void> {
     try {
-      console.info('[Sokuji] [ModernBrowserAudio] Starting Linux system audio recording via PulseAudio');
+      console.info('[Eburon] [ModernBrowserAudio] Starting Linux system audio recording via PulseAudio');
 
       // Find the browser deviceId for our system audio mic by label
       // The browser uses UUIDs as deviceIds, not PulseAudio source names
       const devices = await navigator.mediaDevices.enumerateDevices();
       const systemAudioDevice = devices.find(
-        d => d.kind === 'audioinput' && d.label.includes('Sokuji_System_Audio')
+        d => d.kind === 'audioinput' && d.label.includes('Eburon_System_Audio')
       );
 
       if (!systemAudioDevice) {
         throw new Error('System audio device not found. Virtual devices may not have been created at startup.');
       }
 
-      console.info(`[Sokuji] [ModernBrowserAudio] Found system audio device: ${systemAudioDevice.label} (${systemAudioDevice.deviceId})`);
+      console.info(`[Eburon] [ModernBrowserAudio] Found system audio device: ${systemAudioDevice.label} (${systemAudioDevice.deviceId})`);
 
       // Create LinuxLoopbackRecorder (uses ParticipantRecorder with proper audio constraints)
       this.systemAudioRecorder = new LinuxLoopbackRecorder(24000);
@@ -966,9 +966,9 @@ export class ModernBrowserAudioService implements IAudioService {
       });
 
       this.systemAudioRecordingActive = true;
-      console.info('[Sokuji] [ModernBrowserAudio] Linux system audio recording started successfully');
+      console.info('[Eburon] [ModernBrowserAudio] Linux system audio recording started successfully');
     } catch (error) {
-      console.error('[Sokuji] [ModernBrowserAudio] Failed to start Linux system audio recording:', error);
+      console.error('[Eburon] [ModernBrowserAudio] Failed to start Linux system audio recording:', error);
       // Clean up on failure
       await this.stopSystemAudioRecording();
       throw error;
@@ -980,20 +980,20 @@ export class ModernBrowserAudioService implements IAudioService {
    * Called when session ends
    */
   public async stopSystemAudioRecording(): Promise<void> {
-    console.info('[Sokuji] [ModernBrowserAudio] Stopping system audio recording');
+    console.info('[Eburon] [ModernBrowserAudio] Stopping system audio recording');
 
     if (this.systemAudioRecorder) {
       try {
         await this.systemAudioRecorder.end();
       } catch (error) {
-        console.warn('[Sokuji] [ModernBrowserAudio] Error ending system audio recorder:', error);
+        console.warn('[Eburon] [ModernBrowserAudio] Error ending system audio recorder:', error);
       }
       this.systemAudioRecorder = null;
     }
 
     this.systemAudioCallback = null;
     this.systemAudioRecordingActive = false;
-    console.info('[Sokuji] [ModernBrowserAudio] System audio recording stopped');
+    console.info('[Eburon] [ModernBrowserAudio] System audio recording stopped');
   }
 
   /**
@@ -1016,79 +1016,79 @@ export class ModernBrowserAudioService implements IAudioService {
   public async requestLoopbackAudioStream(): Promise<boolean> {
     // Only applicable for loopback platforms (Windows/macOS)
     if (!isLoopbackPlatform()) {
-      console.info('[Sokuji] [ModernBrowserAudio] requestLoopbackAudioStream: Not a loopback platform, skipping');
+      console.info('[Eburon] [ModernBrowserAudio] requestLoopbackAudioStream: Not a loopback platform, skipping');
       return true; // Return true since Linux doesn't need this
     }
 
     // Check if running in Electron
     if (!ServiceFactory.isElectron() || !window.electron) {
-      console.info('[Sokuji] [ModernBrowserAudio] requestLoopbackAudioStream: Not in Electron, skipping');
+      console.info('[Eburon] [ModernBrowserAudio] requestLoopbackAudioStream: Not in Electron, skipping');
       return true;
     }
 
     try {
-      console.info('[Sokuji] [ModernBrowserAudio] Checking screen recording permission...');
+      console.info('[Eburon] [ModernBrowserAudio] Checking screen recording permission...');
 
       // Check screen recording permission (macOS only, Windows always returns 'granted')
       const permissionResult = await window.electron.invoke('check-screen-recording-permission');
-      console.info('[Sokuji] [ModernBrowserAudio] Screen recording permission check result:', permissionResult);
+      console.info('[Eburon] [ModernBrowserAudio] Screen recording permission check result:', permissionResult);
 
       // Permission already granted - no need to show dialog
       if (permissionResult.status === 'granted') {
-        console.info('[Sokuji] [ModernBrowserAudio] Screen recording permission already granted');
+        console.info('[Eburon] [ModernBrowserAudio] Screen recording permission already granted');
         return true;
       }
 
       // Permission explicitly denied - user must manually enable in System Preferences
       // Don't try to call enable-loopback-audio because it will crash the app with unhandled rejection
       if (permissionResult.status === 'denied') {
-        console.warn('[Sokuji] [ModernBrowserAudio] Screen recording permission denied. User must enable in System Preferences.');
+        console.warn('[Eburon] [ModernBrowserAudio] Screen recording permission denied. User must enable in System Preferences.');
         return false;
       }
 
       // Permission not determined or unknown - try to trigger permission dialog
       // In Electron, getDisplayMedia requires the electron-audio-loopback handler to be active
       // We need to enable-loopback-audio first, then call getDisplayMedia
-      console.info('[Sokuji] [ModernBrowserAudio] Permission not determined (status:', permissionResult.status, '), triggering system dialog...');
+      console.info('[Eburon] [ModernBrowserAudio] Permission not determined (status:', permissionResult.status, '), triggering system dialog...');
 
       try {
         // Enable loopback audio handler first - this might fail if permission not granted
         // but we catch the error and still try getDisplayMedia
-        console.info('[Sokuji] [ModernBrowserAudio] Enabling loopback audio handler...');
+        console.info('[Eburon] [ModernBrowserAudio] Enabling loopback audio handler...');
         await window.electron.invoke('enable-loopback-audio');
-        console.info('[Sokuji] [ModernBrowserAudio] Loopback audio handler enabled');
+        console.info('[Eburon] [ModernBrowserAudio] Loopback audio handler enabled');
       } catch (enableError) {
-        console.warn('[Sokuji] [ModernBrowserAudio] Failed to enable loopback audio (expected if permission not granted):', enableError);
+        console.warn('[Eburon] [ModernBrowserAudio] Failed to enable loopback audio (expected if permission not granted):', enableError);
         // Continue anyway - getDisplayMedia might still trigger the permission dialog
       }
 
       try {
         // Call getDisplayMedia to trigger system permission dialog
-        console.info('[Sokuji] [ModernBrowserAudio] Calling navigator.mediaDevices.getDisplayMedia()...');
+        console.info('[Eburon] [ModernBrowserAudio] Calling navigator.mediaDevices.getDisplayMedia()...');
         const tempStream = await navigator.mediaDevices.getDisplayMedia({
           video: true,
           audio: true
         });
-        console.info('[Sokuji] [ModernBrowserAudio] getDisplayMedia() succeeded, got stream:', tempStream);
-        console.info('[Sokuji] [ModernBrowserAudio] Stream tracks:', tempStream.getTracks().map(t => ({ kind: t.kind, label: t.label, readyState: t.readyState })));
+        console.info('[Eburon] [ModernBrowserAudio] getDisplayMedia() succeeded, got stream:', tempStream);
+        console.info('[Eburon] [ModernBrowserAudio] Stream tracks:', tempStream.getTracks().map(t => ({ kind: t.kind, label: t.label, readyState: t.readyState })));
         // Stop the stream immediately - we just wanted to trigger the permission dialog
         tempStream.getTracks().forEach(track => track.stop());
         // Disable loopback audio after we're done
         await window.electron.invoke('disable-loopback-audio').catch(() => {});
-        console.info('[Sokuji] [ModernBrowserAudio] Permission granted');
+        console.info('[Eburon] [ModernBrowserAudio] Permission granted');
         return true;
       } catch (error) {
         // Disable loopback audio on error
         await window.electron.invoke('disable-loopback-audio').catch(() => {});
-        console.error('[Sokuji] [ModernBrowserAudio] getDisplayMedia() failed:', error);
-        console.error('[Sokuji] [ModernBrowserAudio] Error name:', error instanceof Error ? error.name : 'unknown');
-        console.error('[Sokuji] [ModernBrowserAudio] Error message:', error instanceof Error ? error.message : String(error));
+        console.error('[Eburon] [ModernBrowserAudio] getDisplayMedia() failed:', error);
+        console.error('[Eburon] [ModernBrowserAudio] Error name:', error instanceof Error ? error.name : 'unknown');
+        console.error('[Eburon] [ModernBrowserAudio] Error message:', error instanceof Error ? error.message : String(error));
         // User cancelled or permission denied
         return false;
       }
 
     } catch (error) {
-      console.error('[Sokuji] [ModernBrowserAudio] Error checking screen recording permission:', error);
+      console.error('[Eburon] [ModernBrowserAudio] Error checking screen recording permission:', error);
       return false;
     }
   }
@@ -1124,7 +1124,7 @@ export class ModernBrowserAudioService implements IAudioService {
         return this.targetTabId;
       }
     } catch (error) {
-      console.error('[Sokuji] [ModernBrowserAudio] Error getting tabId:', error);
+      console.error('[Eburon] [ModernBrowserAudio] Error getting tabId:', error);
     }
 
     return null;
@@ -1147,7 +1147,7 @@ export class ModernBrowserAudioService implements IAudioService {
     }
 
     try {
-      console.info('[Sokuji] [ModernBrowserAudio] Starting tab audio recording');
+      console.info('[Eburon] [ModernBrowserAudio] Starting tab audio recording');
 
       // Get the target tab ID
       const tabId = this.getTargetTabIdForCapture();
@@ -1175,9 +1175,9 @@ export class ModernBrowserAudioService implements IAudioService {
       });
 
       this.tabAudioRecordingActive = true;
-      console.info('[Sokuji] [ModernBrowserAudio] Tab audio recording started successfully');
+      console.info('[Eburon] [ModernBrowserAudio] Tab audio recording started successfully');
     } catch (error) {
-      console.error('[Sokuji] [ModernBrowserAudio] Failed to start tab audio recording:', error);
+      console.error('[Eburon] [ModernBrowserAudio] Failed to start tab audio recording:', error);
       await this.stopTabAudioRecording();
       throw error;
     }
@@ -1188,20 +1188,20 @@ export class ModernBrowserAudioService implements IAudioService {
    * Called when session ends
    */
   public async stopTabAudioRecording(): Promise<void> {
-    console.info('[Sokuji] [ModernBrowserAudio] Stopping tab audio recording');
+    console.info('[Eburon] [ModernBrowserAudio] Stopping tab audio recording');
 
     if (this.tabAudioRecorder) {
       try {
         await this.tabAudioRecorder.end();
       } catch (error) {
-        console.warn('[Sokuji] [ModernBrowserAudio] Error ending tab audio recorder:', error);
+        console.warn('[Eburon] [ModernBrowserAudio] Error ending tab audio recorder:', error);
       }
       this.tabAudioRecorder = null;
     }
 
     this.tabAudioCallback = null;
     this.tabAudioRecordingActive = false;
-    console.info('[Sokuji] [ModernBrowserAudio] Tab audio recording stopped');
+    console.info('[Eburon] [ModernBrowserAudio] Tab audio recording stopped');
   }
 
   /**
@@ -1236,13 +1236,13 @@ export class ModernBrowserAudioService implements IAudioService {
   ): Promise<void> {
     // Extension environment: use tab audio capture
     if (isExtension()) {
-      console.info('[Sokuji] [ModernBrowserAudio] Starting participant audio via tab capture');
+      console.info('[Eburon] [ModernBrowserAudio] Starting participant audio via tab capture');
       return this.startTabAudioRecording(callback, options?.outputDeviceId);
     }
 
     // Electron environment: use system audio capture
     if (this.systemAudioSourceConnected) {
-      console.info('[Sokuji] [ModernBrowserAudio] Starting participant audio via system audio');
+      console.info('[Eburon] [ModernBrowserAudio] Starting participant audio via system audio');
       return this.startSystemAudioRecording(callback);
     }
 
@@ -1255,16 +1255,16 @@ export class ModernBrowserAudioService implements IAudioService {
   public async stopParticipantAudioRecording(): Promise<void> {
     // Stop whichever recording is active
     if (this.tabAudioRecordingActive) {
-      console.info('[Sokuji] [ModernBrowserAudio] Stopping participant audio (tab capture)');
+      console.info('[Eburon] [ModernBrowserAudio] Stopping participant audio (tab capture)');
       return this.stopTabAudioRecording();
     }
 
     if (this.systemAudioRecordingActive) {
-      console.info('[Sokuji] [ModernBrowserAudio] Stopping participant audio (system audio)');
+      console.info('[Eburon] [ModernBrowserAudio] Stopping participant audio (system audio)');
       return this.stopSystemAudioRecording();
     }
 
-    console.info('[Sokuji] [ModernBrowserAudio] No participant audio recording to stop');
+    console.info('[Eburon] [ModernBrowserAudio] No participant audio recording to stop');
   }
 
   /**

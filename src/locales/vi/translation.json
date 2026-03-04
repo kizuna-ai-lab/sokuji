@@ -19,7 +19,7 @@
     "signUp": "Đăng ký"
   },
   "app": {
-    "title": "Sokuji",
+    "title": "Eburon",
     "description": "Ứng dụng dịch giọng nói thời gian thực"
   },
   "settings": {
@@ -73,7 +73,7 @@
     "apiKeyTooltip": "Khóa API giống như mật khẩu cho dịch vụ AI. Lấy nó từ trang web của nhà cung cấp và giữ an toàn. Không bao giờ chia sẻ với người khác.",
     "clientIdTooltip": "ID tài khoản PalabraAI của bạn. Điều này xác định tài khoản của bạn. Lấy nó từ bảng điều khiển PalabraAI.",
     "clientSecretTooltip": "Khóa bí mật PalabraAI của bạn. Giữ kín và an toàn. Không bao giờ chia sẻ với bất kỳ ai.",
-    "uiLanguageTooltip": "Thay đổi ngôn ngữ của menu và nút của Sokuji. Điều này KHÔNG ảnh hưởng đến các ngôn ngữ bạn có thể dịch.",
+    "uiLanguageTooltip": "Thay đổi ngôn ngữ của menu và nút của Eburon. Điều này KHÔNG ảnh hưởng đến các ngôn ngữ bạn có thể dịch.",
     "modelTooltip": "Mô hình AI ảnh hưởng đến tốc độ và chất lượng. Mô hình 'Mini' nhanh hơn nhưng đơn giản hơn. Mô hình chuẩn chính xác hơn nhưng hơi chậm hơn. Thử mini trước để tiết kiệm chi phí.",
     "voiceTooltip": "Chọn giọng nói của AI. Mỗi giọng có âm sắc và phong cách khác nhau. Thử các giọng khác nhau để tìm giọng yêu thích của bạn.",
     "sourceLanguageTooltip": "Ngôn ngữ bạn nói. AI sẽ lắng nghe ngôn ngữ này và dịch nó.",
@@ -155,8 +155,8 @@
     "basic": {
       "steps": {
         "welcome": {
-          "title": "Welcome to Sokuji",
-          "content": "Welcome to Sokuji! This simple guide will help you start using real-time translation in just a few steps."
+          "title": "Welcome to Eburon",
+          "content": "Welcome to Eburon! This simple guide will help you start using real-time translation in just a few steps."
         },
         "settings": {
           "title": "Step 1: Open Settings",
@@ -188,7 +188,7 @@
         },
         "complete": {
           "title": "All Set!",
-          "content": "Perfect! You're ready to use Sokuji. Click Start and begin speaking to hear real-time translations."
+          "content": "Perfect! You're ready to use Eburon. Click Start and begin speaking to hear real-time translations."
         }
       }
     },
@@ -202,7 +202,7 @@
     "restartTour": "Khởi động lại hướng dẫn thiết lập",
     "steps": {
       "welcome": {
-        "title": "Chào mừng đến với Sokuji!",
+        "title": "Chào mừng đến với Eburon!",
         "content": "Chào mừng bạn đến với ứng dụng dịch giọng nói thời gian thực! Hãy thiết lập hệ thống của bạn nhanh chóng để có trải nghiệm tốt nhất."
       },
       "openSettings": {
@@ -239,11 +239,11 @@
       },
       "startSession": {
         "title": "Bắt đầu phiên của bạn",
-        "content": "Mọi thứ đã sẵn sàng! Nhấp vào nút \"Bắt đầu phiên\" để bắt đầu dịch thời gian thực. Nhớ chọn microphone ảo Sokuji làm thiết bị đầu vào trong ứng dụng hội nghị của bạn."
+        "content": "Mọi thứ đã sẵn sàng! Nhấp vào nút \"Bắt đầu phiên\" để bắt đầu dịch thời gian thực. Nhớ chọn microphone ảo Eburon làm thiết bị đầu vào trong ứng dụng hội nghị của bạn."
       },
       "completion": {
         "title": "Hướng dẫn thiết lập hoàn thành!",
-        "content": "Bạn đã hoàn thành hướng dẫn thiết lập! Bây giờ hãy đảm bảo thực sự nhập khóa API và cấu hình cài đặt của bạn, sau đó sử dụng microphone ảo Sokuji trong ứng dụng hội nghị (như Google Meet, Zoom, v.v.) để bắt đầu dịch thời gian thực."
+        "content": "Bạn đã hoàn thành hướng dẫn thiết lập! Bây giờ hãy đảm bảo thực sự nhập khóa API và cấu hình cài đặt của bạn, sau đó sử dụng microphone ảo Eburon trong ứng dụng hội nghị (như Google Meet, Zoom, v.v.) để bắt đầu dịch thời gian thực."
       }
     }
   },
@@ -268,7 +268,7 @@
     "apiKeyHelp2": "2. Đăng ký hoặc đăng nhập vào tài khoản của bạn",
     "apiKeyHelp3": "3. Đi đến phần khóa API",
     "apiKeyHelp4": "4. Tạo khóa API mới và sao chép vào đây",
-    "apiKeyHelpTooltip": "Khóa API giống như mật khẩu cho phép Sokuji sử dụng các dịch vụ dịch AI. Bạn cần lấy một cái từ nhà cung cấp bạn chọn (như OpenAI).",
+    "apiKeyHelpTooltip": "Khóa API giống như mật khẩu cho phép Eburon sử dụng các dịch vụ dịch AI. Bạn cần lấy một cái từ nhà cung cấp bạn chọn (như OpenAI).",
     "apiKeyHelpTooltip2": "Hướng dẫn từng bước:",
     "languages": "Ngôn ngữ",
     "uiLanguage": "Ngôn Ngữ Giao Diện",
@@ -278,7 +278,7 @@
   },
   "simpleConfig": {
     "interfaceLanguage": "Ngôn Ngữ Giao Diện",
-    "interfaceLanguageDesc": "Điều này thay đổi ngôn ngữ của menu và nút của Sokuji. Nó KHÔNG ảnh hưởng đến các ngôn ngữ bạn có thể dịch giữa.",
+    "interfaceLanguageDesc": "Điều này thay đổi ngôn ngữ của menu và nút của Eburon. Nó KHÔNG ảnh hưởng đến các ngôn ngữ bạn có thể dịch giữa.",
     "translationLanguages": "Ngôn Ngữ Dịch",
     "translationLanguagesDesc": "Chọn ngôn ngữ bạn nói (Ngôn Ngữ Của Bạn) và ngôn ngữ bạn muốn nghe bản dịch (Ngôn Ngữ Đích). Chọn 'Tự Động Phát Hiện' nếu bạn không chắc chắn về ngôn ngữ nguồn.",
     "yourLanguage": "Ngôn ngữ của tôi",
@@ -288,7 +288,7 @@
     "signInDescription": "Đăng ký để có trải nghiệm đơn giản.",
     "targetLanguage": "Ngôn ngữ đối phương",
     "microphone": "Microphone",
-    "microphoneDesc": "Chọn microphone để ghi lại giọng nói của bạn. Nói bằng ngôn ngữ của bạn vào microphone này, và Sokuji sẽ dịch mọi thứ nó nghe thấy theo thời gian thực.",
+    "microphoneDesc": "Chọn microphone để ghi lại giọng nói của bạn. Nói bằng ngôn ngữ của bạn vào microphone này, và Eburon sẽ dịch mọi thứ nó nghe thấy theo thời gian thực.",
     "speaker": "Loa",
     "speakerDesc": "Chọn loa để giám sát đầu ra đã dịch. Điều này cho phép bạn nghe bản dịch như thế nào. Bạn có thể tắt nó nếu không cần giám sát. Dù bật hay tắt, âm thanh đã dịch luôn được gửi tới microphone ảo để những người tham gia khác có thể nghe.",
     "systemAudio": "Âm Thanh Người Tham Gia",
@@ -380,7 +380,7 @@
     "noMic": "Cần Microphone"
   },
   "userTypeSelection": {
-    "title": "Chào mừng đến với Sokuji",
+    "title": "Chào mừng đến với Eburon",
     "subtitle": "Vui lòng chọn loại người dùng của bạn để bắt đầu",
     "regular": {
       "title": "Người dùng thông thường",

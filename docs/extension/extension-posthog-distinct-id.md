@@ -4,7 +4,7 @@ This document explains how PostHog's `distinct_id` is captured and used in the b
 
 ## Overview
 
-When users uninstall the Sokuji browser extension, we want to track this event and associate it with their existing PostHog user profile. To achieve this, we need to pass the user's `distinct_id` from the extension's frontend (sidepanel using React PostHogProvider) to the background script, which then includes it in the uninstall feedback URL.
+When users uninstall the Eburon browser extension, we want to track this event and associate it with their existing PostHog user profile. To achieve this, we need to pass the user's `distinct_id` from the extension's frontend (sidepanel using React PostHogProvider) to the background script, which then includes it in the uninstall feedback URL.
 
 ## Implementation
 
@@ -25,10 +25,10 @@ async function storeDistinctId(distinctId) {
   try {
     await chrome.storage.local.set({ posthog_distinct_id: distinctId });
     currentDistinctId = distinctId;
-    console.debug('[Sokuji] [Background] Stored distinct_id:', distinctId);
+    console.debug('[Eburon] [Background] Stored distinct_id:', distinctId);
     return true;
   } catch (error) {
-    console.error('[Sokuji] [Background] Error storing distinct_id:', error);
+    console.error('[Eburon] [Background] Error storing distinct_id:', error);
     return false;
   }
 }
@@ -51,7 +51,7 @@ async function updateUninstallURL(distinctId = null) {
     
     return true;
   } catch (error) {
-    console.error('[Sokuji] [Background] Error updating uninstall URL:', error);
+    console.error('[Eburon] [Background] Error updating uninstall URL:', error);
     return false;
   }
 }
@@ -169,7 +169,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 The uninstall URL will look like:
 ```
-https://kizuna-ai-lab.github.io/sokuji/uninstall_feedback.html?distinct_id=abc123xyz
+https://kizuna-ai-lab.github.io/Eburon/uninstall_feedback.html?distinct_id=abc123xyz
 ```
 
 ## Benefits
@@ -199,7 +199,7 @@ The implementation includes comprehensive error handling:
 
 To test this functionality:
 
-1. **Install extension**: Install the Sokuji extension in development mode
+1. **Install extension**: Install the Eburon extension in development mode
 2. **Use the extension**: Interact with the extension to generate PostHog events
 3. **Check background logs**: Verify that `distinct_id` is being captured
 4. **Simulate uninstall**: Check that the uninstall URL includes the `distinct_id` parameter

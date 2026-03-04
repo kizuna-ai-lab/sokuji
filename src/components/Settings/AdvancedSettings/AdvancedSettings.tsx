@@ -3,27 +3,16 @@ import { AlertCircle, HelpCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useIsSessionActive } from '../../../stores/sessionStore';
 import { useOnboarding } from '../../../contexts/OnboardingContext';
-import {
-  useProvider,
-  useAvailableModels,
-  useLoadingModels,
-  useFetchAvailableModels,
-  useGetProcessedSystemInstructions
-} from '../../../stores/settingsStore';
 import { useAudioContext } from '../../../stores/audioStore';
-import { ProviderConfigFactory } from '../../../services/providers/ProviderConfigFactory';
-import { Provider } from '../../../types/Provider';
 import WarningModal from '../shared/WarningModal';
 import { WarningType } from '../shared/hooks';
 import {
   AccountSection,
-  ProviderSection,
   LanguageSection,
   AudioDeviceSection,
   SystemAudioSection,
   VoicePassthroughSection
 } from '../sections';
-import ProviderSpecificSettings from '../sections/ProviderSpecificSettings';
 import './AdvancedSettings.scss';
 
 interface AdvancedSettingsProps {
@@ -35,28 +24,10 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({ toggleSettings }) =
   const isSessionActive = useIsSessionActive();
   const { startOnboarding } = useOnboarding();
 
-  // Provider settings
-  const provider = useProvider();
-  const availableModels = useAvailableModels();
-  const loadingModels = useLoadingModels();
-  const fetchAvailableModels = useFetchAvailableModels();
-  const getProcessedSystemInstructions = useGetProcessedSystemInstructions();
-
   // Audio context
   const { isSystemAudioCaptureEnabled, isMonitorDeviceOn } = useAudioContext();
 
-  // Get current provider configuration
-  const currentProviderConfig = React.useMemo(() => {
-    try {
-      return ProviderConfigFactory.getConfig(provider || Provider.OPENAI);
-    } catch (error) {
-      console.warn(`[AdvancedSettings] Unknown provider: ${provider}, falling back to OpenAI`);
-      return ProviderConfigFactory.getConfig(Provider.OPENAI);
-    }
-  }, [provider]);
-
   // State
-  const [isPreviewExpanded, setIsPreviewExpanded] = useState(false);
   const [warningType, setWarningType] = useState<WarningType | null>(null);
 
   return (
@@ -78,12 +49,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({ toggleSettings }) =
         {/* User Account Section */}
         <AccountSection />
 
-        {/* Provider and API Key - dropdown style */}
-        <ProviderSection
-          isSessionActive={isSessionActive}
-          expandableStyle={false}
-          showExperimentalBadge={true}
-        />
+        {/* Provider and API Key - hidden (hardcoded to Gemini) */}
 
         {/* Interface Language - full list */}
         <LanguageSection
@@ -93,17 +59,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({ toggleSettings }) =
           simplifiedInterfaceList={false}
         />
 
-        {/* Provider-specific settings (system instructions, model, turn detection, etc.) */}
-        <ProviderSpecificSettings
-          config={currentProviderConfig}
-          isSessionActive={isSessionActive}
-          isPreviewExpanded={isPreviewExpanded}
-          setIsPreviewExpanded={setIsPreviewExpanded}
-          getProcessedSystemInstructions={getProcessedSystemInstructions}
-          availableModels={availableModels}
-          loadingModels={loadingModels}
-          fetchAvailableModels={fetchAvailableModels}
-        />
+        {/* Provider-specific settings - hidden (hardcoded to Gemini) */}
 
         {/* Audio Input Devices */}
         <div className="settings-section audio-section">

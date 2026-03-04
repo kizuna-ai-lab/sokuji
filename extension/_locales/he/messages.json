@@ -1,15 +1,15 @@
 {
   "extensionName": {
-    "message": "Sokuji - מתרגם פגישות AI"
+    "message": "Eburon - מתרגם פגישות AI"
   },
   "extensionDescription": {
     "message": "תרגום דיבור מיידי מבוסס בינה מלאכותית לכל פגישות הווידאו. שבירת מחסומי השפה עם תרגום קולי בזמן אמת."
   },
   "popupTitle": {
-    "message": "Sokuji - אתרים נתמכים"
+    "message": "Eburon - אתרים נתמכים"
   },
-  "openSokuji": {
-    "message": "פתח Sokuji"
+  "openEburon": {
+    "message": "פתח Eburon"
   },
   "chromeWebStore": {
     "message": "חנות האינטרנט של Chrome"
@@ -17,8 +17,8 @@
   "edgeAddons": {
     "message": "תוספות Edge"
   },
-  "sokujiAvailable": {
-    "message": "✓ Sokuji זמין ב-$SITE_NAME$!",
+  "EburonAvailable": {
+    "message": "✓ Eburon זמין ב-$SITE_NAME$!",
     "placeholders": {
       "site_name": {
         "content": "$1",
@@ -27,19 +27,19 @@
     }
   },
   "clickToStart": {
-    "message": "לחץ על \"פתח Sokuji\" למטה כדי להתחיל תרגום בזמן אמת."
+    "message": "לחץ על \"פתח Eburon\" למטה כדי להתחיל תרגום בזמן אמת."
   },
   "quickStart": {
     "message": "התחלה מהירה:"
   },
   "quickStartInstructions": {
-    "message": "הגדר את מפתח ה-API של OpenAI שלך ← בחר \"Sokuji_Virtual_Mic\" כמיקרופון ← התחל לדבר!"
+    "message": "הגדר את מפתח ה-API של OpenAI שלך ← בחר \"Eburon_Virtual_Mic\" כמיקרופון ← התחל לדבר!"
   },
   "notSupported": {
     "message": "⚠ לא נתמך באתר זה"
   },
   "currentlyOn": {
-    "message": "כרגע ב-$HOSTNAME$. Sokuji עובד על הפלטפורמות הללו:",
+    "message": "כרגע ב-$HOSTNAME$. Eburon עובד על הפלטפורמות הללו:",
     "placeholders": {
       "hostname": {
         "content": "$1",
@@ -75,16 +75,16 @@
     "message": "תרום קוד"
   },
   "gatherTownTitle": {
-    "message": "Sokuji for Gather Town"
+    "message": "Eburon for Gather Town"
   },
   "gatherTownGuidance": {
-    "message": "כדי להשתמש ב-Sokuji, בחר <strong>\"Sokuji Virtual Microphone\"</strong> בהגדרות המיקרופון שלך."
+    "message": "כדי להשתמש ב-Eburon, בחר <strong>\"Eburon Virtual Microphone\"</strong> בהגדרות המיקרופון שלך."
   },
   "wherebyTitle": {
-    "message": "Sokuji for Whereby"
+    "message": "Eburon for Whereby"
   },
   "wherebyGuidance": {
-    "message": "כדי להשתמש ב-Sokuji, אנא בחר <strong>\"Sokuji Virtual Microphone\"</strong> בהגדרות המיקרופון ו<strong>השבת את הפחתת הרעש</strong> לביצועים טובים יותר."
+    "message": "כדי להשתמש ב-Eburon, אנא בחר <strong>\"Eburon Virtual Microphone\"</strong> בהגדרות המיקרופון ו<strong>השבת את הפחתת הרעש</strong> לביצועים טובים יותר."
   },
   "gotIt": {
     "message": "הבנתי"
@@ -93,22 +93,22 @@
     "message": "הזכר לי מאוחר יותר"
   },
   "defaultTitle": {
-    "message": "Sokuji"
+    "message": "Eburon"
   },
   "defaultGuidance": {
-    "message": "כדי להשתמש ב-Sokuji, אנא בחר \"Sokuji Virtual Microphone\" בהגדרות המיקרופון שלך."
+    "message": "כדי להשתמש ב-Eburon, אנא בחר \"Eburon Virtual Microphone\" בהגדרות המיקרופון שלך."
   },
   "discordTitle": {
-    "message": "Sokuji for Discord"
+    "message": "Eburon for Discord"
   },
   "discordGuidance": {
-    "message": "כדי להשתמש ב-Sokuji, אנא בחר <strong>\"Sokuji Virtual Microphone\"</strong> בהגדרות המיקרופון שלך ו<strong>השבת את דיכוי הרעש</strong> בהגדרות הקול של Discord לביצועים טובים יותר."
+    "message": "כדי להשתמש ב-Eburon, אנא בחר <strong>\"Eburon Virtual Microphone\"</strong> בהגדרות המיקרופון שלך ו<strong>השבת את דיכוי הרעש</strong> בהגדרות הקול של Discord לביצועים טובים יותר."
   },
   "slackTitle": {
-    "message": "Sokuji for Slack"
+    "message": "Eburon for Slack"
   },
   "slackGuidance": {
-    "message": "To use Sokuji in Slack Huddles, please <strong>start a Huddle</strong>, then select <strong>\"Sokuji Virtual Microphone\"</strong> in your Video and Mic settings, and <strong>disable Noise Suppression</strong> in Audio & Video preferences for better performance."
+    "message": "To use Eburon in Slack Huddles, please <strong>start a Huddle</strong>, then select <strong>\"Eburon Virtual Microphone\"</strong> in your Video and Mic settings, and <strong>disable Noise Suppression</strong> in Audio & Video preferences for better performance."
   },
   "showMoreSites": {
     "message": "Show $COUNT$ more sites",
@@ -123,9 +123,9 @@
     "message": "Show less sites"
   },
   "teamsTitle": {
-    "message": "Sokuji עבור Microsoft Teams"
+    "message": "Eburon עבור Microsoft Teams"
   },
   "teamsGuidance": {
-    "message": "אם אינך רואה את רשימת מכשירי השמע המלאה בהגדרות Teams:<br><strong>1)</strong> השבת זמנית את התוסף Sokuji ורענן את הדף<br><strong>2)</strong> אפשר ל-Teams גישה למיקרופון ולמצלמה שלך כשתתבקש<br><strong>3)</strong> הפעל מחדש את התוסף Sokuji ורענן את הדף שוב<br><strong>4)</strong> אפשר ל-Sokuji גישה למיקרופון שלך כשתתבקש. כעת אתה אמור לראות גם מכשירים אמיתיים וגם <strong>\"Sokuji Virtual Microphone\"</strong> בהגדרות שלך."
+    "message": "אם אינך רואה את רשימת מכשירי השמע המלאה בהגדרות Teams:<br><strong>1)</strong> השבת זמנית את התוסף Eburon ורענן את הדף<br><strong>2)</strong> אפשר ל-Teams גישה למיקרופון ולמצלמה שלך כשתתבקש<br><strong>3)</strong> הפעל מחדש את התוסף Eburon ורענן את הדף שוב<br><strong>4)</strong> אפשר ל-Eburon גישה למיקרופון שלך כשתתבקש. כעת אתה אמור לראות גם מכשירים אמיתיים וגם <strong>\"Eburon Virtual Microphone\"</strong> בהגדרות שלך."
   }
 }

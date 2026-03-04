@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Linux Installation Guide - Sokuji</title>
+    <title>Linux Installation Guide - Eburon</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
@@ -306,7 +306,7 @@
         </div>
 
         <div class="header">
-            <img src="https://github.com/kizuna-ai-lab/sokuji/raw/main/src/assets/logo.png" alt="Sokuji Logo">
+            <img src="https://github.com/kizuna-ai-lab/Eburon/raw/main/src/assets/logo.png" alt="Eburon Logo">
             <h1 id="page-title">Linux Installation Guide</h1>
         </div>
 
@@ -336,7 +336,7 @@
                 backLink: "← Back to Documentation",
                 tocTitle: "Table of Contents",
                 mobileJumpTo: "Jump to section...",
-                overview: "This guide will walk you through installing Sokuji on Linux systems. Sokuji is available as a .deb package for Debian/Ubuntu-based distributions and as an AppImage for universal compatibility.",
+                overview: "This guide will walk you through installing Eburon on Linux systems. Eburon is available as a .deb package for Debian/Ubuntu-based distributions and as an AppImage for universal compatibility.",
                 requirements: {
                     title: "System Requirements",
                     items: [
@@ -350,8 +350,8 @@
                 },
                 steps: [
                     {
-                        title: "Step 1: Download Sokuji",
-                        content: `Visit the <a href="https://github.com/kizuna-ai-lab/sokuji/releases/latest" target="_blank" rel="noopener noreferrer">official GitHub releases page</a> to download the latest version of Sokuji for Linux.`,
+                        title: "Step 1: Download Eburon",
+                        content: `Visit the <a href="https://github.com/kizuna-ai-lab/Eburon/releases/latest" target="_blank" rel="noopener noreferrer">official GitHub releases page</a> to download the latest version of Eburon for Linux.`,
                         subsections: [
                             {
                                 title: "Available Packages",
@@ -371,7 +371,7 @@
                                 title: "Method 1: Using GUI",
                                 content: `<ol>
                                     <li>Open your file manager and navigate to the Downloads folder</li>
-                                    <li>Double-click the <code>sokuji_*.deb</code> file</li>
+                                    <li>Double-click the <code>Eburon_*.deb</code> file</li>
                                     <li>Click "Install" in the Software Center that opens</li>
                                     <li>Enter your password when prompted</li>
                                 </ol>`
@@ -380,7 +380,7 @@
                                 title: "Method 2: Using Terminal",
                                 content: `Open Terminal and run the following commands:
                                 <pre><code>cd ~/Downloads
-sudo dpkg -i sokuji_*.deb</code></pre>
+sudo dpkg -i Eburon_*.deb</code></pre>
                                 If you encounter dependency issues, fix them with:
                                 <pre><code>sudo apt-get install -f</code></pre>`
                             }
@@ -395,10 +395,10 @@ sudo dpkg -i sokuji_*.deb</code></pre>
                                 content: `<ol>
                                     <li>Download the AppImage file from the releases page</li>
                                     <li>Make it executable:
-                                        <pre><code>chmod +x sokuji-*.AppImage</code></pre>
+                                        <pre><code>chmod +x Eburon-*.AppImage</code></pre>
                                     </li>
                                     <li>Run the application:
-                                        <pre><code>./sokuji-*.AppImage</code></pre>
+                                        <pre><code>./Eburon-*.AppImage</code></pre>
                                     </li>
                                 </ol>`
                             },
@@ -406,20 +406,20 @@ sudo dpkg -i sokuji_*.deb</code></pre>
                                 title: "Optional: System Integration",
                                 content: `To integrate the AppImage with your system:
                                 <pre><code>mkdir -p ~/.local/bin
-cp sokuji-*.AppImage ~/.local/bin/sokuji
-chmod +x ~/.local/bin/sokuji</code></pre>
-                                Now you can run Sokuji from anywhere by typing <code>sokuji</code> in the terminal.`
+cp Eburon-*.AppImage ~/.local/bin/Eburon
+chmod +x ~/.local/bin/Eburon</code></pre>
+                                Now you can run Eburon from anywhere by typing <code>Eburon</code> in the terminal.`
                             }
                         ]
                     },
                     {
                         title: "Step 4: First Run Configuration",
-                        content: `When you launch Sokuji for the first time, you'll need to configure it:`,
+                        content: `When you launch Eburon for the first time, you'll need to configure it:`,
                         subsections: [
                             {
                                 title: "Initial Setup",
                                 content: `<ol>
-                                    <li>Launch Sokuji from your application menu or terminal</li>
+                                    <li>Launch Eburon from your application menu or terminal</li>
                                     <li>Select your preferred interface language</li>
                                     <li>Configure your AI provider (OpenAI, Google Gemini, etc.)</li>
                                     <li>Enter your API key for the selected provider</li>
@@ -428,7 +428,7 @@ chmod +x ~/.local/bin/sokuji</code></pre>
                                 </ol>`
                             }
                         ],
-                        success: "Sokuji is now ready to use! You can start real-time translation by clicking the start session button."
+                        success: "Eburon is now ready to use! You can start real-time translation by clicking the start session button."
                     }
                 ],
                 troubleshooting: {
@@ -473,7 +473,7 @@ sudo apt-get install libgtk-3-0 libnotify4 libnss3 libxss1 \\
                 backLink: "← 返回文档",
                 tocTitle: "目录",
                 mobileJumpTo: "跳转到章节...",
-                overview: "本指南将指导您在 Linux 系统上安装 Sokuji。Sokuji 提供 .deb 包用于 Debian/Ubuntu 发行版，以及 AppImage 用于通用兼容性。",
+                overview: "本指南将指导您在 Linux 系统上安装 Eburon。Eburon 提供 .deb 包用于 Debian/Ubuntu 发行版，以及 AppImage 用于通用兼容性。",
                 requirements: {
                     title: "系统要求",
                     items: [
@@ -487,8 +487,8 @@ sudo apt-get install libgtk-3-0 libnotify4 libnss3 libxss1 \\
                 },
                 steps: [
                     {
-                        title: "步骤 1：下载 Sokuji",
-                        content: `访问 <a href="https://github.com/kizuna-ai-lab/sokuji/releases/latest" target="_blank" rel="noopener noreferrer">官方 GitHub 发布页面</a> 下载最新版本的 Linux 版 Sokuji。`,
+                        title: "步骤 1：下载 Eburon",
+                        content: `访问 <a href="https://github.com/kizuna-ai-lab/Eburon/releases/latest" target="_blank" rel="noopener noreferrer">官方 GitHub 发布页面</a> 下载最新版本的 Linux 版 Eburon。`,
                         subsections: [
                             {
                                 title: "可用的安装包",
@@ -508,7 +508,7 @@ sudo apt-get install libgtk-3-0 libnotify4 libnss3 libxss1 \\
                                 title: "方法 1：使用 GUI",
                                 content: `<ol>
                                     <li>打开文件管理器并导航到下载文件夹</li>
-                                    <li>双击 <code>sokuji_*.deb</code> 文件</li>
+                                    <li>双击 <code>Eburon_*.deb</code> 文件</li>
                                     <li>在打开的软件中心中点击"安装"</li>
                                     <li>在提示时输入您的密码</li>
                                 </ol>`
@@ -517,7 +517,7 @@ sudo apt-get install libgtk-3-0 libnotify4 libnss3 libxss1 \\
                                 title: "方法 2：使用终端",
                                 content: `打开终端并运行以下命令：
                                 <pre><code>cd ~/Downloads
-sudo dpkg -i sokuji_*.deb</code></pre>
+sudo dpkg -i Eburon_*.deb</code></pre>
                                 如果遇到依赖问题，使用以下命令修复：
                                 <pre><code>sudo apt-get install -f</code></pre>`
                             }
@@ -532,10 +532,10 @@ sudo dpkg -i sokuji_*.deb</code></pre>
                                 content: `<ol>
                                     <li>从发布页面下载 AppImage 文件</li>
                                     <li>使其可执行：
-                                        <pre><code>chmod +x sokuji-*.AppImage</code></pre>
+                                        <pre><code>chmod +x Eburon-*.AppImage</code></pre>
                                     </li>
                                     <li>运行应用程序：
-                                        <pre><code>./sokuji-*.AppImage</code></pre>
+                                        <pre><code>./Eburon-*.AppImage</code></pre>
                                     </li>
                                 </ol>`
                             },
@@ -543,20 +543,20 @@ sudo dpkg -i sokuji_*.deb</code></pre>
                                 title: "可选：系统集成",
                                 content: `要将 AppImage 与系统集成：
                                 <pre><code>mkdir -p ~/.local/bin
-cp sokuji-*.AppImage ~/.local/bin/sokuji
-chmod +x ~/.local/bin/sokuji</code></pre>
-                                现在您可以在终端的任何位置输入 <code>sokuji</code> 来运行 Sokuji。`
+cp Eburon-*.AppImage ~/.local/bin/Eburon
+chmod +x ~/.local/bin/Eburon</code></pre>
+                                现在您可以在终端的任何位置输入 <code>Eburon</code> 来运行 Eburon。`
                             }
                         ]
                     },
                     {
                         title: "步骤 4：首次运行配置",
-                        content: `首次启动 Sokuji 时，您需要进行配置：`,
+                        content: `首次启动 Eburon 时，您需要进行配置：`,
                         subsections: [
                             {
                                 title: "初始设置",
                                 content: `<ol>
-                                    <li>从应用程序菜单或终端启动 Sokuji</li>
+                                    <li>从应用程序菜单或终端启动 Eburon</li>
                                     <li>选择您喜欢的界面语言</li>
                                     <li>配置您的 AI 提供商（OpenAI、Google Gemini 等）</li>
                                     <li>输入所选提供商的 API 密钥</li>
@@ -565,7 +565,7 @@ chmod +x ~/.local/bin/sokuji</code></pre>
                                 </ol>`
                             }
                         ],
-                        success: "Sokuji 现在已准备就绪！您可以通过点击开始会话按钮开始实时翻译。"
+                        success: "Eburon 现在已准备就绪！您可以通过点击开始会话按钮开始实时翻译。"
                     }
                 ],
                 troubleshooting: {
@@ -610,7 +610,7 @@ sudo apt-get install libgtk-3-0 libnotify4 libnss3 libxss1 \\
                 backLink: "← ドキュメントに戻る",
                 tocTitle: "目次",
                 mobileJumpTo: "セクションにジャンプ...",
-                overview: "このガイドでは、Linux システムに Sokuji をインストールする方法を説明します。Sokuji は Debian/Ubuntu ベースのディストリビューション用の .deb パッケージと、汎用互換性のための AppImage として利用可能です。",
+                overview: "このガイドでは、Linux システムに Eburon をインストールする方法を説明します。Eburon は Debian/Ubuntu ベースのディストリビューション用の .deb パッケージと、汎用互換性のための AppImage として利用可能です。",
                 requirements: {
                     title: "システム要件",
                     items: [
@@ -624,8 +624,8 @@ sudo apt-get install libgtk-3-0 libnotify4 libnss3 libxss1 \\
                 },
                 steps: [
                     {
-                        title: "ステップ 1：Sokuji をダウンロード",
-                        content: `<a href="https://github.com/kizuna-ai-lab/sokuji/releases/latest" target="_blank" rel="noopener noreferrer">公式 GitHub リリースページ</a>にアクセスして、Linux 用の Sokuji の最新バージョンをダウンロードします。`,
+                        title: "ステップ 1：Eburon をダウンロード",
+                        content: `<a href="https://github.com/kizuna-ai-lab/Eburon/releases/latest" target="_blank" rel="noopener noreferrer">公式 GitHub リリースページ</a>にアクセスして、Linux 用の Eburon の最新バージョンをダウンロードします。`,
                         subsections: [
                             {
                                 title: "利用可能なパッケージ",
@@ -645,7 +645,7 @@ sudo apt-get install libgtk-3-0 libnotify4 libnss3 libxss1 \\
                                 title: "方法 1：GUI を使用",
                                 content: `<ol>
                                     <li>ファイルマネージャーを開き、ダウンロードフォルダーに移動</li>
-                                    <li><code>sokuji_*.deb</code> ファイルをダブルクリック</li>
+                                    <li><code>Eburon_*.deb</code> ファイルをダブルクリック</li>
                                     <li>開いたソフトウェアセンターで「インストール」をクリック</li>
                                     <li>要求されたらパスワードを入力</li>
                                 </ol>`
@@ -654,7 +654,7 @@ sudo apt-get install libgtk-3-0 libnotify4 libnss3 libxss1 \\
                                 title: "方法 2：ターミナルを使用",
                                 content: `ターミナルを開いて以下のコマンドを実行：
                                 <pre><code>cd ~/Downloads
-sudo dpkg -i sokuji_*.deb</code></pre>
+sudo dpkg -i Eburon_*.deb</code></pre>
                                 依存関係の問題が発生した場合は、以下で修正：
                                 <pre><code>sudo apt-get install -f</code></pre>`
                             }
@@ -669,10 +669,10 @@ sudo dpkg -i sokuji_*.deb</code></pre>
                                 content: `<ol>
                                     <li>リリースページから AppImage ファイルをダウンロード</li>
                                     <li>実行可能にする：
-                                        <pre><code>chmod +x sokuji-*.AppImage</code></pre>
+                                        <pre><code>chmod +x Eburon-*.AppImage</code></pre>
                                     </li>
                                     <li>アプリケーションを実行：
-                                        <pre><code>./sokuji-*.AppImage</code></pre>
+                                        <pre><code>./Eburon-*.AppImage</code></pre>
                                     </li>
                                 </ol>`
                             },
@@ -680,20 +680,20 @@ sudo dpkg -i sokuji_*.deb</code></pre>
                                 title: "オプション：システム統合",
                                 content: `AppImage をシステムに統合するには：
                                 <pre><code>mkdir -p ~/.local/bin
-cp sokuji-*.AppImage ~/.local/bin/sokuji
-chmod +x ~/.local/bin/sokuji</code></pre>
-                                これで、ターミナルの任意の場所で <code>sokuji</code> と入力して Sokuji を実行できます。`
+cp Eburon-*.AppImage ~/.local/bin/Eburon
+chmod +x ~/.local/bin/Eburon</code></pre>
+                                これで、ターミナルの任意の場所で <code>Eburon</code> と入力して Eburon を実行できます。`
                             }
                         ]
                     },
                     {
                         title: "ステップ 4：初回起動設定",
-                        content: `Sokuji を初めて起動するときは、設定が必要です：`,
+                        content: `Eburon を初めて起動するときは、設定が必要です：`,
                         subsections: [
                             {
                                 title: "初期設定",
                                 content: `<ol>
-                                    <li>アプリケーションメニューまたはターミナルから Sokuji を起動</li>
+                                    <li>アプリケーションメニューまたはターミナルから Eburon を起動</li>
                                     <li>希望のインターフェース言語を選択</li>
                                     <li>AI プロバイダー（OpenAI、Google Gemini など）を設定</li>
                                     <li>選択したプロバイダーの API キーを入力</li>
@@ -702,7 +702,7 @@ chmod +x ~/.local/bin/sokuji</code></pre>
                                 </ol>`
                             }
                         ],
-                        success: "Sokuji の準備が整いました！セッション開始ボタンをクリックしてリアルタイム翻訳を開始できます。"
+                        success: "Eburon の準備が整いました！セッション開始ボタンをクリックしてリアルタイム翻訳を開始できます。"
                     }
                 ],
                 troubleshooting: {
@@ -747,7 +747,7 @@ sudo apt-get install libgtk-3-0 libnotify4 libnss3 libxss1 \\
                 backLink: "← 문서로 돌아가기",
                 tocTitle: "목차",
                 mobileJumpTo: "섹션으로 이동...",
-                overview: "이 가이드는 Linux 시스템에 Sokuji를 설치하는 방법을 안내합니다. Sokuji는 Debian/Ubuntu 기반 배포판용 .deb 패키지와 범용 호환성을 위한 AppImage로 제공됩니다.",
+                overview: "이 가이드는 Linux 시스템에 Eburon를 설치하는 방법을 안내합니다. Eburon는 Debian/Ubuntu 기반 배포판용 .deb 패키지와 범용 호환성을 위한 AppImage로 제공됩니다.",
                 requirements: {
                     title: "시스템 요구 사항",
                     items: [
@@ -761,8 +761,8 @@ sudo apt-get install libgtk-3-0 libnotify4 libnss3 libxss1 \\
                 },
                 steps: [
                     {
-                        title: "단계 1: Sokuji 다운로드",
-                        content: `<a href="https://github.com/kizuna-ai-lab/sokuji/releases/latest" target="_blank" rel="noopener noreferrer">공식 GitHub 릴리스 페이지</a>를 방문하여 Linux용 Sokuji 최신 버전을 다운로드하세요.`,
+                        title: "단계 1: Eburon 다운로드",
+                        content: `<a href="https://github.com/kizuna-ai-lab/Eburon/releases/latest" target="_blank" rel="noopener noreferrer">공식 GitHub 릴리스 페이지</a>를 방문하여 Linux용 Eburon 최신 버전을 다운로드하세요.`,
                         subsections: [
                             {
                                 title: "사용 가능한 패키지",
@@ -782,7 +782,7 @@ sudo apt-get install libgtk-3-0 libnotify4 libnss3 libxss1 \\
                                 title: "방법 1: GUI 사용",
                                 content: `<ol>
                                     <li>파일 관리자를 열고 다운로드 폴더로 이동</li>
-                                    <li><code>sokuji_*.deb</code> 파일을 더블 클릭</li>
+                                    <li><code>Eburon_*.deb</code> 파일을 더블 클릭</li>
                                     <li>열린 소프트웨어 센터에서 "설치"를 클릭</li>
                                     <li>요청 시 비밀번호 입력</li>
                                 </ol>`
@@ -791,7 +791,7 @@ sudo apt-get install libgtk-3-0 libnotify4 libnss3 libxss1 \\
                                 title: "방법 2: 터미널 사용",
                                 content: `터미널을 열고 다음 명령을 실행:
                                 <pre><code>cd ~/Downloads
-sudo dpkg -i sokuji_*.deb</code></pre>
+sudo dpkg -i Eburon_*.deb</code></pre>
                                 종속성 문제가 발생하면 다음으로 수정:
                                 <pre><code>sudo apt-get install -f</code></pre>`
                             }
@@ -806,10 +806,10 @@ sudo dpkg -i sokuji_*.deb</code></pre>
                                 content: `<ol>
                                     <li>릴리스 페이지에서 AppImage 파일 다운로드</li>
                                     <li>실행 가능하게 만들기:
-                                        <pre><code>chmod +x sokuji-*.AppImage</code></pre>
+                                        <pre><code>chmod +x Eburon-*.AppImage</code></pre>
                                     </li>
                                     <li>애플리케이션 실행:
-                                        <pre><code>./sokuji-*.AppImage</code></pre>
+                                        <pre><code>./Eburon-*.AppImage</code></pre>
                                     </li>
                                 </ol>`
                             },
@@ -817,20 +817,20 @@ sudo dpkg -i sokuji_*.deb</code></pre>
                                 title: "선택사항: 시스템 통합",
                                 content: `AppImage를 시스템과 통합하려면:
                                 <pre><code>mkdir -p ~/.local/bin
-cp sokuji-*.AppImage ~/.local/bin/sokuji
-chmod +x ~/.local/bin/sokuji</code></pre>
-                                이제 터미널 어디에서나 <code>sokuji</code>를 입력하여 Sokuji를 실행할 수 있습니다.`
+cp Eburon-*.AppImage ~/.local/bin/Eburon
+chmod +x ~/.local/bin/Eburon</code></pre>
+                                이제 터미널 어디에서나 <code>Eburon</code>를 입력하여 Eburon를 실행할 수 있습니다.`
                             }
                         ]
                     },
                     {
                         title: "단계 4: 첫 실행 구성",
-                        content: `Sokuji를 처음 실행할 때 구성이 필요합니다:`,
+                        content: `Eburon를 처음 실행할 때 구성이 필요합니다:`,
                         subsections: [
                             {
                                 title: "초기 설정",
                                 content: `<ol>
-                                    <li>애플리케이션 메뉴 또는 터미널에서 Sokuji 실행</li>
+                                    <li>애플리케이션 메뉴 또는 터미널에서 Eburon 실행</li>
                                     <li>선호하는 인터페이스 언어 선택</li>
                                     <li>AI 제공자 구성 (OpenAI, Google Gemini 등)</li>
                                     <li>선택한 제공자의 API 키 입력</li>
@@ -839,7 +839,7 @@ chmod +x ~/.local/bin/sokuji</code></pre>
                                 </ol>`
                             }
                         ],
-                        success: "이제 Sokuji를 사용할 준비가 되었습니다! 마이크 버튼을 클릭하여 실시간 번역을 시작할 수 있습니다."
+                        success: "이제 Eburon를 사용할 준비가 되었습니다! 마이크 버튼을 클릭하여 실시간 번역을 시작할 수 있습니다."
                     }
                 ],
                 troubleshooting: {
@@ -891,7 +891,7 @@ sudo apt-get install libgtk-3-0 libnotify4 libnss3 libxss1 \\
             const t = translations[lang] || translations.en;
 
             // Update page title
-            document.title = t.pageTitle + " - Sokuji";
+            document.title = t.pageTitle + " - Eburon";
             document.getElementById('page-title').textContent = t.pageTitle;
 
             // Update language selector

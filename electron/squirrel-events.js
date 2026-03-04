@@ -22,7 +22,7 @@ module.exports = function handleSquirrelEvent() {
     case '--squirrel-install':
     case '--squirrel-updated':
       // Create shortcuts on Desktop and Start Menu
-      console.log('[Sokuji] Creating shortcuts for:', exeName);
+      console.log('[Eburon] Creating shortcuts for:', exeName);
       spawnUpdate(['--createShortcut', exeName]);
 
       // Always quit when done
@@ -31,7 +31,7 @@ module.exports = function handleSquirrelEvent() {
 
     case '--squirrel-uninstall':
       // Remove shortcuts
-      console.log('[Sokuji] Removing shortcuts for:', exeName);
+      console.log('[Eburon] Removing shortcuts for:', exeName);
       spawnUpdate(['--removeShortcut', exeName]);
 
       // Always quit when done
@@ -40,7 +40,7 @@ module.exports = function handleSquirrelEvent() {
 
     case '--squirrel-obsolete':
       // This is called on the outgoing version before update
-      console.log('[Sokuji] Handling obsolete version');
+      console.log('[Eburon] Handling obsolete version');
       app.quit();
       return true;
   }

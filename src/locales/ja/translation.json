@@ -20,7 +20,7 @@
     "signInRequired": "Kizuna AIをプロバイダーとして使用するにはサインインしてください"
   },
   "app": {
-    "title": "Sokuji",
+    "title": "Eburon",
     "description": "リアルタイム音声翻訳アプリケーション"
   },
   "menu": {
@@ -109,7 +109,7 @@
     "apiKeyTooltip": "APIキーはAIサービスのパスワードのようなものです。プロバイダーのウェブサイトから取得し、安全に保管してください。他の人と共有しないでください。",
     "clientIdTooltip": "あなたのPalabraAIアカウントIDです。これはあなたのアカウントを識別します。PalabraAIダッシュボードから取得してください。",
     "clientSecretTooltip": "あなたのPalabraAIシークレットキーです。プライベートで安全に保管してください。誰とも共有しないでください。",
-    "uiLanguageTooltip": "Sokujiのメニューとボタンの言語を変更します。これは翻訳可能な言語には影響しません。",
+    "uiLanguageTooltip": "Eburonのメニューとボタンの言語を変更します。これは翻訳可能な言語には影響しません。",
     "modelTooltip": "AIモデルは速度と品質に影響します。「Mini」モデルは高速ですが簡単です。標準モデルはより正確ですが少し遅いです。コスト効率のためにまずminiを試してください。",
     "voiceTooltip": "AIの話す声を選択してください。各音声には異なるトーンとスタイルがあります。さまざまな音声を試して、お気に入りを見つけてください。",
     "sourceLanguageTooltip": "あなたが話す言語です。AIはこの言語をリスニングして翻訳します。",
@@ -158,12 +158,12 @@
     "virtualMicrophoneNotice": "仮想マイクについて",
     "virtualSpeakerNotice": "仮想スピーカーについて",
     "iUnderstand": "理解しました",
-    "virtualMicWarningTitle": "これはSokujiによって作成された仮想マイクです。",
+    "virtualMicWarningTitle": "これはEburonによって作成された仮想マイクです。",
     "virtualMicWarningText1": "このデバイスをここで選択しないでください。代わりに、ビデオ会議アプリケーション（Google Meet、Zoom、Microsoft Teamsなど）でこの仮想マイクを使用して、リアルタイム音声翻訳出力を受信してください。",
-    "virtualMicWarningText2": "Sokujiが正常に動作するには、リストから実際の物理マイクを選択してください。",
-    "virtualSpeakerWarningTitle": "これはSokujiによって作成された仮想スピーカーです。",
-    "virtualSpeakerWarningText1": "このデバイスをモニターとして選択しないでください。Sokuji_Virtual_Speakerは、Sokujiが会議アプリケーションに音声を出力するために使用されます。",
-    "virtualSpeakerWarningText2": "モニターをSokujiの出力デバイスに接続すると、音声フィードバックループが発生し、入力に自分のモニター出力が含まれてしまいます。",
+    "virtualMicWarningText2": "Eburonが正常に動作するには、リストから実際の物理マイクを選択してください。",
+    "virtualSpeakerWarningTitle": "これはEburonによって作成された仮想スピーカーです。",
+    "virtualSpeakerWarningText1": "このデバイスをモニターとして選択しないでください。Eburon_Virtual_Speakerは、Eburonが会議アプリケーションに音声を出力するために使用されます。",
+    "virtualSpeakerWarningText2": "モニターをEburonの出力デバイスに接続すると、音声フィードバックループが発生し、入力に自分のモニター出力が含まれてしまいます。",
     "virtualSpeakerWarningText3": "「オンにする」スイッチは、仮想スピーカーを選択したモニターデバイスに接続し、会議アプリケーションに送信されている音声を聞くことができます。「オフにする」スイッチは、このモニター接続を切断します。",
     "virtualSpeakerWarningText4": "正常な動作のために、リストから別のモニターデバイス（ヘッドフォンやスピーカーなど）を選択してください。",
     "realVoicePassthrough": "原音パススルー",
@@ -178,7 +178,7 @@
     "screenRecordingDeniedNotice": "権限が必要です",
     "screenRecordingDeniedTitle": "画面録画の権限が拒否されました",
     "screenRecordingDeniedText1": "参加者の音声にはシステムオーディオをキャプチャするために画面録画の権限が必要です。",
-    "screenRecordingDeniedText2": "システム環境設定 > プライバシーとセキュリティ > 画面録画 で Sokuji を有効にしてください。",
+    "screenRecordingDeniedText2": "システム環境設定 > プライバシーとセキュリティ > 画面録画 で Eburon を有効にしてください。",
     "screenRecordingDeniedText3": "権限を有効にした後、アプリを再起動してください。",
     "availableSystemAudioSources": "キャプチャ可能なシステムオーディオデバイス",
     "refreshSystemAudioSources": "デバイスリストを更新"
@@ -245,8 +245,8 @@
     "basic": {
       "steps": {
         "welcome": {
-          "title": "Sokujiへようこそ",
-          "content": "Sokujiへようこそ！このシンプルなガイドで、数ステップでリアルタイム翻訳を始められます。"
+          "title": "Eburonへようこそ",
+          "content": "Eburonへようこそ！このシンプルなガイドで、数ステップでリアルタイム翻訳を始められます。"
         },
         "settings": {
           "title": "ステップ 1：設定を開く",
@@ -278,7 +278,7 @@
         },
         "complete": {
           "title": "準備完了！",
-          "content": "完璧です！Sokujiを使用する準備ができました。開始をクリックして話し始め、リアルタイム翻訳を聞きます。"
+          "content": "完璧です！Eburonを使用する準備ができました。開始をクリックして話し始め、リアルタイム翻訳を聞きます。"
         }
       }
     },
@@ -292,8 +292,8 @@
     "restartTour": "セットアップガイドを再開",
     "steps": {
       "welcome": {
-        "title": "Sokujiへようこそ",
-        "content": "Sokujiへようこそ！このガイドでは、リアルタイム音声翻訳のための拡張機能の設定をお手伝いします。始めましょう！"
+        "title": "Eburonへようこそ",
+        "content": "Eburonへようこそ！このガイドでは、リアルタイム音声翻訳のための拡張機能の設定をお手伝いします。始めましょう！"
       },
       "settings": {
         "title": "ステップ1：設定を開く",
@@ -331,11 +331,11 @@
       },
       "startSession": {
         "title": "ステップ9：セッション開始",
-        "content": "「セッション開始」ボタンをクリックしてSokujiの使用を開始します。開始後、自然に話すことでリアルタイム翻訳ができます。自動ターン検出が無効の場合は、「プッシュトゥトーク」（スペースキー）を使用して話してください。"
+        "content": "「セッション開始」ボタンをクリックしてEburonの使用を開始します。開始後、自然に話すことでリアルタイム翻訳ができます。自動ターン検出が無効の場合は、「プッシュトゥトーク」（スペースキー）を使用して話してください。"
       },
       "complete": {
         "title": "セットアップガイド完了！",
-        "content": "素晴らしい！セットアップガイドが完了し、インターフェースの操作に慣れました。Sokujiの使用を開始するには、設定でOpenAI APIキーを入力し、プロンプトが表示されたらマイクの許可を与え、会議アプリケーション（Google Meet、Zoom、Microsoft Teamsなど）で「Sokuji Virtual Microphone」をマイクとして選択してください。このガイドは設定からいつでも再開できます。"
+        "content": "素晴らしい！セットアップガイドが完了し、インターフェースの操作に慣れました。Eburonの使用を開始するには、設定でOpenAI APIキーを入力し、プロンプトが表示されたらマイクの許可を与え、会議アプリケーション（Google Meet、Zoom、Microsoft Teamsなど）で「Eburon Virtual Microphone」をマイクとして選択してください。このガイドは設定からいつでも再開できます。"
       }
     }
   },
@@ -360,7 +360,7 @@
     "apiKeyHelp2": "2. アカウントにサインアップまたはログイン",
     "apiKeyHelp3": "3. APIキーセクションに移動",
     "apiKeyHelp4": "4. 新しいAPIキーを作成してここにコピー",
-    "apiKeyHelpTooltip": "APIキーは、SokujiがAI翻訳サービスを使用できるようにするパスワードのようなものです。選択したプロバイダー（OpenAIなど）から取得する必要があります。",
+    "apiKeyHelpTooltip": "APIキーは、EburonがAI翻訳サービスを使用できるようにするパスワードのようなものです。選択したプロバイダー（OpenAIなど）から取得する必要があります。",
     "apiKeyHelpTooltip2": "ステップバイステップガイド：",
     "languages": "言語",
     "uiLanguage": "インターフェース言語",
@@ -370,7 +370,7 @@
   },
   "simpleConfig": {
     "interfaceLanguage": "インターフェース言語",
-    "interfaceLanguageDesc": "これはSokujiのメニューとボタンの言語を変更します。翻訳可能な言語には影響しません。",
+    "interfaceLanguageDesc": "これはEburonのメニューとボタンの言語を変更します。翻訳可能な言語には影響しません。",
     "translationLanguages": "翻訳言語",
     "translationLanguagesDesc": "話す言語（あなたの言語）と翻訳を聞きたい言語（ターゲット言語）を選択します。ソース言語が不明な場合は「自動検出」を選択してください。",
     "yourLanguage": "自分の言語",
@@ -380,7 +380,7 @@
     "signInDescription": "複雑な設定なしで便利な体験をするために登録してください。",
     "targetLanguage": "相手の言語",
     "microphone": "マイクロフォン",
-    "microphoneDesc": "音声を取り込むマイクを選択してください。このマイクに向かってあなたの言語で話すと、Sokujiがリアルタイムで聞こえるすべてを翻訳します。",
+    "microphoneDesc": "音声を取り込むマイクを選択してください。このマイクに向かってあなたの言語で話すと、Eburonがリアルタイムで聞こえるすべてを翻訳します。",
     "speaker": "スピーカー",
     "speakerDesc": "翻訳された出力を監視するためのスピーカーを選択してください。これにより翻訳がどのように聞こえるかを確認できます。監視が不要な場合はオフにできます。オンでもオフでも、翻訳された音声は常に仮想マイクに送信され、他の参加者が聞くことができます。",
     "systemAudio": "参加者の音声",
@@ -477,7 +477,7 @@
     "noMic": "マイクが必要"
   },
   "userTypeSelection": {
-    "title": "Sokujiへようこそ",
+    "title": "Eburonへようこそ",
     "subtitle": "ご利用タイプを選択してください",
     "regular": {
       "title": "一般ユーザー",

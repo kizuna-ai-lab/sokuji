@@ -1,15 +1,15 @@
 {
   "extensionName": {
-    "message": "Sokuji - AI Meeting Translator"
+    "message": "Eburon - AI Meeting Translator"
   },
   "extensionDescription": {
     "message": "AI-powered instant speech translation for all video meetings. Break language barriers with real-time voice translation."
   },
   "popupTitle": {
-    "message": "Sokuji - Supported Sites"
+    "message": "Eburon - Supported Sites"
   },
-  "openSokuji": {
-    "message": "Open Sokuji"
+  "openEburon": {
+    "message": "Open Eburon"
   },
   "chromeWebStore": {
     "message": "Chrome Web Store"
@@ -17,8 +17,8 @@
   "edgeAddons": {
     "message": "Edge добавки"
   },
-  "sokujiAvailable": {
-    "message": "✓ Sokuji is available on $SITE_NAME$!",
+  "EburonAvailable": {
+    "message": "✓ Eburon is available on $SITE_NAME$!",
     "placeholders": {
       "site_name": {
         "content": "$1",
@@ -27,19 +27,19 @@
     }
   },
   "clickToStart": {
-    "message": "Click \"Open Sokuji\" below to start real-time translation."
+    "message": "Click \"Open Eburon\" below to start real-time translation."
   },
   "quickStart": {
     "message": "Quick Start:"
   },
   "quickStartInstructions": {
-    "message": "Configure your API key (OpenAI or Gemini) → Select \"Sokuji_Virtual_Mic\" as microphone → Start speaking!"
+    "message": "Configure your API key (OpenAI or Gemini) → Select \"Eburon_Virtual_Mic\" as microphone → Start speaking!"
   },
   "notSupported": {
     "message": "⚠ Not supported on this site"
   },
   "currentlyOn": {
-    "message": "Currently on $HOSTNAME$. Sokuji works on these platforms:",
+    "message": "Currently on $HOSTNAME$. Eburon works on these platforms:",
     "placeholders": {
       "hostname": {
         "content": "$1",
@@ -75,16 +75,16 @@
     "message": "допринесете код"
   },
   "gatherTownTitle": {
-    "message": "Sokuji for Gather Town"
+    "message": "Eburon for Gather Town"
   },
   "gatherTownGuidance": {
-    "message": "За да използвате Sokuji, моля изберете <strong>\"Sokuji Virtual Microphone\"</strong> в настройките на микрофона си."
+    "message": "За да използвате Eburon, моля изберете <strong>\"Eburon Virtual Microphone\"</strong> в настройките на микрофона си."
   },
   "wherebyTitle": {
-    "message": "Sokuji for Whereby"
+    "message": "Eburon for Whereby"
   },
   "wherebyGuidance": {
-    "message": "За да използвате Sokuji, моля изберете <strong>\"Sokuji Virtual Microphone\"</strong> в настройките на микрофона и <strong>деактивирайте намаляването на шума</strong> за по-добра производителност."
+    "message": "За да използвате Eburon, моля изберете <strong>\"Eburon Virtual Microphone\"</strong> в настройките на микрофона и <strong>деактивирайте намаляването на шума</strong> за по-добра производителност."
   },
   "gotIt": {
     "message": "Разбрах"
@@ -93,22 +93,22 @@
     "message": "Напомни по-късно"
   },
   "defaultTitle": {
-    "message": "Sokuji"
+    "message": "Eburon"
   },
   "defaultGuidance": {
-    "message": "To use Sokuji, please select \"Sokuji Virtual Microphone\" in your microphone settings."
+    "message": "To use Eburon, please select \"Eburon Virtual Microphone\" in your microphone settings."
   },
   "discordTitle": {
-    "message": "Sokuji for Discord"
+    "message": "Eburon for Discord"
   },
   "discordGuidance": {
-    "message": "To use Sokuji, please select <strong>\"Sokuji Virtual Microphone\"</strong> in your microphone settings and <strong>disable Noise Suppression</strong> in Discord's Voice settings for better performance."
+    "message": "To use Eburon, please select <strong>\"Eburon Virtual Microphone\"</strong> in your microphone settings and <strong>disable Noise Suppression</strong> in Discord's Voice settings for better performance."
   },
   "slackTitle": {
-    "message": "Sokuji for Slack"
+    "message": "Eburon for Slack"
   },
   "slackGuidance": {
-    "message": "To use Sokuji in Slack Huddles, please <strong>start a Huddle</strong>, then select <strong>\"Sokuji Virtual Microphone\"</strong> in your Video and Mic settings, and <strong>disable Noise Suppression</strong> in Audio & Video preferences for better performance."
+    "message": "To use Eburon in Slack Huddles, please <strong>start a Huddle</strong>, then select <strong>\"Eburon Virtual Microphone\"</strong> in your Video and Mic settings, and <strong>disable Noise Suppression</strong> in Audio & Video preferences for better performance."
   },
   "showMoreSites": {
     "message": "Show $COUNT$ more sites",
@@ -123,9 +123,9 @@
     "message": "Show less sites"
   },
   "teamsTitle": {
-    "message": "Sokuji за Microsoft Teams"
+    "message": "Eburon за Microsoft Teams"
   },
   "teamsGuidance": {
-    "message": "Ако не виждате пълния списък с аудио устройства в настройките на Teams:<br><strong>1)</strong> Временно деактивирайте разширението Sokuji и опреснете страницата<br><strong>2)</strong> Разрешете на Teams достъп до микрофона и камерата ви, когато бъдете подканени<br><strong>3)</strong> Активирайте отново разширението Sokuji и опреснете страницата отново<br><strong>4)</strong> Разрешете на Sokuji достъп до микрофона ви, когато бъдете подканени. Сега трябва да видите както реалните устройства, така и <strong>\"Sokuji Virtual Microphone\"</strong> в настройките си."
+    "message": "Ако не виждате пълния списък с аудио устройства в настройките на Teams:<br><strong>1)</strong> Временно деактивирайте разширението Eburon и опреснете страницата<br><strong>2)</strong> Разрешете на Teams достъп до микрофона и камерата ви, когато бъдете подканени<br><strong>3)</strong> Активирайте отново разширението Eburon и опреснете страницата отново<br><strong>4)</strong> Разрешете на Eburon достъп до микрофона ви, когато бъдете подканени. Сега трябва да видите както реалните устройства, така и <strong>\"Eburon Virtual Microphone\"</strong> в настройките си."
   }
 }

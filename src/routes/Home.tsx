@@ -1,6 +1,5 @@
 import React, { useEffect } from 'react';
 import MainLayout from '../components/MainLayout/MainLayout';
-import { UserProfileProvider } from '../contexts/UserProfileContext';
 import { OnboardingProvider } from '../contexts/OnboardingContext';
 import { useInitializeAudioService } from '../stores/audioStore';
 import { useLoadSettings } from '../stores/settingsStore';
@@ -20,11 +19,9 @@ export function Home() {
   }, []); // Empty dependency array - only run once on mount
   
   return (
-    <UserProfileProvider>
-      <OnboardingProvider>
-        <SettingsInitializer />
-        <MainLayout />
-      </OnboardingProvider>
-    </UserProfileProvider>
+    <OnboardingProvider>
+      <SettingsInitializer />
+      <MainLayout />
+    </OnboardingProvider>
   );
 }

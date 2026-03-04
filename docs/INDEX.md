@@ -1,4 +1,4 @@
-# Sokuji Project Documentation Index
+# Eburon Project Documentation Index
 
 > **Live Speech Translation Application** - Real-time AI-powered translation using OpenAI, Google Gemini, and other AI providers
 >
@@ -45,7 +45,7 @@ npm run electron:build
 ### System Architecture
 ```
 ┌─────────────────────────────────────────────┐
-│           Sokuji Application               │
+│           Eburon Application               │
 ├─────────────────────────────────────────────┤
 │                                             │
 │  ┌─────────────┐      ┌─────────────────┐  │
@@ -277,9 +277,9 @@ cd backend-cf && npm run deploy
 - [Chrome Extension Docs](https://developer.chrome.com/docs/extensions/)
 
 ### Project Resources
-- **Repository**: [GitHub](https://github.com/kizunaai/sokuji-react)
-- **Issues**: [GitHub Issues](https://github.com/kizunaai/sokuji-react/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/kizunaai/sokuji-react/discussions)
+- **Repository**: [GitHub](https://github.com/kizunaai/Eburon-react)
+- **Issues**: [GitHub Issues](https://github.com/kizunaai/Eburon-react/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/kizunaai/Eburon-react/discussions)
 
 ---
 

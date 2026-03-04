@@ -20,7 +20,7 @@
     "signInRequired": "Kizuna AI를 제공업체로 사용하려면 로그인하세요"
   },
   "app": {
-    "title": "Sokuji",
+    "title": "Eburon",
     "description": "실시간 음성 번역 애플리케이션"
   },
   "menu": {
@@ -115,7 +115,7 @@
     "apiKeyTooltip": "API 키는 AI 서비스의 비밀번호와 같습니다. 제공업체 웹사이트에서 받아 안전하게 보관하세요. 다른 사람과 공유하지 마세요.",
     "clientIdTooltip": "귀하의 PalabraAI 계정 ID입니다. 계정을 식별합니다. PalabraAI 대시보드에서 받으세요.",
     "clientSecretTooltip": "귀하의 PalabraAI 비밀 키입니다. 비공개로 안전하게 보관하세요. 누구와도 공유하지 마세요.",
-    "uiLanguageTooltip": "Sokuji의 메뉴와 버튼 언어를 변경합니다. 번역 가능한 언어에는 영향을 주지 않습니다.",
+    "uiLanguageTooltip": "Eburon의 메뉴와 버튼 언어를 변경합니다. 번역 가능한 언어에는 영향을 주지 않습니다.",
     "modelTooltip": "AI 모델은 속도와 품질에 영향을 줍니다. 'Mini' 모델은 더 빠르지만 단순합니다. 표준 모델은 더 정확하지만 약간 느립니다. 비용 효율을 위해 먼저 mini를 시도하세요.",
     "voiceTooltip": "AI의 음성을 선택하세요. 각 음성마다 다른 톤과 스타일이 있습니다. 다양한 음성을 시도해 좋아하는 것을 찾으세요.",
     "sourceLanguageTooltip": "당신이 말하는 언어입니다. AI가 이 언어를 듣고 번역합니다.",
@@ -154,12 +154,12 @@
     "virtualMicrophoneNotice": "가상 마이크 안내",
     "virtualSpeakerNotice": "가상 스피커 안내",
     "iUnderstand": "이해했습니다",
-    "virtualMicWarningTitle": "이것은 Sokuji에서 생성한 가상 마이크입니다.",
+    "virtualMicWarningTitle": "이것은 Eburon에서 생성한 가상 마이크입니다.",
     "virtualMicWarningText1": "여기서 이 장치를 선택하지 마세요. 대신 비디오 회의 애플리케이션(Google Meet, Zoom, Microsoft Teams 등)에서 이 가상 마이크를 사용하여 실시간 음성 번역 출력을 받으세요.",
-    "virtualMicWarningText2": "Sokuji가 제대로 작동하려면 목록에서 실제 물리적 마이크를 선택하세요.",
-    "virtualSpeakerWarningTitle": "이것은 Sokuji에서 생성한 가상 스피커입니다.",
-    "virtualSpeakerWarningText1": "이 장치를 모니터로 선택하지 마세요. Sokuji_Virtual_Speaker는 Sokuji가 회의 애플리케이션에 오디오를 출력하는 데 사용됩니다.",
-    "virtualSpeakerWarningText2": "모니터를 Sokuji의 출력 장치에 연결하면 오디오 피드백 루프가 생성되어 입력에 자신의 모니터링된 출력이 포함됩니다.",
+    "virtualMicWarningText2": "Eburon가 제대로 작동하려면 목록에서 실제 물리적 마이크를 선택하세요.",
+    "virtualSpeakerWarningTitle": "이것은 Eburon에서 생성한 가상 스피커입니다.",
+    "virtualSpeakerWarningText1": "이 장치를 모니터로 선택하지 마세요. Eburon_Virtual_Speaker는 Eburon가 회의 애플리케이션에 오디오를 출력하는 데 사용됩니다.",
+    "virtualSpeakerWarningText2": "모니터를 Eburon의 출력 장치에 연결하면 오디오 피드백 루프가 생성되어 입력에 자신의 모니터링된 출력이 포함됩니다.",
     "virtualSpeakerWarningText3": "\"켜기\" 스위치는 가상 스피커를 선택한 모니터 장치에 연결하여 회의 애플리케이션으로 전송되는 내용을 들을 수 있게 합니다. \"끄기\" 스위치는 이 모니터링 연결을 끊습니다.",
     "virtualSpeakerWarningText4": "올바른 작동을 위해 목록에서 다른 모니터 장치(헤드폰이나 스피커 등)를 선택하세요.",
     "realVoicePassthrough": "원음 패스스루",
@@ -236,8 +236,8 @@
     "basic": {
       "steps": {
         "welcome": {
-          "title": "Sokuji에 오신 것을 환영합니다",
-          "content": "Sokuji에 오신 것을 환영합니다! 이 간단한 가이드는 몇 단계만으로 실시간 번역을 시작할 수 있도록 도와드립니다."
+          "title": "Eburon에 오신 것을 환영합니다",
+          "content": "Eburon에 오신 것을 환영합니다! 이 간단한 가이드는 몇 단계만으로 실시간 번역을 시작할 수 있도록 도와드립니다."
         },
         "settings": {
           "title": "1단계: 설정 열기",
@@ -269,7 +269,7 @@
         },
         "complete": {
           "title": "모든 준비 완료!",
-          "content": "완벽합니다! 이제 Sokuji를 사용할 준비가 되었습니다. 시작을 클릭하고 말하기 시작하여 실시간 번역을 들어보세요."
+          "content": "완벽합니다! 이제 Eburon를 사용할 준비가 되었습니다. 시작을 클릭하고 말하기 시작하여 실시간 번역을 들어보세요."
         }
       }
     },
@@ -283,8 +283,8 @@
     "restartTour": "설정 가이드 다시 시작",
     "steps": {
       "welcome": {
-        "title": "Sokuji에 오신 것을 환영합니다",
-        "content": "Sokuji에 오신 것을 환영합니다! 이 가이드는 실시간 음성 번역을 위한 확장 프로그램 설정을 도와드립니다. 시작해보겠습니다!"
+        "title": "Eburon에 오신 것을 환영합니다",
+        "content": "Eburon에 오신 것을 환영합니다! 이 가이드는 실시간 음성 번역을 위한 확장 프로그램 설정을 도와드립니다. 시작해보겠습니다!"
       },
       "settings": {
         "title": "1단계: 설정 열기",
@@ -322,11 +322,11 @@
       },
       "startSession": {
         "title": "9단계: 세션 시작",
-        "content": "\"세션 시작\" 버튼을 클릭하여 Sokuji 사용을 시작하세요. 시작한 후에는 자연스럽게 말하여 실시간 번역을 할 수 있습니다. 자동 턴 감지가 비활성화된 경우 \"눌러서 말하기\"(스페이스 키)를 사용하여 말하세요."
+        "content": "\"세션 시작\" 버튼을 클릭하여 Eburon 사용을 시작하세요. 시작한 후에는 자연스럽게 말하여 실시간 번역을 할 수 있습니다. 자동 턴 감지가 비활성화된 경우 \"눌러서 말하기\"(스페이스 키)를 사용하여 말하세요."
       },
       "complete": {
         "title": "설정 가이드 완료!",
-        "content": "훌륭합니다! 설정 가이드를 완료하고 인터페이스 조작에 익숙해졌습니다. Sokuji 사용을 시작하려면 설정에서 OpenAI API 키를 입력하고, 프롬프트가 표시되면 마이크 권한을 부여하고, 회의 애플리케이션(Google Meet, Zoom, Microsoft Teams 등)에서 \"Sokuji Virtual Microphone\"을 마이크로 선택하세요. 설정에서 언제든지 이 가이드를 다시 시작할 수 있습니다."
+        "content": "훌륭합니다! 설정 가이드를 완료하고 인터페이스 조작에 익숙해졌습니다. Eburon 사용을 시작하려면 설정에서 OpenAI API 키를 입력하고, 프롬프트가 표시되면 마이크 권한을 부여하고, 회의 애플리케이션(Google Meet, Zoom, Microsoft Teams 등)에서 \"Eburon Virtual Microphone\"을 마이크로 선택하세요. 설정에서 언제든지 이 가이드를 다시 시작할 수 있습니다."
       }
     }
   },
@@ -351,7 +351,7 @@
     "apiKeyHelp2": "2. 계정에 가입하거나 로그인",
     "apiKeyHelp3": "3. API 키 섹션으로 이동",
     "apiKeyHelp4": "4. 새 API 키를 생성하고 여기에 복사",
-    "apiKeyHelpTooltip": "API 키는 Sokuji가 AI 번역 서비스를 사용할 수 있게 하는 비밀번호와 같습니다. 선택한 제공업체(예: OpenAI)에서 하나를 얻어야 합니다.",
+    "apiKeyHelpTooltip": "API 키는 Eburon가 AI 번역 서비스를 사용할 수 있게 하는 비밀번호와 같습니다. 선택한 제공업체(예: OpenAI)에서 하나를 얻어야 합니다.",
     "apiKeyHelpTooltip2": "단계별 가이드:",
     "languages": "언어",
     "uiLanguage": "인터페이스 언어",
@@ -361,7 +361,7 @@
   },
   "simpleConfig": {
     "interfaceLanguage": "인터페이스 언어",
-    "interfaceLanguageDesc": "Sokuji의 메뉴와 버튼 언어를 변경합니다. 번역할 수 있는 언어에는 영향을 주지 않습니다.",
+    "interfaceLanguageDesc": "Eburon의 메뉴와 버튼 언어를 변경합니다. 번역할 수 있는 언어에는 영향을 주지 않습니다.",
     "translationLanguages": "번역 언어",
     "translationLanguagesDesc": "당신이 말하는 언어(원본 언어)와 번역을 듣고 싶은 언어(대상 언어)를 선택하세요. 원본 언어가 확실하지 않다면 '자동 감지'를 선택하세요.",
     "yourLanguage": "내 언어",
@@ -371,7 +371,7 @@
     "signInDescription": "복잡한 구성 없이 편리한 경험을 위해 가입하십시오.",
     "targetLanguage": "상대방 언어",
     "microphone": "마이크",
-    "microphoneDesc": "음성을 캡처할 마이크를 선택하세요. 이 마이크에 당신의 언어로 말하면, Sokuji가 들리는 모든 것을 실시간으로 번역합니다.",
+    "microphoneDesc": "음성을 캡처할 마이크를 선택하세요. 이 마이크에 당신의 언어로 말하면, Eburon가 들리는 모든 것을 실시간으로 번역합니다.",
     "speaker": "스피커",
     "speakerDesc": "번역된 출력을 모니터링할 스피커를 선택하세요. 번역이 어떻게 들리는지 확인할 수 있습니다. 모니터링이 필요하지 않으면 끌 수 있습니다. 켜져 있든 꺼져 있든, 번역된 오디오는 항상 가상 마이크로 전송되어 다른 참가자들이 들을 수 있습니다.",
     "systemAudio": "참가자 오디오",
@@ -463,7 +463,7 @@
     "noMic": "마이크 필요"
   },
   "userTypeSelection": {
-    "title": "Sokuji에 오신 것을 환영합니다",
+    "title": "Eburon에 오신 것을 환영합니다",
     "subtitle": "시작하려면 사용자 유형을 선택하세요",
     "regular": {
       "title": "일반 사용자",

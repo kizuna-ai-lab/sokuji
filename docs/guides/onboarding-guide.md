@@ -1,8 +1,8 @@
-# Sokuji Onboarding Guide
+# Eburon Onboarding Guide
 
 ## Overview
 
-Sokuji now includes a comprehensive first-time user onboarding system, implemented using the `react-joyride` library. This feature helps new users understand and configure the extension's various settings.
+Eburon now includes a comprehensive first-time user onboarding system, implemented using the `react-joyride` library. This feature helps new users understand and configure the extension's various settings.
 
 ## Features
 
@@ -14,7 +14,7 @@ Sokuji now includes a comprehensive first-time user onboarding system, implement
 
 The tour covers the following key steps:
 
-1.  **Welcome Screen** - Introduces the features of Sokuji.
+1.  **Welcome Screen** - Introduces the features of Eburon.
 2.  **Settings Panel** - Guides the user to open the settings.
 3.  **API Key Configuration** - Instructs on how to set up the API key for the selected provider (OpenAI or Gemini).
 4.  **System Instructions** - Explains how to customize system instructions.
@@ -59,7 +59,7 @@ interface OnboardingContextType {
 ### Data Persistence
 - Uses `localStorage` to store the completion status.
 - Version control allows re-triggering the tour after updates.
-- Storage key: `sokuji_onboarding_completed`
+- Storage key: `Eburon_onboarding_completed`
 
 ### Style Customization
 - Primary color: `#007bff`
@@ -148,7 +148,7 @@ Add new key-value pairs for translations in the corresponding language files.
 
 1.  **Tour does not appear**
     -   Check if it's already marked as completed in `localStorage`.
-    -   Clear the `sokuji_onboarding_completed` key.
+    -   Clear the `Eburon_onboarding_completed` key.
 
 2.  **Target element not found**
     -   Ensure the CSS selector is correct.
@@ -161,6 +161,6 @@ Add new key-value pairs for translations in the corresponding language files.
 ### Debugging
 Run the following in the browser console:
 ```javascript
-localStorage.removeItem('sokuji_onboarding_completed');
+localStorage.removeItem('Eburon_onboarding_completed');
 ```
 Then refresh the page to re-trigger the tour. 

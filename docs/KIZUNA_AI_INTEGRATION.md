@@ -2,7 +2,7 @@
 
 ## Overview
 
-Kizuna AI is a new AI provider that has been fully integrated into the Sokuji application. Unlike other providers that require users to manage their own API keys, Kizuna AI uses a backend-managed authentication system where API keys are automatically provided to authenticated users.
+Kizuna AI is a new AI provider that has been fully integrated into the Eburon application. Unlike other providers that require users to manage their own API keys, Kizuna AI uses a backend-managed authentication system where API keys are automatically provided to authenticated users.
 
 ## Key Features
 
@@ -203,4 +203,4 @@ interface KizunaAISettings {
 
 ---
 
-*This integration provides a seamless user experience while maintaining the technical excellence and security standards of the Sokuji application.*
+*This integration provides a seamless user experience while maintaining the technical excellence and security standards of the Eburon application.*

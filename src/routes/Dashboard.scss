@@ -1,0 +1,121 @@
+.dashboard {
+  --bg-color: #212121;
+  --text-main: #ffffff;
+  --text-muted: #9aa0a6;
+
+  --card-translator: #285493;
+  --card-dual: #1e6c4c;
+  --card-classroom: #e5a016;
+  --card-dubber: #d8422e;
+  --card-transcriber: #4b3d76;
+  --card-clone: #186a6f;
+  --card-echo: #e67713;
+  --card-chatbot: #1d8078;
+  --card-agents: #872e8c;
+  --card-csr: #0d6092;
+  --card-codemax: #243040;
+  --card-tools: #9e4b21;
+
+  background: radial-gradient(circle at top center, #2e2e2e 0%, #171717 100%);
+  color: var(--text-main);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  padding: 2rem;
+
+  .container {
+    text-align: center;
+    max-width: 900px;
+    width: 100%;
+  }
+
+  h1 {
+    font-size: 2.3rem;
+    font-weight: 700;
+    margin-bottom: 0.6rem;
+    letter-spacing: 0.2px;
+  }
+
+  p {
+    color: var(--text-muted);
+    font-size: 1.15rem;
+    margin-bottom: 3.5rem;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(4, 150px);
+    gap: 26px;
+    justify-content: center;
+  }
+
+  .card {
+    width: 150px;
+    height: 150px;
+    border-radius: 28px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.1), 0 10px 20px rgba(0, 0, 0, 0.15);
+    position: relative;
+    overflow: hidden;
+    text-decoration: none;
+
+    &:hover {
+      transform: translateY(-5px);
+      box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.15), 0 15px 30px rgba(0, 0, 0, 0.3);
+    }
+
+    span {
+      margin-top: auto;
+      margin-bottom: 18px;
+      font-weight: 600;
+      font-size: 0.95rem;
+      color: #ffffff;
+      letter-spacing: 0.3px;
+      z-index: 2;
+    }
+  }
+
+  .icon-wrapper {
+    margin-top: 25px;
+    width: 75px;
+    height: 75px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 2;
+
+    svg,
+    img {
+      width: 100%;
+      height: 100%;
+      filter: drop-shadow(0 6px 8px rgba(0, 0, 0, 0.2));
+      object-fit: contain;
+    }
+  }
+
+  .bg-translator { background-color: var(--card-translator); }
+  .bg-dual { background-color: var(--card-dual); }
+  .bg-classroom { background-color: var(--card-classroom); }
+  .bg-dubber { background-color: var(--card-dubber); }
+  .bg-transcriber { background-color: var(--card-transcriber); }
+  .bg-clone { background-color: var(--card-clone); }
+  .bg-echo { background-color: var(--card-echo); }
+  .bg-chatbot { background-color: var(--card-chatbot); }
+  .bg-agents { background-color: var(--card-agents); }
+  .bg-csr { background-color: var(--card-csr); }
+  .bg-codemax { background-color: var(--card-codemax); }
+  .bg-tools { background-color: var(--card-tools); }
+
+  @media (max-width: 800px) {
+    .grid {
+      grid-template-columns: repeat(2, 150px);
+    }
+  }
+}

@@ -17,11 +17,11 @@ function getExtensionURL(path) {
     }
     // Fallback for other browsers or testing environments
     else {
-      console.warn('[Sokuji] [Zoom] Browser extension API not available, using relative path');
+      console.warn('[Eburon] [Zoom] Browser extension API not available, using relative path');
       url = path;
     }
   } catch (error) {
-    console.error('[Sokuji] [Zoom] Error getting extension URL:', error);
+    console.error('[Eburon] [Zoom] Error getting extension URL:', error);
     url = path;
   }
   return url;
@@ -30,11 +30,11 @@ function getExtensionURL(path) {
 // Determine if we're in the webclient iframe
 const isWebclientIframe = window !== window.top && window.self.frameElement && window.self.frameElement.id === 'webclient';
 
-console.info(`[Sokuji] [Zoom] Initializing: isWebclientIframe=${isWebclientIframe}`);
+console.info(`[Eburon] [Zoom] Initializing: isWebclientIframe=${isWebclientIframe}`);
 
 // Only proceed if we're in the webclient iframe
 if (!isWebclientIframe) {
-  console.info('[Sokuji] [Zoom] Not in webclient iframe, exiting');
+  console.info('[Eburon] [Zoom] Not in webclient iframe, exiting');
   // Exit early if not in webclient iframe
 } else {
   // Inject the device emulator script first
@@ -46,7 +46,7 @@ if (!isWebclientIframe) {
     const script = document.createElement('script');
     script.src = scriptURL;
     script.async = false; // Ensure it's loaded synchronously
-    script.id = 'sokuji-device-emulator-script';
+    script.id = 'Eburon-device-emulator-script';
     
     // Inject directly into the webclient iframe
     if (document.head) {
@@ -56,7 +56,7 @@ if (!isWebclientIframe) {
     } else {
       document.appendChild(script);
     }
-    console.info('[Sokuji] [Zoom] Device emulator script injected into Zoom webclient iframe');
+    console.info('[Eburon] [Zoom] Device emulator script injected into Zoom webclient iframe');
   }
 
   // Inject the virtual microphone script as early as possible
@@ -68,7 +68,7 @@ if (!isWebclientIframe) {
     const script = document.createElement('script');
     script.src = scriptURL;
     script.async = false; // Ensure it's loaded synchronously
-    script.id = 'sokuji-virtual-microphone-script';
+    script.id = 'Eburon-virtual-microphone-script';
     
     // Inject directly into the webclient iframe
     if (document.head) {
@@ -78,10 +78,10 @@ if (!isWebclientIframe) {
     } else {
       document.appendChild(script);
     }
-    console.info('[Sokuji] [Zoom] Virtual microphone script injected into Zoom webclient iframe');
+    console.info('[Eburon] [Zoom] Virtual microphone script injected into Zoom webclient iframe');
   }
 
-  // Function to monitor and auto-select Sokuji Virtual Microphone
+  // Function to monitor and auto-select Eburon Virtual Microphone
   function monitorMicrophoneSelection() {
     // Function to check and update microphone selection
     function checkAndUpdateMicSelection() {
@@ -116,14 +116,14 @@ if (!isWebclientIframe) {
         item.classList.contains('audio-option-menu__pop-menu--checked')
       );
 
-      // Find our Sokuji Virtual Microphone item
-      const sokujiMicItem = microphoneItems.find(item => 
-        item.textContent.includes('Sokuji Virtual Microphone')
+      // Find our Eburon Virtual Microphone item
+      const EburonMicItem = microphoneItems.find(item => 
+        item.textContent.includes('Eburon Virtual Microphone')
       );
 
-      if (!hasSelectedMicrophone && sokujiMicItem) {
+      if (!hasSelectedMicrophone && EburonMicItem) {
         // No microphone is selected, auto-select our virtual microphone
-        console.info('[Sokuji] [Zoom] No microphone selected, auto-selecting Sokuji Virtual Microphone');
+        console.info('[Eburon] [Zoom] No microphone selected, auto-selecting Eburon Virtual Microphone');
         
         // Remove checked class from all microphone items (just in case)
         microphoneItems.forEach(item => {
@@ -133,25 +133,25 @@ if (!isWebclientIframe) {
         });
 
         // Add checked class to our virtual microphone
-        sokujiMicItem.classList.add('audio-option-menu__pop-menu--checked');
-        sokujiMicItem.setAttribute('aria-selected', 'true');
-        sokujiMicItem.setAttribute('aria-label', 
-          sokujiMicItem.getAttribute('aria-label')?.replace(' unselect', ' selected') || ''
+        EburonMicItem.classList.add('audio-option-menu__pop-menu--checked');
+        EburonMicItem.setAttribute('aria-selected', 'true');
+        EburonMicItem.setAttribute('aria-label', 
+          EburonMicItem.getAttribute('aria-label')?.replace(' unselect', ' selected') || ''
         );
-      } else if (hasSelectedMicrophone && sokujiMicItem) {
+      } else if (hasSelectedMicrophone && EburonMicItem) {
         // Another microphone is selected, ensure our virtual microphone is not checked
-        const isSokujiSelected = sokujiMicItem.classList.contains('audio-option-menu__pop-menu--checked');
+        const isEburonSelected = EburonMicItem.classList.contains('audio-option-menu__pop-menu--checked');
         const otherMicSelected = microphoneItems.some(item => 
-          item !== sokujiMicItem && item.classList.contains('audio-option-menu__pop-menu--checked')
+          item !== EburonMicItem && item.classList.contains('audio-option-menu__pop-menu--checked')
         );
 
-        if (isSokujiSelected && otherMicSelected) {
+        if (isEburonSelected && otherMicSelected) {
           // Both our mic and another mic are selected, uncheck ours
-          console.info('[Sokuji] [Zoom] Another microphone is selected, unchecking Sokuji Virtual Microphone');
-          sokujiMicItem.classList.remove('audio-option-menu__pop-menu--checked');
-          sokujiMicItem.setAttribute('aria-selected', 'false');
-          sokujiMicItem.setAttribute('aria-label', 
-            sokujiMicItem.getAttribute('aria-label')?.replace(' selected', ' unselect') || ''
+          console.info('[Eburon] [Zoom] Another microphone is selected, unchecking Eburon Virtual Microphone');
+          EburonMicItem.classList.remove('audio-option-menu__pop-menu--checked');
+          EburonMicItem.setAttribute('aria-selected', 'false');
+          EburonMicItem.setAttribute('aria-label', 
+            EburonMicItem.getAttribute('aria-label')?.replace(' selected', ' unselect') || ''
           );
         }
       }
@@ -192,13 +192,13 @@ if (!isWebclientIframe) {
     // Also run a periodic check as backup
     setInterval(checkAndUpdateMicSelection, 2000);
 
-    console.info('[Sokuji] [Zoom] Microphone selection monitor initialized');
+    console.info('[Eburon] [Zoom] Microphone selection monitor initialized');
   }
 
   // Function to inject permission iframe
   function injectPermissionIframe() {
     // Check if an iframe with this ID already exists
-    const existingIframe = document.getElementById('sokujiPermissionsIFrame');
+    const existingIframe = document.getElementById('EburonPermissionsIFrame');
     if (existingIframe) {
       // Remove it if it exists
       existingIframe.remove();
@@ -207,7 +207,7 @@ if (!isWebclientIframe) {
     // Create a hidden iframe to request permission
     const iframe = document.createElement('iframe');
     iframe.hidden = true;
-    iframe.id = 'sokujiPermissionsIFrame';
+    iframe.id = 'EburonPermissionsIFrame';
     iframe.allow = 'microphone';
     iframe.src = getExtensionURL('permission.html');
     
@@ -224,24 +224,24 @@ if (!isWebclientIframe) {
     } else if (document.documentElement) {
       document.documentElement.appendChild(iframe);
     } else {
-      console.error('[Sokuji] [Zoom] Cannot inject permission iframe - no suitable parent element found');
+      console.error('[Eburon] [Zoom] Cannot inject permission iframe - no suitable parent element found');
       return; // Exit the function if we can't inject the iframe
     }
     
-    console.info('[Sokuji] [Zoom] Permission iframe injected into page');
+    console.info('[Eburon] [Zoom] Permission iframe injected into page');
   }
 
   // Function to show Audio Profile settings notification
   function showAudioProfileNotification() {
     // Check if notification already exists
-    const existingNotification = document.getElementById('sokuji-zoom-audio-profile-notification');
+    const existingNotification = document.getElementById('Eburon-zoom-audio-profile-notification');
     if (existingNotification) {
       return; // Notification already shown
     }
 
     // Create notification element
     const notification = document.createElement('div');
-    notification.id = 'sokuji-zoom-audio-profile-notification';
+    notification.id = 'Eburon-zoom-audio-profile-notification';
     notification.style.cssText = `
       position: fixed;
       top: 20px;
@@ -269,13 +269,13 @@ if (!isWebclientIframe) {
         </div>
         <div style="flex: 1;">
           <div style="font-weight: 600; margin-bottom: 8px; color: #fff;">
-            Sokuji Audio Settings Recommendation
+            Eburon Audio Settings Recommendation
           </div>
           <div style="margin-bottom: 12px; color: rgba(255, 255, 255, 0.9);">
             For optimal audio quality, please set <strong>Background noise suppression</strong> to <strong>"Browser built-in noise suppression"</strong> in your Audio Profile settings. This prevents audio stuttering and ensures smooth transmission.
           </div>
           <div style="display: flex; gap: 8px; align-items: center;">
-            <button id="sokuji-zoom-audio-profile-dismiss" style="
+            <button id="Eburon-zoom-audio-profile-dismiss" style="
               background: rgba(255, 255, 255, 0.2);
               border: 1px solid rgba(255, 255, 255, 0.3);
               color: white;
@@ -287,7 +287,7 @@ if (!isWebclientIframe) {
             ">
               Got it
             </button>
-            <button id="sokuji-zoom-audio-profile-remind-later" style="
+            <button id="Eburon-zoom-audio-profile-remind-later" style="
               background: transparent;
               border: none;
               color: rgba(255, 255, 255, 0.7);
@@ -305,17 +305,17 @@ if (!isWebclientIframe) {
     `;
 
     // Add event listeners for buttons
-    const dismissBtn = notification.querySelector('#sokuji-zoom-audio-profile-dismiss');
-    const remindLaterBtn = notification.querySelector('#sokuji-zoom-audio-profile-remind-later');
+    const dismissBtn = notification.querySelector('#Eburon-zoom-audio-profile-dismiss');
+    const remindLaterBtn = notification.querySelector('#Eburon-zoom-audio-profile-remind-later');
 
     if (dismissBtn) {
       dismissBtn.addEventListener('click', () => {
         notification.remove();
         // Store dismissal in localStorage to not show again for this session
         try {
-          localStorage.setItem('sokuji-zoom-audio-profile-dismissed', 'true');
+          localStorage.setItem('Eburon-zoom-audio-profile-dismissed', 'true');
         } catch (e) {
-          console.warn('[Sokuji] [Zoom] Could not store dismissal state:', e);
+          console.warn('[Eburon] [Zoom] Could not store dismissal state:', e);
         }
       });
 
@@ -364,11 +364,11 @@ if (!isWebclientIframe) {
     } else if (document.documentElement) {
       document.documentElement.appendChild(notification);
     } else {
-      console.error('[Sokuji] [Zoom] Cannot show audio profile notification - no suitable parent element found');
+      console.error('[Eburon] [Zoom] Cannot show audio profile notification - no suitable parent element found');
       return;
     }
 
-    console.info('[Sokuji] [Zoom] Audio profile notification shown');
+    console.info('[Eburon] [Zoom] Audio profile notification shown');
   }
 
   // Run script injections immediately (before DOMContentLoaded)
@@ -386,7 +386,7 @@ if (!isWebclientIframe) {
     setTimeout(() => {
       // Check if notification was already dismissed in this session
       try {
-        const dismissed = localStorage.getItem('sokuji-zoom-audio-profile-dismissed');
+        const dismissed = localStorage.getItem('Eburon-zoom-audio-profile-dismissed');
         if (!dismissed) {
           showAudioProfileNotification();
         }
@@ -405,7 +405,7 @@ if (!isWebclientIframe) {
       setTimeout(() => {
         // Check if notification was already dismissed in this session
         try {
-          const dismissed = localStorage.getItem('sokuji-zoom-audio-profile-dismissed');
+          const dismissed = localStorage.getItem('Eburon-zoom-audio-profile-dismissed');
           if (!dismissed) {
             showAudioProfileNotification();
           }
@@ -421,7 +421,7 @@ if (!isWebclientIframe) {
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     // Handle new PCM_DATA message
     if (message.type === 'PCM_DATA') {
-      console.debug(`[Sokuji] [Zoom] Received PCM data from side panel script: chunk ${message.chunkIndex + 1}/${message.totalChunks}`);
+      console.debug(`[Eburon] [Zoom] Received PCM data from side panel script: chunk ${message.chunkIndex + 1}/${message.totalChunks}`);
       
       // Post message directly to this window (webclient iframe)
       window.postMessage(message, '*');
@@ -437,22 +437,22 @@ if (!isWebclientIframe) {
   });
 
   // Content script loaded
-  console.info('[Sokuji] [Zoom] Zoom-specific content script loaded and ready for audio bridging');
+  console.info('[Eburon] [Zoom] Zoom-specific content script loaded and ready for audio bridging');
 
   // Expose API for debugging
-  window.sokujiZoomContent = {
+  window.EburonZoomContent = {
     version: '1.0.0',
     getStatus: () => ({
       initialized: true,
       isWebclientIframe,
-      hasVirtualMic: !!window.sokujiVirtualMic,
+      hasVirtualMic: !!window.EburonVirtualMic,
       canInjectAudio: true,
       microphoneMonitorActive: true,
-      deviceEmulatorScriptInjected: !!document.getElementById('sokuji-device-emulator-script'),
-      virtualMicScriptInjected: !!document.getElementById('sokuji-virtual-microphone-script'),
+      deviceEmulatorScriptInjected: !!document.getElementById('Eburon-device-emulator-script'),
+      virtualMicScriptInjected: !!document.getElementById('Eburon-virtual-microphone-script'),
       audioProfileNotificationDismissed: (() => {
         try {
-          return localStorage.getItem('sokuji-zoom-audio-profile-dismissed') === 'true';
+          return localStorage.getItem('Eburon-zoom-audio-profile-dismissed') === 'true';
         } catch (e) {
           return false;
         }
@@ -491,7 +491,7 @@ if (!isWebclientIframe) {
         status: 'success',
         microphoneItems,
         hasSelectedMicrophone: microphoneItems.some(item => item.selected),
-        sokujiMicPresent: microphoneItems.some(item => item.text.includes('Sokuji Virtual Microphone'))
+        EburonMicPresent: microphoneItems.some(item => item.text.includes('Eburon Virtual Microphone'))
       };
     },
     // Helper function to manually show audio profile notification
@@ -501,7 +501,7 @@ if (!isWebclientIframe) {
     // Helper function to reset audio profile notification dismissal
     resetAudioProfileNotificationDismissal: () => {
       try {
-        localStorage.removeItem('sokuji-zoom-audio-profile-dismissed');
+        localStorage.removeItem('Eburon-zoom-audio-profile-dismissed');
         return { success: true, message: 'Audio profile notification dismissal reset' };
       } catch (e) {
         return { success: false, error: e.message };

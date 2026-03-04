@@ -1,6 +1,6 @@
-# Contributing to Sokuji
+# Contributing to Eburon
 
-Thank you for your interest in contributing to Sokuji! We welcome contributions from the community, but please read these guidelines carefully before submitting any issues or pull requests.
+Thank you for your interest in contributing to Eburon! We welcome contributions from the community, but please read these guidelines carefully before submitting any issues or pull requests.
 
 ## 🚨 Important Notice
 
@@ -92,8 +92,8 @@ We welcome code contributions! Please:
 ## 📞 Getting Help
 
 - **Technical Questions**: Use our issue templates
-- **General Discussions**: Use [GitHub Discussions](https://github.com/kizuna-ai-lab/sokuji/discussions)
-- **Documentation**: Check our [README](https://github.com/kizuna-ai-lab/sokuji/blob/main/README.md)
+- **General Discussions**: Use [GitHub Discussions](https://github.com/kizuna-ai-lab/Eburon/discussions)
+- **Documentation**: Check our [README](https://github.com/kizuna-ai-lab/Eburon/blob/main/README.md)
 
 ## ⚖️ Code of Conduct
 

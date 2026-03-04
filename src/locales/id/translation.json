@@ -20,7 +20,7 @@
     "signInRequired": "Silakan masuk untuk menggunakan Kizuna AI sebagai penyedia Anda"
   },
   "app": {
-    "title": "Sokuji",
+    "title": "Eburon",
     "description": "Aplikasi terjemahan suara real-time"
   },
   "menu": {
@@ -111,7 +111,7 @@
     "apiKeyTooltip": "Kunci API Anda seperti kata sandi untuk layanan AI. Dapatkan dari situs web penyedia dan simpan dengan aman. Jangan pernah bagikan dengan orang lain.",
     "clientIdTooltip": "ID akun PalabraAI Anda. Ini mengidentifikasi akun Anda. Dapatkan dari dashboard PalabraAI.",
     "clientSecretTooltip": "Kunci rahasia PalabraAI Anda. Jaga agar tetap pribadi dan aman. Jangan pernah bagikan dengan siapa pun.",
-    "uiLanguageTooltip": "Mengubah bahasa menu dan tombol Sokuji. Ini TIDAK mempengaruhi bahasa yang dapat Anda terjemahkan.",
+    "uiLanguageTooltip": "Mengubah bahasa menu dan tombol Eburon. Ini TIDAK mempengaruhi bahasa yang dapat Anda terjemahkan.",
     "modelTooltip": "Model AI mempengaruhi kecepatan dan kualitas. Model 'Mini' lebih cepat tapi sederhana. Model standar lebih akurat tapi sedikit lebih lambat. Coba mini terlebih dahulu untuk efisiensi biaya.",
     "voiceTooltip": "Pilih suara bicara AI. Setiap suara memiliki nada dan gaya berbeda. Coba suara yang berbeda untuk menemukan favorit Anda.",
     "sourceLanguageTooltip": "Bahasa yang Anda ucapkan. AI akan mendengarkan bahasa ini dan menerjemahkannya.",
@@ -154,7 +154,7 @@
     "apiKeyHelp2": "2. Daftar atau masuk ke akun Anda",
     "apiKeyHelp3": "3. Navigasi ke bagian kunci API",
     "apiKeyHelp4": "4. Buat kunci API baru dan salin ke sini",
-    "apiKeyHelpTooltip": "Kunci API seperti kata sandi yang memungkinkan Sokuji menggunakan layanan terjemahan AI. Anda perlu mendapatkannya dari penyedia pilihan Anda (seperti OpenAI).",
+    "apiKeyHelpTooltip": "Kunci API seperti kata sandi yang memungkinkan Eburon menggunakan layanan terjemahan AI. Anda perlu mendapatkannya dari penyedia pilihan Anda (seperti OpenAI).",
     "apiKeyHelpTooltip2": "Panduan langkah demi langkah:",
     "languages": "Bahasa",
     "uiLanguage": "Bahasa Antarmuka",
@@ -164,7 +164,7 @@
   },
   "simpleConfig": {
     "interfaceLanguage": "Bahasa Antarmuka",
-    "interfaceLanguageDesc": "Ini mengubah bahasa menu dan tombol Sokuji. Ini TIDAK mempengaruhi bahasa mana yang dapat Anda terjemahkan.",
+    "interfaceLanguageDesc": "Ini mengubah bahasa menu dan tombol Eburon. Ini TIDAK mempengaruhi bahasa mana yang dapat Anda terjemahkan.",
     "translationLanguages": "Bahasa Terjemahan",
     "translationLanguagesDesc": "Pilih bahasa yang Anda gunakan (Bahasa Anda) dan bahasa yang ingin Anda dengar terjemahannya (Bahasa Target). Pilih \"Deteksi Otomatis\" jika Anda tidak yakin tentang bahasa sumber.",
     "yourLanguage": "Bahasa saya",
@@ -174,7 +174,7 @@
     "signInDescription": "Daftar untuk pengalaman yang disederhanakan.",
     "targetLanguage": "Bahasa lawan bicara",
     "microphone": "Mikrofon",
-    "microphoneDesc": "Pilih mikrofon untuk menangkap ucapan Anda. Berbicara dalam bahasa Anda ke mikrofon ini, dan Sokuji akan menerjemahkan semua yang didengarnya secara real-time.",
+    "microphoneDesc": "Pilih mikrofon untuk menangkap ucapan Anda. Berbicara dalam bahasa Anda ke mikrofon ini, dan Eburon akan menerjemahkan semua yang didengarnya secara real-time.",
     "speaker": "Speaker",
     "speakerDesc": "Pilih speaker untuk memantau output terjemahan. Ini memungkinkan Anda mendengar bagaimana terjemahan terdengar. Anda dapat mematikannya jika pemantauan tidak diperlukan. Baik hidup atau mati, audio terjemahan selalu dikirim ke mikrofon virtual agar peserta lain dapat mendengar.",
     "systemAudio": "Audio Peserta",
@@ -284,12 +284,12 @@
     "virtualMicrophoneNotice": "Pemberitahuan mikrofon virtual",
     "virtualSpeakerNotice": "Pemberitahuan speaker virtual",
     "iUnderstand": "Saya mengerti",
-    "virtualMicWarningTitle": "Ini adalah mikrofon virtual yang dibuat oleh Sokuji.",
+    "virtualMicWarningTitle": "Ini adalah mikrofon virtual yang dibuat oleh Eburon.",
     "virtualMicWarningText1": "Jangan pilih perangkat ini di sini. Gunakan mikrofon virtual ini di aplikasi konferensi video Anda (seperti Google Meet, Zoom, Microsoft Teams, dll.) untuk menerima output terjemahan suara real-time.",
-    "virtualMicWarningText2": "Agar Sokuji berfungsi dengan benar, pilih mikrofon fisik asli Anda dari daftar.",
-    "virtualSpeakerWarningTitle": "Ini adalah speaker virtual yang dibuat oleh Sokuji.",
-    "virtualSpeakerWarningText1": "Jangan pilih perangkat ini sebagai monitor Anda. Sokuji_Virtual_Speaker digunakan oleh Sokuji untuk mengirim audio ke aplikasi konferensi Anda.",
-    "virtualSpeakerWarningText2": "Menghubungkan monitor Anda ke perangkat output Sokuji akan menciptakan loop umpan balik audio, menyebabkan input Anda berisi output monitor Anda sendiri.",
+    "virtualMicWarningText2": "Agar Eburon berfungsi dengan benar, pilih mikrofon fisik asli Anda dari daftar.",
+    "virtualSpeakerWarningTitle": "Ini adalah speaker virtual yang dibuat oleh Eburon.",
+    "virtualSpeakerWarningText1": "Jangan pilih perangkat ini sebagai monitor Anda. Eburon_Virtual_Speaker digunakan oleh Eburon untuk mengirim audio ke aplikasi konferensi Anda.",
+    "virtualSpeakerWarningText2": "Menghubungkan monitor Anda ke perangkat output Eburon akan menciptakan loop umpan balik audio, menyebabkan input Anda berisi output monitor Anda sendiri.",
     "virtualSpeakerWarningText3": "Tombol \"Nyalakan\" menghubungkan speaker virtual ke perangkat monitor yang dipilih, memungkinkan Anda mendengar apa yang dikirim ke aplikasi konferensi Anda. Tombol \"Matikan\" memutuskan koneksi monitoring ini.",
     "virtualSpeakerWarningText4": "Untuk operasi yang tepat, pilih perangkat monitor yang berbeda (seperti headphone atau speaker Anda) dari daftar.",
     "realVoicePassthrough": "Passthrough Audio Asli",
@@ -364,8 +364,8 @@
     "basic": {
       "steps": {
         "welcome": {
-          "title": "Welcome to Sokuji",
-          "content": "Welcome to Sokuji! This simple guide will help you start using real-time translation in just a few steps."
+          "title": "Welcome to Eburon",
+          "content": "Welcome to Eburon! This simple guide will help you start using real-time translation in just a few steps."
         },
         "settings": {
           "title": "Step 1: Open Settings",
@@ -397,7 +397,7 @@
         },
         "complete": {
           "title": "All Set!",
-          "content": "Perfect! You're ready to use Sokuji. Click Start and begin speaking to hear real-time translations."
+          "content": "Perfect! You're ready to use Eburon. Click Start and begin speaking to hear real-time translations."
         }
       }
     },
@@ -411,7 +411,7 @@
     "restartTour": "Mulai ulang panduan pengaturan",
     "steps": {
       "welcome": {
-        "title": "Selamat datang di Sokuji!",
+        "title": "Selamat datang di Eburon!",
         "content": "Selamat datang di aplikasi terjemahan suara real-time! Mari kita atur sistem Anda dengan cepat untuk pengalaman terbaik."
       },
       "openSettings": {
@@ -448,16 +448,16 @@
       },
       "startSession": {
         "title": "Mulai sesi Anda",
-        "content": "Semuanya sudah siap! Klik tombol \"Mulai sesi\" untuk memulai terjemahan real-time. Ingat untuk memilih mikrofon virtual Sokuji sebagai perangkat input di aplikasi konferensi Anda."
+        "content": "Semuanya sudah siap! Klik tombol \"Mulai sesi\" untuk memulai terjemahan real-time. Ingat untuk memilih mikrofon virtual Eburon sebagai perangkat input di aplikasi konferensi Anda."
       },
       "completion": {
         "title": "Panduan pengaturan selesai!",
-        "content": "Anda telah menyelesaikan panduan pengaturan! Sekarang pastikan untuk benar-benar memasukkan kunci API dan mengonfigurasi pengaturan Anda, lalu gunakan mikrofon virtual Sokuji di aplikasi konferensi (seperti Google Meet, Zoom, dll.) untuk memulai terjemahan real-time."
+        "content": "Anda telah menyelesaikan panduan pengaturan! Sekarang pastikan untuk benar-benar memasukkan kunci API dan mengonfigurasi pengaturan Anda, lalu gunakan mikrofon virtual Eburon di aplikasi konferensi (seperti Google Meet, Zoom, dll.) untuk memulai terjemahan real-time."
       }
     }
   },
   "userTypeSelection": {
-    "title": "Selamat datang di Sokuji",
+    "title": "Selamat datang di Eburon",
     "subtitle": "Silakan pilih jenis pengguna Anda untuk memulai",
     "regular": {
       "title": "Pengguna Biasa",

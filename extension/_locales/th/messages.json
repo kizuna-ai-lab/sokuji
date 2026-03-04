@@ -1,15 +1,15 @@
 {
   "extensionName": {
-    "message": "Sokuji - AI แปลภาษาประชุม"
+    "message": "Eburon - AI แปลภาษาประชุม"
   },
   "extensionDescription": {
     "message": "การแปลเสียงพูดทันทีด้วย AI สำหรับการประชุมวิดีโอทั้งหมด ทำลายอุปสรรคทางภาษาด้วยการแปลเสียงแบบเรียลไทม์"
   },
   "popupTitle": {
-    "message": "Sokuji - เว็บไซต์ที่รองรับ"
+    "message": "Eburon - เว็บไซต์ที่รองรับ"
   },
-  "openSokuji": {
-    "message": "เปิด Sokuji"
+  "openEburon": {
+    "message": "เปิด Eburon"
   },
   "chromeWebStore": {
     "message": "Chrome Web Store"
@@ -17,8 +17,8 @@
   "edgeAddons": {
     "message": "ส่วนเสริม Edge"
   },
-  "sokujiAvailable": {
-    "message": "✓ Sokuji พร้อมใช้งานบน $SITE_NAME$!",
+  "EburonAvailable": {
+    "message": "✓ Eburon พร้อมใช้งานบน $SITE_NAME$!",
     "placeholders": {
       "site_name": {
         "content": "$1",
@@ -27,19 +27,19 @@
     }
   },
   "clickToStart": {
-    "message": "คลิก \"เปิด Sokuji\" ด้านล่างเพื่อเริ่มการแปลแบบเรียลไทม์"
+    "message": "คลิก \"เปิด Eburon\" ด้านล่างเพื่อเริ่มการแปลแบบเรียลไทม์"
   },
   "quickStart": {
     "message": "เริ่มต้นอย่างรวดเร็ว:"
   },
   "quickStartInstructions": {
-    "message": "กำหนดค่า API key (OpenAI or Gemini) ของคุณ → เลือก \"Sokuji_Virtual_Mic\" เป็นไมโครโฟน → เริ่มพูด!"
+    "message": "กำหนดค่า API key (OpenAI or Gemini) ของคุณ → เลือก \"Eburon_Virtual_Mic\" เป็นไมโครโฟน → เริ่มพูด!"
   },
   "notSupported": {
     "message": "⚠ ไม่รองรับบนเว็บไซต์นี้"
   },
   "currentlyOn": {
-    "message": "ขณะนี้อยู่ที่ $HOSTNAME$ Sokuji ทำงานบนแพลตฟอร์มเหล่านี้:",
+    "message": "ขณะนี้อยู่ที่ $HOSTNAME$ Eburon ทำงานบนแพลตฟอร์มเหล่านี้:",
     "placeholders": {
       "hostname": {
         "content": "$1",
@@ -75,16 +75,16 @@
     "message": "มีส่วนร่วมในโค้ด"
   },
   "gatherTownTitle": {
-    "message": "Sokuji for Gather Town"
+    "message": "Eburon for Gather Town"
   },
   "gatherTownGuidance": {
-    "message": "หากต้องการใช้ Sokuji โปรดเลือก <strong>\"Sokuji Virtual Microphone\"</strong> ในการตั้งค่าไมโครโฟนของคุณ"
+    "message": "หากต้องการใช้ Eburon โปรดเลือก <strong>\"Eburon Virtual Microphone\"</strong> ในการตั้งค่าไมโครโฟนของคุณ"
   },
   "wherebyTitle": {
-    "message": "Sokuji for Whereby"
+    "message": "Eburon for Whereby"
   },
   "wherebyGuidance": {
-    "message": "หากต้องการใช้ Sokuji โปรดเลือก <strong>\"Sokuji Virtual Microphone\"</strong> ในการตั้งค่าไมโครโฟนและ<strong>ปิดการลดเสียงรบกวน</strong>เพื่อประสิทธิภาพที่ดีกว่า"
+    "message": "หากต้องการใช้ Eburon โปรดเลือก <strong>\"Eburon Virtual Microphone\"</strong> ในการตั้งค่าไมโครโฟนและ<strong>ปิดการลดเสียงรบกวน</strong>เพื่อประสิทธิภาพที่ดีกว่า"
   },
   "gotIt": {
     "message": "เข้าใจแล้ว"
@@ -93,22 +93,22 @@
     "message": "เตือนภายหลัง"
   },
   "defaultTitle": {
-    "message": "Sokuji"
+    "message": "Eburon"
   },
   "defaultGuidance": {
-    "message": "หากต้องการใช้ Sokuji โปรดเลือก \"Sokuji Virtual Microphone\" ในการตั้งค่าไมโครโฟน"
+    "message": "หากต้องการใช้ Eburon โปรดเลือก \"Eburon Virtual Microphone\" ในการตั้งค่าไมโครโฟน"
   },
   "discordTitle": {
-    "message": "Sokuji for Discord"
+    "message": "Eburon for Discord"
   },
   "discordGuidance": {
-    "message": "หากต้องการใช้ Sokuji โปรดเลือก <strong>\"Sokuji Virtual Microphone\"</strong> ในการตั้งค่าไมโครโฟน และ<strong>ปิดการลดเสียงรบกวน</strong>ในการตั้งค่าเสียงของ Discord เพื่อประสิทธิภาพที่ดีขึ้น"
+    "message": "หากต้องการใช้ Eburon โปรดเลือก <strong>\"Eburon Virtual Microphone\"</strong> ในการตั้งค่าไมโครโฟน และ<strong>ปิดการลดเสียงรบกวน</strong>ในการตั้งค่าเสียงของ Discord เพื่อประสิทธิภาพที่ดีขึ้น"
   },
   "slackTitle": {
-    "message": "Sokuji for Slack"
+    "message": "Eburon for Slack"
   },
   "slackGuidance": {
-    "message": "หากต้องการใช้ Sokuji ใน Slack Huddles โปรด<strong>เริ่ม Huddle</strong> จากนั้นเลือก <strong>\"Sokuji Virtual Microphone\"</strong> ในการตั้งค่าวิดีโอและไมโครโฟน และ<strong>ปิดการปราบปรามเสียงรบกวน</strong>ในการตั้งค่าเสียงและวิดีโอเพื่อประสิทธิภาพที่ดีขึ้น"
+    "message": "หากต้องการใช้ Eburon ใน Slack Huddles โปรด<strong>เริ่ม Huddle</strong> จากนั้นเลือก <strong>\"Eburon Virtual Microphone\"</strong> ในการตั้งค่าวิดีโอและไมโครโฟน และ<strong>ปิดการปราบปรามเสียงรบกวน</strong>ในการตั้งค่าเสียงและวิดีโอเพื่อประสิทธิภาพที่ดีขึ้น"
   },
   "showMoreSites": {
     "message": "แสดงเว็บไซต์เพิ่มอีก $COUNT$ แห่ง",
@@ -123,9 +123,9 @@
     "message": "แสดงเว็บไซต์น้อยลง"
   },
   "teamsTitle": {
-    "message": "Sokuji สำหรับ Microsoft Teams"
+    "message": "Eburon สำหรับ Microsoft Teams"
   },
   "teamsGuidance": {
-    "message": "หากคุณไม่เห็นรายการอุปกรณ์เสียงทั้งหมดในการตั้งค่า Teams:<br><strong>1)</strong> ปิดใช้งานส่วนขยาย Sokuji ชั่วคราวและรีเฟรชหน้า<br><strong>2)</strong> อนุญาตให้ Teams เข้าถึงไมโครโฟนและกล้องของคุณเมื่อได้รับแจ้ง<br><strong>3)</strong> เปิดใช้งานส่วนขยาย Sokuji อีกครั้งและรีเฟรชหน้าอีกครั้ง<br><strong>4)</strong> อนุญาตให้ Sokuji เข้าถึงไมโครโฟนของคุณเมื่อได้รับแจ้ง ตอนนี้คุณควรเห็นทั้งอุปกรณ์จริงและ <strong>\"Sokuji Virtual Microphone\"</strong> ในการตั้งค่าของคุณ"
+    "message": "หากคุณไม่เห็นรายการอุปกรณ์เสียงทั้งหมดในการตั้งค่า Teams:<br><strong>1)</strong> ปิดใช้งานส่วนขยาย Eburon ชั่วคราวและรีเฟรชหน้า<br><strong>2)</strong> อนุญาตให้ Teams เข้าถึงไมโครโฟนและกล้องของคุณเมื่อได้รับแจ้ง<br><strong>3)</strong> เปิดใช้งานส่วนขยาย Eburon อีกครั้งและรีเฟรชหน้าอีกครั้ง<br><strong>4)</strong> อนุญาตให้ Eburon เข้าถึงไมโครโฟนของคุณเมื่อได้รับแจ้ง ตอนนี้คุณควรเห็นทั้งอุปกรณ์จริงและ <strong>\"Eburon Virtual Microphone\"</strong> ในการตั้งค่าของคุณ"
   }
 }

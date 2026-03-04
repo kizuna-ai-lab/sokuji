@@ -1,0 +1,21 @@
+# Eburon Training Pipeline — Dependencies
+#
+# Local (macOS/CPU) — data prep scripts 01-04:
+#   pip install -r training/requirements.txt
+#
+# GPU server (Linux + CUDA) — full pipeline including training:
+#   pip install -r training/requirements.txt -r training/requirements-gpu.txt
+
+# Data scraping
+requests>=2.31.0
+beautifulsoup4>=4.12.0
+
+# Audio processing (works on macOS with CPU)
+torch>=2.1.0
+torchaudio>=2.1.0
+librosa>=0.10.0
+soundfile>=0.12.0
+
+# Utilities
+tqdm>=4.66.0
+numpy>=1.24.0

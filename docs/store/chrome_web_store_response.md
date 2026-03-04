@@ -2,7 +2,7 @@ Subject: Response to Manifest V3 Remote Hosted Code Violation - Item ID: ppmihnh
 
 Dear Chrome Web Store Developer Support Team,
 
-Thank you for reviewing our extension "Sokuji - AI-powered Live Speech Translation for Online Meetings" (Item ID: ppmihnhelgfpjomhjhpecobloelicnak, version 0.5.6).
+Thank you for reviewing our extension "Eburon - AI-powered Live Speech Translation for Online Meetings" (Item ID: ppmihnhelgfpjomhjhpecobloelicnak, version 0.5.6).
 
 I would like to respectfully address the violation regarding "Including remotely hosted code resources in a manifest V3 item" and provide clarification on our PostHog analytics implementation.
 
@@ -59,7 +59,7 @@ All analytics are:
 ## Verification
 
 Our extension is completely open-source, and you can verify:
-1. **Source code**: https://github.com/kizuna-ai-lab/sokuji/
+1. **Source code**: https://github.com/kizuna-ai-lab/Eburon/
 2. **Build process**: GitHub Actions workflow that generates the exact zip file we submit
 3. **Package contents**: All PostHog code is bundled within the extension, no external dependencies
 4. **Migration commit**: The exact changes made to migrate from posthog-js to posthog-js-lite
@@ -91,9 +91,9 @@ If you need any additional information or clarification, please don't hesitate t
 Thank you for your time and consideration.
 
 Best regards,
-Sokuji Development Team
+Eburon Development Team
 
 ---
-**Open Source Repository**: https://github.com/kizuna-ai-lab/sokuji/  
+**Open Source Repository**: https://github.com/kizuna-ai-lab/Eburon/  
 **Extension Version**: 0.5.6  
 **Item ID**: ppmihnhelgfpjomhjhpecobloelicnak 

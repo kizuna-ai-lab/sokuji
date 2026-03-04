@@ -20,7 +20,7 @@
     "signInRequired": "请登录以使用Kizuna AI作为您的提供商"
   },
   "app": {
-    "title": "Sokuji",
+    "title": "Eburon",
     "description": "实时语音翻译应用程序"
   },
   "menu": {
@@ -115,7 +115,7 @@
     "apiKeyTooltip": "API密钥就像AI服务的密码。从提供商的网站获取并安全保管。切勿与他人分享。",
     "clientIdTooltip": "您的PalabraAI账户ID。这用于标识您的账户。从PalabraAI仪表板获取。",
     "clientSecretTooltip": "您的PalabraAI密钥。请保密并安全保管。切勿与任何人分享。",
-    "uiLanguageTooltip": "更改Sokuji的菜单和按钮语言。这不影响可以翻译的语言。",
+    "uiLanguageTooltip": "更改Eburon的菜单和按钮语言。这不影响可以翻译的语言。",
     "modelTooltip": "AI模型影响速度和质量。'Mini'模型更快但简单。标准模型更准确但稍慢。为了节省成本，先试试mini。",
     "voiceTooltip": "选择AI的说话声音。每种声音都有不同的音调和风格。尝试不同的声音找到您最喜欢的。",
     "sourceLanguageTooltip": "您说的语言。AI会听取这种语言并进行翻译。",
@@ -162,7 +162,7 @@
     "apiKeyHelp2": "2. 注册或登录您的账户",
     "apiKeyHelp3": "3. 导航到API密钥部分",
     "apiKeyHelp4": "4. 创建新的API密钥并复制到这里",
-    "apiKeyHelpTooltip": "API密钥就像密码，让Sokuji使用AI翻译服务。您需要从选择的提供商（如OpenAI）获取一个。",
+    "apiKeyHelpTooltip": "API密钥就像密码，让Eburon使用AI翻译服务。您需要从选择的提供商（如OpenAI）获取一个。",
     "apiKeyHelpTooltip2": "分步指南：",
     "languages": "语言",
     "uiLanguage": "界面语言",
@@ -172,7 +172,7 @@
   },
   "simpleConfig": {
     "interfaceLanguage": "界面语言",
-    "interfaceLanguageDesc": "这会更改Sokuji菜单和按钮的语言。它不会影响您可以在哪些语言之间翻译。",
+    "interfaceLanguageDesc": "这会更改Eburon菜单和按钮的语言。它不会影响您可以在哪些语言之间翻译。",
     "translationLanguages": "翻译语言",
     "translationLanguagesDesc": "选择您说的语言（您的语言）和您想要听到翻译的语言（目标语言）。如果您不确定源语言，请选择\"自动检测\"。",
     "yourLanguage": "我的语言",
@@ -182,7 +182,7 @@
     "signInDescription": "注册即可享受便捷体验，无需复杂配置。",
     "targetLanguage": "对方语言",
     "microphone": "麦克风",
-    "microphoneDesc": "选择用于捕获您语音的麦克风。对着此麦克风说您的语言，Sokuji会实时翻译麦克风接收到的所有内容。",
+    "microphoneDesc": "选择用于捕获您语音的麦克风。对着此麦克风说您的语言，Eburon会实时翻译麦克风接收到的所有内容。",
     "speaker": "扬声器",
     "speakerDesc": "选择用于监听翻译输出的扬声器。这让您能听到翻译的效果。如果不需要监听可以关闭。无论开启或关闭，翻译的音频都会发送到虚拟麦克风供其他参与者听到。",
     "systemAudio": "参会者音频",
@@ -287,12 +287,12 @@
     "virtualMicrophoneNotice": "虚拟麦克风说明",
     "virtualSpeakerNotice": "虚拟扬声器说明",
     "iUnderstand": "我明白了",
-    "virtualMicWarningTitle": "这是由Sokuji创建的虚拟麦克风。",
+    "virtualMicWarningTitle": "这是由Eburon创建的虚拟麦克风。",
     "virtualMicWarningText1": "请不要在此处选择此设备。相反，请在您的视频会议应用程序（如Google Meet、Zoom、Microsoft Teams等）中使用此虚拟麦克风来接收实时语音翻译输出。",
-    "virtualMicWarningText2": "为了让Sokuji正常工作，请从列表中选择您的实际物理麦克风。",
-    "virtualSpeakerWarningTitle": "这是由Sokuji创建的虚拟扬声器。",
-    "virtualSpeakerWarningText1": "请不要选择此设备作为您的监控器。Sokuji_Virtual_Speaker由Sokuji用于向您的会议应用程序输出音频。",
-    "virtualSpeakerWarningText2": "将您的监控器连接到Sokuji的输出设备会产生音频反馈回路，导致您的输入包含您自己的监控输出。",
+    "virtualMicWarningText2": "为了让Eburon正常工作，请从列表中选择您的实际物理麦克风。",
+    "virtualSpeakerWarningTitle": "这是由Eburon创建的虚拟扬声器。",
+    "virtualSpeakerWarningText1": "请不要选择此设备作为您的监控器。Eburon_Virtual_Speaker由Eburon用于向您的会议应用程序输出音频。",
+    "virtualSpeakerWarningText2": "将您的监控器连接到Eburon的输出设备会产生音频反馈回路，导致您的输入包含您自己的监控输出。",
     "virtualSpeakerWarningText3": "\"开启\"开关将虚拟扬声器连接到您选择的监控设备，让您听到发送到会议应用程序的内容。\"关闭\"开关断开此监控连接。",
     "virtualSpeakerWarningText4": "为了正常运行，请从列表中选择不同的监控设备（如您的耳机或扬声器）。",
     "realVoicePassthrough": "原声直通",
@@ -307,7 +307,7 @@
     "screenRecordingDeniedNotice": "需要权限",
     "screenRecordingDeniedTitle": "屏幕录制权限被拒绝",
     "screenRecordingDeniedText1": "参与者音频需要屏幕录制权限才能捕获系统音频。",
-    "screenRecordingDeniedText2": "请前往 系统偏好设置 > 隐私与安全性 > 屏幕录制，启用 Sokuji。",
+    "screenRecordingDeniedText2": "请前往 系统偏好设置 > 隐私与安全性 > 屏幕录制，启用 Eburon。",
     "screenRecordingDeniedText3": "启用权限后，请重新启动应用。",
     "availableSystemAudioSources": "可捕获的系统音频设备",
     "refreshSystemAudioSources": "刷新设备列表"
@@ -374,8 +374,8 @@
     "basic": {
       "steps": {
         "welcome": {
-          "title": "欢迎使用 Sokuji",
-          "content": "欢迎使用 Sokuji！这个简单的指南将帮助您在几个步骤内开始使用实时翻译。"
+          "title": "欢迎使用 Eburon",
+          "content": "欢迎使用 Eburon！这个简单的指南将帮助您在几个步骤内开始使用实时翻译。"
         },
         "settings": {
           "title": "步骤 1：打开设置",
@@ -407,7 +407,7 @@
         },
         "complete": {
           "title": "设置完成！",
-          "content": "完美！您已准备好使用 Sokuji。点击开始并开始说话以听到实时翻译。"
+          "content": "完美！您已准备好使用 Eburon。点击开始并开始说话以听到实时翻译。"
         }
       }
     },
@@ -421,8 +421,8 @@
     "restartTour": "重新开始设置向导",
     "steps": {
       "welcome": {
-        "title": "欢迎使用Sokuji",
-        "content": "欢迎使用Sokuji！本指南将帮助您设置实时语音翻译应用程序。让我们开始吧！"
+        "title": "欢迎使用Eburon",
+        "content": "欢迎使用Eburon！本指南将帮助您设置实时语音翻译应用程序。让我们开始吧！"
       },
       "settings": {
         "title": "步骤1：打开设置",
@@ -460,16 +460,16 @@
       },
       "startSession": {
         "title": "步骤9：开始会话",
-        "content": "点击\"开始会话\"按钮开始使用Sokuji。启动后，您可以自然说话进行实时翻译。如果禁用了自动轮换检测，请使用\"按住说话\"（空格键）来说话。"
+        "content": "点击\"开始会话\"按钮开始使用Eburon。启动后，您可以自然说话进行实时翻译。如果禁用了自动轮换检测，请使用\"按住说话\"（空格键）来说话。"
       },
       "complete": {
         "title": "设置指南完成！",
-        "content": "太棒了！您已经完成了设置指南，现在熟悉了界面操作。要开始使用Sokuji，请在设置中输入您的OpenAI API密钥，在提示时授予麦克风权限，并在您的会议应用程序（Google Meet、Zoom、Microsoft Teams等）中选择\"Sokuji Virtual Microphone\"作为您的麦克风。您可以随时从设置中重新启动此指南。"
+        "content": "太棒了！您已经完成了设置指南，现在熟悉了界面操作。要开始使用Eburon，请在设置中输入您的OpenAI API密钥，在提示时授予麦克风权限，并在您的会议应用程序（Google Meet、Zoom、Microsoft Teams等）中选择\"Eburon Virtual Microphone\"作为您的麦克风。您可以随时从设置中重新启动此指南。"
       }
     }
   },
   "userTypeSelection": {
-    "title": "欢迎使用 Sokuji",
+    "title": "欢迎使用 Eburon",
     "subtitle": "请选择您的用户类型以开始使用",
     "regular": {
       "title": "普通用户",

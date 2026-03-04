@@ -113,7 +113,7 @@ interface CacheEntry {
 // ==================== Default Values ====================
 
 const defaultCommonSettings: CommonSettings = {
-  provider: Provider.OPENAI,
+  provider: Provider.GEMINI,
   uiLanguage: 'en',
   uiMode: 'basic',
   systemInstructions:
@@ -853,7 +853,7 @@ const useSettingsStore = create<SettingsStore>()(
         const participantSystemInstructions = await service.getSetting('settings.common.participantSystemInstructions', defaultCommonSettings.participantSystemInstructions);
 
         // Validate provider availability
-        const validProvider = ProviderConfigFactory.isProviderSupported(provider) ? provider : Provider.OPENAI;
+        const validProvider = ProviderConfigFactory.isProviderSupported(provider) ? provider : Provider.GEMINI;
 
         // Load provider settings
         const loadProviderSettings = async <T>(prefix: string, defaults: T): Promise<T> => {

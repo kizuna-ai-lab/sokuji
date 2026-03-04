@@ -5,7 +5,7 @@ This document describes the PostHog analytics integration implemented in the bro
 ## Overview
 
 The extension popup now tracks user interactions and page context to provide insights into:
-- How users discover and access Sokuji
+- How users discover and access Eburon
 - Which sites are being used with the extension
 - Common user flows and pain points
 - Success rates for opening the side panel
@@ -60,7 +60,7 @@ The following properties are automatically included with every popup event:
 #### `popup_opened`
 **When**: Popup window is opened by user
 **Properties**:
-- `is_supported_site` (boolean): Whether the current site supports Sokuji
+- `is_supported_site` (boolean): Whether the current site supports Eburon
 - `hostname` (string): Current site hostname
 - `full_url` (string): Site origin URL
 - `supported_site_match` (string|null): Which supported site pattern matched
@@ -85,7 +85,7 @@ The following properties are automatically included with every popup event:
 ### User Action Events
 
 #### `popup_open_sidepanel_clicked`
-**When**: User clicks the "Open Sokuji" button
+**When**: User clicks the "Open Eburon" button
 **Properties**:
 - `tab_id` (number): Browser tab ID
 - `is_supported_site` (boolean): Whether site is supported
@@ -133,13 +133,13 @@ All event properties are automatically sanitized to remove sensitive information
 These events help answer key questions:
 
 **Discovery & Access**:
-- How often do users try to use Sokuji on unsupported sites?
+- How often do users try to use Eburon on unsupported sites?
 - Which supported sites are most popular?
 - What's the success rate for opening the side panel?
 
 **User Experience**:
 - Do users understand which sites are supported?
-- Are there common error patterns when opening Sokuji?
+- Are there common error patterns when opening Eburon?
 - How often do users navigate to supported sites from the popup?
 
 **Product Development**:
@@ -149,7 +149,7 @@ These events help answer key questions:
 
 ## Integration with Main App
 
-The popup analytics use the same PostHog project and configuration as the main Sokuji application, enabling:
+The popup analytics use the same PostHog project and configuration as the main Eburon application, enabling:
 - Unified user journey analysis
 - Cross-component feature flag support
 - Consistent privacy and opt-out handling
@@ -203,7 +203,7 @@ window.posthog?.capture('test_event', { source: 'manual_test' });
 
 ### User Behavior Analysis
 
-1. **Site Discovery**: Which unsupported sites do users try Sokuji on?
+1. **Site Discovery**: Which unsupported sites do users try Eburon on?
 2. **Navigation Patterns**: Do users navigate to supported sites from popup?
 3. **Success Rates**: How often does popup→side panel flow succeed?
 4. **Error Patterns**: What technical issues prevent successful usage?
@@ -213,7 +213,7 @@ window.posthog?.capture('test_event', { source: 'manual_test' });
 1. **Feature Requests**: Most requested unsupported sites
 2. **UX Improvements**: Points where users drop off
 3. **Technical Issues**: Common error patterns to fix
-4. **Usage Patterns**: When and where users access Sokuji
+4. **Usage Patterns**: When and where users access Eburon
 
 ### Metrics Dashboard
 

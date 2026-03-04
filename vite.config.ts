@@ -18,7 +18,6 @@ export default defineConfig(({ command, mode }) => {
         main: {
           // Entry points for the main process
           entry: {
-            'better-auth-adapter': 'electron/better-auth-adapter.js',
             'macos-audio-utils': 'electron/macos-audio-utils.js',
             'main': 'electron/main.js',
             'pulseaudio-utils': 'electron/pulseaudio-utils.js',

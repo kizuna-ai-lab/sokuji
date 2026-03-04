@@ -16,8 +16,7 @@ export class KizunaAIProviderConfig extends OpenAIProviderConfig {
       id: 'kizunaai',
       displayName: 'KizunaAI',
       apiKeyLabel: 'Kizuna AI Access',
-      apiKeyPlaceholder: 'Authentication managed automatically',
-      requiresAuth: true, // Special flag indicating this requires backend authentication
+      apiKeyPlaceholder: 'Enter your KizunaAI API key',
       
       // Override specific defaults that differ from OpenAI
       defaults: {

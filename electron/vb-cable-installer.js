@@ -48,19 +48,19 @@ async function downloadFile(url, destPath) {
  * @returns {Promise<boolean>} - True if installation detected
  */
 async function waitForInstallation(maxAttempts = 30, interval = 2000) {
-  console.log('[Sokuji] [VB-CABLE Installer] Waiting for installation to complete...');
+  console.log('[Eburon] [VB-CABLE Installer] Waiting for installation to complete...');
 
   for (let i = 0; i < maxAttempts; i++) {
     await new Promise(resolve => setTimeout(resolve, interval));
 
     const { isVBCableInstalled } = require('./windows-audio-utils');
     if (await isVBCableInstalled()) {
-      console.log('[Sokuji] [VB-CABLE Installer] Installation detected successfully');
+      console.log('[Eburon] [VB-CABLE Installer] Installation detected successfully');
       return true;
     }
 
     if (i % 5 === 0 && i > 0) {
-      console.log(`[Sokuji] [VB-CABLE Installer] Still waiting... (${i * interval / 1000}s elapsed)`);
+      console.log(`[Eburon] [VB-CABLE Installer] Still waiting... (${i * interval / 1000}s elapsed)`);
     }
   }
 
@@ -94,9 +94,9 @@ async function waitForInstallation(maxAttempts = 30, interval = 2000) {
 async function cleanupTempFiles(tempDir) {
   try {
     await fs.rm(tempDir, { recursive: true, force: true });
-    console.log('[Sokuji] [VB-CABLE Installer] Temporary files cleaned up');
+    console.log('[Eburon] [VB-CABLE Installer] Temporary files cleaned up');
   } catch (cleanupError) {
-    console.warn('[Sokuji] [VB-CABLE Installer] Could not clean up temp files:', cleanupError);
+    console.warn('[Eburon] [VB-CABLE Installer] Could not clean up temp files:', cleanupError);
   }
 }
 
@@ -120,32 +120,32 @@ async function isAdmin() {
  */
 async function installVBCable(silent = false) {
   try {
-    console.log('[Sokuji] [VB-CABLE Installer] Starting VB-CABLE installation process...');
+    console.log('[Eburon] [VB-CABLE Installer] Starting VB-CABLE installation process...');
 
     // Check if already installed using the shared detection function
     const { isVBCableInstalled } = require('./windows-audio-utils');
     if (await isVBCableInstalled()) {
-      console.log('[Sokuji] [VB-CABLE Installer] VB-CABLE is already installed');
+      console.log('[Eburon] [VB-CABLE Installer] VB-CABLE is already installed');
       return true;
     }
 
     // Note: We no longer check for admin privileges here
     // Windows UAC will automatically prompt for elevation when needed
-    console.log('[Sokuji] [VB-CABLE Installer] Preparing installation (Windows will handle UAC if needed)...');
+    console.log('[Eburon] [VB-CABLE Installer] Preparing installation (Windows will handle UAC if needed)...');
 
     // Create temp directory
-    const tempDir = path.join(app.getPath('temp'), 'sokuji-vbcable');
+    const tempDir = path.join(app.getPath('temp'), 'Eburon-vbcable');
     await fs.mkdir(tempDir, { recursive: true });
 
     // Download VB-CABLE
     const vbCableUrl = 'https://download.vb-audio.com/Download_CABLE/VBCABLE_Driver_Pack45.zip';
     const zipPath = path.join(tempDir, 'vbcable.zip');
 
-    console.log('[Sokuji] [VB-CABLE Installer] Downloading VB-CABLE...');
+    console.log('[Eburon] [VB-CABLE Installer] Downloading VB-CABLE...');
     await downloadFile(vbCableUrl, zipPath);
 
     // Extract the ZIP file
-    console.log('[Sokuji] [VB-CABLE Installer] Extracting VB-CABLE...');
+    console.log('[Eburon] [VB-CABLE Installer] Extracting VB-CABLE...');
     const extractCmd = `powershell -Command "Expand-Archive -Path '${zipPath}' -DestinationPath '${tempDir}' -Force"`;
     await execPromise(extractCmd);
 
@@ -158,58 +158,58 @@ async function installVBCable(silent = false) {
     try {
       await fs.access(installerPath);
     } catch (error) {
-      console.error('[Sokuji] [VB-CABLE Installer] Installer not found at:', installerPath);
+      console.error('[Eburon] [VB-CABLE Installer] Installer not found at:', installerPath);
       return false;
     }
 
     // Run the installer - Windows will automatically show UAC prompt if needed
-    console.log('[Sokuji] [VB-CABLE Installer] Launching installer:', installerPath);
+    console.log('[Eburon] [VB-CABLE Installer] Launching installer:', installerPath);
 
     const { shell, dialog } = require('electron');
 
     if (silent) {
       // Silent installation using PowerShell to trigger UAC
-      console.log('[Sokuji] [VB-CABLE Installer] Attempting silent installation...');
+      console.log('[Eburon] [VB-CABLE Installer] Attempting silent installation...');
 
       try {
         // Use PowerShell Start-Process to run with elevation
         const psCommand = `Start-Process -FilePath "${installerPath}" -ArgumentList "-i","-h" -Verb RunAs -Wait -PassThru | ForEach-Object { $_.ExitCode }`;
         const { stdout } = await execPromise(`powershell -Command "${psCommand}"`);
 
-        console.log('[Sokuji] [VB-CABLE Installer] Installation process completed');
+        console.log('[Eburon] [VB-CABLE Installer] Installation process completed');
 
         // Check if installation was successful
         const installed = await waitForInstallation(5, 2000);
         if (installed) {
-          console.log('[Sokuji] [VB-CABLE Installer] VB-CABLE installed successfully');
+          console.log('[Eburon] [VB-CABLE Installer] VB-CABLE installed successfully');
           cleanupTempFiles(tempDir);
           return true;
         }
       } catch (error) {
-        console.error('[Sokuji] [VB-CABLE Installer] Silent installation failed:', error);
+        console.error('[Eburon] [VB-CABLE Installer] Silent installation failed:', error);
         // Fall back to interactive installation
-        console.log('[Sokuji] [VB-CABLE Installer] Falling back to interactive installation...');
+        console.log('[Eburon] [VB-CABLE Installer] Falling back to interactive installation...');
       }
     }
 
     // Interactive installation - trigger UAC properly
-    console.log('[Sokuji] [VB-CABLE Installer] Launching installer with UAC elevation...');
+    console.log('[Eburon] [VB-CABLE Installer] Launching installer with UAC elevation...');
 
     try {
       // Use PowerShell to run installer with UAC prompt
       const psCommand = `Start-Process -FilePath "${installerPath}" -Verb RunAs`;
       await execPromise(`powershell -Command "${psCommand}"`);
 
-      console.log('[Sokuji] [VB-CABLE Installer] Installer launched with elevation request');
+      console.log('[Eburon] [VB-CABLE Installer] Installer launched with elevation request');
     } catch (error) {
       if (error.message && error.message.includes('canceled')) {
-        console.log('[Sokuji] [VB-CABLE Installer] User cancelled UAC prompt');
+        console.log('[Eburon] [VB-CABLE Installer] User cancelled UAC prompt');
         cleanupTempFiles(tempDir);
         return false;
       }
 
       // If PowerShell method fails, try VBScript alternative
-      console.warn('[Sokuji] [VB-CABLE Installer] PowerShell method failed, trying VBScript alternative...');
+      console.warn('[Eburon] [VB-CABLE Installer] PowerShell method failed, trying VBScript alternative...');
 
       try {
         // Create VBS script to request administrator privileges
@@ -218,13 +218,13 @@ async function installVBCable(silent = false) {
         await fs.writeFile(vbsPath, vbsContent);
         await execPromise(`cscript //NoLogo "${vbsPath}"`);
 
-        console.log('[Sokuji] [VB-CABLE Installer] Installer launched via VBScript with elevation');
+        console.log('[Eburon] [VB-CABLE Installer] Installer launched via VBScript with elevation');
       } catch (vbsError) {
-        console.error('[Sokuji] [VB-CABLE Installer] All elevation methods failed:', vbsError);
+        console.error('[Eburon] [VB-CABLE Installer] All elevation methods failed:', vbsError);
 
         // Last resort: just try to run it normally and hope for the best
         await shell.openPath(installerPath);
-        console.log('[Sokuji] [VB-CABLE Installer] Fallback: Opened installer without explicit elevation');
+        console.log('[Eburon] [VB-CABLE Installer] Fallback: Opened installer without explicit elevation');
       }
     }
 
@@ -245,7 +245,7 @@ async function installVBCable(silent = false) {
     });
 
     if (guidanceResult.response === 1) {
-      console.log('[Sokuji] [VB-CABLE Installer] User cancelled installation');
+      console.log('[Eburon] [VB-CABLE Installer] User cancelled installation');
       cleanupTempFiles(tempDir);
       return false;
     }
@@ -254,7 +254,7 @@ async function installVBCable(silent = false) {
     const installed = await waitForInstallation();
 
     if (installed) {
-      console.log('[Sokuji] [VB-CABLE Installer] VB-CABLE installed successfully');
+      console.log('[Eburon] [VB-CABLE Installer] VB-CABLE installed successfully');
 
       await dialog.showMessageBox({
         type: 'info',
@@ -267,12 +267,12 @@ async function installVBCable(silent = false) {
       cleanupTempFiles(tempDir);
       return true;
     } else {
-      console.error('[Sokuji] [VB-CABLE Installer] VB-CABLE installation failed or was cancelled');
+      console.error('[Eburon] [VB-CABLE Installer] VB-CABLE installation failed or was cancelled');
       cleanupTempFiles(tempDir);
       return false;
     }
   } catch (error) {
-    console.error('[Sokuji] [VB-CABLE Installer] Installation failed:', error);
+    console.error('[Eburon] [VB-CABLE Installer] Installation failed:', error);
     return false;
   }
 }
@@ -316,7 +316,7 @@ async function ensureVBCableInstalled() {
 
     // Check if already installed
     if (await isVBCableInstalled()) {
-      console.log('[Sokuji] [VB-CABLE Installer] VB-CABLE is already installed');
+      console.log('[Eburon] [VB-CABLE Installer] VB-CABLE is already installed');
       return true;
     }
 
@@ -348,7 +348,7 @@ async function ensureVBCableInstalled() {
 
     return false;
   } catch (error) {
-    console.error('[Sokuji] [VB-CABLE Installer] Error in installation flow:', error);
+    console.error('[Eburon] [VB-CABLE Installer] Error in installation flow:', error);
     return false;
   }
 }
@@ -377,7 +377,7 @@ VB-CABLE Installation Instructions:
 4. Run as Administrator
 5. Follow the installation wizard
 6. Restart your computer if prompted
-7. After installation, restart Sokuji
+7. After installation, restart Eburon
 
 The virtual microphone will appear as "CABLE Output" in recording devices.
 The virtual speaker will appear as "CABLE Input" in playback devices.

@@ -1,15 +1,15 @@
 {
   "extensionName": {
-    "message": "Sokuji - AI Találkozófordító"
+    "message": "Eburon - AI Találkozófordító"
   },
   "extensionDescription": {
     "message": "AI-alapú azonnali beszédfordítás minden videótalálkozóhoz. Törje át a nyelvi akadályokat valós idejű hangfordítással."
   },
   "popupTitle": {
-    "message": "Sokuji - Támogatott Oldalak"
+    "message": "Eburon - Támogatott Oldalak"
   },
-  "openSokuji": {
-    "message": "Sokuji Megnyitása"
+  "openEburon": {
+    "message": "Eburon Megnyitása"
   },
   "chromeWebStore": {
     "message": "Chrome Webáruház"
@@ -17,8 +17,8 @@
   "edgeAddons": {
     "message": "Edge bővítmények"
   },
-  "sokujiAvailable": {
-    "message": "✓ A Sokuji elérhető a(z) $SITE_NAME$ oldalon!",
+  "EburonAvailable": {
+    "message": "✓ A Eburon elérhető a(z) $SITE_NAME$ oldalon!",
     "placeholders": {
       "site_name": {
         "content": "$1",
@@ -27,19 +27,19 @@
     }
   },
   "clickToStart": {
-    "message": "Kattintson a \"Sokuji Megnyitása\" gombra alább a valós idejű fordítás elindításához."
+    "message": "Kattintson a \"Eburon Megnyitása\" gombra alább a valós idejű fordítás elindításához."
   },
   "quickStart": {
     "message": "Gyors Kezdés:"
   },
   "quickStartInstructions": {
-    "message": "Konfigurálja API kulcsát (OpenAI vagy Gemini) → Válassza a \"Sokuji_Virtual_Mic\"-et mikrofonként → Kezdjen el beszélni!"
+    "message": "Konfigurálja API kulcsát (OpenAI vagy Gemini) → Válassza a \"Eburon_Virtual_Mic\"-et mikrofonként → Kezdjen el beszélni!"
   },
   "notSupported": {
     "message": "⚠ Nem támogatott ezen az oldalon"
   },
   "currentlyOn": {
-    "message": "Jelenleg a(z) $HOSTNAME$ oldalon. A Sokuji ezeken a platformokon működik:",
+    "message": "Jelenleg a(z) $HOSTNAME$ oldalon. A Eburon ezeken a platformokon működik:",
     "placeholders": {
       "hostname": {
         "content": "$1",
@@ -75,16 +75,16 @@
     "message": "kód hozzájárulás"
   },
   "gatherTownTitle": {
-    "message": "Sokuji for Gather Town"
+    "message": "Eburon for Gather Town"
   },
   "gatherTownGuidance": {
-    "message": "A Sokuji használatához válassza ki a <strong>\"Sokuji Virtual Microphone\"</strong> opciót a mikrofon beállításaiban."
+    "message": "A Eburon használatához válassza ki a <strong>\"Eburon Virtual Microphone\"</strong> opciót a mikrofon beállításaiban."
   },
   "wherebyTitle": {
-    "message": "Sokuji for Whereby"
+    "message": "Eburon for Whereby"
   },
   "wherebyGuidance": {
-    "message": "A Sokuji használatához kérjük válassza ki a <strong>\"Sokuji Virtual Microphone\"</strong> opciót a mikrofon beállításokban és <strong>kapcsolja ki a zajcsökkentést</strong> a jobb teljesítmény érdekében."
+    "message": "A Eburon használatához kérjük válassza ki a <strong>\"Eburon Virtual Microphone\"</strong> opciót a mikrofon beállításokban és <strong>kapcsolja ki a zajcsökkentést</strong> a jobb teljesítmény érdekében."
   },
   "gotIt": {
     "message": "Értem"
@@ -93,22 +93,22 @@
     "message": "Emlékeztessen később"
   },
   "defaultTitle": {
-    "message": "Sokuji"
+    "message": "Eburon"
   },
   "defaultGuidance": {
-    "message": "To use Sokuji, please select \"Sokuji Virtual Microphone\" in your microphone settings."
+    "message": "To use Eburon, please select \"Eburon Virtual Microphone\" in your microphone settings."
   },
   "discordTitle": {
-    "message": "Sokuji for Discord"
+    "message": "Eburon for Discord"
   },
   "discordGuidance": {
-    "message": "To use Sokuji, please select <strong>\"Sokuji Virtual Microphone\"</strong> in your microphone settings and <strong>disable Noise Suppression</strong> in Discord's Voice settings for better performance."
+    "message": "To use Eburon, please select <strong>\"Eburon Virtual Microphone\"</strong> in your microphone settings and <strong>disable Noise Suppression</strong> in Discord's Voice settings for better performance."
   },
   "slackTitle": {
-    "message": "Sokuji for Slack"
+    "message": "Eburon for Slack"
   },
   "slackGuidance": {
-    "message": "To use Sokuji in Slack Huddles, please <strong>start a Huddle</strong>, then select <strong>\"Sokuji Virtual Microphone\"</strong> in your Video and Mic settings, and <strong>disable Noise Suppression</strong> in Audio & Video preferences for better performance."
+    "message": "To use Eburon in Slack Huddles, please <strong>start a Huddle</strong>, then select <strong>\"Eburon Virtual Microphone\"</strong> in your Video and Mic settings, and <strong>disable Noise Suppression</strong> in Audio & Video preferences for better performance."
   },
   "showMoreSites": {
     "message": "Show $COUNT$ more sites",
@@ -123,9 +123,9 @@
     "message": "Show less sites"
   },
   "teamsTitle": {
-    "message": "Sokuji a Microsoft Teamshez"
+    "message": "Eburon a Microsoft Teamshez"
   },
   "teamsGuidance": {
-    "message": "Ha nem látja a teljes hangeszközlistát a Teams beállításaiban:<br><strong>1)</strong> Ideiglenesen tiltsa le a Sokuji bővítményt és frissítse az oldalt<br><strong>2)</strong> Engedélyezze a Teams számára a mikrofon és a kamera elérését, amikor a rendszer kéri<br><strong>3)</strong> Engedélyezze újra a Sokuji bővítményt és frissítse újra az oldalt<br><strong>4)</strong> Engedélyezze a Sokuji számára a mikrofon elérését, amikor a rendszer kéri. Most már látnia kell mind a valódi eszközöket, mind a <strong>\"Sokuji Virtual Microphone\"</strong> virtuális eszközt a beállításaiban."
+    "message": "Ha nem látja a teljes hangeszközlistát a Teams beállításaiban:<br><strong>1)</strong> Ideiglenesen tiltsa le a Eburon bővítményt és frissítse az oldalt<br><strong>2)</strong> Engedélyezze a Teams számára a mikrofon és a kamera elérését, amikor a rendszer kéri<br><strong>3)</strong> Engedélyezze újra a Eburon bővítményt és frissítse újra az oldalt<br><strong>4)</strong> Engedélyezze a Eburon számára a mikrofon elérését, amikor a rendszer kéri. Most már látnia kell mind a valódi eszközöket, mind a <strong>\"Eburon Virtual Microphone\"</strong> virtuális eszközt a beállításaiban."
   }
 }

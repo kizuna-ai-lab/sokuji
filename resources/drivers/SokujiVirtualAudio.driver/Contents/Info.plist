@@ -7,13 +7,13 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>English</string>
 	<key>CFBundleExecutable</key>
-	<string>SokujiVirtualAudio</string>
+	<string>EburonVirtualAudio</string>
 	<key>CFBundleIdentifier</key>
-	<string>com.sokuji.virtualaudio</string>
+	<string>com.Eburon.virtualaudio</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>SokujiVirtualAudio</string>
+	<string>EburonVirtualAudio</string>
 	<key>CFBundlePackageType</key>
 	<string>BNDL</string>
 	<key>CFBundleShortVersionString</key>

@@ -4,7 +4,7 @@ This document describes the system audio capture feature that enables real-time 
 
 ## Overview
 
-The participant translation feature allows Sokuji to capture and translate audio from other meeting participants in video conferencing environments. It uses a **dual-client architecture** where:
+The participant translation feature allows Eburon to capture and translate audio from other meeting participants in video conferencing environments. It uses a **dual-client architecture** where:
 
 - **Speaker Client**: Translates the user's microphone input (source language → target language)
 - **Participant Client**: Translates other participants' audio (target language → source language)
@@ -127,7 +127,7 @@ Audio Flow: Tab Audio → chrome.tabCapture → getUserMedia() → AudioWorklet 
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                        Sokuji Application                        │
+│                        Eburon Application                        │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                  │
 │  ┌──────────────────────┐      ┌──────────────────────┐        │

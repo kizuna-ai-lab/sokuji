@@ -14,10 +14,10 @@ export interface AudioDevice {
  */
 export const isVirtualDevice = (device: AudioDevice): boolean => {
   const label = device.label.toLowerCase();
-  return label.includes('sokuji_virtual_mic') ||
-         label.includes('sokuji_virtual_speaker') ||
-         label.includes('sokuji_system_audio') ||
-         label.includes('sokujivirtualaudio') || // Mac virtual device
+  return label.includes('Eburon_virtual_mic') ||
+         label.includes('Eburon_virtual_speaker') ||
+         label.includes('Eburon_system_audio') ||
+         label.includes('Eburonvirtualaudio') || // Mac virtual device
          label.includes('cable');
 };
 
@@ -26,9 +26,9 @@ export const isVirtualDevice = (device: AudioDevice): boolean => {
  */
 export const isVirtualMic = (device: AudioDevice): boolean => {
   const label = device.label.toLowerCase();
-  return label.includes('sokuji_virtual_mic') ||
-         label.includes('sokuji_system_audio') ||
-         label.includes('sokujivirtualaudio') ||
+  return label.includes('Eburon_virtual_mic') ||
+         label.includes('Eburon_system_audio') ||
+         label.includes('Eburonvirtualaudio') ||
          label.includes('cable');
 };
 
@@ -37,9 +37,9 @@ export const isVirtualMic = (device: AudioDevice): boolean => {
  */
 export const isVirtualSpeaker = (device: AudioDevice): boolean => {
   const label = device.label.toLowerCase();
-  return label.includes('sokuji_virtual_speaker') ||
-         label.includes('sokuji_system_audio') ||
-         label.includes('sokujivirtualaudio') ||
+  return label.includes('Eburon_virtual_speaker') ||
+         label.includes('Eburon_system_audio') ||
+         label.includes('Eburonvirtualaudio') ||
          label.includes('cable');
 };
 

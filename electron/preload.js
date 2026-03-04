@@ -108,7 +108,7 @@ contextBridge.exposeInMainWorld(
         'set-cookie',
         'check-vbcable',
         'install-vbcable',
-        'check-sokuji-audio',
+        'check-Eburon-audio',
         // System audio capture channels
         'supports-system-audio-capture',
         'list-system-audio-sources',

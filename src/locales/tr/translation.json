@@ -19,7 +19,7 @@
     "signUp": "Kayıt Ol"
   },
   "app": {
-    "title": "Sokuji",
+    "title": "Eburon",
     "description": "Gerçek zamanlı ses çeviri uygulaması"
   },
   "settings": {
@@ -153,8 +153,8 @@
     "basic": {
       "steps": {
         "welcome": {
-          "title": "Welcome to Sokuji",
-          "content": "Welcome to Sokuji! This simple guide will help you start using real-time translation in just a few steps."
+          "title": "Welcome to Eburon",
+          "content": "Welcome to Eburon! This simple guide will help you start using real-time translation in just a few steps."
         },
         "settings": {
           "title": "Step 1: Open Settings",
@@ -186,7 +186,7 @@
         },
         "complete": {
           "title": "All Set!",
-          "content": "Perfect! You're ready to use Sokuji. Click Start and begin speaking to hear real-time translations."
+          "content": "Perfect! You're ready to use Eburon. Click Start and begin speaking to hear real-time translations."
         }
       }
     },
@@ -200,7 +200,7 @@
     "restartTour": "Kurulum kılavuzunu yeniden başlat",
     "steps": {
       "welcome": {
-        "title": "Sokuji'ye hoş geldiniz!",
+        "title": "Eburon'ye hoş geldiniz!",
         "content": "Gerçek zamanlı ses çeviri uygulamasına hoş geldiniz! En iyi deneyim için sisteminizi hızlıca kuralım."
       },
       "openSettings": {
@@ -237,11 +237,11 @@
       },
       "startSession": {
         "title": "Oturumunuzu başlatın",
-        "content": "Her şey hazır! Gerçek zamanlı çeviriyi başlatmak için \"Oturumu başlat\" düğmesine tıklayın. Konferans uygulamanızda giriş cihazı olarak Sokuji sanal mikrofonunu seçmeyi unutmayın."
+        "content": "Her şey hazır! Gerçek zamanlı çeviriyi başlatmak için \"Oturumu başlat\" düğmesine tıklayın. Konferans uygulamanızda giriş cihazı olarak Eburon sanal mikrofonunu seçmeyi unutmayın."
       },
       "completion": {
         "title": "Kurulum kılavuzu tamamlandı!",
-        "content": "Kurulum kılavuzunu tamamladınız! Şimdi gerçekten API anahtarınızı girdiğinizden ve ayarlarınızı yapılandırdığınızdan emin olun, ardından gerçek zamanlı çeviriyi başlatmak için konferans uygulamalarında (Google Meet, Zoom vb. gibi) Sokuji sanal mikrofonunu kullanın."
+        "content": "Kurulum kılavuzunu tamamladınız! Şimdi gerçekten API anahtarınızı girdiğinizden ve ayarlarınızı yapılandırdığınızdan emin olun, ardından gerçek zamanlı çeviriyi başlatmak için konferans uygulamalarında (Google Meet, Zoom vb. gibi) Eburon sanal mikrofonunu kullanın."
       }
     }
   },
@@ -266,7 +266,7 @@
     "apiKeyHelp2": "2. Hesabınıza kaydolun veya giriş yapın",
     "apiKeyHelp3": "3. API anahtarları bölümüne gidin",
     "apiKeyHelp4": "4. Yeni bir API anahtarı oluşturun ve buraya kopyalayın",
-    "apiKeyHelpTooltip": "API anahtarı, Sokuji'nin AI çeviri hizmetlerini kullanmasına izin veren şifre gibidir. Seçtiğiniz sağlayıcıdan (OpenAI gibi) bir tane almanız gerekir.",
+    "apiKeyHelpTooltip": "API anahtarı, Eburon'nin AI çeviri hizmetlerini kullanmasına izin veren şifre gibidir. Seçtiğiniz sağlayıcıdan (OpenAI gibi) bir tane almanız gerekir.",
     "apiKeyHelpTooltip2": "Adım adım kılavuz:",
     "languages": "Diller",
     "uiLanguage": "Arayüz Dili",
@@ -276,7 +276,7 @@
   },
   "simpleConfig": {
     "interfaceLanguage": "Arayüz Dili",
-    "interfaceLanguageDesc": "Bu, Sokuji'nin menülerinin ve düğmelerinin dilini değiştirir. Çeviri yapabileceğiniz dilleri ETKİLEMEZ.",
+    "interfaceLanguageDesc": "Bu, Eburon'nin menülerinin ve düğmelerinin dilini değiştirir. Çeviri yapabileceğiniz dilleri ETKİLEMEZ.",
     "translationLanguages": "Çeviri Dilleri",
     "translationLanguagesDesc": "Hangi dilde konuştuğunuzu (Diliniz) ve çeviriyi hangi dilde duymak istediğinizi (Hedef Dil) seçin. Kaynak dili hakkinda emin değilseniz 'Otomatik Algılama'yı seçin.",
     "yourLanguage": "Benim dilim",
@@ -286,7 +286,7 @@
     "signInDescription": "Basitleştirilmiş deneyim için kaydolun.",
     "targetLanguage": "Karşı tarafın dili",
     "microphone": "Mikrofon",
-    "microphoneDesc": "Konuşmanızı yakalamak için mikrofonu seçin. Bu mikrofona dilinizle konuşun, Sokuji duyduğu her şeyi gerçek zamanda çevirecektir.",
+    "microphoneDesc": "Konuşmanızı yakalamak için mikrofonu seçin. Bu mikrofona dilinizle konuşun, Eburon duyduğu her şeyi gerçek zamanda çevirecektir.",
     "speaker": "Hoparlör",
     "speakerDesc": "Çevrilmiş çıktıyı izlemek için bir hoparlör seçin. Bu, çevirinin nasıl geldiğini duymanızı sağlar. İzleme gerekmiyorsa kapatabilirsiniz. Açık veya kapalı olsun, çevrilmiş ses her zaman sanal mikrofona gönderilir ve diğer katılımcılar duyar.",
     "systemAudio": "Katılımcı Sesi",
@@ -378,7 +378,7 @@
     "noMic": "Mikrofon Gerekli"
   },
   "userTypeSelection": {
-    "title": "Sokuji'ye Hoş Geldiniz",
+    "title": "Eburon'ye Hoş Geldiniz",
     "subtitle": "Başlamak için lütfen kullanıcı türünüzü seçin",
     "regular": {
       "title": "Normal Kullanıcı",

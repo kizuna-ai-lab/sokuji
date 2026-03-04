@@ -38,16 +38,16 @@ interface OnboardingContextType {
 
 const OnboardingContext = createContext<OnboardingContextType | undefined>(undefined);
 
-const ONBOARDING_STORAGE_KEY = 'sokuji_onboarding_completed';
-const USER_TYPE_STORAGE_KEY = 'sokuji_user_type';
+const ONBOARDING_STORAGE_KEY = 'Eburon_onboarding_completed';
+const USER_TYPE_STORAGE_KEY = 'Eburon_user_type';
 const ONBOARDING_VERSION = '1.0.0';
 
 // Basic mode onboarding steps - simplified for regular users
 const createBasicOnboardingSteps = (t: any): OnboardingStep[] => [
   {
     target: 'body',
-    content: t('onboarding.basic.steps.welcome.content', 'Welcome to Sokuji! This simple guide will help you start using real-time translation in just a few steps.'),
-    title: t('onboarding.basic.steps.welcome.title', 'Welcome to Sokuji'),
+    content: t('onboarding.basic.steps.welcome.content', 'Welcome to Eburon! This simple guide will help you start using real-time translation in just a few steps.'),
+    title: t('onboarding.basic.steps.welcome.title', 'Welcome to Eburon'),
     placement: 'center',
     disableBeacon: true,
     styles: {
@@ -100,7 +100,7 @@ const createBasicOnboardingSteps = (t: any): OnboardingStep[] => [
   },
   {
     target: 'body',
-    content: t('onboarding.basic.steps.complete.content', 'Perfect! You\'re ready to use Sokuji. Click Start and begin speaking to hear real-time translations.'),
+    content: t('onboarding.basic.steps.complete.content', 'Perfect! You\'re ready to use Eburon. Click Start and begin speaking to hear real-time translations.'),
     title: t('onboarding.basic.steps.complete.title', 'All Set!'),
     placement: 'center',
     disableBeacon: true,
@@ -111,8 +111,8 @@ const createBasicOnboardingSteps = (t: any): OnboardingStep[] => [
 const createAdvancedOnboardingSteps = (t: any): OnboardingStep[] => [
   {
     target: 'body',
-    content: t('onboarding.steps.welcome.content', 'Welcome to Sokuji! This guide will help you set up the extension for live speech translation. Let\'s get started!'),
-    title: t('onboarding.steps.welcome.title', 'Welcome to Sokuji'),
+    content: t('onboarding.steps.welcome.content', 'Welcome to Eburon! This guide will help you set up the extension for live speech translation. Let\'s get started!'),
+    title: t('onboarding.steps.welcome.title', 'Welcome to Eburon'),
     placement: 'center',
     disableBeacon: true,
     styles: {
@@ -178,7 +178,7 @@ const createAdvancedOnboardingSteps = (t: any): OnboardingStep[] => [
   },
   {
     target: '.main-action-btn',
-    content: t('onboarding.steps.startSession.content', 'Click the "Start Session" button to begin using Sokuji. Once started, you can speak naturally for live translation. If Automatic turn detection is disabled, use "Push to Talk" (Space key) to speak.'),
+    content: t('onboarding.steps.startSession.content', 'Click the "Start Session" button to begin using Eburon. Once started, you can speak naturally for live translation. If Automatic turn detection is disabled, use "Push to Talk" (Space key) to speak.'),
     title: t('onboarding.steps.startSession.title', 'Step 8: Start Session'),
     placement: 'top',
   },

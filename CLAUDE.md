@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Sokuji is a real-time AI-powered translation application available as both an Electron desktop app and a browser extension. It provides live speech translation using OpenAI, Google Gemini, Palabra.ai, and Kizuna AI APIs with modern audio processing capabilities. It also supports OpenAI-compatible API endpoints for flexibility.
+Eburon is a real-time AI-powered translation application available as both an Electron desktop app and a browser extension. It provides live speech translation using OpenAI, Google Gemini, Palabra.ai, and Kizuna AI APIs with modern audio processing capabilities. It also supports OpenAI-compatible API endpoints for flexibility.
 
 ## Development Commands
 
@@ -126,7 +126,7 @@ if (isElectron()) {
 
 // Get backend URL (respects VITE_BACKEND_URL env var)
 import { getBackendUrl, getApiUrl } from '../utils/environment';
-const apiUrl = getApiUrl(); // https://sokuji.kizuna.ai/api
+const apiUrl = getApiUrl(); // https://Eburon.kizuna.ai/api
 ```
 
 ### Zustand Store Patterns
@@ -175,7 +175,7 @@ useSettingsStore.subscribe(
 - Source maps enabled for debugging
 
 ### Environment Variables
-- `VITE_BACKEND_URL`: Backend API URL (default: `https://sokuji.kizuna.ai`)
+- `VITE_BACKEND_URL`: Backend API URL (default: `https://Eburon.kizuna.ai`)
 - `VITE_ENABLE_KIZUNA_AI`: Enable Kizuna AI provider in production (`true`/`false`)
 - Environment detection via `src/utils/environment.ts`
 

@@ -1,6 +1,6 @@
 /* global chrome, browser */
 
-// Universal content script for the Sokuji browser extension
+// Universal content script for the Eburon browser extension
 // This script injects the core virtual microphone functionality
 // and provides a plugin system for site-specific features
 
@@ -18,11 +18,11 @@ function getExtensionURL(path) {
     }
     // Fallback for other browsers or testing environments
     else {
-      console.warn('[Sokuji] [Content] Browser extension API not available, using relative path');
+      console.warn('[Eburon] [Content] Browser extension API not available, using relative path');
       url = path;
     }
   } catch (error) {
-    console.error('[Sokuji] [Content] Error getting extension URL:', error);
+    console.error('[Eburon] [Content] Error getting extension URL:', error);
     url = path;
   }
   return url;
@@ -37,7 +37,7 @@ function injectDeviceEmulatorScript() {
   const script = document.createElement('script');
   script.src = scriptURL;
   script.async = false; // Ensure it's loaded synchronously
-  script.id = 'sokuji-device-emulator-script';
+  script.id = 'Eburon-device-emulator-script';
   
   // Insert the script as early as possible
   // Try to insert it at the beginning of the head or document
@@ -51,7 +51,7 @@ function injectDeviceEmulatorScript() {
     document.appendChild(script);
   }
   
-  console.info('[Sokuji] [Content] Device emulator script injected into page');
+  console.info('[Eburon] [Content] Device emulator script injected into page');
 }
 
 // Inject the virtual microphone script as early as possible
@@ -63,7 +63,7 @@ function injectVirtualMicrophoneScript() {
   const script = document.createElement('script');
   script.src = scriptURL;
   script.async = false; // Ensure it's loaded synchronously
-  script.id = 'sokuji-virtual-microphone-script';
+  script.id = 'Eburon-virtual-microphone-script';
   
   // Insert the script as early as possible
   // Try to insert it at the beginning of the head or document
@@ -77,7 +77,7 @@ function injectVirtualMicrophoneScript() {
     document.appendChild(script);
   }
   
-  console.info('[Sokuji] [Content] Virtual microphone script injected into page');
+  console.info('[Eburon] [Content] Virtual microphone script injected into page');
 }
 
 // Inject site plugins script (includes plugin initialization)
@@ -124,7 +124,7 @@ function injectSitePluginsScript() {
         const encodedValue = btoa(unescape(encodeURIComponent(value)));
         i18nParams.set(key, encodedValue);
       } catch (error) {
-        console.warn(`[Sokuji] [Content] Failed to encode i18n message for ${key}:`, error);
+        console.warn(`[Eburon] [Content] Failed to encode i18n message for ${key}:`, error);
         // Fallback to direct encoding if Base64 fails
         i18nParams.set(key, encodeURIComponent(value));
       }
@@ -139,7 +139,7 @@ function injectSitePluginsScript() {
   const script = document.createElement('script');
   script.src = scriptURL;
   script.async = false;
-  script.id = 'sokuji-site-plugins-script';
+  script.id = 'Eburon-site-plugins-script';
   
   // Insert the script
   if (document.head) {
@@ -150,13 +150,13 @@ function injectSitePluginsScript() {
     document.appendChild(script);
   }
   
-  console.info('[Sokuji] [Content] Site plugins script injected into page with i18n parameters (Base64 encoded)');
+  console.info('[Eburon] [Content] Site plugins script injected into page with i18n parameters (Base64 encoded)');
 }
 
 // Function to inject permission iframe
 function injectPermissionIframe() {
   // Check if an iframe with this ID already exists
-  const existingIframe = document.getElementById('sokujiPermissionsIFrame');
+  const existingIframe = document.getElementById('EburonPermissionsIFrame');
   if (existingIframe) {
     // Remove it if it exists
     existingIframe.remove();
@@ -165,7 +165,7 @@ function injectPermissionIframe() {
   // Create a hidden iframe to request permission
   const iframe = document.createElement('iframe');
   iframe.hidden = true;
-  iframe.id = 'sokujiPermissionsIFrame';
+  iframe.id = 'EburonPermissionsIFrame';
   iframe.allow = 'microphone';
   iframe.src = getExtensionURL('permission.html');
   
@@ -182,11 +182,11 @@ function injectPermissionIframe() {
   } else if (document.documentElement) {
     document.documentElement.appendChild(iframe);
   } else {
-    console.error('[Sokuji] [Content] Cannot inject permission iframe - no suitable parent element found');
+    console.error('[Eburon] [Content] Cannot inject permission iframe - no suitable parent element found');
     return; // Exit the function if we can't inject the iframe
   }
   
-  console.info('[Sokuji] [Content] Permission iframe injected into page');
+  console.info('[Eburon] [Content] Permission iframe injected into page');
 }
 
 // Run script injections immediately (before DOMContentLoaded)
@@ -208,7 +208,7 @@ if (document.readyState === 'complete' || document.readyState === 'interactive')
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   // Handle new PCM_DATA message
   if (message.type === 'PCM_DATA') {
-    console.debug(`[Sokuji] [Content] Received PCM data from side panel script: chunk ${message.chunkIndex + 1}/${message.totalChunks}`);
+    console.debug(`[Eburon] [Content] Received PCM data from side panel script: chunk ${message.chunkIndex + 1}/${message.totalChunks}`);
     
     // Forward PCM data to page's virtual microphone with same format
     window.postMessage(message, '*');
@@ -224,26 +224,26 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 });
 
 // Content script loaded
-console.info('[Sokuji] [Content] Universal content script loaded and ready for audio bridging');
+console.info('[Eburon] [Content] Universal content script loaded and ready for audio bridging');
 
 // Expose API for debugging in content script context
-window.sokujiContentScript = {
+window.EburonContentScript = {
   version: '2.0.0',
   context: 'content',
   getStatus: () => ({
     initialized: true,
     context: 'content',
     canInjectScripts: true,
-    permissionIframeInjected: !!document.getElementById('sokujiPermissionsIFrame'),
-    deviceEmulatorScriptInjected: !!document.getElementById('sokuji-device-emulator-script'),
-    virtualMicScriptInjected: !!document.getElementById('sokuji-virtual-microphone-script'),
-    pluginsScriptInjected: !!document.getElementById('sokuji-site-plugins-script')
+    permissionIframeInjected: !!document.getElementById('EburonPermissionsIFrame'),
+    deviceEmulatorScriptInjected: !!document.getElementById('Eburon-device-emulator-script'),
+    virtualMicScriptInjected: !!document.getElementById('Eburon-virtual-microphone-script'),
+    pluginsScriptInjected: !!document.getElementById('Eburon-site-plugins-script')
   }),
   // Helper function to check page context status
   getPageContextStatus: () => {
     // Try to access page context API
     try {
-      const pageContext = window.wrappedJSObject ? window.wrappedJSObject.sokujiPageContext : null;
+      const pageContext = window.wrappedJSObject ? window.wrappedJSObject.EburonPageContext : null;
       return pageContext ? pageContext.getStatus() : { error: 'Page context not accessible from content script' };
     } catch (e) {
       return { error: 'Cannot access page context: ' + e.message };

@@ -35,7 +35,7 @@ interface AudioStore {
   selectedSystemAudioSource: AudioDevice | null;
   isSystemAudioCaptureEnabled: boolean;
   isSystemAudioCaptureActive: boolean;
-  systemAudioLoopbackSourceId: string | null; // e.g., 'sokuji_system_capture.monitor'
+  systemAudioLoopbackSourceId: string | null; // e.g., 'Eburon_system_capture.monitor'
   participantAudioOutputDevice: AudioDevice | null; // Output device for participant audio (Extension only)
 
   // Audio service reference
@@ -96,22 +96,22 @@ const useAudioStore = create<AudioStore>()(
     setInputDevices: (devices) => set({ audioInputDevices: devices }),
     setMonitorDevices: (devices) => set({ audioMonitorDevices: devices }),
     selectInputDevice: (device) => {
-      console.info(`[Sokuji] [AudioStore] Selected input device: ${device.label} (${device.deviceId})`);
+      console.info(`[Eburon] [AudioStore] Selected input device: ${device.label} (${device.deviceId})`);
       set({ selectedInputDevice: device });
 
       // Persist the selected device ID
       const service = ServiceFactory.getSettingsService();
       service.setSetting(STORAGE_KEYS.SELECTED_INPUT_DEVICE_ID, device.deviceId)
-        .catch(error => console.error('[Sokuji] [AudioStore] Failed to save input device preference:', error));
+        .catch(error => console.error('[Eburon] [AudioStore] Failed to save input device preference:', error));
     },
     selectMonitorDevice: (device) => {
-      console.info(`[Sokuji] [AudioStore] Selected monitor device: ${device.label} (${device.deviceId})`);
+      console.info(`[Eburon] [AudioStore] Selected monitor device: ${device.label} (${device.deviceId})`);
       set({ selectedMonitorDevice: device });
 
       // Persist the selected device ID
       const settingsService = ServiceFactory.getSettingsService();
       settingsService.setSetting(STORAGE_KEYS.SELECTED_MONITOR_DEVICE_ID, device.deviceId)
-        .catch(error => console.error('[Sokuji] [AudioStore] Failed to save monitor device preference:', error));
+        .catch(error => console.error('[Eburon] [AudioStore] Failed to save monitor device preference:', error));
 
       // Connect to the selected monitor device
       const { audioService } = get();
@@ -119,13 +119,13 @@ const useAudioStore = create<AudioStore>()(
         audioService.connectMonitoringDevice(device.deviceId, device.label)
           .then((result: AudioOperationResult) => {
             if (result.success) {
-              console.info('[Sokuji] [AudioStore] Connected to monitor device:', device.label);
+              console.info('[Eburon] [AudioStore] Connected to monitor device:', device.label);
             } else {
-              console.error('[Sokuji] [AudioStore] Failed to connect to monitor device:', result.error);
+              console.error('[Eburon] [AudioStore] Failed to connect to monitor device:', result.error);
             }
           })
           .catch(error => {
-            console.error('[Sokuji] [AudioStore] Error connecting to monitor device:', error);
+            console.error('[Eburon] [AudioStore] Error connecting to monitor device:', error);
           });
       }
     },
@@ -138,26 +138,26 @@ const useAudioStore = create<AudioStore>()(
         // Persist the state
         const settingsService = ServiceFactory.getSettingsService();
         settingsService.setSetting(STORAGE_KEYS.IS_INPUT_DEVICE_ON, newState)
-          .catch(error => console.error('[Sokuji] [AudioStore] Failed to save input device on state:', error));
+          .catch(error => console.error('[Eburon] [AudioStore] Failed to save input device on state:', error));
         return { isInputDeviceOn: newState };
       });
     },
     
     toggleMonitorDeviceState: () => {
-      console.info('[Sokuji] [AudioStore] Toggling monitor device state');
+      console.info('[Eburon] [AudioStore] Toggling monitor device state');
       set((state) => {
         const newState = !state.isMonitorDeviceOn;
 
         // Persist the state
         const settingsService = ServiceFactory.getSettingsService();
         settingsService.setSetting(STORAGE_KEYS.IS_MONITOR_DEVICE_ON, newState)
-          .catch(error => console.error('[Sokuji] [AudioStore] Failed to save monitor device on state:', error));
+          .catch(error => console.error('[Eburon] [AudioStore] Failed to save monitor device on state:', error));
 
         // Set monitor volume based on state
         const { audioService } = get();
         if (audioService) {
           audioService.setMonitorVolume(newState);
-          console.info(`[Sokuji] [AudioStore] Monitor state changed to: ${newState ? 'ON' : 'OFF'}`);
+          console.info(`[Eburon] [AudioStore] Monitor state changed to: ${newState ? 'ON' : 'OFF'}`);
         }
 
         return { isMonitorDeviceOn: newState };
@@ -165,14 +165,14 @@ const useAudioStore = create<AudioStore>()(
     },
     
     toggleRealVoicePassthrough: () => {
-      console.info('[Sokuji] [AudioStore] Toggling real voice passthrough');
+      console.info('[Eburon] [AudioStore] Toggling real voice passthrough');
       set((state) => ({ isRealVoicePassthroughEnabled: !state.isRealVoicePassthroughEnabled }));
     },
     
     setRealVoicePassthroughVolume: (volume) => {
       // Clamp volume between 0 and 0.6 (60%)
       const clampedVolume = Math.max(0, Math.min(0.6, volume));
-      console.info('[Sokuji] [AudioStore] Setting real voice passthrough volume:', clampedVolume);
+      console.info('[Eburon] [AudioStore] Setting real voice passthrough volume:', clampedVolume);
       set({ realVoicePassthroughVolume: clampedVolume });
     },
 
@@ -180,22 +180,22 @@ const useAudioStore = create<AudioStore>()(
     setSystemAudioSources: (sources) => set({ systemAudioSources: sources }),
 
     selectSystemAudioSource: (source) => {
-      console.info('[Sokuji] [AudioStore] Selected system audio source:', source?.label || 'None');
+      console.info('[Eburon] [AudioStore] Selected system audio source:', source?.label || 'None');
       set({ selectedSystemAudioSource: source });
     },
 
     toggleSystemAudioCapture: () => {
-      console.info('[Sokuji] [AudioStore] Toggling system audio capture');
+      console.info('[Eburon] [AudioStore] Toggling system audio capture');
       set((state) => ({ isSystemAudioCaptureEnabled: !state.isSystemAudioCaptureEnabled }));
     },
 
     setSystemAudioCaptureActive: (active) => {
-      console.info('[Sokuji] [AudioStore] Setting system audio capture active:', active);
+      console.info('[Eburon] [AudioStore] Setting system audio capture active:', active);
       set({ isSystemAudioCaptureActive: active });
     },
 
     setSystemAudioLoopbackSourceId: (id) => {
-      console.info('[Sokuji] [AudioStore] Setting system audio loopback source ID:', id);
+      console.info('[Eburon] [AudioStore] Setting system audio loopback source ID:', id);
       set({ systemAudioLoopbackSourceId: id });
     },
 
@@ -208,7 +208,7 @@ const useAudioStore = create<AudioStore>()(
         const sources = await audioService.getSystemAudioSources?.();
         if (sources) {
           set({ systemAudioSources: sources });
-          console.info('[Sokuji] [AudioStore] Refreshed system audio sources:', sources.length);
+          console.info('[Eburon] [AudioStore] Refreshed system audio sources:', sources.length);
 
           // Select first source if none selected
           const currentSource = get().selectedSystemAudioSource;
@@ -217,12 +217,12 @@ const useAudioStore = create<AudioStore>()(
           }
         }
       } catch (error) {
-        console.error('[Sokuji] [AudioStore] Error refreshing system audio sources:', error);
+        console.error('[Eburon] [AudioStore] Error refreshing system audio sources:', error);
       }
     },
 
     selectParticipantAudioOutputDevice: (device) => {
-      console.info('[Sokuji] [AudioStore] Selected participant audio output device:', device?.label || 'None');
+      console.info('[Eburon] [AudioStore] Selected participant audio output device:', device?.label || 'None');
       set({ participantAudioOutputDevice: device });
     },
 
@@ -258,13 +258,13 @@ const useAudioStore = create<AudioStore>()(
 
         // Restore input device on/off state if saved
         if (savedInputDeviceOn !== null) {
-          console.info('[Sokuji] [AudioStore] Restored input device on state:', savedInputDeviceOn);
+          console.info('[Eburon] [AudioStore] Restored input device on state:', savedInputDeviceOn);
           set({ isInputDeviceOn: savedInputDeviceOn });
         }
 
         // Restore monitor device on/off state if saved
         if (savedMonitorDeviceOn !== null) {
-          console.info('[Sokuji] [AudioStore] Restored monitor device on state:', savedMonitorDeviceOn);
+          console.info('[Eburon] [AudioStore] Restored monitor device on state:', savedMonitorDeviceOn);
           set({ isMonitorDeviceOn: savedMonitorDeviceOn });
 
           // Sync audioService volume to match restored state
@@ -281,7 +281,7 @@ const useAudioStore = create<AudioStore>()(
             // Try to restore saved input device
             const savedInputDevice = devices.inputs.find(d => d.deviceId === savedInputDeviceId);
             if (savedInputDevice) {
-              console.info('[Sokuji] [AudioStore] Restored saved input device:', savedInputDevice.label);
+              console.info('[Eburon] [AudioStore] Restored saved input device:', savedInputDevice.label);
               set({ selectedInputDevice: savedInputDevice });
             } else if (devices.inputs.length > 0) {
               // Saved device not found, fall back to first non-virtual input device
@@ -311,7 +311,7 @@ const useAudioStore = create<AudioStore>()(
             // Try to restore saved monitor device
             const savedMonitorDevice = devices.outputs.find(d => d.deviceId === savedMonitorDeviceId);
             if (savedMonitorDevice) {
-              console.info('[Sokuji] [AudioStore] Restored saved monitor device:', savedMonitorDevice.label);
+              console.info('[Eburon] [AudioStore] Restored saved monitor device:', savedMonitorDevice.label);
               defaultMonitorDevice = savedMonitorDevice;
               set({ selectedMonitorDevice: defaultMonitorDevice });
             } else if (devices.outputs.length > 0) {
@@ -340,12 +340,12 @@ const useAudioStore = create<AudioStore>()(
         
         // Check if virtual audio device support
         if (devices.outputs.some(device => device.isVirtual)) {
-          console.info('[Sokuji] [AudioStore] Virtual audio device detected');
+          console.info('[Eburon] [AudioStore] Virtual audio device detected');
         } else if (service.supportsVirtualDevices()) {
-          console.info('[Sokuji] [AudioStore] Creating virtual audio devices...');
+          console.info('[Eburon] [AudioStore] Creating virtual audio devices...');
           const result = await service.createVirtualDevices?.();
           if (result && result.success) {
-            console.info('[Sokuji] [AudioStore] Successfully created virtual audio devices:', result.message);
+            console.info('[Eburon] [AudioStore] Successfully created virtual audio devices:', result.message);
             
             // Get updated device list
             const updatedDevices = await service.getDevices();
@@ -363,13 +363,13 @@ const useAudioStore = create<AudioStore>()(
               }
             }
           } else {
-            console.error('[Sokuji] [AudioStore] Failed to create virtual audio devices:', result?.error);
+            console.error('[Eburon] [AudioStore] Failed to create virtual audio devices:', result?.error);
           }
         }
         
         return { defaultInputDevice: null, defaultMonitorDevice };
       } catch (error) {
-        console.error('[Sokuji] [AudioStore] Error refreshing audio devices:', error);
+        console.error('[Eburon] [AudioStore] Error refreshing audio devices:', error);
         return { defaultInputDevice: null, defaultMonitorDevice: null };
       } finally {
         set({ isLoading: false });
@@ -398,7 +398,7 @@ const useAudioStore = create<AudioStore>()(
         // Set initial monitor volume based on current state
         const { isMonitorDeviceOn } = get();
         audioService.setMonitorVolume(isMonitorDeviceOn);
-        console.info(`[Sokuji] [AudioStore] Set initial monitor volume: ${isMonitorDeviceOn ? '1.0' : '0.0'}`);
+        console.info(`[Eburon] [AudioStore] Set initial monitor volume: ${isMonitorDeviceOn ? '1.0' : '0.0'}`);
         
         // Refresh devices after initialization
         const devices = await get().refreshDevices();
@@ -406,11 +406,11 @@ const useAudioStore = create<AudioStore>()(
         // Connect monitor device if available
         const deviceToConnect = get().selectedMonitorDevice || devices?.defaultMonitorDevice;
         if (deviceToConnect) {
-          console.info('[Sokuji] [AudioStore] Initialization complete, connecting monitor device:', deviceToConnect.deviceId);
+          console.info('[Eburon] [AudioStore] Initialization complete, connecting monitor device:', deviceToConnect.deviceId);
           await get().connectMonitorDevice(deviceToConnect.deviceId, deviceToConnect.label);
         }
       } catch (error) {
-        console.error('[Sokuji] [AudioStore] Error initializing audio service:', error);
+        console.error('[Eburon] [AudioStore] Error initializing audio service:', error);
       }
     },
   }))

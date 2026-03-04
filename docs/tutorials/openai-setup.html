@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OpenAI Setup Tutorial - Sokuji</title>
+    <title>OpenAI Setup Tutorial - Eburon</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
@@ -286,7 +286,7 @@
         </div>
         
         <div class="header">
-            <img src="https://github.com/kizuna-ai-lab/sokuji/raw/main/src/assets/logo.png" alt="Sokuji Logo">
+            <img src="https://github.com/kizuna-ai-lab/Eburon/raw/main/src/assets/logo.png" alt="Eburon Logo">
             <h1 id="page-title">OpenAI Setup Tutorial</h1>
         </div>
 
@@ -322,7 +322,7 @@
                 backLink: "← Back to AI Providers",
                 tocTitle: "Table of Contents",
                 mobileJumpTo: "Jump to section...",
-                overview: "This tutorial will guide you through setting up OpenAI's Realtime API for use with Sokuji. OpenAI provides high-quality voice synthesis and advanced language processing capabilities.",
+                overview: "This tutorial will guide you through setting up OpenAI's Realtime API for use with Eburon. OpenAI provides high-quality voice synthesis and advanced language processing capabilities.",
                 importantNote: "<strong>Important:</strong> OpenAI's Realtime API requires a paid account and has usage-based pricing. Make sure to check their pricing page and set up billing before proceeding.",
                 setupSteps: "Setup Steps",
                 steps: [
@@ -345,7 +345,7 @@
                         title: "Step 4: Configure Key Settings",
                         content: `In the dialog that appears:
                         <ol>
-                            <li>Enter a descriptive <strong>Name</strong> for your key (e.g., "Sokuji Translation")</li>
+                            <li>Enter a descriptive <strong>Name</strong> for your key (e.g., "Eburon Translation")</li>
                             <li>Select a <strong>Project</strong> from the dropdown</li>
                             <li>For <strong>Permissions</strong>, if you're unsure, select "All" (we'll cover the minimum required permissions later)</li>
                             <li>Click <strong>"Create secret key"</strong></li>
@@ -361,7 +361,7 @@
                     {
                         title: "Step 6: API Key Permissions (Optional)",
                         content: `If you want to limit your API key's permissions for security reasons, you can edit the permissions by clicking the edit button next to your API key in the list.
-                        <p>The minimum required permissions for Sokuji are:</p>
+                        <p>The minimum required permissions for Eburon are:</p>
                         <ul>
                             <li><strong>Models</strong> - Read access (/v1/models)</li>
                             <li><strong>Model capabilities</strong> - Write access (includes /v1/audio, /v1/chat/completions, /v1/embeddings, /v1/images, /v1/moderations)</li>
@@ -374,8 +374,8 @@
                         info: `The Realtime API is billed per minute of audio processed. Check the current pricing at <a href="https://openai.com/api/pricing/" target="_blank" rel="noopener noreferrer">OpenAI's pricing page</a>.`
                     },
                     {
-                        title: "Step 8: Configure in Sokuji",
-                        content: `Open Sokuji and navigate to the Settings panel:
+                        title: "Step 8: Configure in Eburon",
+                        content: `Open Eburon and navigate to the Settings panel:
                         <ol>
                             <li>Select <strong>"OpenAI"</strong> as your AI provider</li>
                             <li>Paste your API key in the <strong>"OpenAI API Key"</strong> field</li>
@@ -389,7 +389,7 @@
                         title: "Step 9: Test Your Setup",
                         content: `Start a translation session to verify everything is working:
                         <ol>
-                            <li>Click the <strong>Start Session</strong> button in Sokuji</li>
+                            <li>Click the <strong>Start Session</strong> button in Eburon</li>
                             <li>Speak into your microphone</li>
                             <li>You should hear the translated audio output</li>
                         </ol>`
@@ -447,7 +447,7 @@
                         noWhisperAccess: "No access to Whisper transcription models. This is required for audio transcription features.",
                         connectionError: "Connection error: {error}. This might be due to network issues or CORS restrictions.",
                         unexpectedError: "Unexpected error: {status} {statusText}",
-                        successMessage: "<strong>✅ Great!</strong> Your API key has all the necessary permissions for Sokuji.",
+                        successMessage: "<strong>✅ Great!</strong> Your API key has all the necessary permissions for Eburon.",
                         actionRequired: "<strong>⚠️ Action Required:</strong> ",
                         bothMissing: "Your API key doesn't have access to both Realtime API and Whisper transcription models.",
                         realtimeMissing: "Your API key doesn't have access to the Realtime API.",
@@ -458,12 +458,12 @@
                                 <li>Check if you need to join a waitlist or upgrade your account</li>
                                 <li>Ensure your account has sufficient credits and active billing</li>
                             </ol>`,
-                        issuesFound: "<strong>❌ Issues Found:</strong> Please review the errors above and fix them before using Sokuji."
+                        issuesFound: "<strong>❌ Issues Found:</strong> Please review the errors above and fix them before using Eburon."
                     }
                 },
                 needHelp: {
                     title: "Need More Help?",
-                    content: "Check the <a href=\"https://platform.openai.com/docs/guides/realtime\" target=\"_blank\" rel=\"noopener noreferrer\">OpenAI Realtime API documentation</a>, visit our <a href=\"https://github.com/kizuna-ai-lab/sokuji\" target=\"_blank\" rel=\"noopener noreferrer\">GitHub repository</a>, or contact us at <a href=\"mailto:support@kizuna.ai\">support@kizuna.ai</a> for support."
+                    content: "Check the <a href=\"https://platform.openai.com/docs/guides/realtime\" target=\"_blank\" rel=\"noopener noreferrer\">OpenAI Realtime API documentation</a>, visit our <a href=\"https://github.com/kizuna-ai-lab/Eburon\" target=\"_blank\" rel=\"noopener noreferrer\">GitHub repository</a>, or contact us at <a href=\"mailto:support@kizuna.ai\">support@kizuna.ai</a> for support."
                 },
                 footer: "&copy; 2025 Kizuna AI Lab. All rights reserved."
             },
@@ -473,7 +473,7 @@
                 backLink: "← 返回 AI 提供商",
                 tocTitle: "目录",
                 mobileJumpTo: "跳转到章节...",
-                overview: "本教程将指导您设置 OpenAI 的实时 API 以供 Sokuji 使用。OpenAI 提供高质量的语音合成和先进的语言处理能力。",
+                overview: "本教程将指导您设置 OpenAI 的实时 API 以供 Eburon 使用。OpenAI 提供高质量的语音合成和先进的语言处理能力。",
                 importantNote: "<strong>重要提示：</strong>OpenAI 的实时 API 需要付费账户并采用基于使用量的定价。请确保在继续之前查看其定价页面并设置计费。",
                 setupSteps: "设置步骤",
                 steps: [
@@ -496,7 +496,7 @@
                         title: "步骤 4：配置密钥设置",
                         content: `在出现的对话框中：
                         <ol>
-                            <li>为您的密钥输入一个描述性的<strong>名称</strong>（例如，"Sokuji Translation"）</li>
+                            <li>为您的密钥输入一个描述性的<strong>名称</strong>（例如，"Eburon Translation"）</li>
                             <li>从下拉菜单中选择一个<strong>项目</strong></li>
                             <li>对于<strong>权限</strong>，如果您不确定，请选择"All"（我们稍后会介绍最低要求的权限）</li>
                             <li>点击<strong>"Create secret key"</strong></li>
@@ -512,7 +512,7 @@
                     {
                         title: "步骤 6：API 密钥权限（可选）",
                         content: `如果您出于安全原因想要限制 API 密钥的权限，可以通过点击列表中 API 密钥旁边的编辑按钮来编辑权限。
-                        <p>Sokuji 所需的最低权限为：</p>
+                        <p>Eburon 所需的最低权限为：</p>
                         <ul>
                             <li><strong>Models</strong> - 读取访问权限 (/v1/models)</li>
                             <li><strong>Model capabilities</strong> - 写入访问权限（包括 /v1/audio、/v1/chat/completions、/v1/embeddings、/v1/images、/v1/moderations）</li>
@@ -525,8 +525,8 @@
                         info: `实时 API 按处理的音频分钟数计费。请查看 <a href="https://openai.com/api/pricing/" target="_blank" rel="noopener noreferrer">OpenAI 定价页面</a>上的当前定价。`
                     },
                     {
-                        title: "步骤 8：在 Sokuji 中配置",
-                        content: `打开 Sokuji 并导航到设置面板：
+                        title: "步骤 8：在 Eburon 中配置",
+                        content: `打开 Eburon 并导航到设置面板：
                         <ol>
                             <li>选择 <strong>"OpenAI"</strong> 作为您的 AI 提供商</li>
                             <li>在 <strong>"OpenAI API Key"</strong> 字段中粘贴您的 API 密钥</li>
@@ -540,7 +540,7 @@
                         title: "步骤 9：测试您的设置",
                         content: `启动翻译会话以验证一切正常工作：
                         <ol>
-                            <li>在 Sokuji 中点击<strong>开始会话</strong>按钮</li>
+                            <li>在 Eburon 中点击<strong>开始会话</strong>按钮</li>
                             <li>对着麦克风说话</li>
                             <li>您应该能听到翻译后的音频输出</li>
                         </ol>`
@@ -598,7 +598,7 @@
                         noWhisperAccess: "无法访问 Whisper 转录模型。音频转录功能需要此权限。",
                         connectionError: "连接错误：{error}。这可能是由于网络问题或 CORS 限制。",
                         unexpectedError: "意外错误：{status} {statusText}",
-                        successMessage: "<strong>✅ 太好了！</strong>您的 API 密钥具有 Sokuji 所需的所有权限。",
+                        successMessage: "<strong>✅ 太好了！</strong>您的 API 密钥具有 Eburon 所需的所有权限。",
                         actionRequired: "<strong>⚠️ 需要采取行动：</strong>",
                         bothMissing: "您的 API 密钥无法访问实时 API 和 Whisper 转录模型。",
                         realtimeMissing: "您的 API 密钥无法访问实时 API。",
@@ -609,12 +609,12 @@
                                 <li>检查您是否需要加入等待名单或升级账户</li>
                                 <li>确保您的账户有足够的信用额度和有效的计费</li>
                             </ol>`,
-                        issuesFound: "<strong>❌ 发现问题：</strong>请查看上述错误并在使用 Sokuji 之前修复它们。"
+                        issuesFound: "<strong>❌ 发现问题：</strong>请查看上述错误并在使用 Eburon 之前修复它们。"
                     }
                 },
                 needHelp: {
                     title: "需要更多帮助？",
-                    content: "查看 <a href=\"https://platform.openai.com/docs/guides/realtime\" target=\"_blank\" rel=\"noopener noreferrer\">OpenAI 实时 API 文档</a>，访问我们的 <a href=\"https://github.com/kizuna-ai-lab/sokuji\" target=\"_blank\" rel=\"noopener noreferrer\">GitHub 仓库</a>，或通过 <a href=\"mailto:support@kizuna.ai\">support@kizuna.ai</a> 联系我们获取支持。"
+                    content: "查看 <a href=\"https://platform.openai.com/docs/guides/realtime\" target=\"_blank\" rel=\"noopener noreferrer\">OpenAI 实时 API 文档</a>，访问我们的 <a href=\"https://github.com/kizuna-ai-lab/Eburon\" target=\"_blank\" rel=\"noopener noreferrer\">GitHub 仓库</a>，或通过 <a href=\"mailto:support@kizuna.ai\">support@kizuna.ai</a> 联系我们获取支持。"
                 },
                 footer: "&copy; 2025 Kizuna AI Lab. 保留所有权利。"
             },
@@ -624,7 +624,7 @@
                 backLink: "← AI プロバイダーに戻る",
                 tocTitle: "目次",
                 mobileJumpTo: "セクションにジャンプ...",
-                overview: "このチュートリアルでは、Sokuji で使用するための OpenAI のリアルタイム API の設定方法をご案内します。OpenAI は高品質な音声合成と高度な言語処理機能を提供しています。",
+                overview: "このチュートリアルでは、Eburon で使用するための OpenAI のリアルタイム API の設定方法をご案内します。OpenAI は高品質な音声合成と高度な言語処理機能を提供しています。",
                 importantNote: "<strong>重要：</strong>OpenAI のリアルタイム API には有料アカウントが必要で、使用量ベースの料金設定となっています。続行する前に、料金ページを確認し、請求設定を行ってください。",
                 setupSteps: "セットアップ手順",
                 steps: [
@@ -647,7 +647,7 @@
                         title: "ステップ 4：キー設定を構成",
                         content: `表示されるダイアログで：
                         <ol>
-                            <li>キーの説明的な<strong>名前</strong>を入力します（例：「Sokuji Translation」）</li>
+                            <li>キーの説明的な<strong>名前</strong>を入力します（例：「Eburon Translation」）</li>
                             <li>ドロップダウンから<strong>プロジェクト</strong>を選択します</li>
                             <li><strong>権限</strong>については、よくわからない場合は「All」を選択します（後で必要最小限の権限について説明します）</li>
                             <li><strong>「Create secret key」</strong>をクリックします</li>
@@ -663,7 +663,7 @@
                     {
                         title: "ステップ 6：API キーの権限（オプション）",
                         content: `セキュリティ上の理由で API キーの権限を制限したい場合は、リスト内の API キーの横にある編集ボタンをクリックして権限を編集できます。
-                        <p>Sokuji に必要な最小権限は：</p>
+                        <p>Eburon に必要な最小権限は：</p>
                         <ul>
                             <li><strong>Models</strong> - 読み取りアクセス (/v1/models)</li>
                             <li><strong>Model capabilities</strong> - 書き込みアクセス（/v1/audio、/v1/chat/completions、/v1/embeddings、/v1/images、/v1/moderations を含む）</li>
@@ -676,8 +676,8 @@
                         info: `リアルタイム API は処理された音声の分単位で課金されます。現在の料金は <a href="https://openai.com/api/pricing/" target="_blank" rel="noopener noreferrer">OpenAI の料金ページ</a>で確認してください。`
                     },
                     {
-                        title: "ステップ 8：Sokuji で設定",
-                        content: `Sokuji を開き、設定パネルに移動します：
+                        title: "ステップ 8：Eburon で設定",
+                        content: `Eburon を開き、設定パネルに移動します：
                         <ol>
                             <li>AI プロバイダーとして <strong>「OpenAI」</strong> を選択</li>
                             <li><strong>「OpenAI API Key」</strong> フィールドに API キーを貼り付け</li>
@@ -691,7 +691,7 @@
                         title: "ステップ 9：設定をテスト",
                         content: `翻訳セッションを開始して、すべてが正常に動作していることを確認します：
                         <ol>
-                            <li>Sokuji で<strong>セッションを開始</strong>ボタンをクリック</li>
+                            <li>Eburon で<strong>セッションを開始</strong>ボタンをクリック</li>
                             <li>マイクに向かって話す</li>
                             <li>翻訳された音声出力が聞こえるはずです</li>
                         </ol>`
@@ -749,7 +749,7 @@
                         noWhisperAccess: "Whisper 文字起こしモデルにアクセスできません。音声文字起こし機能にはこれが必要です。",
                         connectionError: "接続エラー：{error}。これはネットワークの問題または CORS 制限が原因である可能性があります。",
                         unexpectedError: "予期しないエラー：{status} {statusText}",
-                        successMessage: "<strong>✅ 素晴らしい！</strong>API キーには Sokuji に必要なすべての権限があります。",
+                        successMessage: "<strong>✅ 素晴らしい！</strong>API キーには Eburon に必要なすべての権限があります。",
                         actionRequired: "<strong>⚠️ アクションが必要です：</strong>",
                         bothMissing: "API キーはリアルタイム API と Whisper 文字起こしモデルの両方にアクセスできません。",
                         realtimeMissing: "API キーはリアルタイム API にアクセスできません。",
@@ -760,12 +760,12 @@
                                 <li>ウェイトリストに参加するか、アカウントをアップグレードする必要があるか確認</li>
                                 <li>アカウントに十分なクレジットとアクティブな請求があることを確認</li>
                             </ol>`,
-                        issuesFound: "<strong>❌ 問題が見つかりました：</strong>上記のエラーを確認し、Sokuji を使用する前に修正してください。"
+                        issuesFound: "<strong>❌ 問題が見つかりました：</strong>上記のエラーを確認し、Eburon を使用する前に修正してください。"
                     }
                 },
                 needHelp: {
                     title: "さらにヘルプが必要ですか？",
-                    content: "<a href=\"https://platform.openai.com/docs/guides/realtime\" target=\"_blank\" rel=\"noopener noreferrer\">OpenAI リアルタイム API ドキュメント</a>を確認するか、<a href=\"https://github.com/kizuna-ai-lab/sokuji\" target=\"_blank\" rel=\"noopener noreferrer\">GitHub リポジトリ</a>を訪問するか、<a href=\"mailto:support@kizuna.ai\">support@kizuna.ai</a> までお問い合わせください。"
+                    content: "<a href=\"https://platform.openai.com/docs/guides/realtime\" target=\"_blank\" rel=\"noopener noreferrer\">OpenAI リアルタイム API ドキュメント</a>を確認するか、<a href=\"https://github.com/kizuna-ai-lab/Eburon\" target=\"_blank\" rel=\"noopener noreferrer\">GitHub リポジトリ</a>を訪問するか、<a href=\"mailto:support@kizuna.ai\">support@kizuna.ai</a> までお問い合わせください。"
                 },
                 footer: "&copy; 2025 Kizuna AI Lab. All rights reserved."
             },
@@ -775,7 +775,7 @@
                 backLink: "← AI 제공자로 돌아가기",
                 tocTitle: "목차",
                 mobileJumpTo: "섹션으로 이동...",
-                overview: "이 튜토리얼은 Sokuji에서 사용하기 위한 OpenAI의 실시간 API 설정을 안내합니다. OpenAI는 고품질 음성 합성과 고급 언어 처리 기능을 제공합니다.",
+                overview: "이 튜토리얼은 Eburon에서 사용하기 위한 OpenAI의 실시간 API 설정을 안내합니다. OpenAI는 고품질 음성 합성과 고급 언어 처리 기능을 제공합니다.",
                 importantNote: "<strong>중요:</strong> OpenAI의 실시간 API는 유료 계정이 필요하며 사용량 기반 요금제를 사용합니다. 계속하기 전에 가격 페이지를 확인하고 결제를 설정하세요.",
                 setupSteps: "설정 단계",
                 steps: [
@@ -798,7 +798,7 @@
                         title: "4단계: 키 설정 구성",
                         content: `나타나는 대화 상자에서:
                         <ol>
-                            <li>키에 대한 설명적인 <strong>이름</strong>을 입력하세요 (예: "Sokuji Translation")</li>
+                            <li>키에 대한 설명적인 <strong>이름</strong>을 입력하세요 (예: "Eburon Translation")</li>
                             <li>드롭다운에서 <strong>프로젝트</strong>를 선택하세요</li>
                             <li><strong>권한</strong>의 경우, 확실하지 않다면 "All"을 선택하세요 (나중에 최소 필요 권한을 다룰 예정)</li>
                             <li><strong>"Create secret key"</strong>를 클릭하세요</li>
@@ -814,7 +814,7 @@
                     {
                         title: "6단계: API 키 권한 (선택사항)",
                         content: `보안상의 이유로 API 키의 권한을 제한하려면, 목록에서 API 키 옆의 편집 버튼을 클릭하여 권한을 편집할 수 있습니다.
-                        <p>Sokuji에 필요한 최소 권한:</p>
+                        <p>Eburon에 필요한 최소 권한:</p>
                         <ul>
                             <li><strong>Models</strong> - 읽기 권한 (/v1/models)</li>
                             <li><strong>Model capabilities</strong> - 쓰기 권한 (/v1/audio, /v1/chat/completions, /v1/embeddings, /v1/images, /v1/moderations 포함)</li>
@@ -827,8 +827,8 @@
                         info: `실시간 API는 처리된 오디오의 분당 요금이 청구됩니다. <a href="https://openai.com/api/pricing/" target="_blank" rel="noopener noreferrer">OpenAI 가격 페이지</a>에서 현재 가격을 확인하세요.`
                     },
                     {
-                        title: "8단계: Sokuji에서 구성",
-                        content: `Sokuji를 열고 설정 패널로 이동합니다:
+                        title: "8단계: Eburon에서 구성",
+                        content: `Eburon를 열고 설정 패널로 이동합니다:
                         <ol>
                             <li>AI 제공자로 <strong>"OpenAI"</strong>를 선택</li>
                             <li><strong>"OpenAI API Key"</strong> 필드에 API 키를 붙여넣기</li>
@@ -842,7 +842,7 @@
                         title: "9단계: 설정 테스트",
                         content: `번역 세션을 시작하여 모든 것이 작동하는지 확인합니다:
                         <ol>
-                            <li>Sokuji에서 <strong>세션 시작</strong> 버튼 클릭</li>
+                            <li>Eburon에서 <strong>세션 시작</strong> 버튼 클릭</li>
                             <li>마이크에 대고 말하기</li>
                             <li>번역된 오디오 출력이 들려야 합니다</li>
                         </ol>`
@@ -900,7 +900,7 @@
                         noWhisperAccess: "Whisper 전사 모델에 액세스할 수 없습니다. 오디오 전사 기능에 필요합니다.",
                         connectionError: "연결 오류: {error}. 네트워크 문제나 CORS 제한 때문일 수 있습니다.",
                         unexpectedError: "예상치 못한 오류: {status} {statusText}",
-                        successMessage: "<strong>✅ 훌륭합니다!</strong> API 키에 Sokuji에 필요한 모든 권한이 있습니다.",
+                        successMessage: "<strong>✅ 훌륭합니다!</strong> API 키에 Eburon에 필요한 모든 권한이 있습니다.",
                         actionRequired: "<strong>⚠️ 조치 필요:</strong> ",
                         bothMissing: "API 키가 실시간 API와 Whisper 전사 모델 모두에 액세스할 수 없습니다.",
                         realtimeMissing: "API 키가 실시간 API에 액세스할 수 없습니다.",
@@ -911,12 +911,12 @@
                                 <li>대기자 명단에 가입하거나 계정을 업그레이드해야 하는지 확인</li>
                                 <li>계정에 충분한 크레딧과 활성 결제가 있는지 확인</li>
                             </ol>`,
-                        issuesFound: "<strong>❌ 문제 발견:</strong> 위의 오류를 검토하고 Sokuji를 사용하기 전에 수정하세요."
+                        issuesFound: "<strong>❌ 문제 발견:</strong> 위의 오류를 검토하고 Eburon를 사용하기 전에 수정하세요."
                     }
                 },
                 needHelp: {
                     title: "더 많은 도움이 필요하신가요?",
-                    content: "<a href=\"https://platform.openai.com/docs/guides/realtime\" target=\"_blank\" rel=\"noopener noreferrer\">OpenAI 실시간 API 문서</a>를 확인하거나, <a href=\"https://github.com/kizuna-ai-lab/sokuji\" target=\"_blank\" rel=\"noopener noreferrer\">GitHub 저장소</a>를 방문하거나, <a href=\"mailto:support@kizuna.ai\">support@kizuna.ai</a>로 연락하여 지원을 받으세요."
+                    content: "<a href=\"https://platform.openai.com/docs/guides/realtime\" target=\"_blank\" rel=\"noopener noreferrer\">OpenAI 실시간 API 문서</a>를 확인하거나, <a href=\"https://github.com/kizuna-ai-lab/Eburon\" target=\"_blank\" rel=\"noopener noreferrer\">GitHub 저장소</a>를 방문하거나, <a href=\"mailto:support@kizuna.ai\">support@kizuna.ai</a>로 연락하여 지원을 받으세요."
                 },
                 footer: "&copy; 2025 Kizuna AI Lab. 모든 권리 보유."
             }
@@ -933,7 +933,7 @@
             const t = translations[lang] || translations.en;
             
             // Update page title
-            document.title = t.pageTitle + " - Sokuji";
+            document.title = t.pageTitle + " - Eburon";
             document.getElementById('page-title').textContent = t.pageTitle;
             
             // Update language selector

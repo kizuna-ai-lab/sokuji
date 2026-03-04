@@ -11,7 +11,6 @@ import {
 } from '../../stores/settingsStore';
 import { useSessionStartTime } from '../../stores/sessionStore';
 import { useAudioContext } from '../../stores/audioStore';
-import { useUserProfile } from '../../contexts/UserProfileContext';
 import { ConversationItem } from '../../services/clients';
 import { Provider } from '../../types/Provider';
 import { useTranslation } from 'react-i18next';
@@ -95,16 +94,11 @@ const SimpleMainPanel: React.FC<SimpleMainPanelProps> = React.memo(({
   } = useAudioContext();
 
   const sessionStartTime = useSessionStartTime();
-  const { quota } = useUserProfile();
 
   const currentSettings = getCurrentProviderSettings();
   
-  // Check if wallet has sufficient balance for Kizuna AI provider
-  const hasValidBalance = (provider !== Provider.KIZUNA_AI) ||
-    (quota && quota.balance !== undefined && quota.balance >= 0 && !quota.frozen);
-  
   const canStartSession = isApiKeyValid && availableModels.length > 0 && 
-    !loadingModels && !isInitializing && hasValidBalance;
+    !loadingModels && !isInitializing;
 
   // Determine the reason why start is disabled
   let startDisabledReason = '';
@@ -114,12 +108,6 @@ const SimpleMainPanel: React.FC<SimpleMainPanelProps> = React.memo(({
     startDisabledReason = t('simplePanel.loadingModels', 'Loading models...');
   } else if (availableModels.length === 0) {
     startDisabledReason = t('simplePanel.noModelsAvailable', 'No models available');
-  } else if (provider === Provider.KIZUNA_AI && quota) {
-    if (quota.frozen) {
-      startDisabledReason = t('simplePanel.walletFrozen', 'Wallet is frozen. Please contact support.');
-    } else if (quota.balance !== undefined && quota.balance < 0) {
-      startDisabledReason = t('simplePanel.insufficientBalance', 'Insufficient token balance: {{balance}} tokens', { balance: quota.balance });
-    }
   }
 
   // Filter conversation items to show only user messages, assistant responses, and errors

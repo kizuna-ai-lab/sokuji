@@ -16,17 +16,17 @@ const path = require('path');
  */
 async function createVirtualAudioDevices() {
   try {
-    console.log('[Sokuji] [Windows Audio] Checking for VB-CABLE virtual audio devices...');
+    console.log('[Eburon] [Windows Audio] Checking for VB-CABLE virtual audio devices...');
 
     // First, do a quick check if VB-CABLE is installed
     const isInstalled = await isVBCableInstalled();
 
     if (isInstalled) {
-      console.log('[Sokuji] [Windows Audio] VB-CABLE is already installed and ready');
+      console.log('[Eburon] [Windows Audio] VB-CABLE is already installed and ready');
       return true;
     }
 
-    console.log('[Sokuji] [Windows Audio] VB-CABLE not detected, initiating installation flow...');
+    console.log('[Eburon] [Windows Audio] VB-CABLE not detected, initiating installation flow...');
 
     // Import the installer module
     const installer = require('./vb-cable-installer');
@@ -35,15 +35,15 @@ async function createVirtualAudioDevices() {
     const vbCableReady = await installer.ensureVBCableInstalled();
 
     if (vbCableReady) {
-      console.log('[Sokuji] [Windows Audio] VB-CABLE installation/setup completed successfully');
+      console.log('[Eburon] [Windows Audio] VB-CABLE installation/setup completed successfully');
       return true;
     } else {
-      console.log('[Sokuji] [Windows Audio] VB-CABLE not available (user declined or installation failed)');
-      console.log('[Sokuji] [Windows Audio] Application will continue without virtual microphone support');
+      console.log('[Eburon] [Windows Audio] VB-CABLE not available (user declined or installation failed)');
+      console.log('[Eburon] [Windows Audio] Application will continue without virtual microphone support');
       return false;
     }
   } catch (error) {
-    console.error('[Sokuji] [Windows Audio] Error setting up virtual audio devices:', error);
+    console.error('[Eburon] [Windows Audio] Error setting up virtual audio devices:', error);
     return false;
   }
 }
@@ -53,8 +53,8 @@ async function createVirtualAudioDevices() {
  * Note: VB-CABLE devices are system-level and don't need cleanup
  */
 function removeVirtualAudioDevices() {
-  console.log('[Sokuji] [Windows Audio] Virtual audio device cleanup...');
-  console.log('[Sokuji] [Windows Audio] Note: VB-CABLE devices are system-level and persist after application exit');
+  console.log('[Eburon] [Windows Audio] Virtual audio device cleanup...');
+  console.log('[Eburon] [Windows Audio] Note: VB-CABLE devices are system-level and persist after application exit');
   // VB-CABLE doesn't require cleanup - it's a system driver
 }
 
@@ -66,10 +66,10 @@ async function isWindowsAudioAvailable() {
   try {
     // Simple check - if we're on Windows, audio is likely available
     // Actual device enumeration happens in the renderer process
-    console.log('[Sokuji] [Windows Audio] Audio system check...');
+    console.log('[Eburon] [Windows Audio] Audio system check...');
     return true;
   } catch (error) {
-    console.error('[Sokuji] [Windows Audio] Error checking audio availability:', error);
+    console.error('[Eburon] [Windows Audio] Error checking audio availability:', error);
     return false;
   }
 }
@@ -80,8 +80,8 @@ async function isWindowsAudioAvailable() {
  * @returns {Promise<boolean>} Always returns true
  */
 async function cleanupOrphanedDevices() {
-  console.log('[Sokuji] [Windows Audio] Orphaned device check...');
-  console.log('[Sokuji] [Windows Audio] VB-CABLE manages its own state automatically');
+  console.log('[Eburon] [Windows Audio] Orphaned device check...');
+  console.log('[Eburon] [Windows Audio] VB-CABLE manages its own state automatically');
   return true;
 }
 
@@ -91,7 +91,7 @@ async function cleanupOrphanedDevices() {
  */
 async function isVBCableInstalled() {
   try {
-    console.log('[Sokuji] [Windows Audio] Checking VB-CABLE installation...');
+    console.log('[Eburon] [Windows Audio] Checking VB-CABLE installation...');
 
     // Primary method: Check Windows audio devices using WMI (most reliable)
     try {
@@ -100,17 +100,17 @@ async function isVBCableInstalled() {
 
       // Check if any audio device contains "CABLE" in its name
       if (stdout.includes('CABLE')) {
-        console.log('[Sokuji] [Windows Audio] VB-CABLE audio device found in system');
+        console.log('[Eburon] [Windows Audio] VB-CABLE audio device found in system');
 
         // Get more details about the CABLE device
         try {
           const detailCommand = 'wmic path Win32_SoundDevice where "Name like \'%CABLE%\'" get Name,Status 2>nul';
           const { stdout: details } = await execPromise(detailCommand);
-          console.log('[Sokuji] [Windows Audio] VB-CABLE device details:', details.trim());
+          console.log('[Eburon] [Windows Audio] VB-CABLE device details:', details.trim());
 
           // Check if status is OK
           if (details.includes('OK')) {
-            console.log('[Sokuji] [Windows Audio] VB-CABLE device status is OK');
+            console.log('[Eburon] [Windows Audio] VB-CABLE device status is OK');
           }
         } catch (detailError) {
           // Details query failed, but device exists
@@ -119,7 +119,7 @@ async function isVBCableInstalled() {
         return true;
       }
     } catch (wmiError) {
-      console.log('[Sokuji] [Windows Audio] WMI query failed:', wmiError.message);
+      console.log('[Eburon] [Windows Audio] WMI query failed:', wmiError.message);
     }
 
     // Backup method 1: Check using PowerShell audio endpoints
@@ -128,11 +128,11 @@ async function isVBCableInstalled() {
       const { stdout } = await execPromise(psCommand);
 
       if (stdout.includes('CABLE')) {
-        console.log('[Sokuji] [Windows Audio] VB-CABLE found via PowerShell audio endpoints');
+        console.log('[Eburon] [Windows Audio] VB-CABLE found via PowerShell audio endpoints');
         return true;
       }
     } catch (psError) {
-      console.log('[Sokuji] [Windows Audio] PowerShell endpoint query failed:', psError.message);
+      console.log('[Eburon] [Windows Audio] PowerShell endpoint query failed:', psError.message);
     }
 
     // Backup method 2: Check if VB-CABLE service exists
@@ -141,16 +141,16 @@ async function isVBCableInstalled() {
       const { stdout } = await execPromise(serviceCommand);
 
       if (stdout.includes('RUNNING')) {
-        console.log('[Sokuji] [Windows Audio] VB-CABLE service is running');
+        console.log('[Eburon] [Windows Audio] VB-CABLE service is running');
         return true;
       } else if (stdout.includes('STOPPED')) {
-        console.log('[Sokuji] [Windows Audio] VB-CABLE service exists but is stopped');
+        console.log('[Eburon] [Windows Audio] VB-CABLE service exists but is stopped');
         // Try to start the service
         try {
           await execPromise('sc start VBAudioVACWDM 2>nul');
-          console.log('[Sokuji] [Windows Audio] Started VB-CABLE service');
+          console.log('[Eburon] [Windows Audio] Started VB-CABLE service');
         } catch (startError) {
-          console.log('[Sokuji] [Windows Audio] Could not start VB-CABLE service (may require admin rights)');
+          console.log('[Eburon] [Windows Audio] Could not start VB-CABLE service (may require admin rights)');
         }
         return true;
       }
@@ -164,17 +164,17 @@ async function isVBCableInstalled() {
       const { stdout } = await execPromise(psWmiCommand);
 
       if (stdout.includes('CABLE')) {
-        console.log('[Sokuji] [Windows Audio] VB-CABLE found via PowerShell WMI query');
+        console.log('[Eburon] [Windows Audio] VB-CABLE found via PowerShell WMI query');
         return true;
       }
     } catch (psWmiError) {
-      console.log('[Sokuji] [Windows Audio] PowerShell WMI query failed:', psWmiError.message);
+      console.log('[Eburon] [Windows Audio] PowerShell WMI query failed:', psWmiError.message);
     }
 
-    console.log('[Sokuji] [Windows Audio] VB-CABLE not detected by any method');
+    console.log('[Eburon] [Windows Audio] VB-CABLE not detected by any method');
     return false;
   } catch (error) {
-    console.error('[Sokuji] [Windows Audio] Error checking VB-CABLE installation:', error);
+    console.error('[Eburon] [Windows Audio] Error checking VB-CABLE installation:', error);
     return false;
   }
 }
@@ -199,7 +199,7 @@ async function getVBCableInfo() {
  * @returns {Promise<{inputs: Array, outputs: Array}>} Empty device lists
  */
 async function getAudioDevices() {
-  console.log('[Sokuji] [Windows Audio] Device enumeration deferred to renderer process');
+  console.log('[Eburon] [Windows Audio] Device enumeration deferred to renderer process');
   return {
     inputs: [],
     outputs: [],
@@ -217,7 +217,7 @@ async function getAudioDevices() {
  * @returns {Promise<boolean>} True if system audio capture is supported
  */
 async function supportsSystemAudioCapture() {
-  console.log('[Sokuji] [Windows Audio] System audio capture is supported via desktopCapturer loopback');
+  console.log('[Eburon] [Windows Audio] System audio capture is supported via desktopCapturer loopback');
   return true;
 }
 
@@ -228,7 +228,7 @@ async function supportsSystemAudioCapture() {
  * @returns {Promise<Array<{deviceId: string, label: string}>>} Array of system audio sources
  */
 async function listSystemAudioSources() {
-  console.log('[Sokuji] [Windows Audio] Listing system audio sources');
+  console.log('[Eburon] [Windows Audio] Listing system audio sources');
   // Windows captures ALL system audio via loopback, so we return a single source
   return [{
     deviceId: 'desktop-audio-loopback',
@@ -243,7 +243,7 @@ async function listSystemAudioSources() {
  * @returns {Promise<{success: boolean, error?: string}>} Result object
  */
 async function connectSystemAudioSource(sourceId) {
-  console.log(`[Sokuji] [Windows Audio] Connect system audio source: ${sourceId}`);
+  console.log(`[Eburon] [Windows Audio] Connect system audio source: ${sourceId}`);
   // On Windows, the "connection" happens when getDisplayMedia is called in the renderer
   // This function just acknowledges the intent to capture
   return { success: true };
@@ -255,7 +255,7 @@ async function connectSystemAudioSource(sourceId) {
  * @returns {Promise<{success: boolean}>} Result object
  */
 async function disconnectSystemAudioSource() {
-  console.log('[Sokuji] [Windows Audio] Disconnect system audio source');
+  console.log('[Eburon] [Windows Audio] Disconnect system audio source');
   // Cleanup happens in the renderer when the MediaStream is stopped
   return { success: true };
 }

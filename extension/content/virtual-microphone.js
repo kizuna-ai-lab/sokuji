@@ -13,14 +13,14 @@
  */
 
 (function() {
-  console.info('[Sokuji] [VirtualMic] Virtual Microphone script loaded');
+  console.info('[Eburon] [VirtualMic] Virtual Microphone script loaded');
 
   // No need to store original methods when using device emulator
 
   // Virtual device configuration
-  const VIRTUAL_MIC_ID = 'sokuji-virtual-microphone';
-  const VIRTUAL_MIC_LABEL = 'Sokuji Virtual Microphone';
-  const VIRTUAL_MIC_GROUP_ID = 'sokuji-device-group';
+  const VIRTUAL_MIC_ID = 'Eburon-virtual-microphone';
+  const VIRTUAL_MIC_LABEL = 'Eburon Virtual Microphone';
+  const VIRTUAL_MIC_GROUP_ID = 'Eburon-device-group';
   const SAMPLE_RATE = 24000;
   const CHANNEL_COUNT = 1;
   
@@ -50,18 +50,18 @@
    */
   function initializeVirtualMic() {
     if (trackGenerator && audioWriter && isWriterValid()) {
-      console.debug('[Sokuji] [VirtualMic] Virtual microphone already initialized');
+      console.debug('[Eburon] [VirtualMic] Virtual microphone already initialized');
       if (!virtualStream.active) {
-        console.debug('[Sokuji] [VirtualMic] Virtual microphone is not active, reinitializing');
+        console.debug('[Eburon] [VirtualMic] Virtual microphone is not active, reinitializing');
         cleanup();
       } else {
-        console.debug('[Sokuji] [VirtualMic] Virtual microphone is active, returning true');
+        console.debug('[Eburon] [VirtualMic] Virtual microphone is active, returning true');
         return true;
       }
     }
 
     try {
-      console.info('[Sokuji] [VirtualMic] Initializing virtual microphone');
+      console.info('[Eburon] [VirtualMic] Initializing virtual microphone');
       
       trackGenerator = new window.MediaStreamTrackGenerator({ kind: 'audio' });
       audioWriter = trackGenerator.writable.getWriter();
@@ -70,13 +70,13 @@
       // Set the deviceId in the MediaStreamTrack
       if (trackGenerator.id) {
         // Use the existing id if available
-        console.debug(`[Sokuji] [VirtualMic] Using existing track ID: ${trackGenerator.id}`);
+        console.debug(`[Eburon] [VirtualMic] Using existing track ID: ${trackGenerator.id}`);
       } else {
         // Try to set custom ID or properties if possible
         try {
           Object.defineProperty(trackGenerator, 'id', { value: VIRTUAL_MIC_ID });
         } catch (e) {
-          console.debug('[Sokuji] [VirtualMic] Could not set custom track ID', e);
+          console.debug('[Eburon] [VirtualMic] Could not set custom track ID', e);
         }
       }
       
@@ -84,16 +84,16 @@
       try {
         Object.defineProperty(trackGenerator, 'label', { value: VIRTUAL_MIC_LABEL });
       } catch (e) {
-        console.debug('[Sokuji] [VirtualMic] Could not set track label', e);
+        console.debug('[Eburon] [VirtualMic] Could not set track label', e);
       }
       
       isActive = true;
       audioTimestamp = performance.now() * 1000; // Reset timestamp to current time in microseconds
       
-      console.info('[Sokuji] [VirtualMic] Virtual microphone initialized successfully');
+      console.info('[Eburon] [VirtualMic] Virtual microphone initialized successfully');
       return true;
     } catch (error) {
-      console.error('[Sokuji] [VirtualMic] Failed to initialize virtual microphone:', error);
+      console.error('[Eburon] [VirtualMic] Failed to initialize virtual microphone:', error);
       cleanup();
       return false;
     }
@@ -116,7 +116,7 @@
     const immediate = trackId === 'immediate' || trackId === 'passthrough';
     
     if (!pcmData || pcmData.length === 0) {
-      console.warn('[Sokuji] [VirtualMic] Received empty audio data');
+      console.warn('[Eburon] [VirtualMic] Received empty audio data');
       return;
     }
     
@@ -128,7 +128,7 @@
     
     // Handle single chunk (no chunking info)
     if (chunkIndex === undefined || totalChunks === undefined) {
-      console.debug(`[Sokuji] [VirtualMic] Adding single audio chunk to ${immediate ? 'immediate' : 'regular'} playback queue (trackId: ${trackId})`);
+      console.debug(`[Eburon] [VirtualMic] Adding single audio chunk to ${immediate ? 'immediate' : 'regular'} playback queue (trackId: ${trackId})`);
       addBatchToQueue({
         data: floatData,
         sampleRate: sampleRate
@@ -137,7 +137,7 @@
     }
     
     // Handle multi-chunk batch
-    console.debug(`[Sokuji] [VirtualMic] Received ${immediate ? 'immediate' : 'regular'} chunk ${chunkIndex + 1}/${totalChunks} for track ${trackId}`);
+    console.debug(`[Eburon] [VirtualMic] Received ${immediate ? 'immediate' : 'regular'} chunk ${chunkIndex + 1}/${totalChunks} for track ${trackId}`);
     
     // Choose appropriate buffer based on immediate flag
     const bufferMap = immediate ? immediateChunkBuffer : chunkBuffer;
@@ -156,7 +156,7 @@
     
     // Check if we have all chunks for this batch
     if (buffer.chunks.size === buffer.totalChunks) {
-      console.debug(`[Sokuji] [VirtualMic] Complete ${immediate ? 'immediate' : 'regular'} batch received for track ${trackId} (${buffer.totalChunks} chunks)`);
+      console.debug(`[Eburon] [VirtualMic] Complete ${immediate ? 'immediate' : 'regular'} batch received for track ${trackId} (${buffer.totalChunks} chunks)`);
       
       // Assemble complete batch
       const completeBatch = assembleCompleteBatch(trackId, immediate);
@@ -175,13 +175,13 @@
   function assembleCompleteBatch(trackId, immediate = false) {
     const buffer = immediate ? immediateChunkBuffer : chunkBuffer;
     if (!buffer.has(trackId)) {
-      console.error(`[Sokuji] [VirtualMic] Cannot assemble incomplete batch for track ${trackId} (buffer not found)`);
+      console.error(`[Eburon] [VirtualMic] Cannot assemble incomplete batch for track ${trackId} (buffer not found)`);
       return null;
     }
     
     const bufferData = buffer.get(trackId);
     if (!bufferData || bufferData.chunks.size < bufferData.totalChunks) {
-      console.error(`[Sokuji] [VirtualMic] Cannot assemble incomplete batch for track ${trackId}`);
+      console.error(`[Eburon] [VirtualMic] Cannot assemble incomplete batch for track ${trackId}`);
       return null;
     }
     
@@ -190,7 +190,7 @@
     for (let i = 0; i < bufferData.totalChunks; i++) {
       const chunk = bufferData.chunks.get(i);
       if (!chunk) {
-        console.error(`[Sokuji] [VirtualMic] Missing chunk ${i} for track ${trackId}`);
+        console.error(`[Eburon] [VirtualMic] Missing chunk ${i} for track ${trackId}`);
         return null;
       }
       totalLength += chunk.length;
@@ -205,7 +205,7 @@
       offset += chunk.length;
     }
     
-    console.debug(`[Sokuji] [VirtualMic] Assembled batch: ${totalLength} samples for track ${trackId}`);
+    console.debug(`[Eburon] [VirtualMic] Assembled batch: ${totalLength} samples for track ${trackId}`);
     return {
       data: combinedData,
       sampleRate: bufferData.sampleRate
@@ -218,10 +218,10 @@
   function addBatchToQueue(batch, immediate = false) {
     if (immediate) {
       immediateQueue.push(batch);
-      console.debug(`[Sokuji] [VirtualMic] Added immediate batch to queue. Queue length: ${immediateQueue.length}`);
+      console.debug(`[Eburon] [VirtualMic] Added immediate batch to queue. Queue length: ${immediateQueue.length}`);
     } else {
       playbackQueue.push(batch);
-      console.debug(`[Sokuji] [VirtualMic] Added batch to queue. Queue length: ${playbackQueue.length}`);
+      console.debug(`[Eburon] [VirtualMic] Added batch to queue. Queue length: ${playbackQueue.length}`);
     }
     
     // Start playback if not already playing (both queues can trigger playback)
@@ -240,13 +240,13 @@
     
     if (!isActive || !isWriterValid()) {
       if (!initializeVirtualMic()) {
-        console.error('[Sokuji] [VirtualMic] Cannot start playback - virtual mic not ready');
+        console.error('[Eburon] [VirtualMic] Cannot start playback - virtual mic not ready');
         return;
       }
     }
     
     isPlaying = true;
-    console.debug('[Sokuji] [VirtualMic] Starting playback process');
+    console.debug('[Eburon] [VirtualMic] Starting playback process');
     
     processNextPlaybackBatch();
   }
@@ -261,7 +261,7 @@
     
     // If queue is empty, stop playback
     if (immediateQueue.length === 0 && playbackQueue.length === 0) {
-      console.debug('[Sokuji] [VirtualMic] Playback queue empty, stopping playback');
+      console.debug('[Eburon] [VirtualMic] Playback queue empty, stopping playback');
       isPlaying = false;
       return;
     }
@@ -271,7 +271,7 @@
       const batchData = collectBatchesForPlayback();
       
       if (!batchData) {
-        console.debug('[Sokuji] [VirtualMic] No batches collected, stopping playback');
+        console.debug('[Eburon] [VirtualMic] No batches collected, stopping playback');
         isPlaying = false;
         return;
       }
@@ -321,7 +321,7 @@
       // const silentPercentage = (silentSamples / totalSamples) * 100;
       // const durationSeconds = totalSamples / combinedBatch.sampleRate;
       
-      // console.debug(`[Sokuji] [VirtualMic] Audio analysis: ${silentSections.length} silent sections, ${silentPercentage.toFixed(2)}% silent`);
+      // console.debug(`[Eburon] [VirtualMic] Audio analysis: ${silentSections.length} silent sections, ${silentPercentage.toFixed(2)}% silent`);
       
       // // Log more detailed information about large silent sections
       // const largeThresholdSeconds = 0.5; // Sections longer than 0.5s are considered large
@@ -331,25 +331,25 @@
       //   (section.end - section.start) > largeThresholdSamples);
       
       // if (largeSilentSections.length > 0) {
-      //   console.warn(`[Sokuji] [VirtualMic] Found ${largeSilentSections.length} large silent sections`);
+      //   console.warn(`[Eburon] [VirtualMic] Found ${largeSilentSections.length} large silent sections`);
         
       //   largeSilentSections.forEach((section, index) => {
       //     const startTimeSeconds = section.start / combinedBatch.sampleRate;
       //     const endTimeSeconds = section.end / combinedBatch.sampleRate;
       //     const durationSeconds = (section.end - section.start) / combinedBatch.sampleRate;
           
-      //     console.warn(`[Sokuji] [VirtualMic] Silent section #${index + 1}: ${startTimeSeconds.toFixed(2)}s - ${endTimeSeconds.toFixed(2)}s (${durationSeconds.toFixed(2)}s long)`);
+      //     console.warn(`[Eburon] [VirtualMic] Silent section #${index + 1}: ${startTimeSeconds.toFixed(2)}s - ${endTimeSeconds.toFixed(2)}s (${durationSeconds.toFixed(2)}s long)`);
       //   });
       // }
       
       // if (isSilent) {
-      //   console.warn(`[Sokuji] [VirtualMic] WARNING: Entire batch of ${durationSeconds.toFixed(2)}s is silent!`);
+      //   console.warn(`[Eburon] [VirtualMic] WARNING: Entire batch of ${durationSeconds.toFixed(2)}s is silent!`);
       // }
       
       // Play the combined batch
       const playbackDurationMs = await playAudioBatch(combinedBatch);
       
-      console.debug(`[Sokuji] [VirtualMic] Played batch of ${combinedBatch.data.length} samples, duration: ${playbackDurationMs}ms`);
+      console.debug(`[Eburon] [VirtualMic] Played batch of ${combinedBatch.data.length} samples, duration: ${playbackDurationMs}ms`);
       
       // Schedule next playback after current batch finishes
       setTimeout(() => {
@@ -362,7 +362,7 @@
         error.message && error.message.includes('Stream closed');
       
       if (!isStreamClosedError) {
-        console.error('[Sokuji] [VirtualMic] Error in playback process:', error);
+        console.error('[Eburon] [VirtualMic] Error in playback process:', error);
       }
       
       // Continue with next batch after a short delay
@@ -460,7 +460,7 @@
     const hasMoreData = immediateQueue.length > 0 || playbackQueue.length > 0;
     if (maxSamples >= MIN_BATCH_SIZE || !hasMoreData) {
       const durationMs = (maxSamples / targetSampleRate) * 1000;
-      console.debug(`[Sokuji] [VirtualMic] Collected batches for mixing: immediate=${immediateBatches.length} (${immediateSamples} samples), regular=${regularBatches.length} (${regularSamples} samples), mixed=${maxSamples} samples, ${durationMs.toFixed(1)}ms`);
+      console.debug(`[Eburon] [VirtualMic] Collected batches for mixing: immediate=${immediateBatches.length} (${immediateSamples} samples), regular=${regularBatches.length} (${regularSamples} samples), mixed=${maxSamples} samples, ${durationMs.toFixed(1)}ms`);
       
       return {
         immediateBatches,
@@ -472,7 +472,7 @@
       // Put batches back and wait for more data
       immediateBatches.reverse().forEach(batch => immediateQueue.unshift(batch));
       regularBatches.reverse().forEach(batch => playbackQueue.unshift(batch));
-      console.debug(`[Sokuji] [VirtualMic] Not enough data for playback (${maxSamples} < ${MIN_BATCH_SIZE}), waiting for more`);
+      console.debug(`[Eburon] [VirtualMic] Not enough data for playback (${maxSamples} < ${MIN_BATCH_SIZE}), waiting for more`);
       return null;
     }
   }
@@ -524,7 +524,7 @@
       for (let i = 0; i < immediateLength; i++) {
         mixedData[i] += immediateAudio.data[i];
       }
-      console.debug(`[Sokuji] [VirtualMic] Mixed immediate audio: ${immediateLength} samples`);
+      console.debug(`[Eburon] [VirtualMic] Mixed immediate audio: ${immediateLength} samples`);
     }
     
     // Mix regular audio
@@ -533,7 +533,7 @@
       for (let i = 0; i < regularLength; i++) {
         mixedData[i] += regularAudio.data[i];
       }
-      console.debug(`[Sokuji] [VirtualMic] Mixed regular audio: ${regularLength} samples`);
+      console.debug(`[Eburon] [VirtualMic] Mixed regular audio: ${regularLength} samples`);
     }
     
     // Apply soft clipping to prevent distortion from mixing
@@ -582,7 +582,7 @@
    * Clean up virtual microphone resources
    */
   function cleanup() {
-    console.info('[Sokuji] [VirtualMic] Cleaning up virtual microphone');
+    console.info('[Eburon] [VirtualMic] Cleaning up virtual microphone');
     
     isActive = false;
     isPlaying = false;
@@ -601,7 +601,7 @@
           audioWriter.releaseLock();
         }
       } catch (error) {
-        console.warn('[Sokuji] [VirtualMic] Error releasing writer lock:', error);
+        console.warn('[Eburon] [VirtualMic] Error releasing writer lock:', error);
       }
       audioWriter = null;
     }
@@ -623,7 +623,7 @@
       const { pcmData, sampleRate, chunkIndex, totalChunks, trackId } = event.data;
       
       if (!pcmData || !Array.isArray(pcmData)) {
-        console.error('[Sokuji] [VirtualMic] Invalid PCM data received');
+        console.error('[Eburon] [VirtualMic] Invalid PCM data received');
         return;
       }
       
@@ -642,14 +642,14 @@
     return new Promise((resolve, reject) => {
       // Check if device emulator is already loaded
       if (navigator.mediaDevices && typeof navigator.mediaDevices.addEmulatedDevice === 'function') {
-        console.info('[Sokuji] [VirtualMic] Device emulator already available');
+        console.info('[Eburon] [VirtualMic] Device emulator already available');
         resolve();
         return;
       }
       
       // Listen for the device emulator loaded event
       const handleDeviceEmulatorLoaded = () => {
-        console.info('[Sokuji] [VirtualMic] Device emulator loaded event received');
+        console.info('[Eburon] [VirtualMic] Device emulator loaded event received');
         window.removeEventListener('dyte.deviceEmulatorLoaded', handleDeviceEmulatorLoaded);
         resolve();
       };
@@ -669,7 +669,7 @@
    */
   async function registerVirtualDevice() {
     if (virtualDeviceId) {
-      console.debug('[Sokuji] [VirtualMic] Virtual device already registered');
+      console.debug('[Eburon] [VirtualMic] Virtual device already registered');
       return;
     }
     
@@ -690,10 +690,10 @@
       });
       // virtualDeviceId = await navigator.mediaDevices.addEmulatedDevice('audioinput');
       
-      console.info(`[Sokuji] [VirtualMic] Virtual microphone registered with device ID: ${virtualDeviceId}`);
+      console.info(`[Eburon] [VirtualMic] Virtual microphone registered with device ID: ${virtualDeviceId}`);
       
     } catch (error) {
-      console.error('[Sokuji] [VirtualMic] Failed to register virtual device:', error);
+      console.error('[Eburon] [VirtualMic] Failed to register virtual device:', error);
     }
   }
   
@@ -702,18 +702,18 @@
   
   // Listen for device emulator loaded event and register virtual device
   window.addEventListener('dyte.deviceEmulatorLoaded', () => {
-    console.info('[Sokuji] [VirtualMic] Device emulator loaded, registering virtual microphone...');
+    console.info('[Eburon] [VirtualMic] Device emulator loaded, registering virtual microphone...');
     registerVirtualDevice();
   });
   
   // Check if device emulator is already loaded
   if (navigator.mediaDevices && typeof navigator.mediaDevices.addEmulatedDevice === 'function') {
-    console.info('[Sokuji] [VirtualMic] Device emulator already available, registering virtual microphone...');
+    console.info('[Eburon] [VirtualMic] Device emulator already available, registering virtual microphone...');
     registerVirtualDevice();
   }
   
   // Expose API for debugging
-  window.sokujiVirtualMic = {
+  window.EburonVirtualMic = {
     isActive: () => isActive,
     isPlaying: () => isPlaying,
     isPlayingImmediate: () => isPlayingImmediate,
@@ -731,5 +731,5 @@
     registerDevice: registerVirtualDevice
   };
   
-  console.info('[Sokuji] [VirtualMic] Virtual microphone setup complete (Device Emulator version)');
+  console.info('[Eburon] [VirtualMic] Virtual microphone setup complete (Device Emulator version)');
 })();

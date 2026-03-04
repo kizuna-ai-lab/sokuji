@@ -59,7 +59,7 @@ const WarningModal: React.FC<WarningModalProps> = ({ isOpen, onClose, type }) =>
           titleText: t('audioPanel.screenRecordingDeniedTitle', 'Screen Recording Permission Denied'),
           paragraphs: [
             t('audioPanel.screenRecordingDeniedText1', 'Participant Audio requires Screen Recording permission to capture system audio.'),
-            t('audioPanel.screenRecordingDeniedText2', 'Please go to System Preferences > Privacy & Security > Screen Recording and enable Sokuji.'),
+            t('audioPanel.screenRecordingDeniedText2', 'Please go to System Preferences > Privacy & Security > Screen Recording and enable Eburon.'),
             t('audioPanel.screenRecordingDeniedText3', 'After enabling the permission, please restart the app.')
           ]
         };

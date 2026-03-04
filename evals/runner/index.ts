@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Sokuji Evaluation Runner - Entry Point
+ * Eburon Evaluation Runner - Entry Point
  *
  * CLI tool for running AI model translation quality evaluations.
  */
@@ -17,7 +17,7 @@ async function main(): Promise<void> {
   const config = loadConfig({ verbose: options.verbose });
 
   // Print header
-  console.log(`\n🧪 Sokuji Evaluation Runner v${getAppVersion()}`);
+  console.log(`\n🧪 Eburon Evaluation Runner v${getAppVersion()}`);
   printSeparator('═');
 
   // Handle different commands

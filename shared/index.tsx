@@ -33,15 +33,15 @@ const loadStyles = async () => {
     await import('../src/styles/scrollbar.scss' as any);
     await import('../src/index.scss' as any);
     const endTime = performance.now();
-    console.log(`[Sokuji] Styles loaded (Vite) in ${Math.round(endTime - startTime)}ms`);
+    console.log(`[Eburon] Styles loaded (Vite) in ${Math.round(endTime - startTime)}ms`);
   } catch (e) {
     // If failed, try to import extension environment styles
     try {
       await import('../src/App.scss' as any);
       const endTime = performance.now();
-      console.log(`[Sokuji] Styles loaded (Extension) in ${Math.round(endTime - startTime)}ms`);
+      console.log(`[Eburon] Styles loaded (Extension) in ${Math.round(endTime - startTime)}ms`);
     } catch (e2) {
-      console.warn('[Sokuji] Could not load styles:', e2);
+      console.warn('[Eburon] Could not load styles:', e2);
     }
   }
 };
@@ -60,7 +60,7 @@ const getPackageInfo = async () => {
 const initializePostHog = async (): Promise<PostHog | null> => {
   // Skip initialization if no key configured (fork projects without PostHog)
   if (!isAnalyticsEnabled()) {
-    console.info('[Sokuji] PostHog analytics disabled (VITE_POSTHOG_KEY not set)');
+    console.info('[Eburon] PostHog analytics disabled (VITE_POSTHOG_KEY not set)');
     return null;
   }
 
@@ -96,8 +96,8 @@ const initializePostHog = async (): Promise<PostHog | null> => {
   // In development, opt out by default
   if (isDevelopment()) {
     // posthog.optOut();
-    // console.debug('[Sokuji] PostHog initialized in development mode - capturing is opt-out by default');
-    // console.debug('[Sokuji] Call posthog.optIn() to enable tracking in development');
+    // console.debug('[Eburon] PostHog initialized in development mode - capturing is opt-out by default');
+    // console.debug('[Eburon] Call posthog.optIn() to enable tracking in development');
   }
   
   // Sync distinct_id to background script in extension environment
@@ -109,7 +109,7 @@ const initializePostHog = async (): Promise<PostHog | null> => {
         syncDistinctIdToBackground(posthog);
       });
     }).catch(error => {
-      console.warn('[Sokuji] [PostHog] Could not sync distinct_id to background script:', error.message);
+      console.warn('[Eburon] [PostHog] Could not sync distinct_id to background script:', error.message);
     });
   }
   
@@ -128,12 +128,12 @@ const UnifiedApp = () => {
       // Run critical initialization tasks in parallel
       await Promise.all([
         // Load styles (non-blocking)
-        loadStyles().catch(err => console.warn('[Sokuji] Style loading error:', err)),
+        loadStyles().catch(err => console.warn('[Eburon] Style loading error:', err)),
       ]);
       
       // Log critical initialization time
       const endTime = performance.now();
-      console.log(`[Sokuji] Critical initialization completed in ${Math.round(endTime - startTime)}ms`);
+      console.log(`[Eburon] Critical initialization completed in ${Math.round(endTime - startTime)}ms`);
       
       // Mark as loaded - UI can now render
       setIsLoaded(true);
@@ -144,9 +144,9 @@ const UnifiedApp = () => {
         initializePostHog().then(client => {
           setPosthogClient(client);
           const analyticsEnd = performance.now();
-          console.log(`[Sokuji] Analytics initialized in ${Math.round(analyticsEnd - analyticsStart)}ms`);
+          console.log(`[Eburon] Analytics initialized in ${Math.round(analyticsEnd - analyticsStart)}ms`);
         }).catch(error => {
-          console.error('[Sokuji] Failed to initialize analytics:', error);
+          console.error('[Eburon] Failed to initialize analytics:', error);
           // Create a minimal fallback client
           setPosthogClient(null);
         });

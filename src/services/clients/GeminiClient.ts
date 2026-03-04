@@ -161,7 +161,7 @@ export class GeminiClient implements IClient {
    * Handle API key validation errors
    */
   private static handleValidationError(error: any): ApiKeyValidationResult {
-    console.error("[Sokuji] [GeminiClient] API key validation error:", error);
+    console.error("[Eburon] [GeminiClient] API key validation error:", error);
     return {
       valid: false,
       message: error.message || i18n.t('settings.errorValidatingApiKey'),
@@ -173,7 +173,7 @@ export class GeminiClient implements IClient {
    * Handle model fetching errors
    */
   private static handleModelFetchError(error: any): never {
-    console.error("[Sokuji] [GeminiClient] Error fetching models:", error);
+    console.error("[Eburon] [GeminiClient] Error fetching models:", error);
     throw error;
   }
 
@@ -209,13 +209,13 @@ export class GeminiClient implements IClient {
       // Make request to Gemini API models endpoint
       const availableModels = await this.fetchModelsFromAPI(apiKey);
 
-      console.info("[Sokuji] [GeminiClient] Validation response: success");
+      console.info("[Eburon] [GeminiClient] Validation response: success");
 
       // Check for realtime models availability
       const hasRealtimeModel = this.checkRealtimeModelAvailability(availableModels);
 
-      console.info("[Sokuji] [GeminiClient] Available models:", availableModels);
-      console.info("[Sokuji] [GeminiClient] Has realtime model:", hasRealtimeModel);
+      console.info("[Eburon] [GeminiClient] Available models:", availableModels);
+      console.info("[Eburon] [GeminiClient] Has realtime model:", hasRealtimeModel);
 
       // Filter relevant models
       const filteredModels = this.filterRelevantModels(availableModels);
@@ -269,11 +269,11 @@ export class GeminiClient implements IClient {
       }
     });
 
-    console.info(`[Sokuji] [GeminiClient] Found ${relevantModels.length} realtime-capable models from API`);
+    console.info(`[Eburon] [GeminiClient] Found ${relevantModels.length} realtime-capable models from API`);
 
     // If no models found from API, return fallback models
     if (relevantModels.length === 0) {
-      console.warn("[Sokuji] [GeminiClient] No suitable models found from API, using fallback models");
+      console.warn("[Eburon] [GeminiClient] No suitable models found from API, using fallback models");
       return this.getFallbackModels();
     }
 
@@ -336,7 +336,7 @@ export class GeminiClient implements IClient {
         config: liveConfig,
         callbacks: {
           onopen: () => {
-            console.info('[Sokuji] [GeminiClient] Session opened');
+            console.info('[Eburon] [GeminiClient] Session opened');
             this.isConnectedState = true;
             this.eventHandlers.onRealtimeEvent?.({
               source: 'client',
@@ -359,7 +359,7 @@ export class GeminiClient implements IClient {
           },
           onmessage: this.handleMessage.bind(this),
           onerror: (error: ErrorEvent) => {
-            console.error('[Sokuji] [GeminiClient] Session error:', error);
+            console.error('[Eburon] [GeminiClient] Session error:', error);
             this.eventHandlers.onRealtimeEvent?.({
               source: 'client',
               event: { 
@@ -379,7 +379,7 @@ export class GeminiClient implements IClient {
             this.eventHandlers.onError?.(error);
           },
           onclose: (event: CloseEvent) => {
-            console.info('[Sokuji] [GeminiClient] Session closed', event);
+            console.info('[Eburon] [GeminiClient] Session closed', event);
             this.isConnectedState = false;
             // Clean up session state
             this.session = null;
@@ -409,7 +409,7 @@ export class GeminiClient implements IClient {
   }
 
   private async handleMessage(message: LiveServerMessage): Promise<void> {
-    console.debug('[Sokuji] [GeminiClient] Message received:', message);
+    console.debug('[Eburon] [GeminiClient] Message received:', message);
     
     // Emit specific realtime events based on message content
     if (message.setupComplete) {

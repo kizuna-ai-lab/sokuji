@@ -1,6 +1,5 @@
 const { app, BrowserWindow, ipcMain, Menu, dialog, shell, session, systemPreferences, desktopCapturer } = require('electron');
 const path = require('path');
-const { betterAuthAdapter } = require('./better-auth-adapter');
 
 // Handle Squirrel events for Windows
 if (process.platform === 'win32') {
@@ -25,14 +24,14 @@ if (process.platform === 'linux') {
   // For other platforms, provide stub implementations
   audioUtils = {
     createVirtualAudioDevices: async () => {
-      console.log('[Sokuji] [Main] Virtual audio devices not supported on this platform');
+      console.log('[Eburon] [Main] Virtual audio devices not supported on this platform');
       return false;
     },
     removeVirtualAudioDevices: () => {
-      console.log('[Sokuji] [Main] Virtual audio device cleanup not needed on this platform');
+      console.log('[Eburon] [Main] Virtual audio device cleanup not needed on this platform');
     },
     cleanupOrphanedDevices: async () => {
-      console.log('[Sokuji] [Main] No orphaned devices to clean on this platform');
+      console.log('[Eburon] [Main] No orphaned devices to clean on this platform');
       return true;
     }
   };
@@ -55,13 +54,13 @@ const {
 if (process.platform === 'win32' || process.platform === 'darwin') {
   const { initMain } = require('electron-audio-loopback');
   initMain();
-  console.log('[Sokuji] [Main] electron-audio-loopback initialized for', process.platform);
+  console.log('[Eburon] [Main] electron-audio-loopback initialized for', process.platform);
 }
 
 // Set application name for PulseAudio
-app.setName('sokuji');
-app.commandLine.appendSwitch('application-name', 'sokuji');
-app.commandLine.appendSwitch('jack-name', 'sokuji');
+app.setName('Eburon');
+app.commandLine.appendSwitch('application-name', 'Eburon');
+app.commandLine.appendSwitch('jack-name', 'Eburon');
 
 // Keep a global reference of the window object to prevent garbage collection
 let mainWindow;
@@ -81,7 +80,7 @@ function createApplicationMenu() {
             dialog.showMessageBox({
               type: 'info',
               title: `About ${app.getName()}`,
-              message: 'Sokuji - Real-time AI Translation',
+              message: 'Eburon - Real-time AI Translation',
               detail: `Version: ${app.getVersion()}\n\nAI-powered real-time translation application\n\n© 2024 Kizuna AI Lab`,
               buttons: ['OK'],
               icon: path.join(__dirname, '../assets/icon.png')
@@ -178,7 +177,7 @@ function createApplicationMenu() {
             dialog.showMessageBox({
               type: 'info',
               title: `About ${app.getName()}`,
-              message: 'Sokuji - Real-time AI Translation',
+              message: 'Eburon - Real-time AI Translation',
               detail: `Version: ${app.getVersion()}\n\nAI-powered real-time translation application\n\n© 2024 Kizuna AI Lab`,
               buttons: ['OK'],
               icon: path.join(__dirname, '../assets/icon.png')
@@ -189,19 +188,19 @@ function createApplicationMenu() {
         {
           label: 'Official Website',
           click: async () => {
-            await shell.openExternal('https://sokuji.kizuna.ai/');
+            await shell.openExternal('https://Eburon.kizuna.ai/');
           }
         },
         {
           label: 'Source Code',
           click: async () => {
-            await shell.openExternal('https://github.com/kizuna-ai-lab/sokuji');
+            await shell.openExternal('https://github.com/kizuna-ai-lab/Eburon');
           }
         },
         {
           label: 'Report Issue',
           click: async () => {
-            await shell.openExternal('https://github.com/kizuna-ai-lab/sokuji/issues');
+            await shell.openExternal('https://github.com/kizuna-ai-lab/Eburon/issues');
           }
         }
       ]
@@ -224,12 +223,12 @@ function createWindow() {
   // Build custom User Agent to identify Electron app
   const electronVersion = process.versions.electron;
   const appVersion = app.getVersion();
-  const customUserAgent = `Sokuji/${appVersion} Electron/${electronVersion} (${process.platform})`;
+  const customUserAgent = `Eburon/${appVersion} Electron/${electronVersion} (${process.platform})`;
 
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
-    title: 'Sokuji',
+    title: 'Eburon',
     icon: iconPath,
     webPreferences: {
       nodeIntegration: false,
@@ -242,10 +241,10 @@ function createWindow() {
 
   // Set custom User Agent for the window
   mainWindow.webContents.setUserAgent(customUserAgent);
-  console.log('[Sokuji] [Main] Custom User Agent set:', customUserAgent);
+  console.log('[Eburon] [Main] Custom User Agent set:', customUserAgent);
 
   // Load the app
-  console.log('[Sokuji] [Main] Development mode:', isDev, 'MODE:', import.meta.env.MODE, 'isPackaged:', app.isPackaged);
+  console.log('[Eburon] [Main] Development mode:', isDev, 'MODE:', import.meta.env.MODE, 'isPackaged:', app.isPackaged);
   
   // Track window load time
   const loadStartTime = Date.now();
@@ -253,16 +252,16 @@ function createWindow() {
   // Add performance tracking for page load
   mainWindow.webContents.on('did-finish-load', () => {
     const loadEndTime = Date.now();
-    console.log(`[Sokuji] [Main] Page loaded in ${loadEndTime - loadStartTime}ms`);
+    console.log(`[Eburon] [Main] Page loaded in ${loadEndTime - loadStartTime}ms`);
   });
   
   mainWindow.webContents.on('dom-ready', () => {
     const domReadyTime = Date.now();
-    console.log(`[Sokuji] [Main] DOM ready in ${domReadyTime - loadStartTime}ms`);
+    console.log(`[Eburon] [Main] DOM ready in ${domReadyTime - loadStartTime}ms`);
   });
   
   if (isDev) {
-    console.log(`[Sokuji] [Main] Loading from http://localhost:5173 at ${loadStartTime}`);
+    console.log(`[Eburon] [Main] Loading from http://localhost:5173 at ${loadStartTime}`);
     mainWindow.loadURL('http://localhost:5173');
   } else {
     // Try multiple approaches to find the correct path
@@ -281,33 +280,33 @@ function createWindow() {
     const asarPath = path.join(path.dirname(app.getPath('exe')), 'resources/app.asar/build/index.html');
     
     // Log all potential paths for debugging
-    console.log('[Sokuji] [Main] Potential paths:');
-    console.log('[Sokuji] [Main] - Relative path:', relativePath);
-    console.log('[Sokuji] [Main] - App path based:', appPathBased);
-    console.log('[Sokuji] [Main] - Absolute path:', absolutePath);
-    console.log('[Sokuji] [Main] - Asar path:', asarPath);
+    console.log('[Eburon] [Main] Potential paths:');
+    console.log('[Eburon] [Main] - Relative path:', relativePath);
+    console.log('[Eburon] [Main] - App path based:', appPathBased);
+    console.log('[Eburon] [Main] - Absolute path:', absolutePath);
+    console.log('[Eburon] [Main] - Asar path:', asarPath);
     
     // Check which path exists and use it
     if (require('fs').existsSync(relativePath)) {
       indexPath = relativePath;
-      console.log('[Sokuji] [Main] Using relative path');
+      console.log('[Eburon] [Main] Using relative path');
     } else if (require('fs').existsSync(appPathBased)) {
       indexPath = appPathBased;
-      console.log('[Sokuji] [Main] Using app path based');
+      console.log('[Eburon] [Main] Using app path based');
     } else if (require('fs').existsSync(absolutePath)) {
       indexPath = absolutePath;
-      console.log('[Sokuji] [Main] Using absolute path');
+      console.log('[Eburon] [Main] Using absolute path');
     } else if (require('fs').existsSync(asarPath)) {
       indexPath = asarPath;
-      console.log('[Sokuji] [Main] Using asar path');
+      console.log('[Eburon] [Main] Using asar path');
     } else {
       // Fallback to the most likely path
       indexPath = asarPath;
-      console.log('[Sokuji] [Main] No path found, using fallback asar path');
+      console.log('[Eburon] [Main] No path found, using fallback asar path');
     }
     
     // Use loadFile which is recommended for local files
-    console.log('[Sokuji] [Main] Final path used:', indexPath);
+    console.log('[Eburon] [Main] Final path used:', indexPath);
     mainWindow.loadFile(indexPath);
   }
 
@@ -339,35 +338,19 @@ function createWindow() {
 
 // Create window when Electron is ready
 app.whenReady().then(async () => {
-  // Initialize Better Auth adapter
-  try {
-    const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8787';
-    const origin = import.meta.env.MODE === 'development' ? 'http://localhost:5173' : `file://${__dirname}`;
-
-    console.log(`[Sokuji] [Main] Initializing Better Auth adapter with backend: ${backendUrl}, origin: ${origin}`);
-
-    betterAuthAdapter({
-      backendUrl,
-      origin
-    });
-    console.log('[Sokuji] [Main] Better Auth adapter initialized');
-  } catch (error) {
-    console.error('[Sokuji] [Main] Error initializing Better Auth adapter:', error);
-  }
-
   // Clean up any orphaned devices
   try {
     await cleanupOrphanedDevices();
-    console.log('[Sokuji] [Main] Orphaned devices cleaned up successfully');
+    console.log('[Eburon] [Main] Orphaned devices cleaned up successfully');
   } catch (error) {
-    console.error('[Sokuji] [Main] Error cleaning up orphaned devices:', error);
+    console.error('[Eburon] [Main] Error cleaning up orphaned devices:', error);
   }
 
   // Start virtual audio devices before creating the window
   try {
     const devicesCreated = await createVirtualAudioDevices();
     if (devicesCreated) {
-      console.log('[Sokuji] [Main] Virtual audio devices created successfully');
+      console.log('[Eburon] [Main] Virtual audio devices created successfully');
       
       // Connect the virtual speaker to the default output device
       // try {
@@ -380,18 +363,18 @@ app.whenReady().then(async () => {
       //   // Connect virtual speaker to default output
       //   const connected = await connectVirtualSpeakerToOutput(defaultDeviceInfo);
       //   if (connected) {
-      //     console.log('[Sokuji] [Main] Successfully connected virtual speaker to default output device');
+      //     console.log('[Eburon] [Main] Successfully connected virtual speaker to default output device');
       //   } else {
-      //     console.error('[Sokuji] [Main] Failed to connect virtual speaker to default output device');
+      //     console.error('[Eburon] [Main] Failed to connect virtual speaker to default output device');
       //   }
       // } catch (connectionError) {
-      //   console.error('[Sokuji] [Main] Error connecting virtual speaker to default output:', connectionError);
+      //   console.error('[Eburon] [Main] Error connecting virtual speaker to default output:', connectionError);
       // }
     } else {
-      console.error('[Sokuji] [Main] Failed to create virtual audio devices');
+      console.error('[Eburon] [Main] Failed to create virtual audio devices');
     }
   } catch (error) {
-    console.error('[Sokuji] [Main] Error creating virtual audio devices:', error);
+    console.error('[Eburon] [Main] Error creating virtual audio devices:', error);
   }
 
   // Create the application menu
@@ -400,13 +383,13 @@ app.whenReady().then(async () => {
   // Request microphone permission on macOS before creating window
   if (process.platform === 'darwin') {
     const micStatus = systemPreferences.getMediaAccessStatus('microphone');
-    console.log('[Sokuji] [Main] Microphone permission status:', micStatus);
+    console.log('[Eburon] [Main] Microphone permission status:', micStatus);
 
     if (micStatus === 'not-determined') {
       const granted = await systemPreferences.askForMediaAccess('microphone');
-      console.log('[Sokuji] [Main] Microphone permission granted:', granted);
+      console.log('[Eburon] [Main] Microphone permission granted:', granted);
     } else if (micStatus === 'denied') {
-      console.warn('[Sokuji] [Main] Microphone permission denied - please enable in System Preferences > Privacy & Security > Microphone');
+      console.warn('[Eburon] [Main] Microphone permission denied - please enable in System Preferences > Privacy & Security > Microphone');
     }
   }
 
@@ -417,14 +400,14 @@ app.whenReady().then(async () => {
 
 // Ensure cleanup happens before app exits
 const cleanupAndExit = () => {
-  console.log('[Sokuji] [Main] Cleaning up virtual audio devices before exit...');
+  console.log('[Eburon] [Main] Cleaning up virtual audio devices before exit...');
   removeVirtualAudioDevices();
-  console.log('[Sokuji] [Main] Virtual audio devices cleaned up successfully');
+  console.log('[Eburon] [Main] Virtual audio devices cleaned up successfully');
 };
 
 // Create a more robust exit handler that ensures cleanup happens
 const handleExit = (signal) => {
-  console.log(`[Sokuji] [Main] Received ${signal} signal. Ensuring cleanup before exit...`);
+  console.log(`[Eburon] [Main] Received ${signal} signal. Ensuring cleanup before exit...`);
   
   // Perform cleanup synchronously
   cleanupAndExit();
@@ -441,11 +424,11 @@ app.on('before-quit', cleanupAndExit);
 process.on('SIGINT', () => handleExit('SIGINT'));
 process.on('SIGTERM', () => handleExit('SIGTERM'));
 process.on('uncaughtException', (error) => {
-  console.error('[Sokuji] [Main] Uncaught exception:', error);
+  console.error('[Eburon] [Main] Uncaught exception:', error);
   handleExit('uncaughtException');
 });
 process.on('unhandledRejection', (reason, promise) => {
-  console.error('[Sokuji] [Main] Unhandled rejection at:', promise, 'reason:', reason);
+  console.error('[Eburon] [Main] Unhandled rejection at:', promise, 'reason:', reason);
   handleExit('unhandledRejection');
 });
 
@@ -481,7 +464,7 @@ ipcMain.handle('check-audio-system', async () => {
     } else if (process.platform === 'darwin') {
       const { isMacOSAudioAvailable } = audioUtils;
       audioSystemAvailable = await isMacOSAudioAvailable();
-      // On macOS, Sokuji Virtual Audio driver is installed by PKG installer
+      // On macOS, Eburon Virtual Audio driver is installed by PKG installer
       systemType = audioSystemAvailable ? 'coreaudio' : 'none';
     }
 
@@ -490,10 +473,10 @@ ipcMain.handle('check-audio-system', async () => {
       systemType,
       platform: process.platform,
       note: process.platform === 'win32' ? 'VB-CABLE detection happens in renderer process' :
-            process.platform === 'darwin' ? 'Sokuji Virtual Audio driver installed by PKG installer' : null
+            process.platform === 'darwin' ? 'Eburon Virtual Audio driver installed by PKG installer' : null
     };
   } catch (error) {
-    console.error('[Sokuji] [Main] Error checking audio system status:', error);
+    console.error('[Eburon] [Main] Error checking audio system status:', error);
     return {
       audioSystemAvailable: false,
       systemType: 'none',
@@ -522,7 +505,7 @@ ipcMain.handle('check-vbcable', async () => {
       };
     }
   } catch (error) {
-    console.error('[Sokuji] [Main] Error in VB-CABLE check:', error);
+    console.error('[Eburon] [Main] Error in VB-CABLE check:', error);
     return {
       error: error.message
     };
@@ -533,7 +516,7 @@ ipcMain.handle('check-vbcable', async () => {
 ipcMain.handle('install-vbcable', async () => {
   try {
     if (process.platform === 'win32') {
-      console.log('[Sokuji] [Main] VB-CABLE installation requested from renderer');
+      console.log('[Eburon] [Main] VB-CABLE installation requested from renderer');
       const installer = require('./vb-cable-installer');
       const result = await installer.ensureVBCableInstalled();
       return {
@@ -548,7 +531,7 @@ ipcMain.handle('install-vbcable', async () => {
       };
     }
   } catch (error) {
-    console.error('[Sokuji] [Main] Error installing VB-CABLE:', error);
+    console.error('[Eburon] [Main] Error installing VB-CABLE:', error);
     return {
       success: false,
       error: error.message
@@ -556,26 +539,26 @@ ipcMain.handle('install-vbcable', async () => {
   }
 });
 
-// Handler for Sokuji Virtual Audio detection (called from renderer process)
-ipcMain.handle('check-sokuji-audio', async () => {
+// Handler for Eburon Virtual Audio detection (called from renderer process)
+ipcMain.handle('check-Eburon-audio', async () => {
   try {
     if (process.platform === 'darwin') {
-      const { isSokujiVirtualAudioInstalled } = audioUtils;
-      const installed = await isSokujiVirtualAudioInstalled();
+      const { isEburonVirtualAudioInstalled } = audioUtils;
+      const installed = await isEburonVirtualAudioInstalled();
       return {
         installed,
         platform: 'macos',
-        driverName: 'Sokuji Virtual Audio'
+        driverName: 'Eburon Virtual Audio'
       };
     } else {
       return {
         installed: false,
         platform: process.platform,
-        message: 'Sokuji Virtual Audio is macOS-specific'
+        message: 'Eburon Virtual Audio is macOS-specific'
       };
     }
   } catch (error) {
-    console.error('[Sokuji] [Main] Error in Sokuji Virtual Audio check:', error);
+    console.error('[Eburon] [Main] Error in Eburon Virtual Audio check:', error);
     return {
       installed: false,
       error: error.message
@@ -593,7 +576,7 @@ ipcMain.handle('open-directory', (event, dirPath) => {
     shell.openPath(dirPath);
     return { success: true };
   } catch (error) {
-    console.error('[Sokuji] [Main] Error opening directory:', error);
+    console.error('[Eburon] [Main] Error opening directory:', error);
     return { success: false, error: error.message };
   }
 });
@@ -605,7 +588,7 @@ ipcMain.handle('open-external', async (event, url) => {
     await shell.openExternal(url);
     return { success: true };
   } catch (error) {
-    console.error('[Sokuji] [Main] Error opening external URL:', error);
+    console.error('[Eburon] [Main] Error opening external URL:', error);
     return { success: false, error: error.message };
   }
 });
@@ -622,7 +605,7 @@ ipcMain.handle('create-virtual-speaker', async () => {
       message: result ? 'Virtual audio devices created successfully' : 'Failed to create virtual audio devices'
     };
   } catch (error) {
-    console.error('[Sokuji] [Main] Error creating virtual audio devices:', error);
+    console.error('[Eburon] [Main] Error creating virtual audio devices:', error);
     return {
       success: false,
       error: error.message || 'Failed to create virtual audio devices'
@@ -670,7 +653,7 @@ const volcengineConnections = new Map(); // connectionId → WebSocket
 
 ipcMain.handle('volcengine-ast2-connect', async (event, { appId, accessToken, resourceId, connectionId }) => {
   const endpoint = 'wss://openspeech.bytedance.com/api/v4/ast/v2/translate';
-  console.log(`[Sokuji] [Main] Volcengine AST2 [${connectionId}]: connecting to`, endpoint);
+  console.log(`[Eburon] [Main] Volcengine AST2 [${connectionId}]: connecting to`, endpoint);
 
   return new Promise((resolve) => {
     let resolved = false;
@@ -685,7 +668,7 @@ ipcMain.handle('volcengine-ast2-connect', async (event, { appId, accessToken, re
     });
 
     ws.on('open', () => {
-      console.log(`[Sokuji] [Main] Volcengine AST2 [${connectionId}]: WebSocket connected`);
+      console.log(`[Eburon] [Main] Volcengine AST2 [${connectionId}]: WebSocket connected`);
       volcengineConnections.set(connectionId, ws);
       resolved = true;
       resolve({ success: true });
@@ -699,7 +682,7 @@ ipcMain.handle('volcengine-ast2-connect', async (event, { appId, accessToken, re
     });
 
     ws.on('error', (err) => {
-      console.error(`[Sokuji] [Main] Volcengine AST2 [${connectionId}]: WebSocket error:`, err.message);
+      console.error(`[Eburon] [Main] Volcengine AST2 [${connectionId}]: WebSocket error:`, err.message);
       if (mainWindow && !mainWindow.isDestroyed()) {
         mainWindow.webContents.send('volcengine-ast2-error', { connectionId, error: err.message });
       }
@@ -710,7 +693,7 @@ ipcMain.handle('volcengine-ast2-connect', async (event, { appId, accessToken, re
     });
 
     ws.on('close', (code, reason) => {
-      console.log(`[Sokuji] [Main] Volcengine AST2 [${connectionId}]: WebSocket closed: ${code} ${reason.toString()}`);
+      console.log(`[Eburon] [Main] Volcengine AST2 [${connectionId}]: WebSocket closed: ${code} ${reason.toString()}`);
       volcengineConnections.delete(connectionId);
       if (mainWindow && !mainWindow.isDestroyed()) {
         mainWindow.webContents.send('volcengine-ast2-close', { connectionId, code, reason: reason.toString() });
@@ -733,13 +716,13 @@ ipcMain.handle('volcengine-ast2-send', (event, { connectionId, data }) => {
     ws.send(buffer);
     return { success: true };
   } catch (err) {
-    console.error(`[Sokuji] [Main] Volcengine AST2 [${connectionId}]: send error:`, err.message);
+    console.error(`[Eburon] [Main] Volcengine AST2 [${connectionId}]: send error:`, err.message);
     return { success: false, error: err.message };
   }
 });
 
 ipcMain.handle('volcengine-ast2-disconnect', (event, { connectionId } = {}) => {
-  console.log(`[Sokuji] [Main] Volcengine AST2 [${connectionId}]: disconnecting`);
+  console.log(`[Eburon] [Main] Volcengine AST2 [${connectionId}]: disconnecting`);
   const ws = volcengineConnections.get(connectionId);
   if (ws) {
     try { ws.close(); } catch (e) { /* ignore */ }
@@ -762,7 +745,7 @@ ipcMain.handle('volcengine-ast2-validate', async (event, { appId, accessToken, r
 
   const endpoint = 'wss://openspeech.bytedance.com/api/v4/ast/v2/translate';
   const connectionId = require('crypto').randomUUID();
-  console.log('[Sokuji] [Main] Volcengine AST2: validating credentials');
+  console.log('[Eburon] [Main] Volcengine AST2: validating credentials');
 
   return new Promise((resolve) => {
     let resolved = false;
@@ -794,12 +777,12 @@ ipcMain.handle('volcengine-ast2-validate', async (event, { appId, accessToken, r
     }, 5000);
 
     ws.on('open', () => {
-      console.log('[Sokuji] [Main] Volcengine AST2: validation succeeded (WebSocket accepted)');
+      console.log('[Eburon] [Main] Volcengine AST2: validation succeeded (WebSocket accepted)');
       finish({ success: true });
     });
 
     ws.on('error', (err) => {
-      console.error('[Sokuji] [Main] Volcengine AST2: validation failed:', err.message);
+      console.error('[Eburon] [Main] Volcengine AST2: validation failed:', err.message);
       finish({ success: false, error: err.message });
     });
 
@@ -811,7 +794,7 @@ ipcMain.handle('volcengine-ast2-validate', async (event, { appId, accessToken, r
       let body = '';
       res.on('data', (chunk) => { body += chunk; });
       res.on('end', () => {
-        console.error(`[Sokuji] [Main] Volcengine AST2: validation rejected: HTTP ${res.statusCode} — ${body.substring(0, 200)}`);
+        console.error(`[Eburon] [Main] Volcengine AST2: validation rejected: HTTP ${res.statusCode} — ${body.substring(0, 200)}`);
         finish({ success: false, error: `Server rejected connection: HTTP ${res.statusCode} ${res.statusMessage}` });
       });
     });
@@ -829,12 +812,12 @@ ipcMain.handle('check-screen-recording-permission', async () => {
 
   try {
     const status = systemPreferences.getMediaAccessStatus('screen');
-    console.log('[Sokuji] [Main] Screen recording permission status:', status);
+    console.log('[Eburon] [Main] Screen recording permission status:', status);
     // Just return the raw status - don't try to trigger permission here
     // Calling desktopCapturer.getSources() would change 'not-determined' to 'denied'
     return { status, platform: 'darwin' };
   } catch (error) {
-    console.error('[Sokuji] [Main] Error checking screen recording permission:', error);
+    console.error('[Eburon] [Main] Error checking screen recording permission:', error);
     return { status: 'unknown', platform: 'darwin', error: error.message };
   }
 });

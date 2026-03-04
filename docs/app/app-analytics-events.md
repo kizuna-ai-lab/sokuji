@@ -1,10 +1,10 @@
 # App Analytics Events Documentation
 
-This document provides a comprehensive reference for all PostHog analytics events implemented in the Sokuji application.
+This document provides a comprehensive reference for all PostHog analytics events implemented in the Eburon application.
 
 ## Overview
 
-The Sokuji application uses PostHog for analytics tracking to understand user behavior, application performance, and feature usage. All events are defined with TypeScript interfaces to ensure consistency and type safety.
+The Eburon application uses PostHog for analytics tracking to understand user behavior, application performance, and feature usage. All events are defined with TypeScript interfaces to ensure consistency and type safety.
 
 ## Super Properties
 
@@ -399,7 +399,7 @@ trackEvent('extension_used', {
 **Description**: Triggered when the extension popup is opened.
 
 **Properties**:
-- `is_supported_site` (boolean): Whether the current site supports Sokuji
+- `is_supported_site` (boolean): Whether the current site supports Eburon
 - `hostname` (string | null): Hostname of the current tab
 - `full_url` (string, optional): Origin URL of the current tab
 - `supported_site_match` (string | null): Which supported site pattern was matched
@@ -475,11 +475,11 @@ trackEvent('popup_error_state_shown', {
 ---
 
 #### `popup_open_sidepanel_clicked`
-**Description**: Triggered when user clicks the "Open Sokuji" button in popup.
+**Description**: Triggered when user clicks the "Open Eburon" button in popup.
 
 **Properties**:
 - `tab_id` (number): ID of the current tab
-- `is_supported_site` (boolean): Whether the current site supports Sokuji
+- `is_supported_site` (boolean): Whether the current site supports Eburon
 
 **Status**: ✅ Implemented in `extension/popup.js`
 

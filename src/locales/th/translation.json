@@ -19,7 +19,7 @@
     "signUp": "ลงทะเบียน"
   },
   "app": {
-    "title": "Sokuji",
+    "title": "Eburon",
     "description": "แอปพลิเคชันแปลเสียงแบบเรียลไทม์"
   },
   "simpleSettings": {
@@ -33,7 +33,7 @@
   },
   "simpleConfig": {
     "interfaceLanguage": "ภาษาอินเทอร์เฟซ",
-    "interfaceLanguageDesc": "สิ่งนี้เปลี่ยนภาษาของเมนูและปุ่มของ Sokuji มันไม่ส่งผลต่อภาษาที่คุณสามารถแปลได้",
+    "interfaceLanguageDesc": "สิ่งนี้เปลี่ยนภาษาของเมนูและปุ่มของ Eburon มันไม่ส่งผลต่อภาษาที่คุณสามารถแปลได้",
     "translationLanguages": "ภาษาการแปล",
     "translationLanguagesDesc": "เลือกภาษาที่คุณพูด (ภาษาของคุณ) และภาษาที่คุณต้องการฟังการแปล (ภาษาเป้าหมาย) เลือก \"ตรวจสอบอัตโนมัติ\" หากคุณไม่แน่ใจเกี่ยวกับภาษาต้นฉบับ",
     "yourLanguage": "ภาษาของฉัน",
@@ -43,7 +43,7 @@
     "signInDescription": "ลงทะเบียนเพื่อประสบการณ์ที่ง่าย",
     "targetLanguage": "ภาษาของอีกฝ่าย",
     "microphone": "ไมโครโฟน",
-    "microphoneDesc": "เลือกไมโครโฟนเพื่อจับเสียงพูดของคุณ พูดภาษาของคุณเข้าไปในไมโครโฟนนี้ และ Sokuji จะแปลทุกสิ่งที่ได้ยินแบบเรียลไทม์",
+    "microphoneDesc": "เลือกไมโครโฟนเพื่อจับเสียงพูดของคุณ พูดภาษาของคุณเข้าไปในไมโครโฟนนี้ และ Eburon จะแปลทุกสิ่งที่ได้ยินแบบเรียลไทม์",
     "speaker": "ลำโพง",
     "speakerDesc": "เลือกลำโพงเพื่อตรวจสอบเอาต์พุตที่แปลแล้ว สิ่งนี้ช่วยให้คุณฟังเสียงการแปล คุณสามารถปิดได้หากไม่จำเป็นต้องตรวจสอบ ไม่ว่าจะเปิดหรือปิด เสียงที่แปลแล้วจะถูกส่งไปยังไมโครโฟนเสมือนเสมอเพื่อให้ผู้เข้าร่วมคนอื่นได้ยิน",
     "systemAudio": "เสียงผู้เข้าร่วม",
@@ -249,8 +249,8 @@
     "basic": {
       "steps": {
         "welcome": {
-          "title": "Welcome to Sokuji",
-          "content": "Welcome to Sokuji! This simple guide will help you start using real-time translation in just a few steps."
+          "title": "Welcome to Eburon",
+          "content": "Welcome to Eburon! This simple guide will help you start using real-time translation in just a few steps."
         },
         "settings": {
           "title": "Step 1: Open Settings",
@@ -282,7 +282,7 @@
         },
         "complete": {
           "title": "All Set!",
-          "content": "Perfect! You're ready to use Sokuji. Click Start and begin speaking to hear real-time translations."
+          "content": "Perfect! You're ready to use Eburon. Click Start and begin speaking to hear real-time translations."
         }
       }
     },
@@ -296,7 +296,7 @@
     "restartTour": "เริ่มคู่มือการตั้งค่าใหม่",
     "steps": {
       "welcome": {
-        "title": "ยินดีต้อนรับสู่ Sokuji!",
+        "title": "ยินดีต้อนรับสู่ Eburon!",
         "content": "ยินดีต้อนรับสู่แอปพลิเคชันแปลเสียงแบบเรียลไทม์! มาตั้งค่าระบบของคุณอย่างรวดเร็วเพื่อประสบการณ์ที่ดีที่สุด"
       },
       "openSettings": {
@@ -333,16 +333,16 @@
       },
       "startSession": {
         "title": "เริ่มเซสชันของคุณ",
-        "content": "ทุกอย่างพร้อมแล้ว! คลิกปุ่ม \"เริ่มเซสชัน\" เพื่อเริ่มการแปลแบบเรียลไทม์ อย่าลืมเลือกไมโครโฟนเสมือน Sokuji เป็นอุปกรณ์อินพุตในแอปพลิเคชันการประชุมของคุณ"
+        "content": "ทุกอย่างพร้อมแล้ว! คลิกปุ่ม \"เริ่มเซสชัน\" เพื่อเริ่มการแปลแบบเรียลไทม์ อย่าลืมเลือกไมโครโฟนเสมือน Eburon เป็นอุปกรณ์อินพุตในแอปพลิเคชันการประชุมของคุณ"
       },
       "completion": {
         "title": "คู่มือการตั้งค่าเสร็จสิ้น!",
-        "content": "คุณได้เสร็จสิ้นคู่มือการตั้งค่าแล้ว! ตอนนี้ให้แน่ใจว่าได้ใส่ API key และกำหนดค่าการตั้งค่าของคุณจริงๆ จากนั้นใช้ไมโครโฟนเสมือน Sokuji ในแอปพลิเคชันการประชุม (เช่น Google Meet, Zoom ฯลฯ) เพื่อเริ่มการแปลแบบเรียลไทม์"
+        "content": "คุณได้เสร็จสิ้นคู่มือการตั้งค่าแล้ว! ตอนนี้ให้แน่ใจว่าได้ใส่ API key และกำหนดค่าการตั้งค่าของคุณจริงๆ จากนั้นใช้ไมโครโฟนเสมือน Eburon ในแอปพลิเคชันการประชุม (เช่น Google Meet, Zoom ฯลฯ) เพื่อเริ่มการแปลแบบเรียลไทม์"
       }
     }
   },
   "userTypeSelection": {
-    "title": "ยินดีต้อนรับสู่ Sokuji",
+    "title": "ยินดีต้อนรับสู่ Eburon",
     "subtitle": "กรุณาเลือกประเภทผู้ใช้ของคุณเพื่อเริ่มต้น",
     "regular": {
       "title": "ผู้ใช้ทั่วไป",

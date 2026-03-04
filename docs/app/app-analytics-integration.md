@@ -1,6 +1,6 @@
 # App Analytics Integration
 
-This document outlines the PostHog analytics integration for the Sokuji React application.
+This document outlines the PostHog analytics integration for the Eburon React application.
 
 ## Overview
 

@@ -1,7 +1,7 @@
 /**
  * Node.js OpenAI Realtime API Client
  *
- * Uses the openai-realtime-api library (same as main Sokuji app)
+ * Uses the openai-realtime-api library (same as main Eburon app)
  * for consistent behavior and proper handling of cancelled responses.
  */
 

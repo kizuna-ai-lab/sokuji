@@ -1,6 +1,6 @@
 # Dynamic Audio Device Switching
 
-This document describes the dynamic audio device switching feature in Sokuji, which allows users to change recording devices during active translation sessions without interruption.
+This document describes the dynamic audio device switching feature in Eburon, which allows users to change recording devices during active translation sessions without interruption.
 
 ## Overview
 

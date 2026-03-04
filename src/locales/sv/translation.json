@@ -19,7 +19,7 @@
     "signUp": "Registrera"
   },
   "app": {
-    "title": "Sokuji",
+    "title": "Eburon",
     "description": "Realtidsapplikation för röstöversättning"
   },
   "settings": {
@@ -131,8 +131,8 @@
     "basic": {
       "steps": {
         "welcome": {
-          "title": "Welcome to Sokuji",
-          "content": "Welcome to Sokuji! This simple guide will help you start using real-time translation in just a few steps."
+          "title": "Welcome to Eburon",
+          "content": "Welcome to Eburon! This simple guide will help you start using real-time translation in just a few steps."
         },
         "settings": {
           "title": "Step 1: Open Settings",
@@ -164,7 +164,7 @@
         },
         "complete": {
           "title": "All Set!",
-          "content": "Perfect! You're ready to use Sokuji. Click Start and begin speaking to hear real-time translations."
+          "content": "Perfect! You're ready to use Eburon. Click Start and begin speaking to hear real-time translations."
         }
       }
     },
@@ -178,7 +178,7 @@
     "restartTour": "Starta om installationsguiden",
     "steps": {
       "welcome": {
-        "title": "Välkommen till Sokuji!",
+        "title": "Välkommen till Eburon!",
         "content": "Välkommen till realtidsapplikationen för röstöversättning! Låt oss snabbt konfigurera ditt system för bästa upplevelse."
       },
       "openSettings": {
@@ -215,11 +215,11 @@
       },
       "startSession": {
         "title": "Starta din session",
-        "content": "Allt är redo! Klicka på \"Starta session\"-knappen för att börja realtidsöversättning. Kom ihåg att välja Sokuji virtuell mikrofon som inmatningsenhet i din konferensapplikation."
+        "content": "Allt är redo! Klicka på \"Starta session\"-knappen för att börja realtidsöversättning. Kom ihåg att välja Eburon virtuell mikrofon som inmatningsenhet i din konferensapplikation."
       },
       "completion": {
         "title": "Installationsguiden slutförd!",
-        "content": "Du har slutfört installationsguiden! Se nu till att du faktiskt anger din API-nyckel och konfigurerar dina inställningar, använd sedan Sokuji virtuell mikrofon i konferensapplikationer (som Google Meet, Zoom, etc.) för att starta realtidsöversättning."
+        "content": "Du har slutfört installationsguiden! Se nu till att du faktiskt anger din API-nyckel och konfigurerar dina inställningar, använd sedan Eburon virtuell mikrofon i konferensapplikationer (som Google Meet, Zoom, etc.) för att starta realtidsöversättning."
       }
     }
   },
@@ -249,7 +249,7 @@
     "apiKeyHelp2": "2. Registrera dig eller logga in på ditt konto",
     "apiKeyHelp3": "3. Navigera till API nycklar-sektionen",
     "apiKeyHelp4": "4. Skapa en ny API nyckel och kopiera den hit",
-    "apiKeyHelpTooltip": "En API nyckel är som ett lösenord som låter Sokuji använda AI översättningstjänster. Du måste få en från din valda leverantör (som OpenAI).",
+    "apiKeyHelpTooltip": "En API nyckel är som ett lösenord som låter Eburon använda AI översättningstjänster. Du måste få en från din valda leverantör (som OpenAI).",
     "apiKeyHelpTooltip2": "Steg-för-steg guide:",
     "languages": "Språk",
     "uiLanguage": "Gränssnittsspråk",
@@ -259,7 +259,7 @@
   },
   "simpleConfig": {
     "interfaceLanguage": "Gränssnittsspråk",
-    "interfaceLanguageDesc": "Detta ändrar språket för Sokujis menyer och knappar. Det påverkar INTE språken du kan översätta mellan.",
+    "interfaceLanguageDesc": "Detta ändrar språket för Eburons menyer och knappar. Det påverkar INTE språken du kan översätta mellan.",
     "translationLanguages": "Översättningsspråk",
     "translationLanguagesDesc": "Välj vilket språk du talar (Ditt Språk) och vilket språk du vill höra översättningen på (Målspråk). Välj 'Automatisk Detektion' om du inte är säker på källspråket.",
     "yourLanguage": "Mitt språk",
@@ -269,7 +269,7 @@
     "signInDescription": "Registrera dig för förenklad upplevelse.",
     "targetLanguage": "Den andras språk",
     "microphone": "Mikrofon",
-    "microphoneDesc": "Välj mikrofon för att fånga ditt tal. Tala ditt språk i denna mikrofon, och Sokuji kommer att översätta allt den hör i realtid.",
+    "microphoneDesc": "Välj mikrofon för att fånga ditt tal. Tala ditt språk i denna mikrofon, och Eburon kommer att översätta allt den hör i realtid.",
     "speaker": "Högtalare",
     "speakerDesc": "Välj en högtalare för att övervaka den översatta utmatningen. Detta låter dig höra hur översättningen låter. Du kan stänga av den om övervakning inte behövs. Oavsett om den är på eller av, skickas det översatta ljudet alltid till den virtuella mikrofonen för andra deltagare att höra.",
     "systemAudio": "Deltagarljud",
@@ -361,7 +361,7 @@
     "noMic": "Mikrofon Krävs"
   },
   "userTypeSelection": {
-    "title": "Välkommen till Sokuji",
+    "title": "Välkommen till Eburon",
     "subtitle": "Välj din användartyp för att komma igång",
     "regular": {
       "title": "Vanlig användare",

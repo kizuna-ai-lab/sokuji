@@ -67,7 +67,7 @@ export class ModernAudioRecorder extends BaseAudioRecorder {
   }
 
   protected getLogPrefix(): string {
-    return '[Sokuji] [ModernAudioRecorder]';
+    return '[Eburon] [ModernAudioRecorder]';
   }
 
   protected shouldConnectToDestination(): boolean {

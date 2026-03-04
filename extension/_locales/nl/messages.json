@@ -1,15 +1,15 @@
 {
   "extensionName": {
-    "message": "Sokuji - AI-vergadervertaler"
+    "message": "Eburon - AI-vergadervertaler"
   },
   "extensionDescription": {
     "message": "AI-aangedreven directe spraakvertaling voor alle videovergaderingen. Doorbreek taalbarrières met realtime stemvertaling."
   },
   "popupTitle": {
-    "message": "Sokuji - Ondersteunde Sites"
+    "message": "Eburon - Ondersteunde Sites"
   },
-  "openSokuji": {
-    "message": "Sokuji Openen"
+  "openEburon": {
+    "message": "Eburon Openen"
   },
   "chromeWebStore": {
     "message": "Chrome Web Store"
@@ -17,8 +17,8 @@
   "edgeAddons": {
     "message": "Edge-invoegtoepassingen"
   },
-  "sokujiAvailable": {
-    "message": "✓ Sokuji is beschikbaar op $SITE_NAME$!",
+  "EburonAvailable": {
+    "message": "✓ Eburon is beschikbaar op $SITE_NAME$!",
     "placeholders": {
       "site_name": {
         "content": "$1",
@@ -27,19 +27,19 @@
     }
   },
   "clickToStart": {
-    "message": "Klik op \"Sokuji Openen\" hieronder om realtime vertaling te starten."
+    "message": "Klik op \"Eburon Openen\" hieronder om realtime vertaling te starten."
   },
   "quickStart": {
     "message": "Snelle Start:"
   },
   "quickStartInstructions": {
-    "message": "Configureer uw API-sleutel (OpenAI of Gemini) → Selecteer \"Sokuji_Virtual_Mic\" als microfoon → Begin met spreken!"
+    "message": "Configureer uw API-sleutel (OpenAI of Gemini) → Selecteer \"Eburon_Virtual_Mic\" als microfoon → Begin met spreken!"
   },
   "notSupported": {
     "message": "⚠ Niet ondersteund op deze site"
   },
   "currentlyOn": {
-    "message": "Momenteel op $HOSTNAME$. Sokuji werkt op deze platforms:",
+    "message": "Momenteel op $HOSTNAME$. Eburon werkt op deze platforms:",
     "placeholders": {
       "hostname": {
         "content": "$1",
@@ -75,16 +75,16 @@
     "message": "code bijdragen"
   },
   "gatherTownTitle": {
-    "message": "Sokuji voor Gather Town"
+    "message": "Eburon voor Gather Town"
   },
   "gatherTownGuidance": {
-    "message": "Om Sokuji te gebruiken, selecteer <strong>\"Sokuji Virtual Microphone\"</strong> in uw microfooninstellingen."
+    "message": "Om Eburon te gebruiken, selecteer <strong>\"Eburon Virtual Microphone\"</strong> in uw microfooninstellingen."
   },
   "wherebyTitle": {
-    "message": "Sokuji voor Whereby"
+    "message": "Eburon voor Whereby"
   },
   "wherebyGuidance": {
-    "message": "Om Sokuji te gebruiken, selecteer <strong>\"Sokuji Virtual Microphone\"</strong> in de microfooninstellingen en <strong>schakel ruisonderdrukking uit</strong> voor betere prestaties."
+    "message": "Om Eburon te gebruiken, selecteer <strong>\"Eburon Virtual Microphone\"</strong> in de microfooninstellingen en <strong>schakel ruisonderdrukking uit</strong> voor betere prestaties."
   },
   "gotIt": {
     "message": "Begrepen"
@@ -93,22 +93,22 @@
     "message": "Later herinneren"
   },
   "defaultTitle": {
-    "message": "Sokuji"
+    "message": "Eburon"
   },
   "defaultGuidance": {
-    "message": "Om Sokuji te gebruiken, selecteer \"Sokuji Virtual Microphone\" in uw microfooninstellingen."
+    "message": "Om Eburon te gebruiken, selecteer \"Eburon Virtual Microphone\" in uw microfooninstellingen."
   },
   "discordTitle": {
-    "message": "Sokuji voor Discord"
+    "message": "Eburon voor Discord"
   },
   "discordGuidance": {
-    "message": "Om Sokuji te gebruiken, selecteer <strong>\"Sokuji Virtual Microphone\"</strong> in uw microfooninstellingen en <strong>schakel Ruisonderdrukking uit</strong> in de Discord-spraakinstellingen voor betere prestaties."
+    "message": "Om Eburon te gebruiken, selecteer <strong>\"Eburon Virtual Microphone\"</strong> in uw microfooninstellingen en <strong>schakel Ruisonderdrukking uit</strong> in de Discord-spraakinstellingen voor betere prestaties."
   },
   "slackTitle": {
-    "message": "Sokuji voor Slack"
+    "message": "Eburon voor Slack"
   },
   "slackGuidance": {
-    "message": "Om Sokuji in Slack Huddles te gebruiken, <strong>start een Huddle</strong>, selecteer dan <strong>\"Sokuji Virtual Microphone\"</strong> in je video- en microfooninstellingen, en <strong>schakel ruisonderdrukking uit</strong> in audio- en videovoorkeuren voor betere prestaties."
+    "message": "Om Eburon in Slack Huddles te gebruiken, <strong>start een Huddle</strong>, selecteer dan <strong>\"Eburon Virtual Microphone\"</strong> in je video- en microfooninstellingen, en <strong>schakel ruisonderdrukking uit</strong> in audio- en videovoorkeuren voor betere prestaties."
   },
   "showMoreSites": {
     "message": "$COUNT$ meer sites tonen",
@@ -123,9 +123,9 @@
     "message": "Minder sites tonen"
   },
   "teamsTitle": {
-    "message": "Sokuji voor Microsoft Teams"
+    "message": "Eburon voor Microsoft Teams"
   },
   "teamsGuidance": {
-    "message": "Als u de volledige lijst met audioapparaten niet ziet in de Teams-instellingen:<br><strong>1)</strong> Schakel de Sokuji-extensie tijdelijk uit en vernieuw de pagina<br><strong>2)</strong> Sta Teams toegang tot uw microfoon en camera toe wanneer daarom wordt gevraagd<br><strong>3)</strong> Schakel de Sokuji-extensie opnieuw in en vernieuw de pagina opnieuw<br><strong>4)</strong> Sta Sokuji toegang tot uw microfoon toe wanneer daarom wordt gevraagd. Nu zou u zowel echte apparaten als <strong>\"Sokuji Virtual Microphone\"</strong> in uw instellingen moeten zien."
+    "message": "Als u de volledige lijst met audioapparaten niet ziet in de Teams-instellingen:<br><strong>1)</strong> Schakel de Eburon-extensie tijdelijk uit en vernieuw de pagina<br><strong>2)</strong> Sta Teams toegang tot uw microfoon en camera toe wanneer daarom wordt gevraagd<br><strong>3)</strong> Schakel de Eburon-extensie opnieuw in en vernieuw de pagina opnieuw<br><strong>4)</strong> Sta Eburon toegang tot uw microfoon toe wanneer daarom wordt gevraagd. Nu zou u zowel echte apparaten als <strong>\"Eburon Virtual Microphone\"</strong> in uw instellingen moeten zien."
   }
 }

@@ -51,7 +51,7 @@ export function createClient(
 
     case 'kizuna_ai':
       // Kizuna AI uses OpenAI-compatible API
-      return new NodeOpenAIClient(apiKey, apiHost || 'wss://sokuji.kizuna.ai');
+      return new NodeOpenAIClient(apiKey, apiHost || 'wss://Eburon.kizuna.ai');
 
     case 'gemini':
       throw new Error('Gemini provider not yet implemented in test runner');

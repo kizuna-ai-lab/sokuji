@@ -24,7 +24,7 @@ function initializePostHog() {
 
   // Skip initialization if no key configured (fork projects without PostHog)
   if (!isAnalyticsEnabled()) {
-    console.debug('[Sokuji] [Popup] PostHog analytics disabled (POSTHOG_KEY not set)');
+    console.debug('[Eburon] [Popup] PostHog analytics disabled (POSTHOG_KEY not set)');
     return;
   }
 
@@ -49,12 +49,12 @@ function initializePostHog() {
     // In development, opt out by default
     if (isDevelopment()) {
       posthogInstance.optOut();
-      console.debug('[Sokuji] [Popup] PostHog initialized in development mode - capturing is opt-out by default');
+      console.debug('[Eburon] [Popup] PostHog initialized in development mode - capturing is opt-out by default');
     }
     
-    console.debug('[Sokuji] [Popup] PostHog initialized');
+    console.debug('[Eburon] [Popup] PostHog initialized');
   } catch (error) {
-    console.error('[Sokuji] [Popup] Error initializing PostHog:', error);
+    console.error('[Eburon] [Popup] Error initializing PostHog:', error);
   }
 }
 
@@ -70,10 +70,10 @@ function trackEvent(eventName, properties = {}) {
       // Sanitize properties by removing sensitive data
       const sanitizedProperties = sanitizeProperties(properties);
       posthogInstance.capture(eventName, sanitizedProperties);
-      console.debug('[Sokuji] [Popup] Event tracked:', eventName, sanitizedProperties);
+      console.debug('[Eburon] [Popup] Event tracked:', eventName, sanitizedProperties);
     }
   } catch (error) {
-    console.error('[Sokuji] [Popup] Error tracking event:', error);
+    console.error('[Eburon] [Popup] Error tracking event:', error);
   }
 }
 
@@ -183,7 +183,7 @@ function getStoreInfo() {
   
   if (browser === 'edge') {
     return {
-      url: 'https://microsoftedge.microsoft.com/addons/detail/sokuji-aipowered-live-/dcmmcdkeibkalgdjlahlembodjhijhkm',
+      url: 'https://microsoftedge.microsoft.com/addons/detail/Eburon-aipowered-live-/dcmmcdkeibkalgdjlahlembodjhijhkm',
       textKey: 'edgeAddons'
     };
   } else {
@@ -211,7 +211,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Initialize popup
     await initializePopup();
   } catch (error) {
-    console.error('[Sokuji] [Popup] Error initializing popup:', error);
+    console.error('[Eburon] [Popup] Error initializing popup:', error);
     showErrorState();
   }
 });
@@ -292,7 +292,7 @@ function showSupportedState(hostname) {
   
   content.innerHTML = `
     <div class="status-message status-supported">
-      <strong>${getMessage('sokujiAvailable', [siteInfo.name])}</strong><br>
+      <strong>${getMessage('EburonAvailable', [siteInfo.name])}</strong><br>
       ${getMessage('clickToStart')}
     </div>
     
@@ -326,7 +326,7 @@ function showUnsupportedState(hostname) {
     </div>
 
     <div class="instructions">
-      <p><strong>${getMessage('needMoreSites')}</strong> ${getMessage('contactUs')} <a href="mailto:support@kizuna.ai" target="_blank">support@kizuna.ai</a> ${getMessage('contributeCode')} <a href="https://github.com/kizuna-ai-lab/sokuji" target="_blank">${getMessage('openSourceProject')}</a>.</p>
+      <p><strong>${getMessage('needMoreSites')}</strong> ${getMessage('contactUs')} <a href="mailto:support@kizuna.ai" target="_blank">support@kizuna.ai</a> ${getMessage('contributeCode')} <a href="https://github.com/kizuna-ai-lab/Eburon" target="_blank">${getMessage('openSourceProject')}</a>.</p>
     </div>
   `;
 }
@@ -353,7 +353,7 @@ function showErrorState() {
     </div>
 
     <div class="instructions">
-      <p><strong>${getMessage('needMoreSitesShort')}</strong> <a href="mailto:support@kizuna.ai" target="_blank">${getMessage('contactUsShort')}</a> ${getMessage('contributeCode')} <a href="https://github.com/kizuna-ai-lab/sokuji" target="_blank">${getMessage('contributeCodeShort')}</a>.</p>
+      <p><strong>${getMessage('needMoreSitesShort')}</strong> <a href="mailto:support@kizuna.ai" target="_blank">${getMessage('contactUsShort')}</a> ${getMessage('contributeCode')} <a href="https://github.com/kizuna-ai-lab/Eburon" target="_blank">${getMessage('contributeCodeShort')}</a>.</p>
     </div>
   `;
 }
@@ -399,7 +399,7 @@ function setupEventListeners(tabId, isSupported, currentHostname) {
         // Close the popup
         window.close();
       } catch (error) {
-        console.error('[Sokuji] [Popup] Error opening side panel:', error);
+        console.error('[Eburon] [Popup] Error opening side panel:', error);
         
         // Track side panel open error
         trackEvent('sidepanel_open_error', {
@@ -423,7 +423,7 @@ function setupEventListeners(tabId, isSupported, currentHostname) {
           
           window.close();
         } catch (fallbackError) {
-          console.error('[Sokuji] [Popup] Fallback failed:', fallbackError);
+          console.error('[Eburon] [Popup] Fallback failed:', fallbackError);
           
           // Track fallback error
           trackEvent('sidepanel_open_error', {
@@ -432,7 +432,7 @@ function setupEventListeners(tabId, isSupported, currentHostname) {
             error_message: fallbackError.message
           });
           
-          alert('Unable to open Sokuji. Please try refreshing the page.');
+          alert('Unable to open Eburon. Please try refreshing the page.');
         }
       }
     });

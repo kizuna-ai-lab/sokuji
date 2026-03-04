@@ -66,17 +66,17 @@ const SystemAudioSection: React.FC<SystemAudioSectionProps> = ({
       const audioService = ServiceFactory.getAudioService();
 
       if (source) {
-        console.info(`[Sokuji] [SystemAudioSection] Connecting system audio source: ${source.label}`);
+        console.info(`[Eburon] [SystemAudioSection] Connecting system audio source: ${source.label}`);
 
         // For Windows/macOS Electron, request loopback audio stream early
         // This tests the capture and holds the stream for when session starts
         if (isElectron() && !isExtension()) {
           if (isLoopbackPlatform()) {
-            console.info('[Sokuji] [SystemAudioSection] Checking screen recording permission...');
+            console.info('[Eburon] [SystemAudioSection] Checking screen recording permission...');
             const permissionGranted = await audioService.requestLoopbackAudioStream();
 
             if (!permissionGranted) {
-              console.error('[Sokuji] [SystemAudioSection] Screen recording permission not granted');
+              console.error('[Eburon] [SystemAudioSection] Screen recording permission not granted');
               setIsSystemAudioLoading(false);
               // Show permission denied warning on macOS
               if (isMacOS()) {
@@ -85,13 +85,13 @@ const SystemAudioSection: React.FC<SystemAudioSectionProps> = ({
               return; // Don't proceed if permission not granted
             }
 
-            console.info('[Sokuji] [SystemAudioSection] Screen recording permission granted');
+            console.info('[Eburon] [SystemAudioSection] Screen recording permission granted');
           }
         }
 
         await audioService.connectSystemAudioSource(source.deviceId);
 
-        setSystemAudioLoopbackSourceId('sokuji_system_audio_mic');
+        setSystemAudioLoopbackSourceId('Eburon_system_audio_mic');
         selectSystemAudioSource(source);
         if (!isSystemAudioCaptureEnabled) {
           toggleSystemAudioCapture();
@@ -103,9 +103,9 @@ const SystemAudioSection: React.FC<SystemAudioSectionProps> = ({
           change_type: 'connected',
           during_session: isSessionActive
         });
-        console.info(`[Sokuji] [SystemAudioSection] System audio source connected: ${source.label}`);
+        console.info(`[Eburon] [SystemAudioSection] System audio source connected: ${source.label}`);
       } else {
-        console.info('[Sokuji] [SystemAudioSection] Disconnecting system audio source');
+        console.info('[Eburon] [SystemAudioSection] Disconnecting system audio source');
 
         await audioService.disconnectSystemAudioSource();
 
@@ -121,10 +121,10 @@ const SystemAudioSection: React.FC<SystemAudioSectionProps> = ({
           change_type: 'disconnected',
           during_session: isSessionActive
         });
-        console.info('[Sokuji] [SystemAudioSection] System audio source disconnected');
+        console.info('[Eburon] [SystemAudioSection] System audio source disconnected');
       }
     } catch (error) {
-      console.error('[Sokuji] [SystemAudioSection] Error handling system audio source:', error);
+      console.error('[Eburon] [SystemAudioSection] Error handling system audio source:', error);
     } finally {
       setIsSystemAudioLoading(false);
     }
@@ -139,9 +139,9 @@ const SystemAudioSection: React.FC<SystemAudioSectionProps> = ({
     return null;
   }
 
-  // Filter out sokuji devices from monitor devices for extension output selection
+  // Filter out Eburon devices from monitor devices for extension output selection
   const filteredMonitorDevices = audioMonitorDevices.filter(
-    device => !device.label.toLowerCase().includes('sokuji')
+    device => !device.label.toLowerCase().includes('Eburon')
   );
 
   const handleDeviceClick = (device: AudioDevice | null, isSource: boolean) => {

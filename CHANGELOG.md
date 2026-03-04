@@ -251,7 +251,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Backend Migration**: Removed backend directory from repository (moved to separate sokuji-backend repo)
+- **Backend Migration**: Removed backend directory from repository (moved to separate Eburon-backend repo)
 
 ## [0.9.19] - 2025-02-01
 

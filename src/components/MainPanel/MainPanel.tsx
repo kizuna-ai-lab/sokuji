@@ -36,8 +36,6 @@ import { Provider, isOpenAICompatible } from '../../types/Provider';
 import AudioFeedbackWarning from '../AudioFeedbackWarning/AudioFeedbackWarning';
 import { getSafeAudioConfiguration, decodeAudioToWav } from '../../utils/audioUtils';
 import SimpleMainPanel from '../SimpleMainPanel/SimpleMainPanel';
-import { useAuth } from '../../lib/auth/hooks';
-import { useUserProfile } from '../../contexts/UserProfileContext';
 import { isExtension } from '../../utils/environment';
 
 interface MainPanelProps {}
@@ -45,12 +43,6 @@ interface MainPanelProps {}
 const MainPanel: React.FC<MainPanelProps> = () => {
   const { t } = useTranslation();
   const { trackEvent } = useAnalytics();
-  
-  // Get authentication state for Kizuna AI dynamic token fetching
-  const { getToken, isSignedIn, isLoaded } = useAuth();
-  
-  // Get user profile and quota information
-  const { quota, refetchAll } = useUserProfile();
   
   // State for session management
   const [isRecording, setIsRecording] = useState(false);
@@ -230,7 +222,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       setSystemAudioItems(client.getConversationItems());
     },
     onClose: async () => {
-      console.info('[Sokuji] [MainPanel] Participant audio client closed (triggered by speaker disconnect or manual stop)');
+      console.info('[Eburon] [MainPanel] Participant audio client closed (triggered by speaker disconnect or manual stop)');
     }
   }), [addRealtimeEvent]);
 
@@ -283,7 +275,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         // Initialize the audio service
         await audioService.initialize();
       } catch (error) {
-        console.error('[Sokuji] [MainPanel] Failed to initialize audio service:', error);
+        console.error('[Eburon] [MainPanel] Failed to initialize audio service:', error);
       }
     };
     
@@ -307,7 +299,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       );
       
       if (isRealVoicePassthroughEnabled) {
-        console.debug('[Sokuji] [MainPanel] Updated passthrough settings: enabled=', isRealVoicePassthroughEnabled, 'volume=', realVoicePassthroughVolume);
+        console.debug('[Eburon] [MainPanel] Updated passthrough settings: enabled=', isRealVoicePassthroughEnabled, 'volume=', realVoicePassthroughVolume);
       }
     }
   }, [isRealVoicePassthroughEnabled, realVoicePassthroughVolume, selectedInputDevice, selectedMonitorDevice, isMonitorDeviceOn]);
@@ -461,7 +453,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         }
       },
       onError: (event: any) => {
-        console.error('[Sokuji] [MainPanel]', event);
+        console.error('[Eburon] [MainPanel]', event);
         
         // Track API errors
         trackEvent('api_error', {
@@ -471,7 +463,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         });
       },
       onClose: async (event: any) => {
-        console.info('[Sokuji] [MainPanel] Connection closed, cleaning up session', event);
+        console.info('[Eburon] [MainPanel] Connection closed, cleaning up session', event);
 
         // Track disconnection
         trackEvent('connection_status', {
@@ -488,7 +480,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         const systemClient = systemAudioClientRef.current;
         if (systemClient) {
           try {
-            console.info('[Sokuji] [MainPanel] Speaker disconnected, also disconnecting participant client');
+            console.info('[Eburon] [MainPanel] Speaker disconnected, also disconnecting participant client');
             await systemClient.disconnect();
             systemClient.reset();
             systemAudioClientRef.current = null;
@@ -506,7 +498,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
               audioService.clearStreamingTrack('system-audio-assistant');
             }
           } catch (error) {
-            console.warn('[Sokuji] [MainPanel] Error disconnecting participant client:', error);
+            console.warn('[Eburon] [MainPanel] Error disconnecting participant client:', error);
           }
         }
 
@@ -520,7 +512,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
               await audioService.stopRecording();
             }
           } catch (error) {
-            console.warn('[Sokuji] [MainPanel] Error cleaning up recorder on close:', error);
+            console.warn('[Eburon] [MainPanel] Error cleaning up recorder on close:', error);
           }
 
           // Interrupt any playing audio
@@ -659,7 +651,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       } catch (error: any) {
         // Silently ignore if recording was never started (expected in push-to-talk mode)
         if (!error?.message?.includes('begin()')) {
-          console.warn('[Sokuji] [MainPanel] Error pausing recorder during disconnect:', error);
+          console.warn('[Eburon] [MainPanel] Error pausing recorder during disconnect:', error);
         }
       }
 
@@ -667,9 +659,9 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       if (audioService.isSystemAudioRecordingActive()) {
         try {
           await audioService.stopSystemAudioRecording();
-          console.info('[Sokuji] [MainPanel] Stopped system audio recording');
+          console.info('[Eburon] [MainPanel] Stopped system audio recording');
         } catch (error) {
-          console.warn('[Sokuji] [MainPanel] Error stopping system audio recording:', error);
+          console.warn('[Eburon] [MainPanel] Error stopping system audio recording:', error);
         }
       }
 
@@ -677,9 +669,9 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       if (audioService.isTabAudioRecordingActive?.()) {
         try {
           await audioService.stopTabAudioRecording();
-          console.info('[Sokuji] [MainPanel] Stopped tab audio recording');
+          console.info('[Eburon] [MainPanel] Stopped tab audio recording');
         } catch (error) {
-          console.warn('[Sokuji] [MainPanel] Error stopping tab audio recording:', error);
+          console.warn('[Eburon] [MainPanel] Error stopping tab audio recording:', error);
         }
       }
     }
@@ -700,9 +692,9 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         await systemClient.disconnect();
         systemClient.reset();
         systemAudioClientRef.current = null;
-        console.info('[Sokuji] [MainPanel] Disconnected system audio client');
+        console.info('[Eburon] [MainPanel] Disconnected system audio client');
       } catch (error) {
-        console.warn('[Sokuji] [MainPanel] Error disconnecting system audio client:', error);
+        console.warn('[Eburon] [MainPanel] Error disconnecting system audio client:', error);
       }
     }
 
@@ -713,7 +705,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       } catch (error: any) {
         // Silently ignore if recording was never started (expected in push-to-talk mode)
         if (!error?.message?.includes('begin()')) {
-          console.warn('[Sokuji] [MainPanel] Error ending recorder:', error);
+          console.warn('[Eburon] [MainPanel] Error ending recorder:', error);
         }
       }
 
@@ -724,15 +716,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       // Clear system audio assistant streaming track
       audioService.clearStreamingTrack('system-audio-assistant');
     }
-
-    // Refresh user profile and quota after session ends
-    // This ensures the token balance is updated after usage
-    if (refetchAll) {
-      refetchAll().catch(error => {
-        console.warn('[Sokuji] [MainPanel] Error refreshing user profile:', error);
-      });
-    }
-  }, [refetchAll]);
+  }, []);
 
   /**
    * Connect to conversation:
@@ -765,21 +749,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           apiKey = openAICompatibleSettings.apiKey;
           break;
         case Provider.KIZUNA_AI:
-          // For Kizuna AI, fetch a fresh session token from Better Auth
-          if (getToken && isLoaded && isSignedIn === true) {
-            console.log('[MainPanel] Fetching fresh auth session for Kizuna AI...');
-            try {
-              const freshToken = await getToken({ skipCache: true });
-              apiKey = freshToken || '';
-              console.log('[MainPanel] Successfully got fresh auth session for Kizuna AI');
-            } catch (error) {
-              console.error('[MainPanel] Failed to get fresh auth session:', error);
-              apiKey = kizunaAISettings.apiKey || '';
-            }
-          } else {
-            // Fallback to stored token if getToken is not available or user not signed in
-            apiKey = kizunaAISettings.apiKey || '';
-          }
+          apiKey = kizunaAISettings.apiKey || '';
           break;
         case Provider.GEMINI:
           apiKey = geminiSettings.apiKey;
@@ -837,19 +807,19 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           // Recording will be started below based on turn detection mode
           // Passthrough is already configured via the useEffect hook
         } else {
-          console.warn('[Sokuji] [MainPanel] No input device selected, cannot connect to microphone');
+          console.warn('[Eburon] [MainPanel] No input device selected, cannot connect to microphone');
         }
       } else {
-        console.debug('[Sokuji] [MainPanel] Input device is turned off, not connecting to microphone');
+        console.debug('[Eburon] [MainPanel] Input device is turned off, not connecting to microphone');
       }
 
       // If output device is ON, ensure monitor device is connected immediately
       if (isMonitorDeviceOn && selectedMonitorDevice &&
-        !selectedMonitorDevice.label.toLowerCase().includes('sokuji_virtual') &&
-        !selectedMonitorDevice.label.toLowerCase().includes('sokuji_system_audio') &&
-        !selectedMonitorDevice.label.includes('Sokuji Virtual Output') &&
-        !selectedMonitorDevice.label.toLowerCase().includes('sokujivirtualaudio')) {
-        console.debug('[Sokuji] [MainPanel] Setting up monitor device to:', selectedMonitorDevice.label);
+        !selectedMonitorDevice.label.toLowerCase().includes('Eburon_virtual') &&
+        !selectedMonitorDevice.label.toLowerCase().includes('Eburon_system_audio') &&
+        !selectedMonitorDevice.label.includes('Eburon Virtual Output') &&
+        !selectedMonitorDevice.label.toLowerCase().includes('Eburonvirtualaudio')) {
+        console.debug('[Eburon] [MainPanel] Setting up monitor device to:', selectedMonitorDevice.label);
 
         // Trigger the selectMonitorDevice function to reconnect the monitor
         // This will use the audio service properly through the AudioContext
@@ -883,7 +853,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       } catch (connectError: any) {
         // If WebRTC connection failed, try fallback to WebSocket
         if (useWebRTC) {
-          console.warn('[Sokuji] [MainPanel] WebRTC connection failed, falling back to WebSocket:', connectError);
+          console.warn('[Eburon] [MainPanel] WebRTC connection failed, falling back to WebSocket:', connectError);
 
           // Create a new client with WebSocket transport
           useWebRTC = false;
@@ -918,7 +888,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
               message: t('logs.webrtcFallback', 'WebRTC connection failed, using WebSocket instead')
             });
 
-            console.info('[Sokuji] [MainPanel] WebSocket fallback connection established');
+            console.info('[Eburon] [MainPanel] WebSocket fallback connection established');
           } catch (fallbackError: any) {
             // Track fallback connection failure
             trackEvent('api_error', {
@@ -965,19 +935,19 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           if (clientRef.current) {
             // Debug logging every 100 calls to verify AI client receives data
             if (audioCallbackCount % 100 === 0) {
-              console.debug(`[Sokuji] [MainPanel] Sending audio to client: chunk ${audioCallbackCount}, PCM length: ${data.mono.length}`);
+              console.debug(`[Eburon] [MainPanel] Sending audio to client: chunk ${audioCallbackCount}, PCM length: ${data.mono.length}`);
             }
             audioCallbackCount++;
             clientRef.current.appendInputAudio(data.mono);
           }
         });
       } else if (usesNativeCapture) {
-        console.info('[Sokuji] [MainPanel] Native MediaStreamTrack mode - audio flows automatically');
+        console.info('[Eburon] [MainPanel] Native MediaStreamTrack mode - audio flows automatically');
 
         // Apply initial mute state based on isMonitorDeviceOn (WebRTC only, not PalabraAI)
         if (useWebRTC && typeof clientRef.current?.setOutputMuted === 'function') {
           clientRef.current.setOutputMuted(!isMonitorDeviceOn);
-          console.debug('[Sokuji] [MainPanel] WebRTC initial mute state:', !isMonitorDeviceOn);
+          console.debug('[Eburon] [MainPanel] WebRTC initial mute state:', !isMonitorDeviceOn);
         }
       }
 
@@ -995,7 +965,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       if (shouldCaptureParticipantAudio) {
         try {
           const captureMode = isExtension() ? 'tab' : 'system';
-          console.info(`[Sokuji] [MainPanel] Starting participant audio client (${captureMode} capture)...`);
+          console.info(`[Eburon] [MainPanel] Starting participant audio client (${captureMode} capture)...`);
 
           // Create participant client using helper
           systemAudioClientRef.current = createAIClient(modelName, apiKey);
@@ -1007,14 +977,14 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           // Create and connect with participant session config
           const participantSessionConfig = createParticipantSessionConfig();
           await participantClient.connect(participantSessionConfig);
-          console.info(`[Sokuji] [MainPanel] Participant audio client connected (${captureMode}, text-only, swapped languages, semantic VAD)`);
+          console.info(`[Eburon] [MainPanel] Participant audio client connected (${captureMode}, text-only, swapped languages, semantic VAD)`);
 
           // Start recording from appropriate source based on environment
           let participantAudioCallbackCount = 0;
           const createAudioDataCallback = (client: IClient) => (data: { mono: Int16Array; raw: Int16Array }) => {
             if (client) {
               if (participantAudioCallbackCount % 100 === 0) {
-                console.debug(`[Sokuji] [MainPanel] Sending ${captureMode} audio to client: chunk ${participantAudioCallbackCount}, PCM length: ${data.mono.length}`);
+                console.debug(`[Eburon] [MainPanel] Sending ${captureMode} audio to client: chunk ${participantAudioCallbackCount}, PCM length: ${data.mono.length}`);
               }
               participantAudioCallbackCount++;
               client.appendInputAudio(data.mono);
@@ -1024,7 +994,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           if (isExtension()) {
             // Extension: start tab audio recording with optional output device for passthrough
             const outputDeviceId = participantAudioOutputDevice?.deviceId;
-            console.info('[Sokuji] [MainPanel] Starting tab audio recording with output device:', outputDeviceId || 'default');
+            console.info('[Eburon] [MainPanel] Starting tab audio recording with output device:', outputDeviceId || 'default');
             await audioServiceRef.current.startTabAudioRecording(
               createAudioDataCallback(participantClient),
               outputDeviceId
@@ -1036,9 +1006,9 @@ const MainPanel: React.FC<MainPanelProps> = () => {
             );
           }
 
-          console.info(`[Sokuji] [MainPanel] Participant audio recording started (${captureMode})`);
+          console.info(`[Eburon] [MainPanel] Participant audio recording started (${captureMode})`);
         } catch (error) {
-          console.error('[Sokuji] [MainPanel] Failed to start participant audio client:', error);
+          console.error('[Eburon] [MainPanel] Failed to start participant audio client:', error);
           // Don't fail the whole session, just log the error
         }
       }
@@ -1064,7 +1034,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         }
       }, 30000); // Every 30 seconds
     } catch (error: any) {
-      console.error('[Sokuji] [MainPanel] Failed to initialize session:', error);
+      console.error('[Eburon] [MainPanel] Failed to initialize session:', error);
       
       // Track session initialization failure
       trackEvent('error_occurred', {
@@ -1091,9 +1061,6 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     volcengineAST2Settings,
     provider,
     transportType,
-    isLoaded,
-    isSignedIn,
-    getToken,
     getCurrentProviderSettings,
     getSessionConfig,
     setupClientListeners,
@@ -1118,7 +1085,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   const startRecording = useCallback(async () => {
     // Don't start recording if input device is turned off
     if (!isInputDeviceOn) {
-      console.info('[Sokuji] [MainPanel] Input device is turned off, not starting recording');
+      console.info('[Eburon] [MainPanel] Input device is turned off, not starting recording');
       return;
     }
 
@@ -1136,7 +1103,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     const audioService = audioServiceRef.current;
 
     if (!audioService) {
-      console.error('[Sokuji] [MainPanel] Audio service not available');
+      console.error('[Eburon] [MainPanel] Audio service not available');
       setIsRecording(false);
       return;
     }
@@ -1149,7 +1116,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       const recorder = audioService.getRecorder();
       if (recorder.isRecording()) {
         // If somehow we're already recording, pause first
-        console.warn('[Sokuji] [MainPanel] ModernAudioRecorder was already recording, pausing first');
+        console.warn('[Eburon] [MainPanel] ModernAudioRecorder was already recording, pausing first');
         await audioService.pauseRecording();
       }
 
@@ -1160,7 +1127,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         if (client) {
           // Debug logging for push-to-talk (every 50 chunks)
           if (pttAudioCallbackCount % 50 === 0) {
-            console.debug(`[Sokuji] [MainPanel] PTT: Sending audio to client: chunk ${pttAudioCallbackCount}, PCM length: ${data.mono.length}`);
+            console.debug(`[Eburon] [MainPanel] PTT: Sending audio to client: chunk ${pttAudioCallbackCount}, PCM length: ${data.mono.length}`);
           }
           pttAudioCallbackCount++;
 
@@ -1173,7 +1140,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         }
       });
     } catch (error) {
-      console.error('[Sokuji] [MainPanel] Error starting recording:', error);
+      console.error('[Eburon] [MainPanel] Error starting recording:', error);
       setIsRecording(false);
     }
   }, [isInputDeviceOn, isRecording, selectedInputDevice]);
@@ -1219,7 +1186,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           for (let i = 0; i < silenceFrames; i++) {
             client.appendInputAudio(silence);
           }
-          console.debug('[Sokuji] [MainPanel] PTT: Sent 500ms silence frames for AST2 VAD end detection');
+          console.debug('[Eburon] [MainPanel] PTT: Sent 500ms silence frames for AST2 VAD end detection');
         }
 
         // Stop recording
@@ -1232,12 +1199,12 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           // Model drift prevention is handled by the silent anchor mechanism (useEffect)
           client.createResponse();
         } else if (client && provider !== Provider.VOLCENGINE_AST2) {
-          console.debug(`[Sokuji] [MainPanel] PTT: Skipping response - only ${pttVoiceChunkCountRef.current} voice chunks detected (minimum: ${MIN_VOICE_CHUNKS})`);
+          console.debug(`[Eburon] [MainPanel] PTT: Skipping response - only ${pttVoiceChunkCountRef.current} voice chunks detected (minimum: ${MIN_VOICE_CHUNKS})`);
         }
       }
     } catch (error) {
       // If there's an error during pause (e.g., already paused), log it but don't crash
-      console.error('[Sokuji] [MainPanel] Error stopping recording:', error);
+      console.error('[Eburon] [MainPanel] Error stopping recording:', error);
 
       // Reset the recording state to ensure UI is consistent
       setIsRecording(false);
@@ -1320,7 +1287,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     try {
       const audioService = audioServiceRef.current;
       if (!audioService) {
-        console.error('[Sokuji] [MainPanel] Audio service not available');
+        console.error('[Eburon] [MainPanel] Audio service not available');
         return;
       }
 
@@ -1340,7 +1307,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       
       // Check if the item has audio data
       if (!item.formatted?.audio) {
-        console.error('[Sokuji] [MainPanel] No audio data found in the item');
+        console.error('[Eburon] [MainPanel] No audio data found in the item');
         return;
       }
 
@@ -1349,10 +1316,10 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
       // If output device is ON, ensure monitor device is connected
       if (isMonitorDeviceOn && selectedMonitorDevice &&
-        !selectedMonitorDevice.label.toLowerCase().includes('sokuji_virtual') &&
-        !selectedMonitorDevice.label.toLowerCase().includes('sokuji_system_audio') &&
-        !selectedMonitorDevice.label.includes('Sokuji Virtual Output') &&
-        !selectedMonitorDevice.label.toLowerCase().includes('sokujivirtualaudio')) {
+        !selectedMonitorDevice.label.toLowerCase().includes('Eburon_virtual') &&
+        !selectedMonitorDevice.label.toLowerCase().includes('Eburon_system_audio') &&
+        !selectedMonitorDevice.label.includes('Eburon Virtual Output') &&
+        !selectedMonitorDevice.label.toLowerCase().includes('Eburonvirtualaudio')) {
         selectMonitorDevice(selectedMonitorDevice);
       }
 
@@ -1366,7 +1333,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       } else if (itemAudioData instanceof ArrayBuffer) {
         audioService.addAudioData(new Int16Array(itemAudioData), item.id, shouldPlayAudio, { itemId: item.id });
       } else {
-        console.error('[Sokuji] [MainPanel] Unsupported audio data type');
+        console.error('[Eburon] [MainPanel] Unsupported audio data type');
         return;
       }
       
@@ -1383,26 +1350,26 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       if (audioData instanceof Int16Array) {
         // If it's a proper Int16Array, use its length
         audioLength = audioData.length;
-        console.debug('[Sokuji] [MainPanel] Audio is Int16Array with length: ' + audioLength);
+        console.debug('[Eburon] [MainPanel] Audio is Int16Array with length: ' + audioLength);
       } else if (audioData && typeof audioData === 'object') {
         if ('byteLength' in audioData && typeof audioData.byteLength === 'number') {
           // If it has byteLength property
           audioLength = audioData.byteLength / 2; // 2 bytes per Int16 sample
-          console.debug('[Sokuji] [MainPanel] Audio has byteLength: ' + audioData.byteLength + ', calculated length: ' + audioLength);
+          console.debug('[Eburon] [MainPanel] Audio has byteLength: ' + audioData.byteLength + ', calculated length: ' + audioLength);
         } else if ('length' in audioData && typeof audioData.length === 'number') {
           // If it has a numeric length property
           audioLength = audioData.length;
-          console.debug('[Sokuji] [MainPanel] Audio has length property: ' + audioLength);
+          console.debug('[Eburon] [MainPanel] Audio has length property: ' + audioLength);
         } else {
           // Last resort: count the keys in the object
           audioLength = Object.keys(audioData).length;
-          console.debug('[Sokuji] [MainPanel] Audio length calculated from object keys: ' + audioLength);
+          console.debug('[Eburon] [MainPanel] Audio length calculated from object keys: ' + audioLength);
         }
       }
       
       // Calculate duration in milliseconds (24kHz sample rate)
       const durationMs = (audioLength / 24000) * 1000;
-      console.debug('[Sokuji] [MainPanel] Audio duration: ' + durationMs + 'ms');
+      console.debug('[Eburon] [MainPanel] Audio duration: ' + durationMs + 'ms');
       
       // Use a minimum duration if calculated duration is too short
       const actualDurationMs = Math.max(durationMs, 1000);
@@ -1412,9 +1379,9 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         setPlayingItemId(prevId => prevId === currentItemId ? null : prevId);
       }, actualDurationMs + 50); // Add 50ms buffer
       
-      console.info('[Sokuji] [MainPanel] Playing audio from item ' + item.id);
+      console.info('[Eburon] [MainPanel] Playing audio from item ' + item.id);
     } catch (error) {
-      console.error('[Sokuji] [MainPanel] Error playing audio:', error);
+      console.error('[Eburon] [MainPanel] Error playing audio:', error);
       setPlayingItemId(null);
     }
   }, [isMonitorDeviceOn, selectedMonitorDevice, selectMonitorDevice, playingItemId]);
@@ -1426,7 +1393,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     try {
       const audioService = audioServiceRef.current;
       if (!audioService) {
-        console.error('[Sokuji] [MainPanel] Audio service not available');
+        console.error('[Eburon] [MainPanel] Audio service not available');
         return;
       }
 
@@ -1434,7 +1401,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       if (isTestTonePlaying) {
         await audioService.interruptAudio();
         setIsTestTonePlaying(false);
-        console.info('[Sokuji] [MainPanel] Stopped test tone');
+        console.info('[Eburon] [MainPanel] Stopped test tone');
         return;
       }
 
@@ -1445,15 +1412,15 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       
       // Add debug logging to check ModernAudioPlayer's interruptedTracks
       const modernAudioPlayer = audioService.getWavStreamPlayer();
-      console.debug('[Sokuji] [MainPanel] ModernAudioPlayer before playing test tone');
+      console.debug('[Eburon] [MainPanel] ModernAudioPlayer before playing test tone');
       
       // Check if test-tone is in interrupted tracks
       const interruptedTracks = (modernAudioPlayer as any).interruptedTracks;
       if (interruptedTracks instanceof Set && interruptedTracks.has('test-tone')) {
-        console.debug('[Sokuji] [MainPanel] test-tone is in interrupted tracks, will be cleared by clearInterruptedTracks');
+        console.debug('[Eburon] [MainPanel] test-tone is in interrupted tracks, will be cleared by clearInterruptedTracks');
       }
       
-      console.debug('[Sokuji] [MainPanel] Cleared interrupted tracks before playing test tone');
+      console.debug('[Eburon] [MainPanel] Cleared interrupted tracks before playing test tone');
 
       // Fetch the test tone file
       let testToneUrl = '/assets/test-tone.mp3';
@@ -1475,12 +1442,12 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       const tempContext = new AudioContext({ sampleRate: targetSampleRate });
       const audioBuffer = await tempContext.decodeAudioData(arrayBuffer);
 
-      console.debug(`[Sokuji] [MainPanel] Test tone audio info - Sample rate: ${audioBuffer.sampleRate}Hz, Duration: ${audioBuffer.duration}s, Channels: ${audioBuffer.numberOfChannels}`);
+      console.debug(`[Eburon] [MainPanel] Test tone audio info - Sample rate: ${audioBuffer.sampleRate}Hz, Duration: ${audioBuffer.duration}s, Channels: ${audioBuffer.numberOfChannels}`);
 
       // Check if we need to resample
       let processedBuffer = audioBuffer;
       if (audioBuffer.sampleRate !== targetSampleRate) {
-        console.debug(`[Sokuji] [MainPanel] Resampling from ${audioBuffer.sampleRate}Hz to ${targetSampleRate}Hz`);
+        console.debug(`[Eburon] [MainPanel] Resampling from ${audioBuffer.sampleRate}Hz to ${targetSampleRate}Hz`);
         // Create an offline context for resampling
         const offlineContext = new OfflineAudioContext(
           audioBuffer.numberOfChannels,
@@ -1500,7 +1467,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       // Mix down to mono if stereo by averaging channels
       let monoData;
       if (processedBuffer.numberOfChannels > 1) {
-        console.debug('[Sokuji] [MainPanel] Converting stereo to mono');
+        console.debug('[Eburon] [MainPanel] Converting stereo to mono');
         monoData = new Float32Array(processedBuffer.length);
         // Get the data from both channels
         const leftChannel = new Float32Array(processedBuffer.length);
@@ -1535,20 +1502,20 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
       // If output device is ON, ensure monitor device is connected immediately
       if (isMonitorDeviceOn && selectedMonitorDevice &&
-        !selectedMonitorDevice.label.toLowerCase().includes('sokuji_virtual') &&
-        !selectedMonitorDevice.label.toLowerCase().includes('sokuji_system_audio') &&
-        !selectedMonitorDevice.label.includes('Sokuji Virtual Output') &&
-        !selectedMonitorDevice.label.toLowerCase().includes('sokujivirtualaudio')) {
-        console.info('[Sokuji] [MainPanel] Test tone: Ensuring monitor device is connected:', selectedMonitorDevice.label);
+        !selectedMonitorDevice.label.toLowerCase().includes('Eburon_virtual') &&
+        !selectedMonitorDevice.label.toLowerCase().includes('Eburon_system_audio') &&
+        !selectedMonitorDevice.label.includes('Eburon Virtual Output') &&
+        !selectedMonitorDevice.label.toLowerCase().includes('Eburonvirtualaudio')) {
+        console.info('[Eburon] [MainPanel] Test tone: Ensuring monitor device is connected:', selectedMonitorDevice.label);
 
         // Trigger the selectMonitorDevice function to reconnect the monitor
         // This will use the audio service properly through the AudioContext
         selectMonitorDevice(selectedMonitorDevice);
       }
 
-      console.info('[Sokuji] [MainPanel] Playing test tone');
+      console.info('[Eburon] [MainPanel] Playing test tone');
     } catch (error) {
-      console.error('[Sokuji] [MainPanel] Error playing test tone:', error);
+      console.error('[Eburon] [MainPanel] Error playing test tone:', error);
       setIsTestTonePlaying(false);
     }
   }, [isMonitorDeviceOn, selectedMonitorDevice, selectMonitorDevice, isTestTonePlaying]);
@@ -1763,7 +1730,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                 0,
                 8
               );
-              console.warn('[Sokuji] [MainPanel] Error getting frequencies from WavStreamPlayer:', error);
+              console.warn('[Eburon] [MainPanel] Error getting frequencies from WavStreamPlayer:', error);
             }
           }
         }
@@ -1818,7 +1785,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         
         // If input device is turned off, pause recording
         if (!isInputDeviceOn) {
-          console.info('[Sokuji] [MainPanel] Input device turned off - pausing recording');
+          console.info('[Eburon] [MainPanel] Input device turned off - pausing recording');
           if (recorder.isRecording()) {
             await audioService.pauseRecording();
             setIsRecording(false);
@@ -1839,14 +1806,14 @@ const MainPanel: React.FC<MainPanelProps> = () => {
             turnDetectionDisabled = volcengineAST2Settings.turnDetectionMode === 'Push-to-Talk';
           }
           if (!turnDetectionDisabled) {
-            console.info('[Sokuji] [MainPanel] Input device turned on - starting recording in automatic mode');
+            console.info('[Eburon] [MainPanel] Input device turned on - starting recording in automatic mode');
             if (!recorder.isRecording()) {
               let autoAudioCallbackCount = 0;
               await audioService.startRecording(selectedInputDevice?.deviceId, (data) => {
                 if (client) {
                   // Debug logging for automatic mode (every 100 chunks)
                   if (autoAudioCallbackCount % 100 === 0) {
-                    console.debug(`[Sokuji] [MainPanel] Auto: Sending audio to client: chunk ${autoAudioCallbackCount}, PCM length: ${data.mono.length}`);
+                    console.debug(`[Eburon] [MainPanel] Auto: Sending audio to client: chunk ${autoAudioCallbackCount}, PCM length: ${data.mono.length}`);
                   }
                   autoAudioCallbackCount++;
                   client.appendInputAudio(data.mono);
@@ -1858,7 +1825,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           // The user needs to press the button or Space key
         }
       } catch (error) {
-        console.error('[Sokuji] [MainPanel] Error updating recording state:', error);
+        console.error('[Eburon] [MainPanel] Error updating recording state:', error);
       }
     };
 
@@ -1880,26 +1847,26 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     const updateMonitorDevice = async () => {
       try {
         // Check if the selectedMonitorDevice is a virtual device (which shouldn't be used as monitor)
-        const isVirtualDevice = selectedMonitorDevice?.label.toLowerCase().includes('sokuji_virtual') ||
-          selectedMonitorDevice?.label.toLowerCase().includes('sokuji_system_audio') ||
-          selectedMonitorDevice?.label.includes('Sokuji Virtual Output') ||
-          selectedMonitorDevice?.label.toLowerCase().includes('sokujivirtualaudio');
+        const isVirtualDevice = selectedMonitorDevice?.label.toLowerCase().includes('Eburon_virtual') ||
+          selectedMonitorDevice?.label.toLowerCase().includes('Eburon_system_audio') ||
+          selectedMonitorDevice?.label.includes('Eburon Virtual Output') ||
+          selectedMonitorDevice?.label.toLowerCase().includes('Eburonvirtualaudio');
 
         if (isVirtualDevice) {
-          console.info('[Sokuji] [MainPanel] Selected monitor device is a virtual device - not using as monitor');
+          console.info('[Eburon] [MainPanel] Selected monitor device is a virtual device - not using as monitor');
           return;
         }
 
         // If monitor device is turned on, connect the monitor
         if (isMonitorDeviceOn && selectedMonitorDevice) {
-          console.info(`[Sokuji] [MainPanel] Setting up monitor output to: ${selectedMonitorDevice.label}`);
+          console.info(`[Eburon] [MainPanel] Setting up monitor output to: ${selectedMonitorDevice.label}`);
 
           // Trigger the selectMonitorDevice function to reconnect the monitor
           // This will use the audio service properly through the AudioContext
           selectMonitorDevice(selectedMonitorDevice);
         }
       } catch (error) {
-        console.error('[Sokuji] [MainPanel] Error setting up monitor device:', error);
+        console.error('[Eburon] [MainPanel] Error setting up monitor device:', error);
       }
     };
 
@@ -2117,7 +2084,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     // Handle device switching
     const handleDeviceSwitch = async () => {
       try {
-        console.info(`[Sokuji] [MainPanel] Switching recording device during active session to: ${selectedInputDevice?.label}`);
+        console.info(`[Eburon] [MainPanel] Switching recording device during active session to: ${selectedInputDevice?.label}`);
         await audioService.switchRecordingDevice!(selectedInputDevice?.deviceId);
         
         // Track successful device change during active session
@@ -2128,7 +2095,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           during_session: true
         });
       } catch (error: any) {
-        console.error('[Sokuji] [MainPanel] Failed to switch recording device:', error);
+        console.error('[Eburon] [MainPanel] Failed to switch recording device:', error);
         
         // Track failed device change
         trackEvent('audio_error', {
@@ -2163,7 +2130,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     // Check if client supports muting
     if (typeof client.setOutputMuted === 'function') {
       client.setOutputMuted(!isMonitorDeviceOn);
-      console.debug('[Sokuji] [MainPanel] WebRTC output muted:', !isMonitorDeviceOn);
+      console.debug('[Eburon] [MainPanel] WebRTC output muted:', !isMonitorDeviceOn);
     }
   }, [isMonitorDeviceOn, isSessionActive, isUsingWebRTC]);
 
@@ -2181,9 +2148,9 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     if (selectedInputDevice?.deviceId && typeof client.switchInputDevice === 'function') {
       client.switchInputDevice(selectedInputDevice.deviceId)
         .then(() => {
-          console.debug('[Sokuji] [MainPanel] WebRTC input device switched to:', selectedInputDevice.deviceId);
+          console.debug('[Eburon] [MainPanel] WebRTC input device switched to:', selectedInputDevice.deviceId);
         })
-        .catch(err => console.error('[Sokuji] [MainPanel] Failed to switch WebRTC input device:', err));
+        .catch(err => console.error('[Eburon] [MainPanel] Failed to switch WebRTC input device:', err));
     }
   }, [selectedInputDevice?.deviceId, isSessionActive, isUsingWebRTC]);
 
@@ -2198,9 +2165,9 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     if (selectedMonitorDevice?.deviceId && typeof client.switchOutputDevice === 'function') {
       client.switchOutputDevice(selectedMonitorDevice.deviceId)
         .then(() => {
-          console.debug('[Sokuji] [MainPanel] WebRTC output device switched to:', selectedMonitorDevice.deviceId);
+          console.debug('[Eburon] [MainPanel] WebRTC output device switched to:', selectedMonitorDevice.deviceId);
         })
-        .catch(err => console.error('[Sokuji] [MainPanel] Failed to switch WebRTC output device:', err));
+        .catch(err => console.error('[Eburon] [MainPanel] Failed to switch WebRTC output device:', err));
     }
   }, [selectedMonitorDevice?.deviceId, isSessionActive, isUsingWebRTC]);
 
@@ -2515,7 +2482,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                 connectConversation();
               }
             }}
-            disabled={(!isSessionActive && (!isApiKeyValid || availableModels.length === 0 || loadingModels || (provider === Provider.KIZUNA_AI && quota && (quota.balance === undefined || quota.balance < 0 || quota.frozen)))) || isInitializing}
+            disabled={(!isSessionActive && (!isApiKeyValid || availableModels.length === 0 || loadingModels)) || isInitializing}
           >
             {isInitializing ? (
               <>
@@ -2539,12 +2506,6 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                 )}
                 {isApiKeyValid && loadingModels && (
                   <span className="tooltip">{t('mainPanel.modelsLoading')}</span>
-                )}
-                {isApiKeyValid && provider === Provider.KIZUNA_AI && quota && quota.frozen && (
-                  <span className="tooltip">{t('mainPanel.walletFrozen', 'Wallet is frozen. Please contact support.')}</span>
-                )}
-                {isApiKeyValid && provider === Provider.KIZUNA_AI && quota && quota.balance !== undefined && quota.balance < 0 && (
-                  <span className="tooltip">{t('mainPanel.insufficientBalance', 'Insufficient token balance: {{balance}} tokens', { balance: quota.balance })}</span>
                 )}
               </>
             )}

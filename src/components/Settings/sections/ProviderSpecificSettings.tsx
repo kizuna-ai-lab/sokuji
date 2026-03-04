@@ -36,7 +36,6 @@ import Tooltip from '../../Tooltip/Tooltip';
 import { FilteredModel } from '../../../services/interfaces/IClient';
 import { Provider, isOpenAICompatible } from '../../../types/Provider';
 import { useAnalytics } from '../../../lib/analytics';
-import { useAuth } from '../../../lib/auth/hooks';
 
 interface ProviderSpecificSettingsProps {
   config: ProviderConfig;
@@ -59,7 +58,6 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
   loadingModels,
   fetchAvailableModels
 }) => {
-  const { getToken } = useAuth();
   // Settings from store
   const provider = useProvider();
   const systemInstructions = useSystemInstructions();
@@ -110,7 +108,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
     } else if (provider === Provider.VOLCENGINE_AST2) {
       updateVolcengineAST2Settings({ [key]: value });
     } else {
-      console.warn('[Sokuji][ProviderSpecificSettings] Unsupported provider:', provider);
+      console.warn('[Eburon][ProviderSpecificSettings] Unsupported provider:', provider);
     }
   };
 
@@ -469,13 +467,9 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
 
     const handleRefreshModels = async () => {
       try {
-        // Pass getAuthToken for Kizuna AI provider
-        const getAuthToken = provider === Provider.KIZUNA_AI && getToken ? 
-          () => getToken() : undefined;
-        
-        await fetchAvailableModels(getAuthToken);
+        await fetchAvailableModels();
       } catch (error) {
-        console.error('[Sokuji][ProviderSpecificSettings] Error refreshing models:', error);
+        console.error('[Eburon][ProviderSpecificSettings] Error refreshing models:', error);
       }
     };
 

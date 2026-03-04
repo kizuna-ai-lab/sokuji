@@ -1,0 +1,238 @@
+{"instruction": "Translate to ceb and speak: Hello, how are you?", "input": "", "output": "Kumusta, kumusta ka?", "language": "ceb", "task": "translate_and_speak"}
+{"instruction": "Say the following in ceb:", "input": "Kumusta, kumusta ka?", "output": "Kumusta, kumusta ka?", "language": "ceb", "task": "tts"}
+{"instruction": "Translate to ceb and speak: Good morning.", "input": "", "output": "Maayong buntag.", "language": "ceb", "task": "translate_and_speak"}
+{"instruction": "Say the following in ceb:", "input": "Maayong buntag.", "output": "Maayong buntag.", "language": "ceb", "task": "tts"}
+{"instruction": "Translate to ceb and speak: Thank you very much.", "input": "", "output": "Salamat kaayo.", "language": "ceb", "task": "translate_and_speak"}
+{"instruction": "Say the following in ceb:", "input": "Salamat kaayo.", "output": "Salamat kaayo.", "language": "ceb", "task": "tts"}
+{"instruction": "Translate to ceb and speak: Goodbye, see you later.", "input": "", "output": "Babay, magkita ta.", "language": "ceb", "task": "translate_and_speak"}
+{"instruction": "Say the following in ceb:", "input": "Babay, magkita ta.", "output": "Babay, magkita ta.", "language": "ceb", "task": "tts"}
+{"instruction": "Translate to ceb and speak: What is your name?", "input": "", "output": "Unsa imong ngalan?", "language": "ceb", "task": "translate_and_speak"}
+{"instruction": "Say the following in ceb:", "input": "Unsa imong ngalan?", "output": "Unsa imong ngalan?", "language": "ceb", "task": "tts"}
+{"instruction": "Translate to ceb and speak: I do not understand.", "input": "", "output": "Wala ko kasabot.", "language": "ceb", "task": "translate_and_speak"}
+{"instruction": "Say the following in ceb:", "input": "Wala ko kasabot.", "output": "Wala ko kasabot.", "language": "ceb", "task": "tts"}
+{"instruction": "Translate to ilo and speak: Hello, how are you?", "input": "", "output": "Naimbag, kumusta ka?", "language": "ilo", "task": "translate_and_speak"}
+{"instruction": "Say the following in ilo:", "input": "Naimbag, kumusta ka?", "output": "Naimbag, kumusta ka?", "language": "ilo", "task": "tts"}
+{"instruction": "Translate to ilo and speak: Good morning.", "input": "", "output": "Naimbag a bigat.", "language": "ilo", "task": "translate_and_speak"}
+{"instruction": "Say the following in ilo:", "input": "Naimbag a bigat.", "output": "Naimbag a bigat.", "language": "ilo", "task": "tts"}
+{"instruction": "Translate to ilo and speak: Thank you very much.", "input": "", "output": "Agyamanak unay.", "language": "ilo", "task": "translate_and_speak"}
+{"instruction": "Say the following in ilo:", "input": "Agyamanak unay.", "output": "Agyamanak unay.", "language": "ilo", "task": "tts"}
+{"instruction": "Translate to ilo and speak: What is your name?", "input": "", "output": "Anya ti naganmo?", "language": "ilo", "task": "translate_and_speak"}
+{"instruction": "Say the following in ilo:", "input": "Anya ti naganmo?", "output": "Anya ti naganmo?", "language": "ilo", "task": "tts"}
+{"instruction": "Translate to hil and speak: Hello, how are you?", "input": "", "output": "Kamusta, kamusta ka?", "language": "hil", "task": "translate_and_speak"}
+{"instruction": "Say the following in hil:", "input": "Kamusta, kamusta ka?", "output": "Kamusta, kamusta ka?", "language": "hil", "task": "tts"}
+{"instruction": "Translate to hil and speak: Good morning.", "input": "", "output": "Maayong aga.", "language": "hil", "task": "translate_and_speak"}
+{"instruction": "Say the following in hil:", "input": "Maayong aga.", "output": "Maayong aga.", "language": "hil", "task": "tts"}
+{"instruction": "Translate to hil and speak: Thank you very much.", "input": "", "output": "Salamat gid.", "language": "hil", "task": "translate_and_speak"}
+{"instruction": "Say the following in hil:", "input": "Salamat gid.", "output": "Salamat gid.", "language": "hil", "task": "tts"}
+{"instruction": "Translate to zu and speak: Hello, how are you?", "input": "", "output": "Sawubona, unjani?", "language": "zu", "task": "translate_and_speak"}
+{"instruction": "Say the following in zu:", "input": "Sawubona, unjani?", "output": "Sawubona, unjani?", "language": "zu", "task": "tts"}
+{"instruction": "Translate to zu and speak: Good morning.", "input": "", "output": "Sawubona ekuseni.", "language": "zu", "task": "translate_and_speak"}
+{"instruction": "Say the following in zu:", "input": "Sawubona ekuseni.", "output": "Sawubona ekuseni.", "language": "zu", "task": "tts"}
+{"instruction": "Translate to zu and speak: Thank you very much.", "input": "", "output": "Ngiyabonga kakhulu.", "language": "zu", "task": "translate_and_speak"}
+{"instruction": "Say the following in zu:", "input": "Ngiyabonga kakhulu.", "output": "Ngiyabonga kakhulu.", "language": "zu", "task": "tts"}
+{"instruction": "Translate to zu and speak: What is your name?", "input": "", "output": "Ngubani igama lakho?", "language": "zu", "task": "translate_and_speak"}
+{"instruction": "Say the following in zu:", "input": "Ngubani igama lakho?", "output": "Ngubani igama lakho?", "language": "zu", "task": "tts"}
+{"instruction": "Translate to zu and speak: I do not understand.", "input": "", "output": "Angiqondi.", "language": "zu", "task": "translate_and_speak"}
+{"instruction": "Say the following in zu:", "input": "Angiqondi.", "output": "Angiqondi.", "language": "zu", "task": "tts"}
+{"instruction": "Translate to xh and speak: Hello, how are you?", "input": "", "output": "Molo, unjani?", "language": "xh", "task": "translate_and_speak"}
+{"instruction": "Say the following in xh:", "input": "Molo, unjani?", "output": "Molo, unjani?", "language": "xh", "task": "tts"}
+{"instruction": "Translate to xh and speak: Good morning.", "input": "", "output": "Molo ngentsasa.", "language": "xh", "task": "translate_and_speak"}
+{"instruction": "Say the following in xh:", "input": "Molo ngentsasa.", "output": "Molo ngentsasa.", "language": "xh", "task": "tts"}
+{"instruction": "Translate to xh and speak: Thank you very much.", "input": "", "output": "Enkosi kakhulu.", "language": "xh", "task": "translate_and_speak"}
+{"instruction": "Say the following in xh:", "input": "Enkosi kakhulu.", "output": "Enkosi kakhulu.", "language": "xh", "task": "tts"}
+{"instruction": "Translate to yo and speak: Hello, how are you?", "input": "", "output": "Bawo ni, se daadaa ni?", "language": "yo", "task": "translate_and_speak"}
+{"instruction": "Say the following in yo:", "input": "Bawo ni, se daadaa ni?", "output": "Bawo ni, se daadaa ni?", "language": "yo", "task": "tts"}
+{"instruction": "Translate to yo and speak: Good morning.", "input": "", "output": "E kaaro.", "language": "yo", "task": "translate_and_speak"}
+{"instruction": "Say the following in yo:", "input": "E kaaro.", "output": "E kaaro.", "language": "yo", "task": "tts"}
+{"instruction": "Translate to yo and speak: Thank you very much.", "input": "", "output": "E se pupo.", "language": "yo", "task": "translate_and_speak"}
+{"instruction": "Say the following in yo:", "input": "E se pupo.", "output": "E se pupo.", "language": "yo", "task": "tts"}
+{"instruction": "Translate to ig and speak: Hello, how are you?", "input": "", "output": "Kedu, kedu ka i mere?", "language": "ig", "task": "translate_and_speak"}
+{"instruction": "Say the following in ig:", "input": "Kedu, kedu ka i mere?", "output": "Kedu, kedu ka i mere?", "language": "ig", "task": "tts"}
+{"instruction": "Translate to ig and speak: Good morning.", "input": "", "output": "Ụtụtụ ọma.", "language": "ig", "task": "translate_and_speak"}
+{"instruction": "Say the following in ig:", "input": "Ụtụtụ ọma.", "output": "Ụtụtụ ọma.", "language": "ig", "task": "tts"}
+{"instruction": "Translate to ig and speak: Thank you very much.", "input": "", "output": "Daalụ nke ukwuu.", "language": "ig", "task": "translate_and_speak"}
+{"instruction": "Say the following in ig:", "input": "Daalụ nke ukwuu.", "output": "Daalụ nke ukwuu.", "language": "ig", "task": "tts"}
+{"instruction": "Translate to ha and speak: Hello, how are you?", "input": "", "output": "Sannu, yaya kake?", "language": "ha", "task": "translate_and_speak"}
+{"instruction": "Say the following in ha:", "input": "Sannu, yaya kake?", "output": "Sannu, yaya kake?", "language": "ha", "task": "tts"}
+{"instruction": "Translate to ha and speak: Good morning.", "input": "", "output": "Ina kwana.", "language": "ha", "task": "translate_and_speak"}
+{"instruction": "Say the following in ha:", "input": "Ina kwana.", "output": "Ina kwana.", "language": "ha", "task": "tts"}
+{"instruction": "Translate to ha and speak: Thank you very much.", "input": "", "output": "Na gode sosai.", "language": "ha", "task": "translate_and_speak"}
+{"instruction": "Say the following in ha:", "input": "Na gode sosai.", "output": "Na gode sosai.", "language": "ha", "task": "tts"}
+{"instruction": "Translate to rw and speak: Hello, how are you?", "input": "", "output": "Muraho, amakuru?", "language": "rw", "task": "translate_and_speak"}
+{"instruction": "Say the following in rw:", "input": "Muraho, amakuru?", "output": "Muraho, amakuru?", "language": "rw", "task": "tts"}
+{"instruction": "Translate to rw and speak: Thank you very much.", "input": "", "output": "Murakoze cyane.", "language": "rw", "task": "translate_and_speak"}
+{"instruction": "Say the following in rw:", "input": "Murakoze cyane.", "output": "Murakoze cyane.", "language": "rw", "task": "tts"}
+{"instruction": "Translate to sn and speak: Hello, how are you?", "input": "", "output": "Mhoro, makadii?", "language": "sn", "task": "translate_and_speak"}
+{"instruction": "Say the following in sn:", "input": "Mhoro, makadii?", "output": "Mhoro, makadii?", "language": "sn", "task": "tts"}
+{"instruction": "Translate to sn and speak: Thank you very much.", "input": "", "output": "Mazvita chaizvo.", "language": "sn", "task": "translate_and_speak"}
+{"instruction": "Say the following in sn:", "input": "Mazvita chaizvo.", "output": "Mazvita chaizvo.", "language": "sn", "task": "tts"}
+{"instruction": "Translate to lg and speak: Hello, how are you?", "input": "", "output": "Ki kati, oli otya?", "language": "lg", "task": "translate_and_speak"}
+{"instruction": "Say the following in lg:", "input": "Ki kati, oli otya?", "output": "Ki kati, oli otya?", "language": "lg", "task": "tts"}
+{"instruction": "Translate to lg and speak: Thank you very much.", "input": "", "output": "Webale nnyo.", "language": "lg", "task": "translate_and_speak"}
+{"instruction": "Say the following in lg:", "input": "Webale nnyo.", "output": "Webale nnyo.", "language": "lg", "task": "tts"}
+{"instruction": "Translate to sm and speak: Hello, how are you?", "input": "", "output": "Talofa, o a mai oe?", "language": "sm", "task": "translate_and_speak"}
+{"instruction": "Say the following in sm:", "input": "Talofa, o a mai oe?", "output": "Talofa, o a mai oe?", "language": "sm", "task": "tts"}
+{"instruction": "Translate to sm and speak: Thank you very much.", "input": "", "output": "Faafetai tele lava.", "language": "sm", "task": "translate_and_speak"}
+{"instruction": "Say the following in sm:", "input": "Faafetai tele lava.", "output": "Faafetai tele lava.", "language": "sm", "task": "tts"}
+{"instruction": "Translate to to and speak: Hello, how are you?", "input": "", "output": "Mālō e lelei, fēfē hake?", "language": "to", "task": "translate_and_speak"}
+{"instruction": "Say the following in to:", "input": "Mālō e lelei, fēfē hake?", "output": "Mālō e lelei, fēfē hake?", "language": "to", "task": "tts"}
+{"instruction": "Translate to to and speak: Thank you very much.", "input": "", "output": "Mālō ʻaupito.", "language": "to", "task": "translate_and_speak"}
+{"instruction": "Say the following in to:", "input": "Mālō ʻaupito.", "output": "Mālō ʻaupito.", "language": "to", "task": "tts"}
+{"instruction": "Translate to fj and speak: Hello, how are you?", "input": "", "output": "Bula, o yadra vakacava?", "language": "fj", "task": "translate_and_speak"}
+{"instruction": "Say the following in fj:", "input": "Bula, o yadra vakacava?", "output": "Bula, o yadra vakacava?", "language": "fj", "task": "tts"}
+{"instruction": "Translate to fj and speak: Thank you very much.", "input": "", "output": "Vinaka vakalevu.", "language": "fj", "task": "translate_and_speak"}
+{"instruction": "Say the following in fj:", "input": "Vinaka vakalevu.", "output": "Vinaka vakalevu.", "language": "fj", "task": "tts"}
+{"instruction": "Translate to mi and speak: Hello, how are you?", "input": "", "output": "Kia ora, kei te pēhea koe?", "language": "mi", "task": "translate_and_speak"}
+{"instruction": "Say the following in mi:", "input": "Kia ora, kei te pēhea koe?", "output": "Kia ora, kei te pēhea koe?", "language": "mi", "task": "tts"}
+{"instruction": "Translate to mi and speak: Thank you very much.", "input": "", "output": "Tēnā koe.", "language": "mi", "task": "translate_and_speak"}
+{"instruction": "Say the following in mi:", "input": "Tēnā koe.", "output": "Tēnā koe.", "language": "mi", "task": "tts"}
+{"instruction": "Translate to ht and speak: Hello, how are you?", "input": "", "output": "Bonjou, kijan ou ye?", "language": "ht", "task": "translate_and_speak"}
+{"instruction": "Say the following in ht:", "input": "Bonjou, kijan ou ye?", "output": "Bonjou, kijan ou ye?", "language": "ht", "task": "tts"}
+{"instruction": "Translate to ht and speak: Thank you very much.", "input": "", "output": "Mèsi anpil.", "language": "ht", "task": "translate_and_speak"}
+{"instruction": "Say the following in ht:", "input": "Mèsi anpil.", "output": "Mèsi anpil.", "language": "ht", "task": "tts"}
+{"instruction": "Translate to pap and speak: Hello, how are you?", "input": "", "output": "Bon dia, kon ta bai?", "language": "pap", "task": "translate_and_speak"}
+{"instruction": "Say the following in pap:", "input": "Bon dia, kon ta bai?", "output": "Bon dia, kon ta bai?", "language": "pap", "task": "tts"}
+{"instruction": "Translate to pap and speak: Thank you very much.", "input": "", "output": "Masha danki.", "language": "pap", "task": "translate_and_speak"}
+{"instruction": "Say the following in pap:", "input": "Masha danki.", "output": "Masha danki.", "language": "pap", "task": "tts"}
+{"instruction": "Translate to eu and speak: Hello, how are you?", "input": "", "output": "Kaixo, zer moduz?", "language": "eu", "task": "translate_and_speak"}
+{"instruction": "Say the following in eu:", "input": "Kaixo, zer moduz?", "output": "Kaixo, zer moduz?", "language": "eu", "task": "tts"}
+{"instruction": "Translate to eu and speak: Thank you very much.", "input": "", "output": "Eskerrik asko.", "language": "eu", "task": "translate_and_speak"}
+{"instruction": "Say the following in eu:", "input": "Eskerrik asko.", "output": "Eskerrik asko.", "language": "eu", "task": "tts"}
+{"instruction": "Translate to br and speak: Hello, how are you?", "input": "", "output": "Demat, penaos emañ?", "language": "br", "task": "translate_and_speak"}
+{"instruction": "Say the following in br:", "input": "Demat, penaos emañ?", "output": "Demat, penaos emañ?", "language": "br", "task": "tts"}
+{"instruction": "Translate to br and speak: Thank you very much.", "input": "", "output": "Trugarez bras.", "language": "br", "task": "translate_and_speak"}
+{"instruction": "Say the following in br:", "input": "Trugarez bras.", "output": "Trugarez bras.", "language": "br", "task": "tts"}
+{"instruction": "Translate to ga and speak: Hello, how are you?", "input": "", "output": "Dia dhuit, conas atá tú?", "language": "ga", "task": "translate_and_speak"}
+{"instruction": "Say the following in ga:", "input": "Dia dhuit, conas atá tú?", "output": "Dia dhuit, conas atá tú?", "language": "ga", "task": "tts"}
+{"instruction": "Translate to ga and speak: Thank you very much.", "input": "", "output": "Go raibh maith agat.", "language": "ga", "task": "translate_and_speak"}
+{"instruction": "Say the following in ga:", "input": "Go raibh maith agat.", "output": "Go raibh maith agat.", "language": "ga", "task": "tts"}
+{"instruction": "Translate to cy and speak: Hello, how are you?", "input": "", "output": "Helo, sut wyt ti?", "language": "cy", "task": "translate_and_speak"}
+{"instruction": "Say the following in cy:", "input": "Helo, sut wyt ti?", "output": "Helo, sut wyt ti?", "language": "cy", "task": "tts"}
+{"instruction": "Translate to cy and speak: Thank you very much.", "input": "", "output": "Diolch yn fawr.", "language": "cy", "task": "translate_and_speak"}
+{"instruction": "Say the following in cy:", "input": "Diolch yn fawr.", "output": "Diolch yn fawr.", "language": "cy", "task": "tts"}
+{"instruction": "Translate to gd and speak: Hello, how are you?", "input": "", "output": "Halò, ciamar a tha thu?", "language": "gd", "task": "translate_and_speak"}
+{"instruction": "Say the following in gd:", "input": "Halò, ciamar a tha thu?", "output": "Halò, ciamar a tha thu?", "language": "gd", "task": "tts"}
+{"instruction": "Translate to gd and speak: Thank you very much.", "input": "", "output": "Tapadh leat gu mòr.", "language": "gd", "task": "translate_and_speak"}
+{"instruction": "Say the following in gd:", "input": "Tapadh leat gu mòr.", "output": "Tapadh leat gu mòr.", "language": "gd", "task": "tts"}
+{"instruction": "Translate to bik and speak: hello", "input": "", "output": "kumusta", "language": "bik", "task": "translate_and_speak"}
+{"instruction": "Say the following in bik:", "input": "kumusta", "output": "kumusta", "language": "bik", "task": "tts"}
+{"instruction": "Translate to bik and speak: thank you", "input": "", "output": "salamat", "language": "bik", "task": "translate_and_speak"}
+{"instruction": "Say the following in bik:", "input": "salamat", "output": "salamat", "language": "bik", "task": "tts"}
+{"instruction": "Translate to ceb and speak: hello", "input": "", "output": "kumusta", "language": "ceb", "task": "translate_and_speak"}
+{"instruction": "Say the following in ceb:", "input": "kumusta", "output": "kumusta", "language": "ceb", "task": "tts"}
+{"instruction": "Translate to ceb and speak: goodbye", "input": "", "output": "babay", "language": "ceb", "task": "translate_and_speak"}
+{"instruction": "Say the following in ceb:", "input": "babay", "output": "babay", "language": "ceb", "task": "tts"}
+{"instruction": "Translate to ceb and speak: thank you", "input": "", "output": "salamat", "language": "ceb", "task": "translate_and_speak"}
+{"instruction": "Say the following in ceb:", "input": "salamat", "output": "salamat", "language": "ceb", "task": "tts"}
+{"instruction": "Translate to ceb and speak: yes", "input": "", "output": "oo", "language": "ceb", "task": "translate_and_speak"}
+{"instruction": "Say the following in ceb:", "input": "oo", "output": "oo", "language": "ceb", "task": "tts"}
+{"instruction": "Translate to ceb and speak: no", "input": "", "output": "dili", "language": "ceb", "task": "translate_and_speak"}
+{"instruction": "Say the following in ceb:", "input": "dili", "output": "dili", "language": "ceb", "task": "tts"}
+{"instruction": "Translate to ceb and speak: one", "input": "", "output": "usa", "language": "ceb", "task": "translate_and_speak"}
+{"instruction": "Say the following in ceb:", "input": "usa", "output": "usa", "language": "ceb", "task": "tts"}
+{"instruction": "Translate to ceb and speak: two", "input": "", "output": "duha", "language": "ceb", "task": "translate_and_speak"}
+{"instruction": "Say the following in ceb:", "input": "duha", "output": "duha", "language": "ceb", "task": "tts"}
+{"instruction": "Translate to ceb and speak: three", "input": "", "output": "tulo", "language": "ceb", "task": "translate_and_speak"}
+{"instruction": "Say the following in ceb:", "input": "tulo", "output": "tulo", "language": "ceb", "task": "tts"}
+{"instruction": "Translate to ceb and speak: four", "input": "", "output": "upat", "language": "ceb", "task": "translate_and_speak"}
+{"instruction": "Say the following in ceb:", "input": "upat", "output": "upat", "language": "ceb", "task": "tts"}
+{"instruction": "Translate to ceb and speak: five", "input": "", "output": "lima", "language": "ceb", "task": "translate_and_speak"}
+{"instruction": "Say the following in ceb:", "input": "lima", "output": "lima", "language": "ceb", "task": "tts"}
+{"instruction": "Translate to ceb and speak: mother", "input": "", "output": "inahan", "language": "ceb", "task": "translate_and_speak"}
+{"instruction": "Say the following in ceb:", "input": "inahan", "output": "inahan", "language": "ceb", "task": "tts"}
+{"instruction": "Translate to ceb and speak: father", "input": "", "output": "amahan", "language": "ceb", "task": "translate_and_speak"}
+{"instruction": "Say the following in ceb:", "input": "amahan", "output": "amahan", "language": "ceb", "task": "tts"}
+{"instruction": "Translate to ceb and speak: child", "input": "", "output": "bata", "language": "ceb", "task": "translate_and_speak"}
+{"instruction": "Say the following in ceb:", "input": "bata", "output": "bata", "language": "ceb", "task": "tts"}
+{"instruction": "Translate to ceb and speak: house", "input": "", "output": "balay", "language": "ceb", "task": "translate_and_speak"}
+{"instruction": "Say the following in ceb:", "input": "balay", "output": "balay", "language": "ceb", "task": "tts"}
+{"instruction": "Translate to hil and speak: hello", "input": "", "output": "kamusta", "language": "hil", "task": "translate_and_speak"}
+{"instruction": "Say the following in hil:", "input": "kamusta", "output": "kamusta", "language": "hil", "task": "tts"}
+{"instruction": "Translate to hil and speak: thank you", "input": "", "output": "salamat", "language": "hil", "task": "translate_and_speak"}
+{"instruction": "Say the following in hil:", "input": "salamat", "output": "salamat", "language": "hil", "task": "tts"}
+{"instruction": "Translate to hil and speak: yes", "input": "", "output": "huo", "language": "hil", "task": "translate_and_speak"}
+{"instruction": "Say the following in hil:", "input": "huo", "output": "huo", "language": "hil", "task": "tts"}
+{"instruction": "Translate to hil and speak: no", "input": "", "output": "indi", "language": "hil", "task": "translate_and_speak"}
+{"instruction": "Say the following in hil:", "input": "indi", "output": "indi", "language": "hil", "task": "tts"}
+{"instruction": "Translate to hil and speak: one", "input": "", "output": "isa", "language": "hil", "task": "translate_and_speak"}
+{"instruction": "Say the following in hil:", "input": "isa", "output": "isa", "language": "hil", "task": "tts"}
+{"instruction": "Translate to hil and speak: two", "input": "", "output": "duha", "language": "hil", "task": "translate_and_speak"}
+{"instruction": "Say the following in hil:", "input": "duha", "output": "duha", "language": "hil", "task": "tts"}
+{"instruction": "Translate to hil and speak: three", "input": "", "output": "tatlo", "language": "hil", "task": "translate_and_speak"}
+{"instruction": "Say the following in hil:", "input": "tatlo", "output": "tatlo", "language": "hil", "task": "tts"}
+{"instruction": "Translate to ilo and speak: hello", "input": "", "output": "naimbag", "language": "ilo", "task": "translate_and_speak"}
+{"instruction": "Say the following in ilo:", "input": "naimbag", "output": "naimbag", "language": "ilo", "task": "tts"}
+{"instruction": "Translate to ilo and speak: thank you", "input": "", "output": "agyamanak", "language": "ilo", "task": "translate_and_speak"}
+{"instruction": "Say the following in ilo:", "input": "agyamanak", "output": "agyamanak", "language": "ilo", "task": "tts"}
+{"instruction": "Translate to ilo and speak: yes", "input": "", "output": "wen", "language": "ilo", "task": "translate_and_speak"}
+{"instruction": "Say the following in ilo:", "input": "wen", "output": "wen", "language": "ilo", "task": "tts"}
+{"instruction": "Translate to ilo and speak: no", "input": "", "output": "haan", "language": "ilo", "task": "translate_and_speak"}
+{"instruction": "Say the following in ilo:", "input": "haan", "output": "haan", "language": "ilo", "task": "tts"}
+{"instruction": "Translate to ilo and speak: one", "input": "", "output": "maysa", "language": "ilo", "task": "translate_and_speak"}
+{"instruction": "Say the following in ilo:", "input": "maysa", "output": "maysa", "language": "ilo", "task": "tts"}
+{"instruction": "Translate to ilo and speak: two", "input": "", "output": "dua", "language": "ilo", "task": "translate_and_speak"}
+{"instruction": "Say the following in ilo:", "input": "dua", "output": "dua", "language": "ilo", "task": "tts"}
+{"instruction": "Translate to ilo and speak: three", "input": "", "output": "tallo", "language": "ilo", "task": "translate_and_speak"}
+{"instruction": "Say the following in ilo:", "input": "tallo", "output": "tallo", "language": "ilo", "task": "tts"}
+{"instruction": "Translate to ilo and speak: four", "input": "", "output": "uppat", "language": "ilo", "task": "translate_and_speak"}
+{"instruction": "Say the following in ilo:", "input": "uppat", "output": "uppat", "language": "ilo", "task": "tts"}
+{"instruction": "Translate to ilo and speak: five", "input": "", "output": "lima", "language": "ilo", "task": "translate_and_speak"}
+{"instruction": "Say the following in ilo:", "input": "lima", "output": "lima", "language": "ilo", "task": "tts"}
+{"instruction": "Translate to lg and speak: hello", "input": "", "output": "ki kati", "language": "lg", "task": "translate_and_speak"}
+{"instruction": "Say the following in lg:", "input": "ki kati", "output": "ki kati", "language": "lg", "task": "tts"}
+{"instruction": "Translate to lg and speak: thank you", "input": "", "output": "webale", "language": "lg", "task": "translate_and_speak"}
+{"instruction": "Say the following in lg:", "input": "webale", "output": "webale", "language": "lg", "task": "tts"}
+{"instruction": "Translate to li and speak: hello", "input": "", "output": "hallo", "language": "li", "task": "translate_and_speak"}
+{"instruction": "Say the following in li:", "input": "hallo", "output": "hallo", "language": "li", "task": "tts"}
+{"instruction": "Translate to li and speak: thank you", "input": "", "output": "danke", "language": "li", "task": "translate_and_speak"}
+{"instruction": "Say the following in li:", "input": "danke", "output": "danke", "language": "li", "task": "tts"}
+{"instruction": "Translate to nds-NL and speak: hello", "input": "", "output": "moin", "language": "nds-NL", "task": "translate_and_speak"}
+{"instruction": "Say the following in nds-NL:", "input": "moin", "output": "moin", "language": "nds-NL", "task": "tts"}
+{"instruction": "Translate to nds-NL and speak: thank you", "input": "", "output": "bedankt", "language": "nds-NL", "task": "translate_and_speak"}
+{"instruction": "Say the following in nds-NL:", "input": "bedankt", "output": "bedankt", "language": "nds-NL", "task": "tts"}
+{"instruction": "Translate to nl-SR and speak: hello", "input": "", "output": "hallo", "language": "nl-SR", "task": "translate_and_speak"}
+{"instruction": "Say the following in nl-SR:", "input": "hallo", "output": "hallo", "language": "nl-SR", "task": "tts"}
+{"instruction": "Translate to nl-SR and speak: thank you", "input": "", "output": "dankuwel", "language": "nl-SR", "task": "translate_and_speak"}
+{"instruction": "Say the following in nl-SR:", "input": "dankuwel", "output": "dankuwel", "language": "nl-SR", "task": "tts"}
+{"instruction": "Translate to pam and speak: hello", "input": "", "output": "kumusta", "language": "pam", "task": "translate_and_speak"}
+{"instruction": "Say the following in pam:", "input": "kumusta", "output": "kumusta", "language": "pam", "task": "tts"}
+{"instruction": "Translate to pam and speak: thank you", "input": "", "output": "salamat", "language": "pam", "task": "translate_and_speak"}
+{"instruction": "Say the following in pam:", "input": "salamat", "output": "salamat", "language": "pam", "task": "tts"}
+{"instruction": "Translate to pam and speak: yes", "input": "", "output": "wa", "language": "pam", "task": "translate_and_speak"}
+{"instruction": "Say the following in pam:", "input": "wa", "output": "wa", "language": "pam", "task": "tts"}
+{"instruction": "Translate to pam and speak: no", "input": "", "output": "ali", "language": "pam", "task": "translate_and_speak"}
+{"instruction": "Say the following in pam:", "input": "ali", "output": "ali", "language": "pam", "task": "tts"}
+{"instruction": "Translate to rw and speak: hello", "input": "", "output": "muraho", "language": "rw", "task": "translate_and_speak"}
+{"instruction": "Say the following in rw:", "input": "muraho", "output": "muraho", "language": "rw", "task": "tts"}
+{"instruction": "Translate to rw and speak: thank you", "input": "", "output": "murakoze", "language": "rw", "task": "translate_and_speak"}
+{"instruction": "Say the following in rw:", "input": "murakoze", "output": "murakoze", "language": "rw", "task": "tts"}
+{"instruction": "Translate to sn and speak: hello", "input": "", "output": "mhoro", "language": "sn", "task": "translate_and_speak"}
+{"instruction": "Say the following in sn:", "input": "mhoro", "output": "mhoro", "language": "sn", "task": "tts"}
+{"instruction": "Translate to sn and speak: thank you", "input": "", "output": "mazvita", "language": "sn", "task": "translate_and_speak"}
+{"instruction": "Say the following in sn:", "input": "mazvita", "output": "mazvita", "language": "sn", "task": "tts"}
+{"instruction": "Translate to war and speak: hello", "input": "", "output": "kumusta", "language": "war", "task": "translate_and_speak"}
+{"instruction": "Say the following in war:", "input": "kumusta", "output": "kumusta", "language": "war", "task": "tts"}
+{"instruction": "Translate to war and speak: thank you", "input": "", "output": "salamat", "language": "war", "task": "translate_and_speak"}
+{"instruction": "Say the following in war:", "input": "salamat", "output": "salamat", "language": "war", "task": "tts"}
+{"instruction": "Translate to xh and speak: hello", "input": "", "output": "molo", "language": "xh", "task": "translate_and_speak"}
+{"instruction": "Say the following in xh:", "input": "molo", "output": "molo", "language": "xh", "task": "tts"}
+{"instruction": "Translate to xh and speak: thank you", "input": "", "output": "enkosi", "language": "xh", "task": "translate_and_speak"}
+{"instruction": "Say the following in xh:", "input": "enkosi", "output": "enkosi", "language": "xh", "task": "tts"}
+{"instruction": "Translate to zea and speak: hello", "input": "", "output": "aoij", "language": "zea", "task": "translate_and_speak"}
+{"instruction": "Say the following in zea:", "input": "aoij", "output": "aoij", "language": "zea", "task": "tts"}
+{"instruction": "Translate to zea and speak: thank you", "input": "", "output": "bedankt", "language": "zea", "task": "translate_and_speak"}
+{"instruction": "Say the following in zea:", "input": "bedankt", "output": "bedankt", "language": "zea", "task": "tts"}
+{"instruction": "Translate to zu and speak: hello", "input": "", "output": "sawubona", "language": "zu", "task": "translate_and_speak"}
+{"instruction": "Say the following in zu:", "input": "sawubona", "output": "sawubona", "language": "zu", "task": "tts"}
+{"instruction": "Translate to zu and speak: thank you", "input": "", "output": "ngiyabonga", "language": "zu", "task": "translate_and_speak"}
+{"instruction": "Say the following in zu:", "input": "ngiyabonga", "output": "ngiyabonga", "language": "zu", "task": "tts"}
+{"instruction": "Translate to zu and speak: yes", "input": "", "output": "yebo", "language": "zu", "task": "translate_and_speak"}
+{"instruction": "Say the following in zu:", "input": "yebo", "output": "yebo", "language": "zu", "task": "tts"}
+{"instruction": "Translate to zu and speak: no", "input": "", "output": "cha", "language": "zu", "task": "translate_and_speak"}
+{"instruction": "Say the following in zu:", "input": "cha", "output": "cha", "language": "zu", "task": "tts"}
+{"instruction": "Translate to zu and speak: one", "input": "", "output": "kunye", "language": "zu", "task": "translate_and_speak"}
+{"instruction": "Say the following in zu:", "input": "kunye", "output": "kunye", "language": "zu", "task": "tts"}
+{"instruction": "Translate to zu and speak: two", "input": "", "output": "kubili", "language": "zu", "task": "translate_and_speak"}
+{"instruction": "Say the following in zu:", "input": "kubili", "output": "kubili", "language": "zu", "task": "tts"}
+{"instruction": "Translate to zu and speak: three", "input": "", "output": "kuthathu", "language": "zu", "task": "translate_and_speak"}
+{"instruction": "Say the following in zu:", "input": "kuthathu", "output": "kuthathu", "language": "zu", "task": "tts"}

@@ -8,7 +8,6 @@ import WarningModal from '../shared/WarningModal';
 import { WarningType } from '../shared/hooks';
 import {
   AccountSection,
-  ProviderSection,
   LanguageSection,
   AudioDeviceSection,
   SystemAudioSection
@@ -84,11 +83,7 @@ const SimpleSettings: React.FC<SimpleSettingsProps> = ({ highlightSection }) => 
           showTranslationLanguages={true}
         />
 
-        {/* Provider and API Key - expandable style */}
-        <ProviderSection
-          isSessionActive={isSessionActive}
-          expandableStyle={true}
-        />
+        {/* Provider and API Key - hidden (Eburon standard: alias models only) */}
 
         {/* Microphone Selection */}
         <AudioDeviceSection

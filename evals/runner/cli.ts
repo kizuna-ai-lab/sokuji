@@ -10,7 +10,7 @@ interface ParsedCommand {
 }
 
 const HELP_TEXT = `
-Sokuji Evaluation Runner
+Eburon Evaluation Runner
 
 Usage:
   npm run eval                     Run all test cases
@@ -163,7 +163,7 @@ export function printHelp(): void {
  * Print version
  */
 export function printVersion(version: string): void {
-  console.log(`Sokuji Evaluation Runner v${version}`);
+  console.log(`Eburon Evaluation Runner v${version}`);
 }
 
 /**

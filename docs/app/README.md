@@ -1,6 +1,6 @@
 # Application Documentation
 
-This directory contains documentation related to the main Sokuji application (Electron/React).
+This directory contains documentation related to the main Eburon application (Electron/React).
 
 ## Files
 

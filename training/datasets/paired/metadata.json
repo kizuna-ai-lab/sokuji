@@ -1,0 +1,12 @@
+{
+  "total_samples": 0,
+  "format": "orpheus-3b-snac",
+  "snac_model": "hubertsiuzdak/snac_24khz",
+  "token_offsets": {
+    "0": 10,
+    "1": 4106,
+    "2": 8202
+  },
+  "interleave_pattern": "[L0, L1, L2, L2, L1, L2, L2]",
+  "languages": []
+}

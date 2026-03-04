@@ -14,9 +14,9 @@ body:
         Issues about project management, star counts, repository visibility, or other non-technical matters will be closed immediately.
         
         Please ensure you have:
-        - ✅ Read our [Contributing Guidelines](https://github.com/kizuna-ai-lab/sokuji/blob/main/.github/CONTRIBUTING.md)
+        - ✅ Read our [Contributing Guidelines](https://github.com/kizuna-ai-lab/Eburon/blob/main/.github/CONTRIBUTING.md)
         - ✅ Searched existing issues to avoid duplicates
-        - ✅ Considered if this belongs in [Discussions](https://github.com/kizuna-ai-lab/sokuji/discussions) instead
+        - ✅ Considered if this belongs in [Discussions](https://github.com/kizuna-ai-lab/Eburon/discussions) instead
 
   - type: checkboxes
     id: prerequisites

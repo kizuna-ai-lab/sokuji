@@ -1,0 +1,17 @@
+# Eburon Training Pipeline — GPU-only Dependencies
+# Install on a Linux machine with NVIDIA GPU:
+#   pip install -r training/requirements.txt -r training/requirements-gpu.txt
+
+# ML training stack
+transformers>=4.40.0
+datasets>=2.18.0
+accelerate>=0.28.0
+peft>=0.10.0
+trl>=0.8.0
+bitsandbytes>=0.43.0
+
+# Unsloth (4-bit efficient training, requires CUDA)
+unsloth[colab-new]>=2024.4
+
+# SNAC audio codec (GPU-accelerated)
+snac>=1.0.0

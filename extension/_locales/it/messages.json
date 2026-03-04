@@ -1,15 +1,15 @@
 {
   "extensionName": {
-    "message": "Sokuji - Traduttore IA per Riunioni"
+    "message": "Eburon - Traduttore IA per Riunioni"
   },
   "extensionDescription": {
     "message": "Traduzione vocale istantanea alimentata da IA per tutte le videochiamate. Abbatti le barriere linguistiche con la traduzione vocale in tempo reale."
   },
   "popupTitle": {
-    "message": "Sokuji - Siti Supportati"
+    "message": "Eburon - Siti Supportati"
   },
-  "openSokuji": {
-    "message": "Apri Sokuji"
+  "openEburon": {
+    "message": "Apri Eburon"
   },
   "chromeWebStore": {
     "message": "Chrome Web Store"
@@ -17,8 +17,8 @@
   "edgeAddons": {
     "message": "Componenti aggiuntivi di Edge"
   },
-  "sokujiAvailable": {
-    "message": "✓ Sokuji è disponibile su $SITE_NAME$!",
+  "EburonAvailable": {
+    "message": "✓ Eburon è disponibile su $SITE_NAME$!",
     "placeholders": {
       "site_name": {
         "content": "$1",
@@ -27,19 +27,19 @@
     }
   },
   "clickToStart": {
-    "message": "Clicca \"Apri Sokuji\" qui sotto per iniziare la traduzione in tempo reale."
+    "message": "Clicca \"Apri Eburon\" qui sotto per iniziare la traduzione in tempo reale."
   },
   "quickStart": {
     "message": "Avvio Rapido:"
   },
   "quickStartInstructions": {
-    "message": "Configura la tua chiave API OpenAI → Seleziona \"Sokuji_Virtual_Mic\" come microfono → Inizia a parlare!"
+    "message": "Configura la tua chiave API OpenAI → Seleziona \"Eburon_Virtual_Mic\" come microfono → Inizia a parlare!"
   },
   "notSupported": {
     "message": "⚠ Non supportato su questo sito"
   },
   "currentlyOn": {
-    "message": "Attualmente su $HOSTNAME$. Sokuji funziona su queste piattaforme:",
+    "message": "Attualmente su $HOSTNAME$. Eburon funziona su queste piattaforme:",
     "placeholders": {
       "hostname": {
         "content": "$1",
@@ -75,16 +75,16 @@
     "message": "contribuisci al codice"
   },
   "gatherTownTitle": {
-    "message": "Sokuji per Gather Town"
+    "message": "Eburon per Gather Town"
   },
   "gatherTownGuidance": {
-    "message": "Per utilizzare Sokuji, seleziona <strong>\"Sokuji Virtual Microphone\"</strong> nelle impostazioni del microfono."
+    "message": "Per utilizzare Eburon, seleziona <strong>\"Eburon Virtual Microphone\"</strong> nelle impostazioni del microfono."
   },
   "wherebyTitle": {
-    "message": "Sokuji per Whereby"
+    "message": "Eburon per Whereby"
   },
   "wherebyGuidance": {
-    "message": "Per utilizzare Sokuji, seleziona <strong>\"Sokuji Virtual Microphone\"</strong> nelle impostazioni del microfono e <strong>disabilita la riduzione del rumore</strong> per prestazioni migliori."
+    "message": "Per utilizzare Eburon, seleziona <strong>\"Eburon Virtual Microphone\"</strong> nelle impostazioni del microfono e <strong>disabilita la riduzione del rumore</strong> per prestazioni migliori."
   },
   "gotIt": {
     "message": "Capito"
@@ -93,22 +93,22 @@
     "message": "Ricordamelo più tardi"
   },
   "defaultTitle": {
-    "message": "Sokuji"
+    "message": "Eburon"
   },
   "defaultGuidance": {
-    "message": "Per utilizzare Sokuji, seleziona \"Sokuji Virtual Microphone\" nelle impostazioni del microfono."
+    "message": "Per utilizzare Eburon, seleziona \"Eburon Virtual Microphone\" nelle impostazioni del microfono."
   },
   "discordTitle": {
-    "message": "Sokuji per Discord"
+    "message": "Eburon per Discord"
   },
   "discordGuidance": {
-    "message": "Per utilizzare Sokuji, seleziona <strong>\"Sokuji Virtual Microphone\"</strong> nelle impostazioni del microfono e <strong>disabilita la Soppressione del rumore</strong> nelle impostazioni vocali di Discord per prestazioni migliori."
+    "message": "Per utilizzare Eburon, seleziona <strong>\"Eburon Virtual Microphone\"</strong> nelle impostazioni del microfono e <strong>disabilita la Soppressione del rumore</strong> nelle impostazioni vocali di Discord per prestazioni migliori."
   },
   "slackTitle": {
-    "message": "Sokuji per Slack"
+    "message": "Eburon per Slack"
   },
   "slackGuidance": {
-    "message": "Per utilizzare Sokuji nei Huddles di Slack, <strong>avvia un Huddle</strong>, quindi seleziona <strong>\"Sokuji Virtual Microphone\"</strong> nelle impostazioni Video e Microfono e <strong>disabilita la Soppressione del rumore</strong> nelle preferenze Audio e Video per prestazioni migliori."
+    "message": "Per utilizzare Eburon nei Huddles di Slack, <strong>avvia un Huddle</strong>, quindi seleziona <strong>\"Eburon Virtual Microphone\"</strong> nelle impostazioni Video e Microfono e <strong>disabilita la Soppressione del rumore</strong> nelle preferenze Audio e Video per prestazioni migliori."
   },
   "showMoreSites": {
     "message": "Mostra altri $COUNT$ siti",
@@ -123,9 +123,9 @@
     "message": "Mostra meno siti"
   },
   "teamsTitle": {
-    "message": "Sokuji per Microsoft Teams"
+    "message": "Eburon per Microsoft Teams"
   },
   "teamsGuidance": {
-    "message": "Se non vedi l'elenco completo dei dispositivi audio nelle impostazioni di Teams:<br><strong>1)</strong> Disattiva temporaneamente l'estensione Sokuji e aggiorna la pagina<br><strong>2)</strong> Consenti a Teams di accedere al microfono e alla fotocamera quando richiesto<br><strong>3)</strong> Riattiva l'estensione Sokuji e aggiorna nuovamente la pagina<br><strong>4)</strong> Consenti a Sokuji di accedere al microfono quando richiesto. Ora dovresti vedere sia i dispositivi reali che <strong>\"Sokuji Virtual Microphone\"</strong> nelle tue impostazioni."
+    "message": "Se non vedi l'elenco completo dei dispositivi audio nelle impostazioni di Teams:<br><strong>1)</strong> Disattiva temporaneamente l'estensione Eburon e aggiorna la pagina<br><strong>2)</strong> Consenti a Teams di accedere al microfono e alla fotocamera quando richiesto<br><strong>3)</strong> Riattiva l'estensione Eburon e aggiorna nuovamente la pagina<br><strong>4)</strong> Consenti a Eburon di accedere al microfono quando richiesto. Ora dovresti vedere sia i dispositivi reali che <strong>\"Eburon Virtual Microphone\"</strong> nelle tue impostazioni."
   }
 }

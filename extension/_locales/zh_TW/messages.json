@@ -1,15 +1,15 @@
 {
   "extensionName": {
-    "message": "Sokuji - AI會議翻譯"
+    "message": "Eburon - AI會議翻譯"
   },
   "extensionDescription": {
     "message": "AI 驅動的即時語音翻譯，適用於所有視訊會議。透過即時語音翻譯打破語言障礙。"
   },
   "popupTitle": {
-    "message": "Sokuji - 支援的網站"
+    "message": "Eburon - 支援的網站"
   },
-  "openSokuji": {
-    "message": "開啟 Sokuji"
+  "openEburon": {
+    "message": "開啟 Eburon"
   },
   "chromeWebStore": {
     "message": "Chrome 線上應用程式商店"
@@ -17,8 +17,8 @@
   "edgeAddons": {
     "message": "Edge 附加元件"
   },
-  "sokujiAvailable": {
-    "message": "✓ Sokuji 在 $SITE_NAME$ 上可用！",
+  "EburonAvailable": {
+    "message": "✓ Eburon 在 $SITE_NAME$ 上可用！",
     "placeholders": {
       "site_name": {
         "content": "$1",
@@ -27,19 +27,19 @@
     }
   },
   "clickToStart": {
-    "message": "點擊下方的「開啟 Sokuji」開始即時翻譯。"
+    "message": "點擊下方的「開啟 Eburon」開始即時翻譯。"
   },
   "quickStart": {
     "message": "快速開始："
   },
   "quickStartInstructions": {
-    "message": "設定您的 API 金鑰（OpenAI 或 Gemini）→ 選擇「Sokuji_Virtual_Mic」作為麥克風 → 開始說話！"
+    "message": "設定您的 API 金鑰（OpenAI 或 Gemini）→ 選擇「Eburon_Virtual_Mic」作為麥克風 → 開始說話！"
   },
   "notSupported": {
     "message": "⚠ 此網站不支援"
   },
   "currentlyOn": {
-    "message": "目前在 $HOSTNAME$。Sokuji 支援這些平台：",
+    "message": "目前在 $HOSTNAME$。Eburon 支援這些平台：",
     "placeholders": {
       "hostname": {
         "content": "$1",
@@ -75,16 +75,16 @@
     "message": "貢獻程式碼"
   },
   "gatherTownTitle": {
-    "message": "Sokuji for Gather Town"
+    "message": "Eburon for Gather Town"
   },
   "gatherTownGuidance": {
-    "message": "要使用 Sokuji，請在您的麥克風設定中選擇 <strong>\"Sokuji Virtual Microphone\"</strong>。"
+    "message": "要使用 Eburon，請在您的麥克風設定中選擇 <strong>\"Eburon Virtual Microphone\"</strong>。"
   },
   "wherebyTitle": {
-    "message": "Sokuji for Whereby"
+    "message": "Eburon for Whereby"
   },
   "wherebyGuidance": {
-    "message": "要使用 Sokuji，請在麥克風設置中選擇<strong>\"Sokuji Virtual Microphone\"</strong>，並<strong>關閉噪聲抑制</strong>以獲得更好的性能。"
+    "message": "要使用 Eburon，請在麥克風設置中選擇<strong>\"Eburon Virtual Microphone\"</strong>，並<strong>關閉噪聲抑制</strong>以獲得更好的性能。"
   },
   "gotIt": {
     "message": "我知道了"
@@ -93,22 +93,22 @@
     "message": "稍後提醒"
   },
   "defaultTitle": {
-    "message": "Sokuji"
+    "message": "Eburon"
   },
   "defaultGuidance": {
-    "message": "要使用 Sokuji，請在麥克風設定中選擇「Sokuji Virtual Microphone」。"
+    "message": "要使用 Eburon，請在麥克風設定中選擇「Eburon Virtual Microphone」。"
   },
   "discordTitle": {
-    "message": "Sokuji for Discord"
+    "message": "Eburon for Discord"
   },
   "discordGuidance": {
-    "message": "要使用 Sokuji，請在麥克風設定中選擇<strong>「Sokuji Virtual Microphone」</strong>，並在 Discord 的語音設定中<strong>關閉噪音抑制</strong>以獲得更好的效能。"
+    "message": "要使用 Eburon，請在麥克風設定中選擇<strong>「Eburon Virtual Microphone」</strong>，並在 Discord 的語音設定中<strong>關閉噪音抑制</strong>以獲得更好的效能。"
   },
   "slackTitle": {
-    "message": "Sokuji for Slack"
+    "message": "Eburon for Slack"
   },
   "slackGuidance": {
-    "message": "要在 Slack Huddles 中使用 Sokuji，請<strong>開始一個 Huddle</strong>，然後在視訊和麥克風設定中選擇<strong>\"Sokuji Virtual Microphone\"</strong>，並在音訊和視訊偏好設定中<strong>關閉噪音抑制</strong>以獲得更好的效能。"
+    "message": "要在 Slack Huddles 中使用 Eburon，請<strong>開始一個 Huddle</strong>，然後在視訊和麥克風設定中選擇<strong>\"Eburon Virtual Microphone\"</strong>，並在音訊和視訊偏好設定中<strong>關閉噪音抑制</strong>以獲得更好的效能。"
   },
   "showMoreSites": {
     "message": "顯示更多 $COUNT$ 個網站",
@@ -123,9 +123,9 @@
     "message": "顯示較少網站"
   },
   "teamsTitle": {
-    "message": "Sokuji for Microsoft Teams"
+    "message": "Eburon for Microsoft Teams"
   },
   "teamsGuidance": {
-    "message": "如果您在 Teams 設定中看不到完整的音訊裝置清單：<br><strong>1)</strong> 暫時停用 Sokuji 擴充功能並重新整理頁面<br><strong>2)</strong> 在提示時允許 Teams 存取您的麥克風和攝影機<br><strong>3)</strong> 重新啟用 Sokuji 擴充功能並再次重新整理頁面<br><strong>4)</strong> 在提示時允許 Sokuji 存取您的麥克風。現在您應該可以在設定中看到真實裝置和 <strong>\"Sokuji Virtual Microphone\"</strong> 虛擬裝置了。"
+    "message": "如果您在 Teams 設定中看不到完整的音訊裝置清單：<br><strong>1)</strong> 暫時停用 Eburon 擴充功能並重新整理頁面<br><strong>2)</strong> 在提示時允許 Teams 存取您的麥克風和攝影機<br><strong>3)</strong> 重新啟用 Eburon 擴充功能並再次重新整理頁面<br><strong>4)</strong> 在提示時允許 Eburon 存取您的麥克風。現在您應該可以在設定中看到真實裝置和 <strong>\"Eburon Virtual Microphone\"</strong> 虛擬裝置了。"
   }
 }

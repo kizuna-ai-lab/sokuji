@@ -1,6 +1,6 @@
 # Extension Documentation
 
-This directory contains documentation related to the Sokuji browser extension.
+This directory contains documentation related to the Eburon browser extension.
 
 ## Files
 

@@ -1,6 +1,6 @@
-# Sokuji Documentation
+# Eburon Documentation
 
-This directory contains comprehensive documentation for the Sokuji project, organized with consistent naming conventions.
+This directory contains comprehensive documentation for the Eburon project, organized with consistent naming conventions.
 
 ## Documentation Structure
 

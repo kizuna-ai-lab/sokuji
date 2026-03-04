@@ -1,7 +1,6 @@
 import { useEffect, useRef } from 'react';
 import {
   useProvider,
-  useEnsureKizunaApiKey,
   useValidateApiKey,
   useOpenAISettings,
   useGeminiSettings,
@@ -11,7 +10,6 @@ import {
   useVolcengineAST2Settings,
   useSettingsLoaded
 } from '../../stores/settingsStore';
-import { useAuth } from '../../lib/auth/hooks';
 import { Provider } from '../../types/Provider';
 
 /**
@@ -19,10 +17,8 @@ import { Provider } from '../../types/Provider';
  */
 export function SettingsInitializer() {
   const provider = useProvider();
-  const ensureKizunaApiKey = useEnsureKizunaApiKey();
   const validateApiKey = useValidateApiKey();
   const settingsLoaded = useSettingsLoaded();
-  const { isSignedIn, getToken } = useAuth();
   
   // Track previous provider to detect changes (null initially to trigger validation on mount)
   const prevProviderRef = useRef<typeof provider | null>(null);
@@ -36,29 +32,7 @@ export function SettingsInitializer() {
   const volcengineSTSettings = useVolcengineSTSettings();
   const volcengineAST2Settings = useVolcengineAST2Settings();
 
-  // Auto-fetch and validate KizunaAI API key when user logs in or provider changes
-  useEffect(() => {
-    const handleKizunaAI = async () => {
-      if (provider === Provider.KIZUNA_AI && isSignedIn && getToken) {
-        console.log('[SettingsInitializer] KizunaAI provider selected, ensuring API key...');
-        const hasKey = await ensureKizunaApiKey(getToken, isSignedIn);
-        
-        // If we successfully got the key, validate it
-        if (hasKey && !isValidatingRef.current) {
-          isValidatingRef.current = true;
-          console.log('[SettingsInitializer] KizunaAI API key obtained, validating...');
-          setTimeout(async () => {
-            await validateApiKey(getToken);
-            isValidatingRef.current = false;
-          }, 100);
-        }
-      }
-    };
-    
-    handleKizunaAI();
-  }, [provider, isSignedIn, getToken, ensureKizunaApiKey, validateApiKey]);
-  
-  // Auto-validate when provider changes (for non-KizunaAI providers)
+  // Auto-validate when provider changes
   useEffect(() => {
     // Only proceed if settings have been loaded
     if (!settingsLoaded) {
@@ -71,8 +45,7 @@ export function SettingsInitializer() {
       console.log('[SettingsInitializer] Provider changed from', prevProviderRef.current, 'to', provider);
       prevProviderRef.current = provider;
       
-      // For non-KizunaAI providers, validate if they have an API key
-      if (provider !== Provider.KIZUNA_AI && !isValidatingRef.current) {
+      if (!isValidatingRef.current) {
         let hasApiKey = false;
 
         switch (provider) {

@@ -388,7 +388,7 @@ export class VolcengineAST2Client implements IClient {
       },
       event: EventType.StartSession,
       user: {
-        uid: 'sokuji-user',
+        uid: 'Eburon-user',
         platform: 'web',
       },
       sourceAudio: {

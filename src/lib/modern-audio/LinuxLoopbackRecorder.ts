@@ -9,7 +9,7 @@ import { ParticipantAudioOptions } from './IParticipantAudioRecorder';
 export class LinuxLoopbackRecorder extends ParticipantRecorder {
 
   protected getLogPrefix(): string {
-    return '[Sokuji] [LinuxLoopbackRecorder]';
+    return '[Eburon] [LinuxLoopbackRecorder]';
   }
 
   protected shouldConnectToDestination(): boolean {

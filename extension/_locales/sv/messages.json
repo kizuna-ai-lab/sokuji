@@ -1,15 +1,15 @@
 {
   "extensionName": {
-    "message": "Sokuji - AI-mötesöversättare"
+    "message": "Eburon - AI-mötesöversättare"
   },
   "extensionDescription": {
     "message": "AI-driven omedelbar talöversättning för alla videomöten. Bryt språkbarriärer med realtidsröstöversättning."
   },
   "popupTitle": {
-    "message": "Sokuji - Stödda Webbplatser"
+    "message": "Eburon - Stödda Webbplatser"
   },
-  "openSokuji": {
-    "message": "Öppna Sokuji"
+  "openEburon": {
+    "message": "Öppna Eburon"
   },
   "chromeWebStore": {
     "message": "Chrome Webbshop"
@@ -17,8 +17,8 @@
   "edgeAddons": {
     "message": "Edge-tillägg"
   },
-  "sokujiAvailable": {
-    "message": "✓ Sokuji är tillgängligt på $SITE_NAME$!",
+  "EburonAvailable": {
+    "message": "✓ Eburon är tillgängligt på $SITE_NAME$!",
     "placeholders": {
       "site_name": {
         "content": "$1",
@@ -27,19 +27,19 @@
     }
   },
   "clickToStart": {
-    "message": "Klicka på \"Öppna Sokuji\" nedan för att starta realtidsöversättning."
+    "message": "Klicka på \"Öppna Eburon\" nedan för att starta realtidsöversättning."
   },
   "quickStart": {
     "message": "Snabbstart:"
   },
   "quickStartInstructions": {
-    "message": "Konfigurera din API-nyckel (OpenAI eller Gemini) → Välj \"Sokuji_Virtual_Mic\" som mikrofon → Börja tala!"
+    "message": "Konfigurera din API-nyckel (OpenAI eller Gemini) → Välj \"Eburon_Virtual_Mic\" som mikrofon → Börja tala!"
   },
   "notSupported": {
     "message": "⚠ Stöds inte på denna webbplats"
   },
   "currentlyOn": {
-    "message": "För närvarande på $HOSTNAME$. Sokuji fungerar på dessa plattformar:",
+    "message": "För närvarande på $HOSTNAME$. Eburon fungerar på dessa plattformar:",
     "placeholders": {
       "hostname": {
         "content": "$1",
@@ -75,16 +75,16 @@
     "message": "bidra med kod"
   },
   "gatherTownTitle": {
-    "message": "Sokuji for Gather Town"
+    "message": "Eburon for Gather Town"
   },
   "gatherTownGuidance": {
-    "message": "För att använda Sokuji, välj <strong>\"Sokuji Virtual Microphone\"</strong> i dina mikrofoninställningar."
+    "message": "För att använda Eburon, välj <strong>\"Eburon Virtual Microphone\"</strong> i dina mikrofoninställningar."
   },
   "wherebyTitle": {
-    "message": "Sokuji for Whereby"
+    "message": "Eburon for Whereby"
   },
   "wherebyGuidance": {
-    "message": "För att använda Sokuji, vänligen välj <strong>\"Sokuji Virtual Microphone\"</strong> i dina mikrofoninställningar och <strong>inaktivera brusreducering</strong> för bättre prestanda."
+    "message": "För att använda Eburon, vänligen välj <strong>\"Eburon Virtual Microphone\"</strong> i dina mikrofoninställningar och <strong>inaktivera brusreducering</strong> för bättre prestanda."
   },
   "gotIt": {
     "message": "Förstått"
@@ -93,22 +93,22 @@
     "message": "Påminn senare"
   },
   "defaultTitle": {
-    "message": "Sokuji"
+    "message": "Eburon"
   },
   "defaultGuidance": {
-    "message": "För att använda Sokuji, välj \"Sokuji Virtual Microphone\" i dina mikrofoninställningar."
+    "message": "För att använda Eburon, välj \"Eburon Virtual Microphone\" i dina mikrofoninställningar."
   },
   "discordTitle": {
-    "message": "Sokuji for Discord"
+    "message": "Eburon for Discord"
   },
   "discordGuidance": {
-    "message": "För att använda Sokuji, välj <strong>\"Sokuji Virtual Microphone\"</strong> i dina mikrofoninställningar och <strong>inaktivera Brusreducering</strong> i Discords röstinställningar för bättre prestanda."
+    "message": "För att använda Eburon, välj <strong>\"Eburon Virtual Microphone\"</strong> i dina mikrofoninställningar och <strong>inaktivera Brusreducering</strong> i Discords röstinställningar för bättre prestanda."
   },
   "slackTitle": {
-    "message": "Sokuji for Slack"
+    "message": "Eburon for Slack"
   },
   "slackGuidance": {
-    "message": "För att använda Sokuji i Slack Huddles, vänligen <strong>starta en Huddle</strong>, välj sedan <strong>\"Sokuji Virtual Microphone\"</strong> i dina Video- och Mikrofoninställningar och <strong>inaktivera Brusreducering</strong> i Ljud- och Videoinställningar för bättre prestanda."
+    "message": "För att använda Eburon i Slack Huddles, vänligen <strong>starta en Huddle</strong>, välj sedan <strong>\"Eburon Virtual Microphone\"</strong> i dina Video- och Mikrofoninställningar och <strong>inaktivera Brusreducering</strong> i Ljud- och Videoinställningar för bättre prestanda."
   },
   "showMoreSites": {
     "message": "Visa $COUNT$ fler webbplatser",
@@ -123,9 +123,9 @@
     "message": "Visa färre webbplatser"
   },
   "teamsTitle": {
-    "message": "Sokuji för Microsoft Teams"
+    "message": "Eburon för Microsoft Teams"
   },
   "teamsGuidance": {
-    "message": "Om du inte ser den fullständiga ljudenhetslistan i Teams-inställningarna:<br><strong>1)</strong> Inaktivera Sokuji-tillägget tillfälligt och uppdatera sidan<br><strong>2)</strong> Tillåt Teams att komma åt din mikrofon och kamera när du uppmanas<br><strong>3)</strong> Aktivera Sokuji-tillägget igen och uppdatera sidan igen<br><strong>4)</strong> Tillåt Sokuji att komma åt din mikrofon när du uppmanas. Nu bör du se både riktiga enheter och <strong>\"Sokuji Virtual Microphone\"</strong> i dina inställningar."
+    "message": "Om du inte ser den fullständiga ljudenhetslistan i Teams-inställningarna:<br><strong>1)</strong> Inaktivera Eburon-tillägget tillfälligt och uppdatera sidan<br><strong>2)</strong> Tillåt Teams att komma åt din mikrofon och kamera när du uppmanas<br><strong>3)</strong> Aktivera Eburon-tillägget igen och uppdatera sidan igen<br><strong>4)</strong> Tillåt Eburon att komma åt din mikrofon när du uppmanas. Nu bör du se både riktiga enheter och <strong>\"Eburon Virtual Microphone\"</strong> i dina inställningar."
   }
 }

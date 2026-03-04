@@ -1,6 +1,6 @@
 /* global chrome, browser */
 
-// Site-specific plugins for Sokuji browser extension
+// Site-specific plugins for Eburon browser extension
 // This file contains plugins for different platforms to provide customized experiences
 
 // Parse i18n messages from URL parameters
@@ -8,7 +8,7 @@ function parseI18nFromURL() {
   try {
     // Get current script element to extract URL parameters
     const currentScript = document.currentScript || 
-                         document.querySelector('#sokuji-site-plugins-script') ||
+                         document.querySelector('#Eburon-site-plugins-script') ||
                          (function() {
                            const scripts = document.querySelectorAll('script[src*="site-plugins.js"]');
                            return scripts[scripts.length - 1]; // Get the last one
@@ -31,7 +31,7 @@ function parseI18nFromURL() {
             // Fallback to direct URI decoding if Base64 fails
             return decodeURIComponent(encodedValue);
           } catch (error2) {
-            console.warn('[Sokuji] [Plugins] Failed to decode i18n message, using fallback:', error2);
+            console.warn('[Eburon] [Plugins] Failed to decode i18n message, using fallback:', error2);
             return fallback;
           }
         }
@@ -40,11 +40,11 @@ function parseI18nFromURL() {
       const i18nMessages = {
         title: decodeMessage(
           params.get('title'), 
-          'Sokuji'
+          'Eburon'
         ),
         guidance: decodeMessage(
           params.get('guidance'), 
-          'To use Sokuji, please select "Sokuji Virtual Microphone" in your microphone settings.'
+          'To use Eburon, please select "Eburon Virtual Microphone" in your microphone settings.'
         ),
         gotIt: decodeMessage(
           params.get('gotIt'), 
@@ -56,24 +56,24 @@ function parseI18nFromURL() {
         )
       };
       
-      console.info('[Sokuji] [Plugins] i18n messages parsed from URL parameters (Base64 decoded):', i18nMessages);
+      console.info('[Eburon] [Plugins] i18n messages parsed from URL parameters (Base64 decoded):', i18nMessages);
       return i18nMessages;
     }
   } catch (error) {
-    console.warn('[Sokuji] [Plugins] Error parsing i18n from URL parameters:', error);
+    console.warn('[Eburon] [Plugins] Error parsing i18n from URL parameters:', error);
   }
   
   // Fallback to default English messages
   return {
-    title: 'Sokuji',
-    guidance: 'To use Sokuji, please select "Sokuji Virtual Microphone" in your microphone settings.',
+    title: 'Eburon',
+    guidance: 'To use Eburon, please select "Eburon Virtual Microphone" in your microphone settings.',
     gotIt: 'Got it',
     remindLater: 'Remind me later'
   };
 }
 
 // Get i18n messages and make them globally available
-window.sokujiI18nMessages = parseI18nFromURL();
+window.EburonI18nMessages = parseI18nFromURL();
 
 // ============================================================================
 // Common Guidance Notification System
@@ -99,8 +99,8 @@ function showCommonGuidanceNotification(config) {
     messages
   } = config;
   
-  const notificationId = `sokuji-${pluginName.toLowerCase()}-audio-guidance`;
-  const storageKey = `sokuji-${hostname}-guidance-dismissed`;
+  const notificationId = `Eburon-${pluginName.toLowerCase()}-audio-guidance`;
+  const storageKey = `Eburon-${hostname}-guidance-dismissed`;
   
   // Check if notification already exists
   const existingNotification = document.getElementById(notificationId);
@@ -241,7 +241,7 @@ function showCommonGuidanceNotification(config) {
       try {
         localStorage.setItem(storageKey, 'true');
       } catch (e) {
-        console.warn(`[Sokuji] [${pluginName}] Could not store dismissal state:`, e);
+        console.warn(`[Eburon] [${pluginName}] Could not store dismissal state:`, e);
       }
     });
 
@@ -290,11 +290,11 @@ function showCommonGuidanceNotification(config) {
   } else if (document.documentElement) {
     document.documentElement.appendChild(notification);
   } else {
-    console.error(`[Sokuji] [${pluginName}] Cannot show audio guidance - no suitable parent element found`);
+    console.error(`[Eburon] [${pluginName}] Cannot show audio guidance - no suitable parent element found`);
     return;
   }
 
-  console.info(`[Sokuji] [${pluginName}] ${pluginName} audio guidance notification shown`);
+  console.info(`[Eburon] [${pluginName}] ${pluginName} audio guidance notification shown`);
 }
 
 // ============================================================================
@@ -307,14 +307,14 @@ const gatherTownPlugin = {
   hostname: 'app.gather.town',
   
   init() {
-    console.info('[Sokuji] [Gather] Gather Town plugin initialized');
+    console.info('[Eburon] [Gather] Gather Town plugin initialized');
   },
 
   showGuidance(messages) {
     // Use provided messages or fallback to default English
     const i18n = messages || {
-      title: 'Sokuji for Gather Town',
-      guidance: 'To use Sokuji, please select "Sokuji Virtual Microphone" in your microphone settings.',
+      title: 'Eburon for Gather Town',
+      guidance: 'To use Eburon, please select "Eburon Virtual Microphone" in your microphone settings.',
       gotIt: 'Got it',
       remindLater: 'Remind me later'
     };
@@ -334,14 +334,14 @@ const wherebyPlugin = {
   hostname: 'whereby.com',
   
   init() {
-    console.info('[Sokuji] [Whereby] Whereby plugin initialized');
+    console.info('[Eburon] [Whereby] Whereby plugin initialized');
   },
 
   showGuidance(messages) {
     // Use provided messages or fallback to default English
     const i18n = messages || {
-      title: 'Sokuji for Whereby',
-      guidance: 'To use Sokuji, please select "Sokuji Virtual Microphone" in your microphone settings and disable Noise reduction for better performance.',
+      title: 'Eburon for Whereby',
+      guidance: 'To use Eburon, please select "Eburon Virtual Microphone" in your microphone settings and disable Noise reduction for better performance.',
       gotIt: 'Got it',
       remindLater: 'Remind me later'
     };
@@ -361,14 +361,14 @@ const discordPlugin = {
   hostname: 'discord.com',
   
   init() {
-    console.info('[Sokuji] [Discord] Discord plugin initialized');
+    console.info('[Eburon] [Discord] Discord plugin initialized');
   },
 
   showGuidance(messages) {
     // Use provided messages or fallback to default English
     const i18n = messages || {
-      title: 'Sokuji for Discord',
-      guidance: 'To use Sokuji, please select <strong>"Sokuji Virtual Microphone"</strong> in your microphone settings and <strong>disable Noise Suppression</strong> in Discord\'s Voice settings for better performance.',
+      title: 'Eburon for Discord',
+      guidance: 'To use Eburon, please select <strong>"Eburon Virtual Microphone"</strong> in your microphone settings and <strong>disable Noise Suppression</strong> in Discord\'s Voice settings for better performance.',
       gotIt: 'Got it',
       remindLater: 'Remind me later'
     };
@@ -388,14 +388,14 @@ const slackPlugin = {
   hostname: 'app.slack.com',
 
   init() {
-    console.info('[Sokuji] [Slack] Slack plugin initialized');
+    console.info('[Eburon] [Slack] Slack plugin initialized');
   },
 
   showGuidance(messages) {
     // Use provided messages or fallback to default English
     const i18n = messages || {
-      title: 'Sokuji for Slack',
-      guidance: 'To use Sokuji in Slack Huddles, please <strong>start a Huddle</strong>, then select <strong>"Sokuji Virtual Microphone"</strong> in your Video and Mic settings, and <strong>disable Noise Suppression</strong> in Audio & Video preferences for better performance.',
+      title: 'Eburon for Slack',
+      guidance: 'To use Eburon in Slack Huddles, please <strong>start a Huddle</strong>, then select <strong>"Eburon Virtual Microphone"</strong> in your Video and Mic settings, and <strong>disable Noise Suppression</strong> in Audio & Video preferences for better performance.',
       gotIt: 'Got it',
       remindLater: 'Remind me later'
     };
@@ -415,14 +415,14 @@ const teamsPlugin = {
   hostname: ['teams.live.com', 'teams.microsoft.com'],
 
   init() {
-    console.info('[Sokuji] [Teams] Microsoft Teams plugin initialized');
+    console.info('[Eburon] [Teams] Microsoft Teams plugin initialized');
   },
 
   showGuidance(messages) {
     // Use provided messages or fallback to default English
     const i18n = messages || {
-      title: 'Sokuji for Microsoft Teams',
-      guidance: 'If you don\'t see the complete audio device list in Teams settings: <strong>1)</strong> Temporarily disable the Sokuji extension and refresh the page <strong>2)</strong> Allow Teams to access your microphone and camera when prompted <strong>3)</strong> Re-enable Sokuji extension and refresh the page again <strong>4)</strong> Allow Sokuji to access your microphone when prompted. Now you should see both real and <strong>"Sokuji Virtual Microphone"</strong> devices in your settings.',
+      title: 'Eburon for Microsoft Teams',
+      guidance: 'If you don\'t see the complete audio device list in Teams settings: <strong>1)</strong> Temporarily disable the Eburon extension and refresh the page <strong>2)</strong> Allow Teams to access your microphone and camera when prompted <strong>3)</strong> Re-enable Eburon extension and refresh the page again <strong>4)</strong> Allow Eburon to access your microphone when prompted. Now you should see both real and <strong>"Eburon Virtual Microphone"</strong> devices in your settings.',
       gotIt: 'Got it',
       remindLater: 'Remind me later'
     };
@@ -456,14 +456,14 @@ function loadCurrentSitePlugin() {
   const plugin = sitePluginsRegistry[currentHostname];
   
   if (plugin) {
-    window.sokujiSitePlugin = plugin;
-    console.info('[Sokuji] [Plugins] Loaded plugin for current site:', plugin.name, '(' + currentHostname + ')');
+    window.EburonSitePlugin = plugin;
+    console.info('[Eburon] [Plugins] Loaded plugin for current site:', plugin.name, '(' + currentHostname + ')');
   } else {
-    window.sokujiSitePlugin = null;
-    console.info('[Sokuji] [Plugins] No specific plugin found for current site:', currentHostname);
+    window.EburonSitePlugin = null;
+    console.info('[Eburon] [Plugins] No specific plugin found for current site:', currentHostname);
   }
   
-  return window.sokujiSitePlugin;
+  return window.EburonSitePlugin;
 }
 
 // Load the plugin for current site
@@ -474,7 +474,7 @@ loadCurrentSitePlugin();
 // ============================================================================
 
 (function() {
-  console.info('[Sokuji] [Page] Plugin initialization script running in page context');
+  console.info('[Eburon] [Page] Plugin initialization script running in page context');
   
   // Detect current site
   function getCurrentSite() {
@@ -486,23 +486,23 @@ loadCurrentSitePlugin();
     const currentSite = getCurrentSite();
     
     // Check if plugin is loaded
-    if (window.sokujiSitePlugin === undefined) {
-      console.warn('[Sokuji] [Page] Site plugin not loaded yet, retrying...');
+    if (window.EburonSitePlugin === undefined) {
+      console.warn('[Eburon] [Page] Site plugin not loaded yet, retrying...');
       setTimeout(initSitePlugin, 100);
       return;
     }
     
     // Check if i18n messages are loaded
-    if (!window.sokujiI18nMessages) {
-      console.warn('[Sokuji] [Page] i18n messages not loaded yet, retrying...');
+    if (!window.EburonI18nMessages) {
+      console.warn('[Eburon] [Page] i18n messages not loaded yet, retrying...');
       setTimeout(initSitePlugin, 100);
       return;
     }
     
-    const plugin = window.sokujiSitePlugin;
+    const plugin = window.EburonSitePlugin;
     
     if (plugin) {
-      console.info('[Sokuji] [Page] Initializing ' + plugin.name + ' plugin for ' + currentSite);
+      console.info('[Eburon] [Page] Initializing ' + plugin.name + ' plugin for ' + currentSite);
       try {
         plugin.init();
         if (plugin.monitorAudio) {
@@ -513,21 +513,21 @@ loadCurrentSitePlugin();
           setTimeout(function() {
             // Check if notification was already dismissed in this session
             try {
-              const dismissed = localStorage.getItem('sokuji-' + currentSite + '-guidance-dismissed');
+              const dismissed = localStorage.getItem('Eburon-' + currentSite + '-guidance-dismissed');
               if (!dismissed) {
-                plugin.showGuidance(window.sokujiI18nMessages);
+                plugin.showGuidance(window.EburonI18nMessages);
               }
             } catch (e) {
               // If localStorage is not available, show notification anyway
-              plugin.showGuidance(window.sokujiI18nMessages);
+              plugin.showGuidance(window.EburonI18nMessages);
             }
           }, 3000);
         }
       } catch (error) {
-        console.error('[Sokuji] [Page] Error initializing ' + plugin.name + ' plugin:', error);
+        console.error('[Eburon] [Page] Error initializing ' + plugin.name + ' plugin:', error);
       }
     } else {
-      console.info('[Sokuji] [Page] No specific plugin found for ' + currentSite + ', using generic functionality');
+      console.info('[Eburon] [Page] No specific plugin found for ' + currentSite + ', using generic functionality');
     }
   }
   
@@ -541,30 +541,30 @@ loadCurrentSitePlugin();
   }
   
   // Expose API for debugging in page context
-  window.sokujiPageContext = {
+  window.EburonPageContext = {
     version: '2.0.0',
     currentSite: getCurrentSite(),
     hasPlugin: function() {
-      return !!window.sokujiSitePlugin;
+      return !!window.EburonSitePlugin;
     },
     getActivePlugin: function() {
-      return window.sokujiSitePlugin ? window.sokujiSitePlugin.name : 'Generic';
+      return window.EburonSitePlugin ? window.EburonSitePlugin.name : 'Generic';
     },
     getStatus: function() {
       return {
         initialized: true,
-        hasVirtualMic: !!window.sokujiVirtualMic,
+        hasVirtualMic: !!window.EburonVirtualMic,
         canInjectAudio: true,
         currentSite: getCurrentSite(),
-        activePlugin: window.sokujiSitePlugin ? window.sokujiSitePlugin.name : 'Generic',
-        pluginLoaded: !!window.sokujiSitePlugin
+        activePlugin: window.EburonSitePlugin ? window.EburonSitePlugin.name : 'Generic',
+        pluginLoaded: !!window.EburonSitePlugin
       };
     },
     // Helper function to manually trigger site plugin initialization
     reinitSitePlugin: initSitePlugin,
     // Helper function to get current plugin
     getCurrentPlugin: function() {
-      return window.sokujiSitePlugin || null;
+      return window.EburonSitePlugin || null;
     }
   };
 })(); 

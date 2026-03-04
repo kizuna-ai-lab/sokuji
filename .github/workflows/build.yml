@@ -56,7 +56,7 @@ jobs:
         env:
           CI: false
           # Use production environment variables for releases, simpler ones for CI
-          VITE_BACKEND_URL: ${{ secrets.VITE_BACKEND_URL_PROD || 'https://sokuji-api.kizuna.ai' }}
+          VITE_BACKEND_URL: ${{ secrets.VITE_BACKEND_URL_PROD || 'https://Eburon-api.kizuna.ai' }}
           VITE_ENVIRONMENT: production
           VITE_POSTHOG_KEY: ${{ secrets.VITE_POSTHOG_KEY }}
           VITE_ENABLE_VOLCENGINE_ST: ${{ secrets.VITE_ENABLE_VOLCENGINE_ST }}
@@ -75,7 +75,7 @@ jobs:
           CI: false
           # Prevent actual publishing during CI builds
           CSC_IDENTITY_AUTO_DISCOVERY: ${{ !startsWith(github.ref, 'refs/tags/v') && 'false' || '' }}
-          VITE_BACKEND_URL: ${{ secrets.VITE_BACKEND_URL_PROD || 'https://sokuji-api.kizuna.ai' }}
+          VITE_BACKEND_URL: ${{ secrets.VITE_BACKEND_URL_PROD || 'https://Eburon-api.kizuna.ai' }}
           VITE_ENVIRONMENT: production
           VITE_POSTHOG_KEY: ${{ secrets.VITE_POSTHOG_KEY }}
           VITE_ENABLE_VOLCENGINE_ST: ${{ secrets.VITE_ENABLE_VOLCENGINE_ST }}
@@ -92,7 +92,7 @@ jobs:
           CI: false
           # Always build unsigned for macOS
           CSC_IDENTITY_AUTO_DISCOVERY: false
-          VITE_BACKEND_URL: ${{ secrets.VITE_BACKEND_URL_PROD || 'https://sokuji-api.kizuna.ai' }}
+          VITE_BACKEND_URL: ${{ secrets.VITE_BACKEND_URL_PROD || 'https://Eburon-api.kizuna.ai' }}
           VITE_ENVIRONMENT: production
           VITE_POSTHOG_KEY: ${{ secrets.VITE_POSTHOG_KEY }}
           VITE_ENABLE_VOLCENGINE_ST: ${{ secrets.VITE_ENABLE_VOLCENGINE_ST }}
@@ -108,7 +108,7 @@ jobs:
           if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
             NODE_ENV=production npm run build -- --mode production
             cd dist
-            zip -r ../sokuji-extension.zip *
+            zip -r ../Eburon-extension.zip *
             cd ..
           else
             npm run build
@@ -120,7 +120,7 @@ jobs:
           fi
         env:
           # Production environment variables for extension
-          VITE_BACKEND_URL: ${{ secrets.VITE_BACKEND_URL_PROD || 'https://sokuji-api.kizuna.ai' }}
+          VITE_BACKEND_URL: ${{ secrets.VITE_BACKEND_URL_PROD || 'https://Eburon-api.kizuna.ai' }}
           POSTHOG_KEY: ${{ secrets.VITE_POSTHOG_KEY }}
           VITE_ENABLE_VOLCENGINE_ST: ${{ secrets.VITE_ENABLE_VOLCENGINE_ST }}
           VITE_ENABLE_VOLCENGINE_AST2: ${{ secrets.VITE_ENABLE_VOLCENGINE_AST2 }}
@@ -148,7 +148,7 @@ jobs:
           path: |
             out/make/**/*.deb
             out/make/**/*.zip
-            extension/sokuji-extension.zip
+            extension/Eburon-extension.zip
             CHANGELOG.md
 
       - name: Upload Windows artifacts
@@ -217,7 +217,7 @@ jobs:
           files: |
             linux-artifacts/out/make/**/*.deb
             linux-artifacts/out/make/**/*.zip
-            linux-artifacts/extension/sokuji-extension.zip
+            linux-artifacts/extension/Eburon-extension.zip
             windows-artifacts/squirrel.windows/x64/*.exe
             windows-artifacts/squirrel.windows/x64/*.nupkg
             macos-arm64-artifacts/*.pkg

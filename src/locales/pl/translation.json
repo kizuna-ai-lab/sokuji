@@ -19,7 +19,7 @@
     "signUp": "Zarejestruj się"
   },
   "app": {
-    "title": "Sokuji",
+    "title": "Eburon",
     "description": "Aplikacja do tłumaczenia mowy w czasie rzeczywistym"
   },
   "menu": {
@@ -131,12 +131,12 @@
     "virtualMicrophoneNotice": "Powiadomienie o wirtualnym mikrofonie",
     "virtualSpeakerNotice": "Powiadomienie o wirtualnym głośniku",
     "iUnderstand": "Rozumiem",
-    "virtualMicWarningTitle": "To jest wirtualny mikrofon utworzony przez Sokuji.",
+    "virtualMicWarningTitle": "To jest wirtualny mikrofon utworzony przez Eburon.",
     "virtualMicWarningText1": "Proszę nie wybierać tego urządzenia tutaj. Zamiast tego użyj tego wirtualnego mikrofonu w swoich aplikacjach do wideokonferencji (takich jak Google Meet, Zoom, Microsoft Teams itp.), aby otrzymywać wyjście tłumaczenia mowy w czasie rzeczywistym.",
-    "virtualMicWarningText2": "Aby Sokuji działało prawidłowo, wybierz swój prawdziwy fizyczny mikrofon z listy.",
-    "virtualSpeakerWarningTitle": "To jest wirtualny głośnik utworzony przez Sokuji.",
-    "virtualSpeakerWarningText1": "Proszę nie wybierać tego urządzenia jako monitora. Sokuji_Virtual_Speaker jest używany przez Sokuji do wysyłania dźwięku do aplikacji konferencyjnych.",
-    "virtualSpeakerWarningText2": "Podłączenie monitora do urządzenia wyjściowego Sokuji utworzyłoby pętlę sprzężenia zwrotnego audio, powodując, że twoje wejście zawierałoby twoje własne monitorowane wyjście.",
+    "virtualMicWarningText2": "Aby Eburon działało prawidłowo, wybierz swój prawdziwy fizyczny mikrofon z listy.",
+    "virtualSpeakerWarningTitle": "To jest wirtualny głośnik utworzony przez Eburon.",
+    "virtualSpeakerWarningText1": "Proszę nie wybierać tego urządzenia jako monitora. Eburon_Virtual_Speaker jest używany przez Eburon do wysyłania dźwięku do aplikacji konferencyjnych.",
+    "virtualSpeakerWarningText2": "Podłączenie monitora do urządzenia wyjściowego Eburon utworzyłoby pętlę sprzężenia zwrotnego audio, powodując, że twoje wejście zawierałoby twoje własne monitorowane wyjście.",
     "virtualSpeakerWarningText3": "Przełącznik \"Włącz\" łączy wirtualny głośnik z wybranym urządzeniem monitorującym, pozwalając ci słyszeć to, co jest wysyłane do aplikacji konferencyjnej. Przełącznik \"Wyłącz\" rozłącza to połączenie monitorujące.",
     "virtualSpeakerWarningText4": "Dla prawidłowego działania wybierz inne urządzenie monitorujące (takie jak słuchawki lub głośniki) z listy.",
     "realVoicePassthrough": "Przepuszczanie Oryginalnego Dźwięku",
@@ -213,8 +213,8 @@
     "basic": {
       "steps": {
         "welcome": {
-          "title": "Welcome to Sokuji",
-          "content": "Welcome to Sokuji! This simple guide will help you start using real-time translation in just a few steps."
+          "title": "Welcome to Eburon",
+          "content": "Welcome to Eburon! This simple guide will help you start using real-time translation in just a few steps."
         },
         "settings": {
           "title": "Step 1: Open Settings",
@@ -246,7 +246,7 @@
         },
         "complete": {
           "title": "All Set!",
-          "content": "Perfect! You're ready to use Sokuji. Click Start and begin speaking to hear real-time translations."
+          "content": "Perfect! You're ready to use Eburon. Click Start and begin speaking to hear real-time translations."
         }
       }
     },
@@ -260,7 +260,7 @@
     "restartTour": "Uruchom ponownie przewodnik konfiguracji",
     "steps": {
       "welcome": {
-        "title": "Witamy w Sokuji!",
+        "title": "Witamy w Eburon!",
         "content": "Witamy w aplikacji do tłumaczenia mowy w czasie rzeczywistym! Szybko skonfigurujmy Twój system dla najlepszego doświadczenia."
       },
       "openSettings": {
@@ -297,11 +297,11 @@
       },
       "startSession": {
         "title": "Rozpocznij swoją sesję",
-        "content": "Wszystko gotowe! Kliknij przycisk \"Rozpocznij sesję\", aby rozpocząć tłumaczenie w czasie rzeczywistym. Pamiętaj, aby wybrać wirtualny mikrofon Sokuji jako urządzenie wejściowe w swojej aplikacji konferencyjnej."
+        "content": "Wszystko gotowe! Kliknij przycisk \"Rozpocznij sesję\", aby rozpocząć tłumaczenie w czasie rzeczywistym. Pamiętaj, aby wybrać wirtualny mikrofon Eburon jako urządzenie wejściowe w swojej aplikacji konferencyjnej."
       },
       "completion": {
         "title": "Przewodnik konfiguracji zakończony!",
-        "content": "Ukończyłeś przewodnik konfiguracji! Teraz upewnij się, że rzeczywiście wprowadzisz swój klucz API i skonfigurujesz ustawienia, a następnie użyj wirtualnego mikrofonu Sokuji w aplikacjach konferencyjnych (takich jak Google Meet, Zoom itp.), aby rozpocząć tłumaczenie w czasie rzeczywistym."
+        "content": "Ukończyłeś przewodnik konfiguracji! Teraz upewnij się, że rzeczywiście wprowadzisz swój klucz API i skonfigurujesz ustawienia, a następnie użyj wirtualnego mikrofonu Eburon w aplikacjach konferencyjnych (takich jak Google Meet, Zoom itp.), aby rozpocząć tłumaczenie w czasie rzeczywistym."
       }
     }
   },
@@ -326,7 +326,7 @@
     "apiKeyHelp2": "2. Zarejestruj się lub zaloguj do swojego konta",
     "apiKeyHelp3": "3. Przejdź do sekcji kluczy API",
     "apiKeyHelp4": "4. Utwórz nowy klucz API i skopiuj go tutaj",
-    "apiKeyHelpTooltip": "Klucz API to jak hasło, które pozwala Sokuji używać usług tłumaczenia AI. Musisz uzyskać go od wybranego dostawcy (np. OpenAI).",
+    "apiKeyHelpTooltip": "Klucz API to jak hasło, które pozwala Eburon używać usług tłumaczenia AI. Musisz uzyskać go od wybranego dostawcy (np. OpenAI).",
     "apiKeyHelpTooltip2": "Przewodnik krok po kroku:",
     "languages": "Języki",
     "uiLanguage": "Język Interfejsu",
@@ -336,7 +336,7 @@
   },
   "simpleConfig": {
     "interfaceLanguage": "Język Interfejsu",
-    "interfaceLanguageDesc": "To zmienia język menu i przycisków Sokuji. NIE wpływa na języki, między którymi możesz tłumaczyć.",
+    "interfaceLanguageDesc": "To zmienia język menu i przycisków Eburon. NIE wpływa na języki, między którymi możesz tłumaczyć.",
     "translationLanguages": "Języki Tłumaczenia",
     "translationLanguagesDesc": "Wybierz język, którym mówisz (Twój Język) i język, w którym chcesz słyszeć tłumaczenie (Język Docelowy). Wybierz 'Automatyczne Wykrywanie', jeśli nie jesteś pewien języka źródłowego.",
     "yourLanguage": "Mój język",
@@ -346,7 +346,7 @@
     "signInDescription": "Zarejestruj się dla uproszczonego doświadczenia.",
     "targetLanguage": "Język rozmówcy",
     "microphone": "Mikrofon",
-    "microphoneDesc": "Wybierz mikrofon do przechwytywania swojej mowy. Mów w swoim języku do tego mikrofonu, a Sokuji będzie tłumaczyć wszystko co usłyszy w czasie rzeczywistym.",
+    "microphoneDesc": "Wybierz mikrofon do przechwytywania swojej mowy. Mów w swoim języku do tego mikrofonu, a Eburon będzie tłumaczyć wszystko co usłyszy w czasie rzeczywistym.",
     "speaker": "Głośnik",
     "speakerDesc": "Wybierz głośnik do monitorowania przetłumaczonego wyjścia. Pozwala to słyszeć jak brzmi tłumaczenie. Możesz to wyłączyć jeśli monitorowanie nie jest potrzebne. Niezależnie od tego czy jest włączone czy wyłączone, przetłumaczone audio jest zawsze wysyłane do wirtualnego mikrofonu aby inni uczestnicy mogli je słyszeć.",
     "systemAudio": "Dźwięk uczestnika",
@@ -438,7 +438,7 @@
     "noMic": "Wymagany Mikrofon"
   },
   "userTypeSelection": {
-    "title": "Witamy w Sokuji",
+    "title": "Witamy w Eburon",
     "subtitle": "Proszę wybrać typ użytkownika, aby rozpocząć",
     "regular": {
       "title": "Zwykły Użytkownik",

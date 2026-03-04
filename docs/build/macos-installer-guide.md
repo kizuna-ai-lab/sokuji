@@ -2,7 +2,7 @@
 
 ## Overview
 
-This guide covers the complete process of building, packaging, and distributing Sokuji for macOS, including the integrated virtual audio driver. The solution provides users with a one-click installation experience that includes both the application and virtual audio capabilities.
+This guide covers the complete process of building, packaging, and distributing Eburon for macOS, including the integrated virtual audio driver. The solution provides users with a one-click installation experience that includes both the application and virtual audio capabilities.
 
 ## Table of Contents
 
@@ -21,9 +21,9 @@ This guide covers the complete process of building, packaging, and distributing 
 ### Package Components
 
 ```
-Sokuji.pkg
-├── Sokuji.app                          // Main Electron application
-├── SokujiVirtualAudio.driver           // Custom virtual audio driver
+Eburon.pkg
+├── Eburon.app                          // Main Electron application
+├── EburonVirtualAudio.driver           // Custom virtual audio driver
 ├── preinstall script                   // Pre-installation checks
 ├── postinstall script                  // Driver installation
 └── Installation UI                     // Welcome and conclusion pages
@@ -33,24 +33,24 @@ Sokuji.pkg
 
 - **Integrated Installation**: Virtual audio driver bundled with the application
 - **No Runtime Downloads**: All components included in the package
-- **Custom Driver**: Based on BlackHole (GPL-3.0) with Sokuji-specific modifications
+- **Custom Driver**: Based on BlackHole (GPL-3.0) with Eburon-specific modifications
 - **Cross-Platform**: Works on macOS 10.15+ with native audio subsystems
 
 ## Virtual Audio Driver
 
 ### Overview
 
-The Sokuji Virtual Audio driver is a customized version of the open-source BlackHole project, modified to avoid conflicts and provide seamless integration with Sokuji.
+The Eburon Virtual Audio driver is a customized version of the open-source BlackHole project, modified to avoid conflicts and provide seamless integration with Eburon.
 
 ### Driver Customization
 
-#### Configuration File (`BlackHole/BlackHole/SokujiConfig.h`)
+#### Configuration File (`BlackHole/BlackHole/EburonConfig.h`)
 
 ```c
-#define kDriver_Name                    "Sokuji"
-#define kPlugIn_BundleID               "com.sokuji.virtualaudio"
-#define kPlugIn_Name                   "Sokuji Virtual Audio"
-#define kDevice_Name                   "Sokuji Virtual Audio"
+#define kDriver_Name                    "Eburon"
+#define kPlugIn_BundleID               "com.Eburon.virtualaudio"
+#define kPlugIn_Name                   "Eburon Virtual Audio"
+#define kDevice_Name                   "Eburon Virtual Audio"
 #define kNumber_Of_Channels            2
 #define kNumber_Of_Input_Channels      2
 #define kNumber_Of_Output_Channels     2
@@ -60,8 +60,8 @@ The Sokuji Virtual Audio driver is a customized version of the open-source Black
 
 #### Key Modifications from BlackHole
 
-1. **Unique Bundle ID**: `com.sokuji.virtualaudio` prevents conflicts with original BlackHole
-2. **Custom Device Name**: "Sokuji Virtual Audio" for clear identification in system preferences
+1. **Unique Bundle ID**: `com.Eburon.virtualaudio` prevents conflicts with original BlackHole
+2. **Custom Device Name**: "Eburon Virtual Audio" for clear identification in system preferences
 3. **Optimized Configuration**: 2-channel stereo optimized for voice communication
 4. **Sample Rate Support**: 44.1kHz and 48kHz for compatibility with video conferencing
 
@@ -81,14 +81,14 @@ The Sokuji Virtual Audio driver is a customized version of the open-source Black
 git clone https://github.com/ExistentialAudio/BlackHole.git
 cd BlackHole
 
-# Apply Sokuji customizations
-cp /path/to/SokujiConfig.h BlackHole/BlackHole/
+# Apply Eburon customizations
+cp /path/to/EburonConfig.h BlackHole/BlackHole/
 ```
 
 2. **Build the Driver**:
 ```bash
 # Use the provided build script
-./build-sokuji-driver.sh
+./build-Eburon-driver.sh
 
 # Or manually with xcodebuild
 xcodebuild -project BlackHole.xcodeproj \
@@ -100,14 +100,14 @@ xcodebuild -project BlackHole.xcodeproj \
 3. **Verify Build Output**:
 ```bash
 # Check the driver bundle
-ls -la build/Release/SokujiVirtualAudio.driver/
+ls -la build/Release/EburonVirtualAudio.driver/
 # Should show Contents/Info.plist, MacOS/BlackHole, etc.
 ```
 
 ### Driver Installation Location
 
-- **System Location**: `/Library/Audio/Plug-Ins/HAL/SokujiVirtualAudio.driver`
-- **Application Bundle**: `/Applications/Sokuji.app/Contents/Resources/drivers/`
+- **System Location**: `/Library/Audio/Plug-Ins/HAL/EburonVirtualAudio.driver`
+- **Application Bundle**: `/Applications/Eburon.app/Contents/Resources/drivers/`
 - **Permissions**: Root ownership with 755 permissions
 
 ## Build Process
@@ -116,7 +116,7 @@ ls -la build/Release/SokujiVirtualAudio.driver/
 
 ```bash
 # Build the virtual audio driver
-./build-sokuji-driver.sh
+./build-Eburon-driver.sh
 
 # Build PKG installer
 ./build-pkg.sh
@@ -127,13 +127,13 @@ npm run make:pkg
 
 ### Build Scripts
 
-#### Driver Build Script (`build-sokuji-driver.sh`)
+#### Driver Build Script (`build-Eburon-driver.sh`)
 
-Builds the customized Sokuji Virtual Audio driver from BlackHole source.
+Builds the customized Eburon Virtual Audio driver from BlackHole source.
 
 #### PKG Build Script (`build-pkg.sh`)
 
-Creates an unsigned PKG installer that includes the Sokuji app with installation scripts.
+Creates an unsigned PKG installer that includes the Eburon app with installation scripts.
 
 #### PKG Build Script (`build-pkg.sh`)
 
@@ -156,7 +156,7 @@ Creates an unsigned PKG installer that includes the Sokuji app with installation
 {
   name: '@electron-forge/maker-pkg',
   config: {
-    name: 'Sokuji',
+    name: 'Eburon',
     identity: 'Developer ID Installer: Your Name (XXXXXXXXXX)',
     scripts: 'pkg-scripts',
     installLocation: '/Applications',
@@ -171,7 +171,7 @@ Creates an unsigned PKG installer that includes the Sokuji app with installation
 ### PKG Structure
 
 ```
-Sokuji.pkg
+Eburon.pkg
 ├── Distribution.xml           // Package configuration
 ├── Resources/
 │   ├── welcome.html          // Welcome page
@@ -181,7 +181,7 @@ Sokuji.pkg
 │   ├── preinstall           // Pre-installation checks
 │   └── postinstall          // Driver installation
 └── Packages/
-    └── Sokuji.pkg           // Application package
+    └── Eburon.pkg           // Application package
 ```
 
 ### Installation Scripts
@@ -213,7 +213,7 @@ exit 0
 #!/bin/bash
 
 # Install virtual audio driver
-DRIVER_SOURCE="/Applications/Sokuji.app/Contents/Resources/drivers/SokujiVirtualAudio.driver"
+DRIVER_SOURCE="/Applications/Eburon.app/Contents/Resources/drivers/EburonVirtualAudio.driver"
 DRIVER_DEST="/Library/Audio/Plug-Ins/HAL/"
 
 if [ -d "$DRIVER_SOURCE" ]; then
@@ -221,8 +221,8 @@ if [ -d "$DRIVER_SOURCE" ]; then
     sudo cp -R "$DRIVER_SOURCE" "$DRIVER_DEST"
 
     # Set proper permissions
-    sudo chown -R root:wheel "$DRIVER_DEST/SokujiVirtualAudio.driver"
-    sudo chmod -R 755 "$DRIVER_DEST/SokujiVirtualAudio.driver"
+    sudo chown -R root:wheel "$DRIVER_DEST/EburonVirtualAudio.driver"
+    sudo chmod -R 755 "$DRIVER_DEST/EburonVirtualAudio.driver"
 
     # Restart CoreAudio to load the driver
     sudo killall coreaudiod
@@ -248,7 +248,7 @@ exit 0
 codesign --force --deep --strict \
   --options=runtime \
   --sign "Developer ID Application: Your Name (XXXXXXXXXX)" \
-  SokujiVirtualAudio.driver
+  EburonVirtualAudio.driver
 ```
 
 #### Sign the Application
@@ -258,27 +258,27 @@ codesign --force --deep --strict \
   --options=runtime \
   --entitlements entitlements.plist \
   --sign "Developer ID Application: Your Name (XXXXXXXXXX)" \
-  Sokuji.app
+  Eburon.app
 ```
 
 #### Sign the PKG
 
 ```bash
 productsign --sign "Developer ID Installer: Your Name (XXXXXXXXXX)" \
-  Sokuji-unsigned.pkg \
-  Sokuji.pkg
+  Eburon-unsigned.pkg \
+  Eburon.pkg
 ```
 
 ### Notarization
 
 ```bash
 # Submit for notarization
-xcrun notarytool submit Sokuji.pkg \
+xcrun notarytool submit Eburon.pkg \
   --keychain-profile "AC_PASSWORD" \
   --wait
 
 # Staple the ticket
-xcrun stapler staple Sokuji.pkg
+xcrun stapler staple Eburon.pkg
 ```
 
 ### Entitlements Configuration
@@ -302,7 +302,7 @@ xcrun stapler staple Sokuji.pkg
 
 ### User Experience Flow
 
-1. **Download**: User downloads Sokuji.pkg from official source
+1. **Download**: User downloads Eburon.pkg from official source
 2. **Launch Installer**: Double-click PKG file
 3. **Welcome Screen**: Display features and system requirements
 4. **License Agreement**: Show GPL-3.0 license for audio driver
@@ -314,10 +314,10 @@ xcrun stapler staple Sokuji.pkg
 
 ### Installation Locations
 
-- **Application**: `/Applications/Sokuji.app`
-- **Virtual Audio Driver**: `/Library/Audio/Plug-Ins/HAL/SokujiVirtualAudio.driver`
-- **Preferences**: `~/Library/Preferences/com.sokuji.app.plist`
-- **Application Support**: `~/Library/Application Support/Sokuji/`
+- **Application**: `/Applications/Eburon.app`
+- **Virtual Audio Driver**: `/Library/Audio/Plug-Ins/HAL/EburonVirtualAudio.driver`
+- **Preferences**: `~/Library/Preferences/com.Eburon.app.plist`
+- **Application Support**: `~/Library/Application Support/Eburon/`
 
 ### Post-Installation Verification
 
@@ -347,13 +347,13 @@ After installation, the virtual audio device should appear in:
 #### Signing Validation
 ```bash
 # Verify application signature
-codesign --verify --verbose Sokuji.app
+codesign --verify --verbose Eburon.app
 
 # Verify driver signature
-codesign --verify --verbose /Library/Audio/Plug-Ins/HAL/SokujiVirtualAudio.driver
+codesign --verify --verbose /Library/Audio/Plug-Ins/HAL/EburonVirtualAudio.driver
 
 # Check notarization status
-spctl -a -v Sokuji.app
+spctl -a -v Eburon.app
 ```
 
 ### Automated Testing
@@ -378,7 +378,7 @@ spctl -a -v Sokuji.app
 
 ```bash
 # Check if driver is installed
-ls -la /Library/Audio/Plug-Ins/HAL/SokujiVirtualAudio.driver
+ls -la /Library/Audio/Plug-Ins/HAL/EburonVirtualAudio.driver
 
 # Restart CoreAudio
 sudo killall coreaudiod
@@ -387,18 +387,18 @@ sudo killall coreaudiod
 log show --predicate 'process == "coreaudiod"' --last 1m
 
 # Verify permissions
-ls -la /Library/Audio/Plug-Ins/HAL/ | grep Sokuji
+ls -la /Library/Audio/Plug-Ins/HAL/ | grep Eburon
 ```
 
 #### Permission Issues
 
 ```bash
 # Fix driver permissions
-sudo chown -R root:wheel /Library/Audio/Plug-Ins/HAL/SokujiVirtualAudio.driver
-sudo chmod -R 755 /Library/Audio/Plug-Ins/HAL/SokujiVirtualAudio.driver
+sudo chown -R root:wheel /Library/Audio/Plug-Ins/HAL/EburonVirtualAudio.driver
+sudo chmod -R 755 /Library/Audio/Plug-Ins/HAL/EburonVirtualAudio.driver
 
 # Reset audio system permissions
-tccutil reset Microphone com.sokuji.app
+tccutil reset Microphone com.Eburon.app
 ```
 
 #### Build Failures
@@ -414,7 +414,7 @@ xcodebuild -version
 security find-identity -v -p codesigning
 
 # Check for conflicting processes
-ps aux | grep -E "Sokuji|BlackHole"
+ps aux | grep -E "Eburon|BlackHole"
 ```
 
 #### Notarization Issues
@@ -450,16 +450,16 @@ sudo log show --predicate 'process == "installer"' --last 10m
 
 ```bash
 # Check driver installation
-ls -la /Library/Audio/Plug-Ins/HAL/SokujiVirtualAudio.driver
+ls -la /Library/Audio/Plug-Ins/HAL/EburonVirtualAudio.driver
 
 # Verify CoreAudio recognition
-system_profiler SPAudioDataType | grep -i sokuji
+system_profiler SPAudioDataType | grep -i Eburon
 
 # Check driver permissions
-stat -f "%Su:%Sg" /Library/Audio/Plug-Ins/HAL/SokujiVirtualAudio.driver
+stat -f "%Su:%Sg" /Library/Audio/Plug-Ins/HAL/EburonVirtualAudio.driver
 
 # View recent CoreAudio logs
-log show --predicate 'process == "coreaudiod"' --last 5m | grep -i sokuji
+log show --predicate 'process == "coreaudiod"' --last 5m | grep -i Eburon
 ```
 
 ## License Compliance
@@ -476,7 +476,7 @@ Since the virtual audio driver is based on BlackHole (GPL-3.0), the following re
 ### Required Files
 
 ```
-Sokuji.app/Contents/Resources/
+Eburon.app/Contents/Resources/
 ├── LICENSE-GPL3.txt        // BlackHole license
 ├── NOTICE.txt              // Third-party attributions
 └── driver-source/          // Modified driver source code
@@ -491,7 +491,7 @@ Virtual audio functionality powered by a modified version of BlackHole
 Original project: https://github.com/ExistentialAudio/BlackHole
 Licensed under GPL-3.0
 
-Sokuji modifications:
+Eburon modifications:
 - Custom Bundle ID for compatibility
 - Optimized for voice communication
 - Integrated installation process
@@ -505,10 +505,10 @@ For enterprise deployments:
 
 ```bash
 # Silent installation
-installer -pkg Sokuji.pkg -target / -verboseR
+installer -pkg Eburon.pkg -target / -verboseR
 
 # Custom installation location
-installer -pkg Sokuji.pkg -target /Volumes/CustomDisk
+installer -pkg Eburon.pkg -target /Volumes/CustomDisk
 
 # MDM deployment
 # Create a configuration profile with:
@@ -521,10 +521,10 @@ installer -pkg Sokuji.pkg -target /Volumes/CustomDisk
 
 ```bash
 # Check installed version
-defaults read /Applications/Sokuji.app/Contents/Info.plist CFBundleShortVersionString
+defaults read /Applications/Eburon.app/Contents/Info.plist CFBundleShortVersionString
 
 # Driver version
-defaults read /Library/Audio/Plug-Ins/HAL/SokujiVirtualAudio.driver/Contents/Info.plist CFBundleShortVersionString
+defaults read /Library/Audio/Plug-Ins/HAL/EburonVirtualAudio.driver/Contents/Info.plist CFBundleShortVersionString
 ```
 
 ### Uninstallation
@@ -535,30 +535,30 @@ Complete uninstallation script:
 #!/bin/bash
 
 # Stop application
-killall Sokuji 2>/dev/null
+killall Eburon 2>/dev/null
 
 # Remove application
-rm -rf /Applications/Sokuji.app
+rm -rf /Applications/Eburon.app
 
 # Remove driver
-sudo rm -rf /Library/Audio/Plug-Ins/HAL/SokujiVirtualAudio.driver
+sudo rm -rf /Library/Audio/Plug-Ins/HAL/EburonVirtualAudio.driver
 
 # Remove preferences
-rm ~/Library/Preferences/com.sokuji.app.plist
+rm ~/Library/Preferences/com.Eburon.app.plist
 
 # Remove application support
-rm -rf ~/Library/Application\ Support/Sokuji
+rm -rf ~/Library/Application\ Support/Eburon
 
 # Restart CoreAudio
 sudo killall coreaudiod
 
-echo "Sokuji has been completely uninstalled"
+echo "Eburon has been completely uninstalled"
 ```
 
 ## Support and Resources
 
 ### Documentation
-- [Sokuji Documentation](https://github.com/user/sokuji/docs)
+- [Eburon Documentation](https://github.com/user/Eburon/docs)
 - [BlackHole Project](https://github.com/ExistentialAudio/BlackHole)
 - [Apple Developer Documentation](https://developer.apple.com/documentation/)
 
@@ -570,4 +570,4 @@ echo "Sokuji has been completely uninstalled"
 
 ---
 
-This guide provides comprehensive coverage of building, packaging, and distributing Sokuji for macOS with integrated virtual audio functionality. The solution ensures users have a seamless, one-click installation experience with all necessary components included.
+This guide provides comprehensive coverage of building, packaging, and distributing Eburon for macOS with integrated virtual audio functionality. The solution ensures users have a seamless, one-click installation experience with all necessary components included.

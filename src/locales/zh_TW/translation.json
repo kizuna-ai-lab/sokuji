@@ -20,7 +20,7 @@
     "signInRequired": "請登入以使用Kizuna AI作為您的提供商"
   },
   "app": {
-    "title": "Sokuji",
+    "title": "Eburon",
     "description": "即時語音翻譯應用程式"
   },
   "menu": {
@@ -37,13 +37,13 @@
     "languages": "語言",
     "uiLanguage": "介面語言",
     "audioSettings": "音訊設定",
-    "apiKeyHelpTooltip": "API 金鑰就像密碼，讓 Sokuji 使用 AI 翻譯服務。您需要從選擇的提供商（如 OpenAI）取得一個。",
+    "apiKeyHelpTooltip": "API 金鑰就像密碼，讓 Eburon 使用 AI 翻譯服務。您需要從選擇的提供商（如 OpenAI）取得一個。",
     "apiKeyHelpTooltip2": "逐步指南：",
     "autoAuthenticated": "已通過您的帳戶自動認證"
   },
   "simpleConfig": {
     "interfaceLanguage": "介面語言",
-    "interfaceLanguageDesc": "這會變更 Sokuji 選單和按鈕的語言。不會影響您可以在哪些語言之間翻譯。",
+    "interfaceLanguageDesc": "這會變更 Eburon 選單和按鈕的語言。不會影響您可以在哪些語言之間翻譯。",
     "translationLanguages": "翻譯語言",
     "translationLanguagesDesc": "選擇您說的語言（您的語言）和您想要聽到翻譯的語言（目標語言）。如果您不確定來源語言，請選擇「自動偵測」。",
     "yourLanguage": "我的語言",
@@ -53,7 +53,7 @@
     "signInDescription": "註冊以獲得便利體驗，無需複雜配置。",
     "targetLanguage": "對方語言",
     "microphone": "麥克風",
-    "microphoneDesc": "選擇麥克風來捕捉您的語音。對著這個麥克風說您的語言，Sokuji 會即時翻譯它聽到的一切。",
+    "microphoneDesc": "選擇麥克風來捕捉您的語音。對著這個麥克風說您的語言，Eburon 會即時翻譯它聽到的一切。",
     "speaker": "揚聲器",
     "speakerDesc": "選擇揚聲器來監聽翻譯輸出。這讓您能聽到翻譯的聲音效果。如果不需要監聽，可以關閉。無論開啟或關閉，翻譯的音訊都會發送到虛擬麥克風供其他參與者聽到。",
     "systemAudio": "參與者音訊",
@@ -216,7 +216,7 @@
     "apiKeyTooltip": "API金鑰就像AI服務的密碼。從提供商的網站取得並安全保管。切勿與他人分享。",
     "clientIdTooltip": "您的PalabraAI帳戶ID。這用於識別您的帳戶。從PalabraAI儀表板取得。",
     "clientSecretTooltip": "您的PalabraAI密鑰。請保密並安全保管。切勿與任何人分享。",
-    "uiLanguageTooltip": "更改Sokuji的選單和按鈕語言。這不影響可以翻譯的語言。",
+    "uiLanguageTooltip": "更改Eburon的選單和按鈕語言。這不影響可以翻譯的語言。",
     "modelTooltip": "AI模型影響速度和品質。'Mini'模型更快但簡單。標準模型更準確但稍慢。為了節省成本，先試試mini。",
     "voiceTooltip": "選擇AI的說話聲音。每種聲音都有不同的音調和風格。嘗試不同的聲音找到您最喜歡的。",
     "sourceLanguageTooltip": "您說的語言。AI會聆聽這種語言並進行翻譯。",
@@ -255,12 +255,12 @@
     "virtualMicrophoneNotice": "虛擬麥克風說明",
     "virtualSpeakerNotice": "虛擬揚聲器說明",
     "iUnderstand": "我明白了",
-    "virtualMicWarningTitle": "這是由Sokuji建立的虛擬麥克風。",
+    "virtualMicWarningTitle": "這是由Eburon建立的虛擬麥克風。",
     "virtualMicWarningText1": "請不要在此處選擇此裝置。相反，請在您的視訊會議應用程式（如Google Meet、Zoom、Microsoft Teams等）中使用此虛擬麥克風來接收即時語音翻譯輸出。",
-    "virtualMicWarningText2": "為了讓Sokuji正常運作，請從清單中選擇您的實際實體麥克風。",
-    "virtualSpeakerWarningTitle": "這是由Sokuji建立的虛擬揚聲器。",
-    "virtualSpeakerWarningText1": "請不要選擇此裝置作為您的監控器。Sokuji_Virtual_Speaker由Sokuji用於向您的會議應用程式輸出音訊。",
-    "virtualSpeakerWarningText2": "將您的監控器連接到Sokuji的輸出裝置會產生音訊回饋迴路，導致您的輸入包含您自己的監控輸出。",
+    "virtualMicWarningText2": "為了讓Eburon正常運作，請從清單中選擇您的實際實體麥克風。",
+    "virtualSpeakerWarningTitle": "這是由Eburon建立的虛擬揚聲器。",
+    "virtualSpeakerWarningText1": "請不要選擇此裝置作為您的監控器。Eburon_Virtual_Speaker由Eburon用於向您的會議應用程式輸出音訊。",
+    "virtualSpeakerWarningText2": "將您的監控器連接到Eburon的輸出裝置會產生音訊回饋迴路，導致您的輸入包含您自己的監控輸出。",
     "virtualSpeakerWarningText3": "「開啟」開關將虛擬揚聲器連接到您選擇的監控裝置，讓您聽到傳送到會議應用程式的內容。「關閉」開關中斷此監控連接。",
     "virtualSpeakerWarningText4": "為了正常運行，請從清單中選擇不同的監控裝置（如您的耳機或揚聲器）。",
     "realVoicePassthrough": "原聲直通",
@@ -337,8 +337,8 @@
     "basic": {
       "steps": {
         "welcome": {
-          "title": "Welcome to Sokuji",
-          "content": "Welcome to Sokuji! This simple guide will help you start using real-time translation in just a few steps."
+          "title": "Welcome to Eburon",
+          "content": "Welcome to Eburon! This simple guide will help you start using real-time translation in just a few steps."
         },
         "settings": {
           "title": "Step 1: Open Settings",
@@ -370,7 +370,7 @@
         },
         "complete": {
           "title": "All Set!",
-          "content": "Perfect! You're ready to use Sokuji. Click Start and begin speaking to hear real-time translations."
+          "content": "Perfect! You're ready to use Eburon. Click Start and begin speaking to hear real-time translations."
         }
       }
     },
@@ -384,7 +384,7 @@
     "restartTour": "重新開始設定指南",
     "steps": {
       "welcome": {
-        "title": "歡迎使用 Sokuji！",
+        "title": "歡迎使用 Eburon！",
         "content": "歡迎使用即時語音翻譯應用程式！讓我們快速設定您的系統，以獲得最佳體驗。"
       },
       "openSettings": {
@@ -421,16 +421,16 @@
       },
       "startSession": {
         "title": "開始您的工作階段",
-        "content": "一切設定完成！點擊「開始工作階段」按鈕開始即時翻譯。記住在您的會議應用程式中選擇 Sokuji 虛擬麥克風作為輸入裝置。"
+        "content": "一切設定完成！點擊「開始工作階段」按鈕開始即時翻譯。記住在您的會議應用程式中選擇 Eburon 虛擬麥克風作為輸入裝置。"
       },
       "completion": {
         "title": "設定指南完成！",
-        "content": "您已完成設定指南！現在請確實輸入您的 API 金鑰並配置設定，然後在會議應用程式（如 Google Meet、Zoom 等）中使用 Sokuji 虛擬麥克風開始即時翻譯。"
+        "content": "您已完成設定指南！現在請確實輸入您的 API 金鑰並配置設定，然後在會議應用程式（如 Google Meet、Zoom 等）中使用 Eburon 虛擬麥克風開始即時翻譯。"
       }
     }
   },
   "userTypeSelection": {
-    "title": "歡迎使用 Sokuji",
+    "title": "歡迎使用 Eburon",
     "subtitle": "請選擇您的使用者類型以開始使用",
     "regular": {
       "title": "一般使用者",

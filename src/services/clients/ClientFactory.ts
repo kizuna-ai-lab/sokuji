@@ -91,7 +91,6 @@ export class ClientFactory {
         }
         // KizunaAI uses OpenAIClient with our Worker proxy
         // The proxy transparently handles both REST and WebSocket connections
-        // The apiKey here is actually the auth session from Better Auth
         // Use environment-specific backend URL
         // Note: WebRTC is not yet supported for Kizuna AI (would require backend proxy)
         return new OpenAIClient(apiKey, getApiUrl());

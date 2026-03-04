@@ -19,7 +19,7 @@
     "signUp": "Rekisteröidy"
   },
   "app": {
-    "title": "Sokuji",
+    "title": "Eburon",
     "description": "Reaaliaikainen äänenkäännössovellus"
   },
   "settings": {
@@ -116,7 +116,7 @@
     "apiKeyHelp2": "2. Rekisteröidy tai kirjaudu sisään tiliisi",
     "apiKeyHelp3": "3. Siirry API-avaimet osioon",
     "apiKeyHelp4": "4. Luo uusi API-avain ja kopioi se tähän",
-    "apiKeyHelpTooltip": "API-avain on kuin salasana, joka antaa Sokuji:lle luvan käyttää tekoälyn käännöspalveluja. Sinun täytyy hankkia sellainen valitsemaltasi palveluntarjoajalta (kuten OpenAI).",
+    "apiKeyHelpTooltip": "API-avain on kuin salasana, joka antaa Eburon:lle luvan käyttää tekoälyn käännöspalveluja. Sinun täytyy hankkia sellainen valitsemaltasi palveluntarjoajalta (kuten OpenAI).",
     "apiKeyHelpTooltip2": "Vaihe vaiheelta -opas:",
     "languages": "Kielet",
     "uiLanguage": "Käyttöliittymän kieli",
@@ -126,7 +126,7 @@
   },
   "simpleConfig": {
     "interfaceLanguage": "Käyttöliittymän kieli",
-    "interfaceLanguageDesc": "Tämä muuttaa Sokuji:n valikoiden ja painikkeiden kieltä. Se EI vaikuta siihen, minkä kielten välillä voit kääntää.",
+    "interfaceLanguageDesc": "Tämä muuttaa Eburon:n valikoiden ja painikkeiden kieltä. Se EI vaikuta siihen, minkä kielten välillä voit kääntää.",
     "translationLanguages": "Käännöskielet",
     "translationLanguagesDesc": "Valitse mikä kieli puhut (Sinun kielesi) ja mikä kieli haluat kuulla käännöksen (Kohdekieli). Valitse \"Automaattinen tunnistus\" jos et ole varma lähdekielestä.",
     "yourLanguage": "Minun kieleni",
@@ -136,7 +136,7 @@
     "signInDescription": "Rekisteröidy yksinkertaistettua kokemusta varten.",
     "targetLanguage": "Toisen kieli",
     "microphone": "Mikrofoni",
-    "microphoneDesc": "Valitse mikrofoni puheesi kaappaamiseen. Puhu kielelläsi tähän mikrofoniin, niin Sokuji kääntää kaiken mitä se kuulee reaaliajassa.",
+    "microphoneDesc": "Valitse mikrofoni puheesi kaappaamiseen. Puhu kielelläsi tähän mikrofoniin, niin Eburon kääntää kaiken mitä se kuulee reaaliajassa.",
     "speaker": "Kaiutin",
     "speakerDesc": "Valitse kaiutin käännetyn tulosteen valvomiseen. Tämä antaa sinun kuulla miltä käännös kuulostaa. Voit sammuttaa sen, jos valvonta ei ole tarpeen. Oli se päällä tai pois, käännetty ääni lähetetään aina virtuaaliseen mikrofoniin muiden osallistujien kuultavaksi.",
     "systemAudio": "Osallistujan ääni",
@@ -285,8 +285,8 @@
     "basic": {
       "steps": {
         "welcome": {
-          "title": "Welcome to Sokuji",
-          "content": "Welcome to Sokuji! This simple guide will help you start using real-time translation in just a few steps."
+          "title": "Welcome to Eburon",
+          "content": "Welcome to Eburon! This simple guide will help you start using real-time translation in just a few steps."
         },
         "settings": {
           "title": "Step 1: Open Settings",
@@ -318,7 +318,7 @@
         },
         "complete": {
           "title": "All Set!",
-          "content": "Perfect! You're ready to use Sokuji. Click Start and begin speaking to hear real-time translations."
+          "content": "Perfect! You're ready to use Eburon. Click Start and begin speaking to hear real-time translations."
         }
       }
     },
@@ -332,7 +332,7 @@
     "restartTour": "Käynnistä asennusopas uudelleen",
     "steps": {
       "welcome": {
-        "title": "Tervetuloa Sokuji:iin!",
+        "title": "Tervetuloa Eburon:iin!",
         "content": "Tervetuloa reaaliaikaiseen äänenkäännössovellukseen! Määritetään järjestelmäsi nopeasti parhaan kokemuksen saamiseksi."
       },
       "openSettings": {
@@ -369,16 +369,16 @@
       },
       "startSession": {
         "title": "Aloita istuntosi",
-        "content": "Kaikki on valmista! Napsauta \"Aloita istunto\" -painiketta aloittaaksesi reaaliaikaisen käännöksen. Muista valita Sokuji-virtuaalimikrofoni syöttölaitteeksi konferenssisovelluksessasi."
+        "content": "Kaikki on valmista! Napsauta \"Aloita istunto\" -painiketta aloittaaksesi reaaliaikaisen käännöksen. Muista valita Eburon-virtuaalimikrofoni syöttölaitteeksi konferenssisovelluksessasi."
       },
       "completion": {
         "title": "Asennusopas valmis!",
-        "content": "Olet suorittanut asennusoppaan! Varmista nyt, että syötät todella API-avaimesi ja määrität asetuksesi, käytä sitten Sokuji-virtuaalimikrofonia konferenssisovelluksissa (kuten Google Meet, Zoom jne.) aloittaaksesi reaaliaikaisen käännöksen."
+        "content": "Olet suorittanut asennusoppaan! Varmista nyt, että syötät todella API-avaimesi ja määrität asetuksesi, käytä sitten Eburon-virtuaalimikrofonia konferenssisovelluksissa (kuten Google Meet, Zoom jne.) aloittaaksesi reaaliaikaisen käännöksen."
       }
     }
   },
   "userTypeSelection": {
-    "title": "Tervetuloa Sokuji:iin",
+    "title": "Tervetuloa Eburon:iin",
     "subtitle": "Valitse käyttäjätyyppi aloittaaksesi",
     "regular": {
       "title": "Tavallinen käyttäjä",

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Build script for unsigned PKG installer
-# This creates an unsigned PKG that includes the Sokuji app with installation scripts
+# This creates an unsigned PKG that includes the Eburon app with installation scripts
 
 set -e  # Exit on error
 
@@ -16,21 +16,21 @@ if [ -z "$ARCH" ]; then
 fi
 echo "Architecture: ${ARCH}"
 
-APP_DIR="out/Sokuji-darwin-${ARCH}"
+APP_DIR="out/Eburon-darwin-${ARCH}"
 
 # Extract version from package.json
 VERSION=$(node -p "require('./package.json').version")
-echo "Building unsigned PKG installer for Sokuji v${VERSION} (${ARCH})..."
+echo "Building unsigned PKG installer for Eburon v${VERSION} (${ARCH})..."
 
 # Step 0: Clean up previous builds (might need sudo if ownership was changed)
 echo "Step 0: Cleaning up previous builds..."
-if [ -d "${APP_DIR}/Sokuji.app" ]; then
+if [ -d "${APP_DIR}/Eburon.app" ]; then
     # Check if we need sudo to remove (if owned by root)
-    if [ ! -w "${APP_DIR}/Sokuji.app" ]; then
+    if [ ! -w "${APP_DIR}/Eburon.app" ]; then
         echo "Note: Previous build has root ownership, need password to clean up"
-        sudo rm -rf "${APP_DIR}/Sokuji.app"
+        sudo rm -rf "${APP_DIR}/Eburon.app"
     else
-        rm -rf "${APP_DIR}/Sokuji.app"
+        rm -rf "${APP_DIR}/Eburon.app"
     fi
 fi
 
@@ -44,20 +44,20 @@ npm run package -- --platform=darwin
 
 # Step 2.5: Verify the app was created and fix permissions if needed
 echo "Step 2.5: Verifying packaged app..."
-if [ ! -d "${APP_DIR}/Sokuji.app" ]; then
-    echo "❌ Error: Sokuji.app was not created during packaging"
+if [ ! -d "${APP_DIR}/Eburon.app" ]; then
+    echo "❌ Error: Eburon.app was not created during packaging"
     exit 1
 fi
 
 # Ensure correct ownership (packaging sometimes leaves root ownership)
-if [ ! -w "${APP_DIR}/Sokuji.app" ]; then
+if [ ! -w "${APP_DIR}/Eburon.app" ]; then
     echo "Fixing app ownership..."
-    sudo chown -R $(whoami):staff "${APP_DIR}/Sokuji.app"
+    sudo chown -R $(whoami):staff "${APP_DIR}/Eburon.app"
 fi
 
 # Step 2.6: Ad-hoc sign the app (required for macOS to show permission dialogs)
 echo "Step 2.6: Ad-hoc signing the app..."
-codesign --force --deep --sign - "${APP_DIR}/Sokuji.app"
+codesign --force --deep --sign - "${APP_DIR}/Eburon.app"
 echo "✅ App signed successfully"
 
 # Step 3: Create output directory if it doesn't exist
@@ -67,29 +67,29 @@ mkdir -p out/make
 # Step 4: Build unsigned PKG
 echo "Step 4: Creating unsigned PKG installer..."
 
-PKG_NAME="Sokuji-${VERSION}-${ARCH}.pkg"
+PKG_NAME="Eburon-${VERSION}-${ARCH}.pkg"
 
 # Create a temporary directory for clean packaging
 TEMP_DIR=$(mktemp -d)
-cp -R "${APP_DIR}/Sokuji.app" "$TEMP_DIR/"
+cp -R "${APP_DIR}/Eburon.app" "$TEMP_DIR/"
 
 # First create a component package WITH SCRIPTS
 pkgbuild \
     --root "$TEMP_DIR" \
-    --identifier com.electron.sokuji \
+    --identifier com.electron.Eburon \
     --version $VERSION \
     --install-location /Applications \
     --scripts pkg-scripts \
-    out/make/Sokuji-component.pkg
+    out/make/Eburon-component.pkg
 
 # Then create the product package
 productbuild \
-    --package out/make/Sokuji-component.pkg \
+    --package out/make/Eburon-component.pkg \
     "out/make/${PKG_NAME}"
 
 # Clean up
 rm -rf "$TEMP_DIR"
-rm -f out/make/Sokuji-component.pkg
+rm -f out/make/Eburon-component.pkg
 
 # Step 5: Report success
 if [ -f "out/make/${PKG_NAME}" ]; then

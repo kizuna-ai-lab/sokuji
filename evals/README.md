@@ -1,6 +1,6 @@
-# Sokuji Evaluation Framework
+# Eburon Evaluation Framework
 
-This directory contains test cases and infrastructure for evaluating AI model translation quality in Sokuji.
+This directory contains test cases and infrastructure for evaluating AI model translation quality in Eburon.
 
 ## Directory Structure
 

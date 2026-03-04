@@ -4,9 +4,7 @@ import './App.scss';
 import './locales'; // Initialize i18n
 import { RootLayout } from './layouts/RootLayout';
 import { Home } from './routes/Home';
-import { SignIn } from './routes/SignIn';
-import { SignUp } from './routes/SignUp';
-import { ForgotPassword } from './routes/ForgotPassword';
+import { Dashboard } from './routes/Dashboard';
 import { isExtension } from './utils/environment';
 
 const isExtensionEnvironment = isExtension();
@@ -20,19 +18,11 @@ const router = createMemoryRouter([
     children: [
       {
         index: true,
+        element: <Dashboard />,
+      },
+      {
+        path: 'translator',
         element: <Home />,
-      },
-      {
-        path: 'sign-in/*',
-        element: <SignIn />,
-      },
-      {
-        path: 'sign-up/*',
-        element: <SignUp />,
-      },
-      {
-        path: 'forgot-password',
-        element: <ForgotPassword />,
       },
     ],
   },

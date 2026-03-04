@@ -20,7 +20,7 @@
     "signInRequired": "Log in om Kizuna AI als uw provider te gebruiken"
   },
   "app": {
-    "title": "Sokuji",
+    "title": "Eburon",
     "description": "Realtime spraakvertaling applicatie"
   },
   "menu": {
@@ -133,12 +133,12 @@
     "virtualMicrophoneNotice": "Virtuele microfoon kennisgeving",
     "virtualSpeakerNotice": "Virtuele luidspreker kennisgeving",
     "iUnderstand": "Ik begrijp het",
-    "virtualMicWarningTitle": "Dit is een virtuele microfoon gemaakt door Sokuji.",
+    "virtualMicWarningTitle": "Dit is een virtuele microfoon gemaakt door Eburon.",
     "virtualMicWarningText1": "Selecteer dit apparaat hier niet. Gebruik in plaats daarvan deze virtuele microfoon in uw videoconferentie-applicaties (zoals Google Meet, Zoom, Microsoft Teams, enz.) om realtime spraakvertaling output te ontvangen.",
-    "virtualMicWarningText2": "Voor een juiste werking van Sokuji, selecteer uw echte fysieke microfoon uit de lijst.",
-    "virtualSpeakerWarningTitle": "Dit is een virtuele luidspreker gemaakt door Sokuji.",
-    "virtualSpeakerWarningText1": "Selecteer dit apparaat niet als uw monitor. De Sokuji_Virtual_Speaker wordt door Sokuji gebruikt om audio naar uw conferentie-applicaties te sturen.",
-    "virtualSpeakerWarningText2": "Het verbinden van uw monitor met Sokuji's output apparaat zou een audio feedback loop creëren, waardoor uw input uw eigen gemonitorde output zou bevatten.",
+    "virtualMicWarningText2": "Voor een juiste werking van Eburon, selecteer uw echte fysieke microfoon uit de lijst.",
+    "virtualSpeakerWarningTitle": "Dit is een virtuele luidspreker gemaakt door Eburon.",
+    "virtualSpeakerWarningText1": "Selecteer dit apparaat niet als uw monitor. De Eburon_Virtual_Speaker wordt door Eburon gebruikt om audio naar uw conferentie-applicaties te sturen.",
+    "virtualSpeakerWarningText2": "Het verbinden van uw monitor met Eburon's output apparaat zou een audio feedback loop creëren, waardoor uw input uw eigen gemonitorde output zou bevatten.",
     "virtualSpeakerWarningText3": "De \"Inschakelen\" schakelaar verbindt de virtuele luidspreker met uw geselecteerde monitor apparaat, zodat u kunt horen wat naar uw conferentie-applicatie wordt gestuurd. De \"Uitschakelen\" schakelaar verbreekt deze monitor verbinding.",
     "virtualSpeakerWarningText4": "Voor een juiste werking, selecteer een ander monitor apparaat (zoals uw koptelefoon of luidsprekers) uit de lijst.",
     "realVoicePassthrough": "Originele Audio Doorvoer",
@@ -215,8 +215,8 @@
     "basic": {
       "steps": {
         "welcome": {
-          "title": "Welcome to Sokuji",
-          "content": "Welcome to Sokuji! This simple guide will help you start using real-time translation in just a few steps."
+          "title": "Welcome to Eburon",
+          "content": "Welcome to Eburon! This simple guide will help you start using real-time translation in just a few steps."
         },
         "settings": {
           "title": "Step 1: Open Settings",
@@ -248,7 +248,7 @@
         },
         "complete": {
           "title": "All Set!",
-          "content": "Perfect! You're ready to use Sokuji. Click Start and begin speaking to hear real-time translations."
+          "content": "Perfect! You're ready to use Eburon. Click Start and begin speaking to hear real-time translations."
         }
       }
     },
@@ -262,7 +262,7 @@
     "restartTour": "Setup gids opnieuw starten",
     "steps": {
       "welcome": {
-        "title": "Welkom bij Sokuji!",
+        "title": "Welkom bij Eburon!",
         "content": "Welkom bij de realtime spraakvertaling applicatie! Laten we uw systeem snel instellen voor de beste ervaring."
       },
       "openSettings": {
@@ -299,11 +299,11 @@
       },
       "startSession": {
         "title": "Start uw sessie",
-        "content": "Alles is klaar! Klik op de \"Sessie starten\" knop om realtime vertaling te beginnen. Vergeet niet om de Sokuji virtuele microfoon te selecteren als invoer apparaat in uw conferentie applicatie."
+        "content": "Alles is klaar! Klik op de \"Sessie starten\" knop om realtime vertaling te beginnen. Vergeet niet om de Eburon virtuele microfoon te selecteren als invoer apparaat in uw conferentie applicatie."
       },
       "completion": {
         "title": "Setup gids voltooid!",
-        "content": "U heeft de setup gids voltooid! Zorg er nu voor dat u daadwerkelijk uw API sleutel invoert en uw instellingen configureert, gebruik dan de Sokuji virtuele microfoon in conferentie applicaties (zoals Google Meet, Zoom, enz.) om realtime vertaling te starten."
+        "content": "U heeft de setup gids voltooid! Zorg er nu voor dat u daadwerkelijk uw API sleutel invoert en uw instellingen configureert, gebruik dan de Eburon virtuele microfoon in conferentie applicaties (zoals Google Meet, Zoom, enz.) om realtime vertaling te starten."
       }
     }
   },
@@ -328,7 +328,7 @@
     "apiKeyHelp2": "2. Registreer of log in bij uw account",
     "apiKeyHelp3": "3. Ga naar de API sleutels sectie",
     "apiKeyHelp4": "4. Maak een nieuwe API sleutel aan en kopieer deze hier",
-    "apiKeyHelpTooltip": "Een API sleutel is als een wachtwoord dat Sokuji toestaat om AI vertaaldiensten te gebruiken. Je moet er een krijgen van je gekozen provider (zoals OpenAI).",
+    "apiKeyHelpTooltip": "Een API sleutel is als een wachtwoord dat Eburon toestaat om AI vertaaldiensten te gebruiken. Je moet er een krijgen van je gekozen provider (zoals OpenAI).",
     "apiKeyHelpTooltip2": "Stap-voor-stap gids:",
     "languages": "Talen",
     "uiLanguage": "Interface Taal",
@@ -338,7 +338,7 @@
   },
   "simpleConfig": {
     "interfaceLanguage": "Interface Taal",
-    "interfaceLanguageDesc": "Dit verandert de taal van Sokuji's menu's en knoppen. Dit heeft GEEN invloed op de talen waartussen je kunt vertalen.",
+    "interfaceLanguageDesc": "Dit verandert de taal van Eburon's menu's en knoppen. Dit heeft GEEN invloed op de talen waartussen je kunt vertalen.",
     "translationLanguages": "Vertaaltalen",
     "translationLanguagesDesc": "Kies welke taal je spreekt (Jouw Taal) en in welke taal je de vertaling wilt horen (Doeltaal). Selecteer 'Automatische Detectie' als je niet zeker weet welke brontaal.",
     "yourLanguage": "Mijn taal",
@@ -348,7 +348,7 @@
     "signInDescription": "Registreer voor een vereenvoudigde ervaring.",
     "targetLanguage": "Taal van de ander",
     "microphone": "Microfoon",
-    "microphoneDesc": "Selecteer de microfoon om uw spraak op te vangen. Spreek uw taal in deze microfoon, en Sokuji zal alles wat het hoort in realtime vertalen.",
+    "microphoneDesc": "Selecteer de microfoon om uw spraak op te vangen. Spreek uw taal in deze microfoon, en Eburon zal alles wat het hoort in realtime vertalen.",
     "speaker": "Luidspreker",
     "speakerDesc": "Selecteer een luidspreker om de vertaalde uitvoer te monitoren. Hiermee kunt u horen hoe de vertaling klinkt. U kunt het uitschakelen als monitoring niet nodig is. Of het nu aan of uit staat, de vertaalde audio wordt altijd naar de virtuele microfoon gestuurd zodat andere deelnemers het kunnen horen.",
     "systemAudio": "Deelnemer Audio",
@@ -440,7 +440,7 @@
     "noMic": "Microfoon Vereist"
   },
   "userTypeSelection": {
-    "title": "Welkom bij Sokuji",
+    "title": "Welkom bij Eburon",
     "subtitle": "Selecteer uw gebruikerstype om te beginnen",
     "regular": {
       "title": "Gewone Gebruiker",

@@ -115,19 +115,19 @@ export function hasChromeRuntime(): boolean {
 
 /**
  * Get the backend base URL based on the current environment
- * @returns The backend base URL (e.g., https://sokuji.kizuna.ai)
+ * @returns The backend base URL (e.g., https://Eburon.kizuna.ai)
  *
  * Note: Better Auth client automatically appends /api/auth to this URL.
  * For API calls that need /api prefix, use getApiUrl() instead.
  */
 export function getBackendUrl(): string {
   // Use environment variable if available, otherwise use production URL
-  return import.meta.env.VITE_BACKEND_URL || 'https://sokuji.kizuna.ai';
+  return import.meta.env.VITE_BACKEND_URL || 'https://Eburon.kizuna.ai';
 }
 
 /**
  * Get the full API URL based on the current environment
- * @returns The API URL with /api suffix (e.g., https://sokuji.kizuna.ai/api)
+ * @returns The API URL with /api suffix (e.g., https://Eburon.kizuna.ai/api)
  *
  * Use this for direct API calls (e.g., OpenAI proxy, OTT verify).
  */

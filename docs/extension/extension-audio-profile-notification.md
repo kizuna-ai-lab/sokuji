@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Audio Profile Notification feature provides users with Zoom-specific guidance on optimizing their audio settings for the best experience with Sokuji. This feature automatically displays helpful notifications when users visit Zoom web client.
+The Audio Profile Notification feature provides users with Zoom-specific guidance on optimizing their audio settings for the best experience with Eburon. This feature automatically displays helpful notifications when users visit Zoom web client.
 
 ## Supported Platforms
 
@@ -47,26 +47,26 @@ The feature is implemented in the Zoom-specific content script:
 
 ### Storage
 - Uses `localStorage` to track dismissal state
-- Key: `sokuji-zoom-audio-profile-dismissed`
+- Key: `Eburon-zoom-audio-profile-dismissed`
 - Value: `'true'` when dismissed, removed when reset
 
 ## Debugging API
 
 The Zoom content script exposes debugging APIs for testing and troubleshooting:
 
-### Zoom Content Script (`window.sokujiZoomContent`)
+### Zoom Content Script (`window.EburonZoomContent`)
 ```javascript
 // Check current status (includes Zoom-specific info)
-window.sokujiZoomContent.getStatus()
+window.EburonZoomContent.getStatus()
 
 // Manually show notification
-window.sokujiZoomContent.showAudioProfileNotification()
+window.EburonZoomContent.showAudioProfileNotification()
 
 // Reset dismissal state
-window.sokujiZoomContent.resetAudioProfileNotificationDismissal()
+window.EburonZoomContent.resetAudioProfileNotificationDismissal()
 
 // Check microphone selection status
-window.sokujiZoomContent.checkMicrophoneSelection()
+window.EburonZoomContent.checkMicrophoneSelection()
 ```
 
 ### Available Status Information
@@ -89,16 +89,16 @@ Since no dedicated test page exists, testing can be performed directly on Zoom u
 
 ```javascript
 // Check current status
-window.sokujiZoomContent.getStatus()
+window.EburonZoomContent.getStatus()
 
 // Manually trigger notification
-window.sokujiZoomContent.showAudioProfileNotification()
+window.EburonZoomContent.showAudioProfileNotification()
 
 // Reset dismissal state to test again
-window.sokujiZoomContent.resetAudioProfileNotificationDismissal()
+window.EburonZoomContent.resetAudioProfileNotificationDismissal()
 
 // Check microphone selection (if audio menu is open)
-window.sokujiZoomContent.checkMicrophoneSelection()
+window.EburonZoomContent.checkMicrophoneSelection()
 ```
 
 ### Testing Scenarios

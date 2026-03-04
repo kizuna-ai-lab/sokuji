@@ -10,7 +10,6 @@ import './MainLayout.scss';
 import { useAnalytics } from '../../lib/analytics';
 import { useProvider, useUIMode, useSetProvider, useSetUIMode, useSettingsNavigationTarget } from '../../stores/settingsStore';
 import { useOnboarding } from '../../contexts/OnboardingContext';
-import { useAuth } from '../../lib/auth/hooks';
 import { Provider } from '../../types/Provider';
 
 type PanelName = 'settings' | 'audio' | 'logs' | 'main';
@@ -24,7 +23,6 @@ const MainLayout: React.FC = () => {
   const setUIMode = useSetUIMode();
   const settingsNavigationTarget = useSettingsNavigationTarget();
   const { userTypeSelected, setUserType } = useOnboarding();
-  const { isSignedIn } = useAuth();
   const [showLogs, setShowLogs] = useState(() => {
     return sessionStorage.getItem('panelState.showLogs') === 'true';
   });
@@ -38,9 +36,6 @@ const MainLayout: React.FC = () => {
   // Track panel view times
   const panelOpenTimeRef = useRef<number | null>(null);
   const currentPanelRef = useRef<PanelName | null>(null);
-  
-  // Track previous auth state to detect login
-  const prevIsSignedInRef = useRef(isSignedIn);
   
   // Helper function to track panel view events
   const trackPanelView = (panelName: PanelName | null) => {
@@ -162,31 +157,6 @@ const MainLayout: React.FC = () => {
       ui_mode: newMode
     });
   }, [setUIMode, setUserType, trackEvent]);
-
-  // Auto-switch to KizunaAI when Basic Mode users log in
-  useEffect(() => {
-    // Check if user just logged in (was false, now true)
-    if (!prevIsSignedInRef.current && isSignedIn) {
-      // User just logged in
-      if (uiMode === 'basic' && provider !== Provider.KIZUNA_AI) {
-        // User is in Basic Mode and not using KizunaAI, switch to KizunaAI
-        setProvider(Provider.KIZUNA_AI);
-        
-        // Track the auto-switch
-        trackEvent('settings_modified', {
-          setting_name: 'provider',
-          new_value: 'kizunaai',
-          old_value: provider,
-          category: 'api'
-        });
-        
-        console.log('[MainLayout] Auto-switched to KizunaAI provider for Basic Mode user on login');
-      }
-    }
-    
-    // Update the ref for next render
-    prevIsSignedInRef.current = isSignedIn;
-  }, [isSignedIn, uiMode, provider, setProvider, trackEvent]);
 
   // Show user type selection if not selected yet
   if (!userTypeSelected) {

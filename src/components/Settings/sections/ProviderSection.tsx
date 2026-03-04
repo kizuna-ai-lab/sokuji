@@ -28,7 +28,6 @@ import {
 } from '../../../stores/settingsStore';
 import { Provider, ProviderType } from '../../../types/Provider';
 import { ProviderConfigFactory } from '../../../services/providers/ProviderConfigFactory';
-import { useAuth } from '../../../lib/auth/hooks';
 import { useAnalytics } from '../../../lib/analytics';
 
 interface ProviderSectionProps {
@@ -49,7 +48,6 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
 }) => {
   const { t } = useTranslation();
   const { trackEvent } = useAnalytics();
-  const { getToken, isSignedIn } = useAuth();
 
   // Settings store
   const provider = useProvider();
@@ -120,7 +118,7 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
         updatePalabraAISettings({ clientId: value });
         break;
       case Provider.KIZUNA_AI:
-        console.warn('KizunaAI API key is managed automatically');
+        // KizunaAI now uses a regular API key
         break;
       case Provider.VOLCENGINE_ST:
         updateVolcengineSTSettings({ accessKeyId: value });
@@ -133,10 +131,7 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
 
   // Validate API key
   const handleValidateApiKey = async () => {
-    const getAuthToken = provider === Provider.KIZUNA_AI && isSignedIn && getToken ?
-      () => getToken() : undefined;
-
-    const result = await validateApiKey(getAuthToken);
+    const result = await validateApiKey();
 
     trackEvent('api_key_validated', {
       provider: provider,
@@ -244,12 +239,12 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
               <p>{t('simpleSettings.apiKeyHelpTooltip')}</p>
               <p style={{ marginTop: '8px' }}>{t('simpleSettings.apiKeyHelpTooltip2')}</p>
               <a
-                href="https://kizuna-ai-lab.github.io/sokuji/supported-ai-providers.html"
+                href="https://kizuna-ai-lab.github.io/Eburon/supported-ai-providers.html"
                 target="_blank"
                 rel="noopener noreferrer"
                 style={{ color: '#10a37f', textDecoration: 'underline' }}
               >
-                https://kizuna-ai-lab.github.io/sokuji/supported-ai-providers.html
+                https://kizuna-ai-lab.github.io/Eburon/supported-ai-providers.html
               </a>
             </div>
           }
@@ -359,9 +354,8 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
         </div>
       )}
 
-      {/* API Key Input or Kizuna AI Status */}
-      {provider !== Provider.KIZUNA_AI ? (
-        provider === Provider.VOLCENGINE_AST2 ? (
+      {/* API Key Input */}
+      {provider === Provider.VOLCENGINE_AST2 ? (
           // Volcengine AST2 requires both APP ID and Access Token
           <div className="volcengine-st-credentials-group">
             <div className="api-key-input-group">
@@ -500,32 +494,7 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
               )}
             </button>
           </div>
-        )
-      ) : (
-        isSignedIn ? (
-          isKizunaKeyFetching ? (
-            <div className="api-key-info">
-              <span className="spinner" />
-              <span>{t('simpleSettings.fetchingApiKey', 'Fetching API key from your account...')}</span>
-            </div>
-          ) : kizunaKeyError ? (
-            <div className="api-key-warning">
-              <AlertCircle size={16} className="warning-icon" />
-              <span>{kizunaKeyError}</span>
-            </div>
-          ) : (
-            <div className="api-key-info">
-              <CheckCircle size={16} className="success-icon" />
-              <span>{t('simpleSettings.autoAuthenticated', 'Automatically authenticated via your account')}</span>
-            </div>
-          )
-        ) : (
-          <div className="api-key-warning">
-            <AlertCircle size={16} className="warning-icon" />
-            <span>{t('common.signInRequired', 'Please sign in to use Kizuna AI as your provider')}</span>
-          </div>
-        )
-      )}
+        )}
 
       {validationMessage && (
         <div className={`validation-message ${isApiKeyValid ? 'success' : 'error'}`}>

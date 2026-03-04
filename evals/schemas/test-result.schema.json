@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://sokuji.kizuna.ai/schemas/test-result.schema.json",
+  "$id": "https://Eburon.kizuna.ai/schemas/test-result.schema.json",
   "title": "Evaluation Test Result",
   "description": "Schema for storing evaluation results from Realtime API translation quality assessment",
   "type": "object",
@@ -148,7 +148,7 @@
         },
         "appVersion": {
           "type": "string",
-          "description": "Sokuji application version"
+          "description": "Eburon application version"
         }
       }
     },

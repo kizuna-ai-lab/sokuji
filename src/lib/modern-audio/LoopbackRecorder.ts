@@ -20,7 +20,7 @@ export class LoopbackRecorder extends ParticipantRecorder {
   private videoTrack: MediaStreamTrack | null = null;
 
   protected getLogPrefix(): string {
-    return '[Sokuji] [LoopbackRecorder]';
+    return '[Eburon] [LoopbackRecorder]';
   }
 
   /**

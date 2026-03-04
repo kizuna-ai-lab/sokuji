@@ -1,15 +1,15 @@
 {
   "extensionName": {
-    "message": "Sokuji - AI Meeting Translator"
+    "message": "Eburon - AI Meeting Translator"
   },
   "extensionDescription": {
     "message": "Instant na speech translation na may AI para sa lahat ng video meetings. Sirain ang mga hadlang sa wika gamit ang real-time voice translation."
   },
   "popupTitle": {
-    "message": "Sokuji - Mga Suportadong Website"
+    "message": "Eburon - Mga Suportadong Website"
   },
-  "openSokuji": {
-    "message": "Buksan ang Sokuji"
+  "openEburon": {
+    "message": "Buksan ang Eburon"
   },
   "chromeWebStore": {
     "message": "Chrome Web Store"
@@ -17,8 +17,8 @@
   "edgeAddons": {
     "message": "Mga Edge Add-on"
   },
-  "sokujiAvailable": {
-    "message": "✓ Available ang Sokuji sa $SITE_NAME$!",
+  "EburonAvailable": {
+    "message": "✓ Available ang Eburon sa $SITE_NAME$!",
     "placeholders": {
       "site_name": {
         "content": "$1",
@@ -27,19 +27,19 @@
     }
   },
   "clickToStart": {
-    "message": "I-click ang \"Buksan ang Sokuji\" sa ibaba para simulan ang real-time translation."
+    "message": "I-click ang \"Buksan ang Eburon\" sa ibaba para simulan ang real-time translation."
   },
   "quickStart": {
     "message": "Mabilis na Simula:"
   },
   "quickStartInstructions": {
-    "message": "I-configure ang inyong API key (OpenAI or Gemini) ← Piliin ang \"Sokuji_Virtual_Mic\" bilang microphone ← Simulang magsalita!"
+    "message": "I-configure ang inyong API key (OpenAI or Gemini) ← Piliin ang \"Eburon_Virtual_Mic\" bilang microphone ← Simulang magsalita!"
   },
   "notSupported": {
     "message": "⚠ Hindi suportado sa website na ito"
   },
   "currentlyOn": {
-    "message": "Kasalukuyan sa $HOSTNAME$. Gumagana ang Sokuji sa mga platform na ito:",
+    "message": "Kasalukuyan sa $HOSTNAME$. Gumagana ang Eburon sa mga platform na ito:",
     "placeholders": {
       "hostname": {
         "content": "$1",
@@ -75,16 +75,16 @@
     "message": "mag-ambag ng code"
   },
   "gatherTownTitle": {
-    "message": "Sokuji for Gather Town"
+    "message": "Eburon for Gather Town"
   },
   "gatherTownGuidance": {
-    "message": "Para gamitin ang Sokuji, piliin ang <strong>\"Sokuji Virtual Microphone\"</strong> sa inyong microphone settings."
+    "message": "Para gamitin ang Eburon, piliin ang <strong>\"Eburon Virtual Microphone\"</strong> sa inyong microphone settings."
   },
   "wherebyTitle": {
-    "message": "Sokuji for Whereby"
+    "message": "Eburon for Whereby"
   },
   "wherebyGuidance": {
-    "message": "Upang gamitin ang Sokuji, mangyaring piliin ang <strong>\"Sokuji Virtual Microphone\"</strong> sa inyong microphone settings at <strong>i-disable ang Noise reduction</strong> para sa mas magandang performance."
+    "message": "Upang gamitin ang Eburon, mangyaring piliin ang <strong>\"Eburon Virtual Microphone\"</strong> sa inyong microphone settings at <strong>i-disable ang Noise reduction</strong> para sa mas magandang performance."
   },
   "gotIt": {
     "message": "Naintindihan"
@@ -93,22 +93,22 @@
     "message": "Paalalahanan mamaya"
   },
   "defaultTitle": {
-    "message": "Sokuji"
+    "message": "Eburon"
   },
   "defaultGuidance": {
-    "message": "Upang gamitin ang Sokuji, pakipili ang \"Sokuji Virtual Microphone\" sa inyong microphone settings."
+    "message": "Upang gamitin ang Eburon, pakipili ang \"Eburon Virtual Microphone\" sa inyong microphone settings."
   },
   "discordTitle": {
-    "message": "Sokuji for Discord"
+    "message": "Eburon for Discord"
   },
   "discordGuidance": {
-    "message": "Upang gamitin ang Sokuji, pakipili ang <strong>\"Sokuji Virtual Microphone\"</strong> sa inyong microphone settings at <strong>i-disable ang Noise Suppression</strong> sa voice settings ng Discord para sa mas magandang performance."
+    "message": "Upang gamitin ang Eburon, pakipili ang <strong>\"Eburon Virtual Microphone\"</strong> sa inyong microphone settings at <strong>i-disable ang Noise Suppression</strong> sa voice settings ng Discord para sa mas magandang performance."
   },
   "slackTitle": {
-    "message": "Sokuji for Slack"
+    "message": "Eburon for Slack"
   },
   "slackGuidance": {
-    "message": "To use Sokuji in Slack Huddles, please <strong>start a Huddle</strong>, then select <strong>\"Sokuji Virtual Microphone\"</strong> in your Video and Mic settings, and <strong>disable Noise Suppression</strong> in Audio & Video preferences for better performance."
+    "message": "To use Eburon in Slack Huddles, please <strong>start a Huddle</strong>, then select <strong>\"Eburon Virtual Microphone\"</strong> in your Video and Mic settings, and <strong>disable Noise Suppression</strong> in Audio & Video preferences for better performance."
   },
   "showMoreSites": {
     "message": "Show $COUNT$ more sites",
@@ -123,9 +123,9 @@
     "message": "Show less sites"
   },
   "teamsTitle": {
-    "message": "Sokuji para sa Microsoft Teams"
+    "message": "Eburon para sa Microsoft Teams"
   },
   "teamsGuidance": {
-    "message": "Kung hindi mo nakikita ang kumpletong listahan ng audio device sa mga setting ng Teams:<br><strong>1)</strong> Pansamantalang i-disable ang Sokuji extension at i-refresh ang page<br><strong>2)</strong> Payagan ang Teams na ma-access ang iyong microphone at camera kapag hiniling<br><strong>3)</strong> I-enable muli ang Sokuji extension at i-refresh muli ang page<br><strong>4)</strong> Payagan ang Sokuji na ma-access ang iyong microphone kapag hiniling. Ngayon ay dapat mong makita ang parehong mga tunay na device at <strong>\"Sokuji Virtual Microphone\"</strong> sa iyong mga setting."
+    "message": "Kung hindi mo nakikita ang kumpletong listahan ng audio device sa mga setting ng Teams:<br><strong>1)</strong> Pansamantalang i-disable ang Eburon extension at i-refresh ang page<br><strong>2)</strong> Payagan ang Teams na ma-access ang iyong microphone at camera kapag hiniling<br><strong>3)</strong> I-enable muli ang Eburon extension at i-refresh muli ang page<br><strong>4)</strong> Payagan ang Eburon na ma-access ang iyong microphone kapag hiniling. Ngayon ay dapat mong makita ang parehong mga tunay na device at <strong>\"Eburon Virtual Microphone\"</strong> sa iyong mga setting."
   }
 }

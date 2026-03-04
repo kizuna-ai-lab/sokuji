@@ -1,11 +1,11 @@
 # Audio Analysis Documentation (Updated)
 
-This directory contains comprehensive documentation analyzing Sokuji's modern audio processing architecture.
+This directory contains comprehensive documentation analyzing Eburon's modern audio processing architecture.
 
 ## Files
 
 ### [`audio-flow-analysis.md`](./audio-flow-analysis.md)
-Detailed technical analysis of Sokuji's modern audio flow path, including:
+Detailed technical analysis of Eburon's modern audio flow path, including:
 - Modern audio processing chain diagram
 - Echo cancellation improvements
 - New architecture solutions

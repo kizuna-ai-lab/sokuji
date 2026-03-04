@@ -39,7 +39,7 @@ export class ServiceFactory {
     }
     
     // Create new instance if needed - both platforms now use the same unified service
-    console.info('[Sokuji] [ServiceFactory] Creating Modern Browser audio service (unified for all platforms)');
+    console.info('[Eburon] [ServiceFactory] Creating Modern Browser audio service (unified for all platforms)');
     ServiceFactory.audioServiceInstance = new ModernBrowserAudioService();
     
     return ServiceFactory.audioServiceInstance;
@@ -56,7 +56,7 @@ export class ServiceFactory {
     }
     
     // Create unified settings service for all platforms
-    console.info('[Sokuji] [ServiceFactory] Creating unified settings service');
+    console.info('[Eburon] [ServiceFactory] Creating unified settings service');
     ServiceFactory.settingsServiceInstance = new SettingsService();
     
     return ServiceFactory.settingsServiceInstance;

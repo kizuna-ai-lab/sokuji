@@ -16,7 +16,7 @@ export class SettingsService implements ISettingsService {
     this.usesChromeStorage = typeof chrome !== 'undefined' && 
                              chrome?.storage?.sync !== undefined;
     
-    console.info(`[Sokuji] [SettingsService] Using ${this.usesChromeStorage ? 'Chrome Storage' : 'localStorage'} for settings persistence`);
+    console.info(`[Eburon] [SettingsService] Using ${this.usesChromeStorage ? 'Chrome Storage' : 'localStorage'} for settings persistence`);
   }
   
   /**
@@ -32,7 +32,7 @@ export class SettingsService implements ISettingsService {
             // @ts-ignore - Chrome API is defined in global scope for extensions
             if (chrome.runtime.lastError) {
               // @ts-ignore - Chrome API is defined in global scope for extensions
-              console.error(`[Sokuji] [SettingsService] Error getting setting ${key}:`, chrome.runtime.lastError);
+              console.error(`[Eburon] [SettingsService] Error getting setting ${key}:`, chrome.runtime.lastError);
               resolve(defaultValue);
             } else {
               resolve(result[key] !== undefined ? result[key] : defaultValue);
@@ -53,7 +53,7 @@ export class SettingsService implements ISettingsService {
         return defaultValue;
       }
     } catch (error) {
-      console.error(`[Sokuji] [SettingsService] Error getting setting ${key}:`, error);
+      console.error(`[Eburon] [SettingsService] Error getting setting ${key}:`, error);
       return defaultValue;
     }
   }
@@ -115,7 +115,7 @@ export class SettingsService implements ISettingsService {
             // @ts-ignore - Chrome API is defined in global scope for extensions
             if (chrome.runtime.lastError) {
               // @ts-ignore - Chrome API is defined in global scope for extensions
-              console.error('[Sokuji] [SettingsService] Error loading all settings:', chrome.runtime.lastError);
+              console.error('[Eburon] [SettingsService] Error loading all settings:', chrome.runtime.lastError);
               resolve(defaultSettings);
             } else {
               const settings = { ...defaultSettings };
@@ -144,7 +144,7 @@ export class SettingsService implements ISettingsService {
         return settings;
       }
     } catch (error) {
-      console.error('[Sokuji] [SettingsService] Error loading all settings:', error);
+      console.error('[Eburon] [SettingsService] Error loading all settings:', error);
       return defaultSettings;
     }
   }
@@ -233,7 +233,7 @@ export class SettingsService implements ISettingsService {
         customEndpoint
       );
     } catch (error: any) {
-      console.error(`[Sokuji] [SettingsService] Error validating API key and fetching models for ${provider}:`, error);
+      console.error(`[Eburon] [SettingsService] Error validating API key and fetching models for ${provider}:`, error);
       return {
         validation: {
           valid: false,
