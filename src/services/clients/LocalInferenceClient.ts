@@ -413,7 +413,8 @@ export class LocalInferenceClient implements IClient {
 
       // TTS (optional) — split into sentences for reduced time-to-first-audio
       if (this.ttsEngine && this.config && !this.disposed) {
-        const sentences = splitSentences(translatedText);
+        const sentences = splitSentences(translatedText, this.config.targetLanguage);
+        const ttsStartTime = performance.now();
         this.emitEvent('local.tts.start', 'client', { text: translatedText, sentenceCount: sentences.length });
         console.debug(`[Karaoke] TTS start: fullText="${translatedText}" (${translatedText.length} chars), ${sentences.length} sentences:`, sentences.map((s, i) => `[${i}] "${s}" (${s.length} chars)`));
 
@@ -425,6 +426,13 @@ export class LocalInferenceClient implements IClient {
           if (this.disposed) return;
 
           try {
+            this.emitEvent('local.tts.sentence.start', 'client', {
+              sentenceIndex: i,
+              sentenceCount: sentences.length,
+              text: sentences[i],
+            });
+
+            const sentenceStart = performance.now();
             const ttsResult = await this.ttsEngine.generate(
               sentences[i],
               this.config.ttsSpeakerId,
@@ -450,6 +458,15 @@ export class LocalInferenceClient implements IClient {
               audioEnd: cumulativeAudioDuration,
             });
 
+            const generateMs = Math.round(performance.now() - sentenceStart);
+            this.emitEvent('local.tts.sentence.end', 'server', {
+              sentenceIndex: i,
+              sentenceCount: sentences.length,
+              text: sentences[i],
+              generateMs,
+              audioDurationMs: Math.round(sentenceAudioDuration * 1000),
+            });
+
             console.debug(`[Karaoke] TTS sentence ${i + 1}/${sentences.length}: "${sentences[i]}" (${sentences[i].length} chars) → ${sentenceAudioDuration.toFixed(3)}s audio | textEnd=${audioTextEnd}/${translatedText.length}, cumAudio=${cumulativeAudioDuration.toFixed(3)}s`);
 
             // Emit audio delta immediately — player receives chunk right away
@@ -470,7 +487,8 @@ export class LocalInferenceClient implements IClient {
         assistantItem.formatted!.audioTextEnd = translatedText.length;
         console.debug(`[Karaoke] TTS complete: ${assistantItem.formatted!.audioSegments!.length} segments, totalAudio=${cumulativeAudioDuration.toFixed(3)}s, totalChars=${translatedText.length}`);
 
-        this.emitEvent('local.tts.end', 'server', { sentenceCount: sentences.length });
+        const ttsDurationMs = performance.now() - ttsStartTime;
+        this.emitEvent('local.tts.end', 'server', { sentenceCount: sentences.length, durationMs: Math.round(ttsDurationMs) });
       }
 
       // Mark completed

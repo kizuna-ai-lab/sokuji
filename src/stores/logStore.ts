@@ -60,6 +60,8 @@ export interface EventData {
     | 'local.translation.end'
     | 'local.tts.start'
     | 'local.tts.end'
+    | 'local.tts.sentence.start'
+    | 'local.tts.sentence.end'
     | 'local.tts.error'
     | 'local.pipeline.error'
     // LocalInference init progress event types
