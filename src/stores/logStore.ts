@@ -49,7 +49,26 @@ export interface EventData {
     | 'validated_transcription'
     | 'translated_transcription'
     | 'output_audio_data'
-    | 'current_task';
+    | 'current_task'
+    // LocalInference pipeline event types
+    | 'local.session.opened'
+    | 'local.session.closed'
+    | 'local.asr.partial'
+    | 'local.asr.end'
+    | 'local.asr.error'
+    | 'local.translation.start'
+    | 'local.translation.end'
+    | 'local.tts.start'
+    | 'local.tts.end'
+    | 'local.tts.sentence.start'
+    | 'local.tts.sentence.end'
+    | 'local.tts.error'
+    | 'local.pipeline.error'
+    // LocalInference init progress event types
+    | 'local.init.start'
+    | 'local.init.engine.start'
+    | 'local.init.engine.ready'
+    | 'local.init.engine.error';
   data: any;
   // Support additional properties for flexible event handling (e.g., OpenAI properties)
   [key: string]: any;

@@ -63,6 +63,10 @@ app.setName('sokuji');
 app.commandLine.appendSwitch('application-name', 'sokuji');
 app.commandLine.appendSwitch('jack-name', 'sokuji');
 
+// Enable WebGPU for ONNX Runtime acceleration
+app.commandLine.appendSwitch('enable-unsafe-webgpu');
+app.commandLine.appendSwitch('enable-features', 'Vulkan');
+
 // Keep a global reference of the window object to prevent garbage collection
 let mainWindow;
 

@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>VITS TTS Browser Demo</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #1a1a2e;
+      color: #e0e0e0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem 1rem;
+    }
+    h1 { font-size: 1.5rem; margin-bottom: 0.5rem; color: #fff; }
+    .subtitle { color: #888; font-size: 0.9rem; margin-bottom: 1.5rem; }
+    .subtitle a { color: #51cf66; text-decoration: none; }
+    .subtitle a:hover { text-decoration: underline; }
+    .container {
+      width: 100%;
+      max-width: 640px;
+      background: #16213e;
+      border-radius: 12px;
+      padding: 1.5rem;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    }
+    .status-bar {
+      background: #0f3460;
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      margin-bottom: 1.5rem;
+      font-size: 0.85rem;
+      min-height: 2.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .status-bar.error { background: #4a1528; color: #ff6b6b; }
+    .status-bar.ready { background: #1a3a2a; color: #51cf66; }
+    .spinner {
+      width: 16px; height: 16px;
+      border: 2px solid #555;
+      border-top-color: #51cf66;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    label { display: block; font-size: 0.85rem; color: #aaa; margin-bottom: 0.3rem; }
+    .field { margin-bottom: 1rem; }
+    textarea {
+      width: 100%;
+      background: #0f3460;
+      color: #e0e0e0;
+      border: 1px solid #333;
+      border-radius: 8px;
+      padding: 0.75rem;
+      font-size: 0.95rem;
+      font-family: inherit;
+      resize: vertical;
+      min-height: 80px;
+    }
+    textarea:focus { outline: none; border-color: #51cf66; }
+    .row { display: flex; gap: 1rem; }
+    .row .field { flex: 1; }
+    input[type="number"], input[type="range"] {
+      width: 100%;
+      background: #0f3460;
+      color: #e0e0e0;
+      border: 1px solid #333;
+      border-radius: 6px;
+      padding: 0.5rem 0.75rem;
+      font-size: 0.9rem;
+    }
+    input[type="range"] { padding: 0.25rem 0; }
+    input:focus { outline: none; border-color: #51cf66; }
+    .range-row { display: flex; align-items: center; gap: 0.75rem; }
+    button#generate {
+      width: 100%;
+      padding: 0.75rem;
+      background: #10a37f;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    button#generate:hover:not(:disabled) { background: #0d8c6c; }
+    button#generate:disabled { opacity: 0.4; cursor: not-allowed; }
+    .audio-output { margin-top: 1.5rem; }
+    .audio-output audio { width: 100%; margin-top: 0.5rem; }
+    .timing { font-size: 0.8rem; color: #888; margin-top: 0.3rem; }
+    .log {
+      margin-top: 1.5rem;
+      background: #0a0a1a;
+      border-radius: 8px;
+      padding: 0.75rem;
+      font-family: monospace;
+      font-size: 0.75rem;
+      color: #888;
+      max-height: 200px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+  </style>
+</head>
+<body>
+
+<h1 id="pageTitle">VITS TTS Browser Demo</h1>
+<p id="pageSubtitle" class="subtitle">sherpa-onnx VITS &mdash; <a href="index.html">All demos</a></p>
+
+<div class="container">
+  <div id="status" class="status-bar">
+    <div class="spinner"></div>
+    <span>Loading WASM module...</span>
+  </div>
+
+  <div class="field">
+    <label for="text">Text to synthesize</label>
+    <textarea id="text" rows="3">Hello! This is a test of the text to speech model running in your browser with WebAssembly.</textarea>
+  </div>
+
+  <div class="row">
+    <div class="field">
+      <label for="sid">Speaker ID</label>
+      <input type="number" id="sid" value="0" min="0" step="1">
+    </div>
+    <div class="field">
+      <label for="speed">Speed: <span id="speedVal">1.0</span></label>
+      <div class="range-row">
+        <input type="range" id="speed" min="0.3" max="3.0" step="0.1" value="1.0">
+      </div>
+    </div>
+  </div>
+
+  <button id="generate" disabled>Generate</button>
+
+  <div id="audioOutput" class="audio-output" style="display:none">
+    <label>Output</label>
+    <audio id="player" controls></audio>
+    <div id="timing" class="timing"></div>
+  </div>
+
+  <div id="log" class="log"></div>
+</div>
+
+<script>
+// --- Special VITS model registry ---
+// These models use lexicon, dictDir, and/or ruleFsts/ruleFars (unlike Piper/Coqui/Mimic3/MMS)
+var VITS_MODELS = {
+  'melo-tts-en': {
+    onnx: 'model.onnx', name: 'MeloTTS English', lang: 'en',
+    lexicon: './lexicon.txt', dataDir: '', dictDir: '',
+    ruleFsts: '', ruleFars: '',
+    defaultText: 'Hello! This is a test of the MeloTTS English text to speech model running in your browser with WebAssembly.'
+  },
+  'melo-tts-zh-en': {
+    onnx: 'model.onnx', name: 'MeloTTS Chinese-English', lang: 'zh',
+    lexicon: './lexicon.txt', dataDir: '', dictDir: './dict',
+    ruleFsts: './date.fst,./phone.fst,./number.fst,./new_heteronym.fst', ruleFars: '',
+    defaultText: '今天天气真好，阳光明媚，适合出去散步。This is a bilingual test of the MeloTTS model.'
+  },
+  'cantonese': {
+    onnx: 'vits-cantonese-hf-xiaomaiiwn.onnx', name: 'Cantonese (xiaomaiiwn)', lang: 'yue',
+    lexicon: './lexicon.txt', dataDir: '', dictDir: '',
+    ruleFsts: './rule.fst', ruleFars: '',
+    defaultText: '你好！今日天氣真係好好，好適合出去行下。'
+  },
+  'icefall-en-ljspeech-low': {
+    onnx: 'model.onnx', name: 'Icefall EN LJSpeech Low (30MB)', lang: 'en',
+    lexicon: '', dataDir: './espeak-ng-data', dictDir: '',
+    ruleFsts: '', ruleFars: '',
+    defaultText: 'Hello! This is a test of the Icefall English text to speech model. It is very small and fast, only thirty megabytes.'
+  },
+  'icefall-en-ljspeech-medium': {
+    onnx: 'model.onnx', name: 'Icefall EN LJSpeech Medium (70MB)', lang: 'en',
+    lexicon: '', dataDir: './espeak-ng-data', dictDir: '',
+    ruleFsts: '', ruleFars: '',
+    defaultText: 'Hello! This is a test of the Icefall English medium quality text to speech model running in your browser.'
+  },
+  'icefall-zh-aishell3': {
+    onnx: 'model.onnx', name: 'Icefall AISHELL3 (174 speakers)', lang: 'zh',
+    lexicon: './lexicon.txt', dataDir: '', dictDir: '',
+    ruleFsts: './date.fst,./number.fst,./phone.fst,./new_heteronym.fst', ruleFars: './rule.far',
+    defaultText: '大家好！这是一个中文语音合成的测试，使用AISHELL3多说话人模型。'
+  },
+  'zh-ll': {
+    onnx: 'model.onnx', name: 'Chinese zh-ll (2 speakers)', lang: 'zh',
+    lexicon: './lexicon.txt', dataDir: '', dictDir: './dict',
+    ruleFsts: './date.fst,./phone.fst,./number.fst,./new_heteronym.fst', ruleFars: '',
+    defaultText: '这是一个中文语音合成的测试。今天是个好日子，万事如意。'
+  }
+};
+
+var params = new URLSearchParams(window.location.search);
+var modelKey = params.get('model') || 'icefall-zh-aishell3';
+if (!VITS_MODELS[modelKey]) modelKey = 'icefall-zh-aishell3';
+var modelCfg = VITS_MODELS[modelKey];
+
+// CDN base: use HF Dataset for remote, relative paths for localhost
+var CDN_BASE = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
+  ? '' : 'https://huggingface.co/datasets/jiangzhuo9357/sherpa-onnx-tts-models/resolve/main/';
+
+var wasmDir = CDN_BASE + 'wasm-' + modelKey + '/';
+
+document.getElementById('pageTitle').textContent = modelCfg.name + ' TTS Browser Demo';
+document.title = modelCfg.name + ' TTS Browser Demo';
+document.getElementById('pageSubtitle').innerHTML =
+  'sherpa-onnx ' + modelCfg.name + ' &mdash; <a href="index.html">All demos</a>';
+document.getElementById('text').value = modelCfg.defaultText;
+
+function _log(msg) {
+  var logEl = document.getElementById('log');
+  var ts = new Date().toLocaleTimeString();
+  logEl.textContent += '[' + ts + '] ' + msg + '\n';
+  logEl.scrollTop = logEl.scrollHeight;
+  console.log(msg);
+}
+
+function _setStatusBar(html, cls) {
+  var el = document.getElementById('status');
+  el.className = 'status-bar' + (cls ? ' ' + cls : '');
+  el.innerHTML = html;
+}
+
+var Module = {
+  locateFile: function(path) {
+    return wasmDir + path;
+  },
+  setStatus: function(text) {
+    _log('Module: ' + text);
+    if (!text) {
+      _initTts();
+      return;
+    }
+    var m = text.match(/Downloading data\.\.\. \((\d+)\/(\d+)\)/);
+    if (m) {
+      var pct = (parseInt(m[1]) / parseInt(m[2]) * 100).toFixed(1);
+      _setStatusBar('<div class="spinner"></div><span>Downloading model... ' + pct + '%</span>');
+    } else {
+      _setStatusBar('<div class="spinner"></div><span>' + text + '</span>');
+    }
+  }
+};
+
+function _initTts() {
+  _log('WASM runtime initialized, creating OfflineTts...');
+  _setStatusBar('<div class="spinner"></div><span>Initializing ' + modelCfg.name + ' model...</span>');
+
+  try {
+    var t0 = performance.now();
+
+    window._tts = createOfflineTts(Module, {
+      offlineTtsModelConfig: {
+        offlineTtsVitsModelConfig: {
+          model: './' + modelCfg.onnx,
+          lexicon: modelCfg.lexicon,
+          tokens: './tokens.txt',
+          dataDir: modelCfg.dataDir,
+          dictDir: modelCfg.dictDir,
+          noiseScale: 0.667,
+          noiseScaleW: 0.8,
+          lengthScale: 1.0,
+        },
+        numThreads: 1,
+        debug: 1,
+        provider: 'cpu',
+      },
+      ruleFsts: modelCfg.ruleFsts,
+      ruleFars: modelCfg.ruleFars,
+      maxNumSentences: 1,
+    });
+
+    var elapsed = (performance.now() - t0).toFixed(0);
+    _log(modelCfg.name + ' model loaded in ' + elapsed + 'ms');
+    _log('Sample rate: ' + window._tts.sampleRate + ', Speakers: ' + window._tts.numSpeakers);
+
+    document.getElementById('sid').max = Math.max(0, window._tts.numSpeakers - 1);
+    document.getElementById('generate').disabled = false;
+    _setStatusBar('Ready &mdash; ' + modelCfg.name + ' &mdash; ' + window._tts.numSpeakers + ' speaker(s), ' + window._tts.sampleRate + ' Hz', 'ready');
+
+  } catch (err) {
+    _log('ERROR initializing TTS: ' + err.message);
+    console.error(err);
+    _setStatusBar('Failed to initialize model. Run: python3 pack.py ' + modelKey, 'error');
+  }
+}
+
+_log('Page loaded, model=' + modelKey + ' (' + modelCfg.name + ')');
+</script>
+
+<script>
+// Dynamically load the WASM scripts from the correct model directory
+(function() {
+  var scripts = [
+    wasmDir + 'sherpa-onnx-wasm-main-tts.js',
+    wasmDir + 'sherpa-onnx-tts.js'
+  ];
+  var loaded = 0;
+  function loadNext() {
+    if (loaded >= scripts.length) return;
+    var s = document.createElement('script');
+    s.src = scripts[loaded];
+    s.onload = function() { loaded++; loadNext(); };
+    s.onerror = function() {
+      _log('ERROR loading script: ' + scripts[loaded]);
+      _setStatusBar('Failed to load WASM scripts. Run: python3 pack.py ' + modelKey, 'error');
+    };
+    document.body.appendChild(s);
+  }
+  loadNext();
+})();
+</script>
+
+<script>
+(function() {
+  var textEl = document.getElementById('text');
+  var sidEl = document.getElementById('sid');
+  var speedEl = document.getElementById('speed');
+  var speedValEl = document.getElementById('speedVal');
+  var generateBtn = document.getElementById('generate');
+  var audioOutput = document.getElementById('audioOutput');
+  var playerEl = document.getElementById('player');
+  var timingEl = document.getElementById('timing');
+  var audioCtx = null;
+
+  speedEl.addEventListener('input', function() {
+    speedValEl.textContent = parseFloat(speedEl.value).toFixed(1);
+  });
+
+  generateBtn.addEventListener('click', function() {
+    var text = textEl.value.trim();
+    if (!text) { alert('Please enter some text.'); return; }
+    if (!window._tts) { alert('TTS not ready yet.'); return; }
+
+    var sid = parseInt(sidEl.value, 10) || 0;
+    var speed = parseFloat(speedEl.value) || 1.0;
+
+    _log('Generating: sid=' + sid + ', speed=' + speed + ', text="' + text.substring(0, 60) + '..."');
+    generateBtn.disabled = true;
+    generateBtn.textContent = 'Generating...';
+
+    setTimeout(function() {
+      try {
+        var t0 = performance.now();
+        var result = window._tts.generate({ text: text, sid: sid, speed: speed });
+        var elapsed = (performance.now() - t0).toFixed(0);
+
+        var duration = (result.samples.length / result.sampleRate).toFixed(2);
+        _log('Generated ' + result.samples.length + ' samples in ' + elapsed + 'ms (' + duration + 's audio @ ' + result.sampleRate + 'Hz)');
+
+        playAudio(result);
+        timingEl.textContent = duration + 's audio generated in ' + elapsed + 'ms (' + result.sampleRate + ' Hz)';
+      } catch (err) {
+        _log('ERROR generating: ' + err.message);
+        console.error(err);
+        alert('Generation failed. See console/log.');
+      } finally {
+        generateBtn.disabled = false;
+        generateBtn.textContent = 'Generate';
+      }
+    }, 50);
+  });
+
+  function playAudio(result) {
+    var wav = createWavBlob(result.samples, result.sampleRate);
+    var url = URL.createObjectURL(wav);
+    if (playerEl.src && playerEl.src.indexOf('blob:') === 0) {
+      URL.revokeObjectURL(playerEl.src);
+    }
+    playerEl.src = url;
+    audioOutput.style.display = 'block';
+    if (!audioCtx) { audioCtx = new AudioContext({ sampleRate: result.sampleRate }); }
+    var buffer = audioCtx.createBuffer(1, result.samples.length, result.sampleRate);
+    buffer.getChannelData(0).set(result.samples);
+    var source = audioCtx.createBufferSource();
+    source.buffer = buffer;
+    source.connect(audioCtx.destination);
+    source.start();
+  }
+
+  function createWavBlob(samples, sampleRate) {
+    var int16 = new Int16Array(samples.length);
+    for (var i = 0; i < samples.length; i++) {
+      var s = Math.max(-1, Math.min(1, samples[i]));
+      int16[i] = s * 32767;
+    }
+    var buf = new ArrayBuffer(44 + int16.length * 2);
+    var v = new DataView(buf);
+    v.setUint32(0, 0x46464952, true);
+    v.setUint32(4, 36 + int16.length * 2, true);
+    v.setUint32(8, 0x45564157, true);
+    v.setUint32(12, 0x20746d66, true);
+    v.setUint32(16, 16, true);
+    v.setUint16(20, 1, true);
+    v.setUint16(22, 1, true);
+    v.setUint32(24, sampleRate, true);
+    v.setUint32(28, sampleRate * 2, true);
+    v.setUint16(32, 2, true);
+    v.setUint16(34, 16, true);
+    v.setUint32(36, 0x61746164, true);
+    v.setUint32(40, int16.length * 2, true);
+    var offset = 44;
+    for (var i = 0; i < int16.length; i++) {
+      v.setInt16(offset, int16[i], true);
+      offset += 2;
+    }
+    return new Blob([v], { type: 'audio/wav' });
+  }
+})();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ASR Browser Demos</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #1a1a2e;
+      color: #e0e0e0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 3rem 1rem;
+    }
+    h1 { font-size: 1.8rem; margin-bottom: 0.5rem; color: #fff; }
+    .subtitle { color: #888; font-size: 0.95rem; margin-bottom: 2.5rem; }
+    .cards { display: flex; gap: 1.5rem; flex-wrap: wrap; justify-content: center; }
+    .card {
+      background: #16213e;
+      border-radius: 12px;
+      padding: 2rem;
+      width: 300px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+      text-decoration: none;
+      color: inherit;
+      transition: transform 0.2s, box-shadow 0.2s;
+      position: relative;
+    }
+    .card:hover { transform: translateY(-4px); box-shadow: 0 8px 30px rgba(0,0,0,0.5); }
+    .card h2 { font-size: 1.2rem; color: #fff; margin-bottom: 0.5rem; }
+    .card p { font-size: 0.85rem; color: #aaa; line-height: 1.5; }
+    .card .tag {
+      display: inline-block;
+      margin-top: 1rem;
+      padding: 0.25rem 0.75rem;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .tag-fast { background: #1a3a2a; color: #51cf66; }
+    .tag-multi { background: #2a2a3e; color: #748ffc; }
+    .tag-stream { background: #2a3a1a; color: #ffd43b; }
+    code {
+      display: block;
+      margin-top: 2.5rem;
+      background: #0a0a1a;
+      border-radius: 8px;
+      padding: 1rem 1.5rem;
+      font-size: 0.8rem;
+      color: #888;
+      max-width: 640px;
+      width: 100%;
+    }
+    code span { color: #51cf66; }
+    .section-title {
+      width: 100%;
+      max-width: 960px;
+      font-size: 1.1rem;
+      color: #748ffc;
+      margin-top: 2rem;
+      margin-bottom: 0.5rem;
+      padding-bottom: 0.3rem;
+      border-bottom: 1px solid #333;
+    }
+    .section-title:first-of-type { margin-top: 0; }
+    .view-toggle {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 2rem;
+    }
+    .toggle-btn {
+      background: #16213e;
+      color: #888;
+      border: 1px solid #333;
+      border-radius: 8px;
+      padding: 0.5rem 1.25rem;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .toggle-btn:hover { color: #e0e0e0; border-color: #555; }
+    .toggle-btn.active {
+      background: #0f3460;
+      color: #51cf66;
+      border-color: #51cf66;
+    }
+    .size-badge {
+      position: absolute;
+      top: 0.75rem;
+      right: 0.75rem;
+      background: #0a0a1a;
+      color: #888;
+      font-size: 0.7rem;
+      padding: 0.2rem 0.5rem;
+      border-radius: 6px;
+      font-weight: 500;
+    }
+  </style>
+</head>
+<body>
+
+<h1>ASR Browser Demos</h1>
+<p class="subtitle">sherpa-onnx ASR running entirely in your browser via WebAssembly</p>
+
+<div class="view-toggle">
+  <button class="toggle-btn active" data-view="engine">By Engine</button>
+  <button class="toggle-btn" data-view="lang">By Language</button>
+</div>
+
+<div id="content-area">
+
+<h3 class="section-title">SenseVoice</h3>
+<div class="cards">
+  <a class="card" href="sensevoice.html">
+    <h2>SenseVoice FunASR Nano (int8)</h2>
+    <p>FunASR Nano model. Supports Chinese, English, Japanese, Korean, and Cantonese.</p>
+    <span class="tag tag-multi">Multi-lang &middot; zh/en/ja/ko/yue</span>
+  </a>
+
+  <a class="card" href="sensevoice.html?model=sensevoice-int8">
+    <h2>SenseVoice Standard (int8)</h2>
+    <p>Standard SenseVoice model. Supports Chinese, English, Japanese, Korean, and Cantonese.</p>
+    <span class="tag tag-multi">Multi-lang &middot; zh/en/ja/ko/yue</span>
+  </a>
+</div>
+
+<h3 class="section-title">Moonshine</h3>
+<div class="cards">
+  <a class="card" href="moonshine.html">
+    <h2>Moonshine Tiny EN (quantized)</h2>
+    <p>Ultra-lightweight English ASR. Tiny model, fast inference.</p>
+    <span class="tag tag-fast">Fast &middot; English</span>
+  </a>
+
+  <a class="card" href="moonshine.html?model=moonshine-base-zh-quant">
+    <h2>Moonshine Base ZH (quantized)</h2>
+    <p>Chinese Moonshine base model. Quantized for browser use.</p>
+    <span class="tag tag-fast">Chinese</span>
+  </a>
+
+  <a class="card" href="moonshine.html?model=moonshine-base-ja-quant">
+    <h2>Moonshine Base JA (quantized)</h2>
+    <p>Japanese Moonshine base model. Quantized for browser use.</p>
+    <span class="tag tag-fast">Japanese</span>
+  </a>
+
+  <a class="card" href="moonshine.html?model=moonshine-tiny-ko-quant">
+    <h2>Moonshine Tiny KO (quantized)</h2>
+    <p>Korean Moonshine tiny model. Compact and fast.</p>
+    <span class="tag tag-fast">Korean</span>
+  </a>
+
+  <a class="card" href="moonshine.html?model=moonshine-base-es-quant">
+    <h2>Moonshine Base ES (quantized)</h2>
+    <p>Spanish Moonshine base model. Quantized for browser use.</p>
+    <span class="tag tag-fast">Spanish</span>
+  </a>
+
+  <a class="card" href="moonshine.html?model=moonshine-base-ar-quant">
+    <h2>Moonshine Base AR (quantized)</h2>
+    <p>Arabic Moonshine base model. Quantized for browser use.</p>
+    <span class="tag tag-fast">Arabic</span>
+  </a>
+
+  <a class="card" href="moonshine.html?model=moonshine-base-uk-quant">
+    <h2>Moonshine Base UK (quantized)</h2>
+    <p>Ukrainian Moonshine base model. Quantized for browser use.</p>
+    <span class="tag tag-fast">Ukrainian</span>
+  </a>
+
+  <a class="card" href="moonshine.html?model=moonshine-base-vi-quant">
+    <h2>Moonshine Base VI (quantized)</h2>
+    <p>Vietnamese Moonshine base model. Quantized for browser use.</p>
+    <span class="tag tag-fast">Vietnamese</span>
+  </a>
+
+  <a class="card" href="moonshine.html?model=moonshine-tiny-ja-quant">
+    <h2>Moonshine Tiny JA (quantized)</h2>
+    <p>Japanese Moonshine tiny model. Compact and fast.</p>
+    <span class="tag tag-fast">Japanese</span>
+  </a>
+</div>
+
+<h3 class="section-title">NeMo</h3>
+<div class="cards">
+  <a class="card" href="nemo.html">
+    <h2>NeMo FastConformer Multi 10-lang (int8)</h2>
+    <p>10-language FastConformer model. Supports Belarusian, German, English, Spanish, French, Croatian, Italian, Polish, Russian, and Ukrainian.</p>
+    <span class="tag tag-multi">Multi-lang &middot; be/de/en/es/fr/hr/it/pl/ru/uk</span>
+  </a>
+
+  <a class="card" href="nemo.html?model=nemo-canary-int8">
+    <h2>NeMo Canary (int8)</h2>
+    <p>NeMo Canary model. Supports English, Spanish, German, and French.</p>
+    <span class="tag tag-multi">Multi-lang &middot; en/es/de/fr</span>
+  </a>
+
+  <a class="card" href="nemo.html?model=nemo-fastconf-de-int8">
+    <h2>NeMo FastConformer DE (int8)</h2>
+    <p>German FastConformer model. Optimized for German speech recognition.</p>
+    <span class="tag tag-fast">German</span>
+  </a>
+
+  <a class="card" href="nemo.html?model=nemo-fastconf-pt-int8">
+    <h2>NeMo FastConformer PT (int8)</h2>
+    <p>Portuguese FastConformer model. Optimized for Portuguese speech recognition.</p>
+    <span class="tag tag-fast">Portuguese</span>
+  </a>
+
+  <a class="card" href="nemo.html?model=nemo-fastconf-es-int8">
+    <h2>NeMo FastConformer ES (int8)</h2>
+    <p>Spanish FastConformer model. Optimized for Spanish speech recognition.</p>
+    <span class="tag tag-fast">Spanish</span>
+  </a>
+</div>
+
+<h3 class="section-title">Zipformer</h3>
+<div class="cards">
+  <a class="card" href="zipformer.html">
+    <h2>Zipformer VI 30M (int8)</h2>
+    <p>Vietnamese Zipformer model. Compact 30M parameter model.</p>
+    <span class="tag tag-fast">Vietnamese</span>
+  </a>
+
+  <a class="card" href="zipformer.html?model=zipformer-ru-int8">
+    <h2>Zipformer RU (int8)</h2>
+    <p>Russian Zipformer model. Optimized for Russian speech recognition.</p>
+    <span class="tag tag-fast">Russian</span>
+  </a>
+</div>
+
+<h3 class="section-title">Dolphin</h3>
+<div class="cards">
+  <a class="card" href="dolphin.html">
+    <h2>Dolphin Base CTC Multi (int8)</h2>
+    <p>40 Eastern languages: zh, ja, ko, th, vi, id, ms, hi, bn, ar, fa, ru, ur, ta, te, gu, my, tl, kk, etc. No Western European languages.</p>
+    <span class="tag tag-multi">40 langs &middot; Eastern</span>
+  </a>
+</div>
+
+<h3 class="section-title">Whisper</h3>
+<div class="cards">
+  <a class="card" href="whisper.html">
+    <h2>Whisper Tiny</h2>
+    <p>OpenAI Whisper tiny model. Supports 99+ languages with broad coverage.</p>
+    <span class="tag tag-multi">99+ languages</span>
+  </a>
+</div>
+
+<h3 class="section-title">WenetSpeech</h3>
+<div class="cards">
+  <a class="card" href="wenetspeech.html">
+    <h2>WenetSpeech Yue U2++ (int8)</h2>
+    <p>WenetSpeech model for Chinese, Cantonese, and English.</p>
+    <span class="tag tag-multi">Multi-lang &middot; zh/yue/en</span>
+  </a>
+</div>
+
+<h3 class="section-title">Omnilingual</h3>
+<div class="cards">
+  <a class="card" href="omnilingual.html">
+    <h2>Omnilingual 300M v2 (int8)</h2>
+    <p>1147 languages (ISO 639-3). Broadest coverage: European, Asian, African, Middle Eastern, and indigenous languages. Low precision per language.</p>
+    <span class="tag tag-multi">1147 languages</span>
+  </a>
+</div>
+
+<h3 class="section-title">Streaming</h3>
+<div class="cards">
+  <a class="card" href="streaming.html">
+    <h2>Stream EN Kroko</h2>
+    <p>Streaming Zipformer English model with Kroko training. Real-time progressive transcription.</p>
+    <span class="tag tag-stream">Streaming &middot; English</span>
+  </a>
+
+  <a class="card" href="streaming.html?model=stream-fr-kroko">
+    <h2>Stream FR Kroko</h2>
+    <p>Streaming Zipformer French model with Kroko training. Real-time progressive transcription.</p>
+    <span class="tag tag-stream">Streaming &middot; French</span>
+  </a>
+
+  <a class="card" href="streaming.html?model=stream-de-kroko">
+    <h2>Stream DE Kroko</h2>
+    <p>Streaming Zipformer German model with Kroko training. Real-time progressive transcription.</p>
+    <span class="tag tag-stream">Streaming &middot; German</span>
+  </a>
+
+  <a class="card" href="streaming.html?model=stream-es-kroko">
+    <h2>Stream ES Kroko</h2>
+    <p>Streaming Zipformer Spanish model with Kroko training. Real-time progressive transcription.</p>
+    <span class="tag tag-stream">Streaming &middot; Spanish</span>
+  </a>
+
+  <a class="card" href="streaming.html?model=stream-zh-int8">
+    <h2>Stream ZH (int8)</h2>
+    <p>Streaming Zipformer Chinese model. int8 quantized for efficient browser use.</p>
+    <span class="tag tag-stream">Streaming &middot; Chinese</span>
+  </a>
+
+  <a class="card" href="streaming.html?model=stream-ru-vosk-int8">
+    <h2>Stream RU Vosk (int8)</h2>
+    <p>Streaming Zipformer Russian model based on Vosk. Smallest streaming model at 23 MB.</p>
+    <span class="tag tag-stream">Streaming &middot; Russian</span>
+  </a>
+
+  <a class="card" href="streaming.html?model=stream-multi-8lang">
+    <h2>Stream Multi (8-lang)</h2>
+    <p>Streaming Zipformer multi-language model. Supports Arabic, English, Indonesian, Japanese, Russian, Thai, Vietnamese, and Chinese.</p>
+    <span class="tag tag-stream">Streaming &middot; ar/en/id/ja/ru/th/vi/zh</span>
+  </a>
+
+  <a class="card" href="streaming.html?model=stream-bn-vosk">
+    <h2>Stream BN Vosk</h2>
+    <p>Streaming Zipformer Bengali model based on Vosk. Real-time progressive transcription.</p>
+    <span class="tag tag-stream">Streaming &middot; Bengali</span>
+  </a>
+
+  <a class="card" href="streaming.html?model=stream-nemo-ctc-en-80ms-int8">
+    <h2>NeMo Streaming FastConformer CTC EN 80ms (int8)</h2>
+    <p>NeMo FastConformer CTC streaming model for English. 80ms latency, int8 quantized.</p>
+    <span class="tag tag-stream">Streaming &middot; English</span>
+  </a>
+
+  <a class="card" href="streaming.html?model=stream-zh-2025-int8">
+    <h2>Stream ZH 2025 (int8)</h2>
+    <p>Streaming Zipformer Chinese model (2025 version). int8 quantized, larger than multi-zh-hans.</p>
+    <span class="tag tag-stream">Streaming &middot; Chinese</span>
+  </a>
+</div>
+
+</div><!-- #content-area -->
+
+<code>
+  <span># Pack models before use:</span><br>
+  python3 pack.py sensevoice-nano-int8&nbsp;&nbsp;&nbsp;&nbsp;# pack a specific model<br>
+  python3 pack.py all&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;# pack all models<br>
+  python3 -m http.server 8080&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;# serve locally
+</code>
+
+<script>
+(function() {
+  // ---- Language names ----
+  var LANG_NAMES = {
+    'ar': 'Arabic', 'az': 'Azerbaijani', 'ba': 'Bashkir',
+    'be': 'Belarusian', 'bn': 'Bengali', 'ct': 'Cantonese (Yue)',
+    'de': 'German', 'en': 'English', 'es': 'Spanish',
+    'fa': 'Persian', 'fil': 'Filipino', 'fr': 'French',
+    'gu': 'Gujarati', 'hi': 'Hindi', 'hr': 'Croatian',
+    'id': 'Indonesian', 'it': 'Italian', 'ja': 'Japanese',
+    'jv': 'Javanese', 'kab': 'Kabyle', 'kk': 'Kazakh',
+    'km': 'Khmer', 'ko': 'Korean', 'ks': 'Kashmiri',
+    'ky': 'Kirghiz', 'lo': 'Lao', 'mn': 'Mongolian',
+    'mr': 'Marathi', 'ms': 'Malay', 'my': 'Burmese',
+    'ne': 'Nepali', 'or': 'Odia', 'pa': 'Panjabi',
+    'pl': 'Polish', 'ps': 'Pashto', 'pt': 'Portuguese',
+    'ru': 'Russian', 'si': 'Sinhala', 'su': 'Sundanese',
+    'ta': 'Tamil', 'te': 'Telugu', 'tg': 'Tajik',
+    'th': 'Thai', 'tl': 'Tagalog', 'ug': 'Uyghur',
+    'uk': 'Ukrainian', 'ur': 'Urdu', 'uz': 'Uzbek',
+    'vi': 'Vietnamese', 'yue': 'Cantonese', 'zh': 'Chinese',
+    'multi': 'Multilingual'
+  };
+
+  // ---- Size data ----
+  var SIZES = {
+    'sensevoice-nano-int8': 179, 'sensevoice-int8': 158,
+    'moonshine-tiny-en-quant': 29, 'moonshine-base-zh-quant': 95,
+    'moonshine-base-ja-quant': 99, 'moonshine-tiny-ko-quant': 47,
+    'moonshine-base-es-quant': 49, 'moonshine-base-ar-quant': 114,
+    'moonshine-base-uk-quant': 106, 'moonshine-base-vi-quant': 102, 'moonshine-tiny-ja-quant': 46,
+    'nemo-fastconf-multi-int8': 98, 'nemo-canary-int8': 147,
+    'nemo-fastconf-de-int8': 100, 'nemo-fastconf-pt-int8': 99,
+    'nemo-fastconf-es-int8': 99,
+    'zipformer-vi-int8': 25, 'zipformer-ru-int8': 57,
+    'dolphin-base-ctc-int8': 77,
+    'whisper-tiny': 111,
+    'wenetspeech-yue-int8': 112,
+    'omnilingual-300m-int8': 279,
+    'stream-en-kroko': 55, 'stream-fr-kroko': 55,
+    'stream-de-kroko': 55, 'stream-es-kroko': 119,
+    'stream-zh-int8': 59, 'stream-ru-vosk-int8': 23,
+    'stream-multi-8lang': 247, 'stream-bn-vosk': 83,
+    'stream-nemo-ctc-en-80ms-int8': 126, 'stream-zh-2025-int8': 160
+  };
+
+  // ---- Language detection per model ----
+  var MODEL_LANGS = {
+    'sensevoice-nano-int8': ['zh','en','ja','ko','yue'],
+    'sensevoice-int8': ['zh','en','ja','ko','yue'],
+    'moonshine-tiny-en-quant': ['en'],
+    'moonshine-base-zh-quant': ['zh'],
+    'moonshine-base-ja-quant': ['ja'],
+    'moonshine-tiny-ko-quant': ['ko'],
+    'moonshine-base-es-quant': ['es'],
+    'moonshine-base-ar-quant': ['ar'],
+    'moonshine-base-uk-quant': ['uk'],
+    'moonshine-base-vi-quant': ['vi'], 'moonshine-tiny-ja-quant': ['ja'],
+    'nemo-fastconf-multi-int8': ['be','de','en','es','fr','hr','it','pl','ru','uk'],
+    'nemo-canary-int8': ['en','es','de','fr'],
+    'nemo-fastconf-de-int8': ['de'],
+    'nemo-fastconf-pt-int8': ['pt'],
+    'nemo-fastconf-es-int8': ['es'],
+    'zipformer-vi-int8': ['vi'],
+    'zipformer-ru-int8': ['ru'],
+    'dolphin-base-ctc-int8': ['zh','ja','ko','th','vi','id','ms','hi','bn','ar','fa','ru','ur','ta','te','gu','my','tl','kk','ct','ug','mn','km','jv','lo','si','fil','ps','pa','kab','ba','ks','tg','su','mr','ky','az','ne','or','uz'],
+    'whisper-tiny': ['multi'],
+    'wenetspeech-yue-int8': ['zh','yue','en'],
+    'omnilingual-300m-int8': ['multi'],
+    'stream-en-kroko': ['en'],
+    'stream-fr-kroko': ['fr'],
+    'stream-de-kroko': ['de'],
+    'stream-es-kroko': ['es'],
+    'stream-zh-int8': ['zh'],
+    'stream-ru-vosk-int8': ['ru'],
+    'stream-multi-8lang': ['ar','en','id','ja','ru','th','vi','zh'],
+    'stream-bn-vosk': ['bn'],
+    'stream-nemo-ctc-en-80ms-int8': ['en'], 'stream-zh-2025-int8': ['zh']
+  };
+
+  // ---- Engine detection ----
+  function getEngine(href) {
+    var page = href.split('?')[0];
+    var engines = {
+      'sensevoice.html': 'sensevoice', 'moonshine.html': 'moonshine',
+      'nemo.html': 'nemo', 'zipformer.html': 'zipformer',
+      'dolphin.html': 'dolphin', 'whisper.html': 'whisper',
+      'wenetspeech.html': 'wenetspeech', 'omnilingual.html': 'omnilingual',
+      'streaming.html': 'streaming'
+    };
+    return engines[page] || 'unknown';
+  }
+
+  function getModel(href) {
+    var m = href.match(/[?&]model=([^&]+)/);
+    if (m) return m[1];
+    var page = href.split('?')[0].replace('.html', '');
+    // Map default pages to their default model keys
+    var defaults = {
+      'sensevoice': 'sensevoice-nano-int8',
+      'moonshine': 'moonshine-tiny-en-quant',
+      'nemo': 'nemo-fastconf-multi-int8',
+      'zipformer': 'zipformer-vi-int8',
+      'dolphin': 'dolphin-base-ctc-int8',
+      'whisper': 'whisper-tiny',
+      'wenetspeech': 'wenetspeech-yue-int8',
+      'omnilingual': 'omnilingual-300m-int8',
+      'streaming': 'stream-en-kroko'
+    };
+    return defaults[page] || page;
+  }
+
+  function detectLangs(model) {
+    return MODEL_LANGS[model] || ['unknown'];
+  }
+
+  function getModelSize(model) {
+    return SIZES[model] || null;
+  }
+
+  function isStreaming(href) {
+    return href.split('?')[0] === 'streaming.html';
+  }
+
+  // ---- Initialize ----
+  var contentArea = document.getElementById('content-area');
+  var cardData = [];
+
+  contentArea.querySelectorAll('.card').forEach(function(card) {
+    var href = card.getAttribute('href');
+    if (!href) return;
+    var engine = getEngine(href);
+    var model = getModel(href);
+    var langs = detectLangs(model);
+
+    card.setAttribute('data-engine', engine);
+    card.setAttribute('data-model', model);
+    card.setAttribute('data-lang', langs.join(','));
+    card.setAttribute('data-streaming', isStreaming(href) ? '1' : '0');
+
+    var size = getModelSize(model);
+    if (size) {
+      var badge = document.createElement('span');
+      badge.className = 'size-badge';
+      badge.textContent = '~' + size + ' MB';
+      card.appendChild(badge);
+    }
+
+    cardData.push({ html: card.outerHTML, engine: engine, model: model, langs: langs, streaming: isStreaming(href) });
+  });
+
+  var engineHTML = contentArea.innerHTML;
+
+  // ---- View switching ----
+  function showLangView() {
+    var langGroups = {};
+
+    cardData.forEach(function(card) {
+      if (card.langs.length > 1 || card.langs[0] === 'multi') {
+        // Multi-language: add to Multilingual + each individual language
+        if (!langGroups['multi']) langGroups['multi'] = [];
+        langGroups['multi'].push(card.html);
+        card.langs.forEach(function(lang) {
+          if (lang === 'multi') return;
+          if (!langGroups[lang]) langGroups[lang] = [];
+          langGroups[lang].push(card.html);
+        });
+      } else {
+        var lang = card.langs[0];
+        if (!langGroups[lang]) langGroups[lang] = [];
+        langGroups[lang].push(card.html);
+      }
+    });
+
+    // Sort: English first, Multilingual second, then alphabetical by name
+    var sortedLangs = Object.keys(langGroups).sort(function(a, b) {
+      if (a === 'en') return -1;
+      if (b === 'en') return 1;
+      if (a === 'multi') return -1;
+      if (b === 'multi') return 1;
+      var nameA = LANG_NAMES[a] || a;
+      var nameB = LANG_NAMES[b] || b;
+      return nameA.localeCompare(nameB);
+    });
+
+    var html = '';
+    sortedLangs.forEach(function(lang) {
+      var name = LANG_NAMES[lang] || lang.toUpperCase();
+      var count = langGroups[lang].length;
+      html += '<h3 class="section-title">' + name + ' (' + count + ')</h3>\n';
+      html += '<div class="cards">\n';
+      html += langGroups[lang].join('\n');
+      html += '</div>\n';
+    });
+
+    contentArea.innerHTML = html;
+  }
+
+  // ---- Toggle button handlers ----
+  document.querySelectorAll('.toggle-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      document.querySelectorAll('.toggle-btn').forEach(function(b) {
+        b.classList.remove('active');
+      });
+      btn.classList.add('active');
+
+      if (btn.getAttribute('data-view') === 'lang') {
+        showLangView();
+      } else {
+        contentArea.innerHTML = engineHTML;
+      }
+    });
+  });
+})();
+</script>
+
+</body>
+</html>

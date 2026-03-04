@@ -7,9 +7,6 @@ import { Home } from './routes/Home';
 import { SignIn } from './routes/SignIn';
 import { SignUp } from './routes/SignUp';
 import { ForgotPassword } from './routes/ForgotPassword';
-import { isExtension } from './utils/environment';
-
-const isExtensionEnvironment = isExtension();
 
 // Create the memory router for Chrome extension
 // Memory router is recommended for Chrome extensions as they don't have a URL bar

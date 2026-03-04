@@ -9,16 +9,16 @@ import { SettingsInitializer } from '../components/SettingsInitializer/SettingsI
 export function Home() {
   const initializeAudioService = useInitializeAudioService();
   const loadSettings = useLoadSettings();
-  
+
   // Initialize audio service and settings when component mounts
   useEffect(() => {
     console.info('[Home] Initializing audio service');
     initializeAudioService();
-    
+
     console.info('[Home] Loading settings');
     loadSettings();
   }, []); // Empty dependency array - only run once on mount
-  
+
   return (
     <UserProfileProvider>
       <OnboardingProvider>

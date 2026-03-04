@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>TTS Benchmark</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0a0a1a;color:#e0e0e0;font-family:system-ui,-apple-system,sans-serif;padding:1.5rem}
+h1{font-size:1.4rem;margin-bottom:0.5rem}
+.subtitle{color:#888;font-size:0.85rem;margin-bottom:1.5rem}
+.controls{display:flex;gap:1rem;align-items:center;flex-wrap:wrap;margin-bottom:1rem}
+.controls label{font-size:0.85rem;color:#aaa}
+.controls select,.controls input{background:#16213e;color:#e0e0e0;border:1px solid #333;border-radius:6px;padding:0.3rem 0.6rem;font-size:0.85rem}
+.controls input[type=number]{width:60px}
+button{background:#0f3460;color:#51cf66;border:1px solid #51cf66;border-radius:8px;padding:0.5rem 1.5rem;font-size:0.85rem;cursor:pointer;transition:all 0.2s}
+button:hover{background:#51cf66;color:#0a0a1a}
+button:disabled{opacity:0.4;cursor:default;background:#0f3460;color:#51cf66}
+.progress-bar{width:100%;height:24px;background:#16213e;border-radius:12px;overflow:hidden;margin:0.75rem 0}
+.progress-fill{height:100%;background:linear-gradient(90deg,#0f3460,#51cf66);transition:width 0.3s;width:0%;display:flex;align-items:center;justify-content:flex-end;padding-right:8px;font-size:0.7rem;color:#fff;min-width:fit-content}
+.stats{display:flex;gap:2rem;font-size:0.8rem;color:#aaa;margin-bottom:1rem}
+.stats span{color:#51cf66}
+#log{background:#0d1117;border:1px solid #222;border-radius:8px;padding:0.75rem;font-family:monospace;font-size:0.75rem;height:120px;overflow-y:auto;margin-bottom:1rem;color:#8b949e}
+#log .ok{color:#51cf66}
+#log .err{color:#f85149}
+#log .warn{color:#d29922}
+table{width:100%;border-collapse:collapse;font-size:0.8rem}
+th{background:#16213e;padding:0.5rem;text-align:left;border-bottom:2px solid #333;position:sticky;top:0;cursor:pointer;user-select:none}
+th:hover{color:#51cf66}
+th.sorted-asc::after{content:" ▲";color:#51cf66}
+th.sorted-desc::after{content:" ▼";color:#51cf66}
+td{padding:0.4rem 0.5rem;border-bottom:1px solid #1a1a2e}
+tr:hover{background:#16213e}
+.num{text-align:right;font-family:monospace}
+.fast{color:#51cf66}
+.medium{color:#d29922}
+.slow{color:#f85149}
+.badge{display:inline-block;padding:0.1rem 0.4rem;border-radius:4px;font-size:0.7rem;font-weight:600}
+.badge-int8{background:#1a3a2a;color:#51cf66}
+.badge-fp32{background:#2a2a1a;color:#d29922}
+.export-area{margin-top:1rem}
+textarea{width:100%;height:200px;background:#0d1117;color:#8b949e;border:1px solid #333;border-radius:8px;padding:0.75rem;font-family:monospace;font-size:0.75rem;display:none}
+.filter-bar{display:flex;gap:0.75rem;margin-bottom:0.75rem;flex-wrap:wrap}
+.filter-bar input{background:#16213e;color:#e0e0e0;border:1px solid #333;border-radius:6px;padding:0.3rem 0.6rem;font-size:0.85rem;width:200px}
+</style>
+</head>
+<body>
+
+<h1>TTS Model Benchmark</h1>
+<p class="subtitle">Measures generation time (excluding model loading). Uses Web Workers for parallel execution.</p>
+
+<div class="controls">
+  <label>Workers: <select id="concurrency">
+    <option value="1">1</option>
+    <option value="2">2</option>
+    <option value="4" selected>4</option>
+    <option value="6">6</option>
+    <option value="8">8</option>
+  </select></label>
+  <label>Runs: <select id="runs">
+    <option value="3">3</option>
+    <option value="5" selected>5</option>
+    <option value="7">7</option>
+    <option value="10">10</option>
+  </select></label>
+  <button id="startBtn" disabled>Loading config...</button>
+  <button id="exportBtn" disabled>Export JSON</button>
+  <button id="exportCsvBtn" disabled>Export CSV</button>
+</div>
+
+<div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+<div class="stats">
+  <div>Done: <span id="statDone">0</span> / <span id="statTotal">0</span></div>
+  <div>Failed: <span id="statFail" style="color:#f85149">0</span></div>
+  <div>Elapsed: <span id="statTime">0:00</span></div>
+  <div>ETA: <span id="statEta">-</span></div>
+</div>
+
+<div id="log"></div>
+
+<div class="filter-bar">
+  <input type="text" id="filterInput" placeholder="Filter models...">
+</div>
+
+<table>
+<thead>
+  <tr>
+    <th data-col="id">Model</th>
+    <th data-col="sizeMB">Size</th>
+    <th data-col="lang">Lang</th>
+    <th data-col="variant">Type</th>
+    <th data-col="medianMs">Gen (ms)</th>
+    <th data-col="audioSec">Audio (s)</th>
+    <th data-col="rtf">RTF</th>
+    <th data-col="speed">Speed</th>
+    <th data-col="loadMs">Load (ms)</th>
+  </tr>
+</thead>
+<tbody id="tbody"></tbody>
+</table>
+
+<div class="export-area">
+  <textarea id="exportArea"></textarea>
+</div>
+
+<script>
+// ── Worker code (as string, will be Blob URL) ──
+const WORKER_CODE = `
+var _wasmDir, _model;
+
+function detectConfig() {
+  var fs = (typeof FS !== 'undefined') ? FS : (Module.FS || Module['FS']);
+  var files = fs.readdir('/');
+  var onnxFiles = files.filter(function(f) { return f.endsWith('.onnx'); });
+  var hasVoicesBin = files.indexOf('voices.bin') !== -1;
+  var hasEspeak = files.indexOf('espeak-ng-data') !== -1;
+  var hasLexiconTxt = files.indexOf('lexicon.txt') !== -1;
+  var hasDict = files.indexOf('dict') !== -1;
+  var hasTokens = files.indexOf('tokens.txt') !== -1;
+  var fstFiles = files.filter(function(f) { return f.endsWith('.fst'); });
+  var ruleFsts = fstFiles.map(function(f) { return './' + f; }).join(',');
+  var farFiles = files.filter(function(f) { return f.endsWith('.far'); });
+  var ruleFars = farFiles.map(function(f) { return './' + f; }).join(',');
+  var vocoderFile = onnxFiles.filter(function(f) { return f.indexOf('vocos') === 0; })[0];
+  var decoderFile = onnxFiles.filter(function(f) { return f.indexOf('decoder') === 0; })[0];
+  var encoderFile = onnxFiles.filter(function(f) { return f.indexOf('encoder') === 0; })[0];
+  var lmFlowFile = onnxFiles.filter(function(f) { return f.indexOf('lm_flow') === 0; })[0];
+  var lmMainFile = onnxFiles.filter(function(f) { return f.indexOf('lm_main') === 0; })[0];
+  var textCondFile = onnxFiles.filter(function(f) { return f.indexOf('text_conditioner') === 0; })[0];
+
+  // Pocket: has lm_flow + text_conditioner
+  if (lmFlowFile && textCondFile) {
+    return { type: 'pocket', config: {
+      offlineTtsModelConfig: { offlineTtsPocketModelConfig: {
+        lmFlow: './' + lmFlowFile, lmMain: './' + lmMainFile,
+        encoder: './' + encoderFile, decoder: './' + decoderFile,
+        textConditioner: './' + textCondFile,
+        vocabJson: './vocab.json', tokenScoresJson: './token_scores.json',
+      }, numThreads: 1, debug: 0, provider: 'cpu' },
+      ruleFsts: '', ruleFars: '', maxNumSentences: 1,
+    }};
+  }
+
+  // ZipVoice: decoder + encoder + vocos_* (underscore, not hyphen)
+  if (decoderFile && encoderFile && vocoderFile && vocoderFile.indexOf('vocos_') === 0) {
+    return { type: 'zipvoice', config: {
+      offlineTtsModelConfig: { offlineTtsZipVoiceModelConfig: {
+        tokens: './tokens.txt',
+        encoder: './' + encoderFile, decoder: './' + decoderFile,
+        vocoder: './' + vocoderFile,
+        dataDir: hasEspeak ? './espeak-ng-data' : '',
+        lexicon: hasLexiconTxt ? './lexicon.txt' : '',
+        featScale: 0.1, tShift: 0.5, targetRMS: 0.1, guidanceScale: 1.0,
+      }, numThreads: 1, debug: 0, provider: 'cpu' },
+      ruleFsts: '', ruleFars: '', maxNumSentences: 1,
+    }};
+  }
+
+  // Matcha: has vocos-* vocoder (hyphen)
+  if (vocoderFile && vocoderFile.indexOf('vocos-') === 0) {
+    var acousticModel = onnxFiles.filter(function(f) { return f.indexOf('model') === 0; })[0] || onnxFiles[0];
+    return { type: 'matcha', config: {
+      offlineTtsModelConfig: { offlineTtsMatchaModelConfig: {
+        acousticModel: './' + acousticModel, vocoder: './' + vocoderFile,
+        lexicon: hasLexiconTxt ? './lexicon.txt' : '',
+        tokens: hasTokens ? './tokens.txt' : '',
+        dataDir: hasEspeak ? './espeak-ng-data' : '',
+        noiseScale: 0.667, lengthScale: 1.0,
+      }, numThreads: 1, debug: 0, provider: 'cpu' },
+      ruleFsts: ruleFsts, ruleFars: '', maxNumSentences: 1,
+    }};
+  }
+
+  // Kitten: voices.bin + model.fp16.onnx
+  if (hasVoicesBin && onnxFiles.indexOf('model.fp16.onnx') !== -1) {
+    return { type: 'kitten', config: {
+      offlineTtsModelConfig: { offlineTtsKittenModelConfig: {
+        model: './model.fp16.onnx', voices: './voices.bin',
+        tokens: './tokens.txt',
+        dataDir: hasEspeak ? './espeak-ng-data' : '',
+        lengthScale: 1.0,
+      }, numThreads: 1, debug: 0, provider: 'cpu' },
+      ruleFsts: '', ruleFars: '', maxNumSentences: 1,
+    }};
+  }
+
+  // Kokoro: voices.bin + model.onnx or model.int8.onnx
+  if (hasVoicesBin) {
+    var mf = onnxFiles.indexOf('model.onnx') !== -1 ? './model.onnx' :
+             onnxFiles.indexOf('model.int8.onnx') !== -1 ? './model.int8.onnx' : '';
+    var lexFiles = files.filter(function(f) { return f.indexOf('lexicon') === 0 && f.indexOf('.txt') > 0; });
+    var lexicon = lexFiles.map(function(f) { return './' + f; }).join(',');
+    return { type: 'kokoro', config: {
+      offlineTtsModelConfig: { offlineTtsKokoroModelConfig: {
+        model: mf, voices: './voices.bin', tokens: './tokens.txt',
+        dataDir: hasEspeak ? './espeak-ng-data' : '',
+        lengthScale: 1.0, lexicon: lexicon, lang: '',
+      }, numThreads: 1, debug: 0, provider: 'cpu' },
+      ruleFsts: ruleFsts, ruleFars: '', maxNumSentences: 1,
+    }};
+  }
+
+  // VITS: Piper, Coqui, Mimic3, MMS, Icefall, MeloTTS, Cantonese, zh-ll, etc.
+  var modelOnnx;
+  if (onnxFiles.indexOf('model.onnx') !== -1) modelOnnx = 'model.onnx';
+  else if (onnxFiles.indexOf('model.int8.onnx') !== -1) modelOnnx = 'model.int8.onnx';
+  else modelOnnx = onnxFiles[0] || 'model.onnx';
+
+  return { type: 'vits', config: {
+    offlineTtsModelConfig: { offlineTtsVitsModelConfig: {
+      model: './' + modelOnnx,
+      lexicon: hasLexiconTxt ? './lexicon.txt' : '',
+      tokens: hasTokens ? './tokens.txt' : '',
+      dataDir: hasEspeak ? './espeak-ng-data' : '',
+      dictDir: hasDict ? './dict' : '',
+      noiseScale: 0.667, noiseScaleW: 0.8, lengthScale: 1.0,
+    }, numThreads: 1, debug: 0, provider: 'cpu' },
+    ruleFsts: ruleFsts, ruleFars: ruleFars, maxNumSentences: 1,
+  }};
+}
+
+self.onmessage = function(e) {
+  _wasmDir = e.data.wasmDir;
+  _model = e.data.model;
+  var text = e.data.text;
+  var runs = e.data.runs;
+  var sid = e.data.sid || 0;
+
+  self.Module = {
+    locateFile: function(file) {
+      return _wasmDir + '/' + file;
+    },
+    onRuntimeInitialized: function() {
+      try {
+        var detected = detectConfig();
+        self.postMessage({type: 'detected', model: _model, modelType: detected.type});
+        var tts = createOfflineTts(Module, detected.config);
+        var numSpeakers = tts.numSpeakers;
+        var sampleRate = tts.sampleRate;
+        var results = [];
+        for (var i = 0; i < runs; i++) {
+          var t0 = performance.now();
+          var out = tts.generate({text: text, sid: sid, speed: 1.0});
+          var t1 = performance.now();
+          var dur = out.samples.length / out.sampleRate;
+          results.push({
+            ms: Math.round(t1 - t0),
+            audioSec: Math.round(dur * 100) / 100
+          });
+        }
+        tts.free();
+        self.postMessage({ok: true, model: _model, results: results, speakers: numSpeakers, sampleRate: sampleRate, modelType: detected.type});
+      } catch(err) {
+        self.postMessage({ok: false, model: _model, error: String(err)});
+      }
+    }
+  };
+
+  var loadStart = performance.now();
+  try {
+    importScripts(
+      _wasmDir + '/sherpa-onnx-wasm-main-tts.js',
+      _wasmDir + '/sherpa-onnx-tts.js'
+    );
+    var loadMs = Math.round(performance.now() - loadStart);
+    self.postMessage({type: 'loaded', model: _model, loadMs: loadMs});
+  } catch(err) {
+    self.postMessage({ok: false, model: _model, error: 'importScripts failed: ' + String(err)});
+  }
+};
+`;
+
+// ── Main thread ──
+let config = null;
+let results = {};
+let queue = [];
+let active = 0;
+let done = 0;
+let failed = 0;
+let startTime = 0;
+let timerInterval = null;
+let running = false;
+let workerUrl = null;
+
+const startBtn = document.getElementById('startBtn');
+const exportBtn = document.getElementById('exportBtn');
+const exportCsvBtn = document.getElementById('exportCsvBtn');
+const tbody = document.getElementById('tbody');
+const logEl = document.getElementById('log');
+const filterInput = document.getElementById('filterInput');
+
+// Load config
+fetch(new URLSearchParams(location.search).get('config') || 'benchmark-config.json')
+  .then(r => r.json())
+  .then(c => {
+    config = c;
+    startBtn.textContent = `Start (${c.models.length} models)`;
+    startBtn.disabled = false;
+    document.getElementById('statTotal').textContent = c.models.length;
+    log('Config loaded: ' + c.models.length + ' models', 'ok');
+  })
+  .catch(e => {
+    startBtn.textContent = 'Config load failed';
+    log('Failed to load benchmark-config.json: ' + e.message, 'err');
+  });
+
+function log(msg, cls) {
+  const d = document.createElement('div');
+  if (cls) d.className = cls;
+  d.textContent = '[' + new Date().toLocaleTimeString() + '] ' + msg;
+  logEl.appendChild(d);
+  logEl.scrollTop = logEl.scrollHeight;
+}
+
+function updateProgress() {
+  const total = config.models.length;
+  const pct = total ? ((done + failed) / total * 100).toFixed(1) : 0;
+  document.getElementById('progressFill').style.width = pct + '%';
+  document.getElementById('progressFill').textContent = pct + '%';
+  document.getElementById('statDone').textContent = done;
+  document.getElementById('statFail').textContent = failed;
+
+  const elapsed = (Date.now() - startTime) / 1000;
+  const mins = Math.floor(elapsed / 60);
+  const secs = Math.floor(elapsed % 60);
+  document.getElementById('statTime').textContent = mins + ':' + String(secs).padStart(2, '0');
+
+  const completed = done + failed;
+  if (completed > 0 && completed < total) {
+    const rate = elapsed / completed;
+    const remaining = (total - completed) * rate;
+    const etaMins = Math.floor(remaining / 60);
+    const etaSecs = Math.floor(remaining % 60);
+    document.getElementById('statEta').textContent = etaMins + ':' + String(etaSecs).padStart(2, '0');
+  } else if (completed >= total) {
+    document.getElementById('statEta').textContent = 'done';
+  }
+}
+
+function processNext() {
+  const concurrency = parseInt(document.getElementById('concurrency').value);
+  while (queue.length > 0 && active < concurrency) {
+    const model = queue.shift();
+    active++;
+    startWorker(model);
+  }
+
+  if (queue.length === 0 && active === 0 && running) {
+    running = false;
+    clearInterval(timerInterval);
+    updateProgress();
+    startBtn.textContent = 'Done!';
+    exportBtn.disabled = false;
+    exportCsvBtn.disabled = false;
+    log('All benchmarks complete! ' + done + ' ok, ' + failed + ' failed.', 'ok');
+  }
+}
+
+function startWorker(model) {
+  const lang = model.lang;
+  const text = (config.texts[lang] || config.texts['en']);
+  const runs = parseInt(document.getElementById('runs').value);
+
+  const worker = new Worker(workerUrl);
+  let loadMs = 0;
+
+  const timeout = setTimeout(() => {
+    worker.terminate();
+    active--;
+    failed++;
+    addRow(model, null, 'Timeout (120s)');
+    log(model.id + ': TIMEOUT', 'err');
+    updateProgress();
+    processNext();
+  }, 120000);
+
+  let detectedType = '';
+
+  worker.onmessage = function(e) {
+    if (e.data.type === 'loaded') {
+      loadMs = e.data.loadMs;
+      return;
+    }
+    if (e.data.type === 'detected') {
+      detectedType = e.data.modelType;
+      log(model.id + ': detected as ' + detectedType, 'ok');
+      return;
+    }
+
+    clearTimeout(timeout);
+    worker.terminate();
+    active--;
+
+    if (e.data.ok) {
+      done++;
+      const r = e.data.results;
+      // Sort by ms, take median
+      const sorted = r.map(x => x.ms).sort((a, b) => a - b);
+      const medianMs = sorted[Math.floor(sorted.length / 2)];
+      const audioSec = r[0].audioSec;
+      const rtf = medianMs / 1000 / audioSec;
+      const speed = 1 / rtf;
+
+      results[model.id] = {
+        medianMs, audioSec, rtf: Math.round(rtf * 1000) / 1000,
+        speed: Math.round(speed * 10) / 10,
+        allMs: sorted, loadMs, speakers: e.data.speakers,
+        sampleRate: e.data.sampleRate, sizeMB: model.sizeMB,
+        lang: model.lang, int8: model.int8, modelType: e.data.modelType || detectedType
+      };
+
+      addRow(model, results[model.id], null);
+      log(model.id + ': ' + medianMs + 'ms → ' + audioSec + 's audio, ' + speed.toFixed(1) + 'x realtime', 'ok');
+    } else {
+      failed++;
+      addRow(model, null, e.data.error);
+      log(model.id + ': ERROR ' + e.data.error, 'err');
+    }
+
+    updateProgress();
+    processNext();
+  };
+
+  worker.onerror = function(e) {
+    clearTimeout(timeout);
+    worker.terminate();
+    active--;
+    failed++;
+    addRow(model, null, e.message);
+    log(model.id + ': WORKER ERROR ' + e.message, 'err');
+    updateProgress();
+    processNext();
+  };
+
+  // Build absolute base URL so Blob worker can resolve paths
+  const pageUrl = location.href;
+  const baseUrl = pageUrl.substring(0, pageUrl.lastIndexOf('/') + 1);
+
+  worker.postMessage({
+    model: model.id,
+    wasmDir: baseUrl + model.wasm,
+    text: text,
+    runs: runs,
+    sid: 0
+  });
+}
+
+function addRow(model, result, error) {
+  const tr = document.createElement('tr');
+  tr.dataset.id = model.id;
+
+  if (result) {
+    const speedCls = result.speed >= 5 ? 'fast' : result.speed >= 2 ? 'medium' : 'slow';
+    tr.innerHTML =
+      '<td>' + model.id + '</td>' +
+      '<td class="num">' + model.sizeMB + ' MB</td>' +
+      '<td>' + model.lang + '</td>' +
+      '<td><span class="badge ' + (model.int8 ? 'badge-int8' : 'badge-fp32') + '">' + (model.int8 ? 'int8' : 'fp32') + '</span></td>' +
+      '<td class="num">' + result.medianMs + '</td>' +
+      '<td class="num">' + result.audioSec + '</td>' +
+      '<td class="num">' + result.rtf.toFixed(3) + '</td>' +
+      '<td class="num ' + speedCls + '">' + result.speed.toFixed(1) + 'x</td>' +
+      '<td class="num">' + (result.loadMs || '-') + '</td>';
+  } else {
+    tr.innerHTML =
+      '<td>' + model.id + '</td>' +
+      '<td class="num">' + model.sizeMB + ' MB</td>' +
+      '<td>' + model.lang + '</td>' +
+      '<td><span class="badge ' + (model.int8 ? 'badge-int8' : 'badge-fp32') + '">' + (model.int8 ? 'int8' : 'fp32') + '</span></td>' +
+      '<td class="err" colspan="5">' + (error || 'Unknown error') + '</td>';
+  }
+
+  tbody.appendChild(tr);
+}
+
+// ── Sorting ──
+let sortCol = null, sortAsc = true;
+document.querySelectorAll('th[data-col]').forEach(th => {
+  th.addEventListener('click', () => {
+    const col = th.dataset.col;
+    if (sortCol === col) {
+      sortAsc = !sortAsc;
+    } else {
+      sortCol = col;
+      sortAsc = true;
+    }
+    document.querySelectorAll('th').forEach(h => h.classList.remove('sorted-asc', 'sorted-desc'));
+    th.classList.add(sortAsc ? 'sorted-asc' : 'sorted-desc');
+    sortTable();
+  });
+});
+
+function sortTable() {
+  const rows = Array.from(tbody.querySelectorAll('tr'));
+  rows.sort((a, b) => {
+    const aId = a.dataset.id, bId = b.dataset.id;
+    const aR = results[aId], bR = results[bId];
+    let aVal, bVal;
+
+    if (sortCol === 'id') { aVal = aId; bVal = bId; }
+    else if (sortCol === 'lang') { aVal = aR ? aR.lang : ''; bVal = bR ? bR.lang : ''; }
+    else if (sortCol === 'variant') { aVal = aR ? (aR.int8 ? 1 : 0) : 0; bVal = bR ? (bR.int8 ? 1 : 0) : 0; }
+    else if (sortCol === 'sizeMB') { aVal = aR ? aR.sizeMB : 0; bVal = bR ? bR.sizeMB : 0; }
+    else if (sortCol === 'medianMs') { aVal = aR ? aR.medianMs : 9999999; bVal = bR ? bR.medianMs : 9999999; }
+    else if (sortCol === 'audioSec') { aVal = aR ? aR.audioSec : 0; bVal = bR ? bR.audioSec : 0; }
+    else if (sortCol === 'rtf') { aVal = aR ? aR.rtf : 999; bVal = bR ? bR.rtf : 999; }
+    else if (sortCol === 'speed') { aVal = aR ? aR.speed : 0; bVal = bR ? bR.speed : 0; }
+    else if (sortCol === 'loadMs') { aVal = aR ? (aR.loadMs||0) : 0; bVal = bR ? (bR.loadMs||0) : 0; }
+    else { aVal = aId; bVal = bId; }
+
+    if (typeof aVal === 'string') {
+      return sortAsc ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+    }
+    return sortAsc ? aVal - bVal : bVal - aVal;
+  });
+  rows.forEach(r => tbody.appendChild(r));
+}
+
+// ── Filter ──
+filterInput.addEventListener('input', () => {
+  const q = filterInput.value.toLowerCase();
+  tbody.querySelectorAll('tr').forEach(tr => {
+    tr.style.display = tr.dataset.id.toLowerCase().includes(q) ? '' : 'none';
+  });
+});
+
+// ── Start ──
+startBtn.addEventListener('click', () => {
+  if (running) return;
+  running = true;
+  startTime = Date.now();
+  done = 0;
+  failed = 0;
+  active = 0;
+  results = {};
+  tbody.innerHTML = '';
+  startBtn.disabled = true;
+  startBtn.textContent = 'Running...';
+  exportBtn.disabled = true;
+  exportCsvBtn.disabled = true;
+
+  const blob = new Blob([WORKER_CODE], {type: 'application/javascript'});
+  workerUrl = URL.createObjectURL(blob);
+
+  queue = [...config.models];
+  log('Starting benchmark: ' + queue.length + ' models, ' +
+      document.getElementById('concurrency').value + ' workers, ' +
+      document.getElementById('runs').value + ' runs each', 'ok');
+
+  timerInterval = setInterval(updateProgress, 1000);
+  processNext();
+});
+
+// ── Export ──
+exportBtn.addEventListener('click', () => {
+  const data = JSON.stringify(results, null, 2);
+  const area = document.getElementById('exportArea');
+  area.style.display = 'block';
+  area.value = data;
+  area.select();
+
+  const blob = new Blob([data], {type: 'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'tts-benchmark-results.json';
+  a.click();
+});
+
+exportCsvBtn.addEventListener('click', () => {
+  let csv = 'model,sizeMB,lang,int8,medianMs,audioSec,rtf,speed,loadMs\n';
+  for (const [id, r] of Object.entries(results)) {
+    csv += [id, r.sizeMB, r.lang, r.int8, r.medianMs, r.audioSec, r.rtf, r.speed, r.loadMs || ''].join(',') + '\n';
+  }
+  const blob = new Blob([csv], {type: 'text/csv'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'tts-benchmark-results.csv';
+  a.click();
+});
+
+// Expose for automated extraction
+window.getResults = () => results;
+</script>
+</body>
+</html>

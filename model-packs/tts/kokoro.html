@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Kokoro TTS Browser Demo</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #1a1a2e;
+      color: #e0e0e0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem 1rem;
+    }
+    h1 { font-size: 1.5rem; margin-bottom: 0.5rem; color: #fff; }
+    .subtitle { color: #888; font-size: 0.9rem; margin-bottom: 1.5rem; }
+    .subtitle a { color: #51cf66; text-decoration: none; }
+    .subtitle a:hover { text-decoration: underline; }
+    .container {
+      width: 100%;
+      max-width: 640px;
+      background: #16213e;
+      border-radius: 12px;
+      padding: 1.5rem;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    }
+    .status-bar {
+      background: #0f3460;
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      margin-bottom: 1.5rem;
+      font-size: 0.85rem;
+      min-height: 2.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .status-bar.error { background: #4a1528; color: #ff6b6b; }
+    .status-bar.ready { background: #1a3a2a; color: #51cf66; }
+    .status-bar.warn { background: #3a3a1a; color: #ffd43b; }
+    .spinner {
+      width: 16px; height: 16px;
+      border: 2px solid #555;
+      border-top-color: #51cf66;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    label { display: block; font-size: 0.85rem; color: #aaa; margin-bottom: 0.3rem; }
+    .field { margin-bottom: 1rem; }
+    textarea {
+      width: 100%;
+      background: #0f3460;
+      color: #e0e0e0;
+      border: 1px solid #333;
+      border-radius: 8px;
+      padding: 0.75rem;
+      font-size: 0.95rem;
+      font-family: inherit;
+      resize: vertical;
+      min-height: 80px;
+    }
+    textarea:focus { outline: none; border-color: #51cf66; }
+    .row { display: flex; gap: 1rem; }
+    .row .field { flex: 1; }
+    input[type="number"], input[type="range"] {
+      width: 100%;
+      background: #0f3460;
+      color: #e0e0e0;
+      border: 1px solid #333;
+      border-radius: 6px;
+      padding: 0.5rem 0.75rem;
+      font-size: 0.9rem;
+    }
+    input[type="range"] { padding: 0.25rem 0; }
+    input:focus { outline: none; border-color: #51cf66; }
+    .range-row { display: flex; align-items: center; gap: 0.75rem; }
+    button#generate {
+      width: 100%;
+      padding: 0.75rem;
+      background: #10a37f;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    button#generate:hover:not(:disabled) { background: #0d8c6c; }
+    button#generate:disabled { opacity: 0.4; cursor: not-allowed; }
+    .audio-output { margin-top: 1.5rem; }
+    .audio-output audio { width: 100%; margin-top: 0.5rem; }
+    .timing { font-size: 0.8rem; color: #888; margin-top: 0.3rem; }
+    .perf-note {
+      margin-top: 0.5rem;
+      padding: 0.5rem 0.75rem;
+      background: #2a2a1a;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      color: #ffd43b;
+    }
+    .bug-banner {
+      background: #4a1528;
+      border: 1px solid #ff6b6b;
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      margin-bottom: 1.5rem;
+      font-size: 0.85rem;
+      color: #ff6b6b;
+      line-height: 1.5;
+    }
+    .bug-banner strong { color: #ff9999; }
+    .bug-banner a { color: #ff9999; text-decoration: underline; }
+    .bug-banner a:hover { color: #ffcccc; }
+    .log {
+      margin-top: 1.5rem;
+      background: #0a0a1a;
+      border-radius: 8px;
+      padding: 0.75rem;
+      font-family: monospace;
+      font-size: 0.75rem;
+      color: #888;
+      max-height: 200px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+  </style>
+</head>
+<body>
+
+<h1 id="pageTitle">Kokoro TTS Browser Demo</h1>
+<p id="pageSubtitle" class="subtitle">sherpa-onnx Kokoro Multi-Lang int8 (9 languages, 53 speakers) &mdash; <a href="kitten.html">Switch to Kitten</a></p>
+
+<div class="container">
+  <div id="bugBanner" class="bug-banner">
+    <strong>Known Bug: Audio output is silent (all NaN samples)</strong><br>
+    Kokoro TTS in WASM produces NaN audio data during ONNX inference. This is a
+    <a href="https://github.com/k2-fsa/sherpa-onnx/issues/2236" target="_blank">known upstream issue (#2236)</a>
+    in sherpa-onnx &mdash; the ONNX runtime on WASM/CPU generates NaN values in the model output tensor.
+    Even building from source does not fix it. The model loads and tokenizes text correctly, but inference output is all NaN.
+    Waiting for an upstream fix from the sherpa-onnx team.
+  </div>
+
+  <div id="status" class="status-bar">
+    <div class="spinner"></div>
+    <span>Loading WASM module...</span>
+  </div>
+
+  <div class="field">
+    <label for="text">Text to synthesize</label>
+    <textarea id="text" rows="3">Hello! This is a test of the Kokoro text to speech model. It supports nine languages including English and Japanese.</textarea>
+  </div>
+
+  <div class="row">
+    <div class="field">
+      <label for="sid">Speaker ID (<span id="sidRange">0-52</span>)</label>
+      <input type="number" id="sid" value="0" min="0" max="52" step="1">
+    </div>
+    <div class="field">
+      <label for="speed">Speed: <span id="speedVal">1.0</span></label>
+      <div class="range-row">
+        <input type="range" id="speed" min="0.3" max="3.0" step="0.1" value="1.0">
+      </div>
+    </div>
+  </div>
+
+  <button id="generate" disabled>Generate</button>
+
+  <div id="audioOutput" class="audio-output" style="display:none">
+    <label>Output</label>
+    <audio id="player" controls></audio>
+    <div id="timing" class="timing"></div>
+    <div class="perf-note">Note: Kokoro runs on a single CPU thread in WASM &mdash; generation may be slow for longer text.</div>
+  </div>
+
+  <div id="log" class="log"></div>
+</div>
+
+<script>
+// --- Model variant routing ---
+var KOKORO_VARIANTS = {
+  'kokoro': {
+    dir: 'wasm-kokoro',
+    label: 'Kokoro v1.0 Multi-Lang int8',
+    detail: '9 langs, 53 speakers, ~126 MB',
+    maxSid: 52,
+    modelFile: './model.int8.onnx',
+    isInt8: true,
+    hasChineseLexicon: true,
+    packCmd: 'kokoro',
+  },
+  'kokoro-v1_1': {
+    dir: 'wasm-kokoro-v1_1',
+    label: 'Kokoro v1.1 Multi-Lang int8',
+    detail: '9 langs, 103 speakers, ~130 MB',
+    maxSid: 102,
+    modelFile: './model.int8.onnx',
+    isInt8: true,
+    hasChineseLexicon: true,
+    packCmd: 'kokoro-v1_1',
+  },
+  'kokoro-fp32': {
+    dir: 'wasm-kokoro-fp32',
+    label: 'Kokoro v1.1 Multi-Lang fp32',
+    detail: '9 langs, 103 speakers, ~310 MB',
+    maxSid: 102,
+    modelFile: './model.onnx',
+    isInt8: false,
+    hasChineseLexicon: true,
+    packCmd: 'kokoro-fp32',
+  },
+  'kokoro-v1_0-fp32': {
+    dir: 'wasm-kokoro-v1_0-fp32',
+    label: 'Kokoro v1.0 Multi-Lang fp32',
+    detail: '9 langs, 53 speakers, ~310 MB',
+    maxSid: 52,
+    modelFile: './model.onnx',
+    isInt8: false,
+    hasChineseLexicon: true,
+    packCmd: 'kokoro-v1_0-fp32',
+  },
+  'kokoro-en': {
+    dir: 'wasm-kokoro-en',
+    label: 'Kokoro EN v0.19 fp32',
+    detail: 'English only, 11 speakers, ~330 MB',
+    maxSid: 10,
+    modelFile: './model.onnx',
+    isInt8: false,
+    hasChineseLexicon: false,
+    hasLexicon: false,
+    packCmd: 'kokoro-en',
+  },
+  'kokoro-en-int8': {
+    dir: 'wasm-kokoro-en-int8',
+    label: 'Kokoro EN v0.19 int8',
+    detail: 'English only, 11 speakers, ~90 MB',
+    maxSid: 10,
+    modelFile: './model.int8.onnx',
+    isInt8: true,
+    hasChineseLexicon: false,
+    hasLexicon: false,
+    packCmd: 'kokoro-en-int8',
+  },
+};
+
+var params = new URLSearchParams(window.location.search);
+var modelKey = params.get('model') || 'kokoro';
+if (!KOKORO_VARIANTS[modelKey]) modelKey = 'kokoro';
+var MODEL = KOKORO_VARIANTS[modelKey];
+
+// CDN base: use HF Dataset for remote, relative paths for localhost
+var CDN_BASE = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
+  ? '' : 'https://huggingface.co/datasets/jiangzhuo9357/sherpa-onnx-tts-models/resolve/main/';
+
+document.getElementById('pageTitle').textContent = MODEL.label + ' TTS Demo';
+document.getElementById('pageSubtitle').innerHTML =
+  'sherpa-onnx ' + MODEL.label + ' (' + MODEL.detail + ') &mdash; <a href="kitten.html">Kitten</a> &middot; <a href="index.html">All demos</a>';
+document.getElementById('sidRange').textContent = '0-' + MODEL.maxSid;
+document.getElementById('sid').max = MODEL.maxSid;
+
+// Hide bug banner for fp32 variants (NaN bug is int8-specific)
+if (!MODEL.isInt8) {
+  document.getElementById('bugBanner').style.display = 'none';
+}
+
+function _log(msg) {
+  var logEl = document.getElementById('log');
+  var ts = new Date().toLocaleTimeString();
+  logEl.textContent += '[' + ts + '] ' + msg + '\n';
+  logEl.scrollTop = logEl.scrollHeight;
+  console.log(msg);
+}
+
+function _setStatusBar(html, cls) {
+  var el = document.getElementById('status');
+  el.className = 'status-bar' + (cls ? ' ' + cls : '');
+  el.innerHTML = html;
+}
+
+var Module = {
+  locateFile: function(path) {
+    return CDN_BASE + MODEL.dir + '/' + path;
+  },
+  setStatus: function(text) {
+    _log('Module: ' + text);
+    if (!text) {
+      _initTts();
+      return;
+    }
+    var m = text.match(/Downloading data\.\.\. \((\d+)\/(\d+)\)/);
+    if (m) {
+      var pct = (parseInt(m[1]) / parseInt(m[2]) * 100).toFixed(1);
+      _setStatusBar('<div class="spinner"></div><span>Downloading model... ' + pct + '%</span>');
+    } else {
+      _setStatusBar('<div class="spinner"></div><span>' + text + '</span>');
+    }
+  }
+};
+
+function _initTts() {
+  _log('WASM runtime initialized, creating OfflineTts...');
+  _setStatusBar('<div class="spinner"></div><span>Initializing ' + MODEL.label + '...</span>');
+
+  try {
+    var t0 = performance.now();
+
+    var kokoroConfig = {
+      model: MODEL.modelFile,
+      voices: './voices.bin',
+      tokens: './tokens.txt',
+      dataDir: './espeak-ng-data',
+      lengthScale: 1.0,
+      lang: '',
+    };
+
+    // Lexicon config depends on variant
+    if (MODEL.hasChineseLexicon) {
+      kokoroConfig.lexicon = './lexicon-us-en.txt,./lexicon-zh.txt';
+    } else if (MODEL.hasLexicon !== false) {
+      kokoroConfig.lexicon = './lexicon-us-en.txt';
+    } else {
+      kokoroConfig.lexicon = '';
+    }
+
+    var ttsConfig = {
+      offlineTtsModelConfig: {
+        offlineTtsKokoroModelConfig: kokoroConfig,
+        numThreads: 1,
+        debug: 1,
+        provider: 'cpu',
+      },
+      ruleFars: '',
+      maxNumSentences: 1,
+    };
+
+    if (MODEL.hasChineseLexicon) {
+      ttsConfig.ruleFsts = './date-zh.fst,./number-zh.fst,./phone-zh.fst';
+    } else {
+      ttsConfig.ruleFsts = '';
+    }
+
+    window._tts = createOfflineTts(Module, ttsConfig);
+
+    var elapsed = (performance.now() - t0).toFixed(0);
+    _log(MODEL.label + ' loaded in ' + elapsed + 'ms');
+    _log('Sample rate: ' + window._tts.sampleRate + ', Speakers: ' + window._tts.numSpeakers);
+
+    document.getElementById('sid').max = Math.max(0, window._tts.numSpeakers - 1);
+    document.getElementById('sidRange').textContent = '0-' + Math.max(0, window._tts.numSpeakers - 1);
+    document.getElementById('generate').disabled = false;
+    _setStatusBar('Ready &mdash; ' + MODEL.label + ' &mdash; ' + window._tts.numSpeakers + ' speaker(s), ' + window._tts.sampleRate + ' Hz', 'ready');
+
+  } catch (err) {
+    _log('ERROR initializing TTS: ' + err.message);
+    console.error(err);
+    _setStatusBar('Failed to initialize model. Run: python3 pack.py ' + MODEL.packCmd, 'error');
+  }
+}
+
+_log('Page loaded, waiting for WASM module...');
+</script>
+
+<script>
+// Dynamically load the WASM scripts from the correct model directory
+(function() {
+  function loadScript(src) {
+    var s = document.createElement('script');
+    s.src = src;
+    document.body.appendChild(s);
+  }
+  loadScript(CDN_BASE + MODEL.dir + '/sherpa-onnx-wasm-main-tts.js');
+  loadScript(CDN_BASE + MODEL.dir + '/sherpa-onnx-tts.js');
+})();
+</script>
+
+<script>
+(function() {
+  var textEl = document.getElementById('text');
+  var sidEl = document.getElementById('sid');
+  var speedEl = document.getElementById('speed');
+  var speedValEl = document.getElementById('speedVal');
+  var generateBtn = document.getElementById('generate');
+  var audioOutput = document.getElementById('audioOutput');
+  var playerEl = document.getElementById('player');
+  var timingEl = document.getElementById('timing');
+  var audioCtx = null;
+
+  speedEl.addEventListener('input', function() {
+    speedValEl.textContent = parseFloat(speedEl.value).toFixed(1);
+  });
+
+  generateBtn.addEventListener('click', function() {
+    var text = textEl.value.trim();
+    if (!text) { alert('Please enter some text.'); return; }
+    if (!window._tts) { alert('TTS not ready yet.'); return; }
+
+    var sid = parseInt(sidEl.value, 10) || 0;
+    var speed = parseFloat(speedEl.value) || 1.0;
+
+    _log('Generating: sid=' + sid + ', speed=' + speed + ', text="' + text.substring(0, 60) + '..."');
+    generateBtn.disabled = true;
+    generateBtn.textContent = 'Generating...';
+
+    setTimeout(function() {
+      try {
+        var t0 = performance.now();
+        var result = window._tts.generate({ text: text, sid: sid, speed: speed });
+        var elapsed = (performance.now() - t0).toFixed(0);
+
+        var duration = (result.samples.length / result.sampleRate).toFixed(2);
+        _log('Generated ' + result.samples.length + ' samples in ' + elapsed + 'ms (' + duration + 's audio @ ' + result.sampleRate + 'Hz)');
+
+        // Debug: analyze sample values
+        var smin = Infinity, smax = -Infinity, ssum = 0, nonzero = 0;
+        for (var j = 0; j < result.samples.length; j++) {
+          var v = result.samples[j];
+          if (v < smin) smin = v;
+          if (v > smax) smax = v;
+          ssum += Math.abs(v);
+          if (v !== 0) nonzero++;
+        }
+        _log('Samples: min=' + smin.toFixed(6) + ' max=' + smax.toFixed(6) + ' avgAbs=' + (ssum / result.samples.length).toFixed(6) + ' nonzero=' + nonzero + '/' + result.samples.length);
+        _log('First 10: [' + Array.from(result.samples.slice(0, 10)).map(function(v){return v.toFixed(4)}).join(', ') + ']');
+
+        playAudio(result);
+        timingEl.textContent = duration + 's audio generated in ' + elapsed + 'ms (' + result.sampleRate + ' Hz)';
+      } catch (err) {
+        _log('ERROR generating: ' + err.message);
+        console.error(err);
+        alert('Generation failed. See console/log.');
+      } finally {
+        generateBtn.disabled = false;
+        generateBtn.textContent = 'Generate';
+      }
+    }, 50);
+  });
+
+  function playAudio(result) {
+    var wav = createWavBlob(result.samples, result.sampleRate);
+    var url = URL.createObjectURL(wav);
+    if (playerEl.src && playerEl.src.indexOf('blob:') === 0) {
+      URL.revokeObjectURL(playerEl.src);
+    }
+    playerEl.src = url;
+    audioOutput.style.display = 'block';
+    if (!audioCtx) { audioCtx = new AudioContext({ sampleRate: result.sampleRate }); }
+    var buffer = audioCtx.createBuffer(1, result.samples.length, result.sampleRate);
+    buffer.getChannelData(0).set(result.samples);
+    var source = audioCtx.createBufferSource();
+    source.buffer = buffer;
+    source.connect(audioCtx.destination);
+    source.start();
+  }
+
+  function createWavBlob(samples, sampleRate) {
+    var int16 = new Int16Array(samples.length);
+    for (var i = 0; i < samples.length; i++) {
+      var s = Math.max(-1, Math.min(1, samples[i]));
+      int16[i] = s * 32767;
+    }
+    var buf = new ArrayBuffer(44 + int16.length * 2);
+    var v = new DataView(buf);
+    v.setUint32(0, 0x46464952, true);
+    v.setUint32(4, 36 + int16.length * 2, true);
+    v.setUint32(8, 0x45564157, true);
+    v.setUint32(12, 0x20746d66, true);
+    v.setUint32(16, 16, true);
+    v.setUint16(20, 1, true);
+    v.setUint16(22, 1, true);
+    v.setUint32(24, sampleRate, true);
+    v.setUint32(28, sampleRate * 2, true);
+    v.setUint16(32, 2, true);
+    v.setUint16(34, 16, true);
+    v.setUint32(36, 0x61746164, true);
+    v.setUint32(40, int16.length * 2, true);
+    var offset = 44;
+    for (var i = 0; i < int16.length; i++) {
+      v.setInt16(offset, int16[i], true);
+      offset += 2;
+    }
+    return new Blob([v], { type: 'audio/wav' });
+  }
+})();
+</script>
+
+</body>
+</html>

@@ -14,13 +14,14 @@ export enum Provider {
   KIZUNA_AI = 'kizunaai',
   OPENAI_COMPATIBLE = 'openai_compatible',
   VOLCENGINE_ST = 'volcengine_st',
-  VOLCENGINE_AST2 = 'volcengine_ast2'
+  VOLCENGINE_AST2 = 'volcengine_ast2',
+  LOCAL_INFERENCE = 'local_inference'
 }
 
 /**
  * Provider type definition
  */
-export type ProviderType = Provider.OPENAI | Provider.GEMINI | Provider.PALABRA_AI | Provider.KIZUNA_AI | Provider.OPENAI_COMPATIBLE | Provider.VOLCENGINE_ST | Provider.VOLCENGINE_AST2;
+export type ProviderType = Provider.OPENAI | Provider.GEMINI | Provider.PALABRA_AI | Provider.KIZUNA_AI | Provider.OPENAI_COMPATIBLE | Provider.VOLCENGINE_ST | Provider.VOLCENGINE_AST2 | Provider.LOCAL_INFERENCE;
 
 /**
  * Array of all supported providers
@@ -34,7 +35,8 @@ export const SUPPORTED_PROVIDERS: ProviderType[] = [
   ...(isKizunaAIEnabled() ? [Provider.KIZUNA_AI] : []),
   ...(isVolcengineSTEnabled() ? [Provider.VOLCENGINE_ST] : []),
   ...(isVolcengineAST2Enabled() ? [Provider.VOLCENGINE_AST2] : []),
-  Provider.OPENAI_COMPATIBLE
+  Provider.OPENAI_COMPATIBLE,
+  Provider.LOCAL_INFERENCE
 ];
 
 /**
@@ -79,6 +81,8 @@ export function getProviderDisplayName(provider: ProviderType): string {
       return 'Volcengine Speech Translate';
     case Provider.VOLCENGINE_AST2:
       return 'Doubao AST 2.0';
+    case Provider.LOCAL_INFERENCE:
+      return 'Local (Offline)';
     default:
       return provider;
   }
