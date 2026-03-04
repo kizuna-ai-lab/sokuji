@@ -42,6 +42,35 @@ import { useUserProfile } from '../../contexts/UserProfileContext';
 import { isExtension } from '../../utils/environment';
 
 
+/**
+ * Given per-sentence audio segments and the current playback time,
+ * return the number of characters that should be highlighted.
+ * Falls back to linear interpolation when segments are not available.
+ */
+function getHighlightedChars(
+  currentTime: number,
+  segments: Array<{ textEnd: number; audioEnd: number }> | undefined,
+  textLength: number,
+  progressRatio: number,
+): number {
+  if (!segments || segments.length === 0) {
+    return Math.floor(textLength * progressRatio);
+  }
+
+  let prevTextEnd = 0;
+  let prevAudioEnd = 0;
+  for (const seg of segments) {
+    if (currentTime < seg.audioEnd) {
+      const segDuration = seg.audioEnd - prevAudioEnd;
+      const segProgress = segDuration > 0 ? (currentTime - prevAudioEnd) / segDuration : 1;
+      return prevTextEnd + Math.floor((seg.textEnd - prevTextEnd) * segProgress);
+    }
+    prevTextEnd = seg.textEnd;
+    prevAudioEnd = seg.audioEnd;
+  }
+  return prevTextEnd;
+}
+
 interface MainPanelProps {}
 
 const MainPanel: React.FC<MainPanelProps> = () => {
@@ -2324,7 +2353,14 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                       const transcript = item.formatted.transcript;
 
                       // Calculate highlighted characters based on playback progress
-                      const highlightedChars = isPlaying ? Math.floor(transcript.length * progressRatio) : 0;
+                      const highlightedChars = isPlaying
+                        ? getHighlightedChars(
+                            playbackProgress?.currentTime ?? 0,
+                            item.formatted.audioSegments,
+                            transcript.length,
+                            progressRatio,
+                          )
+                        : 0;
 
                       return (
                         <div className="content-item transcript">
@@ -2352,7 +2388,14 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                       const text = item.formatted.text;
 
                       // Calculate highlighted characters based on playback progress
-                      const highlightedChars = isPlaying ? Math.floor(text.length * progressRatio) : 0;
+                      const highlightedChars = isPlaying
+                        ? getHighlightedChars(
+                            playbackProgress?.currentTime ?? 0,
+                            item.formatted.audioSegments,
+                            text.length,
+                            progressRatio,
+                          )
+                        : 0;
 
                       return (
                         <div className="content-item text">
