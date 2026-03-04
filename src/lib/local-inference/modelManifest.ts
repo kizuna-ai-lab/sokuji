@@ -247,6 +247,8 @@ function whisperFiles(
   encoder: number, decoder: number,
   extra?: { normalizer?: number; addedTokens?: number; specialTokensMap?: number;
             vocab?: number; merges?: number },
+  /** Encoder quantization suffix, e.g. '_q4', '_fp16'. Default '' = fp32 */
+  encoderQuant?: string,
 ): ModelFileEntry[] {
   const files: ModelFileEntry[] = [
     { filename: 'config.json', sizeBytes: config },
@@ -254,7 +256,7 @@ function whisperFiles(
     { filename: 'preprocessor_config.json', sizeBytes: preprocessor },
     { filename: 'tokenizer.json', sizeBytes: tokenizer },
     { filename: 'tokenizer_config.json', sizeBytes: tokenizerConfig },
-    { filename: 'onnx/encoder_model.onnx', sizeBytes: encoder },
+    { filename: `onnx/encoder_model${encoderQuant ?? ''}.onnx`, sizeBytes: encoder },
     { filename: 'onnx/decoder_model_merged_q4.onnx', sizeBytes: decoder },
   ];
   if (extra?.normalizer) files.push({ filename: 'normalizer.json', sizeBytes: extra.normalizer });
@@ -651,6 +653,49 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
         vocab: 1_036_584, merges: 493_869 },
     ),
   },
+  {
+    id: 'whisper-medium-webgpu',
+    type: 'asr',
+    name: 'Whisper Medium (WebGPU, 99+ languages)',
+    languages: ['multilingual'],
+    multilingual: true,
+    hfModelId: 'onnx-community/whisper-medium-ONNX',
+    requiredDevice: 'webgpu',
+    asrWorkerType: 'whisper-webgpu',
+    dtype: { encoder_model: 'q4', decoder_model_merged: 'q4' },
+    files: whisperFiles(
+      1_389, 3_780, 339,       // config, genConfig, preprocessor
+      3_930_494, 282_713,      // tokenizer, tokenizerConfig
+      209_954_580,             // encoder_model_q4.onnx
+      469_353_892,             // decoder_model_merged_q4.onnx
+      { normalizer: 52_666, addedTokens: 34_604, specialTokensMap: 2_194,
+        vocab: 1_036_584, merges: 493_869 },
+      '_q4',
+    ),
+  },
+  {
+    id: 'whisper-large-v3-turbo-webgpu',
+    type: 'asr',
+    name: 'Whisper Large V3 Turbo (WebGPU, 99+ languages)',
+    languages: ['multilingual'],
+    multilingual: true,
+    hfModelId: 'onnx-community/whisper-large-v3-turbo',
+    requiredDevice: 'webgpu',
+    asrWorkerType: 'whisper-webgpu',
+    dtype: { encoder_model: 'q4', decoder_model_merged: 'q4' },
+    files: whisperFiles(
+      1_332, 3_897, 340,       // config, genConfig, preprocessor
+      2_480_617, 282_843,      // tokenizer, tokenizerConfig
+      424_942_775,             // encoder_model_q4.onnx
+      334_147_222,             // decoder_model_merged_q4.onnx
+      { normalizer: 52_666, addedTokens: 34_648, specialTokensMap: 2_186,
+        vocab: 1_036_558, merges: 493_869 },
+      '_q4',
+    ),
+  },
+  // NOTE: lite-whisper-large-v3-turbo-fast-ONNX removed — custom architecture
+  // (LiteWhisperForConditionalGeneration + low_rank_config) is incompatible with
+  // Transformers.js WhisperForConditionalGeneration pipeline. Produces garbage output.
 
   // ── TTS Models ─────────────────────────────────────────────────────────
   // 136 models across 53 languages, selected by speed benchmark.
