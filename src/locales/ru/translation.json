@@ -205,7 +205,16 @@
     "basicMode": "Базовый",
     "unlimited": "Без ограничений",
     "custom": "Пользовательский",
-    "regionNotSupported": "Сервис недоступен в вашем регионе. Проверьте сетевое окружение или попробуйте другого провайдера."
+    "regionNotSupported": "Сервис недоступен в вашем регионе. Проверьте сетевое окружение или попробуйте другого провайдера.",
+    "apiKeyTooltip": "Введите API-ключ от провайдера",
+    "clientIdTooltip": "Введите ID клиента",
+    "clientSecretTooltip": "Введите секрет клиента",
+    "uiLanguageTooltip": "Выберите язык интерфейса",
+    "sourceLanguageTooltip": "Выберите язык исходной речи",
+    "targetLanguageTooltip": "Выберите язык перевода",
+    "thresholdTooltip": "Настроить порог обнаружения голоса",
+    "prefixPaddingTooltip": "Добавить отступ перед речью",
+    "silenceDurationTooltip": "Длительность тишины до окончания речи"
   },
   "audioPanel": {
     "title": "Настройки аудио",

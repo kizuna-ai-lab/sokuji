@@ -203,7 +203,17 @@
     "basicMode": "בסיסי",
     "unlimited": "ללא הגבלה",
     "custom": "מותאם אישית",
-    "regionNotSupported": "השירות אינו זמין באזורך. בדוק את סביבת הרשת שלך או נסה ספק אחר."
+    "regionNotSupported": "השירות אינו זמין באזורך. בדוק את סביבת הרשת שלך או נסה ספק אחר.",
+    "geminiParticipantTokenWarning": "אזהרה: מגבלת טוקנים של משתתפי Gemini",
+    "apiKeyTooltip": "הזן את מפתח ה-API שהתקבל מהספק",
+    "clientIdTooltip": "הזן מזהה לקוח",
+    "clientSecretTooltip": "הזן סוד לקוח",
+    "uiLanguageTooltip": "בחר שפת תצוגה של הממשק",
+    "sourceLanguageTooltip": "בחר שפת קלט שמע",
+    "targetLanguageTooltip": "בחר שפת יעד",
+    "thresholdTooltip": "התאם סף זיהוי קול",
+    "prefixPaddingTooltip": "הוסף ריפוד לפני דיבור",
+    "silenceDurationTooltip": "משך שקט לפני שהדיבור נחשב מסתיים"
   },
   "simpleSettings": {
     "quickSetup": "הגדרה מהירה",

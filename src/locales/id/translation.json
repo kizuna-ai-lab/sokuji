@@ -204,7 +204,10 @@
     "basicMode": "Dasar",
     "unlimited": "Tidak terbatas",
     "custom": "Kustom",
-    "regionNotSupported": "Layanan tidak tersedia di wilayah Anda. Silakan periksa lingkungan jaringan Anda atau coba penyedia lain."
+    "regionNotSupported": "Layanan tidak tersedia di wilayah Anda. Silakan periksa lingkungan jaringan Anda atau coba penyedia lain.",
+    "geminiParticipantTokenWarning": "Peringatan: batas token peserta Gemini",
+    "auto": "Otomatis",
+    "low": "Rendah"
   },
   "simpleSettings": {
     "quickSetup": "Pengaturan Cepat",

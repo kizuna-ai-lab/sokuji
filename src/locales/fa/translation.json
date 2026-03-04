@@ -203,7 +203,17 @@
     "webrtcVadNotice": "VAD سرور در حالت WebRTC غیرفعال است. در WebRTC، سرور هنگام تشخیص گفتار به طور خودکار صدا را قطع می‌کند که ترجمه‌ها را مختل می‌کند.",
     "unlimited": "نامحدود",
     "custom": "سفارشی",
-    "regionNotSupported": "سرویس در منطقه شما در دسترس نیست. لطفاً محیط شبکه خود را بررسی کنید یا ارائه‌دهنده دیگری را امتحان کنید."
+    "regionNotSupported": "سرویس در منطقه شما در دسترس نیست. لطفاً محیط شبکه خود را بررسی کنید یا ارائه‌دهنده دیگری را امتحان کنید.",
+    "geminiParticipantTokenWarning": "هشدار: محدودیت توکن شرکت‌کننده Gemini",
+    "apiKeyTooltip": "کلید API دریافتی از ارائه‌دهنده را وارد کنید",
+    "clientIdTooltip": "شناسه مشتری را وارد کنید",
+    "clientSecretTooltip": "رمز مشتری را وارد کنید",
+    "uiLanguageTooltip": "زبان نمایش رابط کاربری را انتخاب کنید",
+    "sourceLanguageTooltip": "زبان صدای ورودی را انتخاب کنید",
+    "targetLanguageTooltip": "زبان مقصد را انتخاب کنید",
+    "thresholdTooltip": "آستانه تشخیص صدا را تنظیم کنید",
+    "prefixPaddingTooltip": "افزودن پر کردن قبل از گفتار",
+    "silenceDurationTooltip": "مدت سکوت قبل از پایان تلقی گفتار"
   },
   "simpleSettings": {
     "quickSetup": "راه‌اندازی سریع",

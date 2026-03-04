@@ -206,7 +206,8 @@
     "basicMode": "Base",
     "unlimited": "Illimitato",
     "custom": "Personalizzato",
-    "regionNotSupported": "Servizio non disponibile nella tua regione. Controlla il tuo ambiente di rete o prova un altro provider."
+    "regionNotSupported": "Servizio non disponibile nella tua regione. Controlla il tuo ambiente di rete o prova un altro provider.",
+    "geminiParticipantTokenWarning": "Avviso: limite token partecipanti Gemini"
   },
   "audioPanel": {
     "title": "Impostazioni audio",
