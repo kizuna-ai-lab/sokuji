@@ -368,12 +368,18 @@ export function ModelManagementSection({
   }, []);
 
   const compatibleAsrModels = useMemo(
-    () => asrModels.filter(m => m.multilingual || m.languages.includes(sourceLanguage)),
-    [asrModels, sourceLanguage],
+    () => asrModels.filter(m =>
+      (m.multilingual || m.languages.includes(sourceLanguage))
+      && !(m.requiredDevice === 'webgpu' && !webgpuAvailable)
+    ),
+    [asrModels, sourceLanguage, webgpuAvailable],
   );
   const incompatibleAsrModels = useMemo(
-    () => asrModels.filter(m => !m.multilingual && !m.languages.includes(sourceLanguage)),
-    [asrModels, sourceLanguage],
+    () => asrModels.filter(m =>
+      (!m.multilingual && !m.languages.includes(sourceLanguage))
+      || (m.requiredDevice === 'webgpu' && !webgpuAvailable)
+    ),
+    [asrModels, sourceLanguage, webgpuAvailable],
   );
 
   const compatibleTtsModels = useMemo(

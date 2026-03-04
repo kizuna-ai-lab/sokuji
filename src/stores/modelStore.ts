@@ -206,6 +206,8 @@ export const useModelStore = create<ModelStoreState>()(
       //    otherwise at least 1 ASR model for sourceLang must be downloaded
       if (selectedAsrModel) {
         if (modelStatuses[selectedAsrModel] !== 'downloaded') return false;
+        const asrEntry = getManifestEntry(selectedAsrModel);
+        if (asrEntry?.requiredDevice === 'webgpu' && !webgpuAvailable) return false;
       } else {
         const asrModels = getAsrModelsForLanguage(sourceLang);
         const hasAsr = asrModels.some(

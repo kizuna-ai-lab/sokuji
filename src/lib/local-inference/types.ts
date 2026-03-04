@@ -34,7 +34,34 @@ export interface AsrDisposeMessage {
   type: 'dispose';
 }
 
-export type AsrWorkerInMessage = AsrInitMessage | AsrAudioMessage | AsrDisposeMessage;
+export interface WhisperAsrInitMessage {
+  type: 'init';
+  /** Map of filename → blob URL for model files from IndexedDB */
+  fileUrls: Record<string, string>;
+  /** HuggingFace model ID for Transformers.js pipeline identification */
+  hfModelId: string;
+  /** Source language for Whisper (e.g. 'ja', 'en') or undefined for auto-detect */
+  language?: string;
+  /** VAD configuration overrides (durations in seconds). Defaults match @ricky0123/vad-web. */
+  vadConfig?: {
+    /** Positive speech threshold (default 0.3, matching vad-web) */
+    threshold?: number;
+    /** Negative threshold to confirm silence — hysteresis gap prevents oscillation (default 0.25) */
+    negativeThreshold?: number;
+    /** Redemption / min silence duration in seconds before ending speech (default 1.4) */
+    minSilenceDuration?: number;
+    /** Min speech duration in seconds to emit a segment (default 0.4) */
+    minSpeechDuration?: number;
+    /** Max speech segment duration in seconds before forced flush (default 20) */
+    maxSpeechDuration?: number;
+    /** Pre-speech pad duration in seconds — audio context prepended before speech start (default 0.8) */
+    preSpeechPadDuration?: number;
+  };
+  /** ONNX dtype config for WebGPU models */
+  dtype?: string | Record<string, string>;
+}
+
+export type AsrWorkerInMessage = AsrInitMessage | WhisperAsrInitMessage | AsrAudioMessage | AsrDisposeMessage;
 
 // ─── ASR Worker Messages (Worker → Main) ─────────────────────────────────────
 

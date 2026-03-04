@@ -42,7 +42,7 @@ export class AsrEngine {
    * @param modelId - Model identifier (e.g. 'sensevoice-int8', 'moonshine-tiny-en-quant')
    * @returns Promise that resolves with load time when ready
    */
-  async init(modelId: string, vadConfig?: { threshold?: number; minSilenceDuration?: number; minSpeechDuration?: number }): Promise<{ loadTimeMs: number }> {
+  async init(modelId: string, vadConfig?: { threshold?: number; minSilenceDuration?: number; minSpeechDuration?: number }, language?: string): Promise<{ loadTimeMs: number }> {
     const model = getManifestEntry(modelId);
     if (!model || model.type !== 'asr') {
       const available = getManifestByType('asr').map(m => m.id).join(', ');
@@ -59,32 +59,28 @@ export class AsrEngine {
       this.dispose();
     }
 
-    // Load model file blob URLs from IndexedDB (only .data + package-metadata.json)
+    // Load model file blob URLs from IndexedDB
     const manager = ModelManager.getInstance();
     if (!await manager.isModelReady(modelId)) {
       throw new Error(`ASR model "${modelId}" is not downloaded. Download it first via Model Management.`);
     }
     const fileUrls = await manager.getModelBlobUrls(modelId);
 
-    // Read the Emscripten loadPackage metadata from the downloaded JSON
-    const metadataBlobUrl = fileUrls['package-metadata.json'];
-    if (!metadataBlobUrl) {
-      throw new Error(`Missing package-metadata.json for ASR model "${modelId}"`);
-    }
-    const metadataResponse = await fetch(metadataBlobUrl);
-    const dataPackageMetadata = await metadataResponse.json();
-
-    // Only pass the .data blob URL to the worker (metadata is sent as JSON)
-    const dataFileUrls: Record<string, string> = {};
-    for (const [name, url] of Object.entries(fileUrls)) {
-      if (name !== 'package-metadata.json') {
-        dataFileUrls[name] = url;
-      }
-    }
+    const workerType = model.asrWorkerType || 'sherpa-onnx';
 
     return new Promise((resolve, reject) => {
-      const workerUrl = '/workers/asr.worker.js';
-      this.worker = new Worker(workerUrl);
+      // Create worker based on type
+      switch (workerType) {
+        case 'whisper-webgpu':
+          this.worker = new Worker(
+            new URL('../workers/whisper-webgpu.worker.ts', import.meta.url),
+            { type: 'module' },
+          );
+          break;
+        default: // sherpa-onnx
+          this.worker = new Worker('/workers/asr.worker.js');
+          break;
+      }
 
       this.worker.onmessage = (event: MessageEvent<AsrWorkerOutMessage>) => {
         const msg = event.data;
@@ -132,16 +128,48 @@ export class AsrEngine {
         }
       };
 
-      // JS/WASM runtime is bundled at ASR_BUNDLED_RUNTIME_PATH.
-      // Only .data blob URL + metadata JSON are model-specific.
-      this.worker.postMessage({
-        type: 'init',
-        fileUrls: dataFileUrls,
-        asrEngine: model.asrEngine,
-        vadConfig,
-        runtimeBaseUrl: ASR_BUNDLED_RUNTIME_PATH,
-        dataPackageMetadata,
-      });
+      // Send init message — format depends on worker type
+      if (workerType === 'whisper-webgpu') {
+        this.worker.postMessage({
+          type: 'init',
+          fileUrls,
+          hfModelId: model.hfModelId,
+          language,
+          vadConfig,
+          dtype: model.dtype,
+        });
+      } else {
+        // sherpa-onnx: extract metadata and pass .data blob URL
+        const metadataBlobUrl = fileUrls['package-metadata.json'];
+        if (!metadataBlobUrl) {
+          manager.revokeBlobUrls(fileUrls);
+          reject(new Error(`Missing package-metadata.json for ASR model "${modelId}"`));
+          return;
+        }
+
+        fetch(metadataBlobUrl)
+          .then(r => r.json())
+          .then(dataPackageMetadata => {
+            const dataFileUrls: Record<string, string> = {};
+            for (const [name, url] of Object.entries(fileUrls)) {
+              if (name !== 'package-metadata.json') {
+                dataFileUrls[name] = url;
+              }
+            }
+            this.worker!.postMessage({
+              type: 'init',
+              fileUrls: dataFileUrls,
+              asrEngine: model.asrEngine,
+              vadConfig,
+              runtimeBaseUrl: ASR_BUNDLED_RUNTIME_PATH,
+              dataPackageMetadata,
+            });
+          })
+          .catch(err => {
+            manager.revokeBlobUrls(fileUrls);
+            reject(new Error(`Failed to read package metadata: ${err.message}`));
+          });
+      }
     });
   }
 

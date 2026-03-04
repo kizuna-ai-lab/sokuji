@@ -41,6 +41,7 @@ import { useAuth } from '../../lib/auth/hooks';
 import { useUserProfile } from '../../contexts/UserProfileContext';
 import { isExtension } from '../../utils/environment';
 
+
 interface MainPanelProps {}
 
 const MainPanel: React.FC<MainPanelProps> = () => {
