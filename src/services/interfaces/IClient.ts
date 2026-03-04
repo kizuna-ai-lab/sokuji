@@ -16,6 +16,8 @@ export interface ConversationItem {
   formatted?: {
     text?: string;
     transcript?: string;
+    audioTextEnd?: number;
+    audioSegments?: Array<{ textEnd: number; audioEnd: number }>;
     audio?: Int16Array | ArrayBuffer;
     tool?: {
       name: string;

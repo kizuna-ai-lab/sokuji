@@ -23,6 +23,7 @@ import { TranslationEngine } from '../../lib/local-inference/engine/TranslationE
 import { TtsEngine } from '../../lib/local-inference/engine/TtsEngine';
 import { getManifestEntry } from '../../lib/local-inference/modelManifest';
 import { resampleFloat32, float32ToInt16 } from '../../utils/audio-conversion';
+import { splitSentences } from '../../utils/splitSentences';
 
 interface AsrTiming {
   durationMs: number;
@@ -410,40 +411,66 @@ export class LocalInferenceClient implements IClient {
       this.conversationItems.push(assistantItem);
       this.handlers.onConversationUpdated?.({ item: assistantItem });
 
-      // TTS (optional)
+      // TTS (optional) — split into sentences for reduced time-to-first-audio
       if (this.ttsEngine && this.config && !this.disposed) {
-        try {
-          this.emitEvent('local.tts.start', 'client', { text: translatedText });
-          const ttsResult = await this.ttsEngine.generate(
-            translatedText,
-            this.config.ttsSpeakerId,
-            this.config.ttsSpeed,
-          );
+        const sentences = splitSentences(translatedText);
+        this.emitEvent('local.tts.start', 'client', { text: translatedText, sentenceCount: sentences.length });
+        console.debug(`[Karaoke] TTS start: fullText="${translatedText}" (${translatedText.length} chars), ${sentences.length} sentences:`, sentences.map((s, i) => `[${i}] "${s}" (${s.length} chars)`));
+
+        let searchFrom = 0;
+        let cumulativeAudioDuration = 0;
+        assistantItem.formatted!.audioSegments = [];
+
+        for (let i = 0; i < sentences.length; i++) {
           if (this.disposed) return;
 
-          console.debug('[LocalInference] TTS generated:', ttsResult.samples.length, 'samples @', ttsResult.sampleRate, 'Hz', `(${ttsResult.generationTimeMs}ms)`);
-          this.emitEvent('local.tts.end', 'server', {
-            sampleCount: ttsResult.samples.length,
-            sampleRate: ttsResult.sampleRate,
-            generationTimeMs: ttsResult.generationTimeMs,
-          });
+          try {
+            const ttsResult = await this.ttsEngine.generate(
+              sentences[i],
+              this.config.ttsSpeakerId,
+              this.config.ttsSpeed,
+            );
+            if (this.disposed) return;
 
-          // Resample to 24kHz and convert to Int16
-          const resampled = resampleFloat32(ttsResult.samples, ttsResult.sampleRate, 24000);
-          const int16Audio = float32ToInt16(resampled);
+            // Track how far into the text TTS audio has been generated
+            const pos = translatedText.indexOf(sentences[i], searchFrom);
+            const audioTextEnd = pos >= 0 ? pos + sentences[i].length : searchFrom + sentences[i].length;
+            searchFrom = audioTextEnd;
+            assistantItem.formatted!.audioTextEnd = audioTextEnd;
 
-          // Send audio delta
-          this.handlers.onConversationUpdated?.({
-            item: assistantItem,
-            delta: { audio: int16Audio },
-          });
-        } catch (ttsError) {
-          console.warn('[LocalInference] TTS failed for text, continuing without audio:', ttsError);
-          this.emitEvent('local.tts.error', 'server', {
-            error: ttsError instanceof Error ? ttsError.message : String(ttsError),
-          });
-          this.handlers.onError?.(ttsError instanceof Error ? ttsError : new Error(String(ttsError)));
+            // Resample to 24kHz and convert to Int16
+            const resampled = resampleFloat32(ttsResult.samples, ttsResult.sampleRate, 24000);
+            const int16Audio = float32ToInt16(resampled);
+
+            // Track per-sentence audio-to-text mapping for accurate karaoke
+            const sentenceAudioDuration = int16Audio.length / 24000;
+            cumulativeAudioDuration += sentenceAudioDuration;
+            assistantItem.formatted!.audioSegments!.push({
+              textEnd: audioTextEnd,
+              audioEnd: cumulativeAudioDuration,
+            });
+
+            console.debug(`[Karaoke] TTS sentence ${i + 1}/${sentences.length}: "${sentences[i]}" (${sentences[i].length} chars) → ${sentenceAudioDuration.toFixed(3)}s audio | textEnd=${audioTextEnd}/${translatedText.length}, cumAudio=${cumulativeAudioDuration.toFixed(3)}s`);
+
+            // Emit audio delta immediately — player receives chunk right away
+            this.handlers.onConversationUpdated?.({
+              item: assistantItem,
+              delta: { audio: int16Audio },
+            });
+          } catch (ttsError) {
+            console.warn(`[LocalInference] TTS failed for sentence ${i + 1}/${sentences.length}, skipping:`, ttsError);
+            this.emitEvent('local.tts.error', 'server', {
+              error: ttsError instanceof Error ? ttsError.message : String(ttsError),
+              sentenceIndex: i,
+            });
+          }
         }
+
+        // Ensure trailing whitespace is covered
+        assistantItem.formatted!.audioTextEnd = translatedText.length;
+        console.debug(`[Karaoke] TTS complete: ${assistantItem.formatted!.audioSegments!.length} segments, totalAudio=${cumulativeAudioDuration.toFixed(3)}s, totalChars=${translatedText.length}`);
+
+        this.emitEvent('local.tts.end', 'server', { sentenceCount: sentences.length });
       }
 
       // Mark completed
