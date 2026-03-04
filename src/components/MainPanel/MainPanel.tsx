@@ -480,6 +480,16 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         const errorMessage = event.message || event.error || 'Unknown error';
         addLog(errorMessage, 'error');
 
+        // Show error in conversation panel so it's visible to user
+        setItems(prevItems => [...prevItems, {
+          id: `error-${Date.now()}`,
+          role: 'system',
+          type: 'error',
+          status: 'completed',
+          createdAt: Date.now(),
+          formatted: { text: errorMessage },
+        }]);
+
         // Track API errors
         trackEvent('api_error', {
           provider: provider || Provider.OPENAI,
