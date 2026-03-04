@@ -85,3 +85,12 @@ scripts/cf-*.mjs
 
 # Research documents (local only)
 docs/research/
+
+# sherpa-onnx WASM prebuilt packages (download via scripts/download-sherpa-wasm.sh)
+public/wasm/*
+# WASM runtimes committed for extension builds (small runtime files, not large model packs)
+!public/wasm/sherpa-onnx-tts/
+!public/wasm/sherpa-onnx-asr/
+!public/wasm/sherpa-onnx-asr-stream/
+!public/wasm/ort/
+!public/wasm/vad/

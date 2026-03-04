@@ -1,0 +1,9 @@
+# Downloaded model tarballs (cached by pack.py)
+*.tar.bz2
+
+# Downloaded vocoder files
+*.onnx
+
+# Python cache
+__pycache__/
+*.pyc

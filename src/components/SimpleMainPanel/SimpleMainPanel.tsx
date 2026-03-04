@@ -16,6 +16,38 @@ import { ConversationItem } from '../../services/clients';
 import { Provider } from '../../types/Provider';
 import { useTranslation } from 'react-i18next';
 
+/**
+ * Given per-sentence audio segments and the current playback time,
+ * return the number of characters that should be highlighted.
+ * Falls back to linear interpolation when segments are not available.
+ */
+function getHighlightedChars(
+  currentTime: number,
+  segments: Array<{ textEnd: number; audioEnd: number }> | undefined,
+  textLength: number,
+  progressRatio: number,
+): number {
+  if (!segments || segments.length === 0) {
+    // Fallback: linear interpolation (non-local-inference providers)
+    return Math.floor(textLength * progressRatio);
+  }
+
+  let prevTextEnd = 0;
+  let prevAudioEnd = 0;
+  for (const seg of segments) {
+    if (currentTime < seg.audioEnd) {
+      // Currently in this segment — interpolate within it
+      const segDuration = seg.audioEnd - prevAudioEnd;
+      const segProgress = segDuration > 0 ? (currentTime - prevAudioEnd) / segDuration : 1;
+      return prevTextEnd + Math.floor((seg.textEnd - prevTextEnd) * segProgress);
+    }
+    prevTextEnd = seg.textEnd;
+    prevAudioEnd = seg.audioEnd;
+  }
+  // Past all segments — show all text that has audio
+  return prevTextEnd;
+}
+
 interface SimpleMainPanelProps {
   items: ConversationItem[];
   isSessionActive: boolean;
@@ -35,6 +67,8 @@ interface SimpleMainPanelProps {
   // Text input props
   supportsTextInput: boolean;
   onSendText: (text: string) => void;
+  // Init progress for LOCAL_INFERENCE
+  initProgress?: { completed: number; total: number } | null;
 }
 
 const SimpleMainPanel: React.FC<SimpleMainPanelProps> = React.memo(({
@@ -50,7 +84,8 @@ const SimpleMainPanel: React.FC<SimpleMainPanelProps> = React.memo(({
   playingItemId,
   playbackProgress,
   supportsTextInput,
-  onSendText
+  onSendText,
+  initProgress
 }) => {
   const { t } = useTranslation();
   const conversationContainerRef = useRef<HTMLDivElement>(null);
@@ -136,11 +171,42 @@ const SimpleMainPanel: React.FC<SimpleMainPanelProps> = React.memo(({
     if (!playbackProgress) {
       return 0;
     }
-    
+
     // For streaming audio, bufferedTime is more accurate than duration
     const divisor = playbackProgress.bufferedTime || playbackProgress.duration || 1;
-    return Math.min(playbackProgress.currentTime / divisor, 1);
+    const ratio = Math.min(playbackProgress.currentTime / divisor, 1);
+    return ratio;
   }, [playbackProgress?.currentTime, playbackProgress?.duration, playbackProgress?.bufferedTime]);
+
+  // Debug log for karaoke progress (throttled to avoid spam)
+  const lastKaraokeLogRef = useRef(0);
+  useEffect(() => {
+    if (!playingItemId || !playbackProgress) return;
+    const now = Date.now();
+    if (now - lastKaraokeLogRef.current < 500) return; // log at most every 500ms
+    lastKaraokeLogRef.current = now;
+
+    const playingItem = filteredItems.find(i => i.id === playingItemId);
+    if (!playingItem) return;
+    const text = playingItem.formatted?.transcript || playingItem.formatted?.text || '';
+    const segments = playingItem.formatted?.audioSegments;
+    const highlightedChars = getHighlightedChars(playbackProgress.currentTime, segments, text.length, progressRatio);
+
+    // Find which segment we're in
+    let segInfo = 'no-segments';
+    if (segments && segments.length > 0) {
+      const segIdx = segments.findIndex(s => playbackProgress.currentTime < s.audioEnd);
+      segInfo = segIdx >= 0
+        ? `seg ${segIdx + 1}/${segments.length} (textEnd=${segments[segIdx].textEnd}, audioEnd=${segments[segIdx].audioEnd.toFixed(3)})`
+        : `past all ${segments.length} segs`;
+    }
+
+    console.debug(
+      `[Karaoke] itemId=${playingItemId} | time=${playbackProgress.currentTime.toFixed(3)} / buffered=${playbackProgress.bufferedTime.toFixed(3)}` +
+      ` | ${segInfo} → highlighted=${highlightedChars}/${text.length}` +
+      ` | ratio=${progressRatio.toFixed(3)}`
+    );
+  }, [playingItemId, playbackProgress, progressRatio, filteredItems]);
 
   // Auto-scroll to bottom when new items are added
   useEffect(() => {
@@ -242,7 +308,14 @@ const SimpleMainPanel: React.FC<SimpleMainPanelProps> = React.memo(({
               const text = item.formatted?.transcript || item.formatted?.text || '';
               
               // Calculate highlighted characters for karaoke effect
-              const highlightedChars = isPlaying ? Math.floor(text.length * progressRatio) : 0;
+              const highlightedChars = isPlaying
+                ? getHighlightedChars(
+                    playbackProgress?.currentTime ?? 0,
+                    item.formatted?.audioSegments,
+                    text.length,
+                    progressRatio,
+                  )
+                : 0;
 
               const isParticipant = item.source === 'participant';
 
@@ -376,7 +449,11 @@ const SimpleMainPanel: React.FC<SimpleMainPanelProps> = React.memo(({
             {isInitializing ? (
               <>
                 <Loader className="spinning" size={16} />
-                <span className="btn-text">{t('simplePanel.connecting', 'Connecting...')}</span>
+                <span className="btn-text">
+                  {initProgress
+                    ? t('simplePanel.initProgress', 'Loading ({{completed}}/{{total}})...', { completed: initProgress.completed, total: initProgress.total })
+                    : t('simplePanel.connecting', 'Connecting...')}
+                </span>
               </>
             ) : isSessionActive ? (
               <>
