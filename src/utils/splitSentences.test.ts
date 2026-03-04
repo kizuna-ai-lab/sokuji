@@ -11,7 +11,7 @@ describe('splitSentences', () => {
   });
 
   it('splits Japanese sentences', () => {
-    expect(splitSentences('こんにちは。元気ですか？はい！')).toEqual([
+    expect(splitSentences('こんにちは。元気ですか？はい！', 'ja')).toEqual([
       'こんにちは。',
       '元気ですか？',
       'はい！',
@@ -19,7 +19,7 @@ describe('splitSentences', () => {
   });
 
   it('splits Chinese sentences', () => {
-    expect(splitSentences('你好。今天天气怎么样？很好！')).toEqual([
+    expect(splitSentences('你好。今天天气怎么样？很好！', 'zh')).toEqual([
       '你好。',
       '今天天气怎么样？',
       '很好！',
@@ -46,10 +46,9 @@ describe('splitSentences', () => {
     expect(splitSentences('   ')).toEqual([]);
   });
 
-  it('splits on semicolons (Chinese)', () => {
-    expect(splitSentences('第一句；第二句。')).toEqual([
-      '第一句；',
-      '第二句。',
+  it('does not split on semicolons (Intl.Segmenter treats them as non-terminal)', () => {
+    expect(splitSentences('第一句；第二句。', 'zh')).toEqual([
+      '第一句；第二句。',
     ]);
   });
 
@@ -58,6 +57,36 @@ describe('splitSentences', () => {
       'First.',
       'Second.',
       'Third.',
+    ]);
+  });
+
+  // Edge cases that the old regex-based splitter got wrong
+  it('does not split on version numbers', () => {
+    expect(splitSentences('Qwen3.5 is a model.')).toEqual([
+      'Qwen3.5 is a model.',
+    ]);
+  });
+
+  it('handles abbreviations like e.g.', () => {
+    expect(splitSentences('Use e.g., this one. Then that.')).toEqual([
+      'Use e.g., this one.',
+      'Then that.',
+    ]);
+  });
+
+  it('handles complex abbreviations with etc.', () => {
+    expect(splitSentences(
+      'Models like 9B, 27B, 35B-A3B, etc., which vary greatly. Is it using something?'
+    )).toEqual([
+      'Models like 9B, 27B, 35B-A3B, etc., which vary greatly.',
+      'Is it using something?',
+    ]);
+  });
+
+  it('handles ellipsis', () => {
+    expect(splitSentences('Wait... Really?')).toEqual([
+      'Wait...',
+      'Really?',
     ]);
   });
 });

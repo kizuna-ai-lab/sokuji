@@ -1,16 +1,15 @@
 /**
  * Split text into sentences for per-sentence TTS generation.
- * Handles multilingual punctuation (Latin, CJK).
- * Keeps punctuation attached to the preceding sentence.
+ * Uses Intl.Segmenter for robust multilingual sentence boundary detection
+ * (handles abbreviations, version numbers, decimals automatically).
  */
-export function splitSentences(text: string): string[] {
+export function splitSentences(text: string, locale = 'en'): string[] {
   if (!text || !text.trim()) return [];
 
-  // Split after sentence-ending punctuation (keeping it attached)
-  const segments = text
-    .split(/(?<=[.!?。！？；])\s*/)
-    .map((s) => s.trim())
-    .filter((s) => s.length > 0);
+  const segmenter = new Intl.Segmenter(locale, { granularity: 'sentence' });
+  const sentences = Array.from(segmenter.segment(text))
+    .map(s => s.segment.trim())
+    .filter(s => s.length > 0);
 
-  return segments.length > 0 ? segments : [text.trim()];
+  return sentences.length > 0 ? sentences : [text.trim()];
 }
