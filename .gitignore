@@ -93,3 +93,4 @@ public/wasm/*
 !public/wasm/sherpa-onnx-asr/
 !public/wasm/sherpa-onnx-asr-stream/
 !public/wasm/ort/
+!public/wasm/vad/
