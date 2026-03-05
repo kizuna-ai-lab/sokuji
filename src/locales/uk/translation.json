@@ -25,6 +25,7 @@
   "simpleSettings": {
     "quickSetup": "Швидке налаштування",
     "apiKey": "API-ключ",
+    "setupGuide": "Посібник з налаштування",
     "validate": "Перевірити",
     "languages": "Мови",
     "uiLanguage": "Мова інтерфейсу",

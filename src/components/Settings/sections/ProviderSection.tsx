@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
-import { Key, Zap, HelpCircle, CircleHelp, ChevronDown, ChevronUp, CheckCircle, AlertCircle, FlaskConical } from 'lucide-react';
+import { Key, Zap, HelpCircle, CircleHelp, ChevronDown, ChevronUp, CheckCircle, AlertCircle, FlaskConical, ExternalLink, X } from 'lucide-react';
 import { OpenAIIcon, GeminiIcon, PalabraAIIcon, KizunaAIIcon, VolcengineIcon } from '../../Icons/ProviderIcons';
 import { useTranslation } from 'react-i18next';
 import Tooltip from '../../Tooltip/Tooltip';
@@ -29,7 +29,19 @@ import {
 import { Provider, ProviderType } from '../../../types/Provider';
 import { ProviderConfigFactory } from '../../../services/providers/ProviderConfigFactory';
 import { useAuth } from '../../../lib/auth/hooks';
+import { isElectron } from '../../../utils/environment';
 import { useAnalytics } from '../../../lib/analytics';
+
+const TUTORIAL_URLS: Partial<Record<ProviderType, string>> = {
+  [Provider.OPENAI]: 'https://sokuji.kizuna.ai/docs/tutorials/openai-setup',
+  [Provider.GEMINI]: 'https://sokuji.kizuna.ai/docs/tutorials/gemini-setup',
+  [Provider.PALABRA_AI]: 'https://sokuji.kizuna.ai/docs/tutorials/palabraai-setup',
+  [Provider.OPENAI_COMPATIBLE]: 'https://sokuji.kizuna.ai/docs/tutorials/openai-compatible-setup',
+  [Provider.VOLCENGINE_AST2]: 'https://sokuji.kizuna.ai/docs/tutorials/volcengine-ast2-setup',
+  [Provider.LOCAL_INFERENCE]: 'https://sokuji.kizuna.ai/docs/tutorials/local-inference-setup',
+};
+
+const DISMISSED_KEY = 'sokuji-dismissed-tutorials';
 
 interface ProviderSectionProps {
   isSessionActive: boolean;
@@ -76,6 +88,30 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
   const kizunaKeyError = useKizunaKeyError();
 
   const [isProviderExpanded, setIsProviderExpanded] = useState(false);
+
+  const [dismissedTutorials, setDismissedTutorials] = useState<Set<string>>(() => {
+    try {
+      const stored = localStorage.getItem(DISMISSED_KEY);
+      return stored ? new Set(JSON.parse(stored)) : new Set();
+    } catch { return new Set(); }
+  });
+
+  const dismissTutorial = (providerId: string) => {
+    const updated = new Set(dismissedTutorials);
+    updated.add(providerId);
+    setDismissedTutorials(updated);
+    localStorage.setItem(DISMISSED_KEY, JSON.stringify([...updated]));
+  };
+
+  const tutorialUrl = TUTORIAL_URLS[provider];
+
+  const openExternalUrl = (url: string) => {
+    if (isElectron() && (window as any).electron?.invoke) {
+      (window as any).electron.invoke('open-external', url);
+    } else {
+      window.open(url, '_blank');
+    }
+  };
 
   // Get all available providers
   const availableProviders = useMemo(() => {
@@ -536,6 +572,18 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
             <span>{t('common.signInRequired', 'Please sign in to use Kizuna AI as your provider')}</span>
           </div>
         )
+      )}
+
+      {tutorialUrl && !dismissedTutorials.has(provider) && (
+        <div className="tutorial-link">
+          <a href={tutorialUrl} onClick={(e) => { e.preventDefault(); openExternalUrl(tutorialUrl); }}>
+            <ExternalLink size={12} />
+            {t('simpleSettings.setupGuide', 'Setup guide')}
+          </a>
+          <button className="tutorial-dismiss" onClick={() => dismissTutorial(provider)} title={t('common.dismiss', 'Dismiss')}>
+            <X size={12} />
+          </button>
+        </div>
       )}
 
       {validationMessage && (

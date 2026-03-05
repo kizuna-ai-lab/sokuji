@@ -225,6 +225,7 @@
     },
     "apiKey": "API密钥",
     "apiKeyPlaceholder": "输入您的API密钥",
+    "setupGuide": "设置指南",
     "validate": "验证",
     "howToGetApiKey": "如何获取API密钥？",
     "apiKeyHelp1": "1. 访问提供商网站",

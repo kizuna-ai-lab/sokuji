@@ -227,6 +227,7 @@
     },
     "apiKey": "API Key",
     "apiKeyPlaceholder": "Enter your API key",
+    "setupGuide": "Setup guide",
     "validate": "Validate",
     "howToGetApiKey": "How to get an API key?",
     "apiKeyHelp1": "1. Visit the provider's website",

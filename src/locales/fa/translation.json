@@ -231,6 +231,7 @@
     },
     "apiKey": "کلید API",
     "apiKeyPlaceholder": "کلید API خود را وارد کنید",
+    "setupGuide": "راهنمای راه‌اندازی",
     "validate": "اعتبارسنجی",
     "howToGetApiKey": "چگونه کلید API دریافت کنم؟",
     "apiKeyHelp1": "1. از وب‌سایت ارائه‌دهنده خدمات دیدن کنید",

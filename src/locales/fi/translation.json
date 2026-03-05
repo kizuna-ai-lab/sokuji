@@ -224,6 +224,7 @@
     },
     "apiKey": "API-avain",
     "apiKeyPlaceholder": "Syötä API-avaimesi",
+    "setupGuide": "Asennusopas",
     "validate": "Vahvista",
     "howToGetApiKey": "Miten hankin API-avaimen?",
     "apiKeyHelp1": "1. Vieraile palveluntarjoajan verkkosivustolla",

@@ -419,6 +419,7 @@
     },
     "apiKey": "API Sleutel",
     "apiKeyPlaceholder": "Voer uw API sleutel in",
+    "setupGuide": "Installatiehandleiding",
     "validate": "Valideren",
     "howToGetApiKey": "Hoe krijg je een API sleutel?",
     "apiKeyHelp1": "1. Bezoek de website van de provider",

@@ -377,6 +377,7 @@
     },
     "apiKey": "API Anahtarı",
     "apiKeyPlaceholder": "API anahtarınızı girin",
+    "setupGuide": "Kurulum kılavuzu",
     "validate": "Doğrula",
     "howToGetApiKey": "API anahtarı nasıl alınır?",
     "apiKeyHelp1": "1. Sağlayıcının web sitesini ziyaret edin",

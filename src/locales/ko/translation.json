@@ -421,6 +421,7 @@
     },
     "apiKey": "API 키",
     "apiKeyPlaceholder": "API 키를 입력하세요",
+    "setupGuide": "설정 가이드",
     "validate": "검증",
     "howToGetApiKey": "API 키를 얻는 방법?",
     "apiKeyHelp1": "1. 제공업체 웹사이트 방문",
