@@ -188,7 +188,7 @@
     "custom": "Tersuai",
     "regionNotSupported": "Perkhidmatan tidak tersedia di kawasan anda. Sila semak persekitaran rangkaian anda atau cuba pembekal lain.",
     "geminiParticipantTokenWarning": "Amaran: had token peserta Gemini",
-    "providerTooltip": "Pilih pembekal terjemahan",
+    "providerTooltip": "Pilih perkhidmatan terjemahan AI anda. Setiap perkhidmatan mempunyai ciri, suara dan harga yang berbeza. OpenAI menawarkan ciri paling banyak, manakala Gemini mempunyai pelan percuma yang baik. Mod Tempatan (Luar Talian) sepenuhnya percuma — tidak memerlukan kunci API atau internet.",
     "apiKeyTooltip": "Masukkan kunci API yang diperoleh daripada pembekal",
     "clientIdTooltip": "Masukkan ID pelanggan",
     "clientSecretTooltip": "Masukkan rahsia pelanggan",

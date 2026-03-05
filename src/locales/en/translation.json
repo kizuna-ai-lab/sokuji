@@ -162,7 +162,7 @@
     "apiKeyManagedByBackend": "Backend-managed API key",
     "autoManaged": "Auto-managed",
     "kizunaApiKeyInfo": "This API key is automatically managed by our backend service.",
-    "providerTooltip": "Choose your AI translation service. Each service has different features, voices, and pricing. OpenAI offers the most features, while Gemini provides a good free tier.",
+    "providerTooltip": "Choose your AI translation service. Each service has different features, voices, and pricing. OpenAI offers the most features, while Gemini provides a good free tier. Local (Offline) mode is completely free — no API key or internet required.",
     "apiKeyTooltip": "Your API key is like a password for the AI service. Get it from the provider's website and keep it safe. Never share it with others.",
     "clientIdTooltip": "Your PalabraAI account ID. This identifies your account. Get it from your PalabraAI dashboard.",
     "clientSecretTooltip": "Your PalabraAI secret key. Keep this private and secure. Never share it with anyone.",

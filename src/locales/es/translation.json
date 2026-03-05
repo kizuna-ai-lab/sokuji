@@ -111,7 +111,7 @@
     "realtimeTranslationAvailable": "Servicio de traducción en tiempo real disponible",
     "authentication": "Autenticación",
     "autoAuthenticated": "Autenticado automáticamente a través de tu cuenta",
-    "providerTooltip": "Elige tu servicio de traducción con IA. Cada servicio tiene diferentes características, voces y precios. OpenAI ofrece más funciones, mientras que Gemini tiene un buen plan gratuito.",
+    "providerTooltip": "Elige tu servicio de traducción con IA. Cada servicio tiene diferentes características, voces y precios. OpenAI ofrece más funciones, mientras que Gemini tiene un buen plan gratuito. El modo Local (Sin conexión) es completamente gratuito: no requiere clave API ni internet.",
     "apiKeyTooltip": "Tu clave API es como una contraseña para el servicio de IA. Obtenla del sitio web del proveedor y guárdala de forma segura. Nunca la compartas con otros.",
     "clientIdTooltip": "Tu ID de cuenta de PalabraAI. Esto identifica tu cuenta. Obtenlo desde tu panel de PalabraAI.",
     "clientSecretTooltip": "Tu clave secreta de PalabraAI. Mantenla privada y segura. Nunca la compartas con nadie.",

@@ -189,7 +189,7 @@
     "custom": "Aangepast",
     "regionNotSupported": "Service niet beschikbaar in uw regio. Controleer uw netwerkomgeving of probeer een andere provider.",
     "geminiParticipantTokenWarning": "Waarschuwing: Gemini-deelnemer-tokenlimiet",
-    "providerTooltip": "Vertaalprovider selecteren",
+    "providerTooltip": "Kies uw AI-vertaaldienst. Elke dienst heeft verschillende functies, stemmen en prijzen. OpenAI biedt de meeste functies, terwijl Gemini een goed gratis abonnement heeft. Lokale (Offline) modus is volledig gratis — geen API-sleutel of internet nodig.",
     "apiKeyTooltip": "Voer de API-sleutel in die u van de provider hebt ontvangen",
     "clientIdTooltip": "Voer de client-ID in",
     "clientSecretTooltip": "Voer het client-secret in",

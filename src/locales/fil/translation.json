@@ -69,7 +69,7 @@
     "realtimeModelNotAvailable": "Hindi available ang realtime model",
     "authentication": "Authentication",
     "autoAuthenticated": "Awtomatikong na-authenticate sa pamamagitan ng iyong account",
-    "providerTooltip": "Piliin ang inyong AI translation service. Bawat serbisyo ay may iba't ibang features, mga boses, at presyo. Ang OpenAI ay nag-aalok ng pinakamaraming features, habang ang Gemini ay may magandang libreng plano.",
+    "providerTooltip": "Piliin ang inyong AI translation service. Bawat serbisyo ay may iba't ibang features, mga boses, at presyo. Ang OpenAI ay nag-aalok ng pinakamaraming features, habang ang Gemini ay may magandang libreng plano. Ang Local (Offline) mode ay ganap na libre — hindi kailangan ng API key o internet.",
     "modelTooltip": "Piliin ang AI model na gagamitin. Ang mas malalaking modelo ay nagbibigay ng mas magandang kalidad ng pagsasalin ngunit maaaring mas mabagal. Ang mas maliliit na modelo ay mas mabilis ngunit maaaring hindi gaanong tumpak.",
     "voiceTooltip": "Piliin ang boses para sa translated speech. Bawat boses ay may iba't ibang katangian. Subukan ang iba't ibang boses upang mahanap ang inyong gusto.",
     "automaticTurnDetectionTooltip": "Pinapayagan ang sistema na awtomatikong malaman kapag natapos na kayo sa pagsasalita. Kapag nakapatay, gamitin ang space bar para sa push to talk.",

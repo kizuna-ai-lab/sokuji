@@ -223,7 +223,7 @@
     "realtimeTranslationAvailable": "即時翻譯服務可用",
     "authentication": "身份認證",
     "autoAuthenticated": "已通過您的帳戶自動認證",
-    "providerTooltip": "選擇您的AI翻譯服務。每個服務都有不同的功能、語音和價格。OpenAI提供最多功能，而Gemini有良好的免費方案。",
+    "providerTooltip": "選擇您的AI翻譯服務。每個服務都有不同的功能、語音和價格。OpenAI提供最多功能，而Gemini有良好的免費方案。本地（離線）模式完全免費——無需API金鑰或網際網路。",
     "apiKeyTooltip": "API金鑰就像AI服務的密碼。從提供商的網站取得並安全保管。切勿與他人分享。",
     "clientIdTooltip": "您的PalabraAI帳戶ID。這用於識別您的帳戶。從PalabraAI儀表板取得。",
     "clientSecretTooltip": "您的PalabraAI密鑰。請保密並安全保管。切勿與任何人分享。",

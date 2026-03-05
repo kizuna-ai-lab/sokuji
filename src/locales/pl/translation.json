@@ -188,7 +188,7 @@
     "regionNotSupported": "Usługa niedostępna w Twoim regionie. Sprawdź środowisko sieciowe lub wypróbuj innego dostawcę.",
     "geminiParticipantTokenWarning": "Ostrzeżenie: limit tokenów uczestnika Gemini",
     "help": "Pomoc",
-    "providerTooltip": "Wybierz dostawcę tłumaczeń",
+    "providerTooltip": "Wybierz usługę tłumaczenia AI. Każda usługa ma różne funkcje, głosy i ceny. OpenAI oferuje najwięcej funkcji, a Gemini ma dobry darmowy plan. Tryb lokalny (Offline) jest całkowicie darmowy — nie wymaga klucza API ani internetu.",
     "apiKeyTooltip": "Wprowadź klucz API uzyskany od dostawcy",
     "clientIdTooltip": "Wprowadź ID klienta",
     "clientSecretTooltip": "Wprowadź sekret klienta",

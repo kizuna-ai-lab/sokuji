@@ -69,7 +69,7 @@
     "realtimeTranslationAvailable": "Reaaliaikainen käännöspalvelu on saatavilla",
     "authentication": "Todennus",
     "autoAuthenticated": "Automaattisesti todennettu tilisi kautta",
-    "providerTooltip": "Valitse tekoäly-käännöspalvelusi. Jokaisella palvelulla on erilaiset ominaisuudet, äänet ja hinnat. OpenAI tarjoaa eniten ominaisuuksia, kun taas Geminillä on hyvä ilmainen suunnitelma.",
+    "providerTooltip": "Valitse tekoäly-käännöspalvelusi. Jokaisella palvelulla on erilaiset ominaisuudet, äänet ja hinnat. OpenAI tarjoaa eniten ominaisuuksia, kun taas Geminillä on hyvä ilmainen suunnitelma. Paikallinen (offline) tila on täysin ilmainen — API-avainta tai internetiä ei tarvita.",
     "modelTooltip": "Valitse käytettävä tekoälymalli. Suuremmat mallit tarjoavat paremman käännöslaadun, mutta voivat olla hitaampia. Pienemmät mallit ovat nopeampia, mutta voivat olla vähemmän tarkkoja.",
     "voiceTooltip": "Valitse ääni käännetylle puheelle. Jokaisella äänellä on erilaiset ominaisuudet. Kokeile erilaisia ääniä löytääksesi mieleisesi.",
     "automaticTurnDetectionTooltip": "Antaa järjestelmän automaattisesti tunnistaa, kun olet lopettanut puhumisen. Pois päältä käytä välilyöntiä puhu ja paina -toimintoon.",
