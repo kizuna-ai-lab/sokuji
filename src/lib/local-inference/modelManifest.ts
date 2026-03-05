@@ -1730,7 +1730,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     id: 'kokoro',
     type: 'tts',
     name: 'Kokoro (Multilingual, multi-speaker)',
-    languages: ['multi'],
+    languages: ['en', 'zh'],
     cdnPath: 'wasm-kokoro',
     modelFile: 'model.int8.onnx',
     engine: 'kokoro',
