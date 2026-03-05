@@ -1379,7 +1379,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
           {(() => {
             const ttsEntry = getManifestEntry(localInferenceSettings.ttsModel);
             const numSpeakers = ttsEntry?.numSpeakers ?? 1;
-            return ttsEntry?.modelFile && numSpeakers > 1 ? (
+            return numSpeakers > 1 ? (
           <div className="setting-item">
             <div className="setting-label">
               <span>{t('settings.ttsSpeakerId', 'Speaker ID')}</span>
