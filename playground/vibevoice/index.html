@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Echo Playground</title>
+<style>
+  :root {
+    --bg: #1a1a2e;
+    --card: #16213e;
+    --accent: #0f3460;
+    --primary: #e94560;
+    --text: #eee;
+    --muted: #8892b0;
+    --green: #10b981;
+    --border: #233554;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: var(--bg); color: var(--text);
+    min-height: 100vh; padding: 2rem;
+  }
+  .container { max-width: 960px; margin: 0 auto; }
+  h1 { font-size: 1.8rem; margin-bottom: 0.5rem; }
+  h1 span { color: var(--primary); }
+  .subtitle { color: var(--muted); margin-bottom: 2rem; }
+  .status-bar {
+    display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 2rem;
+    padding: 0.75rem 1rem; background: var(--card);
+    border-radius: 8px; border: 1px solid var(--border);
+    font-size: 0.85rem;
+  }
+  .status-main {
+    display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;
+  }
+  .loading-agent-row {
+    display: flex; gap: 0.6rem; align-items: baseline; flex-wrap: wrap;
+    color: var(--muted);
+  }
+  .loading-agent-row strong { color: var(--text); font-weight: 600; }
+  #loadingAgentMeta { font-size: 0.75rem; opacity: 0.9; }
+  .status-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    display: inline-block; margin-right: 6px;
+  }
+  .status-dot.on { background: var(--green); }
+  .status-dot.off { background: var(--primary); }
+
+  .panels { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+  @media (max-width: 700px) { .panels { grid-template-columns: 1fr; } }
+
+  .panel {
+    background: var(--card); border-radius: 12px;
+    border: 1px solid var(--border); padding: 1.5rem;
+  }
+  .panel h2 { font-size: 1.1rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; }
+  .panel h2 .icon { font-size: 1.3rem; }
+
+  button {
+    background: var(--primary); color: white; border: none;
+    padding: 0.6rem 1.2rem; border-radius: 8px; cursor: pointer;
+    font-size: 0.9rem; font-weight: 600; transition: opacity 0.2s;
+  }
+  button:hover { opacity: 0.85; }
+  button:disabled { opacity: 0.4; cursor: not-allowed; }
+  button.secondary { background: var(--accent); }
+  button.recording { background: var(--green); animation: pulse 1.5s infinite; }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
+
+  textarea, input[type="text"], select {
+    width: 100%; padding: 0.6rem; border-radius: 8px;
+    border: 1px solid var(--border); background: var(--bg);
+    color: var(--text); font-size: 0.9rem; resize: vertical;
+  }
+  textarea { min-height: 80px; }
+  label { display: block; color: var(--muted); font-size: 0.8rem; margin-bottom: 0.3rem; margin-top: 0.8rem; }
+
+  .transcript-box {
+    min-height: 150px; max-height: 300px; overflow-y: auto;
+    background: var(--bg); border-radius: 8px; padding: 1rem;
+    border: 1px solid var(--border); font-size: 0.9rem;
+    line-height: 1.6;
+  }
+  .transcript-box .segment { margin-bottom: 0.5rem; }
+  .transcript-box .speaker { color: var(--primary); font-weight: 600; font-size: 0.8rem; }
+  .transcript-box .timestamp { color: var(--muted); font-size: 0.75rem; }
+
+  .row { display: flex; gap: 0.75rem; align-items: end; }
+  .row > * { flex: 1; }
+  .topic-btn {
+    background: var(--accent); color: var(--text);
+    border: 1px solid var(--border); border-radius: 4px;
+    padding: 0.3rem 0.6rem; font-size: 0.75rem; cursor: pointer;
+  }
+  .topic-btn:hover { background: var(--primary); }
+  .muted-text { color: var(--muted); }
+  .cfg-input { width: 80px !important; }
+  .topic-row { margin-top: 0.5rem; display: flex; flex-wrap: wrap; gap: 0.4rem; }
+  .helper-note { color: var(--muted); font-size: 0.75rem; margin-top: 0.4rem; }
+  .tts-actions { margin-top: 0.8rem; display: flex; gap: 0.5rem; }
+  .is-hidden { display: none; }
+  .tts-log { color: var(--muted); font-size: 0.8rem; margin-top: 0.5rem; }
+  .asr-note { color: var(--muted); font-size: 0.85rem; margin-bottom: 1rem; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>🎤 <span>VibeVoice</span> Playground</h1>
+  <p class="subtitle">Real-time TTS with Voice Presets — powered by Echo of Eburon AI</p>
+
+  <div class="status-bar" id="statusBar">
+    <div class="status-main">
+      <span><span class="status-dot off" id="ttsDot"></span>TTS: <span id="ttsStatus">Loading...</span></span>
+      <span><span class="status-dot off" id="asrDot"></span>ASR: <span id="asrStatus">Not enabled</span></span>
+      <span id="voiceCount" class="muted-text"></span>
+    </div>
+    <div class="loading-agent-row">
+      <strong>Loading Agent:</strong>
+      <span id="loadingAgent">Warming up multilingual humor skill...</span>
+      <span id="loadingAgentMeta"></span>
+    </div>
+  </div>
+
+  <div class="panels">
+    <!-- TTS Panel -->
+    <div class="panel">
+      <h2><span class="icon">🔊</span> Text-to-Speech (TTS)</h2>
+      <label for="languageSelect">Language</label>
+      <select id="languageSelect" title="Language selection">
+        <option value="all">All languages</option>
+      </select>
+      <label for="voiceSelect">Voice Preset</label>
+      <select id="voiceSelect" title="Voice preset selection"><option value="">Loading...</option></select>
+      <label for="cfgInput">CFG Scale</label>
+      <input type="text" id="cfgInput" class="cfg-input" value="1.5" title="CFG scale" />
+      <label for="ttsInput">Text</label>
+      <textarea id="ttsInput" placeholder="Type text or click a topic...">Hello! This is a test of the Eburon Voice real-time text to speech system.</textarea>
+      <div class="topic-row">
+        <button class="topic-btn" data-text="Tell me about artificial intelligence and machine learning">AI</button>
+        <button class="topic-btn" data-text="What is the meaning of life and why are we here">Life</button>
+        <button class="topic-btn" data-text="Explain how photosynthesis works in plants">Plants</button>
+        <button class="topic-btn" data-text="Tell me a joke about programming">Joke</button>
+        <button class="topic-btn" data-text="What is the history of the internet">Internet</button>
+        <button class="topic-btn" data-text="How do computers process information">Computers</button>
+        <button class="topic-btn" data-text="Tell me about space exploration and Mars">Space</button>
+        <button class="topic-btn" data-text="What are quantum computers and how do they work">Quantum</button>
+      </div>
+      <label for="humorPersonality">Humor Personality</label>
+      <select id="humorPersonality" title="Humor personality selection">
+        <option value="friendly">Friendly</option>
+        <option value="playful" selected>Playful</option>
+        <option value="annoying">Annoying</option>
+        <option value="dry">Dry</option>
+      </select>
+      <div class="helper-note">
+        Powered by a separate loading companion skill model.
+      </div>
+      <div class="tts-actions">
+        <button id="btnSpeak" disabled>Speak</button>
+        <button id="btnSpeakAll" class="secondary" disabled title="Play text with every visible voice">Speak All</button>
+        <button id="btnTest" class="secondary" title="Test TTS">Test</button>
+        <button id="btnConnect" class="secondary" title="Connect & Auto-play">🔗 Connect</button>
+        <button id="btnMute" class="secondary" title="Toggle Mute">🔊</button>
+        <button id="btnStop" class="secondary is-hidden">Stop</button>
+      </div>
+      <div id="ttsLog" class="tts-log"></div>
+    </div>
+
+    <!-- ASR Panel -->
+    <div class="panel">
+      <h2><span class="icon">🎙️</span> Speech-to-Text (ASR)</h2>
+      <p class="asr-note">
+        Requires server started with <code>--enable-asr</code>
+      </p>
+      <button id="btnRecord" disabled>Start Recording</button>
+      <label for="transcript">Live Transcript</label>
+      <div class="transcript-box" id="transcript">
+        <em class="muted-text">Press "Start Recording" to begin...</em>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const WS_BASE = `ws://${location.host}`;
+const API_BASE = location.origin;
+const humorStorageKey = 'vibevoice-loading-personality';
+let humorInitialized = false;
+let allVoices = [];
+const languageAliases = {
+  tl: 'fil',
+  filipino: 'fil',
+  tagalog: 'fil',
+  taglish: 'fil',
+  jp: 'ja',
+  kr: 'ko',
+  sp: 'es',
+  in: 'id',
+};
+const extraLanguageOptions = [
+  'ar', 'cs', 'da', 'de', 'en', 'es', 'fi', 'fil', 'fr', 'he', 'hi', 'hu',
+  'id', 'it', 'ja', 'ko', 'ms', 'nl', 'no', 'pl', 'pt', 'ro', 'ru', 'sv',
+  'tagalog', 'taglish', 'th', 'tr', 'uk', 'vi', 'zh'
+];
+const voiceLanguageLabels = {
+  all: 'All languages',
+  ar: 'Arabic',
+  cs: 'Czech',
+  da: 'Danish',
+  de: 'German',
+  en: 'English',
+  es: 'Spanish',
+  fi: 'Finnish',
+  fil: 'Filipino',
+  fr: 'French',
+  he: 'Hebrew',
+  hi: 'Hindi',
+  hu: 'Hungarian',
+  id: 'Indonesian',
+  it: 'Italian',
+  ja: 'Japanese',
+  ko: 'Korean',
+  ms: 'Malay',
+  nl: 'Dutch',
+  no: 'Norwegian',
+  pl: 'Polish',
+  pt: 'Portuguese',
+  ro: 'Romanian',
+  ru: 'Russian',
+  sv: 'Swedish',
+  tagalog: 'Tagalog',
+  taglish: 'Taglish',
+  th: 'Thai',
+  tr: 'Turkish',
+  other: 'Other',
+  uk: 'Ukrainian',
+  vi: 'Vietnamese',
+  zh: 'Chinese',
+};
+
+function detectVoiceLanguage(voiceName) {
+  const match = /^([a-z]{2})-/i.exec(voiceName || '');
+  if (!match) return 'other';
+  const raw = match[1].toLowerCase();
+  return languageAliases[raw] || raw;
+}
+
+function normalizeLanguageCode(code) {
+  const raw = (code || 'all').toLowerCase();
+  if (raw === 'all') return 'all';
+  return languageAliases[raw] || raw;
+}
+
+function rebuildLanguageSelect(voices) {
+  const languageSelect = document.getElementById('languageSelect');
+  const current = languageSelect.value || 'all';
+  const languages = new Set([...voices.map(detectVoiceLanguage), ...extraLanguageOptions]);
+  const ordered = Array.from(languages).sort((a, b) => {
+    const aLabel = voiceLanguageLabels[a] || a.toUpperCase();
+    const bLabel = voiceLanguageLabels[b] || b.toUpperCase();
+    return aLabel.localeCompare(bLabel);
+  });
+
+  languageSelect.innerHTML = '';
+
+  const allOpt = document.createElement('option');
+  allOpt.value = 'all';
+  allOpt.textContent = voiceLanguageLabels.all;
+  languageSelect.appendChild(allOpt);
+
+  ordered.forEach((langCode) => {
+    const opt = document.createElement('option');
+    opt.value = langCode;
+    opt.textContent = voiceLanguageLabels[langCode] || langCode.toUpperCase();
+    languageSelect.appendChild(opt);
+  });
+
+  languageSelect.value = Array.from(languageSelect.options).some((opt) => opt.value === current)
+    ? current
+    : 'all';
+}
+
+function voicesForSelectedLanguage() {
+  const selectedLanguage = normalizeLanguageCode(document.getElementById('languageSelect').value || 'all');
+  if (selectedLanguage === 'all') return [...allVoices];
+
+  const filtered = allVoices.filter((voice) => detectVoiceLanguage(voice) === selectedLanguage);
+  if (filtered.length > 0) return filtered;
+
+  // For language options without dedicated preset voices (e.g., Tagalog/Taglish),
+  // keep all voices available so users can still synthesize multilingual text.
+  return [...allVoices];
+}
+
+function rebuildVoiceSelect(defaultVoice) {
+  const select = document.getElementById('voiceSelect');
+  const current = select.value;
+  const voices = voicesForSelectedLanguage();
+
+  select.innerHTML = '';
+  voices.forEach((v) => {
+    const opt = document.createElement('option');
+    opt.value = v;
+    opt.textContent = v;
+    select.appendChild(opt);
+  });
+
+  if (!voices.length) {
+    const emptyOpt = document.createElement('option');
+    emptyOpt.value = '';
+    emptyOpt.textContent = 'No voices for selected language';
+    select.appendChild(emptyOpt);
+  }
+
+  if (voices.includes(current)) {
+    select.value = current;
+  } else if (defaultVoice && voices.includes(defaultVoice)) {
+    select.value = defaultVoice;
+  } else if (voices.length > 0) {
+    select.value = voices[0];
+  }
+
+  document.getElementById('btnSpeakAll').disabled = voices.length === 0;
+}
+
+// ─── Status ──────────────────────────────────────────
+async function checkStatus() {
+  try {
+    const res = await fetch(`${API_BASE}/api/status`);
+    const data = await res.json();
+
+    document.getElementById('ttsDot').className = `status-dot ${data.tts_loaded ? 'on' : 'off'}`;
+    document.getElementById('ttsStatus').textContent = data.tts_loaded ? 'Ready' : 'Not loaded';
+    document.getElementById('asrDot').className = `status-dot ${data.asr_loaded ? 'on' : 'off'}`;
+    document.getElementById('asrStatus').textContent = data.asr_loaded ? 'Ready' : 'Not enabled';
+    document.getElementById('btnRecord').disabled = !data.asr_loaded;
+    document.getElementById('btnSpeak').disabled = !data.tts_loaded;
+
+    const voices = data.voices || [];
+    allVoices = [...voices];
+    rebuildLanguageSelect(allVoices);
+    rebuildVoiceSelect(data.default_voice);
+    document.getElementById('voiceCount').textContent = `${voices.length} voice presets`;
+
+    if (!humorInitialized) {
+      const select = document.getElementById('humorPersonality');
+      const savedPersonality = localStorage.getItem(humorStorageKey);
+      if (savedPersonality && Array.from(select.options).some((opt) => opt.value === savedPersonality)) {
+        select.value = savedPersonality;
+      } else if (data.loading_personality && Array.from(select.options).some((opt) => opt.value === data.loading_personality)) {
+        select.value = data.loading_personality;
+      }
+      humorInitialized = true;
+    }
+  } catch (e) {
+    console.warn('Status check failed:', e);
+  }
+}
+
+async function refreshLoadingMessage() {
+  try {
+    const personality = document.getElementById('humorPersonality').value || 'playful';
+    const selectedLanguage = document.getElementById('languageSelect').value || 'all';
+    const normalizedLanguage = normalizeLanguageCode(selectedLanguage);
+    const locale = normalizedLanguage === 'all' ? (navigator.language || 'en') : normalizedLanguage;
+    const textHint = document.getElementById('ttsInput').value.trim().slice(0, 120);
+    const params = new URLSearchParams({ personality, locale, text_hint: textHint });
+    const res = await fetch(`${API_BASE}/api/loading-message?${params}`);
+    if (!res.ok) return;
+    const data = await res.json();
+    document.getElementById('loadingAgent').textContent = data.message || 'Still loading style module...';
+    document.getElementById('loadingAgentMeta').textContent = `mode: ${data.personality} · locale: ${data.locale}`;
+  } catch (e) {
+    console.warn('Loading message fetch failed:', e);
+  }
+}
+
+document.getElementById('humorPersonality').addEventListener('change', () => {
+  const personality = document.getElementById('humorPersonality').value;
+  localStorage.setItem(humorStorageKey, personality);
+  refreshLoadingMessage();
+});
+
+checkStatus();
+setInterval(checkStatus, 10000);
+refreshLoadingMessage();
+setInterval(refreshLoadingMessage, 7000);
+
+// ─── TTS (streaming WebSocket) ───────────────────────
+let ttsWs = null;
+let ttsAudioCtx = null;
+let ttsNextTime = 0;
+let ttsMuted = false;
+let ttsAutoConnect = false;
+let ttsPendingText = null;
+let speakAllRequestedStop = false;
+let speakAllInProgress = false;
+
+async function initAudioContext() {
+  console.log('[TTS] initAudioContext called');
+  if (!ttsAudioCtx) {
+    ttsAudioCtx = new AudioContext({ sampleRate: 24000 });
+    ttsNextTime = 0;
+    console.log('[TTS] AudioContext created:', ttsAudioCtx);
+  }
+  if (ttsAudioCtx.state === 'suspended') {
+    console.log('[TTS] AudioContext suspended, resuming...');
+    await ttsAudioCtx.resume();
+  }
+  console.log('[TTS] AudioContext state:', ttsAudioCtx.state);
+  return ttsAudioCtx;
+}
+
+async function speakText(text, voiceOverride = null) {
+  console.log('[TTS] speakText called with:', text);
+  
+  if (!text) {
+    console.log('[TTS] No text provided');
+    return;
+  }
+  
+  // Set the text to input field
+  document.getElementById('ttsInput').value = text;
+  console.log('[TTS] Text set to input field');
+  
+  // Initialize audio context (must be done on user interaction)
+  await initAudioContext();
+  
+  // Check if muted
+  if (ttsMuted) {
+    console.log('[TTS] Currently muted, not playing');
+    return;
+  }
+  
+  const voice = voiceOverride || document.getElementById('voiceSelect').value;
+  const cfg = document.getElementById('cfgInput').value || '1.5';
+  const selectedLanguage = document.getElementById('languageSelect').value || 'all';
+  const normalizedLanguage = normalizeLanguageCode(selectedLanguage);
+  const btn = document.getElementById('btnSpeak');
+  const btnStop = document.getElementById('btnStop');
+  const log = document.getElementById('ttsLog');
+
+  // Close existing connection if any
+  if (ttsWs) {
+    console.log('[TTS] Closing existing WebSocket');
+    ttsWs.close();
+    ttsWs = null;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Generating...';
+  btnStop.style.display = 'inline-block';
+  log.textContent = 'Connecting...';
+  console.log('[TTS] Connecting to WebSocket...');
+
+  const params = new URLSearchParams({ text, cfg, language: normalizedLanguage });
+  if (voice) params.set('voice', voice);
+  const wsUrl = `${WS_BASE}/ws/tts?${params}`;
+  console.log('[TTS] WebSocket URL:', wsUrl);
+  
+  ttsWs = new WebSocket(wsUrl);
+  ttsWs.binaryType = 'arraybuffer';
+
+  let chunkCount = 0;
+
+  return new Promise((resolve) => {
+
+  ttsWs.onopen = () => { 
+    console.log('[TTS] WebSocket connected!');
+    log.textContent = 'Connected, synthesizing...'; 
+  };
+
+  ttsWs.onmessage = (e) => {
+    if (e.data instanceof ArrayBuffer) {
+      chunkCount++;
+      console.log('[TTS] Received chunk', chunkCount, 'size:', e.data.byteLength);
+      if (chunkCount === 1) log.textContent = 'Streaming & playing...';
+      playPCM16Chunk(new Int16Array(e.data));
+    } else {
+      console.log('[TTS] Received text message:', e.data);
+      try {
+        const msg = JSON.parse(e.data);
+        if (msg.type === 'error') log.textContent = `Error: ${msg.message}`;
+      } catch (_) {}
+    }
+  };
+
+  ttsWs.onclose = () => {
+    console.log('[TTS] WebSocket closed, chunks:', chunkCount);
+    log.textContent = `Done — ${chunkCount} chunks streamed.`;
+    btn.disabled = false;
+    btn.textContent = 'Speak';
+    btnStop.style.display = 'none';
+    ttsWs = null;
+    resolve({ ok: true, chunks: chunkCount });
+  };
+
+  ttsWs.onerror = (e) => {
+    console.error('[TTS] WebSocket error:', e);
+    log.textContent = 'WebSocket error.';
+    btn.disabled = false;
+    btn.textContent = 'Speak';
+    btnStop.style.display = 'none';
+    resolve({ ok: false, chunks: chunkCount });
+  };
+  });
+}
+
+async function speakAllVoices() {
+  const text = document.getElementById('ttsInput').value.trim();
+  if (!text || speakAllInProgress) return;
+
+  const voices = voicesForSelectedLanguage();
+  if (!voices.length) return;
+
+  await initAudioContext();
+
+  speakAllInProgress = true;
+  speakAllRequestedStop = false;
+
+  const log = document.getElementById('ttsLog');
+  const btnSpeakAll = document.getElementById('btnSpeakAll');
+  btnSpeakAll.disabled = true;
+  btnSpeakAll.textContent = 'Playing all...';
+
+  for (const voice of voices) {
+    if (speakAllRequestedStop) break;
+    document.getElementById('voiceSelect').value = voice;
+    log.textContent = `Playing voice ${voice}...`;
+    await speakText(text, voice);
+  }
+
+  if (speakAllRequestedStop) {
+    log.textContent = 'Stopped all-voices playback.';
+  } else {
+    log.textContent = `All voices complete (${voices.length}).`;
+  }
+
+  speakAllInProgress = false;
+  btnSpeakAll.disabled = voicesForSelectedLanguage().length === 0;
+  btnSpeakAll.textContent = 'Speak All';
+}
+
+async function connectAndPlay() {
+  const text = document.getElementById('ttsInput').value.trim();
+  if (!text) return;
+  
+  // Initialize audio context first (required for autoplay)
+  await initAudioContext();
+  
+  ttsAutoConnect = true;
+  speakText(text);
+}
+
+function toggleMute() {
+  ttsMuted = !ttsMuted;
+  const btn = document.getElementById('btnMute');
+  btn.textContent = ttsMuted ? '🔇' : '🔊';
+  btn.style.background = ttsMuted ? '#666' : '';
+}
+
+// Manual trigger - for testing
+document.getElementById('btnSpeak').addEventListener('click', async () => {
+  const text = document.getElementById('ttsInput').value.trim();
+  if (!text) return;
+  await initAudioContext();
+  speakText(text);
+});
+
+document.getElementById('btnTest').addEventListener('click', async () => {
+  const testText = 'Testing TTS auto play. This is a test message.';
+  document.getElementById('ttsInput').value = testText;
+  console.log('[TTS] Test button clicked, text set to:', testText);
+  await initAudioContext();
+  speakText(testText);
+});
+
+document.getElementById('btnSpeakAll').addEventListener('click', speakAllVoices);
+
+document.getElementById('btnConnect').addEventListener('click', connectAndPlay);
+document.getElementById('btnMute').addEventListener('click', toggleMute);
+
+// Topic buttons - click to speak about that topic
+document.querySelectorAll('.topic-btn').forEach(btn => {
+  btn.addEventListener('click', async () => {
+    const text = btn.getAttribute('data-text');
+    document.getElementById('ttsInput').value = text;
+    console.log('[TTS] Topic clicked:', text);
+    await initAudioContext();
+    speakText(text);
+  });
+});
+
+document.getElementById('btnStop').addEventListener('click', () => {
+  speakAllRequestedStop = true;
+  if (ttsWs) ttsWs.close();
+  if (ttsAudioCtx) { ttsAudioCtx.close(); ttsAudioCtx = null; }
+});
+
+document.getElementById('languageSelect').addEventListener('change', () => {
+  rebuildVoiceSelect();
+  refreshLoadingMessage();
+});
+
+function playPCM16Chunk(pcm16) {
+  console.log('[TTS] playPCM16Chunk called, length:', pcm16.length);
+  if (!ttsAudioCtx) {
+    console.log('[TTS] No AudioContext!');
+    return;
+  }
+  const float32 = new Float32Array(pcm16.length);
+  for (let i = 0; i < pcm16.length; i++) float32[i] = pcm16[i] / 32768;
+
+  const buffer = ttsAudioCtx.createBuffer(1, float32.length, 24000);
+  buffer.getChannelData(0).set(float32);
+
+  const source = ttsAudioCtx.createBufferSource();
+  source.buffer = buffer;
+  source.connect(ttsAudioCtx.destination);
+
+  const now = ttsAudioCtx.currentTime;
+  const startAt = Math.max(now, ttsNextTime);
+  console.log('[TTS] Playing audio at', startAt, 'duration:', buffer.duration);
+  source.start(startAt);
+  ttsNextTime = startAt + buffer.duration;
+}
+
+// ─── ASR ─────────────────────────────────────────────
+let asrWs = null;
+let mediaStream = null;
+let audioContext = null;
+let processor = null;
+let isRecording = false;
+
+document.getElementById('btnRecord').addEventListener('click', async () => {
+  if (isRecording) { stopRecording(); return; }
+  startRecording();
+});
+
+async function startRecording() {
+  try {
+    mediaStream = await navigator.mediaDevices.getUserMedia({
+      audio: { channelCount: 1, sampleRate: 16000, echoCancellation: true }
+    });
+  } catch (e) {
+    alert('Microphone access denied: ' + e.message);
+    return;
+  }
+
+  asrWs = new WebSocket(`${WS_BASE}/ws/asr`);
+  asrWs.onmessage = (e) => {
+    const data = JSON.parse(e.data);
+    if (data.type === 'transcript') appendTranscript(data);
+  };
+  asrWs.onerror = (e) => console.error('ASR WS error', e);
+  asrWs.onclose = () => { if (isRecording) stopRecording(); };
+
+  audioContext = new AudioContext({ sampleRate: 16000 });
+  const source = audioContext.createMediaStreamSource(mediaStream);
+  processor = audioContext.createScriptProcessor(4096, 1, 1);
+  processor.onaudioprocess = (e) => {
+    if (asrWs && asrWs.readyState === WebSocket.OPEN) {
+      const float32 = e.inputBuffer.getChannelData(0);
+      const pcm16 = new Int16Array(float32.length);
+      for (let i = 0; i < float32.length; i++) {
+        pcm16[i] = Math.max(-32768, Math.min(32767, Math.round(float32[i] * 32767)));
+      }
+      asrWs.send(pcm16.buffer);
+    }
+  };
+  source.connect(processor);
+  processor.connect(audioContext.destination);
+
+  isRecording = true;
+  const btn = document.getElementById('btnRecord');
+  btn.textContent = '⏹ Stop Recording';
+  btn.classList.add('recording');
+  document.getElementById('transcript').innerHTML = '';
+}
+
+function stopRecording() {
+  isRecording = false;
+  if (processor) { processor.disconnect(); processor = null; }
+  if (audioContext) { audioContext.close(); audioContext = null; }
+  if (mediaStream) { mediaStream.getTracks().forEach(t => t.stop()); mediaStream = null; }
+  if (asrWs) { asrWs.close(); asrWs = null; }
+
+  const btn = document.getElementById('btnRecord');
+  btn.textContent = 'Start Recording';
+  btn.classList.remove('recording');
+}
+
+function appendTranscript(data) {
+  const box = document.getElementById('transcript');
+  if (data.segments && data.segments.length) {
+    data.segments.forEach(seg => {
+      const div = document.createElement('div');
+      div.className = 'segment';
+      div.innerHTML = `<span class="speaker">${seg.speaker}</span> <span class="timestamp">[${seg.start.toFixed(1)}s]</span> ${seg.text}`;
+      box.appendChild(div);
+    });
+  } else {
+    const div = document.createElement('div');
+    div.className = 'segment';
+    div.textContent = data.text;
+    box.appendChild(div);
+  }
+  box.scrollTop = box.scrollHeight;
+}
+
+// Auto-trigger TTS when text changes in input (for external/streamed text)
+let lastTextValue = '';
+document.getElementById('ttsInput').addEventListener('input', function(e) {
+  const newText = e.target.value.trim();
+  if (newText && newText !== lastTextValue && newText.length > 2) {
+    lastTextValue = newText;
+    console.log('[TTS] Text changed, auto-speaking:', newText);
+    // Small delay to let user see the text first
+    setTimeout(() => {
+      speakText(newText);
+    }, 100);
+  }
+});
+
+// Expose functions for external use
+window.vibeVoiceTTS = {
+  speak: async function(text) {
+    console.log('[TTS] vibeVoiceTTS.speak() called');
+    if (!text) return;
+    await initAudioContext();
+    speakText(text);
+  },
+  connectAndPlay: connectAndPlay,
+  setMuted: (muted) => { 
+    ttsMuted = muted; 
+    document.getElementById('btnMute').textContent = ttsMuted ? '🔇' : '🔊';
+    document.getElementById('btnMute').style.background = ttsMuted ? '#666' : '';
+  },
+  isMuted: () => ttsMuted,
+  setText: (text) => { document.getElementById('ttsInput').value = text; },
+  getText: () => document.getElementById('ttsInput').value,
+  init: initAudioContext,
+  getAudioContext: () => ttsAudioCtx
+};
+
+// Initialize AudioContext on first user interaction (for autoplay)
+document.addEventListener('click', () => initAudioContext(), { once: true });
+document.addEventListener('keydown', () => initAudioContext(), { once: true });
+
+console.log('[TTS] VibeVoice TTS loaded. Use speak(\"your text\") to play.');
+
+// Auto-speak function - takes text and immediately plays
+window.speak = async function(text) {
+  console.log('[TTS] speak() called with:', text);
+  await window.vibeVoiceTTS.speak(text);
+};
+</script>
+</body>
+</html>

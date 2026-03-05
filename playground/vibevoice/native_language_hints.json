@@ -1,0 +1,118 @@
+{
+  "en": {
+    "name": "English",
+    "primer": "Speak naturally in English with clear pacing and conversational intonation."
+  },
+  "es": {
+    "name": "Spanish",
+    "primer": "Habla de forma natural en espanol, con ritmo claro y entonacion expresiva."
+  },
+  "fr": {
+    "name": "French",
+    "primer": "Parle naturellement en francais, avec un rythme fluide et une prononciation claire."
+  },
+  "de": {
+    "name": "German",
+    "primer": "Sprich auf naturliche Weise auf Deutsch mit klarer Artikulation und ruhigem Tempo."
+  },
+  "it": {
+    "name": "Italian",
+    "primer": "Parla in italiano in modo naturale, con cadenza fluida e tono caldo."
+  },
+  "pt": {
+    "name": "Portuguese",
+    "primer": "Fale em portugues de forma natural, com ritmo claro e entonacao suave."
+  },
+  "ja": {
+    "name": "Japanese",
+    "primer": "自然な日本語の話し方で、抑揚と間を意識して話してください。"
+  },
+  "ko": {
+    "name": "Korean",
+    "primer": "자연스러운 한국어 말투로, 부드러운 억양과 명확한 발음을 유지해 주세요."
+  },
+  "zh": {
+    "name": "Chinese",
+    "primer": "请用自然流畅的中文语气说话，注意节奏和停顿。"
+  },
+  "fil": {
+    "name": "Filipino",
+    "primer": "Magsalita nang natural sa Filipino/Taglish, malinaw ang bigkas at relaxed ang pacing."
+  },
+  "id": {
+    "name": "Indonesian",
+    "primer": "Berbicaralah secara alami dalam Bahasa Indonesia dengan ritme yang jelas."
+  },
+  "nl": {
+    "name": "Dutch",
+    "primer": "Spreek natuurlijk Nederlands met een vloeiend tempo en duidelijke uitspraak."
+  },
+  "pl": {
+    "name": "Polish",
+    "primer": "Mow naturalnie po polsku, z wyrazna dykcja i spokojnym tempem."
+  },
+  "tr": {
+    "name": "Turkish",
+    "primer": "Dogal bir Turkce tonla, net telaffuz ve dengeli hizla konus."
+  },
+  "vi": {
+    "name": "Vietnamese",
+    "primer": "Hay noi tieng Viet tu nhien, ro rang va nhip dieu mem mai."
+  },
+  "th": {
+    "name": "Thai",
+    "primer": "พูดภาษาไทยอย่างเป็นธรรมชาติ ด้วยจังหวะที่นุ่มนวลและชัดเจน"
+  },
+  "hi": {
+    "name": "Hindi",
+    "primer": "Hindi mein prakritik tarike se bolo, saaf uchcharan aur santulit gati ke saath."
+  },
+  "ar": {
+    "name": "Arabic",
+    "primer": "تحدث بالعربية بشكل طبيعي مع وضوح النطق وإيقاع هادئ."
+  },
+  "ru": {
+    "name": "Russian",
+    "primer": "Говори по-русски естественно, с четкой дикцией и ровным темпом."
+  },
+  "uk": {
+    "name": "Ukrainian",
+    "primer": "Говори українською природно, чітко та з м'якою інтонацією."
+  },
+  "cs": {
+    "name": "Czech",
+    "primer": "Mluv cesky prirozene, s jasnou vyslovnosti a plynulym tempem."
+  },
+  "ro": {
+    "name": "Romanian",
+    "primer": "Vorbeste natural in romana, cu ritm echilibrat si pronuntie clara."
+  },
+  "hu": {
+    "name": "Hungarian",
+    "primer": "Beszelj termeszetesen magyarul, tiszta kiejtessel es egyenletes tempoban."
+  },
+  "sv": {
+    "name": "Swedish",
+    "primer": "Tala naturlig svenska med tydlig rytm och avslappnad prosodi."
+  },
+  "no": {
+    "name": "Norwegian",
+    "primer": "Snakk naturlig norsk med tydelig uttale og jevn flyt."
+  },
+  "da": {
+    "name": "Danish",
+    "primer": "Tal naturligt dansk med rolig rytme og tydelig artikulation."
+  },
+  "fi": {
+    "name": "Finnish",
+    "primer": "Puhu suomea luonnollisesti, selkealla artikulaatiolla ja tasaisella rytmilla."
+  },
+  "ms": {
+    "name": "Malay",
+    "primer": "Bercakap secara semula jadi dalam Bahasa Melayu dengan sebutan jelas."
+  },
+  "he": {
+    "name": "Hebrew",
+    "primer": "דבר בעברית בצורה טבעית, בקצב רגוע ובהגייה ברורה."
+  }
+}
