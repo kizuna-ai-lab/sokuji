@@ -206,7 +206,8 @@
     "targetLanguageTooltip": "Pumili ng target na wika",
     "thresholdTooltip": "I-adjust ang threshold ng voice detection",
     "prefixPaddingTooltip": "Magdagdag ng padding bago ang pagsasalita",
-    "silenceDurationTooltip": "Tagal ng katahimikan bago ituring na tapos na ang pagsasalita"
+    "silenceDurationTooltip": "Tagal ng katahimikan bago ituring na tapos na ang pagsasalita",
+    "localInferenceModelsRequired": "Mangyaring mag-download at pumili ng mga modelo sa Advanced Settings. Kailangan ng kahit isang ASR, Translation, at TTS na modelo."
   },
   "simpleSettings": {
     "quickSetup": "Mabilisang Setup",

@@ -206,7 +206,8 @@
     "targetLanguageTooltip": "Hedef dili seçin",
     "thresholdTooltip": "Ses algılama eşiğini ayarlayın",
     "prefixPaddingTooltip": "Konuşmadan önce dolgu ekleyin",
-    "silenceDurationTooltip": "Konuşmanın bittiği kabul edilmeden önceki sessizlik süresi"
+    "silenceDurationTooltip": "Konuşmanın bittiği kabul edilmeden önceki sessizlik süresi",
+    "localInferenceModelsRequired": "Lütfen Gelişmiş Ayarlar'dan modelleri indirip seçin. En az bir ASR, Çeviri ve TTS modeli gereklidir."
   },
   "mainPanel": {
     "conversationPlaceholder": "Konuşma burada görünecek",

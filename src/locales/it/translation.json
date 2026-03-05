@@ -207,7 +207,8 @@
     "unlimited": "Illimitato",
     "custom": "Personalizzato",
     "regionNotSupported": "Servizio non disponibile nella tua regione. Controlla il tuo ambiente di rete o prova un altro provider.",
-    "geminiParticipantTokenWarning": "Avviso: limite token partecipanti Gemini"
+    "geminiParticipantTokenWarning": "Avviso: limite token partecipanti Gemini",
+    "localInferenceModelsRequired": "Scarica e seleziona i modelli nelle Impostazioni avanzate. È richiesto almeno un modello ASR, Traduzione e TTS."
   },
   "audioPanel": {
     "title": "Impostazioni audio",

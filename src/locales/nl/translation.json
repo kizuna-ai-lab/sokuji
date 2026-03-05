@@ -207,7 +207,8 @@
     "maxTokensTooltip": "Maximaal aantal output-tokens instellen",
     "transcriptModelTooltip": "Transcriptiemodel selecteren",
     "noiseReductionTooltip": "Niveau van achtergrondruisonderdrukking instellen",
-    "systemInstructionsTooltip": "Instructies invoeren om het AI-gedrag aan te passen"
+    "systemInstructionsTooltip": "Instructies invoeren om het AI-gedrag aan te passen",
+    "localInferenceModelsRequired": "Download en selecteer modellen in Geavanceerde instellingen. Er is minimaal één ASR-, Vertaal- en TTS-model vereist."
   },
   "audioPanel": {
     "title": "Audio instellingen",

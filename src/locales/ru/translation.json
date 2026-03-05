@@ -214,7 +214,8 @@
     "targetLanguageTooltip": "Выберите язык перевода",
     "thresholdTooltip": "Настроить порог обнаружения голоса",
     "prefixPaddingTooltip": "Добавить отступ перед речью",
-    "silenceDurationTooltip": "Длительность тишины до окончания речи"
+    "silenceDurationTooltip": "Длительность тишины до окончания речи",
+    "localInferenceModelsRequired": "Пожалуйста, загрузите и выберите модели в расширенных настройках. Требуется как минимум одна модель ASR, перевода и TTS."
   },
   "audioPanel": {
     "title": "Настройки аудио",

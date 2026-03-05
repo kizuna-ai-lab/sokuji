@@ -200,7 +200,8 @@
     "validatingApiKey": "API कुंजी सत्यापित हो रही है...",
     "settingSavedSuccessfully": "सेटिंग सफलतापूर्वक सहेजी गई",
     "failedToSaveSetting": "सेटिंग सहेजने में विफल",
-    "geminiParticipantTokenWarning": "चेतावनी: Gemini प्रतिभागी टोकन सीमा"
+    "geminiParticipantTokenWarning": "चेतावनी: Gemini प्रतिभागी टोकन सीमा",
+    "localInferenceModelsRequired": "कृपया उन्नत सेटिंग्स में मॉडल डाउनलोड और चुनें। कम से कम एक ASR, अनुवाद और TTS मॉडल आवश्यक है।"
   },
   "simpleSettings": {
     "quickSetup": "त्वरित सेटअप",

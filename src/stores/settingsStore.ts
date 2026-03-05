@@ -16,6 +16,7 @@ import {
 import { getTtsModelsForLanguage } from '../lib/local-inference/modelManifest';
 import {ApiKeyValidationResult} from '../services/interfaces/ISettingsService';
 import {Provider, ProviderType} from '../types/Provider';
+import i18n from '../locales';
 
 // ==================== Type Definitions ====================
 
@@ -726,10 +727,10 @@ const useSettingsStore = create<SettingsStore>()(
           availableModels: ready
             ? [{ id: 'local-asr-translate', type: 'realtime' as const, created: 0 }]
             : [],
-          validationMessage: ready ? '' : 'Download required models to start a session',
+          validationMessage: ready ? '' : i18n.t('settings.localInferenceModelsRequired'),
           isValidating: false,
         });
-        return { valid: ready, message: ready ? '' : 'Download required models', validating: false };
+        return { valid: ready, message: ready ? '' : i18n.t('settings.localInferenceModelsRequired'), validating: false };
       }
 
       // For KizunaAI, ensure we have an API key first
@@ -844,7 +845,7 @@ const useSettingsStore = create<SettingsStore>()(
       }
 
       // Validate
-      set({isValidating: true, validationMessage: 'Validating...'});
+      set({isValidating: true, validationMessage: i18n.t('settings.validating')});
 
       try {
         const service = ServiceFactory.getSettingsService();

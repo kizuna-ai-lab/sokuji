@@ -213,7 +213,8 @@
     "targetLanguageTooltip": "লক্ষ্য ভাষা নির্বাচন করুন",
     "thresholdTooltip": "ভয়েস সনাক্তকরণের থ্রেশহোল্ড সামঞ্জস্য করুন",
     "prefixPaddingTooltip": "বক্তৃতার আগে প্যাডিং যোগ করুন",
-    "silenceDurationTooltip": "বক্তৃতা শেষ বলে বিবেচনা করার আগে নীরবতার সময়কাল"
+    "silenceDurationTooltip": "বক্তৃতা শেষ বলে বিবেচনা করার আগে নীরবতার সময়কাল",
+    "localInferenceModelsRequired": "অনুগ্রহ করে উন্নত সেটিংসে মডেল ডাউনলোড এবং নির্বাচন করুন। কমপক্ষে একটি ASR, অনুবাদ এবং TTS মডেল প্রয়োজন।"
   },
   "simpleSettings": {
     "quickSetup": "দ্রুত সেটআপ",

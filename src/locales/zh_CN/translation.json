@@ -207,7 +207,8 @@
     "switchToAdvanced": "切换到高级模式",
     "switchToBasic": "切换到基础模式",
     "advancedMode": "高级",
-    "basicMode": "基础"
+    "basicMode": "基础",
+    "localInferenceModelsRequired": "请在高级设置中下载并选择模型。至少需要一个语音识别（ASR）、翻译和语音合成（TTS）模型。"
   },
   "simpleSettings": {
     "quickSetup": "快速设置",
