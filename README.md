@@ -40,7 +40,7 @@
 
 # Why Sokuji?
 
-Sokuji is a cross-platform desktop application and browser extension designed to provide live speech translation using OpenAI, Google Gemini, Palabra.ai, Kizuna AI, Volcengine ST, Doubao AST 2.0, and OpenAI-compatible APIs. Available for Windows, macOS, and Linux, it bridges language barriers in live conversations by capturing audio input, processing it through advanced AI models, and delivering translated output in real-time. With v0.15.0, Sokuji introduces **Local Inference** — a fully offline, privacy-first pipeline where ASR, translation, and TTS all run entirely on your device via CPU (WASM) and WebGPU, with no data ever leaving your machine.
+Sokuji is a cross-platform live speech translation app for desktop and browser. It supports **Local Inference** — on-device ASR, translation, and TTS powered by WASM and WebGPU, with no API key required, fully offline, and completely private. It also integrates with cloud providers including OpenAI, Google Gemini, Palabra.ai, Kizuna AI, Volcengine ST, Doubao AST 2.0, and OpenAI-compatible APIs.
 
 https://github.com/user-attachments/assets/1eaaa333-a7ce-4412-a295-16b7eb2310de
 
