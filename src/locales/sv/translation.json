@@ -375,6 +375,7 @@
     },
     "apiKey": "API Nyckel",
     "apiKeyPlaceholder": "Ange din API nyckel",
+    "setupGuide": "Installationsguide",
     "validate": "Validera",
     "howToGetApiKey": "Hur får man en API nyckel?",
     "apiKeyHelp1": "1. Besök leverantörens webbplats",

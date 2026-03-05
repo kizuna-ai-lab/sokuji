@@ -231,6 +231,7 @@
     },
     "apiKey": "מפתח API",
     "apiKeyPlaceholder": "הזן את מפתח ה-API שלך",
+    "setupGuide": "מדריך הגדרה",
     "validate": "אמת",
     "howToGetApiKey": "איך להשיג מפתח API?",
     "apiKeyHelp1": "1. בקר באתר הספק",

@@ -218,6 +218,7 @@
     },
     "apiKey": "API की",
     "apiKeyPlaceholder": "अपनी API की दर्ज करें",
+    "setupGuide": "सेटअप गाइड",
     "validate": "सत्यापित करें",
     "howToGetApiKey": "API की कैसे प्राप्त करें?",
     "apiKeyHelp1": "1. प्रदाता की वेबसाइट पर जाएं",

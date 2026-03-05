@@ -426,6 +426,7 @@
     },
     "apiKey": "APIキー",
     "apiKeyPlaceholder": "APIキーを入力してください",
+    "setupGuide": "セットアップガイド",
     "validate": "検証",
     "howToGetApiKey": "APIキーの取得方法は？",
     "apiKeyHelp1": "1. プロバイダーのウェブサイトを訪問",

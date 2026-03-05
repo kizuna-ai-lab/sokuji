@@ -225,6 +225,7 @@
     },
     "apiKey": "Kunci API",
     "apiKeyPlaceholder": "Masukkan kunci API Anda",
+    "setupGuide": "Panduan pengaturan",
     "validate": "Validasi",
     "howToGetApiKey": "Bagaimana cara mendapatkan kunci API?",
     "apiKeyHelp1": "1. Kunjungi situs web penyedia",

@@ -231,6 +231,7 @@
     },
     "apiKey": "API কী",
     "apiKeyPlaceholder": "আপনার API কী প্রবেশ করান",
+    "setupGuide": "সেটআপ গাইড",
     "validate": "যাচাই",
     "howToGetApiKey": "API কী কীভাবে পাবেন?",
     "apiKeyHelp1": "১. প্রদানকারীর ওয়েবসাইট দেখুন",

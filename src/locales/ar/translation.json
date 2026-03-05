@@ -225,6 +225,7 @@
     },
     "apiKey": "مفتاح API",
     "apiKeyPlaceholder": "أدخل مفتاح API الخاص بك",
+    "setupGuide": "دليل الإعداد",
     "validate": "تحقق",
     "howToGetApiKey": "كيفية الحصول على مفتاح API؟",
     "apiKeyHelp1": "1. قم بزيارة موقع مقدم الخدمة",

@@ -224,6 +224,7 @@
     },
     "apiKey": "Chave API",
     "apiKeyPlaceholder": "Introduza a sua chave API",
+    "setupGuide": "Guia de configuração",
     "validate": "Validar",
     "howToGetApiKey": "Como obter uma chave API?",
     "apiKeyHelp1": "1. Visite o website do fornecedor",

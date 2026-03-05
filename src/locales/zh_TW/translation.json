@@ -33,6 +33,7 @@
   "simpleSettings": {
     "quickSetup": "快速設定",
     "apiKey": "API 金鑰",
+    "setupGuide": "設定指南",
     "validate": "驗證",
     "languages": "語言",
     "uiLanguage": "介面語言",

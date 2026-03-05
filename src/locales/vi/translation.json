@@ -370,6 +370,7 @@
     },
     "apiKey": "Khóa API",
     "apiKeyPlaceholder": "Nhập khóa API của bạn",
+    "setupGuide": "Hướng dẫn cài đặt",
     "validate": "Xác thực",
     "howToGetApiKey": "Làm sao để có khóa API?",
     "apiKeyHelp1": "1. Truy cập trang web của nhà cung cấp",

@@ -224,6 +224,7 @@
     },
     "apiKey": "API Key",
     "apiKeyPlaceholder": "Ilagay ang inyong API key",
+    "setupGuide": "Gabay sa pag-setup",
     "validate": "I-validate",
     "howToGetApiKey": "Paano makakuha ng API key?",
     "apiKeyHelp1": "1. Bisitahin ang website ng provider",

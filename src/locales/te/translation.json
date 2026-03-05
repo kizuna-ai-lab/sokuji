@@ -25,6 +25,7 @@
   "simpleSettings": {
     "quickSetup": "వేగమైన సెటప్",
     "apiKey": "API కీ",
+    "setupGuide": "సెటప్ గైడ్",
     "validate": "ధృవీకరించు",
     "languages": "భాషలు",
     "uiLanguage": "ఇంటర్ఫేస్ భాష",

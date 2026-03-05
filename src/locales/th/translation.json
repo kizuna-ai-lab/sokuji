@@ -25,6 +25,7 @@
   "simpleSettings": {
     "quickSetup": "การตั้งค่าอย่างรวดเร็ว",
     "apiKey": "คีย์ API",
+    "setupGuide": "คู่มือการตั้งค่า",
     "validate": "ตรวจสอบ",
     "languages": "ภาษา",
     "uiLanguage": "ภาษาอินเทอร์เฟซ",

@@ -428,6 +428,7 @@
     },
     "apiKey": "API-ключ",
     "apiKeyPlaceholder": "Введите ваш API-ключ",
+    "setupGuide": "Руководство по настройке",
     "validate": "Проверить",
     "howToGetApiKey": "Как получить API-ключ?",
     "apiKeyHelp1": "1. Посетите сайт провайдера",
