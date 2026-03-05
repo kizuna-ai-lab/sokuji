@@ -207,7 +207,7 @@
     "transcriptModelTooltip": "Wybierz model transkrypcji",
     "noiseReductionTooltip": "Ustaw poziom redukcji szumów tła",
     "systemInstructionsTooltip": "Wprowadź instrukcje, aby dostosować zachowanie AI",
-    "localInferenceModelsRequired": "Pobierz i wybierz modele w ustawieniach zaawansowanych. Wymagany jest co najmniej jeden model ASR, tłumaczenia i TTS."
+    "localInferenceModelsRequired": "Pobierz i wybierz modele w <settingsLink>ustawieniach zaawansowanych</settingsLink>. Wymagany jest co najmniej jeden model ASR, tłumaczenia i TTS."
   },
   "audioPanel": {
     "title": "Ustawienia audio",

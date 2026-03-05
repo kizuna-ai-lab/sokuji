@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AlertCircle, HelpCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useIsSessionActive } from '../../../stores/sessionStore';
@@ -8,7 +8,9 @@ import {
   useAvailableModels,
   useLoadingModels,
   useFetchAvailableModels,
-  useGetProcessedSystemInstructions
+  useGetProcessedSystemInstructions,
+  useSettingsNavigationTarget,
+  useNavigateToSettings,
 } from '../../../stores/settingsStore';
 import { useAudioContext } from '../../../stores/audioStore';
 import { ProviderConfigFactory } from '../../../services/providers/ProviderConfigFactory';
@@ -55,9 +57,30 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({ toggleSettings }) =
     }
   }, [provider]);
 
+  // Navigation target for scroll-to-section
+  const settingsNavigationTarget = useSettingsNavigationTarget();
+  const navigateToSettings = useNavigateToSettings();
+
   // State
   const [isPreviewExpanded, setIsPreviewExpanded] = useState(false);
   const [warningType, setWarningType] = useState<WarningType | null>(null);
+
+  // Handle scrolling and highlighting when settingsNavigationTarget changes
+  useEffect(() => {
+    if (settingsNavigationTarget) {
+      setTimeout(() => {
+        const element = document.getElementById(`${settingsNavigationTarget}-section`);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          element.classList.add('highlight');
+          setTimeout(() => {
+            element.classList.remove('highlight');
+            navigateToSettings(null);
+          }, 3000);
+        }
+      }, 100);
+    }
+  }, [settingsNavigationTarget, navigateToSettings]);
 
   return (
     <div className="advanced-settings">

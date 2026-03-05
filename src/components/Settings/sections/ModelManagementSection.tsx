@@ -618,7 +618,7 @@ export function ModelManagementSection({
   // ── Render ────────────────────────────────────────────────────────────
 
   return (
-    <div className="settings-section model-management-section">
+    <div id="model-management-section" className="settings-section model-management-section">
       <h2>{t('models.management', 'Models')}</h2>
 
       {renderAsrGroup()}

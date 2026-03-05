@@ -208,7 +208,7 @@
     "vadMinSilenceDurationTooltip": "Minimum silence duration to split speech segments. Shorter values split sentences faster, longer values wait for more natural pauses.",
     "vadMinSpeechDuration": "Min Speech Duration",
     "vadMinSpeechDurationTooltip": "Minimum speech duration to consider as valid speech. Filters out very short sounds like clicks or coughs.",
-    "localInferenceModelsRequired": "Please download and select models in Advanced Settings. At least one ASR, Translation, and TTS model is required."
+    "localInferenceModelsRequired": "Please download and select models in <settingsLink>Advanced Settings</settingsLink>. At least one ASR, Translation, and TTS model is required."
   },
   "simpleSettings": {
     "autoAuthenticated": "Automatically authenticated via your account",

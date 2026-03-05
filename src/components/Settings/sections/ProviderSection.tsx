@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { Key, Zap, HelpCircle, CircleHelp, ChevronDown, ChevronUp, CheckCircle, AlertCircle, FlaskConical, ExternalLink, X } from 'lucide-react';
 import { OpenAIIcon, GeminiIcon, PalabraAIIcon, KizunaAIIcon, VolcengineIcon } from '../../Icons/ProviderIcons';
-import { useTranslation } from 'react-i18next';
+import { useTranslation, Trans } from 'react-i18next';
 import Tooltip from '../../Tooltip/Tooltip';
 import {
   useProvider,
@@ -24,7 +24,9 @@ import {
   useIsValidating,
   useValidationMessage,
   useIsKizunaKeyFetching,
-  useKizunaKeyError
+  useKizunaKeyError,
+  useSetUIMode,
+  useNavigateToSettings,
 } from '../../../stores/settingsStore';
 import { Provider, ProviderType } from '../../../types/Provider';
 import { ProviderConfigFactory } from '../../../services/providers/ProviderConfigFactory';
@@ -86,6 +88,8 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
   const validationMessage = useValidationMessage();
   const isKizunaKeyFetching = useIsKizunaKeyFetching();
   const kizunaKeyError = useKizunaKeyError();
+  const setUIMode = useSetUIMode();
+  const navigateToSettings = useNavigateToSettings();
 
   const [isProviderExpanded, setIsProviderExpanded] = useState(false);
 
@@ -588,7 +592,23 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
 
       {validationMessage && (
         <div className={`validation-message ${isApiKeyValid ? 'success' : 'error'}`}>
-          {validationMessage}
+          {provider === Provider.LOCAL_INFERENCE && !isApiKeyValid ? (
+            <Trans
+              i18nKey="settings.localInferenceModelsRequired"
+              components={{
+                settingsLink: <a
+                  className="models-link"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setUIMode('advanced');
+                    setTimeout(() => navigateToSettings('model-management'), 100);
+                  }}
+                />
+              }}
+            />
+          ) : (
+            validationMessage
+          )}
         </div>
       )}
     </div>

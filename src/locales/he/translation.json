@@ -214,7 +214,7 @@
     "thresholdTooltip": "התאם סף זיהוי קול",
     "prefixPaddingTooltip": "הוסף ריפוד לפני דיבור",
     "silenceDurationTooltip": "משך שקט לפני שהדיבור נחשב מסתיים",
-    "localInferenceModelsRequired": "אנא הורידו ובחרו מודלים בהגדרות המתקדמות. נדרש לפחות מודל ASR, תרגום ו-TTS אחד."
+    "localInferenceModelsRequired": "אנא הורידו ובחרו מודלים ב<settingsLink>הגדרות המתקדמות</settingsLink>. נדרש לפחות מודל ASR, תרגום ו-TTS אחד."
   },
   "simpleSettings": {
     "quickSetup": "הגדרה מהירה",

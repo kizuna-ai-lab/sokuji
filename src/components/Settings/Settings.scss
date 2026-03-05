@@ -1311,6 +1311,16 @@
     border: 1px solid rgba(255, 68, 68, 0.3);
     color: #ff4444;
   }
+
+  .models-link {
+    color: #10a37f;
+    cursor: pointer;
+    text-decoration: underline;
+
+    &:hover {
+      opacity: 0.8;
+    }
+  }
 }
 
 // Animation keyframes

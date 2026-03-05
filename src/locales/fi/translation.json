@@ -207,7 +207,7 @@
     "thresholdTooltip": "Säädä puheen tunnistuksen kynnysarvoa",
     "prefixPaddingTooltip": "Lisää täyttö ennen puhetta",
     "silenceDurationTooltip": "Hiljaisuuden kesto ennen puheen päättymistä",
-    "localInferenceModelsRequired": "Lataa ja valitse mallit lisäasetuksista. Vähintään yksi ASR-, käännös- ja TTS-malli vaaditaan."
+    "localInferenceModelsRequired": "Lataa ja valitse mallit <settingsLink>lisäasetuksista</settingsLink>. Vähintään yksi ASR-, käännös- ja TTS-malli vaaditaan."
   },
   "simpleSettings": {
     "quickSetup": "Pika-asennus",

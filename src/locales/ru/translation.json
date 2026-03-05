@@ -215,7 +215,7 @@
     "thresholdTooltip": "Настроить порог обнаружения голоса",
     "prefixPaddingTooltip": "Добавить отступ перед речью",
     "silenceDurationTooltip": "Длительность тишины до окончания речи",
-    "localInferenceModelsRequired": "Пожалуйста, загрузите и выберите модели в расширенных настройках. Требуется как минимум одна модель ASR, перевода и TTS."
+    "localInferenceModelsRequired": "Пожалуйста, загрузите и выберите модели в <settingsLink>расширенных настройках</settingsLink>. Требуется как минимум одна модель ASR, перевода и TTS."
   },
   "audioPanel": {
     "title": "Настройки аудио",
