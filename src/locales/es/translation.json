@@ -207,7 +207,8 @@
     "switchToAdvanced": "Cambiar a modo avanzado",
     "switchToBasic": "Cambiar a modo básico",
     "advancedMode": "Avanzado",
-    "basicMode": "Básico"
+    "basicMode": "Básico",
+    "localInferenceModelsRequired": "Descargue y seleccione modelos en Configuración avanzada. Se requiere al menos un modelo de ASR, Traducción y TTS."
   },
   "audioPanel": {
     "title": "Configuración de audio",

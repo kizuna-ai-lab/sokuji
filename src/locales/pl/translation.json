@@ -206,7 +206,8 @@
     "maxTokensTooltip": "Ustaw maksymalną liczbę tokenów wyjściowych",
     "transcriptModelTooltip": "Wybierz model transkrypcji",
     "noiseReductionTooltip": "Ustaw poziom redukcji szumów tła",
-    "systemInstructionsTooltip": "Wprowadź instrukcje, aby dostosować zachowanie AI"
+    "systemInstructionsTooltip": "Wprowadź instrukcje, aby dostosować zachowanie AI",
+    "localInferenceModelsRequired": "Pobierz i wybierz modele w ustawieniach zaawansowanych. Wymagany jest co najmniej jeden model ASR, tłumaczenia i TTS."
   },
   "audioPanel": {
     "title": "Ustawienia audio",

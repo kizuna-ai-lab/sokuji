@@ -207,7 +207,8 @@
     "switchToAdvanced": "アドバンスモードに切替",
     "switchToBasic": "ベーシックモードに切替",
     "advancedMode": "アドバンス",
-    "basicMode": "ベーシック"
+    "basicMode": "ベーシック",
+    "localInferenceModelsRequired": "詳細設定でモデルをダウンロードして選択してください。ASR、翻訳、TTSモデルがそれぞれ1つ以上必要です。"
   },
   "audioPanel": {
     "title": "オーディオ設定",

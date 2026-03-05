@@ -207,7 +207,8 @@
     "advancedMode": "고급",
     "basicMode": "기본",
     "unlimited": "무제한",
-    "custom": "사용자 정의"
+    "custom": "사용자 정의",
+    "localInferenceModelsRequired": "고급 설정에서 모델을 다운로드하고 선택하세요. ASR, 번역, TTS 모델이 각각 하나 이상 필요합니다."
   },
   "audioPanel": {
     "title": "오디오 설정",

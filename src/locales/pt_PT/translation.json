@@ -206,7 +206,8 @@
     "transportType": "Tipo de transporte",
     "transportTypeTooltip": "Selecionar método de transporte em tempo real",
     "websocket": "WebSocket",
-    "webrtc": "WebRTC"
+    "webrtc": "WebRTC",
+    "localInferenceModelsRequired": "Transfira e selecione modelos nas Definições Avançadas. É necessário pelo menos um modelo de ASR, Tradução e TTS."
   },
   "simpleSettings": {
     "quickSetup": "Configuração Rápida",

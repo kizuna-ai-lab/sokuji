@@ -207,7 +207,8 @@
     "unlimited": "غير محدود",
     "custom": "مخصص",
     "regionNotSupported": "الخدمة غير متوفرة في منطقتك. يرجى التحقق من بيئة الشبكة أو تجربة مزود آخر.",
-    "geminiParticipantTokenWarning": "تحذير: حد رموز مشاركي Gemini"
+    "geminiParticipantTokenWarning": "تحذير: حد رموز مشاركي Gemini",
+    "localInferenceModelsRequired": "يرجى تنزيل واختيار النماذج في الإعدادات المتقدمة. يلزم وجود نموذج واحد على الأقل للتعرف على الكلام والترجمة وتحويل النص إلى كلام."
   },
   "simpleSettings": {
     "quickSetup": "إعداد سريع",

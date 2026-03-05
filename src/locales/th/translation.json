@@ -313,7 +313,8 @@
     "targetLanguageTooltip": "เลือกภาษาเป้าหมาย",
     "thresholdTooltip": "ปรับเกณฑ์การตรวจจับเสียง",
     "prefixPaddingTooltip": "เพิ่มช่องว่างก่อนเสียงพูด",
-    "silenceDurationTooltip": "ระยะเวลาเงียบก่อนพิจารณาว่าพูดจบแล้ว"
+    "silenceDurationTooltip": "ระยะเวลาเงียบก่อนพิจารณาว่าพูดจบแล้ว",
+    "localInferenceModelsRequired": "กรุณาดาวน์โหลดและเลือกโมเดลในการตั้งค่าขั้นสูง ต้องมีโมเดล ASR, การแปล และ TTS อย่างน้อยหนึ่งรายการ"
   },
   "mainPanel": {
     "conversationPlaceholder": "การสนทนาจะปรากฏที่นี่",

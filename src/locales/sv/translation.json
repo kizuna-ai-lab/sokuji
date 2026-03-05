@@ -199,7 +199,8 @@
     "maxTokensTooltip": "Ställ in maximalt antal utdatatokens",
     "transcriptModelTooltip": "Välj transkriptionsmodell",
     "noiseReductionTooltip": "Ställ in nivå för bakgrundsbrusreducering",
-    "systemInstructionsTooltip": "Ange instruktioner för att anpassa AI-beteendet"
+    "systemInstructionsTooltip": "Ange instruktioner för att anpassa AI-beteendet",
+    "localInferenceModelsRequired": "Ladda ner och välj modeller i Avancerade inställningar. Minst en ASR-, översättnings- och TTS-modell krävs."
   },
   "mainPanel": {
     "conversationPlaceholder": "Konversationen kommer att visas här",
