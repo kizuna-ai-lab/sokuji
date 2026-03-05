@@ -69,7 +69,7 @@
     "realtimeTranslationAvailable": "Dịch vụ dịch thuật thời gian thực có sẵn",
     "authentication": "Xác thực",
     "autoAuthenticated": "Tự động xác thực qua tài khoản của bạn",
-    "providerTooltip": "Chọn dịch vụ dịch AI của bạn. Mỗi dịch vụ có các tính năng, giọng nói và mức giá khác nhau. OpenAI cung cấp nhiều tính năng nhất, trong khi Gemini có gói miễn phí tốt.",
+    "providerTooltip": "Chọn dịch vụ dịch AI của bạn. Mỗi dịch vụ có các tính năng, giọng nói và mức giá khác nhau. OpenAI cung cấp nhiều tính năng nhất, trong khi Gemini có gói miễn phí tốt. Chế độ Cục bộ (Ngoại tuyến) hoàn toàn miễn phí — không cần khóa API hay internet.",
     "apiKeyTooltip": "Khóa API giống như mật khẩu cho dịch vụ AI. Lấy nó từ trang web của nhà cung cấp và giữ an toàn. Không bao giờ chia sẻ với người khác.",
     "clientIdTooltip": "ID tài khoản PalabraAI của bạn. Điều này xác định tài khoản của bạn. Lấy nó từ bảng điều khiển PalabraAI.",
     "clientSecretTooltip": "Khóa bí mật PalabraAI của bạn. Giữ kín và an toàn. Không bao giờ chia sẻ với bất kỳ ai.",

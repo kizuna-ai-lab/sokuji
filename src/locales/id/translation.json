@@ -107,7 +107,7 @@
     "realtimeTranslationAvailable": "Layanan terjemahan waktu nyata tersedia",
     "authentication": "Autentikasi",
     "autoAuthenticated": "Otomatis terautentikasi melalui akun Anda",
-    "providerTooltip": "Pilih layanan terjemahan AI Anda. Setiap layanan memiliki fitur, suara, dan harga yang berbeda. OpenAI menawarkan fitur terbanyak, sedangkan Gemini memiliki paket gratis yang bagus.",
+    "providerTooltip": "Pilih layanan terjemahan AI Anda. Setiap layanan memiliki fitur, suara, dan harga yang berbeda. OpenAI menawarkan fitur terbanyak, sedangkan Gemini memiliki paket gratis yang bagus. Mode Lokal (Offline) sepenuhnya gratis — tidak memerlukan kunci API atau internet.",
     "apiKeyTooltip": "Kunci API Anda seperti kata sandi untuk layanan AI. Dapatkan dari situs web penyedia dan simpan dengan aman. Jangan pernah bagikan dengan orang lain.",
     "clientIdTooltip": "ID akun PalabraAI Anda. Ini mengidentifikasi akun Anda. Dapatkan dari dashboard PalabraAI.",
     "clientSecretTooltip": "Kunci rahasia PalabraAI Anda. Jaga agar tetap pribadi dan aman. Jangan pernah bagikan dengan siapa pun.",

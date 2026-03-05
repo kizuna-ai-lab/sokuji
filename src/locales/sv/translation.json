@@ -181,7 +181,7 @@
     "realtimeModelAvailable": "Realtidsmodell tillgänglig",
     "realtimeModelNotAvailable": "Realtidsmodell ej tillgänglig",
     "geminiParticipantTokenWarning": "Varning: Gemini-deltagartokengräns",
-    "providerTooltip": "Välj översättningsleverantör",
+    "providerTooltip": "Välj din AI-översättningstjänst. Varje tjänst har olika funktioner, röster och priser. OpenAI erbjuder flest funktioner, medan Gemini har en bra gratisplan. Lokalt (Offline) läge är helt gratis — ingen API-nyckel eller internet krävs.",
     "apiKeyTooltip": "Ange API-nyckeln från leverantören",
     "clientIdTooltip": "Ange klient-ID",
     "clientSecretTooltip": "Ange klienthemlighet",

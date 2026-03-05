@@ -111,7 +111,7 @@
     "realtimeTranslationAvailable": "实时翻译服务可用",
     "authentication": "身份认证",
     "autoAuthenticated": "已通过您的账户自动认证",
-    "providerTooltip": "选择您的AI翻译服务。每个服务都有不同的功能、语音和价格。OpenAI提供最多功能，而Gemini有良好的免费套餐。",
+    "providerTooltip": "选择您的AI翻译服务。每个服务都有不同的功能、语音和价格。OpenAI提供最多功能，而Gemini有良好的免费套餐。本地（离线）模式完全免费——无需API密钥或互联网。",
     "apiKeyTooltip": "API密钥就像AI服务的密码。从提供商的网站获取并安全保管。切勿与他人分享。",
     "clientIdTooltip": "您的PalabraAI账户ID。这用于标识您的账户。从PalabraAI仪表板获取。",
     "clientSecretTooltip": "您的PalabraAI密钥。请保密并安全保管。切勿与任何人分享。",

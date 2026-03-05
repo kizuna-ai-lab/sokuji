@@ -105,7 +105,7 @@
     "realtimeTranslationAvailable": "リアルタイム翻訳サービスが利用可能です",
     "authentication": "認証",
     "autoAuthenticated": "アカウントで自動的に認証されました",
-    "providerTooltip": "AI翻訳サービスを選択してください。各サービスには異なる機能、音声、価格があります。OpenAIは最も多くの機能を提供し、Geminiは良い無料プランがあります。",
+    "providerTooltip": "AI翻訳サービスを選択してください。各サービスには異なる機能、音声、価格があります。OpenAIは最も多くの機能を提供し、Geminiは良い無料プランがあります。ローカル（オフライン）モードは完全無料——APIキーもインターネットも不要です。",
     "apiKeyTooltip": "APIキーはAIサービスのパスワードのようなものです。プロバイダーのウェブサイトから取得し、安全に保管してください。他の人と共有しないでください。",
     "clientIdTooltip": "あなたのPalabraAIアカウントIDです。これはあなたのアカウントを識別します。PalabraAIダッシュボードから取得してください。",
     "clientSecretTooltip": "あなたのPalabraAIシークレットキーです。プライベートで安全に保管してください。誰とも共有しないでください。",

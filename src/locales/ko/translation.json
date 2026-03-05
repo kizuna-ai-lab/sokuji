@@ -111,7 +111,7 @@
     "realtimeTranslationAvailable": "실시간 번역 서비스를 사용할 수 있습니다",
     "authentication": "인증",
     "autoAuthenticated": "계정을 통해 자동으로 인증됨",
-    "providerTooltip": "AI 번역 서비스를 선택하세요. 각 서비스마다 다른 기능, 음성, 가격이 있습니다. OpenAI는 가장 많은 기능을 제공하며, Gemini는 좋은 무료 플랜이 있습니다.",
+    "providerTooltip": "AI 번역 서비스를 선택하세요. 각 서비스마다 다른 기능, 음성, 가격이 있습니다. OpenAI는 가장 많은 기능을 제공하며, Gemini는 좋은 무료 플랜이 있습니다. 로컬 (오프라인) 모드는 완전 무료——API 키나 인터넷이 필요 없습니다.",
     "apiKeyTooltip": "API 키는 AI 서비스의 비밀번호와 같습니다. 제공업체 웹사이트에서 받아 안전하게 보관하세요. 다른 사람과 공유하지 마세요.",
     "clientIdTooltip": "귀하의 PalabraAI 계정 ID입니다. 계정을 식별합니다. PalabraAI 대시보드에서 받으세요.",
     "clientSecretTooltip": "귀하의 PalabraAI 비밀 키입니다. 비공개로 안전하게 보관하세요. 누구와도 공유하지 마세요.",

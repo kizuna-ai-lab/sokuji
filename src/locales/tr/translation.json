@@ -69,7 +69,7 @@
     "realtimeTranslationAvailable": "Gerçek zamanlı çeviri hizmeti mevcut",
     "authentication": "Kimlik Doğrulama",
     "autoAuthenticated": "Hesabınız üzerinden otomatik olarak doğrulandı",
-    "providerTooltip": "AI çeviri hizmetinizi seçin. Her hizmetin farklı özellikleri, sesleri ve fiyatları vardır. OpenAI en fazla özellik sunarken, Gemini iyi bir ücretsiz plana sahiptir.",
+    "providerTooltip": "AI çeviri hizmetinizi seçin. Her hizmetin farklı özellikleri, sesleri ve fiyatları vardır. OpenAI en fazla özellik sunarken, Gemini iyi bir ücretsiz plana sahiptir. Yerel (Çevrimdışı) modu tamamen ücretsizdir — API anahtarı veya internet gerekmez.",
     "modelTooltip": "Kullanılacak AI modelini seçin. Daha büyük modeller daha iyi çeviri kalitesi sağlar ancak daha yavaş olabilir. Daha küçük modeller daha hızlıdır ancak daha az doğru olabilir.",
     "voiceTooltip": "Çevrilmiş konuşma için bir ses seçin. Her sesin farklı özellikleri vardır. Farklı sesleri deneyerek beğendiğinizi bulun.",
     "automaticTurnDetectionTooltip": "Sistemin konuşmayı bitirdiğinizi otomatik olarak algılamasına izin verir. Kapatıldığında, bas ve konuş için boşluk çubuğunu kullanın.",

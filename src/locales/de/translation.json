@@ -111,7 +111,7 @@
     "realtimeTranslationAvailable": "Echtzeit-Übersetzungsdienst ist verfügbar",
     "authentication": "Authentifizierung",
     "autoAuthenticated": "Automatisch über Ihr Konto authentifiziert",
-    "providerTooltip": "Wählen Sie Ihren KI-Übersetzungsdienst. Jeder Dienst hat unterschiedliche Funktionen, Stimmen und Preise. OpenAI bietet die meisten Funktionen, während Gemini einen guten kostenlosen Plan hat.",
+    "providerTooltip": "Wählen Sie Ihren KI-Übersetzungsdienst. Jeder Dienst hat unterschiedliche Funktionen, Stimmen und Preise. OpenAI bietet die meisten Funktionen, während Gemini einen guten kostenlosen Plan hat. Der lokale (Offline-)Modus ist völlig kostenlos — kein API-Schlüssel oder Internet erforderlich.",
     "apiKeyTooltip": "Ihr API-Schlüssel ist wie ein Passwort für den KI-Dienst. Holen Sie ihn von der Website des Anbieters und bewahren Sie ihn sicher auf. Teilen Sie ihn niemals mit anderen.",
     "clientIdTooltip": "Ihre PalabraAI-Konto-ID. Diese identifiziert Ihr Konto. Holen Sie sie aus Ihrem PalabraAI-Dashboard.",
     "clientSecretTooltip": "Ihr PalabraAI-Geheimschlüssel. Halten Sie ihn privat und sicher. Teilen Sie ihn niemals mit jemandem.",

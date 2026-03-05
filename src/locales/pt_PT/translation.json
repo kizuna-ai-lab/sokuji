@@ -184,7 +184,7 @@
     "unlimited": "Ilimitado",
     "custom": "Personalizado",
     "regionNotSupported": "Serviço não disponível na sua região. Verifique o seu ambiente de rede ou tente outro fornecedor.",
-    "providerTooltip": "Selecionar fornecedor de tradução",
+    "providerTooltip": "Escolha o seu serviço de tradução com IA. Cada serviço tem diferentes funcionalidades, vozes e preços. OpenAI oferece mais funcionalidades, enquanto Gemini tem um bom plano gratuito. O modo Local (Offline) é totalmente gratuito — sem necessidade de chave API ou internet.",
     "apiKeyTooltip": "Introduza a chave API obtida do fornecedor",
     "clientIdTooltip": "Introduza o ID do cliente",
     "clientSecretTooltip": "Introduza o segredo do cliente",
