@@ -224,7 +224,7 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
       case Provider.LOCAL_INFERENCE:
         return {
           name: t('providers.local_inference.name', 'Local (Offline)'),
-          icon: Zap,
+          icon: KizunaAIIcon,
           description: t('providers.local_inference.description', 'Offline ASR + Translation + TTS')
         };
       default:
