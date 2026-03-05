@@ -308,7 +308,7 @@
     "transcriptModelTooltip": "ట్రాన్‌స్క్రిప్షన్ కోసం మోడల్‌ను ఎంచుకోండి",
     "noiseReductionTooltip": "నేపథ్య శబ్దం తగ్గింపు స్థాయిని సెట్ చేయండి",
     "systemInstructionsTooltip": "AI ప్రవర్తనను అనుకూలీకరించడానికి సూచనలను నమోదు చేయండి",
-    "localInferenceModelsRequired": "దయచేసి అధునాతన సెట్టింగ్‌లలో మోడల్‌లను డౌన్‌లోడ్ చేసి ఎంచుకోండి. కనీసం ఒక ASR, అనువాద మరియు TTS మోడల్ అవసరం."
+    "localInferenceModelsRequired": "దయచేసి <settingsLink>అధునాతన సెట్టింగ్‌లలో</settingsLink> మోడల్‌లను డౌన్‌లోడ్ చేసి ఎంచుకోండి. కనీసం ఒక ASR, అనువాద మరియు TTS మోడల్ అవసరం."
   },
   "mainPanel": {
     "conversationPlaceholder": "సంభాషణ ఇక్కడ కనిపిస్తుంది",

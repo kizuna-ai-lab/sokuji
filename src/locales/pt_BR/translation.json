@@ -208,7 +208,7 @@
     "unlimited": "Ilimitado",
     "custom": "Personalizado",
     "regionNotSupported": "Serviço não disponível na sua região. Verifique seu ambiente de rede ou tente outro provedor.",
-    "localInferenceModelsRequired": "Baixe e selecione modelos nas Configurações Avançadas. É necessário pelo menos um modelo de ASR, Tradução e TTS."
+    "localInferenceModelsRequired": "Baixe e selecione modelos nas <settingsLink>Configurações Avançadas</settingsLink>. É necessário pelo menos um modelo de ASR, Tradução e TTS."
   },
   "audioPanel": {
     "title": "Configurações de áudio",

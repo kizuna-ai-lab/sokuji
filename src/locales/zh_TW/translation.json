@@ -321,7 +321,7 @@
     "basicMode": "基本",
     "unlimited": "無限制",
     "custom": "自訂",
-    "localInferenceModelsRequired": "請在進階設定中下載並選擇模型。至少需要一個語音辨識（ASR）、翻譯和語音合成（TTS）模型。"
+    "localInferenceModelsRequired": "請在<settingsLink>進階設定</settingsLink>中下載並選擇模型。至少需要一個語音辨識（ASR）、翻譯和語音合成（TTS）模型。"
   },
   "audioPanel": {
     "title": "音訊設定",

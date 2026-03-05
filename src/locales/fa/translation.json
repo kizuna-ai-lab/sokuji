@@ -214,7 +214,7 @@
     "thresholdTooltip": "آستانه تشخیص صدا را تنظیم کنید",
     "prefixPaddingTooltip": "افزودن پر کردن قبل از گفتار",
     "silenceDurationTooltip": "مدت سکوت قبل از پایان تلقی گفتار",
-    "localInferenceModelsRequired": "لطفاً مدل‌ها را در تنظیمات پیشرفته دانلود و انتخاب کنید. حداقل یک مدل ASR، ترجمه و TTS مورد نیاز است."
+    "localInferenceModelsRequired": "لطفاً مدل‌ها را در <settingsLink>تنظیمات پیشرفته</settingsLink> دانلود و انتخاب کنید. حداقل یک مدل ASR، ترجمه و TTS مورد نیاز است."
   },
   "simpleSettings": {
     "quickSetup": "راه‌اندازی سریع",

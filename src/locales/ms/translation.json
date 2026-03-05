@@ -207,7 +207,7 @@
     "transcriptModelTooltip": "Pilih model transkripsi",
     "noiseReductionTooltip": "Tetapkan tahap pengurangan hingar latar belakang",
     "systemInstructionsTooltip": "Masukkan arahan untuk menyesuaikan kelakuan AI",
-    "localInferenceModelsRequired": "Sila muat turun dan pilih model dalam Tetapan Lanjutan. Sekurang-kurangnya satu model ASR, Terjemahan dan TTS diperlukan."
+    "localInferenceModelsRequired": "Sila muat turun dan pilih model dalam <settingsLink>Tetapan Lanjutan</settingsLink>. Sekurang-kurangnya satu model ASR, Terjemahan dan TTS diperlukan."
   },
   "simpleSettings": {
     "quickSetup": "Persediaan Pantas",

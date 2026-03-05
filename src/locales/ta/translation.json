@@ -326,7 +326,7 @@
     "transcriptModelTooltip": "ட்ரான்ஸ்கிரிப்ஷனுக்கான மாதிரியைத் தேர்ந்தெடுக்கவும்",
     "noiseReductionTooltip": "பின்னணி இரைச்சல் குறைப்பு நிலையை அமைக்கவும்",
     "systemInstructionsTooltip": "AI நடத்தையை தனிப்பயனாக்க அறிவுறுத்தல்களை உள்ளிடவும்",
-    "localInferenceModelsRequired": "மேம்பட்ட அமைப்புகளில் மாடல்களைப் பதிவிறக்கி தேர்ந்தெடுக்கவும். குறைந்தது ஒரு ASR, மொழிபெயர்ப்பு மற்றும் TTS மாடல் தேவை."
+    "localInferenceModelsRequired": "<settingsLink>மேம்பட்ட அமைப்புகளில்</settingsLink> மாடல்களைப் பதிவிறக்கி தேர்ந்தெடுக்கவும். குறைந்தது ஒரு ASR, மொழிபெயர்ப்பு மற்றும் TTS மாடல் தேவை."
   },
   "mainPanel": {
     "conversationPlaceholder": "உரையாடல் இங்கே தோன்றும்",
