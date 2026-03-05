@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <em>Live speech translation powered by OpenAI, Google Gemini, Palabra.ai, Kizuna AI, Volcengine, and more</em>
+  <em>Live speech translation powered by on-device AI and cloud providers — OpenAI, Google Gemini, Palabra.ai, Kizuna AI, Volcengine, and more</em>
 </p>
 
 <p align="center">   
@@ -40,7 +40,7 @@
 
 # Why Sokuji?
 
-Sokuji is a cross-platform desktop application and browser extension designed to provide live speech translation using OpenAI, Google Gemini, Palabra.ai, Kizuna AI, Volcengine ST, Doubao AST 2.0, and OpenAI-compatible APIs. Available for Windows, macOS, and Linux, it bridges language barriers in live conversations by capturing audio input, processing it through advanced AI models, and delivering translated output in real-time.
+Sokuji is a cross-platform desktop application and browser extension designed to provide live speech translation using OpenAI, Google Gemini, Palabra.ai, Kizuna AI, Volcengine ST, Doubao AST 2.0, and OpenAI-compatible APIs. Available for Windows, macOS, and Linux, it bridges language barriers in live conversations by capturing audio input, processing it through advanced AI models, and delivering translated output in real-time. With v0.15.0, Sokuji introduces **Local Inference** — a fully offline, privacy-first pipeline where ASR, translation, and TTS all run entirely on your device via CPU (WASM) and WebGPU, with no data ever leaving your machine.
 
 https://github.com/user-attachments/assets/1eaaa333-a7ce-4412-a295-16b7eb2310de
 
@@ -74,7 +74,7 @@ If you want to install the latest version of the browser extension:
 # Features
 
 ### AI Translation
-- **7 AI Providers**: OpenAI, Google Gemini, Palabra.ai, Kizuna AI, Volcengine ST, Doubao AST 2.0, and OpenAI Compatible
+- **8 AI Providers**: OpenAI, Google Gemini, Palabra.ai, Kizuna AI, Volcengine ST, Doubao AST 2.0, OpenAI Compatible, and Local Inference
 - **Supported Models**:
   - **OpenAI**: `gpt-4o-realtime-preview`, `gpt-4o-mini-realtime-preview`, `gpt-realtime`, `gpt-realtime-2025-08-28`
   - **Google Gemini**: `gemini-2.0-flash-live-001`, `gemini-2.5-flash-preview-native-audio-dialog`
@@ -83,9 +83,19 @@ If you want to install the latest version of the browser extension:
   - **OpenAI Compatible**: Support for custom OpenAI-compatible API endpoints (Electron only)
   - **Volcengine ST**: Real-time speech translation with V4 signature authentication
   - **Doubao AST 2.0**: Speech-to-speech translation via protobuf-over-WebSocket
+  - **Local Inference**: On-device ASR, translation, and TTS — no API key or internet required
 - **Automatic turn detection** with multiple modes (Normal, Semantic, Disabled) for OpenAI
 - **Push-to-Talk Mode**: Manual speech control for precise translation timing
 - **WebRTC Transport**: Alternative low-latency transport for OpenAI providers
+
+### Local Inference (Edge AI)
+- **Privacy-First**: All processing happens on-device — audio, transcription, and translation never leave your machine
+- **No API Key Required**: Download open-source models and run completely offline
+- **ASR**: 48 models (32 offline + 10 streaming + 6 Whisper WebGPU) covering 99+ languages via sherpa-onnx (WASM) and Whisper WebGPU
+- **Translation**: 55+ Opus-MT language pairs plus 4 multilingual LLMs (Qwen 2.5 / 3 / 3.5) via WebGPU
+- **TTS**: 136 models across 53 languages (Piper, Coqui, Mimic3, Matcha engines) via sherpa-onnx (WASM)
+- **Hardware Flexibility**: CPU (WASM) for universal compatibility, WebGPU for GPU-accelerated inference
+- **Model Management**: One-click download, IndexedDB caching, and resume-on-failure
 
 ### Audio
 - **Advanced Virtual Microphone** with dual-queue audio mixing system:
@@ -123,7 +133,7 @@ If you want to install the latest version of the browser extension:
 
 ## Prerequisites
 
-- An API key for at least one provider:
+- An API key for at least one **cloud** provider (or use **Local Inference** for fully offline operation with no API key):
   - **OpenAI**: API key from OpenAI
   - **Google Gemini**: API key from Google AI Studio
   - **Palabra.ai**: Client ID and Client Secret
@@ -196,6 +206,7 @@ For other Linux distributions, you can also download the portable `.zip` package
    - Select your desired provider (OpenAI, Gemini, Palabra, Kizuna AI, Volcengine ST, Doubao AST 2.0, or OpenAI Compatible).
    - For user-managed providers: Enter your API key and click "Validate". For Palabra, enter a Client ID and Client Secret. For Volcengine ST, enter your Access Key ID and Secret. For Doubao AST 2.0, enter your APP ID and Access Token. For OpenAI Compatible endpoints (Electron only), configure both the API key and custom endpoint URL.
    - For Kizuna AI: Sign in to your account to automatically access backend-managed API keys.
+   - **For Local Inference**: Select "Local Inference" as provider, download the required models (ASR + Translation, optionally TTS), and start translating — no API key or internet connection needed.
    - Click "Save" to store your configuration securely.
 
 2. **Configure audio devices**:
@@ -240,7 +251,7 @@ The audio flow in Sokuji:
 
 1. **Input Capture**: Microphone audio is captured with echo cancellation enabled
 2. **System Audio Capture** (optional): Participant audio from video calls is captured separately
-3. **AI Processing**: Audio is sent to the selected AI provider for translation
+3. **AI Processing**: Audio is sent to the selected AI provider for translation (for Local Inference, this step runs entirely on-device with no network requests)
 4. **Playback**: Translated audio is played through the selected monitor device
 5. **Virtual Device Output**: Audio is also routed to virtual microphone for other applications (all platforms)
 6. **Optional Passthrough**: Original voice can be monitored in real-time
@@ -290,6 +301,11 @@ usage_logs (id, user_id, session_id, model, total_tokens, input_tokens, output_t
   - Queue-based playback system for smooth streaming
   - WebRTC audio bridge for low-latency transport
   - electron-audio-loopback for system audio capture
+- **Local AI Inference**:
+  - sherpa-onnx (WASM) for on-device ASR and TTS
+  - @huggingface/transformers for browser-based translation inference
+  - WebGPU acceleration for Whisper and Qwen LLM models
+- **Model Storage**: IndexedDB with idb library
 - **Serialization**: protobufjs for Volcengine AST2 protocol
 - **Analytics**: posthog-js-lite for anonymous usage tracking
 - **Routing**: react-router-dom for application navigation
@@ -335,6 +351,10 @@ If you encounter issues or have questions:
 - OpenAI - Realtime API
 - Google - Gemini API
 - Volcengine - Speech Translation API
+- [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx) - On-device speech recognition and synthesis
+- [Hugging Face Transformers.js](https://github.com/huggingface/transformers.js) - Browser-based ML inference
+- [Opus-MT](https://github.com/Helsinki-NLP/Opus-MT) - Open-source machine translation models
+- [Qwen](https://github.com/QwenLM/Qwen) - Multilingual language models
 - Electron - Cross-platform desktop application framework
 - React - User interface library
 - PulseAudio/PipeWire - Linux audio systems
