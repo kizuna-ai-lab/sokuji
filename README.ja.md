@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <em>OpenAI, Google Gemini, Palabra.ai, Kizuna AI, Volcengine などによるリアルタイム音声翻訳</em>
+  <em>オンデバイスAIとクラウドプロバイダーによるリアルタイム音声翻訳 — OpenAI, Google Gemini, Palabra.ai, Kizuna AI, Volcengine など</em>
 </p>
 
 <p align="center">
@@ -40,7 +40,7 @@
 
 # なぜSokujiなのか？
 
-Sokujiは、OpenAI、Google Gemini、Palabra.ai、Kizuna AI、Volcengine ST、Doubao AST 2.0、OpenAI互換APIを使用してリアルタイム音声翻訳を提供するクロスプラットフォームデスクトップアプリケーション兼ブラウザ拡張機能です。Windows、macOS、Linuxで利用でき、音声入力をキャプチャし、高度なAIモデルで処理し、リアルタイムで翻訳された出力を配信することで、ライブ会話における言語の壁を取り除きます。
+Sokujiは、OpenAI、Google Gemini、Palabra.ai、Kizuna AI、Volcengine ST、Doubao AST 2.0、OpenAI互換APIを使用してリアルタイム音声翻訳を提供するクロスプラットフォームデスクトップアプリケーション兼ブラウザ拡張機能です。Windows、macOS、Linuxで利用でき、音声入力をキャプチャし、高度なAIモデルで処理し、リアルタイムで翻訳された出力を配信することで、ライブ会話における言語の壁を取り除きます。v0.15.0では**ローカル推論**を導入 — ASR、翻訳、TTSのすべてがCPU（WASM）とWebGPUを通じて完全にデバイス上で実行され、データがデバイスの外に出ることは一切ありません。
 
 https://github.com/user-attachments/assets/1eaaa333-a7ce-4412-a295-16b7eb2310de
 
@@ -74,7 +74,7 @@ https://github.com/user-attachments/assets/1eaaa333-a7ce-4412-a295-16b7eb2310de
 # 機能
 
 ### AI翻訳
-- **7つのAIプロバイダー**: OpenAI、Google Gemini、Palabra.ai、Kizuna AI、Volcengine ST、Doubao AST 2.0、OpenAI互換
+- **8つのAIプロバイダー**: OpenAI、Google Gemini、Palabra.ai、Kizuna AI、Volcengine ST、Doubao AST 2.0、OpenAI互換、ローカル推論
 - **サポートされているモデル**:
   - **OpenAI**: `gpt-4o-realtime-preview`, `gpt-4o-mini-realtime-preview`, `gpt-realtime`, `gpt-realtime-2025-08-28`
   - **Google Gemini**: `gemini-2.0-flash-live-001`, `gemini-2.5-flash-preview-native-audio-dialog`
@@ -83,9 +83,19 @@ https://github.com/user-attachments/assets/1eaaa333-a7ce-4412-a295-16b7eb2310de
   - **OpenAI互換**: カスタムOpenAI互換APIエンドポイントのサポート（Electronのみ）
   - **Volcengine ST**: V4署名認証によるリアルタイム音声翻訳
   - **Doubao AST 2.0**: protobuf-over-WebSocketによる音声翻訳
+  - **ローカル推論**: オンデバイスASR、翻訳、TTS — APIキーもインターネットも不要
 - **自動ターン検出** OpenAI用の複数モード（通常、セマンティック、無効）
 - **プッシュトゥトークモード**: 正確な翻訳タイミングのための手動音声制御
 - **WebRTCトランスポート**: OpenAIプロバイダー向けの低遅延代替トランスポート
+
+### ローカル推論（エッジAI）
+- **プライバシー最優先**: すべての処理がデバイス上で実行 — 音声、文字起こし、翻訳がデバイスの外に出ることはありません
+- **APIキー不要**: オープンソースモデルをダウンロードして完全オフラインで実行
+- **ASR**: 48モデル（オフライン32 + ストリーミング10 + Whisper WebGPU 6）で99以上の言語をカバー（sherpa-onnx WASM + Whisper WebGPU）
+- **翻訳**: 55以上のOpus-MT言語ペア + 4つの多言語LLM（Qwen 2.5 / 3 / 3.5）WebGPU対応
+- **TTS**: 53言語にわたる136モデル（Piper、Coqui、Mimic3、Matchaエンジン）sherpa-onnx WASM経由
+- **ハードウェア柔軟性**: CPU（WASM）で汎用的な互換性、WebGPUでGPUアクセラレーション
+- **モデル管理**: ワンクリックダウンロード、IndexedDBキャッシュ、失敗時の再開
 
 ### オーディオ
 - **デュアルキュー音声ミキシングシステムを備えた高度な仮想マイク**:
@@ -123,7 +133,7 @@ https://github.com/user-attachments/assets/1eaaa333-a7ce-4412-a295-16b7eb2310de
 
 ## 前提条件
 
-- 少なくとも1つのプロバイダーのAPIキー：
+- 少なくとも1つの**クラウド**プロバイダーのAPIキー（または**ローカル推論**を使用してAPIキー不要で完全オフライン運用）：
   - **OpenAI**: OpenAIのAPIキー
   - **Google Gemini**: Google AI StudioのAPIキー
   - **Palabra.ai**: クライアントIDとクライアントシークレット
@@ -196,6 +206,7 @@ sudo dpkg -i sokuji_x.y.z_amd64.deb
    - 希望のプロバイダー（OpenAI、Gemini、Palabra、Kizuna AI、Volcengine ST、Doubao AST 2.0、またはOpenAI互換）を選択
    - ユーザー管理プロバイダーの場合：APIキーを入力し、「検証」をクリック。Palabraの場合、クライアントIDとクライアントシークレットを入力。Volcengine STの場合、アクセスキーIDとシークレットを入力。Doubao AST 2.0の場合、APP IDとアクセストークンを入力。OpenAI互換エンドポイントの場合（Electronのみ）、APIキーとカスタムエンドポイントURLの両方を設定します。
    - Kizuna AIの場合：アカウントにサインインしてバックエンド管理のAPIキーに自動アクセスします。
+   - **ローカル推論の場合**：プロバイダーとして「ローカル推論」を選択し、必要なモデル（ASR + 翻訳、オプションでTTS）をダウンロードして翻訳を開始 — APIキーもインターネット接続も不要です。
    - 「保存」をクリックして設定を安全に保存
 
 2. **オーディオデバイスを設定**:
@@ -240,7 +251,7 @@ Sokujiのオーディオフロー：
 
 1. **入力キャプチャ**: エコーキャンセレーションを有効にしてマイク音声をキャプチャ
 2. **システムオーディオキャプチャ**（オプション）: ビデオ通話の参加者音声を個別にキャプチャ
-3. **AI処理**: 選択したAIプロバイダーに音声を送信して翻訳
+3. **AI処理**: 選択したAIプロバイダーに音声を送信して翻訳（ローカル推論の場合、このステップはネットワークリクエストなしで完全にデバイス上で実行）
 4. **再生**: 翻訳された音声を選択したモニターデバイスで再生
 5. **仮想デバイス出力**: 音声は他のアプリケーション用の仮想マイクにもルーティング（全プラットフォーム）
 6. **オプションのパススルー**: 元の音声をリアルタイムでモニタリング可能
@@ -265,6 +276,11 @@ Sokujiのオーディオフロー：
   - スムーズなストリーミングのためのキューベース再生システム
   - 低遅延トランスポートのためのWebRTCオーディオブリッジ
   - システムオーディオキャプチャのためのelectron-audio-loopback
+- **ローカルAI推論**:
+  - オンデバイスASR・TTSのためのsherpa-onnx（WASM）
+  - ブラウザベース翻訳推論のための@huggingface/transformers
+  - WhisperおよびQwen LLMモデルのWebGPUアクセラレーション
+- **モデルストレージ**: idbライブラリによるIndexedDB
 - **シリアライゼーション**: Volcengine AST2プロトコルのためのprotobufjs
 - **アナリティクス**: 匿名使用状況追跡のためのposthog-js-lite
 - **ルーティング**: アプリケーションナビゲーションのためのreact-router-dom
@@ -310,6 +326,10 @@ Sokujiのオーディオフロー：
 - OpenAI - リアルタイムAPI
 - Google - Gemini API
 - Volcengine - 音声翻訳API
+- [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx) - オンデバイス音声認識・合成
+- [Hugging Face Transformers.js](https://github.com/huggingface/transformers.js) - ブラウザベースML推論
+- [Opus-MT](https://github.com/Helsinki-NLP/Opus-MT) - オープンソース機械翻訳モデル
+- [Qwen](https://github.com/QwenLM/Qwen) - 多言語言語モデル
 - Electron - クロスプラットフォームデスクトップアプリケーションフレームワーク
 - React - ユーザーインターフェースライブラリ
 - PulseAudio/PipeWire - Linuxオーディオシステム
