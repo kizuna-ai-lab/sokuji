@@ -6,8 +6,8 @@
   <em>オンデバイスAIとクラウドプロバイダーによるリアルタイム音声翻訳 — OpenAI, Google Gemini, Palabra.ai, Kizuna AI, Volcengine など</em>
 </p>
 
-<p align="center">
-  <a href="LICENSE" target="_blank">
+<p align="center">   
+  <a href="../LICENSE" target="_blank">
     <img alt="AGPL-3.0 License" src="https://img.shields.io/badge/license-AGPL--3.0-blue.svg?style=flat-square" />
   </a>
   
@@ -35,28 +35,28 @@
 </p>
 
 <p align="center">
-  <a href="README.md">English</a> | 日本語
+  <a href="../README.md">English</a> | 日本語 | <a href="README.zh.md">中文</a>
 </p>
 
 # なぜSokujiなのか？
 
-Sokujiは、OpenAI、Google Gemini、Palabra.ai、Kizuna AI、Volcengine ST、Doubao AST 2.0、OpenAI互換APIを使用してリアルタイム音声翻訳を提供するクロスプラットフォームデスクトップアプリケーション兼ブラウザ拡張機能です。Windows、macOS、Linuxで利用でき、音声入力をキャプチャし、高度なAIモデルで処理し、リアルタイムで翻訳された出力を配信することで、ライブ会話における言語の壁を取り除きます。v0.15.0では**ローカル推論**を導入 — ASR、翻訳、TTSのすべてがCPU（WASM）とWebGPUを通じて完全にデバイス上で実行され、データがデバイスの外に出ることは一切ありません。
+Sokujiは、オンデバイスAIとクラウドプロバイダーを活用したクロスプラットフォームのリアルタイム音声翻訳アプリです。デスクトップとブラウザの両方に対応しています。**ローカル推論**をサポートしており、WASMとWebGPUを使ったオンデバイスのASR・翻訳・TTSを提供します。APIキー不要、完全オフライン、プライバシーも完全に保護されます。また、OpenAI、Google Gemini、Palabra.ai、Kizuna AI、Volcengine ST、Doubao AST 2.0、OpenAI互換APIなどのクラウドプロバイダーとも統合されています。
 
 https://github.com/user-attachments/assets/1eaaa333-a7ce-4412-a295-16b7eb2310de
 
 # ブラウザ拡張機能が利用可能！
 
-デスクトップアプリケーションをインストールしたくない場合は、Chrome、Edge、その他のChromiumベースのブラウザ用のブラウザ拡張機能をお試しください。Google Meet、Microsoft Teams、Zoom、Discord、Slack、Gather.town、Wherebyなどの主要なビデオ会議プラットフォームとの統合により、ブラウザ内で直接同じ強力なリアルタイム音声翻訳機能を提供します。
+デスクトップアプリケーションをインストールしたくない場合は、Chrome、Edge、その他のChromiumベースのブラウザ向けのブラウザ拡張機能をお試しください。Google Meet、Microsoft Teams、Zoom、Discord、Slack、Gather.town、Wherebyなどの主要なビデオ会議プラットフォームとの統合により、ブラウザ内で直接同じ強力なリアルタイム音声翻訳機能を提供します。
 
 <p>
   <a href="https://chromewebstore.google.com/detail/ppmihnhelgfpjomhjhpecobloelicnak?utm_source=item-share-cb" target="_blank">
-    <img alt="Available on Chrome Web Store" src="https://github.com/kizuna-ai-lab/sokuji/raw/main/assets/chrome-web-store-badge.png" height="60" />
+    <img alt="Available on Chrome Web Store" src="https://github.com/kizuna-ai-lab/sokuji/raw/main/assets/chrome-web-store-badge.png" style="height: 60px;" />
   </a>
   <a href="https://microsoftedge.microsoft.com/addons/detail/sokuji-aipowered-live-/dcmmcdkeibkalgdjlahlembodjhijhkm" target="_blank">
-    <img alt="Available on Microsoft Edge Add-ons" src="https://github.com/kizuna-ai-lab/sokuji/raw/main/assets/edge-addons-badge.png" height="60" />
+    <img alt="Available on Microsoft Edge Add-ons" src="https://github.com/kizuna-ai-lab/sokuji/raw/main/assets/edge-addons-badge.png" style="height: 60px;" />
   </a>
   <a href="https://www.producthunt.com/posts/sokuji?embed=true&utm_source=badge-featured&utm_medium=badge&utm_source=badge-sokuji" target="_blank">
-    <img src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=967440&theme=light&t=1748250774125" alt="Sokuji - Live&#0032;speech&#0032;translation&#0032;with&#0032;real&#0045;time&#0032;AI | Product Hunt" style="width: 250px; height: 54px;" width="250" height="54" />
+    <img src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=967440&theme=light&t=1748250774125" alt="Sokuji - Live&#0032;speech&#0032;translation&#0032;with&#0032;real&#0045;time&#0032;AI | Product Hunt" style="height: 60px;" />
   </a>
 </p>
 
@@ -94,7 +94,7 @@ https://github.com/user-attachments/assets/1eaaa333-a7ce-4412-a295-16b7eb2310de
 - **ASR**: 48モデル（オフライン32 + ストリーミング10 + Whisper WebGPU 6）で99以上の言語をカバー（sherpa-onnx WASM + Whisper WebGPU）
 - **翻訳**: 55以上のOpus-MT言語ペア + 4つの多言語LLM（Qwen 2.5 / 3 / 3.5）WebGPU対応
 - **TTS**: 53言語にわたる136モデル（Piper、Coqui、Mimic3、Matchaエンジン）sherpa-onnx WASM経由
-- **ハードウェア柔軟性**: CPU（WASM）で汎用的な互換性、WebGPUでGPUアクセラレーション
+- **ハードウェアの柔軟性**: CPU（WASM）で汎用的な互換性、WebGPUでGPUアクセラレーション推論
 - **モデル管理**: ワンクリックダウンロード、IndexedDBキャッシュ、失敗時の再開
 
 ### オーディオ
@@ -118,8 +118,8 @@ https://github.com/user-attachments/assets/1eaaa333-a7ce-4412-a295-16b7eb2310de
   - 「オフ」オプション付きスピーカー選択
   - リアルタイムセッション時間表示
 - **多言語サポート**: 30言語の完全な国際化と英語フォールバック
-- **強化ツールチップ**: @floating-uiによるインタラクティブヘルプツールチップ
-- **API相互作用を追跡する包括的なログ**
+- **強化ツールチップ**: よりよいユーザーガイダンスのための@floating-uiによるインタラクティブヘルプツールチップ
+- **包括的なログ**: API相互作用の追跡
 
 ### 設定
 - **リアルタイムフィードバック付きAPIキー検証**
@@ -262,6 +262,31 @@ Sokujiのオーディオフロー：
 - クロスプラットフォームのシームレスなアプリ間オーディオルーティングのための仮想デバイス統合
 - ビデオ会議翻訳のためのシステムオーディオキャプチャ
 
+# アーキテクチャ
+
+Sokujiはコア機能に特化したシンプルなアーキテクチャを採用しています：
+
+## バックエンド（Cloudflare Workers）
+- **シンプル化されたユーザーシステム**: ユーザーテーブルとusage_logsテーブルのみ
+- **リアルタイム使用状況追跡**: リレーサーバーが直接使用データをデータベースに書き込み
+- **Better Auth**: すべてのユーザー認証とセッション管理を処理
+- **合理化されたAPI**: 必要最小限のエンドポイントのみ維持 (/quota, /check, /reset)
+
+## フロントエンド（React + TypeScript）  
+- **サービスファクトリパターン**: プラットフォーム固有の実装（Electron/ブラウザ拡張機能）
+- **モダン音声処理**: ScriptProcessorフォールバック付きのAudioWorklet
+- **統一コンポーネント**: 合理化されたUXのためのSimpleConfigPanelとSimpleMainPanel
+- **コンテキストベースのstate**: 外部state管理なしのReact Context API
+
+## データベーススキーマ
+```sql
+-- コアユーザーテーブル
+users (id, email, name, subscription, token_quota)
+
+-- 合理化された使用状況追跡（リレーによる書き込み）
+usage_logs (id, user_id, session_id, model, total_tokens, input_tokens, output_tokens, created_at)
+```
+
 # 使用技術
 
 - **ランタイム**: Electron 40+ (Windows、macOS、Linux) / Chrome Extension Manifest V3
@@ -311,7 +336,7 @@ Sokujiのオーディオフロー：
 
 # ライセンス
 
-このプロジェクトはAGPL-3.0ライセンスの下でライセンスされています。詳細は[LICENSE](LICENSE)ファイルを参照してください。
+[AGPL-3.0](../LICENSE)
 
 # サポート
 
