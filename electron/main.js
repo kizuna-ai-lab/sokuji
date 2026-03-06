@@ -62,6 +62,10 @@ app.setName('Eburon');
 app.commandLine.appendSwitch('application-name', 'Eburon');
 app.commandLine.appendSwitch('jack-name', 'Eburon');
 
+// Enable WebGPU for ONNX Runtime acceleration
+app.commandLine.appendSwitch('enable-unsafe-webgpu');
+app.commandLine.appendSwitch('enable-features', 'Vulkan');
+
 // Keep a global reference of the window object to prevent garbage collection
 let mainWindow;
 

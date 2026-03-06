@@ -1,6 +1,82 @@
-import { defineConfig, loadEnv } from 'vite'
+import { defineConfig, loadEnv, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 import electron from 'vite-plugin-electron/simple'
+import path from 'path'
+import fs from 'fs'
+
+/**
+ * Dev-only plugin: serve model-packs/tts/ files at /model-packs/tts/ URLs.
+ * TTS model .data and package-metadata.json files live in model-packs/tts/wasm-*
+ * and need to be accessible to the browser during development.
+ */
+function serveModelPacks(): Plugin {
+  return {
+    name: 'serve-model-packs',
+    configureServer(server) {
+      server.middlewares.use((req, res, next) => {
+        if (!req.url?.startsWith('/model-packs/tts/')) return next()
+        const filePath = path.join(process.cwd(), decodeURIComponent(req.url))
+        if (!fs.existsSync(filePath)) return next()
+        const stat = fs.statSync(filePath)
+        if (!stat.isFile()) return next()
+        res.setHeader('Content-Length', stat.size)
+        if (filePath.endsWith('.json')) res.setHeader('Content-Type', 'application/json')
+        else res.setHeader('Content-Type', 'application/octet-stream')
+        fs.createReadStream(filePath).pipe(res)
+      })
+    },
+  }
+}
+
+/**
+ * Dev-only plugin: serve onnxruntime-web files from node_modules/onnxruntime-web/dist/.
+ *
+ * Handles two cases:
+ * 1. Explicit wasmPaths requests from workers: /wasm/ort/ort-wasm-simd.wasm
+ *    Workers set env.backends.onnx.wasm.wasmPaths = '/wasm/ort/' to load ORT
+ *    runtime files. Vite's module transform rejects .mjs dynamic imports from
+ *    public/, so this middleware serves them directly.
+ *
+ * 2. ORT dynamic imports from Vite's pre-bundled .vite/deps/:
+ *    When onnxruntime-web is pre-bundled, ORT's runtime does
+ *    import('./ort-wasm-simd.mjs') relative to the bundle output. Those sibling
+ *    .mjs/.wasm files don't exist in .vite/deps/. This middleware catches them
+ *    by filename pattern.
+ */
+function serveOrtWasm(): Plugin {
+  return {
+    name: 'serve-ort-wasm',
+    configureServer(server) {
+      server.middlewares.use((req, res, next) => {
+        const url = req.url?.replace(/\?.*$/, '') || ''
+        let filename: string | null = null
+
+        if (url.startsWith('/wasm/ort/')) {
+          // Case 1: explicit wasmPaths from workers
+          filename = decodeURIComponent(url.replace('/wasm/ort/', ''))
+        } else {
+          // Case 2: ORT dynamic imports from .vite/deps/ or other paths
+          const match = url.match(/(ort-wasm[^/]*\.(?:mjs|js|wasm))$/)
+          if (match) filename = match[1]
+        }
+
+        if (!filename) return next()
+        const filePath = path.join(process.cwd(), 'node_modules/onnxruntime-web/dist', filename)
+        if (!fs.existsSync(filePath)) return next()
+        const stat = fs.statSync(filePath)
+        if (!stat.isFile()) return next()
+        res.setHeader('Content-Length', stat.size)
+        if (filename.endsWith('.mjs') || filename.endsWith('.js'))
+          res.setHeader('Content-Type', 'application/javascript')
+        else if (filename.endsWith('.wasm'))
+          res.setHeader('Content-Type', 'application/wasm')
+        else
+          res.setHeader('Content-Type', 'application/octet-stream')
+        fs.createReadStream(filePath).pipe(res)
+      })
+    },
+  }
+}
 
 // https://vitejs.dev/config/
 export default defineConfig(({ command, mode }) => {
@@ -14,6 +90,8 @@ export default defineConfig(({ command, mode }) => {
   
   return {
     plugins: [
+      isServe && serveModelPacks(),
+      isServe && serveOrtWasm(),
       react(),
       ...(isElectronTarget ? [
         electron({
@@ -69,7 +147,7 @@ export default defineConfig(({ command, mode }) => {
     ],
     server: {
       port: 5173,
-      host: true
+      host: true,
     },
     build: {
       outDir: 'build',
@@ -87,7 +165,8 @@ export default defineConfig(({ command, mode }) => {
       }
     },
     optimizeDeps: {
-      exclude: isElectronTarget ? ['electron'] : []
+      exclude: ['electron'],
+      include: ['@huggingface/transformers', 'onnxruntime-web'],
     }
   }
 }) 

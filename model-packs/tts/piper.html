@@ -1,0 +1,1528 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Piper TTS Browser Demo</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #1a1a2e;
+      color: #e0e0e0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem 1rem;
+    }
+    h1 { font-size: 1.5rem; margin-bottom: 0.5rem; color: #fff; }
+    .subtitle { color: #888; font-size: 0.9rem; margin-bottom: 1.5rem; }
+    .subtitle a { color: #51cf66; text-decoration: none; }
+    .subtitle a:hover { text-decoration: underline; }
+    .container {
+      width: 100%;
+      max-width: 640px;
+      background: #16213e;
+      border-radius: 12px;
+      padding: 1.5rem;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    }
+    .status-bar {
+      background: #0f3460;
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      margin-bottom: 1.5rem;
+      font-size: 0.85rem;
+      min-height: 2.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .status-bar.error { background: #4a1528; color: #ff6b6b; }
+    .status-bar.ready { background: #1a3a2a; color: #51cf66; }
+    .spinner {
+      width: 16px; height: 16px;
+      border: 2px solid #555;
+      border-top-color: #51cf66;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    label { display: block; font-size: 0.85rem; color: #aaa; margin-bottom: 0.3rem; }
+    .field { margin-bottom: 1rem; }
+    textarea {
+      width: 100%;
+      background: #0f3460;
+      color: #e0e0e0;
+      border: 1px solid #333;
+      border-radius: 8px;
+      padding: 0.75rem;
+      font-size: 0.95rem;
+      font-family: inherit;
+      resize: vertical;
+      min-height: 80px;
+    }
+    textarea:focus { outline: none; border-color: #51cf66; }
+    .row { display: flex; gap: 1rem; }
+    .row .field { flex: 1; }
+    input[type="number"], input[type="range"] {
+      width: 100%;
+      background: #0f3460;
+      color: #e0e0e0;
+      border: 1px solid #333;
+      border-radius: 6px;
+      padding: 0.5rem 0.75rem;
+      font-size: 0.9rem;
+    }
+    input[type="range"] { padding: 0.25rem 0; }
+    input:focus { outline: none; border-color: #51cf66; }
+    .range-row { display: flex; align-items: center; gap: 0.75rem; }
+    button#generate {
+      width: 100%;
+      padding: 0.75rem;
+      background: #10a37f;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    button#generate:hover:not(:disabled) { background: #0d8c6c; }
+    button#generate:disabled { opacity: 0.4; cursor: not-allowed; }
+    .audio-output { margin-top: 1.5rem; }
+    .audio-output audio { width: 100%; margin-top: 0.5rem; }
+    .timing { font-size: 0.8rem; color: #888; margin-top: 0.3rem; }
+    .log {
+      margin-top: 1.5rem;
+      background: #0a0a1a;
+      border-radius: 8px;
+      padding: 0.75rem;
+      font-family: monospace;
+      font-size: 0.75rem;
+      color: #888;
+      max-height: 200px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+    /* Precision selector */
+    .precision-group {
+      display: flex;
+      gap: 0.75rem;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .precision-group label.radio-label {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      font-size: 0.85rem;
+      color: #ccc;
+      cursor: pointer;
+      padding: 0.4rem 0.75rem;
+      border-radius: 6px;
+      border: 1px solid #333;
+      background: #0f3460;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .precision-group label.radio-label:hover { border-color: #51cf66; }
+    .precision-group label.radio-label.selected {
+      border-color: #51cf66;
+      background: #1a3a2a;
+      color: #51cf66;
+    }
+    .precision-group label.radio-label.disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+    .precision-group label.radio-label.disabled:hover { border-color: #333; }
+    .precision-group input[type="radio"] { display: none; }
+    .precision-size { font-size: 0.75rem; color: #888; }
+    button#loadModel {
+      width: 100%;
+      padding: 0.6rem;
+      background: #0f3460;
+      color: #51cf66;
+      border: 1px solid #51cf66;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    button#loadModel:hover:not(:disabled) { background: #1a3a2a; }
+    button#loadModel:disabled { opacity: 0.4; cursor: not-allowed; border-color: #555; color: #888; }
+    .reload-note {
+      font-size: 0.75rem;
+      color: #ff6b6b;
+      margin-top: 0.3rem;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+<h1 id="pageTitle">Piper TTS Browser Demo</h1>
+<p class="subtitle">sherpa-onnx Piper VITS &mdash; <a href="kitten.html">Kitten</a> &middot; <a href="kokoro.html">Kokoro</a> &middot; <a href="index.html">All demos</a></p>
+
+<div class="container">
+  <div id="status" class="status-bar">
+    <span>Select precision and click Load Model</span>
+  </div>
+
+  <div class="field">
+    <label>Precision</label>
+    <div class="precision-group" id="precisionGroup">
+      <label class="radio-label selected" data-variant="fp32">
+        <input type="radio" name="precision" value="fp32" checked>
+        fp32 <span class="precision-size">(~64 MB)</span>
+      </label>
+      <label class="radio-label" data-variant="int8">
+        <input type="radio" name="precision" value="int8">
+        int8 <span class="precision-size">(~20 MB)</span>
+      </label>
+    </div>
+    <div id="reloadNote" class="reload-note">Reload page to change precision</div>
+  </div>
+
+  <div class="field">
+    <button id="loadModel">Load Model</button>
+  </div>
+
+  <div class="field">
+    <label for="text">Text to synthesize</label>
+    <textarea id="text" rows="3">Hello! This is a test of the Piper text to speech model running in your browser with WebAssembly.</textarea>
+  </div>
+
+  <div class="row">
+    <div class="field">
+      <label for="sid">Speaker ID</label>
+      <input type="number" id="sid" value="0" min="0" step="1">
+    </div>
+    <div class="field">
+      <label for="speed">Speed: <span id="speedVal">1.0</span></label>
+      <div class="range-row">
+        <input type="range" id="speed" min="0.3" max="3.0" step="0.1" value="1.0">
+      </div>
+    </div>
+  </div>
+
+  <button id="generate" disabled>Generate</button>
+
+  <div id="audioOutput" class="audio-output" style="display:none">
+    <label>Output</label>
+    <audio id="player" controls></audio>
+    <div id="timing" class="timing"></div>
+  </div>
+
+  <div id="log" class="log"></div>
+</div>
+
+<script>
+// --- Piper model registry ---
+var PIPER_MODELS = {
+  'piper-en-libritts_r-medium': {
+    onnx: 'en_US-libritts_r-medium.onnx',
+    name: 'Piper EN (US)',
+    lang: 'en',
+    defaultText: 'Hello! This is a test of the Piper English text to speech model running in your browser with WebAssembly.'
+  },
+  'piper-zh-huayan-medium': {
+    onnx: 'zh_CN-huayan-medium.onnx',
+    name: 'Piper ZH (CN)',
+    lang: 'zh',
+    defaultText: '\u4F60\u597D\uFF01\u8FD9\u662F\u4E00\u4E2APiper\u4E2D\u6587\u8BED\u97F3\u5408\u6210\u6D4B\u8BD5\uFF0C\u5B8C\u5168\u5728\u6D4F\u89C8\u5668\u4E2D\u8FD0\u884C\u3002'
+  },
+  'piper-de-thorsten_emotional-medium': {
+    onnx: 'de_DE-thorsten_emotional-medium.onnx',
+    name: 'Piper DE',
+    lang: 'de',
+    defaultText: 'Hallo! Dies ist ein Test des Piper deutschen Text-zu-Sprache-Modells, das vollst\u00E4ndig in Ihrem Browser l\u00E4uft.'
+  },
+  'piper-ar-kareem-medium': {
+    onnx: 'ar_JO-kareem-medium.onnx',
+    name: 'Piper AR (Arabic)',
+    lang: 'ar',
+    defaultText: 'مرحبا! هذا اختبار لنموذج تحويل النص إلى كلام باللغة العربية.'
+  },
+  'piper-ca-upc_ona-medium': {
+    onnx: 'ca_ES-upc_ona-medium.onnx',
+    name: 'Piper CA (Catalan)',
+    lang: 'ca',
+    defaultText: 'Hola! Aquesta és una prova del model de síntesi de veu en català Piper.'
+  },
+  'piper-cs-jirka-medium': {
+    onnx: 'cs_CZ-jirka-medium.onnx',
+    name: 'Piper CS (Czech)',
+    lang: 'cs',
+    defaultText: 'Ahoj! Toto je test českého modelu syntézy řeči Piper v prohlížeči.'
+  },
+  'piper-cy-gwryw_gogleddol-medium': {
+    onnx: 'cy_GB-gwryw_gogleddol-medium.onnx',
+    name: 'Piper CY (Welsh)',
+    lang: 'cy',
+    defaultText: 'Helo! Dyma brawf o\'r model testun i leferydd Cymraeg Piper.'
+  },
+  'piper-da-talesyntese-medium': {
+    onnx: 'da_DK-talesyntese-medium.onnx',
+    name: 'Piper DA (Danish)',
+    lang: 'da',
+    defaultText: 'Hej! Dette er en test af den danske Piper tekst til tale model.'
+  },
+  'piper-el-rapunzelina-low': {
+    onnx: 'el_GR-rapunzelina-low.onnx',
+    name: 'Piper EL (Greek)',
+    lang: 'el',
+    defaultText: 'Γεια σας! Αυτή είναι μια δοκιμή του ελληνικού μοντέλου σύνθεσης ομιλίας Piper.'
+  },
+  'piper-en-gb-northern_english_male-medium': {
+    onnx: 'en_GB-northern_english_male-medium.onnx',
+    name: 'Piper EN (GB)',
+    lang: 'en',
+    defaultText: 'Hello! This is a test of the Piper British English text to speech model running in your browser.'
+  },
+  'piper-es-davefx-medium': {
+    onnx: 'es_ES-davefx-medium.onnx',
+    name: 'Piper ES (Spain)',
+    lang: 'es',
+    defaultText: '¡Hola! Esta es una prueba del modelo de síntesis de voz en español de Piper.'
+  },
+  'piper-es-ar-daniela-high': {
+    onnx: 'es_AR-daniela-high.onnx',
+    name: 'Piper ES (Argentina)',
+    lang: 'es',
+    defaultText: '¡Hola! Esta es una prueba del modelo de síntesis de voz en español argentino de Piper.'
+  },
+  'piper-es-mx-ald-medium': {
+    onnx: 'es_MX-ald-medium.onnx',
+    name: 'Piper ES (Mexico)',
+    lang: 'es',
+    defaultText: '¡Hola! Esta es una prueba del modelo de síntesis de voz en español mexicano de Piper.'
+  },
+  'piper-fa-amir-medium': {
+    onnx: 'fa_IR-amir-medium.onnx',
+    name: 'Piper FA (Persian)',
+    lang: 'fa',
+    defaultText: 'سلام! این یک آزمایش مدل تبدیل متن به گفتار فارسی Piper است.'
+  },
+  'piper-fa-en-rezahedayatfar-ibrahimwalk-medium': {
+    onnx: 'fa_en-rezahedayatfar-ibrahimwalk-medium.onnx',
+    name: 'Piper FA-EN (Bilingual)',
+    lang: 'fa',
+    defaultText: 'This is a bilingual Persian and English Piper text to speech test.'
+  },
+  'piper-fi-harri-medium': {
+    onnx: 'fi_FI-harri-medium.onnx',
+    name: 'Piper FI (Finnish)',
+    lang: 'fi',
+    defaultText: 'Hei! Tämä on testi suomalaisesta Piper tekstistä puheeksi mallista.'
+  },
+  'piper-fr-tom-medium': {
+    onnx: 'fr_FR-tom-medium.onnx',
+    name: 'Piper FR (French)',
+    lang: 'fr',
+    defaultText: 'Bonjour! Ceci est un test du modèle de synthèse vocale Piper en français.'
+  },
+  'piper-hi-rohan-medium': {
+    onnx: 'hi_IN-rohan-medium.onnx',
+    name: 'Piper HI (Hindi)',
+    lang: 'hi',
+    defaultText: 'नमस्ते! यह Piper हिंदी टेक्स्ट टू स्पीच मॉडल का एक परीक्षण है।'
+  },
+  'piper-hu-anna-medium': {
+    onnx: 'hu_HU-anna-medium.onnx',
+    name: 'Piper HU (Hungarian)',
+    lang: 'hu',
+    defaultText: 'Szia! Ez egy teszt a magyar Piper szövegfelolvasó modellhez a böngészőben.'
+  },
+  'piper-id-news_tts-medium': {
+    onnx: 'id_ID-news_tts-medium.onnx',
+    name: 'Piper ID (Indonesian)',
+    lang: 'id',
+    defaultText: 'Halo! Ini adalah tes model text to speech Piper bahasa Indonesia.'
+  },
+  'piper-is-bui-medium': {
+    onnx: 'is_IS-bui-medium.onnx',
+    name: 'Piper IS (Icelandic)',
+    lang: 'is',
+    defaultText: 'Halló! Þetta er prófun á íslensku Piper texta í tal líkani.'
+  },
+  'piper-it-paola-medium': {
+    onnx: 'it_IT-paola-medium.onnx',
+    name: 'Piper IT (Italian)',
+    lang: 'it',
+    defaultText: 'Ciao! Questo è un test del modello di sintesi vocale Piper in italiano.'
+  },
+  'piper-ka-natia-medium': {
+    onnx: 'ka_GE-natia-medium.onnx',
+    name: 'Piper KA (Georgian)',
+    lang: 'ka',
+    defaultText: 'გამარჯობა! ეს არის ქართული Piper ტექსტიდან მეტყველების მოდელის ტესტი.'
+  },
+  'piper-kk-issai-high': {
+    onnx: 'kk_KZ-issai-high.onnx',
+    name: 'Piper KK (Kazakh)',
+    lang: 'kk',
+    defaultText: 'Сәлем! Бұл қазақ тілінде Piper мәтінді дыбысқа айналдыру моделінің сынағы.'
+  },
+  'piper-lb-marylux-medium': {
+    onnx: 'lb_LU-marylux-medium.onnx',
+    name: 'Piper LB (Luxembourgish)',
+    lang: 'lb',
+    defaultText: 'Moien! Dëst ass en Test vum Lëtzebuergeschen Piper Text-zu-Sprooch Modell.'
+  },
+  'piper-lv-aivars-medium': {
+    onnx: 'lv_LV-aivars-medium.onnx',
+    name: 'Piper LV (Latvian)',
+    lang: 'lv',
+    defaultText: 'Sveiki! Šis ir latviešu Piper teksta pārvēršanas runā modeļa tests.'
+  },
+  'piper-ml-meera-medium': {
+    onnx: 'ml_IN-meera-medium.onnx',
+    name: 'Piper ML (Malayalam)',
+    lang: 'ml',
+    defaultText: 'നമസ്കാരം! ഇത് മലയാളം Piper ടെക്സ്റ്റ് ടു സ്പീച്ച് മോഡലിന്റെ പരീക്ഷണമാണ്.'
+  },
+  'piper-ne-chitwan-medium': {
+    onnx: 'ne_NP-chitwan-medium.onnx',
+    name: 'Piper NE (Nepali)',
+    lang: 'ne',
+    defaultText: 'नमस्कार! यो नेपाली Piper टेक्स्ट टु स्पीच मोडेलको परीक्षण हो।'
+  },
+  'piper-nl-ronnie-medium': {
+    onnx: 'nl_NL-ronnie-medium.onnx',
+    name: 'Piper NL (Netherlands)',
+    lang: 'nl',
+    defaultText: 'Hallo! Dit is een test van het Nederlandse Piper tekst naar spraak model.'
+  },
+  'piper-nl-be-rdh-medium': {
+    onnx: 'nl_BE-rdh-medium.onnx',
+    name: 'Piper NL (Belgium)',
+    lang: 'nl',
+    defaultText: 'Hallo! Dit is een test van het Belgisch-Nederlandse Piper tekst naar spraak model.'
+  },
+  'piper-no-talesyntese-medium': {
+    onnx: 'no_NO-talesyntese-medium.onnx',
+    name: 'Piper NO (Norwegian)',
+    lang: 'no',
+    defaultText: 'Hei! Dette er en test av den norske Piper tekst til tale modellen.'
+  },
+  'piper-pl-darkman-medium': {
+    onnx: 'pl_PL-darkman-medium.onnx',
+    name: 'Piper PL (Polish)',
+    lang: 'pl',
+    defaultText: 'Cześć! To jest test polskiego modelu Piper zamiany tekstu na mowę.'
+  },
+  'piper-pt-tugao-medium': {
+    onnx: 'pt_PT-tugao-medium.onnx',
+    name: 'Piper PT (Portugal)',
+    lang: 'pt',
+    defaultText: 'Olá! Este é um teste do modelo de síntese de voz Piper em português europeu.'
+  },
+  'piper-pt-br-faber-medium': {
+    onnx: 'pt_BR-faber-medium.onnx',
+    name: 'Piper PT (Brazil)',
+    lang: 'pt',
+    defaultText: 'Olá! Este é um teste do modelo de síntese de voz Piper em português brasileiro.'
+  },
+  'piper-ro-mihai-medium': {
+    onnx: 'ro_RO-mihai-medium.onnx',
+    name: 'Piper RO (Romanian)',
+    lang: 'ro',
+    defaultText: 'Bună! Acesta este un test al modelului de sinteză vocală Piper în limba română.'
+  },
+  'piper-ru-irina-medium': {
+    onnx: 'ru_RU-irina-medium.onnx',
+    name: 'Piper RU (Russian)',
+    lang: 'ru',
+    defaultText: 'Привет! Это тест модели синтеза речи Piper на русском языке.'
+  },
+  'piper-sk-lili-medium': {
+    onnx: 'sk_SK-lili-medium.onnx',
+    name: 'Piper SK (Slovak)',
+    lang: 'sk',
+    defaultText: 'Ahoj! Toto je test slovenského modelu Piper syntézy reči.'
+  },
+  'piper-sl-artur-medium': {
+    onnx: 'sl_SI-artur-medium.onnx',
+    name: 'Piper SL (Slovenian)',
+    lang: 'sl',
+    defaultText: 'Živijo! To je preizkus slovenskega Piper modela za pretvorbo besedila v govor.'
+  },
+  'piper-sr-serbski_institut-medium': {
+    onnx: 'sr_RS-serbski_institut-medium.onnx',
+    name: 'Piper SR (Serbian)',
+    lang: 'sr',
+    defaultText: 'Здраво! Ово је тест српског Piper модела за синтезу говора.'
+  },
+  'piper-sv-nst-medium': {
+    onnx: 'sv_SE-nst-medium.onnx',
+    name: 'Piper SV (Swedish)',
+    lang: 'sv',
+    defaultText: 'Hej! Det här är ett test av den svenska Piper text till tal modellen.'
+  },
+  'piper-sw-lanfrica-medium': {
+    onnx: 'sw_CD-lanfrica-medium.onnx',
+    name: 'Piper SW (Swahili)',
+    lang: 'sw',
+    defaultText: 'Habari! Hii ni jaribio la mfano wa Piper kubadilisha maandishi kuwa hotuba kwa Kiswahili.'
+  },
+  'piper-tr-fettah-medium': {
+    onnx: 'tr_TR-fettah-medium.onnx',
+    name: 'Piper TR (Turkish)',
+    lang: 'tr',
+    defaultText: 'Merhaba! Bu Piper Türkçe metin okuma modelinin bir testidir.'
+  },
+  'piper-uk-ukrainian_tts-medium': {
+    onnx: 'uk_UA-ukrainian_tts-medium.onnx',
+    name: 'Piper UK (Ukrainian)',
+    lang: 'uk',
+    defaultText: 'Привіт! Це тест української моделі синтезу мовлення Piper.'
+  },
+  'piper-vi-vais1000-medium': {
+    onnx: 'vi_VN-vais1000-medium.onnx',
+    name: 'Piper VI (Vietnamese)',
+    lang: 'vi',
+    defaultText: 'Xin chào! Đây là bài kiểm tra mô hình chuyển văn bản thành giọng nói Piper tiếng Việt.'
+  },
+  'piper-nl-be-rdh-x_low': {
+    onnx: 'nl_BE-rdh-x_low.onnx',
+    name: 'Piper NL-BE RDH (X-Low)',
+    lang: 'nl',
+    defaultText: 'Hallo! Dit is een test van het Nederlandse Piper tekst naar spraak model.'
+  },
+  'piper-ca-upc_ona-x_low': {
+    onnx: 'ca_ES-upc_ona-x_low.onnx',
+    name: 'Piper CA Upc Ona (X-Low)',
+    lang: 'ca',
+    defaultText: 'Hola! Aquesta és una prova del model de síntesi de veu en català Piper.'
+  },
+  'piper-ca-upc_pau-x_low': {
+    onnx: 'ca_ES-upc_pau-x_low.onnx',
+    name: 'Piper CA Upc Pau (X-Low)',
+    lang: 'ca',
+    defaultText: 'Hola! Aquesta és una prova del model de síntesi de veu en català Piper.'
+  },
+  'piper-de-eva_k-x_low': {
+    onnx: 'de_DE-eva_k-x_low.onnx',
+    name: 'Piper DE Eva K (X-Low)',
+    lang: 'de',
+    defaultText: 'Hallo! Dies ist ein Test des Piper deutschen Text-zu-Sprache-Modells, das vollständig in Ihrem Browser läuft.'
+  },
+  'piper-es-carlfm-x_low': {
+    onnx: 'es_ES-carlfm-x_low.onnx',
+    name: 'Piper ES Carlfm (X-Low)',
+    lang: 'es',
+    defaultText: '¡Hola! Esta es una prueba del modelo de síntesis de voz en español de Piper.'
+  },
+  'piper-it-riccardo-x_low': {
+    onnx: 'it_IT-riccardo-x_low.onnx',
+    name: 'Piper IT Riccardo (X-Low)',
+    lang: 'it',
+    defaultText: 'Ciao! Questo è un test del modello di sintesi vocale Piper in italiano.'
+  },
+  'piper-kk-iseke-x_low': {
+    onnx: 'kk_KZ-iseke-x_low.onnx',
+    name: 'Piper KK Iseke (X-Low)',
+    lang: 'kk',
+    defaultText: 'Сәлем! Бұл қазақ тілінде Piper мәтінді дыбысқа айналдыру моделінің сынағы.'
+  },
+  'piper-kk-raya-x_low': {
+    onnx: 'kk_KZ-raya-x_low.onnx',
+    name: 'Piper KK Raya (X-Low)',
+    lang: 'kk',
+    defaultText: 'Сәлем! Бұл қазақ тілінде Piper мәтінді дыбысқа айналдыру моделінің сынағы.'
+  },
+  'piper-nl-be-nathalie-x_low': {
+    onnx: 'nl_BE-nathalie-x_low.onnx',
+    name: 'Piper NL-BE Nathalie (X-Low)',
+    lang: 'nl',
+    defaultText: 'Hallo! Dit is een test van het Nederlandse Piper tekst naar spraak model.'
+  },
+  'piper-uk-lada-x_low': {
+    onnx: 'uk_UA-lada-x_low.onnx',
+    name: 'Piper UK Lada (X-Low)',
+    lang: 'uk',
+    defaultText: 'Привіт! Це тест української моделі синтезу мовлення Piper.'
+  },
+  'piper-ne-google-x_low': {
+    onnx: 'ne_NP-google-x_low.onnx',
+    name: 'Piper NE Google (X-Low)',
+    lang: 'ne',
+    defaultText: 'नमस्कार! यो नेपाली Piper टेक्स्ट टु स्पीच मोडेलको परीक्षण हो।'
+  },
+  'piper-vi-vivos-x_low': {
+    onnx: 'vi_VN-vivos-x_low.onnx',
+    name: 'Piper VI Vivos (X-Low)',
+    lang: 'vi',
+    defaultText: 'Xin chào! Đây là bài kiểm tra mô hình chuyển văn bản thành giọng nói Piper tiếng Việt.'
+  },
+  'piper-fr-siwis-low': {
+    onnx: 'fr_FR-siwis-low.onnx',
+    name: 'Piper FR Siwis (Low)',
+    lang: 'fr',
+    defaultText: 'Bonjour! Ceci est un test du modèle de synthèse vocale Piper en français.'
+  },
+  'piper-ar-kareem-low': {
+    onnx: 'ar_JO-kareem-low.onnx',
+    name: 'Piper AR Kareem (Low)',
+    lang: 'ar',
+    defaultText: 'مرحبا! هذا اختبار لنموذج تحويل النص إلى كلام باللغة العربية.'
+  },
+  'piper-cs-jirka-low': {
+    onnx: 'cs_CZ-jirka-low.onnx',
+    name: 'Piper CS Jirka (Low)',
+    lang: 'cs',
+    defaultText: 'Ahoj! Toto je test českého modelu syntézy řeči Piper v prohlížeči.'
+  },
+  'piper-de-glados-low': {
+    onnx: 'de_DE-glados-low.onnx',
+    name: 'Piper DE Glados (Low)',
+    lang: 'de',
+    defaultText: 'Hallo! Dies ist ein Test des Piper deutschen Text-zu-Sprache-Modells, das vollständig in Ihrem Browser läuft.'
+  },
+  'piper-de-glados_turret-low': {
+    onnx: 'de_DE-glados_turret-low.onnx',
+    name: 'Piper DE Glados Turret (Low)',
+    lang: 'de',
+    defaultText: 'Hallo! Dies ist ein Test des Piper deutschen Text-zu-Sprache-Modells, das vollständig in Ihrem Browser läuft.'
+  },
+  'piper-de-karlsson-low': {
+    onnx: 'de_DE-karlsson-low.onnx',
+    name: 'Piper DE Karlsson (Low)',
+    lang: 'de',
+    defaultText: 'Hallo! Dies ist ein Test des Piper deutschen Text-zu-Sprache-Modells, das vollständig in Ihrem Browser läuft.'
+  },
+  'piper-de-kerstin-low': {
+    onnx: 'de_DE-kerstin-low.onnx',
+    name: 'Piper DE Kerstin (Low)',
+    lang: 'de',
+    defaultText: 'Hallo! Dies ist ein Test des Piper deutschen Text-zu-Sprache-Modells, das vollständig in Ihrem Browser läuft.'
+  },
+  'piper-de-pavoque-low': {
+    onnx: 'de_DE-pavoque-low.onnx',
+    name: 'Piper DE Pavoque (Low)',
+    lang: 'de',
+    defaultText: 'Hallo! Dies ist ein Test des Piper deutschen Text-zu-Sprache-Modells, das vollständig in Ihrem Browser läuft.'
+  },
+  'piper-de-ramona-low': {
+    onnx: 'de_DE-ramona-low.onnx',
+    name: 'Piper DE Ramona (Low)',
+    lang: 'de',
+    defaultText: 'Hallo! Dies ist ein Test des Piper deutschen Text-zu-Sprache-Modells, das vollständig in Ihrem Browser läuft.'
+  },
+  'piper-de-thorsten-low': {
+    onnx: 'de_DE-thorsten-low.onnx',
+    name: 'Piper DE Thorsten (Low)',
+    lang: 'de',
+    defaultText: 'Hallo! Dies ist ein Test des Piper deutschen Text-zu-Sprache-Modells, das vollständig in Ihrem Browser läuft.'
+  },
+  'piper-en-gb-alan-low': {
+    onnx: 'en_GB-alan-low.onnx',
+    name: 'Piper EN-GB Alan (Low)',
+    lang: 'en',
+    defaultText: 'Hello! This is a test of the Piper English text to speech model running in your browser with WebAssembly.'
+  },
+  'piper-en-gb-south-female-low': {
+    onnx: 'en_GB-southern_english_female-low.onnx',
+    name: 'Piper EN-GB South Female (Low)',
+    lang: 'en',
+    defaultText: 'Hello! This is a test of the Piper English text to speech model running in your browser with WebAssembly.'
+  },
+  'piper-en-amy-low': {
+    onnx: 'en_US-amy-low.onnx',
+    name: 'Piper EN Amy (Low)',
+    lang: 'en',
+    defaultText: 'Hello! This is a test of the Piper English text to speech model running in your browser with WebAssembly.'
+  },
+  'piper-en-danny-low': {
+    onnx: 'en_US-danny-low.onnx',
+    name: 'Piper EN Danny (Low)',
+    lang: 'en',
+    defaultText: 'Hello! This is a test of the Piper English text to speech model running in your browser with WebAssembly.'
+  },
+  'piper-en-kathleen-low': {
+    onnx: 'en_US-kathleen-low.onnx',
+    name: 'Piper EN Kathleen (Low)',
+    lang: 'en',
+    defaultText: 'Hello! This is a test of the Piper English text to speech model running in your browser with WebAssembly.'
+  },
+  'piper-en-lessac-low': {
+    onnx: 'en_US-lessac-low.onnx',
+    name: 'Piper EN Lessac (Low)',
+    lang: 'en',
+    defaultText: 'Hello! This is a test of the Piper English text to speech model running in your browser with WebAssembly.'
+  },
+  'piper-en-ryan-low': {
+    onnx: 'en_US-ryan-low.onnx',
+    name: 'Piper EN Ryan (Low)',
+    lang: 'en',
+    defaultText: 'Hello! This is a test of the Piper English text to speech model running in your browser with WebAssembly.'
+  },
+  'piper-fi-harri-low': {
+    onnx: 'fi_FI-harri-low.onnx',
+    name: 'Piper FI Harri (Low)',
+    lang: 'fi',
+    defaultText: 'Hei! Tämä on testi suomalaisesta Piper tekstistä puheeksi mallista.'
+  },
+  'piper-fr-gilles-low': {
+    onnx: 'fr_FR-gilles-low.onnx',
+    name: 'Piper FR Gilles (Low)',
+    lang: 'fr',
+    defaultText: 'Bonjour! Ceci est un test du modèle de synthèse vocale Piper en français.'
+  },
+  'piper-pt-br-edresson-low': {
+    onnx: 'pt_BR-edresson-low.onnx',
+    name: 'Piper PT-BR Edresson (Low)',
+    lang: 'pt',
+    defaultText: 'Olá! Este é um teste do modelo de síntese de voz Piper em português brasileiro.'
+  },
+  'piper-vi-25hours-low': {
+    onnx: 'vi_VN-25hours_single-low.onnx',
+    name: 'Piper VI 25hours (Low)',
+    lang: 'vi',
+    defaultText: 'Xin chào! Đây là bài kiểm tra mô hình chuyển văn bản thành giọng nói Piper tiếng Việt.'
+  },
+  'piper-de-glados-medium': {
+    onnx: 'de_DE-glados-medium.onnx',
+    name: 'Piper DE Glados (Medium)',
+    lang: 'de',
+    defaultText: 'Hallo! Dies ist ein Test des Piper deutschen Text-zu-Sprache-Modells, das vollständig in Ihrem Browser läuft.'
+  },
+  'piper-de-glados_turret-medium': {
+    onnx: 'de_DE-glados_turret-medium.onnx',
+    name: 'Piper DE Glados Turret (Medium)',
+    lang: 'de',
+    defaultText: 'Hallo! Dies ist ein Test des Piper deutschen Text-zu-Sprache-Modells, das vollständig in Ihrem Browser läuft.'
+  },
+  'piper-de-thorsten-medium': {
+    onnx: 'de_DE-thorsten-medium.onnx',
+    name: 'Piper DE Thorsten (Medium)',
+    lang: 'de',
+    defaultText: 'Hallo! Dies ist ein Test des Piper deutschen Text-zu-Sprache-Modells, das vollständig in Ihrem Browser läuft.'
+  },
+  'piper-en-gb-alan-medium': {
+    onnx: 'en_GB-alan-medium.onnx',
+    name: 'Piper EN-GB Alan (Medium)',
+    lang: 'en',
+    defaultText: 'Hello! This is a test of the Piper English text to speech model running in your browser with WebAssembly.'
+  },
+  'piper-en-gb-alba-medium': {
+    onnx: 'en_GB-alba-medium.onnx',
+    name: 'Piper EN-GB Alba (Medium)',
+    lang: 'en',
+    defaultText: 'Hello! This is a test of the Piper English text to speech model running in your browser with WebAssembly.'
+  },
+  'piper-en-gb-cori-medium': {
+    onnx: 'en_GB-cori-medium.onnx',
+    name: 'Piper EN-GB Cori (Medium)',
+    lang: 'en',
+    defaultText: 'Hello! This is a test of the Piper English text to speech model running in your browser with WebAssembly.'
+  },
+  'piper-en-gb-jenny-medium': {
+    onnx: 'en_GB-jenny_dioco-medium.onnx',
+    name: 'Piper EN-GB Jenny (Medium)',
+    lang: 'en',
+    defaultText: 'Hello! This is a test of the Piper English text to speech model running in your browser with WebAssembly.'
+  },
+  'piper-en-amy-medium': {
+    onnx: 'en_US-amy-medium.onnx',
+    name: 'Piper EN Amy (Medium)',
+    lang: 'en',
+    defaultText: 'Hello! This is a test of the Piper English text to speech model running in your browser with WebAssembly.'
+  },
+  'piper-en-bryce-medium': {
+    onnx: 'en_US-bryce-medium.onnx',
+    name: 'Piper EN Bryce (Medium)',
+    lang: 'en',
+    defaultText: 'Hello! This is a test of the Piper English text to speech model running in your browser with WebAssembly.'
+  },
+  'piper-en-hfc_female-medium': {
+    onnx: 'en_US-hfc_female-medium.onnx',
+    name: 'Piper EN HFC Female (Medium)',
+    lang: 'en',
+    defaultText: 'Hello! This is a test of the Piper English text to speech model running in your browser with WebAssembly.'
+  },
+  'piper-en-hfc_male-medium': {
+    onnx: 'en_US-hfc_male-medium.onnx',
+    name: 'Piper EN HFC Male (Medium)',
+    lang: 'en',
+    defaultText: 'Hello! This is a test of the Piper English text to speech model running in your browser with WebAssembly.'
+  },
+  'piper-en-joe-medium': {
+    onnx: 'en_US-joe-medium.onnx',
+    name: 'Piper EN Joe (Medium)',
+    lang: 'en',
+    defaultText: 'Hello! This is a test of the Piper English text to speech model running in your browser with WebAssembly.'
+  },
+  'piper-en-john-medium': {
+    onnx: 'en_US-john-medium.onnx',
+    name: 'Piper EN John (Medium)',
+    lang: 'en',
+    defaultText: 'Hello! This is a test of the Piper English text to speech model running in your browser with WebAssembly.'
+  },
+  'piper-en-kristin-medium': {
+    onnx: 'en_US-kristin-medium.onnx',
+    name: 'Piper EN Kristin (Medium)',
+    lang: 'en',
+    defaultText: 'Hello! This is a test of the Piper English text to speech model running in your browser with WebAssembly.'
+  },
+  'piper-en-kusal-medium': {
+    onnx: 'en_US-kusal-medium.onnx',
+    name: 'Piper EN Kusal (Medium)',
+    lang: 'en',
+    defaultText: 'Hello! This is a test of the Piper English text to speech model running in your browser with WebAssembly.'
+  },
+  'piper-en-lessac-medium': {
+    onnx: 'en_US-lessac-medium.onnx',
+    name: 'Piper EN Lessac (Medium)',
+    lang: 'en',
+    defaultText: 'Hello! This is a test of the Piper English text to speech model running in your browser with WebAssembly.'
+  },
+  'piper-en-ljspeech-medium': {
+    onnx: 'en_US-ljspeech-medium.onnx',
+    name: 'Piper EN LJSpeech (Medium)',
+    lang: 'en',
+    defaultText: 'Hello! This is a test of the Piper English text to speech model running in your browser with WebAssembly.'
+  },
+  'piper-en-norman-medium': {
+    onnx: 'en_US-norman-medium.onnx',
+    name: 'Piper EN Norman (Medium)',
+    lang: 'en',
+    defaultText: 'Hello! This is a test of the Piper English text to speech model running in your browser with WebAssembly.'
+  },
+  'piper-en-reza-medium': {
+    onnx: 'en_US-reza_ibrahim-medium.onnx',
+    name: 'Piper EN Reza (Medium)',
+    lang: 'en',
+    defaultText: 'Hello! This is a test of the Piper English text to speech model running in your browser with WebAssembly.'
+  },
+  'piper-en-ryan-medium': {
+    onnx: 'en_US-ryan-medium.onnx',
+    name: 'Piper EN Ryan (Medium)',
+    lang: 'en',
+    defaultText: 'Hello! This is a test of the Piper English text to speech model running in your browser with WebAssembly.'
+  },
+  'piper-en-sam-medium': {
+    onnx: 'en_US-sam-medium.onnx',
+    name: 'Piper EN Sam (Medium)',
+    lang: 'en',
+    defaultText: 'Hello! This is a test of the Piper English text to speech model running in your browser with WebAssembly.'
+  },
+  'piper-es-glados-medium': {
+    onnx: 'es_ES-glados-medium.onnx',
+    name: 'Piper ES Glados (Medium)',
+    lang: 'es',
+    defaultText: '¡Hola! Esta es una prueba del modelo de síntesis de voz en español de Piper.'
+  },
+  'piper-es-mx-claude-high': {
+    onnx: 'es_MX-claude-high.onnx',
+    name: 'Piper ES-MX Claude (High)',
+    lang: 'es',
+    defaultText: '¡Hola! Esta es una prueba del modelo de síntesis de voz en español de Piper.'
+  },
+  'piper-fa-ganji-medium': {
+    onnx: 'fa_IR-ganji-medium.onnx',
+    name: 'Piper FA Ganji (Medium)',
+    lang: 'fa',
+    defaultText: 'سلام! این یک آزمایش مدل تبدیل متن به گفتار فارسی Piper است.'
+  },
+  'piper-fa-ganji_adabi-medium': {
+    onnx: 'fa_IR-ganji_adabi-medium.onnx',
+    name: 'Piper FA Ganji Adabi (Medium)',
+    lang: 'fa',
+    defaultText: 'سلام! این یک آزمایش مدل تبدیل متن به گفتار فارسی Piper است.'
+  },
+  'piper-fa-gyro-medium': {
+    onnx: 'fa_IR-gyro-medium.onnx',
+    name: 'Piper FA Gyro (Medium)',
+    lang: 'fa',
+    defaultText: 'سلام! این یک آزمایش مدل تبدیل متن به گفتار فارسی Piper است.'
+  },
+  'piper-fa-reza-medium': {
+    onnx: 'fa_IR-reza_ibrahim-medium.onnx',
+    name: 'Piper FA Reza (Medium)',
+    lang: 'fa',
+    defaultText: 'سلام! این یک آزمایش مدل تبدیل متن به گفتار فارسی Piper است.'
+  },
+  'piper-fr-siwis-medium': {
+    onnx: 'fr_FR-siwis-medium.onnx',
+    name: 'Piper FR Siwis (Medium)',
+    lang: 'fr',
+    defaultText: 'Bonjour! Ceci est un test du modèle de synthèse vocale Piper en français.'
+  },
+  'piper-fr-tjiho1-medium': {
+    onnx: 'fr_FR-tjiho-model1.onnx',
+    name: 'Piper FR Tjiho Model1',
+    lang: 'fr',
+    defaultText: 'Bonjour! Ceci est un test du modèle de synthèse vocale Piper en français.'
+  },
+  'piper-fr-tjiho2-medium': {
+    onnx: 'fr_FR-tjiho-model2.onnx',
+    name: 'Piper FR Tjiho Model2',
+    lang: 'fr',
+    defaultText: 'Bonjour! Ceci est un test du modèle de synthèse vocale Piper en français.'
+  },
+  'piper-fr-tjiho3-medium': {
+    onnx: 'fr_FR-tjiho-model3.onnx',
+    name: 'Piper FR Tjiho Model3',
+    lang: 'fr',
+    defaultText: 'Bonjour! Ceci est un test du modèle de synthèse vocale Piper en français.'
+  },
+  'piper-hi-pratham-medium': {
+    onnx: 'hi_IN-pratham-medium.onnx',
+    name: 'Piper HI Pratham (Medium)',
+    lang: 'hi',
+    defaultText: 'नमस्ते! यह Piper हिंदी टेक्स्ट टू स्पीच मॉडल का एक परीक्षण है।'
+  },
+  'piper-hi-priyamvada-medium': {
+    onnx: 'hi_IN-priyamvada-medium.onnx',
+    name: 'Piper HI Priyamvada (Medium)',
+    lang: 'hi',
+    defaultText: 'नमस्ते! यह Piper हिंदी टेक्स्ट टू स्पीच मॉडल का एक परीक्षण है।'
+  },
+  'piper-hu-berta-medium': {
+    onnx: 'hu_HU-berta-medium.onnx',
+    name: 'Piper HU Berta (Medium)',
+    lang: 'hu',
+    defaultText: 'Szia! Ez egy teszt a magyar Piper szövegfelolvasó modellhez a böngészőben.'
+  },
+  'piper-hu-imre-medium': {
+    onnx: 'hu_HU-imre-medium.onnx',
+    name: 'Piper HU Imre (Medium)',
+    lang: 'hu',
+    defaultText: 'Szia! Ez egy teszt a magyar Piper szövegfelolvasó modellhez a böngészőben.'
+  },
+  'piper-is-salka-medium': {
+    onnx: 'is_IS-salka-medium.onnx',
+    name: 'Piper IS Salka (Medium)',
+    lang: 'is',
+    defaultText: 'Halló! Þetta er prófun á íslensku Piper texta í tal líkani.'
+  },
+  'piper-is-steinn-medium': {
+    onnx: 'is_IS-steinn-medium.onnx',
+    name: 'Piper IS Steinn (Medium)',
+    lang: 'is',
+    defaultText: 'Halló! Þetta er prófun á íslensku Piper texta í tal líkani.'
+  },
+  'piper-is-ugla-medium': {
+    onnx: 'is_IS-ugla-medium.onnx',
+    name: 'Piper IS Ugla (Medium)',
+    lang: 'is',
+    defaultText: 'Halló! Þetta er prófun á íslensku Piper texta í tal líkani.'
+  },
+  'piper-ml-arjun-medium': {
+    onnx: 'ml_IN-arjun-medium.onnx',
+    name: 'Piper ML Arjun (Medium)',
+    lang: 'ml',
+    defaultText: 'നമസ്കാരം! ഇത് മലയാളം Piper ടെക്സ്റ്റ് ടു സ്പീച്ച് മോഡലിന്റെ പരീക്ഷണമാണ്.'
+  },
+  'piper-nl-pim-medium': {
+    onnx: 'nl_NL-pim-medium.onnx',
+    name: 'Piper NL Pim (Medium)',
+    lang: 'nl',
+    defaultText: 'Hallo! Dit is een test van het Nederlandse Piper tekst naar spraak model.'
+  },
+  'piper-nl-be-nathalie-medium': {
+    onnx: 'nl_BE-nathalie-medium.onnx',
+    name: 'Piper NL-BE Nathalie (Medium)',
+    lang: 'nl',
+    defaultText: 'Hallo! Dit is een test van het Nederlandse Piper tekst naar spraak model.'
+  },
+  'piper-pl-gosia-medium': {
+    onnx: 'pl_PL-gosia-medium.onnx',
+    name: 'Piper PL Gosia (Medium)',
+    lang: 'pl',
+    defaultText: 'Cześć! To jest test polskiego modelu Piper zamiany tekstu na mowę.'
+  },
+  'piper-pl-jarvis-medium': {
+    onnx: 'pl_PL-jarvis_wg_glos-medium.onnx',
+    name: 'Piper PL Jarvis (Medium)',
+    lang: 'pl',
+    defaultText: 'Cześć! To jest test polskiego modelu Piper zamiany tekstu na mowę.'
+  },
+  'piper-pl-justyna-medium': {
+    onnx: 'pl_PL-justyna_wg_glos-medium.onnx',
+    name: 'Piper PL Justyna (Medium)',
+    lang: 'pl',
+    defaultText: 'Cześć! To jest test polskiego modelu Piper zamiany tekstu na mowę.'
+  },
+  'piper-pl-mc_speech-medium': {
+    onnx: 'pl_PL-mc_speech-medium.onnx',
+    name: 'Piper PL MC Speech (Medium)',
+    lang: 'pl',
+    defaultText: 'Cześć! To jest test polskiego modelu Piper zamiany tekstu na mowę.'
+  },
+  'piper-pl-meski-medium': {
+    onnx: 'pl_PL-meski_wg_glos-medium.onnx',
+    name: 'Piper PL Meski (Medium)',
+    lang: 'pl',
+    defaultText: 'Cześć! To jest test polskiego modelu Piper zamiany tekstu na mowę.'
+  },
+  'piper-pl-zenski-medium': {
+    onnx: 'pl_PL-zenski_wg_glos-medium.onnx',
+    name: 'Piper PL Zenski (Medium)',
+    lang: 'pl',
+    defaultText: 'Cześć! To jest test polskiego modelu Piper zamiany tekstu na mowę.'
+  },
+  'piper-pt-br-cadu-medium': {
+    onnx: 'pt_BR-cadu-medium.onnx',
+    name: 'Piper PT-BR Cadu (Medium)',
+    lang: 'pt',
+    defaultText: 'Olá! Este é um teste do modelo de síntese de voz Piper em português brasileiro.'
+  },
+  'piper-pt-br-jeff-medium': {
+    onnx: 'pt_BR-jeff-medium.onnx',
+    name: 'Piper PT-BR Jeff (Medium)',
+    lang: 'pt',
+    defaultText: 'Olá! Este é um teste do modelo de síntese de voz Piper em português brasileiro.'
+  },
+  'piper-ru-denis-medium': {
+    onnx: 'ru_RU-denis-medium.onnx',
+    name: 'Piper RU Denis (Medium)',
+    lang: 'ru',
+    defaultText: 'Привет! Это тест модели синтеза речи Piper на русском языке.'
+  },
+  'piper-ru-dmitri-medium': {
+    onnx: 'ru_RU-dmitri-medium.onnx',
+    name: 'Piper RU Dmitri (Medium)',
+    lang: 'ru',
+    defaultText: 'Привет! Это тест модели синтеза речи Piper на русском языке.'
+  },
+  'piper-ru-ruslan-medium': {
+    onnx: 'ru_RU-ruslan-medium.onnx',
+    name: 'Piper RU Ruslan (Medium)',
+    lang: 'ru',
+    defaultText: 'Привет! Это тест модели синтеза речи Piper на русском языке.'
+  },
+  'piper-sv-lisa-medium': {
+    onnx: 'sv_SE-lisa-medium.onnx',
+    name: 'Piper SV Lisa (Medium)',
+    lang: 'sv',
+    defaultText: 'Hej! Det här är ett test av den svenska Piper text till tal modellen.'
+  },
+  'piper-tr-dfki-medium': {
+    onnx: 'tr_TR-dfki-medium.onnx',
+    name: 'Piper TR DFKI (Medium)',
+    lang: 'tr',
+    defaultText: 'Merhaba! Bu Piper Türkçe metin okuma modelinin bir testidir.'
+  },
+  'piper-tr-fahrettin-medium': {
+    onnx: 'tr_TR-fahrettin-medium.onnx',
+    name: 'Piper TR Fahrettin (Medium)',
+    lang: 'tr',
+    defaultText: 'Merhaba! Bu Piper Türkçe metin okuma modelinin bir testidir.'
+  },
+  'piper-cy-bu_tts-medium': {
+    onnx: 'cy_GB-bu_tts-medium.onnx',
+    name: 'Piper CY Bu TTS (Medium)',
+    lang: 'cy',
+    defaultText: 'Helo! Dyma brawf o\'r model testun i leferydd Cymraeg Piper.'
+  },
+  'piper-en-gb-aru-medium': {
+    onnx: 'en_GB-aru-medium.onnx',
+    name: 'Piper EN-GB ARU (Medium)',
+    lang: 'en',
+    defaultText: 'Hello! This is a test of the Piper English text to speech model running in your browser with WebAssembly.'
+  },
+  'piper-en-gb-semaine-medium': {
+    onnx: 'en_GB-semaine-medium.onnx',
+    name: 'Piper EN-GB Semaine (Medium)',
+    lang: 'en',
+    defaultText: 'Hello! This is a test of the Piper English text to speech model running in your browser with WebAssembly.'
+  },
+  'piper-en-gb-south-female-medium': {
+    onnx: 'en_GB-southern_english_female-medium.onnx',
+    name: 'Piper EN-GB South Female (Medium)',
+    lang: 'en',
+    defaultText: 'Hello! This is a test of the Piper English text to speech model running in your browser with WebAssembly.'
+  },
+  'piper-en-gb-south-male-medium': {
+    onnx: 'en_GB-southern_english_male-medium.onnx',
+    name: 'Piper EN-GB South Male (Medium)',
+    lang: 'en',
+    defaultText: 'Hello! This is a test of the Piper English text to speech model running in your browser with WebAssembly.'
+  },
+  'piper-en-gb-vctk-medium': {
+    onnx: 'en_GB-vctk-medium.onnx',
+    name: 'Piper EN-GB VCTK (Medium)',
+    lang: 'en',
+    defaultText: 'Hello! This is a test of the Piper English text to speech model running in your browser with WebAssembly.'
+  },
+  'piper-en-arctic-medium': {
+    onnx: 'en_US-arctic-medium.onnx',
+    name: 'Piper EN Arctic (Medium)',
+    lang: 'en',
+    defaultText: 'Hello! This is a test of the Piper English text to speech model running in your browser with WebAssembly.'
+  },
+  'piper-en-l2arctic-medium': {
+    onnx: 'en_US-l2arctic-medium.onnx',
+    name: 'Piper EN L2Arctic (Medium)',
+    lang: 'en',
+    defaultText: 'Hello! This is a test of the Piper English text to speech model running in your browser with WebAssembly.'
+  },
+  'piper-es-sharvard-medium': {
+    onnx: 'es_ES-sharvard-medium.onnx',
+    name: 'Piper ES Sharvard (Medium)',
+    lang: 'es',
+    defaultText: '¡Hola! Esta es una prueba del modelo de síntesis de voz en español de Piper.'
+  },
+  'piper-fr-upmc-medium': {
+    onnx: 'fr_FR-upmc-medium.onnx',
+    name: 'Piper FR UPMC (Medium)',
+    lang: 'fr',
+    defaultText: 'Bonjour! Ceci est un test du modèle de synthèse vocale Piper en français.'
+  },
+  'piper-ne-google-medium': {
+    onnx: 'ne_NP-google-medium.onnx',
+    name: 'Piper NE Google (Medium)',
+    lang: 'ne',
+    defaultText: 'नमस्कार! यो नेपाली Piper टेक्स्ट टु स्पीच मोडेलको परीक्षण हो।'
+  },
+  'piper-ar-dii-high': {
+    onnx: 'ar_JO-SA_dii-high.onnx',
+    name: 'Piper AR Dii (High)',
+    lang: 'ar',
+    defaultText: 'مرحبا! هذا اختبار لنموذج تحويل النص إلى كلام باللغة العربية.'
+  },
+  'piper-ar-miro-high': {
+    onnx: 'ar_JO-SA_miro-high.onnx',
+    name: 'Piper AR Miro (High)',
+    lang: 'ar',
+    defaultText: 'مرحبا! هذا اختبار لنموذج تحويل النص إلى كلام باللغة العربية.'
+  },
+  'piper-ar-miro_v2-high': {
+    onnx: 'ar_JO-SA_miro_V2-high.onnx',
+    name: 'Piper AR Miro V2 (High)',
+    lang: 'ar',
+    defaultText: 'مرحبا! هذا اختبار لنموذج تحويل النص إلى كلام باللغة العربية.'
+  },
+  'piper-de-dii-high': {
+    onnx: 'de_DE-dii-high.onnx',
+    name: 'Piper DE Dii (High)',
+    lang: 'de',
+    defaultText: 'Hallo! Dies ist ein Test des Piper deutschen Text-zu-Sprache-Modells, das vollständig in Ihrem Browser läuft.'
+  },
+  'piper-de-miro-high': {
+    onnx: 'de_DE-miro-high.onnx',
+    name: 'Piper DE Miro (High)',
+    lang: 'de',
+    defaultText: 'Hallo! Dies ist ein Test des Piper deutschen Text-zu-Sprache-Modells, das vollständig in Ihrem Browser läuft.'
+  },
+  'piper-en-gb-dii-high': {
+    onnx: 'en_GB-dii-high.onnx',
+    name: 'Piper EN-GB Dii (High)',
+    lang: 'en',
+    defaultText: 'Hello! This is a test of the Piper English text to speech model running in your browser with WebAssembly.'
+  },
+  'piper-en-gb-miro-high': {
+    onnx: 'en_GB-miro-high.onnx',
+    name: 'Piper EN-GB Miro (High)',
+    lang: 'en',
+    defaultText: 'Hello! This is a test of the Piper English text to speech model running in your browser with WebAssembly.'
+  },
+  'piper-en-miro-high': {
+    onnx: 'en_US-miro-high.onnx',
+    name: 'Piper EN Miro (High)',
+    lang: 'en',
+    defaultText: 'Hello! This is a test of the Piper English text to speech model running in your browser with WebAssembly.'
+  },
+  'piper-es-miro-high': {
+    onnx: 'es_ES-miro-high.onnx',
+    name: 'Piper ES Miro (High)',
+    lang: 'es',
+    defaultText: '¡Hola! Esta es una prueba del modelo de síntesis de voz en español de Piper.'
+  },
+  'piper-fr-miro-high': {
+    onnx: 'fr_FR-miro-high.onnx',
+    name: 'Piper FR Miro (High)',
+    lang: 'fr',
+    defaultText: 'Bonjour! Ceci est un test du modèle de synthèse vocale Piper en français.'
+  },
+  'piper-it-dii-high': {
+    onnx: 'it_IT-dii-high.onnx',
+    name: 'Piper IT Dii (High)',
+    lang: 'it',
+    defaultText: 'Ciao! Questo è un test del modello di sintesi vocale Piper in italiano.'
+  },
+  'piper-it-miro-high': {
+    onnx: 'it_IT-miro-high.onnx',
+    name: 'Piper IT Miro (High)',
+    lang: 'it',
+    defaultText: 'Ciao! Questo è un test del modello di sintesi vocale Piper in italiano.'
+  },
+  'piper-nl-dii-high': {
+    onnx: 'nl_NL-dii-high.onnx',
+    name: 'Piper NL Dii (High)',
+    lang: 'nl',
+    defaultText: 'Hallo! Dit is een test van het Nederlandse Piper tekst naar spraak model.'
+  },
+  'piper-nl-miro-high': {
+    onnx: 'nl_NL-miro-high.onnx',
+    name: 'Piper NL Miro (High)',
+    lang: 'nl',
+    defaultText: 'Hallo! Dit is een test van het Nederlandse Piper tekst naar spraak model.'
+  },
+  'piper-pt-br-dii-high': {
+    onnx: 'pt_BR-dii-high.onnx',
+    name: 'Piper PT-BR Dii (High)',
+    lang: 'pt',
+    defaultText: 'Olá! Este é um teste do modelo de síntese de voz Piper em português brasileiro.'
+  },
+  'piper-pt-br-miro-high': {
+    onnx: 'pt_BR-miro-high.onnx',
+    name: 'Piper PT-BR Miro (High)',
+    lang: 'pt',
+    defaultText: 'Olá! Este é um teste do modelo de síntese de voz Piper em português brasileiro.'
+  },
+  'piper-pt-dii-high': {
+    onnx: 'pt_PT-dii-high.onnx',
+    name: 'Piper PT Dii (High)',
+    lang: 'pt',
+    defaultText: 'Olá! Este é um teste do modelo de síntese de voz Piper em português.'
+  },
+  'piper-pt-miro-high': {
+    onnx: 'pt_PT-miro-high.onnx',
+    name: 'Piper PT Miro (High)',
+    lang: 'pt',
+    defaultText: 'Olá! Este é um teste do modelo de síntese de voz Piper em português.'
+  },
+};
+
+// --- Models that only have fp32 (no fp16/int8 on upstream) ---
+var FP32_ONLY = ['piper-zh-huayan-medium', 'piper-fa-en-rezahedayatfar-ibrahimwalk-medium', 'piper-nl-be-rdh-medium', 'piper-ro-mihai-medium', 'piper-nl-be-rdh-x_low'];
+
+// CDN base: use HF Dataset for remote, relative paths for localhost
+var CDN_BASE = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
+  ? '' : 'https://huggingface.co/datasets/jiangzhuo9357/sherpa-onnx-tts-models/resolve/main/';
+
+// --- Read model and precision from URL params ---
+var urlParams = new URLSearchParams(window.location.search);
+var modelKey = urlParams.get('model') || 'piper-en-libritts_r-medium';
+var modelCfg = PIPER_MODELS[modelKey];
+
+if (!modelCfg) {
+  modelKey = 'piper-en-libritts_r-medium';
+  modelCfg = PIPER_MODELS[modelKey];
+}
+
+var isFp32Only = FP32_ONLY.indexOf(modelKey) !== -1;
+var precision = urlParams.get('precision') || 'fp32';
+if (['fp32', 'int8'].indexOf(precision) === -1) {
+  precision = 'fp32';
+}
+// Force fp32 for models without variants
+if (isFp32Only && precision !== 'fp32') {
+  precision = 'fp32';
+}
+
+// Update page with selected model
+document.getElementById('pageTitle').textContent = modelCfg.name + ' TTS Browser Demo';
+document.title = modelCfg.name + ' TTS Browser Demo';
+document.getElementById('text').value = modelCfg.defaultText;
+
+// --- Precision selector logic ---
+var modelLoaded = false;
+
+// Set initial radio selection from URL param and disable unavailable variants
+(function() {
+  var radios = document.querySelectorAll('input[name="precision"]');
+  var labels = document.querySelectorAll('.precision-group .radio-label');
+  for (var i = 0; i < radios.length; i++) {
+    labels[i].classList.remove('selected');
+    if (isFp32Only && radios[i].value !== 'fp32') {
+      labels[i].classList.add('disabled');
+      labels[i].title = 'Not available for this model';
+      radios[i].disabled = true;
+    } else if (radios[i].value === precision) {
+      radios[i].checked = true;
+      labels[i].classList.add('selected');
+    }
+  }
+})();
+
+// Handle radio clicks
+document.getElementById('precisionGroup').addEventListener('click', function(e) {
+  if (modelLoaded) return;
+  var label = e.target.closest('.radio-label');
+  if (!label || label.classList.contains('disabled')) return;
+  var radio = label.querySelector('input[type="radio"]');
+  if (!radio || radio.disabled) return;
+
+  precision = radio.value;
+  radio.checked = true;
+
+  // Update visual selection
+  var labels = document.querySelectorAll('.precision-group .radio-label');
+  for (var i = 0; i < labels.length; i++) {
+    labels[i].classList.remove('selected');
+  }
+  label.classList.add('selected');
+
+  // Update URL without reload
+  var newUrl = new URL(window.location);
+  if (precision === 'fp32') {
+    newUrl.searchParams.delete('precision');
+  } else {
+    newUrl.searchParams.set('precision', precision);
+  }
+  history.replaceState(null, '', newUrl);
+});
+
+// --- Compute wasmDir based on precision ---
+function getWasmDir() {
+  if (precision === 'fp32') {
+    return CDN_BASE + 'wasm-' + modelKey + '/';
+  }
+  return CDN_BASE + 'wasm-' + modelKey + '-' + precision + '/';
+}
+
+// --- Logging ---
+function _log(msg) {
+  var logEl = document.getElementById('log');
+  var ts = new Date().toLocaleTimeString();
+  logEl.textContent += '[' + ts + '] ' + msg + '\n';
+  logEl.scrollTop = logEl.scrollHeight;
+  console.log(msg);
+}
+
+function _setStatusBar(html, cls) {
+  var el = document.getElementById('status');
+  el.className = 'status-bar' + (cls ? ' ' + cls : '');
+  el.innerHTML = html;
+}
+
+// --- Load Model button ---
+document.getElementById('loadModel').addEventListener('click', function() {
+  if (modelLoaded) return;
+  loadModel();
+});
+
+function loadModel() {
+  var wasmDir = getWasmDir();
+  var loadBtn = document.getElementById('loadModel');
+  loadBtn.disabled = true;
+  loadBtn.textContent = 'Loading...';
+
+  _log('Loading model=' + modelKey + ' precision=' + precision + ' from ' + wasmDir);
+  _setStatusBar('<div class="spinner"></div><span>Loading WASM module...</span>');
+
+  // Lock precision selection
+  lockPrecision();
+
+  // Set up Emscripten Module
+  window.Module = {
+    locateFile: function(path) {
+      return wasmDir + path;
+    },
+    setStatus: function(text) {
+      _log('Module: ' + text);
+      if (!text) {
+        _initTts();
+        return;
+      }
+      var m = text.match(/Downloading data\.\.\. \((\d+)\/(\d+)\)/);
+      if (m) {
+        var pct = (parseInt(m[1]) / parseInt(m[2]) * 100).toFixed(1);
+        _setStatusBar('<div class="spinner"></div><span>Downloading model... ' + pct + '%</span>');
+      } else {
+        _setStatusBar('<div class="spinner"></div><span>' + text + '</span>');
+      }
+    }
+  };
+
+  // Dynamically load WASM scripts
+  var scripts = [
+    wasmDir + 'sherpa-onnx-wasm-main-tts.js',
+    wasmDir + 'sherpa-onnx-tts.js'
+  ];
+  var loaded = 0;
+
+  function loadNext() {
+    if (loaded >= scripts.length) return;
+    var s = document.createElement('script');
+    s.src = scripts[loaded];
+    s.onload = function() {
+      loaded++;
+      loadNext();
+    };
+    s.onerror = function() {
+      _log('ERROR loading script: ' + scripts[loaded]);
+      _setStatusBar('Failed to load WASM scripts from ' + wasmDir + '. Run: python3 pack.py ' + modelKey + ':' + precision, 'error');
+      loadBtn.textContent = 'Load Model';
+      loadBtn.disabled = false;
+      unlockPrecision();
+    };
+    document.body.appendChild(s);
+  }
+  loadNext();
+}
+
+function lockPrecision() {
+  modelLoaded = true;
+  var labels = document.querySelectorAll('.precision-group .radio-label');
+  for (var i = 0; i < labels.length; i++) {
+    labels[i].classList.add('disabled');
+  }
+  document.getElementById('reloadNote').style.display = 'block';
+}
+
+function unlockPrecision() {
+  modelLoaded = false;
+  var labels = document.querySelectorAll('.precision-group .radio-label');
+  for (var i = 0; i < labels.length; i++) {
+    labels[i].classList.remove('disabled');
+  }
+  document.getElementById('reloadNote').style.display = 'none';
+}
+
+function _initTts() {
+  _log('WASM runtime initialized, creating OfflineTts...');
+  _setStatusBar('<div class="spinner"></div><span>Initializing ' + modelCfg.name + ' model...</span>');
+
+  try {
+    var t0 = performance.now();
+
+    window._tts = createOfflineTts(Module, {
+      offlineTtsModelConfig: {
+        offlineTtsVitsModelConfig: {
+          model: './' + modelCfg.onnx,
+          lexicon: '',
+          tokens: './tokens.txt',
+          dataDir: './espeak-ng-data',
+          noiseScale: 0.667,
+          noiseScaleW: 0.8,
+          lengthScale: 1.0,
+        },
+        numThreads: 1,
+        debug: 1,
+        provider: 'cpu',
+      },
+      ruleFsts: '',
+      ruleFars: '',
+      maxNumSentences: 1,
+    });
+
+    var elapsed = (performance.now() - t0).toFixed(0);
+    _log(modelCfg.name + ' (' + precision + ') loaded in ' + elapsed + 'ms');
+    _log('Sample rate: ' + window._tts.sampleRate + ', Speakers: ' + window._tts.numSpeakers);
+
+    document.getElementById('sid').max = Math.max(0, window._tts.numSpeakers - 1);
+    document.getElementById('generate').disabled = false;
+    document.getElementById('loadModel').textContent = 'Loaded (' + precision + ')';
+    _setStatusBar('Ready &mdash; ' + modelCfg.name + ' (' + precision + ') &mdash; ' + window._tts.numSpeakers + ' speaker(s), ' + window._tts.sampleRate + ' Hz', 'ready');
+
+  } catch (err) {
+    var errMsg = err && (err.message || err.toString ? err.toString() : JSON.stringify(err));
+    _log('ERROR initializing TTS: ' + errMsg);
+    console.error('TTS init error:', err);
+    _setStatusBar('Failed to initialize ' + modelCfg.name + '. Run: python3 pack.py ' + modelKey + ':' + precision, 'error');
+  }
+}
+
+_log('Page loaded, model=' + modelKey + ', precision=' + precision + ' (' + modelCfg.name + ')');
+</script>
+
+<script>
+(function() {
+  var textEl = document.getElementById('text');
+  var sidEl = document.getElementById('sid');
+  var speedEl = document.getElementById('speed');
+  var speedValEl = document.getElementById('speedVal');
+  var generateBtn = document.getElementById('generate');
+  var audioOutput = document.getElementById('audioOutput');
+  var playerEl = document.getElementById('player');
+  var timingEl = document.getElementById('timing');
+  var audioCtx = null;
+
+  speedEl.addEventListener('input', function() {
+    speedValEl.textContent = parseFloat(speedEl.value).toFixed(1);
+  });
+
+  generateBtn.addEventListener('click', function() {
+    var text = textEl.value.trim();
+    if (!text) { alert('Please enter some text.'); return; }
+    if (!window._tts) { alert('TTS not ready yet.'); return; }
+
+    var sid = parseInt(sidEl.value, 10) || 0;
+    var speed = parseFloat(speedEl.value) || 1.0;
+
+    _log('Generating: sid=' + sid + ', speed=' + speed + ', text="' + text.substring(0, 60) + '..."');
+    generateBtn.disabled = true;
+    generateBtn.textContent = 'Generating...';
+
+    setTimeout(function() {
+      try {
+        var t0 = performance.now();
+        var result = window._tts.generate({ text: text, sid: sid, speed: speed });
+        var elapsed = (performance.now() - t0).toFixed(0);
+
+        var duration = (result.samples.length / result.sampleRate).toFixed(2);
+        _log('Generated ' + result.samples.length + ' samples in ' + elapsed + 'ms (' + duration + 's audio @ ' + result.sampleRate + 'Hz)');
+
+        playAudio(result);
+        timingEl.textContent = duration + 's audio generated in ' + elapsed + 'ms (' + result.sampleRate + ' Hz)';
+      } catch (err) {
+        _log('ERROR generating: ' + err.message);
+        console.error(err);
+        alert('Generation failed. See console/log.');
+      } finally {
+        generateBtn.disabled = false;
+        generateBtn.textContent = 'Generate';
+      }
+    }, 50);
+  });
+
+  function playAudio(result) {
+    var wav = createWavBlob(result.samples, result.sampleRate);
+    var url = URL.createObjectURL(wav);
+    if (playerEl.src && playerEl.src.indexOf('blob:') === 0) {
+      URL.revokeObjectURL(playerEl.src);
+    }
+    playerEl.src = url;
+    audioOutput.style.display = 'block';
+    if (!audioCtx) { audioCtx = new AudioContext({ sampleRate: result.sampleRate }); }
+    var buffer = audioCtx.createBuffer(1, result.samples.length, result.sampleRate);
+    buffer.getChannelData(0).set(result.samples);
+    var source = audioCtx.createBufferSource();
+    source.buffer = buffer;
+    source.connect(audioCtx.destination);
+    source.start();
+  }
+
+  function createWavBlob(samples, sampleRate) {
+    var int16 = new Int16Array(samples.length);
+    for (var i = 0; i < samples.length; i++) {
+      var s = Math.max(-1, Math.min(1, samples[i]));
+      int16[i] = s * 32767;
+    }
+    var buf = new ArrayBuffer(44 + int16.length * 2);
+    var v = new DataView(buf);
+    v.setUint32(0, 0x46464952, true);
+    v.setUint32(4, 36 + int16.length * 2, true);
+    v.setUint32(8, 0x45564157, true);
+    v.setUint32(12, 0x20746d66, true);
+    v.setUint32(16, 16, true);
+    v.setUint16(20, 1, true);
+    v.setUint16(22, 1, true);
+    v.setUint32(24, sampleRate, true);
+    v.setUint32(28, sampleRate * 2, true);
+    v.setUint16(32, 2, true);
+    v.setUint16(34, 16, true);
+    v.setUint32(36, 0x61746164, true);
+    v.setUint32(40, int16.length * 2, true);
+    var offset = 44;
+    for (var i = 0; i < int16.length; i++) {
+      v.setInt16(offset, int16[i], true);
+      offset += 2;
+    }
+    return new Blob([v], { type: 'audio/wav' });
+  }
+})();
+</script>
+
+</body>
+</html>

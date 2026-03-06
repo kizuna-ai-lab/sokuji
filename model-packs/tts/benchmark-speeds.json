@@ -1,0 +1,1917 @@
+{
+  "coqui-cs-cv": {
+    "speed": 6.3,
+    "medianMs": 840,
+    "audioSec": 5.29
+  },
+  "coqui-bg-cv": {
+    "speed": 6.5,
+    "medianMs": 860,
+    "audioSec": 5.62
+  },
+  "coqui-da-cv": {
+    "speed": 6.4,
+    "medianMs": 812,
+    "audioSec": 5.21
+  },
+  "coqui-de-css10": {
+    "speed": 5.3,
+    "medianMs": 1258,
+    "audioSec": 6.63
+  },
+  "cantonese": {
+    "speed": 0.7,
+    "medianMs": 8485,
+    "audioSec": 5.77
+  },
+  "coqui-bn-custom_female": {
+    "speed": 0.7,
+    "medianMs": 11124,
+    "audioSec": 7.4
+  },
+  "coqui-es-css10": {
+    "speed": 4.4,
+    "medianMs": 1289,
+    "audioSec": 5.68
+  },
+  "coqui-en-ljspeech": {
+    "speed": 0.7,
+    "medianMs": 11213,
+    "audioSec": 7.69
+  },
+  "coqui-et-cv": {
+    "speed": 5.7,
+    "medianMs": 878,
+    "audioSec": 4.98
+  },
+  "coqui-en-neon": {
+    "speed": 0.7,
+    "medianMs": 11481,
+    "audioSec": 7.99
+  },
+  "coqui-fi-css10": {
+    "speed": 5.1,
+    "medianMs": 1326,
+    "audioSec": 6.74
+  },
+  "coqui-fr-css10": {
+    "speed": 5.9,
+    "medianMs": 952,
+    "audioSec": 5.65
+  },
+  "coqui-ga-cv": {
+    "speed": 6,
+    "medianMs": 1111,
+    "audioSec": 6.65
+  },
+  "coqui-en-vctk": {
+    "speed": 0.7,
+    "medianMs": 7784,
+    "audioSec": 5.54
+  },
+  "coqui-hr-cv": {
+    "speed": 6.1,
+    "medianMs": 836,
+    "audioSec": 5.06
+  },
+  "coqui-lt-cv": {
+    "speed": 5.7,
+    "medianMs": 1158,
+    "audioSec": 6.56
+  },
+  "coqui-lv-cv": {
+    "speed": 6,
+    "medianMs": 1111,
+    "audioSec": 6.7
+  },
+  "coqui-mt-cv": {
+    "speed": 5.6,
+    "medianMs": 1071,
+    "audioSec": 5.99
+  },
+  "coqui-nl-css10": {
+    "speed": 5,
+    "medianMs": 1147,
+    "audioSec": 5.69
+  },
+  "coqui-pl-mai_female": {
+    "speed": 5.7,
+    "medianMs": 858,
+    "audioSec": 4.93
+  },
+  "coqui-pt-cv": {
+    "speed": 5.5,
+    "medianMs": 1020,
+    "audioSec": 5.65
+  },
+  "coqui-sl-cv": {
+    "speed": 5.9,
+    "medianMs": 822,
+    "audioSec": 4.83
+  },
+  "coqui-ro-cv": {
+    "speed": 6,
+    "medianMs": 1086,
+    "audioSec": 6.57
+  },
+  "coqui-sk-cv": {
+    "speed": 6.1,
+    "medianMs": 977,
+    "audioSec": 5.96
+  },
+  "coqui-sv-cv": {
+    "speed": 6,
+    "medianMs": 845,
+    "audioSec": 5.04
+  },
+  "coqui-uk-mai": {
+    "speed": 5.7,
+    "medianMs": 1076,
+    "audioSec": 6.13
+  },
+  "icefall-en-ljspeech-low": {
+    "speed": 4.1,
+    "medianMs": 1594,
+    "audioSec": 6.56
+  },
+  "icefall-en-ljspeech-medium": {
+    "speed": 3.9,
+    "medianMs": 1816,
+    "audioSec": 7.02
+  },
+  "icefall-zh-aishell3": {
+    "speed": 10.4,
+    "medianMs": 1326,
+    "audioSec": 13.73
+  },
+  "kitten": {
+    "speed": 2.5,
+    "medianMs": 3648,
+    "audioSec": 9.09
+  },
+  "kitten-v0_1": {
+    "speed": 2.5,
+    "medianMs": 3194,
+    "audioSec": 7.88
+  },
+  "kokoro": {
+    "speed": 0.6,
+    "medianMs": 16614,
+    "audioSec": 10.58
+  },
+  "kitten-mini": {
+    "speed": 0.4,
+    "medianMs": 22680,
+    "audioSec": 9.13
+  },
+  "kokoro-fp32": {
+    "speed": 0.5,
+    "medianMs": 15221,
+    "audioSec": 7.07
+  },
+  "kokoro-en": {
+    "speed": 0.5,
+    "medianMs": 35222,
+    "audioSec": 18.97
+  },
+  "kokoro-v1_0-fp32": {
+    "speed": 0.5,
+    "medianMs": 15963,
+    "audioSec": 8.15
+  },
+  "matcha-en-ljspeech": {
+    "speed": 5.6,
+    "medianMs": 1566,
+    "audioSec": 8.71
+  },
+  "kokoro-en-int8": {
+    "speed": 0.5,
+    "medianMs": 37410,
+    "audioSec": 18.87
+  },
+  "matcha-fa-en-khadijah": {
+    "speed": 3.5,
+    "medianMs": 2448,
+    "audioSec": 8.64
+  },
+  "matcha-zh-baker": {
+    "speed": 4.7,
+    "medianMs": 1951,
+    "audioSec": 9.19
+  },
+  "matcha-fa-en-musa": {
+    "speed": 3.5,
+    "medianMs": 2428,
+    "audioSec": 8.43
+  },
+  "matcha-zh-en": {
+    "speed": 7,
+    "medianMs": 1325,
+    "audioSec": 9.29
+  },
+  "mimic3-af-google_nwu-low": {
+    "speed": 5.6,
+    "medianMs": 1035,
+    "audioSec": 5.83
+  },
+  "mimic3-bn-multi-low": {
+    "speed": 5,
+    "medianMs": 1281,
+    "audioSec": 6.39
+  },
+  "mimic3-el-rapunzelina-low": {
+    "speed": 5.2,
+    "medianMs": 1207,
+    "audioSec": 6.3
+  },
+  "kokoro-v1_1": {
+    "speed": 0.6,
+    "medianMs": 15901,
+    "audioSec": 9.95
+  },
+  "mimic3-es-m_ailabs-low": {
+    "speed": 4.8,
+    "medianMs": 1348,
+    "audioSec": 6.41
+  },
+  "mimic3-fa-haaniye-low": {
+    "speed": 5.9,
+    "medianMs": 1490,
+    "audioSec": 8.74
+  },
+  "mimic3-fi-harri_tapani_ylilammi-low": {
+    "speed": 6.1,
+    "medianMs": 1169,
+    "audioSec": 7.12
+  },
+  "mimic3-gu-cmu_indic-low": {
+    "speed": 6,
+    "medianMs": 1136,
+    "audioSec": 6.78
+  },
+  "mimic3-hu-diana_majlinger-low": {
+    "speed": 4.8,
+    "medianMs": 995,
+    "audioSec": 4.82
+  },
+  "mimic3-ne-ne_google-low": {
+    "speed": 6,
+    "medianMs": 1091,
+    "audioSec": 6.56
+  },
+  "mimic3-ko-kss-low": {
+    "speed": 4.7,
+    "medianMs": 1561,
+    "audioSec": 7.34
+  },
+  "melo-tts-en": {
+    "speed": 0.6,
+    "medianMs": 11105,
+    "audioSec": 6.81
+  },
+  "mimic3-pl-m_ailabs-low": {
+    "speed": 4.8,
+    "medianMs": 1123,
+    "audioSec": 5.42
+  },
+  "mimic3-tn-google_nwu-low": {
+    "speed": 4.6,
+    "medianMs": 1397,
+    "audioSec": 6.38
+  },
+  "mimic3-vi-vais1000-low": {
+    "speed": 5.6,
+    "medianMs": 827,
+    "audioSec": 4.61
+  },
+  "melo-tts-zh-en": {
+    "speed": 0.6,
+    "medianMs": 13421,
+    "audioSec": 8.41
+  },
+  "mms-nan": {
+    "speed": 0.2,
+    "medianMs": 381,
+    "audioSec": 0.07
+  },
+  "mms-deu": {
+    "speed": 0.7,
+    "medianMs": 9054,
+    "audioSec": 6.59
+  },
+  "mms-eng": {
+    "speed": 0.8,
+    "medianMs": 8750,
+    "audioSec": 7.18
+  },
+  "mms-fra": {
+    "speed": 0.8,
+    "medianMs": 9216,
+    "audioSec": 6.97
+  },
+  "mms-rus": {
+    "speed": 0.9,
+    "medianMs": 8189,
+    "audioSec": 7.24
+  },
+  "piper-ar-dii-high": {
+    "speed": 6,
+    "medianMs": 1228,
+    "audioSec": 7.42
+  },
+  "piper-ar-dii-high-int8": {
+    "speed": 3.6,
+    "medianMs": 2063,
+    "audioSec": 7.47
+  },
+  "piper-ar-kareem-low": {
+    "speed": 8.3,
+    "medianMs": 1142,
+    "audioSec": 9.46
+  },
+  "mms-tha": {
+    "speed": 0.9,
+    "medianMs": 7959,
+    "audioSec": 6.91
+  },
+  "mms-spa": {
+    "speed": 0.7,
+    "medianMs": 8901,
+    "audioSec": 6.47
+  },
+  "piper-ar-kareem-medium": {
+    "speed": 6,
+    "medianMs": 1631,
+    "audioSec": 9.74
+  },
+  "piper-ar-kareem-low-int8": {
+    "speed": 4.9,
+    "medianMs": 1925,
+    "audioSec": 9.42
+  },
+  "mms-ukr": {
+    "speed": 0.9,
+    "medianMs": 10072,
+    "audioSec": 9.01
+  },
+  "piper-ar-miro-high": {
+    "speed": 5.8,
+    "medianMs": 1248,
+    "audioSec": 7.28
+  },
+  "piper-ar-kareem-medium-int8": {
+    "speed": 3.6,
+    "medianMs": 2721,
+    "audioSec": 9.71
+  },
+  "piper-ar-miro_v2-high": {
+    "speed": 5.9,
+    "medianMs": 1213,
+    "audioSec": 7.13
+  },
+  "piper-ar-miro-high-int8": {
+    "speed": 3.5,
+    "medianMs": 2151,
+    "audioSec": 7.46
+  },
+  "piper-ca-upc_ona-medium": {
+    "speed": 5.9,
+    "medianMs": 1063,
+    "audioSec": 6.3
+  },
+  "piper-ca-upc_ona-x_low": {
+    "speed": 10.1,
+    "medianMs": 647,
+    "audioSec": 6.51
+  },
+  "piper-ar-miro_v2-high-int8": {
+    "speed": 3.5,
+    "medianMs": 1939,
+    "audioSec": 6.78
+  },
+  "piper-ca-upc_pau-x_low": {
+    "speed": 10.4,
+    "medianMs": 612,
+    "audioSec": 6.35
+  },
+  "piper-ca-upc_ona-x_low-int8": {
+    "speed": 5.3,
+    "medianMs": 1223,
+    "audioSec": 6.47
+  },
+  "piper-ca-upc_ona-medium-int8": {
+    "speed": 3.5,
+    "medianMs": 1808,
+    "audioSec": 6.29
+  },
+  "piper-ca-upc_pau-x_low-int8": {
+    "speed": 5,
+    "medianMs": 1220,
+    "audioSec": 6.1
+  },
+  "piper-cs-jirka-low": {
+    "speed": 8,
+    "medianMs": 1020,
+    "audioSec": 8.16
+  },
+  "piper-cs-jirka-medium": {
+    "speed": 6.2,
+    "medianMs": 1274,
+    "audioSec": 7.87
+  },
+  "piper-cs-jirka-low-int8": {
+    "speed": 4.9,
+    "medianMs": 1675,
+    "audioSec": 8.16
+  },
+  "piper-cy-bu_tts-medium": {
+    "speed": 5.6,
+    "medianMs": 1209,
+    "audioSec": 6.76
+  },
+  "piper-cs-jirka-medium-int8": {
+    "speed": 3.6,
+    "medianMs": 2190,
+    "audioSec": 7.96
+  },
+  "piper-cy-gwryw_gogleddol-medium": {
+    "speed": 5.8,
+    "medianMs": 1132,
+    "audioSec": 6.54
+  },
+  "piper-cy-bu_tts-medium-int8": {
+    "speed": 3.2,
+    "medianMs": 2004,
+    "audioSec": 6.42
+  },
+  "piper-da-talesyntese-medium": {
+    "speed": 6,
+    "medianMs": 980,
+    "audioSec": 5.84
+  },
+  "piper-cy-gwryw_gogleddol-medium-int8": {
+    "speed": 3.5,
+    "medianMs": 1880,
+    "audioSec": 6.67
+  },
+  "piper-da-talesyntese-medium-int8": {
+    "speed": 3.6,
+    "medianMs": 1639,
+    "audioSec": 5.92
+  },
+  "piper-de-dii-high": {
+    "speed": 5.7,
+    "medianMs": 992,
+    "audioSec": 5.63
+  },
+  "piper-de-eva_k-x_low": {
+    "speed": 10.5,
+    "medianMs": 672,
+    "audioSec": 7.08
+  },
+  "piper-de-dii-high-int8": {
+    "speed": 3.5,
+    "medianMs": 1661,
+    "audioSec": 5.84
+  },
+  "piper-de-glados-low": {
+    "speed": 7.9,
+    "medianMs": 823,
+    "audioSec": 6.53
+  },
+  "piper-de-eva_k-x_low-int8": {
+    "speed": 5.1,
+    "medianMs": 1297,
+    "audioSec": 6.59
+  },
+  "piper-de-glados-low-int8": {
+    "speed": 4.9,
+    "medianMs": 1325,
+    "audioSec": 6.43
+  },
+  "piper-de-glados-medium": {
+    "speed": 5.8,
+    "medianMs": 1075,
+    "audioSec": 6.26
+  },
+  "piper-de-glados_turret-low": {
+    "speed": 8,
+    "medianMs": 975,
+    "audioSec": 7.79
+  },
+  "piper-de-glados-medium-int8": {
+    "speed": 3.6,
+    "medianMs": 1784,
+    "audioSec": 6.36
+  },
+  "piper-de-glados_turret-medium": {
+    "speed": 6.1,
+    "medianMs": 1302,
+    "audioSec": 7.93
+  },
+  "piper-de-glados_turret-low-int8": {
+    "speed": 4.9,
+    "medianMs": 1592,
+    "audioSec": 7.74
+  },
+  "piper-de-karlsson-low": {
+    "speed": 7.7,
+    "medianMs": 833,
+    "audioSec": 6.45
+  },
+  "piper-de-kerstin-low": {
+    "speed": 7.8,
+    "medianMs": 785,
+    "audioSec": 6.1
+  },
+  "piper-de-glados_turret-medium-int8": {
+    "speed": 3.7,
+    "medianMs": 2179,
+    "audioSec": 7.96
+  },
+  "piper-de-karlsson-low-int8": {
+    "speed": 4.8,
+    "medianMs": 1351,
+    "audioSec": 6.53
+  },
+  "piper-de-kerstin-low-int8": {
+    "speed": 4.5,
+    "medianMs": 1304,
+    "audioSec": 5.91
+  },
+  "piper-de-miro-high": {
+    "speed": 5.4,
+    "medianMs": 993,
+    "audioSec": 5.41
+  },
+  "piper-de-pavoque-low": {
+    "speed": 7.5,
+    "medianMs": 945,
+    "audioSec": 7.13
+  },
+  "piper-de-ramona-low": {
+    "speed": 8.5,
+    "medianMs": 750,
+    "audioSec": 6.38
+  },
+  "piper-de-miro-high-int8": {
+    "speed": 3.6,
+    "medianMs": 1596,
+    "audioSec": 5.74
+  },
+  "piper-de-pavoque-low-int8": {
+    "speed": 4.6,
+    "medianMs": 1507,
+    "audioSec": 6.99
+  },
+  "piper-de-thorsten-low": {
+    "speed": 7.1,
+    "medianMs": 794,
+    "audioSec": 5.6
+  },
+  "piper-de-ramona-low-int8": {
+    "speed": 4.8,
+    "medianMs": 1216,
+    "audioSec": 5.89
+  },
+  "piper-de-thorsten-low-int8": {
+    "speed": 4.6,
+    "medianMs": 1232,
+    "audioSec": 5.71
+  },
+  "piper-de-thorsten-medium": {
+    "speed": 5.5,
+    "medianMs": 1026,
+    "audioSec": 5.61
+  },
+  "piper-de-thorsten_emotional-medium": {
+    "speed": 5.7,
+    "medianMs": 1013,
+    "audioSec": 5.78
+  },
+  "piper-el-rapunzelina-low": {
+    "speed": 7.9,
+    "medianMs": 776,
+    "audioSec": 6.14
+  },
+  "piper-de-thorsten-medium-int8": {
+    "speed": 3.5,
+    "medianMs": 1671,
+    "audioSec": 5.87
+  },
+  "piper-de-thorsten_emotional-medium-int8": {
+    "speed": 3.5,
+    "medianMs": 1613,
+    "audioSec": 5.72
+  },
+  "piper-el-rapunzelina-low-int8": {
+    "speed": 4.5,
+    "medianMs": 1332,
+    "audioSec": 6.05
+  },
+  "piper-en-amy-low": {
+    "speed": 7.8,
+    "medianMs": 967,
+    "audioSec": 7.57
+  },
+  "piper-en-amy-low-int8": {
+    "speed": 4.7,
+    "medianMs": 1625,
+    "audioSec": 7.58
+  },
+  "piper-en-arctic-medium": {
+    "speed": 5.9,
+    "medianMs": 1114,
+    "audioSec": 6.55
+  },
+  "piper-en-amy-medium-int8": {
+    "speed": 3.6,
+    "medianMs": 2206,
+    "audioSec": 8
+  },
+  "piper-en-arctic-medium-int8": {
+    "speed": 3.6,
+    "medianMs": 1901,
+    "audioSec": 6.8
+  },
+  "piper-en-bryce-medium": {
+    "speed": 6.2,
+    "medianMs": 1432,
+    "audioSec": 8.92
+  },
+  "piper-en-danny-low": {
+    "speed": 7.8,
+    "medianMs": 812,
+    "audioSec": 6.32
+  },
+  "piper-en-gb-alan-low": {
+    "speed": 8,
+    "medianMs": 895,
+    "audioSec": 7.17
+  },
+  "piper-en-bryce-medium-int8": {
+    "speed": 3.7,
+    "medianMs": 2408,
+    "audioSec": 8.8
+  },
+  "piper-en-danny-low-int8": {
+    "speed": 4.7,
+    "medianMs": 1322,
+    "audioSec": 6.21
+  },
+  "piper-en-gb-alan-low-int8": {
+    "speed": 4.9,
+    "medianMs": 1480,
+    "audioSec": 7.22
+  },
+  "piper-en-gb-alan-medium": {
+    "speed": 5.8,
+    "medianMs": 1260,
+    "audioSec": 7.36
+  },
+  "piper-en-gb-alba-medium": {
+    "speed": 5.9,
+    "medianMs": 1004,
+    "audioSec": 5.97
+  },
+  "piper-en-gb-alan-medium-int8": {
+    "speed": 3.6,
+    "medianMs": 2144,
+    "audioSec": 7.65
+  },
+  "piper-en-gb-alba-medium-int8": {
+    "speed": 3.5,
+    "medianMs": 1698,
+    "audioSec": 6.01
+  },
+  "piper-en-gb-aru-medium": {
+    "speed": 5.4,
+    "medianMs": 1245,
+    "audioSec": 6.75
+  },
+  "piper-en-gb-cori-medium": {
+    "speed": 5.7,
+    "medianMs": 1057,
+    "audioSec": 5.98
+  },
+  "piper-en-gb-aru-medium-int8": {
+    "speed": 3.6,
+    "medianMs": 2024,
+    "audioSec": 7.19
+  },
+  "piper-en-gb-dii-high": {
+    "speed": 6,
+    "medianMs": 1193,
+    "audioSec": 7.17
+  },
+  "piper-en-gb-cori-medium-int8": {
+    "speed": 3.4,
+    "medianMs": 1853,
+    "audioSec": 6.24
+  },
+  "piper-en-gb-jenny-medium": {
+    "speed": 6.1,
+    "medianMs": 1073,
+    "audioSec": 6.5
+  },
+  "piper-en-gb-dii-high-int8": {
+    "speed": 3.7,
+    "medianMs": 1923,
+    "audioSec": 7.07
+  },
+  "piper-en-gb-jenny-medium-int8": {
+    "speed": 3.4,
+    "medianMs": 1879,
+    "audioSec": 6.35
+  },
+  "piper-en-gb-miro-high": {
+    "speed": 6.1,
+    "medianMs": 1177,
+    "audioSec": 7.13
+  },
+  "piper-en-gb-northern_english_male-medium": {
+    "speed": 5.8,
+    "medianMs": 1030,
+    "audioSec": 5.96
+  },
+  "piper-en-gb-miro-high-int8": {
+    "speed": 3.7,
+    "medianMs": 1973,
+    "audioSec": 7.33
+  },
+  "piper-en-gb-semaine-medium": {
+    "speed": 6.1,
+    "medianMs": 1058,
+    "audioSec": 6.41
+  },
+  "piper-en-gb-northern_english_male-medium-int8": {
+    "speed": 3.6,
+    "medianMs": 1627,
+    "audioSec": 5.84
+  },
+  "piper-en-gb-south-female-low": {
+    "speed": 7.8,
+    "medianMs": 826,
+    "audioSec": 6.41
+  },
+  "piper-en-gb-semaine-medium-int8": {
+    "speed": 3.4,
+    "medianMs": 1859,
+    "audioSec": 6.28
+  },
+  "piper-en-gb-south-female-low-int8": {
+    "speed": 4.8,
+    "medianMs": 1352,
+    "audioSec": 6.51
+  },
+  "piper-en-gb-south-female-medium": {
+    "speed": 5.6,
+    "medianMs": 1179,
+    "audioSec": 6.64
+  },
+  "piper-en-gb-south-male-medium": {
+    "speed": 5.8,
+    "medianMs": 1131,
+    "audioSec": 6.61
+  },
+  "piper-en-gb-vctk-medium": {
+    "speed": 5.9,
+    "medianMs": 832,
+    "audioSec": 4.88
+  },
+  "piper-en-gb-south-female-medium-int8": {
+    "speed": 3.3,
+    "medianMs": 2057,
+    "audioSec": 6.84
+  },
+  "piper-en-gb-south-male-medium-int8": {
+    "speed": 3.3,
+    "medianMs": 1942,
+    "audioSec": 6.49
+  },
+  "piper-en-gb-vctk-medium-int8": {
+    "speed": 3.5,
+    "medianMs": 1390,
+    "audioSec": 4.83
+  },
+  "piper-en-hfc_female-medium": {
+    "speed": 5.8,
+    "medianMs": 1065,
+    "audioSec": 6.23
+  },
+  "piper-en-hfc_female-medium-int8": {
+    "speed": 3.5,
+    "medianMs": 1748,
+    "audioSec": 6.16
+  },
+  "piper-en-hfc_male-medium": {
+    "speed": 5.6,
+    "medianMs": 1161,
+    "audioSec": 6.48
+  },
+  "piper-en-joe-medium": {
+    "speed": 5.7,
+    "medianMs": 1102,
+    "audioSec": 6.29
+  },
+  "piper-en-hfc_male-medium-int8": {
+    "speed": 3.5,
+    "medianMs": 1931,
+    "audioSec": 6.71
+  },
+  "piper-en-john-medium": {
+    "speed": 6,
+    "medianMs": 1210,
+    "audioSec": 7.24
+  },
+  "piper-en-joe-medium-int8": {
+    "speed": 3.5,
+    "medianMs": 1763,
+    "audioSec": 6.23
+  },
+  "piper-en-kathleen-low": {
+    "speed": 7.8,
+    "medianMs": 864,
+    "audioSec": 6.72
+  },
+  "piper-en-john-medium-int8": {
+    "speed": 3.4,
+    "medianMs": 2073,
+    "audioSec": 7.14
+  },
+  "piper-en-kathleen-low-int8": {
+    "speed": 4.7,
+    "medianMs": 1429,
+    "audioSec": 6.77
+  },
+  "piper-en-kristin-medium": {
+    "speed": 5.7,
+    "medianMs": 1161,
+    "audioSec": 6.57
+  },
+  "piper-en-kusal-medium": {
+    "speed": 5.8,
+    "medianMs": 1001,
+    "audioSec": 5.83
+  },
+  "piper-en-kristin-medium-int8": {
+    "speed": 3.5,
+    "medianMs": 1942,
+    "audioSec": 6.77
+  },
+  "piper-en-l2arctic-medium": {
+    "speed": 6.1,
+    "medianMs": 1300,
+    "audioSec": 7.91
+  },
+  "piper-en-kusal-medium-int8": {
+    "speed": 3.4,
+    "medianMs": 1711,
+    "audioSec": 5.75
+  },
+  "piper-en-lessac-low": {
+    "speed": 7.6,
+    "medianMs": 831,
+    "audioSec": 6.34
+  },
+  "piper-en-l2arctic-medium-int8": {
+    "speed": 3.3,
+    "medianMs": 2322,
+    "audioSec": 7.69
+  },
+  "piper-en-lessac-medium": {
+    "speed": 5.9,
+    "medianMs": 1062,
+    "audioSec": 6.23
+  },
+  "piper-en-lessac-low-int8": {
+    "speed": 4.9,
+    "medianMs": 1237,
+    "audioSec": 6.08
+  },
+  "piper-en-lessac-medium-int8": {
+    "speed": 3.7,
+    "medianMs": 1704,
+    "audioSec": 6.25
+  },
+  "piper-en-libritts_r-medium": {
+    "speed": 5.5,
+    "medianMs": 1013,
+    "audioSec": 5.58
+  },
+  "piper-en-ljspeech-medium": {
+    "speed": 5.8,
+    "medianMs": 1263,
+    "audioSec": 7.3
+  },
+  "piper-en-libritts_r-medium-int8": {
+    "speed": 3.6,
+    "medianMs": 1666,
+    "audioSec": 5.96
+  },
+  "piper-en-miro-high": {
+    "speed": 5.9,
+    "medianMs": 1344,
+    "audioSec": 7.89
+  },
+  "piper-en-ljspeech-medium-int8": {
+    "speed": 3.5,
+    "medianMs": 2134,
+    "audioSec": 7.55
+  },
+  "piper-en-norman-medium": {
+    "speed": 5.6,
+    "medianMs": 1234,
+    "audioSec": 6.88
+  },
+  "piper-en-miro-high-int8": {
+    "speed": 3.5,
+    "medianMs": 2156,
+    "audioSec": 7.63
+  },
+  "piper-en-ryan-low": {
+    "speed": 7.9,
+    "medianMs": 708,
+    "audioSec": 5.57
+  },
+  "piper-en-norman-medium-int8": {
+    "speed": 3.4,
+    "medianMs": 2089,
+    "audioSec": 7.19
+  },
+  "piper-en-reza-medium": {
+    "speed": 5.5,
+    "medianMs": 1339,
+    "audioSec": 7.3
+  },
+  "piper-en-reza-medium-int8": {
+    "speed": 3.3,
+    "medianMs": 2274,
+    "audioSec": 7.44
+  },
+  "piper-en-ryan-medium": {
+    "speed": 5.8,
+    "medianMs": 1039,
+    "audioSec": 5.98
+  },
+  "piper-en-ryan-low-int8": {
+    "speed": 4.8,
+    "medianMs": 1194,
+    "audioSec": 5.7
+  },
+  "piper-en-ryan-medium-int8": {
+    "speed": 3.5,
+    "medianMs": 1649,
+    "audioSec": 5.85
+  },
+  "piper-en-sam-medium": {
+    "speed": 5.7,
+    "medianMs": 1301,
+    "audioSec": 7.41
+  },
+  "piper-es-carlfm-x_low": {
+    "speed": 9.6,
+    "medianMs": 567,
+    "audioSec": 5.44
+  },
+  "piper-en-sam-medium-int8": {
+    "speed": 3.4,
+    "medianMs": 2209,
+    "audioSec": 7.59
+  },
+  "piper-es-carlfm-x_low-int8": {
+    "speed": 5,
+    "medianMs": 1060,
+    "audioSec": 5.33
+  },
+  "piper-es-davefx-medium": {
+    "speed": 5.9,
+    "medianMs": 1040,
+    "audioSec": 6.15
+  },
+  "piper-es-glados-medium": {
+    "speed": 6.2,
+    "medianMs": 1001,
+    "audioSec": 6.18
+  },
+  "piper-es-davefx-medium-int8": {
+    "speed": 3.6,
+    "medianMs": 1730,
+    "audioSec": 6.2
+  },
+  "piper-es-miro-high": {
+    "speed": 5.9,
+    "medianMs": 954,
+    "audioSec": 5.63
+  },
+  "piper-es-glados-medium-int8": {
+    "speed": 3.6,
+    "medianMs": 1726,
+    "audioSec": 6.28
+  },
+  "piper-es-ar-daniela-high": {
+    "speed": 0.7,
+    "medianMs": 7509,
+    "audioSec": 5.34
+  },
+  "piper-es-miro-high-int8": {
+    "speed": 3.6,
+    "medianMs": 1579,
+    "audioSec": 5.62
+  },
+  "piper-es-mx-ald-medium": {
+    "speed": 5.9,
+    "medianMs": 1186,
+    "audioSec": 7.01
+  },
+  "piper-es-mx-claude-high": {
+    "speed": 5.8,
+    "medianMs": 1153,
+    "audioSec": 6.72
+  },
+  "piper-es-mx-ald-medium-int8": {
+    "speed": 3.5,
+    "medianMs": 2062,
+    "audioSec": 7.12
+  },
+  "piper-es-mx-claude-high-int8": {
+    "speed": 3.5,
+    "medianMs": 1912,
+    "audioSec": 6.65
+  },
+  "piper-es-sharvard-medium": {
+    "speed": 5.9,
+    "medianMs": 1021,
+    "audioSec": 6.07
+  },
+  "piper-es-ar-daniela-high-int8": {
+    "speed": 0.5,
+    "medianMs": 10759,
+    "audioSec": 5.36
+  },
+  "piper-es-sharvard-medium-int8": {
+    "speed": 3.4,
+    "medianMs": 1764,
+    "audioSec": 6.06
+  },
+  "piper-fa-amir-medium": {
+    "speed": 6.1,
+    "medianMs": 1270,
+    "audioSec": 7.7
+  },
+  "piper-fa-amir-medium-int8": {
+    "speed": 3.3,
+    "medianMs": 2295,
+    "audioSec": 7.58
+  },
+  "piper-fa-en-rezahedayatfar-ibrahimwalk-medium": {
+    "speed": 5.9,
+    "medianMs": 1585,
+    "audioSec": 9.33
+  },
+  "piper-fa-ganji-medium": {
+    "speed": 5.8,
+    "medianMs": 1582,
+    "audioSec": 9.16
+  },
+  "piper-fa-ganji-medium-int8": {
+    "speed": 3.4,
+    "medianMs": 2745,
+    "audioSec": 9.44
+  },
+  "piper-fa-gyro-medium": {
+    "speed": 5.8,
+    "medianMs": 1157,
+    "audioSec": 6.7
+  },
+  "piper-fa-ganji_adabi-medium": {
+    "speed": 5.8,
+    "medianMs": 1626,
+    "audioSec": 9.43
+  },
+  "piper-fa-ganji_adabi-medium-int8": {
+    "speed": 3.4,
+    "medianMs": 2785,
+    "audioSec": 9.48
+  },
+  "piper-fa-reza-medium": {
+    "speed": 5.7,
+    "medianMs": 1650,
+    "audioSec": 9.42
+  },
+  "piper-fi-harri-low": {
+    "speed": 7.5,
+    "medianMs": 868,
+    "audioSec": 6.48
+  },
+  "piper-fa-gyro-medium-int8": {
+    "speed": 3.4,
+    "medianMs": 1976,
+    "audioSec": 6.63
+  },
+  "piper-fa-reza-medium-int8": {
+    "speed": 3.5,
+    "medianMs": 2719,
+    "audioSec": 9.53
+  },
+  "piper-fi-harri-low-int8": {
+    "speed": 4.8,
+    "medianMs": 1400,
+    "audioSec": 6.77
+  },
+  "piper-fi-harri-medium": {
+    "speed": 5.8,
+    "medianMs": 1102,
+    "audioSec": 6.38
+  },
+  "piper-fr-gilles-low": {
+    "speed": 7,
+    "medianMs": 920,
+    "audioSec": 6.42
+  },
+  "piper-fi-harri-medium-int8": {
+    "speed": 3.6,
+    "medianMs": 1802,
+    "audioSec": 6.5
+  },
+  "piper-fr-miro-high": {
+    "speed": 6.1,
+    "medianMs": 1217,
+    "audioSec": 7.41
+  },
+  "piper-fr-siwis-low": {
+    "speed": 10.5,
+    "medianMs": 599,
+    "audioSec": 6.3
+  },
+  "piper-fr-gilles-low-int8": {
+    "speed": 4.4,
+    "medianMs": 1447,
+    "audioSec": 6.42
+  },
+  "piper-fr-miro-high-int8": {
+    "speed": 3.7,
+    "medianMs": 1956,
+    "audioSec": 7.22
+  },
+  "piper-fr-siwis-low-int8": {
+    "speed": 5.5,
+    "medianMs": 1096,
+    "audioSec": 6.03
+  },
+  "piper-fr-siwis-medium": {
+    "speed": 5.7,
+    "medianMs": 1093,
+    "audioSec": 6.21
+  },
+  "piper-fr-siwis-medium-int8": {
+    "speed": 3.6,
+    "medianMs": 1812,
+    "audioSec": 6.58
+  },
+  "piper-fr-tjiho1-medium": {
+    "speed": 3,
+    "medianMs": 2040,
+    "audioSec": 6.03
+  },
+  "piper-fr-tjiho2-medium": {
+    "speed": 2.8,
+    "medianMs": 2026,
+    "audioSec": 5.68
+  },
+  "piper-fr-tjiho1-medium-int8": {
+    "speed": 1.8,
+    "medianMs": 3417,
+    "audioSec": 6.01
+  },
+  "piper-fr-tjiho3-medium": {
+    "speed": 3,
+    "medianMs": 2268,
+    "audioSec": 6.89
+  },
+  "piper-fr-tjiho2-medium-int8": {
+    "speed": 1.7,
+    "medianMs": 3485,
+    "audioSec": 6.03
+  },
+  "piper-fr-upmc-medium": {
+    "speed": 5.9,
+    "medianMs": 1072,
+    "audioSec": 6.34
+  },
+  "piper-fr-tom-medium": {
+    "speed": 3.2,
+    "medianMs": 2212,
+    "audioSec": 6.97
+  },
+  "piper-fr-tjiho3-medium-int8": {
+    "speed": 1.8,
+    "medianMs": 3852,
+    "audioSec": 6.77
+  },
+  "piper-hi-pratham-medium": {
+    "speed": 5.7,
+    "medianMs": 1038,
+    "audioSec": 5.88
+  },
+  "piper-fr-upmc-medium-int8": {
+    "speed": 3.5,
+    "medianMs": 1781,
+    "audioSec": 6.23
+  },
+  "piper-hi-pratham-medium-int8": {
+    "speed": 3.5,
+    "medianMs": 1643,
+    "audioSec": 5.7
+  },
+  "piper-fr-tom-medium-int8": {
+    "speed": 1.8,
+    "medianMs": 3923,
+    "audioSec": 6.92
+  },
+  "piper-hi-priyamvada-medium": {
+    "speed": 5.9,
+    "medianMs": 1219,
+    "audioSec": 7.25
+  },
+  "piper-hi-rohan-medium": {
+    "speed": 5.1,
+    "medianMs": 1239,
+    "audioSec": 6.31
+  },
+  "piper-hu-anna-medium": {
+    "speed": 6.1,
+    "medianMs": 940,
+    "audioSec": 5.7
+  },
+  "piper-hi-priyamvada-medium-int8": {
+    "speed": 3.6,
+    "medianMs": 2042,
+    "audioSec": 7.36
+  },
+  "piper-hu-berta-medium": {
+    "speed": 5.9,
+    "medianMs": 878,
+    "audioSec": 5.17
+  },
+  "piper-hi-rohan-medium-int8": {
+    "speed": 3.1,
+    "medianMs": 2035,
+    "audioSec": 6.32
+  },
+  "piper-hu-anna-medium-int8": {
+    "speed": 3.3,
+    "medianMs": 1593,
+    "audioSec": 5.32
+  },
+  "piper-hu-berta-medium-int8": {
+    "speed": 3.5,
+    "medianMs": 1440,
+    "audioSec": 5.11
+  },
+  "piper-hu-imre-medium": {
+    "speed": 5.9,
+    "medianMs": 898,
+    "audioSec": 5.28
+  },
+  "piper-hu-imre-medium-int8": {
+    "speed": 3.5,
+    "medianMs": 1498,
+    "audioSec": 5.26
+  },
+  "piper-id-news_tts-medium": {
+    "speed": 6.1,
+    "medianMs": 1217,
+    "audioSec": 7.42
+  },
+  "piper-is-bui-medium": {
+    "speed": 5.7,
+    "medianMs": 1025,
+    "audioSec": 5.88
+  },
+  "piper-id-news_tts-medium-int8": {
+    "speed": 3.5,
+    "medianMs": 2022,
+    "audioSec": 7.14
+  },
+  "piper-is-salka-medium": {
+    "speed": 5.5,
+    "medianMs": 1172,
+    "audioSec": 6.5
+  },
+  "piper-is-bui-medium-int8": {
+    "speed": 3.2,
+    "medianMs": 1783,
+    "audioSec": 5.68
+  },
+  "piper-is-steinn-medium": {
+    "speed": 5.4,
+    "medianMs": 1102,
+    "audioSec": 5.93
+  },
+  "piper-is-salka-medium-int8": {
+    "speed": 3.2,
+    "medianMs": 1906,
+    "audioSec": 6.07
+  },
+  "piper-is-ugla-medium": {
+    "speed": 5.5,
+    "medianMs": 920,
+    "audioSec": 5.08
+  },
+  "piper-is-steinn-medium-int8": {
+    "speed": 3.3,
+    "medianMs": 1827,
+    "audioSec": 5.94
+  },
+  "piper-it-dii-high": {
+    "speed": 5.7,
+    "medianMs": 1309,
+    "audioSec": 7.45
+  },
+  "piper-is-ugla-medium-int8": {
+    "speed": 3.3,
+    "medianMs": 1575,
+    "audioSec": 5.14
+  },
+  "piper-it-miro-high": {
+    "speed": 6,
+    "medianMs": 1205,
+    "audioSec": 7.26
+  },
+  "piper-it-paola-medium": {
+    "speed": 6.1,
+    "medianMs": 857,
+    "audioSec": 5.21
+  },
+  "piper-it-dii-high-int8": {
+    "speed": 3.4,
+    "medianMs": 2184,
+    "audioSec": 7.42
+  },
+  "piper-it-riccardo-x_low": {
+    "speed": 10,
+    "medianMs": 609,
+    "audioSec": 6.08
+  },
+  "piper-it-miro-high-int8": {
+    "speed": 3.5,
+    "medianMs": 2035,
+    "audioSec": 7.22
+  },
+  "piper-it-paola-medium-int8": {
+    "speed": 3.6,
+    "medianMs": 1473,
+    "audioSec": 5.26
+  },
+  "piper-it-riccardo-x_low-int8": {
+    "speed": 4.8,
+    "medianMs": 1141,
+    "audioSec": 5.48
+  },
+  "piper-ka-natia-medium": {
+    "speed": 5.4,
+    "medianMs": 1142,
+    "audioSec": 6.18
+  },
+  "piper-kk-iseke-x_low": {
+    "speed": 9.6,
+    "medianMs": 759,
+    "audioSec": 7.32
+  },
+  "piper-kk-iseke-x_low-int8": {
+    "speed": 5,
+    "medianMs": 1380,
+    "audioSec": 6.87
+  },
+  "piper-ka-natia-medium-int8": {
+    "speed": 3.4,
+    "medianMs": 1811,
+    "audioSec": 6.09
+  },
+  "piper-kk-raya-x_low": {
+    "speed": 10.3,
+    "medianMs": 618,
+    "audioSec": 6.34
+  },
+  "piper-kk-raya-x_low-int8": {
+    "speed": 5.1,
+    "medianMs": 1280,
+    "audioSec": 6.48
+  },
+  "piper-lb-marylux-medium": {
+    "speed": 5.6,
+    "medianMs": 866,
+    "audioSec": 4.83
+  },
+  "piper-lv-aivars-medium": {
+    "speed": 6.1,
+    "medianMs": 1037,
+    "audioSec": 6.33
+  },
+  "piper-lb-marylux-medium-int8": {
+    "speed": 3.5,
+    "medianMs": 1389,
+    "audioSec": 4.89
+  },
+  "piper-ml-arjun-medium": {
+    "speed": 5.6,
+    "medianMs": 1259,
+    "audioSec": 7.05
+  },
+  "piper-lv-aivars-medium-int8": {
+    "speed": 3.3,
+    "medianMs": 1849,
+    "audioSec": 6.05
+  },
+  "piper-ml-meera-medium": {
+    "speed": 5.2,
+    "medianMs": 1074,
+    "audioSec": 5.61
+  },
+  "piper-ml-arjun-medium-int8": {
+    "speed": 3.2,
+    "medianMs": 2196,
+    "audioSec": 7.11
+  },
+  "piper-kk-issai-high": {
+    "speed": 0.7,
+    "medianMs": 9012,
+    "audioSec": 6.15
+  },
+  "piper-ne-chitwan-medium": {
+    "speed": 5.1,
+    "medianMs": 974,
+    "audioSec": 5.01
+  },
+  "piper-ml-meera-medium-int8": {
+    "speed": 3.1,
+    "medianMs": 1862,
+    "audioSec": 5.75
+  },
+  "piper-ne-chitwan-medium-int8": {
+    "speed": 3.1,
+    "medianMs": 1620,
+    "audioSec": 5.03
+  },
+  "piper-ne-google-medium": {
+    "speed": 5.9,
+    "medianMs": 1141,
+    "audioSec": 6.78
+  },
+  "piper-ne-google-x_low": {
+    "speed": 10,
+    "medianMs": 614,
+    "audioSec": 6.13
+  },
+  "piper-ne-google-medium-int8": {
+    "speed": 3.5,
+    "medianMs": 1966,
+    "audioSec": 6.8
+  },
+  "piper-kk-issai-high-int8": {
+    "speed": 0.5,
+    "medianMs": 12848,
+    "audioSec": 6.23
+  },
+  "piper-ne-google-x_low-int8": {
+    "speed": 5.1,
+    "medianMs": 1195,
+    "audioSec": 6.06
+  },
+  "piper-nl-be-nathalie-medium": {
+    "speed": 5.5,
+    "medianMs": 1027,
+    "audioSec": 5.69
+  },
+  "piper-nl-be-nathalie-x_low": {
+    "speed": 9.7,
+    "medianMs": 581,
+    "audioSec": 5.66
+  },
+  "piper-nl-be-rdh-medium": {
+    "speed": 6,
+    "medianMs": 881,
+    "audioSec": 5.27
+  },
+  "piper-nl-be-nathalie-medium-int8": {
+    "speed": 3.5,
+    "medianMs": 1642,
+    "audioSec": 5.79
+  },
+  "piper-nl-be-nathalie-x_low-int8": {
+    "speed": 5.4,
+    "medianMs": 1042,
+    "audioSec": 5.66
+  },
+  "piper-nl-be-rdh-x_low": {
+    "speed": 10.4,
+    "medianMs": 490,
+    "audioSec": 5.1
+  },
+  "piper-nl-miro-high": {
+    "speed": 5.9,
+    "medianMs": 959,
+    "audioSec": 5.62
+  },
+  "piper-nl-dii-high": {
+    "speed": 5.7,
+    "medianMs": 923,
+    "audioSec": 5.28
+  },
+  "piper-nl-dii-high-int8": {
+    "speed": 3.4,
+    "medianMs": 1603,
+    "audioSec": 5.53
+  },
+  "piper-nl-miro-high-int8": {
+    "speed": 3.4,
+    "medianMs": 1671,
+    "audioSec": 5.63
+  },
+  "piper-nl-pim-medium": {
+    "speed": 5.2,
+    "medianMs": 1279,
+    "audioSec": 6.71
+  },
+  "piper-nl-ronnie-medium": {
+    "speed": 5,
+    "medianMs": 1420,
+    "audioSec": 7.12
+  },
+  "piper-nl-pim-medium-int8": {
+    "speed": 3.1,
+    "medianMs": 2157,
+    "audioSec": 6.71
+  },
+  "piper-no-talesyntese-medium": {
+    "speed": 5.8,
+    "medianMs": 861,
+    "audioSec": 4.97
+  },
+  "piper-nl-ronnie-medium-int8": {
+    "speed": 2.9,
+    "medianMs": 2532,
+    "audioSec": 7.39
+  },
+  "piper-pl-darkman-medium": {
+    "speed": 5.9,
+    "medianMs": 1088,
+    "audioSec": 6.37
+  },
+  "piper-no-talesyntese-medium-int8": {
+    "speed": 3.5,
+    "medianMs": 1395,
+    "audioSec": 4.95
+  },
+  "piper-pl-gosia-medium": {
+    "speed": 5.5,
+    "medianMs": 1108,
+    "audioSec": 6.14
+  },
+  "piper-pl-darkman-medium-int8": {
+    "speed": 3.6,
+    "medianMs": 1787,
+    "audioSec": 6.36
+  },
+  "piper-pl-jarvis-medium": {
+    "speed": 5.4,
+    "medianMs": 905,
+    "audioSec": 4.9
+  },
+  "piper-pl-justyna-medium": {
+    "speed": 5.6,
+    "medianMs": 952,
+    "audioSec": 5.3
+  },
+  "piper-pl-gosia-medium-int8": {
+    "speed": 3.7,
+    "medianMs": 1724,
+    "audioSec": 6.36
+  },
+  "piper-pl-jarvis-medium-int8": {
+    "speed": 3.4,
+    "medianMs": 1482,
+    "audioSec": 5.09
+  },
+  "piper-pl-mc_speech-medium": {
+    "speed": 5.5,
+    "medianMs": 936,
+    "audioSec": 5.13
+  },
+  "piper-pl-justyna-medium-int8": {
+    "speed": 3.4,
+    "medianMs": 1601,
+    "audioSec": 5.42
+  },
+  "piper-pl-meski-medium": {
+    "speed": 5.8,
+    "medianMs": 872,
+    "audioSec": 5.05
+  },
+  "piper-pl-mc_speech-medium-int8": {
+    "speed": 3.2,
+    "medianMs": 1584,
+    "audioSec": 5.02
+  },
+  "piper-pl-zenski-medium": {
+    "speed": 5.8,
+    "medianMs": 960,
+    "audioSec": 5.53
+  },
+  "piper-pl-meski-medium-int8": {
+    "speed": 3.5,
+    "medianMs": 1429,
+    "audioSec": 5
+  },
+  "piper-pt-br-cadu-medium": {
+    "speed": 4.7,
+    "medianMs": 1313,
+    "audioSec": 6.14
+  },
+  "piper-pl-zenski-medium-int8": {
+    "speed": 3.5,
+    "medianMs": 1534,
+    "audioSec": 5.41
+  },
+  "piper-pt-br-dii-high": {
+    "speed": 5.6,
+    "medianMs": 1086,
+    "audioSec": 6.08
+  },
+  "piper-pt-br-cadu-medium-int8": {
+    "speed": 2.9,
+    "medianMs": 2126,
+    "audioSec": 6.18
+  },
+  "piper-pt-br-edresson-low": {
+    "speed": 7.7,
+    "medianMs": 1030,
+    "audioSec": 7.92
+  },
+  "piper-pt-br-dii-high-int8": {
+    "speed": 3.5,
+    "medianMs": 1795,
+    "audioSec": 6.32
+  },
+  "piper-pt-br-faber-medium": {
+    "speed": 5.7,
+    "medianMs": 956,
+    "audioSec": 5.41
+  },
+  "piper-pt-br-edresson-low-int8": {
+    "speed": 4.7,
+    "medianMs": 1724,
+    "audioSec": 8.13
+  },
+  "piper-pt-br-jeff-medium": {
+    "speed": 5.1,
+    "medianMs": 1168,
+    "audioSec": 6
+  },
+  "piper-pt-br-faber-medium-int8": {
+    "speed": 3.6,
+    "medianMs": 1541,
+    "audioSec": 5.48
+  },
+  "piper-pt-br-miro-high": {
+    "speed": 5.9,
+    "medianMs": 1080,
+    "audioSec": 6.4
+  },
+  "piper-pt-dii-high": {
+    "speed": 5.7,
+    "medianMs": 1037,
+    "audioSec": 5.96
+  },
+  "piper-pt-br-jeff-medium-int8": {
+    "speed": 2.9,
+    "medianMs": 1974,
+    "audioSec": 5.65
+  },
+  "piper-pt-br-miro-high-int8": {
+    "speed": 3.6,
+    "medianMs": 1757,
+    "audioSec": 6.4
+  },
+  "piper-pt-dii-high-int8": {
+    "speed": 3.4,
+    "medianMs": 1761,
+    "audioSec": 6.07
+  },
+  "piper-pt-miro-high": {
+    "speed": 5.8,
+    "medianMs": 1068,
+    "audioSec": 6.15
+  },
+  "piper-pt-tugao-medium": {
+    "speed": 5.8,
+    "medianMs": 877,
+    "audioSec": 5.05
+  },
+  "piper-pt-miro-high-int8": {
+    "speed": 3.4,
+    "medianMs": 1791,
+    "audioSec": 6.08
+  },
+  "piper-ro-mihai-medium": {
+    "speed": 5.8,
+    "medianMs": 1235,
+    "audioSec": 7.14
+  },
+  "piper-pt-tugao-medium-int8": {
+    "speed": 3.4,
+    "medianMs": 1454,
+    "audioSec": 4.97
+  },
+  "piper-ru-denis-medium": {
+    "speed": 5.7,
+    "medianMs": 1114,
+    "audioSec": 6.35
+  },
+  "piper-ru-dmitri-medium": {
+    "speed": 5.5,
+    "medianMs": 1023,
+    "audioSec": 5.58
+  },
+  "piper-ru-denis-medium-int8": {
+    "speed": 3.4,
+    "medianMs": 1872,
+    "audioSec": 6.33
+  },
+  "piper-ru-irina-medium": {
+    "speed": 5.7,
+    "medianMs": 1168,
+    "audioSec": 6.65
+  },
+  "piper-ru-dmitri-medium-int8": {
+    "speed": 3.5,
+    "medianMs": 1600,
+    "audioSec": 5.61
+  },
+  "piper-ru-ruslan-medium": {
+    "speed": 5.6,
+    "medianMs": 1156,
+    "audioSec": 6.42
+  },
+  "piper-ru-irina-medium-int8": {
+    "speed": 3.2,
+    "medianMs": 2070,
+    "audioSec": 6.56
+  },
+  "piper-sk-lili-medium": {
+    "speed": 5.9,
+    "medianMs": 927,
+    "audioSec": 5.48
+  },
+  "piper-ru-ruslan-medium-int8": {
+    "speed": 3.7,
+    "medianMs": 1825,
+    "audioSec": 6.68
+  },
+  "piper-sk-lili-medium-int8": {
+    "speed": 3.6,
+    "medianMs": 1535,
+    "audioSec": 5.45
+  },
+  "piper-sl-artur-medium": {
+    "speed": 5.4,
+    "medianMs": 1097,
+    "audioSec": 5.94
+  },
+  "piper-sl-artur-medium-int8": {
+    "speed": 3.4,
+    "medianMs": 1765,
+    "audioSec": 6
+  },
+  "piper-sr-serbski_institut-medium": {
+    "speed": 5.2,
+    "medianMs": 1947,
+    "audioSec": 10.05
+  },
+  "piper-sv-lisa-medium": {
+    "speed": 5.2,
+    "medianMs": 1108,
+    "audioSec": 5.79
+  },
+  "piper-sv-nst-medium": {
+    "speed": 6,
+    "medianMs": 1137,
+    "audioSec": 6.86
+  },
+  "piper-sv-lisa-medium-int8": {
+    "speed": 3.5,
+    "medianMs": 1692,
+    "audioSec": 5.97
+  },
+  "piper-sr-serbski_institut-medium-int8": {
+    "speed": 3,
+    "medianMs": 3297,
+    "audioSec": 9.95
+  },
+  "piper-sv-nst-medium-int8": {
+    "speed": 3.6,
+    "medianMs": 1928,
+    "audioSec": 6.91
+  },
+  "piper-sw-lanfrica-medium": {
+    "speed": 5.6,
+    "medianMs": 1120,
+    "audioSec": 6.29
+  },
+  "piper-tr-dfki-medium": {
+    "speed": 5.9,
+    "medianMs": 1172,
+    "audioSec": 6.95
+  },
+  "piper-sw-lanfrica-medium-int8": {
+    "speed": 3.3,
+    "medianMs": 1889,
+    "audioSec": 6.2
+  },
+  "piper-tr-fahrettin-medium": {
+    "speed": 5.8,
+    "medianMs": 998,
+    "audioSec": 5.8
+  },
+  "piper-tr-dfki-medium-int8": {
+    "speed": 3.5,
+    "medianMs": 1975,
+    "audioSec": 6.99
+  },
+  "piper-uk-lada-x_low": {
+    "speed": 10,
+    "medianMs": 623,
+    "audioSec": 6.23
+  },
+  "piper-tr-fettah-medium": {
+    "speed": 6.1,
+    "medianMs": 1227,
+    "audioSec": 7.48
+  },
+  "piper-tr-fahrettin-medium-int8": {
+    "speed": 3.5,
+    "medianMs": 1698,
+    "audioSec": 5.99
+  },
+  "piper-uk-ukrainian_tts-medium": {
+    "speed": 4.1,
+    "medianMs": 229,
+    "audioSec": 0.93
+  },
+  "piper-tr-fettah-medium-int8": {
+    "speed": 3.5,
+    "medianMs": 2056,
+    "audioSec": 7.29
+  },
+  "piper-uk-ukrainian_tts-medium-int8": {
+    "speed": 2.7,
+    "medianMs": 309,
+    "audioSec": 0.82
+  },
+  "piper-uk-lada-x_low-int8": {
+    "speed": 5.3,
+    "medianMs": 1218,
+    "audioSec": 6.5
+  },
+  "piper-vi-25hours-low": {
+    "speed": 7.7,
+    "medianMs": 841,
+    "audioSec": 6.5
+  },
+  "piper-vi-vais1000-medium": {
+    "speed": 5.2,
+    "medianMs": 966,
+    "audioSec": 4.98
+  },
+  "piper-vi-25hours-low-int8": {
+    "speed": 4.7,
+    "medianMs": 1410,
+    "audioSec": 6.61
+  },
+  "piper-vi-vivos-x_low": {
+    "speed": 9.5,
+    "medianMs": 746,
+    "audioSec": 7.09
+  },
+  "piper-vi-vais1000-medium-int8": {
+    "speed": 3.4,
+    "medianMs": 1516,
+    "audioSec": 5.21
+  },
+  "piper-vi-vivos-x_low-int8": {
+    "speed": 5.2,
+    "medianMs": 1383,
+    "audioSec": 7.23
+  },
+  "piper-zh-huayan-medium": {
+    "speed": 5.1,
+    "medianMs": 1744,
+    "audioSec": 8.95
+  },
+  "zh-ll": {
+    "speed": 1,
+    "medianMs": 8010,
+    "audioSec": 8.14
+  }
+}

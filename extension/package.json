@@ -1,6 +1,6 @@
 {
   "name": "Eburon-extension",
-  "version": "0.14.1",
+  "version": "0.15.2",
   "description": "Browser extension version of Eburon - Live speech translation using OpenAI and Google Gemini APIs",
   "private": true,
   "scripts": {

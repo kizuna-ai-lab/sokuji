@@ -1258,6 +1258,42 @@
   }
 }
 
+.tutorial-link {
+  margin-top: 6px;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+
+  a {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: #10a37f;
+    font-size: 12px;
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+
+  .tutorial-dismiss {
+    background: none;
+    border: none;
+    color: #666;
+    cursor: pointer;
+    padding: 2px;
+    display: inline-flex;
+    align-items: center;
+    margin-left: 4px;
+
+    &:hover {
+      color: #999;
+    }
+  }
+}
+
 .validation-message {
   padding: 6px 10px;
   border-radius: 4px;
@@ -1274,6 +1310,16 @@
     background: rgba(255, 68, 68, 0.1);
     border: 1px solid rgba(255, 68, 68, 0.3);
     color: #ff4444;
+  }
+
+  .models-link {
+    color: #10a37f;
+    cursor: pointer;
+    text-decoration: underline;
+
+    &:hover {
+      opacity: 0.8;
+    }
   }
 }
 

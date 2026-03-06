@@ -21,8 +21,12 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            artifact_name: linux
-            name: linux
+            artifact_name: linux-x64
+            name: linux-x64
+          - os: ubuntu-latest
+            artifact_name: linux-arm64
+            name: linux-arm64
+            arch: arm64
           - os: windows-latest
             artifact_name: windows
             name: windows
@@ -69,7 +73,7 @@ jobs:
 
       - name: Build Electron app with Forge
         if: runner.os != 'macOS'
-        run: npm run make
+        run: npx electron-forge make --arch=${{ matrix.arch || 'x64' }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CI: false
@@ -100,7 +104,7 @@ jobs:
           VITE_ENABLE_PALABRA_AI: ${{ secrets.VITE_ENABLE_PALABRA_AI }}
 
       - name: Build Chrome Extension
-        if: matrix.os == 'ubuntu-latest'
+        if: matrix.os == 'ubuntu-latest' && matrix.arch != 'arm64'
         run: |
           cd extension
           npm ci
@@ -150,7 +154,7 @@ jobs:
 
       # Release-specific steps
       - name: Generate changelog
-        if: startsWith(github.ref, 'refs/tags/v') && matrix.os == 'ubuntu-latest'
+        if: startsWith(github.ref, 'refs/tags/v') && matrix.name == 'linux-x64'
         id: changelog
         run: |
           PREVIOUS_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
@@ -162,17 +166,26 @@ jobs:
           # Save changelog to a file for the release
           echo "$CHANGELOG" > CHANGELOG.md
 
-      - name: Upload Linux artifacts
-        if: startsWith(github.ref, 'refs/tags/v') && matrix.os == 'ubuntu-latest'
+      - name: Upload Linux x64 artifacts
+        if: startsWith(github.ref, 'refs/tags/v') && matrix.name == 'linux-x64'
         uses: actions/upload-artifact@v4
         with:
-          name: linux-artifacts
+          name: linux-x64-artifacts
           path: |
             out/make/**/*.deb
             out/make/**/*.zip
             android/app/build/outputs/apk/debug/*.apk
             extension/Eburon-extension.zip
             CHANGELOG.md
+
+      - name: Upload Linux ARM64 artifacts
+        if: startsWith(github.ref, 'refs/tags/v') && matrix.name == 'linux-arm64'
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-arm64-artifacts
+          path: |
+            out/make/**/*.deb
+            out/make/**/*.zip
 
       - name: Upload Windows artifacts
         if: startsWith(github.ref, 'refs/tags/v') && matrix.os == 'windows-latest'
@@ -195,11 +208,17 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Download Linux artifacts
+      - name: Download Linux x64 artifacts
         uses: actions/download-artifact@v4
         with:
-          name: linux-artifacts
-          path: linux-artifacts
+          name: linux-x64-artifacts
+          path: linux-x64-artifacts
+
+      - name: Download Linux ARM64 artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: linux-arm64-artifacts
+          path: linux-arm64-artifacts
 
       - name: Download Windows artifacts
         uses: actions/download-artifact@v4
@@ -219,29 +238,41 @@ jobs:
           name: macos-x64-artifacts
           path: macos-x64-artifacts
 
-      - name: Debug Windows artifacts structure
+      - name: Debug artifacts structure
         run: |
-          echo "Windows artifacts structure:"
-          ls -R windows-artifacts/ || true
-          find windows-artifacts -name "*.exe" || true
+          echo "=== Linux x64 ==="
+          find linux-x64-artifacts -type f || true
+          echo "=== Linux ARM64 ==="
+          find linux-arm64-artifacts -type f || true
+          echo "=== Windows ==="
+          find windows-artifacts -type f || true
+          echo "=== macOS ARM64 ==="
+          find macos-arm64-artifacts -type f || true
+          echo "=== macOS x64 ==="
+          find macos-x64-artifacts -type f || true
 
-      - name: Debug macOS artifacts structure
+      - name: Collect release assets
         run: |
-          echo "macOS ARM64 artifacts structure:"
-          ls -R macos-arm64-artifacts/ || true
-          find macos-arm64-artifacts -name "*.pkg" || true
-          echo "macOS x64 artifacts structure:"
-          ls -R macos-x64-artifacts/ || true
-          find macos-x64-artifacts -name "*.pkg" || true
+          mkdir -p release-assets
+          find linux-x64-artifacts -name "*.deb" -exec cp {} release-assets/ \;
+          find linux-x64-artifacts -name "*.zip" -exec cp {} release-assets/ \;
+          find linux-x64-artifacts -name "sokuji-extension.zip" -exec cp {} release-assets/ \;
+          find linux-arm64-artifacts -name "*.deb" -exec cp {} release-assets/ \;
+          find linux-arm64-artifacts -name "*.zip" -exec cp {} release-assets/ \;
+          find windows-artifacts -name "*.exe" -exec cp {} release-assets/ \;
+          find windows-artifacts -name "*.nupkg" -exec cp {} release-assets/ \;
+          find macos-arm64-artifacts -name "*.pkg" -exec cp {} release-assets/ \;
+          find macos-x64-artifacts -name "*.pkg" -exec cp {} release-assets/ \;
+          echo "=== Release assets ==="
+          ls -la release-assets/
 
       - name: Create Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           files: |
             linux-artifacts/out/make/**/*.deb
             linux-artifacts/out/make/**/*.zip
-            linux-artifacts/android/app/build/outputs/apk/debug/*.apk
-            linux-artifacts/extension/Eburon-extension.zip
+            linux-artifacts/extension/sokuji-extension.zip
             windows-artifacts/squirrel.windows/x64/*.exe
             windows-artifacts/squirrel.windows/x64/*.nupkg
             macos-arm64-artifacts/*.pkg

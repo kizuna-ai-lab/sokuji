@@ -1,0 +1,6978 @@
+{
+  "timestamp": "2026-02-27T04:53:51.873Z",
+  "stats": {
+    "done": "387",
+    "total": "387",
+    "failed": "0",
+    "time": "13:07"
+  },
+  "results": {
+    "coqui-cs-cv": {
+      "medianMs": 840,
+      "audioSec": 5.29,
+      "rtf": 0.159,
+      "speed": 6.3,
+      "allMs": [
+        815,
+        840,
+        865
+      ],
+      "loadMs": 14,
+      "speakers": 0,
+      "sampleRate": 22050,
+      "sizeMB": 79.2,
+      "lang": "cs",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "coqui-bg-cv": {
+      "medianMs": 860,
+      "audioSec": 5.62,
+      "rtf": 0.153,
+      "speed": 6.5,
+      "allMs": [
+        848,
+        860,
+        890
+      ],
+      "loadMs": 14,
+      "speakers": 0,
+      "sampleRate": 22050,
+      "sizeMB": 79.2,
+      "lang": "bg",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "coqui-da-cv": {
+      "medianMs": 812,
+      "audioSec": 5.21,
+      "rtf": 0.156,
+      "speed": 6.4,
+      "allMs": [
+        809,
+        812,
+        816
+      ],
+      "loadMs": 16,
+      "speakers": 0,
+      "sampleRate": 22050,
+      "sizeMB": 79.3,
+      "lang": "da",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "coqui-de-css10": {
+      "medianMs": 1258,
+      "audioSec": 6.63,
+      "rtf": 0.19,
+      "speed": 5.3,
+      "allMs": [
+        1230,
+        1258,
+        1270
+      ],
+      "loadMs": 22,
+      "speakers": 0,
+      "sampleRate": 22050,
+      "sizeMB": 79.2,
+      "lang": "de",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "cantonese": {
+      "medianMs": 8485,
+      "audioSec": 5.77,
+      "rtf": 1.471,
+      "speed": 0.7,
+      "allMs": [
+        7661,
+        8485,
+        8810
+      ],
+      "loadMs": 13,
+      "speakers": 0,
+      "sampleRate": 22050,
+      "sizeMB": 120.6,
+      "lang": "yue",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "coqui-bn-custom_female": {
+      "medianMs": 11124,
+      "audioSec": 7.4,
+      "rtf": 1.503,
+      "speed": 0.7,
+      "allMs": [
+        10948,
+        11124,
+        12826
+      ],
+      "loadMs": 14,
+      "speakers": 0,
+      "sampleRate": 22050,
+      "sizeMB": 120.5,
+      "lang": "bn",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "coqui-es-css10": {
+      "medianMs": 1289,
+      "audioSec": 5.68,
+      "rtf": 0.227,
+      "speed": 4.4,
+      "allMs": [
+        1267,
+        1289,
+        1336
+      ],
+      "loadMs": 28,
+      "speakers": 0,
+      "sampleRate": 22050,
+      "sizeMB": 79.2,
+      "lang": "es",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "coqui-en-ljspeech": {
+      "medianMs": 11213,
+      "audioSec": 7.69,
+      "rtf": 1.458,
+      "speed": 0.7,
+      "allMs": [
+        11155,
+        11213,
+        11764
+      ],
+      "loadMs": 12,
+      "speakers": 0,
+      "sampleRate": 22050,
+      "sizeMB": 137.7,
+      "lang": "en",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "coqui-et-cv": {
+      "medianMs": 878,
+      "audioSec": 4.98,
+      "rtf": 0.176,
+      "speed": 5.7,
+      "allMs": [
+        865,
+        878,
+        882
+      ],
+      "loadMs": 13,
+      "speakers": 0,
+      "sampleRate": 22050,
+      "sizeMB": 79.2,
+      "lang": "et",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "coqui-en-neon": {
+      "medianMs": 11481,
+      "audioSec": 7.99,
+      "rtf": 1.437,
+      "speed": 0.7,
+      "allMs": [
+        11408,
+        11481,
+        12023
+      ],
+      "loadMs": 9,
+      "speakers": 0,
+      "sampleRate": 22050,
+      "sizeMB": 137.7,
+      "lang": "en",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "coqui-fi-css10": {
+      "medianMs": 1326,
+      "audioSec": 6.74,
+      "rtf": 0.197,
+      "speed": 5.1,
+      "allMs": [
+        1322,
+        1326,
+        1331
+      ],
+      "loadMs": 10,
+      "speakers": 0,
+      "sampleRate": 22050,
+      "sizeMB": 79.2,
+      "lang": "fi",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "coqui-fr-css10": {
+      "medianMs": 952,
+      "audioSec": 5.65,
+      "rtf": 0.168,
+      "speed": 5.9,
+      "allMs": [
+        938,
+        952,
+        1022
+      ],
+      "loadMs": 15,
+      "speakers": 0,
+      "sampleRate": 22050,
+      "sizeMB": 79.2,
+      "lang": "fr",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "coqui-ga-cv": {
+      "medianMs": 1111,
+      "audioSec": 6.65,
+      "rtf": 0.167,
+      "speed": 6,
+      "allMs": [
+        1090,
+        1111,
+        1165
+      ],
+      "loadMs": 23,
+      "speakers": 0,
+      "sampleRate": 22050,
+      "sizeMB": 79.2,
+      "lang": "ga",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "coqui-en-vctk": {
+      "medianMs": 7784,
+      "audioSec": 5.54,
+      "rtf": 1.405,
+      "speed": 0.7,
+      "allMs": [
+        7726,
+        7784,
+        8057
+      ],
+      "loadMs": 25,
+      "speakers": 109,
+      "sampleRate": 22050,
+      "sizeMB": 144.6,
+      "lang": "en",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "coqui-hr-cv": {
+      "medianMs": 836,
+      "audioSec": 5.06,
+      "rtf": 0.165,
+      "speed": 6.1,
+      "allMs": [
+        834,
+        836,
+        860
+      ],
+      "loadMs": 10,
+      "speakers": 0,
+      "sampleRate": 22050,
+      "sizeMB": 79.3,
+      "lang": "hr",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "coqui-lt-cv": {
+      "medianMs": 1158,
+      "audioSec": 6.56,
+      "rtf": 0.177,
+      "speed": 5.7,
+      "allMs": [
+        1118,
+        1158,
+        1169
+      ],
+      "loadMs": 21,
+      "speakers": 0,
+      "sampleRate": 22050,
+      "sizeMB": 79.2,
+      "lang": "lt",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "coqui-lv-cv": {
+      "medianMs": 1111,
+      "audioSec": 6.7,
+      "rtf": 0.166,
+      "speed": 6,
+      "allMs": [
+        1111,
+        1111,
+        1123
+      ],
+      "loadMs": 27,
+      "speakers": 0,
+      "sampleRate": 22050,
+      "sizeMB": 79.2,
+      "lang": "lv",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "coqui-mt-cv": {
+      "medianMs": 1071,
+      "audioSec": 5.99,
+      "rtf": 0.179,
+      "speed": 5.6,
+      "allMs": [
+        1054,
+        1071,
+        1121
+      ],
+      "loadMs": 10,
+      "speakers": 0,
+      "sampleRate": 22050,
+      "sizeMB": 79.3,
+      "lang": "mt",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "coqui-nl-css10": {
+      "medianMs": 1147,
+      "audioSec": 5.69,
+      "rtf": 0.202,
+      "speed": 5,
+      "allMs": [
+        1112,
+        1147,
+        1161
+      ],
+      "loadMs": 15,
+      "speakers": 0,
+      "sampleRate": 22050,
+      "sizeMB": 79.2,
+      "lang": "nl",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "coqui-pl-mai_female": {
+      "medianMs": 858,
+      "audioSec": 4.93,
+      "rtf": 0.174,
+      "speed": 5.7,
+      "allMs": [
+        828,
+        858,
+        861
+      ],
+      "loadMs": 15,
+      "speakers": 0,
+      "sampleRate": 22050,
+      "sizeMB": 79.2,
+      "lang": "pl",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "coqui-pt-cv": {
+      "medianMs": 1020,
+      "audioSec": 5.65,
+      "rtf": 0.181,
+      "speed": 5.5,
+      "allMs": [
+        944,
+        1020,
+        1087
+      ],
+      "loadMs": 21,
+      "speakers": 0,
+      "sampleRate": 22050,
+      "sizeMB": 79.2,
+      "lang": "pt",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "coqui-sl-cv": {
+      "medianMs": 822,
+      "audioSec": 4.83,
+      "rtf": 0.17,
+      "speed": 5.9,
+      "allMs": [
+        796,
+        822,
+        924
+      ],
+      "loadMs": 21,
+      "speakers": 0,
+      "sampleRate": 22050,
+      "sizeMB": 79.2,
+      "lang": "sl",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "coqui-ro-cv": {
+      "medianMs": 1086,
+      "audioSec": 6.57,
+      "rtf": 0.165,
+      "speed": 6,
+      "allMs": [
+        1063,
+        1086,
+        1169
+      ],
+      "loadMs": 14,
+      "speakers": 0,
+      "sampleRate": 22050,
+      "sizeMB": 79.2,
+      "lang": "ro",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "coqui-sk-cv": {
+      "medianMs": 977,
+      "audioSec": 5.96,
+      "rtf": 0.164,
+      "speed": 6.1,
+      "allMs": [
+        962,
+        977,
+        1048
+      ],
+      "loadMs": 16,
+      "speakers": 0,
+      "sampleRate": 22050,
+      "sizeMB": 79.2,
+      "lang": "sk",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "coqui-sv-cv": {
+      "medianMs": 845,
+      "audioSec": 5.04,
+      "rtf": 0.168,
+      "speed": 6,
+      "allMs": [
+        843,
+        845,
+        871
+      ],
+      "loadMs": 22,
+      "speakers": 0,
+      "sampleRate": 22050,
+      "sizeMB": 79.2,
+      "lang": "sv",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "coqui-uk-mai": {
+      "medianMs": 1076,
+      "audioSec": 6.13,
+      "rtf": 0.176,
+      "speed": 5.7,
+      "allMs": [
+        1036,
+        1076,
+        1090
+      ],
+      "loadMs": 20,
+      "speakers": 0,
+      "sampleRate": 22050,
+      "sizeMB": 79.2,
+      "lang": "uk",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "icefall-en-ljspeech-low": {
+      "medianMs": 1594,
+      "audioSec": 6.56,
+      "rtf": 0.243,
+      "speed": 4.1,
+      "allMs": [
+        1575,
+        1594,
+        1602
+      ],
+      "loadMs": 10,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 54.2,
+      "lang": "en",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "icefall-en-ljspeech-medium": {
+      "medianMs": 1816,
+      "audioSec": 7.02,
+      "rtf": 0.259,
+      "speed": 3.9,
+      "allMs": [
+        1788,
+        1816,
+        1924
+      ],
+      "loadMs": 28,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 96.3,
+      "lang": "en",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "icefall-zh-aishell3": {
+      "medianMs": 1326,
+      "audioSec": 13.73,
+      "rtf": 0.097,
+      "speed": 10.4,
+      "allMs": [
+        1264,
+        1326,
+        1413
+      ],
+      "loadMs": 11,
+      "speakers": 174,
+      "sampleRate": 8000,
+      "sizeMB": 215.1,
+      "lang": "zh",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "kitten": {
+      "medianMs": 3648,
+      "audioSec": 9.09,
+      "rtf": 0.401,
+      "speed": 2.5,
+      "allMs": [
+        3620,
+        3648,
+        4025
+      ],
+      "loadMs": 22,
+      "speakers": 8,
+      "sampleRate": 24000,
+      "sizeMB": 51.4,
+      "lang": "en",
+      "int8": false,
+      "modelType": "kitten"
+    },
+    "kitten-v0_1": {
+      "medianMs": 3194,
+      "audioSec": 7.88,
+      "rtf": 0.405,
+      "speed": 2.5,
+      "allMs": [
+        3173,
+        3194,
+        3372
+      ],
+      "loadMs": 22,
+      "speakers": 8,
+      "sampleRate": 24000,
+      "sizeMB": 51.4,
+      "lang": "en",
+      "int8": false,
+      "modelType": "kitten"
+    },
+    "kokoro": {
+      "medianMs": 16614,
+      "audioSec": 10.58,
+      "rtf": 1.57,
+      "speed": 0.6,
+      "allMs": [
+        16566,
+        16614,
+        16659
+      ],
+      "loadMs": 30,
+      "speakers": 53,
+      "sampleRate": 24000,
+      "sizeMB": 192.2,
+      "lang": "multi",
+      "int8": false,
+      "modelType": "kokoro"
+    },
+    "kitten-mini": {
+      "medianMs": 22680,
+      "audioSec": 9.13,
+      "rtf": 2.484,
+      "speed": 0.4,
+      "allMs": [
+        22512,
+        22680,
+        23011
+      ],
+      "loadMs": 21,
+      "speakers": 8,
+      "sampleRate": 24000,
+      "sizeMB": 187,
+      "lang": "en",
+      "int8": false,
+      "modelType": "kitten"
+    },
+    "kokoro-fp32": {
+      "medianMs": 15221,
+      "audioSec": 7.07,
+      "rtf": 2.153,
+      "speed": 0.5,
+      "allMs": [
+        15066,
+        15221,
+        15272
+      ],
+      "loadMs": 42,
+      "speakers": 103,
+      "sampleRate": 24000,
+      "sizeMB": 418.4,
+      "lang": "multi",
+      "int8": false,
+      "modelType": "kokoro"
+    },
+    "kokoro-en": {
+      "medianMs": 35222,
+      "audioSec": 18.97,
+      "rtf": 1.857,
+      "speed": 0.5,
+      "allMs": [
+        34985,
+        35222,
+        35943
+      ],
+      "loadMs": 22,
+      "speakers": 11,
+      "sampleRate": 24000,
+      "sizeMB": 363.7,
+      "lang": "multi",
+      "int8": false,
+      "modelType": "kokoro"
+    },
+    "kokoro-v1_0-fp32": {
+      "medianMs": 15963,
+      "audioSec": 8.15,
+      "rtf": 1.959,
+      "speed": 0.5,
+      "allMs": [
+        15678,
+        15963,
+        16200
+      ],
+      "loadMs": 12,
+      "speakers": 53,
+      "sampleRate": 24000,
+      "sizeMB": 393.7,
+      "lang": "multi",
+      "int8": false,
+      "modelType": "kokoro"
+    },
+    "matcha-en-ljspeech": {
+      "medianMs": 1566,
+      "audioSec": 8.71,
+      "rtf": 0.18,
+      "speed": 5.6,
+      "allMs": [
+        1561,
+        1566,
+        1581
+      ],
+      "loadMs": 10,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 150.8,
+      "lang": "en",
+      "int8": false,
+      "modelType": "matcha"
+    },
+    "kokoro-en-int8": {
+      "medianMs": 37410,
+      "audioSec": 18.87,
+      "rtf": 1.983,
+      "speed": 0.5,
+      "allMs": [
+        36983,
+        37410,
+        37480
+      ],
+      "loadMs": 10,
+      "speakers": 11,
+      "sampleRate": 24000,
+      "sizeMB": 162.1,
+      "lang": "multi",
+      "int8": true,
+      "modelType": "kokoro"
+    },
+    "matcha-fa-en-khadijah": {
+      "medianMs": 2448,
+      "audioSec": 8.64,
+      "rtf": 0.283,
+      "speed": 3.5,
+      "allMs": [
+        2386,
+        2448,
+        2633
+      ],
+      "loadMs": 63,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 150.9,
+      "lang": "fa",
+      "int8": false,
+      "modelType": "matcha"
+    },
+    "matcha-zh-baker": {
+      "medianMs": 1951,
+      "audioSec": 9.19,
+      "rtf": 0.212,
+      "speed": 4.7,
+      "allMs": [
+        1933,
+        1951,
+        2007
+      ],
+      "loadMs": 36,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 150.4,
+      "lang": "zh",
+      "int8": false,
+      "modelType": "matcha"
+    },
+    "matcha-fa-en-musa": {
+      "medianMs": 2428,
+      "audioSec": 8.43,
+      "rtf": 0.288,
+      "speed": 3.5,
+      "allMs": [
+        2369,
+        2428,
+        2431
+      ],
+      "loadMs": 13,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 150.9,
+      "lang": "fa",
+      "int8": false,
+      "modelType": "matcha"
+    },
+    "matcha-zh-en": {
+      "medianMs": 1325,
+      "audioSec": 9.29,
+      "rtf": 0.143,
+      "speed": 7,
+      "allMs": [
+        1323,
+        1325,
+        1355
+      ],
+      "loadMs": 11,
+      "speakers": 1,
+      "sampleRate": 16000,
+      "sizeMB": 153.8,
+      "lang": "zh",
+      "int8": false,
+      "modelType": "matcha"
+    },
+    "mimic3-af-google_nwu-low": {
+      "medianMs": 1035,
+      "audioSec": 5.83,
+      "rtf": 0.178,
+      "speed": 5.6,
+      "allMs": [
+        1031,
+        1035,
+        1040
+      ],
+      "loadMs": 20,
+      "speakers": 9,
+      "sampleRate": 22050,
+      "sizeMB": 101.5,
+      "lang": "af",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "mimic3-bn-multi-low": {
+      "medianMs": 1281,
+      "audioSec": 6.39,
+      "rtf": 0.2,
+      "speed": 5,
+      "allMs": [
+        1263,
+        1281,
+        1305
+      ],
+      "loadMs": 10,
+      "speakers": 16,
+      "sampleRate": 22050,
+      "sizeMB": 101.5,
+      "lang": "bn",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "mimic3-el-rapunzelina-low": {
+      "medianMs": 1207,
+      "audioSec": 6.3,
+      "rtf": 0.192,
+      "speed": 5.2,
+      "allMs": [
+        1167,
+        1207,
+        1229
+      ],
+      "loadMs": 19,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 88.5,
+      "lang": "el",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "kokoro-v1_1": {
+      "medianMs": 15901,
+      "audioSec": 9.95,
+      "rtf": 1.598,
+      "speed": 0.6,
+      "allMs": [
+        15374,
+        15901,
+        16317
+      ],
+      "loadMs": 15,
+      "speakers": 103,
+      "sampleRate": 24000,
+      "sizeMB": 216.8,
+      "lang": "multi",
+      "int8": false,
+      "modelType": "kokoro"
+    },
+    "mimic3-es-m_ailabs-low": {
+      "medianMs": 1348,
+      "audioSec": 6.41,
+      "rtf": 0.21,
+      "speed": 4.8,
+      "allMs": [
+        1282,
+        1348,
+        1385
+      ],
+      "loadMs": 11,
+      "speakers": 3,
+      "sampleRate": 22050,
+      "sizeMB": 101.5,
+      "lang": "es",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "mimic3-fa-haaniye-low": {
+      "medianMs": 1490,
+      "audioSec": 8.74,
+      "rtf": 0.17,
+      "speed": 5.9,
+      "allMs": [
+        1484,
+        1490,
+        1514
+      ],
+      "loadMs": 43,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 88.5,
+      "lang": "fa",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "mimic3-fi-harri_tapani_ylilammi-low": {
+      "medianMs": 1169,
+      "audioSec": 7.12,
+      "rtf": 0.164,
+      "speed": 6.1,
+      "allMs": [
+        1149,
+        1169,
+        1355
+      ],
+      "loadMs": 12,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 88.5,
+      "lang": "fi",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "mimic3-gu-cmu_indic-low": {
+      "medianMs": 1136,
+      "audioSec": 6.78,
+      "rtf": 0.168,
+      "speed": 6,
+      "allMs": [
+        1098,
+        1136,
+        1150
+      ],
+      "loadMs": 21,
+      "speakers": 3,
+      "sampleRate": 22050,
+      "sizeMB": 101.5,
+      "lang": "gu",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "mimic3-hu-diana_majlinger-low": {
+      "medianMs": 995,
+      "audioSec": 4.82,
+      "rtf": 0.206,
+      "speed": 4.8,
+      "allMs": [
+        948,
+        995,
+        1037
+      ],
+      "loadMs": 13,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 88.5,
+      "lang": "hu",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "mimic3-ne-ne_google-low": {
+      "medianMs": 1091,
+      "audioSec": 6.56,
+      "rtf": 0.166,
+      "speed": 6,
+      "allMs": [
+        1085,
+        1091,
+        1092
+      ],
+      "loadMs": 13,
+      "speakers": 18,
+      "sampleRate": 22050,
+      "sizeMB": 101.5,
+      "lang": "ne",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "mimic3-ko-kss-low": {
+      "medianMs": 1561,
+      "audioSec": 7.34,
+      "rtf": 0.213,
+      "speed": 4.7,
+      "allMs": [
+        1558,
+        1561,
+        1601
+      ],
+      "loadMs": 12,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 88.5,
+      "lang": "ko",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "melo-tts-en": {
+      "medianMs": 11105,
+      "audioSec": 6.81,
+      "rtf": 1.631,
+      "speed": 0.6,
+      "allMs": [
+        10914,
+        11105,
+        11108
+      ],
+      "loadMs": 25,
+      "speakers": 5,
+      "sampleRate": 44100,
+      "sizeMB": 178.8,
+      "lang": "en",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "mimic3-pl-m_ailabs-low": {
+      "medianMs": 1123,
+      "audioSec": 5.42,
+      "rtf": 0.207,
+      "speed": 4.8,
+      "allMs": [
+        1110,
+        1123,
+        1149
+      ],
+      "loadMs": 19,
+      "speakers": 2,
+      "sampleRate": 22050,
+      "sizeMB": 101.4,
+      "lang": "pl",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "mimic3-tn-google_nwu-low": {
+      "medianMs": 1397,
+      "audioSec": 6.38,
+      "rtf": 0.219,
+      "speed": 4.6,
+      "allMs": [
+        1396,
+        1397,
+        1546
+      ],
+      "loadMs": 17,
+      "speakers": 26,
+      "sampleRate": 22050,
+      "sizeMB": 101.5,
+      "lang": "tn",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "mimic3-vi-vais1000-low": {
+      "medianMs": 827,
+      "audioSec": 4.61,
+      "rtf": 0.179,
+      "speed": 5.6,
+      "allMs": [
+        819,
+        827,
+        864
+      ],
+      "loadMs": 31,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 88.5,
+      "lang": "vi",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "melo-tts-zh-en": {
+      "medianMs": 13421,
+      "audioSec": 8.41,
+      "rtf": 1.596,
+      "speed": 0.6,
+      "allMs": [
+        13405,
+        13421,
+        13725
+      ],
+      "loadMs": 10,
+      "speakers": 1,
+      "sampleRate": 44100,
+      "sizeMB": 193.9,
+      "lang": "zh",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "mms-nan": {
+      "medianMs": 381,
+      "audioSec": 0.07,
+      "rtf": 5.443,
+      "speed": 0.2,
+      "allMs": [
+        353,
+        381,
+        424
+      ],
+      "loadMs": 33,
+      "speakers": 0,
+      "sampleRate": 16000,
+      "sizeMB": 120.2,
+      "lang": "nan",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "mms-deu": {
+      "medianMs": 9054,
+      "audioSec": 6.59,
+      "rtf": 1.374,
+      "speed": 0.7,
+      "allMs": [
+        8968,
+        9054,
+        9125
+      ],
+      "loadMs": 13,
+      "speakers": 0,
+      "sampleRate": 16000,
+      "sizeMB": 120.2,
+      "lang": "de",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "mms-eng": {
+      "medianMs": 8750,
+      "audioSec": 7.18,
+      "rtf": 1.219,
+      "speed": 0.8,
+      "allMs": [
+        8501,
+        8750,
+        9151
+      ],
+      "loadMs": 11,
+      "speakers": 0,
+      "sampleRate": 16000,
+      "sizeMB": 120.2,
+      "lang": "en",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "mms-fra": {
+      "medianMs": 9216,
+      "audioSec": 6.97,
+      "rtf": 1.322,
+      "speed": 0.8,
+      "allMs": [
+        8725,
+        9216,
+        10477
+      ],
+      "loadMs": 9,
+      "speakers": 0,
+      "sampleRate": 16000,
+      "sizeMB": 120.2,
+      "lang": "fr",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "mms-rus": {
+      "medianMs": 8189,
+      "audioSec": 7.24,
+      "rtf": 1.131,
+      "speed": 0.9,
+      "allMs": [
+        8139,
+        8189,
+        8340
+      ],
+      "loadMs": 25,
+      "speakers": 0,
+      "sampleRate": 16000,
+      "sizeMB": 120.2,
+      "lang": "ru",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-ar-dii-high": {
+      "medianMs": 1228,
+      "audioSec": 7.42,
+      "rtf": 0.165,
+      "speed": 6,
+      "allMs": [
+        1205,
+        1228,
+        1243
+      ],
+      "loadMs": 26,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 88.8,
+      "lang": "ar",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-ar-dii-high-int8": {
+      "medianMs": 2063,
+      "audioSec": 7.47,
+      "rtf": 0.276,
+      "speed": 3.6,
+      "allMs": [
+        2010,
+        2063,
+        2076
+      ],
+      "loadMs": 11,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 46.4,
+      "lang": "ar",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-ar-kareem-low": {
+      "medianMs": 1142,
+      "audioSec": 9.46,
+      "rtf": 0.121,
+      "speed": 8.3,
+      "allMs": [
+        1133,
+        1142,
+        1146
+      ],
+      "loadMs": 12,
+      "speakers": 1,
+      "sampleRate": 16000,
+      "sizeMB": 88.9,
+      "lang": "ar",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "mms-tha": {
+      "medianMs": 7959,
+      "audioSec": 6.91,
+      "rtf": 1.152,
+      "speed": 0.9,
+      "allMs": [
+        7785,
+        7959,
+        8163
+      ],
+      "loadMs": 17,
+      "speakers": 0,
+      "sampleRate": 16000,
+      "sizeMB": 120.2,
+      "lang": "th",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "mms-spa": {
+      "medianMs": 8901,
+      "audioSec": 6.47,
+      "rtf": 1.376,
+      "speed": 0.7,
+      "allMs": [
+        8595,
+        8901,
+        8974
+      ],
+      "loadMs": 12,
+      "speakers": 0,
+      "sampleRate": 16000,
+      "sizeMB": 120.2,
+      "lang": "es",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-ar-kareem-medium": {
+      "medianMs": 1631,
+      "audioSec": 9.74,
+      "rtf": 0.167,
+      "speed": 6,
+      "allMs": [
+        1539,
+        1631,
+        1632
+      ],
+      "loadMs": 18,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 88.9,
+      "lang": "ar",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-ar-kareem-low-int8": {
+      "medianMs": 1925,
+      "audioSec": 9.42,
+      "rtf": 0.204,
+      "speed": 4.9,
+      "allMs": [
+        1869,
+        1925,
+        1934
+      ],
+      "loadMs": 11,
+      "speakers": 1,
+      "sampleRate": 16000,
+      "sizeMB": 46.4,
+      "lang": "ar",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "mms-ukr": {
+      "medianMs": 10072,
+      "audioSec": 9.01,
+      "rtf": 1.118,
+      "speed": 0.9,
+      "allMs": [
+        9762,
+        10072,
+        10346
+      ],
+      "loadMs": 31,
+      "speakers": 0,
+      "sampleRate": 16000,
+      "sizeMB": 120.2,
+      "lang": "uk",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-ar-miro-high": {
+      "medianMs": 1248,
+      "audioSec": 7.28,
+      "rtf": 0.171,
+      "speed": 5.8,
+      "allMs": [
+        1237,
+        1248,
+        1281
+      ],
+      "loadMs": 18,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 88.9,
+      "lang": "ar",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-ar-kareem-medium-int8": {
+      "medianMs": 2721,
+      "audioSec": 9.71,
+      "rtf": 0.28,
+      "speed": 3.6,
+      "allMs": [
+        2688,
+        2721,
+        2767
+      ],
+      "loadMs": 33,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 46.4,
+      "lang": "ar",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-ar-miro_v2-high": {
+      "medianMs": 1213,
+      "audioSec": 7.13,
+      "rtf": 0.17,
+      "speed": 5.9,
+      "allMs": [
+        1102,
+        1213,
+        1273
+      ],
+      "loadMs": 25,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 88.9,
+      "lang": "ar",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-ar-miro-high-int8": {
+      "medianMs": 2151,
+      "audioSec": 7.46,
+      "rtf": 0.288,
+      "speed": 3.5,
+      "allMs": [
+        2127,
+        2151,
+        2156
+      ],
+      "loadMs": 21,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 46.4,
+      "lang": "ar",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-ca-upc_ona-medium": {
+      "medianMs": 1063,
+      "audioSec": 6.3,
+      "rtf": 0.169,
+      "speed": 5.9,
+      "allMs": [
+        1050,
+        1063,
+        1125
+      ],
+      "loadMs": 22,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 88.9,
+      "lang": "ca",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-ca-upc_ona-x_low": {
+      "medianMs": 647,
+      "audioSec": 6.51,
+      "rtf": 0.099,
+      "speed": 10.1,
+      "allMs": [
+        630,
+        647,
+        733
+      ],
+      "loadMs": 24,
+      "speakers": 1,
+      "sampleRate": 16000,
+      "sizeMB": 48.3,
+      "lang": "ca",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-ar-miro_v2-high-int8": {
+      "medianMs": 1939,
+      "audioSec": 6.78,
+      "rtf": 0.286,
+      "speed": 3.5,
+      "allMs": [
+        1886,
+        1939,
+        2201
+      ],
+      "loadMs": 17,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 46.4,
+      "lang": "ar",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-ca-upc_pau-x_low": {
+      "medianMs": 612,
+      "audioSec": 6.35,
+      "rtf": 0.096,
+      "speed": 10.4,
+      "allMs": [
+        599,
+        612,
+        650
+      ],
+      "loadMs": 21,
+      "speakers": 1,
+      "sampleRate": 16000,
+      "sizeMB": 48.3,
+      "lang": "ca",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-ca-upc_ona-x_low-int8": {
+      "medianMs": 1223,
+      "audioSec": 6.47,
+      "rtf": 0.189,
+      "speed": 5.3,
+      "allMs": [
+        1187,
+        1223,
+        1236
+      ],
+      "loadMs": 13,
+      "speakers": 1,
+      "sampleRate": 16000,
+      "sizeMB": 36.1,
+      "lang": "ca",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-ca-upc_ona-medium-int8": {
+      "medianMs": 1808,
+      "audioSec": 6.29,
+      "rtf": 0.287,
+      "speed": 3.5,
+      "allMs": [
+        1746,
+        1808,
+        1828
+      ],
+      "loadMs": 23,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 46.4,
+      "lang": "ca",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-ca-upc_pau-x_low-int8": {
+      "medianMs": 1220,
+      "audioSec": 6.1,
+      "rtf": 0.2,
+      "speed": 5,
+      "allMs": [
+        1177,
+        1220,
+        1245
+      ],
+      "loadMs": 18,
+      "speakers": 1,
+      "sampleRate": 16000,
+      "sizeMB": 36.1,
+      "lang": "ca",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-cs-jirka-low": {
+      "medianMs": 1020,
+      "audioSec": 8.16,
+      "rtf": 0.125,
+      "speed": 8,
+      "allMs": [
+        977,
+        1020,
+        1049
+      ],
+      "loadMs": 12,
+      "speakers": 1,
+      "sampleRate": 16000,
+      "sizeMB": 88.9,
+      "lang": "cs",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-cs-jirka-medium": {
+      "medianMs": 1274,
+      "audioSec": 7.87,
+      "rtf": 0.162,
+      "speed": 6.2,
+      "allMs": [
+        1252,
+        1274,
+        1346
+      ],
+      "loadMs": 19,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 88.9,
+      "lang": "cs",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-cs-jirka-low-int8": {
+      "medianMs": 1675,
+      "audioSec": 8.16,
+      "rtf": 0.205,
+      "speed": 4.9,
+      "allMs": [
+        1632,
+        1675,
+        1691
+      ],
+      "loadMs": 12,
+      "speakers": 1,
+      "sampleRate": 16000,
+      "sizeMB": 46.4,
+      "lang": "cs",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-cy-bu_tts-medium": {
+      "medianMs": 1209,
+      "audioSec": 6.76,
+      "rtf": 0.179,
+      "speed": 5.6,
+      "allMs": [
+        1170,
+        1209,
+        1265
+      ],
+      "loadMs": 13,
+      "speakers": 7,
+      "sampleRate": 22050,
+      "sizeMB": 101.8,
+      "lang": "cy",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-cs-jirka-medium-int8": {
+      "medianMs": 2190,
+      "audioSec": 7.96,
+      "rtf": 0.275,
+      "speed": 3.6,
+      "allMs": [
+        2081,
+        2190,
+        2256
+      ],
+      "loadMs": 18,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 46.4,
+      "lang": "cs",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-cy-gwryw_gogleddol-medium": {
+      "medianMs": 1132,
+      "audioSec": 6.54,
+      "rtf": 0.173,
+      "speed": 5.8,
+      "allMs": [
+        1069,
+        1132,
+        1180
+      ],
+      "loadMs": 17,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 88.9,
+      "lang": "cy",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-cy-bu_tts-medium-int8": {
+      "medianMs": 2004,
+      "audioSec": 6.42,
+      "rtf": 0.312,
+      "speed": 3.2,
+      "allMs": [
+        1951,
+        2004,
+        2025
+      ],
+      "loadMs": 11,
+      "speakers": 7,
+      "sampleRate": 22050,
+      "sizeMB": 49.6,
+      "lang": "cy",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-da-talesyntese-medium": {
+      "medianMs": 980,
+      "audioSec": 5.84,
+      "rtf": 0.168,
+      "speed": 6,
+      "allMs": [
+        938,
+        980,
+        983
+      ],
+      "loadMs": 12,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 88.9,
+      "lang": "da",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-cy-gwryw_gogleddol-medium-int8": {
+      "medianMs": 1880,
+      "audioSec": 6.67,
+      "rtf": 0.282,
+      "speed": 3.5,
+      "allMs": [
+        1844,
+        1880,
+        1890
+      ],
+      "loadMs": 17,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 46.4,
+      "lang": "cy",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-da-talesyntese-medium-int8": {
+      "medianMs": 1639,
+      "audioSec": 5.92,
+      "rtf": 0.277,
+      "speed": 3.6,
+      "allMs": [
+        1635,
+        1639,
+        1671
+      ],
+      "loadMs": 9,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 46.4,
+      "lang": "da",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-de-dii-high": {
+      "medianMs": 992,
+      "audioSec": 5.63,
+      "rtf": 0.176,
+      "speed": 5.7,
+      "allMs": [
+        972,
+        992,
+        1058
+      ],
+      "loadMs": 27,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 88.9,
+      "lang": "de",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-de-eva_k-x_low": {
+      "medianMs": 672,
+      "audioSec": 7.08,
+      "rtf": 0.095,
+      "speed": 10.5,
+      "allMs": [
+        656,
+        672,
+        709
+      ],
+      "loadMs": 12,
+      "speakers": 1,
+      "sampleRate": 16000,
+      "sizeMB": 48.3,
+      "lang": "de",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-de-dii-high-int8": {
+      "medianMs": 1661,
+      "audioSec": 5.84,
+      "rtf": 0.284,
+      "speed": 3.5,
+      "allMs": [
+        1612,
+        1661,
+        1675
+      ],
+      "loadMs": 17,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 46.4,
+      "lang": "de",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-de-glados-low": {
+      "medianMs": 823,
+      "audioSec": 6.53,
+      "rtf": 0.126,
+      "speed": 7.9,
+      "allMs": [
+        787,
+        823,
+        872
+      ],
+      "loadMs": 35,
+      "speakers": 1,
+      "sampleRate": 16000,
+      "sizeMB": 88.9,
+      "lang": "de",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-de-eva_k-x_low-int8": {
+      "medianMs": 1297,
+      "audioSec": 6.59,
+      "rtf": 0.197,
+      "speed": 5.1,
+      "allMs": [
+        1235,
+        1297,
+        1316
+      ],
+      "loadMs": 18,
+      "speakers": 1,
+      "sampleRate": 16000,
+      "sizeMB": 36.1,
+      "lang": "de",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-de-glados-low-int8": {
+      "medianMs": 1325,
+      "audioSec": 6.43,
+      "rtf": 0.206,
+      "speed": 4.9,
+      "allMs": [
+        1298,
+        1325,
+        1351
+      ],
+      "loadMs": 11,
+      "speakers": 1,
+      "sampleRate": 16000,
+      "sizeMB": 46.4,
+      "lang": "de",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-de-glados-medium": {
+      "medianMs": 1075,
+      "audioSec": 6.26,
+      "rtf": 0.172,
+      "speed": 5.8,
+      "allMs": [
+        1055,
+        1075,
+        1122
+      ],
+      "loadMs": 17,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 88.9,
+      "lang": "de",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-de-glados_turret-low": {
+      "medianMs": 975,
+      "audioSec": 7.79,
+      "rtf": 0.125,
+      "speed": 8,
+      "allMs": [
+        917,
+        975,
+        1007
+      ],
+      "loadMs": 10,
+      "speakers": 1,
+      "sampleRate": 16000,
+      "sizeMB": 88.9,
+      "lang": "de",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-de-glados-medium-int8": {
+      "medianMs": 1784,
+      "audioSec": 6.36,
+      "rtf": 0.281,
+      "speed": 3.6,
+      "allMs": [
+        1750,
+        1784,
+        1789
+      ],
+      "loadMs": 21,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 46.4,
+      "lang": "de",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-de-glados_turret-medium": {
+      "medianMs": 1302,
+      "audioSec": 7.93,
+      "rtf": 0.164,
+      "speed": 6.1,
+      "allMs": [
+        1291,
+        1302,
+        1344
+      ],
+      "loadMs": 11,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 88.9,
+      "lang": "de",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-de-glados_turret-low-int8": {
+      "medianMs": 1592,
+      "audioSec": 7.74,
+      "rtf": 0.206,
+      "speed": 4.9,
+      "allMs": [
+        1574,
+        1592,
+        1692
+      ],
+      "loadMs": 18,
+      "speakers": 1,
+      "sampleRate": 16000,
+      "sizeMB": 46.4,
+      "lang": "de",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-de-karlsson-low": {
+      "medianMs": 833,
+      "audioSec": 6.45,
+      "rtf": 0.129,
+      "speed": 7.7,
+      "allMs": [
+        801,
+        833,
+        867
+      ],
+      "loadMs": 19,
+      "speakers": 1,
+      "sampleRate": 16000,
+      "sizeMB": 88.8,
+      "lang": "de",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-de-kerstin-low": {
+      "medianMs": 785,
+      "audioSec": 6.1,
+      "rtf": 0.129,
+      "speed": 7.8,
+      "allMs": [
+        767,
+        785,
+        806
+      ],
+      "loadMs": 9,
+      "speakers": 1,
+      "sampleRate": 16000,
+      "sizeMB": 88.8,
+      "lang": "de",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-de-glados_turret-medium-int8": {
+      "medianMs": 2179,
+      "audioSec": 7.96,
+      "rtf": 0.274,
+      "speed": 3.7,
+      "allMs": [
+        2172,
+        2179,
+        2247
+      ],
+      "loadMs": 15,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 46.4,
+      "lang": "de",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-de-karlsson-low-int8": {
+      "medianMs": 1351,
+      "audioSec": 6.53,
+      "rtf": 0.207,
+      "speed": 4.8,
+      "allMs": [
+        1333,
+        1351,
+        1444
+      ],
+      "loadMs": 23,
+      "speakers": 1,
+      "sampleRate": 16000,
+      "sizeMB": 46.4,
+      "lang": "de",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-de-kerstin-low-int8": {
+      "medianMs": 1304,
+      "audioSec": 5.91,
+      "rtf": 0.221,
+      "speed": 4.5,
+      "allMs": [
+        1304,
+        1304,
+        1334
+      ],
+      "loadMs": 10,
+      "speakers": 1,
+      "sampleRate": 16000,
+      "sizeMB": 46.4,
+      "lang": "de",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-de-miro-high": {
+      "medianMs": 993,
+      "audioSec": 5.41,
+      "rtf": 0.184,
+      "speed": 5.4,
+      "allMs": [
+        970,
+        993,
+        1029
+      ],
+      "loadMs": 10,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 88.9,
+      "lang": "de",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-de-pavoque-low": {
+      "medianMs": 945,
+      "audioSec": 7.13,
+      "rtf": 0.133,
+      "speed": 7.5,
+      "allMs": [
+        909,
+        945,
+        966
+      ],
+      "loadMs": 13,
+      "speakers": 1,
+      "sampleRate": 16000,
+      "sizeMB": 88.8,
+      "lang": "de",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-de-ramona-low": {
+      "medianMs": 750,
+      "audioSec": 6.38,
+      "rtf": 0.118,
+      "speed": 8.5,
+      "allMs": [
+        743,
+        750,
+        868
+      ],
+      "loadMs": 22,
+      "speakers": 1,
+      "sampleRate": 16000,
+      "sizeMB": 88.8,
+      "lang": "de",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-de-miro-high-int8": {
+      "medianMs": 1596,
+      "audioSec": 5.74,
+      "rtf": 0.278,
+      "speed": 3.6,
+      "allMs": [
+        1508,
+        1596,
+        1837
+      ],
+      "loadMs": 23,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 46.4,
+      "lang": "de",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-de-pavoque-low-int8": {
+      "medianMs": 1507,
+      "audioSec": 6.99,
+      "rtf": 0.216,
+      "speed": 4.6,
+      "allMs": [
+        1422,
+        1507,
+        1564
+      ],
+      "loadMs": 13,
+      "speakers": 1,
+      "sampleRate": 16000,
+      "sizeMB": 46.4,
+      "lang": "de",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-de-thorsten-low": {
+      "medianMs": 794,
+      "audioSec": 5.6,
+      "rtf": 0.142,
+      "speed": 7.1,
+      "allMs": [
+        750,
+        794,
+        835
+      ],
+      "loadMs": 9,
+      "speakers": 1,
+      "sampleRate": 16000,
+      "sizeMB": 88.8,
+      "lang": "de",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-de-ramona-low-int8": {
+      "medianMs": 1216,
+      "audioSec": 5.89,
+      "rtf": 0.206,
+      "speed": 4.8,
+      "allMs": [
+        1206,
+        1216,
+        1335
+      ],
+      "loadMs": 11,
+      "speakers": 1,
+      "sampleRate": 16000,
+      "sizeMB": 46.4,
+      "lang": "de",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-de-thorsten-low-int8": {
+      "medianMs": 1232,
+      "audioSec": 5.71,
+      "rtf": 0.216,
+      "speed": 4.6,
+      "allMs": [
+        1216,
+        1232,
+        1259
+      ],
+      "loadMs": 18,
+      "speakers": 1,
+      "sampleRate": 16000,
+      "sizeMB": 46.4,
+      "lang": "de",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-de-thorsten-medium": {
+      "medianMs": 1026,
+      "audioSec": 5.61,
+      "rtf": 0.183,
+      "speed": 5.5,
+      "allMs": [
+        979,
+        1026,
+        1111
+      ],
+      "loadMs": 15,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 88.9,
+      "lang": "de",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-de-thorsten_emotional-medium": {
+      "medianMs": 1013,
+      "audioSec": 5.78,
+      "rtf": 0.175,
+      "speed": 5.7,
+      "allMs": [
+        985,
+        1013,
+        1028
+      ],
+      "loadMs": 10,
+      "speakers": 8,
+      "sampleRate": 22050,
+      "sizeMB": 101.8,
+      "lang": "de",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-el-rapunzelina-low": {
+      "medianMs": 776,
+      "audioSec": 6.14,
+      "rtf": 0.126,
+      "speed": 7.9,
+      "allMs": [
+        767,
+        776,
+        888
+      ],
+      "loadMs": 26,
+      "speakers": 1,
+      "sampleRate": 16000,
+      "sizeMB": 88.8,
+      "lang": "el",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-de-thorsten-medium-int8": {
+      "medianMs": 1671,
+      "audioSec": 5.87,
+      "rtf": 0.285,
+      "speed": 3.5,
+      "allMs": [
+        1549,
+        1671,
+        1740
+      ],
+      "loadMs": 22,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 46.4,
+      "lang": "de",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-de-thorsten_emotional-medium-int8": {
+      "medianMs": 1613,
+      "audioSec": 5.72,
+      "rtf": 0.282,
+      "speed": 3.5,
+      "allMs": [
+        1585,
+        1613,
+        1621
+      ],
+      "loadMs": 17,
+      "speakers": 8,
+      "sampleRate": 22050,
+      "sizeMB": 49.6,
+      "lang": "de",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-el-rapunzelina-low-int8": {
+      "medianMs": 1332,
+      "audioSec": 6.05,
+      "rtf": 0.22,
+      "speed": 4.5,
+      "allMs": [
+        1278,
+        1332,
+        1385
+      ],
+      "loadMs": 16,
+      "speakers": 1,
+      "sampleRate": 16000,
+      "sizeMB": 46.4,
+      "lang": "el",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-en-amy-low": {
+      "medianMs": 967,
+      "audioSec": 7.57,
+      "rtf": 0.128,
+      "speed": 7.8,
+      "allMs": [
+        936,
+        967,
+        983
+      ],
+      "loadMs": 14,
+      "speakers": 1,
+      "sampleRate": 16000,
+      "sizeMB": 88.8,
+      "lang": "en",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-en-amy-low-int8": {
+      "medianMs": 1625,
+      "audioSec": 7.58,
+      "rtf": 0.214,
+      "speed": 4.7,
+      "allMs": [
+        1580,
+        1625,
+        1648
+      ],
+      "loadMs": 11,
+      "speakers": 1,
+      "sampleRate": 16000,
+      "sizeMB": 46.4,
+      "lang": "en",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-en-arctic-medium": {
+      "medianMs": 1114,
+      "audioSec": 6.55,
+      "rtf": 0.17,
+      "speed": 5.9,
+      "allMs": [
+        1108,
+        1114,
+        1190
+      ],
+      "loadMs": 11,
+      "speakers": 18,
+      "sampleRate": 22050,
+      "sizeMB": 101.8,
+      "lang": "en",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-en-amy-medium-int8": {
+      "medianMs": 2206,
+      "audioSec": 8,
+      "rtf": 0.276,
+      "speed": 3.6,
+      "allMs": [
+        2162,
+        2206,
+        2242
+      ],
+      "loadMs": 17,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 46.5,
+      "lang": "en",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-en-arctic-medium-int8": {
+      "medianMs": 1901,
+      "audioSec": 6.8,
+      "rtf": 0.28,
+      "speed": 3.6,
+      "allMs": [
+        1844,
+        1901,
+        2047
+      ],
+      "loadMs": 10,
+      "speakers": 18,
+      "sampleRate": 22050,
+      "sizeMB": 49.7,
+      "lang": "en",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-en-bryce-medium": {
+      "medianMs": 1432,
+      "audioSec": 8.92,
+      "rtf": 0.161,
+      "speed": 6.2,
+      "allMs": [
+        1382,
+        1432,
+        1433
+      ],
+      "loadMs": 22,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 88.9,
+      "lang": "en",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-en-danny-low": {
+      "medianMs": 812,
+      "audioSec": 6.32,
+      "rtf": 0.128,
+      "speed": 7.8,
+      "allMs": [
+        803,
+        812,
+        870
+      ],
+      "loadMs": 20,
+      "speakers": 1,
+      "sampleRate": 16000,
+      "sizeMB": 88.8,
+      "lang": "en",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-en-gb-alan-low": {
+      "medianMs": 895,
+      "audioSec": 7.17,
+      "rtf": 0.125,
+      "speed": 8,
+      "allMs": [
+        864,
+        895,
+        930
+      ],
+      "loadMs": 11,
+      "speakers": 1,
+      "sampleRate": 16000,
+      "sizeMB": 88.8,
+      "lang": "en",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-en-bryce-medium-int8": {
+      "medianMs": 2408,
+      "audioSec": 8.8,
+      "rtf": 0.274,
+      "speed": 3.7,
+      "allMs": [
+        2330,
+        2408,
+        2410
+      ],
+      "loadMs": 10,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 46.4,
+      "lang": "en",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-en-danny-low-int8": {
+      "medianMs": 1322,
+      "audioSec": 6.21,
+      "rtf": 0.213,
+      "speed": 4.7,
+      "allMs": [
+        1294,
+        1322,
+        1328
+      ],
+      "loadMs": 14,
+      "speakers": 1,
+      "sampleRate": 16000,
+      "sizeMB": 46.4,
+      "lang": "en",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-en-gb-alan-low-int8": {
+      "medianMs": 1480,
+      "audioSec": 7.22,
+      "rtf": 0.205,
+      "speed": 4.9,
+      "allMs": [
+        1460,
+        1480,
+        1498
+      ],
+      "loadMs": 12,
+      "speakers": 1,
+      "sampleRate": 16000,
+      "sizeMB": 46.4,
+      "lang": "en",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-en-gb-alan-medium": {
+      "medianMs": 1260,
+      "audioSec": 7.36,
+      "rtf": 0.171,
+      "speed": 5.8,
+      "allMs": [
+        1220,
+        1260,
+        1274
+      ],
+      "loadMs": 11,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 88.9,
+      "lang": "en",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-en-gb-alba-medium": {
+      "medianMs": 1004,
+      "audioSec": 5.97,
+      "rtf": 0.168,
+      "speed": 5.9,
+      "allMs": [
+        986,
+        1004,
+        1036
+      ],
+      "loadMs": 11,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 88.9,
+      "lang": "en",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-en-gb-alan-medium-int8": {
+      "medianMs": 2144,
+      "audioSec": 7.65,
+      "rtf": 0.28,
+      "speed": 3.6,
+      "allMs": [
+        2130,
+        2144,
+        2240
+      ],
+      "loadMs": 22,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 46.5,
+      "lang": "en",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-en-gb-alba-medium-int8": {
+      "medianMs": 1698,
+      "audioSec": 6.01,
+      "rtf": 0.283,
+      "speed": 3.5,
+      "allMs": [
+        1674,
+        1698,
+        1771
+      ],
+      "loadMs": 12,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 46.5,
+      "lang": "en",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-en-gb-aru-medium": {
+      "medianMs": 1245,
+      "audioSec": 6.75,
+      "rtf": 0.184,
+      "speed": 5.4,
+      "allMs": [
+        1168,
+        1245,
+        1346
+      ],
+      "loadMs": 13,
+      "speakers": 12,
+      "sampleRate": 22050,
+      "sizeMB": 101.9,
+      "lang": "en",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-en-gb-cori-medium": {
+      "medianMs": 1057,
+      "audioSec": 5.98,
+      "rtf": 0.177,
+      "speed": 5.7,
+      "allMs": [
+        1043,
+        1057,
+        1084
+      ],
+      "loadMs": 10,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 89.2,
+      "lang": "en",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-en-gb-aru-medium-int8": {
+      "medianMs": 2024,
+      "audioSec": 7.19,
+      "rtf": 0.282,
+      "speed": 3.6,
+      "allMs": [
+        2003,
+        2024,
+        2235
+      ],
+      "loadMs": 11,
+      "speakers": 12,
+      "sampleRate": 22050,
+      "sizeMB": 49.7,
+      "lang": "en",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-en-gb-dii-high": {
+      "medianMs": 1193,
+      "audioSec": 7.17,
+      "rtf": 0.166,
+      "speed": 6,
+      "allMs": [
+        1164,
+        1193,
+        1265
+      ],
+      "loadMs": 25,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 89.2,
+      "lang": "en",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-en-gb-cori-medium-int8": {
+      "medianMs": 1853,
+      "audioSec": 6.24,
+      "rtf": 0.297,
+      "speed": 3.4,
+      "allMs": [
+        1833,
+        1853,
+        1943
+      ],
+      "loadMs": 13,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 47.1,
+      "lang": "en",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-en-gb-jenny-medium": {
+      "medianMs": 1073,
+      "audioSec": 6.5,
+      "rtf": 0.165,
+      "speed": 6.1,
+      "allMs": [
+        1047,
+        1073,
+        1173
+      ],
+      "loadMs": 25,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 88.9,
+      "lang": "en",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-en-gb-dii-high-int8": {
+      "medianMs": 1923,
+      "audioSec": 7.07,
+      "rtf": 0.272,
+      "speed": 3.7,
+      "allMs": [
+        1839,
+        1923,
+        1984
+      ],
+      "loadMs": 11,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 47.1,
+      "lang": "en",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-en-gb-jenny-medium-int8": {
+      "medianMs": 1879,
+      "audioSec": 6.35,
+      "rtf": 0.296,
+      "speed": 3.4,
+      "allMs": [
+        1827,
+        1879,
+        1893
+      ],
+      "loadMs": 18,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 46.5,
+      "lang": "en",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-en-gb-miro-high": {
+      "medianMs": 1177,
+      "audioSec": 7.13,
+      "rtf": 0.165,
+      "speed": 6.1,
+      "allMs": [
+        1173,
+        1177,
+        1205
+      ],
+      "loadMs": 11,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 89.2,
+      "lang": "en",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-en-gb-northern_english_male-medium": {
+      "medianMs": 1030,
+      "audioSec": 5.96,
+      "rtf": 0.173,
+      "speed": 5.8,
+      "allMs": [
+        960,
+        1030,
+        1087
+      ],
+      "loadMs": 10,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 88.9,
+      "lang": "en",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-en-gb-miro-high-int8": {
+      "medianMs": 1973,
+      "audioSec": 7.33,
+      "rtf": 0.269,
+      "speed": 3.7,
+      "allMs": [
+        1953,
+        1973,
+        2067
+      ],
+      "loadMs": 11,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 47.1,
+      "lang": "en",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-en-gb-semaine-medium": {
+      "medianMs": 1058,
+      "audioSec": 6.41,
+      "rtf": 0.165,
+      "speed": 6.1,
+      "allMs": [
+        1054,
+        1058,
+        1091
+      ],
+      "loadMs": 20,
+      "speakers": 4,
+      "sampleRate": 22050,
+      "sizeMB": 101.8,
+      "lang": "en",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-en-gb-northern_english_male-medium-int8": {
+      "medianMs": 1627,
+      "audioSec": 5.84,
+      "rtf": 0.279,
+      "speed": 3.6,
+      "allMs": [
+        1611,
+        1627,
+        1745
+      ],
+      "loadMs": 16,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 46.5,
+      "lang": "en",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-en-gb-south-female-low": {
+      "medianMs": 826,
+      "audioSec": 6.41,
+      "rtf": 0.129,
+      "speed": 7.8,
+      "allMs": [
+        797,
+        826,
+        896
+      ],
+      "loadMs": 18,
+      "speakers": 1,
+      "sampleRate": 16000,
+      "sizeMB": 88.8,
+      "lang": "en",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-en-gb-semaine-medium-int8": {
+      "medianMs": 1859,
+      "audioSec": 6.28,
+      "rtf": 0.296,
+      "speed": 3.4,
+      "allMs": [
+        1771,
+        1859,
+        2005
+      ],
+      "loadMs": 13,
+      "speakers": 4,
+      "sampleRate": 22050,
+      "sizeMB": 49.7,
+      "lang": "en",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-en-gb-south-female-low-int8": {
+      "medianMs": 1352,
+      "audioSec": 6.51,
+      "rtf": 0.208,
+      "speed": 4.8,
+      "allMs": [
+        1278,
+        1352,
+        1371
+      ],
+      "loadMs": 21,
+      "speakers": 1,
+      "sampleRate": 16000,
+      "sizeMB": 46.4,
+      "lang": "en",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-en-gb-south-female-medium": {
+      "medianMs": 1179,
+      "audioSec": 6.64,
+      "rtf": 0.178,
+      "speed": 5.6,
+      "allMs": [
+        1125,
+        1179,
+        1214
+      ],
+      "loadMs": 18,
+      "speakers": 6,
+      "sampleRate": 22050,
+      "sizeMB": 102.1,
+      "lang": "en",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-en-gb-south-male-medium": {
+      "medianMs": 1131,
+      "audioSec": 6.61,
+      "rtf": 0.171,
+      "speed": 5.8,
+      "allMs": [
+        1093,
+        1131,
+        1246
+      ],
+      "loadMs": 17,
+      "speakers": 8,
+      "sampleRate": 22050,
+      "sizeMB": 102.2,
+      "lang": "en",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-en-gb-vctk-medium": {
+      "medianMs": 832,
+      "audioSec": 4.88,
+      "rtf": 0.17,
+      "speed": 5.9,
+      "allMs": [
+        801,
+        832,
+        856
+      ],
+      "loadMs": 10,
+      "speakers": 109,
+      "sampleRate": 22050,
+      "sizeMB": 102,
+      "lang": "en",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-en-gb-south-female-medium-int8": {
+      "medianMs": 2057,
+      "audioSec": 6.84,
+      "rtf": 0.301,
+      "speed": 3.3,
+      "allMs": [
+        1996,
+        2057,
+        2081
+      ],
+      "loadMs": 9,
+      "speakers": 6,
+      "sampleRate": 22050,
+      "sizeMB": 50.3,
+      "lang": "en",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-en-gb-south-male-medium-int8": {
+      "medianMs": 1942,
+      "audioSec": 6.49,
+      "rtf": 0.299,
+      "speed": 3.3,
+      "allMs": [
+        1878,
+        1942,
+        1955
+      ],
+      "loadMs": 10,
+      "speakers": 8,
+      "sampleRate": 22050,
+      "sizeMB": 50.3,
+      "lang": "en",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-en-gb-vctk-medium-int8": {
+      "medianMs": 1390,
+      "audioSec": 4.83,
+      "rtf": 0.288,
+      "speed": 3.5,
+      "allMs": [
+        1376,
+        1390,
+        1420
+      ],
+      "loadMs": 19,
+      "speakers": 109,
+      "sampleRate": 22050,
+      "sizeMB": 49.8,
+      "lang": "en",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-en-hfc_female-medium": {
+      "medianMs": 1065,
+      "audioSec": 6.23,
+      "rtf": 0.171,
+      "speed": 5.8,
+      "allMs": [
+        1051,
+        1065,
+        1124
+      ],
+      "loadMs": 11,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 88.9,
+      "lang": "en",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-en-hfc_female-medium-int8": {
+      "medianMs": 1748,
+      "audioSec": 6.16,
+      "rtf": 0.284,
+      "speed": 3.5,
+      "allMs": [
+        1697,
+        1748,
+        1840
+      ],
+      "loadMs": 11,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 46.4,
+      "lang": "en",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-en-hfc_male-medium": {
+      "medianMs": 1161,
+      "audioSec": 6.48,
+      "rtf": 0.179,
+      "speed": 5.6,
+      "allMs": [
+        1127,
+        1161,
+        1214
+      ],
+      "loadMs": 12,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 88.9,
+      "lang": "en",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-en-joe-medium": {
+      "medianMs": 1102,
+      "audioSec": 6.29,
+      "rtf": 0.175,
+      "speed": 5.7,
+      "allMs": [
+        1052,
+        1102,
+        1135
+      ],
+      "loadMs": 12,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 88.9,
+      "lang": "en",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-en-hfc_male-medium-int8": {
+      "medianMs": 1931,
+      "audioSec": 6.71,
+      "rtf": 0.288,
+      "speed": 3.5,
+      "allMs": [
+        1911,
+        1931,
+        2006
+      ],
+      "loadMs": 11,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 46.4,
+      "lang": "en",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-en-john-medium": {
+      "medianMs": 1210,
+      "audioSec": 7.24,
+      "rtf": 0.167,
+      "speed": 6,
+      "allMs": [
+        1173,
+        1210,
+        1316
+      ],
+      "loadMs": 28,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 88.9,
+      "lang": "en",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-en-joe-medium-int8": {
+      "medianMs": 1763,
+      "audioSec": 6.23,
+      "rtf": 0.283,
+      "speed": 3.5,
+      "allMs": [
+        1754,
+        1763,
+        1851
+      ],
+      "loadMs": 22,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 46.4,
+      "lang": "en",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-en-kathleen-low": {
+      "medianMs": 864,
+      "audioSec": 6.72,
+      "rtf": 0.129,
+      "speed": 7.8,
+      "allMs": [
+        846,
+        864,
+        910
+      ],
+      "loadMs": 21,
+      "speakers": 1,
+      "sampleRate": 16000,
+      "sizeMB": 88.8,
+      "lang": "en",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-en-john-medium-int8": {
+      "medianMs": 2073,
+      "audioSec": 7.14,
+      "rtf": 0.29,
+      "speed": 3.4,
+      "allMs": [
+        1985,
+        2073,
+        2140
+      ],
+      "loadMs": 13,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 46.4,
+      "lang": "en",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-en-kathleen-low-int8": {
+      "medianMs": 1429,
+      "audioSec": 6.77,
+      "rtf": 0.211,
+      "speed": 4.7,
+      "allMs": [
+        1384,
+        1429,
+        1433
+      ],
+      "loadMs": 17,
+      "speakers": 1,
+      "sampleRate": 16000,
+      "sizeMB": 46.4,
+      "lang": "en",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-en-kristin-medium": {
+      "medianMs": 1161,
+      "audioSec": 6.57,
+      "rtf": 0.177,
+      "speed": 5.7,
+      "allMs": [
+        1140,
+        1161,
+        1227
+      ],
+      "loadMs": 17,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 89.2,
+      "lang": "en",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-en-kusal-medium": {
+      "medianMs": 1001,
+      "audioSec": 5.83,
+      "rtf": 0.172,
+      "speed": 5.8,
+      "allMs": [
+        966,
+        1001,
+        1128
+      ],
+      "loadMs": 18,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 88.9,
+      "lang": "en",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-en-kristin-medium-int8": {
+      "medianMs": 1942,
+      "audioSec": 6.77,
+      "rtf": 0.287,
+      "speed": 3.5,
+      "allMs": [
+        1870,
+        1942,
+        2002
+      ],
+      "loadMs": 17,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 47.1,
+      "lang": "en",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-en-l2arctic-medium": {
+      "medianMs": 1300,
+      "audioSec": 7.91,
+      "rtf": 0.164,
+      "speed": 6.1,
+      "allMs": [
+        1241,
+        1300,
+        1357
+      ],
+      "loadMs": 19,
+      "speakers": 24,
+      "sampleRate": 22050,
+      "sizeMB": 101.9,
+      "lang": "en",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-en-kusal-medium-int8": {
+      "medianMs": 1711,
+      "audioSec": 5.75,
+      "rtf": 0.298,
+      "speed": 3.4,
+      "allMs": [
+        1602,
+        1711,
+        1749
+      ],
+      "loadMs": 25,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 46.5,
+      "lang": "en",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-en-lessac-low": {
+      "medianMs": 831,
+      "audioSec": 6.34,
+      "rtf": 0.131,
+      "speed": 7.6,
+      "allMs": [
+        788,
+        831,
+        881
+      ],
+      "loadMs": 11,
+      "speakers": 1,
+      "sampleRate": 16000,
+      "sizeMB": 88.9,
+      "lang": "en",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-en-l2arctic-medium-int8": {
+      "medianMs": 2322,
+      "audioSec": 7.69,
+      "rtf": 0.302,
+      "speed": 3.3,
+      "allMs": [
+        1947,
+        2322,
+        2323
+      ],
+      "loadMs": 21,
+      "speakers": 24,
+      "sampleRate": 22050,
+      "sizeMB": 49.7,
+      "lang": "en",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-en-lessac-medium": {
+      "medianMs": 1062,
+      "audioSec": 6.23,
+      "rtf": 0.17,
+      "speed": 5.9,
+      "allMs": [
+        975,
+        1062,
+        1127
+      ],
+      "loadMs": 22,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 88.9,
+      "lang": "en",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-en-lessac-low-int8": {
+      "medianMs": 1237,
+      "audioSec": 6.08,
+      "rtf": 0.203,
+      "speed": 4.9,
+      "allMs": [
+        1223,
+        1237,
+        1297
+      ],
+      "loadMs": 14,
+      "speakers": 1,
+      "sampleRate": 16000,
+      "sizeMB": 46.4,
+      "lang": "en",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-en-lessac-medium-int8": {
+      "medianMs": 1704,
+      "audioSec": 6.25,
+      "rtf": 0.273,
+      "speed": 3.7,
+      "allMs": [
+        1703,
+        1704,
+        1797
+      ],
+      "loadMs": 18,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 46.4,
+      "lang": "en",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-en-libritts_r-medium": {
+      "medianMs": 1013,
+      "audioSec": 5.58,
+      "rtf": 0.182,
+      "speed": 5.5,
+      "allMs": [
+        967,
+        1013,
+        1063
+      ],
+      "loadMs": 18,
+      "speakers": 904,
+      "sampleRate": 22050,
+      "sizeMB": 103.6,
+      "lang": "en",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-en-ljspeech-medium": {
+      "medianMs": 1263,
+      "audioSec": 7.3,
+      "rtf": 0.173,
+      "speed": 5.8,
+      "allMs": [
+        1234,
+        1263,
+        1316
+      ],
+      "loadMs": 14,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 89.2,
+      "lang": "en",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-en-libritts_r-medium-int8": {
+      "medianMs": 1666,
+      "audioSec": 5.96,
+      "rtf": 0.28,
+      "speed": 3.6,
+      "allMs": [
+        1578,
+        1666,
+        1721
+      ],
+      "loadMs": 25,
+      "speakers": 904,
+      "sampleRate": 22050,
+      "sizeMB": 50.1,
+      "lang": "en",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-en-miro-high": {
+      "medianMs": 1344,
+      "audioSec": 7.89,
+      "rtf": 0.17,
+      "speed": 5.9,
+      "allMs": [
+        1280,
+        1344,
+        1403
+      ],
+      "loadMs": 17,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 89.2,
+      "lang": "en",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-en-ljspeech-medium-int8": {
+      "medianMs": 2134,
+      "audioSec": 7.55,
+      "rtf": 0.283,
+      "speed": 3.5,
+      "allMs": [
+        2101,
+        2134,
+        2252
+      ],
+      "loadMs": 20,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 47.1,
+      "lang": "en",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-en-norman-medium": {
+      "medianMs": 1234,
+      "audioSec": 6.88,
+      "rtf": 0.179,
+      "speed": 5.6,
+      "allMs": [
+        1233,
+        1234,
+        1235
+      ],
+      "loadMs": 21,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 89.2,
+      "lang": "en",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-en-miro-high-int8": {
+      "medianMs": 2156,
+      "audioSec": 7.63,
+      "rtf": 0.283,
+      "speed": 3.5,
+      "allMs": [
+        2124,
+        2156,
+        2214
+      ],
+      "loadMs": 17,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 47.1,
+      "lang": "en",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-en-ryan-low": {
+      "medianMs": 708,
+      "audioSec": 5.57,
+      "rtf": 0.127,
+      "speed": 7.9,
+      "allMs": [
+        699,
+        708,
+        793
+      ],
+      "loadMs": 28,
+      "speakers": 1,
+      "sampleRate": 16000,
+      "sizeMB": 88.8,
+      "lang": "en",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-en-norman-medium-int8": {
+      "medianMs": 2089,
+      "audioSec": 7.19,
+      "rtf": 0.291,
+      "speed": 3.4,
+      "allMs": [
+        2081,
+        2089,
+        2183
+      ],
+      "loadMs": 20,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 47.1,
+      "lang": "en",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-en-reza-medium": {
+      "medianMs": 1339,
+      "audioSec": 7.3,
+      "rtf": 0.183,
+      "speed": 5.5,
+      "allMs": [
+        1281,
+        1339,
+        1461
+      ],
+      "loadMs": 21,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 89.2,
+      "lang": "en",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-en-reza-medium-int8": {
+      "medianMs": 2274,
+      "audioSec": 7.44,
+      "rtf": 0.306,
+      "speed": 3.3,
+      "allMs": [
+        2230,
+        2274,
+        2342
+      ],
+      "loadMs": 31,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 47.1,
+      "lang": "en",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-en-ryan-medium": {
+      "medianMs": 1039,
+      "audioSec": 5.98,
+      "rtf": 0.174,
+      "speed": 5.8,
+      "allMs": [
+        997,
+        1039,
+        1112
+      ],
+      "loadMs": 21,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 88.9,
+      "lang": "en",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-en-ryan-low-int8": {
+      "medianMs": 1194,
+      "audioSec": 5.7,
+      "rtf": 0.209,
+      "speed": 4.8,
+      "allMs": [
+        1164,
+        1194,
+        1315
+      ],
+      "loadMs": 22,
+      "speakers": 1,
+      "sampleRate": 16000,
+      "sizeMB": 46.4,
+      "lang": "en",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-en-ryan-medium-int8": {
+      "medianMs": 1649,
+      "audioSec": 5.85,
+      "rtf": 0.282,
+      "speed": 3.5,
+      "allMs": [
+        1625,
+        1649,
+        1721
+      ],
+      "loadMs": 20,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 46.4,
+      "lang": "en",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-en-sam-medium": {
+      "medianMs": 1301,
+      "audioSec": 7.41,
+      "rtf": 0.176,
+      "speed": 5.7,
+      "allMs": [
+        1287,
+        1301,
+        1375
+      ],
+      "loadMs": 27,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 88.7,
+      "lang": "en",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-es-carlfm-x_low": {
+      "medianMs": 567,
+      "audioSec": 5.44,
+      "rtf": 0.104,
+      "speed": 9.6,
+      "allMs": [
+        538,
+        567,
+        585
+      ],
+      "loadMs": 12,
+      "speakers": 1,
+      "sampleRate": 16000,
+      "sizeMB": 48.3,
+      "lang": "es",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-en-sam-medium-int8": {
+      "medianMs": 2209,
+      "audioSec": 7.59,
+      "rtf": 0.291,
+      "speed": 3.4,
+      "allMs": [
+        2154,
+        2209,
+        2335
+      ],
+      "loadMs": 12,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 46.1,
+      "lang": "en",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-es-carlfm-x_low-int8": {
+      "medianMs": 1060,
+      "audioSec": 5.33,
+      "rtf": 0.199,
+      "speed": 5,
+      "allMs": [
+        1019,
+        1060,
+        1105
+      ],
+      "loadMs": 10,
+      "speakers": 1,
+      "sampleRate": 16000,
+      "sizeMB": 36.1,
+      "lang": "es",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-es-davefx-medium": {
+      "medianMs": 1040,
+      "audioSec": 6.15,
+      "rtf": 0.169,
+      "speed": 5.9,
+      "allMs": [
+        1037,
+        1040,
+        1108
+      ],
+      "loadMs": 12,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 88.9,
+      "lang": "es",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-es-glados-medium": {
+      "medianMs": 1001,
+      "audioSec": 6.18,
+      "rtf": 0.162,
+      "speed": 6.2,
+      "allMs": [
+        980,
+        1001,
+        1015
+      ],
+      "loadMs": 12,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 88.7,
+      "lang": "es",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-es-davefx-medium-int8": {
+      "medianMs": 1730,
+      "audioSec": 6.2,
+      "rtf": 0.279,
+      "speed": 3.6,
+      "allMs": [
+        1691,
+        1730,
+        1764
+      ],
+      "loadMs": 9,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 46.4,
+      "lang": "es",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-es-miro-high": {
+      "medianMs": 954,
+      "audioSec": 5.63,
+      "rtf": 0.169,
+      "speed": 5.9,
+      "allMs": [
+        932,
+        954,
+        965
+      ],
+      "loadMs": 17,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 88.9,
+      "lang": "es",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-es-glados-medium-int8": {
+      "medianMs": 1726,
+      "audioSec": 6.28,
+      "rtf": 0.275,
+      "speed": 3.6,
+      "allMs": [
+        1718,
+        1726,
+        1736
+      ],
+      "loadMs": 19,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 46.1,
+      "lang": "es",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-es-ar-daniela-high": {
+      "medianMs": 7509,
+      "audioSec": 5.34,
+      "rtf": 1.406,
+      "speed": 0.7,
+      "allMs": [
+        7355,
+        7509,
+        7523
+      ],
+      "loadMs": 16,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 137.2,
+      "lang": "es",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-es-miro-high-int8": {
+      "medianMs": 1579,
+      "audioSec": 5.62,
+      "rtf": 0.281,
+      "speed": 3.6,
+      "allMs": [
+        1573,
+        1579,
+        1663
+      ],
+      "loadMs": 9,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 46.4,
+      "lang": "es",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-es-mx-ald-medium": {
+      "medianMs": 1186,
+      "audioSec": 7.01,
+      "rtf": 0.169,
+      "speed": 5.9,
+      "allMs": [
+        1166,
+        1186,
+        1222
+      ],
+      "loadMs": 10,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 88.9,
+      "lang": "es",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-es-mx-claude-high": {
+      "medianMs": 1153,
+      "audioSec": 6.72,
+      "rtf": 0.172,
+      "speed": 5.8,
+      "allMs": [
+        1101,
+        1153,
+        1198
+      ],
+      "loadMs": 12,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 88.7,
+      "lang": "es",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-es-mx-ald-medium-int8": {
+      "medianMs": 2062,
+      "audioSec": 7.12,
+      "rtf": 0.29,
+      "speed": 3.5,
+      "allMs": [
+        1967,
+        2062,
+        2127
+      ],
+      "loadMs": 30,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 46.4,
+      "lang": "es",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-es-mx-claude-high-int8": {
+      "medianMs": 1912,
+      "audioSec": 6.65,
+      "rtf": 0.288,
+      "speed": 3.5,
+      "allMs": [
+        1904,
+        1912,
+        1993
+      ],
+      "loadMs": 16,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 46.1,
+      "lang": "es",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-es-sharvard-medium": {
+      "medianMs": 1021,
+      "audioSec": 6.07,
+      "rtf": 0.168,
+      "speed": 5.9,
+      "allMs": [
+        1001,
+        1021,
+        1054
+      ],
+      "loadMs": 21,
+      "speakers": 2,
+      "sampleRate": 22050,
+      "sizeMB": 101.8,
+      "lang": "es",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-es-ar-daniela-high-int8": {
+      "medianMs": 10759,
+      "audioSec": 5.36,
+      "rtf": 2.007,
+      "speed": 0.5,
+      "allMs": [
+        10695,
+        10759,
+        10923
+      ],
+      "loadMs": 12,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 64.3,
+      "lang": "es",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-es-sharvard-medium-int8": {
+      "medianMs": 1764,
+      "audioSec": 6.06,
+      "rtf": 0.291,
+      "speed": 3.4,
+      "allMs": [
+        1758,
+        1764,
+        1807
+      ],
+      "loadMs": 17,
+      "speakers": 2,
+      "sampleRate": 22050,
+      "sizeMB": 49.6,
+      "lang": "es",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-fa-amir-medium": {
+      "medianMs": 1270,
+      "audioSec": 7.7,
+      "rtf": 0.165,
+      "speed": 6.1,
+      "allMs": [
+        1266,
+        1270,
+        1304
+      ],
+      "loadMs": 11,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 88.9,
+      "lang": "fa",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-fa-amir-medium-int8": {
+      "medianMs": 2295,
+      "audioSec": 7.58,
+      "rtf": 0.303,
+      "speed": 3.3,
+      "allMs": [
+        2164,
+        2295,
+        2328
+      ],
+      "loadMs": 10,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 46.4,
+      "lang": "fa",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-fa-en-rezahedayatfar-ibrahimwalk-medium": {
+      "medianMs": 1585,
+      "audioSec": 9.33,
+      "rtf": 0.17,
+      "speed": 5.9,
+      "allMs": [
+        1512,
+        1585,
+        1748
+      ],
+      "loadMs": 10,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 89.2,
+      "lang": "fa",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-fa-ganji-medium": {
+      "medianMs": 1582,
+      "audioSec": 9.16,
+      "rtf": 0.173,
+      "speed": 5.8,
+      "allMs": [
+        1492,
+        1582,
+        1773
+      ],
+      "loadMs": 21,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 88.9,
+      "lang": "fa",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-fa-ganji-medium-int8": {
+      "medianMs": 2745,
+      "audioSec": 9.44,
+      "rtf": 0.291,
+      "speed": 3.4,
+      "allMs": [
+        2625,
+        2745,
+        2860
+      ],
+      "loadMs": 14,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 46.4,
+      "lang": "fa",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-fa-gyro-medium": {
+      "medianMs": 1157,
+      "audioSec": 6.7,
+      "rtf": 0.173,
+      "speed": 5.8,
+      "allMs": [
+        1146,
+        1157,
+        1229
+      ],
+      "loadMs": 12,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 88.7,
+      "lang": "fa",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-fa-ganji_adabi-medium": {
+      "medianMs": 1626,
+      "audioSec": 9.43,
+      "rtf": 0.172,
+      "speed": 5.8,
+      "allMs": [
+        1528,
+        1626,
+        1713
+      ],
+      "loadMs": 30,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 88.9,
+      "lang": "fa",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-fa-ganji_adabi-medium-int8": {
+      "medianMs": 2785,
+      "audioSec": 9.48,
+      "rtf": 0.294,
+      "speed": 3.4,
+      "allMs": [
+        2781,
+        2785,
+        2796
+      ],
+      "loadMs": 19,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 46.4,
+      "lang": "fa",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-fa-reza-medium": {
+      "medianMs": 1650,
+      "audioSec": 9.42,
+      "rtf": 0.175,
+      "speed": 5.7,
+      "allMs": [
+        1584,
+        1650,
+        1744
+      ],
+      "loadMs": 25,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 88.9,
+      "lang": "fa",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-fi-harri-low": {
+      "medianMs": 868,
+      "audioSec": 6.48,
+      "rtf": 0.134,
+      "speed": 7.5,
+      "allMs": [
+        855,
+        868,
+        940
+      ],
+      "loadMs": 21,
+      "speakers": 1,
+      "sampleRate": 16000,
+      "sizeMB": 88.8,
+      "lang": "fi",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-fa-gyro-medium-int8": {
+      "medianMs": 1976,
+      "audioSec": 6.63,
+      "rtf": 0.298,
+      "speed": 3.4,
+      "allMs": [
+        1955,
+        1976,
+        2015
+      ],
+      "loadMs": 26,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 46.1,
+      "lang": "fa",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-fa-reza-medium-int8": {
+      "medianMs": 2719,
+      "audioSec": 9.53,
+      "rtf": 0.285,
+      "speed": 3.5,
+      "allMs": [
+        2457,
+        2719,
+        2784
+      ],
+      "loadMs": 23,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 46.4,
+      "lang": "fa",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-fi-harri-low-int8": {
+      "medianMs": 1400,
+      "audioSec": 6.77,
+      "rtf": 0.207,
+      "speed": 4.8,
+      "allMs": [
+        1320,
+        1400,
+        1441
+      ],
+      "loadMs": 21,
+      "speakers": 1,
+      "sampleRate": 16000,
+      "sizeMB": 46.3,
+      "lang": "fi",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-fi-harri-medium": {
+      "medianMs": 1102,
+      "audioSec": 6.38,
+      "rtf": 0.173,
+      "speed": 5.8,
+      "allMs": [
+        1100,
+        1102,
+        1127
+      ],
+      "loadMs": 10,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 88.9,
+      "lang": "fi",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-fr-gilles-low": {
+      "medianMs": 920,
+      "audioSec": 6.42,
+      "rtf": 0.143,
+      "speed": 7,
+      "allMs": [
+        812,
+        920,
+        922
+      ],
+      "loadMs": 27,
+      "speakers": 1,
+      "sampleRate": 16000,
+      "sizeMB": 88.8,
+      "lang": "fr",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-fi-harri-medium-int8": {
+      "medianMs": 1802,
+      "audioSec": 6.5,
+      "rtf": 0.277,
+      "speed": 3.6,
+      "allMs": [
+        1797,
+        1802,
+        1868
+      ],
+      "loadMs": 10,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 46.4,
+      "lang": "fi",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-fr-miro-high": {
+      "medianMs": 1217,
+      "audioSec": 7.41,
+      "rtf": 0.164,
+      "speed": 6.1,
+      "allMs": [
+        1216,
+        1217,
+        1229
+      ],
+      "loadMs": 13,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 88.9,
+      "lang": "fr",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-fr-siwis-low": {
+      "medianMs": 599,
+      "audioSec": 6.3,
+      "rtf": 0.095,
+      "speed": 10.5,
+      "allMs": [
+        549,
+        599,
+        678
+      ],
+      "loadMs": 12,
+      "speakers": 1,
+      "sampleRate": 16000,
+      "sizeMB": 48.3,
+      "lang": "fr",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-fr-gilles-low-int8": {
+      "medianMs": 1447,
+      "audioSec": 6.42,
+      "rtf": 0.225,
+      "speed": 4.4,
+      "allMs": [
+        1389,
+        1447,
+        1483
+      ],
+      "loadMs": 30,
+      "speakers": 1,
+      "sampleRate": 16000,
+      "sizeMB": 46.3,
+      "lang": "fr",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-fr-miro-high-int8": {
+      "medianMs": 1956,
+      "audioSec": 7.22,
+      "rtf": 0.271,
+      "speed": 3.7,
+      "allMs": [
+        1921,
+        1956,
+        2018
+      ],
+      "loadMs": 10,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 46.4,
+      "lang": "fr",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-fr-siwis-low-int8": {
+      "medianMs": 1096,
+      "audioSec": 6.03,
+      "rtf": 0.182,
+      "speed": 5.5,
+      "allMs": [
+        1074,
+        1096,
+        1108
+      ],
+      "loadMs": 10,
+      "speakers": 1,
+      "sampleRate": 16000,
+      "sizeMB": 36.1,
+      "lang": "fr",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-fr-siwis-medium": {
+      "medianMs": 1093,
+      "audioSec": 6.21,
+      "rtf": 0.176,
+      "speed": 5.7,
+      "allMs": [
+        1043,
+        1093,
+        1145
+      ],
+      "loadMs": 11,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 88.9,
+      "lang": "fr",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-fr-siwis-medium-int8": {
+      "medianMs": 1812,
+      "audioSec": 6.58,
+      "rtf": 0.275,
+      "speed": 3.6,
+      "allMs": [
+        1803,
+        1812,
+        1822
+      ],
+      "loadMs": 12,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 46.4,
+      "lang": "fr",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-fr-tjiho1-medium": {
+      "medianMs": 2040,
+      "audioSec": 6.03,
+      "rtf": 0.338,
+      "speed": 3,
+      "allMs": [
+        1911,
+        2040,
+        2078
+      ],
+      "loadMs": 22,
+      "speakers": 1,
+      "sampleRate": 44100,
+      "sizeMB": 88.9,
+      "lang": "fr",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-fr-tjiho2-medium": {
+      "medianMs": 2026,
+      "audioSec": 5.68,
+      "rtf": 0.357,
+      "speed": 2.8,
+      "allMs": [
+        2015,
+        2026,
+        2124
+      ],
+      "loadMs": 13,
+      "speakers": 1,
+      "sampleRate": 44100,
+      "sizeMB": 88.9,
+      "lang": "fr",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-fr-tjiho1-medium-int8": {
+      "medianMs": 3417,
+      "audioSec": 6.01,
+      "rtf": 0.569,
+      "speed": 1.8,
+      "allMs": [
+        3374,
+        3417,
+        3436
+      ],
+      "loadMs": 14,
+      "speakers": 1,
+      "sampleRate": 44100,
+      "sizeMB": 46.4,
+      "lang": "fr",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-fr-tjiho3-medium": {
+      "medianMs": 2268,
+      "audioSec": 6.89,
+      "rtf": 0.329,
+      "speed": 3,
+      "allMs": [
+        2201,
+        2268,
+        2274
+      ],
+      "loadMs": 12,
+      "speakers": 1,
+      "sampleRate": 44100,
+      "sizeMB": 88.9,
+      "lang": "fr",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-fr-tjiho2-medium-int8": {
+      "medianMs": 3485,
+      "audioSec": 6.03,
+      "rtf": 0.578,
+      "speed": 1.7,
+      "allMs": [
+        3354,
+        3485,
+        3596
+      ],
+      "loadMs": 17,
+      "speakers": 1,
+      "sampleRate": 44100,
+      "sizeMB": 46.4,
+      "lang": "fr",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-fr-upmc-medium": {
+      "medianMs": 1072,
+      "audioSec": 6.34,
+      "rtf": 0.169,
+      "speed": 5.9,
+      "allMs": [
+        1058,
+        1072,
+        1075
+      ],
+      "loadMs": 26,
+      "speakers": 2,
+      "sampleRate": 22050,
+      "sizeMB": 101.8,
+      "lang": "fr",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-fr-tom-medium": {
+      "medianMs": 2212,
+      "audioSec": 6.97,
+      "rtf": 0.317,
+      "speed": 3.2,
+      "allMs": [
+        2201,
+        2212,
+        2374
+      ],
+      "loadMs": 17,
+      "speakers": 1,
+      "sampleRate": 44100,
+      "sizeMB": 88.9,
+      "lang": "fr",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-fr-tjiho3-medium-int8": {
+      "medianMs": 3852,
+      "audioSec": 6.77,
+      "rtf": 0.569,
+      "speed": 1.8,
+      "allMs": [
+        3844,
+        3852,
+        3898
+      ],
+      "loadMs": 13,
+      "speakers": 1,
+      "sampleRate": 44100,
+      "sizeMB": 46.4,
+      "lang": "fr",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-hi-pratham-medium": {
+      "medianMs": 1038,
+      "audioSec": 5.88,
+      "rtf": 0.177,
+      "speed": 5.7,
+      "allMs": [
+        990,
+        1038,
+        1059
+      ],
+      "loadMs": 11,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 88.9,
+      "lang": "hi",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-fr-upmc-medium-int8": {
+      "medianMs": 1781,
+      "audioSec": 6.23,
+      "rtf": 0.286,
+      "speed": 3.5,
+      "allMs": [
+        1695,
+        1781,
+        1813
+      ],
+      "loadMs": 13,
+      "speakers": 2,
+      "sampleRate": 22050,
+      "sizeMB": 49.6,
+      "lang": "fr",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-hi-pratham-medium-int8": {
+      "medianMs": 1643,
+      "audioSec": 5.7,
+      "rtf": 0.288,
+      "speed": 3.5,
+      "allMs": [
+        1636,
+        1643,
+        1743
+      ],
+      "loadMs": 9,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 46.4,
+      "lang": "hi",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-fr-tom-medium-int8": {
+      "medianMs": 3923,
+      "audioSec": 6.92,
+      "rtf": 0.567,
+      "speed": 1.8,
+      "allMs": [
+        3700,
+        3923,
+        3977
+      ],
+      "loadMs": 13,
+      "speakers": 1,
+      "sampleRate": 44100,
+      "sizeMB": 46.4,
+      "lang": "fr",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-hi-priyamvada-medium": {
+      "medianMs": 1219,
+      "audioSec": 7.25,
+      "rtf": 0.168,
+      "speed": 5.9,
+      "allMs": [
+        1198,
+        1219,
+        1222
+      ],
+      "loadMs": 10,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 88.9,
+      "lang": "hi",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-hi-rohan-medium": {
+      "medianMs": 1239,
+      "audioSec": 6.31,
+      "rtf": 0.196,
+      "speed": 5.1,
+      "allMs": [
+        1206,
+        1239,
+        1245
+      ],
+      "loadMs": 12,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 88.7,
+      "lang": "hi",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-hu-anna-medium": {
+      "medianMs": 940,
+      "audioSec": 5.7,
+      "rtf": 0.165,
+      "speed": 6.1,
+      "allMs": [
+        903,
+        940,
+        1042
+      ],
+      "loadMs": 20,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 88.9,
+      "lang": "hu",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-hi-priyamvada-medium-int8": {
+      "medianMs": 2042,
+      "audioSec": 7.36,
+      "rtf": 0.277,
+      "speed": 3.6,
+      "allMs": [
+        2000,
+        2042,
+        2043
+      ],
+      "loadMs": 10,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 46.4,
+      "lang": "hi",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-hu-berta-medium": {
+      "medianMs": 878,
+      "audioSec": 5.17,
+      "rtf": 0.17,
+      "speed": 5.9,
+      "allMs": [
+        868,
+        878,
+        893
+      ],
+      "loadMs": 12,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 88.9,
+      "lang": "hu",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-hi-rohan-medium-int8": {
+      "medianMs": 2035,
+      "audioSec": 6.32,
+      "rtf": 0.322,
+      "speed": 3.1,
+      "allMs": [
+        2017,
+        2035,
+        2053
+      ],
+      "loadMs": 10,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 46.1,
+      "lang": "hi",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-hu-anna-medium-int8": {
+      "medianMs": 1593,
+      "audioSec": 5.32,
+      "rtf": 0.299,
+      "speed": 3.3,
+      "allMs": [
+        1528,
+        1593,
+        1605
+      ],
+      "loadMs": 12,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 46.4,
+      "lang": "hu",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-hu-berta-medium-int8": {
+      "medianMs": 1440,
+      "audioSec": 5.11,
+      "rtf": 0.282,
+      "speed": 3.5,
+      "allMs": [
+        1387,
+        1440,
+        1498
+      ],
+      "loadMs": 24,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 46.4,
+      "lang": "hu",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-hu-imre-medium": {
+      "medianMs": 898,
+      "audioSec": 5.28,
+      "rtf": 0.17,
+      "speed": 5.9,
+      "allMs": [
+        891,
+        898,
+        911
+      ],
+      "loadMs": 18,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 88.9,
+      "lang": "hu",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-hu-imre-medium-int8": {
+      "medianMs": 1498,
+      "audioSec": 5.26,
+      "rtf": 0.285,
+      "speed": 3.5,
+      "allMs": [
+        1446,
+        1498,
+        1510
+      ],
+      "loadMs": 18,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 46.4,
+      "lang": "hu",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-id-news_tts-medium": {
+      "medianMs": 1217,
+      "audioSec": 7.42,
+      "rtf": 0.164,
+      "speed": 6.1,
+      "allMs": [
+        1157,
+        1217,
+        1268
+      ],
+      "loadMs": 12,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 88.7,
+      "lang": "id",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-is-bui-medium": {
+      "medianMs": 1025,
+      "audioSec": 5.88,
+      "rtf": 0.174,
+      "speed": 5.7,
+      "allMs": [
+        1014,
+        1025,
+        1061
+      ],
+      "loadMs": 10,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 88.6,
+      "lang": "is",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-id-news_tts-medium-int8": {
+      "medianMs": 2022,
+      "audioSec": 7.14,
+      "rtf": 0.283,
+      "speed": 3.5,
+      "allMs": [
+        1970,
+        2022,
+        2054
+      ],
+      "loadMs": 13,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 46.1,
+      "lang": "id",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-is-salka-medium": {
+      "medianMs": 1172,
+      "audioSec": 6.5,
+      "rtf": 0.18,
+      "speed": 5.5,
+      "allMs": [
+        1140,
+        1172,
+        1240
+      ],
+      "loadMs": 26,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 88.6,
+      "lang": "is",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-is-bui-medium-int8": {
+      "medianMs": 1783,
+      "audioSec": 5.68,
+      "rtf": 0.314,
+      "speed": 3.2,
+      "allMs": [
+        1636,
+        1783,
+        1846
+      ],
+      "loadMs": 29,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 46.1,
+      "lang": "is",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-is-steinn-medium": {
+      "medianMs": 1102,
+      "audioSec": 5.93,
+      "rtf": 0.186,
+      "speed": 5.4,
+      "allMs": [
+        1048,
+        1102,
+        1139
+      ],
+      "loadMs": 11,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 88.6,
+      "lang": "is",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-is-salka-medium-int8": {
+      "medianMs": 1906,
+      "audioSec": 6.07,
+      "rtf": 0.314,
+      "speed": 3.2,
+      "allMs": [
+        1871,
+        1906,
+        2003
+      ],
+      "loadMs": 16,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 46.1,
+      "lang": "is",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-is-ugla-medium": {
+      "medianMs": 920,
+      "audioSec": 5.08,
+      "rtf": 0.181,
+      "speed": 5.5,
+      "allMs": [
+        909,
+        920,
+        1019
+      ],
+      "loadMs": 10,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 88.6,
+      "lang": "is",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-is-steinn-medium-int8": {
+      "medianMs": 1827,
+      "audioSec": 5.94,
+      "rtf": 0.308,
+      "speed": 3.3,
+      "allMs": [
+        1825,
+        1827,
+        1849
+      ],
+      "loadMs": 11,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 46.1,
+      "lang": "is",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-it-dii-high": {
+      "medianMs": 1309,
+      "audioSec": 7.45,
+      "rtf": 0.176,
+      "speed": 5.7,
+      "allMs": [
+        1266,
+        1309,
+        1340
+      ],
+      "loadMs": 19,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 88.9,
+      "lang": "it",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-is-ugla-medium-int8": {
+      "medianMs": 1575,
+      "audioSec": 5.14,
+      "rtf": 0.306,
+      "speed": 3.3,
+      "allMs": [
+        1533,
+        1575,
+        1578
+      ],
+      "loadMs": 16,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 46.1,
+      "lang": "is",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-it-miro-high": {
+      "medianMs": 1205,
+      "audioSec": 7.26,
+      "rtf": 0.166,
+      "speed": 6,
+      "allMs": [
+        1203,
+        1205,
+        1259
+      ],
+      "loadMs": 12,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 88.9,
+      "lang": "it",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-it-paola-medium": {
+      "medianMs": 857,
+      "audioSec": 5.21,
+      "rtf": 0.164,
+      "speed": 6.1,
+      "allMs": [
+        844,
+        857,
+        953
+      ],
+      "loadMs": 18,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 88.9,
+      "lang": "it",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-it-dii-high-int8": {
+      "medianMs": 2184,
+      "audioSec": 7.42,
+      "rtf": 0.294,
+      "speed": 3.4,
+      "allMs": [
+        2056,
+        2184,
+        2200
+      ],
+      "loadMs": 10,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 46.4,
+      "lang": "it",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-it-riccardo-x_low": {
+      "medianMs": 609,
+      "audioSec": 6.08,
+      "rtf": 0.1,
+      "speed": 10,
+      "allMs": [
+        572,
+        609,
+        614
+      ],
+      "loadMs": 14,
+      "speakers": 1,
+      "sampleRate": 16000,
+      "sizeMB": 48.3,
+      "lang": "it",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-it-miro-high-int8": {
+      "medianMs": 2035,
+      "audioSec": 7.22,
+      "rtf": 0.282,
+      "speed": 3.5,
+      "allMs": [
+        2010,
+        2035,
+        2035
+      ],
+      "loadMs": 12,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 46.4,
+      "lang": "it",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-it-paola-medium-int8": {
+      "medianMs": 1473,
+      "audioSec": 5.26,
+      "rtf": 0.28,
+      "speed": 3.6,
+      "allMs": [
+        1447,
+        1473,
+        1487
+      ],
+      "loadMs": 18,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 46.4,
+      "lang": "it",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-it-riccardo-x_low-int8": {
+      "medianMs": 1141,
+      "audioSec": 5.48,
+      "rtf": 0.208,
+      "speed": 4.8,
+      "allMs": [
+        1004,
+        1141,
+        1232
+      ],
+      "loadMs": 17,
+      "speakers": 1,
+      "sampleRate": 16000,
+      "sizeMB": 36.1,
+      "lang": "it",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-ka-natia-medium": {
+      "medianMs": 1142,
+      "audioSec": 6.18,
+      "rtf": 0.185,
+      "speed": 5.4,
+      "allMs": [
+        1079,
+        1142,
+        1146
+      ],
+      "loadMs": 18,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 88.9,
+      "lang": "ka",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-kk-iseke-x_low": {
+      "medianMs": 759,
+      "audioSec": 7.32,
+      "rtf": 0.104,
+      "speed": 9.6,
+      "allMs": [
+        719,
+        759,
+        895
+      ],
+      "loadMs": 14,
+      "speakers": 1,
+      "sampleRate": 16000,
+      "sizeMB": 55.5,
+      "lang": "kk",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-kk-iseke-x_low-int8": {
+      "medianMs": 1380,
+      "audioSec": 6.87,
+      "rtf": 0.201,
+      "speed": 5,
+      "allMs": [
+        1238,
+        1380,
+        1449
+      ],
+      "loadMs": 11,
+      "speakers": 1,
+      "sampleRate": 16000,
+      "sizeMB": 43,
+      "lang": "kk",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-ka-natia-medium-int8": {
+      "medianMs": 1811,
+      "audioSec": 6.09,
+      "rtf": 0.297,
+      "speed": 3.4,
+      "allMs": [
+        1796,
+        1811,
+        1950
+      ],
+      "loadMs": 10,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 46.5,
+      "lang": "ka",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-kk-raya-x_low": {
+      "medianMs": 618,
+      "audioSec": 6.34,
+      "rtf": 0.097,
+      "speed": 10.3,
+      "allMs": [
+        612,
+        618,
+        715
+      ],
+      "loadMs": 12,
+      "speakers": 1,
+      "sampleRate": 16000,
+      "sizeMB": 48.3,
+      "lang": "kk",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-kk-raya-x_low-int8": {
+      "medianMs": 1280,
+      "audioSec": 6.48,
+      "rtf": 0.198,
+      "speed": 5.1,
+      "allMs": [
+        1177,
+        1280,
+        1305
+      ],
+      "loadMs": 21,
+      "speakers": 1,
+      "sampleRate": 16000,
+      "sizeMB": 36.1,
+      "lang": "kk",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-lb-marylux-medium": {
+      "medianMs": 866,
+      "audioSec": 4.83,
+      "rtf": 0.179,
+      "speed": 5.6,
+      "allMs": [
+        826,
+        866,
+        894
+      ],
+      "loadMs": 13,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 88.9,
+      "lang": "lb",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-lv-aivars-medium": {
+      "medianMs": 1037,
+      "audioSec": 6.33,
+      "rtf": 0.164,
+      "speed": 6.1,
+      "allMs": [
+        973,
+        1037,
+        1133
+      ],
+      "loadMs": 18,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 88.9,
+      "lang": "lv",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-lb-marylux-medium-int8": {
+      "medianMs": 1389,
+      "audioSec": 4.89,
+      "rtf": 0.284,
+      "speed": 3.5,
+      "allMs": [
+        1350,
+        1389,
+        1524
+      ],
+      "loadMs": 18,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 46.4,
+      "lang": "lb",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-ml-arjun-medium": {
+      "medianMs": 1259,
+      "audioSec": 7.05,
+      "rtf": 0.179,
+      "speed": 5.6,
+      "allMs": [
+        1243,
+        1259,
+        1390
+      ],
+      "loadMs": 16,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 88.7,
+      "lang": "ml",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-lv-aivars-medium-int8": {
+      "medianMs": 1849,
+      "audioSec": 6.05,
+      "rtf": 0.306,
+      "speed": 3.3,
+      "allMs": [
+        1707,
+        1849,
+        1877
+      ],
+      "loadMs": 12,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 46.4,
+      "lang": "lv",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-ml-meera-medium": {
+      "medianMs": 1074,
+      "audioSec": 5.61,
+      "rtf": 0.191,
+      "speed": 5.2,
+      "allMs": [
+        1068,
+        1074,
+        1144
+      ],
+      "loadMs": 19,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 88.7,
+      "lang": "ml",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-ml-arjun-medium-int8": {
+      "medianMs": 2196,
+      "audioSec": 7.11,
+      "rtf": 0.309,
+      "speed": 3.2,
+      "allMs": [
+        2177,
+        2196,
+        2352
+      ],
+      "loadMs": 12,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 46.1,
+      "lang": "ml",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-kk-issai-high": {
+      "medianMs": 9012,
+      "audioSec": 6.15,
+      "rtf": 1.465,
+      "speed": 0.7,
+      "allMs": [
+        8999,
+        9012,
+        9644
+      ],
+      "loadMs": 11,
+      "speakers": 6,
+      "sampleRate": 22050,
+      "sizeMB": 150.6,
+      "lang": "kk",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-ne-chitwan-medium": {
+      "medianMs": 974,
+      "audioSec": 5.01,
+      "rtf": 0.194,
+      "speed": 5.1,
+      "allMs": [
+        933,
+        974,
+        1092
+      ],
+      "loadMs": 19,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 88.7,
+      "lang": "ne",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-ml-meera-medium-int8": {
+      "medianMs": 1862,
+      "audioSec": 5.75,
+      "rtf": 0.324,
+      "speed": 3.1,
+      "allMs": [
+        1762,
+        1862,
+        1959
+      ],
+      "loadMs": 17,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 46.1,
+      "lang": "ml",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-ne-chitwan-medium-int8": {
+      "medianMs": 1620,
+      "audioSec": 5.03,
+      "rtf": 0.322,
+      "speed": 3.1,
+      "allMs": [
+        1615,
+        1620,
+        1661
+      ],
+      "loadMs": 11,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 46.1,
+      "lang": "ne",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-ne-google-medium": {
+      "medianMs": 1141,
+      "audioSec": 6.78,
+      "rtf": 0.168,
+      "speed": 5.9,
+      "allMs": [
+        1111,
+        1141,
+        1142
+      ],
+      "loadMs": 18,
+      "speakers": 18,
+      "sampleRate": 22050,
+      "sizeMB": 101.8,
+      "lang": "ne",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-ne-google-x_low": {
+      "medianMs": 614,
+      "audioSec": 6.13,
+      "rtf": 0.1,
+      "speed": 10,
+      "allMs": [
+        614,
+        614,
+        636
+      ],
+      "loadMs": 11,
+      "speakers": 18,
+      "sampleRate": 16000,
+      "sizeMB": 55,
+      "lang": "ne",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-ne-google-medium-int8": {
+      "medianMs": 1966,
+      "audioSec": 6.8,
+      "rtf": 0.289,
+      "speed": 3.5,
+      "allMs": [
+        1860,
+        1966,
+        1983
+      ],
+      "loadMs": 21,
+      "speakers": 18,
+      "sampleRate": 22050,
+      "sizeMB": 49.6,
+      "lang": "ne",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-kk-issai-high-int8": {
+      "medianMs": 12848,
+      "audioSec": 6.23,
+      "rtf": 2.062,
+      "speed": 0.5,
+      "allMs": [
+        12451,
+        12848,
+        12910
+      ],
+      "loadMs": 11,
+      "speakers": 6,
+      "sampleRate": 22050,
+      "sizeMB": 67.7,
+      "lang": "kk",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-ne-google-x_low-int8": {
+      "medianMs": 1195,
+      "audioSec": 6.06,
+      "rtf": 0.197,
+      "speed": 5.1,
+      "allMs": [
+        1151,
+        1195,
+        1273
+      ],
+      "loadMs": 9,
+      "speakers": 18,
+      "sampleRate": 16000,
+      "sizeMB": 37.8,
+      "lang": "ne",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-nl-be-nathalie-medium": {
+      "medianMs": 1027,
+      "audioSec": 5.69,
+      "rtf": 0.18,
+      "speed": 5.5,
+      "allMs": [
+        941,
+        1027,
+        1055
+      ],
+      "loadMs": 14,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 88.9,
+      "lang": "nl",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-nl-be-nathalie-x_low": {
+      "medianMs": 581,
+      "audioSec": 5.66,
+      "rtf": 0.103,
+      "speed": 9.7,
+      "allMs": [
+        555,
+        581,
+        640
+      ],
+      "loadMs": 10,
+      "speakers": 1,
+      "sampleRate": 16000,
+      "sizeMB": 48.3,
+      "lang": "nl",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-nl-be-rdh-medium": {
+      "medianMs": 881,
+      "audioSec": 5.27,
+      "rtf": 0.167,
+      "speed": 6,
+      "allMs": [
+        867,
+        881,
+        968
+      ],
+      "loadMs": 10,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 88.8,
+      "lang": "nl",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-nl-be-nathalie-medium-int8": {
+      "medianMs": 1642,
+      "audioSec": 5.79,
+      "rtf": 0.284,
+      "speed": 3.5,
+      "allMs": [
+        1568,
+        1642,
+        1841
+      ],
+      "loadMs": 31,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 46.4,
+      "lang": "nl",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-nl-be-nathalie-x_low-int8": {
+      "medianMs": 1042,
+      "audioSec": 5.66,
+      "rtf": 0.184,
+      "speed": 5.4,
+      "allMs": [
+        1030,
+        1042,
+        1061
+      ],
+      "loadMs": 14,
+      "speakers": 1,
+      "sampleRate": 16000,
+      "sizeMB": 36.1,
+      "lang": "nl",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-nl-be-rdh-x_low": {
+      "medianMs": 490,
+      "audioSec": 5.1,
+      "rtf": 0.096,
+      "speed": 10.4,
+      "allMs": [
+        490,
+        490,
+        499
+      ],
+      "loadMs": 12,
+      "speakers": 1,
+      "sampleRate": 16000,
+      "sizeMB": 48.3,
+      "lang": "nl",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-nl-miro-high": {
+      "medianMs": 959,
+      "audioSec": 5.62,
+      "rtf": 0.171,
+      "speed": 5.9,
+      "allMs": [
+        918,
+        959,
+        1088
+      ],
+      "loadMs": 12,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 89.2,
+      "lang": "nl",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-nl-dii-high": {
+      "medianMs": 923,
+      "audioSec": 5.28,
+      "rtf": 0.175,
+      "speed": 5.7,
+      "allMs": [
+        900,
+        923,
+        991
+      ],
+      "loadMs": 19,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 89.2,
+      "lang": "nl",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-nl-dii-high-int8": {
+      "medianMs": 1603,
+      "audioSec": 5.53,
+      "rtf": 0.29,
+      "speed": 3.4,
+      "allMs": [
+        1507,
+        1603,
+        1609
+      ],
+      "loadMs": 22,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 47.1,
+      "lang": "nl",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-nl-miro-high-int8": {
+      "medianMs": 1671,
+      "audioSec": 5.63,
+      "rtf": 0.297,
+      "speed": 3.4,
+      "allMs": [
+        1570,
+        1671,
+        1706
+      ],
+      "loadMs": 16,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 47.1,
+      "lang": "nl",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-nl-pim-medium": {
+      "medianMs": 1279,
+      "audioSec": 6.71,
+      "rtf": 0.191,
+      "speed": 5.2,
+      "allMs": [
+        1275,
+        1279,
+        1361
+      ],
+      "loadMs": 20,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 88.9,
+      "lang": "nl",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-nl-ronnie-medium": {
+      "medianMs": 1420,
+      "audioSec": 7.12,
+      "rtf": 0.199,
+      "speed": 5,
+      "allMs": [
+        1395,
+        1420,
+        1566
+      ],
+      "loadMs": 11,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 88.7,
+      "lang": "nl",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-nl-pim-medium-int8": {
+      "medianMs": 2157,
+      "audioSec": 6.71,
+      "rtf": 0.321,
+      "speed": 3.1,
+      "allMs": [
+        2115,
+        2157,
+        2230
+      ],
+      "loadMs": 13,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 46.4,
+      "lang": "nl",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-no-talesyntese-medium": {
+      "medianMs": 861,
+      "audioSec": 4.97,
+      "rtf": 0.173,
+      "speed": 5.8,
+      "allMs": [
+        834,
+        861,
+        898
+      ],
+      "loadMs": 21,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 88.9,
+      "lang": "no",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-nl-ronnie-medium-int8": {
+      "medianMs": 2532,
+      "audioSec": 7.39,
+      "rtf": 0.343,
+      "speed": 2.9,
+      "allMs": [
+        2414,
+        2532,
+        2624
+      ],
+      "loadMs": 18,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 46.1,
+      "lang": "nl",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-pl-darkman-medium": {
+      "medianMs": 1088,
+      "audioSec": 6.37,
+      "rtf": 0.171,
+      "speed": 5.9,
+      "allMs": [
+        1021,
+        1088,
+        1153
+      ],
+      "loadMs": 22,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 88.9,
+      "lang": "pl",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-no-talesyntese-medium-int8": {
+      "medianMs": 1395,
+      "audioSec": 4.95,
+      "rtf": 0.282,
+      "speed": 3.5,
+      "allMs": [
+        1381,
+        1395,
+        1572
+      ],
+      "loadMs": 13,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 46.5,
+      "lang": "no",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-pl-gosia-medium": {
+      "medianMs": 1108,
+      "audioSec": 6.14,
+      "rtf": 0.18,
+      "speed": 5.5,
+      "allMs": [
+        1037,
+        1108,
+        1112
+      ],
+      "loadMs": 28,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 88.9,
+      "lang": "pl",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-pl-darkman-medium-int8": {
+      "medianMs": 1787,
+      "audioSec": 6.36,
+      "rtf": 0.281,
+      "speed": 3.6,
+      "allMs": [
+        1783,
+        1787,
+        1833
+      ],
+      "loadMs": 10,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 46.5,
+      "lang": "pl",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-pl-jarvis-medium": {
+      "medianMs": 905,
+      "audioSec": 4.9,
+      "rtf": 0.185,
+      "speed": 5.4,
+      "allMs": [
+        881,
+        905,
+        1017
+      ],
+      "loadMs": 11,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 89.2,
+      "lang": "pl",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-pl-justyna-medium": {
+      "medianMs": 952,
+      "audioSec": 5.3,
+      "rtf": 0.18,
+      "speed": 5.6,
+      "allMs": [
+        906,
+        952,
+        976
+      ],
+      "loadMs": 18,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 88.9,
+      "lang": "pl",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-pl-gosia-medium-int8": {
+      "medianMs": 1724,
+      "audioSec": 6.36,
+      "rtf": 0.271,
+      "speed": 3.7,
+      "allMs": [
+        1670,
+        1724,
+        1836
+      ],
+      "loadMs": 18,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 46.5,
+      "lang": "pl",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-pl-jarvis-medium-int8": {
+      "medianMs": 1482,
+      "audioSec": 5.09,
+      "rtf": 0.291,
+      "speed": 3.4,
+      "allMs": [
+        1447,
+        1482,
+        1502
+      ],
+      "loadMs": 16,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 47.1,
+      "lang": "pl",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-pl-mc_speech-medium": {
+      "medianMs": 936,
+      "audioSec": 5.13,
+      "rtf": 0.182,
+      "speed": 5.5,
+      "allMs": [
+        883,
+        936,
+        948
+      ],
+      "loadMs": 10,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 88.9,
+      "lang": "pl",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-pl-justyna-medium-int8": {
+      "medianMs": 1601,
+      "audioSec": 5.42,
+      "rtf": 0.295,
+      "speed": 3.4,
+      "allMs": [
+        1575,
+        1601,
+        1615
+      ],
+      "loadMs": 11,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 46.4,
+      "lang": "pl",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-pl-meski-medium": {
+      "medianMs": 872,
+      "audioSec": 5.05,
+      "rtf": 0.173,
+      "speed": 5.8,
+      "allMs": [
+        849,
+        872,
+        916
+      ],
+      "loadMs": 22,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 89.2,
+      "lang": "pl",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-pl-mc_speech-medium-int8": {
+      "medianMs": 1584,
+      "audioSec": 5.02,
+      "rtf": 0.316,
+      "speed": 3.2,
+      "allMs": [
+        1516,
+        1584,
+        1704
+      ],
+      "loadMs": 14,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 46.4,
+      "lang": "pl",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-pl-zenski-medium": {
+      "medianMs": 960,
+      "audioSec": 5.53,
+      "rtf": 0.174,
+      "speed": 5.8,
+      "allMs": [
+        884,
+        960,
+        1017
+      ],
+      "loadMs": 18,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 89.2,
+      "lang": "pl",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-pl-meski-medium-int8": {
+      "medianMs": 1429,
+      "audioSec": 5,
+      "rtf": 0.286,
+      "speed": 3.5,
+      "allMs": [
+        1390,
+        1429,
+        1471
+      ],
+      "loadMs": 9,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 47.1,
+      "lang": "pl",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-pt-br-cadu-medium": {
+      "medianMs": 1313,
+      "audioSec": 6.14,
+      "rtf": 0.214,
+      "speed": 4.7,
+      "allMs": [
+        1217,
+        1313,
+        1316
+      ],
+      "loadMs": 17,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 88.7,
+      "lang": "pt",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-pl-zenski-medium-int8": {
+      "medianMs": 1534,
+      "audioSec": 5.41,
+      "rtf": 0.284,
+      "speed": 3.5,
+      "allMs": [
+        1499,
+        1534,
+        1546
+      ],
+      "loadMs": 10,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 47.1,
+      "lang": "pl",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-pt-br-dii-high": {
+      "medianMs": 1086,
+      "audioSec": 6.08,
+      "rtf": 0.179,
+      "speed": 5.6,
+      "allMs": [
+        1053,
+        1086,
+        1141
+      ],
+      "loadMs": 10,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 88.9,
+      "lang": "pt",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-pt-br-cadu-medium-int8": {
+      "medianMs": 2126,
+      "audioSec": 6.18,
+      "rtf": 0.344,
+      "speed": 2.9,
+      "allMs": [
+        2002,
+        2126,
+        2175
+      ],
+      "loadMs": 12,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 46.1,
+      "lang": "pt",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-pt-br-edresson-low": {
+      "medianMs": 1030,
+      "audioSec": 7.92,
+      "rtf": 0.13,
+      "speed": 7.7,
+      "allMs": [
+        1010,
+        1030,
+        1104
+      ],
+      "loadMs": 17,
+      "speakers": 1,
+      "sampleRate": 16000,
+      "sizeMB": 88.8,
+      "lang": "pt",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-pt-br-dii-high-int8": {
+      "medianMs": 1795,
+      "audioSec": 6.32,
+      "rtf": 0.284,
+      "speed": 3.5,
+      "allMs": [
+        1789,
+        1795,
+        1800
+      ],
+      "loadMs": 11,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 46.4,
+      "lang": "pt",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-pt-br-faber-medium": {
+      "medianMs": 956,
+      "audioSec": 5.41,
+      "rtf": 0.177,
+      "speed": 5.7,
+      "allMs": [
+        910,
+        956,
+        1007
+      ],
+      "loadMs": 23,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 88.9,
+      "lang": "pt",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-pt-br-edresson-low-int8": {
+      "medianMs": 1724,
+      "audioSec": 8.13,
+      "rtf": 0.212,
+      "speed": 4.7,
+      "allMs": [
+        1713,
+        1724,
+        1761
+      ],
+      "loadMs": 14,
+      "speakers": 1,
+      "sampleRate": 16000,
+      "sizeMB": 46.3,
+      "lang": "pt",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-pt-br-jeff-medium": {
+      "medianMs": 1168,
+      "audioSec": 6,
+      "rtf": 0.195,
+      "speed": 5.1,
+      "allMs": [
+        1081,
+        1168,
+        1241
+      ],
+      "loadMs": 12,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 88.7,
+      "lang": "pt",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-pt-br-faber-medium-int8": {
+      "medianMs": 1541,
+      "audioSec": 5.48,
+      "rtf": 0.281,
+      "speed": 3.6,
+      "allMs": [
+        1531,
+        1541,
+        1633
+      ],
+      "loadMs": 12,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 46.4,
+      "lang": "pt",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-pt-br-miro-high": {
+      "medianMs": 1080,
+      "audioSec": 6.4,
+      "rtf": 0.169,
+      "speed": 5.9,
+      "allMs": [
+        1038,
+        1080,
+        1211
+      ],
+      "loadMs": 18,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 88.9,
+      "lang": "pt",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-pt-dii-high": {
+      "medianMs": 1037,
+      "audioSec": 5.96,
+      "rtf": 0.174,
+      "speed": 5.7,
+      "allMs": [
+        999,
+        1037,
+        1160
+      ],
+      "loadMs": 20,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 89.2,
+      "lang": "pt",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-pt-br-jeff-medium-int8": {
+      "medianMs": 1974,
+      "audioSec": 5.65,
+      "rtf": 0.349,
+      "speed": 2.9,
+      "allMs": [
+        1899,
+        1974,
+        2007
+      ],
+      "loadMs": 18,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 46.1,
+      "lang": "pt",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-pt-br-miro-high-int8": {
+      "medianMs": 1757,
+      "audioSec": 6.4,
+      "rtf": 0.275,
+      "speed": 3.6,
+      "allMs": [
+        1740,
+        1757,
+        1906
+      ],
+      "loadMs": 13,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 46.4,
+      "lang": "pt",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-pt-dii-high-int8": {
+      "medianMs": 1761,
+      "audioSec": 6.07,
+      "rtf": 0.29,
+      "speed": 3.4,
+      "allMs": [
+        1748,
+        1761,
+        1801
+      ],
+      "loadMs": 11,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 47.1,
+      "lang": "pt",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-pt-miro-high": {
+      "medianMs": 1068,
+      "audioSec": 6.15,
+      "rtf": 0.174,
+      "speed": 5.8,
+      "allMs": [
+        1065,
+        1068,
+        1075
+      ],
+      "loadMs": 12,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 89.2,
+      "lang": "pt",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-pt-tugao-medium": {
+      "medianMs": 877,
+      "audioSec": 5.05,
+      "rtf": 0.174,
+      "speed": 5.8,
+      "allMs": [
+        844,
+        877,
+        954
+      ],
+      "loadMs": 11,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 88.9,
+      "lang": "pt",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-pt-miro-high-int8": {
+      "medianMs": 1791,
+      "audioSec": 6.08,
+      "rtf": 0.295,
+      "speed": 3.4,
+      "allMs": [
+        1769,
+        1791,
+        1824
+      ],
+      "loadMs": 22,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 47.1,
+      "lang": "pt",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-ro-mihai-medium": {
+      "medianMs": 1235,
+      "audioSec": 7.14,
+      "rtf": 0.173,
+      "speed": 5.8,
+      "allMs": [
+        1232,
+        1235,
+        1253
+      ],
+      "loadMs": 14,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 88.9,
+      "lang": "ro",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-pt-tugao-medium-int8": {
+      "medianMs": 1454,
+      "audioSec": 4.97,
+      "rtf": 0.293,
+      "speed": 3.4,
+      "allMs": [
+        1435,
+        1454,
+        1464
+      ],
+      "loadMs": 11,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 46.5,
+      "lang": "pt",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-ru-denis-medium": {
+      "medianMs": 1114,
+      "audioSec": 6.35,
+      "rtf": 0.175,
+      "speed": 5.7,
+      "allMs": [
+        1113,
+        1114,
+        1116
+      ],
+      "loadMs": 9,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 88.9,
+      "lang": "ru",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-ru-dmitri-medium": {
+      "medianMs": 1023,
+      "audioSec": 5.58,
+      "rtf": 0.183,
+      "speed": 5.5,
+      "allMs": [
+        951,
+        1023,
+        1063
+      ],
+      "loadMs": 20,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 88.9,
+      "lang": "ru",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-ru-denis-medium-int8": {
+      "medianMs": 1872,
+      "audioSec": 6.33,
+      "rtf": 0.296,
+      "speed": 3.4,
+      "allMs": [
+        1793,
+        1872,
+        1987
+      ],
+      "loadMs": 10,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 46.4,
+      "lang": "ru",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-ru-irina-medium": {
+      "medianMs": 1168,
+      "audioSec": 6.65,
+      "rtf": 0.176,
+      "speed": 5.7,
+      "allMs": [
+        1154,
+        1168,
+        1325
+      ],
+      "loadMs": 11,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 88.9,
+      "lang": "ru",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-ru-dmitri-medium-int8": {
+      "medianMs": 1600,
+      "audioSec": 5.61,
+      "rtf": 0.285,
+      "speed": 3.5,
+      "allMs": [
+        1587,
+        1600,
+        1721
+      ],
+      "loadMs": 10,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 46.4,
+      "lang": "ru",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-ru-ruslan-medium": {
+      "medianMs": 1156,
+      "audioSec": 6.42,
+      "rtf": 0.18,
+      "speed": 5.6,
+      "allMs": [
+        1077,
+        1156,
+        1158
+      ],
+      "loadMs": 27,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 88.9,
+      "lang": "ru",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-ru-irina-medium-int8": {
+      "medianMs": 2070,
+      "audioSec": 6.56,
+      "rtf": 0.316,
+      "speed": 3.2,
+      "allMs": [
+        1973,
+        2070,
+        2092
+      ],
+      "loadMs": 13,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 46.4,
+      "lang": "ru",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-sk-lili-medium": {
+      "medianMs": 927,
+      "audioSec": 5.48,
+      "rtf": 0.169,
+      "speed": 5.9,
+      "allMs": [
+        914,
+        927,
+        1003
+      ],
+      "loadMs": 24,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 88.9,
+      "lang": "sk",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-ru-ruslan-medium-int8": {
+      "medianMs": 1825,
+      "audioSec": 6.68,
+      "rtf": 0.273,
+      "speed": 3.7,
+      "allMs": [
+        1770,
+        1825,
+        1967
+      ],
+      "loadMs": 13,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 46.4,
+      "lang": "ru",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-sk-lili-medium-int8": {
+      "medianMs": 1535,
+      "audioSec": 5.45,
+      "rtf": 0.282,
+      "speed": 3.6,
+      "allMs": [
+        1477,
+        1535,
+        1575
+      ],
+      "loadMs": 10,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 46.5,
+      "lang": "sk",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-sl-artur-medium": {
+      "medianMs": 1097,
+      "audioSec": 5.94,
+      "rtf": 0.185,
+      "speed": 5.4,
+      "allMs": [
+        1011,
+        1097,
+        1145
+      ],
+      "loadMs": 9,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 88.9,
+      "lang": "sl",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-sl-artur-medium-int8": {
+      "medianMs": 1765,
+      "audioSec": 6,
+      "rtf": 0.294,
+      "speed": 3.4,
+      "allMs": [
+        1740,
+        1765,
+        1796
+      ],
+      "loadMs": 13,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 46.5,
+      "lang": "sl",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-sr-serbski_institut-medium": {
+      "medianMs": 1947,
+      "audioSec": 10.05,
+      "rtf": 0.194,
+      "speed": 5.2,
+      "allMs": [
+        1883,
+        1947,
+        1973
+      ],
+      "loadMs": 13,
+      "speakers": 2,
+      "sampleRate": 22050,
+      "sizeMB": 101.8,
+      "lang": "sr",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-sv-lisa-medium": {
+      "medianMs": 1108,
+      "audioSec": 5.79,
+      "rtf": 0.191,
+      "speed": 5.2,
+      "allMs": [
+        1088,
+        1108,
+        1139
+      ],
+      "loadMs": 21,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 88.9,
+      "lang": "sv",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-sv-nst-medium": {
+      "medianMs": 1137,
+      "audioSec": 6.86,
+      "rtf": 0.166,
+      "speed": 6,
+      "allMs": [
+        1115,
+        1137,
+        1207
+      ],
+      "loadMs": 27,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 88.8,
+      "lang": "sv",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-sv-lisa-medium-int8": {
+      "medianMs": 1692,
+      "audioSec": 5.97,
+      "rtf": 0.283,
+      "speed": 3.5,
+      "allMs": [
+        1675,
+        1692,
+        1809
+      ],
+      "loadMs": 15,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 46.4,
+      "lang": "sv",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-sr-serbski_institut-medium-int8": {
+      "medianMs": 3297,
+      "audioSec": 9.95,
+      "rtf": 0.331,
+      "speed": 3,
+      "allMs": [
+        3114,
+        3297,
+        3363
+      ],
+      "loadMs": 17,
+      "speakers": 2,
+      "sampleRate": 22050,
+      "sizeMB": 49.6,
+      "lang": "sr",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-sv-nst-medium-int8": {
+      "medianMs": 1928,
+      "audioSec": 6.91,
+      "rtf": 0.279,
+      "speed": 3.6,
+      "allMs": [
+        1893,
+        1928,
+        2027
+      ],
+      "loadMs": 12,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 46.3,
+      "lang": "sv",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-sw-lanfrica-medium": {
+      "medianMs": 1120,
+      "audioSec": 6.29,
+      "rtf": 0.178,
+      "speed": 5.6,
+      "allMs": [
+        1072,
+        1120,
+        1154
+      ],
+      "loadMs": 12,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 88.9,
+      "lang": "sw",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-tr-dfki-medium": {
+      "medianMs": 1172,
+      "audioSec": 6.95,
+      "rtf": 0.169,
+      "speed": 5.9,
+      "allMs": [
+        1141,
+        1172,
+        1287
+      ],
+      "loadMs": 18,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 88.9,
+      "lang": "tr",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-sw-lanfrica-medium-int8": {
+      "medianMs": 1889,
+      "audioSec": 6.2,
+      "rtf": 0.305,
+      "speed": 3.3,
+      "allMs": [
+        1880,
+        1889,
+        1925
+      ],
+      "loadMs": 18,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 46.4,
+      "lang": "sw",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-tr-fahrettin-medium": {
+      "medianMs": 998,
+      "audioSec": 5.8,
+      "rtf": 0.172,
+      "speed": 5.8,
+      "allMs": [
+        997,
+        998,
+        1091
+      ],
+      "loadMs": 12,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 88.9,
+      "lang": "tr",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-tr-dfki-medium-int8": {
+      "medianMs": 1975,
+      "audioSec": 6.99,
+      "rtf": 0.283,
+      "speed": 3.5,
+      "allMs": [
+        1847,
+        1975,
+        1982
+      ],
+      "loadMs": 19,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 46.4,
+      "lang": "tr",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-uk-lada-x_low": {
+      "medianMs": 623,
+      "audioSec": 6.23,
+      "rtf": 0.1,
+      "speed": 10,
+      "allMs": [
+        614,
+        623,
+        715
+      ],
+      "loadMs": 22,
+      "speakers": 1,
+      "sampleRate": 16000,
+      "sizeMB": 48.3,
+      "lang": "uk",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-tr-fettah-medium": {
+      "medianMs": 1227,
+      "audioSec": 7.48,
+      "rtf": 0.164,
+      "speed": 6.1,
+      "allMs": [
+        1209,
+        1227,
+        1338
+      ],
+      "loadMs": 21,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 88.9,
+      "lang": "tr",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-tr-fahrettin-medium-int8": {
+      "medianMs": 1698,
+      "audioSec": 5.99,
+      "rtf": 0.283,
+      "speed": 3.5,
+      "allMs": [
+        1643,
+        1698,
+        1698
+      ],
+      "loadMs": 18,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 46.4,
+      "lang": "tr",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-uk-ukrainian_tts-medium": {
+      "medianMs": 229,
+      "audioSec": 0.93,
+      "rtf": 0.246,
+      "speed": 4.1,
+      "allMs": [
+        169,
+        229,
+        241
+      ],
+      "loadMs": 12,
+      "speakers": 3,
+      "sampleRate": 22050,
+      "sizeMB": 101.8,
+      "lang": "uk",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-tr-fettah-medium-int8": {
+      "medianMs": 2056,
+      "audioSec": 7.29,
+      "rtf": 0.282,
+      "speed": 3.5,
+      "allMs": [
+        2044,
+        2056,
+        2095
+      ],
+      "loadMs": 11,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 46.5,
+      "lang": "tr",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-uk-ukrainian_tts-medium-int8": {
+      "medianMs": 309,
+      "audioSec": 0.82,
+      "rtf": 0.377,
+      "speed": 2.7,
+      "allMs": [
+        295,
+        309,
+        375
+      ],
+      "loadMs": 10,
+      "speakers": 3,
+      "sampleRate": 22050,
+      "sizeMB": 49.6,
+      "lang": "uk",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-uk-lada-x_low-int8": {
+      "medianMs": 1218,
+      "audioSec": 6.5,
+      "rtf": 0.187,
+      "speed": 5.3,
+      "allMs": [
+        1089,
+        1218,
+        1356
+      ],
+      "loadMs": 13,
+      "speakers": 1,
+      "sampleRate": 16000,
+      "sizeMB": 36.1,
+      "lang": "uk",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-vi-25hours-low": {
+      "medianMs": 841,
+      "audioSec": 6.5,
+      "rtf": 0.129,
+      "speed": 7.7,
+      "allMs": [
+        824,
+        841,
+        879
+      ],
+      "loadMs": 11,
+      "speakers": 1,
+      "sampleRate": 16000,
+      "sizeMB": 88.8,
+      "lang": "vi",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-vi-vais1000-medium": {
+      "medianMs": 966,
+      "audioSec": 4.98,
+      "rtf": 0.194,
+      "speed": 5.2,
+      "allMs": [
+        927,
+        966,
+        969
+      ],
+      "loadMs": 10,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 88.9,
+      "lang": "vi",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "piper-vi-25hours-low-int8": {
+      "medianMs": 1410,
+      "audioSec": 6.61,
+      "rtf": 0.213,
+      "speed": 4.7,
+      "allMs": [
+        1307,
+        1410,
+        1425
+      ],
+      "loadMs": 26,
+      "speakers": 1,
+      "sampleRate": 16000,
+      "sizeMB": 46.4,
+      "lang": "vi",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "piper-vi-vivos-x_low": {
+      "medianMs": 746,
+      "audioSec": 7.09,
+      "rtf": 0.105,
+      "speed": 9.5,
+      "allMs": [
+        680,
+        746,
+        808
+      ],
+      "loadMs": 10,
+      "speakers": 65,
+      "sampleRate": 16000,
+      "sizeMB": 55.1,
+      "lang": "vi",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "pocket": {
+      "medianMs": 0,
+      "audioSec": null,
+      "rtf": null,
+      "speed": null,
+      "allMs": [
+        0,
+        0,
+        1
+      ],
+      "loadMs": 11,
+      "speakers": 1,
+      "sampleRate": 24000,
+      "sizeMB": 466.9,
+      "lang": "multi",
+      "int8": false,
+      "modelType": "pocket"
+    },
+    "piper-vi-vais1000-medium-int8": {
+      "medianMs": 1516,
+      "audioSec": 5.21,
+      "rtf": 0.291,
+      "speed": 3.4,
+      "allMs": [
+        1514,
+        1516,
+        1754
+      ],
+      "loadMs": 19,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 46.4,
+      "lang": "vi",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "pocket-int8": {
+      "medianMs": 0,
+      "audioSec": null,
+      "rtf": null,
+      "speed": null,
+      "allMs": [
+        0,
+        0,
+        1
+      ],
+      "loadMs": 10,
+      "speakers": 1,
+      "sampleRate": 24000,
+      "sizeMB": 205.3,
+      "lang": "multi",
+      "int8": true,
+      "modelType": "pocket"
+    },
+    "piper-vi-vivos-x_low-int8": {
+      "medianMs": 1383,
+      "audioSec": 7.23,
+      "rtf": 0.191,
+      "speed": 5.2,
+      "allMs": [
+        1355,
+        1383,
+        1401
+      ],
+      "loadMs": 12,
+      "speakers": 65,
+      "sampleRate": 16000,
+      "sizeMB": 37.9,
+      "lang": "vi",
+      "int8": true,
+      "modelType": "vits"
+    },
+    "zipvoice-distill-fp32": {
+      "medianMs": 0,
+      "audioSec": null,
+      "rtf": null,
+      "speed": null,
+      "allMs": [
+        0,
+        0,
+        1
+      ],
+      "loadMs": 11,
+      "speakers": 1,
+      "sampleRate": 24000,
+      "sizeMB": 555.2,
+      "lang": "zh",
+      "int8": false,
+      "modelType": "zipvoice"
+    },
+    "zipvoice-distill-int8": {
+      "medianMs": 0,
+      "audioSec": null,
+      "rtf": null,
+      "speed": null,
+      "allMs": [
+        0,
+        0,
+        1
+      ],
+      "loadMs": 15,
+      "speakers": 1,
+      "sampleRate": 24000,
+      "sizeMB": 207.1,
+      "lang": "zh",
+      "int8": true,
+      "modelType": "zipvoice"
+    },
+    "piper-zh-huayan-medium": {
+      "medianMs": 1744,
+      "audioSec": 8.95,
+      "rtf": 0.195,
+      "speed": 5.1,
+      "allMs": [
+        1649,
+        1744,
+        1747
+      ],
+      "loadMs": 16,
+      "speakers": 1,
+      "sampleRate": 22050,
+      "sizeMB": 88.9,
+      "lang": "zh",
+      "int8": false,
+      "modelType": "vits"
+    },
+    "zh-ll": {
+      "medianMs": 8010,
+      "audioSec": 8.14,
+      "rtf": 0.984,
+      "speed": 1,
+      "allMs": [
+        7870,
+        8010,
+        8664
+      ],
+      "loadMs": 14,
+      "speakers": 5,
+      "sampleRate": 16000,
+      "sizeMB": 140.6,
+      "lang": "zh",
+      "int8": false,
+      "modelType": "vits"
+    }
+  },
+  "errors": []
+}

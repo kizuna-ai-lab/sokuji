@@ -8,8 +8,11 @@ import {
   usePalabraAISettings,
   useVolcengineSTSettings,
   useVolcengineAST2Settings,
-  useSettingsLoaded
+  useSettingsLoaded,
+  useLocalInferenceSettings
 } from '../../stores/settingsStore';
+import { useModelStatuses } from '../../stores/modelStore';
+import { useAuth } from '../../lib/auth/hooks';
 import { Provider } from '../../types/Provider';
 
 /**
@@ -32,7 +35,33 @@ export function SettingsInitializer() {
   const volcengineSTSettings = useVolcengineSTSettings();
   const volcengineAST2Settings = useVolcengineAST2Settings();
 
-  // Auto-validate when provider changes
+  // Monitor model download statuses and local inference settings for LOCAL_INFERENCE provider gating
+  const modelStatuses = useModelStatuses();
+  const localInferenceSettings = useLocalInferenceSettings();
+
+  // Auto-fetch and validate KizunaAI API key when user logs in or provider changes
+  useEffect(() => {
+    const handleKizunaAI = async () => {
+      if (provider === Provider.KIZUNA_AI && isSignedIn && getToken) {
+        console.log('[SettingsInitializer] KizunaAI provider selected, ensuring API key...');
+        const hasKey = await ensureKizunaApiKey(getToken, isSignedIn);
+        
+        // If we successfully got the key, validate it
+        if (hasKey && !isValidatingRef.current) {
+          isValidatingRef.current = true;
+          console.log('[SettingsInitializer] KizunaAI API key obtained, validating...');
+          setTimeout(async () => {
+            await validateApiKey(getToken);
+            isValidatingRef.current = false;
+          }, 100);
+        }
+      }
+    };
+    
+    handleKizunaAI();
+  }, [provider, isSignedIn, getToken, ensureKizunaApiKey, validateApiKey]);
+  
+  // Auto-validate when provider changes (for non-KizunaAI providers)
   useEffect(() => {
     // Only proceed if settings have been loaded
     if (!settingsLoaded) {
@@ -67,6 +96,9 @@ export function SettingsInitializer() {
           case Provider.VOLCENGINE_AST2:
             hasApiKey = !!volcengineAST2Settings.appId && !!volcengineAST2Settings.accessToken;
             break;
+          case Provider.LOCAL_INFERENCE:
+            hasApiKey = true;  // No API key needed
+            break;
         }
         
         if (hasApiKey) {
@@ -83,6 +115,21 @@ export function SettingsInitializer() {
       palabraAISettings.clientId, palabraAISettings.clientSecret, volcengineSTSettings.accessKeyId,
       volcengineSTSettings.secretAccessKey, volcengineAST2Settings.appId, volcengineAST2Settings.accessToken,
       validateApiKey]);
+
+  // Re-validate when model download statuses change and LOCAL_INFERENCE is selected
+  useEffect(() => {
+    if (!settingsLoaded) return;
+    if (provider !== Provider.LOCAL_INFERENCE) return;
+
+    // Model status changed — re-validate to update start button state
+    if (!isValidatingRef.current) {
+      isValidatingRef.current = true;
+      setTimeout(async () => {
+        await validateApiKey();
+        isValidatingRef.current = false;
+      }, 100);
+    }
+  }, [settingsLoaded, provider, modelStatuses, validateApiKey, localInferenceSettings]);
 
   // This component doesn't render anything
   return null;

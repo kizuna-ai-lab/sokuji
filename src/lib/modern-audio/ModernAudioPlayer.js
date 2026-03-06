@@ -47,7 +47,13 @@ export class ModernAudioPlayer {
     
     // Track cumulative played time for smooth progress across chunks
     this.cumulativePlayedTime = new Map(); // itemId -> total seconds played
-    this.lastChunkAudioId = new Map(); // itemId -> last audio element ID to detect chunk transitions // Callback for playback status changes
+    this.lastChunkAudioId = new Map(); // itemId -> last audio element ID to detect chunk transitions
+
+    // Track total buffered duration (played + playing + queued) per item
+    this.totalBufferedDuration = new Map(); // itemId -> total seconds of audio received
+
+    // Deferred cleanup timeout for current item (prevents race condition between sentences)
+    this.itemEndTimeout = null;
   }
 
   /**
@@ -487,14 +493,25 @@ export class ModernAudioPlayer {
     try {
       // Update current playing item ID
       if (metadata.itemId) {
-        // If this is a different item, reset cumulative time
-        if (this.currentPlayingItemId !== metadata.itemId) {
-          this.cumulativePlayedTime.delete(this.currentPlayingItemId);
-          this.lastChunkAudioId.delete(this.currentPlayingItemId);
-          // Initialize for new item
-          this.cumulativePlayedTime.set(metadata.itemId, 0);
+        // Cancel any deferred cleanup if same item continues
+        if (this.itemEndTimeout) {
+          clearTimeout(this.itemEndTimeout);
+          this.itemEndTimeout = null;
         }
-        
+
+        if (this.currentPlayingItemId !== metadata.itemId) {
+          // Genuinely new item — clean up old item's state
+          if (this.currentPlayingItemId !== null) {
+            this.cumulativePlayedTime.delete(this.currentPlayingItemId);
+            this.lastChunkAudioId.delete(this.currentPlayingItemId);
+            this.totalBufferedDuration.delete(this.currentPlayingItemId);
+          }
+          // Only initialize if not already tracking (handles null→sameId resume)
+          if (!this.cumulativePlayedTime.has(metadata.itemId)) {
+            this.cumulativePlayedTime.set(metadata.itemId, 0);
+          }
+        }
+
         this.currentPlayingItemId = metadata.itemId;
         // Notify status change
         if (this.onPlaybackStatusChange) {
@@ -506,6 +523,13 @@ export class ModernAudioPlayer {
         }
       }
       
+      // Accumulate total buffered duration for this item
+      if (metadata.itemId) {
+        const bufferDuration = buffer.length / this.sampleRate;
+        const prev = this.totalBufferedDuration.get(metadata.itemId) || 0;
+        this.totalBufferedDuration.set(metadata.itemId, prev + bufferDuration);
+      }
+
       // Apply volume if needed
       const processedBuffer = this.applyVolume(buffer, volume);
       
@@ -551,18 +575,26 @@ export class ModernAudioPlayer {
         );
         
         if (!hasMoreForItem && metadata.itemId === this.currentPlayingItemId) {
-          // This was the last chunk for this item - clear cumulative time
-          this.cumulativePlayedTime.delete(metadata.itemId);
-          this.lastChunkAudioId.delete(metadata.itemId);
-          
-          if (this.onPlaybackStatusChange) {
-            this.onPlaybackStatusChange({
-              itemId: metadata.itemId,
-              status: 'ended',
-              trackId: trackId
-            });
-          }
-          this.currentPlayingItemId = null;
+          // Defer cleanup — TTS may still be generating the next sentence
+          if (this.itemEndTimeout) clearTimeout(this.itemEndTimeout);
+          this.itemEndTimeout = setTimeout(() => {
+            // Only clean up if still the same item and still no audio playing
+            if (this.currentPlayingItemId === metadata.itemId && !this.isTrackPlaying(trackId)) {
+              this.cumulativePlayedTime.delete(metadata.itemId);
+              this.lastChunkAudioId.delete(metadata.itemId);
+              this.totalBufferedDuration.delete(metadata.itemId);
+
+              if (this.onPlaybackStatusChange) {
+                this.onPlaybackStatusChange({
+                  itemId: metadata.itemId,
+                  status: 'ended',
+                  trackId: trackId
+                });
+              }
+              this.currentPlayingItemId = null;
+            }
+            this.itemEndTimeout = null;
+          }, 2000);
         }
         
         this.cleanupAudio(audioId);
@@ -900,7 +932,24 @@ export class ModernAudioPlayer {
       }
     }
     
-    if (!currentAudio) return null;
+    if (!currentAudio) {
+      // Check if we're in a transition between chunks
+      const cumulativeTime = this.cumulativePlayedTime.get(this.currentPlayingItemId);
+      if (cumulativeTime !== undefined) {
+        // Between chunks — report cumulative time as current position
+        const totalBuffered = this.getBufferedDuration(this.currentPlayingItemId);
+        console.debug(`[Karaoke] Chunk transition: itemId=${this.currentPlayingItemId}, cumulativeTime=${cumulativeTime.toFixed(3)}`);
+        return {
+          itemId: this.currentPlayingItemId,
+          trackId: '',
+          currentTime: cumulativeTime,
+          duration: totalBuffered,
+          isPlaying: true,  // still conceptually playing (next chunk pending)
+          bufferedTime: totalBuffered
+        };
+      }
+      return null;
+    }
     
     // Get cumulative played time for smooth progress
     const cumulativeTime = this.cumulativePlayedTime.get(this.currentPlayingItemId) || 0;
@@ -932,31 +981,7 @@ export class ModernAudioPlayer {
    * Get buffered duration for an item
    */
   getBufferedDuration(itemId) {
-    let totalDuration = 0;
-    let queueCount = 0;
-    let streamCount = 0;
-    
-    // Check all queues for items with this itemId
-    for (const [trackId, queue] of this.trackQueues) {
-      for (const item of queue) {
-        if (item.metadata && item.metadata.itemId === itemId) {
-          // Estimate duration: samples / sample rate
-          totalDuration += item.buffer.length / this.sampleRate;
-          queueCount++;
-        }
-      }
-    }
-    
-    // Also check streaming buffers
-    for (const [trackId, streamData] of this.streamingBuffers) {
-      if (streamData.metadata && streamData.metadata.itemId === itemId) {
-        const totalLength = streamData.totalLength || 0;
-        streamCount++;
-        totalDuration += totalLength / this.sampleRate;
-      }
-    }
-    
-    return totalDuration;
+    return this.totalBufferedDuration.get(itemId) || 0;
   }
   
   /**
@@ -994,11 +1019,19 @@ export class ModernAudioPlayer {
    * Stop all audio playback
    */
   stopAll() {
+    if (this.itemEndTimeout) {
+      clearTimeout(this.itemEndTimeout);
+      this.itemEndTimeout = null;
+    }
     for (const [audioId, audioInfo] of this.audioElements) {
       audioInfo.element.pause();
       this.cleanupAudio(audioId);
     }
     this.audioElements.clear();
+    this.cumulativePlayedTime.clear();
+    this.lastChunkAudioId.clear();
+    this.totalBufferedDuration.clear();
+    this.currentPlayingItemId = null;
   }
 
   /**
@@ -1071,8 +1104,12 @@ export class ModernAudioPlayer {
    * Cleanup resources
    */
   cleanup() {
+    if (this.itemEndTimeout) {
+      clearTimeout(this.itemEndTimeout);
+      this.itemEndTimeout = null;
+    }
     this.stopAll();
-    
+
     // Clear all timeouts
     for (const timeoutId of this.streamingTimeouts.values()) {
       clearTimeout(timeoutId);
@@ -1091,6 +1128,10 @@ export class ModernAudioPlayer {
     this.interruptedTracks.clear();
     this.lastSequenceNumbers.clear();
     this.outOfOrderBuffers.clear();
+    this.cumulativePlayedTime.clear();
+    this.lastChunkAudioId.clear();
+    this.totalBufferedDuration.clear();
+    this.currentPlayingItemId = null;
     
     if (this.context && this.context.state !== 'closed') {
       this.context.close().catch(console.error);

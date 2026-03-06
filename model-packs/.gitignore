@@ -1,0 +1,2 @@
+# Packed WASM model directories (large binary files, hosted on HF/CDN)
+tts/wasm-*/

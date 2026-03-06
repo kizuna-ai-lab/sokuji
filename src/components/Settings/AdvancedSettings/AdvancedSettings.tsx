@@ -1,8 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AlertCircle, HelpCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useIsSessionActive } from '../../../stores/sessionStore';
 import { useOnboarding } from '../../../contexts/OnboardingContext';
+import {
+  useProvider,
+  useAvailableModels,
+  useLoadingModels,
+  useFetchAvailableModels,
+  useGetProcessedSystemInstructions,
+  useSettingsNavigationTarget,
+  useNavigateToSettings,
+} from '../../../stores/settingsStore';
 import { useAudioContext } from '../../../stores/audioStore';
 import WarningModal from '../shared/WarningModal';
 import { WarningType } from '../shared/hooks';
@@ -27,8 +36,39 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({ toggleSettings }) =
   // Audio context
   const { isSystemAudioCaptureEnabled, isMonitorDeviceOn } = useAudioContext();
 
+  // Get current provider configuration
+  const currentProviderConfig = React.useMemo(() => {
+    try {
+      return ProviderConfigFactory.getConfig(provider || Provider.OPENAI);
+    } catch (error) {
+      console.warn(`[AdvancedSettings] Unknown provider: ${provider}, falling back to OpenAI`);
+      return ProviderConfigFactory.getConfig(Provider.OPENAI);
+    }
+  }, [provider]);
+
+  // Navigation target for scroll-to-section
+  const settingsNavigationTarget = useSettingsNavigationTarget();
+  const navigateToSettings = useNavigateToSettings();
+
   // State
   const [warningType, setWarningType] = useState<WarningType | null>(null);
+
+  // Handle scrolling and highlighting when settingsNavigationTarget changes
+  useEffect(() => {
+    if (settingsNavigationTarget) {
+      setTimeout(() => {
+        const element = document.getElementById(`${settingsNavigationTarget}-section`);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          element.classList.add('highlight');
+          setTimeout(() => {
+            element.classList.remove('highlight');
+            navigateToSettings(null);
+          }, 3000);
+        }
+      }, 100);
+    }
+  }, [settingsNavigationTarget, navigateToSettings]);
 
   return (
     <div className="advanced-settings">

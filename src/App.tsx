@@ -6,6 +6,9 @@ import { RootLayout } from './layouts/RootLayout';
 import { Home } from './routes/Home';
 import { Dashboard } from './routes/Dashboard';
 import { TTSShowcase } from './routes/TTSShowcase';
+import { SignIn } from './routes/SignIn';
+import { SignUp } from './routes/SignUp';
+import { ForgotPassword } from './routes/ForgotPassword';
 import { isCapacitorNative, isElectron, isExtension } from './utils/environment';
 
 const appRoutes = [

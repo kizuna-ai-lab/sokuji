@@ -10,10 +10,13 @@ import {
   GeminiSessionConfig,
   PalabraAISessionConfig,
   VolcengineSTSessionConfig,
-  VolcengineAST2SessionConfig
+  VolcengineAST2SessionConfig,
+  LocalInferenceSessionConfig
 } from '../services/interfaces/IClient';
+import { getTtsModelsForLanguage } from '../lib/local-inference/modelManifest';
 import {ApiKeyValidationResult} from '../services/interfaces/ISettingsService';
 import {Provider, ProviderType} from '../types/Provider';
+import i18n from '../locales';
 
 // ==================== Type Definitions ====================
 
@@ -101,6 +104,21 @@ export interface VolcengineAST2Settings {
   sourceLanguage: string;
   targetLanguage: string;
   turnDetectionMode: 'Auto' | 'Push-to-Talk';
+}
+
+// Local Inference Settings
+export interface LocalInferenceSettings {
+  asrModel: string;
+  translationModel: string; // '' (auto) | 'opus-mt-ja-en' | ...
+  ttsModel: string;        // '' (auto) | 'piper-en' | 'piper-de'
+  ttsSpeakerId: number;
+  ttsSpeed: number;
+  sourceLanguage: string;
+  targetLanguage: string;
+  turnDetectionMode: 'Auto' | 'Push-to-Talk';
+  vadThreshold: number;         // 0.0-1.0, default 0.3 (matching vad-web)
+  vadMinSilenceDuration: number; // seconds, default 1.4 (redemptionMs in vad-web)
+  vadMinSpeechDuration: number;  // seconds, default 0.4 (matching vad-web)
 }
 
 // Cache Entry
@@ -241,6 +259,20 @@ const defaultVolcengineAST2Settings: VolcengineAST2Settings = {
   turnDetectionMode: 'Auto',
 };
 
+const defaultLocalInferenceSettings: LocalInferenceSettings = {
+  asrModel: 'sensevoice-int8',
+  translationModel: '',  // Auto-select based on language pair
+  ttsModel: '',  // Auto-select based on target language
+  ttsSpeakerId: 0,
+  ttsSpeed: 1.0,
+  sourceLanguage: 'ja',
+  targetLanguage: 'en',
+  turnDetectionMode: 'Auto',
+  vadThreshold: 0.3,
+  vadMinSilenceDuration: 1.4,
+  vadMinSpeechDuration: 0.4,
+};
+
 // ==================== Store Definition ====================
 
 interface SettingsStore {
@@ -262,6 +294,7 @@ interface SettingsStore {
   kizunaai: KizunaAISettings;
   volcengineST: VolcengineSTSettings;
   volcengineAST2: VolcengineAST2Settings;
+  localInference: LocalInferenceSettings;
 
   // Validation state
   isApiKeyValid: boolean | null;
@@ -301,6 +334,7 @@ interface SettingsStore {
   updateKizunaAI: (settings: Partial<KizunaAISettings>) => void;
   updateVolcengineST: (settings: Partial<VolcengineSTSettings>) => void;
   updateVolcengineAST2: (settings: Partial<VolcengineAST2Settings>) => void;
+  updateLocalInference: (settings: Partial<LocalInferenceSettings>) => void;
 
   // Async actions
   validateApiKey: (getAuthToken?: () => Promise<string | null>) => Promise<ApiKeyValidationResult>;
@@ -310,7 +344,7 @@ interface SettingsStore {
   clearCache: () => void;
 
   // Helper methods
-  getCurrentProviderSettings: () => OpenAISettings | GeminiSettings | OpenAICompatibleSettings | PalabraAISettings | KizunaAISettings | VolcengineSTSettings | VolcengineAST2Settings;
+  getCurrentProviderSettings: () => OpenAISettings | GeminiSettings | OpenAICompatibleSettings | PalabraAISettings | KizunaAISettings | VolcengineSTSettings | VolcengineAST2Settings | LocalInferenceSettings;
   getCurrentProviderConfig: () => ProviderConfig;
   getProcessedSystemInstructions: (forParticipant?: boolean) => string;
   createSessionConfig: (systemInstructions: string) => SessionConfig;
@@ -417,6 +451,31 @@ function createVolcengineAST2SessionConfig(
   };
 }
 
+function createLocalInferenceSessionConfig(
+  settings: LocalInferenceSettings,
+  systemInstructions: string
+): LocalInferenceSessionConfig {
+  // Auto-select TTS model: find one matching the target language
+  const ttsModelId = settings.ttsModel || getTtsModelsForLanguage(settings.targetLanguage)[0]?.id;
+
+  return {
+    provider: 'local_inference',
+    model: 'local-asr-translate',
+    instructions: systemInstructions,
+    sourceLanguage: settings.sourceLanguage,
+    targetLanguage: settings.targetLanguage,
+    asrModelId: settings.asrModel,
+    translationModelId: settings.translationModel || undefined,
+    ttsModelId,
+    ttsSpeakerId: settings.ttsSpeakerId,
+    ttsSpeed: settings.ttsSpeed,
+    vadThreshold: settings.vadThreshold,
+    vadMinSilenceDuration: settings.vadMinSilenceDuration,
+    vadMinSpeechDuration: settings.vadMinSpeechDuration,
+    turnDetectionMode: settings.turnDetectionMode,
+  };
+}
+
 // ==================== Store Implementation ====================
 
 const useSettingsStore = create<SettingsStore>()(
@@ -430,6 +489,7 @@ const useSettingsStore = create<SettingsStore>()(
     kizunaai: defaultKizunaAISettings,
     volcengineST: defaultVolcengineSTSettings,
     volcengineAST2: defaultVolcengineAST2Settings,
+    localInference: defaultLocalInferenceSettings,
 
     isApiKeyValid: null,
     isValidating: false,
@@ -458,8 +518,17 @@ const useSettingsStore = create<SettingsStore>()(
 
       // Auto-validate API key for the new provider
       // Note: For KizunaAI, this will be handled by SettingsInitializer
-      if (provider !== Provider.KIZUNA_AI) {
+      // Local inference doesn't need API key validation
+      if (provider !== Provider.KIZUNA_AI && provider !== Provider.LOCAL_INFERENCE) {
         // Small delay to ensure state is updated
+        setTimeout(() => {
+          state.validateApiKey();
+        }, 100);
+      }
+
+      // For local inference, trigger model readiness validation
+      if (provider === Provider.LOCAL_INFERENCE) {
+        const state = get();
         setTimeout(() => {
           state.validateApiKey();
         }, 100);
@@ -616,10 +685,53 @@ const useSettingsStore = create<SettingsStore>()(
       }
     },
 
+    updateLocalInference: async (settings) => {
+      set((state) => ({localInference: {...state.localInference, ...settings}}));
+      try {
+        const service = ServiceFactory.getSettingsService();
+        for (const [key, value] of Object.entries(settings)) {
+          await service.setSetting(`settings.localInference.${key}`, value);
+        }
+      } catch (error) {
+        console.error('[SettingsStore] Error persisting Local Inference settings:', error);
+      }
+    },
+
     // === Async Actions ===
     validateApiKey: async (getAuthToken) => {
       const state = get();
       const provider = state.provider;
+
+      // Local inference: check model readiness instead of API key
+      if (provider === Provider.LOCAL_INFERENCE) {
+        const localSettings = get().localInference;
+        // Dynamically import modelStore to check model readiness
+        const { useModelStore } = await import('./modelStore');
+        const modelState = useModelStore.getState();
+
+        // Initialize model store if not yet done
+        if (!modelState.initialized) {
+          await modelState.initialize();
+        }
+
+        const ready = modelState.isProviderReady(
+          localSettings.sourceLanguage,
+          localSettings.targetLanguage,
+          localSettings.asrModel || undefined,
+          localSettings.translationModel || undefined,
+          localSettings.ttsModel || undefined,
+        );
+
+        set({
+          isApiKeyValid: ready,
+          availableModels: ready
+            ? [{ id: 'local-asr-translate', type: 'realtime' as const, created: 0 }]
+            : [],
+          validationMessage: ready ? '' : i18n.t('settings.localInferenceModelsRequired'),
+          isValidating: false,
+        });
+        return { valid: ready, message: ready ? '' : i18n.t('settings.localInferenceModelsRequired'), validating: false };
+      }
 
       // For KizunaAI, ensure we have an API key first
       if (provider === Provider.KIZUNA_AI) {
@@ -733,7 +845,7 @@ const useSettingsStore = create<SettingsStore>()(
       }
 
       // Validate
-      set({isValidating: true, validationMessage: 'Validating...'});
+      set({isValidating: true, validationMessage: i18n.t('settings.validating')});
 
       try {
         const service = ServiceFactory.getSettingsService();
@@ -864,7 +976,7 @@ const useSettingsStore = create<SettingsStore>()(
           return settings as T;
         };
 
-        const [openai, gemini, openaiCompatible, palabraai, kizunaai, volcengineST, volcengineAST2] = await Promise.all([
+        const [openai, gemini, openaiCompatible, palabraai, kizunaai, volcengineST, volcengineAST2, localInference] = await Promise.all([
           loadProviderSettings('settings.openai', defaultOpenAISettings),
           loadProviderSettings('settings.gemini', defaultGeminiSettings),
           loadProviderSettings('settings.openaiCompatible', defaultOpenAICompatibleSettings),
@@ -872,6 +984,7 @@ const useSettingsStore = create<SettingsStore>()(
           loadProviderSettings('settings.kizunaai', defaultKizunaAISettings),
           loadProviderSettings('settings.volcengineST', defaultVolcengineSTSettings),
           loadProviderSettings('settings.volcengineAST2', defaultVolcengineAST2Settings),
+          loadProviderSettings('settings.localInference', defaultLocalInferenceSettings),
         ]);
 
         set({
@@ -889,6 +1002,7 @@ const useSettingsStore = create<SettingsStore>()(
           kizunaai,
           volcengineST,
           volcengineAST2,
+          localInference,
           settingsLoaded: true,
         });
 
@@ -924,6 +1038,8 @@ const useSettingsStore = create<SettingsStore>()(
           return state.volcengineST;
         case Provider.VOLCENGINE_AST2:
           return state.volcengineAST2;
+        case Provider.LOCAL_INFERENCE:
+          return state.localInference;
         default:
           return state.openai;
       }
@@ -986,6 +1102,8 @@ const useSettingsStore = create<SettingsStore>()(
           return createVolcengineSTSessionConfig(state.volcengineST, systemInstructions);
         case Provider.VOLCENGINE_AST2:
           return createVolcengineAST2SessionConfig(state.volcengineAST2, systemInstructions);
+        case Provider.LOCAL_INFERENCE:
+          return createLocalInferenceSessionConfig(state.localInference, systemInstructions);
         default:
           return createOpenAISessionConfig(state.openai, systemInstructions);
       }
@@ -1016,6 +1134,7 @@ export const usePalabraAISettings = () => useSettingsStore((state) => state.pala
 export const useKizunaAISettings = () => useSettingsStore((state) => state.kizunaai);
 export const useVolcengineSTSettings = () => useSettingsStore((state) => state.volcengineST);
 export const useVolcengineAST2Settings = () => useSettingsStore((state) => state.volcengineAST2);
+export const useLocalInferenceSettings = () => useSettingsStore((state) => state.localInference);
 
 // Transport type selector (for OpenAI provider)
 export const useTransportType = () => useSettingsStore((state) => state.openai.transportType);
@@ -1055,6 +1174,7 @@ export const useUpdatePalabraAI = () => useSettingsStore((state) => state.update
 export const useUpdateKizunaAI = () => useSettingsStore((state) => state.updateKizunaAI);
 export const useUpdateVolcengineST = () => useSettingsStore((state) => state.updateVolcengineST);
 export const useUpdateVolcengineAST2 = () => useSettingsStore((state) => state.updateVolcengineAST2);
+export const useUpdateLocalInference = () => useSettingsStore((state) => state.updateLocalInference);
 
 export const useValidateApiKey = () => useSettingsStore((state) => state.validateApiKey);
 export const useFetchAvailableModels = () => useSettingsStore((state) => state.fetchAvailableModels);

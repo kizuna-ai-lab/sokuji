@@ -11,6 +11,7 @@ import {
   useKizunaAISettings,
   useVolcengineSTSettings,
   useVolcengineAST2Settings,
+  useLocalInferenceSettings,
   useIsApiKeyValid,
   useAvailableModels,
   useLoadingModels,
@@ -38,6 +39,36 @@ import { getSafeAudioConfiguration, decodeAudioToWav } from '../../utils/audioUt
 import SimpleMainPanel from '../SimpleMainPanel/SimpleMainPanel';
 import { isExtension } from '../../utils/environment';
 
+
+/**
+ * Given per-sentence audio segments and the current playback time,
+ * return the number of characters that should be highlighted.
+ * Falls back to linear interpolation when segments are not available.
+ */
+function getHighlightedChars(
+  currentTime: number,
+  segments: Array<{ textEnd: number; audioEnd: number }> | undefined,
+  textLength: number,
+  progressRatio: number,
+): number {
+  if (!segments || segments.length === 0) {
+    return Math.floor(textLength * progressRatio);
+  }
+
+  let prevTextEnd = 0;
+  let prevAudioEnd = 0;
+  for (const seg of segments) {
+    if (currentTime < seg.audioEnd) {
+      const segDuration = seg.audioEnd - prevAudioEnd;
+      const segProgress = segDuration > 0 ? (currentTime - prevAudioEnd) / segDuration : 1;
+      return prevTextEnd + Math.floor((seg.textEnd - prevTextEnd) * segProgress);
+    }
+    prevTextEnd = seg.textEnd;
+    prevAudioEnd = seg.audioEnd;
+  }
+  return prevTextEnd;
+}
+
 interface MainPanelProps {}
 
 const MainPanel: React.FC<MainPanelProps> = () => {
@@ -48,6 +79,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   const [isRecording, setIsRecording] = useState(false);
   const [items, setItems] = useState<ConversationItem[]>([]);
   const [isInitializing, setIsInitializing] = useState(false);
+  const [initProgress, setInitProgress] = useState<{ completed: number; total: number } | null>(null);
   
   // Get settings from store
   const provider = useProvider();
@@ -59,6 +91,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   const kizunaAISettings = useKizunaAISettings();
   const volcengineSTSettings = useVolcengineSTSettings();
   const volcengineAST2Settings = useVolcengineAST2Settings();
+  const localInferenceSettings = useLocalInferenceSettings();
   const transportType = useTransportType();
   const isApiKeyValid = useIsApiKeyValid();
   const availableModels = useAvailableModels();
@@ -80,7 +113,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   } = useSession();
 
   // Get log functions from store
-  const { addRealtimeEvent } = useLogActions();
+  const { addLog, addRealtimeEvent } = useLogActions();
 
   // Get audio context from context
   const {
@@ -110,7 +143,8 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     return provider === Provider.OPENAI ||
            provider === Provider.GEMINI ||
            provider === Provider.OPENAI_COMPATIBLE ||
-           provider === Provider.KIZUNA_AI;
+           provider === Provider.KIZUNA_AI ||
+           provider === Provider.LOCAL_INFERENCE;
   }, [provider]);
 
   // Advanced mode text input state
@@ -435,8 +469,16 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         // Note: Error ConversationItems are now created in OpenAIClient.ts
         // to maintain consistent architecture with other clients
 
-        // Track AI response state for text input queueing (OpenAI only)
+        // Track local inference init progress
         const eventType = realtimeEvent.event?.type;
+        if (eventType === 'local.init.start') {
+          const total = realtimeEvent.event?.data?.engines?.length ?? 3;
+          setInitProgress({ completed: 0, total });
+        } else if (eventType === 'local.init.engine.ready') {
+          setInitProgress(prev => prev ? { ...prev, completed: prev.completed + 1 } : prev);
+        }
+
+        // Track AI response state for text input queueing (OpenAI only)
         if (eventType === 'response.created') {
           setIsAIResponding(true);
         } else if (eventType === 'response.done') {
@@ -454,11 +496,25 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       },
       onError: (event: any) => {
         console.error('[Eburon] [MainPanel]', event);
-        
+
+        // Surface error to LogsPanel so users can see it
+        const errorMessage = event.message || event.error || 'Unknown error';
+        addLog(errorMessage, 'error');
+
+        // Show error in conversation panel so it's visible to user
+        setItems(prevItems => [...prevItems, {
+          id: `error-${Date.now()}`,
+          role: 'system',
+          type: 'error',
+          status: 'completed',
+          createdAt: Date.now(),
+          formatted: { text: errorMessage },
+        }]);
+
         // Track API errors
         trackEvent('api_error', {
           provider: provider || Provider.OPENAI,
-          error_message: event.message || event.error || 'Unknown error',
+          error_message: errorMessage,
           error_type: event.type === 'error' ? 'client' : 'server'
         });
       },
@@ -725,6 +781,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   const connectConversation = useCallback(async () => {
     try {
       setIsInitializing(true);
+      setInitProgress(null);
 
       // Clear previous session's conversation items immediately
       setItems([]);
@@ -766,6 +823,10 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           // Volcengine AST2 uses appId as the "apiKey" parameter for ClientFactory
           apiKey = volcengineAST2Settings.appId;
           break;
+        case Provider.LOCAL_INFERENCE:
+          // Local inference doesn't need an API key; placeholder for ClientFactory
+          apiKey = 'local';
+          break;
         default:
           throw new Error(`Unsupported provider: ${provider}`);
       }
@@ -773,6 +834,8 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       // Get model name based on provider
       const modelName = provider === Provider.PALABRA_AI
         ? 'realtime-translation'
+        : provider === Provider.LOCAL_INFERENCE
+        ? 'local-asr-translate'
         : (currentProviderSettings as any).model;
 
       // Determine if WebRTC transport should be used
@@ -796,6 +859,8 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         setCanPushToTalk(settings ? settings.turnDetectionMode === 'Disabled' : false);
       } else if (provider === Provider.VOLCENGINE_AST2) {
         setCanPushToTalk(volcengineAST2Settings.turnDetectionMode === 'Push-to-Talk');
+      } else if (provider === Provider.LOCAL_INFERENCE) {
+        setCanPushToTalk(localInferenceSettings.turnDetectionMode === 'Push-to-Talk');
       } else {
         setCanPushToTalk(false); // Not supported by Gemini, PalabraAI, and Volcengine ST
       }
@@ -883,10 +948,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
             });
 
             // Notify user about the fallback
-            addLog({
-              type: 'warning',
-              message: t('logs.webrtcFallback', 'WebRTC connection failed, using WebSocket instead')
-            });
+            addLog(t('logs.webrtcFallback', 'WebRTC connection failed, using WebSocket instead'), 'warning');
 
             console.info('[Eburon] [MainPanel] WebSocket fallback connection established');
           } catch (fallbackError: any) {
@@ -921,6 +983,8 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         turnDetectionDisabled = settings ? settings.turnDetectionMode === 'Disabled' : false;
       } else if (provider === Provider.VOLCENGINE_AST2) {
         turnDetectionDisabled = volcengineAST2Settings.turnDetectionMode === 'Push-to-Talk';
+      } else if (provider === Provider.LOCAL_INFERENCE) {
+        turnDetectionDisabled = localInferenceSettings.turnDetectionMode === 'Push-to-Talk';
       }
 
       // Check if provider uses native audio capture (OpenAI WebRTC or PalabraAI/LiveKit)
@@ -1059,6 +1123,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     kizunaAISettings,
     volcengineSTSettings,
     volcengineAST2Settings,
+    localInferenceSettings,
     provider,
     transportType,
     getCurrentProviderSettings,
@@ -1177,16 +1242,16 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       // Only try to pause if we're actually recording
       const recorder = audioService.getRecorder();
       if (recorder.isRecording()) {
-        // For Volcengine AST2 PTT: send ~500ms of silence frames before stopping
-        // This helps the server-side VAD detect end of speech
-        if (provider === Provider.VOLCENGINE_AST2 && client) {
+        // For Volcengine AST2 and LocalOffline PTT: send silence frames before stopping
+        // This helps the VAD detect end of speech
+        if ((provider === Provider.VOLCENGINE_AST2 || provider === Provider.LOCAL_INFERENCE) && client) {
           const silenceFrameSize = 2400; // 24kHz * 0.1s = 2400 samples per 100ms frame (client downsamples to 16kHz internally)
-          const silenceFrames = 5; // 5 frames = 500ms
-          const silence = new Int16Array(silenceFrameSize);
+          const silenceFrames = provider === Provider.LOCAL_INFERENCE ? 7 : 5; // 700ms for Silero VAD (minSilenceDuration=0.5s + margin), 500ms for AST2
           for (let i = 0; i < silenceFrames; i++) {
-            client.appendInputAudio(silence);
+            // New buffer each iteration — worker postMessage transfers (detaches) the ArrayBuffer
+            client.appendInputAudio(new Int16Array(silenceFrameSize));
           }
-          console.debug('[Eburon] [MainPanel] PTT: Sent 500ms silence frames for AST2 VAD end detection');
+          console.debug(`[Eburon] [MainPanel] PTT: Sent ${silenceFrames * 100}ms silence frames for VAD end detection`);
         }
 
         // Stop recording
@@ -1194,8 +1259,12 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
         // Only create response if we detected enough voice audio (prevents empty requests)
         // Note: AST2 handles response creation server-side via VAD, so skip client.createResponse() for it
+        // Note: LOCAL_INFERENCE always calls createResponse() — for streaming ASR it flushes the
+        //       pending utterance; for offline ASR (VAD-based) it's harmless (silence frames handle it)
         const MIN_VOICE_CHUNKS = 5; // At least 5 non-silent chunks (~0.5 seconds of speech)
-        if (client && provider !== Provider.VOLCENGINE_AST2 && pttVoiceChunkCountRef.current >= MIN_VOICE_CHUNKS) {
+        if (client && provider === Provider.LOCAL_INFERENCE) {
+          client.createResponse();
+        } else if (client && provider !== Provider.VOLCENGINE_AST2 && pttVoiceChunkCountRef.current >= MIN_VOICE_CHUNKS) {
           // Model drift prevention is handled by the silent anchor mechanism (useEffect)
           client.createResponse();
         } else if (client && provider !== Provider.VOLCENGINE_AST2) {
@@ -1804,6 +1873,8 @@ const MainPanel: React.FC<MainPanelProps> = () => {
             turnDetectionDisabled = settings ? settings.turnDetectionMode === 'Disabled' : false;
           } else if (provider === Provider.VOLCENGINE_AST2) {
             turnDetectionDisabled = volcengineAST2Settings.turnDetectionMode === 'Push-to-Talk';
+          } else if (provider === Provider.LOCAL_INFERENCE) {
+            turnDetectionDisabled = localInferenceSettings.turnDetectionMode === 'Push-to-Talk';
           }
           if (!turnDetectionDisabled) {
             console.info('[Eburon] [MainPanel] Input device turned on - starting recording in automatic mode');
@@ -1830,7 +1901,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     };
 
     updateRecordingState();
-  }, [isInputDeviceOn, isSessionActive, provider, openAISettings.turnDetectionMode, openAICompatibleSettings.turnDetectionMode, kizunaAISettings.turnDetectionMode, volcengineAST2Settings.turnDetectionMode, selectedInputDevice?.deviceId]);
+  }, [isInputDeviceOn, isSessionActive, provider, openAISettings.turnDetectionMode, openAICompatibleSettings.turnDetectionMode, kizunaAISettings.turnDetectionMode, volcengineAST2Settings.turnDetectionMode, localInferenceSettings.turnDetectionMode, selectedInputDevice?.deviceId]);
 
   /**
    * Watch for changes to selectedMonitorDevice or isMonitorDeviceOn 
@@ -2189,6 +2260,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           playbackProgress={playbackProgress}
           supportsTextInput={supportsTextInput}
           onSendText={handleSendText}
+          initProgress={initProgress}
         />
       </div>
     );
@@ -2248,7 +2320,14 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                       const transcript = item.formatted.transcript;
 
                       // Calculate highlighted characters based on playback progress
-                      const highlightedChars = isPlaying ? Math.floor(transcript.length * progressRatio) : 0;
+                      const highlightedChars = isPlaying
+                        ? getHighlightedChars(
+                            playbackProgress?.currentTime ?? 0,
+                            item.formatted.audioSegments,
+                            transcript.length,
+                            progressRatio,
+                          )
+                        : 0;
 
                       return (
                         <div className="content-item transcript">
@@ -2276,7 +2355,14 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                       const text = item.formatted.text;
 
                       // Calculate highlighted characters based on playback progress
-                      const highlightedChars = isPlaying ? Math.floor(text.length * progressRatio) : 0;
+                      const highlightedChars = isPlaying
+                        ? getHighlightedChars(
+                            playbackProgress?.currentTime ?? 0,
+                            item.formatted.audioSegments,
+                            text.length,
+                            progressRatio,
+                          )
+                        : 0;
 
                       return (
                         <div className="content-item text">
@@ -2396,12 +2482,8 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                       );
                     }
 
-                    // Fallback for other content types
-                    return (
-                      <div className="content-item">
-                        <pre>{JSON.stringify(item, null, 2)}</pre>
-                      </div>
-                    );
+                    // Fallback: show nothing for items still loading content
+                    return null;
                   })()}
                 </div>
               </div>
@@ -2487,7 +2569,11 @@ const MainPanel: React.FC<MainPanelProps> = () => {
             {isInitializing ? (
               <>
                 <Loader size={14} className="spinner" />
-                <span>{t('mainPanel.initializing')}</span>
+                <span>
+                  {initProgress
+                    ? t('mainPanel.initProgress', 'Loading ({{completed}}/{{total}})...', { completed: initProgress.completed, total: initProgress.total })
+                    : t('mainPanel.initializing')}
+                </span>
               </>
             ) : isSessionActive ? (
               <>

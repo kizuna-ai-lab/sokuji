@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
-import { Key, Zap, HelpCircle, CircleHelp, ChevronDown, ChevronUp, CheckCircle, AlertCircle, FlaskConical } from 'lucide-react';
+import { Key, Zap, HelpCircle, CircleHelp, ChevronDown, ChevronUp, CheckCircle, AlertCircle, FlaskConical, ExternalLink, X } from 'lucide-react';
 import { OpenAIIcon, GeminiIcon, PalabraAIIcon, KizunaAIIcon, VolcengineIcon } from '../../Icons/ProviderIcons';
-import { useTranslation } from 'react-i18next';
+import { useTranslation, Trans } from 'react-i18next';
 import Tooltip from '../../Tooltip/Tooltip';
 import {
   useProvider,
@@ -24,11 +24,26 @@ import {
   useIsValidating,
   useValidationMessage,
   useIsKizunaKeyFetching,
-  useKizunaKeyError
+  useKizunaKeyError,
+  useSetUIMode,
+  useNavigateToSettings,
 } from '../../../stores/settingsStore';
 import { Provider, ProviderType } from '../../../types/Provider';
 import { ProviderConfigFactory } from '../../../services/providers/ProviderConfigFactory';
+import { useAuth } from '../../../lib/auth/hooks';
+import { isElectron } from '../../../utils/environment';
 import { useAnalytics } from '../../../lib/analytics';
+
+const TUTORIAL_URLS: Partial<Record<ProviderType, string>> = {
+  [Provider.OPENAI]: 'https://sokuji.kizuna.ai/docs/tutorials/openai-setup',
+  [Provider.GEMINI]: 'https://sokuji.kizuna.ai/docs/tutorials/gemini-setup',
+  [Provider.PALABRA_AI]: 'https://sokuji.kizuna.ai/docs/tutorials/palabraai-setup',
+  [Provider.OPENAI_COMPATIBLE]: 'https://sokuji.kizuna.ai/docs/tutorials/openai-compatible-setup',
+  [Provider.VOLCENGINE_AST2]: 'https://sokuji.kizuna.ai/docs/tutorials/volcengine-ast2-setup',
+  [Provider.LOCAL_INFERENCE]: 'https://sokuji.kizuna.ai/docs/tutorials/local-inference-setup',
+};
+
+const DISMISSED_KEY = 'sokuji-dismissed-tutorials';
 
 interface ProviderSectionProps {
   isSessionActive: boolean;
@@ -72,8 +87,34 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
   const validationMessage = useValidationMessage();
   const isKizunaKeyFetching = useIsKizunaKeyFetching();
   const kizunaKeyError = useKizunaKeyError();
+  const setUIMode = useSetUIMode();
+  const navigateToSettings = useNavigateToSettings();
 
   const [isProviderExpanded, setIsProviderExpanded] = useState(false);
+
+  const [dismissedTutorials, setDismissedTutorials] = useState<Set<string>>(() => {
+    try {
+      const stored = localStorage.getItem(DISMISSED_KEY);
+      return stored ? new Set(JSON.parse(stored)) : new Set();
+    } catch { return new Set(); }
+  });
+
+  const dismissTutorial = (providerId: string) => {
+    const updated = new Set(dismissedTutorials);
+    updated.add(providerId);
+    setDismissedTutorials(updated);
+    localStorage.setItem(DISMISSED_KEY, JSON.stringify([...updated]));
+  };
+
+  const tutorialUrl = TUTORIAL_URLS[provider];
+
+  const openExternalUrl = (url: string) => {
+    if (isElectron() && (window as any).electron?.invoke) {
+      (window as any).electron.invoke('open-external', url);
+    } else {
+      window.open(url, '_blank');
+    }
+  };
 
   // Get all available providers
   const availableProviders = useMemo(() => {
@@ -216,6 +257,12 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
           icon: VolcengineIcon,
           description: t('providers.volcengine_ast2.description')
         };
+      case Provider.LOCAL_INFERENCE:
+        return {
+          name: t('providers.local_inference.name', 'Local (Offline)'),
+          icon: KizunaAIIcon,
+          description: t('providers.local_inference.description', 'Offline ASR + Translation + TTS')
+        };
       default:
         return {
           name: t('providers.unknown.name'),
@@ -354,8 +401,14 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
         </div>
       )}
 
-      {/* API Key Input */}
-      {provider === Provider.VOLCENGINE_AST2 ? (
+      {/* API Key Input or Kizuna AI Status or Local Inference (no key needed) */}
+      {provider === Provider.LOCAL_INFERENCE ? (
+        <div className="api-key-info">
+          <CheckCircle size={16} className="success-icon" />
+          <span>{t('providers.local_inference.noKeyRequired', 'No API key required — runs entirely on your device')}</span>
+        </div>
+      ) : provider !== Provider.KIZUNA_AI ? (
+        provider === Provider.VOLCENGINE_AST2 ? (
           // Volcengine AST2 requires both APP ID and Access Token
           <div className="volcengine-st-credentials-group">
             <div className="api-key-input-group">
@@ -496,9 +549,37 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
           </div>
         )}
 
+      {tutorialUrl && !dismissedTutorials.has(provider) && (
+        <div className="tutorial-link">
+          <a href={tutorialUrl} onClick={(e) => { e.preventDefault(); openExternalUrl(tutorialUrl); }}>
+            <ExternalLink size={12} />
+            {t('simpleSettings.setupGuide', 'Setup guide')}
+          </a>
+          <button className="tutorial-dismiss" onClick={() => dismissTutorial(provider)} title={t('common.dismiss', 'Dismiss')}>
+            <X size={12} />
+          </button>
+        </div>
+      )}
+
       {validationMessage && (
         <div className={`validation-message ${isApiKeyValid ? 'success' : 'error'}`}>
-          {validationMessage}
+          {provider === Provider.LOCAL_INFERENCE && !isApiKeyValid ? (
+            <Trans
+              i18nKey="settings.localInferenceModelsRequired"
+              components={{
+                settingsLink: <a
+                  className="models-link"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setUIMode('advanced');
+                    setTimeout(() => navigateToSettings('model-management'), 100);
+                  }}
+                />
+              }}
+            />
+          ) : (
+            validationMessage
+          )}
         </div>
       )}
     </div>

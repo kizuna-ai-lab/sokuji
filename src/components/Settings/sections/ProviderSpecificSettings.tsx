@@ -15,6 +15,7 @@ import {
   useKizunaAISettings,
   useVolcengineSTSettings,
   useVolcengineAST2Settings,
+  useLocalInferenceSettings,
   useSetSystemInstructions,
   useSetTemplateSystemInstructions,
   useSetUseTemplateMode,
@@ -26,6 +27,7 @@ import {
   useUpdateKizunaAI,
   useUpdateVolcengineST,
   useUpdateVolcengineAST2,
+  useUpdateLocalInference,
   useGetCurrentProviderSettings,
   TransportType
 } from '../../../stores/settingsStore';
@@ -35,6 +37,9 @@ import { ChevronDown, ChevronRight, RotateCw, Info, CircleHelp } from 'lucide-re
 import Tooltip from '../../Tooltip/Tooltip';
 import { FilteredModel } from '../../../services/interfaces/IClient';
 import { Provider, isOpenAICompatible } from '../../../types/Provider';
+import { getManifestByType, getManifestEntry, getTranslationTargetLanguages, isTranslationModelCompatible } from '../../../lib/local-inference/modelManifest';
+import { useModelStatuses } from '../../../stores/modelStore';
+import { ModelManagementSection } from './ModelManagementSection';
 import { useAnalytics } from '../../../lib/analytics';
 
 interface ProviderSpecificSettingsProps {
@@ -71,6 +76,8 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
   const kizunaAISettings = useKizunaAISettings();
   const volcengineSTSettings = useVolcengineSTSettings();
   const volcengineAST2Settings = useVolcengineAST2Settings();
+  const localInferenceSettings = useLocalInferenceSettings();
+  const modelStatuses = useModelStatuses();
 
   // Actions from store
   const setSystemInstructions = useSetSystemInstructions();
@@ -84,6 +91,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
   const updateKizunaAISettings = useUpdateKizunaAI();
   const updateVolcengineSTSettings = useUpdateVolcengineST();
   const updateVolcengineAST2Settings = useUpdateVolcengineAST2();
+  const updateLocalInferenceSettings = useUpdateLocalInference();
   const getCurrentProviderSettings = useGetCurrentProviderSettings();
   const { t } = useTranslation();
   const { trackEvent } = useAnalytics();
@@ -107,6 +115,8 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
       updateVolcengineSTSettings({ [key]: value });
     } else if (provider === Provider.VOLCENGINE_AST2) {
       updateVolcengineAST2Settings({ [key]: value });
+    } else if (provider === Provider.LOCAL_INFERENCE) {
+      updateLocalInferenceSettings({ [key]: value });
     } else {
       console.warn('[Eburon][ProviderSpecificSettings] Unsupported provider:', provider);
     }
@@ -455,8 +465,8 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
   };
 
   const renderModelSettings = () => {
-    // PalabraAI doesn't have model selection
-    if (provider === Provider.PALABRA_AI) {
+    // PalabraAI and Local Inference don't have model selection
+    if (provider === Provider.PALABRA_AI || provider === Provider.LOCAL_INFERENCE) {
       return null;
     }
 
@@ -1207,6 +1217,303 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
     );
   };
 
+  const renderLocalInferenceSettings = () => {
+    if (provider !== Provider.LOCAL_INFERENCE) {
+      return null;
+    }
+
+    return (
+      <>
+        <div className="settings-section">
+          <h2>{t('settings.languageSettings', 'Language Settings')}</h2>
+          <div className="setting-item">
+            <div className="setting-label">
+              <span>{t('settings.sourceLanguage')}</span>
+            </div>
+            <select
+              className="select-dropdown"
+              value={localInferenceSettings.sourceLanguage}
+              onChange={(e) => {
+                const newSourceLang = e.target.value;
+                const updates: Record<string, any> = { sourceLanguage: newSourceLang };
+
+                // If current target is invalid for new source, pick first available target
+                let effectiveTargetLang = localInferenceSettings.targetLanguage;
+                const availableTargets = getTranslationTargetLanguages(newSourceLang);
+                if (!availableTargets.some(t => t.value === effectiveTargetLang)) {
+                  effectiveTargetLang = availableTargets[0]?.value || 'en';
+                  updates.targetLanguage = effectiveTargetLang;
+                }
+
+                // Auto-select ASR model for new source language (includes streaming models)
+                const allAsr = [...getManifestByType('asr'), ...getManifestByType('asr-stream')];
+                const currentAsr = allAsr.find(m => m.id === localInferenceSettings.asrModel);
+                if (!currentAsr || !(currentAsr.multilingual || currentAsr.languages.includes(newSourceLang))) {
+                  const firstMatch = allAsr.find(m =>
+                    (m.multilingual || m.languages.includes(newSourceLang)) && modelStatuses[m.id] === 'downloaded'
+                  );
+                  updates.asrModel = firstMatch?.id || '';
+                }
+
+                // Auto-select TTS model for effective target language
+                {
+                  const allTts = getManifestByType('tts');
+                  const currentTtsEntry = allTts.find(m => m.id === localInferenceSettings.ttsModel);
+                  if (!currentTtsEntry || !currentTtsEntry.languages.includes(effectiveTargetLang)) {
+                    const firstMatch = allTts.find(m =>
+                      m.languages.includes(effectiveTargetLang) && modelStatuses[m.id] === 'downloaded'
+                    );
+                    updates.ttsModel = firstMatch?.id || '';
+                    updates.ttsSpeakerId = 0;
+                  }
+                }
+
+                // Auto-select translation model for new language pair
+                const allTranslation = getManifestByType('translation');
+                const currentTransEntry = allTranslation.find(m => m.id === localInferenceSettings.translationModel);
+                const isCurrentTransCompatible = currentTransEntry && isTranslationModelCompatible(currentTransEntry, newSourceLang, effectiveTargetLang);
+                if (!isCurrentTransCompatible) {
+                  // Prefer pair-specific, then multilingual
+                  const firstMatch = allTranslation.find(m =>
+                    isTranslationModelCompatible(m, newSourceLang, effectiveTargetLang) && modelStatuses[m.id] === 'downloaded'
+                  );
+                  updates.translationModel = firstMatch?.id || '';
+                }
+
+                updateLocalInferenceSettings(updates);
+                trackEvent('language_changed', {
+                  from_language: localInferenceSettings.sourceLanguage,
+                  to_language: newSourceLang,
+                  language_type: 'source'
+                });
+              }}
+              disabled={isSessionActive}
+            >
+              {config.languages.map((lang) => (
+                <option key={lang.value} value={lang.value}>{lang.name}</option>
+              ))}
+            </select>
+          </div>
+          <div className="setting-item">
+            <div className="setting-label">
+              <span>{t('settings.targetLanguage')}</span>
+            </div>
+            <select
+              className="select-dropdown"
+              value={localInferenceSettings.targetLanguage}
+              onChange={(e) => {
+                const newTargetLang = e.target.value;
+                const updates: Record<string, any> = { targetLanguage: newTargetLang };
+
+                // Auto-select TTS model for new target language
+                const allTts = getManifestByType('tts');
+                const currentTtsEntry = allTts.find(m => m.id === localInferenceSettings.ttsModel);
+                if (!currentTtsEntry || !currentTtsEntry.languages.includes(newTargetLang)) {
+                  const firstMatch = allTts.find(m =>
+                    m.languages.includes(newTargetLang) && modelStatuses[m.id] === 'downloaded'
+                  );
+                  updates.ttsModel = firstMatch?.id || '';
+                  updates.ttsSpeakerId = 0;
+                }
+
+                // Auto-select translation model for new language pair
+                const allTranslation = getManifestByType('translation');
+                const currentTransEntry = allTranslation.find(m => m.id === localInferenceSettings.translationModel);
+                const effectiveSourceLang = localInferenceSettings.sourceLanguage;
+                const isCurrentTransCompatible = currentTransEntry && isTranslationModelCompatible(currentTransEntry, effectiveSourceLang, newTargetLang);
+                if (!isCurrentTransCompatible) {
+                  // Prefer pair-specific, then multilingual
+                  const firstMatch = allTranslation.find(m =>
+                    isTranslationModelCompatible(m, effectiveSourceLang, newTargetLang) && modelStatuses[m.id] === 'downloaded'
+                  );
+                  updates.translationModel = firstMatch?.id || '';
+                }
+
+                updateLocalInferenceSettings(updates);
+                trackEvent('language_changed', {
+                  from_language: localInferenceSettings.targetLanguage,
+                  to_language: newTargetLang,
+                  language_type: 'target'
+                });
+              }}
+              disabled={isSessionActive}
+            >
+              {getTranslationTargetLanguages(localInferenceSettings.sourceLanguage)
+                .map((lang) => (
+                  <option key={lang.value} value={lang.value}>{lang.name}</option>
+                ))}
+            </select>
+          </div>
+        </div>
+
+        <ModelManagementSection
+          isSessionActive={isSessionActive}
+          localInferenceSettings={localInferenceSettings}
+          onUpdateSettings={updateLocalInferenceSettings}
+        />
+
+        <div className="settings-section">
+          <h2>{t('settings.ttsSettings', 'TTS Settings')}</h2>
+          <div className="setting-item">
+            <div className="setting-label">
+              <span>{t('settings.ttsSpeed', 'Speech Speed')}</span>
+              <span className="setting-value">{localInferenceSettings.ttsSpeed.toFixed(1)}x</span>
+            </div>
+            <input
+              type="range"
+              min="0.5"
+              max="2.0"
+              step="0.1"
+              value={localInferenceSettings.ttsSpeed}
+              onChange={(e) => updateLocalInferenceSettings({ ttsSpeed: parseFloat(e.target.value) })}
+              className="slider"
+              disabled={isSessionActive}
+            />
+          </div>
+          {(() => {
+            const ttsEntry = getManifestEntry(localInferenceSettings.ttsModel);
+            const numSpeakers = ttsEntry?.numSpeakers ?? 1;
+            return numSpeakers > 1 ? (
+          <div className="setting-item">
+            <div className="setting-label">
+              <span>{t('settings.ttsSpeakerId', 'Speaker ID')}</span>
+              <span className="setting-value">{localInferenceSettings.ttsSpeakerId}</span>
+            </div>
+            <input
+              type="range"
+              min="0"
+              max={numSpeakers - 1}
+              step="1"
+              value={Math.min(localInferenceSettings.ttsSpeakerId, numSpeakers - 1)}
+              onChange={(e) => updateLocalInferenceSettings({ ttsSpeakerId: parseInt(e.target.value) })}
+              className="slider"
+              disabled={isSessionActive}
+            />
+          </div>
+            ) : null;
+          })()}
+        </div>
+
+        <div className="settings-section turn-detection-section">
+          <h2>
+            {t('settings.automaticTurnDetection')}
+            <Tooltip
+              content={t('settings.localInferenceTurnDetectionTooltip', 'Auto mode uses Voice Activity Detection to automatically detect speech. Push-to-Talk lets you manually control when to send audio by holding Space or the mic button.')}
+              position="top"
+            >
+              <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '8px' }} />
+            </Tooltip>
+          </h2>
+          <div className="setting-item">
+            <div className="turn-detection-options">
+              <button
+                className={`option-button ${localInferenceSettings.turnDetectionMode === 'Auto' ? 'active' : ''}`}
+                onClick={() => updateLocalInferenceSettings({ turnDetectionMode: 'Auto' })}
+                disabled={isSessionActive}
+              >
+                {t('settings.auto')}
+              </button>
+              <button
+                className={`option-button ${localInferenceSettings.turnDetectionMode === 'Push-to-Talk' ? 'active' : ''}`}
+                onClick={() => updateLocalInferenceSettings({ turnDetectionMode: 'Push-to-Talk' })}
+                disabled={isSessionActive}
+              >
+                {t('settings.pushToTalk')}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {localInferenceSettings.turnDetectionMode === 'Auto' && getManifestEntry(localInferenceSettings.asrModel)?.type !== 'asr-stream' && (
+        <div className="settings-section">
+          <h2>
+            {t('settings.vadSettings', 'VAD Settings')}
+            <Tooltip
+              content={t('settings.vadSettingsTooltip', 'Voice Activity Detection parameters. Controls how speech segments are detected and split. Changes take effect on next session start.')}
+              position="top"
+            >
+              <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '8px' }} />
+            </Tooltip>
+          </h2>
+          <div className="setting-item">
+            <div className="setting-label">
+              <span>
+                {t('settings.vadThreshold', 'Speech Threshold')}
+                <Tooltip
+                  content={t('settings.vadThresholdTooltip', 'Speech detection sensitivity. Higher values require louder/clearer speech to trigger recognition. Lower values are more sensitive to quiet speech.')}
+                  position="top"
+                >
+                  <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '4px', display: 'inline-block', verticalAlign: 'middle' }} />
+                </Tooltip>
+              </span>
+              <span className="setting-value">{localInferenceSettings.vadThreshold.toFixed(2)}</span>
+            </div>
+            <input
+              type="range"
+              min="0.1"
+              max="0.95"
+              step="0.05"
+              value={localInferenceSettings.vadThreshold}
+              onChange={(e) => updateLocalInferenceSettings({ vadThreshold: parseFloat(e.target.value) })}
+              className="slider"
+              disabled={isSessionActive}
+            />
+          </div>
+          <div className="setting-item">
+            <div className="setting-label">
+              <span>
+                {t('settings.vadMinSilenceDuration', 'Min Silence Duration')}
+                <Tooltip
+                  content={t('settings.vadMinSilenceDurationTooltip', 'Minimum silence duration to split speech segments. Shorter values split sentences faster, longer values wait for more natural pauses.')}
+                  position="top"
+                >
+                  <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '4px', display: 'inline-block', verticalAlign: 'middle' }} />
+                </Tooltip>
+              </span>
+              <span className="setting-value">{localInferenceSettings.vadMinSilenceDuration.toFixed(1)}s</span>
+            </div>
+            <input
+              type="range"
+              min="0.1"
+              max="2.0"
+              step="0.1"
+              value={localInferenceSettings.vadMinSilenceDuration}
+              onChange={(e) => updateLocalInferenceSettings({ vadMinSilenceDuration: parseFloat(e.target.value) })}
+              className="slider"
+              disabled={isSessionActive}
+            />
+          </div>
+          <div className="setting-item">
+            <div className="setting-label">
+              <span>
+                {t('settings.vadMinSpeechDuration', 'Min Speech Duration')}
+                <Tooltip
+                  content={t('settings.vadMinSpeechDurationTooltip', 'Minimum speech duration to consider as valid speech. Filters out very short sounds like clicks or coughs.')}
+                  position="top"
+                >
+                  <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '4px', display: 'inline-block', verticalAlign: 'middle' }} />
+                </Tooltip>
+              </span>
+              <span className="setting-value">{localInferenceSettings.vadMinSpeechDuration.toFixed(2)}s</span>
+            </div>
+            <input
+              type="range"
+              min="0.05"
+              max="1.0"
+              step="0.05"
+              value={localInferenceSettings.vadMinSpeechDuration}
+              onChange={(e) => updateLocalInferenceSettings({ vadMinSpeechDuration: parseFloat(e.target.value) })}
+              className="slider"
+              disabled={isSessionActive}
+            />
+          </div>
+        </div>
+        )}
+
+      </>
+    );
+  };
+
   return (
     <Fragment>
       {/* System Instructions */}
@@ -1306,6 +1613,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
       {renderPalabraAISettings()}
       {renderVolcengineSTSettings()}
       {renderVolcengineAST2Settings()}
+      {renderLocalInferenceSettings()}
     </Fragment>
   );
 };
