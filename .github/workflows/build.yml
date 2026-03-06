@@ -215,34 +215,38 @@ jobs:
           name: macos-x64-artifacts
           path: macos-x64-artifacts
 
-      - name: Debug Windows artifacts structure
+      - name: Debug artifacts structure
         run: |
-          echo "Windows artifacts structure:"
-          ls -R windows-artifacts/ || true
-          find windows-artifacts -name "*.exe" || true
+          echo "=== Linux x64 ==="
+          find linux-x64-artifacts -type f || true
+          echo "=== Linux ARM64 ==="
+          find linux-arm64-artifacts -type f || true
+          echo "=== Windows ==="
+          find windows-artifacts -type f || true
+          echo "=== macOS ARM64 ==="
+          find macos-arm64-artifacts -type f || true
+          echo "=== macOS x64 ==="
+          find macos-x64-artifacts -type f || true
 
-      - name: Debug macOS artifacts structure
+      - name: Collect release assets
         run: |
-          echo "macOS ARM64 artifacts structure:"
-          ls -R macos-arm64-artifacts/ || true
-          find macos-arm64-artifacts -name "*.pkg" || true
-          echo "macOS x64 artifacts structure:"
-          ls -R macos-x64-artifacts/ || true
-          find macos-x64-artifacts -name "*.pkg" || true
+          mkdir -p release-assets
+          find linux-x64-artifacts -name "*.deb" -exec cp {} release-assets/ \;
+          find linux-x64-artifacts -name "*.zip" -exec cp {} release-assets/ \;
+          find linux-x64-artifacts -name "sokuji-extension.zip" -exec cp {} release-assets/ \;
+          find linux-arm64-artifacts -name "*.deb" -exec cp {} release-assets/ \;
+          find linux-arm64-artifacts -name "*.zip" -exec cp {} release-assets/ \;
+          find windows-artifacts -name "*.exe" -exec cp {} release-assets/ \;
+          find windows-artifacts -name "*.nupkg" -exec cp {} release-assets/ \;
+          find macos-arm64-artifacts -name "*.pkg" -exec cp {} release-assets/ \;
+          find macos-x64-artifacts -name "*.pkg" -exec cp {} release-assets/ \;
+          echo "=== Release assets ==="
+          ls -la release-assets/
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
-          files: |
-            linux-x64-artifacts/out/make/**/*.deb
-            linux-x64-artifacts/out/make/**/*.zip
-            linux-x64-artifacts/extension/sokuji-extension.zip
-            linux-arm64-artifacts/out/make/**/*.deb
-            linux-arm64-artifacts/out/make/**/*.zip
-            windows-artifacts/squirrel.windows/x64/*.exe
-            windows-artifacts/squirrel.windows/x64/*.nupkg
-            macos-arm64-artifacts/*.pkg
-            macos-x64-artifacts/*.pkg
+          files: release-assets/*
           body_path: linux-x64-artifacts/CHANGELOG.md
           draft: false
           prerelease: false
