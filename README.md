@@ -35,7 +35,7 @@
 </p>
 
 <p align="center">
-  English | <a href="README.ja.md">日本語</a>
+  English | <a href="docs/README.ja.md">日本語</a> | <a href="docs/README.zh.md">中文</a>
 </p>
 
 # Why Sokuji?
