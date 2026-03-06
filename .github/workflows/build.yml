@@ -59,32 +59,29 @@ jobs:
         run: npm run build
         env:
           CI: false
-          # Use production environment variables for releases, simpler ones for CI
-          VITE_BACKEND_URL: ${{ secrets.VITE_BACKEND_URL_PROD || 'https://Eburon-api.kizuna.ai' }}
+          VITE_BACKEND_URL: 'https://Eburon-api.kizuna.ai'
           VITE_ENVIRONMENT: production
-          VITE_POSTHOG_KEY: ${{ secrets.VITE_POSTHOG_KEY }}
-          VITE_ENABLE_VOLCENGINE_ST: ${{ secrets.VITE_ENABLE_VOLCENGINE_ST }}
-          VITE_ENABLE_VOLCENGINE_AST2: ${{ secrets.VITE_ENABLE_VOLCENGINE_AST2 }}
-          VITE_ENABLE_PALABRA_AI: ${{ secrets.VITE_ENABLE_PALABRA_AI }}
-          # Additional variables only for releases
+          VITE_POSTHOG_KEY: ''
+          VITE_ENABLE_VOLCENGINE_ST: 'false'
+          VITE_ENABLE_VOLCENGINE_AST2: 'false'
+          VITE_ENABLE_PALABRA_AI: 'false'
           VITE_ENABLE_DEBUG: ${{ startsWith(github.ref, 'refs/tags/v') && 'false' || '' }}
           VITE_ENABLE_ANALYTICS: ${{ startsWith(github.ref, 'refs/tags/v') && 'true' || '' }}
-          VITE_EXTENSION_ID: ${{ startsWith(github.ref, 'refs/tags/v') && secrets.VITE_EXTENSION_ID_PROD || '' }}
+          VITE_EXTENSION_ID: ''
 
       - name: Build Electron app with Forge
         if: runner.os != 'macOS'
         run: npx electron-forge make --arch=${{ matrix.arch || 'x64' }}
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
           CI: false
-          # Prevent actual publishing during CI builds
           CSC_IDENTITY_AUTO_DISCOVERY: ${{ !startsWith(github.ref, 'refs/tags/v') && 'false' || '' }}
-          VITE_BACKEND_URL: ${{ secrets.VITE_BACKEND_URL_PROD || 'https://Eburon-api.kizuna.ai' }}
+          VITE_BACKEND_URL: 'https://Eburon-api.kizuna.ai'
           VITE_ENVIRONMENT: production
-          VITE_POSTHOG_KEY: ${{ secrets.VITE_POSTHOG_KEY }}
-          VITE_ENABLE_VOLCENGINE_ST: ${{ secrets.VITE_ENABLE_VOLCENGINE_ST }}
-          VITE_ENABLE_VOLCENGINE_AST2: ${{ secrets.VITE_ENABLE_VOLCENGINE_AST2 }}
-          VITE_ENABLE_PALABRA_AI: ${{ secrets.VITE_ENABLE_PALABRA_AI }}
+          VITE_POSTHOG_KEY: ''
+          VITE_ENABLE_VOLCENGINE_ST: 'false'
+          VITE_ENABLE_VOLCENGINE_AST2: 'false'
+          VITE_ENABLE_PALABRA_AI: 'false'
 
       - name: Build macOS PKG with versioned filename
         if: runner.os == 'macOS'
@@ -92,16 +89,15 @@ jobs:
           chmod +x build-pkg.sh
           ./build-pkg.sh
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
           CI: false
-          # Always build unsigned for macOS
           CSC_IDENTITY_AUTO_DISCOVERY: false
-          VITE_BACKEND_URL: ${{ secrets.VITE_BACKEND_URL_PROD || 'https://Eburon-api.kizuna.ai' }}
+          VITE_BACKEND_URL: 'https://Eburon-api.kizuna.ai'
           VITE_ENVIRONMENT: production
-          VITE_POSTHOG_KEY: ${{ secrets.VITE_POSTHOG_KEY }}
-          VITE_ENABLE_VOLCENGINE_ST: ${{ secrets.VITE_ENABLE_VOLCENGINE_ST }}
-          VITE_ENABLE_VOLCENGINE_AST2: ${{ secrets.VITE_ENABLE_VOLCENGINE_AST2 }}
-          VITE_ENABLE_PALABRA_AI: ${{ secrets.VITE_ENABLE_PALABRA_AI }}
+          VITE_POSTHOG_KEY: ''
+          VITE_ENABLE_VOLCENGINE_ST: 'false'
+          VITE_ENABLE_VOLCENGINE_AST2: 'false'
+          VITE_ENABLE_PALABRA_AI: 'false'
 
       - name: Build Chrome Extension
         if: matrix.os == 'ubuntu-latest' && matrix.arch != 'arm64'
@@ -123,12 +119,11 @@ jobs:
             fi
           fi
         env:
-          # Production environment variables for extension
-          VITE_BACKEND_URL: ${{ secrets.VITE_BACKEND_URL_PROD || 'https://Eburon-api.kizuna.ai' }}
-          POSTHOG_KEY: ${{ secrets.VITE_POSTHOG_KEY }}
-          VITE_ENABLE_VOLCENGINE_ST: ${{ secrets.VITE_ENABLE_VOLCENGINE_ST }}
-          VITE_ENABLE_VOLCENGINE_AST2: ${{ secrets.VITE_ENABLE_VOLCENGINE_AST2 }}
-          VITE_ENABLE_PALABRA_AI: ${{ secrets.VITE_ENABLE_PALABRA_AI }}
+          VITE_BACKEND_URL: 'https://Eburon-api.kizuna.ai'
+          POSTHOG_KEY: ''
+          VITE_ENABLE_VOLCENGINE_ST: 'false'
+          VITE_ENABLE_VOLCENGINE_AST2: 'false'
+          VITE_ENABLE_PALABRA_AI: 'false'
 
       - name: Setup Java for Android build
         if: matrix.os == 'ubuntu-latest'
@@ -145,12 +140,12 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         run: npm run android:apk
         env:
-          VITE_BACKEND_URL: ${{ secrets.VITE_BACKEND_URL_PROD || 'https://Eburon-api.kizuna.ai' }}
+          VITE_BACKEND_URL: 'https://Eburon-api.kizuna.ai'
           VITE_ENVIRONMENT: production
-          VITE_POSTHOG_KEY: ${{ secrets.VITE_POSTHOG_KEY }}
-          VITE_ENABLE_VOLCENGINE_ST: ${{ secrets.VITE_ENABLE_VOLCENGINE_ST }}
-          VITE_ENABLE_VOLCENGINE_AST2: ${{ secrets.VITE_ENABLE_VOLCENGINE_AST2 }}
-          VITE_ENABLE_PALABRA_AI: ${{ secrets.VITE_ENABLE_PALABRA_AI }}
+          VITE_POSTHOG_KEY: ''
+          VITE_ENABLE_VOLCENGINE_ST: 'false'
+          VITE_ENABLE_VOLCENGINE_AST2: 'false'
+          VITE_ENABLE_PALABRA_AI: 'false'
 
       # Release-specific steps
       - name: Generate changelog
@@ -256,7 +251,7 @@ jobs:
           mkdir -p release-assets
           find linux-x64-artifacts -name "*.deb" -exec cp {} release-assets/ \;
           find linux-x64-artifacts -name "*.zip" -exec cp {} release-assets/ \;
-          find linux-x64-artifacts -name "sokuji-extension.zip" -exec cp {} release-assets/ \;
+          find linux-x64-artifacts -name "Eburon-extension.zip" -exec cp {} release-assets/ \;
           find linux-arm64-artifacts -name "*.deb" -exec cp {} release-assets/ \;
           find linux-arm64-artifacts -name "*.zip" -exec cp {} release-assets/ \;
           find windows-artifacts -name "*.exe" -exec cp {} release-assets/ \;
@@ -269,16 +264,9 @@ jobs:
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          files: |
-            linux-artifacts/out/make/**/*.deb
-            linux-artifacts/out/make/**/*.zip
-            linux-artifacts/extension/sokuji-extension.zip
-            windows-artifacts/squirrel.windows/x64/*.exe
-            windows-artifacts/squirrel.windows/x64/*.nupkg
-            macos-arm64-artifacts/*.pkg
-            macos-x64-artifacts/*.pkg
-          body_path: linux-artifacts/CHANGELOG.md
+          files: release-assets/*
+          body_path: linux-x64-artifacts/CHANGELOG.md
           draft: false
           prerelease: false
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ github.token }}
