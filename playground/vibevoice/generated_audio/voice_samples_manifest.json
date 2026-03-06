@@ -1,0 +1,164 @@
+[
+  {
+    "voice": "de-Spk0_man",
+    "ok": true,
+    "file": "20260305_052547_sample_01_de-Spk0_man.wav",
+    "lang": "de"
+  },
+  {
+    "voice": "de-Spk1_woman",
+    "ok": true,
+    "file": "20260305_052554_sample_02_de-Spk1_woman.wav",
+    "lang": "de"
+  },
+  {
+    "voice": "emilio",
+    "ok": false,
+    "error": "[Errno 54] Connection reset by peer",
+    "lang": "en"
+  },
+  {
+    "voice": "emz",
+    "ok": false,
+    "error": "<urlopen error [Errno 61] Connection refused>",
+    "lang": "en"
+  },
+  {
+    "voice": "en-Carter_man",
+    "ok": false,
+    "error": "<urlopen error [Errno 61] Connection refused>",
+    "lang": "en"
+  },
+  {
+    "voice": "en-Davis_man",
+    "ok": false,
+    "error": "<urlopen error [Errno 61] Connection refused>",
+    "lang": "en"
+  },
+  {
+    "voice": "en-Emma_woman",
+    "ok": false,
+    "error": "<urlopen error [Errno 61] Connection refused>",
+    "lang": "en"
+  },
+  {
+    "voice": "en-Frank_man",
+    "ok": false,
+    "error": "<urlopen error [Errno 61] Connection refused>",
+    "lang": "en"
+  },
+  {
+    "voice": "en-Grace_woman",
+    "ok": false,
+    "error": "<urlopen error [Errno 61] Connection refused>",
+    "lang": "en"
+  },
+  {
+    "voice": "en-Mike_man",
+    "ok": false,
+    "error": "<urlopen error [Errno 61] Connection refused>",
+    "lang": "en"
+  },
+  {
+    "voice": "fr-Spk0_man",
+    "ok": false,
+    "error": "<urlopen error [Errno 61] Connection refused>",
+    "lang": "fr"
+  },
+  {
+    "voice": "fr-Spk1_woman",
+    "ok": false,
+    "error": "<urlopen error [Errno 61] Connection refused>",
+    "lang": "fr"
+  },
+  {
+    "voice": "in-Samuel_man",
+    "ok": false,
+    "error": "<urlopen error [Errno 61] Connection refused>",
+    "lang": "id"
+  },
+  {
+    "voice": "it-Spk0_woman",
+    "ok": false,
+    "error": "<urlopen error [Errno 61] Connection refused>",
+    "lang": "it"
+  },
+  {
+    "voice": "it-Spk1_man",
+    "ok": false,
+    "error": "<urlopen error [Errno 61] Connection refused>",
+    "lang": "it"
+  },
+  {
+    "voice": "jp-Spk0_man",
+    "ok": false,
+    "error": "<urlopen error [Errno 61] Connection refused>",
+    "lang": "ja"
+  },
+  {
+    "voice": "jp-Spk1_woman",
+    "ok": false,
+    "error": "<urlopen error [Errno 61] Connection refused>",
+    "lang": "ja"
+  },
+  {
+    "voice": "kr-Spk0_woman",
+    "ok": false,
+    "error": "<urlopen error [Errno 61] Connection refused>",
+    "lang": "ko"
+  },
+  {
+    "voice": "kr-Spk1_man",
+    "ok": false,
+    "error": "<urlopen error [Errno 61] Connection refused>",
+    "lang": "ko"
+  },
+  {
+    "voice": "nl-Spk0_man",
+    "ok": false,
+    "error": "<urlopen error [Errno 61] Connection refused>",
+    "lang": "nl"
+  },
+  {
+    "voice": "nl-Spk1_woman",
+    "ok": false,
+    "error": "<urlopen error [Errno 61] Connection refused>",
+    "lang": "nl"
+  },
+  {
+    "voice": "pl-Spk0_man",
+    "ok": false,
+    "error": "<urlopen error [Errno 61] Connection refused>",
+    "lang": "pl"
+  },
+  {
+    "voice": "pl-Spk1_woman",
+    "ok": false,
+    "error": "<urlopen error [Errno 61] Connection refused>",
+    "lang": "pl"
+  },
+  {
+    "voice": "pt-Spk0_woman",
+    "ok": false,
+    "error": "<urlopen error [Errno 61] Connection refused>",
+    "lang": "pt"
+  },
+  {
+    "voice": "pt-Spk1_man",
+    "ok": false,
+    "error": "<urlopen error [Errno 61] Connection refused>",
+    "lang": "pt"
+  },
+  {
+    "voice": "sp-Spk0_woman",
+    "ok": false,
+    "error": "<urlopen error [Errno 61] Connection refused>",
+    "lang": "es"
+  },
+  {
+    "voice": "sp-Spk1_man",
+    "ok": false,
+    "error": "<urlopen error [Errno 61] Connection refused>",
+    "lang": "es"
+  }
+]

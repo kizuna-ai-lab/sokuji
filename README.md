@@ -160,29 +160,77 @@ If you want to install the latest version of the browser extension:
    npm run electron:build
    ```
 
+## Platform-specific Packaging
+
+- **macOS PKG**
+
+  ```bash
+  npm run make:pkg
+  ```
+
+- **Windows installer**
+
+  Build on a Windows machine or CI runner:
+
+  ```bash
+  npm run make
+  ```
+
+- **Debian package**
+
+  Build on a Linux machine or CI runner:
+
+  ```bash
+  npm run make
+  ```
+
+- **Android APK**
+
+  ```bash
+  npm run android:apk
+  ```
+
+For release builds, tagging `vX.Y.Z` triggers GitHub Actions to build Windows, Debian/Linux, macOS, browser extension, and Android artifacts automatically.
+
 ## From Packages
 
 Download the appropriate package for your platform from the [releases page](https://github.com/kizuna-ai-lab/Eburon/releases):
 
 ### Windows
+
 Download and run the `.exe` installer:
-```
+
+```text
 Eburon Setup x.y.z.exe
 ```
 
 ### macOS
+
 Download and install the `.dmg` package:
-```
+
+```text
 Eburon-x.y.z.dmg
 ```
 
 ### Linux (Debian/Ubuntu)
+
 Download and install the `.deb` package:
+
 ```bash
 sudo dpkg -i Eburon_x.y.z_amd64.deb
 ```
 
 For other Linux distributions, you can also download the portable `.zip` package and extract it to your preferred location.
+
+### Android
+
+Download the APK package:
+
+```text
+app-debug.apk
+```
+
+> Note: The Android app is packaged via Capacitor from the web build. Desktop-only Electron integrations such as virtual audio device management are not available on Android.
 
 # How to Use
 

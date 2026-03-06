@@ -22,17 +22,22 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  min-height: 100vh;
-  padding: 2rem;
+  min-height: 100dvh;
+  padding: clamp(1rem, 3vw, 2rem);
 
   .container {
     text-align: center;
-    max-width: 900px;
+    max-width: 1100px;
     width: 100%;
   }
 
+  header {
+    margin: 0 auto 2.5rem;
+    max-width: 42rem;
+  }
+
   h1 {
-    font-size: 2.3rem;
+    font-size: clamp(2rem, 5vw, 2.8rem);
     font-weight: 700;
     margin-bottom: 0.6rem;
     letter-spacing: 0.2px;
@@ -40,20 +45,21 @@
 
   p {
     color: var(--text-muted);
-    font-size: 1.15rem;
-    margin-bottom: 3.5rem;
+    font-size: clamp(1rem, 2vw, 1.15rem);
+    margin-bottom: 0;
   }
 
   .grid {
     display: grid;
-    grid-template-columns: repeat(4, 150px);
-    gap: 26px;
-    justify-content: center;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr));
+    gap: clamp(14px, 2vw, 26px);
+    justify-content: stretch;
   }
 
   .card {
-    width: 150px;
-    height: 150px;
+    width: 100%;
+    height: clamp(132px, 22vw, 150px);
+    min-height: 150px;
     border-radius: 28px;
     display: flex;
     flex-direction: column;
@@ -84,8 +90,8 @@
 
   .icon-wrapper {
     margin-top: 25px;
-    width: 75px;
-    height: 75px;
+    width: clamp(58px, 8vw, 75px);
+    height: clamp(58px, 8vw, 75px);
     display: flex;
     justify-content: center;
     align-items: center;
@@ -113,9 +119,53 @@
   .bg-codemax { background-color: var(--card-codemax); }
   .bg-tools { background-color: var(--card-tools); }
 
+  @media (max-width: 900px) {
+    align-items: flex-start;
+
+    .container {
+      max-width: 760px;
+    }
+  }
+
   @media (max-width: 800px) {
     .grid {
-      grid-template-columns: repeat(2, 150px);
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-width: 520px) {
+    padding: 1rem;
+
+    header {
+      margin-bottom: 1.5rem;
+    }
+
+    .grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .card {
+      height: 132px;
+      min-height: 132px;
+      border-radius: 22px;
+
+      span {
+        margin-bottom: 14px;
+        font-size: 0.88rem;
+      }
+    }
+
+    .icon-wrapper {
+      margin-top: 18px;
+      width: 54px;
+      height: 54px;
+    }
+  }
+
+  @media (max-width: 360px) {
+    .grid {
+      grid-template-columns: 1fr;
     }
   }
 }

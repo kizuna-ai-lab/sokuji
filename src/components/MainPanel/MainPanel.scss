@@ -835,6 +835,35 @@
   }
 }
 
+@media (max-width: 768px) {
+  .main-panel-wrapper {
+    height: auto;
+    flex: 0 0 auto;
+  }
+
+  .main-panel {
+    height: auto;
+    overflow: visible;
+  }
+
+  .main-panel .conversation-container {
+    position: relative;
+    bottom: auto;
+    padding: 0 16px 12px;
+  }
+
+  .main-panel .text-input-section {
+    position: static;
+    margin: 8px 12px 0;
+  }
+
+  .main-panel .audio-visualization {
+    position: static;
+    margin: 10px 12px 12px;
+    height: auto;
+  }
+}
+
 .session-button {
   @media (max-width: 576px) {
     .tooltip {

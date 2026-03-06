@@ -14,9 +14,6 @@
     overflow-y: auto;
     overflow-x: hidden; // Prevent horizontal scroll
     padding: 20px;
-    scroll-behavior: smooth;
-    -webkit-overflow-scrolling: touch; // Smooth scrolling on iOS/macOS
-    overscroll-behavior: contain; // Prevent scroll chaining to parent
 
     &::-webkit-scrollbar {
       width: 6px;
@@ -423,6 +420,9 @@
 
   // Responsive adjustments
   @media (max-width: 768px) {
+    flex: 0 0 auto;
+    height: auto;
+
     .conversation-display {
       padding: 15px;
 

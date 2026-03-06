@@ -116,6 +116,15 @@ const initializePostHog = async (): Promise<PostHog | null> => {
   return posthog;
 };
 
+const runWhenBrowserIsIdle = (callback: () => void) => {
+  if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+    window.requestIdleCallback(() => callback(), { timeout: 1000 });
+    return;
+  }
+
+  window.setTimeout(callback, 0);
+};
+
 const UnifiedApp = () => {
   const [isLoaded, setIsLoaded] = useState(false);
   const [posthogClient, setPosthogClient] = useState<PostHog | null>(null);
@@ -139,7 +148,7 @@ const UnifiedApp = () => {
       setIsLoaded(true);
       
       // Defer PostHog initialization to after UI renders
-      requestIdleCallback(() => {
+      runWhenBrowserIsIdle(() => {
         const analyticsStart = performance.now();
         initializePostHog().then(client => {
           setPosthogClient(client);
@@ -150,7 +159,7 @@ const UnifiedApp = () => {
           // Create a minimal fallback client
           setPosthogClient(null);
         });
-      }, { timeout: 1000 }); // Ensure it runs within 1 second
+      });
     };
 
     initializeApp();
@@ -158,13 +167,7 @@ const UnifiedApp = () => {
 
   if (!isLoaded) {
     return (
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
-        height: '100vh',
-        fontFamily: 'system-ui, -apple-system, sans-serif'
-      }}>
+      <div className="app-boot-screen">
         Loading...
       </div>
     );

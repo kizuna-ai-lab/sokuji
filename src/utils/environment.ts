@@ -6,6 +6,10 @@
 // Extend Window interface to include Electron-specific properties
 declare global {
   interface Window {
+    Capacitor?: {
+      isNativePlatform?: () => boolean;
+      getPlatform?: () => string;
+    };
     electronAPI?: any;
     require?: any;
     process?: {
@@ -25,6 +29,22 @@ declare global {
       };
     };
   }
+}
+
+/**
+ * Detect if the code is running inside a Capacitor native shell.
+ * This is used for mobile packaging such as Android APK builds.
+ */
+export function isCapacitorNative(): boolean {
+  if (typeof window === 'undefined') {
+    return false;
+  }
+
+  if (typeof window.Capacitor?.isNativePlatform === 'function') {
+    return window.Capacitor.isNativePlatform();
+  }
+
+  return false;
 }
 
 /**
@@ -86,7 +106,7 @@ export function isExtension(): boolean {
  * (not Electron, not extension)
  */
 export function isWeb(): boolean {
-  return !isElectron() && !isExtension();
+  return !isElectron() && !isExtension() && !isCapacitorNative();
 }
 
 /**

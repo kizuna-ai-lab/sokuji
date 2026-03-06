@@ -1,0 +1,22 @@
+[MASTER]
+# Ensure local demo package sources are importable for linting.
+init-hook='import sys; from pathlib import Path; root = Path(__file__).resolve().parent; sys.path.insert(0, str(root)); sys.path.insert(0, str(root / "vibevoice-repo"))'
+
+[MESSAGES CONTROL]
+# Keep lint useful for this prototype server while reducing noisy style-only reports.
+disable=
+    missing-module-docstring,
+    missing-class-docstring,
+    missing-function-docstring,
+    line-too-long,
+    wrong-import-position,
+    import-outside-toplevel,
+    global-statement,
+    redefined-outer-name,
+    reimported,
+    logging-fstring-interpolation,
+    broad-exception-caught,
+    protected-access,
+    invalid-name,
+    unused-argument,
+    unused-import

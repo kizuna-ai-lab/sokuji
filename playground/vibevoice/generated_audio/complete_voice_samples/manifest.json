@@ -1,0 +1,178 @@
+[
+  {
+    "voice": "de-Spk0_man",
+    "ok": true,
+    "file": "01_de-Spk0_man.wav",
+    "duration_sec": null,
+    "skipped_existing": true
+  },
+  {
+    "voice": "de-Spk1_woman",
+    "ok": true,
+    "file": "02_de-Spk1_woman.wav",
+    "duration_sec": null,
+    "skipped_existing": true
+  },
+  {
+    "voice": "emilio",
+    "ok": true,
+    "file": "03_emilio.wav",
+    "duration_sec": null,
+    "skipped_existing": true
+  },
+  {
+    "voice": "emz",
+    "ok": true,
+    "file": "04_emz.wav",
+    "duration_sec": null,
+    "skipped_existing": true
+  },
+  {
+    "voice": "en-Carter_man",
+    "ok": true,
+    "file": "05_en-Carter_man.wav",
+    "duration_sec": null,
+    "skipped_existing": true
+  },
+  {
+    "voice": "en-Davis_man",
+    "ok": true,
+    "file": "06_en-Davis_man.wav",
+    "duration_sec": null,
+    "skipped_existing": true
+  },
+  {
+    "voice": "en-Emma_woman",
+    "ok": true,
+    "file": "07_en-Emma_woman.wav",
+    "duration_sec": null,
+    "skipped_existing": true
+  },
+  {
+    "voice": "en-Frank_man",
+    "ok": true,
+    "file": "08_en-Frank_man.wav",
+    "duration_sec": null,
+    "skipped_existing": true
+  },
+  {
+    "voice": "en-Grace_woman",
+    "ok": true,
+    "file": "09_en-Grace_woman.wav",
+    "duration_sec": null,
+    "skipped_existing": true
+  },
+  {
+    "voice": "en-Mike_man",
+    "ok": true,
+    "file": "10_en-Mike_man.wav",
+    "duration_sec": null,
+    "skipped_existing": true
+  },
+  {
+    "voice": "fr-Spk0_man",
+    "ok": true,
+    "file": "11_fr-Spk0_man.wav",
+    "duration_sec": null,
+    "skipped_existing": true
+  },
+  {
+    "voice": "fr-Spk1_woman",
+    "ok": true,
+    "file": "12_fr-Spk1_woman.wav",
+    "duration_sec": null,
+    "skipped_existing": true
+  },
+  {
+    "voice": "in-Samuel_man",
+    "ok": true,
+    "file": "13_in-Samuel_man.wav",
+    "duration_sec": null,
+    "skipped_existing": true
+  },
+  {
+    "voice": "it-Spk0_woman",
+    "ok": true,
+    "file": "14_it-Spk0_woman.wav",
+    "duration_sec": null,
+    "skipped_existing": true
+  },
+  {
+    "voice": "it-Spk1_man",
+    "ok": true,
+    "file": "15_it-Spk1_man.wav",
+    "duration_sec": 2.0
+  },
+  {
+    "voice": "jp-Spk0_man",
+    "ok": true,
+    "file": "16_jp-Spk0_man.wav",
+    "duration_sec": 2.4
+  },
+  {
+    "voice": "jp-Spk1_woman",
+    "ok": true,
+    "file": "17_jp-Spk1_woman.wav",
+    "duration_sec": 5.467
+  },
+  {
+    "voice": "kr-Spk0_woman",
+    "ok": true,
+    "file": "18_kr-Spk0_woman.wav",
+    "duration_sec": 4.8
+  },
+  {
+    "voice": "kr-Spk1_man",
+    "ok": true,
+    "file": "19_kr-Spk1_man.wav",
+    "duration_sec": 3.733
+  },
+  {
+    "voice": "nl-Spk0_man",
+    "ok": true,
+    "file": "20_nl-Spk0_man.wav",
+    "duration_sec": 2.133
+  },
+  {
+    "voice": "nl-Spk1_woman",
+    "ok": true,
+    "file": "21_nl-Spk1_woman.wav",
+    "duration_sec": 2.267
+  },
+  {
+    "voice": "pl-Spk0_man",
+    "ok": true,
+    "file": "22_pl-Spk0_man.wav",
+    "duration_sec": 2.8
+  },
+  {
+    "voice": "pl-Spk1_woman",
+    "ok": true,
+    "file": "23_pl-Spk1_woman.wav",
+    "duration_sec": 5.067
+  },
+  {
+    "voice": "pt-Spk0_woman",
+    "ok": true,
+    "file": "24_pt-Spk0_woman.wav",
+    "duration_sec": 4.133
+  },
+  {
+    "voice": "pt-Spk1_man",
+    "ok": true,
+    "file": "25_pt-Spk1_man.wav",
+    "duration_sec": 3.067
+  },
+  {
+    "voice": "sp-Spk0_woman",
+    "ok": true,
+    "file": "26_sp-Spk0_woman.wav",
+    "duration_sec": 3.867
+  },
+  {
+    "voice": "sp-Spk1_man",
+    "ok": true,
+    "file": "27_sp-Spk1_man.wav",
+    "duration_sec": 4.0
+  }
+]

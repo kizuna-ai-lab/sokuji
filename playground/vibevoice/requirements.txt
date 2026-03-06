@@ -1,0 +1,8 @@
+fastapi>=0.115.0
+uvicorn[standard]>=0.34.0
+websockets>=14.0
+numpy>=1.26.0
+soundfile>=0.12.1
+python-multipart>=0.0.18
+# VibeVoice is installed from git (includes torch + transformers)
+# pip install -e ".[streamingtts]" from the cloned repo

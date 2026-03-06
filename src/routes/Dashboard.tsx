@@ -98,15 +98,15 @@ export function Dashboard() {
             <span>Clone Voice</span>
           </div>
 
-          {/* Echo */}
-          <div className="card bg-echo">
+          {/* Echo TTS */}
+          <div className="card bg-echo" onClick={() => navigate('/tts-showcase')}>
             <div className="icon-wrapper">
               <svg viewBox="0 0 100 100">
                 <path d="M 5 50 C 15 50 20 10 30 10 C 40 10 45 90 55 90 C 65 90 70 25 80 25 C 88 25 90 50 95 50" fill="none" stroke="#FFDC80" strokeWidth="6" strokeLinecap="round"/>
                 <path d="M 5 50 C 15 50 20 30 30 30 C 40 30 45 70 55 70 C 65 70 70 40 80 40 C 88 40 90 50 95 50" fill="none" stroke="#FFFFFF" strokeWidth="6" strokeLinecap="round" opacity="0.5"/>
               </svg>
             </div>
-            <span>Echo</span>
+            <span>TTS Showcase</span>
           </div>
 
           {/* Chatbot */}

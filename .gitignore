@@ -85,3 +85,7 @@ scripts/cf-*.mjs
 
 # Research documents (local only)
 docs/research/
+
+# VibeVoice cloned repo (large, not committed)
+playground/vibevoice/vibevoice-repo/
+playground/vibevoice/.venv/

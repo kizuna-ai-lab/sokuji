@@ -1,17 +1,14 @@
 import React from 'react';
-import { createMemoryRouter, RouterProvider } from 'react-router-dom';
+import { createBrowserRouter, createMemoryRouter, RouterProvider } from 'react-router-dom';
 import './App.scss';
 import './locales'; // Initialize i18n
 import { RootLayout } from './layouts/RootLayout';
 import { Home } from './routes/Home';
 import { Dashboard } from './routes/Dashboard';
-import { isExtension } from './utils/environment';
+import { TTSShowcase } from './routes/TTSShowcase';
+import { isCapacitorNative, isElectron, isExtension } from './utils/environment';
 
-const isExtensionEnvironment = isExtension();
-
-// Create the memory router for Chrome extension
-// Memory router is recommended for Chrome extensions as they don't have a URL bar
-const router = createMemoryRouter([
+const appRoutes = [
   {
     path: '/',
     element: <RootLayout />,
@@ -24,9 +21,21 @@ const router = createMemoryRouter([
         path: 'translator',
         element: <Home />,
       },
+      {
+        path: 'tts-showcase',
+        element: <TTSShowcase />,
+      },
     ],
   },
-]);
+];
+
+const usesMemoryRouter = isExtension() || isElectron() || isCapacitorNative();
+
+// Extensions and Electron windows behave best without browser history,
+// while the web/Vercel deployment needs proper URL-based routing.
+const router = usesMemoryRouter
+  ? createMemoryRouter(appRoutes)
+  : createBrowserRouter(appRoutes);
 
 function App() {
   return (

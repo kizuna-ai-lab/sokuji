@@ -1,49 +1,58 @@
 .main-layout {
   display: flex;
   height: 100%;
+  min-height: 100dvh;
   min-height: 0; /* Allow shrinking for nested scrolling */
   width: 100%;
   flex: 1; /* Take up available space from parent */
   background-color: #1e1e1e;
   color: white;
   overflow: hidden; /* Prevent overflow from causing scrollbars on the body */
+
+  @media (max-width: 1100px) {
+    .settings-panel-container {
+      width: min(400px, 38vw);
+      min-width: 320px;
+    }
+  }
   
   /* For small screens, change to a vertical layout with panel taking full width */
   @media (max-width: 768px) {
     flex-direction: column;
+    height: auto;
+    min-height: 100dvh;
+    overflow-x: hidden;
+    overflow-y: auto;
     
     .settings-panel-container {
       width: 100% !important;
       min-width: 100% !important;
       max-width: 100% !important;
-      height: calc(100vh - 120px); /* Full height minus header and audio controls */
+      flex: 0 0 auto;
+      min-height: 0;
+      height: auto;
       border-top: 1px solid #333;
       border-right: none;
     }
     
     .main-content {
-      height: auto;
+      min-height: 0;
+      overflow: visible;
       
       &.with-panel {
-        height: 120px; /* Enough for the header and audio controls */
-        min-height: 120px;
+        flex: 0 0 auto;
+        min-height: 180px;
+        max-height: none;
         border-right: none;
         
         .main-panel-container {
-          display: block; /* Show the main panel content for audio controls */
-          height: 60px; /* Just enough for the audio visualization and controls */
-          overflow: hidden; /* Hide everything else */
+          display: block;
+          height: auto;
+          overflow: visible;
           
-          /* Ensure the audio visualization is visible */
           .main-panel {
-            height: 100%;
-            
-            /* Hide the conversation container when panel is open */
-            .conversation-container {
-              display: none;
-            }
-            
-            /* Ensure audio visualization is positioned correctly */
+            height: auto;
+
             .audio-visualization {
               position: relative;
               bottom: auto;
@@ -52,6 +61,10 @@
           }
         }
       }
+    }
+
+    .main-panel-container {
+      overflow: visible;
     }
   }
   
@@ -75,6 +88,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 12px;
     padding: 10px 20px;
     background-color: #252525;
     border-bottom: 1px solid #333;
@@ -88,6 +102,8 @@
     .header-controls {
       display: flex;
       align-items: center;
+      flex-wrap: wrap;
+      justify-content: flex-end;
       gap: 8px;
       
       .ui-mode-toggle-icon {
@@ -188,5 +204,40 @@
     overflow-y: auto; /* Changed to allow vertical scrolling */
     padding: 0;
     background-color: #252525;
+  }
+
+  @media (max-width: 576px) {
+    .main-panel-header {
+      align-items: flex-start;
+      flex-direction: column;
+      padding: 12px 14px;
+
+      h1 {
+        font-size: 16px;
+      }
+
+      .header-controls {
+        width: 100%;
+        justify-content: space-between;
+
+        .ui-mode-toggle-icon {
+          margin-right: auto;
+        }
+
+        .settings-button,
+        .audio-button,
+        .logs-button {
+          min-height: 36px;
+        }
+      }
+    }
+
+    .main-panel-container {
+      overflow: visible;
+    }
+
+    .settings-panel-container {
+      overflow: visible;
+    }
   }
 }
