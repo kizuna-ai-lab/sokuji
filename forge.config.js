@@ -16,8 +16,9 @@ module.exports = {
       '/public($|/)',
       '!build($|/)',  // Explicitly include the build directory
       
-      // Development dependencies
+      // Development dependencies and build-time-only native modules
       '/node_modules/(@testing-library|jest|eslint|babel).*($|/)',
+      '/node_modules/@parcel/watcher($|/)',
       
       // Development configuration files
       '\\.gitignore',
