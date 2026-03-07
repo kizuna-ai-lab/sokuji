@@ -7,6 +7,73 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Documentation
+
+- **README Translations**: Add Japanese and Chinese README translations under `docs/`
+
+## [0.15.2] - 2026-03-06
+
+### Added
+
+- **Linux ARM64 Releases**: Add ARM64 Linux `.deb` builds to the release workflow
+- **Local Inference Navigation**: Add a clickable validation link that jumps directly to the Models section
+
+### Changed
+
+- **README Positioning**: Rewrite the "Why Sokuji" introduction to emphasize Local Inference first
+- **Kokoro Availability**: Disable the Kokoro TTS model entry in Local Inference
+
+### Fixed
+
+- **Kokoro TTS Languages**: Use the actual supported language values for Kokoro models
+- **Speaker ID Controls**: Show the Speaker ID slider for TTS models without an explicit `modelFile`
+- **Release Assets**: Collect release artifacts with `find` so ARM64 Linux assets are included reliably
+
+## [0.15.1] - 2026-03-05
+
+### Added
+
+- **Provider Tutorials**: Add dismissible tutorial links in provider settings
+
+### Documentation
+
+- **Local Inference README**: Document Local Inference (Edge AI) features in the README
+
+### Fixed
+
+- **Local Inference Branding**: Use the Kizuna AI icon for the Local Inference provider
+- **Provider Tooltip i18n**: Mention Local (Offline) mode in provider tooltips across all locales
+- **Settings Localization**: Replace hardcoded `settingsStore` strings with `i18n.t()` calls
+
+## [0.15.0] - 2026-03-04
+
+### Added
+
+- **Local Inference Provider**: Add an offline/local provider with model selection, download management, progress reporting, and session logging
+- **On-Device Translation Models**: Add Qwen 2.5/3/3.5 and 49 Opus-MT translation models with specialized worker routing
+- **On-Device Speech Stack**: Add Whisper WebGPU/Medium/Turbo ASR, bundled runtime assets, expanded TTS model packs, and per-sentence TTS timing events
+- **Push-to-Talk Offline Mode**: Add Push-to-Talk support for the Local Inference provider
+- **Local Inference i18n**: Add translations for local inference, wallet, model management, and VAD settings
+
+### Changed
+
+- **Model Management**: Reorganize model manifests by hosting source, sort models by type, and derive language options dynamically
+- **Runtime Delivery**: Bundle ASR/TTS JS and WASM assets locally and default model downloads to Hugging Face to avoid CDN/CSP issues
+
+### Fixed
+
+- **Translation/TTS Stability**: Disable Qwen3 thinking mode, guard empty translations, prevent karaoke state resets, and surface ASR/TTS errors in the UI
+- **Model Downloads**: Validate downloaded model files and use accurate per-model file sizes for progress reporting
+- **Build Assets**: Commit missing WASM runtime files and the Silero VAD v5 model required by extension CI builds
+- **Volcengine AST 2.0**: Discard empty subtitle segments caused by false positives from server-side VAD
+- **Electron Linux**: Resolve the DevTools crash on Linux after the Electron 40 upgrade
+
+## [0.14.1] - 2026-02-20
+
+### Fixed
+
+- **PalabraAI Extension CSP**: Use wildcard `https://*.palabra.ai` and `wss://*.palabra.ai` subdomains so LiveKit requests are allowed
+
 ## [0.14.0] - 2026-02-20
 
 ### Added
