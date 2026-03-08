@@ -2050,7 +2050,12 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           target_language: currentSettings.targetLanguage,
           session_id: newSessionId,
           provider: provider,
-          model: (currentSettings as any).model
+          model: (currentSettings as any).model,
+          ...(provider === Provider.LOCAL_INFERENCE && {
+            asr_model: localInferenceSettings.asrModel,
+            translation_model: localInferenceSettings.translationModel || 'auto',
+            tts_model: localInferenceSettings.ttsModel || 'auto',
+          }),
         });
       }
     } else {
