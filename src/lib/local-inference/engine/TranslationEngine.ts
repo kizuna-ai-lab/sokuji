@@ -152,7 +152,7 @@ export class TranslationEngine {
       };
 
       // Send init message with blob URLs + language info + dtype
-      this.worker.postMessage({ type: 'init', hfModelId, fileUrls, sourceLang, targetLang, dtype: entry.dtype });
+      this.worker.postMessage({ type: 'init', hfModelId, fileUrls, sourceLang, targetLang, dtype: entry.dtype, ortWasmBaseUrl: new URL('./wasm/ort/', window.location.href).href });
     });
   }
 

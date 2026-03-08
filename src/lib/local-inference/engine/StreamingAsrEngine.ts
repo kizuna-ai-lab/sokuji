@@ -89,7 +89,7 @@ export class StreamingAsrEngine {
     }
 
     return new Promise((resolve, reject) => {
-      const workerUrl = '/workers/streaming-asr.worker.js';
+      const workerUrl = './workers/streaming-asr.worker.js';
       this.worker = new Worker(workerUrl);
 
       this.worker.onmessage = (event: MessageEvent<StreamingAsrWorkerOutMessage>) => {
@@ -147,7 +147,7 @@ export class StreamingAsrEngine {
         type: 'init',
         fileUrls: dataFileUrls,
         asrEngine: model.asrEngine,
-        runtimeBaseUrl: ASR_STREAM_BUNDLED_RUNTIME_PATH,
+        runtimeBaseUrl: new URL(ASR_STREAM_BUNDLED_RUNTIME_PATH, window.location.href).href,
         dataPackageMetadata,
       });
     });

@@ -30,10 +30,10 @@ import type {
 
 // ─── ORT / Transformers.js env setup ─────────────────────────────────────────
 
-// Disable WASM proxy (we're already in a worker) and use bundled ORT WASM
+// Disable WASM proxy (we're already in a worker).
+// wasmPaths is set in the init handler from the main thread's resolved URL.
 if (env.backends?.onnx?.wasm) {
   env.backends.onnx.wasm.proxy = false;
-  env.backends.onnx.wasm.wasmPaths = '/wasm/ort/';
 }
 
 // Workaround: HF CDN redirects /resolve/main/ → /api/resolve-cache/...
@@ -123,8 +123,8 @@ function vadResetStates() {
   vadSession.state = new Tensor('float32', new Float32Array(2 * 128), [2, 1, 128]);
 }
 
-async function initVad(config?: WhisperAsrInitMessage['vadConfig']): Promise<void> {
-  const session = await InferenceSession.create('/wasm/vad/silero_vad_v5.onnx', {
+async function initVad(config?: WhisperAsrInitMessage['vadConfig'], vadModelUrl?: string): Promise<void> {
+  const session = await InferenceSession.create(vadModelUrl || './wasm/vad/silero_vad_v5.onnx', {
     executionProviders: ['wasm'],
   });
 
@@ -411,6 +411,11 @@ async function handleInit(msg: WhisperAsrInitMessage): Promise<void> {
   try {
     const startTime = performance.now();
 
+    // Set ORT WASM paths from main thread's resolved URL
+    if (msg.ortWasmBaseUrl && env.backends?.onnx?.wasm) {
+      env.backends.onnx.wasm.wasmPaths = msg.ortWasmBaseUrl;
+    }
+
     // 1. Check WebGPU
     const webgpuAvailable = await hasWebGPU();
     const device = webgpuAvailable ? 'webgpu' : 'wasm';
@@ -419,7 +424,7 @@ async function handleInit(msg: WhisperAsrInitMessage): Promise<void> {
 
     // 2. Init Silero VAD + FrameProcessor
     post({type: 'status', message: 'Loading VAD model...'});
-    await initVad(msg.vadConfig);
+    await initVad(msg.vadConfig, msg.vadModelUrl);
 
     // 3. Fix incompatible configs before Transformers.js loads them.
     // Some ONNX conversions (e.g., lite-whisper-*-ONNX) have custom model_type

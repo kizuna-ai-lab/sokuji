@@ -8,11 +8,10 @@
 
 import { pipeline, env } from '@huggingface/transformers';
 
-// Disable WASM proxy (we're already in a worker) and use bundled ORT WASM
-// files instead of fetching from cdn.jsdelivr.net (required for extension CSP).
+// Disable WASM proxy (we're already in a worker).
+// wasmPaths is set in the init handler from the main thread's resolved URL.
 if (env.backends?.onnx?.wasm) {
   env.backends.onnx.wasm.proxy = false;
-  env.backends.onnx.wasm.wasmPaths = '/wasm/ort/';
 }
 
 // ─── Language name map for prompts ─────────────────────────────────────────
@@ -36,6 +35,7 @@ interface InitMessage {
   sourceLang: string;
   targetLang: string;
   dtype?: string;
+  ortWasmBaseUrl?: string;
 }
 
 interface TranslateMessage {
@@ -82,6 +82,11 @@ async function handleInit(msg: InitMessage) {
   try {
     const startTime = performance.now();
     self.postMessage({ type: 'status', status: 'loading', modelId: msg.hfModelId });
+
+    // Set ORT WASM paths from main thread's resolved URL
+    if (msg.ortWasmBaseUrl && env.backends?.onnx?.wasm) {
+      env.backends.onnx.wasm.wasmPaths = msg.ortWasmBaseUrl;
+    }
 
     // WebGPU check
     const gpu = (self as any).navigator?.gpu;

@@ -163,19 +163,19 @@ export function getModelDownloadUrl(
  * These are shipped with the app at build time to avoid Chrome extension
  * restrictions on downloading and executing JS/WASM at runtime.
  */
-export const TTS_BUNDLED_RUNTIME_PATH = '/wasm/sherpa-onnx-tts';
+export const TTS_BUNDLED_RUNTIME_PATH = './wasm/sherpa-onnx-tts';
 
 /**
  * Base path for bundled ASR runtime files (JS/WASM shared across all offline models).
  * Offline ASR includes VAD + OfflineRecognizer.
  */
-export const ASR_BUNDLED_RUNTIME_PATH = '/wasm/sherpa-onnx-asr';
+export const ASR_BUNDLED_RUNTIME_PATH = './wasm/sherpa-onnx-asr';
 
 /**
  * Base path for bundled streaming ASR runtime files (JS/WASM shared across all streaming models).
  * Streaming ASR uses OnlineRecognizer (no VAD).
  */
-export const ASR_STREAM_BUNDLED_RUNTIME_PATH = '/wasm/sherpa-onnx-asr-stream';
+export const ASR_STREAM_BUNDLED_RUNTIME_PATH = './wasm/sherpa-onnx-asr-stream';
 
 // ─── Shared File Lists ───────────────────────────────────────────────────────
 // ASR runtime JS/WASM are bundled with the app (identical across all models).
