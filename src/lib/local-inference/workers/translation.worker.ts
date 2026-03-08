@@ -10,11 +10,10 @@
 import { pipeline, env } from '@huggingface/transformers';
 import type { TranslationPipeline } from '@huggingface/transformers';
 
-// Disable WASM proxy (we're already in a worker) and use bundled ORT WASM
-// files instead of fetching from cdn.jsdelivr.net (required for extension CSP).
+// Disable WASM proxy (we're already in a worker).
+// wasmPaths is set in the init handler from the main thread's resolved URL.
 if (env.backends?.onnx?.wasm) {
   env.backends.onnx.wasm.proxy = false;
-  env.backends.onnx.wasm.wasmPaths = '/wasm/ort/';
 }
 
 /** Detect WebGPU availability in this worker context */
@@ -35,6 +34,7 @@ interface InitMessage {
   fileUrls: Record<string, string>; // filename → blob URL
   sourceLang?: string; // provided by engine, ignored by Opus-MT
   targetLang?: string;
+  ortWasmBaseUrl?: string; // resolved absolute URL for ORT WASM files
 }
 
 interface TranslateMessage {
@@ -96,6 +96,11 @@ async function handleInit(msg: InitMessage) {
   try {
     const startTime = performance.now();
     self.postMessage({ type: 'status', status: 'loading', modelId: msg.hfModelId });
+
+    // Set ORT WASM paths from main thread's resolved URL (handles relative base paths)
+    if (msg.ortWasmBaseUrl && env.backends?.onnx?.wasm) {
+      env.backends.onnx.wasm.wasmPaths = msg.ortWasmBaseUrl;
+    }
 
     // Configure Transformers.js to use our blob URL cache instead of network
     env.allowRemoteModels = false;

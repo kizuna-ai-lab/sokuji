@@ -78,7 +78,7 @@ export class AsrEngine {
           );
           break;
         default: // sherpa-onnx
-          this.worker = new Worker('/workers/asr.worker.js');
+          this.worker = new Worker('./workers/asr.worker.js');
           break;
       }
 
@@ -137,6 +137,8 @@ export class AsrEngine {
           language,
           vadConfig,
           dtype: model.dtype,
+          ortWasmBaseUrl: new URL('./wasm/ort/', window.location.href).href,
+          vadModelUrl: new URL('./wasm/vad/silero_vad_v5.onnx', window.location.href).href,
         });
       } else {
         // sherpa-onnx: extract metadata and pass .data blob URL
@@ -161,7 +163,7 @@ export class AsrEngine {
               fileUrls: dataFileUrls,
               asrEngine: model.asrEngine,
               vadConfig,
-              runtimeBaseUrl: ASR_BUNDLED_RUNTIME_PATH,
+              runtimeBaseUrl: new URL(ASR_BUNDLED_RUNTIME_PATH, window.location.href).href,
               dataPackageMetadata,
             });
           })

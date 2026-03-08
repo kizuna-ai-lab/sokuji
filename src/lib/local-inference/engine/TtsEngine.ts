@@ -86,7 +86,7 @@ export class TtsEngine {
     }
 
     return new Promise((resolve, reject) => {
-      const workerUrl = '/workers/tts.worker.js';
+      const workerUrl = './workers/tts.worker.js';
       this.worker = new Worker(workerUrl);
 
       this.worker.onmessage = (event: MessageEvent<TtsWorkerOutMessage>) => {
@@ -157,7 +157,7 @@ export class TtsEngine {
         modelFile: model.modelFile || '',
         engine: model.engine || '',
         ttsConfig: model.ttsConfig || {},
-        runtimeBaseUrl: TTS_BUNDLED_RUNTIME_PATH,
+        runtimeBaseUrl: new URL(TTS_BUNDLED_RUNTIME_PATH, window.location.href).href,
         dataPackageMetadata,
         fileUrls: dataFileUrls,
       });

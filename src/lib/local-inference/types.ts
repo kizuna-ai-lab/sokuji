@@ -59,6 +59,10 @@ export interface WhisperAsrInitMessage {
   };
   /** ONNX dtype config for WebGPU models */
   dtype?: string | Record<string, string>;
+  /** Resolved absolute URL for bundled ORT WASM files */
+  ortWasmBaseUrl?: string;
+  /** Resolved absolute URL for bundled VAD model */
+  vadModelUrl?: string;
 }
 
 export type AsrWorkerInMessage = AsrInitMessage | WhisperAsrInitMessage | AsrAudioMessage | AsrDisposeMessage;
