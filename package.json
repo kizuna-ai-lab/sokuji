@@ -1,7 +1,7 @@
 {
   "name": "sokuji",
   "productName": "Sokuji",
-  "version": "0.15.2",
+  "version": "0.15.3",
   "private": true,
   "main": "dist-electron/main.js",
   "homepage": "./",
@@ -51,7 +51,8 @@
   },
   "overrides": {
     "form-data": "^4.0.4",
-    "axios": "^1.9.0"
+    "axios": "^1.9.0",
+    "onnxruntime-node": "npm:empty-npm-package@1.0.0"
   },
   "devDependencies": {
     "@electron-forge/cli": "^7.11.1",
