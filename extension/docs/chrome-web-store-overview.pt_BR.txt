@@ -1,0 +1,87 @@
+🗣️ Fale no seu idioma. Seja entendido no deles. Instantaneamente.
+
+Sokuji é um tradutor de voz em tempo real com IA que funciona diretamente nas suas videochamadas — sem apps extras, sem copiar e colar, sem pausas constrangedoras. Apenas fale naturalmente e suas palavras serão traduzidas e faladas em voz alta no idioma do seu colega, em tempo real.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ POR QUE SOKUJI?
+
+Diferente de tradutores de texto ou bots de reunião desajeitados, o Sokuji oferece tradução de voz para voz que flui naturalmente na sua conversa:
+
+• Tradução de voz em tempo real — Sua fala é traduzida E falada em voz alta, não apenas exibida como texto
+• Microfone virtual — Os outros ouvem a tradução diretamente pelo áudio da reunião, sem necessidade de configuração do lado deles
+• Funciona dentro das suas reuniões — Sem janela separada, sem compartilhar tela, integração perfeita
+• Múltiplos motores de IA — Escolha entre OpenAI, Google Gemini, Volcengine (ByteDance Doubao), Palabra AI ou Kizuna AI conforme suas necessidades
+• Modelos de IA offline — Execute a tradução inteiramente no seu dispositivo com modelos de IA integrados, totalmente grátis, sem necessidade de chave API ou internet
+• Privacidade por design — Sua voz NUNCA passa pelos nossos servidores. Nem mesmo nós conseguimos ouvir suas conversas
+• Mais de 35 idiomas — De português, inglês, japonês a árabe, hindi e muito mais
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🖥️ FUNCIONA ONDE VOCÊ TRABALHA
+
+Sokuji se integra com todas as principais plataformas de reunião:
+
+• Google Meet
+• Microsoft Teams
+• Zoom (Web)
+• Slack Huddles
+• Discord Voice
+• Gather Town
+• Whereby
+• Jitsi Meet
+• E mais...
+
+Basta selecionar "Sokuji Virtual Microphone" nas configurações de áudio da sua reunião e pronto.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🚀 COMO FUNCIONA (3 Passos Simples)
+
+1. Abra sua videochamada em qualquer plataforma compatível
+2. Clique no ícone do Sokuji e configure seu provedor de IA e idiomas
+3. Selecione "Sokuji Virtual Microphone" como seu microfone — pronto!
+
+Seus colegas ouvem a voz traduzida automaticamente. Nenhuma instalação ou configuração necessária do lado deles.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+💡 PERFEITO PARA
+
+• Equipes internacionais com reuniões diárias
+• Chamadas com clientes através de barreiras linguísticas
+• Conferências e webinars globais
+• Trabalhadores remotos colaborando entre países
+• Estudantes de idiomas praticando em conversas reais
+• Criadores de conteúdo trabalhando com colaboradores internacionais
+• Organizações preocupadas com privacidade que não podem enviar áudio para servidores de terceiros
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🔒 PRIVACIDADE EM PRIMEIRO — SUA VOZ É SUA
+
+Sokuji é construído para que seus dados de voz NUNCA toquem nossos servidores. Por arquitetura, não por política.
+
+• Zero coleta de dados — Não temos nenhum servidor que receba seu áudio. É tecnicamente impossível para nós ouvir suas conversas
+• Modo IA offline — Use modelos de IA integrados que funcionam 100% no seu dispositivo. Sua voz nunca sai do seu computador. Completamente grátis
+• Modo IA na nuvem — Ao usar OpenAI ou Gemini, você usa SUAS PRÓPRIAS chaves API. Os dados fluem diretamente entre você e seu provedor de IA escolhido — nunca estamos no meio
+• Sem terceiros — Sua voz só é ouvida pelos participantes da reunião e (se você escolher IA na nuvem) seu provedor de IA selecionado. Mais ninguém. Nunca
+• Código aberto — Não precisa acreditar na nossa palavra. Inspecione o código você mesmo em github.com/kizuna-ai-lab/sokuji
+• Sem necessidade de conta para uso básico
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🌐 DISPONÍVEL COMO
+
+• Extensão de navegador Chrome/Edge (esta listagem)
+• Aplicativo desktop para Windows, macOS e Linux
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+💬 FEEDBACK E SUPORTE
+
+Adoraríamos ouvir de você!
+• Reportar problemas: github.com/kizuna-ai-lab/sokuji/issues
+• Dê-nos uma estrela no GitHub se o Sokuji for útil para você ⭐
+
+Made with ❤️ by Kizuna AI Lab

@@ -1,0 +1,87 @@
+🗣️ Sprich deine Sprache. Werde in ihrer verstanden. Sofort.
+
+Sokuji ist ein KI-gestützter Echtzeit-Sprachübersetzer, der direkt in deinen Videomeetings funktioniert — keine zusätzlichen Apps, kein Kopieren und Einfügen, keine peinlichen Pausen. Sprich einfach natürlich, und deine Worte werden in Echtzeit übersetzt und in der Sprache deines Gesprächspartners laut vorgelesen.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ WARUM SOKUJI?
+
+Im Gegensatz zu textbasierten Übersetzern oder umständlichen Meeting-Bots bietet Sokuji eine Sprache-zu-Sprache-Übersetzung, die sich natürlich in dein Gespräch einfügt:
+
+• Echtzeit-Sprachübersetzung — Deine Rede wird übersetzt UND laut vorgelesen, nicht nur als Text angezeigt
+• Virtuelles Mikrofon — Andere hören die Übersetzung direkt über das Meeting-Audio, kein Setup auf deren Seite nötig
+• Funktioniert in deinen Meetings — Kein separates Fenster, kein Bildschirm-Teilen, nahtlose Integration
+• Mehrere KI-Engines — Wähle zwischen OpenAI, Google Gemini, Volcengine (ByteDance Doubao), Palabra AI oder Kizuna AI nach deinen Bedürfnissen
+• Offline-KI-Modelle — Führe die Übersetzung vollständig auf deinem Gerät mit integrierten KI-Modellen aus, komplett kostenlos, kein API-Schlüssel nötig, kein Internet erforderlich
+• Datenschutz by Design — Deine Stimme passiert NIEMALS unsere Server. Nicht einmal wir können deine Gespräche hören
+• 35+ Sprachen unterstützt — Von Deutsch, Englisch, Japanisch bis Arabisch, Hindi und darüber hinaus
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🖥️ FUNKTIONIERT WO DU ARBEITEST
+
+Sokuji integriert sich mit allen großen Meeting-Plattformen:
+
+• Google Meet
+• Microsoft Teams
+• Zoom (Web)
+• Slack Huddles
+• Discord Voice
+• Gather Town
+• Whereby
+• Jitsi Meet
+• Und mehr...
+
+Wähle einfach „Sokuji Virtual Microphone" in den Audioeinstellungen deines Meetings und los geht's.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🚀 SO FUNKTIONIERT ES (3 Einfache Schritte)
+
+1. Öffne dein Videomeeting auf einer unterstützten Plattform
+2. Klicke auf das Sokuji-Symbol und konfiguriere deinen KI-Anbieter und die Sprachen
+3. Wähle „Sokuji Virtual Microphone" als dein Mikrofon — fertig!
+
+Deine Kollegen hören die übersetzte Stimme automatisch. Keine Installation oder Einrichtung auf deren Seite nötig.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+💡 PERFEKT FÜR
+
+• Internationale Teams mit täglichen Standups und Meetings
+• Kundengespräche über Sprachbarrieren hinweg
+• Globale Konferenzen und Webinare
+• Remote-Arbeiter, die länderübergreifend zusammenarbeiten
+• Sprachlerner, die in echten Gesprächen üben
+• Content-Creator, die mit internationalen Partnern arbeiten
+• Datenschutzbewusste Organisationen, die kein Audio an Drittanbieter-Server senden können
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🔒 DATENSCHUTZ ZUERST — DEINE STIMME GEHÖRT DIR
+
+Sokuji ist so gebaut, dass deine Sprachdaten NIEMALS unsere Server berühren. Durch Architektur, nicht durch Richtlinien.
+
+• Null Datenerfassung — Wir haben keinen Server, der dein Audio empfängt. Es ist technisch unmöglich, dass wir deine Gespräche hören
+• Offline-KI-Modus — Nutze integrierte KI-Modelle, die zu 100% auf deinem Gerät laufen. Deine Stimme verlässt nie deinen Computer. Komplett kostenlos
+• Cloud-KI-Modus — Bei Nutzung von OpenAI oder Gemini verwendest du DEINE EIGENEN API-Schlüssel. Daten fließen direkt zwischen dir und deinem gewählten KI-Anbieter — wir sind nie dazwischen
+• Keine Drittparteien — Deine Stimme wird nur von Meeting-Teilnehmern und (falls du Cloud-KI wählst) deinem ausgewählten KI-Anbieter gehört. Von niemandem sonst. Niemals
+• Open Source — Glaub uns nicht einfach. Überprüfe den Code selbst auf github.com/kizuna-ai-lab/sokuji
+• Kein Konto für die Grundnutzung erforderlich
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🌐 VERFÜGBAR ALS
+
+• Chrome/Edge Browser-Erweiterung (dieses Listing)
+• Desktop-App für Windows, macOS und Linux
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+💬 FEEDBACK & SUPPORT
+
+Wir freuen uns über dein Feedback!
+• Probleme melden: github.com/kizuna-ai-lab/sokuji/issues
+• Gib uns einen Stern auf GitHub, wenn dir Sokuji hilft ⭐
+
+Made with ❤️ by Kizuna AI Lab

@@ -1,0 +1,87 @@
+🗣️ Habla en tu idioma. Que te entiendan en el suyo. Al instante.
+
+Sokuji es un traductor de voz en tiempo real impulsado por IA que funciona directamente dentro de tus videollamadas — sin apps adicionales, sin copiar y pegar, sin pausas incómodas. Solo habla con naturalidad y tus palabras serán traducidas y pronunciadas en voz alta en el idioma de tu compañero, en tiempo real.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ ¿POR QUÉ SOKUJI?
+
+A diferencia de los traductores de texto o los bots de reunión poco prácticos, Sokuji ofrece traducción de voz a voz que fluye naturalmente en tu conversación:
+
+• Traducción de voz en tiempo real — Tu discurso es traducido Y pronunciado en voz alta, no solo mostrado como texto
+• Micrófono virtual — Los demás escuchan la traducción directamente a través del audio de la reunión, sin necesidad de configuración de su parte
+• Funciona dentro de tus reuniones — Sin ventanas separadas, sin compartir pantalla, integración perfecta
+• Múltiples motores de IA — Elige entre OpenAI, Google Gemini, Volcengine (ByteDance Doubao), Palabra AI o Kizuna AI según tus necesidades
+• Modelos de IA offline — Ejecuta la traducción completamente en tu dispositivo con modelos de IA integrados, totalmente gratis, sin necesidad de clave API ni de internet
+• Privacidad por diseño — Tu voz NUNCA pasa por nuestros servidores. Ni siquiera nosotros podemos escuchar tus conversaciones
+• Más de 35 idiomas — Desde español, inglés, japonés hasta árabe, hindi y más
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🖥️ FUNCIONA DONDE TÚ TRABAJAS
+
+Sokuji se integra con todas las principales plataformas de reuniones:
+
+• Google Meet
+• Microsoft Teams
+• Zoom (Web)
+• Slack Huddles
+• Discord Voice
+• Gather Town
+• Whereby
+• Jitsi Meet
+• Y más...
+
+Solo selecciona "Sokuji Virtual Microphone" en la configuración de audio de tu reunión y estarás listo.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🚀 CÓMO FUNCIONA (3 Pasos Simples)
+
+1. Abre tu videollamada en cualquier plataforma compatible
+2. Haz clic en el icono de Sokuji y configura tu proveedor de IA e idiomas
+3. Selecciona "Sokuji Virtual Microphone" como tu micrófono — ¡listo!
+
+Tus colegas escuchan la voz traducida automáticamente. No necesitan instalar ni configurar nada de su lado.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+💡 PERFECTO PARA
+
+• Equipos internacionales con reuniones diarias
+• Llamadas con clientes en diferentes idiomas
+• Conferencias y webinars globales
+• Trabajadores remotos colaborando entre países
+• Estudiantes de idiomas practicando en conversaciones reales
+• Creadores de contenido trabajando con colaboradores internacionales
+• Organizaciones preocupadas por la privacidad que no pueden enviar audio a servidores de terceros
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🔒 PRIVACIDAD PRIMERO — TU VOZ ES TUYA
+
+Sokuji está diseñado para que tus datos de voz NUNCA toquen nuestros servidores. Por arquitectura, no por política.
+
+• Cero recopilación de datos — No tenemos ningún servidor que reciba tu audio. Es técnicamente imposible que escuchemos tus conversaciones
+• Modo IA offline — Usa modelos de IA integrados que funcionan 100% en tu dispositivo. Tu voz nunca sale de tu ordenador. Completamente gratis
+• Modo IA en la nube — Al usar OpenAI o Gemini, usas TUS PROPIAS claves API. Los datos fluyen directamente entre tú y tu proveedor de IA elegido — nosotros nunca estamos en medio
+• Sin terceros — Tu voz solo la escuchan los participantes de la reunión y (si eliges IA en la nube) tu proveedor de IA seleccionado. Nadie más. Nunca
+• Código abierto — No tienes que creer en nuestra palabra. Inspecciona el código tú mismo en github.com/kizuna-ai-lab/sokuji
+• Sin necesidad de cuenta para el uso básico
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🌐 DISPONIBLE COMO
+
+• Extensión de navegador Chrome/Edge (este listado)
+• Aplicación de escritorio para Windows, macOS y Linux
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+💬 COMENTARIOS Y SOPORTE
+
+¡Nos encantaría saber de ti!
+• Reportar problemas: github.com/kizuna-ai-lab/sokuji/issues
+• Danos una estrella en GitHub si Sokuji te resulta útil ⭐
+
+Made with ❤️ by Kizuna AI Lab
