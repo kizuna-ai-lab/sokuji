@@ -86,7 +86,7 @@ function createApplicationMenu() {
               type: 'info',
               title: `About ${app.getName()}`,
               message: 'Sokuji - Real-time AI Translation',
-              detail: `Version: ${app.getVersion()}\n\nAI-powered real-time translation application\n\n© 2024 Kizuna AI Lab`,
+              detail: `Version: ${app.getVersion()}\n\nAI-powered real-time translation application\n\n© 2026 Kizuna AI Lab`,
               buttons: ['OK'],
               icon: path.join(__dirname, '../assets/icon.png')
             });
@@ -183,7 +183,7 @@ function createApplicationMenu() {
               type: 'info',
               title: `About ${app.getName()}`,
               message: 'Sokuji - Real-time AI Translation',
-              detail: `Version: ${app.getVersion()}\n\nAI-powered real-time translation application\n\n© 2024 Kizuna AI Lab`,
+              detail: `Version: ${app.getVersion()}\n\nAI-powered real-time translation application\n\n© 2026 Kizuna AI Lab`,
               buttons: ['OK'],
               icon: path.join(__dirname, '../assets/icon.png')
             });
