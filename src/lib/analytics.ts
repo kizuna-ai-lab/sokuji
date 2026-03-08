@@ -26,13 +26,16 @@ export interface AnalyticsEvents {
   };
   
   // Translation sessions
-  'translation_session_start': { 
-    source_language: string; 
+  'translation_session_start': {
+    source_language: string;
     target_language: string;
     session_id: string;
     provider: string;
     model?: string;
     vad_mode?: string;
+    asr_model?: string;
+    translation_model?: string;
+    tts_model?: string;
   };
   'translation_session_end': { 
     session_id: string;
