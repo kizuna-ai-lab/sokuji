@@ -1,0 +1,87 @@
+🗣️ Nói bằng ngôn ngữ của bạn. Được hiểu bằng ngôn ngữ của họ. Ngay lập tức.
+
+Sokuji là công cụ dịch giọng nói thời gian thực được hỗ trợ bởi AI, hoạt động trực tiếp trong các cuộc họp video của bạn — không cần ứng dụng bổ sung, không cần sao chép-dán, không có khoảng lặng khó xử. Chỉ cần nói tự nhiên, lời nói của bạn sẽ được dịch và phát thành tiếng bằng ngôn ngữ của đồng nghiệp, trong thời gian thực.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ TẠI SAO CHỌN SOKUJI?
+
+Khác với các công cụ dịch văn bản hay bot họp cồng kềnh, Sokuji cung cấp dịch giọng nói sang giọng nói, hòa nhập tự nhiên vào cuộc trò chuyện của bạn:
+
+• Dịch giọng nói thời gian thực — Lời nói của bạn được dịch VÀ đọc thành tiếng, không chỉ hiển thị dưới dạng văn bản
+• Micro ảo — Người khác nghe bản dịch trực tiếp qua âm thanh cuộc họp, không cần thiết lập gì ở phía họ
+• Hoạt động ngay trong cuộc họp — Không cần cửa sổ riêng, không cần chia sẻ màn hình, tích hợp liền mạch
+• Nhiều engine AI — Chọn từ OpenAI, Google Gemini, Volcengine (ByteDance Doubao), Palabra AI hoặc Kizuna AI theo nhu cầu của bạn
+• Mô hình AI ngoại tuyến — Chạy dịch thuật hoàn toàn trên thiết bị của bạn với các mô hình AI tích hợp sẵn, hoàn toàn miễn phí, không cần API key, không cần internet
+• Quyền riêng tư từ thiết kế — Giọng nói của bạn KHÔNG BAO GIỜ đi qua máy chủ của chúng tôi. Ngay cả chúng tôi cũng không thể nghe cuộc trò chuyện của bạn
+• Hỗ trợ hơn 35 ngôn ngữ — Từ tiếng Việt, tiếng Anh, tiếng Nhật đến tiếng Ả Rập, tiếng Hindi và nhiều hơn nữa
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🖥️ HOẠT ĐỘNG Ở NƠI BẠN LÀM VIỆC
+
+Sokuji tích hợp với tất cả các nền tảng họp chính:
+
+• Google Meet
+• Microsoft Teams
+• Zoom (Web)
+• Slack Huddles
+• Discord Voice
+• Gather Town
+• Whereby
+• Jitsi Meet
+• Và nhiều hơn nữa...
+
+Chỉ cần chọn "Sokuji Virtual Microphone" trong cài đặt âm thanh cuộc họp, và bạn đã sẵn sàng.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🚀 CÁCH HOẠT ĐỘNG (3 Bước Đơn Giản)
+
+1. Mở cuộc họp video trên bất kỳ nền tảng được hỗ trợ nào
+2. Nhấp vào biểu tượng Sokuji và cấu hình nhà cung cấp AI & ngôn ngữ
+3. Chọn "Sokuji Virtual Microphone" làm micro — xong!
+
+Đồng nghiệp của bạn tự động nghe giọng nói đã dịch. Không cần cài đặt hay thiết lập gì ở phía họ.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+💡 PHÙ HỢP VỚI
+
+• Đội ngũ quốc tế có cuộc họp hàng ngày
+• Cuộc gọi khách hàng vượt qua rào cản ngôn ngữ
+• Hội nghị và hội thảo trực tuyến toàn cầu
+• Nhân viên làm việc từ xa hợp tác xuyên quốc gia
+• Người học ngoại ngữ thực hành trong cuộc hội thoại thực
+• Nhà sáng tạo nội dung làm việc với cộng tác viên quốc tế
+• Tổ chức chú trọng quyền riêng tư, không thể gửi âm thanh đến máy chủ bên thứ ba
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🔒 QUYỀN RIÊNG TƯ LÀ TRÊN HẾT — GIỌNG NÓI CỦA BẠN THUỘC VỀ BẠN
+
+Sokuji được xây dựng để dữ liệu giọng nói của bạn KHÔNG BAO GIỜ chạm đến máy chủ của chúng tôi. Bằng kiến trúc, không phải bằng chính sách.
+
+• Không thu thập dữ liệu — Chúng tôi không có máy chủ nào nhận âm thanh của bạn. Về mặt kỹ thuật, chúng tôi không thể nghe cuộc trò chuyện của bạn
+• Chế độ AI ngoại tuyến — Sử dụng mô hình AI tích hợp chạy 100% trên thiết bị của bạn. Giọng nói không bao giờ rời khỏi máy tính. Hoàn toàn miễn phí
+• Chế độ AI đám mây — Khi sử dụng OpenAI hoặc Gemini, bạn dùng API key CỦA CHÍNH BẠN. Dữ liệu truyền trực tiếp giữa bạn và nhà cung cấp AI đã chọn — chúng tôi không bao giờ ở giữa
+• Không bên thứ ba — Giọng nói của bạn chỉ được nghe bởi người tham gia cuộc họp và (nếu bạn chọn AI đám mây) nhà cung cấp AI đã chọn. Không ai khác. Không bao giờ
+• Mã nguồn mở — Đừng chỉ tin lời chúng tôi. Tự kiểm tra mã nguồn tại github.com/kizuna-ai-lab/sokuji
+• Không cần tài khoản cho việc sử dụng cơ bản
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🌐 CÓ SẴN DƯỚI DẠNG
+
+• Tiện ích mở rộng trình duyệt Chrome/Edge (trang này)
+• Ứng dụng máy tính cho Windows, macOS và Linux
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+💬 GÓP Ý & HỖ TRỢ
+
+Chúng tôi rất muốn nghe từ bạn!
+• Báo cáo vấn đề: github.com/kizuna-ai-lab/sokuji/issues
+• Cho chúng tôi một ngôi sao trên GitHub nếu bạn thấy Sokuji hữu ích ⭐
+
+Made with ❤️ by Kizuna AI Lab

@@ -1,0 +1,87 @@
+🗣️ Parlez votre langue. Soyez compris dans la leur. Instantanément.
+
+Sokuji est un traducteur vocal en temps réel propulsé par l'IA qui fonctionne directement dans vos visioconférences — pas d'application supplémentaire, pas de copier-coller, pas de pauses gênantes. Parlez naturellement et vos mots sont traduits et prononcés à voix haute dans la langue de votre interlocuteur, en temps réel.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ POURQUOI SOKUJI ?
+
+Contrairement aux traducteurs textuels ou aux bots de réunion peu pratiques, Sokuji offre une traduction voix-à-voix qui s'intègre naturellement dans votre conversation :
+
+• Traduction vocale en temps réel — Votre parole est traduite ET prononcée à voix haute, pas simplement affichée en texte
+• Microphone virtuel — Les autres entendent la traduction directement via l'audio de la réunion, aucune configuration de leur côté
+• Fonctionne dans vos réunions — Pas de fenêtre séparée, pas de partage d'écran, intégration transparente
+• Plusieurs moteurs d'IA — Choisissez entre OpenAI, Google Gemini, Volcengine (ByteDance Doubao), Palabra AI ou Kizuna AI selon vos besoins
+• Modèles d'IA hors ligne — Exécutez la traduction entièrement sur votre appareil avec des modèles d'IA intégrés, totalement gratuit, sans clé API ni connexion internet
+• Confidentialité par conception — Votre voix ne passe JAMAIS par nos serveurs. Même nous ne pouvons pas entendre vos conversations
+• Plus de 35 langues — Du français, anglais, japonais à l'arabe, l'hindi et bien d'autres
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🖥️ FONCTIONNE LÀ OÙ VOUS TRAVAILLEZ
+
+Sokuji s'intègre avec toutes les principales plateformes de réunion :
+
+• Google Meet
+• Microsoft Teams
+• Zoom (Web)
+• Slack Huddles
+• Discord Voice
+• Gather Town
+• Whereby
+• Jitsi Meet
+• Et plus encore...
+
+Sélectionnez simplement « Sokuji Virtual Microphone » dans les paramètres audio de votre réunion et c'est parti.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🚀 COMMENT ÇA MARCHE (3 Étapes Simples)
+
+1. Ouvrez votre visioconférence sur n'importe quelle plateforme compatible
+2. Cliquez sur l'icône Sokuji et configurez votre fournisseur d'IA et vos langues
+3. Sélectionnez « Sokuji Virtual Microphone » comme microphone — c'est fait !
+
+Vos collègues entendent automatiquement la voix traduite. Aucune installation ni configuration nécessaire de leur côté.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+💡 PARFAIT POUR
+
+• Les équipes internationales avec des réunions quotidiennes
+• Les appels clients à travers les barrières linguistiques
+• Les conférences et webinaires internationaux
+• Les travailleurs à distance collaborant entre pays
+• Les apprenants en langues pratiquant dans des conversations réelles
+• Les créateurs de contenu travaillant avec des collaborateurs internationaux
+• Les organisations soucieuses de la confidentialité ne pouvant pas envoyer d'audio à des serveurs tiers
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🔒 CONFIDENTIALITÉ D'ABORD — VOTRE VOIX VOUS APPARTIENT
+
+Sokuji est conçu pour que vos données vocales ne touchent JAMAIS nos serveurs. Par architecture, pas par politique.
+
+• Zéro collecte de données — Nous n'avons aucun serveur qui reçoit votre audio. Il est techniquement impossible pour nous d'entendre vos conversations
+• Mode IA hors ligne — Utilisez des modèles d'IA intégrés qui fonctionnent à 100% sur votre appareil. Votre voix ne quitte jamais votre ordinateur. Entièrement gratuit
+• Mode IA cloud — Lorsque vous utilisez OpenAI ou Gemini, vous utilisez VOS PROPRES clés API. Les données circulent directement entre vous et votre fournisseur d'IA — nous ne sommes jamais au milieu
+• Aucun tiers — Votre voix n'est entendue que par les participants à la réunion et (si vous choisissez l'IA cloud) votre fournisseur d'IA sélectionné. Personne d'autre. Jamais
+• Open source — Ne nous croyez pas sur parole. Inspectez le code vous-même sur github.com/kizuna-ai-lab/sokuji
+• Aucun compte requis pour l'utilisation de base
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🌐 DISPONIBLE EN
+
+• Extension navigateur Chrome/Edge (cette page)
+• Application de bureau pour Windows, macOS et Linux
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+💬 RETOURS ET SUPPORT
+
+Nous serions ravis de vous entendre !
+• Signaler des problèmes : github.com/kizuna-ai-lab/sokuji/issues
+• Donnez-nous une étoile sur GitHub si Sokuji vous est utile ⭐
+
+Made with ❤️ by Kizuna AI Lab
