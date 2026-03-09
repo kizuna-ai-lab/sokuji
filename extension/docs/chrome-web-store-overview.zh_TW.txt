@@ -20,19 +20,7 @@ Sokuji 是一款 AI 驅動的即時語音翻譯工具，直接在你的視訊會
 
 🖥️ 在你常用的平台上運作
 
-Sokuji 與所有主流會議平台整合：
-
-• Google Meet
-• Microsoft Teams
-• Zoom（網頁版）
-• Slack Huddles
-• Discord 語音
-• Gather Town
-• Whereby
-• Jitsi Meet
-• 以及更多...
-
-只需在會議的音訊設定中選擇「Sokuji Virtual Microphone」，即可開始使用。
+Sokuji 與所有主流網頁視訊會議平台無縫配合。無論是團隊例會、客戶溝通還是線上會議，只需在會議的音訊設定中選擇「Sokuji Virtual Microphone」即可開始使用。它支援任何允許選擇麥克風的網頁會議工具。
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 

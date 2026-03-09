@@ -20,19 +20,7 @@ Sokujiは、ビデオ会議の中で直接動くAIリアルタイム音声翻訳
 
 🖥️ お使いのプラットフォームで動作
 
-Sokujiは主要な会議プラットフォームすべてに対応：
-
-• Google Meet
-• Microsoft Teams
-• Zoom（Web版）
-• Slack ハドル
-• Discord ボイス
-• Gather Town
-• Whereby
-• Jitsi Meet
-• その他多数...
-
-会議の音声設定で「Sokuji Virtual Microphone」を選ぶだけで準備完了。
+Sokujiは主要なウェブベースのビデオ会議プラットフォームとシームレスに連携します。チームミーティング、クライアントとの打ち合わせ、バーチャル会議など、どんな場面でも会議の音声設定で「Sokuji Virtual Microphone」を選ぶだけで準備完了。マイク選択が可能なウェブベースの会議ツールすべてに対応しています。
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 

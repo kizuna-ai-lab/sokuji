@@ -20,19 +20,7 @@ Diferente de tradutores de texto ou bots de reunião desajeitados, o Sokuji ofer
 
 🖥️ FUNCIONA ONDE VOCÊ TRABALHA
 
-Sokuji se integra com todas as principais plataformas de reunião:
-
-• Google Meet
-• Microsoft Teams
-• Zoom (Web)
-• Slack Huddles
-• Discord Voice
-• Gather Town
-• Whereby
-• Jitsi Meet
-• E mais...
-
-Basta selecionar "Sokuji Virtual Microphone" nas configurações de áudio da sua reunião e pronto.
+Sokuji funciona perfeitamente com todas as principais plataformas de videochamada baseadas na web. Seja uma reunião de equipe, uma ligação com cliente ou uma conferência virtual, basta selecionar "Sokuji Virtual Microphone" nas configurações de áudio da sua reunião e pronto. É compatível com qualquer ferramenta de reunião web que permita a seleção de microfone.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 

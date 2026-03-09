@@ -20,19 +20,7 @@ Khác với các công cụ dịch văn bản hay bot họp cồng kềnh, Sokuj
 
 🖥️ HOẠT ĐỘNG Ở NƠI BẠN LÀM VIỆC
 
-Sokuji tích hợp với tất cả các nền tảng họp chính:
-
-• Google Meet
-• Microsoft Teams
-• Zoom (Web)
-• Slack Huddles
-• Discord Voice
-• Gather Town
-• Whereby
-• Jitsi Meet
-• Và nhiều hơn nữa...
-
-Chỉ cần chọn "Sokuji Virtual Microphone" trong cài đặt âm thanh cuộc họp, và bạn đã sẵn sàng.
+Sokuji hoạt động mượt mà với tất cả các nền tảng họp video chính trên web. Dù là cuộc họp nhóm, cuộc gọi với khách hàng hay hội nghị trực tuyến, chỉ cần chọn "Sokuji Virtual Microphone" trong cài đặt âm thanh cuộc họp và bạn đã sẵn sàng. Sokuji hỗ trợ bất kỳ công cụ họp trên web nào cho phép chọn micro.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
