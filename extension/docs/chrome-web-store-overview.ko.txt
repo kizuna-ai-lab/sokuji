@@ -20,19 +20,7 @@ Sokuji는 비디오 회의 안에서 직접 작동하는 AI 기반 실시간 음
 
 🖥️ 사용하는 플랫폼에서 작동
 
-Sokuji는 모든 주요 회의 플랫폼과 통합됩니다:
-
-• Google Meet
-• Microsoft Teams
-• Zoom (웹)
-• Slack Huddles
-• Discord 음성
-• Gather Town
-• Whereby
-• Jitsi Meet
-• 그 외 다수...
-
-회의 오디오 설정에서 "Sokuji Virtual Microphone"을 선택하면 바로 사용할 수 있습니다.
+Sokuji는 모든 주요 웹 기반 화상 회의 플랫폼과 매끄럽게 연동됩니다. 팀 미팅, 고객 회의, 온라인 컨퍼런스 등 어떤 상황에서든 회의 오디오 설정에서 "Sokuji Virtual Microphone"을 선택하면 바로 사용할 수 있습니다. 마이크 선택이 가능한 모든 웹 기반 회의 도구를 지원합니다.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
