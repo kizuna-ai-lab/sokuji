@@ -21,13 +21,23 @@ const ToggleSwitch: React.FC<ToggleSwitchProps> = ({
   tooltipMaxWidth = 300,
   className = ''
 }) => {
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === ' ' || e.key === 'Enter') {
+      e.preventDefault();
+      onChange();
+    }
+  };
+
   return (
     <div className={`toggle-switch-component ${className}`}>
       <div
         className={`toggle-switch-label ${disabled ? 'disabled' : ''}`}
         onClick={disabled ? undefined : onChange}
+        onKeyDown={disabled ? undefined : handleKeyDown}
         role="switch"
         aria-checked={checked}
+        aria-disabled={disabled}
+        tabIndex={disabled ? -1 : 0}
       >
         <div className="toggle-track-container">
           <input
