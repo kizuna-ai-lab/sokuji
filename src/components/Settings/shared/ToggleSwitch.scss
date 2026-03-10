@@ -11,6 +11,12 @@
     cursor: pointer;
     user-select: none;
 
+    &:focus-visible {
+      outline: 2px solid #10a37f;
+      outline-offset: 2px;
+      border-radius: 4px;
+    }
+
     &.disabled {
       cursor: not-allowed;
       opacity: 0.5;
