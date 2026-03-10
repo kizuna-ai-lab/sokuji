@@ -354,7 +354,12 @@ const MainPanel: React.FC<MainPanelProps> = () => {
    */
   useEffect(() => {
     if (!isSessionActive || !audioServiceRef.current) return;
-    audioServiceRef.current.getRecorder().setNoiseSuppressionEnabled(isNoiseSuppressEnabled);
+    void audioServiceRef.current
+      .getRecorder()
+      .setNoiseSuppressionEnabled(isNoiseSuppressEnabled)
+      .catch((error: unknown) => {
+        console.error('[Sokuji] [MainPanel] Failed to set noise suppression:', error);
+      });
   }, [isNoiseSuppressEnabled, isSessionActive]);
 
   /**
