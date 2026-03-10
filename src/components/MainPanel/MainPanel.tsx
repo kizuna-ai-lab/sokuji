@@ -21,7 +21,7 @@ import {
   useTransportType
 } from '../../stores/settingsStore';
 import { useSession } from '../../stores/sessionStore';
-import { useAudioContext } from '../../stores/audioStore';
+import { useAudioContext, useIsNoiseSuppressEnabled } from '../../stores/audioStore';
 import { useLogActions } from '../../stores/logStore';
 import type { RealtimeEvent } from '../../stores/logStore';
 import { IClient, ConversationItem, SessionConfig, ClientEventHandlers, ClientFactory, ResponseConfig } from '../../services/clients';
@@ -40,6 +40,7 @@ import SimpleMainPanel from '../SimpleMainPanel/SimpleMainPanel';
 import { useAuth } from '../../lib/auth/hooks';
 import { useUserProfile } from '../../contexts/UserProfileContext';
 import { isExtension } from '../../utils/environment';
+import { NoiseSuppression } from '../../services/noise-suppression';
 
 
 /**
@@ -138,6 +139,10 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     isSystemAudioCaptureEnabled,
     participantAudioOutputDevice
   } = useAudioContext();
+
+  // Noise suppression
+  const isNoiseSuppressEnabled = useIsNoiseSuppressEnabled();
+  const noiseSuppressionRef = useRef<NoiseSuppression | null>(null);
 
   // canPushToTalk is true when manual turn detection is used
   // (OpenAI-compatible: 'Disabled', Volcengine AST2: 'Push-to-Talk')
@@ -347,6 +352,36 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   }, [isRealVoicePassthroughEnabled, realVoicePassthroughVolume, selectedInputDevice, selectedMonitorDevice, isMonitorDeviceOn]);
 
   /**
+   * Handle noise suppression toggle during active session
+   */
+  useEffect(() => {
+    if (!isSessionActive || !audioServiceRef.current) return;
+
+    const ns = noiseSuppressionRef.current;
+
+    if (isNoiseSuppressEnabled) {
+      if (ns) {
+        // Already initialized, just enable
+        ns.setEnabled(true);
+      } else {
+        // Initialize and attach
+        const newNs = new NoiseSuppression();
+        newNs.initialize().then(() => {
+          newNs.setEnabled(true);
+          noiseSuppressionRef.current = newNs;
+          audioServiceRef.current?.getRecorder().setNoiseSuppression(newNs);
+          console.info('[Sokuji] [MainPanel] Noise suppression enabled mid-session');
+        }).catch(error => {
+          console.error('[Sokuji] [MainPanel] Failed to initialize noise suppression mid-session:', error);
+        });
+      }
+    } else if (ns) {
+      ns.setEnabled(false);
+      console.info('[Sokuji] [MainPanel] Noise suppression disabled mid-session');
+    }
+  }, [isNoiseSuppressEnabled, isSessionActive]);
+
+  /**
    * Check for potential audio feedback and show warning
    */
   useEffect(() => {
@@ -414,7 +449,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
   // Reference to audio service for accessing ModernAudioPlayer
   const audioServiceRef = useRef<IAudioService | null>(null);
-  
+
   // Reference to track push-to-talk duration
   const pushToTalkStartTimeRef = useRef<number | null>(null);
 
@@ -740,6 +775,15 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       }
     }
 
+    // Clean up noise suppression
+    if (noiseSuppressionRef.current) {
+      if (audioService) {
+        audioService.getRecorder().setNoiseSuppression(null);
+      }
+      noiseSuppressionRef.current.destroy();
+      noiseSuppressionRef.current = null;
+    }
+
     // Small delay to ensure any in-flight audio processing completes
     await new Promise(resolve => setTimeout(resolve, 100));
 
@@ -1021,6 +1065,20 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       // In native capture mode, audio is automatically captured via MediaStreamTrack
       // No need to manually record and send audio chunks
       const usesNativeCapture = ClientFactory.usesNativeAudioCapture(provider, useWebRTC ? 'webrtc' : 'websocket');
+
+      // Initialize noise suppression if enabled
+      if (isNoiseSuppressEnabled && audioServiceRef.current) {
+        try {
+          const ns = new NoiseSuppression();
+          await ns.initialize();
+          ns.setEnabled(true);
+          noiseSuppressionRef.current = ns;
+          audioServiceRef.current.getRecorder().setNoiseSuppression(ns);
+          console.info('[Sokuji] [MainPanel] Noise suppression initialized');
+        } catch (error) {
+          console.error('[Sokuji] [MainPanel] Failed to initialize noise suppression:', error);
+        }
+      }
 
       // Note: Use clientRef.current instead of client variable to handle WebRTC fallback scenario
       if (!usesNativeCapture && !turnDetectionDisabled && isInputDeviceOn && audioServiceRef.current) {

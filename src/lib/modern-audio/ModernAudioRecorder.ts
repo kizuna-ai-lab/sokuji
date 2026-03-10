@@ -1,5 +1,6 @@
 import { BaseAudioRecorder } from './BaseAudioRecorder';
 import { DEBUG_CONFIG, AUDIO_CONSTRAINT_PROFILES } from '../config/performance.js';
+import { NoiseSuppression } from '../../services/noise-suppression';
 
 type PerformanceMode = 'high_quality' | 'performance' | 'minimal';
 
@@ -57,8 +58,15 @@ export class ModernAudioRecorder extends BaseAudioRecorder {
   // Device management
   private _deviceChangeCallback: (() => void) | null = null;
 
+  // Noise suppression
+  private noiseSuppression: NoiseSuppression | null = null;
+
+  // Internal sample rate for AudioContext (48kHz for RNNoise compatibility)
+  private internalSampleRate: number;
+
   constructor(options: ModernAudioRecorderOptions = {}) {
     super(options.sampleRate ?? 24000);
+    this.internalSampleRate = 48000;
 
     this._enableWarmup = options.enableWarmup ?? true;
     this._warmupDuration = options.warmupDuration ?? 200;
@@ -80,7 +88,7 @@ export class ModernAudioRecorder extends BaseAudioRecorder {
   private getAudioConstraints(deviceId?: string): MediaTrackConstraints {
     const baseConstraints: MediaTrackConstraints = {
       deviceId: deviceId ? { exact: deviceId } : undefined,
-      sampleRate: this.sampleRate,
+      sampleRate: this.internalSampleRate,
       channelCount: 1,
     };
 
@@ -203,8 +211,8 @@ export class ModernAudioRecorder extends BaseAudioRecorder {
       const settings = track.getSettings();
       console.info(`${this.getLogPrefix()} Echo cancellation:`, settings.echoCancellation);
 
-      // Create AudioContext
-      this.audioContext = new AudioContext({ sampleRate: this.sampleRate });
+      // Create AudioContext at 48kHz for RNNoise compatibility
+      this.audioContext = new AudioContext({ sampleRate: this.internalSampleRate });
       if (this.audioContext.state === 'suspended') {
         await this.audioContext.resume();
       }
@@ -259,7 +267,7 @@ export class ModernAudioRecorder extends BaseAudioRecorder {
           config: { skipStartupFrames: this._skipStartupFrames }
         });
 
-        // Handle messages with silence detection
+        // Handle messages with noise suppression and downsampling
         this.audioWorkletNode.port.onmessage = (event) => {
           if (event.data.type === 'audioData') {
             const { pcmData } = event.data;
@@ -272,16 +280,25 @@ export class ModernAudioRecorder extends BaseAudioRecorder {
             }
 
             // Handle silence detection on first recording
+            let processedPcm: Int16Array = pcmData;
             if (this._isFirstRecording && this._detectSilence(pcmData)) {
               if (this._lastValidAudioChunk) {
-                this._processAudioData(this._interpolateAudio(this._lastValidAudioChunk, pcmData));
-                return;
+                processedPcm = this._interpolateAudio(this._lastValidAudioChunk, pcmData);
               }
             } else {
               this._lastValidAudioChunk = pcmData;
             }
 
-            this._processAudioData(pcmData);
+            // Apply noise suppression at 48kHz if enabled
+            if (this.noiseSuppression?.isEnabled()) {
+              const result = this.noiseSuppression.processAudio(processedPcm);
+              processedPcm = result.audio;
+              if (processedPcm.length === 0) return; // Buffering, not enough samples yet
+            }
+
+            // Downsample 48kHz → 24kHz for client compatibility
+            const outputPcm = this.downsample48to24(processedPcm);
+            this._processAudioData(outputPcm);
           }
         };
 
@@ -546,6 +563,26 @@ export class ModernAudioRecorder extends BaseAudioRecorder {
       }
     }
     return result;
+  }
+
+  // ==================== Noise Suppression ====================
+
+  setNoiseSuppression(ns: NoiseSuppression | null): void {
+    this.noiseSuppression = ns;
+  }
+
+  /**
+   * Downsample Int16 PCM from 48kHz to 24kHz (factor of 2).
+   * Uses simple averaging of adjacent sample pairs for basic lowpass.
+   */
+  private downsample48to24(input: Int16Array): Int16Array {
+    const outputLength = Math.floor(input.length / 2);
+    const output = new Int16Array(outputLength);
+    for (let i = 0; i < outputLength; i++) {
+      // Average adjacent samples for basic anti-aliasing
+      output[i] = (input[i * 2] + input[i * 2 + 1]) >> 1;
+    }
+    return output;
   }
 
   // ==================== Override getStatus ====================

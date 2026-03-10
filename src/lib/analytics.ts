@@ -69,6 +69,10 @@ export interface AnalyticsEvents {
     enabled: boolean;
     volume_level: number;
   };
+  'noise_suppression_toggled': {
+    enabled: boolean;
+    during_session: boolean;
+  };
   'virtual_device_warning': {
     device_type: 'input' | 'output';
     action_taken: 'ignored' | 'changed_device';

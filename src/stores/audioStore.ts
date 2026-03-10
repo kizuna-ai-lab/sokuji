@@ -10,6 +10,7 @@ const STORAGE_KEYS = {
   SELECTED_MONITOR_DEVICE_ID: 'audio.selectedMonitorDeviceId',
   IS_INPUT_DEVICE_ON: 'audio.isInputDeviceOn',
   IS_MONITOR_DEVICE_ON: 'audio.isMonitorDeviceOn',
+  IS_NOISE_SUPPRESS_ENABLED: 'audio.isNoiseSuppressEnabled',
 };
 
 export interface AudioDevice {
@@ -29,6 +30,7 @@ interface AudioStore {
   isLoading: boolean;
   isRealVoicePassthroughEnabled: boolean;
   realVoicePassthroughVolume: number;
+  isNoiseSuppressEnabled: boolean;
 
   // System audio capture state (for translating other participants)
   systemAudioSources: AudioDevice[];
@@ -51,6 +53,7 @@ interface AudioStore {
   toggleMonitorDeviceState: () => void;
   toggleRealVoicePassthrough: () => void;
   setRealVoicePassthroughVolume: (volume: number) => void;
+  toggleNoiseSuppression: () => void;
   setIsLoading: (loading: boolean) => void;
 
   // System audio capture actions
@@ -80,6 +83,7 @@ const useAudioStore = create<AudioStore>()(
     isLoading: true,
     isRealVoicePassthroughEnabled: false,
     realVoicePassthroughVolume: 0.2,
+    isNoiseSuppressEnabled: false,
 
     // System audio capture state
     systemAudioSources: [],
@@ -176,6 +180,17 @@ const useAudioStore = create<AudioStore>()(
       set({ realVoicePassthroughVolume: clampedVolume });
     },
 
+    toggleNoiseSuppression: () => {
+      set((state) => {
+        const newState = !state.isNoiseSuppressEnabled;
+        console.info('[Sokuji] [AudioStore] Toggling noise suppression:', newState);
+        const settingsService = ServiceFactory.getSettingsService();
+        settingsService.setSetting(STORAGE_KEYS.IS_NOISE_SUPPRESS_ENABLED, newState)
+          .catch(error => console.error('[Sokuji] [AudioStore] Failed to save noise suppression state:', error));
+        return { isNoiseSuppressEnabled: newState };
+      });
+    },
+
     // System audio capture actions
     setSystemAudioSources: (sources) => set({ systemAudioSources: sources }),
 
@@ -255,6 +270,13 @@ const useAudioStore = create<AudioStore>()(
         const savedMonitorDeviceId = await settingsService.getSetting<string>(STORAGE_KEYS.SELECTED_MONITOR_DEVICE_ID, '');
         const savedInputDeviceOn = await settingsService.getSetting<boolean | null>(STORAGE_KEYS.IS_INPUT_DEVICE_ON, null);
         const savedMonitorDeviceOn = await settingsService.getSetting<boolean | null>(STORAGE_KEYS.IS_MONITOR_DEVICE_ON, null);
+        const savedNoiseSuppressEnabled = await settingsService.getSetting<boolean | null>(STORAGE_KEYS.IS_NOISE_SUPPRESS_ENABLED, null);
+
+        // Restore noise suppression state if saved
+        if (savedNoiseSuppressEnabled !== null) {
+          console.info('[Sokuji] [AudioStore] Restored noise suppression state:', savedNoiseSuppressEnabled);
+          set({ isNoiseSuppressEnabled: savedNoiseSuppressEnabled });
+        }
 
         // Restore input device on/off state if saved
         if (savedInputDeviceOn !== null) {
@@ -426,6 +448,7 @@ export const useIsMonitorDeviceOn = () => useAudioStore((state) => state.isMonit
 export const useIsAudioLoading = () => useAudioStore((state) => state.isLoading);
 export const useIsRealVoicePassthroughEnabled = () => useAudioStore((state) => state.isRealVoicePassthroughEnabled);
 export const useRealVoicePassthroughVolume = () => useAudioStore((state) => state.realVoicePassthroughVolume);
+export const useIsNoiseSuppressEnabled = () => useAudioStore((state) => state.isNoiseSuppressEnabled);
 
 // System audio capture selectors
 export const useSystemAudioSources = () => useAudioStore((state) => state.systemAudioSources);
@@ -442,6 +465,7 @@ export const useToggleInputDeviceState = () => useAudioStore((state) => state.to
 export const useToggleMonitorDeviceState = () => useAudioStore((state) => state.toggleMonitorDeviceState);
 export const useToggleRealVoicePassthrough = () => useAudioStore((state) => state.toggleRealVoicePassthrough);
 export const useSetRealVoicePassthroughVolume = () => useAudioStore((state) => state.setRealVoicePassthroughVolume);
+export const useToggleNoiseSuppression = () => useAudioStore((state) => state.toggleNoiseSuppression);
 export const useRefreshDevices = () => useAudioStore((state) => state.refreshDevices);
 export const useInitializeAudioService = () => useAudioStore((state) => state.initializeAudioService);
 
@@ -461,6 +485,7 @@ export const useAudioActions = () => {
   const toggleMonitorDeviceState = useToggleMonitorDeviceState();
   const toggleRealVoicePassthrough = useToggleRealVoicePassthrough();
   const setRealVoicePassthroughVolume = useSetRealVoicePassthroughVolume();
+  const toggleNoiseSuppression = useToggleNoiseSuppression();
   const refreshDevices = useRefreshDevices();
   const initializeAudioService = useInitializeAudioService();
   const selectSystemAudioSource = useSelectSystemAudioSource();
@@ -478,6 +503,7 @@ export const useAudioActions = () => {
       toggleMonitorDeviceState,
       toggleRealVoicePassthrough,
       setRealVoicePassthroughVolume,
+      toggleNoiseSuppression,
       refreshDevices,
       initializeAudioService,
       selectSystemAudioSource,
@@ -494,6 +520,7 @@ export const useAudioActions = () => {
       toggleMonitorDeviceState,
       toggleRealVoicePassthrough,
       setRealVoicePassthroughVolume,
+      toggleNoiseSuppression,
       refreshDevices,
       initializeAudioService,
       selectSystemAudioSource,
@@ -517,6 +544,7 @@ export const useAudioContext = () => {
   const isLoading = useIsAudioLoading();
   const isRealVoicePassthroughEnabled = useIsRealVoicePassthroughEnabled();
   const realVoicePassthroughVolume = useRealVoicePassthroughVolume();
+  const isNoiseSuppressEnabled = useIsNoiseSuppressEnabled();
   const systemAudioSources = useSystemAudioSources();
   const selectedSystemAudioSource = useSelectedSystemAudioSource();
   const isSystemAudioCaptureEnabled = useIsSystemAudioCaptureEnabled();
@@ -536,6 +564,7 @@ export const useAudioContext = () => {
       isLoading,
       isRealVoicePassthroughEnabled,
       realVoicePassthroughVolume,
+      isNoiseSuppressEnabled,
       systemAudioSources,
       selectedSystemAudioSource,
       isSystemAudioCaptureEnabled,
@@ -554,6 +583,7 @@ export const useAudioContext = () => {
       isLoading,
       isRealVoicePassthroughEnabled,
       realVoicePassthroughVolume,
+      isNoiseSuppressEnabled,
       systemAudioSources,
       selectedSystemAudioSource,
       isSystemAudioCaptureEnabled,

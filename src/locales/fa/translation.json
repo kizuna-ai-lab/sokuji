@@ -46,6 +46,8 @@
     "model": "مدل",
     "userTranscriptModel": "مدل رونوشت کاربر",
     "noiseReduction": "کاهش نویز",
+    "noiseSuppression": "AI Noise Suppression",
+    "noiseSuppressionTooltip": "AI-powered noise reduction using RNNoise. Reduces background noise before sending audio to the AI provider. Works with all providers.",
     "modelConfiguration": "پیکربندی مدل",
     "sourceLanguage": "زبان من",
     "targetLanguage": "زبان طرف مقابل",

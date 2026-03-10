@@ -3,9 +3,10 @@ import { Mic, Volume2, RefreshCw } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import Tooltip from '../../Tooltip/Tooltip';
 import DeviceList from '../shared/DeviceList';
+import ToggleSwitch from '../shared/ToggleSwitch';
 import WarningModal from '../shared/WarningModal';
 import { useFilteredDevices, WarningType, AudioDevice } from '../shared/hooks';
-import { useAudioContext } from '../../../stores/audioStore';
+import { useAudioContext, useIsNoiseSuppressEnabled, useToggleNoiseSuppression } from '../../../stores/audioStore';
 import { useAnalytics } from '../../../lib/analytics';
 
 interface AudioDeviceSectionProps {
@@ -32,6 +33,8 @@ const AudioDeviceSection: React.FC<AudioDeviceSectionProps> = ({
 }) => {
   const { t } = useTranslation();
   const { trackEvent } = useAnalytics();
+  const isNoiseSuppressEnabled = useIsNoiseSuppressEnabled();
+  const toggleNoiseSuppression = useToggleNoiseSuppression();
 
   const {
     audioInputDevices,
@@ -147,6 +150,20 @@ const AudioDeviceSection: React.FC<AudioDeviceSectionProps> = ({
             filterVirtual={false}
             showVirtualIndicators={true}
             onVirtualDeviceClick={handleInputVirtualDeviceClick}
+          />
+
+          {/* Noise Suppression Toggle */}
+          <ToggleSwitch
+            checked={isNoiseSuppressEnabled}
+            onChange={() => {
+              toggleNoiseSuppression();
+              trackEvent('noise_suppression_toggled', {
+                enabled: !isNoiseSuppressEnabled,
+                during_session: isSessionActive
+              });
+            }}
+            label={t('settings.noiseSuppression')}
+            tooltip={t('settings.noiseSuppressionTooltip')}
           />
         </div>
       )}

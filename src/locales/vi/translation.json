@@ -179,6 +179,8 @@
     "automaticTurnDetection": "Phát hiện lượt tự động",
     "userTranscriptModel": "Mô hình phiên âm người dùng",
     "noiseReduction": "Giảm tiếng ồn",
+    "noiseSuppression": "AI Noise Suppression",
+    "noiseSuppressionTooltip": "AI-powered noise reduction using RNNoise. Reduces background noise before sending audio to the AI provider. Works with all providers.",
     "modelConfiguration": "Cấu hình mô hình",
     "preview": "Xem trước",
     "simple": "Đơn giản",
