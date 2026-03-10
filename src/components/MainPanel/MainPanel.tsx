@@ -40,7 +40,6 @@ import SimpleMainPanel from '../SimpleMainPanel/SimpleMainPanel';
 import { useAuth } from '../../lib/auth/hooks';
 import { useUserProfile } from '../../contexts/UserProfileContext';
 import { isExtension } from '../../utils/environment';
-import { NoiseSuppression } from '../../services/noise-suppression';
 
 
 /**
@@ -142,7 +141,6 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
   // Noise suppression
   const isNoiseSuppressEnabled = useIsNoiseSuppressEnabled();
-  const noiseSuppressionRef = useRef<NoiseSuppression | null>(null);
 
   // canPushToTalk is true when manual turn detection is used
   // (OpenAI-compatible: 'Disabled', Volcengine AST2: 'Push-to-Talk')
@@ -356,29 +354,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
    */
   useEffect(() => {
     if (!isSessionActive || !audioServiceRef.current) return;
-
-    const ns = noiseSuppressionRef.current;
-
-    if (isNoiseSuppressEnabled) {
-      if (ns) {
-        // Already initialized, just enable
-        ns.setEnabled(true);
-      } else {
-        // Initialize and attach
-        const newNs = new NoiseSuppression();
-        newNs.initialize().then(() => {
-          newNs.setEnabled(true);
-          noiseSuppressionRef.current = newNs;
-          audioServiceRef.current?.getRecorder().setNoiseSuppression(newNs);
-          console.info('[Sokuji] [MainPanel] Noise suppression enabled mid-session');
-        }).catch(error => {
-          console.error('[Sokuji] [MainPanel] Failed to initialize noise suppression mid-session:', error);
-        });
-      }
-    } else if (ns) {
-      ns.setEnabled(false);
-      console.info('[Sokuji] [MainPanel] Noise suppression disabled mid-session');
-    }
+    audioServiceRef.current.getRecorder().setNoiseSuppressionEnabled(isNoiseSuppressEnabled);
   }, [isNoiseSuppressEnabled, isSessionActive]);
 
   /**
@@ -775,15 +751,6 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       }
     }
 
-    // Clean up noise suppression
-    if (noiseSuppressionRef.current) {
-      if (audioService) {
-        audioService.getRecorder().setNoiseSuppression(null);
-      }
-      noiseSuppressionRef.current.destroy();
-      noiseSuppressionRef.current = null;
-    }
-
     // Small delay to ensure any in-flight audio processing completes
     await new Promise(resolve => setTimeout(resolve, 100));
 
@@ -1068,16 +1035,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
       // Initialize noise suppression if enabled
       if (isNoiseSuppressEnabled && audioServiceRef.current) {
-        try {
-          const ns = new NoiseSuppression();
-          await ns.initialize();
-          ns.setEnabled(true);
-          noiseSuppressionRef.current = ns;
-          audioServiceRef.current.getRecorder().setNoiseSuppression(ns);
-          console.info('[Sokuji] [MainPanel] Noise suppression initialized');
-        } catch (error) {
-          console.error('[Sokuji] [MainPanel] Failed to initialize noise suppression:', error);
-        }
+        await audioServiceRef.current.getRecorder().setNoiseSuppressionEnabled(true);
       }
 
       // Note: Use clientRef.current instead of client variable to handle WebRTC fallback scenario
