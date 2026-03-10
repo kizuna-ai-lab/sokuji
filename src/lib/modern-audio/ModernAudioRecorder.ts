@@ -1,6 +1,10 @@
 import { BaseAudioRecorder } from './BaseAudioRecorder';
 import { DEBUG_CONFIG, AUDIO_CONSTRAINT_PROFILES } from '../config/performance.js';
-import { NoiseSuppression } from '../../services/noise-suppression';
+
+// Vite ?url imports for AudioWorklet and WASM assets
+import rnnoiseWorkletPath from '@sapphi-red/web-noise-suppressor/rnnoiseWorklet.js?url';
+import rnnoiseWasmPath from '@sapphi-red/web-noise-suppressor/rnnoise.wasm?url';
+import rnnoiseSimdWasmPath from '@sapphi-red/web-noise-suppressor/rnnoise_simd.wasm?url';
 
 type PerformanceMode = 'high_quality' | 'performance' | 'minimal';
 
@@ -58,8 +62,11 @@ export class ModernAudioRecorder extends BaseAudioRecorder {
   // Device management
   private _deviceChangeCallback: (() => void) | null = null;
 
-  // Noise suppression
-  private noiseSuppression: NoiseSuppression | null = null;
+  // Noise suppression (AudioWorklet-based via @sapphi-red/web-noise-suppressor)
+  private rnnoiseNode: (AudioWorkletNode & { destroy(): void }) | null = null;
+  private rnnoiseWasmBinary: ArrayBuffer | null = null;
+  private rnnoiseModuleLoaded: boolean = false;
+  private _noiseSuppressEnabled: boolean = false;
 
   // Internal sample rate for AudioContext (48kHz for RNNoise compatibility)
   private internalSampleRate: number;
@@ -289,13 +296,6 @@ export class ModernAudioRecorder extends BaseAudioRecorder {
               this._lastValidAudioChunk = pcmData;
             }
 
-            // Apply noise suppression at 48kHz if enabled
-            if (this.noiseSuppression?.isEnabled()) {
-              const result = this.noiseSuppression.processAudio(processedPcm);
-              processedPcm = result.audio;
-              if (processedPcm.length === 0) return; // Buffering, not enough samples yet
-            }
-
             // Downsample 48kHz → 24kHz for client compatibility
             const outputPcm = this.downsample48to24(processedPcm);
             this._processAudioData(outputPcm);
@@ -307,6 +307,11 @@ export class ModernAudioRecorder extends BaseAudioRecorder {
         this.dummyGain.gain.value = 0;
         this.audioWorkletNode.connect(this.dummyGain);
         this.dummyGain.connect(this.audioContext.destination);
+
+        // Insert noise suppression node if enabled
+        if (this._noiseSuppressEnabled) {
+          await this._insertRnnoiseNode();
+        }
 
       } catch (error) {
         console.warn(`${this.getLogPrefix()} AudioWorklet failed, using ScriptProcessor:`, error);
@@ -407,6 +412,14 @@ export class ModernAudioRecorder extends BaseAudioRecorder {
       savedAudio = { blob: new Blob([], { type: 'audio/webm' }), url: '' };
     }
 
+    // Cleanup RNNoise node
+    if (this.rnnoiseNode) {
+      this.rnnoiseNode.disconnect();
+      this.rnnoiseNode.destroy();
+      this.rnnoiseNode = null;
+    }
+    this.rnnoiseModuleLoaded = false; // AudioContext will be closed
+
     // Cleanup analyser
     if (this.analyser) {
       this.analyser.disconnect();
@@ -493,7 +506,12 @@ export class ModernAudioRecorder extends BaseAudioRecorder {
       this.analyser.smoothingTimeConstant = 0.8;
       this.analyser.minDecibels = minDecibels;
       this.analyser.maxDecibels = maxDecibels;
-      this.mediaStreamSource.connect(this.analyser);
+      // Connect analyser to post-suppression audio if available, otherwise raw
+      if (this.rnnoiseNode) {
+        this.rnnoiseNode.connect(this.analyser);
+      } else {
+        this.mediaStreamSource.connect(this.analyser);
+      }
     }
 
     const bufferLength = this.analyser.frequencyBinCount;
@@ -567,8 +585,116 @@ export class ModernAudioRecorder extends BaseAudioRecorder {
 
   // ==================== Noise Suppression ====================
 
-  setNoiseSuppression(ns: NoiseSuppression | null): void {
-    this.noiseSuppression = ns;
+  /**
+   * Enable or disable AudioWorklet-based noise suppression.
+   * Dynamically inserts/removes RnnoiseWorkletNode in the audio graph.
+   */
+  async setNoiseSuppressionEnabled(enabled: boolean): Promise<void> {
+    this._noiseSuppressEnabled = enabled;
+
+    if (!this.audioContext || !this.mediaStreamSource || !this.audioWorkletNode) {
+      // Not currently recording with AudioWorklet; flag is stored for next session start
+      if (!this.useAudioWorklet && enabled) {
+        console.warn(`${this.getLogPrefix()} Noise suppression not supported with ScriptProcessor fallback`);
+      }
+      return;
+    }
+
+    if (enabled) {
+      await this._insertRnnoiseNode();
+    } else {
+      this._removeRnnoiseNode();
+    }
+  }
+
+  /**
+   * Lazy-load the RNNoise WASM binary via dynamic import.
+   */
+  private async _loadRnnoiseResources(): Promise<ArrayBuffer> {
+    if (this.rnnoiseWasmBinary) return this.rnnoiseWasmBinary;
+
+    const { loadRnnoise } = await import('@sapphi-red/web-noise-suppressor');
+    this.rnnoiseWasmBinary = await loadRnnoise({
+      url: rnnoiseWasmPath,
+      simdUrl: rnnoiseSimdWasmPath,
+    });
+    return this.rnnoiseWasmBinary;
+  }
+
+  /**
+   * Lazy-register the RNNoise AudioWorklet processor module.
+   */
+  private async _ensureRnnoiseModule(): Promise<void> {
+    if (this.rnnoiseModuleLoaded) return;
+    if (!this.audioContext) throw new Error('AudioContext required');
+
+    await this.audioContext.audioWorklet.addModule(rnnoiseWorkletPath);
+    this.rnnoiseModuleLoaded = true;
+  }
+
+  /**
+   * Insert RnnoiseWorkletNode between mediaStreamSource and audioWorkletNode.
+   * Also reconnects the analyser to tap post-suppression audio.
+   */
+  private async _insertRnnoiseNode(): Promise<void> {
+    if (this.rnnoiseNode) return; // Already inserted
+    if (!this.audioContext || !this.mediaStreamSource || !this.audioWorkletNode) return;
+
+    try {
+      const [wasmBinary] = await Promise.all([
+        this._loadRnnoiseResources(),
+        this._ensureRnnoiseModule(),
+      ]);
+
+      const { RnnoiseWorkletNode } = await import('@sapphi-red/web-noise-suppressor');
+      this.rnnoiseNode = new RnnoiseWorkletNode(this.audioContext, {
+        wasmBinary,
+        maxChannels: 1,
+      });
+
+      // Rewire: mediaStreamSource → rnnoiseNode → audioWorkletNode
+      this.mediaStreamSource.disconnect();
+      this.mediaStreamSource.connect(this.rnnoiseNode);
+      this.rnnoiseNode.connect(this.audioWorkletNode);
+
+      // Reconnect analyser to post-suppression audio if it exists
+      if (this.analyser) {
+        try { this.analyser.disconnect(); } catch { /* ignore */ }
+        this.rnnoiseNode.connect(this.analyser);
+      }
+
+      console.info(`${this.getLogPrefix()} RNNoise worklet node inserted`);
+    } catch (error) {
+      console.error(`${this.getLogPrefix()} Failed to insert RNNoise node:`, error);
+      this.rnnoiseNode = null;
+    }
+  }
+
+  /**
+   * Remove RnnoiseWorkletNode and restore direct connection.
+   */
+  private _removeRnnoiseNode(): void {
+    if (!this.rnnoiseNode || !this.mediaStreamSource || !this.audioWorkletNode) return;
+
+    try {
+      this.mediaStreamSource.disconnect();
+      this.rnnoiseNode.disconnect();
+      this.rnnoiseNode.destroy();
+      this.rnnoiseNode = null;
+
+      // Restore: mediaStreamSource → audioWorkletNode
+      this.mediaStreamSource.connect(this.audioWorkletNode);
+
+      // Reconnect analyser to raw audio if it exists
+      if (this.analyser) {
+        try { this.analyser.disconnect(); } catch { /* ignore */ }
+        this.mediaStreamSource.connect(this.analyser);
+      }
+
+      console.info(`${this.getLogPrefix()} RNNoise worklet node removed`);
+    } catch (error) {
+      console.error(`${this.getLogPrefix()} Failed to remove RNNoise node:`, error);
+    }
   }
 
   /**
