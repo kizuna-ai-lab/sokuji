@@ -36,6 +36,13 @@ export interface AnalyticsEvents {
     asr_model?: string;
     translation_model?: string;
     tts_model?: string;
+    noise_suppression_enabled?: boolean;
+    echo_cancellation_enabled?: boolean;
+    real_voice_passthrough_enabled?: boolean;
+    transport?: string;
+    platform?: string;
+    input_device_on?: boolean;
+    monitor_device_on?: boolean;
   };
   'translation_session_end': { 
     session_id: string;
@@ -68,6 +75,10 @@ export interface AnalyticsEvents {
   'audio_passthrough_toggled': {
     enabled: boolean;
     volume_level: number;
+  };
+  'noise_suppression_toggled': {
+    enabled: boolean;
+    during_session: boolean;
   };
   'virtual_device_warning': {
     device_type: 'input' | 'output';

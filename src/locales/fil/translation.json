@@ -177,6 +177,8 @@
     "automaticTurnDetection": "Awtomatikong pagtukoy ng pagkakataon",
     "userTranscriptModel": "Modelo ng transkripsyon ng gumagamit",
     "noiseReduction": "Pagbawas ng ingay",
+    "noiseSuppression": "AI Pagpigil ng Ingay",
+    "noiseSuppressionTooltip": "Pagbawas ng ingay gamit ang AI sa pamamagitan ng RNNoise. Binabawasan ang ingay sa background bago ipadala ang audio sa AI provider. Gumagana sa lahat ng provider.",
     "modelConfiguration": "Pagsasaayos ng modelo",
     "preview": "Preview",
     "simple": "Simple",

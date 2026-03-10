@@ -177,6 +177,8 @@
     "automaticTurnDetection": "Automaattinen vuorontunnistus",
     "userTranscriptModel": "Käyttäjän litterointimalli",
     "noiseReduction": "Kohinanvaimennus",
+    "noiseSuppression": "AI-kohinanvaimennus",
+    "noiseSuppressionTooltip": "AI-pohjainen kohinanvaimennus RNNoisella. Vähentää taustamelua ennen äänen lähettämistä AI-palveluntarjoajalle. Toimii kaikkien palveluntarjoajien kanssa.",
     "modelConfiguration": "Malliasetukset",
     "preview": "Esikatselu",
     "simple": "Yksinkertainen",

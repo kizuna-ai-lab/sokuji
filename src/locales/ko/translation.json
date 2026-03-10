@@ -47,6 +47,8 @@
     "model": "모델",
     "userTranscriptModel": "사용자 전사 모델",
     "noiseReduction": "노이즈 감소",
+    "noiseSuppression": "AI 노이즈 억제",
+    "noiseSuppressionTooltip": "RNNoise를 사용한 AI 노이즈 제거. AI 제공자에게 오디오를 보내기 전에 배경 소음을 줄입니다. 모든 제공자에서 작동합니다.",
     "modelConfiguration": "모델 구성",
     "sourceLanguage": "내 언어",
     "targetLanguage": "상대방 언어",

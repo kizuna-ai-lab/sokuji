@@ -331,54 +331,60 @@ function handleAudio(msg) {
     return; // Silently drop if not initialized
   }
 
-  // Convert incoming audio to Float32 @ 16kHz
-  var samples = downsampleInt16ToFloat32(msg.samples, msg.sampleRate, EXPECTED_SAMPLE_RATE);
+  try {
+    // Convert incoming audio to Float32 @ 16kHz
+    var samples = downsampleInt16ToFloat32(msg.samples, msg.sampleRate, EXPECTED_SAMPLE_RATE);
 
-  // Push into circular buffer
-  buffer.push(samples);
+    // Push into circular buffer
+    buffer.push(samples);
 
-  // Get VAD window size (typically 512 samples for Silero VAD at 16kHz)
-  var windowSize = vad.config.sileroVad.windowSize || 512;
+    // Get VAD window size (typically 512 samples for Silero VAD at 16kHz)
+    var windowSize = vad.config.sileroVad.windowSize || 512;
 
-  // Feed all available windows to VAD
-  while (buffer.size() >= windowSize) {
-    var segment = buffer.get(buffer.head(), windowSize);
-    buffer.pop(windowSize);
-    vad.acceptWaveform(segment);
-  }
-
-  // Process completed speech segments through ASR
-  while (!vad.isEmpty()) {
-    var speechSegment = vad.front();
-    var speechSamples = speechSegment.samples;
-    var startSample = speechSegment.start;
-
-    var recognitionStart = performance.now();
-
-    // Create a stream, feed the speech segment, decode
-    var stream = recognizer.createStream();
-    stream.acceptWaveform(EXPECTED_SAMPLE_RATE, speechSamples);
-    recognizer.decode(stream);
-    var result = recognizer.getResult(stream);
-    stream.free();
-
-    var recognitionTimeMs = Math.round(performance.now() - recognitionStart);
-    var durationMs = Math.round((speechSamples.length / EXPECTED_SAMPLE_RATE) * 1000);
-
-    var text = (result.text || '').trim();
-    // Remove spaces between CJK characters (common with Moonshine zh/ja/ko models)
-    text = text.replace(/([\u3000-\u9fff\uF900-\uFAFF])\s+(?=[\u3000-\u9fff\uF900-\uFAFF])/g, '$1');
-    if (text) {
-      postMessage({
-        type: 'result',
-        text: text,
-        startSample: startSample,
-        durationMs: durationMs,
-        recognitionTimeMs: recognitionTimeMs,
-      });
+    // Feed all available windows to VAD
+    while (buffer.size() >= windowSize) {
+      var segment = buffer.get(buffer.head(), windowSize);
+      buffer.pop(windowSize);
+      vad.acceptWaveform(segment);
     }
 
-    vad.pop();
+    // Process completed speech segments through ASR
+    while (!vad.isEmpty()) {
+      var speechSegment = vad.front();
+      var speechSamples = speechSegment.samples;
+      var startSample = speechSegment.start;
+
+      var recognitionStart = performance.now();
+
+      // Create a stream, feed the speech segment, decode
+      var stream = recognizer.createStream();
+      stream.acceptWaveform(EXPECTED_SAMPLE_RATE, speechSamples);
+      recognizer.decode(stream);
+      var result = recognizer.getResult(stream);
+      stream.free();
+
+      var recognitionTimeMs = Math.round(performance.now() - recognitionStart);
+      var durationMs = Math.round((speechSamples.length / EXPECTED_SAMPLE_RATE) * 1000);
+
+      var text = (result.text || '').trim();
+      // Remove spaces between CJK characters (common with Moonshine zh/ja/ko models)
+      text = text.replace(/([\u3000-\u9fff\uF900-\uFAFF])\s+(?=[\u3000-\u9fff\uF900-\uFAFF])/g, '$1');
+      if (text) {
+        postMessage({
+          type: 'result',
+          text: text,
+          startSample: startSample,
+          durationMs: durationMs,
+          recognitionTimeMs: recognitionTimeMs,
+        });
+      }
+
+      vad.pop();
+    }
+  } catch (e) {
+    postMessage({ type: 'error', error: 'ASR processing error: ' + (e.message || e) });
+    // Drain remaining VAD segments to prevent stale state
+    try { while (!vad.isEmpty()) { vad.pop(); } } catch (_) {}
   }
 }
 

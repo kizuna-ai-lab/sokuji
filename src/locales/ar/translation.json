@@ -47,6 +47,8 @@
     "model": "النموذج",
     "userTranscriptModel": "نموذج نسخة المستخدم",
     "noiseReduction": "تقليل الضوضاء",
+    "noiseSuppression": "كتم الضوضاء بالذكاء الاصطناعي",
+    "noiseSuppressionTooltip": "تقليل الضوضاء بالذكاء الاصطناعي باستخدام RNNoise. يقلل ضوضاء الخلفية قبل إرسال الصوت إلى مزود الذكاء الاصطناعي. يعمل مع جميع المزودين.",
     "modelConfiguration": "تكوين النموذج",
     "sourceLanguage": "لغتي",
     "targetLanguage": "لغة الآخر",
