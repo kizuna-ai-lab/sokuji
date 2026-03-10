@@ -160,6 +160,8 @@
     "model": "模型",
     "userTranscriptModel": "使用者轉錄模型",
     "noiseReduction": "降噪",
+    "noiseSuppression": "AI 降噪",
+    "noiseSuppressionTooltip": "基於 RNNoise 的 AI 降噪。在將音頻發送給 AI 之前減少背景噪音。適用於所有服務商。",
     "modelConfiguration": "模型設定",
     "sourceLanguage": "我的語言",
     "targetLanguage": "對方語言",

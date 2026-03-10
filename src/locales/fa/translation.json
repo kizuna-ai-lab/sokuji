@@ -46,6 +46,8 @@
     "model": "مدل",
     "userTranscriptModel": "مدل رونوشت کاربر",
     "noiseReduction": "کاهش نویز",
+    "noiseSuppression": "حذف نویز AI",
+    "noiseSuppressionTooltip": "کاهش نویز مبتنی بر AI با استفاده از RNNoise. قبل از ارسال صدا به ارائه‌دهنده AI، نویز پس‌زمینه را کاهش می‌دهد. با همه ارائه‌دهندگان کار می‌کند.",
     "modelConfiguration": "پیکربندی مدل",
     "sourceLanguage": "زبان من",
     "targetLanguage": "زبان طرف مقابل",

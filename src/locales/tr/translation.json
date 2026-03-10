@@ -177,6 +177,8 @@
     "automaticTurnDetection": "Otomatik sıra algılama",
     "userTranscriptModel": "Kullanıcı transkripsiyon modeli",
     "noiseReduction": "Gürültü azaltma",
+    "noiseSuppression": "AI Gürültü Bastırma",
+    "noiseSuppressionTooltip": "RNNoise kullanarak AI destekli gürültü azaltma. Sesi AI sağlayıcısına göndermeden önce arka plan gürültüsünü azaltır. Tüm sağlayıcılarla çalışır.",
     "modelConfiguration": "Model yapılandırması",
     "preview": "Önizleme",
     "simple": "Basit",

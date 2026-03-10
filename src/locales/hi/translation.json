@@ -180,6 +180,8 @@
     "automaticTurnDetection": "स्वचालित बारी पहचान",
     "userTranscriptModel": "उपयोगकर्ता प्रतिलेखन मॉडल",
     "noiseReduction": "शोर में कमी",
+    "noiseSuppression": "AI शोर दमन",
+    "noiseSuppressionTooltip": "RNNoise का उपयोग करके AI-संचालित शोर में कमी। AI प्रदाता को ऑडियो भेजने से पहले पृष्ठभूमि शोर को कम करता है। सभी प्रदाताओं के साथ काम करता है।",
     "modelConfiguration": "मॉडल कॉन्फ़िगरेशन",
     "preview": "पूर्वावलोकन",
     "simple": "सरल",

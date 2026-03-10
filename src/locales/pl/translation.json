@@ -46,6 +46,8 @@
     "model": "Model",
     "userTranscriptModel": "Model transkrypcji użytkownika",
     "noiseReduction": "Redukcja szumów",
+    "noiseSuppression": "Tłumienie szumów AI",
+    "noiseSuppressionTooltip": "Redukcja szumów oparta na AI z wykorzystaniem RNNoise. Zmniejsza szum tła przed wysłaniem dźwięku do dostawcy AI. Działa ze wszystkimi dostawcami.",
     "modelConfiguration": "Konfiguracja modelu",
     "sourceLanguage": "Mój język",
     "targetLanguage": "Język rozmówcy",

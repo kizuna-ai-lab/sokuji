@@ -155,6 +155,8 @@
     "automaticTurnDetection": "Automatisk turdetektering",
     "userTranscriptModel": "Användartranskriptionsmodell",
     "noiseReduction": "Brusreducering",
+    "noiseSuppression": "AI-brusreducering",
+    "noiseSuppressionTooltip": "AI-driven brusreducering med RNNoise. Minskar bakgrundsbrus innan ljud skickas till AI-leverantören. Fungerar med alla leverantörer.",
     "modelConfiguration": "Modellkonfiguration",
     "preview": "Förhandsgranskning",
     "simple": "Enkel",

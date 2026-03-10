@@ -21,7 +21,7 @@ import {
   useTransportType
 } from '../../stores/settingsStore';
 import { useSession } from '../../stores/sessionStore';
-import { useAudioContext } from '../../stores/audioStore';
+import { useAudioContext, useIsNoiseSuppressEnabled } from '../../stores/audioStore';
 import { useLogActions } from '../../stores/logStore';
 import type { RealtimeEvent } from '../../stores/logStore';
 import { IClient, ConversationItem, SessionConfig, ClientEventHandlers, ClientFactory, ResponseConfig } from '../../services/clients';
@@ -39,7 +39,7 @@ import { getSafeAudioConfiguration, decodeAudioToWav } from '../../utils/audioUt
 import SimpleMainPanel from '../SimpleMainPanel/SimpleMainPanel';
 import { useAuth } from '../../lib/auth/hooks';
 import { useUserProfile } from '../../contexts/UserProfileContext';
-import { isExtension } from '../../utils/environment';
+import { isExtension, getEnvironment } from '../../utils/environment';
 
 
 /**
@@ -138,6 +138,9 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     isSystemAudioCaptureEnabled,
     participantAudioOutputDevice
   } = useAudioContext();
+
+  // Noise suppression
+  const isNoiseSuppressEnabled = useIsNoiseSuppressEnabled();
 
   // canPushToTalk is true when manual turn detection is used
   // (OpenAI-compatible: 'Disabled', Volcengine AST2: 'Push-to-Talk')
@@ -347,6 +350,19 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   }, [isRealVoicePassthroughEnabled, realVoicePassthroughVolume, selectedInputDevice, selectedMonitorDevice, isMonitorDeviceOn]);
 
   /**
+   * Handle noise suppression toggle during active session
+   */
+  useEffect(() => {
+    if (!isSessionActive || !audioServiceRef.current) return;
+    void audioServiceRef.current
+      .getRecorder()
+      .setNoiseSuppressionEnabled(isNoiseSuppressEnabled)
+      .catch((error: unknown) => {
+        console.error('[Sokuji] [MainPanel] Failed to set noise suppression:', error);
+      });
+  }, [isNoiseSuppressEnabled, isSessionActive]);
+
+  /**
    * Check for potential audio feedback and show warning
    */
   useEffect(() => {
@@ -414,7 +430,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
   // Reference to audio service for accessing ModernAudioPlayer
   const audioServiceRef = useRef<IAudioService | null>(null);
-  
+
   // Reference to track push-to-talk duration
   const pushToTalkStartTimeRef = useRef<number | null>(null);
 
@@ -1021,6 +1037,12 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       // In native capture mode, audio is automatically captured via MediaStreamTrack
       // No need to manually record and send audio chunks
       const usesNativeCapture = ClientFactory.usesNativeAudioCapture(provider, useWebRTC ? 'webrtc' : 'websocket');
+
+      // Sync noise suppression state for the new session (ensures RNNoise is
+      // removed when disabled, not just added when enabled)
+      if (audioServiceRef.current) {
+        await audioServiceRef.current.getRecorder().setNoiseSuppressionEnabled(isNoiseSuppressEnabled);
+      }
 
       // Note: Use clientRef.current instead of client variable to handle WebRTC fallback scenario
       if (!usesNativeCapture && !turnDetectionDisabled && isInputDeviceOn && audioServiceRef.current) {
@@ -2056,6 +2078,12 @@ const MainPanel: React.FC<MainPanelProps> = () => {
             translation_model: localInferenceSettings.translationModel || 'auto',
             tts_model: localInferenceSettings.ttsModel || 'auto',
           }),
+          noise_suppression_enabled: isNoiseSuppressEnabled,
+          real_voice_passthrough_enabled: isRealVoicePassthroughEnabled,
+          transport: transportType,
+          platform: getEnvironment(),
+          input_device_on: isInputDeviceOn,
+          monitor_device_on: isMonitorDeviceOn,
         });
       }
     } else {

@@ -47,6 +47,8 @@
     "model": "Модель",
     "userTranscriptModel": "Модель транскрипции пользователя",
     "noiseReduction": "Шумоподавление",
+    "noiseSuppression": "ИИ-шумоподавление",
+    "noiseSuppressionTooltip": "Подавление шума на основе ИИ с использованием RNNoise. Уменьшает фоновый шум перед отправкой аудио поставщику ИИ. Работает со всеми поставщиками.",
     "modelConfiguration": "Конфигурация модели",
     "sourceLanguage": "Мой язык",
     "targetLanguage": "Язык собеседника",

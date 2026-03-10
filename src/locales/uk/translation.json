@@ -263,6 +263,8 @@
     "automaticTurnDetection": "Автоматичне виявлення черги",
     "userTranscriptModel": "Модель транскрипції користувача",
     "noiseReduction": "Шумозаглушення",
+    "noiseSuppression": "Придушення шуму AI",
+    "noiseSuppressionTooltip": "Зменшення шуму на основі AI за допомогою RNNoise. Зменшує фоновий шум перед надсиланням аудіо постачальнику AI. Працює з усіма постачальниками.",
     "modelConfiguration": "Конфігурація моделі",
     "preview": "Попередній перегляд",
     "simple": "Простий",

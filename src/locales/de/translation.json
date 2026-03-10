@@ -47,6 +47,8 @@
     "model": "Modell",
     "userTranscriptModel": "Benutzer-Transkriptionsmodell",
     "noiseReduction": "Rauschunterdrückung",
+    "noiseSuppression": "KI-Rauschunterdrückung",
+    "noiseSuppressionTooltip": "KI-gestützte Rauschunterdrückung mit RNNoise. Reduziert Hintergrundgeräusche bevor Audio an den KI-Anbieter gesendet wird. Funktioniert mit allen Anbietern.",
     "modelConfiguration": "Modellkonfiguration",
     "sourceLanguage": "Meine Sprache",
     "targetLanguage": "Sprache des Anderen",

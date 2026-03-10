@@ -286,6 +286,8 @@
     "automaticTurnDetection": "தானியங்கி முறை கண்டறிதல்",
     "userTranscriptModel": "பயனர் ட்ரான்ஸ்கிரிப்ட் மாதிரி",
     "noiseReduction": "இரைச்சல் குறைப்பு",
+    "noiseSuppression": "AI இரைச்சல் அடக்கம்",
+    "noiseSuppressionTooltip": "RNNoise பயன்படுத்தி AI-இயக்கப்படும் இரைச்சல் குறைப்பு. AI வழங்குநருக்கு ஒலியை அனுப்புவதற்கு முன் பின்னணி இரைச்சலைக் குறைக்கிறது. அனைத்து வழங்குநர்களுடனும் செயல்படும்.",
     "modelConfiguration": "மாதிரி உள்ளமைவு",
     "preview": "முன்னோட்டம்",
     "simple": "எளிய",

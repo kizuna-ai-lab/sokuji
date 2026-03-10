@@ -47,6 +47,8 @@
     "model": "Model",
     "userTranscriptModel": "Gebruiker transcript model",
     "noiseReduction": "Ruisonderdrukking",
+    "noiseSuppression": "AI-ruisonderdrukking",
+    "noiseSuppressionTooltip": "AI-aangedreven ruisonderdrukking met RNNoise. Vermindert achtergrondgeluid voordat audio naar de AI-provider wordt verzonden. Werkt met alle providers.",
     "modelConfiguration": "Model configuratie",
     "sourceLanguage": "Mijn taal",
     "targetLanguage": "Taal van de ander",
