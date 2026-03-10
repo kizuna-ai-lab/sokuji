@@ -67,6 +67,7 @@ export class ModernAudioRecorder extends BaseAudioRecorder {
   private rnnoiseWasmBinary: ArrayBuffer | null = null;
   private rnnoiseModuleLoaded: boolean = false;
   private _noiseSuppressEnabled: boolean = false;
+  private _noiseSuppressOpId: number = 0;
 
   // Internal sample rate for AudioContext (48kHz for RNNoise compatibility)
   private internalSampleRate: number;
@@ -524,7 +525,7 @@ export class ModernAudioRecorder extends BaseAudioRecorder {
     }
 
     // Filter by analysis type
-    const binWidth = this.sampleRate / 2048;
+    const binWidth = this.internalSampleRate / 2048;
     if (analysisType === 'voice') {
       return { values: result.slice(Math.floor(85 / binWidth), Math.floor(2000 / binWidth)), peaks: [] };
     } else if (analysisType === 'music') {
@@ -591,6 +592,7 @@ export class ModernAudioRecorder extends BaseAudioRecorder {
    */
   async setNoiseSuppressionEnabled(enabled: boolean): Promise<void> {
     this._noiseSuppressEnabled = enabled;
+    const opId = ++this._noiseSuppressOpId;
 
     if (!this.audioContext || !this.mediaStreamSource || !this.audioWorkletNode) {
       // Not currently recording with AudioWorklet; flag is stored for next session start
@@ -601,7 +603,7 @@ export class ModernAudioRecorder extends BaseAudioRecorder {
     }
 
     if (enabled) {
-      await this._insertRnnoiseNode();
+      await this._insertRnnoiseNode(opId);
     } else {
       this._removeRnnoiseNode();
     }
@@ -636,7 +638,7 @@ export class ModernAudioRecorder extends BaseAudioRecorder {
    * Insert RnnoiseWorkletNode between mediaStreamSource and audioWorkletNode.
    * Also reconnects the analyser to tap post-suppression audio.
    */
-  private async _insertRnnoiseNode(): Promise<void> {
+  private async _insertRnnoiseNode(opId?: number): Promise<void> {
     if (this.rnnoiseNode) return; // Already inserted
     if (!this.audioContext || !this.mediaStreamSource || !this.audioWorkletNode) return;
 
@@ -645,6 +647,12 @@ export class ModernAudioRecorder extends BaseAudioRecorder {
         this._loadRnnoiseResources(),
         this._ensureRnnoiseModule(),
       ]);
+
+      // Abort if a newer toggle happened during async loading
+      if (opId !== undefined && opId !== this._noiseSuppressOpId) {
+        console.debug(`${this.getLogPrefix()} RNNoise insert aborted (stale opId ${opId} vs ${this._noiseSuppressOpId})`);
+        return;
+      }
 
       const { RnnoiseWorkletNode } = await import('@sapphi-red/web-noise-suppressor');
       this.rnnoiseNode = new RnnoiseWorkletNode(this.audioContext, {
@@ -667,6 +675,15 @@ export class ModernAudioRecorder extends BaseAudioRecorder {
     } catch (error) {
       console.error(`${this.getLogPrefix()} Failed to insert RNNoise node:`, error);
       this.rnnoiseNode = null;
+      // Restore direct connection so mic audio is not lost
+      try {
+        if (this.mediaStreamSource && this.audioWorkletNode) {
+          this.mediaStreamSource.connect(this.audioWorkletNode);
+          if (this.analyser) {
+            this.mediaStreamSource.connect(this.analyser);
+          }
+        }
+      } catch { /* best effort */ }
     }
   }
 
@@ -694,6 +711,15 @@ export class ModernAudioRecorder extends BaseAudioRecorder {
       console.info(`${this.getLogPrefix()} RNNoise worklet node removed`);
     } catch (error) {
       console.error(`${this.getLogPrefix()} Failed to remove RNNoise node:`, error);
+      // Ensure direct connection is restored so mic audio is not lost
+      try {
+        if (this.mediaStreamSource && this.audioWorkletNode) {
+          this.mediaStreamSource.connect(this.audioWorkletNode);
+          if (this.analyser) {
+            this.mediaStreamSource.connect(this.analyser);
+          }
+        }
+      } catch { /* best effort */ }
     }
   }
 

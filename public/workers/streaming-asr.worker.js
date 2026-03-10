@@ -33,6 +33,22 @@ var isParaformer = false;
 var utteranceStartTime = 0;
 var lastPartialText = '';
 
+/**
+ * Reset the recognizer stream state. If reset() fails, rebuild the stream.
+ * Shared by handleAudio and handleFlush error recovery.
+ */
+function resetStreamState() {
+  try {
+    recognizer.reset(recognizerStream);
+  } catch (_) {
+    // Stream may be corrupted — rebuild it
+    try { recognizerStream.free(); } catch (_) {}
+    recognizerStream = recognizer.createStream();
+  }
+  utteranceStartTime = performance.now();
+  lastPartialText = '';
+}
+
 // ─── Audio Conversion ────────────────────────────────────────────────────────
 
 /**
@@ -192,9 +208,7 @@ function handleAudio(msg) {
         });
       }
       // Reset for next utterance
-      recognizer.reset(recognizerStream);
-      utteranceStartTime = performance.now();
-      lastPartialText = '';
+      resetStreamState();
     } else if (text && text !== lastPartialText) {
       // Emit partial result only when text changes
       lastPartialText = text;
@@ -202,10 +216,8 @@ function handleAudio(msg) {
     }
   } catch (e) {
     postMessage({ type: 'error', error: 'Streaming ASR processing error: ' + (e.message || e) });
-    // Reset stream state to recover
-    try { recognizer.reset(recognizerStream); } catch (_) {}
-    utteranceStartTime = performance.now();
-    lastPartialText = '';
+    // Reset stream state to recover; rebuilds stream if reset fails
+    resetStreamState();
   }
 }
 
@@ -240,14 +252,10 @@ function handleFlush() {
     }
 
     // Reset for next utterance
-    recognizer.reset(recognizerStream);
-    utteranceStartTime = performance.now();
-    lastPartialText = '';
+    resetStreamState();
   } catch (e) {
     postMessage({ type: 'error', error: 'ASR flush error: ' + (e.message || e) });
-    try { recognizer.reset(recognizerStream); } catch (_) {}
-    utteranceStartTime = performance.now();
-    lastPartialText = '';
+    resetStreamState();
   }
 }
 

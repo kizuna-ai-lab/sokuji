@@ -37,6 +37,7 @@ export interface AnalyticsEvents {
     translation_model?: string;
     tts_model?: string;
     noise_suppression_enabled?: boolean;
+    echo_cancellation_enabled?: boolean;
     real_voice_passthrough_enabled?: boolean;
     transport?: string;
     platform?: string;
