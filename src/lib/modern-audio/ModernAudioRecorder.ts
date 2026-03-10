@@ -698,15 +698,70 @@ export class ModernAudioRecorder extends BaseAudioRecorder {
   }
 
   /**
-   * Downsample Int16 PCM from 48kHz to 24kHz (factor of 2).
-   * Uses simple averaging of adjacent sample pairs for basic lowpass.
+   * Resample Int16 PCM captured at 48kHz down to the recorder's target sample rate.
+   *
+   * - If target sample rate is 24kHz (default), uses simple averaging of adjacent
+   *   sample pairs (factor of 2) for basic low-pass anti-aliasing.
+   * - If target sample rate is 48kHz, returns the input unchanged.
+   * - For other target rates below 48kHz, uses linear interpolation with a
+   *   fixed-ratio resampling from 48kHz to the configured rate.
+   *
+   * NOTE: This helper is intended only for downsampling from 48kHz. If a higher
+   * target sample rate than 48kHz is configured, the input is returned unchanged.
    */
   private downsample48to24(input: Int16Array): Int16Array {
-    const outputLength = Math.floor(input.length / 2);
+    const sourceSampleRate = 48000;
+    const targetSampleRate = this.sampleRate ?? 24000;
+
+    // Guard against invalid or unsupported target sample rates
+    if (!targetSampleRate || targetSampleRate <= 0) {
+      // Fallback: return input unchanged
+      return input;
+    }
+
+    // No resampling needed: target matches source
+    if (targetSampleRate === sourceSampleRate) {
+      // Return a copy to avoid accidental mutation of the original buffer
+      return input.slice();
+    }
+
+    // Optimized path for the original 48kHz -> 24kHz behavior (factor of 2)
+    if (targetSampleRate === 24000) {
+      const outputLength = Math.floor(input.length / 2);
+      const output = new Int16Array(outputLength);
+      for (let i = 0; i < outputLength; i++) {
+        // Average adjacent samples for basic anti-aliasing
+        output[i] = (input[i * 2] + input[i * 2 + 1]) >> 1;
+      }
+      return output;
+    }
+
+    // Do not attempt to upsample beyond the capture rate; return input as-is.
+    if (targetSampleRate > sourceSampleRate) {
+      return input;
+    }
+
+    // Generic 48kHz -> targetSampleRate downsampling using linear interpolation
+    const ratio = sourceSampleRate / targetSampleRate;
+    const outputLength = Math.floor(input.length / ratio);
     const output = new Int16Array(outputLength);
+
     for (let i = 0; i < outputLength; i++) {
-      // Average adjacent samples for basic anti-aliasing
-      output[i] = (input[i * 2] + input[i * 2 + 1]) >> 1;
+      const srcIndex = i * ratio;
+      const indexInt = Math.floor(srcIndex);
+      const indexFrac = srcIndex - indexInt;
+
+      const i0 = indexInt;
+      const i1 = Math.min(i0 + 1, input.length - 1);
+
+      const s0 = input[i0];
+      const s1 = input[i1];
+
+      // Linear interpolation between s0 and s1
+      const interpolated = s0 + (s1 - s0) * indexFrac;
+      output[i] = interpolated < 0
+        ? Math.max(interpolated, -32768) | 0
+        : Math.min(interpolated, 32767) | 0;
     }
     return output;
   }
