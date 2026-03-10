@@ -39,7 +39,7 @@ import { getSafeAudioConfiguration, decodeAudioToWav } from '../../utils/audioUt
 import SimpleMainPanel from '../SimpleMainPanel/SimpleMainPanel';
 import { useAuth } from '../../lib/auth/hooks';
 import { useUserProfile } from '../../contexts/UserProfileContext';
-import { isExtension } from '../../utils/environment';
+import { isExtension, getEnvironment } from '../../utils/environment';
 
 
 /**
@@ -2072,6 +2072,12 @@ const MainPanel: React.FC<MainPanelProps> = () => {
             translation_model: localInferenceSettings.translationModel || 'auto',
             tts_model: localInferenceSettings.ttsModel || 'auto',
           }),
+          noise_suppression_enabled: isNoiseSuppressEnabled,
+          real_voice_passthrough_enabled: isRealVoicePassthroughEnabled,
+          transport: transportType,
+          platform: getEnvironment(),
+          input_device_on: isInputDeviceOn,
+          monitor_device_on: isMonitorDeviceOn,
         });
       }
     } else {

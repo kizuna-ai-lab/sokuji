@@ -36,6 +36,12 @@ export interface AnalyticsEvents {
     asr_model?: string;
     translation_model?: string;
     tts_model?: string;
+    noise_suppression_enabled?: boolean;
+    real_voice_passthrough_enabled?: boolean;
+    transport?: string;
+    platform?: string;
+    input_device_on?: boolean;
+    monitor_device_on?: boolean;
   };
   'translation_session_end': { 
     session_id: string;
