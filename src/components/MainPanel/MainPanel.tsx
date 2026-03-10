@@ -1038,9 +1038,10 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       // No need to manually record and send audio chunks
       const usesNativeCapture = ClientFactory.usesNativeAudioCapture(provider, useWebRTC ? 'webrtc' : 'websocket');
 
-      // Initialize noise suppression if enabled
-      if (isNoiseSuppressEnabled && audioServiceRef.current) {
-        await audioServiceRef.current.getRecorder().setNoiseSuppressionEnabled(true);
+      // Sync noise suppression state for the new session (ensures RNNoise is
+      // removed when disabled, not just added when enabled)
+      if (audioServiceRef.current) {
+        await audioServiceRef.current.getRecorder().setNoiseSuppressionEnabled(isNoiseSuppressEnabled);
       }
 
       // Note: Use clientRef.current instead of client variable to handle WebRTC fallback scenario
