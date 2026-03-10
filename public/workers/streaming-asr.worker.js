@@ -164,40 +164,48 @@ function handleAudio(msg) {
     return; // Silently drop if not initialized
   }
 
-  // Convert incoming audio to Float32 @ 16kHz
-  var samples = downsampleInt16ToFloat32(msg.samples, msg.sampleRate, EXPECTED_SAMPLE_RATE);
+  try {
+    // Convert incoming audio to Float32 @ 16kHz
+    var samples = downsampleInt16ToFloat32(msg.samples, msg.sampleRate, EXPECTED_SAMPLE_RATE);
 
-  // Feed audio directly to the online recognizer stream
-  recognizerStream.acceptWaveform(EXPECTED_SAMPLE_RATE, samples);
+    // Feed audio directly to the online recognizer stream
+    recognizerStream.acceptWaveform(EXPECTED_SAMPLE_RATE, samples);
 
-  // Decode all available frames
-  while (recognizer.isReady(recognizerStream)) {
-    recognizer.decode(recognizerStream);
-  }
-
-  // Get current result
-  var result = recognizer.getResult(recognizerStream);
-  var text = (result.text || '').trim();
-
-  // Check if we hit an endpoint (natural pause / sentence boundary)
-  if (recognizer.isEndpoint(recognizerStream)) {
-    if (text) {
-      var now = performance.now();
-      postMessage({
-        type: 'result',
-        text: text,
-        durationMs: Math.round(now - utteranceStartTime),
-        recognitionTimeMs: Math.round(now - utteranceStartTime),
-      });
+    // Decode all available frames
+    while (recognizer.isReady(recognizerStream)) {
+      recognizer.decode(recognizerStream);
     }
-    // Reset for next utterance
-    recognizer.reset(recognizerStream);
+
+    // Get current result
+    var result = recognizer.getResult(recognizerStream);
+    var text = (result.text || '').trim();
+
+    // Check if we hit an endpoint (natural pause / sentence boundary)
+    if (recognizer.isEndpoint(recognizerStream)) {
+      if (text) {
+        var now = performance.now();
+        postMessage({
+          type: 'result',
+          text: text,
+          durationMs: Math.round(now - utteranceStartTime),
+          recognitionTimeMs: Math.round(now - utteranceStartTime),
+        });
+      }
+      // Reset for next utterance
+      recognizer.reset(recognizerStream);
+      utteranceStartTime = performance.now();
+      lastPartialText = '';
+    } else if (text && text !== lastPartialText) {
+      // Emit partial result only when text changes
+      lastPartialText = text;
+      postMessage({ type: 'partial', text: text });
+    }
+  } catch (e) {
+    postMessage({ type: 'error', error: 'Streaming ASR processing error: ' + (e.message || e) });
+    // Reset stream state to recover
+    try { recognizer.reset(recognizerStream); } catch (_) {}
     utteranceStartTime = performance.now();
     lastPartialText = '';
-  } else if (text && text !== lastPartialText) {
-    // Emit partial result only when text changes
-    lastPartialText = text;
-    postMessage({ type: 'partial', text: text });
   }
 }
 
@@ -212,28 +220,35 @@ function handleAudio(msg) {
 function handleFlush() {
   if (!isReady || !recognizer || !recognizerStream) return;
 
-  // Decode any remaining buffered frames
-  while (recognizer.isReady(recognizerStream)) {
-    recognizer.decode(recognizerStream);
+  try {
+    // Decode any remaining buffered frames
+    while (recognizer.isReady(recognizerStream)) {
+      recognizer.decode(recognizerStream);
+    }
+
+    var result = recognizer.getResult(recognizerStream);
+    var text = (result.text || '').trim();
+
+    if (text) {
+      var now = performance.now();
+      postMessage({
+        type: 'result',
+        text: text,
+        durationMs: Math.round(now - utteranceStartTime),
+        recognitionTimeMs: Math.round(now - utteranceStartTime),
+      });
+    }
+
+    // Reset for next utterance
+    recognizer.reset(recognizerStream);
+    utteranceStartTime = performance.now();
+    lastPartialText = '';
+  } catch (e) {
+    postMessage({ type: 'error', error: 'ASR flush error: ' + (e.message || e) });
+    try { recognizer.reset(recognizerStream); } catch (_) {}
+    utteranceStartTime = performance.now();
+    lastPartialText = '';
   }
-
-  var result = recognizer.getResult(recognizerStream);
-  var text = (result.text || '').trim();
-
-  if (text) {
-    var now = performance.now();
-    postMessage({
-      type: 'result',
-      text: text,
-      durationMs: Math.round(now - utteranceStartTime),
-      recognitionTimeMs: Math.round(now - utteranceStartTime),
-    });
-  }
-
-  // Reset for next utterance
-  recognizer.reset(recognizerStream);
-  utteranceStartTime = performance.now();
-  lastPartialText = '';
 }
 
 // ─── Dispose ─────────────────────────────────────────────────────────────────
