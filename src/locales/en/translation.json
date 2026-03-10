@@ -106,6 +106,8 @@
     "automaticTurnDetection": "Automatic turn detection",
     "userTranscriptModel": "User transcript model",
     "noiseReduction": "Noise reduction",
+    "noiseSuppression": "AI Noise Suppression",
+    "noiseSuppressionTooltip": "AI-powered noise reduction using RNNoise. Reduces background noise before sending audio to the AI provider. Works with all providers.",
     "modelConfiguration": "Model configuration",
     "sourceLanguage": "My Language",
     "targetLanguage": "Other's Language",

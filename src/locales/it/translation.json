@@ -47,6 +47,8 @@
     "model": "Modello",
     "userTranscriptModel": "Modello di trascrizione utente",
     "noiseReduction": "Riduzione del rumore",
+    "noiseSuppression": "Soppressione rumore IA",
+    "noiseSuppressionTooltip": "Riduzione del rumore con IA tramite RNNoise. Riduce il rumore di fondo prima di inviare l'audio al fornitore IA. Funziona con tutti i fornitori.",
     "modelConfiguration": "Configurazione del modello",
     "sourceLanguage": "La mia lingua",
     "targetLanguage": "Lingua dell'altro",

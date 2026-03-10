@@ -46,6 +46,8 @@
     "model": "মডেল",
     "userTranscriptModel": "ব্যবহারকারী ট্রান্সক্রিপ্ট মডেল",
     "noiseReduction": "শব্দ হ্রাস",
+    "noiseSuppression": "AI Noise Suppression",
+    "noiseSuppressionTooltip": "AI-powered noise reduction using RNNoise. Reduces background noise before sending audio to the AI provider. Works with all providers.",
     "modelConfiguration": "মডেল কনফিগারেশন",
     "sourceLanguage": "আমার ভাষা",
     "targetLanguage": "অন্যের ভাষা",

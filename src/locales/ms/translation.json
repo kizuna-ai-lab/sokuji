@@ -46,6 +46,8 @@
     "model": "Model",
     "userTranscriptModel": "Model transkrip pengguna",
     "noiseReduction": "Pengurangan bunyi bising",
+    "noiseSuppression": "AI Noise Suppression",
+    "noiseSuppressionTooltip": "AI-powered noise reduction using RNNoise. Reduces background noise before sending audio to the AI provider. Works with all providers.",
     "modelConfiguration": "Konfigurasi model",
     "sourceLanguage": "Bahasa saya",
     "targetLanguage": "Bahasa pihak lain",

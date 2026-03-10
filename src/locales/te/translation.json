@@ -268,6 +268,8 @@
     "automaticTurnDetection": "ఆటోమేటిక్ టర్న్ డిటెక్షన్",
     "userTranscriptModel": "వినియోగదారు ట్రాన్‌స్క్రిప్ట్ మోడల్",
     "noiseReduction": "శబ్దం తగ్గింపు",
+    "noiseSuppression": "AI Noise Suppression",
+    "noiseSuppressionTooltip": "AI-powered noise reduction using RNNoise. Reduces background noise before sending audio to the AI provider. Works with all providers.",
     "modelConfiguration": "మోడల్ కాన్ఫిగరేషన్",
     "preview": "ప్రివ్యూ",
     "simple": "సరళం",
