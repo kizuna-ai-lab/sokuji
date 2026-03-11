@@ -76,7 +76,7 @@ https://github.com/user-attachments/assets/1eaaa333-a7ce-4412-a295-16b7eb2310de
 ### AI翻訳
 - **8つのAIプロバイダー**: OpenAI、Google Gemini、Palabra.ai、Kizuna AI、Volcengine ST、Doubao AST 2.0、OpenAI互換、ローカル推論
 - **サポートされているモデル**:
-  - **OpenAI**: `gpt-4o-realtime-preview`, `gpt-4o-mini-realtime-preview`, `gpt-realtime`, `gpt-realtime-2025-08-28`
+  - **OpenAI**: `gpt-realtime-mini`, `gpt-realtime-1.5`
   - **Google Gemini**: `gemini-2.0-flash-live-001`, `gemini-2.5-flash-preview-native-audio-dialog`
   - **Palabra.ai**: WebRTCによるリアルタイム音声翻訳
   - **Kizuna AI**: バックエンド管理認証によるOpenAI互換モデル

@@ -57,7 +57,7 @@ export class NodeOpenAIClient {
    * Connect to the OpenAI Realtime API
    */
   async connect(config: TestCaseConfig): Promise<void> {
-    const model = config.model || 'gpt-4o-realtime-preview';
+    const model = config.model || 'gpt-realtime-mini';
 
     // Create new client instance with model
     this.client = new RealtimeClient({

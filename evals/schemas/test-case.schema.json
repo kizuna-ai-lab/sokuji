@@ -37,7 +37,7 @@
       "properties": {
         "model": {
           "type": "string",
-          "description": "Model identifier (e.g., gpt-4o-realtime-preview)"
+          "description": "Model identifier (e.g., gpt-realtime-mini)"
         },
         "systemInstruction": {
           "type": "string",
