@@ -379,7 +379,7 @@
                         <ol>
                             <li>Select <strong>"OpenAI"</strong> as your AI provider</li>
                             <li>Paste your API key in the <strong>"OpenAI API Key"</strong> field</li>
-                            <li>Choose your preferred model (recommended: <code>gpt-4o-realtime-preview</code>)</li>
+                            <li>Choose your preferred model (recommended: <code>gpt-realtime-mini</code>)</li>
                             <li>Select a voice (e.g., <code>alloy</code>, <code>echo</code>, or <code>shimmer</code>)</li>
                             <li>Configure your source and target languages</li>
                             <li>Click <strong>Save Settings</strong></li>
@@ -416,7 +416,7 @@
                     },
                     rateLimits: {
                         title: "3. Check Realtime API Rate Limits",
-                        content: `Ensure your account has sufficient rate limits for the Realtime API. Check the limits table for <code>gpt-4o-realtime-preview</code> models.`,
+                        content: `Ensure your account has sufficient rate limits for the Realtime API. Check the limits table for <code>gpt-realtime-mini</code> models.`,
                         info: "The Realtime API has specific rate limits (TPM - Tokens Per Minute, RPM - Requests Per Minute). Make sure your usage tier provides adequate limits for your needs."
                     }
                 },
@@ -530,7 +530,7 @@
                         <ol>
                             <li>选择 <strong>"OpenAI"</strong> 作为您的 AI 提供商</li>
                             <li>在 <strong>"OpenAI API Key"</strong> 字段中粘贴您的 API 密钥</li>
-                            <li>选择您喜欢的模型（推荐：<code>gpt-4o-realtime-preview</code>）</li>
+                            <li>选择您喜欢的模型（推荐：<code>gpt-realtime-mini</code>）</li>
                             <li>选择一个语音（例如，<code>alloy</code>、<code>echo</code> 或 <code>shimmer</code>）</li>
                             <li>配置您的源语言和目标语言</li>
                             <li>点击<strong>保存设置</strong></li>
@@ -567,7 +567,7 @@
                     },
                     rateLimits: {
                         title: "3. 检查实时 API 速率限制",
-                        content: `确保您的账户对实时 API 有足够的速率限制。检查 <code>gpt-4o-realtime-preview</code> 模型的限制表。`,
+                        content: `确保您的账户对实时 API 有足够的速率限制。检查 <code>gpt-realtime-mini</code> 模型的限制表。`,
                         info: "实时 API 有特定的速率限制（TPM - 每分钟令牌数，RPM - 每分钟请求数）。确保您的使用层级为您的需求提供足够的限制。"
                     }
                 },
@@ -681,7 +681,7 @@
                         <ol>
                             <li>AI プロバイダーとして <strong>「OpenAI」</strong> を選択</li>
                             <li><strong>「OpenAI API Key」</strong> フィールドに API キーを貼り付け</li>
-                            <li>お好みのモデルを選択（推奨：<code>gpt-4o-realtime-preview</code>）</li>
+                            <li>お好みのモデルを選択（推奨：<code>gpt-realtime-mini</code>）</li>
                             <li>音声を選択（例：<code>alloy</code>、<code>echo</code>、または <code>shimmer</code>）</li>
                             <li>ソース言語とターゲット言語を設定</li>
                             <li><strong>設定を保存</strong>をクリック</li>
@@ -718,7 +718,7 @@
                     },
                     rateLimits: {
                         title: "3. リアルタイム API のレート制限を確認",
-                        content: `アカウントにリアルタイム API の十分なレート制限があることを確認してください。<code>gpt-4o-realtime-preview</code> モデルの制限表を確認してください。`,
+                        content: `アカウントにリアルタイム API の十分なレート制限があることを確認してください。<code>gpt-realtime-mini</code> モデルの制限表を確認してください。`,
                         info: "リアルタイム API には特定のレート制限（TPM - 1分あたりのトークン数、RPM - 1分あたりのリクエスト数）があります。使用階層がニーズに適した制限を提供していることを確認してください。"
                     }
                 },
@@ -832,7 +832,7 @@
                         <ol>
                             <li>AI 제공자로 <strong>"OpenAI"</strong>를 선택</li>
                             <li><strong>"OpenAI API Key"</strong> 필드에 API 키를 붙여넣기</li>
-                            <li>선호하는 모델 선택 (권장: <code>gpt-4o-realtime-preview</code>)</li>
+                            <li>선호하는 모델 선택 (권장: <code>gpt-realtime-mini</code>)</li>
                             <li>음성 선택 (예: <code>alloy</code>, <code>echo</code>, 또는 <code>shimmer</code>)</li>
                             <li>소스 언어와 대상 언어 구성</li>
                             <li><strong>설정 저장</strong> 클릭</li>
@@ -869,7 +869,7 @@
                     },
                     rateLimits: {
                         title: "3. 실시간 API 속도 제한 확인",
-                        content: `계정에 실시간 API에 대한 충분한 속도 제한이 있는지 확인하세요. <code>gpt-4o-realtime-preview</code> 모델의 제한 표를 확인하세요.`,
+                        content: `계정에 실시간 API에 대한 충분한 속도 제한이 있는지 확인하세요. <code>gpt-realtime-mini</code> 모델의 제한 표를 확인하세요.`,
                         info: "실시간 API에는 특정 속도 제한(TPM - 분당 토큰 수, RPM - 분당 요청 수)이 있습니다. 사용 계층이 필요에 적합한 제한을 제공하는지 확인하세요."
                     }
                 },
@@ -1206,9 +1206,8 @@
                     const data = await response.json();
                     
                     // Check for Realtime API access
-                    const hasRealtimeAccess = data.data.some(model => 
-                        model.id.includes('gpt-4o-realtime') || 
-                        model.id.includes('gpt-4o-mini-realtime')
+                    const hasRealtimeAccess = data.data.some(model =>
+                        model.id.startsWith('gpt-realtime')
                     );
                     
                     if (hasRealtimeAccess) {

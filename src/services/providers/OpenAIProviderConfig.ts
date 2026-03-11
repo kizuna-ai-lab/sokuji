@@ -73,10 +73,8 @@ export class OpenAIProviderConfig {
   ];
 
   private static readonly MODELS: ModelOption[] = [
-    { id: 'gpt-4o-realtime-preview', type: 'realtime' },
-    { id: 'gpt-4o-mini-realtime-preview', type: 'realtime' },
-    { id: 'gpt-realtime', type: 'realtime' },
-    { id: 'gpt-realtime-2025-08-28', type: 'realtime' },
+    { id: 'gpt-realtime-mini', type: 'realtime' },
+    { id: 'gpt-realtime-1.5', type: 'realtime' },
   ];
 
   getConfig(): ProviderConfig {
@@ -113,7 +111,7 @@ export class OpenAIProviderConfig {
       },
       
       defaults: {
-        model: 'gpt-4o-mini-realtime-preview',
+        model: 'gpt-realtime-mini',
         voice: 'alloy',
         temperature: 0.6,
         maxTokens: 'inf' as any,

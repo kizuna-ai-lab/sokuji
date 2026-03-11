@@ -35,7 +35,7 @@ export class EphemeralTokenService {
    * Uses caching to avoid unnecessary API calls
    *
    * @param apiKey - The user's OpenAI API key
-   * @param model - The realtime model to use (e.g., 'gpt-4o-realtime-preview')
+   * @param model - The realtime model to use (e.g., 'gpt-realtime-mini')
    * @param voice - The voice to use (e.g., 'alloy')
    * @param apiHost - Optional custom API host (for OpenAI Compatible)
    * @returns The ephemeral token string

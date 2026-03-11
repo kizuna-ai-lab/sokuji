@@ -22,7 +22,7 @@ export class KizunaAIProviderConfig extends OpenAIProviderConfig {
       // Override specific defaults that differ from OpenAI
       defaults: {
         ...baseConfig.defaults,
-        model: 'gpt-4o-mini-realtime-preview', // Different from OpenAI's default
+        model: 'gpt-realtime-mini',
         threshold: 0.49, // Different from OpenAI's 0.5
         prefixPadding: 0.5, // Different from OpenAI's 0.3
         silenceDuration: 0.5, // Different from OpenAI's 0.8

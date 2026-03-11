@@ -873,10 +873,8 @@
                         <div class="input-group">
                             <label for="modelSelection">${t.modelSelection}</label>
                             <select id="modelSelection">
-                                <option value="gpt-4o-realtime-preview">gpt-4o-realtime-preview</option>
-                                <option value="gpt-4o-realtime-preview-2024-12-17">gpt-4o-realtime-preview-2024-12-17</option>
-                                <option value="gpt-4o-mini-realtime-preview">gpt-4o-mini-realtime-preview</option>
-                                <option value="gpt-4o-mini-realtime-preview-2024-12-17">gpt-4o-mini-realtime-preview-2024-12-17</option>
+                                <option value="gpt-realtime-mini">gpt-realtime-mini</option>
+                                <option value="gpt-realtime-1.5">gpt-realtime-1.5</option>
                             </select>
                             <p class="helper-text">${t.modelSelectionHelper}</p>
                         </div>
@@ -1001,15 +999,15 @@
             switch(service) {
                 case 'openai':
                     endpointInput.value = 'https://api.openai.com';
-                    modelSelect.value = 'gpt-4o-realtime-preview';
+                    modelSelect.value = 'gpt-realtime-mini';
                     break;
                 case 'cometapi':
                     endpointInput.value = 'https://api.cometapi.com';
-                    modelSelect.value = 'gpt-4o-realtime-preview';
+                    modelSelect.value = 'gpt-realtime-mini';
                     break;
                 case 'kizunaai':
                     endpointInput.value = 'https://api.kizuna.ai';
-                    modelSelect.value = 'gpt-4o-realtime-preview';
+                    modelSelect.value = 'gpt-realtime-mini';
                     break;
                 case 'custom':
                     endpointInput.value = '';

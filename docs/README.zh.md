@@ -76,7 +76,7 @@ https://github.com/user-attachments/assets/1eaaa333-a7ce-4412-a295-16b7eb2310de
 ### AI 翻译
 - **8 个 AI 服务商**：OpenAI、Google Gemini、Palabra.ai、Kizuna AI、火山引擎 ST、豆包 AST 2.0、OpenAI 兼容、本地推理
 - **支持的模型**：
-  - **OpenAI**：`gpt-4o-realtime-preview`、`gpt-4o-mini-realtime-preview`、`gpt-realtime`、`gpt-realtime-2025-08-28`
+  - **OpenAI**：`gpt-realtime-mini`、`gpt-realtime-1.5`
   - **Google Gemini**：`gemini-2.0-flash-live-001`、`gemini-2.5-flash-preview-native-audio-dialog`
   - **Palabra.ai**：通过 WebRTC 进行实时语音翻译
   - **Kizuna AI**：后端托管认证的 OpenAI 兼容模型

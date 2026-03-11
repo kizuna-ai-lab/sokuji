@@ -9,7 +9,7 @@ const UNINSTALL_FEEDBACK_BASE_URL = 'https://sokuji.kizuna.ai/uninstall-feedback
 // Default configuration values
 const DEFAULT_CONFIG = {
   openAIApiKey: '',
-  model: 'gpt-4o-mini-realtime-preview',
+  model: 'gpt-realtime-mini',
   voice: 'alloy',
   systemInstructions: '',
   temperature: 0.8,

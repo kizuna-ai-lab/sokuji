@@ -76,7 +76,7 @@ If you want to install the latest version of the browser extension:
 ### AI Translation
 - **8 AI Providers**: OpenAI, Google Gemini, Palabra.ai, Kizuna AI, Volcengine ST, Doubao AST 2.0, OpenAI Compatible, and Local Inference
 - **Supported Models**:
-  - **OpenAI**: `gpt-4o-realtime-preview`, `gpt-4o-mini-realtime-preview`, `gpt-realtime`, `gpt-realtime-2025-08-28`
+  - **OpenAI**: `gpt-realtime-mini`, `gpt-realtime-1.5`
   - **Google Gemini**: `gemini-2.0-flash-live-001`, `gemini-2.5-flash-preview-native-audio-dialog`
   - **Palabra.ai**: Real-time speech-to-speech translation via WebRTC
   - **Kizuna AI**: OpenAI-compatible models with backend-managed authentication

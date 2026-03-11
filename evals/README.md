@@ -52,7 +52,7 @@ Test cases are defined in JSON format following the schema in `schemas/test-case
   "name": "Japanese to English Realtime Translation",
   "provider": "openai",
   "config": {
-    "model": "gpt-4o-realtime-preview-2024-12-17",
+    "model": "gpt-realtime-mini",
     "systemInstruction": "You are a professional interpreter...",
     "temperature": 0.6
   },
