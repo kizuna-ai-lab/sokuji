@@ -22,6 +22,7 @@ import {
 } from '../interfaces/IClient';
 import { RealtimeEvent } from '../../stores/logStore';
 import { Provider, ProviderType } from '../../types/Provider';
+import { unwrapTranslationText } from '../../utils/textUtils';
 import { EphemeralTokenService } from '../EphemeralTokenService';
 import { WebRTCAudioBridge, BufferedAudioMetadata } from '../../lib/modern-audio/WebRTCAudioBridge';
 
@@ -427,15 +428,16 @@ export class OpenAIWebRTCClient implements IClient {
    */
   private handleTranscriptDone(event: ServerEvent): void {
     const itemId = event.item_id;
-    const transcript = event.transcript;
+    const transcript = event.transcript ?? event.text;  // text.done uses 'text' field
     if (!itemId) return;
 
     const item = this.conversationItems.find(i => i.id === itemId);
     if (!item) return;
 
     if (item.formatted && transcript) {
-      item.formatted.transcript = transcript;
-      item.formatted.text = transcript;
+      const cleaned = unwrapTranslationText(transcript);
+      item.formatted.transcript = cleaned;
+      item.formatted.text = cleaned;
     }
 
     this.eventHandlers.onConversationUpdated?.({ item });
