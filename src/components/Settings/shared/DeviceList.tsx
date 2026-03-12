@@ -71,12 +71,24 @@ const DeviceList: React.FC<DeviceListProps> = ({
     }
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent, action: () => void) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      action();
+    }
+  };
+
   return (
-    <div className={`device-list ${className}`}>
+    <div className={`device-list ${className}`} role="listbox" aria-label={deviceType === 'input' ? t('simpleConfig.microphone') : t('simpleConfig.speaker')}>
       {/* Off option */}
       <div
         className={`device-option ${!isDeviceOn ? 'selected' : ''} ${disabled ? 'disabled' : ''}`}
         onClick={handleOffClick}
+        onKeyDown={(e) => handleKeyDown(e, handleOffClick)}
+        role="option"
+        aria-selected={!isDeviceOn}
+        aria-disabled={disabled}
+        tabIndex={disabled ? -1 : 0}
       >
         <span>{t('common.off', 'Off')}</span>
         {!isDeviceOn && <div className="selected-indicator" />}
@@ -92,6 +104,11 @@ const DeviceList: React.FC<DeviceListProps> = ({
             key={device.deviceId}
             className={`device-option ${isSelected ? 'selected' : ''} ${disabled ? 'disabled' : ''}`}
             onClick={() => handleDeviceClick(device)}
+            onKeyDown={(e) => handleKeyDown(e, () => handleDeviceClick(device))}
+            role="option"
+            aria-selected={isSelected}
+            aria-disabled={disabled}
+            tabIndex={disabled ? -1 : 0}
           >
             <span>{device.label || t('audioPanel.unknownDevice')}</span>
             {virtual && (
@@ -102,7 +119,7 @@ const DeviceList: React.FC<DeviceListProps> = ({
                   : t('audioPanel.virtualSpeaker')
                 }
               >
-                <AlertTriangle size={14} color="#f0ad4e" />
+                <AlertTriangle size={14} />
               </div>
             )}
             {isSelected && <div className="selected-indicator" />}

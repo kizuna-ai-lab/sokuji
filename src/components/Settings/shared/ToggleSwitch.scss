@@ -1,43 +1,43 @@
+@use 'variables' as vars;
+
 .toggle-switch-component {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-top: 8px;
+  gap: vars.$space-2;
+  margin-top: vars.$space-2;
 
   .toggle-switch-label {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: vars.$space-2;
     cursor: pointer;
     user-select: none;
 
     &:focus-visible {
-      outline: 2px solid #10a37f;
-      outline-offset: 2px;
-      border-radius: 4px;
+      @include vars.focus-ring;
+      border-radius: vars.$radius-sm;
     }
 
     &.disabled {
-      cursor: not-allowed;
-      opacity: 0.5;
+      @include vars.disabled-state;
     }
 
     .toggle-label-text {
-      color: #aaa;
-      font-size: 13px;
+      color: vars.$text-muted;
+      font-size: vars.$font-body;
       transition: color 0.2s;
 
       &.active {
-        color: #10a37f;
-        font-weight: 500;
+        color: vars.$color-primary;
+        font-weight: vars.$weight-medium;
       }
     }
 
     .toggle-track-container {
       position: relative;
       display: inline-block;
-      width: 40px;
-      height: 20px;
+      width: vars.$toggle-width;
+      height: vars.$toggle-height;
       flex-shrink: 0;
 
       input {
@@ -46,7 +46,7 @@
         height: 0;
 
         &:checked + .toggle-track {
-          background-color: #10a37f;
+          background-color: vars.$color-primary;
 
           &:before {
             transform: translateX(20px);
@@ -61,19 +61,19 @@
         left: 0;
         right: 0;
         bottom: 0;
-        background-color: #555;
-        transition: 0.2s;
+        background-color: vars.$toggle-bg-off;
+        transition: vars.$transition-fast;
         border-radius: 20px;
 
         &:before {
           position: absolute;
           content: "";
-          height: 16px;
-          width: 16px;
+          height: vars.$toggle-thumb;
+          width: vars.$toggle-thumb;
           left: 2px;
           bottom: 2px;
           background-color: white;
-          transition: 0.2s;
+          transition: vars.$transition-fast;
           border-radius: 50%;
         }
       }
