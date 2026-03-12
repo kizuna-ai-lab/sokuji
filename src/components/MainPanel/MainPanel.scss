@@ -20,6 +20,11 @@
     left: 0;
     right: 0;
     bottom: 70px; /* Reduced space for combined audio visualization and controls */
+
+    &.with-text-input {
+      bottom: 120px; /* 70px (audio-viz) + ~52px (text-input height) */
+    }
+
     overflow-y: auto;
     padding: 0 20px;
     display: flex;
