@@ -32,6 +32,11 @@
   },
   "settings": {
     "title": "Settings",
+    "tabs": {
+      "general": "General",
+      "audio": "Audio",
+      "provider": "Provider"
+    },
     "authentication": "Authentication",
     "autoAuthenticated": "Automatically authenticated via your account",
     "fetchingApiKey": "Fetching API key from your account...",

@@ -1,0 +1,43 @@
+@use 'variables' as vars;
+
+.tab-bar {
+  display: flex;
+  gap: vars.$space-1;
+  padding: 0 15px;
+  border-bottom: 1px solid vars.$border-subtle;
+  flex-shrink: 0;
+
+  &__tab {
+    display: flex;
+    align-items: center;
+    gap: vars.$space-1;
+    padding: vars.$space-2 vars.$space-3;
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: vars.$text-muted;
+    font-size: vars.$font-body;
+    font-weight: vars.$weight-medium;
+    cursor: pointer;
+    transition: color vars.$transition-fast, border-color vars.$transition-fast;
+    white-space: nowrap;
+
+    &:hover {
+      color: vars.$text-secondary;
+    }
+
+    &--active {
+      color: vars.$color-primary;
+      border-bottom-color: vars.$color-primary;
+    }
+
+    &:focus-visible {
+      @include vars.focus-ring;
+      border-radius: vars.$radius-sm vars.$radius-sm 0 0;
+    }
+
+    svg {
+      flex-shrink: 0;
+    }
+  }
+}

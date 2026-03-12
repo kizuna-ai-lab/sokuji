@@ -152,113 +152,6 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
     }
   };
 
-  const renderLanguageSelections = () => {
-    if (!config.capabilities.hasTemplateMode || !useTemplateMode) {
-      return null;
-    }
-
-    const currentSettings = currentProviderSettings as any; // Cast to access sourceLanguage/targetLanguage
-    
-    return (
-      <>
-        <div className="setting-item">
-          <div className="setting-label">
-            <span>
-              {t('settings.sourceLanguage')}
-              <Tooltip
-                content={t('settings.sourceLanguageTooltip')}
-                position="top"
-              >
-                <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '4px', display: 'inline-block', verticalAlign: 'middle' }} />
-              </Tooltip>
-            </span>
-          </div>
-          <select
-            className="select-dropdown"
-            value={currentSettings.sourceLanguage}
-            onChange={(e) => {
-              const oldSourceLang = currentSettings.sourceLanguage;
-              const newSourceLang = e.target.value;
-              // If new source language is the same as current target language,
-              // we need to update target language to avoid conflict
-              if (newSourceLang === currentSettings.targetLanguage) {
-                // Find the first available language that's not the new source language
-                const newTargetLang = config.languages.find(lang => 
-                  lang.value !== newSourceLang
-                )?.value || config.defaults.targetLanguage;
-                
-                updateCurrentProviderSetting('sourceLanguage', newSourceLang);
-                updateCurrentProviderSetting('targetLanguage', newTargetLang);
-                
-                // Track both language changes
-                trackEvent('language_changed', {
-                  from_language: oldSourceLang,
-                  to_language: newSourceLang,
-                  language_type: 'source'
-                });
-                trackEvent('language_changed', {
-                  from_language: currentSettings.targetLanguage,
-                  to_language: newTargetLang,
-                  language_type: 'target'
-                });
-              } else {
-                updateCurrentProviderSetting('sourceLanguage', newSourceLang);
-                
-                // Track language change
-                trackEvent('language_changed', {
-                  from_language: oldSourceLang,
-                  to_language: newSourceLang,
-                  language_type: 'source'
-                });
-              }
-            }}
-            disabled={isSessionActive}
-          >
-            {config.languages.map((lang) => (
-              <option key={lang.value} value={lang.value}>{lang.name}</option>
-            ))}
-          </select>
-        </div>
-        <div className="setting-item">
-          <div className="setting-label">
-            <span>
-              {t('settings.targetLanguage')}
-              <Tooltip
-                content={t('settings.targetLanguageTooltip')}
-                position="top"
-              >
-                <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '4px', display: 'inline-block', verticalAlign: 'middle' }} />
-              </Tooltip>
-            </span>
-          </div>
-          <select
-            className="select-dropdown"
-            value={currentSettings.targetLanguage}
-            onChange={(e) => {
-              const oldTargetLang = currentSettings.targetLanguage;
-              const newTargetLang = e.target.value;
-              updateCurrentProviderSetting('targetLanguage', newTargetLang);
-              
-              // Track language change
-              trackEvent('language_changed', {
-                from_language: oldTargetLang,
-                to_language: newTargetLang,
-                language_type: 'target'
-              });
-            }}
-            disabled={isSessionActive}
-          >
-            {config.languages
-              .filter(lang => lang.value !== currentSettings.sourceLanguage)
-              .map((lang) => (
-                <option key={lang.value} value={lang.value}>{lang.name}</option>
-              ))}
-          </select>
-        </div>
-      </>
-    );
-  };
-
   const renderVoiceSettings = () => {
     if (!config.capabilities.hasVoiceSettings || provider === Provider.PALABRA_AI) {
       return null;
@@ -1555,7 +1448,6 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
           
           {useTemplateMode ? (
             <>
-              {renderLanguageSelections()}
               <div className="setting-item">
                 <div className="setting-label">
                   <span>{t('settings.preview')}</span>

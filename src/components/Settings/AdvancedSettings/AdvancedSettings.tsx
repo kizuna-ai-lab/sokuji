@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { AlertCircle, HelpCircle } from 'lucide-react';
+import { AlertCircle, HelpCircle, Settings, Headphones, Cpu } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useIsSessionActive } from '../../../stores/sessionStore';
 import { useOnboarding } from '../../../contexts/OnboardingContext';
@@ -17,6 +17,7 @@ import { ProviderConfigFactory } from '../../../services/providers/ProviderConfi
 import { Provider } from '../../../types/Provider';
 import WarningModal from '../shared/WarningModal';
 import { WarningType } from '../shared/hooks';
+import TabBar, { Tab } from '../shared/TabBar';
 import {
   AccountSection,
   ProviderSection,
@@ -27,6 +28,22 @@ import {
 } from '../sections';
 import ProviderSpecificSettings from '../sections/ProviderSpecificSettings';
 import './AdvancedSettings.scss';
+
+const TABS: Tab[] = [
+  { id: 'general', labelKey: 'settings.tabs.general', fallback: 'General', icon: Settings },
+  { id: 'audio', labelKey: 'settings.tabs.audio', fallback: 'Audio', icon: Headphones },
+  { id: 'provider', labelKey: 'settings.tabs.provider', fallback: 'Provider', icon: Cpu },
+];
+
+const NAVIGATION_TAB_MAP: Record<string, string> = {
+  'user-account': 'general',
+  'languages': 'general',
+  'microphone': 'audio',
+  'speaker': 'audio',
+  'system-audio': 'audio',
+  'api-key': 'provider',
+  'model-management': 'provider',
+};
 
 interface AdvancedSettingsProps {
   toggleSettings?: () => void;
@@ -62,12 +79,19 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({ toggleSettings }) =
   const navigateToSettings = useNavigateToSettings();
 
   // State
+  const [activeTab, setActiveTab] = useState('general');
   const [isPreviewExpanded, setIsPreviewExpanded] = useState(false);
   const [warningType, setWarningType] = useState<WarningType | null>(null);
 
   // Handle scrolling and highlighting when settingsNavigationTarget changes
   useEffect(() => {
     if (settingsNavigationTarget) {
+      const targetTab = NAVIGATION_TAB_MAP[settingsNavigationTarget];
+      if (targetTab && targetTab !== activeTab) {
+        setActiveTab(targetTab);
+      }
+
+      // Wait for tab switch + DOM update before scrolling
       setTimeout(() => {
         const element = document.getElementById(`${settingsNavigationTarget}-section`);
         if (element) {
@@ -78,7 +102,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({ toggleSettings }) =
             navigateToSettings(null);
           }, 3000);
         }
-      }, 100);
+      }, 150);
     }
   }, [settingsNavigationTarget, navigateToSettings]);
 
@@ -90,89 +114,113 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({ toggleSettings }) =
         type={warningType}
       />
 
-      <div className="settings-content">
-        {isSessionActive && (
-          <div className="session-active-notice">
-            <AlertCircle size={16} />
-            <span>{t('settings.sessionActiveNotice', 'Settings are locked while session is active. Please end the session to modify settings.')}</span>
+      {isSessionActive && (
+        <div className="session-active-notice">
+          <AlertCircle size={16} />
+          <span>{t('settings.sessionActiveNotice', 'Settings are locked while session is active. Please end the session to modify settings.')}</span>
+        </div>
+      )}
+
+      <TabBar tabs={TABS} activeTab={activeTab} onTabChange={setActiveTab} />
+
+      <div
+        className="settings-content"
+        key={activeTab}
+        role="tabpanel"
+        id={`tabpanel-${activeTab}`}
+        aria-labelledby={`tab-${activeTab}`}
+      >
+        {activeTab === 'general' && (
+          <>
+            {/* User Account Section */}
+            <AccountSection />
+
+            {/* Interface Language - full list */}
+            <LanguageSection
+              isSessionActive={isSessionActive}
+              showInterfaceLanguage={true}
+              showTranslationLanguages={false}
+              simplifiedInterfaceList={false}
+            />
+
+            {/* Translation Languages - same as Simple mode */}
+            <LanguageSection
+              isSessionActive={isSessionActive}
+              showInterfaceLanguage={false}
+              showTranslationLanguages={true}
+            />
+
+            {/* Help Section */}
+            <div className="settings-section">
+              <h2>{t('settings.help', 'Help')}</h2>
+              <div className="setting-item">
+                <button
+                  className="restart-onboarding-button"
+                  onClick={() => {
+                    startOnboarding();
+                    if (toggleSettings) {
+                      toggleSettings();
+                    }
+                  }}
+                >
+                  <HelpCircle size={16} />
+                  <span>{t('onboarding.restartTour', 'Restart Setup Guide')}</span>
+                </button>
+              </div>
+            </div>
+          </>
+        )}
+
+        {activeTab === 'audio' && (
+          <div className="settings-section audio-section">
+            <h2>{t('audioPanel.title', 'Audio Settings')}</h2>
+
+            <AudioDeviceSection
+              isSessionActive={isSessionActive}
+              showMicrophone={true}
+              showSpeaker={false}
+            />
+
+            <AudioDeviceSection
+              isSessionActive={isSessionActive}
+              showMicrophone={false}
+              showSpeaker={true}
+              isSystemAudioEnabled={isSystemAudioCaptureEnabled}
+              onSpeakerMutualExclusivity={() => setWarningType('mutual-exclusivity-speaker')}
+            />
+
+            <SystemAudioSection
+              isSessionActive={isSessionActive}
+              isMonitorDeviceOn={isMonitorDeviceOn}
+              onMutualExclusivity={() => setWarningType('mutual-exclusivity-participant')}
+            />
+
+            <VoicePassthroughSection />
           </div>
         )}
 
-        {/* User Account Section */}
-        <AccountSection />
+        {activeTab === 'provider' && (
+          <>
+            {/* Provider and API Key - dropdown style */}
+            <ProviderSection
+              isSessionActive={isSessionActive}
+              expandableStyle={false}
+              showExperimentalBadge={true}
+            />
 
-        {/* Provider and API Key - dropdown style */}
-        <ProviderSection
-          isSessionActive={isSessionActive}
-          expandableStyle={false}
-          showExperimentalBadge={true}
-        />
-
-        {/* Interface Language - full list */}
-        <LanguageSection
-          isSessionActive={isSessionActive}
-          showInterfaceLanguage={true}
-          showTranslationLanguages={false}
-          simplifiedInterfaceList={false}
-        />
-
-        {/* Provider-specific settings (system instructions, model, turn detection, etc.) */}
-        <ProviderSpecificSettings
-          config={currentProviderConfig}
-          isSessionActive={isSessionActive}
-          isPreviewExpanded={isPreviewExpanded}
-          setIsPreviewExpanded={setIsPreviewExpanded}
-          getProcessedSystemInstructions={getProcessedSystemInstructions}
-          availableModels={availableModels}
-          loadingModels={loadingModels}
-          fetchAvailableModels={fetchAvailableModels}
-        />
-
-        {/* Audio Input Devices */}
-        <div className="settings-section audio-section">
-          <h2>{t('audioPanel.title', 'Audio Settings')}</h2>
-
-          <AudioDeviceSection
-            isSessionActive={isSessionActive}
-            showMicrophone={true}
-            showSpeaker={false}
-          />
-
-          <AudioDeviceSection
-            isSessionActive={isSessionActive}
-            showMicrophone={false}
-            showSpeaker={true}
-            isSystemAudioEnabled={isSystemAudioCaptureEnabled}
-            onSpeakerMutualExclusivity={() => setWarningType('mutual-exclusivity-speaker')}
-          />
-
-          <SystemAudioSection
-            isSessionActive={isSessionActive}
-            isMonitorDeviceOn={isMonitorDeviceOn}
-            onMutualExclusivity={() => setWarningType('mutual-exclusivity-participant')}
-          />
-
-          <VoicePassthroughSection />
-        </div>
-
-        {/* Help Section */}
-        <div className="settings-section">
-          <h2>{t('settings.help', 'Help')}</h2>
-          <div className="setting-item">
-            <button
-              className="restart-onboarding-button"
-              onClick={() => {
-                startOnboarding();
-                if (toggleSettings) {
-                  toggleSettings();
-                }
-              }}
-            >
-              <HelpCircle size={16} />
-              <span>{t('onboarding.restartTour', 'Restart Setup Guide')}</span>
-            </button>
-          </div>
-        </div>
+            {/* Provider-specific settings (system instructions, model, turn detection, etc.) */}
+            <ProviderSpecificSettings
+              config={currentProviderConfig}
+              isSessionActive={isSessionActive}
+              isPreviewExpanded={isPreviewExpanded}
+              setIsPreviewExpanded={setIsPreviewExpanded}
+              getProcessedSystemInstructions={getProcessedSystemInstructions}
+              availableModels={availableModels}
+              loadingModels={loadingModels}
+              fetchAvailableModels={fetchAvailableModels}
+            />
+          </>
+        )}
       </div>
     </div>
   );
