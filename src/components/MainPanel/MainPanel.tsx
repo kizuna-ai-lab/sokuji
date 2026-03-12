@@ -2403,7 +2403,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
             ) : (
               text
             )}
-            {isDevelopment() && uiMode === 'advanced' && ((item as any).status === 'completed' || (item as any).status === 'incomplete') && item.formatted?.audio && (
+            {isDevelopment() && uiMode === 'advanced' && ((item as any).status === 'completed' || (item as any).status === 'incomplete') && item.formatted?.audio?.length > 0 && (
               <button
                 className={`inline-play-button ${isItemPlaying ? 'playing' : ''}`}
                 onClick={() => handlePlayAudio(item)}
@@ -2420,12 +2420,17 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     // Advanced-only content types
     if (uiMode === 'advanced') {
       // Audio-only indicator
-      if (item.formatted?.audio) {
+      if (item.formatted?.audio?.length > 0) {
         return (
           <div key={item.id || index} className={`message-bubble ${item.role} ${isParticipant ? 'participant-source' : 'speaker-source'} audio-only`}>
-            <div className="message-header">
-              {isParticipant && item.role === 'user' ? t('simplePanel.participant', 'Participant') : item.role}
-              {isDevelopment() && ((item as any).status === 'completed' || (item as any).status === 'incomplete') && (
+            <div className="message-content">
+              <div className="content-item audio">
+                <div className="audio-indicator">
+                  <span className="audio-icon"><Volume2 size={16} /></span>
+                  <span className="audio-text">{t('mainPanel.audioContent')}</span>
+                </div>
+              </div>
+              {isDevelopment() && (
                 <button
                   className={`inline-play-button ${isItemPlaying ? 'playing' : ''}`}
                   onClick={() => handlePlayAudio(item)}
@@ -2434,14 +2439,6 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                   <Play size={10} />
                 </button>
               )}
-            </div>
-            <div className="message-content">
-              <div className="content-item audio">
-                <div className="audio-indicator">
-                  <span className="audio-icon"><Volume2 size={16} /></span>
-                  <span className="audio-text">{t('mainPanel.audioContent')}</span>
-                </div>
-              </div>
             </div>
           </div>
         );

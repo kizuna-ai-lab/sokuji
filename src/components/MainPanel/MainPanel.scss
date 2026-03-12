@@ -158,8 +158,7 @@
   }
 
   &.error .message-header,
-  &.system .message-header,
-  &.audio-only .message-header {
+  &.system .message-header {
     display: flex;
   }
 
@@ -194,9 +193,14 @@
 
 // ─── Inline Play Button (dev-only) ────────────────
 
+.message-content:has(.inline-play-button) {
+  padding-right: 24px;
+}
+
 .message-content .inline-play-button {
   position: absolute;
-  top: 4px;
+  top: 50%;
+  transform: translateY(-50%);
   right: 4px;
   display: flex;
   align-items: center;
@@ -217,26 +221,6 @@
   &:disabled { opacity: 0.5; cursor: not-allowed; }
 }
 
-// Audio-only header inline play button (keeps original inline style)
-.message-header .inline-play-button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(255, 255, 255, 0.1);
-  border: none;
-  border-radius: 3px;
-  width: 16px;
-  height: 16px;
-  padding: 0;
-  color: white;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-
-  &:hover { background: rgba(255, 255, 255, 0.2); }
-  &:active { background: rgba(255, 255, 255, 0.3); }
-  &.playing { background: rgba(16, 163, 127, 0.5); }
-  &:disabled { opacity: 0.5; cursor: not-allowed; }
-}
 
 // ─── Advanced-only Content Items ───────────────────
 
