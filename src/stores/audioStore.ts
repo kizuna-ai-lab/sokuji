@@ -3,6 +3,7 @@ import { subscribeWithSelector } from 'zustand/middleware';
 import { useMemo } from 'react';
 import { ServiceFactory } from '../services/ServiceFactory';
 import { IAudioService, AudioOperationResult } from '../services/interfaces/IAudioService';
+import { isElectron, isExtension, isLoopbackPlatform } from '../utils/environment';
 
 // Storage keys for persisting audio device preferences
 const STORAGE_KEYS = {
@@ -15,6 +16,7 @@ const STORAGE_KEYS = {
   REAL_VOICE_PASSTHROUGH_VOLUME: 'audio.realVoicePassthroughVolume',
   IS_SYSTEM_AUDIO_CAPTURE_ENABLED: 'audio.isSystemAudioCaptureEnabled',
   SELECTED_SYSTEM_AUDIO_SOURCE_ID: 'audio.selectedSystemAudioSourceId',
+  SELECTED_PARTICIPANT_AUDIO_OUTPUT_DEVICE_ID: 'audio.selectedParticipantAudioOutputDeviceId',
 };
 
 export interface AudioDevice {
@@ -249,6 +251,7 @@ const useAudioStore = create<AudioStore>()(
 
           // Select saved or first source if none selected
           const currentSource = get().selectedSystemAudioSource;
+          let restoredSource: AudioDevice | null = null;
           if (!currentSource && sources.length > 0) {
             const settingsService = ServiceFactory.getSettingsService();
             const savedSourceId = await settingsService.getSetting<string>(STORAGE_KEYS.SELECTED_SYSTEM_AUDIO_SOURCE_ID, '');
@@ -257,11 +260,37 @@ const useAudioStore = create<AudioStore>()(
               if (savedSource) {
                 console.info('[Sokuji] [AudioStore] Restored saved system audio source:', savedSource.label);
                 set({ selectedSystemAudioSource: savedSource });
+                restoredSource = savedSource;
               } else {
                 set({ selectedSystemAudioSource: sources[0] });
               }
             } else {
               set({ selectedSystemAudioSource: sources[0] });
+            }
+          }
+
+          // Re-establish system audio connection if capture was enabled and source was restored
+          if (get().isSystemAudioCaptureEnabled && restoredSource) {
+            try {
+              // For loopback platforms (Windows/macOS), verify permission still available
+              if (isElectron() && !isExtension() && isLoopbackPlatform()) {
+                const permissionGranted = await audioService.requestLoopbackAudioStream();
+                if (!permissionGranted) {
+                  console.warn('[Sokuji] [AudioStore] Loopback permission lost, disabling system audio capture');
+                  set({ isSystemAudioCaptureEnabled: false });
+                  const settingsService = ServiceFactory.getSettingsService();
+                  settingsService.setSetting(STORAGE_KEYS.IS_SYSTEM_AUDIO_CAPTURE_ENABLED, false).catch(() => {});
+                  return;
+                }
+              }
+              await audioService.connectSystemAudioSource(restoredSource.deviceId);
+              set({ systemAudioLoopbackSourceId: 'sokuji_system_audio_mic' });
+              console.info('[Sokuji] [AudioStore] Re-established system audio connection for:', restoredSource.label);
+            } catch (error) {
+              console.error('[Sokuji] [AudioStore] Failed to re-establish system audio connection:', error);
+              set({ isSystemAudioCaptureEnabled: false });
+              const settingsService = ServiceFactory.getSettingsService();
+              settingsService.setSetting(STORAGE_KEYS.IS_SYSTEM_AUDIO_CAPTURE_ENABLED, false).catch(() => {});
             }
           }
         }
@@ -273,6 +302,9 @@ const useAudioStore = create<AudioStore>()(
     selectParticipantAudioOutputDevice: (device) => {
       console.info('[Sokuji] [AudioStore] Selected participant audio output device:', device?.label || 'None');
       set({ participantAudioOutputDevice: device });
+      const settingsService = ServiceFactory.getSettingsService();
+      settingsService.setSetting(STORAGE_KEYS.SELECTED_PARTICIPANT_AUDIO_OUTPUT_DEVICE_ID, device?.deviceId || '')
+        .catch(error => console.error('[Sokuji] [AudioStore] Failed to save participant audio output device:', error));
     },
 
     // Complex actions
@@ -332,6 +364,16 @@ const useAudioStore = create<AudioStore>()(
         if (savedSystemAudioCaptureEnabled !== null) {
           console.info('[Sokuji] [AudioStore] Restored system audio capture state:', savedSystemAudioCaptureEnabled);
           set({ isSystemAudioCaptureEnabled: savedSystemAudioCaptureEnabled });
+        }
+
+        // Restore participant audio output device if saved
+        const savedParticipantOutputId = await settingsService.getSetting<string>(STORAGE_KEYS.SELECTED_PARTICIPANT_AUDIO_OUTPUT_DEVICE_ID, '');
+        if (savedParticipantOutputId) {
+          const savedDevice = devices.outputs.find(d => d.deviceId === savedParticipantOutputId);
+          if (savedDevice) {
+            console.info('[Sokuji] [AudioStore] Restored participant audio output device:', savedDevice.label);
+            set({ participantAudioOutputDevice: savedDevice });
+          }
         }
 
         // Restore input device on/off state if saved
