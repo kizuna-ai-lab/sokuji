@@ -49,7 +49,6 @@ const Settings: React.FC<SettingsProps> = ({ toggleSettings, highlightSection })
             <button
               className={`mode-button ${isSimpleMode ? 'active' : ''}`}
               onClick={() => !isSimpleMode && handleModeToggle()}
-              disabled={isSessionActive}
               title={t('settings.simpleMode', 'Simple')}
             >
               <LayoutGrid size={14} />
@@ -58,7 +57,6 @@ const Settings: React.FC<SettingsProps> = ({ toggleSettings, highlightSection })
             <button
               className={`mode-button ${!isSimpleMode ? 'active' : ''}`}
               onClick={() => isSimpleMode && handleModeToggle()}
-              disabled={isSessionActive}
               title={t('settings.advancedMode', 'Advanced')}
             >
               <Sliders size={14} />
