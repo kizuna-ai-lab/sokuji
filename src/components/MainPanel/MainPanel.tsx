@@ -2394,28 +2394,6 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           key={item.id || index}
           className={`message-bubble ${item.role} ${isParticipant ? 'participant-source' : 'speaker-source'} ${isItemPlaying ? 'playing' : ''}`}
         >
-          <div className="message-header">
-            {uiMode === 'basic' ? (
-              item.role === 'user'
-                ? (isParticipant ? t('simplePanel.participant', 'Participant') : t('simplePanel.you', 'You'))
-                : t('simplePanel.translation', 'Translation')
-            ) : (
-              <>
-                {isParticipant && item.role === 'user'
-                  ? t('simplePanel.participant', 'Participant')
-                  : item.role}
-                {isDevelopment() && ((item as any).status === 'completed' || (item as any).status === 'incomplete') && item.formatted?.audio && (
-                  <button
-                    className={`inline-play-button ${isItemPlaying ? 'playing' : ''}`}
-                    onClick={() => handlePlayAudio(item)}
-                    disabled={playingItemId !== null}
-                  >
-                    <Play size={10} />
-                  </button>
-                )}
-              </>
-            )}
-          </div>
           <div className={`message-content ${isItemPlaying ? 'karaoke-active' : ''}`}>
             {isItemPlaying ? (
               <>
@@ -2424,6 +2402,15 @@ const MainPanel: React.FC<MainPanelProps> = () => {
               </>
             ) : (
               text
+            )}
+            {isDevelopment() && uiMode === 'advanced' && ((item as any).status === 'completed' || (item as any).status === 'incomplete') && item.formatted?.audio && (
+              <button
+                className={`inline-play-button ${isItemPlaying ? 'playing' : ''}`}
+                onClick={() => handlePlayAudio(item)}
+                disabled={playingItemId !== null}
+              >
+                <Play size={10} />
+              </button>
             )}
           </div>
         </div>
@@ -2435,7 +2422,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       // Audio-only indicator
       if (item.formatted?.audio) {
         return (
-          <div key={item.id || index} className={`message-bubble ${item.role} ${isParticipant ? 'participant-source' : 'speaker-source'}`}>
+          <div key={item.id || index} className={`message-bubble ${item.role} ${isParticipant ? 'participant-source' : 'speaker-source'} audio-only`}>
             <div className="message-header">
               {isParticipant && item.role === 'user' ? t('simplePanel.participant', 'Participant') : item.role}
               {isDevelopment() && ((item as any).status === 'completed' || (item as any).status === 'incomplete') && (
