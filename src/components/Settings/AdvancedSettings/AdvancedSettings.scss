@@ -9,6 +9,30 @@
   overflow-x: hidden;
   color: vars.$text-primary;
 
+  > .session-active-notice {
+    display: flex;
+    align-items: center;
+    gap: vars.$space-2;
+    background-color: rgba(vars.$color-warning, 0.15);
+    border: 1px solid vars.$color-warning-border;
+    border-radius: vars.$radius-md;
+    padding: vars.$space-3;
+    margin: 15px 15px 0;
+    color: vars.$color-warning;
+    font-size: vars.$font-body;
+    line-height: 1.4;
+    flex-shrink: 0;
+
+    svg {
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    span {
+      flex: 1;
+    }
+  }
+
   .settings-content {
     flex: 1;
     overflow-y: auto;
@@ -17,29 +41,6 @@
     scrollbar-gutter: stable;
     box-sizing: border-box;
     width: 100%;
-
-    .session-active-notice {
-      display: flex;
-      align-items: center;
-      gap: vars.$space-2;
-      background-color: rgba(vars.$color-warning, 0.15);
-      border: 1px solid vars.$color-warning-border;
-      border-radius: vars.$radius-md;
-      padding: vars.$space-3;
-      margin-bottom: 20px;
-      color: vars.$color-warning;
-      font-size: vars.$font-body;
-      line-height: 1.4;
-
-      svg {
-        flex-shrink: 0;
-        margin-top: 1px;
-      }
-
-      span {
-        flex: 1;
-      }
-    }
 
     .settings-section {
       margin-bottom: vars.$space-5;
