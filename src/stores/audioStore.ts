@@ -11,6 +11,10 @@ const STORAGE_KEYS = {
   IS_INPUT_DEVICE_ON: 'audio.isInputDeviceOn',
   IS_MONITOR_DEVICE_ON: 'audio.isMonitorDeviceOn',
   IS_NOISE_SUPPRESS_ENABLED: 'audio.isNoiseSuppressEnabled',
+  IS_REAL_VOICE_PASSTHROUGH_ENABLED: 'audio.isRealVoicePassthroughEnabled',
+  REAL_VOICE_PASSTHROUGH_VOLUME: 'audio.realVoicePassthroughVolume',
+  IS_SYSTEM_AUDIO_CAPTURE_ENABLED: 'audio.isSystemAudioCaptureEnabled',
+  SELECTED_SYSTEM_AUDIO_SOURCE_ID: 'audio.selectedSystemAudioSourceId',
 };
 
 export interface AudioDevice {
@@ -169,15 +173,24 @@ const useAudioStore = create<AudioStore>()(
     },
     
     toggleRealVoicePassthrough: () => {
-      console.info('[Sokuji] [AudioStore] Toggling real voice passthrough');
-      set((state) => ({ isRealVoicePassthroughEnabled: !state.isRealVoicePassthroughEnabled }));
+      set((state) => {
+        const newState = !state.isRealVoicePassthroughEnabled;
+        console.info('[Sokuji] [AudioStore] Toggling real voice passthrough:', newState);
+        const settingsService = ServiceFactory.getSettingsService();
+        settingsService.setSetting(STORAGE_KEYS.IS_REAL_VOICE_PASSTHROUGH_ENABLED, newState)
+          .catch(error => console.error('[Sokuji] [AudioStore] Failed to save real voice passthrough state:', error));
+        return { isRealVoicePassthroughEnabled: newState };
+      });
     },
-    
+
     setRealVoicePassthroughVolume: (volume) => {
       // Clamp volume between 0 and 0.6 (60%)
       const clampedVolume = Math.max(0, Math.min(0.6, volume));
       console.info('[Sokuji] [AudioStore] Setting real voice passthrough volume:', clampedVolume);
       set({ realVoicePassthroughVolume: clampedVolume });
+      const settingsService = ServiceFactory.getSettingsService();
+      settingsService.setSetting(STORAGE_KEYS.REAL_VOICE_PASSTHROUGH_VOLUME, clampedVolume)
+        .catch(error => console.error('[Sokuji] [AudioStore] Failed to save real voice passthrough volume:', error));
     },
 
     toggleNoiseSuppression: () => {
@@ -197,11 +210,20 @@ const useAudioStore = create<AudioStore>()(
     selectSystemAudioSource: (source) => {
       console.info('[Sokuji] [AudioStore] Selected system audio source:', source?.label || 'None');
       set({ selectedSystemAudioSource: source });
+      const settingsService = ServiceFactory.getSettingsService();
+      settingsService.setSetting(STORAGE_KEYS.SELECTED_SYSTEM_AUDIO_SOURCE_ID, source?.deviceId || '')
+        .catch(error => console.error('[Sokuji] [AudioStore] Failed to save system audio source preference:', error));
     },
 
     toggleSystemAudioCapture: () => {
-      console.info('[Sokuji] [AudioStore] Toggling system audio capture');
-      set((state) => ({ isSystemAudioCaptureEnabled: !state.isSystemAudioCaptureEnabled }));
+      set((state) => {
+        const newState = !state.isSystemAudioCaptureEnabled;
+        console.info('[Sokuji] [AudioStore] Toggling system audio capture:', newState);
+        const settingsService = ServiceFactory.getSettingsService();
+        settingsService.setSetting(STORAGE_KEYS.IS_SYSTEM_AUDIO_CAPTURE_ENABLED, newState)
+          .catch(error => console.error('[Sokuji] [AudioStore] Failed to save system audio capture state:', error));
+        return { isSystemAudioCaptureEnabled: newState };
+      });
     },
 
     setSystemAudioCaptureActive: (active) => {
@@ -225,10 +247,22 @@ const useAudioStore = create<AudioStore>()(
           set({ systemAudioSources: sources });
           console.info('[Sokuji] [AudioStore] Refreshed system audio sources:', sources.length);
 
-          // Select first source if none selected
+          // Select saved or first source if none selected
           const currentSource = get().selectedSystemAudioSource;
           if (!currentSource && sources.length > 0) {
-            set({ selectedSystemAudioSource: sources[0] });
+            const settingsService = ServiceFactory.getSettingsService();
+            const savedSourceId = await settingsService.getSetting<string>(STORAGE_KEYS.SELECTED_SYSTEM_AUDIO_SOURCE_ID, '');
+            if (savedSourceId) {
+              const savedSource = sources.find(s => s.deviceId === savedSourceId);
+              if (savedSource) {
+                console.info('[Sokuji] [AudioStore] Restored saved system audio source:', savedSource.label);
+                set({ selectedSystemAudioSource: savedSource });
+              } else {
+                set({ selectedSystemAudioSource: sources[0] });
+              }
+            } else {
+              set({ selectedSystemAudioSource: sources[0] });
+            }
           }
         }
       } catch (error) {
@@ -272,10 +306,32 @@ const useAudioStore = create<AudioStore>()(
         const savedMonitorDeviceOn = await settingsService.getSetting<boolean | null>(STORAGE_KEYS.IS_MONITOR_DEVICE_ON, null);
         const savedNoiseSuppressEnabled = await settingsService.getSetting<boolean | null>(STORAGE_KEYS.IS_NOISE_SUPPRESS_ENABLED, null);
 
+        const savedPassthroughEnabled = await settingsService.getSetting<boolean | null>(STORAGE_KEYS.IS_REAL_VOICE_PASSTHROUGH_ENABLED, null);
+        const savedPassthroughVolume = await settingsService.getSetting<number | null>(STORAGE_KEYS.REAL_VOICE_PASSTHROUGH_VOLUME, null);
+        const savedSystemAudioCaptureEnabled = await settingsService.getSetting<boolean | null>(STORAGE_KEYS.IS_SYSTEM_AUDIO_CAPTURE_ENABLED, null);
+
         // Restore noise suppression state if saved
         if (savedNoiseSuppressEnabled !== null) {
           console.info('[Sokuji] [AudioStore] Restored noise suppression state:', savedNoiseSuppressEnabled);
           set({ isNoiseSuppressEnabled: savedNoiseSuppressEnabled });
+        }
+
+        // Restore real voice passthrough state if saved
+        if (savedPassthroughEnabled !== null) {
+          console.info('[Sokuji] [AudioStore] Restored real voice passthrough state:', savedPassthroughEnabled);
+          set({ isRealVoicePassthroughEnabled: savedPassthroughEnabled });
+        }
+
+        // Restore real voice passthrough volume if saved
+        if (savedPassthroughVolume !== null) {
+          console.info('[Sokuji] [AudioStore] Restored real voice passthrough volume:', savedPassthroughVolume);
+          set({ realVoicePassthroughVolume: savedPassthroughVolume });
+        }
+
+        // Restore system audio capture state if saved
+        if (savedSystemAudioCaptureEnabled !== null) {
+          console.info('[Sokuji] [AudioStore] Restored system audio capture state:', savedSystemAudioCaptureEnabled);
+          set({ isSystemAudioCaptureEnabled: savedSystemAudioCaptureEnabled });
         }
 
         // Restore input device on/off state if saved
