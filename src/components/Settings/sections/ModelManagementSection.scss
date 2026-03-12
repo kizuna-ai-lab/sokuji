@@ -1,3 +1,5 @@
+@use '../shared/variables' as vars;
+
 .model-management-section {
   .model-group {
     margin-bottom: 16px;
@@ -12,7 +14,7 @@
 
       &:hover {
         .model-group__title {
-          color: #bbb;
+          color: vars.$text-secondary;
         }
       }
     }
@@ -20,23 +22,23 @@
     &__chevron {
       display: flex;
       align-items: center;
-      color: #888;
-      transition: transform 0.2s;
+      color: vars.$text-muted;
+      transition: transform vars.$transition-fast;
     }
 
     &__title {
-      font-size: 12px;
-      font-weight: 600;
-      color: #999;
+      font-size: vars.$font-caption;
+      font-weight: vars.$weight-semibold;
+      color: vars.$text-muted;
       text-transform: uppercase;
       letter-spacing: 0.5px;
       margin: 0;
-      transition: color 0.2s;
+      transition: color vars.$transition-fast;
     }
 
     &__subtitle {
-      font-size: 11px;
-      color: #666;
+      font-size: vars.$font-caption;
+      color: vars.$text-disabled;
       font-style: italic;
     }
 
@@ -54,13 +56,13 @@
       padding: 6px 0;
       background: none;
       border: none;
-      font-size: 12px;
-      color: #888;
+      font-size: vars.$font-caption;
+      color: vars.$text-muted;
       cursor: pointer;
-      transition: color 0.2s;
+      transition: color vars.$transition-fast;
 
       &:hover {
-        color: #ccc;
+        color: vars.$text-secondary;
       }
     }
   }
@@ -71,41 +73,41 @@
   flex-direction: column;
   gap: 6px;
   padding: 10px 12px;
-  background: #2a2a2a;
-  border: 1px solid #333;
-  border-radius: 6px;
+  background: vars.$bg-surface;
+  border: 1px solid vars.$border-subtle;
+  border-radius: vars.$radius-md;
   transition: border-color 0.2s, opacity 0.2s, background 0.2s;
   cursor: pointer;
 
   &:hover:not(&--incompatible):not(&--disabled) {
-    border-color: #555;
-    background: #2e2e2e;
+    border-color: vars.$border-strong;
+    background: vars.$bg-surface;
   }
 
   &--selected {
-    border-color: rgba(16, 163, 127, 0.5);
-    border-left: 3px solid #10a37f;
+    border-color: rgba(vars.$color-primary, 0.5);
+    border-left: 3px solid vars.$color-primary;
 
     &:hover:not(&--disabled) {
-      border-color: rgba(16, 163, 127, 0.7);
-      border-left-color: #10a37f;
+      border-color: rgba(vars.$color-primary, 0.7);
+      border-left-color: vars.$color-primary;
     }
   }
 
   &--downloaded:not(&--selected) {
-    border-color: rgba(16, 163, 127, 0.3);
+    border-color: rgba(vars.$color-primary, 0.3);
   }
 
   &--error {
-    border-color: rgba(231, 76, 60, 0.3);
+    border-color: rgba(vars.$color-error, 0.3);
   }
 
   &--incompatible {
-    opacity: 0.5;
+    @include vars.disabled-state;
     cursor: default;
 
     .model-card__name {
-      color: #999;
+      color: vars.$text-muted;
     }
   }
 
@@ -115,7 +117,7 @@
   }
 
   &--none {
-    background: #252525;
+    background: vars.$bg-surface;
     border-style: dashed;
 
     &.model-card--selected {
@@ -137,9 +139,9 @@
     height: 16px;
     min-width: 16px;
     margin-top: 1px;
-    border: 2px solid #555;
+    border: 2px solid vars.$border-strong;
     border-radius: 50%;
-    transition: border-color 0.2s;
+    transition: border-color vars.$transition-fast;
 
     &::after {
       content: '';
@@ -148,19 +150,19 @@
       height: 8px;
       border-radius: 50%;
       background: transparent;
-      transition: background 0.2s;
+      transition: background vars.$transition-fast;
     }
 
     .model-card--selected & {
-      border-color: #10a37f;
+      border-color: vars.$color-primary;
 
       &::after {
-        background: #10a37f;
+        background: vars.$color-primary;
       }
     }
 
     .model-card--incompatible & {
-      border-color: #444;
+      border-color: vars.$border-default;
     }
   }
 
@@ -185,14 +187,14 @@
   }
 
   &__name {
-    font-size: 13px;
-    font-weight: 500;
-    color: #eee;
+    font-size: vars.$font-body;
+    font-weight: vars.$weight-medium;
+    color: vars.$text-primary;
   }
 
   &__size {
-    font-size: 11px;
-    color: #888;
+    font-size: vars.$font-caption;
+    color: vars.$text-muted;
     white-space: nowrap;
   }
 
@@ -215,8 +217,8 @@
     padding: 1px 6px;
     background: rgba(255, 255, 255, 0.08);
     border-radius: 3px;
-    font-size: 11px;
-    color: #aaa;
+    font-size: vars.$font-caption;
+    color: vars.$text-muted;
   }
 
   &__auto-badge {
@@ -224,19 +226,19 @@
     align-items: center;
     gap: 3px;
     padding: 1px 6px;
-    background: rgba(16, 163, 127, 0.15);
+    background: rgba(vars.$color-primary, 0.15);
     border-radius: 3px;
     font-size: 10px;
-    color: #10a37f;
-    font-weight: 500;
+    color: vars.$color-primary;
+    font-weight: vars.$weight-medium;
   }
 
   &__compatibility-warning {
     display: inline-flex;
     align-items: center;
     gap: 3px;
-    font-size: 11px;
-    color: #f0ad4e;
+    font-size: vars.$font-caption;
+    color: vars.$color-warning;
   }
 
   &__no-model-warning {
@@ -244,11 +246,11 @@
     align-items: center;
     gap: 4px;
     padding: 6px 10px;
-    background: rgba(255, 193, 7, 0.1);
-    border: 1px solid rgba(255, 193, 7, 0.2);
-    border-radius: 4px;
-    font-size: 12px;
-    color: #ffc107;
+    background: vars.$color-warning-bg;
+    border: 1px solid rgba(vars.$color-warning, 0.2);
+    border-radius: vars.$radius-sm;
+    font-size: vars.$font-caption;
+    color: vars.$color-warning;
   }
 
   &__actions {
@@ -262,8 +264,8 @@
     gap: 5px;
     padding: 4px 10px;
     border: none;
-    border-radius: 4px;
-    font-size: 12px;
+    border-radius: vars.$radius-sm;
+    font-size: vars.$font-caption;
     cursor: pointer;
     transition: background 0.2s, opacity 0.2s;
 
@@ -273,33 +275,33 @@
     }
 
     &--download {
-      background: #10a37f;
-      color: #fff;
+      background: vars.$color-primary;
+      color: vars.$text-primary;
 
       &:hover:not(:disabled) {
-        background: #0e8f6e;
+        background: vars.$color-primary-hover;
       }
     }
 
     &--cancel {
       background: rgba(255, 255, 255, 0.1);
-      color: #aaa;
+      color: vars.$text-muted;
       padding: 3px 6px;
 
       &:hover {
         background: rgba(255, 255, 255, 0.15);
-        color: #fff;
+        color: vars.$text-primary;
       }
     }
 
     &--delete {
       background: transparent;
-      color: #888;
+      color: vars.$text-muted;
       padding: 3px 6px;
       margin-left: 8px;
 
       &:hover:not(:disabled) {
-        color: #e74c3c;
+        color: vars.$color-error;
       }
     }
   }
@@ -320,9 +322,9 @@
 
   &__progress-fill {
     height: 100%;
-    background: #10a37f;
+    background: vars.$color-primary;
     border-radius: 2px;
-    transition: width 0.3s ease;
+    transition: width vars.$transition-normal;
   }
 
   &__progress-info {
@@ -332,31 +334,31 @@
   }
 
   &__progress-percent {
-    font-size: 11px;
-    color: #999;
+    font-size: vars.$font-caption;
+    color: vars.$text-muted;
   }
 
   &__downloaded {
     display: flex;
     align-items: center;
     gap: 4px;
-    font-size: 12px;
-    color: #10a37f;
+    font-size: vars.$font-caption;
+    color: vars.$color-primary;
   }
 
   &__error {
     display: flex;
     align-items: center;
     gap: 6px;
-    font-size: 12px;
-    color: #e74c3c;
+    font-size: vars.$font-caption;
+    color: vars.$color-error;
     flex-wrap: wrap;
   }
 
   &__error-message {
     width: 100%;
-    font-size: 11px;
-    color: #e74c3c;
+    font-size: vars.$font-caption;
+    color: vars.$color-error;
     opacity: 0.85;
     line-height: 1.3;
     word-break: break-word;
@@ -373,8 +375,8 @@
   align-items: center;
   gap: 6px;
   padding: 8px 0 0;
-  font-size: 12px;
-  color: #888;
-  border-top: 1px solid #333;
+  font-size: vars.$font-caption;
+  color: vars.$text-muted;
+  border-top: 1px solid vars.$border-subtle;
   margin-top: 8px;
 }

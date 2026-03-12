@@ -1,0 +1,79 @@
+@use 'variables' as vars;
+
+.settings-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  border-radius: vars.$radius-sm;
+  font-weight: vars.$weight-medium;
+  cursor: pointer;
+  transition: all vars.$transition-fast;
+
+  &:focus-visible {
+    @include vars.focus-ring;
+  }
+
+  &:disabled {
+    @include vars.disabled-state;
+  }
+
+  // --- Variants ---
+
+  &--primary {
+    background: vars.$color-primary;
+    color: vars.$text-primary;
+
+    &:hover:not(:disabled) {
+      background: vars.$color-primary-hover;
+    }
+  }
+
+  &--secondary {
+    background: transparent;
+    border: 1px solid vars.$color-primary;
+    color: vars.$color-primary;
+
+    &:hover:not(:disabled) {
+      background: rgba(vars.$color-primary, 0.1);
+    }
+  }
+
+  &--ghost {
+    background: transparent;
+    color: vars.$text-muted;
+
+    &:hover:not(:disabled) {
+      color: vars.$text-secondary;
+      background: rgba(255, 255, 255, 0.05);
+    }
+  }
+
+  // --- Sizes ---
+
+  &--md {
+    padding: 8px 16px;
+    font-size: vars.$font-body;
+  }
+
+  &--sm {
+    padding: 4px 10px;
+    font-size: vars.$font-caption;
+  }
+
+  // --- Spinner ---
+
+  &__spinner {
+    width: 14px;
+    height: 14px;
+    border: 2px solid transparent;
+    border-top-color: currentColor;
+    border-radius: 50%;
+    animation: settings-btn-spin 0.8s linear infinite;
+  }
+}
+
+@keyframes settings-btn-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}

@@ -1,0 +1,73 @@
+@use 'variables' as vars;
+
+.status-message {
+  display: flex;
+  align-items: center;
+  gap: vars.$space-2;
+  padding: vars.$space-2 10px;
+  border-radius: vars.$radius-sm;
+  font-size: vars.$font-caption;
+  margin-bottom: vars.$space-3;
+
+  &__icon {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+
+    svg {
+      width: 16px;
+      height: 16px;
+    }
+  }
+
+  &__content {
+    flex: 1;
+  }
+
+  &--success {
+    @include vars.status-box(
+      vars.$color-success,
+      vars.$color-success-bg,
+      vars.$color-success-border
+    );
+  }
+
+  &--warning {
+    @include vars.status-box(
+      vars.$color-warning,
+      vars.$color-warning-bg,
+      vars.$color-warning-border
+    );
+  }
+
+  &--error {
+    @include vars.status-box(
+      vars.$color-error,
+      vars.$color-error-bg,
+      vars.$color-error-border
+    );
+  }
+
+  &--info {
+    @include vars.status-box(
+      vars.$color-info,
+      vars.$color-info-bg,
+      vars.$color-info-border
+    );
+  }
+
+  // Spinner variant for loading states
+  .spinner {
+    width: 14px;
+    height: 14px;
+    border: 2px solid transparent;
+    border-top-color: currentColor;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}

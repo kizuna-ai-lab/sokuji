@@ -1,8 +1,10 @@
+@use '../shared/variables' as vars;
+
 .simple-settings {
   display: flex;
   flex-direction: column;
   height: 100%;
-  color: #fff;
+  color: vars.$text-primary;
 
   .settings-content {
     flex: 1;
@@ -18,12 +20,12 @@
       align-items: center;
       gap: 10px;
       padding: 6px 10px;
-      background: rgba(255, 170, 0, 0.1);
-      border: 1px solid rgba(255, 170, 0, 0.3);
-      border-radius: 4px;
+      background: rgba(vars.$color-warning, 0.1);
+      border: 1px solid rgba(vars.$color-warning, 0.3);
+      border-radius: vars.$radius-sm;
       margin-bottom: 20px;
-      font-size: 12px;
-      color: #ffaa00;
+      font-size: vars.$font-caption;
+      color: vars.$color-warning;
     }
   }
 }

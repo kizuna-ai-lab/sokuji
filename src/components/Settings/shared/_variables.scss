@@ -1,0 +1,145 @@
+// ============================================================
+// Settings Design Tokens
+// ============================================================
+// Single source of truth for all Settings UI styling.
+// Import with @use 'path/to/variables' as vars;
+// ============================================================
+
+// --- Color Palette -------------------------------------------
+
+// Brand
+$color-primary:       #10a37f;
+$color-primary-hover: #0e8f6f;
+
+// Status
+$color-success: #10a37f;
+$color-warning: #ffc107;
+$color-error:   #ff4444;
+$color-info:    #4285f4;
+
+// Status backgrounds (for StatusMessage-style containers)
+$color-success-bg:     rgba($color-success, 0.1);
+$color-success-border: rgba($color-success, 0.3);
+$color-warning-bg:     rgba($color-warning, 0.1);
+$color-warning-border: rgba($color-warning, 0.3);
+$color-error-bg:       rgba($color-error, 0.1);
+$color-error-border:   rgba($color-error, 0.3);
+$color-info-bg:        rgba($color-info, 0.1);
+$color-info-border:    rgba($color-info, 0.3);
+
+// --- Text ----------------------------------------------------
+
+$text-primary:   #fff;
+$text-secondary: #ccc;
+$text-muted:     #888;
+$text-disabled:  #555;
+
+// --- Backgrounds ---------------------------------------------
+
+$bg-page:    #1a1a1a;   // deepest layer (page / panel bg)
+$bg-surface: #252525;   // cards, sections, nested panels
+$bg-control: #333;      // inputs, buttons, device options
+$bg-hover:   #3a3a3a;   // hover & expanded states
+$bg-elevated:#444;      // raised elements, disabled btn bg
+
+// --- Borders -------------------------------------------------
+
+$border-default: #444;   // input borders, dividers
+$border-subtle:  #333;   // section separators, soft dividers
+$border-strong:  #555;   // hover-emphasized borders
+
+// --- Typography ----------------------------------------------
+
+$font-title:   14px;
+$font-body:    13px;
+$font-caption: 12px;
+
+$weight-normal:   400;
+$weight-medium:   500;
+$weight-semibold: 600;
+
+// --- Spacing (4px grid) --------------------------------------
+
+$space-1:  4px;
+$space-2:  8px;
+$space-3:  12px;
+$space-4:  16px;
+$space-5:  20px;
+$space-6:  24px;
+
+// --- Radii ---------------------------------------------------
+
+$radius-sm: 4px;
+$radius-md: 6px;
+$radius-lg: 8px;
+
+// --- Transitions ---------------------------------------------
+
+$transition-fast: 0.2s ease;
+$transition-normal: 0.3s ease;
+
+// --- Interactive States --------------------------------------
+
+$disabled-opacity: 0.5;
+
+$focus-ring-color:  $color-primary;
+$focus-ring-width:  2px;
+$focus-ring-offset: 2px;
+
+// --- Slider --------------------------------------------------
+
+$slider-track-height: 4px;
+$slider-track-bg:     $bg-elevated;
+$slider-track-radius: 2px;
+$slider-thumb-size:   16px;
+$slider-thumb-bg:     $color-primary;
+
+// --- Toggle --------------------------------------------------
+
+$toggle-width:    40px;
+$toggle-height:   20px;
+$toggle-thumb:    16px;
+$toggle-bg-off:   $text-disabled;
+$toggle-bg-on:    $color-primary;
+
+// --- Convenience Mixins --------------------------------------
+
+@mixin disabled-state {
+  opacity: $disabled-opacity;
+  cursor: not-allowed;
+}
+
+@mixin focus-ring {
+  outline: $focus-ring-width solid $focus-ring-color;
+  outline-offset: $focus-ring-offset;
+}
+
+@mixin control-base {
+  background: $bg-control;
+  border: 1px solid $border-default;
+  border-radius: $radius-sm;
+  color: $text-primary;
+  font-size: $font-body;
+  transition: border-color $transition-fast;
+
+  &:focus {
+    outline: none;
+    border-color: $color-primary;
+  }
+
+  &:disabled {
+    @include disabled-state;
+  }
+}
+
+@mixin status-box($color, $bg, $border) {
+  display: flex;
+  align-items: center;
+  gap: $space-2;
+  padding: $space-2 10px;
+  background: $bg;
+  border: 1px solid $border;
+  border-radius: $radius-sm;
+  font-size: $font-caption;
+  color: $color;
+}

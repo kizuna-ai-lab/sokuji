@@ -2,6 +2,7 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { AudioLines, AlertTriangle, RefreshCw } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import Tooltip from '../../Tooltip/Tooltip';
+import DeviceList from '../shared/DeviceList';
 import WarningModal from '../shared/WarningModal';
 import { WarningType, AudioDevice } from '../shared/hooks';
 import { useAudioContext, useSetSystemAudioLoopbackSourceId } from '../../../stores/audioStore';
@@ -231,59 +232,37 @@ const SystemAudioSection: React.FC<SystemAudioSectionProps> = ({
           )}
         </h3>
 
-        <div className="device-list">
-          {isExtension() ? (
-            // Extension: Toggle with output device selection
-            <>
-              <div
-                className={`device-option ${!isSystemAudioCaptureEnabled ? 'selected' : ''} ${isSessionActive ? 'disabled' : ''}`}
-                onClick={() => {
-                  if (isSessionActive) return;
-                  if (isSystemAudioCaptureEnabled) {
-                    toggleSystemAudioCapture();
-                  }
-                }}
-              >
-                <span>{t('common.off')}</span>
-                {!isSystemAudioCaptureEnabled && <div className="selected-indicator" />}
-              </div>
-              {filteredMonitorDevices.map((device) => (
-                <div
-                  key={device.deviceId}
-                  className={`device-option ${isSystemAudioCaptureEnabled && participantAudioOutputDevice?.deviceId === device.deviceId ? 'selected' : ''} ${isSessionActive || isMonitorDeviceOn ? 'disabled' : ''}`}
-                  onClick={() => handleDeviceClick(device, false)}
-                >
-                  <span>{device.label || t('audioPanel.unknownDevice')}</span>
-                  {isSystemAudioCaptureEnabled && participantAudioOutputDevice?.deviceId === device.deviceId && <div className="selected-indicator" />}
-                </div>
-              ))}
-            </>
-          ) : (
-            // Electron: Show source selection
-            <>
-              <div
-                className={`device-option ${!isSystemAudioCaptureEnabled ? 'selected' : ''} ${isSystemAudioLoading || isSessionActive ? 'loading' : ''}`}
-                onClick={() => {
-                  if (isSessionActive) return;
-                  handleSystemAudioSourceSelect(null);
-                }}
-              >
-                <span>{t('common.off')}</span>
-                {!isSystemAudioCaptureEnabled && <div className="selected-indicator" />}
-              </div>
-              {systemAudioSources.map((source) => (
-                <div
-                  key={source.deviceId}
-                  className={`device-option ${isSystemAudioCaptureEnabled && selectedSystemAudioSource?.deviceId === source.deviceId ? 'selected' : ''} ${isSystemAudioLoading ? 'loading' : ''} ${isMonitorDeviceOn || isSessionActive ? 'disabled' : ''}`}
-                  onClick={() => handleDeviceClick(source, true)}
-                >
-                  <span>{source.label || t('audioPanel.unknownDevice')}</span>
-                  {isSystemAudioCaptureEnabled && selectedSystemAudioSource?.deviceId === source.deviceId && <div className="selected-indicator" />}
-                </div>
-              ))}
-            </>
-          )}
-        </div>
+        {isExtension() ? (
+          // Extension: Toggle with output device selection
+          <DeviceList
+            devices={filteredMonitorDevices}
+            selectedDevice={participantAudioOutputDevice}
+            isDeviceOn={isSystemAudioCaptureEnabled}
+            onSelect={(device) => handleDeviceClick(device, false)}
+            onToggleOff={() => {
+              if (isSessionActive) return;
+              if (isSystemAudioCaptureEnabled) {
+                toggleSystemAudioCapture();
+              }
+            }}
+            disabled={isSessionActive || isMonitorDeviceOn}
+            deviceType="output"
+          />
+        ) : (
+          // Electron: Show source selection
+          <DeviceList
+            devices={systemAudioSources as AudioDevice[]}
+            selectedDevice={selectedSystemAudioSource as AudioDevice | null}
+            isDeviceOn={isSystemAudioCaptureEnabled}
+            onSelect={(device) => handleDeviceClick(device, true)}
+            onToggleOff={() => {
+              if (isSessionActive) return;
+              handleSystemAudioSourceSelect(null);
+            }}
+            disabled={isMonitorDeviceOn || isSessionActive || isSystemAudioLoading}
+            deviceType="input"
+          />
+        )}
       </div>
     </>
   );
