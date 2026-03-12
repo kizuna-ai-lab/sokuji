@@ -7,6 +7,7 @@ import type {
 import { IClient, ConversationItem, SessionConfig, ClientEventHandlers, ApiKeyValidationResult, FilteredModel, ResponseConfig } from '../interfaces/IClient';
 import { RealtimeEvent } from '../../contexts/LogContext';
 import { Provider, ProviderType } from '../../types/Provider';
+import { unwrapTranslationText } from '../../utils/textUtils';
 import i18n from '../../locales';
 
 /**
@@ -345,8 +346,8 @@ export class OpenAIClient implements IClient {
       status: itemAny.status || 'completed',
       createdAt: this.itemCreatedAtMap.get(item.id),
       formatted: 'formatted' in item && item.formatted ? {
-        text: item.formatted!.text,
-        transcript: item.formatted!.transcript,
+        text: unwrapTranslationText(item.formatted!.text),
+        transcript: unwrapTranslationText(item.formatted!.transcript),
         audio: item.formatted!.audio,
         tool: item.formatted!.tool ? {
           name: item.formatted!.tool.name,
