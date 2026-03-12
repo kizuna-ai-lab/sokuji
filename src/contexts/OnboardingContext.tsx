@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAnalytics } from '../lib/analytics';
+import useSettingsStore from '../stores/settingsStore';
 
 export interface OnboardingStep {
   target: string;
@@ -213,6 +214,14 @@ export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({ children
     : createAdvancedOnboardingSteps(t);
 
   const startOnboarding = () => {
+    // Ensure UI mode matches user type so onboarding targets exist in the DOM
+    const userType = getUserType();
+    const expectedUIMode = userType === 'regular' ? 'basic' : 'advanced';
+    const currentUIMode = useSettingsStore.getState().uiMode;
+    if (currentUIMode !== expectedUIMode) {
+      useSettingsStore.getState().setUIMode(expectedUIMode);
+    }
+
     const startTime = Date.now();
     setOnboardingStartTime(startTime);
     setCurrentStepIndex(0);
@@ -338,13 +347,20 @@ export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({ children
     // Store user type selection
     localStorage.setItem(USER_TYPE_STORAGE_KEY, type);
     setUserTypeSelected(true);
-    
+
+    // Ensure UI mode matches user type so onboarding targets exist in the DOM
+    const expectedUIMode = type === 'regular' ? 'basic' : 'advanced';
+    const currentUIMode = useSettingsStore.getState().uiMode;
+    if (currentUIMode !== expectedUIMode) {
+      useSettingsStore.getState().setUIMode(expectedUIMode);
+    }
+
     // Track user type selection
     trackEvent('user_type_selected', {
       user_type: type,
       is_first_time_user: isFirstTimeUser,
     });
-    
+
     // Start onboarding after user type selection if first time user
     if (isFirstTimeUser) {
       setTimeout(() => {
