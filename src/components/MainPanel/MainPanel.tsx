@@ -2336,7 +2336,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   return (
     <div className="main-panel-wrapper">
       <div className="main-panel">
-      <div className="conversation-container" ref={conversationContainerRef}>
+      <div className={`conversation-container ${isSessionActive && supportsTextInput ? 'with-text-input' : ''}`} ref={conversationContainerRef}>
         <div className="conversation-content" data-conversation-content>
           {combinedItems.length > 0 ? (
             combinedItems.map((item) => (
