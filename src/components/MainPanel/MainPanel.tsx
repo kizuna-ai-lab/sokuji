@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
-import {X, Zap, Users, Mic, Loader, Play, Volume2, Wrench, Send, AlertCircle} from 'lucide-react';
+import {X, Zap, Mic, MicOff, Loader, Play, Volume2, VolumeX, Wrench, Send, AlertCircle, MessageSquare} from 'lucide-react';
 import './MainPanel.scss';
 import {
   useProvider,
@@ -18,7 +18,8 @@ import {
   useGetCurrentProviderSettings,
   useGetProcessedSystemInstructions,
   useCreateSessionConfig,
-  useTransportType
+  useTransportType,
+  useNavigateToSettings
 } from '../../stores/settingsStore';
 import { useSession } from '../../stores/sessionStore';
 import { useAudioContext, useIsNoiseSuppressEnabled } from '../../stores/audioStore';
@@ -36,7 +37,6 @@ import { v4 as uuidv4 } from 'uuid';
 import { Provider, isOpenAICompatible } from '../../types/Provider';
 import AudioFeedbackWarning from '../AudioFeedbackWarning/AudioFeedbackWarning';
 import { getSafeAudioConfiguration, decodeAudioToWav } from '../../utils/audioUtils';
-import SimpleMainPanel from '../SimpleMainPanel/SimpleMainPanel';
 import { useAuth } from '../../lib/auth/hooks';
 import { useUserProfile } from '../../contexts/UserProfileContext';
 import { isExtension, getEnvironment } from '../../utils/environment';
@@ -107,7 +107,8 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   const getCurrentProviderSettings = useGetCurrentProviderSettings();
   const getProcessedSystemInstructions = useGetProcessedSystemInstructions();
   const createSessionConfig = useCreateSessionConfig();
-  
+  const navigateToSettings = useNavigateToSettings();
+
   // Get session state from context
   const { 
     isSessionActive, 
@@ -161,6 +162,16 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   // Advanced mode text input state
   const [advancedTextInput, setAdvancedTextInput] = useState('');
   const [isAdvancedSending, setIsAdvancedSending] = useState(false);
+
+  // Session duration for footer display
+  const [sessionDuration, setSessionDuration] = useState<string>('00:00');
+
+  // Balance validation for Kizuna AI
+  const hasValidBalance = (provider !== Provider.KIZUNA_AI) ||
+    (quota && quota.balance !== undefined && quota.balance >= 0 && !quota.frozen);
+
+  const canStartSession = isApiKeyValid && availableModels.length > 0 &&
+    !loadingModels && !isInitializing && hasValidBalance;
 
   // Reference for conversation container to enable auto-scrolling
   const conversationContainerRef = useRef<HTMLDivElement>(null);
@@ -427,6 +438,40 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       return aTime - bTime;
     });
   }, [items, systemAudioItems]);
+
+  // Filter items based on UI mode
+  const filteredItems = useMemo(() => {
+    return combinedItems.filter(item => {
+      const hasText = item.formatted?.transcript || item.formatted?.text;
+      const isBasic = (item.type === 'error' || item.role === 'user' || item.role === 'assistant') && hasText;
+      if (uiMode === 'basic') return isBasic;
+      // Advanced: also show tool calls, audio-only, system messages
+      return isBasic || item.formatted?.tool || item.formatted?.output ||
+        (item.formatted?.audio && !item.formatted?.transcript && !item.formatted?.text);
+    });
+  }, [combinedItems, uiMode]);
+
+  // Session duration timer
+  useEffect(() => {
+    if (!isSessionActive || !sessionStartTime) {
+      setSessionDuration('00:00');
+      return;
+    }
+    const updateDuration = () => {
+      const elapsed = Math.floor((Date.now() - sessionStartTime) / 1000);
+      const h = Math.floor(elapsed / 3600);
+      const m = Math.floor((elapsed % 3600) / 60);
+      const s = elapsed % 60;
+      setSessionDuration(
+        h > 0
+          ? `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
+          : `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
+      );
+    };
+    updateDuration();
+    const interval = setInterval(updateDuration, 1000);
+    return () => clearInterval(interval);
+  }, [isSessionActive, sessionStartTime]);
 
   // Reference to audio service for accessing ModernAudioPlayer
   const audioServiceRef = useRef<IAudioService | null>(null);
@@ -2308,405 +2353,414 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     }
   }, [selectedMonitorDevice?.deviceId, isSessionActive, isUsingWebRTC]);
 
-  // If in basic mode, render the simplified interface
-  if (uiMode === 'basic') {
-    return (
-      <div className="main-panel-wrapper">
-        <SimpleMainPanel
-          items={combinedItems}
-          isSessionActive={isSessionActive}
-          isInitializing={isInitializing}
-          onStartSession={connectConversation}
-          onEndSession={disconnectConversation}
-          canPushToTalk={canPushToTalk}
-          isRecording={isRecording}
-          onStartRecording={startRecording}
-          onStopRecording={stopRecording}
-          playingItemId={playingItemId}
-          playbackProgress={playbackProgress}
-          supportsTextInput={supportsTextInput}
-          onSendText={handleSendText}
-          initProgress={initProgress}
-        />
-      </div>
-    );
-  }
+  // Get current provider settings for language pair display
+  const currentSettings = getCurrentProviderSettings();
 
-  // Render the advanced interface
-  return (
-    <div className="main-panel-wrapper">
-      <div className="main-panel">
-      <div className={`conversation-container ${isSessionActive && supportsTextInput ? 'with-text-input' : ''}`} ref={conversationContainerRef}>
-        <div className="conversation-content" data-conversation-content>
-          {combinedItems.length > 0 ? (
-            combinedItems.map((item) => (
-              <div key={item.id} className={`conversation-item ${item.role} ${item.source === 'participant' ? 'participant-source' : 'speaker-source'} ${item.type === 'error' ? 'error' : ''} ${playingItemId === item.id ? 'playing' : ''}`} style={{ position: 'relative' }}>
-                <div className="conversation-item-role">
-                  {item.type === 'error' ? (
-                    <>
-                      <AlertCircle size={12} />
-                      {t('mainPanel.error', 'Error')}
-                    </>
-                  ) : item.source === 'participant' && item.role === 'user' ? (
-                    t('simplePanel.participant', 'Participant')
-                  ) : (
-                    item.role
-                  )}
-                  {/* TODO: OpenAI Realtime API sometimes returns status="incomplete" even when audio is complete
-                      This happens when response.output_item.done event has item.status="incomplete"
-                      We should investigate why this occurs and handle it properly in the future
-                      For now, we allow both 'completed' and 'incomplete' status to show play button if audio exists */}
-                  {isDevelopment() && ((item as any).status === 'completed' || (item as any).status === 'incomplete') && item.formatted?.audio && (
-                    <button 
-                      className={`inline-play-button ${playingItemId === item.id ? 'playing' : ''}`}
-                      onClick={() => handlePlayAudio(item)}
-                      disabled={playingItemId !== null}
-                    >
-                      <Play size={10} />
-                    </button>
-                  )}
-                </div>
-                <div className="conversation-item-content">
-                  {(() => {
-                    // Handle error messages - use formatted.text which contains "[errorType] errorMessage"
-                    if (item.type === 'error') {
-                      return (
-                        <div className="content-item error-message">
-                          <div className="error-content">{item.formatted?.text || t('mainPanel.unknownError', 'Unknown error')}</div>
-                        </div>
-                      );
-                    }
+  // Helper: render a single conversation item as a bubble
+  const renderConversationItem = (item: ConversationItem & { source?: string }, index: number) => {
+    const isItemPlaying = playingItemId === item.id;
+    const isParticipant = item.source === 'participant';
+    const text = item.formatted?.transcript || item.formatted?.text || '';
 
-                    // Handle different item types based on the ItemType structure
-                    // from openai-realtime-api
+    // Karaoke highlight calculation
+    const highlightedChars = isItemPlaying
+      ? getHighlightedChars(
+          playbackProgress?.currentTime ?? 0,
+          item.formatted?.audioSegments,
+          text.length,
+          progressRatio,
+        )
+      : 0;
 
-                    // For items with formatted property containing transcript (priority)
-                    if (item.formatted && item.formatted.transcript) {
-                      const isPlaying = playingItemId === item.id;
-                      const transcript = item.formatted.transcript;
-
-                      // Calculate highlighted characters based on playback progress
-                      const highlightedChars = isPlaying
-                        ? getHighlightedChars(
-                            playbackProgress?.currentTime ?? 0,
-                            item.formatted.audioSegments,
-                            transcript.length,
-                            progressRatio,
-                          )
-                        : 0;
-
-                      return (
-                        <div className="content-item transcript">
-                          <div className={`transcript-content ${isPlaying ? 'karaoke-active' : ''}`}>
-                            {isPlaying ? (
-                              <>
-                                <span className="karaoke-played">
-                                  {transcript.slice(0, highlightedChars)}
-                                </span>
-                                <span className="karaoke-unplayed">
-                                  {transcript.slice(highlightedChars)}
-                                </span>
-                              </>
-                            ) : (
-                              transcript
-                            )}
-                          </div>
-                        </div>
-                      );
-                    }
-
-                    // For items with formatted property containing text (fallback)
-                    if (item.formatted && item.formatted.text) {
-                      const isPlaying = playingItemId === item.id;
-                      const text = item.formatted.text;
-
-                      // Calculate highlighted characters based on playback progress
-                      const highlightedChars = isPlaying
-                        ? getHighlightedChars(
-                            playbackProgress?.currentTime ?? 0,
-                            item.formatted.audioSegments,
-                            text.length,
-                            progressRatio,
-                          )
-                        : 0;
-
-                      return (
-                        <div className="content-item text">
-                          <div className={`text-content ${isPlaying ? 'karaoke-active' : ''}`}>
-                            {isPlaying ? (
-                              <>
-                                <span className="karaoke-played">
-                                  {text.slice(0, highlightedChars)}
-                                </span>
-                                <span className="karaoke-unplayed">
-                                  {text.slice(highlightedChars)}
-                                </span>
-                              </>
-                            ) : (
-                              text
-                            )}
-                          </div>
-                        </div>
-                      );
-                    }
-
-                    // For items with formatted property containing audio
-                    if (item.formatted && item.formatted.audio) {
-                      return (
-                        <div className="content-item audio">
-                          <div className="audio-indicator">
-                            <span className="audio-icon"><Volume2 size={16} /></span>
-                            <span className="audio-text">{t('mainPanel.audioContent')}</span>
-                          </div>
-                        </div>
-                      );
-                    }
-
-                    // For user or assistant messages with content array
-                    if ((item.role === 'user' || item.role === 'assistant' || item.role === 'system') &&
-                      'content' in item) {
-                      const typedItem = item; // Type assertion for accessing content
-                      if (Array.isArray(typedItem.content)) {
-                        return typedItem.content.map((contentItem, i) => (
-                          <div key={i} className={`content-item ${contentItem.type}`}>
-                            {contentItem.type === 'text' && contentItem.text}
-                            {contentItem.type === 'input_text' && contentItem.text}
-                            {contentItem.type === 'audio' && (() => {
-                              const audioText = t('mainPanel.audioContent');
-                              const highlightedChars = isPlaying ? Math.floor(audioText.length * progressRatio) : 0;
-                              
-                              return (
-                                <div className="audio-indicator">
-                                  <span className="audio-icon"><Volume2 size={16} /></span>
-                                  <span className="audio-text">
-                                    {isPlaying ? (
-                                      <>
-                                        <span className="karaoke-played">
-                                          {audioText.slice(0, highlightedChars)}
-                                        </span>
-                                        <span className="karaoke-unplayed">
-                                          {audioText.slice(highlightedChars)}
-                                        </span>
-                                      </>
-                                    ) : (
-                                      audioText
-                                    )}
-                                  </span>
-                                  {/* Play button moved to role label */}
-                                </div>
-                              );
-                            })()}
-                            {contentItem.type === 'input_audio' && contentItem.transcript && (
-                              <span className="transcript">{contentItem.transcript}</span>
-                            )}
-                          </div>
-                        ));
-                      }
-                    }
-
-                    // For tool calls
-                    if (item.formatted && item.formatted.tool) {
-                      const toolArgs = item.formatted.tool.arguments;
-                      let formattedArgs = toolArgs;
-
-                      // Try to parse and format JSON arguments
-                      try {
-                        const parsedArgs = JSON.parse(toolArgs);
-                        formattedArgs = JSON.stringify(parsedArgs, null, 2);
-                      } catch (e) {
-                        // Keep original format if parsing fails
-                      }
-
-                      return (
-                        <div className="content-item tool-call">
-                          <div className="tool-name">{t('mainPanel.function')}: {item.formatted.tool.name}</div>
-                          <div className="tool-args">
-                            <pre>{formattedArgs}</pre>
-                          </div>
-                        </div>
-                      );
-                    }
-
-                    // For tool outputs
-                    if (item.formatted && item.formatted.output) {
-                      let formattedOutput = item.formatted.output;
-
-                      // Try to parse and format JSON output
-                      try {
-                        const parsedOutput = JSON.parse(item.formatted.output);
-                        formattedOutput = JSON.stringify(parsedOutput, null, 2);
-                      } catch (e) {
-                        // Keep original format if parsing fails
-                      }
-
-                      return (
-                        <div className="content-item tool-output">
-                          <div className="output-content">
-                            <pre>{formattedOutput}</pre>
-                          </div>
-                        </div>
-                      );
-                    }
-
-                    // Fallback: show nothing for items still loading content
-                    return null;
-                  })()}
-                </div>
-              </div>
-            ))
-          ) : (
-            <div className="conversation-placeholder">
-              <div className="placeholder-content">
-                <div className="icon-container">
-                  <Users size={24} />
-                </div>
-                <span>{t('mainPanel.conversationPlaceholder')}</span>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Text Input Section - Advanced Mode */}
-      {isSessionActive && supportsTextInput && (
-        <div className="text-input-section">
-          <div className="text-input-container">
-            <input
-              type="text"
-              className="text-input"
-              placeholder={t('mainPanel.typeMessage', 'Text to translate...')}
-              value={advancedTextInput}
-              onChange={(e) => setAdvancedTextInput(e.target.value)}
-              onKeyDown={handleAdvancedTextKeyDown}
-              maxLength={1000}
-            />
-            <button
-              className={`send-btn ${!advancedTextInput.trim() ? 'disabled' : ''}`}
-              onClick={handleAdvancedTextSubmit}
-              onMouseDown={(e) => e.preventDefault()}
-              disabled={!advancedTextInput.trim() || isAdvancedSending}
-              title={t('mainPanel.send', 'Send')}
-            >
-              <Send size={16} />
-            </button>
+    // Error bubble
+    if (item.type === 'error') {
+      return (
+        <div key={item.id || index} className="message-bubble error">
+          <div className="message-header">
+            <AlertCircle size={12} />
+            {t('mainPanel.error', 'Error')}
+          </div>
+          <div className="message-content error-content">
+            {item.formatted?.text || t('mainPanel.unknownError', 'Unknown error')}
           </div>
         </div>
-      )}
+      );
+    }
 
-      <div className="audio-visualization">
-        <div className="visualization-container">
-          <div className="visualization-label">{t('mainPanel.input')}</div>
-          <canvas ref={clientCanvasRef} className="visualization-canvas client-canvas" />
-        </div>
-
-        <div className="controls-container">
-          {isSessionActive && canPushToTalk && (
-            <button
-              className={`push-to-talk-button ${isRecording ? 'recording' : ''} ${!isInputDeviceOn ? 'disabled' : ''}`}
-              onMouseDown={startRecording}
-              onMouseUp={stopRecording}
-              disabled={!isSessionActive || !canPushToTalk || !isInputDeviceOn}
-            >
-              <>
-                <Mic size={14} />
-                <span>
-                  {isRecording ? t('mainPanel.release') : isInputDeviceOn ? t('mainPanel.pushToTalk') : t('mainPanel.inputDeviceOff')}
-                </span>
-              </>
-            </button>
-          )}
-          <button
-            className={`session-button ${isSessionActive ? 'active' : ''}`}
-            onClick={() => {
-              const action = isSessionActive ? 'stop' : 'start';
-              trackEvent('session_control_clicked', {
-                action: action,
-                method: 'button'
-              });
-              
-              if (isSessionActive) {
-                disconnectConversation();
-              } else {
-                connectConversation();
-              }
-            }}
-            disabled={(!isSessionActive && (!isApiKeyValid || availableModels.length === 0 || loadingModels || (provider === Provider.KIZUNA_AI && quota && (quota.balance === undefined || quota.balance < 0 || quota.frozen)))) || isInitializing}
-          >
-            {isInitializing ? (
-              <>
-                <Loader size={14} className="spinner" />
-                <span>
-                  {initProgress
-                    ? t('mainPanel.initProgress', 'Loading ({{completed}}/{{total}})...', { completed: initProgress.completed, total: initProgress.total })
-                    : t('mainPanel.initializing')}
-                </span>
-              </>
-            ) : isSessionActive ? (
-              <>
-                <X size={14} />
-                <span>{t('mainPanel.endSession')}</span>
-              </>
+    // Text / transcript bubble (common for both modes)
+    if (text) {
+      return (
+        <div
+          key={item.id || index}
+          className={`message-bubble ${item.role} ${isParticipant ? 'participant-source' : 'speaker-source'} ${isItemPlaying ? 'playing' : ''}`}
+        >
+          <div className="message-header">
+            {uiMode === 'basic' ? (
+              item.role === 'user'
+                ? (isParticipant ? t('simplePanel.participant', 'Participant') : t('simplePanel.you', 'You'))
+                : t('simplePanel.translation', 'Translation')
             ) : (
               <>
-                <Zap size={14} />
-                <span>{t('mainPanel.startSession')}</span>
-                {!isApiKeyValid && (
-                  <span className="tooltip">{t('mainPanel.apiKeyRequired')}</span>
-                )}
-                {isApiKeyValid && availableModels.length === 0 && !loadingModels && (
-                  <span className="tooltip">{t('mainPanel.modelsRequired')}</span>
-                )}
-                {isApiKeyValid && loadingModels && (
-                  <span className="tooltip">{t('mainPanel.modelsLoading')}</span>
-                )}
-                {isApiKeyValid && provider === Provider.KIZUNA_AI && quota && quota.frozen && (
-                  <span className="tooltip">{t('mainPanel.walletFrozen', 'Wallet is frozen. Please contact support.')}</span>
-                )}
-                {isApiKeyValid && provider === Provider.KIZUNA_AI && quota && quota.balance !== undefined && quota.balance < 0 && (
-                  <span className="tooltip">{t('mainPanel.insufficientBalance', 'Insufficient token balance: {{balance}} tokens', { balance: quota.balance })}</span>
+                {isParticipant && item.role === 'user'
+                  ? t('simplePanel.participant', 'Participant')
+                  : item.role}
+                {isDevelopment() && ((item as any).status === 'completed' || (item as any).status === 'incomplete') && item.formatted?.audio && (
+                  <button
+                    className={`inline-play-button ${isItemPlaying ? 'playing' : ''}`}
+                    onClick={() => handlePlayAudio(item)}
+                    disabled={playingItemId !== null}
+                  >
+                    <Play size={10} />
+                  </button>
                 )}
               </>
             )}
-          </button>
-          {isDevelopment() && (
-            <button
-              className={`debug-button ${isTestTonePlaying ? 'active' : ''}`}
-              onClick={playTestTone}
-            >
-              <Wrench size={14} />
-              <span>{isTestTonePlaying ? t('mainPanel.stopDebug') : t('mainPanel.debug')}</span>
-            </button>
+          </div>
+          <div className={`message-content ${isItemPlaying ? 'karaoke-active' : ''}`}>
+            {isItemPlaying ? (
+              <>
+                <span className="karaoke-played">{text.slice(0, highlightedChars)}</span>
+                <span className="karaoke-unplayed">{text.slice(highlightedChars)}</span>
+              </>
+            ) : (
+              text
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    // Advanced-only content types
+    if (uiMode === 'advanced') {
+      // Audio-only indicator
+      if (item.formatted?.audio) {
+        return (
+          <div key={item.id || index} className={`message-bubble ${item.role} ${isParticipant ? 'participant-source' : 'speaker-source'}`}>
+            <div className="message-header">
+              {isParticipant && item.role === 'user' ? t('simplePanel.participant', 'Participant') : item.role}
+              {isDevelopment() && ((item as any).status === 'completed' || (item as any).status === 'incomplete') && (
+                <button
+                  className={`inline-play-button ${isItemPlaying ? 'playing' : ''}`}
+                  onClick={() => handlePlayAudio(item)}
+                  disabled={playingItemId !== null}
+                >
+                  <Play size={10} />
+                </button>
+              )}
+            </div>
+            <div className="message-content">
+              <div className="content-item audio">
+                <div className="audio-indicator">
+                  <span className="audio-icon"><Volume2 size={16} /></span>
+                  <span className="audio-text">{t('mainPanel.audioContent')}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      // Tool calls
+      if (item.formatted?.tool) {
+        const toolArgs = item.formatted.tool.arguments;
+        let formattedArgs = toolArgs;
+        try {
+          formattedArgs = JSON.stringify(JSON.parse(toolArgs), null, 2);
+        } catch (e) { /* keep original */ }
+
+        return (
+          <div key={item.id || index} className={`message-bubble system`}>
+            <div className="message-content">
+              <div className="content-item tool-call">
+                <div className="tool-name">{t('mainPanel.function')}: {item.formatted.tool.name}</div>
+                <div className="tool-args"><pre>{formattedArgs}</pre></div>
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      // Tool outputs
+      if (item.formatted?.output) {
+        let formattedOutput = item.formatted.output;
+        try {
+          formattedOutput = JSON.stringify(JSON.parse(item.formatted.output), null, 2);
+        } catch (e) { /* keep original */ }
+
+        return (
+          <div key={item.id || index} className={`message-bubble system`}>
+            <div className="message-content">
+              <div className="content-item tool-output">
+                <div className="output-content"><pre>{formattedOutput}</pre></div>
+              </div>
+            </div>
+          </div>
+        );
+      }
+    }
+
+    return null;
+  };
+
+  // Unified render for both modes
+  return (
+    <div className="main-panel-wrapper">
+      <div className="main-panel">
+        {/* Conversation Display */}
+        <div className="conversation-display" ref={conversationContainerRef}>
+          {filteredItems.length === 0 ? (
+            <div className="empty-state">
+              <MessageSquare size={32} />
+              <p>{t('simplePanel.startToBegin', 'Click Start to begin real-time translation')}</p>
+            </div>
+          ) : (
+            <div className="conversation-list">
+              {filteredItems.map((item, index) => renderConversationItem(item, index))}
+            </div>
           )}
         </div>
 
-        <div className="visualization-container">
-          <div className="visualization-label">{t('mainPanel.output')}</div>
-          <canvas ref={serverCanvasRef} className="visualization-canvas server-canvas" />
-        </div>
-      </div>
-      <AudioFeedbackWarning
-        isVisible={showFeedbackWarning}
-        inputDeviceLabel={selectedInputDevice?.label}
-        outputDeviceLabel={selectedMonitorDevice?.label}
-        recommendedAction={
-          getSafeAudioConfiguration(
-            selectedInputDevice,
-            selectedMonitorDevice,
-            isRealVoicePassthroughEnabled
-          ).recommendedAction
-        }
-        feedbackRisk={
-          getSafeAudioConfiguration(
-            selectedInputDevice,
-            selectedMonitorDevice,
-            isRealVoicePassthroughEnabled
-          ).feedbackRisk
-        }
-        onDismiss={() => {
-          setShowFeedbackWarning(false);
-          setFeedbackWarningDismissed(true);
-        }}
-      />
+        {/* Text Input Section */}
+        {isSessionActive && supportsTextInput && (
+          <div className="text-input-section">
+            <div className="text-input-container">
+              <input
+                type="text"
+                className="text-input"
+                placeholder={t('mainPanel.typeMessage', 'Text to translate...')}
+                value={advancedTextInput}
+                onChange={(e) => setAdvancedTextInput(e.target.value)}
+                onKeyDown={handleAdvancedTextKeyDown}
+                maxLength={1000}
+              />
+              <button
+                className={`send-btn ${!advancedTextInput.trim() ? 'disabled' : ''}`}
+                onClick={handleAdvancedTextSubmit}
+                onMouseDown={(e) => e.preventDefault()}
+                disabled={!advancedTextInput.trim() || isAdvancedSending}
+                title={t('mainPanel.send', 'Send')}
+              >
+                <Send size={16} />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Control Footer — Basic Mode */}
+        {uiMode === 'basic' && (
+          <div className="control-footer basic">
+            <div className="status-info">
+              <span className={`status-dot ${isSessionActive ? 'active' : ''}`} />
+              <span
+                className="language-pair clickable"
+                onClick={() => navigateToSettings('languages')}
+                title={t('simplePanel.clickToConfigLanguages', 'Click to configure languages')}
+              >
+                {currentSettings.sourceLanguage} → {currentSettings.targetLanguage}
+              </span>
+              {isSessionActive && (
+                <span className="session-duration">
+                  {t('simplePanel.sessionDuration', 'Duration')}: {sessionDuration}
+                </span>
+              )}
+              <span className="device-status">
+                <span
+                  className={`device-icon ${isInputDeviceOn ? 'active' : ''} clickable`}
+                  onClick={() => navigateToSettings('microphone')}
+                  title={t('simplePanel.clickToConfigMicrophone', 'Click to configure microphone')}
+                >
+                  {isInputDeviceOn ? <Mic size={14} /> : <MicOff size={14} />}
+                </span>
+                <span
+                  className={`device-icon ${isMonitorDeviceOn ? 'active' : ''} clickable`}
+                  onClick={() => navigateToSettings('speaker')}
+                  title={t('simplePanel.clickToConfigSpeaker', 'Click to configure speaker')}
+                >
+                  {isMonitorDeviceOn ? <Volume2 size={14} /> : <VolumeX size={14} />}
+                </span>
+              </span>
+            </div>
+
+            <div className="main-controls">
+              {isSessionActive && canPushToTalk && (
+                <button
+                  className={`push-to-talk-btn ${isRecording ? 'recording' : ''}`}
+                  onMouseDown={startRecording}
+                  onMouseUp={stopRecording}
+                  onTouchStart={startRecording}
+                  onTouchEnd={stopRecording}
+                >
+                  <Mic size={12} />
+                  <span className="btn-text">{isRecording ? t('simplePanel.release', 'Release') : t('simplePanel.holdToSpeak', 'Hold')}</span>
+                </button>
+              )}
+
+              <button
+                className={`main-action-btn ${isSessionActive ? 'stop' : 'start'}`}
+                onClick={isSessionActive ? disconnectConversation : connectConversation}
+                disabled={!canStartSession && !isSessionActive}
+              >
+                {isInitializing ? (
+                  <>
+                    <Loader className="spinning" size={16} />
+                    <span className="btn-text">
+                      {initProgress
+                        ? t('simplePanel.initProgress', 'Loading ({{completed}}/{{total}})...', { completed: initProgress.completed, total: initProgress.total })
+                        : t('simplePanel.connecting', 'Connecting...')}
+                    </span>
+                  </>
+                ) : isSessionActive ? (
+                  <>
+                    <span className="stop-icon">■</span>
+                    <span className="btn-text">{t('simplePanel.stop', 'Stop')}</span>
+                  </>
+                ) : (
+                  <>
+                    <span className="play-icon">▶</span>
+                    <span className="btn-text">{t('simplePanel.start', 'Start')}</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Control Footer — Advanced Mode */}
+        {uiMode === 'advanced' && (
+          <div className="control-footer advanced">
+            <div className="input-viz">
+              <span
+                className={`device-icon ${isInputDeviceOn ? 'active' : ''} clickable`}
+                onClick={() => navigateToSettings('microphone')}
+                title={selectedInputDevice?.label || t('mainPanel.input')}
+              >
+                {isInputDeviceOn ? <Mic size={14} /> : <MicOff size={14} />}
+              </span>
+              <canvas ref={clientCanvasRef} className="visualization-canvas" />
+            </div>
+
+            <div className="center-controls">
+              {isSessionActive && canPushToTalk && (
+                <button
+                  className={`push-to-talk-button ${isRecording ? 'recording' : ''}`}
+                  onMouseDown={startRecording}
+                  onMouseUp={stopRecording}
+                  disabled={!isSessionActive || !canPushToTalk || !isInputDeviceOn}
+                >
+                  <Mic size={14} />
+                  <span>
+                    {isRecording ? t('mainPanel.release') : isInputDeviceOn ? t('mainPanel.pushToTalk') : t('mainPanel.inputDeviceOff')}
+                  </span>
+                </button>
+              )}
+
+              <button
+                className={`session-button ${isSessionActive ? 'active' : ''}`}
+                onClick={() => {
+                  trackEvent('session_control_clicked', {
+                    action: isSessionActive ? 'stop' : 'start',
+                    method: 'button'
+                  });
+                  if (isSessionActive) {
+                    disconnectConversation();
+                  } else {
+                    connectConversation();
+                  }
+                }}
+                disabled={(!isSessionActive && !canStartSession) || isInitializing}
+              >
+                {isInitializing ? (
+                  <>
+                    <Loader size={14} className="spinner" />
+                    <span>
+                      {initProgress
+                        ? t('mainPanel.initProgress', 'Loading ({{completed}}/{{total}})...', { completed: initProgress.completed, total: initProgress.total })
+                        : t('mainPanel.initializing')}
+                    </span>
+                  </>
+                ) : isSessionActive ? (
+                  <>
+                    <X size={14} />
+                    <span>{t('mainPanel.endSession')}</span>
+                  </>
+                ) : (
+                  <>
+                    <Zap size={14} />
+                    <span>{t('mainPanel.startSession')}</span>
+                    {!isApiKeyValid && (
+                      <span className="tooltip">{t('mainPanel.apiKeyRequired')}</span>
+                    )}
+                    {isApiKeyValid && availableModels.length === 0 && !loadingModels && (
+                      <span className="tooltip">{t('mainPanel.modelsRequired')}</span>
+                    )}
+                    {isApiKeyValid && loadingModels && (
+                      <span className="tooltip">{t('mainPanel.modelsLoading')}</span>
+                    )}
+                    {isApiKeyValid && provider === Provider.KIZUNA_AI && quota && quota.frozen && (
+                      <span className="tooltip">{t('mainPanel.walletFrozen', 'Wallet is frozen. Please contact support.')}</span>
+                    )}
+                    {isApiKeyValid && provider === Provider.KIZUNA_AI && quota && quota.balance !== undefined && quota.balance < 0 && (
+                      <span className="tooltip">{t('mainPanel.insufficientBalance', 'Insufficient token balance: {{balance}} tokens', { balance: quota.balance })}</span>
+                    )}
+                  </>
+                )}
+              </button>
+
+              {isDevelopment() && (
+                <button
+                  className={`debug-button ${isTestTonePlaying ? 'active' : ''}`}
+                  onClick={playTestTone}
+                >
+                  <Wrench size={14} />
+                  <span>{isTestTonePlaying ? t('mainPanel.stopDebug') : t('mainPanel.debug')}</span>
+                </button>
+              )}
+
+              <span className={`status-dot ${isSessionActive ? 'active' : ''}`} />
+              <span className="language-pair">
+                {currentSettings.sourceLanguage} → {currentSettings.targetLanguage}
+              </span>
+              {isSessionActive && (
+                <span className="session-duration">{sessionDuration}</span>
+              )}
+            </div>
+
+            <div className="output-viz">
+              <canvas ref={serverCanvasRef} className="visualization-canvas" />
+              <span
+                className={`device-icon ${isMonitorDeviceOn ? 'active' : ''} clickable`}
+                onClick={() => navigateToSettings('speaker')}
+                title={selectedMonitorDevice?.label || t('mainPanel.output')}
+              >
+                {isMonitorDeviceOn ? <Volume2 size={14} /> : <VolumeX size={14} />}
+              </span>
+            </div>
+          </div>
+        )}
+
+        <AudioFeedbackWarning
+          isVisible={showFeedbackWarning}
+          inputDeviceLabel={selectedInputDevice?.label}
+          outputDeviceLabel={selectedMonitorDevice?.label}
+          recommendedAction={
+            getSafeAudioConfiguration(
+              selectedInputDevice,
+              selectedMonitorDevice,
+              isRealVoicePassthroughEnabled
+            ).recommendedAction
+          }
+          feedbackRisk={
+            getSafeAudioConfiguration(
+              selectedInputDevice,
+              selectedMonitorDevice,
+              isRealVoicePassthroughEnabled
+            ).feedbackRisk
+          }
+          onDismiss={() => {
+            setShowFeedbackWarning(false);
+            setFeedbackWarningDismissed(true);
+          }}
+        />
       </div>
     </div>
   );

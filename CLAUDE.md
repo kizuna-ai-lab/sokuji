@@ -248,7 +248,7 @@ useSettingsStore.subscribe(
 
 ### Simple Mode Components
 - **SimpleConfigPanel**: 6-section configuration (account, language, translation, API key, mic, speaker)
-- **SimpleMainPanel**: Conversation view with session duration and device status
+- **MainPanel**: Unified conversation panel with `uiMode`-driven layout (basic: bubble messages + status footer, advanced: bubble messages + waveform footer with controls)
 - **Tooltip**: @floating-ui/react powered tooltips with hover/click/focus triggers
 - **ConnectionStatus**: Real-time connection state indicator
 
