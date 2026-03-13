@@ -5,6 +5,9 @@
  * for consistent behavior and proper handling of cancelled responses.
  */
 
+// TODO: Migrate to official openai SDK's GA Realtime API before May 7, 2026
+// when the beta protocol (OpenAI-Beta: realtime=v1) is shut down.
+// See: https://github.com/kizuna-ai-lab/sokuji/issues/115
 import { RealtimeClient } from 'openai-realtime-api';
 import type { TestCaseConfig, ConversationItem } from '../types.js';
 
