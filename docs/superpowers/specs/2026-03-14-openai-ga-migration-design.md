@@ -211,7 +211,7 @@ case 'response.output_text.done':                // GA
 
 This is a minimal, safe change — adding fallthrough cases costs nothing and prevents silent event drops.
 
-### Step 7: Update `ClientFactory.ts`
+### Step 6: Update `ClientFactory.ts`
 
 **File**: `src/services/clients/ClientFactory.ts`
 
@@ -231,11 +231,11 @@ import { OpenAIGAClient } from './OpenAIGAClient';
 | OPENAI_COMPATIBLE | webrtc | OpenAIWebRTCClient (event names updated) |
 | KIZUNA_AI | any | OpenAIClient (beta, unchanged) |
 
-### Step 8: EphemeralTokenService (deferred)
+### Step 7: EphemeralTokenService (deferred)
 
 `EphemeralTokenService.ts` is only used by `OpenAIWebRTCClient`. WebRTC is not affected by this migration. If the GA API requires `"type": "realtime"` in the session creation body, that can be done separately.
 
-### Step 9: Eval runner (deferred)
+### Step 8: Eval runner (deferred)
 
 `evals/runner/clients/NodeOpenAIClient.ts` — Keep on `openai-realtime-api` for now. Add TODO comment noting future migration need before May 7, 2026.
 
