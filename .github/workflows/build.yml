@@ -164,12 +164,19 @@ jobs:
             out/make/**/*.deb
             out/make/**/*.zip
 
-      - name: Upload Windows artifacts
+      - name: Upload unsigned Windows installer for signing
         if: startsWith(github.ref, 'refs/tags/v') && matrix.os == 'windows-latest'
         uses: actions/upload-artifact@v4
         with:
-          name: windows-artifacts
-          path: out/make/
+          name: windows-unsigned
+          path: out/make/squirrel.windows/x64/*Setup*.exe
+
+      - name: Upload Windows nupkg for release
+        if: startsWith(github.ref, 'refs/tags/v') && matrix.os == 'windows-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-nupkg
+          path: out/make/squirrel.windows/x64/*.nupkg
 
       - name: Upload macOS artifacts
         if: startsWith(github.ref, 'refs/tags/v') && runner.os == 'macOS'
