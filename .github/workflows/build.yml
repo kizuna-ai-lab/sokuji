@@ -185,10 +185,60 @@ jobs:
           name: ${{ matrix.artifact_name }}-artifacts
           path: out/make/*.pkg
 
+  sign-windows:
+    name: Sign Windows artifacts
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+      actions: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download unsigned artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-unsigned
+          path: unsigned/
+
+      # SignPath requires a github-artifact-id from upload-artifact.
+      # We must re-upload because the original upload happened in a different job
+      # and artifact IDs cannot be passed across jobs without explicit output wiring.
+      - name: Upload for SignPath
+        id: upload-for-signing
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-to-sign
+          path: unsigned/
+          overwrite: true
+
+      - name: Submit signing request
+        id: sign
+        uses: signpath/github-action-submit-signing-request@v2
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG }}
+          signing-policy-slug: ${{ vars.SIGNPATH_SIGNING_POLICY_SLUG }}
+          artifact-configuration-slug: default
+          github-artifact-id: ${{ steps.upload-for-signing.outputs.artifact-id }}
+          wait-for-completion: true
+          output-artifact-directory: signed/
+          wait-for-completion-timeout-in-seconds: 1200
+
+      - name: Upload signed artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-signed
+          path: signed/
+
   release:
     # Only run for tag pushes
     if: startsWith(github.ref, 'refs/tags/v')
-    needs: build
+    needs: [build, sign-windows]
     runs-on: ubuntu-latest
 
     steps:
