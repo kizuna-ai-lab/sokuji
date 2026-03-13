@@ -3,7 +3,7 @@
  * This interface provides a unified API for different AI providers
  */
 
-import { RealtimeEvent } from '../../contexts/LogContext';
+import { RealtimeEvent } from '../../stores/logStore';
 import { ProviderType } from '../../types/Provider';
 
 export interface ConversationItem {
