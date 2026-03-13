@@ -545,6 +545,7 @@ export class OpenAIGAClient implements IClient {
     if (!this.rt) return;
 
     const session: any = {
+      type: 'realtime',
       modalities: config.textOnly ? ['text'] : ['text', 'audio'],
       voice: config.voice || 'alloy',
       instructions: config.instructions,
@@ -723,9 +724,8 @@ export class OpenAIGAClient implements IClient {
       if (config.conversation) {
         responseEvent.response.conversation = config.conversation;
       }
-      if (config.modalities) {
-        responseEvent.response.modalities = config.modalities;
-      }
+      // Note: GA API does not support 'modalities' in response.create
+      // Modalities are set at the session level via session.update
       if (config.metadata) {
         responseEvent.response.metadata = config.metadata;
       }
