@@ -127,19 +127,26 @@ SignPath policies are configured **in the SignPath dashboard**, not via reposito
 
 #### Build job changes
 
-Replace the existing `Upload Windows artifacts` step. Only upload `Setup.exe` for signing:
+Replace the existing `Upload Windows artifacts` step with two separate uploads:
 
 ```yaml
-# Replace the existing "Upload Windows artifacts" step with this:
-- name: Upload unsigned Windows artifacts for signing
+# Replace the existing "Upload Windows artifacts" step with these two:
+- name: Upload unsigned Windows installer for signing
   if: startsWith(github.ref, 'refs/tags/v') && matrix.os == 'windows-latest'
   uses: actions/upload-artifact@v4
   with:
     name: windows-unsigned
     path: out/make/squirrel.windows/x64/*Setup*.exe
+
+- name: Upload Windows nupkg for release
+  if: startsWith(github.ref, 'refs/tags/v') && matrix.os == 'windows-latest'
+  uses: actions/upload-artifact@v4
+  with:
+    name: windows-nupkg
+    path: out/make/squirrel.windows/x64/*.nupkg
 ```
 
-Note: Only the Setup.exe is uploaded (not the nupkg or RELEASES file). The release job will collect the signed Setup.exe from `windows-signed`.
+The Setup.exe goes through signing. The nupkg is passed directly to the release job (needed for Squirrel auto-updates). The RELEASES file is not uploaded — it was never included in GitHub Releases.
 
 #### New sign job
 
@@ -172,6 +179,7 @@ sign-windows:
       with:
         name: windows-to-sign
         path: unsigned/
+        overwrite: true
 
     - name: Submit signing request
       id: sign
@@ -206,13 +214,21 @@ release:
   steps:
     # ... existing download steps for linux, macos ...
 
-    - name: Download Windows artifacts
+    - name: Download signed Windows installer
       uses: actions/download-artifact@v4
       with:
         name: windows-signed
-        path: windows-artifacts
+        path: windows-signed
 
-    # Rest of release job unchanged — it already collects *.exe from windows-artifacts/
+    - name: Download Windows nupkg
+      uses: actions/download-artifact@v4
+      with:
+        name: windows-nupkg
+        path: windows-nupkg
+
+    # Update "Collect release assets" to use new paths:
+    #   find windows-signed -name "*.exe" -exec cp {} release-assets/ \;
+    #   find windows-nupkg -name "*.nupkg" -exec cp {} release-assets/ \;
 ```
 
 ## Files Changed
