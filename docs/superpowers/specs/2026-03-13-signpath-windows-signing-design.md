@@ -94,16 +94,12 @@ Only `SokujiSetup.exe` is uploaded for signing. The artifact configuration:
 
 ### Policy selection
 
-During Phase 1, use `test-signing` only. During Phase 2, switch to `release-signing` for tag pushes:
+The signing policy slug is configured as a GitHub repository variable (`SIGNPATH_SIGNING_POLICY_SLUG`), not hardcoded in the workflow. To switch policies, change the variable value — no workflow file changes needed.
 
-```yaml
-# Phase 1 (immediate)
-signing-policy-slug: test-signing
+- **Phase 1**: Set `SIGNPATH_SIGNING_POLICY_SLUG` = `test-signing`
+- **Phase 2**: Set `SIGNPATH_SIGNING_POLICY_SLUG` = `release-signing`
 
-# Phase 2 (after EV cert is available)
-signing-policy-slug: release-signing
-```
-
+Policy details:
 - **`test-signing`**: Self-signed cert. Validates pipeline correctness. Available now.
 - **`release-signing`**: EV cert from SignPath Foundation. Solves SmartScreen. Available after SignPath configures it.
 
@@ -187,8 +183,8 @@ sign-windows:
       with:
         api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
         organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
-        project-slug: sokuji
-        signing-policy-slug: test-signing
+        project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG }}
+        signing-policy-slug: ${{ vars.SIGNPATH_SIGNING_POLICY_SLUG }}
         artifact-configuration-slug: default
         github-artifact-id: ${{ steps.upload-for-signing.outputs.artifact-id }}
         wait-for-completion: true
@@ -271,8 +267,13 @@ These steps must be completed in external systems before the CI pipeline will wo
    - Generate in SignPath dashboard: User menu → API Tokens
    - Token must have **submitter** role on the `sokuji` project
 
-2. **Add variable**: `SIGNPATH_ORGANIZATION_ID`
-   - Found in SignPath dashboard: Organization settings → Organization ID
+2. **Add variables** (Settings → Secrets and variables → Actions → Variables tab):
+
+   | Variable | Value | Notes |
+   |----------|-------|-------|
+   | `SIGNPATH_ORGANIZATION_ID` | *(from SignPath dashboard → Organization settings)* | Organization identifier |
+   | `SIGNPATH_PROJECT_SLUG` | `sokuji` | Project slug in SignPath |
+   | `SIGNPATH_SIGNING_POLICY_SLUG` | `test-signing` | Change to `release-signing` for Phase 2 |
 
 ### Test Certificate (Phase 1 validation)
 
@@ -295,7 +296,7 @@ The `.cer` file from SignPath's test-signing certificate can be installed on a W
 
 - [ ] SignPath assigns EV certificate to `release-signing` policy
 - [ ] Configure origin verification on `release-signing` policy (main branch + v* tags)
-- [ ] Update workflow: change `signing-policy-slug` from `test-signing` to `release-signing`
+- [ ] Update GitHub variable: change `SIGNPATH_SIGNING_POLICY_SLUG` from `test-signing` to `release-signing`
 - [ ] Push a test release tag to validate EV signing end-to-end
 - [ ] Verify SmartScreen does NOT warn on a clean Windows machine (no test cert installed)
 - [ ] Update issue #105 as complete
