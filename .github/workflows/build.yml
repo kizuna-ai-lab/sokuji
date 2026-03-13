@@ -254,11 +254,17 @@ jobs:
           name: linux-arm64-artifacts
           path: linux-arm64-artifacts
 
-      - name: Download Windows artifacts
+      - name: Download signed Windows installer
         uses: actions/download-artifact@v4
         with:
-          name: windows-artifacts
-          path: windows-artifacts
+          name: windows-signed
+          path: windows-signed
+
+      - name: Download Windows nupkg
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-nupkg
+          path: windows-nupkg
 
       - name: Download macOS ARM64 artifacts
         uses: actions/download-artifact@v4
@@ -278,8 +284,10 @@ jobs:
           find linux-x64-artifacts -type f || true
           echo "=== Linux ARM64 ==="
           find linux-arm64-artifacts -type f || true
-          echo "=== Windows ==="
-          find windows-artifacts -type f || true
+          echo "=== Windows (signed) ==="
+          find windows-signed -type f || true
+          echo "=== Windows (nupkg) ==="
+          find windows-nupkg -type f || true
           echo "=== macOS ARM64 ==="
           find macos-arm64-artifacts -type f || true
           echo "=== macOS x64 ==="
@@ -293,8 +301,8 @@ jobs:
           find linux-x64-artifacts -name "sokuji-extension.zip" -exec cp {} release-assets/ \;
           find linux-arm64-artifacts -name "*.deb" -exec cp {} release-assets/ \;
           find linux-arm64-artifacts -name "*.zip" -exec cp {} release-assets/ \;
-          find windows-artifacts -name "*.exe" -exec cp {} release-assets/ \;
-          find windows-artifacts -name "*.nupkg" -exec cp {} release-assets/ \;
+          find windows-signed -name "*.exe" -exec cp {} release-assets/ \;
+          find windows-nupkg -name "*.nupkg" -exec cp {} release-assets/ \;
           find macos-arm64-artifacts -name "*.pkg" -exec cp {} release-assets/ \;
           find macos-x64-artifacts -name "*.pkg" -exec cp {} release-assets/ \;
           echo "=== Release assets ==="
