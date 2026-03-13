@@ -12,7 +12,7 @@ Windows SmartScreen blocks unsigned executables with "Unknown Publisher" warning
 
 Use [SignPath](https://signpath.io) (approved OSS plan) for Windows code signing. SignPath provides EV-level Authenticode signing through their HSM infrastructure, integrated as a post-build step in GitHub Actions.
 
-**Scope**: Windows code signing only (`.exe` installer + `.nupkg` app package). No macOS signing, no Microsoft Store distribution.
+**Scope**: Windows code signing only (Setup.exe installer). No macOS signing, no Microsoft Store distribution.
 
 ## Architecture
 
@@ -20,13 +20,13 @@ Use [SignPath](https://signpath.io) (approved OSS plan) for Windows code signing
 
 ```
 Build job (existing, windows-latest)
-  → electron-forge make → unsigned SokujiSetup.exe + .nupkg
-  → upload-artifact (windows-unsigned)
+  → electron-forge make → unsigned SokujiSetup.exe
+  → upload-artifact (windows-unsigned) — Setup.exe only
         ↓
 Sign job (new, ubuntu-latest) — tag pushes only
   → submit-signing-request to SignPath
-  → SignPath deep-signs: PE files inside .nupkg → nuget-sign .nupkg → authenticode-sign Setup.exe
-  → download signed artifacts
+  → SignPath Authenticode-signs Setup.exe
+  → download signed Setup.exe
   → upload-artifact (windows-signed)
         ↓
 Release job (existing, modified)
@@ -35,11 +35,21 @@ Release job (existing, modified)
 ```
 
 Key architectural decisions:
+- **Sign only Setup.exe** — Squirrel's Setup.exe embeds the full `.nupkg` inside itself. SmartScreen checks the signature of the executable the user runs. Signing Setup.exe is sufficient and is the established pattern used by other Electron + SignPath OSS projects (TurboWarp, VSCodium, Spicetify). No deep signing of nupkg internals needed.
 - Signing happens **externally** via SignPath API, not inside `electron-forge make`
 - No changes to `forge.config.js` — signing is a CI-only concern
 - `<zip-file>` must be root element because GitHub's `upload-artifact` wraps everything in ZIP
 - All jobs must run on **GitHub-hosted runners** (OSS requirement)
 - Sign job runs **only on tag pushes** — avoids secret unavailability on fork PRs and unnecessary SignPath API calls on every push
+
+### Why not deep-sign the nupkg?
+
+Research into existing Electron + SignPath integrations shows:
+- **TurboWarp**: Signs only `TurboWarp-Setup*x64.exe`
+- **VSCodium**: Signs only `*.exe` and `*.msi`
+- **Spicetify**: Signs only `spicetify.exe`
+
+None of these projects deep-sign nupkg internals. Setup.exe contains the Squirrel bootstrapper with the nupkg embedded — the OS only checks the outer executable's signature. Deep signing would add complexity and potential failure points for no user-facing benefit.
 
 ### Phased Rollout
 
@@ -54,65 +64,28 @@ If signing breaks a release, the sign job can be bypassed by:
 
 This restores the pre-signing behavior (unsigned releases).
 
-## Pre-Implementation: Verify Nupkg Structure
-
-**This step is mandatory before creating the artifact configuration.**
-
-Squirrel.Windows uses the NuGet package format but may not follow the standard `lib/net*` layout. The exact internal path must be verified:
-
-```bash
-# Build locally on Windows (or from CI artifacts)
-npx electron-forge make --platform win32
-
-# Inspect the nupkg (it's a ZIP file)
-unzip -l out/make/squirrel.windows/x64/*.nupkg
-```
-
-Common Squirrel layouts:
-- `lib/net45/` — most common, Squirrel's historical convention
-- `lib/` — flat layout in some versions
-
-The artifact configuration XML below assumes `lib/net45/`. **Adjust paths based on actual inspection results.**
-
 ## Artifact Configuration
 
 **File**: `.signpath/artifact-configurations/default.xml`
 
-Electron Forge Squirrel output structure:
+Electron Forge Squirrel output:
 ```
 out/make/squirrel.windows/x64/
-  ├── SokujiSetup.exe           # Squirrel installer
-  ├── Sokuji-x.y.z-full.nupkg   # NuGet update package (contains app .exe + .dll)
-  └── RELEASES                   # Squirrel update manifest (plain text, no signing needed)
+  ├── SokujiSetup.exe           # Squirrel installer (embeds nupkg inside)
+  ├── Sokuji-x.y.z-full.nupkg   # NuGet update package (not uploaded for signing)
+  └── RELEASES                   # Squirrel update manifest (not uploaded for signing)
 ```
 
-SignPath artifact configuration (deep signing):
+Only `SokujiSetup.exe` is uploaded for signing. The artifact configuration:
+
 ```xml
 <?xml version="1.0" encoding="utf-8"?>
 <artifact-configuration xmlns="http://signpath.io/artifact-configuration/v1">
   <zip-file>
-    <!-- Deep sign: sign PE files inside nupkg, then sign the nupkg itself -->
-    <nupkg-file path="*.nupkg" max-matches="unbounded">
-      <!-- VERIFY THIS PATH: run `unzip -l *.nupkg` and adjust if needed -->
-      <directory path="lib">
-        <directory path="net*" max-matches="unbounded">
-          <pe-file-set>
-            <include path="*.exe" max-matches="unbounded" />
-            <include path="*.dll" min-matches="0" max-matches="unbounded" />
-            <for-each>
-              <authenticode-sign />
-            </for-each>
-          </pe-file-set>
-        </directory>
-      </directory>
-      <nuget-sign />
-    </nupkg-file>
-    <!-- Sign the Squirrel installer exe -->
+    <!-- Sign the Squirrel installer exe (contains embedded nupkg) -->
     <pe-file path="*Setup*.exe">
       <authenticode-sign />
     </pe-file>
-    <!-- RELEASES file: plain text, no signing needed. -->
-    <!-- If SignPath rejects unmatched files, add: <file path="RELEASES" /> -->
   </zip-file>
 </artifact-configuration>
 ```
@@ -154,20 +127,19 @@ SignPath policies are configured **in the SignPath dashboard**, not via reposito
 
 #### Build job changes
 
-Add upload of unsigned Windows artifacts (runs on all tag pushes, alongside existing artifact uploads):
+Replace the existing `Upload Windows artifacts` step. Only upload `Setup.exe` for signing:
 
 ```yaml
-# After existing "Build Electron app with Forge" step (windows-latest)
 # Replace the existing "Upload Windows artifacts" step with this:
 - name: Upload unsigned Windows artifacts for signing
   if: startsWith(github.ref, 'refs/tags/v') && matrix.os == 'windows-latest'
   uses: actions/upload-artifact@v4
   with:
     name: windows-unsigned
-    path: out/make/squirrel.windows/x64/
+    path: out/make/squirrel.windows/x64/*Setup*.exe
 ```
 
-This **replaces** the existing `Upload Windows artifacts` step (which uploaded to `windows-artifacts`). The unsigned artifacts are now named `windows-unsigned`, and the release job will consume `windows-signed` after the sign job processes them.
+Note: Only the Setup.exe is uploaded (not the nupkg or RELEASES file). The release job will collect the signed Setup.exe from `windows-signed`.
 
 #### New sign job
 
@@ -203,7 +175,7 @@ sign-windows:
 
     - name: Submit signing request
       id: sign
-      uses: signpath/github-action-submit-signing-request@v1
+      uses: signpath/github-action-submit-signing-request@v2
       with:
         api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
         organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
@@ -247,7 +219,7 @@ release:
 
 | File | Action | Description |
 |------|--------|-------------|
-| `.signpath/artifact-configurations/default.xml` | Create | Artifact config for deep signing |
+| `.signpath/artifact-configurations/default.xml` | Create | Artifact config for Authenticode signing of Setup.exe |
 | `.github/workflows/build.yml` | Modify | Add sign job, replace Windows artifact upload, update release job |
 
 ## Manual Setup Required
@@ -267,8 +239,7 @@ These steps must be completed in external systems before the CI pipeline will wo
 3. **Create artifact configuration**
    - Name/slug: `default`
    - Paste the XML from the "Artifact Configuration" section above
-   - Alternatively: upload a sample unsigned ZIP for SignPath to analyze, then adjust
-   - **Important**: Verify the nupkg internal paths first (see "Pre-Implementation" section)
+   - Alternatively: upload a sample unsigned Setup.exe ZIP for SignPath to analyze
 
 4. **Verify signing policies**
    - `test-signing`: Should already exist with self-signed certificate
@@ -297,14 +268,12 @@ The `.cer` file from SignPath's test-signing certificate can be installed on a W
 
 ## Testing Plan
 
-1. **Nupkg structure verification**: Build locally, inspect `.nupkg` contents, adjust artifact config XML if needed
-2. **Pipeline validation**: Push a test tag (e.g., `v0.0.0-signing-test`), confirm sign job runs and completes with `test-signing`
-3. **Artifact inspection**: Download signed artifacts, verify Authenticode signatures:
+1. **Pipeline validation**: Push a test tag (e.g., `v0.0.0-signing-test`), confirm sign job runs and completes with `test-signing`
+2. **Artifact inspection**: Download signed artifacts, verify Authenticode signatures:
    - PowerShell: `Get-AuthenticodeSignature .\SokujiSetup.exe`
    - Or: `signtool verify /pa SokujiSetup.exe`
-4. **Nupkg deep signing**: Extract signed `.nupkg`, verify inner `.exe` and `.dll` files are also signed
-5. **Clean install test**: Run signed installer on a Windows test machine (with test cert installed)
-6. **Full release test**: Create a test tag, verify the complete build → sign → release flow
+3. **Clean install test**: Run signed installer on a Windows test machine (with test cert installed)
+4. **Full release test**: Create a test tag, verify the complete build → sign → release flow
 
 ## Phase 2 Checklist (when release-signing becomes available)
 
