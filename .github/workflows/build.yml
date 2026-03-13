@@ -164,12 +164,19 @@ jobs:
             out/make/**/*.deb
             out/make/**/*.zip
 
-      - name: Upload Windows artifacts
+      - name: Upload unsigned Windows installer for signing
         if: startsWith(github.ref, 'refs/tags/v') && matrix.os == 'windows-latest'
         uses: actions/upload-artifact@v4
         with:
-          name: windows-artifacts
-          path: out/make/
+          name: windows-unsigned
+          path: out/make/squirrel.windows/x64/*Setup*.exe
+
+      - name: Upload Windows nupkg for release
+        if: startsWith(github.ref, 'refs/tags/v') && matrix.os == 'windows-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-nupkg
+          path: out/make/squirrel.windows/x64/*.nupkg
 
       - name: Upload macOS artifacts
         if: startsWith(github.ref, 'refs/tags/v') && runner.os == 'macOS'
@@ -178,10 +185,60 @@ jobs:
           name: ${{ matrix.artifact_name }}-artifacts
           path: out/make/*.pkg
 
+  sign-windows:
+    name: Sign Windows artifacts
+    if: startsWith(github.ref, 'refs/tags/v') && github.repository == 'kizuna-ai-lab/sokuji'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+      actions: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download unsigned artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-unsigned
+          path: unsigned/
+
+      # SignPath requires a github-artifact-id from upload-artifact.
+      # We must re-upload because the original upload happened in a different job
+      # and artifact IDs cannot be passed across jobs without explicit output wiring.
+      - name: Upload for SignPath
+        id: upload-for-signing
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-to-sign
+          path: unsigned/
+          overwrite: true
+
+      - name: Submit signing request
+        id: sign
+        uses: signpath/github-action-submit-signing-request@v2
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG }}
+          signing-policy-slug: ${{ vars.SIGNPATH_SIGNING_POLICY_SLUG }}
+          artifact-configuration-slug: default
+          github-artifact-id: ${{ steps.upload-for-signing.outputs.artifact-id }}
+          wait-for-completion: true
+          output-artifact-directory: signed/
+          wait-for-completion-timeout-in-seconds: 1200
+
+      - name: Upload signed artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-signed
+          path: signed/
+
   release:
     # Only run for tag pushes
     if: startsWith(github.ref, 'refs/tags/v')
-    needs: build
+    needs: [build, sign-windows]
     runs-on: ubuntu-latest
 
     steps:
@@ -197,11 +254,17 @@ jobs:
           name: linux-arm64-artifacts
           path: linux-arm64-artifacts
 
-      - name: Download Windows artifacts
+      - name: Download signed Windows installer
         uses: actions/download-artifact@v4
         with:
-          name: windows-artifacts
-          path: windows-artifacts
+          name: windows-signed
+          path: windows-signed
+
+      - name: Download Windows nupkg
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-nupkg
+          path: windows-nupkg
 
       - name: Download macOS ARM64 artifacts
         uses: actions/download-artifact@v4
@@ -221,8 +284,10 @@ jobs:
           find linux-x64-artifacts -type f || true
           echo "=== Linux ARM64 ==="
           find linux-arm64-artifacts -type f || true
-          echo "=== Windows ==="
-          find windows-artifacts -type f || true
+          echo "=== Windows (signed) ==="
+          find windows-signed -type f || true
+          echo "=== Windows (nupkg) ==="
+          find windows-nupkg -type f || true
           echo "=== macOS ARM64 ==="
           find macos-arm64-artifacts -type f || true
           echo "=== macOS x64 ==="
@@ -236,8 +301,8 @@ jobs:
           find linux-x64-artifacts -name "sokuji-extension.zip" -exec cp {} release-assets/ \;
           find linux-arm64-artifacts -name "*.deb" -exec cp {} release-assets/ \;
           find linux-arm64-artifacts -name "*.zip" -exec cp {} release-assets/ \;
-          find windows-artifacts -name "*.exe" -exec cp {} release-assets/ \;
-          find windows-artifacts -name "*.nupkg" -exec cp {} release-assets/ \;
+          find windows-signed -name "*.exe" -exec cp {} release-assets/ \;
+          find windows-nupkg -name "*.nupkg" -exec cp {} release-assets/ \;
           find macos-arm64-artifacts -name "*.pkg" -exec cp {} release-assets/ \;
           find macos-x64-artifacts -name "*.pkg" -exec cp {} release-assets/ \;
           echo "=== Release assets ==="
