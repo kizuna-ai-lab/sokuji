@@ -335,12 +335,16 @@ export class OpenAIWebRTCClient implements IClient {
         break;
 
       case 'response.audio_transcript.delta':
+      case 'response.output_audio_transcript.delta':  // GA
       case 'response.text.delta':
+      case 'response.output_text.delta':              // GA
         this.handleTranscriptDelta(event);
         break;
 
       case 'response.audio_transcript.done':
+      case 'response.output_audio_transcript.done':    // GA
       case 'response.text.done':
+      case 'response.output_text.done':                // GA
         this.handleTranscriptDone(event);
         break;
 
