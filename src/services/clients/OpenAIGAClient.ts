@@ -544,15 +544,18 @@ export class OpenAIGAClient implements IClient {
   private sendSessionUpdate(config: OpenAISessionConfig): void {
     if (!this.rt) return;
 
+    // GA API session parameters differ from beta:
+    // - 'modalities' → 'output_modalities' (only ['text'] or ['audio'], not both)
+    // - 'max_response_output_tokens' → 'max_output_tokens'
+    // - 'input_audio_format'/'output_audio_format' → nested 'audio' config
+    // - 'temperature' → removed (not a GA session param)
+    // - 'voice' → set at connection time, can only be updated if no audio output yet
     const session: any = {
       type: 'realtime',
-      modalities: config.textOnly ? ['text'] : ['text', 'audio'],
+      output_modalities: config.textOnly ? ['text'] : ['audio'],
       voice: config.voice || 'alloy',
       instructions: config.instructions,
-      input_audio_format: 'pcm16',
-      output_audio_format: 'pcm16',
-      temperature: config.temperature ?? 0.8,
-      max_response_output_tokens: config.maxTokens === 'inf' ? 'inf' : config.maxTokens,
+      max_output_tokens: config.maxTokens === 'inf' ? 'inf' : config.maxTokens,
       // Explicitly disable tools to prevent model drift from translator role
       tool_choice: 'none',
       tools: []
@@ -589,17 +592,17 @@ export class OpenAIGAClient implements IClient {
       }
     }
 
-    // Noise reduction
-    if (config.inputAudioNoiseReduction?.type) {
-      session.input_audio_noise_reduction = {
-        type: config.inputAudioNoiseReduction.type
-      };
-    }
-
     // Input audio transcription
     if (config.inputAudioTranscription?.model) {
       session.input_audio_transcription = {
         model: config.inputAudioTranscription.model
+      };
+    }
+
+    // Noise reduction — GA uses nested 'audio.input_audio_noise_reduction'
+    if (config.inputAudioNoiseReduction?.type) {
+      session.input_audio_noise_reduction = {
+        type: config.inputAudioNoiseReduction.type
       };
     }
 
