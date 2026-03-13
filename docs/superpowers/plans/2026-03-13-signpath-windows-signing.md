@@ -178,8 +178,8 @@ Insert this job between the `build` job's closing and the `release` job:
         with:
           api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
           organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
-          project-slug: sokuji
-          signing-policy-slug: test-signing
+          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG }}
+          signing-policy-slug: ${{ vars.SIGNPATH_SIGNING_POLICY_SLUG }}
           artifact-configuration-slug: default
           github-artifact-id: ${{ steps.upload-for-signing.outputs.artifact-id }}
           wait-for-completion: true
@@ -339,14 +339,22 @@ These steps require human action in external systems. They cannot be automated.
 ### Task 7: GitHub Repository Setup (manual — done by project owner)
 
 - [ ] **Step 1: Add SignPath API token as repository secret**
+  - Go to: Settings → Secrets and variables → Actions → Secrets tab
   - Name: `SIGNPATH_API_TOKEN`
   - Value: Generate from SignPath dashboard → User menu → API Tokens
   - The token must have **submitter** role on the `sokuji` project
 
-- [ ] **Step 2: Add SignPath organization ID as repository variable**
-  - Name: `SIGNPATH_ORGANIZATION_ID`
-  - Value: Copy from SignPath dashboard → Organization settings → Organization ID
-  - This is a **variable** (not a secret) — it's not sensitive
+- [ ] **Step 2: Add SignPath repository variables**
+  - Go to: Settings → Secrets and variables → Actions → Variables tab
+  - Add these three variables:
+
+  | Variable | Value |
+  |----------|-------|
+  | `SIGNPATH_ORGANIZATION_ID` | *(from SignPath dashboard → Organization settings)* |
+  | `SIGNPATH_PROJECT_SLUG` | `sokuji` |
+  | `SIGNPATH_SIGNING_POLICY_SLUG` | `test-signing` |
+
+  These are non-sensitive identifiers. Using variables (not secrets) so they're visible and easy to change. Phase 2 only requires changing `SIGNPATH_SIGNING_POLICY_SLUG` to `release-signing`.
 
 ### Task 8: Pipeline Validation (after manual setup is complete)
 
@@ -382,6 +390,6 @@ git tag -d v0.0.0-signing-test
 Not part of this implementation. When SignPath assigns the EV certificate:
 
 1. In SignPath dashboard: assign EV cert to `release-signing` policy, enable origin verification
-2. In workflow: change `signing-policy-slug: test-signing` to `signing-policy-slug: release-signing`
+2. In GitHub repo variables: change `SIGNPATH_SIGNING_POLICY_SLUG` from `test-signing` to `release-signing`
 3. Push a real release tag and verify SmartScreen does not warn on a clean Windows machine
 4. Close issue #105
