@@ -1,5 +1,6 @@
 import { IClient } from '../interfaces/IClient';
 import { OpenAIClient } from './OpenAIClient';
+import { OpenAIGAClient } from './OpenAIGAClient';
 import { OpenAIWebRTCClient } from './OpenAIWebRTCClient';
 import { GeminiClient } from './GeminiClient';
 import { PalabraAIClient } from './PalabraAIClient';
@@ -62,7 +63,9 @@ export class ClientFactory {
             outputDeviceId: webrtcOptions?.outputDeviceId
           });
         }
-        return new OpenAIClient(apiKey);
+        // Use GA client for direct OpenAI WebSocket connections
+        // (official SDK, no beta header)
+        return new OpenAIGAClient(apiKey);
 
       case Provider.OPENAI_COMPATIBLE:
         // OpenAI Compatible uses OpenAIClient with custom endpoint
