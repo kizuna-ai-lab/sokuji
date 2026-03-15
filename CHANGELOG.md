@@ -7,9 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Documentation
+## [0.15.10] - 2026-03-16
 
-- **README Translations**: Add Japanese and Chinese README translations under `docs/`
+### Fixed
+
+- **WebGPU WASM Loading**: Include ONNX Runtime JSEP WASM files for WebGPU backend (fixes extension crash for Whisper-WebGPU and Qwen workers)
+
+## [0.15.9] - 2026-03-16
+
+### Fixed
+
+- **Gemini Model Defaults**: Remove deprecated Gemini model defaults and auto-select latest available model
 
 ## [0.15.8] - 2026-03-15
 

@@ -12,11 +12,14 @@ DEST="public/wasm/ort"
 # Needed WASM variants:
 #   asyncify  — default (non-Safari browsers)
 #   plain     — Safari fallback (no asyncify support)
+#   jsep      — WebGPU/WebNN backend (used by Whisper-WebGPU, Qwen workers)
 FILES=(
   "ort-wasm-simd-threaded.asyncify.mjs"
   "ort-wasm-simd-threaded.asyncify.wasm"
   "ort-wasm-simd-threaded.mjs"
   "ort-wasm-simd-threaded.wasm"
+  "ort-wasm-simd-threaded.jsep.mjs"
+  "ort-wasm-simd-threaded.jsep.wasm"
 )
 
 if [ ! -d "$SRC" ]; then
