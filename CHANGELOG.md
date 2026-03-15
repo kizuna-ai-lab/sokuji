@@ -11,6 +11,89 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **README Translations**: Add Japanese and Chinese README translations under `docs/`
 
+## [0.15.8] - 2026-03-15
+
+### Added
+
+- **OpenAI GA Realtime API**: Migrate OpenAI provider from beta to GA Realtime API protocol with new `OpenAIGAClient`
+- **Copy Logs**: Add Copy Logs button to LogsPanel header with NDJSON format output
+- **Local Inference UX**: Improve UX when LOCAL_INFERENCE models are missing after language change
+- **Windows Code Signing**: Add SignPath code signing for Windows release artifacts in CI
+
+### Changed
+
+- **OpenAI SDK**: Update openai SDK to 6.29.0 for GA API support
+- **Log Event Types**: Decouple logStore event types from openai-realtime-api package
+
+### Fixed
+
+- **Offline ASR PTT**: Flush offline ASR on Push-to-Talk release to trigger immediate recognition
+- **Text Input Display**: Create local user item on text input for immediate UI display
+- **GA API Compatibility**: Fix session.update parameters, modalities mapping, turn detection nesting, and event handling for GA protocol
+- **Conversation UI**: Filter out-of-band anchor responses from conversation display
+- **CI Extension Zip**: Include version number in extension zip filename
+
+## [0.15.7] - 2026-03-13
+
+### Changed
+
+- **Unified MainPanel**: Unify MainPanel and SimpleMainPanel into a single component with `uiMode`-driven layout
+- **Compact Conversation Bubbles**: Compact conversation bubbles for ~2x message density and remove redundant role headers
+- **Tabbed Advanced Settings**: Add tabbed navigation to advanced settings panel and fix header alignment
+- **Unified Design System**: Unify settings UI design system with shared tokens and components
+- **OpenAI Model Names**: Migrate OpenAI models from deprecated beta to GA API names
+
+### Fixed
+
+- **Translation Text Parsing**: Unwrap JSON-formatted translation text from model drift and trim whitespace
+- **Audio Persistence**: Persist passthrough, system audio settings, and participant audio output device across reloads
+- **Canvas Shrinking**: Prevent visualization canvases from shrinking when sidebar opens
+- **Text Input Overlap**: Prevent text-input-section from overlapping conversation in advanced mode
+- **Mode Toggle**: Remove session-active disable from mode-toggle buttons
+- **Onboarding Sync**: Sync UI mode with user type to prevent missing onboarding targets
+
+## [0.15.6] - 2026-03-11
+
+### Added
+
+- **Noise Suppression**: Add noise suppression with AudioWorklet-based processing pipeline
+- **Toggle Switch UI**: Unify toggle switch component design across the app
+- **Session Feature Flags**: Add session-level feature flags to `translation_session_start` analytics event
+
+### Fixed
+
+- **ToggleSwitch Accessibility**: Add keyboard accessibility to ToggleSwitch component
+- **ASR Worker Stability**: Add try-catch to ASR worker WASM calls to prevent uncaught exceptions
+
+## [0.15.5] - 2026-03-10
+
+### Added
+
+- **Local Inference Analytics**: Track ASR, translation, and TTS model usage for local inference provider
+- **Chrome Web Store Descriptions**: Add Chrome Web Store overview descriptions in 12 languages
+
+### Fixed
+
+- **Dependency Vulnerabilities**: Update transitive dependencies to resolve high severity vulnerabilities
+- **CWS Description**: Replace platform keyword list with natural paragraph in Chrome Web Store overview
+
+## [0.15.4] - 2026-03-09
+
+### Fixed
+
+- **Worker Loading**: Use relative paths for worker and WASM runtime loading
+- **Copyright Year**: Update copyright year to 2026 in About dialog
+
+## [0.15.3] - 2026-03-09
+
+### Changed
+
+- **CI**: Upgrade action-gh-release from v1 to v2
+
+### Documentation
+
+- **sherpa-onnx Guide**: Add sherpa-onnx WASM integration guide
+
 ## [0.15.2] - 2026-03-06
 
 ### Added
