@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback, memo } from 'react';
-import { ArrowRight, Terminal, Trash2, ArrowUp, ArrowDown, FastForward, Mic, Users } from 'lucide-react';
+import { ArrowRight, Terminal, Trash2, ArrowUp, ArrowDown, FastForward, Mic, Users, ClipboardCopy } from 'lucide-react';
 import './LogsPanel.scss';
 import { useLogData, useLogActions } from '../../stores/logStore';
 import type { LogEntry, ClientId } from '../../stores/logStore';
@@ -111,6 +111,7 @@ const LogsPanel: React.FC<LogsPanelProps> = ({ toggleLogs }) => {
   const logsContentRef = useRef<HTMLDivElement>(null);
   const scrollTimeoutRef = useRef<NodeJS.Timeout>();
   const [activeTab, setActiveTab] = useState<ClientId>('speaker');
+  const [copyLabel, setCopyLabel] = useState<string | null>(null);
 
   // Filter logs based on active tab
   const filteredLogs = useMemo(() => {
@@ -188,6 +189,23 @@ const LogsPanel: React.FC<LogsPanelProps> = ({ toggleLogs }) => {
     setAutoScroll(prev => !prev);
   }, []);
 
+  // Copy filtered logs to clipboard as NDJSON
+  const handleCopyLogs = useCallback(() => {
+    const lines: string[] = [];
+    for (const log of filteredLogs) {
+      if (log.events && log.events.length > 0) {
+        for (const event of log.events) {
+          lines.push(JSON.stringify(event));
+        }
+      }
+    }
+    const text = lines.join('\n');
+    navigator.clipboard.writeText(text).then(() => {
+      setCopyLabel(t('logsPanel.logsCopied'));
+      setTimeout(() => setCopyLabel(null), 1500);
+    });
+  }, [filteredLogs, t]);
+
   // Memoized function to render regular log entry
   const renderLogEntry = useCallback((log: LogEntry, index: number) => {
     const elements: React.ReactNode[] = [];
@@ -250,6 +268,12 @@ const LogsPanel: React.FC<LogsPanelProps> = ({ toggleLogs }) => {
             <FastForward size={16} />
             <span>{autoScroll ? t('logsPanel.autoScrollOn') : t('logsPanel.autoScrollOff')}</span>
           </button>
+          {filteredLogs.length > 0 && (
+            <button className="copy-logs-button" onClick={handleCopyLogs}>
+              <ClipboardCopy size={16} />
+              <span>{copyLabel || t('logsPanel.copyLogs')}</span>
+            </button>
+          )}
           {logs.length > 0 && (
             <button className="clear-logs-button" onClick={clearLogs}>
               <Trash2 size={16} />

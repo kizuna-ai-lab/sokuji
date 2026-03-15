@@ -442,7 +442,9 @@
     "unknown": "unknown",
     "sessionEnded": "Session Ended",
     "speakerClient": "Speaker",
-    "participantClient": "Participant"
+    "participantClient": "Participant",
+    "copyLogs": "Copy Logs",
+    "logsCopied": "Copied!"
   },
   "mainPanel": {
     "conversationPlaceholder": "Conversation will appear here",
