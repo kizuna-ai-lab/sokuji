@@ -268,7 +268,9 @@
     "unknown": "不明",
     "sessionEnded": "セッション終了",
     "speakerClient": "話者",
-    "participantClient": "参加者"
+    "participantClient": "参加者",
+    "copyLogs": "ログをコピー",
+    "logsCopied": "コピー完了！"
   },
   "mainPanel": {
     "conversationPlaceholder": "会話がここに表示されます",
