@@ -189,14 +189,17 @@ const LogsPanel: React.FC<LogsPanelProps> = ({ toggleLogs }) => {
     setAutoScroll(prev => !prev);
   }, []);
 
-  // Copy filtered logs to clipboard
+  // Copy filtered logs to clipboard as NDJSON
   const handleCopyLogs = useCallback(() => {
-    const text = filteredLogs.map(log => {
-      if (log.events && log.events.length > 0 && log.source) {
-        return `[${log.timestamp}] ${log.source}: ${log.eventType || 'unknown'}`;
+    const lines: string[] = [];
+    for (const log of filteredLogs) {
+      if (log.events && log.events.length > 0) {
+        for (const event of log.events) {
+          lines.push(JSON.stringify(event));
+        }
       }
-      return `[${log.timestamp}] ${log.message || ''}`;
-    }).join('\n');
+    }
+    const text = lines.join('\n');
     navigator.clipboard.writeText(text).then(() => {
       setCopyLabel(t('logsPanel.logsCopied'));
       setTimeout(() => setCopyLabel(null), 1500);
