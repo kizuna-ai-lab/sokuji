@@ -553,7 +553,6 @@ export class OpenAIGAClient implements IClient {
     const session: any = {
       type: 'realtime',
       output_modalities: config.textOnly ? ['text'] : ['audio'],
-      voice: config.voice || 'alloy',
       instructions: config.instructions,
       max_output_tokens: config.maxTokens === 'inf' ? 'inf' : config.maxTokens,
       // Explicitly disable tools to prevent model drift from translator role
