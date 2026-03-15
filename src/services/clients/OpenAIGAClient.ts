@@ -778,8 +778,10 @@ export class OpenAIGAClient implements IClient {
       if (config.conversation) {
         responseEvent.response.conversation = config.conversation;
       }
-      // Note: GA API does not support 'modalities' in response.create
-      // Modalities are set at the session level via session.update
+      // GA API uses 'output_modalities' instead of 'modalities' in response.create
+      if (config.modalities) {
+        responseEvent.response.output_modalities = config.modalities;
+      }
       if (config.metadata) {
         responseEvent.response.metadata = config.metadata;
       }
