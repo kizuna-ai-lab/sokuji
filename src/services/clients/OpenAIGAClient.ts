@@ -743,17 +743,40 @@ export class OpenAIGAClient implements IClient {
   appendInputText(text: string): void {
     if (!this.rt || !text.trim()) return;
 
+    const trimmedText = text.trim();
+    const localItemId = `text_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+
     this.rt.send({
       type: 'conversation.item.create',
       item: {
+        id: localItemId,
         type: 'message',
         role: 'user',
         content: [{
           type: 'input_text',
-          text: text.trim()
+          text: trimmedText
         }]
       }
     } as any);
+
+    // Create local user conversation item immediately (GA API may not
+    // emit conversation.item.created for client-created items)
+    const createdAt = Date.now();
+    const conversationItem: ConversationItem = {
+      id: localItemId,
+      role: 'user',
+      type: 'message',
+      status: 'completed',
+      createdAt,
+      formatted: {
+        text: trimmedText,
+        transcript: trimmedText
+      },
+      content: [{ type: 'input_text', text: trimmedText }]
+    };
+    this.conversationItems.push(conversationItem);
+    this.itemLookup.set(localItemId, conversationItem);
+    this.eventHandlers.onConversationUpdated?.({ item: conversationItem });
 
     // Forward as client event for logging
     this.eventHandlers.onRealtimeEvent?.({
