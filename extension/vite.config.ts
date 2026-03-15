@@ -6,20 +6,16 @@ import fs from 'fs'
 
 /**
  * Rollup emits ort-wasm-*.wasm into assets/ because onnxruntime-web uses
- * `new URL('...wasm', import.meta.url)`. Our workers override wasmPaths to
- * load from wasm/ort/ (copied via viteStaticCopy), so the assets/ copy is
- * never fetched at runtime. Drop it to avoid ~26 MB duplication.
- *
- * JSEP files (WebGPU/WebNN backend) are kept because ORT's JSEP backend
- * resolves WASM via the Vite-transformed import.meta.url path in assets/,
- * ignoring the wasmPaths override.
+ * `new URL('...wasm', import.meta.url)`. All workers set wasmPaths to load
+ * from wasm/ort/ (copied via viteStaticCopy), so the assets/ copies are
+ * never fetched at runtime. Drop them to avoid ~50 MB duplication.
  */
 function dropDuplicateOrtWasm(): Plugin {
   return {
     name: 'drop-duplicate-ort-wasm',
     generateBundle(_, bundle) {
       for (const key of Object.keys(bundle)) {
-        if (key.includes('ort-wasm') && key.endsWith('.wasm') && !key.includes('jsep')) {
+        if (key.includes('ort-wasm') && key.endsWith('.wasm')) {
           delete bundle[key]
         }
       }

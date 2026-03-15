@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **WebGPU WASM Loading**: Include ONNX Runtime JSEP WASM files for WebGPU backend (fixes extension crash for Whisper-WebGPU and Qwen workers)
+- **WebGPU WASM Loading**: Include ONNX Runtime JSEP WASM files and set wasmPaths on all ORT instances (fixes extension crash for Whisper-WebGPU and Qwen workers)
 - **VAD Model Missing**: Include Silero VAD model in extension build for Whisper-WebGPU ASR worker
 
 ## [0.15.9] - 2026-03-16

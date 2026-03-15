@@ -17,7 +17,7 @@ import {
   env,
   AutomaticSpeechRecognitionPipeline,
 } from '@huggingface/transformers';
-import {InferenceSession, Tensor} from 'onnxruntime-web';
+import {InferenceSession, Tensor, env as ortEnv} from 'onnxruntime-web';
 import {FrameProcessor, Message} from '@ricky0123/vad-web';
 import type {FrameProcessorEvent} from '@ricky0123/vad-web/dist/frame-processor';
 
@@ -411,9 +411,16 @@ async function handleInit(msg: WhisperAsrInitMessage): Promise<void> {
   try {
     const startTime = performance.now();
 
-    // Set ORT WASM paths from main thread's resolved URL
-    if (msg.ortWasmBaseUrl && env.backends?.onnx?.wasm) {
-      env.backends.onnx.wasm.wasmPaths = msg.ortWasmBaseUrl;
+    // Set ORT WASM paths from main thread's resolved URL.
+    // Must set on BOTH env objects: transformers.js env (onnxruntime-web/webgpu)
+    // and plain onnxruntime-web env (used by VAD InferenceSession).
+    if (msg.ortWasmBaseUrl) {
+      if (env.backends?.onnx?.wasm) {
+        env.backends.onnx.wasm.wasmPaths = msg.ortWasmBaseUrl;
+      }
+      if (ortEnv?.wasm) {
+        ortEnv.wasm.wasmPaths = msg.ortWasmBaseUrl;
+      }
     }
 
     // 1. Check WebGPU
