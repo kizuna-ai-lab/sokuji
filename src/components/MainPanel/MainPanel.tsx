@@ -2583,6 +2583,9 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                 className={`main-action-btn ${isSessionActive ? 'stop' : 'start'}`}
                 onClick={isSessionActive ? disconnectConversation : connectConversation}
                 disabled={!canStartSession && !isSessionActive}
+                title={!canStartSession && !isSessionActive && provider === Provider.LOCAL_INFERENCE
+                  ? t('mainPanel.localModelsRequired', 'Download required models in settings to start.')
+                  : undefined}
               >
                 {isInitializing ? (
                   <>
@@ -2672,7 +2675,11 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                     <Zap size={14} />
                     <span>{t('mainPanel.startSession')}</span>
                     {!isApiKeyValid && (
-                      <span className="tooltip">{t('mainPanel.apiKeyRequired')}</span>
+                      <span className="tooltip">
+                        {provider === Provider.LOCAL_INFERENCE
+                          ? t('mainPanel.localModelsRequired', 'Download required models in settings to start.')
+                          : t('mainPanel.apiKeyRequired')}
+                      </span>
                     )}
                     {isApiKeyValid && availableModels.length === 0 && !loadingModels && (
                       <span className="tooltip">{t('mainPanel.modelsRequired')}</span>

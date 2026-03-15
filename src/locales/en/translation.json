@@ -215,7 +215,12 @@
     "vadMinSilenceDurationTooltip": "Minimum silence duration to split speech segments. Shorter values split sentences faster, longer values wait for more natural pauses.",
     "vadMinSpeechDuration": "Min Speech Duration",
     "vadMinSpeechDurationTooltip": "Minimum speech duration to consider as valid speech. Filters out very short sounds like clicks or coughs.",
-    "localInferenceModelsRequired": "Please download and select models in <settingsLink>Advanced Settings</settingsLink>. At least one ASR, Translation, and TTS model is required."
+    "localInferenceModelsRequired": "Please download and select models in <settingsLink>Advanced Settings</settingsLink>. At least one ASR, Translation, and TTS model is required.",
+    "missingModelsWarning": "Missing {{types}} model(s) for this language pair.",
+    "downloadModels": "Download models",
+    "modelTypeAsr": "ASR",
+    "modelTypeTranslation": "Translation",
+    "modelTypeTts": "TTS"
   },
   "simpleSettings": {
     "autoAuthenticated": "Automatically authenticated via your account",
@@ -473,7 +478,8 @@
     "error": "Error",
     "unknownError": "Unknown error",
     "insufficientBalance": "Insufficient token balance: {{balance}} tokens",
-    "walletFrozen": "Wallet is frozen. Please contact support."
+    "walletFrozen": "Wallet is frozen. Please contact support.",
+    "localModelsRequired": "Download required models in settings to start."
   },
   "simplePanel": {
     "clickToConfigLanguages": "Click to configure languages",
