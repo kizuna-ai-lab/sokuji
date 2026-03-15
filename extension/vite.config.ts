@@ -9,13 +9,17 @@ import fs from 'fs'
  * `new URL('...wasm', import.meta.url)`. Our workers override wasmPaths to
  * load from wasm/ort/ (copied via viteStaticCopy), so the assets/ copy is
  * never fetched at runtime. Drop it to avoid ~26 MB duplication.
+ *
+ * JSEP files (WebGPU/WebNN backend) are kept because ORT's JSEP backend
+ * resolves WASM via the Vite-transformed import.meta.url path in assets/,
+ * ignoring the wasmPaths override.
  */
 function dropDuplicateOrtWasm(): Plugin {
   return {
     name: 'drop-duplicate-ort-wasm',
     generateBundle(_, bundle) {
       for (const key of Object.keys(bundle)) {
-        if (key.includes('ort-wasm') && key.endsWith('.wasm')) {
+        if (key.includes('ort-wasm') && key.endsWith('.wasm') && !key.includes('jsep')) {
           delete bundle[key]
         }
       }
@@ -82,6 +86,8 @@ export default defineConfig(({ mode }) => {
           { src: '../public/wasm/ort/*', dest: 'wasm/ort' },
           // Classic workers for ASR/TTS (sherpa-onnx uses importScripts, can't be ES modules)
           { src: '../public/workers/*', dest: 'workers' },
+          // Silero VAD model (used by Whisper-WebGPU worker)
+          { src: '../public/wasm/vad/*', dest: 'wasm/vad' },
           // sherpa-onnx WASM runtimes (loaded by workers via importScripts)
           { src: '../public/wasm/sherpa-onnx-asr/*', dest: 'wasm/sherpa-onnx-asr' },
           { src: '../public/wasm/sherpa-onnx-tts/*', dest: 'wasm/sherpa-onnx-tts' },
