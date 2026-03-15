@@ -72,8 +72,7 @@ export class GeminiProviderConfig {
   ];
 
   private static readonly MODELS: ModelOption[] = [
-    { id: 'gemini-2.0-flash-live-001', type: 'realtime' },
-    { id: 'gemini-2.5-flash-preview-native-audio-dialog', type: 'realtime' },
+    // Populated dynamically from API via validateApiKey()
   ];
 
   getConfig(): ProviderConfig {
@@ -110,7 +109,7 @@ export class GeminiProviderConfig {
       },
       
       defaults: {
-        model: 'gemini-2.0-flash-live-001',
+        model: '',
         voice: 'Aoede',
         temperature: 1.0,
         maxTokens: 'inf' as any,

@@ -131,18 +131,7 @@ export class GeminiClient implements IClient {
    * Get fallback models when no suitable models found from API
    */
   private static getFallbackModels(): FilteredModel[] {
-    return [
-      {
-        id: 'gemini-2.5-flash-preview-native-audio-dialog',
-        type: 'realtime',
-        created: Date.now() / 1000
-      },
-      {
-        id: 'gemini-2.0-flash-live',
-        type: 'realtime',
-        created: Date.now() / 1000 - 86400
-      }
-    ];
+    return [];  // No hardcoded fallbacks — rely on API
   }
 
   /**
@@ -292,8 +281,8 @@ export class GeminiClient implements IClient {
       return realtimeModels[0].id;
     }
     
-    // Fallback to default Gemini realtime model (contains "audio")
-    return 'gemini-2.5-flash-preview-native-audio-dialog';
+    // No hardcoded fallback — rely on API
+    return '';
   }
 
   async connect(config: SessionConfig): Promise<void> {

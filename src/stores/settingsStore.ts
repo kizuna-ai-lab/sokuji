@@ -16,6 +16,7 @@ import {
 import { getTtsModelsForLanguage } from '../lib/local-inference/modelManifest';
 import {ApiKeyValidationResult} from '../services/interfaces/ISettingsService';
 import {Provider, ProviderType} from '../types/Provider';
+import {ClientOperations} from '../services/ClientOperations';
 import i18n from '../locales';
 
 // ==================== Type Definitions ====================
@@ -220,7 +221,7 @@ const defaultKizunaAISettings: KizunaAISettings = {
 
 const defaultGeminiSettings: GeminiSettings = {
   apiKey: '',
-  model: 'gemini-2.0-flash-exp',
+  model: '',
   voice: 'Aoede',
   sourceLanguage: 'en-US',
   targetLanguage: 'ja-JP',
@@ -884,6 +885,33 @@ const useSettingsStore = create<SettingsStore>()(
           validationError: result.validation.valid ? null : result.validation.message,
           cacheTimestamp: Date.now()
         });
+
+        // Auto-select model if current selection is empty or not in available list
+        if (result.models.length > 0) {
+          const currentModel = (state.getCurrentProviderSettings() as any)?.model;
+          const realtimeModels = result.models.filter(m => m.type === 'realtime');
+          if (realtimeModels.length > 0 && (!currentModel || !realtimeModels.some(m => m.id === currentModel))) {
+            const latestModel = ClientOperations.getLatestRealtimeModel(result.models, provider);
+            if (latestModel) {
+              // Update the provider-specific model setting
+              switch (provider) {
+                case Provider.OPENAI:
+                  get().updateOpenAI({ model: latestModel });
+                  break;
+                case Provider.GEMINI:
+                  get().updateGemini({ model: latestModel });
+                  break;
+                case Provider.OPENAI_COMPATIBLE:
+                  get().updateOpenAICompatible({ model: latestModel });
+                  break;
+                case Provider.KIZUNA_AI:
+                  get().updateKizunaAI({ model: latestModel });
+                  break;
+              }
+              console.info(`[Sokuji] Model "${currentModel || '(empty)'}" not available, auto-selected "${latestModel}"`);
+            }
+          }
+        }
 
         return result.validation;
       } catch (error) {
