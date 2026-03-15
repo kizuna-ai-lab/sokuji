@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Globe, Languages, ArrowRight, CircleHelp } from 'lucide-react';
+import { Globe, Languages, ArrowRight, CircleHelp, AlertTriangle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import Tooltip from '../../Tooltip/Tooltip';
 import {
@@ -9,18 +9,24 @@ import {
   useOpenAICompatibleSettings,
   usePalabraAISettings,
   useKizunaAISettings,
+  useLocalInferenceSettings,
   useSetUILanguage,
   useUpdateOpenAI,
   useUpdateGemini,
   useUpdateOpenAICompatible,
   useUpdatePalabraAI,
-  useUpdateKizunaAI
+  useUpdateKizunaAI,
+  useUpdateLocalInference,
+  useNavigateToSettings,
+  useSetUIMode
 } from '../../../stores/settingsStore';
 import { Provider } from '../../../types/Provider';
 import { ProviderConfigFactory } from '../../../services/providers/ProviderConfigFactory';
 import { ProviderConfig } from '../../../services/providers/ProviderConfig';
 import { changeLanguageWithLoad } from '../../../locales';
 import { useAnalytics } from '../../../lib/analytics';
+import { getTranslationTargetLanguages, getManifestByType, isTranslationModelCompatible } from '../../../lib/local-inference/modelManifest';
+import { useModelStatuses, useModelInitialized } from '../../../stores/modelStore';
 
 interface LanguageSectionProps {
   isSessionActive: boolean;
@@ -51,6 +57,12 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
   const openAICompatibleSettings = useOpenAICompatibleSettings();
   const palabraAISettings = usePalabraAISettings();
   const kizunaAISettings = useKizunaAISettings();
+  const localInferenceSettings = useLocalInferenceSettings();
+
+  const modelStatuses = useModelStatuses();
+  const modelInitialized = useModelInitialized();
+  const navigateToSettings = useNavigateToSettings();
+  const setUIMode = useSetUIMode();
 
   const setUILanguage = useSetUILanguage();
   const updateOpenAISettings = useUpdateOpenAI();
@@ -58,6 +70,7 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
   const updateOpenAICompatibleSettings = useUpdateOpenAICompatible();
   const updatePalabraAISettings = useUpdatePalabraAI();
   const updateKizunaAISettings = useUpdateKizunaAI();
+  const updateLocalInferenceSettings = useUpdateLocalInference();
 
   // Get provider configuration with fallback
   const providerConfig: ProviderConfig = useMemo(() => {
@@ -81,10 +94,12 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
         return palabraAISettings;
       case Provider.KIZUNA_AI:
         return kizunaAISettings;
+      case Provider.LOCAL_INFERENCE:
+        return localInferenceSettings;
       default:
         return openAISettings;
     }
-  }, [provider, openAISettings, geminiSettings, openAICompatibleSettings, palabraAISettings, kizunaAISettings]);
+  }, [provider, openAISettings, geminiSettings, openAICompatibleSettings, palabraAISettings, kizunaAISettings, localInferenceSettings]);
 
   // Update source language
   const updateSourceLanguage = (value: string) => {
@@ -104,6 +119,16 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
       case Provider.KIZUNA_AI:
         updateKizunaAISettings({ sourceLanguage: value });
         break;
+      case Provider.LOCAL_INFERENCE: {
+        const availableTargets = getTranslationTargetLanguages(value);
+        const currentTarget = localInferenceSettings.targetLanguage;
+        const updates: Record<string, string> = { sourceLanguage: value };
+        if (!availableTargets.some(t => t.value === currentTarget)) {
+          updates.targetLanguage = availableTargets[0]?.value || 'en';
+        }
+        updateLocalInferenceSettings(updates);
+        break;
+      }
     }
     trackEvent('language_changed', {
       to_language: value,
@@ -129,12 +154,23 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
       case Provider.KIZUNA_AI:
         updateKizunaAISettings({ targetLanguage: value });
         break;
+      case Provider.LOCAL_INFERENCE:
+        updateLocalInferenceSettings({ targetLanguage: value });
+        break;
     }
     trackEvent('language_changed', {
       to_language: value,
       language_type: 'target'
     });
   };
+
+  // Dynamic target languages for LOCAL_INFERENCE, static for others
+  const targetLanguages = useMemo(() => {
+    if (provider === Provider.LOCAL_INFERENCE) {
+      return getTranslationTargetLanguages(currentProviderSettings.sourceLanguage || 'ja');
+    }
+    return providerConfig.languages;
+  }, [provider, providerConfig.languages, currentProviderSettings.sourceLanguage]);
 
   // Simplified interface language list (12 most common languages)
   const simplifiedLanguages = [
@@ -187,6 +223,37 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
   ];
 
   const interfaceLanguages = simplifiedInterfaceList ? simplifiedLanguages : fullLanguages;
+
+  // Check which model types are missing for current LOCAL_INFERENCE language pair
+  const missingModelTypes = useMemo(() => {
+    if (provider !== Provider.LOCAL_INFERENCE || !modelInitialized) return [];
+    const missing: string[] = [];
+    const src = localInferenceSettings.sourceLanguage;
+    const tgt = localInferenceSettings.targetLanguage;
+
+    // Check ASR models (offline + streaming)
+    const allAsr = [...getManifestByType('asr'), ...getManifestByType('asr-stream')];
+    const hasAsr = allAsr.some(m =>
+      (m.multilingual || m.languages.includes(src)) && modelStatuses[m.id] === 'downloaded'
+    );
+    if (!hasAsr) missing.push(t('settings.modelTypeAsr', 'ASR'));
+
+    // Check Translation models
+    const allTrans = getManifestByType('translation');
+    const hasTrans = allTrans.some(m =>
+      isTranslationModelCompatible(m, src, tgt) && modelStatuses[m.id] === 'downloaded'
+    );
+    if (!hasTrans) missing.push(t('settings.modelTypeTranslation', 'Translation'));
+
+    // Check TTS models
+    const allTts = getManifestByType('tts');
+    const hasTts = allTts.some(m =>
+      m.languages.includes(tgt) && modelStatuses[m.id] === 'downloaded'
+    );
+    if (!hasTts) missing.push(t('settings.modelTypeTts', 'TTS'));
+
+    return missing;
+  }, [provider, modelInitialized, modelStatuses, localInferenceSettings.sourceLanguage, localInferenceSettings.targetLanguage, t]);
 
   return (
     <>
@@ -252,7 +319,9 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
                 disabled={isSessionActive}
                 className="language-select"
               >
-                <option value="auto">{t('common.autoDetect')}</option>
+                {provider !== Provider.LOCAL_INFERENCE && (
+                  <option value="auto">{t('common.autoDetect')}</option>
+                )}
                 {providerConfig.languages.map((lang) => (
                   <option key={lang.value} value={lang.value}>
                     {lang.name}
@@ -273,7 +342,7 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
                 disabled={isSessionActive}
                 className="language-select"
               >
-                {providerConfig.languages.map((lang) => (
+                {targetLanguages.map((lang) => (
                   <option key={lang.value} value={lang.value}>
                     {lang.name}
                   </option>
@@ -281,6 +350,25 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
               </select>
             </div>
           </div>
+
+          {provider === Provider.LOCAL_INFERENCE && missingModelTypes.length > 0 && (
+            <div className="language-model-warning">
+              <AlertTriangle size={14} />
+              <span>
+                {t('settings.missingModelsWarning', 'Missing {{types}} model(s) for this language pair.', { types: missingModelTypes.join(', ') })}
+                {' '}
+                <a
+                  className="language-model-warning__link"
+                  onClick={() => {
+                    setUIMode('advanced');
+                    setTimeout(() => navigateToSettings('model-management'), 100);
+                  }}
+                >
+                  {t('settings.downloadModels', 'Download models')}
+                </a>
+              </span>
+            </div>
+          )}
         </div>
       )}
     </>

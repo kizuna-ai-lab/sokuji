@@ -1,4 +1,4 @@
-import React, { Fragment } from 'react';
+import React, { Fragment, useEffect } from 'react';
 import { ProviderConfig } from '../../../services/providers/ProviderConfig';
 import { VolcengineSTProviderConfig } from '../../../services/providers/VolcengineSTProviderConfig';
 import { VolcengineAST2ProviderConfig } from '../../../services/providers/VolcengineAST2ProviderConfig';
@@ -37,7 +37,7 @@ import { ChevronDown, ChevronRight, RotateCw, Info, CircleHelp } from 'lucide-re
 import Tooltip from '../../Tooltip/Tooltip';
 import { FilteredModel } from '../../../services/interfaces/IClient';
 import { Provider, isOpenAICompatible } from '../../../types/Provider';
-import { getManifestByType, getManifestEntry, getTranslationTargetLanguages, isTranslationModelCompatible } from '../../../lib/local-inference/modelManifest';
+import { getManifestByType, getManifestEntry, isTranslationModelCompatible } from '../../../lib/local-inference/modelManifest';
 import { useModelStatuses } from '../../../stores/modelStore';
 import { ModelManagementSection } from './ModelManagementSection';
 import { useAnalytics } from '../../../lib/analytics';
@@ -97,6 +97,51 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
   const getCurrentProviderSettings = useGetCurrentProviderSettings();
   const { t } = useTranslation();
   const { trackEvent } = useAnalytics();
+
+  // Auto-select compatible models when LOCAL_INFERENCE languages change
+  useEffect(() => {
+    if (provider !== Provider.LOCAL_INFERENCE) return;
+
+    const sourceLang = localInferenceSettings.sourceLanguage;
+    const targetLang = localInferenceSettings.targetLanguage;
+    const updates: Record<string, any> = {};
+
+    // Auto-select ASR model (includes streaming models)
+    const allAsr = [...getManifestByType('asr'), ...getManifestByType('asr-stream')];
+    const currentAsr = allAsr.find(m => m.id === localInferenceSettings.asrModel);
+    if (!currentAsr || !(currentAsr.multilingual || currentAsr.languages.includes(sourceLang))) {
+      const firstMatch = allAsr.find(m =>
+        (m.multilingual || m.languages.includes(sourceLang)) && modelStatuses[m.id] === 'downloaded'
+      );
+      updates.asrModel = firstMatch?.id || '';
+    }
+
+    // Auto-select TTS model
+    const allTts = getManifestByType('tts');
+    const currentTtsEntry = allTts.find(m => m.id === localInferenceSettings.ttsModel);
+    if (!currentTtsEntry || !currentTtsEntry.languages.includes(targetLang)) {
+      const firstMatch = allTts.find(m =>
+        m.languages.includes(targetLang) && modelStatuses[m.id] === 'downloaded'
+      );
+      updates.ttsModel = firstMatch?.id || '';
+      updates.ttsSpeakerId = 0;
+    }
+
+    // Auto-select translation model
+    const allTranslation = getManifestByType('translation');
+    const currentTransEntry = allTranslation.find(m => m.id === localInferenceSettings.translationModel);
+    const isCurrentTransCompatible = currentTransEntry && isTranslationModelCompatible(currentTransEntry, sourceLang, targetLang);
+    if (!isCurrentTransCompatible) {
+      const firstMatch = allTranslation.find(m =>
+        isTranslationModelCompatible(m, sourceLang, targetLang) && modelStatuses[m.id] === 'downloaded'
+      );
+      updates.translationModel = firstMatch?.id || '';
+    }
+
+    if (Object.keys(updates).length > 0) {
+      updateLocalInferenceSettings(updates);
+    }
+  }, [provider, localInferenceSettings.sourceLanguage, localInferenceSettings.targetLanguage, modelStatuses]);
 
   // Get current provider's settings
   const currentProviderSettings = getCurrentProviderSettings();
@@ -1123,128 +1168,6 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
 
     return (
       <>
-        <div className="settings-section">
-          <h2>{t('settings.languageSettings', 'Language Settings')}</h2>
-          <div className="setting-item">
-            <div className="setting-label">
-              <span>{t('settings.sourceLanguage')}</span>
-            </div>
-            <select
-              className="select-dropdown"
-              value={localInferenceSettings.sourceLanguage}
-              onChange={(e) => {
-                const newSourceLang = e.target.value;
-                const updates: Record<string, any> = { sourceLanguage: newSourceLang };
-
-                // If current target is invalid for new source, pick first available target
-                let effectiveTargetLang = localInferenceSettings.targetLanguage;
-                const availableTargets = getTranslationTargetLanguages(newSourceLang);
-                if (!availableTargets.some(t => t.value === effectiveTargetLang)) {
-                  effectiveTargetLang = availableTargets[0]?.value || 'en';
-                  updates.targetLanguage = effectiveTargetLang;
-                }
-
-                // Auto-select ASR model for new source language (includes streaming models)
-                const allAsr = [...getManifestByType('asr'), ...getManifestByType('asr-stream')];
-                const currentAsr = allAsr.find(m => m.id === localInferenceSettings.asrModel);
-                if (!currentAsr || !(currentAsr.multilingual || currentAsr.languages.includes(newSourceLang))) {
-                  const firstMatch = allAsr.find(m =>
-                    (m.multilingual || m.languages.includes(newSourceLang)) && modelStatuses[m.id] === 'downloaded'
-                  );
-                  updates.asrModel = firstMatch?.id || '';
-                }
-
-                // Auto-select TTS model for effective target language
-                {
-                  const allTts = getManifestByType('tts');
-                  const currentTtsEntry = allTts.find(m => m.id === localInferenceSettings.ttsModel);
-                  if (!currentTtsEntry || !currentTtsEntry.languages.includes(effectiveTargetLang)) {
-                    const firstMatch = allTts.find(m =>
-                      m.languages.includes(effectiveTargetLang) && modelStatuses[m.id] === 'downloaded'
-                    );
-                    updates.ttsModel = firstMatch?.id || '';
-                    updates.ttsSpeakerId = 0;
-                  }
-                }
-
-                // Auto-select translation model for new language pair
-                const allTranslation = getManifestByType('translation');
-                const currentTransEntry = allTranslation.find(m => m.id === localInferenceSettings.translationModel);
-                const isCurrentTransCompatible = currentTransEntry && isTranslationModelCompatible(currentTransEntry, newSourceLang, effectiveTargetLang);
-                if (!isCurrentTransCompatible) {
-                  // Prefer pair-specific, then multilingual
-                  const firstMatch = allTranslation.find(m =>
-                    isTranslationModelCompatible(m, newSourceLang, effectiveTargetLang) && modelStatuses[m.id] === 'downloaded'
-                  );
-                  updates.translationModel = firstMatch?.id || '';
-                }
-
-                updateLocalInferenceSettings(updates);
-                trackEvent('language_changed', {
-                  from_language: localInferenceSettings.sourceLanguage,
-                  to_language: newSourceLang,
-                  language_type: 'source'
-                });
-              }}
-              disabled={isSessionActive}
-            >
-              {config.languages.map((lang) => (
-                <option key={lang.value} value={lang.value}>{lang.name}</option>
-              ))}
-            </select>
-          </div>
-          <div className="setting-item">
-            <div className="setting-label">
-              <span>{t('settings.targetLanguage')}</span>
-            </div>
-            <select
-              className="select-dropdown"
-              value={localInferenceSettings.targetLanguage}
-              onChange={(e) => {
-                const newTargetLang = e.target.value;
-                const updates: Record<string, any> = { targetLanguage: newTargetLang };
-
-                // Auto-select TTS model for new target language
-                const allTts = getManifestByType('tts');
-                const currentTtsEntry = allTts.find(m => m.id === localInferenceSettings.ttsModel);
-                if (!currentTtsEntry || !currentTtsEntry.languages.includes(newTargetLang)) {
-                  const firstMatch = allTts.find(m =>
-                    m.languages.includes(newTargetLang) && modelStatuses[m.id] === 'downloaded'
-                  );
-                  updates.ttsModel = firstMatch?.id || '';
-                  updates.ttsSpeakerId = 0;
-                }
-
-                // Auto-select translation model for new language pair
-                const allTranslation = getManifestByType('translation');
-                const currentTransEntry = allTranslation.find(m => m.id === localInferenceSettings.translationModel);
-                const effectiveSourceLang = localInferenceSettings.sourceLanguage;
-                const isCurrentTransCompatible = currentTransEntry && isTranslationModelCompatible(currentTransEntry, effectiveSourceLang, newTargetLang);
-                if (!isCurrentTransCompatible) {
-                  // Prefer pair-specific, then multilingual
-                  const firstMatch = allTranslation.find(m =>
-                    isTranslationModelCompatible(m, effectiveSourceLang, newTargetLang) && modelStatuses[m.id] === 'downloaded'
-                  );
-                  updates.translationModel = firstMatch?.id || '';
-                }
-
-                updateLocalInferenceSettings(updates);
-                trackEvent('language_changed', {
-                  from_language: localInferenceSettings.targetLanguage,
-                  to_language: newTargetLang,
-                  language_type: 'target'
-                });
-              }}
-              disabled={isSessionActive}
-            >
-              {getTranslationTargetLanguages(localInferenceSettings.sourceLanguage)
-                .map((lang) => (
-                  <option key={lang.value} value={lang.value}>{lang.name}</option>
-                ))}
-            </select>
-          </div>
-        </div>
-
         <ModelManagementSection
           isSessionActive={isSessionActive}
           localInferenceSettings={localInferenceSettings}

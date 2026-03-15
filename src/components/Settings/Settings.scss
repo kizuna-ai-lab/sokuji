@@ -847,6 +847,21 @@
   }
 }
 
+.language-model-warning {
+  @include vars.status-box(vars.$color-warning, vars.$color-warning-bg, vars.$color-warning-border);
+  margin-top: 8px;
+  align-items: flex-start;
+
+  &__link {
+    color: vars.$color-warning;
+    text-decoration: underline;
+    cursor: pointer;
+    &:hover {
+      opacity: 0.8;
+    }
+  }
+}
+
 // Language select styles
 .language-select,
 .select-dropdown {
