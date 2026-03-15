@@ -41,6 +41,8 @@ export class OpenAIGAClient implements IClient {
   private itemLookup: Map<string, ConversationItem> = new Map();
   private connected: boolean = false;
   private turnDetectionDisabled: boolean = false;
+  // Track out-of-band response IDs (conversation_id === null) to filter from UI
+  private outOfBandResponseIds: Set<string> = new Set();
 
   constructor(apiKey: string) {
     this.apiKey = apiKey;
@@ -74,6 +76,7 @@ export class OpenAIGAClient implements IClient {
     this.conversationItems = [];
     this.itemLookup.clear();
     this.turnDetectionDisabled = false;
+    this.outOfBandResponseIds.clear();
 
     // Create the official SDK WebSocket client
     this.rt = new OpenAIRealtimeWebSocket({
@@ -255,6 +258,12 @@ export class OpenAIGAClient implements IClient {
 
     // Response lifecycle events
     this.rt.on('response.created', (event) => {
+      // Track out-of-band responses (conversation_id === null) — these are anchor
+      // messages that should not appear in the conversation UI
+      const response = (event as any).response;
+      if (response?.id && response?.conversation_id === null) {
+        this.outOfBandResponseIds.add(response.id);
+      }
       this.forwardServerEvent('response.created', event);
     });
 
@@ -265,9 +274,12 @@ export class OpenAIGAClient implements IClient {
 
     // Response content structure events
     // GA API uses response.output_item.added instead of conversation.item.created
-    // for assistant response items
+    // for assistant response items — skip out-of-band (anchor) responses
     this.rt.on('response.output_item.added', (event) => {
-      this.handleItemCreated(event);
+      const responseId = (event as any).response_id;
+      if (!this.outOfBandResponseIds.has(responseId)) {
+        this.handleItemCreated(event);
+      }
       this.forwardServerEvent('response.output_item.added', event);
     });
 
