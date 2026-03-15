@@ -560,49 +560,54 @@ export class OpenAIGAClient implements IClient {
       tools: []
     };
 
-    // Turn detection
+    // GA API nests turn_detection, transcription, noise_reduction under audio.input
+    const audioInput: any = {};
+    let hasAudioInput = false;
+
+    // Turn detection → audio.input.turn_detection
     if (config.turnDetection) {
       if (config.turnDetection.type === 'none') {
-        session.turn_detection = null;
+        audioInput.turn_detection = null;
         this.turnDetectionDisabled = true;
       } else {
         this.turnDetectionDisabled = false;
-        session.turn_detection = {
+        const td: any = {
           type: config.turnDetection.type,
-          threshold: config.turnDetection.threshold,
-          prefix_padding_ms: config.turnDetection.prefixPadding
-            ? Math.round(config.turnDetection.prefixPadding * 1000)
-            : undefined,
-          silence_duration_ms: config.turnDetection.silenceDuration
-            ? Math.round(config.turnDetection.silenceDuration * 1000)
-            : undefined,
           create_response: config.turnDetection.createResponse ?? true,
           interrupt_response: config.turnDetection.interruptResponse ?? false
         };
 
-        if (config.turnDetection.type === 'semantic_vad' && config.turnDetection.eagerness) {
-          session.turn_detection.eagerness = config.turnDetection.eagerness.toLowerCase();
+        if (config.turnDetection.type === 'server_vad') {
+          if (config.turnDetection.threshold !== undefined) td.threshold = config.turnDetection.threshold;
+          if (config.turnDetection.prefixPadding !== undefined) td.prefix_padding_ms = Math.round(config.turnDetection.prefixPadding * 1000);
+          if (config.turnDetection.silenceDuration !== undefined) td.silence_duration_ms = Math.round(config.turnDetection.silenceDuration * 1000);
+        } else if (config.turnDetection.type === 'semantic_vad' && config.turnDetection.eagerness) {
+          td.eagerness = config.turnDetection.eagerness.toLowerCase();
         }
 
-        // Remove undefined fields
-        Object.keys(session.turn_detection).forEach(key =>
-          session.turn_detection[key] === undefined && delete session.turn_detection[key]
-        );
+        audioInput.turn_detection = td;
       }
+      hasAudioInput = true;
     }
 
-    // Input audio transcription
+    // Input audio transcription → audio.input.transcription
     if (config.inputAudioTranscription?.model) {
-      session.input_audio_transcription = {
+      audioInput.transcription = {
         model: config.inputAudioTranscription.model
       };
+      hasAudioInput = true;
     }
 
-    // Noise reduction — GA uses nested 'audio.input_audio_noise_reduction'
+    // Noise reduction → audio.input.noise_reduction
     if (config.inputAudioNoiseReduction?.type) {
-      session.input_audio_noise_reduction = {
+      audioInput.noise_reduction = {
         type: config.inputAudioNoiseReduction.type
       };
+      hasAudioInput = true;
+    }
+
+    if (hasAudioInput) {
+      session.audio = { input: audioInput };
     }
 
     this.rt.send({
