@@ -202,7 +202,9 @@ export class OpenAIGAClient implements IClient {
     });
 
     // Input audio buffer events
+    // When audio buffer is committed, create a user conversation item
     this.rt.on('input_audio_buffer.committed', (event) => {
+      this.handleUserItemCreated(event);
       this.forwardServerEvent('input_audio_buffer.committed', event);
     });
 
@@ -262,7 +264,10 @@ export class OpenAIGAClient implements IClient {
     });
 
     // Response content structure events
+    // GA API uses response.output_item.added instead of conversation.item.created
+    // for assistant response items
     this.rt.on('response.output_item.added', (event) => {
+      this.handleItemCreated(event);
       this.forwardServerEvent('response.output_item.added', event);
     });
 
@@ -386,6 +391,36 @@ export class OpenAIGAClient implements IClient {
 
     this.conversationItems.push(conversationItem);
     this.itemLookup.set(item.id, conversationItem);
+    this.eventHandlers.onConversationUpdated?.({ item: conversationItem });
+  }
+
+  /**
+   * Handle user item creation from input_audio_buffer.committed
+   * GA API doesn't emit conversation.item.created for user audio items,
+   * so we create a user ConversationItem when the audio buffer is committed.
+   */
+  private handleUserItemCreated(event: any): void {
+    const itemId = event.item_id;
+    if (!itemId || this.itemLookup.has(itemId)) return;
+
+    const createdAt = Date.now();
+    this.itemCreatedAtMap.set(itemId, createdAt);
+
+    const conversationItem: ConversationItem = {
+      id: itemId,
+      role: 'user',
+      type: 'message',
+      status: 'in_progress',
+      createdAt,
+      formatted: {
+        text: '',
+        transcript: ''
+      },
+      content: []
+    };
+
+    this.conversationItems.push(conversationItem);
+    this.itemLookup.set(itemId, conversationItem);
     this.eventHandlers.onConversationUpdated?.({ item: conversationItem });
   }
 
