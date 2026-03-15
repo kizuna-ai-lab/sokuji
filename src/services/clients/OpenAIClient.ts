@@ -5,7 +5,7 @@ import type {
   FormattedItem
 } from 'openai-realtime-api';
 import { IClient, ConversationItem, SessionConfig, ClientEventHandlers, ApiKeyValidationResult, FilteredModel, ResponseConfig } from '../interfaces/IClient';
-import { RealtimeEvent } from '../../contexts/LogContext';
+import { RealtimeEvent } from '../../stores/logStore';
 import { Provider, ProviderType } from '../../types/Provider';
 import { unwrapTranslationText } from '../../utils/textUtils';
 import i18n from '../../locales';

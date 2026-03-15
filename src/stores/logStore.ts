@@ -2,11 +2,6 @@ import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
 import { shallow } from 'zustand/shallow';
 import { useMemo } from 'react';
-import type {
-  RealtimeServerEvents,
-  RealtimeClientEvents,
-  RealtimeCustomEvents
-} from 'openai-realtime-api';
 
 // Define the core event data structure
 export interface EventData {
@@ -32,10 +27,40 @@ export interface EventData {
     | 'serverContent.modelTurn'
     | 'serverContent.outputTranscription'
     | 'serverContent.inputTranscription'
-    // OpenAI event types from the openai-realtime-api package
-    | RealtimeServerEvents.EventType
-    | RealtimeClientEvents.EventType
-    | RealtimeCustomEvents.EventType
+    // OpenAI server events (shared between beta and GA)
+    | 'session.created' | 'session.updated'
+    | 'conversation.created'
+    | 'conversation.item.created' | 'conversation.item.deleted' | 'conversation.item.truncated'
+    | 'conversation.item.input_audio_transcription.completed'
+    | 'conversation.item.input_audio_transcription.failed'
+    | 'conversation.item.input_audio_transcription.delta'
+    | 'input_audio_buffer.committed' | 'input_audio_buffer.cleared'
+    | 'input_audio_buffer.speech_started' | 'input_audio_buffer.speech_stopped'
+    | 'response.created' | 'response.done'
+    | 'response.output_item.added' | 'response.output_item.done'
+    | 'response.function_call_arguments.delta' | 'response.function_call_arguments.done'
+    | 'rate_limits.updated'
+    | 'error'
+    // Beta-only event names (OpenAI Compatible, Kizuna AI)
+    | 'response.text.delta' | 'response.text.done'
+    | 'response.audio.delta' | 'response.audio.done'
+    | 'response.audio_transcript.delta' | 'response.audio_transcript.done'
+    // GA-only event names (OpenAI direct)
+    | 'response.output_text.delta' | 'response.output_text.done'
+    | 'response.output_audio.delta' | 'response.output_audio.done'
+    | 'response.output_audio_transcript.delta' | 'response.output_audio_transcript.done'
+    | 'response.output_text.annotation.added'
+    | 'conversation.item.added' | 'conversation.item.done'
+    | 'response.content_part.added' | 'response.content_part.done'
+    // OpenAI client events
+    | 'session.update'
+    | 'input_audio_buffer.append' | 'input_audio_buffer.commit' | 'input_audio_buffer.clear'
+    | 'conversation.item.create' | 'conversation.item.truncate' | 'conversation.item.delete'
+    | 'response.create' | 'response.cancel'
+    // openai-realtime-api custom events (for beta clients)
+    | 'conversation.item.appended' | 'conversation.item.completed'
+    | 'conversation.updated' | 'conversation.interrupted'
+    | 'realtime.event'
     // PalabraAI-specific request types (client → server)
     | 'set_task'
     | 'end_task'

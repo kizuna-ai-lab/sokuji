@@ -9,6 +9,7 @@
     "lint": "eslint ."
   },
   "dependencies": {
+    "openai": "^6.29.0",
     "openai-realtime-api": "1.0.8",
     "posthog-js-lite": "^4.1.0"
   },

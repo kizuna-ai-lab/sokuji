@@ -33,6 +33,7 @@
     "idb": "^8.0.3",
     "livekit-client": "^2.15.2",
     "lucide-react": "^0.515.0",
+    "openai": "^6.29.0",
     "openai-realtime-api": "1.0.8",
     "posthog-js-lite": "^4.1.0",
     "protobufjs": "^8.0.0",
