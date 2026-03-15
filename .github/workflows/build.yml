@@ -110,9 +110,10 @@ jobs:
           npm ci
           # Build extension with production mode for releases
           if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            VERSION="${GITHUB_REF#refs/tags/v}"
             NODE_ENV=production npm run build -- --mode production
             cd dist
-            zip -r ../sokuji-extension.zip *
+            zip -r "../sokuji-extension-${VERSION}.zip" *
             cd ..
           else
             npm run build
@@ -152,7 +153,7 @@ jobs:
           path: |
             out/make/**/*.deb
             out/make/**/*.zip
-            extension/sokuji-extension.zip
+            extension/sokuji-extension-*.zip
             CHANGELOG.md
 
       - name: Upload Linux ARM64 artifacts
@@ -298,7 +299,7 @@ jobs:
           mkdir -p release-assets
           find linux-x64-artifacts -name "*.deb" -exec cp {} release-assets/ \;
           find linux-x64-artifacts -name "*.zip" -exec cp {} release-assets/ \;
-          find linux-x64-artifacts -name "sokuji-extension.zip" -exec cp {} release-assets/ \;
+          find linux-x64-artifacts -name "sokuji-extension-*.zip" -exec cp {} release-assets/ \;
           find linux-arm64-artifacts -name "*.deb" -exec cp {} release-assets/ \;
           find linux-arm64-artifacts -name "*.zip" -exec cp {} release-assets/ \;
           find windows-signed -name "*.exe" -exec cp {} release-assets/ \;
