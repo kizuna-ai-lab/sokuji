@@ -194,6 +194,15 @@ export class AsrEngine {
   }
 
   /**
+   * Flush any pending VAD speech segment through ASR.
+   * Used on PTT release to force recognition without waiting for silence detection.
+   */
+  flush(): void {
+    if (!this.worker || !this.isReady) return;
+    this.worker.postMessage({ type: 'flush' });
+  }
+
+  /**
    * Get list of available ASR models.
    */
   static getModels(): ModelManifestEntry[] {

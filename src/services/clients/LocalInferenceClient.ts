@@ -266,11 +266,8 @@ export class LocalInferenceClient implements IClient {
   createResponse(_config?: ResponseConfig): void {
     // In Auto mode the pipeline is triggered by ASR/VAD results automatically.
     // In Push-to-Talk mode this is called on key release to flush any pending
-    // streaming ASR utterance that hasn't hit endpoint detection yet.
-    if (this.asrEngine instanceof StreamingAsrEngine) {
-      this.asrEngine.flush();
-    }
-    // Offline ASR (AsrEngine) uses Silero VAD — silence frames handle flushing.
+    // ASR utterance that hasn't hit endpoint/silence detection yet.
+    this.asrEngine?.flush();
   }
 
   cancelResponse(_trackId?: string, _offset?: number): void {
