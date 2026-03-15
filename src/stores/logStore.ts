@@ -49,6 +49,7 @@ export interface EventData {
     | 'response.output_text.delta' | 'response.output_text.done'
     | 'response.output_audio.delta' | 'response.output_audio.done'
     | 'response.output_audio_transcript.delta' | 'response.output_audio_transcript.done'
+    | 'response.output_text.annotation.added'
     | 'conversation.item.added' | 'conversation.item.done'
     | 'response.content_part.added' | 'response.content_part.done'
     // OpenAI client events

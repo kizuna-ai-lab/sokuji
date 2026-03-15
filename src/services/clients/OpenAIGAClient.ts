@@ -43,6 +43,8 @@ export class OpenAIGAClient implements IClient {
   private turnDetectionDisabled: boolean = false;
   // Track out-of-band response IDs (conversation_id === null) to filter from UI
   private outOfBandResponseIds: Set<string> = new Set();
+  // Audio chunk list per item — merged into formatted.audio on response.done
+  private audioChunks: Map<string, Int16Array[]> = new Map();
 
   constructor(apiKey: string) {
     this.apiKey = apiKey;
@@ -77,6 +79,7 @@ export class OpenAIGAClient implements IClient {
     this.itemLookup.clear();
     this.turnDetectionDisabled = false;
     this.outOfBandResponseIds.clear();
+    this.audioChunks.clear();
 
     // Create the official SDK WebSocket client
     this.rt = new OpenAIRealtimeWebSocket({
@@ -453,7 +456,7 @@ export class OpenAIGAClient implements IClient {
 
     this.eventHandlers.onConversationUpdated?.({
       item,
-      delta: { transcript: delta }
+      delta: { text: delta }
     });
   }
 
@@ -491,14 +494,15 @@ export class OpenAIGAClient implements IClient {
     const audioData = base64ToInt16Array(audioBase64);
     const sequenceNumber = ++this.deltaSequenceNumber;
 
+    // Store audio chunks — merged into item.formatted.audio on response.done
+    // This avoids O(n²) array merging on every delta event
+    if (!this.audioChunks.has(itemId)) {
+      this.audioChunks.set(itemId, []);
+    }
+    this.audioChunks.get(itemId)!.push(audioData);
+
     this.eventHandlers.onConversationUpdated?.({
-      item: {
-        ...item,
-        formatted: {
-          ...item.formatted,
-          audio: audioData
-        }
-      },
+      item,
       delta: {
         audio: audioData,
         sequenceNumber,
@@ -578,11 +582,24 @@ export class OpenAIGAClient implements IClient {
     for (const outputItem of response.output) {
       const item = this.itemLookup.get(outputItem.id);
       if (item) {
+        // Merge accumulated audio chunks into item.formatted.audio for manual playback
+        const chunks = this.audioChunks.get(outputItem.id);
+        if (chunks && chunks.length > 0 && item.formatted) {
+          const totalLength = chunks.reduce((sum, c) => sum + c.length, 0);
+          const merged = new Int16Array(totalLength);
+          let offset = 0;
+          for (const chunk of chunks) {
+            merged.set(chunk, offset);
+            offset += chunk.length;
+          }
+          item.formatted.audio = merged;
+          this.audioChunks.delete(outputItem.id);
+        }
+
         item.status = 'completed';
         this.eventHandlers.onConversationUpdated?.({ item });
       }
     }
-
   }
 
   /**
@@ -710,6 +727,7 @@ export class OpenAIGAClient implements IClient {
     this.conversationItems = [];
     this.itemLookup.clear();
     this.itemCreatedAtMap.clear();
+    this.audioChunks.clear();
   }
 
   appendInputAudio(audioData: Int16Array): void {
