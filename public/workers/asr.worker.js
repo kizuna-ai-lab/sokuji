@@ -8,6 +8,7 @@
  *   Main → Worker:
  *     { type: 'init', fileUrls, asrEngine, vadConfig?, runtimeBaseUrl, dataPackageMetadata }
  *     { type: 'audio', samples: Int16Array, sampleRate: number }
+ *     { type: 'flush' }
  *     { type: 'dispose' }
  *
  *   Worker → Main:
@@ -388,6 +389,55 @@ function handleAudio(msg) {
   }
 }
 
+// ─── Flush (PTT release) ─────────────────────────────────────────────────────
+
+/**
+ * Force VAD to emit any pending speech segment and run it through ASR.
+ * Called on PTT release so the user doesn't have to press again to get results.
+ */
+function handleFlush() {
+  if (!isReady || !vad || !recognizer) return;
+
+  try {
+    // Force VAD to emit any pending speech segment
+    vad.flush();
+
+    // Process any segments that were flushed
+    while (!vad.isEmpty()) {
+      var speechSegment = vad.front();
+      var speechSamples = speechSegment.samples;
+      var startSample = speechSegment.start;
+
+      var recognitionStart = performance.now();
+      var stream = recognizer.createStream();
+      stream.acceptWaveform(EXPECTED_SAMPLE_RATE, speechSamples);
+      recognizer.decode(stream);
+      var result = recognizer.getResult(stream);
+      stream.free();
+
+      var recognitionTimeMs = Math.round(performance.now() - recognitionStart);
+      var durationMs = Math.round((speechSamples.length / EXPECTED_SAMPLE_RATE) * 1000);
+      var text = (result.text || '').trim();
+      text = text.replace(/([\u3000-\u9fff\uF900-\uFAFF])\s+(?=[\u3000-\u9fff\uF900-\uFAFF])/g, '$1');
+
+      if (text) {
+        postMessage({
+          type: 'result',
+          text: text,
+          startSample: startSample,
+          durationMs: durationMs,
+          recognitionTimeMs: recognitionTimeMs,
+        });
+      }
+
+      vad.pop();
+    }
+  } catch (e) {
+    postMessage({ type: 'error', error: 'ASR flush error: ' + (e.message || e) });
+    try { while (!vad.isEmpty()) { vad.pop(); } } catch (_) {}
+  }
+}
+
 // ─── Dispose ─────────────────────────────────────────────────────────────────
 
 function handleDispose() {
@@ -417,6 +467,9 @@ self.onmessage = function(event) {
       break;
     case 'audio':
       handleAudio(msg);
+      break;
+    case 'flush':
+      handleFlush();
       break;
     case 'dispose':
       handleDispose();
