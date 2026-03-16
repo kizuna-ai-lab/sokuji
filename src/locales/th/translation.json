@@ -593,5 +593,22 @@
     "showAll": "แสดงโมเดลแปลทั้งหมด ({{count}})",
     "showAllTts": "แสดงโมเดล TTS ทั้งหมด ({{count}})",
     "hideOther": "ซ่อนโมเดลอื่น"
+  },
+  "update": {
+    "available": "เวอร์ชันใหม่ v{{version}} พร้อมใช้งาน",
+    "downloading": "กำลังดาวน์โหลดอัปเดต... {{percent}}%",
+    "downloaded": "อัปเดตพร้อมแล้ว รีสตาร์ทเพื่อเสร็จสิ้น",
+    "checkButton": "ตรวจสอบอัปเดต",
+    "checking": "กำลังตรวจสอบ...",
+    "upToDate": "เป็นเวอร์ชันล่าสุดแล้ว",
+    "notAvailable": "คุณใช้เวอร์ชันล่าสุดอยู่แล้ว",
+    "downloadNow": "ดาวน์โหลดตอนนี้",
+    "later": "ภายหลัง",
+    "restartNow": "รีสตาร์ทและอัปเดต",
+    "goToDownload": "ไปที่ดาวน์โหลด",
+    "error": "ตรวจสอบอัปเดตล้มเหลว",
+    "errorWithMessage": "ข้อผิดพลาดในการอัปเดต: {{message}}",
+    "currentVersion": "เวอร์ชันปัจจุบัน: v{{version}}",
+    "newVersion": "เวอร์ชันใหม่: v{{version}}"
   }
 }

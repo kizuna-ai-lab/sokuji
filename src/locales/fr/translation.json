@@ -674,5 +674,22 @@
     "showAll": "Afficher tous les modèles de traduction ({{count}})",
     "showAllTts": "Afficher tous les modèles TTS ({{count}})",
     "hideOther": "Masquer les autres modèles"
+  },
+  "update": {
+    "available": "Nouvelle version v{{version}} disponible",
+    "downloading": "Téléchargement de la mise à jour... {{percent}}%",
+    "downloaded": "Mise à jour prête, redémarrez pour terminer",
+    "checkButton": "Vérifier les mises à jour",
+    "checking": "Vérification...",
+    "upToDate": "À jour",
+    "notAvailable": "Vous utilisez la dernière version",
+    "downloadNow": "Télécharger maintenant",
+    "later": "Plus tard",
+    "restartNow": "Redémarrer et mettre à jour",
+    "goToDownload": "Aller au téléchargement",
+    "error": "Échec de la vérification des mises à jour",
+    "errorWithMessage": "Erreur de mise à jour : {{message}}",
+    "currentVersion": "Version actuelle : v{{version}}",
+    "newVersion": "Nouvelle version : v{{version}}"
   }
 }

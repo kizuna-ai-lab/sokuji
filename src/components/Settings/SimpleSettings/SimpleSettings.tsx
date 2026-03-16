@@ -11,7 +11,8 @@ import {
   ProviderSection,
   LanguageSection,
   AudioDeviceSection,
-  SystemAudioSection
+  SystemAudioSection,
+  UpdateSection
 } from '../sections';
 import './SimpleSettings.scss';
 
@@ -112,6 +113,9 @@ const SimpleSettings: React.FC<SimpleSettingsProps> = ({ highlightSection }) => 
           isMonitorDeviceOn={isMonitorDeviceOn}
           onMutualExclusivity={() => setWarningType('mutual-exclusivity-participant')}
         />
+
+        {/* Check for Updates (Electron only) */}
+        <UpdateSection />
       </div>
     </div>
   );

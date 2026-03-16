@@ -686,5 +686,22 @@
     "showAll": "すべての翻訳モデルを表示（{{count}}）",
     "showAllTts": "すべてのTTSモデルを表示（{{count}}）",
     "hideOther": "他のモデルを隠す"
+  },
+  "update": {
+    "available": "新しいバージョン v{{version}} が利用可能です",
+    "downloading": "アップデートをダウンロード中... {{percent}}%",
+    "downloaded": "アップデート準備完了、再起動して完了してください",
+    "checkButton": "アップデートを確認",
+    "checking": "確認中...",
+    "upToDate": "最新です",
+    "notAvailable": "最新バージョンを使用しています",
+    "downloadNow": "今すぐダウンロード",
+    "later": "後で",
+    "restartNow": "再起動してアップデート",
+    "goToDownload": "ダウンロードページへ",
+    "error": "アップデートの確認に失敗しました",
+    "errorWithMessage": "アップデートエラー: {{message}}",
+    "currentVersion": "現在のバージョン: v{{version}}",
+    "newVersion": "新しいバージョン: v{{version}}"
   }
 }

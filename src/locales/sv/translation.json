@@ -627,5 +627,22 @@
     "showAll": "Visa alla översättningsmodeller ({{count}})",
     "showAllTts": "Visa alla TTS-modeller ({{count}})",
     "hideOther": "Dölj andra modeller"
+  },
+  "update": {
+    "available": "Ny version v{{version}} tillgänglig",
+    "downloading": "Laddar ner uppdatering... {{percent}}%",
+    "downloaded": "Uppdatering klar, starta om för att slutföra",
+    "checkButton": "Sök efter uppdateringar",
+    "checking": "Söker...",
+    "upToDate": "Uppdaterad",
+    "notAvailable": "Du använder den senaste versionen",
+    "downloadNow": "Ladda ner nu",
+    "later": "Senare",
+    "restartNow": "Starta om och uppdatera",
+    "goToDownload": "Gå till nedladdning",
+    "error": "Kunde inte söka efter uppdateringar",
+    "errorWithMessage": "Uppdateringsfel: {{message}}",
+    "currentVersion": "Nuvarande version: v{{version}}",
+    "newVersion": "Ny version: v{{version}}"
   }
 }

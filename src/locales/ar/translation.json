@@ -673,5 +673,22 @@
     "showAll": "عرض جميع نماذج الترجمة ({{count}})",
     "showAllTts": "عرض جميع نماذج TTS ({{count}})",
     "hideOther": "إخفاء النماذج الأخرى"
+  },
+  "update": {
+    "available": "إصدار جديد v{{version}} متاح",
+    "downloading": "جارٍ تنزيل التحديث... {{percent}}%",
+    "downloaded": "التحديث جاهز، أعد التشغيل للإكمال",
+    "checkButton": "التحقق من التحديثات",
+    "checking": "جارٍ التحقق...",
+    "upToDate": "محدّث",
+    "notAvailable": "أنت تستخدم أحدث إصدار",
+    "downloadNow": "تنزيل الآن",
+    "later": "لاحقاً",
+    "restartNow": "إعادة التشغيل والتحديث",
+    "goToDownload": "انتقل إلى التنزيل",
+    "error": "فشل التحقق من التحديثات",
+    "errorWithMessage": "خطأ في التحديث: {{message}}",
+    "currentVersion": "الإصدار الحالي: v{{version}}",
+    "newVersion": "الإصدار الجديد: v{{version}}"
   }
 }

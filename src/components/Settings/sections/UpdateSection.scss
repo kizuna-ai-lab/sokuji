@@ -1,0 +1,36 @@
+.check-update-button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background-color: #2a2a2a;
+  color: #e0e0e0;
+  border: 1px solid #444;
+  border-radius: 4px;
+  font-size: 13px;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    background-color: #333;
+    border-color: #555;
+  }
+
+  &:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+  }
+
+  &.up-to-date {
+    color: #10a37f;
+    border-color: #10a37f;
+  }
+
+  .spinning {
+    animation: spin 1s linear infinite;
+  }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}

@@ -629,5 +629,22 @@
     "showAll": "Näytä kaikki käännösmallit ({{count}})",
     "showAllTts": "Näytä kaikki TTS-mallit ({{count}})",
     "hideOther": "Piilota muut mallit"
+  },
+  "update": {
+    "available": "Uusi versio v{{version}} saatavilla",
+    "downloading": "Ladataan päivitystä... {{percent}}%",
+    "downloaded": "Päivitys valmis, käynnistä uudelleen viimeistelläksesi",
+    "checkButton": "Tarkista päivitykset",
+    "checking": "Tarkistetaan...",
+    "upToDate": "Ajan tasalla",
+    "notAvailable": "Käytät uusinta versiota",
+    "downloadNow": "Lataa nyt",
+    "later": "Myöhemmin",
+    "restartNow": "Käynnistä uudelleen ja päivitä",
+    "goToDownload": "Siirry lataukseen",
+    "error": "Päivitysten tarkistus epäonnistui",
+    "errorWithMessage": "Päivitysvirhe: {{message}}",
+    "currentVersion": "Nykyinen versio: v{{version}}",
+    "newVersion": "Uusi versio: v{{version}}"
   }
 }

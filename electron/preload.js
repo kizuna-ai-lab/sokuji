@@ -61,6 +61,9 @@ const validReceiveChannels = [
   'volcengine-ast2-message',
   'volcengine-ast2-error',
   'volcengine-ast2-close',
+  // Auto-update channels (main → renderer)
+  'update-status',
+  'update-progress',
 ];
 
 // Expose protected methods that allow the renderer process to use
@@ -124,6 +127,11 @@ contextBridge.exposeInMainWorld(
         'volcengine-ast2-send',
         'volcengine-ast2-disconnect',
         'volcengine-ast2-validate',
+        // Auto-update channels (renderer → main)
+        'update-check',
+        'update-download',
+        'update-install',
+        'get-app-version',
       ];
       if (validChannels.includes(channel)) {
         return ipcRenderer.invoke(channel, data);

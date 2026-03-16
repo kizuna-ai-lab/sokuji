@@ -622,5 +622,22 @@
     "showAll": "Hiện tất cả mô hình dịch ({{count}})",
     "showAllTts": "Hiện tất cả mô hình TTS ({{count}})",
     "hideOther": "Ẩn các mô hình khác"
+  },
+  "update": {
+    "available": "Phiên bản mới v{{version}} khả dụng",
+    "downloading": "Đang tải bản cập nhật... {{percent}}%",
+    "downloaded": "Bản cập nhật đã sẵn sàng, khởi động lại để hoàn tất",
+    "checkButton": "Kiểm tra cập nhật",
+    "checking": "Đang kiểm tra...",
+    "upToDate": "Đã cập nhật",
+    "notAvailable": "Bạn đang sử dụng phiên bản mới nhất",
+    "downloadNow": "Tải ngay",
+    "later": "Để sau",
+    "restartNow": "Khởi động lại và cập nhật",
+    "goToDownload": "Đi tới tải xuống",
+    "error": "Không thể kiểm tra cập nhật",
+    "errorWithMessage": "Lỗi cập nhật: {{message}}",
+    "currentVersion": "Phiên bản hiện tại: v{{version}}",
+    "newVersion": "Phiên bản mới: v{{version}}"
   }
 }

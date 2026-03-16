@@ -671,5 +671,22 @@
     "showAll": "Alle vertaalmodellen tonen ({{count}})",
     "showAllTts": "Alle TTS-modellen tonen ({{count}})",
     "hideOther": "Andere modellen verbergen"
+  },
+  "update": {
+    "available": "Nieuwe versie v{{version}} beschikbaar",
+    "downloading": "Update downloaden... {{percent}}%",
+    "downloaded": "Update gereed, herstart om te voltooien",
+    "checkButton": "Controleer op updates",
+    "checking": "Controleren...",
+    "upToDate": "Up-to-date",
+    "notAvailable": "Je gebruikt de nieuwste versie",
+    "downloadNow": "Nu downloaden",
+    "later": "Later",
+    "restartNow": "Herstarten en bijwerken",
+    "goToDownload": "Ga naar download",
+    "error": "Kan niet controleren op updates",
+    "errorWithMessage": "Updatefout: {{message}}",
+    "currentVersion": "Huidige versie: v{{version}}",
+    "newVersion": "Nieuwe versie: v{{version}}"
   }
 }

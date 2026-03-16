@@ -679,5 +679,22 @@
     "showAll": "نمایش همه مدل‌های ترجمه ({{count}})",
     "showAllTts": "نمایش همه مدل‌های TTS ({{count}})",
     "hideOther": "پنهان کردن سایر مدل‌ها"
+  },
+  "update": {
+    "available": "نسخه جدید v{{version}} موجود است",
+    "downloading": "در حال دانلود به‌روزرسانی... {{percent}}%",
+    "downloaded": "به‌روزرسانی آماده است، برای تکمیل مجدداً راه‌اندازی کنید",
+    "checkButton": "بررسی به‌روزرسانی‌ها",
+    "checking": "در حال بررسی...",
+    "upToDate": "به‌روز",
+    "notAvailable": "شما از آخرین نسخه استفاده می‌کنید",
+    "downloadNow": "اکنون دانلود کنید",
+    "later": "بعداً",
+    "restartNow": "راه‌اندازی مجدد و به‌روزرسانی",
+    "goToDownload": "رفتن به دانلود",
+    "error": "بررسی به‌روزرسانی ناموفق بود",
+    "errorWithMessage": "خطای به‌روزرسانی: {{message}}",
+    "currentVersion": "نسخه فعلی: v{{version}}",
+    "newVersion": "نسخه جدید: v{{version}}"
   }
 }

@@ -677,5 +677,22 @@
     "showAll": "הצג את כל מודלי התרגום ({{count}})",
     "showAllTts": "הצג את כל מודלי TTS ({{count}})",
     "hideOther": "הסתר מודלים אחרים"
+  },
+  "update": {
+    "available": "גרסה חדשה v{{version}} זמינה",
+    "downloading": "מוריד עדכון... {{percent}}%",
+    "downloaded": "העדכון מוכן, הפעל מחדש להשלמה",
+    "checkButton": "בדוק עדכונים",
+    "checking": "בודק...",
+    "upToDate": "מעודכן",
+    "notAvailable": "אתה משתמש בגרסה העדכנית ביותר",
+    "downloadNow": "הורד עכשיו",
+    "later": "מאוחר יותר",
+    "restartNow": "הפעל מחדש ועדכן",
+    "goToDownload": "עבור להורדה",
+    "error": "בדיקת עדכונים נכשלה",
+    "errorWithMessage": "שגיאת עדכון: {{message}}",
+    "currentVersion": "גרסה נוכחית: v{{version}}",
+    "newVersion": "גרסה חדשה: v{{version}}"
   }
 }
