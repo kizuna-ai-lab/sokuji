@@ -46,6 +46,9 @@ class UpdateManager {
 
   _setupAutoUpdaterEvents() {
     autoUpdater.on('checking-for-update', () => {
+      // Clear stale state before each new check
+      this._updateInfo = null;
+      this.downloadPath = null;
       this._sendStatus({ status: 'checking' });
     });
 
@@ -72,6 +75,9 @@ class UpdateManager {
     });
 
     autoUpdater.on('update-not-available', () => {
+      // Clear stale update info so a previous check's data can't trigger a download
+      this._updateInfo = null;
+      this.downloadPath = null;
       this._sendStatus({ status: 'not-available' });
     });
 
