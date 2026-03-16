@@ -11,6 +11,8 @@ if (process.platform === 'win32') {
   }
 }
 
+const { UpdateManager } = require('./update-manager');
+
 // Config utility no longer needed - using localStorage in renderer process
 
 // Platform-specific audio utilities
@@ -190,6 +192,15 @@ function createApplicationMenu() {
           }
         },
         { type: 'separator' }]),
+        {
+          label: 'Check for Updates...',
+          click: () => {
+            if (global.updateManager) {
+              global.updateManager.checkForUpdates();
+            }
+          }
+        },
+        { type: 'separator' },
         {
           label: 'Official Website',
           click: async () => {
@@ -416,6 +427,10 @@ app.whenReady().then(async () => {
 
   createWindow();
 
+  // Initialize auto-update manager
+  global.updateManager = new UpdateManager(mainWindow);
+  global.updateManager.checkAfterDelay(5000);
+
   // electron-audio-loopback handles setDisplayMediaRequestHandler automatically via initMain()
 });
 
@@ -465,6 +480,9 @@ app.on('activate', function () {
 
 // Clean up loopback when app is about to quit
 app.on('will-quit', cleanupAndExit);
+
+// IPC handler for app version
+ipcMain.handle('get-app-version', () => app.getVersion());
 
 // IPC handlers for audio functionality
 ipcMain.handle('check-audio-system', async () => {
