@@ -1621,3 +1621,86 @@ git status
 # If clean, no action needed
 # If there are fixes, stage and commit them
 ```
+
+---
+
+### Task 14: Manual QA Testing Checklist
+
+This task is performed **after packaging** the Electron app on Windows. `electron-updater` does not work in development mode.
+
+**Prerequisites:**
+- Package the app: `npm run make`
+- Create a GitHub Draft Release with a higher version number and a valid `latest.yml`
+- Or temporarily point `autoUpdater.setFeedURL` to a local HTTP server with a fake `latest.yml`
+
+- [ ] **Step 1: Verify startup version check**
+
+1. Launch the packaged app
+2. Wait 5+ seconds
+3. If a newer release is published: UpdateBanner should appear at the top with "New version v{X.Y.Z} available"
+4. If no newer release: nothing should happen (no banner, no error)
+
+- [ ] **Step 2: Verify "Check for Updates" in Help menu**
+
+1. Click Help menu → "Check for Updates..."
+2. If update available: UpdateDialog should open with version info and changelog
+3. If no update: UpdateDialog should show "You're running the latest version"
+
+- [ ] **Step 3: Verify "Check for Updates" in SimpleSettings**
+
+1. Open settings panel
+2. Scroll to bottom — "Check for Updates" section should be visible
+3. Click the button
+4. Should show "Checking..." with spinner
+5. Result: either opens UpdateDialog (update available) or shows "Up to date" for 2 seconds
+
+- [ ] **Step 4: Verify UpdateBanner states**
+
+| State | Expected |
+|-------|----------|
+| Update available | Green banner with "New version v{X.Y.Z} available", clickable |
+| Click banner | Opens UpdateDialog |
+| Close banner (X) | Banner hidden, does not reappear until next app restart |
+| Downloading | Banner shows "Downloading update... N%" with progress bar |
+| Downloaded | Banner shows "Update ready, restart to complete" |
+| Error | Red banner with error message, auto-hides after ~5 seconds |
+
+- [ ] **Step 5: Verify UpdateDialog states**
+
+| State | Expected |
+|-------|----------|
+| Available | Shows current → new version, changelog from GitHub Release body, "Download Now" + "Later" buttons |
+| Click "Download Now" | Download starts, dialog shows progress bar with transferred/total |
+| Click "Later" | Dialog closes, banner remains |
+| Downloaded | Dialog shows "Restart and Update" + "Later" buttons |
+| Click "Restart and Update" | App quits, installer launches |
+| Not available | Shows "You're running the latest version" with close button |
+
+- [ ] **Step 6: Verify "Later" / dismiss behavior**
+
+1. When update banner appears, click X to dismiss
+2. Banner should disappear for the rest of the session
+3. Quit and relaunch the app
+4. Banner should reappear (every startup re-prompts)
+
+- [ ] **Step 7: Verify error handling**
+
+1. Disconnect network
+2. Click "Check for Updates" in settings
+3. Should show error state briefly, then return to idle
+4. Check LogsPanel — error should be logged
+
+- [ ] **Step 8: Verify Linux behavior** (if testing on Linux)
+
+1. Launch app on Linux
+2. Trigger update check
+3. UpdateDialog should show "Go to Download" button instead of "Download Now"
+4. Clicking it should open the GitHub Release page in browser
+
+- [ ] **Step 9: Verify CI draft release**
+
+1. Push a version tag (e.g., `v0.16.0-test`)
+2. GitHub Actions build should complete
+3. Release should be created as **Draft** (not published)
+4. `latest.yml` should be present in release assets
+5. Verify `latest.yml` content: version, sha512, file size match the signed `.exe`
