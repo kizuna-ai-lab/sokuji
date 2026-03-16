@@ -11,10 +11,10 @@ module.exports = {
     name: 'Sokuji',
     // Ignore development files and directories
     ignore: [
-      // Development source files (but keep the build directory)
-      '/src($|/)',
-      '/public($|/)',
-      '!build($|/)',  // Explicitly include the build directory
+      // Development source files — anchor to root so we don't strip
+      // src/ inside node_modules (e.g. node_modules/debug/src/ is runtime code)
+      '^/src($|/)',
+      '^/public($|/)',
       
       // Development dependencies and build-time-only native modules
       '/node_modules/(@testing-library|jest|eslint|babel).*($|/)',
@@ -195,6 +195,37 @@ module.exports = {
         cleanDir(dir);
       }
       
+      // Remove src/ directories from node_modules packages, but only when
+      // the package's "main" entry does NOT reference src/ (some packages
+      // like "debug" use src/ for runtime code)
+      const nmDir = path.join(buildPath, 'node_modules');
+      const removeSrcDirs = (dir) => {
+        if (!fs.existsSync(dir)) return;
+        for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+          const fullPath = path.join(dir, entry.name);
+          if (!entry.isDirectory()) continue;
+          if (entry.name.startsWith('@')) {
+            // Scoped package — recurse one level deeper
+            removeSrcDirs(fullPath);
+            continue;
+          }
+          const srcDir = path.join(fullPath, 'src');
+          if (!fs.existsSync(srcDir)) continue;
+          // Check if this package's main entry references src/
+          try {
+            const pkgJson = JSON.parse(fs.readFileSync(path.join(fullPath, 'package.json'), 'utf8'));
+            const main = pkgJson.main || 'index.js';
+            if (!main.includes('src/') && !main.includes('src\\')) {
+              fs.rmSync(srcDir, { recursive: true, force: true });
+              console.debug(`Removed src/ from: ${entry.name}`);
+            }
+          } catch {
+            // No package.json — skip
+          }
+        }
+      };
+      removeSrcDirs(nmDir);
+
       console.info('Finished cleaning unnecessary files.');
     }
   }
