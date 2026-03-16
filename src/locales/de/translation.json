@@ -676,20 +676,20 @@
     "hideOther": "Andere Modelle ausblenden"
   },
   "update": {
-    "available": "New version v{{version}} available",
-    "downloading": "Downloading update... {{percent}}%",
-    "downloaded": "Update ready, restart to complete",
-    "checkButton": "Check for Updates",
-    "checking": "Checking...",
-    "upToDate": "Up to date",
-    "notAvailable": "You're running the latest version",
-    "downloadNow": "Download Now",
-    "later": "Later",
-    "restartNow": "Restart and Update",
-    "goToDownload": "Go to Download",
-    "error": "Failed to check for updates",
-    "errorWithMessage": "Update error: {{message}}",
-    "currentVersion": "Current version: v{{version}}",
-    "newVersion": "New version: v{{version}}"
+    "available": "Neue Version v{{version}} verfügbar",
+    "downloading": "Update wird heruntergeladen... {{percent}}%",
+    "downloaded": "Update bereit, zum Abschließen neu starten",
+    "checkButton": "Nach Updates suchen",
+    "checking": "Wird geprüft...",
+    "upToDate": "Aktuell",
+    "notAvailable": "Sie verwenden die neueste Version",
+    "downloadNow": "Jetzt herunterladen",
+    "later": "Später",
+    "restartNow": "Neu starten und aktualisieren",
+    "goToDownload": "Zum Download",
+    "error": "Fehler beim Suchen nach Updates",
+    "errorWithMessage": "Update-Fehler: {{message}}",
+    "currentVersion": "Aktuelle Version: v{{version}}",
+    "newVersion": "Neue Version: v{{version}}"
   }
 }

@@ -642,20 +642,20 @@
     "hideOther": "隱藏其他模型"
   },
   "update": {
-    "available": "New version v{{version}} available",
-    "downloading": "Downloading update... {{percent}}%",
-    "downloaded": "Update ready, restart to complete",
-    "checkButton": "Check for Updates",
-    "checking": "Checking...",
-    "upToDate": "Up to date",
-    "notAvailable": "You're running the latest version",
-    "downloadNow": "Download Now",
-    "later": "Later",
-    "restartNow": "Restart and Update",
-    "goToDownload": "Go to Download",
-    "error": "Failed to check for updates",
-    "errorWithMessage": "Update error: {{message}}",
-    "currentVersion": "Current version: v{{version}}",
-    "newVersion": "New version: v{{version}}"
+    "available": "新版本 v{{version}} 可用",
+    "downloading": "正在下載更新... {{percent}}%",
+    "downloaded": "更新已就緒，重新啟動以完成",
+    "checkButton": "檢查更新",
+    "checking": "檢查中...",
+    "upToDate": "已是最新",
+    "notAvailable": "您正在使用最新版本",
+    "downloadNow": "立即下載",
+    "later": "稍後",
+    "restartNow": "重新啟動並更新",
+    "goToDownload": "前往下載",
+    "error": "檢查更新失敗",
+    "errorWithMessage": "更新錯誤：{{message}}",
+    "currentVersion": "目前版本：v{{version}}",
+    "newVersion": "新版本：v{{version}}"
   }
 }
