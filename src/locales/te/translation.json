@@ -586,5 +586,22 @@
     "showAll": "అన్ని అనువాద మోడల్‌లను చూపించు ({{count}})",
     "showAllTts": "అన్ని TTS మోడల్‌లను చూపించు ({{count}})",
     "hideOther": "ఇతర మోడల్‌లను దాచు"
+  },
+  "update": {
+    "available": "New version v{{version}} available",
+    "downloading": "Downloading update... {{percent}}%",
+    "downloaded": "Update ready, restart to complete",
+    "checkButton": "Check for Updates",
+    "checking": "Checking...",
+    "upToDate": "Up to date",
+    "notAvailable": "You're running the latest version",
+    "downloadNow": "Download Now",
+    "later": "Later",
+    "restartNow": "Restart and Update",
+    "goToDownload": "Go to Download",
+    "error": "Failed to check for updates",
+    "errorWithMessage": "Update error: {{message}}",
+    "currentVersion": "Current version: v{{version}}",
+    "newVersion": "New version: v{{version}}"
   }
 }
