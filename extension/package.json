@@ -1,7 +1,7 @@
 {
   "name": "sokuji-extension",
-  "version": "0.15.10",
-  "description": "Browser extension version of Sokuji - Live speech translation using OpenAI and Google Gemini APIs",
+  "version": "0.15.11",
+  "description": "Live speech translation browser extension powered by AI",
   "private": true,
   "scripts": {
     "build": "vite build",
