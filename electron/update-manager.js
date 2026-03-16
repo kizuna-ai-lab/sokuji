@@ -88,6 +88,8 @@ class UpdateManager {
 
     ipcMain.handle('update-download', async () => {
       if (!this._updateInfo) {
+        // #6: Notify renderer on invalid state
+        this._sendStatus({ status: 'error', message: 'No update available to download' });
         return { success: false, error: 'No update available' };
       }
       try {
@@ -102,16 +104,46 @@ class UpdateManager {
 
     ipcMain.handle('update-install', async () => {
       if (!this.downloadPath) {
+        // #6: Notify renderer on invalid state
+        this._sendStatus({ status: 'error', message: 'No downloaded update to install' });
         return { success: false, error: 'No downloaded update' };
       }
       try {
-        this._installUpdate();
+        // #7: await installer launch before quitting
+        await this._installUpdate();
         return { success: true };
       } catch (err) {
         console.error('Update install failed:', err);
+        this._sendStatus({ status: 'error', message: err.message || String(err) });
         return { success: false, error: err.message };
       }
     });
+  }
+
+  /**
+   * Resolve the .exe download URL from update info.
+   * #8: Dynamically resolve filename from info.files if available,
+   * falling back to constructed name.
+   */
+  _resolveDownloadUrl() {
+    const version = this._updateInfo.version;
+    const files = this._updateInfo.files || [];
+
+    // Try to find .exe from the update info files array
+    const exeFile = files.find(f => f.url && f.url.endsWith('.exe'));
+    if (exeFile) {
+      return {
+        fileName: exeFile.url,
+        url: `https://github.com/kizuna-ai-lab/sokuji/releases/download/v${version}/${exeFile.url}`,
+      };
+    }
+
+    // Fallback to constructed name
+    const exeFileName = `Sokuji-${version}-Setup.exe`;
+    return {
+      fileName: exeFileName,
+      url: `https://github.com/kizuna-ai-lab/sokuji/releases/download/v${version}/${exeFileName}`,
+    };
   }
 
   /**
@@ -121,16 +153,28 @@ class UpdateManager {
    */
   _downloadUpdate() {
     return new Promise((resolve, reject) => {
-      const version = this._updateInfo.version;
-      const exeFileName = `Sokuji-${version}-Setup.exe`;
-      const downloadUrl = `https://github.com/kizuna-ai-lab/sokuji/releases/download/v${version}/${exeFileName}`;
+      const { fileName, url: downloadUrl } = this._resolveDownloadUrl();
 
       const tempDir = app.getPath('temp');
-      this.downloadPath = path.join(tempDir, exeFileName);
+      this.downloadPath = path.join(tempDir, fileName);
 
       this._sendStatus({ status: 'downloading' });
 
       const file = fs.createWriteStream(this.downloadPath);
+
+      // #5: Handle file stream errors
+      file.on('error', (err) => {
+        console.error('File write error:', err);
+        fs.unlink(this.downloadPath, () => {});
+        reject(err);
+      });
+
+      // #3: Wait for file stream to fully flush before resolving
+      file.on('finish', () => {
+        this._sendStatus({ status: 'downloaded' });
+        resolve();
+      });
+
       let receivedBytes = 0;
 
       const doRequest = (url) => {
@@ -143,16 +187,17 @@ class UpdateManager {
           }
 
           if (response.statusCode !== 200) {
+            file.destroy();
+            fs.unlink(this.downloadPath, () => {});
             reject(new Error(`Download failed with status ${response.statusCode}`));
             return;
           }
 
           const totalBytes = parseInt(response.headers['content-length'], 10) || 0;
 
+          // #5: Use pipe for backpressure handling
           response.on('data', (chunk) => {
             receivedBytes += chunk.length;
-            file.write(chunk);
-
             if (totalBytes > 0) {
               this._sendProgress({
                 percent: Math.round((receivedBytes / totalBytes) * 100),
@@ -163,17 +208,15 @@ class UpdateManager {
             }
           });
 
-          response.on('end', () => {
-            file.end();
-            this._sendStatus({ status: 'downloaded' });
-            resolve();
-          });
+          response.pipe(file);
 
           response.on('error', (err) => {
+            file.destroy();
             fs.unlink(this.downloadPath, () => {});
             reject(err);
           });
         }).on('error', (err) => {
+          file.destroy();
           fs.unlink(this.downloadPath, () => {});
           reject(err);
         });
@@ -184,18 +227,17 @@ class UpdateManager {
   }
 
   /**
-   * Launch the downloaded Squirrel installer and quit the app.
+   * Launch the downloaded installer and quit the app.
+   * #7: Use shell.openPath for reliable launch, then quit.
    */
   _installUpdate() {
-    const { execFile } = require('child_process');
-    execFile(this.downloadPath, [], (err) => {
-      if (err) {
-        console.error('Failed to launch installer:', err);
+    return shell.openPath(this.downloadPath).then((errorMessage) => {
+      if (errorMessage) {
+        throw new Error(`Failed to launch installer: ${errorMessage}`);
       }
+      // Give the installer a moment to initialize, then quit
+      setTimeout(() => app.quit(), 500);
     });
-    setTimeout(() => {
-      app.quit();
-    }, 1000);
   }
 
   /**
@@ -210,11 +252,13 @@ class UpdateManager {
 
   /**
    * Check for updates with a delay (used at startup).
+   * #10: Send error status to renderer on failure (consistent with manual check).
    */
   checkAfterDelay(delayMs = 5000) {
     setTimeout(() => {
       autoUpdater.checkForUpdates().catch((err) => {
         console.error('Startup update check failed:', err);
+        this._sendStatus({ status: 'error', message: err.message || String(err) });
       });
     }, delayMs);
   }
