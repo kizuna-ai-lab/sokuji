@@ -688,20 +688,20 @@
     "hideOther": "他のモデルを隠す"
   },
   "update": {
-    "available": "New version v{{version}} available",
-    "downloading": "Downloading update... {{percent}}%",
-    "downloaded": "Update ready, restart to complete",
-    "checkButton": "Check for Updates",
-    "checking": "Checking...",
-    "upToDate": "Up to date",
-    "notAvailable": "You're running the latest version",
-    "downloadNow": "Download Now",
-    "later": "Later",
-    "restartNow": "Restart and Update",
-    "goToDownload": "Go to Download",
-    "error": "Failed to check for updates",
-    "errorWithMessage": "Update error: {{message}}",
-    "currentVersion": "Current version: v{{version}}",
-    "newVersion": "New version: v{{version}}"
+    "available": "新しいバージョン v{{version}} が利用可能です",
+    "downloading": "アップデートをダウンロード中... {{percent}}%",
+    "downloaded": "アップデート準備完了、再起動して完了してください",
+    "checkButton": "アップデートを確認",
+    "checking": "確認中...",
+    "upToDate": "最新です",
+    "notAvailable": "最新バージョンを使用しています",
+    "downloadNow": "今すぐダウンロード",
+    "later": "後で",
+    "restartNow": "再起動してアップデート",
+    "goToDownload": "ダウンロードページへ",
+    "error": "アップデートの確認に失敗しました",
+    "errorWithMessage": "アップデートエラー: {{message}}",
+    "currentVersion": "現在のバージョン: v{{version}}",
+    "newVersion": "新しいバージョン: v{{version}}"
   }
 }

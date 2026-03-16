@@ -682,20 +682,20 @@
     "hideOther": "Скрыть другие модели"
   },
   "update": {
-    "available": "New version v{{version}} available",
-    "downloading": "Downloading update... {{percent}}%",
-    "downloaded": "Update ready, restart to complete",
-    "checkButton": "Check for Updates",
-    "checking": "Checking...",
-    "upToDate": "Up to date",
-    "notAvailable": "You're running the latest version",
-    "downloadNow": "Download Now",
-    "later": "Later",
-    "restartNow": "Restart and Update",
-    "goToDownload": "Go to Download",
-    "error": "Failed to check for updates",
-    "errorWithMessage": "Update error: {{message}}",
-    "currentVersion": "Current version: v{{version}}",
-    "newVersion": "New version: v{{version}}"
+    "available": "Доступна новая версия v{{version}}",
+    "downloading": "Загрузка обновления... {{percent}}%",
+    "downloaded": "Обновление готово, перезапустите для завершения",
+    "checkButton": "Проверить обновления",
+    "checking": "Проверка...",
+    "upToDate": "Актуальная версия",
+    "notAvailable": "Вы используете последнюю версию",
+    "downloadNow": "Скачать сейчас",
+    "later": "Позже",
+    "restartNow": "Перезапустить и обновить",
+    "goToDownload": "Перейти к загрузке",
+    "error": "Не удалось проверить обновления",
+    "errorWithMessage": "Ошибка обновления: {{message}}",
+    "currentVersion": "Текущая версия: v{{version}}",
+    "newVersion": "Новая версия: v{{version}}"
   }
 }

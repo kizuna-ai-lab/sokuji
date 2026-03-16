@@ -681,20 +681,20 @@
     "hideOther": "অন্যান্য মডেল লুকান"
   },
   "update": {
-    "available": "New version v{{version}} available",
-    "downloading": "Downloading update... {{percent}}%",
-    "downloaded": "Update ready, restart to complete",
-    "checkButton": "Check for Updates",
-    "checking": "Checking...",
-    "upToDate": "Up to date",
-    "notAvailable": "You're running the latest version",
-    "downloadNow": "Download Now",
-    "later": "Later",
-    "restartNow": "Restart and Update",
-    "goToDownload": "Go to Download",
-    "error": "Failed to check for updates",
-    "errorWithMessage": "Update error: {{message}}",
-    "currentVersion": "Current version: v{{version}}",
-    "newVersion": "New version: v{{version}}"
+    "available": "নতুন সংস্করণ v{{version}} উপলব্ধ",
+    "downloading": "আপডেট ডাউনলোড হচ্ছে... {{percent}}%",
+    "downloaded": "আপডেট প্রস্তুত, সম্পূর্ণ করতে পুনরায় চালু করুন",
+    "checkButton": "আপডেট পরীক্ষা করুন",
+    "checking": "পরীক্ষা করা হচ্ছে...",
+    "upToDate": "আপ টু ডেট",
+    "notAvailable": "আপনি সর্বশেষ সংস্করণ ব্যবহার করছেন",
+    "downloadNow": "এখনই ডাউনলোড করুন",
+    "later": "পরে",
+    "restartNow": "পুনরায় চালু করুন এবং আপডেট করুন",
+    "goToDownload": "ডাউনলোডে যান",
+    "error": "আপডেট পরীক্ষা করতে ব্যর্থ",
+    "errorWithMessage": "আপডেট ত্রুটি: {{message}}",
+    "currentVersion": "বর্তমান সংস্করণ: v{{version}}",
+    "newVersion": "নতুন সংস্করণ: v{{version}}"
   }
 }

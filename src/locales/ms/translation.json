@@ -672,20 +672,20 @@
     "hideOther": "Sembunyikan model lain"
   },
   "update": {
-    "available": "New version v{{version}} available",
-    "downloading": "Downloading update... {{percent}}%",
-    "downloaded": "Update ready, restart to complete",
-    "checkButton": "Check for Updates",
-    "checking": "Checking...",
-    "upToDate": "Up to date",
-    "notAvailable": "You're running the latest version",
-    "downloadNow": "Download Now",
-    "later": "Later",
-    "restartNow": "Restart and Update",
-    "goToDownload": "Go to Download",
-    "error": "Failed to check for updates",
-    "errorWithMessage": "Update error: {{message}}",
-    "currentVersion": "Current version: v{{version}}",
-    "newVersion": "New version: v{{version}}"
+    "available": "Versi baharu v{{version}} tersedia",
+    "downloading": "Memuat turun kemas kini... {{percent}}%",
+    "downloaded": "Kemas kini sedia, mulakan semula untuk selesaikan",
+    "checkButton": "Semak Kemas Kini",
+    "checking": "Menyemak...",
+    "upToDate": "Terkini",
+    "notAvailable": "Anda menggunakan versi terkini",
+    "downloadNow": "Muat Turun Sekarang",
+    "later": "Kemudian",
+    "restartNow": "Mulakan Semula dan Kemas Kini",
+    "goToDownload": "Pergi ke Muat Turun",
+    "error": "Gagal menyemak kemas kini",
+    "errorWithMessage": "Ralat kemas kini: {{message}}",
+    "currentVersion": "Versi semasa: v{{version}}",
+    "newVersion": "Versi baharu: v{{version}}"
   }
 }

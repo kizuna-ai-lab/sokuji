@@ -629,20 +629,20 @@
     "hideOther": "Dölj andra modeller"
   },
   "update": {
-    "available": "New version v{{version}} available",
-    "downloading": "Downloading update... {{percent}}%",
-    "downloaded": "Update ready, restart to complete",
-    "checkButton": "Check for Updates",
-    "checking": "Checking...",
-    "upToDate": "Up to date",
-    "notAvailable": "You're running the latest version",
-    "downloadNow": "Download Now",
-    "later": "Later",
-    "restartNow": "Restart and Update",
-    "goToDownload": "Go to Download",
-    "error": "Failed to check for updates",
-    "errorWithMessage": "Update error: {{message}}",
-    "currentVersion": "Current version: v{{version}}",
-    "newVersion": "New version: v{{version}}"
+    "available": "Ny version v{{version}} tillgänglig",
+    "downloading": "Laddar ner uppdatering... {{percent}}%",
+    "downloaded": "Uppdatering klar, starta om för att slutföra",
+    "checkButton": "Sök efter uppdateringar",
+    "checking": "Söker...",
+    "upToDate": "Uppdaterad",
+    "notAvailable": "Du använder den senaste versionen",
+    "downloadNow": "Ladda ner nu",
+    "later": "Senare",
+    "restartNow": "Starta om och uppdatera",
+    "goToDownload": "Gå till nedladdning",
+    "error": "Kunde inte söka efter uppdateringar",
+    "errorWithMessage": "Uppdateringsfel: {{message}}",
+    "currentVersion": "Nuvarande version: v{{version}}",
+    "newVersion": "Ny version: v{{version}}"
   }
 }

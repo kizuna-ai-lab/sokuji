@@ -675,20 +675,20 @@
     "hideOther": "إخفاء النماذج الأخرى"
   },
   "update": {
-    "available": "New version v{{version}} available",
-    "downloading": "Downloading update... {{percent}}%",
-    "downloaded": "Update ready, restart to complete",
-    "checkButton": "Check for Updates",
-    "checking": "Checking...",
-    "upToDate": "Up to date",
-    "notAvailable": "You're running the latest version",
-    "downloadNow": "Download Now",
-    "later": "Later",
-    "restartNow": "Restart and Update",
-    "goToDownload": "Go to Download",
-    "error": "Failed to check for updates",
-    "errorWithMessage": "Update error: {{message}}",
-    "currentVersion": "Current version: v{{version}}",
-    "newVersion": "New version: v{{version}}"
+    "available": "إصدار جديد v{{version}} متاح",
+    "downloading": "جارٍ تنزيل التحديث... {{percent}}%",
+    "downloaded": "التحديث جاهز، أعد التشغيل للإكمال",
+    "checkButton": "التحقق من التحديثات",
+    "checking": "جارٍ التحقق...",
+    "upToDate": "محدّث",
+    "notAvailable": "أنت تستخدم أحدث إصدار",
+    "downloadNow": "تنزيل الآن",
+    "later": "لاحقاً",
+    "restartNow": "إعادة التشغيل والتحديث",
+    "goToDownload": "انتقل إلى التنزيل",
+    "error": "فشل التحقق من التحديثات",
+    "errorWithMessage": "خطأ في التحديث: {{message}}",
+    "currentVersion": "الإصدار الحالي: v{{version}}",
+    "newVersion": "الإصدار الجديد: v{{version}}"
   }
 }

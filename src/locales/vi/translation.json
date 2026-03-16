@@ -624,20 +624,20 @@
     "hideOther": "Ẩn các mô hình khác"
   },
   "update": {
-    "available": "New version v{{version}} available",
-    "downloading": "Downloading update... {{percent}}%",
-    "downloaded": "Update ready, restart to complete",
-    "checkButton": "Check for Updates",
-    "checking": "Checking...",
-    "upToDate": "Up to date",
-    "notAvailable": "You're running the latest version",
-    "downloadNow": "Download Now",
-    "later": "Later",
-    "restartNow": "Restart and Update",
-    "goToDownload": "Go to Download",
-    "error": "Failed to check for updates",
-    "errorWithMessage": "Update error: {{message}}",
-    "currentVersion": "Current version: v{{version}}",
-    "newVersion": "New version: v{{version}}"
+    "available": "Phiên bản mới v{{version}} khả dụng",
+    "downloading": "Đang tải bản cập nhật... {{percent}}%",
+    "downloaded": "Bản cập nhật đã sẵn sàng, khởi động lại để hoàn tất",
+    "checkButton": "Kiểm tra cập nhật",
+    "checking": "Đang kiểm tra...",
+    "upToDate": "Đã cập nhật",
+    "notAvailable": "Bạn đang sử dụng phiên bản mới nhất",
+    "downloadNow": "Tải ngay",
+    "later": "Để sau",
+    "restartNow": "Khởi động lại và cập nhật",
+    "goToDownload": "Đi tới tải xuống",
+    "error": "Không thể kiểm tra cập nhật",
+    "errorWithMessage": "Lỗi cập nhật: {{message}}",
+    "currentVersion": "Phiên bản hiện tại: v{{version}}",
+    "newVersion": "Phiên bản mới: v{{version}}"
   }
 }
