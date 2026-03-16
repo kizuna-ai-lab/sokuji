@@ -9,6 +9,7 @@ class UpdateManager {
     this.mainWindow = mainWindow;
     this.downloadPath = null;
     this._updateInfo = null;
+    this._downloadPromise = null;
 
     // Disable auto-download — user must confirm
     autoUpdater.autoDownload = false;
@@ -101,18 +102,26 @@ class UpdateManager {
 
     ipcMain.handle('update-download', async () => {
       if (!this._updateInfo) {
-        // #6: Notify renderer on invalid state
         this._sendStatus({ status: 'error', message: 'No update available to download' });
         return { success: false, error: 'No update available' };
       }
-      try {
-        await this._downloadUpdate();
-        return { success: true };
-      } catch (err) {
-        console.error('Update download failed:', err);
-        this._sendStatus({ status: 'error', message: err.message || String(err) });
-        return { success: false, error: err.message };
+      // If a download is already in progress, return the existing promise
+      if (this._downloadPromise) {
+        return this._downloadPromise;
       }
+      this._downloadPromise = (async () => {
+        try {
+          await this._downloadUpdate();
+          return { success: true };
+        } catch (err) {
+          console.error('Update download failed:', err);
+          this._sendStatus({ status: 'error', message: err.message || String(err) });
+          return { success: false, error: err.message };
+        } finally {
+          this._downloadPromise = null;
+        }
+      })();
+      return this._downloadPromise;
     });
 
     ipcMain.handle('update-install', async () => {
