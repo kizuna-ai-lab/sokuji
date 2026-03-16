@@ -76,6 +76,16 @@ const useUpdateStore = create<UpdateStore>()(
       const electron = (window as any).electron;
       if (!electron) return;
 
+      // Guard against duplicate registration (e.g. HMR, multiple mounts)
+      if (statusHandler) {
+        electron.removeListener('update-status', statusHandler);
+        statusHandler = null;
+      }
+      if (progressHandler) {
+        electron.removeListener('update-progress', progressHandler);
+        progressHandler = null;
+      }
+
       statusHandler = (data: any) => {
         const update: Partial<UpdateState> = { status: data.status };
         if (data.version) update.newVersion = data.version;

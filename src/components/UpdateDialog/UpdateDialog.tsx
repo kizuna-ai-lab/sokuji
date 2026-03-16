@@ -43,8 +43,6 @@ const UpdateDialog: React.FC = () => {
 
   if (!dialogOpen) return null;
 
-  const isLinux = navigator.platform.toLowerCase().includes('linux');
-
   const formatBytes = (bytes: number): string => {
     if (bytes === 0) return '0 B';
     const k = 1024;
@@ -110,11 +108,15 @@ const UpdateDialog: React.FC = () => {
         <div className="update-dialog-footer">
           {status === 'available' && (
             <>
-              {isLinux && downloadUrl ? (
+              {downloadUrl ? (
                 <button
                   className="primary-button"
                   onClick={() => {
-                    window.open(downloadUrl, '_blank');
+                    if (isElectron() && (window as any).electron?.invoke) {
+                      (window as any).electron.invoke('open-external', downloadUrl);
+                    } else {
+                      window.open(downloadUrl, '_blank');
+                    }
                     closeDialog();
                   }}
                 >
