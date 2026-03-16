@@ -25,6 +25,13 @@ class UpdateManager {
     this._setupIpcHandlers();
   }
 
+  /**
+   * Update the mainWindow reference (e.g. after macOS window recreation).
+   */
+  setMainWindow(mainWindow) {
+    this.mainWindow = mainWindow;
+  }
+
   _sendStatus(payload) {
     if (this.mainWindow && !this.mainWindow.isDestroyed()) {
       this.mainWindow.webContents.send('update-status', payload);

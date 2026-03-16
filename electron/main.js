@@ -475,7 +475,13 @@ app.on('window-all-closed', function () {
 
 app.on('activate', function () {
   // On macOS, recreate the window when the dock icon is clicked
-  if (mainWindow === null) createWindow();
+  if (mainWindow === null) {
+    createWindow();
+    // Update the manager's window reference so IPC messages reach the new renderer
+    if (global.updateManager) {
+      global.updateManager.setMainWindow(mainWindow);
+    }
+  }
 });
 
 // Clean up loopback when app is about to quit
