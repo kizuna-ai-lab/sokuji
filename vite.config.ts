@@ -114,7 +114,7 @@ export default defineConfig(({ command, mode }) => {
               minify: isBuild,
               outDir: 'dist-electron',
               rollupOptions: {
-                external: ['electron', 'electron-squirrel-startup', 'electron-conf', 'electron-audio-loopback'],
+                external: ['electron', 'electron-squirrel-startup', 'electron-conf', 'electron-audio-loopback', 'electron-updater'],
                 output: {
                   entryFileNames: '[name].js'
                 }
