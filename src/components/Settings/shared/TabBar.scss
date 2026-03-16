@@ -18,6 +18,7 @@
     color: vars.$text-muted;
     font-size: vars.$font-body;
     font-weight: vars.$weight-medium;
+    line-height: 1;
     cursor: pointer;
     transition: color vars.$transition-fast, border-color vars.$transition-fast;
     white-space: nowrap;
