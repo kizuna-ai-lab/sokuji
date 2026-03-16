@@ -43,16 +43,26 @@ const UpdateBanner: React.FC = () => {
     );
   }
 
+  const handleBannerAction = () => {
+    if (status === 'available') openDialog();
+    if (status === 'downloaded') installUpdate();
+  };
+
+  const isClickable = status === 'available' || status === 'downloaded';
+
   return (
     <div className={`update-banner ${status}`}>
       <div
         className="update-banner-content"
-        onClick={() => {
-          if (status === 'available') openDialog();
-          if (status === 'downloaded') installUpdate();
+        onClick={handleBannerAction}
+        onKeyDown={(e) => {
+          if (isClickable && (e.key === 'Enter' || e.key === ' ')) {
+            e.preventDefault();
+            handleBannerAction();
+          }
         }}
-        role="button"
-        tabIndex={0}
+        role={isClickable ? 'button' : undefined}
+        tabIndex={isClickable ? 0 : undefined}
       >
         {status === 'available' && (
           <>

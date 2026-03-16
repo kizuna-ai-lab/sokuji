@@ -174,7 +174,7 @@ cleanupListeners: () => {
   - `available`: "New version v{version} available" — clickable, opens UpdateDialog
   - `downloading`: "Downloading update... {percent}%" with progress bar
   - `downloaded`: "Update ready, restart to complete" — clickable, triggers restart
-  - `error`: Error message, auto-hides after 3 seconds
+  - `error`: Error message, auto-hides after 5 seconds
 - **Close button:** Hides banner for current session only
 
 #### UpdateDialog (`src/components/UpdateDialog.tsx`)

@@ -37,7 +37,7 @@ const UpdateDialog: React.FC = () => {
     if (isElectron() && dialogOpen) {
       (window as any).electron?.invoke('get-app-version')?.then((v: string) => {
         if (v) setCurrentVersion(v);
-      });
+      }).catch(() => {});
     }
   }, [dialogOpen]);
 
@@ -62,11 +62,26 @@ const UpdateDialog: React.FC = () => {
   };
 
   return (
-    <div className="update-dialog-overlay" onClick={closeDialog}>
-      <div className="update-dialog" onClick={(e) => e.stopPropagation()}>
+    <div
+      className="update-dialog-overlay"
+      onClick={closeDialog}
+      onKeyDown={(e) => { if (e.key === 'Escape') closeDialog(); }}
+    >
+      <div
+        className="update-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="update-dialog-title"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="update-dialog-header">
-          <h3>{getTitle()}</h3>
-          <button className="close-button" onClick={closeDialog}>
+          <h3 id="update-dialog-title">{getTitle()}</h3>
+          <button
+            type="button"
+            className="close-button"
+            aria-label={t('common.close', 'Close')}
+            onClick={closeDialog}
+          >
             <X size={16} />
           </button>
         </div>
