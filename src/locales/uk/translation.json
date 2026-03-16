@@ -593,5 +593,22 @@
     "showAll": "Показати всі моделі перекладу ({{count}})",
     "showAllTts": "Показати всі моделі TTS ({{count}})",
     "hideOther": "Сховати інші моделі"
+  },
+  "update": {
+    "available": "Доступна нова версія v{{version}}",
+    "downloading": "Завантаження оновлення... {{percent}}%",
+    "downloaded": "Оновлення готове, перезапустіть для завершення",
+    "checkButton": "Перевірити оновлення",
+    "checking": "Перевірка...",
+    "upToDate": "Актуальна версія",
+    "notAvailable": "Ви використовуєте останню версію",
+    "downloadNow": "Завантажити зараз",
+    "later": "Пізніше",
+    "restartNow": "Перезапустити та оновити",
+    "goToDownload": "Перейти до завантаження",
+    "error": "Не вдалося перевірити оновлення",
+    "errorWithMessage": "Помилка оновлення: {{message}}",
+    "currentVersion": "Поточна версія: v{{version}}",
+    "newVersion": "Нова версія: v{{version}}"
   }
 }

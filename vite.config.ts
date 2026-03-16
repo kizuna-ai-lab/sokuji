@@ -101,7 +101,8 @@ export default defineConfig(({ command, mode }) => {
             'pulseaudio-utils': 'electron/pulseaudio-utils.js',
             'windows-audio-utils': 'electron/windows-audio-utils.js',
             'vb-cable-installer': 'electron/vb-cable-installer.js',
-            'squirrel-events': 'electron/squirrel-events.js'
+            'squirrel-events': 'electron/squirrel-events.js',
+            'update-manager': 'electron/update-manager.js'
           },
           onstart(args) {
             // Override default [".", "--no-sandbox"] to fix DevTools crash on Linux

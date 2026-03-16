@@ -40,6 +40,9 @@ import { getSafeAudioConfiguration, decodeAudioToWav } from '../../utils/audioUt
 import { useAuth } from '../../lib/auth/hooks';
 import { useUserProfile } from '../../contexts/UserProfileContext';
 import { isExtension, getEnvironment } from '../../utils/environment';
+import UpdateBanner from '../UpdateBanner/UpdateBanner';
+import UpdateDialog from '../UpdateDialog/UpdateDialog';
+import { useInitUpdateListeners, useCleanupUpdateListeners } from '../../stores/updateStore';
 
 
 /**
@@ -314,6 +317,14 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
     return config;
   }, [getProcessedSystemInstructions, createSessionConfig]);
+
+  // Initialize auto-update listeners
+  const initUpdateListeners = useInitUpdateListeners();
+  const cleanupUpdateListeners = useCleanupUpdateListeners();
+  useEffect(() => {
+    initUpdateListeners();
+    return () => cleanupUpdateListeners();
+  }, [initUpdateListeners, cleanupUpdateListeners]);
 
   /**
    * Initialize the audio service and set up the virtual audio output
@@ -2489,6 +2500,8 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   // Unified render for both modes
   return (
     <div className="main-panel-wrapper">
+      <UpdateBanner />
+      <UpdateDialog />
       <div className="main-panel">
         {/* Conversation Display */}
         <div className="conversation-display" ref={conversationContainerRef}>

@@ -629,5 +629,22 @@
     "showAll": "Ipakita lahat ng translation model ({{count}})",
     "showAllTts": "Ipakita lahat ng TTS model ({{count}})",
     "hideOther": "Itago ang ibang model"
+  },
+  "update": {
+    "available": "Bagong bersyon v{{version}} ay magagamit na",
+    "downloading": "Dina-download ang update... {{percent}}%",
+    "downloaded": "Handa na ang update, i-restart para makumpleto",
+    "checkButton": "Suriin ang mga Update",
+    "checking": "Sinusuri...",
+    "upToDate": "Napapanahon",
+    "notAvailable": "Ginagamit mo na ang pinakabagong bersyon",
+    "downloadNow": "I-download Ngayon",
+    "later": "Mamaya",
+    "restartNow": "I-restart at I-update",
+    "goToDownload": "Pumunta sa Download",
+    "error": "Hindi nagawang suriin ang mga update",
+    "errorWithMessage": "Error sa pag-update: {{message}}",
+    "currentVersion": "Kasalukuyang bersyon: v{{version}}",
+    "newVersion": "Bagong bersyon: v{{version}}"
   }
 }

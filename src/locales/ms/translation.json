@@ -670,5 +670,22 @@
     "showAll": "Tunjukkan semua model terjemahan ({{count}})",
     "showAllTts": "Tunjukkan semua model TTS ({{count}})",
     "hideOther": "Sembunyikan model lain"
+  },
+  "update": {
+    "available": "Versi baharu v{{version}} tersedia",
+    "downloading": "Memuat turun kemas kini... {{percent}}%",
+    "downloaded": "Kemas kini sedia, mulakan semula untuk selesaikan",
+    "checkButton": "Semak Kemas Kini",
+    "checking": "Menyemak...",
+    "upToDate": "Terkini",
+    "notAvailable": "Anda menggunakan versi terkini",
+    "downloadNow": "Muat Turun Sekarang",
+    "later": "Kemudian",
+    "restartNow": "Mulakan Semula dan Kemas Kini",
+    "goToDownload": "Pergi ke Muat Turun",
+    "error": "Gagal menyemak kemas kini",
+    "errorWithMessage": "Ralat kemas kini: {{message}}",
+    "currentVersion": "Versi semasa: v{{version}}",
+    "newVersion": "Versi baharu: v{{version}}"
   }
 }

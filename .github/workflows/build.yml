@@ -309,12 +309,41 @@ jobs:
           echo "=== Release assets ==="
           ls -la release-assets/
 
+      - name: Generate latest.yml for auto-updater
+        run: |
+          # Find the signed Windows .exe
+          EXE_FILE=$(find release-assets -name "*.exe" | head -1)
+          if [ -z "$EXE_FILE" ]; then
+            echo "Warning: No .exe found, skipping latest.yml generation"
+            exit 0
+          fi
+
+          EXE_NAME=$(basename "$EXE_FILE")
+          VERSION=${GITHUB_REF_NAME#v}
+          SHA512=$(openssl dgst -sha512 -binary "$EXE_FILE" | openssl base64 -A)
+          SIZE=$(stat -c%s "$EXE_FILE")
+          DATE=$(date -u +"%Y-%m-%dT%H:%M:%S.000Z")
+
+          {
+            echo "version: ${VERSION}"
+            echo "files:"
+            echo "  - url: ${EXE_NAME}"
+            echo "    sha512: ${SHA512}"
+            echo "    size: ${SIZE}"
+            echo "path: ${EXE_NAME}"
+            echo "sha512: ${SHA512}"
+            echo "releaseDate: '${DATE}'"
+          } > release-assets/latest.yml
+
+          echo "=== latest.yml ==="
+          cat release-assets/latest.yml
+
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
           files: release-assets/*
           body_path: linux-x64-artifacts/CHANGELOG.md
-          draft: false
+          draft: true
           prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

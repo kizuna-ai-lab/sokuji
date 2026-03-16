@@ -625,5 +625,22 @@
     "showAll": "सभी अनुवाद मॉडल दिखाएं ({{count}})",
     "showAllTts": "सभी TTS मॉडल दिखाएं ({{count}})",
     "hideOther": "अन्य मॉडल छिपाएं"
+  },
+  "update": {
+    "available": "नया संस्करण v{{version}} उपलब्ध है",
+    "downloading": "अपडेट डाउनलोड हो रहा है... {{percent}}%",
+    "downloaded": "अपडेट तैयार है, पूरा करने के लिए पुनः आरंभ करें",
+    "checkButton": "अपडेट की जाँच करें",
+    "checking": "जाँच हो रही है...",
+    "upToDate": "अप टू डेट",
+    "notAvailable": "आप नवीनतम संस्करण चला रहे हैं",
+    "downloadNow": "अभी डाउनलोड करें",
+    "later": "बाद में",
+    "restartNow": "पुनः आरंभ करें और अपडेट करें",
+    "goToDownload": "डाउनलोड पर जाएँ",
+    "error": "अपडेट की जाँच विफल",
+    "errorWithMessage": "अपडेट त्रुटि: {{message}}",
+    "currentVersion": "वर्तमान संस्करण: v{{version}}",
+    "newVersion": "नया संस्करण: v{{version}}"
   }
 }

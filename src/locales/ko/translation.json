@@ -673,5 +673,22 @@
     "showAll": "모든 번역 모델 표시 ({{count}})",
     "showAllTts": "모든 TTS 모델 표시 ({{count}})",
     "hideOther": "다른 모델 숨기기"
+  },
+  "update": {
+    "available": "새 버전 v{{version}} 사용 가능",
+    "downloading": "업데이트 다운로드 중... {{percent}}%",
+    "downloaded": "업데이트 준비 완료, 다시 시작하여 완료하세요",
+    "checkButton": "업데이트 확인",
+    "checking": "확인 중...",
+    "upToDate": "최신 상태",
+    "notAvailable": "최신 버전을 사용 중입니다",
+    "downloadNow": "지금 다운로드",
+    "later": "나중에",
+    "restartNow": "다시 시작하고 업데이트",
+    "goToDownload": "다운로드로 이동",
+    "error": "업데이트 확인 실패",
+    "errorWithMessage": "업데이트 오류: {{message}}",
+    "currentVersion": "현재 버전: v{{version}}",
+    "newVersion": "새 버전: v{{version}}"
   }
 }

@@ -640,5 +640,22 @@
     "showAll": "顯示所有翻譯模型（{{count}}）",
     "showAllTts": "顯示所有 TTS 模型（{{count}}）",
     "hideOther": "隱藏其他模型"
+  },
+  "update": {
+    "available": "新版本 v{{version}} 可用",
+    "downloading": "正在下載更新... {{percent}}%",
+    "downloaded": "更新已就緒，重新啟動以完成",
+    "checkButton": "檢查更新",
+    "checking": "檢查中...",
+    "upToDate": "已是最新",
+    "notAvailable": "您正在使用最新版本",
+    "downloadNow": "立即下載",
+    "later": "稍後",
+    "restartNow": "重新啟動並更新",
+    "goToDownload": "前往下載",
+    "error": "檢查更新失敗",
+    "errorWithMessage": "更新錯誤：{{message}}",
+    "currentVersion": "目前版本：v{{version}}",
+    "newVersion": "新版本：v{{version}}"
   }
 }
