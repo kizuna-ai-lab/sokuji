@@ -88,13 +88,6 @@ const useUpdateStore = create<UpdateStore>()(
           update.bannerDismissed = false;
         }
 
-        // Auto-hide error after 5 seconds
-        if (data.status === 'error') {
-          setTimeout(() => {
-            useUpdateStore.setState({ status: 'idle', errorMessage: null });
-          }, 5000);
-        }
-
         set(update);
       };
 
@@ -128,6 +121,23 @@ const useUpdateStore = create<UpdateStore>()(
   }))
 );
 
+// Auto-hide error after 5 seconds (works regardless of how status is set)
+let errorTimer: ReturnType<typeof setTimeout> | null = null;
+useUpdateStore.subscribe(
+  (state) => state.status,
+  (status) => {
+    if (errorTimer) {
+      clearTimeout(errorTimer);
+      errorTimer = null;
+    }
+    if (status === 'error') {
+      errorTimer = setTimeout(() => {
+        useUpdateStore.setState({ status: 'idle', errorMessage: null });
+      }, 5000);
+    }
+  }
+);
+
 // Individual selectors (following logStore.ts pattern — avoids new object refs on every render)
 export const useUpdateStatus = () => useUpdateStore(state => state.status);
 export const useUpdateNewVersion = () => useUpdateStore(state => state.newVersion);
@@ -150,5 +160,10 @@ export const useDownloadUpdate = () => useUpdateStore(state => state.downloadUpd
 export const useInstallUpdate = () => useUpdateStore(state => state.installUpdate);
 export const useInitUpdateListeners = () => useUpdateStore(state => state.initListeners);
 export const useCleanupUpdateListeners = () => useUpdateStore(state => state.cleanupListeners);
+
+// Expose store on window for dev testing (console: window.__updateStore.setState({...}))
+if (import.meta.env.DEV) {
+  (window as any).__updateStore = useUpdateStore;
+}
 
 export default useUpdateStore;
