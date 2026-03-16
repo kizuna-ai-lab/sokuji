@@ -625,5 +625,22 @@
     "showAll": "सभी अनुवाद मॉडल दिखाएं ({{count}})",
     "showAllTts": "सभी TTS मॉडल दिखाएं ({{count}})",
     "hideOther": "अन्य मॉडल छिपाएं"
+  },
+  "update": {
+    "available": "New version v{{version}} available",
+    "downloading": "Downloading update... {{percent}}%",
+    "downloaded": "Update ready, restart to complete",
+    "checkButton": "Check for Updates",
+    "checking": "Checking...",
+    "upToDate": "Up to date",
+    "notAvailable": "You're running the latest version",
+    "downloadNow": "Download Now",
+    "later": "Later",
+    "restartNow": "Restart and Update",
+    "goToDownload": "Go to Download",
+    "error": "Failed to check for updates",
+    "errorWithMessage": "Update error: {{message}}",
+    "currentVersion": "Current version: v{{version}}",
+    "newVersion": "New version: v{{version}}"
   }
 }

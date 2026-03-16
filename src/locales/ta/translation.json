@@ -604,5 +604,22 @@
     "showAll": "அனைத்து மொழிபெயர்ப்பு மாடல்களையும் காட்டு ({{count}})",
     "showAllTts": "அனைத்து TTS மாடல்களையும் காட்டு ({{count}})",
     "hideOther": "மற்ற மாடல்களை மறை"
+  },
+  "update": {
+    "available": "New version v{{version}} available",
+    "downloading": "Downloading update... {{percent}}%",
+    "downloaded": "Update ready, restart to complete",
+    "checkButton": "Check for Updates",
+    "checking": "Checking...",
+    "upToDate": "Up to date",
+    "notAvailable": "You're running the latest version",
+    "downloadNow": "Download Now",
+    "later": "Later",
+    "restartNow": "Restart and Update",
+    "goToDownload": "Go to Download",
+    "error": "Failed to check for updates",
+    "errorWithMessage": "Update error: {{message}}",
+    "currentVersion": "Current version: v{{version}}",
+    "newVersion": "New version: v{{version}}"
   }
 }
