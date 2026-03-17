@@ -200,6 +200,17 @@ MODELS = {
         "engine": "offline",
         "renames": {"model.int8.onnx": "nemo-ctc.onnx"},
     },
+    "nemo-parakeet-tdt-int8": {
+        "url": BASE_URL + "sherpa-onnx-nemo-parakeet-tdt-0.6b-v3-int8.tar.bz2",
+        "tarball": "sherpa-onnx-nemo-parakeet-tdt-0.6b-v3-int8.tar.bz2",
+        "dir_hint": "nemo",
+        "engine": "offline",
+        "renames": {
+            "encoder.int8.onnx": "nemo-transducer-encoder.onnx",
+            "decoder.int8.onnx": "nemo-transducer-decoder.onnx",
+            "joiner.int8.onnx": "nemo-transducer-joiner.onnx",
+        },
+    },
 
     # --- Zipformer ---
     "zipformer-vi-30m-int8": {
@@ -500,42 +511,51 @@ def patch_glue_js(
         # No existing calls but new model needs directories — insert before loadPackage
         insert_pos = content.find("loadPackage({")
         if insert_pos == -1:
-            raise RuntimeError("Could not find loadPackage({ to insert FS_createPath calls")
+            # Already-patched glue uses loadPackage(Module._dataPackageMetadata)
+            insert_pos = content.find("loadPackage(Module._dataPackageMetadata)")
+        if insert_pos == -1:
+            raise RuntimeError("Could not find loadPackage( to insert FS_createPath calls")
         content = content[:insert_pos] + new_cp_calls + content[insert_pos:]
         print(f"  Inserted {new_cp_calls.count('FS_createPath')} FS_createPath calls")
     else:
         print("  No FS_createPath calls needed (all files at root)")
 
     # 4. Replace loadPackage({...}) metadata
+    #    If glue is already patched (uses Module._dataPackageMetadata), skip this step —
+    #    metadata is provided at runtime via package-metadata.json, not baked into the JS.
     lp_start = content.find("loadPackage({")
-    if lp_start == -1:
-        raise RuntimeError("Could not find loadPackage({ in glue JS")
+    if lp_start != -1:
+        # Unpatched glue: replace the inline JSON metadata
+        brace_start = lp_start + len("loadPackage(")
+        brace_count = 0
+        i = brace_start
+        while i < len(content):
+            if content[i] == "{":
+                brace_count += 1
+            elif content[i] == "}":
+                brace_count -= 1
+                if brace_count == 0:
+                    break
+            i += 1
 
-    # Find the matching closing brace for the JSON object
-    brace_start = lp_start + len("loadPackage(")
-    brace_count = 0
-    i = brace_start
-    while i < len(content):
-        if content[i] == "{":
-            brace_count += 1
-        elif content[i] == "}":
-            brace_count -= 1
-            if brace_count == 0:
-                break
-        i += 1
+        close_paren = content.index(")", i)
 
-    # The closing ) after the JSON
-    close_paren = content.index(")", i)
+        new_metadata = {
+            "files": metadata,
+            "remote_package_size": data_size,
+        }
+        new_json = json.dumps(new_metadata, separators=(",", ":"))
 
-    # Build new metadata JSON (compact, no spaces)
-    new_metadata = {
-        "files": metadata,
-        "remote_package_size": data_size,
-    }
-    new_json = json.dumps(new_metadata, separators=(",", ":"))
-
-    # Replace: loadPackage({...old...}) -> loadPackage({...new...})
-    content = content[:lp_start] + "loadPackage(" + new_json + ")" + content[close_paren + 1:]
+        content = content[:lp_start] + "loadPackage(" + new_json + ")" + content[close_paren + 1:]
+    elif content.find("loadPackage(Module._dataPackageMetadata)") != -1:
+        # Already-patched glue: metadata comes from package-metadata.json at runtime.
+        # Just copy the JS as-is — no inline metadata patching needed.
+        print("  Glue JS already patched (uses Module._dataPackageMetadata), skipping metadata injection")
+    else:
+        raise RuntimeError(
+            "Unsupported glue JS format: expected loadPackage({...}) "
+            "or loadPackage(Module._dataPackageMetadata)"
+        )
 
     output_js_path.write_text(content)
     print(f"  Patched glue JS: {output_js_path.name}")
