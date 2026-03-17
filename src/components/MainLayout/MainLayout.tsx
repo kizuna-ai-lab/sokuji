@@ -34,6 +34,7 @@ const MainLayout: React.FC = () => {
   const [showAudio, setShowAudio] = useState(() => {
     return sessionStorage.getItem('panelState.showAudio') === 'true';
   });
+
   
   // Track panel view times
   const panelOpenTimeRef = useRef<number | null>(null);
