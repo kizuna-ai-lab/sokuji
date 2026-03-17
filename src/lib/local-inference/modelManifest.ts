@@ -475,7 +475,6 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
       'el', 'hu', 'it', 'lv', 'lt', 'mt', 'pl', 'pt', 'ro', 'ru',
       'sk', 'sl', 'es', 'sv', 'uk',
     ],
-    multilingual: true,
     cdnPath: 'wasm-nemo-parakeet-tdt-int8',
     files: asrFiles(671_122_626, 396),
     asrEngine: 'nemo-transducer',
