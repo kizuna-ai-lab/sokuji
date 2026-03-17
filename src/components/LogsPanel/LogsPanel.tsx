@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback, memo } from 'react';
 import { ArrowRight, Terminal, Trash2, ArrowUp, ArrowDown, FastForward, Mic, Users, ClipboardCopy } from 'lucide-react';
+import TabBar, { Tab } from '../Settings/shared/TabBar';
 import './LogsPanel.scss';
 import { useLogData, useLogActions } from '../../stores/logStore';
 import type { LogEntry, ClientId } from '../../stores/logStore';
@@ -101,6 +102,11 @@ const Event: React.FC<{ logEntry: LogEntry }> = memo(({ logEntry }) => {
 const ITEM_HEIGHT_ESTIMATE = 30; // Estimated height of each log item in pixels
 const BUFFER_SIZE = 10; // Number of extra items to render outside viewport
 const SCROLL_THROTTLE_MS = 16; // ~60fps
+
+const LOG_TABS: Tab[] = [
+  { id: 'speaker', labelKey: 'logsPanel.speakerClient', fallback: 'Speaker Client', icon: Mic },
+  { id: 'participant', labelKey: 'logsPanel.participantClient', fallback: 'Participant Client', icon: Users },
+];
 
 const LogsPanel: React.FC<LogsPanelProps> = ({ toggleLogs }) => {
   const { t } = useTranslation();
@@ -286,22 +292,11 @@ const LogsPanel: React.FC<LogsPanelProps> = ({ toggleLogs }) => {
           </button>
         </div>
       </div>
-      <div className="logs-tabs">
-        <button
-          className={`logs-tab ${activeTab === 'speaker' ? 'active' : ''}`}
-          onClick={() => setActiveTab('speaker')}
-        >
-          <Mic size={14} />
-          <span>{t('logsPanel.speakerClient')}</span>
-        </button>
-        <button
-          className={`logs-tab ${activeTab === 'participant' ? 'active' : ''}`}
-          onClick={() => setActiveTab('participant')}
-        >
-          <Users size={14} />
-          <span>{t('logsPanel.participantClient')}</span>
-        </button>
-      </div>
+      <TabBar
+        tabs={LOG_TABS}
+        activeTab={activeTab}
+        onTabChange={(id) => setActiveTab(id as ClientId)}
+      />
       <div className="logs-content" ref={logsContentRef} onScroll={handleScroll}>
         {filteredLogs.length > 0 ? (
           <>

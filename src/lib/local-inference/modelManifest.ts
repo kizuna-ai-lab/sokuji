@@ -466,6 +466,19 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     files: asrFiles(131_924_353, 226),
     asrEngine: 'nemo-ctc',
   },
+  {
+    id: 'nemo-parakeet-tdt-int8',
+    type: 'asr',
+    name: 'NeMo Parakeet TDT 0.6B (int8, 25 EU langs)',
+    languages: [
+      'bg', 'hr', 'cs', 'da', 'nl', 'en', 'et', 'fi', 'fr', 'de',
+      'el', 'hu', 'it', 'lv', 'lt', 'mt', 'pl', 'pt', 'ro', 'ru',
+      'sk', 'sl', 'es', 'sv', 'uk',
+    ],
+    cdnPath: 'wasm-nemo-parakeet-tdt-int8',
+    files: asrFiles(671_122_626, 396),
+    asrEngine: 'nemo-transducer',
+  },
   // Dolphin
   {
     id: 'dolphin-base-int8',
