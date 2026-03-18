@@ -130,6 +130,23 @@ function selectVariant(
 }
 ```
 
+#### Helper: `getBaselineVariant()`
+
+Returns the first variant without `requiredFeatures` (the universal fallback). Used when `metadata.variant` is `undefined` (legacy downloads).
+
+```typescript
+function getBaselineVariant(entry: ModelManifestEntry): string {
+  const baseline = Object.entries(entry.variants).find(
+    ([_, v]) => !v.requiredFeatures || v.requiredFeatures.length === 0
+  );
+  if (!baseline) {
+    // All variants have requiredFeatures — pick the first one as last resort
+    return Object.keys(entry.variants)[0];
+  }
+  return baseline[0];
+}
+```
+
 #### Helper: `getVariantFiles()` and `getModelSizeMb()`
 
 Top-level `files` no longer exists. All code that previously accessed `entry.files` must go through variant-aware helpers:
@@ -297,9 +314,11 @@ Add a `ModelManager.getModelVariantInfo(modelId)` method that returns `{ variant
 // ModelManager new method
 async getModelVariantInfo(modelId: string): Promise<{ variantKey: string; dtype: string | Record<string, string>; files: ModelFileEntry[] }> {
   const entry = getManifestEntry(modelId);
+  if (!entry) throw new Error(`Unknown model: ${modelId}`);
   const metadata = await storage.getMetadata(modelId);
   const variantKey = metadata?.variant ?? getBaselineVariant(entry);
   const variant = entry.variants[variantKey];
+  if (!variant) throw new Error(`Unknown variant "${variantKey}" for model ${modelId}`);
   return { variantKey, dtype: variant.dtype, files: variant.files };
 }
 
@@ -317,7 +336,16 @@ this.worker.postMessage({
 
 #### Worker Side
 
-No changes needed. Workers already receive `dtype` and pass it to `pipeline()` / `from_pretrained()`.
+**Whisper WebGPU worker** (`whisper-webgpu.worker.ts`): Currently has internal dtype fallback logic that overrides the passed `dtype` when it's not provided:
+```typescript
+const dtype = msg.dtype ?? {
+  encoder_model: webgpuAvailable ? 'fp32' : 'q8',
+  decoder_model_merged: webgpuAvailable ? 'q4' : 'q8',
+};
+```
+After the migration, `msg.dtype` will always be provided from the variant, so this fallback path is never hit. The existing `??` operator ensures the passed variant dtype takes precedence. No code change needed, but the fallback values become dead code.
+
+**Qwen / Qwen3.5 / Opus-MT workers**: Same pattern — they use `msg.dtype || defaultValue`. After migration, `msg.dtype` is always provided. No changes needed.
 
 ### 5. UI Layer
 
@@ -368,7 +396,7 @@ Uses existing ModelCard `compatibilityHint` and `isCompatible` fields.
 | `src/lib/local-inference/modelManifest.ts` | `ModelManifestEntry` type, all model entries migrated to `variants`, `selectVariant()` function |
 | `src/lib/local-inference/modelStorage.ts` | `ModelMetadata.variant` field |
 | `src/lib/local-inference/ModelManager.ts` | `downloadModel()` variant selection, `getModelBlobUrls()` variant-aware, `isModelReady()` incompatibility check |
-| `src/stores/modelStore.ts` | `deviceFeatures: string[]` state, pass to `selectVariant()` |
+| `src/stores/modelStore.ts` | `deviceFeatures: string[]` state, `useDeviceFeatures()` selector, updated `initialize()` |
 | `src/utils/webgpu.ts` | `WebGPUCapabilities` interface, `checkWebGPU()` returns features, `getDeviceFeatures()` |
 | `src/lib/local-inference/engine/AsrEngine.ts` | Read variant from metadata, pass variant's dtype to worker |
 | `src/lib/local-inference/engine/TranslationEngine.ts` | Same as AsrEngine |
