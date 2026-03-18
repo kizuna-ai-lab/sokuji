@@ -16,6 +16,14 @@ export interface ModelFileEntry {
 
 export type ModelType = 'asr' | 'asr-stream' | 'tts' | 'translation';
 export type ModelStatus = 'not_downloaded' | 'downloading' | 'downloaded' | 'error';
+
+/** A dtype variant of a model, with its own file list and optional GPU feature requirements. */
+export interface ModelVariant {
+  dtype: string | Record<string, string>;
+  files: ModelFileEntry[];
+  /** GPU features required to use this variant (e.g. ['shader-f16']) */
+  requiredFeatures?: string[];
+}
 export type TtsEngineType = 'piper' | 'coqui' | 'mimic3' | 'mms' | 'matcha' | 'kokoro' | 'vits';
 
 /** Offline ASR engine types — determines which config builder the worker uses. */
@@ -70,6 +78,8 @@ export interface ModelManifestEntry {
   requiredDevice?: 'webgpu';
   /** ONNX dtype for WebGPU models. String for single-file, Record for multi-component models. */
   dtype?: string | Record<string, string>;
+  /** Model dtype variants with file lists and GPU feature requirements. */
+  variants?: Record<string, ModelVariant>;
 
   // ─── ASR configuration ─────────────────────────────────────────────────
   /** ASR engine type — determines which config builder the worker uses */
@@ -92,6 +102,46 @@ export interface ModelManifestEntry {
   targetLang?: string;
   /** Which translation worker to use. Defaults to 'opus-mt' if omitted. */
   translationWorkerType?: 'opus-mt' | 'qwen' | 'qwen35';
+}
+
+// ─── Variant Selection ──────────────────────────────────────────────────────
+
+/**
+ * Select the best variant for the current device.
+ * Prefers variants with more requiredFeatures (more optimized).
+ */
+export function selectVariant(
+  entry: ModelManifestEntry,
+  deviceFeatures: string[],
+): string {
+  if (!entry.variants) {
+    throw new Error(`Model ${entry.id} has no variants`);
+  }
+  const compatible = Object.entries(entry.variants).filter(([_, v]) =>
+    !v.requiredFeatures || v.requiredFeatures.every(f => deviceFeatures.includes(f))
+  );
+  if (compatible.length === 0) {
+    throw new Error(`No compatible variant for model ${entry.id} on this device`);
+  }
+  compatible.sort((a, b) =>
+    (b[1].requiredFeatures?.length ?? 0) - (a[1].requiredFeatures?.length ?? 0)
+  );
+  return compatible[0][0];
+}
+
+/**
+ * Get the baseline (universal fallback) variant key.
+ * Used when metadata.variant is undefined (legacy downloads).
+ */
+export function getBaselineVariant(entry: ModelManifestEntry): string {
+  if (!entry.variants) {
+    throw new Error(`Model ${entry.id} has no variants`);
+  }
+  const baseline = Object.entries(entry.variants).find(
+    ([_, v]) => !v.requiredFeatures || v.requiredFeatures.length === 0
+  );
+  if (!baseline) return Object.keys(entry.variants)[0];
+  return baseline[0];
 }
 
 // ─── Download URL Configuration ─────────────────────────────────────────────
@@ -295,6 +345,8 @@ function whisperFiles(
             vocab?: number; merges?: number },
   /** Encoder quantization suffix, e.g. '_q4', '_fp16'. Default '' = fp32 */
   encoderQuant?: string,
+  /** Decoder quantization suffix, e.g. '_q4', '_fp16', '_q4f16'. Default '_q4' */
+  decoderQuant?: string,
 ): ModelFileEntry[] {
   const files: ModelFileEntry[] = [
     { filename: 'config.json', sizeBytes: config },
@@ -303,7 +355,7 @@ function whisperFiles(
     { filename: 'tokenizer.json', sizeBytes: tokenizer },
     { filename: 'tokenizer_config.json', sizeBytes: tokenizerConfig },
     { filename: `onnx/encoder_model${encoderQuant ?? ''}.onnx`, sizeBytes: encoder },
-    { filename: 'onnx/decoder_model_merged_q4.onnx', sizeBytes: decoder },
+    { filename: `onnx/decoder_model_merged${decoderQuant ?? '_q4'}.onnx`, sizeBytes: decoder },
   ];
   if (extra?.normalizer) files.push({ filename: 'normalizer.json', sizeBytes: extra.normalizer });
   if (extra?.addedTokens) files.push({ filename: 'added_tokens.json', sizeBytes: extra.addedTokens });
@@ -2513,7 +2565,13 @@ export function getTtsModelsForLanguage(lang: string): ModelManifestEntry[] {
 }
 
 /** Total download size in MB, computed from per-file sizes. */
-export function getModelSizeMb(entry: ModelManifestEntry): number {
+export function getModelSizeMb(entry: ModelManifestEntry, deviceFeatures: string[] = []): number {
+  if (entry.variants) {
+    const variantKey = selectVariant(entry, deviceFeatures);
+    const files = entry.variants[variantKey].files;
+    return Math.round(files.reduce((sum, f) => sum + f.sizeBytes, 0) / 1_048_576);
+  }
+  // Legacy fallback for entries not yet migrated
   if (!entry.files) return 0;
   return Math.round(entry.files.reduce((sum, f) => sum + f.sizeBytes, 0) / 1_048_576);
 }
