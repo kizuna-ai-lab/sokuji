@@ -116,12 +116,12 @@ function selectVariant(
   entry: ModelManifestEntry,
   deviceFeatures: string[],
 ): string {
-  // 1. Find all variants whose requiredFeatures are satisfied by deviceFeatures
-  // 2. Prefer variants WITH requiredFeatures (more optimized)
-  // 3. Fall back to variant without requiredFeatures (baseline)
   const compatible = Object.entries(entry.variants).filter(([_, v]) =>
     !v.requiredFeatures || v.requiredFeatures.every(f => deviceFeatures.includes(f))
   );
+  if (compatible.length === 0) {
+    throw new Error(`No compatible variant for model ${entry.id} on this device`);
+  }
   // Prefer the one with most requiredFeatures (most optimized)
   compatible.sort((a, b) =>
     (b[1].requiredFeatures?.length ?? 0) - (a[1].requiredFeatures?.length ?? 0)
@@ -129,6 +129,40 @@ function selectVariant(
   return compatible[0][0];
 }
 ```
+
+#### Helper: `getVariantFiles()` and `getModelSizeMb()`
+
+Top-level `files` no longer exists. All code that previously accessed `entry.files` must go through variant-aware helpers:
+
+```typescript
+// Get files for a specific variant
+function getVariantFiles(entry: ModelManifestEntry, variantKey: string): ModelFileEntry[] {
+  return entry.variants[variantKey]?.files ?? [];
+}
+
+// Get model size for the optimal variant on current device
+function getModelSizeMb(entry: ModelManifestEntry, deviceFeatures: string[]): number {
+  const variantKey = selectVariant(entry, deviceFeatures);
+  const files = entry.variants[variantKey].files;
+  return Math.round(files.reduce((sum, f) => sum + f.sizeBytes, 0) / 1_048_576);
+}
+```
+
+#### `whisperFiles()` Helper Update
+
+Current helper hardcodes `decoder_model_merged_q4.onnx`. Add a `decoderQuant` parameter:
+
+```typescript
+function whisperFiles(
+  config, genConfig, preprocessor, tokenizer, tokenizerConfig,
+  encoder, decoder,
+  extra?,
+  encoderQuant?: string,  // existing: '_q4', '_fp16', or '' (fp32)
+  decoderQuant?: string,  // NEW: '_q4', '_fp16', '_q4f16', or default '_q4'
+): ModelFileEntry[]
+```
+
+This allows generating file lists for any dtype combination per variant.
 
 ### 2. WebGPU Capability Detection
 
@@ -175,7 +209,21 @@ webgpuAvailable: boolean;
 deviceFeatures: string[];
 ```
 
-Populated once during `initialize()` from `checkWebGPU()`.
+Updated `initialize()`:
+
+```typescript
+const [usedBytes, capabilities] = await Promise.all([
+  modelStorage.estimateStorageUsedBytes(),
+  checkWebGPU(),
+]);
+set({
+  modelStatuses: statuses,
+  storageUsedMb: Math.round(usedBytes / (1024 * 1024)),
+  initialized: true,
+  webgpuAvailable: capabilities.available,
+  deviceFeatures: capabilities.features,
+});
+```
 
 ### 3. ModelManager Download & Storage
 
@@ -184,7 +232,10 @@ Populated once during `initialize()` from `checkWebGPU()`.
 `downloadModel()` signature unchanged. Internal changes:
 
 1. Call `selectVariant(entry, deviceFeatures)` to determine variant
-2. Download files from selected variant's `files` list
+2. Replace all `entry.files` references with `variant.files`:
+   - Guard check: `if (!variant.files.length)` instead of `if (!entry.files)`
+   - Total size: `variant.files.reduce(...)` instead of `entry.files.reduce(...)`
+   - File iteration: `for (const file of variant.files)` instead of `for (const file of entry.files)`
 3. Store variant key in metadata
 
 #### ModelMetadata Extension
@@ -200,33 +251,66 @@ interface ModelMetadata {
 }
 ```
 
-Written at download time. Migration: existing downloads without `variant` field default to the first variant without `requiredFeatures`.
+Written at download time. No IndexedDB schema version bump needed. Migration is read-time: when `metadata.variant` is `undefined` (existing downloads), treat it as the first variant without `requiredFeatures` (the baseline variant, e.g. `q4`). All code reading `metadata.variant` must handle `undefined` defensively.
 
 #### Deletion
 
 Full delete (files + metadata), same as current behavior. Re-download creates fresh metadata with current optimal variant.
 
-#### Incompatibility Detection
+#### `isModelReady()` Changes
 
-`isModelReady(modelId)` extended: checks that the downloaded variant's `requiredFeatures` are satisfied by current device. If not (e.g. fp16 variant on non-f16 device), returns false.
+Replace `entry.files` access with variant-aware logic:
 
-#### getModelBlobUrls()
+```typescript
+async isModelReady(modelId: string): Promise<boolean> {
+  const entry = getManifestEntry(modelId);
+  if (!entry) return false;
+  const metadata = await storage.getMetadata(modelId);
+  if (!metadata || metadata.status !== 'downloaded') return false;
 
-Reads `variant` from metadata, uses corresponding variant's `files` list to generate blob URLs.
+  // Resolve variant (handle undefined for legacy downloads)
+  const variantKey = metadata.variant ?? getBaselineVariant(entry);
+  const variant = entry.variants[variantKey];
+  if (!variant) return false;
+
+  // Incompatibility check: variant requires features this device doesn't have
+  const deviceFeatures = getDeviceFeatures();
+  if (variant.requiredFeatures?.some(f => !deviceFeatures.includes(f))) return false;
+
+  return storage.hasAllFiles(modelId, variant.files.map(f => f.filename));
+}
+```
+
+#### `getModelBlobUrls()` Changes
+
+Replace `entry.files` access: read `variant` from metadata, use `variant.files` list to generate blob URLs. Same pattern as `isModelReady()` for resolving the variant key.
 
 ### 4. Worker Loading & Engine Layer
 
 #### Engine Changes (AsrEngine / TranslationEngine)
 
+Both engines currently read `model.dtype` / `entry.dtype` from the top-level manifest entry (AsrEngine line 144, TranslationEngine line 155). After migration, `entry.dtype` no longer exists.
+
+Add a `ModelManager.getModelVariantInfo(modelId)` method that returns `{ variantKey, dtype, files }` by reading metadata and looking up the variant. Engines call this instead of accessing `entry.dtype` directly:
+
 ```typescript
-const metadata = await storage.getMetadata(modelId);
-const variantKey = metadata.variant;
-const variant = entry.variants[variantKey];
+// ModelManager new method
+async getModelVariantInfo(modelId: string): Promise<{ variantKey: string; dtype: string | Record<string, string>; files: ModelFileEntry[] }> {
+  const entry = getManifestEntry(modelId);
+  const metadata = await storage.getMetadata(modelId);
+  const variantKey = metadata?.variant ?? getBaselineVariant(entry);
+  const variant = entry.variants[variantKey];
+  return { variantKey, dtype: variant.dtype, files: variant.files };
+}
+
+// Engine usage (both AsrEngine and TranslationEngine)
+const { dtype } = await manager.getModelVariantInfo(modelId);
+const fileUrls = await manager.getModelBlobUrls(modelId);
 
 this.worker.postMessage({
   type: 'init',
-  fileUrls,               // generated from variant.files
-  dtype: variant.dtype,   // from variant, not top-level entry
+  fileUrls,
+  dtype,   // from variant, not top-level entry
   ...
 });
 ```
