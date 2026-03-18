@@ -8,8 +8,12 @@
 import {
   getManifestEntry,
   getModelDownloadUrl,
+  selectVariant,
+  getBaselineVariant,
+  type ModelFileEntry,
 } from './modelManifest';
 import * as storage from './modelStorage';
+import { getDeviceFeatures } from '../../utils/webgpu';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -41,18 +45,25 @@ export class ModelManager {
 
   /**
    * Download a model (ASR, TTS, or translation).
-   * Fetches each file with streaming progress, stores Blobs in IndexedDB.
+   * Selects the optimal variant for the current device, fetches each file
+   * with streaming progress, stores Blobs in IndexedDB.
    * Skips files that are already stored (resume on retry).
+   *
+   * Returns the variant key that was downloaded.
    */
   async downloadModel(
     modelId: string,
     onProgress?: ProgressCallback,
-  ): Promise<void> {
+  ): Promise<string> {
     const entry = getManifestEntry(modelId);
     if (!entry) throw new Error(`Unknown model: ${modelId}`);
 
-    if (!entry.files || (!entry.cdnPath && !entry.hfModelId)) {
-      throw new Error(`Model ${modelId} has no download path (cdnPath or hfModelId)`);
+    // Select optimal variant for this device
+    const variantKey = selectVariant(entry, getDeviceFeatures());
+    const variant = entry.variants[variantKey];
+
+    if (!variant.files.length || (!entry.cdnPath && !entry.hfModelId)) {
+      throw new Error(`Model ${modelId} variant ${variantKey} has no download path`);
     }
 
     // Set up cancellation
@@ -60,7 +71,7 @@ export class ModelManager {
     this.activeDownloads.set(modelId, controller);
 
     // Calculate total bytes
-    const totalBytes = entry.files.reduce((sum, f) => sum + f.sizeBytes, 0);
+    const totalBytes = variant.files.reduce((sum, f) => sum + f.sizeBytes, 0);
     let downloadedBytes = 0;
 
     try {
@@ -71,9 +82,10 @@ export class ModelManager {
         downloadedAt: null,
         totalSizeBytes: totalBytes,
         version: '1',
+        variant: variantKey,
       });
 
-      for (const file of entry.files) {
+      for (const file of variant.files) {
         // Check cancellation
         if (controller.signal.aborted) {
           throw new DOMException('Download cancelled', 'AbortError');
@@ -164,7 +176,10 @@ export class ModelManager {
         downloadedAt: Date.now(),
         totalSizeBytes: totalBytes,
         version: '1',
+        variant: variantKey,
       });
+
+      return variantKey;
     } catch (err: any) {
       if (err.name === 'AbortError') {
         // Cancelled — leave partial files for resume
@@ -177,6 +192,7 @@ export class ModelManager {
         downloadedAt: null,
         totalSizeBytes: totalBytes,
         version: '1',
+        variant: variantKey,
       });
       throw err;
     } finally {
@@ -202,10 +218,14 @@ export class ModelManager {
    */
   async getModelBlobUrls(modelId: string): Promise<Record<string, string>> {
     const entry = getManifestEntry(modelId);
-    if (!entry?.files) return {};
+    if (!entry) return {};
+    const metadata = await storage.getMetadata(modelId);
+    const variantKey = metadata?.variant ?? getBaselineVariant(entry);
+    const variant = entry.variants[variantKey];
+    if (!variant) return {};
 
     const urls: Record<string, string> = {};
-    for (const file of entry.files) {
+    for (const file of variant.files) {
       const blob = await storage.getFile(modelId, file.filename);
       if (blob) {
         // Re-wrap with correct MIME type so WebAssembly.instantiateStreaming
@@ -226,13 +246,44 @@ export class ModelManager {
     }
   }
 
+  // ─── Variant Info ──────────────────────────────────────────────────────────
+
+  /**
+   * Get the variant info for a downloaded model.
+   * Used by engines to pass the correct dtype to workers.
+   */
+  async getModelVariantInfo(modelId: string): Promise<{
+    variantKey: string;
+    dtype: string | Record<string, string>;
+    files: ModelFileEntry[];
+  }> {
+    const entry = getManifestEntry(modelId);
+    if (!entry) throw new Error(`Unknown model: ${modelId}`);
+    const metadata = await storage.getMetadata(modelId);
+    const variantKey = metadata?.variant ?? getBaselineVariant(entry);
+    const variant = entry.variants[variantKey];
+    if (!variant) throw new Error(`Unknown variant "${variantKey}" for model ${modelId}`);
+    return { variantKey, dtype: variant.dtype, files: variant.files };
+  }
+
   // ─── Status Queries ──────────────────────────────────────────────────────
 
-  /** Check if all files for a model are present in IndexedDB */
+  /** Check if a model is ready (downloaded, compatible variant, all files present) */
   async isModelReady(modelId: string): Promise<boolean> {
     const entry = getManifestEntry(modelId);
-    if (!entry?.files) return false;
-    return storage.hasAllFiles(modelId, entry.files.map(f => f.filename));
+    if (!entry) return false;
+    const metadata = await storage.getMetadata(modelId);
+    if (!metadata || metadata.status !== 'downloaded') return false;
+
+    const variantKey = metadata.variant ?? getBaselineVariant(entry);
+    const variant = entry.variants[variantKey];
+    if (!variant) return false;
+
+    // Incompatibility check: variant requires features this device doesn't have
+    const deviceFeatures = getDeviceFeatures();
+    if (variant.requiredFeatures?.some(f => !deviceFeatures.includes(f))) return false;
+
+    return storage.hasAllFiles(modelId, variant.files.map(f => f.filename));
   }
 
   /** Delete a model from IndexedDB */
