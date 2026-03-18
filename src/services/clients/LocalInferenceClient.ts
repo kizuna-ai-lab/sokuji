@@ -404,6 +404,7 @@ export class LocalInferenceClient implements IClient {
         sourceText: job.text,
         translatedText,
         inferenceTimeMs: translationResult.inferenceTimeMs,
+        systemPrompt: translationResult.systemPrompt,
       });
 
       // Create assistant item with translation already set
