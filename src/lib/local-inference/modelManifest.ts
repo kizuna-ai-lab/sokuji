@@ -2514,13 +2514,8 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
   {
     id: 'qwen3-0.6b-translation',
     type: 'translation',
-    name: 'Qwen 3 0.6B (multilingual, WebGPU)',
-    languages: [
-      'ja', 'zh', 'en', 'ko', 'de', 'fr', 'es', 'ru',
-      'ar', 'pt', 'th', 'vi', 'id', 'tr', 'nl', 'pl',
-      'it', 'hi', 'sv', 'da', 'fi', 'hu', 'ro', 'no',
-      'uk', 'cs', 'et', 'af',
-    ],
+    name: 'Qwen 3 0.6B (119+ languages, WebGPU)',
+    languages: ['multilingual'],
     multilingual: true,
     requiredDevice: 'webgpu',
     hfModelId: 'onnx-community/Qwen3-0.6B-ONNX',
@@ -2533,13 +2528,8 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
   {
     id: 'qwen3.5-0.8b-translation',
     type: 'translation',
-    name: 'Qwen 3.5 0.8B (multilingual, WebGPU)',
-    languages: [
-      'ja', 'zh', 'en', 'ko', 'de', 'fr', 'es', 'ru',
-      'ar', 'pt', 'th', 'vi', 'id', 'tr', 'nl', 'pl',
-      'it', 'hi', 'sv', 'da', 'fi', 'hu', 'ro', 'no',
-      'uk', 'cs', 'et', 'af',
-    ],
+    name: 'Qwen 3.5 0.8B (201+ languages, WebGPU)',
+    languages: ['multilingual'],
     multilingual: true,
     requiredDevice: 'webgpu',
     hfModelId: 'onnx-community/Qwen3.5-0.8B-ONNX',
@@ -2559,13 +2549,8 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
   {
     id: 'qwen3.5-2b-translation',
     type: 'translation',
-    name: 'Qwen 3.5 2B (multilingual, WebGPU)',
-    languages: [
-      'ja', 'zh', 'en', 'ko', 'de', 'fr', 'es', 'ru',
-      'ar', 'pt', 'th', 'vi', 'id', 'tr', 'nl', 'pl',
-      'it', 'hi', 'sv', 'da', 'fi', 'hu', 'ro', 'no',
-      'uk', 'cs', 'et', 'af',
-    ],
+    name: 'Qwen 3.5 2B (201+ languages, WebGPU)',
+    languages: ['multilingual'],
     multilingual: true,
     requiredDevice: 'webgpu',
     hfModelId: 'onnx-community/Qwen3.5-2B-ONNX',
@@ -2590,7 +2575,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
 
 // ─── Language Helpers ────────────────────────────────────────────────────────
 
-import { getLanguageOption } from '../../utils/languages';
+import { getLanguageOption, LANGUAGE_OPTIONS, sortLanguageOptions } from '../../utils/languages';
 import type { LanguageOption } from '../../services/providers/ProviderConfig';
 
 /** Get all unique source languages available across translation models */
@@ -2598,25 +2583,25 @@ export function getTranslationSourceLanguages(): LanguageOption[] {
   const codes = new Set<string>();
   for (const m of MODEL_MANIFEST.filter(m => m.type === 'translation')) {
     if (m.multilingual) {
-      m.languages.forEach(l => codes.add(l));
+      Object.keys(LANGUAGE_OPTIONS).forEach(l => codes.add(l));
     } else if (m.sourceLang) {
       codes.add(m.sourceLang);
     }
   }
-  return [...codes].map(getLanguageOption).sort((a, b) => a.englishName.localeCompare(b.englishName));
+  return sortLanguageOptions([...codes].map(getLanguageOption));
 }
 
 /** Get available target languages for a given source language */
 export function getTranslationTargetLanguages(sourceLang: string): LanguageOption[] {
   const codes = new Set<string>();
   for (const m of MODEL_MANIFEST.filter(m => m.type === 'translation')) {
-    if (m.multilingual && m.languages.includes(sourceLang)) {
-      m.languages.forEach(l => { if (l !== sourceLang) codes.add(l); });
+    if (m.multilingual) {
+      Object.keys(LANGUAGE_OPTIONS).forEach(l => { if (l !== sourceLang) codes.add(l); });
     } else if (m.sourceLang === sourceLang && m.targetLang) {
       codes.add(m.targetLang);
     }
   }
-  return [...codes].map(getLanguageOption).sort((a, b) => a.englishName.localeCompare(b.englishName));
+  return sortLanguageOptions([...codes].map(getLanguageOption));
 }
 
 // ─── Query Helpers ───────────────────────────────────────────────────────────
@@ -2647,10 +2632,9 @@ export function getTranslationModel(sourceLang: string, targetLang: string): Mod
     m => m.type === 'translation' && m.sourceLang === sourceLang && m.targetLang === targetLang
   );
   if (pairModel) return pairModel;
-  // Fallback: multilingual model supporting both languages
+  // Fallback: multilingual model (supports any language pair)
   return MODEL_MANIFEST.find(
     m => m.type === 'translation' && m.multilingual
-      && m.languages.includes(sourceLang) && m.languages.includes(targetLang)
   );
 }
 
@@ -2659,9 +2643,7 @@ export function isTranslationModelCompatible(
   entry: ModelManifestEntry, sourceLang: string, targetLang: string,
 ): boolean {
   if (entry.type !== 'translation') return false;
-  if (entry.multilingual) {
-    return entry.languages.includes(sourceLang) && entry.languages.includes(targetLang);
-  }
+  if (entry.multilingual) return true;
   return entry.sourceLang === sourceLang && entry.targetLang === targetLang;
 }
 
