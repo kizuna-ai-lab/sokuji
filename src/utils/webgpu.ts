@@ -20,6 +20,18 @@ export async function checkWebGPU(): Promise<WebGPUCapabilities> {
     }
     const features: string[] = [];
     if (adapter.features.has('shader-f16')) features.push('shader-f16');
+
+    // Dev override: localStorage.setItem('debug:webgpu-features', 'shader-f16') to force enable
+    //               localStorage.setItem('debug:webgpu-features', '')            to force disable
+    //               localStorage.removeItem('debug:webgpu-features')             to use real detection
+    const override = localStorage.getItem('debug:webgpu-features');
+    if (override !== null) {
+      const overrideFeatures = override ? override.split(',').map(s => s.trim()).filter(Boolean) : [];
+      console.log(`[webgpu] Dev override active: features=${JSON.stringify(overrideFeatures)} (real: ${JSON.stringify(features)})`);
+      cached = { available: true, features: overrideFeatures };
+      return cached;
+    }
+
     cached = { available: true, features };
   } catch {
     cached = { available: false, features: [] };
