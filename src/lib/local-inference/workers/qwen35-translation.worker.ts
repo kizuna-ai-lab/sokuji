@@ -200,6 +200,7 @@ async function handleTranslate(msg: TranslateMessage) {
       sourceText: msg.text,
       translatedText,
       inferenceTimeMs: elapsed,
+      systemPrompt,
     });
   } catch (error: any) {
     self.postMessage({ type: 'error', id: msg.id, error: error.message || String(error) });

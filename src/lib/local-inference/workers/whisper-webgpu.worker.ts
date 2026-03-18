@@ -303,7 +303,11 @@ async function runWhisper(audio: Float32Array, startSample: number): Promise<voi
 
   const startTime = performance.now();
   try {
-    const options: Record<string, any> = {};
+    const options: Record<string, any> = {
+      // Prevent decoder from looping on the same n-gram — mitigates Whisper
+      // hallucination/repetition, especially with fp16 quantized models.
+      no_repeat_ngram_size: 3,
+    };
     if (currentLanguage) {
       options.language = currentLanguage;
       options.task = 'transcribe';

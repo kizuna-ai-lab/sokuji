@@ -12,6 +12,7 @@ export interface TranslationResult {
   sourceText: string;
   translatedText: string;
   inferenceTimeMs: number;
+  systemPrompt?: string;
 }
 
 type ErrorCallback = (error: string) => void;
@@ -68,6 +69,7 @@ export class TranslationEngine {
     if (!await manager.isModelReady(entry.id)) {
       throw new Error(`Translation model "${entry.id}" is not downloaded. Download it first via Model Management.`);
     }
+    const { dtype } = await manager.getModelVariantInfo(entry.id);
     const fileUrls = await manager.getModelBlobUrls(entry.id);
 
     return new Promise((resolve, reject) => {
@@ -115,6 +117,7 @@ export class TranslationEngine {
                 sourceText: msg.sourceText,
                 translatedText: msg.translatedText,
                 inferenceTimeMs: msg.inferenceTimeMs,
+                systemPrompt: msg.systemPrompt,
               });
             }
             break;
@@ -151,8 +154,8 @@ export class TranslationEngine {
         }
       };
 
-      // Send init message with blob URLs + language info + dtype
-      this.worker.postMessage({ type: 'init', hfModelId, fileUrls, sourceLang, targetLang, dtype: entry.dtype, ortWasmBaseUrl: new URL('./wasm/ort/', window.location.href).href });
+      // Send init message with blob URLs + language info + dtype from variant
+      this.worker.postMessage({ type: 'init', hfModelId, fileUrls, sourceLang, targetLang, dtype, ortWasmBaseUrl: new URL('./wasm/ort/', window.location.href).href });
     });
   }
 

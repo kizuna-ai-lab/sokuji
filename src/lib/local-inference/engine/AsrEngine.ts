@@ -65,6 +65,7 @@ export class AsrEngine {
     if (!await manager.isModelReady(modelId)) {
       throw new Error(`ASR model "${modelId}" is not downloaded. Download it first via Model Management.`);
     }
+    const { dtype } = await manager.getModelVariantInfo(modelId);
     const fileUrls = await manager.getModelBlobUrls(modelId);
 
     const workerType = model.asrWorkerType || 'sherpa-onnx';
@@ -141,7 +142,7 @@ export class AsrEngine {
           hfModelId: model.hfModelId,
           language,
           vadConfig,
-          dtype: model.dtype,
+          dtype,
           ortWasmBaseUrl: new URL('./wasm/ort/', window.location.href).href,
           vadModelUrl: new URL('./wasm/vad/silero_vad_v5.onnx', window.location.href).href,
         });
