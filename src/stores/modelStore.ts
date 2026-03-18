@@ -86,9 +86,15 @@ export const useModelStore = create<ModelStoreState>()(
       if (get().initialized) return;
 
       const manager = ModelManager.getInstance();
-      const statuses: Record<string, ModelStatus> = {};
 
-      // Check each model in the manifest
+      // Check WebGPU FIRST so getDeviceFeatures() cache is populated for isModelReady()
+      const [usedBytes, capabilities] = await Promise.all([
+        modelStorage.estimateStorageUsedBytes(),
+        checkWebGPU(),
+      ]);
+
+      // Now check each model in the manifest (device features are available)
+      const statuses: Record<string, ModelStatus> = {};
       for (const entry of MODEL_MANIFEST) {
         const metadata = await modelStorage.getMetadata(entry.id);
         if (metadata?.status === 'downloaded') {
@@ -104,12 +110,6 @@ export const useModelStore = create<ModelStoreState>()(
           statuses[entry.id] = 'not_downloaded';
         }
       }
-
-      // Estimate storage + check WebGPU
-      const [usedBytes, capabilities] = await Promise.all([
-        modelStorage.estimateStorageUsedBytes(),
-        checkWebGPU(),
-      ]);
 
       // Load variant keys from metadata
       const modelVariants: Record<string, string> = {};
