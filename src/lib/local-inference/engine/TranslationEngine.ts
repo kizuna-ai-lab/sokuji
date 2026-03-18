@@ -69,8 +69,8 @@ export class TranslationEngine {
     if (!await manager.isModelReady(entry.id)) {
       throw new Error(`Translation model "${entry.id}" is not downloaded. Download it first via Model Management.`);
     }
-    const fileUrls = await manager.getModelBlobUrls(entry.id);
     const { dtype } = await manager.getModelVariantInfo(entry.id);
+    const fileUrls = await manager.getModelBlobUrls(entry.id);
 
     return new Promise((resolve, reject) => {
       // Create the Web Worker — select based on worker type
