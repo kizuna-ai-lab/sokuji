@@ -569,7 +569,7 @@ function initSherpaOnnxOnlineRecognizerConfig(config, Module) {
   };
 }
 
-function createOnlineRecognizer(Module, myConfig) {
+function createOnlineRecognizer(Module, myConfig, modelType) {
   const onlineTransducerModelConfig = {
     encoder: '',
     decoder: '',
@@ -593,7 +593,7 @@ function createOnlineRecognizer(Module, myConfig) {
     model: '',
   };
 
-  let type = 0;
+  let type = modelType || 0;
 
   switch (type) {
     case 0:
