@@ -375,7 +375,7 @@ function whisperFiles(
   encoder: number, decoder: number,
   extra?: { normalizer?: number; addedTokens?: number; specialTokensMap?: number;
             vocab?: number; merges?: number },
-  /** Encoder quantization suffix, e.g. '_q4', '_fp16'. Default '' = fp32 */
+  /** Encoder quantization suffix, e.g. '_q4', '_fp16'. Default '_q4' */
   encoderQuant?: string,
   /** Decoder quantization suffix, e.g. '_q4', '_fp16', '_q4f16'. Default '_q4' */
   decoderQuant?: string,
@@ -386,7 +386,7 @@ function whisperFiles(
     { filename: 'preprocessor_config.json', sizeBytes: preprocessor },
     { filename: 'tokenizer.json', sizeBytes: tokenizer },
     { filename: 'tokenizer_config.json', sizeBytes: tokenizerConfig },
-    { filename: `onnx/encoder_model${encoderQuant ?? ''}.onnx`, sizeBytes: encoder },
+    { filename: `onnx/encoder_model${encoderQuant ?? '_q4'}.onnx`, sizeBytes: encoder },
     { filename: `onnx/decoder_model_merged${decoderQuant ?? '_q4'}.onnx`, sizeBytes: decoder },
   ];
   if (extra?.normalizer) files.push({ filename: 'normalizer.json', sizeBytes: extra.normalizer });
@@ -724,29 +724,34 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
   // Whisper via @huggingface/transformers with built-in Silero VAD.
   // dtype: encoder_model=fp32, decoder_model_merged=q4 for WebGPU.
   // Shared extra files for multilingual models
+  // NOTE: Whisper tiny/base/small/medium shader-f16 (q4f16) variants disabled.
+  // These smaller models produce degenerate output (hallucination, repetition loops,
+  // or garbage) with fp16/q4f16 quantization on WebGPU. Tested with both
+  // onnx-community and Xenova repos — only whisper-large-v3-turbo is stable with
+  // q4f16. Medium also OOMs with fp16 encoder (~615MB). Keep q4 only for these models.
   {
     id: 'whisper-tiny-en-webgpu',
     type: 'asr',
     name: 'Whisper Tiny EN (WebGPU)',
     languages: ['en'],
-    hfModelId: 'onnx-community/whisper-tiny.en',
+    hfModelId: 'Xenova/whisper-tiny.en',
     requiredDevice: 'webgpu',
     asrWorkerType: 'whisper-webgpu',
     variants: {
       'q4': {
-        dtype: { encoder_model: 'fp32', decoder_model_merged: 'q4' },
-        files: whisperFiles(2_197, 1_646, 339, 2_405_679, 282_662,
-          32_904_992, 86_712_166,
-          { normalizer: 52_666, addedTokens: 34_604, specialTokensMap: 2_173, vocab: 999_186, merges: 456_318 }),
+        dtype: { encoder_model: 'q4', decoder_model_merged: 'q4' },
+        files: whisperFiles(2_202, 1_590, 339, 2_128_494, 835,
+          9_006_044, 86_737_938,
+          { normalizer: 52_666, addedTokens: 2_082, specialTokensMap: 1_717, vocab: 999_186, merges: 456_318 }),
       },
-      'fp16': {
-        dtype: { encoder_model: 'fp16', decoder_model_merged: 'fp16' },
-        files: whisperFiles(2_197, 1_646, 339, 2_405_679, 282_662,
-          16_519_192, 59_589_240,
-          { normalizer: 52_666, addedTokens: 34_604, specialTokensMap: 2_173, vocab: 999_186, merges: 456_318 },
-          '_fp16', '_fp16'),
-        requiredFeatures: ['shader-f16'],
-      },
+      // 'q4f16': {
+      //   dtype: { encoder_model: 'fp16', decoder_model_merged: 'q4f16' },
+      //   files: whisperFiles(2_202, 1_590, 339, 2_128_494, 835,
+      //     16_519_776, 46_040_376,
+      //     { normalizer: 52_666, addedTokens: 2_082, specialTokensMap: 1_717, vocab: 999_186, merges: 456_318 },
+      //     '_fp16', '_q4f16'),
+      //   requiredFeatures: ['shader-f16'],
+      // },
     },
   },
   {
@@ -755,24 +760,24 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     name: 'Whisper Tiny (WebGPU, 99+ languages)',
     languages: ['multilingual'],
     multilingual: true,
-    hfModelId: 'onnx-community/whisper-tiny',
+    hfModelId: 'Xenova/whisper-tiny',
     requiredDevice: 'webgpu',
     asrWorkerType: 'whisper-webgpu',
     variants: {
       'q4': {
-        dtype: { encoder_model: 'fp32', decoder_model_merged: 'q4' },
-        files: whisperFiles(2_243, 3_772, 339, 2_480_466, 282_683,
-          32_904_992, 86_713_702,
-          { normalizer: 52_666, addedTokens: 34_604, specialTokensMap: 2_194, vocab: 1_036_584, merges: 493_869 }),
+        dtype: { encoder_model: 'q4', decoder_model_merged: 'q4' },
+        files: whisperFiles(2_248, 3_716, 339, 2_480_466, 282_683,
+          9_006_044, 86_739_474,
+          { normalizer: 52_666, addedTokens: 2_082, specialTokensMap: 2_194, vocab: 1_036_584, merges: 493_869 }),
       },
-      'fp16': {
-        dtype: { encoder_model: 'fp16', decoder_model_merged: 'fp16' },
-        files: whisperFiles(2_243, 3_772, 339, 2_480_466, 282_683,
-          16_519_192, 59_593_896,
-          { normalizer: 52_666, addedTokens: 34_604, specialTokensMap: 2_194, vocab: 1_036_584, merges: 493_869 },
-          '_fp16', '_fp16'),
-        requiredFeatures: ['shader-f16'],
-      },
+      // 'q4f16': {
+      //   dtype: { encoder_model: 'fp16', decoder_model_merged: 'q4f16' },
+      //   files: whisperFiles(2_248, 3_716, 339, 2_480_466, 282_683,
+      //     16_519_776, 46_041_144,
+      //     { normalizer: 52_666, addedTokens: 2_082, specialTokensMap: 2_194, vocab: 1_036_584, merges: 493_869 },
+      //     '_fp16', '_q4f16'),
+      //   requiredFeatures: ['shader-f16'],
+      // },
     },
   },
   {
@@ -781,24 +786,24 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     name: 'Whisper Base (WebGPU, 99+ languages)',
     languages: ['multilingual'],
     multilingual: true,
-    hfModelId: 'onnx-community/whisper-base',
+    hfModelId: 'Xenova/whisper-base',
     requiredDevice: 'webgpu',
     asrWorkerType: 'whisper-webgpu',
     variants: {
       'q4': {
-        dtype: { encoder_model: 'fp32', decoder_model_merged: 'q4' },
-        files: whisperFiles(2_243, 3_832, 339, 2_480_466, 282_682,
-          82_468_078, 123_602_419,
-          { normalizer: 52_666, addedTokens: 34_604, specialTokensMap: 2_194, vocab: 1_036_584, merges: 493_869 }),
+        dtype: { encoder_model: 'q4', decoder_model_merged: 'q4' },
+        files: whisperFiles(2_248, 3_776, 339, 2_480_466, 282_683,
+          18_749_674, 123_641_874,
+          { normalizer: 52_666, addedTokens: 2_082, specialTokensMap: 2_194, vocab: 1_036_584, merges: 493_869 }),
       },
-      'fp16': {
-        dtype: { encoder_model: 'fp16', decoder_model_merged: 'fp16' },
-        files: whisperFiles(2_243, 3_832, 339, 2_480_466, 282_682,
-          41_332_612, 104_727_818,
-          { normalizer: 52_666, addedTokens: 34_604, specialTokensMap: 2_194, vocab: 1_036_584, merges: 493_869 },
-          '_fp16', '_fp16'),
-        requiredFeatures: ['shader-f16'],
-      },
+      // 'q4f16': {
+      //   dtype: { encoder_model: 'fp16', decoder_model_merged: 'q4f16' },
+      //   files: whisperFiles(2_248, 3_776, 339, 2_480_466, 282_683,
+      //     41_333_198, 68_573_265,
+      //     { normalizer: 52_666, addedTokens: 2_082, specialTokensMap: 2_194, vocab: 1_036_584, merges: 493_869 },
+      //     '_fp16', '_q4f16'),
+      //   requiredFeatures: ['shader-f16'],
+      // },
     },
   },
   {
@@ -807,24 +812,24 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     name: 'Whisper Small (WebGPU, 99+ languages)',
     languages: ['multilingual'],
     multilingual: true,
-    hfModelId: 'onnx-community/whisper-small',
+    hfModelId: 'Xenova/whisper-small',
     requiredDevice: 'webgpu',
     asrWorkerType: 'whisper-webgpu',
     variants: {
       'q4': {
-        dtype: { encoder_model: 'fp32', decoder_model_merged: 'q4' },
-        files: whisperFiles(2_227, 3_893, 339, 2_480_466, 282_683,
-          352_825_870, 233_149_327,
-          { normalizer: 52_666, addedTokens: 34_604, specialTokensMap: 2_194, vocab: 1_036_584, merges: 493_869 }),
+        dtype: { encoder_model: 'q4', decoder_model_merged: 'q4' },
+        files: whisperFiles(2_232, 3_837, 339, 2_480_466, 282_683,
+          66_134_815, 233_230_238,
+          { normalizer: 52_666, addedTokens: 2_082, specialTokensMap: 2_194, vocab: 1_036_584, merges: 493_869 }),
       },
-      'fp16': {
-        dtype: { encoder_model: 'fp16', decoder_model_merged: 'fp16' },
-        files: whisperFiles(2_227, 3_893, 339, 2_480_466, 282_683,
-          176_607_756, 308_583_076,
-          { normalizer: 52_666, addedTokens: 34_604, specialTokensMap: 2_194, vocab: 1_036_584, merges: 493_869 },
-          '_fp16', '_fp16'),
-        requiredFeatures: ['shader-f16'],
-      },
+      // 'q4f16': {
+      //   dtype: { encoder_model: 'fp16', decoder_model_merged: 'q4f16' },
+      //   files: whisperFiles(2_232, 3_837, 339, 2_480_466, 282_683,
+      //     176_608_338, 145_836_023,
+      //     { normalizer: 52_666, addedTokens: 2_082, specialTokensMap: 2_194, vocab: 1_036_584, merges: 493_869 },
+      //     '_fp16', '_q4f16'),
+      //   requiredFeatures: ['shader-f16'],
+      // },
     },
   },
   {
@@ -833,25 +838,25 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     name: 'Whisper Medium (WebGPU, 99+ languages)',
     languages: ['multilingual'],
     multilingual: true,
-    hfModelId: 'onnx-community/whisper-medium-ONNX',
+    hfModelId: 'Xenova/whisper-medium',
     requiredDevice: 'webgpu',
     asrWorkerType: 'whisper-webgpu',
     variants: {
       'q4': {
         dtype: { encoder_model: 'q4', decoder_model_merged: 'q4' },
-        files: whisperFiles(1_389, 3_780, 339, 3_930_494, 282_713,
-          209_954_580, 469_353_892,
-          { normalizer: 52_666, addedTokens: 34_604, specialTokensMap: 2_194, vocab: 1_036_584, merges: 493_869 },
+        files: whisperFiles(2_256, 3_694, 339, 2_480_466, 282_683,
+          209_993_363, 469_835_828,
+          { normalizer: 52_666, addedTokens: 2_082, specialTokensMap: 2_194, vocab: 1_036_584, merges: 493_869 },
           '_q4'),
       },
-      'q4f16': {
-        dtype: { encoder_model: 'fp16', decoder_model_merged: 'q4f16' },
-        files: whisperFiles(1_389, 3_780, 339, 3_930_494, 282_713,
-          614_716_372, 336_281_436,
-          { normalizer: 52_666, addedTokens: 34_604, specialTokensMap: 2_194, vocab: 1_036_584, merges: 493_869 },
-          '_fp16', '_q4f16'),
-        requiredFeatures: ['shader-f16'],
-      },
+      // 'q4f16': {
+      //   dtype: { encoder_model: 'fp16', decoder_model_merged: 'q4f16' },
+      //   files: whisperFiles(2_256, 3_694, 339, 2_480_466, 282_683,
+      //     615_033_351, 337_396_943,
+      //     { normalizer: 52_666, addedTokens: 2_082, specialTokensMap: 2_194, vocab: 1_036_584, merges: 493_869 },
+      //     '_fp16', '_q4f16'),
+      //   requiredFeatures: ['shader-f16'],
+      // },
     },
   },
   {
