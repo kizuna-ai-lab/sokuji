@@ -12,6 +12,7 @@ export interface TranslationResult {
   sourceText: string;
   translatedText: string;
   inferenceTimeMs: number;
+  systemPrompt?: string;
 }
 
 type ErrorCallback = (error: string) => void;
@@ -116,6 +117,7 @@ export class TranslationEngine {
                 sourceText: msg.sourceText,
                 translatedText: msg.translatedText,
                 inferenceTimeMs: msg.inferenceTimeMs,
+                systemPrompt: msg.systemPrompt,
               });
             }
             break;
