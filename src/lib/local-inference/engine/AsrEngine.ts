@@ -65,8 +65,8 @@ export class AsrEngine {
     if (!await manager.isModelReady(modelId)) {
       throw new Error(`ASR model "${modelId}" is not downloaded. Download it first via Model Management.`);
     }
-    const fileUrls = await manager.getModelBlobUrls(modelId);
     const { dtype } = await manager.getModelVariantInfo(modelId);
+    const fileUrls = await manager.getModelBlobUrls(modelId);
 
     const workerType = model.asrWorkerType || 'sherpa-onnx';
 
