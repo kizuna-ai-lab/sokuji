@@ -297,7 +297,14 @@ const LogsPanel: React.FC<LogsPanelProps> = ({ toggleLogs }) => {
         activeTab={activeTab}
         onTabChange={(id) => setActiveTab(id as ClientId)}
       />
-      <div className="logs-content" ref={logsContentRef} onScroll={handleScroll}>
+      <div
+        className="logs-content"
+        ref={logsContentRef}
+        onScroll={handleScroll}
+        role="tabpanel"
+        id={`tabpanel-${activeTab}`}
+        aria-labelledby={`tab-${activeTab}`}
+      >
         {filteredLogs.length > 0 ? (
           <>
             {/* Top spacer for virtual scrolling */}
