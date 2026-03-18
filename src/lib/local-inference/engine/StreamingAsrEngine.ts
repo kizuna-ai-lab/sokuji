@@ -38,6 +38,7 @@ export class StreamingAsrEngine {
 
   onResult: ResultCallback | null = null;
   onPartialResult: PartialResultCallback | null = null;
+  onSpeechStart: (() => void) | null = null;
   onStatus: StatusCallback | null = null;
   onError: ErrorCallback | null = null;
 
@@ -105,6 +106,10 @@ export class StreamingAsrEngine {
 
           case 'status':
             this.onStatus?.(msg.message);
+            break;
+
+          case 'speech_start':
+            this.onSpeechStart?.();
             break;
 
           case 'partial':

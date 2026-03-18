@@ -32,6 +32,7 @@ export class AsrEngine {
   private currentModel: ModelManifestEntry | null = null;
 
   onResult: ResultCallback | null = null;
+  onSpeechStart: (() => void) | null = null;
   onStatus: StatusCallback | null = null;
   onError: ErrorCallback | null = null;
 
@@ -95,6 +96,10 @@ export class AsrEngine {
 
           case 'status':
             this.onStatus?.(msg.message);
+            break;
+
+          case 'speech_start':
+            this.onSpeechStart?.();
             break;
 
           case 'result':

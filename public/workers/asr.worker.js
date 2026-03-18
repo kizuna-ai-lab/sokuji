@@ -14,6 +14,7 @@
  *   Worker → Main:
  *     { type: 'ready', loadTimeMs: number }
  *     { type: 'status', message: string }
+ *     { type: 'speech_start' }
  *     { type: 'result', text, startSample, durationMs, recognitionTimeMs }
  *     { type: 'error', error: string }
  *     { type: 'disposed' }
@@ -27,6 +28,7 @@ var vad = null;
 var buffer = null;
 var recognizer = null;
 var isReady = false;
+var isSpeaking = false;
 
 // ─── Audio Conversion ────────────────────────────────────────────────────────
 
@@ -347,6 +349,12 @@ function handleAudio(msg) {
       var segment = buffer.get(buffer.head(), windowSize);
       buffer.pop(windowSize);
       vad.acceptWaveform(segment);
+
+      // Detect speech start transition via VAD state
+      if (!isSpeaking && vad.isDetected()) {
+        isSpeaking = true;
+        postMessage({ type: 'speech_start' });
+      }
     }
 
     // Process completed speech segments through ASR
@@ -381,8 +389,10 @@ function handleAudio(msg) {
       }
 
       vad.pop();
+      isSpeaking = false;
     }
   } catch (e) {
+    isSpeaking = false;
     postMessage({ type: 'error', error: 'ASR processing error: ' + (e.message || e) });
     // Drain remaining VAD segments to prevent stale state
     try { while (!vad.isEmpty()) { vad.pop(); } } catch (_) {}
@@ -431,8 +441,10 @@ function handleFlush() {
       }
 
       vad.pop();
+      isSpeaking = false;
     }
   } catch (e) {
+    isSpeaking = false;
     postMessage({ type: 'error', error: 'ASR flush error: ' + (e.message || e) });
     try { while (!vad.isEmpty()) { vad.pop(); } } catch (_) {}
   }
