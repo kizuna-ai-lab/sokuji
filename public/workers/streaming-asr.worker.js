@@ -14,6 +14,7 @@
  *   Worker → Main:
  *     { type: 'ready', loadTimeMs: number }
  *     { type: 'status', message: string }
+ *     { type: 'speech_start' }
  *     { type: 'partial', text: string }
  *     { type: 'result', text: string, durationMs: number, recognitionTimeMs: number }
  *     { type: 'error', error: string }
@@ -210,6 +211,10 @@ function handleAudio(msg) {
       // Reset for next utterance
       resetStreamState();
     } else if (text && text !== lastPartialText) {
+      // Emit speech_start on first non-empty partial (transition from silence to speech)
+      if (!lastPartialText) {
+        postMessage({ type: 'speech_start' });
+      }
       // Emit partial result only when text changes
       lastPartialText = text;
       postMessage({ type: 'partial', text: text });

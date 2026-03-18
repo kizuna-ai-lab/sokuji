@@ -78,6 +78,7 @@ export interface EventData {
     // LocalInference pipeline event types
     | 'local.session.opened'
     | 'local.session.closed'
+    | 'local.asr.start'
     | 'local.asr.partial'
     | 'local.asr.end'
     | 'local.asr.error'

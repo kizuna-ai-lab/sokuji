@@ -113,6 +113,11 @@ export class LocalInferenceClient implements IClient {
           this.handleAsrResult(text, { durationMs: result.durationMs, recognitionTimeMs: result.recognitionTimeMs });
         };
 
+        engine.onSpeechStart = () => {
+          if (this.disposed) return;
+          this.emitEvent('local.asr.start', 'server', {});
+        };
+
         engine.onError = (error) => {
           console.error('[LocalInference] Streaming ASR error:', error);
           this.emitEvent('local.asr.error', 'server', { error });
@@ -122,6 +127,11 @@ export class LocalInferenceClient implements IClient {
         this.asrEngine = engine;
       } else {
         const engine = new AsrEngine();
+
+        engine.onSpeechStart = () => {
+          if (this.disposed) return;
+          this.emitEvent('local.asr.start', 'server', {});
+        };
 
         engine.onResult = (result) => {
           if (this.disposed) return;

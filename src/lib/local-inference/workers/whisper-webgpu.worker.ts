@@ -365,6 +365,7 @@ async function feedAudio(samples: Int16Array, sampleRate: number): Promise<void>
           case Message.SpeechStart:
             speechStartSample = totalSamplesFed - VAD_FRAME_SAMPLES;
             speechFramesSinceStart = 0;
+            post({ type: 'speech_start' });
             vadLog('SPEECH_START');
             break;
 

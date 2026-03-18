@@ -99,9 +99,14 @@ export interface AsrDisposedMessage {
   type: 'disposed';
 }
 
+export interface AsrSpeechStartMessage {
+  type: 'speech_start';
+}
+
 export type AsrWorkerOutMessage =
   | AsrReadyMessage
   | AsrStatusMessage
+  | AsrSpeechStartMessage
   | AsrResultMessage
   | AsrErrorMessage
   | AsrDisposedMessage;
@@ -140,6 +145,7 @@ export interface StreamingAsrResultMessage {
 export type StreamingAsrWorkerOutMessage =
   | AsrReadyMessage
   | AsrStatusMessage
+  | AsrSpeechStartMessage
   | StreamingAsrPartialMessage
   | StreamingAsrResultMessage
   | AsrErrorMessage
