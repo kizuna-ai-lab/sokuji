@@ -551,6 +551,11 @@ def patch_glue_js(
         # Already-patched glue: metadata comes from package-metadata.json at runtime.
         # Just copy the JS as-is — no inline metadata patching needed.
         print("  Glue JS already patched (uses Module._dataPackageMetadata), skipping metadata injection")
+    else:
+        raise RuntimeError(
+            "Unsupported glue JS format: expected loadPackage({...}) "
+            "or loadPackage(Module._dataPackageMetadata)"
+        )
 
     output_js_path.write_text(content)
     print(f"  Patched glue JS: {output_js_path.name}")
