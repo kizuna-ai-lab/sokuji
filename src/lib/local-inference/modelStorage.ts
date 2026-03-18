@@ -17,6 +17,8 @@ export interface ModelMetadata {
   downloadedAt: number | null;
   totalSizeBytes: number;
   version: string;
+  /** Which variant was downloaded (e.g. 'q4', 'q4f16'). Undefined for legacy downloads. */
+  variant?: string;
 }
 
 interface SokujiModelsDB {

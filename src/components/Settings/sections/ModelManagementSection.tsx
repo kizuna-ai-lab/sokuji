@@ -9,11 +9,15 @@ import {
   useStorageUsedMb,
   useModelInitialized,
   useWebGPUAvailable,
+  useDeviceFeatures,
+  useModelVariants,
 } from '../../../stores/modelStore';
 import {
   getManifestByType,
   getModelSizeMb,
   isTranslationModelCompatible,
+  selectVariant,
+  getBaselineVariant,
   type ModelManifestEntry,
   type ModelStatus,
 } from '../../../lib/local-inference/modelManifest';
@@ -41,6 +45,7 @@ function ModelCard({
   isAutoSelected,
   showRadio,
   compatibilityHint,
+  deviceFeatures,
   onSelect,
   onDownload,
   onCancel,
@@ -56,6 +61,7 @@ function ModelCard({
   isAutoSelected?: boolean;
   showRadio: boolean;
   compatibilityHint?: string;
+  deviceFeatures?: string[];
   onSelect?: () => void;
   onDownload: () => void;
   onCancel: () => void;
@@ -108,7 +114,7 @@ function ModelCard({
           <div className="model-card__info">
             <div className="model-card__header">
               <span className="model-card__name">{entry.name}</span>
-              <span className="model-card__size">{getModelSizeMb(entry)} MB</span>
+              <span className="model-card__size">{getModelSizeMb(entry, deviceFeatures)} MB</span>
             </div>
             <div className="model-card__meta">
               <div className="model-card__languages">
@@ -273,7 +279,33 @@ export function ModelManagementSection({
   const storageUsedMb = useStorageUsedMb();
   const initialized = useModelInitialized();
   const webgpuAvailable = useWebGPUAvailable();
+  const deviceFeatures = useDeviceFeatures();
+  const modelVariants = useModelVariants();
   const { initialize, downloadModel, cancelDownload, deleteModel } = useModelStore();
+
+  /** Compute variant upgrade/incompatibility hint for a model */
+  const getVariantHint = (entry: ModelManifestEntry): { hint?: string; incompatible?: boolean } => {
+    const status = statuses[entry.id];
+    if (status !== 'downloaded') return {};
+
+    const currentVariant = modelVariants[entry.id] ?? getBaselineVariant(entry);
+    const optimalVariant = selectVariant(entry, deviceFeatures);
+    if (currentVariant === optimalVariant) return {};
+
+    // Check if the downloaded variant is incompatible with this device
+    const currentDef = entry.variants[currentVariant];
+    if (currentDef?.requiredFeatures?.some(f => !deviceFeatures.includes(f))) {
+      return {
+        hint: t('models.incompatibleVariant', 'This model format is incompatible with your device. Please delete and re-download.'),
+        incompatible: true,
+      };
+    }
+
+    // Suboptimal: a better variant is available
+    return {
+      hint: t('models.upgradeVariant', 'Your device supports a faster model format. Delete and re-download for better performance.'),
+    };
+  };
 
   const [showAllTranslation, setShowAllTranslation] = useState(false);
   const [showAllAsr, setShowAllAsr] = useState(false);
@@ -411,23 +443,28 @@ export function ModelManagementSection({
     return (
       <ModelGroup title={t('models.asrModels', 'ASR (Speech Recognition)')}>
         {compatibleAsrModels.length > 0 ? (
-          compatibleAsrModels.map(entry => (
-            <ModelCard
-              key={entry.id}
-              entry={entry}
-              status={statuses[entry.id] || 'not_downloaded'}
-              download={downloads[entry.id]}
-              errorMessage={downloadErrors[entry.id]}
-              isSessionActive={isSessionActive}
-              isSelected={asrModel === entry.id}
-              isCompatible={true}
-              showRadio={true}
-              onSelect={() => onUpdateSettings({ asrModel: entry.id })}
-              onDownload={() => handleDownload(entry.id)}
-              onCancel={() => cancelDownload(entry.id)}
-              onDelete={() => deleteModel(entry.id)}
-            />
-          ))
+          compatibleAsrModels.map(entry => {
+            const { hint, incompatible } = getVariantHint(entry);
+            return (
+              <ModelCard
+                key={entry.id}
+                entry={entry}
+                status={statuses[entry.id] || 'not_downloaded'}
+                download={downloads[entry.id]}
+                errorMessage={downloadErrors[entry.id]}
+                isSessionActive={isSessionActive}
+                isSelected={asrModel === entry.id}
+                isCompatible={!incompatible}
+                showRadio={true}
+                compatibilityHint={hint}
+                deviceFeatures={deviceFeatures}
+                onSelect={() => onUpdateSettings({ asrModel: entry.id })}
+                onDownload={() => handleDownload(entry.id)}
+                onCancel={() => cancelDownload(entry.id)}
+                onDelete={() => deleteModel(entry.id)}
+              />
+            );
+          })
         ) : (
           <div className="model-card__no-model-warning">
             <AlertTriangle size={14} />
@@ -478,23 +515,28 @@ export function ModelManagementSection({
     return (
       <ModelGroup title={t('models.translationModels', 'Translation')}>
         {compatibleTranslationModels.length > 0 ? (
-          compatibleTranslationModels.map(entry => (
-            <ModelCard
-              key={entry.id}
-              entry={entry}
-              status={statuses[entry.id] || 'not_downloaded'}
-              download={downloads[entry.id]}
-              errorMessage={downloadErrors[entry.id]}
-              isSessionActive={isSessionActive}
-              isSelected={translationModel === entry.id}
-              isCompatible={true}
-              showRadio={true}
-              onSelect={() => onUpdateSettings({ translationModel: entry.id })}
-              onDownload={() => handleDownload(entry.id)}
-              onCancel={() => cancelDownload(entry.id)}
-              onDelete={() => deleteModel(entry.id)}
-            />
-          ))
+          compatibleTranslationModels.map(entry => {
+            const { hint, incompatible } = getVariantHint(entry);
+            return (
+              <ModelCard
+                key={entry.id}
+                entry={entry}
+                status={statuses[entry.id] || 'not_downloaded'}
+                download={downloads[entry.id]}
+                errorMessage={downloadErrors[entry.id]}
+                isSessionActive={isSessionActive}
+                isSelected={translationModel === entry.id}
+                isCompatible={!incompatible}
+                showRadio={true}
+                compatibilityHint={hint}
+                deviceFeatures={deviceFeatures}
+                onSelect={() => onUpdateSettings({ translationModel: entry.id })}
+                onDownload={() => handleDownload(entry.id)}
+                onCancel={() => cancelDownload(entry.id)}
+                onDelete={() => deleteModel(entry.id)}
+              />
+            );
+          })
         ) : (
           <div className="model-card__no-model-warning">
             <AlertTriangle size={14} />
@@ -554,23 +596,28 @@ export function ModelManagementSection({
         title={t('models.ttsModels', 'TTS (Text-to-Speech)')}
       >
         {compatibleTtsModels.length > 0 ? (
-          compatibleTtsModels.map(entry => (
-            <ModelCard
-              key={entry.id}
-              entry={entry}
-              status={statuses[entry.id] || 'not_downloaded'}
-              download={downloads[entry.id]}
-              errorMessage={downloadErrors[entry.id]}
-              isSessionActive={isSessionActive}
-              isSelected={ttsModel === entry.id}
-              isCompatible={true}
-              showRadio={true}
-              onSelect={() => onUpdateSettings({ ttsModel: entry.id })}
-              onDownload={() => handleDownload(entry.id)}
-              onCancel={() => cancelDownload(entry.id)}
-              onDelete={() => deleteModel(entry.id)}
-            />
-          ))
+          compatibleTtsModels.map(entry => {
+            const { hint, incompatible } = getVariantHint(entry);
+            return (
+              <ModelCard
+                key={entry.id}
+                entry={entry}
+                status={statuses[entry.id] || 'not_downloaded'}
+                download={downloads[entry.id]}
+                errorMessage={downloadErrors[entry.id]}
+                isSessionActive={isSessionActive}
+                isSelected={ttsModel === entry.id}
+                isCompatible={!incompatible}
+                showRadio={true}
+                compatibilityHint={hint}
+                deviceFeatures={deviceFeatures}
+                onSelect={() => onUpdateSettings({ ttsModel: entry.id })}
+                onDownload={() => handleDownload(entry.id)}
+                onCancel={() => cancelDownload(entry.id)}
+                onDelete={() => deleteModel(entry.id)}
+              />
+            );
+          })
         ) : (
           <div className="model-card__no-model-warning">
             <AlertTriangle size={14} />
