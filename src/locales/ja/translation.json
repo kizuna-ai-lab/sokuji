@@ -685,7 +685,11 @@
     "showAllAsr": "すべてのASRモデルを表示（{{count}}）",
     "showAll": "すべての翻訳モデルを表示（{{count}}）",
     "showAllTts": "すべてのTTSモデルを表示（{{count}}）",
-    "hideOther": "他のモデルを隠す"
+    "hideOther": "他のモデルを隠す",
+    "clearAll": "すべて削除",
+    "confirmClearAll": "すべてのモデルを削除しますか？",
+    "confirmYes": "はい",
+    "confirmNo": "いいえ"
   },
   "update": {
     "available": "新しいバージョン v{{version}} が利用可能です",

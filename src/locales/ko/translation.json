@@ -672,7 +672,11 @@
     "showAllAsr": "모든 ASR 모델 표시 ({{count}})",
     "showAll": "모든 번역 모델 표시 ({{count}})",
     "showAllTts": "모든 TTS 모델 표시 ({{count}})",
-    "hideOther": "다른 모델 숨기기"
+    "hideOther": "다른 모델 숨기기",
+    "clearAll": "모두 삭제",
+    "confirmClearAll": "모든 모델을 삭제하시겠습니까?",
+    "confirmYes": "예",
+    "confirmNo": "아니요"
   },
   "update": {
     "available": "새 버전 v{{version}} 사용 가능",

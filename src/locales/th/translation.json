@@ -592,7 +592,11 @@
     "showAllAsr": "แสดงโมเดล ASR ทั้งหมด ({{count}})",
     "showAll": "แสดงโมเดลแปลทั้งหมด ({{count}})",
     "showAllTts": "แสดงโมเดล TTS ทั้งหมด ({{count}})",
-    "hideOther": "ซ่อนโมเดลอื่น"
+    "hideOther": "ซ่อนโมเดลอื่น",
+    "clearAll": "ล้างทั้งหมด",
+    "confirmClearAll": "ลบโมเดลทั้งหมด?",
+    "confirmYes": "ใช่",
+    "confirmNo": "ไม่"
   },
   "update": {
     "available": "เวอร์ชันใหม่ v{{version}} พร้อมใช้งาน",

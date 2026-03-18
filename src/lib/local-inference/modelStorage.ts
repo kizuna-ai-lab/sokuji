@@ -145,6 +145,15 @@ export async function deleteModel(modelId: string): Promise<void> {
   await deleteMetadata(modelId);
 }
 
+/** Clear all data from both files and metadata stores */
+export async function clearAll(): Promise<void> {
+  const db = await getDb();
+  const tx = db.transaction(['files', 'metadata'], 'readwrite');
+  await tx.objectStore('files').clear();
+  await tx.objectStore('metadata').clear();
+  await tx.done;
+}
+
 /** Estimate total storage used (sum of all file blob sizes) */
 export async function estimateStorageUsedBytes(): Promise<number> {
   const db = await getDb();

@@ -710,7 +710,11 @@
     "showAllAsr": "Show all ASR models ({{count}})",
     "showAll": "Show all translation models ({{count}})",
     "showAllTts": "Show all TTS models ({{count}})",
-    "hideOther": "Hide other models"
+    "hideOther": "Hide other models",
+    "clearAll": "Clear all",
+    "confirmClearAll": "Delete all models?",
+    "confirmYes": "Yes",
+    "confirmNo": "No"
   },
   "update": {
     "available": "New version v{{version}} available",

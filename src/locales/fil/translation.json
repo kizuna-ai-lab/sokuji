@@ -628,7 +628,11 @@
     "showAllAsr": "Ipakita lahat ng ASR model ({{count}})",
     "showAll": "Ipakita lahat ng translation model ({{count}})",
     "showAllTts": "Ipakita lahat ng TTS model ({{count}})",
-    "hideOther": "Itago ang ibang model"
+    "hideOther": "Itago ang ibang model",
+    "clearAll": "Burahin lahat",
+    "confirmClearAll": "Burahin lahat ng modelo?",
+    "confirmYes": "Oo",
+    "confirmNo": "Hindi"
   },
   "update": {
     "available": "Bagong bersyon v{{version}} ay magagamit na",

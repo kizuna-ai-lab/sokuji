@@ -585,7 +585,11 @@
     "showAllAsr": "అన్ని ASR మోడల్‌లను చూపించు ({{count}})",
     "showAll": "అన్ని అనువాద మోడల్‌లను చూపించు ({{count}})",
     "showAllTts": "అన్ని TTS మోడల్‌లను చూపించు ({{count}})",
-    "hideOther": "ఇతర మోడల్‌లను దాచు"
+    "hideOther": "ఇతర మోడల్‌లను దాచు",
+    "clearAll": "అన్నీ తొలగించు",
+    "confirmClearAll": "అన్ని మోడల్‌లను తొలగించాలా?",
+    "confirmYes": "అవును",
+    "confirmNo": "కాదు"
   },
   "update": {
     "available": "కొత్త వెర్షన్ v{{version}} అందుబాటులో ఉంది",

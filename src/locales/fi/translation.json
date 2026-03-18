@@ -628,7 +628,11 @@
     "showAllAsr": "Näytä kaikki ASR-mallit ({{count}})",
     "showAll": "Näytä kaikki käännösmallit ({{count}})",
     "showAllTts": "Näytä kaikki TTS-mallit ({{count}})",
-    "hideOther": "Piilota muut mallit"
+    "hideOther": "Piilota muut mallit",
+    "clearAll": "Tyhjennä kaikki",
+    "confirmClearAll": "Poista kaikki mallit?",
+    "confirmYes": "Kyllä",
+    "confirmNo": "Ei"
   },
   "update": {
     "available": "Uusi versio v{{version}} saatavilla",

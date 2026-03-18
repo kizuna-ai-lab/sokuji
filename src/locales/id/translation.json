@@ -670,7 +670,11 @@
     "showAllAsr": "Tampilkan semua model ASR ({{count}})",
     "showAll": "Tampilkan semua model terjemahan ({{count}})",
     "showAllTts": "Tampilkan semua model TTS ({{count}})",
-    "hideOther": "Sembunyikan model lainnya"
+    "hideOther": "Sembunyikan model lainnya",
+    "clearAll": "Hapus semua",
+    "confirmClearAll": "Hapus semua model?",
+    "confirmYes": "Ya",
+    "confirmNo": "Tidak"
   },
   "update": {
     "available": "Versi baru v{{version}} tersedia",

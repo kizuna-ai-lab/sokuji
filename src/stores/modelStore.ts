@@ -54,6 +54,8 @@ interface ModelStoreState {
   cancelDownload: (modelId: string) => void;
   /** Delete a downloaded model */
   deleteModel: (modelId: string) => Promise<void>;
+  /** Delete all downloaded models */
+  deleteAllModels: () => Promise<void>;
   /**
    * Check if the LOCAL_INFERENCE provider has required models for a language pair.
    * Returns true when: ASR model for sourceLang + translation model for src→tgt
@@ -218,6 +220,23 @@ export const useModelStore = create<ModelStoreState>()(
           modelStatuses: { ...state.modelStatuses, [modelId]: 'not_downloaded' },
           storageUsedMb: Math.round(usedBytes / (1024 * 1024)),
           modelVariants: newVariants,
+        };
+      });
+    },
+
+    deleteAllModels: async () => {
+      // Clear entire IndexedDB (includes legacy models not in current manifest)
+      await modelStorage.clearAll();
+
+      set(state => {
+        const newStatuses: Record<string, ModelStatus> = {};
+        for (const id of Object.keys(state.modelStatuses)) {
+          newStatuses[id] = 'not_downloaded';
+        }
+        return {
+          modelStatuses: newStatuses,
+          storageUsedMb: 0,
+          modelVariants: {},
         };
       });
     },

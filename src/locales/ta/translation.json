@@ -603,7 +603,11 @@
     "showAllAsr": "அனைத்து ASR மாடல்களையும் காட்டு ({{count}})",
     "showAll": "அனைத்து மொழிபெயர்ப்பு மாடல்களையும் காட்டு ({{count}})",
     "showAllTts": "அனைத்து TTS மாடல்களையும் காட்டு ({{count}})",
-    "hideOther": "மற்ற மாடல்களை மறை"
+    "hideOther": "மற்ற மாடல்களை மறை",
+    "clearAll": "அனைத்தையும் அழி",
+    "confirmClearAll": "அனைத்து மாடல்களையும் நீக்கவா?",
+    "confirmYes": "ஆம்",
+    "confirmNo": "இல்லை"
   },
   "update": {
     "available": "புதிய பதிப்பு v{{version}} கிடைக்கிறது",

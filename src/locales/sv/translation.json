@@ -626,7 +626,11 @@
     "showAllAsr": "Visa alla ASR-modeller ({{count}})",
     "showAll": "Visa alla översättningsmodeller ({{count}})",
     "showAllTts": "Visa alla TTS-modeller ({{count}})",
-    "hideOther": "Dölj andra modeller"
+    "hideOther": "Dölj andra modeller",
+    "clearAll": "Rensa allt",
+    "confirmClearAll": "Ta bort alla modeller?",
+    "confirmYes": "Ja",
+    "confirmNo": "Nej"
   },
   "update": {
     "available": "Ny version v{{version}} tillgänglig",

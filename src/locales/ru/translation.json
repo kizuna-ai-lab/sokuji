@@ -679,7 +679,11 @@
     "showAllAsr": "Показать все модели ASR ({{count}})",
     "showAll": "Показать все модели перевода ({{count}})",
     "showAllTts": "Показать все модели TTS ({{count}})",
-    "hideOther": "Скрыть другие модели"
+    "hideOther": "Скрыть другие модели",
+    "clearAll": "Очистить всё",
+    "confirmClearAll": "Удалить все модели?",
+    "confirmYes": "Да",
+    "confirmNo": "Нет"
   },
   "update": {
     "available": "Доступна новая версия v{{version}}",
