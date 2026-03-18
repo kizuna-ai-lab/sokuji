@@ -77,11 +77,9 @@ backend-cf/node_modules/
 # BlackHole build files
 BlackHole/build/
 
-# Claude settings (contains local configuration)
+# Claude settings and worktrees
 .claude/settings.local.json
-
-# Git worktrees
-.worktrees/
+.claude/worktrees/
 
 # Local development scripts
 scripts/cf-*.mjs

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Git Worktrees
 
-Worktree directory: `.worktrees/` (project-local, hidden, gitignored)
+Worktree directory: `.claude/worktrees/` (gitignored)
 
 ## Project Overview
 
