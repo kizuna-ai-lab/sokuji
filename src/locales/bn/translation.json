@@ -678,7 +678,11 @@
     "showAllAsr": "সমস্ত ASR মডেল দেখান ({{count}})",
     "showAll": "সমস্ত অনুবাদ মডেল দেখান ({{count}})",
     "showAllTts": "সমস্ত TTS মডেল দেখান ({{count}})",
-    "hideOther": "অন্যান্য মডেল লুকান"
+    "hideOther": "অন্যান্য মডেল লুকান",
+    "clearAll": "সব মুছুন",
+    "confirmClearAll": "সব মডেল মুছে ফেলবেন?",
+    "confirmYes": "হ্যাঁ",
+    "confirmNo": "না"
   },
   "update": {
     "available": "নতুন সংস্করণ v{{version}} উপলব্ধ",

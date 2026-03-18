@@ -678,7 +678,11 @@
     "showAllAsr": "نمایش همه مدل‌های ASR ({{count}})",
     "showAll": "نمایش همه مدل‌های ترجمه ({{count}})",
     "showAllTts": "نمایش همه مدل‌های TTS ({{count}})",
-    "hideOther": "پنهان کردن سایر مدل‌ها"
+    "hideOther": "پنهان کردن سایر مدل‌ها",
+    "clearAll": "پاک کردن همه",
+    "confirmClearAll": "همه مدل‌ها حذف شوند؟",
+    "confirmYes": "بله",
+    "confirmNo": "خیر"
   },
   "update": {
     "available": "نسخه جدید v{{version}} موجود است",

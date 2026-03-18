@@ -669,7 +669,11 @@
     "showAllAsr": "Pokaż wszystkie modele ASR ({{count}})",
     "showAll": "Pokaż wszystkie modele tłumaczenia ({{count}})",
     "showAllTts": "Pokaż wszystkie modele TTS ({{count}})",
-    "hideOther": "Ukryj inne modele"
+    "hideOther": "Ukryj inne modele",
+    "clearAll": "Wyczyść wszystko",
+    "confirmClearAll": "Usunąć wszystkie modele?",
+    "confirmYes": "Tak",
+    "confirmNo": "Nie"
   },
   "update": {
     "available": "Nowa wersja v{{version}} dostępna",

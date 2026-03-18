@@ -281,7 +281,8 @@ export function ModelManagementSection({
   const webgpuAvailable = useWebGPUAvailable();
   const deviceFeatures = useDeviceFeatures();
   const modelVariants = useModelVariants();
-  const { initialize, downloadModel, cancelDownload, deleteModel } = useModelStore();
+  const { initialize, downloadModel, cancelDownload, deleteModel, deleteAllModels } = useModelStore();
+  const [confirmClearAll, setConfirmClearAll] = useState(false);
 
   /** Compute variant upgrade/incompatibility hint for a model */
   const getVariantHint = (entry: ModelManifestEntry): { hint?: string; incompatible?: boolean } => {
@@ -677,6 +678,41 @@ export function ModelManagementSection({
         <span>
           {t('models.storageUsed', 'Storage: {{size}} MB used', { size: storageUsedMb })}
         </span>
+        {storageUsedMb > 0 && (
+          confirmClearAll ? (
+            <div className="model-management__clear-confirm">
+              <span className="model-management__clear-confirm-text">
+                {t('models.confirmClearAll', 'Delete all models?')}
+              </span>
+              <button
+                className="model-management__clear-btn model-management__clear-btn--yes"
+                onClick={async () => {
+                  setConfirmClearAll(false);
+                  await deleteAllModels();
+                }}
+                disabled={isSessionActive}
+              >
+                {t('models.confirmYes', 'Yes')}
+              </button>
+              <button
+                className="model-management__clear-btn model-management__clear-btn--no"
+                onClick={() => setConfirmClearAll(false)}
+              >
+                {t('models.confirmNo', 'No')}
+              </button>
+            </div>
+          ) : (
+            <button
+              className="model-management__clear-all"
+              onClick={() => setConfirmClearAll(true)}
+              disabled={isSessionActive}
+              title={t('models.clearAll', 'Clear all models')}
+            >
+              <Trash2 size={12} />
+              {t('models.clearAll', 'Clear all')}
+            </button>
+          )
+        )}
       </div>
     </div>
   );

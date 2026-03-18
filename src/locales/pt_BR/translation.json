@@ -672,7 +672,11 @@
     "showAllAsr": "Mostrar todos os modelos ASR ({{count}})",
     "showAll": "Mostrar todos os modelos de tradução ({{count}})",
     "showAllTts": "Mostrar todos os modelos TTS ({{count}})",
-    "hideOther": "Ocultar outros modelos"
+    "hideOther": "Ocultar outros modelos",
+    "clearAll": "Limpar tudo",
+    "confirmClearAll": "Excluir todos os modelos?",
+    "confirmYes": "Sim",
+    "confirmNo": "Não"
   },
   "update": {
     "available": "Nova versão v{{version}} disponível",

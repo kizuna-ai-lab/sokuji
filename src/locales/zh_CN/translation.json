@@ -681,7 +681,11 @@
     "showAllAsr": "显示所有 ASR 模型（{{count}}）",
     "showAll": "显示所有翻译模型（{{count}}）",
     "showAllTts": "显示所有 TTS 模型（{{count}}）",
-    "hideOther": "隐藏其他模型"
+    "hideOther": "隐藏其他模型",
+    "clearAll": "全部清除",
+    "confirmClearAll": "删除所有模型？",
+    "confirmYes": "是",
+    "confirmNo": "否"
   },
   "update": {
     "available": "新版本 v{{version}} 可用",

@@ -628,7 +628,11 @@
     "showAllAsr": "Tüm ASR modellerini göster ({{count}})",
     "showAll": "Tüm çeviri modellerini göster ({{count}})",
     "showAllTts": "Tüm TTS modellerini göster ({{count}})",
-    "hideOther": "Diğer modelleri gizle"
+    "hideOther": "Diğer modelleri gizle",
+    "clearAll": "Tümünü temizle",
+    "confirmClearAll": "Tüm modeller silinsin mi?",
+    "confirmYes": "Evet",
+    "confirmNo": "Hayır"
   },
   "update": {
     "available": "Yeni sürüm v{{version}} mevcut",

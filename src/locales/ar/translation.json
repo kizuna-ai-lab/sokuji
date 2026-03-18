@@ -672,7 +672,11 @@
     "showAllAsr": "عرض جميع نماذج ASR ({{count}})",
     "showAll": "عرض جميع نماذج الترجمة ({{count}})",
     "showAllTts": "عرض جميع نماذج TTS ({{count}})",
-    "hideOther": "إخفاء النماذج الأخرى"
+    "hideOther": "إخفاء النماذج الأخرى",
+    "clearAll": "مسح الكل",
+    "confirmClearAll": "حذف جميع النماذج؟",
+    "confirmYes": "نعم",
+    "confirmNo": "لا"
   },
   "update": {
     "available": "إصدار جديد v{{version}} متاح",

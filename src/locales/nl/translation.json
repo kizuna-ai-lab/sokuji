@@ -670,7 +670,11 @@
     "showAllAsr": "Alle ASR-modellen tonen ({{count}})",
     "showAll": "Alle vertaalmodellen tonen ({{count}})",
     "showAllTts": "Alle TTS-modellen tonen ({{count}})",
-    "hideOther": "Andere modellen verbergen"
+    "hideOther": "Andere modellen verbergen",
+    "clearAll": "Alles wissen",
+    "confirmClearAll": "Alle modellen verwijderen?",
+    "confirmYes": "Ja",
+    "confirmNo": "Nee"
   },
   "update": {
     "available": "Nieuwe versie v{{version}} beschikbaar",

@@ -676,7 +676,11 @@
     "showAllAsr": "הצג את כל מודלי ASR ({{count}})",
     "showAll": "הצג את כל מודלי התרגום ({{count}})",
     "showAllTts": "הצג את כל מודלי TTS ({{count}})",
-    "hideOther": "הסתר מודלים אחרים"
+    "hideOther": "הסתר מודלים אחרים",
+    "clearAll": "נקה הכל",
+    "confirmClearAll": "למחוק את כל המודלים?",
+    "confirmYes": "כן",
+    "confirmNo": "לא"
   },
   "update": {
     "available": "גרסה חדשה v{{version}} זמינה",

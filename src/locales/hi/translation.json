@@ -624,7 +624,11 @@
     "showAllAsr": "सभी ASR मॉडल दिखाएं ({{count}})",
     "showAll": "सभी अनुवाद मॉडल दिखाएं ({{count}})",
     "showAllTts": "सभी TTS मॉडल दिखाएं ({{count}})",
-    "hideOther": "अन्य मॉडल छिपाएं"
+    "hideOther": "अन्य मॉडल छिपाएं",
+    "clearAll": "सब हटाएं",
+    "confirmClearAll": "सभी मॉडल हटाएं?",
+    "confirmYes": "हाँ",
+    "confirmNo": "नहीं"
   },
   "update": {
     "available": "नया संस्करण v{{version}} उपलब्ध है",
