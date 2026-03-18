@@ -87,8 +87,18 @@ function downsampleInt16ToFloat32(input, inputSampleRate, outputSampleRate) {
  * Initialize the WASM module and sherpa-onnx objects.
  * Called when main thread sends { type: 'init' }.
  */
+// Map asrEngine string to sherpa-onnx model type integer
+var ASR_ENGINE_TYPE_MAP = {
+  'stream-transducer': 0,
+  'stream-paraformer': 1,
+  'stream-zipformer2-ctc': 2,
+  'stream-nemo-ctc': 3,
+  'stream-tone-ctc': 4,
+};
+
 function handleInit(msg) {
   var fileUrls = msg.fileUrls;
+  var asrEngine = msg.asrEngine;
   var runtimeBaseUrl = msg.runtimeBaseUrl;
   var dataPackageMetadata = msg.dataPackageMetadata;
 
@@ -135,8 +145,9 @@ function handleInit(msg) {
       postMessage({ type: 'status', message: 'Creating online recognizer...' });
 
       // createOnlineRecognizer is defined in sherpa-onnx-asr.js for streaming packages
-      // It auto-detects the model type from files in the virtual filesystem
-      recognizer = createOnlineRecognizer(Module);
+      // Pass the model type so it builds the correct config for the model architecture
+      var modelType = ASR_ENGINE_TYPE_MAP[asrEngine] || 0;
+      recognizer = createOnlineRecognizer(Module, null, modelType);
       recognizerStream = recognizer.createStream();
 
       // Detect if this is a Paraformer model (needs tail padding)
