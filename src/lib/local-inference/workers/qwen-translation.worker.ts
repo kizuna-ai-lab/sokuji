@@ -53,6 +53,7 @@ interface DisposeMessage {
 type WorkerMessage = InitMessage | TranslateMessage | DisposeMessage;
 
 let generator: any = null;
+let currentModelId: string = '';
 
 // ─── Blob URL cache (same pattern as translation.worker.ts) ────────────────
 
@@ -115,6 +116,7 @@ async function handleInit(msg: InitMessage) {
     });
 
     const elapsed = Math.round(performance.now() - startTime);
+    currentModelId = msg.hfModelId;
     self.postMessage({ type: 'ready', modelId: msg.hfModelId, loadTimeMs: elapsed, device: 'webgpu' });
   } catch (error: any) {
     self.postMessage({ type: 'error', error: error.message || String(error) });
@@ -135,8 +137,11 @@ async function handleTranslate(msg: TranslateMessage) {
     const srcName = LANG_NAMES[msg.sourceLang] || msg.sourceLang;
     const tgtName = LANG_NAMES[msg.targetLang] || msg.targetLang;
 
+    // /no_think is Qwen3-specific; Qwen2.5 doesn't understand it and it corrupts language instructions
+    const isQwen3 = currentModelId.toLowerCase().includes('qwen3');
+    const noThink = isQwen3 ? ' /no_think' : '';
     const systemPrompt =
-      `Translate ${srcName} → ${tgtName}. Input is ASR speech. /no_think\n` +
+      `Translate ${srcName} → ${tgtName}. Input is ASR speech.${noThink}\n` +
       `Drop fillers (um, uh, えーと, あのー, 那个). Fix stuttering and repetitions.\n` +
       `Output ONLY the ${tgtName} translation. Nothing else.`;
 
