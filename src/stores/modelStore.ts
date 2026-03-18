@@ -41,6 +41,10 @@ interface ModelStoreState {
   initialized: boolean;
   /** Whether WebGPU is available on this device */
   webgpuAvailable: boolean;
+  /** GPU features supported by this device (e.g. ['shader-f16']) */
+  deviceFeatures: string[];
+  /** Downloaded variant key per model (modelId → variant key) */
+  modelVariants: Record<string, string>;
 
   /** Initialize: scan IndexedDB for existing models */
   initialize: () => Promise<void>;
@@ -75,6 +79,8 @@ export const useModelStore = create<ModelStoreState>()(
     storageUsedMb: 0,
     initialized: false,
     webgpuAvailable: false,
+    deviceFeatures: [],
+    modelVariants: {},
 
     initialize: async () => {
       if (get().initialized) return;
@@ -100,16 +106,27 @@ export const useModelStore = create<ModelStoreState>()(
       }
 
       // Estimate storage + check WebGPU
-      const [usedBytes, webgpuAvailable] = await Promise.all([
+      const [usedBytes, capabilities] = await Promise.all([
         modelStorage.estimateStorageUsedBytes(),
         checkWebGPU(),
       ]);
+
+      // Load variant keys from metadata
+      const modelVariants: Record<string, string> = {};
+      for (const entry of MODEL_MANIFEST) {
+        const metadata = await modelStorage.getMetadata(entry.id);
+        if (metadata?.variant) {
+          modelVariants[entry.id] = metadata.variant;
+        }
+      }
 
       set({
         modelStatuses: statuses,
         storageUsedMb: Math.round(usedBytes / (1024 * 1024)),
         initialized: true,
-        webgpuAvailable,
+        webgpuAvailable: capabilities.available,
+        deviceFeatures: capabilities.features,
+        modelVariants,
       });
     },
 
@@ -130,7 +147,7 @@ export const useModelStore = create<ModelStoreState>()(
       });
 
       try {
-        await manager.downloadModel(modelId, (progress: DownloadProgress) => {
+        const variantKey = await manager.downloadModel(modelId, (progress: DownloadProgress) => {
           set(state => ({
             downloads: {
               ...state.downloads,
@@ -154,6 +171,7 @@ export const useModelStore = create<ModelStoreState>()(
             modelStatuses: { ...state.modelStatuses, [modelId]: 'downloaded' },
             downloads: newDownloads,
             storageUsedMb: Math.round(usedBytes / (1024 * 1024)),
+            modelVariants: { ...state.modelVariants, [modelId]: variantKey },
           };
         });
       } catch (err: any) {
@@ -193,10 +211,15 @@ export const useModelStore = create<ModelStoreState>()(
 
       const usedBytes = await modelStorage.estimateStorageUsedBytes();
 
-      set(state => ({
-        modelStatuses: { ...state.modelStatuses, [modelId]: 'not_downloaded' },
-        storageUsedMb: Math.round(usedBytes / (1024 * 1024)),
-      }));
+      set(state => {
+        const newVariants = { ...state.modelVariants };
+        delete newVariants[modelId];
+        return {
+          modelStatuses: { ...state.modelStatuses, [modelId]: 'not_downloaded' },
+          storageUsedMb: Math.round(usedBytes / (1024 * 1024)),
+          modelVariants: newVariants,
+        };
+      });
     },
 
     isProviderReady: (sourceLang: string, targetLang: string, selectedAsrModel?: string, selectedTranslationModel?: string, selectedTtsModel?: string): boolean => {
@@ -255,3 +278,5 @@ export const useStorageUsedMb = () => useModelStore(s => s.storageUsedMb);
 export const useModelInitialized = () => useModelStore(s => s.initialized);
 export const useIsProviderReady = () => useModelStore(s => s.isProviderReady);
 export const useWebGPUAvailable = () => useModelStore(s => s.webgpuAvailable);
+export const useDeviceFeatures = () => useModelStore(s => s.deviceFeatures);
+export const useModelVariants = () => useModelStore(s => s.modelVariants);
