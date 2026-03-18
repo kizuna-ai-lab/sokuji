@@ -66,8 +66,6 @@ export interface ModelManifestEntry {
   //      Used by: sherpa-onnx ASR, streaming ASR, TTS
   //   2. Third-party HF Hub repos: hfModelId → {hf-hub-base}/{hfModelId}/resolve/main/{file}
   //      Used by: Whisper WebGPU ASR, Opus-MT translation, Qwen translation
-  /** List of files that must be downloaded */
-  files?: ModelFileEntry[];
   /** Self-hosted HF dataset path segment (e.g. 'wasm-sensevoice-int8') */
   cdnPath?: string;
   /** Third-party HuggingFace Hub model ID (e.g. 'onnx-community/whisper-tiny.en', 'Xenova/opus-mt-ja-en') */
@@ -76,10 +74,8 @@ export interface ModelManifestEntry {
   // ─── Hardware requirements ─────────────────────────────────────────────
   /** Hardware requirement — model filtered out if device unavailable */
   requiredDevice?: 'webgpu';
-  /** ONNX dtype for WebGPU models. String for single-file, Record for multi-component models. */
-  dtype?: string | Record<string, string>;
   /** Model dtype variants with file lists and GPU feature requirements. */
-  variants?: Record<string, ModelVariant>;
+  variants: Record<string, ModelVariant>;
 
   // ─── ASR configuration ─────────────────────────────────────────────────
   /** ASR engine type — determines which config builder the worker uses */
@@ -114,9 +110,6 @@ export function selectVariant(
   entry: ModelManifestEntry,
   deviceFeatures: string[],
 ): string {
-  if (!entry.variants) {
-    throw new Error(`Model ${entry.id} has no variants`);
-  }
   const compatible = Object.entries(entry.variants).filter(([_, v]) =>
     !v.requiredFeatures || v.requiredFeatures.every(f => deviceFeatures.includes(f))
   );
@@ -134,9 +127,6 @@ export function selectVariant(
  * Used when metadata.variant is undefined (legacy downloads).
  */
 export function getBaselineVariant(entry: ModelManifestEntry): string {
-  if (!entry.variants) {
-    throw new Error(`Model ${entry.id} has no variants`);
-  }
   const baseline = Object.entries(entry.variants).find(
     ([_, v]) => !v.requiredFeatures || v.requiredFeatures.length === 0
   );
@@ -2682,12 +2672,7 @@ export function getTtsModelsForLanguage(lang: string): ModelManifestEntry[] {
 
 /** Total download size in MB, computed from per-file sizes. */
 export function getModelSizeMb(entry: ModelManifestEntry, deviceFeatures: string[] = []): number {
-  if (entry.variants) {
-    const variantKey = selectVariant(entry, deviceFeatures);
-    const files = entry.variants[variantKey].files;
-    return Math.round(files.reduce((sum, f) => sum + f.sizeBytes, 0) / 1_048_576);
-  }
-  // Legacy fallback for entries not yet migrated
-  if (!entry.files) return 0;
-  return Math.round(entry.files.reduce((sum, f) => sum + f.sizeBytes, 0) / 1_048_576);
+  const variantKey = selectVariant(entry, deviceFeatures);
+  const files = entry.variants[variantKey].files;
+  return Math.round(files.reduce((sum, f) => sum + f.sizeBytes, 0) / 1_048_576);
 }
