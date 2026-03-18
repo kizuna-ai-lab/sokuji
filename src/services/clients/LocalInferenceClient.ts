@@ -115,7 +115,7 @@ export class LocalInferenceClient implements IClient {
 
         engine.onSpeechStart = () => {
           if (this.disposed) return;
-          this.emitEvent('local.asr.start', 'server', {});
+          this.emitEvent('local.asr.start', 'server', { modelId: this.config?.asrModelId });
         };
 
         engine.onError = (error) => {
@@ -130,7 +130,7 @@ export class LocalInferenceClient implements IClient {
 
         engine.onSpeechStart = () => {
           if (this.disposed) return;
-          this.emitEvent('local.asr.start', 'server', {});
+          this.emitEvent('local.asr.start', 'server', { modelId: this.config?.asrModelId });
         };
 
         engine.onResult = (result) => {
@@ -360,6 +360,7 @@ export class LocalInferenceClient implements IClient {
 
     this.emitEvent('local.asr.end', 'server', {
       text,
+      modelId: this.config?.asrModelId,
       ...(timing && { durationMs: timing.durationMs, recognitionTimeMs: timing.recognitionTimeMs }),
     });
 
@@ -388,7 +389,7 @@ export class LocalInferenceClient implements IClient {
     try {
       // Translate first — don't push item until we have content
       if (!this.translationEngine || this.disposed) return;
-      this.emitEvent('local.translation.start', 'client', { sourceText: job.text });
+      this.emitEvent('local.translation.start', 'client', { sourceText: job.text, modelId: this.config?.translationModelId });
       const translationResult = await this.translationEngine.translate(job.text);
       if (this.disposed) return;
 
@@ -405,6 +406,7 @@ export class LocalInferenceClient implements IClient {
         translatedText,
         inferenceTimeMs: translationResult.inferenceTimeMs,
         systemPrompt: translationResult.systemPrompt,
+        modelId: this.config?.translationModelId,
       });
 
       // Create assistant item with translation already set
@@ -423,7 +425,7 @@ export class LocalInferenceClient implements IClient {
       if (this.ttsEngine && this.config && !this.disposed) {
         const sentences = splitSentences(translatedText, this.config.targetLanguage);
         const ttsStartTime = performance.now();
-        this.emitEvent('local.tts.start', 'client', { text: translatedText, sentenceCount: sentences.length });
+        this.emitEvent('local.tts.start', 'client', { text: translatedText, sentenceCount: sentences.length, modelId: this.config?.ttsModelId });
         console.debug(`[Karaoke] TTS start: fullText="${translatedText}" (${translatedText.length} chars), ${sentences.length} sentences:`, sentences.map((s, i) => `[${i}] "${s}" (${s.length} chars)`));
 
         let searchFrom = 0;
