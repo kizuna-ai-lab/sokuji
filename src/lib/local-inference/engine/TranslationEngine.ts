@@ -69,6 +69,7 @@ export class TranslationEngine {
       throw new Error(`Translation model "${entry.id}" is not downloaded. Download it first via Model Management.`);
     }
     const fileUrls = await manager.getModelBlobUrls(entry.id);
+    const { dtype } = await manager.getModelVariantInfo(entry.id);
 
     return new Promise((resolve, reject) => {
       // Create the Web Worker — select based on worker type
@@ -151,8 +152,8 @@ export class TranslationEngine {
         }
       };
 
-      // Send init message with blob URLs + language info + dtype
-      this.worker.postMessage({ type: 'init', hfModelId, fileUrls, sourceLang, targetLang, dtype: entry.dtype, ortWasmBaseUrl: new URL('./wasm/ort/', window.location.href).href });
+      // Send init message with blob URLs + language info + dtype from variant
+      this.worker.postMessage({ type: 'init', hfModelId, fileUrls, sourceLang, targetLang, dtype, ortWasmBaseUrl: new URL('./wasm/ort/', window.location.href).href });
     });
   }
 
