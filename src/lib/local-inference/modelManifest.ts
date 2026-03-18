@@ -265,25 +265,16 @@ function translationFiles(
 }
 
 /** Qwen2.5-0.5B-Instruct file list (q4 ONNX via WebGPU). */
-function qwenTranslationFiles(): ModelFileEntry[] {
-  return [
-    { filename: 'config.json', sizeBytes: 678 },
-    { filename: 'generation_config.json', sizeBytes: 242 },
-    { filename: 'tokenizer.json', sizeBytes: 7_031_673 },
-    { filename: 'tokenizer_config.json', sizeBytes: 7_306 },
-    { filename: 'onnx/model_q4.onnx', sizeBytes: 786_156_820 },
-  ];
-}
-
-function qwenTranslationFilesQ4f16(): ModelFileEntry[] {
-  return [
-    { filename: 'config.json', sizeBytes: 678 },
-    { filename: 'generation_config.json', sizeBytes: 242 },
-    { filename: 'tokenizer.json', sizeBytes: 7_031_673 },
-    { filename: 'tokenizer_config.json', sizeBytes: 7_306 },
-    { filename: 'onnx/model_q4f16.onnx', sizeBytes: 483_003_582 },
-  ];
-}
+// Unused: Qwen 2.5 0.5B model disabled (see comment in manifest array)
+// function qwenTranslationFiles(): ModelFileEntry[] {
+//   return [
+//     { filename: 'config.json', sizeBytes: 678 },
+//     { filename: 'generation_config.json', sizeBytes: 242 },
+//     { filename: 'tokenizer.json', sizeBytes: 7_031_673 },
+//     { filename: 'tokenizer_config.json', sizeBytes: 7_306 },
+//     { filename: 'onnx/model_q4.onnx', sizeBytes: 786_156_820 },
+//   ];
+// }
 
 function qwen3TranslationFiles(): ModelFileEntry[] {
   return [
@@ -2492,25 +2483,29 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
   { id: 'opus-mt-uk-ru', type: 'translation', name: 'Opus-MT (uk → ru)', languages: ['uk', 'ru'], variants: { default: { dtype: 'default', files: translationFiles(1_389, 293, 7_632_973, 282, 49_201_054, 56_485_220) } }, hfModelId: 'Xenova/opus-mt-uk-ru', sourceLang: 'uk', targetLang: 'ru' },
 
   // ── Multilingual Translation Models ───────────────────────────────────
-  {
-    id: 'qwen2.5-0.5b-translation',
-    type: 'translation',
-    name: 'Qwen 2.5 0.5B (multilingual, WebGPU)',
-    languages: [
-      'ja', 'zh', 'en', 'ko', 'de', 'fr', 'es', 'ru',
-      'ar', 'pt', 'th', 'vi', 'id', 'tr', 'nl', 'pl',
-      'it', 'hi', 'sv', 'da', 'fi', 'hu', 'ro', 'no',
-      'uk', 'cs', 'et', 'af',
-    ],
-    multilingual: true,
-    requiredDevice: 'webgpu',
-    hfModelId: 'onnx-community/Qwen2.5-0.5B-Instruct',
-    variants: {
-      'q4': { dtype: 'q4', files: qwenTranslationFiles() },
-      'q4f16': { dtype: 'q4f16', files: qwenTranslationFilesQ4f16(), requiredFeatures: ['shader-f16'] },
-    },
-    translationWorkerType: 'qwen',
-  },
+
+  // Qwen 2.5 0.5B — disabled: q4f16/fp16 variants produce degenerate repetition
+  // on WebGPU shader-f16 devices. The model is too small to tolerate reduced
+  // precision; Qwen 3 0.6B and Qwen 3.5 0.8B handle q4f16 fine.
+  // Kept here for reference; may be removed entirely in the future.
+  // {
+  //   id: 'qwen2.5-0.5b-translation',
+  //   type: 'translation',
+  //   name: 'Qwen 2.5 0.5B (multilingual, WebGPU)',
+  //   languages: [
+  //     'ja', 'zh', 'en', 'ko', 'de', 'fr', 'es', 'ru',
+  //     'ar', 'pt', 'th', 'vi', 'id', 'tr', 'nl', 'pl',
+  //     'it', 'hi', 'sv', 'da', 'fi', 'hu', 'ro', 'no',
+  //     'uk', 'cs', 'et', 'af',
+  //   ],
+  //   multilingual: true,
+  //   requiredDevice: 'webgpu',
+  //   hfModelId: 'onnx-community/Qwen2.5-0.5B-Instruct',
+  //   variants: {
+  //     'q4': { dtype: 'q4', files: qwenTranslationFiles() },
+  //   },
+  //   translationWorkerType: 'qwen',
+  // },
   {
     id: 'qwen3-0.6b-translation',
     type: 'translation',
