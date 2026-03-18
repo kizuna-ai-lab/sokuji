@@ -49,7 +49,6 @@ sl: { name: 'Slovenščina', value: 'sl', englishName: 'Slovenian' },
 
 Run in browser console or write quick verification:
 ```bash
-cd /home/jiangzhuo/Desktop/kizunaai/sokuji-react/.claude/worktrees/parakeet-tdt
 node -e "
   // Quick check that all 25 Parakeet languages have entries
   const langs = ['bg','hr','cs','da','nl','en','et','fi','fr','de','el','hu','it','lv','lt','mt','pl','pt','ro','ru','sk','sl','es','sv','uk'];
@@ -71,19 +70,19 @@ and Slovenian to the language registry. Required for the Parakeet TDT
 
 ---
 
-### Task 2: Remove proto component and keyboard shortcut
+### Task 2: Remove proto component and keyboard shortcut (Completed)
 
 **Files:**
 - Delete: `src/lib/local-inference/ParakeetTdtProto.tsx`
 - Modify: `src/components/MainLayout/MainLayout.tsx`
 
-- [ ] **Step 1: Delete the proto component**
+- [x] **Step 1: Delete the proto component**
 
 ```bash
 rm src/lib/local-inference/ParakeetTdtProto.tsx
 ```
 
-- [ ] **Step 2: Remove proto-related code from MainLayout.tsx**
+- [x] **Step 2: Remove proto-related code from MainLayout.tsx**
 
 Remove from imports (near top):
 ```typescript
@@ -130,16 +129,15 @@ Remove JSX rendering:
 )}
 ```
 
-- [ ] **Step 3: Verify TypeScript compiles**
+- [x] **Step 3: Verify TypeScript compiles**
 
 ```bash
-cd /home/jiangzhuo/Desktop/kizunaai/sokuji-react/.claude/worktrees/parakeet-tdt
-node_modules/.bin/tsc --noEmit 2>&1 | grep -E "ParakeetTdt|MainLayout"
+node_modules/.bin/tsc --noEmit
 ```
 
-Expected: Only the pre-existing `toggleAudio` warning, no ParakeetTdt errors.
+Expected: No new errors from our changes (pre-existing errors in other files are OK).
 
-- [ ] **Step 4: Verify build succeeds**
+- [x] **Step 4: Verify build succeeds**
 
 ```bash
 npm run build 2>&1 | tail -5
@@ -147,7 +145,7 @@ npm run build 2>&1 | tail -5
 
 Expected: Build completes without errors.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add -A
@@ -160,11 +158,11 @@ normal Model Management UI."
 
 ---
 
-### Task 3: Final commit for pack.py improvements
+### Task 3: Final commit for pack.py improvements (Completed)
 
-The `pack.py` changes (new model entry + glue JS fix for already-patched references) are already in the working tree but uncommitted.
+The `pack.py` changes (new model entry + glue JS fix for already-patched references) were committed with the proto cleanup.
 
-- [ ] **Step 1: Commit pack.py changes**
+- [x] **Step 1: Commit pack.py changes**
 
 ```bash
 git add model-packs/asr/pack.py
@@ -177,9 +175,9 @@ git commit -m "feat: add Parakeet TDT to pack.py, fix glue JS patching for pre-p
 
 ---
 
-### Task 4: Create PR
+### Task 4: Create PR (Completed)
 
-- [ ] **Step 1: Push branch and create PR**
+- [x] **Step 1: Push branch and create PR**
 
 ```bash
 git push -u origin feat/parakeet-tdt

@@ -17,7 +17,7 @@ The following work is already done on `feat/parakeet-tdt`:
 | Manifest entry | Done | `modelManifest.ts` — `nemo-parakeet-tdt-int8`, `asrEngine: 'nemo-transducer'` |
 | Pack script entry | Done | `model-packs/asr/pack.py` — renames encoder/decoder/joiner to nemo-transducer convention |
 | HF dataset upload | Done | `jiangzhuo9357/sherpa-onnx-asr-models/wasm-nemo-parakeet-tdt-int8/` (671MB .data) |
-| Proto component | Done | `ParakeetTdtProto.tsx` + Ctrl+Shift+P toggle in MainLayout |
+| Proto component | Done (removed) | Was `ParakeetTdtProto.tsx` + Ctrl+Shift+P toggle — deleted after WASM viability confirmed |
 | WASM viability | Verified | Loads and transcribes in Electron without OOM |
 | Pack script fix | Done | `pack.py` handles already-patched glue JS (Module._dataPackageMetadata) |
 
@@ -44,15 +44,13 @@ Parakeet TDT supports 25 languages. 8 are missing from `LANGUAGE_OPTIONS`:
 
 **No UI changes needed** — `ModelManagementSection` already auto-selects models via `getAsrModelsForLanguage(sourceLang)` which matches on the `languages` array. The language dropdown for LOCAL_INFERENCE is populated from `getTranslationSourceLanguages()` (translation models), so these 8 languages will only appear as selectable ASR sources if translation models also support them. For now, the model will be available when users select overlapping languages (en, fr, de, es, etc.) and will show up in the model management UI for download.
 
-### 2. Clean Up Proto Code
+### 2. Clean Up Proto Code (Completed)
 
-Remove the dev-only proto before merging:
-- Delete `src/lib/local-inference/ParakeetTdtProto.tsx`
-- Remove lazy import, state, keyboard handler, and `<Suspense>` block from `MainLayout.tsx`
+Proto component and keyboard shortcut have been removed from the codebase.
 
-### 3. Commit and PR
+### 3. Commit and PR (Completed)
 
-Commit the production changes (manifest + languages + pack.py fixes) and create PR against `main`.
+Production changes committed and PR created: #128.
 
 ## Architecture — No Changes Needed
 
@@ -71,8 +69,8 @@ The existing integration is complete because:
 | `src/utils/languages.ts` | Add 8 language entries | Display names for bg, hr, el, lv, lt, mt, sk, sl |
 | `src/lib/local-inference/modelManifest.ts` | Already done | Manifest entry with 25 languages |
 | `model-packs/asr/pack.py` | Already done | Pack entry + glue JS fix |
-| `src/lib/local-inference/ParakeetTdtProto.tsx` | Delete | Proto cleanup |
-| `src/components/MainLayout/MainLayout.tsx` | Remove proto code | Proto cleanup |
+| `src/lib/local-inference/ParakeetTdtProto.tsx` | Deleted | Proto cleanup (done) |
+| `src/components/MainLayout/MainLayout.tsx` | Proto code removed | Proto cleanup (done) |
 
 ## Testing Checklist
 
