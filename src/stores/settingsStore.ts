@@ -13,7 +13,7 @@ import {
   VolcengineAST2SessionConfig,
   LocalInferenceSessionConfig
 } from '../services/interfaces/IClient';
-import { getTtsModelsForLanguage } from '../lib/local-inference/modelManifest';
+import { getTtsModelsForLanguage, getManifestEntry } from '../lib/local-inference/modelManifest';
 import {ApiKeyValidationResult} from '../services/interfaces/ISettingsService';
 import {Provider, ProviderType} from '../types/Provider';
 import {ClientOperations} from '../services/ClientOperations';
@@ -456,8 +456,10 @@ function createLocalInferenceSessionConfig(
   settings: LocalInferenceSettings,
   systemInstructions: string
 ): LocalInferenceSessionConfig {
-  // Auto-select TTS model: find one matching the target language
-  const ttsModelId = settings.ttsModel || getTtsModelsForLanguage(settings.targetLanguage)[0]?.id;
+  // Auto-select TTS model: use current if it supports the target language, otherwise find a matching one
+  const currentTtsEntry = settings.ttsModel ? getManifestEntry(settings.ttsModel) : undefined;
+  const isTtsCompatible = currentTtsEntry && currentTtsEntry.languages.includes(settings.targetLanguage);
+  const ttsModelId = isTtsCompatible ? settings.ttsModel : (getTtsModelsForLanguage(settings.targetLanguage)[0]?.id);
 
   return {
     provider: 'local_inference',
