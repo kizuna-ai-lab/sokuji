@@ -96,9 +96,10 @@ const UpdateDialog: React.FC = () => {
           )}
 
           {changelog && (status === 'available' || status === 'downloading' || status === 'downloaded') && (
-            <div className="changelog">
-              <pre>{changelog}</pre>
-            </div>
+            <div
+              className="changelog"
+              dangerouslySetInnerHTML={{ __html: changelog }}
+            />
           )}
 
           {status === 'downloading' && (
