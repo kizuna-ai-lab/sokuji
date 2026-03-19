@@ -160,8 +160,8 @@ class UpdateManager {
       };
     }
 
-    // Fallback to constructed name
-    const exeFileName = `Sokuji-${version}-Setup.exe`;
+    // Fallback: matches Squirrel's naming with dots (spaces are replaced in CI)
+    const exeFileName = `Sokuji-${version}.Setup.exe`;
     return {
       fileName: exeFileName,
       url: `https://github.com/kizuna-ai-lab/sokuji/releases/download/v${version}/${exeFileName}`,
