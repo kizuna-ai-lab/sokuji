@@ -377,19 +377,20 @@ function translateGemmaQ4Files(): ModelFileEntry[] {
   ];
 }
 
-/** TranslateGemma 4B q4f16 files (~2.7GB total).
- *  Source: onnx-community/translategemma-text-4b-it-ONNX */
-function translateGemmaQ4f16Files(): ModelFileEntry[] {
-  return [
-    { filename: 'config.json', sizeBytes: 2_206 },
-    { filename: 'generation_config.json', sizeBytes: 155 },
-    { filename: 'tokenizer.json', sizeBytes: 20_323_013 },
-    { filename: 'tokenizer_config.json', sizeBytes: 20_771 },
-    { filename: 'onnx/model_q4f16.onnx', sizeBytes: 614_211 },
-    { filename: 'onnx/model_q4f16.onnx_data', sizeBytes: 2_090_805_760 },
-    { filename: 'onnx/model_q4f16.onnx_data_1', sizeBytes: 623_575_040 },
-  ];
-}
+// NOTE: TranslateGemma q4f16 disabled — see variant comment in manifest entry.
+// /** TranslateGemma 4B q4f16 files (~2.7GB total).
+//  *  Source: onnx-community/translategemma-text-4b-it-ONNX */
+// function translateGemmaQ4f16Files(): ModelFileEntry[] {
+//   return [
+//     { filename: 'config.json', sizeBytes: 2_206 },
+//     { filename: 'generation_config.json', sizeBytes: 155 },
+//     { filename: 'tokenizer.json', sizeBytes: 20_323_013 },
+//     { filename: 'tokenizer_config.json', sizeBytes: 20_771 },
+//     { filename: 'onnx/model_q4f16.onnx', sizeBytes: 614_211 },
+//     { filename: 'onnx/model_q4f16.onnx_data', sizeBytes: 2_090_805_760 },
+//     { filename: 'onnx/model_q4f16.onnx_data_1', sizeBytes: 623_575_040 },
+//   ];
+// }
 
 /**
  * Whisper WebGPU ASR models (via @huggingface/transformers).
@@ -2614,11 +2615,9 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     translationWorkerType: 'translategemma',
     variants: {
       'q4': { dtype: 'q4', files: translateGemmaQ4Files() },
-      'q4f16': {
-        dtype: 'q4f16',
-        files: translateGemmaQ4f16Files(),
-        requiredFeatures: ['shader-f16'],
-      },
+      // NOTE: q4f16 disabled — produces garbage tokens (<unused57>) on Windows WebGPU
+      // even when GPU reports shader-f16 support. Same class of issue as Whisper q4f16.
+      // 'q4f16': { dtype: 'q4f16', files: translateGemmaQ4f16Files(), requiredFeatures: ['shader-f16'] },
     },
   },
 
