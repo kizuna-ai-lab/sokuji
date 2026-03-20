@@ -6,7 +6,7 @@
 
 ## Summary
 
-Add TranslateGemma 4B as a local translation engine via WebGPU, coexisting alongside Qwen and Opus-MT models. TranslateGemma is Google's purpose-built translation model supporting 55 languages with any-to-any bidirectional translation — a significant upgrade over pair-specific Opus-MT and general-purpose Qwen models.
+Add TranslateGemma 4B as a local translation engine via WebGPU, coexisting alongside Qwen and Opus-MT models. TranslateGemma is Google's purpose-built translation model supporting 51 languages with any-to-any bidirectional translation — a significant upgrade over pair-specific Opus-MT and general-purpose Qwen models.
 
 ## Decisions
 
@@ -37,7 +37,7 @@ Add TranslateGemma 4B as a local translation engine via WebGPU, coexisting along
 | q4 | `"q4"` | ~3.1GB (3 files) | WebGPU |
 | q4f16 | `"q4f16"` | ~2.8GB (3 files) | WebGPU + shader-f16 |
 
-### Supported Languages (55)
+### Supported Languages (51)
 
 ```
 ar, bg, bn, ca, cs, da, de, el, en, es, et, fa, fi, fr, gu,
@@ -67,7 +67,8 @@ const output = await generator(messages, {
   max_new_tokens: 1024,  // TODO: tune for real-time translation latency
 });
 
-const translatedText = output[0].generated_text.pop().content;
+const lastMsg = output[0].generated_text[output[0].generated_text.length - 1];
+const translatedText = lastMsg?.content || '';
 ```
 
 The chat template internally expands this into: "You are a professional Japanese (ja) to English (en) translator. Produce only the English translation..."
@@ -83,7 +84,7 @@ Minimal integration following existing patterns — add a new worker type, manif
 | File | Change | Description |
 |------|--------|-------------|
 | `src/lib/local-inference/workers/translategemma-translation.worker.ts` | **New** | ES module worker: blob URL cache + `pipeline("text-generation")` + structured message format |
-| `src/lib/local-inference/modelManifest.ts` | **Modify** | Add file list functions + manifest entry with 55 languages |
+| `src/lib/local-inference/modelManifest.ts` | **Modify** | Add `'translategemma'` to `translationWorkerType` union, add file list functions + manifest entry |
 | `src/lib/local-inference/engine/TranslationEngine.ts` | **Modify** | Add `case 'translategemma'` in worker creation switch |
 
 ### Files NOT Changed
@@ -97,27 +98,35 @@ Minimal integration following existing patterns — add a new worker type, manif
 
 `src/lib/local-inference/workers/translategemma-translation.worker.ts` (ES module):
 
+Follow the established pattern from `qwen-translation.worker.ts` with these key elements:
+
 ```typescript
 import { pipeline, env } from '@huggingface/transformers';
 
 let generator: any = null;
 
-// Blob URL cache — same pattern as Qwen workers
+// Disable WASM proxy (must be at module level, before any pipeline call)
+if (env.backends?.onnx?.wasm) {
+  env.backends.onnx.wasm.proxy = false;
+}
+
+// Blob URL cache — use established /resolve/main/ marker pattern (same as qwen workers)
 function createBlobUrlCache(fileUrls: Record<string, string>) {
   return {
-    async match(request: string): Promise<Response | undefined> {
-      // Extract filename from HF Hub URL, look up in fileUrls map
-      const url = new URL(request);
-      const pathParts = url.pathname.split('/');
-      // Try progressively longer suffixes: "model_q4.onnx", "onnx/model_q4.onnx"
-      for (let i = pathParts.length - 1; i >= 0; i--) {
-        const candidate = pathParts.slice(i).join('/');
-        if (fileUrls[candidate]) {
-          return fetch(fileUrls[candidate]);
-        }
-      }
-      return undefined;
-    }
+    async match(request: string | Request | undefined): Promise<Response | undefined> {
+      if (!request) return undefined;
+      const url = typeof request === 'string' ? request : request.url;
+      const resolveMainMarker = '/resolve/main/';
+      const idx = url.indexOf(resolveMainMarker);
+      if (idx === -1) return undefined;
+      const filename = url.slice(idx + resolveMainMarker.length);
+      const blobUrl = fileUrls[filename];
+      if (!blobUrl) return undefined;
+      return fetch(blobUrl);
+    },
+    async put(_request: string | Request, _response: Response): Promise<void> {
+      // No-op: files are pre-downloaded to IndexedDB
+    },
   };
 }
 
@@ -125,52 +134,81 @@ self.onmessage = async (e: MessageEvent) => {
   const msg = e.data;
 
   if (msg.type === 'init') {
-    const startTime = performance.now();
+    try {
+      // Check WebGPU availability
+      const gpu = (self as any).navigator?.gpu;
+      if (!gpu) {
+        self.postMessage({ type: 'error', error: 'WebGPU is not available in this browser' });
+        return;
+      }
 
-    env.allowRemoteModels = false;
-    env.useBrowserCache = false;
-    env.useCustomCache = true;
-    env.customCache = createBlobUrlCache(msg.fileUrls);
+      const startTime = performance.now();
 
-    generator = await pipeline("text-generation", msg.hfModelId, {
-      device: "webgpu",
-      dtype: msg.dtype,
-      progress_callback: (progress: any) => {
-        self.postMessage({ type: 'progress', ...progress });
-      },
-    });
+      env.allowRemoteModels = false;
+      env.allowLocalModels = true;
+      env.useBrowserCache = false;
+      env.useCustomCache = true;
+      env.customCache = createBlobUrlCache(msg.fileUrls);
 
-    const loadTimeMs = performance.now() - startTime;
-    self.postMessage({ type: 'ready', loadTimeMs, device: 'webgpu' });
+      // Apply ORT WASM paths if provided
+      if (msg.ortWasmBaseUrl && env.backends?.onnx?.wasm) {
+        env.backends.onnx.wasm.wasmPaths = msg.ortWasmBaseUrl;
+      }
+
+      generator = await pipeline("text-generation", msg.hfModelId, {
+        device: "webgpu",
+        dtype: msg.dtype,
+        progress_callback: (progress: any) => {
+          self.postMessage({ type: 'progress', ...progress });
+        },
+      });
+
+      const loadTimeMs = performance.now() - startTime;
+      self.postMessage({ type: 'ready', loadTimeMs, device: 'webgpu' });
+    } catch (err: any) {
+      self.postMessage({ type: 'error', error: err.message || String(err) });
+    }
   }
 
   if (msg.type === 'translate') {
-    const startTime = performance.now();
+    try {
+      const startTime = performance.now();
 
-    const messages = [{
-      role: "user",
-      content: [{
-        type: "text",
-        source_lang_code: msg.sourceLang,
-        target_lang_code: msg.targetLang,
-        text: msg.text,
-      }],
-    }];
+      const messages = [{
+        role: "user",
+        content: [{
+          type: "text",
+          source_lang_code: msg.sourceLang,
+          target_lang_code: msg.targetLang,
+          text: msg.text,
+        }],
+      }];
 
-    const output = await generator(messages, {
-      max_new_tokens: 1024,  // TODO: tune for real-time translation latency
-    });
+      const output = await generator(messages, {
+        max_new_tokens: 1024,  // TODO: tune for real-time translation latency
+      });
 
-    const translatedText = output[0].generated_text.pop().content;
-    const inferenceTimeMs = performance.now() - startTime;
+      const lastMsg = output[0].generated_text[output[0].generated_text.length - 1];
+      const translatedText = lastMsg?.content || '';
+      const inferenceTimeMs = performance.now() - startTime;
 
-    self.postMessage({
-      type: 'result',
-      id: msg.id,
-      sourceText: msg.text,
-      translatedText,
-      inferenceTimeMs,
-    });
+      self.postMessage({
+        type: 'result',
+        id: msg.id,
+        sourceText: msg.text,
+        translatedText,
+        inferenceTimeMs,
+      });
+    } catch (err: any) {
+      self.postMessage({ type: 'error', id: msg.id, error: err.message || String(err) });
+    }
+  }
+
+  if (msg.type === 'dispose') {
+    try {
+      await generator?.dispose?.();
+      generator = null;
+    } catch { /* ignore cleanup errors */ }
   }
 };
 ```
@@ -193,6 +231,9 @@ case 'translategemma':
 
 ```typescript
 // src/lib/local-inference/modelManifest.ts
+
+// 1. Update translationWorkerType union type:
+//    translationWorkerType?: 'opus-mt' | 'qwen' | 'qwen35' | 'translategemma';
 
 /** TranslateGemma 4B q4 files (~3.1GB total) */
 function translateGemmaQ4Files(): ModelFileEntry[] {
@@ -220,11 +261,13 @@ function translateGemmaQ4f16Files(): ModelFileEntry[] {
   ];
 }
 
-// Manifest entry
+// Place AFTER existing Qwen entries in the multilingual section.
+// getTranslationModel() returns first multilingual match, so Qwen
+// models retain auto-selection priority for existing users.
 {
   id: 'translategemma-4b-translation',
   type: 'translation',
-  name: 'TranslateGemma 4B (55 languages, WebGPU)',
+  name: 'TranslateGemma 4B (51 languages, WebGPU)',
   languages: [
     'ar', 'bg', 'bn', 'ca', 'cs', 'da', 'de', 'el', 'en', 'es',
     'et', 'fa', 'fi', 'fr', 'gu', 'he', 'hi', 'hr', 'hu', 'id',
@@ -247,14 +290,16 @@ function translateGemmaQ4f16Files(): ModelFileEntry[] {
 }
 ```
 
-Note: File sizes are approximate from HuggingFace listing. Replace with exact values during implementation (via HF API or after download).
+Note: File sizes are approximate from HuggingFace listing. Implementation step must verify exact sizes via HF API (`huggingface-hub` or API call) before final commit.
 
 ## Implementation Notes
 
-- The `createBlobUrlCache` function follows the exact same pattern as existing Qwen workers — intercepts Transformers.js fetch calls and redirects to IndexedDB blob URLs.
-- Worker message protocol (`init`, `translate`, `result`) is identical to existing workers — no new message types needed.
-- `getTranslationModel()` auto-selection logic is not modified. When multiple multilingual models are downloaded, it returns the first match in manifest order. Users select their preferred model explicitly in settings.
+- The `createBlobUrlCache` function uses the established `/resolve/main/` marker pattern from existing Qwen workers — intercepts Transformers.js fetch calls and redirects to IndexedDB blob URLs. Includes no-op `put()` method required by Transformers.js cache interface.
+- Worker message protocol (`init`, `translate`, `result`, `error`, `dispose`) is identical to existing workers — no new message types needed.
+- Worker includes WebGPU availability check, try-catch error handling, WASM proxy disable, ORT WASM path config, and dispose handler — all matching the established worker pattern.
+- `getTranslationModel()` auto-selection logic is not modified. TranslateGemma entry placed after Qwen entries in manifest so Qwen retains auto-selection priority. Users select their preferred model explicitly in settings.
 - No `chat_template.jinja` file needs to be included in downloads — Transformers.js reads the template from `tokenizer_config.json`.
+- Manifest type union `translationWorkerType` must be extended to include `'translategemma'`.
 
 ## Out of Scope
 
