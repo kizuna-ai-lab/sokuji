@@ -97,7 +97,7 @@ export interface ModelManifestEntry {
   sourceLang?: string;
   targetLang?: string;
   /** Which translation worker to use. Defaults to 'opus-mt' if omitted. */
-  translationWorkerType?: 'opus-mt' | 'qwen' | 'qwen35';
+  translationWorkerType?: 'opus-mt' | 'qwen' | 'qwen35' | 'translategemma';
 }
 
 // ─── Variant Selection ──────────────────────────────────────────────────────
@@ -360,6 +360,34 @@ function qwen35_2bTranslationFilesQ4f16(): ModelFileEntry[] {
     { filename: 'onnx/vision_encoder_q4f16.onnx_data', sizeBytes: 196_945_920 },
     { filename: 'onnx/decoder_model_merged_q4f16.onnx', sizeBytes: 1_046_438 },
     { filename: 'onnx/decoder_model_merged_q4f16.onnx_data', sizeBytes: 1_089_777_664 },
+  ];
+}
+
+/** TranslateGemma 4B q4 files (~3.1GB total).
+ *  Source: onnx-community/translategemma-text-4b-it-ONNX */
+function translateGemmaQ4Files(): ModelFileEntry[] {
+  return [
+    { filename: 'config.json', sizeBytes: 2_206 },
+    { filename: 'generation_config.json', sizeBytes: 155 },
+    { filename: 'tokenizer.json', sizeBytes: 20_323_013 },
+    { filename: 'tokenizer_config.json', sizeBytes: 20_771 },
+    { filename: 'onnx/model_q4.onnx', sizeBytes: 456_583 },
+    { filename: 'onnx/model_q4.onnx_data', sizeBytes: 2_097_115_648 },
+    { filename: 'onnx/model_q4.onnx_data_1', sizeBytes: 993_976_320 },
+  ];
+}
+
+/** TranslateGemma 4B q4f16 files (~2.7GB total).
+ *  Source: onnx-community/translategemma-text-4b-it-ONNX */
+function translateGemmaQ4f16Files(): ModelFileEntry[] {
+  return [
+    { filename: 'config.json', sizeBytes: 2_206 },
+    { filename: 'generation_config.json', sizeBytes: 155 },
+    { filename: 'tokenizer.json', sizeBytes: 20_323_013 },
+    { filename: 'tokenizer_config.json', sizeBytes: 20_771 },
+    { filename: 'onnx/model_q4f16.onnx', sizeBytes: 614_211 },
+    { filename: 'onnx/model_q4f16.onnx_data', sizeBytes: 2_090_805_760 },
+    { filename: 'onnx/model_q4f16.onnx_data_1', sizeBytes: 623_575_040 },
   ];
 }
 
@@ -2563,6 +2591,35 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
       },
     },
     translationWorkerType: 'qwen35',
+  },
+
+  // ── TranslateGemma ───────────────────────────────────────────────────
+  // Google's purpose-built translation model. Uses structured content format
+  // with source/target language codes (not system prompts).
+  // Placed after Qwen entries so Qwen retains getTranslationModel() auto-selection priority.
+  {
+    id: 'translategemma-4b-translation',
+    type: 'translation',
+    name: 'TranslateGemma 4B (51 languages, WebGPU)',
+    languages: [
+      'ar', 'bg', 'bn', 'ca', 'cs', 'da', 'de', 'el', 'en', 'es',
+      'et', 'fa', 'fi', 'fr', 'gu', 'he', 'hi', 'hr', 'hu', 'id',
+      'is', 'it', 'ja', 'kn', 'ko', 'lt', 'lv', 'ml', 'mr', 'nl',
+      'no', 'pa', 'pl', 'pt', 'ro', 'ru', 'sk', 'sl', 'sr', 'sv',
+      'sw', 'ta', 'te', 'th', 'tl', 'tr', 'uk', 'ur', 'vi', 'zh', 'zu',
+    ],
+    multilingual: true,
+    requiredDevice: 'webgpu',
+    hfModelId: 'onnx-community/translategemma-text-4b-it-ONNX',
+    translationWorkerType: 'translategemma',
+    variants: {
+      'q4': { dtype: 'q4', files: translateGemmaQ4Files() },
+      'q4f16': {
+        dtype: 'q4f16',
+        files: translateGemmaQ4f16Files(),
+        requiredFeatures: ['shader-f16'],
+      },
+    },
   },
 
   // ── Language Family Models ─────────────────────────────────────────────
