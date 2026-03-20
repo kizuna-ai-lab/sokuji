@@ -871,6 +871,24 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       setIsInitializing(true);
       setInitProgress(null);
 
+      // Re-validate before starting session to catch stale button state
+      if (provider === Provider.LOCAL_INFERENCE) {
+        const { useModelStore } = await import('../../stores/modelStore');
+        const modelState = useModelStore.getState();
+        const ready = modelState.isProviderReady(
+          localInferenceSettings.sourceLanguage,
+          localInferenceSettings.targetLanguage,
+          localInferenceSettings.asrModel || undefined,
+          localInferenceSettings.translationModel || undefined,
+          localInferenceSettings.ttsModel || undefined,
+        );
+        if (!ready) {
+          setIsInitializing(false);
+          addLog(t('settings.localInferenceModelsRequired', 'Required models not available for selected language pair.'), 'error');
+          return;
+        }
+      }
+
       // Clear previous session's conversation items immediately
       setItems([]);
       setSystemAudioItems([]);

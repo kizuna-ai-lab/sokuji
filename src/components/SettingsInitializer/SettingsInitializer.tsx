@@ -12,7 +12,8 @@ import {
   useSettingsLoaded,
   useLocalInferenceSettings
 } from '../../stores/settingsStore';
-import { useModelStatuses } from '../../stores/modelStore';
+import { useModelStatuses, useModelStore } from '../../stores/modelStore';
+import useSettingsStore from '../../stores/settingsStore';
 import { useAuth } from '../../lib/auth/hooks';
 import { Provider } from '../../types/Provider';
 
@@ -120,20 +121,29 @@ export function SettingsInitializer() {
       volcengineSTSettings.secretAccessKey, volcengineAST2Settings.appId, volcengineAST2Settings.accessToken,
       validateApiKey]);
 
-  // Re-validate when model download statuses change and LOCAL_INFERENCE is selected
+  // Re-validate synchronously when model download statuses or language settings change
+  // for LOCAL_INFERENCE. Synchronous check avoids button flickering from async validateApiKey.
   useEffect(() => {
     if (!settingsLoaded) return;
     if (provider !== Provider.LOCAL_INFERENCE) return;
 
-    // Model status changed — re-validate to update start button state
-    if (!isValidatingRef.current) {
-      isValidatingRef.current = true;
-      setTimeout(async () => {
-        await validateApiKey();
-        isValidatingRef.current = false;
-      }, 100);
-    }
-  }, [settingsLoaded, provider, modelStatuses, validateApiKey, localInferenceSettings]);
+    const modelState = useModelStore.getState();
+    const ready = modelState.isProviderReady(
+      localInferenceSettings.sourceLanguage,
+      localInferenceSettings.targetLanguage,
+      localInferenceSettings.asrModel || undefined,
+      localInferenceSettings.translationModel || undefined,
+      localInferenceSettings.ttsModel || undefined,
+    );
+
+    useSettingsStore.setState({
+      isApiKeyValid: ready,
+      availableModels: ready
+        ? [{ id: 'local-asr-translate', type: 'realtime' as const, created: 0 }]
+        : [],
+      isValidating: false,
+    });
+  }, [settingsLoaded, provider, modelStatuses, localInferenceSettings]);
 
   // This component doesn't render anything
   return null;
