@@ -97,7 +97,7 @@ export interface ModelManifestEntry {
   sourceLang?: string;
   targetLang?: string;
   /** Which translation worker to use. Defaults to 'opus-mt' if omitted. */
-  translationWorkerType?: 'opus-mt' | 'qwen' | 'qwen35';
+  translationWorkerType?: 'opus-mt' | 'qwen' | 'qwen35' | 'translategemma';
 }
 
 // ─── Variant Selection ──────────────────────────────────────────────────────
@@ -360,6 +360,34 @@ function qwen35_2bTranslationFilesQ4f16(): ModelFileEntry[] {
     { filename: 'onnx/vision_encoder_q4f16.onnx_data', sizeBytes: 196_945_920 },
     { filename: 'onnx/decoder_model_merged_q4f16.onnx', sizeBytes: 1_046_438 },
     { filename: 'onnx/decoder_model_merged_q4f16.onnx_data', sizeBytes: 1_089_777_664 },
+  ];
+}
+
+/** TranslateGemma 4B q4 files (~3.1GB total).
+ *  Source: onnx-community/translategemma-text-4b-it-ONNX */
+function translateGemmaQ4Files(): ModelFileEntry[] {
+  return [
+    { filename: 'config.json', sizeBytes: 2_206 },
+    { filename: 'generation_config.json', sizeBytes: 155 },
+    { filename: 'tokenizer.json', sizeBytes: 20_323_013 },
+    { filename: 'tokenizer_config.json', sizeBytes: 20_771 },
+    { filename: 'onnx/model_q4.onnx', sizeBytes: 456_583 },
+    { filename: 'onnx/model_q4.onnx_data', sizeBytes: 2_097_115_648 },
+    { filename: 'onnx/model_q4.onnx_data_1', sizeBytes: 993_976_320 },
+  ];
+}
+
+/** TranslateGemma 4B q4f16 files (~2.7GB total).
+ *  Source: onnx-community/translategemma-text-4b-it-ONNX */
+function translateGemmaQ4f16Files(): ModelFileEntry[] {
+  return [
+    { filename: 'config.json', sizeBytes: 2_206 },
+    { filename: 'generation_config.json', sizeBytes: 155 },
+    { filename: 'tokenizer.json', sizeBytes: 20_323_013 },
+    { filename: 'tokenizer_config.json', sizeBytes: 20_771 },
+    { filename: 'onnx/model_q4f16.onnx', sizeBytes: 614_211 },
+    { filename: 'onnx/model_q4f16.onnx_data', sizeBytes: 2_090_805_760 },
+    { filename: 'onnx/model_q4f16.onnx_data_1', sizeBytes: 623_575_040 },
   ];
 }
 
@@ -2565,6 +2593,35 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     translationWorkerType: 'qwen35',
   },
 
+  // ── TranslateGemma ───────────────────────────────────────────────────
+  // Google's purpose-built translation model. Uses structured content format
+  // with source/target language codes (not system prompts).
+  // Placed after Qwen entries so Qwen retains getTranslationModel() auto-selection priority.
+  {
+    id: 'translategemma-4b-translation',
+    type: 'translation',
+    name: 'TranslateGemma 4B (51 languages, WebGPU)',
+    languages: [
+      'ar', 'bg', 'bn', 'ca', 'cs', 'da', 'de', 'el', 'en', 'es',
+      'et', 'fa', 'fi', 'fr', 'gu', 'he', 'hi', 'hr', 'hu', 'id',
+      'is', 'it', 'ja', 'kn', 'ko', 'lt', 'lv', 'ml', 'mr', 'nl',
+      'no', 'pa', 'pl', 'pt', 'ro', 'ru', 'sk', 'sl', 'sr', 'sv',
+      'sw', 'ta', 'te', 'th', 'tl', 'tr', 'uk', 'ur', 'vi', 'zh', 'zu',
+    ],
+    multilingual: true,
+    requiredDevice: 'webgpu',
+    hfModelId: 'onnx-community/translategemma-text-4b-it-ONNX',
+    translationWorkerType: 'translategemma',
+    variants: {
+      'q4': { dtype: 'q4', files: translateGemmaQ4Files() },
+      'q4f16': {
+        dtype: 'q4f16',
+        files: translateGemmaQ4f16Files(),
+        requiredFeatures: ['shader-f16'],
+      },
+    },
+  },
+
   // ── Language Family Models ─────────────────────────────────────────────
   // { id: 'opus-mt-gem-gem', type: 'translation', name: 'Opus-MT (Germanic ↔ Germanic)', languages: ['de', 'en', 'nl', 'da', 'sv', 'no'], variants: { default: { dtype: 'default', files: translationFiles(1_391, 293, 3_640_084, 282, 38_944_670, 46_148_708) } }, hfModelId: 'Xenova/opus-mt-gem-gem', sourceLang: 'gem', targetLang: 'gem' },
   // { id: 'opus-mt-gmw-gmw', type: 'translation', name: 'Opus-MT (West Germanic ↔ West Germanic)', languages: ['de', 'en', 'nl', 'af'], variants: { default: { dtype: 'default', files: translationFiles(1_391, 293, 3_431_142, 282, 37_776_798, 44_971_712) } }, hfModelId: 'Xenova/opus-mt-gmw-gmw', sourceLang: 'gmw', targetLang: 'gmw' },
@@ -2575,12 +2632,21 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
 import { getLanguageOption, LANGUAGE_OPTIONS, sortLanguageOptions } from '../../utils/languages';
 import type { LanguageOption } from '../../services/providers/ProviderConfig';
 
+/** Check if a model is truly universal (languages: ['multilingual']) vs bounded multilingual */
+function isUniversalMultilingual(m: ModelManifestEntry): boolean {
+  return !!m.multilingual && m.languages.length === 1 && m.languages[0] === 'multilingual';
+}
+
 /** Get all unique source languages available across translation models */
 export function getTranslationSourceLanguages(): LanguageOption[] {
   const codes = new Set<string>();
   for (const m of MODEL_MANIFEST.filter(m => m.type === 'translation')) {
-    if (m.multilingual) {
+    if (isUniversalMultilingual(m)) {
+      // Truly universal models (e.g. Qwen 3.5): expose all languages
       Object.keys(LANGUAGE_OPTIONS).forEach(l => codes.add(l));
+    } else if (m.multilingual) {
+      // Bounded multilingual (e.g. TranslateGemma, Qwen 2.5): use languages list
+      m.languages.forEach(l => codes.add(l));
     } else if (m.sourceLang) {
       codes.add(m.sourceLang);
     }
@@ -2592,8 +2658,10 @@ export function getTranslationSourceLanguages(): LanguageOption[] {
 export function getTranslationTargetLanguages(sourceLang: string): LanguageOption[] {
   const codes = new Set<string>();
   for (const m of MODEL_MANIFEST.filter(m => m.type === 'translation')) {
-    if (m.multilingual) {
+    if (isUniversalMultilingual(m)) {
       Object.keys(LANGUAGE_OPTIONS).forEach(l => { if (l !== sourceLang) codes.add(l); });
+    } else if (m.multilingual) {
+      m.languages.forEach(l => { if (l !== sourceLang) codes.add(l); });
     } else if (m.sourceLang === sourceLang && m.targetLang) {
       codes.add(m.targetLang);
     }
@@ -2629,9 +2697,10 @@ export function getTranslationModel(sourceLang: string, targetLang: string): Mod
     m => m.type === 'translation' && m.sourceLang === sourceLang && m.targetLang === targetLang
   );
   if (pairModel) return pairModel;
-  // Fallback: multilingual model (supports any language pair)
+  // Fallback: multilingual model that supports both languages
   return MODEL_MANIFEST.find(
     m => m.type === 'translation' && m.multilingual
+      && (isUniversalMultilingual(m) || (m.languages.includes(sourceLang) && m.languages.includes(targetLang)))
   );
 }
 
@@ -2640,7 +2709,10 @@ export function isTranslationModelCompatible(
   entry: ModelManifestEntry, sourceLang: string, targetLang: string,
 ): boolean {
   if (entry.type !== 'translation') return false;
-  if (entry.multilingual) return true;
+  if (isUniversalMultilingual(entry)) return true;
+  if (entry.multilingual) {
+    return entry.languages.includes(sourceLang) && entry.languages.includes(targetLang);
+  }
   return entry.sourceLang === sourceLang && entry.targetLang === targetLang;
 }
 
