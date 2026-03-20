@@ -181,9 +181,25 @@ export class TtsEngine {
       throw new Error('A generation request is already in progress');
     }
 
+    // Strip emoji before sending to TTS to prevent models from reading out emoji names.
+    // Current sherpa-onnx TTS models (Piper, Matcha) don't support emoji and will
+    // spell them out as Unicode text, producing garbled speech.
+    //
+    // TODO: When emoji-aware or emotion-capable TTS models are available (e.g. models
+    // that can map 😊 to happy intonation, or 😢 to sad tone), this stripping should
+    // be made conditional based on model capabilities. Consider:
+    //   1. Adding an `supportsEmoji` or `emotionAware` flag to ModelManifestEntry
+    //   2. Converting emoji to SSML emotion tags or prosody hints instead of stripping
+    //   3. Keeping emoji in text for models that can handle them natively
+    const sanitizedText = TtsEngine.stripEmoji(text);
+    if (!sanitizedText) {
+      // Text was entirely emoji — return silence
+      return { samples: new Float32Array(0), sampleRate: this._sampleRate, generationTimeMs: 0 };
+    }
+
     return new Promise((resolve, reject) => {
       this.pendingGenerate = { resolve, reject };
-      this.worker!.postMessage({ type: 'generate', text, sid, speed });
+      this.worker!.postMessage({ type: 'generate', text: sanitizedText, sid, speed });
     });
   }
 
@@ -208,6 +224,17 @@ export class TtsEngine {
 
   get sampleRate(): number {
     return this._sampleRate;
+  }
+
+  /**
+   * Remove emoji characters from text to prevent TTS models from reading them out.
+   * Collapses resulting extra whitespace.
+   */
+  private static stripEmoji(text: string): string {
+    return text
+      .replace(/\p{Emoji_Presentation}|\p{Extended_Pictographic}/gu, '')
+      .replace(/\s{2,}/g, ' ')
+      .trim();
   }
 
   dispose(): void {
