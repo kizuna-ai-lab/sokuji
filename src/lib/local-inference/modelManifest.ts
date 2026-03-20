@@ -2632,12 +2632,21 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
 import { getLanguageOption, LANGUAGE_OPTIONS, sortLanguageOptions } from '../../utils/languages';
 import type { LanguageOption } from '../../services/providers/ProviderConfig';
 
+/** Check if a model is truly universal (languages: ['multilingual']) vs bounded multilingual */
+function isUniversalMultilingual(m: ModelManifestEntry): boolean {
+  return !!m.multilingual && m.languages.length === 1 && m.languages[0] === 'multilingual';
+}
+
 /** Get all unique source languages available across translation models */
 export function getTranslationSourceLanguages(): LanguageOption[] {
   const codes = new Set<string>();
   for (const m of MODEL_MANIFEST.filter(m => m.type === 'translation')) {
-    if (m.multilingual) {
+    if (isUniversalMultilingual(m)) {
+      // Truly universal models (e.g. Qwen 3.5): expose all languages
       Object.keys(LANGUAGE_OPTIONS).forEach(l => codes.add(l));
+    } else if (m.multilingual) {
+      // Bounded multilingual (e.g. TranslateGemma, Qwen 2.5): use languages list
+      m.languages.forEach(l => codes.add(l));
     } else if (m.sourceLang) {
       codes.add(m.sourceLang);
     }
@@ -2649,8 +2658,10 @@ export function getTranslationSourceLanguages(): LanguageOption[] {
 export function getTranslationTargetLanguages(sourceLang: string): LanguageOption[] {
   const codes = new Set<string>();
   for (const m of MODEL_MANIFEST.filter(m => m.type === 'translation')) {
-    if (m.multilingual) {
+    if (isUniversalMultilingual(m)) {
       Object.keys(LANGUAGE_OPTIONS).forEach(l => { if (l !== sourceLang) codes.add(l); });
+    } else if (m.multilingual) {
+      m.languages.forEach(l => { if (l !== sourceLang) codes.add(l); });
     } else if (m.sourceLang === sourceLang && m.targetLang) {
       codes.add(m.targetLang);
     }
@@ -2686,9 +2697,10 @@ export function getTranslationModel(sourceLang: string, targetLang: string): Mod
     m => m.type === 'translation' && m.sourceLang === sourceLang && m.targetLang === targetLang
   );
   if (pairModel) return pairModel;
-  // Fallback: multilingual model (supports any language pair)
+  // Fallback: multilingual model that supports both languages
   return MODEL_MANIFEST.find(
     m => m.type === 'translation' && m.multilingual
+      && (isUniversalMultilingual(m) || (m.languages.includes(sourceLang) && m.languages.includes(targetLang)))
   );
 }
 
@@ -2697,7 +2709,10 @@ export function isTranslationModelCompatible(
   entry: ModelManifestEntry, sourceLang: string, targetLang: string,
 ): boolean {
   if (entry.type !== 'translation') return false;
-  if (entry.multilingual) return true;
+  if (isUniversalMultilingual(entry)) return true;
+  if (entry.multilingual) {
+    return entry.languages.includes(sourceLang) && entry.languages.includes(targetLang);
+  }
   return entry.sourceLang === sourceLang && entry.targetLang === targetLang;
 }
 
