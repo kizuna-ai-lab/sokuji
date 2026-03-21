@@ -82,43 +82,16 @@ export function SettingsInitializer() {
     // Skip LOCAL_INFERENCE (handled by the next effect) and KizunaAI (handled above)
     if (provider === Provider.LOCAL_INFERENCE || provider === Provider.KIZUNA_AI) return;
 
-    // Check if provider actually changed or if credentials changed
-    const providerChanged = prevProviderRef.current !== provider;
     prevProviderRef.current = provider;
 
-    // Determine if this provider has credentials configured
-    let hasCredentials = false;
-    switch (provider) {
-      case Provider.OPENAI:
-        hasCredentials = !!openAISettings.apiKey;
-        break;
-      case Provider.GEMINI:
-        hasCredentials = !!geminiSettings.apiKey;
-        break;
-      case Provider.OPENAI_COMPATIBLE:
-        hasCredentials = !!openAICompatibleSettings.apiKey;
-        break;
-      case Provider.PALABRA_AI:
-        hasCredentials = !!palabraAISettings.clientId && !!palabraAISettings.clientSecret;
-        break;
-      case Provider.VOLCENGINE_ST:
-        hasCredentials = !!volcengineSTSettings.accessKeyId && !!volcengineSTSettings.secretAccessKey;
-        break;
-      case Provider.VOLCENGINE_AST2:
-        hasCredentials = !!volcengineAST2Settings.appId && !!volcengineAST2Settings.accessToken;
-        break;
-    }
-
+    // Always call validateApiKey — it handles empty credentials internally
+    // (sets isApiKeyValid to null, clears availableModels).
     if (!isValidatingRef.current) {
-      // Always call validateApiKey — it handles empty credentials internally
-      // (sets isApiKeyValid to null, clears availableModels)
-      if (hasCredentials || providerChanged) {
-        isValidatingRef.current = true;
-        console.log('[SettingsInitializer] Validating API provider:', provider);
-        validateApiKey().finally(() => {
-          isValidatingRef.current = false;
-        });
-      }
+      isValidatingRef.current = true;
+      console.log('[SettingsInitializer] Validating API provider:', provider);
+      validateApiKey().finally(() => {
+        isValidatingRef.current = false;
+      });
     }
   }, [settingsLoaded, provider, openAISettings.apiKey, geminiSettings.apiKey,
       openAICompatibleSettings.apiKey,
