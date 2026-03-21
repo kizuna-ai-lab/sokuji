@@ -512,12 +512,14 @@ const useSettingsStore = create<SettingsStore>()(
     // === Common Settings Actions ===
     setProvider: async (provider) => {
       set({provider});
+
+      // Clear cache synchronously before persisting, so SettingsInitializer
+      // (which reacts to the provider change immediately) won't have its
+      // fresh validation wiped by a late clearCache() after the await.
+      get().clearCache();
+
       const service = ServiceFactory.getSettingsService();
       await service.setSetting('settings.common.provider', provider);
-
-      // Clear cache when switching providers.
-      // SettingsInitializer will detect the provider change and call validateApiKey().
-      get().clearCache();
     },
 
     setUILanguage: async (uiLanguage) => {

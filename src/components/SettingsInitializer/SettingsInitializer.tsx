@@ -64,8 +64,11 @@ export function SettingsInitializer() {
         if (hasKey && !isValidatingRef.current) {
           isValidatingRef.current = true;
           console.log('[SettingsInitializer] KizunaAI API key obtained, validating...');
-          await validateApiKey(getToken);
-          isValidatingRef.current = false;
+          try {
+            await validateApiKey(getToken);
+          } finally {
+            isValidatingRef.current = false;
+          }
         }
       }
     };
@@ -135,9 +138,18 @@ export function SettingsInitializer() {
     // Track provider ref so the API-provider effect above doesn't re-fire
     prevProviderRef.current = provider;
 
-    // validateApiKey for LOCAL_INFERENCE is synchronous internally (no network call),
+    // validateApiKey for LOCAL_INFERENCE is effectively synchronous (no network call),
     // so no flickering despite being async. It handles autoSelectModels + isProviderReady.
-    validateApiKey();
+    if (!isValidatingRef.current) {
+      isValidatingRef.current = true;
+      validateApiKey()
+        .catch((error) => {
+          console.error('[SettingsInitializer] Failed to validate LOCAL_INFERENCE provider:', error);
+        })
+        .finally(() => {
+          isValidatingRef.current = false;
+        });
+    }
   }, [settingsLoaded, provider, modelInitialized, modelStatuses, localInferenceSettings,
       validateApiKey]);
 
