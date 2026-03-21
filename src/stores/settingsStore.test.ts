@@ -59,7 +59,6 @@ describe('settingsStore', () => {
     });
 
     it('should NOT trigger auto-validation when switching to KizunaAI provider', async () => {
-      vi.useFakeTimers();
       const store = useSettingsStore.getState();
 
       // Mock validateApiKey
@@ -74,9 +73,6 @@ describe('settingsStore', () => {
 
       // Switch to KizunaAI
       await store.setProvider(Provider.KIZUNA_AI);
-
-      // Fast-forward timer (in case any setTimeout is still present)
-      vi.advanceTimersByTime(200);
 
       // validateApiKey should NOT be called from setProvider (handled by SettingsInitializer)
       expect(validateSpy).not.toHaveBeenCalled();
