@@ -695,6 +695,21 @@ const useSettingsStore = create<SettingsStore>()(
         for (const [key, value] of Object.entries(settings)) {
           await service.setSetting(`settings.localInference.${key}`, value);
         }
+
+        // Keep LOCAL_INFERENCE readiness in sync with language/model changes
+        // so start-session state updates immediately.
+        const shouldRevalidateReadiness =
+          'sourceLanguage' in settings ||
+          'targetLanguage' in settings ||
+          'asrModel' in settings ||
+          'translationModel' in settings ||
+          'ttsModel' in settings;
+
+        if (get().provider === Provider.LOCAL_INFERENCE && shouldRevalidateReadiness) {
+          setTimeout(() => {
+            get().validateApiKey();
+          }, 0);
+        }
       } catch (error) {
         console.error('[SettingsStore] Error persisting Local Inference settings:', error);
       }

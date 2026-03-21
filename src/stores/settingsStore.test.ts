@@ -121,6 +121,23 @@ describe('settingsStore', () => {
         Provider.OPENAI_COMPATIBLE
       );
     });
+
+    it('should revalidate LOCAL_INFERENCE readiness when local settings change', async () => {
+      vi.useFakeTimers();
+      useSettingsStore.setState({ provider: Provider.LOCAL_INFERENCE });
+      const store = useSettingsStore.getState();
+
+      const validateSpy = vi.spyOn(store, 'validateApiKey').mockResolvedValue({
+        valid: true,
+        message: '',
+        validating: false,
+      });
+
+      await store.updateLocalInference({ sourceLanguage: 'zh' });
+      vi.runAllTimers();
+
+      expect(validateSpy).toHaveBeenCalled();
+    });
   });
 
   describe('Cache Management', () => {
