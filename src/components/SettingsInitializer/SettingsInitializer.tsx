@@ -13,12 +13,14 @@ import {
   useLocalInferenceSettings
 } from '../../stores/settingsStore';
 import { useModelStatuses, useModelInitialized, useModelStore } from '../../stores/modelStore';
-import useSettingsStore from '../../stores/settingsStore';
 import { useAuth } from '../../lib/auth/hooks';
 import { Provider } from '../../types/Provider';
 
 /**
- * Component that monitors settings and ensures API keys are validated when needed
+ * SettingsInitializer — watches for settings changes and triggers session readiness
+ * validation via validateApiKey(). All Start-button state (isApiKeyValid, availableModels,
+ * isValidating) is written exclusively inside settingsStore.validateApiKey().
+ * This component only decides WHEN to call it.
  */
 export function SettingsInitializer() {
   const provider = useProvider();
@@ -26,12 +28,12 @@ export function SettingsInitializer() {
   const validateApiKey = useValidateApiKey();
   const settingsLoaded = useSettingsLoaded();
   const { isSignedIn, getToken } = useAuth();
-  
+
   // Track previous provider to detect changes (null initially to trigger validation on mount)
   const prevProviderRef = useRef<typeof provider | null>(null);
   const isValidatingRef = useRef(false);
-  
-  // Get all provider settings to monitor API key changes
+
+  // Get all provider settings to monitor credential changes
   const openAISettings = useOpenAISettings();
   const geminiSettings = useGeminiSettings();
   const openAICompatibleSettings = useOpenAICompatibleSettings();
@@ -39,12 +41,12 @@ export function SettingsInitializer() {
   const volcengineSTSettings = useVolcengineSTSettings();
   const volcengineAST2Settings = useVolcengineAST2Settings();
 
-  // Monitor model download statuses and local inference settings for LOCAL_INFERENCE provider gating
+  // Monitor model download statuses and local inference settings for LOCAL_INFERENCE
   const modelStatuses = useModelStatuses();
   const modelInitialized = useModelInitialized();
   const localInferenceSettings = useLocalInferenceSettings();
 
-  // Ensure model store is initialized when LOCAL_INFERENCE is selected
+  // ── Ensure model store is initialized when LOCAL_INFERENCE is selected ──
   useEffect(() => {
     if (!settingsLoaded) return;
     if (provider !== Provider.LOCAL_INFERENCE) return;
@@ -52,132 +54,92 @@ export function SettingsInitializer() {
     useModelStore.getState().initialize();
   }, [settingsLoaded, provider, modelInitialized]);
 
-  // Auto-fetch and validate KizunaAI API key when user logs in or provider changes
+  // ── KizunaAI: auto-fetch API key when user logs in or provider changes ──
   useEffect(() => {
     const handleKizunaAI = async () => {
       if (provider === Provider.KIZUNA_AI && isSignedIn && getToken) {
         console.log('[SettingsInitializer] KizunaAI provider selected, ensuring API key...');
         const hasKey = await ensureKizunaApiKey(getToken, isSignedIn);
-        
-        // If we successfully got the key, validate it
+
         if (hasKey && !isValidatingRef.current) {
           isValidatingRef.current = true;
           console.log('[SettingsInitializer] KizunaAI API key obtained, validating...');
-          setTimeout(async () => {
-            await validateApiKey(getToken);
-            isValidatingRef.current = false;
-          }, 100);
+          await validateApiKey(getToken);
+          isValidatingRef.current = false;
         }
       }
     };
-    
+
     handleKizunaAI();
   }, [provider, isSignedIn, getToken, ensureKizunaApiKey, validateApiKey]);
-  
-  // Auto-validate when provider changes (for non-KizunaAI providers)
-  useEffect(() => {
-    // Only proceed if settings have been loaded
-    if (!settingsLoaded) {
-      console.log('[SettingsInitializer] Settings not loaded yet, skipping validation');
-      return;
-    }
-    
-    // Check if provider actually changed
-    if (prevProviderRef.current !== provider) {
-      console.log('[SettingsInitializer] Provider changed from', prevProviderRef.current, 'to', provider);
-      prevProviderRef.current = provider;
-      
-      // For non-KizunaAI providers, validate if they have an API key
-      if (provider !== Provider.KIZUNA_AI && !isValidatingRef.current) {
-        let hasApiKey = false;
 
-        switch (provider) {
-          case Provider.OPENAI:
-            hasApiKey = !!openAISettings.apiKey;
-            break;
-          case Provider.GEMINI:
-            hasApiKey = !!geminiSettings.apiKey;
-            break;
-          case Provider.OPENAI_COMPATIBLE:
-            hasApiKey = !!openAICompatibleSettings.apiKey;
-            break;
-          case Provider.PALABRA_AI:
-            hasApiKey = !!palabraAISettings.clientId && !!palabraAISettings.clientSecret;
-            break;
-          case Provider.VOLCENGINE_ST:
-            hasApiKey = !!volcengineSTSettings.accessKeyId && !!volcengineSTSettings.secretAccessKey;
-            break;
-          case Provider.VOLCENGINE_AST2:
-            hasApiKey = !!volcengineAST2Settings.appId && !!volcengineAST2Settings.accessToken;
-            break;
-          case Provider.LOCAL_INFERENCE:
-            hasApiKey = true;  // No API key needed
-            break;
-        }
-        
-        if (hasApiKey) {
-          isValidatingRef.current = true;
-          console.log('[SettingsInitializer] Provider has API key, auto-validating...');
-          setTimeout(async () => {
-            await validateApiKey();
-            isValidatingRef.current = false;
-          }, 100);
-        }
+  // ── API providers: validate when provider changes or credentials change ──
+  useEffect(() => {
+    if (!settingsLoaded) return;
+    // Skip LOCAL_INFERENCE (handled by the next effect) and KizunaAI (handled above)
+    if (provider === Provider.LOCAL_INFERENCE || provider === Provider.KIZUNA_AI) return;
+
+    // Check if provider actually changed or if credentials changed
+    const providerChanged = prevProviderRef.current !== provider;
+    prevProviderRef.current = provider;
+
+    // Determine if this provider has credentials configured
+    let hasCredentials = false;
+    switch (provider) {
+      case Provider.OPENAI:
+        hasCredentials = !!openAISettings.apiKey;
+        break;
+      case Provider.GEMINI:
+        hasCredentials = !!geminiSettings.apiKey;
+        break;
+      case Provider.OPENAI_COMPATIBLE:
+        hasCredentials = !!openAICompatibleSettings.apiKey;
+        break;
+      case Provider.PALABRA_AI:
+        hasCredentials = !!palabraAISettings.clientId && !!palabraAISettings.clientSecret;
+        break;
+      case Provider.VOLCENGINE_ST:
+        hasCredentials = !!volcengineSTSettings.accessKeyId && !!volcengineSTSettings.secretAccessKey;
+        break;
+      case Provider.VOLCENGINE_AST2:
+        hasCredentials = !!volcengineAST2Settings.appId && !!volcengineAST2Settings.accessToken;
+        break;
+    }
+
+    if (!isValidatingRef.current) {
+      // Always call validateApiKey — it handles empty credentials internally
+      // (sets isApiKeyValid to null, clears availableModels)
+      if (hasCredentials || providerChanged) {
+        isValidatingRef.current = true;
+        console.log('[SettingsInitializer] Validating API provider:', provider);
+        validateApiKey().finally(() => {
+          isValidatingRef.current = false;
+        });
       }
     }
-  }, [settingsLoaded, provider, openAISettings.apiKey, geminiSettings.apiKey, openAICompatibleSettings.apiKey,
-      palabraAISettings.clientId, palabraAISettings.clientSecret, volcengineSTSettings.accessKeyId,
-      volcengineSTSettings.secretAccessKey, volcengineAST2Settings.appId, volcengineAST2Settings.accessToken,
+  }, [settingsLoaded, provider, openAISettings.apiKey, geminiSettings.apiKey,
+      openAICompatibleSettings.apiKey,
+      palabraAISettings.clientId, palabraAISettings.clientSecret,
+      volcengineSTSettings.accessKeyId, volcengineSTSettings.secretAccessKey,
+      volcengineAST2Settings.appId, volcengineAST2Settings.accessToken,
       validateApiKey]);
 
-  // Re-validate synchronously when model download statuses or language settings change
-  // for LOCAL_INFERENCE. Synchronous check avoids button flickering from async validateApiKey.
-  // Also auto-corrects stale model selections (e.g. TTS model that doesn't support new targetLang).
+  // ── LOCAL_INFERENCE: validate when model statuses or language settings change ──
+  // validateApiKey() handles everything: model store init, auto-select, readiness check.
   useEffect(() => {
     if (!settingsLoaded) return;
     if (provider !== Provider.LOCAL_INFERENCE) return;
-    // Wait until model store has scanned IndexedDB — without this,
-    // modelStatuses is {} on cold start and autoSelect/isProviderReady fail.
+    // Wait until model store has scanned IndexedDB
     if (!modelInitialized) return;
 
-    const modelState = useModelStore.getState();
-    const { sourceLanguage, targetLanguage, asrModel, translationModel, ttsModel } = localInferenceSettings;
+    // Track provider ref so the API-provider effect above doesn't re-fire
+    prevProviderRef.current = provider;
 
-    console.log('[SettingsInitializer] LOCAL_INFERENCE effect fired. localInferenceSettings:', {
-      sourceLanguage, targetLanguage, asrModel, translationModel, ttsModel,
-    });
-
-    // Auto-correct stale model selections before checking readiness.
-    // Without this, changing languages while the provider tab is closed leaves
-    // incompatible models selected, causing isProviderReady to return false.
-    const corrections = modelState.autoSelectModels(
-      sourceLanguage, targetLanguage, asrModel, translationModel, ttsModel,
-    );
-    if (corrections) {
-      console.log('[SettingsInitializer] Auto-correcting stale model selections:', corrections);
-      useSettingsStore.getState().updateLocalInference(corrections);
-      // The settings update will re-trigger this effect with corrected values
-      return;
-    }
-
-    const ready = modelState.isProviderReady(
-      sourceLanguage,
-      targetLanguage,
-      asrModel || undefined,
-      translationModel || undefined,
-      ttsModel || undefined,
-    );
-
-    console.log('[SettingsInitializer] isProviderReady result:', ready);
-
-    useSettingsStore.setState({
-      isApiKeyValid: ready,
-      availableModels: ready
-        ? [{ id: 'local-asr-translate', type: 'realtime' as const, created: 0 }]
-        : [],
-      isValidating: false,
-    });
-  }, [settingsLoaded, provider, modelInitialized, modelStatuses, localInferenceSettings]);
+    // validateApiKey for LOCAL_INFERENCE is synchronous internally (no network call),
+    // so no flickering despite being async. It handles autoSelectModels + isProviderReady.
+    validateApiKey();
+  }, [settingsLoaded, provider, modelInitialized, modelStatuses, localInferenceSettings,
+      validateApiKey]);
 
   // This component doesn't render anything
   return null;
