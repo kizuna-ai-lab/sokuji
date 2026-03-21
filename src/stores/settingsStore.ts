@@ -706,9 +706,9 @@ const useSettingsStore = create<SettingsStore>()(
           'ttsModel' in settings;
 
         if (get().provider === Provider.LOCAL_INFERENCE && shouldRevalidateReadiness) {
-          setTimeout(() => {
+          queueMicrotask(() => {
             get().validateApiKey();
-          }, 0);
+          });
         }
       } catch (error) {
         console.error('[SettingsStore] Error persisting Local Inference settings:', error);

@@ -138,6 +138,22 @@ describe('settingsStore', () => {
 
       expect(validateSpy).toHaveBeenCalled();
     });
+
+    it('should NOT revalidate LOCAL_INFERENCE readiness when provider is not local', async () => {
+      useSettingsStore.setState({ provider: Provider.OPENAI });
+      const store = useSettingsStore.getState();
+
+      const validateSpy = vi.spyOn(store, 'validateApiKey').mockResolvedValue({
+        valid: true,
+        message: '',
+        validating: false,
+      });
+
+      await store.updateLocalInference({ sourceLanguage: 'zh' });
+      await Promise.resolve();
+
+      expect(validateSpy).not.toHaveBeenCalled();
+    });
   });
 
   describe('Cache Management', () => {
