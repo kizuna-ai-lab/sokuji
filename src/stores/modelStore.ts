@@ -11,9 +11,11 @@ import { ModelManager, type DownloadProgress } from '../lib/local-inference/Mode
 import {
   MODEL_MANIFEST,
   getManifestEntry,
+  getManifestByType,
   getAsrModelsForLanguage,
   getTranslationModel,
   getTtsModelsForLanguage,
+  isTranslationModelCompatible,
   type ModelStatus,
 } from '../lib/local-inference/modelManifest';
 import * as modelStorage from '../lib/local-inference/modelStorage';
@@ -69,6 +71,16 @@ interface ModelStoreState {
     sourceLang: string, targetLang: string,
     selectedAsrModel?: string, selectedTranslationModel?: string, selectedTtsModel?: string,
   ) => boolean;
+
+  /**
+   * Auto-correct stale model selections when languages change.
+   * Returns partial update object with corrected model IDs, or null if no changes needed.
+   * This mirrors the auto-select logic in ModelManagementSection but can run without that component mounted.
+   */
+  autoSelectModels: (
+    sourceLang: string, targetLang: string,
+    currentAsrModel: string, currentTranslationModel: string, currentTtsModel: string,
+  ) => { asrModel?: string; translationModel?: string; ttsModel?: string } | null;
 }
 
 // ─── Store ───────────────────────────────────────────────────────────────────
@@ -244,46 +256,146 @@ export const useModelStore = create<ModelStoreState>()(
     isProviderReady: (sourceLang: string, targetLang: string, selectedAsrModel?: string, selectedTranslationModel?: string, selectedTtsModel?: string): boolean => {
       const { modelStatuses, webgpuAvailable } = get();
 
+      console.log('[modelStore] isProviderReady called:', {
+        sourceLang, targetLang,
+        selectedAsrModel, selectedTranslationModel, selectedTtsModel,
+        webgpuAvailable,
+      });
+
       // 1. ASR: if a specific model is selected, it must be downloaded;
       //    otherwise at least 1 ASR model for sourceLang must be downloaded
       if (selectedAsrModel) {
-        if (modelStatuses[selectedAsrModel] !== 'downloaded') return false;
+        if (modelStatuses[selectedAsrModel] !== 'downloaded') {
+          console.log('[modelStore] FAIL: ASR not downloaded:', selectedAsrModel, '→', modelStatuses[selectedAsrModel]);
+          return false;
+        }
         const asrEntry = getManifestEntry(selectedAsrModel);
-        if (asrEntry?.requiredDevice === 'webgpu' && !webgpuAvailable) return false;
+        if (asrEntry?.requiredDevice === 'webgpu' && !webgpuAvailable) {
+          console.log('[modelStore] FAIL: ASR needs webgpu:', selectedAsrModel);
+          return false;
+        }
+        if (asrEntry && !asrEntry.multilingual && !asrEntry.languages.includes(sourceLang)) {
+          console.log('[modelStore] FAIL: ASR lang mismatch:', selectedAsrModel, 'supports:', asrEntry.languages, 'need:', sourceLang);
+          return false;
+        }
       } else {
         const asrModels = getAsrModelsForLanguage(sourceLang);
         const hasAsr = asrModels.some(
           model => modelStatuses[model.id] === 'downloaded'
         );
-        if (!hasAsr) return false;
+        if (!hasAsr) {
+          console.log('[modelStore] FAIL: no downloaded ASR for', sourceLang, '| candidates:', asrModels.map(m => `${m.id}=${modelStatuses[m.id]}`));
+          return false;
+        }
       }
 
       // 2. Translation: if a specific model is selected, check it directly;
       //    otherwise use getTranslationModel preference (pair-specific > multilingual)
       if (selectedTranslationModel) {
-        if (modelStatuses[selectedTranslationModel] !== 'downloaded') return false;
+        if (modelStatuses[selectedTranslationModel] !== 'downloaded') {
+          console.log('[modelStore] FAIL: Translation not downloaded:', selectedTranslationModel, '→', modelStatuses[selectedTranslationModel]);
+          return false;
+        }
         const entry = getManifestEntry(selectedTranslationModel);
-        if (entry?.requiredDevice === 'webgpu' && !webgpuAvailable) return false;
+        if (entry?.requiredDevice === 'webgpu' && !webgpuAvailable) {
+          console.log('[modelStore] FAIL: Translation needs webgpu:', selectedTranslationModel);
+          return false;
+        }
+        if (entry && !isTranslationModelCompatible(entry, sourceLang, targetLang)) {
+          console.log('[modelStore] FAIL: Translation lang mismatch:', selectedTranslationModel, sourceLang, '→', targetLang);
+          return false;
+        }
       } else {
         const translationEntry = getTranslationModel(sourceLang, targetLang);
-        if (!translationEntry) return false;
-        if (modelStatuses[translationEntry.id] !== 'downloaded') return false;
-        if (translationEntry.requiredDevice === 'webgpu' && !webgpuAvailable) return false;
+        if (!translationEntry) {
+          console.log('[modelStore] FAIL: no translation model exists for', sourceLang, '→', targetLang);
+          return false;
+        }
+        if (modelStatuses[translationEntry.id] !== 'downloaded') {
+          console.log('[modelStore] FAIL: best translation not downloaded:', translationEntry.id, '→', modelStatuses[translationEntry.id]);
+          return false;
+        }
+        if (translationEntry.requiredDevice === 'webgpu' && !webgpuAvailable) {
+          console.log('[modelStore] FAIL: best translation needs webgpu:', translationEntry.id);
+          return false;
+        }
       }
 
       // 3. TTS: if a specific model is selected, it must be downloaded;
       //    otherwise at least 1 TTS model for targetLang must be downloaded
       if (selectedTtsModel) {
-        if (modelStatuses[selectedTtsModel] !== 'downloaded') return false;
+        if (modelStatuses[selectedTtsModel] !== 'downloaded') {
+          console.log('[modelStore] FAIL: TTS not downloaded:', selectedTtsModel, '→', modelStatuses[selectedTtsModel]);
+          return false;
+        }
+        const ttsEntry = getManifestEntry(selectedTtsModel);
+        if (ttsEntry && !ttsEntry.languages.includes(targetLang)) {
+          console.log('[modelStore] FAIL: TTS lang mismatch:', selectedTtsModel, 'supports:', ttsEntry.languages, 'need:', targetLang);
+          return false;
+        }
       } else {
         const ttsModels = getTtsModelsForLanguage(targetLang);
         const hasTts = ttsModels.some(
           model => modelStatuses[model.id] === 'downloaded'
         );
-        if (!hasTts) return false;
+        if (!hasTts) {
+          console.log('[modelStore] FAIL: no downloaded TTS for', targetLang, '| candidates:', ttsModels.map(m => `${m.id}=${modelStatuses[m.id]}`));
+          return false;
+        }
       }
 
+      console.log('[modelStore] isProviderReady → TRUE');
       return true;
+    },
+
+    autoSelectModels: (sourceLang, targetLang, currentAsrModel, currentTranslationModel, currentTtsModel) => {
+      const { modelStatuses, webgpuAvailable } = get();
+      const updates: { asrModel?: string; translationModel?: string; ttsModel?: string } = {};
+
+      // ASR: must support sourceLanguage and be downloaded
+      const allAsrModels = [...getManifestByType('asr'), ...getManifestByType('asr-stream')];
+      const currentAsr = currentAsrModel ? allAsrModels.find(m => m.id === currentAsrModel) : null;
+      const asrOk = currentAsr
+        && (currentAsr.multilingual || currentAsr.languages.includes(sourceLang))
+        && modelStatuses[currentAsrModel] === 'downloaded';
+      if (!asrOk) {
+        const match = allAsrModels.find(m =>
+          (m.multilingual || m.languages.includes(sourceLang)) && modelStatuses[m.id] === 'downloaded'
+        );
+        const newId = match?.id || '';
+        if (newId !== currentAsrModel) updates.asrModel = newId;
+      }
+
+      // Translation: must be compatible with source→target pair, downloaded, and device-ready
+      const currentTrans = currentTranslationModel ? getManifestByType('translation').find(m => m.id === currentTranslationModel) : null;
+      const transOk = currentTrans
+        && isTranslationModelCompatible(currentTrans, sourceLang, targetLang)
+        && modelStatuses[currentTranslationModel] === 'downloaded'
+        && !(currentTrans.requiredDevice === 'webgpu' && !webgpuAvailable);
+      if (!transOk) {
+        const match = getManifestByType('translation').find(m =>
+          isTranslationModelCompatible(m, sourceLang, targetLang)
+          && modelStatuses[m.id] === 'downloaded'
+          && !(m.requiredDevice === 'webgpu' && !webgpuAvailable)
+        );
+        const newId = match?.id || '';
+        if (newId !== currentTranslationModel) updates.translationModel = newId;
+      }
+
+      // TTS: must support targetLanguage and be downloaded
+      const currentTts = currentTtsModel ? getManifestByType('tts').find(m => m.id === currentTtsModel) : null;
+      const ttsOk = currentTts
+        && currentTts.languages.includes(targetLang)
+        && modelStatuses[currentTtsModel] === 'downloaded';
+      if (!ttsOk) {
+        const match = getManifestByType('tts').find(m =>
+          m.languages.includes(targetLang) && modelStatuses[m.id] === 'downloaded'
+        );
+        const newId = match?.id || '';
+        if (newId !== currentTtsModel) updates.ttsModel = newId;
+      }
+
+      return Object.keys(updates).length > 0 ? updates : null;
     },
   })),
 );

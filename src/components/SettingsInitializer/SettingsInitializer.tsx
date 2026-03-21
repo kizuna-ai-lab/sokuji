@@ -12,7 +12,7 @@ import {
   useSettingsLoaded,
   useLocalInferenceSettings
 } from '../../stores/settingsStore';
-import { useModelStatuses, useModelStore } from '../../stores/modelStore';
+import { useModelStatuses, useModelInitialized, useModelStore } from '../../stores/modelStore';
 import useSettingsStore from '../../stores/settingsStore';
 import { useAuth } from '../../lib/auth/hooks';
 import { Provider } from '../../types/Provider';
@@ -41,7 +41,16 @@ export function SettingsInitializer() {
 
   // Monitor model download statuses and local inference settings for LOCAL_INFERENCE provider gating
   const modelStatuses = useModelStatuses();
+  const modelInitialized = useModelInitialized();
   const localInferenceSettings = useLocalInferenceSettings();
+
+  // Ensure model store is initialized when LOCAL_INFERENCE is selected
+  useEffect(() => {
+    if (!settingsLoaded) return;
+    if (provider !== Provider.LOCAL_INFERENCE) return;
+    if (modelInitialized) return;
+    useModelStore.getState().initialize();
+  }, [settingsLoaded, provider, modelInitialized]);
 
   // Auto-fetch and validate KizunaAI API key when user logs in or provider changes
   useEffect(() => {
@@ -123,18 +132,43 @@ export function SettingsInitializer() {
 
   // Re-validate synchronously when model download statuses or language settings change
   // for LOCAL_INFERENCE. Synchronous check avoids button flickering from async validateApiKey.
+  // Also auto-corrects stale model selections (e.g. TTS model that doesn't support new targetLang).
   useEffect(() => {
     if (!settingsLoaded) return;
     if (provider !== Provider.LOCAL_INFERENCE) return;
+    // Wait until model store has scanned IndexedDB — without this,
+    // modelStatuses is {} on cold start and autoSelect/isProviderReady fail.
+    if (!modelInitialized) return;
 
     const modelState = useModelStore.getState();
-    const ready = modelState.isProviderReady(
-      localInferenceSettings.sourceLanguage,
-      localInferenceSettings.targetLanguage,
-      localInferenceSettings.asrModel || undefined,
-      localInferenceSettings.translationModel || undefined,
-      localInferenceSettings.ttsModel || undefined,
+    const { sourceLanguage, targetLanguage, asrModel, translationModel, ttsModel } = localInferenceSettings;
+
+    console.log('[SettingsInitializer] LOCAL_INFERENCE effect fired. localInferenceSettings:', {
+      sourceLanguage, targetLanguage, asrModel, translationModel, ttsModel,
+    });
+
+    // Auto-correct stale model selections before checking readiness.
+    // Without this, changing languages while the provider tab is closed leaves
+    // incompatible models selected, causing isProviderReady to return false.
+    const corrections = modelState.autoSelectModels(
+      sourceLanguage, targetLanguage, asrModel, translationModel, ttsModel,
     );
+    if (corrections) {
+      console.log('[SettingsInitializer] Auto-correcting stale model selections:', corrections);
+      useSettingsStore.getState().updateLocalInference(corrections);
+      // The settings update will re-trigger this effect with corrected values
+      return;
+    }
+
+    const ready = modelState.isProviderReady(
+      sourceLanguage,
+      targetLanguage,
+      asrModel || undefined,
+      translationModel || undefined,
+      ttsModel || undefined,
+    );
+
+    console.log('[SettingsInitializer] isProviderReady result:', ready);
 
     useSettingsStore.setState({
       isApiKeyValid: ready,
@@ -143,7 +177,7 @@ export function SettingsInitializer() {
         : [],
       isValidating: false,
     });
-  }, [settingsLoaded, provider, modelStatuses, localInferenceSettings]);
+  }, [settingsLoaded, provider, modelInitialized, modelStatuses, localInferenceSettings]);
 
   // This component doesn't render anything
   return null;
