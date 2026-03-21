@@ -279,28 +279,24 @@
           "title": "Step 1: Open Settings",
           "content": "Click here to open Settings where you can configure your languages and audio devices."
         },
-        "uiModeToggle": {
-          "title": "Step 2: UI Mode Toggle",
-          "content": "You can switch between Basic and Advanced modes anytime using this button. Basic mode shows simplified options, while Advanced mode provides full control."
-        },
         "account": {
-          "title": "Step 3: User Account",
-          "content": "Sign in for a simple experience, or use your own API key without logging in. New users can sign up for kizuna.ai's API service."
+          "title": "Adım 2: Kullanıcı Hesabı",
+          "content": "Sokuji'nin yerleşik çeviri hizmetini kullanmak için giriş yapın veya başka bir sağlayıcı seçip kendi API anahtarınızı girin."
         },
         "languages": {
-          "title": "Step 4: Choose Languages",
-          "content": "Select your source language (what you speak) and target language (what you want to hear)."
+          "title": "Adım 3: Dilleri Seçin",
+          "content": "Kaynak dilinizi (konuştuğunuz dil) ve hedef dili (karşı tarafın duyacağı dil) seçin."
         },
         "microphone": {
-          "title": "Step 5: Select Microphone",
+          "title": "Adım 4: Mikrofon Seçin",
           "content": "Select your microphone from the list. This is what will capture your voice."
         },
         "speaker": {
-          "title": "Step 6: Select Speaker",
-          "content": "Choose your speakers or headphones to hear the translation. Headphones are recommended."
+          "title": "Adım 5: Hoparlör Seçin",
+          "content": "Çeviriyi önizlemek için bir izleme cihazı seçin. Çevrilmiş ses, izleme durumuna bakılmaksızın her zaman sanal mikrofona gönderilir. Toplantı uygulamanızda veya web sitenizde Sokuji Virtual Microphone'u mikrofon girişi olarak seçin. Geri bildirimi önlemek için izleme sırasında kulaklık kullanılması önerilir."
         },
         "start": {
-          "title": "Step 7: Start Translating",
+          "title": "Adım 6: Çeviriye Başlayın",
           "content": "Click 'Start' to begin translating! Just speak naturally and hear the translation in real-time."
         },
         "complete": {
@@ -324,11 +320,11 @@
       },
       "openSettings": {
         "title": "Ayarlar panelini aç",
-        "content": "API anahtarınızı ve tercihlerinizi yapılandıracağımız ayarlar panelini açmak için bu düğmeye tıklayın."
+        "content": "Önce ayarlarınızı yapılandıralım. Çeviri sağlayıcınızı seçebileceğiniz ve ayarları özelleştirebileceğiniz Ayarlar panelini açmak için buraya tıklayın."
       },
       "apiKey": {
-        "title": "OpenAI API anahtarını ayarla",
-        "content": "Çeviri işlevini etkinleştirmek için OpenAI API anahtarınızı girin. <a href='https://platform.openai.com/api-keys' target='_blank'>OpenAI platformundan</a> bir anahtar alabilirsiniz."
+        "title": "Adım 2: Çeviri Sağlayıcı",
+        "content": "Çeviri sağlayıcınızı seçin. Sokuji OpenAI, Gemini, Volcengine (Doubao) gibi bulut hizmetlerini destekler. Yerel çıkarımı da kullanabilirsiniz — API anahtarı gerekmez, ücretsiz ve gizlilik odaklı, modelleri indirerek tamamen çevrimdışı çeviri yapabilirsiniz."
       },
       "systemInstructions": {
         "title": "Sistem talimatlarını özelleştir",
@@ -360,7 +356,7 @@
       },
       "completion": {
         "title": "Kurulum kılavuzu tamamlandı!",
-        "content": "Kurulum kılavuzunu tamamladınız! Şimdi gerçekten API anahtarınızı girdiğinizden ve ayarlarınızı yapılandırdığınızdan emin olun, ardından gerçek zamanlı çeviriyi başlatmak için konferans uygulamalarında (Google Meet, Zoom vb. gibi) Sokuji sanal mikrofonunu kullanın."
+        "content": "Harika! Her şey ayarlandı. İstendiğinde mikrofon izinlerini vermeyi unutmayın. Bu kılavuzu istediğiniz zaman ayarlardan yeniden başlatabilirsiniz."
       }
     }
   },

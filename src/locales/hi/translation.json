@@ -417,28 +417,24 @@
           "title": "Step 1: Open Settings",
           "content": "Click here to open Settings where you can configure your languages and audio devices."
         },
-        "uiModeToggle": {
-          "title": "Step 2: UI Mode Toggle",
-          "content": "You can switch between Basic and Advanced modes anytime using this button. Basic mode shows simplified options, while Advanced mode provides full control."
-        },
         "account": {
-          "title": "Step 3: User Account",
-          "content": "Sign in for a simple experience, or use your own API key without logging in. New users can sign up for kizuna.ai's API service."
+          "title": "चरण 2: उपयोगकर्ता खाता",
+          "content": "Sokuji की अंतर्निहित अनुवाद सेवा का उपयोग करने के लिए साइन इन करें, या कोई अन्य प्रदाता चुनें और अपनी API कुंजी दर्ज करें।"
         },
         "languages": {
-          "title": "Step 4: Choose Languages",
-          "content": "Select your source language (what you speak) and target language (what you want to hear)."
+          "title": "चरण 3: भाषाएँ चुनें",
+          "content": "अपनी स्रोत भाषा (जो आप बोलते हैं) और लक्ष्य भाषा (जो दूसरा व्यक्ति सुनेगा) चुनें।"
         },
         "microphone": {
-          "title": "Step 5: Select Microphone",
+          "title": "चरण 4: माइक्रोफ़ोन चुनें",
           "content": "Select your microphone from the list. This is what will capture your voice."
         },
         "speaker": {
-          "title": "Step 6: Select Speaker",
-          "content": "Choose your speakers or headphones to hear the translation. Headphones are recommended."
+          "title": "चरण 5: स्पीकर चुनें",
+          "content": "अनुवाद का पूर्वावलोकन करने के लिए एक मॉनिटरिंग डिवाइस चुनें। मॉनिटरिंग की परवाह किए बिना अनुवादित ऑडियो हमेशा वर्चुअल माइक्रोफ़ोन पर भेजा जाता है। अपने मीटिंग ऐप या वेबसाइट में Sokuji Virtual Microphone को माइक्रोफ़ोन इनपुट के रूप में चुनें। फीडबैक से बचने के लिए मॉनिटरिंग के लिए हेडफ़ोन की सिफारिश की जाती है।"
         },
         "start": {
-          "title": "Step 7: Start Translating",
+          "title": "चरण 6: अनुवाद शुरू करें",
           "content": "Click 'Start' to begin translating! Just speak naturally and hear the translation in real-time."
         },
         "complete": {
@@ -462,13 +458,11 @@
       },
       "settings": {
         "title": "चरण 1: सेटिंग्स खोलें",
-        "content": "पहले, आइए अपनी सेटिंग्स कॉन्फ़िगर करें। सेटिंग्स पैनल खोलने के लिए यहाँ क्लिक करें जहाँ आप अपनी OpenAI API की सेट कर सकते हैं और सिस्टम निर्देशों को कस्टमाइज़ कर सकते हैं।"
+        "content": "सबसे पहले, अपनी सेटिंग्स कॉन्फ़िगर करें। सेटिंग्स पैनल खोलने के लिए यहाँ क्लिक करें जहाँ आप अपना अनुवाद प्रदाता चुन सकते हैं और सेटिंग्स कस्टमाइज़ कर सकते हैं।"
       },
       "apiKey": {
-        "title": "चरण 2: API की कॉन्फ़िगर करें",
-        "content": "यहाँ अपनी OpenAI API की दर्ज करें। आप इसे",
-        "linkText": "OpenAI पेज",
-        "required": "से प्राप्त कर सकते हैं। यह वॉयस ट्रांसलेशन के लिए आवश्यक है।"
+        "title": "चरण 2: अनुवाद प्रदाता",
+        "content": "अपना अनुवाद प्रदाता चुनें। Sokuji OpenAI, Gemini, Volcengine (Doubao) जैसी क्लाउड सेवाओं का समर्थन करता है। आप स्थानीय अनुमान भी उपयोग कर सकते हैं — API कुंजी की आवश्यकता नहीं, मुफ़्त और गोपनीयता-केंद्रित, बस मॉडल डाउनलोड करें और पूरी तरह ऑफ़लाइन अनुवाद करें।"
       },
       "systemInstructions": {
         "title": "चरण 3: सिस्टम निर्देश",
@@ -487,20 +481,20 @@
         "content": "अब, आइए अपनी ऑडियो सेटिंग्स कॉन्फ़िगर करें। ऑडियो पैनल खोलने और अपने माइक्रोफ़ोन और स्पीकर सेट करने के लिए यहाँ क्लिक करें।"
       },
       "microphoneSetup": {
-        "title": "चरण 7: माइक्रोफ़ोन सेटअप",
+        "title": "चरण 6: माइक्रोफ़ोन सेटअप",
         "content": "यहाँ अपना माइक्रोफ़ोन डिवाइस चुनें। सर्वोत्तम ऑडियो गुणवत्ता के लिए सही इनपुट डिवाइस चुनना सुनिश्चित करें।"
       },
       "speakerSetup": {
-        "title": "चरण 8: स्पीकर सेटअप",
+        "title": "चरण 7: स्पीकर सेटअप",
         "content": "अनुवादित ऑडियो सुनने और यह सत्यापित करने के लिए एक मॉनिटरिंग डिवाइस चुनें कि यह आपकी आवश्यकताओं को पूरा करता है या नहीं। माइक्रोफ़ोन इनपुट में हस्तक्षेप से बचने के लिए मॉनिटरिंग के लिए हेडफ़ोन का उपयोग करने की सिफारिश की जाती है। जब आप मानते हैं कि अनुवाद सेटिंग्स आपकी आवश्यकताओं को पूरा करती हैं, तो मॉनिटरिंग बंद करने की सिफारिश की जाती है ताकि आप अपनी अभिव्यक्ति पर अधिक ध्यान केंद्रित कर सकें और माइक्रोफ़ोन इनपुट में हस्तक्षेप न करें।"
       },
       "startSession": {
-        "title": "चरण 9: सत्र शुरू करें",
+        "title": "चरण 8: सत्र शुरू करें",
         "content": "Sokuji का उपयोग शुरू करने के लिए \"सत्र शुरू करें\" बटन पर क्लिक करें। शुरू करने के बाद, आप रियल-टाइम अनुवाद के लिए स्वाभाविक रूप से बोल सकते हैं। यदि स्वचालित टर्न डिटेक्शन अक्षम है, तो बोलने के लिए \"पुश टू टॉक\" (स्पेस की) का उपयोग करें।"
       },
       "complete": {
         "title": "सेटअप गाइड पूर्ण!",
-        "content": "बहुत बढ़िया! आपने सेटअप गाइड पूरा कर लिया है और इंटरफ़ेस के साथ परिचित हो गए हैं। Sokuji का उपयोग शुरू करने के लिए, कृपया सेटिंग्स में अपनी OpenAI API की दर्ज करें, प्रॉम्प्ट मिलने पर माइक्रोफ़ोन अनुमतियाँ प्रदान करें, और अपने मीटिंग एप्लिकेशन (Google Meet, Zoom, Microsoft Teams, आदि) में \"Sokuji Virtual Microphone\" को अपने माइक्रोफ़ोन के रूप में चुनें। आप सेटिंग्स से कभी भी इस गाइड को पुनः आरंभ कर सकते हैं।"
+        "content": "बढ़िया! सब कुछ सेट हो गया है। संकेत मिलने पर माइक्रोफ़ोन अनुमतियाँ देना याद रखें। आप किसी भी समय सेटिंग्स से इस गाइड को पुनः आरंभ कर सकते हैं।"
       }
     }
   },

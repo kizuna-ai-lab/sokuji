@@ -464,28 +464,24 @@
           "title": "Step 1: Open Settings",
           "content": "Click here to open Settings where you can configure your languages and audio devices."
         },
-        "uiModeToggle": {
-          "title": "Step 2: UI Mode Toggle",
-          "content": "You can switch between Basic and Advanced modes anytime using this button. Basic mode shows simplified options, while Advanced mode provides full control."
-        },
         "account": {
-          "title": "Step 3: User Account",
-          "content": "Sign in for a simple experience, or use your own API key without logging in. New users can sign up for kizuna.ai's API service."
+          "title": "Langkah 2: Akaun Pengguna",
+          "content": "Log masuk untuk menggunakan perkhidmatan terjemahan terbina dalam Sokuji, atau pilih penyedia lain dan masukkan kunci API anda sendiri."
         },
         "languages": {
-          "title": "Step 4: Choose Languages",
-          "content": "Select your source language (what you speak) and target language (what you want to hear)."
+          "title": "Langkah 3: Pilih Bahasa",
+          "content": "Pilih bahasa sumber (yang anda tuturkan) dan bahasa sasaran (yang pihak lain akan dengar)."
         },
         "microphone": {
-          "title": "Step 5: Select Microphone",
+          "title": "Langkah 4: Pilih Mikrofon",
           "content": "Select your microphone from the list. This is what will capture your voice."
         },
         "speaker": {
-          "title": "Step 6: Select Speaker",
-          "content": "Choose your speakers or headphones to hear the translation. Headphones are recommended."
+          "title": "Langkah 5: Pilih Pembesar Suara",
+          "content": "Pilih peranti pemantauan untuk pratonton terjemahan. Audio terjemahan sentiasa dihantar ke mikrofon maya tanpa mengira pemantauan. Pilih Sokuji Virtual Microphone sebagai input mikrofon dalam aplikasi mesyuarat atau laman web anda. Fon kepala disyorkan untuk pemantauan bagi mengelakkan maklum balas."
         },
         "start": {
-          "title": "Step 7: Start Translating",
+          "title": "Langkah 6: Mula Menterjemah",
           "content": "Click 'Start' to begin translating! Just speak naturally and hear the translation in real-time."
         },
         "complete": {
@@ -509,11 +505,11 @@
       },
       "openSettings": {
         "title": "Buka panel tetapan",
-        "content": "Klik butang ini untuk membuka panel tetapan, di mana kita akan mengkonfigurasi kunci API dan pilihan anda."
+        "content": "Pertama, mari konfigurasikan tetapan anda. Klik di sini untuk membuka panel tetapan di mana anda boleh memilih penyedia terjemahan dan menyesuaikan tetapan."
       },
       "apiKey": {
-        "title": "Sediakan kunci API OpenAI",
-        "content": "Masukkan kunci API OpenAI anda untuk mengaktifkan fungsi terjemahan. Anda boleh mendapatkan kunci dari <a href='https://platform.openai.com/api-keys' target='_blank'>platform OpenAI</a>."
+        "title": "Langkah 2: Penyedia Terjemahan",
+        "content": "Pilih penyedia terjemahan anda. Sokuji menyokong perkhidmatan awan seperti OpenAI, Gemini, Volcengine (Doubao) dan banyak lagi. Anda juga boleh menggunakan inferens tempatan — tiada kunci API diperlukan, percuma dan mengutamakan privasi, muat turun model sahaja untuk terjemahan sepenuhnya luar talian."
       },
       "systemInstructions": {
         "title": "Sesuaikan arahan sistem",
@@ -545,7 +541,7 @@
       },
       "completion": {
         "title": "Panduan persediaan selesai!",
-        "content": "Anda telah menyelesaikan panduan persediaan! Sekarang pastikan untuk benar-benar memasukkan kunci API dan mengkonfigurasi tetapan anda, kemudian gunakan mikrofon maya Sokuji dalam aplikasi persidangan (seperti Google Meet, Zoom, dll.) untuk memulakan terjemahan masa nyata."
+        "content": "Hebat! Semuanya telah ditetapkan. Ingat untuk memberikan kebenaran mikrofon apabila diminta. Anda boleh memulakan semula panduan ini pada bila-bila masa dari tetapan."
       }
     }
   },

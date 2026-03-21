@@ -320,28 +320,24 @@
           "title": "Step 1: Open Settings",
           "content": "Click here to open Settings where you can configure your languages and audio devices."
         },
-        "uiModeToggle": {
-          "title": "Step 2: UI Mode Toggle",
-          "content": "You can switch between Basic and Advanced modes anytime using this button. Basic mode shows simplified options, while Advanced mode provides full control."
-        },
         "account": {
-          "title": "Step 3: User Account",
-          "content": "Sign in for a simple experience, or use your own API key without logging in. New users can sign up for kizuna.ai's API service."
+          "title": "Krok 2: Konto Użytkownika",
+          "content": "Zaloguj się, aby korzystać z wbudowanej usługi tłumaczenia Sokuji, lub wybierz innego dostawcę i wprowadź własny klucz API."
         },
         "languages": {
-          "title": "Step 4: Choose Languages",
-          "content": "Select your source language (what you speak) and target language (what you want to hear)."
+          "title": "Krok 3: Wybierz Języki",
+          "content": "Wybierz język źródłowy (w którym mówisz) i język docelowy (który druga osoba usłyszy)."
         },
         "microphone": {
-          "title": "Step 5: Select Microphone",
+          "title": "Krok 4: Wybierz Mikrofon",
           "content": "Select your microphone from the list. This is what will capture your voice."
         },
         "speaker": {
-          "title": "Step 6: Select Speaker",
-          "content": "Choose your speakers or headphones to hear the translation. Headphones are recommended."
+          "title": "Krok 5: Wybierz Głośnik",
+          "content": "Wybierz urządzenie monitorujące do podglądu tłumaczenia. Przetłumaczony dźwięk jest zawsze wysyłany do wirtualnego mikrofonu, niezależnie od monitorowania. Wybierz Sokuji Virtual Microphone jako wejście mikrofonu w aplikacji do spotkań lub na stronie internetowej. Zaleca się używanie słuchawek do monitorowania, aby uniknąć sprzężenia."
         },
         "start": {
-          "title": "Step 7: Start Translating",
+          "title": "Krok 6: Rozpocznij Tłumaczenie",
           "content": "Click 'Start' to begin translating! Just speak naturally and hear the translation in real-time."
         },
         "complete": {
@@ -365,11 +361,11 @@
       },
       "openSettings": {
         "title": "Otwórz panel ustawień",
-        "content": "Kliknij ten przycisk, aby otworzyć panel ustawień, gdzie skonfigurujemy Twój klucz API i preferencje."
+        "content": "Najpierw skonfigurujmy ustawienia. Kliknij tutaj, aby otworzyć panel ustawień, gdzie możesz wybrać dostawcę tłumaczenia i dostosować ustawienia."
       },
       "apiKey": {
-        "title": "Skonfiguruj klucz API OpenAI",
-        "content": "Wprowadź swój klucz API OpenAI, aby włączyć funkcję tłumaczenia. Możesz uzyskać klucz z <a href='https://platform.openai.com/api-keys' target='_blank'>platformy OpenAI</a>."
+        "title": "Krok 2: Dostawca Tłumaczenia",
+        "content": "Wybierz dostawcę tłumaczenia. Sokuji obsługuje usługi chmurowe: OpenAI, Gemini, Volcengine (Doubao) i więcej. Możesz także użyć lokalnego wnioskowania — bez klucza API, za darmo i z dbałością o prywatność, wystarczy pobrać modele do tłumaczenia w pełni offline."
       },
       "systemInstructions": {
         "title": "Dostosuj instrukcje systemowe",
@@ -401,7 +397,7 @@
       },
       "completion": {
         "title": "Przewodnik konfiguracji zakończony!",
-        "content": "Ukończyłeś przewodnik konfiguracji! Teraz upewnij się, że rzeczywiście wprowadzisz swój klucz API i skonfigurujesz ustawienia, a następnie użyj wirtualnego mikrofonu Sokuji w aplikacjach konferencyjnych (takich jak Google Meet, Zoom itp.), aby rozpocząć tłumaczenie w czasie rzeczywistym."
+        "content": "Świetnie! Wszystko jest skonfigurowane. Pamiętaj o przyznaniu uprawnień mikrofonu, gdy zostaniesz o to poproszony. Możesz ponownie uruchomić ten przewodnik w dowolnym momencie z poziomu ustawień."
       }
     }
   },

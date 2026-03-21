@@ -465,28 +465,24 @@
           "title": "Step 1: Open Settings",
           "content": "Click here to open Settings where you can configure your languages and audio devices."
         },
-        "uiModeToggle": {
-          "title": "Step 2: UI Mode Toggle",
-          "content": "You can switch between Basic and Advanced modes anytime using this button. Basic mode shows simplified options, while Advanced mode provides full control."
-        },
         "account": {
-          "title": "Step 3: User Account",
-          "content": "Sign in for a simple experience, or use your own API key without logging in. New users can sign up for kizuna.ai's API service."
+          "title": "ধাপ ২: ব্যবহারকারী অ্যাকাউন্ট",
+          "content": "Sokuji-এর অন্তর্নির্মিত অনুবাদ পরিষেবা ব্যবহার করতে সাইন ইন করুন, অথবা অন্য প্রদানকারী বেছে নিন এবং আপনার নিজের API কী দিন।"
         },
         "languages": {
-          "title": "Step 4: Choose Languages",
-          "content": "Select your source language (what you speak) and target language (what you want to hear)."
+          "title": "ধাপ ৩: ভাষা নির্বাচন করুন",
+          "content": "আপনার উৎস ভাষা (যা আপনি বলেন) এবং লক্ষ্য ভাষা (যা অন্য পক্ষ শুনবে) নির্বাচন করুন।"
         },
         "microphone": {
-          "title": "Step 5: Select Microphone",
+          "title": "ধাপ ৪: মাইক্রোফোন নির্বাচন করুন",
           "content": "Select your microphone from the list. This is what will capture your voice."
         },
         "speaker": {
-          "title": "Step 6: Select Speaker",
-          "content": "Choose your speakers or headphones to hear the translation. Headphones are recommended."
+          "title": "ধাপ ৫: স্পিকার নির্বাচন করুন",
+          "content": "অনুবাদের পূর্বরূপ দেখতে একটি মনিটরিং ডিভাইস বেছে নিন। মনিটরিং নির্বিশেষে অনুবাদিত অডিও সর্বদা ভার্চুয়াল মাইক্রোফোনে পাঠানো হয়। আপনার মিটিং অ্যাপ বা ওয়েবসাইটে Sokuji Virtual Microphone কে মাইক্রোফোন ইনপুট হিসেবে নির্বাচন করুন। ফিডব্যাক এড়াতে মনিটরিংয়ের জন্য হেডফোন ব্যবহার করার পরামর্শ দেওয়া হয়।"
         },
         "start": {
-          "title": "Step 7: Start Translating",
+          "title": "ধাপ ৬: অনুবাদ শুরু করুন",
           "content": "Click 'Start' to begin translating! Just speak naturally and hear the translation in real-time."
         },
         "complete": {
@@ -510,11 +506,11 @@
       },
       "openSettings": {
         "title": "সেটিংস প্যানেল খুলুন",
-        "content": "সেটিংস প্যানেল খুলতে এই বোতামে ক্লিক করুন যেখানে আমরা আপনার API কী এবং পছন্দগুলি কনফিগার করব।"
+        "content": "প্রথমে, আপনার সেটিংস কনফিগার করি। সেটিংস প্যানেল খুলতে এখানে ক্লিক করুন যেখানে আপনি আপনার অনুবাদ প্রদানকারী বেছে নিতে এবং সেটিংস কাস্টমাইজ করতে পারেন।"
       },
       "apiKey": {
-        "title": "OpenAI API কী সেট করুন",
-        "content": "অনুবাদ কার্যকারিতা সক্রিয় করতে আপনার OpenAI API কী প্রবেশ করান। আপনি <a href='https://platform.openai.com/api-keys' target='_blank'>OpenAI প্ল্যাটফর্ম</a> থেকে একটি কী পেতে পারেন।"
+        "title": "ধাপ ২: অনুবাদ প্রদানকারী",
+        "content": "আপনার অনুবাদ প্রদানকারী বেছে নিন। Sokuji OpenAI, Gemini, Volcengine (Doubao) এর মতো ক্লাউড পরিষেবা সমর্থন করে। আপনি স্থানীয় ইনফারেন্সও ব্যবহার করতে পারেন — API কী প্রয়োজন নেই, বিনামূল্যে এবং গোপনীয়তা-কেন্দ্রিক, শুধু মডেল ডাউনলোড করুন এবং সম্পূর্ণ অফলাইনে অনুবাদ করুন।"
       },
       "systemInstructions": {
         "title": "সিস্টেম নির্দেশনা কাস্টমাইজ করুন",
@@ -546,7 +542,7 @@
       },
       "completion": {
         "title": "সেটআপ গাইড সম্পূর্ণ!",
-        "content": "আপনি সেটআপ গাইড সম্পূর্ণ করেছেন! এখন নিশ্চিত করুন যে আপনি প্রকৃতপক্ষে আপনার API কী প্রবেশ করিয়েছেন এবং আপনার সেটিংস কনফিগার করেছেন, তারপর রিয়েল-টাইম অনুবাদ শুরু করতে কনফারেন্স অ্যাপ্লিকেশনে (যেমন Google Meet, Zoom, ইত্যাদি) Sokuji ভার্চুয়াল মাইক্রোফোন ব্যবহার করুন।"
+        "content": "দুর্দান্ত! সবকিছু সেট আপ হয়েছে। অনুরোধ করা হলে মাইক্রোফোন অনুমতি দিতে ভুলবেন না। আপনি যেকোনো সময় সেটিংস থেকে এই গাইড পুনরায় শুরু করতে পারেন।"
       }
     }
   },

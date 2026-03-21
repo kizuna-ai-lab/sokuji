@@ -434,28 +434,24 @@
           "title": "Step 1: Open Settings",
           "content": "Click here to open Settings where you can configure your languages and audio devices."
         },
-        "uiModeToggle": {
-          "title": "Step 2: UI Mode Toggle",
-          "content": "You can switch between Basic and Advanced modes anytime using this button. Basic mode shows simplified options, while Advanced mode provides full control."
-        },
         "account": {
-          "title": "Step 3: User Account",
-          "content": "Sign in for a simple experience, or use your own API key without logging in. New users can sign up for kizuna.ai's API service."
+          "title": "步驟 2：使用者帳戶",
+          "content": "登入以使用 Sokuji 的內建翻譯服務，或選擇其他提供商並輸入您自己的 API 金鑰。"
         },
         "languages": {
-          "title": "Step 4: Choose Languages",
-          "content": "Select your source language (what you speak) and target language (what you want to hear)."
+          "title": "步驟 3：選擇語言",
+          "content": "選擇您的來源語言（您說的語言）和目標語言（您希望對方聽到的語言）。"
         },
         "microphone": {
-          "title": "Step 5: Select Microphone",
+          "title": "步驟 4：選擇麥克風",
           "content": "Select your microphone from the list. This is what will capture your voice."
         },
         "speaker": {
-          "title": "Step 6: Select Speaker",
-          "content": "Choose your speakers or headphones to hear the translation. Headphones are recommended."
+          "title": "步驟 5：選擇喇叭",
+          "content": "選擇監聽裝置來試聽翻譯效果。無論是否開啟監聽，翻譯後的語音都會輸出到虛擬麥克風。您需要在會議軟體或網站上選擇 Sokuji 虛擬麥克風作為麥克風輸入。建議使用耳機監聽，避免干擾麥克風收音。"
         },
         "start": {
-          "title": "Step 7: Start Translating",
+          "title": "步驟 6：開始翻譯",
           "content": "Click 'Start' to begin translating! Just speak naturally and hear the translation in real-time."
         },
         "complete": {
@@ -479,11 +475,11 @@
       },
       "openSettings": {
         "title": "開啟設定面板",
-        "content": "點擊此按鈕開啟設定面板，我們將在此處配置您的 API 金鑰和偏好設定。"
+        "content": "首先，讓我們配置您的設定。點擊這裡打開設定面板，您可以選擇翻譯提供商並自訂設定。"
       },
       "apiKey": {
-        "title": "設定 OpenAI API 金鑰",
-        "content": "輸入您的 OpenAI API 金鑰以啟用翻譯功能。您可以從 <a href='https://platform.openai.com/api-keys' target='_blank'>OpenAI 平台</a> 取得金鑰。"
+        "title": "步驟 2：翻譯提供商",
+        "content": "選擇您的翻譯提供商。Sokuji 支援 OpenAI、Gemini、火山引擎（豆包）等雲端服務。您也可以使用本地推理模式 — 無需 API 金鑰，免費且注重隱私，下載模型後即可完全離線翻譯。"
       },
       "systemInstructions": {
         "title": "自訂系統指令",
@@ -515,7 +511,7 @@
       },
       "completion": {
         "title": "設定指南完成！",
-        "content": "您已完成設定指南！現在請確實輸入您的 API 金鑰並配置設定，然後在會議應用程式（如 Google Meet、Zoom 等）中使用 Sokuji 虛擬麥克風開始即時翻譯。"
+        "content": "太棒了！設定完成。請在提示時授予麥克風權限。您可以隨時從設定中重新啟動此指南。"
       }
     }
   },

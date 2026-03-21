@@ -42,6 +42,9 @@ const NAVIGATION_TAB_MAP: Record<string, string> = {
   'speaker': 'audio',
   'system-audio': 'audio',
   'api-key': 'provider',
+  'system-instructions': 'provider',
+  'voice-settings': 'provider',
+  'turn-detection': 'provider',
   'model-management': 'provider',
 };
 

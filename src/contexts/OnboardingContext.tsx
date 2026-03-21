@@ -41,7 +41,7 @@ const OnboardingContext = createContext<OnboardingContextType | undefined>(undef
 
 const ONBOARDING_STORAGE_KEY = 'sokuji_onboarding_completed';
 const USER_TYPE_STORAGE_KEY = 'sokuji_user_type';
-const ONBOARDING_VERSION = '1.0.0';
+const ONBOARDING_VERSION = '1.1.0';
 
 // Basic mode onboarding steps - simplified for regular users
 const createBasicOnboardingSteps = (t: any): OnboardingStep[] => [
@@ -64,39 +64,33 @@ const createBasicOnboardingSteps = (t: any): OnboardingStep[] => [
     placement: 'bottom',
   },
   {
-    target: '#ui-mode-toggle',
-    content: t('onboarding.basic.steps.uiModeToggle.content', 'You can switch between Basic and Advanced modes anytime using this button. Basic mode shows simplified options, while Advanced mode provides full control.'),
-    title: t('onboarding.basic.steps.uiModeToggle.title', 'Step 2: UI Mode Toggle'),
-    placement: 'bottom',
-  },
-  {
     target: '#user-account-section',
-    content: t('onboarding.basic.steps.account.content', 'Sign in for a simple experience, or use your own API key without logging in. New users can sign up for kizuna.ai\'s API service.'),
-    title: t('onboarding.basic.steps.account.title', 'Step 3: User Account'),
+    content: t('onboarding.basic.steps.account.content', 'Sign in to use Sokuji\'s built-in translation service, or choose another provider and enter your own API key.'),
+    title: t('onboarding.basic.steps.account.title', 'Step 2: User Account'),
     placement: 'left',
   },
   {
     target: '#languages-section',
-    content: t('onboarding.basic.steps.languages.content', 'Select your source language (what you speak) and target language (what you want to hear).'),
-    title: t('onboarding.basic.steps.languages.title', 'Step 4: Choose Languages'),
+    content: t('onboarding.basic.steps.languages.content', 'Select your source language (what you speak) and target language (what you want the other party to hear).'),
+    title: t('onboarding.basic.steps.languages.title', 'Step 3: Choose Languages'),
     placement: 'left',
   },
   {
     target: '#microphone-section',
     content: t('onboarding.basic.steps.microphone.content', 'Select your microphone from the list. This is what will capture your voice.'),
-    title: t('onboarding.basic.steps.microphone.title', 'Step 5: Select Microphone'),
+    title: t('onboarding.basic.steps.microphone.title', 'Step 4: Select Microphone'),
     placement: 'left',
   },
   {
     target: '#speaker-section',
-    content: t('onboarding.basic.steps.speaker.content', 'Choose your speakers or headphones to hear the translation. Headphones are recommended.'),
-    title: t('onboarding.basic.steps.speaker.title', 'Step 6: Select Speaker'),
+    content: t('onboarding.basic.steps.speaker.content', 'Choose a monitoring device to preview the translation. Translated audio is always output to the virtual microphone regardless of monitoring. Select Sokuji Virtual Microphone as the microphone input in your meeting app or website. Headphones are recommended for monitoring to avoid feedback.'),
+    title: t('onboarding.basic.steps.speaker.title', 'Step 5: Select Speaker'),
     placement: 'left',
   },
   {
     target: '.main-action-btn',
     content: t('onboarding.basic.steps.start.content', 'Click "Start" to begin translating! Just speak naturally and hear the translation in real-time.'),
-    title: t('onboarding.basic.steps.start.title', 'Step 7: Start Translating'),
+    title: t('onboarding.basic.steps.start.title', 'Step 6: Start Translating'),
     placement: 'top',
   },
   {
@@ -124,27 +118,14 @@ const createAdvancedOnboardingSteps = (t: any): OnboardingStep[] => [
   },
   {
     target: '.settings-button',
-    content: t('onboarding.steps.settings.content', 'First, let\'s configure your settings. Click here to open the Settings panel where you can set up your OpenAI API key and customize system instructions.'),
+    content: t('onboarding.steps.settings.content', 'First, let\'s configure your settings. Click here to open the Settings panel where you can choose your translation provider and customize settings.'),
     title: t('onboarding.steps.settings.title', 'Step 1: Open Settings'),
     placement: 'bottom',
   },
   {
     target: '.api-key-section',
-    content: (
-      <span>
-        {t('onboarding.steps.apiKey.content', 'Enter your OpenAI API key here. You can get one from the')}{' '}
-        <a
-          href="https://platform.openai.com/account/api-keys"
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{ color: '#007bff', textDecoration: 'underline' }}
-        >
-          {t('onboarding.steps.apiKey.linkText', 'OpenAI page')}
-        </a>
-        . {t('onboarding.steps.apiKey.required', 'This is required for the speech translation to work.')}
-      </span>
-    ),
-    title: t('onboarding.steps.apiKey.title', 'Step 2: Configure API Key'),
+    content: t('onboarding.steps.apiKey.content', 'Choose your translation provider. Sokuji supports cloud services like OpenAI, Gemini, Volcengine (Doubao), and more. You can also use Local Inference — no API key needed, free and privacy-focused, just download models for fully offline translation.'),
+    title: t('onboarding.steps.apiKey.title', 'Step 2: Translation Provider'),
     placement: 'left',
   },
   {
@@ -178,14 +159,14 @@ const createAdvancedOnboardingSteps = (t: any): OnboardingStep[] => [
     placement: 'left',
   },
   {
-    target: '.main-action-btn',
+    target: '.session-button',
     content: t('onboarding.steps.startSession.content', 'Click the "Start Session" button to begin using Sokuji. Once started, you can speak naturally for live translation. If Automatic turn detection is disabled, use "Push to Talk" (Space key) to speak.'),
     title: t('onboarding.steps.startSession.title', 'Step 8: Start Session'),
     placement: 'top',
   },
   {
     target: 'body',
-    content: t('onboarding.steps.complete.content', 'Great! You\'re all set up. Remember to grant microphone permissions when prompted, and you can restart this guide anytime from the settings.'),
+    content: t('onboarding.steps.complete.content', 'Great! You\'re all set up. Remember to grant microphone permissions when prompted. You can restart this guide anytime from the settings.'),
     title: t('onboarding.steps.complete.title', 'Setup Complete!'),
     placement: 'center',
     disableBeacon: true,
@@ -248,7 +229,7 @@ export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({ children
     if (userType) {
       setUserTypeSelected(true);
     }
-    
+
     // Check if user has completed onboarding
     const onboardingData = localStorage.getItem(ONBOARDING_STORAGE_KEY);
     if (!onboardingData) {
@@ -260,6 +241,12 @@ export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({ children
         // Check if onboarding version has changed
         if (data.version !== ONBOARDING_VERSION) {
           setIsFirstTimeUser(true);
+          // If user type already selected, auto-start the updated onboarding
+          if (userType) {
+            setTimeout(() => {
+              startOnboarding();
+            }, 500);
+          }
         }
       } catch (error) {
         console.error('Error parsing onboarding data:', error);
