@@ -21,6 +21,7 @@ import {
   useTransportType,
   useNavigateToSettings
 } from '../../stores/settingsStore';
+import useSettingsStore from '../../stores/settingsStore';
 import { useSession } from '../../stores/sessionStore';
 import { useAudioContext, useIsNoiseSuppressEnabled } from '../../stores/audioStore';
 import { useLogActions } from '../../stores/logStore';
@@ -871,18 +872,12 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       setIsInitializing(true);
       setInitProgress(null);
 
-      // Re-validate before starting session to catch stale button state
+      // Re-validate before starting session to catch stale button state.
+      // validateApiKey is the single authority for session readiness — it handles
+      // auto-select, model readiness, and API key validation for all providers.
       if (provider === Provider.LOCAL_INFERENCE) {
-        const { useModelStore } = await import('../../stores/modelStore');
-        const modelState = useModelStore.getState();
-        const ready = modelState.isProviderReady(
-          localInferenceSettings.sourceLanguage,
-          localInferenceSettings.targetLanguage,
-          localInferenceSettings.asrModel || undefined,
-          localInferenceSettings.translationModel || undefined,
-          localInferenceSettings.ttsModel || undefined,
-        );
-        if (!ready) {
+        const result = await useSettingsStore.getState().validateApiKey();
+        if (!result.valid) {
           setIsInitializing(false);
           addLog(t('settings.localInferenceModelsRequired', 'Required models not available for selected language pair.'), 'error');
           return;

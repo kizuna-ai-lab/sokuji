@@ -512,30 +512,14 @@ const useSettingsStore = create<SettingsStore>()(
     // === Common Settings Actions ===
     setProvider: async (provider) => {
       set({provider});
+
+      // Clear cache synchronously before persisting, so SettingsInitializer
+      // (which reacts to the provider change immediately) won't have its
+      // fresh validation wiped by a late clearCache() after the await.
+      get().clearCache();
+
       const service = ServiceFactory.getSettingsService();
       await service.setSetting('settings.common.provider', provider);
-
-      // Clear cache when switching providers
-      const state = get();
-      state.clearCache();
-
-      // Auto-validate API key for the new provider
-      // Note: For KizunaAI, this will be handled by SettingsInitializer
-      // Local inference doesn't need API key validation
-      if (provider !== Provider.KIZUNA_AI && provider !== Provider.LOCAL_INFERENCE) {
-        // Small delay to ensure state is updated
-        setTimeout(() => {
-          state.validateApiKey();
-        }, 100);
-      }
-
-      // For local inference, trigger model readiness validation
-      if (provider === Provider.LOCAL_INFERENCE) {
-        const state = get();
-        setTimeout(() => {
-          state.validateApiKey();
-        }, 100);
-      }
     },
 
     setUILanguage: async (uiLanguage) => {
@@ -705,16 +689,49 @@ const useSettingsStore = create<SettingsStore>()(
       const state = get();
       const provider = state.provider;
 
-      // Local inference: check model readiness instead of API key
+      // Local inference: check model readiness instead of API key.
+      // This is the SINGLE authority for LOCAL_INFERENCE session readiness.
       if (provider === Provider.LOCAL_INFERENCE) {
         const localSettings = get().localInference;
-        // Dynamically import modelStore to check model readiness
         const { useModelStore } = await import('./modelStore');
         const modelState = useModelStore.getState();
 
-        // Initialize model store if not yet done
+        // Initialize model store if not yet done (scans IndexedDB for downloaded models)
         if (!modelState.initialized) {
           await modelState.initialize();
+        }
+
+        // Auto-correct stale model selections (e.g. TTS for wrong language after lang change).
+        // Without this, isProviderReady would reject a valid setup because the stored model
+        // IDs haven't been updated to match the current language pair.
+        const corrections = modelState.autoSelectModels(
+          localSettings.sourceLanguage,
+          localSettings.targetLanguage,
+          localSettings.asrModel,
+          localSettings.translationModel,
+          localSettings.ttsModel,
+        );
+        if (corrections) {
+          console.log('[SettingsStore] Auto-correcting stale model selections:', corrections);
+          get().updateLocalInference(corrections);
+          // Re-read settings after correction
+          const updated = get().localInference;
+          const ready = modelState.isProviderReady(
+            updated.sourceLanguage,
+            updated.targetLanguage,
+            updated.asrModel || undefined,
+            updated.translationModel || undefined,
+            updated.ttsModel || undefined,
+          );
+          set({
+            isApiKeyValid: ready,
+            availableModels: ready
+              ? [{ id: 'local-asr-translate', type: 'realtime' as const, created: 0 }]
+              : [],
+            validationMessage: ready ? '' : i18n.t('settings.localInferenceModelsRequired'),
+            isValidating: false,
+          });
+          return { valid: ready, message: ready ? '' : i18n.t('settings.localInferenceModelsRequired'), validating: false };
         }
 
         const ready = modelState.isProviderReady(
