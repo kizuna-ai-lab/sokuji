@@ -321,28 +321,24 @@
           "title": "Paso 1: Abrir Configuración",
           "content": "Haz clic aquí para abrir la Configuración donde puedes configurar tus idiomas y dispositivos de audio."
         },
-        "uiModeToggle": {
-          "title": "Paso 2: Cambio de Modo UI",
-          "content": "Puede cambiar entre el modo Básico y Avanzado en cualquier momento usando este botón. El modo Básico muestra opciones simplificadas, mientras que el modo Avanzado proporciona control completo."
-        },
         "account": {
-          "title": "Paso 3: Cuenta de Usuario",
-          "content": "Inicia sesión para una experiencia simple, o usa tu propia clave API sin iniciar sesión. Los nuevos usuarios pueden registrarse para el servicio API de kizuna.ai."
+          "title": "Paso 2: Cuenta de Usuario",
+          "content": "Inicie sesión para usar el servicio de traducción integrado de Sokuji, o elija otro proveedor e ingrese su propia clave API."
         },
         "languages": {
-          "title": "Paso 4: Elegir Idiomas",
-          "content": "Selecciona tu idioma de origen (lo que hablas) e idioma de destino (lo que quieres escuchar)."
+          "title": "Paso 3: Elegir Idiomas",
+          "content": "Seleccione su idioma de origen (lo que habla) e idioma de destino (lo que la otra persona escuchará)."
         },
         "microphone": {
-          "title": "Paso 5: Seleccionar Micrófono",
+          "title": "Paso 4: Seleccionar Micrófono",
           "content": "Selecciona tu micrófono de la lista. Esto es lo que capturará tu voz."
         },
         "speaker": {
-          "title": "Paso 6: Seleccionar Altavoz",
-          "content": "Elige tus altavoces o auriculares para escuchar la traducción. Se recomiendan los auriculares."
+          "title": "Paso 5: Seleccionar Altavoz",
+          "content": "Elija un dispositivo de monitoreo para previsualizar la traducción. El audio traducido siempre se envía al micrófono virtual, independientemente del monitoreo. Seleccione Sokuji Virtual Microphone como entrada de micrófono en su aplicación de reuniones o sitio web. Se recomiendan auriculares para el monitoreo para evitar retroalimentación."
         },
         "start": {
-          "title": "Paso 7: Comenzar a Traducir",
+          "title": "Paso 6: Comenzar a Traducir",
           "content": "¡Haz clic en Iniciar para comenzar a traducir! Solo habla naturalmente y escucha la traducción en tiempo real."
         },
         "complete": {
@@ -366,13 +362,11 @@
       },
       "settings": {
         "title": "Paso 1: Abrir configuración",
-        "content": "Primero, configuremos tus ajustes. Haz clic aquí para abrir el panel de configuración donde puedes establecer tu clave API de OpenAI y personalizar las instrucciones del sistema."
+        "content": "Primero, configuremos sus ajustes. Haga clic aquí para abrir el panel de configuración donde puede elegir su proveedor de traducción y personalizar los ajustes."
       },
       "apiKey": {
-        "title": "Paso 2: Configurar clave API",
-        "content": "Ingresa tu clave API de OpenAI aquí. Puedes obtener una desde la",
-        "linkText": "página de OpenAI",
-        "required": ". Esto es requerido para la traducción de voz."
+        "title": "Paso 2: Proveedor de Traducción",
+        "content": "Elija su proveedor de traducción. Sokuji es compatible con servicios en la nube como OpenAI, Gemini, Volcengine (Doubao) y más. También puede usar la inferencia local — sin necesidad de clave API, gratuito y centrado en la privacidad, simplemente descargue los modelos para traducción completamente sin conexión."
       },
       "systemInstructions": {
         "title": "Paso 3: Instrucciones del sistema",
@@ -391,20 +385,20 @@
         "content": "A continuación, configuremos tus ajustes de audio. Haz clic aquí para abrir el panel de audio y configurar tu micrófono y altavoces."
       },
       "microphoneSetup": {
-        "title": "Paso 7: Configuración del micrófono",
+        "title": "Paso 6: Configuración del micrófono",
         "content": "Selecciona tu dispositivo de micrófono aquí. Asegúrate de elegir el dispositivo de entrada correcto para la mejor calidad de audio."
       },
       "speakerSetup": {
-        "title": "Paso 8: Configuración de altavoces",
+        "title": "Paso 7: Configuración de altavoces",
         "content": "Selecciona un dispositivo de monitoreo para escuchar el audio traducido y verificar si cumple con tus requisitos. Se recomienda usar auriculares para el monitoreo para evitar interferencias con la entrada del micrófono. Cuando consideres que la configuración de traducción cumple con tus requisitos, se sugiere desactivar el monitoreo para que puedas concentrarte más en tu expresión y no interferir con la entrada del micrófono."
       },
       "startSession": {
-        "title": "Paso 9: Iniciar sesión",
+        "title": "Paso 8: Iniciar sesión",
         "content": "Haz clic en el botón \"Iniciar sesión\" para comenzar a usar Sokuji. Una vez iniciado, puedes hablar naturalmente para traducción en tiempo real. Si la detección automática de turnos está deshabilitada, usa \"Presionar para hablar\" (barra espaciadora) para hablar."
       },
       "complete": {
         "title": "¡Guía de configuración completada!",
-        "content": "¡Excelente! Has completado la guía de configuración y ahora estás familiarizado con la interfaz. Para comenzar a usar Sokuji, por favor ingresa tu clave API de OpenAI en la configuración, otorga permisos de micrófono cuando se solicite, y selecciona \"Sokuji Virtual Microphone\" como tu micrófono en tu aplicación de reuniones (Google Meet, Zoom, Microsoft Teams, etc.). Puedes reiniciar esta guía en cualquier momento desde la configuración."
+        "content": "¡Genial! Todo está configurado. Recuerde otorgar permisos de micrófono cuando se le solicite. Puede reiniciar esta guía en cualquier momento desde la configuración."
       }
     }
   },

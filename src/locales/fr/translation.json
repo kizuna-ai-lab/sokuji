@@ -321,28 +321,24 @@
           "title": "Étape 1: Ouvrir les Paramètres",
           "content": "Cliquez ici pour ouvrir les Paramètres où vous pouvez configurer vos langues et dispositifs audio."
         },
-        "uiModeToggle": {
-          "title": "Étape 2: Basculement Mode UI",
-          "content": "Vous pouvez basculer entre les modes Basique et Avancé à tout moment en utilisant ce bouton. Le mode Basique affiche des options simplifiées, tandis que le mode Avancé offre un contrôle complet."
-        },
         "account": {
-          "title": "Étape 3: Compte Utilisateur",
-          "content": "Connectez-vous pour une expérience simple, ou utilisez votre propre clé API sans vous connecter. Les nouveaux utilisateurs peuvent s'inscrire au service API de kizuna.ai."
+          "title": "Étape 2 : Compte Utilisateur",
+          "content": "Connectez-vous pour utiliser le service de traduction intégré de Sokuji, ou choisissez un autre fournisseur et entrez votre propre clé API."
         },
         "languages": {
-          "title": "Étape 4: Choisir les Langues",
-          "content": "Sélectionnez votre langue source (ce que vous parlez) et la langue cible (ce que vous voulez entendre)."
+          "title": "Étape 3 : Choisir les Langues",
+          "content": "Sélectionnez votre langue source (ce que vous parlez) et la langue cible (ce que l'autre personne entendra)."
         },
         "microphone": {
-          "title": "Étape 5: Sélectionner le Microphone",
+          "title": "Étape 4 : Sélectionner le Microphone",
           "content": "Sélectionnez votre microphone dans la liste. C'est ce qui capturera votre voix."
         },
         "speaker": {
-          "title": "Étape 6: Sélectionner le Haut-parleur",
-          "content": "Choisissez vos haut-parleurs ou écouteurs pour entendre la traduction. Les écouteurs sont recommandés."
+          "title": "Étape 5 : Sélectionner le Haut-parleur",
+          "content": "Choisissez un appareil de monitoring pour prévisualiser la traduction. L'audio traduit est toujours envoyé au microphone virtuel, que le monitoring soit activé ou non. Sélectionnez Sokuji Virtual Microphone comme entrée microphone dans votre application de réunion ou site web. L'utilisation d'écouteurs est recommandée pour le monitoring afin d'éviter les retours."
         },
         "start": {
-          "title": "Étape 7: Commencer la Traduction",
+          "title": "Étape 6 : Commencer la Traduction",
           "content": "Cliquez sur Démarrer pour commencer à traduire ! Parlez simplement naturellement et écoutez la traduction en temps réel."
         },
         "complete": {
@@ -366,13 +362,11 @@
       },
       "settings": {
         "title": "Étape 1 : Ouvrir les paramètres",
-        "content": "D'abord, configurons vos paramètres. Cliquez ici pour ouvrir le panneau des paramètres où vous pouvez configurer votre clé API OpenAI et personnaliser les instructions système."
+        "content": "Tout d'abord, configurons vos paramètres. Cliquez ici pour ouvrir le panneau de paramètres où vous pouvez choisir votre fournisseur de traduction et personnaliser les réglages."
       },
       "apiKey": {
-        "title": "Étape 2 : Configurer la clé API",
-        "content": "Entrez votre clé API OpenAI ici. Vous pouvez en obtenir une depuis la",
-        "linkText": "page OpenAI",
-        "required": ". Ceci est requis pour la traduction vocale."
+        "title": "Étape 2 : Fournisseur de Traduction",
+        "content": "Choisissez votre fournisseur de traduction. Sokuji prend en charge des services cloud comme OpenAI, Gemini, Volcengine (Doubao) et plus encore. Vous pouvez aussi utiliser l'inférence locale — pas de clé API nécessaire, gratuit et respectueux de la vie privée, téléchargez simplement les modèles pour une traduction entièrement hors ligne."
       },
       "systemInstructions": {
         "title": "Étape 3 : Instructions système",
@@ -391,20 +385,20 @@
         "content": "Ensuite, configurons vos paramètres audio. Cliquez ici pour ouvrir le panneau audio et configurer votre microphone et vos haut-parleurs."
       },
       "microphoneSetup": {
-        "title": "Étape 7 : Configuration du microphone",
+        "title": "Étape 6 : Configuration du microphone",
         "content": "Sélectionnez votre dispositif microphone ici. Assurez-vous de choisir le bon dispositif d'entrée pour la meilleure qualité audio."
       },
       "speakerSetup": {
-        "title": "Étape 8 : Configuration des haut-parleurs",
+        "title": "Étape 7 : Configuration des haut-parleurs",
         "content": "Sélectionnez un dispositif de surveillance pour écouter l'audio traduit et vérifier s'il répond à vos exigences. Il est recommandé d'utiliser des écouteurs pour la surveillance afin d'éviter les interférences avec l'entrée du microphone. Lorsque vous pensez que les paramètres de traduction répondent à vos exigences, il est suggéré de désactiver la surveillance afin que vous puissiez vous concentrer davantage sur votre expression et ne pas interférer avec l'entrée du microphone."
       },
       "startSession": {
-        "title": "Étape 9 : Démarrer la session",
+        "title": "Étape 8 : Démarrer la session",
         "content": "Cliquez sur le bouton \"Démarrer la session\" pour commencer à utiliser Sokuji. Une fois démarré, vous pouvez parler naturellement pour la traduction en temps réel. Si la détection automatique des tours est désactivée, utilisez \"Appuyer pour parler\" (barre d'espace) pour parler."
       },
       "complete": {
         "title": "Guide de configuration terminé !",
-        "content": "Excellent ! Vous avez terminé le guide de configuration et êtes maintenant familier avec l'interface. Pour commencer à utiliser Sokuji, veuillez entrer votre clé API OpenAI dans les paramètres, accordez les permissions du microphone lorsque demandé, et sélectionnez \"Sokuji Virtual Microphone\" comme votre microphone dans votre application de réunion (Google Meet, Zoom, Microsoft Teams, etc.). Vous pouvez redémarrer ce guide à tout moment depuis les paramètres."
+        "content": "Parfait ! Tout est configuré. N'oubliez pas d'accorder les permissions du microphone lorsque demandé. Vous pouvez relancer ce guide à tout moment depuis les paramètres."
       }
     }
   },

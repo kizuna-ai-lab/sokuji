@@ -2,7 +2,27 @@ import React, { useCallback, useEffect } from 'react';
 import Joyride, { CallBackProps, STATUS, EVENTS, ACTIONS } from 'react-joyride';
 import { useOnboarding } from '../../contexts/OnboardingContext';
 import { useTranslation } from 'react-i18next';
+import useSettingsStore from '../../stores/settingsStore';
 import './Onboarding.scss';
+
+// Map step targets to the settings tab/action needed to make them visible
+// Map step targets to the navigateToSettings target for tab switching + scroll + highlight
+const TARGET_NAVIGATION_MAP: Record<string, string | 'close-settings'> = {
+  // Advanced mode (class selectors)
+  '.api-key-section': 'api-key',
+  '.system-instructions-section': 'system-instructions',
+  '.voice-settings-section': 'voice-settings',
+  '.turn-detection-section': 'turn-detection',
+  '.microphone-section': 'microphone',
+  '.speaker-section': 'speaker',
+  '.main-action-btn': 'close-settings',
+  '.session-button': 'close-settings',
+  // Basic mode (ID selectors)
+  '#user-account-section': 'user-account',
+  '#languages-section': 'languages',
+  '#microphone-section': 'microphone',
+  '#speaker-section': 'speaker',
+};
 
 const Onboarding: React.FC = () => {
   const { t } = useTranslation();
@@ -16,52 +36,107 @@ const Onboarding: React.FC = () => {
     markOnboardingComplete,
   } = useOnboarding();
 
+  /**
+   * Prepare the UI for a step: switch settings tabs, open/close settings panel.
+   * Returns the delay (ms) needed before the step target is visible in the DOM.
+   */
+  const prepareForStep = useCallback((stepIndex: number): number => {
+    const step = steps[stepIndex];
+    if (!step) return 0;
+
+    const target = step.target as string;
+    const navTarget = TARGET_NAVIGATION_MAP[target];
+
+    if (navTarget === 'close-settings') {
+      // Close settings panel if it's open
+      const settingsPanel = document.querySelector('.settings-panel, .simple-settings, .advanced-settings');
+      if (settingsPanel) {
+        const settingsButton = document.querySelector('.settings-button') as HTMLElement;
+        if (settingsButton) settingsButton.click();
+        return 300;
+      }
+      return 0;
+    }
+
+    if (navTarget) {
+      // Ensure settings panel is open
+      const settingsPanel = document.querySelector('.settings-panel, .simple-settings, .advanced-settings');
+      if (!settingsPanel) {
+        const settingsButton = document.querySelector('.settings-button') as HTMLElement;
+        if (settingsButton) settingsButton.click();
+      }
+      // Navigate to the correct tab
+      useSettingsStore.getState().navigateToSettings(navTarget);
+      return 400;
+    }
+
+    return 0;
+  }, [steps]);
+
   // Handle clicks on highlighted elements during onboarding
   useEffect(() => {
     if (!isOnboardingActive) return;
 
     const handleElementClick = (event: MouseEvent) => {
       const target = event.target as HTMLElement;
-      
+
       // Check if we're on step 1 and user clicked the spotlight over settings button
       if (currentStepIndex === 1) {
-        const isSpotlightClick = target.classList.contains('react-joyride__spotlight') || 
+        const isSpotlightClick = target.classList.contains('react-joyride__spotlight') ||
                                 target.closest('.react-joyride__spotlight');
         const isSettingsButtonClick = target.closest('.settings-button');
-        
+
         if (isSpotlightClick || isSettingsButtonClick) {
           // Find the actual settings button and click it
           const settingsButton = document.querySelector('.settings-button') as HTMLElement;
           if (settingsButton && !isSettingsButtonClick) {
-            // If we clicked on spotlight, trigger the actual button click
             settingsButton.click();
           }
-          
-          // Small delay to let the panel open first
+          const delay = prepareForStep(currentStepIndex + 1);
           setTimeout(() => {
             nextStep();
-          }, 200);
+          }, delay || 400);
           return;
         }
       }
-      
+
     };
 
     document.addEventListener('click', handleElementClick, true);
-    
+
     return () => {
       document.removeEventListener('click', handleElementClick, true);
     };
-  }, [isOnboardingActive, currentStepIndex, nextStep]);
+  }, [isOnboardingActive, currentStepIndex, nextStep, prepareForStep]);
+
+  const advanceToStep = useCallback((nextIndex: number) => {
+    const delay = prepareForStep(nextIndex);
+    if (delay > 0) {
+      setTimeout(() => {
+        nextStep();
+      }, delay);
+    } else {
+      nextStep();
+    }
+  }, [prepareForStep, nextStep]);
+
+  const retreatToStep = useCallback((prevIndex: number) => {
+    const delay = prepareForStep(prevIndex);
+    if (delay > 0) {
+      setTimeout(() => {
+        prevStep();
+      }, delay);
+    } else {
+      prevStep();
+    }
+  }, [prepareForStep, prevStep]);
 
   const handleJoyrideCallback = useCallback((data: CallBackProps) => {
     const { status, type, action, index } = data;
 
     if (([STATUS.FINISHED, STATUS.SKIPPED] as string[]).includes(status)) {
-      // Need to set our running state to false, so we can restart if we click start again.
       markOnboardingComplete();
     } else if (type === EVENTS.STEP_AFTER) {
-      // Handle special cases where we need to auto-click buttons when user clicks Next
       if (action === ACTIONS.NEXT) {
         // Step 1: Auto-click settings button if user clicked Next
         if (currentStepIndex === 1) {
@@ -69,30 +144,23 @@ const Onboarding: React.FC = () => {
           if (settingsButton) {
             settingsButton.click();
           }
-          // Small delay to let the panel open before advancing
+          const delay = prepareForStep(currentStepIndex + 1);
           setTimeout(() => {
             nextStep();
-          }, 200);
+          }, delay || 400);
           return;
         }
-        
-        // For all other steps, advance normally
-        nextStep();
+
+        advanceToStep(currentStepIndex + 1);
       } else if (action === ACTIONS.PREV) {
-        prevStep();
+        retreatToStep(currentStepIndex - 1);
       }
     } else if (type === EVENTS.TARGET_NOT_FOUND) {
       console.warn('[Onboarding] Target not found for step:', index, steps[index]?.target);
-      // Still advance if target not found to prevent getting stuck
-      if (action === ACTIONS.NEXT) {
-        nextStep();
-      } else if (action === ACTIONS.PREV) {
-        prevStep();
-      }
+      // Always skip missing targets to prevent getting stuck
+      advanceToStep(currentStepIndex + 1);
     }
-    // For other events like tooltip close or overlay click, do nothing
-    // This prevents the tour from getting into an unresponsive state
-  }, [nextStep, prevStep, markOnboardingComplete, currentStepIndex, steps]);
+  }, [nextStep, prevStep, markOnboardingComplete, currentStepIndex, steps, prepareForStep, advanceToStep, retreatToStep]);
 
   if (!isOnboardingActive) {
     return null;

@@ -321,28 +321,24 @@
           "title": "Schritt 1: Einstellungen öffnen",
           "content": "Klicken Sie hier, um die Einstellungen zu öffnen, wo Sie Ihre Sprachen und Audiogeräte konfigurieren können."
         },
-        "uiModeToggle": {
-          "title": "Schritt 2: UI-Modus Umschalten",
-          "content": "Sie können jederzeit zwischen dem einfachen und dem erweiterten Modus wechseln, indem Sie diese Taste verwenden. Der einfache Modus zeigt vereinfachte Optionen, während der erweiterte Modus volle Kontrolle bietet."
-        },
         "languages": {
-          "title": "Schritt 4: Sprachen auswählen",
-          "content": "Wählen Sie Ihre Quellsprache (was Sie sprechen) und Zielsprache (was Sie hören möchten) aus."
+          "title": "Schritt 3: Sprachen auswählen",
+          "content": "Wählen Sie Ihre Quellsprache (was Sie sprechen) und Zielsprache (was die andere Person hören soll)."
         },
         "account": {
-          "title": "Schritt 3: Benutzerkonto",
-          "content": "Melden Sie sich für eine einfache Erfahrung an oder verwenden Sie Ihren eigenen API-Schlüssel ohne Anmeldung. Neue Benutzer können sich für den API-Service von kizuna.ai anmelden."
+          "title": "Schritt 2: Benutzerkonto",
+          "content": "Melden Sie sich an, um den integrierten Übersetzungsdienst von Sokuji zu nutzen, oder wählen Sie einen anderen Anbieter und geben Sie Ihren eigenen API-Schlüssel ein."
         },
         "microphone": {
-          "title": "Schritt 5: Mikrofon auswählen",
+          "title": "Schritt 4: Mikrofon auswählen",
           "content": "Wählen Sie Ihr Mikrofon aus der Liste aus. Dies ist das Gerät, das Ihre Stimme aufnimmt."
         },
         "speaker": {
-          "title": "Schritt 6: Lautsprecher auswählen",
-          "content": "Wählen Sie Ihre Lautsprecher oder Kopfhörer aus, um die Übersetzung zu hören. Kopfhörer werden empfohlen."
+          "title": "Schritt 5: Lautsprecher auswählen",
+          "content": "Wählen Sie ein Monitoring-Gerät zur Vorschau der Übersetzung. Die übersetzte Audioausgabe wird unabhängig vom Monitoring immer an das virtuelle Mikrofon ausgegeben. Wählen Sie in Ihrer Konferenz-App oder Website das Sokuji Virtual Microphone als Mikrofoneingabe. Kopfhörer werden zur Überwachung empfohlen, um Rückkopplungen zu vermeiden."
         },
         "start": {
-          "title": "Schritt 7: Übersetzen starten",
+          "title": "Schritt 6: Übersetzen starten",
           "content": "Klicken Sie auf Start, um mit der Übersetzung zu beginnen! Sprechen Sie einfach natürlich und hören Sie die Übersetzung in Echtzeit."
         },
         "complete": {
@@ -366,13 +362,11 @@
       },
       "settings": {
         "title": "Schritt 1: Einstellungen öffnen",
-        "content": "Zuerst konfigurieren wir Ihre Einstellungen. Klicken Sie hier, um das Einstellungspanel zu öffnen, wo Sie Ihren OpenAI API-Schlüssel einrichten und Systemanweisungen anpassen können."
+        "content": "Zunächst konfigurieren wir Ihre Einstellungen. Klicken Sie hier, um das Einstellungspanel zu öffnen, Ihren Übersetzungsanbieter zu wählen und die Einstellungen anzupassen."
       },
       "apiKey": {
-        "title": "Schritt 2: API-Schlüssel konfigurieren",
-        "content": "Geben Sie hier Ihren OpenAI API-Schlüssel ein. Sie können einen von der",
-        "linkText": "OpenAI-Seite",
-        "required": "erhalten. Dies ist für die Sprachübersetzung erforderlich."
+        "title": "Schritt 2: Übersetzungsanbieter",
+        "content": "Wählen Sie Ihren Übersetzungsanbieter. Sokuji unterstützt Cloud-Dienste wie OpenAI, Gemini, Volcengine (Doubao) und mehr. Sie können auch die lokale Inferenz nutzen — kein API-Schlüssel nötig, kostenlos und datenschutzfreundlich, laden Sie einfach Modelle für vollständig offline Übersetzung herunter."
       },
       "systemInstructions": {
         "title": "Schritt 3: Systemanweisungen",
@@ -391,20 +385,20 @@
         "content": "Als nächstes konfigurieren wir Ihre Audio-Einstellungen. Klicken Sie hier, um das Audio-Panel zu öffnen und Ihr Mikrofon und Ihre Lautsprecher einzurichten."
       },
       "microphoneSetup": {
-        "title": "Schritt 7: Mikrofon-Setup",
+        "title": "Schritt 6: Mikrofon-Setup",
         "content": "Wählen Sie hier Ihr Mikrofongerät aus. Stellen Sie sicher, dass Sie das richtige Eingabegerät für die beste Audioqualität auswählen."
       },
       "speakerSetup": {
-        "title": "Schritt 8: Lautsprecher-Setup",
+        "title": "Schritt 7: Lautsprecher-Setup",
         "content": "Wählen Sie ein Überwachungsgerät aus, um die übersetzte Audio anzuhören und zu überprüfen, ob sie Ihren Anforderungen entspricht. Es wird empfohlen, Kopfhörer für die Überwachung zu verwenden, um Interferenzen mit der Mikrofoneingabe zu vermeiden. Wenn Sie der Meinung sind, dass die Übersetzungseinstellungen Ihren Anforderungen entsprechen, wird empfohlen, die Überwachung auszuschalten, damit Sie sich mehr auf Ihren Ausdruck konzentrieren können und die Mikrofoneingabe nicht stören."
       },
       "startSession": {
-        "title": "Schritt 9: Sitzung starten",
+        "title": "Schritt 8: Sitzung starten",
         "content": "Klicken Sie auf die Schaltfläche \"Sitzung starten\", um mit der Verwendung von Sokuji zu beginnen. Nach dem Start können Sie natürlich sprechen für Live-Übersetzung. Wenn die automatische Wendeerkennung deaktiviert ist, verwenden Sie \"Drücken zum Sprechen\" (Leertaste) zum Sprechen."
       },
       "complete": {
         "title": "Setup-Anleitung abgeschlossen!",
-        "content": "Großartig! Sie haben die Setup-Anleitung abgeschlossen und sind nun mit der Benutzeroberfläche vertraut. Um Sokuji zu verwenden, geben Sie bitte Ihren OpenAI API-Schlüssel in den Einstellungen ein, gewähren Sie Mikrofonberechtigungen wenn aufgefordert, und wählen Sie \"Sokuji Virtual Microphone\" als Ihr Mikrofon in Ihrer Meeting-Anwendung (Google Meet, Zoom, Microsoft Teams, usw.). Sie können diese Anleitung jederzeit aus den Einstellungen neu starten."
+        "content": "Großartig! Alles ist eingerichtet. Bitte gewähren Sie die Mikrofonberechtigung, wenn Sie dazu aufgefordert werden. Sie können diese Anleitung jederzeit in den Einstellungen neu starten."
       }
     }
   },

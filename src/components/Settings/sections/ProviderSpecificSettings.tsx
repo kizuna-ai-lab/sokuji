@@ -203,7 +203,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
     }
 
     return (
-      <div className="settings-section voice-settings-section">
+      <div className="settings-section voice-settings-section" id="voice-settings-section">
         <h2>
           {t('settings.voice')}
           <Tooltip
@@ -247,7 +247,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
     const isWebRTCMode = compatibleSettings?.transportType === 'webrtc';
 
     return (
-      <div className="settings-section turn-detection-section">
+      <div className="settings-section turn-detection-section" id="turn-detection-section">
         <h2>
           {t('settings.automaticTurnDetection')}
           <Tooltip
@@ -1026,7 +1026,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
           </div>
         </div>
 
-        <div className="settings-section turn-detection-section">
+        <div className="settings-section turn-detection-section" id="turn-detection-section">
           <h2>
             {t('settings.automaticTurnDetection')}
             <Tooltip
@@ -1216,7 +1216,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
           })()}
         </div>
 
-        <div className="settings-section turn-detection-section">
+        <div className="settings-section turn-detection-section" id="turn-detection-section">
           <h2>
             {t('settings.automaticTurnDetection')}
             <Tooltip
@@ -1340,7 +1340,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
     <Fragment>
       {/* System Instructions */}
       {config.capabilities.hasTemplateMode && (
-        <div className="settings-section system-instructions-section">
+        <div className="settings-section system-instructions-section" id="system-instructions-section">
           <h2>
             {t('settings.systemInstructions')}
             <Tooltip

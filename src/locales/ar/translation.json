@@ -459,28 +459,24 @@
           "title": "Step 1: Open Settings",
           "content": "Click here to open Settings where you can configure your languages and audio devices."
         },
-        "uiModeToggle": {
-          "title": "Step 2: UI Mode Toggle",
-          "content": "You can switch between Basic and Advanced modes anytime using this button. Basic mode shows simplified options, while Advanced mode provides full control."
-        },
         "account": {
-          "title": "Step 3: User Account",
-          "content": "Sign in for a simple experience, or use your own API key without logging in. New users can sign up for kizuna.ai's API service."
+          "title": "الخطوة 2: حساب المستخدم",
+          "content": "سجّل الدخول لاستخدام خدمة الترجمة المدمجة في Sokuji، أو اختر مزودًا آخر وأدخل مفتاح API الخاص بك."
         },
         "languages": {
-          "title": "Step 4: Choose Languages",
-          "content": "Select your source language (what you speak) and target language (what you want to hear)."
+          "title": "الخطوة 3: اختر اللغات",
+          "content": "اختر لغة المصدر (اللغة التي تتحدثها) واللغة الهدف (اللغة التي سيسمعها الطرف الآخر)."
         },
         "microphone": {
-          "title": "Step 5: Select Microphone",
+          "title": "الخطوة 4: اختر الميكروفون",
           "content": "Select your microphone from the list. This is what will capture your voice."
         },
         "speaker": {
-          "title": "Step 6: Select Speaker",
-          "content": "Choose your speakers or headphones to hear the translation. Headphones are recommended."
+          "title": "الخطوة 5: اختر مكبر الصوت",
+          "content": "اختر جهاز مراقبة لمعاينة الترجمة. يتم إرسال الصوت المترجم دائمًا إلى الميكروفون الافتراضي بغض النظر عن المراقبة. اختر Sokuji Virtual Microphone كمدخل ميكروفون في تطبيق الاجتماعات أو موقع الويب الخاص بك. يُوصى باستخدام سماعات الرأس للمراقبة لتجنب التغذية الراجعة."
         },
         "start": {
-          "title": "Step 7: Start Translating",
+          "title": "الخطوة 6: ابدأ الترجمة",
           "content": "Click 'Start' to begin translating! Just speak naturally and hear the translation in real-time."
         },
         "complete": {
@@ -504,11 +500,11 @@
       },
       "openSettings": {
         "title": "فتح لوحة الإعدادات",
-        "content": "انقر على هذا الزر لفتح لوحة الإعدادات، حيث سنقوم بتكوين مفتاح API والتفضيلات الخاصة بك."
+        "content": "أولاً، لنقم بتهيئة إعداداتك. انقر هنا لفتح لوحة الإعدادات حيث يمكنك اختيار مزود الترجمة وتخصيص الإعدادات."
       },
       "apiKey": {
-        "title": "إعداد مفتاح OpenAI API",
-        "content": "أدخل مفتاح OpenAI API الخاص بك لتفعيل وظيفة الترجمة. يمكنك الحصول على مفتاح من <a href='https://platform.openai.com/api-keys' target='_blank'>منصة OpenAI</a>."
+        "title": "الخطوة 2: مزود الترجمة",
+        "content": "اختر مزود الترجمة الخاص بك. يدعم Sokuji خدمات سحابية مثل OpenAI وGemini وVolcengine (Doubao) والمزيد. يمكنك أيضًا استخدام الاستدلال المحلي — لا حاجة لمفتاح API، مجاني ويركز على الخصوصية، فقط قم بتنزيل النماذج للترجمة دون اتصال بالإنترنت."
       },
       "systemInstructions": {
         "title": "تخصيص تعليمات النظام",
@@ -540,7 +536,7 @@
       },
       "completion": {
         "title": "دليل الإعداد مكتمل!",
-        "content": "لقد أكملت دليل الإعداد! الآن تأكد من إدخال مفتاح API وتكوين إعداداتك فعلياً، ثم استخدم ميكروفون Sokuji الافتراضي في تطبيقات المؤتمرات (مثل Google Meet وZoom وما إلى ذلك) لبدء الترجمة الفورية."
+        "content": "رائع! تم إعداد كل شيء. تذكر منح أذونات الميكروفون عند المطالبة. يمكنك إعادة تشغيل هذا الدليل في أي وقت من الإعدادات."
       }
     }
   },
