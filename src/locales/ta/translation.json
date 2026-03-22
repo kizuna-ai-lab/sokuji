@@ -407,20 +407,24 @@
           "content": "உங்கள் மூல மொழியை (நீங்கள் பேசுவது) மற்றும் இலக்கு மொழியை (மற்ற நபர் கேட்பது) தேர்ந்தெடுக்கவும்."
         },
         "microphone": {
-          "title": "படி 4: மைக்ரோஃபோனைத் தேர்ந்தெடுக்கவும்",
+          "title": "படி 5: மைக்ரோஃபோனைத் தேர்ந்தெடுக்கவும்",
           "content": "Select your microphone from the list. This is what will capture your voice."
         },
         "speaker": {
-          "title": "படி 5: ஸ்பீக்கரைத் தேர்ந்தெடுக்கவும்",
+          "title": "படி 6: ஸ்பீக்கரைத் தேர்ந்தெடுக்கவும்",
           "content": "மொழிபெயர்ப்பை முன்னோட்டமிட ஒரு கண்காணிப்பு சாதனத்தைத் தேர்ந்தெடுக்கவும்। கண்காணிப்பு இருந்தாலும் இல்லாவிட்டாலும் மொழிபெயர்க்கப்பட்ட ஆடியோ எப்போதும் மெய்நிகர் மைக்ரோஃபோனுக்கு அனுப்பப்படும். உங்கள் சந்திப்பு பயன்பாடு அல்லது வலைத்தளத்தில் Sokuji Virtual Microphone ஐ மைக்ரோஃபோன் உள்ளீடாகத் தேர்ந்தெடுக்கவும்."
         },
         "start": {
-          "title": "படி 6: மொழிபெயர்ப்பைத் தொடங்குங்கள்",
+          "title": "படி 7: மொழிபெயர்ப்பைத் தொடங்குங்கள்",
           "content": "Click 'Start' to begin translating! Just speak naturally and hear the translation in real-time."
         },
         "complete": {
           "title": "All Set!",
           "content": "Perfect! You're ready to use Sokuji. Click Start and begin speaking to hear real-time translations."
+        },
+        "provider": {
+          "title": "படி 4: மொழிபெயர்ப்பு வழங்குநர்",
+          "content": "உங்கள் மொழிபெயர்ப்பு வழங்குநரைத் தேர்ந்தெடுக்கவும். Sokuji OpenAI, Gemini, Volcengine (Doubao) போன்ற கிளவுட் சேவைகளை ஆதரிக்கிறது. உள்ளூர் அனுமானத்தையும் பயன்படுத்தலாம் — API விசை தேவையில்லை, இலவசம் மற்றும் தனியுரிமை மையம், மாதிரிகளை பதிவிறக்கி முழுமையாக ஆஃப்லைனில் மொழிபெயர்க்கவும்।"
         }
       }
     },

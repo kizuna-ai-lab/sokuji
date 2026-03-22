@@ -281,20 +281,24 @@
           "content": "Välj ditt källspråk (det du talar) och målspråk (det den andra personen kommer att höra)."
         },
         "microphone": {
-          "title": "Steg 4: Välj Mikrofon",
+          "title": "Steg 5: Välj Mikrofon",
           "content": "Select your microphone from the list. This is what will capture your voice."
         },
         "speaker": {
-          "title": "Steg 5: Välj Högtalare",
+          "title": "Steg 6: Välj Högtalare",
           "content": "Välj en övervakningsenhet för att förhandsgranska översättningen. Översatt ljud skickas alltid till den virtuella mikrofonen oavsett övervakning. Välj Sokuji Virtual Microphone som mikrofoningång i din mötesapp eller webbplats. Hörlurar rekommenderas för övervakning för att undvika återkoppling."
         },
         "start": {
-          "title": "Steg 6: Börja Översätta",
+          "title": "Steg 7: Börja Översätta",
           "content": "Click 'Start' to begin translating! Just speak naturally and hear the translation in real-time."
         },
         "complete": {
           "title": "All Set!",
           "content": "Perfect! You're ready to use Sokuji. Click Start and begin speaking to hear real-time translations."
+        },
+        "provider": {
+          "title": "Steg 4: Översättningsleverantör",
+          "content": "Välj din översättningsleverantör. Sokuji stöder molntjänster som OpenAI, Gemini, Volcengine (Doubao) och mer. Du kan också använda lokal inferens — ingen API-nyckel behövs, gratis och integritetsfokuserat, ladda bara ner modeller för helt offline översättning."
         }
       }
     },

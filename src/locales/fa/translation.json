@@ -474,20 +474,24 @@
           "content": "زبان مبدأ (زبانی که صحبت می‌کنید) و زبان مقصد (زبانی که طرف مقابل خواهد شنید) را انتخاب کنید."
         },
         "microphone": {
-          "title": "مرحله 4: انتخاب میکروفون",
+          "title": "مرحله 5: انتخاب میکروفون",
           "content": "Select your microphone from the list. This is what will capture your voice."
         },
         "speaker": {
-          "title": "مرحله 5: انتخاب بلندگو",
+          "title": "مرحله 6: انتخاب بلندگو",
           "content": "یک دستگاه نظارت برای پیش‌نمایش ترجمه انتخاب کنید. صدای ترجمه شده همیشه به میکروفون مجازی ارسال می‌شود، صرف‌نظر از نظارت. Sokuji Virtual Microphone را به عنوان ورودی میکروفون در برنامه جلسه یا وب‌سایت خود انتخاب کنید. استفاده از هدفون برای نظارت توصیه می‌شود."
         },
         "start": {
-          "title": "مرحله 6: شروع ترجمه",
+          "title": "مرحله 7: شروع ترجمه",
           "content": "Click 'Start' to begin translating! Just speak naturally and hear the translation in real-time."
         },
         "complete": {
           "title": "All Set!",
           "content": "Perfect! You're ready to use Sokuji. Click Start and begin speaking to hear real-time translations."
+        },
+        "provider": {
+          "title": "مرحله 4: ارائه‌دهنده ترجمه",
+          "content": "ارائه‌دهنده ترجمه خود را انتخاب کنید. Sokuji از سرویس‌های ابری مانند OpenAI، Gemini، Volcengine (Doubao) و موارد دیگر پشتیبانی می‌کند. همچنین می‌توانید از استنتاج محلی استفاده کنید — بدون نیاز به کلید API، رایگان و متمرکز بر حریم خصوصی، فقط مدل‌ها را دانلود کنید و کاملاً آفلاین ترجمه کنید."
         }
       }
     },

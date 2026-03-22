@@ -432,20 +432,24 @@
           "content": "Piliin ang iyong source language (ang wika na sinasalita mo) at target language (ang maririnig ng kabilang partido)."
         },
         "microphone": {
-          "title": "Hakbang 4: Pumili ng Mikropono",
+          "title": "Hakbang 5: Pumili ng Mikropono",
           "content": "Select your microphone from the list. This is what will capture your voice."
         },
         "speaker": {
-          "title": "Hakbang 5: Pumili ng Speaker",
+          "title": "Hakbang 6: Pumili ng Speaker",
           "content": "Pumili ng monitoring device para i-preview ang pagsasalin. Ang naisalin na audio ay palaging ipinapadala sa virtual microphone kahit naka-off ang monitoring. Piliin ang Sokuji Virtual Microphone bilang microphone input sa iyong meeting app o website. Inirerekomenda ang headphones para sa monitoring upang maiwasan ang feedback."
         },
         "start": {
-          "title": "Hakbang 6: Simulan ang Pagsasalin",
+          "title": "Hakbang 7: Simulan ang Pagsasalin",
           "content": "Click 'Start' to begin translating! Just speak naturally and hear the translation in real-time."
         },
         "complete": {
           "title": "All Set!",
           "content": "Perfect! You're ready to use Sokuji. Click Start and begin speaking to hear real-time translations."
+        },
+        "provider": {
+          "title": "Hakbang 4: Translation Provider",
+          "content": "Piliin ang iyong translation provider. Sinusuportahan ng Sokuji ang mga cloud service tulad ng OpenAI, Gemini, Volcengine (Doubao), at iba pa. Maaari ka ring gumamit ng Local Inference — hindi kailangan ng API key, libre at nakatuon sa privacy, mag-download lang ng mga model para sa ganap na offline na pagsasalin."
         }
       }
     },

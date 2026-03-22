@@ -477,20 +477,24 @@
           "content": "Selecione o seu idioma de origem (o que fala) e o idioma de destino (o que a outra pessoa ouvirá)."
         },
         "microphone": {
-          "title": "Passo 4: Selecionar Microfone",
+          "title": "Passo 5: Selecionar Microfone",
           "content": "Select your microphone from the list. This is what will capture your voice."
         },
         "speaker": {
-          "title": "Passo 5: Selecionar Altifalante",
+          "title": "Passo 6: Selecionar Altifalante",
           "content": "Escolha um dispositivo de monitorização para pré-visualizar a tradução. O áudio traduzido é sempre enviado para o microfone virtual, independentemente da monitorização. Selecione Sokuji Virtual Microphone como entrada de microfone na sua aplicação de reunião ou site. Recomenda-se a utilização de auscultadores para monitorização para evitar feedback."
         },
         "start": {
-          "title": "Passo 6: Começar a Traduzir",
+          "title": "Passo 7: Começar a Traduzir",
           "content": "Click 'Start' to begin translating! Just speak naturally and hear the translation in real-time."
         },
         "complete": {
           "title": "All Set!",
           "content": "Perfect! You're ready to use Sokuji. Click Start and begin speaking to hear real-time translations."
+        },
+        "provider": {
+          "title": "Passo 4: Fornecedor de Tradução",
+          "content": "Escolha o seu fornecedor de tradução. O Sokuji suporta serviços na nuvem como OpenAI, Gemini, Volcengine (Doubao) e mais. Também pode utilizar a inferência local — sem necessidade de chave API, gratuito e focado na privacidade, basta descarregar os modelos para tradução completamente offline."
         }
       }
     },

@@ -480,20 +480,24 @@
           "content": "בחר את שפת המקור (מה שאתה מדבר) ואת שפת היעד (מה שהצד השני ישמע)."
         },
         "microphone": {
-          "title": "שלב 4: בחר מיקרופון",
+          "title": "שלב 5: בחר מיקרופון",
           "content": "Select your microphone from the list. This is what will capture your voice."
         },
         "speaker": {
-          "title": "שלב 5: בחר רמקול",
+          "title": "שלב 6: בחר רמקול",
           "content": "בחר מכשיר ניטור לתצוגה מקדימה של התרגום. אודיו מתורגם תמיד נשלח למיקרופון הווירטואלי ללא קשר לניטור. בחר ב-Sokuji Virtual Microphone כקלט מיקרופון באפליקציית הפגישות או באתר שלך. מומלץ להשתמש באוזניות לניטור כדי למנוע היזון חוזר."
         },
         "start": {
-          "title": "שלב 6: התחל לתרגם",
+          "title": "שלב 7: התחל לתרגם",
           "content": "Click 'Start' to begin translating! Just speak naturally and hear the translation in real-time."
         },
         "complete": {
           "title": "All Set!",
           "content": "Perfect! You're ready to use Sokuji. Click Start and begin speaking to hear real-time translations."
+        },
+        "provider": {
+          "title": "שלב 4: ספק תרגום",
+          "content": "בחר את ספק התרגום שלך. Sokuji תומך בשירותי ענן כמו OpenAI, Gemini, Volcengine (Doubao) ועוד. תוכל גם להשתמש בהסקה מקומית — אין צורך במפתח API, חינם וממוקד פרטיות, פשוט הורד מודלים לתרגום לא מקוון לחלוטין."
         }
       }
     },
