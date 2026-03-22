@@ -92,9 +92,15 @@ export interface EventData {
     | 'local.pipeline.error'
     // LocalInference init progress event types
     | 'local.init.start'
-    | 'local.init.engine.start'
-    | 'local.init.engine.ready'
-    | 'local.init.engine.error';
+    | 'local.init.asr.start'
+    | 'local.init.asr.ready'
+    | 'local.init.asr.error'
+    | 'local.init.translation.start'
+    | 'local.init.translation.ready'
+    | 'local.init.translation.error'
+    | 'local.init.tts.start'
+    | 'local.init.tts.ready'
+    | 'local.init.tts.error';
   data: any;
   // Support additional properties for flexible event handling (e.g., OpenAI properties)
   [key: string]: any;

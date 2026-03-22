@@ -55,20 +55,23 @@ export class LocalInferenceClient implements IClient {
   private ttsProcessing = false;
 
   /**
-   * Helper to wrap an engine init call with progress event emission.
+   * Helper to wrap an engine init call with per-engine progress event emission and timing.
    */
   private async trackInit<T>(
-    engineName: string,
+    engineName: 'asr' | 'translation' | 'tts',
+    modelId: string,
     initFn: () => Promise<T>,
   ): Promise<T> {
-    this.emitEvent('local.init.engine.start', 'client', { engine: engineName });
+    this.emitEvent(`local.init.${engineName}.start`, 'client', { model: modelId });
+    const startTime = performance.now();
     try {
       const result = await initFn();
-      this.emitEvent('local.init.engine.ready', 'client', { engine: engineName });
+      const initDurationMs = Math.round(performance.now() - startTime);
+      this.emitEvent(`local.init.${engineName}.ready`, 'client', { model: modelId, initDurationMs });
       return result;
     } catch (error) {
-      this.emitEvent('local.init.engine.error', 'client', {
-        engine: engineName,
+      this.emitEvent(`local.init.${engineName}.error`, 'client', {
+        model: modelId,
         error: error instanceof Error ? error.message : String(error),
       });
       throw error;
@@ -164,7 +167,7 @@ export class LocalInferenceClient implements IClient {
 
       // --- Fire all init() calls in parallel ---
 
-      const asrPromise = this.trackInit('asr', () => {
+      const asrPromise = this.trackInit('asr', config.asrModelId, () => {
         if (asrModel?.type === 'asr-stream') {
           return (this.asrEngine as StreamingAsrEngine).init(config.asrModelId);
         } else {
@@ -176,13 +179,13 @@ export class LocalInferenceClient implements IClient {
         }
       });
 
-      const translationPromise = this.trackInit('translation', () =>
+      const translationPromise = this.trackInit('translation', config.translationModelId, () =>
         this.translationEngine!.init(config.sourceLanguage, config.targetLanguage, config.translationModelId),
       );
 
       // TTS catches its own errors for graceful degradation
       const ttsPromise = this.ttsEngine
-        ? this.trackInit('tts', () => this.ttsEngine!.init(config.ttsModelId!)).catch((error) => {
+        ? this.trackInit('tts', config.ttsModelId!, () => this.ttsEngine!.init(config.ttsModelId!)).catch((error) => {
             console.warn('[LocalInference] TTS init failed, continuing without TTS:', error);
             this.handlers.onError?.(error instanceof Error ? error : new Error(String(error)));
             this.ttsEngine?.dispose();
