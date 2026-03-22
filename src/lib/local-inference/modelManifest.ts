@@ -2377,7 +2377,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     id: 'cantonese',
     type: 'tts',
     name: 'Cantonese VITS (Cantonese, female)',
-    languages: ['yue'],
+    languages: ['cantonese'],
     cdnPath: 'wasm-cantonese',
     modelFile: 'vits-cantonese-hf-xiaomaiiwn.onnx',
     engine: 'vits',

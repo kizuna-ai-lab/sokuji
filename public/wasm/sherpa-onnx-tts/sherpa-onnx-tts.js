@@ -28,7 +28,13 @@ function freeConfig(config, Module) {
     freeConfig(config.pocket, Module)
   }
 
-  Module._free(config.ptr);
+  if ('supertonic' in config) {
+    freeConfig(config.supertonic, Module)
+  }
+
+  if (config.ptr) {
+    Module._free(config.ptr);
+  }
 }
 
 // The user should free the returned pointers
@@ -37,7 +43,7 @@ function initSherpaOnnxOfflineTtsVitsModelConfig(config, Module) {
   const lexiconLen = Module.lengthBytesUTF8(config.lexicon || '') + 1;
   const tokensLen = Module.lengthBytesUTF8(config.tokens || '') + 1;
   const dataDirLen = Module.lengthBytesUTF8(config.dataDir || '') + 1;
-  const dictDir = config.dictDir || '';
+  const dictDir = ''
   const dictDirLen = Module.lengthBytesUTF8(dictDir) + 1;
 
   const n = modelLen + lexiconLen + tokensLen + dataDirLen + dictDirLen;
@@ -96,7 +102,7 @@ function initSherpaOnnxOfflineTtsMatchaModelConfig(config, Module) {
   const tokensLen = Module.lengthBytesUTF8(config.tokens || '') + 1;
   const dataDirLen = Module.lengthBytesUTF8(config.dataDir || '') + 1;
 
-  const dictDir = config.dictDir || '';
+  const dictDir = '';
   const dictDirLen = Module.lengthBytesUTF8(dictDir) + 1;
 
   const n = acousticModelLen + vocoderLen + lexiconLen + tokensLen +
@@ -357,7 +363,7 @@ function initSherpaOnnxOfflineTtsPocketModelConfig(config, Module) {
 
   const buffer = Module._malloc(n);
 
-  const len = 7 * 4;
+  const len = 8 * 4;
   const ptr = Module._malloc(len);
 
   let offset = 0;
@@ -405,6 +411,88 @@ function initSherpaOnnxOfflineTtsPocketModelConfig(config, Module) {
 
   Module.setValue(ptr + 6 * 4, buffer + offset, 'i8*');
   offset += tokenScoresJsonLen;
+
+  Module.setValue(
+      ptr + 7 * 4,
+      config.voiceEmbeddingCacheCapacity !== undefined ?
+          config.voiceEmbeddingCacheCapacity :
+          50,
+      'i32');
+
+  return {
+    buffer: buffer,
+    ptr: ptr,
+    len: len,
+  };
+}
+
+function initSherpaOnnxOfflineTtsSupertonicModelConfig(config, Module) {
+  const durationPredictorLen =
+      Module.lengthBytesUTF8(config.durationPredictor || '') + 1;
+  const textEncoderLen = Module.lengthBytesUTF8(config.textEncoder || '') + 1;
+  const vectorEstimatorLen =
+      Module.lengthBytesUTF8(config.vectorEstimator || '') + 1;
+  const vocoderLen = Module.lengthBytesUTF8(config.vocoder || '') + 1;
+  const ttsJsonLen = Module.lengthBytesUTF8(config.ttsJson || '') + 1;
+  const unicodeIndexerLen =
+      Module.lengthBytesUTF8(config.unicodeIndexer || '') + 1;
+  const voiceStyleLen = Module.lengthBytesUTF8(config.voiceStyle || '') + 1;
+
+  const n = durationPredictorLen + textEncoderLen + vectorEstimatorLen +
+      vocoderLen + ttsJsonLen + unicodeIndexerLen + voiceStyleLen;
+
+  const buffer = Module._malloc(n);
+
+  const len = 7 * 4;
+  const ptr = Module._malloc(len);
+
+  let offset = 0;
+  Module.stringToUTF8(
+      config.durationPredictor || '', buffer + offset, durationPredictorLen);
+  offset += durationPredictorLen;
+
+  Module.stringToUTF8(
+      config.textEncoder || '', buffer + offset, textEncoderLen);
+  offset += textEncoderLen;
+
+  Module.stringToUTF8(
+      config.vectorEstimator || '', buffer + offset, vectorEstimatorLen);
+  offset += vectorEstimatorLen;
+
+  Module.stringToUTF8(config.vocoder || '', buffer + offset, vocoderLen);
+  offset += vocoderLen;
+
+  Module.stringToUTF8(config.ttsJson || '', buffer + offset, ttsJsonLen);
+  offset += ttsJsonLen;
+
+  Module.stringToUTF8(
+      config.unicodeIndexer || '', buffer + offset, unicodeIndexerLen);
+  offset += unicodeIndexerLen;
+
+  Module.stringToUTF8(config.voiceStyle || '', buffer + offset, voiceStyleLen);
+  offset += voiceStyleLen;
+
+  offset = 0;
+  Module.setValue(ptr + 0 * 4, buffer + offset, 'i8*');
+  offset += durationPredictorLen;
+
+  Module.setValue(ptr + 1 * 4, buffer + offset, 'i8*');
+  offset += textEncoderLen;
+
+  Module.setValue(ptr + 2 * 4, buffer + offset, 'i8*');
+  offset += vectorEstimatorLen;
+
+  Module.setValue(ptr + 3 * 4, buffer + offset, 'i8*');
+  offset += vocoderLen;
+
+  Module.setValue(ptr + 4 * 4, buffer + offset, 'i8*');
+  offset += ttsJsonLen;
+
+  Module.setValue(ptr + 5 * 4, buffer + offset, 'i8*');
+  offset += unicodeIndexerLen;
+
+  Module.setValue(ptr + 6 * 4, buffer + offset, 'i8*');
+  offset += voiceStyleLen;
 
   return {
     buffer: buffer,
@@ -483,9 +571,21 @@ function initSherpaOnnxOfflineTtsModelConfig(config, Module) {
       textConditioner: '',
       vocabJson: '',
       tokenScoresJson: '',
+      voiceEmbeddingCacheCapacity: 50,
     };
   }
 
+  if (!('offlineTtsSupertonicModelConfig' in config)) {
+    config.offlineTtsSupertonicModelConfig = {
+      durationPredictor: '',
+      textEncoder: '',
+      vectorEstimator: '',
+      vocoder: '',
+      ttsJson: '',
+      unicodeIndexer: '',
+      voiceStyle: '',
+    };
+  }
 
   const vitsModelConfig = initSherpaOnnxOfflineTtsVitsModelConfig(
       config.offlineTtsVitsModelConfig, Module);
@@ -505,9 +605,12 @@ function initSherpaOnnxOfflineTtsModelConfig(config, Module) {
   const pocketModelConfig = initSherpaOnnxOfflineTtsPocketModelConfig(
       config.offlineTtsPocketModelConfig, Module);
 
+  const supertonicModelConfig = initSherpaOnnxOfflineTtsSupertonicModelConfig(
+      config.offlineTtsSupertonicModelConfig, Module);
+
   const len = vitsModelConfig.len + matchaModelConfig.len +
       kokoroModelConfig.len + kittenModelConfig.len + zipVoiceModelConfig.len +
-      pocketModelConfig.len + 3 * 4;
+      pocketModelConfig.len + supertonicModelConfig.len + 3 * 4;
 
   const ptr = Module._malloc(len);
 
@@ -543,6 +646,10 @@ function initSherpaOnnxOfflineTtsModelConfig(config, Module) {
   Module._CopyHeap(pocketModelConfig.ptr, pocketModelConfig.len, ptr + offset);
   offset += pocketModelConfig.len;
 
+  Module._CopyHeap(
+      supertonicModelConfig.ptr, supertonicModelConfig.len, ptr + offset);
+  offset += supertonicModelConfig.len;
+
   return {
     buffer: buffer,
     ptr: ptr,
@@ -553,6 +660,7 @@ function initSherpaOnnxOfflineTtsModelConfig(config, Module) {
     kitten: kittenModelConfig,
     zipvoice: zipVoiceModelConfig,
     pocket: pocketModelConfig,
+    supertonic: supertonicModelConfig,
   };
 }
 
@@ -611,9 +719,6 @@ const genConfig = {
 function initSherpaOnnxGenerationConfig(config, Module) {
   const len = 9 * 4;
   const ptr = Module._malloc(len);
-
-  // Zero-init for safety
-  Module.HEAPU8.fill(0, ptr, ptr + len);
 
   // float silence_scale
   Module.setValue(ptr + 0 * 4, config.silenceScale || 0.2, 'float');
@@ -706,6 +811,8 @@ class OfflineTts {
   }
 
   free() {
+    if (!this.handle) return;
+
     this.Module._SherpaOnnxDestroyOfflineTts(this.handle);
     this.handle = 0
   }
@@ -716,66 +823,90 @@ class OfflineTts {
   //   speed: 1.0
   // }
   generate(config) {
+    if (!this.handle) {
+      throw new Error('OfflineTts has been freed');
+    }
+
+    if (!config || !config.text) {
+      throw new Error('config.text is required');
+    }
+
     const textLen = this.Module.lengthBytesUTF8(config.text) + 1;
     const textPtr = this.Module._malloc(textLen);
     this.Module.stringToUTF8(config.text, textPtr, textLen);
 
     const h = this.Module._SherpaOnnxOfflineTtsGenerate(
-        this.handle, textPtr, config.sid, config.speed);
+        this.handle, textPtr, config.sid ?? 0, config.speed ?? 1.0);
+
+    this.Module._free(textPtr);
 
     if (!h) {
-      this.Module._free(textPtr);
-      throw new Error('Failed to generate audio');
+      throw new Error('TTS generation failed');
     }
 
-    const numSamples = this.Module.HEAP32[h / 4 + 1];
-    const sampleRate = this.Module.HEAP32[h / 4 + 2];
+    const base = h / 4;
 
-    const samplesPtr = this.Module.HEAP32[h / 4] / 4;
-    const samples = new Float32Array(numSamples);
-    for (let i = 0; i < numSamples; i++) {
-      samples[i] = this.Module.HEAPF32[samplesPtr + i];
-    }
+    const samplesPtr = this.Module.HEAPU32[base];
+    const numSamples = this.Module.HEAP32[base + 1];
+    const sampleRate = this.Module.HEAP32[base + 2];
+
+    const heapSamples = this.Module.HEAPF32.subarray(
+        samplesPtr / 4, samplesPtr / 4 + numSamples);
+
+    const samples = new Float32Array(heapSamples);
 
     this.Module._SherpaOnnxDestroyOfflineTtsGeneratedAudio(h);
-    this.Module._free(textPtr);
     return {samples: samples, sampleRate: sampleRate};
   }
 
   generateWithConfig(text, genConfig) {
+    if (!this.handle) {
+      throw new Error('OfflineTts has been freed');
+    }
+
     const cfgWasm = initSherpaOnnxGenerationConfig(genConfig, this.Module);
 
     const textLen = this.Module.lengthBytesUTF8(text) + 1;
     const textPtr = this.Module._malloc(textLen);
     this.Module.stringToUTF8(text, textPtr, textLen);
 
-    const audioPtr = this.Module._SherpaOnnxOfflineTtsGenerateWithConfig(
-        this.handle, textPtr, cfgWasm.ptr,
-        0,  // callback
-        0   // callback arg
-    );
+    let callbackPtr = 0;
+    if (genConfig.callback) {
+      callbackPtr = this.Module.addFunction((samplesPtr, n, progress, arg) => {
+        const heapSamples =
+            this.Module.HEAPF32.subarray(samplesPtr / 4, samplesPtr / 4 + n);
+        const samples = new Float32Array(heapSamples);
+        return genConfig.callback(samples, n, progress, arg);
+      }, 'iiifi');
+    }
 
-    if (!audioPtr) {
+    let audioPtr = 0;
+    try {
+      audioPtr = this.Module._SherpaOnnxOfflineTtsGenerateWithConfig(
+          this.handle, textPtr, cfgWasm.ptr, callbackPtr, 0);
+    } finally {
       this.Module._free(textPtr);
       freeSherpaOnnxGenerationConfig(cfgWasm, this.Module);
+      if (callbackPtr) {
+        this.Module.removeFunction(callbackPtr);
+      }
+    }
+
+    if (!audioPtr) {
       throw new Error('Failed to generate audio');
     }
 
-    const samplesPtr = this.Module.HEAP32[audioPtr / 4];  // float* samples
-    const numSamples =
-        this.Module.HEAP32[audioPtr / 4 + 1];  // int32 num_samples
-    const sampleRate =
-        this.Module.HEAP32[audioPtr / 4 + 2];  // int32 sample_rate
+    const base = audioPtr / 4;
 
-    // 5️⃣ Copy samples to Float32Array
-    const samples = new Float32Array(numSamples);
-    for (let i = 0; i < numSamples; i++) {
-      samples[i] = this.Module.HEAPF32[samplesPtr / 4 + i];
-    }
+    const samplesPtr = this.Module.HEAPU32[base];     // float* samples
+    const numSamples = this.Module.HEAP32[base + 1];  // int32 num_samples
+    const sampleRate = this.Module.HEAP32[base + 2];  // int32 sample_rate
+
+    const heapSamples = this.Module.HEAPF32.subarray(
+        samplesPtr / 4, samplesPtr / 4 + numSamples);
+    const samples = new Float32Array(heapSamples);
 
     this.Module._SherpaOnnxDestroyOfflineTtsGeneratedAudio(audioPtr);
-    this.Module._free(textPtr);
-    freeSherpaOnnxGenerationConfig(cfgWasm, this.Module);
 
     return {samples, sampleRate};
   }
@@ -784,9 +915,8 @@ class OfflineTts {
     const samples = audio.samples;
     const sampleRate = audio.sampleRate;
     const ptr = this.Module._malloc(samples.length * 4);
-    for (let i = 0; i < samples.length; i++) {
-      this.Module.HEAPF32[ptr / 4 + i] = samples[i];
-    }
+
+    this.Module.HEAPF32.set(samples, ptr / 4);
 
     const filenameLen = this.Module.lengthBytesUTF8(filename) + 1;
     const buffer = this.Module._malloc(filenameLen);
@@ -795,6 +925,12 @@ class OfflineTts {
     this.Module._free(buffer);
     this.Module._free(ptr);
   }
+}
+
+let modelType = 3;
+
+function getDefaultOfflineTtsModelType() {
+  return modelType;
 }
 
 function createOfflineTts(Module, myConfig) {
@@ -836,10 +972,33 @@ function createOfflineTts(Module, myConfig) {
     lengthScale: 1.0,
   };
 
+  const offlineTtsZipVoiceModelConfig = {
+    tokens: '',
+    encoder: '',
+    decoder: '',
+    vocoder: '',
+    dataDir: '',
+    lexicon: '',
+    featScale: 0.1,
+    tShift: 0.5,
+    targetRMS: 0.1,
+    guidanceScale: 1.0,
+  };
+
+  const offlineTtsPocketModelConfig = {
+    lmFlow: '',
+    lmMain: '',
+    encoder: '',
+    decoder: '',
+    textConditioner: '',
+    vocabJson: '',
+    tokenScoresJson: '',
+    voiceEmbeddingCacheCapacity: 50,
+  };
+
   let ruleFsts = '';
 
-  let type = 0;
-  switch (type) {
+  switch (modelType) {
     case 0:
       // vits
       vits.model = './model.onnx';
@@ -873,6 +1032,27 @@ function createOfflineTts(Module, myConfig) {
       matcha.tokens = './tokens.txt';
       matcha.dataDir = './espeak-ng-data';
       break;
+    case 4:
+      // zipvoice zh-en
+      // https://k2-fsa.github.io/sherpa/onnx/tts/zipvoice.html
+      offlineTtsZipVoiceModelConfig.tokens = './tokens.txt';
+      offlineTtsZipVoiceModelConfig.encoder = './encoder.int8.onnx';
+      offlineTtsZipVoiceModelConfig.decoder = './decoder.int8.onnx';
+      offlineTtsZipVoiceModelConfig.vocoder = './vocos_24khz.onnx';
+      offlineTtsZipVoiceModelConfig.dataDir = './espeak-ng-data';
+      offlineTtsZipVoiceModelConfig.lexicon = './lexicon.txt';
+      break;
+    case 5:
+      // pocket tts
+      // https://k2-fsa.github.io/sherpa/onnx/tts/pocket.html
+      offlineTtsPocketModelConfig.lmFlow = './lm_flow.int8.onnx';
+      offlineTtsPocketModelConfig.lmMain = './lm_main.int8.onnx';
+      offlineTtsPocketModelConfig.encoder = './encoder.onnx';
+      offlineTtsPocketModelConfig.decoder = './decoder.int8.onnx';
+      offlineTtsPocketModelConfig.textConditioner = './text_conditioner.onnx';
+      offlineTtsPocketModelConfig.vocabJson = './vocab.json';
+      offlineTtsPocketModelConfig.tokenScoresJson = './token_scores.json';
+      break;
   }
 
   const offlineTtsModelConfig = {
@@ -880,6 +1060,8 @@ function createOfflineTts(Module, myConfig) {
     offlineTtsMatchaModelConfig: matcha,
     offlineTtsKokoroModelConfig: offlineTtsKokoroModelConfig,
     offlineTtsKittenModelConfig: offlineTtsKittenModelConfig,
+    offlineTtsZipVoiceModelConfig: offlineTtsZipVoiceModelConfig,
+    offlineTtsPocketModelConfig: offlineTtsPocketModelConfig,
     numThreads: 1,
     debug: 1,
     provider: 'cpu',
@@ -903,5 +1085,6 @@ if (typeof process == 'object' && typeof process.versions == 'object' &&
     typeof process.versions.node == 'string') {
   module.exports = {
     createOfflineTts,
+    getDefaultOfflineTtsModelType,
   };
 }

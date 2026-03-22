@@ -59,6 +59,7 @@ export const LANGUAGE_OPTIONS: Record<string, LanguageOption> = {
   ur: { name: 'اردو', value: 'ur', englishName: 'Urdu' },
   vi: { name: 'Tiếng Việt', value: 'vi', englishName: 'Vietnamese' },
   xh: { name: 'isiXhosa', value: 'xh', englishName: 'Xhosa' },
+  cantonese: { name: '粵語 (cantonese)', value: 'cantonese', englishName: 'Cantonese' },
   zh: { name: '中文', value: 'zh', englishName: 'Chinese' },
   zu: { name: 'isiZulu', value: 'zu', englishName: 'Zulu' },
 };
