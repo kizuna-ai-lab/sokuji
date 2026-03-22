@@ -1,7 +1,9 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAnalytics } from '../lib/analytics';
-import useSettingsStore from '../stores/settingsStore';
+import useSettingsStore, { useProvider } from '../stores/settingsStore';
+import { ProviderConfigFactory } from '../services/providers/ProviderConfigFactory';
+import { Provider } from '../types/Provider';
 
 export interface OnboardingStep {
   target: string;
@@ -76,21 +78,27 @@ const createBasicOnboardingSteps = (t: any): OnboardingStep[] => [
     placement: 'left',
   },
   {
+    target: '#api-key-section',
+    content: t('onboarding.basic.steps.provider.content', 'Choose your translation provider. Sokuji supports cloud services like OpenAI, Gemini, Volcengine (Doubao), and more. You can also use Local Inference — no API key needed, free and privacy-focused, just download models for fully offline translation.'),
+    title: t('onboarding.basic.steps.provider.title', 'Step 4: Translation Provider'),
+    placement: 'left',
+  },
+  {
     target: '#microphone-section',
     content: t('onboarding.basic.steps.microphone.content', 'Select your microphone from the list. This is what will capture your voice.'),
-    title: t('onboarding.basic.steps.microphone.title', 'Step 4: Select Microphone'),
+    title: t('onboarding.basic.steps.microphone.title', 'Step 5: Select Microphone'),
     placement: 'left',
   },
   {
     target: '#speaker-section',
     content: t('onboarding.basic.steps.speaker.content', 'Choose a monitoring device to preview the translation. Translated audio is always output to the virtual microphone regardless of monitoring. Select Sokuji Virtual Microphone as the microphone input in your meeting app or website. Headphones are recommended for monitoring to avoid feedback.'),
-    title: t('onboarding.basic.steps.speaker.title', 'Step 5: Select Speaker'),
+    title: t('onboarding.basic.steps.speaker.title', 'Step 6: Select Speaker'),
     placement: 'left',
   },
   {
     target: '.main-action-btn',
     content: t('onboarding.basic.steps.start.content', 'Click "Start" to begin translating! Just speak naturally and hear the translation in real-time.'),
-    title: t('onboarding.basic.steps.start.title', 'Step 6: Start Translating'),
+    title: t('onboarding.basic.steps.start.title', 'Step 7: Start Translating'),
     placement: 'top',
   },
   {
@@ -103,75 +111,93 @@ const createBasicOnboardingSteps = (t: any): OnboardingStep[] => [
 ];
 
 // Advanced mode onboarding steps - detailed for experienced users
-const createAdvancedOnboardingSteps = (t: any): OnboardingStep[] => [
-  {
-    target: 'body',
-    content: t('onboarding.steps.welcome.content', 'Welcome to Sokuji! This guide will help you set up the extension for live speech translation. Let\'s get started!'),
-    title: t('onboarding.steps.welcome.title', 'Welcome to Sokuji'),
-    placement: 'center',
-    disableBeacon: true,
-    styles: {
-      options: {
-        primaryColor: '#007bff',
+// Steps are filtered based on current provider capabilities to avoid targeting non-existent DOM elements
+const createAdvancedOnboardingSteps = (t: any, capabilities?: { hasTemplateMode: boolean; hasVoiceSettings: boolean; hasTurnDetection: boolean }): OnboardingStep[] => {
+  const allSteps: (OnboardingStep | null)[] = [
+    {
+      target: 'body',
+      content: t('onboarding.steps.welcome.content', 'Welcome to Sokuji! This guide will help you set up the extension for live speech translation. Let\'s get started!'),
+      title: t('onboarding.steps.welcome.title', 'Welcome to Sokuji'),
+      placement: 'center',
+      disableBeacon: true,
+      styles: {
+        options: {
+          primaryColor: '#007bff',
+        }
       }
+    },
+    {
+      target: '.settings-button',
+      content: t('onboarding.steps.settings.content', 'First, let\'s configure your settings. Click here to open the Settings panel where you can choose your translation provider and customize settings.'),
+      title: t('onboarding.steps.settings.title', 'Step 1: Open Settings'),
+      placement: 'bottom',
+    },
+    {
+      target: '.api-key-section',
+      content: t('onboarding.steps.apiKey.content', 'Choose your translation provider. Sokuji supports cloud services like OpenAI, Gemini, Volcengine (Doubao), and more. You can also use Local Inference — no API key needed, free and privacy-focused, just download models for fully offline translation.'),
+      title: t('onboarding.steps.apiKey.title', 'Step 2: Translation Provider'),
+      placement: 'left',
+    },
+    capabilities?.hasTemplateMode !== false ? {
+      target: '.system-instructions-section',
+      content: t('onboarding.steps.systemInstructions.content', 'Customize the system instructions to control how the AI responds. You can modify the translation behavior and add specific requirements here.'),
+      title: t('onboarding.steps.systemInstructions.title', 'Step 3: System Instructions'),
+      placement: 'left',
+    } : null,
+    capabilities?.hasVoiceSettings !== false ? {
+      target: '.voice-settings-section',
+      content: t('onboarding.steps.voiceSettings.content', 'Configure the voice type that will be used for speech synthesis. Choose from different voice options to match your preference.'),
+      title: t('onboarding.steps.voiceSettings.title', 'Step 4: Voice Settings'),
+      placement: 'left',
+    } : null,
+    capabilities?.hasTurnDetection !== false ? {
+      target: '.turn-detection-section',
+      content: t('onboarding.steps.turnDetection.content', 'Configure automatic turn detection settings including detection mode, threshold, and audio parameters for optimal speech recognition performance.'),
+      title: t('onboarding.steps.turnDetection.title', 'Step 5: Turn Detection'),
+      placement: 'left',
+    } : null,
+    {
+      target: '.microphone-section',
+      content: t('onboarding.steps.microphoneSetup.content', 'Select your microphone device here. Make sure to choose the correct input device for the best audio quality.'),
+      title: t('onboarding.steps.microphoneSetup.title', 'Step 6: Microphone Setup'),
+      placement: 'left',
+    },
+    {
+      target: '.speaker-section',
+      content: t('onboarding.steps.speakerSetup.content', 'Select a monitoring device to listen to the translated audio and verify if it meets your requirements. It is recommended to use headphones for monitoring to avoid interference with microphone input. When you are satisfied with the translation settings, it is suggested to turn off monitoring so you can focus more on your expression without microphone interference.'),
+      title: t('onboarding.steps.speakerSetup.title', 'Step 7: Speaker Setup'),
+      placement: 'left',
+    },
+    {
+      target: '.session-button',
+      content: t('onboarding.steps.startSession.content', 'Click the "Start Session" button to begin using Sokuji. Once started, you can speak naturally for live translation. If Automatic turn detection is disabled, use "Push to Talk" (Space key) to speak.'),
+      title: t('onboarding.steps.startSession.title', 'Step 8: Start Session'),
+      placement: 'top',
+    },
+    {
+      target: 'body',
+      content: t('onboarding.steps.complete.content', 'Great! You\'re all set up. Remember to grant microphone permissions when prompted. You can restart this guide anytime from the settings.'),
+      title: t('onboarding.steps.complete.title', 'Setup Complete!'),
+      placement: 'center',
+      disableBeacon: true,
     }
-  },
-  {
-    target: '.settings-button',
-    content: t('onboarding.steps.settings.content', 'First, let\'s configure your settings. Click here to open the Settings panel where you can choose your translation provider and customize settings.'),
-    title: t('onboarding.steps.settings.title', 'Step 1: Open Settings'),
-    placement: 'bottom',
-  },
-  {
-    target: '.api-key-section',
-    content: t('onboarding.steps.apiKey.content', 'Choose your translation provider. Sokuji supports cloud services like OpenAI, Gemini, Volcengine (Doubao), and more. You can also use Local Inference — no API key needed, free and privacy-focused, just download models for fully offline translation.'),
-    title: t('onboarding.steps.apiKey.title', 'Step 2: Translation Provider'),
-    placement: 'left',
-  },
-  {
-    target: '.system-instructions-section',
-    content: t('onboarding.steps.systemInstructions.content', 'Customize the system instructions to control how the AI responds. You can modify the translation behavior and add specific requirements here.'),
-    title: t('onboarding.steps.systemInstructions.title', 'Step 3: System Instructions'),
-    placement: 'left',
-  },
-  {
-    target: '.voice-settings-section',
-    content: t('onboarding.steps.voiceSettings.content', 'Configure the voice type that will be used for speech synthesis. Choose from different voice options to match your preference.'),
-    title: t('onboarding.steps.voiceSettings.title', 'Step 4: Voice Settings'),
-    placement: 'left',
-  },
-  {
-    target: '.turn-detection-section',
-    content: t('onboarding.steps.turnDetection.content', 'Configure automatic turn detection settings including detection mode, threshold, and audio parameters for optimal speech recognition performance.'),
-    title: t('onboarding.steps.turnDetection.title', 'Step 5: Turn Detection'),
-    placement: 'left',
-  },
-  {
-    target: '.microphone-section',
-    content: t('onboarding.steps.microphoneSetup.content', 'Select your microphone device here. Make sure to choose the correct input device for the best audio quality.'),
-    title: t('onboarding.steps.microphoneSetup.title', 'Step 6: Microphone Setup'),
-    placement: 'left',
-  },
-  {
-    target: '.speaker-section',
-    content: t('onboarding.steps.speakerSetup.content', 'Select a monitoring device to listen to the translated audio and verify if it meets your requirements. It is recommended to use headphones for monitoring to avoid interference with microphone input. When you are satisfied with the translation settings, it is suggested to turn off monitoring so you can focus more on your expression without microphone interference.'),
-    title: t('onboarding.steps.speakerSetup.title', 'Step 7: Speaker Setup'),
-    placement: 'left',
-  },
-  {
-    target: '.session-button',
-    content: t('onboarding.steps.startSession.content', 'Click the "Start Session" button to begin using Sokuji. Once started, you can speak naturally for live translation. If Automatic turn detection is disabled, use "Push to Talk" (Space key) to speak.'),
-    title: t('onboarding.steps.startSession.title', 'Step 8: Start Session'),
-    placement: 'top',
-  },
-  {
-    target: 'body',
-    content: t('onboarding.steps.complete.content', 'Great! You\'re all set up. Remember to grant microphone permissions when prompted. You can restart this guide anytime from the settings.'),
-    title: t('onboarding.steps.complete.title', 'Setup Complete!'),
-    placement: 'center',
-    disableBeacon: true,
-  }
-];
+  ];
+
+  // Filter out null steps (capabilities not available for current provider)
+  // and renumber the step titles across all locales
+  const filteredSteps = allSteps.filter((step): step is OnboardingStep => step !== null);
+  let stepNumber = 0;
+  return filteredSteps.map((step) => {
+    // Match step numbering patterns across locales: "Step 3:", "步骤 3：", "Schritt 3:", etc.
+    // Pattern: any prefix text, a digit, then a colon (regular or fullwidth)
+    const stepMatch = step.title.match(/^(.+?)(\d+)([:：])/);
+    if (stepMatch) {
+      stepNumber++;
+      return { ...step, title: `${stepMatch[1]}${stepNumber}${stepMatch[3]}${step.title.slice(stepMatch[0].length)}` };
+    }
+    return step;
+  });
+};
 
 interface OnboardingProviderProps {
   children: ReactNode;
@@ -188,11 +214,26 @@ export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({ children
   
   // Get user type from localStorage to determine which steps to use
   const getUserType = () => localStorage.getItem(USER_TYPE_STORAGE_KEY);
-  
-  // Select appropriate onboarding steps based on user type
-  const onboardingSteps = getUserType() === 'regular' 
-    ? createBasicOnboardingSteps(t)
-    : createAdvancedOnboardingSteps(t);
+
+  // Get current provider capabilities for filtering advanced onboarding steps
+  const provider = useProvider();
+  const providerCapabilities = useMemo(() => {
+    try {
+      const config = ProviderConfigFactory.getConfig(provider || Provider.OPENAI);
+      return config.capabilities;
+    } catch {
+      return undefined;
+    }
+  }, [provider]);
+
+  // Select appropriate onboarding steps based on user type and provider capabilities
+  // userTypeSelected is included to recompute when user selects their type
+  const onboardingSteps = useMemo(() => {
+    return getUserType() === 'regular'
+      ? createBasicOnboardingSteps(t)
+      : createAdvancedOnboardingSteps(t, providerCapabilities);
+  }, [t, providerCapabilities, userTypeSelected]);
+
 
   const startOnboarding = () => {
     // Ensure UI mode matches user type so onboarding targets exist in the DOM

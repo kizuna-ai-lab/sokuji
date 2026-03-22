@@ -389,20 +389,24 @@
           "content": "Виберіть мову джерела (якою ви говорите) та цільову мову (яку почує інша сторона)."
         },
         "microphone": {
-          "title": "Крок 4: Вибір мікрофона",
+          "title": "Крок 5: Вибір мікрофона",
           "content": "Select your microphone from the list. This is what will capture your voice."
         },
         "speaker": {
-          "title": "Крок 5: Вибір динаміка",
+          "title": "Крок 6: Вибір динаміка",
           "content": "Виберіть пристрій моніторингу для попереднього прослуховування перекладу. Перекладене аудіо завжди виводиться на віртуальний мікрофон незалежно від моніторингу. Виберіть Sokuji Virtual Microphone як вхід мікрофона у вашому додатку для зустрічей або на сайті. Для моніторингу рекомендується використовувати навушники, щоб уникнути зворотного зв'язку."
         },
         "start": {
-          "title": "Крок 6: Почати переклад",
+          "title": "Крок 7: Почати переклад",
           "content": "Click 'Start' to begin translating! Just speak naturally and hear the translation in real-time."
         },
         "complete": {
           "title": "All Set!",
           "content": "Perfect! You're ready to use Sokuji. Click Start and begin speaking to hear real-time translations."
+        },
+        "provider": {
+          "title": "Крок 4: Постачальник перекладу",
+          "content": "Виберіть постачальника перекладу. Sokuji підтримує хмарні сервіси: OpenAI, Gemini, Volcengine (Doubao) та інші. Також доступний локальний режим — без API-ключа, безкоштовно та з акцентом на конфіденційність, просто завантажте моделі для повністю автономного перекладу."
         }
       }
     },

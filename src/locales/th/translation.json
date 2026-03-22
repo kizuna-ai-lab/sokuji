@@ -396,20 +396,24 @@
           "content": "เลือกภาษาต้นทาง (ภาษาที่คุณพูด) และภาษาเป้าหมาย (ภาษาที่อีกฝ่ายจะได้ยิน)"
         },
         "microphone": {
-          "title": "ขั้นตอนที่ 4: เลือกไมโครโฟน",
+          "title": "ขั้นตอนที่ 5: เลือกไมโครโฟน",
           "content": "Select your microphone from the list. This is what will capture your voice."
         },
         "speaker": {
-          "title": "ขั้นตอนที่ 5: เลือกลำโพง",
+          "title": "ขั้นตอนที่ 6: เลือกลำโพง",
           "content": "เลือกอุปกรณ์มอนิเตอร์เพื่อดูตัวอย่างการแปล เสียงที่แปลแล้วจะถูกส่งไปยังไมโครโฟนเสมือนเสมอไม่ว่าจะเปิดมอนิเตอร์หรือไม่ เลือก Sokuji Virtual Microphone เป็นไมโครโฟนอินพุตในแอปประชุมหรือเว็บไซต์ของคุณ แนะนำให้ใช้หูฟังสำหรับมอนิเตอร์เพื่อหลีกเลี่ยงการป้อนกลับ"
         },
         "start": {
-          "title": "ขั้นตอนที่ 6: เริ่มแปลภาษา",
+          "title": "ขั้นตอนที่ 7: เริ่มแปลภาษา",
           "content": "Click 'Start' to begin translating! Just speak naturally and hear the translation in real-time."
         },
         "complete": {
           "title": "All Set!",
           "content": "Perfect! You're ready to use Sokuji. Click Start and begin speaking to hear real-time translations."
+        },
+        "provider": {
+          "title": "ขั้นตอนที่ 4: ผู้ให้บริการแปลภาษา",
+          "content": "เลือกผู้ให้บริการแปลภาษาของคุณ Sokuji รองรับบริการคลาวด์เช่น OpenAI, Gemini, Volcengine (Doubao) และอื่นๆ คุณยังสามารถใช้ Local Inference ได้ — ไม่ต้องใช้ API key, ฟรีและเน้นความเป็นส่วนตัว, แค่ดาวน์โหลดโมเดลเพื่อแปลออฟไลน์ได้เต็มรูปแบบ"
         }
       }
     },

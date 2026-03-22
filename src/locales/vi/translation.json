@@ -281,20 +281,24 @@
           "content": "Chọn ngôn ngữ nguồn (ngôn ngữ bạn nói) và ngôn ngữ đích (ngôn ngữ mà đối phương sẽ nghe)."
         },
         "microphone": {
-          "title": "Bước 4: Chọn micrô",
+          "title": "Bước 5: Chọn micrô",
           "content": "Select your microphone from the list. This is what will capture your voice."
         },
         "speaker": {
-          "title": "Bước 5: Chọn loa",
+          "title": "Bước 6: Chọn loa",
           "content": "Chọn thiết bị giám sát để xem trước bản dịch. Âm thanh đã dịch luôn được gửi đến micrô ảo bất kể có giám sát hay không. Chọn Sokuji Virtual Microphone làm đầu vào micrô trong ứng dụng họp hoặc trang web của bạn. Nên sử dụng tai nghe để giám sát nhằm tránh phản hồi."
         },
         "start": {
-          "title": "Bước 6: Bắt đầu dịch",
+          "title": "Bước 7: Bắt đầu dịch",
           "content": "Click 'Start' to begin translating! Just speak naturally and hear the translation in real-time."
         },
         "complete": {
           "title": "All Set!",
           "content": "Perfect! You're ready to use Sokuji. Click Start and begin speaking to hear real-time translations."
+        },
+        "provider": {
+          "title": "Bước 4: Nhà cung cấp dịch thuật",
+          "content": "Chọn nhà cung cấp dịch thuật của bạn. Sokuji hỗ trợ các dịch vụ đám mây như OpenAI, Gemini, Volcengine (Doubao) và nhiều hơn nữa. Bạn cũng có thể sử dụng suy luận cục bộ — không cần API key, miễn phí và bảo vệ quyền riêng tư, chỉ cần tải mô hình về để dịch hoàn toàn ngoại tuyến."
         }
       }
     },

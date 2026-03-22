@@ -330,20 +330,24 @@
           "content": "Melden Sie sich an, um den integrierten Übersetzungsdienst von Sokuji zu nutzen, oder wählen Sie einen anderen Anbieter und geben Sie Ihren eigenen API-Schlüssel ein."
         },
         "microphone": {
-          "title": "Schritt 4: Mikrofon auswählen",
+          "title": "Schritt 5: Mikrofon auswählen",
           "content": "Wählen Sie Ihr Mikrofon aus der Liste aus. Dies ist das Gerät, das Ihre Stimme aufnimmt."
         },
         "speaker": {
-          "title": "Schritt 5: Lautsprecher auswählen",
+          "title": "Schritt 6: Lautsprecher auswählen",
           "content": "Wählen Sie ein Monitoring-Gerät zur Vorschau der Übersetzung. Die übersetzte Audioausgabe wird unabhängig vom Monitoring immer an das virtuelle Mikrofon ausgegeben. Wählen Sie in Ihrer Konferenz-App oder Website das Sokuji Virtual Microphone als Mikrofoneingabe. Kopfhörer werden zur Überwachung empfohlen, um Rückkopplungen zu vermeiden."
         },
         "start": {
-          "title": "Schritt 6: Übersetzen starten",
+          "title": "Schritt 7: Übersetzen starten",
           "content": "Klicken Sie auf Start, um mit der Übersetzung zu beginnen! Sprechen Sie einfach natürlich und hören Sie die Übersetzung in Echtzeit."
         },
         "complete": {
           "title": "Alles bereit!",
           "content": "Perfekt! Sie sind bereit, Sokuji zu verwenden. Klicken Sie auf Start und beginnen Sie zu sprechen, um Echtzeit-Übersetzungen zu hören."
+        },
+        "provider": {
+          "title": "Schritt 4: Übersetzungsanbieter",
+          "content": "Wählen Sie Ihren Übersetzungsanbieter. Sokuji unterstützt Cloud-Dienste wie OpenAI, Gemini, Volcengine (Doubao) und mehr. Sie können auch die lokale Inferenz nutzen — kein API-Schlüssel nötig, kostenlos und datenschutzfreundlich, laden Sie einfach Modelle für vollständig offline Übersetzung herunter."
         }
       }
     },

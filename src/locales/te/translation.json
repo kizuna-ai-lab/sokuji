@@ -389,20 +389,24 @@
           "content": "మీ మూల భాష (మీరు మాట్లాడేది) మరియు లక్ష్య భాష (వేరొకరు వినేది) ఎంచుకోండి."
         },
         "microphone": {
-          "title": "దశ 4: మైక్రోఫోన్ ఎంచుకోండి",
+          "title": "దశ 5: మైక్రోఫోన్ ఎంచుకోండి",
           "content": "Select your microphone from the list. This is what will capture your voice."
         },
         "speaker": {
-          "title": "దశ 5: స్పీకర్ ఎంచుకోండి",
+          "title": "దశ 6: స్పీకర్ ఎంచుకోండి",
           "content": "అనువాదాన్ని ప్రివ్యూ చేయడానికి మానిటరింగ్ పరికరాన్ని ఎంచుకోండి. మానిటరింగ్‌తో సంబంధం లేకుండా అనువదించబడిన ఆడియో ఎల్లప్పుడూ వర్చువల్ మైక్రోఫోన్‌కు పంపబడుతుంది. మీ మీటింగ్ యాప్ లేదా వెబ్‌సైట్‌లో Sokuji Virtual Microphone ను మైక్రోఫోన్ ఇన్‌పుట్‌గా ఎంచుకోండి."
         },
         "start": {
-          "title": "దశ 6: అనువాదం ప్రారంభించండి",
+          "title": "దశ 7: అనువాదం ప్రారంభించండి",
           "content": "Click 'Start' to begin translating! Just speak naturally and hear the translation in real-time."
         },
         "complete": {
           "title": "All Set!",
           "content": "Perfect! You're ready to use Sokuji. Click Start and begin speaking to hear real-time translations."
+        },
+        "provider": {
+          "title": "దశ 4: అనువాద ప్రొవైడర్",
+          "content": "మీ అనువాద ప్రొవైడర్‌ను ఎంచుకోండి. Sokuji OpenAI, Gemini, Volcengine (Doubao) వంటి క్లౌడ్ సేవలను సపోర్ట్ చేస్తుంది. మీరు లోకల్ ఇన్ఫరెన్స్ కూడా ఉపయోగించవచ్చు — API కీ అవసరం లేదు, ఉచితం మరియు ప్రైవసీ-కేంద్రీకృతం, మోడల్‌లను డౌన్‌లోడ్ చేసి పూర్తిగా ఆఫ్‌లైన్‌లో అనువదించండి."
         }
       }
     },

@@ -474,20 +474,24 @@
           "content": "আপনার উৎস ভাষা (যা আপনি বলেন) এবং লক্ষ্য ভাষা (যা অন্য পক্ষ শুনবে) নির্বাচন করুন।"
         },
         "microphone": {
-          "title": "ধাপ ৪: মাইক্রোফোন নির্বাচন করুন",
+          "title": "ধাপ ৫: মাইক্রোফোন নির্বাচন করুন",
           "content": "Select your microphone from the list. This is what will capture your voice."
         },
         "speaker": {
-          "title": "ধাপ ৫: স্পিকার নির্বাচন করুন",
+          "title": "ধাপ ৬: স্পিকার নির্বাচন করুন",
           "content": "অনুবাদের পূর্বরূপ দেখতে একটি মনিটরিং ডিভাইস বেছে নিন। মনিটরিং নির্বিশেষে অনুবাদিত অডিও সর্বদা ভার্চুয়াল মাইক্রোফোনে পাঠানো হয়। আপনার মিটিং অ্যাপ বা ওয়েবসাইটে Sokuji Virtual Microphone কে মাইক্রোফোন ইনপুট হিসেবে নির্বাচন করুন। ফিডব্যাক এড়াতে মনিটরিংয়ের জন্য হেডফোন ব্যবহার করার পরামর্শ দেওয়া হয়।"
         },
         "start": {
-          "title": "ধাপ ৬: অনুবাদ শুরু করুন",
+          "title": "ধাপ ৭: অনুবাদ শুরু করুন",
           "content": "Click 'Start' to begin translating! Just speak naturally and hear the translation in real-time."
         },
         "complete": {
           "title": "All Set!",
           "content": "Perfect! You're ready to use Sokuji. Click Start and begin speaking to hear real-time translations."
+        },
+        "provider": {
+          "title": "ধাপ ৪: অনুবাদ প্রদানকারী",
+          "content": "আপনার অনুবাদ প্রদানকারী বেছে নিন। Sokuji OpenAI, Gemini, Volcengine (Doubao) এর মতো ক্লাউড পরিষেবা সমর্থন করে। আপনি স্থানীয় ইনফারেন্সও ব্যবহার করতে পারেন — API কী প্রয়োজন নেই, বিনামূল্যে এবং গোপনীয়তা-কেন্দ্রিক, শুধু মডেল ডাউনলোড করুন এবং সম্পূর্ণ অফলাইনে অনুবাদ করুন।"
         }
       }
     },

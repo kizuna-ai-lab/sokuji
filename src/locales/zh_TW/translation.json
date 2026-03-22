@@ -443,20 +443,24 @@
           "content": "選擇您的來源語言（您說的語言）和目標語言（您希望對方聽到的語言）。"
         },
         "microphone": {
-          "title": "步驟 4：選擇麥克風",
+          "title": "步驟 5：選擇麥克風",
           "content": "Select your microphone from the list. This is what will capture your voice."
         },
         "speaker": {
-          "title": "步驟 5：選擇喇叭",
+          "title": "步驟 6：選擇喇叭",
           "content": "選擇監聽裝置來試聽翻譯效果。無論是否開啟監聽，翻譯後的語音都會輸出到虛擬麥克風。您需要在會議軟體或網站上選擇 Sokuji 虛擬麥克風作為麥克風輸入。建議使用耳機監聽，避免干擾麥克風收音。"
         },
         "start": {
-          "title": "步驟 6：開始翻譯",
+          "title": "步驟 7：開始翻譯",
           "content": "Click 'Start' to begin translating! Just speak naturally and hear the translation in real-time."
         },
         "complete": {
           "title": "All Set!",
           "content": "Perfect! You're ready to use Sokuji. Click Start and begin speaking to hear real-time translations."
+        },
+        "provider": {
+          "title": "步驟 4：翻譯提供商",
+          "content": "選擇您的翻譯提供商。Sokuji 支援 OpenAI、Gemini、火山引擎（豆包）等雲端服務。您也可以使用本地推理模式 — 無需 API 金鑰，免費且注重隱私，下載模型後即可完全離線翻譯。"
         }
       }
     },

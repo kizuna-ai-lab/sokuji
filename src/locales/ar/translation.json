@@ -468,20 +468,24 @@
           "content": "اختر لغة المصدر (اللغة التي تتحدثها) واللغة الهدف (اللغة التي سيسمعها الطرف الآخر)."
         },
         "microphone": {
-          "title": "الخطوة 4: اختر الميكروفون",
+          "title": "الخطوة 5: اختر الميكروفون",
           "content": "Select your microphone from the list. This is what will capture your voice."
         },
         "speaker": {
-          "title": "الخطوة 5: اختر مكبر الصوت",
+          "title": "الخطوة 6: اختر مكبر الصوت",
           "content": "اختر جهاز مراقبة لمعاينة الترجمة. يتم إرسال الصوت المترجم دائمًا إلى الميكروفون الافتراضي بغض النظر عن المراقبة. اختر Sokuji Virtual Microphone كمدخل ميكروفون في تطبيق الاجتماعات أو موقع الويب الخاص بك. يُوصى باستخدام سماعات الرأس للمراقبة لتجنب التغذية الراجعة."
         },
         "start": {
-          "title": "الخطوة 6: ابدأ الترجمة",
+          "title": "الخطوة 7: ابدأ الترجمة",
           "content": "Click 'Start' to begin translating! Just speak naturally and hear the translation in real-time."
         },
         "complete": {
           "title": "All Set!",
           "content": "Perfect! You're ready to use Sokuji. Click Start and begin speaking to hear real-time translations."
+        },
+        "provider": {
+          "title": "الخطوة 4: مزود الترجمة",
+          "content": "اختر مزود الترجمة الخاص بك. يدعم Sokuji خدمات سحابية مثل OpenAI وGemini وVolcengine (Doubao) والمزيد. يمكنك أيضًا استخدام الاستدلال المحلي — لا حاجة لمفتاح API، مجاني ويركز على الخصوصية، فقط قم بتنزيل النماذج للترجمة دون اتصال بالإنترنت."
         }
       }
     },

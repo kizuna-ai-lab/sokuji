@@ -330,20 +330,24 @@
           "content": "Selecteer uw brontaal (wat u spreekt) en doeltaal (wat de andere persoon zal horen)."
         },
         "microphone": {
-          "title": "Stap 4: Microfoon Selecteren",
+          "title": "Stap 5: Microfoon Selecteren",
           "content": "Select your microphone from the list. This is what will capture your voice."
         },
         "speaker": {
-          "title": "Stap 5: Luidspreker Selecteren",
+          "title": "Stap 6: Luidspreker Selecteren",
           "content": "Kies een monitoringapparaat om de vertaling te beluisteren. Vertaalde audio wordt altijd naar de virtuele microfoon gestuurd, ongeacht monitoring. Selecteer Sokuji Virtual Microphone als microfooninvoer in uw vergaderapp of website. Hoofdtelefoon wordt aanbevolen voor monitoring om feedback te voorkomen."
         },
         "start": {
-          "title": "Stap 6: Vertalen Starten",
+          "title": "Stap 7: Vertalen Starten",
           "content": "Click 'Start' to begin translating! Just speak naturally and hear the translation in real-time."
         },
         "complete": {
           "title": "All Set!",
           "content": "Perfect! You're ready to use Sokuji. Click Start and begin speaking to hear real-time translations."
+        },
+        "provider": {
+          "title": "Stap 4: Vertaalprovider",
+          "content": "Kies uw vertaalprovider. Sokuji ondersteunt clouddiensten zoals OpenAI, Gemini, Volcengine (Doubao) en meer. U kunt ook lokale inferentie gebruiken — geen API-sleutel nodig, gratis en privacygericht, download eenvoudig modellen voor volledig offline vertaling."
         }
       }
     },

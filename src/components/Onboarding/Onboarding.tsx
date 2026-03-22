@@ -19,6 +19,7 @@ const TARGET_NAVIGATION_MAP: Record<string, string | 'close-settings'> = {
   '.session-button': 'close-settings',
   // Basic mode (ID selectors)
   '#user-account-section': 'user-account',
+  '#api-key-section': 'api-key',
   '#languages-section': 'languages',
   '#microphone-section': 'microphone',
   '#speaker-section': 'speaker',

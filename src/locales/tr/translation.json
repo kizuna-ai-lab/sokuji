@@ -288,20 +288,24 @@
           "content": "Kaynak dilinizi (konuştuğunuz dil) ve hedef dili (karşı tarafın duyacağı dil) seçin."
         },
         "microphone": {
-          "title": "Adım 4: Mikrofon Seçin",
+          "title": "Adım 5: Mikrofon Seçin",
           "content": "Select your microphone from the list. This is what will capture your voice."
         },
         "speaker": {
-          "title": "Adım 5: Hoparlör Seçin",
+          "title": "Adım 6: Hoparlör Seçin",
           "content": "Çeviriyi önizlemek için bir izleme cihazı seçin. Çevrilmiş ses, izleme durumuna bakılmaksızın her zaman sanal mikrofona gönderilir. Toplantı uygulamanızda veya web sitenizde Sokuji Virtual Microphone'u mikrofon girişi olarak seçin. Geri bildirimi önlemek için izleme sırasında kulaklık kullanılması önerilir."
         },
         "start": {
-          "title": "Adım 6: Çeviriye Başlayın",
+          "title": "Adım 7: Çeviriye Başlayın",
           "content": "Click 'Start' to begin translating! Just speak naturally and hear the translation in real-time."
         },
         "complete": {
           "title": "All Set!",
           "content": "Perfect! You're ready to use Sokuji. Click Start and begin speaking to hear real-time translations."
+        },
+        "provider": {
+          "title": "Adım 4: Çeviri Sağlayıcı",
+          "content": "Çeviri sağlayıcınızı seçin. Sokuji OpenAI, Gemini, Volcengine (Doubao) gibi bulut hizmetlerini destekler. Yerel çıkarımı da kullanabilirsiniz — API anahtarı gerekmez, ücretsiz ve gizlilik odaklı, modelleri indirerek tamamen çevrimdışı çeviri yapabilirsiniz."
         }
       }
     },

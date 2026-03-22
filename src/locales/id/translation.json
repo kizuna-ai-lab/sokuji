@@ -474,20 +474,24 @@
           "content": "Pilih bahasa sumber (yang Anda ucapkan) dan bahasa target (yang akan didengar pihak lain)."
         },
         "microphone": {
-          "title": "Langkah 4: Pilih Mikrofon",
+          "title": "Langkah 5: Pilih Mikrofon",
           "content": "Select your microphone from the list. This is what will capture your voice."
         },
         "speaker": {
-          "title": "Langkah 5: Pilih Speaker",
+          "title": "Langkah 6: Pilih Speaker",
           "content": "Pilih perangkat pemantauan untuk melihat pratinjau terjemahan. Audio terjemahan selalu dikirim ke mikrofon virtual terlepas dari pemantauan. Pilih Sokuji Virtual Microphone sebagai input mikrofon di aplikasi rapat atau situs web Anda. Headphone disarankan untuk pemantauan guna menghindari umpan balik."
         },
         "start": {
-          "title": "Langkah 6: Mulai Menerjemahkan",
+          "title": "Langkah 7: Mulai Menerjemahkan",
           "content": "Click 'Start' to begin translating! Just speak naturally and hear the translation in real-time."
         },
         "complete": {
           "title": "All Set!",
           "content": "Perfect! You're ready to use Sokuji. Click Start and begin speaking to hear real-time translations."
+        },
+        "provider": {
+          "title": "Langkah 4: Penyedia Terjemahan",
+          "content": "Pilih penyedia terjemahan Anda. Sokuji mendukung layanan cloud seperti OpenAI, Gemini, Volcengine (Doubao), dan lainnya. Anda juga dapat menggunakan inferensi lokal — tanpa kunci API, gratis dan fokus privasi, cukup unduh model untuk terjemahan sepenuhnya offline."
         }
       }
     },

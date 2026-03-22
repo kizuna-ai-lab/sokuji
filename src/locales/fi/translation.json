@@ -432,20 +432,24 @@
           "content": "Valitse lähdekieli (mitä puhut) ja kohdekieli (mitä toinen osapuoli kuulee)."
         },
         "microphone": {
-          "title": "Vaihe 4: Valitse Mikrofoni",
+          "title": "Vaihe 5: Valitse Mikrofoni",
           "content": "Select your microphone from the list. This is what will capture your voice."
         },
         "speaker": {
-          "title": "Vaihe 5: Valitse Kaiutin",
+          "title": "Vaihe 6: Valitse Kaiutin",
           "content": "Valitse seurantalaite käännöksen esikatseluun. Käännetty ääni lähetetään aina virtuaalimikrofoniin seurannasta riippumatta. Valitse Sokuji Virtual Microphone mikrofonisyötteeksi kokoussovelluksessasi tai verkkosivustolla. Kuulokkeet ovat suositeltavia seurantaan palautteen välttämiseksi."
         },
         "start": {
-          "title": "Vaihe 6: Aloita Kääntäminen",
+          "title": "Vaihe 7: Aloita Kääntäminen",
           "content": "Click 'Start' to begin translating! Just speak naturally and hear the translation in real-time."
         },
         "complete": {
           "title": "All Set!",
           "content": "Perfect! You're ready to use Sokuji. Click Start and begin speaking to hear real-time translations."
+        },
+        "provider": {
+          "title": "Vaihe 4: Käännöspalveluntarjoaja",
+          "content": "Valitse käännöspalveluntarjoaja. Sokuji tukee pilvipalveluja kuten OpenAI, Gemini, Volcengine (Doubao) ja muita. Voit myös käyttää paikallista päättelyä — ei API-avainta tarvita, ilmainen ja yksityisyyteen keskittyvä, lataa vain mallit täysin offline-käännökseen."
         }
       }
     },
