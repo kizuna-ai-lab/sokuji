@@ -6,7 +6,7 @@
 
 set -euo pipefail
 
-VERSION="1.12.25"
+VERSION="1.12.31"
 BASE_URL="https://github.com/k2-fsa/sherpa-onnx/releases/download/v${VERSION}"
 DEST_DIR="public/wasm"
 
