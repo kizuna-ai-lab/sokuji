@@ -555,7 +555,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         if (eventType === 'local.init.start') {
           const total = realtimeEvent.event?.data?.engines?.length ?? 3;
           setInitProgress({ completed: 0, total });
-        } else if (eventType === 'local.init.engine.ready') {
+        } else if (eventType === 'local.init.asr.ready' || eventType === 'local.init.translation.ready' || eventType === 'local.init.tts.ready') {
           setInitProgress(prev => prev ? { ...prev, completed: prev.completed + 1 } : prev);
         }
 
