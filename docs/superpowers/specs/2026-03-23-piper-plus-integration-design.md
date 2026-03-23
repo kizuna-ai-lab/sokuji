@@ -22,11 +22,13 @@ Add [piper-plus](https://github.com/ayutaz/piper-plus) as a local TTS engine wit
 
 ## Prerequisites
 
-This spec depends on the Supertonic-2 integration being implemented first ([spec](./2026-03-23-supertonic2-integration-design.md)). Specifically, piper-plus requires:
-- `TtsEngine.generate()` accepting `lang` parameter (for multilingual phonemizer routing)
-- `LocalInferenceClient` passing `targetLanguage` through to `generate()`
+Supertonic-2 ([spec](./2026-03-23-supertonic2-integration-design.md)) is shelved. Piper-plus will be implemented first and must include the `lang` parameter plumbing that Supertonic-2 originally introduced:
 
-If implementing before Supertonic-2, these changes must be included in this spec's scope.
+1. **`TtsEngine.generate()`** — add `lang?: string` parameter, forward to worker as `msg.lang`
+2. **`src/lib/local-inference/types.ts`** — add `lang?: string` to `TtsGenerateMessage`
+3. **`src/services/clients/LocalInferenceClient.ts`** — pass `this.config.targetLanguage` as `lang` to `ttsEngine.generate()`
+
+Note: Supertonic-2's `numSteps` and `generateWithConfig` migration are NOT needed for piper-plus and should remain in the Supertonic spec's scope.
 
 ## Integration Approach: Approach C — Worker-Only Abstraction
 
@@ -253,9 +255,33 @@ export interface TtsModelConfig {
 
 Note: File sizes are approximate. Exact sizes to be determined when preparing the HuggingFace hosting. In particular, `sys.dic` at ~103MB should be verified — standard OpenJTalk distributions have `sys.dic` at ~9-12MB; the piper-plus version may be larger due to extended vocabulary or may be smaller than estimated.
 
+#### `src/lib/local-inference/types.ts`
+
+Add `lang?: string` to `TtsGenerateMessage` (originally from Supertonic-2 spec):
+```typescript
+export interface TtsGenerateMessage {
+  type: 'generate';
+  text: string;
+  sid: number;
+  speed: number;
+  lang?: string;  // NEW: language code for multilingual models
+}
+```
+
+#### `src/services/clients/LocalInferenceClient.ts`
+
+Pass `targetLanguage` through to `ttsEngine.generate()`:
+```typescript
+const ttsResult = await this.ttsEngine.generate(
+  sentences[i],
+  this.config.ttsSpeakerId,
+  this.config.ttsSpeed,
+  this.config.targetLanguage,  // NEW: for piper-plus language routing
+);
+```
+
 ### Unchanged Files
 
-- **`src/services/clients/LocalInferenceClient.ts`** — Already passes `targetLanguage` to `generate()` from Supertonic-2 work.
 - **`src/stores/modelStore.ts`** — `isProviderReady()` and `autoSelectModels()` work with existing language matching logic.
 - **`src/stores/settingsStore.ts`** — No new settings needed. Existing `ttsSpeed` maps to `length_scale`.
 - **UI components** — Model appears automatically in `ModelManagementSection.tsx`. No new controls needed (`numSpeakers: 1`, no `supportsNumSteps`).
