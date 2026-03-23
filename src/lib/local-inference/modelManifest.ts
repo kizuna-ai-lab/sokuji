@@ -2441,9 +2441,9 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     languages: ['en', 'ko', 'es', 'pt', 'fr'],
     multilingual: true,
     cdnPath: 'wasm-supertonic-int8',
-    variants: { default: { dtype: 'default', files: ttsFiles(80_000_000, 1_000) } },
+    variants: { default: { dtype: 'default', files: ttsFiles(96_426_478, 605) } },
     engine: 'supertonic',
-    numSpeakers: 1,
+    numSpeakers: 10,
     supportsNumSteps: true,
   },
 
