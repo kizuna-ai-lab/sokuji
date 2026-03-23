@@ -15,7 +15,8 @@
  *     { type: 'init', fileUrls: Record<string, string>, modelFile: string,
  *       engine: string, ttsConfig: object, runtimeBaseUrl: string,
  *       dataPackageMetadata: object }
- *     { type: 'generate', text: string, sid: number, speed: number }
+ *     { type: 'generate', text: string, sid: number, speed: number,
+ *       numSteps?: number, lang?: string }
  *     { type: 'dispose' }
  *
  *   Worker → Main:
@@ -92,6 +93,16 @@ function emptyKitten() {
   };
 }
 
+/** Empty Supertonic config section. */
+function emptySupertonic() {
+  return {
+    offlineTtsSupertonicModelConfig: {
+      durationPredictor: '', textEncoder: '', vectorEstimator: '',
+      vocoder: '', ttsJson: '', unicodeIndexer: '', voiceStyle: '',
+    },
+  };
+}
+
 // ─── Piper (piper.html) ─────────────────────────────────────────────────────
 // VITS engine with custom .onnx filename, espeak-ng phonemizer.
 function buildPiperConfig(modelFile) {
@@ -108,6 +119,7 @@ function buildPiperConfig(modelFile) {
     ...emptyMatcha(),
     ...emptyKokoro(),
     ...emptyKitten(),
+    ...emptySupertonic(),
   });
 }
 
@@ -128,6 +140,7 @@ function buildCoquiConfig(ttsConfig) {
     ...emptyMatcha(),
     ...emptyKokoro(),
     ...emptyKitten(),
+    ...emptySupertonic(),
   });
 }
 
@@ -147,6 +160,7 @@ function buildMimic3Config(modelFile) {
     ...emptyMatcha(),
     ...emptyKokoro(),
     ...emptyKitten(),
+    ...emptySupertonic(),
   });
 }
 
@@ -166,6 +180,7 @@ function buildMmsConfig() {
     ...emptyMatcha(),
     ...emptyKokoro(),
     ...emptyKitten(),
+    ...emptySupertonic(),
   });
 }
 
@@ -186,6 +201,7 @@ function buildMatchaConfig(ttsConfig) {
     },
     ...emptyKokoro(),
     ...emptyKitten(),
+    ...emptySupertonic(),
   }, ttsConfig.ruleFsts);
 }
 
@@ -205,6 +221,7 @@ function buildKokoroConfig(modelFile, ttsConfig) {
       lang: '',
     },
     ...emptyKitten(),
+    ...emptySupertonic(),
   }, (ttsConfig && ttsConfig.ruleFsts) || '');
 }
 
@@ -226,7 +243,28 @@ function buildVitsConfig(modelFile, ttsConfig) {
     ...emptyMatcha(),
     ...emptyKokoro(),
     ...emptyKitten(),
+    ...emptySupertonic(),
   }, (ttsConfig && ttsConfig.ruleFsts) || '', (ttsConfig && ttsConfig.ruleFars) || '');
+}
+
+// ─── Supertonic ────────────────────────────────────────────────────────
+// Uses offlineTtsSupertonicModelConfig with 4 ONNX models + config files.
+function buildSupertonicConfig(ttsConfig) {
+  return baseConfig({
+    ...emptyVits(),
+    ...emptyMatcha(),
+    ...emptyKokoro(),
+    ...emptyKitten(),
+    offlineTtsSupertonicModelConfig: {
+      durationPredictor: (ttsConfig && ttsConfig.durationPredictor) || './duration_predictor.int8.onnx',
+      textEncoder: (ttsConfig && ttsConfig.textEncoder) || './text_encoder.int8.onnx',
+      vectorEstimator: (ttsConfig && ttsConfig.vectorEstimator) || './vector_estimator.int8.onnx',
+      vocoder: (ttsConfig && ttsConfig.vocoder) || './vocoder.int8.onnx',
+      ttsJson: (ttsConfig && ttsConfig.ttsJson) || './tts.json',
+      unicodeIndexer: (ttsConfig && ttsConfig.unicodeIndexer) || './unicode_indexer.bin',
+      voiceStyle: (ttsConfig && ttsConfig.voiceStyle) || './voice.bin',
+    },
+  });
 }
 
 // ─── Engine Router ──────────────────────────────────────────────────────────
@@ -250,6 +288,8 @@ function buildEngineConfig(engine, modelFile, ttsConfig) {
       return buildKokoroConfig(modelFile, ttsConfig);
     case 'vits':
       return buildVitsConfig(modelFile, ttsConfig);
+    case 'supertonic':
+      return buildSupertonicConfig(ttsConfig);
     default:
       throw new Error('Unknown TTS engine: ' + engine);
   }
@@ -368,10 +408,11 @@ function handleGenerate(msg) {
   var startTime = performance.now();
 
   try {
-    var audio = tts.generate({
-      text: msg.text,
+    var audio = tts.generateWithConfig(msg.text, {
       sid: msg.sid || 0,
       speed: msg.speed || 1.0,
+      numSteps: msg.numSteps || 0,
+      extra: msg.lang ? { lang: msg.lang } : {},
     });
 
     var generationTimeMs = Math.round(performance.now() - startTime);
