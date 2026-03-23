@@ -171,8 +171,10 @@ export class TtsEngine {
    * @param text - Text to synthesize
    * @param sid - Speaker ID (0 to numSpeakers-1, default 0)
    * @param speed - Speech rate multiplier (default 1.0)
+   * @param numSteps - Inference steps for diffusion models (e.g. Supertonic: 2=fast, 5=quality)
+   * @param lang - Language tag for multilingual TTS (e.g. 'en', 'ko')
    */
-  async generate(text: string, sid = 0, speed = 1.0): Promise<TtsResult> {
+  async generate(text: string, sid = 0, speed = 1.0, numSteps?: number, lang?: string): Promise<TtsResult> {
     if (!this.worker || !this.isReady) {
       throw new Error('TTS engine not initialized');
     }
@@ -199,7 +201,7 @@ export class TtsEngine {
 
     return new Promise((resolve, reject) => {
       this.pendingGenerate = { resolve, reject };
-      this.worker!.postMessage({ type: 'generate', text: sanitizedText, sid, speed });
+      this.worker!.postMessage({ type: 'generate', text: sanitizedText, sid, speed, numSteps, lang });
     });
   }
 
