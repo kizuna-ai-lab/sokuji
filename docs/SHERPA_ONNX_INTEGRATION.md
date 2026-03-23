@@ -141,7 +141,7 @@ URL pattern: `https://huggingface.co/{hfModelId}/resolve/main/{filename}`
 
 ## Model Manifest
 
-`modelManifest.ts` is the **single source of truth** for all local inference models. It contains 177 entries across 4 model types.
+`modelManifest.ts` is the **single source of truth** for all local inference models. It contains 178 entries across 4 model types.
 
 ### Model Counts
 
@@ -150,7 +150,7 @@ URL pattern: `https://huggingface.co/{hfModelId}/resolve/main/{filename}`
 | Offline ASR (sherpa-onnx) | 22 | Self-hosted HF dataset |
 | Streaming ASR (sherpa-onnx) | 10 | Self-hosted HF dataset |
 | Whisper WebGPU ASR | 6 | Third-party HF Hub |
-| TTS (sherpa-onnx) | 136 | Self-hosted HF dataset |
+| TTS (sherpa-onnx) | 137 | Self-hosted HF dataset |
 | Translation (Opus-MT/Qwen) | ~78 | Third-party HF Hub |
 
 ### Manifest Entry Structure
@@ -211,7 +211,7 @@ interface ModelManifestEntry {
 
 Streaming ASR engine types: `stream-transducer`, `stream-nemo-ctc`
 
-### TTS Engine Types (7)
+### TTS Engine Types (8)
 
 | Engine Type | Config Builder | Description |
 |---|---|---|
@@ -222,6 +222,7 @@ Streaming ASR engine types: `stream-transducer`, `stream-nemo-ctc`
 | `matcha` | `buildMatchaConfig` | Matcha config with separate acoustic model + vocoder |
 | `kokoro` | `buildKokoroConfig` | Kokoro config with `voices.bin` + optional lexicons |
 | `vits` | `buildVitsConfig` | Advanced VITS with lexicon, dictDir, ruleFsts/ruleFars |
+| `supertonic` | `buildSupertonicConfig` | 4 ONNX models (duration_predictor, text_encoder, vector_estimator, vocoder) + tts.json + unicode_indexer.bin + voice.bin |
 
 ### File List Helpers
 
@@ -538,78 +539,24 @@ The Emscripten glue JS files are patched during packing to support injectable me
 
 ---
 
-## Appendix: Supertonic TTS Research
+## Appendix: Supertonic TTS
 
-> **Status: Not yet integrated.** This section documents research for future integration of the Supertonic TTS engine into Sokuji's local inference pipeline.
+> **Status: Integrated via sherpa-onnx.** sherpa-onnx added Supertonic-2 support in [v1.12.29](https://github.com/k2-fsa/sherpa-onnx/releases/tag/v1.12.29) (PR [#3094](https://github.com/k2-fsa/sherpa-onnx/pull/3094)). The bundled WASM runtime (v1.12.31) includes `offlineTtsSupertonicModelConfig` and `generateWithConfig` API.
 
-### What is Supertonic?
+### Model
 
-[Supertonic](https://github.com/supertone-inc/supertonic) is a lightning-fast, on-device TTS system by Supertone Inc. with only **66M parameters**, offering quality comparable to Kokoro TTS but with a significantly smaller footprint. It runs via ONNX Runtime and supports browser deployment with WebGPU/WASM.
+[Supertonic-2](https://huggingface.co/Supertone/supertonic-2) by Supertone Inc. — 66M parameters, int8 quantized (~80 MB). Supports English, Korean, Spanish, Portuguese, and French.
 
-### sherpa-onnx Support Status
+Model entry: `supertonic-int8` with engine type `supertonic`.
 
-As of March 2026, sherpa-onnx does **not** have Supertonic support. A [GitHub discussion (#2833)](https://github.com/k2-fsa/sherpa-onnx/discussions/2833) requesting support remains unanswered. This means Supertonic cannot be integrated via the existing sherpa-onnx worker pattern.
+### sherpa-onnx Config
 
-**Alternative approach:** Supertonic has its own [web implementation](https://github.com/supertone-inc/supertonic/tree/main/web) using `onnxruntime-web` directly (WebGPU with WASM fallback). Integration would require a **dedicated worker** (similar to the Whisper WebGPU worker pattern) rather than going through sherpa-onnx.
+Uses `offlineTtsSupertonicModelConfig` with 7 fields: `durationPredictor`, `textEncoder`, `vectorEstimator`, `vocoder`, `ttsJson`, `unicodeIndexer`, `voiceStyle`.
 
-### Model Architecture
-
-Supertonic uses a 4-component ONNX pipeline:
-
-| Component | File | Size | Purpose |
-|---|---|---|---|
-| Duration Predictor | `duration_predictor.onnx` | 1.52 MB | Predicts phoneme timing from text + `style_dp` vector |
-| Text Encoder | `text_encoder.onnx` | 27.4 MB | Generates contextualized text embeddings + `style_ttl` vector |
-| Vector Estimator | `vector_estimator.onnx` | 132 MB | Iterative diffusion-based denoising of latent representations |
-| Vocoder | `vocoder.onnx` | 101 MB | Converts clean latent vectors to audio waveforms |
-
-Additional files:
-- `tts.json` (8.7 kB) — Config: sample rate 24kHz, chunk size, latent dimensions
-- `unicode_indexer.json` (262 kB) — Character-to-vocabulary mapping (NFKD normalized)
-- `voice_styles/{M1-M5,F1-F5}.json` (~420 kB each) — 10 preset voices, each containing `style_ttl` and `style_dp` vectors
-
-**Total model size:** ~263 MB (from [Supertone/supertonic-2](https://huggingface.co/Supertone/supertonic-2))
-
-### Inference Pipeline
-
-```
-Text Input
-  -> Unicode Processing (NFKD normalization, unicode_indexer.json)
-  -> Duration Predictor (text + style_dp -> timing)
-  -> Text Encoder (text + style_ttl -> embeddings)
-  -> Vector Estimator (iterative denoising, 2-10 steps configurable)
-  -> Vocoder (latent -> 24kHz 16-bit PCM audio)
-```
-
-Voice styles are split into two components:
-- `style_ttl`: Controls acoustic characteristics (pitch, timbre)
-- `style_dp`: Controls temporal characteristics (rhythm, speed)
-
-### Supported Languages
-
-English, Korean, Spanish, Portuguese, French (all sharing the same model).
-
-### Integration Plan (if proceeding)
-
-Since sherpa-onnx doesn't support Supertonic, integration would follow the **Whisper WebGPU pattern**:
-
-1. **New worker type**: Create `src/lib/local-inference/workers/supertonic.worker.ts` (ES module worker using `onnxruntime-web`)
-2. **New engine type**: Add `'supertonic'` to `TtsEngineType` or create a separate type
-3. **Worker type field**: Use `ttsWorkerType: 'supertonic'` in manifest (similar to `asrWorkerType: 'whisper-webgpu'`)
-4. **Model hosting**: Host ONNX files on HF Hub (4 ONNX + 2 JSON + voice styles)
-5. **Manifest entries**: One entry per voice or one entry with multi-speaker support
-6. **TtsEngine changes**: Add worker selection logic based on `ttsWorkerType`
-
-Key differences from sherpa-onnx TTS:
-- Uses `onnxruntime-web` directly instead of Emscripten-compiled sherpa-onnx
-- No `.data` file packing — individual ONNX files loaded separately
-- WebGPU preferred (with WASM fallback) instead of CPU-only WASM
-- Multi-step diffusion inference (configurable quality/speed tradeoff)
-- Voice styles are JSON files rather than embedded speaker IDs
+Generation uses `tts.generateWithConfig(text, { sid, speed, numSteps, extra: { lang } })` — the unified API used by all engines since the Supertonic integration.
 
 ### References
 
-- [Supertonic GitHub](https://github.com/supertone-inc/supertonic)
-- [Supertonic-2 HuggingFace Model](https://huggingface.co/Supertone/supertonic-2)
-- [sherpa-onnx Discussion #2833](https://github.com/k2-fsa/sherpa-onnx/discussions/2833)
-- [DeepWiki Architecture Analysis](https://deepwiki.com/supertone-inc/supertonic)
+- [Supertone/supertonic-2](https://huggingface.co/Supertone/supertonic-2) — official model
+- [sherpa-onnx PR #3094](https://github.com/k2-fsa/sherpa-onnx/pull/3094) — Supertonic support
+- [sherpa-onnx v1.12.29](https://github.com/k2-fsa/sherpa-onnx/releases/tag/v1.12.29) — release with Supertonic
