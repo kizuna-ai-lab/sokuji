@@ -150,6 +150,12 @@ MODELS = {
         "tarball": "sherpa-onnx-pocket-tts-int8-2026-01-26.tar.bz2",
         "dir_hint": "pocket",
     },
+    # --- Supertonic 2: diffusion TTS, 5 languages ---
+    "supertonic-int8": {
+        "url": BASE_URL + "sherpa-onnx-supertonic-tts-int8-2026-03-06.tar.bz2",
+        "tarball": "sherpa-onnx-supertonic-tts-int8-2026-03-06.tar.bz2",
+        "dir_hint": "supertonic",
+    },
     # --- Coqui VITS models: character-level tokenization, no espeak-ng (except en-vctk) ---
     "coqui-bg-cv": {"url": BASE_URL + "vits-coqui-bg-cv.tar.bz2", "tarball": "vits-coqui-bg-cv.tar.bz2", "dir_hint": "coqui"},
     "coqui-bn-custom_female": {"url": BASE_URL + "vits-coqui-bn-custom_female.tar.bz2", "tarball": "vits-coqui-bn-custom_female.tar.bz2", "dir_hint": "coqui"},
