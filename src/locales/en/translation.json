@@ -208,6 +208,7 @@
     "ttsSettings": "TTS Settings",
     "ttsSpeakerId": "Speaker ID",
     "ttsSpeed": "Speech Speed",
+    "ttsNumSteps": "Inference Steps",
     "vadSettings": "VAD Settings",
     "vadSettingsTooltip": "Voice Activity Detection configuration. Adjust these settings to optimize speech detection for your environment.",
     "vadThresholdTooltip": "Speech detection sensitivity. Higher values require louder/clearer speech to trigger recognition. Lower values are more sensitive to quiet speech.",

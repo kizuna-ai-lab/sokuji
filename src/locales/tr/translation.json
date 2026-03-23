@@ -104,6 +104,7 @@
     "ttsSettings": "TTS Ayarları",
     "ttsSpeakerId": "Konuşmacı Kimliği",
     "ttsSpeed": "Konuşma Hızı",
+    "ttsNumSteps": "Çıkarım Adımları",
     "vadSettings": "VAD Ayarları",
     "vadSettingsTooltip": "Ses etkinliği algılama yapılandırması. Ortamınız için ses algılamayı optimize etmek üzere bu ayarları düzenleyin.",
     "vadThresholdTooltip": "Konuşma algılama hassasiyeti. Yüksek değerler daha yüksek/net konuşma gerektirir. Düşük değerler sessiz konuşmaya daha duyarlıdır.",

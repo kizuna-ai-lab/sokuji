@@ -152,6 +152,7 @@
     "ttsSettings": "TTS設定",
     "ttsSpeakerId": "スピーカーID",
     "ttsSpeed": "話速",
+    "ttsNumSteps": "推論ステップ数",
     "vadSettings": "VAD設定",
     "vadSettingsTooltip": "音声活動検出の設定。環境に合わせて音声検出を最適化するためにこれらの設定を調整してください。",
     "vadThresholdTooltip": "音声検出の感度。値が高いほど認識にはっきりした声が必要になります。値が低いほど小さな声にも反応します。",

@@ -126,6 +126,7 @@
     "ttsSettings": "Tetapan TTS",
     "ttsSpeakerId": "ID Penutur",
     "ttsSpeed": "Kelajuan Pertuturan",
+    "ttsNumSteps": "Langkah Inferens",
     "vadSettings": "Tetapan VAD",
     "vadSettingsTooltip": "Konfigurasi Pengesanan Aktiviti Suara. Laraskan tetapan ini untuk mengoptimumkan pengesanan pertuturan bagi persekitaran anda.",
     "vadThresholdTooltip": "Kepekaan pengesanan pertuturan. Nilai lebih tinggi memerlukan pertuturan lebih kuat/jelas. Nilai lebih rendah lebih peka terhadap pertuturan perlahan.",

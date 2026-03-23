@@ -82,6 +82,7 @@
     "ttsSettings": "TTS-inställningar",
     "ttsSpeakerId": "Talar-ID",
     "ttsSpeed": "Talhastighet",
+    "ttsNumSteps": "Inferenssteg",
     "vadSettings": "VAD-inställningar",
     "vadSettingsTooltip": "Konfiguration av röstaktivitetsdetektering. Justera dessa inställningar för att optimera taligenkänning för din miljö.",
     "vadThresholdTooltip": "Taligenkänningskänslighet. Högre värden kräver högre/tydligare tal. Lägre värden är mer känsliga för tyst tal.",

@@ -150,6 +150,7 @@
     "ttsSettings": "TTS-Einstellungen",
     "ttsSpeakerId": "Sprecher-ID",
     "ttsSpeed": "Sprechgeschwindigkeit",
+    "ttsNumSteps": "Inferenzschritte",
     "vadSettings": "VAD-Einstellungen",
     "vadSettingsTooltip": "Konfiguration der Sprachaktivitätserkennung. Passen Sie diese Einstellungen an, um die Spracherkennung für Ihre Umgebung zu optimieren.",
     "vadThresholdTooltip": "Empfindlichkeit der Spracherkennung. Höhere Werte erfordern lautere/klarere Sprache. Niedrigere Werte sind empfindlicher für leise Sprache.",

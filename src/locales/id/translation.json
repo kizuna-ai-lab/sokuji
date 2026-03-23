@@ -144,6 +144,7 @@
     "ttsSettings": "Pengaturan TTS",
     "ttsSpeakerId": "ID Pembicara",
     "ttsSpeed": "Kecepatan Bicara",
+    "ttsNumSteps": "Langkah Inferensi",
     "vadSettings": "Pengaturan VAD",
     "vadSettingsTooltip": "Konfigurasi Deteksi Aktivitas Suara. Sesuaikan pengaturan ini untuk mengoptimalkan deteksi ucapan di lingkungan Anda.",
     "vadThresholdTooltip": "Sensitivitas deteksi ucapan. Nilai lebih tinggi membutuhkan ucapan yang lebih keras/jelas. Nilai lebih rendah lebih sensitif terhadap ucapan pelan.",

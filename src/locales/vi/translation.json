@@ -106,6 +106,7 @@
     "ttsSettings": "Cài đặt TTS",
     "ttsSpeakerId": "ID người nói",
     "ttsSpeed": "Tốc độ nói",
+    "ttsNumSteps": "Bước suy luận",
     "vadSettings": "Cài đặt VAD",
     "vadSettingsTooltip": "Cấu hình phát hiện hoạt động giọng nói. Điều chỉnh các cài đặt này để tối ưu hóa phát hiện giọng nói cho môi trường của bạn.",
     "vadThresholdTooltip": "Độ nhạy phát hiện giọng nói. Giá trị cao hơn yêu cầu giọng nói to/rõ hơn. Giá trị thấp hơn nhạy hơn với giọng nói nhỏ.",

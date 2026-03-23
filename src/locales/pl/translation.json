@@ -125,6 +125,7 @@
     "ttsSettings": "Ustawienia TTS",
     "ttsSpeakerId": "ID mówcy",
     "ttsSpeed": "Szybkość mowy",
+    "ttsNumSteps": "Kroki inferencji",
     "vadSettings": "Ustawienia VAD",
     "vadSettingsTooltip": "Konfiguracja wykrywania aktywności głosowej. Dostosuj te ustawienia, aby zoptymalizować wykrywanie mowy w swoim środowisku.",
     "vadThresholdTooltip": "Czułość wykrywania mowy. Wyższe wartości wymagają głośniejszej/wyraźniejszej mowy. Niższe wartości są bardziej wrażliwe na cichą mowę.",

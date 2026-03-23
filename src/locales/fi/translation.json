@@ -104,6 +104,7 @@
     "ttsSettings": "TTS-asetukset",
     "ttsSpeakerId": "Puhujan ID",
     "ttsSpeed": "Puheen nopeus",
+    "ttsNumSteps": "Päättelyvaiheet",
     "vadSettings": "VAD-asetukset",
     "vadSettingsTooltip": "Ääniaktiivisuuden tunnistuksen asetukset. Säädä näitä asetuksia optimoidaksesi puheentunnistuksen ympäristöllesi.",
     "vadThresholdTooltip": "Puheentunnistuksen herkkyys. Korkeammat arvot vaativat voimakkaampaa/selkeämpää puhetta. Matalammat arvot ovat herkempiä hiljaiselle puheelle.",

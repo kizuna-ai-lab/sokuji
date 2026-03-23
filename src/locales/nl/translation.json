@@ -127,6 +127,7 @@
     "ttsSettings": "TTS-instellingen",
     "ttsSpeakerId": "Spreker-ID",
     "ttsSpeed": "Spraaksnelheid",
+    "ttsNumSteps": "Inferentiestappen",
     "vadSettings": "VAD-instellingen",
     "vadSettingsTooltip": "Configuratie van spraakactiviteitsdetectie. Pas deze instellingen aan om spraakdetectie te optimaliseren voor uw omgeving.",
     "vadThresholdTooltip": "Gevoeligheid van spraakdetectie. Hogere waarden vereisen luidere/duidelijkere spraak. Lagere waarden zijn gevoeliger voor zachte spraak.",

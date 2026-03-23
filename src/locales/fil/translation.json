@@ -104,6 +104,7 @@
     "ttsSettings": "Mga Setting ng TTS",
     "ttsSpeakerId": "Speaker ID",
     "ttsSpeed": "Bilis ng Pagsasalita",
+    "ttsNumSteps": "Inference Steps",
     "vadSettings": "Mga Setting ng VAD",
     "vadSettingsTooltip": "Voice Activity Detection configuration. Ayusin ang mga setting na ito para ma-optimize ang speech detection para sa iyong kapaligiran.",
     "vadThresholdTooltip": "Sensitivity ng speech detection. Ang mas mataas na halaga ay nangangailangan ng mas malakas/malinaw na pagsasalita. Ang mas mababang halaga ay mas sensitibo sa mahihinang pagsasalita.",

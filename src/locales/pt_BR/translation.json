@@ -147,6 +147,7 @@
     "ttsSettings": "Configurações TTS",
     "ttsSpeakerId": "ID do locutor",
     "ttsSpeed": "Velocidade da fala",
+    "ttsNumSteps": "Passos de inferência",
     "vadSettings": "Configurações VAD",
     "vadSettingsTooltip": "Configuração de detecção de atividade vocal. Ajuste essas configurações para otimizar a detecção de voz no seu ambiente.",
     "vadThresholdTooltip": "Sensibilidade de detecção de voz. Valores mais altos requerem fala mais alta/clara. Valores mais baixos são mais sensíveis a fala baixa.",
