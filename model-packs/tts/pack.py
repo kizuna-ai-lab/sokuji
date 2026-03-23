@@ -1045,13 +1045,21 @@ def patch_glue_js(piper_js_path: Path, output_js_path: Path, metadata: list[dict
     content = content[:first_start] + new_cp_calls + content[last_end:]
     print(f"  Patched FS_createPath: {len(cp_matches)} old -> {new_cp_calls.count('FS_createPath')} new")
 
-    # 4. Replace loadPackage({...}) metadata
-    lp_start = content.find("loadPackage({")
+    # 4. Replace loadPackage(...) metadata
+    # Handle two formats:
+    #   - Unpatched:       loadPackage({"files":[...],...})
+    #   - Already-patched: loadPackage(Module._dataPackageMetadata||{"files":[...],...})
+    lp_start = content.find("loadPackage(")
     if lp_start == -1:
-        raise RuntimeError("Could not find loadPackage({ in glue JS")
+        raise RuntimeError("Could not find loadPackage( in glue JS")
+
+    # Find the opening { of the JSON metadata (skip Module._dataPackageMetadata|| if present)
+    after_paren = lp_start + len("loadPackage(")
+    brace_start = content.find("{", after_paren)
+    if brace_start == -1:
+        raise RuntimeError("Could not find opening { after loadPackage(")
 
     # Find the matching closing brace for the JSON object
-    brace_start = lp_start + len("loadPackage(")
     brace_count = 0
     i = brace_start
     while i < len(content):
@@ -1073,8 +1081,8 @@ def patch_glue_js(piper_js_path: Path, output_js_path: Path, metadata: list[dict
     }
     new_json = json.dumps(new_metadata, separators=(",", ":"))
 
-    # Replace: loadPackage({...old...}) -> loadPackage({...new...})
-    content = content[:lp_start] + "loadPackage(" + new_json + ")" + content[close_paren + 1:]
+    # Replace: loadPackage(...old...) -> loadPackage(Module._dataPackageMetadata||{...new...})
+    content = content[:lp_start] + "loadPackage(Module._dataPackageMetadata||" + new_json + ")" + content[close_paren + 1:]
 
     output_js_path.write_text(content)
     print(f"  Patched glue JS: {output_js_path.name}")
