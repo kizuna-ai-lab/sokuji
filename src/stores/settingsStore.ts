@@ -114,6 +114,7 @@ export interface LocalInferenceSettings {
   ttsModel: string;        // '' (auto) | 'piper-en' | 'piper-de'
   ttsSpeakerId: number;
   ttsSpeed: number;
+  ttsNumSteps: number;
   sourceLanguage: string;
   targetLanguage: string;
   turnDetectionMode: 'Auto' | 'Push-to-Talk';
@@ -266,6 +267,7 @@ const defaultLocalInferenceSettings: LocalInferenceSettings = {
   ttsModel: '',  // Auto-select based on target language
   ttsSpeakerId: 0,
   ttsSpeed: 1.0,
+  ttsNumSteps: 2,
   sourceLanguage: 'ja',
   targetLanguage: 'en',
   turnDetectionMode: 'Auto',
@@ -472,6 +474,7 @@ function createLocalInferenceSessionConfig(
     ttsModelId,
     ttsSpeakerId: settings.ttsSpeakerId,
     ttsSpeed: settings.ttsSpeed,
+    ttsNumSteps: settings.ttsNumSteps,
     vadThreshold: settings.vadThreshold,
     vadMinSilenceDuration: settings.vadMinSilenceDuration,
     vadMinSpeechDuration: settings.vadMinSpeechDuration,
