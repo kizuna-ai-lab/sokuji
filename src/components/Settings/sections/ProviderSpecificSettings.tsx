@@ -1195,24 +1195,46 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
           {(() => {
             const ttsEntry = getManifestEntry(localInferenceSettings.ttsModel);
             const numSpeakers = ttsEntry?.numSpeakers ?? 1;
-            return numSpeakers > 1 ? (
-          <div className="setting-item">
-            <div className="setting-label">
-              <span>{t('settings.ttsSpeakerId', 'Speaker ID')}</span>
-              <span className="setting-value">{localInferenceSettings.ttsSpeakerId}</span>
-            </div>
-            <input
-              type="range"
-              min="0"
-              max={numSpeakers - 1}
-              step="1"
-              value={Math.min(localInferenceSettings.ttsSpeakerId, numSpeakers - 1)}
-              onChange={(e) => updateLocalInferenceSettings({ ttsSpeakerId: parseInt(e.target.value) })}
-              className="slider"
-              disabled={isSessionActive}
-            />
-          </div>
-            ) : null;
+            return (
+              <>
+                {numSpeakers > 1 && (
+                  <div className="setting-item">
+                    <div className="setting-label">
+                      <span>{t('settings.ttsSpeakerId', 'Speaker ID')}</span>
+                      <span className="setting-value">{localInferenceSettings.ttsSpeakerId}</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="0"
+                      max={numSpeakers - 1}
+                      step="1"
+                      value={Math.min(localInferenceSettings.ttsSpeakerId, numSpeakers - 1)}
+                      onChange={(e) => updateLocalInferenceSettings({ ttsSpeakerId: parseInt(e.target.value) })}
+                      className="slider"
+                      disabled={isSessionActive}
+                    />
+                  </div>
+                )}
+                {ttsEntry?.supportsNumSteps && (
+                  <div className="setting-item">
+                    <div className="setting-label">
+                      <span>{t('settings.ttsNumSteps', 'Inference Steps')}</span>
+                      <span className="setting-value">{localInferenceSettings.ttsNumSteps}</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="1"
+                      max="10"
+                      step="1"
+                      value={localInferenceSettings.ttsNumSteps}
+                      onChange={(e) => updateLocalInferenceSettings({ ttsNumSteps: parseInt(e.target.value) })}
+                      className="slider"
+                      disabled={isSessionActive}
+                    />
+                  </div>
+                )}
+              </>
+            );
           })()}
         </div>
 
