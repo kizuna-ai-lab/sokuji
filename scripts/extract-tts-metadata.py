@@ -24,8 +24,11 @@ def extract_metadata(glue_js_path: str) -> dict | None:
     with open(glue_js_path) as f:
         content = f.read()
 
+    # Match both unpatched and patched formats:
+    #   Unpatched:  loadPackage({"files":[...],"remote_package_size":N})
+    #   Patched:    loadPackage(Module._dataPackageMetadata||{"files":[...],"remote_package_size":N})
     match = re.search(
-        r'loadPackage\((\{"files":\[.*?\],\s*"remote_package_size":\s*\d+\})\)',
+        r'loadPackage\((?:Module\._dataPackageMetadata\|\|)?(\{"files":\[.*?\],\s*"remote_package_size":\s*\d+\})\)',
         content,
     )
     if not match:
