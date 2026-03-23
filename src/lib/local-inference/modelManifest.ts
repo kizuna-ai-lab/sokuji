@@ -24,7 +24,7 @@ export interface ModelVariant {
   /** GPU features required to use this variant (e.g. ['shader-f16']) */
   requiredFeatures?: string[];
 }
-export type TtsEngineType = 'piper' | 'coqui' | 'mimic3' | 'mms' | 'matcha' | 'kokoro' | 'vits';
+export type TtsEngineType = 'piper' | 'coqui' | 'mimic3' | 'mms' | 'matcha' | 'kokoro' | 'vits' | 'supertonic';
 
 /** Offline ASR engine types — determines which config builder the worker uses. */
 export type AsrEngineType =
@@ -92,6 +92,8 @@ export interface ModelManifestEntry {
   ttsConfig?: TtsModelConfig;
   /** Number of speaker voices available (1 = single-speaker) */
   numSpeakers?: number;
+  /** Whether the model supports configurable inference steps (e.g. diffusion-based TTS) */
+  supportsNumSteps?: boolean;
 
   // ─── Translation configuration ─────────────────────────────────────────
   sourceLang?: string;
@@ -2429,6 +2431,20 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     },
     variants: { default: { dtype: 'default', files: ttsFiles(145_676_954, 1_280) } },
     numSpeakers: 1,
+  },
+
+  // ── Supertonic 2 ──────────────────────────────────────────────────────
+  {
+    id: 'supertonic-int8',
+    type: 'tts',
+    name: 'Supertonic 2 (EN/KO/ES/PT/FR)',
+    languages: ['en', 'ko', 'es', 'pt', 'fr'],
+    multilingual: true,
+    cdnPath: 'wasm-supertonic-int8',
+    variants: { default: { dtype: 'default', files: ttsFiles(80_000_000, 1_000) } },
+    engine: 'supertonic',
+    numSpeakers: 1,
+    supportsNumSteps: true,
   },
 
   // ── Translation Models — third-party HF Hub ─────────────────────────────
