@@ -157,8 +157,16 @@ export interface TtsInitMessage {
   type: 'init';
   /** Model .onnx filename (without path prefix), e.g. 'en_US-libritts_r-medium.onnx' */
   modelFile: string;
+  /** TTS engine type — determines which config builder the worker uses */
+  engine: string;
+  /** Engine-specific config overrides (model paths, vocoder, lexicon, etc.) */
+  ttsConfig: Record<string, unknown>;
   /** Map of filename → blob URL for loading model files from IndexedDB */
   fileUrls: Record<string, string>;
+  /** Base URL for bundled TTS runtime (JS/WASM shared across all models) */
+  runtimeBaseUrl: string;
+  /** Emscripten loadPackage metadata (file offsets/sizes from package-metadata.json) */
+  dataPackageMetadata: Record<string, unknown>;
 }
 
 export interface TtsGenerateMessage {
@@ -169,6 +177,10 @@ export interface TtsGenerateMessage {
   sid: number;
   /** Speech rate multiplier (default 1.0) */
   speed: number;
+  /** Inference steps for diffusion models (Supertonic: 2=fast, 5=quality). Ignored by non-diffusion engines. */
+  numSteps?: number;
+  /** Language tag for multilingual TTS (e.g. 'en', 'ko'). Passed as extra.lang to sherpa-onnx. */
+  lang?: string;
 }
 
 export interface TtsDisposeMessage {
