@@ -85,7 +85,7 @@ These are distinct maps. `languageIdMap` is for phonemizer routing only; `phonem
 Classic JS worker (not ES module — needs `importScripts()` for OpenJTalk Emscripten glue).
 
 **Init flow**:
-1. `importScripts()` loads ONNX Runtime Web from `ortBaseUrl` (e.g., `./wasm/ort/ort.wasm.min.js`), then configure `ort.env.wasm.wasmPaths` to point to the bundled WASM files
+1. `importScripts()` loads ONNX Runtime Web UMD build from `ortBaseUrl + '/ort.wasm.min.js'` (~50KB), then configure `ort.env.wasm.wasmPaths = ortBaseUrl + '/'` to resolve the existing `.wasm` files in `public/wasm/ort/`
 2. `importScripts()` loads `openjtalk.js` from `runtimeBaseUrl` (e.g., `./wasm/piper-plus/openjtalk.js`)
 3. Load OpenJTalk dict files (9 files) + voice file from blob URLs → Emscripten virtual filesystem
 4. Call `_openjtalk_initialize(dictDir, voicePath)` — returns 0 on success
@@ -113,10 +113,6 @@ Bundled static assets (pre-built, committed to repo):
 - `espeakng.worker.js` + `espeakng.worker.data` (~2.8MB) — eSpeak-ng for English
 - Phonemization JS modules from above
 
-#### `public/wasm/ort/`
-
-Bundled `onnxruntime-web` WASM files, copied from the npm package.
-
 ### Modified Files
 
 #### `public/workers/tts.worker.js` → `public/workers/sherpa-onnx-tts.worker.js`
@@ -131,14 +127,20 @@ Rename only. No content changes.
 
 Rename only. No content changes.
 
-#### `package.json`
+#### `scripts/copy-ort-wasm.sh`
 
-Add dependency:
-```json
-"onnxruntime-web": "^1.21.0"
+Add `ort.wasm.min.js` to the `FILES` array. This is the UMD build of `onnxruntime-web` (~50KB) needed by classic workers that use `importScripts()`. The existing `.mjs` files are ES modules and cannot be loaded via `importScripts()`.
+
+```bash
+FILES=(
+  # ... existing .mjs and .wasm entries ...
+  "ort.wasm.min.js"   # NEW: UMD build for classic workers (piper-plus-tts)
+)
 ```
 
-May need a Vite plugin or postinstall script to copy WASM files from `node_modules/onnxruntime-web/dist/` to `public/wasm/ort/`.
+After updating, run `npm run postinstall` or `bash scripts/copy-ort-wasm.sh` to copy the new file.
+
+No new npm dependency needed — `onnxruntime-web` is already installed as a dependency of `@huggingface/transformers`.
 
 #### `src/lib/local-inference/engine/TtsEngine.ts`
 
@@ -315,12 +317,9 @@ piper-plus-css10-ja-6lang/
 
 ## Build Integration
 
-### ONNX Runtime Web WASM Files
+### ONNX Runtime Web
 
-`onnxruntime-web` is added as an npm dependency. Its WASM files need to be available at a static path for the classic worker to load. Options:
-1. **Vite copy plugin** — Copy `node_modules/onnxruntime-web/dist/*.wasm` to `public/wasm/ort/` at build time
-2. **Postinstall script** — `cp` in package.json scripts
-3. **Manual commit** — Copy WASM files to `public/wasm/ort/` and commit (simpler, but needs updating on dependency bumps)
+Already installed as a dependency of `@huggingface/transformers`. The existing `scripts/copy-ort-wasm.sh` (runs on postinstall) copies WASM runtime files to `public/wasm/ort/`. Only change: add `ort.wasm.min.js` (UMD build, ~50KB) to the copy list for classic worker `importScripts()` compatibility. The existing `.mjs` glue files are ES modules used by translation/Whisper workers; the `.wasm` files are shared by both.
 
 ### Piper-Plus Phonemizer WASM
 
