@@ -2539,6 +2539,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
               className="clear-conversation-btn"
               onClick={clearConversation}
               title={t('mainPanel.clearConversation', 'Clear conversation')}
+              aria-label={t('mainPanel.clearConversation', 'Clear conversation')}
               type="button"
             >
               <Trash2 size={14} />

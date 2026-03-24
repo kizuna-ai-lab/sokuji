@@ -107,22 +107,6 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
     }
   }, [provider, openAISettings, geminiSettings, openAICompatibleSettings, palabraAISettings, kizunaAISettings, localInferenceSettings]);
 
-  // Swap source and target languages
-  const handleSwapLanguages = useCallback(() => {
-    const src = currentProviderSettings?.sourceLanguage;
-    const tgt = currentProviderSettings?.targetLanguage;
-    if (!src || !tgt || src === 'auto') return;
-
-    if (provider === Provider.LOCAL_INFERENCE) {
-      const availableTargets = getTranslationTargetLanguages(tgt);
-      const newTarget = availableTargets.some(l => l.value === src) ? src : availableTargets[0]?.value || 'en';
-      updateLocalInferenceSettings({ sourceLanguage: tgt, targetLanguage: newTarget });
-    } else {
-      updateSourceLanguage(tgt);
-      updateTargetLanguage(src);
-    }
-  }, [provider, currentProviderSettings, updateLocalInferenceSettings, updateSourceLanguage, updateTargetLanguage]);
-
   // Update source language
   const updateSourceLanguage = (value: string) => {
     switch (provider) {
@@ -185,6 +169,22 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
       language_type: 'target'
     });
   };
+
+  // Swap source and target languages
+  const handleSwapLanguages = useCallback(() => {
+    const src = currentProviderSettings?.sourceLanguage;
+    const tgt = currentProviderSettings?.targetLanguage;
+    if (!src || !tgt || src === 'auto') return;
+
+    if (provider === Provider.LOCAL_INFERENCE) {
+      const availableTargets = getTranslationTargetLanguages(tgt);
+      const newTarget = availableTargets.some(l => l.value === src) ? src : availableTargets[0]?.value || 'en';
+      updateLocalInferenceSettings({ sourceLanguage: tgt, targetLanguage: newTarget });
+    } else {
+      updateSourceLanguage(tgt);
+      updateTargetLanguage(src);
+    }
+  }, [provider, currentProviderSettings, updateLocalInferenceSettings, updateSourceLanguage, updateTargetLanguage]);
 
   // Dynamic target languages for LOCAL_INFERENCE, static for others
   const targetLanguages = useMemo(() => {
