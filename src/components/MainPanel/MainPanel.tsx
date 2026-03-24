@@ -425,6 +425,11 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   const systemAudioClientRef = useRef<IClient | null>(null);
   const [systemAudioItems, setSystemAudioItems] = useState<ConversationItem[]>([]);
 
+  const clearConversation = useCallback(() => {
+    setItems([]);
+    setSystemAudioItems([]);
+  }, []);
+
   // Combine speaker and participant items for display with source tagging
   const combinedItems = useMemo(() => {
     // Tag speaker items
@@ -2521,7 +2526,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           {filteredItems.length > 0 && (
             <button
               className="clear-conversation-btn"
-              onClick={() => { setItems([]); setSystemAudioItems([]); }}
+              onClick={clearConversation}
               title={t('mainPanel.clearConversation', 'Clear conversation')}
               type="button"
             >
