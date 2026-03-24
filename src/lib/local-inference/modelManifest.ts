@@ -24,7 +24,7 @@ export interface ModelVariant {
   /** GPU features required to use this variant (e.g. ['shader-f16']) */
   requiredFeatures?: string[];
 }
-export type TtsEngineType = 'piper' | 'coqui' | 'mimic3' | 'mms' | 'matcha' | 'kokoro' | 'vits';
+export type TtsEngineType = 'piper' | 'coqui' | 'mimic3' | 'mms' | 'matcha' | 'kokoro' | 'vits' | 'supertonic' | 'piper-plus';
 
 /** Offline ASR engine types — determines which config builder the worker uses. */
 export type AsrEngineType =
@@ -46,6 +46,8 @@ export interface TtsModelConfig {
   dictDir?: string;        // vits: e.g. './dict'
   ruleFsts?: string;       // comma-separated FST paths
   ruleFars?: string;       // comma-separated FAR paths
+  /** Language-to-phonemizer routing map for piper-plus multilingual models */
+  languageIdMap?: Record<string, number>;
 }
 
 export interface ModelManifestEntry {
@@ -204,6 +206,8 @@ export function getModelDownloadUrl(
  * restrictions on downloading and executing JS/WASM at runtime.
  */
 export const TTS_BUNDLED_RUNTIME_PATH = './wasm/sherpa-onnx-tts';
+export const PIPER_PLUS_BUNDLED_RUNTIME_PATH = './wasm/piper-plus';
+export const ORT_BUNDLED_PATH = './wasm/ort';
 
 /**
  * Base path for bundled ASR runtime files (JS/WASM shared across all offline models).
@@ -2413,6 +2417,36 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     engine: 'piper',
     variants: { default: { dtype: 'default', files: ttsFiles(81_203_080, 26_761) } },
     numSpeakers: 1,
+  },
+  {
+    id: 'piper-plus-css10-ja-6lang',
+    type: 'tts',
+    name: 'Piper-Plus CSS10 JA',
+    languages: ['ja'],
+    hfModelId: 'datasets/jiangzhuo9357/piper-plus-tts-models',
+    engine: 'piper-plus',
+    numSpeakers: 1,
+    ttsConfig: {
+      languageIdMap: { ja: 0, en: 1, zh: 2, es: 3, fr: 4, pt: 5 },
+    },
+    variants: {
+      fp16: {
+        dtype: 'fp16',
+        files: [
+          { filename: 'piper-plus-css10-ja-6lang/model.onnx', sizeBytes: 39_414_515 },
+          { filename: 'piper-plus-css10-ja-6lang/config.json', sizeBytes: 8_966 },
+          { filename: 'piper-plus-css10-ja-6lang/dict/sys.dic', sizeBytes: 103_073_776 },
+          { filename: 'piper-plus-css10-ja-6lang/dict/matrix.bin', sizeBytes: 3_792_262 },
+          { filename: 'piper-plus-css10-ja-6lang/dict/char.bin', sizeBytes: 262_496 },
+          { filename: 'piper-plus-css10-ja-6lang/dict/left-id.def', sizeBytes: 77_672 },
+          { filename: 'piper-plus-css10-ja-6lang/dict/right-id.def', sizeBytes: 77_672 },
+          { filename: 'piper-plus-css10-ja-6lang/dict/rewrite.def', sizeBytes: 7_457 },
+          { filename: 'piper-plus-css10-ja-6lang/dict/unk.dic', sizeBytes: 5_690 },
+          { filename: 'piper-plus-css10-ja-6lang/dict/pos-id.def', sizeBytes: 1_923 },
+          { filename: 'piper-plus-css10-ja-6lang/voice/mei_normal.htsvoice', sizeBytes: 862_503 },
+        ],
+      },
+    },
   },
   {
     id: 'matcha-zh-baker',
