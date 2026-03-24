@@ -190,6 +190,7 @@ export class TtsEngine {
    * @param text - Text to synthesize
    * @param sid - Speaker ID (0 to numSpeakers-1, default 0)
    * @param speed - Speech rate multiplier (default 1.0)
+   * @param lang - Language code for multilingual models (e.g. 'ja', 'en')
    */
   async generate(text: string, sid = 0, speed = 1.0, lang?: string): Promise<TtsResult> {
     if (!this.worker || !this.isReady) {

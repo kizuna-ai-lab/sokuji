@@ -2421,7 +2421,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
   {
     id: 'piper-plus-css10-ja-6lang',
     type: 'tts',
-    name: 'Piper-Plus CSS10 JA (Japanese)',
+    name: 'Piper-Plus CSS10 JA',
     languages: ['ja'],
     hfModelId: 'datasets/jiangzhuo9357/piper-plus-tts-models',
     engine: 'piper-plus',

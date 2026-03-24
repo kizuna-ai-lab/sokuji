@@ -23,8 +23,8 @@
 
 var openjtalkModule = null;   // OpenJTalk Emscripten module instance
 var onnxSession = null;       // ONNX Runtime InferenceSession
-var phonemeIdMap = null;       // { phoneme_string: [id, ...], ... } from model.onnx.json
-var prosodyIdMap = null;       // optional prosody map from model.onnx.json
+var phonemeIdMap = null;       // { phoneme_string: [id, ...], ... } from config.json
+var prosodyIdMap = null;       // optional prosody map from config.json
 var modelSampleRate = 22050;   // default; overridden by model config
 var ttsConfig = {};            // engine config from manifest (languageIdMap, etc.)
 var isReady = false;
