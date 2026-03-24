@@ -436,9 +436,13 @@ function handleDispose() {
     // Ignore cleanup errors
   }
 
+  var releasePromise = Promise.resolve();
   if (onnxSession) {
     try {
-      onnxSession.release();
+      var result = onnxSession.release();
+      if (result && typeof result.then === 'function') {
+        releasePromise = result;
+      }
     } catch (e) {
       // Ignore cleanup errors
     }
@@ -451,7 +455,11 @@ function handleDispose() {
   isReady = false;
   ttsConfig = {};
 
-  postMessage({ type: 'disposed' });
+  releasePromise.then(function() {
+    postMessage({ type: 'disposed' });
+  }).catch(function() {
+    postMessage({ type: 'disposed' });
+  });
 }
 
 // ─── Message Handler ────────────────────────────────────────────────────────
