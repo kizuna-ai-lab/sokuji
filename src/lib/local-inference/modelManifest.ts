@@ -24,7 +24,7 @@ export interface ModelVariant {
   /** GPU features required to use this variant (e.g. ['shader-f16']) */
   requiredFeatures?: string[];
 }
-export type TtsEngineType = 'piper' | 'coqui' | 'mimic3' | 'mms' | 'matcha' | 'kokoro' | 'vits';
+export type TtsEngineType = 'piper' | 'coqui' | 'mimic3' | 'mms' | 'matcha' | 'kokoro' | 'vits' | 'supertonic' | 'piper-plus';
 
 /** Offline ASR engine types — determines which config builder the worker uses. */
 export type AsrEngineType =
@@ -46,6 +46,8 @@ export interface TtsModelConfig {
   dictDir?: string;        // vits: e.g. './dict'
   ruleFsts?: string;       // comma-separated FST paths
   ruleFars?: string;       // comma-separated FAR paths
+  /** Language-to-phonemizer routing map for piper-plus multilingual models */
+  languageIdMap?: Record<string, number>;
 }
 
 export interface ModelManifestEntry {
@@ -2413,6 +2415,38 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     engine: 'piper',
     variants: { default: { dtype: 'default', files: ttsFiles(81_203_080, 26_761) } },
     numSpeakers: 1,
+  },
+  {
+    id: 'piper-plus-css10-ja-6lang',
+    type: 'tts',
+    name: 'Piper-Plus CSS10 JA (6 languages)',
+    languages: ['ja', 'en', 'zh', 'es', 'fr', 'pt'],
+    multilingual: true,
+    hfModelId: 'ayousanz/piper-plus-css10-ja-6lang',
+    engine: 'piper-plus',
+    numSpeakers: 1,
+    ttsConfig: {
+      languageIdMap: { ja: 0, en: 1, zh: 2, es: 3, fr: 4, pt: 5 },
+    },
+    variants: {
+      fp16: {
+        dtype: 'fp16',
+        files: [
+          { filename: 'model.onnx', sizeBytes: 39_000_000 },
+          { filename: 'model.onnx.json', sizeBytes: 9_000 },
+          { filename: 'dict/sys.dic', sizeBytes: 103_000_000 },
+          { filename: 'dict/matrix.bin', sizeBytes: 3_800_000 },
+          { filename: 'dict/char.bin', sizeBytes: 262_000 },
+          { filename: 'dict/left-id.def', sizeBytes: 78_000 },
+          { filename: 'dict/right-id.def', sizeBytes: 78_000 },
+          { filename: 'dict/rewrite.def', sizeBytes: 7_000 },
+          { filename: 'dict/unk.dic', sizeBytes: 6_000 },
+          { filename: 'dict/pos-id.def', sizeBytes: 2_000 },
+          { filename: 'voice/mei_normal.htsvoice', sizeBytes: 863_000 },
+          { filename: 'espeak/espeakng.worker.data', sizeBytes: 2_100_000 },
+        ],
+      },
+    },
   },
   {
     id: 'matcha-zh-baker',
