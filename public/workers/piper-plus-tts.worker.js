@@ -454,11 +454,13 @@ function handleGenerate(msg) {
       scales: scalesTensor
     };
 
-    // Optional: language ID tensor for multilingual models
+    // Language ID tensor — required by multilingual piper-plus models (input name: 'sid')
+    // Default to 0 (Japanese) if language not found in map
+    var langId = 0;
     if (ttsConfig.languageIdMap && lang && ttsConfig.languageIdMap[lang] !== undefined) {
-      var sidData = new BigInt64Array([BigInt(ttsConfig.languageIdMap[lang])]);
-      feeds.sid = new ort.Tensor('int64', sidData, [1]);
+      langId = ttsConfig.languageIdMap[lang];
     }
+    feeds.lid = new ort.Tensor('int64', new BigInt64Array([BigInt(langId)]), [1]);
 
     // Step 3: Run ONNX inference
     onnxSession.run(feeds).then(function(results) {
