@@ -565,9 +565,15 @@ const useSettingsStore = create<SettingsStore>()(
     },
 
     setTextOnly: async (textOnly) => {
+      const previous = get().textOnly;
       set({textOnly});
-      const service = ServiceFactory.getSettingsService();
-      await service.setSetting('settings.common.textOnly', textOnly);
+      try {
+        const service = ServiceFactory.getSettingsService();
+        await service.setSetting('settings.common.textOnly', textOnly);
+      } catch (error) {
+        console.error('[SettingsStore] Error persisting textOnly setting:', error);
+        set({textOnly: previous});
+      }
     },
 
     // === Provider Settings Actions ===
