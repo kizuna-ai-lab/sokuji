@@ -1,9 +1,9 @@
 /**
  * Piper-Plus TTS Worker — Classic Web Worker (not ES module).
  *
- * Uses OpenJTalk WASM for Japanese phonemization, a simple rule-based
- * phonemizer for English, and character-level fallback for zh/es/fr/pt.
+ * Uses OpenJTalk WASM for Japanese phonemization.
  * Runs VITS inference via ONNX Runtime Web (UMD build loaded via importScripts).
+ * Currently supports Japanese only.
  *
  * Protocol:
  *   Main → Worker:
@@ -28,7 +28,6 @@ var prosodyIdMap = null;       // optional prosody map from model.onnx.json
 var modelSampleRate = 22050;   // default; overridden by model config
 var ttsConfig = {};            // engine config from manifest (languageIdMap, etc.)
 var isReady = false;
-var phonemizer = null;         // SimpleUnifiedPhonemizer instance
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -74,40 +73,17 @@ function findFileUrl(fileUrls, suffix) {
 }
 
 /**
- * Load the OpenJTalk ES module by fetching as text, stripping the export,
- * and evaluating to get the factory function.
- * openjtalk.js is `async function OpenJTalkModule(moduleArg={}) { ... }; export default OpenJTalkModule;`
+ * Load the OpenJTalk factory via importScripts (CSP-compatible).
+ * Uses openjtalk-classic.js — a pre-processed version with import.meta.url
+ * replaced by self.location.href and export default stripped.
+ * After importScripts, OpenJTalkModule is available as a global function.
  */
 function loadOpenJTalkFactory(runtimeBaseUrl) {
-  // Ensure runtimeBaseUrl ends with '/' for URL resolution
-  var baseUrl = runtimeBaseUrl.endsWith('/') ? runtimeBaseUrl : runtimeBaseUrl + '/';
-  // Build the full URL to openjtalk.js so we can use it as the "script URL"
-  var openjtalkJsUrl = baseUrl + 'openjtalk.js';
-
-  return fetch(openjtalkJsUrl).then(function(resp) {
-    if (!resp.ok) throw new Error('Failed to fetch openjtalk.js: ' + resp.status);
-    return resp.text();
-  }).then(function(src) {
-    // Patch 1: Replace import.meta.url with the actual script URL.
-    // openjtalk.js uses import.meta.url for:
-    //   - var _scriptName = import.meta.url  (script location)
-    //   - new URL("openjtalk.wasm", import.meta.url).href  (wasm file resolution)
-    // In a classic worker, import.meta is not available, so we inject the URL as a string.
-    var cleaned = src.replace(/import\.meta\.url/g, JSON.stringify(openjtalkJsUrl));
-
-    // Patch 2: Strip ES module export to make it evaluable in classic worker context
-    cleaned = cleaned.replace(/export\s+default\s+\w+\s*;?\s*$/, '');
-
-    // Evaluate and return the factory function
-    // The file defines `async function OpenJTalkModule(moduleArg={}) { ... }`
-    // After eval, it's available in the worker scope
-    // eslint-disable-next-line no-eval
-    (0, eval)(cleaned);
-    if (typeof OpenJTalkModule === 'function') {
-      return OpenJTalkModule;
-    }
-    throw new Error('OpenJTalkModule not found after evaluating openjtalk.js');
-  });
+  importScripts(runtimeBaseUrl + '/openjtalk-classic.js');
+  if (typeof OpenJTalkModule === 'function') {
+    return Promise.resolve(OpenJTalkModule);
+  }
+  return Promise.reject(new Error('OpenJTalkModule not found after importing openjtalk-classic.js'));
 }
 
 // ─── Init ───────────────────────────────────────────────────────────────────
@@ -148,21 +124,16 @@ function handleInit(msg) {
   // Configure ORT WASM paths
   ort.env.wasm.wasmPaths = ortBaseUrl + '/';
 
-  // Step 2: Load phonemizer JS modules (classic scripts — importScripts works)
+  // Step 2: Load Japanese phonemizer module
   postMessage({ type: 'status', message: 'Loading phonemizer modules...' });
   try {
-    importScripts(
-      runtimeBaseUrl + '/simple_english_phonemizer.js',
-      runtimeBaseUrl + '/japanese_phoneme_extract.js',
-      runtimeBaseUrl + '/espeak_phoneme_extractor.js',
-      runtimeBaseUrl + '/simple_unified_api.js'
-    );
+    importScripts(runtimeBaseUrl + '/japanese_phoneme_extract.js');
   } catch (e) {
     postMessage({ type: 'error', error: 'Failed to load phonemizer modules: ' + (e.message || e) });
     return;
   }
 
-  // Step 3: Load OpenJTalk factory (ES module — needs fetch+eval), dict/voice files,
+  // Step 3: Load OpenJTalk factory, dict/voice files,
   //         model config, and ONNX model in parallel
   postMessage({ type: 'status', message: 'Loading OpenJTalk and model...' });
 
@@ -262,12 +233,6 @@ function handleInit(msg) {
         throw new Error('OpenJTalk initialization failed with code: ' + initResult);
       }
 
-      // Initialize phonemizer
-      phonemizer = new SimpleUnifiedPhonemizer({ phonemeIdMap: phonemeIdMap });
-      // Attach the already-initialized OpenJTalk module directly
-      phonemizer.openjtalkModule = mod;
-      phonemizer.initialized = true;
-
       postMessage({ type: 'status', message: 'Creating ONNX session...' });
 
       // Step 5: Create ONNX session from model bytes
@@ -362,125 +327,11 @@ function phonemizeJapanese(text) {
 }
 
 /**
- * Phonemize text for English using ESpeakPhonemeExtractor.
- * Uses the same dictionary + rule-based IPA pipeline as the piper-plus demo.
- * ESpeakPhonemeExtractor.phonemize() returns ['^', ...phonemes, '$'].
+ * Phonemize text — currently only Japanese is supported.
  * Returns a Promise resolving to an array of phoneme IDs (integers).
  */
-function phonemizeEnglish(text) {
-  var extractor = new ESpeakPhonemeExtractor();
-  extractor.initialized = true;
-  // phonemize() is sync in practice (dictionary lookup, no async eSpeak)
-  // but returns a Promise for API compatibility
-  return extractor.phonemize(text, 'en-us');
-}
-
-/**
- * Phonemize text for Chinese using character-level phoneme_id_map lookup.
- * Returns an array of phoneme IDs (integers) with BOS/PAD/EOS.
- */
-function phonemizeChinese(text) {
-  if (!phonemeIdMap) return [];
-  var ids = [];
-  var padIds = phonemeIdMap['_'] || [0];
-  var bosIds = phonemeIdMap['^'] || [1];
-  var eosIds = phonemeIdMap['$'] || [2];
-
-  for (var b = 0; b < bosIds.length; b++) ids.push(bosIds[b]);
-  for (var p = 0; p < padIds.length; p++) ids.push(padIds[p]);
-
-  for (var i = 0; i < text.length; i++) {
-    var ch = text[i];
-    var mapped = phonemeIdMap[ch];
-    if (mapped) {
-      for (var j = 0; j < mapped.length; j++) ids.push(mapped[j]);
-      for (var q = 0; q < padIds.length; q++) ids.push(padIds[q]);
-    }
-  }
-
-  for (var e = 0; e < eosIds.length; e++) ids.push(eosIds[e]);
-  return ids;
-}
-
-/**
- * Phonemize text for Latin languages (es/fr/pt) using character-level mapping.
- * Lowercases text first, then maps each character through phoneme_id_map.
- * Returns an array of phoneme IDs (integers) with BOS/PAD/EOS.
- */
-function phonemizeLatinFallback(text) {
-  if (!phonemeIdMap) return [];
-  var ids = [];
-  var padIds = phonemeIdMap['_'] || [0];
-  var bosIds = phonemeIdMap['^'] || [1];
-  var eosIds = phonemeIdMap['$'] || [2];
-  var spaceIds = phonemeIdMap[' '] || null;
-
-  for (var b = 0; b < bosIds.length; b++) ids.push(bosIds[b]);
-  for (var p = 0; p < padIds.length; p++) ids.push(padIds[p]);
-
-  var lower = text.toLowerCase();
-  for (var i = 0; i < lower.length; i++) {
-    var ch = lower[i];
-    if (ch === ' ') {
-      if (spaceIds) {
-        for (var s = 0; s < spaceIds.length; s++) ids.push(spaceIds[s]);
-        for (var q = 0; q < padIds.length; q++) ids.push(padIds[q]);
-      }
-    } else {
-      var mapped = phonemeIdMap[ch];
-      if (mapped) {
-        for (var j = 0; j < mapped.length; j++) ids.push(mapped[j]);
-        for (var q2 = 0; q2 < padIds.length; q2++) ids.push(padIds[q2]);
-      }
-    }
-  }
-
-  for (var e = 0; e < eosIds.length; e++) ids.push(eosIds[e]);
-  return ids;
-}
-
-/**
- * Route phonemization based on language.
- * Japanese and English return phoneme tokens → phonemeTokensToIds.
- * Chinese and Latin languages return raw phoneme IDs directly.
- * English returns a Promise; others are synchronous.
- */
-function phonemize(text, lang) {
-  if (lang === 'ja') {
-    return Promise.resolve(phonemizeJapanese(text));
-  } else if (lang === 'en') {
-    // ESpeakPhonemeExtractor.phonemize returns Promise<token[]>
-    return phonemizeEnglish(text).then(function(tokens) {
-      return phonemeTokensToIds(tokens);
-    });
-  } else if (lang === 'zh') {
-    return Promise.resolve(phonemizeChinese(text));
-  } else {
-    // es, fr, pt — Latin character-level fallback
-    return Promise.resolve(phonemizeLatinFallback(text));
-  }
-}
-
-// ─── Prosody Features ───────────────────────────────────────────────────────
-
-/**
- * Build prosody features tensor for Japanese (if prosody_id_map exists).
- * Maps the same phoneme token sequence to prosody IDs.
- * Returns null if prosody is not supported by the model.
- */
-function buildProsodyFeatures(text, phonemeIds) {
-  if (!prosodyIdMap) return null;
-
-  // For prosody, we need the token sequence to align with phoneme IDs.
-  // The prosody feature tensor has shape [1, seq_len, 3] where seq_len matches
-  // the phoneme input length. Each position gets 3 prosody features.
-  // For now, return default prosody (zeros) — full prosody extraction would
-  // require the label-level A1/A2/A3 data which extractPhonemesFromLabels
-  // already parses but doesn't expose separately.
-  var seqLen = phonemeIds.length;
-  var features = new BigInt64Array(seqLen * 3);
-  // Fill with zeros (default prosody)
-  return features;
+function phonemize(text) {
+  return Promise.resolve(phonemizeJapanese(text));
 }
 
 // ─── Generate ───────────────────────────────────────────────────────────────
@@ -493,20 +344,16 @@ function handleGenerate(msg) {
 
   var text = msg.text || '';
   var speed = msg.speed || 1.0;
-  var lang = msg.lang || 'ja';
 
   if (!text.trim()) {
     postMessage({ type: 'error', error: 'Empty text' });
     return;
   }
 
-  // Normalize language code: 'zh_CN' → 'zh', 'ja-JP' → 'ja', 'en' → 'en'
-  lang = lang.split(/[-_]/)[0].toLowerCase();
-
   var startTime = performance.now();
 
-  // Step 1: Phonemize (async — English path returns a Promise)
-  phonemize(text, lang).then(function(phonemeIds) {
+  // Step 1: Phonemize (Japanese only — OpenJTalk)
+  phonemize(text).then(function(phonemeIds) {
     if (!phonemeIds || phonemeIds.length === 0) {
       postMessage({ type: 'error', error: 'Phonemization produced no output for: ' + text });
       return;
@@ -537,13 +384,9 @@ function handleGenerate(msg) {
       scales: scalesTensor
     };
 
-    // Language ID tensor — required by multilingual piper-plus models (input name: 'lid')
-    // Default to 0 (Japanese) if language not found in map
-    var langId = 0;
-    if (ttsConfig.languageIdMap && lang && ttsConfig.languageIdMap[lang] !== undefined) {
-      langId = ttsConfig.languageIdMap[lang];
-    }
-    feeds.lid = new ort.Tensor('int64', new BigInt64Array([BigInt(langId)]), [1]);
+    // Language ID tensor — required by the model (input name: 'lid')
+    // Currently Japanese only (lid=0)
+    feeds.lid = new ort.Tensor('int64', new BigInt64Array([BigInt(0)]), [1]);
 
     // Prosody features — required by this model, shape [1, seq_len, 3]
     // Default to zeros (neutral prosody). Full prosody extraction from
@@ -605,7 +448,6 @@ function handleDispose() {
   onnxSession = null;
   phonemeIdMap = null;
   prosodyIdMap = null;
-  phonemizer = null;
   isReady = false;
   ttsConfig = {};
 

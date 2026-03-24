@@ -2444,7 +2444,6 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
           { filename: 'piper-plus-css10-ja-6lang/dict/unk.dic', sizeBytes: 5_690 },
           { filename: 'piper-plus-css10-ja-6lang/dict/pos-id.def', sizeBytes: 1_923 },
           { filename: 'piper-plus-css10-ja-6lang/voice/mei_normal.htsvoice', sizeBytes: 862_503 },
-          { filename: 'piper-plus-css10-ja-6lang/espeak/espeakng.worker.data', sizeBytes: 2_134_116 },
         ],
       },
     },
