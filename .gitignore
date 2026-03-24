@@ -95,3 +95,4 @@ public/wasm/*
 !public/wasm/sherpa-onnx-asr-stream/
 !public/wasm/ort/
 !public/wasm/vad/
+!public/wasm/piper-plus/

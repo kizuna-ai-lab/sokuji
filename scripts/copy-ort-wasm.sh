@@ -13,6 +13,8 @@ DEST="public/wasm/ort"
 #   asyncify  — default (non-Safari browsers)
 #   plain     — Safari fallback (no asyncify support)
 #   jsep      — WebGPU/WebNN backend (used by Whisper-WebGPU, Qwen workers)
+# UMD entry point:
+#   ort.wasm.min.js — for classic workers using importScripts() (piper-plus-tts)
 FILES=(
   "ort-wasm-simd-threaded.asyncify.mjs"
   "ort-wasm-simd-threaded.asyncify.wasm"
@@ -20,6 +22,7 @@ FILES=(
   "ort-wasm-simd-threaded.wasm"
   "ort-wasm-simd-threaded.jsep.mjs"
   "ort-wasm-simd-threaded.jsep.wasm"
+  "ort.wasm.min.js"
 )
 
 if [ ! -d "$SRC" ]; then
