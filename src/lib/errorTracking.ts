@@ -10,10 +10,10 @@ export interface StackFrame {
 }
 
 // Chrome/V8: "    at funcName (url:line:col)" or "    at url:line:col"
-const CHROME_FRAME_RE = /^\s*at\s+(?:(.+?)\s+\()?((?:https?|chrome-extension):\/\/[^\s]+?|[^\s(]+?):(\d+):(\d+)\)?\s*$/;
+const CHROME_FRAME_RE = /^\s*at\s+(?:(.+?)\s+\()?((?:https?|chrome-extension|file):\/\/[^\s]+?|[^\s(]+?):(\d+):(\d+)\)?\s*$/;
 
 // Firefox/Safari: "funcName@url:line:col"
-const FIREFOX_FRAME_RE = /^(.+?)@((?:https?|moz-extension|safari-extension):\/\/[^\s]+?|[^\s@]+?):(\d+):(\d+)\s*$/;
+const FIREFOX_FRAME_RE = /^(.+?)@((?:https?|moz-extension|safari-extension|file):\/\/[^\s]+?|[^\s@]+?):(\d+):(\d+)\s*$/;
 
 export function parseStackTrace(stack: string): StackFrame[] {
   if (!stack) return [];
@@ -54,7 +54,7 @@ export function parseStackTrace(stack: string): StackFrame[] {
 }
 
 // Matches common API key patterns: sk-..., AIza..., key-...
-const API_KEY_RE = /\b(sk-[a-zA-Z0-9_-]{3,}|AIza[a-zA-Z0-9_-]{3,}|key-[a-zA-Z0-9_-]{3,})\b/g;
+const API_KEY_RE = /\b(sk-[a-zA-Z0-9_-]{10,}|AIza[a-zA-Z0-9_-]{10,}|key-[a-zA-Z0-9_-]{10,})\b/g;
 
 export function redactSensitiveData(message: string): string {
   return message.replace(API_KEY_RE, '[REDACTED]');
@@ -104,8 +104,9 @@ export function setupErrorTracking(posthog: PostHog): () => void {
     captureError(posthog, dedup, error, String(message), source, lineno, colno, 'onerror');
 
     if (typeof prevOnerror === 'function') {
-      prevOnerror.call(window, message, source, lineno, colno, error);
+      return prevOnerror.call(window, message, source, lineno, colno, error);
     }
+    return false;
   };
 
   window.onunhandledrejection = (event: PromiseRejectionEvent) => {
@@ -178,11 +179,15 @@ function captureError(
     };
   }
 
-  posthog.capture('$exception', {
-    $exception_type: type,
-    $exception_message: redactedMessage,
-    $exception_level: 'error',
-    $exception_source: mechanism,
-    $exception_list: [exceptionEntry],
-  });
+  try {
+    posthog.capture('$exception', {
+      $exception_type: type,
+      $exception_message: redactedMessage,
+      $exception_level: 'error',
+      $exception_source: mechanism,
+      $exception_list: [exceptionEntry],
+    });
+  } catch {
+    // Swallow errors from PostHog to prevent re-entering global error handlers
+  }
 }

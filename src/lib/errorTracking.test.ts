@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { parseStackTrace, redactSensitiveData, createDeduplicator, setupErrorTracking } from './errorTracking';
 
 describe('parseStackTrace', () => {
@@ -105,7 +105,7 @@ describe('redactSensitiveData', () => {
   });
 
   it('redacts multiple keys in one message', () => {
-    expect(redactSensitiveData('sk-aaa and AIzaSyB-bbb')).toBe('[REDACTED] and [REDACTED]');
+    expect(redactSensitiveData('sk-aaabbbcccddd and AIzaSyBcDeFgHiJk')).toBe('[REDACTED] and [REDACTED]');
   });
 });
 
