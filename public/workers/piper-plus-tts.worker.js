@@ -79,12 +79,25 @@ function findFileUrl(fileUrls, suffix) {
  * openjtalk.js is `async function OpenJTalkModule(moduleArg={}) { ... }; export default OpenJTalkModule;`
  */
 function loadOpenJTalkFactory(runtimeBaseUrl) {
-  return fetch(runtimeBaseUrl + '/openjtalk.js').then(function(resp) {
+  // Ensure runtimeBaseUrl ends with '/' for URL resolution
+  var baseUrl = runtimeBaseUrl.endsWith('/') ? runtimeBaseUrl : runtimeBaseUrl + '/';
+  // Build the full URL to openjtalk.js so we can use it as the "script URL"
+  var openjtalkJsUrl = baseUrl + 'openjtalk.js';
+
+  return fetch(openjtalkJsUrl).then(function(resp) {
     if (!resp.ok) throw new Error('Failed to fetch openjtalk.js: ' + resp.status);
     return resp.text();
   }).then(function(src) {
-    // Strip ES module export to make it evaluable in classic worker context
-    var cleaned = src.replace(/export\s+default\s+OpenJTalkModule\s*;?\s*$/, '');
+    // Patch 1: Replace import.meta.url with the actual script URL.
+    // openjtalk.js uses import.meta.url for:
+    //   - var _scriptName = import.meta.url  (script location)
+    //   - new URL("openjtalk.wasm", import.meta.url).href  (wasm file resolution)
+    // In a classic worker, import.meta is not available, so we inject the URL as a string.
+    var cleaned = src.replace(/import\.meta\.url/g, JSON.stringify(openjtalkJsUrl));
+
+    // Patch 2: Strip ES module export to make it evaluable in classic worker context
+    cleaned = cleaned.replace(/export\s+default\s+\w+\s*;?\s*$/, '');
+
     // Evaluate and return the factory function
     // The file defines `async function OpenJTalkModule(moduleArg={}) { ... }`
     // After eval, it's available in the worker scope
