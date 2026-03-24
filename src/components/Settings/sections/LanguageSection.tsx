@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useCallback } from 'react';
 import { Globe, Languages, ArrowLeftRight, CircleHelp, AlertTriangle, VolumeX } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import Tooltip from '../../Tooltip/Tooltip';
@@ -108,7 +108,7 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
   }, [provider, openAISettings, geminiSettings, openAICompatibleSettings, palabraAISettings, kizunaAISettings, localInferenceSettings]);
 
   // Swap source and target languages
-  const handleSwapLanguages = () => {
+  const handleSwapLanguages = useCallback(() => {
     const src = currentProviderSettings?.sourceLanguage;
     const tgt = currentProviderSettings?.targetLanguage;
     if (!src || !tgt || src === 'auto') return;
@@ -121,7 +121,7 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
       updateSourceLanguage(tgt);
       updateTargetLanguage(src);
     }
-  };
+  }, [provider, currentProviderSettings, updateLocalInferenceSettings, updateSourceLanguage, updateTargetLanguage]);
 
   // Update source language
   const updateSourceLanguage = (value: string) => {
