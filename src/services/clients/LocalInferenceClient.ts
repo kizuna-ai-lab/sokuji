@@ -450,6 +450,7 @@ export class LocalInferenceClient implements IClient {
               sentences[i],
               this.config.ttsSpeakerId,
               this.config.ttsSpeed,
+              this.config.targetLanguage,
             );
             if (this.disposed) return;
 

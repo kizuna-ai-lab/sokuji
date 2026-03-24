@@ -169,6 +169,8 @@ export interface TtsGenerateMessage {
   sid: number;
   /** Speech rate multiplier (default 1.0) */
   speed: number;
+  /** Language code for multilingual models (e.g. 'ja', 'en') */
+  lang?: string;
 }
 
 export interface TtsDisposeMessage {
