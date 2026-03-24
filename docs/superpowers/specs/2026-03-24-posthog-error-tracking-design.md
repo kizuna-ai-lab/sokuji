@@ -35,7 +35,7 @@ Takes the initialized PostHog instance, returns a cleanup function that removes 
 
 ### Responsibilities
 
-1. **Hook global error handlers**: `window.onerror` and `window.onunhandledrejection`
+1. **Hook global error handlers**: `window.onerror` and `window.onunhandledrejection`. Saves and chains to any pre-existing handlers; cleanup restores the original handlers.
 2. **Parse stack traces**: Basic Chrome/Firefox format regex matching (two patterns cover 90%+ of cases)
 3. **Format as `$exception` event**: Send via `posthog.capture('$exception', ...)` in PostHog's expected format
 4. **Filter sensitive data**: Redact API key patterns in error messages
@@ -89,7 +89,7 @@ Two regex patterns for the dominant formats:
 - **Chrome/Edge/Node**: `at functionName (filename:line:col)` or `at filename:line:col`
 - **Firefox/Safari**: `functionName@filename:line:col`
 
-Frames are returned in reverse order (outermost call first) per PostHog convention. Unknown formats are silently skipped — a partial stack trace is better than none.
+Frames are reversed from their natural stack trace order (innermost/most-recent first) to outermost-first, per PostHog convention. Unknown formats are silently skipped — a partial stack trace is better than none.
 
 ## Sensitive Data Filtering
 
@@ -106,13 +106,13 @@ Prevents flooding from errors in loops or rapid re-renders:
 - Key: `type + message + filename + lineno`
 - Same key suppressed for 5 seconds after first report
 - Implementation: `Map<string, number>` storing last report timestamp
-- Map entries are cleaned up lazily (checked on next error)
+- Map entries are cleaned up lazily (checked on next error); map is capped at 100 entries, oldest evicted when exceeded
 
 ## Integration Point
 
 ### `shared/index.tsx` Changes
 
-In the `UnifiedApp` component, after PostHog initialization:
+The actual integration point is inside the `requestIdleCallback` callback within the existing `useEffect` in `UnifiedApp` (lines 142-153 of `shared/index.tsx`). Simplified view:
 
 ```typescript
 // Current code:
@@ -139,7 +139,7 @@ useEffect(() => {
 
 ### Development Mode Behavior
 
-Error tracking follows the existing PostHog capturing state. If analytics is active, errors are reported. No separate toggle — consistent with decision (C) from design discussion.
+Error tracking follows the existing PostHog capturing state. If analytics is active, errors are reported. No separate toggle — consistent with decision (C) from design discussion. When the user has called `posthog.optOut()`, the `posthog.capture()` call is internally a no-op in `posthog-js-lite`, so no additional opt-out gating is needed in `errorTracking.ts`.
 
 ## Scope
 
@@ -174,7 +174,7 @@ Unit tests in `src/lib/errorTracking.test.ts` using Vitest:
 4. **Deduplication**: Same error within 5s → only one `capture` call
 5. **Sensitive data redaction**: Message containing `sk-abc123` → `[REDACTED]`
 6. **Cleanup**: After calling the returned function, handlers are removed
-7. **Null safety**: Passing null PostHog instance → no handlers installed, no errors thrown
+7. **Null guard at call site**: The integration code guards with `if (client)` before calling `setupErrorTracking` — verify this guard exists
 
 ## Acceptance Criteria Mapping
 
