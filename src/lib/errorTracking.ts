@@ -114,7 +114,16 @@ export function setupErrorTracking(posthog: PostHog): () => void {
     if (reason instanceof Error) {
       captureError(posthog, dedup, reason, reason.message, undefined, undefined, undefined, 'onunhandledrejection');
     } else {
-      const message = typeof reason === 'string' ? reason : JSON.stringify(reason);
+      let message: string;
+      if (typeof reason === 'string') {
+        message = reason;
+      } else {
+        try {
+          message = JSON.stringify(reason);
+        } catch {
+          message = String(reason);
+        }
+      }
       captureError(posthog, dedup, null, message, undefined, undefined, undefined, 'onunhandledrejection');
     }
 
