@@ -2,7 +2,7 @@
  * StreamingAsrEngine — Main thread wrapper for the Streaming ASR Web Worker.
  * Provides a simple API for feeding audio and receiving real-time transcription.
  *
- * Uses a classic Web Worker (public/workers/streaming-asr.worker.js)
+ * Uses a classic Web Worker (public/workers/sherpa-onnx-streaming-asr.worker.js)
  * because sherpa-onnx Emscripten glue requires importScripts().
  *
  * Unlike AsrEngine (offline VAD + OfflineRecognizer), this engine uses
@@ -90,7 +90,7 @@ export class StreamingAsrEngine {
     }
 
     return new Promise((resolve, reject) => {
-      const workerUrl = './workers/streaming-asr.worker.js';
+      const workerUrl = './workers/sherpa-onnx-streaming-asr.worker.js';
       this.worker = new Worker(workerUrl);
 
       this.worker.onmessage = (event: MessageEvent<StreamingAsrWorkerOutMessage>) => {

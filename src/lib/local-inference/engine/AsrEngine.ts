@@ -2,7 +2,7 @@
  * AsrEngine — Main thread wrapper for the ASR Web Worker.
  * Provides a simple API for feeding audio and receiving transcription results.
  *
- * Uses a classic Web Worker (public/wasm/sherpa-onnx-asr/asr.worker.js)
+ * Uses a classic Web Worker (public/workers/sherpa-onnx-asr.worker.js)
  * because sherpa-onnx Emscripten glue requires importScripts().
  */
 
@@ -80,7 +80,7 @@ export class AsrEngine {
           );
           break;
         default: // sherpa-onnx
-          this.worker = new Worker('./workers/asr.worker.js');
+          this.worker = new Worker('./workers/sherpa-onnx-asr.worker.js');
           break;
       }
 
