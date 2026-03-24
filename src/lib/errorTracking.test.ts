@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseStackTrace } from './errorTracking';
+import { parseStackTrace, redactSensitiveData } from './errorTracking';
 
 describe('parseStackTrace', () => {
   it('parses Chrome/V8 stack frames', () => {
@@ -77,5 +77,29 @@ onClick@http://localhost:5173/assets/index.js:100:3`;
     expect(frames).toHaveLength(2);
     expect(frames[0].function).toBe('anotherFunc');
     expect(frames[1].function).toBe('validFunc');
+  });
+});
+
+describe('redactSensitiveData', () => {
+  it('redacts OpenAI API key patterns', () => {
+    expect(redactSensitiveData('Error with sk-abc123def456')).toBe('Error with [REDACTED]');
+  });
+
+  it('redacts Google API key patterns', () => {
+    expect(redactSensitiveData('Key: AIzaSyB-example123')).toBe('Key: [REDACTED]');
+  });
+
+  it('redacts generic key- prefixed tokens', () => {
+    expect(redactSensitiveData('Using key-abcdef12345')).toBe('Using [REDACTED]');
+  });
+
+  it('leaves normal messages unchanged', () => {
+    expect(redactSensitiveData('TypeError: undefined is not a function')).toBe(
+      'TypeError: undefined is not a function'
+    );
+  });
+
+  it('redacts multiple keys in one message', () => {
+    expect(redactSensitiveData('sk-aaa and AIzaSyB-bbb')).toBe('[REDACTED] and [REDACTED]');
   });
 });

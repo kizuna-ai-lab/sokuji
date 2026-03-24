@@ -50,6 +50,13 @@ export function parseStackTrace(stack: string): StackFrame[] {
   return frames;
 }
 
+// Matches common API key patterns: sk-..., AIza..., key-...
+const API_KEY_RE = /\b(sk-[a-zA-Z0-9_-]{3,}|AIza[a-zA-Z0-9_-]{3,}|key-[a-zA-Z0-9_-]{3,})\b/g;
+
+export function redactSensitiveData(message: string): string {
+  return message.replace(API_KEY_RE, '[REDACTED]');
+}
+
 export function setupErrorTracking(posthog: PostHog): () => void {
   return () => {};
 }
