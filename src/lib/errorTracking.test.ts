@@ -10,6 +10,7 @@ describe('parseStackTrace', () => {
     const frames = parseStackTrace(stack);
     expect(frames).toHaveLength(2);
     expect(frames[0]).toEqual({
+      platform: 'web:javascript',
       filename: 'http://localhost:5173/assets/index-abc123.js',
       function: 'HTMLButtonElement.onclick',
       lineno: 100,
@@ -17,6 +18,7 @@ describe('parseStackTrace', () => {
       in_app: true,
     });
     expect(frames[1]).toEqual({
+      platform: 'web:javascript',
       filename: 'http://localhost:5173/assets/index-abc123.js',
       function: 'handleClick',
       lineno: 42,
@@ -32,6 +34,7 @@ describe('parseStackTrace', () => {
     const frames = parseStackTrace(stack);
     expect(frames).toHaveLength(1);
     expect(frames[0]).toEqual({
+      platform: 'web:javascript',
       filename: 'http://localhost:5173/assets/index.js',
       function: '?',
       lineno: 10,
@@ -47,6 +50,7 @@ onClick@http://localhost:5173/assets/index.js:100:3`;
     const frames = parseStackTrace(stack);
     expect(frames).toHaveLength(2);
     expect(frames[0]).toEqual({
+      platform: 'web:javascript',
       filename: 'http://localhost:5173/assets/index.js',
       function: 'onClick',
       lineno: 100,
@@ -54,6 +58,7 @@ onClick@http://localhost:5173/assets/index.js:100:3`;
       in_app: true,
     });
     expect(frames[1]).toEqual({
+      platform: 'web:javascript',
       filename: 'http://localhost:5173/assets/index.js',
       function: 'handleClick',
       lineno: 42,

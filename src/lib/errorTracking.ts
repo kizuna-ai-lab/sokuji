@@ -1,6 +1,7 @@
 import type PostHog from 'posthog-js-lite';
 
 export interface StackFrame {
+  platform: string;
   filename: string;
   function: string;
   lineno?: number;
@@ -24,6 +25,7 @@ export function parseStackTrace(stack: string): StackFrame[] {
     let match = CHROME_FRAME_RE.exec(line);
     if (match) {
       frames.push({
+        platform: 'web:javascript',
         filename: match[2],
         function: match[1] || '?',
         lineno: parseInt(match[3], 10),
@@ -36,6 +38,7 @@ export function parseStackTrace(stack: string): StackFrame[] {
     match = FIREFOX_FRAME_RE.exec(line);
     if (match) {
       frames.push({
+        platform: 'web:javascript',
         filename: match[2],
         function: match[1] || '?',
         lineno: parseInt(match[3], 10),
