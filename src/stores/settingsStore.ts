@@ -30,6 +30,7 @@ export interface CommonSettings {
   templateSystemInstructions: string;
   useTemplateMode: boolean;
   participantSystemInstructions: string;
+  textOnly: boolean;
 }
 
 // Transport type for OpenAI Realtime API
@@ -135,6 +136,7 @@ const defaultCommonSettings: CommonSettings = {
   provider: Provider.OPENAI,
   uiLanguage: 'en',
   uiMode: 'basic',
+  textOnly: false,
   systemInstructions:
     "# ROLE & OBJECTIVE\n" +
     "You are a simultaneous interpreter.\n" +
@@ -317,11 +319,15 @@ interface SettingsStore {
   // Settings loading state
   settingsLoaded: boolean;
 
+  // Text-only mode (no audio output)
+  textOnly: boolean;
+
   // === Actions ===
   // Common settings actions
   setProvider: (provider: ProviderType) => void;
   setUILanguage: (lang: string) => void;
   setUIMode: (mode: 'basic' | 'advanced') => void;
+  setTextOnly: (textOnly: boolean) => void;
   setSystemInstructions: (instructions: string) => void;
   setTemplateSystemInstructions: (instructions: string) => void;
   setUseTemplateMode: (useTemplate: boolean) => void;
@@ -556,6 +562,12 @@ const useSettingsStore = create<SettingsStore>()(
       set({participantSystemInstructions});
       const service = ServiceFactory.getSettingsService();
       await service.setSetting('settings.common.participantSystemInstructions', participantSystemInstructions);
+    },
+
+    setTextOnly: async (textOnly) => {
+      set({textOnly});
+      const service = ServiceFactory.getSettingsService();
+      await service.setSetting('settings.common.textOnly', textOnly);
     },
 
     // === Provider Settings Actions ===
@@ -1010,6 +1022,7 @@ const useSettingsStore = create<SettingsStore>()(
         const templateSystemInstructions = await service.getSetting('settings.common.templateSystemInstructions', defaultCommonSettings.templateSystemInstructions);
         const useTemplateMode = await service.getSetting('settings.common.useTemplateMode', defaultCommonSettings.useTemplateMode);
         const participantSystemInstructions = await service.getSetting('settings.common.participantSystemInstructions', defaultCommonSettings.participantSystemInstructions);
+        const textOnly = await service.getSetting('settings.common.textOnly', defaultCommonSettings.textOnly);
 
         // Validate provider availability
         const validProvider = ProviderConfigFactory.isProviderSupported(provider) ? provider : Provider.OPENAI;
@@ -1042,6 +1055,7 @@ const useSettingsStore = create<SettingsStore>()(
           templateSystemInstructions,
           useTemplateMode,
           participantSystemInstructions,
+          textOnly,
           openai,
           gemini,
           openaiCompatible,
@@ -1134,17 +1148,18 @@ const useSettingsStore = create<SettingsStore>()(
 
     createSessionConfig: (systemInstructions) => {
       const state = get();
+      const { textOnly } = state;
       switch (state.provider) {
         case Provider.OPENAI:
-          return createOpenAISessionConfig(state.openai, systemInstructions);
+          return { ...createOpenAISessionConfig(state.openai, systemInstructions), textOnly };
         case Provider.OPENAI_COMPATIBLE:
-          return createOpenAISessionConfig(state.openaiCompatible, systemInstructions);
+          return { ...createOpenAISessionConfig(state.openaiCompatible, systemInstructions), textOnly };
         case Provider.GEMINI:
-          return createGeminiSessionConfig(state.gemini, systemInstructions);
+          return { ...createGeminiSessionConfig(state.gemini, systemInstructions), textOnly };
         case Provider.PALABRA_AI:
           return createPalabraAISessionConfig(state.palabraai, systemInstructions);
         case Provider.KIZUNA_AI:
-          return createOpenAISessionConfig(state.kizunaai, systemInstructions);
+          return { ...createOpenAISessionConfig(state.kizunaai, systemInstructions), textOnly };
         case Provider.VOLCENGINE_ST:
           return createVolcengineSTSessionConfig(state.volcengineST, systemInstructions);
         case Provider.VOLCENGINE_AST2:
@@ -1152,7 +1167,7 @@ const useSettingsStore = create<SettingsStore>()(
         case Provider.LOCAL_INFERENCE:
           return createLocalInferenceSessionConfig(state.localInference, systemInstructions);
         default:
-          return createOpenAISessionConfig(state.openai, systemInstructions);
+          return { ...createOpenAISessionConfig(state.openai, systemInstructions), textOnly };
       }
     },
 
@@ -1206,9 +1221,12 @@ export const useSettingsNavigationTarget = () => useSettingsStore((state) => sta
 export const useSettingsLoaded = () => useSettingsStore((state) => state.settingsLoaded);
 
 // Actions
+export const useTextOnly = () => useSettingsStore((state) => state.textOnly);
+
 export const useSetProvider = () => useSettingsStore((state) => state.setProvider);
 export const useSetUILanguage = () => useSettingsStore((state) => state.setUILanguage);
 export const useSetUIMode = () => useSettingsStore((state) => state.setUIMode);
+export const useSetTextOnly = () => useSettingsStore((state) => state.setTextOnly);
 export const useSetSystemInstructions = () => useSettingsStore((state) => state.setSystemInstructions);
 export const useSetTemplateSystemInstructions = () => useSettingsStore((state) => state.setTemplateSystemInstructions);
 export const useSetUseTemplateMode = () => useSettingsStore((state) => state.setUseTemplateMode);

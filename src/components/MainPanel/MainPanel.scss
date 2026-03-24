@@ -30,6 +30,7 @@
   scroll-behavior: smooth;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
+  position: relative;
 
   &::-webkit-scrollbar { width: 6px; }
   &::-webkit-scrollbar-track { background: transparent; }
@@ -37,6 +38,28 @@
     background: #444;
     border-radius: 3px;
     &:hover { background: #555; }
+  }
+}
+
+.clear-conversation-btn {
+  position: sticky;
+  top: 0;
+  float: right;
+  z-index: 10;
+  background: rgba(30, 30, 30, 0.8);
+  border: 1px solid #444;
+  border-radius: 4px;
+  color: #888;
+  cursor: pointer;
+  padding: 4px 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s, border-color 0.15s;
+
+  &:hover {
+    color: #e74c3c;
+    border-color: #e74c3c;
   }
 }
 

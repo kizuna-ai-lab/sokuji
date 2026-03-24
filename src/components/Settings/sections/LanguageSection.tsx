@@ -1,7 +1,8 @@
 import React, { useMemo } from 'react';
-import { Globe, Languages, ArrowRight, CircleHelp, AlertTriangle } from 'lucide-react';
+import { Globe, Languages, ArrowLeftRight, CircleHelp, AlertTriangle, VolumeX } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import Tooltip from '../../Tooltip/Tooltip';
+import ToggleSwitch from '../shared/ToggleSwitch';
 import {
   useProvider,
   useOpenAISettings,
@@ -18,7 +19,9 @@ import {
   useUpdateKizunaAI,
   useUpdateLocalInference,
   useNavigateToSettings,
-  useSetUIMode
+  useSetUIMode,
+  useTextOnly,
+  useSetTextOnly
 } from '../../../stores/settingsStore';
 import { Provider } from '../../../types/Provider';
 import { ProviderConfigFactory } from '../../../services/providers/ProviderConfigFactory';
@@ -64,6 +67,9 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
   const navigateToSettings = useNavigateToSettings();
   const setUIMode = useSetUIMode();
 
+  const textOnly = useTextOnly();
+  const setTextOnly = useSetTextOnly();
+
   const setUILanguage = useSetUILanguage();
   const updateOpenAISettings = useUpdateOpenAI();
   const updateGeminiSettings = useUpdateGemini();
@@ -100,6 +106,22 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
         return openAISettings;
     }
   }, [provider, openAISettings, geminiSettings, openAICompatibleSettings, palabraAISettings, kizunaAISettings, localInferenceSettings]);
+
+  // Swap source and target languages
+  const handleSwapLanguages = () => {
+    const src = currentProviderSettings?.sourceLanguage;
+    const tgt = currentProviderSettings?.targetLanguage;
+    if (!src || !tgt || src === 'auto') return;
+
+    if (provider === Provider.LOCAL_INFERENCE) {
+      const availableTargets = getTranslationTargetLanguages(tgt);
+      const newTarget = availableTargets.some(l => l.value === src) ? src : availableTargets[0]?.value || 'en';
+      updateLocalInferenceSettings({ sourceLanguage: tgt, targetLanguage: newTarget });
+    } else {
+      updateSourceLanguage(tgt);
+      updateTargetLanguage(src);
+    }
+  };
 
   // Update source language
   const updateSourceLanguage = (value: string) => {
@@ -331,7 +353,15 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
             </div>
 
             <div className="language-arrow">
-              <ArrowRight size={20} />
+              <button
+                className="language-swap-btn"
+                onClick={handleSwapLanguages}
+                disabled={isSessionActive || currentProviderSettings.sourceLanguage === 'auto'}
+                title={t('simpleConfig.swapLanguages', 'Swap languages')}
+                type="button"
+              >
+                <ArrowLeftRight size={18} />
+              </button>
             </div>
 
             <div className="language-select-group">
@@ -350,6 +380,14 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
               </select>
             </div>
           </div>
+
+          <ToggleSwitch
+            checked={textOnly}
+            onChange={() => setTextOnly(!textOnly)}
+            label={t('simpleConfig.textOnly', 'Text Only')}
+            disabled={isSessionActive}
+            tooltip={t('simpleConfig.textOnlyDesc', 'Show translation as text only, without generating an audio response')}
+          />
 
           {provider === Provider.LOCAL_INFERENCE && missingModelTypes.length > 0 && (
             <div className="language-model-warning">

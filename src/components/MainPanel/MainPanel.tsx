@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
-import {X, Zap, Mic, MicOff, Loader, Play, Volume2, VolumeX, Wrench, Send, AlertCircle, MessageSquare} from 'lucide-react';
+import {X, Zap, Mic, MicOff, Loader, Play, Volume2, VolumeX, Wrench, Send, AlertCircle, MessageSquare, Trash2} from 'lucide-react';
 import './MainPanel.scss';
 import {
   useProvider,
@@ -2518,6 +2518,16 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       <div className="main-panel">
         {/* Conversation Display */}
         <div className="conversation-display" ref={conversationContainerRef}>
+          {filteredItems.length > 0 && (
+            <button
+              className="clear-conversation-btn"
+              onClick={() => { setItems([]); setSystemAudioItems([]); }}
+              title={t('mainPanel.clearConversation', 'Clear conversation')}
+              type="button"
+            >
+              <Trash2 size={14} />
+            </button>
+          )}
           {filteredItems.length === 0 ? (
             <div className="empty-state">
               <MessageSquare size={32} />
