@@ -88,6 +88,8 @@ export default defineConfig(({ mode }) => {
           { src: '../public/wasm/sherpa-onnx-asr/*', dest: 'wasm/sherpa-onnx-asr' },
           { src: '../public/wasm/sherpa-onnx-tts/*', dest: 'wasm/sherpa-onnx-tts' },
           { src: '../public/wasm/sherpa-onnx-asr-stream/*', dest: 'wasm/sherpa-onnx-asr-stream' },
+          // Piper-Plus WASM runtime (OpenJTalk + phonemizer for Japanese TTS)
+          { src: '../public/wasm/piper-plus/*', dest: 'wasm/piper-plus' },
           // Dev-only assets
           ...(isDevMode
             ? [{ src: '../public/assets/test-tone.mp3', dest: 'assets' }]
