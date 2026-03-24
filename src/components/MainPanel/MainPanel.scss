@@ -44,7 +44,8 @@
 .clear-conversation-btn {
   position: sticky;
   top: 0;
-  float: right;
+  right: 0;
+  margin-left: auto;
   z-index: 10;
   background: rgba(30, 30, 30, 0.8);
   border: 1px solid #444;
