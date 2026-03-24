@@ -462,6 +462,12 @@ function handleGenerate(msg) {
     }
     feeds.lid = new ort.Tensor('int64', new BigInt64Array([BigInt(langId)]), [1]);
 
+    // Prosody features — required by this model, shape [1, seq_len, 3]
+    // Default to zeros (neutral prosody). Full prosody extraction from
+    // OpenJTalk A1/A2/A3 labels can be added later for better intonation.
+    var prosodyData = new BigInt64Array(seqLen * 3);  // zero-filled
+    feeds.prosody_features = new ort.Tensor('int64', prosodyData, [1, seqLen, 3]);
+
     // Step 3: Run ONNX inference
     onnxSession.run(feeds).then(function(results) {
       // Extract output samples
