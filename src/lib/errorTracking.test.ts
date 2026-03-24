@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseStackTrace, redactSensitiveData, createDeduplicator } from './errorTracking';
+import { parseStackTrace, redactSensitiveData, createDeduplicator, setupErrorTracking } from './errorTracking';
 
 describe('parseStackTrace', () => {
   it('parses Chrome/V8 stack frames', () => {
@@ -141,5 +141,170 @@ describe('createDeduplicator', () => {
     }
     expect(dedup.shouldReport('Error', 'msg100', 'app.js', 100)).toBe(true);
     expect(dedup.shouldReport('Error', 'msg0', 'app.js', 0)).toBe(true);
+  });
+});
+
+describe('setupErrorTracking', () => {
+  let mockPosthog: { capture: ReturnType<typeof vi.fn> };
+
+  beforeEach(() => {
+    mockPosthog = { capture: vi.fn() };
+    window.onerror = null;
+    window.onunhandledrejection = null;
+  });
+
+  afterEach(() => {
+    window.onerror = null;
+    window.onunhandledrejection = null;
+  });
+
+  it('installs window.onerror and window.onunhandledrejection handlers', () => {
+    const cleanup = setupErrorTracking(mockPosthog as any);
+    expect(window.onerror).toBeInstanceOf(Function);
+    expect(window.onunhandledrejection).toBeInstanceOf(Function);
+    cleanup();
+  });
+
+  it('captures $exception on window.onerror with Error object', () => {
+    const cleanup = setupErrorTracking(mockPosthog as any);
+
+    const error = new TypeError('test error');
+    error.stack = `TypeError: test error
+    at testFunc (http://localhost:5173/assets/app.js:10:5)`;
+
+    window.onerror!('test error', 'http://localhost:5173/assets/app.js', 10, 5, error);
+
+    expect(mockPosthog.capture).toHaveBeenCalledOnce();
+    const [eventName, props] = mockPosthog.capture.mock.calls[0];
+    expect(eventName).toBe('$exception');
+    expect(props.$exception_type).toBe('TypeError');
+    expect(props.$exception_message).toBe('test error');
+    expect(props.$exception_level).toBe('error');
+    expect(props.$exception_source).toBe('onerror');
+    expect(props.$exception_list).toHaveLength(1);
+    expect(props.$exception_list[0].mechanism).toEqual({ handled: false, type: 'onerror' });
+    expect(props.$exception_list[0].stacktrace.frames).toHaveLength(1);
+
+    cleanup();
+  });
+
+  it('captures $exception on window.onerror without Error object (string-only)', () => {
+    const cleanup = setupErrorTracking(mockPosthog as any);
+
+    window.onerror!('Script error.', 'http://example.com/app.js', 10, 5, undefined);
+
+    expect(mockPosthog.capture).toHaveBeenCalledOnce();
+    const [, props] = mockPosthog.capture.mock.calls[0];
+    expect(props.$exception_type).toBe('Error');
+    expect(props.$exception_message).toBe('Script error.');
+
+    cleanup();
+  });
+
+  it('captures $exception on unhandledrejection', () => {
+    const cleanup = setupErrorTracking(mockPosthog as any);
+
+    const error = new ReferenceError('x is not defined');
+    error.stack = `ReferenceError: x is not defined
+    at main (http://localhost:5173/assets/app.js:5:1)`;
+
+    const event = { reason: error } as PromiseRejectionEvent;
+    window.onunhandledrejection!(event);
+
+    expect(mockPosthog.capture).toHaveBeenCalledOnce();
+    const [, props] = mockPosthog.capture.mock.calls[0];
+    expect(props.$exception_type).toBe('ReferenceError');
+    expect(props.$exception_source).toBe('onunhandledrejection');
+    expect(props.$exception_list[0].mechanism.type).toBe('onunhandledrejection');
+
+    cleanup();
+  });
+
+  it('captures unhandledrejection with string reason', () => {
+    const cleanup = setupErrorTracking(mockPosthog as any);
+
+    const event = { reason: 'string rejection' } as PromiseRejectionEvent;
+    window.onunhandledrejection!(event);
+
+    expect(mockPosthog.capture).toHaveBeenCalledOnce();
+    const [, props] = mockPosthog.capture.mock.calls[0];
+    expect(props.$exception_type).toBe('UnhandledRejection');
+    expect(props.$exception_message).toBe('string rejection');
+
+    cleanup();
+  });
+
+  it('captures unhandledrejection with object reason', () => {
+    const cleanup = setupErrorTracking(mockPosthog as any);
+
+    const event = { reason: { code: 500, detail: 'server error' } } as PromiseRejectionEvent;
+    window.onunhandledrejection!(event);
+
+    expect(mockPosthog.capture).toHaveBeenCalledOnce();
+    const [, props] = mockPosthog.capture.mock.calls[0];
+    expect(props.$exception_type).toBe('UnhandledRejection');
+    expect(props.$exception_message).toContain('500');
+
+    cleanup();
+  });
+
+  it('redacts API keys in error messages', () => {
+    const cleanup = setupErrorTracking(mockPosthog as any);
+
+    const error = new Error('Invalid API key: sk-abc123def456xyz789');
+    error.stack = 'Error: Invalid API key: sk-abc123def456xyz789\n    at f (app.js:1:1)';
+
+    window.onerror!('', '', 0, 0, error);
+
+    const [, props] = mockPosthog.capture.mock.calls[0];
+    expect(props.$exception_message).toContain('[REDACTED]');
+    expect(props.$exception_message).not.toContain('sk-abc123');
+
+    cleanup();
+  });
+
+  it('deduplicates same error within 5 seconds', () => {
+    const cleanup = setupErrorTracking(mockPosthog as any);
+
+    const error = new Error('dupe');
+    error.stack = 'Error: dupe\n    at f (app.js:1:1)';
+
+    window.onerror!('dupe', 'app.js', 1, 1, error);
+    window.onerror!('dupe', 'app.js', 1, 1, error);
+    window.onerror!('dupe', 'app.js', 1, 1, error);
+
+    expect(mockPosthog.capture).toHaveBeenCalledOnce();
+
+    cleanup();
+  });
+
+  it('cleanup restores original handlers', () => {
+    const originalOnerror = vi.fn();
+    const originalRejection = vi.fn();
+    window.onerror = originalOnerror;
+    window.onunhandledrejection = originalRejection;
+
+    const cleanup = setupErrorTracking(mockPosthog as any);
+    expect(window.onerror).not.toBe(originalOnerror);
+
+    cleanup();
+    expect(window.onerror).toBe(originalOnerror);
+    expect(window.onunhandledrejection).toBe(originalRejection);
+  });
+
+  it('chains to pre-existing onerror handler', () => {
+    const originalOnerror = vi.fn();
+    window.onerror = originalOnerror;
+
+    const cleanup = setupErrorTracking(mockPosthog as any);
+
+    const error = new Error('test');
+    error.stack = 'Error: test\n    at f (app.js:1:1)';
+    window.onerror!('test', 'app.js', 1, 1, error);
+
+    expect(originalOnerror).toHaveBeenCalledOnce();
+    expect(mockPosthog.capture).toHaveBeenCalledOnce();
+
+    cleanup();
   });
 });

@@ -92,5 +92,85 @@ export function createDeduplicator(): Deduplicator {
 }
 
 export function setupErrorTracking(posthog: PostHog): () => void {
-  return () => {};
+  const dedup = createDeduplicator();
+
+  const prevOnerror = window.onerror;
+  const prevOnunhandledrejection = window.onunhandledrejection;
+
+  window.onerror = (message, source, lineno, colno, error) => {
+    captureError(posthog, dedup, error, String(message), source, lineno, colno, 'onerror');
+
+    if (typeof prevOnerror === 'function') {
+      prevOnerror.call(window, message, source, lineno, colno, error);
+    }
+  };
+
+  window.onunhandledrejection = (event: PromiseRejectionEvent) => {
+    const reason = event.reason;
+
+    if (reason instanceof Error) {
+      captureError(posthog, dedup, reason, reason.message, undefined, undefined, undefined, 'onunhandledrejection');
+    } else {
+      const message = typeof reason === 'string' ? reason : JSON.stringify(reason);
+      captureError(posthog, dedup, null, message, undefined, undefined, undefined, 'onunhandledrejection');
+    }
+
+    if (typeof prevOnunhandledrejection === 'function') {
+      prevOnunhandledrejection.call(window, event);
+    }
+  };
+
+  return () => {
+    window.onerror = prevOnerror;
+    window.onunhandledrejection = prevOnunhandledrejection;
+  };
+}
+
+function captureError(
+  posthog: PostHog,
+  dedup: Deduplicator,
+  error: Error | null | undefined,
+  message: string,
+  source?: string,
+  lineno?: number,
+  colno?: number,
+  mechanism: 'onerror' | 'onunhandledrejection' = 'onerror',
+): void {
+  const type = error?.name || (mechanism === 'onunhandledrejection' ? 'UnhandledRejection' : 'Error');
+  const rawMessage = error?.message || message;
+  const redactedMessage = redactSensitiveData(rawMessage);
+
+  const frames = error?.stack ? parseStackTrace(error.stack) : [];
+
+  const topFrame = frames.length > 0 ? frames[frames.length - 1] : undefined;
+  const dedupFilename = topFrame?.filename || source || '';
+  const dedupLineno = topFrame?.lineno || lineno;
+
+  if (!dedup.shouldReport(type, rawMessage, dedupFilename, dedupLineno)) {
+    return;
+  }
+
+  const exceptionEntry: Record<string, any> = {
+    type,
+    value: redactedMessage,
+    mechanism: {
+      handled: false,
+      type: mechanism,
+    },
+  };
+
+  if (frames.length > 0) {
+    exceptionEntry.stacktrace = {
+      type: 'raw',
+      frames,
+    };
+  }
+
+  posthog.capture('$exception', {
+    $exception_type: type,
+    $exception_message: redactedMessage,
+    $exception_level: 'error',
+    $exception_source: mechanism,
+    $exception_list: [exceptionEntry],
+  });
 }
