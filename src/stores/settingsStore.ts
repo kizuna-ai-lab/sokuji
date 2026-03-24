@@ -1148,27 +1148,37 @@ const useSettingsStore = create<SettingsStore>()(
 
     createSessionConfig: (systemInstructions) => {
       const state = get();
-      const { textOnly } = state;
+      let config: SessionConfig;
       switch (state.provider) {
         case Provider.OPENAI:
-          return { ...createOpenAISessionConfig(state.openai, systemInstructions), textOnly };
+          config = createOpenAISessionConfig(state.openai, systemInstructions);
+          break;
         case Provider.OPENAI_COMPATIBLE:
-          return { ...createOpenAISessionConfig(state.openaiCompatible, systemInstructions), textOnly };
+          config = createOpenAISessionConfig(state.openaiCompatible, systemInstructions);
+          break;
         case Provider.GEMINI:
-          return { ...createGeminiSessionConfig(state.gemini, systemInstructions), textOnly };
+          config = createGeminiSessionConfig(state.gemini, systemInstructions);
+          break;
         case Provider.PALABRA_AI:
-          return createPalabraAISessionConfig(state.palabraai, systemInstructions);
+          config = createPalabraAISessionConfig(state.palabraai, systemInstructions);
+          break;
         case Provider.KIZUNA_AI:
-          return { ...createOpenAISessionConfig(state.kizunaai, systemInstructions), textOnly };
+          config = createOpenAISessionConfig(state.kizunaai, systemInstructions);
+          break;
         case Provider.VOLCENGINE_ST:
-          return createVolcengineSTSessionConfig(state.volcengineST, systemInstructions);
+          config = createVolcengineSTSessionConfig(state.volcengineST, systemInstructions);
+          break;
         case Provider.VOLCENGINE_AST2:
-          return createVolcengineAST2SessionConfig(state.volcengineAST2, systemInstructions);
+          config = createVolcengineAST2SessionConfig(state.volcengineAST2, systemInstructions);
+          break;
         case Provider.LOCAL_INFERENCE:
-          return createLocalInferenceSessionConfig(state.localInference, systemInstructions);
+          config = createLocalInferenceSessionConfig(state.localInference, systemInstructions);
+          break;
         default:
-          return { ...createOpenAISessionConfig(state.openai, systemInstructions), textOnly };
+          config = createOpenAISessionConfig(state.openai, systemInstructions);
       }
+      config.textOnly = state.textOnly;
+      return config;
     },
 
     navigateToSettings: (target) => {
