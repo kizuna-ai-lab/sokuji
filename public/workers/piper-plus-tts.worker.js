@@ -296,32 +296,51 @@ function handleInit(msg) {
 
 /**
  * Convert a phoneme token array to an int64 ID sequence using phoneme_id_map.
- * Each token is looked up in the map; tokens not found are skipped.
- * BOS (^) and EOS ($) are included if present in tokens.
- * Pad ID (0) is inserted between each phoneme's IDs.
+ * Matching the multilingual demo's format:
+ *   [BOS, PAD, phoneme1, PAD, phoneme2, PAD, ..., EOS]
+ *
+ * Input tokens should include '^' (BOS) and '$' (EOS).
+ * BOS/EOS from the input are skipped — we inject them explicitly.
+ * Unknown tokens are silently dropped.
  */
 function phonemeTokensToIds(tokens) {
+  if (!phonemeIdMap) return [];
+
+  var padIds = phonemeIdMap['_'] || [0];
+  var bosIds = phonemeIdMap['^'] || [1];
+  var eosIds = phonemeIdMap['$'] || [2];
+
   var ids = [];
+
+  // BOS + PAD prefix
+  for (var b = 0; b < bosIds.length; b++) ids.push(bosIds[b]);
+  for (var p = 0; p < padIds.length; p++) ids.push(padIds[p]);
 
   for (var i = 0; i < tokens.length; i++) {
     var token = tokens[i];
-    if (phonemeIdMap && phonemeIdMap[token]) {
-      var mapped = phonemeIdMap[token];
+    // Skip BOS/EOS from input — we handle them ourselves
+    if (token === '^' || token === '$') continue;
+
+    var mapped = phonemeIdMap[token];
+    if (mapped) {
       for (var j = 0; j < mapped.length; j++) {
         ids.push(mapped[j]);
       }
-      // Insert pad (0) between phonemes, but not after last
-      if (i < tokens.length - 1) {
-        ids.push(0);
-      }
+      // PAD after each phoneme
+      for (var q = 0; q < padIds.length; q++) ids.push(padIds[q]);
     }
+    // Unknown tokens silently dropped
   }
+
+  // EOS suffix
+  for (var e = 0; e < eosIds.length; e++) ids.push(eosIds[e]);
 
   return ids;
 }
 
 /**
  * Phonemize text for Japanese using OpenJTalk labels → phoneme extraction.
+ * extractPhonemesFromLabels() returns tokens including '^' and '$' from sil labels.
  * Returns an array of phoneme IDs (integers).
  */
 function phonemizeJapanese(text) {
@@ -337,45 +356,108 @@ function phonemizeJapanese(text) {
     throw new Error('OpenJTalk label extraction failed: ' + labels);
   }
 
-  // Extract phoneme tokens from labels (includes PUA mapping)
+  // Extract phoneme tokens from labels (includes PUA mapping, '^' and '$')
   var tokens = extractPhonemesFromLabels(labels);
   return phonemeTokensToIds(tokens);
 }
 
 /**
- * Phonemize text for English using simple rule-based phonemizer.
- * Returns an array of phoneme IDs (integers).
+ * Phonemize text for English using ESpeakPhonemeExtractor.
+ * Uses the same dictionary + rule-based IPA pipeline as the piper-plus demo.
+ * ESpeakPhonemeExtractor.phonemize() returns ['^', ...phonemes, '$'].
+ * Returns a Promise resolving to an array of phoneme IDs (integers).
  */
 function phonemizeEnglish(text) {
-  // Use SimpleUnifiedPhonemizer's extractPhonemesFromIPA for proper tokenization
-  var rawPhonemes = phonemizer.englishPhonemizer.textToPhonemes(text);
-  // The IPA output is already an array of phoneme tokens
-  var tokens = phonemizer.extractPhonemesFromIPA(rawPhonemes);
-  return phonemeTokensToIds(tokens);
+  var extractor = new ESpeakPhonemeExtractor();
+  extractor.initialized = true;
+  // phonemize() is sync in practice (dictionary lookup, no async eSpeak)
+  // but returns a Promise for API compatibility
+  return extractor.phonemize(text, 'en-us');
 }
 
 /**
- * Phonemize text for Chinese/Latin fallback using character-level mapping.
- * These methods already return phoneme ID arrays directly.
+ * Phonemize text for Chinese using character-level phoneme_id_map lookup.
+ * Returns an array of phoneme IDs (integers) with BOS/PAD/EOS.
  */
-function phonemizeFallback(text, lang) {
-  if (lang === 'zh') {
-    return phonemizer.phonemizeChinese(text);
+function phonemizeChinese(text) {
+  if (!phonemeIdMap) return [];
+  var ids = [];
+  var padIds = phonemeIdMap['_'] || [0];
+  var bosIds = phonemeIdMap['^'] || [1];
+  var eosIds = phonemeIdMap['$'] || [2];
+
+  for (var b = 0; b < bosIds.length; b++) ids.push(bosIds[b]);
+  for (var p = 0; p < padIds.length; p++) ids.push(padIds[p]);
+
+  for (var i = 0; i < text.length; i++) {
+    var ch = text[i];
+    var mapped = phonemeIdMap[ch];
+    if (mapped) {
+      for (var j = 0; j < mapped.length; j++) ids.push(mapped[j]);
+      for (var q = 0; q < padIds.length; q++) ids.push(padIds[q]);
+    }
   }
-  return phonemizer.phonemizeLatinFallback(text);
+
+  for (var e = 0; e < eosIds.length; e++) ids.push(eosIds[e]);
+  return ids;
+}
+
+/**
+ * Phonemize text for Latin languages (es/fr/pt) using character-level mapping.
+ * Lowercases text first, then maps each character through phoneme_id_map.
+ * Returns an array of phoneme IDs (integers) with BOS/PAD/EOS.
+ */
+function phonemizeLatinFallback(text) {
+  if (!phonemeIdMap) return [];
+  var ids = [];
+  var padIds = phonemeIdMap['_'] || [0];
+  var bosIds = phonemeIdMap['^'] || [1];
+  var eosIds = phonemeIdMap['$'] || [2];
+  var spaceIds = phonemeIdMap[' '] || null;
+
+  for (var b = 0; b < bosIds.length; b++) ids.push(bosIds[b]);
+  for (var p = 0; p < padIds.length; p++) ids.push(padIds[p]);
+
+  var lower = text.toLowerCase();
+  for (var i = 0; i < lower.length; i++) {
+    var ch = lower[i];
+    if (ch === ' ') {
+      if (spaceIds) {
+        for (var s = 0; s < spaceIds.length; s++) ids.push(spaceIds[s]);
+        for (var q = 0; q < padIds.length; q++) ids.push(padIds[q]);
+      }
+    } else {
+      var mapped = phonemeIdMap[ch];
+      if (mapped) {
+        for (var j = 0; j < mapped.length; j++) ids.push(mapped[j]);
+        for (var q2 = 0; q2 < padIds.length; q2++) ids.push(padIds[q2]);
+      }
+    }
+  }
+
+  for (var e = 0; e < eosIds.length; e++) ids.push(eosIds[e]);
+  return ids;
 }
 
 /**
  * Route phonemization based on language.
- * Returns an array of phoneme IDs (integers).
+ * Japanese and English return phoneme tokens → phonemeTokensToIds.
+ * Chinese and Latin languages return raw phoneme IDs directly.
+ * English returns a Promise; others are synchronous.
  */
 function phonemize(text, lang) {
   if (lang === 'ja') {
-    return phonemizeJapanese(text);
+    return Promise.resolve(phonemizeJapanese(text));
   } else if (lang === 'en') {
-    return phonemizeEnglish(text);
+    // ESpeakPhonemeExtractor.phonemize returns Promise<token[]>
+    return phonemizeEnglish(text).then(function(tokens) {
+      return phonemeTokensToIds(tokens);
+    });
+  } else if (lang === 'zh') {
+    return Promise.resolve(phonemizeChinese(text));
   } else {
-    return phonemizeFallback(text, lang || 'en');
+    // es, fr, pt — Latin character-level fallback
+    return Promise.resolve(phonemizeLatinFallback(text));
   }
 }
 
@@ -418,12 +500,13 @@ function handleGenerate(msg) {
     return;
   }
 
+  // Normalize language code: 'zh_CN' → 'zh', 'ja-JP' → 'ja', 'en' → 'en'
+  lang = lang.split(/[-_]/)[0].toLowerCase();
+
   var startTime = performance.now();
 
-  try {
-    // Step 1: Phonemize
-    var phonemeIds = phonemize(text, lang);
-
+  // Step 1: Phonemize (async — English path returns a Promise)
+  phonemize(text, lang).then(function(phonemeIds) {
     if (!phonemeIds || phonemeIds.length === 0) {
       postMessage({ type: 'error', error: 'Phonemization produced no output for: ' + text });
       return;
@@ -454,7 +537,7 @@ function handleGenerate(msg) {
       scales: scalesTensor
     };
 
-    // Language ID tensor — required by multilingual piper-plus models (input name: 'sid')
+    // Language ID tensor — required by multilingual piper-plus models (input name: 'lid')
     // Default to 0 (Japanese) if language not found in map
     var langId = 0;
     if (ttsConfig.languageIdMap && lang && ttsConfig.languageIdMap[lang] !== undefined) {
@@ -494,9 +577,9 @@ function handleGenerate(msg) {
     }).catch(function(err) {
       postMessage({ type: 'error', error: 'ONNX inference failed: ' + (err.message || err) });
     });
-  } catch (e) {
+  }).catch(function(e) {
     postMessage({ type: 'error', error: 'Generation failed: ' + (e.message || e) });
-  }
+  });
 }
 
 // ─── Dispose ────────────────────────────────────────────────────────────────
