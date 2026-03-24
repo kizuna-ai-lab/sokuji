@@ -1365,7 +1365,11 @@
     gap: 12px;
 
     .language-arrow {
-      display: none;
+      justify-content: center;
+
+      .language-swap-btn {
+        width: 100%;
+      }
     }
   }
 }
