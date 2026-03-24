@@ -2,7 +2,7 @@
 
 **Date**: 2026-03-23
 **Issue**: [#135](https://github.com/kizuna-ai-lab/sokuji/issues/135)
-**Status**: Draft
+**Status**: Implemented (pending full E2E validation)
 
 ## Summary
 
