@@ -133,7 +133,7 @@ function captureError(
   message: string,
   source?: string,
   lineno?: number,
-  colno?: number,
+  _colno?: number,
   mechanism: 'onerror' | 'onunhandledrejection' = 'onerror',
 ): void {
   const type = error?.name || (mechanism === 'onunhandledrejection' ? 'UnhandledRejection' : 'Error');
