@@ -1,8 +1,9 @@
-import React, { useState, useEffect, createContext, useContext } from 'react';
+import React, { useState, useEffect, useRef, createContext, useContext } from 'react';
 import ReactDOM from 'react-dom/client';
 import App from '../src/App';
 import PostHog from 'posthog-js-lite';
 import { ANALYTICS_CONFIG, isDevelopment, getPlatform, getEnvironment, isAnalyticsEnabled } from '../src/config/analytics';
+import { setupErrorTracking } from '../src/lib/errorTracking';
 
 // Create PostHog context for React
 const PostHogContext = createContext<PostHog | null>(null);
@@ -119,6 +120,7 @@ const initializePostHog = async (): Promise<PostHog | null> => {
 const UnifiedApp = () => {
   const [isLoaded, setIsLoaded] = useState(false);
   const [posthogClient, setPosthogClient] = useState<PostHog | null>(null);
+  const errorTrackingCleanupRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     const initializeApp = async () => {
@@ -143,6 +145,9 @@ const UnifiedApp = () => {
         const analyticsStart = performance.now();
         initializePostHog().then(client => {
           setPosthogClient(client);
+          if (client) {
+            errorTrackingCleanupRef.current = setupErrorTracking(client);
+          }
           const analyticsEnd = performance.now();
           console.log(`[Sokuji] Analytics initialized in ${Math.round(analyticsEnd - analyticsStart)}ms`);
         }).catch(error => {
@@ -154,6 +159,13 @@ const UnifiedApp = () => {
     };
 
     initializeApp();
+  }, []);
+
+  // Cleanup error tracking on unmount
+  useEffect(() => {
+    return () => {
+      errorTrackingCleanupRef.current?.();
+    };
   }, []);
 
   if (!isLoaded) {
