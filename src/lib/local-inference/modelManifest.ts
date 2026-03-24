@@ -206,6 +206,8 @@ export function getModelDownloadUrl(
  * restrictions on downloading and executing JS/WASM at runtime.
  */
 export const TTS_BUNDLED_RUNTIME_PATH = './wasm/sherpa-onnx-tts';
+export const PIPER_PLUS_BUNDLED_RUNTIME_PATH = './wasm/piper-plus';
+export const ORT_BUNDLED_PATH = './wasm/ort';
 
 /**
  * Base path for bundled ASR runtime files (JS/WASM shared across all offline models).

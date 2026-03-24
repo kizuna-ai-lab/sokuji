@@ -2,8 +2,7 @@
  * TtsEngine — Main thread wrapper for the TTS Web Worker.
  * Provides a simple API for generating speech from text.
  *
- * Uses a classic Web Worker (public/workers/tts.worker.js)
- * because sherpa-onnx Emscripten glue requires importScripts().
+ * Selects either sherpa-onnx or piper-plus Web Worker based on engine type.
  */
 
 import type { TtsWorkerOutMessage } from '../types';
@@ -11,6 +10,8 @@ import {
   getManifestEntry,
   getManifestByType,
   TTS_BUNDLED_RUNTIME_PATH,
+  PIPER_PLUS_BUNDLED_RUNTIME_PATH,
+  ORT_BUNDLED_PATH,
   type ModelManifestEntry,
 } from '../modelManifest';
 import { ModelManager } from '../ModelManager';
@@ -69,24 +70,32 @@ export class TtsEngine {
     }
     const fileUrls = await manager.getModelBlobUrls(modelId);
 
-    // Read the Emscripten loadPackage metadata from the downloaded JSON
-    const metadataBlobUrl = fileUrls['package-metadata.json'];
-    if (!metadataBlobUrl) {
-      throw new Error(`Missing package-metadata.json for TTS model "${modelId}"`);
-    }
-    const metadataResponse = await fetch(metadataBlobUrl);
-    const dataPackageMetadata = await metadataResponse.json();
+    const isPiperPlus = model.engine === 'piper-plus';
 
-    // Only pass the .data blob URL to the worker (metadata is sent as JSON)
-    const dataFileUrls: Record<string, string> = {};
-    for (const [name, url] of Object.entries(fileUrls)) {
-      if (name !== 'package-metadata.json') {
-        dataFileUrls[name] = url;
+    // Sherpa-onnx path: read Emscripten loadPackage metadata
+    let dataPackageMetadata: Record<string, unknown> | null = null;
+    let dataFileUrls: Record<string, string> = fileUrls;
+    if (!isPiperPlus) {
+      const metadataBlobUrl = fileUrls['package-metadata.json'];
+      if (!metadataBlobUrl) {
+        throw new Error(`Missing package-metadata.json for TTS model "${modelId}"`);
+      }
+      const metadataResponse = await fetch(metadataBlobUrl);
+      dataPackageMetadata = await metadataResponse.json();
+      // Strip metadata from file URLs sent to worker
+      dataFileUrls = {};
+      for (const [name, url] of Object.entries(fileUrls)) {
+        if (name !== 'package-metadata.json') {
+          dataFileUrls[name] = url;
+        }
       }
     }
 
     return new Promise((resolve, reject) => {
-      const workerUrl = './workers/tts.worker.js';
+      // Select worker based on engine type
+      const workerUrl = isPiperPlus
+        ? './workers/piper-plus-tts.worker.js'
+        : './workers/sherpa-onnx-tts.worker.js';
       this.worker = new Worker(workerUrl);
 
       this.worker.onmessage = (event: MessageEvent<TtsWorkerOutMessage>) => {
@@ -150,17 +159,27 @@ export class TtsEngine {
         }
       };
 
-      // JS/WASM runtime is bundled at TTS_BUNDLED_RUNTIME_PATH.
-      // Only .data blob URL + metadata JSON are model-specific.
-      this.worker.postMessage({
-        type: 'init',
-        modelFile: model.modelFile || '',
-        engine: model.engine || '',
-        ttsConfig: model.ttsConfig || {},
-        runtimeBaseUrl: new URL(TTS_BUNDLED_RUNTIME_PATH, window.location.href).href,
-        dataPackageMetadata,
-        fileUrls: dataFileUrls,
-      });
+      // Send engine-specific init message
+      if (isPiperPlus) {
+        this.worker.postMessage({
+          type: 'init',
+          fileUrls,
+          runtimeBaseUrl: new URL(PIPER_PLUS_BUNDLED_RUNTIME_PATH, window.location.href).href,
+          ortBaseUrl: new URL(ORT_BUNDLED_PATH, window.location.href).href,
+          engine: 'piper-plus',
+          ttsConfig: model.ttsConfig || {},
+        });
+      } else {
+        this.worker.postMessage({
+          type: 'init',
+          modelFile: model.modelFile || '',
+          engine: model.engine || '',
+          ttsConfig: model.ttsConfig || {},
+          runtimeBaseUrl: new URL(TTS_BUNDLED_RUNTIME_PATH, window.location.href).href,
+          dataPackageMetadata,
+          fileUrls: dataFileUrls,
+        });
+      }
     });
   }
 
