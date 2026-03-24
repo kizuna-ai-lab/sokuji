@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseStackTrace, redactSensitiveData } from './errorTracking';
+import { parseStackTrace, redactSensitiveData, createDeduplicator } from './errorTracking';
 
 describe('parseStackTrace', () => {
   it('parses Chrome/V8 stack frames', () => {
@@ -101,5 +101,45 @@ describe('redactSensitiveData', () => {
 
   it('redacts multiple keys in one message', () => {
     expect(redactSensitiveData('sk-aaa and AIzaSyB-bbb')).toBe('[REDACTED] and [REDACTED]');
+  });
+});
+
+describe('createDeduplicator', () => {
+  it('allows first occurrence of an error', () => {
+    const dedup = createDeduplicator();
+    expect(dedup.shouldReport('TypeError', 'oops', 'app.js', 42)).toBe(true);
+  });
+
+  it('suppresses same error within 5 seconds', () => {
+    const dedup = createDeduplicator();
+    dedup.shouldReport('TypeError', 'oops', 'app.js', 42);
+    expect(dedup.shouldReport('TypeError', 'oops', 'app.js', 42)).toBe(false);
+  });
+
+  it('allows same error after 5 seconds', () => {
+    const dedup = createDeduplicator();
+    const now = Date.now();
+    vi.spyOn(Date, 'now').mockReturnValue(now);
+    dedup.shouldReport('TypeError', 'oops', 'app.js', 42);
+
+    vi.spyOn(Date, 'now').mockReturnValue(now + 5001);
+    expect(dedup.shouldReport('TypeError', 'oops', 'app.js', 42)).toBe(true);
+
+    vi.restoreAllMocks();
+  });
+
+  it('allows different errors', () => {
+    const dedup = createDeduplicator();
+    dedup.shouldReport('TypeError', 'oops', 'app.js', 42);
+    expect(dedup.shouldReport('ReferenceError', 'nope', 'app.js', 50)).toBe(true);
+  });
+
+  it('evicts oldest entry when map exceeds 100 entries', () => {
+    const dedup = createDeduplicator();
+    for (let i = 0; i < 100; i++) {
+      dedup.shouldReport('Error', `msg${i}`, 'app.js', i);
+    }
+    expect(dedup.shouldReport('Error', 'msg100', 'app.js', 100)).toBe(true);
+    expect(dedup.shouldReport('Error', 'msg0', 'app.js', 0)).toBe(true);
   });
 });

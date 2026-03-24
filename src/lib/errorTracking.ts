@@ -57,6 +57,40 @@ export function redactSensitiveData(message: string): string {
   return message.replace(API_KEY_RE, '[REDACTED]');
 }
 
+const DEDUP_WINDOW_MS = 5000;
+const DEDUP_MAX_ENTRIES = 100;
+
+export interface Deduplicator {
+  shouldReport(type: string, message: string, filename?: string, lineno?: number): boolean;
+}
+
+export function createDeduplicator(): Deduplicator {
+  const seen = new Map<string, number>();
+
+  return {
+    shouldReport(type: string, message: string, filename?: string, lineno?: number): boolean {
+      const key = `${type}:${message}:${filename ?? ''}:${lineno ?? ''}`;
+      const now = Date.now();
+      const lastSeen = seen.get(key);
+
+      if (lastSeen !== undefined && now - lastSeen < DEDUP_WINDOW_MS) {
+        return false;
+      }
+
+      // Evict oldest if at capacity
+      if (seen.size >= DEDUP_MAX_ENTRIES && !seen.has(key)) {
+        const oldestKey = seen.keys().next().value;
+        if (oldestKey !== undefined) {
+          seen.delete(oldestKey);
+        }
+      }
+
+      seen.set(key, now);
+      return true;
+    },
+  };
+}
+
 export function setupErrorTracking(posthog: PostHog): () => void {
   return () => {};
 }
