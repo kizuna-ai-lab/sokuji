@@ -250,6 +250,7 @@ export interface IClient {
 
   // Conversation management
   getConversationItems(): ConversationItem[];
+  clearConversationItems(): void;
 
   // Event handling
   setEventHandlers(handlers: ClientEventHandlers): void;

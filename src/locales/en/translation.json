@@ -377,7 +377,10 @@
     "systemAudio": "Participant Audio",
     "systemAudioDesc": "Capture and translate audio from other meeting participants. Select which audio output device to capture for translating their speech.",
     "systemAudioDescExtension": "Capture and transcribe audio from the current tab. Select an output device to hear the meeting audio while transcribing.",
-    "currentTab": "Current Tab"
+    "currentTab": "Current Tab",
+    "swapLanguages": "Swap languages",
+    "textOnly": "Text Only",
+    "textOnlyDesc": "Translate to text only — no spoken audio output"
   },
   "providers": {
     "openai": {
@@ -479,7 +482,8 @@
     "unknownError": "Unknown error",
     "insufficientBalance": "Insufficient token balance: {{balance}} tokens",
     "walletFrozen": "Wallet is frozen. Please contact support.",
-    "localModelsRequired": "Download required models in settings to start."
+    "localModelsRequired": "Download required models in settings to start.",
+    "clearConversation": "Clear conversation"
   },
   "simplePanel": {
     "clickToConfigLanguages": "Click to configure languages",

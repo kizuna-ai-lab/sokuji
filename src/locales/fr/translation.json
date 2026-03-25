@@ -290,7 +290,8 @@
     "unknownError": "Erreur inconnue",
     "initProgress": "Chargement ({{completed}}/{{total}})...",
     "insufficientBalance": "Solde de jetons insuffisant : {{balance}} jetons",
-    "walletFrozen": "Portefeuille gelé. Veuillez contacter le support."
+    "walletFrozen": "Portefeuille gelé. Veuillez contacter le support.",
+    "clearConversation": "Effacer la conversation"
   },
   "errors": {
     "microphoneAccess": "Accès au microphone refusé",
@@ -454,7 +455,10 @@
     "systemAudio": "Audio des Participants",
     "systemAudioDesc": "Capturez et traduisez l'audio des autres participants à la réunion. Sélectionnez quel périphérique de sortie audio capturer pour traduire leur parole.",
     "systemAudioDescExtension": "Capturez et transcrivez l'audio de l'onglet actuel. Sélectionnez un périphérique de sortie pour entendre l'audio de la réunion pendant la transcription.",
-    "currentTab": "Onglet Actuel"
+    "currentTab": "Onglet Actuel",
+    "swapLanguages": "Inverser les langues",
+    "textOnly": "Texte uniquement",
+    "textOnlyDesc": "Traduire en texte uniquement — pas de sortie vocale"
   },
   "providers": {
     "openai": {

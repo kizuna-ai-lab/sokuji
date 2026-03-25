@@ -290,7 +290,8 @@
     "unknownError": "Error desconocido",
     "initProgress": "Cargando ({{completed}}/{{total}})...",
     "insufficientBalance": "Saldo de tokens insuficiente: {{balance}} tokens",
-    "walletFrozen": "Billetera congelada. Contacte con soporte."
+    "walletFrozen": "Billetera congelada. Contacte con soporte.",
+    "clearConversation": "Borrar conversación"
   },
   "errors": {
     "microphoneAccess": "Acceso al micrófono denegado",
@@ -454,7 +455,10 @@
     "systemAudio": "Audio de Participantes",
     "systemAudioDesc": "Captura y traduce el audio de otros participantes de la reunión. Selecciona qué dispositivo de salida de audio capturar para traducir su habla.",
     "systemAudioDescExtension": "Captura y transcribe el audio de la pestaña actual. Selecciona un dispositivo de salida para escuchar el audio de la reunión mientras se transcribe.",
-    "currentTab": "Pestaña Actual"
+    "currentTab": "Pestaña Actual",
+    "swapLanguages": "Intercambiar idiomas",
+    "textOnly": "Solo texto",
+    "textOnlyDesc": "Traducir solo a texto — sin salida de voz"
   },
   "providers": {
     "openai": {

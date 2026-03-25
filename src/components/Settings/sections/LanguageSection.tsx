@@ -1,7 +1,8 @@
-import React, { useMemo } from 'react';
-import { Globe, Languages, ArrowRight, CircleHelp, AlertTriangle } from 'lucide-react';
+import React, { useMemo, useCallback } from 'react';
+import { Globe, Languages, ArrowLeftRight, CircleHelp, AlertTriangle, VolumeX } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import Tooltip from '../../Tooltip/Tooltip';
+import ToggleSwitch from '../shared/ToggleSwitch';
 import {
   useProvider,
   useOpenAISettings,
@@ -10,6 +11,8 @@ import {
   usePalabraAISettings,
   useKizunaAISettings,
   useLocalInferenceSettings,
+  useVolcengineSTSettings,
+  useVolcengineAST2Settings,
   useSetUILanguage,
   useUpdateOpenAI,
   useUpdateGemini,
@@ -17,8 +20,12 @@ import {
   useUpdatePalabraAI,
   useUpdateKizunaAI,
   useUpdateLocalInference,
+  useUpdateVolcengineST,
+  useUpdateVolcengineAST2,
   useNavigateToSettings,
-  useSetUIMode
+  useSetUIMode,
+  useTextOnly,
+  useSetTextOnly
 } from '../../../stores/settingsStore';
 import { Provider } from '../../../types/Provider';
 import { ProviderConfigFactory } from '../../../services/providers/ProviderConfigFactory';
@@ -58,11 +65,16 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
   const palabraAISettings = usePalabraAISettings();
   const kizunaAISettings = useKizunaAISettings();
   const localInferenceSettings = useLocalInferenceSettings();
+  const volcengineSTSettings = useVolcengineSTSettings();
+  const volcengineAST2Settings = useVolcengineAST2Settings();
 
   const modelStatuses = useModelStatuses();
   const modelInitialized = useModelInitialized();
   const navigateToSettings = useNavigateToSettings();
   const setUIMode = useSetUIMode();
+
+  const textOnly = useTextOnly();
+  const setTextOnly = useSetTextOnly();
 
   const setUILanguage = useSetUILanguage();
   const updateOpenAISettings = useUpdateOpenAI();
@@ -70,6 +82,8 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
   const updateOpenAICompatibleSettings = useUpdateOpenAICompatible();
   const updatePalabraAISettings = useUpdatePalabraAI();
   const updateKizunaAISettings = useUpdateKizunaAI();
+  const updateVolcengineSTSettings = useUpdateVolcengineST();
+  const updateVolcengineAST2Settings = useUpdateVolcengineAST2();
   const updateLocalInferenceSettings = useUpdateLocalInference();
 
   // Get provider configuration with fallback
@@ -94,12 +108,16 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
         return palabraAISettings;
       case Provider.KIZUNA_AI:
         return kizunaAISettings;
+      case Provider.VOLCENGINE_ST:
+        return volcengineSTSettings;
+      case Provider.VOLCENGINE_AST2:
+        return volcengineAST2Settings;
       case Provider.LOCAL_INFERENCE:
         return localInferenceSettings;
       default:
         return openAISettings;
     }
-  }, [provider, openAISettings, geminiSettings, openAICompatibleSettings, palabraAISettings, kizunaAISettings, localInferenceSettings]);
+  }, [provider, openAISettings, geminiSettings, openAICompatibleSettings, palabraAISettings, kizunaAISettings, volcengineSTSettings, volcengineAST2Settings, localInferenceSettings]);
 
   // Update source language
   const updateSourceLanguage = (value: string) => {
@@ -118,6 +136,12 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
         break;
       case Provider.KIZUNA_AI:
         updateKizunaAISettings({ sourceLanguage: value });
+        break;
+      case Provider.VOLCENGINE_ST:
+        updateVolcengineSTSettings({ sourceLanguage: value });
+        break;
+      case Provider.VOLCENGINE_AST2:
+        updateVolcengineAST2Settings({ sourceLanguage: value });
         break;
       case Provider.LOCAL_INFERENCE: {
         const availableTargets = getTranslationTargetLanguages(value);
@@ -154,6 +178,12 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
       case Provider.KIZUNA_AI:
         updateKizunaAISettings({ targetLanguage: value });
         break;
+      case Provider.VOLCENGINE_ST:
+        updateVolcengineSTSettings({ targetLanguage: value });
+        break;
+      case Provider.VOLCENGINE_AST2:
+        updateVolcengineAST2Settings({ targetLanguage: value });
+        break;
       case Provider.LOCAL_INFERENCE:
         updateLocalInferenceSettings({ targetLanguage: value });
         break;
@@ -163,6 +193,22 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
       language_type: 'target'
     });
   };
+
+  // Swap source and target languages
+  const handleSwapLanguages = useCallback(() => {
+    const src = currentProviderSettings?.sourceLanguage;
+    const tgt = currentProviderSettings?.targetLanguage;
+    if (!src || !tgt || src === 'auto') return;
+
+    if (provider === Provider.LOCAL_INFERENCE) {
+      const availableTargets = getTranslationTargetLanguages(tgt);
+      const newTarget = availableTargets.some(l => l.value === src) ? src : availableTargets[0]?.value || 'en';
+      updateLocalInferenceSettings({ sourceLanguage: tgt, targetLanguage: newTarget });
+    } else {
+      updateSourceLanguage(tgt);
+      updateTargetLanguage(src);
+    }
+  }, [provider, currentProviderSettings, updateLocalInferenceSettings, updateSourceLanguage, updateTargetLanguage]);
 
   // Dynamic target languages for LOCAL_INFERENCE, static for others
   const targetLanguages = useMemo(() => {
@@ -331,7 +377,15 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
             </div>
 
             <div className="language-arrow">
-              <ArrowRight size={20} />
+              <button
+                className="language-swap-btn"
+                onClick={handleSwapLanguages}
+                disabled={isSessionActive || currentProviderSettings.sourceLanguage === 'auto'}
+                title={t('simpleConfig.swapLanguages', 'Swap languages')}
+                type="button"
+              >
+                <ArrowLeftRight size={18} />
+              </button>
             </div>
 
             <div className="language-select-group">
@@ -350,6 +404,16 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
               </select>
             </div>
           </div>
+
+          {(provider === Provider.OPENAI || provider === Provider.GEMINI || provider === Provider.OPENAI_COMPATIBLE || provider === Provider.KIZUNA_AI) && (
+            <ToggleSwitch
+              checked={textOnly}
+              onChange={() => setTextOnly(!textOnly)}
+              label={t('simpleConfig.textOnly', 'Text Only')}
+              disabled={isSessionActive}
+              tooltip={t('simpleConfig.textOnlyDesc', 'Show translation as text only, without generating an audio response')}
+            />
+          )}
 
           {provider === Provider.LOCAL_INFERENCE && missingModelTypes.length > 0 && (
             <div className="language-model-warning">

@@ -260,7 +260,10 @@
     "systemAudio": "参会者音频",
     "systemAudioDesc": "捕获并翻译其他会议参与者的音频。选择要捕获的音频输出设备以翻译他们的发言。",
     "systemAudioDescExtension": "捕获并转录当前标签页的音频。选择输出设备以在转录时收听会议音频。",
-    "currentTab": "当前标签页"
+    "currentTab": "当前标签页",
+    "swapLanguages": "交换语言",
+    "textOnly": "仅文本",
+    "textOnlyDesc": "仅翻译为文本 — 不生成语音"
   },
   "simplePanel": {
     "translationActive": "翻译进行中",
@@ -436,7 +439,8 @@
     "unknownError": "未知错误",
     "initProgress": "加载中 ({{completed}}/{{total}})...",
     "insufficientBalance": "代币余额不足：{{balance}} 个代币",
-    "walletFrozen": "钱包已冻结。请联系客服。"
+    "walletFrozen": "钱包已冻结。请联系客服。",
+    "clearConversation": "清除对话"
   },
   "errors": {
     "microphoneAccess": "麦克风访问被拒绝",

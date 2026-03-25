@@ -290,7 +290,8 @@
     "unknownError": "알 수 없는 오류",
     "initProgress": "로딩 중 ({{completed}}/{{total}})...",
     "insufficientBalance": "토큰 잔액 부족: {{balance}} 토큰",
-    "walletFrozen": "지갑이 동결되었습니다. 고객 지원에 문의하세요."
+    "walletFrozen": "지갑이 동결되었습니다. 고객 지원에 문의하세요.",
+    "clearConversation": "대화 지우기"
   },
   "errors": {
     "microphoneAccess": "마이크 접근이 거부되었습니다",
@@ -453,7 +454,10 @@
     "speakerDesc": "번역된 출력을 모니터링할 스피커를 선택하세요. 번역이 어떻게 들리는지 확인할 수 있습니다. 모니터링이 필요하지 않으면 끌 수 있습니다. 켜져 있든 꺼져 있든, 번역된 오디오는 항상 가상 마이크로 전송되어 다른 참가자들이 들을 수 있습니다.",
     "systemAudio": "참가자 오디오",
     "systemAudioDesc": "다른 회의 참가자의 오디오를 캡처하고 번역합니다. 참가자의 말을 번역하기 위해 캡처할 오디오 출력 장치를 선택하세요.",
-    "systemAudioDescExtension": "현재 탭의 오디오를 캡처하고 전사합니다. 전사하는 동안 회의 오디오를 들으려면 출력 장치를 선택하세요."
+    "systemAudioDescExtension": "현재 탭의 오디오를 캡처하고 전사합니다. 전사하는 동안 회의 오디오를 들으려면 출력 장치를 선택하세요.",
+    "swapLanguages": "언어 전환",
+    "textOnly": "텍스트만",
+    "textOnlyDesc": "텍스트로만 번역 — 음성 출력 없음"
   },
   "providers": {
     "openai": {

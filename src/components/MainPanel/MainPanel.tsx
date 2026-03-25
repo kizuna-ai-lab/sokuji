@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
-import {X, Zap, Mic, MicOff, Loader, Play, Volume2, VolumeX, Wrench, Send, AlertCircle, MessageSquare} from 'lucide-react';
+import {X, Zap, Mic, MicOff, Loader, Play, Volume2, VolumeX, Wrench, Send, AlertCircle, MessageSquare, Trash2} from 'lucide-react';
 import './MainPanel.scss';
 import {
   useProvider,
@@ -424,6 +424,20 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   // System audio client ref (for translating other participants)
   const systemAudioClientRef = useRef<IClient | null>(null);
   const [systemAudioItems, setSystemAudioItems] = useState<ConversationItem[]>([]);
+
+  const clearConversation = useCallback(() => {
+    // Cancel pending throttled update that would re-populate items
+    if (throttleTimerRef.current) {
+      clearTimeout(throttleTimerRef.current);
+      throttleTimerRef.current = null;
+    }
+    // Clear client internal conversation data (if session active)
+    clientRef.current?.clearConversationItems();
+    systemAudioClientRef.current?.clearConversationItems();
+    // Clear React state
+    setItems([]);
+    setSystemAudioItems([]);
+  }, []);
 
   // Combine speaker and participant items for display with source tagging
   const combinedItems = useMemo(() => {
@@ -884,7 +898,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         }
       }
 
-      // Clear previous session's conversation items immediately
+      // Clear previous session's conversation items
       setItems([]);
       setSystemAudioItems([]);
 
@@ -2516,6 +2530,20 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       <UpdateBanner />
       <UpdateDialog />
       <div className="main-panel">
+        {/* Conversation toolbar */}
+        {filteredItems.length > 0 && (
+          <div className="conversation-toolbar">
+            <button
+              className="clear-conversation-btn"
+              onClick={clearConversation}
+              title={t('mainPanel.clearConversation', 'Clear conversation')}
+              aria-label={t('mainPanel.clearConversation', 'Clear conversation')}
+              type="button"
+            >
+              <Trash2 size={14} />
+            </button>
+          </div>
+        )}
         {/* Conversation Display */}
         <div className="conversation-display" ref={conversationContainerRef}>
           {filteredItems.length === 0 ? (

@@ -885,6 +885,11 @@ export class GeminiClient implements IClient {
     return [...this.conversationItems];
   }
 
+  clearConversationItems(): void {
+    this.conversationItems = [];
+    this.resetCurrentTurn();
+  }
+
   setEventHandlers(handlers: ClientEventHandlers): void {
     this.eventHandlers = { ...handlers };
   }

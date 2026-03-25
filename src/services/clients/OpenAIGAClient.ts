@@ -875,6 +875,11 @@ export class OpenAIGAClient implements IClient {
     return [...this.conversationItems];
   }
 
+  clearConversationItems(): void {
+    this.conversationItems = [];
+    this.itemCreatedAtMap.clear();
+  }
+
   setEventHandlers(handlers: ClientEventHandlers): void {
     this.eventHandlers = { ...handlers };
   }

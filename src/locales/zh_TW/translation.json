@@ -59,7 +59,10 @@
     "speakerDesc": "選擇揚聲器來監聽翻譯輸出。這讓您能聽到翻譯的聲音效果。如果不需要監聽，可以關閉。無論開啟或關閉，翻譯的音訊都會發送到虛擬麥克風供其他參與者聽到。",
     "systemAudio": "參與者音訊",
     "systemAudioDesc": "擷取並翻譯其他會議參與者的音訊。選擇要擷取的音訊輸出裝置以翻譯他們的語音。",
-    "systemAudioDescExtension": "擷取並轉錄當前分頁的音訊。選擇輸出裝置以在轉錄時收聽會議音訊。"
+    "systemAudioDescExtension": "擷取並轉錄當前分頁的音訊。選擇輸出裝置以在轉錄時收聽會議音訊。",
+    "swapLanguages": "交換語言",
+    "textOnly": "僅文字",
+    "textOnlyDesc": "僅翻譯為文字 — 不產生語音"
   },
   "providers": {
     "openai": {
@@ -403,7 +406,8 @@
     "unknownError": "未知錯誤",
     "initProgress": "載入中 ({{completed}}/{{total}})...",
     "insufficientBalance": "代幣餘額不足：{{balance}} 個代幣",
-    "walletFrozen": "錢包已凍結。請聯繫客服。"
+    "walletFrozen": "錢包已凍結。請聯繫客服。",
+    "clearConversation": "清除對話"
   },
   "errors": {
     "microphoneAccess": "麥克風存取被拒絕",

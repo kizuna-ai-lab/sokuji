@@ -221,7 +221,8 @@
     "unknownError": "Lỗi không xác định",
     "initProgress": "Đang tải ({{completed}}/{{total}})...",
     "insufficientBalance": "Số dư token không đủ: {{balance}} token",
-    "walletFrozen": "Ví đã bị đóng băng. Vui lòng liên hệ hỗ trợ."
+    "walletFrozen": "Ví đã bị đóng băng. Vui lòng liên hệ hỗ trợ.",
+    "clearConversation": "Xóa hội thoại"
   },
   "audioPanel": {
     "title": "Cài đặt âm thanh",
@@ -404,7 +405,10 @@
     "speakerDesc": "Chọn loa để giám sát đầu ra đã dịch. Điều này cho phép bạn nghe bản dịch như thế nào. Bạn có thể tắt nó nếu không cần giám sát. Dù bật hay tắt, âm thanh đã dịch luôn được gửi tới microphone ảo để những người tham gia khác có thể nghe.",
     "systemAudio": "Âm Thanh Người Tham Gia",
     "systemAudioDesc": "Ghi lại và dịch âm thanh từ những người tham gia cuộc họp khác. Chọn thiết bị đầu ra âm thanh nào để ghi lại nhằm dịch lời nói của họ.",
-    "systemAudioDescExtension": "Ghi lại và phiên âm âm thanh từ tab hiện tại. Chọn thiết bị đầu ra để nghe âm thanh cuộc họp trong khi phiên âm."
+    "systemAudioDescExtension": "Ghi lại và phiên âm âm thanh từ tab hiện tại. Chọn thiết bị đầu ra để nghe âm thanh cuộc họp trong khi phiên âm.",
+    "swapLanguages": "Đổi ngôn ngữ",
+    "textOnly": "Chỉ văn bản",
+    "textOnlyDesc": "Chỉ dịch sang văn bản — không phát âm thanh"
   },
   "providers": {
     "openai": {

@@ -30,6 +30,7 @@
   scroll-behavior: smooth;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
+  position: relative;
 
   &::-webkit-scrollbar { width: 6px; }
   &::-webkit-scrollbar-track { background: transparent; }
@@ -37,6 +38,31 @@
     background: #444;
     border-radius: 3px;
     &:hover { background: #555; }
+  }
+}
+
+.conversation-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  padding: 4px 12px 0;
+  flex-shrink: 0;
+}
+
+.clear-conversation-btn {
+  background: none;
+  border: none;
+  color: #555;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: color 0.15s, background-color 0.15s;
+
+  &:hover {
+    color: #e74c3c;
+    background: rgba(231, 76, 60, 0.1);
   }
 }
 
