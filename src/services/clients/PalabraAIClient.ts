@@ -389,6 +389,10 @@ export class PalabraAIClient implements IClient {
     return [...this.conversationItems];  // Return a new array copy to ensure React detects changes
   }
 
+  clearConversationItems(): void {
+    this.conversationItems = [];
+  }
+
   setEventHandlers(handlers: ClientEventHandlers): void {
     this.eventHandlers = handlers;
   }

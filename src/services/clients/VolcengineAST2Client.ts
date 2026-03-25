@@ -945,6 +945,10 @@ export class VolcengineAST2Client implements IClient {
     return [...this.conversationItems];
   }
 
+  clearConversationItems(): void {
+    this.conversationItems = [];
+  }
+
   setEventHandlers(handlers: ClientEventHandlers): void {
     this.eventHandlers = { ...handlers };
   }

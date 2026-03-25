@@ -655,6 +655,11 @@ export class OpenAIClient implements IClient {
     return items.map(item => this.convertToConversationItem(item));
   }
 
+  clearConversationItems(): void {
+    this.client.conversation.clear();
+    this.itemCreatedAtMap.clear();
+  }
+
   setEventHandlers(handlers: ClientEventHandlers): void {
     this.eventHandlers = { ...handlers };
   }

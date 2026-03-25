@@ -425,13 +425,16 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   const systemAudioClientRef = useRef<IClient | null>(null);
   const [systemAudioItems, setSystemAudioItems] = useState<ConversationItem[]>([]);
 
-  // Clear marker: items created before this timestamp are hidden from the UI.
-  // This ensures the clear persists even as the client pushes new deltas that
-  // rebuild items from its internal history.
-  const clearTimestampRef = useRef<number>(0);
-
   const clearConversation = useCallback(() => {
-    clearTimestampRef.current = Date.now();
+    // Cancel pending throttled update that would re-populate items
+    if (throttleTimerRef.current) {
+      clearTimeout(throttleTimerRef.current);
+      throttleTimerRef.current = null;
+    }
+    // Clear client internal conversation data (if session active)
+    clientRef.current?.clearConversationItems();
+    systemAudioClientRef.current?.clearConversationItems();
+    // Clear React state
     setItems([]);
     setSystemAudioItems([]);
   }, []);
@@ -462,13 +465,9 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     });
   }, [items, systemAudioItems]);
 
-  // Filter items based on UI mode and clear marker
+  // Filter items based on UI mode
   const filteredItems = useMemo(() => {
-    const clearTs = clearTimestampRef.current;
     return combinedItems.filter(item => {
-      // Hide items created before the last clear action
-      if (clearTs && (item.createdAt || 0) < clearTs) return false;
-
       const hasText = item.formatted?.transcript || item.formatted?.text;
       const isBasic = (item.type === 'error' || item.role === 'user' || item.role === 'assistant') && hasText;
       if (uiMode === 'basic') return isBasic;
@@ -899,8 +898,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         }
       }
 
-      // Clear previous session's conversation items and reset clear marker
-      clearTimestampRef.current = 0;
+      // Clear previous session's conversation items
       setItems([]);
       setSystemAudioItems([]);
 
