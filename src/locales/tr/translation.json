@@ -228,7 +228,8 @@
     "unknownError": "Bilinmeyen hata",
     "initProgress": "Yükleniyor ({{completed}}/{{total}})...",
     "insufficientBalance": "Yetersiz token bakiyesi: {{balance}} token",
-    "walletFrozen": "Cüzdan donduruldu. Lütfen destek ile iletişime geçin."
+    "walletFrozen": "Cüzdan donduruldu. Lütfen destek ile iletişime geçin.",
+    "clearConversation": "Sohbeti temizle"
   },
   "audioPanel": {
     "title": "Ses Ayarları",
@@ -411,7 +412,10 @@
     "speakerDesc": "Çevrilmiş çıktıyı izlemek için bir hoparlör seçin. Bu, çevirinin nasıl geldiğini duymanızı sağlar. İzleme gerekmiyorsa kapatabilirsiniz. Açık veya kapalı olsun, çevrilmiş ses her zaman sanal mikrofona gönderilir ve diğer katılımcılar duyar.",
     "systemAudio": "Katılımcı Sesi",
     "systemAudioDesc": "Diğer toplantı katılımcılarından gelen sesi yakalayın ve çevirin. Konuşmalarını çevirmek için hangi ses çıkış cihazının yakalanacağını seçin.",
-    "systemAudioDescExtension": "Geçerli sekmeden sesi yakalayın ve metne dönüştürün. Metne dönüştürürken toplantı sesini duymak için bir çıkış cihazı seçin."
+    "systemAudioDescExtension": "Geçerli sekmeden sesi yakalayın ve metne dönüştürün. Metne dönüştürürken toplantı sesini duymak için bir çıkış cihazı seçin.",
+    "swapLanguages": "Dilleri değiştir",
+    "textOnly": "Yalnızca metin",
+    "textOnlyDesc": "Yalnızca metin olarak çevir — sesli çıkış yok"
   },
   "providers": {
     "openai": {

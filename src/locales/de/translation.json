@@ -290,7 +290,8 @@
     "unknownError": "Unbekannter Fehler",
     "initProgress": "Laden ({{completed}}/{{total}})...",
     "insufficientBalance": "Unzureichendes Token-Guthaben: {{balance}} Token",
-    "walletFrozen": "Wallet ist eingefroren. Bitte kontaktieren Sie den Support."
+    "walletFrozen": "Wallet ist eingefroren. Bitte kontaktieren Sie den Support.",
+    "clearConversation": "Unterhaltung löschen"
   },
   "errors": {
     "microphoneAccess": "Mikrofonzugriff verweigert",
@@ -454,7 +455,10 @@
     "systemAudio": "Teilnehmer-Audio",
     "systemAudioDesc": "Audio von anderen Meeting-Teilnehmern aufnehmen und übersetzen. Wählen Sie aus, welches Audio-Ausgabegerät aufgenommen werden soll, um deren Sprache zu übersetzen.",
     "systemAudioDescExtension": "Audio vom aktuellen Tab aufnehmen und transkribieren. Wählen Sie ein Ausgabegerät, um während der Transkription das Meeting-Audio zu hören.",
-    "currentTab": "Aktueller Tab"
+    "currentTab": "Aktueller Tab",
+    "swapLanguages": "Sprachen tauschen",
+    "textOnly": "Nur Text",
+    "textOnlyDesc": "Nur als Text übersetzen — keine Sprachausgabe"
   },
   "providers": {
     "openai": {

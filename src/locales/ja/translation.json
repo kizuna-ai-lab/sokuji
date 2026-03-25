@@ -297,7 +297,8 @@
     "unknownError": "不明なエラー",
     "initProgress": "読み込み中 ({{completed}}/{{total}})...",
     "insufficientBalance": "トークン残高不足: {{balance}} トークン",
-    "walletFrozen": "ウォレットが凍結されています。サポートにお問い合わせください。"
+    "walletFrozen": "ウォレットが凍結されています。サポートにお問い合わせください。",
+    "clearConversation": "会話をクリア"
   },
   "errors": {
     "microphoneAccess": "マイクへのアクセスが拒否されました",
@@ -461,7 +462,10 @@
     "systemAudio": "参加者の音声",
     "systemAudioDesc": "他の会議参加者の音声をキャプチャして翻訳します。彼らの発言を翻訳するためにキャプチャするオーディオ出力デバイスを選択してください。",
     "systemAudioDescExtension": "現在のタブの音声をキャプチャして文字起こしします。出力デバイスを選択して、文字起こし中に会議の音声を聞くことができます。",
-    "currentTab": "現在のタブ"
+    "currentTab": "現在のタブ",
+    "swapLanguages": "言語を入れ替え",
+    "textOnly": "テキストのみ",
+    "textOnlyDesc": "テキストのみに翻訳 — 音声出力なし"
   },
   "providers": {
     "openai": {
