@@ -87,10 +87,11 @@ export class LocalInferenceClient implements IClient {
     this.disposed = false;
     this.conversationItems = [];
     this.itemCounter = 0;
+    this.ttsEngine = null;
 
     // Determine which engines will be initialized
     const engines = ['asr', 'translation'];
-    if (config.ttsModelId) engines.push('tts');
+    if (config.ttsModelId && !config.textOnly) engines.push('tts');
     this.emitEvent('local.init.start', 'client', { engines: [...engines] });
 
     try {
@@ -157,12 +158,12 @@ export class LocalInferenceClient implements IClient {
       console.info('[LocalInference] Initializing Translation engine:', config.sourceLanguage, '→', config.targetLanguage);
       this.translationEngine = new TranslationEngine();
 
-      // TTS engine (optional)
-      if (config.ttsModelId) {
+      // TTS engine (optional — skip when textOnly or no TTS model configured)
+      if (config.ttsModelId && !config.textOnly) {
         console.info('[LocalInference] Initializing TTS engine:', config.ttsModelId);
         this.ttsEngine = new TtsEngine();
       } else {
-        console.info('[LocalInference] No TTS model configured, text-only mode');
+        console.info('[LocalInference] No TTS:', config.textOnly ? 'text-only mode' : 'no TTS model configured');
       }
 
       // --- Fire all init() calls in parallel ---

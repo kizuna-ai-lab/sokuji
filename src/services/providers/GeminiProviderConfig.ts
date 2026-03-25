@@ -95,7 +95,8 @@ export class GeminiProviderConfig {
         hasVoiceSettings: true,
         hasNoiseReduction: false,
         hasModelConfiguration: true, // Gemini supports temperature and max tokens configuration
-        
+        textOnlyCapability: 'optional',
+
         turnDetection: {
           modes: [], // Gemini handles this automatically
           hasThreshold: false,

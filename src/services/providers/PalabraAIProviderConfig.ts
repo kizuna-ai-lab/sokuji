@@ -144,7 +144,8 @@ export class PalabraAIProviderConfig {
         hasVoiceSettings: true, // PalabraAI has voice_id setting
         hasNoiseReduction: false, // PalabraAI handles audio processing internally
         hasModelConfiguration: false, // PalabraAI doesn't have temperature/tokens settings
-        
+        textOnlyCapability: 'never',
+
         turnDetection: {
           modes: [],
           hasThreshold: false,

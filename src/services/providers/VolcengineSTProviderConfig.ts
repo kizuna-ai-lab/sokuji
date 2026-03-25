@@ -83,6 +83,7 @@ export class VolcengineSTProviderConfig {
         hasVoiceSettings: false, // Real-time translation outputs text only
         hasNoiseReduction: false, // Volcengine handles audio processing internally
         hasModelConfiguration: false, // Volcengine doesn't have temperature/tokens settings
+        textOnlyCapability: 'always',
 
         turnDetection: {
           modes: [],
