@@ -377,7 +377,9 @@ export class VolcengineAST2Client implements IClient {
     if (!this.currentConfig) return;
     if (!this.useIpc && (!this.websocket || this.websocket.readyState !== WebSocket.OPEN)) return;
 
-    const request = TranslateRequest.encode({
+    const isTextOnly = this.currentConfig.textOnly || false;
+
+    const requestPayload: any = {
       requestMeta: {
         Endpoint: 'volc.bigasr.sauc.duration',
         AppKey: this.appId,
@@ -397,16 +399,22 @@ export class VolcengineAST2Client implements IClient {
         bits: 16,
         channel: 1,
       },
-      targetAudio: {
-        format: 'ogg_opus',
-        rate: OUTPUT_SAMPLE_RATE,
-      },
       request: {
-        mode: 's2s',
+        mode: isTextOnly ? 's2t' : 's2s',
         sourceLanguage: this.currentConfig.sourceLanguage,
         targetLanguage: this.currentConfig.targetLanguage,
       },
-    }).finish();
+    };
+
+    // Only include targetAudio in s2s mode
+    if (!isTextOnly) {
+      requestPayload.targetAudio = {
+        format: 'ogg_opus',
+        rate: OUTPUT_SAMPLE_RATE,
+      };
+    }
+
+    const request = TranslateRequest.encode(requestPayload).finish();
 
     this.sendData(request);
 
@@ -418,7 +426,7 @@ export class VolcengineAST2Client implements IClient {
           sessionId: this.sessionId,
           sourceLanguage: this.currentConfig.sourceLanguage,
           targetLanguage: this.currentConfig.targetLanguage,
-          mode: 's2s',
+          mode: isTextOnly ? 's2t' : 's2s',
         }
       }
     });
@@ -529,22 +537,24 @@ export class VolcengineAST2Client implements IClient {
 
         // TTS audio response
         case EventType.TTSResponse:
-          this.handleTTSResponse(response);
+          if (!this.currentConfig?.textOnly) this.handleTTSResponse(response);
           break;
 
         // TTS lifecycle
         case EventType.TTSSentenceStart:
-          this.ttsChunks = [];
-          // Lock the current translation item — TTS audio should associate with the
-          // translation active when TTS starts, not when it ends
-          this.ttsSentenceTargetItemId = this.currentTranslationItemId || this.lastCompletedTranslationItemId;
+          if (!this.currentConfig?.textOnly) {
+            this.ttsChunks = [];
+            // Lock the current translation item — TTS audio should associate with the
+            // translation active when TTS starts, not when it ends
+            this.ttsSentenceTargetItemId = this.currentTranslationItemId || this.lastCompletedTranslationItemId;
+          }
           break;
         case EventType.TTSSentenceEnd:
-          this.decodeTTSAndPlay();
+          if (!this.currentConfig?.textOnly) this.decodeTTSAndPlay();
           break;
         case EventType.TTSEnded:
           // Flush any remaining chunks
-          if (this.ttsChunks.length > 0) {
+          if (!this.currentConfig?.textOnly && this.ttsChunks.length > 0) {
             this.decodeTTSAndPlay();
           }
           break;
