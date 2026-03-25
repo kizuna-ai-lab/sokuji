@@ -348,13 +348,36 @@ If you encounter issues or have questions:
 
 # Acknowledgments
 
-- OpenAI - Realtime API
-- Google - Gemini API
-- Volcengine - Speech Translation API
+### Cloud Providers
+- [OpenAI](https://openai.com) - Realtime API
+- [Google Gemini](https://ai.google.dev) - Gemini API
+- [Volcengine](https://www.volcengine.com) - Speech Translation API
+
+### Speech Recognition (ASR)
 - [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx) - On-device speech recognition and synthesis
+- [OpenAI Whisper](https://github.com/openai/whisper) - Multilingual speech recognition
+- [SenseVoice](https://github.com/FunAudioLLM/SenseVoice) - Multilingual ASR (Alibaba)
+- [Moonshine](https://github.com/usefulsensors/moonshine) - Lightweight ASR models
+- [NeMo](https://github.com/NVIDIA/NeMo) - ASR models including Canary, FastConformer, Parakeet (NVIDIA)
+
+### Text-to-Speech (TTS)
+- [Piper](https://github.com/rhasspy/piper) - Fast neural TTS engine (136+ voice models)
+- [Piper-Plus](https://github.com/nickolay-kondratyev/piper-plus-plus) - Multilingual Piper extension
+- [Matcha-TTS](https://github.com/shivammehta25/Matcha-TTS) - Non-autoregressive TTS
+- [Coqui TTS](https://github.com/coqui-ai/TTS) - Deep learning TTS toolkit
+- [Mimic 3](https://github.com/MycroftAI/mimic3) - Privacy-focused TTS (Mycroft)
+- [MMS](https://github.com/facebookresearch/fairseq/tree/main/examples/mms) - Massively Multilingual Speech (Meta)
+
+### Translation
+- [Opus-MT](https://github.com/Helsinki-NLP/Opus-MT) - Open-source machine translation models (Helsinki-NLP)
+- [Qwen](https://github.com/QwenLM/Qwen) - Multilingual language models (Alibaba)
+- [TranslateGemma](https://github.com/google-research/translate-gemma) - Translation models (Google)
+
+### Infrastructure
 - [Hugging Face Transformers.js](https://github.com/huggingface/transformers.js) - Browser-based ML inference
-- [Opus-MT](https://github.com/Helsinki-NLP/Opus-MT) - Open-source machine translation models
-- [Qwen](https://github.com/QwenLM/Qwen) - Multilingual language models
-- Electron - Cross-platform desktop application framework
-- React - User interface library
-- PulseAudio/PipeWire - Linux audio systems
+- [ONNX Runtime](https://github.com/microsoft/onnxruntime) - Cross-platform ML inference (Microsoft)
+- [Silero VAD](https://github.com/snakers4/silero-vad) - Voice activity detection
+- [Electron](https://www.electronjs.org) - Cross-platform desktop application framework
+- [React](https://react.dev) - User interface library
+
+For detailed model licenses, see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
