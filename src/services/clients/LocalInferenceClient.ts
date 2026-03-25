@@ -87,6 +87,7 @@ export class LocalInferenceClient implements IClient {
     this.disposed = false;
     this.conversationItems = [];
     this.itemCounter = 0;
+    this.ttsEngine = null;
 
     // Determine which engines will be initialized
     const engines = ['asr', 'translation'];
