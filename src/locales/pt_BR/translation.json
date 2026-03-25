@@ -290,7 +290,8 @@
     "unknownError": "Erro desconhecido",
     "initProgress": "Carregando ({{completed}}/{{total}})...",
     "insufficientBalance": "Saldo de tokens insuficiente: {{balance}} tokens",
-    "walletFrozen": "Carteira congelada. Entre em contato com o suporte."
+    "walletFrozen": "Carteira congelada. Entre em contato com o suporte.",
+    "clearConversation": "Limpar conversa"
   },
   "errors": {
     "microphoneAccess": "Acesso ao microfone negado",
@@ -453,7 +454,10 @@
     "speakerDesc": "Selecione um alto-falante para monitorar a saída traduzida. Isso permite ouvir como a tradução soa. Você pode desligar se o monitoramento não for necessário. Ligado ou desligado, o áudio traduzido sempre é enviado para o microfone virtual para outros participantes ouvirem.",
     "systemAudio": "Áudio de Participantes",
     "systemAudioDesc": "Capture e traduza o áudio de outros participantes da reunião. Selecione qual dispositivo de saída de áudio capturar para traduzir a fala deles.",
-    "systemAudioDescExtension": "Capture e transcreva o áudio da aba atual. Selecione um dispositivo de saída para ouvir o áudio da reunião durante a transcrição."
+    "systemAudioDescExtension": "Capture e transcreva o áudio da aba atual. Selecione um dispositivo de saída para ouvir o áudio da reunião durante a transcrição.",
+    "swapLanguages": "Trocar idiomas",
+    "textOnly": "Somente texto",
+    "textOnlyDesc": "Traduzir apenas para texto — sem saída de voz"
   },
   "providers": {
     "openai": {

@@ -291,6 +291,11 @@ export class LocalInferenceClient implements IClient {
     return [...this.conversationItems];
   }
 
+  clearConversationItems(): void {
+    this.conversationItems = [];
+    this.partialUserItem = null;
+  }
+
   setEventHandlers(handlers: ClientEventHandlers): void {
     this.handlers = handlers;
   }
