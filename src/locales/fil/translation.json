@@ -258,7 +258,10 @@
     "speakerDesc": "Piliin ang speaker para ma-monitor ang translated na output. Pinapahintulutan ninyo nitong marinig kung paano tumutunog ang translation. Pwede ninyong i-off ito kung hindi kailangan ang monitoring. Naka-on man o naka-off, laging napapadala ang translated na audio sa virtual microphone para marinig ng ibang participants.",
     "systemAudio": "Audio ng Kalahok",
     "systemAudioDesc": "I-capture at i-translate ang audio mula sa ibang kalahok sa meeting. Piliin kung aling audio output device ang i-capture para isalin ang kanilang pagsasalita.",
-    "systemAudioDescExtension": "Kuhanin at i-transcribe ang audio mula sa kasalukuyang tab. Pumili ng output device para marinig ang audio ng meeting habang nag-transcribe."
+    "systemAudioDescExtension": "Kuhanin at i-transcribe ang audio mula sa kasalukuyang tab. Pumili ng output device para marinig ang audio ng meeting habang nag-transcribe.",
+    "swapLanguages": "Palitan ang mga wika",
+    "textOnly": "Teksto lamang",
+    "textOnlyDesc": "Isalin sa teksto lamang — walang boses na output"
   },
   "providers": {
     "openai": {
@@ -372,7 +375,8 @@
     "send": "Ipadala",
     "initProgress": "Naglo-load ({{completed}}/{{total}})...",
     "insufficientBalance": "Hindi sapat ang token balance: {{balance}} token",
-    "walletFrozen": "Naka-freeze ang wallet. Mangyaring makipag-ugnayan sa support."
+    "walletFrozen": "Naka-freeze ang wallet. Mangyaring makipag-ugnayan sa support.",
+    "clearConversation": "Burahin ang usapan"
   },
   "audioPanel": {
     "title": "Mga Setting ng Audio",

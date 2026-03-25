@@ -841,9 +841,32 @@
   .language-arrow {
     color: vars.$text-disabled;
     display: flex;
-    align-items: center;
+    align-items: flex-end;
     justify-content: center;
-    margin-bottom: 8px;
+  }
+}
+
+.language-swap-btn {
+  background: none;
+  border: 1px solid vars.$border-default;
+  border-radius: vars.$radius-sm;
+  color: vars.$text-disabled;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  // Match the select input height (8px top/bottom padding + font line height)
+  padding: 8px 6px;
+  transition: color 0.15s, border-color 0.15s;
+
+  &:hover:not(:disabled) {
+    color: vars.$text-primary;
+    border-color: vars.$text-muted;
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
   }
 }
 
@@ -1342,7 +1365,11 @@
     gap: 12px;
 
     .language-arrow {
-      display: none;
+      justify-content: center;
+
+      .language-swap-btn {
+        width: 100%;
+      }
     }
   }
 }

@@ -289,7 +289,8 @@
     "unknownError": "Nieznany błąd",
     "initProgress": "Ładowanie ({{completed}}/{{total}})...",
     "insufficientBalance": "Niewystarczające saldo tokenów: {{balance}} tokenów",
-    "walletFrozen": "Portfel zamrożony. Skontaktuj się z pomocą techniczną."
+    "walletFrozen": "Portfel zamrożony. Skontaktuj się z pomocą techniczną.",
+    "clearConversation": "Wyczyść rozmowę"
   },
   "errors": {
     "microphoneAccess": "Dostęp do mikrofonu został odrzucony",
@@ -452,7 +453,10 @@
     "speakerDesc": "Wybierz głośnik do monitorowania przetłumaczonego wyjścia. Pozwala to słyszeć jak brzmi tłumaczenie. Możesz to wyłączyć jeśli monitorowanie nie jest potrzebne. Niezależnie od tego czy jest włączone czy wyłączone, przetłumaczone audio jest zawsze wysyłane do wirtualnego mikrofonu aby inni uczestnicy mogli je słyszeć.",
     "systemAudio": "Dźwięk uczestnika",
     "systemAudioDesc": "Przechwytuj i tłumacz dźwięk od innych uczestników spotkania. Wybierz urządzenie wyjściowe audio do przechwytywania ich mowy do tłumaczenia.",
-    "systemAudioDescExtension": "Przechwytuj i transkrybuj dźwięk z bieżącej karty. Wybierz urządzenie wyjściowe, aby słyszeć dźwięk spotkania podczas transkrypcji."
+    "systemAudioDescExtension": "Przechwytuj i transkrybuj dźwięk z bieżącej karty. Wybierz urządzenie wyjściowe, aby słyszeć dźwięk spotkania podczas transkrypcji.",
+    "swapLanguages": "Zamień języki",
+    "textOnly": "Tylko tekst",
+    "textOnlyDesc": "Tłumacz tylko na tekst — bez wyjścia głosowego"
   },
   "providers": {
     "openai": {

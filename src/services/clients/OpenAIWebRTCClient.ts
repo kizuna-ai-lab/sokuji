@@ -763,6 +763,11 @@ export class OpenAIWebRTCClient implements IClient {
     return [...this.conversationItems];
   }
 
+  clearConversationItems(): void {
+    this.conversationItems = [];
+    this.itemCreatedAtMap.clear();
+  }
+
   /**
    * Set event handlers
    */

@@ -51,12 +51,15 @@ const SystemAudioSection: React.FC<SystemAudioSectionProps> = ({
   const [isSystemAudioLoading, setIsSystemAudioLoading] = useState(false);
   const [warningType, setWarningType] = useState<WarningType | null>(null);
 
-  // Refresh system audio sources on mount
+  // Refresh system audio sources once on mount.
+  // refreshSystemAudioSources is a stable Zustand action — no need to list it
+  // as a dependency. Including it caused an infinite loop because the action
+  // sets systemAudioSources (new array each call), which invalidates the
+  // useAudioContext() useMemo, which re-triggers this effect.
   useEffect(() => {
-    if (refreshSystemAudioSources) {
-      refreshSystemAudioSources();
-    }
-  }, [refreshSystemAudioSources]);
+    refreshSystemAudioSources?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Handle system audio source selection for Electron
   const handleSystemAudioSourceSelect = useCallback(async (source: { deviceId: string; label: string } | null) => {
