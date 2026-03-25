@@ -2530,9 +2530,9 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       <UpdateBanner />
       <UpdateDialog />
       <div className="main-panel">
-        {/* Conversation Display */}
-        <div className="conversation-display" ref={conversationContainerRef}>
-          {filteredItems.length > 0 && (
+        {/* Conversation toolbar */}
+        {filteredItems.length > 0 && (
+          <div className="conversation-toolbar">
             <button
               className="clear-conversation-btn"
               onClick={clearConversation}
@@ -2542,7 +2542,10 @@ const MainPanel: React.FC<MainPanelProps> = () => {
             >
               <Trash2 size={14} />
             </button>
-          )}
+          </div>
+        )}
+        {/* Conversation Display */}
+        <div className="conversation-display" ref={conversationContainerRef}>
           {filteredItems.length === 0 ? (
             <div className="empty-state">
               <MessageSquare size={32} />
