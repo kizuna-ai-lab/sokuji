@@ -841,9 +841,8 @@
   .language-arrow {
     color: vars.$text-disabled;
     display: flex;
-    align-items: center;
+    align-items: flex-end;
     justify-content: center;
-    margin-bottom: 8px;
   }
 }
 
@@ -856,7 +855,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 6px;
+  // Match the select input height (8px top/bottom padding + font line height)
+  padding: 8px 6px;
   transition: color 0.15s, border-color 0.15s;
 
   &:hover:not(:disabled) {
