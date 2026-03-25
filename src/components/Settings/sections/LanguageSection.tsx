@@ -405,7 +405,7 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
             </div>
           </div>
 
-          {(provider === Provider.OPENAI || provider === Provider.GEMINI || provider === Provider.OPENAI_COMPATIBLE || provider === Provider.KIZUNA_AI) && (
+          {providerConfig.capabilities.textOnlyCapability === 'optional' && (
             <ToggleSwitch
               checked={textOnly}
               onChange={() => setTextOnly(!textOnly)}
