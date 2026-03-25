@@ -32,6 +32,7 @@ export class LocalInferenceProviderConfig {
         hasVoiceSettings: false,
         hasNoiseReduction: false,
         hasModelConfiguration: false,
+        inherentlyTextOnly: false,
 
         turnDetection: {
           modes: [],

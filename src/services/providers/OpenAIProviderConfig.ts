@@ -97,7 +97,8 @@ export class OpenAIProviderConfig {
         hasVoiceSettings: true,
         hasNoiseReduction: true,
         hasModelConfiguration: true,
-        
+        inherentlyTextOnly: false,
+
         turnDetection: {
           modes: ['Normal', 'Semantic', 'Disabled'],
           hasThreshold: true,
