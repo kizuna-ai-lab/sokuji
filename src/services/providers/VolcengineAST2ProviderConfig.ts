@@ -54,7 +54,7 @@ export class VolcengineAST2ProviderConfig {
         hasVoiceSettings: false,
         hasNoiseReduction: false,
         hasModelConfiguration: false,
-        inherentlyTextOnly: false,
+        textOnlyCapability: 'optional',
 
         turnDetection: {
           modes: ['Auto', 'Push-to-Talk'],

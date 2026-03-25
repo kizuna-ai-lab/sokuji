@@ -405,7 +405,7 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
             </div>
           </div>
 
-          {(!providerConfig.capabilities.inherentlyTextOnly && provider !== Provider.PALABRA_AI) && (
+          {providerConfig.capabilities.textOnlyCapability === 'optional' && (
             <ToggleSwitch
               checked={textOnly}
               onChange={() => setTextOnly(!textOnly)}

@@ -29,7 +29,7 @@ export interface ProviderCapabilities {
   hasVoiceSettings: boolean;
   hasNoiseReduction: boolean;
   hasModelConfiguration: boolean;
-  inherentlyTextOnly: boolean; // Provider always outputs text-only (no TTS capability)
+  textOnlyCapability: 'always' | 'optional' | 'never'; // 'always': inherently text-only, 'optional': user can toggle, 'never': not supported
 
   // Turn detection specific
   turnDetection: TurnDetectionConfig;
