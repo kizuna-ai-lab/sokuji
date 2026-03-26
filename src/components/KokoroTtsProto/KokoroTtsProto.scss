@@ -1,0 +1,274 @@
+.kokoro-proto-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.kokoro-proto-panel {
+  background: #1a1a2e;
+  border: 1px solid #333;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 800px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.kokoro-proto-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid #333;
+  flex-shrink: 0;
+
+  h2 {
+    font-size: 15px;
+    font-weight: 600;
+    color: #fff;
+    margin: 0;
+  }
+
+  .kokoro-proto-subtitle {
+    font-size: 12px;
+    color: #888;
+    flex: 1;
+  }
+
+  .kokoro-proto-close {
+    background: none;
+    border: none;
+    color: #888;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+
+    &:hover {
+      color: #fff;
+      background: #333;
+    }
+  }
+}
+
+.kokoro-proto-body {
+  padding: 16px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.kokoro-proto-config {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: end;
+
+  label {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    font-size: 12px;
+    color: #aaa;
+
+    select, input {
+      background: #16213e;
+      border: 1px solid #333;
+      color: #e0e0e0;
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 13px;
+    }
+  }
+}
+
+.kokoro-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 16px;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &.load { background: #2563eb; color: #fff; &:hover { background: #1d4ed8; } }
+  &.loading { background: #555; color: #aaa; cursor: wait; }
+  &.primary { background: #10a37f; color: #fff; &:hover { background: #0e8c6b; } }
+
+  &:disabled { background: #555; color: #888; cursor: not-allowed; }
+
+  .spin { animation: kokoro-spin 1s linear infinite; }
+}
+
+@keyframes kokoro-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.kokoro-status {
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  align-self: center;
+
+  &.idle { color: #888; }
+  &.loading { background: #2563eb22; color: #60a5fa; }
+  &.ready { background: #10a37f22; color: #34d399; }
+  &.error { background: #ef444422; color: #f87171; }
+  &.generating { background: #f59e0b22; color: #fbbf24; }
+}
+
+.kokoro-progress {
+  width: 100%;
+  height: 4px;
+  background: #333;
+  border-radius: 2px;
+  overflow: hidden;
+
+  .kokoro-progress-fill {
+    height: 100%;
+    background: #10a37f;
+    border-radius: 2px;
+    transition: width 0.3s;
+  }
+}
+
+.kokoro-voices-section {
+  .kokoro-voices-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+
+    h3 { font-size: 13px; color: #ccc; margin: 0; }
+
+    select {
+      background: #16213e;
+      border: 1px solid #333;
+      color: #e0e0e0;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+    }
+  }
+
+  .kokoro-voice-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 4px;
+    max-height: 160px;
+    overflow-y: auto;
+  }
+
+  .kokoro-voice-chip {
+    padding: 4px 8px;
+    background: #16213e;
+    border: 1px solid #333;
+    border-radius: 4px;
+    font-size: 11px;
+    color: #ccc;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.15s;
+
+    &:hover { border-color: #60a5fa; }
+
+    &.selected {
+      border-color: #10a37f;
+      background: #10a37f1a;
+      color: #34d399;
+    }
+
+    .gender { color: #888; }
+    .lang-tag { display: block; font-size: 10px; color: #666; margin-top: 1px; }
+  }
+}
+
+.kokoro-input-section {
+  textarea {
+    width: 100%;
+    background: #16213e;
+    border: 1px solid #333;
+    color: #e0e0e0;
+    padding: 10px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-family: inherit;
+    resize: vertical;
+
+    &:focus { outline: none; border-color: #555; }
+  }
+
+  .kokoro-samples {
+    display: flex;
+    gap: 6px;
+    margin-top: 6px;
+    flex-wrap: wrap;
+
+    .kokoro-sample-btn {
+      padding: 3px 8px;
+      background: #16213e;
+      border: 1px solid #444;
+      border-radius: 3px;
+      font-size: 11px;
+      color: #aaa;
+      cursor: pointer;
+      transition: all 0.15s;
+
+      &:hover { border-color: #60a5fa; color: #e0e0e0; }
+    }
+  }
+}
+
+.kokoro-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.kokoro-result {
+  background: #16213e;
+  border: 1px solid #333;
+  border-radius: 8px;
+  padding: 12px;
+
+  audio { width: 100%; height: 32px; }
+
+  .kokoro-metrics {
+    margin-top: 8px;
+    font-size: 12px;
+    color: #aaa;
+    font-family: 'Fira Code', monospace;
+    white-space: pre-wrap;
+    line-height: 1.5;
+  }
+}
+
+.kokoro-logs {
+  background: #0f1729;
+  border: 1px solid #222;
+  border-radius: 6px;
+  padding: 8px;
+  max-height: 140px;
+  overflow-y: auto;
+  font-size: 11px;
+  font-family: 'Fira Code', monospace;
+  color: #888;
+
+  .log-line {
+    margin-bottom: 1px;
+
+    &.info { color: #60a5fa; }
+    &.warn { color: #fbbf24; }
+    &.error { color: #f87171; }
+  }
+}

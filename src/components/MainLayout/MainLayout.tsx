@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback, useEffect } from 'react';
+import React, { useState, useRef, useCallback, useEffect, lazy, Suspense } from 'react';
 import { useTranslation } from 'react-i18next';
 import MainPanel from '../MainPanel/MainPanel';
 import LogsPanel from '../LogsPanel/LogsPanel';
@@ -12,6 +12,9 @@ import { useProvider, useUIMode, useSetProvider, useSetUIMode, useSettingsNaviga
 import { useOnboarding } from '../../contexts/OnboardingContext';
 import { useAuth } from '../../lib/auth/hooks';
 import { Provider } from '../../types/Provider';
+import { isDevelopment } from '../../config/analytics';
+
+const KokoroTtsProto = lazy(() => import('../KokoroTtsProto/KokoroTtsProto'));
 
 type PanelName = 'settings' | 'audio' | 'logs' | 'main';
 
@@ -34,8 +37,22 @@ const MainLayout: React.FC = () => {
   const [showAudio, setShowAudio] = useState(() => {
     return sessionStorage.getItem('panelState.showAudio') === 'true';
   });
+  const [showKokoroProto, setShowKokoroProto] = useState(false);
 
-  
+  // Dev-only: Ctrl+Shift+K toggles Kokoro TTS proto
+  useEffect(() => {
+    if (!isDevelopment()) return;
+    const handleDevShortcut = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.shiftKey && e.code === 'KeyK') {
+        e.preventDefault();
+        setShowKokoroProto(prev => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleDevShortcut);
+    return () => window.removeEventListener('keydown', handleDevShortcut);
+  }, []);
+
+
   // Track panel view times
   const panelOpenTimeRef = useRef<number | null>(null);
   const currentPanelRef = useRef<PanelName | null>(null);
@@ -237,6 +254,11 @@ const MainLayout: React.FC = () => {
         </div>
       )}
       <Onboarding />
+      {showKokoroProto && (
+        <Suspense fallback={null}>
+          <KokoroTtsProto onClose={() => setShowKokoroProto(false)} />
+        </Suspense>
+      )}
     </div>
   );
 };

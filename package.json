@@ -80,6 +80,8 @@
     "cross-env": "^7.0.3",
     "electron": "40.6.0",
     "jsdom": "^24.0.0",
+    "kokoro-js": "^1.2.1",
+    "phonemize": "^1.1.0",
     "protobufjs-cli": "^2.0.0",
     "tsx": "^4.21.0",
     "typescript": "^5.8.3",

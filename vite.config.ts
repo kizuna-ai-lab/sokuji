@@ -153,6 +153,13 @@ export default defineConfig(({ command, mode }) => {
       sourcemap: true
     },
     base: './',
+    resolve: {
+      alias: {
+        // kokoro-js exports map only has a Node.js entry which requires 'path'.
+        // Force the browser-specific build for client code.
+        'kokoro-js': path.resolve(__dirname, 'node_modules/kokoro-js/dist/kokoro.web.js'),
+      },
+    },
     define: {
       global: 'globalThis',
       // Define build target for Electron

@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kokoro TTS Test</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #1a1a2e; color: #e0e0e0;
+    padding: 24px; max-width: 900px; margin: 0 auto;
+  }
+  h1 { text-align: center; margin-bottom: 8px; color: #fff; }
+  .subtitle { text-align: center; color: #888; margin-bottom: 24px; font-size: 14px; }
+  .config-row {
+    display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; align-items: end;
+  }
+  .config-row label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: #aaa; }
+  .config-row select, .config-row input {
+    background: #16213e; border: 1px solid #333; color: #e0e0e0;
+    padding: 8px 12px; border-radius: 6px; font-size: 14px;
+  }
+  textarea {
+    width: 100%; min-height: 100px; background: #16213e; border: 1px solid #333;
+    color: #e0e0e0; padding: 12px; border-radius: 8px; font-size: 14px;
+    resize: vertical; font-family: inherit;
+  }
+  .btn {
+    padding: 10px 24px; border: none; border-radius: 8px; font-size: 14px;
+    cursor: pointer; font-weight: 600; transition: all 0.2s;
+  }
+  .btn-primary { background: #10a37f; color: #fff; }
+  .btn-primary:hover { background: #0e8c6b; }
+  .btn-primary:disabled { background: #555; cursor: not-allowed; }
+  .btn-load { background: #2563eb; color: #fff; }
+  .btn-load:hover { background: #1d4ed8; }
+  .btn-load:disabled { background: #555; cursor: not-allowed; }
+  .btn-danger { background: #ef4444; color: #fff; }
+  .btn-danger:hover { background: #dc2626; }
+  .btn-row { display: flex; gap: 12px; margin: 16px 0; flex-wrap: wrap; align-items: center; }
+  .output-box {
+    background: #16213e; border-radius: 12px; padding: 16px;
+    border: 1px solid #333; margin-top: 16px;
+  }
+  .output-box h3 { margin-bottom: 12px; font-size: 15px; }
+  .status {
+    font-size: 13px; padding: 6px 10px; border-radius: 6px;
+    margin-bottom: 12px; display: inline-block;
+  }
+  .status.loading { background: #2563eb33; color: #60a5fa; }
+  .status.ready { background: #10a37f33; color: #34d399; }
+  .status.error { background: #ef444433; color: #f87171; }
+  .status.running { background: #f59e0b33; color: #fbbf24; }
+  .metrics {
+    margin-top: 12px; font-size: 13px; color: #aaa;
+  }
+  .metrics span { color: #60a5fa; font-weight: 600; }
+  .progress-bar {
+    width: 100%; height: 6px; background: #333; border-radius: 3px;
+    margin-top: 8px; overflow: hidden;
+  }
+  .progress-bar .fill {
+    height: 100%; background: #10a37f; border-radius: 3px;
+    transition: width 0.3s;
+  }
+  .audio-player {
+    margin-top: 12px; width: 100%;
+  }
+  .audio-player audio { width: 100%; }
+  .voice-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 6px; margin-top: 8px;
+  }
+  .voice-chip {
+    padding: 6px 10px; background: #16213e; border: 1px solid #333;
+    border-radius: 6px; font-size: 12px; cursor: pointer; text-align: center;
+    transition: all 0.2s;
+  }
+  .voice-chip:hover { border-color: #60a5fa; }
+  .voice-chip.selected { border-color: #10a37f; background: #10a37f22; color: #34d399; }
+  .voice-chip .lang-tag {
+    font-size: 10px; color: #888; display: block; margin-top: 2px;
+  }
+  .sample-btns {
+    display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap;
+  }
+  .sample-btn {
+    padding: 4px 10px; background: #16213e; border: 1px solid #444;
+    border-radius: 4px; font-size: 12px; cursor: pointer; color: #aaa;
+    transition: all 0.2s;
+  }
+  .sample-btn:hover { border-color: #60a5fa; color: #e0e0e0; }
+  .log-area {
+    margin-top: 24px; background: #0f1729; border: 1px solid #222;
+    border-radius: 8px; padding: 12px; max-height: 200px; overflow-y: auto;
+    font-size: 12px; font-family: 'Fira Code', monospace; color: #888;
+  }
+  .log-area .log-line { margin-bottom: 2px; }
+  .log-area .log-line.info { color: #60a5fa; }
+  .log-area .log-line.warn { color: #fbbf24; }
+  .log-area .log-line.error { color: #f87171; }
+</style>
+</head>
+<body>
+
+<h1>Kokoro TTS Test</h1>
+<p class="subtitle">kokoro-js (82M params) — browser inference via Transformers.js ONNX Runtime</p>
+
+<div class="config-row">
+  <label>
+    Quantization
+    <select id="dtype">
+      <option value="q8" selected>q8 (~92 MB)</option>
+      <option value="fp32">fp32 (~326 MB)</option>
+      <option value="fp16">fp16 (~163 MB)</option>
+      <option value="q4">q4 (~305 MB)</option>
+      <option value="q4f16">q4f16 (~154 MB)</option>
+    </select>
+  </label>
+  <label>
+    Device
+    <select id="device">
+      <option value="wasm">WASM (CPU)</option>
+      <option value="webgpu">WebGPU (GPU)</option>
+    </select>
+  </label>
+  <label>
+    Speed
+    <input id="speed" type="number" value="1.0" min="0.5" max="2.0" step="0.1" style="width:80px">
+  </label>
+</div>
+
+<div class="btn-row">
+  <button class="btn btn-load" id="btnLoad">Load Model</button>
+  <div class="status" id="status">Not loaded</div>
+</div>
+<div class="progress-bar" id="progressBar" style="display:none">
+  <div class="fill" id="progressFill" style="width:0%"></div>
+</div>
+
+<div class="output-box" id="voiceSection" style="display:none">
+  <h3>Voices</h3>
+  <div class="config-row" style="margin-bottom: 8px">
+    <label>
+      Filter by Language
+      <select id="langFilter">
+        <option value="all">All Languages</option>
+        <option value="a">American English</option>
+        <option value="b">British English</option>
+        <option value="j">Japanese</option>
+        <option value="z">Mandarin Chinese</option>
+        <option value="e">Spanish</option>
+        <option value="f">French</option>
+        <option value="h">Hindi</option>
+        <option value="i">Italian</option>
+        <option value="p">Brazilian Portuguese</option>
+      </select>
+    </label>
+  </div>
+  <div class="voice-grid" id="voiceGrid"></div>
+</div>
+
+<div style="margin-top: 16px;">
+  <textarea id="inputText" placeholder="Enter text to synthesize...">The quick brown fox jumps over the lazy dog.</textarea>
+  <div class="sample-btns">
+    <span style="font-size: 12px; color: #666; margin-right: 4px;">Samples:</span>
+    <button class="sample-btn" data-lang="en" data-text="The quick brown fox jumps over the lazy dog.">English</button>
+    <button class="sample-btn" data-lang="ja" data-text="本日はお忙しい中、お時間をいただきありがとうございます。">Japanese</button>
+    <button class="sample-btn" data-lang="zh" data-text="今天天气真不错，我们一起去公园散步吧。">Chinese</button>
+    <button class="sample-btn" data-lang="es" data-text="El rápido zorro marrón salta sobre el perro perezoso.">Spanish</button>
+    <button class="sample-btn" data-lang="fr" data-text="Le rapide renard brun saute par-dessus le chien paresseux.">French</button>
+    <button class="sample-btn" data-lang="it" data-text="La rapida volpe marrone salta sopra il cane pigro.">Italian</button>
+    <button class="sample-btn" data-lang="pt" data-text="A rápida raposa marrom pula sobre o cachorro preguiçoso.">Portuguese</button>
+    <button class="sample-btn" data-lang="hi" data-text="तेज़ भूरी लोमड़ी आलसी कुत्ते के ऊपर कूदती है।">Hindi</button>
+  </div>
+</div>
+
+<div class="btn-row">
+  <button class="btn btn-primary" id="btnGenerate" disabled>Generate Speech</button>
+  <button class="btn btn-primary" id="btnStream" disabled>Stream (long text)</button>
+  <button class="btn btn-danger" id="btnStop" style="display:none">Stop</button>
+</div>
+
+<div class="output-box" id="resultSection" style="display:none">
+  <h3>Result</h3>
+  <div class="audio-player" id="audioPlayer"></div>
+  <div class="metrics" id="metrics"></div>
+</div>
+
+<div class="log-area" id="logArea"></div>
+
+<script type="module">
+import { KokoroTTS } from "https://cdn.jsdelivr.net/npm/kokoro-js@1.2.1/dist/kokoro.web.js";
+
+const LANG_MAP = {
+  a: "American English",
+  b: "British English",
+  j: "Japanese",
+  z: "Mandarin Chinese",
+  e: "Spanish",
+  f: "French",
+  h: "Hindi",
+  i: "Italian",
+  p: "Brazilian Portuguese",
+};
+
+const SAMPLE_VOICE_MAP = {
+  en: "af_heart",
+  ja: "jf_alpha",
+  zh: "zf_xiaobei",
+  es: "ef_dora",
+  fr: "ff_siwis",
+  hi: "hf_alpha",
+  it: "if_sara",
+  pt: "pf_dora",
+};
+
+let tts = null;
+let selectedVoice = "af_heart";
+let allVoices = [];
+let abortController = null;
+
+// ── Logging ──
+function log(msg, level = "info") {
+  const area = document.getElementById("logArea");
+  const line = document.createElement("div");
+  line.className = `log-line ${level}`;
+  line.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+  area.appendChild(line);
+  area.scrollTop = area.scrollHeight;
+  console.log(`[${level}] ${msg}`);
+}
+
+function setStatus(text, cls) {
+  const el = document.getElementById("status");
+  el.textContent = text;
+  el.className = `status ${cls}`;
+}
+
+function showProgress(show, pct = 0) {
+  const bar = document.getElementById("progressBar");
+  const fill = document.getElementById("progressFill");
+  bar.style.display = show ? "block" : "none";
+  fill.style.width = `${pct}%`;
+}
+
+// ── Voice Grid ──
+function renderVoices(filter = "all") {
+  const grid = document.getElementById("voiceGrid");
+  grid.innerHTML = "";
+
+  const filtered = filter === "all"
+    ? allVoices
+    : allVoices.filter(v => v.startsWith(filter));
+
+  for (const voice of filtered) {
+    const langChar = voice[0];
+    const gender = voice[1] === "f" ? "F" : "M";
+    const name = voice.slice(3);
+    const langName = LANG_MAP[langChar] || langChar;
+
+    const chip = document.createElement("div");
+    chip.className = `voice-chip${voice === selectedVoice ? " selected" : ""}`;
+    chip.innerHTML = `${voice} <span style="color:#888">(${gender})</span>
+      <span class="lang-tag">${langName}</span>`;
+    chip.addEventListener("click", () => {
+      selectedVoice = voice;
+      renderVoices(filter);
+    });
+    grid.appendChild(chip);
+  }
+}
+
+// ── Load Model ──
+async function loadModel() {
+  const dtype = document.getElementById("dtype").value;
+  const device = document.getElementById("device").value;
+
+  log(`Loading Kokoro TTS model (dtype=${dtype}, device=${device})...`);
+  setStatus("Loading...", "loading");
+  showProgress(true, 5);
+
+  const t0 = performance.now();
+
+  try {
+    tts = await KokoroTTS.from_pretrained("onnx-community/Kokoro-82M-v1.0-ONNX", {
+      dtype,
+      device,
+      progress_callback: (progress) => {
+        if (progress.status === "progress" && progress.total) {
+          const pct = Math.round((progress.loaded / progress.total) * 100);
+          showProgress(true, pct);
+          if (progress.file) {
+            const fileName = progress.file.split("/").pop();
+            setStatus(`Downloading ${fileName}... ${pct}%`, "loading");
+          }
+        } else if (progress.status === "done") {
+          log(`Downloaded: ${progress.file || "file"}`);
+        }
+      },
+    });
+
+    const loadTime = ((performance.now() - t0) / 1000).toFixed(2);
+    showProgress(true, 100);
+
+    // Populate voices
+    allVoices = tts.voices ? Object.keys(tts.voices).sort() : [];
+    if (allVoices.length === 0) {
+      // Fallback: list known voices
+      log("No voice listing available from API, using known voice list", "warn");
+      allVoices = [
+        "af_heart","af_alloy","af_aoede","af_bella","af_jessica","af_kore",
+        "af_nicole","af_nova","af_river","af_sarah","af_sky",
+        "am_adam","am_echo","am_eric","am_fenrir","am_liam","am_michael",
+        "am_onyx","am_puck","am_santa",
+        "bf_alice","bf_emma","bf_isabella","bf_lily",
+        "bm_daniel","bm_fable","bm_george","bm_lewis",
+        "ef_dora","em_alex","em_santa",
+        "ff_siwis",
+        "hf_alpha","hf_beta","hm_omega","hm_psi",
+        "if_sara","im_nicola",
+        "jf_alpha","jf_gongitsune","jf_nezumi","jf_tebukuro","jm_kumo",
+        "pf_dora","pm_alex","pm_santa",
+        "zf_xiaobei","zf_xiaoni","zf_xiaoxiao","zf_xiaoyi",
+        "zm_yunjian","zm_yunxi","zm_yunxia","zm_yunyang",
+      ];
+    }
+
+    document.getElementById("voiceSection").style.display = "";
+    renderVoices();
+
+    setStatus(`Ready (${loadTime}s)`, "ready");
+    log(`Model loaded in ${loadTime}s. ${allVoices.length} voices available.`);
+
+    document.getElementById("btnGenerate").disabled = false;
+    document.getElementById("btnStream").disabled = false;
+  } catch (e) {
+    setStatus(`Error: ${e.message}`, "error");
+    log(`Load error: ${e.message}`, "error");
+    console.error(e);
+  }
+
+  showProgress(false);
+}
+
+// ── Generate Speech (single shot) ──
+async function generateSpeech() {
+  if (!tts) return;
+
+  const text = document.getElementById("inputText").value.trim();
+  if (!text) { log("No text to synthesize", "warn"); return; }
+
+  const speed = parseFloat(document.getElementById("speed").value) || 1.0;
+
+  log(`Generating speech: voice=${selectedVoice}, speed=${speed}, text="${text.slice(0, 60)}${text.length > 60 ? "..." : ""}"`);
+  setStatus("Generating...", "running");
+  document.getElementById("btnGenerate").disabled = true;
+
+  const resultSection = document.getElementById("resultSection");
+  resultSection.style.display = "";
+
+  try {
+    const t0 = performance.now();
+
+    const audio = await tts.generate(text, {
+      voice: selectedVoice,
+      speed,
+    });
+
+    const elapsed = performance.now() - t0;
+
+    // Create audio blob and play
+    const blob = audio.toBlob();
+    const url = URL.createObjectURL(blob);
+
+    const playerDiv = document.getElementById("audioPlayer");
+    playerDiv.innerHTML = "";
+    const audioEl = document.createElement("audio");
+    audioEl.controls = true;
+    audioEl.autoplay = true;
+    audioEl.src = url;
+    playerDiv.appendChild(audioEl);
+
+    // Calculate duration from samples
+    const sampleRate = 24000;
+    const durationSec = audio.audio ? (audio.audio.length / sampleRate) : 0;
+
+    const metricsEl = document.getElementById("metrics");
+    metricsEl.innerHTML = `
+      Voice: <span>${selectedVoice}</span> &nbsp;|&nbsp;
+      Speed: <span>${speed}x</span> &nbsp;|&nbsp;
+      Generation: <span>${(elapsed / 1000).toFixed(2)}s</span><br>
+      Audio duration: <span>${durationSec.toFixed(2)}s</span> &nbsp;|&nbsp;
+      Real-time factor: <span>${(durationSec / (elapsed / 1000)).toFixed(2)}x</span> &nbsp;|&nbsp;
+      Sample rate: <span>${sampleRate} Hz</span>
+    `;
+
+    setStatus("Ready", "ready");
+    log(`Done: ${durationSec.toFixed(2)}s audio in ${(elapsed / 1000).toFixed(2)}s (RTF: ${(durationSec / (elapsed / 1000)).toFixed(2)}x)`);
+  } catch (e) {
+    setStatus(`Error: ${e.message}`, "error");
+    log(`Generate error: ${e.message}`, "error");
+    console.error(e);
+  }
+
+  document.getElementById("btnGenerate").disabled = false;
+}
+
+// ── Stream Speech (for long text) ──
+async function streamSpeech() {
+  if (!tts) return;
+
+  const text = document.getElementById("inputText").value.trim();
+  if (!text) { log("No text to synthesize", "warn"); return; }
+
+  const speed = parseFloat(document.getElementById("speed").value) || 1.0;
+
+  log(`Streaming speech: voice=${selectedVoice}, speed=${speed}, text length=${text.length} chars`);
+  setStatus("Streaming...", "running");
+  document.getElementById("btnStream").disabled = true;
+  document.getElementById("btnGenerate").disabled = true;
+  document.getElementById("btnStop").style.display = "";
+
+  const resultSection = document.getElementById("resultSection");
+  resultSection.style.display = "";
+  const playerDiv = document.getElementById("audioPlayer");
+  playerDiv.innerHTML = "<div style='color:#888; font-size:13px;'>Streaming chunks...</div>";
+
+  abortController = new AbortController();
+  let totalChunks = 0;
+  let totalAudioSec = 0;
+  const t0 = performance.now();
+
+  try {
+    const stream = tts.stream(text, {
+      voice: selectedVoice,
+      speed,
+    });
+
+    const audioContext = new AudioContext({ sampleRate: 24000 });
+    const chunks = [];
+
+    for await (const chunk of stream) {
+      if (abortController.signal.aborted) {
+        log("Stream aborted by user", "warn");
+        break;
+      }
+
+      totalChunks++;
+      const samples = chunk.audio.audio;
+      const chunkDuration = samples.length / 24000;
+      totalAudioSec += chunkDuration;
+
+      log(`  Chunk ${totalChunks}: "${chunk.text.slice(0, 40)}..." (${chunkDuration.toFixed(2)}s)`);
+
+      // Play chunk immediately
+      const buffer = audioContext.createBuffer(1, samples.length, 24000);
+      buffer.getChannelData(0).set(samples);
+      const source = audioContext.createBufferSource();
+      source.buffer = buffer;
+      source.connect(audioContext.destination);
+      source.start();
+
+      chunks.push(samples);
+    }
+
+    const elapsed = performance.now() - t0;
+
+    // Combine all chunks for download/replay
+    const totalLength = chunks.reduce((s, c) => s + c.length, 0);
+    const combined = new Float32Array(totalLength);
+    let offset = 0;
+    for (const chunk of chunks) {
+      combined.set(chunk, offset);
+      offset += chunk.length;
+    }
+
+    // Create combined audio element
+    const wavBlob = float32ToWavBlob(combined, 24000);
+    const url = URL.createObjectURL(wavBlob);
+    playerDiv.innerHTML = "";
+    const audioEl = document.createElement("audio");
+    audioEl.controls = true;
+    audioEl.src = url;
+    playerDiv.appendChild(audioEl);
+
+    const metricsEl = document.getElementById("metrics");
+    metricsEl.innerHTML = `
+      Voice: <span>${selectedVoice}</span> &nbsp;|&nbsp;
+      Speed: <span>${speed}x</span> &nbsp;|&nbsp;
+      Chunks: <span>${totalChunks}</span><br>
+      Total generation: <span>${(elapsed / 1000).toFixed(2)}s</span> &nbsp;|&nbsp;
+      Audio duration: <span>${totalAudioSec.toFixed(2)}s</span> &nbsp;|&nbsp;
+      RTF: <span>${(totalAudioSec / (elapsed / 1000)).toFixed(2)}x</span>
+    `;
+
+    setStatus("Ready", "ready");
+    log(`Stream done: ${totalChunks} chunks, ${totalAudioSec.toFixed(2)}s audio in ${(elapsed / 1000).toFixed(2)}s`);
+  } catch (e) {
+    if (e.name !== "AbortError") {
+      setStatus(`Error: ${e.message}`, "error");
+      log(`Stream error: ${e.message}`, "error");
+      console.error(e);
+    }
+  }
+
+  document.getElementById("btnStream").disabled = false;
+  document.getElementById("btnGenerate").disabled = false;
+  document.getElementById("btnStop").style.display = "none";
+  abortController = null;
+}
+
+// ── WAV Encoder ──
+function float32ToWavBlob(samples, sampleRate) {
+  const numChannels = 1;
+  const bitsPerSample = 16;
+  const byteRate = sampleRate * numChannels * (bitsPerSample / 8);
+  const blockAlign = numChannels * (bitsPerSample / 8);
+  const dataSize = samples.length * (bitsPerSample / 8);
+  const headerSize = 44;
+  const buffer = new ArrayBuffer(headerSize + dataSize);
+  const view = new DataView(buffer);
+
+  // RIFF header
+  writeString(view, 0, "RIFF");
+  view.setUint32(4, 36 + dataSize, true);
+  writeString(view, 8, "WAVE");
+  writeString(view, 12, "fmt ");
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true); // PCM
+  view.setUint16(22, numChannels, true);
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, byteRate, true);
+  view.setUint16(32, blockAlign, true);
+  view.setUint16(34, bitsPerSample, true);
+  writeString(view, 36, "data");
+  view.setUint32(40, dataSize, true);
+
+  // PCM data
+  let offset = 44;
+  for (let i = 0; i < samples.length; i++) {
+    const s = Math.max(-1, Math.min(1, samples[i]));
+    view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+    offset += 2;
+  }
+
+  return new Blob([buffer], { type: "audio/wav" });
+}
+
+function writeString(view, offset, str) {
+  for (let i = 0; i < str.length; i++) {
+    view.setUint8(offset + i, str.charCodeAt(i));
+  }
+}
+
+// ── Event Handlers ──
+document.getElementById("btnLoad").addEventListener("click", async () => {
+  const btn = document.getElementById("btnLoad");
+  btn.disabled = true;
+  await loadModel();
+  btn.disabled = false;
+});
+
+document.getElementById("btnGenerate").addEventListener("click", generateSpeech);
+document.getElementById("btnStream").addEventListener("click", streamSpeech);
+
+document.getElementById("btnStop").addEventListener("click", () => {
+  if (abortController) abortController.abort();
+});
+
+document.getElementById("langFilter").addEventListener("change", (e) => {
+  renderVoices(e.target.value);
+});
+
+// Sample text buttons
+document.querySelectorAll(".sample-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.getElementById("inputText").value = btn.dataset.text;
+    // Auto-select matching voice
+    const lang = btn.dataset.lang;
+    if (SAMPLE_VOICE_MAP[lang] && allVoices.includes(SAMPLE_VOICE_MAP[lang])) {
+      selectedVoice = SAMPLE_VOICE_MAP[lang];
+      const filter = document.getElementById("langFilter").value;
+      renderVoices(filter);
+    }
+  });
+});
+
+// ── Init ──
+log("Kokoro TTS Proto — click 'Load Model' to start.");
+log("Model: onnx-community/Kokoro-82M-v1.0-ONNX (82M params, 9 languages, 54 voices)");
+log("Models are cached in browser after first download.");
+
+if (navigator.gpu) {
+  log("WebGPU available — you can select GPU acceleration");
+  document.getElementById("device").value = "webgpu";
+} else {
+  log("WebGPU not available — using WASM (CPU)", "warn");
+  document.getElementById("device").value = "wasm";
+}
+</script>
+</body>
+</html>
