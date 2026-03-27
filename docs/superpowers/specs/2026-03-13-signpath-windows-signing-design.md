@@ -111,7 +111,7 @@ SignPath policies are configured **in the SignPath dashboard**, not via reposito
 |---------|---------------|-------------------|
 | Certificate | Self-signed (auto-assigned) | EV cert (assigned by SignPath) |
 | Submitters | CI user | CI user |
-| Approval required | No | No (or optional manual approval) |
+| Approval required | No | Yes — required by SignPath Foundation for OSS production certificates |
 | Trusted build system | GitHub.com | GitHub.com |
 | Origin verification | Off | On — restrict to `main` branch + `v*` tags |
 | GitHub-hosted runners | Required (OSS) | Required (OSS) |
