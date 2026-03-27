@@ -65,7 +65,7 @@ export interface WhisperAsrInitMessage {
   vadModelUrl?: string;
 }
 
-export type AsrWorkerInMessage = AsrInitMessage | WhisperAsrInitMessage | AsrAudioMessage | AsrDisposeMessage;
+export type AsrWorkerInMessage = AsrInitMessage | WhisperAsrInitMessage | VoxtralAsrInitMessage | AsrAudioMessage | AsrDisposeMessage;
 
 // ─── ASR Worker Messages (Worker → Main) ─────────────────────────────────────
 
@@ -123,6 +123,22 @@ export interface StreamingAsrInitMessage {
   runtimeBaseUrl: string;
   /** Emscripten loadPackage metadata (file offsets/sizes from package-metadata.json) */
   dataPackageMetadata: Record<string, unknown>;
+}
+
+export interface VoxtralAsrInitMessage {
+  type: 'init';
+  /** Map of filename → blob URL for model files from IndexedDB */
+  fileUrls: Record<string, string>;
+  /** HuggingFace model ID for Transformers.js from_pretrained */
+  hfModelId: string;
+  /** Source language hint (optional, for future use) */
+  language?: string;
+  /** ONNX dtype config — 'q4f16' or 'q4', or per-component mapping */
+  dtype: string | Record<string, string>;
+  /** Resolved absolute URL for bundled VAD model */
+  vadModelUrl: string;
+  /** Resolved absolute URL for bundled ORT WASM files */
+  ortWasmBaseUrl?: string;
 }
 
 // ─── Streaming ASR Worker Messages (Worker → Main) ──────────────────────────
