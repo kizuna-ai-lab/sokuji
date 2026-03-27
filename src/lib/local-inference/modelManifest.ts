@@ -751,6 +751,30 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     asrEngine: 'stream-nemo-ctc',
   },
 
+  // ── Voxtral WebGPU Streaming ASR ────────────────────────────────────────────
+  {
+    id: 'voxtral-mini-4b-webgpu',
+    type: 'asr-stream',
+    name: 'Voxtral Mini 4B Realtime (WebGPU)',
+    languages: ['ar', 'de', 'en', 'es', 'fr', 'hi', 'it', 'nl', 'pt', 'zh', 'ja', 'ko', 'ru'],
+    multilingual: true,
+    hfModelId: 'onnx-community/Voxtral-Mini-4B-Realtime-2602-ONNX',
+    requiredDevice: 'webgpu',
+    asrEngine: 'voxtral',
+    asrWorkerType: 'voxtral-webgpu',
+    variants: {
+      'q4f16': {
+        dtype: { audio_encoder: 'q4f16', embed_tokens: 'q4f16', decoder_model_merged: 'q4f16' },
+        files: [],
+        requiredFeatures: ['shader-f16'],
+      },
+      'q4': {
+        dtype: { audio_encoder: 'q4', embed_tokens: 'q4', decoder_model_merged: 'q4' },
+        files: [],
+      },
+    },
+  },
+
   // ── Whisper WebGPU ASR Models — third-party HF Hub ──────────────────────
   // Downloaded from onnx-community repos on HuggingFace Hub. Uses hfModelId.
   // Whisper via @huggingface/transformers with built-in Silero VAD.
