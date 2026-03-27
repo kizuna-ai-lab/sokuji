@@ -360,11 +360,13 @@ async function feedAudio(samples: Int16Array, sampleRate: number): Promise<void>
           case Message.SpeechEnd:
             speechFramesSinceStart = 0;
             stopGenerate();
+            voxtralAudioBuffer = new Float32Array(0);
             break;
 
           case Message.VADMisfire:
             speechFramesSinceStart = 0;
             stopGenerate();
+            voxtralAudioBuffer = new Float32Array(0);
             break;
         }
       }
