@@ -465,9 +465,10 @@ export class GeminiClient implements IClient {
     
     // Finalize input transcription if we have accumulated text
     if (this.currentTurn.inputTranscription.trim()) {
+      const finalTranscript = this.normalizeCJKSpaces(this.currentTurn.inputTranscription.trim());
       if (this.currentTurn.inputTranscriptionItem && this.currentTurn.inputTranscriptionItem.formatted) {
         // Update existing item with final accumulated text and mark as completed
-        this.currentTurn.inputTranscriptionItem.formatted.transcript = this.currentTurn.inputTranscription.trim();
+        this.currentTurn.inputTranscriptionItem.formatted.transcript = finalTranscript;
         this.currentTurn.inputTranscriptionItem.status = 'completed';
         this.eventHandlers.onConversationUpdated?.({ item: this.currentTurn.inputTranscriptionItem });
       } else {
@@ -479,7 +480,7 @@ export class GeminiClient implements IClient {
           status: 'completed',
           createdAt: Date.now(),
           formatted: {
-            transcript: this.currentTurn.inputTranscription.trim()
+            transcript: finalTranscript
           }
         };
         this.conversationItems.push(conversationItem);
@@ -634,7 +635,10 @@ export class GeminiClient implements IClient {
       // Accumulate input transcription text
       if (serverContent.inputTranscription.text) {
         this.currentTurn.inputTranscription += serverContent.inputTranscription.text;
-        
+
+        // Normalize: Gemini 3.x models insert spaces between CJK characters in transcriptions
+        const normalizedTranscript = this.normalizeCJKSpaces(this.currentTurn.inputTranscription);
+
         // Create or update conversation item for real-time display
         if (!this.currentTurn.inputTranscriptionItem) {
           this.currentTurn.inputTranscriptionItem = {
@@ -644,14 +648,14 @@ export class GeminiClient implements IClient {
             status: 'in_progress',
             createdAt: Date.now(),
             formatted: {
-              transcript: this.currentTurn.inputTranscription
+              transcript: normalizedTranscript
             }
           };
           this.conversationItems.push(this.currentTurn.inputTranscriptionItem);
           this.eventHandlers.onConversationUpdated?.({ item: this.currentTurn.inputTranscriptionItem });
         } else if (this.currentTurn.inputTranscriptionItem.formatted) {
           // Update existing item with accumulated text
-          this.currentTurn.inputTranscriptionItem.formatted.transcript = this.currentTurn.inputTranscription;
+          this.currentTurn.inputTranscriptionItem.formatted.transcript = normalizedTranscript;
           this.eventHandlers.onConversationUpdated?.({ item: this.currentTurn.inputTranscriptionItem });
         }
       }
@@ -816,7 +820,7 @@ export class GeminiClient implements IClient {
     const base64Audio = this.arrayBufferToBase64(audioData.buffer);
     
     this.session.sendRealtimeInput({
-      media: {
+      audio: {
         mimeType: 'audio/pcm;rate=24000',
         data: base64Audio
       }
@@ -853,6 +857,29 @@ export class GeminiClient implements IClient {
 
     // Send text via sendRealtimeInput
     this.session.sendRealtimeInput({ text: trimmedText });
+  }
+
+  /**
+   * Remove spaces between CJK characters that Gemini 3.x models insert in transcriptions.
+   * e.g. "今 天 天 气 不 错" → "今天天气不错"
+   */
+  private normalizeCJKSpaces(text: string): string {
+    // Match a CJK character, one or more spaces, then another CJK character
+    // CJK Unified Ideographs: \u4e00-\u9fff
+    // CJK Unified Ideographs Extension A: \u3400-\u4dbf
+    // CJK Compatibility Ideographs: \uf900-\ufaff
+    // Hiragana: \u3040-\u309f, Katakana: \u30a0-\u30ff
+    // CJK Punctuation: \u3000-\u303f, Fullwidth forms: \uff00-\uffef
+    const cjkRange = '\\u3000-\\u303f\\u3040-\\u309f\\u30a0-\\u30ff\\u3400-\\u4dbf\\u4e00-\\u9fff\\uf900-\\ufaff\\uff00-\\uffef';
+    const regex = new RegExp(`([${cjkRange}])\\s+([${cjkRange}])`, 'g');
+    // Apply repeatedly since the regex consumes both characters (overlapping matches)
+    let result = text;
+    let prev;
+    do {
+      prev = result;
+      result = result.replace(regex, '$1$2');
+    } while (result !== prev);
+    return result;
   }
 
   private arrayBufferToBase64(buffer: ArrayBuffer): string {
