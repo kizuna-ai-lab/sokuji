@@ -1,8 +1,8 @@
 ---
-title: "ブラウザ内で音声合成を実現する ― sherpa-onnx TTS で完全オフライン翻訳パイプラインを完成させる"
+title: "ブラウザ内で音声合成を実現する ― sherpa-onnx & Piper-Plus TTS で完全オフライン翻訳パイプラインを完成させる"
 emoji: "🔊"
 type: "tech"
-topics: ["WebAssembly", "音声合成", "sherpaonnx", "WebAudio", "TTS"]
+topics: ["WebAssembly", "音声合成", "sherpaonnx", "ONNXRuntime", "TTS"]
 published: false
 ---
 
@@ -47,9 +47,138 @@ published: false
 
 https://huggingface.co/spaces/jiangzhuo9357/sherpa-onnx-tts-demos
 
+## Piper-Plus：日本語特化の TTS エンジン
+
+sherpa-onnx の TTS エンジンに加えて、Sokuji では **Piper-Plus** という独自のエンジンも搭載しています。これは [piper-plus](https://github.com/piper-plus/piper-plus) プロジェクトをベースに、ブラウザ上での日本語音声合成を大幅に改善するために開発したものです。
+
+### なぜ Piper-Plus が必要なのか
+
+sherpa-onnx の Piper エンジンは eSpeak-ng を音素変換に使用しています。eSpeak-ng は多言語対応ですが、**日本語の漢字読みやピッチアクセントの処理が弱い**という問題があります。例えば「今日は天気がいいですね」を正しく「きょうはてんきがいいですね」と読み上げるには、形態素解析と読み仮名の変換が必要です。
+
+Piper-Plus は **OpenJTalk** を音素変換に使うことで、この問題を解決しています：
+
+| | sherpa-onnx Piper | Piper-Plus |
+|---|---|---|
+| 音素変換エンジン | eSpeak-ng（全言語共通） | OpenJTalk（日本語）+ eSpeak-ng（英語） |
+| 日本語の漢字読み | △ 不正確 | ◎ 形態素解析で正確 |
+| ピッチアクセント | × 非対応 | ○ プロソディ特徴量で対応 |
+| 推論ランタイム | Emscripten（sherpa-onnx 組込み） | ONNX Runtime Web（スタンドアロン） |
+| モデルサイズ | ~81MB | ~149MB（辞書含む） |
+| 多言語対応 | 単一言語 | 6言語（ja, en, zh, es, fr, pt） |
+
+### アーキテクチャの違い
+
+sherpa-onnx ベースのエンジンとは Worker の構成が異なります：
+
+```
+┌──────────────────────────────────────────────────┐
+│              Piper-Plus Worker                    │
+│                                                   │
+│  importScripts() で以下をロード:                    │
+│    ├─ ort.wasm.min.js     （ONNX Runtime Web）    │
+│    ├─ openjtalk-classic.js （OpenJTalk WASM）      │
+│    └─ japanese_phoneme_extract.js（音素抽出）       │
+│                                                   │
+│  テキスト入力                                       │
+│    ↓ OpenJTalk で形態素解析 + 音素変換              │
+│  音素ID列                                          │
+│    ↓ ONNX Runtime Web で推論                       │
+│  Float32Array 音声データ                            │
+└──────────────────────────────────────────────────┘
+```
+
+### 音素変換パイプライン
+
+Piper-Plus の核心は、言語ごとに最適な音素変換器を使い分ける点です：
+
+```javascript
+// piper-plus-tts.worker.js
+
+function phonemize(text, lang) {
+  if (lang === 'ja') {
+    // OpenJTalk で形態素解析 → HTS ラベル → 音素抽出
+    const labels = openjtalk.analyze(text);
+    const phonemes = extractPhonemesFromLabels(labels);
+    return mapToPhonemeIds(phonemes);
+  } else if (lang === 'en') {
+    // eSpeak-ng で英語音素変換
+    return espeakPhonemize(text);
+  } else {
+    // その他の言語は文字レベルのフォールバック
+    return charLevelPhonemize(text);
+  }
+}
+```
+
+OpenJTalk は「今日」→「きょう」、「天気」→「てんき」のように漢字を正確に読み仮名に変換し、さらにピッチアクセント情報も付与します。この情報は VITS モデルのプロソディ特徴量テンソルとして渡され、より自然な抑揚の音声が生成されます。
+
+### ONNX Runtime Web での推論
+
+sherpa-onnx が Emscripten 組込みのランタイムを使うのに対し、Piper-Plus は **ONNX Runtime Web** をスタンドアロンで使用します：
+
+```javascript
+// ONNX セッションの作成
+const session = await ort.InferenceSession.create(modelBuffer, {
+  executionProviders: ['wasm'],
+});
+
+// 推論の実行
+const input = new ort.Tensor('int64', phonemeIds, [1, seqLen]);
+const inputLengths = new ort.Tensor('int64', [BigInt(seqLen)], [1]);
+const scales = new ort.Tensor('float32', [0.667, lengthScale, 0.8], [3]);
+const lid = new ort.Tensor('int64', [BigInt(langId)], [1]);
+
+const results = await session.run({
+  input: input,
+  input_lengths: inputLengths,
+  scales: scales,
+  sid: new ort.Tensor('int64', [BigInt(speakerId)], [1]),
+  langid: lid,
+});
+
+// results.output.data → Float32Array 音声サンプル
+```
+
+### TtsEngine での統合
+
+TtsEngine クラスは `engine` フィールドで sherpa-onnx と Piper-Plus を自動的に切り替えます：
+
+```typescript
+// TtsEngine.ts
+const isPiperPlus = model.engine === 'piper-plus';
+
+// Worker を選択
+const workerUrl = isPiperPlus
+  ? './workers/piper-plus-tts.worker.js'
+  : './workers/sherpa-onnx-tts.worker.js';
+
+this.worker = new Worker(workerUrl);
+```
+
+Piper-Plus は `languageIdMap` を使って多言語ルーティングを行います。翻訳先の言語コードをそのまま渡すだけで、適切な音素変換器が選択されます：
+
+```typescript
+// モデルマニフェストの設定
+{
+  id: 'piper-plus-css10-ja-6lang',
+  engine: 'piper-plus',
+  languages: ['ja'],
+  ttsConfig: {
+    languageIdMap: { ja: 0, en: 1, zh: 2, es: 3, fr: 4, pt: 5 },
+  },
+}
+
+// generate 呼び出し時に言語を指定
+await ttsEngine.generate(text, speakerId, speed, targetLanguage);
+```
+
+:::message
+**OpenJTalk 辞書のサイズ**: OpenJTalk の `sys.dic`（システム辞書）は約 103MB あり、モデル全体の大部分を占めます。日本語の漢字読みを正確に行うために必要な辞書ですが、ダウンロードサイズの最適化は今後の課題です。
+:::
+
 ## アーキテクチャ概要
 
-TTS の基本構成は第1回の ASR と同じパターンです。Classic Web Worker + Emscripten WASM + IndexedDB モデルキャッシュの組み合わせです。
+TTS の基本構成は第1回の ASR と同じパターンです。Classic Web Worker + WASM + IndexedDB モデルキャッシュの組み合わせです。sherpa-onnx ベースのエンジンは Emscripten WASM を、Piper-Plus は ONNX Runtime Web をそれぞれ使用しますが、メインスレッド側の API は統一されています。
 
 ```
 ┌──────────────────────────────────────────────────┐
@@ -274,6 +403,7 @@ export class TtsEngine {
     text: string,
     sid = 0,
     speed = 1.0,
+    lang?: string,  // Piper-Plus 多言語モデル用の言語コード
   ): Promise<TtsResult> {
     // 絵文字を除去（モデルが対応していないため）
     const sanitizedText = TtsEngine.stripEmoji(text);
@@ -285,6 +415,7 @@ export class TtsEngine {
         text: sanitizedText,
         sid,
         speed,
+        lang,  // Worker が言語に応じた音素変換器を選択
       });
     });
   }
@@ -699,6 +830,7 @@ await ttsEngine.generate("Hello", 0, 1.5);
 | ASR | sherpa-onnx WASM + VAD | Classic Worker |
 | 翻訳 | Transformers.js + ONNX | ES Module Worker |
 | TTS | sherpa-onnx WASM + VITS/Matcha | Classic Worker |
+| TTS（日本語特化） | Piper-Plus + OpenJTalk + ONNX Runtime Web | Classic Worker |
 
 ### 共通するパターン
 
