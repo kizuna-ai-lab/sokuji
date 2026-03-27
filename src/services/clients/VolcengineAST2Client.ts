@@ -87,7 +87,7 @@ export class VolcengineAST2Client implements IClient {
   private ipcErrorHandler: ((payload: any) => void) | null = null;
   private ipcCloseHandler: ((payload: any) => void) | null = null;
 
-  constructor(appId: string, accessToken: string, resourceId: string = 'volc.bigasr.sauc.duration') {
+  constructor(appId: string, accessToken: string, resourceId: string = 'volc.service_type.10053') {
     this.appId = appId;
     this.accessToken = accessToken;
     this.resourceId = resourceId;
@@ -381,7 +381,7 @@ export class VolcengineAST2Client implements IClient {
 
     const requestPayload: any = {
       requestMeta: {
-        Endpoint: 'volc.bigasr.sauc.duration',
+        Endpoint: 'volc.service_type.10053',
         AppKey: this.appId,
         ResourceID: this.resourceId,
         ConnectionID: this.connectionId,
@@ -1007,7 +1007,7 @@ export class VolcengineAST2Client implements IClient {
         const result = await window.electron.invoke('volcengine-ast2-validate', {
           appId: appIdStr.trim(),
           accessToken: accessTokenStr.trim(),
-          resourceId: 'volc.bigasr.sauc.duration',
+          resourceId: 'volc.service_type.10053',
         });
         if (result?.success) {
           return {
@@ -1045,7 +1045,7 @@ export class VolcengineAST2Client implements IClient {
               credentials: {
                 appKey: appIdStr.trim(),
                 accessKey: accessTokenStr.trim(),
-                resourceId: 'volc.bigasr.sauc.duration',
+                resourceId: 'volc.service_type.10053',
                 connectId: connectionId,
               },
             },
@@ -1084,9 +1084,9 @@ export class VolcengineAST2Client implements IClient {
             const sessionId = uuidv4();
             const startReq = TranslateRequest.encode({
               requestMeta: {
-                Endpoint: 'volc.bigasr.sauc.duration',
+                Endpoint: 'volc.service_type.10053',
                 AppKey: appIdStr.trim(),
-                ResourceID: 'volc.bigasr.sauc.duration',
+                ResourceID: 'volc.service_type.10053',
                 ConnectionID: connectionId,
                 SessionID: sessionId,
                 Sequence: 0,
