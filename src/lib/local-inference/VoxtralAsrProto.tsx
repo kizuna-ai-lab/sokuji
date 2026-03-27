@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import {
   BaseStreamer,
   VoxtralRealtimeForConditionalGeneration,
@@ -250,6 +250,9 @@ export const VoxtralAsrProto: React.FC<VoxtralAsrProtoProps> = ({ onClose }) => 
         if (!stopRequestedRef.current) {
           console.error('Transcription error:', err);
           setError(err instanceof Error ? err.message : 'Transcription failed');
+          cleanupAudio();
+          setStatus('error');
+          return;
         }
       } finally {
         cleanupAudio();
@@ -326,6 +329,14 @@ export const VoxtralAsrProto: React.FC<VoxtralAsrProtoProps> = ({ onClose }) => 
     setError(null);
     setStatus('ready');
   }, []);
+
+  // Cleanup on unmount to prevent resource leaks
+  useEffect(() => {
+    return () => {
+      stopRequestedRef.current = true;
+      cleanupAudio();
+    };
+  }, [cleanupAudio]);
 
   return (
     <div style={{
