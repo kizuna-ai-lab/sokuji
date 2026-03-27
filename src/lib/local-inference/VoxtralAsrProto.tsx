@@ -29,6 +29,16 @@ function checkWebGPU(): boolean {
   return 'gpu' in navigator;
 }
 
+async function detectShaderF16(): Promise<boolean> {
+  if (!checkWebGPU()) return false;
+  try {
+    const adapter = await navigator.gpu.requestAdapter();
+    return adapter?.features.has('shader-f16') ?? false;
+  } catch {
+    return false;
+  }
+}
+
 function waitUntil(condition: () => boolean): Promise<void> {
   return new Promise((resolve) => {
     if (condition()) return resolve();
@@ -94,10 +104,15 @@ export const VoxtralAsrProto: React.FC<VoxtralAsrProtoProps> = ({ onClose }) => 
 
     setStatus('loading');
     setLoadingProgress(0);
-    setLoadingMessage('Preparing model download...');
+    setLoadingMessage('Detecting GPU capabilities...');
     setError(null);
 
     try {
+      const hasF16 = await detectShaderF16();
+      const dtype = hasF16 ? 'q4f16' : 'q4';
+      console.info(`[VoxtralASR] shader-f16: ${hasF16}, using dtype: ${dtype}`);
+      setLoadingMessage('Preparing model download...');
+
       const progressMap = new Map<string, number>();
       const progressCallback = (info: ProgressInfo) => {
         if (
@@ -112,7 +127,7 @@ export const VoxtralAsrProto: React.FC<VoxtralAsrProtoProps> = ({ onClose }) => 
           (sum, value) => sum + value,
           0,
         );
-        setLoadingMessage('Downloading model...');
+        setLoadingMessage(`Downloading model (${dtype})...`);
         setLoadingProgress(Math.min((totalProgress / MODEL_FILE_COUNT) * 100, 100));
       };
 
@@ -120,9 +135,9 @@ export const VoxtralAsrProto: React.FC<VoxtralAsrProtoProps> = ({ onClose }) => 
         MODEL_ID,
         {
           dtype: {
-            audio_encoder: 'q4f16',
-            embed_tokens: 'q4f16',
-            decoder_model_merged: 'q4f16',
+            audio_encoder: dtype,
+            embed_tokens: dtype,
+            decoder_model_merged: dtype,
           },
           device: 'webgpu',
           progress_callback: progressCallback,
