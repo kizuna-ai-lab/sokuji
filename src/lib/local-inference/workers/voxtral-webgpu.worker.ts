@@ -351,7 +351,7 @@ async function feedAudio(samples: Int16Array, sampleRate: number): Promise<void>
         switch (ev.msg) {
           case Message.SpeechStart:
             speechFramesSinceStart = 0;
-            voxtralAudioBuffer = new Float32Array(0);
+            // Keep accumulated audio — it contains the speech onset that triggered VAD
             post({ type: 'speech_start' });
             // Start Voxtral generate loop (non-blocking)
             runVoxtralGenerate();
@@ -453,6 +453,12 @@ async function handleInit(msg: VoxtralAsrInitMessage): Promise<void> {
       {
         dtype,
         device: 'webgpu',
+        progress_callback: (info: ProgressInfo) => {
+          if (info.status === 'progress' && info.file.endsWith('.onnx_data') && info.total > 0) {
+            const pct = Math.round((info.loaded / info.total) * 100);
+            post({ type: 'status', message: `Loading model... ${pct}%` });
+          }
+        },
       },
     );
 

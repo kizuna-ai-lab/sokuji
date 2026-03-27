@@ -760,7 +760,6 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     type: 'asr-stream',
     name: 'Voxtral Mini 4B Realtime (WebGPU)',
     languages: ['ar', 'de', 'en', 'es', 'fr', 'hi', 'it', 'nl', 'pt', 'zh', 'ja', 'ko', 'ru'],
-    multilingual: true,
     hfModelId: 'onnx-community/Voxtral-Mini-4B-Realtime-2602-ONNX',
     requiredDevice: 'webgpu',
     asrEngine: 'voxtral',

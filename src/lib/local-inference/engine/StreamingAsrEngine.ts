@@ -19,7 +19,7 @@ import {
   type ModelManifestEntry,
 } from '../modelManifest';
 import { ModelManager } from '../ModelManager';
-import { useModelStore } from '../../../stores/modelStore';
+
 
 export interface StreamingAsrResult {
   text: string;
@@ -133,12 +133,7 @@ export class StreamingAsrEngine {
             throw new Error(`Voxtral model "${modelId}" is not downloaded.`);
           }
           const fileUrls = await manager.getModelBlobUrls(modelId);
-
-          const { deviceFeatures } = useModelStore.getState();
-          const hasF16 = deviceFeatures?.includes('shader-f16') ?? false;
-          const dtype = hasF16
-            ? (model.variants['q4f16']?.dtype || 'q4f16')
-            : (model.variants['q4']?.dtype || 'q4');
+          const { dtype } = await manager.getModelVariantInfo(modelId);
 
           // Cleanup blob URLs on ready or init error
           const cleanup = () => manager.revokeBlobUrls(fileUrls);
