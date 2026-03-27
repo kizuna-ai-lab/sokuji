@@ -752,6 +752,9 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
   },
 
   // ── Voxtral WebGPU Streaming ASR ────────────────────────────────────────────
+  // Downloaded from onnx-community repo on HuggingFace Hub. Uses hfModelId.
+  // Voxtral Mini 4B via @huggingface/transformers with Silero VAD.
+  // Shared config/tokenizer files + per-variant ONNX model files.
   {
     id: 'voxtral-mini-4b-webgpu',
     type: 'asr-stream',
@@ -765,12 +768,45 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     variants: {
       'q4f16': {
         dtype: { audio_encoder: 'q4f16', embed_tokens: 'q4f16', decoder_model_merged: 'q4f16' },
-        files: [],
+        files: [
+          // Config & tokenizer (shared across variants)
+          { filename: 'config.json', sizeBytes: 2_000 },
+          { filename: 'generation_config.json', sizeBytes: 221 },
+          { filename: 'preprocessor_config.json', sizeBytes: 335 },
+          { filename: 'processor_config.json', sizeBytes: 384 },
+          { filename: 'tokenizer.json', sizeBytes: 12_600_000 },
+          { filename: 'tokenizer_config.json', sizeBytes: 178_300 },
+          { filename: 'tekken.json', sizeBytes: 14_900_000 },
+          // ONNX model files (q4f16)
+          { filename: 'onnx/audio_encoder_q4f16.onnx', sizeBytes: 418_817 },
+          { filename: 'onnx/audio_encoder_q4f16.onnx_data', sizeBytes: 585_768_448 },
+          { filename: 'onnx/decoder_model_merged_q4f16.onnx', sizeBytes: 292_167 },
+          { filename: 'onnx/decoder_model_merged_q4f16.onnx_data', sizeBytes: 2_016_339_968 },
+          { filename: 'onnx/embed_tokens_q4f16.onnx', sizeBytes: 1_064 },
+          { filename: 'onnx/embed_tokens_q4f16.onnx_data', sizeBytes: 232_783_872 },
+        ],
         requiredFeatures: ['shader-f16'],
       },
       'q4': {
         dtype: { audio_encoder: 'q4', embed_tokens: 'q4', decoder_model_merged: 'q4' },
-        files: [],
+        files: [
+          // Config & tokenizer (shared across variants)
+          { filename: 'config.json', sizeBytes: 2_000 },
+          { filename: 'generation_config.json', sizeBytes: 221 },
+          { filename: 'preprocessor_config.json', sizeBytes: 335 },
+          { filename: 'processor_config.json', sizeBytes: 384 },
+          { filename: 'tokenizer.json', sizeBytes: 12_600_000 },
+          { filename: 'tokenizer_config.json', sizeBytes: 178_300 },
+          { filename: 'tekken.json', sizeBytes: 14_900_000 },
+          // ONNX model files (q4)
+          { filename: 'onnx/audio_encoder_q4.onnx', sizeBytes: 415_778 },
+          { filename: 'onnx/audio_encoder_q4.onnx_data', sizeBytes: 661_142_528 },
+          { filename: 'onnx/decoder_model_merged_q4.onnx', sizeBytes: 290_208 },
+          { filename: 'onnx/decoder_model_merged_q4.onnx_data', sizeBytes: 2_006_732_800 },
+          { filename: 'onnx/decoder_model_merged_q4.onnx_data_1', sizeBytes: 257_949_696 },
+          { filename: 'onnx/embed_tokens_q4.onnx', sizeBytes: 857 },
+          { filename: 'onnx/embed_tokens_q4.onnx_data', sizeBytes: 257_949_696 },
+        ],
       },
     },
   },

@@ -2,7 +2,7 @@
  * Voxtral WebGPU Streaming ASR Worker
  *
  * Streaming audio input (Int16@24kHz) → Silero VAD v5 → Voxtral Mini 4B (WebGPU)
- * Model loaded via HuggingFace Hub (from_pretrained with browser Cache API).
+ * Model files loaded from IndexedDB via customCache bridge (same as Whisper WebGPU).
  *
  * Unlike Whisper (batch: VAD → complete utterance → decode), Voxtral runs
  * continuous streaming inference with an async inputFeaturesGenerator.
@@ -393,6 +393,29 @@ async function feedAudio(samples: Int16Array, sampleRate: number): Promise<void>
 
 // ─── Init Handler ───────────────────────────────────────────────────────────
 
+/**
+ * Create customCache bridge for IndexedDB blob URLs → Transformers.js.
+ * Maps HF Hub resolve URLs to local blob URLs from IndexedDB.
+ * Same pattern as whisper-webgpu.worker.ts and translation.worker.ts.
+ */
+function createBlobUrlCache(fileUrls: Record<string, string>) {
+  return {
+    async match(request: string | Request | undefined): Promise<Response | undefined> {
+      if (!request) return undefined;
+      const url = typeof request === 'string' ? request : request.url;
+      const marker = '/resolve/main/';
+      const idx = url.indexOf(marker);
+      if (idx === -1) return undefined;
+      const filename = url.slice(idx + marker.length);
+      const blobUrl = fileUrls[filename];
+      if (!blobUrl) return undefined;
+      return fetch(blobUrl);
+    },
+    async put(_request: string | Request, _response: Response): Promise<void> {
+    },
+  };
+}
+
 async function handleInit(msg: VoxtralAsrInitMessage): Promise<void> {
   try {
     const startTime = performance.now();
@@ -411,7 +434,14 @@ async function handleInit(msg: VoxtralAsrInitMessage): Promise<void> {
     post({ type: 'status', message: 'Loading VAD model...' });
     await initVad(msg.vadModelUrl);
 
-    // 2. Load Voxtral model
+    // 2. Configure Transformers.js for IndexedDB blob URL cache
+    env.allowRemoteModels = false;
+    env.allowLocalModels = true;
+    env.useBrowserCache = false;
+    env.useCustomCache = true;
+    env.customCache = createBlobUrlCache(msg.fileUrls);
+
+    // 3. Load Voxtral model
     post({ type: 'status', message: 'Loading Voxtral model (WebGPU)...' });
 
     const dtype = typeof msg.dtype === 'string'
@@ -423,16 +453,10 @@ async function handleInit(msg: VoxtralAsrInitMessage): Promise<void> {
       {
         dtype,
         device: 'webgpu',
-        progress_callback: (info: ProgressInfo) => {
-          if (info.status === 'progress' && info.file.endsWith('.onnx_data') && info.total > 0) {
-            const pct = Math.round((info.loaded / info.total) * 100);
-            post({ type: 'status', message: `Downloading model... ${pct}%` });
-          }
-        },
       },
     );
 
-    // 3. Load processor
+    // 4. Load processor
     post({ type: 'status', message: 'Loading processor...' });
     voxtralProcessor = await VoxtralRealtimeProcessor.from_pretrained(msg.hfModelId);
 

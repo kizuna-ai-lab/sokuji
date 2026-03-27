@@ -129,14 +129,31 @@ export class StreamingAsrEngine {
 
         // Send init message based on worker type
         if (workerType === 'voxtral-webgpu') {
+          if (!await manager.isModelReady(modelId)) {
+            throw new Error(`Voxtral model "${modelId}" is not downloaded.`);
+          }
+          const fileUrls = await manager.getModelBlobUrls(modelId);
+
           const { deviceFeatures } = useModelStore.getState();
           const hasF16 = deviceFeatures?.includes('shader-f16') ?? false;
           const dtype = hasF16
             ? (model.variants['q4f16']?.dtype || 'q4f16')
             : (model.variants['q4']?.dtype || 'q4');
 
+          // Cleanup blob URLs on ready or init error
+          const cleanup = () => manager.revokeBlobUrls(fileUrls);
+          const origOnMessage = this.worker.onmessage;
+          this.worker.onmessage = (event: MessageEvent<StreamingAsrWorkerOutMessage>) => {
+            const msg = event.data;
+            if (msg.type === 'ready' || (msg.type === 'error' && !this.isReady)) {
+              cleanup();
+            }
+            origOnMessage?.call(this.worker, event);
+          };
+
           this.worker.postMessage({
             type: 'init',
+            fileUrls,
             hfModelId: model.hfModelId,
             language: options?.language,
             dtype,

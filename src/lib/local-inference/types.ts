@@ -127,6 +127,8 @@ export interface StreamingAsrInitMessage {
 
 export interface VoxtralAsrInitMessage {
   type: 'init';
+  /** Map of filename → blob URL for model files from IndexedDB */
+  fileUrls: Record<string, string>;
   /** HuggingFace model ID for Transformers.js from_pretrained */
   hfModelId: string;
   /** Source language hint (optional, for future use) */
