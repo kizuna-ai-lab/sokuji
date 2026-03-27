@@ -1,9 +1,10 @@
 /**
- * AsrEngine — Main thread wrapper for the ASR Web Worker.
+ * AsrEngine — Main thread wrapper for offline ASR Web Workers.
  * Provides a simple API for feeding audio and receiving transcription results.
  *
- * Uses a classic Web Worker (public/workers/sherpa-onnx-asr.worker.js)
- * because sherpa-onnx Emscripten glue requires importScripts().
+ * Supports multiple worker backends:
+ * - sherpa-onnx (classic Worker): VAD + OfflineRecognizer via Emscripten/WASM
+ * - whisper-webgpu (module Worker): VAD + Whisper via Transformers.js/WebGPU
  */
 
 import type { AsrWorkerOutMessage } from '../types';
