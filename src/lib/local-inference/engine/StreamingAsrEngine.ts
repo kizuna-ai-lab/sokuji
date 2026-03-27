@@ -157,8 +157,8 @@ export class StreamingAsrEngine {
             hfModelId: model.hfModelId,
             language: options?.language,
             dtype,
-            vadModelUrl: new URL('/vad/silero_vad_v5.onnx', window.location.href).href,
-            ortWasmBaseUrl: new URL('/wasm/ort/', window.location.href).href,
+            vadModelUrl: new URL('./wasm/vad/silero_vad_v5.onnx', window.location.href).href,
+            ortWasmBaseUrl: new URL('./wasm/ort/', window.location.href).href,
           });
         } else {
           // sherpa-onnx streaming path (unchanged logic)
