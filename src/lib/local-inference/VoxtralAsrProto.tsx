@@ -221,10 +221,17 @@ export const VoxtralAsrProto: React.FC<VoxtralAsrProtoProps> = ({ onClose }) => 
       const flushDecodedText = () => {
         if (tokenCache.length === 0) return;
         const text = tokenizer.decode(tokenCache, { skip_special_tokens: true });
-        const printableText = text.slice(printLen);
-        printLen = text.length;
-        if (printableText.length > 0) {
-          setTranscript((prev) => prev + printableText);
+        const newText = text.slice(printLen);
+        if (newText.length === 0) return;
+
+        // Don't print partial multi-byte characters (shows as U+FFFD replacement char).
+        // Hold back and wait for more tokens to complete the character.
+        const replacementIdx = newText.indexOf('\uFFFD');
+        const safeToPrint = replacementIdx === -1 ? newText : newText.slice(0, replacementIdx);
+
+        if (safeToPrint.length > 0) {
+          printLen += safeToPrint.length;
+          setTranscript((prev) => prev + safeToPrint);
         }
       };
 
