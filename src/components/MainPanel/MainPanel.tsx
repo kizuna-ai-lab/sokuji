@@ -2151,16 +2151,17 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   
         const currentSettings = getCurrentProviderSettings();
         const sessionConfig = getSessionConfig();
+        const localConfig = sessionConfig.provider === 'local_inference' ? sessionConfig : null;
         trackEvent('translation_session_start', {
           source_language: currentSettings.sourceLanguage,
           target_language: currentSettings.targetLanguage,
           session_id: newSessionId,
           provider: provider,
-          model: (sessionConfig as any).model,
-          ...(provider === Provider.LOCAL_INFERENCE && {
-            asr_model: (sessionConfig as any).asrModelId,
-            translation_model: (sessionConfig as any).translationModelId || 'unknown',
-            tts_model: (sessionConfig as any).ttsModelId || 'none',
+          model: sessionConfig.model,
+          ...(localConfig && {
+            asr_model: localConfig.asrModelId,
+            translation_model: localConfig.translationModelId || 'unknown',
+            tts_model: localConfig.ttsModelId || 'none',
           }),
           noise_suppression_enabled: isNoiseSuppressEnabled,
           real_voice_passthrough_enabled: isRealVoicePassthroughEnabled,
