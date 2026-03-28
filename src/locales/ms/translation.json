@@ -409,7 +409,9 @@
     "unknown": "tidak diketahui",
     "sessionEnded": "Sesi Tamat",
     "speakerClient": "Penceramah",
-    "participantClient": "Peserta"
+    "participantClient": "Peserta",
+    "copyLogs": "Salin",
+    "logsCopied": "Disalin!"
   },
   "mainPanel": {
     "conversationPlaceholder": "Perbualan akan muncul di sini",

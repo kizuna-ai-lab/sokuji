@@ -249,7 +249,9 @@
     "title": "Günlükler",
     "sessionEnded": "Oturum Sonlandı",
     "speakerClient": "Konuşmacı",
-    "participantClient": "Katılımcı"
+    "participantClient": "Katılımcı",
+    "copyLogs": "Kopyala",
+    "logsCopied": "Kopyalandı!"
   },
   "errors": {
     "microphoneAccess": "Mikrofon erişimi reddedildi",

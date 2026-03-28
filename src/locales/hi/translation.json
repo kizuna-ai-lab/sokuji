@@ -390,7 +390,9 @@
     "title": "लॉग्स",
     "sessionEnded": "सत्र समाप्त",
     "speakerClient": "वक्ता",
-    "participantClient": "प्रतिभागी"
+    "participantClient": "प्रतिभागी",
+    "copyLogs": "कॉपी",
+    "logsCopied": "कॉपी हो गया!"
   },
   "errors": {
     "microphoneAccess": "माइक्रोफ़ोन एक्सेस अस्वीकृत",

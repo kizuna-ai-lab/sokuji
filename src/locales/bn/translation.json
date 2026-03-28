@@ -371,7 +371,9 @@
     "unknown": "অজানা",
     "sessionEnded": "সেশন শেষ",
     "speakerClient": "বক্তা",
-    "participantClient": "অংশগ্রহণকারী"
+    "participantClient": "অংশগ্রহণকারী",
+    "copyLogs": "কপি",
+    "logsCopied": "কপি হয়েছে!"
   },
   "mainPanel": {
     "conversationPlaceholder": "কথোপকথন এখানে প্রদর্শিত হবে",

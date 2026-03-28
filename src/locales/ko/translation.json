@@ -263,7 +263,9 @@
     "unknown": "알 수 없음",
     "sessionEnded": "세션 종료",
     "speakerClient": "발화자",
-    "participantClient": "참가자"
+    "participantClient": "참가자",
+    "copyLogs": "복사",
+    "logsCopied": "복사됨!"
   },
   "mainPanel": {
     "conversationPlaceholder": "대화가 여기에 표시됩니다",

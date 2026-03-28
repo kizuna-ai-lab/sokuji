@@ -451,7 +451,7 @@
     "sessionEnded": "Session Ended",
     "speakerClient": "Speaker",
     "participantClient": "Participant",
-    "copyLogs": "Copy Logs",
+    "copyLogs": "Copy",
     "logsCopied": "Copied!"
   },
   "mainPanel": {

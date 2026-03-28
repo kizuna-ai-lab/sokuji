@@ -379,7 +379,9 @@
     "unknown": "未知",
     "sessionEnded": "會話結束",
     "speakerClient": "講者",
-    "participantClient": "參與者"
+    "participantClient": "參與者",
+    "copyLogs": "複製",
+    "logsCopied": "已複製！"
   },
   "mainPanel": {
     "conversationPlaceholder": "對話將在此處顯示",

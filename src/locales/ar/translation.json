@@ -365,7 +365,9 @@
     "unknown": "غير معروف",
     "sessionEnded": "انتهت الجلسة",
     "speakerClient": "المتحدث",
-    "participantClient": "المشارك"
+    "participantClient": "المشارك",
+    "copyLogs": "نسخ",
+    "logsCopied": "تم النسخ!"
   },
   "mainPanel": {
     "conversationPlaceholder": "ستظهر المحادثة هنا",

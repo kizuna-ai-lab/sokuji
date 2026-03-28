@@ -263,7 +263,9 @@
     "unknown": "onbekend",
     "sessionEnded": "Sessie beëindigd",
     "speakerClient": "Spreker",
-    "participantClient": "Deelnemer"
+    "participantClient": "Deelnemer",
+    "copyLogs": "Kopiëren",
+    "logsCopied": "Gekopieerd!"
   },
   "mainPanel": {
     "conversationPlaceholder": "Gesprek verschijnt hier",

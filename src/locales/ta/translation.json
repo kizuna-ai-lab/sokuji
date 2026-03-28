@@ -371,7 +371,9 @@
     "title": "பதிவுகள்",
     "sessionEnded": "அமர்வு முடிந்தது",
     "speakerClient": "பேச்சாளர்",
-    "participantClient": "பங்கேற்பாளர்"
+    "participantClient": "பங்கேற்பாளர்",
+    "copyLogs": "நகலெடு",
+    "logsCopied": "நகலெடுக்கப்பட்டது!"
   },
   "errors": {
     "microphoneAccess": "மைக்ரோஃபோன் அணுகல் மறுக்கப்பட்டது",

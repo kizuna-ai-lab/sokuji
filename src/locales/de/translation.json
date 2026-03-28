@@ -263,7 +263,9 @@
     "unknown": "unbekannt",
     "sessionEnded": "Sitzung beendet",
     "speakerClient": "Sprecher",
-    "participantClient": "Teilnehmer"
+    "participantClient": "Teilnehmer",
+    "copyLogs": "Kopieren",
+    "logsCopied": "Kopiert!"
   },
   "mainPanel": {
     "conversationPlaceholder": "Unterhaltung wird hier angezeigt",
