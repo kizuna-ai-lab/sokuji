@@ -139,7 +139,7 @@ function resampleInt16ToFloat32_16k(samples: Int16Array, inputRate: number): Flo
 let transcriber: AutomaticSpeechRecognitionPipeline | null = null;
 let currentLanguage: string | undefined;
 let processingVad = false;
-let isTranscribing = false;
+let currentTranscriptionPromise: Promise<void> | null = null;
 
 /**
  * Create customCache bridge for IndexedDB blob URLs → Transformers.js.
@@ -168,50 +168,57 @@ function createBlobUrlCache(fileUrls: Record<string, string>) {
 /**
  * Run Cohere Transcribe on a completed speech segment with token streaming.
  * TextStreamer emits partial results token-by-token during inference.
+ * Awaits any in-flight transcription before starting to prevent races with flush/dispose.
  */
-async function runTranscribe(audio: Float32Array): Promise<void> {
-  if (!transcriber || isTranscribing) return;
-  isTranscribing = true;
-
-  const durationMs = Math.round((audio.length / VAD_SAMPLE_RATE) * 1000);
-  const startTime = performance.now();
-  let accumulatedText = '';
-
-  try {
-    const streamer = new TextStreamer(transcriber.tokenizer, {
-      skip_prompt: true,
-      skip_special_tokens: true,
-      callback_function: (token: string) => {
-        accumulatedText += token;
-        post({ type: 'partial', text: accumulatedText });
-      },
-    });
-
-    const options: Record<string, any> = {
-      max_new_tokens: 1024,
-      streamer,
-    };
-    if (currentLanguage) {
-      options.language = currentLanguage;
+function runTranscribe(audio: Float32Array): Promise<void> {
+  const promise = (async () => {
+    // Wait for any in-flight transcription to complete first
+    if (currentTranscriptionPromise) {
+      try { await currentTranscriptionPromise; } catch { /* already reported */ }
     }
+    if (!transcriber) return;
 
-    const result = await transcriber(audio, options);
-    const recognitionTimeMs = Math.round(performance.now() - startTime);
-    const text = (Array.isArray(result) ? result[0].text : result.text).trim();
+    const durationMs = Math.round((audio.length / VAD_SAMPLE_RATE) * 1000);
+    const startTime = performance.now();
+    let accumulatedText = '';
 
-    if (text) {
-      post({
-        type: 'result',
-        text,
-        durationMs,
-        recognitionTimeMs,
+    try {
+      const streamer = new TextStreamer(transcriber.tokenizer, {
+        skip_prompt: true,
+        skip_special_tokens: true,
+        callback_function: (token: string) => {
+          accumulatedText += token;
+          post({ type: 'partial', text: accumulatedText });
+        },
       });
+
+      const options: Record<string, any> = {
+        max_new_tokens: 1024,
+        streamer,
+      };
+      if (currentLanguage) {
+        options.language = currentLanguage;
+      }
+
+      const result = await transcriber(audio, options);
+      const recognitionTimeMs = Math.round(performance.now() - startTime);
+      const text = (Array.isArray(result) ? result[0].text : result.text).trim();
+
+      if (text) {
+        post({
+          type: 'result',
+          text,
+          durationMs,
+          recognitionTimeMs,
+        });
+      }
+    } catch (err: any) {
+      post({ type: 'error', error: `Cohere Transcribe inference failed: ${err.message || err}` });
     }
-  } catch (err: any) {
-    post({ type: 'error', error: `Cohere Transcribe inference failed: ${err.message || err}` });
-  } finally {
-    isTranscribing = false;
-  }
+  })();
+
+  currentTranscriptionPromise = promise;
+  return promise;
 }
 
 // ─── VAD + Audio Feed Pipeline ──────────────────────────────────────────────
@@ -281,6 +288,10 @@ async function feedAudio(samples: Int16Array, sampleRate: number): Promise<void>
 
 async function handleInit(msg: CohereTranscribeAsrInitMessage): Promise<void> {
   try {
+    if (!msg.language) {
+      throw new Error('Cohere Transcribe requires an explicit source language');
+    }
+
     const startTime = performance.now();
 
     // Set ORT WASM paths
@@ -344,16 +355,20 @@ async function handleInit(msg: CohereTranscribeAsrInitMessage): Promise<void> {
 
 // ─── Flush & Dispose ────────────────────────────────────────────────────────
 
-function handleFlush(): void {
+async function handleFlush(): Promise<void> {
   // Force-finalize any pending speech via FrameProcessor
   if (frameProcessor?.speaking) {
     const endEvents: FrameProcessorEvent[] = [];
     frameProcessor.endSegment((ev) => endEvents.push(ev));
     for (const ev of endEvents) {
       if (ev.msg === Message.SpeechEnd) {
-        runTranscribe(ev.audio);
+        await runTranscribe(ev.audio);
       }
     }
+  }
+  // Wait for any in-flight transcription to complete
+  if (currentTranscriptionPromise) {
+    await currentTranscriptionPromise;
   }
 }
 
@@ -367,6 +382,12 @@ async function handleDispose(): Promise<void> {
         await runTranscribe(ev.audio);
       }
     }
+  }
+
+  // Wait for any in-flight transcription to complete before disposing
+  if (currentTranscriptionPromise) {
+    try { await currentTranscriptionPromise; } catch { /* already reported */ }
+    currentTranscriptionPromise = null;
   }
 
   // Dispose FrameProcessor
@@ -388,7 +409,6 @@ async function handleDispose(): Promise<void> {
 
   vadAudioBuffer = new Float32Array(0);
   processingVad = false;
-  isTranscribing = false;
 
   post({ type: 'disposed' });
 }
@@ -405,7 +425,7 @@ self.onmessage = async (event: MessageEvent<WorkerMessage>) => {
       await feedAudio((msg as AsrAudioMessage).samples, (msg as AsrAudioMessage).sampleRate);
       break;
     case 'flush':
-      handleFlush();
+      await handleFlush();
       break;
     case 'dispose':
       await handleDispose();
