@@ -80,15 +80,54 @@
       padding: 12px;
       max-height: 300px;
       overflow-y: auto;
+      font-size: 12px;
+      line-height: 1.6;
+      color: #ccc;
 
       pre {
         margin: 0;
         white-space: pre-wrap;
         word-break: break-word;
-        font-size: 12px;
-        line-height: 1.6;
-        color: #ccc;
         font-family: inherit;
+      }
+
+      h3 {
+        color: #10a37f;
+        font-size: 13px;
+        font-weight: 600;
+        margin: 0 0 8px 0;
+
+        &:not(:first-child) {
+          margin-top: 4px;
+        }
+      }
+
+      hr {
+        border: none;
+        border-top: 1px solid #2a2a2a;
+        margin: 12px 0;
+      }
+
+      ul, ol {
+        margin: 4px 0;
+        padding-left: 20px;
+      }
+
+      li {
+        margin: 2px 0;
+      }
+
+      p {
+        margin: 4px 0;
+      }
+
+      a {
+        color: #10a37f;
+        text-decoration: none;
+
+        &:hover {
+          text-decoration: underline;
+        }
       }
     }
 

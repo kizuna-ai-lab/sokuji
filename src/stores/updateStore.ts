@@ -89,7 +89,24 @@ const useUpdateStore = create<UpdateStore>()(
       statusHandler = (data: any) => {
         const update: Partial<UpdateState> = { status: data.status };
         if (data.version) update.newVersion = data.version;
-        if (data.releaseNotes !== undefined) update.changelog = data.releaseNotes;
+        if (data.releaseNotes !== undefined) {
+          // fullChangelog=true returns [{version, note}] where note is HTML from GitHub
+          if (Array.isArray(data.releaseNotes)) {
+            if (data.releaseNotes.length <= 1) {
+              // Single version: show notes directly (no version header needed)
+              update.changelog = data.releaseNotes[0]?.note || '';
+            } else {
+              // Multiple versions: wrap each in a section with version header
+              update.changelog = data.releaseNotes
+                .map((entry: { version: string; note: string }) =>
+                  `<h3>v${entry.version}</h3>${entry.note || ''}`
+                )
+                .join('<hr/>');
+            }
+          } else {
+            update.changelog = data.releaseNotes;
+          }
+        }
         if (data.message) update.errorMessage = data.message;
         if (data.downloadUrl) update.downloadUrl = data.downloadUrl;
 
