@@ -371,7 +371,9 @@
     "unknown": "نامشخص",
     "sessionEnded": "جلسه پایان یافت",
     "speakerClient": "گوینده",
-    "participantClient": "شرکت‌کننده"
+    "participantClient": "شرکت‌کننده",
+    "copyLogs": "کپی",
+    "logsCopied": "کپی شد!"
   },
   "mainPanel": {
     "conversationPlaceholder": "مکالمه اینجا نمایش داده خواهد شد",

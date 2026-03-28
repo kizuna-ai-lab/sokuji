@@ -242,7 +242,9 @@
     "title": "Loggar",
     "sessionEnded": "Session avslutad",
     "speakerClient": "Talare",
-    "participantClient": "Deltagare"
+    "participantClient": "Deltagare",
+    "copyLogs": "Kopiera",
+    "logsCopied": "Kopierat!"
   },
   "errors": {
     "microphoneAccess": "Mikrofonåtkomst nekad",

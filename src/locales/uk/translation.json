@@ -353,7 +353,9 @@
     "title": "Логи",
     "sessionEnded": "Сеанс завершено",
     "speakerClient": "Спікер",
-    "participantClient": "Учасник"
+    "participantClient": "Учасник",
+    "copyLogs": "Копіювати",
+    "logsCopied": "Скопійовано!"
   },
   "errors": {
     "microphoneAccess": "Доступ до мікрофона заборонено",

@@ -353,7 +353,9 @@
     "title": "లాగ్స్",
     "sessionEnded": "సెషన్ ముగిసింది",
     "speakerClient": "వక్త",
-    "participantClient": "భాగస్వామి"
+    "participantClient": "భాగస్వామి",
+    "copyLogs": "కాపీ",
+    "logsCopied": "కాపీ అయింది!"
   },
   "errors": {
     "microphoneAccess": "మైక్రోఫోన్ యాక్సెస్ తిరస్కరించబడింది",

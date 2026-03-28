@@ -396,7 +396,9 @@
     "title": "Mga Log",
     "sessionEnded": "Natapos ang Session",
     "speakerClient": "Tagapagsalita",
-    "participantClient": "Kalahok"
+    "participantClient": "Kalahok",
+    "copyLogs": "Kopyahin",
+    "logsCopied": "Nakopya!"
   },
   "errors": {
     "microphoneAccess": "Hindi pinahintulutan ang access sa microphone",

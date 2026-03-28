@@ -412,7 +412,9 @@
     "unknown": "未知",
     "sessionEnded": "会话结束",
     "speakerClient": "讲者",
-    "participantClient": "参与者"
+    "participantClient": "参与者",
+    "copyLogs": "复制",
+    "logsCopied": "已复制！"
   },
   "mainPanel": {
     "conversationPlaceholder": "对话将在此处显示",

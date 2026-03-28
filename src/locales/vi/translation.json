@@ -242,7 +242,9 @@
     "title": "Nhật ký",
     "sessionEnded": "Phiên kết thúc",
     "speakerClient": "Người nói",
-    "participantClient": "Người tham gia"
+    "participantClient": "Người tham gia",
+    "copyLogs": "Sao chép",
+    "logsCopied": "Đã sao chép!"
   },
   "errors": {
     "microphoneAccess": "Quyền truy cập microphone bị từ chối",

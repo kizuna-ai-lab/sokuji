@@ -263,7 +263,9 @@
     "unknown": "desconocido",
     "sessionEnded": "Sesión finalizada",
     "speakerClient": "Orador",
-    "participantClient": "Participante"
+    "participantClient": "Participante",
+    "copyLogs": "Copiar",
+    "logsCopied": "¡Copiado!"
   },
   "mainPanel": {
     "conversationPlaceholder": "La conversación aparecerá aquí",

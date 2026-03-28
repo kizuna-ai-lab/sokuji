@@ -396,7 +396,9 @@
     "title": "Lokit",
     "sessionEnded": "Istunto päättyi",
     "speakerClient": "Puhuja",
-    "participantClient": "Osallistuja"
+    "participantClient": "Osallistuja",
+    "copyLogs": "Kopioi",
+    "logsCopied": "Kopioitu!"
   },
   "errors": {
     "microphoneAccess": "Mikrofonin käyttö evätty",

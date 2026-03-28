@@ -360,7 +360,9 @@
     "title": "บันทึก",
     "sessionEnded": "สิ้นสุดเซสชัน",
     "speakerClient": "ผู้พูด",
-    "participantClient": "ผู้เข้าร่วม"
+    "participantClient": "ผู้เข้าร่วม",
+    "copyLogs": "คัดลอก",
+    "logsCopied": "คัดลอกแล้ว!"
   },
   "errors": {
     "microphoneAccess": "การเข้าถึงไมโครโฟนถูกปฏิเสธ",

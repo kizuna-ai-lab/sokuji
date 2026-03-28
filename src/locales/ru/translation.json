@@ -270,7 +270,9 @@
     "unknown": "неизвестно",
     "sessionEnded": "Сеанс завершен",
     "speakerClient": "Спикер",
-    "participantClient": "Участник"
+    "participantClient": "Участник",
+    "copyLogs": "Копировать",
+    "logsCopied": "Скопировано!"
   },
   "mainPanel": {
     "conversationPlaceholder": "Разговор появится здесь",

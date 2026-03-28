@@ -418,7 +418,9 @@
     "unknown": "לא ידוע",
     "sessionEnded": "ההפעלה הסתיימה",
     "speakerClient": "דובר",
-    "participantClient": "משתתף"
+    "participantClient": "משתתף",
+    "copyLogs": "העתק",
+    "logsCopied": "הועתק!"
   },
   "mainPanel": {
     "conversationPlaceholder": "השיחה תופיע כאן",
