@@ -13,7 +13,7 @@ import {
   VolcengineAST2SessionConfig,
   LocalInferenceSessionConfig
 } from '../services/interfaces/IClient';
-import { getTtsModelsForLanguage, getManifestEntry } from '../lib/local-inference/modelManifest';
+import { getTtsModelsForLanguage, getManifestEntry, getTranslationModel } from '../lib/local-inference/modelManifest';
 import {ApiKeyValidationResult} from '../services/interfaces/ISettingsService';
 import {Provider, ProviderType} from '../types/Provider';
 import {ClientOperations} from '../services/ClientOperations';
@@ -474,7 +474,7 @@ function createLocalInferenceSessionConfig(
     sourceLanguage: settings.sourceLanguage,
     targetLanguage: settings.targetLanguage,
     asrModelId: settings.asrModel,
-    translationModelId: settings.translationModel || undefined,
+    translationModelId: settings.translationModel || getTranslationModel(settings.sourceLanguage, settings.targetLanguage)?.id,
     ttsModelId,
     ttsSpeakerId: settings.ttsSpeakerId,
     ttsSpeed: settings.ttsSpeed,

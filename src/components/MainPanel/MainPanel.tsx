@@ -2150,16 +2150,18 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         setTranslationCount(0);
   
         const currentSettings = getCurrentProviderSettings();
+        const sessionConfig = getSessionConfig();
+        const localConfig = sessionConfig.provider === 'local_inference' ? sessionConfig : null;
         trackEvent('translation_session_start', {
           source_language: currentSettings.sourceLanguage,
           target_language: currentSettings.targetLanguage,
           session_id: newSessionId,
           provider: provider,
-          model: (currentSettings as any).model,
-          ...(provider === Provider.LOCAL_INFERENCE && {
-            asr_model: localInferenceSettings.asrModel,
-            translation_model: localInferenceSettings.translationModel || 'auto',
-            tts_model: localInferenceSettings.ttsModel || 'auto',
+          model: sessionConfig.model,
+          ...(localConfig && {
+            asr_model: localConfig.asrModelId,
+            translation_model: localConfig.translationModelId || 'unknown',
+            tts_model: localConfig.ttsModelId || 'none',
           }),
           noise_suppression_enabled: isNoiseSuppressEnabled,
           real_voice_passthrough_enabled: isRealVoicePassthroughEnabled,
