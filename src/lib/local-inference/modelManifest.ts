@@ -35,7 +35,7 @@ export type AsrEngineType =
 
 /** Streaming ASR engine types — for future use when streaming gets explicit config. */
 export type StreamAsrEngineType =
-  | 'stream-transducer' | 'stream-nemo-ctc' | 'voxtral';
+  | 'stream-transducer' | 'stream-nemo-ctc' | 'voxtral' | 'cohere-transcribe';
 
 /** Engine-specific config fields for TTS models (matcha, kokoro, vits special). */
 export interface TtsModelConfig {
@@ -83,7 +83,7 @@ export interface ModelManifestEntry {
   /** ASR engine type — determines which config builder the worker uses */
   asrEngine?: AsrEngineType | StreamAsrEngineType;
   /** Which ASR worker to use. Defaults to 'sherpa-onnx' if omitted. */
-  asrWorkerType?: 'sherpa-onnx' | 'whisper-webgpu' | 'voxtral-webgpu';
+  asrWorkerType?: 'sherpa-onnx' | 'whisper-webgpu' | 'voxtral-webgpu' | 'cohere-transcribe-webgpu';
 
   // ─── TTS configuration ─────────────────────────────────────────────────
   /** TTS .onnx model filename */
@@ -805,6 +805,58 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
           { filename: 'onnx/decoder_model_merged_q4.onnx_data_1', sizeBytes: 257_949_696 },
           { filename: 'onnx/embed_tokens_q4.onnx', sizeBytes: 857 },
           { filename: 'onnx/embed_tokens_q4.onnx_data', sizeBytes: 257_949_696 },
+        ],
+      },
+    },
+  },
+
+  // ── Cohere Transcribe WebGPU ASR ───────────────────────────────────────────
+  // Downloaded from onnx-community repo on HuggingFace Hub. Uses hfModelId.
+  // Cohere Transcribe (2B Conformer) via @huggingface/transformers pipeline API.
+  // Batch ASR with VAD chunking + TextStreamer for token-level partial results.
+  {
+    id: 'cohere-transcribe-webgpu',
+    type: 'asr-stream',
+    name: 'Cohere Transcribe (WebGPU)',
+    languages: ['en', 'de', 'fr', 'it', 'es', 'pt', 'el', 'nl', 'pl', 'ar', 'vi', 'zh', 'ja', 'ko'],
+    hfModelId: 'onnx-community/cohere-transcribe-03-2026-ONNX',
+    requiredDevice: 'webgpu',
+    asrEngine: 'cohere-transcribe',
+    asrWorkerType: 'cohere-transcribe-webgpu',
+    variants: {
+      'q4f16': {
+        dtype: 'q4f16',
+        files: [
+          // Config & tokenizer (shared across variants)
+          { filename: 'config.json', sizeBytes: 5_100 },
+          { filename: 'generation_config.json', sizeBytes: 233 },
+          { filename: 'preprocessor_config.json', sizeBytes: 565 },
+          { filename: 'processor_config.json', sizeBytes: 634 },
+          { filename: 'tokenizer.json', sizeBytes: 1_150_000 },
+          { filename: 'tokenizer_config.json', sizeBytes: 4_550 },
+          // ONNX model files (q4f16)
+          { filename: 'onnx/encoder_model_q4f16.onnx', sizeBytes: 1_410_000 },
+          { filename: 'onnx/encoder_model_q4f16.onnx_data', sizeBytes: 1_440_000_000 },
+          { filename: 'onnx/decoder_model_merged_q4f16.onnx', sizeBytes: 195_000 },
+          { filename: 'onnx/decoder_model_merged_q4f16.onnx_data', sizeBytes: 98_000_000 },
+        ],
+        requiredFeatures: ['shader-f16'],
+      },
+      'q4': {
+        dtype: 'q4',
+        files: [
+          // Config & tokenizer (shared across variants)
+          { filename: 'config.json', sizeBytes: 5_100 },
+          { filename: 'generation_config.json', sizeBytes: 233 },
+          { filename: 'preprocessor_config.json', sizeBytes: 565 },
+          { filename: 'processor_config.json', sizeBytes: 634 },
+          { filename: 'tokenizer.json', sizeBytes: 1_150_000 },
+          { filename: 'tokenizer_config.json', sizeBytes: 4_550 },
+          // ONNX model files (q4)
+          { filename: 'onnx/encoder_model_q4.onnx', sizeBytes: 1_400_000 },
+          { filename: 'onnx/encoder_model_q4.onnx_data', sizeBytes: 2_020_000_000 },
+          { filename: 'onnx/decoder_model_merged_q4.onnx', sizeBytes: 193_000 },
+          { filename: 'onnx/decoder_model_merged_q4.onnx_data', sizeBytes: 109_000_000 },
         ],
       },
     },

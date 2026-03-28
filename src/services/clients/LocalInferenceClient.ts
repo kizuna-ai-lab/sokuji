@@ -170,7 +170,7 @@ export class LocalInferenceClient implements IClient {
 
       const asrPromise = this.trackInit('asr', config.asrModelId, () => {
         if (asrModel?.type === 'asr-stream') {
-          return (this.asrEngine as StreamingAsrEngine).init(config.asrModelId);
+          return (this.asrEngine as StreamingAsrEngine).init(config.asrModelId, { language: config.sourceLanguage });
         } else {
           return (this.asrEngine as AsrEngine).init(config.asrModelId, {
             threshold: config.vadThreshold,
