@@ -14,6 +14,8 @@ class UpdateManager {
     // Disable auto-download — user must confirm
     autoUpdater.autoDownload = false;
     autoUpdater.autoInstallOnAppQuit = false;
+    // Include release notes for all versions between current and latest
+    autoUpdater.fullChangelog = true;
 
     // Configure GitHub provider
     autoUpdater.setFeedURL({
@@ -54,11 +56,16 @@ class UpdateManager {
     });
 
     autoUpdater.on('update-available', (info) => {
-      const releaseNotes = typeof info.releaseNotes === 'string'
-        ? info.releaseNotes
-        : Array.isArray(info.releaseNotes)
-          ? info.releaseNotes.map(n => n.note || n).join('\n')
-          : '';
+      // With fullChangelog=true, releaseNotes is an array of {version, note} objects
+      // where note is already HTML (rendered by GitHub). Sorted newest-first.
+      let releaseNotes;
+      if (Array.isArray(info.releaseNotes)) {
+        releaseNotes = info.releaseNotes;
+      } else if (typeof info.releaseNotes === 'string') {
+        releaseNotes = info.releaseNotes;
+      } else {
+        releaseNotes = '';
+      }
 
       const payload = {
         status: 'available',
