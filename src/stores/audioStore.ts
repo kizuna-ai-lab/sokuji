@@ -89,7 +89,7 @@ const useAudioStore = create<AudioStore>()(
     isLoading: true,
     isRealVoicePassthroughEnabled: false,
     realVoicePassthroughVolume: 0.2,
-    isNoiseSuppressEnabled: false,
+    isNoiseSuppressEnabled: true,
 
     // System audio capture state
     systemAudioSources: [],
