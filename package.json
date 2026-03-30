@@ -1,7 +1,7 @@
 {
   "name": "sokuji",
   "productName": "Sokuji",
-  "version": "0.15.22",
+  "version": "0.15.23",
   "private": true,
   "main": "dist-electron/main.js",
   "homepage": "./",
@@ -13,7 +13,7 @@
   "dependencies": {
     "@floating-ui/react": "^0.27.15",
     "@google/genai": "^1.46.0",
-    "@huggingface/transformers": "4.0.0-next.10",
+    "@huggingface/transformers": "^4.0.0",
     "@ricky0123/vad-web": "^0.0.30",
     "@sapphi-red/web-noise-suppressor": "^0.3.5",
     "@testing-library/jest-dom": "^5.17.0",
