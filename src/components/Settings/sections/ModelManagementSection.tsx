@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Download, Trash2, X, AlertCircle, CheckCircle, HardDrive, ChevronDown, ChevronRight, AlertTriangle, Zap } from 'lucide-react';
+import { Download, Trash2, X, AlertCircle, CheckCircle, HardDrive, ChevronDown, ChevronRight, AlertTriangle, Zap, Star } from 'lucide-react';
 import {
   useModelStore,
   useModelStatuses,
@@ -122,6 +122,12 @@ function ModelCard({
                   <span key={lang} className="model-card__lang-tag">{lang}</span>
                 ))}
               </div>
+              {entry.recommended && (
+                <span className="model-card__recommended-badge">
+                  <Star size={10} />
+                  {t('models.recommended', 'Recommended')}
+                </span>
+              )}
               {isAutoSelected && (
                 <span className="model-card__auto-badge">
                   <Zap size={10} />
@@ -245,25 +251,31 @@ function ModelGroup({
 
 // ─── Sort helpers (type-specific) ──────────────────────────────────────────
 
-/** ASR: single-language → explicit multi-language → multilingual; within tiers by language count */
-function sortAsrModels(models: ModelManifestEntry[]): ModelManifestEntry[] {
-  return [...models].sort((a, b) => {
-    const tierA = a.multilingual ? 2 : a.languages.length === 1 ? 0 : 1;
-    const tierB = b.multilingual ? 2 : b.languages.length === 1 ? 0 : 1;
-    if (tierA !== tierB) return tierA - tierB;
-    return a.languages.length - b.languages.length;
-  });
+/** Creates a model sorter: recommended first → sortOrder → fallback comparator */
+function createModelSorter(fallback: (a: ModelManifestEntry, b: ModelManifestEntry) => number) {
+  return (models: ModelManifestEntry[]) =>
+    [...models].sort((a, b) => {
+      if (a.recommended !== b.recommended) return a.recommended ? -1 : 1;
+      const ord = (a.sortOrder ?? 0) - (b.sortOrder ?? 0);
+      if (ord !== 0) return ord;
+      return fallback(a, b);
+    });
 }
 
-/** Translation: fewer languages first */
-function sortTranslationModels(models: ModelManifestEntry[]): ModelManifestEntry[] {
-  return [...models].sort((a, b) => a.languages.length - b.languages.length);
-}
+const sortAsrModels = createModelSorter((a, b) => {
+  const tierA = a.multilingual ? 2 : a.languages.length === 1 ? 0 : 1;
+  const tierB = b.multilingual ? 2 : b.languages.length === 1 ? 0 : 1;
+  if (tierA !== tierB) return tierA - tierB;
+  return a.languages.length - b.languages.length;
+});
 
-/** TTS: alphabetical by name */
-function sortTtsModels(models: ModelManifestEntry[]): ModelManifestEntry[] {
-  return [...models].sort((a, b) => a.name.localeCompare(b.name));
-}
+const sortTranslationModels = createModelSorter((a, b) =>
+  a.languages.length - b.languages.length,
+);
+
+const sortTtsModels = createModelSorter((a, b) =>
+  a.name.localeCompare(b.name),
+);
 
 // ─── Main Component ────────────────────────────────────────────────────────
 
@@ -438,34 +450,83 @@ export function ModelManagementSection({
     }
   };
 
+  // ── Helpers ────────────────────────────────────────────────────────
+
+  /** Render a list of compatible model cards with variant hints */
+  const renderCompatibleCards = (
+    models: ModelManifestEntry[],
+    selectedId: string | undefined,
+    onSelect: (id: string) => void,
+  ) =>
+    models.map(entry => {
+      const { hint, incompatible } = getVariantHint(entry);
+      return (
+        <ModelCard
+          key={entry.id}
+          entry={entry}
+          status={statuses[entry.id] || 'not_downloaded'}
+          download={downloads[entry.id]}
+          errorMessage={downloadErrors[entry.id]}
+          isSessionActive={isSessionActive}
+          isSelected={selectedId === entry.id}
+          isCompatible={!incompatible}
+          showRadio={true}
+          compatibilityHint={hint}
+          deviceFeatures={deviceFeatures}
+          onSelect={() => onSelect(entry.id)}
+          onDownload={() => handleDownload(entry.id)}
+          onCancel={() => cancelDownload(entry.id)}
+          onDelete={() => deleteModel(entry.id)}
+        />
+      );
+    });
+
+  /** Render recommended / others sub-groups for a compatible model list */
+  const renderSubGroups = (
+    models: ModelManifestEntry[],
+    selectedId: string | undefined,
+    onSelect: (id: string) => void,
+  ) => {
+    const recommended = models.filter(m => m.recommended);
+    const others = models.filter(m => !m.recommended);
+
+    if (recommended.length === 0) {
+      // No recommended models — render flat list as before
+      return renderCompatibleCards(models, selectedId, onSelect);
+    }
+
+    return (
+      <>
+        <div className="model-subgroup">
+          <div className="model-subgroup__label">
+            <Star size={11} />
+            {t('models.recommendedGroup', 'Recommended')}
+          </div>
+          {renderCompatibleCards(recommended, selectedId, onSelect)}
+        </div>
+        {others.length > 0 && (
+          <div className="model-subgroup">
+            <div className="model-subgroup__label">
+              {t('models.othersGroup', 'Others')}
+            </div>
+            {renderCompatibleCards(others, selectedId, onSelect)}
+          </div>
+        )}
+      </>
+    );
+  };
+
   // ── ASR Section ───────────────────────────────────────────────────────
 
   const renderAsrGroup = () => {
     return (
       <ModelGroup title={t('models.asrModels', 'ASR (Speech Recognition)')}>
         {compatibleAsrModels.length > 0 ? (
-          compatibleAsrModels.map(entry => {
-            const { hint, incompatible } = getVariantHint(entry);
-            return (
-              <ModelCard
-                key={entry.id}
-                entry={entry}
-                status={statuses[entry.id] || 'not_downloaded'}
-                download={downloads[entry.id]}
-                errorMessage={downloadErrors[entry.id]}
-                isSessionActive={isSessionActive}
-                isSelected={asrModel === entry.id}
-                isCompatible={!incompatible}
-                showRadio={true}
-                compatibilityHint={hint}
-                deviceFeatures={deviceFeatures}
-                onSelect={() => onUpdateSettings({ asrModel: entry.id })}
-                onDownload={() => handleDownload(entry.id)}
-                onCancel={() => cancelDownload(entry.id)}
-                onDelete={() => deleteModel(entry.id)}
-              />
-            );
-          })
+          renderSubGroups(
+            compatibleAsrModels,
+            asrModel,
+            (id) => onUpdateSettings({ asrModel: id }),
+          )
         ) : (
           <div className="model-card__no-model-warning">
             <AlertTriangle size={14} />
@@ -516,28 +577,11 @@ export function ModelManagementSection({
     return (
       <ModelGroup title={t('models.translationModels', 'Translation')}>
         {compatibleTranslationModels.length > 0 ? (
-          compatibleTranslationModels.map(entry => {
-            const { hint, incompatible } = getVariantHint(entry);
-            return (
-              <ModelCard
-                key={entry.id}
-                entry={entry}
-                status={statuses[entry.id] || 'not_downloaded'}
-                download={downloads[entry.id]}
-                errorMessage={downloadErrors[entry.id]}
-                isSessionActive={isSessionActive}
-                isSelected={translationModel === entry.id}
-                isCompatible={!incompatible}
-                showRadio={true}
-                compatibilityHint={hint}
-                deviceFeatures={deviceFeatures}
-                onSelect={() => onUpdateSettings({ translationModel: entry.id })}
-                onDownload={() => handleDownload(entry.id)}
-                onCancel={() => cancelDownload(entry.id)}
-                onDelete={() => deleteModel(entry.id)}
-              />
-            );
-          })
+          renderSubGroups(
+            compatibleTranslationModels,
+            translationModel,
+            (id) => onUpdateSettings({ translationModel: id }),
+          )
         ) : (
           <div className="model-card__no-model-warning">
             <AlertTriangle size={14} />
@@ -597,28 +641,11 @@ export function ModelManagementSection({
         title={t('models.ttsModels', 'TTS (Text-to-Speech)')}
       >
         {compatibleTtsModels.length > 0 ? (
-          compatibleTtsModels.map(entry => {
-            const { hint, incompatible } = getVariantHint(entry);
-            return (
-              <ModelCard
-                key={entry.id}
-                entry={entry}
-                status={statuses[entry.id] || 'not_downloaded'}
-                download={downloads[entry.id]}
-                errorMessage={downloadErrors[entry.id]}
-                isSessionActive={isSessionActive}
-                isSelected={ttsModel === entry.id}
-                isCompatible={!incompatible}
-                showRadio={true}
-                compatibilityHint={hint}
-                deviceFeatures={deviceFeatures}
-                onSelect={() => onUpdateSettings({ ttsModel: entry.id })}
-                onDownload={() => handleDownload(entry.id)}
-                onCancel={() => cancelDownload(entry.id)}
-                onDelete={() => deleteModel(entry.id)}
-              />
-            );
-          })
+          renderSubGroups(
+            compatibleTtsModels,
+            ttsModel,
+            (id) => onUpdateSettings({ ttsModel: id }),
+          )
         ) : (
           <div className="model-card__no-model-warning">
             <AlertTriangle size={14} />

@@ -61,6 +61,10 @@ export interface ModelManifestEntry {
   languages: string[];
   /** True for models supporting any pair of their listed languages */
   multilingual?: boolean;
+  /** Highlighted in UI as a recommended pick */
+  recommended?: boolean;
+  /** Manual sort order within its group (lower = higher in list). Defaults to 0. */
+  sortOrder?: number;
 
   // ─── Download & hosting ────────────────────────────────────────────────
   // Models are hosted in two ways:
@@ -594,6 +598,8 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-nemo-parakeet-tdt-int8',
     variants: { default: { dtype: 'default', files: asrFiles(671_122_626, 396) } },
     asrEngine: 'nemo-transducer',
+    recommended: true,
+    sortOrder: 4,
   },
   // Dolphin
   {
@@ -749,6 +755,8 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-stream-nemo-ctc-en-80ms-int8',
     variants: { default: { dtype: 'default', files: streamAsrFiles(132_060_302, 160) } },
     asrEngine: 'stream-nemo-ctc',
+    recommended: true,
+    sortOrder: 4,
   },
 
   // ── Voxtral WebGPU Streaming ASR ────────────────────────────────────────────
@@ -808,6 +816,8 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
         ],
       },
     },
+    recommended: true,
+    sortOrder: 2,
   },
 
   // ── Cohere Transcribe WebGPU ASR ───────────────────────────────────────────
@@ -860,6 +870,8 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
         ],
       },
     },
+    recommended: true,
+    sortOrder: 1,
   },
 
   // ── Whisper WebGPU ASR Models — third-party HF Hub ──────────────────────
@@ -1028,6 +1040,8 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
         requiredFeatures: ['shader-f16'],
       },
     },
+    recommended: true,
+    sortOrder: 3,
   },
   // NOTE: lite-whisper-large-v3-turbo-fast-ONNX removed — custom architecture
   // (LiteWhisperForConditionalGeneration + low_rank_config) is incompatible with
@@ -2681,6 +2695,8 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
       'q4': { dtype: 'q4', files: qwenTranslationFiles() },
     },
     translationWorkerType: 'qwen',
+    recommended: true,
+    sortOrder: 3,
   },
   {
     id: 'qwen3-0.6b-translation',
@@ -2695,6 +2711,8 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
       'q4f16': { dtype: 'q4f16', files: qwen3TranslationFilesQ4f16(), requiredFeatures: ['shader-f16'] },
     },
     translationWorkerType: 'qwen',
+    recommended: true,
+    sortOrder: 2,
   },
   {
     id: 'qwen3.5-0.8b-translation',
@@ -2764,6 +2782,8 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
       // even when GPU reports shader-f16 support. Same class of issue as Whisper q4f16.
       // 'q4f16': { dtype: 'q4f16', files: translateGemmaQ4f16Files(), requiredFeatures: ['shader-f16'] },
     },
+    recommended: true,
+    sortOrder: 1,
   },
 
   // ── Language Family Models ─────────────────────────────────────────────
