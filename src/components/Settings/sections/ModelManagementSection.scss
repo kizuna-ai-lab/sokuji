@@ -245,10 +245,10 @@
     align-items: center;
     gap: 3px;
     padding: 1px 6px;
-    background: rgba(#f59e0b, 0.15);
+    background: rgba(vars.$color-recommended, 0.15);
     border-radius: 3px;
     font-size: 10px;
-    color: #f59e0b;
+    color: vars.$color-recommended;
     font-weight: vars.$weight-medium;
   }
 

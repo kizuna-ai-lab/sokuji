@@ -251,43 +251,31 @@ function ModelGroup({
 
 // ─── Sort helpers (type-specific) ──────────────────────────────────────────
 
-/** Compare by sortOrder (lower first, default 0), then by fallback comparator */
-function bySortOrder(a: ModelManifestEntry, b: ModelManifestEntry): number {
-  return (a.sortOrder ?? 0) - (b.sortOrder ?? 0);
+/** Creates a model sorter: recommended first → sortOrder → fallback comparator */
+function createModelSorter(fallback: (a: ModelManifestEntry, b: ModelManifestEntry) => number) {
+  return (models: ModelManifestEntry[]) =>
+    [...models].sort((a, b) => {
+      if (a.recommended !== b.recommended) return a.recommended ? -1 : 1;
+      const ord = (a.sortOrder ?? 0) - (b.sortOrder ?? 0);
+      if (ord !== 0) return ord;
+      return fallback(a, b);
+    });
 }
 
-/** ASR: recommended first → sortOrder → single-language → multi-language → multilingual */
-function sortAsrModels(models: ModelManifestEntry[]): ModelManifestEntry[] {
-  return [...models].sort((a, b) => {
-    if (a.recommended !== b.recommended) return a.recommended ? -1 : 1;
-    const ord = bySortOrder(a, b);
-    if (ord !== 0) return ord;
-    const tierA = a.multilingual ? 2 : a.languages.length === 1 ? 0 : 1;
-    const tierB = b.multilingual ? 2 : b.languages.length === 1 ? 0 : 1;
-    if (tierA !== tierB) return tierA - tierB;
-    return a.languages.length - b.languages.length;
-  });
-}
+const sortAsrModels = createModelSorter((a, b) => {
+  const tierA = a.multilingual ? 2 : a.languages.length === 1 ? 0 : 1;
+  const tierB = b.multilingual ? 2 : b.languages.length === 1 ? 0 : 1;
+  if (tierA !== tierB) return tierA - tierB;
+  return a.languages.length - b.languages.length;
+});
 
-/** Translation: recommended first → sortOrder → fewer languages first */
-function sortTranslationModels(models: ModelManifestEntry[]): ModelManifestEntry[] {
-  return [...models].sort((a, b) => {
-    if (a.recommended !== b.recommended) return a.recommended ? -1 : 1;
-    const ord = bySortOrder(a, b);
-    if (ord !== 0) return ord;
-    return a.languages.length - b.languages.length;
-  });
-}
+const sortTranslationModels = createModelSorter((a, b) =>
+  a.languages.length - b.languages.length,
+);
 
-/** TTS: recommended first → sortOrder → alphabetical by name */
-function sortTtsModels(models: ModelManifestEntry[]): ModelManifestEntry[] {
-  return [...models].sort((a, b) => {
-    if (a.recommended !== b.recommended) return a.recommended ? -1 : 1;
-    const ord = bySortOrder(a, b);
-    if (ord !== 0) return ord;
-    return a.name.localeCompare(b.name);
-  });
-}
+const sortTtsModels = createModelSorter((a, b) =>
+  a.name.localeCompare(b.name),
+);
 
 // ─── Main Component ────────────────────────────────────────────────────────
 
