@@ -215,7 +215,13 @@
     "custom": "مخصص",
     "regionNotSupported": "الخدمة غير متوفرة في منطقتك. يرجى التحقق من بيئة الشبكة أو تجربة مزود آخر.",
     "geminiParticipantTokenWarning": "تحذير: حد رموز مشاركي Gemini",
-    "localInferenceModelsRequired": "يرجى تنزيل واختيار النماذج في <settingsLink>الإعدادات المتقدمة</settingsLink>. يلزم وجود نموذج واحد على الأقل للتعرف على الكلام والترجمة وتحويل النص إلى كلام."
+    "localInferenceModelsRequired": "يرجى تنزيل واختيار النماذج في <settingsLink>الإعدادات المتقدمة</settingsLink>. يلزم وجود نموذج واحد على الأقل للتعرف على الكلام والترجمة وتحويل النص إلى كلام.",
+    "missingModelsWarning": "نموذج/نماذج {{types}} مفقودة لزوج اللغات هذا.",
+    "downloadModels": "تنزيل النماذج",
+    "downloadModelType": "تنزيل {{type}}",
+    "modelTypeAsr": "ASR",
+    "modelTypeTranslation": "الترجمة",
+    "modelTypeTts": "TTS"
   },
   "simpleSettings": {
     "quickSetup": "إعداد سريع",

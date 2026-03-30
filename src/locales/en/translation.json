@@ -218,6 +218,7 @@
     "localInferenceModelsRequired": "Please download and select models in <settingsLink>Advanced Settings</settingsLink>. At least one ASR, Translation, and TTS model is required.",
     "missingModelsWarning": "Missing {{types}} model(s) for this language pair.",
     "downloadModels": "Download models",
+    "downloadModelType": "Download {{type}}",
     "modelTypeAsr": "ASR",
     "modelTypeTranslation": "Translation",
     "modelTypeTts": "TTS"

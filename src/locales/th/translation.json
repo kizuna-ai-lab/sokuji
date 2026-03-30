@@ -325,7 +325,13 @@
     "thresholdTooltip": "ปรับเกณฑ์การตรวจจับเสียง",
     "prefixPaddingTooltip": "เพิ่มช่องว่างก่อนเสียงพูด",
     "silenceDurationTooltip": "ระยะเวลาเงียบก่อนพิจารณาว่าพูดจบแล้ว",
-    "localInferenceModelsRequired": "กรุณาดาวน์โหลดและเลือกโมเดลใน<settingsLink>การตั้งค่าขั้นสูง</settingsLink> ต้องมีโมเดล ASR, การแปล และ TTS อย่างน้อยหนึ่งรายการ"
+    "localInferenceModelsRequired": "กรุณาดาวน์โหลดและเลือกโมเดลใน<settingsLink>การตั้งค่าขั้นสูง</settingsLink> ต้องมีโมเดล ASR, การแปล และ TTS อย่างน้อยหนึ่งรายการ",
+    "missingModelsWarning": "ขาดโมเดล {{types}} สำหรับคู่ภาษานี้",
+    "downloadModels": "ดาวน์โหลดโมเดล",
+    "downloadModelType": "ดาวน์โหลด {{type}}",
+    "modelTypeAsr": "ASR",
+    "modelTypeTranslation": "การแปล",
+    "modelTypeTts": "TTS"
   },
   "mainPanel": {
     "conversationPlaceholder": "การสนทนาจะปรากฏที่นี่",

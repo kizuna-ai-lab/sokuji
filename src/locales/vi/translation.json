@@ -207,7 +207,13 @@
     "settingSavedSuccessfully": "Cài đặt đã được lưu thành công",
     "failedToSaveSetting": "Lưu cài đặt thất bại",
     "geminiParticipantTokenWarning": "Cảnh báo: giới hạn token người tham gia Gemini",
-    "localInferenceModelsRequired": "Vui lòng tải xuống và chọn mô hình trong <settingsLink>Cài đặt nâng cao</settingsLink>. Cần ít nhất một mô hình ASR, Dịch thuật và TTS."
+    "localInferenceModelsRequired": "Vui lòng tải xuống và chọn mô hình trong <settingsLink>Cài đặt nâng cao</settingsLink>. Cần ít nhất một mô hình ASR, Dịch thuật và TTS.",
+    "missingModelsWarning": "Thiếu mô hình {{types}} cho cặp ngôn ngữ này.",
+    "downloadModels": "Tải mô hình",
+    "downloadModelType": "Tải {{type}}",
+    "modelTypeAsr": "ASR",
+    "modelTypeTranslation": "Dịch thuật",
+    "modelTypeTts": "TTS"
   },
   "mainPanel": {
     "conversationPlaceholder": "Cuộc trò chuyện sẽ xuất hiện ở đây",

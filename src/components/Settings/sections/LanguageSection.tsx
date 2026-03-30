@@ -273,7 +273,7 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
   // Check which model types are missing for current LOCAL_INFERENCE language pair
   const missingModelTypes = useMemo(() => {
     if (provider !== Provider.LOCAL_INFERENCE || !modelInitialized) return [];
-    const missing: string[] = [];
+    const missing: { label: string; navTarget: string }[] = [];
     const src = localInferenceSettings.sourceLanguage;
     const tgt = localInferenceSettings.targetLanguage;
 
@@ -282,21 +282,21 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
     const hasAsr = allAsr.some(m =>
       (m.multilingual || m.languages.includes(src)) && modelStatuses[m.id] === 'downloaded'
     );
-    if (!hasAsr) missing.push(t('settings.modelTypeAsr', 'ASR'));
+    if (!hasAsr) missing.push({ label: t('settings.modelTypeAsr', 'ASR'), navTarget: 'model-asr' });
 
     // Check Translation models
     const allTrans = getManifestByType('translation');
     const hasTrans = allTrans.some(m =>
       isTranslationModelCompatible(m, src, tgt) && modelStatuses[m.id] === 'downloaded'
     );
-    if (!hasTrans) missing.push(t('settings.modelTypeTranslation', 'Translation'));
+    if (!hasTrans) missing.push({ label: t('settings.modelTypeTranslation', 'Translation'), navTarget: 'model-translation' });
 
     // Check TTS models
     const allTts = getManifestByType('tts');
     const hasTts = allTts.some(m =>
       m.languages.includes(tgt) && modelStatuses[m.id] === 'downloaded'
     );
-    if (!hasTts) missing.push(t('settings.modelTypeTts', 'TTS'));
+    if (!hasTts) missing.push({ label: t('settings.modelTypeTts', 'TTS'), navTarget: 'model-tts' });
 
     return missing;
   }, [provider, modelInitialized, modelStatuses, localInferenceSettings.sourceLanguage, localInferenceSettings.targetLanguage, t]);
@@ -419,17 +419,22 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
             <div className="language-model-warning">
               <AlertTriangle size={14} />
               <span>
-                {t('settings.missingModelsWarning', 'Missing {{types}} model(s) for this language pair.', { types: missingModelTypes.join(', ') })}
+                {t('settings.missingModelsWarning', 'Missing {{types}} model(s) for this language pair.', { types: missingModelTypes.map(m => m.label).join(', ') })}
                 {' '}
-                <a
-                  className="language-model-warning__link"
-                  onClick={() => {
-                    setUIMode('advanced');
-                    setTimeout(() => navigateToSettings('model-management'), 100);
-                  }}
-                >
-                  {t('settings.downloadModels', 'Download models')}
-                </a>
+                {missingModelTypes.map((m, i) => (
+                  <span key={m.navTarget}>
+                    {i > 0 && ', '}
+                    <a
+                      className="language-model-warning__link"
+                      onClick={() => {
+                        setUIMode('advanced');
+                        setTimeout(() => navigateToSettings(m.navTarget), 100);
+                      }}
+                    >
+                      {t('settings.downloadModelType', 'Download {{type}}', { type: m.label })}
+                    </a>
+                  </span>
+                ))}
               </span>
             </div>
           )}

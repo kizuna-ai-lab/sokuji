@@ -318,7 +318,13 @@
     "transcriptModelTooltip": "Виберіть модель транскрипції",
     "noiseReductionTooltip": "Встановити рівень шумозаглушення",
     "systemInstructionsTooltip": "Введіть інструкції для налаштування поведінки ШІ",
-    "localInferenceModelsRequired": "Будь ласка, завантажте та виберіть моделі в <settingsLink>розширених налаштуваннях</settingsLink>. Потрібна щонайменше одна модель ASR, перекладу та TTS."
+    "localInferenceModelsRequired": "Будь ласка, завантажте та виберіть моделі в <settingsLink>розширених налаштуваннях</settingsLink>. Потрібна щонайменше одна модель ASR, перекладу та TTS.",
+    "missingModelsWarning": "Відсутня модель(і) {{types}} для цієї мовної пари.",
+    "downloadModels": "Завантажити моделі",
+    "downloadModelType": "Завантажити {{type}}",
+    "modelTypeAsr": "ASR",
+    "modelTypeTranslation": "Переклад",
+    "modelTypeTts": "TTS"
   },
   "mainPanel": {
     "conversationPlaceholder": "Розмова з'явиться тут",

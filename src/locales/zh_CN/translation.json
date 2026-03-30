@@ -215,7 +215,13 @@
     "switchToBasic": "切换到基础模式",
     "advancedMode": "高级",
     "basicMode": "基础",
-    "localInferenceModelsRequired": "请在<settingsLink>高级设置</settingsLink>中下载并选择模型。至少需要一个语音识别（ASR）、翻译和语音合成（TTS）模型。"
+    "localInferenceModelsRequired": "请在<settingsLink>高级设置</settingsLink>中下载并选择模型。至少需要一个语音识别（ASR）、翻译和语音合成（TTS）模型。",
+    "missingModelsWarning": "缺少此语言对的 {{types}} 模型。",
+    "downloadModels": "下载模型",
+    "downloadModelType": "下载 {{type}}",
+    "modelTypeAsr": "ASR",
+    "modelTypeTranslation": "翻译",
+    "modelTypeTts": "TTS"
   },
   "simpleSettings": {
     "quickSetup": "快速设置",

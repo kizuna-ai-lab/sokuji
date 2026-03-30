@@ -222,7 +222,13 @@
     "thresholdTooltip": "Настроить порог обнаружения голоса",
     "prefixPaddingTooltip": "Добавить отступ перед речью",
     "silenceDurationTooltip": "Длительность тишины до окончания речи",
-    "localInferenceModelsRequired": "Пожалуйста, загрузите и выберите модели в <settingsLink>расширенных настройках</settingsLink>. Требуется как минимум одна модель ASR, перевода и TTS."
+    "localInferenceModelsRequired": "Пожалуйста, загрузите и выберите модели в <settingsLink>расширенных настройках</settingsLink>. Требуется как минимум одна модель ASR, перевода и TTS.",
+    "missingModelsWarning": "Отсутствует модель(и) {{types}} для этой языковой пары.",
+    "downloadModels": "Скачать модели",
+    "downloadModelType": "Скачать {{type}}",
+    "modelTypeAsr": "ASR",
+    "modelTypeTranslation": "Перевод",
+    "modelTypeTts": "TTS"
   },
   "audioPanel": {
     "title": "Настройки аудио",

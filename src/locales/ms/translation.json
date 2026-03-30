@@ -214,7 +214,13 @@
     "transcriptModelTooltip": "Pilih model transkripsi",
     "noiseReductionTooltip": "Tetapkan tahap pengurangan hingar latar belakang",
     "systemInstructionsTooltip": "Masukkan arahan untuk menyesuaikan kelakuan AI",
-    "localInferenceModelsRequired": "Sila muat turun dan pilih model dalam <settingsLink>Tetapan Lanjutan</settingsLink>. Sekurang-kurangnya satu model ASR, Terjemahan dan TTS diperlukan."
+    "localInferenceModelsRequired": "Sila muat turun dan pilih model dalam <settingsLink>Tetapan Lanjutan</settingsLink>. Sekurang-kurangnya satu model ASR, Terjemahan dan TTS diperlukan.",
+    "missingModelsWarning": "Model {{types}} tiada untuk pasangan bahasa ini.",
+    "downloadModels": "Muat turun model",
+    "downloadModelType": "Muat turun {{type}}",
+    "modelTypeAsr": "ASR",
+    "modelTypeTranslation": "Terjemahan",
+    "modelTypeTts": "TTS"
   },
   "simpleSettings": {
     "quickSetup": "Persediaan Pantas",

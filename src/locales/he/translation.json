@@ -221,7 +221,13 @@
     "thresholdTooltip": "התאם סף זיהוי קול",
     "prefixPaddingTooltip": "הוסף ריפוד לפני דיבור",
     "silenceDurationTooltip": "משך שקט לפני שהדיבור נחשב מסתיים",
-    "localInferenceModelsRequired": "אנא הורידו ובחרו מודלים ב<settingsLink>הגדרות המתקדמות</settingsLink>. נדרש לפחות מודל ASR, תרגום ו-TTS אחד."
+    "localInferenceModelsRequired": "אנא הורידו ובחרו מודלים ב<settingsLink>הגדרות המתקדמות</settingsLink>. נדרש לפחות מודל ASR, תרגום ו-TTS אחד.",
+    "missingModelsWarning": "חסר/ים מודל/ים של {{types}} עבור צמד שפות זה.",
+    "downloadModels": "הורד מודלים",
+    "downloadModelType": "הורד {{type}}",
+    "modelTypeAsr": "ASR",
+    "modelTypeTranslation": "תרגום",
+    "modelTypeTts": "TTS"
   },
   "simpleSettings": {
     "quickSetup": "הגדרה מהירה",

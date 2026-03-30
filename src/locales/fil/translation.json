@@ -214,7 +214,13 @@
     "thresholdTooltip": "I-adjust ang threshold ng voice detection",
     "prefixPaddingTooltip": "Magdagdag ng padding bago ang pagsasalita",
     "silenceDurationTooltip": "Tagal ng katahimikan bago ituring na tapos na ang pagsasalita",
-    "localInferenceModelsRequired": "Mangyaring mag-download at pumili ng mga modelo sa <settingsLink>Advanced Settings</settingsLink>. Kailangan ng kahit isang ASR, Translation, at TTS na modelo."
+    "localInferenceModelsRequired": "Mangyaring mag-download at pumili ng mga modelo sa <settingsLink>Advanced Settings</settingsLink>. Kailangan ng kahit isang ASR, Translation, at TTS na modelo.",
+    "missingModelsWarning": "Nawawalang {{types}} model para sa language pair na ito.",
+    "downloadModels": "I-download ang mga model",
+    "downloadModelType": "I-download ang {{type}}",
+    "modelTypeAsr": "ASR",
+    "modelTypeTranslation": "Pagsasalin",
+    "modelTypeTts": "TTS"
   },
   "simpleSettings": {
     "quickSetup": "Mabilisang Setup",

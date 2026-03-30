@@ -221,7 +221,13 @@
     "thresholdTooltip": "ভয়েস সনাক্তকরণের থ্রেশহোল্ড সামঞ্জস্য করুন",
     "prefixPaddingTooltip": "বক্তৃতার আগে প্যাডিং যোগ করুন",
     "silenceDurationTooltip": "বক্তৃতা শেষ বলে বিবেচনা করার আগে নীরবতার সময়কাল",
-    "localInferenceModelsRequired": "অনুগ্রহ করে <settingsLink>উন্নত সেটিংসে</settingsLink> মডেল ডাউনলোড এবং নির্বাচন করুন। কমপক্ষে একটি ASR, অনুবাদ এবং TTS মডেল প্রয়োজন।"
+    "localInferenceModelsRequired": "অনুগ্রহ করে <settingsLink>উন্নত সেটিংসে</settingsLink> মডেল ডাউনলোড এবং নির্বাচন করুন। কমপক্ষে একটি ASR, অনুবাদ এবং TTS মডেল প্রয়োজন।",
+    "missingModelsWarning": "এই ভাষা জোড়ার জন্য {{types}} মডেল অনুপস্থিত।",
+    "downloadModels": "মডেল ডাউনলোড করুন",
+    "downloadModelType": "{{type}} ডাউনলোড করুন",
+    "modelTypeAsr": "ASR",
+    "modelTypeTranslation": "অনুবাদ",
+    "modelTypeTts": "TTS"
   },
   "simpleSettings": {
     "quickSetup": "দ্রুত সেটআপ",

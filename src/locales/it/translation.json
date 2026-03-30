@@ -215,7 +215,13 @@
     "custom": "Personalizzato",
     "regionNotSupported": "Servizio non disponibile nella tua regione. Controlla il tuo ambiente di rete o prova un altro provider.",
     "geminiParticipantTokenWarning": "Avviso: limite token partecipanti Gemini",
-    "localInferenceModelsRequired": "Scarica e seleziona i modelli nelle <settingsLink>Impostazioni avanzate</settingsLink>. È richiesto almeno un modello ASR, Traduzione e TTS."
+    "localInferenceModelsRequired": "Scarica e seleziona i modelli nelle <settingsLink>Impostazioni avanzate</settingsLink>. È richiesto almeno un modello ASR, Traduzione e TTS.",
+    "missingModelsWarning": "Modello/i {{types}} mancante/i per questa coppia di lingue.",
+    "downloadModels": "Scarica modelli",
+    "downloadModelType": "Scarica {{type}}",
+    "modelTypeAsr": "ASR",
+    "modelTypeTranslation": "Traduzione",
+    "modelTypeTts": "TTS"
   },
   "audioPanel": {
     "title": "Impostazioni audio",
