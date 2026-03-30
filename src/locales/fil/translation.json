@@ -24,6 +24,11 @@
   },
   "settings": {
     "title": "Mga Setting",
+    "tabs": {
+      "general": "Pangkalahatan",
+      "audio": "Audio",
+      "provider": "Provider"
+    },
     "uiLanguage": "Wika ng interface",
     "openaiApiKey": "OpenAI API key",
     "provider": "Provider ng serbisyo",

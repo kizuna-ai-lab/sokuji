@@ -32,6 +32,11 @@
   },
   "settings": {
     "title": "Pengaturan",
+    "tabs": {
+      "general": "Umum",
+      "audio": "Audio",
+      "provider": "Penyedia"
+    },
     "language": "Bahasa",
     "audio": "Audio",
     "translation": "Terjemahan",

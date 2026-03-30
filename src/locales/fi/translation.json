@@ -24,6 +24,11 @@
   },
   "settings": {
     "title": "Asetukset",
+    "tabs": {
+      "general": "Yleiset",
+      "audio": "Ääni",
+      "provider": "Tarjoaja"
+    },
     "uiLanguage": "Käyttöliittymän kieli",
     "openaiApiKey": "OpenAI API-avain",
     "provider": "Palveluntarjoaja",

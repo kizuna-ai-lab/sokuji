@@ -32,6 +32,11 @@
   },
   "settings": {
     "title": "Instellingen",
+    "tabs": {
+      "general": "Algemeen",
+      "audio": "Audio",
+      "provider": "Provider"
+    },
     "language": "Taal",
     "audio": "Audio",
     "translation": "Vertaling",

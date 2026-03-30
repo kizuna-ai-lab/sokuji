@@ -32,6 +32,11 @@
   },
   "settings": {
     "title": "Configurações",
+    "tabs": {
+      "general": "Geral",
+      "audio": "Áudio",
+      "provider": "Provedor"
+    },
     "language": "Idioma",
     "audio": "Áudio",
     "translation": "Tradução",

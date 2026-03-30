@@ -31,6 +31,11 @@
   },
   "settings": {
     "title": "تنظیمات",
+    "tabs": {
+      "general": "عمومی",
+      "audio": "صدا",
+      "provider": "ارائه‌دهنده"
+    },
     "language": "زبان",
     "audio": "صدا",
     "translation": "ترجمه",

@@ -24,6 +24,11 @@
   },
   "settings": {
     "title": "Ayarlar",
+    "tabs": {
+      "general": "Genel",
+      "audio": "Ses",
+      "provider": "Sağlayıcı"
+    },
     "uiLanguage": "Arayüz dili",
     "openaiApiKey": "OpenAI API anahtarı",
     "provider": "Hizmet sağlayıcı",
