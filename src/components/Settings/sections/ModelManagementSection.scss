@@ -66,6 +66,25 @@
       }
     }
   }
+
+  .model-subgroup {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+
+    &__label {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: vars.$font-caption;
+      color: vars.$text-muted;
+      padding: 2px 0;
+
+      svg {
+        color: vars.$color-primary;
+      }
+    }
+  }
 }
 
 .model-card {
@@ -219,6 +238,18 @@
     border-radius: 3px;
     font-size: vars.$font-caption;
     color: vars.$text-muted;
+  }
+
+  &__recommended-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 1px 6px;
+    background: rgba(#f59e0b, 0.15);
+    border-radius: 3px;
+    font-size: 10px;
+    color: #f59e0b;
+    font-weight: vars.$weight-medium;
   }
 
   &__auto-badge {
