@@ -32,6 +32,11 @@
   },
   "settings": {
     "title": "Einstellungen",
+    "tabs": {
+      "general": "Allgemein",
+      "audio": "Audio",
+      "provider": "Anbieter"
+    },
     "language": "Sprache",
     "audio": "Audio",
     "translation": "Übersetzung",

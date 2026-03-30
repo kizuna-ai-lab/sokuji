@@ -31,6 +31,11 @@
   },
   "settings": {
     "title": "הגדרות",
+    "tabs": {
+      "general": "כללי",
+      "audio": "אודיו",
+      "provider": "ספק"
+    },
     "language": "שפה",
     "audio": "אודיו",
     "translation": "תרגום",

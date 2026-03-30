@@ -32,6 +32,11 @@
   },
   "settings": {
     "title": "設定",
+    "tabs": {
+      "general": "一般",
+      "audio": "オーディオ",
+      "provider": "プロバイダー"
+    },
     "language": "言語",
     "audio": "オーディオ",
     "translation": "翻訳",

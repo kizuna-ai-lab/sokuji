@@ -153,6 +153,11 @@
   },
   "settings": {
     "title": "அமைப்புகள்",
+    "tabs": {
+      "general": "பொது",
+      "audio": "ஆடியோ",
+      "provider": "வழங்குநர்"
+    },
     "uiLanguage": "இடைமுக மொழி",
     "openaiApiKey": "OpenAI API விசை",
     "provider": "சேவை வழங்குநர்",

@@ -32,6 +32,11 @@
   },
   "settings": {
     "title": "Настройки",
+    "tabs": {
+      "general": "Общие",
+      "audio": "Аудио",
+      "provider": "Поставщик"
+    },
     "language": "Язык",
     "audio": "Аудио",
     "translation": "Перевод",

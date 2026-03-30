@@ -135,6 +135,11 @@
   },
   "settings": {
     "title": "సెట్టింగ్స్",
+    "tabs": {
+      "general": "సాధారణ",
+      "audio": "ఆడియో",
+      "provider": "ప్రదాత"
+    },
     "uiLanguage": "ఇంటర్ఫేస్ భాష",
     "openaiApiKey": "OpenAI API కీ",
     "provider": "సేవా ప్రదాత",

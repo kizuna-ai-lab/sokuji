@@ -135,6 +135,11 @@
   },
   "settings": {
     "title": "Налаштування",
+    "tabs": {
+      "general": "Загальні",
+      "audio": "Аудіо",
+      "provider": "Постачальник"
+    },
     "uiLanguage": "Мова інтерфейсу",
     "openaiApiKey": "API-ключ OpenAI",
     "provider": "Постачальник послуг",

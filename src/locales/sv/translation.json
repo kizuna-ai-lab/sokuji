@@ -24,6 +24,11 @@
   },
   "settings": {
     "title": "Inställningar",
+    "tabs": {
+      "general": "Allmänt",
+      "audio": "Ljud",
+      "provider": "Leverantör"
+    },
     "uiLanguage": "Gränssnittsspråk",
     "openaiApiKey": "OpenAI API-nyckel",
     "provider": "Tjänsteleverantör",

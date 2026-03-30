@@ -135,6 +135,11 @@
   },
   "settings": {
     "title": "การตั้งค่า",
+    "tabs": {
+      "general": "ทั่วไป",
+      "audio": "เสียง",
+      "provider": "ผู้ให้บริการ"
+    },
     "uiLanguage": "ภาษาอินเทอร์เฟซ",
     "openaiApiKey": "คีย์ API OpenAI",
     "provider": "ผู้ให้บริการ",

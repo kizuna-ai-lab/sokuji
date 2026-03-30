@@ -24,6 +24,11 @@
   },
   "settings": {
     "title": "Cài đặt",
+    "tabs": {
+      "general": "Chung",
+      "audio": "Âm thanh",
+      "provider": "Nhà cung cấp"
+    },
     "uiLanguage": "Ngôn ngữ giao diện",
     "openaiApiKey": "Khóa API OpenAI",
     "provider": "Nhà cung cấp dịch vụ",

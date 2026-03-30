@@ -148,6 +148,11 @@
   },
   "settings": {
     "title": "設定",
+    "tabs": {
+      "general": "一般",
+      "audio": "音訊",
+      "provider": "提供商"
+    },
     "language": "語言",
     "audio": "音訊",
     "translation": "翻譯",

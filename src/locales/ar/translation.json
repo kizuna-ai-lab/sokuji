@@ -32,6 +32,11 @@
   },
   "settings": {
     "title": "الإعدادات",
+    "tabs": {
+      "general": "عام",
+      "audio": "الصوت",
+      "provider": "المزود"
+    },
     "language": "اللغة",
     "audio": "الصوت",
     "translation": "الترجمة",
