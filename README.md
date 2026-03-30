@@ -355,3 +355,22 @@ If you encounter issues or have questions:
 - **Infrastructure**: [Transformers.js](https://github.com/huggingface/transformers.js), [ONNX Runtime](https://github.com/microsoft/onnxruntime), [Silero VAD](https://github.com/snakers4/silero-vad), [Electron](https://www.electronjs.org), [React](https://react.dev)
 
 For detailed model licenses, see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
+
+## Installation
+
+```bash
+# Installation instructions
+```
+
+
+## Usage
+
+```python
+# Usage examples
+```
+
+
+## Contributing
+
+Contributions are welcome!
