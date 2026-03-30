@@ -215,7 +215,13 @@
     "basicMode": "기본",
     "unlimited": "무제한",
     "custom": "사용자 정의",
-    "localInferenceModelsRequired": "<settingsLink>고급 설정</settingsLink>에서 모델을 다운로드하고 선택하세요. ASR, 번역, TTS 모델이 각각 하나 이상 필요합니다."
+    "localInferenceModelsRequired": "<settingsLink>고급 설정</settingsLink>에서 모델을 다운로드하고 선택하세요. ASR, 번역, TTS 모델이 각각 하나 이상 필요합니다.",
+    "missingModelsWarning": "이 언어 쌍에 대한 {{types}} 모델이 없습니다.",
+    "downloadModels": "모델 다운로드",
+    "downloadModelType": "{{type}} 다운로드",
+    "modelTypeAsr": "ASR",
+    "modelTypeTranslation": "번역",
+    "modelTypeTts": "TTS"
   },
   "audioPanel": {
     "title": "오디오 설정",

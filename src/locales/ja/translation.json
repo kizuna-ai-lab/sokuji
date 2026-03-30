@@ -215,7 +215,13 @@
     "switchToBasic": "ベーシックモードに切替",
     "advancedMode": "アドバンス",
     "basicMode": "ベーシック",
-    "localInferenceModelsRequired": "<settingsLink>詳細設定</settingsLink>でモデルをダウンロードして選択してください。ASR、翻訳、TTSモデルがそれぞれ1つ以上必要です。"
+    "localInferenceModelsRequired": "<settingsLink>詳細設定</settingsLink>でモデルをダウンロードして選択してください。ASR、翻訳、TTSモデルがそれぞれ1つ以上必要です。",
+    "missingModelsWarning": "この言語ペアの {{types}} モデルがありません。",
+    "downloadModels": "モデルをダウンロード",
+    "downloadModelType": "{{type}} をダウンロード",
+    "modelTypeAsr": "ASR",
+    "modelTypeTranslation": "翻訳",
+    "modelTypeTts": "TTS"
   },
   "audioPanel": {
     "title": "オーディオ設定",

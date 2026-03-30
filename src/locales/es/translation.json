@@ -215,7 +215,13 @@
     "switchToBasic": "Cambiar a modo básico",
     "advancedMode": "Avanzado",
     "basicMode": "Básico",
-    "localInferenceModelsRequired": "Descargue y seleccione modelos en <settingsLink>Configuración avanzada</settingsLink>. Se requiere al menos un modelo de ASR, Traducción y TTS."
+    "localInferenceModelsRequired": "Descargue y seleccione modelos en <settingsLink>Configuración avanzada</settingsLink>. Se requiere al menos un modelo de ASR, Traducción y TTS.",
+    "missingModelsWarning": "Faltan modelo(s) de {{types}} para este par de idiomas.",
+    "downloadModels": "Descargar modelos",
+    "downloadModelType": "Descargar {{type}}",
+    "modelTypeAsr": "ASR",
+    "modelTypeTranslation": "Traducción",
+    "modelTypeTts": "TTS"
   },
   "audioPanel": {
     "title": "Configuración de audio",

@@ -207,7 +207,13 @@
     "transcriptModelTooltip": "Välj transkriptionsmodell",
     "noiseReductionTooltip": "Ställ in nivå för bakgrundsbrusreducering",
     "systemInstructionsTooltip": "Ange instruktioner för att anpassa AI-beteendet",
-    "localInferenceModelsRequired": "Ladda ner och välj modeller i <settingsLink>Avancerade inställningar</settingsLink>. Minst en ASR-, översättnings- och TTS-modell krävs."
+    "localInferenceModelsRequired": "Ladda ner och välj modeller i <settingsLink>Avancerade inställningar</settingsLink>. Minst en ASR-, översättnings- och TTS-modell krävs.",
+    "missingModelsWarning": "{{types}}-modell(er) saknas för detta språkpar.",
+    "downloadModels": "Ladda ner modeller",
+    "downloadModelType": "Ladda ner {{type}}",
+    "modelTypeAsr": "ASR",
+    "modelTypeTranslation": "Översättning",
+    "modelTypeTts": "TTS"
   },
   "mainPanel": {
     "conversationPlaceholder": "Konversationen kommer att visas här",

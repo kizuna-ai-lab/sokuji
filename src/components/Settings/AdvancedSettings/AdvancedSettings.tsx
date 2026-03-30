@@ -46,6 +46,9 @@ const NAVIGATION_TAB_MAP: Record<string, string> = {
   'voice-settings': 'provider',
   'turn-detection': 'provider',
   'model-management': 'provider',
+  'model-asr': 'provider',
+  'model-translation': 'provider',
+  'model-tts': 'provider',
 };
 
 interface AdvancedSettingsProps {

@@ -219,11 +219,13 @@ function ModelCard({
 // ─── ModelGroup ────────────────────────────────────────────────────────────
 
 function ModelGroup({
+  id,
   title,
   subtitle,
   defaultExpanded = true,
   children,
 }: {
+  id?: string;
   title: string;
   subtitle?: string;
   defaultExpanded?: boolean;
@@ -232,7 +234,7 @@ function ModelGroup({
   const [expanded, setExpanded] = useState(defaultExpanded);
 
   return (
-    <div className="model-group">
+    <div id={id ? `${id}-section` : undefined} className="model-group">
       <div className="model-group__header" onClick={() => setExpanded(!expanded)}>
         <span className="model-group__chevron">
           {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
@@ -520,7 +522,7 @@ export function ModelManagementSection({
 
   const renderAsrGroup = () => {
     return (
-      <ModelGroup title={t('models.asrModels', 'ASR (Speech Recognition)')}>
+      <ModelGroup id="model-asr" title={t('models.asrModels', 'ASR (Speech Recognition)')}>
         {compatibleAsrModels.length > 0 ? (
           renderSubGroups(
             compatibleAsrModels,
@@ -575,7 +577,7 @@ export function ModelManagementSection({
 
   const renderTranslationGroup = () => {
     return (
-      <ModelGroup title={t('models.translationModels', 'Translation')}>
+      <ModelGroup id="model-translation" title={t('models.translationModels', 'Translation')}>
         {compatibleTranslationModels.length > 0 ? (
           renderSubGroups(
             compatibleTranslationModels,
@@ -638,6 +640,7 @@ export function ModelManagementSection({
   const renderTtsGroup = () => {
     return (
       <ModelGroup
+        id="model-tts"
         title={t('models.ttsModels', 'TTS (Text-to-Speech)')}
       >
         {compatibleTtsModels.length > 0 ? (

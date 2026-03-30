@@ -214,7 +214,13 @@
     "transportTypeTooltip": "Selecionar método de transporte em tempo real",
     "websocket": "WebSocket",
     "webrtc": "WebRTC",
-    "localInferenceModelsRequired": "Transfira e selecione modelos nas <settingsLink>Definições Avançadas</settingsLink>. É necessário pelo menos um modelo de ASR, Tradução e TTS."
+    "localInferenceModelsRequired": "Transfira e selecione modelos nas <settingsLink>Definições Avançadas</settingsLink>. É necessário pelo menos um modelo de ASR, Tradução e TTS.",
+    "missingModelsWarning": "Modelo(s) de {{types}} em falta para este par de idiomas.",
+    "downloadModels": "Transferir modelos",
+    "downloadModelType": "Transferir {{type}}",
+    "modelTypeAsr": "ASR",
+    "modelTypeTranslation": "Tradução",
+    "modelTypeTts": "TTS"
   },
   "simpleSettings": {
     "quickSetup": "Configuração Rápida",

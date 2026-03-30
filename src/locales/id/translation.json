@@ -215,7 +215,13 @@
     "geminiParticipantTokenWarning": "Peringatan: batas token peserta Gemini",
     "auto": "Otomatis",
     "low": "Rendah",
-    "localInferenceModelsRequired": "Silakan unduh dan pilih model di <settingsLink>Pengaturan Lanjutan</settingsLink>. Setidaknya satu model ASR, Terjemahan, dan TTS diperlukan."
+    "localInferenceModelsRequired": "Silakan unduh dan pilih model di <settingsLink>Pengaturan Lanjutan</settingsLink>. Setidaknya satu model ASR, Terjemahan, dan TTS diperlukan.",
+    "missingModelsWarning": "Model {{types}} tidak tersedia untuk pasangan bahasa ini.",
+    "downloadModels": "Unduh model",
+    "downloadModelType": "Unduh {{type}}",
+    "modelTypeAsr": "ASR",
+    "modelTypeTranslation": "Terjemahan",
+    "modelTypeTts": "TTS"
   },
   "simpleSettings": {
     "quickSetup": "Pengaturan Cepat",

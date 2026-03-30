@@ -214,7 +214,13 @@
     "thresholdTooltip": "Säädä puheen tunnistuksen kynnysarvoa",
     "prefixPaddingTooltip": "Lisää täyttö ennen puhetta",
     "silenceDurationTooltip": "Hiljaisuuden kesto ennen puheen päättymistä",
-    "localInferenceModelsRequired": "Lataa ja valitse mallit <settingsLink>lisäasetuksista</settingsLink>. Vähintään yksi ASR-, käännös- ja TTS-malli vaaditaan."
+    "localInferenceModelsRequired": "Lataa ja valitse mallit <settingsLink>lisäasetuksista</settingsLink>. Vähintään yksi ASR-, käännös- ja TTS-malli vaaditaan.",
+    "missingModelsWarning": "{{types}}-malli(t) puuttuu tälle kieliparille.",
+    "downloadModels": "Lataa mallit",
+    "downloadModelType": "Lataa {{type}}",
+    "modelTypeAsr": "ASR",
+    "modelTypeTranslation": "Käännös",
+    "modelTypeTts": "TTS"
   },
   "simpleSettings": {
     "quickSetup": "Pika-asennus",

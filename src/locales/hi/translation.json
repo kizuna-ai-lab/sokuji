@@ -208,7 +208,13 @@
     "settingSavedSuccessfully": "सेटिंग सफलतापूर्वक सहेजी गई",
     "failedToSaveSetting": "सेटिंग सहेजने में विफल",
     "geminiParticipantTokenWarning": "चेतावनी: Gemini प्रतिभागी टोकन सीमा",
-    "localInferenceModelsRequired": "कृपया <settingsLink>उन्नत सेटिंग्स</settingsLink> में मॉडल डाउनलोड और चुनें। कम से कम एक ASR, अनुवाद और TTS मॉडल आवश्यक है।"
+    "localInferenceModelsRequired": "कृपया <settingsLink>उन्नत सेटिंग्स</settingsLink> में मॉडल डाउनलोड और चुनें। कम से कम एक ASR, अनुवाद और TTS मॉडल आवश्यक है।",
+    "missingModelsWarning": "इस भाषा जोड़ी के लिए {{types}} मॉडल गायब है/हैं।",
+    "downloadModels": "मॉडल डाउनलोड करें",
+    "downloadModelType": "{{type}} डाउनलोड करें",
+    "modelTypeAsr": "ASR",
+    "modelTypeTranslation": "अनुवाद",
+    "modelTypeTts": "TTS"
   },
   "simpleSettings": {
     "quickSetup": "त्वरित सेटअप",

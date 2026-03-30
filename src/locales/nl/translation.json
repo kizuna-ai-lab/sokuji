@@ -215,7 +215,13 @@
     "transcriptModelTooltip": "Transcriptiemodel selecteren",
     "noiseReductionTooltip": "Niveau van achtergrondruisonderdrukking instellen",
     "systemInstructionsTooltip": "Instructies invoeren om het AI-gedrag aan te passen",
-    "localInferenceModelsRequired": "Download en selecteer modellen in <settingsLink>Geavanceerde instellingen</settingsLink>. Er is minimaal één ASR-, Vertaal- en TTS-model vereist."
+    "localInferenceModelsRequired": "Download en selecteer modellen in <settingsLink>Geavanceerde instellingen</settingsLink>. Er is minimaal één ASR-, Vertaal- en TTS-model vereist.",
+    "missingModelsWarning": "Ontbrekend(e) {{types}}-model(len) voor dit taalpaar.",
+    "downloadModels": "Modellen downloaden",
+    "downloadModelType": "{{type}} downloaden",
+    "modelTypeAsr": "ASR",
+    "modelTypeTranslation": "Vertaling",
+    "modelTypeTts": "TTS"
   },
   "audioPanel": {
     "title": "Audio instellingen",
