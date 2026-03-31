@@ -99,7 +99,7 @@ Download from the [Releases page](https://github.com/kizuna-ai-lab/sokuji/releas
   <a href="https://microsoftedge.microsoft.com/addons/detail/sokuji-aipowered-live-/dcmmcdkeibkalgdjlahlembodjhijhkm" target="_blank">
     <img alt="Available on Microsoft Edge Add-ons" src="https://github.com/kizuna-ai-lab/sokuji/raw/main/assets/edge-addons-badge.png" style="height: 60px;" />
   </a>
-  <img alt="Coming soon on Brave" src="https://github.com/kizuna-ai-lab/sokuji/raw/main/assets/brave-coming-soon-badge.svg" style="height: 60px;" />
+  <img alt="Brave - Coming Soon" src="https://img.shields.io/badge/Brave-Coming%20Soon-FB542B?style=for-the-badge&logo=brave&logoColor=white" style="height: 40px;" />
 </p>
 
 <details>
