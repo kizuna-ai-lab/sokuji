@@ -153,6 +153,7 @@ Run everything on your device — no API keys, no internet, no expensive GPU, co
 - **Translate others' voice** — capture system audio from meetings and get real-time translated subtitles
 - **Virtual Microphone** — route translated audio to Zoom, Meet, Teams, or any app
 - **Real-time Passthrough** — monitor your own voice while recording
+- **AI Noise Suppression** — removes background noise, keyboard sounds, and other distractions
 - **Echo Cancellation** — built-in with modern Web Audio API
 
 ### Interface
