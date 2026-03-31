@@ -237,9 +237,11 @@ function createWindow() {
   const isDev = import.meta.env.MODE === 'development' || !app.isPackaged;
 
   // Build custom User Agent to identify Electron app
+  // Use standard OS names so PostHog's regex-based $os detection works
   const electronVersion = process.versions.electron;
   const appVersion = app.getVersion();
-  const customUserAgent = `Sokuji/${appVersion} Electron/${electronVersion} (${process.platform})`;
+  const osName = { darwin: 'macOS', win32: 'Windows', linux: 'Linux' }[process.platform] || process.platform;
+  const customUserAgent = `Sokuji/${appVersion} Electron/${electronVersion} (${osName})`;
 
   mainWindow = new BrowserWindow({
     width: 1200,
