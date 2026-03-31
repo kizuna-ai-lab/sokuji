@@ -37,7 +37,7 @@ Sokuji is a cross-platform live speech translation app for desktop and browser. 
 ```mermaid
 graph LR
     A["🗣️ You speak<br/>(any language)"] --> B["🎙️ Sokuji"]
-    B --> C{"AI Engine"}
+    B --> C{"Choose one"}
     C -->|"☁️ Cloud"| D["OpenAI · Gemini<br/>Palabra · Doubao..."]
     C -->|"🖥️ Local"| E["On-device AI<br/>(fully offline, no GPU)"]
     D --> F["🔊 Translated voice"]
