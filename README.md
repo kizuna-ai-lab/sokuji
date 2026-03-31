@@ -179,8 +179,7 @@ Run everything on your device — no API keys, no internet, no expensive GPU, co
 
 - **Desktop**: [Electron](https://www.electronjs.org) (Windows, macOS, Linux)
 - **Extension**: Chrome/Edge Manifest V3
-- **Frontend**: [React](https://react.dev) + TypeScript + [Zustand](https://zustand-demo.pmnd.rs/)
-- **Backend**: [Cloudflare Workers](https://workers.cloudflare.com) + [Hono](https://hono.dev) + [Better Auth](https://www.better-auth.com/)
+- **UI**: [React](https://react.dev) + TypeScript + [Zustand](https://zustand-demo.pmnd.rs/)
 - **Local AI**: [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx) (WASM) · [Transformers.js](https://github.com/huggingface/transformers.js) · WebGPU
 - **Audio**: Web Audio API · AudioWorklet · WebRTC
 - **i18n**: [i18next](https://www.i18next.com/) (30 languages)
