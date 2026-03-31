@@ -132,9 +132,9 @@ npm run electron:build      # Production
 
 Run everything on your device — no API keys, no internet, no expensive GPU, complete privacy. Powered by WASM and WebGPU, Sokuji runs efficiently on any modern browser using your existing CPU and integrated graphics.
 
-- **48 ASR models** (32 offline + 10 streaming + 6 Whisper WebGPU) covering 99+ languages
-- **55+ translation pairs** via Opus-MT + 4 multilingual LLMs (Qwen 2.5 / 3 / 3.5) with WebGPU
-- **136 TTS voices** across 53 languages (Piper, Coqui, Mimic3, Matcha engines)
+- **50 ASR models** (32 offline + 10 streaming + 8 WebGPU including Whisper, Cohere Transcribe, Voxtral Mini 4B) covering 99+ languages
+- **55+ translation pairs** via Opus-MT + 5 multilingual LLMs (Qwen 2.5 / 3 / 3.5, GemmaTranslate) with WebGPU
+- **136 TTS voices** across 53 languages (Piper, Piper-Plus, Coqui, Mimic3, Matcha engines)
 - One-click model download with IndexedDB caching
 
 ### Cloud Providers
