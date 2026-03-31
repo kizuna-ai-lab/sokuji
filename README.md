@@ -147,8 +147,9 @@ Run everything on your device — no API keys, no internet, no expensive GPU, co
 
 ### Audio
 
+- **Translate your voice** — speak in your language, others hear translated audio via virtual microphone
+- **Translate others' voice** — capture system audio from meetings and get real-time translated subtitles
 - **Virtual Microphone** — route translated audio to Zoom, Meet, Teams, or any app
-- **System Audio Capture** — translate what other participants say in video calls
 - **Real-time Passthrough** — monitor your own voice while recording
 - **Echo Cancellation** — built-in with modern Web Audio API
 
