@@ -88,9 +88,11 @@ Download from the [Releases page](https://github.com/kizuna-ai-lab/sokuji/releas
 
 | Platform | Package |
 |----------|---------|
-| Windows | `Sokuji Setup x.y.z.exe` |
-| macOS | `Sokuji-x.y.z.dmg` |
-| Linux (Debian/Ubuntu) | `sokuji_x.y.z_amd64.deb` |
+| Windows | `Sokuji-x.y.z.Setup.exe` |
+| macOS (Apple Silicon) | `Sokuji-x.y.z-arm64.pkg` |
+| macOS (Intel) | `Sokuji-x.y.z-x64.pkg` |
+| Linux (Debian/Ubuntu x64) | `sokuji_x.y.z_amd64.deb` |
+| Linux (Debian/Ubuntu ARM64) | `sokuji_x.y.z_arm64.deb` |
 
 ### Browser Extension
 
