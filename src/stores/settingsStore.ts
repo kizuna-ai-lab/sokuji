@@ -583,9 +583,15 @@ const useSettingsStore = create<SettingsStore>()(
     },
 
     setConversationFontSize: async (conversationFontSize) => {
+      const previous = get().conversationFontSize;
       set({conversationFontSize});
-      const service = ServiceFactory.getSettingsService();
-      await service.setSetting('settings.common.conversationFontSize', conversationFontSize);
+      try {
+        const service = ServiceFactory.getSettingsService();
+        await service.setSetting('settings.common.conversationFontSize', conversationFontSize);
+      } catch (error) {
+        console.error('[SettingsStore] Error persisting conversationFontSize setting:', error);
+        set({conversationFontSize: previous});
+      }
     },
 
     // === Provider Settings Actions ===
