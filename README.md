@@ -41,7 +41,7 @@ graph LR
     A["🗣️ You speak<br/>(any language)"] --> B["🎙️ Sokuji"]
     B --> C{"Choose one"}
     C -->|"☁️ Cloud"| D["OpenAI · Gemini<br/>Palabra · Doubao..."]
-    C -->|"🖥️ Local"| E["On-device AI<br/>(fully offline, no GPU)"]
+    C -->|"🖥️ Local"| E["On-device AI<br/>ASR → Translate → TTS<br/>(fully offline, no GPU)"]
     D --> F["🔊 Translated voice"]
     E --> F
     F --> G["💻 Zoom · Teams · Meet<br/>Discord · Any app"]
