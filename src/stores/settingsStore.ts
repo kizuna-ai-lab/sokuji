@@ -31,6 +31,7 @@ export interface CommonSettings {
   useTemplateMode: boolean;
   participantSystemInstructions: string;
   textOnly: boolean;
+  conversationFontSize: number;
 }
 
 // Transport type for OpenAI Realtime API
@@ -137,6 +138,7 @@ const defaultCommonSettings: CommonSettings = {
   uiLanguage: 'en',
   uiMode: 'basic',
   textOnly: false,
+  conversationFontSize: 14,
   systemInstructions:
     "# ROLE & OBJECTIVE\n" +
     "You are a simultaneous interpreter.\n" +
@@ -322,12 +324,16 @@ interface SettingsStore {
   // Text-only mode (no audio output)
   textOnly: boolean;
 
+  // Conversation font size
+  conversationFontSize: number;
+
   // === Actions ===
   // Common settings actions
   setProvider: (provider: ProviderType) => void;
   setUILanguage: (lang: string) => void;
   setUIMode: (mode: 'basic' | 'advanced') => void;
   setTextOnly: (textOnly: boolean) => void;
+  setConversationFontSize: (size: number) => void;
   setSystemInstructions: (instructions: string) => void;
   setTemplateSystemInstructions: (instructions: string) => void;
   setUseTemplateMode: (useTemplate: boolean) => void;
@@ -573,6 +579,18 @@ const useSettingsStore = create<SettingsStore>()(
       } catch (error) {
         console.error('[SettingsStore] Error persisting textOnly setting:', error);
         set({textOnly: previous});
+      }
+    },
+
+    setConversationFontSize: async (conversationFontSize) => {
+      const previous = get().conversationFontSize;
+      set({conversationFontSize});
+      try {
+        const service = ServiceFactory.getSettingsService();
+        await service.setSetting('settings.common.conversationFontSize', conversationFontSize);
+      } catch (error) {
+        console.error('[SettingsStore] Error persisting conversationFontSize setting:', error);
+        set({conversationFontSize: previous});
       }
     },
 
@@ -1029,6 +1047,7 @@ const useSettingsStore = create<SettingsStore>()(
         const useTemplateMode = await service.getSetting('settings.common.useTemplateMode', defaultCommonSettings.useTemplateMode);
         const participantSystemInstructions = await service.getSetting('settings.common.participantSystemInstructions', defaultCommonSettings.participantSystemInstructions);
         const textOnly = await service.getSetting('settings.common.textOnly', defaultCommonSettings.textOnly);
+        const conversationFontSize = await service.getSetting('settings.common.conversationFontSize', defaultCommonSettings.conversationFontSize);
 
         // Validate provider availability
         const validProvider = ProviderConfigFactory.isProviderSupported(provider) ? provider : Provider.OPENAI;
@@ -1062,6 +1081,7 @@ const useSettingsStore = create<SettingsStore>()(
           useTemplateMode,
           participantSystemInstructions,
           textOnly,
+          conversationFontSize,
           openai,
           gemini,
           openaiCompatible,
@@ -1199,6 +1219,7 @@ const useSettingsStore = create<SettingsStore>()(
 export const useProvider = () => useSettingsStore((state) => state.provider);
 export const useUILanguage = () => useSettingsStore((state) => state.uiLanguage);
 export const useUIMode = () => useSettingsStore((state) => state.uiMode);
+export const useConversationFontSize = () => useSettingsStore((state) => state.conversationFontSize);
 export const useSystemInstructions = () => useSettingsStore((state) => state.systemInstructions);
 export const useTemplateSystemInstructions = () => useSettingsStore((state) => state.templateSystemInstructions);
 export const useUseTemplateMode = () => useSettingsStore((state) => state.useTemplateMode);
@@ -1243,6 +1264,7 @@ export const useSetProvider = () => useSettingsStore((state) => state.setProvide
 export const useSetUILanguage = () => useSettingsStore((state) => state.setUILanguage);
 export const useSetUIMode = () => useSettingsStore((state) => state.setUIMode);
 export const useSetTextOnly = () => useSettingsStore((state) => state.setTextOnly);
+export const useSetConversationFontSize = () => useSettingsStore((state) => state.setConversationFontSize);
 export const useSetSystemInstructions = () => useSettingsStore((state) => state.setSystemInstructions);
 export const useSetTemplateSystemInstructions = () => useSettingsStore((state) => state.setTemplateSystemInstructions);
 export const useSetUseTemplateMode = () => useSettingsStore((state) => state.setUseTemplateMode);
