@@ -26,7 +26,7 @@
   min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 12px;
+  padding: 0 12px 12px;
   scroll-behavior: smooth;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
@@ -46,7 +46,7 @@
   justify-content: flex-end;
   align-items: center;
   gap: 2px;
-  padding: 4px 12px 0;
+  padding: 4px 12px;
   flex-shrink: 0;
 }
 
