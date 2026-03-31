@@ -44,6 +44,8 @@
 .conversation-toolbar {
   display: flex;
   justify-content: flex-end;
+  align-items: center;
+  gap: 2px;
   padding: 4px 12px 0;
   flex-shrink: 0;
 }
@@ -63,6 +65,29 @@
   &:hover {
     color: #e74c3c;
     background: rgba(231, 76, 60, 0.1);
+  }
+}
+
+.font-size-btn {
+  background: none;
+  border: none;
+  color: #555;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: color 0.15s, background-color 0.15s;
+
+  &:hover:not(:disabled) {
+    color: #ccc;
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  &:disabled {
+    opacity: 0.3;
+    cursor: default;
   }
 }
 
@@ -190,7 +215,7 @@
   }
 
   .message-content {
-    font-size: 14px;
+    font-size: var(--conversation-font-size, 14px);
     line-height: 1.4;
     word-wrap: break-word;
     white-space: pre-wrap;
@@ -270,7 +295,7 @@
     }
 
     .audio-text {
-      font-size: 14px;
+      font-size: var(--conversation-font-size, 14px);
       color: rgba(255, 255, 255, 0.8);
       flex: 1;
     }
