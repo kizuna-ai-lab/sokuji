@@ -484,7 +484,9 @@
     "insufficientBalance": "Insufficient token balance: {{balance}} tokens",
     "walletFrozen": "Wallet is frozen. Please contact support.",
     "localModelsRequired": "Download required models in settings to start.",
-    "clearConversation": "Clear conversation"
+    "clearConversation": "Clear conversation",
+    "decreaseFontSize": "Decrease font size",
+    "increaseFontSize": "Increase font size"
   },
   "simplePanel": {
     "clickToConfigLanguages": "Click to configure languages",

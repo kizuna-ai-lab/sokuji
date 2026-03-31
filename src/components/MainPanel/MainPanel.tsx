@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
-import {X, Zap, Mic, MicOff, Loader, Play, Volume2, VolumeX, Wrench, Send, AlertCircle, MessageSquare, Trash2} from 'lucide-react';
+import {X, Zap, Mic, MicOff, Loader, Play, Volume2, VolumeX, Wrench, Send, AlertCircle, MessageSquare, Trash2, AArrowDown, AArrowUp} from 'lucide-react';
 import './MainPanel.scss';
 import {
   useProvider,
@@ -19,7 +19,9 @@ import {
   useGetProcessedSystemInstructions,
   useCreateSessionConfig,
   useTransportType,
-  useNavigateToSettings
+  useNavigateToSettings,
+  useConversationFontSize,
+  useSetConversationFontSize
 } from '../../stores/settingsStore';
 import useSettingsStore from '../../stores/settingsStore';
 import { useSession } from '../../stores/sessionStore';
@@ -96,6 +98,8 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   // Get settings from store
   const provider = useProvider();
   const uiMode = useUIMode();
+  const conversationFontSize = useConversationFontSize();
+  const setConversationFontSize = useSetConversationFontSize();
   const openAISettings = useOpenAISettings();
   const openAICompatibleSettings = useOpenAICompatibleSettings();
   const geminiSettings = useGeminiSettings();
@@ -2536,6 +2540,26 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         {filteredItems.length > 0 && (
           <div className="conversation-toolbar">
             <button
+              className="font-size-btn"
+              onClick={() => setConversationFontSize(Math.max(12, conversationFontSize - 2))}
+              disabled={conversationFontSize <= 12}
+              title={t('mainPanel.decreaseFontSize', 'Decrease font size')}
+              aria-label={t('mainPanel.decreaseFontSize', 'Decrease font size')}
+              type="button"
+            >
+              <AArrowDown size={14} />
+            </button>
+            <button
+              className="font-size-btn"
+              onClick={() => setConversationFontSize(Math.min(28, conversationFontSize + 2))}
+              disabled={conversationFontSize >= 28}
+              title={t('mainPanel.increaseFontSize', 'Increase font size')}
+              aria-label={t('mainPanel.increaseFontSize', 'Increase font size')}
+              type="button"
+            >
+              <AArrowUp size={14} />
+            </button>
+            <button
               className="clear-conversation-btn"
               onClick={clearConversation}
               title={t('mainPanel.clearConversation', 'Clear conversation')}
@@ -2547,7 +2571,11 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           </div>
         )}
         {/* Conversation Display */}
-        <div className="conversation-display" ref={conversationContainerRef}>
+        <div
+          className="conversation-display"
+          ref={conversationContainerRef}
+          style={{ '--conversation-font-size': `${conversationFontSize}px` } as React.CSSProperties}
+        >
           {filteredItems.length === 0 ? (
             <div className="empty-state">
               <MessageSquare size={32} />
