@@ -28,6 +28,8 @@
 
 ## Why Sokuji?
 
+Built by [Kizuna AI Lab](https://github.com/kizuna-ai-lab) — we use AI to break language and accessibility barriers, creating genuine human connections. "Kizuna" (絆) means "bond" in Japanese, and Sokuji (即時) is our flagship tool to make real-time communication possible across any language.
+
 Sokuji is a cross-platform live speech translation app for desktop and browser. It supports **Local Inference** — on-device ASR, translation, and TTS powered by WASM and WebGPU, with no API key required, no expensive GPU needed, fully offline, and completely private. It also integrates with cloud providers including OpenAI, Google Gemini, Palabra.ai, Kizuna AI, Doubao AST 2.0, and OpenAI-compatible APIs.
 
 ---
