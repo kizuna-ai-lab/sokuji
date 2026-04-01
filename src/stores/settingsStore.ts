@@ -14,6 +14,7 @@ import {
   LocalInferenceSessionConfig
 } from '../services/interfaces/IClient';
 import { getTtsModelsForLanguage, getManifestEntry, getTranslationModel } from '../lib/local-inference/modelManifest';
+import { useModelStore, type ParticipantModelStatus } from './modelStore';
 import {ApiKeyValidationResult} from '../services/interfaces/ISettingsService';
 import {Provider, ProviderType} from '../types/Provider';
 import {ClientOperations} from '../services/ClientOperations';
@@ -488,6 +489,36 @@ function createLocalInferenceSessionConfig(
     vadMinSilenceDuration: settings.vadMinSilenceDuration,
     vadMinSpeechDuration: settings.vadMinSpeechDuration,
     turnDetectionMode: settings.turnDetectionMode,
+  };
+}
+
+/**
+ * Create a participant session config for local inference by swapping languages
+ * and resolving reverse-direction models. Returns null if ASR is unavailable.
+ */
+export function createParticipantLocalInferenceConfig(
+  baseConfig: LocalInferenceSessionConfig
+): { config: LocalInferenceSessionConfig; status: ParticipantModelStatus } | null {
+  const status = useModelStore.getState().getParticipantModelStatus(
+    baseConfig.sourceLanguage,
+    baseConfig.targetLanguage,
+    baseConfig.asrModelId,
+  );
+
+  if (!status.asrAvailable) {
+    return null;
+  }
+
+  return {
+    config: {
+      ...baseConfig,
+      sourceLanguage: baseConfig.targetLanguage,
+      targetLanguage: baseConfig.sourceLanguage,
+      asrModelId: status.asrModelId!,
+      translationModelId: status.translationModelId ?? undefined,
+      ttsModelId: undefined,
+    },
+    status,
   };
 }
 
