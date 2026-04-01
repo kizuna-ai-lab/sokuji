@@ -21,8 +21,11 @@ const HelpSection: React.FC<HelpSectionProps> = ({ toggleSettings }) => {
   }, [updateStatus, openUpdateDialog]);
 
   return (
-    <div className="settings-section">
-      <h2>{t('settings.help', 'Help')}</h2>
+    <div className="config-section" id="help-section">
+      <h3>
+        <HelpCircle size={18} />
+        <span>{t('settings.help', 'Help')}</span>
+      </h3>
       <div className="setting-item">
         <button
           className="restart-onboarding-button"
