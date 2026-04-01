@@ -101,15 +101,16 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
   // Local inference model info
   const localInferenceSettings = useLocalInferenceSettings();
   const { isSystemAudioCaptureEnabled } = useAudioContext();
-  const participantModelStatus = useModelStore(state =>
-    provider === Provider.LOCAL_INFERENCE
-      ? state.getParticipantModelStatus(
-          localInferenceSettings.sourceLanguage,
-          localInferenceSettings.targetLanguage,
-          localInferenceSettings.asrModel,
-        )
-      : null
-  );
+  // Read model download statuses reactively so participant status updates when models are downloaded
+  const modelStatuses = useModelStore(state => state.modelStatuses);
+  const participantModelStatus = useMemo(() => {
+    if (provider !== Provider.LOCAL_INFERENCE) return null;
+    return useModelStore.getState().getParticipantModelStatus(
+      localInferenceSettings.sourceLanguage,
+      localInferenceSettings.targetLanguage,
+      localInferenceSettings.asrModel,
+    );
+  }, [provider, localInferenceSettings.sourceLanguage, localInferenceSettings.targetLanguage, localInferenceSettings.asrModel, modelStatuses]);
 
   const [isProviderExpanded, setIsProviderExpanded] = useState(false);
 
