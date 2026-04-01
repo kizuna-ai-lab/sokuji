@@ -258,7 +258,7 @@
     "audioSettings": "অডিও সেটিংস",
     "audioSettingsDesc": "অডিও প্যানেলে আপনার মাইক্রোফোন এবং স্পিকার কনফিগার করুন",
     "autoAuthenticated": "আপনার অ্যাকাউন্টের মাধ্যমে স্বয়ংক্রিয়ভাবে প্রমাণীকৃত",
-    "provider": "API কী"
+    "provider": "প্রদানকারী"
   },
   "simpleConfig": {
     "interfaceLanguage": "ইন্টারফেস ভাষা",

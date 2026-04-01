@@ -449,7 +449,7 @@
     "audioSettings": "Audio-Einstellungen",
     "audioSettingsDesc": "Konfigurieren Sie Ihr Mikrofon und Ihre Lautsprecher im Audio-Panel",
     "autoAuthenticated": "Automatisch über Ihr Konto authentifiziert",
-    "provider": "API-Schlüssel"
+    "provider": "Anbieter"
   },
   "simpleConfig": {
     "interfaceLanguage": "Sprache der Benutzeroberfläche",

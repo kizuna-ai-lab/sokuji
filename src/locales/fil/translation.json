@@ -251,7 +251,7 @@
     "audioSettings": "Mga Audio Setting",
     "audioSettingsDesc": "I-configure ang inyong microphone at speakers sa Audio panel",
     "autoAuthenticated": "Awtomatikong na-authenticate sa pamamagitan ng iyong account",
-    "provider": "API Key"
+    "provider": "Provider"
   },
   "simpleConfig": {
     "interfaceLanguage": "Wika ng Interface",

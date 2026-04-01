@@ -251,7 +251,7 @@
     "audioSettings": "Ääniasetukset",
     "audioSettingsDesc": "Määritä mikrofoni ja kaiuttimet äänipaneelissa",
     "autoAuthenticated": "Automaattisesti todennettu tilisi kautta",
-    "provider": "API-avain"
+    "provider": "Palveluntarjoaja"
   },
   "simpleConfig": {
     "interfaceLanguage": "Käyttöliittymän kieli",

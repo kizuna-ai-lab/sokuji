@@ -252,7 +252,7 @@
     "audioSettings": "音频设置",
     "audioSettingsDesc": "在音频面板中配置您的麦克风和扬声器",
     "autoAuthenticated": "已通过您的账户自动认证",
-    "provider": "API密钥"
+    "provider": "提供商"
   },
   "simpleConfig": {
     "interfaceLanguage": "界面语言",

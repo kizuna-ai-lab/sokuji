@@ -456,7 +456,7 @@
     "audioSettings": "Настройки аудио",
     "audioSettingsDesc": "Настройте ваш микрофон и динамики в панели Аудио",
     "autoAuthenticated": "Автоматически аутентифицирован через вашу учетную запись",
-    "provider": "API-ключ"
+    "provider": "Провайдер"
   },
   "simpleConfig": {
     "interfaceLanguage": "Язык интерфейса",

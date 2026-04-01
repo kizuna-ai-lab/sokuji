@@ -258,7 +258,7 @@
     "audioSettings": "הגדרות שמע",
     "audioSettingsDesc": "קבע את המיקרופון והרמקולים בפאנל השמע",
     "autoAuthenticated": "אומת אוטומטית דרך החשבון שלך",
-    "provider": "מפתח API"
+    "provider": "ספק"
   },
   "simpleConfig": {
     "interfaceLanguage": "שפת ממשק",

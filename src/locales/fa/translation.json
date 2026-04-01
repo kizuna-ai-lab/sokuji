@@ -258,7 +258,7 @@
     "audioSettings": "تنظیمات صدا",
     "audioSettingsDesc": "میکروفون و بلندگوی خود را در پنل صدا پیکربندی کنید",
     "autoAuthenticated": "به طور خودکار از طریق حساب کاربری شما احراز هویت شده",
-    "provider": "کلید API"
+    "provider": "ارائه‌دهنده"
   },
   "simpleConfig": {
     "interfaceLanguage": "زبان رابط کاربری",

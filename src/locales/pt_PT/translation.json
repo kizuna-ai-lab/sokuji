@@ -255,7 +255,7 @@
     "transportTypeTooltip": "WebRTC: Menor latência, recomendado para a maioria dos utilizadores.\nWebSocket: Melhor compatibilidade com redes restritivas. Utilize se a ligação WebRTC falhar.",
     "websocket": "WebSocket (Estável)",
     "webrtc": "WebRTC (Baixa latência)",
-    "provider": "Chave API"
+    "provider": "Fornecedor"
   },
   "simpleConfig": {
     "interfaceLanguage": "Idioma da Interface",

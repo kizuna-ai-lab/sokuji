@@ -31,7 +31,7 @@
     "uiLanguage": "ภาษาอินเทอร์เฟซ",
     "audioSettings": "การตั้งค่าเสียง",
     "autoAuthenticated": "ตรวจสอบสิทธิ์อัตโนมัติผ่านบัญชีของคุณ",
-    "provider": "คีย์ API"
+    "provider": "ผู้ให้บริการ"
   },
   "simpleConfig": {
     "interfaceLanguage": "ภาษาอินเทอร์เฟซ",

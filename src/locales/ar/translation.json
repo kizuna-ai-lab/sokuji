@@ -252,7 +252,7 @@
     "audioSettings": "إعدادات الصوت",
     "audioSettingsDesc": "قم بتكوين الميكروفون والسماعات في لوحة الصوت",
     "autoAuthenticated": "تمت المصادقة تلقائيًا عبر حسابك",
-    "provider": "مفتاح API"
+    "provider": "المزوّد"
   },
   "simpleConfig": {
     "interfaceLanguage": "لغة الواجهة",

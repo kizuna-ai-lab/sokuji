@@ -454,7 +454,7 @@
     "audioSettings": "オーディオ設定",
     "audioSettingsDesc": "オーディオパネルでマイクとスピーカーを設定",
     "autoAuthenticated": "アカウントで自動的に認証されました",
-    "provider": "APIキー"
+    "provider": "プロバイダー"
   },
   "simpleConfig": {
     "interfaceLanguage": "インターフェース言語",

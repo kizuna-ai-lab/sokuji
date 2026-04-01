@@ -448,7 +448,7 @@
     "audioSettings": "Ustawienia Audio",
     "audioSettingsDesc": "Skonfiguruj mikrofon i głośniki w panelu Audio",
     "autoAuthenticated": "Automatycznie uwierzytelniono za pomocą konta",
-    "provider": "Klucz API"
+    "provider": "Dostawca"
   },
   "simpleConfig": {
     "interfaceLanguage": "Język Interfejsu",

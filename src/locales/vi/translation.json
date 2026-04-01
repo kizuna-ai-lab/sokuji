@@ -400,7 +400,7 @@
     "audioSettings": "Cài Đặt Âm Thanh",
     "audioSettingsDesc": "Cấu hình microphone và loa của bạn trong bảng Âm thanh",
     "autoAuthenticated": "Tự động xác thực qua tài khoản của bạn",
-    "provider": "Khóa API"
+    "provider": "Nhà cung cấp"
   },
   "simpleConfig": {
     "interfaceLanguage": "Ngôn Ngữ Giao Diện",

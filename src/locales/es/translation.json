@@ -449,7 +449,7 @@
     "audioSettings": "Configuración de Audio",
     "audioSettingsDesc": "Configura tu micrófono y altavoces en el panel de Audio",
     "autoAuthenticated": "Autenticado automáticamente a través de tu cuenta",
-    "provider": "Clave API"
+    "provider": "Proveedor"
   },
   "simpleConfig": {
     "interfaceLanguage": "Idioma de la Interfaz",

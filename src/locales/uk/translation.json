@@ -31,7 +31,7 @@
     "uiLanguage": "Мова інтерфейсу",
     "audioSettings": "Налаштування аудіо",
     "autoAuthenticated": "Автоматично автентифіковано через ваш обліковий запис",
-    "provider": "API-ключ"
+    "provider": "Провайдер"
   },
   "simpleConfig": {
     "interfaceLanguage": "Мова інтерфейсу",

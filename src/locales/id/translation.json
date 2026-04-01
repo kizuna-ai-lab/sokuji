@@ -252,7 +252,7 @@
     "audioSettings": "Pengaturan Audio",
     "audioSettingsDesc": "Konfigurasikan mikrofon dan speaker Anda di panel Audio",
     "autoAuthenticated": "Otomatis terautentikasi melalui akun Anda",
-    "provider": "Kunci API"
+    "provider": "Penyedia"
   },
   "simpleConfig": {
     "interfaceLanguage": "Bahasa Antarmuka",
