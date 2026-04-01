@@ -1283,7 +1283,8 @@
   padding: 6px 10px;
   border-radius: vars.$radius-sm;
   font-size: vars.$font-caption;
-  margin-bottom: 12px;
+  margin-top: vars.$space-2;
+  margin-bottom: vars.$space-2;
 
   &.success {
     background: rgba(68, 255, 68, 0.1);
