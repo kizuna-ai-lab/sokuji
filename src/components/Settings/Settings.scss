@@ -1418,6 +1418,37 @@
   }
 }
 
+// Help section buttons (shared between SimpleSettings and AdvancedSettings)
+.restart-onboarding-button {
+  display: flex;
+  align-items: center;
+  gap: vars.$space-2;
+  padding: 10px 16px;
+  background: transparent;
+  border: 1px solid vars.$border-default;
+  border-radius: vars.$radius-md;
+  color: vars.$text-muted;
+  font-size: vars.$font-body;
+  cursor: pointer;
+  transition: all vars.$transition-fast;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: vars.$border-strong;
+    color: vars.$text-primary;
+  }
+
+  &:disabled {
+    opacity: vars.$disabled-opacity;
+    cursor: not-allowed;
+  }
+
+  svg {
+    width: 16px;
+    height: 16px;
+  }
+}
+
 // Responsive
 @media (max-width: 768px) {
   .settings-container {
