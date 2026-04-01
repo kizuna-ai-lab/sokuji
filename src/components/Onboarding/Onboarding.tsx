@@ -9,7 +9,7 @@ import './Onboarding.scss';
 // Map step targets to the navigateToSettings target for tab switching + scroll + highlight
 const TARGET_NAVIGATION_MAP: Record<string, string | 'close-settings'> = {
   // Advanced mode (class selectors)
-  '.api-key-section': 'api-key',
+  '.provider-section': 'api-key',
   '.system-instructions-section': 'system-instructions',
   '.voice-settings-section': 'voice-settings',
   '.turn-detection-section': 'turn-detection',
@@ -19,7 +19,7 @@ const TARGET_NAVIGATION_MAP: Record<string, string | 'close-settings'> = {
   '.session-button': 'close-settings',
   // Basic mode (ID selectors)
   '#user-account-section': 'user-account',
-  '#api-key-section': 'api-key',
+  '#provider-section': 'provider',
   '#languages-section': 'languages',
   '#microphone-section': 'microphone',
   '#speaker-section': 'speaker',

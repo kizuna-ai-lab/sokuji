@@ -41,7 +41,8 @@ const NAVIGATION_TAB_MAP: Record<string, string> = {
   'microphone': 'audio',
   'speaker': 'audio',
   'system-audio': 'audio',
-  'api-key': 'provider',
+  'provider': 'provider',
+  'api-key': 'provider', // legacy alias
   'system-instructions': 'provider',
   'voice-settings': 'provider',
   'turn-detection': 'provider',

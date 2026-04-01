@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
-import { Key, Zap, HelpCircle, CircleHelp, ChevronDown, ChevronUp, Check, CheckCircle, AlertCircle, FlaskConical, ExternalLink, X } from 'lucide-react';
+import { Cpu, Zap, HelpCircle, CircleHelp, ChevronDown, ChevronUp, Check, CheckCircle, AlertCircle, FlaskConical, ExternalLink, X } from 'lucide-react';
 import { OpenAIIcon, GeminiIcon, PalabraAIIcon, KizunaAIIcon, VolcengineIcon } from '../../Icons/ProviderIcons';
 import { useTranslation, Trans } from 'react-i18next';
 import Tooltip from '../../Tooltip/Tooltip';
@@ -301,9 +301,9 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
   const currentApiKey = getCurrentApiKey();
 
   return (
-    <div className={`config-section api-key-section ${className}`} id="api-key-section">
+    <div className={`config-section provider-section ${className}`} id="provider-section">
       <h3>
-        <Key size={18} />
+        <Cpu size={18} />
         <span>{t('simpleSettings.provider', 'Provider')}</span>
         <Tooltip
           content={
