@@ -27,12 +27,19 @@ import {
   useKizunaKeyError,
   useSetUIMode,
   useNavigateToSettings,
+  useLocalInferenceSettings,
 } from '../../../stores/settingsStore';
 import { Provider, ProviderType } from '../../../types/Provider';
 import { ProviderConfigFactory } from '../../../services/providers/ProviderConfigFactory';
 import { useAuth } from '../../../lib/auth/hooks';
 import { isElectron } from '../../../utils/environment';
 import { useAnalytics } from '../../../lib/analytics';
+import { useModelStore } from '../../../stores/modelStore';
+import { useAudioContext } from '../../../stores/audioStore';
+import {
+  getTranslationModel,
+  getTtsModelsForLanguage,
+} from '../../../lib/local-inference/modelManifest';
 
 const TUTORIAL_URLS: Partial<Record<ProviderType, string>> = {
   [Provider.OPENAI]: 'https://sokuji.kizuna.ai/docs/tutorials/openai-setup',
@@ -90,6 +97,19 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
   const kizunaKeyError = useKizunaKeyError();
   const setUIMode = useSetUIMode();
   const navigateToSettings = useNavigateToSettings();
+
+  // Local inference model info
+  const localInferenceSettings = useLocalInferenceSettings();
+  const { isSystemAudioCaptureEnabled } = useAudioContext();
+  const participantModelStatus = useModelStore(state =>
+    provider === Provider.LOCAL_INFERENCE
+      ? state.getParticipantModelStatus(
+          localInferenceSettings.sourceLanguage,
+          localInferenceSettings.targetLanguage,
+          localInferenceSettings.asrModel,
+        )
+      : null
+  );
 
   const [isProviderExpanded, setIsProviderExpanded] = useState(false);
 
@@ -407,9 +427,67 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
 
       {/* API Key Input or Kizuna AI Status or Local Inference (no key needed) */}
       {provider === Provider.LOCAL_INFERENCE ? (
-        <div className="api-key-info">
-          <CheckCircle size={16} className="success-icon" />
-          <span>{t('providers.local_inference.noKeyRequired', 'No API key required — runs entirely on your device')}</span>
+        <div className="local-inference-info">
+          <div className="api-key-info">
+            <CheckCircle size={16} className="success-icon" />
+            <span>{t('providers.local_inference.noKeyRequired', 'No API key required — runs entirely on your device')}</span>
+          </div>
+          <div className="model-info">
+            <div className="model-info-row">
+              <span className="model-info-label">{t('providers.local_inference.modelAsr', 'ASR')}:</span>
+              <span className="model-info-value">{localInferenceSettings.asrModel || t('common.none', 'None')}</span>
+            </div>
+            <div className="model-info-row">
+              <span className="model-info-label">{t('providers.local_inference.modelTranslation', 'Translation')}:</span>
+              <span className="model-info-value">
+                {localInferenceSettings.translationModel
+                  || getTranslationModel(localInferenceSettings.sourceLanguage, localInferenceSettings.targetLanguage)?.id
+                  || t('common.none', 'None')}
+              </span>
+            </div>
+            <div className="model-info-row">
+              <span className="model-info-label">{t('providers.local_inference.modelTts', 'TTS')}:</span>
+              <span className="model-info-value">
+                {localInferenceSettings.ttsModel
+                  || getTtsModelsForLanguage(localInferenceSettings.targetLanguage)[0]?.id
+                  || t('common.none', 'None')}
+              </span>
+            </div>
+            {isSystemAudioCaptureEnabled && participantModelStatus && (
+              <div className="participant-model-info">
+                <div className="model-info-row">
+                  <span className="model-info-label">
+                    {t('providers.local_inference.participant', 'Participant')} ({localInferenceSettings.targetLanguage} → {localInferenceSettings.sourceLanguage}):
+                  </span>
+                </div>
+                <div className="model-info-row model-info-indent">
+                  <span className="model-info-label">{t('providers.local_inference.modelAsr', 'ASR')}:</span>
+                  {participantModelStatus.asrAvailable ? (
+                    <span className="model-info-value model-ok">
+                      {participantModelStatus.asrModelId}
+                      {participantModelStatus.asrFallback && ` (${t('providers.local_inference.fallback', 'auto-selected')})`}
+                    </span>
+                  ) : (
+                    <span className="model-info-value model-warning">
+                      <AlertCircle size={12} />
+                      {t('providers.local_inference.noAsrModel', 'No model available')}
+                    </span>
+                  )}
+                </div>
+                <div className="model-info-row model-info-indent">
+                  <span className="model-info-label">{t('providers.local_inference.modelTranslation', 'Translation')}:</span>
+                  {participantModelStatus.translationAvailable ? (
+                    <span className="model-info-value model-ok">{participantModelStatus.translationModelId}</span>
+                  ) : (
+                    <span className="model-info-value model-warning">
+                      <AlertCircle size={12} />
+                      {t('providers.local_inference.noTranslationModel', 'No model — transcription only')}
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       ) : provider !== Provider.KIZUNA_AI ? (
         provider === Provider.VOLCENGINE_AST2 ? (

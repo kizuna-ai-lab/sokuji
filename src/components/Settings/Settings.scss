@@ -1342,6 +1342,52 @@
   }
 }
 
+.local-inference-info {
+  .model-info {
+    margin-top: 8px;
+    font-size: 12px;
+    color: #aaa;
+  }
+
+  .model-info-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 2px 0;
+  }
+
+  .model-info-indent {
+    padding-left: 12px;
+  }
+
+  .model-info-label {
+    color: #888;
+  }
+
+  .model-info-value {
+    color: #ccc;
+    font-family: monospace;
+    font-size: 11px;
+  }
+
+  .model-ok {
+    color: #10a37f;
+  }
+
+  .model-warning {
+    color: #e6a700;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .participant-model-info {
+    margin-top: 6px;
+    padding-top: 6px;
+    border-top: 1px solid #333;
+  }
+}
+
 // Responsive
 @media (max-width: 768px) {
   .settings-container {
