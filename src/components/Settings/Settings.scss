@@ -1365,6 +1365,17 @@
     white-space: nowrap;
     min-width: 32px;
     text-align: center;
+
+    &.model-tag-link {
+      cursor: pointer;
+      transition: all vars.$transition-fast;
+      text-decoration: none;
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.15);
+        color: vars.$color-primary;
+      }
+    }
   }
 
   .model-name {

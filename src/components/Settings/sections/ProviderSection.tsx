@@ -421,7 +421,9 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
         <div className="local-inference-info">
           <div className="model-info">
             <div className="model-row">
-              <span className="model-tag">{t('providers.local_inference.modelAsr', 'ASR')}</span>
+              <a className="model-tag model-tag-link" onClick={() => { setUIMode('advanced'); setTimeout(() => navigateToSettings('model-asr'), 100); }}>
+                {t('providers.local_inference.modelAsr', 'ASR')}
+              </a>
               <span className="model-name">
                 {localInferenceSettings.asrModel && modelStatuses[localInferenceSettings.asrModel] === 'downloaded'
                   ? localInferenceSettings.asrModel
@@ -429,7 +431,9 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
               </span>
             </div>
             <div className="model-row">
-              <span className="model-tag">{t('providers.local_inference.modelTranslation', 'Translation')}</span>
+              <a className="model-tag model-tag-link" onClick={() => { setUIMode('advanced'); setTimeout(() => navigateToSettings('model-translation'), 100); }}>
+                {t('providers.local_inference.modelTranslation', 'Translation')}
+              </a>
               <span className="model-name">
                 {(() => {
                   const id = localInferenceSettings.translationModel
@@ -439,7 +443,9 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
               </span>
             </div>
             <div className="model-row">
-              <span className="model-tag">{t('providers.local_inference.modelTts', 'TTS')}</span>
+              <a className="model-tag model-tag-link" onClick={() => { setUIMode('advanced'); setTimeout(() => navigateToSettings('model-tts'), 100); }}>
+                {t('providers.local_inference.modelTts', 'TTS')}
+              </a>
               <span className="model-name">
                 {(() => {
                   const id = localInferenceSettings.ttsModel
@@ -454,7 +460,9 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
                   <span>{t('providers.local_inference.participant', 'Participant')} ({localInferenceSettings.targetLanguage} → {localInferenceSettings.sourceLanguage})</span>
                 </div>
                 <div className="model-row">
-                  <span className="model-tag">{t('providers.local_inference.modelAsr', 'ASR')}</span>
+                  <a className="model-tag model-tag-link" onClick={() => { setUIMode('advanced'); setTimeout(() => navigateToSettings('model-asr'), 100); }}>
+                    {t('providers.local_inference.modelAsr', 'ASR')}
+                  </a>
                   {participantModelStatus.asrAvailable ? (
                     <>
                       <span className="model-name">{participantModelStatus.asrModelId}</span>
@@ -471,7 +479,9 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
                   )}
                 </div>
                 <div className="model-row">
-                  <span className="model-tag">{t('providers.local_inference.modelTranslation', 'Translation')}</span>
+                  <a className="model-tag model-tag-link" onClick={() => { setUIMode('advanced'); setTimeout(() => navigateToSettings('model-translation'), 100); }}>
+                    {t('providers.local_inference.modelTranslation', 'Translation')}
+                  </a>
                   {participantModelStatus.translationAvailable ? (
                     <>
                       <span className="model-name">{participantModelStatus.translationModelId}</span>
