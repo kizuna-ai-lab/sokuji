@@ -257,7 +257,8 @@
     "uiLanguage": "زبان رابط کاربری",
     "audioSettings": "تنظیمات صدا",
     "audioSettingsDesc": "میکروفون و بلندگوی خود را در پنل صدا پیکربندی کنید",
-    "autoAuthenticated": "به طور خودکار از طریق حساب کاربری شما احراز هویت شده"
+    "autoAuthenticated": "به طور خودکار از طریق حساب کاربری شما احراز هویت شده",
+    "provider": "کلید API"
   },
   "simpleConfig": {
     "interfaceLanguage": "زبان رابط کاربری",

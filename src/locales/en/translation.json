@@ -238,6 +238,7 @@
       "travel": "Travel",
       "travelDesc": "Tourism and travel scenarios"
     },
+    "provider": "Provider",
     "apiKey": "API Key",
     "apiKeyPlaceholder": "Enter your API key",
     "setupGuide": "Setup guide",
@@ -430,7 +431,14 @@
     "local_inference": {
       "name": "Local (Offline)",
       "description": "Offline ASR + Translation + TTS",
-      "noKeyRequired": "No API key required — runs entirely on your device"
+      "noKeyRequired": "No API key required — runs entirely on your device",
+      "modelAsr": "ASR",
+      "modelTranslation": "Translation",
+      "modelTts": "TTS",
+      "participant": "Participant",
+      "fallback": "auto-selected",
+      "noAsrModel": "No model available",
+      "noTranslationModel": "No model — transcription only"
     },
     "unknown": {
       "name": "Unknown",

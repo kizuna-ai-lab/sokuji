@@ -448,7 +448,8 @@
     "uiLanguage": "Sprache der Benutzeroberfläche",
     "audioSettings": "Audio-Einstellungen",
     "audioSettingsDesc": "Konfigurieren Sie Ihr Mikrofon und Ihre Lautsprecher im Audio-Panel",
-    "autoAuthenticated": "Automatisch über Ihr Konto authentifiziert"
+    "autoAuthenticated": "Automatisch über Ihr Konto authentifiziert",
+    "provider": "API-Schlüssel"
   },
   "simpleConfig": {
     "interfaceLanguage": "Sprache der Benutzeroberfläche",

@@ -303,7 +303,7 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
     <div className={`config-section api-key-section ${className}`} id="api-key-section">
       <h3>
         <Key size={18} />
-        <span>{t('simpleSettings.apiKey')}</span>
+        <span>{t('simpleSettings.provider', 'Provider')}</span>
         <Tooltip
           content={
             <div>

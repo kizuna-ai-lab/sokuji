@@ -251,7 +251,8 @@
     "uiLanguage": "Bahasa Antarmuka",
     "audioSettings": "Pengaturan Audio",
     "audioSettingsDesc": "Konfigurasikan mikrofon dan speaker Anda di panel Audio",
-    "autoAuthenticated": "Otomatis terautentikasi melalui akun Anda"
+    "autoAuthenticated": "Otomatis terautentikasi melalui akun Anda",
+    "provider": "Kunci API"
   },
   "simpleConfig": {
     "interfaceLanguage": "Bahasa Antarmuka",

@@ -257,7 +257,8 @@
     "uiLanguage": "ইন্টারফেস ভাষা",
     "audioSettings": "অডিও সেটিংস",
     "audioSettingsDesc": "অডিও প্যানেলে আপনার মাইক্রোফোন এবং স্পিকার কনফিগার করুন",
-    "autoAuthenticated": "আপনার অ্যাকাউন্টের মাধ্যমে স্বয়ংক্রিয়ভাবে প্রমাণীকৃত"
+    "autoAuthenticated": "আপনার অ্যাকাউন্টের মাধ্যমে স্বয়ংক্রিয়ভাবে প্রমাণীকৃত",
+    "provider": "API কী"
   },
   "simpleConfig": {
     "interfaceLanguage": "ইন্টারফেস ভাষা",

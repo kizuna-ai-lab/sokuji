@@ -404,7 +404,8 @@
     "uiLanguage": "Gränssnittsspråk",
     "audioSettings": "Ljudinställningar",
     "audioSettingsDesc": "Konfigurera din mikrofon och högtalare i Ljudpanelen",
-    "autoAuthenticated": "Automatiskt autentiserad via ditt konto"
+    "autoAuthenticated": "Automatiskt autentiserad via ditt konto",
+    "provider": "API Nyckel"
   },
   "simpleConfig": {
     "interfaceLanguage": "Gränssnittsspråk",

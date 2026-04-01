@@ -453,7 +453,8 @@
     "uiLanguage": "インターフェース言語",
     "audioSettings": "オーディオ設定",
     "audioSettingsDesc": "オーディオパネルでマイクとスピーカーを設定",
-    "autoAuthenticated": "アカウントで自動的に認証されました"
+    "autoAuthenticated": "アカウントで自動的に認証されました",
+    "provider": "APIキー"
   },
   "simpleConfig": {
     "interfaceLanguage": "インターフェース言語",

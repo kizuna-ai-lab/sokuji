@@ -30,7 +30,8 @@
     "languages": "భాషలు",
     "uiLanguage": "ఇంటర్ఫేస్ భాష",
     "audioSettings": "ఆడియో సెట్టింగ్స్",
-    "autoAuthenticated": "మీ ఖాతా ద్వారా స్వయంచాలకంగా ప్రామాణీకరించబడింది"
+    "autoAuthenticated": "మీ ఖాతా ద్వారా స్వయంచాలకంగా ప్రామాణీకరించబడింది",
+    "provider": "API కీ"
   },
   "simpleConfig": {
     "interfaceLanguage": "ఇంటర్ఫేస్ భాష",

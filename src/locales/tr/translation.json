@@ -406,7 +406,8 @@
     "uiLanguage": "Arayüz Dili",
     "audioSettings": "Ses Ayarları",
     "audioSettingsDesc": "Ses panelinde mikrofonunuzu ve hoparlörlerinizi yapılandırın",
-    "autoAuthenticated": "Hesabınız üzerinden otomatik olarak doğrulandı"
+    "autoAuthenticated": "Hesabınız üzerinden otomatik olarak doğrulandı",
+    "provider": "API Anahtarı"
   },
   "simpleConfig": {
     "interfaceLanguage": "Arayüz Dili",
