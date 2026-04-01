@@ -352,11 +352,19 @@ export function ModelManagementSection({
     }
 
     // Translation: must be compatible with source→target pair, downloaded, and device-ready
-    const currentTrans = translationModel ? getManifestByType('translation').find(m => m.id === translationModel) : null;
-    const transOk = currentTrans
+    // AST short-circuit: if translation model === ASR model and it has astLanguages, it's valid
+    const asrEntryForAst = translationModel && translationModel === asrModel
+      ? getManifestEntry(translationModel) : null;
+    const isAstValid = asrEntryForAst?.astLanguages
+      && asrEntryForAst.astLanguages.translate.includes(targetLanguage)
+      && (asrEntryForAst.astLanguages.translate.includes(sourceLanguage) || asrEntryForAst.astLanguages.transcribe.includes(sourceLanguage))
+      && statuses[translationModel] === 'downloaded';
+
+    const currentTrans = !isAstValid && translationModel ? getManifestByType('translation').find(m => m.id === translationModel) : null;
+    const transOk = isAstValid || (currentTrans
       && isTranslationModelCompatible(currentTrans, sourceLanguage, targetLanguage)
       && statuses[translationModel] === 'downloaded'
-      && !(currentTrans.requiredDevice === 'webgpu' && !webgpuAvailable);
+      && !(currentTrans.requiredDevice === 'webgpu' && !webgpuAvailable));
     if (!transOk) {
       const match = getManifestByType('translation').find(m =>
         isTranslationModelCompatible(m, sourceLanguage, targetLanguage)
