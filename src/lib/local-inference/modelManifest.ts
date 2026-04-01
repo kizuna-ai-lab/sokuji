@@ -1060,7 +1060,6 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     type: 'asr',
     name: 'Granite Speech (WebGPU)',
     languages: ['en', 'fr', 'de', 'es', 'pt', 'ja'],
-    multilingual: true,
     hfModelId: 'onnx-community/granite-4.0-1b-speech-ONNX',
     requiredDevice: 'webgpu',
     asrEngine: 'granite-speech',
