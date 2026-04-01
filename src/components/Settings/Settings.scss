@@ -1344,47 +1344,76 @@
 
 .local-inference-info {
   .model-info {
-    margin-top: 8px;
-    font-size: 12px;
-    color: #aaa;
+    margin-top: vars.$space-2;
   }
 
-  .model-info-row {
+  .model-row {
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 2px 0;
+    gap: vars.$space-2;
+    padding: 3px 0;
   }
 
-  .model-info-indent {
-    padding-left: 12px;
+  .model-tag {
+    display: inline-block;
+    padding: 1px 6px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 3px;
+    font-size: vars.$font-caption;
+    color: vars.$text-muted;
+    white-space: nowrap;
+    min-width: 32px;
+    text-align: center;
   }
 
-  .model-info-label {
-    color: #888;
-  }
-
-  .model-info-value {
-    color: #ccc;
+  .model-name {
     font-family: monospace;
     font-size: 11px;
+    color: vars.$text-secondary;
   }
 
-  .model-ok {
-    color: #10a37f;
+  .model-fallback {
+    font-size: 10px;
+    color: vars.$text-muted;
   }
 
-  .model-warning {
-    color: #e6a700;
+  .model-status-ok {
+    color: vars.$color-success;
+    flex-shrink: 0;
+  }
+
+  .model-status-warn {
+    display: inline-flex;
+    align-items: center;
+    gap: vars.$space-1;
+    font-size: 11px;
+    color: vars.$color-warning;
+  }
+
+  .participant-divider {
     display: flex;
     align-items: center;
-    gap: 4px;
-  }
+    gap: vars.$space-2;
+    margin-top: vars.$space-2;
+    padding-top: vars.$space-1;
+    font-size: 11px;
+    color: vars.$text-muted;
 
-  .participant-model-info {
-    margin-top: 6px;
-    padding-top: 6px;
-    border-top: 1px solid #333;
+    &::before,
+    &::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: vars.$border-subtle;
+    }
+
+    &::before {
+      flex: 0 0 4px;
+    }
+
+    span {
+      white-space: nowrap;
+    }
   }
 }
 

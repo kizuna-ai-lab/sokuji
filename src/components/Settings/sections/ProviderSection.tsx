@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
-import { Key, Zap, HelpCircle, CircleHelp, ChevronDown, ChevronUp, CheckCircle, AlertCircle, FlaskConical, ExternalLink, X } from 'lucide-react';
+import { Key, Zap, HelpCircle, CircleHelp, ChevronDown, ChevronUp, Check, CheckCircle, AlertCircle, FlaskConical, ExternalLink, X } from 'lucide-react';
 import { OpenAIIcon, GeminiIcon, PalabraAIIcon, KizunaAIIcon, VolcengineIcon } from '../../Icons/ProviderIcons';
 import { useTranslation, Trans } from 'react-i18next';
 import Tooltip from '../../Tooltip/Tooltip';
@@ -434,59 +434,63 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
             <span>{t('providers.local_inference.noKeyRequired', 'No API key required — runs entirely on your device')}</span>
           </div>
           <div className="model-info">
-            <div className="model-info-row">
-              <span className="model-info-label">{t('providers.local_inference.modelAsr', 'ASR')}:</span>
-              <span className="model-info-value">{localInferenceSettings.asrModel || t('common.none', 'None')}</span>
+            <div className="model-row">
+              <span className="model-tag">{t('providers.local_inference.modelAsr', 'ASR')}</span>
+              <span className="model-name">{localInferenceSettings.asrModel || t('common.none', 'None')}</span>
             </div>
-            <div className="model-info-row">
-              <span className="model-info-label">{t('providers.local_inference.modelTranslation', 'Translation')}:</span>
-              <span className="model-info-value">
+            <div className="model-row">
+              <span className="model-tag">{t('providers.local_inference.modelTranslation', 'Translation')}</span>
+              <span className="model-name">
                 {localInferenceSettings.translationModel
                   || getTranslationModel(localInferenceSettings.sourceLanguage, localInferenceSettings.targetLanguage)?.id
                   || t('common.none', 'None')}
               </span>
             </div>
-            <div className="model-info-row">
-              <span className="model-info-label">{t('providers.local_inference.modelTts', 'TTS')}:</span>
-              <span className="model-info-value">
+            <div className="model-row">
+              <span className="model-tag">{t('providers.local_inference.modelTts', 'TTS')}</span>
+              <span className="model-name">
                 {localInferenceSettings.ttsModel
                   || getTtsModelsForLanguage(localInferenceSettings.targetLanguage)[0]?.id
                   || t('common.none', 'None')}
               </span>
             </div>
             {isSystemAudioCaptureEnabled && participantModelStatus && (
-              <div className="participant-model-info">
-                <div className="model-info-row">
-                  <span className="model-info-label">
-                    {t('providers.local_inference.participant', 'Participant')} ({localInferenceSettings.targetLanguage} → {localInferenceSettings.sourceLanguage}):
-                  </span>
+              <>
+                <div className="participant-divider">
+                  <span>{t('providers.local_inference.participant', 'Participant')} ({localInferenceSettings.targetLanguage} → {localInferenceSettings.sourceLanguage})</span>
                 </div>
-                <div className="model-info-row model-info-indent">
-                  <span className="model-info-label">{t('providers.local_inference.modelAsr', 'ASR')}:</span>
+                <div className="model-row">
+                  <span className="model-tag">{t('providers.local_inference.modelAsr', 'ASR')}</span>
                   {participantModelStatus.asrAvailable ? (
-                    <span className="model-info-value model-ok">
-                      {participantModelStatus.asrModelId}
-                      {participantModelStatus.asrFallback && ` (${t('providers.local_inference.fallback', 'auto-selected')})`}
-                    </span>
+                    <>
+                      <span className="model-name">{participantModelStatus.asrModelId}</span>
+                      {participantModelStatus.asrFallback && (
+                        <span className="model-fallback">({t('providers.local_inference.fallback', 'auto-selected')})</span>
+                      )}
+                      <Check size={12} className="model-status-ok" />
+                    </>
                   ) : (
-                    <span className="model-info-value model-warning">
+                    <span className="model-status-warn">
                       <AlertCircle size={12} />
                       {t('providers.local_inference.noAsrModel', 'No model available')}
                     </span>
                   )}
                 </div>
-                <div className="model-info-row model-info-indent">
-                  <span className="model-info-label">{t('providers.local_inference.modelTranslation', 'Translation')}:</span>
+                <div className="model-row">
+                  <span className="model-tag">{t('providers.local_inference.modelTranslation', 'Translation')}</span>
                   {participantModelStatus.translationAvailable ? (
-                    <span className="model-info-value model-ok">{participantModelStatus.translationModelId}</span>
+                    <>
+                      <span className="model-name">{participantModelStatus.translationModelId}</span>
+                      <Check size={12} className="model-status-ok" />
+                    </>
                   ) : (
-                    <span className="model-info-value model-warning">
+                    <span className="model-status-warn">
                       <AlertCircle size={12} />
                       {t('providers.local_inference.noTranslationModel', 'No model — transcription only')}
                     </span>
                   )}
                 </div>
-              </div>
+              </>
             )}
           </div>
         </div>
