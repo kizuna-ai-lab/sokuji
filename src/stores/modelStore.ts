@@ -30,6 +30,15 @@ export interface DownloadState {
   percent: number;
 }
 
+export interface ParticipantModelStatus {
+  asrAvailable: boolean;
+  asrModelId: string | null;
+  asrFallback: boolean;
+  asrOriginalModelId: string;
+  translationAvailable: boolean;
+  translationModelId: string | null;
+}
+
 interface ModelStoreState {
   /** Status of each model by ID */
   modelStatuses: Record<string, ModelStatus>;
@@ -71,6 +80,13 @@ interface ModelStoreState {
     sourceLang: string, targetLang: string,
     selectedAsrModel?: string, selectedTranslationModel?: string, selectedTtsModel?: string,
   ) => boolean;
+
+  /**
+   * Check if reverse-direction models are available for participant mode.
+   * Participant reverses direction: recognizes targetLang (ASR) and translates target→source.
+   * Returns detailed status for each model type (ASR and translation).
+   */
+  getParticipantModelStatus: (sourceLang: string, targetLang: string, currentAsrModelId: string) => ParticipantModelStatus;
 
   /**
    * Auto-correct stale model selections when languages change.
@@ -300,6 +316,51 @@ export const useModelStore = create<ModelStoreState>()(
       }
 
       return true;
+    },
+
+    getParticipantModelStatus: (sourceLang: string, targetLang: string, currentAsrModelId: string): ParticipantModelStatus => {
+      const { modelStatuses } = get();
+
+      // Participant reverses direction: participant source = user's target
+      const participantSourceLang = targetLang;
+      const participantTargetLang = sourceLang;
+
+      // 1. ASR: check if current model supports participant source language
+      let asrModelId: string | null = null;
+      let asrFallback = false;
+
+      const currentAsrEntry = getManifestEntry(currentAsrModelId);
+      const currentAsrSupportsLang = currentAsrEntry
+        && (currentAsrEntry.multilingual || currentAsrEntry.languages.includes(participantSourceLang))
+        && modelStatuses[currentAsrModelId] === 'downloaded';
+
+      if (currentAsrSupportsLang) {
+        asrModelId = currentAsrModelId;
+      } else {
+        // Find alternative downloaded ASR model for participant source language
+        const alternatives = getAsrModelsForLanguage(participantSourceLang);
+        const downloaded = alternatives.find(m => modelStatuses[m.id] === 'downloaded');
+        if (downloaded) {
+          asrModelId = downloaded.id;
+          asrFallback = true;
+        }
+      }
+
+      // 2. Translation: look up reverse-direction model
+      let translationModelId: string | null = null;
+      const translationEntry = getTranslationModel(participantSourceLang, participantTargetLang);
+      if (translationEntry && modelStatuses[translationEntry.id] === 'downloaded') {
+        translationModelId = translationEntry.id;
+      }
+
+      return {
+        asrAvailable: asrModelId !== null,
+        asrModelId,
+        asrFallback,
+        asrOriginalModelId: currentAsrModelId,
+        translationAvailable: translationModelId !== null,
+        translationModelId,
+      };
     },
 
     autoSelectModels: (sourceLang, targetLang, currentAsrModel, currentTranslationModel, currentTtsModel) => {
