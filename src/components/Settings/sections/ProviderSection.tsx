@@ -432,22 +432,30 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
           <div className="model-info">
             <div className="model-row">
               <span className="model-tag">{t('providers.local_inference.modelAsr', 'ASR')}</span>
-              <span className="model-name">{localInferenceSettings.asrModel || t('common.none', 'None')}</span>
+              <span className="model-name">
+                {localInferenceSettings.asrModel && modelStatuses[localInferenceSettings.asrModel] === 'downloaded'
+                  ? localInferenceSettings.asrModel
+                  : t('common.none', 'None')}
+              </span>
             </div>
             <div className="model-row">
               <span className="model-tag">{t('providers.local_inference.modelTranslation', 'Translation')}</span>
               <span className="model-name">
-                {localInferenceSettings.translationModel
-                  || getTranslationModel(localInferenceSettings.sourceLanguage, localInferenceSettings.targetLanguage)?.id
-                  || t('common.none', 'None')}
+                {(() => {
+                  const id = localInferenceSettings.translationModel
+                    || getTranslationModel(localInferenceSettings.sourceLanguage, localInferenceSettings.targetLanguage)?.id;
+                  return id && modelStatuses[id] === 'downloaded' ? id : t('common.none', 'None');
+                })()}
               </span>
             </div>
             <div className="model-row">
               <span className="model-tag">{t('providers.local_inference.modelTts', 'TTS')}</span>
               <span className="model-name">
-                {localInferenceSettings.ttsModel
-                  || getTtsModelsForLanguage(localInferenceSettings.targetLanguage)[0]?.id
-                  || t('common.none', 'None')}
+                {(() => {
+                  const id = localInferenceSettings.ttsModel
+                    || getTtsModelsForLanguage(localInferenceSettings.targetLanguage).find(m => modelStatuses[m.id] === 'downloaded')?.id;
+                  return id && modelStatuses[id] === 'downloaded' ? id : t('common.none', 'None');
+                })()}
               </span>
             </div>
             {isSystemAudioCaptureEnabled && participantModelStatus && (
