@@ -109,8 +109,9 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
       localInferenceSettings.sourceLanguage,
       localInferenceSettings.targetLanguage,
       localInferenceSettings.asrModel,
+      localInferenceSettings.translationModel || undefined,
     );
-  }, [provider, localInferenceSettings.sourceLanguage, localInferenceSettings.targetLanguage, localInferenceSettings.asrModel, modelStatuses]);
+  }, [provider, localInferenceSettings.sourceLanguage, localInferenceSettings.targetLanguage, localInferenceSettings.asrModel, localInferenceSettings.translationModel, modelStatuses]);
 
   const [isProviderExpanded, setIsProviderExpanded] = useState(false);
 

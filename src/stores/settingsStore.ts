@@ -503,6 +503,7 @@ export function createParticipantLocalInferenceConfig(
     baseConfig.sourceLanguage,
     baseConfig.targetLanguage,
     baseConfig.asrModelId,
+    baseConfig.translationModelId,
   );
 
   if (!status.asrAvailable) {

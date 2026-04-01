@@ -86,7 +86,7 @@ interface ModelStoreState {
    * Participant reverses direction: recognizes targetLang (ASR) and translates target→source.
    * Returns detailed status for each model type (ASR and translation).
    */
-  getParticipantModelStatus: (sourceLang: string, targetLang: string, currentAsrModelId: string) => ParticipantModelStatus;
+  getParticipantModelStatus: (sourceLang: string, targetLang: string, currentAsrModelId: string, currentTranslationModelId?: string) => ParticipantModelStatus;
 
   /**
    * Auto-correct stale model selections when languages change.
@@ -318,7 +318,7 @@ export const useModelStore = create<ModelStoreState>()(
       return true;
     },
 
-    getParticipantModelStatus: (sourceLang: string, targetLang: string, currentAsrModelId: string): ParticipantModelStatus => {
+    getParticipantModelStatus: (sourceLang: string, targetLang: string, currentAsrModelId: string, currentTranslationModelId?: string): ParticipantModelStatus => {
       const { modelStatuses } = get();
 
       // Participant reverses direction: participant source = user's target
@@ -346,11 +346,21 @@ export const useModelStore = create<ModelStoreState>()(
         }
       }
 
-      // 2. Translation: look up reverse-direction model
+      // 2. Translation: prefer current model if it supports the reverse direction (multilingual),
+      //    otherwise look up a reverse-direction model from the manifest
       let translationModelId: string | null = null;
-      const translationEntry = getTranslationModel(participantSourceLang, participantTargetLang);
-      if (translationEntry && modelStatuses[translationEntry.id] === 'downloaded') {
-        translationModelId = translationEntry.id;
+      if (currentTranslationModelId && modelStatuses[currentTranslationModelId] === 'downloaded') {
+        const currentEntry = getManifestEntry(currentTranslationModelId);
+        if (currentEntry && isTranslationModelCompatible(currentEntry, participantSourceLang, participantTargetLang)) {
+          translationModelId = currentTranslationModelId;
+        }
+      }
+      if (!translationModelId) {
+        // Fallback: find any downloaded translation model for the reverse direction
+        const translationEntry = getTranslationModel(participantSourceLang, participantTargetLang);
+        if (translationEntry && modelStatuses[translationEntry.id] === 'downloaded') {
+          translationModelId = translationEntry.id;
+        }
       }
 
       return {
