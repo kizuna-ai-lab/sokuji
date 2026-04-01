@@ -271,9 +271,15 @@ export const useModelStore = create<ModelStoreState>()(
         if (!hasAsr) return false;
       }
 
-      // 2. Translation: if a specific model is selected, check it directly;
-      //    otherwise use getTranslationModel preference (pair-specific > multilingual)
-      if (selectedTranslationModel) {
+      // 2. Translation: AST short-circuit when translation model === ASR model
+      if (selectedTranslationModel && selectedTranslationModel === selectedAsrModel) {
+        // AST mode: translation handled by the ASR model — check AST language support
+        const asrEntry = getManifestEntry(selectedAsrModel);
+        if (!asrEntry?.astLanguages?.translate.includes(targetLang)) return false;
+        if (!asrEntry?.astLanguages?.translate.includes(sourceLang)
+          && !asrEntry?.astLanguages?.transcribe.includes(sourceLang)) return false;
+        // ASR readiness already validated above — no further translation checks needed
+      } else if (selectedTranslationModel) {
         if (modelStatuses[selectedTranslationModel] !== 'downloaded') return false;
         const entry = getManifestEntry(selectedTranslationModel);
         if (entry?.requiredDevice === 'webgpu' && !webgpuAvailable) return false;
