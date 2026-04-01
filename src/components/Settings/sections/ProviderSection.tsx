@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
-import { Cpu, Zap, HelpCircle, ChevronDown, ChevronUp, Check, CheckCircle, AlertCircle, FlaskConical, ExternalLink, X } from 'lucide-react';
+import { Cpu, Zap, HelpCircle, ChevronDown, ChevronUp, CheckCircle, AlertCircle, FlaskConical, ExternalLink, X } from 'lucide-react';
 import { OpenAIIcon, GeminiIcon, PalabraAIIcon, KizunaAIIcon, VolcengineIcon } from '../../Icons/ProviderIcons';
 import { useTranslation, Trans } from 'react-i18next';
 import Tooltip from '../../Tooltip/Tooltip';
@@ -420,81 +420,59 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
       {provider === Provider.LOCAL_INFERENCE ? (
         <div className="local-inference-info">
           <div className="model-info">
-            <div className="model-row">
-              <a className="model-tag model-tag-link" onClick={() => { setUIMode('advanced'); setTimeout(() => navigateToSettings('model-asr'), 100); }}>
-                {t('providers.local_inference.modelAsr', 'ASR')}
+            <div className="model-inline">
+              <a className="model-chip" onClick={() => { setUIMode('advanced'); setTimeout(() => navigateToSettings('model-asr'), 100); }}>
+                <span className="model-chip-label">{t('providers.local_inference.modelAsr', 'ASR')}</span>
+                <span className="model-chip-value">
+                  {localInferenceSettings.asrModel && modelStatuses[localInferenceSettings.asrModel] === 'downloaded'
+                    ? localInferenceSettings.asrModel
+                    : t('common.none', 'None')}
+                </span>
               </a>
-              <span className="model-name">
-                {localInferenceSettings.asrModel && modelStatuses[localInferenceSettings.asrModel] === 'downloaded'
-                  ? localInferenceSettings.asrModel
-                  : t('common.none', 'None')}
-              </span>
-            </div>
-            <div className="model-row">
-              <a className="model-tag model-tag-link" onClick={() => { setUIMode('advanced'); setTimeout(() => navigateToSettings('model-translation'), 100); }}>
-                {t('providers.local_inference.modelTranslation', 'Translation')}
+              <a className="model-chip" onClick={() => { setUIMode('advanced'); setTimeout(() => navigateToSettings('model-translation'), 100); }}>
+                <span className="model-chip-label">{t('providers.local_inference.modelTranslation', 'Translation')}</span>
+                <span className="model-chip-value">
+                  {(() => {
+                    const id = localInferenceSettings.translationModel
+                      || getTranslationModel(localInferenceSettings.sourceLanguage, localInferenceSettings.targetLanguage)?.id;
+                    return id && modelStatuses[id] === 'downloaded' ? id : t('common.none', 'None');
+                  })()}
+                </span>
               </a>
-              <span className="model-name">
-                {(() => {
-                  const id = localInferenceSettings.translationModel
-                    || getTranslationModel(localInferenceSettings.sourceLanguage, localInferenceSettings.targetLanguage)?.id;
-                  return id && modelStatuses[id] === 'downloaded' ? id : t('common.none', 'None');
-                })()}
-              </span>
-            </div>
-            <div className="model-row">
-              <a className="model-tag model-tag-link" onClick={() => { setUIMode('advanced'); setTimeout(() => navigateToSettings('model-tts'), 100); }}>
-                {t('providers.local_inference.modelTts', 'TTS')}
+              <a className="model-chip" onClick={() => { setUIMode('advanced'); setTimeout(() => navigateToSettings('model-tts'), 100); }}>
+                <span className="model-chip-label">{t('providers.local_inference.modelTts', 'TTS')}</span>
+                <span className="model-chip-value">
+                  {(() => {
+                    const id = localInferenceSettings.ttsModel
+                      || getTtsModelsForLanguage(localInferenceSettings.targetLanguage).find(m => modelStatuses[m.id] === 'downloaded')?.id;
+                    return id && modelStatuses[id] === 'downloaded' ? id : t('common.none', 'None');
+                  })()}
+                </span>
               </a>
-              <span className="model-name">
-                {(() => {
-                  const id = localInferenceSettings.ttsModel
-                    || getTtsModelsForLanguage(localInferenceSettings.targetLanguage).find(m => modelStatuses[m.id] === 'downloaded')?.id;
-                  return id && modelStatuses[id] === 'downloaded' ? id : t('common.none', 'None');
-                })()}
-              </span>
             </div>
             {isSystemAudioCaptureEnabled && participantModelStatus && (
-              <>
-                <div className="participant-divider">
-                  <span>{t('providers.local_inference.participant', 'Participant')} ({localInferenceSettings.targetLanguage} → {localInferenceSettings.sourceLanguage})</span>
-                </div>
-                <div className="model-row">
-                  <a className="model-tag model-tag-link" onClick={() => { setUIMode('advanced'); setTimeout(() => navigateToSettings('model-asr'), 100); }}>
-                    {t('providers.local_inference.modelAsr', 'ASR')}
-                  </a>
+              <div className="model-inline participant-inline">
+                <span className="participant-label">{t('providers.local_inference.participant', 'Participant')}</span>
+                <a className="model-chip" onClick={() => { setUIMode('advanced'); setTimeout(() => navigateToSettings('model-asr'), 100); }}>
+                  <span className="model-chip-label">{t('providers.local_inference.modelAsr', 'ASR')}</span>
                   {participantModelStatus.asrAvailable ? (
-                    <>
-                      <span className="model-name">{participantModelStatus.asrModelId}</span>
-                      {participantModelStatus.asrFallback && (
-                        <span className="model-fallback">({t('providers.local_inference.fallback', 'auto-selected')})</span>
-                      )}
-                      <Check size={12} className="model-status-ok" />
-                    </>
-                  ) : (
-                    <span className="model-status-warn">
-                      <AlertCircle size={12} />
-                      {t('providers.local_inference.noAsrModel', 'No model available')}
+                    <span className="model-chip-value model-ok">
+                      {participantModelStatus.asrModelId}
+                      {participantModelStatus.asrFallback && ` ↻`}
                     </span>
+                  ) : (
+                    <span className="model-chip-value model-warn">✗</span>
                   )}
-                </div>
-                <div className="model-row">
-                  <a className="model-tag model-tag-link" onClick={() => { setUIMode('advanced'); setTimeout(() => navigateToSettings('model-translation'), 100); }}>
-                    {t('providers.local_inference.modelTranslation', 'Translation')}
-                  </a>
+                </a>
+                <a className="model-chip" onClick={() => { setUIMode('advanced'); setTimeout(() => navigateToSettings('model-translation'), 100); }}>
+                  <span className="model-chip-label">{t('providers.local_inference.modelTranslation', 'Translation')}</span>
                   {participantModelStatus.translationAvailable ? (
-                    <>
-                      <span className="model-name">{participantModelStatus.translationModelId}</span>
-                      <Check size={12} className="model-status-ok" />
-                    </>
+                    <span className="model-chip-value model-ok">{participantModelStatus.translationModelId}</span>
                   ) : (
-                    <span className="model-status-warn">
-                      <AlertCircle size={12} />
-                      {t('providers.local_inference.noTranslationModel', 'No model — transcription only')}
-                    </span>
+                    <span className="model-chip-value model-warn">✗</span>
                   )}
-                </div>
-              </>
+                </a>
+              </div>
             )}
           </div>
         </div>
