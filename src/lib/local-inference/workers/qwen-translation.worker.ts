@@ -26,6 +26,22 @@ const LANG_NAMES: Record<string, string> = {
   uk: 'Ukrainian', cs: 'Czech', et: 'Estonian', af: 'Afrikaans',
 };
 
+// Native language names to reinforce target language for small models
+const NATIVE_NAMES: Record<string, string> = {
+  ja: '日本語', zh: '中文', en: 'English', ko: '한국어',
+  de: 'Deutsch', fr: 'Français', es: 'Español', ru: 'Русский',
+  ar: 'العربية', pt: 'Português', th: 'ไทย', vi: 'Tiếng Việt',
+};
+
+// Language-specific filler words (only included when language is source or target
+// to avoid confusing small models with unrelated scripts)
+const LANG_FILLERS: Record<string, string[]> = {
+  en: ['um', 'uh', 'well', 'like'],
+  ja: ['えーと', 'あのー', 'まあ'],
+  zh: ['那个', '嗯', '就是'],
+  ko: ['음', '그', '저기'],
+};
+
 // ─── Message types ─────────────────────────────────────────────────────────
 
 interface InitMessage {
@@ -140,14 +156,26 @@ async function handleTranslate(msg: TranslateMessage) {
     // /no_think is Qwen3-specific; Qwen2.5 doesn't understand it and it corrupts language instructions
     const isQwen3 = currentModelId.toLowerCase().includes('qwen3');
     const noThink = isQwen3 ? ' /no_think' : '';
+
+    // Build filler list from only source/target languages to avoid confusing small models
+    // (e.g. Japanese fillers in prompt can steer Qwen2.5-0.5B toward Japanese output)
+    const langs = new Set([msg.sourceLang, msg.targetLang]);
+    const fillers = Array.from(langs).flatMap(l => LANG_FILLERS[l] || []);
+    if (!fillers.length) fillers.push('um', 'uh');
+    const fillerList = fillers.join(', ');
+
+    // Use native name (e.g. "中文 (Chinese)") to reinforce target language
+    const nativeTgt = NATIVE_NAMES[msg.targetLang];
+    const tgtLabel = nativeTgt ? `${nativeTgt} (${tgtName})` : tgtName;
+
     const systemPrompt =
-      `Translate ${srcName} → ${tgtName}. Input is ASR speech.${noThink}\n` +
-      `Drop fillers (um, uh, えーと, あのー, 那个). Fix stuttering and repetitions.\n` +
-      `Output ONLY the ${tgtName} translation. Nothing else.`;
+      `You are a translator. Translate the speech transcript inside <transcript> tags from ${srcName} to ${tgtLabel}.${noThink}\n` +
+      `Drop fillers (${fillerList}). Fix stuttering and repetitions.\n` +
+      `Output ONLY the ${tgtLabel} translation. No explanation, no refusal.`;
 
     const messages = [
       { role: 'system', content: systemPrompt },
-      { role: 'user', content: msg.text },
+      { role: 'user', content: `<transcript>${msg.text}</transcript>` },
     ];
 
     const result = await generator(messages, {
