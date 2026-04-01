@@ -319,47 +319,57 @@ export const useModelStore = create<ModelStoreState>()(
     },
 
     getParticipantModelStatus: (sourceLang: string, targetLang: string, currentAsrModelId: string, currentTranslationModelId?: string): ParticipantModelStatus => {
-      const { modelStatuses } = get();
+      const { modelStatuses, webgpuAvailable } = get();
 
       // Participant reverses direction: participant source = user's target
       const participantSourceLang = targetLang;
       const participantTargetLang = sourceLang;
 
       // 1. ASR: check if current model supports participant source language
+      //    (same logic as autoSelectModels)
       let asrModelId: string | null = null;
       let asrFallback = false;
 
-      const currentAsrEntry = getManifestEntry(currentAsrModelId);
-      const currentAsrSupportsLang = currentAsrEntry
-        && (currentAsrEntry.multilingual || currentAsrEntry.languages.includes(participantSourceLang))
-        && modelStatuses[currentAsrModelId] === 'downloaded';
+      const allAsrModels = [...getManifestByType('asr'), ...getManifestByType('asr-stream')];
+      const currentAsr = allAsrModels.find(m => m.id === currentAsrModelId);
+      const currentAsrOk = currentAsr
+        && (currentAsr.multilingual || currentAsr.languages.includes(participantSourceLang))
+        && modelStatuses[currentAsrModelId] === 'downloaded'
+        && !(currentAsr.requiredDevice === 'webgpu' && !webgpuAvailable);
 
-      if (currentAsrSupportsLang) {
+      if (currentAsrOk) {
         asrModelId = currentAsrModelId;
       } else {
-        // Find alternative downloaded ASR model for participant source language
-        const alternatives = getAsrModelsForLanguage(participantSourceLang);
-        const downloaded = alternatives.find(m => modelStatuses[m.id] === 'downloaded');
-        if (downloaded) {
-          asrModelId = downloaded.id;
+        const match = allAsrModels.find(m =>
+          (m.multilingual || m.languages.includes(participantSourceLang))
+          && modelStatuses[m.id] === 'downloaded'
+          && !(m.requiredDevice === 'webgpu' && !webgpuAvailable)
+        );
+        if (match) {
+          asrModelId = match.id;
           asrFallback = true;
         }
       }
 
-      // 2. Translation: prefer current model if it supports the reverse direction (multilingual),
-      //    otherwise look up a reverse-direction model from the manifest
+      // 2. Translation: prefer current model if it supports the reverse direction,
+      //    otherwise auto-select (same logic as autoSelectModels)
       let translationModelId: string | null = null;
       if (currentTranslationModelId && modelStatuses[currentTranslationModelId] === 'downloaded') {
         const currentEntry = getManifestEntry(currentTranslationModelId);
-        if (currentEntry && isTranslationModelCompatible(currentEntry, participantSourceLang, participantTargetLang)) {
+        if (currentEntry
+          && isTranslationModelCompatible(currentEntry, participantSourceLang, participantTargetLang)
+          && !(currentEntry.requiredDevice === 'webgpu' && !webgpuAvailable)) {
           translationModelId = currentTranslationModelId;
         }
       }
       if (!translationModelId) {
-        // Fallback: find any downloaded translation model for the reverse direction
-        const translationEntry = getTranslationModel(participantSourceLang, participantTargetLang);
-        if (translationEntry && modelStatuses[translationEntry.id] === 'downloaded') {
-          translationModelId = translationEntry.id;
+        const match = getManifestByType('translation').find(m =>
+          isTranslationModelCompatible(m, participantSourceLang, participantTargetLang)
+          && modelStatuses[m.id] === 'downloaded'
+          && !(m.requiredDevice === 'webgpu' && !webgpuAvailable)
+        );
+        if (match) {
+          translationModelId = match.id;
         }
       }
 

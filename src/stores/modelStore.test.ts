@@ -33,25 +33,30 @@ vi.mock('../utils/webgpu', () => ({
 const { useModelStore } = await import('./modelStore');
 
 describe('getParticipantModelStatus', () => {
+  // Reusable model fixtures
+  const sensevoice = { id: 'sensevoice-int8', type: 'asr', languages: ['ja', 'en', 'zh'], multilingual: true };
+  const whisperEn = { id: 'whisper-en', type: 'asr', languages: ['en'], multilingual: false };
+  const opusMtEnJa = { id: 'opus-mt-en-ja', type: 'translation', languages: ['en', 'ja'], sourceLang: 'en', targetLang: 'ja' };
+  const opusMtJaEn = { id: 'opus-mt-ja-en', type: 'translation', languages: ['ja', 'en'], sourceLang: 'ja', targetLang: 'en' };
+
   beforeEach(() => {
     vi.clearAllMocks();
+    // Default: no models. Tests override per-type as needed.
+    mockGetManifestByType.mockReturnValue([]);
   });
 
-  it('returns available status when current ASR supports target lang and translation model exists', () => {
-    // User config: ja → en. Participant needs: en → ja.
-    useModelStore.setState({
-      modelStatuses: {
-        'sensevoice-int8': 'downloaded',
-        'opus-mt-en-ja': 'downloaded',
-      },
-    });
+  // Helper: set up getManifestByType to return models by type
+  function setupManifest(models: any[]) {
+    mockGetManifestByType.mockImplementation((type: string) =>
+      models.filter(m => m.type === type)
+    );
+  }
 
-    mockGetManifestEntry.mockImplementation((id: string) => {
-      if (id === 'sensevoice-int8') return { id: 'sensevoice-int8', type: 'asr', languages: ['ja', 'en', 'zh'], multilingual: true };
-      if (id === 'opus-mt-en-ja') return { id: 'opus-mt-en-ja', type: 'translation', languages: ['en', 'ja'], sourceLang: 'en', targetLang: 'ja' };
-      return undefined;
+  it('returns available status when current ASR supports target lang and translation model exists', () => {
+    useModelStore.setState({
+      modelStatuses: { 'sensevoice-int8': 'downloaded', 'opus-mt-en-ja': 'downloaded' },
     });
-    mockGetTranslationModel.mockReturnValue({ id: 'opus-mt-en-ja', type: 'translation', languages: ['en', 'ja'] });
+    setupManifest([sensevoice, opusMtEnJa]);
 
     const status = useModelStore.getState().getParticipantModelStatus('ja', 'en', 'sensevoice-int8');
 
@@ -64,22 +69,9 @@ describe('getParticipantModelStatus', () => {
 
   it('falls back to alternative ASR when current model does not support target lang', () => {
     useModelStore.setState({
-      modelStatuses: {
-        'whisper-en': 'downloaded',
-        'sensevoice-int8': 'downloaded',
-        'opus-mt-ja-en': 'downloaded',
-      },
+      modelStatuses: { 'whisper-en': 'downloaded', 'sensevoice-int8': 'downloaded', 'opus-mt-ja-en': 'downloaded' },
     });
-
-    mockGetManifestEntry.mockImplementation((id: string) => {
-      if (id === 'whisper-en') return { id: 'whisper-en', type: 'asr', languages: ['en'], multilingual: false };
-      if (id === 'sensevoice-int8') return { id: 'sensevoice-int8', type: 'asr', languages: ['ja', 'en', 'zh'], multilingual: true };
-      return undefined;
-    });
-    mockGetAsrModelsForLanguage.mockReturnValue([
-      { id: 'sensevoice-int8', type: 'asr', languages: ['ja', 'en', 'zh'], multilingual: true },
-    ]);
-    mockGetTranslationModel.mockReturnValue({ id: 'opus-mt-ja-en', type: 'translation', languages: ['ja', 'en'] });
+    setupManifest([whisperEn, sensevoice, opusMtJaEn]);
 
     // sourceLang='en', targetLang='ja' → participant source='ja', needs ASR for 'ja'
     const status = useModelStore.getState().getParticipantModelStatus('en', 'ja', 'whisper-en');
@@ -94,9 +86,7 @@ describe('getParticipantModelStatus', () => {
     useModelStore.setState({
       modelStatuses: { 'whisper-en': 'downloaded' },
     });
-
-    mockGetManifestEntry.mockReturnValue({ id: 'whisper-en', type: 'asr', languages: ['en'], multilingual: false });
-    mockGetAsrModelsForLanguage.mockReturnValue([]);
+    setupManifest([whisperEn]);
 
     const status = useModelStore.getState().getParticipantModelStatus('en', 'ja', 'whisper-en');
 
@@ -104,13 +94,11 @@ describe('getParticipantModelStatus', () => {
     expect(status.asrModelId).toBeNull();
   });
 
-  it('returns translationAvailable=false when reverse translation model is missing', () => {
+  it('returns translationAvailable=false when no translation model supports reverse direction', () => {
     useModelStore.setState({
       modelStatuses: { 'sensevoice-int8': 'downloaded' },
     });
-
-    mockGetManifestEntry.mockReturnValue({ id: 'sensevoice-int8', type: 'asr', languages: ['ja', 'en'], multilingual: true });
-    mockGetTranslationModel.mockReturnValue(undefined);
+    setupManifest([sensevoice]); // no translation models at all
 
     const status = useModelStore.getState().getParticipantModelStatus('ja', 'en', 'sensevoice-int8');
 
@@ -121,17 +109,9 @@ describe('getParticipantModelStatus', () => {
 
   it('returns translationAvailable=false when reverse translation model exists but not downloaded', () => {
     useModelStore.setState({
-      modelStatuses: {
-        'sensevoice-int8': 'downloaded',
-        'opus-mt-en-ja': 'not_downloaded',
-      },
+      modelStatuses: { 'sensevoice-int8': 'downloaded', 'opus-mt-en-ja': 'not_downloaded' },
     });
-
-    mockGetManifestEntry.mockImplementation((id: string) => {
-      if (id === 'sensevoice-int8') return { id: 'sensevoice-int8', type: 'asr', languages: ['ja', 'en'], multilingual: true };
-      return undefined;
-    });
-    mockGetTranslationModel.mockReturnValue({ id: 'opus-mt-en-ja', type: 'translation', languages: ['en', 'ja'] });
+    setupManifest([sensevoice, opusMtEnJa]);
 
     const status = useModelStore.getState().getParticipantModelStatus('ja', 'en', 'sensevoice-int8');
 
