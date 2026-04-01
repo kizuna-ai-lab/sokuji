@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
-import { Cpu, Zap, HelpCircle, CircleHelp, ChevronDown, ChevronUp, Check, CheckCircle, AlertCircle, FlaskConical, ExternalLink, X } from 'lucide-react';
+import { Cpu, Zap, HelpCircle, ChevronDown, ChevronUp, Check, CheckCircle, AlertCircle, FlaskConical, ExternalLink, X } from 'lucide-react';
 import { OpenAIIcon, GeminiIcon, PalabraAIIcon, KizunaAIIcon, VolcengineIcon } from '../../Icons/ProviderIcons';
 import { useTranslation, Trans } from 'react-i18next';
 import Tooltip from '../../Tooltip/Tooltip';
@@ -377,17 +377,6 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
       ) : (
         // Dropdown style for advanced mode
         <div className="setting-item">
-          <div className="setting-label">
-            <span>
-              {t('settings.providerType', 'Provider')}
-              <Tooltip
-                content={t('settings.providerTooltip')}
-                position="top"
-              >
-                <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '4px', display: 'inline-block', verticalAlign: 'middle' }} />
-              </Tooltip>
-            </span>
-          </div>
           <div className="provider-selection-wrapper">
             <select
               className="select-dropdown"
