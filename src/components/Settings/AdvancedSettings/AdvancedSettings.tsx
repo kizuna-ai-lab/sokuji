@@ -157,6 +157,12 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({ toggleSettings }) =
               showTranslationLanguages={true}
             />
 
+            {/* Provider Selection */}
+            <ProviderSection
+              isSessionActive={isSessionActive}
+              expandableStyle={false}
+            />
+
             {/* Help Section */}
             <div className="settings-section">
               <h2>{t('settings.help', 'Help')}</h2>
