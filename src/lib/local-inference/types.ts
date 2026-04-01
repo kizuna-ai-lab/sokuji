@@ -65,7 +65,7 @@ export interface WhisperAsrInitMessage {
   vadModelUrl?: string;
 }
 
-export type AsrWorkerInMessage = AsrInitMessage | WhisperAsrInitMessage | VoxtralAsrInitMessage | CohereTranscribeAsrInitMessage | AsrAudioMessage | AsrDisposeMessage;
+export type AsrWorkerInMessage = AsrInitMessage | WhisperAsrInitMessage | VoxtralAsrInitMessage | CohereTranscribeAsrInitMessage | GraniteSpeechInitMessage | AsrAudioMessage | AsrDisposeMessage;
 
 // ─── ASR Worker Messages (Worker → Main) ─────────────────────────────────────
 
@@ -155,6 +155,26 @@ export interface CohereTranscribeAsrInitMessage {
   vadModelUrl: string;
   /** Resolved absolute URL for bundled ORT WASM files */
   ortWasmBaseUrl?: string;
+}
+
+export interface GraniteSpeechInitMessage {
+  type: 'init';
+  /** Map of filename -> blob URL for model files from IndexedDB */
+  fileUrls: Record<string, string>;
+  /** HuggingFace model ID for Transformers.js from_pretrained */
+  hfModelId: string;
+  /** Source language hint (e.g. 'ja', 'en') */
+  language?: string;
+  /** Task: 'transcribe' for ASR, 'translate' for AST (speech translation) */
+  task: 'transcribe' | 'translate';
+  /** Target language for AST (only when task === 'translate') */
+  targetLanguage?: string;
+  /** ONNX dtype config — per-component mapping (audio_encoder, embed_tokens, decoder_model_merged) */
+  dtype: string | Record<string, string>;
+  /** Resolved absolute URL for bundled ORT WASM files */
+  ortWasmBaseUrl?: string;
+  /** Resolved absolute URL for bundled VAD model */
+  vadModelUrl?: string;
 }
 
 // ─── Streaming ASR Worker Messages (Worker → Main) ──────────────────────────

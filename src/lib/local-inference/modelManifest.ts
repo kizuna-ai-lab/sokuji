@@ -31,7 +31,7 @@ export type AsrEngineType =
   | 'sensevoice' | 'whisper' | 'transducer' | 'nemo-transducer'
   | 'paraformer' | 'telespeech' | 'moonshine' | 'moonshine-v2'
   | 'dolphin' | 'zipformer-ctc' | 'nemo-ctc' | 'canary'
-  | 'wenet-ctc' | 'omnilingual';
+  | 'wenet-ctc' | 'omnilingual' | 'granite-speech';
 
 /** Streaming ASR engine types — for future use when streaming gets explicit config. */
 export type StreamAsrEngineType =
@@ -87,7 +87,14 @@ export interface ModelManifestEntry {
   /** ASR engine type — determines which config builder the worker uses */
   asrEngine?: AsrEngineType | StreamAsrEngineType;
   /** Which ASR worker to use. Defaults to 'sherpa-onnx' if omitted. */
-  asrWorkerType?: 'sherpa-onnx' | 'whisper-webgpu' | 'voxtral-webgpu' | 'cohere-transcribe-webgpu';
+  asrWorkerType?: 'sherpa-onnx' | 'whisper-webgpu' | 'voxtral-webgpu' | 'cohere-transcribe-webgpu' | 'granite-speech-webgpu';
+  /** AST (speech translation) language support. When present, model appears as a translation option when selected as ASR. */
+  astLanguages?: {
+    /** Languages the model can transcribe */
+    transcribe: string[];
+    /** Languages the model can translate to/from */
+    translate: string[];
+  };
 
   // ─── TTS configuration ─────────────────────────────────────────────────
   /** TTS .onnx model filename */
@@ -1046,6 +1053,64 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
   // NOTE: lite-whisper-large-v3-turbo-fast-ONNX removed — custom architecture
   // (LiteWhisperForConditionalGeneration + low_rank_config) is incompatible with
   // Transformers.js WhisperForConditionalGeneration pipeline. Produces garbage output.
+
+  // ─── Granite Speech (WebGPU) ─────────────────────────────────────────────
+  {
+    id: 'granite-speech',
+    type: 'asr',
+    name: 'Granite Speech (WebGPU)',
+    languages: ['en', 'fr', 'de', 'es', 'pt', 'ja'],
+    multilingual: true,
+    hfModelId: 'onnx-community/granite-4.0-1b-speech-ONNX',
+    requiredDevice: 'webgpu',
+    asrEngine: 'granite-speech',
+    asrWorkerType: 'granite-speech-webgpu',
+    recommended: true,
+    astLanguages: {
+      transcribe: ['en', 'fr', 'de', 'es', 'pt', 'ja'],
+      translate: ['en', 'fr', 'de', 'es', 'pt', 'ja', 'it', 'zh'],
+    },
+    variants: {
+      'q4': {
+        dtype: { audio_encoder: 'q4', embed_tokens: 'q4', decoder_model_merged: 'q4' },
+        files: [
+          { filename: 'config.json', sizeBytes: 2_620 },
+          { filename: 'generation_config.json', sizeBytes: 235 },
+          { filename: 'preprocessor_config.json', sizeBytes: 336 },
+          { filename: 'processor_config.json', sizeBytes: 415 },
+          { filename: 'tokenizer.json', sizeBytes: 4_130_000 },
+          { filename: 'tokenizer_config.json', sizeBytes: 646 },
+          { filename: 'chat_template.jinja', sizeBytes: 193 },
+          { filename: 'onnx/audio_encoder_q4.onnx', sizeBytes: 348_000 },
+          { filename: 'onnx/audio_encoder_q4.onnx_data', sizeBytes: 658_000_000 },
+          { filename: 'onnx/embed_tokens_q4.onnx', sizeBytes: 857 },
+          { filename: 'onnx/embed_tokens_q4.onnx_data', sizeBytes: 132_000_000 },
+          { filename: 'onnx/decoder_model_merged_q4.onnx', sizeBytes: 434_000 },
+          { filename: 'onnx/decoder_model_merged_q4.onnx_data', sizeBytes: 1_050_000_000 },
+        ],
+        requiredFeatures: [],
+      },
+      'q4f16': {
+        dtype: { audio_encoder: 'q4f16', embed_tokens: 'q4f16', decoder_model_merged: 'q4f16' },
+        files: [
+          { filename: 'config.json', sizeBytes: 2_620 },
+          { filename: 'generation_config.json', sizeBytes: 235 },
+          { filename: 'preprocessor_config.json', sizeBytes: 336 },
+          { filename: 'processor_config.json', sizeBytes: 415 },
+          { filename: 'tokenizer.json', sizeBytes: 4_130_000 },
+          { filename: 'tokenizer_config.json', sizeBytes: 646 },
+          { filename: 'chat_template.jinja', sizeBytes: 193 },
+          { filename: 'onnx/audio_encoder_q4f16.onnx', sizeBytes: 352_000 },
+          { filename: 'onnx/audio_encoder_q4f16.onnx_data', sizeBytes: 425_000_000 },
+          { filename: 'onnx/embed_tokens_q4f16.onnx', sizeBytes: 1_060 },
+          { filename: 'onnx/embed_tokens_q4f16.onnx_data', sizeBytes: 119_000_000 },
+          { filename: 'onnx/decoder_model_merged_q4f16.onnx', sizeBytes: 437_000 },
+          { filename: 'onnx/decoder_model_merged_q4f16.onnx_data', sizeBytes: 945_000_000 },
+        ],
+        requiredFeatures: ['shader-f16'],
+      },
+    },
+  },
 
   // ── TTS Models — self-hosted (136) ──────────────────────────────────────
   // Downloaded from jiangzhuo9357/sherpa-onnx-tts-models dataset. Uses cdnPath.
