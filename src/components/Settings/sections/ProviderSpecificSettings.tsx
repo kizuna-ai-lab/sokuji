@@ -128,14 +128,26 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
     }
 
     // Auto-select translation model
-    const allTranslation = getManifestByType('translation');
-    const currentTransEntry = allTranslation.find(m => m.id === localInferenceSettings.translationModel);
-    const isCurrentTransCompatible = currentTransEntry && isTranslationModelCompatible(currentTransEntry, sourceLang, targetLang);
-    if (!isCurrentTransCompatible) {
-      const firstMatch = allTranslation.find(m =>
-        isTranslationModelCompatible(m, sourceLang, targetLang) && modelStatuses[m.id] === 'downloaded'
-      );
-      updates.translationModel = firstMatch?.id || '';
+    // AST short-circuit: if translation model === ASR model and it has astLanguages, it's valid
+    const transModelId = localInferenceSettings.translationModel;
+    const effectiveAsrId = updates.asrModel ?? localInferenceSettings.asrModel;
+    const asrEntryForAst = transModelId && transModelId === effectiveAsrId
+      ? getManifestEntry(transModelId) : null;
+    const isAstValid = asrEntryForAst?.astLanguages
+      && asrEntryForAst.astLanguages.translate.includes(targetLang)
+      && (asrEntryForAst.astLanguages.translate.includes(sourceLang) || asrEntryForAst.astLanguages.transcribe.includes(sourceLang))
+      && modelStatuses[transModelId] === 'downloaded';
+
+    if (!isAstValid) {
+      const allTranslation = getManifestByType('translation');
+      const currentTransEntry = allTranslation.find(m => m.id === transModelId);
+      const isCurrentTransCompatible = currentTransEntry && isTranslationModelCompatible(currentTransEntry, sourceLang, targetLang);
+      if (!isCurrentTransCompatible) {
+        const firstMatch = allTranslation.find(m =>
+          isTranslationModelCompatible(m, sourceLang, targetLang) && modelStatuses[m.id] === 'downloaded'
+        );
+        updates.translationModel = firstMatch?.id || '';
+      }
     }
 
     if (Object.keys(updates).length > 0) {
