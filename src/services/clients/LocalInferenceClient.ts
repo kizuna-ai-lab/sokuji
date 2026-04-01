@@ -155,7 +155,7 @@ export class LocalInferenceClient implements IClient {
       }
 
       // Translation engine
-      console.info('[LocalInference] Initializing Translation engine:', config.sourceLanguage, '→', config.targetLanguage);
+      console.info('[LocalInference] Initializing Translation engine:', config.translationModelId, `(${config.sourceLanguage} → ${config.targetLanguage})`);
       this.translationEngine = new TranslationEngine();
 
       // TTS engine (optional — skip when textOnly or no TTS model configured)
