@@ -17,6 +17,7 @@ import {
   getManifestEntry,
   getModelSizeMb,
   isTranslationModelCompatible,
+  pickBestModel,
   selectVariant,
   getBaselineVariant,
   type ModelManifestEntry,
@@ -344,9 +345,9 @@ export function ModelManagementSection({
     const currentAsr = asrModel ? allAsrModels.find(m => m.id === asrModel) : null;
     const asrOk = currentAsr && (currentAsr.multilingual || currentAsr.languages.includes(sourceLanguage)) && statuses[asrModel] === 'downloaded';
     if (!asrOk) {
-      const match = allAsrModels.find(m =>
+      const match = pickBestModel(allAsrModels.filter(m =>
         (m.multilingual || m.languages.includes(sourceLanguage)) && statuses[m.id] === 'downloaded'
-      );
+      ));
       const newId = match?.id || '';
       if (newId !== asrModel) updates.asrModel = newId;
     }
@@ -366,11 +367,11 @@ export function ModelManagementSection({
       && statuses[translationModel] === 'downloaded'
       && !(currentTrans.requiredDevice === 'webgpu' && !webgpuAvailable));
     if (!transOk) {
-      const match = getManifestByType('translation').find(m =>
+      const match = pickBestModel(getManifestByType('translation').filter(m =>
         isTranslationModelCompatible(m, sourceLanguage, targetLanguage)
         && statuses[m.id] === 'downloaded'
         && !(m.requiredDevice === 'webgpu' && !webgpuAvailable)
-      );
+      ));
       const newId = match?.id || '';
       if (newId !== translationModel) updates.translationModel = newId;
     }
@@ -379,9 +380,9 @@ export function ModelManagementSection({
     const currentTts = ttsModel ? getManifestByType('tts').find(m => m.id === ttsModel) : null;
     const ttsOk = currentTts && currentTts.languages.includes(targetLanguage) && statuses[ttsModel] === 'downloaded';
     if (!ttsOk) {
-      const match = getManifestByType('tts').find(m =>
+      const match = pickBestModel(getManifestByType('tts').filter(m =>
         m.languages.includes(targetLanguage) && statuses[m.id] === 'downloaded'
-      );
+      ));
       const newId = match?.id || '';
       if (newId !== ttsModel) updates.ttsModel = newId;
     }

@@ -2949,6 +2949,21 @@ export function getTtsModelsForLanguage(lang: string): ModelManifestEntry[] {
   return MODEL_MANIFEST.filter(m => m.type === 'tts' && m.languages.includes(lang));
 }
 
+/**
+ * Pick the best model from candidates using recommended → sortOrder priority.
+ * Same ranking as the UI sort: recommended first, then lower sortOrder wins.
+ */
+export function pickBestModel(candidates: ModelManifestEntry[]): ModelManifestEntry | undefined {
+  if (candidates.length === 0) return undefined;
+  if (candidates.length === 1) return candidates[0];
+  return candidates.reduce((best, m) => {
+    if (m.recommended && !best.recommended) return m;
+    if (!m.recommended && best.recommended) return best;
+    if ((m.sortOrder ?? 0) < (best.sortOrder ?? 0)) return m;
+    return best;
+  });
+}
+
 /** Total download size in MB, computed from per-file sizes. */
 export function getModelSizeMb(entry: ModelManifestEntry, deviceFeatures: string[] = []): number {
   const variantKey = selectVariant(entry, deviceFeatures);

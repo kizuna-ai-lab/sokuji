@@ -16,6 +16,7 @@ import {
   getTranslationModel,
   getTtsModelsForLanguage,
   isTranslationModelCompatible,
+  pickBestModel,
   type ModelStatus,
 } from '../lib/local-inference/modelManifest';
 import * as modelStorage from '../lib/local-inference/modelStorage';
@@ -319,9 +320,9 @@ export const useModelStore = create<ModelStoreState>()(
         && (currentAsr.multilingual || currentAsr.languages.includes(sourceLang))
         && modelStatuses[currentAsrModel] === 'downloaded';
       if (!asrOk) {
-        const match = allAsrModels.find(m =>
+        const match = pickBestModel(allAsrModels.filter(m =>
           (m.multilingual || m.languages.includes(sourceLang)) && modelStatuses[m.id] === 'downloaded'
-        );
+        ));
         const newId = match?.id || '';
         if (newId !== currentAsrModel) updates.asrModel = newId;
       }
@@ -341,11 +342,11 @@ export const useModelStore = create<ModelStoreState>()(
         && modelStatuses[currentTranslationModel] === 'downloaded'
         && !(currentTrans.requiredDevice === 'webgpu' && !webgpuAvailable));
       if (!transOk) {
-        const match = getManifestByType('translation').find(m =>
+        const match = pickBestModel(getManifestByType('translation').filter(m =>
           isTranslationModelCompatible(m, sourceLang, targetLang)
           && modelStatuses[m.id] === 'downloaded'
           && !(m.requiredDevice === 'webgpu' && !webgpuAvailable)
-        );
+        ));
         const newId = match?.id || '';
         if (newId !== currentTranslationModel) updates.translationModel = newId;
       }
@@ -356,9 +357,9 @@ export const useModelStore = create<ModelStoreState>()(
         && currentTts.languages.includes(targetLang)
         && modelStatuses[currentTtsModel] === 'downloaded';
       if (!ttsOk) {
-        const match = getManifestByType('tts').find(m =>
+        const match = pickBestModel(getManifestByType('tts').filter(m =>
           m.languages.includes(targetLang) && modelStatuses[m.id] === 'downloaded'
-        );
+        ));
         const newId = match?.id || '';
         if (newId !== currentTtsModel) updates.ttsModel = newId;
       }
