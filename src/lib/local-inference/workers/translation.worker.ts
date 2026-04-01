@@ -124,9 +124,14 @@ async function handleInit(msg: InitMessage) {
     self.postMessage({ type: 'status', status: 'loading', modelId: msg.hfModelId, device });
 
     // Create the translation pipeline — Transformers.js finds all files via customCache
+    // Use 'basic' graph optimization to avoid ORT 1.25 TransposeDQWeightsForMatMulNBits
+    // fusion bug that fails on some quantized Opus-MT models (e.g. opus-mt-en-zh).
     translator = await (pipeline as any)('translation', msg.hfModelId, {
       dtype: 'q8',
       device,
+      session_options: {
+        graphOptimizationLevel: 'basic',
+      },
     }) as TranslationPipeline;
 
     // Restore original console.warn
