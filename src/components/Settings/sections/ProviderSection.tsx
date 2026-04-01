@@ -429,10 +429,6 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
       {/* API Key Input or Kizuna AI Status or Local Inference (no key needed) */}
       {provider === Provider.LOCAL_INFERENCE ? (
         <div className="local-inference-info">
-          <div className="api-key-info">
-            <CheckCircle size={16} className="success-icon" />
-            <span>{t('providers.local_inference.noKeyRequired', 'No API key required — runs entirely on your device')}</span>
-          </div>
           <div className="model-info">
             <div className="model-row">
               <span className="model-tag">{t('providers.local_inference.modelAsr', 'ASR')}</span>
