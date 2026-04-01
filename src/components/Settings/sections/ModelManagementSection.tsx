@@ -14,12 +14,14 @@ import {
 } from '../../../stores/modelStore';
 import {
   getManifestByType,
+  getManifestEntry,
   getModelSizeMb,
   isTranslationModelCompatible,
   selectVariant,
   getBaselineVariant,
   type ModelManifestEntry,
   type ModelStatus,
+  type ModelType,
 } from '../../../lib/local-inference/modelManifest';
 import type { LocalInferenceSettings } from '../../../stores/settingsStore';
 import './ModelManagementSection.scss';
@@ -389,9 +391,21 @@ export function ModelManagementSection({
   }, []);
 
   const translationModels = useMemo(() => {
-    const all = getManifestByType('translation');
+    const all = [...getManifestByType('translation')];
+
+    // If current ASR model supports AST, add it as a translation option
+    const asrEntry = asrModel ? getManifestEntry(asrModel) : null;
+    if (asrEntry?.astLanguages) {
+      all.push({
+        ...asrEntry,
+        type: 'translation' as ModelType,
+        multilingual: true,
+        languages: asrEntry.astLanguages.translate,
+      } as ModelManifestEntry);
+    }
+
     return sortTranslationModels(all);
-  }, []);
+  }, [asrModel]);
 
   const compatibleTranslationModels = useMemo(
     () => translationModels.filter(m =>
