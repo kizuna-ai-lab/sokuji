@@ -309,15 +309,15 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
         <Tooltip
           content={
             <div>
-              <p>{t('simpleSettings.apiKeyHelpTooltip')}</p>
+              <p>{t('settings.providerTooltip')}</p>
               <p style={{ marginTop: '8px' }}>{t('simpleSettings.apiKeyHelpTooltip2')}</p>
               <a
-                href="https://kizuna-ai-lab.github.io/sokuji/supported-ai-providers.html"
+                href="https://sokuji.kizuna.ai/docs/ai-providers"
                 target="_blank"
                 rel="noopener noreferrer"
                 style={{ color: '#10a37f', textDecoration: 'underline' }}
               >
-                https://kizuna-ai-lab.github.io/sokuji/supported-ai-providers.html
+                https://sokuji.kizuna.ai/docs/ai-providers
               </a>
             </div>
           }
