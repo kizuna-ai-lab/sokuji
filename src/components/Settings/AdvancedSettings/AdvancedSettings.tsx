@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { AlertCircle, HelpCircle, RefreshCw, Settings, Headphones, Cpu } from 'lucide-react';
+import { AlertCircle, Settings, Headphones, Cpu } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useIsSessionActive } from '../../../stores/sessionStore';
-import { useOnboarding } from '../../../contexts/OnboardingContext';
 import {
   useProvider,
   useAvailableModels,
@@ -13,8 +12,6 @@ import {
   useNavigateToSettings,
 } from '../../../stores/settingsStore';
 import { useAudioContext } from '../../../stores/audioStore';
-import { useUpdateStatus, useCheckForUpdates, useOpenUpdateDialog } from '../../../stores/updateStore';
-import { isElectron } from '../../../utils/environment';
 import { ProviderConfigFactory } from '../../../services/providers/ProviderConfigFactory';
 import { Provider } from '../../../types/Provider';
 import WarningModal from '../shared/WarningModal';
@@ -26,7 +23,8 @@ import {
   LanguageSection,
   AudioDeviceSection,
   SystemAudioSection,
-  VoicePassthroughSection
+  VoicePassthroughSection,
+  HelpSection
 } from '../sections';
 import ProviderSpecificSettings from '../sections/ProviderSpecificSettings';
 import './AdvancedSettings.scss';
@@ -61,7 +59,6 @@ interface AdvancedSettingsProps {
 const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({ toggleSettings }) => {
   const { t } = useTranslation();
   const isSessionActive = useIsSessionActive();
-  const { startOnboarding } = useOnboarding();
 
   // Provider settings
   const provider = useProvider();
@@ -72,16 +69,6 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({ toggleSettings }) =
 
   // Audio context
   const { isSystemAudioCaptureEnabled, isMonitorDeviceOn } = useAudioContext();
-
-  // Update check
-  const updateStatus = useUpdateStatus();
-  const checkForUpdates = useCheckForUpdates();
-  const openUpdateDialog = useOpenUpdateDialog();
-
-  // Open update dialog when update is available
-  useEffect(() => {
-    if (updateStatus === 'available') openUpdateDialog();
-  }, [updateStatus, openUpdateDialog]);
 
   // Get current provider configuration
   const currentProviderConfig = React.useMemo(() => {
@@ -175,36 +162,8 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({ toggleSettings }) =
               expandableStyle={false}
             />
 
-            {/* Help Section */}
-            <div className="settings-section">
-              <h2>{t('settings.help', 'Help')}</h2>
-              <div className="setting-item">
-                <button
-                  className="restart-onboarding-button"
-                  onClick={() => {
-                    startOnboarding();
-                    if (toggleSettings) {
-                      toggleSettings();
-                    }
-                  }}
-                >
-                  <HelpCircle size={16} />
-                  <span>{t('onboarding.restartTour', 'Restart Setup Guide')}</span>
-                </button>
-              </div>
-              {isElectron() && (
-                <div className="setting-item">
-                  <button
-                    className="restart-onboarding-button"
-                    onClick={checkForUpdates}
-                    disabled={updateStatus === 'checking'}
-                  >
-                    <RefreshCw size={16} className={updateStatus === 'checking' ? 'spinning' : ''} />
-                    <span>{updateStatus === 'checking' ? t('update.checking') : t('update.checkButton')}</span>
-                  </button>
-                </div>
-              )}
-            </div>
+            {/* Help & Updates */}
+            <HelpSection toggleSettings={toggleSettings} />
           </>
         )}
 
