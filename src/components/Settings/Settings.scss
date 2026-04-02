@@ -1441,18 +1441,12 @@
 }
 
 // Help section layout
-.help-buttons {
-  display: flex;
-  gap: vars.$space-2;
-  flex-wrap: wrap;
-}
-
 .help-links {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: vars.$space-2;
-  margin-top: vars.$space-2;
-  font-size: 12px;
+  font-size: vars.$font-caption;
 }
 
 .help-link {
@@ -1466,6 +1460,12 @@
 
   &:hover {
     color: vars.$color-primary;
+  }
+
+  &.disabled {
+    opacity: vars.$disabled-opacity;
+    cursor: not-allowed;
+    pointer-events: none;
   }
 }
 
