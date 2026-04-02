@@ -120,3 +120,110 @@ describe('getParticipantModelStatus', () => {
     expect(status.translationModelId).toBeNull();
   });
 });
+
+describe('rememberModels / recallModels', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    useModelStore.setState({ modelPreferences: {} });
+  });
+
+  it('remembers and recalls models for a language pair', () => {
+    useModelStore.setState({
+      modelStatuses: {
+        'sensevoice-int8': 'downloaded',
+        'opus-mt-ja-en': 'downloaded',
+        'piper-en': 'downloaded',
+      },
+    });
+
+    useModelStore.getState().rememberModels('ja', 'en', 'sensevoice-int8', 'opus-mt-ja-en', 'piper-en');
+    const recalled = useModelStore.getState().recallModels('ja', 'en');
+
+    expect(recalled).toEqual({
+      asrModel: 'sensevoice-int8',
+      translationModel: 'opus-mt-ja-en',
+      ttsModel: 'piper-en',
+    });
+  });
+
+  it('returns null when no record exists', () => {
+    const recalled = useModelStore.getState().recallModels('ja', 'en');
+    expect(recalled).toBeNull();
+  });
+
+  it('treats different directions as separate keys', () => {
+    useModelStore.setState({
+      modelStatuses: {
+        'sensevoice-int8': 'downloaded',
+        'opus-mt-ja-en': 'downloaded',
+        'opus-mt-en-ja': 'downloaded',
+        'piper-en': 'downloaded',
+        'piper-ja': 'downloaded',
+      },
+    });
+
+    useModelStore.getState().rememberModels('ja', 'en', 'sensevoice-int8', 'opus-mt-ja-en', 'piper-en');
+    useModelStore.getState().rememberModels('en', 'ja', 'sensevoice-int8', 'opus-mt-en-ja', 'piper-ja');
+
+    const jaEn = useModelStore.getState().recallModels('ja', 'en');
+    const enJa = useModelStore.getState().recallModels('en', 'ja');
+
+    expect(jaEn!.translationModel).toBe('opus-mt-ja-en');
+    expect(enJa!.translationModel).toBe('opus-mt-en-ja');
+    expect(jaEn!.ttsModel).toBe('piper-en');
+    expect(enJa!.ttsModel).toBe('piper-ja');
+  });
+
+  it('degrades per-field when a model is deleted', () => {
+    useModelStore.setState({
+      modelStatuses: {
+        'sensevoice-int8': 'downloaded',
+        'opus-mt-ja-en': 'downloaded',
+        'piper-en': 'downloaded',
+      },
+    });
+
+    useModelStore.getState().rememberModels('ja', 'en', 'sensevoice-int8', 'opus-mt-ja-en', 'piper-en');
+
+    useModelStore.setState({
+      modelStatuses: {
+        'sensevoice-int8': 'downloaded',
+        'opus-mt-ja-en': 'downloaded',
+        'piper-en': 'not_downloaded',
+      },
+    });
+
+    const recalled = useModelStore.getState().recallModels('ja', 'en');
+
+    expect(recalled).not.toBeNull();
+    expect(recalled!.asrModel).toBe('sensevoice-int8');
+    expect(recalled!.translationModel).toBe('opus-mt-ja-en');
+    expect(recalled!.ttsModel).toBe('');
+  });
+
+  it('degrades all fields when all models deleted', () => {
+    useModelStore.setState({
+      modelStatuses: {
+        'sensevoice-int8': 'downloaded',
+        'opus-mt-ja-en': 'downloaded',
+        'piper-en': 'downloaded',
+      },
+    });
+
+    useModelStore.getState().rememberModels('ja', 'en', 'sensevoice-int8', 'opus-mt-ja-en', 'piper-en');
+
+    useModelStore.setState({
+      modelStatuses: {
+        'sensevoice-int8': 'not_downloaded',
+        'opus-mt-ja-en': 'not_downloaded',
+        'piper-en': 'not_downloaded',
+      },
+    });
+
+    const recalled = useModelStore.getState().recallModels('ja', 'en');
+    expect(recalled).not.toBeNull();
+    expect(recalled!.asrModel).toBe('');
+    expect(recalled!.translationModel).toBe('');
+    expect(recalled!.ttsModel).toBe('');
+  });
+});

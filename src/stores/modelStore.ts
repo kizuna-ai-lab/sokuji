@@ -58,6 +58,8 @@ interface ModelStoreState {
   deviceFeatures: string[];
   /** Downloaded variant key per model (modelId → variant key) */
   modelVariants: Record<string, string>;
+  /** In-memory model preferences per language pair (key: "src→tgt") */
+  modelPreferences: Record<string, { asrModel: string; translationModel: string; ttsModel: string }>;
 
   /** Initialize: scan IndexedDB for existing models */
   initialize: () => Promise<void>;
@@ -99,6 +101,10 @@ interface ModelStoreState {
     sourceLang: string, targetLang: string,
     currentAsrModel: string, currentTranslationModel: string, currentTtsModel: string,
   ) => { asrModel?: string; translationModel?: string; ttsModel?: string } | null;
+  /** Save model selection for a language pair */
+  rememberModels: (sourceLang: string, targetLang: string, asrModel: string, translationModel: string, ttsModel: string) => void;
+  /** Recall saved model selection — per-field degradation if models deleted */
+  recallModels: (sourceLang: string, targetLang: string) => { asrModel: string; translationModel: string; ttsModel: string } | null;
 }
 
 // ─── Store ───────────────────────────────────────────────────────────────────
@@ -113,6 +119,7 @@ export const useModelStore = create<ModelStoreState>()(
     webgpuAvailable: false,
     deviceFeatures: [],
     modelVariants: {},
+    modelPreferences: {},
 
     initialize: async () => {
       if (get().initialized) return;
@@ -329,43 +336,77 @@ export const useModelStore = create<ModelStoreState>()(
       const participantSourceLang = targetLang;
       const participantTargetLang = sourceLang;
 
-      // 1. ASR: check if current model supports participant source language
-      //    (same logic as autoSelectModels)
+      // Check recalled preferences for the reverse direction
+      const recalled = get().recallModels(participantSourceLang, participantTargetLang);
+
+      // 1. ASR: prefer recalled > current model > fallback
       let asrModelId: string | null = null;
       let asrFallback = false;
 
       const allAsrModels = [...getManifestByType('asr'), ...getManifestByType('asr-stream')];
-      const currentAsr = allAsrModels.find(m => m.id === currentAsrModelId);
-      const currentAsrOk = currentAsr
-        && (currentAsr.multilingual || currentAsr.languages.includes(participantSourceLang))
-        && modelStatuses[currentAsrModelId] === 'downloaded'
-        && !(currentAsr.requiredDevice === 'webgpu' && !webgpuAvailable);
 
-      if (currentAsrOk) {
-        asrModelId = currentAsrModelId;
-      } else {
-        const match = allAsrModels.find(m =>
-          (m.multilingual || m.languages.includes(participantSourceLang))
-          && modelStatuses[m.id] === 'downloaded'
-          && !(m.requiredDevice === 'webgpu' && !webgpuAvailable)
-        );
-        if (match) {
-          asrModelId = match.id;
-          asrFallback = true;
+      // Try recalled ASR first
+      if (recalled?.asrModel) {
+        const recalledAsr = allAsrModels.find(m => m.id === recalled.asrModel);
+        if (recalledAsr
+          && (recalledAsr.multilingual || recalledAsr.languages.includes(participantSourceLang))
+          && modelStatuses[recalled.asrModel] === 'downloaded'
+          && !(recalledAsr.requiredDevice === 'webgpu' && !webgpuAvailable)) {
+          asrModelId = recalled.asrModel;
+          asrFallback = recalled.asrModel !== currentAsrModelId;
         }
       }
 
-      // 2. Translation: prefer current model if it supports the reverse direction,
-      //    otherwise auto-select (same logic as autoSelectModels)
+      // Try current model
+      if (!asrModelId) {
+        const currentAsr = allAsrModels.find(m => m.id === currentAsrModelId);
+        const currentAsrOk = currentAsr
+          && (currentAsr.multilingual || currentAsr.languages.includes(participantSourceLang))
+          && modelStatuses[currentAsrModelId] === 'downloaded'
+          && !(currentAsr.requiredDevice === 'webgpu' && !webgpuAvailable);
+
+        if (currentAsrOk) {
+          asrModelId = currentAsrModelId;
+        } else {
+          const match = allAsrModels.find(m =>
+            (m.multilingual || m.languages.includes(participantSourceLang))
+            && modelStatuses[m.id] === 'downloaded'
+            && !(m.requiredDevice === 'webgpu' && !webgpuAvailable)
+          );
+          if (match) {
+            asrModelId = match.id;
+            asrFallback = true;
+          }
+        }
+      }
+
+      // 2. Translation: prefer recalled > current model > fallback
+      //    AST short-circuit: if translation model === ASR model and isAstCompatible, it's valid
       let translationModelId: string | null = null;
-      if (currentTranslationModelId && modelStatuses[currentTranslationModelId] === 'downloaded') {
-        const currentEntry = getManifestEntry(currentTranslationModelId);
-        if (currentEntry
-          && isTranslationModelCompatible(currentEntry, participantSourceLang, participantTargetLang)
-          && !(currentEntry.requiredDevice === 'webgpu' && !webgpuAvailable)) {
-          translationModelId = currentTranslationModelId;
-        }
+
+      // Helper: check if a model is valid as translation (standard or AST)
+      const isValidTranslation = (modelId: string, forAsrId: string | null) => {
+        if (!modelId || modelStatuses[modelId] !== 'downloaded') return false;
+        const entry = getManifestEntry(modelId);
+        if (!entry) return false;
+        if (entry.requiredDevice === 'webgpu' && !webgpuAvailable) return false;
+        // AST: translation model === ASR model with AST support
+        if (modelId === forAsrId && isAstCompatible(entry, participantSourceLang, participantTargetLang)) return true;
+        // Standard translation model
+        return isTranslationModelCompatible(entry, participantSourceLang, participantTargetLang);
+      };
+
+      // Try recalled translation first
+      if (recalled?.translationModel && isValidTranslation(recalled.translationModel, asrModelId)) {
+        translationModelId = recalled.translationModel;
       }
+
+      // Try current model
+      if (!translationModelId && currentTranslationModelId && isValidTranslation(currentTranslationModelId, asrModelId)) {
+        translationModelId = currentTranslationModelId;
+      }
+
+      // Fallback
       if (!translationModelId) {
         const match = getManifestByType('translation').find(m =>
           isTranslationModelCompatible(m, participantSourceLang, participantTargetLang)
@@ -390,6 +431,25 @@ export const useModelStore = create<ModelStoreState>()(
     autoSelectModels: (sourceLang, targetLang, currentAsrModel, currentTranslationModel, currentTtsModel) => {
       const { modelStatuses, webgpuAvailable } = get();
       const updates: { asrModel?: string; translationModel?: string; ttsModel?: string } = {};
+
+      // Save original input to detect recall overrides later
+      const inputAsrModel = currentAsrModel;
+      const inputTranslationModel = currentTranslationModel;
+      const inputTtsModel = currentTtsModel;
+
+      // Check recalled preferences — override "current" with recalled values if available
+      const recalled = get().recallModels(sourceLang, targetLang);
+      if (recalled) {
+        if (recalled.asrModel && recalled.asrModel !== currentAsrModel) {
+          currentAsrModel = recalled.asrModel;
+        }
+        if (recalled.translationModel && recalled.translationModel !== currentTranslationModel) {
+          currentTranslationModel = recalled.translationModel;
+        }
+        if (recalled.ttsModel && recalled.ttsModel !== currentTtsModel) {
+          currentTtsModel = recalled.ttsModel;
+        }
+      }
 
       // ASR: must support sourceLanguage and be downloaded
       const allAsrModels = [...getManifestByType('asr'), ...getManifestByType('asr-stream')];
@@ -441,7 +501,51 @@ export const useModelStore = create<ModelStoreState>()(
         if (newId !== currentTtsModel) updates.ttsModel = newId;
       }
 
+      // Emit updates for recalled overrides that survived validation
+      // (recalled value was used as "current", passed checks, but settings still have the old value)
+      if (!updates.asrModel && currentAsrModel !== inputAsrModel) updates.asrModel = currentAsrModel;
+      if (!updates.translationModel && currentTranslationModel !== inputTranslationModel) updates.translationModel = currentTranslationModel;
+      if (!updates.ttsModel && currentTtsModel !== inputTtsModel) updates.ttsModel = currentTtsModel;
+
+      // Remember the final selection for this language pair
+      const finalAsr = updates.asrModel ?? currentAsrModel;
+      const finalTranslation = updates.translationModel ?? currentTranslationModel;
+      const finalTts = updates.ttsModel ?? currentTtsModel;
+      if (finalAsr) {
+        get().rememberModels(sourceLang, targetLang, finalAsr, finalTranslation, finalTts);
+      }
+
       return Object.keys(updates).length > 0 ? updates : null;
+    },
+
+    rememberModels: (src, tgt, asr, translation, tts) => {
+      set(state => ({
+        modelPreferences: {
+          ...state.modelPreferences,
+          [`${src}→${tgt}`]: { asrModel: asr, translationModel: translation, ttsModel: tts },
+        },
+      }));
+    },
+
+    recallModels: (src, tgt) => {
+      const { modelPreferences, modelStatuses, webgpuAvailable } = get();
+      const key = `${src}→${tgt}`;
+      const pref = modelPreferences[key];
+      if (!pref) return null;
+
+      // Check downloaded + device compatibility
+      const isUsable = (id: string) => {
+        if (!id || modelStatuses[id] !== 'downloaded') return false;
+        const entry = getManifestEntry(id);
+        if (entry?.requiredDevice === 'webgpu' && !webgpuAvailable) return false;
+        return true;
+      };
+
+      return {
+        asrModel: isUsable(pref.asrModel) ? pref.asrModel : '',
+        translationModel: isUsable(pref.translationModel) ? pref.translationModel : '',
+        ttsModel: isUsable(pref.ttsModel) ? pref.ttsModel : '',
+      };
     },
   })),
 );
