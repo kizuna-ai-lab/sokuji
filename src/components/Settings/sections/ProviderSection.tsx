@@ -421,15 +421,15 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
         <div className="local-inference-info">
           <div className="model-info">
             <div className="model-inline">
-              <a className="model-chip" onClick={() => { setUIMode('advanced'); setTimeout(() => navigateToSettings('model-asr'), 100); }}>
+              <button type="button" className="model-chip" onClick={() => { setUIMode('advanced'); setTimeout(() => navigateToSettings('model-asr'), 100); }}>
                 <span className="model-chip-label">{t('providers.local_inference.modelAsr', 'ASR')}</span>
                 <span className="model-chip-value">
                   {localInferenceSettings.asrModel && modelStatuses[localInferenceSettings.asrModel] === 'downloaded'
                     ? localInferenceSettings.asrModel
                     : t('common.none', 'None')}
                 </span>
-              </a>
-              <a className="model-chip" onClick={() => { setUIMode('advanced'); setTimeout(() => navigateToSettings('model-translation'), 100); }}>
+              </button>
+              <button type="button" className="model-chip" onClick={() => { setUIMode('advanced'); setTimeout(() => navigateToSettings('model-translation'), 100); }}>
                 <span className="model-chip-label">{t('providers.local_inference.modelTranslation', 'Translation')}</span>
                 <span className="model-chip-value">
                   {(() => {
@@ -438,8 +438,8 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
                     return id && modelStatuses[id] === 'downloaded' ? id : t('common.none', 'None');
                   })()}
                 </span>
-              </a>
-              <a className="model-chip" onClick={() => { setUIMode('advanced'); setTimeout(() => navigateToSettings('model-tts'), 100); }}>
+              </button>
+              <button type="button" className="model-chip" onClick={() => { setUIMode('advanced'); setTimeout(() => navigateToSettings('model-tts'), 100); }}>
                 <span className="model-chip-label">{t('providers.local_inference.modelTts', 'TTS')}</span>
                 <span className="model-chip-value">
                   {(() => {
@@ -448,12 +448,12 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
                     return id && modelStatuses[id] === 'downloaded' ? id : t('common.none', 'None');
                   })()}
                 </span>
-              </a>
+              </button>
             </div>
             {isSystemAudioCaptureEnabled && participantModelStatus && (
               <div className="model-inline participant-inline">
                 <span className="participant-label">{t('providers.local_inference.participant', 'Participant')}</span>
-                <a className="model-chip" onClick={() => { setUIMode('advanced'); setTimeout(() => navigateToSettings('model-asr'), 100); }}>
+                <button type="button" className="model-chip" onClick={() => { setUIMode('advanced'); setTimeout(() => navigateToSettings('model-asr'), 100); }}>
                   <span className="model-chip-label">{t('providers.local_inference.modelAsr', 'ASR')}</span>
                   {participantModelStatus.asrAvailable ? (
                     <span className="model-chip-value model-ok">
@@ -463,15 +463,15 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
                   ) : (
                     <span className="model-chip-value model-warn">✗</span>
                   )}
-                </a>
-                <a className="model-chip" onClick={() => { setUIMode('advanced'); setTimeout(() => navigateToSettings('model-translation'), 100); }}>
+                </button>
+                <button type="button" className="model-chip" onClick={() => { setUIMode('advanced'); setTimeout(() => navigateToSettings('model-translation'), 100); }}>
                   <span className="model-chip-label">{t('providers.local_inference.modelTranslation', 'Translation')}</span>
                   {participantModelStatus.translationAvailable ? (
                     <span className="model-chip-value model-ok">{participantModelStatus.translationModelId}</span>
                   ) : (
                     <span className="model-chip-value model-warn">✗</span>
                   )}
-                </a>
+                </button>
               </div>
             )}
           </div>

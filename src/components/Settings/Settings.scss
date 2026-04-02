@@ -1365,7 +1365,8 @@
     border-radius: vars.$radius-sm;
     cursor: pointer;
     transition: all vars.$transition-fast;
-    text-decoration: none;
+    font: inherit;
+    color: inherit;
 
     &:hover {
       background: rgba(255, 255, 255, 0.1);

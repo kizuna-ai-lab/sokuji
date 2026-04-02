@@ -9,7 +9,7 @@ import './Onboarding.scss';
 // Map step targets to the navigateToSettings target for tab switching + scroll + highlight
 const TARGET_NAVIGATION_MAP: Record<string, string | 'close-settings'> = {
   // Advanced mode (class selectors)
-  '.provider-section': 'api-key',
+  '.provider-section': 'provider',
   '.system-instructions-section': 'system-instructions',
   '.voice-settings-section': 'voice-settings',
   '.turn-detection-section': 'turn-detection',

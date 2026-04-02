@@ -36,7 +36,7 @@ let statusHandler: ((...args: any[]) => void) | null = null;
 let progressHandler: ((...args: any[]) => void) | null = null;
 
 const useUpdateStore = create<UpdateStore>()(
-  subscribeWithSelector((set) => ({
+  subscribeWithSelector((set, get) => ({
     // State
     status: 'idle',
     newVersion: null,
