@@ -432,10 +432,23 @@ export const useModelStore = create<ModelStoreState>()(
 
       // Check recalled preferences — override "current" with recalled values if available
       const recalled = get().recallModels(sourceLang, targetLang);
+      console.log('[autoSelectModels]', `${sourceLang}→${targetLang}`, {
+        input: { currentAsrModel, currentTranslationModel, currentTtsModel },
+        recalled,
+      });
       if (recalled) {
-        if (recalled.asrModel && recalled.asrModel !== currentAsrModel) currentAsrModel = recalled.asrModel;
-        if (recalled.translationModel && recalled.translationModel !== currentTranslationModel) currentTranslationModel = recalled.translationModel;
-        if (recalled.ttsModel && recalled.ttsModel !== currentTtsModel) currentTtsModel = recalled.ttsModel;
+        if (recalled.asrModel && recalled.asrModel !== currentAsrModel) {
+          console.log('[autoSelectModels] Overriding ASR with recalled:', recalled.asrModel);
+          currentAsrModel = recalled.asrModel;
+        }
+        if (recalled.translationModel && recalled.translationModel !== currentTranslationModel) {
+          console.log('[autoSelectModels] Overriding translation with recalled:', recalled.translationModel);
+          currentTranslationModel = recalled.translationModel;
+        }
+        if (recalled.ttsModel && recalled.ttsModel !== currentTtsModel) {
+          console.log('[autoSelectModels] Overriding TTS with recalled:', recalled.ttsModel);
+          currentTtsModel = recalled.ttsModel;
+        }
       }
 
       // ASR: must support sourceLanguage and be downloaded

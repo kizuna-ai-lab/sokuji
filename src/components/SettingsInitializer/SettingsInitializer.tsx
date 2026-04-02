@@ -103,10 +103,24 @@ export function SettingsInitializer() {
   // ── LOCAL_INFERENCE: validate when model statuses or language settings change ──
   // validateApiKey() handles everything: model store init, auto-select, readiness check.
   useEffect(() => {
-    if (!settingsLoaded) return;
+    if (!settingsLoaded) {
+      console.debug('[SettingsInitializer] LOCAL_INFERENCE effect: skipped (settings not loaded)');
+      return;
+    }
     if (provider !== Provider.LOCAL_INFERENCE) return;
-    // Wait until model store has scanned IndexedDB
-    if (!modelInitialized) return;
+    if (!modelInitialized) {
+      console.debug('[SettingsInitializer] LOCAL_INFERENCE effect: skipped (model store not initialized)');
+      return;
+    }
+
+    console.log('[SettingsInitializer] LOCAL_INFERENCE effect triggered:', {
+      sourceLanguage: localInferenceSettings.sourceLanguage,
+      targetLanguage: localInferenceSettings.targetLanguage,
+      asrModel: localInferenceSettings.asrModel,
+      translationModel: localInferenceSettings.translationModel,
+      ttsModel: localInferenceSettings.ttsModel,
+      isValidating: isValidatingRef.current,
+    });
 
     // Track provider ref so the API-provider effect above doesn't re-fire
     prevProviderRef.current = provider;
@@ -115,13 +129,20 @@ export function SettingsInitializer() {
     // so no flickering despite being async. It handles autoSelectModels + isProviderReady.
     if (!isValidatingRef.current) {
       isValidatingRef.current = true;
+      console.log('[SettingsInitializer] LOCAL_INFERENCE: starting validateApiKey');
       validateApiKey()
+        .then((result) => {
+          console.log('[SettingsInitializer] LOCAL_INFERENCE: validateApiKey result:', result);
+        })
         .catch((error) => {
           console.error('[SettingsInitializer] Failed to validate LOCAL_INFERENCE provider:', error);
         })
         .finally(() => {
           isValidatingRef.current = false;
+          console.debug('[SettingsInitializer] LOCAL_INFERENCE: isValidatingRef reset to false');
         });
+    } else {
+      console.warn('[SettingsInitializer] LOCAL_INFERENCE effect: SKIPPED — already validating');
     }
   }, [settingsLoaded, provider, modelInitialized, modelStatuses, localInferenceSettings,
       validateApiKey]);
