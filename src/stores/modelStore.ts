@@ -509,15 +509,23 @@ export const useModelStore = create<ModelStoreState>()(
     },
 
     recallModels: (src, tgt) => {
-      const { modelPreferences, modelStatuses } = get();
+      const { modelPreferences, modelStatuses, webgpuAvailable } = get();
       const key = `${src}→${tgt}`;
       const pref = modelPreferences[key];
       if (!pref) return null;
 
+      // Check downloaded + device compatibility
+      const isUsable = (id: string) => {
+        if (!id || modelStatuses[id] !== 'downloaded') return false;
+        const entry = getManifestEntry(id);
+        if (entry?.requiredDevice === 'webgpu' && !webgpuAvailable) return false;
+        return true;
+      };
+
       return {
-        asrModel: pref.asrModel && modelStatuses[pref.asrModel] === 'downloaded' ? pref.asrModel : '',
-        translationModel: pref.translationModel && modelStatuses[pref.translationModel] === 'downloaded' ? pref.translationModel : '',
-        ttsModel: pref.ttsModel && modelStatuses[pref.ttsModel] === 'downloaded' ? pref.ttsModel : '',
+        asrModel: isUsable(pref.asrModel) ? pref.asrModel : '',
+        translationModel: isUsable(pref.translationModel) ? pref.translationModel : '',
+        ttsModel: isUsable(pref.ttsModel) ? pref.ttsModel : '',
       };
     },
   })),
