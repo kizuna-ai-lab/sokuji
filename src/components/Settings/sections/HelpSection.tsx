@@ -35,7 +35,8 @@ const HelpSection: React.FC<HelpSectionProps> = ({ toggleSettings }) => {
         <HelpCircle size={18} />
         <span>{t('settings.help', 'Help')}</span>
       </h3>
-      <div className="setting-item">
+      {/* App actions — buttons */}
+      <div className="help-buttons">
         <button
           className="restart-onboarding-button"
           onClick={() => {
@@ -48,9 +49,7 @@ const HelpSection: React.FC<HelpSectionProps> = ({ toggleSettings }) => {
           <HelpCircle size={16} />
           <span>{t('onboarding.restartTour', 'Restart Setup Guide')}</span>
         </button>
-      </div>
-      {isElectron() && (
-        <div className="setting-item">
+        {isElectron() && (
           <button
             className="restart-onboarding-button"
             onClick={checkForUpdates}
@@ -59,28 +58,22 @@ const HelpSection: React.FC<HelpSectionProps> = ({ toggleSettings }) => {
             <RefreshCw size={16} className={updateStatus === 'checking' ? 'spinning' : ''} />
             <span>{updateStatus === 'checking' ? t('update.checking') : t('update.checkButton')}</span>
           </button>
-        </div>
-      )}
-      <div className="setting-item">
-        <Tooltip content={t('settings.helpEmailTooltip', 'Report bugs or get help')} position="top">
-          <button
-            className="restart-onboarding-button"
-            onClick={() => openExternalUrl('mailto:support@kizuna.ai')}
-          >
-            <Mail size={16} />
-            <span>{t('settings.helpEmailSupport', 'Email Support')}</span>
-          </button>
-        </Tooltip>
+        )}
       </div>
-      <div className="setting-item">
+      {/* External links — compact text links */}
+      <div className="help-links">
+        <Tooltip content={t('settings.helpEmailTooltip', 'Report bugs or get help')} position="top">
+          <a className="help-link" onClick={() => openExternalUrl('mailto:support@kizuna.ai')}>
+            <Mail size={13} />
+            <span>support@kizuna.ai</span>
+          </a>
+        </Tooltip>
+        <span className="help-link-separator">·</span>
         <Tooltip content={t('settings.helpDiscussionsTooltip', 'Feature requests, feedback, and community discussions')} position="top">
-          <button
-            className="restart-onboarding-button"
-            onClick={() => openExternalUrl('https://github.com/kizuna-ai-lab/sokuji/discussions')}
-          >
-            <MessageSquare size={16} />
+          <a className="help-link" onClick={() => openExternalUrl('https://github.com/kizuna-ai-lab/sokuji/discussions')}>
+            <MessageSquare size={13} />
             <span>{t('settings.helpDiscussions', 'Discussions')}</span>
-          </button>
+          </a>
         </Tooltip>
       </div>
     </div>

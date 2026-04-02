@@ -1440,6 +1440,39 @@
   }
 }
 
+// Help section layout
+.help-buttons {
+  display: flex;
+  gap: vars.$space-2;
+  flex-wrap: wrap;
+}
+
+.help-links {
+  display: flex;
+  align-items: center;
+  gap: vars.$space-2;
+  margin-top: vars.$space-2;
+  font-size: 12px;
+}
+
+.help-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: vars.$text-muted;
+  cursor: pointer;
+  text-decoration: none;
+  transition: color vars.$transition-fast;
+
+  &:hover {
+    color: vars.$color-primary;
+  }
+}
+
+.help-link-separator {
+  color: vars.$border-default;
+}
+
 // Responsive
 @media (max-width: 768px) {
   .settings-container {
