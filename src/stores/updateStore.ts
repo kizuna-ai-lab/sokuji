@@ -36,7 +36,7 @@ let statusHandler: ((...args: any[]) => void) | null = null;
 let progressHandler: ((...args: any[]) => void) | null = null;
 
 const useUpdateStore = create<UpdateStore>()(
-  subscribeWithSelector((set) => ({
+  subscribeWithSelector((set, get) => ({
     // State
     status: 'idle',
     newVersion: null,
@@ -55,6 +55,12 @@ const useUpdateStore = create<UpdateStore>()(
       if (!isElectron()) return;
       set({ status: 'checking', bannerDismissed: false });
       (window as any).electron?.invoke('update-check');
+      // Timeout: if no response in 15s, reset to idle (e.g. dev mode without AppImage)
+      setTimeout(() => {
+        if (get().status === 'checking') {
+          set({ status: 'idle' });
+        }
+      }, 15_000);
     },
 
     downloadUpdate: () => {

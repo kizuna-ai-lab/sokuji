@@ -32,6 +32,15 @@ export interface DownloadState {
   percent: number;
 }
 
+export interface ParticipantModelStatus {
+  asrAvailable: boolean;
+  asrModelId: string | null;
+  asrFallback: boolean;
+  asrOriginalModelId: string;
+  translationAvailable: boolean;
+  translationModelId: string | null;
+}
+
 interface ModelStoreState {
   /** Status of each model by ID */
   modelStatuses: Record<string, ModelStatus>;
@@ -73,6 +82,13 @@ interface ModelStoreState {
     sourceLang: string, targetLang: string,
     selectedAsrModel?: string, selectedTranslationModel?: string, selectedTtsModel?: string,
   ) => boolean;
+
+  /**
+   * Check if reverse-direction models are available for participant mode.
+   * Participant reverses direction: recognizes targetLang (ASR) and translates target→source.
+   * Returns detailed status for each model type (ASR and translation).
+   */
+  getParticipantModelStatus: (sourceLang: string, targetLang: string, currentAsrModelId: string, currentTranslationModelId?: string) => ParticipantModelStatus;
 
   /**
    * Auto-correct stale model selections when languages change.
@@ -304,6 +320,71 @@ export const useModelStore = create<ModelStoreState>()(
       }
 
       return true;
+    },
+
+    getParticipantModelStatus: (sourceLang: string, targetLang: string, currentAsrModelId: string, currentTranslationModelId?: string): ParticipantModelStatus => {
+      const { modelStatuses, webgpuAvailable } = get();
+
+      // Participant reverses direction: participant source = user's target
+      const participantSourceLang = targetLang;
+      const participantTargetLang = sourceLang;
+
+      // 1. ASR: check if current model supports participant source language
+      //    (same logic as autoSelectModels)
+      let asrModelId: string | null = null;
+      let asrFallback = false;
+
+      const allAsrModels = [...getManifestByType('asr'), ...getManifestByType('asr-stream')];
+      const currentAsr = allAsrModels.find(m => m.id === currentAsrModelId);
+      const currentAsrOk = currentAsr
+        && (currentAsr.multilingual || currentAsr.languages.includes(participantSourceLang))
+        && modelStatuses[currentAsrModelId] === 'downloaded'
+        && !(currentAsr.requiredDevice === 'webgpu' && !webgpuAvailable);
+
+      if (currentAsrOk) {
+        asrModelId = currentAsrModelId;
+      } else {
+        const match = allAsrModels.find(m =>
+          (m.multilingual || m.languages.includes(participantSourceLang))
+          && modelStatuses[m.id] === 'downloaded'
+          && !(m.requiredDevice === 'webgpu' && !webgpuAvailable)
+        );
+        if (match) {
+          asrModelId = match.id;
+          asrFallback = true;
+        }
+      }
+
+      // 2. Translation: prefer current model if it supports the reverse direction,
+      //    otherwise auto-select (same logic as autoSelectModels)
+      let translationModelId: string | null = null;
+      if (currentTranslationModelId && modelStatuses[currentTranslationModelId] === 'downloaded') {
+        const currentEntry = getManifestEntry(currentTranslationModelId);
+        if (currentEntry
+          && isTranslationModelCompatible(currentEntry, participantSourceLang, participantTargetLang)
+          && !(currentEntry.requiredDevice === 'webgpu' && !webgpuAvailable)) {
+          translationModelId = currentTranslationModelId;
+        }
+      }
+      if (!translationModelId) {
+        const match = getManifestByType('translation').find(m =>
+          isTranslationModelCompatible(m, participantSourceLang, participantTargetLang)
+          && modelStatuses[m.id] === 'downloaded'
+          && !(m.requiredDevice === 'webgpu' && !webgpuAvailable)
+        );
+        if (match) {
+          translationModelId = match.id;
+        }
+      }
+
+      return {
+        asrAvailable: asrModelId !== null,
+        asrModelId,
+        asrFallback,
+        asrOriginalModelId: currentAsrModelId,
+        translationAvailable: translationModelId !== null,
+        translationModelId,
+      };
     },
 
     autoSelectModels: (sourceLang, targetLang, currentAsrModel, currentTranslationModel, currentTtsModel) => {

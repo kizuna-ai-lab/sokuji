@@ -5,3 +5,4 @@ export { default as AudioDeviceSection } from './AudioDeviceSection';
 export { default as SystemAudioSection } from './SystemAudioSection';
 export { default as VoicePassthroughSection } from './VoicePassthroughSection';
 export { default as UpdateSection } from './UpdateSection';
+export { default as HelpSection } from './HelpSection';

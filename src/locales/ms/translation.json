@@ -250,7 +250,8 @@
     "uiLanguage": "Bahasa Antara Muka",
     "audioSettings": "Tetapan Audio",
     "audioSettingsDesc": "Konfigurasikan mikrofon dan pembesar suara anda dalam panel Audio",
-    "autoAuthenticated": "Disahkan secara automatik melalui akaun anda"
+    "autoAuthenticated": "Disahkan secara automatik melalui akaun anda",
+    "provider": "Penyedia"
   },
   "simpleConfig": {
     "interfaceLanguage": "Bahasa Antara Muka",

@@ -1283,7 +1283,8 @@
   padding: 6px 10px;
   border-radius: vars.$radius-sm;
   font-size: vars.$font-caption;
-  margin-bottom: 12px;
+  margin-top: vars.$space-2;
+  margin-bottom: vars.$space-2;
 
   &.success {
     background: rgba(68, 255, 68, 0.1);
@@ -1340,6 +1341,136 @@
     outline: 1px solid rgba(59, 130, 246, 0.2);
     outline-offset: 4px;
   }
+}
+
+.local-inference-info {
+  .model-info {
+    margin-top: vars.$space-2;
+  }
+
+  .model-inline {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+  }
+
+  .model-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid vars.$border-subtle;
+    border-radius: vars.$radius-sm;
+    cursor: pointer;
+    transition: all vars.$transition-fast;
+    font: inherit;
+    color: inherit;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: vars.$color-primary;
+    }
+  }
+
+  .model-chip-label {
+    font-size: 10px;
+    color: vars.$text-muted;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .model-chip-value {
+    font-family: monospace;
+    font-size: 11px;
+    color: vars.$text-secondary;
+
+    &.model-ok {
+      color: vars.$color-success;
+    }
+
+    &.model-warn {
+      color: vars.$color-warning;
+    }
+  }
+
+  .participant-inline {
+    margin-top: 4px;
+    padding-top: 4px;
+    border-top: 1px solid vars.$border-subtle;
+  }
+
+  .participant-label {
+    font-size: 10px;
+    color: vars.$text-muted;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+}
+
+// Help section buttons (shared between SimpleSettings and AdvancedSettings)
+.restart-onboarding-button {
+  display: flex;
+  align-items: center;
+  gap: vars.$space-2;
+  padding: 10px 16px;
+  background: transparent;
+  border: 1px solid vars.$border-default;
+  border-radius: vars.$radius-md;
+  color: vars.$text-muted;
+  font-size: vars.$font-body;
+  cursor: pointer;
+  transition: all vars.$transition-fast;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: vars.$border-strong;
+    color: vars.$text-primary;
+  }
+
+  &:disabled {
+    opacity: vars.$disabled-opacity;
+    cursor: not-allowed;
+  }
+
+  svg {
+    width: 16px;
+    height: 16px;
+  }
+}
+
+// Help section layout
+.help-links {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: vars.$space-2;
+  font-size: vars.$font-caption;
+}
+
+.help-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: vars.$text-muted;
+  cursor: pointer;
+  text-decoration: none;
+  transition: color vars.$transition-fast;
+
+  &:hover {
+    color: vars.$color-primary;
+  }
+
+  &.disabled {
+    opacity: vars.$disabled-opacity;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+}
+
+.help-link-separator {
+  color: vars.$border-default;
 }
 
 // Responsive

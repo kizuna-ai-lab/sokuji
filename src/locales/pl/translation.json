@@ -448,7 +448,8 @@
     "uiLanguage": "Język Interfejsu",
     "audioSettings": "Ustawienia Audio",
     "audioSettingsDesc": "Skonfiguruj mikrofon i głośniki w panelu Audio",
-    "autoAuthenticated": "Automatycznie uwierzytelniono za pomocą konta"
+    "autoAuthenticated": "Automatycznie uwierzytelniono za pomocą konta",
+    "provider": "Dostawca"
   },
   "simpleConfig": {
     "interfaceLanguage": "Język Interfejsu",

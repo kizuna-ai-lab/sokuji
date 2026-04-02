@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { AlertCircle, HelpCircle, Settings, Headphones, Cpu } from 'lucide-react';
+import { AlertCircle, Settings, Headphones, Cpu } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useIsSessionActive } from '../../../stores/sessionStore';
-import { useOnboarding } from '../../../contexts/OnboardingContext';
 import {
   useProvider,
   useAvailableModels,
@@ -24,7 +23,8 @@ import {
   LanguageSection,
   AudioDeviceSection,
   SystemAudioSection,
-  VoicePassthroughSection
+  VoicePassthroughSection,
+  HelpSection
 } from '../sections';
 import ProviderSpecificSettings from '../sections/ProviderSpecificSettings';
 import './AdvancedSettings.scss';
@@ -41,7 +41,7 @@ const NAVIGATION_TAB_MAP: Record<string, string> = {
   'microphone': 'audio',
   'speaker': 'audio',
   'system-audio': 'audio',
-  'api-key': 'provider',
+  'provider': 'provider',
   'system-instructions': 'provider',
   'voice-settings': 'provider',
   'turn-detection': 'provider',
@@ -58,7 +58,6 @@ interface AdvancedSettingsProps {
 const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({ toggleSettings }) => {
   const { t } = useTranslation();
   const isSessionActive = useIsSessionActive();
-  const { startOnboarding } = useOnboarding();
 
   // Provider settings
   const provider = useProvider();
@@ -156,24 +155,14 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({ toggleSettings }) =
               showTranslationLanguages={true}
             />
 
-            {/* Help Section */}
-            <div className="settings-section">
-              <h2>{t('settings.help', 'Help')}</h2>
-              <div className="setting-item">
-                <button
-                  className="restart-onboarding-button"
-                  onClick={() => {
-                    startOnboarding();
-                    if (toggleSettings) {
-                      toggleSettings();
-                    }
-                  }}
-                >
-                  <HelpCircle size={16} />
-                  <span>{t('onboarding.restartTour', 'Restart Setup Guide')}</span>
-                </button>
-              </div>
-            </div>
+            {/* Provider Selection */}
+            <ProviderSection
+              isSessionActive={isSessionActive}
+              expandableStyle={false}
+            />
+
+            {/* Help & Updates */}
+            <HelpSection toggleSettings={toggleSettings} />
           </>
         )}
 

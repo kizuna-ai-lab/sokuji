@@ -449,7 +449,8 @@
     "uiLanguage": "Interface Taal",
     "audioSettings": "Audio Instellingen",
     "audioSettingsDesc": "Configureer uw microfoon en luidsprekers in het Audio paneel",
-    "autoAuthenticated": "Automatisch geauthenticeerd via uw account"
+    "autoAuthenticated": "Automatisch geauthenticeerd via uw account",
+    "provider": "Provider"
   },
   "simpleConfig": {
     "interfaceLanguage": "Interface Taal",

@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
-import { Key, Zap, HelpCircle, CircleHelp, ChevronDown, ChevronUp, CheckCircle, AlertCircle, FlaskConical, ExternalLink, X } from 'lucide-react';
+import { Cpu, Zap, HelpCircle, ChevronDown, ChevronUp, CheckCircle, AlertCircle, FlaskConical, ExternalLink, X } from 'lucide-react';
 import { OpenAIIcon, GeminiIcon, PalabraAIIcon, KizunaAIIcon, VolcengineIcon } from '../../Icons/ProviderIcons';
 import { useTranslation, Trans } from 'react-i18next';
 import Tooltip from '../../Tooltip/Tooltip';
@@ -27,12 +27,19 @@ import {
   useKizunaKeyError,
   useSetUIMode,
   useNavigateToSettings,
+  useLocalInferenceSettings,
 } from '../../../stores/settingsStore';
 import { Provider, ProviderType } from '../../../types/Provider';
 import { ProviderConfigFactory } from '../../../services/providers/ProviderConfigFactory';
 import { useAuth } from '../../../lib/auth/hooks';
 import { isElectron } from '../../../utils/environment';
 import { useAnalytics } from '../../../lib/analytics';
+import { useModelStore } from '../../../stores/modelStore';
+import { useAudioContext } from '../../../stores/audioStore';
+import {
+  getTranslationModel,
+  getTtsModelsForLanguage,
+} from '../../../lib/local-inference/modelManifest';
 
 const TUTORIAL_URLS: Partial<Record<ProviderType, string>> = {
   [Provider.OPENAI]: 'https://sokuji.kizuna.ai/docs/tutorials/openai-setup',
@@ -90,6 +97,21 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
   const kizunaKeyError = useKizunaKeyError();
   const setUIMode = useSetUIMode();
   const navigateToSettings = useNavigateToSettings();
+
+  // Local inference model info
+  const localInferenceSettings = useLocalInferenceSettings();
+  const { isSystemAudioCaptureEnabled } = useAudioContext();
+  // Read model download statuses reactively so participant status updates when models are downloaded
+  const modelStatuses = useModelStore(state => state.modelStatuses);
+  const participantModelStatus = useMemo(() => {
+    if (provider !== Provider.LOCAL_INFERENCE) return null;
+    return useModelStore.getState().getParticipantModelStatus(
+      localInferenceSettings.sourceLanguage,
+      localInferenceSettings.targetLanguage,
+      localInferenceSettings.asrModel,
+      localInferenceSettings.translationModel || undefined,
+    );
+  }, [provider, localInferenceSettings.sourceLanguage, localInferenceSettings.targetLanguage, localInferenceSettings.asrModel, localInferenceSettings.translationModel, modelStatuses]);
 
   const [isProviderExpanded, setIsProviderExpanded] = useState(false);
 
@@ -282,22 +304,22 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
   const currentApiKey = getCurrentApiKey();
 
   return (
-    <div className={`config-section api-key-section ${className}`} id="api-key-section">
+    <div className={`config-section provider-section ${className}`} id="provider-section">
       <h3>
-        <Key size={18} />
-        <span>{t('simpleSettings.apiKey')}</span>
+        <Cpu size={18} />
+        <span>{t('simpleSettings.provider', 'Provider')}</span>
         <Tooltip
           content={
             <div>
-              <p>{t('simpleSettings.apiKeyHelpTooltip')}</p>
+              <p>{t('settings.providerTooltip')}</p>
               <p style={{ marginTop: '8px' }}>{t('simpleSettings.apiKeyHelpTooltip2')}</p>
               <a
-                href="https://kizuna-ai-lab.github.io/sokuji/supported-ai-providers.html"
+                href="https://sokuji.kizuna.ai/docs/ai-providers"
                 target="_blank"
                 rel="noopener noreferrer"
                 style={{ color: '#10a37f', textDecoration: 'underline' }}
               >
-                https://kizuna-ai-lab.github.io/sokuji/supported-ai-providers.html
+                https://sokuji.kizuna.ai/docs/ai-providers
               </a>
             </div>
           }
@@ -357,17 +379,6 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
       ) : (
         // Dropdown style for advanced mode
         <div className="setting-item">
-          <div className="setting-label">
-            <span>
-              {t('settings.providerType', 'Provider')}
-              <Tooltip
-                content={t('settings.providerTooltip')}
-                position="top"
-              >
-                <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '4px', display: 'inline-block', verticalAlign: 'middle' }} />
-              </Tooltip>
-            </span>
-          </div>
           <div className="provider-selection-wrapper">
             <select
               className="select-dropdown"
@@ -409,9 +420,63 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
 
       {/* API Key Input or Kizuna AI Status or Local Inference (no key needed) */}
       {provider === Provider.LOCAL_INFERENCE ? (
-        <div className="api-key-info">
-          <CheckCircle size={16} className="success-icon" />
-          <span>{t('providers.local_inference.noKeyRequired', 'No API key required — runs entirely on your device')}</span>
+        <div className="local-inference-info">
+          <div className="model-info">
+            <div className="model-inline">
+              <button type="button" className="model-chip" onClick={() => { setUIMode('advanced'); setTimeout(() => navigateToSettings('model-asr'), 100); }}>
+                <span className="model-chip-label">{t('providers.local_inference.modelAsr', 'ASR')}</span>
+                <span className="model-chip-value">
+                  {localInferenceSettings.asrModel && modelStatuses[localInferenceSettings.asrModel] === 'downloaded'
+                    ? localInferenceSettings.asrModel
+                    : t('common.none', 'None')}
+                </span>
+              </button>
+              <button type="button" className="model-chip" onClick={() => { setUIMode('advanced'); setTimeout(() => navigateToSettings('model-translation'), 100); }}>
+                <span className="model-chip-label">{t('providers.local_inference.modelTranslation', 'Translation')}</span>
+                <span className="model-chip-value">
+                  {(() => {
+                    const id = localInferenceSettings.translationModel
+                      || getTranslationModel(localInferenceSettings.sourceLanguage, localInferenceSettings.targetLanguage)?.id;
+                    return id && modelStatuses[id] === 'downloaded' ? id : t('common.none', 'None');
+                  })()}
+                </span>
+              </button>
+              <button type="button" className="model-chip" onClick={() => { setUIMode('advanced'); setTimeout(() => navigateToSettings('model-tts'), 100); }}>
+                <span className="model-chip-label">{t('providers.local_inference.modelTts', 'TTS')}</span>
+                <span className="model-chip-value">
+                  {(() => {
+                    const id = localInferenceSettings.ttsModel
+                      || getTtsModelsForLanguage(localInferenceSettings.targetLanguage).find(m => modelStatuses[m.id] === 'downloaded')?.id;
+                    return id && modelStatuses[id] === 'downloaded' ? id : t('common.none', 'None');
+                  })()}
+                </span>
+              </button>
+            </div>
+            {isSystemAudioCaptureEnabled && participantModelStatus && (
+              <div className="model-inline participant-inline">
+                <span className="participant-label">{t('providers.local_inference.participant', 'Participant')}</span>
+                <button type="button" className="model-chip" onClick={() => { setUIMode('advanced'); setTimeout(() => navigateToSettings('model-asr'), 100); }}>
+                  <span className="model-chip-label">{t('providers.local_inference.modelAsr', 'ASR')}</span>
+                  {participantModelStatus.asrAvailable ? (
+                    <span className="model-chip-value model-ok">
+                      {participantModelStatus.asrModelId}
+                      {participantModelStatus.asrFallback && ` ↻`}
+                    </span>
+                  ) : (
+                    <span className="model-chip-value model-warn">✗</span>
+                  )}
+                </button>
+                <button type="button" className="model-chip" onClick={() => { setUIMode('advanced'); setTimeout(() => navigateToSettings('model-translation'), 100); }}>
+                  <span className="model-chip-label">{t('providers.local_inference.modelTranslation', 'Translation')}</span>
+                  {participantModelStatus.translationAvailable ? (
+                    <span className="model-chip-value model-ok">{participantModelStatus.translationModelId}</span>
+                  ) : (
+                    <span className="model-chip-value model-warn">✗</span>
+                  )}
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       ) : provider !== Provider.KIZUNA_AI ? (
         provider === Provider.VOLCENGINE_AST2 ? (

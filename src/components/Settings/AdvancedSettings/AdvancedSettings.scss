@@ -72,30 +72,5 @@
       }
     }
 
-    // Restart onboarding button
-    .restart-onboarding-button {
-      display: flex;
-      align-items: center;
-      gap: vars.$space-2;
-      padding: 10px 16px;
-      background: transparent;
-      border: 1px solid vars.$border-default;
-      border-radius: vars.$radius-md;
-      color: vars.$text-muted;
-      font-size: vars.$font-body;
-      cursor: pointer;
-      transition: all vars.$transition-fast;
-
-      &:hover {
-        background: rgba(255, 255, 255, 0.05);
-        border-color: vars.$border-strong;
-        color: vars.$text-primary;
-      }
-
-      svg {
-        width: 16px;
-        height: 16px;
-      }
-    }
   }
 }

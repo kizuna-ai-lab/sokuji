@@ -131,3 +131,84 @@ describe('settingsStore', () => {
     });
   });
 });
+
+describe('createParticipantLocalInferenceConfig', () => {
+  it('swaps languages and resolves reverse models', async () => {
+    const { createParticipantLocalInferenceConfig } = await import('./settingsStore');
+
+    const baseConfig = {
+      provider: 'local_inference' as const,
+      model: 'local-asr-translate',
+      instructions: '',
+      sourceLanguage: 'ja',
+      targetLanguage: 'en',
+      asrModelId: 'sensevoice-int8',
+      translationModelId: 'opus-mt-ja-en',
+      ttsModelId: 'piper-en',
+      ttsSpeakerId: 0,
+      ttsSpeed: 1.0,
+    };
+
+    // Mock getParticipantModelStatus on the model store
+    const { useModelStore } = await import('./modelStore');
+    const originalState = useModelStore.getState();
+    vi.spyOn(useModelStore, 'getState').mockReturnValue({
+      ...originalState,
+      getParticipantModelStatus: () => ({
+        asrAvailable: true,
+        asrModelId: 'sensevoice-int8',
+        asrFallback: false,
+        asrOriginalModelId: 'sensevoice-int8',
+        translationAvailable: true,
+        translationModelId: 'opus-mt-en-ja',
+      }),
+    });
+
+    const result = createParticipantLocalInferenceConfig(baseConfig);
+
+    expect(result).not.toBeNull();
+    expect(result!.config.sourceLanguage).toBe('en');
+    expect(result!.config.targetLanguage).toBe('ja');
+    expect(result!.config.asrModelId).toBe('sensevoice-int8');
+    expect(result!.config.translationModelId).toBe('opus-mt-en-ja');
+    expect(result!.config.ttsModelId).toBeUndefined();
+    expect(result!.status.translationAvailable).toBe(true);
+
+    vi.restoreAllMocks();
+  });
+
+  it('returns null when no ASR model is available', async () => {
+    const { createParticipantLocalInferenceConfig } = await import('./settingsStore');
+
+    const baseConfig = {
+      provider: 'local_inference' as const,
+      model: 'local-asr-translate',
+      instructions: '',
+      sourceLanguage: 'en',
+      targetLanguage: 'ja',
+      asrModelId: 'whisper-en',
+      translationModelId: 'opus-mt-en-ja',
+      ttsModelId: 'piper-ja',
+      ttsSpeakerId: 0,
+      ttsSpeed: 1.0,
+    };
+
+    const { useModelStore } = await import('./modelStore');
+    vi.spyOn(useModelStore, 'getState').mockReturnValue({
+      ...useModelStore.getState(),
+      getParticipantModelStatus: () => ({
+        asrAvailable: false,
+        asrModelId: null,
+        asrFallback: false,
+        asrOriginalModelId: 'whisper-en',
+        translationAvailable: false,
+        translationModelId: null,
+      }),
+    });
+
+    const result = createParticipantLocalInferenceConfig(baseConfig);
+    expect(result).toBeNull();
+
+    vi.restoreAllMocks();
+  });
+});

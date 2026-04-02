@@ -156,6 +156,10 @@
     "volcengineAST2TurnDetectionTooltip": "Auto mode uses server-side voice activity detection. Push-to-Talk lets you manually control when to send audio by holding Space or the mic button.",
     "geminiParticipantTokenWarning": "Gemini participant mode generates audio responses that are discarded, resulting in additional token usage.",
     "help": "Help",
+    "helpEmailSupport": "Email Support",
+    "helpEmailTooltip": "Report bugs or get help",
+    "helpDiscussions": "Discussions",
+    "helpDiscussionsTooltip": "Feature requests, feedback, and community discussions",
     "auto": "Auto",
     "low": "Low",
     "medium": "Medium",
@@ -238,6 +242,7 @@
       "travel": "Travel",
       "travelDesc": "Tourism and travel scenarios"
     },
+    "provider": "Provider",
     "apiKey": "API Key",
     "apiKeyPlaceholder": "Enter your API key",
     "setupGuide": "Setup guide",
@@ -430,7 +435,14 @@
     "local_inference": {
       "name": "Local (Offline)",
       "description": "Offline ASR + Translation + TTS",
-      "noKeyRequired": "No API key required — runs entirely on your device"
+      "noKeyRequired": "No API key required — runs entirely on your device",
+      "modelAsr": "ASR",
+      "modelTranslation": "Translation",
+      "modelTts": "TTS",
+      "participant": "Participant",
+      "fallback": "auto-selected",
+      "noAsrModel": "No model available",
+      "noTranslationModel": "No model — transcription only"
     },
     "unknown": {
       "name": "Unknown",

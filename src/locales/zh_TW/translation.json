@@ -40,7 +40,8 @@
     "audioSettings": "音訊設定",
     "apiKeyHelpTooltip": "API 金鑰就像密碼，讓 Sokuji 使用 AI 翻譯服務。您需要從選擇的提供商（如 OpenAI）取得一個。",
     "apiKeyHelpTooltip2": "逐步指南：",
-    "autoAuthenticated": "已通過您的帳戶自動認證"
+    "autoAuthenticated": "已通過您的帳戶自動認證",
+    "provider": "提供者"
   },
   "simpleConfig": {
     "interfaceLanguage": "介面語言",

@@ -23,13 +23,13 @@ import {
   useConversationFontSize,
   useSetConversationFontSize
 } from '../../stores/settingsStore';
-import useSettingsStore from '../../stores/settingsStore';
+import useSettingsStore, { createParticipantLocalInferenceConfig } from '../../stores/settingsStore';
 import { useSession } from '../../stores/sessionStore';
 import { useAudioContext, useIsNoiseSuppressEnabled } from '../../stores/audioStore';
 import { useLogActions } from '../../stores/logStore';
 import type { RealtimeEvent } from '../../stores/logStore';
 import { IClient, ConversationItem, SessionConfig, ClientEventHandlers, ClientFactory, ResponseConfig } from '../../services/clients';
-import type { VolcengineAST2SessionConfig, VolcengineSTSessionConfig } from '../../services/interfaces/IClient';
+import type { VolcengineAST2SessionConfig, VolcengineSTSessionConfig, LocalInferenceSessionConfig } from '../../services/interfaces/IClient';
 import { WavRenderer } from '../../utils/wav_renderer';
 import { ServiceFactory } from '../../services/ServiceFactory'; // Import the ServiceFactory
 import { IAudioService } from '../../services/interfaces/IAudioService';
@@ -293,7 +293,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   /**
    * Helper to create session config for participant mode (swapped languages, text-only, semantic VAD)
    */
-  const createParticipantSessionConfig = useCallback(() => {
+  const createParticipantSessionConfig = useCallback((): SessionConfig | null => {
     const swappedSystemInstructions = getProcessedSystemInstructions(true);
     const config = {
       ...createSessionConfig(swappedSystemInstructions),
@@ -318,10 +318,28 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       const oldSource = st.sourceLanguage;
       st.sourceLanguage = st.targetLanguages[0] || oldSource;
       st.targetLanguages = [oldSource];
+    } else if (config.provider === 'local_inference') {
+      const localConfig = config as LocalInferenceSessionConfig;
+      const result = createParticipantLocalInferenceConfig(localConfig);
+
+      if (!result) {
+        addLog(`Participant: no ASR model available for ${localConfig.targetLanguage}`, 'error');
+        return null;
+      }
+
+      if (!result.status.translationAvailable) {
+        addLog(`Participant: no translation model for ${localConfig.targetLanguage} → ${localConfig.sourceLanguage} — transcription only`, 'warning');
+      }
+
+      if (result.status.asrFallback) {
+        addLog(`Participant: using ${result.status.asrModelId} instead of ${result.status.asrOriginalModelId} for ASR`, 'info');
+      }
+
+      return result.config;
     }
 
     return config;
-  }, [getProcessedSystemInstructions, createSessionConfig]);
+  }, [getProcessedSystemInstructions, createSessionConfig, addLog]);
 
   // Initialize auto-update listeners
   const initUpdateListeners = useInitUpdateListeners();
@@ -1179,37 +1197,42 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
           // Create and connect with participant session config
           const participantSessionConfig = createParticipantSessionConfig();
-          await participantClient.connect(participantSessionConfig);
-          console.info(`[Sokuji] [MainPanel] Participant audio client connected (${captureMode}, text-only, swapped languages, semantic VAD)`);
-
-          // Start recording from appropriate source based on environment
-          let participantAudioCallbackCount = 0;
-          const createAudioDataCallback = (client: IClient) => (data: { mono: Int16Array; raw: Int16Array }) => {
-            if (client) {
-              if (participantAudioCallbackCount % 100 === 0) {
-                console.debug(`[Sokuji] [MainPanel] Sending ${captureMode} audio to client: chunk ${participantAudioCallbackCount}, PCM length: ${data.mono.length}`);
-              }
-              participantAudioCallbackCount++;
-              client.appendInputAudio(data.mono);
-            }
-          };
-
-          if (isExtension()) {
-            // Extension: start tab audio recording with optional output device for passthrough
-            const outputDeviceId = participantAudioOutputDevice?.deviceId;
-            console.info('[Sokuji] [MainPanel] Starting tab audio recording with output device:', outputDeviceId || 'default');
-            await audioServiceRef.current.startTabAudioRecording(
-              createAudioDataCallback(participantClient),
-              outputDeviceId
-            );
+          if (!participantSessionConfig) {
+            console.info('[Sokuji] [MainPanel] Participant skipped — no suitable models');
+            systemAudioClientRef.current = null;
           } else {
-            // Electron: start system audio recording from virtual mic
-            await audioServiceRef.current.startSystemAudioRecording(
-              createAudioDataCallback(participantClient)
-            );
-          }
+            await participantClient.connect(participantSessionConfig);
+            console.info(`[Sokuji] [MainPanel] Participant audio client connected (${captureMode}, text-only, swapped languages, semantic VAD)`);
 
-          console.info(`[Sokuji] [MainPanel] Participant audio recording started (${captureMode})`);
+            // Start recording from appropriate source based on environment
+            let participantAudioCallbackCount = 0;
+            const createAudioDataCallback = (client: IClient) => (data: { mono: Int16Array; raw: Int16Array }) => {
+              if (client) {
+                if (participantAudioCallbackCount % 100 === 0) {
+                  console.debug(`[Sokuji] [MainPanel] Sending ${captureMode} audio to client: chunk ${participantAudioCallbackCount}, PCM length: ${data.mono.length}`);
+                }
+                participantAudioCallbackCount++;
+                client.appendInputAudio(data.mono);
+              }
+            };
+
+            if (isExtension()) {
+              // Extension: start tab audio recording with optional output device for passthrough
+              const outputDeviceId = participantAudioOutputDevice?.deviceId;
+              console.info('[Sokuji] [MainPanel] Starting tab audio recording with output device:', outputDeviceId || 'default');
+              await audioServiceRef.current.startTabAudioRecording(
+                createAudioDataCallback(participantClient),
+                outputDeviceId
+              );
+            } else {
+              // Electron: start system audio recording from virtual mic
+              await audioServiceRef.current.startSystemAudioRecording(
+                createAudioDataCallback(participantClient)
+              );
+            }
+
+            console.info(`[Sokuji] [MainPanel] Participant audio recording started (${captureMode})`);
+          }
         } catch (error) {
           console.error('[Sokuji] [MainPanel] Failed to start participant audio client:', error);
           // Don't fail the whole session, just log the error

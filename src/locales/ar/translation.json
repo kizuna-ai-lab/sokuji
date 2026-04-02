@@ -251,7 +251,8 @@
     "uiLanguage": "لغة الواجهة",
     "audioSettings": "إعدادات الصوت",
     "audioSettingsDesc": "قم بتكوين الميكروفون والسماعات في لوحة الصوت",
-    "autoAuthenticated": "تمت المصادقة تلقائيًا عبر حسابك"
+    "autoAuthenticated": "تمت المصادقة تلقائيًا عبر حسابك",
+    "provider": "المزوّد"
   },
   "simpleConfig": {
     "interfaceLanguage": "لغة الواجهة",

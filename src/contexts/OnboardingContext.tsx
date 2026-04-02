@@ -78,7 +78,7 @@ const createBasicOnboardingSteps = (t: any): OnboardingStep[] => [
     placement: 'left',
   },
   {
-    target: '#api-key-section',
+    target: '#provider-section',
     content: t('onboarding.basic.steps.provider.content', 'Choose your translation provider. Sokuji supports cloud services like OpenAI, Gemini, Volcengine (Doubao), and more. You can also use Local Inference — no API key needed, free and privacy-focused, just download models for fully offline translation.'),
     title: t('onboarding.basic.steps.provider.title', 'Step 4: Translation Provider'),
     placement: 'left',
@@ -133,7 +133,7 @@ const createAdvancedOnboardingSteps = (t: any, capabilities?: { hasTemplateMode:
       placement: 'bottom',
     },
     {
-      target: '.api-key-section',
+      target: '.provider-section',
       content: t('onboarding.steps.apiKey.content', 'Choose your translation provider. Sokuji supports cloud services like OpenAI, Gemini, Volcengine (Doubao), and more. You can also use Local Inference — no API key needed, free and privacy-focused, just download models for fully offline translation.'),
       title: t('onboarding.steps.apiKey.title', 'Step 2: Translation Provider'),
       placement: 'left',
