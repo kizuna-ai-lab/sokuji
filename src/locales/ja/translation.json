@@ -285,6 +285,7 @@
   },
   "mainPanel": {
     "conversationPlaceholder": "会話がここに表示されます",
+    "speechDetected": "[音声を検出しました]",
     "audioContent": "音声コンテンツ",
     "function": "関数",
     "input": "入力",

@@ -280,6 +280,7 @@
   },
   "mainPanel": {
     "conversationPlaceholder": "La conversazione apparirà qui",
+    "speechDetected": "[Voce rilevata]",
     "audioContent": "Contenuto audio",
     "function": "Funzione",
     "input": "Input",

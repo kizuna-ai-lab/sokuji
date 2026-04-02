@@ -329,6 +329,7 @@
   },
   "mainPanel": {
     "conversationPlaceholder": "Розмова з'явиться тут",
+    "speechDetected": "[Виявлено мовлення]",
     "pushToTalk": "натисніть, щоб говорити (Пробіл)",
     "endSession": "Завершити сесію",
     "startSession": "Почати сесію",

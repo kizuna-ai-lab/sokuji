@@ -389,6 +389,7 @@
   },
   "mainPanel": {
     "conversationPlaceholder": "مکالمه اینجا نمایش داده خواهد شد",
+    "speechDetected": "[گفتار شناسایی شد]",
     "audioContent": "محتوای صوتی",
     "function": "تابع",
     "input": "ورودی",

@@ -368,6 +368,7 @@
   },
   "mainPanel": {
     "conversationPlaceholder": "बातचीत यहाँ दिखाई देगी",
+    "speechDetected": "[भाषण का पता चला]",
     "pushToTalk": "बोलने के लिए दबाएं (स्पेस)",
     "endSession": "सत्र समाप्त करें",
     "startSession": "सत्र शुरू करें",

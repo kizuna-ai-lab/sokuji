@@ -329,6 +329,7 @@
   },
   "mainPanel": {
     "conversationPlaceholder": "సంభాషణ ఇక్కడ కనిపిస్తుంది",
+    "speechDetected": "[ప్రసంగం గుర్తించబడింది]",
     "pushToTalk": "మాట్లాడటానికి నొక్కండి (Space)",
     "endSession": "సెషన్ ముగించు",
     "startSession": "సెషన్ ప్రారంభించు",

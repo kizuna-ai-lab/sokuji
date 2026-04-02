@@ -347,6 +347,7 @@
   },
   "mainPanel": {
     "conversationPlaceholder": "உரையாடல் இங்கே தோன்றும்",
+    "speechDetected": "[பேச்சு கண்டறியப்பட்டது]",
     "pushToTalk": "பேச அழுத்தவும் (Space)",
     "endSession": "அமர்வை முடி",
     "startSession": "அமர்வைத் தொடங்கு",

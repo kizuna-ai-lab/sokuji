@@ -24,6 +24,7 @@ import { TtsEngine } from '../../lib/local-inference/engine/TtsEngine';
 import { getManifestEntry } from '../../lib/local-inference/modelManifest';
 import { resampleFloat32, float32ToInt16 } from '../../utils/audio-conversion';
 import { splitSentences } from '../../utils/splitSentences';
+import i18n from '../../locales';
 
 interface AsrTiming {
   durationMs: number;
@@ -49,6 +50,9 @@ export class LocalInferenceClient implements IClient {
 
   // Streaming ASR: in-progress partial result item
   private partialUserItem: ConversationItem | null = null;
+
+  // AST mode: ASR produces translated text directly, skip translation engine
+  private astMode = false;
 
   // TTS queue for serial processing
   private ttsQueue: PipelineJob[] = [];
@@ -88,12 +92,6 @@ export class LocalInferenceClient implements IClient {
     this.conversationItems = [];
     this.itemCounter = 0;
     this.ttsEngine = null;
-
-    // Determine which engines will be initialized
-    const engines = ['asr'];
-    if (config.translationModelId) engines.push('translation');
-    if (config.ttsModelId && !config.textOnly) engines.push('tts');
-    this.emitEvent('local.init.start', 'client', { engines: [...engines] });
 
     try {
       // --- Create engines & set callbacks synchronously ---
@@ -155,14 +153,28 @@ export class LocalInferenceClient implements IClient {
         this.asrEngine = engine;
       }
 
-      // Translation engine (optional — skip when no model available, e.g. participant ASR-only mode)
-      if (config.translationModelId) {
+      // Translation engine — skip when no model available (participant ASR-only)
+      // or when ASR model handles AST directly (Granite Speech)
+      const isAstMode = asrModel?.asrEngine === 'granite-speech'
+        && config.translationModelId === config.asrModelId;
+      this.astMode = isAstMode;
+
+      if (isAstMode) {
+        console.info('[LocalInference] AST mode: Granite Speech handles translation, skipping translation engine');
+        this.translationEngine = null;
+      } else if (config.translationModelId) {
         console.info('[LocalInference] Initializing Translation engine:', config.translationModelId, `(${config.sourceLanguage} → ${config.targetLanguage})`);
         this.translationEngine = new TranslationEngine();
       } else {
         console.info('[LocalInference] No translation model — ASR-only mode');
         this.translationEngine = null;
       }
+
+      // Determine which engines will be initialized
+      const engines = ['asr'];
+      if (this.translationEngine) engines.push('translation');
+      if (config.ttsModelId && !config.textOnly) engines.push('tts');
+      this.emitEvent('local.init.start', 'client', { engines: [...engines] });
 
       // TTS engine (optional — skip when textOnly or no TTS model configured)
       if (config.ttsModelId && !config.textOnly) {
@@ -178,11 +190,14 @@ export class LocalInferenceClient implements IClient {
         if (asrModel?.type === 'asr-stream') {
           return (this.asrEngine as StreamingAsrEngine).init(config.asrModelId, { language: config.sourceLanguage });
         } else {
+          const taskConfig = isAstMode
+            ? { task: 'translate' as const, targetLanguage: config.targetLanguage }
+            : undefined;
           return (this.asrEngine as AsrEngine).init(config.asrModelId, {
             threshold: config.vadThreshold,
             minSilenceDuration: config.vadMinSilenceDuration,
             minSpeechDuration: config.vadMinSpeechDuration,
-          }, config.sourceLanguage);
+          }, config.sourceLanguage, taskConfig);
         }
       });
 
@@ -211,7 +226,7 @@ export class LocalInferenceClient implements IClient {
       }
       console.info('[LocalInference] ASR engine ready');
 
-      // Check Translation result (skip if ASR-only mode)
+      // Check Translation result (skip if ASR-only or AST mode)
       if (this.translationEngine) {
         if (results[1].status === 'rejected') {
           throw new Error(`Translation engine init failed: ${results[1].reason instanceof Error ? results[1].reason.message : String(results[1].reason)}`);
@@ -249,6 +264,7 @@ export class LocalInferenceClient implements IClient {
     this.ttsQueue = [];
     this.ttsProcessing = false;
     this.partialUserItem = null;
+    this.astMode = false;
 
     this.asrEngine?.dispose();
     this.asrEngine = null;
@@ -355,9 +371,14 @@ export class LocalInferenceClient implements IClient {
   }
 
   private handleAsrResult(text: string, timing?: AsrTiming): void {
+    // In AST mode, text is already translated — show placeholder for user item
+    const userTranscript = this.astMode
+      ? i18n.t('mainPanel.speechDetected')
+      : text;
+
     if (this.partialUserItem) {
       // Finalize the partial item from streaming ASR
-      this.partialUserItem.formatted!.transcript = text;
+      this.partialUserItem.formatted!.transcript = userTranscript;
       this.partialUserItem.status = 'completed';
       this.handlers.onConversationUpdated?.({ item: this.partialUserItem });
       this.partialUserItem = null;
@@ -370,7 +391,7 @@ export class LocalInferenceClient implements IClient {
         status: 'completed',
         createdAt: Date.now(),
         formatted: {
-          transcript: text,
+          transcript: userTranscript,
         },
       };
       this.conversationItems.push(userItem);
@@ -406,11 +427,12 @@ export class LocalInferenceClient implements IClient {
     const itemId = `local_asst_${++this.itemCounter}`;
 
     try {
+      if (this.disposed) return;
+
       let displayText: string;
 
       if (this.translationEngine) {
         // Full pipeline: translate then display
-        if (this.disposed) return;
         this.emitEvent('local.translation.start', 'client', { sourceText: job.text, modelId: this.config?.translationModelId });
         const translationResult = await this.translationEngine.translate(job.text);
         if (this.disposed) return;
@@ -422,6 +444,7 @@ export class LocalInferenceClient implements IClient {
           console.debug('[LocalInference] Translation empty — skipping:', job.text);
           return;
         }
+
         this.emitEvent('local.translation.end', 'server', {
           sourceText: job.text,
           translatedText,
@@ -430,6 +453,11 @@ export class LocalInferenceClient implements IClient {
           modelId: this.config?.translationModelId,
         });
         displayText = translatedText;
+      } else if (this.astMode) {
+        // AST mode: ASR already produced translated text
+        displayText = job.text;
+        console.debug('[LocalInference] AST mode — text already translated:', displayText);
+        if (!displayText) return;
       } else {
         // ASR-only mode: use source text directly as the assistant item
         console.debug('[LocalInference] ASR-only mode — displaying source text:', job.text);

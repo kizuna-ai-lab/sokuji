@@ -436,6 +436,7 @@
   },
   "mainPanel": {
     "conversationPlaceholder": "השיחה תופיע כאן",
+    "speechDetected": "[זוהה דיבור]",
     "audioContent": "תוכן אודיו",
     "function": "פונקציה",
     "input": "קלט",

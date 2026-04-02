@@ -16,6 +16,8 @@ import {
   getTranslationModel,
   getTtsModelsForLanguage,
   isTranslationModelCompatible,
+  isAstCompatible,
+  pickBestModel,
   type ModelStatus,
 } from '../lib/local-inference/modelManifest';
 import * as modelStorage from '../lib/local-inference/modelStorage';
@@ -287,9 +289,11 @@ export const useModelStore = create<ModelStoreState>()(
         if (!hasAsr) return false;
       }
 
-      // 2. Translation: if a specific model is selected, check it directly;
-      //    otherwise use getTranslationModel preference (pair-specific > multilingual)
-      if (selectedTranslationModel) {
+      // 2. Translation: AST short-circuit when translation model === ASR model
+      if (selectedTranslationModel && selectedTranslationModel === selectedAsrModel) {
+        const asrEntry = getManifestEntry(selectedAsrModel);
+        if (!asrEntry || !isAstCompatible(asrEntry, sourceLang, targetLang)) return false;
+      } else if (selectedTranslationModel) {
         if (modelStatuses[selectedTranslationModel] !== 'downloaded') return false;
         const entry = getManifestEntry(selectedTranslationModel);
         if (entry?.requiredDevice === 'webgpu' && !webgpuAvailable) return false;
@@ -394,25 +398,32 @@ export const useModelStore = create<ModelStoreState>()(
         && (currentAsr.multilingual || currentAsr.languages.includes(sourceLang))
         && modelStatuses[currentAsrModel] === 'downloaded';
       if (!asrOk) {
-        const match = allAsrModels.find(m =>
+        const match = pickBestModel(allAsrModels.filter(m =>
           (m.multilingual || m.languages.includes(sourceLang)) && modelStatuses[m.id] === 'downloaded'
-        );
+        ));
         const newId = match?.id || '';
         if (newId !== currentAsrModel) updates.asrModel = newId;
       }
 
       // Translation: must be compatible with source→target pair, downloaded, and device-ready
-      const currentTrans = currentTranslationModel ? getManifestByType('translation').find(m => m.id === currentTranslationModel) : null;
-      const transOk = currentTrans
+      // AST short-circuit: if translation model === ASR model and it has astLanguages, it's valid
+      const asrEntryForAst = currentTranslationModel && currentTranslationModel === currentAsrModel
+        ? getManifestEntry(currentTranslationModel) : null;
+      const isAstValid = asrEntryForAst
+        && isAstCompatible(asrEntryForAst, sourceLang, targetLang)
+        && modelStatuses[currentTranslationModel] === 'downloaded';
+
+      const currentTrans = !isAstValid && currentTranslationModel ? getManifestByType('translation').find(m => m.id === currentTranslationModel) : null;
+      const transOk = isAstValid || (currentTrans
         && isTranslationModelCompatible(currentTrans, sourceLang, targetLang)
         && modelStatuses[currentTranslationModel] === 'downloaded'
-        && !(currentTrans.requiredDevice === 'webgpu' && !webgpuAvailable);
+        && !(currentTrans.requiredDevice === 'webgpu' && !webgpuAvailable));
       if (!transOk) {
-        const match = getManifestByType('translation').find(m =>
+        const match = pickBestModel(getManifestByType('translation').filter(m =>
           isTranslationModelCompatible(m, sourceLang, targetLang)
           && modelStatuses[m.id] === 'downloaded'
           && !(m.requiredDevice === 'webgpu' && !webgpuAvailable)
-        );
+        ));
         const newId = match?.id || '';
         if (newId !== currentTranslationModel) updates.translationModel = newId;
       }
@@ -423,9 +434,9 @@ export const useModelStore = create<ModelStoreState>()(
         && currentTts.languages.includes(targetLang)
         && modelStatuses[currentTtsModel] === 'downloaded';
       if (!ttsOk) {
-        const match = getManifestByType('tts').find(m =>
+        const match = pickBestModel(getManifestByType('tts').filter(m =>
           m.languages.includes(targetLang) && modelStatuses[m.id] === 'downloaded'
-        );
+        ));
         const newId = match?.id || '';
         if (newId !== currentTtsModel) updates.ttsModel = newId;
       }

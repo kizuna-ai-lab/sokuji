@@ -374,6 +374,7 @@
   },
   "mainPanel": {
     "conversationPlaceholder": "Keskustelu näkyy tässä",
+    "speechDetected": "[Puhe havaittu]",
     "pushToTalk": "paina puhuaksesi (Välilyönti)",
     "endSession": "Lopeta istunto",
     "startSession": "Aloita istunto",

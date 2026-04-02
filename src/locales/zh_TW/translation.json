@@ -397,6 +397,7 @@
   },
   "mainPanel": {
     "conversationPlaceholder": "對話將在此處顯示",
+    "speechDetected": "[偵測到語音]",
     "audioContent": "音訊內容",
     "function": "功能",
     "input": "輸入",
