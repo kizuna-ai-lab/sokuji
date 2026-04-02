@@ -809,7 +809,6 @@ const useSettingsStore = create<SettingsStore>()(
           localSettings.translationModel || undefined,
           localSettings.ttsModel || undefined,
         );
-
         set({
           isApiKeyValid: ready,
           availableModels: ready

@@ -1407,6 +1407,14 @@
     text-transform: uppercase;
     letter-spacing: 0.5px;
   }
+
+  .participant-hint {
+    display: block;
+    margin-top: 4px;
+    font-size: 10px;
+    color: vars.$text-muted;
+    font-style: italic;
+  }
 }
 
 // Help section buttons (shared between SimpleSettings and AdvancedSettings)

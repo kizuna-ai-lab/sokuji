@@ -474,6 +474,12 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
                     <span className="model-chip-value model-warn">✗</span>
                   )}
                 </button>
+                <span className="participant-hint">
+                  {t('settings.participantModelHint', 'Switch to {{source}} → {{target}} to change participant models', {
+                    source: localInferenceSettings.targetLanguage,
+                    target: localInferenceSettings.sourceLanguage,
+                  })}
+                </span>
               </div>
             )}
           </div>
