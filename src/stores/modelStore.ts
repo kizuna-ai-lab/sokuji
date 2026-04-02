@@ -430,6 +430,11 @@ export const useModelStore = create<ModelStoreState>()(
       const { modelStatuses, webgpuAvailable } = get();
       const updates: { asrModel?: string; translationModel?: string; ttsModel?: string } = {};
 
+      // Save original input to detect recall overrides later
+      const inputAsrModel = currentAsrModel;
+      const inputTranslationModel = currentTranslationModel;
+      const inputTtsModel = currentTtsModel;
+
       // Check recalled preferences — override "current" with recalled values if available
       const recalled = get().recallModels(sourceLang, targetLang);
       console.log('[autoSelectModels]', `${sourceLang}→${targetLang}`, {
@@ -500,6 +505,12 @@ export const useModelStore = create<ModelStoreState>()(
         const newId = match?.id || '';
         if (newId !== currentTtsModel) updates.ttsModel = newId;
       }
+
+      // Emit updates for recalled overrides that survived validation
+      // (recalled value was used as "current", passed checks, but settings still have the old value)
+      if (!updates.asrModel && currentAsrModel !== inputAsrModel) updates.asrModel = currentAsrModel;
+      if (!updates.translationModel && currentTranslationModel !== inputTranslationModel) updates.translationModel = currentTranslationModel;
+      if (!updates.ttsModel && currentTtsModel !== inputTtsModel) updates.ttsModel = currentTtsModel;
 
       // Remember the final selection for this language pair
       const finalAsr = updates.asrModel ?? currentAsrModel;
