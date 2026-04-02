@@ -96,7 +96,9 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
   const [dismissedTutorials, setDismissedTutorials] = useState<Set<string>>(() => {
     try {
       const stored = localStorage.getItem(DISMISSED_KEY);
-      return stored ? new Set(JSON.parse(stored)) : new Set();
+      if (!stored) return new Set();
+      const parsed = JSON.parse(stored);
+      return Array.isArray(parsed) ? new Set(parsed as string[]) : new Set();
     } catch { return new Set(); }
   });
 
