@@ -382,6 +382,7 @@
   },
   "mainPanel": {
     "conversationPlaceholder": "ستظهر المحادثة هنا",
+    "speechDetected": "[تم اكتشاف كلام]",
     "audioContent": "محتوى صوتي",
     "function": "وظيفة",
     "input": "إدخال",

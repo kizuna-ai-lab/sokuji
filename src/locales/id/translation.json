@@ -429,6 +429,7 @@
   },
   "mainPanel": {
     "conversationPlaceholder": "Percakapan akan muncul di sini",
+    "speechDetected": "[Ucapan terdeteksi]",
     "audioContent": "Konten audio",
     "function": "Fungsi",
     "input": "Input",

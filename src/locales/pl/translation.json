@@ -279,6 +279,7 @@
   },
   "mainPanel": {
     "conversationPlaceholder": "Rozmowa pojawi się tutaj",
+    "speechDetected": "[Wykryto mowę]",
     "audioContent": "Zawartość audio",
     "function": "Funkcja",
     "input": "Wejście",
