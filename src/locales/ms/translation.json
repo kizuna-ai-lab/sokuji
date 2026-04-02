@@ -426,6 +426,7 @@
   },
   "mainPanel": {
     "conversationPlaceholder": "Perbualan akan muncul di sini",
+    "speechDetected": "[Pertuturan dikesan]",
     "audioContent": "Kandungan audio",
     "function": "Fungsi",
     "input": "Input",
