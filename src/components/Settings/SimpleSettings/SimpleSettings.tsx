@@ -12,7 +12,7 @@ import {
   LanguageSection,
   AudioDeviceSection,
   SystemAudioSection,
-  UpdateSection
+  HelpSection
 } from '../sections';
 import './SimpleSettings.scss';
 
@@ -114,8 +114,8 @@ const SimpleSettings: React.FC<SimpleSettingsProps> = ({ highlightSection }) => 
           onMutualExclusivity={() => setWarningType('mutual-exclusivity-participant')}
         />
 
-        {/* Check for Updates (Electron only) */}
-        <UpdateSection />
+        {/* Help & Updates */}
+        <HelpSection />
       </div>
     </div>
   );

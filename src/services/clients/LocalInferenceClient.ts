@@ -153,7 +153,8 @@ export class LocalInferenceClient implements IClient {
         this.asrEngine = engine;
       }
 
-      // Translation engine — skip when ASR model handles AST directly
+      // Translation engine — skip when no model available (participant ASR-only)
+      // or when ASR model handles AST directly (Granite Speech)
       const isAstMode = asrModel?.asrEngine === 'granite-speech'
         && config.translationModelId === config.asrModelId;
       this.astMode = isAstMode;
@@ -161,14 +162,17 @@ export class LocalInferenceClient implements IClient {
       if (isAstMode) {
         console.info('[LocalInference] AST mode: Granite Speech handles translation, skipping translation engine');
         this.translationEngine = null;
-      } else {
+      } else if (config.translationModelId) {
         console.info('[LocalInference] Initializing Translation engine:', config.translationModelId, `(${config.sourceLanguage} → ${config.targetLanguage})`);
         this.translationEngine = new TranslationEngine();
+      } else {
+        console.info('[LocalInference] No translation model — ASR-only mode');
+        this.translationEngine = null;
       }
 
       // Determine which engines will be initialized
       const engines = ['asr'];
-      if (!isAstMode) engines.push('translation');
+      if (this.translationEngine) engines.push('translation');
       if (config.ttsModelId && !config.textOnly) engines.push('tts');
       this.emitEvent('local.init.start', 'client', { engines: [...engines] });
 
@@ -198,7 +202,7 @@ export class LocalInferenceClient implements IClient {
       });
 
       const translationPromise = this.translationEngine
-        ? this.trackInit('translation', config.translationModelId, () =>
+        ? this.trackInit('translation', config.translationModelId!, () =>
             this.translationEngine!.init(config.sourceLanguage, config.targetLanguage, config.translationModelId),
           )
         : Promise.resolve(null);
@@ -222,7 +226,7 @@ export class LocalInferenceClient implements IClient {
       }
       console.info('[LocalInference] ASR engine ready');
 
-      // Check Translation result (only if translation engine was initialized)
+      // Check Translation result (skip if ASR-only or AST mode)
       if (this.translationEngine) {
         if (results[1].status === 'rejected') {
           throw new Error(`Translation engine init failed: ${results[1].reason instanceof Error ? results[1].reason.message : String(results[1].reason)}`);
@@ -425,13 +429,15 @@ export class LocalInferenceClient implements IClient {
     try {
       if (this.disposed) return;
 
-      let translatedText: string;
+      let displayText: string;
 
       if (this.translationEngine) {
+        // Full pipeline: translate then display
         this.emitEvent('local.translation.start', 'client', { sourceText: job.text, modelId: this.config?.translationModelId });
         const translationResult = await this.translationEngine.translate(job.text);
         if (this.disposed) return;
-        translatedText = translationResult.translatedText;
+
+        const translatedText = translationResult.translatedText;
         console.debug('[LocalInference] Translation:', job.text, '→', translatedText, `(${translationResult.inferenceTimeMs}ms)`);
 
         if (!translatedText) {
@@ -446,31 +452,36 @@ export class LocalInferenceClient implements IClient {
           systemPrompt: translationResult.systemPrompt,
           modelId: this.config?.translationModelId,
         });
-      } else {
+        displayText = translatedText;
+      } else if (this.astMode) {
         // AST mode: ASR already produced translated text
-        translatedText = job.text;
-        console.debug('[LocalInference] AST mode — text already translated:', translatedText);
-        if (!translatedText) return;
+        displayText = job.text;
+        console.debug('[LocalInference] AST mode — text already translated:', displayText);
+        if (!displayText) return;
+      } else {
+        // ASR-only mode: use source text directly as the assistant item
+        console.debug('[LocalInference] ASR-only mode — displaying source text:', job.text);
+        displayText = job.text;
       }
 
-      // Create assistant item with translation already set
+      // Create assistant item
       const assistantItem: ConversationItem = {
         id: itemId,
         role: 'assistant',
         type: 'message',
         status: 'in_progress',
         createdAt: Date.now(),
-        formatted: { transcript: translatedText },
+        formatted: { transcript: displayText },
       };
       this.conversationItems.push(assistantItem);
       this.handlers.onConversationUpdated?.({ item: assistantItem });
 
       // TTS (optional) — split into sentences for reduced time-to-first-audio
       if (this.ttsEngine && this.config && !this.disposed) {
-        const sentences = splitSentences(translatedText, this.config.targetLanguage);
+        const sentences = splitSentences(displayText, this.config.targetLanguage);
         const ttsStartTime = performance.now();
-        this.emitEvent('local.tts.start', 'client', { text: translatedText, sentenceCount: sentences.length, modelId: this.config?.ttsModelId });
-        console.debug(`[Karaoke] TTS start: fullText="${translatedText}" (${translatedText.length} chars), ${sentences.length} sentences:`, sentences.map((s, i) => `[${i}] "${s}" (${s.length} chars)`));
+        this.emitEvent('local.tts.start', 'client', { text: displayText, sentenceCount: sentences.length, modelId: this.config?.ttsModelId });
+        console.debug(`[Karaoke] TTS start: fullText="${displayText}" (${displayText.length} chars), ${sentences.length} sentences:`, sentences.map((s, i) => `[${i}] "${s}" (${s.length} chars)`));
 
         let searchFrom = 0;
         let cumulativeAudioDuration = 0;
@@ -496,7 +507,7 @@ export class LocalInferenceClient implements IClient {
             if (this.disposed) return;
 
             // Track how far into the text TTS audio has been generated
-            const pos = translatedText.indexOf(sentences[i], searchFrom);
+            const pos = displayText.indexOf(sentences[i], searchFrom);
             const audioTextEnd = pos >= 0 ? pos + sentences[i].length : searchFrom + sentences[i].length;
             searchFrom = audioTextEnd;
             assistantItem.formatted!.audioTextEnd = audioTextEnd;
@@ -522,7 +533,7 @@ export class LocalInferenceClient implements IClient {
               audioDurationMs: Math.round(sentenceAudioDuration * 1000),
             });
 
-            console.debug(`[Karaoke] TTS sentence ${i + 1}/${sentences.length}: "${sentences[i]}" (${sentences[i].length} chars) → ${sentenceAudioDuration.toFixed(3)}s audio | textEnd=${audioTextEnd}/${translatedText.length}, cumAudio=${cumulativeAudioDuration.toFixed(3)}s`);
+            console.debug(`[Karaoke] TTS sentence ${i + 1}/${sentences.length}: "${sentences[i]}" (${sentences[i].length} chars) → ${sentenceAudioDuration.toFixed(3)}s audio | textEnd=${audioTextEnd}/${displayText.length}, cumAudio=${cumulativeAudioDuration.toFixed(3)}s`);
 
             // Emit audio delta immediately — player receives chunk right away
             this.handlers.onConversationUpdated?.({
@@ -539,8 +550,8 @@ export class LocalInferenceClient implements IClient {
         }
 
         // Ensure trailing whitespace is covered
-        assistantItem.formatted!.audioTextEnd = translatedText.length;
-        console.debug(`[Karaoke] TTS complete: ${assistantItem.formatted!.audioSegments!.length} segments, totalAudio=${cumulativeAudioDuration.toFixed(3)}s, totalChars=${translatedText.length}`);
+        assistantItem.formatted!.audioTextEnd = displayText.length;
+        console.debug(`[Karaoke] TTS complete: ${assistantItem.formatted!.audioSegments!.length} segments, totalAudio=${cumulativeAudioDuration.toFixed(3)}s, totalChars=${displayText.length}`);
 
         const ttsDurationMs = performance.now() - ttsStartTime;
         this.emitEvent('local.tts.end', 'server', { sentenceCount: sentences.length, durationMs: Math.round(ttsDurationMs) });

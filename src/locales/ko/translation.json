@@ -449,7 +449,8 @@
     "uiLanguage": "인터페이스 언어",
     "audioSettings": "오디오 설정",
     "audioSettingsDesc": "오디오 패널에서 마이크와 스피커를 설정하세요",
-    "autoAuthenticated": "계정을 통해 자동으로 인증됨"
+    "autoAuthenticated": "계정을 통해 자동으로 인증됨",
+    "provider": "제공자"
   },
   "simpleConfig": {
     "interfaceLanguage": "인터페이스 언어",

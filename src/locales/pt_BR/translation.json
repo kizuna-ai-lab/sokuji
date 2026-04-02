@@ -449,7 +449,8 @@
     "uiLanguage": "Idioma da Interface",
     "audioSettings": "Configurações de Áudio",
     "audioSettingsDesc": "Configure seu microfone e alto-falantes no painel de Áudio",
-    "autoAuthenticated": "Autenticado automaticamente através da sua conta"
+    "autoAuthenticated": "Autenticado automaticamente através da sua conta",
+    "provider": "Provedor"
   },
   "simpleConfig": {
     "interfaceLanguage": "Idioma da Interface",
