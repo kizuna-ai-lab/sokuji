@@ -764,14 +764,6 @@ const useSettingsStore = create<SettingsStore>()(
         const { useModelStore } = await import('./modelStore');
         const modelState = useModelStore.getState();
 
-        console.log('[validateApiKey] LOCAL_INFERENCE: current settings:', {
-          sourceLanguage: localSettings.sourceLanguage,
-          targetLanguage: localSettings.targetLanguage,
-          asrModel: localSettings.asrModel,
-          translationModel: localSettings.translationModel,
-          ttsModel: localSettings.ttsModel,
-        });
-
         // Initialize model store if not yet done (scans IndexedDB for downloaded models)
         if (!modelState.initialized) {
           await modelState.initialize();
@@ -788,15 +780,10 @@ const useSettingsStore = create<SettingsStore>()(
           localSettings.ttsModel,
         );
         if (corrections) {
-          console.log('[validateApiKey] Auto-correcting stale model selections:', corrections);
+          console.log('[SettingsStore] Auto-correcting stale model selections:', corrections);
           get().updateLocalInference(corrections);
           // Re-read settings after correction
           const updated = get().localInference;
-          console.log('[validateApiKey] After correction:', {
-            asrModel: updated.asrModel,
-            translationModel: updated.translationModel,
-            ttsModel: updated.ttsModel,
-          });
           const ready = modelState.isProviderReady(
             updated.sourceLanguage,
             updated.targetLanguage,
@@ -804,7 +791,6 @@ const useSettingsStore = create<SettingsStore>()(
             updated.translationModel || undefined,
             updated.ttsModel || undefined,
           );
-          console.log('[validateApiKey] isProviderReady (after correction):', ready);
           set({
             isApiKeyValid: ready,
             availableModels: ready
@@ -816,7 +802,6 @@ const useSettingsStore = create<SettingsStore>()(
           return { valid: ready, message: ready ? '' : i18n.t('settings.localInferenceModelsRequired'), validating: false };
         }
 
-        console.log('[validateApiKey] No corrections needed, checking readiness directly');
         const ready = modelState.isProviderReady(
           localSettings.sourceLanguage,
           localSettings.targetLanguage,
@@ -824,12 +809,6 @@ const useSettingsStore = create<SettingsStore>()(
           localSettings.translationModel || undefined,
           localSettings.ttsModel || undefined,
         );
-        console.log('[validateApiKey] isProviderReady (no correction):', ready, {
-          asrModel: localSettings.asrModel,
-          translationModel: localSettings.translationModel,
-          ttsModel: localSettings.ttsModel,
-        });
-
         set({
           isApiKeyValid: ready,
           availableModels: ready
