@@ -381,27 +381,29 @@ export const useModelStore = create<ModelStoreState>()(
       }
 
       // 2. Translation: prefer recalled > current model > fallback
+      //    AST short-circuit: if translation model === ASR model and isAstCompatible, it's valid
       let translationModelId: string | null = null;
 
+      // Helper: check if a model is valid as translation (standard or AST)
+      const isValidTranslation = (modelId: string, forAsrId: string | null) => {
+        if (!modelId || modelStatuses[modelId] !== 'downloaded') return false;
+        const entry = getManifestEntry(modelId);
+        if (!entry) return false;
+        if (entry.requiredDevice === 'webgpu' && !webgpuAvailable) return false;
+        // AST: translation model === ASR model with AST support
+        if (modelId === forAsrId && isAstCompatible(entry, participantSourceLang, participantTargetLang)) return true;
+        // Standard translation model
+        return isTranslationModelCompatible(entry, participantSourceLang, participantTargetLang);
+      };
+
       // Try recalled translation first
-      if (recalled?.translationModel) {
-        const recalledEntry = getManifestEntry(recalled.translationModel);
-        if (recalledEntry
-          && isTranslationModelCompatible(recalledEntry, participantSourceLang, participantTargetLang)
-          && modelStatuses[recalled.translationModel] === 'downloaded'
-          && !(recalledEntry.requiredDevice === 'webgpu' && !webgpuAvailable)) {
-          translationModelId = recalled.translationModel;
-        }
+      if (recalled?.translationModel && isValidTranslation(recalled.translationModel, asrModelId)) {
+        translationModelId = recalled.translationModel;
       }
 
       // Try current model
-      if (!translationModelId && currentTranslationModelId && modelStatuses[currentTranslationModelId] === 'downloaded') {
-        const currentEntry = getManifestEntry(currentTranslationModelId);
-        if (currentEntry
-          && isTranslationModelCompatible(currentEntry, participantSourceLang, participantTargetLang)
-          && !(currentEntry.requiredDevice === 'webgpu' && !webgpuAvailable)) {
-          translationModelId = currentTranslationModelId;
-        }
+      if (!translationModelId && currentTranslationModelId && isValidTranslation(currentTranslationModelId, asrModelId)) {
+        translationModelId = currentTranslationModelId;
       }
 
       // Fallback
