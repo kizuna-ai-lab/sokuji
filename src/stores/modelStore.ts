@@ -58,6 +58,8 @@ interface ModelStoreState {
   deviceFeatures: string[];
   /** Downloaded variant key per model (modelId → variant key) */
   modelVariants: Record<string, string>;
+  /** In-memory model preferences per language pair (key: "src→tgt") */
+  modelPreferences: Record<string, { asrModel: string; translationModel: string; ttsModel: string }>;
 
   /** Initialize: scan IndexedDB for existing models */
   initialize: () => Promise<void>;
@@ -99,6 +101,10 @@ interface ModelStoreState {
     sourceLang: string, targetLang: string,
     currentAsrModel: string, currentTranslationModel: string, currentTtsModel: string,
   ) => { asrModel?: string; translationModel?: string; ttsModel?: string } | null;
+  /** Save model selection for a language pair */
+  rememberModels: (sourceLang: string, targetLang: string, asrModel: string, translationModel: string, ttsModel: string) => void;
+  /** Recall saved model selection — per-field degradation if models deleted */
+  recallModels: (sourceLang: string, targetLang: string) => { asrModel: string; translationModel: string; ttsModel: string } | null;
 }
 
 // ─── Store ───────────────────────────────────────────────────────────────────
@@ -113,6 +119,7 @@ export const useModelStore = create<ModelStoreState>()(
     webgpuAvailable: false,
     deviceFeatures: [],
     modelVariants: {},
+    modelPreferences: {},
 
     initialize: async () => {
       if (get().initialized) return;
@@ -442,6 +449,28 @@ export const useModelStore = create<ModelStoreState>()(
       }
 
       return Object.keys(updates).length > 0 ? updates : null;
+    },
+
+    rememberModels: (src, tgt, asr, translation, tts) => {
+      set(state => ({
+        modelPreferences: {
+          ...state.modelPreferences,
+          [`${src}→${tgt}`]: { asrModel: asr, translationModel: translation, ttsModel: tts },
+        },
+      }));
+    },
+
+    recallModels: (src, tgt) => {
+      const { modelPreferences, modelStatuses } = get();
+      const key = `${src}→${tgt}`;
+      const pref = modelPreferences[key];
+      if (!pref) return null;
+
+      return {
+        asrModel: pref.asrModel && modelStatuses[pref.asrModel] === 'downloaded' ? pref.asrModel : '',
+        translationModel: pref.translationModel && modelStatuses[pref.translationModel] === 'downloaded' ? pref.translationModel : '',
+        ttsModel: pref.ttsModel && modelStatuses[pref.ttsModel] === 'downloaded' ? pref.ttsModel : '',
+      };
     },
   })),
 );
