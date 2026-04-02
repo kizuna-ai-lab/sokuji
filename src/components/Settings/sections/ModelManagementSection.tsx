@@ -14,12 +14,16 @@ import {
 } from '../../../stores/modelStore';
 import {
   getManifestByType,
+  getManifestEntry,
   getModelSizeMb,
   isTranslationModelCompatible,
+  isAstCompatible,
+  pickBestModel,
   selectVariant,
   getBaselineVariant,
   type ModelManifestEntry,
   type ModelStatus,
+  type ModelType,
 } from '../../../lib/local-inference/modelManifest';
 import type { LocalInferenceSettings } from '../../../stores/settingsStore';
 import './ModelManagementSection.scss';
@@ -342,25 +346,32 @@ export function ModelManagementSection({
     const currentAsr = asrModel ? allAsrModels.find(m => m.id === asrModel) : null;
     const asrOk = currentAsr && (currentAsr.multilingual || currentAsr.languages.includes(sourceLanguage)) && statuses[asrModel] === 'downloaded';
     if (!asrOk) {
-      const match = allAsrModels.find(m =>
+      const match = pickBestModel(allAsrModels.filter(m =>
         (m.multilingual || m.languages.includes(sourceLanguage)) && statuses[m.id] === 'downloaded'
-      );
+      ));
       const newId = match?.id || '';
       if (newId !== asrModel) updates.asrModel = newId;
     }
 
     // Translation: must be compatible with source→target pair, downloaded, and device-ready
-    const currentTrans = translationModel ? getManifestByType('translation').find(m => m.id === translationModel) : null;
-    const transOk = currentTrans
+    // AST short-circuit: if translation model === ASR model and it has astLanguages, it's valid
+    const asrEntryForAst = translationModel && translationModel === asrModel
+      ? getManifestEntry(translationModel) : null;
+    const isAstValid = asrEntryForAst
+      && isAstCompatible(asrEntryForAst, sourceLanguage, targetLanguage)
+      && statuses[translationModel] === 'downloaded';
+
+    const currentTrans = !isAstValid && translationModel ? getManifestByType('translation').find(m => m.id === translationModel) : null;
+    const transOk = isAstValid || (currentTrans
       && isTranslationModelCompatible(currentTrans, sourceLanguage, targetLanguage)
       && statuses[translationModel] === 'downloaded'
-      && !(currentTrans.requiredDevice === 'webgpu' && !webgpuAvailable);
+      && !(currentTrans.requiredDevice === 'webgpu' && !webgpuAvailable));
     if (!transOk) {
-      const match = getManifestByType('translation').find(m =>
+      const match = pickBestModel(getManifestByType('translation').filter(m =>
         isTranslationModelCompatible(m, sourceLanguage, targetLanguage)
         && statuses[m.id] === 'downloaded'
         && !(m.requiredDevice === 'webgpu' && !webgpuAvailable)
-      );
+      ));
       const newId = match?.id || '';
       if (newId !== translationModel) updates.translationModel = newId;
     }
@@ -369,9 +380,9 @@ export function ModelManagementSection({
     const currentTts = ttsModel ? getManifestByType('tts').find(m => m.id === ttsModel) : null;
     const ttsOk = currentTts && currentTts.languages.includes(targetLanguage) && statuses[ttsModel] === 'downloaded';
     if (!ttsOk) {
-      const match = getManifestByType('tts').find(m =>
+      const match = pickBestModel(getManifestByType('tts').filter(m =>
         m.languages.includes(targetLanguage) && statuses[m.id] === 'downloaded'
-      );
+      ));
       const newId = match?.id || '';
       if (newId !== ttsModel) updates.ttsModel = newId;
     }
@@ -389,9 +400,21 @@ export function ModelManagementSection({
   }, []);
 
   const translationModels = useMemo(() => {
-    const all = getManifestByType('translation');
+    const all = [...getManifestByType('translation')];
+
+    // If current ASR model supports AST, add it as a translation option
+    const asrEntry = asrModel ? getManifestEntry(asrModel) : null;
+    if (asrEntry?.astLanguages) {
+      all.push({
+        ...asrEntry,
+        type: 'translation' as ModelType,
+        multilingual: true,
+        languages: asrEntry.astLanguages.translate,
+      } as ModelManifestEntry);
+    }
+
     return sortTranslationModels(all);
-  }, []);
+  }, [asrModel]);
 
   const compatibleTranslationModels = useMemo(
     () => translationModels.filter(m =>

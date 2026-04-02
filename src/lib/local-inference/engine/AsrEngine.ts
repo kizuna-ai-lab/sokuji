@@ -44,7 +44,7 @@ export class AsrEngine {
    * @param modelId - Model identifier (e.g. 'sensevoice-int8', 'moonshine-tiny-en-quant')
    * @returns Promise that resolves with load time when ready
    */
-  async init(modelId: string, vadConfig?: { threshold?: number; minSilenceDuration?: number; minSpeechDuration?: number }, language?: string): Promise<{ loadTimeMs: number }> {
+  async init(modelId: string, vadConfig?: { threshold?: number; minSilenceDuration?: number; minSpeechDuration?: number }, language?: string, taskConfig?: { task: 'transcribe' | 'translate'; targetLanguage?: string }): Promise<{ loadTimeMs: number }> {
     const model = getManifestEntry(modelId);
     if (!model || model.type !== 'asr') {
       const available = getManifestByType('asr').map(m => m.id).join(', ');
@@ -77,6 +77,12 @@ export class AsrEngine {
         case 'whisper-webgpu':
           this.worker = new Worker(
             new URL('../workers/whisper-webgpu.worker.ts', import.meta.url),
+            { type: 'module' },
+          );
+          break;
+        case 'granite-speech-webgpu':
+          this.worker = new Worker(
+            new URL('../workers/granite-speech-webgpu.worker.ts', import.meta.url),
             { type: 'module' },
           );
           break;
@@ -143,6 +149,19 @@ export class AsrEngine {
           hfModelId: model.hfModelId,
           language,
           vadConfig,
+          dtype,
+          ortWasmBaseUrl: new URL('./wasm/ort/', window.location.href).href,
+          vadModelUrl: new URL('./wasm/vad/silero_vad_v5.onnx', window.location.href).href,
+        });
+      } else if (workerType === 'granite-speech-webgpu') {
+        this.worker.postMessage({
+          type: 'init',
+          fileUrls,
+          hfModelId: model.hfModelId,
+          language,
+          vadConfig,
+          task: taskConfig?.task ?? 'transcribe',
+          targetLanguage: taskConfig?.targetLanguage,
           dtype,
           ortWasmBaseUrl: new URL('./wasm/ort/', window.location.href).href,
           vadModelUrl: new URL('./wasm/vad/silero_vad_v5.onnx', window.location.href).href,

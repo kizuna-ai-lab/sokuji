@@ -224,6 +224,7 @@
   },
   "mainPanel": {
     "conversationPlaceholder": "Konuşma burada görünecek",
+    "speechDetected": "[Konuşma algılandı]",
     "pushToTalk": "konuşmak için basın (Boşluk)",
     "endSession": "Oturumu sonlandır",
     "startSession": "Oturumu başlat",

@@ -280,6 +280,7 @@
   },
   "mainPanel": {
     "conversationPlaceholder": "Unterhaltung wird hier angezeigt",
+    "speechDetected": "[Sprache erkannt]",
     "audioContent": "Audio-Inhalt",
     "function": "Funktion",
     "input": "Eingabe",

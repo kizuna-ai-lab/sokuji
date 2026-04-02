@@ -429,6 +429,7 @@
   },
   "mainPanel": {
     "conversationPlaceholder": "对话将在此处显示",
+    "speechDetected": "[检测到语音]",
     "audioContent": "音频内容",
     "function": "功能",
     "input": "输入",
