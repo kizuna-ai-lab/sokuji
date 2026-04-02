@@ -390,6 +390,14 @@ export function ModelManagementSection({
     if (Object.keys(updates).length > 0) {
       onUpdateSettings(updates);
     }
+
+    // Remember the final model selection for this language pair
+    const finalAsr = updates.asrModel ?? asrModel;
+    const finalTranslation = updates.translationModel ?? translationModel;
+    const finalTts = updates.ttsModel ?? ttsModel;
+    if (finalAsr) {
+      useModelStore.getState().rememberModels(sourceLanguage, targetLanguage, finalAsr, finalTranslation, finalTts);
+    }
   }, [initialized, statuses, sourceLanguage, targetLanguage, asrModel, translationModel, ttsModel, webgpuAvailable, onUpdateSettings]);
 
   // ── Memoized model lists ──────────────────────────────────────────────
@@ -550,7 +558,10 @@ export function ModelManagementSection({
           renderSubGroups(
             compatibleAsrModels,
             asrModel,
-            (id) => onUpdateSettings({ asrModel: id }),
+            (id) => {
+              onUpdateSettings({ asrModel: id });
+              useModelStore.getState().rememberModels(sourceLanguage, targetLanguage, id, translationModel, ttsModel);
+            },
           )
         ) : (
           <div className="model-card__no-model-warning">
@@ -584,7 +595,10 @@ export function ModelManagementSection({
                 isCompatible={false}
                 showRadio={true}
                 compatibilityHint={t('settings.langMismatch', 'language mismatch')}
-                onSelect={() => onUpdateSettings({ asrModel: entry.id })}
+                onSelect={() => {
+                  onUpdateSettings({ asrModel: entry.id });
+                  useModelStore.getState().rememberModels(sourceLanguage, targetLanguage, entry.id, translationModel, ttsModel);
+                }}
                 onDownload={() => handleDownload(entry.id)}
                 onCancel={() => cancelDownload(entry.id)}
                 onDelete={() => deleteModel(entry.id)}
@@ -605,7 +619,10 @@ export function ModelManagementSection({
           renderSubGroups(
             compatibleTranslationModels,
             translationModel,
-            (id) => onUpdateSettings({ translationModel: id }),
+            (id) => {
+              onUpdateSettings({ translationModel: id });
+              useModelStore.getState().rememberModels(sourceLanguage, targetLanguage, asrModel, id, ttsModel);
+            },
           )
         ) : (
           <div className="model-card__no-model-warning">
@@ -646,7 +663,10 @@ export function ModelManagementSection({
                     ? t('settings.webgpuNotSupported', 'Not available in current environment')
                     : t('settings.langMismatch', 'language mismatch')
                 }
-                onSelect={() => onUpdateSettings({ translationModel: entry.id })}
+                onSelect={() => {
+                  onUpdateSettings({ translationModel: entry.id });
+                  useModelStore.getState().rememberModels(sourceLanguage, targetLanguage, asrModel, entry.id, ttsModel);
+                }}
                 onDownload={() => handleDownload(entry.id)}
                 onCancel={() => cancelDownload(entry.id)}
                 onDelete={() => deleteModel(entry.id)}
@@ -670,7 +690,10 @@ export function ModelManagementSection({
           renderSubGroups(
             compatibleTtsModels,
             ttsModel,
-            (id) => onUpdateSettings({ ttsModel: id }),
+            (id) => {
+              onUpdateSettings({ ttsModel: id });
+              useModelStore.getState().rememberModels(sourceLanguage, targetLanguage, asrModel, translationModel, id);
+            },
           )
         ) : (
           <div className="model-card__no-model-warning">
@@ -704,7 +727,10 @@ export function ModelManagementSection({
                 isCompatible={false}
                 showRadio={true}
                 compatibilityHint={t('settings.langMismatch', 'language mismatch')}
-                onSelect={() => onUpdateSettings({ ttsModel: entry.id })}
+                onSelect={() => {
+                  onUpdateSettings({ ttsModel: entry.id });
+                  useModelStore.getState().rememberModels(sourceLanguage, targetLanguage, asrModel, translationModel, entry.id);
+                }}
                 onDownload={() => handleDownload(entry.id)}
                 onCancel={() => cancelDownload(entry.id)}
                 onDelete={() => deleteModel(entry.id)}
