@@ -17,6 +17,7 @@ import {
   getManifestEntry,
   getModelSizeMb,
   isTranslationModelCompatible,
+  isAstCompatible,
   pickBestModel,
   selectVariant,
   getBaselineVariant,
@@ -356,9 +357,8 @@ export function ModelManagementSection({
     // AST short-circuit: if translation model === ASR model and it has astLanguages, it's valid
     const asrEntryForAst = translationModel && translationModel === asrModel
       ? getManifestEntry(translationModel) : null;
-    const isAstValid = asrEntryForAst?.astLanguages
-      && asrEntryForAst.astLanguages.translate.includes(targetLanguage)
-      && (asrEntryForAst.astLanguages.translate.includes(sourceLanguage) || asrEntryForAst.astLanguages.transcribe.includes(sourceLanguage))
+    const isAstValid = asrEntryForAst
+      && isAstCompatible(asrEntryForAst, sourceLanguage, targetLanguage)
       && statuses[translationModel] === 'downloaded';
 
     const currentTrans = !isAstValid && translationModel ? getManifestByType('translation').find(m => m.id === translationModel) : null;

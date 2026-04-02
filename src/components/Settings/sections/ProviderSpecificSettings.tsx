@@ -37,7 +37,7 @@ import { ChevronDown, ChevronRight, RotateCw, Info, CircleHelp } from 'lucide-re
 import Tooltip from '../../Tooltip/Tooltip';
 import { FilteredModel } from '../../../services/interfaces/IClient';
 import { Provider, isOpenAICompatible } from '../../../types/Provider';
-import { getManifestByType, getManifestEntry, isTranslationModelCompatible, pickBestModel } from '../../../lib/local-inference/modelManifest';
+import { getManifestByType, getManifestEntry, isTranslationModelCompatible, isAstCompatible, pickBestModel } from '../../../lib/local-inference/modelManifest';
 import { useModelStatuses } from '../../../stores/modelStore';
 import { ModelManagementSection } from './ModelManagementSection';
 import { useAnalytics } from '../../../lib/analytics';
@@ -133,9 +133,8 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
     const effectiveAsrId = updates.asrModel ?? localInferenceSettings.asrModel;
     const asrEntryForAst = transModelId && transModelId === effectiveAsrId
       ? getManifestEntry(transModelId) : null;
-    const isAstValid = asrEntryForAst?.astLanguages
-      && asrEntryForAst.astLanguages.translate.includes(targetLang)
-      && (asrEntryForAst.astLanguages.translate.includes(sourceLang) || asrEntryForAst.astLanguages.transcribe.includes(sourceLang))
+    const isAstValid = asrEntryForAst
+      && isAstCompatible(asrEntryForAst, sourceLang, targetLang)
       && modelStatuses[transModelId] === 'downloaded';
 
     if (!isAstValid) {

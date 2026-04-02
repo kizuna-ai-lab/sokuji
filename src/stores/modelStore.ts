@@ -16,6 +16,7 @@ import {
   getTranslationModel,
   getTtsModelsForLanguage,
   isTranslationModelCompatible,
+  isAstCompatible,
   pickBestModel,
   type ModelStatus,
 } from '../lib/local-inference/modelManifest';
@@ -274,12 +275,8 @@ export const useModelStore = create<ModelStoreState>()(
 
       // 2. Translation: AST short-circuit when translation model === ASR model
       if (selectedTranslationModel && selectedTranslationModel === selectedAsrModel) {
-        // AST mode: translation handled by the ASR model — check AST language support
         const asrEntry = getManifestEntry(selectedAsrModel);
-        if (!asrEntry?.astLanguages?.translate.includes(targetLang)) return false;
-        if (!asrEntry?.astLanguages?.translate.includes(sourceLang)
-          && !asrEntry?.astLanguages?.transcribe.includes(sourceLang)) return false;
-        // ASR readiness already validated above — no further translation checks needed
+        if (!asrEntry || !isAstCompatible(asrEntry, sourceLang, targetLang)) return false;
       } else if (selectedTranslationModel) {
         if (modelStatuses[selectedTranslationModel] !== 'downloaded') return false;
         const entry = getManifestEntry(selectedTranslationModel);
@@ -331,9 +328,8 @@ export const useModelStore = create<ModelStoreState>()(
       // AST short-circuit: if translation model === ASR model and it has astLanguages, it's valid
       const asrEntryForAst = currentTranslationModel && currentTranslationModel === currentAsrModel
         ? getManifestEntry(currentTranslationModel) : null;
-      const isAstValid = asrEntryForAst?.astLanguages
-        && asrEntryForAst.astLanguages.translate.includes(targetLang)
-        && (asrEntryForAst.astLanguages.translate.includes(sourceLang) || asrEntryForAst.astLanguages.transcribe.includes(sourceLang))
+      const isAstValid = asrEntryForAst
+        && isAstCompatible(asrEntryForAst, sourceLang, targetLang)
         && modelStatuses[currentTranslationModel] === 'downloaded';
 
       const currentTrans = !isAstValid && currentTranslationModel ? getManifestByType('translation').find(m => m.id === currentTranslationModel) : null;

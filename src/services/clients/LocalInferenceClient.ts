@@ -24,6 +24,7 @@ import { TtsEngine } from '../../lib/local-inference/engine/TtsEngine';
 import { getManifestEntry } from '../../lib/local-inference/modelManifest';
 import { resampleFloat32, float32ToInt16 } from '../../utils/audio-conversion';
 import { splitSentences } from '../../utils/splitSentences';
+import i18n from '../../locales';
 
 interface AsrTiming {
   durationMs: number;
@@ -49,6 +50,9 @@ export class LocalInferenceClient implements IClient {
 
   // Streaming ASR: in-progress partial result item
   private partialUserItem: ConversationItem | null = null;
+
+  // AST mode: ASR produces translated text directly, skip translation engine
+  private astMode = false;
 
   // TTS queue for serial processing
   private ttsQueue: PipelineJob[] = [];
@@ -152,6 +156,7 @@ export class LocalInferenceClient implements IClient {
       // Translation engine — skip when ASR model handles AST directly
       const isAstMode = asrModel?.asrEngine === 'granite-speech'
         && config.translationModelId === config.asrModelId;
+      this.astMode = isAstMode;
 
       if (isAstMode) {
         console.info('[LocalInference] AST mode: Granite Speech handles translation, skipping translation engine');
@@ -255,6 +260,7 @@ export class LocalInferenceClient implements IClient {
     this.ttsQueue = [];
     this.ttsProcessing = false;
     this.partialUserItem = null;
+    this.astMode = false;
 
     this.asrEngine?.dispose();
     this.asrEngine = null;
@@ -361,9 +367,14 @@ export class LocalInferenceClient implements IClient {
   }
 
   private handleAsrResult(text: string, timing?: AsrTiming): void {
+    // In AST mode, text is already translated — show placeholder for user item
+    const userTranscript = this.astMode
+      ? i18n.t('mainPanel.speechDetected')
+      : text;
+
     if (this.partialUserItem) {
       // Finalize the partial item from streaming ASR
-      this.partialUserItem.formatted!.transcript = text;
+      this.partialUserItem.formatted!.transcript = userTranscript;
       this.partialUserItem.status = 'completed';
       this.handlers.onConversationUpdated?.({ item: this.partialUserItem });
       this.partialUserItem = null;
@@ -376,7 +387,7 @@ export class LocalInferenceClient implements IClient {
         status: 'completed',
         createdAt: Date.now(),
         formatted: {
-          transcript: text,
+          transcript: userTranscript,
         },
       };
       this.conversationItems.push(userItem);

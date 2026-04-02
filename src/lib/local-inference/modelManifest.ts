@@ -1065,6 +1065,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     asrEngine: 'granite-speech',
     asrWorkerType: 'granite-speech-webgpu',
     recommended: true,
+    sortOrder: 4,
     astLanguages: {
       transcribe: ['en', 'fr', 'de', 'es', 'pt', 'ja'],
       translate: ['en', 'fr', 'de', 'es', 'pt', 'ja', 'it', 'zh'],
@@ -2942,6 +2943,19 @@ export function isTranslationModelCompatible(
     return entry.languages.includes(sourceLang) && entry.languages.includes(targetLang);
   }
   return entry.sourceLang === sourceLang && entry.targetLang === targetLang;
+}
+
+/**
+ * Check if a model can handle AST (speech translation) for a given language pair.
+ * Source must be in transcribe languages (model can recognize that speech).
+ * Target must be in translate languages (model can produce that text).
+ */
+export function isAstCompatible(
+  entry: ModelManifestEntry, sourceLang: string, targetLang: string,
+): boolean {
+  if (!entry.astLanguages) return false;
+  return entry.astLanguages.transcribe.includes(sourceLang)
+    && entry.astLanguages.translate.includes(targetLang);
 }
 
 /** Get TTS models that support a given language */

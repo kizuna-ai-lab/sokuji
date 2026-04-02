@@ -107,7 +107,7 @@ function vadResetStates() {
   vadSession.state = new Tensor('float32', new Float32Array(2 * 128), [2, 1, 128]);
 }
 
-async function initVad(vadModelUrl?: string): Promise<void> {
+async function initVad(vadConfig?: GraniteSpeechInitMessage['vadConfig'], vadModelUrl?: string): Promise<void> {
   const session = await InferenceSession.create(vadModelUrl || './wasm/vad/silero_vad_v5.onnx', {
     executionProviders: ['wasm'],
   });
@@ -117,14 +117,18 @@ async function initVad(vadModelUrl?: string): Promise<void> {
     state: new Tensor('float32', new Float32Array(2 * 128), [2, 1, 128]),
   };
 
+  const positiveSpeechThreshold = vadConfig?.threshold ?? 0.3;
+  const redemptionMs = (vadConfig?.minSilenceDuration ?? 1.4) * 1000;
+  const minSpeechMs = (vadConfig?.minSpeechDuration ?? 0.4) * 1000;
+
   frameProcessor = new FrameProcessor(
     vadInfer,
     vadResetStates,
     {
-      positiveSpeechThreshold: 0.3,
+      positiveSpeechThreshold,
       negativeSpeechThreshold: 0.25,
-      redemptionMs: 1400,
-      minSpeechMs: 400,
+      redemptionMs,
+      minSpeechMs,
       preSpeechPadMs: 800,
       submitUserSpeechOnPause: false,
     },
@@ -339,7 +343,7 @@ async function handleInit(msg: GraniteSpeechInitMessage): Promise<void> {
     }
 
     post({ type: 'status', message: 'Loading VAD model...' });
-    await initVad(msg.vadModelUrl);
+    await initVad(msg.vadConfig, msg.vadModelUrl);
 
     // Configure Transformers.js for IndexedDB blob URL cache
     env.allowRemoteModels = false;

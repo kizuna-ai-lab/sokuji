@@ -159,6 +159,7 @@ export class AsrEngine {
           fileUrls,
           hfModelId: model.hfModelId,
           language,
+          vadConfig,
           task: taskConfig?.task ?? 'transcribe',
           targetLanguage: taskConfig?.targetLanguage,
           dtype,

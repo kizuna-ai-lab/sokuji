@@ -165,6 +165,12 @@ export interface GraniteSpeechInitMessage {
   hfModelId: string;
   /** Source language hint (e.g. 'ja', 'en') */
   language?: string;
+  /** Optional VAD configuration to override defaults */
+  vadConfig?: {
+    threshold?: number;
+    minSilenceDuration?: number;
+    minSpeechDuration?: number;
+  };
   /** Task: 'transcribe' for ASR, 'translate' for AST (speech translation) */
   task: 'transcribe' | 'translate';
   /** Target language for AST (only when task === 'translate') */
