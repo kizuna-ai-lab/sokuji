@@ -37,7 +37,7 @@ import { ChevronDown, ChevronRight, RotateCw, Info, CircleHelp } from 'lucide-re
 import Tooltip from '../../Tooltip/Tooltip';
 import { FilteredModel } from '../../../services/interfaces/IClient';
 import { Provider, isOpenAICompatible } from '../../../types/Provider';
-import { getManifestByType, getManifestEntry, isTranslationModelCompatible } from '../../../lib/local-inference/modelManifest';
+import { getManifestByType, getManifestEntry, isTranslationModelCompatible, isAstCompatible, pickBestModel } from '../../../lib/local-inference/modelManifest';
 import { useModelStatuses } from '../../../stores/modelStore';
 import { ModelManagementSection } from './ModelManagementSection';
 import { useAnalytics } from '../../../lib/analytics';
@@ -110,9 +110,9 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
     const allAsr = [...getManifestByType('asr'), ...getManifestByType('asr-stream')];
     const currentAsr = allAsr.find(m => m.id === localInferenceSettings.asrModel);
     if (!currentAsr || !(currentAsr.multilingual || currentAsr.languages.includes(sourceLang))) {
-      const firstMatch = allAsr.find(m =>
+      const firstMatch = pickBestModel(allAsr.filter(m =>
         (m.multilingual || m.languages.includes(sourceLang)) && modelStatuses[m.id] === 'downloaded'
-      );
+      ));
       updates.asrModel = firstMatch?.id || '';
     }
 
@@ -120,22 +120,33 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
     const allTts = getManifestByType('tts');
     const currentTtsEntry = allTts.find(m => m.id === localInferenceSettings.ttsModel);
     if (!currentTtsEntry || !currentTtsEntry.languages.includes(targetLang)) {
-      const firstMatch = allTts.find(m =>
+      const firstMatch = pickBestModel(allTts.filter(m =>
         m.languages.includes(targetLang) && modelStatuses[m.id] === 'downloaded'
-      );
+      ));
       updates.ttsModel = firstMatch?.id || '';
       updates.ttsSpeakerId = 0;
     }
 
     // Auto-select translation model
-    const allTranslation = getManifestByType('translation');
-    const currentTransEntry = allTranslation.find(m => m.id === localInferenceSettings.translationModel);
-    const isCurrentTransCompatible = currentTransEntry && isTranslationModelCompatible(currentTransEntry, sourceLang, targetLang);
-    if (!isCurrentTransCompatible) {
-      const firstMatch = allTranslation.find(m =>
-        isTranslationModelCompatible(m, sourceLang, targetLang) && modelStatuses[m.id] === 'downloaded'
-      );
-      updates.translationModel = firstMatch?.id || '';
+    // AST short-circuit: if translation model === ASR model and it has astLanguages, it's valid
+    const transModelId = localInferenceSettings.translationModel;
+    const effectiveAsrId = updates.asrModel ?? localInferenceSettings.asrModel;
+    const asrEntryForAst = transModelId && transModelId === effectiveAsrId
+      ? getManifestEntry(transModelId) : null;
+    const isAstValid = asrEntryForAst
+      && isAstCompatible(asrEntryForAst, sourceLang, targetLang)
+      && modelStatuses[transModelId] === 'downloaded';
+
+    if (!isAstValid) {
+      const allTranslation = getManifestByType('translation');
+      const currentTransEntry = allTranslation.find(m => m.id === transModelId);
+      const isCurrentTransCompatible = currentTransEntry && isTranslationModelCompatible(currentTransEntry, sourceLang, targetLang);
+      if (!isCurrentTransCompatible) {
+        const firstMatch = pickBestModel(allTranslation.filter(m =>
+          isTranslationModelCompatible(m, sourceLang, targetLang) && modelStatuses[m.id] === 'downloaded'
+        ));
+        updates.translationModel = firstMatch?.id || '';
+      }
     }
 
     if (Object.keys(updates).length > 0) {

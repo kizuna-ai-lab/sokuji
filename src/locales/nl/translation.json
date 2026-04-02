@@ -280,6 +280,7 @@
   },
   "mainPanel": {
     "conversationPlaceholder": "Gesprek verschijnt hier",
+    "speechDetected": "[Spraak gedetecteerd]",
     "audioContent": "Audio inhoud",
     "function": "Functie",
     "input": "Invoer",

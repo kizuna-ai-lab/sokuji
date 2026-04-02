@@ -217,6 +217,7 @@
   },
   "mainPanel": {
     "conversationPlaceholder": "Konversationen kommer att visas här",
+    "speechDetected": "[Tal upptäckt]",
     "pushToTalk": "tryck för att tala (Mellanslag)",
     "endSession": "Avsluta session",
     "startSession": "Starta session",

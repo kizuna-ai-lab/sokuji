@@ -280,6 +280,7 @@
   },
   "mainPanel": {
     "conversationPlaceholder": "대화가 여기에 표시됩니다",
+    "speechDetected": "[음성 감지됨]",
     "audioContent": "오디오 콘텐츠",
     "function": "기능",
     "input": "입력",

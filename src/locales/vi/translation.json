@@ -217,6 +217,7 @@
   },
   "mainPanel": {
     "conversationPlaceholder": "Cuộc trò chuyện sẽ xuất hiện ở đây",
+    "speechDetected": "[Phát hiện giọng nói]",
     "pushToTalk": "nhấn để nói (Space)",
     "endSession": "Kết thúc phiên",
     "startSession": "Bắt đầu phiên",
