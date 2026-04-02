@@ -388,6 +388,7 @@
   },
   "mainPanel": {
     "conversationPlaceholder": "কথোপকথন এখানে প্রদর্শিত হবে",
+    "speechDetected": "[কথা শনাক্ত হয়েছে]",
     "audioContent": "অডিও কন্টেন্ট",
     "function": "ফাংশন",
     "input": "ইনপুট",

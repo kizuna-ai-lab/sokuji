@@ -373,6 +373,7 @@
   },
   "mainPanel": {
     "conversationPlaceholder": "Ang usapan ay lalabas dito",
+    "speechDetected": "[Nakita ang pagsasalita]",
     "pushToTalk": "pindutin para magsalita (Space)",
     "endSession": "Tapusin ang session",
     "startSession": "Simulan ang session",

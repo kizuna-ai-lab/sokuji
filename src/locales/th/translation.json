@@ -335,6 +335,7 @@
   },
   "mainPanel": {
     "conversationPlaceholder": "การสนทนาจะปรากฏที่นี่",
+    "speechDetected": "[ตรวจพบเสียงพูด]",
     "pushToTalk": "กดเพื่อพูด (Space)",
     "endSession": "จบเซสชัน",
     "startSession": "เริ่มเซสชัน",
