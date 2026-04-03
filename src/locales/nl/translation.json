@@ -58,7 +58,8 @@
     "sourceLanguage": "Mijn taal",
     "targetLanguage": "Taal van de ander",
     "preview": "Voorbeeld",
-    "simple": "Eenvoudig",
+    "simple": "Snel",
+    "participantModelHint": "Schakel naar {{source}} → {{target}} om de deelnemermodellen te wijzigen",
     "advanced": "Geavanceerd",
     "normal": "Normaal",
     "semantic": "Semantisch",
@@ -125,11 +126,11 @@
     "webgpuNotSupported": "Niet beschikbaar in de huidige omgeving",
     "langMismatch": "Taal komt niet overeen",
     "localInferenceTurnDetectionTooltip": "De automatische modus gebruikt spraakactiviteitsdetectie om spraak automatisch te detecteren. Push-to-talk laat je handmatig de audio-overdracht regelen door Spatie of de microfoonknop ingedrukt te houden.",
-    "noAsrModel": "Geen ASR-model voor {{language}}",
+    "noAsrModel": "Geen Spraakherkenning (ASR)-model voor {{language}}",
     "noTranslationModel": "Geen vertaalmodel voor {{source}} → {{target}}",
-    "noTtsModel": "Geen TTS-model voor {{language}}",
+    "noTtsModel": "Geen Spraaksynthese (TTS)-model voor {{language}}",
     "ttsNone": "Geen (alleen tekst)",
-    "ttsSettings": "TTS-instellingen",
+    "ttsSettings": "Spraaksynthese (TTS)-instellingen",
     "ttsSpeakerId": "Spreker-ID",
     "ttsSpeed": "Spraaksnelheid",
     "vadSettings": "VAD-instellingen",
@@ -215,13 +216,13 @@
     "transcriptModelTooltip": "Transcriptiemodel selecteren",
     "noiseReductionTooltip": "Niveau van achtergrondruisonderdrukking instellen",
     "systemInstructionsTooltip": "Instructies invoeren om het AI-gedrag aan te passen",
-    "localInferenceModelsRequired": "Download en selecteer modellen in <settingsLink>Geavanceerde instellingen</settingsLink>. Er is minimaal één ASR-, Vertaal- en TTS-model vereist.",
+    "localInferenceModelsRequired": "Download eerst de vereiste modellen in <settingsLink>Instellingen</settingsLink>. U moet Spraakherkenning (ASR)-, Vertaling- en Spraaksynthese (TTS)-modellen downloaden om te beginnen.",
     "missingModelsWarning": "Ontbrekend(e) {{types}}-model(len) voor dit taalpaar.",
     "downloadModels": "Modellen downloaden",
     "downloadModelType": "{{type}} downloaden",
-    "modelTypeAsr": "ASR",
+    "modelTypeAsr": "Spraakherkenning (ASR)",
     "modelTypeTranslation": "Vertaling",
-    "modelTypeTts": "TTS"
+    "modelTypeTts": "Spraaksynthese (TTS)"
   },
   "audioPanel": {
     "title": "Audio instellingen",
@@ -305,6 +306,7 @@
     "initProgress": "Laden ({{completed}}/{{total}})...",
     "insufficientBalance": "Onvoldoende tokensaldo: {{balance}} tokens",
     "walletFrozen": "Wallet is bevroren. Neem contact op met support.",
+    "localModelsRequired": "Download de vereiste modellen in Instellingen om te beginnen.",
     "clearConversation": "Gesprek wissen"
   },
   "errors": {
@@ -352,8 +354,12 @@
           "title": "Stap 6: Luidspreker Selecteren",
           "content": "Kies een monitoringapparaat om de vertaling te beluisteren. Vertaalde audio wordt altijd naar de virtuele microfoon gestuurd, ongeacht monitoring. Selecteer Sokuji Virtual Microphone als microfooninvoer in uw vergaderapp of website. Hoofdtelefoon wordt aanbevolen voor monitoring om feedback te voorkomen."
         },
+        "systemAudio": {
+          "title": "Stap 7: Deelnemersaudio",
+          "content": "Schakel deelnemergeluidsopname in om andere sprekers in realtime te vertalen. In de browserextensie legt deze functie de audio van het huidige tabblad vast en kan het de stemmen van andere deelnemers vertalen in webconferenties zoals Google Meet, Teams, Zoom en anderen. In de desktopapp legt deze functie alle audio vast die de computer afspeelt en kan het YouTube-video's, Twitch-streams, Netflix-content en elke andere audiobron vertalen. Deelnemersaudio voert alleen spraakherkenning en tekstvertaling uit, geen spraaksynthese. Sokuji vangt via de microfoon op wat u zegt en vertaalt het, en vangt via deze functie op wat de andere persoon zegt en vertaalt het. Samen maken ze volledige tweerichtingsvertaling mogelijk."
+        },
         "start": {
-          "title": "Stap 7: Vertalen Starten",
+          "title": "Stap 8: Vertalen Starten",
           "content": "Click 'Start' to begin translating! Just speak naturally and hear the translation in real-time."
         },
         "complete": {
@@ -411,6 +417,10 @@
         "title": "Monitor apparaat instelling",
         "content": "Selecteer een monitor apparaat (zoals koptelefoon of luidsprekers) om de vertaling output te horen. Het wordt aanbevolen om koptelefoons te gebruiken om audio feedback te vermijden. Als u zich wilt concentreren op de vergadering zonder afleiding van monitoring, kunt u de monitoring functie uitschakelen."
       },
+      "systemAudio": {
+        "title": "Stap 8: Deelnemersaudio",
+        "content": "Schakel deelnemergeluidsopname in om andere sprekers in realtime te vertalen. In de browserextensie legt deze functie de audio van het huidige tabblad vast en kan het de stemmen van andere deelnemers vertalen in webconferenties zoals Google Meet, Teams, Zoom en anderen. In de desktopapp legt deze functie alle audio vast die de computer afspeelt en kan het YouTube-video's, Twitch-streams, Netflix-content en elke andere audiobron vertalen. Deelnemersaudio voert alleen spraakherkenning en tekstvertaling uit, geen spraaksynthese. Sokuji vangt via de microfoon op wat u zegt en vertaalt het, en vangt via deze functie op wat de andere persoon zegt en vertaalt het. Samen maken ze volledige tweerichtingsvertaling mogelijk."
+      },
       "startSession": {
         "title": "Start uw sessie",
         "content": "Alles is klaar! Klik op de \"Sessie starten\" knop om realtime vertaling te beginnen. Vergeet niet om de Sokuji virtuele microfoon te selecteren als invoer apparaat in uw conferentie applicatie."
@@ -450,7 +460,7 @@
     "audioSettings": "Audio Instellingen",
     "audioSettingsDesc": "Configureer uw microfoon en luidsprekers in het Audio paneel",
     "autoAuthenticated": "Automatisch geauthenticeerd via uw account",
-    "provider": "Provider"
+    "provider": "AI-serviceprovider"
   },
   "simpleConfig": {
     "interfaceLanguage": "Interface Taal",
@@ -519,8 +529,8 @@
       "description": "Onbekende provider"
     },
     "local_inference": {
-      "name": "Lokaal (offline)",
-      "description": "Offline ASR + Vertaling + TTS",
+      "name": "Lokale AI (offline)",
+      "description": "Offline spraakherkenning (ASR) + Vertaling + spraaksynthese (TTS)",
       "noKeyRequired": "Geen API-sleutel vereist — draait volledig op uw apparaat"
     }
   },
@@ -676,9 +686,9 @@
   "models": {
     "management": "Modellen",
     "storageUsed": "Opslag: {{size}} MB gebruikt",
-    "asrModels": "ASR (Spraakherkenning)",
+    "asrModels": "Spraakherkenning (ASR)",
     "translationModels": "Vertaling",
-    "ttsModels": "TTS (Spraaksynthese)",
+    "ttsModels": "Spraaksynthese (TTS)",
     "autoSelected": "Automatisch geselecteerd",
     "download": "Downloaden",
     "cancel": "Annuleren",
@@ -686,14 +696,16 @@
     "delete": "Verwijderen",
     "error": "Fout",
     "retry": "Opnieuw",
-    "showAllAsr": "Alle ASR-modellen tonen ({{count}})",
+    "showAllAsr": "Alle Spraakherkenning (ASR)-modellen tonen ({{count}})",
     "showAll": "Alle vertaalmodellen tonen ({{count}})",
-    "showAllTts": "Alle TTS-modellen tonen ({{count}})",
+    "showAllTts": "Alle Spraaksynthese (TTS)-modellen tonen ({{count}})",
     "hideOther": "Andere modellen verbergen",
     "clearAll": "Alles wissen",
     "confirmClearAll": "Alle modellen verwijderen?",
     "confirmYes": "Ja",
-    "confirmNo": "Nee"
+    "confirmNo": "Nee",
+    "recommended": "Aanbevolen",
+    "recommendedGroup": "Aanbevolen"
   },
   "update": {
     "available": "Nieuwe versie v{{version}} beschikbaar",

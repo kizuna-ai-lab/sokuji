@@ -102,11 +102,11 @@
     "webgpuNotSupported": "Mevcut ortamda kullanılamaz",
     "langMismatch": "Dil uyuşmazlığı",
     "localInferenceTurnDetectionTooltip": "Otomatik mod, konuşmayı otomatik olarak algılamak için ses etkinliği algılama kullanır. Bas-konuş modu, Boşluk tuşunu veya mikrofon düğmesini basılı tutarak ses gönderimini manuel olarak kontrol etmenizi sağlar.",
-    "noAsrModel": "{{language}} için ASR modeli yok",
+    "noAsrModel": "{{language}} için Konuşma tanıma (ASR) modeli yok",
     "noTranslationModel": "{{source}} → {{target}} için çeviri modeli yok",
-    "noTtsModel": "{{language}} için TTS modeli yok",
+    "noTtsModel": "{{language}} için Konuşma sentezi (TTS) modeli yok",
     "ttsNone": "Yok (yalnızca metin)",
-    "ttsSettings": "TTS Ayarları",
+    "ttsSettings": "Konuşma sentezi (TTS) Ayarları",
     "ttsSpeakerId": "Konuşmacı Kimliği",
     "ttsSpeed": "Konuşma Hızı",
     "vadSettings": "VAD Ayarları",
@@ -186,7 +186,8 @@
     "noiseSuppressionTooltip": "RNNoise kullanarak AI destekli gürültü azaltma. Sesi AI sağlayıcısına göndermeden önce arka plan gürültüsünü azaltır. Tüm sağlayıcılarla çalışır.",
     "modelConfiguration": "Model yapılandırması",
     "preview": "Önizleme",
-    "simple": "Basit",
+    "simple": "Hızlı",
+    "participantModelHint": "Katılımcı modellerini değiştirmek için {{source}} → {{target}} diline geçin",
     "advanced": "Gelişmiş",
     "normal": "Normal",
     "semantic": "Anlamsal",
@@ -214,13 +215,13 @@
     "thresholdTooltip": "Ses algılama eşiğini ayarlayın",
     "prefixPaddingTooltip": "Konuşmadan önce dolgu ekleyin",
     "silenceDurationTooltip": "Konuşmanın bittiği kabul edilmeden önceki sessizlik süresi",
-    "localInferenceModelsRequired": "Lütfen <settingsLink>Gelişmiş Ayarlar</settingsLink>'dan modelleri indirip seçin. En az bir ASR, Çeviri ve TTS modeli gereklidir.",
+    "localInferenceModelsRequired": "Lütfen önce <settingsLink>Ayarlar</settingsLink>'dan gerekli modelleri indirin. Başlamak için Konuşma tanıma (ASR), Çeviri ve Konuşma sentezi (TTS) modellerini indirmeniz gerekiyor.",
     "missingModelsWarning": "Bu dil çifti için {{types}} modeli eksik.",
     "downloadModels": "Modelleri indir",
     "downloadModelType": "{{type}} indir",
-    "modelTypeAsr": "ASR",
+    "modelTypeAsr": "Konuşma tanıma (ASR)",
     "modelTypeTranslation": "Çeviri",
-    "modelTypeTts": "TTS"
+    "modelTypeTts": "Konuşma sentezi (TTS)"
   },
   "mainPanel": {
     "conversationPlaceholder": "Konuşma burada görünecek",
@@ -241,6 +242,7 @@
     "initProgress": "Yükleniyor ({{completed}}/{{total}})...",
     "insufficientBalance": "Yetersiz token bakiyesi: {{balance}} token",
     "walletFrozen": "Cüzdan donduruldu. Lütfen destek ile iletişime geçin.",
+    "localModelsRequired": "Başlamak için lütfen Ayarlar'dan gerekli modelleri indirin.",
     "clearConversation": "Sohbeti temizle"
   },
   "audioPanel": {
@@ -310,8 +312,12 @@
           "title": "Adım 6: Hoparlör Seçin",
           "content": "Çeviriyi önizlemek için bir izleme cihazı seçin. Çevrilmiş ses, izleme durumuna bakılmaksızın her zaman sanal mikrofona gönderilir. Toplantı uygulamanızda veya web sitenizde Sokuji Virtual Microphone'u mikrofon girişi olarak seçin. Geri bildirimi önlemek için izleme sırasında kulaklık kullanılması önerilir."
         },
+        "systemAudio": {
+          "title": "Adım 7: Katılımcı Sesi",
+          "content": "Diğer konuşmacıların söylediklerini gerçek zamanlı olarak çevirmek için katılımcı ses yakalamayı etkinleştirin. Tarayıcı eklentisinde bu özellik, geçerli sekmenin sesini yakalar ve Google Meet, Teams, Zoom gibi web konferanslarında diğer katılımcıların seslerini çevirebilir. Masaüstü uygulamasında bu özellik, bilgisayarın çaldığı tüm sesi yakalar ve YouTube videoları, Twitch yayınları, Netflix içerikleri ve diğer tüm ses kaynaklarını çevirebilir. Katılımcı sesi yalnızca konuşma tanıma ve metin çevirisi yapar, konuşma sentezi yapmaz. Sokuji mikrofon aracılığıyla söylediklerinizi yakalar ve çevirir, bu özellik aracılığıyla karşı tarafın söylediklerini yakalar ve çevirir. İkisi birlikte tam çift yönlü çeviri sağlar."
+        },
         "start": {
-          "title": "Adım 7: Çeviriye Başlayın",
+          "title": "Adım 8: Çeviriye Başlayın",
           "content": "Click 'Start' to begin translating! Just speak naturally and hear the translation in real-time."
         },
         "complete": {
@@ -369,6 +375,10 @@
         "title": "Monitör cihazı kurulumu",
         "content": "Çeviri çıktısını duymak için bir monitör cihazı (kulaklık veya hoparlör gibi) seçin. Ses geri beslemesini önlemek için kulaklık kullanılması önerilir. Toplantıya odaklanmak ve monitörleme tarafından dikkatinizin dağılmasını istemiyorsanız, monitörleme özelliğini kapatabilirsiniz."
       },
+      "systemAudio": {
+        "title": "Adım 8: Katılımcı Sesi",
+        "content": "Diğer konuşmacıların söylediklerini gerçek zamanlı olarak çevirmek için katılımcı ses yakalamayı etkinleştirin. Tarayıcı eklentisinde bu özellik, geçerli sekmenin sesini yakalar ve Google Meet, Teams, Zoom gibi web konferanslarında diğer katılımcıların seslerini çevirebilir. Masaüstü uygulamasında bu özellik, bilgisayarın çaldığı tüm sesi yakalar ve YouTube videoları, Twitch yayınları, Netflix içerikleri ve diğer tüm ses kaynaklarını çevirebilir. Katılımcı sesi yalnızca konuşma tanıma ve metin çevirisi yapar, konuşma sentezi yapmaz. Sokuji mikrofon aracılığıyla söylediklerinizi yakalar ve çevirir, bu özellik aracılığıyla karşı tarafın söylediklerini yakalar ve çevirir. İkisi birlikte tam çift yönlü çeviri sağlar."
+      },
       "startSession": {
         "title": "Oturumunuzu başlatın",
         "content": "Her şey hazır! Gerçek zamanlı çeviriyi başlatmak için \"Oturumu başlat\" düğmesine tıklayın. Konferans uygulamanızda giriş cihazı olarak Sokuji sanal mikrofonunu seçmeyi unutmayın."
@@ -408,7 +418,7 @@
     "audioSettings": "Ses Ayarları",
     "audioSettingsDesc": "Ses panelinde mikrofonunuzu ve hoparlörlerinizi yapılandırın",
     "autoAuthenticated": "Hesabınız üzerinden otomatik olarak doğrulandı",
-    "provider": "Sağlayıcı"
+    "provider": "Yapay zeka hizmet sağlayıcısı"
   },
   "simpleConfig": {
     "interfaceLanguage": "Arayüz Dili",
@@ -477,8 +487,8 @@
       "description": "Bilinmeyen sağlayıcı"
     },
     "local_inference": {
-      "name": "Yerel (Çevrimdışı)",
-      "description": "Çevrimdışı ASR + Çeviri + TTS",
+      "name": "Yerel Yapay Zeka (Çevrimdışı)",
+      "description": "Çevrimdışı konuşma tanıma (ASR) + Çeviri + konuşma sentezi (TTS)",
       "noKeyRequired": "API anahtarı gerekmez — tamamen cihazınızda çalışır"
     }
   },
@@ -634,9 +644,9 @@
   "models": {
     "management": "Modeller",
     "storageUsed": "Depolama: {{size}} MB kullanıldı",
-    "asrModels": "ASR (Konuşma Tanıma)",
+    "asrModels": "Konuşma tanıma (ASR)",
     "translationModels": "Çeviri",
-    "ttsModels": "TTS (Konuşma Sentezi)",
+    "ttsModels": "Konuşma sentezi (TTS)",
     "autoSelected": "Otomatik seçildi",
     "download": "İndir",
     "cancel": "İptal",
@@ -644,14 +654,16 @@
     "delete": "Sil",
     "error": "Hata",
     "retry": "Yeniden dene",
-    "showAllAsr": "Tüm ASR modellerini göster ({{count}})",
+    "showAllAsr": "Tüm Konuşma tanıma (ASR) modellerini göster ({{count}})",
     "showAll": "Tüm çeviri modellerini göster ({{count}})",
-    "showAllTts": "Tüm TTS modellerini göster ({{count}})",
+    "showAllTts": "Tüm Konuşma sentezi (TTS) modellerini göster ({{count}})",
     "hideOther": "Diğer modelleri gizle",
     "clearAll": "Tümünü temizle",
     "confirmClearAll": "Tüm modeller silinsin mi?",
     "confirmYes": "Evet",
-    "confirmNo": "Hayır"
+    "confirmNo": "Hayır",
+    "recommended": "Önerilen",
+    "recommendedGroup": "Önerilen"
   },
   "update": {
     "available": "Yeni sürüm v{{version}} mevcut",

@@ -1401,16 +1401,22 @@
     border-top: 1px solid vars.$border-subtle;
   }
 
+  .participant-header {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    margin-bottom: 4px;
+  }
+
   .participant-label {
     font-size: 10px;
     color: vars.$text-muted;
     text-transform: uppercase;
     letter-spacing: 0.5px;
+    flex-shrink: 0;
   }
 
   .participant-hint {
-    display: block;
-    margin-top: 4px;
     font-size: 10px;
     color: vars.$text-muted;
     font-style: italic;

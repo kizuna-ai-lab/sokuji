@@ -104,11 +104,11 @@
     "webgpuNotSupported": "Không khả dụng trong môi trường hiện tại",
     "langMismatch": "Ngôn ngữ không khớp",
     "localInferenceTurnDetectionTooltip": "Chế độ tự động sử dụng phát hiện hoạt động giọng nói để tự động nhận diện giọng nói. Nhấn để nói cho phép bạn kiểm soát thủ công việc gửi âm thanh bằng cách giữ phím Space hoặc nút micro.",
-    "noAsrModel": "Không có mô hình ASR cho {{language}}",
+    "noAsrModel": "Không có mô hình Nhận dạng giọng nói (ASR) cho {{language}}",
     "noTranslationModel": "Không có mô hình dịch cho {{source}} → {{target}}",
-    "noTtsModel": "Không có mô hình TTS cho {{language}}",
+    "noTtsModel": "Không có mô hình Tổng hợp giọng nói (TTS) cho {{language}}",
     "ttsNone": "Không (chỉ văn bản)",
-    "ttsSettings": "Cài đặt TTS",
+    "ttsSettings": "Cài đặt Tổng hợp giọng nói (TTS)",
     "ttsSpeakerId": "ID người nói",
     "ttsSpeed": "Tốc độ nói",
     "vadSettings": "Cài đặt VAD",
@@ -188,7 +188,8 @@
     "noiseSuppressionTooltip": "Giảm tiếng ồn bằng AI sử dụng RNNoise. Giảm tiếng ồn nền trước khi gửi âm thanh đến nhà cung cấp AI. Hoạt động với tất cả nhà cung cấp.",
     "modelConfiguration": "Cấu hình mô hình",
     "preview": "Xem trước",
-    "simple": "Đơn giản",
+    "simple": "Nhanh",
+    "participantModelHint": "Chuyển sang {{source}} → {{target}} để thay đổi mô hình người tham gia",
     "advanced": "Nâng cao",
     "normal": "Bình thường",
     "semantic": "Ngữ nghĩa",
@@ -207,13 +208,13 @@
     "settingSavedSuccessfully": "Cài đặt đã được lưu thành công",
     "failedToSaveSetting": "Lưu cài đặt thất bại",
     "geminiParticipantTokenWarning": "Cảnh báo: giới hạn token người tham gia Gemini",
-    "localInferenceModelsRequired": "Vui lòng tải xuống và chọn mô hình trong <settingsLink>Cài đặt nâng cao</settingsLink>. Cần ít nhất một mô hình ASR, Dịch thuật và TTS.",
+    "localInferenceModelsRequired": "Vui lòng tải xuống các mô hình cần thiết trong <settingsLink>Cài đặt</settingsLink> trước. Bạn cần tải xuống mô hình Nhận dạng giọng nói (ASR), Dịch và Tổng hợp giọng nói (TTS) để bắt đầu.",
     "missingModelsWarning": "Thiếu mô hình {{types}} cho cặp ngôn ngữ này.",
     "downloadModels": "Tải mô hình",
     "downloadModelType": "Tải {{type}}",
-    "modelTypeAsr": "ASR",
+    "modelTypeAsr": "Nhận dạng giọng nói (ASR)",
     "modelTypeTranslation": "Dịch thuật",
-    "modelTypeTts": "TTS"
+    "modelTypeTts": "Tổng hợp giọng nói (TTS)"
   },
   "mainPanel": {
     "conversationPlaceholder": "Cuộc trò chuyện sẽ xuất hiện ở đây",
@@ -234,6 +235,7 @@
     "initProgress": "Đang tải ({{completed}}/{{total}})...",
     "insufficientBalance": "Số dư token không đủ: {{balance}} token",
     "walletFrozen": "Ví đã bị đóng băng. Vui lòng liên hệ hỗ trợ.",
+    "localModelsRequired": "Vui lòng tải xuống các mô hình cần thiết trong Cài đặt để bắt đầu.",
     "clearConversation": "Xóa hội thoại"
   },
   "audioPanel": {
@@ -303,8 +305,12 @@
           "title": "Bước 6: Chọn loa",
           "content": "Chọn thiết bị giám sát để xem trước bản dịch. Âm thanh đã dịch luôn được gửi đến micrô ảo bất kể có giám sát hay không. Chọn Sokuji Virtual Microphone làm đầu vào micrô trong ứng dụng họp hoặc trang web của bạn. Nên sử dụng tai nghe để giám sát nhằm tránh phản hồi."
         },
+        "systemAudio": {
+          "title": "Bước 7: Âm thanh người tham gia",
+          "content": "Bật tính năng thu âm thanh người tham gia để dịch lời nói của người khác theo thời gian thực. Trong tiện ích mở rộng trình duyệt, tính năng này thu âm thanh của tab hiện tại và có thể dịch giọng nói của các người tham gia khác trong hội nghị trực tuyến như Google Meet, Teams, Zoom và các ứng dụng khác. Trong ứng dụng máy tính, tính năng này thu tất cả âm thanh mà máy tính phát và có thể dịch video YouTube, phát trực tiếp Twitch, nội dung Netflix và bất kỳ nguồn âm thanh nào khác. Âm thanh người tham gia chỉ thực hiện nhận dạng giọng nói và dịch sang văn bản, không có tổng hợp giọng nói. Sokuji thu và dịch những gì bạn nói qua micrô, và thu cùng dịch những gì đối phương nói qua tính năng này. Kết hợp cả hai cho phép dịch hai chiều hoàn chỉnh."
+        },
         "start": {
-          "title": "Bước 7: Bắt đầu dịch",
+          "title": "Bước 8: Bắt đầu dịch",
           "content": "Click 'Start' to begin translating! Just speak naturally and hear the translation in real-time."
         },
         "complete": {
@@ -362,6 +368,10 @@
         "title": "Thiết lập thiết bị giám sát",
         "content": "Chọn thiết bị giám sát (như tai nghe hoặc loa) để nghe đầu ra dịch. Khuyến nghị sử dụng tai nghe để tránh phản hồi âm thanh. Nếu bạn muốn tập trung vào cuộc họp mà không bị phân tâm bởi giám sát, bạn có thể tắt tính năng giám sát."
       },
+      "systemAudio": {
+        "title": "Bước 8: Âm thanh người tham gia",
+        "content": "Bật tính năng thu âm thanh người tham gia để dịch lời nói của người khác theo thời gian thực. Trong tiện ích mở rộng trình duyệt, tính năng này thu âm thanh của tab hiện tại và có thể dịch giọng nói của các người tham gia khác trong hội nghị trực tuyến như Google Meet, Teams, Zoom và các ứng dụng khác. Trong ứng dụng máy tính, tính năng này thu tất cả âm thanh mà máy tính phát và có thể dịch video YouTube, phát trực tiếp Twitch, nội dung Netflix và bất kỳ nguồn âm thanh nào khác. Âm thanh người tham gia chỉ thực hiện nhận dạng giọng nói và dịch sang văn bản, không có tổng hợp giọng nói. Sokuji thu và dịch những gì bạn nói qua micrô, và thu cùng dịch những gì đối phương nói qua tính năng này. Kết hợp cả hai cho phép dịch hai chiều hoàn chỉnh."
+      },
       "startSession": {
         "title": "Bắt đầu phiên của bạn",
         "content": "Mọi thứ đã sẵn sàng! Nhấp vào nút \"Bắt đầu phiên\" để bắt đầu dịch thời gian thực. Nhớ chọn microphone ảo Sokuji làm thiết bị đầu vào trong ứng dụng hội nghị của bạn."
@@ -401,7 +411,7 @@
     "audioSettings": "Cài Đặt Âm Thanh",
     "audioSettingsDesc": "Cấu hình microphone và loa của bạn trong bảng Âm thanh",
     "autoAuthenticated": "Tự động xác thực qua tài khoản của bạn",
-    "provider": "Nhà cung cấp"
+    "provider": "Nhà cung cấp dịch vụ AI"
   },
   "simpleConfig": {
     "interfaceLanguage": "Ngôn Ngữ Giao Diện",
@@ -470,8 +480,8 @@
       "description": "Nhà cung cấp không rõ"
     },
     "local_inference": {
-      "name": "Cục bộ (ngoại tuyến)",
-      "description": "ASR + Dịch + TTS ngoại tuyến",
+      "name": "AI cục bộ (ngoại tuyến)",
+      "description": "Nhận dạng giọng nói (ASR) + Dịch + Tổng hợp giọng nói (TTS) ngoại tuyến",
       "noKeyRequired": "Không cần API key — chạy hoàn toàn trên thiết bị của bạn"
     }
   },
@@ -627,9 +637,9 @@
   "models": {
     "management": "Mô hình",
     "storageUsed": "Bộ nhớ: đã dùng {{size}} MB",
-    "asrModels": "ASR (Nhận dạng giọng nói)",
+    "asrModels": "Nhận dạng giọng nói (ASR)",
     "translationModels": "Dịch thuật",
-    "ttsModels": "TTS (Tổng hợp giọng nói)",
+    "ttsModels": "Tổng hợp giọng nói (TTS)",
     "autoSelected": "Tự động chọn",
     "download": "Tải xuống",
     "cancel": "Hủy",
@@ -637,14 +647,16 @@
     "delete": "Xóa",
     "error": "Lỗi",
     "retry": "Thử lại",
-    "showAllAsr": "Hiện tất cả mô hình ASR ({{count}})",
+    "showAllAsr": "Hiện tất cả mô hình Nhận dạng giọng nói (ASR) ({{count}})",
     "showAll": "Hiện tất cả mô hình dịch ({{count}})",
-    "showAllTts": "Hiện tất cả mô hình TTS ({{count}})",
+    "showAllTts": "Hiện tất cả mô hình Tổng hợp giọng nói (TTS) ({{count}})",
     "hideOther": "Ẩn các mô hình khác",
     "clearAll": "Xóa tất cả",
     "confirmClearAll": "Xóa tất cả mô hình?",
     "confirmYes": "Có",
-    "confirmNo": "Không"
+    "confirmNo": "Không",
+    "recommended": "Được đề xuất",
+    "recommendedGroup": "Được đề xuất"
   },
   "update": {
     "available": "Phiên bản mới v{{version}} khả dụng",

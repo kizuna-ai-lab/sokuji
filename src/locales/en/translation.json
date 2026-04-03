@@ -117,7 +117,7 @@
     "sourceLanguage": "My Language",
     "targetLanguage": "Other's Language",
     "preview": "Preview",
-    "simple": "Simple",
+    "simple": "Quick",
     "advanced": "Advanced",
     "normal": "Normal",
     "semantic": "Semantic",
@@ -206,11 +206,11 @@
     "webgpuNotSupported": "Not available in current environment",
     "langMismatch": "language mismatch",
     "localInferenceTurnDetectionTooltip": "Auto mode uses Voice Activity Detection to automatically detect speech. Push-to-Talk lets you manually control when to send audio by holding Space or the mic button.",
-    "noAsrModel": "No ASR model for {{language}}",
+    "noAsrModel": "No Speech Recognition (ASR) model for {{language}}",
     "noTranslationModel": "No translation model for {{source}} → {{target}}",
-    "noTtsModel": "No TTS model for {{language}}",
+    "noTtsModel": "No Speech Synthesis (TTS) model for {{language}}",
     "ttsNone": "None (text only)",
-    "ttsSettings": "TTS Settings",
+    "ttsSettings": "Speech Synthesis (TTS) Settings",
     "ttsSpeakerId": "Speaker ID",
     "ttsSpeed": "Speech Speed",
     "vadSettings": "VAD Settings",
@@ -220,13 +220,13 @@
     "vadMinSilenceDurationTooltip": "Minimum silence duration to split speech segments. Shorter values split sentences faster, longer values wait for more natural pauses.",
     "vadMinSpeechDuration": "Min Speech Duration",
     "vadMinSpeechDurationTooltip": "Minimum speech duration to consider as valid speech. Filters out very short sounds like clicks or coughs.",
-    "localInferenceModelsRequired": "Please download and select models in <settingsLink>Advanced Settings</settingsLink>. At least one ASR, Translation, and TTS model is required.",
+    "localInferenceModelsRequired": "Please download the required models in <settingsLink>Settings</settingsLink> first. You need to download Speech Recognition (ASR), Translation, and Speech Synthesis (TTS) models to get started.",
     "missingModelsWarning": "Missing {{types}} model(s) for this language pair.",
     "downloadModels": "Download models",
     "downloadModelType": "Download {{type}}",
-    "modelTypeAsr": "ASR",
+    "modelTypeAsr": "Speech Recognition (ASR)",
     "modelTypeTranslation": "Translation",
-    "modelTypeTts": "TTS"
+    "modelTypeTts": "Speech Synthesis (TTS)"
   },
   "simpleSettings": {
     "autoAuthenticated": "Automatically authenticated via your account",
@@ -243,7 +243,7 @@
       "travel": "Travel",
       "travelDesc": "Tourism and travel scenarios"
     },
-    "provider": "Provider",
+    "provider": "AI Service Provider",
     "apiKey": "API Key",
     "apiKeyPlaceholder": "Enter your API key",
     "setupGuide": "Setup guide",
@@ -434,8 +434,8 @@
       "accessTokenPlaceholder": "Access Token"
     },
     "local_inference": {
-      "name": "Local (Offline)",
-      "description": "Offline ASR + Translation + TTS",
+      "name": "Local AI (Offline)",
+      "description": "Offline Speech Recognition (ASR) + Translation + Speech Synthesis (TTS)",
       "noKeyRequired": "No API key required — runs entirely on your device",
       "modelAsr": "ASR",
       "modelTranslation": "Translation",
@@ -497,7 +497,7 @@
     "unknownError": "Unknown error",
     "insufficientBalance": "Insufficient token balance: {{balance}} tokens",
     "walletFrozen": "Wallet is frozen. Please contact support.",
-    "localModelsRequired": "Download required models in settings to start.",
+    "localModelsRequired": "Please download the required models in Settings to start.",
     "clearConversation": "Clear conversation",
     "decreaseFontSize": "Decrease font size",
     "increaseFontSize": "Increase font size"
@@ -611,8 +611,12 @@
           "title": "Step 6: Select Speaker",
           "content": "Choose a monitoring device to preview the translation. Translated audio is always output to the virtual microphone regardless of monitoring. Select Sokuji Virtual Microphone as the microphone input in your meeting app or website. Headphones are recommended for monitoring to avoid feedback."
         },
+        "systemAudio": {
+          "title": "Step 7: Participant Audio",
+          "content": "Enable participant audio capture to translate other speakers' voices in real-time. In the browser extension, this captures audio from the current tab, allowing you to translate other participants in web conferences like Google Meet, Teams, or Zoom. In the desktop app, this captures all audio your computer plays, so you can translate YouTube videos, Twitch streams, Netflix shows, or any other audio source. Participant audio is transcribed and translated to text only — no speech synthesis is applied. Sokuji translates what you say via the microphone, and translates what others say via this feature — together they enable full two-way translation."
+        },
         "start": {
-          "title": "Step 7: Start Translating",
+          "title": "Step 8: Start Translating",
           "content": "Click 'Start' to begin translating! Just speak naturally and hear the translation in real-time."
         },
         "complete": {
@@ -670,8 +674,12 @@
         "title": "Step 7: Speaker Setup",
         "content": "Select a monitoring device to listen to the translated audio and verify if it meets your requirements. It is recommended to use headphones for monitoring to avoid interference with microphone input. When you are satisfied with the translation settings, it is suggested to turn off monitoring so you can focus more on your expression without microphone interference."
       },
+      "systemAudio": {
+        "title": "Step 8: Participant Audio",
+        "content": "Enable participant audio capture to translate other speakers' voices in real-time. In the browser extension, this captures audio from the current tab, allowing you to translate other participants in web conferences like Google Meet, Teams, or Zoom. In the desktop app, this captures all audio your computer plays, so you can translate YouTube videos, Twitch streams, Netflix shows, or any other audio source. Participant audio is transcribed and translated to text only — no speech synthesis is applied. Sokuji translates what you say via the microphone, and translates what others say via this feature — together they enable full two-way translation."
+      },
       "startSession": {
-        "title": "Step 8: Start Session",
+        "title": "Step 9: Start Session",
         "content": "Click the \"Start Session\" button to begin using Sokuji. Once started, you can speak naturally for live translation. If Automatic turn detection is disabled, use \"Push to Talk\" (Space key) to speak."
       },
       "complete": {
@@ -716,9 +724,9 @@
   "models": {
     "management": "Models",
     "storageUsed": "Storage: {{size}} MB used",
-    "asrModels": "ASR (Speech Recognition)",
+    "asrModels": "Speech Recognition (ASR)",
     "translationModels": "Translation",
-    "ttsModels": "TTS (Text-to-Speech)",
+    "ttsModels": "Speech Synthesis (TTS)",
     "autoSelected": "Auto-selected",
     "download": "Download",
     "cancel": "Cancel",
@@ -726,14 +734,16 @@
     "delete": "Delete",
     "error": "Error",
     "retry": "Retry",
-    "showAllAsr": "Show all ASR models ({{count}})",
+    "showAllAsr": "Show all Speech Recognition (ASR) models ({{count}})",
     "showAll": "Show all translation models ({{count}})",
-    "showAllTts": "Show all TTS models ({{count}})",
+    "showAllTts": "Show all Speech Synthesis (TTS) models ({{count}})",
     "hideOther": "Hide other models",
     "clearAll": "Clear all",
     "confirmClearAll": "Delete all models?",
     "confirmYes": "Yes",
-    "confirmNo": "No"
+    "confirmNo": "No",
+    "recommended": "Recommended",
+    "recommendedGroup": "Recommended"
   },
   "update": {
     "available": "New version v{{version}} available",

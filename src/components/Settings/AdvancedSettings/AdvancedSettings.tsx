@@ -158,7 +158,6 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({ toggleSettings }) =
             {/* Provider Selection */}
             <ProviderSection
               isSessionActive={isSessionActive}
-              expandableStyle={false}
             />
 
             {/* Help & Updates */}
@@ -196,11 +195,9 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({ toggleSettings }) =
 
         {activeTab === 'provider' && (
           <>
-            {/* Provider and API Key - dropdown style */}
+            {/* Provider and API Key */}
             <ProviderSection
               isSessionActive={isSessionActive}
-              expandableStyle={false}
-              showExperimentalBadge={true}
             />
 
             {/* Provider-specific settings (system instructions, model, turn detection, etc.) */}

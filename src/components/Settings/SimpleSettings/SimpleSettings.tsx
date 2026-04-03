@@ -85,10 +85,9 @@ const SimpleSettings: React.FC<SimpleSettingsProps> = ({ highlightSection }) => 
           showTranslationLanguages={true}
         />
 
-        {/* Provider and API Key - expandable style */}
+        {/* Provider and API Key */}
         <ProviderSection
           isSessionActive={isSessionActive}
-          expandableStyle={true}
         />
 
         {/* Microphone Selection */}

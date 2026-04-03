@@ -102,11 +102,11 @@
     "webgpuNotSupported": "Hindi available sa kasalukuyang environment",
     "langMismatch": "Hindi tugmang wika",
     "localInferenceTurnDetectionTooltip": "Ang auto mode ay gumagamit ng Voice Activity Detection para awtomatikong matukoy ang pagsasalita. Ang push-to-talk ay nagbibigay-daan sa iyo na mano-manong kontrolin ang pagpapadala ng audio sa pamamagitan ng pagpindot sa Space o sa microphone button.",
-    "noAsrModel": "Walang ASR model para sa {{language}}",
+    "noAsrModel": "Walang Pagkilala sa pagsasalita (ASR) model para sa {{language}}",
     "noTranslationModel": "Walang translation model para sa {{source}} → {{target}}",
-    "noTtsModel": "Walang TTS model para sa {{language}}",
+    "noTtsModel": "Walang Sintesis ng pagsasalita (TTS) model para sa {{language}}",
     "ttsNone": "Wala (teksto lang)",
-    "ttsSettings": "Mga Setting ng TTS",
+    "ttsSettings": "Mga Setting ng Sintesis ng pagsasalita (TTS)",
     "ttsSpeakerId": "Speaker ID",
     "ttsSpeed": "Bilis ng Pagsasalita",
     "vadSettings": "Mga Setting ng VAD",
@@ -186,7 +186,8 @@
     "noiseSuppressionTooltip": "Pagbawas ng ingay gamit ang AI sa pamamagitan ng RNNoise. Binabawasan ang ingay sa background bago ipadala ang audio sa AI provider. Gumagana sa lahat ng provider.",
     "modelConfiguration": "Pagsasaayos ng modelo",
     "preview": "Preview",
-    "simple": "Simple",
+    "simple": "Mabilis",
+    "participantModelHint": "Lumipat sa {{source}} → {{target}} para baguhin ang mga modelo ng kalahok",
     "advanced": "Advanced",
     "normal": "Normal",
     "semantic": "Semantiko",
@@ -214,13 +215,13 @@
     "thresholdTooltip": "I-adjust ang threshold ng voice detection",
     "prefixPaddingTooltip": "Magdagdag ng padding bago ang pagsasalita",
     "silenceDurationTooltip": "Tagal ng katahimikan bago ituring na tapos na ang pagsasalita",
-    "localInferenceModelsRequired": "Mangyaring mag-download at pumili ng mga modelo sa <settingsLink>Advanced Settings</settingsLink>. Kailangan ng kahit isang ASR, Translation, at TTS na modelo.",
+    "localInferenceModelsRequired": "Mangyaring i-download muna ang mga kinakailangang modelo sa <settingsLink>Mga Setting</settingsLink>. Kailangan mong mag-download ng mga modelo ng pagkilala sa pagsasalita (ASR), pagsasalin, at sintesis ng pagsasalita (TTS) para makapagsimula.",
     "missingModelsWarning": "Nawawalang {{types}} model para sa language pair na ito.",
     "downloadModels": "I-download ang mga model",
     "downloadModelType": "I-download ang {{type}}",
-    "modelTypeAsr": "ASR",
+    "modelTypeAsr": "Pagkilala sa pagsasalita (ASR)",
     "modelTypeTranslation": "Pagsasalin",
-    "modelTypeTts": "TTS"
+    "modelTypeTts": "Sintesis ng pagsasalita (TTS)"
   },
   "simpleSettings": {
     "quickSetup": "Mabilisang Setup",
@@ -251,7 +252,7 @@
     "audioSettings": "Mga Audio Setting",
     "audioSettingsDesc": "I-configure ang inyong microphone at speakers sa Audio panel",
     "autoAuthenticated": "Awtomatikong na-authenticate sa pamamagitan ng iyong account",
-    "provider": "Provider"
+    "provider": "Tagapagbigay ng serbisyo ng AI"
   },
   "simpleConfig": {
     "interfaceLanguage": "Wika ng Interface",
@@ -320,8 +321,8 @@
       "description": "Hindi kilalang provider"
     },
     "local_inference": {
-      "name": "Lokal (Offline)",
-      "description": "Offline ASR + Pagsasalin + TTS",
+      "name": "Lokal na AI (Offline)",
+      "description": "Offline pagkilala sa pagsasalita (ASR) + Pagsasalin + sintesis ng pagsasalita (TTS)",
       "noKeyRequired": "Hindi kailangan ng API key — tumatakbo nang buo sa iyong device"
     }
   },
@@ -389,6 +390,7 @@
     "initProgress": "Naglo-load ({{completed}}/{{total}})...",
     "insufficientBalance": "Hindi sapat ang token balance: {{balance}} token",
     "walletFrozen": "Naka-freeze ang wallet. Mangyaring makipag-ugnayan sa support.",
+    "localModelsRequired": "Mangyaring i-download ang mga kinakailangang modelo sa Mga Setting para makapagsimula.",
     "clearConversation": "Burahin ang usapan"
   },
   "audioPanel": {
@@ -458,8 +460,12 @@
           "title": "Hakbang 6: Pumili ng Speaker",
           "content": "Pumili ng monitoring device para i-preview ang pagsasalin. Ang naisalin na audio ay palaging ipinapadala sa virtual microphone kahit naka-off ang monitoring. Piliin ang Sokuji Virtual Microphone bilang microphone input sa iyong meeting app o website. Inirerekomenda ang headphones para sa monitoring upang maiwasan ang feedback."
         },
+        "systemAudio": {
+          "title": "Hakbang 7: Audio ng Kalahok",
+          "content": "I-enable ang participant audio capture para isalin ang sinasabi ng ibang nagsasalita sa real-time. Sa browser extension, kinukuha ng feature na ito ang audio ng kasalukuyang tab at maaaring isalin ang boses ng ibang kalahok sa mga web conference tulad ng Google Meet, Teams, Zoom, at iba pa. Sa desktop app, kinukuha ng feature na ito ang lahat ng audio na pine-play ng computer at maaaring isalin ang mga video sa YouTube, Twitch stream, Netflix content, at anumang audio source. Ang participant audio ay nagsasagawa lamang ng speech recognition at text translation, walang speech synthesis. Kinukuha at isinasalin ng Sokuji ang iyong sinasabi sa pamamagitan ng mikropono, at kinukuha at isinasalin ang sinasabi ng kausap sa pamamagitan ng feature na ito. Magkasama, nagbibigay sila ng kumpletong two-way translation."
+        },
         "start": {
-          "title": "Hakbang 7: Simulan ang Pagsasalin",
+          "title": "Hakbang 8: Simulan ang Pagsasalin",
           "content": "Click 'Start' to begin translating! Just speak naturally and hear the translation in real-time."
         },
         "complete": {
@@ -516,6 +522,10 @@
       "speakerSetup": {
         "title": "Monitor device setup",
         "content": "Pumili ng monitor device (tulad ng headphones o speakers) para marinig ang translation output. Inirerekomenda ang paggamit ng headphones para maiwasan ang audio feedback. Kung mas gusto ninyong mag-focus sa meeting nang walang distraction mula sa monitoring, pwede ninyong i-disable ang monitoring feature."
+      },
+      "systemAudio": {
+        "title": "Hakbang 8: Audio ng Kalahok",
+        "content": "I-enable ang participant audio capture para isalin ang sinasabi ng ibang nagsasalita sa real-time. Sa browser extension, kinukuha ng feature na ito ang audio ng kasalukuyang tab at maaaring isalin ang boses ng ibang kalahok sa mga web conference tulad ng Google Meet, Teams, Zoom, at iba pa. Sa desktop app, kinukuha ng feature na ito ang lahat ng audio na pine-play ng computer at maaaring isalin ang mga video sa YouTube, Twitch stream, Netflix content, at anumang audio source. Ang participant audio ay nagsasagawa lamang ng speech recognition at text translation, walang speech synthesis. Kinukuha at isinasalin ng Sokuji ang iyong sinasabi sa pamamagitan ng mikropono, at kinukuha at isinasalin ang sinasabi ng kausap sa pamamagitan ng feature na ito. Magkasama, nagbibigay sila ng kumpletong two-way translation."
       },
       "startSession": {
         "title": "Simulan ang inyong session",
@@ -634,9 +644,9 @@
   "models": {
     "management": "Mga Model",
     "storageUsed": "Storage: {{size}} MB ang ginagamit",
-    "asrModels": "ASR (Speech Recognition)",
+    "asrModels": "Pagkilala sa pagsasalita (ASR)",
     "translationModels": "Pagsasalin",
-    "ttsModels": "TTS (Speech Synthesis)",
+    "ttsModels": "Sintesis ng pagsasalita (TTS)",
     "autoSelected": "Auto-selected",
     "download": "I-download",
     "cancel": "Kanselahin",
@@ -644,14 +654,16 @@
     "delete": "I-delete",
     "error": "Error",
     "retry": "Subukan muli",
-    "showAllAsr": "Ipakita lahat ng ASR model ({{count}})",
+    "showAllAsr": "Ipakita lahat ng Pagkilala sa pagsasalita (ASR) model ({{count}})",
     "showAll": "Ipakita lahat ng translation model ({{count}})",
-    "showAllTts": "Ipakita lahat ng TTS model ({{count}})",
+    "showAllTts": "Ipakita lahat ng Sintesis ng pagsasalita (TTS) model ({{count}})",
     "hideOther": "Itago ang ibang model",
     "clearAll": "Burahin lahat",
     "confirmClearAll": "Burahin lahat ng modelo?",
     "confirmYes": "Oo",
-    "confirmNo": "Hindi"
+    "confirmNo": "Hindi",
+    "recommended": "Inirerekomenda",
+    "recommendedGroup": "Inirerekomenda"
   },
   "update": {
     "available": "Bagong bersyon v{{version}} ay magagamit na",
