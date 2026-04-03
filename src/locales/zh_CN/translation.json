@@ -58,7 +58,8 @@
     "sourceLanguage": "我的语言",
     "targetLanguage": "对方语言",
     "preview": "预览",
-    "simple": "简单",
+    "simple": "快捷",
+    "participantModelHint": "切换到 {{source}} → {{target}} 以更改参与者模型",
     "advanced": "高级",
     "normal": "正常",
     "semantic": "语义",
@@ -150,11 +151,11 @@
     "webgpuNotSupported": "当前环境不可用",
     "langMismatch": "语言不匹配",
     "localInferenceTurnDetectionTooltip": "自动模式使用语音活动检测自动识别语音。按住说话模式可通过按住空格键或麦克风按钮手动控制音频发送。",
-    "noAsrModel": "没有 {{language}} 的 ASR 模型",
+    "noAsrModel": "没有 {{language}} 的语音识别（ASR）模型",
     "noTranslationModel": "没有 {{source}} → {{target}} 的翻译模型",
-    "noTtsModel": "没有 {{language}} 的 TTS 模型",
+    "noTtsModel": "没有 {{language}} 的语音合成（TTS）模型",
     "ttsNone": "无（仅文本）",
-    "ttsSettings": "TTS 设置",
+    "ttsSettings": "语音合成（TTS）设置",
     "ttsSpeakerId": "说话人 ID",
     "ttsSpeed": "语速",
     "vadSettings": "VAD 设置",
@@ -215,13 +216,13 @@
     "switchToBasic": "切换到基础模式",
     "advancedMode": "高级",
     "basicMode": "基础",
-    "localInferenceModelsRequired": "请在<settingsLink>高级设置</settingsLink>中下载并选择模型。至少需要一个语音识别（ASR）、翻译和语音合成（TTS）模型。",
+    "localInferenceModelsRequired": "请先在<settingsLink>设置</settingsLink>中下载所需的模型。需要分别下载语音识别（ASR）、翻译和语音合成（TTS）三类模型才能使用。",
     "missingModelsWarning": "缺少此语言对的 {{types}} 模型。",
     "downloadModels": "下载模型",
     "downloadModelType": "下载 {{type}}",
-    "modelTypeAsr": "ASR",
+    "modelTypeAsr": "语音识别（ASR）",
     "modelTypeTranslation": "翻译",
-    "modelTypeTts": "TTS"
+    "modelTypeTts": "语音合成（TTS）"
   },
   "simpleSettings": {
     "quickSetup": "快速设置",
@@ -252,7 +253,7 @@
     "audioSettings": "音频设置",
     "audioSettingsDesc": "在音频面板中配置您的麦克风和扬声器",
     "autoAuthenticated": "已通过您的账户自动认证",
-    "provider": "提供商"
+    "provider": "AI服务提供商"
   },
   "simpleConfig": {
     "interfaceLanguage": "界面语言",
@@ -363,8 +364,8 @@
       "description": "未知提供商"
     },
     "local_inference": {
-      "name": "本地（离线）",
-      "description": "离线 ASR + 翻译 + TTS",
+      "name": "本地AI（离线）",
+      "description": "离线语音识别（ASR）+ 翻译 + 语音合成（TTS）",
       "noKeyRequired": "无需 API 密钥 — 完全在您的设备上运行"
     }
   },
@@ -455,6 +456,7 @@
     "initProgress": "加载中 ({{completed}}/{{total}})...",
     "insufficientBalance": "代币余额不足：{{balance}} 个代币",
     "walletFrozen": "钱包已冻结。请联系客服。",
+    "localModelsRequired": "请先在设置中下载所需的模型才能开始使用。",
     "clearConversation": "清除对话"
   },
   "errors": {
@@ -506,8 +508,12 @@
           "title": "步骤 6：选择扬声器",
           "content": "选择监听设备来试听翻译效果。无论是否开启监听，翻译后的语音都会输出到虚拟麦克风。您需要在会议软件或网站上选择 Sokuji 虚拟麦克风作为麦克风输入。推荐使用耳机监听，避免干扰麦克风收音。"
         },
+        "systemAudio": {
+          "title": "步骤 7：参与者音频",
+          "content": "启用参与者音频捕获，实时翻译其他发言者的语音。在浏览器扩展中，此功能会捕获当前标签页的音频，可以翻译 Google Meet、Teams、Zoom 等网络会议中其他参与者的语音。在桌面应用中，此功能会捕获电脑播放的所有声音，可以翻译 YouTube 视频、Twitch 直播、Netflix 影片等任何音频来源。参与者音频仅进行语音识别和翻译为文字，不会进行语音合成播报。Sokuji 通过麦克风捕获您说的话并翻译，通过此功能捕获对方说的话并翻译，两者配合即可实现完整的双向翻译。"
+        },
         "start": {
-          "title": "步骤 7：开始翻译",
+          "title": "步骤 8：开始翻译",
           "content": "点击'开始'开始翻译！自然地说话，实时听到翻译。"
         },
         "complete": {
@@ -561,8 +567,12 @@
         "title": "步骤7：扬声器设置",
         "content": "选择监听设备来试听翻译效果。无论是否开启监听，翻译后的语音都会输出到虚拟麦克风。您需要在会议软件或网站上选择 Sokuji 虚拟麦克风作为麦克风输入。推荐使用耳机监听，避免干扰麦克风收音。"
       },
+      "systemAudio": {
+        "title": "步骤 8：参与者音频",
+        "content": "启用参与者音频捕获，实时翻译其他发言者的语音。在浏览器扩展中，此功能会捕获当前标签页的音频，可以翻译 Google Meet、Teams、Zoom 等网络会议中其他参与者的语音。在桌面应用中，此功能会捕获电脑播放的所有声音，可以翻译 YouTube 视频、Twitch 直播、Netflix 影片等任何音频来源。参与者音频仅进行语音识别和翻译为文字，不会进行语音合成播报。Sokuji 通过麦克风捕获您说的话并翻译，通过此功能捕获对方说的话并翻译，两者配合即可实现完整的双向翻译。"
+      },
       "startSession": {
-        "title": "步骤8：开始会话",
+        "title": "步骤9：开始会话",
         "content": "点击\"开始会话\"按钮开始使用Sokuji。启动后，您可以自然说话进行实时翻译。如果禁用了自动轮换检测，请使用\"按住说话\"（空格键）来说话。"
       },
       "complete": {
@@ -685,9 +695,9 @@
   "models": {
     "management": "模型",
     "storageUsed": "存储：已使用 {{size}} MB",
-    "asrModels": "ASR（语音识别）",
+    "asrModels": "语音识别（ASR）",
     "translationModels": "翻译",
-    "ttsModels": "TTS（语音合成）",
+    "ttsModels": "语音合成（TTS）",
     "autoSelected": "自动选择",
     "download": "下载",
     "cancel": "取消",
@@ -695,14 +705,16 @@
     "delete": "删除",
     "error": "错误",
     "retry": "重试",
-    "showAllAsr": "显示所有 ASR 模型（{{count}}）",
+    "showAllAsr": "显示所有语音识别（ASR）模型（{{count}}）",
     "showAll": "显示所有翻译模型（{{count}}）",
-    "showAllTts": "显示所有 TTS 模型（{{count}}）",
+    "showAllTts": "显示所有语音合成（TTS）模型（{{count}}）",
     "hideOther": "隐藏其他模型",
     "clearAll": "全部清除",
     "confirmClearAll": "删除所有模型？",
     "confirmYes": "是",
-    "confirmNo": "否"
+    "confirmNo": "否",
+    "recommended": "推荐",
+    "recommendedGroup": "推荐"
   },
   "update": {
     "available": "新版本 v{{version}} 可用",

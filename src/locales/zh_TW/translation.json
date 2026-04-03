@@ -41,7 +41,7 @@
     "apiKeyHelpTooltip": "API 金鑰就像密碼，讓 Sokuji 使用 AI 翻譯服務。您需要從選擇的提供商（如 OpenAI）取得一個。",
     "apiKeyHelpTooltip2": "逐步指南：",
     "autoAuthenticated": "已通過您的帳戶自動認證",
-    "provider": "提供者"
+    "provider": "AI服務提供商"
   },
   "simpleConfig": {
     "interfaceLanguage": "介面語言",
@@ -114,8 +114,8 @@
       "description": "未知的提供商"
     },
     "local_inference": {
-      "name": "本機（離線）",
-      "description": "離線 ASR + 翻譯 + TTS",
+      "name": "本機AI（離線）",
+      "description": "離線語音辨識（ASR）+ 翻譯 + 語音合成（TTS）",
       "noKeyRequired": "無需 API 金鑰 — 完全在您的裝置上執行"
     }
   },
@@ -175,7 +175,8 @@
     "sourceLanguage": "我的語言",
     "targetLanguage": "對方語言",
     "preview": "預覽",
-    "simple": "簡單",
+    "simple": "快捷",
+    "participantModelHint": "切換到 {{source}} → {{target}} 以變更參與者模型",
     "advanced": "進階",
     "normal": "正常",
     "semantic": "語意",
@@ -263,11 +264,11 @@
     "webgpuNotSupported": "當前環境不可用",
     "langMismatch": "語言不匹配",
     "localInferenceTurnDetectionTooltip": "自動模式使用語音活動偵測自動識別語音。按住說話模式可透過按住空白鍵或麥克風按鈕手動控制音訊傳送。",
-    "noAsrModel": "沒有 {{language}} 的 ASR 模型",
+    "noAsrModel": "沒有 {{language}} 的語音辨識（ASR）模型",
     "noTranslationModel": "沒有 {{source}} → {{target}} 的翻譯模型",
-    "noTtsModel": "沒有 {{language}} 的 TTS 模型",
+    "noTtsModel": "沒有 {{language}} 的語音合成（TTS）模型",
     "ttsNone": "無（僅文字）",
-    "ttsSettings": "TTS 設定",
+    "ttsSettings": "語音合成（TTS）設定",
     "ttsSpeakerId": "說話者 ID",
     "ttsSpeed": "語速",
     "vadSettings": "VAD 設定",
@@ -332,13 +333,13 @@
     "basicMode": "基本",
     "unlimited": "無限制",
     "custom": "自訂",
-    "localInferenceModelsRequired": "請在<settingsLink>進階設定</settingsLink>中下載並選擇模型。至少需要一個語音辨識（ASR）、翻譯和語音合成（TTS）模型。",
+    "localInferenceModelsRequired": "請先在<settingsLink>設定</settingsLink>中下載所需的模型。需要分別下載語音辨識（ASR）、翻譯和語音合成（TTS）三類模型才能使用。",
     "missingModelsWarning": "缺少此語言對的 {{types}} 模型。",
     "downloadModels": "下載模型",
     "downloadModelType": "下載 {{type}}",
-    "modelTypeAsr": "ASR",
+    "modelTypeAsr": "語音辨識（ASR）",
     "modelTypeTranslation": "翻譯",
-    "modelTypeTts": "TTS"
+    "modelTypeTts": "語音合成（TTS）"
   },
   "audioPanel": {
     "title": "音訊設定",
@@ -422,6 +423,7 @@
     "initProgress": "載入中 ({{completed}}/{{total}})...",
     "insufficientBalance": "代幣餘額不足：{{balance}} 個代幣",
     "walletFrozen": "錢包已凍結。請聯繫客服。",
+    "localModelsRequired": "請先在設定中下載所需的模型才能開始使用。",
     "clearConversation": "清除對話"
   },
   "errors": {
@@ -469,8 +471,12 @@
           "title": "步驟 6：選擇喇叭",
           "content": "選擇監聽裝置來試聽翻譯效果。無論是否開啟監聽，翻譯後的語音都會輸出到虛擬麥克風。您需要在會議軟體或網站上選擇 Sokuji 虛擬麥克風作為麥克風輸入。建議使用耳機監聽，避免干擾麥克風收音。"
         },
+        "systemAudio": {
+          "title": "步驟 7：參與者音訊",
+          "content": "啟用參與者音訊擷取，即時翻譯其他發言者的語音。在瀏覽器擴充功能中，此功能會擷取目前分頁的音訊，可以翻譯 Google Meet、Teams、Zoom 等網路會議中其他參與者的語音。在桌面應用程式中，此功能會擷取電腦播放的所有聲音，可以翻譯 YouTube 影片、Twitch 直播、Netflix 影片等任何音訊來源。參與者音訊僅進行語音辨識和翻譯為文字，不會進行語音合成播報。Sokuji 透過麥克風擷取您說的話並翻譯，透過此功能擷取對方說的話並翻譯，兩者配合即可實現完整的雙向翻譯。"
+        },
         "start": {
-          "title": "步驟 7：開始翻譯",
+          "title": "步驟 8：開始翻譯",
           "content": "Click 'Start' to begin translating! Just speak naturally and hear the translation in real-time."
         },
         "complete": {
@@ -527,6 +533,10 @@
       "speakerSetup": {
         "title": "監控裝置設定",
         "content": "選擇監控裝置（如耳機或揚聲器）來聽取翻譯輸出。建議使用耳機以避免音訊回饋。如果您想專注於會議而不被監控分心，可以關閉監控功能。"
+      },
+      "systemAudio": {
+        "title": "步驟 8：參與者音訊",
+        "content": "啟用參與者音訊擷取，即時翻譯其他發言者的語音。在瀏覽器擴充功能中，此功能會擷取目前分頁的音訊，可以翻譯 Google Meet、Teams、Zoom 等網路會議中其他參與者的語音。在桌面應用程式中，此功能會擷取電腦播放的所有聲音，可以翻譯 YouTube 影片、Twitch 直播、Netflix 影片等任何音訊來源。參與者音訊僅進行語音辨識和翻譯為文字，不會進行語音合成播報。Sokuji 透過麥克風擷取您說的話並翻譯，透過此功能擷取對方說的話並翻譯，兩者配合即可實現完整的雙向翻譯。"
       },
       "startSession": {
         "title": "開始您的工作階段",
@@ -645,9 +655,9 @@
   "models": {
     "management": "模型",
     "storageUsed": "儲存空間：已使用 {{size}} MB",
-    "asrModels": "ASR（語音辨識）",
+    "asrModels": "語音辨識（ASR）",
     "translationModels": "翻譯",
-    "ttsModels": "TTS（語音合成）",
+    "ttsModels": "語音合成（TTS）",
     "autoSelected": "自動選擇",
     "download": "下載",
     "cancel": "取消",
@@ -655,14 +665,16 @@
     "delete": "刪除",
     "error": "錯誤",
     "retry": "重試",
-    "showAllAsr": "顯示所有 ASR 模型（{{count}}）",
+    "showAllAsr": "顯示所有語音辨識（ASR）模型（{{count}}）",
     "showAll": "顯示所有翻譯模型（{{count}}）",
-    "showAllTts": "顯示所有 TTS 模型（{{count}}）",
+    "showAllTts": "顯示所有語音合成（TTS）模型（{{count}}）",
     "hideOther": "隱藏其他模型",
     "clearAll": "全部清除",
     "confirmClearAll": "刪除所有模型？",
     "confirmYes": "是",
-    "confirmNo": "否"
+    "confirmNo": "否",
+    "recommended": "推薦",
+    "recommendedGroup": "推薦"
   },
   "update": {
     "available": "新版本 v{{version}} 可用",

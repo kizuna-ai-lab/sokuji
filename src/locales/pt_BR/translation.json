@@ -58,7 +58,8 @@
     "sourceLanguage": "Meu idioma",
     "targetLanguage": "Idioma do outro",
     "preview": "Visualizar",
-    "simple": "Simples",
+    "simple": "Rápido",
+    "participantModelHint": "Mude para {{source}} → {{target}} para alterar os modelos do participante",
     "advanced": "Avançado",
     "normal": "Normal",
     "semantic": "Semântico",
@@ -145,11 +146,11 @@
     "webgpuNotSupported": "Não disponível no ambiente atual",
     "langMismatch": "Idioma incompatível",
     "localInferenceTurnDetectionTooltip": "O modo automático usa detecção de atividade vocal para detectar fala automaticamente. O modo pressionar para falar permite controlar manualmente o envio de áudio segurando Espaço ou o botão do microfone.",
-    "noAsrModel": "Nenhum modelo ASR para {{language}}",
+    "noAsrModel": "Nenhum modelo Reconhecimento de fala (ASR) para {{language}}",
     "noTranslationModel": "Nenhum modelo de tradução para {{source}} → {{target}}",
-    "noTtsModel": "Nenhum modelo TTS para {{language}}",
+    "noTtsModel": "Nenhum modelo Síntese de fala (TTS) para {{language}}",
     "ttsNone": "Nenhum (apenas texto)",
-    "ttsSettings": "Configurações TTS",
+    "ttsSettings": "Configurações Síntese de fala (TTS)",
     "ttsSpeakerId": "ID do locutor",
     "ttsSpeed": "Velocidade da fala",
     "vadSettings": "Configurações VAD",
@@ -215,13 +216,13 @@
     "unlimited": "Ilimitado",
     "custom": "Personalizado",
     "regionNotSupported": "Serviço não disponível na sua região. Verifique seu ambiente de rede ou tente outro provedor.",
-    "localInferenceModelsRequired": "Baixe e selecione modelos nas <settingsLink>Configurações Avançadas</settingsLink>. É necessário pelo menos um modelo de ASR, Tradução e TTS.",
+    "localInferenceModelsRequired": "Por favor, baixe primeiro os modelos necessários em <settingsLink>Configurações</settingsLink>. Você precisa baixar modelos de Reconhecimento de fala (ASR), Tradução e Síntese de fala (TTS) para começar.",
     "missingModelsWarning": "Modelo(s) de {{types}} ausente(s) para este par de idiomas.",
     "downloadModels": "Baixar modelos",
     "downloadModelType": "Baixar {{type}}",
-    "modelTypeAsr": "ASR",
+    "modelTypeAsr": "Reconhecimento de fala (ASR)",
     "modelTypeTranslation": "Tradução",
-    "modelTypeTts": "TTS"
+    "modelTypeTts": "Síntese de fala (TTS)"
   },
   "audioPanel": {
     "title": "Configurações de áudio",
@@ -305,6 +306,7 @@
     "initProgress": "Carregando ({{completed}}/{{total}})...",
     "insufficientBalance": "Saldo de tokens insuficiente: {{balance}} tokens",
     "walletFrozen": "Carteira congelada. Entre em contato com o suporte.",
+    "localModelsRequired": "Por favor, baixe os modelos necessários em Configurações para começar.",
     "clearConversation": "Limpar conversa"
   },
   "errors": {
@@ -352,8 +354,12 @@
           "title": "Passo 6: Selecionar Alto-falante",
           "content": "Escolha um dispositivo de monitoramento para pré-visualizar a tradução. O áudio traduzido é sempre enviado ao microfone virtual, independentemente do monitoramento. Selecione Sokuji Virtual Microphone como entrada de microfone no seu aplicativo de reunião ou site. Fones de ouvido são recomendados para monitoramento para evitar feedback."
         },
+        "systemAudio": {
+          "title": "Passo 7: Áudio dos Participantes",
+          "content": "Ative a captura de áudio dos participantes para traduzir em tempo real o que outros falantes dizem. Na extensão do navegador, este recurso captura o áudio da aba atual e pode traduzir as vozes de outros participantes em videoconferências como Google Meet, Teams, Zoom e outras. No aplicativo de desktop, este recurso captura todo o áudio reproduzido pelo computador e pode traduzir vídeos do YouTube, transmissões da Twitch, conteúdo da Netflix e qualquer outra fonte de áudio. O áudio dos participantes realiza apenas reconhecimento de fala e tradução para texto, sem síntese de voz. O Sokuji captura e traduz o que você diz pelo microfone, e captura e traduz o que a outra pessoa diz por meio deste recurso. Juntos, eles permitem uma tradução bidirecional completa."
+        },
         "start": {
-          "title": "Passo 7: Começar a Traduzir",
+          "title": "Passo 8: Começar a Traduzir",
           "content": "Click 'Start' to begin translating! Just speak naturally and hear the translation in real-time."
         },
         "complete": {
@@ -411,8 +417,12 @@
         "title": "Passo 7: Configuração de alto-falantes",
         "content": "Selecione um dispositivo de monitoramento para ouvir o áudio traduzido e verificar se atende aos seus requisitos. É recomendado usar fones de ouvido para monitoramento para evitar interferência com a entrada do microfone. Quando você achar que as configurações de tradução atendem aos seus requisitos, é sugerido desligar o monitoramento para que você possa se concentrar mais em sua expressão e não interferir com a entrada do microfone."
       },
+      "systemAudio": {
+        "title": "Passo 8: Áudio dos Participantes",
+        "content": "Ative a captura de áudio dos participantes para traduzir em tempo real o que outros falantes dizem. Na extensão do navegador, este recurso captura o áudio da aba atual e pode traduzir as vozes de outros participantes em videoconferências como Google Meet, Teams, Zoom e outras. No aplicativo de desktop, este recurso captura todo o áudio reproduzido pelo computador e pode traduzir vídeos do YouTube, transmissões da Twitch, conteúdo da Netflix e qualquer outra fonte de áudio. O áudio dos participantes realiza apenas reconhecimento de fala e tradução para texto, sem síntese de voz. O Sokuji captura e traduz o que você diz pelo microfone, e captura e traduz o que a outra pessoa diz por meio deste recurso. Juntos, eles permitem uma tradução bidirecional completa."
+      },
       "startSession": {
-        "title": "Passo 8: Iniciar sessão",
+        "title": "Passo 9: Iniciar sessão",
         "content": "Clique no botão \"Iniciar sessão\" para começar a usar o Sokuji. Uma vez iniciado, você pode falar naturalmente para tradução em tempo real. Se a detecção automática de turno estiver desabilitada, use \"pressionar para falar\" (barra de espaço) para falar."
       },
       "complete": {
@@ -450,7 +460,7 @@
     "audioSettings": "Configurações de Áudio",
     "audioSettingsDesc": "Configure seu microfone e alto-falantes no painel de Áudio",
     "autoAuthenticated": "Autenticado automaticamente através da sua conta",
-    "provider": "Provedor"
+    "provider": "Provedor de serviços de IA"
   },
   "simpleConfig": {
     "interfaceLanguage": "Idioma da Interface",
@@ -519,8 +529,8 @@
       "description": "Provedor desconhecido"
     },
     "local_inference": {
-      "name": "Local (offline)",
-      "description": "ASR + Tradução + TTS offline",
+      "name": "IA local (offline)",
+      "description": "Reconhecimento de fala (ASR) + Tradução + Síntese de fala (TTS) offline",
       "noKeyRequired": "Nenhuma chave API necessária — roda inteiramente no seu dispositivo"
     }
   },
@@ -676,9 +686,9 @@
   "models": {
     "management": "Modelos",
     "storageUsed": "Armazenamento: {{size}} MB usados",
-    "asrModels": "ASR (Reconhecimento de fala)",
+    "asrModels": "Reconhecimento de fala (ASR)",
     "translationModels": "Tradução",
-    "ttsModels": "TTS (Síntese de fala)",
+    "ttsModels": "Síntese de fala (TTS)",
     "autoSelected": "Selecionado automaticamente",
     "download": "Baixar",
     "cancel": "Cancelar",
@@ -686,14 +696,16 @@
     "delete": "Excluir",
     "error": "Erro",
     "retry": "Tentar novamente",
-    "showAllAsr": "Mostrar todos os modelos ASR ({{count}})",
+    "showAllAsr": "Mostrar todos os modelos Reconhecimento de fala (ASR) ({{count}})",
     "showAll": "Mostrar todos os modelos de tradução ({{count}})",
-    "showAllTts": "Mostrar todos os modelos TTS ({{count}})",
+    "showAllTts": "Mostrar todos os modelos Síntese de fala (TTS) ({{count}})",
     "hideOther": "Ocultar outros modelos",
     "clearAll": "Limpar tudo",
     "confirmClearAll": "Excluir todos os modelos?",
     "confirmYes": "Sim",
-    "confirmNo": "Não"
+    "confirmNo": "Não",
+    "recommended": "Recomendado",
+    "recommendedGroup": "Recomendado"
   },
   "update": {
     "available": "Nova versão v{{version}} disponível",

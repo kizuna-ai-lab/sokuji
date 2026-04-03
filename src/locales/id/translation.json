@@ -58,7 +58,8 @@
     "sourceLanguage": "Bahasa saya",
     "targetLanguage": "Bahasa lawan bicara",
     "preview": "Pratinjau",
-    "simple": "Sederhana",
+    "simple": "Cepat",
+    "participantModelHint": "Beralih ke {{source}} → {{target}} untuk mengubah model peserta",
     "advanced": "Lanjutan",
     "normal": "Normal",
     "semantic": "Semantik",
@@ -142,11 +143,11 @@
     "webgpuNotSupported": "Tidak tersedia di lingkungan saat ini",
     "langMismatch": "Bahasa tidak cocok",
     "localInferenceTurnDetectionTooltip": "Mode otomatis menggunakan Deteksi Aktivitas Suara untuk mendeteksi ucapan secara otomatis. Tekan untuk berbicara memungkinkan Anda mengontrol pengiriman audio secara manual dengan menahan Spasi atau tombol mikrofon.",
-    "noAsrModel": "Tidak ada model ASR untuk {{language}}",
+    "noAsrModel": "Tidak ada model Pengenalan ucapan (ASR) untuk {{language}}",
     "noTranslationModel": "Tidak ada model terjemahan untuk {{source}} → {{target}}",
-    "noTtsModel": "Tidak ada model TTS untuk {{language}}",
+    "noTtsModel": "Tidak ada model Sintesis ucapan (TTS) untuk {{language}}",
     "ttsNone": "Tidak ada (hanya teks)",
-    "ttsSettings": "Pengaturan TTS",
+    "ttsSettings": "Pengaturan Sintesis ucapan (TTS)",
     "ttsSpeakerId": "ID Pembicara",
     "ttsSpeed": "Kecepatan Bicara",
     "vadSettings": "Pengaturan VAD",
@@ -215,13 +216,13 @@
     "geminiParticipantTokenWarning": "Peringatan: batas token peserta Gemini",
     "auto": "Otomatis",
     "low": "Rendah",
-    "localInferenceModelsRequired": "Silakan unduh dan pilih model di <settingsLink>Pengaturan Lanjutan</settingsLink>. Setidaknya satu model ASR, Terjemahan, dan TTS diperlukan.",
+    "localInferenceModelsRequired": "Silakan unduh model yang diperlukan di <settingsLink>Pengaturan</settingsLink> terlebih dahulu. Anda perlu mengunduh model Pengenalan ucapan (ASR), Terjemahan, dan Sintesis ucapan (TTS) untuk memulai.",
     "missingModelsWarning": "Model {{types}} tidak tersedia untuk pasangan bahasa ini.",
     "downloadModels": "Unduh model",
     "downloadModelType": "Unduh {{type}}",
-    "modelTypeAsr": "ASR",
+    "modelTypeAsr": "Pengenalan ucapan (ASR)",
     "modelTypeTranslation": "Terjemahan",
-    "modelTypeTts": "TTS"
+    "modelTypeTts": "Sintesis ucapan (TTS)"
   },
   "simpleSettings": {
     "quickSetup": "Pengaturan Cepat",
@@ -252,7 +253,7 @@
     "audioSettings": "Pengaturan Audio",
     "audioSettingsDesc": "Konfigurasikan mikrofon dan speaker Anda di panel Audio",
     "autoAuthenticated": "Otomatis terautentikasi melalui akun Anda",
-    "provider": "Penyedia"
+    "provider": "Penyedia layanan AI"
   },
   "simpleConfig": {
     "interfaceLanguage": "Bahasa Antarmuka",
@@ -321,8 +322,8 @@
       "description": "Penyedia tidak diketahui"
     },
     "local_inference": {
-      "name": "Lokal (Offline)",
-      "description": "ASR + Terjemahan + TTS Offline",
+      "name": "AI Lokal (Offline)",
+      "description": "Pengenalan ucapan (ASR) + Terjemahan + Sintesis ucapan (TTS) Offline",
       "noKeyRequired": "Tidak memerlukan kunci API — berjalan sepenuhnya di perangkat Anda"
     }
   },
@@ -453,6 +454,7 @@
     "initProgress": "Memuat ({{completed}}/{{total}})...",
     "insufficientBalance": "Saldo token tidak mencukupi: {{balance}} token",
     "walletFrozen": "Dompet dibekukan. Silakan hubungi dukungan.",
+    "localModelsRequired": "Silakan unduh model yang diperlukan di Pengaturan untuk memulai.",
     "clearConversation": "Hapus percakapan"
   },
   "errors": {
@@ -500,8 +502,12 @@
           "title": "Langkah 6: Pilih Speaker",
           "content": "Pilih perangkat pemantauan untuk melihat pratinjau terjemahan. Audio terjemahan selalu dikirim ke mikrofon virtual terlepas dari pemantauan. Pilih Sokuji Virtual Microphone sebagai input mikrofon di aplikasi rapat atau situs web Anda. Headphone disarankan untuk pemantauan guna menghindari umpan balik."
         },
+        "systemAudio": {
+          "title": "Langkah 7: Audio Peserta",
+          "content": "Aktifkan penangkapan audio peserta untuk menerjemahkan ucapan pembicara lain secara real-time. Di ekstensi browser, fitur ini menangkap audio tab saat ini dan dapat menerjemahkan suara peserta lain di konferensi web seperti Google Meet, Teams, Zoom, dan lainnya. Di aplikasi desktop, fitur ini menangkap semua audio yang diputar komputer dan dapat menerjemahkan video YouTube, streaming Twitch, konten Netflix, dan sumber audio apa pun. Audio peserta hanya melakukan pengenalan suara dan terjemahan teks, tanpa sintesis suara. Sokuji menangkap dan menerjemahkan apa yang Anda katakan melalui mikrofon, dan menangkap serta menerjemahkan apa yang dikatakan pihak lain melalui fitur ini. Keduanya bersama-sama memungkinkan terjemahan dua arah yang lengkap."
+        },
         "start": {
-          "title": "Langkah 7: Mulai Menerjemahkan",
+          "title": "Langkah 8: Mulai Menerjemahkan",
           "content": "Click 'Start' to begin translating! Just speak naturally and hear the translation in real-time."
         },
         "complete": {
@@ -558,6 +564,10 @@
       "speakerSetup": {
         "title": "Pengaturan perangkat monitor",
         "content": "Pilih perangkat monitor (seperti headphone atau speaker) untuk mendengar output terjemahan. Disarankan menggunakan headphone untuk menghindari umpan balik audio. Jika Anda ingin fokus pada rapat tanpa gangguan monitoring, Anda dapat mematikan fitur monitoring."
+      },
+      "systemAudio": {
+        "title": "Langkah 8: Audio Peserta",
+        "content": "Aktifkan penangkapan audio peserta untuk menerjemahkan ucapan pembicara lain secara real-time. Di ekstensi browser, fitur ini menangkap audio tab saat ini dan dapat menerjemahkan suara peserta lain di konferensi web seperti Google Meet, Teams, Zoom, dan lainnya. Di aplikasi desktop, fitur ini menangkap semua audio yang diputar komputer dan dapat menerjemahkan video YouTube, streaming Twitch, konten Netflix, dan sumber audio apa pun. Audio peserta hanya melakukan pengenalan suara dan terjemahan teks, tanpa sintesis suara. Sokuji menangkap dan menerjemahkan apa yang Anda katakan melalui mikrofon, dan menangkap serta menerjemahkan apa yang dikatakan pihak lain melalui fitur ini. Keduanya bersama-sama memungkinkan terjemahan dua arah yang lengkap."
       },
       "startSession": {
         "title": "Mulai sesi Anda",
@@ -676,9 +686,9 @@
   "models": {
     "management": "Model",
     "storageUsed": "Penyimpanan: {{size}} MB digunakan",
-    "asrModels": "ASR (Pengenalan Ucapan)",
+    "asrModels": "Pengenalan ucapan (ASR)",
     "translationModels": "Terjemahan",
-    "ttsModels": "TTS (Sintesis Ucapan)",
+    "ttsModels": "Sintesis ucapan (TTS)",
     "autoSelected": "Dipilih otomatis",
     "download": "Unduh",
     "cancel": "Batal",
@@ -686,14 +696,16 @@
     "delete": "Hapus",
     "error": "Kesalahan",
     "retry": "Coba lagi",
-    "showAllAsr": "Tampilkan semua model ASR ({{count}})",
+    "showAllAsr": "Tampilkan semua model Pengenalan ucapan (ASR) ({{count}})",
     "showAll": "Tampilkan semua model terjemahan ({{count}})",
-    "showAllTts": "Tampilkan semua model TTS ({{count}})",
+    "showAllTts": "Tampilkan semua model Sintesis ucapan (TTS) ({{count}})",
     "hideOther": "Sembunyikan model lainnya",
     "clearAll": "Hapus semua",
     "confirmClearAll": "Hapus semua model?",
     "confirmYes": "Ya",
-    "confirmNo": "Tidak"
+    "confirmNo": "Tidak",
+    "recommended": "Direkomendasikan",
+    "recommendedGroup": "Direkomendasikan"
   },
   "update": {
     "available": "Versi baru v{{version}} tersedia",

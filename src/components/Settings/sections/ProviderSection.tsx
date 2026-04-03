@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
-import { Cpu, Zap, HelpCircle, ChevronDown, ChevronUp, CheckCircle, AlertCircle, FlaskConical, ExternalLink, X } from 'lucide-react';
+import { Cpu, Zap, HelpCircle, ChevronDown, ChevronUp, CheckCircle, AlertCircle, ExternalLink, X } from 'lucide-react';
 import { OpenAIIcon, GeminiIcon, PalabraAIIcon, KizunaAIIcon, VolcengineIcon } from '../../Icons/ProviderIcons';
 import { useTranslation, Trans } from 'react-i18next';
 import Tooltip from '../../Tooltip/Tooltip';
@@ -54,18 +54,12 @@ const DISMISSED_KEY = 'sokuji-dismissed-tutorials';
 
 interface ProviderSectionProps {
   isSessionActive: boolean;
-  /** Use expandable card style (for simple mode) */
-  expandableStyle?: boolean;
-  /** Show experimental badge for PalabraAI */
-  showExperimentalBadge?: boolean;
   /** Additional class name */
   className?: string;
 }
 
 const ProviderSection: React.FC<ProviderSectionProps> = ({
   isSessionActive,
-  expandableStyle = false,
-  showExperimentalBadge = true,
   className = ''
 }) => {
   const { t } = useTranslation();
@@ -329,80 +323,51 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
         />
       </h3>
 
-      {expandableStyle ? (
-        // Expandable card style for simple mode
-        <div className="provider-selection-area">
-          <div
-            className={`provider-info ${isProviderExpanded ? 'expanded' : ''} ${isSessionActive ? 'disabled' : ''}`}
-            onClick={() => !isSessionActive && setIsProviderExpanded(!isProviderExpanded)}
-          >
-            <div className="provider-icon">{React.createElement(providerInfo.icon, { size: 24 })}</div>
-            <div className="provider-details">
-              <div className="provider-main-info">
-                <div className="provider-name">{providerInfo.name}</div>
-                <div className="provider-description">{providerInfo.description}</div>
-              </div>
-              {!isSessionActive && (
-                <div className="provider-toggle">
-                  {isProviderExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                </div>
-              )}
+      <div className="provider-selection-area">
+        <div
+          className={`provider-info ${isProviderExpanded ? 'expanded' : ''} ${isSessionActive ? 'disabled' : ''}`}
+          onClick={() => !isSessionActive && availableProviders.length > 1 && setIsProviderExpanded(!isProviderExpanded)}
+        >
+          <div className="provider-icon">{React.createElement(providerInfo.icon, { size: 24 })}</div>
+          <div className="provider-details">
+            <div className="provider-main-info">
+              <div className="provider-name">{providerInfo.name}</div>
+              <div className="provider-description">{providerInfo.description}</div>
             </div>
-          </div>
-
-          {isProviderExpanded && !isSessionActive && (
-            <div className="provider-options">
-              {availableProviders
-                .filter(p => p.id !== provider)
-                .map((p) => {
-                  const optionInfo = getProviderInfoById(p.id as ProviderType);
-
-                  return (
-                    <div
-                      key={p.id}
-                      className="provider-option"
-                      onClick={() => handleProviderChange(p.id as ProviderType)}
-                    >
-                      <div className="provider-option-icon">
-                        {React.createElement(optionInfo.icon, { size: 20 })}
-                      </div>
-                      <div className="provider-option-details">
-                        <div className="provider-option-name">{optionInfo.name}</div>
-                        <div className="provider-option-description">{optionInfo.description}</div>
-                      </div>
-                    </div>
-                  );
-                })}
-            </div>
-          )}
-        </div>
-      ) : (
-        // Dropdown style for advanced mode
-        <div className="setting-item">
-          <div className="provider-selection-wrapper">
-            <select
-              className="select-dropdown"
-              value={provider || Provider.OPENAI}
-              onChange={(e) => handleProviderChange(e.target.value as ProviderType)}
-              disabled={isSessionActive}
-            >
-              {availableProviders.map((provider) => (
-                <option key={provider.id} value={provider.id}>
-                  {provider.displayName}
-                </option>
-              ))}
-            </select>
-            {showExperimentalBadge && provider === Provider.PALABRA_AI && (
-              <div className="experimental-icon-wrapper">
-                <FlaskConical size={16} className="experimental-icon" />
-                <div className="experimental-tooltip">
-                  {t('settings.experimentalFeatureTooltip', 'This is an experimental feature and may be unstable.')}
-                </div>
+            {!isSessionActive && availableProviders.length > 1 && (
+              <div className="provider-toggle">
+                {isProviderExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
               </div>
             )}
           </div>
         </div>
-      )}
+
+        {isProviderExpanded && !isSessionActive && (
+          <div className="provider-options">
+            {availableProviders
+              .filter(p => p.id !== provider)
+              .map((p) => {
+                const optionInfo = getProviderInfoById(p.id as ProviderType);
+
+                return (
+                  <div
+                    key={p.id}
+                    className="provider-option"
+                    onClick={() => { handleProviderChange(p.id as ProviderType); setIsProviderExpanded(false); }}
+                  >
+                    <div className="provider-option-icon">
+                      {React.createElement(optionInfo.icon, { size: 20 })}
+                    </div>
+                    <div className="provider-option-details">
+                      <div className="provider-option-name">{optionInfo.name}</div>
+                      <div className="provider-option-description">{optionInfo.description}</div>
+                    </div>
+                  </div>
+                );
+              })}
+          </div>
+        )}
+      </div>
 
       {/* API Endpoint Input - Only for OpenAI Compatible */}
       {provider === Provider.OPENAI_COMPATIBLE && (
@@ -423,63 +388,76 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
         <div className="local-inference-info">
           <div className="model-info">
             <div className="model-inline">
-              <button type="button" className="model-chip" onClick={() => { setUIMode('advanced'); setTimeout(() => navigateToSettings('model-asr'), 100); }}>
-                <span className="model-chip-label">{t('providers.local_inference.modelAsr', 'ASR')}</span>
-                <span className="model-chip-value">
-                  {localInferenceSettings.asrModel && modelStatuses[localInferenceSettings.asrModel] === 'downloaded'
-                    ? localInferenceSettings.asrModel
-                    : t('common.none', 'None')}
-                </span>
-              </button>
-              <button type="button" className="model-chip" onClick={() => { setUIMode('advanced'); setTimeout(() => navigateToSettings('model-translation'), 100); }}>
-                <span className="model-chip-label">{t('providers.local_inference.modelTranslation', 'Translation')}</span>
-                <span className="model-chip-value">
-                  {(() => {
-                    const id = localInferenceSettings.translationModel
-                      || getTranslationModel(localInferenceSettings.sourceLanguage, localInferenceSettings.targetLanguage)?.id;
-                    return id && modelStatuses[id] === 'downloaded' ? id : t('common.none', 'None');
-                  })()}
-                </span>
-              </button>
-              <button type="button" className="model-chip" onClick={() => { setUIMode('advanced'); setTimeout(() => navigateToSettings('model-tts'), 100); }}>
-                <span className="model-chip-label">{t('providers.local_inference.modelTts', 'TTS')}</span>
-                <span className="model-chip-value">
-                  {(() => {
-                    const id = localInferenceSettings.ttsModel
-                      || getTtsModelsForLanguage(localInferenceSettings.targetLanguage).find(m => modelStatuses[m.id] === 'downloaded')?.id;
-                    return id && modelStatuses[id] === 'downloaded' ? id : t('common.none', 'None');
-                  })()}
-                </span>
-              </button>
+              {(() => {
+                const asrReady = localInferenceSettings.asrModel && modelStatuses[localInferenceSettings.asrModel] === 'downloaded';
+                return (
+                  <button type="button" className="model-chip" onClick={() => { setUIMode('advanced'); setTimeout(() => navigateToSettings('model-asr'), 100); }}>
+                    <span className="model-chip-label">{t('providers.local_inference.modelAsr', 'ASR')}</span>
+                    <span className={`model-chip-value ${asrReady ? 'model-ok' : 'model-warn'}`}>
+                      {asrReady ? localInferenceSettings.asrModel : t('common.none', 'None')}
+                    </span>
+                  </button>
+                );
+              })()}
+              {(() => {
+                const id = localInferenceSettings.translationModel
+                  || getTranslationModel(localInferenceSettings.sourceLanguage, localInferenceSettings.targetLanguage)?.id;
+                const translationReady = id && modelStatuses[id] === 'downloaded';
+                return (
+                  <button type="button" className="model-chip" onClick={() => { setUIMode('advanced'); setTimeout(() => navigateToSettings('model-translation'), 100); }}>
+                    <span className="model-chip-label">{t('providers.local_inference.modelTranslation', 'Translation')}</span>
+                    <span className={`model-chip-value ${translationReady ? 'model-ok' : 'model-warn'}`}>
+                      {translationReady ? id : t('common.none', 'None')}
+                    </span>
+                  </button>
+                );
+              })()}
+              {(() => {
+                const id = localInferenceSettings.ttsModel
+                  || getTtsModelsForLanguage(localInferenceSettings.targetLanguage).find(m => modelStatuses[m.id] === 'downloaded')?.id;
+                const ttsReady = id && modelStatuses[id] === 'downloaded';
+                return (
+                  <button type="button" className="model-chip" onClick={() => { setUIMode('advanced'); setTimeout(() => navigateToSettings('model-tts'), 100); }}>
+                    <span className="model-chip-label">{t('providers.local_inference.modelTts', 'TTS')}</span>
+                    <span className={`model-chip-value ${ttsReady ? 'model-ok' : 'model-warn'}`}>
+                      {ttsReady ? id : t('common.none', 'None')}
+                    </span>
+                  </button>
+                );
+              })()}
             </div>
             {isSystemAudioCaptureEnabled && participantModelStatus && (
-              <div className="model-inline participant-inline">
-                <span className="participant-label">{t('providers.local_inference.participant', 'Participant')}</span>
-                <button type="button" className="model-chip" onClick={() => { setUIMode('advanced'); setTimeout(() => navigateToSettings('model-asr'), 100); }}>
-                  <span className="model-chip-label">{t('providers.local_inference.modelAsr', 'ASR')}</span>
-                  {participantModelStatus.asrAvailable ? (
-                    <span className="model-chip-value model-ok">
-                      {participantModelStatus.asrModelId}
-                      {participantModelStatus.asrFallback && ` ↻`}
-                    </span>
-                  ) : (
-                    <span className="model-chip-value model-warn">✗</span>
-                  )}
-                </button>
-                <button type="button" className="model-chip" onClick={() => { setUIMode('advanced'); setTimeout(() => navigateToSettings('model-translation'), 100); }}>
-                  <span className="model-chip-label">{t('providers.local_inference.modelTranslation', 'Translation')}</span>
-                  {participantModelStatus.translationAvailable ? (
-                    <span className="model-chip-value model-ok">{participantModelStatus.translationModelId}</span>
-                  ) : (
-                    <span className="model-chip-value model-warn">✗</span>
-                  )}
-                </button>
-                <span className="participant-hint">
-                  {t('settings.participantModelHint', 'Switch to {{source}} → {{target}} to change participant models', {
-                    source: localInferenceSettings.targetLanguage,
-                    target: localInferenceSettings.sourceLanguage,
-                  })}
-                </span>
+              <div className="participant-inline">
+                <div className="participant-header">
+                  <span className="participant-label">{t('providers.local_inference.participant', 'Participant')}</span>
+                  <span className="participant-hint">
+                    {t('settings.participantModelHint', 'Switch to {{source}} → {{target}} to change participant models', {
+                      source: localInferenceSettings.targetLanguage,
+                      target: localInferenceSettings.sourceLanguage,
+                    })}
+                  </span>
+                </div>
+                <div className="model-inline">
+                  <button type="button" className="model-chip" onClick={() => { setUIMode('advanced'); setTimeout(() => navigateToSettings('model-asr'), 100); }}>
+                    <span className="model-chip-label">{t('providers.local_inference.modelAsr', 'ASR')}</span>
+                    {participantModelStatus.asrAvailable ? (
+                      <span className="model-chip-value model-ok">
+                        {participantModelStatus.asrModelId}
+                        {participantModelStatus.asrFallback && ` ↻`}
+                      </span>
+                    ) : (
+                      <span className="model-chip-value model-warn">✗</span>
+                    )}
+                  </button>
+                  <button type="button" className="model-chip" onClick={() => { setUIMode('advanced'); setTimeout(() => navigateToSettings('model-translation'), 100); }}>
+                    <span className="model-chip-label">{t('providers.local_inference.modelTranslation', 'Translation')}</span>
+                    {participantModelStatus.translationAvailable ? (
+                      <span className="model-chip-value model-ok">{participantModelStatus.translationModelId}</span>
+                    ) : (
+                      <span className="model-chip-value model-warn">✗</span>
+                    )}
+                  </button>
+                </div>
               </div>
             )}
           </div>
