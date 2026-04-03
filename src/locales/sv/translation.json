@@ -80,11 +80,11 @@
     "webgpuNotSupported": "Inte tillgängligt i nuvarande miljö",
     "langMismatch": "Språkfel",
     "localInferenceTurnDetectionTooltip": "Automatiskt läge använder röstaktivitetsdetektering för att automatiskt upptäcka tal. Push-to-talk låter dig manuellt styra ljudsändning genom att hålla in Mellanslag eller mikrofonknappen.",
-    "noAsrModel": "Ingen ASR-modell för {{language}}",
+    "noAsrModel": "Ingen Taligenkänning (ASR)-modell för {{language}}",
     "noTranslationModel": "Ingen översättningsmodell för {{source}} → {{target}}",
-    "noTtsModel": "Ingen TTS-modell för {{language}}",
+    "noTtsModel": "Ingen Talsyntes (TTS)-modell för {{language}}",
     "ttsNone": "Ingen (endast text)",
-    "ttsSettings": "TTS-inställningar",
+    "ttsSettings": "Talsyntes (TTS)-inställningar",
     "ttsSpeakerId": "Talar-ID",
     "ttsSpeed": "Talhastighet",
     "vadSettings": "VAD-inställningar",
@@ -164,7 +164,8 @@
     "noiseSuppressionTooltip": "AI-driven brusreducering med RNNoise. Minskar bakgrundsbrus innan ljud skickas till AI-leverantören. Fungerar med alla leverantörer.",
     "modelConfiguration": "Modellkonfiguration",
     "preview": "Förhandsgranskning",
-    "simple": "Enkel",
+    "simple": "Snabb",
+    "participantModelHint": "Byt till {{source}} → {{target}} för att ändra deltagarmodellerna",
     "advanced": "Avancerat",
     "normal": "Normal",
     "semantic": "Semantisk",
@@ -207,13 +208,13 @@
     "transcriptModelTooltip": "Välj transkriptionsmodell",
     "noiseReductionTooltip": "Ställ in nivå för bakgrundsbrusreducering",
     "systemInstructionsTooltip": "Ange instruktioner för att anpassa AI-beteendet",
-    "localInferenceModelsRequired": "Ladda ner och välj modeller i <settingsLink>Avancerade inställningar</settingsLink>. Minst en ASR-, översättnings- och TTS-modell krävs.",
+    "localInferenceModelsRequired": "Ladda först ner de nödvändiga modellerna i <settingsLink>Inställningar</settingsLink>. Du behöver ladda ner modeller för Taligenkänning (ASR), Översättning och Talsyntes (TTS) för att komma igång.",
     "missingModelsWarning": "{{types}}-modell(er) saknas för detta språkpar.",
     "downloadModels": "Ladda ner modeller",
     "downloadModelType": "Ladda ner {{type}}",
-    "modelTypeAsr": "ASR",
+    "modelTypeAsr": "Taligenkänning (ASR)",
     "modelTypeTranslation": "Översättning",
-    "modelTypeTts": "TTS"
+    "modelTypeTts": "Talsyntes (TTS)"
   },
   "mainPanel": {
     "conversationPlaceholder": "Konversationen kommer att visas här",
@@ -234,6 +235,7 @@
     "initProgress": "Laddar ({{completed}}/{{total}})...",
     "insufficientBalance": "Otillräckligt tokensaldo: {{balance}} tokens",
     "walletFrozen": "Plånboken är frusen. Kontakta supporten.",
+    "localModelsRequired": "Ladda ner de nödvändiga modellerna i Inställningar för att börja.",
     "clearConversation": "Rensa konversation"
   },
   "audioPanel": {
@@ -303,6 +305,10 @@
           "title": "Steg 6: Välj Högtalare",
           "content": "Välj en övervakningsenhet för att förhandsgranska översättningen. Översatt ljud skickas alltid till den virtuella mikrofonen oavsett övervakning. Välj Sokuji Virtual Microphone som mikrofoningång i din mötesapp eller webbplats. Hörlurar rekommenderas för övervakning för att undvika återkoppling."
         },
+        "systemAudio": {
+          "title": "Steg 7: Deltagarljud",
+          "content": "Aktivera deltagarljudinspelning för att översätta andra talares tal i realtid. I webbläsartillägget fångar denna funktion ljudet från den aktuella fliken och kan översätta andra deltagares röster i webbkonferenser som Google Meet, Teams, Zoom med flera. I skrivbordsappen fångar denna funktion allt ljud som datorn spelar upp och kan översätta YouTube-videor, Twitch-strömmar, Netflix-innehåll och vilken annan ljudkälla som helst. Deltagarljud utför bara taligenkänning och textöversättning, ingen talsyntes. Sokuji fångar och översätter vad du säger via mikrofonen, och fångar och översätter vad den andra personen säger via denna funktion. Tillsammans möjliggör de fullständig tvåvägsöversättning."
+        },
         "start": {
           "title": "Steg 7: Börja Översätta",
           "content": "Click 'Start' to begin translating! Just speak naturally and hear the translation in real-time."
@@ -362,6 +368,10 @@
         "title": "Monitorenhetsinställning",
         "content": "Välj en monitorenhet (som hörlurar eller högtalare) för att höra översättningsutdata. Det rekommenderas att använda hörlurar för att undvika ljudåterkoppling. Om du vill fokusera på mötet utan distraktion från övervakning kan du stänga av övervakningsfunktionen."
       },
+      "systemAudio": {
+        "title": "Steg 8: Deltagarljud",
+        "content": "Aktivera deltagarljudinspelning för att översätta andra talares tal i realtid. I webbläsartillägget fångar denna funktion ljudet från den aktuella fliken och kan översätta andra deltagares röster i webbkonferenser som Google Meet, Teams, Zoom med flera. I skrivbordsappen fångar denna funktion allt ljud som datorn spelar upp och kan översätta YouTube-videor, Twitch-strömmar, Netflix-innehåll och vilken annan ljudkälla som helst. Deltagarljud utför bara taligenkänning och textöversättning, ingen talsyntes. Sokuji fångar och översätter vad du säger via mikrofonen, och fångar och översätter vad den andra personen säger via denna funktion. Tillsammans möjliggör de fullständig tvåvägsöversättning."
+      },
       "startSession": {
         "title": "Starta din session",
         "content": "Allt är redo! Klicka på \"Starta session\"-knappen för att börja realtidsöversättning. Kom ihåg att välja Sokuji virtuell mikrofon som inmatningsenhet i din konferensapplikation."
@@ -406,7 +416,7 @@
     "audioSettings": "Ljudinställningar",
     "audioSettingsDesc": "Konfigurera din mikrofon och högtalare i Ljudpanelen",
     "autoAuthenticated": "Automatiskt autentiserad via ditt konto",
-    "provider": "Leverantör"
+    "provider": "AI-tjänsteleverantör"
   },
   "simpleConfig": {
     "interfaceLanguage": "Gränssnittsspråk",
@@ -475,8 +485,8 @@
       "description": "Okänd leverantör"
     },
     "local_inference": {
-      "name": "Lokal (offline)",
-      "description": "Offline ASR + Översättning + TTS",
+      "name": "Lokal AI (offline)",
+      "description": "Offline taligenkänning (ASR) + Översättning + talsyntes (TTS)",
       "noKeyRequired": "Ingen API-nyckel krävs — körs helt på din enhet"
     }
   },
@@ -632,9 +642,9 @@
   "models": {
     "management": "Modeller",
     "storageUsed": "Lagring: {{size}} MB använt",
-    "asrModels": "ASR (Taligenkänning)",
+    "asrModels": "Taligenkänning (ASR)",
     "translationModels": "Översättning",
-    "ttsModels": "TTS (Talsyntes)",
+    "ttsModels": "Talsyntes (TTS)",
     "autoSelected": "Automatiskt valt",
     "download": "Ladda ner",
     "cancel": "Avbryt",
@@ -642,14 +652,16 @@
     "delete": "Radera",
     "error": "Fel",
     "retry": "Försök igen",
-    "showAllAsr": "Visa alla ASR-modeller ({{count}})",
+    "showAllAsr": "Visa alla Taligenkänning (ASR)-modeller ({{count}})",
     "showAll": "Visa alla översättningsmodeller ({{count}})",
-    "showAllTts": "Visa alla TTS-modeller ({{count}})",
+    "showAllTts": "Visa alla Talsyntes (TTS)-modeller ({{count}})",
     "hideOther": "Dölj andra modeller",
     "clearAll": "Rensa allt",
     "confirmClearAll": "Ta bort alla modeller?",
     "confirmYes": "Ja",
-    "confirmNo": "Nej"
+    "confirmNo": "Nej",
+    "recommended": "Rekommenderad",
+    "recommendedGroup": "Rekommenderad"
   },
   "update": {
     "available": "Ny version v{{version}} tillgänglig",

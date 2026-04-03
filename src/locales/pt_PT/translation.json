@@ -57,7 +57,8 @@
     "sourceLanguage": "Meu idioma",
     "targetLanguage": "Idioma do outro",
     "preview": "Pré-visualizar",
-    "simple": "Simples",
+    "simple": "Rápido",
+    "participantModelHint": "Mude para {{source}} → {{target}} para alterar os modelos do participante",
     "advanced": "Avançado",
     "normal": "Normal",
     "semantic": "Semântico",
@@ -121,11 +122,11 @@
     "webgpuNotSupported": "Não disponível no ambiente atual",
     "langMismatch": "Idioma incompatível",
     "localInferenceTurnDetectionTooltip": "O modo automático usa deteção de atividade vocal para detetar fala automaticamente. O modo premir para falar permite controlar manualmente o envio de áudio mantendo Espaço ou o botão do microfone.",
-    "noAsrModel": "Nenhum modelo ASR para {{language}}",
+    "noAsrModel": "Nenhum modelo Reconhecimento de fala (ASR) para {{language}}",
     "noTranslationModel": "Nenhum modelo de tradução para {{source}} → {{target}}",
-    "noTtsModel": "Nenhum modelo TTS para {{language}}",
+    "noTtsModel": "Nenhum modelo Síntese de fala (TTS) para {{language}}",
     "ttsNone": "Nenhum (apenas texto)",
-    "ttsSettings": "Definições TTS",
+    "ttsSettings": "Definições Síntese de fala (TTS)",
     "ttsSpeakerId": "ID do locutor",
     "ttsSpeed": "Velocidade da fala",
     "vadSettings": "Definições VAD",
@@ -214,13 +215,13 @@
     "transportTypeTooltip": "Selecionar método de transporte em tempo real",
     "websocket": "WebSocket",
     "webrtc": "WebRTC",
-    "localInferenceModelsRequired": "Transfira e selecione modelos nas <settingsLink>Definições Avançadas</settingsLink>. É necessário pelo menos um modelo de ASR, Tradução e TTS.",
+    "localInferenceModelsRequired": "Por favor, descarregue primeiro os modelos necessários em <settingsLink>Definições</settingsLink>. É necessário descarregar modelos de Reconhecimento de fala (ASR), Tradução e Síntese de fala (TTS) para começar.",
     "missingModelsWarning": "Modelo(s) de {{types}} em falta para este par de idiomas.",
     "downloadModels": "Transferir modelos",
     "downloadModelType": "Transferir {{type}}",
-    "modelTypeAsr": "ASR",
+    "modelTypeAsr": "Reconhecimento de fala (ASR)",
     "modelTypeTranslation": "Tradução",
-    "modelTypeTts": "TTS"
+    "modelTypeTts": "Síntese de fala (TTS)"
   },
   "simpleSettings": {
     "quickSetup": "Configuração Rápida",
@@ -255,7 +256,7 @@
     "transportTypeTooltip": "WebRTC: Menor latência, recomendado para a maioria dos utilizadores.\nWebSocket: Melhor compatibilidade com redes restritivas. Utilize se a ligação WebRTC falhar.",
     "websocket": "WebSocket (Estável)",
     "webrtc": "WebRTC (Baixa latência)",
-    "provider": "Fornecedor"
+    "provider": "Fornecedor de serviços de IA"
   },
   "simpleConfig": {
     "interfaceLanguage": "Idioma da Interface",
@@ -324,8 +325,8 @@
       "description": "Fornecedor desconhecido"
     },
     "local_inference": {
-      "name": "Local (offline)",
-      "description": "ASR + Tradução + TTS offline",
+      "name": "IA local (offline)",
+      "description": "Reconhecimento de fala (ASR) + Tradução + Síntese de fala (TTS) offline",
       "noKeyRequired": "Nenhuma chave API necessária — funciona inteiramente no seu dispositivo"
     }
   },
@@ -456,6 +457,7 @@
     "initProgress": "A carregar ({{completed}}/{{total}})...",
     "insufficientBalance": "Saldo de tokens insuficiente: {{balance}} tokens",
     "walletFrozen": "Carteira congelada. Contacte o suporte.",
+    "localModelsRequired": "Por favor, descarregue os modelos necessários em Definições para começar.",
     "clearConversation": "Limpar conversa"
   },
   "errors": {
@@ -502,6 +504,10 @@
         "speaker": {
           "title": "Passo 6: Selecionar Altifalante",
           "content": "Escolha um dispositivo de monitorização para pré-visualizar a tradução. O áudio traduzido é sempre enviado para o microfone virtual, independentemente da monitorização. Selecione Sokuji Virtual Microphone como entrada de microfone na sua aplicação de reunião ou site. Recomenda-se a utilização de auscultadores para monitorização para evitar feedback."
+        },
+        "systemAudio": {
+          "title": "Passo 7: Áudio dos Participantes",
+          "content": "Ative a captura de áudio dos participantes para traduzir em tempo real o que outros oradores dizem. Na extensão do navegador, esta funcionalidade captura o áudio do separador atual e pode traduzir as vozes de outros participantes em videoconferências como Google Meet, Teams, Zoom e outras. Na aplicação de ambiente de trabalho, esta funcionalidade captura todo o áudio reproduzido pelo computador e pode traduzir vídeos do YouTube, transmissões da Twitch, conteúdo da Netflix e qualquer outra fonte de áudio. O áudio dos participantes realiza apenas reconhecimento de fala e tradução para texto, sem síntese de voz. O Sokuji captura e traduz o que diz através do microfone, e captura e traduz o que a outra pessoa diz através desta funcionalidade. Em conjunto, permitem uma tradução bidirecional completa."
         },
         "start": {
           "title": "Passo 7: Começar a Traduzir",
@@ -561,6 +567,10 @@
       "speakerSetup": {
         "title": "Configuração do dispositivo de monitorização",
         "content": "Seleccione um dispositivo de monitorização (como auscultadores ou altifalantes) para ouvir a saída da tradução. Recomenda-se o uso de auscultadores para evitar feedback de áudio. Se preferir focar-se na reunião sem distracção da monitorização, pode desactivar a funcionalidade de monitorização."
+      },
+      "systemAudio": {
+        "title": "Passo 8: Áudio dos Participantes",
+        "content": "Ative a captura de áudio dos participantes para traduzir em tempo real o que outros oradores dizem. Na extensão do navegador, esta funcionalidade captura o áudio do separador atual e pode traduzir as vozes de outros participantes em videoconferências como Google Meet, Teams, Zoom e outras. Na aplicação de ambiente de trabalho, esta funcionalidade captura todo o áudio reproduzido pelo computador e pode traduzir vídeos do YouTube, transmissões da Twitch, conteúdo da Netflix e qualquer outra fonte de áudio. O áudio dos participantes realiza apenas reconhecimento de fala e tradução para texto, sem síntese de voz. O Sokuji captura e traduz o que diz através do microfone, e captura e traduz o que a outra pessoa diz através desta funcionalidade. Em conjunto, permitem uma tradução bidirecional completa."
       },
       "startSession": {
         "title": "Iniciar a sua sessão",
@@ -679,9 +689,9 @@
   "models": {
     "management": "Modelos",
     "storageUsed": "Armazenamento: {{size}} MB usados",
-    "asrModels": "ASR (Reconhecimento de fala)",
+    "asrModels": "Reconhecimento de fala (ASR)",
     "translationModels": "Tradução",
-    "ttsModels": "TTS (Síntese de fala)",
+    "ttsModels": "Síntese de fala (TTS)",
     "autoSelected": "Selecionado automaticamente",
     "download": "Transferir",
     "cancel": "Cancelar",
@@ -689,14 +699,16 @@
     "delete": "Eliminar",
     "error": "Erro",
     "retry": "Tentar novamente",
-    "showAllAsr": "Mostrar todos os modelos ASR ({{count}})",
+    "showAllAsr": "Mostrar todos os modelos Reconhecimento de fala (ASR) ({{count}})",
     "showAll": "Mostrar todos os modelos de tradução ({{count}})",
-    "showAllTts": "Mostrar todos os modelos TTS ({{count}})",
+    "showAllTts": "Mostrar todos os modelos Síntese de fala (TTS) ({{count}})",
     "hideOther": "Ocultar outros modelos",
     "clearAll": "Limpar tudo",
     "confirmClearAll": "Eliminar todos os modelos?",
     "confirmYes": "Sim",
-    "confirmNo": "Não"
+    "confirmNo": "Não",
+    "recommended": "Recomendado",
+    "recommendedGroup": "Recomendado"
   },
   "update": {
     "available": "Nova versão v{{version}} disponível",

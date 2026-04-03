@@ -57,7 +57,8 @@
     "sourceLanguage": "Mój język",
     "targetLanguage": "Język rozmówcy",
     "preview": "Podgląd",
-    "simple": "Prosty",
+    "simple": "Szybki",
+    "participantModelHint": "Przełącz na {{source}} → {{target}}, aby zmienić modele uczestnika",
     "advanced": "Zaawansowany",
     "normal": "Normalny",
     "semantic": "Semantyczny",
@@ -123,11 +124,11 @@
     "webgpuNotSupported": "Niedostępne w bieżącym środowisku",
     "langMismatch": "Niezgodność języka",
     "localInferenceTurnDetectionTooltip": "Tryb automatyczny wykorzystuje wykrywanie aktywności głosowej do automatycznego rozpoznawania mowy. Tryb naciśnij i mów pozwala ręcznie sterować wysyłaniem dźwięku, przytrzymując spację lub przycisk mikrofonu.",
-    "noAsrModel": "Brak modelu ASR dla {{language}}",
+    "noAsrModel": "Brak modelu Rozpoznawanie mowy (ASR) dla {{language}}",
     "noTranslationModel": "Brak modelu tłumaczenia dla {{source}} → {{target}}",
-    "noTtsModel": "Brak modelu TTS dla {{language}}",
+    "noTtsModel": "Brak modelu Synteza mowy (TTS) dla {{language}}",
     "ttsNone": "Brak (tylko tekst)",
-    "ttsSettings": "Ustawienia TTS",
+    "ttsSettings": "Ustawienia Synteza mowy (TTS)",
     "ttsSpeakerId": "ID mówcy",
     "ttsSpeed": "Szybkość mowy",
     "vadSettings": "Ustawienia VAD",
@@ -214,13 +215,13 @@
     "transcriptModelTooltip": "Wybierz model transkrypcji",
     "noiseReductionTooltip": "Ustaw poziom redukcji szumów tła",
     "systemInstructionsTooltip": "Wprowadź instrukcje, aby dostosować zachowanie AI",
-    "localInferenceModelsRequired": "Pobierz i wybierz modele w <settingsLink>ustawieniach zaawansowanych</settingsLink>. Wymagany jest co najmniej jeden model ASR, tłumaczenia i TTS.",
+    "localInferenceModelsRequired": "Najpierw pobierz wymagane modele w <settingsLink>Ustawieniach</settingsLink>. Musisz pobrać modele Rozpoznawania mowy (ASR), Tłumaczenia i Syntezy mowy (TTS), aby rozpocząć.",
     "missingModelsWarning": "Brakujący model(e) {{types}} dla tej pary językowej.",
     "downloadModels": "Pobierz modele",
     "downloadModelType": "Pobierz {{type}}",
-    "modelTypeAsr": "ASR",
+    "modelTypeAsr": "Rozpoznawanie mowy (ASR)",
     "modelTypeTranslation": "Tłumaczenie",
-    "modelTypeTts": "TTS"
+    "modelTypeTts": "Synteza mowy (TTS)"
   },
   "audioPanel": {
     "title": "Ustawienia audio",
@@ -304,6 +305,7 @@
     "initProgress": "Ładowanie ({{completed}}/{{total}})...",
     "insufficientBalance": "Niewystarczające saldo tokenów: {{balance}} tokenów",
     "walletFrozen": "Portfel zamrożony. Skontaktuj się z pomocą techniczną.",
+    "localModelsRequired": "Pobierz wymagane modele w Ustawieniach, aby rozpocząć.",
     "clearConversation": "Wyczyść rozmowę"
   },
   "errors": {
@@ -350,6 +352,10 @@
         "speaker": {
           "title": "Krok 6: Wybierz Głośnik",
           "content": "Wybierz urządzenie monitorujące do podglądu tłumaczenia. Przetłumaczony dźwięk jest zawsze wysyłany do wirtualnego mikrofonu, niezależnie od monitorowania. Wybierz Sokuji Virtual Microphone jako wejście mikrofonu w aplikacji do spotkań lub na stronie internetowej. Zaleca się używanie słuchawek do monitorowania, aby uniknąć sprzężenia."
+        },
+        "systemAudio": {
+          "title": "Krok 7: Audio uczestników",
+          "content": "Włącz przechwytywanie dźwięku uczestników, aby tłumaczyć wypowiedzi innych mówców w czasie rzeczywistym. W rozszerzeniu przeglądarki ta funkcja przechwytuje dźwięk bieżącej karty i może tłumaczyć głosy innych uczestników wideokonferencji, takich jak Google Meet, Teams, Zoom i inne. W aplikacji komputerowej ta funkcja przechwytuje cały dźwięk odtwarzany przez komputer i może tłumaczyć filmy z YouTube, transmisje z Twitch, treści z Netflix oraz dowolne inne źródło dźwięku. Dźwięk uczestników wykonuje jedynie rozpoznawanie mowy i tłumaczenie na tekst, bez syntezy mowy. Sokuji przechwytuje i tłumaczy to, co mówisz przez mikrofon, a za pomocą tej funkcji przechwytuje i tłumaczy to, co mówi druga osoba. Razem umożliwiają pełne tłumaczenie dwukierunkowe."
         },
         "start": {
           "title": "Krok 7: Rozpocznij Tłumaczenie",
@@ -410,6 +416,10 @@
         "title": "Konfiguracja urządzenia monitorującego",
         "content": "Wybierz urządzenie monitorujące (takie jak słuchawki lub głośniki), aby słyszeć wyjście tłumaczenia. Zaleca się używanie słuchawek, aby uniknąć sprzężenia zwrotnego audio. Jeśli chcesz skupić się na spotkaniu bez rozpraszania przez monitorowanie, możesz wyłączyć funkcję monitorowania."
       },
+      "systemAudio": {
+        "title": "Krok 8: Audio uczestników",
+        "content": "Włącz przechwytywanie dźwięku uczestników, aby tłumaczyć wypowiedzi innych mówców w czasie rzeczywistym. W rozszerzeniu przeglądarki ta funkcja przechwytuje dźwięk bieżącej karty i może tłumaczyć głosy innych uczestników wideokonferencji, takich jak Google Meet, Teams, Zoom i inne. W aplikacji komputerowej ta funkcja przechwytuje cały dźwięk odtwarzany przez komputer i może tłumaczyć filmy z YouTube, transmisje z Twitch, treści z Netflix oraz dowolne inne źródło dźwięku. Dźwięk uczestników wykonuje jedynie rozpoznawanie mowy i tłumaczenie na tekst, bez syntezy mowy. Sokuji przechwytuje i tłumaczy to, co mówisz przez mikrofon, a za pomocą tej funkcji przechwytuje i tłumaczy to, co mówi druga osoba. Razem umożliwiają pełne tłumaczenie dwukierunkowe."
+      },
       "startSession": {
         "title": "Rozpocznij swoją sesję",
         "content": "Wszystko gotowe! Kliknij przycisk \"Rozpocznij sesję\", aby rozpocząć tłumaczenie w czasie rzeczywistym. Pamiętaj, aby wybrać wirtualny mikrofon Sokuji jako urządzenie wejściowe w swojej aplikacji konferencyjnej."
@@ -449,7 +459,7 @@
     "audioSettings": "Ustawienia Audio",
     "audioSettingsDesc": "Skonfiguruj mikrofon i głośniki w panelu Audio",
     "autoAuthenticated": "Automatycznie uwierzytelniono za pomocą konta",
-    "provider": "Dostawca"
+    "provider": "Dostawca usług AI"
   },
   "simpleConfig": {
     "interfaceLanguage": "Język Interfejsu",
@@ -518,8 +528,8 @@
       "description": "Nieznany dostawca"
     },
     "local_inference": {
-      "name": "Lokalny (offline)",
-      "description": "Offline ASR + Tłumaczenie + TTS",
+      "name": "Lokalna AI (offline)",
+      "description": "Offline rozpoznawanie mowy (ASR) + Tłumaczenie + synteza mowy (TTS)",
       "noKeyRequired": "Klucz API nie jest wymagany — działa całkowicie na Twoim urządzeniu"
     }
   },
@@ -675,9 +685,9 @@
   "models": {
     "management": "Modele",
     "storageUsed": "Pamięć: {{size}} MB zajęte",
-    "asrModels": "ASR (Rozpoznawanie mowy)",
+    "asrModels": "Rozpoznawanie mowy (ASR)",
     "translationModels": "Tłumaczenie",
-    "ttsModels": "TTS (Synteza mowy)",
+    "ttsModels": "Synteza mowy (TTS)",
     "autoSelected": "Automatycznie wybrano",
     "download": "Pobierz",
     "cancel": "Anuluj",
@@ -685,14 +695,16 @@
     "delete": "Usuń",
     "error": "Błąd",
     "retry": "Ponów",
-    "showAllAsr": "Pokaż wszystkie modele ASR ({{count}})",
+    "showAllAsr": "Pokaż wszystkie modele Rozpoznawanie mowy (ASR) ({{count}})",
     "showAll": "Pokaż wszystkie modele tłumaczenia ({{count}})",
-    "showAllTts": "Pokaż wszystkie modele TTS ({{count}})",
+    "showAllTts": "Pokaż wszystkie modele Synteza mowy (TTS) ({{count}})",
     "hideOther": "Ukryj inne modele",
     "clearAll": "Wyczyść wszystko",
     "confirmClearAll": "Usunąć wszystkie modele?",
     "confirmYes": "Tak",
-    "confirmNo": "Nie"
+    "confirmNo": "Nie",
+    "recommended": "Zalecane",
+    "recommendedGroup": "Zalecane"
   },
   "update": {
     "available": "Nowa wersja v{{version}} dostępna",

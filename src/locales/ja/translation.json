@@ -58,7 +58,8 @@
     "sourceLanguage": "自分の言語",
     "targetLanguage": "相手の言語",
     "preview": "プレビュー",
-    "simple": "シンプル",
+    "simple": "クイック",
+    "participantModelHint": "参加者モデルを変更するには {{source}} → {{target}} に切り替えてください",
     "advanced": "詳細",
     "normal": "通常",
     "semantic": "セマンティック",
@@ -150,11 +151,11 @@
     "webgpuNotSupported": "現在の環境では利用できません",
     "langMismatch": "言語の不一致",
     "localInferenceTurnDetectionTooltip": "自動モードは音声活動検出を使用して自動的に発話を検出します。プッシュトゥトークでは、スペースまたはマイクボタンを押して音声送信を手動で制御できます。",
-    "noAsrModel": "{{language}} の ASR モデルがありません",
+    "noAsrModel": "{{language}} の音声認識（ASR）モデルがありません",
     "noTranslationModel": "{{source}} → {{target}} の翻訳モデルがありません",
-    "noTtsModel": "{{language}} の TTS モデルがありません",
+    "noTtsModel": "{{language}} の音声合成（TTS）モデルがありません",
     "ttsNone": "なし（テキストのみ）",
-    "ttsSettings": "TTS設定",
+    "ttsSettings": "音声合成（TTS）設定",
     "ttsSpeakerId": "スピーカーID",
     "ttsSpeed": "話速",
     "vadSettings": "VAD設定",
@@ -215,13 +216,13 @@
     "switchToBasic": "ベーシックモードに切替",
     "advancedMode": "アドバンス",
     "basicMode": "ベーシック",
-    "localInferenceModelsRequired": "<settingsLink>詳細設定</settingsLink>でモデルをダウンロードして選択してください。ASR、翻訳、TTSモデルがそれぞれ1つ以上必要です。",
+    "localInferenceModelsRequired": "まず<settingsLink>設定</settingsLink>で必要なモデルをダウンロードしてください。音声認識（ASR）、翻訳、音声合成（TTS）の3種類のモデルのダウンロードが必要です。",
     "missingModelsWarning": "この言語ペアの {{types}} モデルがありません。",
     "downloadModels": "モデルをダウンロード",
     "downloadModelType": "{{type}} をダウンロード",
-    "modelTypeAsr": "ASR",
+    "modelTypeAsr": "音声認識（ASR）",
     "modelTypeTranslation": "翻訳",
-    "modelTypeTts": "TTS"
+    "modelTypeTts": "音声合成（TTS）"
   },
   "audioPanel": {
     "title": "オーディオ設定",
@@ -310,6 +311,7 @@
     "initProgress": "読み込み中 ({{completed}}/{{total}})...",
     "insufficientBalance": "トークン残高不足: {{balance}} トークン",
     "walletFrozen": "ウォレットが凍結されています。サポートにお問い合わせください。",
+    "localModelsRequired": "開始するには設定で必要なモデルをダウンロードしてください。",
     "clearConversation": "会話をクリア"
   },
   "errors": {
@@ -356,6 +358,10 @@
         "speaker": {
           "title": "ステップ 6：スピーカーを選択",
           "content": "翻訳のプレビュー用モニタリングデバイスを選択してください。モニタリングの有無に関わらず、翻訳された音声は常に仮想マイクに出力されます。会議アプリやウェブサイトでSokuji仮想マイクをマイク入力として選択してください。フィードバックを避けるため、モニタリングにはヘッドホンの使用を推奨します。"
+        },
+        "systemAudio": {
+          "title": "ステップ 7：参加者オーディオ",
+          "content": "参加者オーディオキャプチャを有効にして、他の発言者の音声をリアルタイムで翻訳します。ブラウザ拡張機能では、現在のタブの音声をキャプチャし、Google Meet、Teams、Zoom などの Web 会議で他の参加者の音声を翻訳できます。デスクトップアプリでは、コンピューターで再生されるすべての音声をキャプチャし、YouTube 動画、Twitch 配信、Netflix 番組など、あらゆる音声ソースを翻訳できます。参加者オーディオは音声認識とテキスト翻訳のみを行い、音声合成は行いません。Sokuji はマイクを通じてあなたの発言をキャプチャして翻訳し、この機能を通じて相手の発言をキャプチャして翻訳します。両者を組み合わせることで完全な双方向翻訳が実現します。"
         },
         "start": {
           "title": "ステップ 7：翻訳を開始",
@@ -416,6 +422,10 @@
         "title": "ステップ7：スピーカーの設定",
         "content": "翻訳された音声を聞いて、要件に合っているかどうかを確認するためのモニタリングデバイスを選択してください。マイクの収音を妨げないよう、モニタリングにはヘッドフォンの使用をお勧めします。翻訳設定が要件に合っていると思われる場合は、より表現に集中でき、マイクの収音を妨げないよう、モニタリングをオフにすることをお勧めします。"
       },
+      "systemAudio": {
+        "title": "ステップ 8：参加者オーディオ",
+        "content": "参加者オーディオキャプチャを有効にして、他の発言者の音声をリアルタイムで翻訳します。ブラウザ拡張機能では、現在のタブの音声をキャプチャし、Google Meet、Teams、Zoom などの Web 会議で他の参加者の音声を翻訳できます。デスクトップアプリでは、コンピューターで再生されるすべての音声をキャプチャし、YouTube 動画、Twitch 配信、Netflix 番組など、あらゆる音声ソースを翻訳できます。参加者オーディオは音声認識とテキスト翻訳のみを行い、音声合成は行いません。Sokuji はマイクを通じてあなたの発言をキャプチャして翻訳し、この機能を通じて相手の発言をキャプチャして翻訳します。両者を組み合わせることで完全な双方向翻訳が実現します。"
+      },
       "startSession": {
         "title": "ステップ8：セッション開始",
         "content": "「セッション開始」ボタンをクリックしてSokujiの使用を開始します。開始後、自然に話すことでリアルタイム翻訳ができます。自動ターン検出が無効の場合は、「プッシュトゥトーク」（スペースキー）を使用して話してください。"
@@ -455,7 +465,7 @@
     "audioSettings": "オーディオ設定",
     "audioSettingsDesc": "オーディオパネルでマイクとスピーカーを設定",
     "autoAuthenticated": "アカウントで自動的に認証されました",
-    "provider": "プロバイダー"
+    "provider": "AIサービスプロバイダー"
   },
   "simpleConfig": {
     "interfaceLanguage": "インターフェース言語",
@@ -529,8 +539,8 @@
       "description": "不明なプロバイダー"
     },
     "local_inference": {
-      "name": "ローカル（オフライン）",
-      "description": "オフライン ASR + 翻訳 + TTS",
+      "name": "ローカルAI（オフライン）",
+      "description": "オフライン音声認識（ASR）+ 翻訳 + 音声合成（TTS）",
       "noKeyRequired": "APIキー不要 — 完全にデバイス上で実行"
     }
   },
@@ -687,9 +697,9 @@
   "models": {
     "management": "モデル",
     "storageUsed": "ストレージ: {{size}} MB 使用中",
-    "asrModels": "ASR（音声認識）",
+    "asrModels": "音声認識（ASR）",
     "translationModels": "翻訳",
-    "ttsModels": "TTS（音声合成）",
+    "ttsModels": "音声合成（TTS）",
     "autoSelected": "自動選択",
     "download": "ダウンロード",
     "cancel": "キャンセル",
@@ -697,14 +707,16 @@
     "delete": "削除",
     "error": "エラー",
     "retry": "再試行",
-    "showAllAsr": "すべてのASRモデルを表示（{{count}}）",
+    "showAllAsr": "すべての音声認識（ASR）モデルを表示（{{count}}）",
     "showAll": "すべての翻訳モデルを表示（{{count}}）",
-    "showAllTts": "すべてのTTSモデルを表示（{{count}}）",
+    "showAllTts": "すべての音声合成（TTS）モデルを表示（{{count}}）",
     "hideOther": "他のモデルを隠す",
     "clearAll": "すべて削除",
     "confirmClearAll": "すべてのモデルを削除しますか？",
     "confirmYes": "はい",
-    "confirmNo": "いいえ"
+    "confirmNo": "いいえ",
+    "recommended": "おすすめ",
+    "recommendedGroup": "おすすめ"
   },
   "update": {
     "available": "新しいバージョン v{{version}} が利用可能です",

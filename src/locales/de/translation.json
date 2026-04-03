@@ -58,7 +58,8 @@
     "sourceLanguage": "Meine Sprache",
     "targetLanguage": "Sprache des Anderen",
     "preview": "Vorschau",
-    "simple": "Einfach",
+    "simple": "Schnell",
+    "participantModelHint": "Wechseln Sie zu {{source}} → {{target}}, um die Teilnehmermodelle zu ändern",
     "advanced": "Erweitert",
     "normal": "Normal",
     "semantic": "Semantisch",
@@ -148,11 +149,11 @@
     "webgpuNotSupported": "In der aktuellen Umgebung nicht verfügbar",
     "langMismatch": "Sprachkonflikt",
     "localInferenceTurnDetectionTooltip": "Der automatische Modus verwendet Sprachaktivitätserkennung zur automatischen Spracherkennung. Push-to-Talk ermöglicht die manuelle Steuerung der Audioübertragung durch Halten der Leertaste oder der Mikrofontaste.",
-    "noAsrModel": "Kein ASR-Modell für {{language}}",
+    "noAsrModel": "Kein Spracherkennung (ASR)-Modell für {{language}}",
     "noTranslationModel": "Kein Übersetzungsmodell für {{source}} → {{target}}",
-    "noTtsModel": "Kein TTS-Modell für {{language}}",
+    "noTtsModel": "Kein Sprachsynthese (TTS)-Modell für {{language}}",
     "ttsNone": "Keine (nur Text)",
-    "ttsSettings": "TTS-Einstellungen",
+    "ttsSettings": "Sprachsynthese (TTS)-Einstellungen",
     "ttsSpeakerId": "Sprecher-ID",
     "ttsSpeed": "Sprechgeschwindigkeit",
     "vadSettings": "VAD-Einstellungen",
@@ -215,13 +216,13 @@
     "switchToBasic": "Zum Basismodus wechseln",
     "advancedMode": "Erweitert",
     "basicMode": "Basis",
-    "localInferenceModelsRequired": "Bitte laden Sie Modelle in den <settingsLink>erweiterten Einstellungen</settingsLink> herunter und wählen Sie sie aus. Mindestens ein ASR-, Übersetzungs- und TTS-Modell ist erforderlich.",
+    "localInferenceModelsRequired": "Bitte laden Sie zuerst die erforderlichen Modelle in den <settingsLink>Einstellungen</settingsLink> herunter. Sie müssen Spracherkennung (ASR)-, Übersetzungs- und Sprachsynthese (TTS)-Modelle herunterladen, um loszulegen.",
     "missingModelsWarning": "Fehlende(s) {{types}}-Modell(e) für dieses Sprachpaar.",
     "downloadModels": "Modelle herunterladen",
     "downloadModelType": "{{type}} herunterladen",
-    "modelTypeAsr": "ASR",
+    "modelTypeAsr": "Spracherkennung (ASR)",
     "modelTypeTranslation": "Übersetzung",
-    "modelTypeTts": "TTS"
+    "modelTypeTts": "Sprachsynthese (TTS)"
   },
   "audioPanel": {
     "title": "Audio-Einstellungen",
@@ -305,6 +306,7 @@
     "initProgress": "Laden ({{completed}}/{{total}})...",
     "insufficientBalance": "Unzureichendes Token-Guthaben: {{balance}} Token",
     "walletFrozen": "Wallet ist eingefroren. Bitte kontaktieren Sie den Support.",
+    "localModelsRequired": "Bitte laden Sie die erforderlichen Modelle in den Einstellungen herunter, um zu starten.",
     "clearConversation": "Unterhaltung löschen"
   },
   "errors": {
@@ -351,6 +353,10 @@
         "speaker": {
           "title": "Schritt 6: Lautsprecher auswählen",
           "content": "Wählen Sie ein Monitoring-Gerät zur Vorschau der Übersetzung. Die übersetzte Audioausgabe wird unabhängig vom Monitoring immer an das virtuelle Mikrofon ausgegeben. Wählen Sie in Ihrer Konferenz-App oder Website das Sokuji Virtual Microphone als Mikrofoneingabe. Kopfhörer werden zur Überwachung empfohlen, um Rückkopplungen zu vermeiden."
+        },
+        "systemAudio": {
+          "title": "Schritt 7: Teilnehmer-Audio",
+          "content": "Aktivieren Sie die Teilnehmer-Audioaufnahme, um andere Sprecher in Echtzeit zu übersetzen. In der Browser-Erweiterung nimmt diese Funktion den Ton des aktuellen Tabs auf und kann die Stimmen anderer Teilnehmer in Webkonferenzen wie Google Meet, Teams, Zoom und anderen übersetzen. In der Desktop-App nimmt diese Funktion alle vom Computer wiedergegebenen Audioquellen auf und kann YouTube-Videos, Twitch-Streams, Netflix-Inhalte und jede andere Audioquelle übersetzen. Teilnehmer-Audio führt nur Spracherkennung und Textübersetzung durch — keine Sprachsynthese. Sokuji erfasst über das Mikrofon, was Sie sagen, und übersetzt es. Über diese Funktion erfasst es, was die andere Person sagt, und übersetzt es. Zusammen ermöglichen beide eine vollständige bidirektionale Übersetzung."
         },
         "start": {
           "title": "Schritt 7: Übersetzen starten",
@@ -411,6 +417,10 @@
         "title": "Schritt 7: Lautsprecher-Setup",
         "content": "Wählen Sie ein Überwachungsgerät aus, um die übersetzte Audio anzuhören und zu überprüfen, ob sie Ihren Anforderungen entspricht. Es wird empfohlen, Kopfhörer für die Überwachung zu verwenden, um Interferenzen mit der Mikrofoneingabe zu vermeiden. Wenn Sie der Meinung sind, dass die Übersetzungseinstellungen Ihren Anforderungen entsprechen, wird empfohlen, die Überwachung auszuschalten, damit Sie sich mehr auf Ihren Ausdruck konzentrieren können und die Mikrofoneingabe nicht stören."
       },
+      "systemAudio": {
+        "title": "Schritt 8: Teilnehmer-Audio",
+        "content": "Aktivieren Sie die Teilnehmer-Audioaufnahme, um andere Sprecher in Echtzeit zu übersetzen. In der Browser-Erweiterung nimmt diese Funktion den Ton des aktuellen Tabs auf und kann die Stimmen anderer Teilnehmer in Webkonferenzen wie Google Meet, Teams, Zoom und anderen übersetzen. In der Desktop-App nimmt diese Funktion alle vom Computer wiedergegebenen Audioquellen auf und kann YouTube-Videos, Twitch-Streams, Netflix-Inhalte und jede andere Audioquelle übersetzen. Teilnehmer-Audio führt nur Spracherkennung und Textübersetzung durch — keine Sprachsynthese. Sokuji erfasst über das Mikrofon, was Sie sagen, und übersetzt es. Über diese Funktion erfasst es, was die andere Person sagt, und übersetzt es. Zusammen ermöglichen beide eine vollständige bidirektionale Übersetzung."
+      },
       "startSession": {
         "title": "Schritt 8: Sitzung starten",
         "content": "Klicken Sie auf die Schaltfläche \"Sitzung starten\", um mit der Verwendung von Sokuji zu beginnen. Nach dem Start können Sie natürlich sprechen für Live-Übersetzung. Wenn die automatische Wendeerkennung deaktiviert ist, verwenden Sie \"Drücken zum Sprechen\" (Leertaste) zum Sprechen."
@@ -450,7 +460,7 @@
     "audioSettings": "Audio-Einstellungen",
     "audioSettingsDesc": "Konfigurieren Sie Ihr Mikrofon und Ihre Lautsprecher im Audio-Panel",
     "autoAuthenticated": "Automatisch über Ihr Konto authentifiziert",
-    "provider": "Anbieter"
+    "provider": "KI-Dienstanbieter"
   },
   "simpleConfig": {
     "interfaceLanguage": "Sprache der Benutzeroberfläche",
@@ -520,8 +530,8 @@
       "description": "Unbekannter Anbieter"
     },
     "local_inference": {
-      "name": "Lokal (Offline)",
-      "description": "Offline ASR + Übersetzung + TTS",
+      "name": "Lokale KI (Offline)",
+      "description": "Offline Spracherkennung (ASR) + Übersetzung + Sprachsynthese (TTS)",
       "noKeyRequired": "Kein API-Schlüssel erforderlich — läuft vollständig auf Ihrem Gerät"
     }
   },
@@ -677,9 +687,9 @@
   "models": {
     "management": "Modelle",
     "storageUsed": "Speicher: {{size}} MB belegt",
-    "asrModels": "ASR (Spracherkennung)",
+    "asrModels": "Spracherkennung (ASR)",
     "translationModels": "Übersetzung",
-    "ttsModels": "TTS (Sprachsynthese)",
+    "ttsModels": "Sprachsynthese (TTS)",
     "autoSelected": "Automatisch ausgewählt",
     "download": "Herunterladen",
     "cancel": "Abbrechen",
@@ -687,14 +697,16 @@
     "delete": "Löschen",
     "error": "Fehler",
     "retry": "Wiederholen",
-    "showAllAsr": "Alle ASR-Modelle anzeigen ({{count}})",
+    "showAllAsr": "Alle Spracherkennung (ASR)-Modelle anzeigen ({{count}})",
     "showAll": "Alle Übersetzungsmodelle anzeigen ({{count}})",
-    "showAllTts": "Alle TTS-Modelle anzeigen ({{count}})",
+    "showAllTts": "Alle Sprachsynthese (TTS)-Modelle anzeigen ({{count}})",
     "hideOther": "Andere Modelle ausblenden",
     "clearAll": "Alle löschen",
     "confirmClearAll": "Alle Modelle löschen?",
     "confirmYes": "Ja",
-    "confirmNo": "Nein"
+    "confirmNo": "Nein",
+    "recommended": "Empfohlen",
+    "recommendedGroup": "Empfohlen"
   },
   "update": {
     "available": "Neue Version v{{version}} verfügbar",

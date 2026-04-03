@@ -5,7 +5,7 @@ import LogsPanel from '../LogsPanel/LogsPanel';
 import { Settings as SettingsComponent } from '../Settings';
 import Onboarding from '../Onboarding/Onboarding';
 import UserTypeSelection from '../UserTypeSelection/UserTypeSelection';
-import { Terminal, Settings, LayoutGrid, Sliders } from 'lucide-react';
+import { Terminal, Settings } from 'lucide-react';
 import './MainLayout.scss';
 import { useAnalytics } from '../../lib/analytics';
 import { useProvider, useUIMode, useSetProvider, useSetUIMode, useSettingsNavigationTarget } from '../../stores/settingsStore';
@@ -123,16 +123,6 @@ const MainLayout: React.FC = () => {
     }
   };
 
-  // Toggle between basic and advanced mode
-  const toggleUIMode = useCallback(() => {
-    const newMode = uiMode === 'basic' ? 'advanced' : 'basic';
-    setUIMode(newMode);
-    
-    trackEvent('ui_mode_toggled', {
-      from_mode: uiMode,
-      to_mode: newMode
-    });
-  }, [uiMode, setUIMode, trackEvent]);
 
   // Listen for navigation requests from settings context
   useEffect(() => {
@@ -200,16 +190,7 @@ const MainLayout: React.FC = () => {
         <header className="main-panel-header">
           <h1>{t('app.title')}</h1>
           <div className="header-controls">
-            <button 
-              id="ui-mode-toggle"
-              className={`ui-mode-toggle-icon ${uiMode}`}
-              onClick={toggleUIMode}
-              title={t(uiMode === 'basic' ? 'mainPanel.switchToAdvanced' : 'mainPanel.switchToBasic')}
-              aria-label={t(uiMode === 'basic' ? 'mainPanel.switchToAdvanced' : 'mainPanel.switchToBasic')}
-            >
-              {uiMode === 'basic' ? <LayoutGrid size={16} /> : <Sliders size={16} />}
-            </button>
-            <button className={`settings-button ${showSettings || showAudio ? 'active' : ''}`} onClick={toggleSettings}>
+<button className={`settings-button ${showSettings || showAudio ? 'active' : ''}`} onClick={toggleSettings}>
               <Settings size={16} />
               <span>{t('settings.title')}</span>
             </button>

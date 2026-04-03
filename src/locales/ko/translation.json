@@ -58,7 +58,8 @@
     "sourceLanguage": "내 언어",
     "targetLanguage": "상대방 언어",
     "preview": "미리보기",
-    "simple": "간단",
+    "simple": "빠른",
+    "participantModelHint": "참가자 모델을 변경하려면 {{source}} → {{target}}(으)로 전환하세요",
     "advanced": "고급",
     "normal": "일반",
     "semantic": "의미론적",
@@ -146,11 +147,11 @@
     "webgpuNotSupported": "현재 환경에서 사용할 수 없음",
     "langMismatch": "언어 불일치",
     "localInferenceTurnDetectionTooltip": "자동 모드는 음성 활동 감지를 사용하여 자동으로 음성을 감지합니다. 푸시투토크에서는 스페이스바나 마이크 버튼을 눌러 수동으로 오디오 전송을 제어할 수 있습니다.",
-    "noAsrModel": "{{language}}용 ASR 모델 없음",
+    "noAsrModel": "{{language}}용 음성 인식(ASR) 모델 없음",
     "noTranslationModel": "{{source}} → {{target}} 번역 모델 없음",
-    "noTtsModel": "{{language}}용 TTS 모델 없음",
+    "noTtsModel": "{{language}}용 음성 합성(TTS) 모델 없음",
     "ttsNone": "없음 (텍스트만)",
-    "ttsSettings": "TTS 설정",
+    "ttsSettings": "음성 합성(TTS) 설정",
     "ttsSpeakerId": "화자 ID",
     "ttsSpeed": "말하기 속도",
     "vadSettings": "VAD 설정",
@@ -215,13 +216,13 @@
     "basicMode": "기본",
     "unlimited": "무제한",
     "custom": "사용자 정의",
-    "localInferenceModelsRequired": "<settingsLink>고급 설정</settingsLink>에서 모델을 다운로드하고 선택하세요. ASR, 번역, TTS 모델이 각각 하나 이상 필요합니다.",
+    "localInferenceModelsRequired": "먼저 <settingsLink>설정</settingsLink>에서 필요한 모델을 다운로드하세요. 시작하려면 음성 인식(ASR), 번역, 음성 합성(TTS) 모델을 다운로드해야 합니다.",
     "missingModelsWarning": "이 언어 쌍에 대한 {{types}} 모델이 없습니다.",
     "downloadModels": "모델 다운로드",
     "downloadModelType": "{{type}} 다운로드",
-    "modelTypeAsr": "ASR",
+    "modelTypeAsr": "음성 인식(ASR)",
     "modelTypeTranslation": "번역",
-    "modelTypeTts": "TTS"
+    "modelTypeTts": "음성 합성(TTS)"
   },
   "audioPanel": {
     "title": "오디오 설정",
@@ -305,6 +306,7 @@
     "initProgress": "로딩 중 ({{completed}}/{{total}})...",
     "insufficientBalance": "토큰 잔액 부족: {{balance}} 토큰",
     "walletFrozen": "지갑이 동결되었습니다. 고객 지원에 문의하세요.",
+    "localModelsRequired": "시작하려면 설정에서 필요한 모델을 다운로드하세요.",
     "clearConversation": "대화 지우기"
   },
   "errors": {
@@ -351,6 +353,10 @@
         "speaker": {
           "title": "6단계: 스피커 선택",
           "content": "번역을 미리 들을 모니터링 장치를 선택하세요. 모니터링 여부와 관계없이 번역된 오디오는 항상 가상 마이크로 출력됩니다. 회의 앱이나 웹사이트에서 Sokuji 가상 마이크를 마이크 입력으로 선택하세요. 피드백 방지를 위해 모니터링 시 헤드폰 사용을 권장합니다."
+        },
+        "systemAudio": {
+          "title": "단계 7: 참가자 오디오",
+          "content": "참가자 오디오 캡처를 활성화하여 다른 발언자의 음성을 실시간으로 번역합니다. 브라우저 확장 프로그램에서는 현재 탭의 오디오를 캡처하여 Google Meet, Teams, Zoom 등 웹 회의에서 다른 참가자의 음성을 번역할 수 있습니다. 데스크톱 앱에서는 컴퓨터에서 재생되는 모든 오디오를 캡처하여 YouTube 동영상, Twitch 스트리밍, Netflix 콘텐츠 등 모든 오디오 소스를 번역할 수 있습니다. 참가자 오디오는 음성 인식과 텍스트 번역만 수행하며 음성 합성은 적용되지 않습니다. Sokuji는 마이크를 통해 당신이 말하는 것을 캡처하여 번역하고, 이 기능을 통해 상대방이 말하는 것을 캡처하여 번역합니다. 둘을 함께 사용하면 완전한 양방향 번역이 가능합니다."
         },
         "start": {
           "title": "7단계: 번역 시작",
@@ -411,6 +417,10 @@
         "title": "7단계: 스피커 설정",
         "content": "번역된 오디오를 듣고 요구사항에 맞는지 확인할 수 있는 모니터링 장치를 선택하세요. 마이크 입력을 방해하지 않도록 모니터링에는 헤드폰 사용을 권장합니다. 번역 설정이 요구사항에 맞다고 생각되면 표현에 더 집중할 수 있고 마이크 입력을 방해하지 않도록 모니터링을 끄는 것이 좋습니다."
       },
+      "systemAudio": {
+        "title": "단계 8: 참가자 오디오",
+        "content": "참가자 오디오 캡처를 활성화하여 다른 발언자의 음성을 실시간으로 번역합니다. 브라우저 확장 프로그램에서는 현재 탭의 오디오를 캡처하여 Google Meet, Teams, Zoom 등 웹 회의에서 다른 참가자의 음성을 번역할 수 있습니다. 데스크톱 앱에서는 컴퓨터에서 재생되는 모든 오디오를 캡처하여 YouTube 동영상, Twitch 스트리밍, Netflix 콘텐츠 등 모든 오디오 소스를 번역할 수 있습니다. 참가자 오디오는 음성 인식과 텍스트 번역만 수행하며 음성 합성은 적용되지 않습니다. Sokuji는 마이크를 통해 당신이 말하는 것을 캡처하여 번역하고, 이 기능을 통해 상대방이 말하는 것을 캡처하여 번역합니다. 둘을 함께 사용하면 완전한 양방향 번역이 가능합니다."
+      },
       "startSession": {
         "title": "8단계: 세션 시작",
         "content": "\"세션 시작\" 버튼을 클릭하여 Sokuji 사용을 시작하세요. 시작한 후에는 자연스럽게 말하여 실시간 번역을 할 수 있습니다. 자동 턴 감지가 비활성화된 경우 \"눌러서 말하기\"(스페이스 키)를 사용하여 말하세요."
@@ -450,7 +460,7 @@
     "audioSettings": "오디오 설정",
     "audioSettingsDesc": "오디오 패널에서 마이크와 스피커를 설정하세요",
     "autoAuthenticated": "계정을 통해 자동으로 인증됨",
-    "provider": "제공자"
+    "provider": "AI 서비스 제공자"
   },
   "simpleConfig": {
     "interfaceLanguage": "인터페이스 언어",
@@ -519,8 +529,8 @@
       "description": "알 수 없는 제공업체"
     },
     "local_inference": {
-      "name": "로컬 (오프라인)",
-      "description": "오프라인 ASR + 번역 + TTS",
+      "name": "로컬 AI (오프라인)",
+      "description": "오프라인 음성 인식(ASR) + 번역 + 음성 합성(TTS)",
       "noKeyRequired": "API 키 불필요 — 기기에서 완전히 실행"
     }
   },
@@ -676,9 +686,9 @@
   "models": {
     "management": "모델",
     "storageUsed": "저장공간: {{size}} MB 사용 중",
-    "asrModels": "ASR (음성 인식)",
+    "asrModels": "음성 인식(ASR)",
     "translationModels": "번역",
-    "ttsModels": "TTS (음성 합성)",
+    "ttsModels": "음성 합성(TTS)",
     "autoSelected": "자동 선택",
     "download": "다운로드",
     "cancel": "취소",
@@ -686,14 +696,16 @@
     "delete": "삭제",
     "error": "오류",
     "retry": "재시도",
-    "showAllAsr": "모든 ASR 모델 표시 ({{count}})",
+    "showAllAsr": "모든 음성 인식(ASR) 모델 표시 ({{count}})",
     "showAll": "모든 번역 모델 표시 ({{count}})",
-    "showAllTts": "모든 TTS 모델 표시 ({{count}})",
+    "showAllTts": "모든 음성 합성(TTS) 모델 표시 ({{count}})",
     "hideOther": "다른 모델 숨기기",
     "clearAll": "모두 삭제",
     "confirmClearAll": "모든 모델을 삭제하시겠습니까?",
     "confirmYes": "예",
-    "confirmNo": "아니요"
+    "confirmNo": "아니요",
+    "recommended": "추천",
+    "recommendedGroup": "추천"
   },
   "update": {
     "available": "새 버전 v{{version}} 사용 가능",

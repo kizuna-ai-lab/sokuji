@@ -57,7 +57,8 @@
     "sourceLanguage": "השפה שלי",
     "targetLanguage": "שפת הצד השני",
     "preview": "תצוגה מקדימה",
-    "simple": "פשוט",
+    "simple": "מהיר",
+    "participantModelHint": "עבור ל-{{source}} → {{target}} כדי לשנות את דגמי המשתתפים",
     "advanced": "מתקדם",
     "normal": "רגיל",
     "semantic": "סמנטי",
@@ -141,11 +142,11 @@
     "webgpuNotSupported": "לא זמין בסביבה הנוכחית",
     "langMismatch": "אי-התאמת שפה",
     "localInferenceTurnDetectionTooltip": "מצב אוטומטי משתמש בזיהוי פעילות קולית לזיהוי דיבור אוטומטי. לחץ כדי לדבר מאפשר לך לשלוט ידנית בשליחת שמע על ידי החזקת רווח או לחצן המיקרופון.",
-    "noAsrModel": "אין מודל ASR עבור {{language}}",
+    "noAsrModel": "אין מודל זיהוי דיבור (ASR) עבור {{language}}",
     "noTranslationModel": "אין מודל תרגום עבור {{source}} → {{target}}",
-    "noTtsModel": "אין מודל TTS עבור {{language}}",
+    "noTtsModel": "אין מודל סינתזת דיבור (TTS) עבור {{language}}",
     "ttsNone": "ללא (טקסט בלבד)",
-    "ttsSettings": "הגדרות TTS",
+    "ttsSettings": "הגדרות סינתזת דיבור (TTS)",
     "ttsSpeakerId": "מזהה דובר",
     "ttsSpeed": "מהירות דיבור",
     "vadSettings": "הגדרות VAD",
@@ -221,13 +222,13 @@
     "thresholdTooltip": "התאם סף זיהוי קול",
     "prefixPaddingTooltip": "הוסף ריפוד לפני דיבור",
     "silenceDurationTooltip": "משך שקט לפני שהדיבור נחשב מסתיים",
-    "localInferenceModelsRequired": "אנא הורידו ובחרו מודלים ב<settingsLink>הגדרות המתקדמות</settingsLink>. נדרש לפחות מודל ASR, תרגום ו-TTS אחד.",
+    "localInferenceModelsRequired": "אנא הורד תחילה את המודלים הנדרשים ב<settingsLink>הגדרות</settingsLink>. עליך להוריד מודלים של זיהוי דיבור (ASR), תרגום וסינתזת דיבור (TTS) כדי להתחיל.",
     "missingModelsWarning": "חסר/ים מודל/ים של {{types}} עבור צמד שפות זה.",
     "downloadModels": "הורד מודלים",
     "downloadModelType": "הורד {{type}}",
-    "modelTypeAsr": "ASR",
+    "modelTypeAsr": "זיהוי דיבור (ASR)",
     "modelTypeTranslation": "תרגום",
-    "modelTypeTts": "TTS"
+    "modelTypeTts": "סינתזת דיבור (TTS)"
   },
   "simpleSettings": {
     "quickSetup": "הגדרה מהירה",
@@ -258,7 +259,7 @@
     "audioSettings": "הגדרות שמע",
     "audioSettingsDesc": "קבע את המיקרופון והרמקולים בפאנל השמע",
     "autoAuthenticated": "אומת אוטומטית דרך החשבון שלך",
-    "provider": "ספק"
+    "provider": "ספק שירותי בינה מלאכותית"
   },
   "simpleConfig": {
     "interfaceLanguage": "שפת ממשק",
@@ -327,8 +328,8 @@
       "description": "ספק לא ידוע"
     },
     "local_inference": {
-      "name": "מקומי (ללא חיבור)",
-      "description": "ASR + תרגום + TTS ללא חיבור",
+      "name": "בינה מלאכותית מקומית (ללא חיבור)",
+      "description": "זיהוי דיבור (ASR) + תרגום + סינתזת דיבור (TTS) ללא חיבור",
       "noKeyRequired": "לא נדרש מפתח API — רץ לגמרי על המכשיר שלך"
     }
   },
@@ -459,6 +460,7 @@
     "initProgress": "טוען ({{completed}}/{{total}})...",
     "insufficientBalance": "יתרת אסימונים לא מספקת: {{balance}} אסימונים",
     "walletFrozen": "הארנק מוקפא. אנא צור קשר עם התמיכה.",
+    "localModelsRequired": "אנא הורד את המודלים הנדרשים בהגדרות כדי להתחיל.",
     "clearConversation": "נקה שיחה"
   },
   "errors": {
@@ -505,6 +507,10 @@
         "speaker": {
           "title": "שלב 6: בחר רמקול",
           "content": "בחר מכשיר ניטור לתצוגה מקדימה של התרגום. אודיו מתורגם תמיד נשלח למיקרופון הווירטואלי ללא קשר לניטור. בחר ב-Sokuji Virtual Microphone כקלט מיקרופון באפליקציית הפגישות או באתר שלך. מומלץ להשתמש באוזניות לניטור כדי למנוע היזון חוזר."
+        },
+        "systemAudio": {
+          "title": "שלב 7: שמע משתתפים",
+          "content": "הפעל לכידת שמע של משתתפים כדי לתרגם בזמן אמת את דבריהם של דוברים אחרים. בתוסף הדפדפן, תכונה זו לוכדת את השמע של הלשונית הנוכחית ויכולה לתרגם את קולות המשתתפים האחרים בשיחות וידאו כמו Google Meet, Teams, Zoom ועוד. באפליקציית שולחן העבודה, תכונה זו לוכדת את כל השמע שהמחשב מנגן ויכולה לתרגם סרטוני YouTube, שידורי Twitch, תוכן Netflix וכל מקור שמע אחר. שמע המשתתפים מבצע רק זיהוי דיבור ותרגום לטקסט, ללא סינתזת דיבור. Sokuji לוכד ומתרגם את מה שאתה אומר דרך המיקרופון, ולוכד ומתרגם את מה שהצד השני אומר דרך תכונה זו. יחד, הם מאפשרים תרגום דו-כיווני מלא."
         },
         "start": {
           "title": "שלב 7: התחל לתרגם",
@@ -564,6 +570,10 @@
       "speakerSetup": {
         "title": "הגדרת התקן ניטור",
         "content": "בחרו התקן ניטור (כמו אוזניות או רמקולים) כדי לשמוע את פלט התרגום. מומלץ להשתמש באוזניות כדי למנוע משוב אודיו. אם אתם מעדיפים להתמקד בפגישה ללא הסחת דעת מהניטור, תוכלו להשבית את פונקציית הניטור."
+      },
+      "systemAudio": {
+        "title": "שלב 8: שמע משתתפים",
+        "content": "הפעל לכידת שמע של משתתפים כדי לתרגם בזמן אמת את דבריהם של דוברים אחרים. בתוסף הדפדפן, תכונה זו לוכדת את השמע של הלשונית הנוכחית ויכולה לתרגם את קולות המשתתפים האחרים בשיחות וידאו כמו Google Meet, Teams, Zoom ועוד. באפליקציית שולחן העבודה, תכונה זו לוכדת את כל השמע שהמחשב מנגן ויכולה לתרגם סרטוני YouTube, שידורי Twitch, תוכן Netflix וכל מקור שמע אחר. שמע המשתתפים מבצע רק זיהוי דיבור ותרגום לטקסט, ללא סינתזת דיבור. Sokuji לוכד ומתרגם את מה שאתה אומר דרך המיקרופון, ולוכד ומתרגם את מה שהצד השני אומר דרך תכונה זו. יחד, הם מאפשרים תרגום דו-כיווני מלא."
       },
       "startSession": {
         "title": "התחל את ההפעלה שלך",
@@ -682,9 +692,9 @@
   "models": {
     "management": "מודלים",
     "storageUsed": "אחסון: {{size}} מ\"ב בשימוש",
-    "asrModels": "ASR (זיהוי דיבור)",
+    "asrModels": "זיהוי דיבור (ASR)",
     "translationModels": "תרגום",
-    "ttsModels": "TTS (סינתזת דיבור)",
+    "ttsModels": "סינתזת דיבור (TTS)",
     "autoSelected": "נבחר אוטומטית",
     "download": "הורדה",
     "cancel": "ביטול",
@@ -692,14 +702,16 @@
     "delete": "מחק",
     "error": "שגיאה",
     "retry": "נסה שוב",
-    "showAllAsr": "הצג את כל מודלי ASR ({{count}})",
+    "showAllAsr": "הצג את כל מודלי זיהוי דיבור (ASR) ({{count}})",
     "showAll": "הצג את כל מודלי התרגום ({{count}})",
-    "showAllTts": "הצג את כל מודלי TTS ({{count}})",
+    "showAllTts": "הצג את כל מודלי סינתזת דיבור (TTS) ({{count}})",
     "hideOther": "הסתר מודלים אחרים",
     "clearAll": "נקה הכל",
     "confirmClearAll": "למחוק את כל המודלים?",
     "confirmYes": "כן",
-    "confirmNo": "לא"
+    "confirmNo": "לא",
+    "recommended": "מומלץ",
+    "recommendedGroup": "מומלץ"
   },
   "update": {
     "available": "גרסה חדשה v{{version}} זמינה",

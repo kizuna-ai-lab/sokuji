@@ -102,11 +102,11 @@
     "webgpuNotSupported": "Ei saatavilla nykyisessä ympäristössä",
     "langMismatch": "Kieliristiriita",
     "localInferenceTurnDetectionTooltip": "Automaattinen tila käyttää ääniaktiivisuuden tunnistusta puheen automaattiseen havaitsemiseen. Paina ja puhu -tilassa voit hallita äänen lähettämistä manuaalisesti pitämällä välilyöntiä tai mikrofonipainiketta pohjassa.",
-    "noAsrModel": "Ei ASR-mallia kielelle {{language}}",
+    "noAsrModel": "Ei Puheentunnistus (ASR)-mallia kielelle {{language}}",
     "noTranslationModel": "Ei käännösmallia kielille {{source}} → {{target}}",
-    "noTtsModel": "Ei TTS-mallia kielelle {{language}}",
+    "noTtsModel": "Ei Puhesynteesi (TTS)-mallia kielelle {{language}}",
     "ttsNone": "Ei mitään (vain teksti)",
-    "ttsSettings": "TTS-asetukset",
+    "ttsSettings": "Puhesynteesi (TTS)-asetukset",
     "ttsSpeakerId": "Puhujan ID",
     "ttsSpeed": "Puheen nopeus",
     "vadSettings": "VAD-asetukset",
@@ -186,7 +186,8 @@
     "noiseSuppressionTooltip": "AI-pohjainen kohinanvaimennus RNNoisella. Vähentää taustamelua ennen äänen lähettämistä AI-palveluntarjoajalle. Toimii kaikkien palveluntarjoajien kanssa.",
     "modelConfiguration": "Malliasetukset",
     "preview": "Esikatselu",
-    "simple": "Yksinkertainen",
+    "simple": "Pika",
+    "participantModelHint": "Vaihda kielipari {{source}} → {{target}} muuttaaksesi osallistujan malleja",
     "advanced": "Edistynyt",
     "normal": "Normaali",
     "semantic": "Semanttinen",
@@ -214,13 +215,13 @@
     "thresholdTooltip": "Säädä puheen tunnistuksen kynnysarvoa",
     "prefixPaddingTooltip": "Lisää täyttö ennen puhetta",
     "silenceDurationTooltip": "Hiljaisuuden kesto ennen puheen päättymistä",
-    "localInferenceModelsRequired": "Lataa ja valitse mallit <settingsLink>lisäasetuksista</settingsLink>. Vähintään yksi ASR-, käännös- ja TTS-malli vaaditaan.",
+    "localInferenceModelsRequired": "Lataa ensin tarvittavat mallit <settingsLink>Asetuksista</settingsLink>. Sinun täytyy ladata puheentunnistus (ASR)-, käännös- ja puhesynteesi (TTS) -mallit aloittaaksesi.",
     "missingModelsWarning": "{{types}}-malli(t) puuttuu tälle kieliparille.",
     "downloadModels": "Lataa mallit",
     "downloadModelType": "Lataa {{type}}",
-    "modelTypeAsr": "ASR",
+    "modelTypeAsr": "Puheentunnistus (ASR)",
     "modelTypeTranslation": "Käännös",
-    "modelTypeTts": "TTS"
+    "modelTypeTts": "Puhesynteesi (TTS)"
   },
   "simpleSettings": {
     "quickSetup": "Pika-asennus",
@@ -251,7 +252,7 @@
     "audioSettings": "Ääniasetukset",
     "audioSettingsDesc": "Määritä mikrofoni ja kaiuttimet äänipaneelissa",
     "autoAuthenticated": "Automaattisesti todennettu tilisi kautta",
-    "provider": "Palveluntarjoaja"
+    "provider": "Tekoälypalvelun tarjoaja"
   },
   "simpleConfig": {
     "interfaceLanguage": "Käyttöliittymän kieli",
@@ -320,8 +321,8 @@
       "description": "Tuntematon palveluntarjoaja"
     },
     "local_inference": {
-      "name": "Paikallinen (offline)",
-      "description": "Offline ASR + Käännös + TTS",
+      "name": "Paikallinen tekoäly (offline)",
+      "description": "Offline puheentunnistus (ASR) + Käännös + puhesynteesi (TTS)",
       "noKeyRequired": "API-avainta ei tarvita — toimii kokonaan laitteellasi"
     }
   },
@@ -389,6 +390,7 @@
     "initProgress": "Ladataan ({{completed}}/{{total}})...",
     "insufficientBalance": "Riittämätön token-saldo: {{balance}} tokenia",
     "walletFrozen": "Lompakko on jäädytetty. Ota yhteyttä tukeen.",
+    "localModelsRequired": "Lataa tarvittavat mallit Asetuksista aloittaaksesi.",
     "clearConversation": "Tyhjennä keskustelu"
   },
   "audioPanel": {
@@ -458,6 +460,10 @@
           "title": "Vaihe 6: Valitse Kaiutin",
           "content": "Valitse seurantalaite käännöksen esikatseluun. Käännetty ääni lähetetään aina virtuaalimikrofoniin seurannasta riippumatta. Valitse Sokuji Virtual Microphone mikrofonisyötteeksi kokoussovelluksessasi tai verkkosivustolla. Kuulokkeet ovat suositeltavia seurantaan palautteen välttämiseksi."
         },
+        "systemAudio": {
+          "title": "Vaihe 7: Osallistujan ääni",
+          "content": "Ota osallistujaäänen kaappaus käyttöön kääntääksesi muiden puhujien puhe reaaliajassa. Selainlaajennuksessa tämä toiminto kaappaa nykyisen välilehden äänen ja voi kääntää muiden osallistujien puheet Google Meet-, Teams-, Zoom- ja muissa verkkokokouksissa. Työpöytäsovelluksessa tämä toiminto kaappaa kaiken tietokoneen toistaman äänen ja voi kääntää YouTube-videoita, Twitch-lähetyksiä, Netflix-sisältöä ja mitä tahansa muuta äänilähdettä. Osallistujaääni suorittaa vain puheentunnistuksen ja tekstikäännöksen, ei puhesynteesiä. Sokuji kaappaa ja kääntää puheesi mikrofonin kautta, ja kaappaa ja kääntää toisen osapuolen puheen tämän toiminnon kautta. Yhdessä ne mahdollistavat täydellisen kaksisuuntaisen käännöksen."
+        },
         "start": {
           "title": "Vaihe 7: Aloita Kääntäminen",
           "content": "Click 'Start' to begin translating! Just speak naturally and hear the translation in real-time."
@@ -516,6 +522,10 @@
       "speakerSetup": {
         "title": "Monitorilaitteen asennus",
         "content": "Valitse monitorilaitteesi (kuten kuulokkeet tai kaiuttimet) kuullaksesi käännöksen tulosteen. Kuulokkeiden käyttöä suositellaan äänipalautteiden välttämiseksi. Jos haluat keskittyä kokoukseen ilman monitoroinnin häiriöitä, voit poistaa monitorointitoiminnon käytöstä."
+      },
+      "systemAudio": {
+        "title": "Vaihe 8: Osallistujan ääni",
+        "content": "Ota osallistujaäänen kaappaus käyttöön kääntääksesi muiden puhujien puhe reaaliajassa. Selainlaajennuksessa tämä toiminto kaappaa nykyisen välilehden äänen ja voi kääntää muiden osallistujien puheet Google Meet-, Teams-, Zoom- ja muissa verkkokokouksissa. Työpöytäsovelluksessa tämä toiminto kaappaa kaiken tietokoneen toistaman äänen ja voi kääntää YouTube-videoita, Twitch-lähetyksiä, Netflix-sisältöä ja mitä tahansa muuta äänilähdettä. Osallistujaääni suorittaa vain puheentunnistuksen ja tekstikäännöksen, ei puhesynteesiä. Sokuji kaappaa ja kääntää puheesi mikrofonin kautta, ja kaappaa ja kääntää toisen osapuolen puheen tämän toiminnon kautta. Yhdessä ne mahdollistavat täydellisen kaksisuuntaisen käännöksen."
       },
       "startSession": {
         "title": "Aloita istuntosi",
@@ -634,9 +644,9 @@
   "models": {
     "management": "Mallit",
     "storageUsed": "Tallennustila: {{size}} Mt käytössä",
-    "asrModels": "ASR (Puheentunnistus)",
+    "asrModels": "Puheentunnistus (ASR)",
     "translationModels": "Käännös",
-    "ttsModels": "TTS (Puhesynteesi)",
+    "ttsModels": "Puhesynteesi (TTS)",
     "autoSelected": "Automaattisesti valittu",
     "download": "Lataa",
     "cancel": "Peruuta",
@@ -644,14 +654,16 @@
     "delete": "Poista",
     "error": "Virhe",
     "retry": "Yritä uudelleen",
-    "showAllAsr": "Näytä kaikki ASR-mallit ({{count}})",
+    "showAllAsr": "Näytä kaikki Puheentunnistus (ASR)-mallit ({{count}})",
     "showAll": "Näytä kaikki käännösmallit ({{count}})",
-    "showAllTts": "Näytä kaikki TTS-mallit ({{count}})",
+    "showAllTts": "Näytä kaikki Puhesynteesi (TTS)-mallit ({{count}})",
     "hideOther": "Piilota muut mallit",
     "clearAll": "Tyhjennä kaikki",
     "confirmClearAll": "Poista kaikki mallit?",
     "confirmYes": "Kyllä",
-    "confirmNo": "Ei"
+    "confirmNo": "Ei",
+    "recommended": "Suositeltu",
+    "recommendedGroup": "Suositeltu"
   },
   "update": {
     "available": "Uusi versio v{{version}} saatavilla",
