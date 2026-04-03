@@ -151,6 +151,15 @@ export interface CohereTranscribeAsrInitMessage {
   language?: string;
   /** ONNX dtype config — 'q4f16' or 'q4', or per-component mapping */
   dtype: string | Record<string, string>;
+  /** VAD configuration overrides from user settings */
+  vadConfig?: {
+    threshold?: number;
+    negativeThreshold?: number;
+    minSilenceDuration?: number;
+    minSpeechDuration?: number;
+    preSpeechPadDuration?: number;
+    maxSpeechDuration?: number;
+  };
   /** Resolved absolute URL for bundled VAD model */
   vadModelUrl: string;
   /** Resolved absolute URL for bundled ORT WASM files */

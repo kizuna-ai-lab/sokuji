@@ -73,12 +73,6 @@ export class StreamingAsrEngine {
               { type: 'module' },
             );
             break;
-          case 'cohere-transcribe-webgpu':
-            this.worker = new Worker(
-              new URL('../workers/cohere-transcribe-webgpu.worker.ts', import.meta.url),
-              { type: 'module' },
-            );
-            break;
           default: // sherpa-onnx streaming
             this.worker = new Worker('./workers/sherpa-onnx-streaming-asr.worker.js');
             break;
@@ -134,7 +128,7 @@ export class StreamingAsrEngine {
         };
 
         // Send init message based on worker type
-        if (workerType === 'voxtral-webgpu' || workerType === 'cohere-transcribe-webgpu') {
+        if (workerType === 'voxtral-webgpu') {
           if (!await manager.isModelReady(modelId)) {
             throw new Error(`Model "${modelId}" is not downloaded.`);
           }

@@ -136,6 +136,11 @@ export class LocalInferenceClient implements IClient {
           this.emitEvent('local.asr.start', 'server', { modelId: this.config?.asrModelId });
         };
 
+        engine.onPartialResult = (text) => {
+          if (this.disposed) return;
+          this.handlePartialAsrResult(text);
+        };
+
         engine.onResult = (result) => {
           if (this.disposed) return;
           const text = result.text.trim();

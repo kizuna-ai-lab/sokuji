@@ -5,9 +5,10 @@
  * Supports multiple worker backends:
  * - sherpa-onnx (classic Worker): VAD + OfflineRecognizer via Emscripten/WASM
  * - whisper-webgpu (module Worker): VAD + Whisper via Transformers.js/WebGPU
+ * - cohere-transcribe-webgpu (module Worker): VAD + Cohere Transcribe via Transformers.js/WebGPU
  */
 
-import type { AsrWorkerOutMessage } from '../types';
+import type { AsrWorkerOutMessage, StreamingAsrWorkerOutMessage } from '../types';
 import {
   getManifestEntry,
   getManifestByType,
@@ -24,6 +25,7 @@ export interface AsrResult {
 }
 
 type ResultCallback = (result: AsrResult) => void;
+type PartialResultCallback = (text: string) => void;
 type StatusCallback = (message: string) => void;
 type ErrorCallback = (error: string) => void;
 
@@ -33,6 +35,7 @@ export class AsrEngine {
   private currentModel: ModelManifestEntry | null = null;
 
   onResult: ResultCallback | null = null;
+  onPartialResult: PartialResultCallback | null = null;
   onSpeechStart: (() => void) | null = null;
   onStatus: StatusCallback | null = null;
   onError: ErrorCallback | null = null;
@@ -80,6 +83,12 @@ export class AsrEngine {
             { type: 'module' },
           );
           break;
+        case 'cohere-transcribe-webgpu':
+          this.worker = new Worker(
+            new URL('../workers/cohere-transcribe-webgpu.worker.ts', import.meta.url),
+            { type: 'module' },
+          );
+          break;
         case 'granite-speech-webgpu':
           this.worker = new Worker(
             new URL('../workers/granite-speech-webgpu.worker.ts', import.meta.url),
@@ -91,7 +100,9 @@ export class AsrEngine {
           break;
       }
 
-      this.worker.onmessage = (event: MessageEvent<AsrWorkerOutMessage>) => {
+      // Cohere worker emits StreamingAsrWorkerOutMessage (includes 'partial'),
+      // other workers emit AsrWorkerOutMessage. Handle the union.
+      this.worker.onmessage = (event: MessageEvent<AsrWorkerOutMessage | StreamingAsrWorkerOutMessage>) => {
         const msg = event.data;
         switch (msg.type) {
           case 'ready':
@@ -110,10 +121,14 @@ export class AsrEngine {
             this.onSpeechStart?.();
             break;
 
+          case 'partial':
+            this.onPartialResult?.(msg.text);
+            break;
+
           case 'result':
             this.onResult?.({
               text: msg.text,
-              startSample: msg.startSample,
+              startSample: 'startSample' in msg ? msg.startSample : 0,
               durationMs: msg.durationMs,
               recognitionTimeMs: msg.recognitionTimeMs,
             });
@@ -143,6 +158,17 @@ export class AsrEngine {
 
       // Send init message — format depends on worker type
       if (workerType === 'whisper-webgpu') {
+        this.worker.postMessage({
+          type: 'init',
+          fileUrls,
+          hfModelId: model.hfModelId,
+          language,
+          vadConfig,
+          dtype,
+          ortWasmBaseUrl: new URL('./wasm/ort/', window.location.href).href,
+          vadModelUrl: new URL('./wasm/vad/silero_vad_v5.onnx', window.location.href).href,
+        });
+      } else if (workerType === 'cohere-transcribe-webgpu') {
         this.worker.postMessage({
           type: 'init',
           fileUrls,
