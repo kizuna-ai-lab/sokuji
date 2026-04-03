@@ -317,7 +317,7 @@
           "content": "Diğer konuşmacıların söylediklerini gerçek zamanlı olarak çevirmek için katılımcı ses yakalamayı etkinleştirin. Tarayıcı eklentisinde bu özellik, geçerli sekmenin sesini yakalar ve Google Meet, Teams, Zoom gibi web konferanslarında diğer katılımcıların seslerini çevirebilir. Masaüstü uygulamasında bu özellik, bilgisayarın çaldığı tüm sesi yakalar ve YouTube videoları, Twitch yayınları, Netflix içerikleri ve diğer tüm ses kaynaklarını çevirebilir. Katılımcı sesi yalnızca konuşma tanıma ve metin çevirisi yapar, konuşma sentezi yapmaz. Sokuji mikrofon aracılığıyla söylediklerinizi yakalar ve çevirir, bu özellik aracılığıyla karşı tarafın söylediklerini yakalar ve çevirir. İkisi birlikte tam çift yönlü çeviri sağlar."
         },
         "start": {
-          "title": "Adım 7: Çeviriye Başlayın",
+          "title": "Adım 8: Çeviriye Başlayın",
           "content": "Click 'Start' to begin translating! Just speak naturally and hear the translation in real-time."
         },
         "complete": {

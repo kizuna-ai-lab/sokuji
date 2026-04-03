@@ -510,7 +510,7 @@
           "content": "Ative a captura de áudio dos participantes para traduzir em tempo real o que outros oradores dizem. Na extensão do navegador, esta funcionalidade captura o áudio do separador atual e pode traduzir as vozes de outros participantes em videoconferências como Google Meet, Teams, Zoom e outras. Na aplicação de ambiente de trabalho, esta funcionalidade captura todo o áudio reproduzido pelo computador e pode traduzir vídeos do YouTube, transmissões da Twitch, conteúdo da Netflix e qualquer outra fonte de áudio. O áudio dos participantes realiza apenas reconhecimento de fala e tradução para texto, sem síntese de voz. O Sokuji captura e traduz o que diz através do microfone, e captura e traduz o que a outra pessoa diz através desta funcionalidade. Em conjunto, permitem uma tradução bidirecional completa."
         },
         "start": {
-          "title": "Passo 7: Começar a Traduzir",
+          "title": "Passo 8: Começar a Traduzir",
           "content": "Click 'Start' to begin translating! Just speak naturally and hear the translation in real-time."
         },
         "complete": {

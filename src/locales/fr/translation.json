@@ -359,7 +359,7 @@
           "content": "Activez la capture audio des participants pour traduire en temps réel ce que disent les autres intervenants. Dans l'extension de navigateur, cette fonctionnalité capture l'audio de l'onglet actuel et peut traduire les voix des autres participants dans les visioconférences comme Google Meet, Teams, Zoom et autres. Dans l'application de bureau, cette fonctionnalité capture tous les sons diffusés par l'ordinateur et peut traduire les vidéos YouTube, les flux Twitch, le contenu Netflix et toute autre source audio. L'audio des participants effectue uniquement la reconnaissance vocale et la traduction en texte, sans synthèse vocale. Sokuji capture et traduit ce que vous dites via le microphone, et capture et traduit ce que dit l'autre personne via cette fonctionnalité. Ensemble, ils permettent une traduction bidirectionnelle complète."
         },
         "start": {
-          "title": "Étape 7 : Commencer la Traduction",
+          "title": "Étape 8 : Commencer la Traduction",
           "content": "Cliquez sur Démarrer pour commencer à traduire ! Parlez simplement naturellement et écoutez la traduction en temps réel."
         },
         "complete": {
@@ -422,7 +422,7 @@
         "content": "Activez la capture audio des participants pour traduire en temps réel ce que disent les autres intervenants. Dans l'extension de navigateur, cette fonctionnalité capture l'audio de l'onglet actuel et peut traduire les voix des autres participants dans les visioconférences comme Google Meet, Teams, Zoom et autres. Dans l'application de bureau, cette fonctionnalité capture tous les sons diffusés par l'ordinateur et peut traduire les vidéos YouTube, les flux Twitch, le contenu Netflix et toute autre source audio. L'audio des participants effectue uniquement la reconnaissance vocale et la traduction en texte, sans synthèse vocale. Sokuji capture et traduit ce que vous dites via le microphone, et capture et traduit ce que dit l'autre personne via cette fonctionnalité. Ensemble, ils permettent une traduction bidirectionnelle complète."
       },
       "startSession": {
-        "title": "Étape 8 : Démarrer la session",
+        "title": "Étape 9 : Démarrer la session",
         "content": "Cliquez sur le bouton \"Démarrer la session\" pour commencer à utiliser Sokuji. Une fois démarré, vous pouvez parler naturellement pour la traduction en temps réel. Si la détection automatique des tours est désactivée, utilisez \"Appuyer pour parler\" (barre d'espace) pour parler."
       },
       "complete": {

@@ -310,7 +310,7 @@
           "content": "Aktivera deltagarljudinspelning för att översätta andra talares tal i realtid. I webbläsartillägget fångar denna funktion ljudet från den aktuella fliken och kan översätta andra deltagares röster i webbkonferenser som Google Meet, Teams, Zoom med flera. I skrivbordsappen fångar denna funktion allt ljud som datorn spelar upp och kan översätta YouTube-videor, Twitch-strömmar, Netflix-innehåll och vilken annan ljudkälla som helst. Deltagarljud utför bara taligenkänning och textöversättning, ingen talsyntes. Sokuji fångar och översätter vad du säger via mikrofonen, och fångar och översätter vad den andra personen säger via denna funktion. Tillsammans möjliggör de fullständig tvåvägsöversättning."
         },
         "start": {
-          "title": "Steg 7: Börja Översätta",
+          "title": "Steg 8: Börja Översätta",
           "content": "Click 'Start' to begin translating! Just speak naturally and hear the translation in real-time."
         },
         "complete": {

@@ -507,7 +507,7 @@
           "content": "Aktifkan penangkapan audio peserta untuk menerjemahkan ucapan pembicara lain secara real-time. Di ekstensi browser, fitur ini menangkap audio tab saat ini dan dapat menerjemahkan suara peserta lain di konferensi web seperti Google Meet, Teams, Zoom, dan lainnya. Di aplikasi desktop, fitur ini menangkap semua audio yang diputar komputer dan dapat menerjemahkan video YouTube, streaming Twitch, konten Netflix, dan sumber audio apa pun. Audio peserta hanya melakukan pengenalan suara dan terjemahan teks, tanpa sintesis suara. Sokuji menangkap dan menerjemahkan apa yang Anda katakan melalui mikrofon, dan menangkap serta menerjemahkan apa yang dikatakan pihak lain melalui fitur ini. Keduanya bersama-sama memungkinkan terjemahan dua arah yang lengkap."
         },
         "start": {
-          "title": "Langkah 7: Mulai Menerjemahkan",
+          "title": "Langkah 8: Mulai Menerjemahkan",
           "content": "Click 'Start' to begin translating! Just speak naturally and hear the translation in real-time."
         },
         "complete": {

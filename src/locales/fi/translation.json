@@ -465,7 +465,7 @@
           "content": "Ota osallistujaäänen kaappaus käyttöön kääntääksesi muiden puhujien puhe reaaliajassa. Selainlaajennuksessa tämä toiminto kaappaa nykyisen välilehden äänen ja voi kääntää muiden osallistujien puheet Google Meet-, Teams-, Zoom- ja muissa verkkokokouksissa. Työpöytäsovelluksessa tämä toiminto kaappaa kaiken tietokoneen toistaman äänen ja voi kääntää YouTube-videoita, Twitch-lähetyksiä, Netflix-sisältöä ja mitä tahansa muuta äänilähdettä. Osallistujaääni suorittaa vain puheentunnistuksen ja tekstikäännöksen, ei puhesynteesiä. Sokuji kaappaa ja kääntää puheesi mikrofonin kautta, ja kaappaa ja kääntää toisen osapuolen puheen tämän toiminnon kautta. Yhdessä ne mahdollistavat täydellisen kaksisuuntaisen käännöksen."
         },
         "start": {
-          "title": "Vaihe 7: Aloita Kääntäminen",
+          "title": "Vaihe 8: Aloita Kääntäminen",
           "content": "Click 'Start' to begin translating! Just speak naturally and hear the translation in real-time."
         },
         "complete": {

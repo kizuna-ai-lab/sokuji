@@ -476,7 +476,7 @@
           "content": "啟用參與者音訊擷取，即時翻譯其他發言者的語音。在瀏覽器擴充功能中，此功能會擷取目前分頁的音訊，可以翻譯 Google Meet、Teams、Zoom 等網路會議中其他參與者的語音。在桌面應用程式中，此功能會擷取電腦播放的所有聲音，可以翻譯 YouTube 影片、Twitch 直播、Netflix 影片等任何音訊來源。參與者音訊僅進行語音辨識和翻譯為文字，不會進行語音合成播報。Sokuji 透過麥克風擷取您說的話並翻譯，透過此功能擷取對方說的話並翻譯，兩者配合即可實現完整的雙向翻譯。"
         },
         "start": {
-          "title": "步驟 7：開始翻譯",
+          "title": "步驟 8：開始翻譯",
           "content": "Click 'Start' to begin translating! Just speak naturally and hear the translation in real-time."
         },
         "complete": {

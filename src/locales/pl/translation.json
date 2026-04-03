@@ -358,7 +358,7 @@
           "content": "Włącz przechwytywanie dźwięku uczestników, aby tłumaczyć wypowiedzi innych mówców w czasie rzeczywistym. W rozszerzeniu przeglądarki ta funkcja przechwytuje dźwięk bieżącej karty i może tłumaczyć głosy innych uczestników wideokonferencji, takich jak Google Meet, Teams, Zoom i inne. W aplikacji komputerowej ta funkcja przechwytuje cały dźwięk odtwarzany przez komputer i może tłumaczyć filmy z YouTube, transmisje z Twitch, treści z Netflix oraz dowolne inne źródło dźwięku. Dźwięk uczestników wykonuje jedynie rozpoznawanie mowy i tłumaczenie na tekst, bez syntezy mowy. Sokuji przechwytuje i tłumaczy to, co mówisz przez mikrofon, a za pomocą tej funkcji przechwytuje i tłumaczy to, co mówi druga osoba. Razem umożliwiają pełne tłumaczenie dwukierunkowe."
         },
         "start": {
-          "title": "Krok 7: Rozpocznij Tłumaczenie",
+          "title": "Krok 8: Rozpocznij Tłumaczenie",
           "content": "Click 'Start' to begin translating! Just speak naturally and hear the translation in real-time."
         },
         "complete": {

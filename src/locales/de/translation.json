@@ -359,7 +359,7 @@
           "content": "Aktivieren Sie die Teilnehmer-Audioaufnahme, um andere Sprecher in Echtzeit zu übersetzen. In der Browser-Erweiterung nimmt diese Funktion den Ton des aktuellen Tabs auf und kann die Stimmen anderer Teilnehmer in Webkonferenzen wie Google Meet, Teams, Zoom und anderen übersetzen. In der Desktop-App nimmt diese Funktion alle vom Computer wiedergegebenen Audioquellen auf und kann YouTube-Videos, Twitch-Streams, Netflix-Inhalte und jede andere Audioquelle übersetzen. Teilnehmer-Audio führt nur Spracherkennung und Textübersetzung durch — keine Sprachsynthese. Sokuji erfasst über das Mikrofon, was Sie sagen, und übersetzt es. Über diese Funktion erfasst es, was die andere Person sagt, und übersetzt es. Zusammen ermöglichen beide eine vollständige bidirektionale Übersetzung."
         },
         "start": {
-          "title": "Schritt 7: Übersetzen starten",
+          "title": "Schritt 8: Übersetzen starten",
           "content": "Klicken Sie auf Start, um mit der Übersetzung zu beginnen! Sprechen Sie einfach natürlich und hören Sie die Übersetzung in Echtzeit."
         },
         "complete": {
@@ -422,7 +422,7 @@
         "content": "Aktivieren Sie die Teilnehmer-Audioaufnahme, um andere Sprecher in Echtzeit zu übersetzen. In der Browser-Erweiterung nimmt diese Funktion den Ton des aktuellen Tabs auf und kann die Stimmen anderer Teilnehmer in Webkonferenzen wie Google Meet, Teams, Zoom und anderen übersetzen. In der Desktop-App nimmt diese Funktion alle vom Computer wiedergegebenen Audioquellen auf und kann YouTube-Videos, Twitch-Streams, Netflix-Inhalte und jede andere Audioquelle übersetzen. Teilnehmer-Audio führt nur Spracherkennung und Textübersetzung durch — keine Sprachsynthese. Sokuji erfasst über das Mikrofon, was Sie sagen, und übersetzt es. Über diese Funktion erfasst es, was die andere Person sagt, und übersetzt es. Zusammen ermöglichen beide eine vollständige bidirektionale Übersetzung."
       },
       "startSession": {
-        "title": "Schritt 8: Sitzung starten",
+        "title": "Schritt 9: Sitzung starten",
         "content": "Klicken Sie auf die Schaltfläche \"Sitzung starten\", um mit der Verwendung von Sokuji zu beginnen. Nach dem Start können Sie natürlich sprechen für Live-Übersetzung. Wenn die automatische Wendeerkennung deaktiviert ist, verwenden Sie \"Drücken zum Sprechen\" (Leertaste) zum Sprechen."
       },
       "complete": {

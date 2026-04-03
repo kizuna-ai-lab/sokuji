@@ -310,7 +310,7 @@
           "content": "Bật tính năng thu âm thanh người tham gia để dịch lời nói của người khác theo thời gian thực. Trong tiện ích mở rộng trình duyệt, tính năng này thu âm thanh của tab hiện tại và có thể dịch giọng nói của các người tham gia khác trong hội nghị trực tuyến như Google Meet, Teams, Zoom và các ứng dụng khác. Trong ứng dụng máy tính, tính năng này thu tất cả âm thanh mà máy tính phát và có thể dịch video YouTube, phát trực tiếp Twitch, nội dung Netflix và bất kỳ nguồn âm thanh nào khác. Âm thanh người tham gia chỉ thực hiện nhận dạng giọng nói và dịch sang văn bản, không có tổng hợp giọng nói. Sokuji thu và dịch những gì bạn nói qua micrô, và thu cùng dịch những gì đối phương nói qua tính năng này. Kết hợp cả hai cho phép dịch hai chiều hoàn chỉnh."
         },
         "start": {
-          "title": "Bước 7: Bắt đầu dịch",
+          "title": "Bước 8: Bắt đầu dịch",
           "content": "Click 'Start' to begin translating! Just speak naturally and hear the translation in real-time."
         },
         "complete": {

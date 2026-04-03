@@ -359,7 +359,7 @@
           "content": "Attiva l'acquisizione audio dei partecipanti per tradurre in tempo reale ciò che dicono gli altri relatori. Nell'estensione del browser, questa funzione acquisisce l'audio della scheda corrente e può tradurre le voci degli altri partecipanti nelle videoconferenze come Google Meet, Teams, Zoom e altre. Nell'app desktop, questa funzione acquisisce tutto l'audio riprodotto dal computer e può tradurre video di YouTube, streaming di Twitch, contenuti Netflix e qualsiasi altra fonte audio. L'audio dei partecipanti esegue solo il riconoscimento vocale e la traduzione in testo, senza sintesi vocale. Sokuji acquisisce e traduce ciò che dici tramite il microfono, e acquisisce e traduce ciò che dice l'altra persona tramite questa funzione. Insieme, consentono una traduzione bidirezionale completa."
         },
         "start": {
-          "title": "Passaggio 7: Inizia a Tradurre",
+          "title": "Passaggio 8: Inizia a Tradurre",
           "content": "Click 'Start' to begin translating! Just speak naturally and hear the translation in real-time."
         },
         "complete": {
@@ -422,7 +422,7 @@
         "content": "Attiva l'acquisizione audio dei partecipanti per tradurre in tempo reale ciò che dicono gli altri relatori. Nell'estensione del browser, questa funzione acquisisce l'audio della scheda corrente e può tradurre le voci degli altri partecipanti nelle videoconferenze come Google Meet, Teams, Zoom e altre. Nell'app desktop, questa funzione acquisisce tutto l'audio riprodotto dal computer e può tradurre video di YouTube, streaming di Twitch, contenuti Netflix e qualsiasi altra fonte audio. L'audio dei partecipanti esegue solo il riconoscimento vocale e la traduzione in testo, senza sintesi vocale. Sokuji acquisisce e traduce ciò che dici tramite il microfono, e acquisisce e traduce ciò che dice l'altra persona tramite questa funzione. Insieme, consentono una traduzione bidirezionale completa."
       },
       "startSession": {
-        "title": "Passo 8: Avvia sessione",
+        "title": "Passo 9: Avvia sessione",
         "content": "Clicca sul pulsante \"Avvia sessione\" per iniziare a usare Sokuji. Una volta avviato, puoi parlare naturalmente per la traduzione in tempo reale. Se il rilevamento automatico dei turni è disabilitato, usa \"Premi per parlare\" (barra spaziatrice) per parlare."
       },
       "complete": {

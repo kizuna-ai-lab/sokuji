@@ -359,7 +359,7 @@
           "content": "Schakel deelnemergeluidsopname in om andere sprekers in realtime te vertalen. In de browserextensie legt deze functie de audio van het huidige tabblad vast en kan het de stemmen van andere deelnemers vertalen in webconferenties zoals Google Meet, Teams, Zoom en anderen. In de desktopapp legt deze functie alle audio vast die de computer afspeelt en kan het YouTube-video's, Twitch-streams, Netflix-content en elke andere audiobron vertalen. Deelnemersaudio voert alleen spraakherkenning en tekstvertaling uit, geen spraaksynthese. Sokuji vangt via de microfoon op wat u zegt en vertaalt het, en vangt via deze functie op wat de andere persoon zegt en vertaalt het. Samen maken ze volledige tweerichtingsvertaling mogelijk."
         },
         "start": {
-          "title": "Stap 7: Vertalen Starten",
+          "title": "Stap 8: Vertalen Starten",
           "content": "Click 'Start' to begin translating! Just speak naturally and hear the translation in real-time."
         },
         "complete": {

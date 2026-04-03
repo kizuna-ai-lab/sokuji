@@ -326,7 +326,7 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
       <div className="provider-selection-area">
         <div
           className={`provider-info ${isProviderExpanded ? 'expanded' : ''} ${isSessionActive ? 'disabled' : ''}`}
-          onClick={() => !isSessionActive && setIsProviderExpanded(!isProviderExpanded)}
+          onClick={() => !isSessionActive && availableProviders.length > 1 && setIsProviderExpanded(!isProviderExpanded)}
         >
           <div className="provider-icon">{React.createElement(providerInfo.icon, { size: 24 })}</div>
           <div className="provider-details">
@@ -334,7 +334,7 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
               <div className="provider-name">{providerInfo.name}</div>
               <div className="provider-description">{providerInfo.description}</div>
             </div>
-            {!isSessionActive && (
+            {!isSessionActive && availableProviders.length > 1 && (
               <div className="provider-toggle">
                 {isProviderExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
               </div>
@@ -353,7 +353,7 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
                   <div
                     key={p.id}
                     className="provider-option"
-                    onClick={() => handleProviderChange(p.id as ProviderType)}
+                    onClick={() => { handleProviderChange(p.id as ProviderType); setIsProviderExpanded(false); }}
                   >
                     <div className="provider-option-icon">
                       {React.createElement(optionInfo.icon, { size: 20 })}

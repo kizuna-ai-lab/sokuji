@@ -465,7 +465,7 @@
           "content": "I-enable ang participant audio capture para isalin ang sinasabi ng ibang nagsasalita sa real-time. Sa browser extension, kinukuha ng feature na ito ang audio ng kasalukuyang tab at maaaring isalin ang boses ng ibang kalahok sa mga web conference tulad ng Google Meet, Teams, Zoom, at iba pa. Sa desktop app, kinukuha ng feature na ito ang lahat ng audio na pine-play ng computer at maaaring isalin ang mga video sa YouTube, Twitch stream, Netflix content, at anumang audio source. Ang participant audio ay nagsasagawa lamang ng speech recognition at text translation, walang speech synthesis. Kinukuha at isinasalin ng Sokuji ang iyong sinasabi sa pamamagitan ng mikropono, at kinukuha at isinasalin ang sinasabi ng kausap sa pamamagitan ng feature na ito. Magkasama, nagbibigay sila ng kumpletong two-way translation."
         },
         "start": {
-          "title": "Hakbang 7: Simulan ang Pagsasalin",
+          "title": "Hakbang 8: Simulan ang Pagsasalin",
           "content": "Click 'Start' to begin translating! Just speak naturally and hear the translation in real-time."
         },
         "complete": {
