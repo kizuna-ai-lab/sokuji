@@ -97,6 +97,7 @@ const ENABLED_SITES = [
   'meet.google.com',
   'teams.live.com',
   'teams.microsoft.com',
+  'teams.cloud.microsoft',
   'app.zoom.us',
   'app.slack.com',
   'app.gather.town',
@@ -114,13 +115,21 @@ const SITE_INFO = {
   },
   'teams.live.com': {
     name: 'Microsoft Teams Free',
-    shortName: 'Teams Free',
-    icon: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAACD0lEQVR4Ae2XA2wlURiF7zq2VuEiztq2rdq27bWNeG3bCNa2VT/V7vy9fzmeaR/Kk5yH0fnm+pJWq7i1+vExq7WXYlZr0tH4G49ZJJyGRVMzMSkaYDs2RVuJ58z+5hjEDuZDmLUksKj5oXzjNYSlJbYv5i6yevZ8sdXTfPzG/0YAaNKVATTp3PCnwDcetwgAvrEYAB5vEoBv6Jsb/mHvge2QmJ+SVYDFLgaAxwlq3rI7a+cuu1s2d+kdaJxvw+yFh8HG8RxCCBuh2hJQDFeAmLNwGwIIu6HaNqAYouBFyw/o/MPfZ4oPRMq9QACgIAEAMVICgLKyynrXiXVMADBqrA+ssjsh2huikrLBxfcLiDfCZ6VLrJ6tla2C8vJKYBiGf1wRgAeBgZIQ5gZAY5ikOwA6ADoAjBmKjQewfmYwdjIyBgAHoutGTcdTZu6hAL6yABGJmZKj4CLr5yOIGo2dGJSKbyq0H0yfs1YWIDDyPyMIt35WucTqqStRKxuXC0cxRMq2zhekSyAh8zB928N0Gv5Xbeunh5bbPh9IGiO/yI+DXbzuMc6ed0BgrzvgF/ZOYomuKY5ZretLTCH6sGRegKLjVus2EVMJADrFpmjPqg2PXa05ceAAdCOm1M6d0CN2jS4hZrWmRGZnVEpLa2siQGdiLsVuzO0ft1q7hgY9ooG51H+pn1CvT9yg6UVak6oAILzSjyQsMWUAAAAASUVORK5CYII='
+    shortName: 'Teams',
+    icon: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAACD0lEQVR4Ae2XA2wlURiF7zq2VuEiztq2rdq27bWNeG3bCNa2VT/V7vy9fzmeaR/Kk5yH0fnm+pJWq7i1+vExq7WXYlZr0tH4G49ZJJyGRVMzMSkaYDs2RVuJ58z+5hjEDuZDmLUksKj5oXzjNYSlJbYv5i6yevZ8sdXTfPzG/0YAaNKVATTp3PCnwDcetwgAvrEYAB5vEoBv6Jsb/mHvge2QmJ+SVYDFLgaAxwlq3rI7a+cuu1s2d+kdaJxvw+yFh8HG8RxCCBuh2hJQDFeAmLNwGwIIu6HaNqAYouBFyw/o/MPfZ4oPRMq9QACgIAEAMVICgLKyynrXiXVMADBqrA+ssjsh2huikrLBxfcLiDfCZ6VLrJ6tla2C8vJKYBiGf1wRgAeBgZIQ5gZAY5ikOwA6ADoAjBmKjQewfmYwdjIyBgAHoutGTcdTZu6hAL6yABGJmZKj4CLr5yOIGo2dGJSKbyq0H0yfs1YWIDDyPyMIt35WucTqqStRKxuXC0cxRMq2zhekSyAh8zB928N0Gv5Xbeunh5bbPh9IGiO/yI+DXbzuMc6ed0BgrzvgF/ZOYomuKY5ZretLTCH6sGRegKLjVus2EVMJADrFpmjPqg2PXa05ceAAdCOm1M6d0CN2jS4hZrWmRGZnVEpLa2siQGdiLsVuzO0ft1q7hgY9ooG51H+pn1CvT9yg6UVak6oAILzSjyQsMWUAAAAASUVORK5CYII=',
+    group: 'teams'
   },
   'teams.microsoft.com': {
     name: 'Microsoft Teams (work or school)',
     shortName: 'Teams',
-    icon: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAACD0lEQVR4Ae2XA2wlURiF7zq2VuEiztq2rdq27bWNeG3bCNa2VT/V7vy9fzmeaR/Kk5yH0fnm+pJWq7i1+vExq7WXYlZr0tH4G49ZJJyGRVMzMSkaYDs2RVuJ58z+5hjEDuZDmLUksKj5oXzjNYSlJbYv5i6yevZ8sdXTfPzG/0YAaNKVATTp3PCnwDcetwgAvrEYAB5vEoBv6Jsb/mHvge2QmJ+SVYDFLgaAxwlq3rI7a+cuu1s2d+kdaJxvw+yFh8HG8RxCCBuh2hJQDFeAmLNwGwIIu6HaNqAYouBFyw/o/MPfZ4oPRMq9QACgIAEAMVICgLKyynrXiXVMADBqrA+ssjsh2huikrLBxfcLiDfCZ6VLrJ6tla2C8vJKYBiGf1wRgAeBgZIQ5gZAY5ikOwA6ADoAjBmKjQewfmYwdjIyBgAHoutGTcdTZu6hAL6yABGJmZKj4CLr5yOIGo2dGJSKbyq0H0yfs1YWIDDyPyMIt35WucTqqStRKxuXC0cxRMq2zhekSyAh8zB928N0Gv5Xbeunh5bbPh9IGiO/yI+DXbzuMc6ed0BgrzvgF/ZOYomuKY5ZretLTCH6sGRegKLjVus2EVMJADrFpmjPqg2PXa05ceAAdCOm1M6d0CN2jS4hZrWmRGZnVEpLa2siQGdiLsVuzO0ft1q7hgY9ooG51H+pn1CvT9yg6UVak6oAILzSjyQsMWUAAAAASUVORK5CYII='
+    icon: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAACD0lEQVR4Ae2XA2wlURiF7zq2VuEiztq2rdq27bWNeG3bCNa2VT/V7vy9fzmeaR/Kk5yH0fnm+pJWq7i1+vExq7WXYlZr0tH4G49ZJJyGRVMzMSkaYDs2RVuJ58z+5hjEDuZDmLUksKj5oXzjNYSlJbYv5i6yevZ8sdXTfPzG/0YAaNKVATTp3PCnwDcetwgAvrEYAB5vEoBv6Jsb/mHvge2QmJ+SVYDFLgaAxwlq3rI7a+cuu1s2d+kdaJxvw+yFh8HG8RxCCBuh2hJQDFeAmLNwGwIIu6HaNqAYouBFyw/o/MPfZ4oPRMq9QACgIAEAMVICgLKyynrXiXVMADBqrA+ssjsh2huikrLBxfcLiDfCZ6VLrJ6tla2C8vJKYBiGf1wRgAeBgZIQ5gZAY5ikOwA6ADoAjBmKjQewfmYwdjIyBgAHoutGTcdTZu6hAL6yABGJmZKj4CLr5yOIGo2dGJSKbyq0H0yfs1YWIDDyPyMIt35WucTqqStRKxuXC0cxRMq2zhekSyAh8zB928N0Gv5Xbeunh5bbPh9IGiO/yI+DXbzuMc6ed0BgrzvgF/ZOYomuKY5ZretLTCH6sGRegKLjVus2EVMJADrFpmjPqg2PXa05ceAAdCOm1M6d0CN2jS4hZrWmRGZnVEpLa2siQGdiLsVuzO0ft1q7hgY9ooG51H+pn1CvT9yg6UVak6oAILzSjyQsMWUAAAAASUVORK5CYII=',
+    group: 'teams'
+  },
+  'teams.cloud.microsoft': {
+    name: 'Microsoft Teams M365',
+    shortName: 'Teams',
+    icon: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAACD0lEQVR4Ae2XA2wlURiF7zq2VuEiztq2rdq27bWNeG3bCNa2VT/V7vy9fzmeaR/Kk5yH0fnm+pJWq7i1+vExq7WXYlZr0tH4G49ZJJyGRVMzMSkaYDs2RVuJ58z+5hjEDuZDmLUksKj5oXzjNYSlJbYv5i6yevZ8sdXTfPzG/0YAaNKVATTp3PCnwDcetwgAvrEYAB5vEoBv6Jsb/mHvge2QmJ+SVYDFLgaAxwlq3rI7a+cuu1s2d+kdaJxvw+yFh8HG8RxCCBuh2hJQDFeAmLNwGwIIu6HaNqAYouBFyw/o/MPfZ4oPRMq9QACgIAEAMVICgLKyynrXiXVMADBqrA+ssjsh2huikrLBxfcLiDfCZ6VLrJ6tla2C8vJKYBiGf1wRgAeBgZIQ5gZAY5ikOwA6ADoAjBmKjQewfmYwdjIyBgAHoutGTcdTZu6hAL6yABGJmZKj4CLr5yOIGo2dGJSKbyq0H0yfs1YWIDDyPyMIt35WucTqqStRKxuXC0cxRMq2zhekSyAh8zB928N0Gv5Xbeunh5bbPh9IGiO/yI+DXbzuMc6ed0BgrzvgF/ZOYomuKY5ZretLTCH6sGRegKLjVus2EVMJADrFpmjPqg2PXa05ceAAdCOm1M6d0CN2jS4hZrWmRGZnVEpLa2siQGdiLsVuzO0ft1q7hgY9ooG51H+pn1CvT9yg6UVak6oAILzSjyQsMWUAAAAASUVORK5CYII=',
+    group: 'teams'
   },
   'app.zoom.us': {
     name: 'Zoom',
@@ -151,6 +160,19 @@ const SITE_INFO = {
     name: 'Discord',
     shortName: 'Discord',
     icon: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABwAAAAcCAMAAABF0y+mAAAASFBMVEVHcExYZPFXZPJXZPFXZPFXZPFXZPFXZPFYZPJYZfJYZPJXZfFWY/JhbfNsd/OSmvbS1fv////x8/6pr/hQXvLl5/2Bi/XAxfpYg8U1AAAADHRSTlMADzmFwOT8YtP/sloPkm6kAAABAklEQVR4AYWTBbLFIAxFcXs4lf3vFEg1X2+9JzITIZco40IqJQVnlGBRbewtoxFmziI59rCPRGhIfn5hiLKDYSkJkemZz98689IB9YlCjPMlxnBgr4ejgTebcqltqJacLFBDCQPHJZWX0gIOjHB4Lusbrgu4ciKQI3IVRALMGGaAkqgZNdQRK4U8foc0MtQw46oDbmC9pBkQomwHlBPOlOsW9lL2sK1XUknETNnKpNOl5slKm1AQfsFaxw2eF+RQBB9HwLq3PedxG3CPMyc7yufDqF6b5Q2+jfoFf5SPaH/WPXhQuCqvn5bNVqEXR1GzkST7e0wwxeyX0fSO/T/Uf65DBzQNHUMopTvLAAAAAElFTkSuQmCC'
+  }
+};
+
+// Grouped sites: multiple domains sharing one card with sub-labels
+const SITE_GROUPS = {
+  'teams': {
+    shortName: 'Teams',
+    icon: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAACD0lEQVR4Ae2XA2wlURiF7zq2VuEiztq2rdq27bWNeG3bCNa2VT/V7vy9fzmeaR/Kk5yH0fnm+pJWq7i1+vExq7WXYlZr0tH4G49ZJJyGRVMzMSkaYDs2RVuJ58z+5hjEDuZDmLUksKj5oXzjNYSlJbYv5i6yevZ8sdXTfPzG/0YAaNKVATTp3PCnwDcetwgAvrEYAB5vEoBv6Jsb/mHvge2QmJ+SVYDFLgaAxwlq3rI7a+cuu1s2d+kdaJxvw+yFh8HG8RxCCBuh2hJQDFeAmLNwGwIIu6HaNqAYouBFyw/o/MPfZ4oPRMq9QACgIAEAMVICgLKyynrXiXVMADBqrA+ssjsh2huikrLBxfcLiDfCZ6VLrJ6tla2C8vJKYBiGf1wRgAeBgZIQ5gZAY5ikOwA6ADoAjBmKjQewfmYwdjIyBgAHoutGTcdTZu6hAL6yABGJmZKj4CLr5yOIGo2dGJSKbyq0H0yfs1YWIDDyPyMIt35WucTqqStRKxuXC0cxRMq2zhekSyAh8zB928N0Gv5Xbeunh5bbPh9IGiO/yI+DXbzuMc6ed0BgrzvgF/ZOYomuKY5ZretLTCH6sGRegKLjVus2EVMJADrFpmjPqg2PXa05ceAAdCOm1M6d0CN2jS4hZrWmRGZnVEpLa2siQGdiLsVuzO0ft1q7hgY9ooG51H+pn1CvT9yg6UVak6oAILzSjyQsMWUAAAAASUVORK5CYII=',
+    sites: [
+      { domain: 'teams.live.com', label: 'Free' },
+      { domain: 'teams.microsoft.com', label: 'Work' },
+      { domain: 'teams.cloud.microsoft', label: 'M365' }
+    ]
   }
 };
 
@@ -360,8 +382,28 @@ function showErrorState() {
 
 // Helper function to generate sites list HTML
 function generateSitesList() {
+  const renderedGroups = new Set();
   return ENABLED_SITES.map(site => {
     const info = SITE_INFO[site];
+    // If this site belongs to a group, render the group card once
+    if (info.group) {
+      if (renderedGroups.has(info.group)) return '';
+      renderedGroups.add(info.group);
+      const group = SITE_GROUPS[info.group];
+      const tooltipText = `Microsoft Teams\n${group.sites.map(s => s.domain).join('\n')}`;
+      const pills = group.sites.map(s =>
+        `<span class="site-group-pill" data-url="${s.domain}" title="${s.domain}">${s.label}</span>`
+      ).join('');
+      return `
+        <li class="site-item site-item-grouped" title="${tooltipText}">
+          <img src="${group.icon}" alt="${group.shortName}" class="site-icon" onerror="this.style.display='none'">
+          <div class="site-info">
+            <div class="site-name">${group.shortName}</div>
+            <div class="site-group-pills">${pills}</div>
+          </div>
+        </li>
+      `;
+    }
     const tooltipText = `${info.name}\n${site}`;
     return `
       <li class="site-item" title="${tooltipText}">
@@ -461,23 +503,41 @@ function setupEventListeners(tabId, isSupported, currentHostname) {
 
 // Helper function to setup site item click handlers
 function setupSiteItemClickHandlers(isSupported, currentHostname) {
-  const siteItems = document.querySelectorAll('.site-item');
+  // Handle grouped site pill clicks
+  const pills = document.querySelectorAll('.site-group-pill');
+  pills.forEach(pill => {
+    const newPill = pill.cloneNode(true);
+    pill.parentNode.replaceChild(newPill, pill);
+    newPill.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const siteUrl = newPill.dataset.url;
+      trackEvent('extension_site_navigated', {
+        from_site: currentHostname || 'unknown',
+        to_site: siteUrl,
+        navigation_source: 'popup'
+      });
+      chrome.tabs.create({ url: `https://${siteUrl}` });
+      window.close();
+    });
+  });
+
+  // Handle regular (non-grouped) site item clicks
+  const siteItems = document.querySelectorAll('.site-item:not(.site-item-grouped)');
   siteItems.forEach(item => {
-    // Remove existing event listeners by cloning the element
     const newItem = item.cloneNode(true);
     item.parentNode.replaceChild(newItem, item);
-    
+
     newItem.addEventListener('click', () => {
       const siteUrl = newItem.querySelector('.site-url').textContent;
       const siteName = newItem.querySelector('.site-name').textContent;
-      
+
       // Track site navigation
       trackEvent('extension_site_navigated', {
         from_site: currentHostname || 'unknown',
         to_site: siteUrl,
         navigation_source: 'popup'
       });
-      
+
       chrome.tabs.create({ url: `https://${siteUrl}` });
       window.close();
     });

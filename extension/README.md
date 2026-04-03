@@ -13,7 +13,7 @@ AI-powered instant speech translation for all video meetings. Break language bar
 ## Supported Platforms
 
 - **Google Meet** (meet.google.com)
-- **Microsoft Teams** (teams.microsoft.com)
+- **Microsoft Teams** (teams.microsoft.com, teams.cloud.microsoft)
 - **Microsoft Teams Live** (teams.live.com)
 - **Zoom** (app.zoom.us)
 - **Gather Town** (app.gather.town, app.v2.gather.town)
