@@ -713,23 +713,23 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
         <div className="setting-item">
           <div className="turn-detection-options">
             <button
-              className={`option-button ${geminiSettings.vadEnabled ? 'active' : ''}`}
-              onClick={() => updateGeminiSettings({ vadEnabled: true })}
+              className={`option-button ${geminiSettings.turnDetectionMode === 'Auto' ? 'active' : ''}`}
+              onClick={() => updateGeminiSettings({ turnDetectionMode: 'Auto' })}
               disabled={isSessionActive}
             >
-              {t('settings.geminiVadEnabled')}
+              {t('settings.auto')}
             </button>
             <button
-              className={`option-button ${!geminiSettings.vadEnabled ? 'active' : ''}`}
-              onClick={() => updateGeminiSettings({ vadEnabled: false })}
+              className={`option-button ${geminiSettings.turnDetectionMode === 'Push-to-Talk' ? 'active' : ''}`}
+              onClick={() => updateGeminiSettings({ turnDetectionMode: 'Push-to-Talk' })}
               disabled={isSessionActive}
             >
-              {t('settings.geminiVadDisabled')}
+              {t('settings.pushToTalk')}
             </button>
           </div>
         </div>
 
-        {geminiSettings.vadEnabled && (
+        {geminiSettings.turnDetectionMode === 'Auto' && (
           <>
             <div className="setting-item">
               <div className="setting-label">
@@ -806,7 +806,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
               </div>
               <input
                 type="range"
-                min="100"
+                min="50"
                 max="3000"
                 step="50"
                 value={geminiSettings.vadSilenceDurationMs}

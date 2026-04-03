@@ -74,7 +74,7 @@ export interface GeminiSettings {
   targetLanguage: string;
   temperature: number;
   maxTokens: number | 'inf';
-  vadEnabled: boolean;
+  turnDetectionMode: 'Auto' | 'Push-to-Talk';
   vadStartSensitivity: 'high' | 'low';
   vadEndSensitivity: 'high' | 'low';
   vadSilenceDurationMs: number;
@@ -237,7 +237,7 @@ const defaultGeminiSettings: GeminiSettings = {
   targetLanguage: 'ja-JP',
   temperature: 0.8,
   maxTokens: 'inf',
-  vadEnabled: true,
+  turnDetectionMode: 'Auto',
   vadStartSensitivity: 'low',
   vadEndSensitivity: 'high',
   vadSilenceDurationMs: 500,
@@ -422,7 +422,7 @@ function createGeminiSessionConfig(
     instructions: systemInstructions,
     temperature: settings.temperature,
     maxTokens: settings.maxTokens,
-    vadEnabled: settings.vadEnabled,
+    turnDetectionMode: settings.turnDetectionMode,
     vadStartSensitivity: settings.vadStartSensitivity,
     vadEndSensitivity: settings.vadEndSensitivity,
     vadSilenceDurationMs: settings.vadSilenceDurationMs,

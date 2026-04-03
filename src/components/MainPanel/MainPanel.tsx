@@ -295,16 +295,19 @@ const MainPanel: React.FC<MainPanelProps> = () => {
    */
   const createParticipantSessionConfig = useCallback((): SessionConfig | null => {
     const swappedSystemInstructions = getProcessedSystemInstructions(true);
+    const baseConfig = createSessionConfig(swappedSystemInstructions);
     const config = {
-      ...createSessionConfig(swappedSystemInstructions),
+      ...baseConfig,
       textOnly: true,
-      // Override turn detection to use semantic VAD for participant audio
+      // Override turn detection to use semantic VAD for participant audio (OpenAI-compatible)
       turnDetection: {
         type: 'semantic_vad' as const,
         createResponse: true,
         interruptResponse: false,
         eagerness: 'high',
-      }
+      },
+      // Force Auto mode for Gemini participant (no PTT for participant)
+      ...(baseConfig.provider === 'gemini' ? { turnDetectionMode: 'Auto' as const } : {}),
     };
 
     // Volcengine providers carry language direction in explicit config fields
@@ -1012,8 +1015,10 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         setCanPushToTalk(volcengineAST2Settings.turnDetectionMode === 'Push-to-Talk');
       } else if (provider === Provider.LOCAL_INFERENCE) {
         setCanPushToTalk(localInferenceSettings.turnDetectionMode === 'Push-to-Talk');
+      } else if (provider === Provider.GEMINI) {
+        setCanPushToTalk(geminiSettings.turnDetectionMode === 'Push-to-Talk');
       } else {
-        setCanPushToTalk(false); // Not supported by Gemini, PalabraAI, and Volcengine ST
+        setCanPushToTalk(false); // Not supported by PalabraAI and Volcengine ST
       }
 
       // Connect to microphone only if input device is turned on
@@ -1136,6 +1141,8 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         turnDetectionDisabled = volcengineAST2Settings.turnDetectionMode === 'Push-to-Talk';
       } else if (provider === Provider.LOCAL_INFERENCE) {
         turnDetectionDisabled = localInferenceSettings.turnDetectionMode === 'Push-to-Talk';
+      } else if (provider === Provider.GEMINI) {
+        turnDetectionDisabled = geminiSettings.turnDetectionMode === 'Push-to-Talk';
       }
 
       // Check if provider uses native audio capture (OpenAI WebRTC or PalabraAI/LiveKit)
@@ -2040,6 +2047,8 @@ const MainPanel: React.FC<MainPanelProps> = () => {
             turnDetectionDisabled = volcengineAST2Settings.turnDetectionMode === 'Push-to-Talk';
           } else if (provider === Provider.LOCAL_INFERENCE) {
             turnDetectionDisabled = localInferenceSettings.turnDetectionMode === 'Push-to-Talk';
+          } else if (provider === Provider.GEMINI) {
+            turnDetectionDisabled = geminiSettings.turnDetectionMode === 'Push-to-Talk';
           }
           if (!turnDetectionDisabled) {
             console.info('[Sokuji] [MainPanel] Input device turned on - starting recording in automatic mode');
@@ -2066,7 +2075,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     };
 
     updateRecordingState();
-  }, [isInputDeviceOn, isSessionActive, provider, openAISettings.turnDetectionMode, openAICompatibleSettings.turnDetectionMode, kizunaAISettings.turnDetectionMode, volcengineAST2Settings.turnDetectionMode, localInferenceSettings.turnDetectionMode, selectedInputDevice?.deviceId]);
+  }, [isInputDeviceOn, isSessionActive, provider, openAISettings.turnDetectionMode, openAICompatibleSettings.turnDetectionMode, kizunaAISettings.turnDetectionMode, volcengineAST2Settings.turnDetectionMode, localInferenceSettings.turnDetectionMode, geminiSettings.turnDetectionMode, selectedInputDevice?.deviceId]);
 
   /**
    * Watch for changes to selectedMonitorDevice or isMonitorDeviceOn 
