@@ -19,7 +19,7 @@ import { ModelManager } from '../ModelManager';
 
 export interface AsrResult {
   text: string;
-  startSample: number;
+  startSample?: number;
   durationMs: number;
   recognitionTimeMs: number;
 }
@@ -73,6 +73,11 @@ export class AsrEngine {
     const fileUrls = await manager.getModelBlobUrls(modelId);
 
     const workerType = model.asrWorkerType || 'sherpa-onnx';
+
+    // Cohere Transcribe requires an explicit source language
+    if (workerType === 'cohere-transcribe-webgpu' && !language) {
+      throw new Error('Cohere Transcribe requires a source language');
+    }
 
     return new Promise((resolve, reject) => {
       // Create worker based on type
@@ -128,7 +133,7 @@ export class AsrEngine {
           case 'result':
             this.onResult?.({
               text: msg.text,
-              startSample: 'startSample' in msg ? msg.startSample : 0,
+              startSample: 'startSample' in msg ? msg.startSample : undefined,
               durationMs: msg.durationMs,
               recognitionTimeMs: msg.recognitionTimeMs,
             });
@@ -157,18 +162,7 @@ export class AsrEngine {
       };
 
       // Send init message — format depends on worker type
-      if (workerType === 'whisper-webgpu') {
-        this.worker.postMessage({
-          type: 'init',
-          fileUrls,
-          hfModelId: model.hfModelId,
-          language,
-          vadConfig,
-          dtype,
-          ortWasmBaseUrl: new URL('./wasm/ort/', window.location.href).href,
-          vadModelUrl: new URL('./wasm/vad/silero_vad_v5.onnx', window.location.href).href,
-        });
-      } else if (workerType === 'cohere-transcribe-webgpu') {
+      if (workerType === 'whisper-webgpu' || workerType === 'cohere-transcribe-webgpu') {
         this.worker.postMessage({
           type: 'init',
           fileUrls,
