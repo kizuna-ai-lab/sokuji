@@ -11,7 +11,7 @@
  * when an endpoint is detected.
  */
 
-import type { StreamingAsrWorkerOutMessage } from '../types';
+import type { StreamingAsrWorkerOutMessage, VadWebConfig } from '../types';
 import {
   getManifestEntry,
   getManifestByType,
@@ -43,7 +43,7 @@ export class StreamingAsrEngine {
   onStatus: StatusCallback | null = null;
   onError: ErrorCallback | null = null;
 
-  async init(modelId: string, options?: { language?: string }): Promise<{ loadTimeMs: number }> {
+  async init(modelId: string, options?: { language?: string; vadConfig?: VadWebConfig }): Promise<{ loadTimeMs: number }> {
     const model = getManifestEntry(modelId);
     if (!model || model.type !== 'asr-stream') {
       const available = getManifestByType('asr-stream').map(m => m.id).join(', ');
@@ -151,6 +151,7 @@ export class StreamingAsrEngine {
             fileUrls,
             hfModelId: model.hfModelId,
             language: options?.language,
+            vadConfig: options?.vadConfig,
             dtype,
             vadModelUrl: new URL('./wasm/vad/silero_vad_v5.onnx', window.location.href).href,
             ortWasmBaseUrl: new URL('./wasm/ort/', window.location.href).href,

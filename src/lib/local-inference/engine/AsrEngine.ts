@@ -8,7 +8,7 @@
  * - cohere-transcribe-webgpu (module Worker): VAD + Cohere Transcribe via Transformers.js/WebGPU
  */
 
-import type { AsrWorkerOutMessage, StreamingAsrWorkerOutMessage } from '../types';
+import type { AsrWorkerOutMessage, StreamingAsrWorkerOutMessage, VadWebConfig } from '../types';
 import {
   getManifestEntry,
   getManifestByType,
@@ -47,7 +47,7 @@ export class AsrEngine {
    * @param modelId - Model identifier (e.g. 'sensevoice-int8', 'moonshine-tiny-en-quant')
    * @returns Promise that resolves with load time when ready
    */
-  async init(modelId: string, vadConfig?: { threshold?: number; minSilenceDuration?: number; minSpeechDuration?: number }, language?: string, taskConfig?: { task: 'transcribe' | 'translate'; targetLanguage?: string }): Promise<{ loadTimeMs: number }> {
+  async init(modelId: string, vadConfig?: VadWebConfig, language?: string, taskConfig?: { task: 'transcribe' | 'translate'; targetLanguage?: string }): Promise<{ loadTimeMs: number }> {
     const model = getManifestEntry(modelId);
     if (!model || model.type !== 'asr') {
       const available = getManifestByType('asr').map(m => m.id).join(', ');

@@ -192,17 +192,18 @@ export class LocalInferenceClient implements IClient {
       // --- Fire all init() calls in parallel ---
 
       const asrPromise = this.trackInit('asr', config.asrModelId, () => {
+        const vadConfig = {
+          threshold: config.vadThreshold,
+          minSilenceDuration: config.vadMinSilenceDuration,
+          minSpeechDuration: config.vadMinSpeechDuration,
+        };
         if (asrModel?.type === 'asr-stream') {
-          return (this.asrEngine as StreamingAsrEngine).init(config.asrModelId, { language: config.sourceLanguage });
+          return (this.asrEngine as StreamingAsrEngine).init(config.asrModelId, { language: config.sourceLanguage, vadConfig });
         } else {
           const taskConfig = isAstMode
             ? { task: 'translate' as const, targetLanguage: config.targetLanguage }
             : undefined;
-          return (this.asrEngine as AsrEngine).init(config.asrModelId, {
-            threshold: config.vadThreshold,
-            minSilenceDuration: config.vadMinSilenceDuration,
-            minSpeechDuration: config.vadMinSpeechDuration,
-          }, config.sourceLanguage, taskConfig);
+          return (this.asrEngine as AsrEngine).init(config.asrModelId, vadConfig, config.sourceLanguage, taskConfig);
         }
       });
 
