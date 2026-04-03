@@ -1,5 +1,5 @@
-import { ActivityHandling, GoogleGenAI, LiveConnectConfig, LiveServerContent, LiveServerMessage, Modality, Session } from '@google/genai';
-import { IClient, ConversationItem, SessionConfig, ClientEventHandlers, ApiKeyValidationResult, FilteredModel, IClientStatic, ResponseConfig } from '../interfaces/IClient';
+import { ActivityHandling, EndSensitivity, GoogleGenAI, LiveConnectConfig, LiveServerContent, LiveServerMessage, Modality, Session, StartSensitivity } from '@google/genai';
+import { IClient, ConversationItem, SessionConfig, ClientEventHandlers, ApiKeyValidationResult, FilteredModel, IClientStatic, ResponseConfig, isGeminiSessionConfig } from '../interfaces/IClient';
 import i18n from '../../locales';
 import { Provider, ProviderType } from '../../types/Provider';
 
@@ -297,6 +297,27 @@ export class GeminiClient implements IClient {
     // We use inputAudioTranscription/outputAudioTranscription for text and ignore audio delta when textOnly
     const responseModalities = [Modality.AUDIO];
 
+    // Build realtimeInputConfig with VAD settings
+    const realtimeInputConfig: LiveConnectConfig['realtimeInputConfig'] = {
+      activityHandling: ActivityHandling.NO_INTERRUPTION,
+    };
+
+    if (isGeminiSessionConfig(config)) {
+      realtimeInputConfig.automaticActivityDetection = config.vadEnabled ? {
+        disabled: false,
+        startOfSpeechSensitivity: config.vadStartSensitivity === 'high'
+          ? StartSensitivity.START_SENSITIVITY_HIGH
+          : StartSensitivity.START_SENSITIVITY_LOW,
+        endOfSpeechSensitivity: config.vadEndSensitivity === 'high'
+          ? EndSensitivity.END_SENSITIVITY_HIGH
+          : EndSensitivity.END_SENSITIVITY_LOW,
+        silenceDurationMs: config.vadSilenceDurationMs,
+        prefixPaddingMs: config.vadPrefixPaddingMs,
+      } : {
+        disabled: true,
+      };
+    }
+
     // Convert SessionConfig to LiveConnectConfig
     const liveConfig: LiveConnectConfig = {
       responseModalities,
@@ -314,9 +335,7 @@ export class GeminiClient implements IClient {
       } : undefined,
       inputAudioTranscription: {},
       outputAudioTranscription: {},  // Always enable for transcript in both normal and textOnly modes
-      realtimeInputConfig: {
-        activityHandling: ActivityHandling.NO_INTERRUPTION,
-      }
+      realtimeInputConfig,
     };
 
     try {
