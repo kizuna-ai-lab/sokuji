@@ -5,9 +5,10 @@
  * Supports multiple worker backends:
  * - sherpa-onnx (classic Worker): VAD + OfflineRecognizer via Emscripten/WASM
  * - whisper-webgpu (module Worker): VAD + Whisper via Transformers.js/WebGPU
+ * - cohere-transcribe-webgpu (module Worker): VAD + Cohere Transcribe via Transformers.js/WebGPU
  */
 
-import type { AsrWorkerOutMessage } from '../types';
+import type { AsrWorkerOutMessage, StreamingAsrWorkerOutMessage, VadWebConfig } from '../types';
 import {
   getManifestEntry,
   getManifestByType,
@@ -18,12 +19,13 @@ import { ModelManager } from '../ModelManager';
 
 export interface AsrResult {
   text: string;
-  startSample: number;
+  startSample?: number;
   durationMs: number;
   recognitionTimeMs: number;
 }
 
 type ResultCallback = (result: AsrResult) => void;
+type PartialResultCallback = (text: string) => void;
 type StatusCallback = (message: string) => void;
 type ErrorCallback = (error: string) => void;
 
@@ -33,6 +35,7 @@ export class AsrEngine {
   private currentModel: ModelManifestEntry | null = null;
 
   onResult: ResultCallback | null = null;
+  onPartialResult: PartialResultCallback | null = null;
   onSpeechStart: (() => void) | null = null;
   onStatus: StatusCallback | null = null;
   onError: ErrorCallback | null = null;
@@ -44,7 +47,7 @@ export class AsrEngine {
    * @param modelId - Model identifier (e.g. 'sensevoice-int8', 'moonshine-tiny-en-quant')
    * @returns Promise that resolves with load time when ready
    */
-  async init(modelId: string, vadConfig?: { threshold?: number; minSilenceDuration?: number; minSpeechDuration?: number }, language?: string, taskConfig?: { task: 'transcribe' | 'translate'; targetLanguage?: string }): Promise<{ loadTimeMs: number }> {
+  async init(modelId: string, vadConfig?: VadWebConfig, language?: string, taskConfig?: { task: 'transcribe' | 'translate'; targetLanguage?: string }): Promise<{ loadTimeMs: number }> {
     const model = getManifestEntry(modelId);
     if (!model || model.type !== 'asr') {
       const available = getManifestByType('asr').map(m => m.id).join(', ');
@@ -71,12 +74,23 @@ export class AsrEngine {
 
     const workerType = model.asrWorkerType || 'sherpa-onnx';
 
+    // Cohere Transcribe requires an explicit source language
+    if (workerType === 'cohere-transcribe-webgpu' && !language) {
+      throw new Error('Cohere Transcribe requires a source language');
+    }
+
     return new Promise((resolve, reject) => {
       // Create worker based on type
       switch (workerType) {
         case 'whisper-webgpu':
           this.worker = new Worker(
             new URL('../workers/whisper-webgpu.worker.ts', import.meta.url),
+            { type: 'module' },
+          );
+          break;
+        case 'cohere-transcribe-webgpu':
+          this.worker = new Worker(
+            new URL('../workers/cohere-transcribe-webgpu.worker.ts', import.meta.url),
             { type: 'module' },
           );
           break;
@@ -91,7 +105,9 @@ export class AsrEngine {
           break;
       }
 
-      this.worker.onmessage = (event: MessageEvent<AsrWorkerOutMessage>) => {
+      // Cohere worker emits StreamingAsrWorkerOutMessage (includes 'partial'),
+      // other workers emit AsrWorkerOutMessage. Handle the union.
+      this.worker.onmessage = (event: MessageEvent<AsrWorkerOutMessage | StreamingAsrWorkerOutMessage>) => {
         const msg = event.data;
         switch (msg.type) {
           case 'ready':
@@ -110,10 +126,14 @@ export class AsrEngine {
             this.onSpeechStart?.();
             break;
 
+          case 'partial':
+            this.onPartialResult?.(msg.text);
+            break;
+
           case 'result':
             this.onResult?.({
               text: msg.text,
-              startSample: msg.startSample,
+              startSample: 'startSample' in msg ? msg.startSample : undefined,
               durationMs: msg.durationMs,
               recognitionTimeMs: msg.recognitionTimeMs,
             });
@@ -142,7 +162,7 @@ export class AsrEngine {
       };
 
       // Send init message — format depends on worker type
-      if (workerType === 'whisper-webgpu') {
+      if (workerType === 'whisper-webgpu' || workerType === 'cohere-transcribe-webgpu') {
         this.worker.postMessage({
           type: 'init',
           fileUrls,

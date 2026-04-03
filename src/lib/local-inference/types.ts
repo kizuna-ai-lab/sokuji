@@ -2,6 +2,42 @@
  * Shared type definitions for local inference workers and engines.
  */
 
+// ─── VAD Configuration ──────────────────────────────────────────────────────
+
+/**
+ * VAD config for vad-web FrameProcessor (Silero VAD v5 + @ricky0123/vad-web).
+ * Used by whisper, cohere, granite, and voxtral workers.
+ * All durations in seconds. All fields optional — workers use vad-web defaults.
+ *
+ * NOTE: sherpa-onnx workers use a different VAD engine (C++ Silero via Emscripten)
+ * with different semantics (single threshold with internal hysteresis). They use
+ * SherpaOnnxVadConfig instead.
+ */
+export interface VadWebConfig {
+  /** Positive speech threshold (default 0.3) */
+  threshold?: number;
+  /** Negative threshold to confirm silence — hysteresis gap prevents oscillation (default 0.25) */
+  negativeThreshold?: number;
+  /** Min silence duration in seconds before ending speech segment (default 1.4) */
+  minSilenceDuration?: number;
+  /** Min speech duration in seconds to emit a segment (default 0.4) */
+  minSpeechDuration?: number;
+  /** Pre-speech pad in seconds — audio context prepended before speech start (default 0.8) */
+  preSpeechPadDuration?: number;
+  /** Max speech segment duration in seconds before forced split (default 20) */
+  maxSpeechDuration?: number;
+}
+
+/**
+ * VAD config for sherpa-onnx C++ engine. Different semantics from vad-web:
+ * single threshold with internal hysteresis (threshold - 0.15).
+ */
+export interface SherpaOnnxVadConfig {
+  threshold?: number;
+  minSilenceDuration?: number;
+  minSpeechDuration?: number;
+}
+
 // ─── ASR Worker Messages (Main → Worker) ─────────────────────────────────────
 
 export interface AsrInitMessage {
@@ -11,11 +47,7 @@ export interface AsrInitMessage {
   /** ASR engine type — determines which config builder the worker uses */
   asrEngine: string;
   /** Optional VAD configuration to override defaults */
-  vadConfig?: {
-    threshold?: number;
-    minSilenceDuration?: number;
-    minSpeechDuration?: number;
-  };
+  vadConfig?: SherpaOnnxVadConfig;
   /** Base URL for bundled ASR runtime (JS/WASM shared across all models) */
   runtimeBaseUrl: string;
   /** Emscripten loadPackage metadata (file offsets/sizes from package-metadata.json) */
@@ -43,20 +75,7 @@ export interface WhisperAsrInitMessage {
   /** Source language for Whisper (e.g. 'ja', 'en') or undefined for auto-detect */
   language?: string;
   /** VAD configuration overrides (durations in seconds). Defaults match @ricky0123/vad-web. */
-  vadConfig?: {
-    /** Positive speech threshold (default 0.3, matching vad-web) */
-    threshold?: number;
-    /** Negative threshold to confirm silence — hysteresis gap prevents oscillation (default 0.25) */
-    negativeThreshold?: number;
-    /** Redemption / min silence duration in seconds before ending speech (default 1.4) */
-    minSilenceDuration?: number;
-    /** Min speech duration in seconds to emit a segment (default 0.4) */
-    minSpeechDuration?: number;
-    /** Max speech segment duration in seconds before forced flush (default 20) */
-    maxSpeechDuration?: number;
-    /** Pre-speech pad duration in seconds — audio context prepended before speech start (default 0.8) */
-    preSpeechPadDuration?: number;
-  };
+  vadConfig?: VadWebConfig;
   /** ONNX dtype config for WebGPU models */
   dtype?: string | Record<string, string>;
   /** Resolved absolute URL for bundled ORT WASM files */
@@ -133,6 +152,8 @@ export interface VoxtralAsrInitMessage {
   hfModelId: string;
   /** Source language hint (optional, for future use) */
   language?: string;
+  /** VAD configuration overrides */
+  vadConfig?: VadWebConfig;
   /** ONNX dtype config — 'q4f16' or 'q4', or per-component mapping */
   dtype: string | Record<string, string>;
   /** Resolved absolute URL for bundled VAD model */
@@ -151,6 +172,8 @@ export interface CohereTranscribeAsrInitMessage {
   language?: string;
   /** ONNX dtype config — 'q4f16' or 'q4', or per-component mapping */
   dtype: string | Record<string, string>;
+  /** VAD configuration overrides from user settings */
+  vadConfig?: VadWebConfig;
   /** Resolved absolute URL for bundled VAD model */
   vadModelUrl: string;
   /** Resolved absolute URL for bundled ORT WASM files */
@@ -166,11 +189,7 @@ export interface GraniteSpeechInitMessage {
   /** Source language hint (e.g. 'ja', 'en') */
   language?: string;
   /** Optional VAD configuration to override defaults */
-  vadConfig?: {
-    threshold?: number;
-    minSilenceDuration?: number;
-    minSpeechDuration?: number;
-  };
+  vadConfig?: VadWebConfig;
   /** Task: 'transcribe' for ASR, 'translate' for AST (speech translation) */
   task: 'transcribe' | 'translate';
   /** Target language for AST (only when task === 'translate') */

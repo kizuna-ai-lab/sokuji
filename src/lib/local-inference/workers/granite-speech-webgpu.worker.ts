@@ -118,18 +118,23 @@ async function initVad(vadConfig?: GraniteSpeechInitMessage['vadConfig'], vadMod
   };
 
   const positiveSpeechThreshold = vadConfig?.threshold ?? 0.3;
+  const negativeSpeechThreshold = vadConfig?.negativeThreshold ?? 0.25;
   const redemptionMs = (vadConfig?.minSilenceDuration ?? 1.4) * 1000;
   const minSpeechMs = (vadConfig?.minSpeechDuration ?? 0.4) * 1000;
+  const preSpeechPadMs = (vadConfig?.preSpeechPadDuration ?? 0.8) * 1000;
+  const maxSpeechDurationMs = (vadConfig?.maxSpeechDuration ?? 20) * 1000;
+
+  maxSpeechFrames = Math.ceil(maxSpeechDurationMs / VAD_FRAME_MS);
 
   frameProcessor = new FrameProcessor(
     vadInfer,
     vadResetStates,
     {
       positiveSpeechThreshold,
-      negativeSpeechThreshold: 0.25,
+      negativeSpeechThreshold,
       redemptionMs,
       minSpeechMs,
-      preSpeechPadMs: 800,
+      preSpeechPadMs,
       submitUserSpeechOnPause: false,
     },
     VAD_FRAME_MS,
