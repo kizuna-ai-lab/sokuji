@@ -1257,7 +1257,8 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
           </div>
         </div>
 
-        {localInferenceSettings.turnDetectionMode === 'Auto' && getManifestEntry(localInferenceSettings.asrModel)?.type !== 'asr-stream' && (
+        {/* Show VAD settings for all models except sherpa-onnx streaming (which uses endpoint detection, not VAD) */}
+        {localInferenceSettings.turnDetectionMode === 'Auto' && !(getManifestEntry(localInferenceSettings.asrModel)?.type === 'asr-stream' && !getManifestEntry(localInferenceSettings.asrModel)?.asrWorkerType) && (
         <div className="settings-section">
           <h2>
             {t('settings.vadSettings', 'VAD Settings')}
