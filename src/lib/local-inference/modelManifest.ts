@@ -833,7 +833,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
   // Batch ASR with VAD chunking + TextStreamer for token-level partial results.
   {
     id: 'cohere-transcribe-webgpu',
-    type: 'asr-stream',
+    type: 'asr',
     name: 'Cohere Transcribe (WebGPU)',
     languages: ['en', 'de', 'fr', 'it', 'es', 'pt', 'el', 'nl', 'pl', 'ar', 'vi', 'zh', 'ja', 'ko'],
     hfModelId: 'onnx-community/cohere-transcribe-03-2026-ONNX',

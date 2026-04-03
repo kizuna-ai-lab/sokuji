@@ -91,23 +91,33 @@ function vadResetStates() {
   vadSession.state = new Tensor('float32', new Float32Array(2 * 128), [2, 1, 128]);
 }
 
-async function initVad(vadModelUrl: string): Promise<void> {
-  const session = await InferenceSession.create(vadModelUrl, {
+async function initVad(vadConfig?: CohereTranscribeAsrInitMessage['vadConfig'], vadModelUrl?: string): Promise<void> {
+  const session = await InferenceSession.create(vadModelUrl || './wasm/vad/silero_vad_v5.onnx', {
     executionProviders: ['wasm'],
   });
   vadSession = {
     session,
     state: new Tensor('float32', new Float32Array(2 * 128), [2, 1, 128]),
   };
+
+  const positiveSpeechThreshold = vadConfig?.threshold ?? 0.3;
+  const negativeSpeechThreshold = vadConfig?.negativeThreshold ?? 0.25;
+  const redemptionMs = (vadConfig?.minSilenceDuration ?? 1.4) * 1000;
+  const minSpeechMs = (vadConfig?.minSpeechDuration ?? 0.4) * 1000;
+  const preSpeechPadMs = (vadConfig?.preSpeechPadDuration ?? 0.8) * 1000;
+  const maxSpeechDurationMs = (vadConfig?.maxSpeechDuration ?? 20) * 1000;
+
+  maxSpeechFrames = Math.ceil(maxSpeechDurationMs / VAD_FRAME_MS);
+
   frameProcessor = new FrameProcessor(
     vadInfer,
     vadResetStates,
     {
-      positiveSpeechThreshold: 0.3,
-      negativeSpeechThreshold: 0.25,
-      redemptionMs: 1400,
-      minSpeechMs: 400,
-      preSpeechPadMs: 800,
+      positiveSpeechThreshold,
+      negativeSpeechThreshold,
+      redemptionMs,
+      minSpeechMs,
+      preSpeechPadMs,
       submitUserSpeechOnPause: false,
     },
     VAD_FRAME_MS,
@@ -306,7 +316,7 @@ async function handleInit(msg: CohereTranscribeAsrInitMessage): Promise<void> {
 
     // 1. Init VAD
     post({ type: 'status', message: 'Loading VAD model...' });
-    await initVad(msg.vadModelUrl);
+    await initVad(msg.vadConfig, msg.vadModelUrl);
 
     // 2. Configure Transformers.js for IndexedDB blob URL cache
     env.allowRemoteModels = false;
