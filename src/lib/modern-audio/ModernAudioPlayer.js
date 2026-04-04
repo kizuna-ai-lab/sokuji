@@ -59,7 +59,7 @@ export class ModernAudioPlayer {
     this._sab = null;
     this._indices = null;  // Int32Array view [writeIndex, readIndex, capacity, flags]
     this._data = null;     // Float32Array view (audio samples)
-    this._ringCapacity = Math.floor(sampleRate * 30); // 30 seconds (~2.88MB)
+    this._ringCapacity = Math.floor(sampleRate * 2); // 2 seconds
 
     // Main-thread overflow queue — holds data that doesn't fit in ring buffer
     this._pendingWrites = []; // Array of Float32Array chunks
@@ -138,6 +138,10 @@ export class ModernAudioPlayer {
       console.warn('[ModernAudioPlayer] Initial play() blocked (will retry on user gesture):', e.message);
     });
 
+    if (this.context.sampleRate !== this.sampleRate) {
+      console.error('[ModernAudioPlayer] SAMPLE RATE MISMATCH! context:', this.context.sampleRate, 'expected:', this.sampleRate);
+    }
+
     return true;
   }
 
@@ -186,10 +190,6 @@ export class ModernAudioPlayer {
     return this._ringCapacity - used;
   }
 
-  /**
-   * Write Float32 samples directly into the SharedArrayBuffer ring buffer.
-   * Returns the number of samples actually written.
-   */
   _writeToSAB(float32, offset, count) {
     const writeIdx = Atomics.load(this._indices, 0);
     const cap = this._ringCapacity;
@@ -198,18 +198,13 @@ export class ModernAudioPlayer {
       this._data[(writeIdx + i) % cap] = float32[offset + i];
     }
 
-    // Update writeIndex — worklet will see the new data on next process() call
     Atomics.store(this._indices, 0, writeIdx + count);
     return count;
   }
 
-  /**
-   * Write audio to the ring buffer. If it doesn't all fit, queue the overflow.
-   */
   _writeToRingBuffer(int16Buffer, volume, metadata) {
     if (!this._workletReady || !this._indices) return;
 
-    // Track item and buffered duration
     if (metadata && metadata.itemId) {
       if (this.currentPlayingItemId !== metadata.itemId) {
         if (this.currentPlayingItemId !== null) {
@@ -225,14 +220,21 @@ export class ModernAudioPlayer {
       this.totalBufferedDuration.set(metadata.itemId, prev + bufferDuration);
     }
 
-    // Convert Int16 → Float32 with volume
     const float32 = new Float32Array(int16Buffer.length);
     const scale = (volume !== 1.0) ? volume / 32768 : 1 / 32768;
     for (let i = 0; i < int16Buffer.length; i++) {
       float32[i] = int16Buffer[i] * scale;
     }
 
-    // Write as much as fits into ring buffer
+    // CRITICAL: if pending queue is non-empty, ALL new data must go to queue
+    // to preserve FIFO ordering. Direct SAB writes would skip ahead of queued data.
+    if (this._pendingWrites.length > 0) {
+      this._pendingWrites.push(float32);
+      this._scheduleDrain();
+      return;
+    }
+
+    // Queue is empty — safe to write directly to SAB
     const freeSpace = this._getFreeSpace();
     const immediate = Math.min(float32.length, freeSpace);
 
@@ -240,16 +242,12 @@ export class ModernAudioPlayer {
       this._writeToSAB(float32, 0, immediate);
     }
 
-    // Queue remainder for later delivery
     if (immediate < float32.length) {
       this._pendingWrites.push(float32.subarray(immediate));
       this._scheduleDrain();
     }
   }
 
-  /**
-   * Drain pending writes into the ring buffer as space becomes available.
-   */
   _drainPendingWrites() {
     if (this._pendingWrites.length === 0) {
       this._cancelDrain();
@@ -266,16 +264,13 @@ export class ModernAudioPlayer {
       freeSpace -= toWrite;
 
       if (toWrite < chunk.length) {
-        // Partial write — replace head with remainder
         this._pendingWrites[0] = chunk.subarray(toWrite);
         break;
       } else {
-        // Fully written — remove from queue
         this._pendingWrites.shift();
       }
     }
 
-    // If still have pending data, keep draining
     if (this._pendingWrites.length > 0) {
       this._scheduleDrain();
     } else {
@@ -285,7 +280,6 @@ export class ModernAudioPlayer {
 
   _scheduleDrain() {
     if (this._drainTimer !== null) return;
-    // Drain every 50ms — matches worklet position report interval
     this._drainTimer = setTimeout(() => {
       this._drainTimer = null;
       this._drainPendingWrites();
