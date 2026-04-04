@@ -153,6 +153,39 @@ body {
   display: none;
 }
 
+.site-item-grouped {
+  grid-column: span 2;
+  cursor: default;
+}
+
+.site-item-grouped:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+.site-group-pills {
+  display: flex;
+  gap: 3px;
+  justify-content: center;
+  margin-top: 2px;
+}
+
+.site-group-pill {
+  font-size: 9px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background-color: #e2e8f0;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.site-group-pill:hover {
+  background-color: #667eea;
+  color: white;
+}
+
 .footer {
   display: flex;
   flex-direction: column;

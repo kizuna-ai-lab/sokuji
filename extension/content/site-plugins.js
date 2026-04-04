@@ -412,7 +412,7 @@ const slackPlugin = {
 // Microsoft Teams plugin implementation
 const teamsPlugin = {
   name: 'Teams',
-  hostname: ['teams.live.com', 'teams.microsoft.com'],
+  hostname: ['teams.live.com', 'teams.microsoft.com', 'teams.cloud.microsoft'],
 
   init() {
     console.info('[Sokuji] [Teams] Microsoft Teams plugin initialized');
@@ -444,7 +444,8 @@ const sitePluginsRegistry = {
   'discord.com': discordPlugin,
   'app.slack.com': slackPlugin,
   'teams.live.com': teamsPlugin,
-  'teams.microsoft.com': teamsPlugin
+  'teams.microsoft.com': teamsPlugin,
+  'teams.cloud.microsoft': teamsPlugin
   // Add more site plugins here as needed
   // 'meet.google.com': googleMeetPlugin,
   // etc.
