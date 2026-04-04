@@ -67,7 +67,9 @@ app.commandLine.appendSwitch('jack-name', 'sokuji');
 
 // Enable WebGPU for ONNX Runtime acceleration
 app.commandLine.appendSwitch('enable-unsafe-webgpu');
-app.commandLine.appendSwitch('enable-features', 'Vulkan');
+// Enable required Chromium features as a single comma-separated list
+// (multiple appendSwitch calls for the same flag would override each other)
+app.commandLine.appendSwitch('enable-features', 'Vulkan,SharedArrayBuffer');
 
 // Keep a global reference of the window object to prevent garbage collection
 let mainWindow;
@@ -260,6 +262,25 @@ function createWindow() {
   // Set custom User Agent for the window
   mainWindow.webContents.setUserAgent(customUserAgent);
   console.log('[Sokuji] [Main] Custom User Agent set:', customUserAgent);
+
+  // Set COOP/COEP headers to enable SharedArrayBuffer for audio worklet ring buffer.
+  // Only apply to same-origin responses — external API calls (OpenAI, Google, etc.)
+  // must not receive require-corp as it would block their responses.
+  mainWindow.webContents.session.webRequest.onHeadersReceived((details, callback) => {
+    const url = new URL(details.url);
+    const isLocal = url.hostname === 'localhost' || url.protocol === 'file:';
+    if (isLocal) {
+      callback({
+        responseHeaders: {
+          ...details.responseHeaders,
+          'Cross-Origin-Opener-Policy': ['same-origin'],
+          'Cross-Origin-Embedder-Policy': ['require-corp']
+        }
+      });
+    } else {
+      callback({ responseHeaders: details.responseHeaders });
+    }
+  });
 
   // Load the app
   console.log('[Sokuji] [Main] Development mode:', isDev, 'MODE:', import.meta.env.MODE, 'isPackaged:', app.isPackaged);
