@@ -59,7 +59,7 @@ export class ModernAudioPlayer {
     this._sab = null;
     this._indices = null;  // Int32Array view [writeIndex, readIndex, capacity, flags]
     this._data = null;     // Float32Array view (audio samples)
-    this._ringCapacity = Math.floor(sampleRate * 2); // 2 seconds
+    this._ringCapacity = Math.floor(sampleRate * 120); // 120 seconds (~11.5MB)
 
     // Main-thread overflow queue — holds data that doesn't fit in ring buffer
     this._pendingWrites = []; // Array of Float32Array chunks
