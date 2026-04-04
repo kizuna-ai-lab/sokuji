@@ -1,5 +1,15 @@
-import { ActivityHandling, GoogleGenAI, LiveConnectConfig, LiveServerContent, LiveServerMessage, Modality, Session } from '@google/genai';
-import { IClient, ConversationItem, SessionConfig, ClientEventHandlers, ApiKeyValidationResult, FilteredModel, IClientStatic, ResponseConfig } from '../interfaces/IClient';
+import {
+  ActivityHandling,
+  EndSensitivity,
+  GoogleGenAI,
+  LiveConnectConfig,
+  LiveServerContent,
+  LiveServerMessage,
+  Modality,
+  Session,
+  StartSensitivity
+} from '@google/genai';
+import { IClient, ConversationItem, SessionConfig, ClientEventHandlers, ApiKeyValidationResult, FilteredModel, IClientStatic, ResponseConfig, isGeminiSessionConfig } from '../interfaces/IClient';
 import i18n from '../../locales';
 import { Provider, ProviderType } from '../../types/Provider';
 
@@ -19,6 +29,8 @@ export class GeminiClient implements IClient {
   private currentModel = '';
   private instanceId: string;
   private textOnlyMode = false;
+  private pttMode = false;
+  private isUserSpeaking = false;
 
   // Turn accumulation state
   private currentTurn: {
@@ -292,10 +304,39 @@ export class GeminiClient implements IClient {
 
     this.currentModel = config.model;
     this.textOnlyMode = config.textOnly || false;
+    this.pttMode = isGeminiSessionConfig(config) && config.turnDetectionMode === 'Push-to-Talk';
+    this.isUserSpeaking = false;
 
     // Gemini native-audio models require AUDIO modality even for text-only output
     // We use inputAudioTranscription/outputAudioTranscription for text and ignore audio delta when textOnly
     const responseModalities = [Modality.AUDIO];
+
+    // Build realtimeInputConfig with VAD settings
+    const realtimeInputConfig: LiveConnectConfig['realtimeInputConfig'] = {
+      activityHandling: ActivityHandling.START_OF_ACTIVITY_INTERRUPTS,
+    };
+
+    if (isGeminiSessionConfig(config)) {
+      if (this.pttMode) {
+        // PTT mode: disable server-side VAD, client sends activityStart/activityEnd
+        realtimeInputConfig.automaticActivityDetection = { disabled: true };
+      } else {
+        // Auto mode: configure server-side VAD
+        realtimeInputConfig.automaticActivityDetection = {
+          disabled: false,
+          startOfSpeechSensitivity: config.vadStartSensitivity === 'high'
+            ? StartSensitivity.START_SENSITIVITY_HIGH
+            : StartSensitivity.START_SENSITIVITY_LOW,
+          endOfSpeechSensitivity: config.vadEndSensitivity === 'high'
+            ? EndSensitivity.END_SENSITIVITY_HIGH
+            : EndSensitivity.END_SENSITIVITY_LOW,
+          silenceDurationMs: config.vadSilenceDurationMs,
+          prefixPaddingMs: config.vadPrefixPaddingMs,
+        };
+      }
+    }
+
+    console.info('[Sokuji] [GeminiClient] realtimeInputConfig:', JSON.stringify(realtimeInputConfig));
 
     // Convert SessionConfig to LiveConnectConfig
     const liveConfig: LiveConnectConfig = {
@@ -314,9 +355,7 @@ export class GeminiClient implements IClient {
       } : undefined,
       inputAudioTranscription: {},
       outputAudioTranscription: {},  // Always enable for transcript in both normal and textOnly modes
-      realtimeInputConfig: {
-        activityHandling: ActivityHandling.NO_INTERRUPTION,
-      }
+      realtimeInputConfig,
     };
 
     try {
@@ -815,10 +854,17 @@ export class GeminiClient implements IClient {
       return;
     }
 
+    // In PTT mode, send activityStart before first audio chunk
+    if (this.pttMode && !this.isUserSpeaking) {
+      this.session.sendRealtimeInput({ activityStart: {} });
+      this.isUserSpeaking = true;
+      console.debug('[GeminiClient] PTT: sent activityStart');
+    }
+
     // Convert Int16Array to base64 PCM format for Gemini
     // Use the buffer property to get the underlying ArrayBuffer
     const base64Audio = this.arrayBufferToBase64(audioData.buffer);
-    
+
     this.session.sendRealtimeInput({
       audio: {
         mimeType: 'audio/pcm;rate=24000',
@@ -897,10 +943,15 @@ export class GeminiClient implements IClient {
   }
 
   createResponse(_config?: ResponseConfig): void {
-    // Gemini Live API automatically generates responses based on turn detection
-    // This is handled internally by the API
-    // Note: ResponseConfig is accepted for interface compatibility but not used by Gemini
-    console.debug('[GeminiClient] Response creation is handled automatically by Gemini Live API');
+    if (this.pttMode && this.isUserSpeaking && this.session) {
+      // PTT mode: send activityEnd to signal end of user speech → triggers model response
+      this.session.sendRealtimeInput({ activityEnd: {} });
+      this.isUserSpeaking = false;
+      console.debug('[GeminiClient] PTT: sent activityEnd');
+    } else {
+      // Auto mode: Gemini Live API automatically generates responses based on turn detection
+      console.debug('[GeminiClient] Response creation is handled automatically by Gemini Live API');
+    }
   }
 
   cancelResponse(trackId?: string, offset?: number): void {

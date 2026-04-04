@@ -73,7 +73,11 @@ export interface OpenAISessionConfig extends BaseSessionConfig {
  */
 export interface GeminiSessionConfig extends BaseSessionConfig {
   provider: 'gemini';
-  // Add Gemini-specific configuration here as needed
+  turnDetectionMode: 'Auto' | 'Push-to-Talk';
+  vadStartSensitivity: 'high' | 'low';
+  vadEndSensitivity: 'high' | 'low';
+  vadSilenceDurationMs: number;
+  vadPrefixPaddingMs: number;
 }
 
 /**

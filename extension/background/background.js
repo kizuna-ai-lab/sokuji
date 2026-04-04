@@ -29,6 +29,7 @@ const ENABLED_SITES = [
   'meet.google.com',
   'teams.live.com',
   'teams.microsoft.com',
+  'teams.cloud.microsoft',
   'app.zoom.us',
   'app.gather.town',
   'app.v2.gather.town',

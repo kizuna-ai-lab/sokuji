@@ -694,6 +694,158 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
     );
   };
 
+  const renderGeminiVadSettings = () => {
+    if (provider !== Provider.GEMINI) {
+      return null;
+    }
+
+    return (
+      <div className="settings-section" id="gemini-vad-section">
+        <h2>
+          {t('settings.geminiVad')}
+          <Tooltip
+            content={t('settings.geminiVadTooltip')}
+            position="top"
+          >
+            <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '8px' }} />
+          </Tooltip>
+        </h2>
+        <div className="setting-item">
+          <div className="turn-detection-options">
+            <button
+              className={`option-button ${geminiSettings.turnDetectionMode === 'Auto' ? 'active' : ''}`}
+              onClick={() => updateGeminiSettings({ turnDetectionMode: 'Auto' })}
+              disabled={isSessionActive}
+            >
+              {t('settings.auto')}
+            </button>
+            <button
+              className={`option-button ${geminiSettings.turnDetectionMode === 'Push-to-Talk' ? 'active' : ''}`}
+              onClick={() => updateGeminiSettings({ turnDetectionMode: 'Push-to-Talk' })}
+              disabled={isSessionActive}
+            >
+              {t('settings.pushToTalk')}
+            </button>
+          </div>
+        </div>
+
+        {geminiSettings.turnDetectionMode === 'Auto' && (
+          <>
+            <div className="setting-item">
+              <div className="setting-label">
+                <span>
+                  {t('settings.startOfSpeechSensitivity')}
+                  <Tooltip
+                    content={t('settings.startOfSpeechSensitivityTooltip')}
+                    position="top"
+                  >
+                    <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '4px', display: 'inline-block', verticalAlign: 'middle' }} />
+                  </Tooltip>
+                </span>
+              </div>
+              <div className="turn-detection-options">
+                <button
+                  className={`option-button ${geminiSettings.vadStartSensitivity === 'high' ? 'active' : ''}`}
+                  onClick={() => updateGeminiSettings({ vadStartSensitivity: 'high' })}
+                  disabled={isSessionActive}
+                >
+                  {t('settings.sensitivityHigh')}
+                </button>
+                <button
+                  className={`option-button ${geminiSettings.vadStartSensitivity === 'low' ? 'active' : ''}`}
+                  onClick={() => updateGeminiSettings({ vadStartSensitivity: 'low' })}
+                  disabled={isSessionActive}
+                >
+                  {t('settings.sensitivityLow')}
+                </button>
+              </div>
+            </div>
+
+            <div className="setting-item">
+              <div className="setting-label">
+                <span>
+                  {t('settings.endOfSpeechSensitivity')}
+                  <Tooltip
+                    content={t('settings.endOfSpeechSensitivityTooltip')}
+                    position="top"
+                  >
+                    <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '4px', display: 'inline-block', verticalAlign: 'middle' }} />
+                  </Tooltip>
+                </span>
+              </div>
+              <div className="turn-detection-options">
+                <button
+                  className={`option-button ${geminiSettings.vadEndSensitivity === 'high' ? 'active' : ''}`}
+                  onClick={() => updateGeminiSettings({ vadEndSensitivity: 'high' })}
+                  disabled={isSessionActive}
+                >
+                  {t('settings.sensitivityHigh')}
+                </button>
+                <button
+                  className={`option-button ${geminiSettings.vadEndSensitivity === 'low' ? 'active' : ''}`}
+                  onClick={() => updateGeminiSettings({ vadEndSensitivity: 'low' })}
+                  disabled={isSessionActive}
+                >
+                  {t('settings.sensitivityLow')}
+                </button>
+              </div>
+            </div>
+
+            <div className="setting-item">
+              <div className="setting-label">
+                <span>
+                  {t('settings.vadSilenceDuration')}
+                  <Tooltip
+                    content={t('settings.vadSilenceDurationTooltip')}
+                    position="top"
+                  >
+                    <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '4px', display: 'inline-block', verticalAlign: 'middle' }} />
+                  </Tooltip>
+                </span>
+                <span className="setting-value">{geminiSettings.vadSilenceDurationMs}ms</span>
+              </div>
+              <input
+                type="range"
+                min="50"
+                max="3000"
+                step="50"
+                value={geminiSettings.vadSilenceDurationMs}
+                onChange={(e) => updateGeminiSettings({ vadSilenceDurationMs: parseInt(e.target.value) })}
+                className="slider"
+                disabled={isSessionActive}
+              />
+            </div>
+
+            <div className="setting-item">
+              <div className="setting-label">
+                <span>
+                  {t('settings.vadPrefixPadding')}
+                  <Tooltip
+                    content={t('settings.vadPrefixPaddingTooltip')}
+                    position="top"
+                  >
+                    <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '4px', display: 'inline-block', verticalAlign: 'middle' }} />
+                  </Tooltip>
+                </span>
+                <span className="setting-value">{geminiSettings.vadPrefixPaddingMs}ms</span>
+              </div>
+              <input
+                type="range"
+                min="0"
+                max="2000"
+                step="50"
+                value={geminiSettings.vadPrefixPaddingMs}
+                onChange={(e) => updateGeminiSettings({ vadPrefixPaddingMs: parseInt(e.target.value) })}
+                className="slider"
+                disabled={isSessionActive}
+              />
+            </div>
+          </>
+        )}
+      </div>
+    );
+  };
+
   const renderPalabraAISettings = () => {
     if (provider !== Provider.PALABRA_AI) {
       return null;
@@ -1443,6 +1595,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
       {renderNoiseReductionSettings()}
       {renderTransportTypeSettings()}
       {renderModelConfigurationSettings()}
+      {renderGeminiVadSettings()}
       {renderPalabraAISettings()}
       {renderVolcengineSTSettings()}
       {renderVolcengineAST2Settings()}
