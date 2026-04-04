@@ -50,6 +50,11 @@ export class ModernAudioPlayer {
     // Worklet state
     this._workletReady = false;
     this._workletState = 'stopped'; // 'stopped' | 'playing' | 'starving'
+
+    // Pending write queue for large buffers that exceed ring buffer capacity
+    this._pendingWrites = [];
+    this._drainTimer = null;
+    this._ringCapacity = this.sampleRate * 2; // 2 seconds — must match worklet
   }
 
   /**
@@ -350,6 +355,7 @@ export class ModernAudioPlayer {
 
   /**
    * Convert Int16 PCM to Float32, apply per-track volume, and post to worklet.
+   * Large buffers are queued and drained incrementally to avoid ring buffer overflow.
    */
   _writeToRingBuffer(int16Buffer, volume, metadata) {
     if (!this._workletReady || !this.workletNode) return;
@@ -378,11 +384,59 @@ export class ModernAudioPlayer {
       float32[i] = int16Buffer[i] * scale;
     }
 
-    // Post to worklet — transfer the buffer for zero-copy
-    this.workletNode.port.postMessage(
-      { type: 'write', samples: float32 },
-      [float32.buffer]
-    );
+    // If small enough, post directly to worklet
+    const safeThreshold = Math.floor(this._ringCapacity * 0.75);
+    if (float32.length <= safeThreshold && this._pendingWrites.length === 0) {
+      this.workletNode.port.postMessage(
+        { type: 'write', samples: float32 },
+        [float32.buffer]
+      );
+      return;
+    }
+
+    // Large buffer or queue already active — split into 0.5s chunks and drain
+    const chunkSize = Math.floor(this.sampleRate * 0.5); // 0.5 seconds per chunk
+    for (let i = 0; i < float32.length; i += chunkSize) {
+      const end = Math.min(i + chunkSize, float32.length);
+      this._pendingWrites.push(new Float32Array(float32.subarray(i, end)));
+    }
+    this._drainPendingWrites();
+  }
+
+  /**
+   * Drain pending write queue into the worklet ring buffer incrementally.
+   */
+  _drainPendingWrites() {
+    if (this._pendingWrites.length === 0) return;
+    if (this._drainTimer) return; // Already scheduled
+
+    // Write one chunk now
+    const chunk = this._pendingWrites.shift();
+    if (this.workletNode) {
+      this.workletNode.port.postMessage(
+        { type: 'write', samples: chunk },
+        [chunk.buffer]
+      );
+    }
+
+    if (this._pendingWrites.length === 0) return; // Done
+
+    // Schedule next write — drain at ~2x playback rate (every 250ms for 0.5s chunks)
+    this._drainTimer = setTimeout(() => {
+      this._drainTimer = null;
+      this._drainPendingWrites();
+    }, 250);
+  }
+
+  /**
+   * Cancel pending write drain.
+   */
+  _cancelPendingWrites() {
+    this._pendingWrites = [];
+    if (this._drainTimer) {
+      clearTimeout(this._drainTimer);
+      this._drainTimer = null;
+    }
   }
 
   _normalizeAudioData(audioData) {
@@ -582,7 +636,8 @@ export class ModernAudioPlayer {
     const currentTime = samplesPlayedForItem / this.sampleRate;
     const estimatedOffset = Math.floor(samplesPlayedForItem);
 
-    // Clear the ring buffer immediately
+    // Clear pending writes and ring buffer immediately
+    this._cancelPendingWrites();
     if (this.workletNode) {
       this.workletNode.port.postMessage({ type: 'clear' });
     }
@@ -611,7 +666,8 @@ export class ModernAudioPlayer {
       this.sequenceGapTimeout.delete(trackId);
     }
 
-    // Clear ring buffer
+    // Clear pending writes and ring buffer
+    this._cancelPendingWrites();
     if (this.workletNode) {
       this.workletNode.port.postMessage({ type: 'clear' });
     }
@@ -640,6 +696,7 @@ export class ModernAudioPlayer {
    */
   stopAll() {
     this._cancelEndNotification();
+    this._cancelPendingWrites();
 
     // Clear ring buffer
     if (this.workletNode) {
