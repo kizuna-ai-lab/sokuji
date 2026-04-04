@@ -1,15 +1,211 @@
+# Audio Pipeline Redesign Implementation Plan
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+
+**Goal:** Replace per-chunk HTMLAudioElement playback with an AudioWorklet ring buffer feeding a single persistent HTMLAudioElement, eliminating inter-chunk gaps that cause crackling (issue #172).
+
+**Architecture:** A `PlaybackRingWorkletProcessor` AudioWorklet maintains a circular buffer and outputs audio continuously. The main thread writes PCM chunks into it via `postMessage`. The worklet output connects through GainNode → AnalyserNode → MediaStreamDestinationNode → a single persistent HTMLAudioElement (preserving AEC compatibility).
+
+**Tech Stack:** Web Audio API (AudioWorklet, AudioContext, GainNode, AnalyserNode, MediaStreamDestinationNode), HTMLAudioElement
+
+---
+
+### Task 1: Create PlaybackRingWorkletProcessor
+
+**Files:**
+- Create: `src/lib/modern-audio/worklets/playback-ring-processor.js`
+
+- [ ] **Step 1: Create the worklet processor file**
+
+```javascript
+// src/lib/modern-audio/worklets/playback-ring-processor.js
+
 /**
- * Modern Audio Player using SharedArrayBuffer ring buffer for gapless playback.
+ * AudioWorklet processor that maintains a circular buffer for gapless audio playback.
+ * Receives PCM samples via postMessage, outputs continuously via process().
+ * When buffer is empty, outputs silence (no clicks or pops).
+ */
+class PlaybackRingWorkletProcessor extends AudioWorkletProcessor {
+  constructor() {
+    super();
+
+    // Ring buffer: 2 seconds capacity at whatever sample rate the context uses
+    // sampleRate is a global in AudioWorkletGlobalScope
+    this._capacity = Math.floor(sampleRate * 2);
+    this._buffer = new Float32Array(this._capacity);
+    this._writeIndex = 0;
+    this._readIndex = 0;
+    this._playing = true;
+
+    // State tracking for notifications
+    this._state = 'stopped'; // 'stopped' | 'playing' | 'starving'
+    this._samplesPlayed = 0;
+    this._lastPositionReport = 0;
+    // Report position every ~50ms worth of samples
+    this._positionReportInterval = Math.floor(sampleRate * 0.05);
+
+    this.port.onmessage = (e) => {
+      const msg = e.data;
+      if (msg.type === 'write') {
+        this._write(msg.samples);
+      } else if (msg.type === 'clear') {
+        this._clear();
+      } else if (msg.type === 'setPlaying') {
+        this._playing = msg.playing;
+      }
+    };
+  }
+
+  _available() {
+    const avail = this._writeIndex - this._readIndex;
+    return avail >= 0 ? avail : avail + this._capacity;
+  }
+
+  _write(samples) {
+    const len = samples.length;
+
+    // Check for overflow — if writing would exceed capacity, drop oldest
+    if (len > this._capacity) {
+      // Extremely large write — only keep the last _capacity samples
+      const offset = len - this._capacity;
+      this._buffer.set(samples.subarray(offset), 0);
+      this._writeIndex = this._capacity;
+      this._readIndex = 0;
+      return;
+    }
+
+    const available = this._available();
+    const freeSpace = this._capacity - available;
+
+    if (len > freeSpace) {
+      // Overflow: advance readIndex to make room
+      const overflow = len - freeSpace;
+      this._readIndex = (this._readIndex + overflow) % this._capacity;
+    }
+
+    // Write samples into ring buffer (handle wrap-around)
+    const writePos = this._writeIndex % this._capacity;
+    const firstPart = Math.min(len, this._capacity - writePos);
+    this._buffer.set(samples.subarray(0, firstPart), writePos);
+
+    if (firstPart < len) {
+      this._buffer.set(samples.subarray(firstPart), 0);
+    }
+
+    this._writeIndex = (writePos + len) % this._capacity;
+  }
+
+  _clear() {
+    this._readIndex = 0;
+    this._writeIndex = 0;
+    this._samplesPlayed = 0;
+    this._lastPositionReport = 0;
+    this._setState('stopped');
+  }
+
+  _setState(newState) {
+    if (this._state !== newState) {
+      this._state = newState;
+      this.port.postMessage({ type: 'stateChange', state: newState });
+    }
+  }
+
+  process(inputs, outputs) {
+    const output = outputs[0];
+    if (!output || output.length === 0) return true;
+
+    const channel = output[0];
+    const frameSize = channel.length; // typically 128
+
+    if (!this._playing) {
+      // Output silence when paused
+      channel.fill(0);
+      return true;
+    }
+
+    const available = this._available();
+
+    if (available === 0) {
+      // Buffer empty — output silence
+      channel.fill(0);
+      if (this._state === 'playing') {
+        this._setState('starving');
+      }
+      return true;
+    }
+
+    // We have data — read from ring buffer
+    if (this._state !== 'playing') {
+      this._setState('playing');
+    }
+
+    const samplesToRead = Math.min(frameSize, available);
+    const readPos = this._readIndex % this._capacity;
+    const firstPart = Math.min(samplesToRead, this._capacity - readPos);
+
+    // Copy first part
+    channel.set(this._buffer.subarray(readPos, readPos + firstPart));
+
+    if (firstPart < samplesToRead) {
+      // Wrap around
+      channel.set(this._buffer.subarray(0, samplesToRead - firstPart), firstPart);
+    }
+
+    // Zero-fill remainder if buffer didn't have enough for full frame
+    if (samplesToRead < frameSize) {
+      channel.fill(0, samplesToRead);
+    }
+
+    this._readIndex = (readPos + samplesToRead) % this._capacity;
+    this._samplesPlayed += samplesToRead;
+
+    // Periodic position report
+    if (this._samplesPlayed - this._lastPositionReport >= this._positionReportInterval) {
+      this._lastPositionReport = this._samplesPlayed;
+      this.port.postMessage({ type: 'readPosition', samplesPlayed: this._samplesPlayed });
+    }
+
+    return true;
+  }
+}
+
+registerProcessor('playback-ring-processor', PlaybackRingWorkletProcessor);
+```
+
+- [ ] **Step 2: Verify file is in place**
+
+Run: `ls -la src/lib/modern-audio/worklets/playback-ring-processor.js`
+Expected: File exists
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add src/lib/modern-audio/worklets/playback-ring-processor.js
+git commit -m "feat(audio): add PlaybackRingWorkletProcessor for gapless playback"
+```
+
+---
+
+### Task 2: Rewrite ModernAudioPlayer — constructor and initialization
+
+**Files:**
+- Modify: `src/lib/modern-audio/ModernAudioPlayer.js` (full rewrite)
+
+This task replaces the entire file. The constructor and `connect()` method set up the AudioContext → worklet → audio graph → single HTMLAudioElement pipeline.
+
+- [ ] **Step 1: Replace the file with the new constructor and connect()**
+
+Replace the entire contents of `src/lib/modern-audio/ModernAudioPlayer.js` with:
+
+```javascript
+/**
+ * Modern Audio Player using AudioWorklet ring buffer for gapless playback.
  * Output routes through a single persistent HTMLAudioElement for AEC compatibility.
  *
  * Architecture:
- *   PCM chunks → SharedArrayBuffer (lock-free SPSC ring buffer) → AudioWorkletNode
+ *   PCM chunks → postMessage → AudioWorkletNode (ring buffer)
  *     → GainNode → AnalyserNode → MediaStreamDestinationNode
  *       → HTMLAudioElement.srcObject → Speakers (AEC-visible)
- *
- * The main thread writes directly to shared memory. The worklet reads directly.
- * No postMessage for audio data — only for low-frequency control signals.
- * Overflow is handled by a main-thread queue that drains as the worklet consumes.
  */
 export class ModernAudioPlayer {
   constructor({ sampleRate = 24000 } = {}) {
@@ -29,13 +225,13 @@ export class ModernAudioPlayer {
     this.pendingDeviceId = null;
     this.deviceChangePromise = null;
 
-    // Streaming buffer accumulation
+    // Streaming buffer accumulation (same as before)
     this.streamingBuffers = new Map();
     this.streamingTimeouts = new Map();
     this.trackQueues = new Map();
     this.interruptedTracks = new Set();
 
-    // Sequence tracking for ordering
+    // Sequence tracking for ordering (same as before)
     this.lastSequenceNumbers = new Map();
     this.outOfOrderBuffers = new Map();
     this.sequenceGapTimeout = new Map();
@@ -54,16 +250,6 @@ export class ModernAudioPlayer {
     // Worklet state
     this._workletReady = false;
     this._workletState = 'stopped'; // 'stopped' | 'playing' | 'starving'
-
-    // SharedArrayBuffer ring buffer
-    this._sab = null;
-    this._indices = null;  // Int32Array view [writeIndex, readIndex, capacity, flags]
-    this._data = null;     // Float32Array view (audio samples)
-    this._ringCapacity = Math.floor(sampleRate * 120); // 120 seconds (~11.5MB)
-
-    // Main-thread overflow queue — holds data that doesn't fit in ring buffer
-    this._pendingWrites = []; // Array of Float32Array chunks
-    this._drainTimer = null;
   }
 
   /**
@@ -82,32 +268,13 @@ export class ModernAudioPlayer {
       await this.context.resume();
     }
 
-    // Create SharedArrayBuffer: 16 bytes header (4x Int32) + capacity * 4 bytes (Float32)
-    // Requires cross-origin isolation (COOP/COEP headers)
-    if (typeof SharedArrayBuffer === 'undefined') {
-      throw new Error('[ModernAudioPlayer] SharedArrayBuffer not available — cross-origin isolation (COOP/COEP) required');
-    }
-    const sabSize = 16 + this._ringCapacity * 4;
-    this._sab = new SharedArrayBuffer(sabSize);
-    this._indices = new Int32Array(this._sab, 0, 4);
-    this._data = new Float32Array(this._sab, 16);
-
-    // Initialize header
-    Atomics.store(this._indices, 0, 0); // writeIndex
-    Atomics.store(this._indices, 1, 0); // readIndex
-    Atomics.store(this._indices, 2, this._ringCapacity); // capacity
-    Atomics.store(this._indices, 3, 0); // flags
-
     // Load worklet
     const workletUrl = new URL('./worklets/playback-ring-processor.js', import.meta.url).href;
     await this.context.audioWorklet.addModule(workletUrl);
     this.workletNode = new AudioWorkletNode(this.context, 'playback-ring-processor');
     this._workletReady = true;
 
-    // Send SharedArrayBuffer to worklet
-    this.workletNode.port.postMessage({ type: 'init', sab: this._sab });
-
-    // Listen for worklet messages (state changes + position reports only)
+    // Listen for worklet messages
     this.workletNode.port.onmessage = (e) => this._handleWorkletMessage(e.data);
 
     // Build audio graph
@@ -142,10 +309,6 @@ export class ModernAudioPlayer {
       console.warn('[ModernAudioPlayer] Initial play() blocked (will retry on user gesture):', e.message);
     });
 
-    if (this.context.sampleRate !== this.sampleRate) {
-      console.error('[ModernAudioPlayer] SAMPLE RATE MISMATCH! context:', this.context.sampleRate, 'expected:', this.sampleRate);
-    }
-
     return true;
   }
 
@@ -158,6 +321,7 @@ export class ModernAudioPlayer {
       this._workletState = msg.state;
 
       if (msg.state === 'playing' && prevState !== 'playing') {
+        // Audio started or resumed — cancel any pending end notification
         this._cancelEndNotification();
         if (this.currentPlayingItemId && this.onPlaybackStatusChange) {
           this.onPlaybackStatusChange({
@@ -167,136 +331,56 @@ export class ModernAudioPlayer {
           });
         }
       } else if (msg.state === 'starving' && prevState === 'playing') {
+        // Buffer ran dry — might be end of speech or network stall
         if (this.currentPlayingItemId) {
           this._scheduleEndNotification(this.currentPlayingItemId);
         }
       }
     } else if (msg.type === 'readPosition') {
       this.totalPlayedSamples = msg.samplesPlayed;
-      // Worklet consumed data — try to drain pending writes
-      if (this._pendingWrites.length > 0) {
-        this._drainPendingWrites();
-      }
     }
   }
 
-  // =========================================================================
-  // SharedArrayBuffer Ring Buffer Write
-  // =========================================================================
+  // --- remaining methods will be added in subsequent tasks ---
+}
 
-  /**
-   * Get free space in the ring buffer by reading indices atomically.
-   */
-  _getFreeSpace() {
-    const writeIdx = Atomics.load(this._indices, 0);
-    const readIdx = Atomics.load(this._indices, 1);
-    const used = writeIdx - readIdx;
-    return this._ringCapacity - used;
-  }
+// Make available globally for compatibility
+globalThis.ModernAudioPlayer = ModernAudioPlayer;
+```
 
-  _writeToSAB(float32, offset, count) {
-    const writeIdx = Atomics.load(this._indices, 0);
-    const cap = this._ringCapacity;
+- [ ] **Step 2: Verify file parses correctly**
 
-    for (let i = 0; i < count; i++) {
-      this._data[(writeIdx + i) % cap] = float32[offset + i];
-    }
+Run: `node -e "import('./src/lib/modern-audio/ModernAudioPlayer.js').then(() => console.log('OK')).catch(e => console.error(e.message))" --input-type=module`
 
-    Atomics.store(this._indices, 0, writeIdx + count);
-    return count;
-  }
+If this fails due to `import.meta.url`, that's expected in Node — just verify no syntax errors:
 
-  _writeToRingBuffer(int16Buffer, volume, metadata) {
-    if (!this._workletReady || !this._indices) return;
+Run: `node --check src/lib/modern-audio/ModernAudioPlayer.js 2>&1 || echo "Module syntax - checking with parse..." && node -e "const fs=require('fs'); const code=fs.readFileSync('src/lib/modern-audio/ModernAudioPlayer.js','utf8'); try{new Function(code)}catch(e){if(!e.message.includes('import')){console.error(e.message);process.exit(1)}}; console.log('Syntax OK')"`
 
-    if (metadata && metadata.itemId) {
-      if (this.currentPlayingItemId !== metadata.itemId) {
-        if (this.currentPlayingItemId !== null) {
-          this.totalBufferedDuration.delete(this.currentPlayingItemId);
-        }
-        this.currentPlayingItemId = metadata.itemId;
-        this.totalBufferedDuration.set(metadata.itemId, 0);
-        this.itemStartSample = this.totalPlayedSamples;
-      }
+- [ ] **Step 3: Commit**
 
-      const bufferDuration = int16Buffer.length / this.sampleRate;
-      const prev = this.totalBufferedDuration.get(metadata.itemId) || 0;
-      this.totalBufferedDuration.set(metadata.itemId, prev + bufferDuration);
-    }
+```bash
+git add src/lib/modern-audio/ModernAudioPlayer.js
+git commit -m "feat(audio): rewrite ModernAudioPlayer core with AudioWorklet ring buffer
 
-    const float32 = new Float32Array(int16Buffer.length);
-    const scale = (volume !== 1.0) ? volume / 32768 : 1 / 32768;
-    for (let i = 0; i < int16Buffer.length; i++) {
-      float32[i] = int16Buffer[i] * scale;
-    }
+Replaces per-chunk HTMLAudioElement with AudioWorklet → MediaStream →
+single persistent HTMLAudioElement pipeline. This task adds constructor
+and connect() only; remaining methods follow in subsequent commits."
+```
 
-    // CRITICAL: if pending queue is non-empty, ALL new data must go to queue
-    // to preserve FIFO ordering. Direct SAB writes would skip ahead of queued data.
-    if (this._pendingWrites.length > 0) {
-      this._pendingWrites.push(float32);
-      this._scheduleDrain();
-      return;
-    }
+---
 
-    // Queue is empty — safe to write directly to SAB
-    const freeSpace = this._getFreeSpace();
-    const immediate = Math.min(float32.length, freeSpace);
+### Task 3: Add streaming input methods
 
-    if (immediate > 0) {
-      this._writeToSAB(float32, 0, immediate);
-    }
+**Files:**
+- Modify: `src/lib/modern-audio/ModernAudioPlayer.js` (add methods after `_handleWorkletMessage`)
 
-    if (immediate < float32.length) {
-      this._pendingWrites.push(float32.subarray(immediate));
-      this._scheduleDrain();
-    }
-  }
+These methods handle PCM chunk input, sequence ordering, accumulation, and flushing to the ring buffer worklet.
 
-  _drainPendingWrites() {
-    if (this._pendingWrites.length === 0) {
-      this._cancelDrain();
-      return;
-    }
+- [ ] **Step 1: Add all streaming input methods**
 
-    let freeSpace = this._getFreeSpace();
+Insert the following methods into `ModernAudioPlayer` class, replacing the `// --- remaining methods will be added in subsequent tasks ---` comment:
 
-    while (this._pendingWrites.length > 0 && freeSpace > 0) {
-      const chunk = this._pendingWrites[0];
-      const toWrite = Math.min(chunk.length, freeSpace);
-
-      this._writeToSAB(chunk, 0, toWrite);
-      freeSpace -= toWrite;
-
-      if (toWrite < chunk.length) {
-        this._pendingWrites[0] = chunk.subarray(toWrite);
-        break;
-      } else {
-        this._pendingWrites.shift();
-      }
-    }
-
-    if (this._pendingWrites.length > 0) {
-      this._scheduleDrain();
-    } else {
-      this._cancelDrain();
-    }
-  }
-
-  _scheduleDrain() {
-    if (this._drainTimer !== null) return;
-    this._drainTimer = setTimeout(() => {
-      this._drainTimer = null;
-      this._drainPendingWrites();
-    }, 50);
-  }
-
-  _cancelDrain() {
-    if (this._drainTimer !== null) {
-      clearTimeout(this._drainTimer);
-      this._drainTimer = null;
-    }
-  }
-
+```javascript
   // =========================================================================
   // Streaming Input
   // =========================================================================
@@ -343,19 +427,20 @@ export class ModernAudioPlayer {
    */
   addToPassthroughBuffer(audioData, volume = 1.0, delay = 50) {
     if (this.globalVolumeMultiplier === 0) return;
-    // Only check per-track volume — GainNode handles globalVolumeMultiplier
-    if (volume < 0.01) return;
+
+    const effectiveVolume = volume * this.globalVolumeMultiplier;
+    if (effectiveVolume < 0.01) return;
 
     const buffer = this._normalizeAudioData(audioData);
 
     if (delay > 0) {
       setTimeout(() => {
         if (this.globalVolumeMultiplier > 0) {
-          this._writeToRingBuffer(buffer, volume, {});
+          this._writeToRingBuffer(buffer, effectiveVolume, {});
         }
       }, delay);
     } else {
-      this._writeToRingBuffer(buffer, volume, {});
+      this._writeToRingBuffer(buffer, effectiveVolume, {});
     }
   }
 
@@ -437,7 +522,7 @@ export class ModernAudioPlayer {
   }
 
   // =========================================================================
-  // Chunk Accumulation
+  // Chunk Accumulation & Ring Buffer Write
   // =========================================================================
 
   _accumulateChunk(trackId, buffer, volume, metadata = {}) {
@@ -484,10 +569,10 @@ export class ModernAudioPlayer {
       offset += chunk.length;
     }
 
-    // Write to ring buffer (with overflow queue)
+    // Write to ring buffer
     this._writeToRingBuffer(combined, streamData.volume, streamData.metadata);
 
-    // Reset accumulator
+    // Reset accumulator (keep metadata for next chunks of same stream)
     streamData.chunks = [];
     streamData.totalLength = 0;
 
@@ -505,6 +590,43 @@ export class ModernAudioPlayer {
     this.streamingTimeouts.set(trackId, timeoutId);
   }
 
+  /**
+   * Convert Int16 PCM to Float32, apply per-track volume, and post to worklet.
+   */
+  _writeToRingBuffer(int16Buffer, volume, metadata) {
+    if (!this._workletReady || !this.workletNode) return;
+
+    // Track item and buffered duration
+    if (metadata && metadata.itemId) {
+      if (this.currentPlayingItemId !== metadata.itemId) {
+        // New item — clean up old state
+        if (this.currentPlayingItemId !== null) {
+          this.totalBufferedDuration.delete(this.currentPlayingItemId);
+        }
+        this.currentPlayingItemId = metadata.itemId;
+        this.totalBufferedDuration.set(metadata.itemId, 0);
+        this.itemStartSample = this.totalPlayedSamples;
+      }
+
+      const bufferDuration = int16Buffer.length / this.sampleRate;
+      const prev = this.totalBufferedDuration.get(metadata.itemId) || 0;
+      this.totalBufferedDuration.set(metadata.itemId, prev + bufferDuration);
+    }
+
+    // Convert Int16 → Float32 with volume
+    const float32 = new Float32Array(int16Buffer.length);
+    const scale = (volume !== 1.0) ? volume / 32768 : 1 / 32768;
+    for (let i = 0; i < int16Buffer.length; i++) {
+      float32[i] = int16Buffer[i] * scale;
+    }
+
+    // Post to worklet — transfer the buffer for zero-copy
+    this.workletNode.port.postMessage(
+      { type: 'write', samples: float32 },
+      [float32.buffer]
+    );
+  }
+
   _normalizeAudioData(audioData) {
     if (audioData instanceof Int16Array) return audioData;
     if (audioData instanceof ArrayBuffer) return new Int16Array(audioData);
@@ -518,6 +640,39 @@ export class ModernAudioPlayer {
     }
   }
 
+  // --- volume, status, cleanup methods added in next tasks ---
+```
+
+- [ ] **Step 2: Verify no syntax errors**
+
+Run: `npx acorn --ecma2022 --module src/lib/modern-audio/ModernAudioPlayer.js > /dev/null 2>&1 && echo "Syntax OK" || echo "Syntax error"`
+
+If acorn isn't available:
+Run: `npx -y acorn --ecma2022 --module src/lib/modern-audio/ModernAudioPlayer.js > /dev/null 2>&1 && echo "Syntax OK" || node -e "require('fs').readFileSync('src/lib/modern-audio/ModernAudioPlayer.js','utf8')" && echo "File readable"`
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add src/lib/modern-audio/ModernAudioPlayer.js
+git commit -m "feat(audio): add streaming input, sequence ordering, and ring buffer write
+
+Ports addStreamingAudio, add16BitPCM, addToPassthroughBuffer, and all
+sequence ordering logic. Chunks are accumulated, combined, converted
+to Float32, and posted to the ring buffer worklet via transferable."
+```
+
+---
+
+### Task 4: Add volume, device switching, and visualization methods
+
+**Files:**
+- Modify: `src/lib/modern-audio/ModernAudioPlayer.js` (add methods, replace placeholder comment)
+
+- [ ] **Step 1: Add volume, device, and visualization methods**
+
+Replace the `// --- volume, status, cleanup methods added in next tasks ---` comment with:
+
+```javascript
   // =========================================================================
   // Volume Control
   // =========================================================================
@@ -572,11 +727,15 @@ export class ModernAudioPlayer {
     }
 
     try {
+      // Set on HTMLAudioElement (preferred — routes through OS audio path for AEC)
       if (this.audioElement && typeof this.audioElement.setSinkId === 'function') {
         await this.audioElement.setSinkId(deviceId);
       }
+      // Also set on AudioContext if supported (for future-proofing)
       if (this.context && typeof this.context.setSinkId === 'function') {
-        await this.context.setSinkId(deviceId).catch(() => {});
+        await this.context.setSinkId(deviceId).catch(() => {
+          // AudioContext.setSinkId may not be available everywhere
+        });
       }
 
       this.outputDeviceId = deviceId;
@@ -611,6 +770,28 @@ export class ModernAudioPlayer {
     return { values: result, peaks: [] };
   }
 
+  // --- playback status, interruption, cleanup methods added in next tasks ---
+```
+
+- [ ] **Step 2: Commit**
+
+```bash
+git add src/lib/modern-audio/ModernAudioPlayer.js
+git commit -m "feat(audio): add volume control, device switching, and visualization"
+```
+
+---
+
+### Task 5: Add playback status tracking
+
+**Files:**
+- Modify: `src/lib/modern-audio/ModernAudioPlayer.js` (add methods, replace placeholder comment)
+
+- [ ] **Step 1: Add playback status methods**
+
+Replace the `// --- playback status, interruption, cleanup methods added in next tasks ---` comment with:
+
+```javascript
   // =========================================================================
   // Playback Status Tracking
   // =========================================================================
@@ -630,6 +811,7 @@ export class ModernAudioPlayer {
 
     const totalBufferedTime = this.getBufferedDuration(this.currentPlayingItemId);
 
+    // Calculate played time from worklet's sample counter
     const samplesPlayedForItem = this.totalPlayedSamples - this.itemStartSample;
     const currentTime = Math.max(0, samplesPlayedForItem / this.sampleRate);
 
@@ -652,11 +834,13 @@ export class ModernAudioPlayer {
 
   /**
    * Schedule an 'ended' notification after buffer goes empty.
+   * Defers by 2s in case more audio is still being generated by the AI.
    */
   _scheduleEndNotification(itemId) {
     this._cancelEndNotification();
 
     this.itemEndTimeout = setTimeout(() => {
+      // Only fire if still the same item and still starving
       if (this.currentPlayingItemId === itemId && this._workletState !== 'playing') {
         this.totalBufferedDuration.delete(itemId);
 
@@ -680,6 +864,28 @@ export class ModernAudioPlayer {
     }
   }
 
+  // --- interruption and cleanup methods added in next task ---
+```
+
+- [ ] **Step 2: Commit**
+
+```bash
+git add src/lib/modern-audio/ModernAudioPlayer.js
+git commit -m "feat(audio): add playback status tracking with worklet sample counter"
+```
+
+---
+
+### Task 6: Add interruption, cleanup, and diagnostics
+
+**Files:**
+- Modify: `src/lib/modern-audio/ModernAudioPlayer.js` (add final methods, replace placeholder comment)
+
+- [ ] **Step 1: Add remaining methods**
+
+Replace the `// --- interruption and cleanup methods added in next task ---` comment with:
+
+```javascript
   // =========================================================================
   // Interruption & Track Management
   // =========================================================================
@@ -696,9 +902,12 @@ export class ModernAudioPlayer {
     const currentTime = samplesPlayedForItem / this.sampleRate;
     const estimatedOffset = Math.floor(samplesPlayedForItem);
 
-    // Clear ring buffer + pending writes
-    this._clearRingBuffer();
+    // Clear the ring buffer immediately
+    if (this.workletNode) {
+      this.workletNode.port.postMessage({ type: 'clear' });
+    }
 
+    // Mark all active tracks as interrupted
     const trackId = 'default';
     this.interruptedTracks.add(trackId);
 
@@ -714,6 +923,7 @@ export class ModernAudioPlayer {
     this.trackQueues.delete(trackId);
     this.interruptedTracks.delete(trackId);
 
+    // Clear sequence tracking
     this.lastSequenceNumbers.delete(trackId);
     this.outOfOrderBuffers.delete(trackId);
     if (this.sequenceGapTimeout.has(trackId)) {
@@ -721,25 +931,7 @@ export class ModernAudioPlayer {
       this.sequenceGapTimeout.delete(trackId);
     }
 
-    this._clearRingBuffer();
-  }
-
-  /**
-   * Clear the ring buffer — resets SAB indices and flushes pending writes.
-   */
-  _clearRingBuffer() {
-    // Clear pending writes queue
-    this._pendingWrites = [];
-    this._cancelDrain();
-
-    // SPSC-safe clear: producer (main thread) only modifies writeIndex.
-    // Set writeIdx = readIdx to mark buffer as empty without touching readIndex.
-    if (this._indices) {
-      const readIdx = Atomics.load(this._indices, 1);
-      Atomics.store(this._indices, 0, readIdx);
-    }
-
-    // Tell worklet to reset its internal state (samplesPlayed etc.)
+    // Clear ring buffer
     if (this.workletNode) {
       this.workletNode.port.postMessage({ type: 'clear' });
     }
@@ -768,8 +960,13 @@ export class ModernAudioPlayer {
    */
   stopAll() {
     this._cancelEndNotification();
-    this._clearRingBuffer();
 
+    // Clear ring buffer
+    if (this.workletNode) {
+      this.workletNode.port.postMessage({ type: 'clear' });
+    }
+
+    // Clear all accumulation and queue state
     for (const timeoutId of this.streamingTimeouts.values()) {
       clearTimeout(timeoutId);
     }
@@ -777,6 +974,7 @@ export class ModernAudioPlayer {
     this.streamingBuffers.clear();
     this.trackQueues.clear();
 
+    // Clear tracking
     this.totalBufferedDuration.clear();
     this.currentPlayingItemId = null;
     this.totalPlayedSamples = 0;
@@ -790,15 +988,18 @@ export class ModernAudioPlayer {
     this._cancelEndNotification();
     this.stopAll();
 
+    // Clear sequence gap timeouts
     for (const timeoutId of this.sequenceGapTimeout.values()) {
       clearTimeout(timeoutId);
     }
     this.sequenceGapTimeout.clear();
 
+    // Clear all data
     this.interruptedTracks.clear();
     this.lastSequenceNumbers.clear();
     this.outOfOrderBuffers.clear();
 
+    // Disconnect audio graph
     if (this.workletNode) {
       try { this.workletNode.disconnect(); } catch (e) { /* ignore */ }
       this.workletNode = null;
@@ -816,20 +1017,19 @@ export class ModernAudioPlayer {
       this.destinationNode = null;
     }
 
+    // Stop and release HTMLAudioElement
     if (this.audioElement) {
       this.audioElement.pause();
       this.audioElement.srcObject = null;
       this.audioElement = null;
     }
 
+    // Close AudioContext
     if (this.context && this.context.state !== 'closed') {
       this.context.close().catch(console.error);
       this.context = null;
     }
 
-    this._sab = null;
-    this._indices = null;
-    this._data = null;
     this._workletReady = false;
     this._workletState = 'stopped';
   }
@@ -842,19 +1042,13 @@ export class ModernAudioPlayer {
    * Get diagnostic information for audio sequencing.
    */
   getSequenceDiagnostics() {
-    const writeIdx = this._indices ? Atomics.load(this._indices, 0) : 0;
-    const readIdx = this._indices ? Atomics.load(this._indices, 1) : 0;
-
     const diagnostics = {
       tracks: {},
       outOfOrderCount: 0,
       totalBuffered: 0,
       gaps: [],
       workletState: this._workletState,
-      totalPlayedSamples: this.totalPlayedSamples,
-      ringBufferUsed: writeIdx - readIdx,
-      ringBufferCapacity: this._ringCapacity,
-      pendingWriteChunks: this._pendingWrites.length
+      totalPlayedSamples: this.totalPlayedSamples
     };
 
     for (const [trackId, lastSeq] of this.lastSequenceNumbers) {
@@ -906,7 +1100,127 @@ export class ModernAudioPlayer {
 
     return gaps;
   }
-}
+```
 
-// Make available globally for compatibility
-globalThis.ModernAudioPlayer = ModernAudioPlayer;
+**Important:** This code replaces only the placeholder comment. The class closing `}` and `globalThis.ModernAudioPlayer = ModernAudioPlayer;` line already exist in the file from Task 2 — do NOT duplicate them.
+
+- [ ] **Step 2: Verify complete file has no syntax issues**
+
+Run: `wc -l src/lib/modern-audio/ModernAudioPlayer.js` — should be ~500-550 lines.
+
+Run: `grep -c 'class ModernAudioPlayer' src/lib/modern-audio/ModernAudioPlayer.js` — should be `1`.
+
+Run: `grep -c 'globalThis.ModernAudioPlayer' src/lib/modern-audio/ModernAudioPlayer.js` — should be `1` (at end of file, not inside class).
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add src/lib/modern-audio/ModernAudioPlayer.js
+git commit -m "feat(audio): add interruption, cleanup, diagnostics — complete rewrite
+
+ModernAudioPlayer rewrite is now complete. All public methods preserved:
+addStreamingAudio, add16BitPCM, addToPassthroughBuffer, connect,
+setSinkId, setGlobalVolume, getFrequencies, interrupt, clearStreamingTrack,
+clearInterruptedTracks, stopAll, cleanup, setPlaybackStatusCallback,
+getCurrentPlaybackStatus, getBufferedDuration, getSequenceDiagnostics."
+```
+
+---
+
+### Task 7: Verify build and remove dead code
+
+**Files:**
+- Modify: `src/lib/modern-audio/ModernAudioPlayer.js` (if build errors)
+
+- [ ] **Step 1: Run the development build**
+
+Run: `npm run build 2>&1 | head -50`
+
+Expected: Build succeeds. The worklet file at `src/lib/modern-audio/worklets/playback-ring-processor.js` should be handled by Vite's `new URL(..., import.meta.url)` pattern (same as other worklets in the project).
+
+- [ ] **Step 2: Verify no TypeScript errors from consumers**
+
+Run: `npx tsc --noEmit 2>&1 | grep -i "ModernAudioPlayer\|modern-audio" | head -20`
+
+Fix any type errors. Common issues:
+- `ModernBrowserAudioService.ts` may reference removed properties (e.g., `player.audioElements`, `player.context`) — these should still exist in the new code. Check if any direct property access needs updating.
+
+- [ ] **Step 3: Check for any references to removed methods/properties**
+
+Run: `grep -rn "createWavBlob\|createWavHeader\|connectToAnalyser\|createAudioElement\|cleanupAudioElement\|cleanupAudio\|processQueue\|queueAudio\|scheduleNextPlayback\|applyVolume\|audioGainNodes\|audioSourceNodes\|cumulativePlayedTime\|lastChunkAudioId\|audioElements" src/ --include="*.ts" --include="*.tsx" --include="*.js" | grep -v "ModernAudioPlayer.js" | grep -v node_modules`
+
+If any external references to removed internals are found, fix them:
+- `player.context` → still exists, OK
+- `player.analyser` → still exists, OK
+- `player.audioElements` → removed. If referenced externally, replace with `player.isTrackPlaying(trackId)` check
+
+- [ ] **Step 4: Run tests**
+
+Run: `npm run test 2>&1 | tail -20`
+
+Expected: Existing tests pass. There are no unit tests for `ModernAudioPlayer` itself (AudioWorklet can't run in jsdom), so test failures would indicate breakage in other modules.
+
+- [ ] **Step 5: Commit any fixes**
+
+```bash
+git add -A
+git commit -m "fix(audio): resolve build errors from audio pipeline rewrite"
+```
+
+---
+
+### Task 8: Manual integration testing
+
+No code changes — this task is a manual verification checklist.
+
+- [ ] **Step 1: Test basic playback (Electron)**
+
+1. Run `npm run electron:dev`
+2. Connect to Gemini provider with audio output enabled
+3. Send a message that produces a long response (10+ words)
+4. **Verify:** Audio plays smoothly with no crackling or gaps
+5. **Verify:** Audio continues playing without artifacts for the full response
+
+- [ ] **Step 2: Test AEC (Electron)**
+
+1. With speakers (no headphones), start a translation session
+2. Speak while TTS is playing back
+3. **Verify:** The AI does not echo back its own TTS output (AEC is working)
+
+- [ ] **Step 3: Test volume control**
+
+1. Toggle monitor on/off in the UI
+2. **Verify:** Audio mutes and unmutes without glitches
+3. Adjust volume slider
+4. **Verify:** Volume changes take effect immediately
+
+- [ ] **Step 4: Test track interruption**
+
+1. Start a long TTS response
+2. Interrupt mid-playback (e.g., press stop or send new input)
+3. **Verify:** Audio stops immediately, no residual sound
+4. Start a new response
+5. **Verify:** New audio plays cleanly
+
+- [ ] **Step 5: Test output device switching**
+
+1. Change the output device in settings while audio is playing
+2. **Verify:** Audio switches to new device
+
+- [ ] **Step 6: Test visualization**
+
+1. During playback, observe the waveform visualization
+2. **Verify:** Waveform renders and moves with the audio
+
+- [ ] **Step 7: Test browser extension**
+
+1. Load the extension in Chrome
+2. Open a supported platform (e.g., Google Meet)
+3. Start a translation session
+4. **Verify:** Audio plays in side panel without crackling
+5. **Verify:** Virtual microphone receives audio (other participants can hear translation)
+
+- [ ] **Step 8: Test multiple providers**
+
+Test with: OpenAI, Gemini, Palabra AI, Kizuna AI
+**Verify:** All providers play audio without crackling
