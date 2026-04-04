@@ -1436,6 +1436,9 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         const MIN_VOICE_CHUNKS = 5; // At least 5 non-silent chunks (~0.5 seconds of speech)
         if (client && provider === Provider.LOCAL_INFERENCE) {
           client.createResponse();
+        } else if (client && provider === Provider.GEMINI) {
+          // Gemini PTT: always send activityEnd to close the turn, even for short utterances
+          client.createResponse();
         } else if (client && provider !== Provider.VOLCENGINE_AST2 && pttVoiceChunkCountRef.current >= MIN_VOICE_CHUNKS) {
           // Model drift prevention is handled by the silent anchor mechanism (useEffect)
           client.createResponse();
