@@ -342,7 +342,7 @@ export class ModernAudioPlayer {
     const streamData = this.streamingBuffers.get(trackId);
     if (!streamData) return;
 
-    const minBufferSize = this.sampleRate * 0.02; // Reduced to 0.02 seconds (20ms) for faster response
+    const minBufferSize = this.sampleRate * 0.2; // 200ms buffer to reduce inter-chunk audio artifacts (#172)
     const totalLength = streamData.totalLength || 0;
     
     if (totalLength >= minBufferSize) {
@@ -397,7 +397,7 @@ export class ModernAudioPlayer {
 
     const timeoutId = setTimeout(() => {
       this.flushStreamingBuffer(trackId);
-    }, 20); // Reduced to 20ms for faster flushing
+    }, 200); // 200ms flush timeout to match buffer threshold (#172)
     
     this.streamingTimeouts.set(trackId, timeoutId);
   }
