@@ -48,10 +48,8 @@ class PlaybackRingWorkletProcessor extends AudioWorkletProcessor {
   }
 
   _clear() {
-    if (this._indices) {
-      Atomics.store(this._indices, 0, 0); // writeIndex
-      Atomics.store(this._indices, 1, 0); // readIndex
-    }
+    // SPSC-safe: consumer (worklet) only resets its own internal state.
+    // The producer (main thread) handles index reset by setting writeIdx = readIdx.
     this._samplesPlayed = 0;
     this._lastPositionReport = 0;
     this._setState('stopped');

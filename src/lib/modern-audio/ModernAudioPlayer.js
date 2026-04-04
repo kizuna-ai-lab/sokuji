@@ -83,6 +83,10 @@ export class ModernAudioPlayer {
     }
 
     // Create SharedArrayBuffer: 16 bytes header (4x Int32) + capacity * 4 bytes (Float32)
+    // Requires cross-origin isolation (COOP/COEP headers)
+    if (typeof SharedArrayBuffer === 'undefined') {
+      throw new Error('[ModernAudioPlayer] SharedArrayBuffer not available — cross-origin isolation (COOP/COEP) required');
+    }
     const sabSize = 16 + this._ringCapacity * 4;
     this._sab = new SharedArrayBuffer(sabSize);
     this._indices = new Int32Array(this._sab, 0, 4);
@@ -339,20 +343,19 @@ export class ModernAudioPlayer {
    */
   addToPassthroughBuffer(audioData, volume = 1.0, delay = 50) {
     if (this.globalVolumeMultiplier === 0) return;
-
-    const effectiveVolume = volume * this.globalVolumeMultiplier;
-    if (effectiveVolume < 0.01) return;
+    // Only check per-track volume — GainNode handles globalVolumeMultiplier
+    if (volume < 0.01) return;
 
     const buffer = this._normalizeAudioData(audioData);
 
     if (delay > 0) {
       setTimeout(() => {
         if (this.globalVolumeMultiplier > 0) {
-          this._writeToRingBuffer(buffer, effectiveVolume, {});
+          this._writeToRingBuffer(buffer, volume, {});
         }
       }, delay);
     } else {
-      this._writeToRingBuffer(buffer, effectiveVolume, {});
+      this._writeToRingBuffer(buffer, volume, {});
     }
   }
 
@@ -729,13 +732,14 @@ export class ModernAudioPlayer {
     this._pendingWrites = [];
     this._cancelDrain();
 
-    // Reset SAB indices
+    // SPSC-safe clear: producer (main thread) only modifies writeIndex.
+    // Set writeIdx = readIdx to mark buffer as empty without touching readIndex.
     if (this._indices) {
-      Atomics.store(this._indices, 0, 0);
-      Atomics.store(this._indices, 1, 0);
+      const readIdx = Atomics.load(this._indices, 1);
+      Atomics.store(this._indices, 0, readIdx);
     }
 
-    // Also tell worklet to reset its internal state (samplesPlayed etc.)
+    // Tell worklet to reset its internal state (samplesPlayed etc.)
     if (this.workletNode) {
       this.workletNode.port.postMessage({ type: 'clear' });
     }
