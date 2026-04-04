@@ -1437,8 +1437,14 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         if (client && provider === Provider.LOCAL_INFERENCE) {
           client.createResponse();
         } else if (client && provider === Provider.GEMINI) {
-          // Gemini PTT: always send activityEnd to close the turn, even for short utterances
-          client.createResponse();
+          if (pttVoiceChunkCountRef.current >= MIN_VOICE_CHUNKS) {
+            client.createResponse();
+          } else {
+            // No meaningful speech detected — reset speaking state without sending
+            // activityEnd so Gemini doesn't generate a response for silence
+            client.cancelPttTurn?.();
+            console.debug(`[Sokuji] [MainPanel] PTT: Gemini turn cancelled - only ${pttVoiceChunkCountRef.current} voice chunks detected (minimum: ${MIN_VOICE_CHUNKS})`);
+          }
         } else if (client && provider !== Provider.VOLCENGINE_AST2 && pttVoiceChunkCountRef.current >= MIN_VOICE_CHUNKS) {
           // Model drift prevention is handled by the silent anchor mechanism (useEffect)
           client.createResponse();

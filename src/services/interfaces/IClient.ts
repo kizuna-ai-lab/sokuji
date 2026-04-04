@@ -262,6 +262,10 @@ export interface IClient {
   // Provider-specific information
   getProvider(): ProviderType;
 
+  // Optional PTT control methods
+  /** Cancel current PTT turn without triggering a response (e.g., when no speech detected) */
+  cancelPttTurn?(): void;
+
   // Optional device control methods (WebRTC only)
   switchInputDevice?(deviceId: string): Promise<void>;
   switchOutputDevice?(deviceId: string): Promise<void>;

@@ -954,6 +954,15 @@ export class GeminiClient implements IClient {
     }
   }
 
+  cancelPttTurn(): void {
+    if (this.pttMode && this.isUserSpeaking) {
+      // Reset speaking state without sending activityEnd, so the server
+      // does not generate a response for empty/silent PTT presses.
+      this.isUserSpeaking = false;
+      console.debug('[GeminiClient] PTT: cancelled turn (no speech detected), skipped activityEnd');
+    }
+  }
+
   cancelResponse(trackId?: string, offset?: number): void {
     // Gemini Live API doesn't support response cancellation in the same way as OpenAI
     console.warn('[GeminiClient] Response cancellation not supported');
