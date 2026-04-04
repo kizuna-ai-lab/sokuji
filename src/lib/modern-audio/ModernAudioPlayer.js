@@ -1,92 +1,153 @@
 /**
- * Modern Audio Player using HTMLAudioElement for echo cancellation compatibility
- * Simplified version focused on chunk queuing and sequential playback
+ * Modern Audio Player using AudioWorklet ring buffer for gapless playback.
+ * Output routes through a single persistent HTMLAudioElement for AEC compatibility.
+ *
+ * Architecture:
+ *   PCM chunks → postMessage → AudioWorkletNode (ring buffer)
+ *     → GainNode → AnalyserNode → MediaStreamDestinationNode
+ *       → HTMLAudioElement.srcObject → Speakers (AEC-visible)
  */
 export class ModernAudioPlayer {
   constructor({ sampleRate = 24000 } = {}) {
     this.sampleRate = sampleRate;
+
+    // AudioContext graph nodes (initialized in connect())
     this.context = null;
+    this.workletNode = null;
+    this.gainNode = null;
     this.analyser = null;
-    
-    // Audio playback management
-    this.audioElements = new Map(); // Track active audio elements
-    this.currentAudioId = 0;
+    this.destinationNode = null;
+    this.audioElement = null;
+
+    // Output device
     this.outputDeviceId = null;
-    
-    // No pooling - create new audio elements each time to avoid connection issues
-    
-    // Queue system for sequential playback
-    this.trackQueues = new Map(); // Queue system for each trackId
-    this.streamingBuffers = new Map(); // Accumulate chunks before queuing
-    this.streamingTimeouts = new Map(); // Timeout management
-    this.interruptedTracks = new Set(); // Track interrupted trackIds
-    
-    // Sequence tracking for ordering
-    this.lastSequenceNumbers = new Map(); // trackId -> last processed sequence number
-    this.outOfOrderBuffers = new Map(); // trackId -> Map of sequence -> buffer data
-    this.sequenceGapTimeout = new Map(); // trackId -> timeout for missing sequences
-    
-    // Global volume control for monitor on/off
-    // Default to 0 (muted) since isMonitorDeviceOn defaults to false in AudioContext
-    this.globalVolumeMultiplier = 0.0;
-    
-    // Device switching state
     this.isSettingDevice = false;
     this.pendingDeviceId = null;
     this.deviceChangePromise = null;
-    
-    // Store gain nodes for volume control
-    this.audioGainNodes = new WeakMap();
-    
-    // Store source nodes for proper cleanup
-    this.audioSourceNodes = new WeakMap();
-    
+
+    // Streaming buffer accumulation (same as before)
+    this.streamingBuffers = new Map();
+    this.streamingTimeouts = new Map();
+    this.trackQueues = new Map();
+    this.interruptedTracks = new Set();
+
+    // Sequence tracking for ordering (same as before)
+    this.lastSequenceNumbers = new Map();
+    this.outOfOrderBuffers = new Map();
+    this.sequenceGapTimeout = new Map();
+
+    // Global volume control (default muted — monitor off)
+    this.globalVolumeMultiplier = 0.0;
+
     // Playback status tracking
     this.currentPlayingItemId = null;
     this.onPlaybackStatusChange = null;
-    
-    // Track cumulative played time for smooth progress across chunks
-    this.cumulativePlayedTime = new Map(); // itemId -> total seconds played
-    this.lastChunkAudioId = new Map(); // itemId -> last audio element ID to detect chunk transitions
-
-    // Track total buffered duration (played + playing + queued) per item
-    this.totalBufferedDuration = new Map(); // itemId -> total seconds of audio received
-
-    // Deferred cleanup timeout for current item (prevents race condition between sentences)
+    this.totalBufferedDuration = new Map(); // itemId -> total seconds buffered
+    this.totalPlayedSamples = 0; // from worklet readPosition reports
+    this.itemStartSample = 0; // sample count when current item started
     this.itemEndTimeout = null;
+
+    // Worklet state
+    this._workletReady = false;
+    this._workletState = 'stopped'; // 'stopped' | 'playing' | 'starving'
   }
 
   /**
-   * Initialize the audio player
+   * Initialize the audio player — creates AudioContext, loads worklet, builds audio graph.
    */
   async connect() {
-    // Make this method idempotent - only create context if it doesn't exist
     if (this.context) {
-      console.debug('[ModernAudioPlayer] AudioContext already initialized');
       if (this.context.state === 'suspended') {
         await this.context.resume();
       }
       return true;
     }
-    
+
     this.context = new AudioContext({ sampleRate: this.sampleRate });
     if (this.context.state === 'suspended') {
       await this.context.resume();
     }
 
-    // Create analyser for frequency analysis
+    // Load worklet
+    const workletUrl = new URL('./worklets/playback-ring-processor.js', import.meta.url).href;
+    await this.context.audioWorklet.addModule(workletUrl);
+    this.workletNode = new AudioWorkletNode(this.context, 'playback-ring-processor');
+    this._workletReady = true;
+
+    // Listen for worklet messages
+    this.workletNode.port.onmessage = (e) => this._handleWorkletMessage(e.data);
+
+    // Build audio graph
+    this.gainNode = this.context.createGain();
+    this.gainNode.gain.setValueAtTime(this.globalVolumeMultiplier, this.context.currentTime);
+
     this.analyser = this.context.createAnalyser();
     this.analyser.fftSize = 8192;
     this.analyser.smoothingTimeConstant = 0.1;
+
+    this.destinationNode = this.context.createMediaStreamDestination();
+
+    // Connect: worklet → gain → analyser → mediaStreamDestination
+    this.workletNode.connect(this.gainNode);
+    this.gainNode.connect(this.analyser);
+    this.analyser.connect(this.destinationNode);
+
+    // Single persistent HTMLAudioElement for AEC-visible output
+    this.audioElement = new Audio();
+    this.audioElement.srcObject = this.destinationNode.stream;
+
+    // Apply output device if previously set
+    if (this.outputDeviceId && typeof this.audioElement.setSinkId === 'function') {
+      try {
+        await this.audioElement.setSinkId(this.outputDeviceId);
+      } catch (e) {
+        console.warn('[ModernAudioPlayer] Failed to set initial output device:', e.message);
+      }
+    }
+
+    await this.audioElement.play().catch((e) => {
+      console.warn('[ModernAudioPlayer] Initial play() blocked (will retry on user gesture):', e.message);
+    });
 
     return true;
   }
 
   /**
-   * Add streaming audio chunks - core method for queue-based playback
+   * Handle messages from the playback ring worklet.
+   */
+  _handleWorkletMessage(msg) {
+    if (msg.type === 'stateChange') {
+      const prevState = this._workletState;
+      this._workletState = msg.state;
+
+      if (msg.state === 'playing' && prevState !== 'playing') {
+        this._cancelEndNotification();
+        if (this.currentPlayingItemId && this.onPlaybackStatusChange) {
+          this.onPlaybackStatusChange({
+            itemId: this.currentPlayingItemId,
+            status: 'playing',
+            trackId: ''
+          });
+        }
+      } else if (msg.state === 'starving' && prevState === 'playing') {
+        if (this.currentPlayingItemId) {
+          this._scheduleEndNotification(this.currentPlayingItemId);
+        }
+      }
+    } else if (msg.type === 'readPosition') {
+      this.totalPlayedSamples = msg.samplesPlayed;
+    }
+  }
+
+  // =========================================================================
+  // Streaming Input
+  // =========================================================================
+
+  /**
+   * Add streaming audio chunks — core method for queue-based playback.
    * @param {ArrayBuffer|Int16Array} audioData - Audio data to add
    * @param {string} trackId - Track identifier
-   * @param {number} volume - Volume level
+   * @param {number} volume - Volume level (0-1) applied to PCM before ring buffer
    * @param {Object} metadata - Optional metadata (e.g., itemId, sequenceNumber)
    */
   addStreamingAudio(audioData, trackId = 'default', volume = 1.0, metadata = {}) {
@@ -94,730 +155,294 @@ export class ModernAudioPlayer {
       return new Int16Array(0);
     }
 
-    const buffer = this.normalizeAudioData(audioData);
-    
-    // Handle sequence ordering if sequence number is provided
+    const buffer = this._normalizeAudioData(audioData);
+
     if (metadata.sequenceNumber !== undefined) {
-      return this.handleSequencedAudio(buffer, trackId, volume, metadata);
+      return this._handleSequencedAudio(buffer, trackId, volume, metadata);
     }
-    
-    this.accumulateChunk(trackId, buffer, volume, metadata);
-    this.checkAndTriggerPlayback(trackId);
-    
+
+    this._accumulateChunk(trackId, buffer, volume, metadata);
+    this._checkAndTriggerPlayback(trackId);
+
     return buffer;
-  }
-  
-  /**
-   * Handle audio with sequence numbers for proper ordering
-   */
-  handleSequencedAudio(buffer, trackId, volume, metadata) {
-    const sequence = metadata.sequenceNumber;
-    const lastSequence = this.lastSequenceNumbers.get(trackId) || 0;
-    
-    console.debug('[AudioSequence] Processing chunk:', {
-      trackId,
-      sequence,
-      lastSequence,
-      isInOrder: sequence === lastSequence + 1,
-      bufferSize: buffer.length
-    });
-    
-    // If this is the next expected sequence, process immediately
-    if (sequence === lastSequence + 1) {
-      this.lastSequenceNumbers.set(trackId, sequence);
-      this.accumulateChunk(trackId, buffer, volume, metadata);
-      this.checkAndTriggerPlayback(trackId);
-      
-      // Check if we can now process any buffered out-of-order chunks
-      this.processBufferedSequences(trackId, volume);
-      
-      return buffer;
-    }
-    
-    // If this is out of order, buffer it
-    if (sequence > lastSequence + 1) {
-      console.warn('[AudioSequence] Out of order chunk detected:', {
-        trackId,
-        sequence,
-        expected: lastSequence + 1,
-        gap: sequence - lastSequence - 1
-      });
-      
-      // Store out-of-order buffer
-      if (!this.outOfOrderBuffers.has(trackId)) {
-        this.outOfOrderBuffers.set(trackId, new Map());
-      }
-      this.outOfOrderBuffers.get(trackId).set(sequence, { buffer, volume, metadata });
-      
-      // Set timeout to process anyway if gap isn't filled
-      this.setSequenceGapTimeout(trackId, volume);
-      
-      return buffer;
-    }
-    
-    // If this is a duplicate or old sequence, skip it
-    console.warn('[AudioSequence] Duplicate or old sequence, skipping:', {
-      trackId,
-      sequence,
-      lastSequence
-    });
-    
-    return buffer;
-  }
-  
-  /**
-   * Process any buffered sequences that are now in order
-   */
-  processBufferedSequences(trackId, volume) {
-    const outOfOrderMap = this.outOfOrderBuffers.get(trackId);
-    if (!outOfOrderMap || outOfOrderMap.size === 0) return;
-    
-    let lastSequence = this.lastSequenceNumbers.get(trackId) || 0;
-    let processed = [];
-    
-    // Process sequences in order
-    while (outOfOrderMap.has(lastSequence + 1)) {
-      const nextSequence = lastSequence + 1;
-      const { buffer, volume: origVolume, metadata } = outOfOrderMap.get(nextSequence);
-      
-      console.debug('[AudioSequence] Processing buffered sequence:', nextSequence);
-      
-      this.accumulateChunk(trackId, buffer, origVolume || volume, metadata);
-      this.checkAndTriggerPlayback(trackId);
-      
-      outOfOrderMap.delete(nextSequence);
-      processed.push(nextSequence);
-      lastSequence = nextSequence;
-    }
-    
-    if (processed.length > 0) {
-      this.lastSequenceNumbers.set(trackId, lastSequence);
-      console.debug('[AudioSequence] Processed buffered sequences:', processed);
-    }
-  }
-  
-  /**
-   * Set timeout to process buffered audio even if gap isn't filled
-   */
-  setSequenceGapTimeout(trackId, volume) {
-    // Clear existing timeout
-    if (this.sequenceGapTimeout.has(trackId)) {
-      clearTimeout(this.sequenceGapTimeout.get(trackId));
-    }
-    
-    // Set new timeout - wait 100ms for missing sequences
-    const timeoutId = setTimeout(() => {
-      console.warn('[AudioSequence] Gap timeout reached, processing buffered audio anyway');
-      this.forceProcessBufferedSequences(trackId, volume);
-    }, 100);
-    
-    this.sequenceGapTimeout.set(trackId, timeoutId);
-  }
-  
-  /**
-   * Force process buffered sequences even with gaps
-   */
-  forceProcessBufferedSequences(trackId, volume) {
-    const outOfOrderMap = this.outOfOrderBuffers.get(trackId);
-    if (!outOfOrderMap || outOfOrderMap.size === 0) return;
-    
-    // Get all sequences and sort them
-    const sequences = Array.from(outOfOrderMap.keys()).sort((a, b) => a - b);
-    
-    console.warn('[AudioSequence] Force processing sequences with gaps:', sequences);
-    
-    for (const sequence of sequences) {
-      const { buffer, volume: origVolume, metadata } = outOfOrderMap.get(sequence);
-      this.accumulateChunk(trackId, buffer, origVolume || volume, metadata);
-      this.checkAndTriggerPlayback(trackId);
-      outOfOrderMap.delete(sequence);
-    }
-    
-    // Update last sequence to highest processed
-    if (sequences.length > 0) {
-      this.lastSequenceNumbers.set(trackId, sequences[sequences.length - 1]);
-    }
   }
 
   /**
-   * Add complete audio for immediate playback (used by manual play buttons)
-   * @param {ArrayBuffer|Int16Array} audioData - Audio data to add
-   * @param {string} trackId - Track identifier
-   * @param {number} volume - Volume level
-   * @param {Object} metadata - Optional metadata (e.g., itemId)
+   * Add complete audio for immediate playback (used by manual play buttons).
    */
   add16BitPCM(audioData, trackId = 'default', volume = 1.0, metadata = {}) {
     if (this.interruptedTracks.has(trackId)) {
       return new Int16Array(0);
     }
 
-    const buffer = this.normalizeAudioData(audioData);
-    this.queueAudio(trackId, buffer, volume, metadata);
-    this.processQueue(trackId);
-    
+    const buffer = this._normalizeAudioData(audioData);
+    this._writeToRingBuffer(buffer, volume, metadata);
     return buffer;
   }
 
   /**
-   * Add audio to passthrough buffer - with optional delay for echo cancellation
+   * Add audio to passthrough buffer — with optional delay for echo cancellation.
    */
   addToPassthroughBuffer(audioData, volume = 1.0, delay = 50) {
-    // Performance: Early return if muted
-    if (this.globalVolumeMultiplier === 0) {
-      return;
-    }
-    
-    const trackId = 'passthrough';
+    if (this.globalVolumeMultiplier === 0) return;
+
     const effectiveVolume = volume * this.globalVolumeMultiplier;
-    
-    // Performance: Skip processing if effective volume is too low
-    if (effectiveVolume < 0.01) {
-      return;
-    }
-    
-    const buffer = this.normalizeAudioData(audioData);
-    
+    if (effectiveVolume < 0.01) return;
+
+    const buffer = this._normalizeAudioData(audioData);
+
     if (delay > 0) {
-      // Delayed playback for echo cancellation safety
       setTimeout(() => {
-        // Check again in case volume was muted during delay
         if (this.globalVolumeMultiplier > 0) {
-          this.queueAudio(trackId, buffer, effectiveVolume);
-          this.processQueue(trackId);
+          this._writeToRingBuffer(buffer, effectiveVolume, {});
         }
       }, delay);
     } else {
-      // Immediate playback
-      this.queueAudio(trackId, buffer, effectiveVolume);
-      this.processQueue(trackId);
+      this._writeToRingBuffer(buffer, effectiveVolume, {});
     }
   }
 
-  /**
-   * Normalize audio data to Int16Array
-   */
-  normalizeAudioData(audioData) {
-    if (audioData instanceof Int16Array) {
-      return audioData;
-    } else if (audioData instanceof ArrayBuffer) {
-      return new Int16Array(audioData);
-    } else {
-      throw new Error('Audio data must be Int16Array or ArrayBuffer');
+  // =========================================================================
+  // Sequence Ordering (unchanged logic, private methods)
+  // =========================================================================
+
+  _handleSequencedAudio(buffer, trackId, volume, metadata) {
+    const sequence = metadata.sequenceNumber;
+    const lastSequence = this.lastSequenceNumbers.get(trackId) || 0;
+
+    if (sequence === lastSequence + 1) {
+      this.lastSequenceNumbers.set(trackId, sequence);
+      this._accumulateChunk(trackId, buffer, volume, metadata);
+      this._checkAndTriggerPlayback(trackId);
+      this._processBufferedSequences(trackId, volume);
+      return buffer;
+    }
+
+    if (sequence > lastSequence + 1) {
+      if (!this.outOfOrderBuffers.has(trackId)) {
+        this.outOfOrderBuffers.set(trackId, new Map());
+      }
+      this.outOfOrderBuffers.get(trackId).set(sequence, { buffer, volume, metadata });
+      this._setSequenceGapTimeout(trackId, volume);
+      return buffer;
+    }
+
+    // Duplicate or old sequence — skip
+    return buffer;
+  }
+
+  _processBufferedSequences(trackId, volume) {
+    const outOfOrderMap = this.outOfOrderBuffers.get(trackId);
+    if (!outOfOrderMap || outOfOrderMap.size === 0) return;
+
+    let lastSequence = this.lastSequenceNumbers.get(trackId) || 0;
+
+    while (outOfOrderMap.has(lastSequence + 1)) {
+      const nextSequence = lastSequence + 1;
+      const { buffer, volume: origVolume, metadata } = outOfOrderMap.get(nextSequence);
+      this._accumulateChunk(trackId, buffer, origVolume || volume, metadata);
+      this._checkAndTriggerPlayback(trackId);
+      outOfOrderMap.delete(nextSequence);
+      lastSequence = nextSequence;
+    }
+
+    this.lastSequenceNumbers.set(trackId, lastSequence);
+  }
+
+  _setSequenceGapTimeout(trackId, volume) {
+    if (this.sequenceGapTimeout.has(trackId)) {
+      clearTimeout(this.sequenceGapTimeout.get(trackId));
+    }
+
+    const timeoutId = setTimeout(() => {
+      this._forceProcessBufferedSequences(trackId, volume);
+    }, 100);
+
+    this.sequenceGapTimeout.set(trackId, timeoutId);
+  }
+
+  _forceProcessBufferedSequences(trackId, volume) {
+    const outOfOrderMap = this.outOfOrderBuffers.get(trackId);
+    if (!outOfOrderMap || outOfOrderMap.size === 0) return;
+
+    const sequences = Array.from(outOfOrderMap.keys()).sort((a, b) => a - b);
+
+    for (const sequence of sequences) {
+      const { buffer, volume: origVolume, metadata } = outOfOrderMap.get(sequence);
+      this._accumulateChunk(trackId, buffer, origVolume || volume, metadata);
+      this._checkAndTriggerPlayback(trackId);
+      outOfOrderMap.delete(sequence);
+    }
+
+    if (sequences.length > 0) {
+      this.lastSequenceNumbers.set(trackId, sequences[sequences.length - 1]);
     }
   }
 
-  /**
-   * Accumulate streaming chunks until buffer is large enough
-   */
-  accumulateChunk(trackId, buffer, volume, metadata = {}) {
+  // =========================================================================
+  // Chunk Accumulation & Ring Buffer Write
+  // =========================================================================
+
+  _accumulateChunk(trackId, buffer, volume, metadata = {}) {
     if (!this.streamingBuffers.has(trackId)) {
       this.streamingBuffers.set(trackId, {
-        buffer: new Int16Array(0),
-        volume: volume,
-        chunks: [], // Performance: Store chunks separately to avoid constant reallocation
-        metadata: metadata // Store metadata for this stream
+        volume,
+        chunks: [],
+        totalLength: 0,
+        metadata
       });
     }
 
     const streamData = this.streamingBuffers.get(trackId);
-    
-    // Performance optimization: Store chunks separately instead of concatenating
-    streamData.chunks = streamData.chunks || [];
     streamData.chunks.push(buffer);
-    
-    // Update metadata if provided
+    streamData.totalLength += buffer.length;
+
     if (metadata.itemId) {
       streamData.metadata = metadata;
     }
-    
-    // Calculate total length for threshold checking
-    const totalLength = streamData.chunks.reduce((sum, chunk) => sum + chunk.length, 0);
-    streamData.totalLength = totalLength;
   }
 
-  /**
-   * Check if accumulated buffer is ready for playback
-   */
-  checkAndTriggerPlayback(trackId) {
+  _checkAndTriggerPlayback(trackId) {
     const streamData = this.streamingBuffers.get(trackId);
     if (!streamData) return;
 
-    const minBufferSize = this.sampleRate * 0.02; // Reduced to 0.02 seconds (20ms) for faster response
-    const totalLength = streamData.totalLength || 0;
-    
-    if (totalLength >= minBufferSize) {
-      this.flushStreamingBuffer(trackId);
+    const minBufferSize = this.sampleRate * 0.02; // 20ms
+
+    if (streamData.totalLength >= minBufferSize) {
+      this._flushStreamingBuffer(trackId);
     } else {
-      this.scheduleFlush(trackId);
+      this._scheduleFlush(trackId);
     }
   }
 
-  /**
-   * Move accumulated buffer to queue and start playback if needed
-   */
-  flushStreamingBuffer(trackId) {
+  _flushStreamingBuffer(trackId) {
     const streamData = this.streamingBuffers.get(trackId);
-    if (!streamData || (!streamData.chunks || streamData.chunks.length === 0)) return;
+    if (!streamData || streamData.chunks.length === 0) return;
 
-    // Performance: Combine chunks efficiently
-    const chunks = streamData.chunks || [];
-    if (chunks.length > 0) {
-      const totalLength = chunks.reduce((sum, chunk) => sum + chunk.length, 0);
-      const combinedBuffer = new Int16Array(totalLength);
-      let offset = 0;
-      
-      for (const chunk of chunks) {
-        combinedBuffer.set(chunk, offset);
-        offset += chunk.length;
-      }
-      
-      // Move to queue with metadata
-      this.queueAudio(trackId, combinedBuffer, streamData.volume, streamData.metadata);
-      
-      // Clear streaming buffer
-      streamData.chunks = [];
-      streamData.totalLength = 0;
-      // Keep metadata for next chunks of the same stream
-      // streamData.metadata is preserved
+    // Combine chunks into single Int16Array
+    const combined = new Int16Array(streamData.totalLength);
+    let offset = 0;
+    for (const chunk of streamData.chunks) {
+      combined.set(chunk, offset);
+      offset += chunk.length;
     }
-    
-    this.clearTimeout(trackId);
-    
-    // Process queue if nothing is playing
-    if (!this.isTrackPlaying(trackId)) {
-      this.processQueue(trackId);
-    }
+
+    // Write to ring buffer
+    this._writeToRingBuffer(combined, streamData.volume, streamData.metadata);
+
+    // Reset accumulator (keep metadata for next chunks of same stream)
+    streamData.chunks = [];
+    streamData.totalLength = 0;
+
+    this._clearStreamingTimeout(trackId);
   }
 
-  /**
-   * Schedule flush for remaining data
-   */
-  scheduleFlush(trackId) {
-    if (this.streamingTimeouts.has(trackId)) return; // Already scheduled
+  _scheduleFlush(trackId) {
+    if (this.streamingTimeouts.has(trackId)) return;
 
     const timeoutId = setTimeout(() => {
-      this.flushStreamingBuffer(trackId);
-    }, 20); // Reduced to 20ms for faster flushing
-    
+      this.streamingTimeouts.delete(trackId);
+      this._flushStreamingBuffer(trackId);
+    }, 20);
+
     this.streamingTimeouts.set(trackId, timeoutId);
   }
 
   /**
-   * Add audio to queue with metadata
+   * Convert Int16 PCM to Float32, apply per-track volume, and post to worklet.
    */
-  queueAudio(trackId, buffer, volume, metadata = {}) {
-    if (!this.trackQueues.has(trackId)) {
-      this.trackQueues.set(trackId, []);
-    }
-    
-    // Performance optimization: Only copy if necessary (when buffer might be reused)
-    // In most cases, the buffer is not reused, so we can avoid the copy
-    const isSharedBuffer = buffer.buffer && buffer.buffer.byteLength > buffer.byteLength;
-    
-    this.trackQueues.get(trackId).push({
-      buffer: isSharedBuffer ? new Int16Array(buffer) : buffer,
-      volume: volume,
-      metadata: metadata // Store metadata with queue item
-    });
-  }
+  _writeToRingBuffer(int16Buffer, volume, metadata) {
+    if (!this._workletReady || !this.workletNode) return;
 
-  /**
-   * Process queue for a track
-   */
-  processQueue(trackId) {
-    const queue = this.trackQueues.get(trackId);
-    if (!queue || queue.length === 0) return;
-
-    const item = queue.shift();
-    this.playAudio(trackId, item.buffer, item.volume, item.metadata);
-    
-    // Schedule next item
-    this.scheduleNextPlayback(trackId);
-  }
-
-  /**
-   * Schedule processing of next queue item using event-driven approach
-   */
-  scheduleNextPlayback(trackId) {
-    // Use event-driven approach instead of polling
-    // The next queue item will be processed when current audio ends
-    // This is handled in the audio.onended callback in playAudio()
-  }
-
-  /**
-   * Create new audio element
-   */
-  createAudioElement() {
-    return new Audio();
-  }
-
-  /**
-   * Cleanup audio element
-   */
-  cleanupAudioElement(audio) {
-    // Disconnect source node if exists
-    const sourceNode = this.audioSourceNodes.get(audio);
-    if (sourceNode) {
-      try {
-        sourceNode.disconnect();
-      } catch (e) {
-        // Ignore disconnect errors
-      }
-      this.audioSourceNodes.delete(audio);
-    }
-    
-    // Clean up gain node
-    const gainNode = this.audioGainNodes.get(audio);
-    if (gainNode) {
-      try {
-        gainNode.disconnect();
-      } catch (e) {
-        // Ignore disconnect errors
-      }
-      this.audioGainNodes.delete(audio);
-    }
-    
-    // Reset audio element state
-    audio.pause();
-    audio.currentTime = 0;
-    audio.src = '';
-    audio.onended = null;
-    audio.onerror = null;
-    audio.onplay = null;
-  }
-
-  /**
-   * Play audio buffer with metadata tracking
-   */
-  playAudio(trackId, buffer, volume = 1.0, metadata = {}) {
-    try {
-      // Update current playing item ID
-      if (metadata.itemId) {
-        // Cancel any deferred cleanup if same item continues
-        if (this.itemEndTimeout) {
-          clearTimeout(this.itemEndTimeout);
-          this.itemEndTimeout = null;
+    // Track item and buffered duration
+    if (metadata && metadata.itemId) {
+      if (this.currentPlayingItemId !== metadata.itemId) {
+        // New item — clean up old state
+        if (this.currentPlayingItemId !== null) {
+          this.totalBufferedDuration.delete(this.currentPlayingItemId);
         }
-
-        if (this.currentPlayingItemId !== metadata.itemId) {
-          // Genuinely new item — clean up old item's state
-          if (this.currentPlayingItemId !== null) {
-            this.cumulativePlayedTime.delete(this.currentPlayingItemId);
-            this.lastChunkAudioId.delete(this.currentPlayingItemId);
-            this.totalBufferedDuration.delete(this.currentPlayingItemId);
-          }
-          // Only initialize if not already tracking (handles null→sameId resume)
-          if (!this.cumulativePlayedTime.has(metadata.itemId)) {
-            this.cumulativePlayedTime.set(metadata.itemId, 0);
-          }
-        }
-
         this.currentPlayingItemId = metadata.itemId;
-        // Notify status change
-        if (this.onPlaybackStatusChange) {
-          this.onPlaybackStatusChange({
-            itemId: metadata.itemId,
-            status: 'playing',
-            trackId: trackId
-          });
-        }
-      }
-      
-      // Accumulate total buffered duration for this item
-      if (metadata.itemId) {
-        const bufferDuration = buffer.length / this.sampleRate;
-        const prev = this.totalBufferedDuration.get(metadata.itemId) || 0;
-        this.totalBufferedDuration.set(metadata.itemId, prev + bufferDuration);
+        this.totalBufferedDuration.set(metadata.itemId, 0);
+        this.itemStartSample = this.totalPlayedSamples;
       }
 
-      // Apply volume if needed
-      const processedBuffer = this.applyVolume(buffer, volume);
-      
-      // Create WAV blob
-      const wavBlob = this.createWavBlob(processedBuffer);
-      const audioUrl = URL.createObjectURL(wavBlob);
-      
-      // Create new audio element
-      const audio = this.createAudioElement();
-      audio.src = audioUrl;
-      // Keep audio element volume at max to ensure data flows to analyser
-      // Volume control will be done via GainNode in Web Audio API
-      audio.volume = volume; // Only apply the track volume, not global multiplier
-      audio.crossOrigin = 'anonymous';
+      const bufferDuration = int16Buffer.length / this.sampleRate;
+      const prev = this.totalBufferedDuration.get(metadata.itemId) || 0;
+      this.totalBufferedDuration.set(metadata.itemId, prev + bufferDuration);
+    }
 
-      const audioId = ++this.currentAudioId;
-      this.audioElements.set(audioId, {
-        element: audio,
-        url: audioUrl,
-        trackId: `${trackId}-stream`,
-        startTime: Date.now(),
-        metadata: metadata // Store metadata with audio element
-      });
+    // Convert Int16 → Float32 with volume
+    const float32 = new Float32Array(int16Buffer.length);
+    const scale = (volume !== 1.0) ? volume / 32768 : 1 / 32768;
+    for (let i = 0; i < int16Buffer.length; i++) {
+      float32[i] = int16Buffer[i] * scale;
+    }
 
-      // Connect to analyser BEFORE playing
-      this.connectToAnalyser(audio);
-      
-      // Note: Output device is set on AudioContext level, not on individual audio elements
+    // Post to worklet — transfer the buffer for zero-copy
+    this.workletNode.port.postMessage(
+      { type: 'write', samples: float32 },
+      [float32.buffer]
+    );
+  }
 
-      // Setup event handlers with queue processing
-      audio.onended = () => {
-        // Track cumulative played time for this chunk
-        if (metadata.itemId) {
-          const currentCumulative = this.cumulativePlayedTime.get(metadata.itemId) || 0;
-          const chunkDuration = audio.duration || 0;
-          this.cumulativePlayedTime.set(metadata.itemId, currentCumulative + chunkDuration);
-        }
-        
-        // Check if this was the last item for this itemId
-        const queue = this.trackQueues.get(trackId);
-        const hasMoreForItem = queue && queue.some(item => 
-          item.metadata && item.metadata.itemId === metadata.itemId
-        );
-        
-        if (!hasMoreForItem && metadata.itemId === this.currentPlayingItemId) {
-          // Defer cleanup — TTS may still be generating the next sentence
-          if (this.itemEndTimeout) clearTimeout(this.itemEndTimeout);
-          this.itemEndTimeout = setTimeout(() => {
-            // Only clean up if still the same item and still no audio playing
-            if (this.currentPlayingItemId === metadata.itemId && !this.isTrackPlaying(trackId)) {
-              this.cumulativePlayedTime.delete(metadata.itemId);
-              this.lastChunkAudioId.delete(metadata.itemId);
-              this.totalBufferedDuration.delete(metadata.itemId);
+  _normalizeAudioData(audioData) {
+    if (audioData instanceof Int16Array) return audioData;
+    if (audioData instanceof ArrayBuffer) return new Int16Array(audioData);
+    throw new Error('Audio data must be Int16Array or ArrayBuffer');
+  }
 
-              if (this.onPlaybackStatusChange) {
-                this.onPlaybackStatusChange({
-                  itemId: metadata.itemId,
-                  status: 'ended',
-                  trackId: trackId
-                });
-              }
-              this.currentPlayingItemId = null;
-            }
-            this.itemEndTimeout = null;
-          }, 2000);
-        }
-        
-        this.cleanupAudio(audioId);
-        // Process next item in queue when current audio ends
-        setTimeout(() => this.processQueue(trackId), 0);
-      };
-      audio.onerror = () => {
-        this.cleanupAudio(audioId);
-        // Process next item even on error to prevent queue stalling
-        setTimeout(() => this.processQueue(trackId), 0);
-      };
-
-      audio.play().catch(error => {
-        console.error('[ModernAudioPlayer] Playback failed:', error);
-        this.cleanupAudio(audioId);
-        // Process next item even on play error to prevent queue stalling
-        setTimeout(() => this.processQueue(trackId), 0);
-      });
-
-    } catch (error) {
-      console.error('[ModernAudioPlayer] Error playing audio:', error);
-      // Process next item even on error to prevent queue stalling
-      setTimeout(() => this.processQueue(trackId), 0);
+  _clearStreamingTimeout(trackId) {
+    if (this.streamingTimeouts.has(trackId)) {
+      clearTimeout(this.streamingTimeouts.get(trackId));
+      this.streamingTimeouts.delete(trackId);
     }
   }
 
-  /**
-   * Apply volume to buffer
-   */
-  applyVolume(buffer, volume) {
-    if (volume === 1.0) return buffer;
-    
-    const result = new Int16Array(buffer.length);
-    for (let i = 0; i < buffer.length; i++) {
-      result[i] = Math.round(buffer[i] * volume);
-    }
-    return result;
-  }
+  // =========================================================================
+  // Volume Control
+  // =========================================================================
 
   /**
-   * Connect audio to analyser for visualization
-   */
-  connectToAnalyser(audio) {
-    if (!this.context || !this.analyser) return;
-    
-    
-    try {
-      // Create MediaElementSource (can only be done once per audio element)
-      const source = this.context.createMediaElementSource(audio);
-      
-      // Create a gain node for volume control
-      const gainNode = this.context.createGain();
-      gainNode.gain.value = this.globalVolumeMultiplier;
-      
-      // Connect: source -> analyser (for visualization)
-      //          source -> gainNode -> destination (for playback with volume control)
-      source.connect(this.analyser);
-      source.connect(gainNode);
-      gainNode.connect(this.context.destination);
-      
-      // Store the nodes for this audio element
-      this.audioGainNodes.set(audio, gainNode);
-      this.audioSourceNodes.set(audio, source);
-      
-    } catch (error) {
-      // This might happen if the audio element was already connected elsewhere
-      console.warn('[ModernAudioPlayer] Could not connect audio to analyser:', error.message);
-    }
-  }
-
-  /**
-   * Check if track is currently playing
-   */
-  isTrackPlaying(trackId) {
-    for (const [, audioInfo] of this.audioElements) {
-      if (audioInfo.trackId.startsWith(`${trackId}-stream`)) {
-        const audio = audioInfo.element;
-        if (!audio.paused && !audio.ended) {
-          return true;
-        }
-      }
-    }
-    return false;
-  }
-
-  /**
-   * Create WAV blob from PCM data
-   */
-  createWavBlob(pcmData) {
-    const arrayBuffer = pcmData.buffer.slice(pcmData.byteOffset, pcmData.byteOffset + pcmData.byteLength);
-    const wavHeader = this.createWavHeader(arrayBuffer.byteLength);
-    const wavArray = new Uint8Array(44 + arrayBuffer.byteLength);
-    
-    wavArray.set(wavHeader, 0);
-    wavArray.set(new Uint8Array(arrayBuffer), 44);
-    
-    return new Blob([wavArray], { type: 'audio/wav' });
-  }
-
-  /**
-   * Create WAV file header
-   */
-  createWavHeader(dataSize) {
-    const header = new ArrayBuffer(44);
-    const view = new DataView(header);
-    
-    const numChannels = 1;
-    const bitsPerSample = 16;
-    const byteRate = this.sampleRate * numChannels * bitsPerSample / 8;
-    const blockAlign = numChannels * bitsPerSample / 8;
-    
-    // RIFF header
-    view.setUint32(0, 0x52494646, false); // "RIFF"
-    view.setUint32(4, dataSize + 36, true); // file size - 8
-    view.setUint32(8, 0x57415645, false); // "WAVE"
-    
-    // fmt chunk
-    view.setUint32(12, 0x666d7420, false); // "fmt "
-    view.setUint32(16, 16, true); // chunk size
-    view.setUint16(20, 1, true); // PCM format
-    view.setUint16(22, numChannels, true);
-    view.setUint32(24, this.sampleRate, true);
-    view.setUint32(28, byteRate, true);
-    view.setUint16(32, blockAlign, true);
-    view.setUint16(34, bitsPerSample, true);
-    
-    // data chunk
-    view.setUint32(36, 0x64617461, false); // "data"
-    view.setUint32(40, dataSize, true);
-    
-    return new Uint8Array(header);
-  }
-
-  /**
-   * Get frequency data for visualization
-   */
-  getFrequencies() {
-    if (!this.context || !this.analyser) {
-      return {
-        values: new Float32Array(1024),
-        peaks: []
-      };
-    }
-
-    const bufferLength = this.analyser.frequencyBinCount;
-    const dataArray = new Uint8Array(bufferLength);
-    this.analyser.getByteFrequencyData(dataArray);
-    
-    
-    const result = new Float32Array(bufferLength);
-    for (let i = 0; i < bufferLength; i++) {
-      result[i] = dataArray[i] / 255.0;
-    }
-    
-    return {
-      values: result,
-      peaks: []
-    };
-  }
-
-  /**
-   * Set global volume multiplier (for monitor on/off)
+   * Set global volume multiplier (for monitor on/off).
    * @param {number} volume - Volume from 0 to 1
    */
   setGlobalVolume(volume) {
     this.globalVolumeMultiplier = Math.max(0, Math.min(1, volume));
-    
-    // Apply to all gain nodes of currently playing audio elements
-    for (const [, audioInfo] of this.audioElements) {
-      const gainNode = this.audioGainNodes.get(audioInfo.element);
-      if (gainNode) {
-        // Use setValueAtTime for immediate change without clicks
-        gainNode.gain.setValueAtTime(this.globalVolumeMultiplier, this.context.currentTime);
-      }
+
+    if (this.gainNode && this.context) {
+      this.gainNode.gain.setValueAtTime(this.globalVolumeMultiplier, this.context.currentTime);
     }
-    
-    console.debug(`[ModernAudioPlayer] Global volume set to: ${this.globalVolumeMultiplier}`);
   }
 
+  // =========================================================================
+  // Output Device Switching
+  // =========================================================================
+
   /**
-   * Set audio output device
+   * Set audio output device.
    */
   async setSinkId(deviceId) {
-    console.debug('[ModernAudioPlayer] setSinkId called with:', deviceId, 'current state:', {
-      hasContext: !!this.context,
-      isSettingDevice: this.isSettingDevice,
-      currentDeviceId: this.outputDeviceId
-    });
-    
-    // Check if device is already set
-    if (this.outputDeviceId === deviceId) {
-      console.debug('[ModernAudioPlayer] Device already set to:', deviceId);
-      return true;
-    }
-    
-    // If there's an ongoing device change, wait for it if it's the same device
+    if (this.outputDeviceId === deviceId) return true;
+
     if (this.deviceChangePromise && this.pendingDeviceId === deviceId) {
-      console.debug('[ModernAudioPlayer] Waiting for ongoing device change to same device');
       return this.deviceChangePromise;
     }
-    
-    // Create a new promise for this device change
+
     this.pendingDeviceId = deviceId;
     this.deviceChangePromise = this._performDeviceChange(deviceId);
-    
+
     try {
       return await this.deviceChangePromise;
     } finally {
-      // Clear the promise when done
       if (this.pendingDeviceId === deviceId) {
         this.deviceChangePromise = null;
         this.pendingDeviceId = null;
       }
     }
   }
-  
-  /**
-   * Internal method to perform the actual device change
-   */
+
   async _performDeviceChange(deviceId) {
-    // Ensure audio context is initialized
     if (!this.context) {
-      console.warn('[ModernAudioPlayer] AudioContext not initialized, initializing now...');
       try {
         await this.connect();
       } catch (error) {
@@ -825,16 +450,19 @@ export class ModernAudioPlayer {
         return false;
       }
     }
-    
+
     try {
-      // Set output device on AudioContext instead of individual audio elements
-      if (this.context && this.context.setSinkId) {
-        await this.context.setSinkId(deviceId);
-        console.info('[ModernAudioPlayer] Successfully set AudioContext output device to:', deviceId);
-      } else {
-        console.warn('[ModernAudioPlayer] AudioContext.setSinkId not supported in this browser');
+      // Set on HTMLAudioElement (preferred — routes through OS audio path for AEC)
+      if (this.audioElement && typeof this.audioElement.setSinkId === 'function') {
+        await this.audioElement.setSinkId(deviceId);
       }
-      
+      // Also set on AudioContext if supported (for future-proofing)
+      if (this.context && typeof this.context.setSinkId === 'function') {
+        await this.context.setSinkId(deviceId).catch(() => {
+          // AudioContext.setSinkId may not be available everywhere
+        });
+      }
+
       this.outputDeviceId = deviceId;
       return true;
     } catch (error) {
@@ -843,56 +471,138 @@ export class ModernAudioPlayer {
     }
   }
 
+  // =========================================================================
+  // Visualization
+  // =========================================================================
+
   /**
-   * Interrupt audio playback
+   * Get frequency data for visualization.
    */
-  async interrupt() {
-    let latestTrack = null;
-    let latestTime = 0;
-
-    for (const [, audioInfo] of this.audioElements) {
-      if (audioInfo.startTime > latestTime) {
-        latestTime = audioInfo.startTime;
-        latestTrack = audioInfo;
-      }
+  getFrequencies() {
+    if (!this.context || !this.analyser) {
+      return { values: new Float32Array(1024), peaks: [] };
     }
 
-    if (!latestTrack) {
-      return { trackId: null, offset: 0, currentTime: 0 };
+    const bufferLength = this.analyser.frequencyBinCount;
+    const dataArray = new Uint8Array(bufferLength);
+    this.analyser.getByteFrequencyData(dataArray);
+
+    const result = new Float32Array(bufferLength);
+    for (let i = 0; i < bufferLength; i++) {
+      result[i] = dataArray[i] / 255.0;
     }
 
-    const audio = latestTrack.element;
-    const estimatedOffset = Math.floor(audio.currentTime * this.sampleRate);
-    
-    // Extract original trackId (remove -stream suffix)
-    const originalTrackId = latestTrack.trackId.replace('-stream', '');
-    this.interruptedTracks.add(originalTrackId);
-    
-    audio.pause();
+    return { values: result, peaks: [] };
+  }
+
+  // =========================================================================
+  // Playback Status Tracking
+  // =========================================================================
+
+  /**
+   * Set playback status callback.
+   */
+  setPlaybackStatusCallback(callback) {
+    this.onPlaybackStatusChange = callback;
+  }
+
+  /**
+   * Get current playback status.
+   */
+  getCurrentPlaybackStatus() {
+    if (!this.currentPlayingItemId) return null;
+
+    const totalBufferedTime = this.getBufferedDuration(this.currentPlayingItemId);
+
+    // Calculate played time from worklet's sample counter
+    const samplesPlayedForItem = this.totalPlayedSamples - this.itemStartSample;
+    const currentTime = Math.max(0, samplesPlayedForItem / this.sampleRate);
 
     return {
-      trackId: originalTrackId,
-      offset: estimatedOffset,
-      currentTime: audio.currentTime
+      itemId: this.currentPlayingItemId,
+      trackId: '',
+      currentTime: Math.min(currentTime, totalBufferedTime),
+      duration: totalBufferedTime,
+      isPlaying: this._workletState === 'playing',
+      bufferedTime: totalBufferedTime
     };
   }
 
   /**
-   * Clear streaming data for a track
+   * Get buffered duration for an item.
+   */
+  getBufferedDuration(itemId) {
+    return this.totalBufferedDuration.get(itemId) || 0;
+  }
+
+  /**
+   * Schedule an 'ended' notification after buffer goes empty.
+   * Defers by 2s in case more audio is still being generated by the AI.
+   */
+  _scheduleEndNotification(itemId) {
+    this._cancelEndNotification();
+
+    this.itemEndTimeout = setTimeout(() => {
+      if (this.currentPlayingItemId === itemId && this._workletState !== 'playing') {
+        this.totalBufferedDuration.delete(itemId);
+
+        if (this.onPlaybackStatusChange) {
+          this.onPlaybackStatusChange({
+            itemId,
+            status: 'ended',
+            trackId: ''
+          });
+        }
+        this.currentPlayingItemId = null;
+      }
+      this.itemEndTimeout = null;
+    }, 2000);
+  }
+
+  _cancelEndNotification() {
+    if (this.itemEndTimeout) {
+      clearTimeout(this.itemEndTimeout);
+      this.itemEndTimeout = null;
+    }
+  }
+
+  // =========================================================================
+  // Interruption & Track Management
+  // =========================================================================
+
+  /**
+   * Interrupt audio playback — returns estimated position.
+   */
+  async interrupt() {
+    if (!this.currentPlayingItemId) {
+      return { trackId: null, offset: 0, currentTime: 0 };
+    }
+
+    const samplesPlayedForItem = this.totalPlayedSamples - this.itemStartSample;
+    const currentTime = samplesPlayedForItem / this.sampleRate;
+    const estimatedOffset = Math.floor(samplesPlayedForItem);
+
+    // Clear the ring buffer immediately
+    if (this.workletNode) {
+      this.workletNode.port.postMessage({ type: 'clear' });
+    }
+
+    // Mark all active tracks as interrupted
+    const trackId = 'default';
+    this.interruptedTracks.add(trackId);
+
+    return { trackId, offset: estimatedOffset, currentTime };
+  }
+
+  /**
+   * Clear streaming data for a track.
    */
   clearStreamingTrack(trackId) {
-    // Clear streaming buffer
     this.streamingBuffers.delete(trackId);
-    
-    // Clear timeout
-    this.clearTimeout(trackId);
-    
-    // Clear queue
+    this._clearStreamingTimeout(trackId);
     this.trackQueues.delete(trackId);
-    
-    // Remove from interrupted tracks
     this.interruptedTracks.delete(trackId);
-    
+
     // Clear sequence tracking
     this.lastSequenceNumbers.delete(trackId);
     this.outOfOrderBuffers.delete(trackId);
@@ -900,184 +610,156 @@ export class ModernAudioPlayer {
       clearTimeout(this.sequenceGapTimeout.get(trackId));
       this.sequenceGapTimeout.delete(trackId);
     }
-  }
-  
-  /**
-   * Set playback status callback
-   */
-  setPlaybackStatusCallback(callback) {
-    this.onPlaybackStatusChange = callback;
-  }
-  
-  /**
-   * Get current playback status
-   */
-  getCurrentPlaybackStatus() {
-    if (!this.currentPlayingItemId) return null;
-    
-    // Find the currently playing audio element
-    let currentAudio = null;
-    let currentAudioInfo = null;
-    let currentAudioId = null;
-    
-    for (const [audioId, audioInfo] of this.audioElements) {
-      if (audioInfo.metadata && audioInfo.metadata.itemId === this.currentPlayingItemId) {
-        const audio = audioInfo.element;
-        if (!audio.paused && !audio.ended) {
-          currentAudio = audio;
-          currentAudioInfo = audioInfo;
-          currentAudioId = audioId;
-          break;
-        }
-      }
+
+    // Clear ring buffer
+    if (this.workletNode) {
+      this.workletNode.port.postMessage({ type: 'clear' });
     }
-    
-    if (!currentAudio) {
-      // Check if we're in a transition between chunks
-      const cumulativeTime = this.cumulativePlayedTime.get(this.currentPlayingItemId);
-      if (cumulativeTime !== undefined) {
-        // Between chunks — report cumulative time as current position
-        const totalBuffered = this.getBufferedDuration(this.currentPlayingItemId);
-        console.debug(`[Karaoke] Chunk transition: itemId=${this.currentPlayingItemId}, cumulativeTime=${cumulativeTime.toFixed(3)}`);
-        return {
-          itemId: this.currentPlayingItemId,
-          trackId: '',
-          currentTime: cumulativeTime,
-          duration: totalBuffered,
-          isPlaying: true,  // still conceptually playing (next chunk pending)
-          bufferedTime: totalBuffered
-        };
-      }
-      return null;
-    }
-    
-    // Get cumulative played time for smooth progress
-    const cumulativeTime = this.cumulativePlayedTime.get(this.currentPlayingItemId) || 0;
-    
-    // Check if we've moved to a new chunk
-    const lastAudioId = this.lastChunkAudioId.get(this.currentPlayingItemId);
-    this.lastChunkAudioId.set(this.currentPlayingItemId, currentAudioId);
-    
-    // Calculate total progress: cumulative time + current chunk progress
-    const totalBufferedTime = this.getBufferedDuration(this.currentPlayingItemId);
-    const totalCurrentTime = cumulativeTime + currentAudio.currentTime;
-    
-    // For display, use the total buffered time as duration
-    const effectiveDuration = totalBufferedTime > 0 ? totalBufferedTime : currentAudio.duration;
-    
-    const status = {
-      itemId: this.currentPlayingItemId,
-      trackId: currentAudioInfo.trackId.replace('-stream', ''),
-      currentTime: totalCurrentTime,
-      duration: effectiveDuration,
-      isPlaying: !currentAudio.paused && !currentAudio.ended,
-      bufferedTime: totalBufferedTime
-    };
-    
-    return status;
   }
-  
+
   /**
-   * Get buffered duration for an item
-   */
-  getBufferedDuration(itemId) {
-    return this.totalBufferedDuration.get(itemId) || 0;
-  }
-  
-  /**
-   * Clear all interrupted tracks
+   * Clear all interrupted tracks.
    */
   clearInterruptedTracks() {
     this.interruptedTracks.clear();
-    console.debug('[ModernAudioPlayer] Cleared all interrupted tracks');
   }
 
   /**
-   * Clear timeout for a track
+   * Check if track is currently playing.
    */
-  clearTimeout(trackId) {
-    if (this.streamingTimeouts.has(trackId)) {
-      clearTimeout(this.streamingTimeouts.get(trackId));
-      this.streamingTimeouts.delete(trackId);
-    }
+  isTrackPlaying(_trackId) {
+    return this._workletState === 'playing';
   }
 
-  /**
-
-   * Cleanup audio element and resources
-   */
-  cleanupAudio(audioId) {
-    const audioInfo = this.audioElements.get(audioId);
-    if (audioInfo) {
-      URL.revokeObjectURL(audioInfo.url);
-      this.cleanupAudioElement(audioInfo.element);
-      this.audioElements.delete(audioId);
-    }
-  }
+  // =========================================================================
+  // Stop & Cleanup
+  // =========================================================================
 
   /**
-   * Stop all audio playback
+   * Stop all audio playback.
    */
   stopAll() {
-    if (this.itemEndTimeout) {
-      clearTimeout(this.itemEndTimeout);
-      this.itemEndTimeout = null;
+    this._cancelEndNotification();
+
+    // Clear ring buffer
+    if (this.workletNode) {
+      this.workletNode.port.postMessage({ type: 'clear' });
     }
-    for (const [audioId, audioInfo] of this.audioElements) {
-      audioInfo.element.pause();
-      this.cleanupAudio(audioId);
+
+    // Clear all accumulation and queue state
+    for (const timeoutId of this.streamingTimeouts.values()) {
+      clearTimeout(timeoutId);
     }
-    this.audioElements.clear();
-    this.cumulativePlayedTime.clear();
-    this.lastChunkAudioId.clear();
+    this.streamingTimeouts.clear();
+    this.streamingBuffers.clear();
+    this.trackQueues.clear();
+
+    // Clear tracking
     this.totalBufferedDuration.clear();
     this.currentPlayingItemId = null;
+    this.totalPlayedSamples = 0;
+    this.itemStartSample = 0;
   }
 
   /**
-   * Get diagnostic information for audio sequencing
+   * Cleanup all resources.
+   */
+  cleanup() {
+    this._cancelEndNotification();
+    this.stopAll();
+
+    // Clear sequence gap timeouts
+    for (const timeoutId of this.sequenceGapTimeout.values()) {
+      clearTimeout(timeoutId);
+    }
+    this.sequenceGapTimeout.clear();
+
+    // Clear all data
+    this.interruptedTracks.clear();
+    this.lastSequenceNumbers.clear();
+    this.outOfOrderBuffers.clear();
+
+    // Disconnect audio graph
+    if (this.workletNode) {
+      try { this.workletNode.disconnect(); } catch (e) { /* ignore */ }
+      this.workletNode = null;
+    }
+    if (this.gainNode) {
+      try { this.gainNode.disconnect(); } catch (e) { /* ignore */ }
+      this.gainNode = null;
+    }
+    if (this.analyser) {
+      try { this.analyser.disconnect(); } catch (e) { /* ignore */ }
+      this.analyser = null;
+    }
+    if (this.destinationNode) {
+      try { this.destinationNode.disconnect(); } catch (e) { /* ignore */ }
+      this.destinationNode = null;
+    }
+
+    // Stop and release HTMLAudioElement
+    if (this.audioElement) {
+      this.audioElement.pause();
+      this.audioElement.srcObject = null;
+      this.audioElement = null;
+    }
+
+    // Close AudioContext
+    if (this.context && this.context.state !== 'closed') {
+      this.context.close().catch(console.error);
+      this.context = null;
+    }
+
+    this._workletReady = false;
+    this._workletState = 'stopped';
+  }
+
+  // =========================================================================
+  // Diagnostics
+  // =========================================================================
+
+  /**
+   * Get diagnostic information for audio sequencing.
    */
   getSequenceDiagnostics() {
     const diagnostics = {
       tracks: {},
       outOfOrderCount: 0,
       totalBuffered: 0,
-      gaps: []
+      gaps: [],
+      workletState: this._workletState,
+      totalPlayedSamples: this.totalPlayedSamples
     };
-    
+
     for (const [trackId, lastSeq] of this.lastSequenceNumbers) {
       const outOfOrder = this.outOfOrderBuffers.get(trackId);
-      const outOfOrderSeqs = outOfOrder ? Array.from(outOfOrder.keys()).sort((a, b) => a - b) : [];
-      
+      const outOfOrderSeqs = outOfOrder
+        ? Array.from(outOfOrder.keys()).sort((a, b) => a - b)
+        : [];
+
       diagnostics.tracks[trackId] = {
         lastSequence: lastSeq,
         outOfOrderSequences: outOfOrderSeqs,
-        gaps: this.findSequenceGaps(lastSeq, outOfOrderSeqs),
+        gaps: this._findSequenceGaps(lastSeq, outOfOrderSeqs),
         queueLength: this.trackQueues.get(trackId)?.length || 0
       };
-      
+
       diagnostics.outOfOrderCount += outOfOrderSeqs.length;
-      
+
       if (diagnostics.tracks[trackId].gaps.length > 0) {
-        diagnostics.gaps.push(...diagnostics.tracks[trackId].gaps.map(g => ({
-          trackId,
-          ...g
-        })));
+        diagnostics.gaps.push(
+          ...diagnostics.tracks[trackId].gaps.map((g) => ({ trackId, ...g }))
+        );
       }
     }
-    
+
     return diagnostics;
   }
-  
-  /**
-   * Find gaps in sequence numbers
-   */
-  findSequenceGaps(lastSeq, outOfOrderSeqs) {
+
+  _findSequenceGaps(lastSeq, outOfOrderSeqs) {
     const gaps = [];
-    
     if (outOfOrderSeqs.length === 0) return gaps;
-    
-    // Check gap between last processed and first buffered
+
     if (outOfOrderSeqs[0] > lastSeq + 1) {
       gaps.push({
         from: lastSeq + 1,
@@ -1085,8 +767,7 @@ export class ModernAudioPlayer {
         size: outOfOrderSeqs[0] - lastSeq - 1
       });
     }
-    
-    // Check gaps between buffered sequences
+
     for (let i = 1; i < outOfOrderSeqs.length; i++) {
       if (outOfOrderSeqs[i] > outOfOrderSeqs[i - 1] + 1) {
         gaps.push({
@@ -1096,46 +777,8 @@ export class ModernAudioPlayer {
         });
       }
     }
-    
-    return gaps;
-  }
-  
-  /**
-   * Cleanup resources
-   */
-  cleanup() {
-    if (this.itemEndTimeout) {
-      clearTimeout(this.itemEndTimeout);
-      this.itemEndTimeout = null;
-    }
-    this.stopAll();
 
-    // Clear all timeouts
-    for (const timeoutId of this.streamingTimeouts.values()) {
-      clearTimeout(timeoutId);
-    }
-    this.streamingTimeouts.clear();
-    
-    // Clear sequence gap timeouts
-    for (const timeoutId of this.sequenceGapTimeout.values()) {
-      clearTimeout(timeoutId);
-    }
-    this.sequenceGapTimeout.clear();
-    
-    // Clear all data
-    this.streamingBuffers.clear();
-    this.trackQueues.clear();
-    this.interruptedTracks.clear();
-    this.lastSequenceNumbers.clear();
-    this.outOfOrderBuffers.clear();
-    this.cumulativePlayedTime.clear();
-    this.lastChunkAudioId.clear();
-    this.totalBufferedDuration.clear();
-    this.currentPlayingItemId = null;
-    
-    if (this.context && this.context.state !== 'closed') {
-      this.context.close().catch(console.error);
-    }
+    return gaps;
   }
 }
 
