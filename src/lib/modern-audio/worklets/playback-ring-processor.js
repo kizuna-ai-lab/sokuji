@@ -1,31 +1,44 @@
 /**
- * AudioWorklet processor that maintains a circular buffer for gapless audio playback.
- * Receives PCM samples via postMessage, outputs continuously via process().
- * When buffer is empty, outputs silence (no clicks or pops).
+ * AudioWorklet processor with SharedArrayBuffer ring buffer for gapless playback.
+ *
+ * SharedArrayBuffer layout:
+ *   Int32[0] = writeIndex (main thread writes, worklet reads — monotonically increasing)
+ *   Int32[1] = readIndex  (worklet writes, main thread reads — monotonically increasing)
+ *   Int32[2] = capacity
+ *   Int32[3] = flags      (reserved)
+ *   Float32[offset 16...] = audio data (capacity floats)
+ *
+ * SPSC (Single Producer Single Consumer) lock-free pattern:
+ *   - Main thread is the sole writer of writeIndex and audio data
+ *   - Worklet is the sole writer of readIndex
+ *   - Both use Atomics for index access to ensure visibility across threads
+ *   - Data array needs no atomics (SPSC guarantees no concurrent access to same region)
  */
 class PlaybackRingWorkletProcessor extends AudioWorkletProcessor {
   constructor() {
     super();
 
-    // Ring buffer: 2 seconds capacity at whatever sample rate the context uses
-    // sampleRate is a global in AudioWorkletGlobalScope
-    this._capacity = Math.floor(sampleRate * 2);
-    this._buffer = new Float32Array(this._capacity);
-    this._writeIndex = 0;
-    this._readIndex = 0;
+    // Shared memory views (set on 'init' message)
+    this._indices = null;  // Int32Array over SAB[0..15]
+    this._data = null;     // Float32Array over SAB[16..]
+    this._capacity = 0;
+    this._ready = false;
     this._playing = true;
 
-    // State tracking for notifications
+    // State tracking
     this._state = 'stopped'; // 'stopped' | 'playing' | 'starving'
     this._samplesPlayed = 0;
     this._lastPositionReport = 0;
-    // Report position every ~50ms worth of samples
-    this._positionReportInterval = Math.floor(sampleRate * 0.05);
+    this._positionReportInterval = Math.floor(sampleRate * 0.05); // ~50ms
 
     this.port.onmessage = (e) => {
       const msg = e.data;
-      if (msg.type === 'write') {
-        this._write(msg.samples);
+      if (msg.type === 'init') {
+        // Receive SharedArrayBuffer and create views
+        this._indices = new Int32Array(msg.sab, 0, 4);
+        this._data = new Float32Array(msg.sab, 16);
+        this._capacity = Atomics.load(this._indices, 2);
+        this._ready = true;
       } else if (msg.type === 'clear') {
         this._clear();
       } else if (msg.type === 'setPlaying') {
@@ -34,48 +47,11 @@ class PlaybackRingWorkletProcessor extends AudioWorkletProcessor {
     };
   }
 
-  _available() {
-    const avail = this._writeIndex - this._readIndex;
-    return avail >= 0 ? avail : avail + this._capacity;
-  }
-
-  _write(samples) {
-    const len = samples.length;
-
-    // Check for overflow — if writing would exceed capacity, drop oldest
-    if (len > this._capacity) {
-      // Extremely large write — only keep the last _capacity samples
-      const offset = len - this._capacity;
-      this._buffer.set(samples.subarray(offset), 0);
-      this._writeIndex = this._capacity;
-      this._readIndex = 0;
-      return;
-    }
-
-    const available = this._available();
-    const freeSpace = this._capacity - available;
-
-    if (len > freeSpace) {
-      // Overflow: advance readIndex to make room
-      const overflow = len - freeSpace;
-      this._readIndex = (this._readIndex + overflow) % this._capacity;
-    }
-
-    // Write samples into ring buffer (handle wrap-around)
-    const writePos = this._writeIndex % this._capacity;
-    const firstPart = Math.min(len, this._capacity - writePos);
-    this._buffer.set(samples.subarray(0, firstPart), writePos);
-
-    if (firstPart < len) {
-      this._buffer.set(samples.subarray(firstPart), 0);
-    }
-
-    this._writeIndex = (writePos + len) % this._capacity;
-  }
-
   _clear() {
-    this._readIndex = 0;
-    this._writeIndex = 0;
+    if (this._indices) {
+      Atomics.store(this._indices, 0, 0); // writeIndex
+      Atomics.store(this._indices, 1, 0); // readIndex
+    }
     this._samplesPlayed = 0;
     this._lastPositionReport = 0;
     this._setState('stopped');
@@ -95,16 +71,17 @@ class PlaybackRingWorkletProcessor extends AudioWorkletProcessor {
     const channel = output[0];
     const frameSize = channel.length; // typically 128
 
-    if (!this._playing) {
-      // Output silence when paused
+    if (!this._ready || !this._playing) {
       channel.fill(0);
       return true;
     }
 
-    const available = this._available();
+    // Read writeIndex (written by main thread)
+    const writeIdx = Atomics.load(this._indices, 0);
+    const readIdx = Atomics.load(this._indices, 1);
+    const available = writeIdx - readIdx; // always >= 0 in SPSC with monotonic indices
 
-    if (available === 0) {
-      // Buffer empty — output silence
+    if (available <= 0) {
       channel.fill(0);
       if (this._state === 'playing') {
         this._setState('starving');
@@ -112,32 +89,29 @@ class PlaybackRingWorkletProcessor extends AudioWorkletProcessor {
       return true;
     }
 
-    // We have data — read from ring buffer
     if (this._state !== 'playing') {
       this._setState('playing');
     }
 
     const samplesToRead = Math.min(frameSize, available);
-    const readPos = this._readIndex % this._capacity;
-    const firstPart = Math.min(samplesToRead, this._capacity - readPos);
+    const cap = this._capacity;
 
-    // Copy first part
-    channel.set(this._buffer.subarray(readPos, readPos + firstPart));
-
-    if (firstPart < samplesToRead) {
-      // Wrap around
-      channel.set(this._buffer.subarray(0, samplesToRead - firstPart), firstPart);
+    // Read from ring buffer with wrap-around
+    for (let i = 0; i < samplesToRead; i++) {
+      channel[i] = this._data[(readIdx + i) % cap];
     }
 
-    // Zero-fill remainder if buffer didn't have enough for full frame
+    // Zero-fill remainder
     if (samplesToRead < frameSize) {
       channel.fill(0, samplesToRead);
     }
 
-    this._readIndex = (readPos + samplesToRead) % this._capacity;
+    // Update readIndex (only this thread writes it)
+    Atomics.store(this._indices, 1, readIdx + samplesToRead);
+
     this._samplesPlayed += samplesToRead;
 
-    // Periodic position report
+    // Periodic position report (low frequency — for UI progress tracking)
     if (this._samplesPlayed - this._lastPositionReport >= this._positionReportInterval) {
       this._lastPositionReport = this._samplesPlayed;
       this.port.postMessage({ type: 'readPosition', samplesPlayed: this._samplesPlayed });

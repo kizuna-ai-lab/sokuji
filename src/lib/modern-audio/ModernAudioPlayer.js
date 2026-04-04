@@ -1,11 +1,15 @@
 /**
- * Modern Audio Player using AudioWorklet ring buffer for gapless playback.
+ * Modern Audio Player using SharedArrayBuffer ring buffer for gapless playback.
  * Output routes through a single persistent HTMLAudioElement for AEC compatibility.
  *
  * Architecture:
- *   PCM chunks → postMessage → AudioWorkletNode (ring buffer)
+ *   PCM chunks → SharedArrayBuffer (lock-free SPSC ring buffer) → AudioWorkletNode
  *     → GainNode → AnalyserNode → MediaStreamDestinationNode
  *       → HTMLAudioElement.srcObject → Speakers (AEC-visible)
+ *
+ * The main thread writes directly to shared memory. The worklet reads directly.
+ * No postMessage for audio data — only for low-frequency control signals.
+ * Overflow is handled by a main-thread queue that drains as the worklet consumes.
  */
 export class ModernAudioPlayer {
   constructor({ sampleRate = 24000 } = {}) {
@@ -25,13 +29,13 @@ export class ModernAudioPlayer {
     this.pendingDeviceId = null;
     this.deviceChangePromise = null;
 
-    // Streaming buffer accumulation (same as before)
+    // Streaming buffer accumulation
     this.streamingBuffers = new Map();
     this.streamingTimeouts = new Map();
     this.trackQueues = new Map();
     this.interruptedTracks = new Set();
 
-    // Sequence tracking for ordering (same as before)
+    // Sequence tracking for ordering
     this.lastSequenceNumbers = new Map();
     this.outOfOrderBuffers = new Map();
     this.sequenceGapTimeout = new Map();
@@ -51,13 +55,15 @@ export class ModernAudioPlayer {
     this._workletReady = false;
     this._workletState = 'stopped'; // 'stopped' | 'playing' | 'starving'
 
-    // Send queue for drip-feeding large audio into the ring buffer.
-    // The worklet ring buffer is 2s; writes larger than ~1s are chunked
-    // and fed gradually so nothing is dropped.
-    this._sendQueue = []; // Array of Float32Array chunks
+    // SharedArrayBuffer ring buffer
+    this._sab = null;
+    this._indices = null;  // Int32Array view [writeIndex, readIndex, capacity, flags]
+    this._data = null;     // Float32Array view (audio samples)
+    this._ringCapacity = Math.floor(sampleRate * 2); // 2 seconds
+
+    // Main-thread overflow queue — holds data that doesn't fit in ring buffer
+    this._pendingWrites = []; // Array of Float32Array chunks
     this._drainTimer = null;
-    this._totalSentSamples = 0; // samples posted to worklet
-    this._ringBufferCapacity = this.sampleRate * 2; // must match worklet
   }
 
   /**
@@ -76,13 +82,28 @@ export class ModernAudioPlayer {
       await this.context.resume();
     }
 
+    // Create SharedArrayBuffer: 16 bytes header (4x Int32) + capacity * 4 bytes (Float32)
+    const sabSize = 16 + this._ringCapacity * 4;
+    this._sab = new SharedArrayBuffer(sabSize);
+    this._indices = new Int32Array(this._sab, 0, 4);
+    this._data = new Float32Array(this._sab, 16);
+
+    // Initialize header
+    Atomics.store(this._indices, 0, 0); // writeIndex
+    Atomics.store(this._indices, 1, 0); // readIndex
+    Atomics.store(this._indices, 2, this._ringCapacity); // capacity
+    Atomics.store(this._indices, 3, 0); // flags
+
     // Load worklet
     const workletUrl = new URL('./worklets/playback-ring-processor.js', import.meta.url).href;
     await this.context.audioWorklet.addModule(workletUrl);
     this.workletNode = new AudioWorkletNode(this.context, 'playback-ring-processor');
     this._workletReady = true;
 
-    // Listen for worklet messages
+    // Send SharedArrayBuffer to worklet
+    this.workletNode.port.postMessage({ type: 'init', sab: this._sab });
+
+    // Listen for worklet messages (state changes + position reports only)
     this.workletNode.port.onmessage = (e) => this._handleWorkletMessage(e.data);
 
     // Build audio graph
@@ -144,6 +165,137 @@ export class ModernAudioPlayer {
       }
     } else if (msg.type === 'readPosition') {
       this.totalPlayedSamples = msg.samplesPlayed;
+      // Worklet consumed data — try to drain pending writes
+      if (this._pendingWrites.length > 0) {
+        this._drainPendingWrites();
+      }
+    }
+  }
+
+  // =========================================================================
+  // SharedArrayBuffer Ring Buffer Write
+  // =========================================================================
+
+  /**
+   * Get free space in the ring buffer by reading indices atomically.
+   */
+  _getFreeSpace() {
+    const writeIdx = Atomics.load(this._indices, 0);
+    const readIdx = Atomics.load(this._indices, 1);
+    const used = writeIdx - readIdx;
+    return this._ringCapacity - used;
+  }
+
+  /**
+   * Write Float32 samples directly into the SharedArrayBuffer ring buffer.
+   * Returns the number of samples actually written.
+   */
+  _writeToSAB(float32, offset, count) {
+    const writeIdx = Atomics.load(this._indices, 0);
+    const cap = this._ringCapacity;
+
+    for (let i = 0; i < count; i++) {
+      this._data[(writeIdx + i) % cap] = float32[offset + i];
+    }
+
+    // Update writeIndex — worklet will see the new data on next process() call
+    Atomics.store(this._indices, 0, writeIdx + count);
+    return count;
+  }
+
+  /**
+   * Write audio to the ring buffer. If it doesn't all fit, queue the overflow.
+   */
+  _writeToRingBuffer(int16Buffer, volume, metadata) {
+    if (!this._workletReady || !this._indices) return;
+
+    // Track item and buffered duration
+    if (metadata && metadata.itemId) {
+      if (this.currentPlayingItemId !== metadata.itemId) {
+        if (this.currentPlayingItemId !== null) {
+          this.totalBufferedDuration.delete(this.currentPlayingItemId);
+        }
+        this.currentPlayingItemId = metadata.itemId;
+        this.totalBufferedDuration.set(metadata.itemId, 0);
+        this.itemStartSample = this.totalPlayedSamples;
+      }
+
+      const bufferDuration = int16Buffer.length / this.sampleRate;
+      const prev = this.totalBufferedDuration.get(metadata.itemId) || 0;
+      this.totalBufferedDuration.set(metadata.itemId, prev + bufferDuration);
+    }
+
+    // Convert Int16 → Float32 with volume
+    const float32 = new Float32Array(int16Buffer.length);
+    const scale = (volume !== 1.0) ? volume / 32768 : 1 / 32768;
+    for (let i = 0; i < int16Buffer.length; i++) {
+      float32[i] = int16Buffer[i] * scale;
+    }
+
+    // Write as much as fits into ring buffer
+    const freeSpace = this._getFreeSpace();
+    const immediate = Math.min(float32.length, freeSpace);
+
+    if (immediate > 0) {
+      this._writeToSAB(float32, 0, immediate);
+    }
+
+    // Queue remainder for later delivery
+    if (immediate < float32.length) {
+      this._pendingWrites.push(float32.subarray(immediate));
+      this._scheduleDrain();
+    }
+  }
+
+  /**
+   * Drain pending writes into the ring buffer as space becomes available.
+   */
+  _drainPendingWrites() {
+    if (this._pendingWrites.length === 0) {
+      this._cancelDrain();
+      return;
+    }
+
+    let freeSpace = this._getFreeSpace();
+
+    while (this._pendingWrites.length > 0 && freeSpace > 0) {
+      const chunk = this._pendingWrites[0];
+      const toWrite = Math.min(chunk.length, freeSpace);
+
+      this._writeToSAB(chunk, 0, toWrite);
+      freeSpace -= toWrite;
+
+      if (toWrite < chunk.length) {
+        // Partial write — replace head with remainder
+        this._pendingWrites[0] = chunk.subarray(toWrite);
+        break;
+      } else {
+        // Fully written — remove from queue
+        this._pendingWrites.shift();
+      }
+    }
+
+    // If still have pending data, keep draining
+    if (this._pendingWrites.length > 0) {
+      this._scheduleDrain();
+    } else {
+      this._cancelDrain();
+    }
+  }
+
+  _scheduleDrain() {
+    if (this._drainTimer !== null) return;
+    // Drain every 50ms — matches worklet position report interval
+    this._drainTimer = setTimeout(() => {
+      this._drainTimer = null;
+      this._drainPendingWrites();
+    }, 50);
+  }
+
+  _cancelDrain() {
+    if (this._drainTimer !== null) {
+      clearTimeout(this._drainTimer);
+      this._drainTimer = null;
     }
   }
 
@@ -288,7 +440,7 @@ export class ModernAudioPlayer {
   }
 
   // =========================================================================
-  // Chunk Accumulation & Ring Buffer Write
+  // Chunk Accumulation
   // =========================================================================
 
   _accumulateChunk(trackId, buffer, volume, metadata = {}) {
@@ -335,10 +487,10 @@ export class ModernAudioPlayer {
       offset += chunk.length;
     }
 
-    // Write to ring buffer
+    // Write to ring buffer (with overflow queue)
     this._writeToRingBuffer(combined, streamData.volume, streamData.metadata);
 
-    // Reset accumulator (keep metadata for next chunks of same stream)
+    // Reset accumulator
     streamData.chunks = [];
     streamData.totalLength = 0;
 
@@ -354,113 +506,6 @@ export class ModernAudioPlayer {
     }, 20);
 
     this.streamingTimeouts.set(trackId, timeoutId);
-  }
-
-  /**
-   * Convert Int16 PCM to Float32, apply per-track volume, and enqueue for worklet.
-   * Small writes (≤1s) are posted directly; larger writes are drip-fed via _sendQueue
-   * to avoid overflowing the worklet's 2-second ring buffer.
-   */
-  _writeToRingBuffer(int16Buffer, volume, metadata) {
-    if (!this._workletReady || !this.workletNode) return;
-
-    // Track item and buffered duration
-    if (metadata && metadata.itemId) {
-      if (this.currentPlayingItemId !== metadata.itemId) {
-        // New item — clean up old state
-        if (this.currentPlayingItemId !== null) {
-          this.totalBufferedDuration.delete(this.currentPlayingItemId);
-        }
-        this.currentPlayingItemId = metadata.itemId;
-        this.totalBufferedDuration.set(metadata.itemId, 0);
-        this.itemStartSample = this.totalPlayedSamples;
-      }
-
-      const bufferDuration = int16Buffer.length / this.sampleRate;
-      const prev = this.totalBufferedDuration.get(metadata.itemId) || 0;
-      this.totalBufferedDuration.set(metadata.itemId, prev + bufferDuration);
-    }
-
-    // Convert Int16 → Float32 with volume
-    const float32 = new Float32Array(int16Buffer.length);
-    const scale = (volume !== 1.0) ? volume / 32768 : 1 / 32768;
-    for (let i = 0; i < int16Buffer.length; i++) {
-      float32[i] = int16Buffer[i] * scale;
-    }
-
-    // Fast path: small writes go directly to worklet (covers streaming case)
-    const maxDirectWrite = this.sampleRate; // 1 second
-    if (float32.length <= maxDirectWrite && this._sendQueue.length === 0) {
-      this._postToWorklet(float32);
-      return;
-    }
-
-    // Large write or queue already active: chunk into ~0.5s pieces and drip-feed
-    const chunkSize = Math.floor(this.sampleRate * 0.5); // 0.5 second chunks
-    for (let offset = 0; offset < float32.length; offset += chunkSize) {
-      const end = Math.min(offset + chunkSize, float32.length);
-      this._sendQueue.push(float32.slice(offset, end));
-    }
-
-    this._startDraining();
-  }
-
-  /**
-   * Post a Float32Array to the worklet ring buffer (zero-copy via transfer).
-   */
-  _postToWorklet(float32) {
-    if (!this.workletNode) return;
-    this._totalSentSamples += float32.length;
-    this.workletNode.port.postMessage(
-      { type: 'write', samples: float32 },
-      [float32.buffer]
-    );
-  }
-
-  /**
-   * Start the drain timer that feeds queued audio to the worklet.
-   */
-  _startDraining() {
-    if (this._drainTimer !== null) return;
-    // Drain immediately, then every 100ms
-    this._drainQueue();
-    this._drainTimer = setInterval(() => this._drainQueue(), 100);
-  }
-
-  /**
-   * Feed the next chunk from _sendQueue to the worklet, if there's room.
-   */
-  _drainQueue() {
-    if (this._sendQueue.length === 0) {
-      if (this._drainTimer !== null) {
-        clearInterval(this._drainTimer);
-        this._drainTimer = null;
-      }
-      return;
-    }
-
-    // Estimate how much audio is currently buffered in the worklet ring buffer
-    const bufferedInWorklet = this._totalSentSamples - this.totalPlayedSamples;
-    const headroom = this._ringBufferCapacity - bufferedInWorklet;
-
-    // Only send if there's at least 0.25s of headroom
-    const minHeadroom = Math.floor(this.sampleRate * 0.25);
-    if (headroom < minHeadroom) return;
-
-    // Send the next chunk
-    const chunk = this._sendQueue.shift();
-    this._postToWorklet(chunk);
-  }
-
-  /**
-   * Clear the send queue (used on stop/interrupt).
-   */
-  _clearSendQueue() {
-    this._sendQueue.length = 0;
-    if (this._drainTimer !== null) {
-      clearInterval(this._drainTimer);
-      this._drainTimer = null;
-    }
   }
 
   _normalizeAudioData(audioData) {
@@ -530,15 +575,11 @@ export class ModernAudioPlayer {
     }
 
     try {
-      // Set on HTMLAudioElement (preferred — routes through OS audio path for AEC)
       if (this.audioElement && typeof this.audioElement.setSinkId === 'function') {
         await this.audioElement.setSinkId(deviceId);
       }
-      // Also set on AudioContext if supported (for future-proofing)
       if (this.context && typeof this.context.setSinkId === 'function') {
-        await this.context.setSinkId(deviceId).catch(() => {
-          // AudioContext.setSinkId may not be available everywhere
-        });
+        await this.context.setSinkId(deviceId).catch(() => {});
       }
 
       this.outputDeviceId = deviceId;
@@ -592,7 +633,6 @@ export class ModernAudioPlayer {
 
     const totalBufferedTime = this.getBufferedDuration(this.currentPlayingItemId);
 
-    // Calculate played time from worklet's sample counter
     const samplesPlayedForItem = this.totalPlayedSamples - this.itemStartSample;
     const currentTime = Math.max(0, samplesPlayedForItem / this.sampleRate);
 
@@ -615,7 +655,6 @@ export class ModernAudioPlayer {
 
   /**
    * Schedule an 'ended' notification after buffer goes empty.
-   * Defers by 2s in case more audio is still being generated by the AI.
    */
   _scheduleEndNotification(itemId) {
     this._cancelEndNotification();
@@ -660,13 +699,9 @@ export class ModernAudioPlayer {
     const currentTime = samplesPlayedForItem / this.sampleRate;
     const estimatedOffset = Math.floor(samplesPlayedForItem);
 
-    // Clear send queue and ring buffer immediately
-    this._clearSendQueue();
-    if (this.workletNode) {
-      this.workletNode.port.postMessage({ type: 'clear' });
-    }
+    // Clear ring buffer + pending writes
+    this._clearRingBuffer();
 
-    // Mark all active tracks as interrupted
     const trackId = 'default';
     this.interruptedTracks.add(trackId);
 
@@ -682,7 +717,6 @@ export class ModernAudioPlayer {
     this.trackQueues.delete(trackId);
     this.interruptedTracks.delete(trackId);
 
-    // Clear sequence tracking
     this.lastSequenceNumbers.delete(trackId);
     this.outOfOrderBuffers.delete(trackId);
     if (this.sequenceGapTimeout.has(trackId)) {
@@ -690,8 +724,24 @@ export class ModernAudioPlayer {
       this.sequenceGapTimeout.delete(trackId);
     }
 
-    // Clear send queue and ring buffer
-    this._clearSendQueue();
+    this._clearRingBuffer();
+  }
+
+  /**
+   * Clear the ring buffer — resets SAB indices and flushes pending writes.
+   */
+  _clearRingBuffer() {
+    // Clear pending writes queue
+    this._pendingWrites = [];
+    this._cancelDrain();
+
+    // Reset SAB indices
+    if (this._indices) {
+      Atomics.store(this._indices, 0, 0);
+      Atomics.store(this._indices, 1, 0);
+    }
+
+    // Also tell worklet to reset its internal state (samplesPlayed etc.)
     if (this.workletNode) {
       this.workletNode.port.postMessage({ type: 'clear' });
     }
@@ -720,15 +770,8 @@ export class ModernAudioPlayer {
    */
   stopAll() {
     this._cancelEndNotification();
+    this._clearRingBuffer();
 
-    // Clear send queue and ring buffer
-    this._clearSendQueue();
-    if (this.workletNode) {
-      this.workletNode.port.postMessage({ type: 'clear' });
-    }
-    this._totalSentSamples = 0;
-
-    // Clear all accumulation and queue state
     for (const timeoutId of this.streamingTimeouts.values()) {
       clearTimeout(timeoutId);
     }
@@ -736,7 +779,6 @@ export class ModernAudioPlayer {
     this.streamingBuffers.clear();
     this.trackQueues.clear();
 
-    // Clear tracking
     this.totalBufferedDuration.clear();
     this.currentPlayingItemId = null;
     this.totalPlayedSamples = 0;
@@ -750,18 +792,15 @@ export class ModernAudioPlayer {
     this._cancelEndNotification();
     this.stopAll();
 
-    // Clear sequence gap timeouts
     for (const timeoutId of this.sequenceGapTimeout.values()) {
       clearTimeout(timeoutId);
     }
     this.sequenceGapTimeout.clear();
 
-    // Clear all data
     this.interruptedTracks.clear();
     this.lastSequenceNumbers.clear();
     this.outOfOrderBuffers.clear();
 
-    // Disconnect audio graph
     if (this.workletNode) {
       try { this.workletNode.disconnect(); } catch (e) { /* ignore */ }
       this.workletNode = null;
@@ -779,19 +818,20 @@ export class ModernAudioPlayer {
       this.destinationNode = null;
     }
 
-    // Stop and release HTMLAudioElement
     if (this.audioElement) {
       this.audioElement.pause();
       this.audioElement.srcObject = null;
       this.audioElement = null;
     }
 
-    // Close AudioContext
     if (this.context && this.context.state !== 'closed') {
       this.context.close().catch(console.error);
       this.context = null;
     }
 
+    this._sab = null;
+    this._indices = null;
+    this._data = null;
     this._workletReady = false;
     this._workletState = 'stopped';
   }
@@ -804,13 +844,19 @@ export class ModernAudioPlayer {
    * Get diagnostic information for audio sequencing.
    */
   getSequenceDiagnostics() {
+    const writeIdx = this._indices ? Atomics.load(this._indices, 0) : 0;
+    const readIdx = this._indices ? Atomics.load(this._indices, 1) : 0;
+
     const diagnostics = {
       tracks: {},
       outOfOrderCount: 0,
       totalBuffered: 0,
       gaps: [],
       workletState: this._workletState,
-      totalPlayedSamples: this.totalPlayedSamples
+      totalPlayedSamples: this.totalPlayedSamples,
+      ringBufferUsed: writeIdx - readIdx,
+      ringBufferCapacity: this._ringCapacity,
+      pendingWriteChunks: this._pendingWrites.length
     };
 
     for (const [trackId, lastSeq] of this.lastSequenceNumbers) {
