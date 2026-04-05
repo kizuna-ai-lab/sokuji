@@ -73,6 +73,10 @@ export default defineConfig(({ mode }) => {
             src: '../src/services/worklets/audio-recorder-worklet-processor.js',
             dest: 'worklets',
           },
+          {
+            src: '../src/lib/modern-audio/worklets/playback-ring-processor.js',
+            dest: 'worklets',
+          },
           // Permission page
           { src: 'permission.html', dest: '.' },
           { src: 'requestPermission.js', dest: '.' },

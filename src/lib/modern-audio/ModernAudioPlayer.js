@@ -98,8 +98,10 @@ export class ModernAudioPlayer {
     Atomics.store(this._indices, 2, this._ringCapacity); // capacity
     Atomics.store(this._indices, 3, 0); // flags
 
-    // Load worklet
-    const workletUrl = new URL('./worklets/playback-ring-processor.js', import.meta.url).href;
+    // Load worklet — use chrome.runtime.getURL in extension context (CSP blocks data: URLs)
+    const workletUrl = (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.getURL)
+      ? chrome.runtime.getURL('worklets/playback-ring-processor.js')
+      : new URL('./worklets/playback-ring-processor.js', import.meta.url).href;
     await this.context.audioWorklet.addModule(workletUrl);
     this.workletNode = new AudioWorkletNode(this.context, 'playback-ring-processor');
     this._workletReady = true;
