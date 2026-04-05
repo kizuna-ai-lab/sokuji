@@ -9,53 +9,52 @@ module.exports = {
     appId: 'com.kizunaai.sokuji',
     executableName: 'sokuji',
     name: 'Sokuji',
-    // Ignore development files and directories
-    ignore: [
-      // Development source files — anchor to root so we don't strip
-      // src/ inside node_modules (e.g. node_modules/debug/src/ is runtime code)
-      '^/src($|/)',
-      '^/public($|/)',
-      
-      // Development dependencies and build-time-only native modules
-      '/node_modules/(@testing-library|jest|eslint|babel).*($|/)',
-      '/node_modules/@parcel/watcher($|/)',
-      
-      // Development configuration files
-      '\\.gitignore',
-      '\\.github($|/)',
-      '\\.vscode($|/)',
-      
-      // Source maps and other development artifacts
-      '\\.map$',
-      
-      // Debug-only assets
-      'build/assets/test-tone\\.mp3',
-      
-      // Test files
-      'test($|/)',
-      'tests($|/)',
-      '__tests__($|/)',
-      '\\.(spec|test)\\.(js|ts|jsx|tsx)$',
-      
-      // Documentation
-      'README\\.md',
-      'CHANGELOG\\.md',
-      'LICENSE',
-      'docs($|/)',
-      
-      // Build process files
-      'webpack\\.config\\.js',
-      'babel\\.config\\.js',
-      'tsconfig\\.json',
-      
-      // Temporary files
-      'tmp($|/)',
-      'temp($|/)',
-      
-      // Logs
-      'logs($|/)',
-      '\\.(log|logs)$'
-    ],
+    // Whitelist-based ignore: only include package.json, dist-electron/,
+    // build/ (minus wasm/), and node_modules/ (pruned by Forge).
+    // Everything else (src/, public/, model-packs/, extension/, etc.) is excluded.
+    ignore: (filePath) => {
+      // Root is always included
+      if (filePath === '') return false;
+
+      // Allow runtime-essential top-level entries
+      if (filePath === '/package.json') return false;
+      if (filePath.startsWith('/dist-electron')) return false;
+      if (filePath.startsWith('/node_modules')) {
+        // Strip dev-only junk inside node_modules
+        if (/\/((@testing-library|jest|eslint|babel)[^/]*|@parcel\/watcher)(\/|$)/.test(filePath)) return true;
+        if (/\.(map|ts|flow|markdown)$/.test(filePath)) return true;
+        return false;
+      }
+      if (filePath.startsWith('/build')) {
+        // WASM runtime dirs are INCLUDED (workers need importScripts / wasmPaths):
+        //   sherpa-onnx-asr, sherpa-onnx-asr-stream, sherpa-onnx-tts, ort, vad, piper-plus
+        // Model data dirs are EXCLUDED (downloaded at runtime via CDN + IndexedDB):
+        //   sherpa-onnx-asr-sensevoice, opus-mt-*, sherpa-onnx-tts-piper-*, etc.
+        if (filePath.startsWith('/build/wasm')) {
+          // Must include the /build/wasm directory itself so its children are traversed
+          if (filePath === '/build/wasm') return false;
+          const wasmRuntimeDirs = [
+            '/build/wasm/sherpa-onnx-asr',
+            '/build/wasm/sherpa-onnx-asr-stream',
+            '/build/wasm/sherpa-onnx-tts',
+            '/build/wasm/ort',
+            '/build/wasm/vad',
+            '/build/wasm/piper-plus',
+          ];
+          // Keep runtime dirs and their contents, exclude everything else
+          if (wasmRuntimeDirs.some(dir => filePath === dir || filePath.startsWith(dir + '/'))) return false;
+          return true;
+        }
+        // Exclude source maps
+        if (filePath.endsWith('.map')) return true;
+        // Exclude debug assets
+        if (filePath === '/build/assets/test-tone.mp3') return true;
+        return false;
+      }
+
+      // Reject everything else
+      return true;
+    },
     // Only include necessary files
     prune: true,
     // Reduce executable size by removing debug symbols
