@@ -263,13 +263,13 @@ function createWindow() {
   mainWindow.webContents.setUserAgent(customUserAgent);
   console.log('[Sokuji] [Main] Custom User Agent set:', customUserAgent);
 
-  // Set COOP/COEP headers to enable SharedArrayBuffer for audio worklet ring buffer.
-  // Only apply to same-origin responses — external API calls (OpenAI, Google, etc.)
-  // must not receive require-corp as it would block their responses.
+  // In development (localhost), set COOP/COEP headers so SharedArrayBuffer works
+  // in the Vite dev server context. In production (file://), SharedArrayBuffer is
+  // enabled via the --enable-features=SharedArrayBuffer command-line flag instead,
+  // avoiding COEP which blocks Worker scripts loaded from ASAR.
   mainWindow.webContents.session.webRequest.onHeadersReceived((details, callback) => {
     const url = new URL(details.url);
-    const isLocal = url.hostname === 'localhost' || url.protocol === 'file:';
-    if (isLocal) {
+    if (url.hostname === 'localhost') {
       callback({
         responseHeaders: {
           ...details.responseHeaders,
@@ -304,49 +304,8 @@ function createWindow() {
     console.log(`[Sokuji] [Main] Loading from http://localhost:5173 at ${loadStartTime}`);
     mainWindow.loadURL('http://localhost:5173');
   } else {
-    // Try multiple approaches to find the correct path
-    let indexPath;
-    
-    // Approach 1: Standard path relative to __dirname
-    const relativePath = path.join(__dirname, '../build/index.html');
-    
-    // Approach 2: Using app.getAppPath()
-    const appPathBased = path.join(app.getAppPath(), 'build/index.html');
-    
-    // Approach 3: Absolute path based on the installation location
-    const absolutePath = path.join(path.dirname(app.getPath('exe')), 'resources/app/build/index.html');
-    
-    // Approach 4: For asar packaged apps
-    const asarPath = path.join(path.dirname(app.getPath('exe')), 'resources/app.asar/build/index.html');
-    
-    // Log all potential paths for debugging
-    console.log('[Sokuji] [Main] Potential paths:');
-    console.log('[Sokuji] [Main] - Relative path:', relativePath);
-    console.log('[Sokuji] [Main] - App path based:', appPathBased);
-    console.log('[Sokuji] [Main] - Absolute path:', absolutePath);
-    console.log('[Sokuji] [Main] - Asar path:', asarPath);
-    
-    // Check which path exists and use it
-    if (require('fs').existsSync(relativePath)) {
-      indexPath = relativePath;
-      console.log('[Sokuji] [Main] Using relative path');
-    } else if (require('fs').existsSync(appPathBased)) {
-      indexPath = appPathBased;
-      console.log('[Sokuji] [Main] Using app path based');
-    } else if (require('fs').existsSync(absolutePath)) {
-      indexPath = absolutePath;
-      console.log('[Sokuji] [Main] Using absolute path');
-    } else if (require('fs').existsSync(asarPath)) {
-      indexPath = asarPath;
-      console.log('[Sokuji] [Main] Using asar path');
-    } else {
-      // Fallback to the most likely path
-      indexPath = asarPath;
-      console.log('[Sokuji] [Main] No path found, using fallback asar path');
-    }
-    
-    // Use loadFile which is recommended for local files
-    console.log('[Sokuji] [Main] Final path used:', indexPath);
+    const indexPath = path.join(app.getAppPath(), 'build/index.html');
+    console.log('[Sokuji] [Main] Loading from:', indexPath);
     mainWindow.loadFile(indexPath);
   }
 
@@ -378,10 +337,12 @@ function createWindow() {
 
 // Create window when Electron is ready
 app.whenReady().then(async () => {
+  const isDev = import.meta.env.MODE === 'development' || !app.isPackaged;
+
   // Initialize Better Auth adapter
   try {
     const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8787';
-    const origin = import.meta.env.MODE === 'development' ? 'http://localhost:5173' : `file://${__dirname}`;
+    const origin = isDev ? 'http://localhost:5173' : `file://${__dirname}`;
 
     console.log(`[Sokuji] [Main] Initializing Better Auth adapter with backend: ${backendUrl}, origin: ${origin}`);
 
