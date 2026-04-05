@@ -34,6 +34,7 @@ const HelpSection: React.FC<HelpSectionProps> = ({ toggleSettings }) => {
       <h3>
         <HelpCircle size={18} />
         <span>{t('settings.help', 'Help')}</span>
+        <span className="version-label">v{__APP_VERSION__}</span>
       </h3>
       <div className="help-links">
         <a className="help-link" onClick={() => { startOnboarding(); if (toggleSettings) toggleSettings(); }}>
@@ -41,25 +42,20 @@ const HelpSection: React.FC<HelpSectionProps> = ({ toggleSettings }) => {
           <span>{t('onboarding.restartTour', 'Restart Setup Guide')}</span>
         </a>
         {isElectron() && (
-          <>
-            <span className="help-link-separator">·</span>
-            <a
-              className={`help-link ${updateStatus === 'checking' ? 'disabled' : ''}`}
-              onClick={() => { if (updateStatus !== 'checking') checkForUpdates(); }}
-            >
-              <RefreshCw size={13} className={updateStatus === 'checking' ? 'spinning' : ''} />
-              <span>{updateStatus === 'checking' ? t('update.checking') : t('update.checkButton')}</span>
-            </a>
-          </>
+          <a
+            className={`help-link ${updateStatus === 'checking' ? 'disabled' : ''}`}
+            onClick={() => { if (updateStatus !== 'checking') checkForUpdates(); }}
+          >
+            <RefreshCw size={13} className={updateStatus === 'checking' ? 'spinning' : ''} />
+            <span>{updateStatus === 'checking' ? t('update.checking') : t('update.checkButton')}</span>
+          </a>
         )}
-        <span className="help-link-separator">·</span>
         <Tooltip content={t('settings.helpEmailTooltip', 'Report bugs or get help')} position="top">
           <a className="help-link" onClick={() => openExternalUrl('mailto:support@kizuna.ai')}>
             <Mail size={13} />
             <span>support@kizuna.ai</span>
           </a>
         </Tooltip>
-        <span className="help-link-separator">·</span>
         <Tooltip content={t('settings.helpDiscussionsTooltip', 'Feature requests, feedback, and community discussions')} position="top">
           <a className="help-link" onClick={() => openExternalUrl('https://github.com/kizuna-ai-lab/sokuji/discussions')}>
             <MessageSquare size={13} />
