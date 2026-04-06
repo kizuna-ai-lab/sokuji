@@ -133,7 +133,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   const setIsReconnecting = useSetIsReconnecting();
 
   // Get log functions from store
-  const { addLog, addRealtimeEvent } = useLogActions();
+  const { addRealtimeEvent } = useLogActions();
 
   // Get audio context from context
   const {
@@ -329,23 +329,32 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       const result = createParticipantLocalInferenceConfig(localConfig);
 
       if (!result) {
-        addLog(`Participant: no ASR model available for ${localConfig.targetLanguage}`, 'error');
+        addRealtimeEvent(
+          { type: 'participant.error', data: { message: `No ASR model available for ${localConfig.targetLanguage}` } },
+          'client', 'participant.error'
+        );
         return null;
       }
 
       if (!result.status.translationAvailable) {
-        addLog(`Participant: no translation model for ${localConfig.targetLanguage} → ${localConfig.sourceLanguage} — transcription only`, 'warning');
+        addRealtimeEvent(
+          { type: 'participant.warning', data: { message: `No translation model for ${localConfig.targetLanguage} → ${localConfig.sourceLanguage} — transcription only` } },
+          'client', 'participant.warning'
+        );
       }
 
       if (result.status.asrFallback) {
-        addLog(`Participant: using ${result.status.asrModelId} instead of ${result.status.asrOriginalModelId} for ASR`, 'info');
+        addRealtimeEvent(
+          { type: 'participant.info', data: { message: `Using ${result.status.asrModelId} instead of ${result.status.asrOriginalModelId} for ASR` } },
+          'client', 'participant.info'
+        );
       }
 
       return result.config;
     }
 
     return config;
-  }, [getProcessedSystemInstructions, createSessionConfig, addLog]);
+  }, [getProcessedSystemInstructions, createSessionConfig, addRealtimeEvent]);
 
   // Initialize auto-update listeners
   const initUpdateListeners = useInitUpdateListeners();
@@ -622,7 +631,10 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
         // Surface error to LogsPanel so users can see it
         const errorMessage = event.message || event.error || 'Unknown error';
-        addLog(errorMessage, 'error');
+        addRealtimeEvent(
+          { type: 'session.error', data: { message: errorMessage, event } },
+          'client', 'session.error'
+        );
 
         // Show error in conversation panel so it's visible to user
         setItems(prevItems => [...prevItems, {
@@ -941,7 +953,10 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         const result = await useSettingsStore.getState().validateApiKey();
         if (!result.valid) {
           setIsInitializing(false);
-          addLog(t('settings.localInferenceModelsRequired', 'Required models not available for selected language pair.'), 'error');
+          addRealtimeEvent(
+            { type: 'session.init_error', data: { message: t('settings.localInferenceModelsRequired', 'Required models not available for selected language pair.') } },
+            'client', 'session.init_error'
+          );
           return;
         }
       }
@@ -1127,7 +1142,10 @@ const MainPanel: React.FC<MainPanelProps> = () => {
             });
 
             // Notify user about the fallback
-            addLog(t('logs.webrtcFallback', 'WebRTC connection failed, using WebSocket instead'), 'warning');
+            addRealtimeEvent(
+              { type: 'session.webrtc_fallback', data: { message: t('logs.webrtcFallback', 'WebRTC connection failed, using WebSocket instead') } },
+              'client', 'session.webrtc_fallback'
+            );
 
             console.info('[Sokuji] [MainPanel] WebSocket fallback connection established');
           } catch (fallbackError: any) {
@@ -1294,7 +1312,10 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
       // Show error in conversation panel so it's visible to user
       const errorMessage = error.message || 'Network connection error';
-      addLog(errorMessage, 'error');
+      addRealtimeEvent(
+        { type: 'session.init_error', data: { message: errorMessage, error: String(error) } },
+        'client', 'session.init_error'
+      );
       setItems(prevItems => [...prevItems, {
         id: `error-${Date.now()}`,
         role: 'system',
