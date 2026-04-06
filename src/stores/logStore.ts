@@ -14,6 +14,7 @@ export interface EventData {
     | 'session.reconnecting'
     | 'session.reconnected'
     | 'session.error'
+    | 'session.reconnect_failed'
     | 'session.init_error'
     | 'session.webrtc_fallback'
     // Participant/local inference status types

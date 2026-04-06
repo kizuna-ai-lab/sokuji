@@ -876,6 +876,7 @@ export class GeminiClient implements IClient {
     // which would clear conversationItems and savedResumptionHandle
     this.isConnectedState = false;
 
+    let lastReconnectError: unknown;
     const maxRetries = 3;
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       if (!this.isReconnecting) break;  // User cancelled via disconnect()
@@ -884,15 +885,35 @@ export class GeminiClient implements IClient {
           await this.delay(1000 * attempt);  // Backoff: 2s, 3s
         }
         await this.connect(this.lastConfig);
+        // Resumption handles are single-use; clear the consumed handle
+        // and wait for a future sessionResumptionUpdate to provide a new one.
+        this.savedResumptionHandle = undefined;
         this.isReconnecting = false;
         this.eventHandlers.onReconnected?.();
         return;
       } catch (error) {
+        lastReconnectError = error;
+        this.eventHandlers.onRealtimeEvent?.({
+          source: 'client',
+          event: {
+            type: 'session.reconnect_failed',
+            data: {
+              attempt,
+              maxRetries,
+              message: error instanceof Error ? error.message : String(error),
+            }
+          }
+        });
         console.warn(`[Sokuji] [GeminiClient] Reconnection attempt ${attempt}/${maxRetries} failed`, error);
       }
     }
 
     // All retries failed — treat as real disconnect
+    const closeEvent = {
+      code: 0,
+      reason: 'Reconnection failed after 3 attempts',
+      error: lastReconnectError instanceof Error ? lastReconnectError.message : String(lastReconnectError),
+    };
     this.isReconnecting = false;
     this.savedResumptionHandle = undefined;
     this.isConnectedState = false;
@@ -901,10 +922,10 @@ export class GeminiClient implements IClient {
       source: 'client',
       event: {
         type: 'session.closed',
-        data: { code: 0, reason: 'Reconnection failed after 3 attempts' }
+        data: closeEvent
       }
     });
-    this.eventHandlers.onClose?.({} as CloseEvent);
+    this.eventHandlers.onClose?.(closeEvent);
   }
 
   /**

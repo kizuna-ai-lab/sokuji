@@ -26,7 +26,7 @@ vi.mock('@google/genai', () => {
   return {
     GoogleGenAI: GoogleGenAIMock,
     Modality: { AUDIO: 'AUDIO' },
-    ActivityHandling: { START_OF_ACTIVITY_INTERRUPTS: 'START_OF_ACTIVITY_INTERRUPTS' },
+    ActivityHandling: { START_OF_ACTIVITY_INTERRUPTS: 'START_OF_ACTIVITY_INTERRUPTS', NO_INTERRUPTION: 'NO_INTERRUPTION' },
     StartSensitivity: { START_SENSITIVITY_HIGH: 'HIGH', START_SENSITIVITY_LOW: 'LOW' },
     EndSensitivity: { END_SENSITIVITY_HIGH: 'HIGH', END_SENSITIVITY_LOW: 'LOW' },
   };

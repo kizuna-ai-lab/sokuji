@@ -841,6 +841,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
    * Disconnect and reset conversation state
    */
   const disconnectConversation = useCallback(async () => {
+    setIsReconnecting(false);
     setIsSessionActive(false);
     setIsAIResponding(false);
     setIsUsingWebRTC(false);
@@ -935,7 +936,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         console.warn('[Sokuji] [MainPanel] Error refreshing user profile:', error);
       });
     }
-  }, [refetchAll]);
+  }, [refetchAll, setIsReconnecting]);
 
   /**
    * Connect to conversation:
@@ -2241,13 +2242,13 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
   // DEV ONLY: Ctrl+Shift+G to simulate Gemini disconnect for testing reconnection
   useEffect(() => {
-    if (process.env.NODE_ENV === 'production') return;
+    if (!isDevelopment()) return;
 
     const handleDevShortcut = (e: KeyboardEvent) => {
       if (e.ctrlKey && e.shiftKey && e.key === 'G') {
         e.preventDefault();
         const client = clientRef.current;
-        if (client && 'simulateDisconnectForTesting' in client) {
+        if (client && typeof (client as any).simulateDisconnectForTesting === 'function') {
           (client as any).simulateDisconnectForTesting();
         }
       }
