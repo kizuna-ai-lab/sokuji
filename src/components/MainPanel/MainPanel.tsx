@@ -1350,6 +1350,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     volcengineSTSettings,
     volcengineAST2Settings,
     localInferenceSettings,
+    noiseSuppressionMode,
     provider,
     transportType,
     isLoaded,

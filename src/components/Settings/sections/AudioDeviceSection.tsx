@@ -175,6 +175,7 @@ const AudioDeviceSection: React.FC<AudioDeviceSectionProps> = ({
                     setNoiseSuppressionMode(mode);
                     trackEvent('noise_suppression_toggled', {
                       enabled: mode !== 'off',
+                      mode,
                       during_session: isSessionActive
                     });
                   }}

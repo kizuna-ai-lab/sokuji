@@ -611,6 +611,8 @@ export class ModernAudioRecorder extends BaseAudioRecorder {
    */
   async setNoiseSuppressionMode(mode: 'off' | 'standard' | 'enhanced'): Promise<void> {
     const prevMode = this._noiseSuppressionMode;
+    if (prevMode === mode) return;
+
     this._noiseSuppressionMode = mode;
     this._noiseSuppressEnabled = mode === 'standard';
     const opId = ++this._noiseSuppressOpId;
@@ -812,9 +814,21 @@ export class ModernAudioRecorder extends BaseAudioRecorder {
     } catch (error) {
       console.error(`${this.getLogPrefix()} Failed to connect GTCRN worker:`, error);
       this.gtcrnReady = false;
-      this._noiseSuppressionMode = 'standard';
-      this._noiseSuppressEnabled = true;
-      await this._insertRnnoiseNode();
+      this._disposeGtcrnWorker();
+
+      // Ignore stale failures — user may have already switched away
+      if (opId !== undefined && opId !== this._noiseSuppressOpId) return;
+
+      // Fallback chain: enhanced → standard → off
+      try {
+        this._noiseSuppressionMode = 'standard';
+        this._noiseSuppressEnabled = true;
+        await this._insertRnnoiseNode();
+      } catch (rnnoiseError) {
+        console.error(`${this.getLogPrefix()} RNNoise fallback also failed:`, rnnoiseError);
+        this._noiseSuppressionMode = 'off';
+        this._noiseSuppressEnabled = false;
+      }
     }
   }
 

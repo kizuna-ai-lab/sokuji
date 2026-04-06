@@ -164,26 +164,42 @@ async function processAudio(audio: Int16Array): Promise<void> {
   );
 }
 
-self.onmessage = async (event: MessageEvent) => {
+// Serialize all message handling to prevent concurrent access to shared state
+let commandQueue: Promise<void> = Promise.resolve();
+
+function enqueueCommand(task: () => Promise<void> | void): void {
+  commandQueue = commandQueue
+    .then(() => task())
+    .catch((error) => {
+      const message = error instanceof Error ? error.message : String(error);
+      self.postMessage({ type: 'error', message: `GTCRN worker error: ${message}` });
+    });
+}
+
+self.onmessage = (event: MessageEvent) => {
   const { type } = event.data;
 
   switch (type) {
     case 'init':
-      await init(event.data.ortWasmBaseUrl, event.data.modelUrl);
+      enqueueCommand(() => init(event.data.ortWasmBaseUrl, event.data.modelUrl));
       break;
     case 'process':
-      await processAudio(event.data.audio);
+      enqueueCommand(() => processAudio(event.data.audio));
       break;
     case 'reset':
-      initStates();
-      inputBuffer = new Float32Array(0);
-      prevFrame = new Float32Array(GTCRN_N_FFT);
+      enqueueCommand(() => {
+        initStates();
+        inputBuffer = new Float32Array(0);
+        prevFrame = new Float32Array(GTCRN_N_FFT);
+      });
       break;
     case 'dispose':
-      if (session) {
-        session.release();
-        session = null;
-      }
+      enqueueCommand(() => {
+        if (session) {
+          session.release();
+          session = null;
+        }
+      });
       break;
   }
 };
