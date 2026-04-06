@@ -11,6 +11,8 @@ export interface EventData {
     // Connection state types
     | 'session.opened'
     | 'session.closed'
+    | 'session.reconnecting'
+    | 'session.reconnected'
     | 'session.error'
     // Gemini-specific top-level message types
     | 'setupComplete'

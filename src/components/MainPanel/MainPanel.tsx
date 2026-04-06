@@ -644,12 +644,20 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       onReconnecting: () => {
         console.info('[Sokuji] [MainPanel] Session reconnecting...');
         setIsReconnecting(true);
-        addLog('Session reconnecting...', 'warning');
+        addRealtimeEvent(
+          { type: 'session.reconnecting', data: { timestamp: Date.now() } },
+          'client',
+          'session.reconnecting'
+        );
       },
       onReconnected: () => {
         console.info('[Sokuji] [MainPanel] Session reconnected successfully');
         setIsReconnecting(false);
-        addLog('Session reconnected', 'success');
+        addRealtimeEvent(
+          { type: 'session.reconnected', data: { timestamp: Date.now() } },
+          'client',
+          'session.reconnected'
+        );
       },
       onClose: async (event: any) => {
         console.info('[Sokuji] [MainPanel] Connection closed, cleaning up session', event);
