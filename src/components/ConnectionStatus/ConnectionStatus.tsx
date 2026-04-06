@@ -3,7 +3,7 @@ import { Wifi, WifiOff, Loader, AlertCircle, CheckCircle2 } from 'lucide-react';
 import './ConnectionStatus.scss';
 import { useTranslation } from 'react-i18next';
 
-export type ConnectionState = 'disconnected' | 'connecting' | 'connected' | 'error' | 'no-api-key' | 'no-mic';
+export type ConnectionState = 'disconnected' | 'connecting' | 'connected' | 'reconnecting' | 'error' | 'no-api-key' | 'no-mic';
 
 interface ConnectionStatusProps {
   state: ConnectionState;
@@ -36,6 +36,13 @@ const ConnectionStatus: React.FC<ConnectionStatusProps> = ({ state, message, com
           label: t('connectionStatus.connected', 'Connected'),
           color: 'connected',
           animate: 'pulse'
+        };
+      case 'reconnecting':
+        return {
+          icon: <Loader size={compact ? 16 : 24} />,
+          label: t('connectionStatus.reconnecting', 'Reconnecting...'),
+          color: 'connecting',
+          animate: true
         };
       case 'error':
         return {
