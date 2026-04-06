@@ -2284,6 +2284,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
             tts_model: localConfig.ttsModelId || 'none',
           }),
           noise_suppression_enabled: noiseSuppressionMode !== 'off',
+          noise_suppression_mode: noiseSuppressionMode,
           real_voice_passthrough_enabled: isRealVoicePassthroughEnabled,
           transport: transportType,
           platform: getEnvironment(),
