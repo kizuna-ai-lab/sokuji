@@ -106,8 +106,8 @@ describe('GeminiClient — reconnection state machine', () => {
       onReconnecting: vi.fn(),
       onReconnected: vi.fn(),
       onRealtimeEvent: vi.fn(),
-    };
-    client.setEventHandlers(handlers);
+    } satisfies Record<string, ReturnType<typeof vi.fn>>;
+    client.setEventHandlers(handlers as any);
 
     // Default: successful connect
     setupSuccessfulConnect();
