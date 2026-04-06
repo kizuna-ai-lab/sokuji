@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react'
 import electron from 'vite-plugin-electron/simple'
 import path from 'path'
 import fs from 'fs'
+import pkg from './package.json' with { type: 'json' }
 
 /**
  * Dev-only plugin: serve model-packs/tts/ files at /model-packs/tts/ URLs.
@@ -160,7 +161,8 @@ export default defineConfig(({ command, mode }) => {
     define: {
       global: 'globalThis',
       // Define build target for Electron
-      'import.meta.env.BUILD_TARGET': JSON.stringify('electron')
+      'import.meta.env.BUILD_TARGET': JSON.stringify('electron'),
+      __APP_VERSION__: JSON.stringify(pkg.version)
     },
     css: {
       preprocessorOptions: {
