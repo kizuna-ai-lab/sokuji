@@ -297,13 +297,64 @@ Consume `isReconnecting` from sessionStore. When true, display a transient "Reco
 | Audio devices changed during reconnection | No special handling; MainPanel audio pipeline is independent |
 | Other providers (OpenAI, Palabra, etc.) | Unaffected; callbacks are optional, `isReconnecting` stays `false` |
 
+## Testing Strategy
+
+### Unit Tests (Vitest, zero API cost)
+
+**File:** `src/services/clients/GeminiClient.test.ts`
+
+Mock `this.client.live.connect()` and simulate events directly to test the reconnection state machine:
+
+| Test Case | Trigger | Expected |
+|---|---|---|
+| Handle storage | Simulate `sessionResumptionUpdate` with `resumable: true` | `savedResumptionHandle` is set |
+| Handle gating | Simulate `sessionResumptionUpdate` with `resumable: false` | Handle is NOT updated |
+| GoAway triggers reconnect | Simulate `goAway` with stored handle | `reconnect()` called, `onReconnecting` fires |
+| GoAway without handle | Simulate `goAway` with no stored handle | No reconnection, normal flow |
+| Unexpected close with handle | Simulate `onclose` with stored handle | Reconnection attempted |
+| Unexpected close without handle | Simulate `onclose` with no handle | `onClose` callback fires, normal disconnect |
+| Reconnection success | Mock `connect()` succeeds on retry | `onReconnected` fires, `isReconnecting` = false |
+| Reconnection failure (all retries) | Mock `connect()` throws 3 times | `onClose` fires after exhausting retries |
+| User disconnect during reconnection | Call `disconnect()` while reconnecting | Retry loop bails out, `isReconnecting` = false |
+| Re-entry guard | Call `reconnect()` while already reconnecting | Second call is no-op |
+| Conversation items preserved | Reconnection succeeds | `conversationItems` not cleared |
+| Explicit disconnect clears handle | Call `disconnect()` | `savedResumptionHandle` = undefined |
+
+### Dev-Only Manual Trigger (E2E testing)
+
+**Keyboard shortcut:** `Ctrl+Shift+G` — simulate GoAway and force-close the session to trigger the full reconnection flow against a real Gemini connection.
+
+Implementation in `GeminiClient`:
+
+```typescript
+// Dev-only method, called from MainPanel's keydown handler
+simulateDisconnectForTesting(): void {
+  if (!this.session || !this.savedResumptionHandle) {
+    console.warn('[GeminiClient] Cannot simulate: no session or no handle');
+    return;
+  }
+  console.info('[GeminiClient] DEV: Simulating goAway + disconnect');
+  this.session.close();  // Forces onclose → triggers reconnect path
+}
+```
+
+**Manual test workflow:**
+1. Connect to Gemini, say something to trigger first model response
+2. Wait ~10-30 seconds for `sessionResumptionUpdate` (verify in logs)
+3. Press `Ctrl+Shift+G`
+4. Observe: "Reconnecting..." indicator appears, session reconnects, audio resumes
+5. Speak again to verify context is preserved and translation continues
+
+Total test time: ~1 minute. Repeatable without extra API cost.
+
 ## Files to Modify
 
 1. `src/services/clients/GeminiClient.ts` — Core reconnection logic, handle storage, config changes
 2. `src/services/interfaces/IClient.ts` — Add `onReconnecting`/`onReconnected` callbacks
 3. `src/stores/sessionStore.ts` — Add `isReconnecting` state
-4. `src/components/MainPanel/MainPanel.tsx` — Wire up new callbacks
+4. `src/components/MainPanel/MainPanel.tsx` — Wire up new callbacks, dev shortcut handler
 5. `src/components/ConnectionStatus/` (or equivalent) — Subtle reconnection indicator
+6. `src/services/clients/GeminiClient.test.ts` — Unit tests for reconnection state machine
 
 ## Acceptance Criteria
 
@@ -317,3 +368,5 @@ Consume `isReconnecting` from sessionStore. When true, display a transient "Reco
 - [ ] Brief "Reconnecting..." indicator shown during reconnection
 - [ ] No impact on other providers
 - [ ] Explicit user disconnect clears handle and cancels reconnection
+- [ ] Unit tests cover all reconnection state machine paths
+- [ ] Dev shortcut (Ctrl+Shift+G) available for manual E2E testing
