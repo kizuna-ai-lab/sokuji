@@ -1,8 +1,0 @@
-- generic [ref=e4]:
-  - link "Sokuji Sokuji" [ref=e6] [cursor=pointer]:
-    - /url: /
-    - img "Sokuji" [ref=e7]
-    - generic [ref=e8]: Sokuji
-  - paragraph [ref=e12]: Loading survey...
-  - contentinfo [ref=e13]:
-    - paragraph [ref=e14]: © 2026 Sokuji. All rights reserved.
