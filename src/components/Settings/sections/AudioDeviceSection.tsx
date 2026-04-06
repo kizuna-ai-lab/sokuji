@@ -3,10 +3,9 @@ import { Mic, Volume2, RefreshCw } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import Tooltip from '../../Tooltip/Tooltip';
 import DeviceList from '../shared/DeviceList';
-import ToggleSwitch from '../shared/ToggleSwitch';
 import WarningModal from '../shared/WarningModal';
 import { useFilteredDevices, WarningType, AudioDevice } from '../shared/hooks';
-import { useAudioContext, useIsNoiseSuppressEnabled, useToggleNoiseSuppression } from '../../../stores/audioStore';
+import { useAudioContext, useNoiseSuppressionMode, useSetNoiseSuppressionMode, NoiseSuppressionMode } from '../../../stores/audioStore';
 import { useAnalytics } from '../../../lib/analytics';
 
 interface AudioDeviceSectionProps {
@@ -33,8 +32,8 @@ const AudioDeviceSection: React.FC<AudioDeviceSectionProps> = ({
 }) => {
   const { t } = useTranslation();
   const { trackEvent } = useAnalytics();
-  const isNoiseSuppressEnabled = useIsNoiseSuppressEnabled();
-  const toggleNoiseSuppression = useToggleNoiseSuppression();
+  const noiseSuppressionMode = useNoiseSuppressionMode();
+  const setNoiseSuppressionMode = useSetNoiseSuppressionMode();
 
   const {
     audioInputDevices,
@@ -152,19 +151,39 @@ const AudioDeviceSection: React.FC<AudioDeviceSectionProps> = ({
             onVirtualDeviceClick={handleInputVirtualDeviceClick}
           />
 
-          {/* Noise Suppression Toggle */}
-          <ToggleSwitch
-            checked={isNoiseSuppressEnabled}
-            onChange={() => {
-              toggleNoiseSuppression();
-              trackEvent('noise_suppression_toggled', {
-                enabled: !isNoiseSuppressEnabled,
-                during_session: isSessionActive
-              });
-            }}
-            label={t('settings.noiseSuppression')}
-            tooltip={t('settings.noiseSuppressionTooltip')}
-          />
+          {/* Noise Suppression Mode */}
+          <div className="noise-suppression-control">
+            <div className="noise-suppression-header">
+              <span className="noise-suppression-label">{t('settings.noiseSuppression')}</span>
+              <Tooltip
+                content={
+                  `${t('settings.noiseSuppressionTooltip.off')}\n\n` +
+                  `${t('settings.noiseSuppressionTooltip.standard')}\n\n` +
+                  `${t('settings.noiseSuppressionTooltip.enhanced')}`
+                }
+                position="top"
+                icon="help"
+                maxWidth={350}
+              />
+            </div>
+            <div className="segmented-control noise-suppression-modes">
+              {(['off', 'standard', 'enhanced'] as NoiseSuppressionMode[]).map((mode) => (
+                <button
+                  key={mode}
+                  className={`segmented-option ${noiseSuppressionMode === mode ? 'active' : ''}`}
+                  onClick={() => {
+                    setNoiseSuppressionMode(mode);
+                    trackEvent('noise_suppression_toggled', {
+                      enabled: mode !== 'off',
+                      during_session: isSessionActive
+                    });
+                  }}
+                >
+                  {t(`settings.noiseSuppressionMode.${mode}`)}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       )}
 
