@@ -24,7 +24,7 @@ import {
   useSetConversationFontSize
 } from '../../stores/settingsStore';
 import useSettingsStore, { createParticipantLocalInferenceConfig } from '../../stores/settingsStore';
-import { useSession } from '../../stores/sessionStore';
+import { useSession, useIsReconnecting, useSetIsReconnecting } from '../../stores/sessionStore';
 import { useAudioContext, useIsNoiseSuppressEnabled } from '../../stores/audioStore';
 import { useLogActions } from '../../stores/logStore';
 import type { RealtimeEvent } from '../../stores/logStore';
@@ -118,10 +118,10 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   const navigateToSettings = useNavigateToSettings();
 
   // Get session state from context
-  const { 
-    isSessionActive, 
-    setIsSessionActive, 
-    sessionId, 
+  const {
+    isSessionActive,
+    setIsSessionActive,
+    sessionId,
     setSessionId,
     sessionStartTime,
     setSessionStartTime,
@@ -129,8 +129,11 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     setTranslationCount
   } = useSession();
 
+  const isReconnecting = useIsReconnecting();
+  const setIsReconnecting = useSetIsReconnecting();
+
   // Get log functions from store
-  const { addLog, addRealtimeEvent } = useLogActions();
+  const { addRealtimeEvent } = useLogActions();
 
   // Get audio context from context
   const {
@@ -326,23 +329,32 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       const result = createParticipantLocalInferenceConfig(localConfig);
 
       if (!result) {
-        addLog(`Participant: no ASR model available for ${localConfig.targetLanguage}`, 'error');
+        addRealtimeEvent(
+          { type: 'participant.error', data: { message: `No ASR model available for ${localConfig.targetLanguage}` } },
+          'client', 'participant.error'
+        );
         return null;
       }
 
       if (!result.status.translationAvailable) {
-        addLog(`Participant: no translation model for ${localConfig.targetLanguage} → ${localConfig.sourceLanguage} — transcription only`, 'warning');
+        addRealtimeEvent(
+          { type: 'participant.warning', data: { message: `No translation model for ${localConfig.targetLanguage} → ${localConfig.sourceLanguage} — transcription only` } },
+          'client', 'participant.warning'
+        );
       }
 
       if (result.status.asrFallback) {
-        addLog(`Participant: using ${result.status.asrModelId} instead of ${result.status.asrOriginalModelId} for ASR`, 'info');
+        addRealtimeEvent(
+          { type: 'participant.info', data: { message: `Using ${result.status.asrModelId} instead of ${result.status.asrOriginalModelId} for ASR` } },
+          'client', 'participant.info'
+        );
       }
 
       return result.config;
     }
 
     return config;
-  }, [getProcessedSystemInstructions, createSessionConfig, addLog]);
+  }, [getProcessedSystemInstructions, createSessionConfig, addRealtimeEvent]);
 
   // Initialize auto-update listeners
   const initUpdateListeners = useInitUpdateListeners();
@@ -619,7 +631,10 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
         // Surface error to LogsPanel so users can see it
         const errorMessage = event.message || event.error || 'Unknown error';
-        addLog(errorMessage, 'error');
+        addRealtimeEvent(
+          { type: 'session.error', data: { message: errorMessage, event } },
+          'client', 'session.error'
+        );
 
         // Show error in conversation panel so it's visible to user
         setItems(prevItems => [...prevItems, {
@@ -638,8 +653,27 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           error_type: event.type === 'error' ? 'client' : 'server'
         });
       },
+      onReconnecting: () => {
+        console.info('[Sokuji] [MainPanel] Session reconnecting...');
+        setIsReconnecting(true);
+        addRealtimeEvent(
+          { type: 'session.reconnecting', data: { timestamp: Date.now() } },
+          'client',
+          'session.reconnecting'
+        );
+      },
+      onReconnected: () => {
+        console.info('[Sokuji] [MainPanel] Session reconnected successfully');
+        setIsReconnecting(false);
+        addRealtimeEvent(
+          { type: 'session.reconnected', data: { timestamp: Date.now() } },
+          'client',
+          'session.reconnected'
+        );
+      },
       onClose: async (event: any) => {
         console.info('[Sokuji] [MainPanel] Connection closed, cleaning up session', event);
+        setIsReconnecting(false);
 
         // Track disconnection
         trackEvent('connection_status', {
@@ -799,13 +833,15 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     setTranslationCount,
     trackEvent,
     addRealtimeEvent,
-    setIsSessionActive
+    setIsSessionActive,
+    setIsReconnecting
   ]); // addRealtimeEvent from Zustand is stable
 
   /**
    * Disconnect and reset conversation state
    */
   const disconnectConversation = useCallback(async () => {
+    setIsReconnecting(false);
     setIsSessionActive(false);
     setIsAIResponding(false);
     setIsUsingWebRTC(false);
@@ -900,7 +936,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         console.warn('[Sokuji] [MainPanel] Error refreshing user profile:', error);
       });
     }
-  }, [refetchAll]);
+  }, [refetchAll, setIsReconnecting]);
 
   /**
    * Connect to conversation:
@@ -918,7 +954,10 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         const result = await useSettingsStore.getState().validateApiKey();
         if (!result.valid) {
           setIsInitializing(false);
-          addLog(t('settings.localInferenceModelsRequired', 'Required models not available for selected language pair.'), 'error');
+          addRealtimeEvent(
+            { type: 'session.init_error', data: { message: t('settings.localInferenceModelsRequired', 'Required models not available for selected language pair.') } },
+            'client', 'session.init_error'
+          );
           return;
         }
       }
@@ -1104,7 +1143,10 @@ const MainPanel: React.FC<MainPanelProps> = () => {
             });
 
             // Notify user about the fallback
-            addLog(t('logs.webrtcFallback', 'WebRTC connection failed, using WebSocket instead'), 'warning');
+            addRealtimeEvent(
+              { type: 'session.webrtc_fallback', data: { message: t('logs.webrtcFallback', 'WebRTC connection failed, using WebSocket instead') } },
+              'client', 'session.webrtc_fallback'
+            );
 
             console.info('[Sokuji] [MainPanel] WebSocket fallback connection established');
           } catch (fallbackError: any) {
@@ -1271,7 +1313,10 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
       // Show error in conversation panel so it's visible to user
       const errorMessage = error.message || 'Network connection error';
-      addLog(errorMessage, 'error');
+      addRealtimeEvent(
+        { type: 'session.init_error', data: { message: errorMessage, error: String(error) } },
+        'client', 'session.init_error'
+      );
       setItems(prevItems => [...prevItems, {
         id: `error-${Date.now()}`,
         role: 'system',
@@ -2195,6 +2240,24 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     };
   }, [isSessionActive, canPushToTalk, startRecording, stopRecording, isRecording]);
 
+  // DEV ONLY: Ctrl+Shift+G to simulate Gemini disconnect for testing reconnection
+  useEffect(() => {
+    if (!isDevelopment()) return;
+
+    const handleDevShortcut = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.shiftKey && e.key === 'G') {
+        e.preventDefault();
+        const client = clientRef.current;
+        if (client && typeof (client as any).simulateDisconnectForTesting === 'function') {
+          (client as any).simulateDisconnectForTesting();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleDevShortcut);
+    return () => window.removeEventListener('keydown', handleDevShortcut);
+  }, []);
+
   // Session tracking for analytics
   useEffect(() => {
     if (isSessionActive) {
@@ -2671,7 +2734,12 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         {uiMode === 'basic' && (
           <div className="control-footer basic">
             <div className="status-info">
-              <span className={`status-dot ${isSessionActive ? 'active' : ''}`} />
+              <span className={`status-dot ${isReconnecting ? 'reconnecting' : isSessionActive ? 'active' : ''}`} />
+              {isReconnecting && (
+                <span className="reconnecting-label">
+                  {t('connectionStatus.reconnecting', 'Reconnecting...')}
+                </span>
+              )}
               <span
                 className="language-pair clickable"
                 onClick={() => navigateToSettings('languages')}
