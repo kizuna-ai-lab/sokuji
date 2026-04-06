@@ -52,8 +52,17 @@
     "model": "Modell",
     "userTranscriptModel": "Benutzer-Transkriptionsmodell",
     "noiseReduction": "Rauschunterdrückung",
-    "noiseSuppression": "KI-Rauschunterdrückung",
-    "noiseSuppressionTooltip": "KI-gestützte Rauschunterdrückung mit RNNoise. Reduziert Hintergrundgeräusche bevor Audio an den KI-Anbieter gesendet wird. Funktioniert mit allen Anbietern.",
+    "noiseSuppression": "Rauschunterdrückung",
+    "noiseSuppressionTooltip": {
+      "off": "Aus — Nur die integrierte Rauschbehandlung des Browsers.",
+      "standard": "Standard (RNNoise) — Leichtgewichtige KI-Rauschunterdrückung mit geringer Latenz.",
+      "enhanced": "Erweitert (GTCRN) — Hochwertige KI-Rauschunterdrückung, ideal für komplexe Geräuschumgebungen."
+    },
+    "noiseSuppressionMode": {
+      "off": "Aus",
+      "standard": "Standard",
+      "enhanced": "Erweitert"
+    },
     "modelConfiguration": "Modellkonfiguration",
     "sourceLanguage": "Meine Sprache",
     "targetLanguage": "Sprache des Anderen",
@@ -592,7 +601,8 @@
     "connected": "Verbunden",
     "error": "Verbindungsfehler",
     "noApiKey": "API-Schlüssel Erforderlich",
-    "noMic": "Mikrofon Erforderlich"
+    "noMic": "Mikrofon Erforderlich",
+    "reconnecting": "Verbindung wird wiederhergestellt..."
   },
   "userTypeSelection": {
     "title": "Willkommen bei Sokuji",

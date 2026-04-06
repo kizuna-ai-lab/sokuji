@@ -52,8 +52,17 @@
     "model": "モデル",
     "userTranscriptModel": "ユーザー転写モデル",
     "noiseReduction": "ノイズ低減",
-    "noiseSuppression": "AIノイズ抑制",
-    "noiseSuppressionTooltip": "RNNoiseを使用したAIノイズ除去。AIプロバイダーに音声を送信する前にバックグラウンドノイズを低減します。すべてのプロバイダーで動作します。",
+    "noiseSuppression": "ノイズ抑制",
+    "noiseSuppressionTooltip": {
+      "off": "オフ — ブラウザ内蔵のノイズ処理のみ使用します。",
+      "standard": "スタンダード（RNNoise）— 低遅延の軽量AIノイズ抑制。",
+      "enhanced": "エンハンスド（GTCRN）— 複雑なノイズ環境に最適な高品質AIノイズ抑制。"
+    },
+    "noiseSuppressionMode": {
+      "off": "オフ",
+      "standard": "スタンダード",
+      "enhanced": "エンハンスド"
+    },
     "modelConfiguration": "モデル設定",
     "sourceLanguage": "自分の言語",
     "targetLanguage": "相手の言語",

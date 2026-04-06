@@ -51,8 +51,17 @@
     "model": "Model",
     "userTranscriptModel": "Model transkrypcji użytkownika",
     "noiseReduction": "Redukcja szumów",
-    "noiseSuppression": "Tłumienie szumów AI",
-    "noiseSuppressionTooltip": "Redukcja szumów oparta na AI z wykorzystaniem RNNoise. Zmniejsza szum tła przed wysłaniem dźwięku do dostawcy AI. Działa ze wszystkimi dostawcami.",
+    "noiseSuppression": "Tłumienie szumów",
+    "noiseSuppressionTooltip": {
+      "off": "Wyłączone — Tylko wbudowana obsługa szumów przeglądarki.",
+      "standard": "Standardowe (RNNoise) — Lekkie tłumienie szumów AI z niskim opóźnieniem.",
+      "enhanced": "Ulepszone (GTCRN) — Wysokiej jakości tłumienie szumów AI, najlepsze dla złożonych środowisk hałasu."
+    },
+    "noiseSuppressionMode": {
+      "off": "Wyłączone",
+      "standard": "Standardowe",
+      "enhanced": "Ulepszone"
+    },
     "modelConfiguration": "Konfiguracja modelu",
     "sourceLanguage": "Mój język",
     "targetLanguage": "Język rozmówcy",
@@ -590,7 +599,8 @@
     "connected": "Połączony",
     "error": "Błąd Połączenia",
     "noApiKey": "Wymagany Klucz API",
-    "noMic": "Wymagany Mikrofon"
+    "noMic": "Wymagany Mikrofon",
+    "reconnecting": "Ponowne łączenie..."
   },
   "userTypeSelection": {
     "title": "Witamy w Sokuji",

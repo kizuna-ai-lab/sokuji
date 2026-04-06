@@ -196,8 +196,17 @@
     "automaticTurnDetection": "Awtomatikong pagtukoy ng pagkakataon",
     "userTranscriptModel": "Modelo ng transkripsyon ng gumagamit",
     "noiseReduction": "Pagbawas ng ingay",
-    "noiseSuppression": "AI Pagpigil ng Ingay",
-    "noiseSuppressionTooltip": "Pagbawas ng ingay gamit ang AI sa pamamagitan ng RNNoise. Binabawasan ang ingay sa background bago ipadala ang audio sa AI provider. Gumagana sa lahat ng provider.",
+    "noiseSuppression": "Pagpigil ng Ingay",
+    "noiseSuppressionTooltip": {
+      "off": "Naka-off — Browser lang ang mag-aayos ng ingay.",
+      "standard": "Karaniwan (RNNoise) — Magaang na AI pagpigil ng ingay na may mababang latency.",
+      "enhanced": "Pinahusay (GTCRN) — Mataas na kalidad na AI pagpigil ng ingay, pinakamainam para sa kumplikadong kapaligiran ng ingay."
+    },
+    "noiseSuppressionMode": {
+      "off": "Naka-off",
+      "standard": "Karaniwan",
+      "enhanced": "Pinahusay"
+    },
     "modelConfiguration": "Pagsasaayos ng modelo",
     "preview": "Preview",
     "simple": "Mabilis",
@@ -385,7 +394,8 @@
     "connected": "Nakakonekta",
     "error": "Error sa Koneksyon",
     "noApiKey": "Kailangan ang API Key",
-    "noMic": "Kailangan ang Microphone"
+    "noMic": "Kailangan ang Microphone",
+    "reconnecting": "Muling kumukonekta..."
   },
   "mainPanel": {
     "conversationPlaceholder": "Ang usapan ay lalabas dito",

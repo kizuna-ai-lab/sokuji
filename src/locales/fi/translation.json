@@ -196,8 +196,17 @@
     "automaticTurnDetection": "Automaattinen vuorontunnistus",
     "userTranscriptModel": "Käyttäjän litterointimalli",
     "noiseReduction": "Kohinanvaimennus",
-    "noiseSuppression": "AI-kohinanvaimennus",
-    "noiseSuppressionTooltip": "AI-pohjainen kohinanvaimennus RNNoisella. Vähentää taustamelua ennen äänen lähettämistä AI-palveluntarjoajalle. Toimii kaikkien palveluntarjoajien kanssa.",
+    "noiseSuppression": "Kohinanvaimennus",
+    "noiseSuppressionTooltip": {
+      "off": "Pois — Vain selaimen sisäänrakennettu melunkäsittely.",
+      "standard": "Vakio (RNNoise) — Kevyt AI-kohinanvaimennus pienellä viiveellä.",
+      "enhanced": "Parannettu (GTCRN) — Laadukas AI-kohinanvaimennus, paras monimutkaisiin meluympäristöihin."
+    },
+    "noiseSuppressionMode": {
+      "off": "Pois",
+      "standard": "Vakio",
+      "enhanced": "Parannettu"
+    },
     "modelConfiguration": "Malliasetukset",
     "preview": "Esikatselu",
     "simple": "Pika",
@@ -385,7 +394,8 @@
     "connected": "Yhdistetty",
     "error": "Yhteysvirhe",
     "noApiKey": "API-avain vaaditaan",
-    "noMic": "Mikrofoni vaaditaan"
+    "noMic": "Mikrofoni vaaditaan",
+    "reconnecting": "Yhdistetään uudelleen..."
   },
   "mainPanel": {
     "conversationPlaceholder": "Keskustelu näkyy tässä",

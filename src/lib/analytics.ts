@@ -37,6 +37,7 @@ export interface AnalyticsEvents {
     translation_model?: string;
     tts_model?: string;
     noise_suppression_enabled?: boolean;
+    noise_suppression_mode?: string;
     echo_cancellation_enabled?: boolean;
     real_voice_passthrough_enabled?: boolean;
     transport?: string;
@@ -78,6 +79,7 @@ export interface AnalyticsEvents {
   };
   'noise_suppression_toggled': {
     enabled: boolean;
+    mode?: 'off' | 'standard' | 'enhanced';
     during_session: boolean;
   };
   'virtual_device_warning': {

@@ -95,6 +95,8 @@ export default defineConfig(({ mode }) => {
           { src: '../public/wasm/sherpa-onnx-asr-stream/*', dest: 'wasm/sherpa-onnx-asr-stream' },
           // Piper-Plus WASM runtime (OpenJTalk + phonemizer for Japanese TTS)
           { src: '../public/wasm/piper-plus/*', dest: 'wasm/piper-plus' },
+          // GTCRN noise suppression model
+          { src: '../public/wasm/gtcrn/*', dest: 'wasm/gtcrn' },
           // Dev-only assets
           ...(isDevMode
             ? [{ src: '../public/assets/test-tone.mp3', dest: 'assets' }]

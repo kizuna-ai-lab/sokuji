@@ -132,7 +132,8 @@
   "connectionStatus": {
     "disconnected": "విచ్ఛేదించబడింది",
     "connected": "కనెక్ట్ అయ్యింది",
-    "error": "కనెక్షన్ ఎరర్"
+    "error": "కనెక్షన్ ఎరర్",
+    "reconnecting": "మళ్ళీ కనెక్ట్ అవుతోంది..."
   },
   "settings": {
     "title": "సెట్టింగ్స్",
@@ -291,8 +292,17 @@
     "automaticTurnDetection": "ఆటోమేటిక్ టర్న్ డిటెక్షన్",
     "userTranscriptModel": "వినియోగదారు ట్రాన్‌స్క్రిప్ట్ మోడల్",
     "noiseReduction": "శబ్దం తగ్గింపు",
-    "noiseSuppression": "AI శబ్దం అణచివేత",
-    "noiseSuppressionTooltip": "RNNoise ఉపయోగించి AI-ఆధారిత శబ్దం తగ్గింపు. AI ప్రొవైడర్‌కు ఆడియో పంపే ముందు నేపథ్య శబ్దాన్ని తగ్గిస్తుంది. అన్ని ప్రొవైడర్‌లతో పనిచేస్తుంది.",
+    "noiseSuppression": "శబ్దం అణచివేత",
+    "noiseSuppressionTooltip": {
+      "off": "ఆఫ్ — బ్రౌజర్ అంతర్నిర్మిత శబ్దం నిర్వహణ మాత్రమే.",
+      "standard": "స్టాండర్డ్ (RNNoise) — తక్కువ జాప్యంతో తేలికైన AI శబ్దం అణచివేత.",
+      "enhanced": "మెరుగైన (GTCRN) — సంక్లిష్ట శబ్దం వాతావరణానికి అత్యుత్తమ అధిక-నాణ్యత AI శబ్దం అణచివేత."
+    },
+    "noiseSuppressionMode": {
+      "off": "ఆఫ్",
+      "standard": "స్టాండర్డ్",
+      "enhanced": "మెరుగైన"
+    },
     "modelConfiguration": "మోడల్ కాన్ఫిగరేషన్",
     "preview": "ప్రివ్యూ",
     "simple": "శీఘ్ర",

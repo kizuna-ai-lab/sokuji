@@ -52,8 +52,17 @@
     "model": "Modello",
     "userTranscriptModel": "Modello di trascrizione utente",
     "noiseReduction": "Riduzione del rumore",
-    "noiseSuppression": "Soppressione rumore IA",
-    "noiseSuppressionTooltip": "Riduzione del rumore con IA tramite RNNoise. Riduce il rumore di fondo prima di inviare l'audio al fornitore IA. Funziona con tutti i fornitori.",
+    "noiseSuppression": "Soppressione del rumore",
+    "noiseSuppressionTooltip": {
+      "off": "Disattivato — Solo la gestione del rumore integrata nel browser.",
+      "standard": "Standard (RNNoise) — Soppressione leggera del rumore con IA a bassa latenza.",
+      "enhanced": "Avanzato (GTCRN) — Soppressione di alta qualità del rumore con IA, ideale per ambienti rumorosi complessi."
+    },
+    "noiseSuppressionMode": {
+      "off": "Disattivato",
+      "standard": "Standard",
+      "enhanced": "Avanzato"
+    },
     "modelConfiguration": "Configurazione del modello",
     "sourceLanguage": "La mia lingua",
     "targetLanguage": "Lingua dell'altro",
@@ -591,7 +600,8 @@
     "connected": "Connesso",
     "error": "Errore di Connessione",
     "noApiKey": "Chiave API Richiesta",
-    "noMic": "Microfono Richiesto"
+    "noMic": "Microfono Richiesto",
+    "reconnecting": "Riconnessione in corso..."
   },
   "userTypeSelection": {
     "title": "Benvenuto in Sokuji",
