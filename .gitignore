@@ -96,3 +96,4 @@ public/wasm/*
 !public/wasm/ort/
 !public/wasm/vad/
 !public/wasm/piper-plus/
+!public/wasm/gtcrn/
