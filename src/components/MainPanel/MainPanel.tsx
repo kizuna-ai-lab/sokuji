@@ -1268,7 +1268,19 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       }, 30000); // Every 30 seconds
     } catch (error: any) {
       console.error('[Sokuji] [MainPanel] Failed to initialize session:', error);
-      
+
+      // Show error in conversation panel so it's visible to user
+      const errorMessage = error.message || 'Network connection error';
+      addLog(errorMessage, 'error');
+      setItems(prevItems => [...prevItems, {
+        id: `error-${Date.now()}`,
+        role: 'system',
+        type: 'error',
+        status: 'completed',
+        createdAt: Date.now(),
+        formatted: { text: errorMessage },
+      }]);
+
       // Track session initialization failure
       trackEvent('error_occurred', {
         error_type: 'session_initialization',
@@ -1278,7 +1290,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         provider: provider,
         recoverable: true
       });
-      
+
       // Reset state in case of error
       await disconnectConversation();
     } finally {
