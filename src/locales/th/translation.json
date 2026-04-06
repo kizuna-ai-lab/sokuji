@@ -132,7 +132,8 @@
   "connectionStatus": {
     "disconnected": "ตัดการเชื่อมต่อ",
     "connected": "เชื่อมต่อแล้ว",
-    "error": "ข้อผิดพลาดการเชื่อมต่อ"
+    "error": "ข้อผิดพลาดการเชื่อมต่อ",
+    "reconnecting": "กำลังเชื่อมต่อใหม่..."
   },
   "settings": {
     "title": "การตั้งค่า",

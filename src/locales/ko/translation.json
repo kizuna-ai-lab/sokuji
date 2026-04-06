@@ -591,7 +591,8 @@
     "connected": "연결됨",
     "error": "연결 오류",
     "noApiKey": "API 키 필요",
-    "noMic": "마이크 필요"
+    "noMic": "마이크 필요",
+    "reconnecting": "재연결 중..."
   },
   "userTypeSelection": {
     "title": "Sokuji에 오신 것을 환영합니다",

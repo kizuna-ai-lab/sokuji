@@ -542,7 +542,8 @@
     "connected": "Đã kết nối",
     "error": "Lỗi Kết Nối",
     "noApiKey": "Cần Khóa API",
-    "noMic": "Cần Microphone"
+    "noMic": "Cần Microphone",
+    "reconnecting": "Đang kết nối lại..."
   },
   "userTypeSelection": {
     "title": "Chào mừng đến với Sokuji",

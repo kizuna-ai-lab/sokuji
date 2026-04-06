@@ -746,5 +746,8 @@
     "errorWithMessage": "更新错误：{{message}}",
     "currentVersion": "当前版本：v{{version}}",
     "newVersion": "新版本：v{{version}}"
+  },
+  "connectionStatus": {
+    "reconnecting": "重新连接中..."
   }
 }

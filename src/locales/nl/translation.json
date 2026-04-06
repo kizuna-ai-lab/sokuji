@@ -591,7 +591,8 @@
     "connected": "Verbonden",
     "error": "Verbindingsfout",
     "noApiKey": "API Sleutel Vereist",
-    "noMic": "Microfoon Vereist"
+    "noMic": "Microfoon Vereist",
+    "reconnecting": "Opnieuw verbinden..."
   },
   "userTypeSelection": {
     "title": "Welkom bij Sokuji",

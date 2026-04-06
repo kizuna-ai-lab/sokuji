@@ -132,7 +132,8 @@
   "connectionStatus": {
     "disconnected": "విచ్ఛేదించబడింది",
     "connected": "కనెక్ట్ అయ్యింది",
-    "error": "కనెక్షన్ ఎరర్"
+    "error": "కనెక్షన్ ఎరర్",
+    "reconnecting": "మళ్ళీ కనెక్ట్ అవుతోంది..."
   },
   "settings": {
     "title": "సెట్టింగ్స్",

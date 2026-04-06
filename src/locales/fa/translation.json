@@ -599,7 +599,8 @@
     "connected": "متصل",
     "error": "خطای اتصال",
     "noApiKey": "کلید API ضروری",
-    "noMic": "میکروفون ضروری"
+    "noMic": "میکروفون ضروری",
+    "reconnecting": "در حال اتصال مجدد..."
   },
   "userTypeSelection": {
     "title": "به Sokuji خوش آمدید",

@@ -387,7 +387,8 @@
     "connected": "Ligado",
     "error": "Erro de Ligação",
     "noApiKey": "Chave API Necessária",
-    "noMic": "Microfone Necessário"
+    "noMic": "Microfone Necessário",
+    "reconnecting": "A reconectar..."
   },
   "audioPanel": {
     "title": "Definições de áudio",

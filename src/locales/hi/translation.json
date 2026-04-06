@@ -379,7 +379,8 @@
     "connected": "जुड़ा हुआ",
     "error": "कनेक्शन एरर",
     "noApiKey": "API की आवश्यक",
-    "noMic": "माइक्रोफोन आवश्यक"
+    "noMic": "माइक्रोफोन आवश्यक",
+    "reconnecting": "पुनः कनेक्ट हो रहा है..."
   },
   "mainPanel": {
     "conversationPlaceholder": "बातचीत यहाँ दिखाई देगी",

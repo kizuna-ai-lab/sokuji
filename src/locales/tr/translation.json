@@ -549,7 +549,8 @@
     "connected": "Bağlandı",
     "error": "Bağlantı Hatası",
     "noApiKey": "API Anahtarı Gerekli",
-    "noMic": "Mikrofon Gerekli"
+    "noMic": "Mikrofon Gerekli",
+    "reconnecting": "Yeniden bağlanıyor..."
   },
   "userTypeSelection": {
     "title": "Sokuji'ye Hoş Geldiniz",

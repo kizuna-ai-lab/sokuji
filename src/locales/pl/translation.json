@@ -590,7 +590,8 @@
     "connected": "Połączony",
     "error": "Błąd Połączenia",
     "noApiKey": "Wymagany Klucz API",
-    "noMic": "Wymagany Mikrofon"
+    "noMic": "Wymagany Mikrofon",
+    "reconnecting": "Ponowne łączenie..."
   },
   "userTypeSelection": {
     "title": "Witamy w Sokuji",

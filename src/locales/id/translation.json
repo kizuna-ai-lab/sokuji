@@ -386,7 +386,8 @@
     "connected": "Terhubung",
     "error": "Kesalahan Koneksi",
     "noApiKey": "Perlu Kunci API",
-    "noMic": "Perlu Mikrofon"
+    "noMic": "Perlu Mikrofon",
+    "reconnecting": "Menghubungkan kembali..."
   },
   "audioPanel": {
     "title": "Pengaturan audio",

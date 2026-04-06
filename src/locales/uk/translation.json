@@ -132,7 +132,8 @@
   "connectionStatus": {
     "disconnected": "Відключено",
     "connected": "Підключено",
-    "error": "Помилка підключення"
+    "error": "Помилка підключення",
+    "reconnecting": "Перепідключення..."
   },
   "settings": {
     "title": "Налаштування",

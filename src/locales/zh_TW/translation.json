@@ -145,7 +145,8 @@
   "connectionStatus": {
     "disconnected": "已斷線",
     "connected": "已連線",
-    "error": "連線錯誤"
+    "error": "連線錯誤",
+    "reconnecting": "重新連線中..."
   },
   "settings": {
     "title": "設定",

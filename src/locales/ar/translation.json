@@ -593,7 +593,8 @@
     "connected": "متصل",
     "error": "خطأ في الاتصال",
     "noApiKey": "مفتاح API مطلوب",
-    "noMic": "ميكروفون مطلوب"
+    "noMic": "ميكروفون مطلوب",
+    "reconnecting": "إعادة الاتصال..."
   },
   "userTypeSelection": {
     "title": "مرحباً بك في Sokuji",

@@ -598,7 +598,8 @@
     "connected": "Подключен",
     "error": "Ошибка подключения",
     "noApiKey": "Требуется API-ключ",
-    "noMic": "Требуется микрофон"
+    "noMic": "Требуется микрофон",
+    "reconnecting": "Переподключение..."
   },
   "userTypeSelection": {
     "title": "Добро пожаловать в Sokuji",

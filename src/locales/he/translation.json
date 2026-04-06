@@ -392,7 +392,8 @@
     "connected": "מחובר",
     "error": "שגיאת חיבור",
     "noApiKey": "נדרש מפתח API",
-    "noMic": "נדרש מיקרופון"
+    "noMic": "נדרש מיקרופון",
+    "reconnecting": "מתחבר מחדש..."
   },
   "audioPanel": {
     "title": "הגדרות שמע",

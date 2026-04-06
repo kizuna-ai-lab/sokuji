@@ -591,7 +591,8 @@
     "connected": "Conectado",
     "error": "Erro de Conexão",
     "noApiKey": "Chave da API Necessária",
-    "noMic": "Microfone Necessário"
+    "noMic": "Microfone Necessário",
+    "reconnecting": "Reconectando..."
   },
   "userTypeSelection": {
     "title": "Bem-vindo ao Sokuji",

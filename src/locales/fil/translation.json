@@ -385,7 +385,8 @@
     "connected": "Nakakonekta",
     "error": "Error sa Koneksyon",
     "noApiKey": "Kailangan ang API Key",
-    "noMic": "Kailangan ang Microphone"
+    "noMic": "Kailangan ang Microphone",
+    "reconnecting": "Muling kumukonekta..."
   },
   "mainPanel": {
     "conversationPlaceholder": "Ang usapan ay lalabas dito",

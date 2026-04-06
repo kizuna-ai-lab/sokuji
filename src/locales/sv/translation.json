@@ -547,7 +547,8 @@
     "connected": "Ansluten",
     "error": "Anslutningsfel",
     "noApiKey": "API Nyckel Krävs",
-    "noMic": "Mikrofon Krävs"
+    "noMic": "Mikrofon Krävs",
+    "reconnecting": "Återansluter..."
   },
   "userTypeSelection": {
     "title": "Välkommen till Sokuji",

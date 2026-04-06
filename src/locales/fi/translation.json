@@ -385,7 +385,8 @@
     "connected": "Yhdistetty",
     "error": "Yhteysvirhe",
     "noApiKey": "API-avain vaaditaan",
-    "noMic": "Mikrofoni vaaditaan"
+    "noMic": "Mikrofoni vaaditaan",
+    "reconnecting": "Yhdistetään uudelleen..."
   },
   "mainPanel": {
     "conversationPlaceholder": "Keskustelu näkyy tässä",

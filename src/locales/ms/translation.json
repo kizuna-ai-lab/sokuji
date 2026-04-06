@@ -383,7 +383,8 @@
     "connected": "Disambung",
     "error": "Ralat Sambungan",
     "noApiKey": "Perlukan Kunci API",
-    "noMic": "Perlukan Mikrofon"
+    "noMic": "Perlukan Mikrofon",
+    "reconnecting": "Menyambung semula..."
   },
   "audioPanel": {
     "title": "Tetapan Audio",

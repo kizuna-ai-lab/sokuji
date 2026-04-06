@@ -591,7 +591,8 @@
     "connected": "Connesso",
     "error": "Errore di Connessione",
     "noApiKey": "Chiave API Richiesta",
-    "noMic": "Microfono Richiesto"
+    "noMic": "Microfono Richiesto",
+    "reconnecting": "Riconnessione in corso..."
   },
   "userTypeSelection": {
     "title": "Benvenuto in Sokuji",
