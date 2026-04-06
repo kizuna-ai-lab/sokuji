@@ -69,6 +69,12 @@ export class ModernAudioRecorder extends BaseAudioRecorder {
   private _noiseSuppressEnabled: boolean = false;
   private _noiseSuppressOpId: number = 0;
 
+  // GTCRN worker-based noise suppression
+  private gtcrnWorker: Worker | null = null;
+  private gtcrnReady: boolean = false;
+  private _noiseSuppressionMode: 'off' | 'standard' | 'enhanced' = 'off';
+  private _originalOnMessage: ((event: MessageEvent) => void) | null = null;
+
   // Internal sample rate for AudioContext (48kHz for RNNoise compatibility)
   private internalSampleRate: number;
 
@@ -309,9 +315,11 @@ export class ModernAudioRecorder extends BaseAudioRecorder {
         this.audioWorkletNode.connect(this.dummyGain);
         this.dummyGain.connect(this.audioContext.destination);
 
-        // Insert noise suppression node if enabled
-        if (this._noiseSuppressEnabled) {
+        // Insert noise suppression based on current mode
+        if (this._noiseSuppressionMode === 'standard') {
           await this._insertRnnoiseNode();
+        } else if (this._noiseSuppressionMode === 'enhanced') {
+          await this._connectGtcrnWorker();
         }
 
       } catch (error) {
@@ -421,6 +429,9 @@ export class ModernAudioRecorder extends BaseAudioRecorder {
     }
     this.rnnoiseModuleLoaded = false; // AudioContext will be closed
 
+    // Cleanup GTCRN worker connection (keep worker alive for reuse)
+    this._disconnectGtcrnWorker();
+
     // Cleanup analyser
     if (this.analyser) {
       this.analyser.disconnect();
@@ -440,6 +451,7 @@ export class ModernAudioRecorder extends BaseAudioRecorder {
    */
   async quit(): Promise<boolean> {
     this.listenForDeviceChange(null);
+    this._disposeGtcrnWorker();
     if (this.mediaRecorder) {
       await this.end();
     }
@@ -591,21 +603,35 @@ export class ModernAudioRecorder extends BaseAudioRecorder {
    * Dynamically inserts/removes RnnoiseWorkletNode in the audio graph.
    */
   async setNoiseSuppressionEnabled(enabled: boolean): Promise<void> {
-    this._noiseSuppressEnabled = enabled;
+    await this.setNoiseSuppressionMode(enabled ? 'standard' : 'off');
+  }
+
+  /**
+   * Set noise suppression mode: 'off', 'standard' (RNNoise), or 'enhanced' (GTCRN).
+   */
+  async setNoiseSuppressionMode(mode: 'off' | 'standard' | 'enhanced'): Promise<void> {
+    const prevMode = this._noiseSuppressionMode;
+    this._noiseSuppressionMode = mode;
+    this._noiseSuppressEnabled = mode === 'standard';
     const opId = ++this._noiseSuppressOpId;
 
     if (!this.audioContext || !this.mediaStreamSource || !this.audioWorkletNode) {
-      // Not currently recording with AudioWorklet; flag is stored for next session start
-      if (!this.useAudioWorklet && enabled) {
-        console.warn(`${this.getLogPrefix()} Noise suppression not supported with ScriptProcessor fallback`);
-      }
       return;
     }
 
-    if (enabled) {
-      await this._insertRnnoiseNode(opId);
-    } else {
+    // Tear down previous mode
+    if (prevMode === 'standard' && mode !== 'standard') {
       this._removeRnnoiseNode();
+    }
+    if (prevMode === 'enhanced' && mode !== 'enhanced') {
+      this._disconnectGtcrnWorker();
+    }
+
+    // Set up new mode
+    if (mode === 'standard') {
+      await this._insertRnnoiseNode(opId);
+    } else if (mode === 'enhanced') {
+      await this._connectGtcrnWorker(opId);
     }
   }
 
@@ -720,6 +746,102 @@ export class ModernAudioRecorder extends BaseAudioRecorder {
           }
         }
       } catch { /* best effort */ }
+    }
+  }
+
+  /**
+   * Initialize and connect GTCRN worker for audio processing.
+   */
+  private async _connectGtcrnWorker(opId?: number): Promise<void> {
+    if (!this.audioWorkletNode) return;
+
+    try {
+      if (!this.gtcrnWorker) {
+        this.gtcrnWorker = new Worker(
+          new URL('./gtcrn/gtcrn-worker.ts', import.meta.url),
+          { type: 'module' }
+        );
+
+        await new Promise<void>((resolve, reject) => {
+          const timeout = setTimeout(() => reject(new Error('GTCRN worker init timeout')), 10000);
+          this.gtcrnWorker!.onmessage = (event) => {
+            if (event.data.type === 'ready') {
+              clearTimeout(timeout);
+              this.gtcrnReady = true;
+              resolve();
+            } else if (event.data.type === 'error') {
+              clearTimeout(timeout);
+              reject(new Error(event.data.message));
+            }
+          };
+          this.gtcrnWorker!.postMessage({ type: 'init' });
+        });
+      }
+
+      if (opId !== undefined && opId !== this._noiseSuppressOpId) return;
+
+      const originalHandler = this.audioWorkletNode.port.onmessage;
+      this._originalOnMessage = originalHandler as ((event: MessageEvent) => void) | null;
+
+      this.gtcrnWorker.onmessage = (event: MessageEvent) => {
+        if (event.data.type === 'audio') {
+          const denoisedPcm: Int16Array = event.data.audio;
+          const outputPcm = this.downsample48to24(denoisedPcm);
+          this._processAudioData(outputPcm);
+        } else if (event.data.type === 'error') {
+          console.error(`${this.getLogPrefix()} GTCRN worker error:`, event.data.message);
+          this.setNoiseSuppressionMode('standard');
+        }
+      };
+
+      this.audioWorkletNode.port.onmessage = (event: MessageEvent) => {
+        if (event.data.type === 'audioData' && this.gtcrnReady && this.gtcrnWorker) {
+          const { pcmData } = event.data;
+          this.gtcrnWorker.postMessage(
+            { type: 'process', audio: pcmData },
+            [pcmData.buffer]
+          );
+        }
+      };
+
+      console.info(`${this.getLogPrefix()} GTCRN worker connected`);
+    } catch (error) {
+      console.error(`${this.getLogPrefix()} Failed to connect GTCRN worker:`, error);
+      this.gtcrnReady = false;
+      this._noiseSuppressionMode = 'standard';
+      this._noiseSuppressEnabled = true;
+      await this._insertRnnoiseNode();
+    }
+  }
+
+  /**
+   * Disconnect GTCRN worker from the audio pipeline (keep worker alive).
+   */
+  private _disconnectGtcrnWorker(): void {
+    if (!this.audioWorkletNode) return;
+
+    if (this._originalOnMessage) {
+      this.audioWorkletNode.port.onmessage = this._originalOnMessage;
+      this._originalOnMessage = null;
+    }
+
+    if (this.gtcrnWorker) {
+      this.gtcrnWorker.postMessage({ type: 'reset' });
+    }
+
+    console.info(`${this.getLogPrefix()} GTCRN worker disconnected`);
+  }
+
+  /**
+   * Fully dispose the GTCRN worker.
+   */
+  private _disposeGtcrnWorker(): void {
+    this._disconnectGtcrnWorker();
+    if (this.gtcrnWorker) {
+      this.gtcrnWorker.postMessage({ type: 'dispose' });
+      this.gtcrnWorker.terminate();
+      this.gtcrnWorker = null;
+      this.gtcrnReady = false;
     }
   }
 
