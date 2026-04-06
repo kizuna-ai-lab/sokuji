@@ -419,6 +419,16 @@
         background: #666;
         transition: background 0.3s ease;
         &.active { background: #10a37f; }
+        &.reconnecting {
+          background: #f39c12;
+          animation: pulse 1s ease-in-out infinite;
+        }
+      }
+
+      .reconnecting-label {
+        color: #f39c12;
+        font-size: 12px;
+        animation: pulse 1s ease-in-out infinite;
       }
 
       .language-pair {
@@ -727,4 +737,9 @@
 @keyframes spin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
 }

@@ -24,7 +24,7 @@ import {
   useSetConversationFontSize
 } from '../../stores/settingsStore';
 import useSettingsStore, { createParticipantLocalInferenceConfig } from '../../stores/settingsStore';
-import { useSession } from '../../stores/sessionStore';
+import { useSession, useIsReconnecting, useSetIsReconnecting } from '../../stores/sessionStore';
 import { useAudioContext, useIsNoiseSuppressEnabled } from '../../stores/audioStore';
 import { useLogActions } from '../../stores/logStore';
 import type { RealtimeEvent } from '../../stores/logStore';
@@ -118,16 +118,19 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   const navigateToSettings = useNavigateToSettings();
 
   // Get session state from context
-  const { 
-    isSessionActive, 
-    setIsSessionActive, 
-    sessionId, 
+  const {
+    isSessionActive,
+    setIsSessionActive,
+    sessionId,
     setSessionId,
     sessionStartTime,
     setSessionStartTime,
     translationCount,
     setTranslationCount
   } = useSession();
+
+  const isReconnecting = useIsReconnecting();
+  const setIsReconnecting = useSetIsReconnecting();
 
   // Get log functions from store
   const { addLog, addRealtimeEvent } = useLogActions();
@@ -638,8 +641,19 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           error_type: event.type === 'error' ? 'client' : 'server'
         });
       },
+      onReconnecting: () => {
+        console.info('[Sokuji] [MainPanel] Session reconnecting...');
+        setIsReconnecting(true);
+        addLog('Session reconnecting...', 'warning');
+      },
+      onReconnected: () => {
+        console.info('[Sokuji] [MainPanel] Session reconnected successfully');
+        setIsReconnecting(false);
+        addLog('Session reconnected', 'success');
+      },
       onClose: async (event: any) => {
         console.info('[Sokuji] [MainPanel] Connection closed, cleaning up session', event);
+        setIsReconnecting(false);
 
         // Track disconnection
         trackEvent('connection_status', {
@@ -799,7 +813,8 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     setTranslationCount,
     trackEvent,
     addRealtimeEvent,
-    setIsSessionActive
+    setIsSessionActive,
+    setIsReconnecting
   ]); // addRealtimeEvent from Zustand is stable
 
   /**
@@ -2195,6 +2210,24 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     };
   }, [isSessionActive, canPushToTalk, startRecording, stopRecording, isRecording]);
 
+  // DEV ONLY: Ctrl+Shift+G to simulate Gemini disconnect for testing reconnection
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'production') return;
+
+    const handleDevShortcut = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.shiftKey && e.key === 'G') {
+        e.preventDefault();
+        const client = clientRef.current;
+        if (client && 'simulateDisconnectForTesting' in client) {
+          (client as any).simulateDisconnectForTesting();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleDevShortcut);
+    return () => window.removeEventListener('keydown', handleDevShortcut);
+  }, []);
+
   // Session tracking for analytics
   useEffect(() => {
     if (isSessionActive) {
@@ -2671,7 +2704,12 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         {uiMode === 'basic' && (
           <div className="control-footer basic">
             <div className="status-info">
-              <span className={`status-dot ${isSessionActive ? 'active' : ''}`} />
+              <span className={`status-dot ${isReconnecting ? 'reconnecting' : isSessionActive ? 'active' : ''}`} />
+              {isReconnecting && (
+                <span className="reconnecting-label">
+                  {t('connectionStatus.reconnecting', 'Reconnecting...')}
+                </span>
+              )}
               <span
                 className="language-pair clickable"
                 onClick={() => navigateToSettings('languages')}
