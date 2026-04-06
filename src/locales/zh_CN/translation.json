@@ -52,8 +52,17 @@
     "model": "模型",
     "userTranscriptModel": "用户转录模型",
     "noiseReduction": "降噪",
-    "noiseSuppression": "AI 降噪",
-    "noiseSuppressionTooltip": "基于 RNNoise 的 AI 降噪。在将音频发送给 AI 之前减少背景噪音。适用于所有服务商。",
+    "noiseSuppression": "噪声抑制",
+    "noiseSuppressionTooltip": {
+      "off": "关闭 — 仅使用浏览器内置噪声处理。",
+      "standard": "标准（RNNoise）— 轻量级AI噪声抑制，低延迟。",
+      "enhanced": "增强（GTCRN）— 高品质AI噪声抑制，适合复杂噪声环境。"
+    },
+    "noiseSuppressionMode": {
+      "off": "关闭",
+      "standard": "标准",
+      "enhanced": "增强"
+    },
     "modelConfiguration": "模型配置",
     "sourceLanguage": "我的语言",
     "targetLanguage": "对方语言",

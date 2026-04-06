@@ -309,8 +309,17 @@
     "automaticTurnDetection": "การตรวจจับเทิร์นอัตโนมัติ",
     "userTranscriptModel": "โมเดลถอดเสียงผู้ใช้",
     "noiseReduction": "การลดเสียงรบกวน",
-    "noiseSuppression": "การตัดเสียงรบกวน AI",
-    "noiseSuppressionTooltip": "การลดเสียงรบกวนด้วย AI โดยใช้ RNNoise ลดเสียงรบกวนพื้นหลังก่อนส่งเสียงไปยังผู้ให้บริการ AI ใช้งานได้กับผู้ให้บริการทุกราย",
+    "noiseSuppression": "การตัดเสียงรบกวน",
+    "noiseSuppressionTooltip": {
+      "off": "ปิด — ใช้การจัดการเสียงรบกวนในตัวของเบราว์เซอร์เท่านั้น",
+      "standard": "มาตรฐาน (RNNoise) — การตัดเสียงรบกวน AI แบบเบาพร้อมความหน่วงต่ำ",
+      "enhanced": "ขั้นสูง (GTCRN) — การตัดเสียงรบกวน AI คุณภาพสูง เหมาะสำหรับสภาพแวดล้อมเสียงรบกวนที่ซับซ้อน"
+    },
+    "noiseSuppressionMode": {
+      "off": "ปิด",
+      "standard": "มาตรฐาน",
+      "enhanced": "ขั้นสูง"
+    },
     "modelConfiguration": "การกำหนดค่าโมเดล",
     "preview": "ดูตัวอย่าง",
     "simple": "ด่วน",

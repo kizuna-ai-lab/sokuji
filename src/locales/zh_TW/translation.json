@@ -170,8 +170,17 @@
     "model": "模型",
     "userTranscriptModel": "使用者轉錄模型",
     "noiseReduction": "降噪",
-    "noiseSuppression": "AI 降噪",
-    "noiseSuppressionTooltip": "基於 RNNoise 的 AI 降噪。在將音頻發送給 AI 之前減少背景噪音。適用於所有服務商。",
+    "noiseSuppression": "噪音抑制",
+    "noiseSuppressionTooltip": {
+      "off": "關閉 — 僅使用瀏覽器內建噪音處理。",
+      "standard": "標準（RNNoise）— 輕量級AI噪音抑制，低延遲。",
+      "enhanced": "增強（GTCRN）— 高品質AI噪音抑制，適合複雜噪音環境。"
+    },
+    "noiseSuppressionMode": {
+      "off": "關閉",
+      "standard": "標準",
+      "enhanced": "增強"
+    },
     "modelConfiguration": "模型設定",
     "sourceLanguage": "我的語言",
     "targetLanguage": "對方語言",

@@ -52,8 +52,17 @@
     "model": "모델",
     "userTranscriptModel": "사용자 전사 모델",
     "noiseReduction": "노이즈 감소",
-    "noiseSuppression": "AI 노이즈 억제",
-    "noiseSuppressionTooltip": "RNNoise를 사용한 AI 노이즈 제거. AI 제공자에게 오디오를 보내기 전에 배경 소음을 줄입니다. 모든 제공자에서 작동합니다.",
+    "noiseSuppression": "노이즈 억제",
+    "noiseSuppressionTooltip": {
+      "off": "끄기 — 브라우저 내장 노이즈 처리만 사용합니다.",
+      "standard": "표준 (RNNoise) — 저지연 경량 AI 노이즈 억제.",
+      "enhanced": "향상 (GTCRN) — 복잡한 노이즈 환경에 최적화된 고품질 AI 노이즈 억제."
+    },
+    "noiseSuppressionMode": {
+      "off": "끄기",
+      "standard": "표준",
+      "enhanced": "향상"
+    },
     "modelConfiguration": "모델 구성",
     "sourceLanguage": "내 언어",
     "targetLanguage": "상대방 언어",

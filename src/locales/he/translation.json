@@ -51,8 +51,17 @@
     "model": "מודל",
     "userTranscriptModel": "מודל תמלול משתמש",
     "noiseReduction": "הפחתת רעש",
-    "noiseSuppression": "דיכוי רעשי AI",
-    "noiseSuppressionTooltip": "הפחתת רעש מבוססת AI באמצעות RNNoise. מפחיתה רעשי רקע לפני שליחת השמע לספק ה-AI. עובד עם כל הספקים.",
+    "noiseSuppression": "דיכוי רעש",
+    "noiseSuppressionTooltip": {
+      "off": "כבוי — רק טיפול הרעש המובנה של הדפדפן.",
+      "standard": "סטנדרטי (RNNoise) — דיכוי רעש AI קל עם השהיה נמוכה.",
+      "enhanced": "משופר (GTCRN) — דיכוי רעש AI באיכות גבוהה, מיטבי לסביבות רעש מורכבות."
+    },
+    "noiseSuppressionMode": {
+      "off": "כבוי",
+      "standard": "סטנדרטי",
+      "enhanced": "משופר"
+    },
     "modelConfiguration": "תצורת מודל",
     "sourceLanguage": "השפה שלי",
     "targetLanguage": "שפת הצד השני",

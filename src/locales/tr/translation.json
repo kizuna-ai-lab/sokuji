@@ -196,8 +196,17 @@
     "automaticTurnDetection": "Otomatik sıra algılama",
     "userTranscriptModel": "Kullanıcı transkripsiyon modeli",
     "noiseReduction": "Gürültü azaltma",
-    "noiseSuppression": "AI Gürültü Bastırma",
-    "noiseSuppressionTooltip": "RNNoise kullanarak AI destekli gürültü azaltma. Sesi AI sağlayıcısına göndermeden önce arka plan gürültüsünü azaltır. Tüm sağlayıcılarla çalışır.",
+    "noiseSuppression": "Gürültü Bastırma",
+    "noiseSuppressionTooltip": {
+      "off": "Kapalı — Yalnızca tarayıcının yerleşik gürültü işleme özelliği.",
+      "standard": "Standart (RNNoise) — Düşük gecikmeli hafif yapay zeka gürültü bastırma.",
+      "enhanced": "Gelişmiş (GTCRN) — Karmaşık gürültü ortamları için en iyi yüksek kaliteli yapay zeka gürültü bastırma."
+    },
+    "noiseSuppressionMode": {
+      "off": "Kapalı",
+      "standard": "Standart",
+      "enhanced": "Gelişmiş"
+    },
     "modelConfiguration": "Model yapılandırması",
     "preview": "Önizleme",
     "simple": "Hızlı",

@@ -51,8 +51,17 @@
     "model": "مدل",
     "userTranscriptModel": "مدل رونوشت کاربر",
     "noiseReduction": "کاهش نویز",
-    "noiseSuppression": "حذف نویز AI",
-    "noiseSuppressionTooltip": "کاهش نویز مبتنی بر AI با استفاده از RNNoise. قبل از ارسال صدا به ارائه‌دهنده AI، نویز پس‌زمینه را کاهش می‌دهد. با همه ارائه‌دهندگان کار می‌کند.",
+    "noiseSuppression": "حذف نویز",
+    "noiseSuppressionTooltip": {
+      "off": "خاموش — فقط پردازش نویز داخلی مرورگر.",
+      "standard": "استاندارد (RNNoise) — حذف سبک نویز با هوش مصنوعی و تأخیر کم.",
+      "enhanced": "پیشرفته (GTCRN) — حذف باکیفیت نویز با هوش مصنوعی، بهترین برای محیط‌های پر سر و صدا."
+    },
+    "noiseSuppressionMode": {
+      "off": "خاموش",
+      "standard": "استاندارد",
+      "enhanced": "پیشرفته"
+    },
     "modelConfiguration": "پیکربندی مدل",
     "sourceLanguage": "زبان من",
     "targetLanguage": "زبان طرف مقابل",

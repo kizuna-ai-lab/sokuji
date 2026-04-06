@@ -52,8 +52,17 @@
     "model": "Modelo",
     "userTranscriptModel": "Modelo de transcrição do usuário",
     "noiseReduction": "Redução de ruído",
-    "noiseSuppression": "Supressão de Ruído IA",
-    "noiseSuppressionTooltip": "Redução de ruído com IA usando RNNoise. Reduz o ruído de fundo antes de enviar o áudio ao provedor de IA. Funciona com todos os provedores.",
+    "noiseSuppression": "Supressão de Ruído",
+    "noiseSuppressionTooltip": {
+      "off": "Desativado — Apenas o tratamento de ruído integrado do navegador.",
+      "standard": "Padrão (RNNoise) — Supressão leve de ruído com IA e baixa latência.",
+      "enhanced": "Aprimorado (GTCRN) — Supressão de alta qualidade de ruído com IA, ideal para ambientes de ruído complexo."
+    },
+    "noiseSuppressionMode": {
+      "off": "Desativado",
+      "standard": "Padrão",
+      "enhanced": "Aprimorado"
+    },
     "modelConfiguration": "Configuração do modelo",
     "sourceLanguage": "Meu idioma",
     "targetLanguage": "Idioma do outro",

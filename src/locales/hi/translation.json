@@ -199,8 +199,17 @@
     "automaticTurnDetection": "स्वचालित बारी पहचान",
     "userTranscriptModel": "उपयोगकर्ता प्रतिलेखन मॉडल",
     "noiseReduction": "शोर में कमी",
-    "noiseSuppression": "AI शोर दमन",
-    "noiseSuppressionTooltip": "RNNoise का उपयोग करके AI-संचालित शोर में कमी। AI प्रदाता को ऑडियो भेजने से पहले पृष्ठभूमि शोर को कम करता है। सभी प्रदाताओं के साथ काम करता है।",
+    "noiseSuppression": "शोर दमन",
+    "noiseSuppressionTooltip": {
+      "off": "बंद — केवल ब्राउज़र की अंतर्निर्मित शोर प्रसंस्करण।",
+      "standard": "मानक (RNNoise) — कम विलंबता के साथ हल्का AI शोर दमन।",
+      "enhanced": "उन्नत (GTCRN) — जटिल शोर वातावरण के लिए उच्च-गुणवत्ता AI शोर दमन।"
+    },
+    "noiseSuppressionMode": {
+      "off": "बंद",
+      "standard": "मानक",
+      "enhanced": "उन्नत"
+    },
     "modelConfiguration": "मॉडल कॉन्फ़िगरेशन",
     "preview": "पूर्वावलोकन",
     "simple": "त्वरित",
