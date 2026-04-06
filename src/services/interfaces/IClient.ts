@@ -206,6 +206,8 @@ export interface ClientEventHandlers {
   onConversationUpdated?: (data: { item: ConversationItem; delta?: any }) => void;
   onConversationInterrupted?: () => void;
   onRealtimeEvent?: (event: RealtimeEvent) => void;
+  onReconnecting?: () => void;
+  onReconnected?: () => void;
 }
 
 /**

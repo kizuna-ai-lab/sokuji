@@ -11,7 +11,16 @@ export interface EventData {
     // Connection state types
     | 'session.opened'
     | 'session.closed'
+    | 'session.reconnecting'
+    | 'session.reconnected'
     | 'session.error'
+    | 'session.reconnect_failed'
+    | 'session.init_error'
+    | 'session.webrtc_fallback'
+    // Participant/local inference status types
+    | 'participant.error'
+    | 'participant.warning'
+    | 'participant.info'
     // Gemini-specific top-level message types
     | 'setupComplete'
     | 'usageMetadata'

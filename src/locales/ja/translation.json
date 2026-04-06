@@ -601,7 +601,8 @@
     "connected": "接続済み",
     "error": "接続エラー",
     "noApiKey": "APIキーが必要",
-    "noMic": "マイクが必要"
+    "noMic": "マイクが必要",
+    "reconnecting": "再接続中..."
   },
   "userTypeSelection": {
     "title": "Sokujiへようこそ",

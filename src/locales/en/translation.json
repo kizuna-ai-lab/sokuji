@@ -564,7 +564,8 @@
     "connected": "Connected",
     "error": "Connection Error",
     "noApiKey": "API Key Required",
-    "noMic": "Microphone Required"
+    "noMic": "Microphone Required",
+    "reconnecting": "Reconnecting..."
   },
   "audioFeedback": {
     "title": "Audio Feedback Warning",
