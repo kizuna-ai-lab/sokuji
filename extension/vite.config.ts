@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react'
 import { viteStaticCopy } from 'vite-plugin-static-copy'
 import path from 'path'
 import fs from 'fs'
+import pkg from '../package.json' with { type: 'json' }
 
 /**
  * Rollup emits ort-wasm-*.wasm into assets/ because onnxruntime-web uses
@@ -162,6 +163,7 @@ export default defineConfig(({ mode }) => {
       ),
       'import.meta.env.DEV': JSON.stringify(isDevMode),
       global: 'globalThis',
+      __APP_VERSION__: JSON.stringify(pkg.version),
     },
     css: {
       preprocessorOptions: {
