@@ -872,6 +872,9 @@ export class GeminiClient implements IClient {
       this.session.close();
       this.session = null;
     }
+    // Clear connected state so connect() doesn't call disconnect()
+    // which would clear conversationItems and savedResumptionHandle
+    this.isConnectedState = false;
 
     const maxRetries = 3;
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
