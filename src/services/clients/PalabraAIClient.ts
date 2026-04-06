@@ -418,7 +418,17 @@ export class PalabraAIClient implements IClient {
     });
 
     if (!response.ok) {
-      throw new Error(`Failed to create session: ${response.statusText}`);
+      let errorMessage = `Failed to create session: ${response.statusText}`;
+      try {
+        const errorData = await response.json();
+        const firstError = errorData?.errors?.[0];
+        if (firstError) {
+          errorMessage = `Palabra AI: ${firstError.detail || firstError.title || response.statusText}`;
+        }
+      } catch {
+        // JSON parse failed, keep generic message
+      }
+      throw new Error(errorMessage);
     }
 
     const data = await response.json();
