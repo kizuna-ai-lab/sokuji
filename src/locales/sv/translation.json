@@ -174,8 +174,17 @@
     "automaticTurnDetection": "Automatisk turdetektering",
     "userTranscriptModel": "Användartranskriptionsmodell",
     "noiseReduction": "Brusreducering",
-    "noiseSuppression": "AI-brusreducering",
-    "noiseSuppressionTooltip": "AI-driven brusreducering med RNNoise. Minskar bakgrundsbrus innan ljud skickas till AI-leverantören. Fungerar med alla leverantörer.",
+    "noiseSuppression": "Brusreducering",
+    "noiseSuppressionTooltip": {
+      "off": "Av — Endast webbläsarens inbyggda brushantering.",
+      "standard": "Standard (RNNoise) — Lätt AI-brusreducering med låg latens.",
+      "enhanced": "Förbättrad (GTCRN) — Högkvalitativ AI-brusreducering, bäst för komplexa buller­miljöer."
+    },
+    "noiseSuppressionMode": {
+      "off": "Av",
+      "standard": "Standard",
+      "enhanced": "Förbättrad"
+    },
     "modelConfiguration": "Modellkonfiguration",
     "preview": "Förhandsgranskning",
     "simple": "Snabb",
@@ -547,7 +556,8 @@
     "connected": "Ansluten",
     "error": "Anslutningsfel",
     "noApiKey": "API Nyckel Krävs",
-    "noMic": "Mikrofon Krävs"
+    "noMic": "Mikrofon Krävs",
+    "reconnecting": "Återansluter..."
   },
   "userTypeSelection": {
     "title": "Välkommen till Sokuji",

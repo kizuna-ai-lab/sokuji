@@ -25,7 +25,7 @@ import {
 } from '../../stores/settingsStore';
 import useSettingsStore, { createParticipantLocalInferenceConfig } from '../../stores/settingsStore';
 import { useSession, useIsReconnecting, useSetIsReconnecting } from '../../stores/sessionStore';
-import { useAudioContext, useIsNoiseSuppressEnabled } from '../../stores/audioStore';
+import { useAudioContext, useNoiseSuppressionMode } from '../../stores/audioStore';
 import { useLogActions } from '../../stores/logStore';
 import type { RealtimeEvent } from '../../stores/logStore';
 import { IClient, ConversationItem, SessionConfig, ClientEventHandlers, ClientFactory, ResponseConfig } from '../../services/clients';
@@ -152,7 +152,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   } = useAudioContext();
 
   // Noise suppression
-  const isNoiseSuppressEnabled = useIsNoiseSuppressEnabled();
+  const noiseSuppressionMode = useNoiseSuppressionMode();
 
   // canPushToTalk is true when manual turn detection is used
   // (OpenAI-compatible: 'Disabled', Volcengine AST2: 'Push-to-Talk')
@@ -416,11 +416,11 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     if (!isSessionActive || !audioServiceRef.current) return;
     void audioServiceRef.current
       .getRecorder()
-      .setNoiseSuppressionEnabled(isNoiseSuppressEnabled)
+      .setNoiseSuppressionMode(noiseSuppressionMode)
       .catch((error: unknown) => {
-        console.error('[Sokuji] [MainPanel] Failed to set noise suppression:', error);
+        console.error('[Sokuji] [MainPanel] Failed to set noise suppression mode:', error);
       });
-  }, [isNoiseSuppressEnabled, isSessionActive]);
+  }, [noiseSuppressionMode, isSessionActive]);
 
   /**
    * Check for potential audio feedback and show warning
@@ -1195,7 +1195,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       // Sync noise suppression state for the new session (ensures RNNoise is
       // removed when disabled, not just added when enabled)
       if (audioServiceRef.current) {
-        await audioServiceRef.current.getRecorder().setNoiseSuppressionEnabled(isNoiseSuppressEnabled);
+        await audioServiceRef.current.getRecorder().setNoiseSuppressionMode(noiseSuppressionMode);
       }
 
       // Note: Use clientRef.current instead of client variable to handle WebRTC fallback scenario
@@ -1350,6 +1350,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     volcengineSTSettings,
     volcengineAST2Settings,
     localInferenceSettings,
+    noiseSuppressionMode,
     provider,
     transportType,
     isLoaded,
@@ -2283,7 +2284,8 @@ const MainPanel: React.FC<MainPanelProps> = () => {
             translation_model: localConfig.translationModelId || 'unknown',
             tts_model: localConfig.ttsModelId || 'none',
           }),
-          noise_suppression_enabled: isNoiseSuppressEnabled,
+          noise_suppression_enabled: noiseSuppressionMode !== 'off',
+          noise_suppression_mode: noiseSuppressionMode,
           real_voice_passthrough_enabled: isRealVoicePassthroughEnabled,
           transport: transportType,
           platform: getEnvironment(),

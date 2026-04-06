@@ -198,8 +198,17 @@
     "automaticTurnDetection": "Phát hiện lượt tự động",
     "userTranscriptModel": "Mô hình phiên âm người dùng",
     "noiseReduction": "Giảm tiếng ồn",
-    "noiseSuppression": "Khử tiếng ồn AI",
-    "noiseSuppressionTooltip": "Giảm tiếng ồn bằng AI sử dụng RNNoise. Giảm tiếng ồn nền trước khi gửi âm thanh đến nhà cung cấp AI. Hoạt động với tất cả nhà cung cấp.",
+    "noiseSuppression": "Khử tiếng ồn",
+    "noiseSuppressionTooltip": {
+      "off": "Tắt — Chỉ sử dụng xử lý tiếng ồn tích hợp của trình duyệt.",
+      "standard": "Tiêu chuẩn (RNNoise) — Khử tiếng ồn AI nhẹ với độ trễ thấp.",
+      "enhanced": "Nâng cao (GTCRN) — Khử tiếng ồn AI chất lượng cao, tốt nhất cho môi trường ồn ào phức tạp."
+    },
+    "noiseSuppressionMode": {
+      "off": "Tắt",
+      "standard": "Tiêu chuẩn",
+      "enhanced": "Nâng cao"
+    },
     "modelConfiguration": "Cấu hình mô hình",
     "preview": "Xem trước",
     "simple": "Nhanh",
@@ -542,7 +551,8 @@
     "connected": "Đã kết nối",
     "error": "Lỗi Kết Nối",
     "noApiKey": "Cần Khóa API",
-    "noMic": "Cần Microphone"
+    "noMic": "Cần Microphone",
+    "reconnecting": "Đang kết nối lại..."
   },
   "userTypeSelection": {
     "title": "Chào mừng đến với Sokuji",

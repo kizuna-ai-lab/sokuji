@@ -52,8 +52,17 @@
     "model": "Model",
     "userTranscriptModel": "Gebruiker transcript model",
     "noiseReduction": "Ruisonderdrukking",
-    "noiseSuppression": "AI-ruisonderdrukking",
-    "noiseSuppressionTooltip": "AI-aangedreven ruisonderdrukking met RNNoise. Vermindert achtergrondgeluid voordat audio naar de AI-provider wordt verzonden. Werkt met alle providers.",
+    "noiseSuppression": "Ruisonderdrukking",
+    "noiseSuppressionTooltip": {
+      "off": "Uit — Alleen de ingebouwde ruisbehandeling van de browser.",
+      "standard": "Standaard (RNNoise) — Lichte AI-ruisonderdrukking met lage latentie.",
+      "enhanced": "Verbeterd (GTCRN) — Hoogwaardige AI-ruisonderdrukking, ideaal voor complexe ruisomgevingen."
+    },
+    "noiseSuppressionMode": {
+      "off": "Uit",
+      "standard": "Standaard",
+      "enhanced": "Verbeterd"
+    },
     "modelConfiguration": "Model configuratie",
     "sourceLanguage": "Mijn taal",
     "targetLanguage": "Taal van de ander",
@@ -591,7 +600,8 @@
     "connected": "Verbonden",
     "error": "Verbindingsfout",
     "noApiKey": "API Sleutel Vereist",
-    "noMic": "Microfoon Vereist"
+    "noMic": "Microfoon Vereist",
+    "reconnecting": "Opnieuw verbinden..."
   },
   "userTypeSelection": {
     "title": "Welkom bij Sokuji",

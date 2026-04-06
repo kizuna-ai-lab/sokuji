@@ -51,8 +51,17 @@
     "model": "Model",
     "userTranscriptModel": "Model transkrip pengguna",
     "noiseReduction": "Pengurangan bunyi bising",
-    "noiseSuppression": "Penindasan Bunyi Bising AI",
-    "noiseSuppressionTooltip": "Pengurangan bunyi bising berkuasa AI menggunakan RNNoise. Mengurangkan bunyi bising latar belakang sebelum menghantar audio kepada pembekal AI. Berfungsi dengan semua pembekal.",
+    "noiseSuppression": "Penindasan Bunyi Bising",
+    "noiseSuppressionTooltip": {
+      "off": "Mati — Hanya pengendalian bunyi bising terbina dalam pelayar.",
+      "standard": "Standard (RNNoise) — Penindasan bunyi bising AI ringan dengan kependaman rendah.",
+      "enhanced": "Dipertingkat (GTCRN) — Penindasan bunyi bising AI berkualiti tinggi, terbaik untuk persekitaran bunyi bising kompleks."
+    },
+    "noiseSuppressionMode": {
+      "off": "Mati",
+      "standard": "Standard",
+      "enhanced": "Dipertingkat"
+    },
     "modelConfiguration": "Konfigurasi model",
     "sourceLanguage": "Bahasa saya",
     "targetLanguage": "Bahasa pihak lain",
@@ -383,7 +392,8 @@
     "connected": "Disambung",
     "error": "Ralat Sambungan",
     "noApiKey": "Perlukan Kunci API",
-    "noMic": "Perlukan Mikrofon"
+    "noMic": "Perlukan Mikrofon",
+    "reconnecting": "Menyambung semula..."
   },
   "audioPanel": {
     "title": "Tetapan Audio",

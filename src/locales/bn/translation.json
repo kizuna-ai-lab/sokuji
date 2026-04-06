@@ -51,8 +51,17 @@
     "model": "মডেল",
     "userTranscriptModel": "ব্যবহারকারী ট্রান্সক্রিপ্ট মডেল",
     "noiseReduction": "শব্দ হ্রাস",
-    "noiseSuppression": "AI শব্দ দমন",
-    "noiseSuppressionTooltip": "RNNoise ব্যবহার করে AI-চালিত শব্দ হ্রাস। AI প্রদানকারীর কাছে অডিও পাঠানোর আগে পটভূমির শব্দ কমায়। সমস্ত প্রদানকারীর সাথে কাজ করে।",
+    "noiseSuppression": "শব্দ দমন",
+    "noiseSuppressionTooltip": {
+      "off": "বন্ধ — শুধুমাত্র ব্রাউজারের অন্তর্নির্মিত শব্দ প্রক্রিয়াকরণ।",
+      "standard": "স্ট্যান্ডার্ড (RNNoise) — কম লেটেন্সি সহ হালকা AI শব্দ দমন।",
+      "enhanced": "উন্নত (GTCRN) — জটিল শব্দ পরিবেশের জন্য উচ্চমানের AI শব্দ দমন।"
+    },
+    "noiseSuppressionMode": {
+      "off": "বন্ধ",
+      "standard": "স্ট্যান্ডার্ড",
+      "enhanced": "উন্নত"
+    },
     "modelConfiguration": "মডেল কনফিগারেশন",
     "sourceLanguage": "আমার ভাষা",
     "targetLanguage": "অন্যের ভাষা",
@@ -599,7 +608,8 @@
     "connected": "সংযুক্ত",
     "error": "সংযোগ ত্রুটি",
     "noApiKey": "API কী প্রয়োজন",
-    "noMic": "মাইক্রোফোন প্রয়োজন"
+    "noMic": "মাইক্রোফোন প্রয়োজন",
+    "reconnecting": "পুনরায় সংযুক্ত হচ্ছে..."
   },
   "userTypeSelection": {
     "title": "Sokuji-তে স্বাগতম",

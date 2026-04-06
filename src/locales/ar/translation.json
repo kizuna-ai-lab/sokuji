@@ -52,8 +52,17 @@
     "model": "النموذج",
     "userTranscriptModel": "نموذج نسخة المستخدم",
     "noiseReduction": "تقليل الضوضاء",
-    "noiseSuppression": "كتم الضوضاء بالذكاء الاصطناعي",
-    "noiseSuppressionTooltip": "تقليل الضوضاء بالذكاء الاصطناعي باستخدام RNNoise. يقلل ضوضاء الخلفية قبل إرسال الصوت إلى مزود الذكاء الاصطناعي. يعمل مع جميع المزودين.",
+    "noiseSuppression": "قمع الضوضاء",
+    "noiseSuppressionTooltip": {
+      "off": "إيقاف — معالجة الضوضاء المدمجة في المتصفح فقط.",
+      "standard": "قياسي (RNNoise) — قمع خفيف للضوضاء بالذكاء الاصطناعي مع زمن استجابة منخفض.",
+      "enhanced": "محسّن (GTCRN) — قمع عالي الجودة للضوضاء بالذكاء الاصطناعي، مثالي للبيئات الصاخبة."
+    },
+    "noiseSuppressionMode": {
+      "off": "إيقاف",
+      "standard": "قياسي",
+      "enhanced": "محسّن"
+    },
     "modelConfiguration": "تكوين النموذج",
     "sourceLanguage": "لغتي",
     "targetLanguage": "لغة الآخر",
@@ -593,7 +602,8 @@
     "connected": "متصل",
     "error": "خطأ في الاتصال",
     "noApiKey": "مفتاح API مطلوب",
-    "noMic": "ميكروفون مطلوب"
+    "noMic": "ميكروفون مطلوب",
+    "reconnecting": "إعادة الاتصال..."
   },
   "userTypeSelection": {
     "title": "مرحباً بك في Sokuji",

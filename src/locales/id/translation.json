@@ -52,8 +52,17 @@
     "model": "Model",
     "userTranscriptModel": "Model transkripsi pengguna",
     "noiseReduction": "Pengurangan noise",
-    "noiseSuppression": "Peredam Noise AI",
-    "noiseSuppressionTooltip": "Pengurangan noise berbasis AI menggunakan RNNoise. Mengurangi noise latar belakang sebelum mengirim audio ke penyedia AI. Berfungsi dengan semua penyedia.",
+    "noiseSuppression": "Peredam Noise",
+    "noiseSuppressionTooltip": {
+      "off": "Nonaktif — Hanya penanganan noise bawaan browser.",
+      "standard": "Standar (RNNoise) — Peredam noise AI ringan dengan latensi rendah.",
+      "enhanced": "Ditingkatkan (GTCRN) — Peredam noise AI berkualitas tinggi, terbaik untuk lingkungan noise kompleks."
+    },
+    "noiseSuppressionMode": {
+      "off": "Nonaktif",
+      "standard": "Standar",
+      "enhanced": "Ditingkatkan"
+    },
     "modelConfiguration": "Konfigurasi model",
     "sourceLanguage": "Bahasa saya",
     "targetLanguage": "Bahasa lawan bicara",
@@ -386,7 +395,8 @@
     "connected": "Terhubung",
     "error": "Kesalahan Koneksi",
     "noApiKey": "Perlu Kunci API",
-    "noMic": "Perlu Mikrofon"
+    "noMic": "Perlu Mikrofon",
+    "reconnecting": "Menghubungkan kembali..."
   },
   "audioPanel": {
     "title": "Pengaturan audio",
