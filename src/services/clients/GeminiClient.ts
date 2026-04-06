@@ -319,7 +319,7 @@ export class GeminiClient implements IClient {
 
     // Build realtimeInputConfig with VAD settings
     const realtimeInputConfig: LiveConnectConfig['realtimeInputConfig'] = {
-      activityHandling: ActivityHandling.START_OF_ACTIVITY_INTERRUPTS,
+      activityHandling: ActivityHandling.NO_INTERRUPTION,
     };
 
     if (isGeminiSessionConfig(config)) {
