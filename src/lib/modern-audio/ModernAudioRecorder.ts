@@ -774,7 +774,11 @@ export class ModernAudioRecorder extends BaseAudioRecorder {
               reject(new Error(event.data.message));
             }
           };
-          this.gtcrnWorker!.postMessage({ type: 'init' });
+          this.gtcrnWorker!.postMessage({
+            type: 'init',
+            ortWasmBaseUrl: new URL('./wasm/ort/', window.location.href).href,
+            modelUrl: new URL('./models/gtcrn/gtcrn_simple.onnx', window.location.href).href,
+          });
         });
       }
 

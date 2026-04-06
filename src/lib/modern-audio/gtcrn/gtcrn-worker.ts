@@ -13,9 +13,7 @@ import {
   resample
 } from './audio-utils';
 
-// Configure ORT WASM paths
-ort.env.wasm.wasmPaths = './wasm/ort/';
-
+// ORT WASM paths — set from main thread during init (relative paths don't work in workers)
 const INPUT_SAMPLE_RATE = 48000;
 
 let session: ort.InferenceSession | null = null;
@@ -39,9 +37,13 @@ function initStates(): void {
   prevFrame = new Float32Array(GTCRN_N_FFT);
 }
 
-async function init(): Promise<void> {
+async function init(ortWasmBaseUrl: string, modelUrl: string): Promise<void> {
   try {
-    session = await ort.InferenceSession.create('./models/gtcrn/gtcrn_simple.onnx', {
+    // Set ORT WASM paths from main thread's resolved URL
+    ort.env.wasm.wasmPaths = ortWasmBaseUrl;
+    ort.env.wasm.proxy = false; // Already in a worker
+
+    session = await ort.InferenceSession.create(modelUrl, {
       executionProviders: ['wasm'],
       graphOptimizationLevel: 'all',
     });
@@ -167,7 +169,7 @@ self.onmessage = async (event: MessageEvent) => {
 
   switch (type) {
     case 'init':
-      await init();
+      await init(event.data.ortWasmBaseUrl, event.data.modelUrl);
       break;
     case 'process':
       await processAudio(event.data.audio);
