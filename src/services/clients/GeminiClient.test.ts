@@ -132,17 +132,20 @@ describe('GeminiClient — reconnection state machine', () => {
     expect(handlers.onClose).not.toHaveBeenCalled();
   });
 
-  // ── Test 2: handle NOT updated when resumable: false ─────────────────────
-  it('does NOT update handle when sessionResumptionUpdate is resumable: false', async () => {
+  // ── Test 2: handle NOT updated when resumable: false → fresh reconnect on close ──
+  it('does NOT update handle when sessionResumptionUpdate is resumable: false (fresh reconnects on close)', async () => {
     await client.connect(baseConfig);
     sendResumptionUpdate(false, 'handle-never-stored');
 
-    // Without a handle, unexpected close should fire onClose instead of reconnect
+    // Without a handle but with lastConfig still set, an unexpected close
+    // should now trigger a fresh reconnect (no handle in the new connection).
+    setupSuccessfulConnect();
     sendClose();
     await vi.runAllTimersAsync();
 
-    expect(handlers.onReconnecting).not.toHaveBeenCalled();
-    expect(handlers.onClose).toHaveBeenCalled();
+    expect(handlers.onReconnecting).toHaveBeenCalled();
+    expect(handlers.onReconnected).toHaveBeenCalled();
+    expect(handlers.onClose).not.toHaveBeenCalled();
   });
 
   // ── Test 3: goAway with handle triggers reconnect ─────────────────────────
@@ -160,15 +163,18 @@ describe('GeminiClient — reconnection state machine', () => {
     expect(handlers.onReconnected).toHaveBeenCalled();
   });
 
-  // ── Test 4: goAway without handle does NOT reconnect ─────────────────────
-  it('does NOT reconnect on goAway when no handle is stored', async () => {
+  // ── Test 4: goAway without handle → fresh reconnect ──────────────────────
+  it('fresh reconnects on goAway when no handle is stored', async () => {
     await client.connect(baseConfig);
     // No resumption update sent → no handle
 
+    setupSuccessfulConnect();
     sendGoAway();
     await vi.runAllTimersAsync();
 
-    expect(handlers.onReconnecting).not.toHaveBeenCalled();
+    expect(handlers.onReconnecting).toHaveBeenCalled();
+    expect(handlers.onReconnected).toHaveBeenCalled();
+    expect(handlers.onClose).not.toHaveBeenCalled();
   });
 
   // ── Test 5: unexpected close with handle triggers reconnect ──────────────
@@ -184,16 +190,18 @@ describe('GeminiClient — reconnection state machine', () => {
     expect(handlers.onReconnected).toHaveBeenCalled();
   });
 
-  // ── Test 6: unexpected close without handle fires onClose ─────────────────
-  it('fires onClose on unexpected close without a stored handle', async () => {
+  // ── Test 6: unexpected close without handle → fresh reconnect ────────────
+  it('fresh reconnects on unexpected close without a stored handle', async () => {
     await client.connect(baseConfig);
     // No handle stored
 
+    setupSuccessfulConnect();
     sendClose();
     await vi.runAllTimersAsync();
 
-    expect(handlers.onReconnecting).not.toHaveBeenCalled();
-    expect(handlers.onClose).toHaveBeenCalled();
+    expect(handlers.onReconnecting).toHaveBeenCalled();
+    expect(handlers.onReconnected).toHaveBeenCalled();
+    expect(handlers.onClose).not.toHaveBeenCalled();
   });
 
   // ── Test 7: successful reconnect fires onReconnected ─────────────────────
@@ -314,25 +322,27 @@ describe('GeminiClient — reconnection state machine', () => {
     expect(handlers.onClose).not.toHaveBeenCalled();
   });
 
-  // ── Test 12: explicit disconnect() clears savedResumptionHandle ───────────
-  it('clears savedResumptionHandle when disconnect() is called explicitly', async () => {
+  // ── Test 12: disconnect() clears lastConfig → no reconnect on stray close ─
+  it('does NOT reconnect after explicit disconnect() (lastConfig cleared)', async () => {
     await client.connect(baseConfig);
     sendResumptionUpdate(true, 'handle-to-clear');
 
-    // Verify handle is stored by checking reconnect would fire — skip for brevity
-    // Disconnect explicitly
+    // Disconnect explicitly — clears lastConfig, savedResumptionHandle, and isReconnecting
     await client.disconnect();
 
-    // After disconnect, close should NOT trigger reconnect (handle was cleared)
-    // Re-connect to get a fresh session (no handle)
-    setupSuccessfulConnect();
-    await client.connect(baseConfig);
+    // Reset mocks so we can detect any spurious reconnect attempt
+    handlers.onReconnecting.mockClear();
+    handlers.onReconnected.mockClear();
+    handlers.onClose.mockClear();
 
-    // Now close — without handle, should fire onClose
+    // A stray close event from the now-dead session should be a no-op
     sendClose();
     await vi.runAllTimersAsync();
 
     expect(handlers.onReconnecting).not.toHaveBeenCalled();
-    expect(handlers.onClose).toHaveBeenCalled();
+    expect(handlers.onReconnected).not.toHaveBeenCalled();
+    // The onClose callback should also NOT fire — there is no lastConfig and
+    // disconnect() already cleaned up. The new onclose guard short-circuits.
+    expect(handlers.onClose).not.toHaveBeenCalled();
   });
 });
