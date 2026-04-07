@@ -2228,16 +2228,27 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     };
   }, [isSessionActive, canPushToTalk, startRecording, stopRecording, isRecording]);
 
-  // DEV ONLY: Ctrl+Shift+G to simulate Gemini disconnect for testing reconnection
+  // DEV ONLY: Ctrl+Shift+G simulates speaker disconnect; Ctrl+Shift+H simulates
+  // participant disconnect. Both exercise the GeminiClient reconnection path.
   useEffect(() => {
     if (!isDevelopment()) return;
 
     const handleDevShortcut = (e: KeyboardEvent) => {
-      if (e.ctrlKey && e.shiftKey && e.key === 'G') {
+      if (!e.ctrlKey || !e.shiftKey) return;
+
+      if (e.key === 'G') {
         e.preventDefault();
         const client = clientRef.current;
         if (client && typeof (client as any).simulateDisconnectForTesting === 'function') {
+          console.info('[Sokuji] [MainPanel] DEV: Simulating speaker disconnect');
           (client as any).simulateDisconnectForTesting();
+        }
+      } else if (e.key === 'H') {
+        e.preventDefault();
+        const participantClient = systemAudioClientRef.current;
+        if (participantClient && typeof (participantClient as any).simulateDisconnectForTesting === 'function') {
+          console.info('[Sokuji] [MainPanel] DEV: Simulating participant disconnect');
+          (participantClient as any).simulateDisconnectForTesting();
         }
       }
     };
