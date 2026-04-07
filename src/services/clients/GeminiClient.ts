@@ -425,30 +425,19 @@ export class GeminiClient implements IClient {
             // If already reconnecting (triggered by goAway), skip — reconnect() handles it
             if (this.isReconnecting) return;
 
-            // Unexpected close — attempt reconnection if we have a handle
-            if (this.savedResumptionHandle && this.lastConfig) {
+            // Unexpected close — attempt reconnection if the client is still expected
+            // to be alive. Fresh-connect path is taken automatically when there is no
+            // saved handle (silent client with no state to lose).
+            if (this.lastConfig) {
               this.reconnect();
               return;
             }
 
-            // No handle available — real disconnect (existing cleanup logic)
+            // No lastConfig — disconnect() was called explicitly or reconnect() already
+            // handled the failure (and fired onClose). This stray close is a no-op:
+            // just clean up internal state silently.
             this.isConnectedState = false;
             this.conversationItems = [];
-            this.eventHandlers.onRealtimeEvent?.({
-              source: 'client',
-              event: {
-                type: 'session.closed',
-                data: {
-                  code: event.code,
-                  reason: event.reason,
-                  type: event.type,
-                  wasClean: event.wasClean,
-                  isTrusted: event.isTrusted,
-                  timestamp: event.timeStamp
-                }
-              }
-            });
-            this.eventHandlers.onClose?.(event);
           }
         }
       });
@@ -497,8 +486,9 @@ export class GeminiClient implements IClient {
         source: 'server',
         event: { type: 'goAway', data: message.goAway }
       });
-      // Proactive reconnection — we have ~60s before ABORTED
-      if (this.savedResumptionHandle && this.lastConfig) {
+      // Proactive reconnection — we have ~60s before ABORTED.
+      // Fresh-connect path is taken when no handle has been issued yet.
+      if (this.lastConfig) {
         this.reconnect();
       }
     }
@@ -851,6 +841,7 @@ export class GeminiClient implements IClient {
   async disconnect(): Promise<void> {
     this.isReconnecting = false;
     this.savedResumptionHandle = undefined;
+    this.lastConfig = null;  // Marks user-initiated disconnect — onclose must not reconnect
     if (this.session) {
       this.session.close();
       this.session = null;
@@ -861,7 +852,11 @@ export class GeminiClient implements IClient {
   }
 
   private async reconnect(): Promise<void> {
-    if (this.isReconnecting || !this.savedResumptionHandle || !this.lastConfig) return;
+    // Guard: only reconnect when the client is still expected to be alive (lastConfig set)
+    // and we're not already in the middle of a reconnect. We deliberately do NOT require
+    // savedResumptionHandle — a silent client that never produced a turn has no handle but
+    // also has no state to lose, so a fresh connection is functionally equivalent to a resume.
+    if (this.isReconnecting || !this.lastConfig) return;
 
     this.isReconnecting = true;
     this.eventHandlers.onReconnecting?.();
@@ -916,6 +911,7 @@ export class GeminiClient implements IClient {
     };
     this.isReconnecting = false;
     this.savedResumptionHandle = undefined;
+    this.lastConfig = null;  // Prevent stray onclose from looping back into reconnect()
     this.isConnectedState = false;
     this.conversationItems = [];
     this.eventHandlers.onRealtimeEvent?.({
@@ -933,12 +929,12 @@ export class GeminiClient implements IClient {
    * Called from MainPanel via Ctrl+Shift+G keyboard shortcut.
    */
   simulateDisconnectForTesting(): void {
-    if (!this.session || !this.savedResumptionHandle) {
-      console.warn('[Sokuji] [GeminiClient] Cannot simulate disconnect: no session or no resumption handle');
+    if (!this.session) {
+      console.warn('[Sokuji] [GeminiClient] Cannot simulate disconnect: no session');
       return;
     }
     console.info('[Sokuji] [GeminiClient] DEV: Simulating disconnect to test reconnection');
-    this.session.close();  // Forces onclose → triggers reconnect path
+    this.session.close();  // Forces onclose → triggers reconnect path (fresh or resume)
   }
 
   isConnected(): boolean {
