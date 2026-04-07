@@ -327,10 +327,13 @@ describe('GeminiClient — reconnection state machine', () => {
     await client.connect(baseConfig);
     sendResumptionUpdate(true, 'handle-to-clear');
 
-    // Disconnect explicitly — clears lastConfig, savedResumptionHandle, and isReconnecting
+    // Disconnect explicitly — clears lastConfig, savedResumptionHandle, and isReconnecting.
+    // disconnect() itself must NOT fire onClose; the next assertion guards against any
+    // future regression where disconnect() accidentally invokes the user-facing callback.
     await client.disconnect();
+    expect(handlers.onClose).not.toHaveBeenCalled();
 
-    // Reset mocks so we can detect any spurious reconnect attempt
+    // Reset mocks so we can detect any spurious reconnect attempt from the stray close below
     handlers.onReconnecting.mockClear();
     handlers.onReconnected.mockClear();
     handlers.onClose.mockClear();
@@ -341,8 +344,8 @@ describe('GeminiClient — reconnection state machine', () => {
 
     expect(handlers.onReconnecting).not.toHaveBeenCalled();
     expect(handlers.onReconnected).not.toHaveBeenCalled();
-    // The onClose callback should also NOT fire — there is no lastConfig and
-    // disconnect() already cleaned up. The new onclose guard short-circuits.
+    // onClose should also NOT fire after the stray close — no lastConfig means
+    // the new onclose guard short-circuits.
     expect(handlers.onClose).not.toHaveBeenCalled();
   });
 });
