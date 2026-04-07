@@ -433,9 +433,12 @@ export class GeminiClient implements IClient {
               return;
             }
 
-            // No lastConfig — disconnect() was called explicitly or reconnect() already
-            // handled the failure (and fired onClose). This stray close is a no-op:
-            // just clean up internal state silently.
+            // No lastConfig — either disconnect() was called explicitly or the reconnect
+            // failure path already fired onClose. Either way the caller already knows the
+            // session is dead. Clean up internal state SILENTLY — do NOT fire onClose or
+            // emit a session.closed onRealtimeEvent here, because doing so would either
+            // (a) deliver a duplicate onClose to the caller, or (b) fail Tests 12 and 13
+            // which assert stray closes after disconnect()/failure are no-ops.
             this.isConnectedState = false;
             this.conversationItems = [];
           }
@@ -868,7 +871,8 @@ export class GeminiClient implements IClient {
       this.session = null;
     }
     // Clear connected state so connect() doesn't call disconnect()
-    // which would clear conversationItems and savedResumptionHandle
+    // which would clear conversationItems, savedResumptionHandle, AND lastConfig
+    // (the latter would null out the very value we're about to pass to connect()).
     this.isConnectedState = false;
 
     let lastReconnectError: unknown;
@@ -911,7 +915,7 @@ export class GeminiClient implements IClient {
     };
     this.isReconnecting = false;
     this.savedResumptionHandle = undefined;
-    this.lastConfig = null;  // Prevent stray onclose from looping back into reconnect()
+    this.lastConfig = null;  // Prevent stray onclose from spawning a new reconnect attempt
     this.isConnectedState = false;
     this.conversationItems = [];
     this.eventHandlers.onRealtimeEvent?.({
