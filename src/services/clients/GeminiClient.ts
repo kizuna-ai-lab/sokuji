@@ -36,6 +36,10 @@ export class GeminiClient implements IClient {
   private savedResumptionHandle: string | undefined = undefined;
   private isReconnecting = false;
   private lastConfig: SessionConfig | null = null;
+  // Monotonically incremented per connect() call. Captured by each connect()'s
+  // callbacks so they can detect when they belong to a superseded session and
+  // ignore late-arriving events from sockets that have been replaced.
+  private connectionToken = 0;
 
   // Turn accumulation state
   private currentTurn: {
@@ -370,19 +374,27 @@ export class GeminiClient implements IClient {
       },
     };
 
+    // Capture a token for THIS connect() call. Each callback closes over the
+    // token and ignores any event whose token doesn't match this.connectionToken
+    // — that means a leaked onclose / onerror / onmessage from a session that
+    // has already been replaced by reconnect() is silently dropped instead of
+    // clobbering the live session or kicking off a spurious reconnect.
+    const token = ++this.connectionToken;
+
     try {
       this.session = await this.client.live.connect({
         model: config.model,
         config: liveConfig,
         callbacks: {
           onopen: () => {
+            if (token !== this.connectionToken) return;  // stale callback
             console.info('[Sokuji] [GeminiClient] Session opened');
             this.isConnectedState = true;
             this.eventHandlers.onRealtimeEvent?.({
               source: 'client',
-              event: { 
-                type: 'session.opened', 
-                data: { 
+              event: {
+                type: 'session.opened',
+                data: {
                   status: 'connected',
                   provider: 'gemini',
                   model: this.currentModel,
@@ -392,18 +404,22 @@ export class GeminiClient implements IClient {
                     maxOutputTokens: liveConfig.maxOutputTokens,
                     systemInstruction: liveConfig.systemInstruction ? 'set' : 'none'
                   }
-                } 
+                }
               }
             });
             this.eventHandlers.onOpen?.();
           },
-          onmessage: this.handleMessage.bind(this),
+          onmessage: (msg: LiveServerMessage) => {
+            if (token !== this.connectionToken) return;  // stale callback
+            this.handleMessage(msg);
+          },
           onerror: (error: ErrorEvent) => {
+            if (token !== this.connectionToken) return;  // stale callback
             console.error('[Sokuji] [GeminiClient] Session error:', error);
             this.eventHandlers.onRealtimeEvent?.({
               source: 'client',
-              event: { 
-                type: 'session.error', 
+              event: {
+                type: 'session.error',
                 data: {
                   message: error.message,
                   filename: error.filename,
@@ -419,19 +435,39 @@ export class GeminiClient implements IClient {
             this.eventHandlers.onError?.(error);
           },
           onclose: (event: CloseEvent) => {
+            if (token !== this.connectionToken) {
+              // Stale onclose from a session that has been replaced. Silently drop —
+              // do not null this.session (it points at the new session) and do not
+              // trigger reconnect(). The spurious reconnect bug this guards against
+              // would otherwise tear down a perfectly healthy session seconds after
+              // a successful resume.
+              console.debug('[Sokuji] [GeminiClient] Ignoring stale onclose from token', token);
+              return;
+            }
             console.info('[Sokuji] [GeminiClient] Session closed', event);
             this.session = null;
 
             // If already reconnecting (triggered by goAway), skip — reconnect() handles it
             if (this.isReconnecting) return;
 
-            // Unexpected close — attempt reconnection if we have a handle
-            if (this.savedResumptionHandle && this.lastConfig) {
+            // Unexpected close — attempt reconnection if the client is still expected
+            // to be alive. Fresh-connect path is taken automatically when there is no
+            // saved handle (silent client with no state to lose).
+            if (this.lastConfig) {
               this.reconnect();
               return;
             }
 
-            // No handle available — real disconnect (existing cleanup logic)
+            // No lastConfig — either disconnect() was called explicitly or the reconnect
+            // failure path already fired onClose. Clean up internal state and emit a
+            // session.closed onRealtimeEvent for log visibility (LogsPanel needs the entry).
+            // We deliberately do NOT call this.eventHandlers.onClose here, because:
+            //   (a) For user-initiated disconnect, the caller already knows — firing
+            //       onClose would deliver a duplicate notification.
+            //   (b) For the reconnect failure path, onClose was already fired by the
+            //       failure block in reconnect() — firing it again is a duplicate.
+            //   (c) Tests 12 and 13 assert that stray closes after disconnect()/failure
+            //       do not invoke onClose.
             this.isConnectedState = false;
             this.conversationItems = [];
             this.eventHandlers.onRealtimeEvent?.({
@@ -444,11 +480,10 @@ export class GeminiClient implements IClient {
                   type: event.type,
                   wasClean: event.wasClean,
                   isTrusted: event.isTrusted,
-                  timestamp: event.timeStamp
+                  timestamp: event.timeStamp,
                 }
               }
             });
-            this.eventHandlers.onClose?.(event);
           }
         }
       });
@@ -497,8 +532,9 @@ export class GeminiClient implements IClient {
         source: 'server',
         event: { type: 'goAway', data: message.goAway }
       });
-      // Proactive reconnection — we have ~60s before ABORTED
-      if (this.savedResumptionHandle && this.lastConfig) {
+      // Proactive reconnection — we have ~60s before ABORTED.
+      // Fresh-connect path is taken when no handle has been issued yet.
+      if (this.lastConfig) {
         this.reconnect();
       }
     }
@@ -851,6 +887,7 @@ export class GeminiClient implements IClient {
   async disconnect(): Promise<void> {
     this.isReconnecting = false;
     this.savedResumptionHandle = undefined;
+    this.lastConfig = null;  // Marks user-initiated disconnect — onclose must not reconnect
     if (this.session) {
       this.session.close();
       this.session = null;
@@ -860,8 +897,51 @@ export class GeminiClient implements IClient {
     this.resetCurrentTurn();
   }
 
+  /**
+   * True when the client has local conversation state that would be lost if we
+   * opened a brand-new server session. Used to gate the fresh-connect path: if
+   * we have a handle, we resume; if we have no handle and no state, we may
+   * fresh-connect; if we have no handle but DO have state, we treat it as a
+   * permanent disconnect rather than silently diverging from the server.
+   */
+  private hasLocalSessionState(): boolean {
+    if (this.conversationItems.length > 0) return true;
+    const turn = this.currentTurn;
+    return (
+      turn.inputTranscription.trim().length > 0 ||
+      turn.outputTranscription.trim().length > 0 ||
+      turn.audioData.length > 0 ||
+      turn.textParts.length > 0 ||
+      turn.modelTurnParts.length > 0
+    );
+  }
+
   private async reconnect(): Promise<void> {
-    if (this.isReconnecting || !this.savedResumptionHandle || !this.lastConfig) return;
+    // Guard: only reconnect when the client is still expected to be alive
+    // (lastConfig set) and we're not already in the middle of a reconnect.
+    if (this.isReconnecting || !this.lastConfig) return;
+
+    // Snapshot lastConfig at entry. If the user calls disconnect() during the
+    // backoff delay below, this.lastConfig will be set to null — we still want
+    // to detect that and bail out cleanly, but the captured snapshot guarantees
+    // we never hand a null config to connect() in any race window.
+    const configToReconnect = this.lastConfig;
+
+    // Decide whether a fresh connect (without a resumption handle) is safe.
+    // - With a handle: always safe — we can resume the existing server session.
+    // - Without a handle AND no local state: safe — there's nothing to lose,
+    //   so a brand-new server session is functionally equivalent to a resume.
+    // - Without a handle but WITH local state: NOT safe. The new server session
+    //   would have zero context while the UI keeps the old conversationItems,
+    //   silently diverging client and server. This window opens briefly after
+    //   every successful resume (we clear the consumed handle and wait for a
+    //   new sessionResumptionUpdate). Treat it as a permanent disconnect so the
+    //   user knows the session ended instead of getting garbled translations.
+    if (!this.savedResumptionHandle && this.hasLocalSessionState()) {
+      console.warn('[Sokuji] [GeminiClient] Cannot fresh-reconnect: local state present, no handle. Treating as disconnect.');
+      this.firePermanentDisconnect('lost handle with active local state');
+      return;
+    }
 
     this.isReconnecting = true;
     this.eventHandlers.onReconnecting?.();
@@ -873,18 +953,27 @@ export class GeminiClient implements IClient {
       this.session = null;
     }
     // Clear connected state so connect() doesn't call disconnect()
-    // which would clear conversationItems and savedResumptionHandle
+    // which would clear conversationItems, savedResumptionHandle, AND lastConfig
+    // (the latter would null out the very value we're about to pass to connect()).
     this.isConnectedState = false;
 
     let lastReconnectError: unknown;
     const maxRetries = 3;
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
-      if (!this.isReconnecting) break;  // User cancelled via disconnect()
+      if (!this.isReconnecting) return;  // User cancelled — clean exit, no failure path
       try {
         if (attempt > 1) {
           await this.delay(1000 * attempt);  // Backoff: 2s, 3s
+          // Re-check after the await — disconnect() could have run during the
+          // delay. Treat user cancellation as a clean no-op rather than firing
+          // the permanent-failure onClose path.
+          if (!this.isReconnecting) return;
         }
-        await this.connect(this.lastConfig);
+        await this.connect(configToReconnect);
+        // Re-check after connect() — disconnect() could have run during the
+        // network handshake. If so, the new session is already being torn down
+        // by disconnect() and we should not announce a successful reconnect.
+        if (!this.isReconnecting) return;
         // Resumption handles are single-use; clear the consumed handle
         // and wait for a future sessionResumptionUpdate to provide a new one.
         this.savedResumptionHandle = undefined;
@@ -909,36 +998,37 @@ export class GeminiClient implements IClient {
     }
 
     // All retries failed — treat as real disconnect
+    this.firePermanentDisconnect(
+      `Reconnection failed after ${maxRetries} attempts`,
+      lastReconnectError,
+    );
+  }
+
+  /**
+   * Tear down the client permanently and notify the caller via onClose. Used by
+   * the reconnect failure path AND by the "lost handle with active state" gate
+   * in reconnect(). Clears all session-level state so a stray onclose from a
+   * still-pending socket cannot loop back into reconnect().
+   */
+  private firePermanentDisconnect(reason: string, cause?: unknown): void {
     const closeEvent = {
       code: 0,
-      reason: 'Reconnection failed after 3 attempts',
-      error: lastReconnectError instanceof Error ? lastReconnectError.message : String(lastReconnectError),
+      reason,
+      error: cause instanceof Error ? cause.message : (cause !== undefined ? String(cause) : undefined),
     };
     this.isReconnecting = false;
     this.savedResumptionHandle = undefined;
+    this.lastConfig = null;  // Prevent stray onclose from spawning a new reconnect attempt
     this.isConnectedState = false;
     this.conversationItems = [];
     this.eventHandlers.onRealtimeEvent?.({
       source: 'client',
       event: {
         type: 'session.closed',
-        data: closeEvent
+        data: closeEvent,
       }
     });
     this.eventHandlers.onClose?.(closeEvent);
-  }
-
-  /**
-   * DEV ONLY: Simulate a disconnect to test the reconnection flow.
-   * Called from MainPanel via Ctrl+Shift+G keyboard shortcut.
-   */
-  simulateDisconnectForTesting(): void {
-    if (!this.session || !this.savedResumptionHandle) {
-      console.warn('[Sokuji] [GeminiClient] Cannot simulate disconnect: no session or no resumption handle');
-      return;
-    }
-    console.info('[Sokuji] [GeminiClient] DEV: Simulating disconnect to test reconnection');
-    this.session.close();  // Forces onclose → triggers reconnect path
   }
 
   isConnected(): boolean {

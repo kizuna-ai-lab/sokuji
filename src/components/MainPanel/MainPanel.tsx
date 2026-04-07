@@ -24,7 +24,7 @@ import {
   useSetConversationFontSize
 } from '../../stores/settingsStore';
 import useSettingsStore, { createParticipantLocalInferenceConfig } from '../../stores/settingsStore';
-import { useSession, useIsReconnecting, useSetIsReconnecting } from '../../stores/sessionStore';
+import useSessionStore, { useSession, useIsReconnecting, useSetIsReconnecting } from '../../stores/sessionStore';
 import { useAudioContext, useNoiseSuppressionMode } from '../../stores/audioStore';
 import { useLogActions } from '../../stores/logStore';
 import type { RealtimeEvent } from '../../stores/logStore';
@@ -289,9 +289,28 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       setSystemAudioItems(client.getConversationItems());
     },
     onClose: async () => {
-      console.info('[Sokuji] [MainPanel] Participant audio client closed (triggered by speaker disconnect or manual stop)');
+      // Bail out if the session is already inactive. This handler can be invoked
+      // by some clients (e.g. OpenAIClient) synchronously from disconnect() during
+      // a user-initiated stop — disconnectConversation() has already cleared
+      // isSessionActive at that point, so doing the teardown again would just
+      // emit a duplicate analytics event and trip the re-entry guard.
+      if (!useSessionStore.getState().isSessionActive) return;
+
+      console.info('[Sokuji] [MainPanel] Participant client closed, tearing down session');
+
+      // Track disconnection (analytics distinguishes unexpected client-side close from user stop)
+      trackEvent('connection_status', {
+        status: 'disconnected',
+        provider: provider || Provider.OPENAI
+      });
+
+      // Symmetric teardown: participant death also tears down the speaker.
+      // The re-entry guard inside disconnectConversation handles the case where
+      // the speaker's own onClose is fired by speaker.disconnect() inside this
+      // same call chain.
+      await disconnectConversationRef.current?.();
     }
-  }), [addRealtimeEvent]);
+  }), [addRealtimeEvent, trackEvent, provider]);
 
   /**
    * Helper to create session config for participant mode (swapped languages, text-only, semantic VAD)
@@ -460,6 +479,21 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
   // System audio client ref (for translating other participants)
   const systemAudioClientRef = useRef<IClient | null>(null);
+
+  // Ref to disconnectConversation — used by client onClose handlers, which are
+  // captured inside setupClientListeners (a useCallback that runs before
+  // disconnectConversation is defined). This avoids a forward reference cycle.
+  const disconnectConversationRef = useRef<(() => Promise<void>) | null>(null);
+
+  // Re-entry guard for disconnectConversation. We can NOT use isSessionActive
+  // for this purpose because connectConversation() calls disconnectConversation
+  // from its catch block during initialization failures BEFORE isSessionActive
+  // has been set to true — a session-state-based guard would silently skip the
+  // cleanup of a partially-opened recorder/client. The dedicated ref is set at
+  // the start of disconnectConversation and cleared in finally regardless of
+  // whether the cleanup succeeded or threw.
+  const disconnectInProgressRef = useRef<boolean>(false);
+
   const [systemAudioItems, setSystemAudioItems] = useState<ConversationItem[]>([]);
 
   const clearConversation = useCallback(() => {
@@ -672,62 +706,25 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         );
       },
       onClose: async (event: any) => {
-        console.info('[Sokuji] [MainPanel] Connection closed, cleaning up session', event);
-        setIsReconnecting(false);
+        // Bail out if the session is already inactive. Some clients (e.g. OpenAIClient)
+        // synchronously fire onClose from inside disconnect() during a user-initiated
+        // stop — by then disconnectConversation() has already cleared isSessionActive,
+        // so doing the teardown again would just emit a duplicate analytics event and
+        // trip the re-entry guard. We only want this handler to fire on unexpected /
+        // permanent failures.
+        if (!useSessionStore.getState().isSessionActive) return;
 
-        // Track disconnection
+        console.info('[Sokuji] [MainPanel] Speaker client closed, tearing down session', event);
+
+        // Track disconnection (analytics distinguishes unexpected client-side close from user stop)
         trackEvent('connection_status', {
           status: 'disconnected',
           provider: provider || Provider.OPENAI
         });
 
-        // When connection closes, clean up the session state
-        setIsSessionActive(false);
-        setIsAIResponding(false);
-        pendingTextRef.current = null;
-
-        // Disconnect participant client when speaker disconnects
-        const systemClient = systemAudioClientRef.current;
-        if (systemClient) {
-          try {
-            console.info('[Sokuji] [MainPanel] Speaker disconnected, also disconnecting participant client');
-            await systemClient.disconnect();
-            systemClient.reset();
-            systemAudioClientRef.current = null;
-
-            // Stop participant audio recording
-            const audioService = audioServiceRef.current;
-            if (audioService) {
-              if (audioService.isSystemAudioRecordingActive()) {
-                await audioService.stopSystemAudioRecording();
-              }
-              if (audioService.isTabAudioRecordingActive?.()) {
-                await audioService.stopTabAudioRecording();
-              }
-              // Clear participant streaming track
-              audioService.clearStreamingTrack('system-audio-assistant');
-            }
-          } catch (error) {
-            console.warn('[Sokuji] [MainPanel] Error disconnecting participant client:', error);
-          }
-        }
-
-        // Clean up audio recording
-        const audioService = audioServiceRef.current;
-        if (audioService) {
-          try {
-            const recorder = audioService.getRecorder();
-            if (recorder.isRecording()) {
-              await audioService.pauseRecording();
-              await audioService.stopRecording();
-            }
-          } catch (error) {
-            console.warn('[Sokuji] [MainPanel] Error cleaning up recorder on close:', error);
-          }
-
-          // Interrupt any playing audio
-          await audioService.interruptAudio();
-        }
+        // Route through disconnectConversation — handles both clients, audio,
+        // streaming tracks, profile refresh, and the re-entry guard.
+        await disconnectConversationRef.current?.();
       },
       onConversationInterrupted: async () => {
         // Handle conversation interruption
@@ -841,102 +838,126 @@ const MainPanel: React.FC<MainPanelProps> = () => {
    * Disconnect and reset conversation state
    */
   const disconnectConversation = useCallback(async () => {
-    setIsReconnecting(false);
-    setIsSessionActive(false);
-    setIsAIResponding(false);
-    setIsUsingWebRTC(false);
-    pendingTextRef.current = null;
-
-    // Clear audio quality tracking interval
-    if (audioQualityIntervalRef.current) {
-      clearInterval(audioQualityIntervalRef.current);
-      audioQualityIntervalRef.current = null;
+    // Re-entry guard: when one client's onClose calls this and we then disconnect
+    // the OTHER client, that client's onClose also calls this. We track the
+    // in-progress state in a dedicated ref (NOT isSessionActive) so the guard
+    // also works when connectConversation()'s catch block calls us during an
+    // initialization failure — at that point isSessionActive has not yet been
+    // set to true, so a session-state-based guard would silently skip the
+    // cleanup of the partially-opened recorder/client.
+    if (disconnectInProgressRef.current) {
+      console.info('[Sokuji] [MainPanel] disconnectConversation re-entry blocked (already in progress)');
+      return;
     }
+    disconnectInProgressRef.current = true;
 
-    // setItems([]);
+    try {
+      setIsReconnecting(false);
+      setIsSessionActive(false);
+      setIsAIResponding(false);
+      setIsUsingWebRTC(false);
+      pendingTextRef.current = null;
 
-    const audioService = audioServiceRef.current;
-    if (audioService) {
-      // First pause the recorder to stop sending audio chunks
-      try {
-        await audioService.pauseRecording();
-      } catch (error: any) {
-        // Silently ignore if recording was never started (expected in push-to-talk mode)
-        if (!error?.message?.includes('begin()')) {
-          console.warn('[Sokuji] [MainPanel] Error pausing recorder during disconnect:', error);
-        }
+      // Clear audio quality tracking interval
+      if (audioQualityIntervalRef.current) {
+        clearInterval(audioQualityIntervalRef.current);
+        audioQualityIntervalRef.current = null;
       }
 
-      // Stop system audio recording (but keep loopback for next session)
-      if (audioService.isSystemAudioRecordingActive()) {
+      // setItems([]);
+
+      const audioService = audioServiceRef.current;
+      if (audioService) {
+        // First pause the recorder to stop sending audio chunks
         try {
-          await audioService.stopSystemAudioRecording();
-          console.info('[Sokuji] [MainPanel] Stopped system audio recording');
-        } catch (error) {
-          console.warn('[Sokuji] [MainPanel] Error stopping system audio recording:', error);
+          await audioService.pauseRecording();
+        } catch (error: any) {
+          // Silently ignore if recording was never started (expected in push-to-talk mode)
+          if (!error?.message?.includes('begin()')) {
+            console.warn('[Sokuji] [MainPanel] Error pausing recorder during disconnect:', error);
+          }
+        }
+
+        // Stop system audio recording (but keep loopback for next session)
+        if (audioService.isSystemAudioRecordingActive()) {
+          try {
+            await audioService.stopSystemAudioRecording();
+            console.info('[Sokuji] [MainPanel] Stopped system audio recording');
+          } catch (error) {
+            console.warn('[Sokuji] [MainPanel] Error stopping system audio recording:', error);
+          }
+        }
+
+        // Stop tab audio recording (extension environment)
+        if (audioService.isTabAudioRecordingActive?.()) {
+          try {
+            await audioService.stopTabAudioRecording();
+            console.info('[Sokuji] [MainPanel] Stopped tab audio recording');
+          } catch (error) {
+            console.warn('[Sokuji] [MainPanel] Error stopping tab audio recording:', error);
+          }
         }
       }
 
-      // Stop tab audio recording (extension environment)
-      if (audioService.isTabAudioRecordingActive?.()) {
+      // Small delay to ensure any in-flight audio processing completes
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      const client = clientRef.current;
+      if (client) {
+        await client.disconnect();
+        client.reset();
+      }
+
+      // Disconnect system audio client
+      const systemClient = systemAudioClientRef.current;
+      if (systemClient) {
         try {
-          await audioService.stopTabAudioRecording();
-          console.info('[Sokuji] [MainPanel] Stopped tab audio recording');
+          await systemClient.disconnect();
+          systemClient.reset();
+          systemAudioClientRef.current = null;
+          console.info('[Sokuji] [MainPanel] Disconnected system audio client');
         } catch (error) {
-          console.warn('[Sokuji] [MainPanel] Error stopping tab audio recording:', error);
-        }
-      }
-    }
-
-    // Small delay to ensure any in-flight audio processing completes
-    await new Promise(resolve => setTimeout(resolve, 100));
-
-    const client = clientRef.current;
-    if (client) {
-      await client.disconnect();
-      client.reset();
-    }
-
-    // Disconnect system audio client
-    const systemClient = systemAudioClientRef.current;
-    if (systemClient) {
-      try {
-        await systemClient.disconnect();
-        systemClient.reset();
-        systemAudioClientRef.current = null;
-        console.info('[Sokuji] [MainPanel] Disconnected system audio client');
-      } catch (error) {
-        console.warn('[Sokuji] [MainPanel] Error disconnecting system audio client:', error);
-      }
-    }
-
-    // Now fully end the recorder after client is reset
-    if (audioService) {
-      try {
-        await audioService.stopRecording();
-      } catch (error: any) {
-        // Silently ignore if recording was never started (expected in push-to-talk mode)
-        if (!error?.message?.includes('begin()')) {
-          console.warn('[Sokuji] [MainPanel] Error ending recorder:', error);
+          console.warn('[Sokuji] [MainPanel] Error disconnecting system audio client:', error);
         }
       }
 
-      // Interrupt any playing audio
-      await audioService.interruptAudio();
-      // Clear the unified AI assistant streaming track
-      audioService.clearStreamingTrack('ai-assistant');
-      // Clear system audio assistant streaming track
-      audioService.clearStreamingTrack('system-audio-assistant');
-    }
+      // Now fully end the recorder after client is reset
+      if (audioService) {
+        try {
+          await audioService.stopRecording();
+        } catch (error: any) {
+          // Silently ignore if recording was never started (expected in push-to-talk mode)
+          if (!error?.message?.includes('begin()')) {
+            console.warn('[Sokuji] [MainPanel] Error ending recorder:', error);
+          }
+        }
 
-    // Refresh user profile and quota after session ends
-    // This ensures the token balance is updated after usage
-    if (refetchAll) {
-      refetchAll().catch(error => {
-        console.warn('[Sokuji] [MainPanel] Error refreshing user profile:', error);
-      });
+        // Interrupt any playing audio
+        await audioService.interruptAudio();
+        // Clear the unified AI assistant streaming track
+        audioService.clearStreamingTrack('ai-assistant');
+        // Clear system audio assistant streaming track
+        audioService.clearStreamingTrack('system-audio-assistant');
+      }
+
+      // Refresh user profile and quota after session ends
+      // This ensures the token balance is updated after usage
+      if (refetchAll) {
+        refetchAll().catch(error => {
+          console.warn('[Sokuji] [MainPanel] Error refreshing user profile:', error);
+        });
+      }
+    } finally {
+      disconnectInProgressRef.current = false;
     }
   }, [refetchAll, setIsReconnecting]);
+
+  // Keep the ref in sync so client onClose handlers can call disconnectConversation
+  // without creating a useCallback dep cycle. The ref is read inside async event
+  // handlers, so a one-render lag is acceptable.
+  useEffect(() => {
+    disconnectConversationRef.current = disconnectConversation;
+  }, [disconnectConversation]);
 
   /**
    * Connect to conversation:
@@ -2240,24 +2261,6 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       window.removeEventListener('blur', handleBlur);
     };
   }, [isSessionActive, canPushToTalk, startRecording, stopRecording, isRecording]);
-
-  // DEV ONLY: Ctrl+Shift+G to simulate Gemini disconnect for testing reconnection
-  useEffect(() => {
-    if (!isDevelopment()) return;
-
-    const handleDevShortcut = (e: KeyboardEvent) => {
-      if (e.ctrlKey && e.shiftKey && e.key === 'G') {
-        e.preventDefault();
-        const client = clientRef.current;
-        if (client && typeof (client as any).simulateDisconnectForTesting === 'function') {
-          (client as any).simulateDisconnectForTesting();
-        }
-      }
-    };
-
-    window.addEventListener('keydown', handleDevShortcut);
-    return () => window.removeEventListener('keydown', handleDevShortcut);
-  }, []);
 
   // Session tracking for analytics
   useEffect(() => {
