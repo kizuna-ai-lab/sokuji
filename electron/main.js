@@ -263,26 +263,6 @@ function createWindow() {
   mainWindow.webContents.setUserAgent(customUserAgent);
   console.log('[Sokuji] [Main] Custom User Agent set:', customUserAgent);
 
-  // In development (localhost), set COOP/COEP headers so SharedArrayBuffer works
-  // in the Vite dev server context. In production (file://), SharedArrayBuffer is
-  // enabled via the --enable-features=SharedArrayBuffer command-line flag instead,
-  // avoiding COEP which blocks Worker scripts loaded from ASAR.
-  mainWindow.webContents.session.webRequest.onHeadersReceived((details, callback) => {
-    const url = new URL(details.url);
-    if (url.hostname === 'localhost') {
-      callback({
-        responseHeaders: {
-          ...details.responseHeaders,
-          'Cross-Origin-Opener-Policy': ['same-origin'],
-          'Cross-Origin-Embedder-Policy': ['require-corp'],
-          'Cross-Origin-Resource-Policy': ['cross-origin']
-        }
-      });
-    } else {
-      callback({ responseHeaders: details.responseHeaders });
-    }
-  });
-
   // Load the app
   console.log('[Sokuji] [Main] Development mode:', isDev, 'MODE:', import.meta.env.MODE, 'isPackaged:', app.isPackaged);
   

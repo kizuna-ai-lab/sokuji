@@ -6,12 +6,6 @@
   "default_locale": "en",
   "minimum_chrome_version": "116",
   "offline_enabled": false,
-  "cross_origin_embedder_policy": {
-    "value": "require-corp"
-  },
-  "cross_origin_opener_policy": {
-    "value": "same-origin"
-  },
   "icons": {
     "16": "icons/icon16.png",
     "48": "icons/icon48.png",
