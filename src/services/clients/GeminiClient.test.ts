@@ -379,4 +379,27 @@ describe('GeminiClient — reconnection state machine', () => {
     expect(handlers.onReconnected).not.toHaveBeenCalled();
     expect(handlers.onClose).not.toHaveBeenCalled();
   });
+
+  // ── Test 14: fresh reconnect passes undefined handle to connect() ────────
+  it('fresh reconnect calls connect() with sessionResumption.handle === undefined', async () => {
+    await client.connect(baseConfig);
+    // No resumption update sent → no handle
+
+    // Capture the next connect() call's config
+    let secondCallConfig: any = undefined;
+    mockLiveConnect.mockImplementationOnce(async ({ config, callbacks }: any) => {
+      secondCallConfig = config;
+      capturedCallbacks = callbacks;
+      callbacks.onopen();
+      return mockSession;
+    });
+
+    sendGoAway();
+    await vi.runAllTimersAsync();
+
+    expect(secondCallConfig).toBeDefined();
+    expect(secondCallConfig.sessionResumption).toBeDefined();
+    expect(secondCallConfig.sessionResumption.handle).toBeUndefined();
+    expect(handlers.onReconnected).toHaveBeenCalled();
+  });
 });
