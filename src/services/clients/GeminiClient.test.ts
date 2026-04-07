@@ -348,4 +348,35 @@ describe('GeminiClient — reconnection state machine', () => {
     // the new onclose guard short-circuits.
     expect(handlers.onClose).not.toHaveBeenCalled();
   });
+
+  // ── Test 13: failed reconnect clears lastConfig → no zombie reconnect ────
+  it('clears lastConfig after all reconnect retries fail', async () => {
+    await client.connect(baseConfig);
+    sendResumptionUpdate(true, 'handle-doomed');
+
+    // All reconnects fail
+    setupFailingConnect();
+    sendGoAway();
+    await vi.runAllTimersAsync();
+
+    // After failure, onClose has fired
+    expect(handlers.onClose).toHaveBeenCalledTimes(1);
+
+    // Reset mocks and simulate one more stray close event (e.g., the failed
+    // reconnect's pending socket finally cleans up and fires onclose)
+    handlers.onReconnecting.mockClear();
+    handlers.onReconnected.mockClear();
+    handlers.onClose.mockClear();
+
+    // setupSuccessfulConnect to make sure that, if any reconnect attempt
+    // were spawned, it would resolve and we'd see onReconnected.
+    setupSuccessfulConnect();
+    sendClose();
+    await vi.runAllTimersAsync();
+
+    // Nothing should fire — lastConfig is null after the failure path
+    expect(handlers.onReconnecting).not.toHaveBeenCalled();
+    expect(handlers.onReconnected).not.toHaveBeenCalled();
+    expect(handlers.onClose).not.toHaveBeenCalled();
+  });
 });
