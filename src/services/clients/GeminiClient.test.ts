@@ -403,4 +403,96 @@ describe('GeminiClient — reconnection state machine', () => {
     expect(secondCallConfig!.sessionResumption!.handle).toBeUndefined();
     expect(handlers.onReconnected).toHaveBeenCalled();
   });
+
+  // ── Test 15: handle-less goAway WITH local conversation state → permanent disconnect ──
+  // Guards against silent client/server divergence: if a client lost its handle
+  // (e.g., right after a successful resume) but still has local conversationItems,
+  // a fresh reconnect would open a brand-new server session with no context while
+  // the UI keeps showing the old conversation. We treat this as a permanent
+  // disconnect instead so the user sees the session end.
+  it('does NOT fresh-reconnect when local conversation state is present', async () => {
+    await client.connect(baseConfig);
+    // Add a fake conversation item to simulate "client has had turns" state.
+    // Use any-cast because conversationItems is private — this test exercises
+    // the public observable behaviour (no fresh reconnect, onClose fires).
+    (client as any).conversationItems = [
+      { id: 'fake-1', role: 'user', type: 'message', status: 'completed', createdAt: Date.now() },
+    ];
+
+    setupSuccessfulConnect();
+    sendGoAway();
+    await vi.runAllTimersAsync();
+
+    // Fresh reconnect path should NOT have run
+    expect(handlers.onReconnecting).not.toHaveBeenCalled();
+    expect(handlers.onReconnected).not.toHaveBeenCalled();
+    // Permanent disconnect should have fired exactly once
+    expect(handlers.onClose).toHaveBeenCalledTimes(1);
+  });
+
+  // ── Test 16: stale onclose from a superseded session is ignored ───────────
+  // After a successful reconnect, the OLD session's WebSocket may still fire
+  // onclose seconds later (the close handshake is async). The connection token
+  // captured by each connect()'s callbacks lets us detect that and silently
+  // drop the stale event instead of nulling out the live session and triggering
+  // another spurious reconnect.
+  it('ignores stale onclose from a superseded session', async () => {
+    await client.connect(baseConfig);
+    sendResumptionUpdate(true, 'handle-resumed');
+    // Snapshot the FIRST session's onclose callback so we can fire it after
+    // a successful reconnect has replaced this.session with a new one.
+    const staleOnclose = capturedCallbacks.onclose!;
+
+    // Trigger a successful reconnect — this opens a NEW session and bumps the
+    // internal connection token.
+    setupSuccessfulConnect();
+    sendGoAway();
+    await vi.runAllTimersAsync();
+    expect(handlers.onReconnected).toHaveBeenCalledTimes(1);
+
+    // Reset mocks so we can detect any spurious reconnect from the stale event
+    handlers.onReconnecting.mockClear();
+    handlers.onReconnected.mockClear();
+    handlers.onClose.mockClear();
+
+    // Fire the stale onclose from the FIRST session. The token check should
+    // make this a no-op — no reconnect, no onClose, no session teardown.
+    setupSuccessfulConnect();
+    staleOnclose(new CloseEvent('close', { wasClean: false, code: 1006 }));
+    await vi.runAllTimersAsync();
+
+    expect(handlers.onReconnecting).not.toHaveBeenCalled();
+    expect(handlers.onReconnected).not.toHaveBeenCalled();
+    expect(handlers.onClose).not.toHaveBeenCalled();
+    // The current session should still be alive (not nulled out by the stale event)
+    expect(client.isConnected()).toBe(true);
+  });
+
+  // ── Test 17: disconnect() during reconnect backoff → no spurious onClose ──
+  // Before this fix, calling disconnect() during the backoff delay would set
+  // lastConfig=null but the retry loop would still proceed to connect() after
+  // the delay, fail, and eventually fire the permanent-disconnect onClose path.
+  // The fix captures lastConfig locally and re-checks isReconnecting after the
+  // delay so user cancellation is treated as a clean exit.
+  it('does not fire onClose when disconnect() is called during reconnect backoff', async () => {
+    await client.connect(baseConfig);
+    sendResumptionUpdate(true, 'handle-cancel-during-backoff');
+
+    // Make the first reconnect attempt fail so we enter the backoff delay
+    setupFailingConnect();
+    sendGoAway();
+
+    // At this point attempt 1 has failed and the loop is about to delay before
+    // attempt 2. Call disconnect() now — this clears lastConfig and isReconnecting.
+    await client.disconnect();
+
+    // Drain any remaining timers — the loop should detect the cancellation
+    // and exit cleanly without firing the failure-path onClose.
+    await vi.runAllTimersAsync();
+
+    // disconnect() itself does not fire onClose (verified by Test 12).
+    // The fix guarantees the failure path also does not fire onClose.
+    expect(handlers.onClose).not.toHaveBeenCalled();
+    expect(client.isConnected()).toBe(false);
+  });
 });
