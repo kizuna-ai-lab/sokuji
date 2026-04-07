@@ -83,9 +83,14 @@ export class ModernAudioPlayer {
     }
 
     // Create SharedArrayBuffer: 16 bytes header (4x Int32) + capacity * 4 bytes (Float32)
-    // Requires cross-origin isolation (COOP/COEP headers)
+    // Note: in current Chrome (extension side panel), SharedArrayBuffer is usable
+    // and can be cross-agent-transferred via postMessage even without manifest
+    // cross_origin_*_policy. We deliberately do NOT declare COOP/COEP in
+    // extension/manifest.json because doing so makes the side panel
+    // crossOriginIsolated, which causes Chrome to reject MediaStream consumption
+    // from chrome.tabCapture and breaks the participant audio client (issue #184).
     if (typeof SharedArrayBuffer === 'undefined') {
-      throw new Error('[ModernAudioPlayer] SharedArrayBuffer not available — cross-origin isolation (COOP/COEP) required');
+      throw new Error('[ModernAudioPlayer] SharedArrayBuffer not available in this environment');
     }
     const sabSize = 16 + this._ringCapacity * 4;
     this._sab = new SharedArrayBuffer(sabSize);
