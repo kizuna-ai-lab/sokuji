@@ -946,19 +946,6 @@ export class GeminiClient implements IClient {
     this.eventHandlers.onClose?.(closeEvent);
   }
 
-  /**
-   * DEV ONLY: Simulate a disconnect to test the reconnection flow.
-   * Called from MainPanel via Ctrl+Shift+G keyboard shortcut.
-   */
-  simulateDisconnectForTesting(): void {
-    if (!this.session) {
-      console.warn('[Sokuji] [GeminiClient] Cannot simulate disconnect: no session');
-      return;
-    }
-    console.info('[Sokuji] [GeminiClient] DEV: Simulating disconnect to test reconnection');
-    this.session.close();  // Forces onclose → triggers reconnect path (fresh or resume)
-  }
-
   isConnected(): boolean {
     return this.isConnectedState;
   }
