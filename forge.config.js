@@ -40,6 +40,7 @@ module.exports = {
             '/build/wasm/ort',
             '/build/wasm/vad',
             '/build/wasm/piper-plus',
+            '/build/wasm/gtcrn',
           ];
           // Keep runtime dirs and their contents, exclude everything else
           if (wasmRuntimeDirs.some(dir => filePath === dir || filePath.startsWith(dir + '/'))) return false;
