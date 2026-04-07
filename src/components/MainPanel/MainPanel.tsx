@@ -460,6 +460,12 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
   // System audio client ref (for translating other participants)
   const systemAudioClientRef = useRef<IClient | null>(null);
+
+  // Ref to disconnectConversation — used by client onClose handlers, which are
+  // captured inside setupClientListeners (a useCallback that runs before
+  // disconnectConversation is defined). This avoids a forward reference cycle.
+  const disconnectConversationRef = useRef<(() => Promise<void>) | null>(null);
+
   const [systemAudioItems, setSystemAudioItems] = useState<ConversationItem[]>([]);
 
   const clearConversation = useCallback(() => {
@@ -944,6 +950,13 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       });
     }
   }, [refetchAll, setIsReconnecting]);
+
+  // Keep the ref in sync so client onClose handlers can call disconnectConversation
+  // without creating a useCallback dep cycle. The ref is read inside async event
+  // handlers, so a one-render lag is acceptable.
+  useEffect(() => {
+    disconnectConversationRef.current = disconnectConversation;
+  }, [disconnectConversation]);
 
   /**
    * Connect to conversation:
