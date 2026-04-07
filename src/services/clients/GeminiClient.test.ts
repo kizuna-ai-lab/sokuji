@@ -98,6 +98,7 @@ describe('GeminiClient — reconnection state machine', () => {
     vi.clearAllMocks();
     capturedCallbacks = {};
     mockSessionClose.mockReset();
+    mockLiveConnect.mockReset();  // Flush any leaked mockImplementationOnce queue from a prior test
 
     client = new GeminiClient('test-api-key');
     handlers = {
@@ -386,7 +387,7 @@ describe('GeminiClient — reconnection state machine', () => {
     // No resumption update sent → no handle
 
     // Capture the next connect() call's config
-    let secondCallConfig: any = undefined;
+    let secondCallConfig: { sessionResumption?: { handle?: string } } | undefined;
     mockLiveConnect.mockImplementationOnce(async ({ config, callbacks }: any) => {
       secondCallConfig = config;
       capturedCallbacks = callbacks;
@@ -398,8 +399,8 @@ describe('GeminiClient — reconnection state machine', () => {
     await vi.runAllTimersAsync();
 
     expect(secondCallConfig).toBeDefined();
-    expect(secondCallConfig.sessionResumption).toBeDefined();
-    expect(secondCallConfig.sessionResumption.handle).toBeUndefined();
+    expect(secondCallConfig!.sessionResumption).toBeDefined();
+    expect(secondCallConfig!.sessionResumption!.handle).toBeUndefined();
     expect(handlers.onReconnected).toHaveBeenCalled();
   });
 });
