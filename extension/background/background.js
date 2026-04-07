@@ -519,8 +519,9 @@ async function ensureOffscreenDocument() {
       offscreenDocumentOpen = true;
       return;
     }
-  } catch (_) {
-    // getContexts may not be available on all versions; proceed to create
+  } catch (err) {
+    // getContexts may not be available on all Chrome versions; proceed to create
+    console.debug('[Sokuji] [Background] getContexts unavailable, will attempt createDocument:', err.message);
   }
 
   await chrome.offscreen.createDocument({
@@ -572,7 +573,9 @@ chrome.runtime.onConnect.addListener((port) => {
 
     port.onDisconnect.addListener(() => {
       offscreenPcmPort = null;
-      offscreenDocumentOpen = false;
+      // Note: do NOT set offscreenDocumentOpen = false here. The offscreen document
+      // may still be alive even if the port disconnected (e.g., temporary port drop).
+      // offscreenDocumentOpen is only cleared by closeOffscreenDocument().
       console.info('[Sokuji] [Background] Offscreen PCM port disconnected');
     });
 

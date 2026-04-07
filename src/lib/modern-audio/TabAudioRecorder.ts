@@ -26,6 +26,8 @@ export class TabAudioRecorder implements IParticipantAudioRecorder {
   private onAudioData: AudioDataCallback | null = null;
   private _recording: boolean = false;
   private _started: boolean = false;
+  // Stored so we can remove the listener if record() is called again after pause()
+  private _pcmMessageListener: ((msg: { type: string; buffer?: ArrayBuffer }) => void) | null = null;
 
   constructor(sampleRate = 24000) {
     this._sampleRate = sampleRate;
@@ -109,12 +111,17 @@ export class TabAudioRecorder implements IParticipantAudioRecorder {
     this.onAudioData = callback;
     this._recording = true;
 
-    this.port.onMessage.addListener((msg: { type: string; buffer?: ArrayBuffer }) => {
+    // Remove any stale listener before adding a new one (guards against pause/record cycles)
+    if (this._pcmMessageListener && this.port) {
+      this.port.onMessage.removeListener(this._pcmMessageListener);
+    }
+    this._pcmMessageListener = (msg: { type: string; buffer?: ArrayBuffer }) => {
       if (msg.type === 'PCM_DATA' && this._recording && this.onAudioData && msg.buffer) {
         const pcmData = new Int16Array(msg.buffer);
         this.onAudioData({ mono: pcmData, raw: pcmData });
       }
-    });
+    };
+    this.port.onMessage.addListener(this._pcmMessageListener);
 
     console.info('[TabAudioRecorder] Recording started');
     return true;
@@ -161,6 +168,10 @@ export class TabAudioRecorder implements IParticipantAudioRecorder {
     }
 
     if (this.port) {
+      if (this._pcmMessageListener) {
+        this.port.onMessage.removeListener(this._pcmMessageListener);
+        this._pcmMessageListener = null;
+      }
       this.port.disconnect();
       this.port = null;
     }

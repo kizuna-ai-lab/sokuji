@@ -56,7 +56,7 @@ async function startCapture(tabId, streamId, outputDeviceId) {
 
   console.info(
     '[Offscreen] Starting tab audio capture, crossOriginIsolated:',
-    typeof crossOriginIsolated !== 'undefined' ? crossOriginIsolated : 'unknown'
+    typeof crossOriginIsolated !== 'undefined' ? crossOriginIsolated : false
   );
   console.info('[Offscreen] Calling getUserMedia with streamId:', streamId);
 
@@ -84,7 +84,6 @@ async function startCapture(tabId, streamId, outputDeviceId) {
   // Chrome's tabCapture silences the captured tab; we restore it here.
   if (outputDeviceId && 'setSinkId' in audioContext) {
     try {
-      // @ts-ignore setSinkId is Chrome-specific
       await audioContext.setSinkId(outputDeviceId);
       console.info('[Offscreen] Set output device:', outputDeviceId);
     } catch (err) {
