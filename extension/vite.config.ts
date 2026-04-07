@@ -61,6 +61,10 @@ export default defineConfig(({ mode }) => {
           { src: 'content/site-plugins.js', dest: 'content' },
           { src: 'content/virtual-microphone.js', dest: 'content' },
           { src: 'content/device-emulator.iife.js', dest: 'content' },
+          // Offscreen document for tab audio capture (must NOT be bundled with the main app
+          // because it intentionally runs without cross-origin isolation)
+          { src: 'offscreen.html', dest: '.' },
+          { src: 'offscreen.js', dest: '.' },
           // Manifest, icons, locales
           { src: 'manifest.json', dest: '.' },
           { src: '_locales', dest: '.' },

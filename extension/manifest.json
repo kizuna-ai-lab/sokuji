@@ -35,7 +35,8 @@
     "tabs",
     "tabCapture",
     "activeTab",
-    "declarativeNetRequest"
+    "declarativeNetRequest",
+    "offscreen"
   ],
   "host_permissions": [
     "https://sokuji-api.kizuna.ai/*",

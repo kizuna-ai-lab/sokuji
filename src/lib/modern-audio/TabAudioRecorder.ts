@@ -1,88 +1,175 @@
-import { ParticipantRecorder } from './ParticipantRecorder';
-import { ParticipantAudioOptions } from './IParticipantAudioRecorder';
+import { IParticipantAudioRecorder, ParticipantAudioOptions, AudioDataCallback } from './IParticipantAudioRecorder';
 
 /* global chrome */
 
 /**
- * Tab Audio Recorder for browser extension
- * Captures audio from the current tab using Chrome's tabCapture API
- * Used for translating other meeting participants' voices in video conferencing
+ * Tab Audio Recorder for browser extension.
+ *
+ * The side panel is cross-origin isolated (COOP + COEP in manifest.json) so that
+ * the SharedArrayBuffer-backed playback ring buffer can work.  Cross-origin
+ * isolation prevents `getUserMedia({ chromeMediaSource: 'tab', … })` from
+ * succeeding in the side panel itself (AbortError).
+ *
+ * This class delegates the actual capture to an **offscreen document** that is
+ * NOT cross-origin isolated.  The offscreen document calls getUserMedia, runs
+ * an AudioWorklet to convert float32 → PCM16, and sends the frames to the
+ * background service worker via a runtime port.  The background relays the
+ * frames to the side panel through a second port named `pcm-{tabId}`.
+ *
+ * Architecture:
+ *   Side panel (COI) ←port:pcm-{tabId}← background SW ←port:offscreen-pcm← offscreen doc
  */
-export class TabAudioRecorder extends ParticipantRecorder {
+export class TabAudioRecorder implements IParticipantAudioRecorder {
+  private readonly _sampleRate: number;
   private tabId: number | null = null;
-  private streamId: string | null = null;
-  private outputDeviceId: string | null = null;
+  private port: ChromePort | null = null;
+  private onAudioData: AudioDataCallback | null = null;
+  private _recording: boolean = false;
+  private _started: boolean = false;
 
-  protected getLogPrefix(): string {
-    return '[TabAudioRecorder]';
+  constructor(sampleRate = 24000) {
+    this._sampleRate = sampleRate;
   }
 
-  protected shouldConnectToDestination(): boolean {
-    return true; // Tab audio needs passthrough (play back to user)
+  getSampleRate(): number {
+    return this._sampleRate;
+  }
+
+  getStatus(): 'ended' | 'paused' | 'recording' {
+    if (!this._started) return 'ended';
+    if (!this._recording) return 'paused';
+    return 'recording';
   }
 
   /**
-   * Configure AudioContext output device for tab audio passthrough.
-   * Chrome tabCapture stops original tab audio, so we must manually route it to the output device.
+   * Initiate tab audio capture via the offscreen document.
+   * Asks the background to start the offscreen capture pipeline, then opens a
+   * runtime port to receive the resulting PCM frames.
    */
-  protected async onAudioContextCreated(options?: ParticipantAudioOptions): Promise<void> {
-    this.outputDeviceId = options?.outputDeviceId || null;
+  async begin(options?: ParticipantAudioOptions): Promise<boolean> {
+    try {
+      this.tabId = options?.tabId ?? await this.getTabIdFromContext();
+      if (!this.tabId) {
+        throw new Error('Could not determine tab ID for audio capture');
+      }
 
-    // Set output device if specified (Chrome 110+ supports setSinkId)
-    // Required for tab capture: Chrome stops original audio when tab is captured
-    if (this.outputDeviceId && this.audioContext && 'setSinkId' in this.audioContext) {
+      console.info(`[TabAudioRecorder] Starting offscreen capture for tab:`, this.tabId);
+
+      // Ask background to spin up the offscreen document and start capture.
+      // The background will call tabCapture.getMediaStreamId and pass the
+      // streamId to the offscreen document.
+      const response = await this.sendMessageToBackground({
+        type: 'START_OFFSCREEN_TAB_CAPTURE',
+        tabId: this.tabId,
+        outputDeviceId: options?.outputDeviceId || null,
+      });
+
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to start offscreen tab capture');
+      }
+
+      // Open a long-lived port to the background for PCM frame relay.
+      // The background routes frames from the offscreen document to this port.
+      if (typeof chrome === 'undefined' || !chrome.runtime) {
+        throw new Error('Chrome runtime not available');
+      }
+      this.port = chrome.runtime.connect({ name: `pcm-${this.tabId}` });
+      this.port.onDisconnect.addListener(() => {
+        if (typeof chrome !== 'undefined' && chrome.runtime.lastError) {
+          console.warn(`[TabAudioRecorder] Port disconnected:`, chrome.runtime.lastError.message);
+        }
+        this.port = null;
+        this._recording = false;
+        this._started = false;
+        console.info('[TabAudioRecorder] Audio capture ended');
+      });
+
+      this._started = true;
+      console.info(`[TabAudioRecorder] Offscreen capture started for tab:`, this.tabId);
+      return true;
+
+    } catch (error) {
+      console.error(`[TabAudioRecorder] Failed to start capture:`, error);
+      await this._cleanup();
+      return false;
+    }
+  }
+
+  /**
+   * Begin forwarding PCM frames to the provided callback.
+   */
+  async record(callback: AudioDataCallback): Promise<boolean> {
+    if (!this._started || !this.port) {
+      throw new Error('Session ended: please call .begin() first');
+    }
+    if (this._recording) {
+      throw new Error('Already recording: please call .pause() first');
+    }
+
+    this.onAudioData = callback;
+    this._recording = true;
+
+    this.port.onMessage.addListener((msg: { type: string; buffer?: ArrayBuffer }) => {
+      if (msg.type === 'PCM_DATA' && this._recording && this.onAudioData && msg.buffer) {
+        const pcmData = new Int16Array(msg.buffer);
+        this.onAudioData({ mono: pcmData, raw: pcmData });
+      }
+    });
+
+    console.info('[TabAudioRecorder] Recording started');
+    return true;
+  }
+
+  /**
+   * Suspend forwarding of PCM frames without tearing down the capture.
+   */
+  async pause(): Promise<boolean> {
+    if (!this._started) {
+      throw new Error('Session ended: please call .begin() first');
+    }
+    if (!this._recording) {
+      throw new Error('Already paused: please call .record() first');
+    }
+
+    this._recording = false;
+    console.info('[TabAudioRecorder] Recording paused');
+    return true;
+  }
+
+  /**
+   * Stop recording and release all resources.
+   */
+  async end(): Promise<void> {
+    if (this._recording) {
+      await this.pause();
+    }
+    await this._cleanup();
+  }
+
+  // ─── Private helpers ────────────────────────────────────────────────────────
+
+  private async _cleanup(): Promise<void> {
+    if (this.tabId) {
       try {
-        // @ts-expect-error setSinkId is not in TypeScript types yet
-        await this.audioContext.setSinkId(this.outputDeviceId);
-        console.info(`${this.getLogPrefix()} Set audio output device:`, this.outputDeviceId);
-      } catch (sinkError) {
-        console.warn(`${this.getLogPrefix()} Failed to set output device, using default:`, sinkError);
+        await this.sendMessageToBackground({
+          type: 'STOP_OFFSCREEN_TAB_CAPTURE',
+          tabId: this.tabId,
+        });
+      } catch (err) {
+        console.warn('[TabAudioRecorder] Error stopping offscreen capture:', err);
       }
     }
-  }
 
-  protected async acquireStream(options?: ParticipantAudioOptions): Promise<MediaStream> {
-    // Get tab ID
-    this.tabId = options?.tabId ?? await this.getTabIdFromContext();
-    if (!this.tabId) {
-      throw new Error('Could not determine tab ID for audio capture');
+    if (this.port) {
+      this.port.disconnect();
+      this.port = null;
     }
 
-    console.info(`${this.getLogPrefix()} Starting capture for tab:`, this.tabId);
-
-    // Request stream ID from background script
-    const response = await this.sendMessageToBackground({
-      type: 'START_TAB_CAPTURE',
-      tabId: this.tabId
-    });
-
-    if (!response.success) {
-      throw new Error(response.error || 'Failed to start tab capture');
-    }
-
-    this.streamId = response.streamId || null;
-    console.info(`${this.getLogPrefix()} Received streamId:`, this.streamId);
-
-    // Get media stream using Chrome tab capture
-    return navigator.mediaDevices.getUserMedia({
-      audio: {
-        // @ts-expect-error Chrome-specific constraints
-        mandatory: {
-          chromeMediaSource: 'tab',
-          chromeMediaSourceId: this.streamId
-        }
-      },
-      video: false
-    });
-  }
-
-  protected async onCleanup(): Promise<void> {
-    // Notify background script to stop capture
-    if (this.tabId) {
-      await this.sendMessageToBackground({ type: 'STOP_TAB_CAPTURE', tabId: this.tabId });
-    }
     this.tabId = null;
-    this.streamId = null;
+    this.onAudioData = null;
+    this._recording = false;
+    this._started = false;
+    console.info('[TabAudioRecorder] Audio capture ended');
   }
 
   private async getTabIdFromContext(): Promise<number | null> {
@@ -95,13 +182,13 @@ export class TabAudioRecorder extends ParticipantRecorder {
         const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
         if (tabs.length > 0 && tabs[0].id) return tabs[0].id;
       } catch (error) {
-        console.error(`${this.getLogPrefix()} Error querying tabs:`, error);
+        console.error(`[TabAudioRecorder] Error querying tabs:`, error);
       }
     }
     return null;
   }
 
-  private sendMessageToBackground(message: object): Promise<{ success: boolean; streamId?: string; error?: string }> {
+  private sendMessageToBackground(message: object): Promise<{ success: boolean; error?: string }> {
     return new Promise((resolve) => {
       if (typeof chrome !== 'undefined' && chrome.runtime) {
         chrome.runtime.sendMessage(message, (response) => {
@@ -117,3 +204,4 @@ export class TabAudioRecorder extends ParticipantRecorder {
     });
   }
 }
+

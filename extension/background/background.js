@@ -41,8 +41,17 @@ const ENABLED_SITES = [
 // Track which tabs have the side panel open
 const tabsWithSidePanelOpen = new Set();
 
-// Track active tab audio captures
+// Track active tab audio captures (legacy direct-capture path, kept for reference)
 const activeTabCaptures = new Map(); // tabId -> { streamId, active }
+
+// Track side-panel ports waiting for PCM data (keyed by tabId)
+const pcmRelayPorts = new Map(); // tabId (number) -> chrome.runtime.Port
+
+// Port from the offscreen document (one at a time)
+let offscreenPcmPort = null;
+
+// Whether an offscreen document is currently open
+let offscreenDocumentOpen = false;
 
 // Store PostHog distinct_id received from frontend
 let currentDistinctId = null;
@@ -330,6 +339,18 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;
   }
 
+  // Handle START_OFFSCREEN_TAB_CAPTURE from side panel (offscreen-based tab capture)
+  if (message.type === 'START_OFFSCREEN_TAB_CAPTURE') {
+    handleStartOffscreenTabCapture(message.tabId, message.outputDeviceId).then(sendResponse);
+    return true; // Indicates async response
+  }
+
+  // Handle STOP_OFFSCREEN_TAB_CAPTURE from side panel
+  if (message.type === 'STOP_OFFSCREEN_TAB_CAPTURE') {
+    handleStopOffscreenTabCapture(message.tabId).then(sendResponse);
+    return true; // Indicates async response
+  }
+
   // Handle START_TAB_CAPTURE message from side panel
   if (message.type === 'START_TAB_CAPTURE') {
     handleStartTabCapture(message.tabId || sender.tab?.id).then(sendResponse);
@@ -464,6 +485,200 @@ async function handleStopTabCapture(tabId) {
     return { success: true };
   } catch (error) {
     console.error('[Sokuji] [Background] Failed to stop tab capture:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+// ─── Offscreen-document-based tab audio capture ────────────────────────────
+// The side panel is cross-origin isolated (COOP+COEP in manifest.json), which
+// prevents it from calling getUserMedia with chromeMediaSource:'tab'.  We
+// work around this by delegating the capture to an offscreen document that is
+// not cross-origin isolated, then relaying the resulting PCM frames back to
+// the side panel via a pair of long-lived runtime ports.
+
+/**
+ * Ensure the offscreen document exists, creating it if necessary.
+ */
+async function ensureOffscreenDocument() {
+  if (offscreenDocumentOpen) return;
+
+  const offscreenUrl = chrome.runtime.getURL('offscreen.html');
+
+  // Chrome 116+ supports chrome.offscreen
+  if (!chrome.offscreen) {
+    throw new Error('chrome.offscreen API is not available in this Chrome version');
+  }
+
+  // Check whether the document already exists (e.g. after SW restart)
+  try {
+    const existing = await chrome.offscreen.getContexts({
+      contextTypes: ['OFFSCREEN_DOCUMENT'],
+      documentUrls: [offscreenUrl],
+    });
+    if (existing && existing.length > 0) {
+      offscreenDocumentOpen = true;
+      return;
+    }
+  } catch (_) {
+    // getContexts may not be available on all versions; proceed to create
+  }
+
+  await chrome.offscreen.createDocument({
+    url: offscreenUrl,
+    reasons: ['USER_MEDIA'],
+    justification: 'Tab audio capture for participant translation (cross-origin-isolated side panel workaround)',
+  });
+  offscreenDocumentOpen = true;
+  console.info('[Sokuji] [Background] Offscreen document created');
+}
+
+/**
+ * Close the offscreen document if it is open.
+ */
+async function closeOffscreenDocument() {
+  if (!offscreenDocumentOpen) return;
+  try {
+    await chrome.offscreen.closeDocument();
+    offscreenDocumentOpen = false;
+    offscreenPcmPort = null;
+    console.info('[Sokuji] [Background] Offscreen document closed');
+  } catch (error) {
+    console.warn('[Sokuji] [Background] Error closing offscreen document:', error);
+    offscreenDocumentOpen = false;
+    offscreenPcmPort = null;
+  }
+}
+
+// Handle ports from both the offscreen document and the side panel
+chrome.runtime.onConnect.addListener((port) => {
+  if (port.name === 'offscreen-pcm') {
+    // Port from the offscreen document carrying PCM frames
+    offscreenPcmPort = port;
+    console.info('[Sokuji] [Background] Offscreen PCM port connected');
+
+    port.onMessage.addListener((msg) => {
+      if (msg.type === 'PCM_DATA') {
+        // Relay PCM frame to the side panel port for this tab
+        const sidePort = pcmRelayPorts.get(msg.tabId);
+        if (sidePort) {
+          try {
+            sidePort.postMessage({ type: 'PCM_DATA', buffer: msg.buffer }, [msg.buffer]);
+          } catch (err) {
+            console.warn('[Sokuji] [Background] Failed to relay PCM to side panel:', err);
+          }
+        }
+      }
+    });
+
+    port.onDisconnect.addListener(() => {
+      offscreenPcmPort = null;
+      offscreenDocumentOpen = false;
+      console.info('[Sokuji] [Background] Offscreen PCM port disconnected');
+    });
+
+  } else if (port.name.startsWith('pcm-')) {
+    // Port from the side panel requesting PCM relay for a specific tab
+    const tabId = parseInt(port.name.slice(4), 10);
+    if (!isNaN(tabId)) {
+      pcmRelayPorts.set(tabId, port);
+      console.info('[Sokuji] [Background] Side panel PCM relay port connected for tab:', tabId);
+
+      port.onDisconnect.addListener(() => {
+        pcmRelayPorts.delete(tabId);
+        console.info('[Sokuji] [Background] Side panel PCM relay port disconnected for tab:', tabId);
+      });
+    }
+  }
+});
+
+/**
+ * Start offscreen-based tab audio capture.
+ * Gets a fresh streamId, spins up the offscreen document, and signals it to
+ * begin capturing.  The side panel must already have connected its pcm-{tabId}
+ * relay port before calling this (or connect it immediately after).
+ */
+async function handleStartOffscreenTabCapture(tabId, outputDeviceId) {
+  try {
+    console.info('[Sokuji] [Background] Starting offscreen tab capture for tab:', tabId);
+
+    if (!tabId) {
+      return { success: false, error: 'Tab ID is required' };
+    }
+
+    // Verify the tab exists
+    try {
+      await chrome.tabs.get(tabId);
+    } catch (_) {
+      console.error('[Sokuji] [Background] Tab not found:', tabId);
+      return { success: false, error: 'Tab not found' };
+    }
+
+    // Get a fresh stream ID from the tab capture API
+    console.info('[Sokuji] [Background] Requesting streamId for tab:', tabId);
+    const streamId = await new Promise((resolve, reject) => {
+      chrome.tabCapture.getMediaStreamId(
+        { targetTabId: tabId },
+        (id) => {
+          if (chrome.runtime.lastError) {
+            reject(new Error(chrome.runtime.lastError.message));
+          } else if (!id) {
+            reject(new Error('tabCapture.getMediaStreamId returned empty streamId'));
+          } else {
+            resolve(id);
+          }
+        }
+      );
+    });
+
+    console.info('[Sokuji] [Background] Got streamId:', streamId, 'for tab:', tabId);
+
+    // Ensure the offscreen document is running
+    await ensureOffscreenDocument();
+
+    // Ask the offscreen document to start capturing
+    const response = await chrome.runtime.sendMessage({
+      type: 'OFFSCREEN_START_CAPTURE',
+      tabId,
+      streamId,
+      outputDeviceId: outputDeviceId || null,
+    });
+
+    if (!response || !response.success) {
+      throw new Error((response && response.error) || 'Offscreen document failed to start capture');
+    }
+
+    console.info('[Sokuji] [Background] Offscreen tab capture started for tab:', tabId);
+    return { success: true };
+
+  } catch (error) {
+    console.error('[Sokuji] [Background] Failed to start offscreen tab capture:', error);
+    return { success: false, error: error.message || 'Failed to start offscreen tab capture' };
+  }
+}
+
+/**
+ * Stop offscreen-based tab audio capture for a given tab.
+ */
+async function handleStopOffscreenTabCapture(tabId) {
+  try {
+    console.info('[Sokuji] [Background] Stopping offscreen tab capture for tab:', tabId);
+
+    if (offscreenDocumentOpen) {
+      try {
+        await chrome.runtime.sendMessage({ type: 'OFFSCREEN_STOP_CAPTURE', tabId });
+      } catch (err) {
+        console.warn('[Sokuji] [Background] Error sending stop to offscreen:', err);
+      }
+
+      // Only close the offscreen document if no more side-panel ports are waiting
+      if (pcmRelayPorts.size === 0) {
+        await closeOffscreenDocument();
+      }
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error('[Sokuji] [Background] Failed to stop offscreen tab capture:', error);
     return { success: false, error: error.message };
   }
 }

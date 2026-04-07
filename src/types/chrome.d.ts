@@ -7,6 +7,20 @@ interface ChromeTab {
   windowId?: number;
 }
 
+interface ChromePort {
+  name: string;
+  disconnect(): void;
+  postMessage(message: any, transfer?: Transferable[]): void;
+  onMessage: {
+    addListener(callback: (message: any) => void): void;
+    removeListener(callback: (message: any) => void): void;
+  };
+  onDisconnect: {
+    addListener(callback: () => void): void;
+    removeListener(callback: () => void): void;
+  };
+}
+
 interface Chrome {
   runtime: {
     getURL(path: string): string;
@@ -15,6 +29,7 @@ interface Chrome {
       message?: string;
     };
     sendMessage(message: any, callback?: (response: any) => void): void;
+    connect(connectInfo?: { name?: string }): ChromePort;
     onMessage: {
       addListener(callback: (message: any, sender: any, sendResponse: (response?: any) => void) => void): void;
       removeListener(callback: (message: any, sender: any, sendResponse: (response?: any) => void) => void): void;

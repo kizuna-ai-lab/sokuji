@@ -1303,9 +1303,33 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
             console.info(`[Sokuji] [MainPanel] Participant audio recording started (${captureMode})`);
           }
-        } catch (error) {
+        } catch (error: any) {
           console.error('[Sokuji] [MainPanel] Failed to start participant audio client:', error);
-          // Don't fail the whole session, just log the error
+
+          // Surface the failure as a visible conversation item so the user knows
+          // participant translation is not running (instead of silently failing)
+          const errMsg = error?.message || 'Failed to start participant audio capture';
+          addRealtimeEvent(
+            { type: 'participant.error', data: { message: errMsg } },
+            'client', 'participant.error'
+          );
+          setItems(prevItems => [...prevItems, {
+            id: `error-${Date.now()}`,
+            role: 'system',
+            type: 'error',
+            status: 'completed',
+            createdAt: Date.now(),
+            formatted: { text: errMsg },
+          }]);
+
+          // Track the failure so it appears in telemetry
+          trackEvent('error_occurred', {
+            error_type: 'participant_audio_capture',
+            error_message: errMsg,
+            component: 'MainPanel',
+            severity: 'medium',
+            recoverable: false,
+          });
         }
       }
 
