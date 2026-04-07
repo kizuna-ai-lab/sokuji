@@ -678,62 +678,17 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         );
       },
       onClose: async (event: any) => {
-        console.info('[Sokuji] [MainPanel] Connection closed, cleaning up session', event);
-        setIsReconnecting(false);
+        console.info('[Sokuji] [MainPanel] Speaker client closed, tearing down session', event);
 
-        // Track disconnection
+        // Track disconnection (analytics distinguishes client-side close from user stop)
         trackEvent('connection_status', {
           status: 'disconnected',
           provider: provider || Provider.OPENAI
         });
 
-        // When connection closes, clean up the session state
-        setIsSessionActive(false);
-        setIsAIResponding(false);
-        pendingTextRef.current = null;
-
-        // Disconnect participant client when speaker disconnects
-        const systemClient = systemAudioClientRef.current;
-        if (systemClient) {
-          try {
-            console.info('[Sokuji] [MainPanel] Speaker disconnected, also disconnecting participant client');
-            await systemClient.disconnect();
-            systemClient.reset();
-            systemAudioClientRef.current = null;
-
-            // Stop participant audio recording
-            const audioService = audioServiceRef.current;
-            if (audioService) {
-              if (audioService.isSystemAudioRecordingActive()) {
-                await audioService.stopSystemAudioRecording();
-              }
-              if (audioService.isTabAudioRecordingActive?.()) {
-                await audioService.stopTabAudioRecording();
-              }
-              // Clear participant streaming track
-              audioService.clearStreamingTrack('system-audio-assistant');
-            }
-          } catch (error) {
-            console.warn('[Sokuji] [MainPanel] Error disconnecting participant client:', error);
-          }
-        }
-
-        // Clean up audio recording
-        const audioService = audioServiceRef.current;
-        if (audioService) {
-          try {
-            const recorder = audioService.getRecorder();
-            if (recorder.isRecording()) {
-              await audioService.pauseRecording();
-              await audioService.stopRecording();
-            }
-          } catch (error) {
-            console.warn('[Sokuji] [MainPanel] Error cleaning up recorder on close:', error);
-          }
-
-          // Interrupt any playing audio
-          await audioService.interruptAudio();
-        }
+        // Route through disconnectConversation — handles both clients, audio,
+        // streaming tracks, profile refresh, and the re-entry guard.
+        await disconnectConversationRef.current?.();
       },
       onConversationInterrupted: async () => {
         // Handle conversation interruption
