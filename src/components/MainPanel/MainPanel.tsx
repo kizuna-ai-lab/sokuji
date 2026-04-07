@@ -289,9 +289,21 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       setSystemAudioItems(client.getConversationItems());
     },
     onClose: async () => {
-      console.info('[Sokuji] [MainPanel] Participant audio client closed (triggered by speaker disconnect or manual stop)');
+      console.info('[Sokuji] [MainPanel] Participant client closed, tearing down session');
+
+      // Track disconnection (analytics distinguishes client-side close from user stop)
+      trackEvent('connection_status', {
+        status: 'disconnected',
+        provider: provider || Provider.OPENAI
+      });
+
+      // Symmetric "陪葬": participant death tears down the speaker too. The
+      // re-entry guard inside disconnectConversation handles the case where
+      // the speaker's own onClose is fired by speaker.disconnect() inside
+      // this same call chain.
+      await disconnectConversationRef.current?.();
     }
-  }), [addRealtimeEvent]);
+  }), [addRealtimeEvent, trackEvent, provider]);
 
   /**
    * Helper to create session config for participant mode (swapped languages, text-only, semantic VAD)
