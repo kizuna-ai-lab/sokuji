@@ -434,13 +434,31 @@ export class GeminiClient implements IClient {
             }
 
             // No lastConfig — either disconnect() was called explicitly or the reconnect
-            // failure path already fired onClose. Either way the caller already knows the
-            // session is dead. Clean up internal state SILENTLY — do NOT fire onClose or
-            // emit a session.closed onRealtimeEvent here, because doing so would either
-            // (a) deliver a duplicate onClose to the caller, or (b) fail Tests 12 and 13
-            // which assert stray closes after disconnect()/failure are no-ops.
+            // failure path already fired onClose. Clean up internal state and emit a
+            // session.closed onRealtimeEvent for log visibility (LogsPanel needs the entry).
+            // We deliberately do NOT call this.eventHandlers.onClose here, because:
+            //   (a) For user-initiated disconnect, the caller already knows — firing
+            //       onClose would deliver a duplicate notification.
+            //   (b) For the reconnect failure path, onClose was already fired by the
+            //       failure block in reconnect() — firing it again is a duplicate.
+            //   (c) Tests 12 and 13 assert that stray closes after disconnect()/failure
+            //       do not invoke onClose.
             this.isConnectedState = false;
             this.conversationItems = [];
+            this.eventHandlers.onRealtimeEvent?.({
+              source: 'client',
+              event: {
+                type: 'session.closed',
+                data: {
+                  code: event.code,
+                  reason: event.reason,
+                  type: event.type,
+                  wasClean: event.wasClean,
+                  isTrusted: event.isTrusted,
+                  timestamp: event.timeStamp,
+                }
+              }
+            });
           }
         }
       });
