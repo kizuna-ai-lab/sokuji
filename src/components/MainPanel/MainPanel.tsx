@@ -24,7 +24,7 @@ import {
   useSetConversationFontSize
 } from '../../stores/settingsStore';
 import useSettingsStore, { createParticipantLocalInferenceConfig } from '../../stores/settingsStore';
-import { useSession, useIsReconnecting, useSetIsReconnecting } from '../../stores/sessionStore';
+import useSessionStore, { useSession, useIsReconnecting, useSetIsReconnecting } from '../../stores/sessionStore';
 import { useAudioContext, useNoiseSuppressionMode } from '../../stores/audioStore';
 import { useLogActions } from '../../stores/logStore';
 import type { RealtimeEvent } from '../../stores/logStore';
@@ -841,6 +841,13 @@ const MainPanel: React.FC<MainPanelProps> = () => {
    * Disconnect and reset conversation state
    */
   const disconnectConversation = useCallback(async () => {
+    // Re-entry guard: when one client's onClose calls this and we then disconnect
+    // the OTHER client, that client's onClose also calls this. The Zustand store
+    // updates synchronously, so checking isSessionActive here catches the second call.
+    if (!useSessionStore.getState().isSessionActive) {
+      console.info('[Sokuji] [MainPanel] disconnectConversation re-entry blocked (already inactive)');
+      return;
+    }
     setIsReconnecting(false);
     setIsSessionActive(false);
     setIsAIResponding(false);
