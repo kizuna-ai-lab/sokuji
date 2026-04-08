@@ -44,11 +44,23 @@ export class ModernAudioPlayer {
     this.globalVolumeMultiplier = 0.0;
 
     // Playback status tracking
-    this.currentPlayingItemId = null;
+    //
+    // Each entry in itemQueue represents one item's presence in the stream:
+    //   { itemId, startSample, totalSamples }
+    //     startSample: cumulative enqueue position (samples) when the item's
+    //                  first chunk was accepted
+    //     totalSamples: running sum of this item's chunk sample counts
+    //                   (i.e., the item's own audio duration)
+    //
+    // `_audibleItemId` tracks what the worklet is actually emitting right now
+    // (derived from totalPlayedSamples ↔ item startSample crossings), which
+    // is *different* from the most-recently-written item while the ring
+    // buffer still contains audio from a prior item.
+    this.itemQueue = [];
+    this._audibleItemId = null;
+    this._totalSamplesEnqueued = 0; // monotonic count of all samples passed to _writeToRingBuffer
     this.onPlaybackStatusChange = null;
-    this.totalBufferedDuration = new Map(); // itemId -> total seconds buffered
     this.totalPlayedSamples = 0; // from worklet readPosition reports
-    this.itemStartSample = 0; // sample count when current item started
     this.itemEndTimeout = null;
 
     // Worklet state
@@ -166,23 +178,63 @@ export class ModernAudioPlayer {
 
       if (msg.state === 'playing' && prevState !== 'playing') {
         this._cancelEndNotification();
-        if (this.currentPlayingItemId && this.onPlaybackStatusChange) {
-          this.onPlaybackStatusChange({
-            itemId: this.currentPlayingItemId,
-            status: 'playing',
-            trackId: ''
-          });
-        }
+        // Re-evaluate audible item against current read position — this
+        // covers the initial stopped→playing transition for the very first
+        // item in the stream.
+        this._checkAudibleItemChange();
       } else if (msg.state === 'starving' && prevState === 'playing') {
-        if (this.currentPlayingItemId) {
-          this._scheduleEndNotification(this.currentPlayingItemId);
+        if (this._audibleItemId) {
+          this._scheduleEndNotification(this._audibleItemId);
         }
       }
     } else if (msg.type === 'readPosition') {
       this.totalPlayedSamples = msg.samplesPlayed;
+      // Did the read head just cross into a new item? If so, fire ended/playing.
+      this._checkAudibleItemChange();
       // Worklet consumed data — try to drain pending writes
       if (this._pendingWrites.length > 0) {
         this._drainPendingWrites();
+      }
+    }
+  }
+
+  /**
+   * Detect whether the audible item has changed based on the latest
+   * totalPlayedSamples and dispatch ended/playing events accordingly.
+   * Also evicts items that are behind the read head from the queue.
+   */
+  _checkAudibleItemChange() {
+    const entry = this._findAudibleItemEntry();
+    const newId = entry ? entry.itemId : null;
+
+    if (newId === this._audibleItemId) return;
+
+    const prevId = this._audibleItemId;
+
+    // Evict any items strictly older than the new audible item: they are
+    // fully behind the read head and will never be heard again.
+    if (newId) {
+      while (this.itemQueue.length > 0 && this.itemQueue[0].itemId !== newId) {
+        this.itemQueue.shift();
+      }
+    }
+
+    this._audibleItemId = newId;
+
+    if (this.onPlaybackStatusChange) {
+      if (prevId) {
+        this.onPlaybackStatusChange({
+          itemId: prevId,
+          status: 'ended',
+          trackId: ''
+        });
+      }
+      if (newId) {
+        this.onPlaybackStatusChange({
+          itemId: newId,
+          status: 'playing',
+          trackId: ''
+        });
       }
     }
   }
@@ -217,19 +269,29 @@ export class ModernAudioPlayer {
     if (!this._workletReady || !this._indices) return;
 
     if (metadata && metadata.itemId) {
-      if (this.currentPlayingItemId !== metadata.itemId) {
-        if (this.currentPlayingItemId !== null) {
-          this.totalBufferedDuration.delete(this.currentPlayingItemId);
-        }
-        this.currentPlayingItemId = metadata.itemId;
-        this.totalBufferedDuration.set(metadata.itemId, 0);
-        this.itemStartSample = this.totalPlayedSamples;
+      // Append this chunk to the item's range in the stream. If it's a brand
+      // new item (or a gap followed by the same id from a new session), push
+      // a fresh entry so boundaries are preserved. We do NOT mutate any prior
+      // entry here — that would destroy the data needed to accurately report
+      // playback status for still-audible older items.
+      const last = this.itemQueue.length > 0
+        ? this.itemQueue[this.itemQueue.length - 1]
+        : null;
+      if (!last || last.itemId !== metadata.itemId) {
+        this.itemQueue.push({
+          itemId: metadata.itemId,
+          startSample: this._totalSamplesEnqueued,
+          totalSamples: int16Buffer.length,
+        });
+      } else {
+        last.totalSamples += int16Buffer.length;
       }
-
-      const bufferDuration = int16Buffer.length / this.sampleRate;
-      const prev = this.totalBufferedDuration.get(metadata.itemId) || 0;
-      this.totalBufferedDuration.set(metadata.itemId, prev + bufferDuration);
     }
+
+    // Track total samples accepted into the stream (regardless of itemId —
+    // passthrough counts too). This keeps startSample boundaries consistent
+    // with what the worklet will eventually emit through totalPlayedSamples.
+    this._totalSamplesEnqueued += int16Buffer.length;
 
     const float32 = new Float32Array(int16Buffer.length);
     const scale = (volume !== 1.0) ? volume / 32768 : 1 / 32768;
@@ -630,18 +692,22 @@ export class ModernAudioPlayer {
   }
 
   /**
-   * Get current playback status.
+   * Get current playback status for the item the worklet is actually emitting
+   * right now (the *audible* item), not the most-recently-written item.
    */
   getCurrentPlaybackStatus() {
-    if (!this.currentPlayingItemId) return null;
+    const audible = this._findAudibleItemEntry();
+    if (!audible) return null;
 
-    const totalBufferedTime = this.getBufferedDuration(this.currentPlayingItemId);
+    const totalBufferedTime = audible.totalSamples / this.sampleRate;
 
-    const samplesPlayedForItem = this.totalPlayedSamples - this.itemStartSample;
-    const currentTime = Math.max(0, samplesPlayedForItem / this.sampleRate);
+    // Inside the item's own duration, currentTime is simply how far past its
+    // startSample the worklet has advanced.
+    const samplesPlayedForItem = Math.max(0, this.totalPlayedSamples - audible.startSample);
+    const currentTime = samplesPlayedForItem / this.sampleRate;
 
     return {
-      itemId: this.currentPlayingItemId,
+      itemId: audible.itemId,
       trackId: '',
       currentTime: Math.min(currentTime, totalBufferedTime),
       duration: totalBufferedTime,
@@ -651,10 +717,33 @@ export class ModernAudioPlayer {
   }
 
   /**
-   * Get buffered duration for an item.
+   * Get buffered duration (seconds) for a given item, if it is still tracked.
    */
   getBufferedDuration(itemId) {
-    return this.totalBufferedDuration.get(itemId) || 0;
+    for (const entry of this.itemQueue) {
+      if (entry.itemId === itemId) {
+        return entry.totalSamples / this.sampleRate;
+      }
+    }
+    return 0;
+  }
+
+  /**
+   * Find the itemQueue entry that is currently audible (i.e., the latest
+   * item whose startSample has been reached by the worklet's read head).
+   * Returns null if no item is in range (e.g., before the first item or
+   * after all items have fully played and been evicted from the queue).
+   */
+  _findAudibleItemEntry() {
+    let result = null;
+    for (const entry of this.itemQueue) {
+      if (entry.startSample <= this.totalPlayedSamples) {
+        result = entry;
+      } else {
+        break; // queue is in insertion order; anything beyond is in the future
+      }
+    }
+    return result;
   }
 
   /**
@@ -664,8 +753,10 @@ export class ModernAudioPlayer {
     this._cancelEndNotification();
 
     this.itemEndTimeout = setTimeout(() => {
-      if (this.currentPlayingItemId === itemId && this._workletState !== 'playing') {
-        this.totalBufferedDuration.delete(itemId);
+      if (this._audibleItemId === itemId && this._workletState !== 'playing') {
+        // Drop the item from the queue — it has finished playing.
+        const idx = this.itemQueue.findIndex(e => e.itemId === itemId);
+        if (idx >= 0) this.itemQueue.splice(idx, 1);
 
         if (this.onPlaybackStatusChange) {
           this.onPlaybackStatusChange({
@@ -674,7 +765,7 @@ export class ModernAudioPlayer {
             trackId: ''
           });
         }
-        this.currentPlayingItemId = null;
+        this._audibleItemId = null;
       }
       this.itemEndTimeout = null;
     }, 2000);
@@ -695,11 +786,16 @@ export class ModernAudioPlayer {
    * Interrupt audio playback — returns estimated position.
    */
   async interrupt() {
-    if (!this.currentPlayingItemId) {
-      return { trackId: null, offset: 0, currentTime: 0 };
+    const audible = this._findAudibleItemEntry();
+    if (!audible) {
+      // Still clear any buffered future items so they don't play after the interrupt.
+      this._clearRingBuffer();
+      const trackId = 'default';
+      this.interruptedTracks.add(trackId);
+      return { trackId, offset: 0, currentTime: 0 };
     }
 
-    const samplesPlayedForItem = this.totalPlayedSamples - this.itemStartSample;
+    const samplesPlayedForItem = Math.max(0, this.totalPlayedSamples - audible.startSample);
     const currentTime = samplesPlayedForItem / this.sampleRate;
     const estimatedOffset = Math.floor(samplesPlayedForItem);
 
@@ -750,6 +846,13 @@ export class ModernAudioPlayer {
     if (this.workletNode) {
       this.workletNode.port.postMessage({ type: 'clear' });
     }
+
+    // Worklet will restart samplesPlayed from 0 on its next report; drop any
+    // item tracking so startSample boundaries align with the fresh stream.
+    this.itemQueue = [];
+    this._audibleItemId = null;
+    this._totalSamplesEnqueued = 0;
+    this.totalPlayedSamples = 0;
   }
 
   /**
@@ -775,7 +878,7 @@ export class ModernAudioPlayer {
    */
   stopAll() {
     this._cancelEndNotification();
-    this._clearRingBuffer();
+    this._clearRingBuffer(); // already resets itemQueue/_audibleItemId/_totalSamplesEnqueued/totalPlayedSamples
 
     for (const timeoutId of this.streamingTimeouts.values()) {
       clearTimeout(timeoutId);
@@ -783,11 +886,6 @@ export class ModernAudioPlayer {
     this.streamingTimeouts.clear();
     this.streamingBuffers.clear();
     this.trackQueues.clear();
-
-    this.totalBufferedDuration.clear();
-    this.currentPlayingItemId = null;
-    this.totalPlayedSamples = 0;
-    this.itemStartSample = 0;
   }
 
   /**
