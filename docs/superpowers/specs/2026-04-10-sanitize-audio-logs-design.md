@@ -100,7 +100,7 @@ Layer 1 takes priority because it's the most precise. Layer 2 acts as a safety n
 - `src/stores/logStore.ts` — rewrite `sanitizeEvent` function (~60 lines)
 
 ### Files Created
-- `src/stores/__tests__/sanitizeEvent.test.ts` — unit tests
+- `src/stores/sanitizeEvent.test.ts` — unit tests
 
 ### Not Changed
 - `handleCopyLogs` in `LogsPanel.tsx` — not needed, store data is already sanitized

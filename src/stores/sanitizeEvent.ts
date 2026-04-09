@@ -68,7 +68,7 @@ export function sanitizeEvent(event: any): any {
 
   const sanitized: any = {};
   for (const key in event) {
-    if (!event.hasOwnProperty(key)) continue;
+    if (!Object.prototype.hasOwnProperty.call(event, key)) continue;
     const value = event[key];
 
     // Layer 1: replace data in audio-mimeType objects
