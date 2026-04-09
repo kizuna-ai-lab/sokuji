@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
 import { shallow } from 'zustand/shallow';
 import { useMemo } from 'react';
+import { sanitizeEvent } from './sanitizeEvent';
 
 // Define the core event data structure
 export interface EventData {
@@ -151,64 +152,6 @@ interface LogStore {
   clearLogs: () => void;
   flushPendingLogs: () => void;
 }
-
-// Sanitize event data by removing large binary audio fields
-const sanitizeEvent = (event: any): any => {
-  // If event is null or not an object, return as is
-  if (!event || typeof event !== 'object') {
-    return event;
-  }
-
-  // If it's an array buffer or typed array, replace with placeholder
-  if (event instanceof ArrayBuffer || ArrayBuffer.isView(event)) {
-    return '[Binary audio data removed]';
-  }
-
-  // If it's a regular array, check each element
-  if (Array.isArray(event)) {
-    return event.map(item => sanitizeEvent(item));
-  }
-
-  // For objects, recursively sanitize each property
-  const sanitized: any = {};
-  for (const key in event) {
-    if (event.hasOwnProperty(key)) {
-      const value = event[key];
-      
-      // Skip known audio data fields
-      if (
-        key === 'audio' || 
-        key === 'audioData' || 
-        key === 'audio_data' || 
-        key === 'pcmData' ||
-        key === 'buffer' ||
-        key === 'wav' ||
-        key === 'pcm' ||
-        key === 'delta' // Added to catch response.audio.delta events
-      ) {
-        // Check if it's binary data
-        if (
-          value instanceof ArrayBuffer || 
-          ArrayBuffer.isView(value) ||
-          (Array.isArray(value) && value.length > 1000) // Large arrays likely to be audio data
-        ) {
-          sanitized[key] = '[Binary audio data removed]';
-        } else if (typeof value === 'string' && value.length > 500) {
-          // Remove any long strings in audio fields (likely Base64 or encoded audio)
-          sanitized[key] = '[Audio data removed]';
-        } else {
-          // Recursively sanitize other types
-          sanitized[key] = sanitizeEvent(value);
-        }
-      } else {
-        // Recursively sanitize other properties
-        sanitized[key] = sanitizeEvent(value);
-      }
-    }
-  }
-  
-  return sanitized;
-};
 
 // Batch update configuration - increased for better performance
 const BATCH_DELAY_MS = 150; // Batch updates every 150ms for better performance
