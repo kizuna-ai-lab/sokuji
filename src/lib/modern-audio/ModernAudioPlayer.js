@@ -201,24 +201,30 @@ export class ModernAudioPlayer {
   /**
    * Detect whether the audible item has changed based on the latest
    * totalPlayedSamples and dispatch ended/playing events accordingly.
-   * Also evicts items that are behind the read head from the queue.
+   *
+   * Eviction is based on the entry's end sample, not its itemId, so it
+   * behaves correctly even when the queue contains multiple entries with
+   * the same itemId (e.g., a passthrough gap between two chunks of the
+   * same AI item) and still drops fully-past entries when we cross into
+   * a passthrough region where no item is audible.
    */
   _checkAudibleItemChange() {
+    // Evict every entry at the front of the queue that is entirely behind
+    // the current read head. We do this regardless of whether a new item
+    // is audible, so stale entries don't accumulate during passthrough
+    // gaps when `_findAudibleItemEntry` returns null.
+    while (this.itemQueue.length > 0) {
+      const head = this.itemQueue[0];
+      const headEnd = head.startSample + head.totalSamples;
+      if (headEnd > this.totalPlayedSamples) break;
+      this.itemQueue.shift();
+    }
+
     const entry = this._findAudibleItemEntry();
     const newId = entry ? entry.itemId : null;
-
     if (newId === this._audibleItemId) return;
 
     const prevId = this._audibleItemId;
-
-    // Evict any items strictly older than the new audible item: they are
-    // fully behind the read head and will never be heard again.
-    if (newId) {
-      while (this.itemQueue.length > 0 && this.itemQueue[0].itemId !== newId) {
-        this.itemQueue.shift();
-      }
-    }
-
     this._audibleItemId = newId;
 
     if (this.onPlaybackStatusChange) {
@@ -269,22 +275,29 @@ export class ModernAudioPlayer {
     if (!this._workletReady || !this._indices) return;
 
     if (metadata && metadata.itemId) {
-      // Append this chunk to the item's range in the stream. If it's a brand
-      // new item (or a gap followed by the same id from a new session), push
-      // a fresh entry so boundaries are preserved. We do NOT mutate any prior
-      // entry here — that would destroy the data needed to accurately report
-      // playback status for still-audible older items.
+      // Append this chunk to the item's range in the stream. Only extend the
+      // tail entry if it's for the same item AND its sample range is still
+      // contiguous with the current write head — otherwise a non-item write
+      // (e.g., addToPassthroughBuffer) has inserted a gap, and the gap has
+      // to stay represented so audible detection won't treat passthrough
+      // samples as part of the item. We also never mutate any prior entry
+      // that is already behind the current write head, because the data is
+      // needed to report playback status for still-audible older items.
       const last = this.itemQueue.length > 0
         ? this.itemQueue[this.itemQueue.length - 1]
         : null;
-      if (!last || last.itemId !== metadata.itemId) {
+      const contiguousWithLast =
+        last &&
+        last.itemId === metadata.itemId &&
+        last.startSample + last.totalSamples === this._totalSamplesEnqueued;
+      if (contiguousWithLast) {
+        last.totalSamples += int16Buffer.length;
+      } else {
         this.itemQueue.push({
           itemId: metadata.itemId,
           startSample: this._totalSamplesEnqueued,
           totalSamples: int16Buffer.length,
         });
-      } else {
-        last.totalSamples += int16Buffer.length;
       }
     }
 
@@ -729,21 +742,23 @@ export class ModernAudioPlayer {
   }
 
   /**
-   * Find the itemQueue entry that is currently audible (i.e., the latest
-   * item whose startSample has been reached by the worklet's read head).
-   * Returns null if no item is in range (e.g., before the first item or
-   * after all items have fully played and been evicted from the queue).
+   * Find the itemQueue entry that is currently audible — the item whose
+   * sample range strictly contains the worklet's read head. Returns null
+   * when the read head is between items (e.g., in a passthrough-only
+   * region, before the first item, or after the last item has finished).
    */
   _findAudibleItemEntry() {
-    let result = null;
     for (const entry of this.itemQueue) {
-      if (entry.startSample <= this.totalPlayedSamples) {
-        result = entry;
-      } else {
+      const endSample = entry.startSample + entry.totalSamples;
+      if (this.totalPlayedSamples < entry.startSample) {
         break; // queue is in insertion order; anything beyond is in the future
       }
+      if (this.totalPlayedSamples < endSample) {
+        return entry;
+      }
+      // totalPlayedSamples is past this entry's end — keep looking.
     }
-    return result;
+    return null;
   }
 
   /**
@@ -754,9 +769,13 @@ export class ModernAudioPlayer {
 
     this.itemEndTimeout = setTimeout(() => {
       if (this._audibleItemId === itemId && this._workletState !== 'playing') {
-        // Drop the item from the queue — it has finished playing.
-        const idx = this.itemQueue.findIndex(e => e.itemId === itemId);
-        if (idx >= 0) this.itemQueue.splice(idx, 1);
+        // The audible entry is always at the front of the queue (older
+        // entries get evicted in _checkAudibleItemChange), so shifting the
+        // head is enough — using findIndex by itemId would risk removing a
+        // stale entry if the same id appears twice.
+        if (this.itemQueue.length > 0 && this.itemQueue[0].itemId === itemId) {
+          this.itemQueue.shift();
+        }
 
         if (this.onPlaybackStatusChange) {
           this.onPlaybackStatusChange({
@@ -788,11 +807,10 @@ export class ModernAudioPlayer {
   async interrupt() {
     const audible = this._findAudibleItemEntry();
     if (!audible) {
-      // Still clear any buffered future items so they don't play after the interrupt.
-      this._clearRingBuffer();
-      const trackId = 'default';
-      this.interruptedTracks.add(trackId);
-      return { trackId, offset: 0, currentTime: 0 };
+      // Preserve the no-op contract: ModernBrowserAudioService.interruptAudio()
+      // returns null to callers when trackId is null, so we must not mark any
+      // track as interrupted or clear preflush state here.
+      return { trackId: null, offset: 0, currentTime: 0 };
     }
 
     const samplesPlayedForItem = Math.max(0, this.totalPlayedSamples - audible.startSample);
