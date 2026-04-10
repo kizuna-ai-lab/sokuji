@@ -302,6 +302,18 @@ export class TtsEngine {
 
     const startTime = performance.now();
 
+    // Wait for worker decoder to be ready (reset is async)
+    await new Promise<void>((resolve) => {
+      const handler = (event: MessageEvent<TtsWorkerOutMessage>) => {
+        if (event.data.type === 'decode-ready') {
+          this.worker!.removeEventListener('message', handler);
+          resolve();
+        }
+      };
+      this.worker!.addEventListener('message', handler);
+      this.worker!.postMessage({ type: 'decode-start' });
+    });
+
     // Set up worker to receive decoded PCM chunks
     return new Promise<{ generationTimeMs: number }>((resolve, reject) => {
       this.pendingStream = {
@@ -309,9 +321,6 @@ export class TtsEngine {
         resolve,
         reject,
       };
-
-      // Tell worker to reset decoder for this generation
-      this.worker!.postMessage({ type: 'decode-start' });
 
       // Create connection and start streaming
       if (!this.edgeTtsConnection) {

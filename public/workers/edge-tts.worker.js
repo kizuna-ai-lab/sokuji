@@ -54,12 +54,13 @@ async function handleInit() {
   }
 }
 
-function handleDecodeStart() {
+async function handleDecodeStart() {
   if (!isReady || !decoder) {
     self.postMessage({ type: 'error', error: 'Worker not ready — call init first' });
     return;
   }
-  decoder.reset();
+  await decoder.reset();
+  self.postMessage({ type: 'decode-ready' });
 }
 
 function handleDecodeChunk(msg) {

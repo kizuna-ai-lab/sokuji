@@ -300,6 +300,10 @@ export interface TtsAudioDoneMessage {
   generationTimeMs: number;
 }
 
+export interface TtsDecodeReadyMessage {
+  type: 'decode-ready';
+}
+
 export type TtsWorkerOutMessage =
   | TtsReadyMessage
   | TtsStatusMessage
@@ -307,5 +311,6 @@ export type TtsWorkerOutMessage =
   | TtsErrorMessage
   | TtsDisposedMessage
   | TtsAudioChunkMessage
-  | TtsAudioDoneMessage;
+  | TtsAudioDoneMessage
+  | TtsDecodeReadyMessage;
 
