@@ -15,6 +15,7 @@ import {
   type ModelManifestEntry,
 } from '../modelManifest';
 import { ModelManager } from '../ModelManager';
+import { EdgeTtsConnection } from '../../edge-tts/EdgeTtsConnection';
 
 export interface TtsResult {
   samples: Float32Array;
@@ -42,6 +43,8 @@ export class TtsEngine {
     resolve: (result: { generationTimeMs: number }) => void;
     reject: (error: Error) => void;
   } | null = null;
+
+  private edgeTtsConnection: EdgeTtsConnection | null = null;
 
   onStatus: StatusCallback | null = null;
   onError: ErrorCallback | null = null;
@@ -272,9 +275,10 @@ export class TtsEngine {
   }
 
   /**
-   * Generate speech audio with streaming output.
-   * Each decoded PCM chunk is delivered via onChunk callback immediately.
-   * Returns a Promise that resolves when the full audio is done.
+   * Generate speech audio with streaming output (Edge TTS).
+   *
+   * Uses EdgeTtsConnection for platform-specific WebSocket connection,
+   * pipes MP3 chunks to the worker for decoding, and delivers PCM via onChunk.
    */
   async generateStream(
     text: string,
@@ -296,13 +300,56 @@ export class TtsEngine {
       return { generationTimeMs: 0 };
     }
 
-    return new Promise((resolve, reject) => {
+    const startTime = performance.now();
+
+    // Set up worker to receive decoded PCM chunks
+    return new Promise<{ generationTimeMs: number }>((resolve, reject) => {
       this.pendingStream = {
         onChunk: onChunk || (() => {}),
         resolve,
         reject,
       };
-      this.worker!.postMessage({ type: 'generate', text: sanitizedText, sid, speed, lang, voice });
+
+      // Tell worker to reset decoder for this generation
+      this.worker!.postMessage({ type: 'decode-start' });
+
+      // Create connection and start streaming
+      if (!this.edgeTtsConnection) {
+        this.edgeTtsConnection = new EdgeTtsConnection();
+      }
+
+      this.edgeTtsConnection.generate(
+        { text: sanitizedText, voice, speed },
+        // onMp3Chunk — forward to worker for decoding
+        (mp3Data: Uint8Array) => {
+          if (this.worker) {
+            this.worker.postMessage(
+              { type: 'decode-chunk', mp3Data: mp3Data.buffer },
+              [mp3Data.buffer],
+            );
+          }
+        },
+        // onDone — tell worker decoding is complete
+        () => {
+          const generationTimeMs = Math.round(performance.now() - startTime);
+          if (this.worker) {
+            this.worker.postMessage({ type: 'decode-end', generationTimeMs });
+          }
+        },
+        // onError
+        (error: string) => {
+          if (this.pendingStream) {
+            this.pendingStream.reject(new Error(error));
+            this.pendingStream = null;
+          }
+        },
+      ).catch((err) => {
+        // Connection-level error (not already handled by onError callback)
+        if (this.pendingStream) {
+          this.pendingStream.reject(err instanceof Error ? err : new Error(String(err)));
+          this.pendingStream = null;
+        }
+      });
     });
   }
 
@@ -341,6 +388,10 @@ export class TtsEngine {
   }
 
   dispose(): void {
+    if (this.edgeTtsConnection) {
+      this.edgeTtsConnection.dispose();
+      this.edgeTtsConnection = null;
+    }
     if (this.pendingStream) {
       this.pendingStream.reject(new Error('TTS engine disposed'));
       this.pendingStream = null;
