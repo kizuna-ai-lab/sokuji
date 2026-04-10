@@ -193,7 +193,8 @@ async function handleInit() {
     // NOTE: mpg123-decoder.min.js must be copied to public/workers/ (Task 15).
     importScripts('./mpg123-decoder.min.js');
 
-    // MPEGDecoder is now a global provided by the UMD bundle.
+    // UMD bundle exports to self["mpg123-decoder"].MPEGDecoder
+    var MPEGDecoder = self['mpg123-decoder'].MPEGDecoder;
     decoder = new MPEGDecoder();
     await decoder.ready;
 
