@@ -121,9 +121,9 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
     // Auto-select TTS model
     const allTts = getManifestByType('tts');
     const currentTtsEntry = allTts.find(m => m.id === localInferenceSettings.ttsModel);
-    if (!currentTtsEntry || !currentTtsEntry.languages.includes(targetLang)) {
+    if (!currentTtsEntry || (!currentTtsEntry.multilingual && !currentTtsEntry.languages.includes(targetLang))) {
       const firstMatch = pickBestModel(allTts.filter(m =>
-        m.languages.includes(targetLang) && modelStatuses[m.id] === 'downloaded'
+        (m.multilingual || m.languages.includes(targetLang)) && (m.isCloudModel || modelStatuses[m.id] === 'downloaded')
       ));
       updates.ttsModel = firstMatch?.id || '';
       updates.ttsSpeakerId = 0;
