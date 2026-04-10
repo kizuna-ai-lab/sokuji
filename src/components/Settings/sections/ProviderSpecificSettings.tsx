@@ -1400,7 +1400,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
                     value={localInferenceSettings.edgeTtsVoice}
                     onChange={(e) => updateLocalInferenceSettings({ edgeTtsVoice: e.target.value })}
                     disabled={isSessionActive || filteredVoices.length === 0}
-                    className="select-input"
+                    className="select-dropdown"
                   >
                     {filteredVoices.length === 0 && (
                       <option value="">{t('settings.loadingVoices', 'Loading voices...')}</option>
