@@ -1,4 +1,4 @@
-import React, { Fragment, useEffect } from 'react';
+import React, { Fragment, useEffect, useMemo, useState } from 'react';
 import { ProviderConfig } from '../../../services/providers/ProviderConfig';
 import { VolcengineSTProviderConfig } from '../../../services/providers/VolcengineSTProviderConfig';
 import { VolcengineAST2ProviderConfig } from '../../../services/providers/VolcengineAST2ProviderConfig';
@@ -42,6 +42,8 @@ import { useModelStatuses } from '../../../stores/modelStore';
 import { ModelManagementSection } from './ModelManagementSection';
 import { useAnalytics } from '../../../lib/analytics';
 import { useAuth } from '../../../lib/auth/hooks';
+import { getEdgeTtsVoices, filterVoicesByLanguage, getVoiceDisplayName } from '../../../lib/edge-tts/voiceList';
+import type { Voice } from '../../../lib/edge-tts/edgeTts';
 
 interface ProviderSpecificSettingsProps {
   config: ProviderConfig;
@@ -153,6 +155,36 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
       updateLocalInferenceSettings(updates);
     }
   }, [provider, localInferenceSettings.sourceLanguage, localInferenceSettings.targetLanguage, modelStatuses]);
+
+  // Edge TTS voice picker state
+  const [edgeTtsVoices, setEdgeTtsVoices] = useState<Voice[]>([]);
+  const isEdgeTtsSelected = localInferenceSettings.ttsModel === 'edge-tts';
+
+  useEffect(() => {
+    if (!isEdgeTtsSelected) return;
+    let cancelled = false;
+    getEdgeTtsVoices()
+      .then(voices => {
+        if (!cancelled) setEdgeTtsVoices(voices);
+      })
+      .catch(err => console.warn('[EdgeTTS] Failed to fetch voice list:', err));
+    return () => { cancelled = true; };
+  }, [isEdgeTtsSelected]);
+
+  const filteredVoices = useMemo(
+    () => filterVoicesByLanguage(edgeTtsVoices, localInferenceSettings.targetLanguage),
+    [edgeTtsVoices, localInferenceSettings.targetLanguage],
+  );
+
+  // Auto-select first voice when target language changes or no voice selected
+  useEffect(() => {
+    if (!isEdgeTtsSelected || filteredVoices.length === 0) return;
+    const currentVoice = localInferenceSettings.edgeTtsVoice;
+    const isCurrentValid = filteredVoices.some(v => v.ShortName === currentVoice);
+    if (!isCurrentValid) {
+      updateLocalInferenceSettings({ edgeTtsVoice: filteredVoices[0].ShortName });
+    }
+  }, [isEdgeTtsSelected, filteredVoices, localInferenceSettings.edgeTtsVoice, updateLocalInferenceSettings]);
 
   // Get current provider's settings
   const currentProviderSettings = getCurrentProviderSettings();
@@ -1357,6 +1389,32 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
           </div>
           {(() => {
             const ttsEntry = getManifestEntry(localInferenceSettings.ttsModel);
+            if (ttsEntry?.engine === 'edge-tts') {
+              // Voice picker for Edge TTS
+              return (
+                <div className="setting-item">
+                  <div className="setting-label">
+                    <span>{t('settings.edgeTtsVoice', 'Voice')}</span>
+                  </div>
+                  <select
+                    value={localInferenceSettings.edgeTtsVoice}
+                    onChange={(e) => updateLocalInferenceSettings({ edgeTtsVoice: e.target.value })}
+                    disabled={isSessionActive || filteredVoices.length === 0}
+                    className="select-input"
+                  >
+                    {filteredVoices.length === 0 && (
+                      <option value="">{t('settings.loadingVoices', 'Loading voices...')}</option>
+                    )}
+                    {filteredVoices.map(voice => (
+                      <option key={voice.ShortName} value={voice.ShortName}>
+                        {getVoiceDisplayName(voice)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              );
+            }
+            // Speaker ID slider for local models
             const numSpeakers = ttsEntry?.numSpeakers ?? 1;
             return numSpeakers > 1 ? (
           <div className="setting-item">
