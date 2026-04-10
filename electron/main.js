@@ -950,13 +950,14 @@ ipcMain.handle('edge-tts-generate', async (event, { text, voice, speed }) => {
         ws.send(ssmlMessage);
       });
 
-      ws.on('message', (data) => {
+      ws.on('message', (data, isBinary) => {
         if (!mainWindow || mainWindow.isDestroyed()) return;
 
-        if (typeof data === 'string') {
+        if (!isBinary) {
           // Text frame — check for turn.end
-          const separator = data.indexOf('\r\n\r\n');
-          const headerText = separator >= 0 ? data.slice(0, separator) : data;
+          const text = data.toString('utf8');
+          const separator = text.indexOf('\r\n\r\n');
+          const headerText = separator >= 0 ? text.slice(0, separator) : text;
           if (headerText.includes('Path:turn.end')) {
             ws.close();
           }
