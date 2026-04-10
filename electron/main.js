@@ -832,3 +832,176 @@ ipcMain.handle('check-screen-recording-permission', async () => {
   }
 });
 
+// ── Edge TTS: WebSocket proxy via main process ───────────────────────────────
+// Browser WebSocket API cannot set custom headers. Bing's TTS endpoint
+// requires User-Agent + Origin headers. We run the WebSocket in the main
+// process and stream parsed MP3 audio chunks back to the renderer via IPC.
+
+const EDGE_TTS_TOKEN = '6A5AA1D4EAFF4E9FB37E23D68491D6F4';
+const EDGE_TTS_CHROMIUM_VERSION = '143.0.3650.75';
+const EDGE_TTS_CHROMIUM_MAJOR = EDGE_TTS_CHROMIUM_VERSION.split('.')[0];
+const EDGE_TTS_GEC_VERSION = `1-${EDGE_TTS_CHROMIUM_VERSION}`;
+
+function edgeTtsTimestamp() {
+  return new Date().toISOString().replace(/[-:.]/g, '').slice(0, -1);
+}
+
+function edgeTtsMakeConnectionId() {
+  return require('crypto').randomUUID().replace(/-/g, '');
+}
+
+function edgeTtsMakeMuid() {
+  return require('crypto').randomBytes(16).toString('hex').toUpperCase();
+}
+
+async function edgeTtsMakeSecMsGec() {
+  const crypto = require('crypto');
+  const winEpoch = 11644473600;
+  const secondsToNs = 1e9;
+  let ticks = Date.now() / 1000;
+  ticks += winEpoch;
+  ticks -= ticks % 300;
+  ticks *= secondsToNs / 100;
+  const payload = `${ticks.toFixed(0)}${EDGE_TTS_TOKEN}`;
+  return crypto.createHash('sha256').update(payload).digest('hex').toUpperCase();
+}
+
+function edgeTtsEscapeXml(text) {
+  return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&apos;');
+}
+
+function edgeTtsRemoveInvalidXmlChars(text) {
+  return text.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F-\u009F]/g, ' ');
+}
+
+function edgeTtsNormalizeVoiceName(voice) {
+  const trimmed = voice.trim();
+  const providerMatch = /^([a-z]{2,}-[A-Z]{2,})-([^:]+):.+Neural$/.exec(trimmed);
+  if (providerMatch) {
+    return edgeTtsNormalizeVoiceName(`${providerMatch[1]}-${providerMatch[2]}Neural`);
+  }
+  const shortMatch = /^([a-z]{2,})-([A-Z]{2,})-(.+Neural)$/.exec(trimmed);
+  if (!shortMatch) return trimmed;
+  const [, lang] = shortMatch;
+  let [, , region, name] = shortMatch;
+  if (name.includes('-')) {
+    const [regionSuffix, ...nameParts] = name.split('-');
+    region += `-${regionSuffix}`;
+    name = nameParts.join('-');
+  }
+  return `Microsoft Server Speech Text to Speech Voice (${lang}-${region}, ${name})`;
+}
+
+function edgeTtsParseBinaryFrame(data) {
+  if (data.length < 2) throw new Error('binary frame too short');
+  const headerLength = (data[0] << 8) | data[1];
+  if (data.length < 2 + headerLength) throw new Error('binary frame truncated');
+  const headerText = data.slice(2, 2 + headerLength).toString('utf8');
+  const headers = {};
+  for (const line of headerText.split('\r\n')) {
+    const colonIndex = line.indexOf(':');
+    if (colonIndex > 0) headers[line.slice(0, colonIndex)] = line.slice(colonIndex + 1).trim();
+  }
+  return { headers, body: data.slice(2 + headerLength) };
+}
+
+let edgeTtsWs = null;
+
+ipcMain.handle('edge-tts-generate', async (event, { text, voice, speed }) => {
+  if (edgeTtsWs) {
+    try { edgeTtsWs.close(); } catch (e) { /* ignore */ }
+    edgeTtsWs = null;
+  }
+
+  const voiceName = voice || 'en-US-AvaMultilingualNeural';
+  const speedPercent = Math.round(((speed || 1.0) - 1.0) * 100);
+
+  try {
+    const secMsGec = await edgeTtsMakeSecMsGec();
+    const connectionId = edgeTtsMakeConnectionId();
+    const requestId = edgeTtsMakeConnectionId();
+
+    const wsUrl = `wss://speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v1?TrustedClientToken=${EDGE_TTS_TOKEN}&Sec-MS-GEC=${secMsGec}&Sec-MS-GEC-Version=${encodeURIComponent(EDGE_TTS_GEC_VERSION)}&ConnectionId=${connectionId}`;
+
+    console.log('[Sokuji] [Main] Edge TTS: connecting for voice:', voiceName);
+
+    const rateStr = speedPercent >= 0 ? `+${speedPercent}%` : `${speedPercent}%`;
+    const ssml = `<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xml:lang='en-US'><voice name='${edgeTtsNormalizeVoiceName(voiceName)}'><prosody pitch='+0Hz' rate='${rateStr}' volume='+0%'>${edgeTtsEscapeXml(edgeTtsRemoveInvalidXmlChars(text))}</prosody></voice></speak>`;
+    const speechConfig = `X-Timestamp:${edgeTtsTimestamp()}\r\nContent-Type:application/json; charset=utf-8\r\nPath:speech.config\r\n\r\n{"context":{"synthesis":{"audio":{"metadataoptions":{"sentenceBoundaryEnabled":"false","wordBoundaryEnabled":"true"},"outputFormat":"audio-24khz-48kbitrate-mono-mp3"}}}}\r\n`;
+    const ssmlMessage = `X-RequestId:${requestId}\r\nContent-Type:application/ssml+xml\r\nX-Timestamp:${edgeTtsTimestamp()}Z\r\nPath:ssml\r\n\r\n${ssml}`;
+
+    return new Promise((resolve) => {
+      const ws = new WebSocket(wsUrl, {
+        headers: {
+          'User-Agent': `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${EDGE_TTS_CHROMIUM_MAJOR}.0.0.0 Safari/537.36 Edg/${EDGE_TTS_CHROMIUM_MAJOR}.0.0.0`,
+          'Accept-Language': 'en-US,en;q=0.9',
+          'Pragma': 'no-cache',
+          'Cache-Control': 'no-cache',
+          'Origin': 'https://www.bing.com',
+          'Cookie': `muid=${edgeTtsMakeMuid()};`,
+        },
+      });
+      edgeTtsWs = ws;
+
+      ws.on('open', () => {
+        console.log('[Sokuji] [Main] Edge TTS: connected, sending SSML');
+        ws.send(speechConfig);
+        ws.send(ssmlMessage);
+      });
+
+      ws.on('message', (data) => {
+        if (!mainWindow || mainWindow.isDestroyed()) return;
+
+        if (typeof data === 'string') {
+          // Text frame — check for turn.end
+          const separator = data.indexOf('\r\n\r\n');
+          const headerText = separator >= 0 ? data.slice(0, separator) : data;
+          if (headerText.includes('Path:turn.end')) {
+            ws.close();
+          }
+          return;
+        }
+
+        // Binary frame — parse and extract MP3 body
+        try {
+          const buf = Buffer.isBuffer(data) ? data : Buffer.from(data);
+          const { headers, body } = edgeTtsParseBinaryFrame(buf);
+          if (headers.Path === 'audio' && body.length > 0) {
+            mainWindow.webContents.send('edge-tts-audio-chunk', { mp3Data: body });
+          }
+        } catch (err) {
+          console.warn('[Sokuji] [Main] Edge TTS: frame parse error:', err.message);
+        }
+      });
+
+      ws.on('close', () => {
+        edgeTtsWs = null;
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.send('edge-tts-done');
+        }
+        resolve({ success: true });
+      });
+
+      ws.on('error', (err) => {
+        console.error('[Sokuji] [Main] Edge TTS: error:', err.message);
+        edgeTtsWs = null;
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.send('edge-tts-error', { error: err.message });
+        }
+        resolve({ success: false, error: err.message });
+      });
+    });
+  } catch (err) {
+    return { success: false, error: err.message || String(err) };
+  }
+});
+
+ipcMain.handle('edge-tts-cancel', () => {
+  if (edgeTtsWs) {
+    try { edgeTtsWs.close(); } catch (e) { /* ignore */ }
+    edgeTtsWs = null;
+  }
+  return { success: true };
+});
+
