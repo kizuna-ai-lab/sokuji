@@ -97,10 +97,13 @@ export class EdgeTtsConnection {
     const { text, voice, speed } = options;
 
     return new Promise<void>((resolve, reject) => {
+      let chunkCount = 0;
       // Register IPC listeners for streamed data from main process
       this.ipcChunkHandler = (data: { mp3Data: Buffer }) => {
+        chunkCount++;
         // Main process sends mp3Data as Buffer, convert to Uint8Array
         const mp3 = new Uint8Array(data.mp3Data);
+        console.log(`[EdgeTTS] IPC chunk #${chunkCount}, mp3 size:`, mp3.length);
         this.onMp3Chunk?.(mp3);
       };
 
@@ -116,9 +119,11 @@ export class EdgeTtsConnection {
         reject(new Error(data.error));
       };
 
+      console.log('[EdgeTTS] Registering IPC listeners');
       window.electron.receive('edge-tts-audio-chunk', this.ipcChunkHandler);
       window.electron.receive('edge-tts-done', this.ipcDoneHandler);
       window.electron.receive('edge-tts-error', this.ipcErrorHandler);
+      console.log('[EdgeTTS] IPC listeners registered, listenerCount:', (window.electron as any).listenerCount?.('edge-tts-audio-chunk') ?? 'N/A');
 
       // Invoke main process to start TTS
       window.electron.invoke('edge-tts-generate', { text, voice, speed }).then(
@@ -140,6 +145,7 @@ export class EdgeTtsConnection {
   }
 
   private removeElectronListeners(): void {
+    console.log('[EdgeTTS] removeElectronListeners called, hasChunkHandler:', !!this.ipcChunkHandler);
     if (this.ipcChunkHandler) {
       window.electron?.removeListener('edge-tts-audio-chunk', this.ipcChunkHandler);
       this.ipcChunkHandler = null;
