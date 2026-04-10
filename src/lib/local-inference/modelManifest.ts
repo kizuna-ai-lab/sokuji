@@ -2664,6 +2664,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     name: 'Edge TTS (Online)',
     languages: [],  // accepts all languages — checked via multilingual flag
     multilingual: true,
+    recommended: true,
     engine: 'edge-tts',
     isCloudModel: true,
     sortOrder: 0,  // show first in TTS list
