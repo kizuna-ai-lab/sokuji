@@ -552,9 +552,9 @@
       "description": "Provider sconosciuto"
     },
     "local_inference": {
-      "name": "IA locale (offline)",
-      "description": "Riconoscimento vocale (ASR) + Traduzione + Sintesi vocale (TTS) offline",
-      "noKeyRequired": "Nessuna chiave API richiesta — funziona interamente sul tuo dispositivo"
+      "name": "Gratuito",
+      "description": "Riconoscimento vocale gratuito (ASR) + Traduzione + Sintesi vocale (TTS)",
+      "noKeyRequired": "Nessuna chiave API richiesta"
     }
   },
   "simplePanel": {
@@ -729,7 +729,8 @@
     "confirmYes": "Sì",
     "confirmNo": "No",
     "recommended": "Consigliato",
-    "recommendedGroup": "Consigliato"
+    "recommendedGroup": "Consigliato",
+    "online": "Online"
   },
   "update": {
     "available": "Nuova versione v{{version}} disponibile",

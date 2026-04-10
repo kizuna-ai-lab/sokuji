@@ -351,9 +351,9 @@
       "description": "ارائه‌دهنده نامشخص"
     },
     "local_inference": {
-      "name": "هوش مصنوعی محلی (آفلاین)",
-      "description": "تشخیص گفتار (ASR) + ترجمه + تبدیل متن به گفتار (TTS) آفلاین",
-      "noKeyRequired": "نیازی به کلید API نیست — کاملاً روی دستگاه شما اجرا می‌شود"
+      "name": "رایگان",
+      "description": "تشخیص گفتار رایگان (ASR) + ترجمه + تبدیل متن به گفتار (TTS)",
+      "noKeyRequired": "نیازی به کلید API نیست"
     }
   },
   "audioPanel": {
@@ -737,7 +737,8 @@
     "confirmYes": "بله",
     "confirmNo": "خیر",
     "recommended": "پیشنهادی",
-    "recommendedGroup": "پیشنهادی"
+    "recommendedGroup": "پیشنهادی",
+    "online": "آنلاین"
   },
   "update": {
     "available": "نسخه جدید v{{version}} موجود است",

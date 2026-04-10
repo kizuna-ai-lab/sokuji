@@ -559,9 +559,9 @@
       "description": "Неизвестный провайдер"
     },
     "local_inference": {
-      "name": "Локальный ИИ (офлайн)",
-      "description": "Офлайн распознавание речи (ASR) + Перевод + синтез речи (TTS)",
-      "noKeyRequired": "API-ключ не требуется — работает полностью на вашем устройстве"
+      "name": "Бесплатный",
+      "description": "Бесплатное распознавание речи (ASR) + Перевод + синтез речи (TTS)",
+      "noKeyRequired": "API-ключ не требуется"
     }
   },
   "simplePanel": {
@@ -736,7 +736,8 @@
     "confirmYes": "Да",
     "confirmNo": "Нет",
     "recommended": "Рекомендуемый",
-    "recommendedGroup": "Рекомендуемый"
+    "recommendedGroup": "Рекомендуемый",
+    "online": "Онлайн"
   },
   "update": {
     "available": "Доступна новая версия v{{version}}",
