@@ -24,7 +24,7 @@ export interface ModelVariant {
   /** GPU features required to use this variant (e.g. ['shader-f16']) */
   requiredFeatures?: string[];
 }
-export type TtsEngineType = 'piper' | 'coqui' | 'mimic3' | 'mms' | 'matcha' | 'kokoro' | 'vits' | 'supertonic' | 'piper-plus';
+export type TtsEngineType = 'piper' | 'coqui' | 'mimic3' | 'mms' | 'matcha' | 'kokoro' | 'vits' | 'supertonic' | 'piper-plus' | 'edge-tts';
 
 /** Offline ASR engine types — determines which config builder the worker uses. */
 export type AsrEngineType =
@@ -101,6 +101,8 @@ export interface ModelManifestEntry {
   modelFile?: string;
   /** TTS engine type — determines how the worker builds the sherpa-onnx config */
   engine?: TtsEngineType;
+  /** Cloud model flag — skips download checks, always "ready" */
+  isCloudModel?: boolean;
   /** Engine-specific config for matcha/kokoro/vits models */
   ttsConfig?: TtsModelConfig;
   /** Number of speaker voices available (1 = single-speaker) */
@@ -2655,6 +2657,19 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     numSpeakers: 1,
   },
 
+  // ── Edge TTS (Online) ──────────────────────────────────────────────────
+  {
+    id: 'edge-tts',
+    type: 'tts',
+    name: 'Edge TTS (Online)',
+    languages: [],  // accepts all languages — checked via multilingual flag
+    multilingual: true,
+    engine: 'edge-tts',
+    isCloudModel: true,
+    sortOrder: 0,  // show first in TTS list
+    variants: {},   // no files to download
+  },
+
   // ── Translation Models — third-party HF Hub ─────────────────────────────
   // Downloaded from Xenova/onnx-community repos on HuggingFace Hub. Uses hfModelId.
   // hfModelId is also needed by the worker for pipeline() / from_pretrained() identification.
@@ -2960,7 +2975,9 @@ export function isAstCompatible(
 
 /** Get TTS models that support a given language */
 export function getTtsModelsForLanguage(lang: string): ModelManifestEntry[] {
-  return MODEL_MANIFEST.filter(m => m.type === 'tts' && m.languages.includes(lang));
+  return MODEL_MANIFEST.filter(m =>
+    m.type === 'tts' && (m.multilingual || m.languages.includes(lang))
+  );
 }
 
 /**
