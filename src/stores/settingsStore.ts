@@ -488,7 +488,7 @@ function createLocalInferenceSessionConfig(
 ): LocalInferenceSessionConfig {
   // Auto-select TTS model: use current if it supports the target language, otherwise find a matching one
   const currentTtsEntry = settings.ttsModel ? getManifestEntry(settings.ttsModel) : undefined;
-  const isTtsCompatible = currentTtsEntry && currentTtsEntry.languages.includes(settings.targetLanguage);
+  const isTtsCompatible = currentTtsEntry && (currentTtsEntry.multilingual || currentTtsEntry.languages.includes(settings.targetLanguage));
   const ttsModelId = isTtsCompatible ? settings.ttsModel : (getTtsModelsForLanguage(settings.targetLanguage)[0]?.id);
 
   return {

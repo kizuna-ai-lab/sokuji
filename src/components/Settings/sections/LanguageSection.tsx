@@ -294,7 +294,7 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
     // Check TTS models
     const allTts = getManifestByType('tts');
     const hasTts = allTts.some(m =>
-      m.languages.includes(tgt) && modelStatuses[m.id] === 'downloaded'
+      (m.multilingual || m.languages.includes(tgt)) && (m.isCloudModel || modelStatuses[m.id] === 'downloaded')
     );
     if (!hasTts) missing.push({ label: t('settings.modelTypeTts', 'TTS'), navTarget: 'model-tts' });
 
