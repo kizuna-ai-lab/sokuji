@@ -100,10 +100,6 @@ async function updateUninstallURL(distinctId = null) {
   }
 }
 
-// Remove automatic side panel opening behavior - now handled by popup
-// chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true })
-//   .catch((error) => console.error('[Sokuji] [Background] Error setting panel behavior:', error));
-
 // Initialize configuration in storage if not already set
 chrome.runtime.onInstalled.addListener(async () => {
   try {
@@ -133,19 +129,27 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
       url.hostname === site || url.hostname.endsWith('.' + site));
     
     if (isEnabledSite) {
-      // Enable side panel for this site (but don't auto-open)
+      // Enable side panel and auto-open on icon click for supported sites
       await chrome.sidePanel.setOptions({
         tabId: tabId,
-        path: `fullpage.html?tabId=${tabId}`,
+        path: `fullpage.html?tabId=${tabId}&trigger=action_click&site=${encodeURIComponent(url.hostname)}`,
         enabled: true
       });
-      console.debug('[Sokuji] [Background] Enabled Sokuji side panel for site:', url.hostname);
+      // Only update global panel behavior if this is the active tab
+      if (tab.active) {
+        await chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
+      }
+      console.debug('[Sokuji] [Background] Enabled Sokuji side panel with auto-open for site:', url.hostname);
     } else {
-      // Disable side panel for other sites
+      // Disable side panel for other sites, fall back to popup on icon click
       await chrome.sidePanel.setOptions({
         tabId: tabId,
         enabled: false
       });
+      // Only update global panel behavior if this is the active tab
+      if (tab.active) {
+        await chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: false });
+      }
       // Remove from tracking if URL changed to a non-enabled site
       if (tabsWithSidePanelOpen.has(tabId)) {
         tabsWithSidePanelOpen.delete(tabId);
@@ -173,14 +177,16 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
     if (isEnabledSite) {
       await chrome.sidePanel.setOptions({
         tabId: tabId,
-        path: `fullpage.html?tabId=${tabId}`,
+        path: `fullpage.html?tabId=${tabId}&trigger=action_click&site=${encodeURIComponent(url.hostname)}`,
         enabled: true,
       });
-      console.debug('[Sokuji] [Background] Maintaining side panel for supported site:', url.hostname);
+      await chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
+      console.debug('[Sokuji] [Background] Maintaining side panel with auto-open for supported site:', url.hostname);
     } else {
       await chrome.sidePanel.setOptions({
         enabled: false,
       });
+      await chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: false });
     }
   } catch (error) {
     console.error('[Sokuji] [Background] Error updating side panel for switched tab:', error);
