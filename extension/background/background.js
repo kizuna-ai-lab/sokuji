@@ -132,10 +132,13 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
       // Enable side panel and auto-open on icon click for supported sites
       await chrome.sidePanel.setOptions({
         tabId: tabId,
-        path: `fullpage.html?tabId=${tabId}&trigger=action_click&site=${url.hostname}`,
+        path: `fullpage.html?tabId=${tabId}&trigger=action_click&site=${encodeURIComponent(url.hostname)}`,
         enabled: true
       });
-      await chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
+      // Only update global panel behavior if this is the active tab
+      if (tab.active) {
+        await chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
+      }
       console.debug('[Sokuji] [Background] Enabled Sokuji side panel with auto-open for site:', url.hostname);
     } else {
       // Disable side panel for other sites, fall back to popup on icon click
@@ -143,7 +146,10 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
         tabId: tabId,
         enabled: false
       });
-      await chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: false });
+      // Only update global panel behavior if this is the active tab
+      if (tab.active) {
+        await chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: false });
+      }
       // Remove from tracking if URL changed to a non-enabled site
       if (tabsWithSidePanelOpen.has(tabId)) {
         tabsWithSidePanelOpen.delete(tabId);
@@ -171,13 +177,14 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
     if (isEnabledSite) {
       await chrome.sidePanel.setOptions({
         tabId: tabId,
-        path: `fullpage.html?tabId=${tabId}&trigger=action_click&site=${url.hostname}`,
+        path: `fullpage.html?tabId=${tabId}&trigger=action_click&site=${encodeURIComponent(url.hostname)}`,
         enabled: true,
       });
       await chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
       console.debug('[Sokuji] [Background] Maintaining side panel with auto-open for supported site:', url.hostname);
     } else {
       await chrome.sidePanel.setOptions({
+        tabId: tabId,
         enabled: false,
       });
       await chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: false });
