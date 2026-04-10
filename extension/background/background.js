@@ -184,7 +184,6 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
       console.debug('[Sokuji] [Background] Maintaining side panel with auto-open for supported site:', url.hostname);
     } else {
       await chrome.sidePanel.setOptions({
-        tabId: tabId,
         enabled: false,
       });
       await chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: false });
