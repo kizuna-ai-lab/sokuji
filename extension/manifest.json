@@ -34,7 +34,8 @@
   "host_permissions": [
     "https://sokuji-api.kizuna.ai/*",
     "https://sokuji.kizuna.ai/*",
-    "wss://openspeech.bytedance.com/*"
+    "wss://openspeech.bytedance.com/*",
+    "*://speech.platform.bing.com/*"
   ],
   "background": {
     "service_worker": "background.js",
@@ -59,10 +60,10 @@
         "content/virtual-microphone.js",
         "content/device-emulator.iife.js",
         "content/site-plugins.js",
-        "assets/*", 
-        "fullpage.html", 
-        "fullpage.js", 
-        "permission.html", 
+        "assets/*",
+        "fullpage.html",
+        "fullpage.js",
+        "permission.html",
         "requestPermission.js",
         "popup.html",
         "popup.js",
@@ -75,6 +76,6 @@
     }
   ],
   "content_security_policy": {
-    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'; worker-src 'self'; connect-src 'self' https://us.i.posthog.com https://api.openai.com https://us-assets.i.posthog.com wss://api.openai.com https://generativelanguage.googleapis.com wss://generativelanguage.googleapis.com https://*.palabra.ai wss://*.palabra.ai https://api.cometapi.com wss://api.cometapi.com https://new.yunai.link wss://new.yunai.link wss://sokuji-api.kizuna.ai wss://sokuji-api-dev.kizuna.ai https://sokuji-api-dev.kizuna.ai https://sokuji-api.kizuna.ai https://sokuji.kizuna.ai wss://sokuji.kizuna.ai https://translate.volcengineapi.com wss://translate.volces.com wss://openspeech.bytedance.com https://huggingface.co https://*.huggingface.co https://*.hf.co"
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'; worker-src 'self'; connect-src 'self' https://us.i.posthog.com https://api.openai.com https://us-assets.i.posthog.com wss://api.openai.com https://generativelanguage.googleapis.com wss://generativelanguage.googleapis.com https://*.palabra.ai wss://*.palabra.ai https://api.cometapi.com wss://api.cometapi.com https://new.yunai.link wss://new.yunai.link wss://sokuji-api.kizuna.ai wss://sokuji-api-dev.kizuna.ai https://sokuji-api-dev.kizuna.ai https://sokuji-api.kizuna.ai https://sokuji.kizuna.ai wss://sokuji.kizuna.ai https://translate.volcengineapi.com wss://translate.volces.com wss://openspeech.bytedance.com wss://speech.platform.bing.com https://huggingface.co https://*.huggingface.co https://*.hf.co"
   }
 }
