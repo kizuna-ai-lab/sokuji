@@ -116,6 +116,22 @@ chrome.runtime.onInstalled.addListener(async () => {
   }
 });
 
+// Side panel activation strategy:
+// For supported sites (Meet/Teams/Zoom/etc), we need to capture tab audio via
+// chrome.tabCapture, which requires the `activeTab` permission. activeTab is
+// only granted when the user explicitly invokes the extension on the current
+// page — specifically, when chrome.action.onClicked fires.
+//
+// `chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true })` causes
+// Chrome to open the side panel DIRECTLY on action click without firing
+// onClicked, so activeTab is never granted and tabCapture fails with
+// "Extension has not been invoked for the current page".
+//
+// Fix: disable the popup per-tab on supported sites (so onClicked fires), and
+// manually open the side panel via chrome.sidePanel.open({ tabId }) inside the
+// onClicked handler. On other sites we re-enable the popup so the icon click
+// shows the popup as before.
+
 // Listen for tab URL updates to manage site-specific side panel visibility
 chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   // Only process when URL changes or when the tab is complete
@@ -129,28 +145,25 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
       url.hostname === site || url.hostname.endsWith('.' + site));
 
     if (isEnabledSite) {
-      // Enable side panel and auto-open on icon click for supported sites
+      // Enable side panel for this tab with the correct URL params
       await chrome.sidePanel.setOptions({
         tabId: tabId,
         path: `fullpage.html?tabId=${tabId}&trigger=action_click&site=${encodeURIComponent(url.hostname)}`,
-        enabled: true
+        enabled: true,
       });
-      // Only update global panel behavior if this is the active tab
-      if (tab.active) {
-        await chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
-      }
-      console.debug('[Sokuji] [Background] Enabled Sokuji side panel with auto-open for site:', url.hostname);
+      // Clear the popup so chrome.action.onClicked fires on icon click.
+      // This is essential for activeTab to be granted to the target tab
+      // (tabCapture requires a real action invocation, not the implicit
+      // setPanelBehavior({ openPanelOnActionClick: true }) path).
+      await chrome.action.setPopup({ tabId: tabId, popup: '' });
+      console.debug('[Sokuji] [Background] Enabled side panel (onClicked mode) for site:', url.hostname);
     } else {
-      // Disable side panel for other sites, fall back to popup on icon click
+      // Disable side panel for this tab and restore the popup
       await chrome.sidePanel.setOptions({
         tabId: tabId,
-        enabled: false
+        enabled: false,
       });
-      // Only update global panel behavior if this is the active tab
-      if (tab.active) {
-        await chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: false });
-      }
-      // Remove from tracking if URL changed to a non-enabled site
+      await chrome.action.setPopup({ tabId: tabId, popup: 'popup.html' });
       if (tabsWithSidePanelOpen.has(tabId)) {
         tabsWithSidePanelOpen.delete(tabId);
         console.debug('[Sokuji] [Background] Removed tab from side panel tracking due to URL change:', tabId);
@@ -165,8 +178,6 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
 chrome.tabs.onActivated.addListener(async (activeInfo) => {
   try {
     const tabId = activeInfo.tabId;
-
-    // Get tab information to check if it's a supported site
     const tab = await chrome.tabs.get(tabId);
     if (!tab.url) return;
 
@@ -180,17 +191,53 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
         path: `fullpage.html?tabId=${tabId}&trigger=action_click&site=${encodeURIComponent(url.hostname)}`,
         enabled: true,
       });
-      await chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
-      console.debug('[Sokuji] [Background] Maintaining side panel with auto-open for supported site:', url.hostname);
+      await chrome.action.setPopup({ tabId: tabId, popup: '' });
+      console.debug('[Sokuji] [Background] Maintaining side panel (onClicked mode) for supported site:', url.hostname);
     } else {
+      // Reset the GLOBAL default to disabled so any currently-open side panel
+      // actually closes when the user switches to an unsupported tab. Per-tab
+      // `enabled: false` alone does not reliably hide a panel that is already
+      // visible in the window.
       await chrome.sidePanel.setOptions({
         enabled: false,
       });
-      await chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: false });
+      await chrome.action.setPopup({ tabId: tabId, popup: 'popup.html' });
     }
   } catch (error) {
     console.error('[Sokuji] [Background] Error updating side panel for switched tab:', error);
   }
+});
+
+// On icon click (fires only when popup is cleared — i.e. for supported
+// sites, where updateActionBehaviorForTab() removed the popup): call
+// chrome.sidePanel.open() synchronously.
+//
+// IMPORTANT: `chrome.sidePanel.open()` may only be called in response to
+// a user gesture. Any `await` before it drops the gesture and causes
+// "may only be called in response to a user gesture". That's why this
+// handler is a plain non-async function — setOptions has already been
+// called in onUpdated/onActivated, so the tab-specific side panel path
+// is already configured by the time the user clicks the action.
+chrome.action.onClicked.addListener((tab) => {
+  if (!tab || !tab.id || !tab.url) return;
+
+  let url;
+  try {
+    url = new URL(tab.url);
+  } catch {
+    return;
+  }
+  const isEnabledSite = ENABLED_SITES.some(site =>
+    url.hostname === site || url.hostname.endsWith('.' + site));
+  if (!isEnabledSite) return;
+
+  // Synchronous call — do NOT await anything before this.
+  chrome.sidePanel.open({ tabId: tab.id }).then(() => {
+    tabsWithSidePanelOpen.add(tab.id);
+    console.debug('[Sokuji] [Background] Opened side panel on action click for:', url.hostname);
+  }).catch((error) => {
+    console.error('[Sokuji] [Background] Error opening side panel on action click:', error);
+  });
 });
 
 // Listen for tab closing to clean up tracking
