@@ -553,9 +553,9 @@
       "description": "Proveedor desconocido"
     },
     "local_inference": {
-      "name": "IA local (sin conexión)",
-      "description": "Reconocimiento de voz (ASR) + Traducción + Síntesis de voz (TTS) sin conexión",
-      "noKeyRequired": "No se requiere clave API — se ejecuta completamente en su dispositivo"
+      "name": "Gratis",
+      "description": "Reconocimiento de voz gratuito (ASR) + Traducción + Síntesis de voz (TTS)",
+      "noKeyRequired": "No se requiere clave API"
     }
   },
   "simplePanel": {
@@ -730,7 +730,8 @@
     "confirmYes": "Sí",
     "confirmNo": "No",
     "recommended": "Recomendado",
-    "recommendedGroup": "Recomendado"
+    "recommendedGroup": "Recomendado",
+    "online": "En línea"
   },
   "update": {
     "available": "Nueva versión v{{version}} disponible",

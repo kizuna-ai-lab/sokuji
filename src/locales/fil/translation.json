@@ -344,9 +344,9 @@
       "description": "Hindi kilalang provider"
     },
     "local_inference": {
-      "name": "Lokal na AI (Offline)",
-      "description": "Offline pagkilala sa pagsasalita (ASR) + Pagsasalin + sintesis ng pagsasalita (TTS)",
-      "noKeyRequired": "Hindi kailangan ng API key — tumatakbo nang buo sa iyong device"
+      "name": "Libre",
+      "description": "Libreng pagkilala sa pagsasalita (ASR) + Pagsasalin + sintesis ng pagsasalita (TTS)",
+      "noKeyRequired": "Hindi kailangan ng API key"
     }
   },
   "simplePanel": {
@@ -687,7 +687,8 @@
     "confirmYes": "Oo",
     "confirmNo": "Hindi",
     "recommended": "Inirerekomenda",
-    "recommendedGroup": "Inirerekomenda"
+    "recommendedGroup": "Inirerekomenda",
+    "online": "Online"
   },
   "update": {
     "available": "Bagong bersyon v{{version}} ay magagamit na",

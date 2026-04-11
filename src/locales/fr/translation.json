@@ -553,9 +553,9 @@
       "description": "Fournisseur inconnu"
     },
     "local_inference": {
-      "name": "IA locale (hors ligne)",
-      "description": "Reconnaissance vocale (ASR) + Traduction + Synthèse vocale (TTS) hors ligne",
-      "noKeyRequired": "Aucune clé API requise — fonctionne entièrement sur votre appareil"
+      "name": "Gratuit",
+      "description": "Reconnaissance vocale gratuite (ASR) + Traduction + Synthèse vocale (TTS)",
+      "noKeyRequired": "Aucune clé API requise"
     }
   },
   "simplePanel": {
@@ -730,7 +730,8 @@
     "confirmYes": "Oui",
     "confirmNo": "Non",
     "recommended": "Recommandé",
-    "recommendedGroup": "Recommandé"
+    "recommendedGroup": "Recommandé",
+    "online": "En ligne"
   },
   "update": {
     "available": "Nouvelle version v{{version}} disponible",

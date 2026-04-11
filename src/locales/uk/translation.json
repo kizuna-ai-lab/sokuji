@@ -104,9 +104,9 @@
       "description": "Невідомий постачальник"
     },
     "local_inference": {
-      "name": "Локальний ШІ (офлайн)",
-      "description": "Офлайн розпізнавання мовлення (ASR) + Переклад + синтез мовлення (TTS)",
-      "noKeyRequired": "API-ключ не потрібен — працює повністю на вашому пристрої"
+      "name": "Безкоштовний",
+      "description": "Безкоштовне розпізнавання мовлення (ASR) + Переклад + синтез мовлення (TTS)",
+      "noKeyRequired": "API-ключ не потрібен"
     }
   },
   "simplePanel": {
@@ -649,7 +649,8 @@
     "confirmYes": "Так",
     "confirmNo": "Ні",
     "recommended": "Рекомендовано",
-    "recommendedGroup": "Рекомендовано"
+    "recommendedGroup": "Рекомендовано",
+    "online": "Онлайн"
   },
   "update": {
     "available": "Доступна нова версія v{{version}}",

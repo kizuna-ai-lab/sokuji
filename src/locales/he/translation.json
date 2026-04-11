@@ -351,9 +351,9 @@
       "description": "ספק לא ידוע"
     },
     "local_inference": {
-      "name": "בינה מלאכותית מקומית (ללא חיבור)",
-      "description": "זיהוי דיבור (ASR) + תרגום + סינתזת דיבור (TTS) ללא חיבור",
-      "noKeyRequired": "לא נדרש מפתח API — רץ לגמרי על המכשיר שלך"
+      "name": "חינמי",
+      "description": "זיהוי דיבור חינמי (ASR) + תרגום + סינתזת דיבור (TTS)",
+      "noKeyRequired": "לא נדרש מפתח API"
     }
   },
   "simplePanel": {
@@ -735,7 +735,8 @@
     "confirmYes": "כן",
     "confirmNo": "לא",
     "recommended": "מומלץ",
-    "recommendedGroup": "מומלץ"
+    "recommendedGroup": "מומלץ",
+    "online": "מקוון"
   },
   "update": {
     "available": "גרסה חדשה v{{version}} זמינה",

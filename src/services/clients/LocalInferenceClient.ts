@@ -484,9 +484,21 @@ export class LocalInferenceClient implements IClient {
 
       // TTS (optional) — split into sentences for reduced time-to-first-audio
       if (this.ttsEngine && this.config && !this.disposed) {
+        const ttsEntry = getManifestEntry(this.config.ttsModelId || '');
+        const isEdgeTts = ttsEntry?.engine === 'edge-tts';
+
         const sentences = splitSentences(displayText, this.config.targetLanguage);
         const ttsStartTime = performance.now();
-        this.emitEvent('local.tts.start', 'client', { text: displayText, sentenceCount: sentences.length, modelId: this.config?.ttsModelId });
+        this.emitEvent('local.tts.start', 'client', {
+          text: displayText,
+          sentenceCount: sentences.length,
+          modelId: this.config?.ttsModelId,
+          // Include voice identity (edge-tts voice name, or speaker ID for
+          // local multi-speaker models) and speed so the LogsPanel reflects
+          // exactly which configuration produced the audio.
+          voice: isEdgeTts ? this.config.edgeTtsVoice : `speaker:${this.config.ttsSpeakerId}`,
+          speed: this.config.ttsSpeed,
+        });
         console.debug(`[Karaoke] TTS start: fullText="${displayText}" (${displayText.length} chars), ${sentences.length} sentences:`, sentences.map((s, i) => `[${i}] "${s}" (${s.length} chars)`));
 
         let searchFrom = 0;
@@ -503,49 +515,108 @@ export class LocalInferenceClient implements IClient {
               text: sentences[i],
             });
 
-            const sentenceStart = performance.now();
-            const ttsResult = await this.ttsEngine.generate(
-              sentences[i],
-              this.config.ttsSpeakerId,
-              this.config.ttsSpeed,
-              this.config.targetLanguage,
-            );
-            if (this.disposed) return;
+            if (isEdgeTts) {
+              // Streaming path — Edge TTS sends audio-chunk messages.
+              //
+              // The non-streaming path updates audioTextEnd/audioSegments *before*
+              // emitting the audio delta, so the renderer always has fresh karaoke
+              // metadata when the audio plays. For streaming we pre-compute
+              // audioTextEnd (we know which sentence we're about to speak) so
+              // chunks emitted mid-stream already reference up-to-date metadata.
+              // audioSegments can only be pushed after we know the total audio
+              // duration, so we push + emit a metadata update once the stream ends.
+              const pos = displayText.indexOf(sentences[i], searchFrom);
+              const audioTextEnd = pos >= 0 ? pos + sentences[i].length : searchFrom + sentences[i].length;
+              searchFrom = audioTextEnd;
+              assistantItem.formatted!.audioTextEnd = audioTextEnd;
 
-            // Track how far into the text TTS audio has been generated
-            const pos = displayText.indexOf(sentences[i], searchFrom);
-            const audioTextEnd = pos >= 0 ? pos + sentences[i].length : searchFrom + sentences[i].length;
-            searchFrom = audioTextEnd;
-            assistantItem.formatted!.audioTextEnd = audioTextEnd;
+              let chunkSampleCount = 0;
+              const sentenceStart = performance.now();
+              await this.ttsEngine.generateStream(
+                sentences[i],
+                0,  // sid unused for edge-tts
+                this.config.ttsSpeed,
+                this.config.targetLanguage,
+                (chunkSamples, chunkSampleRate) => {
+                  if (this.disposed) return;
+                  const resampled = resampleFloat32(chunkSamples, chunkSampleRate, 24000);
+                  const int16Audio = float32ToInt16(resampled);
+                  chunkSampleCount += int16Audio.length;
+                  this.handlers.onConversationUpdated?.({
+                    item: assistantItem,
+                    delta: { audio: int16Audio },
+                  });
+                },
+                this.config.edgeTtsVoice,
+              );
+              if (this.disposed) return;
 
-            // Resample to 24kHz and convert to Int16
-            const resampled = resampleFloat32(ttsResult.samples, ttsResult.sampleRate, 24000);
-            const int16Audio = float32ToInt16(resampled);
+              const sentenceAudioDuration = chunkSampleCount / 24000;
+              cumulativeAudioDuration += sentenceAudioDuration;
+              assistantItem.formatted!.audioSegments!.push({
+                textEnd: audioTextEnd,
+                audioEnd: cumulativeAudioDuration,
+              });
 
-            // Track per-sentence audio-to-text mapping for accurate karaoke
-            const sentenceAudioDuration = int16Audio.length / 24000;
-            cumulativeAudioDuration += sentenceAudioDuration;
-            assistantItem.formatted!.audioSegments!.push({
-              textEnd: audioTextEnd,
-              audioEnd: cumulativeAudioDuration,
-            });
+              // Publish the finalized segment metadata so the renderer picks up
+              // timing info without waiting for the full response to complete.
+              this.handlers.onConversationUpdated?.({ item: assistantItem });
 
-            const generateMs = Math.round(performance.now() - sentenceStart);
-            this.emitEvent('local.tts.sentence.end', 'server', {
-              sentenceIndex: i,
-              sentenceCount: sentences.length,
-              text: sentences[i],
-              generateMs,
-              audioDurationMs: Math.round(sentenceAudioDuration * 1000),
-            });
+              const generateMs = Math.round(performance.now() - sentenceStart);
+              this.emitEvent('local.tts.sentence.end', 'server', {
+                sentenceIndex: i,
+                sentenceCount: sentences.length,
+                text: sentences[i],
+                generateMs,
+                audioDurationMs: Math.round(sentenceAudioDuration * 1000),
+              });
 
-            console.debug(`[Karaoke] TTS sentence ${i + 1}/${sentences.length}: "${sentences[i]}" (${sentences[i].length} chars) → ${sentenceAudioDuration.toFixed(3)}s audio | textEnd=${audioTextEnd}/${displayText.length}, cumAudio=${cumulativeAudioDuration.toFixed(3)}s`);
+              console.debug(`[Karaoke] TTS sentence ${i + 1}/${sentences.length}: "${sentences[i]}" → ${sentenceAudioDuration.toFixed(3)}s audio (streaming)`);
+            } else {
+              const sentenceStart = performance.now();
+              const ttsResult = await this.ttsEngine.generate(
+                sentences[i],
+                this.config.ttsSpeakerId,
+                this.config.ttsSpeed,
+                this.config.targetLanguage,
+              );
+              if (this.disposed) return;
 
-            // Emit audio delta immediately — player receives chunk right away
-            this.handlers.onConversationUpdated?.({
-              item: assistantItem,
-              delta: { audio: int16Audio },
-            });
+              // Track how far into the text TTS audio has been generated
+              const pos = displayText.indexOf(sentences[i], searchFrom);
+              const audioTextEnd = pos >= 0 ? pos + sentences[i].length : searchFrom + sentences[i].length;
+              searchFrom = audioTextEnd;
+              assistantItem.formatted!.audioTextEnd = audioTextEnd;
+
+              // Resample to 24kHz and convert to Int16
+              const resampled = resampleFloat32(ttsResult.samples, ttsResult.sampleRate, 24000);
+              const int16Audio = float32ToInt16(resampled);
+
+              // Track per-sentence audio-to-text mapping for accurate karaoke
+              const sentenceAudioDuration = int16Audio.length / 24000;
+              cumulativeAudioDuration += sentenceAudioDuration;
+              assistantItem.formatted!.audioSegments!.push({
+                textEnd: audioTextEnd,
+                audioEnd: cumulativeAudioDuration,
+              });
+
+              const generateMs = Math.round(performance.now() - sentenceStart);
+              this.emitEvent('local.tts.sentence.end', 'server', {
+                sentenceIndex: i,
+                sentenceCount: sentences.length,
+                text: sentences[i],
+                generateMs,
+                audioDurationMs: Math.round(sentenceAudioDuration * 1000),
+              });
+
+              console.debug(`[Karaoke] TTS sentence ${i + 1}/${sentences.length}: "${sentences[i]}" (${sentences[i].length} chars) → ${sentenceAudioDuration.toFixed(3)}s audio | textEnd=${audioTextEnd}/${displayText.length}, cumAudio=${cumulativeAudioDuration.toFixed(3)}s`);
+
+              // Emit audio delta immediately — player receives chunk right away
+              this.handlers.onConversationUpdated?.({
+                item: assistantItem,
+                delta: { audio: int16Audio },
+              });
+            }
           } catch (ttsError) {
             console.warn(`[LocalInference] TTS failed for sentence ${i + 1}/${sentences.length}, skipping:`, ttsError);
             this.emitEvent('local.tts.error', 'server', {

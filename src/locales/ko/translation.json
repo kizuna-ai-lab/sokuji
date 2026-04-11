@@ -552,9 +552,9 @@
       "description": "알 수 없는 제공업체"
     },
     "local_inference": {
-      "name": "로컬 AI (오프라인)",
-      "description": "오프라인 음성 인식(ASR) + 번역 + 음성 합성(TTS)",
-      "noKeyRequired": "API 키 불필요 — 기기에서 완전히 실행"
+      "name": "무료",
+      "description": "무료 음성 인식(ASR) + 번역 + 음성 합성(TTS)",
+      "noKeyRequired": "API 키 불필요"
     }
   },
   "simplePanel": {
@@ -729,7 +729,8 @@
     "confirmYes": "예",
     "confirmNo": "아니요",
     "recommended": "추천",
-    "recommendedGroup": "추천"
+    "recommendedGroup": "추천",
+    "online": "온라인"
   },
   "update": {
     "available": "새 버전 v{{version}} 사용 가능",

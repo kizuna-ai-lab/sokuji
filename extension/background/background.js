@@ -77,7 +77,7 @@ async function updateUninstallURL(distinctId = null) {
     // Use provided distinctId or get from storage
     const activeDistinctId = distinctId || currentDistinctId || await getStoredDistinctId();
     let uninstallUrl = UNINSTALL_FEEDBACK_BASE_URL;
-    
+
     if (activeDistinctId) {
       // Add distinct_id as URL parameter
       const url = new URL(uninstallUrl);
@@ -87,12 +87,12 @@ async function updateUninstallURL(distinctId = null) {
     } else {
       console.debug('[Sokuji] [Background] No distinct_id available, using base uninstall URL');
     }
-    
+
     if (chrome.runtime.setUninstallURL) {
       chrome.runtime.setUninstallURL(uninstallUrl);
       console.debug('[Sokuji] [Background] Uninstall feedback URL configured');
     }
-    
+
     return true;
   } catch (error) {
     console.error('[Sokuji] [Background] Error updating uninstall URL:', error);
@@ -108,7 +108,7 @@ chrome.runtime.onInstalled.addListener(async () => {
       await chrome.storage.local.set({ config: DEFAULT_CONFIG });
       console.debug('[Sokuji] [Background] Default configuration initialized');
     }
-    
+
     // Set up uninstall URL for feedback collection
     await updateUninstallURL();
   } catch (error) {
@@ -120,14 +120,14 @@ chrome.runtime.onInstalled.addListener(async () => {
 chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   // Only process when URL changes or when the tab is complete
   if (!changeInfo.url && changeInfo.status !== 'complete') return;
-  
+
   try {
     const url = new URL(tab.url);
-    
+
     // Check if the current site is in the enabled sites list
-    const isEnabledSite = ENABLED_SITES.some(site => 
+    const isEnabledSite = ENABLED_SITES.some(site =>
       url.hostname === site || url.hostname.endsWith('.' + site));
-    
+
     if (isEnabledSite) {
       // Enable side panel and auto-open on icon click for supported sites
       await chrome.sidePanel.setOptions({
@@ -165,15 +165,15 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
 chrome.tabs.onActivated.addListener(async (activeInfo) => {
   try {
     const tabId = activeInfo.tabId;
-    
+
     // Get tab information to check if it's a supported site
     const tab = await chrome.tabs.get(tabId);
     if (!tab.url) return;
-    
+
     const url = new URL(tab.url);
-    const isEnabledSite = ENABLED_SITES.some(site => 
+    const isEnabledSite = ENABLED_SITES.some(site =>
       url.hostname === site || url.hostname.endsWith('.' + site));
-    
+
     if (isEnabledSite) {
       await chrome.sidePanel.setOptions({
         tabId: tabId,
@@ -273,23 +273,83 @@ async function volgengineClearDNRHeaders() {
   return dnrUpdatePromise;
 }
 
+// ─── Edge TTS declarativeNetRequest header injection ──────────────────────
+// Edge TTS requires specific headers to connect to Bing's TTS WebSocket endpoint.
+// We use declarativeNetRequest to inject these headers for the extension context.
+const EDGE_TTS_DNR_RULE_ID_BASE = 3000;
+const EDGE_TTS_WS_HOST = 'speech.platform.bing.com';
+const EDGE_TTS_CHROMIUM_VERSION = '143.0.3650.75';
+const EDGE_TTS_CHROMIUM_MAJOR = EDGE_TTS_CHROMIUM_VERSION.split('.')[0];
+
+async function edgeTtsSetDNRHeaders() {
+  // Bing TTS WebSocket requires an Edge browser User-Agent to accept the
+  // connection (Chrome UA returns 403). Browser WebSocket API cannot set
+  // custom headers, so we inject it via declarativeNetRequest.
+  //
+  // IMPORTANT: For DNR to actually modify WebSocket upgrade headers, the
+  // host_permissions must include `wss://` explicitly — `*://` covers
+  // http/https but NOT ws/wss, and Chrome silently ignores DNR rules that
+  // target hosts outside the permission scope.
+  const rules = [
+    {
+      id: EDGE_TTS_DNR_RULE_ID_BASE,
+      priority: 1,
+      action: {
+        type: 'modifyHeaders',
+        requestHeaders: [
+          { header: 'User-Agent', operation: 'set', value: `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${EDGE_TTS_CHROMIUM_MAJOR}.0.0.0 Safari/537.36 Edg/${EDGE_TTS_CHROMIUM_MAJOR}.0.0.0` },
+        ],
+      },
+      condition: {
+        urlFilter: `||${EDGE_TTS_WS_HOST}`,
+        resourceTypes: ['websocket'],
+      },
+    },
+  ];
+
+  // Remove any existing Edge TTS rules first
+  const existingRuleIds = (await chrome.declarativeNetRequest.getDynamicRules())
+    .filter(r => r.id >= EDGE_TTS_DNR_RULE_ID_BASE && r.id < EDGE_TTS_DNR_RULE_ID_BASE + 10)
+    .map(r => r.id);
+
+  await chrome.declarativeNetRequest.updateDynamicRules({
+    removeRuleIds: existingRuleIds,
+    addRules: rules,
+  });
+
+  console.debug('[Sokuji] [Background] Edge TTS DNR rules registered');
+}
+
+async function edgeTtsClearDNRHeaders() {
+  const existingRuleIds = (await chrome.declarativeNetRequest.getDynamicRules())
+    .filter(r => r.id >= EDGE_TTS_DNR_RULE_ID_BASE && r.id < EDGE_TTS_DNR_RULE_ID_BASE + 10)
+    .map(r => r.id);
+
+  if (existingRuleIds.length > 0) {
+    await chrome.declarativeNetRequest.updateDynamicRules({
+      removeRuleIds: existingRuleIds,
+    });
+    console.debug('[Sokuji] [Background] Edge TTS DNR rules cleared');
+  }
+}
+
 // Handle messages from popup and content scripts
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === 'GET_CONFIG') {
     handleGetConfig(message.key, message.defaultValue).then(sendResponse);
     return true; // Indicates async response
   }
-  
+
   if (message.type === 'SET_CONFIG') {
     handleSetConfig(message.key, message.value).then(sendResponse);
     return true; // Indicates async response
   }
-  
+
   if (message.type === 'OPEN_SIDE_PANEL') {
     handleOpenSidePanel(message.tabId).then(sendResponse);
     return true; // Indicates async response
   }
-  
+
   if (message.type === 'UPDATE_UNINSTALL_URL') {
     // Handle distinct_id from frontend
     const distinctId = message.distinct_id;
@@ -336,6 +396,27 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;
   }
 
+  // Handle Edge TTS DNR header injection
+  if (message.type === 'EDGE_TTS_SET_HEADERS') {
+    edgeTtsSetDNRHeaders()
+      .then(() => sendResponse({ success: true }))
+      .catch((error) => {
+        console.error('[Sokuji] [Background] Failed to set Edge TTS DNR headers:', error);
+        sendResponse({ success: false, error: error.message });
+      });
+    return true;
+  }
+
+  if (message.type === 'EDGE_TTS_CLEAR_HEADERS') {
+    edgeTtsClearDNRHeaders()
+      .then(() => sendResponse({ success: true }))
+      .catch((error) => {
+        console.error('[Sokuji] [Background] Failed to clear Edge TTS DNR headers:', error);
+        sendResponse({ success: false, error: error.message });
+      });
+    return true;
+  }
+
   // Handle START_TAB_CAPTURE message from side panel
   if (message.type === 'START_TAB_CAPTURE') {
     handleStartTabCapture(message.tabId || sender.tab?.id).then(sendResponse);
@@ -354,7 +435,7 @@ async function handleGetConfig(key, defaultValue) {
   try {
     const result = await chrome.storage.local.get('config');
     const config = result.config || DEFAULT_CONFIG;
-    
+
     if (key) {
       return { success: true, value: config[key] !== undefined ? config[key] : defaultValue };
     } else {
@@ -371,13 +452,13 @@ async function handleSetConfig(key, value) {
   try {
     const result = await chrome.storage.local.get('config');
     const config = result.config || DEFAULT_CONFIG;
-    
+
     // Update the config
     config[key] = value;
-    
+
     // Save back to storage
     await chrome.storage.local.set({ config });
-    
+
     return { success: true };
   } catch (error) {
     console.error('[Sokuji] [Background] Error setting config:', error);

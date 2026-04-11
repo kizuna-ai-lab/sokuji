@@ -553,9 +553,9 @@
       "description": "Unbekannter Anbieter"
     },
     "local_inference": {
-      "name": "Lokale KI (Offline)",
-      "description": "Offline Spracherkennung (ASR) + Übersetzung + Sprachsynthese (TTS)",
-      "noKeyRequired": "Kein API-Schlüssel erforderlich — läuft vollständig auf Ihrem Gerät"
+      "name": "Kostenlos",
+      "description": "Kostenlose Spracherkennung (ASR) + Übersetzung + Sprachsynthese (TTS)",
+      "noKeyRequired": "Kein API-Schlüssel erforderlich"
     }
   },
   "simplePanel": {
@@ -730,7 +730,8 @@
     "confirmYes": "Ja",
     "confirmNo": "Nein",
     "recommended": "Empfohlen",
-    "recommendedGroup": "Empfohlen"
+    "recommendedGroup": "Empfohlen",
+    "online": "Online"
   },
   "update": {
     "available": "Neue Version v{{version}} verfügbar",
