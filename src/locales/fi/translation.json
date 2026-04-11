@@ -344,9 +344,9 @@
       "description": "Tuntematon palveluntarjoaja"
     },
     "local_inference": {
-      "name": "Paikallinen tekoäly (offline)",
-      "description": "Offline puheentunnistus (ASR) + Käännös + puhesynteesi (TTS)",
-      "noKeyRequired": "API-avainta ei tarvita — toimii kokonaan laitteellasi"
+      "name": "Ilmainen",
+      "description": "Ilmainen puheentunnistus (ASR) + Käännös + puhesynteesi (TTS)",
+      "noKeyRequired": "API-avainta ei tarvita"
     }
   },
   "simplePanel": {
@@ -687,7 +687,8 @@
     "confirmYes": "Kyllä",
     "confirmNo": "Ei",
     "recommended": "Suositeltu",
-    "recommendedGroup": "Suositeltu"
+    "recommendedGroup": "Suositeltu",
+    "online": "Verkossa"
   },
   "update": {
     "available": "Uusi versio v{{version}} saatavilla",

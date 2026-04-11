@@ -562,9 +562,9 @@
       "description": "不明なプロバイダー"
     },
     "local_inference": {
-      "name": "ローカルAI（オフライン）",
-      "description": "オフライン音声認識（ASR）+ 翻訳 + 音声合成（TTS）",
-      "noKeyRequired": "APIキー不要 — 完全にデバイス上で実行"
+      "name": "無料",
+      "description": "無料音声認識（ASR）+ 翻訳 + 音声合成（TTS）",
+      "noKeyRequired": "APIキー不要"
     }
   },
   "simplePanel": {
@@ -740,7 +740,8 @@
     "confirmYes": "はい",
     "confirmNo": "いいえ",
     "recommended": "おすすめ",
-    "recommendedGroup": "おすすめ"
+    "recommendedGroup": "おすすめ",
+    "online": "オンライン"
   },
   "update": {
     "available": "新しいバージョン v{{version}} が利用可能です",

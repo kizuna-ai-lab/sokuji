@@ -312,16 +312,20 @@ export const useModelStore = create<ModelStoreState>()(
         if (translationEntry.requiredDevice === 'webgpu' && !webgpuAvailable) return false;
       }
 
-      // 3. TTS: if a specific model is selected, it must be downloaded;
+      // 3. TTS: if a specific model is selected, it must be downloaded (unless cloud);
       //    otherwise at least 1 TTS model for targetLang must be downloaded
       if (selectedTtsModel) {
-        if (modelStatuses[selectedTtsModel] !== 'downloaded') return false;
         const ttsEntry = getManifestEntry(selectedTtsModel);
-        if (ttsEntry && !ttsEntry.languages.includes(targetLang)) return false;
+        if (ttsEntry?.isCloudModel) {
+          // Cloud models (e.g. Edge TTS) don't need download — always ready
+        } else {
+          if (modelStatuses[selectedTtsModel] !== 'downloaded') return false;
+          if (ttsEntry && !ttsEntry.multilingual && !ttsEntry.languages.includes(targetLang)) return false;
+        }
       } else {
         const ttsModels = getTtsModelsForLanguage(targetLang);
         const hasTts = ttsModels.some(
-          model => modelStatuses[model.id] === 'downloaded'
+          model => model.isCloudModel || modelStatuses[model.id] === 'downloaded'
         );
         if (!hasTts) return false;
       }
@@ -488,14 +492,15 @@ export const useModelStore = create<ModelStoreState>()(
         if (newId !== currentTranslationModel) updates.translationModel = newId;
       }
 
-      // TTS: must support targetLanguage and be downloaded
+      // TTS: must support targetLanguage and be downloaded (cloud models are always ready)
       const currentTts = currentTtsModel ? getManifestByType('tts').find(m => m.id === currentTtsModel) : null;
       const ttsOk = currentTts
-        && currentTts.languages.includes(targetLang)
-        && modelStatuses[currentTtsModel] === 'downloaded';
+        && (currentTts.multilingual || currentTts.languages.includes(targetLang))
+        && (currentTts.isCloudModel || modelStatuses[currentTtsModel] === 'downloaded');
       if (!ttsOk) {
         const match = pickBestModel(getManifestByType('tts').filter(m =>
-          m.languages.includes(targetLang) && modelStatuses[m.id] === 'downloaded'
+          (m.multilingual || m.languages.includes(targetLang))
+          && (m.isCloudModel || modelStatuses[m.id] === 'downloaded')
         ));
         const newId = match?.id || '';
         if (newId !== currentTtsModel) updates.ttsModel = newId;

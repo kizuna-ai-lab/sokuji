@@ -73,6 +73,7 @@ function ModelCard({
 }) {
   const { t } = useTranslation();
   const isNone = entry === null;
+  const isCloud = entry !== null && entry.isCloudModel === true;
   const disabled = isSessionActive;
 
   const classNames = [
@@ -86,10 +87,9 @@ function ModelCard({
 
   const handleClick = () => {
     if (disabled || !onSelect) return;
-    // For incompatible models, don't allow selection
     if (!isCompatible && !isNone) return;
-    // For non-downloaded models (except "None"), don't allow selection
-    if (!isNone && status !== 'downloaded') return;
+    // Cloud models are always selectable; others need to be downloaded
+    if (!isNone && !isCloud && status !== 'downloaded') return;
     onSelect();
   };
 
@@ -118,7 +118,7 @@ function ModelCard({
           <div className="model-card__info">
             <div className="model-card__header">
               <span className="model-card__name">{entry.name}</span>
-              <span className="model-card__size">{getModelSizeMb(entry, deviceFeatures)} MB</span>
+              {!isCloud && <span className="model-card__size">{getModelSizeMb(entry, deviceFeatures)} MB</span>}
             </div>
             <div className="model-card__meta">
               <div className="model-card__languages">
@@ -148,7 +148,14 @@ function ModelCard({
           </div>
 
           <div className="model-card__actions">
-            {status === 'not_downloaded' && (
+            {isCloud && (
+              <div className="model-card__downloaded model-card__cloud">
+                <span className="model-card__status-icon"><CheckCircle size={14} /></span>
+                <span>{t('models.online', 'Online')}</span>
+              </div>
+            )}
+
+            {!isCloud && status === 'not_downloaded' && (
               <button
                 className="model-card__btn model-card__btn--download"
                 onClick={(e) => { e.stopPropagation(); onDownload(); }}
@@ -160,7 +167,7 @@ function ModelCard({
               </button>
             )}
 
-            {status === 'downloading' && download && (
+            {!isCloud && status === 'downloading' && download && (
               <div className="model-card__progress">
                 <div className="model-card__progress-bar">
                   <div
@@ -181,7 +188,7 @@ function ModelCard({
               </div>
             )}
 
-            {status === 'downloaded' && (
+            {!isCloud && status === 'downloaded' && (
               <div className="model-card__downloaded">
                 <span className="model-card__status-icon"><CheckCircle size={14} /></span>
                 <span>{t('models.downloaded', 'Downloaded')}</span>
@@ -196,7 +203,7 @@ function ModelCard({
               </div>
             )}
 
-            {status === 'error' && (
+            {!isCloud && status === 'error' && (
               <div className="model-card__error">
                 <span className="model-card__status-icon"><AlertCircle size={14} /></span>
                 <span title={errorMessage}>{t('models.error', 'Error')}</span>
@@ -376,12 +383,12 @@ export function ModelManagementSection({
       if (newId !== translationModel) updates.translationModel = newId;
     }
 
-    // TTS: must support targetLanguage and be downloaded
+    // TTS: must support targetLanguage and be downloaded (or be a cloud model)
     const currentTts = ttsModel ? getManifestByType('tts').find(m => m.id === ttsModel) : null;
-    const ttsOk = currentTts && currentTts.languages.includes(targetLanguage) && statuses[ttsModel] === 'downloaded';
+    const ttsOk = currentTts && (currentTts.multilingual || currentTts.languages.includes(targetLanguage)) && (currentTts.isCloudModel || statuses[ttsModel] === 'downloaded');
     if (!ttsOk) {
       const match = pickBestModel(getManifestByType('tts').filter(m =>
-        m.languages.includes(targetLanguage) && statuses[m.id] === 'downloaded'
+        (m.multilingual || m.languages.includes(targetLanguage)) && (m.isCloudModel || statuses[m.id] === 'downloaded')
       ));
       const newId = match?.id || '';
       if (newId !== ttsModel) updates.ttsModel = newId;
@@ -461,11 +468,11 @@ export function ModelManagementSection({
   );
 
   const compatibleTtsModels = useMemo(
-    () => ttsModels.filter(m => m.languages.includes(targetLanguage)),
+    () => ttsModels.filter(m => m.multilingual || m.languages.includes(targetLanguage)),
     [ttsModels, targetLanguage],
   );
   const incompatibleTtsModels = useMemo(
-    () => ttsModels.filter(m => !m.languages.includes(targetLanguage)),
+    () => ttsModels.filter(m => !m.multilingual && !m.languages.includes(targetLanguage)),
     [ttsModels, targetLanguage],
   );
 

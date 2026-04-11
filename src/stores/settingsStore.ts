@@ -122,6 +122,7 @@ export interface LocalInferenceSettings {
   ttsModel: string;        // '' (auto) | 'piper-en' | 'piper-de'
   ttsSpeakerId: number;
   ttsSpeed: number;
+  edgeTtsVoice: string;    // Edge TTS voice ShortName (e.g. 'en-US-AvaMultilingualNeural'), '' for auto-select
   sourceLanguage: string;
   targetLanguage: string;
   turnDetectionMode: 'Auto' | 'Push-to-Talk';
@@ -281,6 +282,7 @@ const defaultLocalInferenceSettings: LocalInferenceSettings = {
   ttsModel: '',  // Auto-select based on target language
   ttsSpeakerId: 0,
   ttsSpeed: 1.0,
+  edgeTtsVoice: '',  // Auto-select based on target language
   sourceLanguage: 'ja',
   targetLanguage: 'en',
   turnDetectionMode: 'Auto',
@@ -486,7 +488,7 @@ function createLocalInferenceSessionConfig(
 ): LocalInferenceSessionConfig {
   // Auto-select TTS model: use current if it supports the target language, otherwise find a matching one
   const currentTtsEntry = settings.ttsModel ? getManifestEntry(settings.ttsModel) : undefined;
-  const isTtsCompatible = currentTtsEntry && currentTtsEntry.languages.includes(settings.targetLanguage);
+  const isTtsCompatible = currentTtsEntry && (currentTtsEntry.multilingual || currentTtsEntry.languages.includes(settings.targetLanguage));
   const ttsModelId = isTtsCompatible ? settings.ttsModel : (getTtsModelsForLanguage(settings.targetLanguage)[0]?.id);
 
   return {
@@ -500,6 +502,7 @@ function createLocalInferenceSessionConfig(
     ttsModelId,
     ttsSpeakerId: settings.ttsSpeakerId,
     ttsSpeed: settings.ttsSpeed,
+    edgeTtsVoice: settings.edgeTtsVoice || undefined,
     vadThreshold: settings.vadThreshold,
     vadMinSilenceDuration: settings.vadMinSilenceDuration,
     vadMinSpeechDuration: settings.vadMinSpeechDuration,

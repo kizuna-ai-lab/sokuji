@@ -104,9 +104,9 @@
       "description": "ผู้ให้บริการที่ไม่ทราบ"
     },
     "local_inference": {
-      "name": "AI ในเครื่อง (ออฟไลน์)",
-      "description": "ออฟไลน์ การรู้จำเสียงพูด (ASR) + แปล + การสังเคราะห์เสียงพูด (TTS)",
-      "noKeyRequired": "ไม่ต้องใช้คีย์ API — ทำงานบนอุปกรณ์ของคุณทั้งหมด"
+      "name": "ฟรี",
+      "description": "การรู้จำเสียงพูดฟรี (ASR) + แปล + การสังเคราะห์เสียงพูด (TTS)",
+      "noKeyRequired": "ไม่ต้องใช้คีย์ API"
     }
   },
   "simplePanel": {
@@ -651,7 +651,8 @@
     "confirmYes": "ใช่",
     "confirmNo": "ไม่",
     "recommended": "แนะนำ",
-    "recommendedGroup": "แนะนำ"
+    "recommendedGroup": "แนะนำ",
+    "online": "ออนไลน์"
   },
   "update": {
     "available": "เวอร์ชันใหม่ v{{version}} พร้อมใช้งาน",

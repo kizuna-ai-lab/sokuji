@@ -104,9 +104,9 @@
       "description": "తెలియని ప్రదాత"
     },
     "local_inference": {
-      "name": "స్థానిక AI (ఆఫ్‌లైన్)",
-      "description": "ఆఫ్‌లైన్ వాక్ గుర్తింపు (ASR) + అనువాదం + వాక్ సంశ్లేషణ (TTS)",
-      "noKeyRequired": "API కీ అవసరం లేదు — మీ పరికరంలో పూర్తిగా నడుస్తుంది"
+      "name": "ఉచిత",
+      "description": "ఉచిత వాక్ గుర్తింపు (ASR) + అనువాదం + వాక్ సంశ్లేషణ (TTS)",
+      "noKeyRequired": "API కీ అవసరం లేదు"
     }
   },
   "simplePanel": {
@@ -644,7 +644,8 @@
     "confirmYes": "అవును",
     "confirmNo": "కాదు",
     "recommended": "సిఫార్సు చేయబడింది",
-    "recommendedGroup": "సిఫార్సు చేయబడింది"
+    "recommendedGroup": "సిఫార్సు చేయబడింది",
+    "online": "ఆన్‌లైన్"
   },
   "update": {
     "available": "కొత్త వెర్షన్ v{{version}} అందుబాటులో ఉంది",

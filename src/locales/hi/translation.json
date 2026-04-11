@@ -338,9 +338,9 @@
       "description": "अज्ञात प्रदाता"
     },
     "local_inference": {
-      "name": "स्थानीय AI (ऑफ़लाइन)",
-      "description": "ऑफ़लाइन वाक् पहचान (ASR) + अनुवाद + वाक् संश्लेषण (TTS)",
-      "noKeyRequired": "API कुंजी की आवश्यकता नहीं — पूरी तरह से आपके डिवाइस पर चलता है"
+      "name": "मुफ़्त",
+      "description": "मुफ़्त वाक् पहचान (ASR) + अनुवाद + वाक् संश्लेषण (TTS)",
+      "noKeyRequired": "API कुंजी की आवश्यकता नहीं"
     }
   },
   "simplePanel": {
@@ -681,7 +681,8 @@
     "confirmYes": "हाँ",
     "confirmNo": "नहीं",
     "recommended": "अनुशंसित",
-    "recommendedGroup": "अनुशंसित"
+    "recommendedGroup": "अनुशंसित",
+    "online": "ऑनलाइन"
   },
   "update": {
     "available": "नया संस्करण v{{version}} उपलब्ध है",

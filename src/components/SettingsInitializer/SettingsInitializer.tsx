@@ -10,11 +10,13 @@ import {
   useVolcengineSTSettings,
   useVolcengineAST2Settings,
   useSettingsLoaded,
-  useLocalInferenceSettings
+  useLocalInferenceSettings,
 } from '../../stores/settingsStore';
+import useSettingsStore from '../../stores/settingsStore';
 import { useModelStatuses, useModelInitialized, useModelStore } from '../../stores/modelStore';
 import { useAuth } from '../../lib/auth/hooks';
 import { Provider } from '../../types/Provider';
+import { getEdgeTtsVoices, filterVoicesByLanguage } from '../../lib/edge-tts/voiceList';
 
 /**
  * SettingsInitializer — watches for settings changes and triggers session readiness
@@ -99,6 +101,38 @@ export function SettingsInitializer() {
       volcengineSTSettings.accessKeyId, volcengineSTSettings.secretAccessKey,
       volcengineAST2Settings.appId, volcengineAST2Settings.accessToken,
       validateApiKey]);
+
+  // ── Edge TTS: auto-select voice when target language changes ───────────
+  // The UI's voice picker effect (in ProviderSpecificSettings) only fires
+  // while the settings screen is mounted, so changing target language from
+  // elsewhere (e.g. LanguageSection) used to leave a stale voice in the
+  // store. This effect lives in SettingsInitializer (always mounted) and
+  // picks the first voice for the current language whenever the stored
+  // voice doesn't match — ensuring the session config and UI stay in sync.
+  useEffect(() => {
+    if (!settingsLoaded) return;
+    if (provider !== Provider.LOCAL_INFERENCE) return;
+    if (localInferenceSettings.ttsModel !== 'edge-tts') return;
+
+    let cancelled = false;
+    getEdgeTtsVoices()
+      .then(voices => {
+        if (cancelled) return;
+        const candidates = filterVoicesByLanguage(voices, localInferenceSettings.targetLanguage);
+        if (candidates.length === 0) return;
+        const current = localInferenceSettings.edgeTtsVoice;
+        const isValid = candidates.some(v => v.ShortName === current);
+        if (!isValid) {
+          useSettingsStore.getState().updateLocalInference({ edgeTtsVoice: candidates[0].ShortName });
+        }
+      })
+      .catch(err => {
+        console.warn('[SettingsInitializer] Failed to auto-select Edge TTS voice:', err);
+      });
+
+    return () => { cancelled = true; };
+  }, [settingsLoaded, provider, localInferenceSettings.ttsModel,
+      localInferenceSettings.targetLanguage, localInferenceSettings.edgeTtsVoice]);
 
   // ── LOCAL_INFERENCE: validate when model statuses or language settings change ──
   // validateApiKey() handles everything: model store init, auto-select, readiness check.

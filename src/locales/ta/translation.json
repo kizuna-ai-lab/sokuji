@@ -118,9 +118,9 @@
       "description": "தெரியாத வழங்குநர்"
     },
     "local_inference": {
-      "name": "உள்ளூர் AI (ஆஃப்லைன்)",
-      "description": "ஆஃப்லைன் பேச்சு அங்கீகாரம் (ASR) + மொழிபெயர்ப்பு + பேச்சு தொகுப்பு (TTS)",
-      "noKeyRequired": "API விசை தேவையில்லை — உங்கள் சாதனத்தில் முழுமையாக இயங்கும்"
+      "name": "இலவசம்",
+      "description": "இலவச பேச்சு அங்கீகாரம் (ASR) + மொழிபெயர்ப்பு + பேச்சு தொகுப்பு (TTS)",
+      "noKeyRequired": "API விசை தேவையில்லை"
     }
   },
   "simplePanel": {
@@ -662,7 +662,8 @@
     "confirmYes": "ஆம்",
     "confirmNo": "இல்லை",
     "recommended": "பரிந்துரைக்கப்பட்டது",
-    "recommendedGroup": "பரிந்துரைக்கப்பட்டது"
+    "recommendedGroup": "பரிந்துரைக்கப்பட்டது",
+    "online": "ஆன்லைன்"
   },
   "update": {
     "available": "புதிய பதிப்பு v{{version}} கிடைக்கிறது",

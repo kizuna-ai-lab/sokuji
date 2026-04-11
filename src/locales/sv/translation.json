@@ -508,9 +508,9 @@
       "description": "Okänd leverantör"
     },
     "local_inference": {
-      "name": "Lokal AI (offline)",
-      "description": "Offline taligenkänning (ASR) + Översättning + talsyntes (TTS)",
-      "noKeyRequired": "Ingen API-nyckel krävs — körs helt på din enhet"
+      "name": "Gratis",
+      "description": "Gratis taligenkänning (ASR) + Översättning + talsyntes (TTS)",
+      "noKeyRequired": "Ingen API-nyckel krävs"
     }
   },
   "simplePanel": {
@@ -685,7 +685,8 @@
     "confirmYes": "Ja",
     "confirmNo": "Nej",
     "recommended": "Rekommenderad",
-    "recommendedGroup": "Rekommenderad"
+    "recommendedGroup": "Rekommenderad",
+    "online": "Online"
   },
   "update": {
     "available": "Ny version v{{version}} tillgänglig",

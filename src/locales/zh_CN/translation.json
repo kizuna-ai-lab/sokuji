@@ -387,9 +387,9 @@
       "description": "未知提供商"
     },
     "local_inference": {
-      "name": "本地AI（离线）",
-      "description": "离线语音识别（ASR）+ 翻译 + 语音合成（TTS）",
-      "noKeyRequired": "无需 API 密钥 — 完全在您的设备上运行"
+      "name": "免费",
+      "description": "免费语音识别（ASR）+ 翻译 + 语音合成（TTS）",
+      "noKeyRequired": "无需 API 密钥"
     }
   },
   "audioPanel": {
@@ -737,7 +737,8 @@
     "confirmYes": "是",
     "confirmNo": "否",
     "recommended": "推荐",
-    "recommendedGroup": "推荐"
+    "recommendedGroup": "推荐",
+    "online": "在线"
   },
   "update": {
     "available": "新版本 v{{version}} 可用",

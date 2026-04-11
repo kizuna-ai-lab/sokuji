@@ -61,6 +61,10 @@ const validReceiveChannels = [
   'volcengine-ast2-message',
   'volcengine-ast2-error',
   'volcengine-ast2-close',
+  // Edge TTS WebSocket proxy events (main → renderer)
+  'edge-tts-audio-chunk',
+  'edge-tts-done',
+  'edge-tts-error',
   // Auto-update channels (main → renderer)
   'update-status',
   'update-progress',
@@ -127,6 +131,9 @@ contextBridge.exposeInMainWorld(
         'volcengine-ast2-send',
         'volcengine-ast2-disconnect',
         'volcengine-ast2-validate',
+        // Edge TTS WebSocket proxy (renderer → main)
+        'edge-tts-generate',
+        'edge-tts-cancel',
         // Auto-update channels (renderer → main)
         'update-check',
         'update-download',

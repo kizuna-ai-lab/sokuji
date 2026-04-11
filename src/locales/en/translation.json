@@ -249,7 +249,9 @@
     "downloadModelType": "Download {{type}}",
     "modelTypeAsr": "Speech Recognition (ASR)",
     "modelTypeTranslation": "Translation",
-    "modelTypeTts": "Speech Synthesis (TTS)"
+    "modelTypeTts": "Speech Synthesis (TTS)",
+    "edgeTtsVoice": "Voice",
+    "loadingVoices": "Loading voices..."
   },
   "simpleSettings": {
     "autoAuthenticated": "Automatically authenticated via your account",
@@ -457,9 +459,9 @@
       "accessTokenPlaceholder": "Access Token"
     },
     "local_inference": {
-      "name": "Local AI (Offline)",
-      "description": "Offline Speech Recognition (ASR) + Translation + Speech Synthesis (TTS)",
-      "noKeyRequired": "No API key required — runs entirely on your device",
+      "name": "Free",
+      "description": "Free Speech Recognition (ASR) + Translation + Speech Synthesis (TTS)",
+      "noKeyRequired": "No API key required",
       "modelAsr": "ASR",
       "modelTranslation": "Translation",
       "modelTts": "TTS",
@@ -767,7 +769,8 @@
     "confirmYes": "Yes",
     "confirmNo": "No",
     "recommended": "Recommended",
-    "recommendedGroup": "Recommended"
+    "recommendedGroup": "Recommended",
+    "online": "Online"
   },
   "update": {
     "available": "New version v{{version}} available",

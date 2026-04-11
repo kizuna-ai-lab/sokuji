@@ -114,9 +114,9 @@
       "description": "未知的提供商"
     },
     "local_inference": {
-      "name": "本機AI（離線）",
-      "description": "離線語音辨識（ASR）+ 翻譯 + 語音合成（TTS）",
-      "noKeyRequired": "無需 API 金鑰 — 完全在您的裝置上執行"
+      "name": "免費",
+      "description": "免費語音辨識（ASR）+ 翻譯 + 語音合成（TTS）",
+      "noKeyRequired": "無需 API 金鑰"
     }
   },
   "simplePanel": {
@@ -698,7 +698,8 @@
     "confirmYes": "是",
     "confirmNo": "否",
     "recommended": "推薦",
-    "recommendedGroup": "推薦"
+    "recommendedGroup": "推薦",
+    "online": "線上"
   },
   "update": {
     "available": "新版本 v{{version}} 可用",

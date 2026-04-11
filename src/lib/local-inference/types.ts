@@ -289,10 +289,28 @@ export interface TtsDisposedMessage {
   type: 'disposed';
 }
 
+export interface TtsAudioChunkMessage {
+  type: 'audio-chunk';
+  samples: Float32Array;
+  sampleRate: number;
+}
+
+export interface TtsAudioDoneMessage {
+  type: 'audio-done';
+  generationTimeMs: number;
+}
+
+export interface TtsDecodeReadyMessage {
+  type: 'decode-ready';
+}
+
 export type TtsWorkerOutMessage =
   | TtsReadyMessage
   | TtsStatusMessage
   | TtsResultMessage
   | TtsErrorMessage
-  | TtsDisposedMessage;
+  | TtsDisposedMessage
+  | TtsAudioChunkMessage
+  | TtsAudioDoneMessage
+  | TtsDecodeReadyMessage;
 

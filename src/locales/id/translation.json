@@ -345,9 +345,9 @@
       "description": "Penyedia tidak diketahui"
     },
     "local_inference": {
-      "name": "AI Lokal (Offline)",
-      "description": "Pengenalan ucapan (ASR) + Terjemahan + Sintesis ucapan (TTS) Offline",
-      "noKeyRequired": "Tidak memerlukan kunci API — berjalan sepenuhnya di perangkat Anda"
+      "name": "Gratis",
+      "description": "Pengenalan ucapan gratis (ASR) + Terjemahan + Sintesis ucapan (TTS)",
+      "noKeyRequired": "Tidak memerlukan kunci API"
     }
   },
   "simplePanel": {
@@ -729,7 +729,8 @@
     "confirmYes": "Ya",
     "confirmNo": "Tidak",
     "recommended": "Direkomendasikan",
-    "recommendedGroup": "Direkomendasikan"
+    "recommendedGroup": "Direkomendasikan",
+    "online": "Online"
   },
   "update": {
     "available": "Versi baru v{{version}} tersedia",

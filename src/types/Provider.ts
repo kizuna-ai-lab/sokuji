@@ -82,7 +82,7 @@ export function getProviderDisplayName(provider: ProviderType): string {
     case Provider.VOLCENGINE_AST2:
       return 'Doubao AST 2.0';
     case Provider.LOCAL_INFERENCE:
-      return 'Local (Offline)';
+      return 'Free';
     default:
       return provider;
   }

@@ -503,9 +503,9 @@
       "description": "Nhà cung cấp không rõ"
     },
     "local_inference": {
-      "name": "AI cục bộ (ngoại tuyến)",
-      "description": "Nhận dạng giọng nói (ASR) + Dịch + Tổng hợp giọng nói (TTS) ngoại tuyến",
-      "noKeyRequired": "Không cần API key — chạy hoàn toàn trên thiết bị của bạn"
+      "name": "Miễn phí",
+      "description": "Nhận dạng giọng nói miễn phí (ASR) + Dịch + Tổng hợp giọng nói (TTS)",
+      "noKeyRequired": "Không cần API key"
     }
   },
   "simplePanel": {
@@ -680,7 +680,8 @@
     "confirmYes": "Có",
     "confirmNo": "Không",
     "recommended": "Được đề xuất",
-    "recommendedGroup": "Được đề xuất"
+    "recommendedGroup": "Được đề xuất",
+    "online": "Trực tuyến"
   },
   "update": {
     "available": "Phiên bản mới v{{version}} khả dụng",

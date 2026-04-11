@@ -345,9 +345,9 @@
       "description": "مقدم خدمة غير معروف"
     },
     "local_inference": {
-      "name": "ذكاء اصطناعي محلي (بدون اتصال)",
-      "description": "التعرف على الكلام (ASR) + ترجمة + تحويل النص إلى كلام (TTS) بدون اتصال",
-      "noKeyRequired": "لا حاجة لمفتاح API — يعمل بالكامل على جهازك"
+      "name": "مجاني",
+      "description": "التعرف على الكلام المجاني (ASR) + ترجمة + تحويل النص إلى كلام (TTS)",
+      "noKeyRequired": "لا حاجة لمفتاح API"
     }
   },
   "audioPanel": {
@@ -731,7 +731,8 @@
     "confirmYes": "نعم",
     "confirmNo": "لا",
     "recommended": "موصى به",
-    "recommendedGroup": "موصى به"
+    "recommendedGroup": "موصى به",
+    "online": "عبر الإنترنت"
   },
   "update": {
     "available": "إصدار جديد v{{version}} متاح",

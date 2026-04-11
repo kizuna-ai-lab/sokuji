@@ -551,9 +551,9 @@
       "description": "Nieznany dostawca"
     },
     "local_inference": {
-      "name": "Lokalna AI (offline)",
-      "description": "Offline rozpoznawanie mowy (ASR) + Tłumaczenie + synteza mowy (TTS)",
-      "noKeyRequired": "Klucz API nie jest wymagany — działa całkowicie na Twoim urządzeniu"
+      "name": "Darmowy",
+      "description": "Darmowe rozpoznawanie mowy (ASR) + Tłumaczenie + synteza mowy (TTS)",
+      "noKeyRequired": "Klucz API nie jest wymagany"
     }
   },
   "simplePanel": {
@@ -728,7 +728,8 @@
     "confirmYes": "Tak",
     "confirmNo": "Nie",
     "recommended": "Zalecane",
-    "recommendedGroup": "Zalecane"
+    "recommendedGroup": "Zalecane",
+    "online": "Online"
   },
   "update": {
     "available": "Nowa wersja v{{version}} dostępna",

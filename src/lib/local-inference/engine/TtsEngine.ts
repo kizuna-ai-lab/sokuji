@@ -15,12 +15,15 @@ import {
   type ModelManifestEntry,
 } from '../modelManifest';
 import { ModelManager } from '../ModelManager';
+import { EdgeTtsConnection } from '../../edge-tts/EdgeTtsConnection';
 
 export interface TtsResult {
   samples: Float32Array;
   sampleRate: number;
   generationTimeMs: number;
 }
+
+export type AudioChunkCallback = (samples: Float32Array, sampleRate: number) => void;
 
 type StatusCallback = (message: string) => void;
 type ErrorCallback = (error: string) => void;
@@ -35,6 +38,13 @@ export class TtsEngine {
     resolve: (result: TtsResult) => void;
     reject: (error: Error) => void;
   } | null = null;
+  private pendingStream: {
+    onChunk: AudioChunkCallback;
+    resolve: (result: { generationTimeMs: number }) => void;
+    reject: (error: Error) => void;
+  } | null = null;
+
+  private edgeTtsConnection: EdgeTtsConnection | null = null;
 
   onStatus: StatusCallback | null = null;
   onError: ErrorCallback | null = null;
@@ -63,39 +73,48 @@ export class TtsEngine {
       this.dispose();
     }
 
-    // Load model file blob URLs from IndexedDB (only .data + package-metadata.json)
-    const manager = ModelManager.getInstance();
-    if (!await manager.isModelReady(modelId)) {
-      throw new Error(`TTS model "${modelId}" is not downloaded. Download it first via Model Management.`);
-    }
-    const fileUrls = await manager.getModelBlobUrls(modelId);
-
     const isPiperPlus = model.engine === 'piper-plus';
+    const isEdgeTts = model.engine === 'edge-tts';
 
-    // Sherpa-onnx path: read Emscripten loadPackage metadata
+    // Load model file blob URLs from IndexedDB (only .data + package-metadata.json)
+    // Edge TTS skips the download check — it uses the network directly
+    let fileUrls: Record<string, string> = {};
     let dataPackageMetadata: Record<string, unknown> | null = null;
-    let dataFileUrls: Record<string, string> = fileUrls;
-    if (!isPiperPlus) {
-      const metadataBlobUrl = fileUrls['package-metadata.json'];
-      if (!metadataBlobUrl) {
-        throw new Error(`Missing package-metadata.json for TTS model "${modelId}"`);
+    let dataFileUrls: Record<string, string> = {};
+
+    if (!isEdgeTts) {
+      const manager = ModelManager.getInstance();
+      if (!await manager.isModelReady(modelId)) {
+        throw new Error(`TTS model "${modelId}" is not downloaded. Download it first via Model Management.`);
       }
-      const metadataResponse = await fetch(metadataBlobUrl);
-      dataPackageMetadata = await metadataResponse.json();
-      // Strip metadata from file URLs sent to worker
-      dataFileUrls = {};
-      for (const [name, url] of Object.entries(fileUrls)) {
-        if (name !== 'package-metadata.json') {
-          dataFileUrls[name] = url;
+      fileUrls = await manager.getModelBlobUrls(modelId);
+      dataFileUrls = fileUrls;
+
+      // Sherpa-onnx path: read Emscripten loadPackage metadata
+      if (!isPiperPlus) {
+        const metadataBlobUrl = fileUrls['package-metadata.json'];
+        if (!metadataBlobUrl) {
+          throw new Error(`Missing package-metadata.json for TTS model "${modelId}"`);
+        }
+        const metadataResponse = await fetch(metadataBlobUrl);
+        dataPackageMetadata = await metadataResponse.json();
+        // Strip metadata from file URLs sent to worker
+        dataFileUrls = {};
+        for (const [name, url] of Object.entries(fileUrls)) {
+          if (name !== 'package-metadata.json') {
+            dataFileUrls[name] = url;
+          }
         }
       }
     }
 
     return new Promise((resolve, reject) => {
       // Select worker based on engine type
-      const workerUrl = isPiperPlus
-        ? './workers/piper-plus-tts.worker.js'
-        : './workers/sherpa-onnx-tts.worker.js';
+      const workerUrl = isEdgeTts
+        ? './workers/edge-tts.worker.js'
+        : isPiperPlus
+          ? './workers/piper-plus-tts.worker.js'
+          : './workers/sherpa-onnx-tts.worker.js';
       this.worker = new Worker(workerUrl);
 
       this.worker.onmessage = (event: MessageEvent<TtsWorkerOutMessage>) => {
@@ -106,7 +125,10 @@ export class TtsEngine {
             this.currentModel = model;
             this._numSpeakers = msg.numSpeakers;
             this._sampleRate = msg.sampleRate;
-            manager.revokeBlobUrls(fileUrls);
+            if (!isEdgeTts) {
+              const manager = ModelManager.getInstance();
+              manager.revokeBlobUrls(fileUrls);
+            }
             resolve({
               loadTimeMs: msg.loadTimeMs,
               numSpeakers: msg.numSpeakers,
@@ -129,15 +151,35 @@ export class TtsEngine {
             }
             break;
 
+          case 'audio-chunk':
+            if (this.pendingStream) {
+              this.pendingStream.onChunk(msg.samples, msg.sampleRate);
+            }
+            break;
+
+          case 'audio-done':
+            if (this.pendingStream) {
+              this.pendingStream.resolve({ generationTimeMs: msg.generationTimeMs });
+              this.pendingStream = null;
+            }
+            break;
+
           case 'error':
             this.onError?.(msg.error);
             if (!this.isReady) {
-              manager.revokeBlobUrls(fileUrls);
+              if (!isEdgeTts) {
+                const manager = ModelManager.getInstance();
+                manager.revokeBlobUrls(fileUrls);
+              }
               reject(new Error(msg.error));
             }
             if (this.pendingGenerate) {
               this.pendingGenerate.reject(new Error(msg.error));
               this.pendingGenerate = null;
+            }
+            if (this.pendingStream) {
+              this.pendingStream.reject(new Error(msg.error));
+              this.pendingStream = null;
             }
             break;
 
@@ -150,17 +192,26 @@ export class TtsEngine {
         const message = error.message || 'TTS Worker error';
         this.onError?.(message);
         if (!this.isReady) {
-          manager.revokeBlobUrls(fileUrls);
+          if (!isEdgeTts) {
+            const manager = ModelManager.getInstance();
+            manager.revokeBlobUrls(fileUrls);
+          }
           reject(new Error(message));
         }
         if (this.pendingGenerate) {
           this.pendingGenerate.reject(new Error(message));
           this.pendingGenerate = null;
         }
+        if (this.pendingStream) {
+          this.pendingStream.reject(new Error(message));
+          this.pendingStream = null;
+        }
       };
 
       // Send engine-specific init message
-      if (isPiperPlus) {
+      if (isEdgeTts) {
+        this.worker.postMessage({ type: 'init' });
+      } else if (isPiperPlus) {
         this.worker.postMessage({
           type: 'init',
           fileUrls,
@@ -224,6 +275,110 @@ export class TtsEngine {
   }
 
   /**
+   * Generate speech audio with streaming output (Edge TTS).
+   *
+   * Uses EdgeTtsConnection for platform-specific WebSocket connection,
+   * pipes MP3 chunks to the worker for decoding, and delivers PCM via onChunk.
+   */
+  async generateStream(
+    text: string,
+    sid: number,
+    speed: number,
+    lang?: string,
+    onChunk?: AudioChunkCallback,
+    voice?: string,
+  ): Promise<{ generationTimeMs: number }> {
+    if (!this.worker || !this.isReady) {
+      throw new Error('TTS engine not initialized');
+    }
+    if (this.pendingGenerate || this.pendingStream) {
+      throw new Error('A generation request is already in progress');
+    }
+
+    const sanitizedText = TtsEngine.stripEmoji(text);
+    if (!sanitizedText) {
+      return { generationTimeMs: 0 };
+    }
+
+    const startTime = performance.now();
+
+    // Wait for worker decoder to be ready (reset is async).
+    // The handler rejects on 'error' to avoid hanging the pipeline if reset fails,
+    // and is always removed once it settles.
+    const worker = this.worker;
+    await new Promise<void>((resolve, reject) => {
+      const handler = (event: MessageEvent<TtsWorkerOutMessage>) => {
+        const data = event.data;
+        if (data.type === 'decode-ready') {
+          worker.removeEventListener('message', handler);
+          resolve();
+        } else if (data.type === 'error') {
+          worker.removeEventListener('message', handler);
+          reject(new Error(data.error));
+        }
+      };
+      worker.addEventListener('message', handler);
+      worker.postMessage({ type: 'decode-start' });
+    });
+
+    // Set up worker to receive decoded PCM chunks
+    return new Promise<{ generationTimeMs: number }>((resolve, reject) => {
+      this.pendingStream = {
+        onChunk: onChunk || (() => {}),
+        resolve,
+        reject,
+      };
+
+      // Create connection and start streaming
+      if (!this.edgeTtsConnection) {
+        this.edgeTtsConnection = new EdgeTtsConnection();
+      }
+
+      this.edgeTtsConnection.generate(
+        { text: sanitizedText, voice, speed },
+        // onMp3Chunk — forward to worker for decoding.
+        //
+        // The worker wraps the transferred ArrayBuffer with `new Uint8Array(buf)`,
+        // which covers the WHOLE buffer. If mp3Data is a view whose underlying
+        // buffer is larger than the view (possible with IPC buffer pools), the
+        // worker would decode extra garbage bytes and produce corrupted audio.
+        // Guard against this by copying to a tight buffer whenever the sizes
+        // disagree.
+        (mp3Data: Uint8Array) => {
+          if (!this.worker) return;
+          const tight = (mp3Data.byteOffset === 0 && mp3Data.byteLength === mp3Data.buffer.byteLength)
+            ? mp3Data
+            : new Uint8Array(mp3Data); // copies only mp3Data's bytes into a new exact-sized buffer
+          this.worker.postMessage(
+            { type: 'decode-chunk', mp3Data: tight.buffer },
+            [tight.buffer],
+          );
+        },
+        // onDone — tell worker decoding is complete
+        () => {
+          const generationTimeMs = Math.round(performance.now() - startTime);
+          if (this.worker) {
+            this.worker.postMessage({ type: 'decode-end', generationTimeMs });
+          }
+        },
+        // onError
+        (error: string) => {
+          if (this.pendingStream) {
+            this.pendingStream.reject(new Error(error));
+            this.pendingStream = null;
+          }
+        },
+      ).catch((err) => {
+        // Connection-level error (not already handled by onError callback)
+        if (this.pendingStream) {
+          this.pendingStream.reject(err instanceof Error ? err : new Error(String(err)));
+          this.pendingStream = null;
+        }
+      });
+    });
+  }
+
+  /**
    * Get list of available TTS models.
    */
   static getModels(): ModelManifestEntry[] {
@@ -258,6 +413,14 @@ export class TtsEngine {
   }
 
   dispose(): void {
+    if (this.edgeTtsConnection) {
+      this.edgeTtsConnection.dispose();
+      this.edgeTtsConnection = null;
+    }
+    if (this.pendingStream) {
+      this.pendingStream.reject(new Error('TTS engine disposed'));
+      this.pendingStream = null;
+    }
     if (this.pendingGenerate) {
       this.pendingGenerate.reject(new Error('TTS engine disposed'));
       this.pendingGenerate = null;

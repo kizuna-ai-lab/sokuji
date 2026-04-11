@@ -351,9 +351,9 @@
       "description": "অজানা প্রদানকারী"
     },
     "local_inference": {
-      "name": "স্থানীয় AI (অফলাইন)",
-      "description": "অফলাইন বাক স্বীকৃতি (ASR) + অনুবাদ + বাক সংশ্লেষণ (TTS)",
-      "noKeyRequired": "API কী প্রয়োজন নেই — সম্পূর্ণরূপে আপনার ডিভাইসে চলে"
+      "name": "বিনামূল্যে",
+      "description": "বিনামূল্যে বাক স্বীকৃতি (ASR) + অনুবাদ + বাক সংশ্লেষণ (TTS)",
+      "noKeyRequired": "API কী প্রয়োজন নেই"
     }
   },
   "audioPanel": {
@@ -737,7 +737,8 @@
     "confirmYes": "হ্যাঁ",
     "confirmNo": "না",
     "recommended": "প্রস্তাবিত",
-    "recommendedGroup": "প্রস্তাবিত"
+    "recommendedGroup": "প্রস্তাবিত",
+    "online": "অনলাইন"
   },
   "update": {
     "available": "নতুন সংস্করণ v{{version}} উপলব্ধ",

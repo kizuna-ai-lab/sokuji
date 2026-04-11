@@ -37,6 +37,7 @@ import { useAnalytics } from '../../../lib/analytics';
 import { useModelStore } from '../../../stores/modelStore';
 import { useAudioContext } from '../../../stores/audioStore';
 import {
+  getManifestEntry,
   getTranslationModel,
   getTtsModelsForLanguage,
 } from '../../../lib/local-inference/modelManifest';
@@ -414,13 +415,14 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
               })()}
               {(() => {
                 const id = localInferenceSettings.ttsModel
-                  || getTtsModelsForLanguage(localInferenceSettings.targetLanguage).find(m => modelStatuses[m.id] === 'downloaded')?.id;
-                const ttsReady = id && modelStatuses[id] === 'downloaded';
+                  || getTtsModelsForLanguage(localInferenceSettings.targetLanguage).find(m => m.isCloudModel || modelStatuses[m.id] === 'downloaded')?.id;
+                const ttsEntry = id ? getManifestEntry(id) : undefined;
+                const ttsReady = id && (ttsEntry?.isCloudModel || modelStatuses[id] === 'downloaded');
                 return (
                   <button type="button" className="model-chip" onClick={() => { setUIMode('advanced'); setTimeout(() => navigateToSettings('model-tts'), 100); }}>
                     <span className="model-chip-label">{t('providers.local_inference.modelTts', 'TTS')}</span>
                     <span className={`model-chip-value ${ttsReady ? 'model-ok' : 'model-warn'}`}>
-                      {ttsReady ? id : t('common.none', 'None')}
+                      {ttsReady ? (ttsEntry?.name || id) : t('common.none', 'None')}
                     </span>
                   </button>
                 );

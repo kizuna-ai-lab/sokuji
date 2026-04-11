@@ -344,9 +344,9 @@
       "description": "Penyedia tidak diketahui"
     },
     "local_inference": {
-      "name": "AI Tempatan (Luar Talian)",
-      "description": "Pengecaman pertuturan (ASR) + Terjemahan + Sintesis pertuturan (TTS) Luar Talian",
-      "noKeyRequired": "Kunci API tidak diperlukan — berjalan sepenuhnya pada peranti anda"
+      "name": "Percuma",
+      "description": "Pengecaman pertuturan percuma (ASR) + Terjemahan + Sintesis pertuturan (TTS)",
+      "noKeyRequired": "Kunci API tidak diperlukan"
     }
   },
   "simplePanel": {
@@ -728,7 +728,8 @@
     "confirmYes": "Ya",
     "confirmNo": "Tidak",
     "recommended": "Disyorkan",
-    "recommendedGroup": "Disyorkan"
+    "recommendedGroup": "Disyorkan",
+    "online": "Dalam talian"
   },
   "update": {
     "available": "Versi baharu v{{version}} tersedia",

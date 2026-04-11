@@ -510,9 +510,9 @@
       "description": "Bilinmeyen sağlayıcı"
     },
     "local_inference": {
-      "name": "Yerel Yapay Zeka (Çevrimdışı)",
-      "description": "Çevrimdışı konuşma tanıma (ASR) + Çeviri + konuşma sentezi (TTS)",
-      "noKeyRequired": "API anahtarı gerekmez — tamamen cihazınızda çalışır"
+      "name": "Ücretsiz",
+      "description": "Ücretsiz konuşma tanıma (ASR) + Çeviri + konuşma sentezi (TTS)",
+      "noKeyRequired": "API anahtarı gerekmez"
     }
   },
   "simplePanel": {
@@ -687,7 +687,8 @@
     "confirmYes": "Evet",
     "confirmNo": "Hayır",
     "recommended": "Önerilen",
-    "recommendedGroup": "Önerilen"
+    "recommendedGroup": "Önerilen",
+    "online": "Çevrimiçi"
   },
   "update": {
     "available": "Yeni sürüm v{{version}} mevcut",

@@ -1,4 +1,4 @@
-import React, { Fragment, useEffect } from 'react';
+import React, { Fragment, useEffect, useMemo, useState } from 'react';
 import { ProviderConfig } from '../../../services/providers/ProviderConfig';
 import { VolcengineSTProviderConfig } from '../../../services/providers/VolcengineSTProviderConfig';
 import { VolcengineAST2ProviderConfig } from '../../../services/providers/VolcengineAST2ProviderConfig';
@@ -39,9 +39,12 @@ import { FilteredModel } from '../../../services/interfaces/IClient';
 import { Provider, isOpenAICompatible } from '../../../types/Provider';
 import { getManifestByType, getManifestEntry, isTranslationModelCompatible, isAstCompatible, pickBestModel } from '../../../lib/local-inference/modelManifest';
 import { useModelStatuses } from '../../../stores/modelStore';
+import useLogStore from '../../../stores/logStore';
 import { ModelManagementSection } from './ModelManagementSection';
 import { useAnalytics } from '../../../lib/analytics';
 import { useAuth } from '../../../lib/auth/hooks';
+import { getEdgeTtsVoices, filterVoicesByLanguage, getVoiceDisplayName } from '../../../lib/edge-tts/voiceList';
+import type { Voice } from '../../../lib/edge-tts/edgeTts';
 
 interface ProviderSpecificSettingsProps {
   config: ProviderConfig;
@@ -119,9 +122,9 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
     // Auto-select TTS model
     const allTts = getManifestByType('tts');
     const currentTtsEntry = allTts.find(m => m.id === localInferenceSettings.ttsModel);
-    if (!currentTtsEntry || !currentTtsEntry.languages.includes(targetLang)) {
+    if (!currentTtsEntry || (!currentTtsEntry.multilingual && !currentTtsEntry.languages.includes(targetLang))) {
       const firstMatch = pickBestModel(allTts.filter(m =>
-        m.languages.includes(targetLang) && modelStatuses[m.id] === 'downloaded'
+        (m.multilingual || m.languages.includes(targetLang)) && (m.isCloudModel || modelStatuses[m.id] === 'downloaded')
       ));
       updates.ttsModel = firstMatch?.id || '';
       updates.ttsSpeakerId = 0;
@@ -153,6 +156,52 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
       updateLocalInferenceSettings(updates);
     }
   }, [provider, localInferenceSettings.sourceLanguage, localInferenceSettings.targetLanguage, modelStatuses]);
+
+  // Edge TTS voice picker state
+  const [edgeTtsVoices, setEdgeTtsVoices] = useState<Voice[]>([]);
+  const [edgeTtsVoiceStatus, setEdgeTtsVoiceStatus] = useState<'idle' | 'loading' | 'loaded' | 'error'>('idle');
+  const [edgeTtsVoiceError, setEdgeTtsVoiceError] = useState<string | null>(null);
+  const isEdgeTtsSelected = localInferenceSettings.ttsModel === 'edge-tts';
+
+  useEffect(() => {
+    if (!isEdgeTtsSelected) return;
+    let cancelled = false;
+    setEdgeTtsVoiceStatus('loading');
+    setEdgeTtsVoiceError(null);
+    getEdgeTtsVoices()
+      .then(voices => {
+        if (cancelled) return;
+        setEdgeTtsVoices(voices);
+        setEdgeTtsVoiceStatus('loaded');
+      })
+      .catch(err => {
+        if (cancelled) return;
+        const message = err instanceof Error ? err.message : String(err);
+        console.warn('[EdgeTTS] Failed to fetch voice list:', err);
+        useLogStore.getState().addLog(
+          `Failed to fetch Edge TTS voice list: ${message}`,
+          'error',
+        );
+        setEdgeTtsVoiceError(message);
+        setEdgeTtsVoiceStatus('error');
+      });
+    return () => { cancelled = true; };
+  }, [isEdgeTtsSelected]);
+
+  const filteredVoices = useMemo(
+    () => filterVoicesByLanguage(edgeTtsVoices, localInferenceSettings.targetLanguage),
+    [edgeTtsVoices, localInferenceSettings.targetLanguage],
+  );
+
+  // Auto-select first voice when target language changes or no voice selected
+  useEffect(() => {
+    if (!isEdgeTtsSelected || filteredVoices.length === 0) return;
+    const currentVoice = localInferenceSettings.edgeTtsVoice;
+    const isCurrentValid = filteredVoices.some(v => v.ShortName === currentVoice);
+    if (!isCurrentValid) {
+      updateLocalInferenceSettings({ edgeTtsVoice: filteredVoices[0].ShortName });
+    }
+  }, [isEdgeTtsSelected, filteredVoices, localInferenceSettings.edgeTtsVoice, updateLocalInferenceSettings]);
 
   // Get current provider's settings
   const currentProviderSettings = getCurrentProviderSettings();
@@ -1357,6 +1406,42 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
           </div>
           {(() => {
             const ttsEntry = getManifestEntry(localInferenceSettings.ttsModel);
+            if (ttsEntry?.engine === 'edge-tts') {
+              // Voice picker for Edge TTS. Distinguish loading / error /
+              // no-voices-for-language from the happy path so users get
+              // actionable feedback instead of a perpetual "Loading..." label.
+              let placeholder: string | null = null;
+              if (edgeTtsVoiceStatus === 'loading' || edgeTtsVoiceStatus === 'idle') {
+                placeholder = t('settings.loadingVoices', 'Loading voices...');
+              } else if (edgeTtsVoiceStatus === 'error') {
+                placeholder = t('settings.edgeTtsVoiceLoadError', 'Failed to load voices — check LogsPanel');
+              } else if (filteredVoices.length === 0) {
+                placeholder = t('settings.edgeTtsNoVoicesForLanguage', 'No voices available for this language');
+              }
+
+              return (
+                <div className="setting-item">
+                  <div className="setting-label">
+                    <span>{t('settings.edgeTtsVoice', 'Voice')}</span>
+                  </div>
+                  <select
+                    value={localInferenceSettings.edgeTtsVoice}
+                    onChange={(e) => updateLocalInferenceSettings({ edgeTtsVoice: e.target.value })}
+                    disabled={isSessionActive || filteredVoices.length === 0}
+                    className="select-dropdown"
+                    title={edgeTtsVoiceError ?? undefined}
+                  >
+                    {placeholder && <option value="">{placeholder}</option>}
+                    {filteredVoices.map(voice => (
+                      <option key={voice.ShortName} value={voice.ShortName}>
+                        {getVoiceDisplayName(voice)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              );
+            }
+            // Speaker ID slider for local models
             const numSpeakers = ttsEntry?.numSpeakers ?? 1;
             return numSpeakers > 1 ? (
           <div className="setting-item">

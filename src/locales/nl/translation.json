@@ -552,9 +552,9 @@
       "description": "Onbekende provider"
     },
     "local_inference": {
-      "name": "Lokale AI (offline)",
-      "description": "Offline spraakherkenning (ASR) + Vertaling + spraaksynthese (TTS)",
-      "noKeyRequired": "Geen API-sleutel vereist — draait volledig op uw apparaat"
+      "name": "Gratis",
+      "description": "Gratis spraakherkenning (ASR) + Vertaling + spraaksynthese (TTS)",
+      "noKeyRequired": "Geen API-sleutel vereist"
     }
   },
   "simplePanel": {
@@ -729,7 +729,8 @@
     "confirmYes": "Ja",
     "confirmNo": "Nee",
     "recommended": "Aanbevolen",
-    "recommendedGroup": "Aanbevolen"
+    "recommendedGroup": "Aanbevolen",
+    "online": "Online"
   },
   "update": {
     "available": "Nieuwe versie v{{version}} beschikbaar",
