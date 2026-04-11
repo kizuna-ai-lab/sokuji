@@ -336,14 +336,23 @@ export class TtsEngine {
 
       this.edgeTtsConnection.generate(
         { text: sanitizedText, voice, speed },
-        // onMp3Chunk — forward to worker for decoding
+        // onMp3Chunk — forward to worker for decoding.
+        //
+        // The worker wraps the transferred ArrayBuffer with `new Uint8Array(buf)`,
+        // which covers the WHOLE buffer. If mp3Data is a view whose underlying
+        // buffer is larger than the view (possible with IPC buffer pools), the
+        // worker would decode extra garbage bytes and produce corrupted audio.
+        // Guard against this by copying to a tight buffer whenever the sizes
+        // disagree.
         (mp3Data: Uint8Array) => {
-          if (this.worker) {
-            this.worker.postMessage(
-              { type: 'decode-chunk', mp3Data: mp3Data.buffer },
-              [mp3Data.buffer],
-            );
-          }
+          if (!this.worker) return;
+          const tight = (mp3Data.byteOffset === 0 && mp3Data.byteLength === mp3Data.buffer.byteLength)
+            ? mp3Data
+            : new Uint8Array(mp3Data); // copies only mp3Data's bytes into a new exact-sized buffer
+          this.worker.postMessage(
+            { type: 'decode-chunk', mp3Data: tight.buffer },
+            [tight.buffer],
+          );
         },
         // onDone — tell worker decoding is complete
         () => {

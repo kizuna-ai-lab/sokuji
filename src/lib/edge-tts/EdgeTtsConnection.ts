@@ -128,11 +128,17 @@ export class EdgeTtsConnection {
     // currently active generation and drop stale events from earlier requests.
     window.electron.receive('edge-tts-audio-chunk', (data: EdgeTtsAudioChunkPayload) => {
       if (data.requestId !== this.currentRequestId) return;
-      // Electron serialises Buffer to Uint8Array over IPC. Normalise either
-      // form defensively in case the payload surfaces as an ArrayBuffer.
-      const mp3 = data.mp3Data instanceof Uint8Array
-        ? data.mp3Data
-        : new Uint8Array(data.mp3Data);
+      // Always copy into a fresh Uint8Array with an exactly-sized backing
+      // buffer. Electron IPC may deliver a Uint8Array view whose underlying
+      // ArrayBuffer is larger than the view (e.g. from an internal buffer
+      // pool). Downstream code transfers `.buffer` to the worker, which would
+      // include the extra bytes and corrupt MP3 decoding. Constructing a new
+      // Uint8Array from a typed-array source copies the bytes into a
+      // standalone buffer, guaranteeing mp3.buffer.byteLength === mp3.byteLength.
+      const src = data.mp3Data instanceof ArrayBuffer
+        ? new Uint8Array(data.mp3Data)
+        : data.mp3Data;
+      const mp3 = new Uint8Array(src);
       this.onMp3Chunk?.(mp3);
     });
 
