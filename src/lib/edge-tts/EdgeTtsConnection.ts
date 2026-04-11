@@ -5,6 +5,13 @@
  * - Extension: uses declarativeNetRequest to inject headers, then connects directly
  *
  * Streams parsed MP3 audio chunks back to the caller via callbacks.
+ *
+ * IMPORTANT: Electron IPC listeners are registered ONCE (lazily) and never
+ * removed during the instance's lifetime. Electron's contextBridge creates a
+ * new function proxy every time a function crosses the boundary, so WeakMap-
+ * based listener tracking in the preload is broken — removeListener never
+ * matches and old listeners accumulate. We work around this by keeping a
+ * single set of listeners that routes to the current callback references.
  */
 
 import { isElectron, isExtension } from '../../utils/environment';
@@ -15,7 +22,6 @@ import {
   buildSsmlMessage,
   parseTextHeaders,
   parseBinaryAudioFrame,
-  makeCookie,
   makeConnectionId,
   DEFAULT_VOICE,
 } from './edgeTts';
@@ -35,12 +41,10 @@ export class EdgeTtsConnection {
   private onDone: DoneCallback | null = null;
   private onError: ErrorCallback | null = null;
 
-  // Electron IPC handlers
-  private ipcChunkHandler: ((data: { mp3Data: Buffer }) => void) | null = null;
-  private ipcDoneHandler: (() => void) | null = null;
-  private ipcErrorHandler: ((data: { error: string }) => void) | null = null;
+  // Electron: IPC listeners are registered once, lazily
+  private electronListenersRegistered = false;
 
-  // Extension WebSocket
+  // Extension: WebSocket per call
   private ws: WebSocket | null = null;
   private dnrSet = false;
 
@@ -68,16 +72,14 @@ export class EdgeTtsConnection {
   }
 
   /**
-   * Cancel any in-progress generation.
+   * Cancel any in-progress generation and clean up.
+   * Note: Electron IPC listeners are NOT removed (see class comment).
    */
   dispose(): void {
-    // Electron: cancel IPC
     if (isElectron() && window.electron) {
-      this.removeElectronListeners();
       window.electron.invoke('edge-tts-cancel').catch(() => {});
     }
 
-    // Extension: close WebSocket + clear DNR
     if (this.ws) {
       try { this.ws.close(); } catch { /* ignore */ }
       this.ws = null;
@@ -93,71 +95,75 @@ export class EdgeTtsConnection {
 
   // ── Electron path ────────────────────────────────────────────────────
 
+  private ensureElectronListeners(): void {
+    if (this.electronListenersRegistered) return;
+
+    // These handlers are created once and persist. They route incoming IPC
+    // events to the current callback references stored on `this`, which are
+    // updated on every generate() call. This avoids contextBridge proxy
+    // identity issues with removeListener.
+    window.electron.receive('edge-tts-audio-chunk', (data: { mp3Data: Buffer }) => {
+      const mp3 = new Uint8Array(data.mp3Data);
+      this.onMp3Chunk?.(mp3);
+    });
+
+    window.electron.receive('edge-tts-done', () => {
+      this.onDone?.();
+    });
+
+    window.electron.receive('edge-tts-error', (data: { error: string }) => {
+      this.onError?.(data.error);
+    });
+
+    this.electronListenersRegistered = true;
+  }
+
   private async generateElectron(options: EdgeTtsGenerateOptions): Promise<void> {
     const { text, voice, speed } = options;
 
-    return new Promise<void>((resolve, reject) => {
-      let chunkCount = 0;
-      // Register IPC listeners for streamed data from main process
-      this.ipcChunkHandler = (data: { mp3Data: Buffer }) => {
-        chunkCount++;
-        // Main process sends mp3Data as Buffer, convert to Uint8Array
-        const mp3 = new Uint8Array(data.mp3Data);
-        console.log(`[EdgeTTS] IPC chunk #${chunkCount}, mp3 size:`, mp3.length);
-        this.onMp3Chunk?.(mp3);
-      };
+    // Install IPC listeners on first call (idempotent)
+    this.ensureElectronListeners();
 
-      this.ipcDoneHandler = () => {
-        this.removeElectronListeners();
-        this.onDone?.();
+    return new Promise<void>((resolve, reject) => {
+      // Wrap the caller's callbacks so we can resolve/reject this promise
+      // exactly once, whichever event arrives first.
+      let settled = false;
+      const originalOnDone = this.onDone;
+      const originalOnError = this.onError;
+
+      this.onDone = () => {
+        if (settled) return;
+        settled = true;
+        this.onDone = originalOnDone;
+        this.onError = originalOnError;
+        originalOnDone?.();
         resolve();
       };
 
-      this.ipcErrorHandler = (data: { error: string }) => {
-        this.removeElectronListeners();
-        this.onError?.(data.error);
-        reject(new Error(data.error));
+      this.onError = (error: string) => {
+        if (settled) return;
+        settled = true;
+        this.onDone = originalOnDone;
+        this.onError = originalOnError;
+        originalOnError?.(error);
+        reject(new Error(error));
       };
 
-      console.log('[EdgeTTS] Registering IPC listeners');
-      window.electron.receive('edge-tts-audio-chunk', this.ipcChunkHandler);
-      window.electron.receive('edge-tts-done', this.ipcDoneHandler);
-      window.electron.receive('edge-tts-error', this.ipcErrorHandler);
-      console.log('[EdgeTTS] IPC listeners registered, listenerCount:', (window.electron as any).listenerCount?.('edge-tts-audio-chunk') ?? 'N/A');
-
-      // Invoke main process to start TTS
+      // Ask main process to start streaming
       window.electron.invoke('edge-tts-generate', { text, voice, speed }).then(
         (result: { success: boolean; error?: string }) => {
-          if (!result.success) {
-            this.removeElectronListeners();
+          if (!result.success && !settled) {
             const err = result.error || 'Edge TTS generation failed';
             this.onError?.(err);
-            reject(new Error(err));
           }
-          // If success, audio-done IPC will resolve the promise
+          // On success, resolution is driven by the 'edge-tts-done' IPC event
         },
       ).catch((err: Error) => {
-        this.removeElectronListeners();
-        this.onError?.(err.message);
-        reject(err);
+        if (!settled) {
+          this.onError?.(err.message);
+        }
       });
     });
-  }
-
-  private removeElectronListeners(): void {
-    console.log('[EdgeTTS] removeElectronListeners called, hasChunkHandler:', !!this.ipcChunkHandler);
-    if (this.ipcChunkHandler) {
-      window.electron?.removeListener('edge-tts-audio-chunk', this.ipcChunkHandler);
-      this.ipcChunkHandler = null;
-    }
-    if (this.ipcDoneHandler) {
-      window.electron?.removeListener('edge-tts-done', this.ipcDoneHandler);
-      this.ipcDoneHandler = null;
-    }
-    if (this.ipcErrorHandler) {
-      window.electron?.removeListener('edge-tts-error', this.ipcErrorHandler);
-      this.ipcErrorHandler = null;
-    }
   }
 
   // ── Extension path ───────────────────────────────────────────────────

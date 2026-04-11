@@ -154,8 +154,6 @@ export class TtsEngine {
           case 'audio-chunk':
             if (this.pendingStream) {
               this.pendingStream.onChunk(msg.samples, msg.sampleRate);
-            } else {
-              console.warn('[TtsEngine] audio-chunk received but no pendingStream!');
             }
             break;
 
