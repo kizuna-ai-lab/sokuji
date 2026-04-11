@@ -489,7 +489,16 @@ export class LocalInferenceClient implements IClient {
 
         const sentences = splitSentences(displayText, this.config.targetLanguage);
         const ttsStartTime = performance.now();
-        this.emitEvent('local.tts.start', 'client', { text: displayText, sentenceCount: sentences.length, modelId: this.config?.ttsModelId });
+        this.emitEvent('local.tts.start', 'client', {
+          text: displayText,
+          sentenceCount: sentences.length,
+          modelId: this.config?.ttsModelId,
+          // Include voice identity (edge-tts voice name, or speaker ID for
+          // local multi-speaker models) and speed so the LogsPanel reflects
+          // exactly which configuration produced the audio.
+          voice: isEdgeTts ? this.config.edgeTtsVoice : `speaker:${this.config.ttsSpeakerId}`,
+          speed: this.config.ttsSpeed,
+        });
         console.debug(`[Karaoke] TTS start: fullText="${displayText}" (${displayText.length} chars), ${sentences.length} sentences:`, sentences.map((s, i) => `[${i}] "${s}" (${s.length} chars)`));
 
         let searchFrom = 0;
