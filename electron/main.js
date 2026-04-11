@@ -908,7 +908,12 @@ function edgeTtsParseBinaryFrame(data) {
 
 let edgeTtsWs = null;
 
-ipcMain.handle('edge-tts-generate', async (event, { text, voice, speed }) => {
+ipcMain.handle('edge-tts-generate', async (event, payload) => {
+  const { requestId, text, voice, speed } = payload || {};
+  if (typeof requestId !== 'number') {
+    return { success: false, error: 'Missing requestId' };
+  }
+
   if (edgeTtsWs) {
     try { edgeTtsWs.close(); } catch (e) { /* ignore */ }
     edgeTtsWs = null;
@@ -920,16 +925,16 @@ ipcMain.handle('edge-tts-generate', async (event, { text, voice, speed }) => {
   try {
     const secMsGec = await edgeTtsMakeSecMsGec();
     const connectionId = edgeTtsMakeConnectionId();
-    const requestId = edgeTtsMakeConnectionId();
+    const ssmlRequestId = edgeTtsMakeConnectionId();
 
     const wsUrl = `wss://speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v1?TrustedClientToken=${EDGE_TTS_TOKEN}&Sec-MS-GEC=${secMsGec}&Sec-MS-GEC-Version=${encodeURIComponent(EDGE_TTS_GEC_VERSION)}&ConnectionId=${connectionId}`;
 
-    console.log('[Sokuji] [Main] Edge TTS: connecting for voice:', voiceName);
+    console.log('[Sokuji] [Main] Edge TTS: connecting for voice:', voiceName, 'requestId:', requestId);
 
     const rateStr = speedPercent >= 0 ? `+${speedPercent}%` : `${speedPercent}%`;
     const ssml = `<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xml:lang='en-US'><voice name='${edgeTtsNormalizeVoiceName(voiceName)}'><prosody pitch='+0Hz' rate='${rateStr}' volume='+0%'>${edgeTtsEscapeXml(edgeTtsRemoveInvalidXmlChars(text))}</prosody></voice></speak>`;
     const speechConfig = `X-Timestamp:${edgeTtsTimestamp()}\r\nContent-Type:application/json; charset=utf-8\r\nPath:speech.config\r\n\r\n{"context":{"synthesis":{"audio":{"metadataoptions":{"sentenceBoundaryEnabled":"false","wordBoundaryEnabled":"true"},"outputFormat":"audio-24khz-48kbitrate-mono-mp3"}}}}\r\n`;
-    const ssmlMessage = `X-RequestId:${requestId}\r\nContent-Type:application/ssml+xml\r\nX-Timestamp:${edgeTtsTimestamp()}Z\r\nPath:ssml\r\n\r\n${ssml}`;
+    const ssmlMessage = `X-RequestId:${ssmlRequestId}\r\nContent-Type:application/ssml+xml\r\nX-Timestamp:${edgeTtsTimestamp()}Z\r\nPath:ssml\r\n\r\n${ssml}`;
 
     return new Promise((resolve) => {
       const ws = new WebSocket(wsUrl, {
@@ -969,7 +974,7 @@ ipcMain.handle('edge-tts-generate', async (event, { text, voice, speed }) => {
           const buf = Buffer.isBuffer(data) ? data : Buffer.from(data);
           const { headers, body } = edgeTtsParseBinaryFrame(buf);
           if (headers.Path === 'audio' && body.length > 0) {
-            mainWindow.webContents.send('edge-tts-audio-chunk', { mp3Data: body });
+            mainWindow.webContents.send('edge-tts-audio-chunk', { requestId, mp3Data: body });
           }
         } catch (err) {
           console.warn('[Sokuji] [Main] Edge TTS: frame parse error:', err.message);
@@ -979,7 +984,7 @@ ipcMain.handle('edge-tts-generate', async (event, { text, voice, speed }) => {
       ws.on('close', () => {
         edgeTtsWs = null;
         if (mainWindow && !mainWindow.isDestroyed()) {
-          mainWindow.webContents.send('edge-tts-done');
+          mainWindow.webContents.send('edge-tts-done', { requestId });
         }
         resolve({ success: true });
       });
@@ -988,7 +993,7 @@ ipcMain.handle('edge-tts-generate', async (event, { text, voice, speed }) => {
         console.error('[Sokuji] [Main] Edge TTS: error:', err.message);
         edgeTtsWs = null;
         if (mainWindow && !mainWindow.isDestroyed()) {
-          mainWindow.webContents.send('edge-tts-error', { error: err.message });
+          mainWindow.webContents.send('edge-tts-error', { requestId, error: err.message });
         }
         resolve({ success: false, error: err.message });
       });

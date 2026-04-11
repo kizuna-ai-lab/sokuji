@@ -12,6 +12,12 @@
  * based listener tracking in the preload is broken — removeListener never
  * matches and old listeners accumulate. We work around this by keeping a
  * single set of listeners that routes to the current callback references.
+ *
+ * Correlating events across overlapping requests: each generate() call gets
+ * a monotonically increasing requestId. Incoming IPC events carry the
+ * requestId they were produced for, and stale events (id !== currentRequestId)
+ * are ignored. This prevents a late edge-tts-done from a prior request from
+ * resolving the next generate() call.
  */
 
 import { isElectron, isExtension } from '../../utils/environment';
@@ -36,10 +42,27 @@ type Mp3ChunkCallback = (mp3Data: Uint8Array) => void;
 type DoneCallback = () => void;
 type ErrorCallback = (error: string) => void;
 
+/** IPC payload shapes (main → renderer). `mp3Data` is Uint8Array after Electron
+ *  serialisation (renderers don't have Node's `Buffer`). */
+interface EdgeTtsAudioChunkPayload {
+  requestId: number;
+  mp3Data: Uint8Array | ArrayBuffer;
+}
+interface EdgeTtsTerminalPayload {
+  requestId: number;
+}
+interface EdgeTtsErrorPayload {
+  requestId: number;
+  error: string;
+}
+
 export class EdgeTtsConnection {
   private onMp3Chunk: Mp3ChunkCallback | null = null;
   private onDone: DoneCallback | null = null;
   private onError: ErrorCallback | null = null;
+
+  // Per-call request id used to filter out stale IPC events from earlier generations
+  private currentRequestId = 0;
 
   // Electron: IPC listeners are registered once, lazily
   private electronListenersRegistered = false;
@@ -76,6 +99,9 @@ export class EdgeTtsConnection {
    * Note: Electron IPC listeners are NOT removed (see class comment).
    */
   dispose(): void {
+    // Bump request id so any in-flight late IPC events are ignored
+    this.currentRequestId++;
+
     if (isElectron() && window.electron) {
       window.electron.invoke('edge-tts-cancel').catch(() => {});
     }
@@ -98,20 +124,25 @@ export class EdgeTtsConnection {
   private ensureElectronListeners(): void {
     if (this.electronListenersRegistered) return;
 
-    // These handlers are created once and persist. They route incoming IPC
-    // events to the current callback references stored on `this`, which are
-    // updated on every generate() call. This avoids contextBridge proxy
-    // identity issues with removeListener.
-    window.electron.receive('edge-tts-audio-chunk', (data: { mp3Data: Buffer }) => {
-      const mp3 = new Uint8Array(data.mp3Data);
+    // Handlers are created once and persist. They check requestId against the
+    // currently active generation and drop stale events from earlier requests.
+    window.electron.receive('edge-tts-audio-chunk', (data: EdgeTtsAudioChunkPayload) => {
+      if (data.requestId !== this.currentRequestId) return;
+      // Electron serialises Buffer to Uint8Array over IPC. Normalise either
+      // form defensively in case the payload surfaces as an ArrayBuffer.
+      const mp3 = data.mp3Data instanceof Uint8Array
+        ? data.mp3Data
+        : new Uint8Array(data.mp3Data);
       this.onMp3Chunk?.(mp3);
     });
 
-    window.electron.receive('edge-tts-done', () => {
+    window.electron.receive('edge-tts-done', (data: EdgeTtsTerminalPayload) => {
+      if (data.requestId !== this.currentRequestId) return;
       this.onDone?.();
     });
 
-    window.electron.receive('edge-tts-error', (data: { error: string }) => {
+    window.electron.receive('edge-tts-error', (data: EdgeTtsErrorPayload) => {
+      if (data.requestId !== this.currentRequestId) return;
       this.onError?.(data.error);
     });
 
@@ -124,6 +155,10 @@ export class EdgeTtsConnection {
     // Install IPC listeners on first call (idempotent)
     this.ensureElectronListeners();
 
+    // Allocate a fresh request id for this call. Incoming IPC events will be
+    // filtered against `this.currentRequestId` in ensureElectronListeners.
+    const requestId = ++this.currentRequestId;
+
     return new Promise<void>((resolve, reject) => {
       // Wrap the caller's callbacks so we can resolve/reject this promise
       // exactly once, whichever event arrives first.
@@ -131,11 +166,15 @@ export class EdgeTtsConnection {
       const originalOnDone = this.onDone;
       const originalOnError = this.onError;
 
+      const finish = () => {
+        this.onDone = originalOnDone;
+        this.onError = originalOnError;
+      };
+
       this.onDone = () => {
         if (settled) return;
         settled = true;
-        this.onDone = originalOnDone;
-        this.onError = originalOnError;
+        finish();
         originalOnDone?.();
         resolve();
       };
@@ -143,14 +182,14 @@ export class EdgeTtsConnection {
       this.onError = (error: string) => {
         if (settled) return;
         settled = true;
-        this.onDone = originalOnDone;
-        this.onError = originalOnError;
+        finish();
         originalOnError?.(error);
         reject(new Error(error));
       };
 
-      // Ask main process to start streaming
-      window.electron.invoke('edge-tts-generate', { text, voice, speed }).then(
+      // Ask main process to start streaming. The requestId is echoed back
+      // on every IPC event so we can discard events from earlier requests.
+      window.electron.invoke('edge-tts-generate', { requestId, text, voice, speed }).then(
         (result: { success: boolean; error?: string }) => {
           if (!result.success && !settled) {
             const err = result.error || 'Edge TTS generation failed';
@@ -173,28 +212,62 @@ export class EdgeTtsConnection {
     const voiceName = voice || DEFAULT_VOICE;
     const speedPercent = Math.round(((speed || 1.0) - 1.0) * 100);
 
-    // Set DNR headers before connecting
-    if (isExtension()) {
+    // Bump request id so late events from a prior call are ignored
+    const myRequestId = ++this.currentRequestId;
+
+    // Set DNR headers before connecting. If any step after this throws before
+    // WebSocket close/error fires, we must clear DNR rules manually so the
+    // injected header isn't left active indefinitely.
+    const shouldManageDnr = isExtension();
+    if (shouldManageDnr) {
       await this.setExtensionDNR();
     }
 
-    const secMsGec = await makeSecMsGec();
-    const connectionId = makeConnectionId();
-    const requestId = makeConnectionId();
-    const wsUrl = buildSynthesisUrl(secMsGec, connectionId);
+    let wsUrl: string;
+    let requestIdHex: string;
+    try {
+      const secMsGec = await makeSecMsGec();
+      const connectionId = makeConnectionId();
+      requestIdHex = makeConnectionId();
+      wsUrl = buildSynthesisUrl(secMsGec, connectionId);
+    } catch (err) {
+      if (shouldManageDnr && this.dnrSet) {
+        this.clearExtensionDNR();
+      }
+      throw err;
+    }
 
     return new Promise<void>((resolve, reject) => {
-      const ws = new WebSocket(wsUrl);
+      let settled = false;
+      const settle = (fn: () => void) => {
+        if (settled) return;
+        settled = true;
+        fn();
+      };
+
+      let ws: WebSocket;
+      try {
+        ws = new WebSocket(wsUrl);
+      } catch (err) {
+        if (shouldManageDnr && this.dnrSet) {
+          this.clearExtensionDNR();
+        }
+        reject(err instanceof Error ? err : new Error(String(err)));
+        return;
+      }
       this.ws = ws;
       ws.binaryType = 'arraybuffer';
       let audioReceived = false;
 
       ws.onopen = () => {
         ws.send(buildSpeechConfigMessage());
-        ws.send(buildSsmlMessage(requestId, voiceName, text, speedPercent));
+        ws.send(buildSsmlMessage(requestIdHex, voiceName, text, speedPercent));
       };
 
       ws.onmessage = (event) => {
+        // Guard against stale events if the instance has moved on (e.g. dispose)
+        if (myRequestId !== this.currentRequestId) return;
+
         if (typeof event.data === 'string') {
           const headers = parseTextHeaders(event.data);
           if (headers.Path === 'turn.end') {
@@ -218,27 +291,40 @@ export class EdgeTtsConnection {
 
       ws.onclose = () => {
         this.ws = null;
-        if (this.dnrSet && isExtension()) {
+        if (shouldManageDnr && this.dnrSet) {
           this.clearExtensionDNR();
         }
-        if (!audioReceived) {
-          const err = 'No audio received from Edge TTS';
-          this.onError?.(err);
-          reject(new Error(err));
-          return;
-        }
-        this.onDone?.();
-        resolve();
+        settle(() => {
+          if (myRequestId !== this.currentRequestId) {
+            // A newer request superseded us — stay silent.
+            resolve();
+            return;
+          }
+          if (!audioReceived) {
+            const err = 'No audio received from Edge TTS';
+            this.onError?.(err);
+            reject(new Error(err));
+            return;
+          }
+          this.onDone?.();
+          resolve();
+        });
       };
 
       ws.onerror = () => {
         this.ws = null;
-        if (this.dnrSet && isExtension()) {
+        if (shouldManageDnr && this.dnrSet) {
           this.clearExtensionDNR();
         }
-        const err = 'WebSocket connection to Edge TTS failed';
-        this.onError?.(err);
-        reject(new Error(err));
+        settle(() => {
+          if (myRequestId !== this.currentRequestId) {
+            resolve();
+            return;
+          }
+          const err = 'WebSocket connection to Edge TTS failed';
+          this.onError?.(err);
+          reject(new Error(err));
+        });
       };
     });
   }

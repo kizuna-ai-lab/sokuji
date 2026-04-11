@@ -302,16 +302,23 @@ export class TtsEngine {
 
     const startTime = performance.now();
 
-    // Wait for worker decoder to be ready (reset is async)
-    await new Promise<void>((resolve) => {
+    // Wait for worker decoder to be ready (reset is async).
+    // The handler rejects on 'error' to avoid hanging the pipeline if reset fails,
+    // and is always removed once it settles.
+    const worker = this.worker;
+    await new Promise<void>((resolve, reject) => {
       const handler = (event: MessageEvent<TtsWorkerOutMessage>) => {
-        if (event.data.type === 'decode-ready') {
-          this.worker!.removeEventListener('message', handler);
+        const data = event.data;
+        if (data.type === 'decode-ready') {
+          worker.removeEventListener('message', handler);
           resolve();
+        } else if (data.type === 'error') {
+          worker.removeEventListener('message', handler);
+          reject(new Error(data.error));
         }
       };
-      this.worker!.addEventListener('message', handler);
-      this.worker!.postMessage({ type: 'decode-start' });
+      worker.addEventListener('message', handler);
+      worker.postMessage({ type: 'decode-start' });
     });
 
     // Set up worker to receive decoded PCM chunks

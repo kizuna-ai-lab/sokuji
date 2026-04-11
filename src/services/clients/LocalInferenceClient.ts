@@ -507,7 +507,20 @@ export class LocalInferenceClient implements IClient {
             });
 
             if (isEdgeTts) {
-              // Streaming path — Edge TTS sends audio-chunk messages
+              // Streaming path — Edge TTS sends audio-chunk messages.
+              //
+              // The non-streaming path updates audioTextEnd/audioSegments *before*
+              // emitting the audio delta, so the renderer always has fresh karaoke
+              // metadata when the audio plays. For streaming we pre-compute
+              // audioTextEnd (we know which sentence we're about to speak) so
+              // chunks emitted mid-stream already reference up-to-date metadata.
+              // audioSegments can only be pushed after we know the total audio
+              // duration, so we push + emit a metadata update once the stream ends.
+              const pos = displayText.indexOf(sentences[i], searchFrom);
+              const audioTextEnd = pos >= 0 ? pos + sentences[i].length : searchFrom + sentences[i].length;
+              searchFrom = audioTextEnd;
+              assistantItem.formatted!.audioTextEnd = audioTextEnd;
+
               let chunkSampleCount = 0;
               const sentenceStart = performance.now();
               await this.ttsEngine.generateStream(
@@ -529,18 +542,16 @@ export class LocalInferenceClient implements IClient {
               );
               if (this.disposed) return;
 
-              // Track karaoke segments
-              const pos = displayText.indexOf(sentences[i], searchFrom);
-              const audioTextEnd = pos >= 0 ? pos + sentences[i].length : searchFrom + sentences[i].length;
-              searchFrom = audioTextEnd;
-              assistantItem.formatted!.audioTextEnd = audioTextEnd;
-
               const sentenceAudioDuration = chunkSampleCount / 24000;
               cumulativeAudioDuration += sentenceAudioDuration;
               assistantItem.formatted!.audioSegments!.push({
                 textEnd: audioTextEnd,
                 audioEnd: cumulativeAudioDuration,
               });
+
+              // Publish the finalized segment metadata so the renderer picks up
+              // timing info without waiting for the full response to complete.
+              this.handlers.onConversationUpdated?.({ item: assistantItem });
 
               const generateMs = Math.round(performance.now() - sentenceStart);
               this.emitEvent('local.tts.sentence.end', 'server', {

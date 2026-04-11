@@ -59,8 +59,15 @@ async function handleDecodeStart() {
     self.postMessage({ type: 'error', error: 'Worker not ready — call init first' });
     return;
   }
-  await decoder.reset();
-  self.postMessage({ type: 'decode-ready' });
+  try {
+    await decoder.reset();
+    self.postMessage({ type: 'decode-ready' });
+  } catch (err) {
+    self.postMessage({
+      type: 'error',
+      error: 'Decoder reset failed: ' + (err && err.message ? err.message : String(err)),
+    });
+  }
 }
 
 function handleDecodeChunk(msg) {
@@ -105,13 +112,24 @@ function handleDispose() {
 
 // ── Message dispatcher ────────────────────────────────────────────────────────
 
+function reportUnhandledError(label, err) {
+  self.postMessage({
+    type: 'error',
+    error: label + ': ' + (err && err.message ? err.message : String(err)),
+  });
+}
+
 self.onmessage = function(event) {
   var msg = event.data;
   if (!msg || !msg.type) return;
 
   switch (msg.type) {
-    case 'init': handleInit(); break;
-    case 'decode-start': handleDecodeStart(); break;
+    case 'init':
+      handleInit().catch(function(err) { reportUnhandledError('Init failed', err); });
+      break;
+    case 'decode-start':
+      handleDecodeStart().catch(function(err) { reportUnhandledError('Decode start failed', err); });
+      break;
     case 'decode-chunk': handleDecodeChunk(msg); break;
     case 'decode-end': handleDecodeEnd(msg); break;
     case 'dispose': handleDispose(); break;
