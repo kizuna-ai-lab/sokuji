@@ -282,11 +282,14 @@ const EDGE_TTS_CHROMIUM_VERSION = '143.0.3650.75';
 const EDGE_TTS_CHROMIUM_MAJOR = EDGE_TTS_CHROMIUM_VERSION.split('.')[0];
 
 async function edgeTtsSetDNRHeaders() {
-  const muid = Array.from(crypto.getRandomValues(new Uint8Array(16)))
-    .map(b => b.toString(16).padStart(2, '0'))
-    .join('')
-    .toUpperCase();
-
+  // Bing TTS WebSocket requires an Edge browser User-Agent to accept the
+  // connection (Chrome UA returns 403). Browser WebSocket API cannot set
+  // custom headers, so we inject it via declarativeNetRequest.
+  //
+  // IMPORTANT: For DNR to actually modify WebSocket upgrade headers, the
+  // host_permissions must include `wss://` explicitly — `*://` covers
+  // http/https but NOT ws/wss, and Chrome silently ignores DNR rules that
+  // target hosts outside the permission scope.
   const rules = [
     {
       id: EDGE_TTS_DNR_RULE_ID_BASE,
@@ -295,10 +298,6 @@ async function edgeTtsSetDNRHeaders() {
         type: 'modifyHeaders',
         requestHeaders: [
           { header: 'User-Agent', operation: 'set', value: `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${EDGE_TTS_CHROMIUM_MAJOR}.0.0.0 Safari/537.36 Edg/${EDGE_TTS_CHROMIUM_MAJOR}.0.0.0` },
-          { header: 'Origin', operation: 'set', value: 'https://www.bing.com' },
-          { header: 'Cookie', operation: 'set', value: `muid=${muid};` },
-          { header: 'Pragma', operation: 'set', value: 'no-cache' },
-          { header: 'Cache-Control', operation: 'set', value: 'no-cache' },
         ],
       },
       condition: {
