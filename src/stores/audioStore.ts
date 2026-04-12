@@ -251,6 +251,7 @@ const useAudioStore = create<AudioStore>()(
 
           // Select saved or first source if none selected
           const currentSource = get().selectedSystemAudioSource;
+          let restoredSource: AudioDevice | null = null;
           if (!currentSource && sources.length > 0) {
             const settingsService = ServiceFactory.getSettingsService();
             const savedSourceId = await settingsService.getSetting<string>(STORAGE_KEYS.SELECTED_SYSTEM_AUDIO_SOURCE_ID, '');
@@ -259,6 +260,7 @@ const useAudioStore = create<AudioStore>()(
               if (savedSource) {
                 console.info('[Sokuji] [AudioStore] Restored saved system audio source:', savedSource.label);
                 set({ selectedSystemAudioSource: savedSource });
+                restoredSource = savedSource;
               } else {
                 set({ selectedSystemAudioSource: sources[0] });
               }
@@ -267,11 +269,10 @@ const useAudioStore = create<AudioStore>()(
             }
           }
 
-          // Re-establish system audio connection if capture was enabled and a source is selected
-          // Use selectedSystemAudioSource (includes both restored and auto-selected sources)
-          const selectedSource = get().selectedSystemAudioSource;
-          if (get().isSystemAudioCaptureEnabled && selectedSource) {
+          // Re-establish system audio connection if capture was enabled and source was restored
+          if (get().isSystemAudioCaptureEnabled && restoredSource) {
             try {
+              // For loopback platforms (Windows/macOS), verify permission still available
               if (isElectron() && !isExtension() && isLoopbackPlatform()) {
                 const permissionGranted = await audioService.requestLoopbackAudioStream();
                 if (!permissionGranted) {
@@ -282,9 +283,9 @@ const useAudioStore = create<AudioStore>()(
                   return;
                 }
               }
-              await audioService.connectSystemAudioSource(selectedSource.deviceId);
+              await audioService.connectSystemAudioSource(restoredSource.deviceId);
               set({ isSystemAudioSourceReady: true });
-              console.info('[Sokuji] [AudioStore] Re-established system audio connection for:', selectedSource.label);
+              console.info('[Sokuji] [AudioStore] Re-established system audio connection for:', restoredSource.label);
             } catch (error) {
               console.error('[Sokuji] [AudioStore] Failed to re-establish system audio connection:', error);
               set({ isSystemAudioCaptureEnabled: false });
