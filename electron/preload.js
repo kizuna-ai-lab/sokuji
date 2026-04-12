@@ -126,6 +126,8 @@ contextBridge.exposeInMainWorld(
         // electron-audio-loopback channels (auto-registered by initMain())
         'enable-loopback-audio',
         'disable-loopback-audio',
+        // Linux: fix PipeWire monitor source volume after loopback capture starts
+        'fix-monitor-volume',
         // Volcengine AST 2.0 WebSocket proxy (renderer → main)
         'volcengine-ast2-connect',
         'volcengine-ast2-send',
