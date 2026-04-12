@@ -146,7 +146,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     selectMonitorDevice, // Import the selectMonitorDevice function from context
     // System audio capture
     selectedSystemAudioSource,
-    systemAudioLoopbackSourceId,
+    isSystemAudioSourceReady,
     isSystemAudioCaptureEnabled,
     participantAudioOutputDevice
   } = useAudioContext();
@@ -1097,7 +1097,6 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       // If output device is ON, ensure monitor device is connected immediately
       if (isMonitorDeviceOn && selectedMonitorDevice &&
         !selectedMonitorDevice.label.toLowerCase().includes('sokuji_virtual') &&
-        !selectedMonitorDevice.label.toLowerCase().includes('sokuji_system_audio') &&
         !selectedMonitorDevice.label.includes('Sokuji Virtual Output') &&
         !selectedMonitorDevice.label.toLowerCase().includes('sokujivirtualaudio')) {
         console.debug('[Sokuji] [MainPanel] Setting up monitor device to:', selectedMonitorDevice.label);
@@ -1250,7 +1249,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       // Both capture "other participant" audio and send to AI for translation
       const shouldCaptureParticipantAudio = isSystemAudioCaptureEnabled && audioServiceRef.current && (
         isExtension() || // Extension: use tab capture
-        (selectedSystemAudioSource && systemAudioLoopbackSourceId) // Electron: use system audio loopback
+        (selectedSystemAudioSource && isSystemAudioSourceReady) // Electron: use system audio loopback
       );
 
       if (shouldCaptureParticipantAudio) {
@@ -1391,7 +1390,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     // System audio capture
     isSystemAudioCaptureEnabled,
     selectedSystemAudioSource,
-    systemAudioLoopbackSourceId
+    isSystemAudioSourceReady
   ]);
 
   /**
@@ -1646,7 +1645,6 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       // If output device is ON, ensure monitor device is connected
       if (isMonitorDeviceOn && selectedMonitorDevice &&
         !selectedMonitorDevice.label.toLowerCase().includes('sokuji_virtual') &&
-        !selectedMonitorDevice.label.toLowerCase().includes('sokuji_system_audio') &&
         !selectedMonitorDevice.label.includes('Sokuji Virtual Output') &&
         !selectedMonitorDevice.label.toLowerCase().includes('sokujivirtualaudio')) {
         selectMonitorDevice(selectedMonitorDevice);
@@ -1832,7 +1830,6 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       // If output device is ON, ensure monitor device is connected immediately
       if (isMonitorDeviceOn && selectedMonitorDevice &&
         !selectedMonitorDevice.label.toLowerCase().includes('sokuji_virtual') &&
-        !selectedMonitorDevice.label.toLowerCase().includes('sokuji_system_audio') &&
         !selectedMonitorDevice.label.includes('Sokuji Virtual Output') &&
         !selectedMonitorDevice.label.toLowerCase().includes('sokujivirtualaudio')) {
         console.info('[Sokuji] [MainPanel] Test tone: Ensuring monitor device is connected:', selectedMonitorDevice.label);
@@ -2181,7 +2178,6 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       try {
         // Check if the selectedMonitorDevice is a virtual device (which shouldn't be used as monitor)
         const isVirtualDevice = selectedMonitorDevice?.label.toLowerCase().includes('sokuji_virtual') ||
-          selectedMonitorDevice?.label.toLowerCase().includes('sokuji_system_audio') ||
           selectedMonitorDevice?.label.includes('Sokuji Virtual Output') ||
           selectedMonitorDevice?.label.toLowerCase().includes('sokujivirtualaudio');
 

@@ -1,5 +1,6 @@
 import { ParticipantRecorder } from './ParticipantRecorder';
 import { ParticipantAudioOptions } from './IParticipantAudioRecorder';
+import { isLinux } from '../../utils/environment';
 
 /**
  * Cross-platform Loopback Recorder for capturing system audio on Windows and macOS
@@ -58,6 +59,23 @@ export class LoopbackRecorder extends ParticipantRecorder {
       // Step 3: Disable loopback audio AFTER getting the stream
       console.info(`${this.getLogPrefix()} Disabling loopback audio...`);
       await window.electron.invoke('disable-loopback-audio');
+
+      // Step 3.5: Linux - fix PipeWire monitor source volume
+      // PipeWire stores an independent monitorVolumes property per sink that can be very low.
+      // We wait for the loopback stream to settle, then force the monitor source to 100%.
+      if (isLinux()) {
+        await new Promise(r => setTimeout(r, 200));
+        try {
+          const result = await window.electron.invoke('fix-monitor-volume');
+          if (result?.ok) {
+            console.info(`${this.getLogPrefix()} Linux monitor volume fixed`);
+          } else {
+            console.warn(`${this.getLogPrefix()} Failed to fix Linux monitor volume:`, result?.error ?? 'unknown error');
+          }
+        } catch (e) {
+          console.warn(`${this.getLogPrefix()} Failed to fix Linux monitor volume:`, e);
+        }
+      }
 
       // Extract and stop the video track (we only need audio)
       const videoTracks = stream.getVideoTracks();

@@ -6,7 +6,6 @@
 export { ModernAudioRecorder } from './ModernAudioRecorder';
 export { ModernAudioPlayer } from './ModernAudioPlayer.js';
 export { ModernBrowserAudioService } from './ModernBrowserAudioService';
-export { LinuxLoopbackRecorder } from './LinuxLoopbackRecorder';
 export { LoopbackRecorder } from './LoopbackRecorder';
 export { TabAudioRecorder } from './TabAudioRecorder';
 
