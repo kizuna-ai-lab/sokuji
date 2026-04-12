@@ -66,8 +66,12 @@ export class LoopbackRecorder extends ParticipantRecorder {
       if (isLinux()) {
         await new Promise(r => setTimeout(r, 200));
         try {
-          await window.electron.invoke('fix-monitor-volume');
-          console.info(`${this.getLogPrefix()} Linux monitor volume fixed`);
+          const result = await window.electron.invoke('fix-monitor-volume');
+          if (result?.ok) {
+            console.info(`${this.getLogPrefix()} Linux monitor volume fixed`);
+          } else {
+            console.warn(`${this.getLogPrefix()} Failed to fix Linux monitor volume:`, result?.error ?? 'unknown error');
+          }
         } catch (e) {
           console.warn(`${this.getLogPrefix()} Failed to fix Linux monitor volume:`, e);
         }

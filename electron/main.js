@@ -659,10 +659,19 @@ ipcMain.handle('fix-monitor-volume', async () => {
   if (process.platform !== 'linux') return { ok: true, skipped: true };
 
   try {
-    const { execSync } = require('child_process');
-    const defaultSink = execSync('pactl get-default-sink', { encoding: 'utf8' }).trim();
+    const { execFile } = require('child_process');
+    const { promisify } = require('util');
+    const execFileAsync = promisify(execFile);
+
+    const { stdout } = await execFileAsync('pactl', ['get-default-sink'], {
+      encoding: 'utf8',
+      timeout: 2000,
+    });
+    const defaultSink = stdout.trim();
     const monitorName = defaultSink + '.monitor';
-    execSync(`pactl set-source-volume ${monitorName} 100%`);
+    await execFileAsync('pactl', ['set-source-volume', monitorName, '100%'], {
+      timeout: 2000,
+    });
     console.log(`[Sokuji] [Main] Fixed monitor volume for ${monitorName}`);
     return { ok: true, monitor: monitorName };
   } catch (err) {
