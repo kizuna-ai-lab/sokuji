@@ -46,7 +46,7 @@ interface AudioStore {
   selectedSystemAudioSource: AudioDevice | null;
   isSystemAudioCaptureEnabled: boolean;
   isSystemAudioCaptureActive: boolean;
-  systemAudioLoopbackSourceId: string | null; // e.g., 'sokuji_system_capture.monitor'
+  isSystemAudioSourceReady: boolean;
   participantAudioOutputDevice: AudioDevice | null; // Output device for participant audio (Extension only)
 
   // Audio service reference
@@ -70,7 +70,7 @@ interface AudioStore {
   selectSystemAudioSource: (source: AudioDevice | null) => void;
   toggleSystemAudioCapture: () => void;
   setSystemAudioCaptureActive: (active: boolean) => void;
-  setSystemAudioLoopbackSourceId: (id: string | null) => void;
+  setSystemAudioSourceReady: (ready: boolean) => void;
   refreshSystemAudioSources: () => Promise<void>;
   selectParticipantAudioOutputDevice: (device: AudioDevice | null) => void;
 
@@ -99,7 +99,7 @@ const useAudioStore = create<AudioStore>()(
     selectedSystemAudioSource: null,
     isSystemAudioCaptureEnabled: false,
     isSystemAudioCaptureActive: false,
-    systemAudioLoopbackSourceId: null,
+    isSystemAudioSourceReady: false,
     participantAudioOutputDevice: null,
 
     audioService: null,
@@ -233,9 +233,9 @@ const useAudioStore = create<AudioStore>()(
       set({ isSystemAudioCaptureActive: active });
     },
 
-    setSystemAudioLoopbackSourceId: (id) => {
-      console.info('[Sokuji] [AudioStore] Setting system audio loopback source ID:', id);
-      set({ systemAudioLoopbackSourceId: id });
+    setSystemAudioSourceReady: (ready) => {
+      console.info('[Sokuji] [AudioStore] Setting system audio source ready:', ready);
+      set({ isSystemAudioSourceReady: ready });
     },
 
     refreshSystemAudioSources: async () => {
@@ -284,7 +284,7 @@ const useAudioStore = create<AudioStore>()(
                 }
               }
               await audioService.connectSystemAudioSource(restoredSource.deviceId);
-              set({ systemAudioLoopbackSourceId: 'sokuji_system_audio_mic' });
+              set({ isSystemAudioSourceReady: true });
               console.info('[Sokuji] [AudioStore] Re-established system audio connection for:', restoredSource.label);
             } catch (error) {
               console.error('[Sokuji] [AudioStore] Failed to re-establish system audio connection:', error);
@@ -570,7 +570,7 @@ export const useSystemAudioSources = () => useAudioStore((state) => state.system
 export const useSelectedSystemAudioSource = () => useAudioStore((state) => state.selectedSystemAudioSource);
 export const useIsSystemAudioCaptureEnabled = () => useAudioStore((state) => state.isSystemAudioCaptureEnabled);
 export const useIsSystemAudioCaptureActive = () => useAudioStore((state) => state.isSystemAudioCaptureActive);
-export const useSystemAudioLoopbackSourceId = () => useAudioStore((state) => state.systemAudioLoopbackSourceId);
+export const useIsSystemAudioSourceReady = () => useAudioStore((state) => state.isSystemAudioSourceReady);
 export const useParticipantAudioOutputDevice = () => useAudioStore((state) => state.participantAudioOutputDevice);
 
 // Export individual action selectors to avoid recreating objects
@@ -587,7 +587,7 @@ export const useInitializeAudioService = () => useAudioStore((state) => state.in
 export const useSelectSystemAudioSource = () => useAudioStore((state) => state.selectSystemAudioSource);
 export const useToggleSystemAudioCapture = () => useAudioStore((state) => state.toggleSystemAudioCapture);
 export const useSetSystemAudioCaptureActive = () => useAudioStore((state) => state.setSystemAudioCaptureActive);
-export const useSetSystemAudioLoopbackSourceId = () => useAudioStore((state) => state.setSystemAudioLoopbackSourceId);
+export const useSetSystemAudioSourceReady = () => useAudioStore((state) => state.setSystemAudioSourceReady);
 export const useRefreshSystemAudioSources = () => useAudioStore((state) => state.refreshSystemAudioSources);
 export const useSelectParticipantAudioOutputDevice = () => useAudioStore((state) => state.selectParticipantAudioOutputDevice);
 
@@ -605,7 +605,7 @@ export const useAudioActions = () => {
   const selectSystemAudioSource = useSelectSystemAudioSource();
   const toggleSystemAudioCapture = useToggleSystemAudioCapture();
   const setSystemAudioCaptureActive = useSetSystemAudioCaptureActive();
-  const setSystemAudioLoopbackSourceId = useSetSystemAudioLoopbackSourceId();
+  const setSystemAudioSourceReady = useSetSystemAudioSourceReady();
   const refreshSystemAudioSources = useRefreshSystemAudioSources();
   const selectParticipantAudioOutputDevice = useSelectParticipantAudioOutputDevice();
 
@@ -623,7 +623,7 @@ export const useAudioActions = () => {
       selectSystemAudioSource,
       toggleSystemAudioCapture,
       setSystemAudioCaptureActive,
-      setSystemAudioLoopbackSourceId,
+      setSystemAudioSourceReady,
       refreshSystemAudioSources,
       selectParticipantAudioOutputDevice,
     }),
@@ -640,7 +640,7 @@ export const useAudioActions = () => {
       selectSystemAudioSource,
       toggleSystemAudioCapture,
       setSystemAudioCaptureActive,
-      setSystemAudioLoopbackSourceId,
+      setSystemAudioSourceReady,
       refreshSystemAudioSources,
       selectParticipantAudioOutputDevice,
     ]
@@ -663,7 +663,7 @@ export const useAudioContext = () => {
   const selectedSystemAudioSource = useSelectedSystemAudioSource();
   const isSystemAudioCaptureEnabled = useIsSystemAudioCaptureEnabled();
   const isSystemAudioCaptureActive = useIsSystemAudioCaptureActive();
-  const systemAudioLoopbackSourceId = useSystemAudioLoopbackSourceId();
+  const isSystemAudioSourceReady = useIsSystemAudioSourceReady();
   const participantAudioOutputDevice = useParticipantAudioOutputDevice();
   const actions = useAudioActions();
 
@@ -683,7 +683,7 @@ export const useAudioContext = () => {
       selectedSystemAudioSource,
       isSystemAudioCaptureEnabled,
       isSystemAudioCaptureActive,
-      systemAudioLoopbackSourceId,
+      isSystemAudioSourceReady,
       participantAudioOutputDevice,
       ...actions,
     }),
@@ -702,7 +702,7 @@ export const useAudioContext = () => {
       selectedSystemAudioSource,
       isSystemAudioCaptureEnabled,
       isSystemAudioCaptureActive,
-      systemAudioLoopbackSourceId,
+      isSystemAudioSourceReady,
       participantAudioOutputDevice,
       actions,
     ]

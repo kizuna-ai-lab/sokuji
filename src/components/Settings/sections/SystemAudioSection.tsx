@@ -5,10 +5,10 @@ import Tooltip from '../../Tooltip/Tooltip';
 import DeviceList from '../shared/DeviceList';
 import WarningModal from '../shared/WarningModal';
 import { WarningType, AudioDevice } from '../shared/hooks';
-import { useAudioContext, useSetSystemAudioLoopbackSourceId } from '../../../stores/audioStore';
+import { useAudioContext, useSetSystemAudioSourceReady } from '../../../stores/audioStore';
 import { useProvider } from '../../../stores/settingsStore';
 import { ServiceFactory } from '../../../services/ServiceFactory';
-import { isExtension, isElectron, isLoopbackPlatform, isMacOS, isLinux } from '../../../utils/environment';
+import { isExtension, isElectron, isLoopbackPlatform, isMacOS } from '../../../utils/environment';
 import { Provider } from '../../../types/Provider';
 import { useAnalytics } from '../../../lib/analytics';
 
@@ -47,7 +47,7 @@ const SystemAudioSection: React.FC<SystemAudioSectionProps> = ({
     refreshDevices,
   } = useAudioContext();
 
-  const setSystemAudioLoopbackSourceId = useSetSystemAudioLoopbackSourceId();
+  const setSystemAudioSourceReady = useSetSystemAudioSourceReady();
   const [isSystemAudioLoading, setIsSystemAudioLoading] = useState(false);
   const [warningType, setWarningType] = useState<WarningType | null>(null);
 
@@ -95,7 +95,7 @@ const SystemAudioSection: React.FC<SystemAudioSectionProps> = ({
 
         await audioService.connectSystemAudioSource(source.deviceId);
 
-        setSystemAudioLoopbackSourceId('sokuji_system_audio_mic');
+        setSystemAudioSourceReady(true);
         selectSystemAudioSource(source);
         if (!isSystemAudioCaptureEnabled) {
           toggleSystemAudioCapture();
@@ -113,7 +113,7 @@ const SystemAudioSection: React.FC<SystemAudioSectionProps> = ({
 
         await audioService.disconnectSystemAudioSource();
 
-        setSystemAudioLoopbackSourceId(null);
+        setSystemAudioSourceReady(false);
         selectSystemAudioSource(null);
         if (isSystemAudioCaptureEnabled) {
           toggleSystemAudioCapture();
@@ -132,7 +132,7 @@ const SystemAudioSection: React.FC<SystemAudioSectionProps> = ({
     } finally {
       setIsSystemAudioLoading(false);
     }
-  }, [isSystemAudioLoading, isSystemAudioCaptureEnabled, selectSystemAudioSource, toggleSystemAudioCapture, setSystemAudioCaptureActive, setSystemAudioLoopbackSourceId, trackEvent, isSessionActive]);
+  }, [isSystemAudioLoading, isSystemAudioCaptureEnabled, selectSystemAudioSource, toggleSystemAudioCapture, setSystemAudioCaptureActive, setSystemAudioSourceReady, trackEvent, isSessionActive]);
 
   // Check if we should show this section
   const shouldShow = isElectron()
@@ -215,9 +215,9 @@ const SystemAudioSection: React.FC<SystemAudioSectionProps> = ({
               <AlertTriangle size={16} style={{ color: '#f59e0b', marginLeft: '4px' }} />
             </Tooltip>
           )}
-          {/* Show refresh button for Extension (output devices) and Linux Electron (multiple sinks) */}
-          {/* Windows/macOS Electron only has single "System Audio" source, no refresh needed */}
-          {(isExtension() || isLinux()) && (
+          {/* Show refresh button for Extension (output devices) */}
+          {/* Electron has single "System Audio" source via electron-audio-loopback, no refresh needed */}
+          {isExtension() && (
             <button
               className="section-refresh-button"
               onClick={() => {

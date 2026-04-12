@@ -266,9 +266,9 @@ export function isLinux(): boolean {
 
 /**
  * Check if running on a platform that supports loopback audio capture
- * (Windows and macOS use electron-audio-loopback, Linux uses PulseAudio)
+ * All desktop platforms use electron-audio-loopback via getDisplayMedia
  */
 export function isLoopbackPlatform(): boolean {
-  return isWindows() || isMacOS();
+  return isWindows() || isMacOS() || isLinux();
 }
 

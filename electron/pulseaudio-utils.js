@@ -7,10 +7,8 @@ const { execSync } = require('child_process');
 let virtualSinkModule = null;
 let virtualSourceModule = null;
 
-// Module state - System audio capture
-let systemAudioNullSinkModule = null;  // Placeholder null-sink
-let systemAudioSourceModule = null;     // remap-source visible to browser
-let currentSystemAudioSink = null;      // Currently connected sink name
+// Note: System audio capture now uses electron-audio-loopback on all platforms.
+// The functions below (listSystemAudioSources, etc.) are stubs for API compatibility.
 
 // ============================================================================
 // Helper Functions
@@ -195,16 +193,15 @@ async function verifyConnections(pattern) {
 }
 
 // ============================================================================
-// Virtual Audio Devices (for TTS output + System Audio Capture)
+// Virtual Audio Devices (for TTS output)
 // ============================================================================
 
 /**
- * Create all virtual audio devices (speaker + mic for TTS, and system audio mic)
+ * Create virtual audio devices for TTS output
  * @returns {Promise<boolean>} True if successful
  */
 async function createVirtualAudioDevices() {
   try {
-    // ========== Virtual Speaker + Mic (for TTS output) ==========
     virtualSinkModule = await loadPulseModule(
       'pactl load-module module-null-sink sink_name=sokuji_virtual_output sink_properties=device.description="Sokuji_Virtual_Speaker"',
       'virtual sink'
@@ -220,24 +217,11 @@ async function createVirtualAudioDevices() {
       return false;
     }
 
-    // ========== System Audio Capture Mic ==========
-    systemAudioNullSinkModule = await loadPulseModule(
-      'pactl load-module module-null-sink sink_name=sokuji_system_audio_null sink_properties=device.description="Sokuji_System_Audio_Internal"',
-      'system audio null sink'
-    );
-    if (systemAudioNullSinkModule) {
-      systemAudioSourceModule = await loadPulseModule(
-        'pactl load-module module-remap-source master=sokuji_system_audio_null.monitor source_name=sokuji_system_audio_mic source_properties=device.description="Sokuji_System_Audio"',
-        'system audio mic'
-      );
-    }
-
     // Wait for connections to stabilize
     await new Promise(resolve => setTimeout(resolve, 100));
 
     // Disconnect automatic connections from physical mics
     await disconnectPhysicalPorts('sokuji_virtual_mic');
-    await disconnectPhysicalPorts('sokuji_system_audio_mic');
 
     // Connect virtual speaker to virtual mic
     await connectPorts('sokuji_virtual_output', 'sokuji_virtual_mic');
@@ -245,13 +229,10 @@ async function createVirtualAudioDevices() {
     // Verify
     await verifyConnections('sokuji');
 
-    console.log('[Sokuji] [PulseAudio] All virtual audio devices created successfully');
+    console.log('[Sokuji] [PulseAudio] Virtual audio devices created successfully');
     return true;
   } catch (error) {
     console.error('[Sokuji] [PulseAudio] Failed to create virtual audio devices:', error);
-    // Cleanup on failure
-    systemAudioSourceModule = unloadModuleSync(systemAudioSourceModule, 'system audio mic');
-    systemAudioNullSinkModule = unloadModuleSync(systemAudioNullSinkModule, 'system audio null sink');
     virtualSourceModule = unloadModuleSync(virtualSourceModule, 'virtual mic');
     virtualSinkModule = unloadModuleSync(virtualSinkModule, 'virtual sink');
     return false;
@@ -262,18 +243,12 @@ async function createVirtualAudioDevices() {
  * Remove all virtual audio devices
  */
 function removeVirtualAudioDevices() {
-  console.log('[Sokuji] [PulseAudio] Removing all virtual audio devices...');
+  console.log('[Sokuji] [PulseAudio] Removing virtual audio devices...');
 
-  // Remove system audio devices
-  systemAudioSourceModule = unloadModuleSync(systemAudioSourceModule, 'system audio mic');
-  systemAudioNullSinkModule = unloadModuleSync(systemAudioNullSinkModule, 'system audio null sink');
-  currentSystemAudioSink = null;
-
-  // Remove virtual TTS devices
   virtualSourceModule = unloadModuleSync(virtualSourceModule, 'virtual mic');
   virtualSinkModule = unloadModuleSync(virtualSinkModule, 'virtual sink');
 
-  // Fallback cleanup by name
+  // Fallback cleanup by name (includes legacy device names)
   cleanupModulesByName([
     'sokuji_virtual_output',
     'sokuji_virtual_mic',
@@ -282,119 +257,26 @@ function removeVirtualAudioDevices() {
     'sokuji_system_audio_mic'
   ]);
 
-  console.log('[Sokuji] [PulseAudio] All virtual audio device cleanup completed');
+  console.log('[Sokuji] [PulseAudio] Virtual audio device cleanup completed');
 }
 
 // ============================================================================
-// System Audio Capture (for capturing meeting participants)
+// System Audio Capture (stubs — actual capture uses electron-audio-loopback)
 // ============================================================================
 
-/**
- * List available audio sinks (outputs) that can be captured
- * @returns {Promise<Array<{deviceId: string, label: string}>>}
- */
+/** Return a single "System Audio" source matching the Windows/macOS pattern */
 async function listSystemAudioSources() {
-  try {
-    const { stdout } = await execWithLog('pactl list sinks', 'Listing sinks:');
-    const sources = [];
-    const sinkBlocks = stdout.split('Sink #');
-
-    for (const block of sinkBlocks) {
-      if (!block.trim()) continue;
-
-      const nameMatch = block.match(/Name: (.+)/);
-      const descMatch = block.match(/Description: (.+)/);
-
-      if (nameMatch) {
-        const name = nameMatch[1].trim();
-        if (name.includes('sokuji_')) continue; // Skip our virtual sinks
-
-        sources.push({
-          deviceId: name,
-          label: descMatch ? descMatch[1].trim() : name
-        });
-      }
-    }
-
-    console.log(`[Sokuji] [PulseAudio] Found ${sources.length} system audio sources`);
-    return sources;
-  } catch (error) {
-    console.error('[Sokuji] [PulseAudio] Error listing system audio sources:', error);
-    return [];
-  }
+  return [{ deviceId: 'desktop-audio-loopback', label: 'System Audio (All Applications)' }];
 }
 
-/**
- * Connect a sink's monitor to the system audio mic
- * Only changes pw-link connections, does not recreate modules
- * @param {string} sinkName - The sink name to capture from
- * @returns {Promise<{success: boolean, error?: string}>}
- */
-async function connectSystemAudioSource(sinkName) {
-  try {
-    console.log(`[Sokuji] [PulseAudio] Connecting system audio to: ${sinkName}`);
+/** No-op — electron-audio-loopback handles capture via getDisplayMedia */
+async function connectSystemAudioSource() { return { success: true }; }
 
-    // Disconnect from previous sink if any
-    if (currentSystemAudioSink) {
-      console.log(`[Sokuji] [PulseAudio] Disconnecting from previous source: ${currentSystemAudioSink}`);
-      await disconnectPorts(currentSystemAudioSink, 'sokuji_system_audio_mic');
-    }
+/** No-op */
+async function disconnectSystemAudioSource() { return { success: true }; }
 
-    // Also disconnect from the placeholder null-sink monitor
-    await disconnectPorts('sokuji_system_audio_null', 'sokuji_system_audio_mic');
-
-    // Connect the new sink's monitor to system audio mic
-    const connected = await connectPorts(sinkName, 'sokuji_system_audio_mic');
-
-    if (connected) {
-      currentSystemAudioSink = sinkName;
-      console.log(`[Sokuji] [PulseAudio] System audio now capturing from: ${sinkName}`);
-      await verifyConnections('sokuji_system_audio');
-      return { success: true };
-    } else {
-      return { success: false, error: 'Failed to connect ports' };
-    }
-  } catch (error) {
-    console.error('[Sokuji] [PulseAudio] Error connecting system audio source:', error);
-    return { success: false, error: error.message };
-  }
-}
-
-/**
- * Disconnect the current system audio source
- * @returns {Promise<{success: boolean}>}
- */
-async function disconnectSystemAudioSource() {
-  try {
-    console.log('[Sokuji] [PulseAudio] Disconnecting system audio source...');
-
-    if (currentSystemAudioSink) {
-      await disconnectPorts(currentSystemAudioSink, 'sokuji_system_audio_mic');
-      currentSystemAudioSink = null;
-      console.log('[Sokuji] [PulseAudio] System audio disconnected');
-    } else {
-      console.log('[Sokuji] [PulseAudio] No system audio source was connected');
-    }
-
-    return { success: true };
-  } catch (error) {
-    console.error('[Sokuji] [PulseAudio] Error disconnecting system audio source:', error);
-    return { success: false };
-  }
-}
-
-/**
- * Check if system audio capture is supported
- * @returns {Promise<boolean>}
- */
-async function supportsSystemAudioCapture() {
-  try {
-    const isAvailable = await isPulseAudioAvailable();
-    return isAvailable && process.platform === 'linux';
-  } catch (error) {
-    return false;
-  }
-}
+/** Always supported — electron-audio-loopback works on all desktop platforms */
+async function supportsSystemAudioCapture() { return true; }
 
 // ============================================================================
 // Utilities
@@ -428,8 +310,7 @@ async function cleanupOrphanedDevices() {
     const { stdout: sinkList } = await execWithLog('pactl list sinks short', 'Checking sinks:');
     const orphanedSinks = [
       'sokuji_virtual_output',
-      'sokuji_virtual_speaker',
-      'sokuji_system_audio_null'
+      'sokuji_virtual_speaker'
     ];
     for (const sink of orphanedSinks) {
       if (sinkList.includes(sink)) {
@@ -440,7 +321,7 @@ async function cleanupOrphanedDevices() {
 
     // Check sources
     const { stdout: sourceList } = await execWithLog('pactl list sources short', 'Checking sources:');
-    const orphanedSources = ['sokuji_virtual_mic', 'sokuji_system_audio_mic'];
+    const orphanedSources = ['sokuji_virtual_mic'];
     for (const source of orphanedSources) {
       if (sourceList.includes(source)) {
         console.log(`[Sokuji] [PulseAudio] Found orphaned source: ${source}`);
@@ -461,10 +342,10 @@ async function cleanupOrphanedDevices() {
 // ============================================================================
 
 module.exports = {
-  // Virtual audio devices (includes both TTS and System Audio devices)
+  // Virtual audio devices (TTS output)
   createVirtualAudioDevices,
   removeVirtualAudioDevices,
-  // System audio capture
+  // System audio capture (stubs — actual capture uses electron-audio-loopback)
   listSystemAudioSources,
   connectSystemAudioSource,
   disconnectSystemAudioSource,

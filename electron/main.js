@@ -44,17 +44,17 @@ const {
   createVirtualAudioDevices,
   removeVirtualAudioDevices,
   cleanupOrphanedDevices,
-  // System audio capture functions (Linux only)
+  // System audio capture functions (stubs on all platforms, capture uses electron-audio-loopback)
   listSystemAudioSources,
   connectSystemAudioSource,
   disconnectSystemAudioSource,
   supportsSystemAudioCapture
 } = audioUtils;
 
-// Initialize electron-audio-loopback for Windows and macOS system audio capture
+// Initialize electron-audio-loopback for system audio capture on all platforms
 // MUST be called before app is ready
-// Note: Linux is not supported by electron-audio-loopback, uses LinuxLoopbackRecorder instead
-if (process.platform === 'win32' || process.platform === 'darwin') {
+// Supports Windows, macOS, and Linux (via PulseaudioLoopbackForScreenShare Chromium flag)
+{
   const { initMain } = require('electron-audio-loopback');
   initMain();
   console.log('[Sokuji] [Main] electron-audio-loopback initialized for', process.platform);
@@ -650,6 +650,25 @@ ipcMain.handle('disconnect-system-audio-source', async () => {
     return await disconnectSystemAudioSource();
   }
   return { success: false };
+});
+
+// Linux loopback audio: fix PipeWire monitor source volume
+// PipeWire stores an independent monitorVolumes property per sink that can be very low.
+// After getDisplayMedia() creates the loopback stream, we force the monitor source to 100%.
+ipcMain.handle('fix-monitor-volume', async () => {
+  if (process.platform !== 'linux') return { ok: true, skipped: true };
+
+  try {
+    const { execSync } = require('child_process');
+    const defaultSink = execSync('pactl get-default-sink', { encoding: 'utf8' }).trim();
+    const monitorName = defaultSink + '.monitor';
+    execSync(`pactl set-source-volume ${monitorName} 100%`);
+    console.log(`[Sokuji] [Main] Fixed monitor volume for ${monitorName}`);
+    return { ok: true, monitor: monitorName };
+  } catch (err) {
+    console.error('[Sokuji] [Main] Failed to fix monitor volume:', err.message);
+    return { ok: false, error: err.message };
+  }
 });
 
 // Volcengine AST 2.0: WebSocket proxy via main process
