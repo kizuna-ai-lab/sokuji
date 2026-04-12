@@ -269,10 +269,10 @@ const useAudioStore = create<AudioStore>()(
             }
           }
 
-          // Re-establish system audio connection if capture was enabled and source was restored
-          if (get().isSystemAudioCaptureEnabled && restoredSource) {
+          // Re-establish system audio connection if capture was enabled and a source is available
+          const selectedSource = restoredSource || get().selectedSystemAudioSource;
+          if (get().isSystemAudioCaptureEnabled && selectedSource) {
             try {
-              // For loopback platforms (Windows/macOS), verify permission still available
               if (isElectron() && !isExtension() && isLoopbackPlatform()) {
                 const permissionGranted = await audioService.requestLoopbackAudioStream();
                 if (!permissionGranted) {
@@ -283,9 +283,9 @@ const useAudioStore = create<AudioStore>()(
                   return;
                 }
               }
-              await audioService.connectSystemAudioSource(restoredSource.deviceId);
+              await audioService.connectSystemAudioSource(selectedSource.deviceId);
               set({ isSystemAudioSourceReady: true });
-              console.info('[Sokuji] [AudioStore] Re-established system audio connection for:', restoredSource.label);
+              console.info('[Sokuji] [AudioStore] Re-established system audio connection for:', selectedSource.label);
             } catch (error) {
               console.error('[Sokuji] [AudioStore] Failed to re-establish system audio connection:', error);
               set({ isSystemAudioCaptureEnabled: false });
@@ -537,6 +537,11 @@ const useAudioStore = create<AudioStore>()(
           console.info('[Sokuji] [AudioStore] Initialization complete, connecting monitor device:', deviceToConnect.deviceId);
           await get().connectMonitorDevice(deviceToConnect.deviceId, deviceToConnect.label);
         }
+
+        // Load system audio sources and re-establish connection if previously enabled
+        // This must run during initialization (not just when UI mounts) so participant
+        // audio works even if the user starts a session without opening Settings first
+        await get().refreshSystemAudioSources();
       } catch (error) {
         console.error('[Sokuji] [AudioStore] Error initializing audio service:', error);
       }
