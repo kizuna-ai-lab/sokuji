@@ -40,6 +40,7 @@ import {
   getManifestEntry,
   getTranslationModel,
   getTtsModelsForLanguage,
+  estimateModelMemoryByDevice,
 } from '../../../lib/local-inference/modelManifest';
 
 const TUTORIAL_URLS: Partial<Record<ProviderType, string>> = {
@@ -107,6 +108,29 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
       localInferenceSettings.translationModel || undefined,
     );
   }, [provider, localInferenceSettings.sourceLanguage, localInferenceSettings.targetLanguage, localInferenceSettings.asrModel, localInferenceSettings.translationModel, modelStatuses]);
+
+  const deviceFeatures = useModelStore(state => state.deviceFeatures);
+  const memoryEstimate = useMemo(() => {
+    if (provider !== Provider.LOCAL_INFERENCE) return null;
+    // Resolve effective model IDs (same logic as the chips above)
+    const translationId = localInferenceSettings.translationModel
+      || getTranslationModel(localInferenceSettings.sourceLanguage, localInferenceSettings.targetLanguage)?.id;
+    const ttsId = localInferenceSettings.ttsModel
+      || getTtsModelsForLanguage(localInferenceSettings.targetLanguage).find(m => m.isCloudModel || modelStatuses[m.id] === 'downloaded')?.id;
+    // Skip cloud TTS models (e.g. Edge TTS) — they don't consume local memory
+    const ttsEntry = ttsId ? getManifestEntry(ttsId) : undefined;
+    const effectiveTtsId = ttsEntry?.isCloudModel ? undefined : ttsId;
+
+    const mainIds = [localInferenceSettings.asrModel, translationId, effectiveTtsId];
+    const participantIds = isSystemAudioCaptureEnabled && participantModelStatus
+      ? [participantModelStatus.asrModelId, participantModelStatus.translationModelId]
+      : [];
+    return estimateModelMemoryByDevice([...mainIds, ...participantIds], deviceFeatures);
+  }, [
+    provider, deviceFeatures, modelStatuses, isSystemAudioCaptureEnabled, participantModelStatus,
+    localInferenceSettings.asrModel, localInferenceSettings.translationModel, localInferenceSettings.ttsModel,
+    localInferenceSettings.sourceLanguage, localInferenceSettings.targetLanguage,
+  ]);
 
   const [isProviderExpanded, setIsProviderExpanded] = useState(false);
 
@@ -460,6 +484,17 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
                     )}
                   </button>
                 </div>
+              </div>
+            )}
+            {memoryEstimate && (memoryEstimate.vramMb > 0 || memoryEstimate.ramMb > 0) && (
+              <div className="memory-estimate">
+                <Cpu size={11} />
+                {memoryEstimate.vramMb > 0 && (
+                  <span>VRAM ~{memoryEstimate.vramMb >= 1024 ? `${(memoryEstimate.vramMb / 1024).toFixed(1)} GB` : `${memoryEstimate.vramMb} MB`}</span>
+                )}
+                {memoryEstimate.ramMb > 0 && (
+                  <span>RAM ~{memoryEstimate.ramMb >= 1024 ? `${(memoryEstimate.ramMb / 1024).toFixed(1)} GB` : `${memoryEstimate.ramMb} MB`}</span>
+                )}
               </div>
             )}
           </div>
