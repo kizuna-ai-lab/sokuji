@@ -1421,6 +1421,15 @@
     color: vars.$text-muted;
     font-style: italic;
   }
+
+  .memory-estimate {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 4px;
+    font-size: 10px;
+    color: vars.$text-muted;
+  }
 }
 
 // Help section buttons (shared between SimpleSettings and AdvancedSettings)
