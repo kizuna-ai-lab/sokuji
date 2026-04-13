@@ -13,6 +13,16 @@ vi.mock('../services/ServiceFactory', () => ({
   },
 }));
 
+// Mock estimateModelMemoryByDevice so we can control memory budget checks
+const mockEstimateMemory = vi.fn().mockReturnValue({ vramMb: 0, ramMb: 0 });
+vi.mock('../lib/local-inference/modelManifest', async () => {
+  const actual = await vi.importActual('../lib/local-inference/modelManifest');
+  return {
+    ...actual,
+    estimateModelMemoryByDevice: (...args: any[]) => mockEstimateMemory(...args),
+  };
+});
+
 // Import after mocking
 const { default: useSettingsStore } = await import('./settingsStore');
 
@@ -166,18 +176,19 @@ describe('createParticipantLocalInferenceConfig', () => {
 
     const result = createParticipantLocalInferenceConfig(baseConfig);
 
-    expect(result).not.toBeNull();
-    expect(result!.config.sourceLanguage).toBe('en');
-    expect(result!.config.targetLanguage).toBe('ja');
-    expect(result!.config.asrModelId).toBe('sensevoice-int8');
-    expect(result!.config.translationModelId).toBe('opus-mt-en-ja');
-    expect(result!.config.ttsModelId).toBeUndefined();
-    expect(result!.status.translationAvailable).toBe(true);
+    expect(result.success).toBe(true);
+    if (!result.success) throw new Error('unexpected');
+    expect(result.config.sourceLanguage).toBe('en');
+    expect(result.config.targetLanguage).toBe('ja');
+    expect(result.config.asrModelId).toBe('sensevoice-int8');
+    expect(result.config.translationModelId).toBe('opus-mt-en-ja');
+    expect(result.config.ttsModelId).toBeUndefined();
+    expect(result.status.translationAvailable).toBe(true);
 
     vi.restoreAllMocks();
   });
 
-  it('returns null when no ASR model is available', async () => {
+  it('returns no_asr when no ASR model is available', async () => {
     const { createParticipantLocalInferenceConfig } = await import('./settingsStore');
 
     const baseConfig = {
@@ -207,8 +218,55 @@ describe('createParticipantLocalInferenceConfig', () => {
     });
 
     const result = createParticipantLocalInferenceConfig(baseConfig);
-    expect(result).toBeNull();
+    expect(result.success).toBe(false);
+    if (result.success) throw new Error('unexpected');
+    expect(result.reason).toBe('no_asr');
 
+    vi.restoreAllMocks();
+  });
+
+  it('returns memory_exceeded when VRAM budget is exceeded', async () => {
+    const { createParticipantLocalInferenceConfig } = await import('./settingsStore');
+
+    const baseConfig = {
+      provider: 'local_inference' as const,
+      model: 'local-asr-translate',
+      instructions: '',
+      sourceLanguage: 'ja',
+      targetLanguage: 'en',
+      asrModelId: 'sensevoice-int8',
+      translationModelId: 'opus-mt-ja-en',
+      ttsModelId: 'piper-en',
+      ttsSpeakerId: 0,
+      ttsSpeed: 1.0,
+    };
+
+    const { useModelStore } = await import('./modelStore');
+    vi.spyOn(useModelStore, 'getState').mockReturnValue({
+      ...useModelStore.getState(),
+      getParticipantModelStatus: () => ({
+        asrAvailable: true,
+        asrModelId: 'sensevoice-int8',
+        asrFallback: false,
+        asrOriginalModelId: 'sensevoice-int8',
+        translationAvailable: true,
+        translationModelId: 'opus-mt-en-ja',
+      }),
+    });
+
+    // Set VRAM budget via localStorage override, then simulate models exceeding it
+    localStorage.setItem('debug:vram-budget', '4096');
+    mockEstimateMemory.mockReturnValue({ vramMb: 8000, ramMb: 0 });
+
+    const result = createParticipantLocalInferenceConfig(baseConfig);
+    expect(result.success).toBe(false);
+    if (result.success) throw new Error('unexpected');
+    expect(result.reason).toBe('memory_exceeded');
+    expect(result.detail).toContain('VRAM');
+    expect(result.detail).toContain('8000MB');
+
+    localStorage.removeItem('debug:vram-budget');
+    mockEstimateMemory.mockReturnValue({ vramMb: 0, ramMb: 0 });
     vi.restoreAllMocks();
   });
 });

@@ -13,7 +13,7 @@ import {
   VolcengineAST2SessionConfig,
   LocalInferenceSessionConfig
 } from '../services/interfaces/IClient';
-import { getTtsModelsForLanguage, getManifestEntry, getTranslationModel } from '../lib/local-inference/modelManifest';
+import { getTtsModelsForLanguage, getManifestEntry, getTranslationModel, estimateModelMemoryByDevice } from '../lib/local-inference/modelManifest';
 import { useModelStore, type ParticipantModelStatus } from './modelStore';
 import {ApiKeyValidationResult} from '../services/interfaces/ISettingsService';
 import {Provider, ProviderType} from '../types/Provider';
@@ -510,13 +510,50 @@ function createLocalInferenceSessionConfig(
   };
 }
 
+/** Fraction of navigator.deviceMemory used as the system RAM model budget. */
+const RAM_BUDGET_RATIO = 0.75;
+/** Conservative fallback when navigator.deviceMemory is unavailable (GB). */
+const DEFAULT_DEVICE_MEMORY_GB = 4;
+
+/**
+ * Read a numeric localStorage debug override, returning null if absent.
+ * Override keys:
+ *   debug:vram-budget  — VRAM budget in MB (e.g. "8192" for 8 GB)
+ *   debug:device-memory — system RAM in GB (e.g. "4")
+ */
+function readDebugNumber(key: string): number | null {
+  try {
+    const v = localStorage.getItem(key);
+    if (v !== null) {
+      const n = Number(v);
+      if (!Number.isNaN(n) && n >= 0) return n;
+    }
+  } catch { /* localStorage unavailable */ }
+  return null;
+}
+
+export type ParticipantConfigSkipReason = 'no_asr' | 'memory_exceeded';
+
+export type ParticipantLocalInferenceResult =
+  | { success: true; config: LocalInferenceSessionConfig; status: ParticipantModelStatus }
+  | { success: false; reason: ParticipantConfigSkipReason; detail: string };
+
 /**
  * Create a participant session config for local inference by swapping languages
- * and resolving reverse-direction models. Returns null if ASR is unavailable.
+ * and resolving reverse-direction models.
+ *
+ * Returns `{ success: false }` when participant should be skipped — either
+ * because no suitable ASR model exists, or because loading both main and
+ * participant models would exceed the estimated memory budget.
+ *
+ * Memory is checked separately for VRAM (WebGPU models) and system RAM (WASM
+ * models). Debug overrides via localStorage:
+ *   localStorage.setItem('debug:vram-budget', '4096')   // 4 GB VRAM budget
+ *   localStorage.setItem('debug:device-memory', '4')     // simulate 4 GB RAM
  */
 export function createParticipantLocalInferenceConfig(
   baseConfig: LocalInferenceSessionConfig
-): { config: LocalInferenceSessionConfig; status: ParticipantModelStatus } | null {
+): ParticipantLocalInferenceResult {
   const status = useModelStore.getState().getParticipantModelStatus(
     baseConfig.sourceLanguage,
     baseConfig.targetLanguage,
@@ -525,10 +562,40 @@ export function createParticipantLocalInferenceConfig(
   );
 
   if (!status.asrAvailable) {
-    return null;
+    return { success: false, reason: 'no_asr', detail: `No ASR model available for ${baseConfig.targetLanguage}` };
+  }
+
+  // Memory budget check: estimate total model footprint for main + participant,
+  // split by device type (VRAM for WebGPU, RAM for WASM).
+  const deviceFeatures = useModelStore.getState().deviceFeatures;
+  const allModelIds = [
+    baseConfig.asrModelId, baseConfig.translationModelId, baseConfig.ttsModelId,
+    status.asrModelId, status.translationModelId,
+  ];
+  const { vramMb, ramMb } = estimateModelMemoryByDevice(allModelIds, deviceFeatures);
+
+  // VRAM budget — only enforced when explicitly set via localStorage,
+  // since there is no reliable API to detect GPU VRAM size.
+  const vramBudgetMb = readDebugNumber('debug:vram-budget');
+  if (vramBudgetMb !== null && vramMb > vramBudgetMb) {
+    const detail = `Total VRAM ~${vramMb}MB exceeds budget ~${vramBudgetMb}MB`;
+    console.warn('[LocalInference] Participant skipped — VRAM budget exceeded:', detail);
+    return { success: false, reason: 'memory_exceeded', detail };
+  }
+
+  // System RAM budget
+  const deviceMemoryGb = readDebugNumber('debug:device-memory')
+    ?? (navigator as any).deviceMemory
+    ?? DEFAULT_DEVICE_MEMORY_GB;
+  const ramBudgetMb = Math.round(deviceMemoryGb * RAM_BUDGET_RATIO * 1024);
+  if (ramMb > ramBudgetMb) {
+    const detail = `Total RAM ~${ramMb}MB exceeds budget ~${ramBudgetMb}MB (device memory: ${deviceMemoryGb}GB)`;
+    console.warn('[LocalInference] Participant skipped — RAM budget exceeded:', detail);
+    return { success: false, reason: 'memory_exceeded', detail };
   }
 
   return {
+    success: true,
     config: {
       ...baseConfig,
       sourceLanguage: baseConfig.targetLanguage,

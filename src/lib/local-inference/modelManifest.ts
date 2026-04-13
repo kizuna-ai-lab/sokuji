@@ -3002,3 +3002,33 @@ export function getModelSizeMb(entry: ModelManifestEntry, deviceFeatures: string
   const files = entry.variants[variantKey].files;
   return Math.round(files.reduce((sum, f) => sum + f.sizeBytes, 0) / 1_048_576);
 }
+
+/**
+ * Estimate memory usage in MB for a list of model IDs, split by device type.
+ * Cloud models and unknown models contribute 0.
+ * Each model is counted independently even if the same ID appears twice
+ * (separate workers = separate memory).
+ */
+export function estimateModelMemoryByDevice(
+  modelIds: (string | undefined | null)[],
+  deviceFeatures: string[] = [],
+): { vramMb: number; ramMb: number } {
+  let vramMb = 0;
+  let ramMb = 0;
+  for (const id of modelIds) {
+    if (!id) continue;
+    const entry = getManifestEntry(id);
+    if (!entry || entry.isCloudModel || Object.keys(entry.variants).length === 0) continue;
+    try {
+      const sizeMb = getModelSizeMb(entry, deviceFeatures);
+      if (entry.requiredDevice === 'webgpu') {
+        vramMb += sizeMb;
+      } else {
+        ramMb += sizeMb;
+      }
+    } catch {
+      // Model has no compatible variant on this device — skip
+    }
+  }
+  return { vramMb, ramMb };
+}

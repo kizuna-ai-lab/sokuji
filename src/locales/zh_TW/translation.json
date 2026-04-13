@@ -454,7 +454,8 @@
     "microphoneAccess": "麥克風存取被拒絕",
     "networkError": "網路連線錯誤",
     "translationFailed": "翻譯失敗",
-    "audioError": "音訊處理錯誤"
+    "audioError": "音訊處理錯誤",
+    "gpuOutOfMemory": "GPU記憶體不足 — 所選模型對您的GPU來說太大了，請切換到更小的模型。"
   },
   "audioFeedback": {
     "title": "音訊回饋警告",
