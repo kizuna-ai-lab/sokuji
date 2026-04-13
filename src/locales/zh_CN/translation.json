@@ -486,7 +486,8 @@
     "microphoneAccess": "麦克风访问被拒绝",
     "networkError": "网络连接错误",
     "translationFailed": "翻译失败",
-    "audioError": "音频处理错误"
+    "audioError": "音频处理错误",
+    "gpuOutOfMemory": "GPU显存不足 — 所选模型对您的GPU来说太大了，请切换到更小的模型。"
   },
   "audioFeedback": {
     "title": "音频反馈警告",

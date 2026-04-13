@@ -347,10 +347,11 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       const localConfig = config as LocalInferenceSessionConfig;
       const result = createParticipantLocalInferenceConfig(localConfig);
 
-      if (!result) {
+      if (!result.success) {
+        const eventType = result.reason === 'memory_exceeded' ? 'participant.warning' : 'participant.error';
         addRealtimeEvent(
-          { type: 'participant.error', data: { message: `No ASR model available for ${localConfig.targetLanguage}` } },
-          'client', 'participant.error'
+          { type: eventType, data: { message: result.detail } },
+          'client', eventType
         );
         return null;
       }
@@ -1302,9 +1303,13 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
             console.info(`[Sokuji] [MainPanel] Participant audio recording started (${captureMode})`);
           }
-        } catch (error) {
+        } catch (error: any) {
           console.error('[Sokuji] [MainPanel] Failed to start participant audio client:', error);
-          // Don't fail the whole session, just log the error
+          // GPU OOM is fatal — propagate so the session doesn't start
+          if (error?.isGpuOom) {
+            throw error;
+          }
+          // Other participant errors are non-fatal — log and continue
         }
       }
 

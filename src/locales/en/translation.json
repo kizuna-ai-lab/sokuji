@@ -567,7 +567,8 @@
     "microphoneAccess": "Microphone access denied",
     "networkError": "Network connection error",
     "translationFailed": "Translation failed",
-    "audioError": "Audio processing error"
+    "audioError": "Audio processing error",
+    "gpuOutOfMemory": "GPU out of memory — the selected model is too large for your GPU. Please switch to a smaller model."
   },
   "connectionStatus": {
     "disconnected": "Disconnected",

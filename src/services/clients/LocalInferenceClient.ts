@@ -26,6 +26,34 @@ import { resampleFloat32, float32ToInt16 } from '../../utils/audio-conversion';
 import { splitSentences } from '../../utils/splitSentences';
 import i18n from '../../locales';
 
+/**
+ * Error thrown when GPU runs out of memory during WebGPU model initialization.
+ * Carries a user-friendly translated message and a stable `isGpuOom` flag so
+ * callers can detect it without parsing translated strings.
+ */
+export class GpuOutOfMemoryError extends Error {
+  readonly isGpuOom = true;
+  constructor(message: string) {
+    super(message);
+    this.name = 'GpuOutOfMemoryError';
+  }
+}
+
+/**
+ * Detect GPU out-of-memory errors from ONNX Runtime WebGPU / Vulkan backend.
+ * Error messages cascade through several stages; we check the most distinctive patterns.
+ */
+function isGpuOutOfMemoryError(error: unknown): boolean {
+  const msg = error instanceof Error ? error.message : String(error);
+  const lower = msg.toLowerCase();
+  return (
+    lower.includes('out_of_device_memory') ||
+    lower.includes('out of memory') ||
+    lower.includes('a valid external instance reference no longer exists') ||
+    (lower.includes('webgpu') && lower.includes('device lost'))
+  );
+}
+
 interface AsrTiming {
   durationMs: number;
   recognitionTimeMs: number;
@@ -260,6 +288,12 @@ export class LocalInferenceClient implements IClient {
       this.translationEngine = null;
       this.ttsEngine?.dispose();
       this.ttsEngine = null;
+
+      // Surface a user-friendly message when GPU runs out of memory
+      if (isGpuOutOfMemoryError(error)) {
+        console.error('[LocalInference] GPU out of memory detected:', error);
+        throw new GpuOutOfMemoryError(i18n.t('errors.gpuOutOfMemory'));
+      }
       throw error;
     }
   }

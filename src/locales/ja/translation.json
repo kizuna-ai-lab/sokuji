@@ -341,7 +341,8 @@
     "microphoneAccess": "マイクへのアクセスが拒否されました",
     "networkError": "ネットワーク接続エラー",
     "translationFailed": "翻訳に失敗しました",
-    "audioError": "音声処理エラー"
+    "audioError": "音声処理エラー",
+    "gpuOutOfMemory": "GPUメモリ不足 — 選択されたモデルがGPUには大きすぎます。より小さいモデルに切り替えてください。"
   },
   "audioFeedback": {
     "title": "オーディオフィードバック警告",
