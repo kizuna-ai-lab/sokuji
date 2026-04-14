@@ -296,12 +296,6 @@ function createWindow() {
 
   // Emitted when the window is closed
   mainWindow.on('closed', function () {
-    // Close all Volcengine AST2 WebSocket connections
-    for (const [id, ws] of volcengineConnections) {
-      try { ws.close(); } catch (e) { /* ignore */ }
-    }
-    volcengineConnections.clear();
-
     // Ensure audio devices are cleaned up when window is closed
     if (process.platform === 'darwin') {
       // On macOS, we only clean up devices if the app is actually quitting
@@ -334,6 +328,9 @@ app.whenReady().then(async () => {
   } catch (error) {
     console.error('[Sokuji] [Main] Error initializing Better Auth adapter:', error);
   }
+
+  // Initialize WebSocket header injection (must be before any WebSocket connections)
+  initWebSocketHeaderInjection();
 
   // Clean up any orphaned devices
   try {
@@ -680,163 +677,97 @@ ipcMain.handle('fix-monitor-volume', async () => {
   }
 });
 
-// Volcengine AST 2.0: WebSocket proxy via main process
-// Browser WebSocket API doesn't support custom headers, so we run the WebSocket
-// in the main process (Node.js `ws` library supports headers) and bridge via IPC.
-const WebSocket = require('ws');
+// ── Combined Request Header Injection ─────────────────────────────────────────
+// Electron only allows ONE onBeforeSendHeaders listener per session, so this
+// single handler covers both:
+//   1. Better Auth: cookie/origin injection for backend API requests
+//   2. WebSocket: custom header injection for provider WebSocket upgrades
+//
+// The renderer registers host-specific WebSocket header rules via IPC before
+// opening a WebSocket connection. This replaces the previous per-provider IPC
+// bridges (Volcengine, Edge TTS) that proxied every frame through main process.
 
-// Multiple concurrent WebSocket connections keyed by connectionId.
-// Each VolcengineAST2Client instance (speaker, participant) gets its own entry.
-const volcengineConnections = new Map(); // connectionId → WebSocket
+// Map<host, Map<headerName, headerValue>>
+const wsHeaderRules = new Map();
 
-ipcMain.handle('volcengine-ast2-connect', async (event, { appId, accessToken, resourceId, connectionId }) => {
-  const endpoint = 'wss://openspeech.bytedance.com/api/v4/ast/v2/translate';
-  console.log(`[Sokuji] [Main] Volcengine AST2 [${connectionId}]: connecting to`, endpoint);
+function initWebSocketHeaderInjection() {
+  // Retrieve Better Auth config (stored by better-auth-adapter.js)
+  const authConfig = betterAuthAdapter._sendHeadersConfig;
 
-  return new Promise((resolve) => {
-    let resolved = false;
+  session.defaultSession.webRequest.onBeforeSendHeaders(
+    { urls: ['<all_urls>'] },
+    (details, callback) => {
+      const { requestHeaders } = details;
 
-    const ws = new WebSocket(endpoint, {
-      headers: {
-        'X-Api-App-Key': appId,
-        'X-Api-Access-Key': accessToken,
-        'X-Api-Resource-Id': resourceId,
-        'X-Api-Connect-Id': connectionId,
-      },
-    });
-
-    ws.on('open', () => {
-      console.log(`[Sokuji] [Main] Volcengine AST2 [${connectionId}]: WebSocket connected`);
-      volcengineConnections.set(connectionId, ws);
-      resolved = true;
-      resolve({ success: true });
-    });
-
-    ws.on('message', (data) => {
-      if (mainWindow && !mainWindow.isDestroyed()) {
-        const buffer = data instanceof Buffer ? data : Buffer.from(data);
-        mainWindow.webContents.send('volcengine-ast2-message', { connectionId, data: buffer });
+      // ── Better Auth: inject cookies and origin for backend requests ──
+      if (authConfig) {
+        const isAuthRequest = authConfig.filterPatterns.some(
+          (pattern) => details.url.startsWith(pattern.replace('/*', '/')) || details.url.startsWith(pattern.replace('/*', ''))
+        );
+        if (isAuthRequest) {
+          if (authConfig.origin) {
+            const cleanOrigin = authConfig.origin.endsWith('/')
+              ? authConfig.origin.slice(0, -1)
+              : authConfig.origin;
+            requestHeaders['Origin'] = cleanOrigin.toLowerCase();
+            requestHeaders['Referer'] = cleanOrigin.toLowerCase();
+          }
+          const storedCookies = authConfig.getCookies();
+          if (storedCookies && Object.keys(storedCookies).length > 0) {
+            const cookieStr = Object.entries(storedCookies)
+              .map(([name, value]) => `${name}=${value}`)
+              .join('; ');
+            requestHeaders['Cookie'] = cookieStr;
+          }
+        }
       }
-    });
 
-    ws.on('error', (err) => {
-      console.error(`[Sokuji] [Main] Volcengine AST2 [${connectionId}]: WebSocket error:`, err.message);
-      if (mainWindow && !mainWindow.isDestroyed()) {
-        mainWindow.webContents.send('volcengine-ast2-error', { connectionId, error: err.message });
+      // ── WebSocket: inject custom headers for provider connections ────
+      if (details.resourceType === 'webSocket') {
+        try {
+          const url = new URL(details.url);
+          const headers = wsHeaderRules.get(url.host);
+          if (headers) {
+            for (const [name, value] of headers.entries()) {
+              requestHeaders[name] = value;
+            }
+          }
+        } catch {
+          // Invalid URL — pass through unchanged
+        }
       }
-      if (!resolved) {
-        resolved = true;
-        resolve({ success: false, error: err.message });
-      }
-    });
 
-    ws.on('close', (code, reason) => {
-      console.log(`[Sokuji] [Main] Volcengine AST2 [${connectionId}]: WebSocket closed: ${code} ${reason.toString()}`);
-      volcengineConnections.delete(connectionId);
-      if (mainWindow && !mainWindow.isDestroyed()) {
-        mainWindow.webContents.send('volcengine-ast2-close', { connectionId, code, reason: reason.toString() });
-      }
-      if (!resolved) {
-        resolved = true;
-        resolve({ success: false, error: `WebSocket closed: ${code} ${reason.toString()}` });
-      }
-    });
-  });
-});
+      callback({ requestHeaders });
+    }
+  );
 
-ipcMain.handle('volcengine-ast2-send', (event, { connectionId, data }) => {
-  const ws = volcengineConnections.get(connectionId);
-  if (!ws || ws.readyState !== WebSocket.OPEN) {
-    return { success: false, error: 'WebSocket not connected' };
+  console.log('[Sokuji] [Main] Combined header injection initialized');
+}
+
+// IPC: renderer registers headers for a host before opening a WebSocket
+ipcMain.handle('ws-headers-set', (event, { host, headers }) => {
+  if (!host || !headers || typeof headers !== 'object') {
+    return { success: false, error: 'Invalid arguments: host and headers required' };
   }
-  try {
-    const buffer = Buffer.from(data);
-    ws.send(buffer);
-    return { success: true };
-  } catch (err) {
-    console.error(`[Sokuji] [Main] Volcengine AST2 [${connectionId}]: send error:`, err.message);
-    return { success: false, error: err.message };
-  }
-});
-
-ipcMain.handle('volcengine-ast2-disconnect', (event, { connectionId } = {}) => {
-  console.log(`[Sokuji] [Main] Volcengine AST2 [${connectionId}]: disconnecting`);
-  const ws = volcengineConnections.get(connectionId);
-  if (ws) {
-    try { ws.close(); } catch (e) { /* ignore */ }
-    volcengineConnections.delete(connectionId);
-  }
+  // Coerce all values to strings — Chromium silently drops headers with non-string values.
+  // IPC serialization can turn numeric strings (e.g. App ID "1714584595") into numbers.
+  const entries = Object.entries(headers)
+    .filter(([, v]) => v != null && v !== '')
+    .map(([k, v]) => [k, String(v)]);
+  const headerMap = new Map(entries);
+  wsHeaderRules.set(host, headerMap);
+  console.log(`[Sokuji] [Main] WS headers registered for ${host}: ${[...headerMap.keys()].join(', ')}`);
   return { success: true };
 });
 
-// Volcengine AST 2.0: Lightweight credential validation via WebSocket connect-disconnect
-// Opens a WebSocket with auth headers, checks if it's accepted, then closes immediately.
-// Uses a separate variable so it doesn't interfere with an active session.
-let volcengineValidateWs = null;
-
-ipcMain.handle('volcengine-ast2-validate', async (event, { appId, accessToken, resourceId }) => {
-  // Clean up any lingering validation socket
-  if (volcengineValidateWs) {
-    try { volcengineValidateWs.close(); } catch (e) { /* ignore */ }
-    volcengineValidateWs = null;
+// IPC: renderer clears headers for a host after disconnecting
+ipcMain.handle('ws-headers-clear', (event, { host }) => {
+  if (!host) {
+    return { success: false, error: 'Invalid arguments: host required' };
   }
-
-  const endpoint = 'wss://openspeech.bytedance.com/api/v4/ast/v2/translate';
-  const connectionId = require('crypto').randomUUID();
-  console.log('[Sokuji] [Main] Volcengine AST2: validating credentials');
-
-  return new Promise((resolve) => {
-    let resolved = false;
-
-    const ws = new WebSocket(endpoint, {
-      headers: {
-        'X-Api-App-Key': appId,
-        'X-Api-Access-Key': accessToken,
-        'X-Api-Resource-Id': resourceId,
-        'X-Api-Connect-Id': connectionId,
-      },
-    });
-    volcengineValidateWs = ws;
-
-    const finish = (result) => {
-      if (resolved) return;
-      resolved = true;
-      clearTimeout(timer);
-      try { ws.close(); } catch (e) { /* ignore */ }
-      if (volcengineValidateWs === ws) {
-        volcengineValidateWs = null;
-      }
-      resolve(result);
-    };
-
-    // 5-second timeout
-    const timer = setTimeout(() => {
-      finish({ success: false, error: 'Connection timed out — credentials could not be verified' });
-    }, 5000);
-
-    ws.on('open', () => {
-      console.log('[Sokuji] [Main] Volcengine AST2: validation succeeded (WebSocket accepted)');
-      finish({ success: true });
-    });
-
-    ws.on('error', (err) => {
-      console.error('[Sokuji] [Main] Volcengine AST2: validation failed:', err.message);
-      finish({ success: false, error: err.message });
-    });
-
-    ws.on('close', (code, reason) => {
-      finish({ success: false, error: `Connection rejected (code ${code}: ${reason.toString()})` });
-    });
-
-    ws.on('unexpected-response', (req, res) => {
-      let body = '';
-      res.on('data', (chunk) => { body += chunk; });
-      res.on('end', () => {
-        console.error(`[Sokuji] [Main] Volcengine AST2: validation rejected: HTTP ${res.statusCode} — ${body.substring(0, 200)}`);
-        finish({ success: false, error: `Server rejected connection: HTTP ${res.statusCode} ${res.statusMessage}` });
-      });
-    });
-  });
+  wsHeaderRules.delete(host);
+  console.log(`[Sokuji] [Main] WS headers cleared for ${host}`);
+  return { success: true };
 });
 
 // Screen recording permission check for macOS system audio capture
@@ -858,184 +789,5 @@ ipcMain.handle('check-screen-recording-permission', async () => {
     console.error('[Sokuji] [Main] Error checking screen recording permission:', error);
     return { status: 'unknown', platform: 'darwin', error: error.message };
   }
-});
-
-// ── Edge TTS: WebSocket proxy via main process ───────────────────────────────
-// Browser WebSocket API cannot set custom headers. Bing's TTS endpoint
-// requires User-Agent + Origin headers. We run the WebSocket in the main
-// process and stream parsed MP3 audio chunks back to the renderer via IPC.
-
-const EDGE_TTS_TOKEN = '6A5AA1D4EAFF4E9FB37E23D68491D6F4';
-const EDGE_TTS_CHROMIUM_VERSION = '143.0.3650.75';
-const EDGE_TTS_CHROMIUM_MAJOR = EDGE_TTS_CHROMIUM_VERSION.split('.')[0];
-const EDGE_TTS_GEC_VERSION = `1-${EDGE_TTS_CHROMIUM_VERSION}`;
-
-function edgeTtsTimestamp() {
-  return new Date().toISOString().replace(/[-:.]/g, '').slice(0, -1);
-}
-
-function edgeTtsMakeConnectionId() {
-  return require('crypto').randomUUID().replace(/-/g, '');
-}
-
-function edgeTtsMakeMuid() {
-  return require('crypto').randomBytes(16).toString('hex').toUpperCase();
-}
-
-async function edgeTtsMakeSecMsGec() {
-  const crypto = require('crypto');
-  const winEpoch = 11644473600;
-  const secondsToNs = 1e9;
-  let ticks = Date.now() / 1000;
-  ticks += winEpoch;
-  ticks -= ticks % 300;
-  ticks *= secondsToNs / 100;
-  const payload = `${ticks.toFixed(0)}${EDGE_TTS_TOKEN}`;
-  return crypto.createHash('sha256').update(payload).digest('hex').toUpperCase();
-}
-
-function edgeTtsEscapeXml(text) {
-  return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;').replace(/'/g, '&apos;');
-}
-
-function edgeTtsRemoveInvalidXmlChars(text) {
-  return text.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F-\u009F]/g, ' ');
-}
-
-function edgeTtsNormalizeVoiceName(voice) {
-  const trimmed = voice.trim();
-  const providerMatch = /^([a-z]{2,}-[A-Z]{2,})-([^:]+):.+Neural$/.exec(trimmed);
-  if (providerMatch) {
-    return edgeTtsNormalizeVoiceName(`${providerMatch[1]}-${providerMatch[2]}Neural`);
-  }
-  const shortMatch = /^([a-z]{2,})-([A-Z]{2,})-(.+Neural)$/.exec(trimmed);
-  if (!shortMatch) return trimmed;
-  const [, lang] = shortMatch;
-  let [, , region, name] = shortMatch;
-  if (name.includes('-')) {
-    const [regionSuffix, ...nameParts] = name.split('-');
-    region += `-${regionSuffix}`;
-    name = nameParts.join('-');
-  }
-  return `Microsoft Server Speech Text to Speech Voice (${lang}-${region}, ${name})`;
-}
-
-function edgeTtsParseBinaryFrame(data) {
-  if (data.length < 2) throw new Error('binary frame too short');
-  const headerLength = (data[0] << 8) | data[1];
-  if (data.length < 2 + headerLength) throw new Error('binary frame truncated');
-  const headerText = data.slice(2, 2 + headerLength).toString('utf8');
-  const headers = {};
-  for (const line of headerText.split('\r\n')) {
-    const colonIndex = line.indexOf(':');
-    if (colonIndex > 0) headers[line.slice(0, colonIndex)] = line.slice(colonIndex + 1).trim();
-  }
-  return { headers, body: data.slice(2 + headerLength) };
-}
-
-let edgeTtsWs = null;
-
-ipcMain.handle('edge-tts-generate', async (event, payload) => {
-  const { requestId, text, voice, speed } = payload || {};
-  if (typeof requestId !== 'number') {
-    return { success: false, error: 'Missing requestId' };
-  }
-
-  if (edgeTtsWs) {
-    try { edgeTtsWs.close(); } catch (e) { /* ignore */ }
-    edgeTtsWs = null;
-  }
-
-  const voiceName = voice || 'en-US-AvaMultilingualNeural';
-  const speedPercent = Math.round(((speed || 1.0) - 1.0) * 100);
-
-  try {
-    const secMsGec = await edgeTtsMakeSecMsGec();
-    const connectionId = edgeTtsMakeConnectionId();
-    const ssmlRequestId = edgeTtsMakeConnectionId();
-
-    const wsUrl = `wss://speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v1?TrustedClientToken=${EDGE_TTS_TOKEN}&Sec-MS-GEC=${secMsGec}&Sec-MS-GEC-Version=${encodeURIComponent(EDGE_TTS_GEC_VERSION)}&ConnectionId=${connectionId}`;
-
-    console.log('[Sokuji] [Main] Edge TTS: connecting for voice:', voiceName, 'requestId:', requestId);
-
-    const rateStr = speedPercent >= 0 ? `+${speedPercent}%` : `${speedPercent}%`;
-    const ssml = `<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xml:lang='en-US'><voice name='${edgeTtsNormalizeVoiceName(voiceName)}'><prosody pitch='+0Hz' rate='${rateStr}' volume='+0%'>${edgeTtsEscapeXml(edgeTtsRemoveInvalidXmlChars(text))}</prosody></voice></speak>`;
-    const speechConfig = `X-Timestamp:${edgeTtsTimestamp()}\r\nContent-Type:application/json; charset=utf-8\r\nPath:speech.config\r\n\r\n{"context":{"synthesis":{"audio":{"metadataoptions":{"sentenceBoundaryEnabled":"false","wordBoundaryEnabled":"true"},"outputFormat":"audio-24khz-48kbitrate-mono-mp3"}}}}\r\n`;
-    const ssmlMessage = `X-RequestId:${ssmlRequestId}\r\nContent-Type:application/ssml+xml\r\nX-Timestamp:${edgeTtsTimestamp()}Z\r\nPath:ssml\r\n\r\n${ssml}`;
-
-    return new Promise((resolve) => {
-      const ws = new WebSocket(wsUrl, {
-        headers: {
-          'User-Agent': `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${EDGE_TTS_CHROMIUM_MAJOR}.0.0.0 Safari/537.36 Edg/${EDGE_TTS_CHROMIUM_MAJOR}.0.0.0`,
-          'Accept-Language': 'en-US,en;q=0.9',
-          'Pragma': 'no-cache',
-          'Cache-Control': 'no-cache',
-          'Origin': 'https://www.bing.com',
-          'Cookie': `muid=${edgeTtsMakeMuid()};`,
-        },
-      });
-      edgeTtsWs = ws;
-
-      ws.on('open', () => {
-        console.log('[Sokuji] [Main] Edge TTS: connected, sending SSML');
-        ws.send(speechConfig);
-        ws.send(ssmlMessage);
-      });
-
-      ws.on('message', (data, isBinary) => {
-        if (!mainWindow || mainWindow.isDestroyed()) return;
-
-        if (!isBinary) {
-          // Text frame — check for turn.end
-          const text = data.toString('utf8');
-          const separator = text.indexOf('\r\n\r\n');
-          const headerText = separator >= 0 ? text.slice(0, separator) : text;
-          if (headerText.includes('Path:turn.end')) {
-            ws.close();
-          }
-          return;
-        }
-
-        // Binary frame — parse and extract MP3 body
-        try {
-          const buf = Buffer.isBuffer(data) ? data : Buffer.from(data);
-          const { headers, body } = edgeTtsParseBinaryFrame(buf);
-          if (headers.Path === 'audio' && body.length > 0) {
-            mainWindow.webContents.send('edge-tts-audio-chunk', { requestId, mp3Data: body });
-          }
-        } catch (err) {
-          console.warn('[Sokuji] [Main] Edge TTS: frame parse error:', err.message);
-        }
-      });
-
-      ws.on('close', () => {
-        edgeTtsWs = null;
-        if (mainWindow && !mainWindow.isDestroyed()) {
-          mainWindow.webContents.send('edge-tts-done', { requestId });
-        }
-        resolve({ success: true });
-      });
-
-      ws.on('error', (err) => {
-        console.error('[Sokuji] [Main] Edge TTS: error:', err.message);
-        edgeTtsWs = null;
-        if (mainWindow && !mainWindow.isDestroyed()) {
-          mainWindow.webContents.send('edge-tts-error', { requestId, error: err.message });
-        }
-        resolve({ success: false, error: err.message });
-      });
-    });
-  } catch (err) {
-    return { success: false, error: err.message || String(err) };
-  }
-});
-
-ipcMain.handle('edge-tts-cancel', () => {
-  if (edgeTtsWs) {
-    try { edgeTtsWs.close(); } catch (e) { /* ignore */ }
-    edgeTtsWs = null;
-  }
-  return { success: true };
 });
 

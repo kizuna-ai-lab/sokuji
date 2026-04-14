@@ -111,33 +111,15 @@ function betterAuthAdapter(opts) {
     }
   );
 
-  session.defaultSession.webRequest.onBeforeSendHeaders(
-    filter,
-    (details, callback) => {
-      const { requestHeaders } = details;
-      const storedCookies = getCookies();
-
-      // Set origin and referer headers
-      if (opts.origin) {
-        // Ensure no trailing slash in origin
-        const cleanOrigin = opts.origin.endsWith('/') ? opts.origin.slice(0, -1) : opts.origin;
-
-        requestHeaders['Origin'] = cleanOrigin.toLowerCase();
-        requestHeaders['Referer'] = cleanOrigin.toLowerCase();
-      }
-
-      // Add stored cookies to the request
-      if (storedCookies && Object.keys(storedCookies).length > 0) {
-        const cookieStr = Object.entries(storedCookies)
-          .map(([name, value]) => `${name}=${value}`)
-          .join('; ');
-        requestHeaders['Cookie'] = cookieStr;
-        console.log('[BetterAuth Adapter] Sending cookies:', cookieStr);
-      }
-
-      callback({ requestHeaders });
-    }
-  );
+  // NOTE: onBeforeSendHeaders is NOT registered here because Electron only
+  // allows one listener per event. The combined handler lives in main.js's
+  // initWebSocketHeaderInjection() which handles both auth cookie injection
+  // and WebSocket header injection. We store the config for it to use.
+  betterAuthAdapter._sendHeadersConfig = {
+    filterPatterns,
+    origin: opts.origin,
+    getCookies,
+  };
 
   session.defaultSession.webRequest.onHeadersReceived(
     filter,
