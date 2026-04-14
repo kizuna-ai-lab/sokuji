@@ -4,7 +4,7 @@ AI-powered instant speech translation for all video meetings. Break language bar
 
 ## Features
 
-- **Real-time speech translation** using OpenAI & Google Gemini APIs
+- **Real-time speech translation** powered by multiple AI providers
 - **Smart site detection** - Shows supported sites when clicking the extension icon
 - **Seamless integration** with Google Meet, Microsoft Teams, Zoom, and Gather Town
 - **Virtual microphone** functionality for meeting integration
