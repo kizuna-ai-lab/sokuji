@@ -133,6 +133,8 @@ export class VolcengineAST2Client implements IClient {
   private async connectViaElectronHeaderInjection(): Promise<void> {
     // Register auth headers with the main process. The main process will
     // inject them into the WebSocket upgrade request via onBeforeSendHeaders.
+    // Headers are one-shot (consumed by the handler after injection), but we
+    // still clear on failure in case the upgrade request never fired.
     const host = new URL(WS_ENDPOINT).host;
     const result = await window.electron.invoke('ws-headers-set', {
       host,
@@ -150,8 +152,21 @@ export class VolcengineAST2Client implements IClient {
 
     this.headersRegistered = true;
 
-    // Now open a plain browser WebSocket — webRequest will inject the auth headers
-    return this.connectViaBrowserWebSocket();
+    try {
+      // Open a plain browser WebSocket — webRequest will inject the auth headers
+      await this.connectViaBrowserWebSocket();
+    } catch (error) {
+      // Clean up headers if the connection failed before the upgrade consumed them
+      this.clearElectronHeaders();
+      throw error;
+    }
+  }
+
+  private clearElectronHeaders(): void {
+    if (!this.headersRegistered) return;
+    this.headersRegistered = false;
+    const host = new URL(WS_ENDPOINT).host;
+    window.electron.invoke('ws-headers-clear', { host }).catch(() => {});
   }
 
   // ─── Extension path: declarativeNetRequest injects headers ─────────
@@ -185,8 +200,24 @@ export class VolcengineAST2Client implements IClient {
 
     this.headersRegistered = true;
 
-    // Now open a plain browser WebSocket — DNR rules will inject the auth headers
-    return this.connectViaBrowserWebSocket();
+    try {
+      // Open a plain browser WebSocket — DNR rules will inject the auth headers
+      await this.connectViaBrowserWebSocket();
+    } catch (error) {
+      // Clean up DNR rules if the connection failed
+      this.clearExtensionDNR();
+      throw error;
+    }
+  }
+
+  private clearExtensionDNR(): void {
+    if (!this.headersRegistered) return;
+    this.headersRegistered = false;
+    try {
+      chrome!.runtime.sendMessage({ type: 'VOLCENGINE_AST2_CLEAR_HEADERS' });
+    } catch {
+      // Ignore cleanup errors
+    }
   }
 
   // ─── Browser WebSocket (headers injected by platform layer above) ───
@@ -735,23 +766,12 @@ export class VolcengineAST2Client implements IClient {
       this.websocket = null;
     }
 
-    // Clean up header injection rules
-    if (this.headersRegistered) {
-      this.headersRegistered = false;
-      if (isElectron() && window.electron?.invoke) {
-        try {
-          const host = new URL(WS_ENDPOINT).host;
-          await window.electron.invoke('ws-headers-clear', { host });
-        } catch (e) {
-          // Ignore cleanup errors
-        }
-      } else if (isExtension()) {
-        try {
-          chrome!.runtime.sendMessage({ type: 'VOLCENGINE_AST2_CLEAR_HEADERS' });
-        } catch (e) {
-          // Ignore cleanup errors
-        }
-      }
+    // Clean up any remaining header injection rules (normally already
+    // consumed one-shot by the handler, but clear as a safety net)
+    if (isElectron() && window.electron?.invoke) {
+      this.clearElectronHeaders();
+    } else if (isExtension()) {
+      this.clearExtensionDNR();
     }
 
     this.isConnectedState = false;

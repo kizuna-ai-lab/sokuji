@@ -694,16 +694,32 @@ function initWebSocketHeaderInjection() {
   // Retrieve Better Auth config (stored by better-auth-adapter.js)
   const authConfig = betterAuthAdapter._sendHeadersConfig;
 
+  // Pre-parse auth URL matchers for safe origin+path comparison
+  const authMatchers = authConfig
+    ? authConfig.filterPatterns.map((pattern) => {
+        const base = pattern.replace(/\/\*$/, '');
+        const parsed = new URL(base);
+        return { origin: parsed.origin, pathname: parsed.pathname.replace(/\/$/, '') || '' };
+      })
+    : [];
+
   session.defaultSession.webRequest.onBeforeSendHeaders(
     { urls: ['<all_urls>'] },
     (details, callback) => {
       const { requestHeaders } = details;
 
       // ── Better Auth: inject cookies and origin for backend requests ──
-      if (authConfig) {
-        const isAuthRequest = authConfig.filterPatterns.some(
-          (pattern) => details.url.startsWith(pattern.replace('/*', '/')) || details.url.startsWith(pattern.replace('/*', ''))
-        );
+      if (authConfig && authMatchers.length > 0) {
+        let isAuthRequest = false;
+        try {
+          const reqUrl = new URL(details.url);
+          isAuthRequest = authMatchers.some(({ origin, pathname }) =>
+            reqUrl.origin === origin &&
+            (pathname === '' || reqUrl.pathname === pathname || reqUrl.pathname.startsWith(pathname + '/'))
+          );
+        } catch {
+          // Malformed URL — not an auth request
+        }
         if (isAuthRequest) {
           if (authConfig.origin) {
             const cleanOrigin = authConfig.origin.endsWith('/')
@@ -714,15 +730,16 @@ function initWebSocketHeaderInjection() {
           }
           const storedCookies = authConfig.getCookies();
           if (storedCookies && Object.keys(storedCookies).length > 0) {
-            const cookieStr = Object.entries(storedCookies)
+            requestHeaders['Cookie'] = Object.entries(storedCookies)
               .map(([name, value]) => `${name}=${value}`)
               .join('; ');
-            requestHeaders['Cookie'] = cookieStr;
           }
         }
       }
 
       // ── WebSocket: inject custom headers for provider connections ────
+      // One-shot: headers are consumed on first use and removed from the map,
+      // so they only apply to the intended upgrade handshake.
       if (details.resourceType === 'webSocket') {
         try {
           const url = new URL(details.url);
@@ -731,6 +748,7 @@ function initWebSocketHeaderInjection() {
             for (const [name, value] of headers.entries()) {
               requestHeaders[name] = value;
             }
+            wsHeaderRules.delete(url.host);
           }
         } catch {
           // Invalid URL — pass through unchanged
