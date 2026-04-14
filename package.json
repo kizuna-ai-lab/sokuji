@@ -5,7 +5,7 @@
   "private": true,
   "main": "dist-electron/main.js",
   "homepage": "./",
-  "description": "Live speech translation application using OpenAI and Google Gemini APIs",
+  "description": "AI-powered live speech translation application",
   "author": {
     "name": "Kizuna AI Lab",
     "email": "contact@kizuna.ai"
