@@ -4,11 +4,15 @@
  * Uses protobuf binary over WebSocket with simple HTTP header auth.
  * Endpoint: wss://openspeech.bytedance.com/api/v4/ast/v2/translate
  *
- * Platform-specific WebSocket strategies:
- *   - Electron: IPC proxy — main process creates WebSocket with custom headers via Node.js `ws`.
+ * Platform-specific header injection strategies:
+ *   - Electron: session.webRequest.onBeforeSendHeaders injects auth headers into
+ *     the WebSocket upgrade request. Renderer registers headers via IPC, then opens
+ *     a standard browser WebSocket.
  *   - Extension: declarativeNetRequest — background service worker injects auth headers into
  *     the WebSocket upgrade request, then the side panel opens a plain browser WebSocket.
  *   - Web: fallback — plain WebSocket without auth headers (not expected to work).
+ *
+ * All platforms use a direct browser WebSocket in the renderer — no IPC frame relay.
  *
  * Protocol flow:
  *   1. Connect WebSocket with auth headers
@@ -52,8 +56,7 @@ export class VolcengineAST2Client implements IClient {
   private accessToken: string;
   private resourceId: string;
   private isConnectedState = false;
-  private useIpc = false; // true when running in Electron with IPC proxy
-  private websocket: WebSocket | null = null; // only used in non-Electron fallback
+  private websocket: WebSocket | null = null;
   private eventHandlers: ClientEventHandlers = {};
   private conversationItems: ConversationItem[] = [];
   private currentConfig: VolcengineAST2SessionConfig | null = null;
@@ -82,10 +85,8 @@ export class VolcengineAST2Client implements IClient {
   private keepaliveInterval: ReturnType<typeof setInterval> | null = null;
   private lastAudioSentTime: number = 0;
 
-  // IPC handler references for targeted removal (Electron only)
-  private ipcMessageHandler: ((payload: any) => void) | null = null;
-  private ipcErrorHandler: ((payload: any) => void) | null = null;
-  private ipcCloseHandler: ((payload: any) => void) | null = null;
+  // Whether we registered WebSocket headers that need cleanup (Electron/Extension)
+  private headersRegistered = false;
 
   constructor(appId: string, accessToken: string, resourceId: string = 'volc.service_type.10053') {
     this.appId = appId;
@@ -97,12 +98,8 @@ export class VolcengineAST2Client implements IClient {
     return `volcengine_ast2_${prefix}_${++this.itemCounter}`;
   }
 
-  // ─── Send binary data to the WebSocket (IPC or browser) ────────────
   private sendData(data: Uint8Array): void {
-    if (this.useIpc) {
-      // Fire-and-forget send via IPC — errors are logged by main process
-      window.electron.invoke('volcengine-ast2-send', { connectionId: this.connectionId, data });
-    } else if (this.websocket && this.websocket.readyState === WebSocket.OPEN) {
+    if (this.websocket && this.websocket.readyState === WebSocket.OPEN) {
       this.websocket.send(data);
     }
   }
@@ -124,7 +121,7 @@ export class VolcengineAST2Client implements IClient {
     this.ttsSentenceTargetItemId = null;
 
     if (isElectron() && window.electron?.invoke) {
-      return this.connectViaIpc();
+      return this.connectViaElectronHeaderInjection();
     }
     if (isExtension()) {
       return this.connectViaExtensionDNR();
@@ -132,128 +129,48 @@ export class VolcengineAST2Client implements IClient {
     return this.connectViaBrowserWebSocket();
   }
 
-  // ─── Electron IPC path ──────────────────────────────────────────────
-  private async connectViaIpc(): Promise<void> {
-    this.useIpc = true;
-
-    return new Promise(async (resolve, reject) => {
-      try {
-        // Register IPC listeners BEFORE connecting so we don't miss early messages.
-        // Each handler filters by connectionId so multiple clients don't interfere.
-        this.ipcMessageHandler = (payload: { connectionId: string; data: Buffer | Uint8Array }) => {
-          if (payload.connectionId !== this.connectionId) return;
-          const bytes = payload.data instanceof Uint8Array ? payload.data : new Uint8Array(payload.data);
-          this.handleMessage(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength));
-        };
-
-        this.ipcErrorHandler = (payload: { connectionId: string; error: string }) => {
-          if (payload.connectionId !== this.connectionId) return;
-          console.error('[VolcengineAST2Client] IPC WebSocket error:', payload.error);
-          this.eventHandlers.onError?.(new Error(payload.error));
-        };
-
-        this.ipcCloseHandler = (payload: { connectionId: string; code: number; reason: string }) => {
-          if (payload.connectionId !== this.connectionId) return;
-          console.log('[VolcengineAST2Client] IPC WebSocket closed:', payload.code, payload.reason);
-          this.isConnectedState = false;
-
-          this.eventHandlers.onRealtimeEvent?.({
-            source: 'client',
-            event: {
-              type: 'session.closed',
-              data: {
-                status: 'disconnected',
-                provider: 'volcengine_ast2',
-                timestamp: Date.now(),
-                code: payload.code,
-                reason: payload.reason,
-              }
-            }
-          });
-
-          this.eventHandlers.onClose?.(payload);
-        };
-
-        window.electron.receive('volcengine-ast2-message', this.ipcMessageHandler);
-        window.electron.receive('volcengine-ast2-error', this.ipcErrorHandler);
-        window.electron.receive('volcengine-ast2-close', this.ipcCloseHandler);
-
-        // Ask main process to create the WebSocket with custom headers
-        const result = await window.electron.invoke('volcengine-ast2-connect', {
-          appId: this.appId,
-          accessToken: this.accessToken,
-          resourceId: this.resourceId,
-          connectionId: this.connectionId,
-        });
-
-        if (!result?.success) {
-          this.cleanupIpcListeners();
-          reject(new Error(result?.error || 'Failed to connect Volcengine AST2 WebSocket'));
-          return;
-        }
-
-        console.log('[VolcengineAST2Client] IPC WebSocket connected');
-        this.isConnectedState = true;
-
-        this.eventHandlers.onRealtimeEvent?.({
-          source: 'client',
-          event: {
-            type: 'session.created',
-            data: { status: 'connected', provider: 'volcengine_ast2', timestamp: Date.now() }
-          }
-        });
-
-        // Send StartSession and wait for SessionStarted with timeout
-        this.sendStartSession();
-
-        const CONNECTION_TIMEOUT = 30000;
-        const connectionTimer = setTimeout(() => {
-          this.sessionStartedResolve = null;
-          this.sessionStartedReject = null;
-          this.cleanupIpcListeners();
-          window.electron.invoke('volcengine-ast2-disconnect', { connectionId: this.connectionId }).catch(() => {});
-          this.isConnectedState = false;
-          reject(new Error('Volcengine AST2 connection timeout'));
-        }, CONNECTION_TIMEOUT);
-
-        this.sessionStartedResolve = () => {
-          clearTimeout(connectionTimer);
-          this.eventHandlers.onOpen?.();
-          resolve();
-        };
-        this.sessionStartedReject = (error: Error) => {
-          clearTimeout(connectionTimer);
-          reject(error);
-        };
-      } catch (error) {
-        console.error('[VolcengineAST2Client] IPC connection error:', error);
-        this.cleanupIpcListeners();
-        reject(error);
-      }
+  // ─── Electron path: session.webRequest injects headers ──────────────
+  private async connectViaElectronHeaderInjection(): Promise<void> {
+    // Register auth headers with the main process. The main process will
+    // inject them into the WebSocket upgrade request via onBeforeSendHeaders.
+    // Headers are one-shot (consumed by the handler after injection), but we
+    // still clear on failure in case the upgrade request never fired.
+    const host = new URL(WS_ENDPOINT).host;
+    const result = await window.electron.invoke('ws-headers-set', {
+      host,
+      headers: {
+        'X-Api-App-Key': this.appId,
+        'X-Api-Access-Key': this.accessToken,
+        'X-Api-Resource-Id': this.resourceId,
+        'X-Api-Connect-Id': this.connectionId,
+      },
     });
+
+    if (!result?.success) {
+      throw new Error(`Failed to register WS headers: ${result?.error}`);
+    }
+
+    this.headersRegistered = true;
+
+    try {
+      // Open a plain browser WebSocket — webRequest will inject the auth headers
+      await this.connectViaBrowserWebSocket();
+    } catch (error) {
+      // Clean up headers if the connection failed before the upgrade consumed them
+      this.clearElectronHeaders();
+      throw error;
+    }
   }
 
-  private cleanupIpcListeners(): void {
-    if (window.electron?.removeListener) {
-      if (this.ipcMessageHandler) {
-        window.electron.removeListener('volcengine-ast2-message', this.ipcMessageHandler);
-        this.ipcMessageHandler = null;
-      }
-      if (this.ipcErrorHandler) {
-        window.electron.removeListener('volcengine-ast2-error', this.ipcErrorHandler);
-        this.ipcErrorHandler = null;
-      }
-      if (this.ipcCloseHandler) {
-        window.electron.removeListener('volcengine-ast2-close', this.ipcCloseHandler);
-        this.ipcCloseHandler = null;
-      }
-    }
+  private clearElectronHeaders(): void {
+    if (!this.headersRegistered) return;
+    this.headersRegistered = false;
+    const host = new URL(WS_ENDPOINT).host;
+    window.electron.invoke('ws-headers-clear', { host }).catch(() => {});
   }
 
   // ─── Extension path: declarativeNetRequest injects headers ─────────
   private async connectViaExtensionDNR(): Promise<void> {
-    this.useIpc = false;
-
     // Ask background service worker to register DNR rules that inject
     // auth headers into the WebSocket upgrade request
     const dnrResult = await new Promise<{ success: boolean; error?: string }>((resolve) => {
@@ -281,14 +198,30 @@ export class VolcengineAST2Client implements IClient {
       throw new Error(`Failed to set DNR headers: ${dnrResult.error}`);
     }
 
-    // Now open a plain browser WebSocket — DNR rules will inject the auth headers
-    return this.connectViaBrowserWebSocket();
+    this.headersRegistered = true;
+
+    try {
+      // Open a plain browser WebSocket — DNR rules will inject the auth headers
+      await this.connectViaBrowserWebSocket();
+    } catch (error) {
+      // Clean up DNR rules if the connection failed
+      this.clearExtensionDNR();
+      throw error;
+    }
   }
 
-  // ─── Browser WebSocket fallback (no custom headers — may not auth) ─
-  private connectViaBrowserWebSocket(): Promise<void> {
-    this.useIpc = false;
+  private clearExtensionDNR(): void {
+    if (!this.headersRegistered) return;
+    this.headersRegistered = false;
+    try {
+      chrome!.runtime.sendMessage({ type: 'VOLCENGINE_AST2_CLEAR_HEADERS' });
+    } catch {
+      // Ignore cleanup errors
+    }
+  }
 
+  // ─── Browser WebSocket (headers injected by platform layer above) ───
+  private connectViaBrowserWebSocket(): Promise<void> {
     return new Promise((resolve, reject) => {
       try {
         this.websocket = new WebSocket(WS_ENDPOINT);
@@ -314,9 +247,11 @@ export class VolcengineAST2Client implements IClient {
           this.handleMessage(event.data as ArrayBuffer);
         };
 
-        this.websocket.onerror = (error) => {
+        this.websocket.onerror = (event) => {
           clearTimeout(connectionTimer);
-          console.error('[VolcengineAST2Client] WebSocket error:', error);
+          const url = (event.target as WebSocket)?.url || WS_ENDPOINT;
+          const error = new Error(`WebSocket connection to ${url} failed`);
+          console.error('[VolcengineAST2Client] WebSocket error:', error.message);
           this.eventHandlers.onError?.(error);
           reject(error);
         };
@@ -375,7 +310,7 @@ export class VolcengineAST2Client implements IClient {
 
   private sendStartSession(): void {
     if (!this.currentConfig) return;
-    if (!this.useIpc && (!this.websocket || this.websocket.readyState !== WebSocket.OPEN)) return;
+    if (!this.websocket || this.websocket.readyState !== WebSocket.OPEN) return;
 
     const isTextOnly = this.currentConfig.textOnly || false;
 
@@ -826,26 +761,17 @@ export class VolcengineAST2Client implements IClient {
       // Ignore send errors during disconnect
     }
 
-    if (this.useIpc) {
-      // Disconnect the main-process WebSocket and clean up IPC listeners
-      try {
-        await window.electron.invoke('volcengine-ast2-disconnect', { connectionId: this.connectionId });
-      } catch (e) {
-        // Ignore cleanup errors
-      }
-      this.cleanupIpcListeners();
-    } else if (this.websocket) {
+    if (this.websocket) {
       this.websocket.close();
       this.websocket = null;
     }
 
-    // Clean up DNR rules in extension context
-    if (isExtension()) {
-      try {
-        chrome!.runtime.sendMessage({ type: 'VOLCENGINE_AST2_CLEAR_HEADERS' });
-      } catch (e) {
-        // Ignore cleanup errors
-      }
+    // Clean up any remaining header injection rules (normally already
+    // consumed one-shot by the handler, but clear as a safety net)
+    if (isElectron() && window.electron?.invoke) {
+      this.clearElectronHeaders();
+    } else if (isExtension()) {
+      this.clearExtensionDNR();
     }
 
     this.isConnectedState = false;
@@ -874,9 +800,6 @@ export class VolcengineAST2Client implements IClient {
   }
 
   isConnected(): boolean {
-    if (this.useIpc) {
-      return this.isConnectedState;
-    }
     return this.isConnectedState && this.websocket?.readyState === WebSocket.OPEN;
   }
 
@@ -1001,72 +924,62 @@ export class VolcengineAST2Client implements IClient {
       created: Date.now() / 1000
     }];
 
-    // In Electron, perform real credential validation via IPC WebSocket proxy
-    if (isElectron() && window.electron?.invoke) {
-      try {
-        const result = await window.electron.invoke('volcengine-ast2-validate', {
-          appId: appIdStr.trim(),
-          accessToken: accessTokenStr.trim(),
-          resourceId: 'volc.service_type.10053',
-        });
-        if (result?.success) {
-          return {
-            validation: { valid: true, message: 'API credentials verified', validating: false },
-            models,
-          };
-        }
-        return {
-          validation: {
-            valid: false,
-            message: result?.error || 'Credential verification failed',
-            validating: false,
-          },
-          models: [],
-        };
-      } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : 'Credential verification failed';
-        return {
-          validation: { valid: false, message, validating: false },
-          models: [],
-        };
-      }
-    }
-
-    // Extension: real validation via DNR header injection + WebSocket connect-disconnect
-    if (isExtension()) {
+    // Electron / Extension: real validation via header injection + WebSocket connect-disconnect
+    if ((isElectron() && window.electron?.invoke) || isExtension()) {
       try {
         const connectionId = uuidv4();
+        const host = new URL(WS_ENDPOINT).host;
+        const platform = isElectron() ? 'electron' : 'extension';
 
-        // Register DNR rules for this validation attempt
-        const dnrResult = await new Promise<{ success: boolean; error?: string }>((resolve) => {
-          chrome!.runtime.sendMessage(
-            {
-              type: 'VOLCENGINE_AST2_SET_HEADERS',
-              credentials: {
-                appKey: appIdStr.trim(),
-                accessKey: accessTokenStr.trim(),
-                resourceId: 'volc.service_type.10053',
-                connectId: connectionId,
-              },
+        // Register headers for the validation WebSocket
+        if (isElectron()) {
+          const result = await window.electron.invoke('ws-headers-set', {
+            host,
+            headers: {
+              'X-Api-App-Key': appIdStr.trim(),
+              'X-Api-Access-Key': accessTokenStr.trim(),
+              'X-Api-Resource-Id': 'volc.service_type.10053',
+              'X-Api-Connect-Id': connectionId,
             },
-            (response: { success: boolean; error?: string }) => {
-              if (chrome!.runtime.lastError) {
-                resolve({ success: false, error: chrome!.runtime.lastError.message });
-              } else {
-                resolve(response || { success: false, error: 'No response' });
+          });
+          if (!result?.success) {
+            return {
+              validation: { valid: false, message: `Header setup failed: ${result?.error}`, validating: false },
+              models: [],
+            };
+          }
+        } else {
+          // Extension: use DNR
+          const dnrResult = await new Promise<{ success: boolean; error?: string }>((resolve) => {
+            chrome!.runtime.sendMessage(
+              {
+                type: 'VOLCENGINE_AST2_SET_HEADERS',
+                credentials: {
+                  appKey: appIdStr.trim(),
+                  accessKey: accessTokenStr.trim(),
+                  resourceId: 'volc.service_type.10053',
+                  connectId: connectionId,
+                },
+              },
+              (response: { success: boolean; error?: string }) => {
+                if (chrome!.runtime.lastError) {
+                  resolve({ success: false, error: chrome!.runtime.lastError.message });
+                } else {
+                  resolve(response || { success: false, error: 'No response' });
+                }
               }
-            }
-          );
-        });
+            );
+          });
 
-        if (!dnrResult.success) {
-          return {
-            validation: { valid: false, message: `DNR setup failed: ${dnrResult.error}`, validating: false },
-            models: [],
-          };
+          if (!dnrResult.success) {
+            return {
+              validation: { valid: false, message: `DNR setup failed: ${dnrResult.error}`, validating: false },
+              models: [],
+            };
+          }
         }
 
-        // Try to connect a WebSocket — DNR rules will inject auth headers
+        // Try to connect a WebSocket — headers will be injected by the platform layer
         const validationResult = await new Promise<{ valid: boolean; message: string }>((resolve) => {
           const timeout = setTimeout(() => {
             ws.close();
@@ -1092,7 +1005,7 @@ export class VolcengineAST2Client implements IClient {
                 Sequence: 0,
               },
               event: EventType.StartSession,
-              user: { uid: 'validation', platform: 'extension' },
+              user: { uid: 'validation', platform },
               sourceAudio: { format: 'pcm', rate: INPUT_SAMPLE_RATE, bits: 16, channel: 1 },
               targetAudio: { format: 'ogg_opus', rate: OUTPUT_SAMPLE_RATE, bits: 16, channel: 1 },
               request: { mode: 's2s', sourceLanguage: 'zh', targetLanguage: 'en' },
@@ -1131,8 +1044,12 @@ export class VolcengineAST2Client implements IClient {
           };
         });
 
-        // Clean up DNR rules after validation
-        chrome!.runtime.sendMessage({ type: 'VOLCENGINE_AST2_CLEAR_HEADERS' });
+        // Clean up header rules after validation
+        if (isElectron()) {
+          window.electron.invoke('ws-headers-clear', { host }).catch(() => {});
+        } else {
+          chrome!.runtime.sendMessage({ type: 'VOLCENGINE_AST2_CLEAR_HEADERS' });
+        }
 
         return {
           validation: { ...validationResult, validating: false },
