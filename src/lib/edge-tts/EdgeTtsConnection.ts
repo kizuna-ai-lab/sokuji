@@ -1,23 +1,15 @@
 /**
  * EdgeTtsConnection — Platform-aware WebSocket connection to Bing TTS.
  *
- * - Electron: proxies via main process IPC (Node.js `ws` with custom headers)
- * - Extension: uses declarativeNetRequest to inject headers, then connects directly
+ * - Electron: session.webRequest.onBeforeSendHeaders injects User-Agent header,
+ *   then connects via a standard browser WebSocket (same as extension path).
+ * - Extension: uses declarativeNetRequest to inject headers, then connects directly.
  *
  * Streams parsed MP3 audio chunks back to the caller via callbacks.
  *
- * IMPORTANT: Electron IPC listeners are registered ONCE (lazily) and never
- * removed during the instance's lifetime. Electron's contextBridge creates a
- * new function proxy every time a function crosses the boundary, so WeakMap-
- * based listener tracking in the preload is broken — removeListener never
- * matches and old listeners accumulate. We work around this by keeping a
- * single set of listeners that routes to the current callback references.
- *
  * Correlating events across overlapping requests: each generate() call gets
- * a monotonically increasing requestId. Incoming IPC events carry the
- * requestId they were produced for, and stale events (id !== currentRequestId)
- * are ignored. This prevents a late edge-tts-done from a prior request from
- * resolving the next generate() call.
+ * a monotonically increasing requestId. Late events from a prior request
+ * (id !== currentRequestId) are ignored.
  */
 
 import { isElectron, isExtension } from '../../utils/environment';
@@ -30,6 +22,7 @@ import {
   parseBinaryAudioFrame,
   makeConnectionId,
   DEFAULT_VOICE,
+  EDGE_TTS_CHROMIUM_MAJOR,
 } from './edgeTts';
 
 export interface EdgeTtsGenerateOptions {
@@ -42,34 +35,20 @@ type Mp3ChunkCallback = (mp3Data: Uint8Array) => void;
 type DoneCallback = () => void;
 type ErrorCallback = (error: string) => void;
 
-/** IPC payload shapes (main → renderer). `mp3Data` is Uint8Array after Electron
- *  serialisation (renderers don't have Node's `Buffer`). */
-interface EdgeTtsAudioChunkPayload {
-  requestId: number;
-  mp3Data: Uint8Array | ArrayBuffer;
-}
-interface EdgeTtsTerminalPayload {
-  requestId: number;
-}
-interface EdgeTtsErrorPayload {
-  requestId: number;
-  error: string;
-}
+const EDGE_TTS_WS_HOST = 'speech.platform.bing.com';
 
 export class EdgeTtsConnection {
   private onMp3Chunk: Mp3ChunkCallback | null = null;
   private onDone: DoneCallback | null = null;
   private onError: ErrorCallback | null = null;
 
-  // Per-call request id used to filter out stale IPC events from earlier generations
+  // Per-call request id used to filter out stale events from earlier generations
   private currentRequestId = 0;
 
-  // Electron: IPC listeners are registered once, lazily
-  private electronListenersRegistered = false;
-
-  // Extension: WebSocket per call
+  // WebSocket per call (used in both Electron and Extension)
   private ws: WebSocket | null = null;
   private dnrSet = false;
+  private electronHeadersSet = false;
 
   /**
    * Generate speech and stream MP3 chunks via callbacks.
@@ -84,27 +63,15 @@ export class EdgeTtsConnection {
     this.onDone = onDone;
     this.onError = onError;
 
-    if (isElectron()) {
-      await this.generateElectron(options);
-    } else if (isExtension()) {
-      await this.generateExtension(options);
-    } else {
-      // Web environment — try extension path (may work if no header check)
-      await this.generateExtension(options);
-    }
+    await this.generateViaWebSocket(options);
   }
 
   /**
    * Cancel any in-progress generation and clean up.
-   * Note: Electron IPC listeners are NOT removed (see class comment).
    */
   dispose(): void {
-    // Bump request id so any in-flight late IPC events are ignored
+    // Bump request id so any in-flight late events are ignored
     this.currentRequestId++;
-
-    if (isElectron() && window.electron) {
-      window.electron.invoke('edge-tts-cancel').catch(() => {});
-    }
 
     if (this.ws) {
       try { this.ws.close(); } catch { /* ignore */ }
@@ -113,107 +80,18 @@ export class EdgeTtsConnection {
     if (this.dnrSet && isExtension()) {
       this.clearExtensionDNR();
     }
+    if (this.electronHeadersSet && isElectron()) {
+      this.clearElectronHeaders();
+    }
 
     this.onMp3Chunk = null;
     this.onDone = null;
     this.onError = null;
   }
 
-  // ── Electron path ────────────────────────────────────────────────────
+  // ── Unified WebSocket path ──────────────────────────────────────────
 
-  private ensureElectronListeners(): void {
-    if (this.electronListenersRegistered) return;
-
-    // Handlers are created once and persist. They check requestId against the
-    // currently active generation and drop stale events from earlier requests.
-    window.electron.receive('edge-tts-audio-chunk', (data: EdgeTtsAudioChunkPayload) => {
-      if (data.requestId !== this.currentRequestId) return;
-      // Always copy into a fresh Uint8Array with an exactly-sized backing
-      // buffer. Electron IPC may deliver a Uint8Array view whose underlying
-      // ArrayBuffer is larger than the view (e.g. from an internal buffer
-      // pool). Downstream code transfers `.buffer` to the worker, which would
-      // include the extra bytes and corrupt MP3 decoding. Constructing a new
-      // Uint8Array from a typed-array source copies the bytes into a
-      // standalone buffer, guaranteeing mp3.buffer.byteLength === mp3.byteLength.
-      const src = data.mp3Data instanceof ArrayBuffer
-        ? new Uint8Array(data.mp3Data)
-        : data.mp3Data;
-      const mp3 = new Uint8Array(src);
-      this.onMp3Chunk?.(mp3);
-    });
-
-    window.electron.receive('edge-tts-done', (data: EdgeTtsTerminalPayload) => {
-      if (data.requestId !== this.currentRequestId) return;
-      this.onDone?.();
-    });
-
-    window.electron.receive('edge-tts-error', (data: EdgeTtsErrorPayload) => {
-      if (data.requestId !== this.currentRequestId) return;
-      this.onError?.(data.error);
-    });
-
-    this.electronListenersRegistered = true;
-  }
-
-  private async generateElectron(options: EdgeTtsGenerateOptions): Promise<void> {
-    const { text, voice, speed } = options;
-
-    // Install IPC listeners on first call (idempotent)
-    this.ensureElectronListeners();
-
-    // Allocate a fresh request id for this call. Incoming IPC events will be
-    // filtered against `this.currentRequestId` in ensureElectronListeners.
-    const requestId = ++this.currentRequestId;
-
-    return new Promise<void>((resolve, reject) => {
-      // Wrap the caller's callbacks so we can resolve/reject this promise
-      // exactly once, whichever event arrives first.
-      let settled = false;
-      const originalOnDone = this.onDone;
-      const originalOnError = this.onError;
-
-      const finish = () => {
-        this.onDone = originalOnDone;
-        this.onError = originalOnError;
-      };
-
-      this.onDone = () => {
-        if (settled) return;
-        settled = true;
-        finish();
-        originalOnDone?.();
-        resolve();
-      };
-
-      this.onError = (error: string) => {
-        if (settled) return;
-        settled = true;
-        finish();
-        originalOnError?.(error);
-        reject(new Error(error));
-      };
-
-      // Ask main process to start streaming. The requestId is echoed back
-      // on every IPC event so we can discard events from earlier requests.
-      window.electron.invoke('edge-tts-generate', { requestId, text, voice, speed }).then(
-        (result: { success: boolean; error?: string }) => {
-          if (!result.success && !settled) {
-            const err = result.error || 'Edge TTS generation failed';
-            this.onError?.(err);
-          }
-          // On success, resolution is driven by the 'edge-tts-done' IPC event
-        },
-      ).catch((err: Error) => {
-        if (!settled) {
-          this.onError?.(err.message);
-        }
-      });
-    });
-  }
-
-  // ── Extension path ───────────────────────────────────────────────────
-
-  private async generateExtension(options: EdgeTtsGenerateOptions): Promise<void> {
+  private async generateViaWebSocket(options: EdgeTtsGenerateOptions): Promise<void> {
     const { text, voice, speed } = options;
     const voiceName = voice || DEFAULT_VOICE;
     const speedPercent = Math.round(((speed || 1.0) - 1.0) * 100);
@@ -221,12 +99,15 @@ export class EdgeTtsConnection {
     // Bump request id so late events from a prior call are ignored
     const myRequestId = ++this.currentRequestId;
 
-    // Set DNR headers before connecting. If any step after this throws before
-    // WebSocket close/error fires, we must clear DNR rules manually so the
-    // injected header isn't left active indefinitely.
+    // Set up header injection before connecting
     const shouldManageDnr = isExtension();
+    const shouldManageElectronHeaders = isElectron() && !!window.electron?.invoke;
+
     if (shouldManageDnr) {
       await this.setExtensionDNR();
+    }
+    if (shouldManageElectronHeaders) {
+      await this.setElectronHeaders();
     }
 
     let wsUrl: string;
@@ -239,6 +120,9 @@ export class EdgeTtsConnection {
     } catch (err) {
       if (shouldManageDnr && this.dnrSet) {
         this.clearExtensionDNR();
+      }
+      if (shouldManageElectronHeaders && this.electronHeadersSet) {
+        this.clearElectronHeaders();
       }
       throw err;
     }
@@ -257,6 +141,9 @@ export class EdgeTtsConnection {
       } catch (err) {
         if (shouldManageDnr && this.dnrSet) {
           this.clearExtensionDNR();
+        }
+        if (shouldManageElectronHeaders && this.electronHeadersSet) {
+          this.clearElectronHeaders();
         }
         reject(err instanceof Error ? err : new Error(String(err)));
         return;
@@ -300,6 +187,9 @@ export class EdgeTtsConnection {
         if (shouldManageDnr && this.dnrSet) {
           this.clearExtensionDNR();
         }
+        if (shouldManageElectronHeaders && this.electronHeadersSet) {
+          this.clearElectronHeaders();
+        }
         settle(() => {
           if (myRequestId !== this.currentRequestId) {
             // A newer request superseded us — stay silent.
@@ -322,6 +212,9 @@ export class EdgeTtsConnection {
         if (shouldManageDnr && this.dnrSet) {
           this.clearExtensionDNR();
         }
+        if (shouldManageElectronHeaders && this.electronHeadersSet) {
+          this.clearElectronHeaders();
+        }
         settle(() => {
           if (myRequestId !== this.currentRequestId) {
             resolve();
@@ -335,9 +228,31 @@ export class EdgeTtsConnection {
     });
   }
 
+  // ── Electron header injection ───────────────────────────────────────
+
+  private async setElectronHeaders(): Promise<void> {
+    const result = await window.electron.invoke('ws-headers-set', {
+      host: EDGE_TTS_WS_HOST,
+      headers: {
+        'User-Agent': `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${EDGE_TTS_CHROMIUM_MAJOR}.0.0.0 Safari/537.36 Edg/${EDGE_TTS_CHROMIUM_MAJOR}.0.0.0`,
+      },
+    });
+    if (!result?.success) {
+      throw new Error(`Failed to set WS headers: ${result?.error}`);
+    }
+    this.electronHeadersSet = true;
+  }
+
+  private clearElectronHeaders(): void {
+    this.electronHeadersSet = false;
+    window.electron.invoke('ws-headers-clear', { host: EDGE_TTS_WS_HOST }).catch(() => {});
+  }
+
+  // ── Extension DNR ───────────────────────────────────────────────────
+
   private async setExtensionDNR(): Promise<void> {
     return new Promise<void>((resolve, reject) => {
-      chrome.runtime.sendMessage(
+      chrome!.runtime.sendMessage(
         { type: 'EDGE_TTS_SET_HEADERS' },
         (response: { success: boolean; error?: string }) => {
           if (response?.success) {
@@ -353,7 +268,7 @@ export class EdgeTtsConnection {
 
   private clearExtensionDNR(): void {
     this.dnrSet = false;
-    chrome.runtime.sendMessage({ type: 'EDGE_TTS_CLEAR_HEADERS' }, () => {
+    chrome!.runtime.sendMessage({ type: 'EDGE_TTS_CLEAR_HEADERS' }, () => {
       // Fire-and-forget
     });
   }

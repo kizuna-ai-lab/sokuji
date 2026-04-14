@@ -71,7 +71,7 @@ module.exports = {
         name: 'Sokuji',
         authors: 'Kizuna AI Lab',
         exe: 'sokuji.exe',
-        description: 'Live speech translation application using OpenAI and Google Gemini APIs',
+        description: 'AI-powered live speech translation application',
         setupIcon: 'assets/icon.ico',
         iconUrl: 'https://raw.githubusercontent.com/kizuna-ai-lab/sokuji/main/assets/icon.ico',
         noMsi: true
