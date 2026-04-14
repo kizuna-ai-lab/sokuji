@@ -57,14 +57,6 @@ const listenerMap = new WeakMap();
 const validReceiveChannels = [
   'fromMain',
   'audio-status',
-  // Volcengine AST 2.0 WebSocket proxy events (main → renderer)
-  'volcengine-ast2-message',
-  'volcengine-ast2-error',
-  'volcengine-ast2-close',
-  // Edge TTS WebSocket proxy events (main → renderer)
-  'edge-tts-audio-chunk',
-  'edge-tts-done',
-  'edge-tts-error',
   // Auto-update channels (main → renderer)
   'update-status',
   'update-progress',
@@ -128,14 +120,9 @@ contextBridge.exposeInMainWorld(
         'disable-loopback-audio',
         // Linux: fix PipeWire monitor source volume after loopback capture starts
         'fix-monitor-volume',
-        // Volcengine AST 2.0 WebSocket proxy (renderer → main)
-        'volcengine-ast2-connect',
-        'volcengine-ast2-send',
-        'volcengine-ast2-disconnect',
-        'volcengine-ast2-validate',
-        // Edge TTS WebSocket proxy (renderer → main)
-        'edge-tts-generate',
-        'edge-tts-cancel',
+        // WebSocket header injection (renderer → main)
+        'ws-headers-set',
+        'ws-headers-clear',
         // Auto-update channels (renderer → main)
         'update-check',
         'update-download',
