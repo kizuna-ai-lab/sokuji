@@ -619,15 +619,17 @@ export class ModernBrowserAudioService implements IAudioService {
     
     // Start recording with callback that handles both AI and passthrough
     await this.recorder.record((data) => {
+      // Handle passthrough BEFORE the external callback, because some clients
+      // (e.g. LocalInferenceClient) transfer the audio buffer to a Worker via
+      // postMessage, which detaches/neuters the ArrayBuffer.  Passthrough must
+      // read the buffer while it is still valid.  (#177)
+      if (data.isPassthrough && data.mono) {
+        this.handlePassthroughAudio(data.mono, data.passthroughVolume || 0.3);
+      }
+
       // Forward to the external callback (MainPanel will send to AI)
       if (this.recordingCallback) {
         this.recordingCallback(data);
-      }
-      
-      // Handle passthrough internally if enabled
-      // Check the data object for passthrough info (as set by ModernAudioRecorder)
-      if (data.isPassthrough && data.mono) {
-        this.handlePassthroughAudio(data.mono, data.passthroughVolume || 0.3);
       }
     });
   }
@@ -676,12 +678,13 @@ export class ModernBrowserAudioService implements IAudioService {
     // Resume recording if it was active
     if (wasRecording && savedCallback) {
       await this.recorder.record((data) => {
-        if (savedCallback) {
-          savedCallback(data);
-        }
-        
+        // Passthrough before external callback — see #177
         if (data.isPassthrough && data.mono) {
           this.handlePassthroughAudio(data.mono, data.passthroughVolume || 0.3);
+        }
+
+        if (savedCallback) {
+          savedCallback(data);
         }
       });
     }
@@ -706,7 +709,7 @@ export class ModernBrowserAudioService implements IAudioService {
    */
   public handlePassthroughAudio(audioData: Int16Array, volume: number): void {
     const delay = 150; // ms delay for echo cancellation
-    
+
     // Send to monitor output
     this.player.addToPassthroughBuffer(audioData, volume, delay);
     
