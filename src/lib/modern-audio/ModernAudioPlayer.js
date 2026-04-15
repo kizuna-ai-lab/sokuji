@@ -431,9 +431,12 @@ export class ModernAudioPlayer {
     const buffer = this._normalizeAudioData(audioData);
 
     if (delay > 0) {
+      // Copy the buffer — the caller's ArrayBuffer may be transferred to a
+      // Worker (e.g. AsrEngine.feedAudio) before this timeout fires.  (#177)
+      const copy = new Int16Array(buffer);
       setTimeout(() => {
         if (this.globalVolumeMultiplier > 0) {
-          this._writeToRingBuffer(buffer, volume, {});
+          this._writeToRingBuffer(copy, volume, {});
         }
       }, delay);
     } else {
