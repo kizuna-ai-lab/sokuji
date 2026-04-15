@@ -22,6 +22,9 @@ export class ProviderConfigFactory {
     ProviderConfigFactory.configs.set(Provider.OPENAI, new OpenAIProviderConfig());
     ProviderConfigFactory.configs.set(Provider.GEMINI, new GeminiProviderConfig());
 
+    // Local inference is always available (no API key or feature flag required)
+    ProviderConfigFactory.configs.set(Provider.LOCAL_INFERENCE, new LocalInferenceProviderConfig());
+
     // Only register Palabra AI if the feature flag is enabled
     if (isPalabraAIEnabled()) {
       ProviderConfigFactory.configs.set(Provider.PALABRA_AI, new PalabraAIProviderConfig());
@@ -46,9 +49,6 @@ export class ProviderConfigFactory {
     if ((isElectron() || isExtension()) && isVolcengineAST2Enabled()) {
       ProviderConfigFactory.configs.set(Provider.VOLCENGINE_AST2, new VolcengineAST2ProviderConfig());
     }
-
-    // Local inference is always available (no API key or feature flag required)
-    ProviderConfigFactory.configs.set(Provider.LOCAL_INFERENCE, new LocalInferenceProviderConfig());
   }
 
   /**
