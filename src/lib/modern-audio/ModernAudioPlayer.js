@@ -67,7 +67,7 @@ export class ModernAudioPlayer {
     this._workletReady = false;
     this._workletState = 'stopped'; // 'stopped' | 'playing' | 'starving'
 
-    // SharedArrayBuffer ring buffer
+    // SharedArrayBuffer ring buffer (main — TTS / streamed audio)
     this._sab = null;
     this._indices = null;  // Int32Array view [writeIndex, readIndex, capacity, flags]
     this._data = null;     // Float32Array view (audio samples)
@@ -76,6 +76,13 @@ export class ModernAudioPlayer {
     // Main-thread overflow queue — holds data that doesn't fit in ring buffer
     this._pendingWrites = []; // Array of Float32Array chunks
     this._drainTimer = null;
+
+    // Passthrough ring buffer — separate from main so passthrough audio is
+    // mixed with (not queued behind) TTS audio in the worklet.  (#177)
+    this._ptSab = null;
+    this._ptIndices = null;
+    this._ptData = null;
+    this._ptCapacity = Math.floor(sampleRate * 10); // 10 seconds for passthrough
   }
 
   /**
@@ -123,8 +130,18 @@ export class ModernAudioPlayer {
     this.workletNode = new AudioWorkletNode(this.context, 'playback-ring-processor');
     this._workletReady = true;
 
-    // Send SharedArrayBuffer to worklet
-    this.workletNode.port.postMessage({ type: 'init', sab: this._sab });
+    // Passthrough ring buffer (smaller — only needs a few seconds of buffering)
+    const ptSabSize = 16 + this._ptCapacity * 4;
+    this._ptSab = new SharedArrayBuffer(ptSabSize);
+    this._ptIndices = new Int32Array(this._ptSab, 0, 4);
+    this._ptData = new Float32Array(this._ptSab, 16);
+    Atomics.store(this._ptIndices, 0, 0);
+    Atomics.store(this._ptIndices, 1, 0);
+    Atomics.store(this._ptIndices, 2, this._ptCapacity);
+    Atomics.store(this._ptIndices, 3, 0);
+
+    // Send both ring buffers to worklet
+    this.workletNode.port.postMessage({ type: 'init', sab: this._sab, ptSab: this._ptSab });
 
     // Listen for worklet messages (state changes + position reports only)
     this.workletNode.port.onmessage = (e) => this._handleWorkletMessage(e.data);
@@ -425,7 +442,6 @@ export class ModernAudioPlayer {
    */
   addToPassthroughBuffer(audioData, volume = 1.0, delay = 50) {
     if (this.globalVolumeMultiplier === 0) return;
-    // Only check per-track volume — GainNode handles globalVolumeMultiplier
     if (volume < 0.01) return;
 
     const buffer = this._normalizeAudioData(audioData);
@@ -436,12 +452,41 @@ export class ModernAudioPlayer {
       const copy = new Int16Array(buffer);
       setTimeout(() => {
         if (this.globalVolumeMultiplier > 0) {
-          this._writeToRingBuffer(copy, volume, {});
+          this._writeToPassthroughRing(copy, volume);
         }
       }, delay);
     } else {
-      this._writeToRingBuffer(buffer, volume, {});
+      this._writeToPassthroughRing(buffer, volume);
     }
+  }
+
+  /**
+   * Write audio to the dedicated passthrough ring buffer.
+   * SPSC contract: main thread only writes writeIndex, worklet only writes
+   * readIndex.  If the ring is full we drop the incoming chunk rather than
+   * touching readIndex (passthrough is real-time — dropping a chunk is
+   * inaudible, violating SPSC would be catastrophic).
+   */
+  _writeToPassthroughRing(int16Buffer, volume) {
+    if (!this._ptIndices || !this._ptData) return;
+
+    const count = int16Buffer.length;
+    const cap = this._ptCapacity;
+
+    const writeIdx = Atomics.load(this._ptIndices, 0);
+    const readIdx = Atomics.load(this._ptIndices, 1);
+    const used = writeIdx - readIdx;
+    const free = cap - used;
+
+    // Drop chunk if ring is full — passthrough is expendable
+    if (free < count) return;
+
+    // Convert Int16 → Float32 with volume and write with wrap-around
+    const scale = (volume !== 1.0) ? volume / 32768 : 1 / 32768;
+    for (let i = 0; i < count; i++) {
+      this._ptData[(writeIdx + i) % cap] = int16Buffer[i] * scale;
+    }
+    Atomics.store(this._ptIndices, 0, writeIdx + count);
   }
 
   // =========================================================================
@@ -861,6 +906,12 @@ export class ModernAudioPlayer {
     if (this._indices) {
       const readIdx = Atomics.load(this._indices, 1);
       Atomics.store(this._indices, 0, readIdx);
+    }
+
+    // Also clear passthrough ring buffer
+    if (this._ptIndices) {
+      const ptReadIdx = Atomics.load(this._ptIndices, 1);
+      Atomics.store(this._ptIndices, 0, ptReadIdx);
     }
 
     // Tell worklet to reset its internal state (samplesPlayed etc.)
