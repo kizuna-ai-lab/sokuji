@@ -31,12 +31,12 @@ export type ProviderType = Provider.OPENAI | Provider.GEMINI | Provider.PALABRA_
 export const SUPPORTED_PROVIDERS: ProviderType[] = [
   Provider.OPENAI,
   Provider.GEMINI,
+  Provider.LOCAL_INFERENCE,
   ...(isPalabraAIEnabled() ? [Provider.PALABRA_AI] : []),
   ...(isKizunaAIEnabled() ? [Provider.KIZUNA_AI] : []),
   ...(isVolcengineSTEnabled() ? [Provider.VOLCENGINE_ST] : []),
   ...(isVolcengineAST2Enabled() ? [Provider.VOLCENGINE_AST2] : []),
   Provider.OPENAI_COMPATIBLE,
-  Provider.LOCAL_INFERENCE
 ];
 
 /**
