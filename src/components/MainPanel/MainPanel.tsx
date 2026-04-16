@@ -2679,7 +2679,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       <UpdateDialog />
       <div className="main-panel">
         {/* Conversation toolbar */}
-        {filteredItems.length > 0 && (
+        {combinedItems.length > 0 && (
           <div className="conversation-toolbar">
             <DisplayModeButton
               scope="speaker"
