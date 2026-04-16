@@ -2677,7 +2677,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
               value={speakerDisplayMode}
               onChange={setSpeakerDisplayMode}
             />
-            {selectedSystemAudioSource && (
+            {systemAudioItems.length > 0 && (
               <DisplayModeButton
                 scope="participant"
                 value={participantDisplayMode}
