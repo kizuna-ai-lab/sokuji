@@ -532,7 +532,8 @@
       "both": "Both",
       "source": "Src",
       "translation": "Trans",
-      "tooltip": "{{scope}}: {{mode}} — click to change"
+      "tooltip": "{{scope}} display — click to cycle\nCurrently: {{mode}}\n• Src: only transcription\n• Trans: only translation\n• Both: both",
+      "ariaLabel": "{{scope}}: {{mode}} — click to change"
     }
   },
   "simplePanel": {

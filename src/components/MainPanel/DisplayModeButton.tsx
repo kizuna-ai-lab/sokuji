@@ -1,6 +1,6 @@
 import React, { useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Mic, Users } from 'lucide-react';
+import { User, UserPlus } from 'lucide-react';
 import Tooltip from '../Tooltip/Tooltip';
 import type { DisplayMode } from '../../stores/settingsStore';
 import './DisplayModeButton.scss';
@@ -32,16 +32,22 @@ const DisplayModeButton: React.FC<DisplayModeButtonProps> = ({ scope, value, onC
     return t('mainPanel.displayMode.translation', 'Trans');
   }, [value, t]);
 
-  const tooltip = t('mainPanel.displayMode.tooltip', '{{scope}}: {{mode}} — click to change', {
-    scope: scopeLabel,
-    mode: modeLabel,
-  });
+  const tooltip = t(
+    'mainPanel.displayMode.tooltip',
+    '{{scope}} display — click to cycle\nCurrently: {{mode}}\n• Src: only transcription\n• Trans: only translation\n• Both: both',
+    { scope: scopeLabel, mode: modeLabel },
+  );
+  const ariaLabel = t(
+    'mainPanel.displayMode.ariaLabel',
+    '{{scope}}: {{mode}} — click to change',
+    { scope: scopeLabel, mode: modeLabel },
+  );
 
   const handleClick = useCallback(() => {
     onChange(CYCLE[value]);
   }, [onChange, value]);
 
-  const Icon = scope === 'speaker' ? Mic : Users;
+  const Icon = scope === 'speaker' ? User : UserPlus;
 
   return (
     <Tooltip content={tooltip} icon="none" position="bottom">
@@ -49,7 +55,7 @@ const DisplayModeButton: React.FC<DisplayModeButtonProps> = ({ scope, value, onC
         type="button"
         className="display-mode-btn"
         onClick={handleClick}
-        aria-label={tooltip}
+        aria-label={ariaLabel}
       >
         <Icon size={14} />
         <span className="display-mode-label">{modeLabel}</span>
