@@ -22,6 +22,9 @@ import i18n from '../locales';
 
 // ==================== Type Definitions ====================
 
+// Conversation display mode — which half of a bilingual utterance to show
+export type DisplayMode = 'source' | 'translation' | 'both';
+
 // Common Settings
 export interface CommonSettings {
   provider: ProviderType;
@@ -33,6 +36,8 @@ export interface CommonSettings {
   participantSystemInstructions: string;
   textOnly: boolean;
   conversationFontSize: number;
+  speakerDisplayMode: DisplayMode;
+  participantDisplayMode: DisplayMode;
 }
 
 // Transport type for OpenAI Realtime API
@@ -198,6 +203,8 @@ const defaultCommonSettings: CommonSettings = {
     "- Direct translation only, no preamble",
   useTemplateMode: true,
   participantSystemInstructions: '',
+  speakerDisplayMode: 'both',
+  participantDisplayMode: 'both',
 };
 
 const defaultOpenAICompatibleSettingsBase: OpenAICompatibleSettingsBase = {
@@ -340,6 +347,10 @@ interface SettingsStore {
   // Conversation font size
   conversationFontSize: number;
 
+  // Conversation display mode filters
+  speakerDisplayMode: DisplayMode;
+  participantDisplayMode: DisplayMode;
+
   // === Actions ===
   // Common settings actions
   setProvider: (provider: ProviderType) => void;
@@ -347,6 +358,8 @@ interface SettingsStore {
   setUIMode: (mode: 'basic' | 'advanced') => void;
   setTextOnly: (textOnly: boolean) => void;
   setConversationFontSize: (size: number) => void;
+  setSpeakerDisplayMode: (mode: DisplayMode) => Promise<void>;
+  setParticipantDisplayMode: (mode: DisplayMode) => Promise<void>;
   setSystemInstructions: (instructions: string) => void;
   setTemplateSystemInstructions: (instructions: string) => void;
   setUseTemplateMode: (useTemplate: boolean) => void;
@@ -708,6 +721,30 @@ const useSettingsStore = create<SettingsStore>()(
       } catch (error) {
         console.error('[SettingsStore] Error persisting conversationFontSize setting:', error);
         set({conversationFontSize: previous});
+      }
+    },
+
+    setSpeakerDisplayMode: async (speakerDisplayMode) => {
+      const previous = get().speakerDisplayMode;
+      set({speakerDisplayMode});
+      try {
+        const service = ServiceFactory.getSettingsService();
+        await service.setSetting('settings.common.speakerDisplayMode', speakerDisplayMode);
+      } catch (error) {
+        console.error('[SettingsStore] Error persisting speakerDisplayMode setting:', error);
+        set({speakerDisplayMode: previous});
+      }
+    },
+
+    setParticipantDisplayMode: async (participantDisplayMode) => {
+      const previous = get().participantDisplayMode;
+      set({participantDisplayMode});
+      try {
+        const service = ServiceFactory.getSettingsService();
+        await service.setSetting('settings.common.participantDisplayMode', participantDisplayMode);
+      } catch (error) {
+        console.error('[SettingsStore] Error persisting participantDisplayMode setting:', error);
+        set({participantDisplayMode: previous});
       }
     },
 
@@ -1164,6 +1201,8 @@ const useSettingsStore = create<SettingsStore>()(
         const participantSystemInstructions = await service.getSetting('settings.common.participantSystemInstructions', defaultCommonSettings.participantSystemInstructions);
         const textOnly = await service.getSetting('settings.common.textOnly', defaultCommonSettings.textOnly);
         const conversationFontSize = await service.getSetting('settings.common.conversationFontSize', defaultCommonSettings.conversationFontSize);
+        const speakerDisplayMode = await service.getSetting<DisplayMode>('settings.common.speakerDisplayMode', defaultCommonSettings.speakerDisplayMode);
+        const participantDisplayMode = await service.getSetting<DisplayMode>('settings.common.participantDisplayMode', defaultCommonSettings.participantDisplayMode);
 
         // Validate provider availability
         const validProvider = ProviderConfigFactory.isProviderSupported(provider) ? provider : Provider.OPENAI;
@@ -1198,6 +1237,8 @@ const useSettingsStore = create<SettingsStore>()(
           participantSystemInstructions,
           textOnly,
           conversationFontSize,
+          speakerDisplayMode,
+          participantDisplayMode,
           openai,
           gemini,
           openaiCompatible,
@@ -1336,6 +1377,8 @@ export const useProvider = () => useSettingsStore((state) => state.provider);
 export const useUILanguage = () => useSettingsStore((state) => state.uiLanguage);
 export const useUIMode = () => useSettingsStore((state) => state.uiMode);
 export const useConversationFontSize = () => useSettingsStore((state) => state.conversationFontSize);
+export const useSpeakerDisplayMode = () => useSettingsStore((state) => state.speakerDisplayMode);
+export const useParticipantDisplayMode = () => useSettingsStore((state) => state.participantDisplayMode);
 export const useSystemInstructions = () => useSettingsStore((state) => state.systemInstructions);
 export const useTemplateSystemInstructions = () => useSettingsStore((state) => state.templateSystemInstructions);
 export const useUseTemplateMode = () => useSettingsStore((state) => state.useTemplateMode);
@@ -1381,6 +1424,8 @@ export const useSetUILanguage = () => useSettingsStore((state) => state.setUILan
 export const useSetUIMode = () => useSettingsStore((state) => state.setUIMode);
 export const useSetTextOnly = () => useSettingsStore((state) => state.setTextOnly);
 export const useSetConversationFontSize = () => useSettingsStore((state) => state.setConversationFontSize);
+export const useSetSpeakerDisplayMode = () => useSettingsStore((state) => state.setSpeakerDisplayMode);
+export const useSetParticipantDisplayMode = () => useSettingsStore((state) => state.setParticipantDisplayMode);
 export const useSetSystemInstructions = () => useSettingsStore((state) => state.setSystemInstructions);
 export const useSetTemplateSystemInstructions = () => useSettingsStore((state) => state.setTemplateSystemInstructions);
 export const useSetUseTemplateMode = () => useSettingsStore((state) => state.setUseTemplateMode);
