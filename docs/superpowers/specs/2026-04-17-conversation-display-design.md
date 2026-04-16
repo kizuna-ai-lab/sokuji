@@ -51,12 +51,18 @@ Rationale: `role='user'` is the original speech in the speaker's native language
 
 ## Filter controls
 
-Two click-to-cycle buttons prepended to `.conversation-toolbar`, matching the existing 14px icon-only button style (`#555` default, transparent background, subtle hover).
+Up to two click-to-cycle buttons prepended to `.conversation-toolbar`, matching the existing 14px icon-only button style (`#555` default, transparent background, subtle hover).
 
 - Layout (right-aligned toolbar, in order): `[Me Both] [Them Both] | [A-] [A+] | [Trash]`.
 - Each button shows a scope icon (Lucide candidates: `Mic` for Me, `Users` for Participants — icon selection deferred) and the current state label (`Both` / `Src` / `Trans`, localized).
 - Click cycles `both → source → translation → both`.
-- Tooltip via the existing `title` attribute (other toolbar buttons already use `title`, no dedicated `Tooltip` component needed here).
+- Tooltip uses the existing `src/components/Tooltip/Tooltip.tsx` component (`@floating-ui/react`, hover + focus triggers, dark theme) with `icon="none"` wrapping the button. The icon+short-label button can't carry enough meaning by itself, so a tooltip like `"Me: Both — click to change"` is required, not optional. Content is localized via `mainPanel.displayMode.tooltip`.
+
+### Conditional rendering of the participant button
+
+The participant button is rendered only when participant audio is active in the current configuration — i.e. when `useSelectedSystemAudioSource()` from `audioStore` returns a non-null device. Rationale: the filter is meaningless when no participant items will ever arrive, and hiding the button keeps the toolbar uncluttered for sessions that don't capture system audio. The speaker button is always rendered when the toolbar itself is rendered (i.e. when there are any items to filter).
+
+When a user toggles participant audio on mid-session, the button appears on the next render; when they turn it off, it disappears but the persisted `participantDisplayMode` value is retained for the next time it's enabled.
 
 Users cycle a scope independently; there is no global "reset" button in v1. Combined filters such as "Me: Source, Them: Translation" are legal and useful for hybrid reading modes.
 
@@ -120,7 +126,7 @@ Applied inside the existing `filteredItems` computation in `MainPanel.tsx`, afte
 
 ### New files
 
-- `src/components/MainPanel/DisplayModeButton.tsx` — scope + state button, click cycles.
+- `src/components/MainPanel/DisplayModeButton.tsx` — scope + state button, click cycles. Renders its `<button>` wrapped in the existing `Tooltip` component (`icon="none"`, hover+focus) with content from `mainPanel.displayMode.tooltip`.
 - `src/components/MainPanel/ConversationRow.tsx` — Approach C row (header + content line). Replaces the per-item bubble rendering in `renderConversationItem`.
 - `src/components/MainPanel/conversationFilter.ts` — pure predicate above.
 - `src/components/MainPanel/conversationFilter.test.ts` — unit tests covering the 9 mode×role combinations plus error/system bypass.
@@ -129,7 +135,8 @@ Applied inside the existing `filteredItems` computation in `MainPanel.tsx`, afte
 
 - `src/components/MainPanel/MainPanel.tsx`:
   - Pull `speakerDisplayMode`, `participantDisplayMode` via the new hooks.
-  - Render two `DisplayModeButton`s inside `.conversation-toolbar` before the font-size buttons.
+  - Pull `selectedSystemAudioSource` via `useSelectedSystemAudioSource()` — used as the visibility gate for the participant button.
+  - Render the speaker `DisplayModeButton` inside `.conversation-toolbar` before the font-size buttons. Render the participant `DisplayModeButton` next to it only when `selectedSystemAudioSource !== null`.
   - In `filteredItems`: apply `shouldShowItem` after the `uiMode` filter.
   - Replace `renderConversationItem` output with `<ConversationRow item={item} prevItem={…} sourceLanguage={…} targetLanguage={…} />`. Keep the error-row branch using the existing minimal style.
 - `src/components/MainPanel/MainPanel.scss`:
@@ -159,6 +166,7 @@ mainPanel.displayMode.tooltip        "{{scope}}: {{mode}} — click to change"
 - **Filter hides everything in a session**: the `.empty-state` block is not shown (items exist, just filtered). An active filter is implied by the button label. Acceptable v1 behavior; revisit if users complain.
 - **`advanced` uiMode extras** (audio-only indicators, tool calls, tool outputs): still rendered from the unfiltered `items` array before the display-mode filter is applied. Only the message-bubble branch is filtered.
 - **Errors and system messages**: always shown regardless of filter.
+- **Participant audio toggled off mid-session**: the participant button unmounts on the next render; any historical participant items already in `systemAudioItems` continue to render according to the persisted `participantDisplayMode` (which is still applied by the filter predicate). If the user toggles it back on, the button re-appears with its previous mode.
 
 ## Testing
 
