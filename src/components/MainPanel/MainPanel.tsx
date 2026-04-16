@@ -21,7 +21,11 @@ import {
   useTransportType,
   useNavigateToSettings,
   useConversationFontSize,
-  useSetConversationFontSize
+  useSetConversationFontSize,
+  useSpeakerDisplayMode,
+  useParticipantDisplayMode,
+  useSetSpeakerDisplayMode,
+  useSetParticipantDisplayMode
 } from '../../stores/settingsStore';
 import useSettingsStore, { createParticipantLocalInferenceConfig } from '../../stores/settingsStore';
 import useSessionStore, { useSession, useIsReconnecting, useSetIsReconnecting } from '../../stores/sessionStore';
@@ -46,6 +50,9 @@ import { isExtension, getEnvironment } from '../../utils/environment';
 import UpdateBanner from '../UpdateBanner/UpdateBanner';
 import UpdateDialog from '../UpdateDialog/UpdateDialog';
 import { useInitUpdateListeners, useCleanupUpdateListeners } from '../../stores/updateStore';
+import DisplayModeButton from './DisplayModeButton';
+import ConversationRow from './ConversationRow';
+import { shouldShowItem } from './conversationFilter';
 
 
 /**
@@ -100,6 +107,10 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   const uiMode = useUIMode();
   const conversationFontSize = useConversationFontSize();
   const setConversationFontSize = useSetConversationFontSize();
+  const speakerDisplayMode = useSpeakerDisplayMode();
+  const participantDisplayMode = useParticipantDisplayMode();
+  const setSpeakerDisplayMode = useSetSpeakerDisplayMode();
+  const setParticipantDisplayMode = useSetParticipantDisplayMode();
   const openAISettings = useOpenAISettings();
   const openAICompatibleSettings = useOpenAICompatibleSettings();
   const geminiSettings = useGeminiSettings();
@@ -537,17 +548,19 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     });
   }, [items, systemAudioItems]);
 
-  // Filter items based on UI mode
+  // Filter items based on UI mode and display mode
   const filteredItems = useMemo(() => {
     return combinedItems.filter(item => {
       const hasText = item.formatted?.transcript || item.formatted?.text;
       const isBasic = (item.type === 'error' || item.role === 'user' || item.role === 'assistant') && hasText;
-      if (uiMode === 'basic') return isBasic;
-      // Advanced: also show tool calls, audio-only, system messages
-      return isBasic || item.formatted?.tool || item.formatted?.output ||
-        (item.formatted?.audio && !item.formatted?.transcript && !item.formatted?.text);
+      const passesUiMode = uiMode === 'basic'
+        ? isBasic
+        : (isBasic || item.formatted?.tool || item.formatted?.output ||
+           (item.formatted?.audio && !item.formatted?.transcript && !item.formatted?.text));
+      if (!passesUiMode) return false;
+      return shouldShowItem(item, speakerDisplayMode, participantDisplayMode);
     });
-  }, [combinedItems, uiMode]);
+  }, [combinedItems, uiMode, speakerDisplayMode, participantDisplayMode]);
 
   // Session duration timer
   useEffect(() => {
@@ -2522,6 +2535,11 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   // Get current provider settings for language pair display
   const currentSettings = getCurrentProviderSettings();
 
+  // Active source/target languages for badge labels (provider-agnostic).
+  const providerSettings = useSettingsStore((s) => s.getCurrentProviderSettings());
+  const sourceLanguage = (providerSettings as { sourceLanguage?: string }).sourceLanguage ?? 'EN';
+  const targetLanguage = (providerSettings as { targetLanguage?: string }).targetLanguage ?? 'EN';
+
   // Helper: render a single conversation item as a bubble
   const renderConversationItem = (item: ConversationItem & { source?: string }, index: number) => {
     const isItemPlaying = playingItemId === item.id;
@@ -2555,31 +2573,19 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
     // Text / transcript bubble (common for both modes)
     if (text) {
+      const prevItem = index > 0 ? filteredItems[index - 1] : null;
+      const isItemPlayingLocal = playingItemId === item.id;
+
       return (
-        <div
+        <ConversationRow
           key={item.id || index}
-          className={`message-bubble ${item.role} ${isParticipant ? 'participant-source' : 'speaker-source'} ${isItemPlaying ? 'playing' : ''}`}
-        >
-          <div className={`message-content ${isItemPlaying ? 'karaoke-active' : ''}`}>
-            {isItemPlaying ? (
-              <>
-                <span className="karaoke-played">{text.slice(0, highlightedChars)}</span>
-                <span className="karaoke-unplayed">{text.slice(highlightedChars)}</span>
-              </>
-            ) : (
-              text
-            )}
-            {isDevelopment() && uiMode === 'advanced' && ((item as any).status === 'completed' || (item as any).status === 'incomplete') && item.formatted?.audio?.length > 0 && (
-              <button
-                className={`inline-play-button ${isItemPlaying ? 'playing' : ''}`}
-                onClick={() => handlePlayAudio(item)}
-                disabled={playingItemId !== null}
-              >
-                <Play size={10} />
-              </button>
-            )}
-          </div>
-        </div>
+          item={item}
+          prevItem={prevItem as (ConversationItem & { source?: 'speaker' | 'participant' }) | null}
+          sourceLanguage={sourceLanguage}
+          targetLanguage={targetLanguage}
+          isPlaying={isItemPlayingLocal}
+          highlightedChars={highlightedChars}
+        />
       );
     }
 
@@ -2661,6 +2667,18 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         {/* Conversation toolbar */}
         {filteredItems.length > 0 && (
           <div className="conversation-toolbar">
+            <DisplayModeButton
+              scope="speaker"
+              value={speakerDisplayMode}
+              onChange={setSpeakerDisplayMode}
+            />
+            {selectedSystemAudioSource && (
+              <DisplayModeButton
+                scope="participant"
+                value={participantDisplayMode}
+                onChange={setParticipantDisplayMode}
+              />
+            )}
             <button
               className="font-size-btn"
               onClick={() => setConversationFontSize(Math.max(12, conversationFontSize - 2))}
