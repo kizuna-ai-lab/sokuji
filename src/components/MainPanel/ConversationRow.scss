@@ -62,18 +62,13 @@
   display: flex;
   align-items: baseline;
   gap: 8px;
-  padding: 2px 0 2px 28px; // 30px visual indent minus the 2px speaker-accent border-left
-  border-left: 2px solid transparent;
+  padding: 2px 0 2px 30px; // indent so the line aligns under the name, avatar reserves space
   line-height: 1.4;
   font-size: var(--conversation-font-size, 14px);
   transition: background-color 0.3s ease;
 
-  .conversation-row.source-speaker & {
-    border-left-color: #10a37f;
-  }
-
-  .conversation-row.source-participant & {
-    border-left-color: #f39c12;
+  .conversation-row.grouped & {
+    padding-left: 30px;
   }
 
   &.playing {
