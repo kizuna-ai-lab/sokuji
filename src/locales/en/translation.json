@@ -534,7 +534,8 @@
       "translation": "Trans",
       "tooltip": "{{scope}} display — click to cycle\nCurrently: {{mode}}\n• Src: only transcription\n• Trans: only translation\n• Both: both",
       "ariaLabel": "{{scope}}: {{mode}} — click to change"
-    }
+    },
+    "playItemAudio": "Play this item's audio"
   },
   "simplePanel": {
     "clickToConfigLanguages": "Click to configure languages",

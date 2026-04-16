@@ -2574,32 +2574,23 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     if (text) {
       const prevItem = index > 0 ? filteredItems[index - 1] : null;
 
-      const showInlinePlay =
-        isDevelopment() &&
-        uiMode === 'advanced' &&
+      const canPlay =
         ((item as any).status === 'completed' || (item as any).status === 'incomplete') &&
         ((item.formatted?.audio as any)?.length ?? 0) > 0;
 
       return (
-        <React.Fragment key={`${(item as any).source || 'speaker'}_${item.id || index}`}>
-          <ConversationRow
-            item={item}
-            prevItem={prevItem as (ConversationItem & { source?: 'speaker' | 'participant' }) | null}
-            sourceLanguage={sourceLanguage}
-            targetLanguage={targetLanguage}
-            isPlaying={isItemPlaying}
-            highlightedChars={highlightedChars}
-          />
-          {showInlinePlay && (
-            <button
-              className={`inline-play-button ${isItemPlaying ? 'playing' : ''}`}
-              onClick={() => handlePlayAudio(item)}
-              disabled={playingItemId !== null}
-            >
-              <Play size={10} />
-            </button>
-          )}
-        </React.Fragment>
+        <ConversationRow
+          key={`${(item as any).source || 'speaker'}_${item.id || index}`}
+          item={item}
+          prevItem={prevItem as (ConversationItem & { source?: 'speaker' | 'participant' }) | null}
+          sourceLanguage={sourceLanguage}
+          targetLanguage={targetLanguage}
+          isPlaying={isItemPlaying}
+          highlightedChars={highlightedChars}
+          canPlay={canPlay}
+          onPlay={() => handlePlayAudio(item)}
+          playDisabled={playingItemId !== null && !isItemPlaying}
+        />
       );
     }
 

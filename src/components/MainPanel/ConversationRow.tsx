@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Play } from 'lucide-react';
 import type { ConversationItem } from '../../services/interfaces/IClient';
 import './ConversationRow.scss';
 
@@ -10,6 +11,9 @@ interface ConversationRowProps {
   targetLanguage: string;
   isPlaying: boolean;
   highlightedChars: number;
+  canPlay?: boolean;
+  onPlay?: () => void;
+  playDisabled?: boolean;
 }
 
 function languageForItem(
@@ -43,13 +47,16 @@ const ConversationRow: React.FC<ConversationRowProps> = ({
   targetLanguage,
   isPlaying,
   highlightedChars,
+  canPlay = false,
+  onPlay,
+  playDisabled = false,
 }) => {
   const { t } = useTranslation();
   const source: 'speaker' | 'participant' = item.source ?? 'speaker';
   const role = item.role;
   const text = item.formatted?.transcript || item.formatted?.text || '';
 
-  const showHeader = (prevItem?.source ?? 'speaker') !== source;
+  const showHeader = !prevItem || (prevItem.source ?? 'speaker') !== source;
   const isTranslation = role === 'assistant';
   const lang = useMemo(
     () => languageForItem(source, role, sourceLanguage, targetLanguage),
@@ -87,6 +94,18 @@ const ConversationRow: React.FC<ConversationRowProps> = ({
       <div className={`row-body ${isPlaying ? 'playing' : ''}`}>
         <span className={`lang-badge ${isTranslation ? 'tr' : 'src'}`}>{lang.toUpperCase()}</span>
         <span className={`row-text ${isTranslation ? 'tr' : 'src'}`}>{renderText()}</span>
+        {canPlay && onPlay && (
+          <button
+            type="button"
+            className={`row-play-btn ${isPlaying ? 'playing' : ''}`}
+            onClick={onPlay}
+            disabled={playDisabled}
+            aria-label={t('mainPanel.playItemAudio', 'Play this item\'s audio')}
+            title={t('mainPanel.playItemAudio', 'Play this item\'s audio')}
+          >
+            <Play size={10} />
+          </button>
+        )}
       </div>
     </div>
   );

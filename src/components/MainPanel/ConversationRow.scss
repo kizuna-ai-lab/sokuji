@@ -117,3 +117,35 @@
 .row-text-played {
   color: #10a37f;
 }
+
+.row-play-btn {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  margin-left: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  border: none;
+  border-radius: 3px;
+  color: #c8c8c8;
+  cursor: pointer;
+  transition: background-color 0.15s, color 0.15s;
+
+  &:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.18);
+    color: #fff;
+  }
+
+  &.playing {
+    background: rgba(16, 163, 127, 0.45);
+    color: #fff;
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+}
