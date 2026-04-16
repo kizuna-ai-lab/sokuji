@@ -525,7 +525,15 @@
     "localModelsRequired": "Please download the required models in Settings to start.",
     "clearConversation": "Clear conversation",
     "decreaseFontSize": "Decrease font size",
-    "increaseFontSize": "Increase font size"
+    "increaseFontSize": "Increase font size",
+    "displayMode": {
+      "speaker": "Me",
+      "participant": "Them",
+      "both": "Both",
+      "source": "Src",
+      "translation": "Trans",
+      "tooltip": "{{scope}}: {{mode}} — click to change"
+    }
   },
   "simplePanel": {
     "clickToConfigLanguages": "Click to configure languages",
