@@ -2558,7 +2558,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     // Error bubble
     if (item.type === 'error') {
       return (
-        <div key={item.id || index} className="message-bubble error">
+        <div key={`${(item as any).source || 'speaker'}_${item.id || index}`} className="message-bubble error">
           <div className="message-header">
             <AlertCircle size={12} />
             {t('mainPanel.error', 'Error')}
@@ -2581,7 +2581,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         ((item.formatted?.audio as any)?.length ?? 0) > 0;
 
       return (
-        <React.Fragment key={item.id || index}>
+        <React.Fragment key={`${(item as any).source || 'speaker'}_${item.id || index}`}>
           <ConversationRow
             item={item}
             prevItem={prevItem as (ConversationItem & { source?: 'speaker' | 'participant' }) | null}
@@ -2608,7 +2608,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       // Audio-only indicator
       if (item.formatted?.audio?.length > 0) {
         return (
-          <div key={item.id || index} className={`message-bubble ${item.role} ${isParticipant ? 'participant-source' : 'speaker-source'} audio-only`}>
+          <div key={`${(item as any).source || 'speaker'}_${item.id || index}`} className={`message-bubble ${item.role} ${isParticipant ? 'participant-source' : 'speaker-source'} audio-only`}>
             <div className="message-content">
               <div className="content-item audio">
                 <div className="audio-indicator">
@@ -2639,7 +2639,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         } catch (e) { /* keep original */ }
 
         return (
-          <div key={item.id || index} className={`message-bubble system`}>
+          <div key={`${(item as any).source || 'speaker'}_${item.id || index}`} className={`message-bubble system`}>
             <div className="message-content">
               <div className="content-item tool-call">
                 <div className="tool-name">{t('mainPanel.function')}: {item.formatted.tool.name}</div>
@@ -2658,7 +2658,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         } catch (e) { /* keep original */ }
 
         return (
-          <div key={item.id || index} className={`message-bubble system`}>
+          <div key={`${(item as any).source || 'speaker'}_${item.id || index}`} className={`message-bubble system`}>
             <div className="message-content">
               <div className="content-item tool-output">
                 <div className="output-content"><pre>{formattedOutput}</pre></div>
