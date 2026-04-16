@@ -330,7 +330,17 @@
     "insufficientBalance": "Onvoldoende tokensaldo: {{balance}} tokens",
     "walletFrozen": "Wallet is bevroren. Neem contact op met support.",
     "localModelsRequired": "Download de vereiste modellen in Instellingen om te beginnen.",
-    "clearConversation": "Gesprek wissen"
+    "clearConversation": "Gesprek wissen",
+    "displayMode": {
+      "speaker": "Spreker",
+      "participant": "Deelnemer",
+      "both": "Beide",
+      "source": "Origineel",
+      "translation": "Vert.",
+      "tooltip": "{{scope}} — klik om te wijzigen\nWordt getoond: {{mode}}\n• Origineel: alleen originele spraak\n• Vert.: alleen vertaling\n• Beide: beide regels",
+      "ariaLabel": "{{scope}}: {{mode}} — klik om te wijzigen"
+    },
+    "playItemAudio": "Audio van dit item afspelen"
   },
   "errors": {
     "microphoneAccess": "Microfoon toegang geweigerd",

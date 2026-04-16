@@ -485,7 +485,17 @@
     "insufficientBalance": "יתרת אסימונים לא מספקת: {{balance}} אסימונים",
     "walletFrozen": "הארנק מוקפא. אנא צור קשר עם התמיכה.",
     "localModelsRequired": "אנא הורד את המודלים הנדרשים בהגדרות כדי להתחיל.",
-    "clearConversation": "נקה שיחה"
+    "clearConversation": "נקה שיחה",
+    "displayMode": {
+      "speaker": "דובר",
+      "participant": "משתתף",
+      "both": "שניהם",
+      "source": "מקור",
+      "translation": "תרגום",
+      "tooltip": "{{scope}} — לחץ כדי לשנות\nמוצג כעת: {{mode}}\n• מקור: רק הדיבור המקורי\n• תרגום: רק התרגום\n• שניהם: שתי השורות",
+      "ariaLabel": "{{scope}}: {{mode}} — לחץ כדי לשנות"
+    },
+    "playItemAudio": "הפעל את השמע של פריט זה"
   },
   "errors": {
     "microphoneAccess": "גישה למיקרופון נדחתה",

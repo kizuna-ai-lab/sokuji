@@ -479,7 +479,17 @@
     "insufficientBalance": "Saldo token tidak mencukupi: {{balance}} token",
     "walletFrozen": "Dompet dibekukan. Silakan hubungi dukungan.",
     "localModelsRequired": "Silakan unduh model yang diperlukan di Pengaturan untuk memulai.",
-    "clearConversation": "Hapus percakapan"
+    "clearConversation": "Hapus percakapan",
+    "displayMode": {
+      "speaker": "Pembicara",
+      "participant": "Peserta",
+      "both": "Keduanya",
+      "source": "Asli",
+      "translation": "Terjemahan",
+      "tooltip": "{{scope}} — klik untuk mengubah\nMenampilkan: {{mode}}\n• Asli: hanya ucapan asli\n• Terjemahan: hanya terjemahan\n• Keduanya: kedua baris",
+      "ariaLabel": "{{scope}}: {{mode}} — klik untuk mengubah"
+    },
+    "playItemAudio": "Putar audio item ini"
   },
   "errors": {
     "microphoneAccess": "Akses mikrofon ditolak",

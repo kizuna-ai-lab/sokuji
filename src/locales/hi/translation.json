@@ -409,7 +409,17 @@
     "insufficientBalance": "अपर्याप्त टोकन शेष: {{balance}} टोकन",
     "walletFrozen": "वॉलेट फ्रीज है। कृपया सहायता से संपर्क करें।",
     "localModelsRequired": "शुरू करने के लिए कृपया सेटिंग्स में आवश्यक मॉडल डाउनलोड करें।",
-    "clearConversation": "वार्तालाप साफ़ करें"
+    "clearConversation": "वार्तालाप साफ़ करें",
+    "displayMode": {
+      "speaker": "वक्ता",
+      "participant": "प्रतिभागी",
+      "both": "दोनों",
+      "source": "मूल",
+      "translation": "अनुवाद",
+      "tooltip": "{{scope}} — बदलने के लिए क्लिक करें\nअभी दिख रहा: {{mode}}\n• मूल: केवल मूल भाषण\n• अनुवाद: केवल अनुवाद\n• दोनों: दोनों पंक्तियाँ",
+      "ariaLabel": "{{scope}}: {{mode}} — बदलने के लिए क्लिक करें"
+    },
+    "playItemAudio": "इस आइटम का ऑडियो चलाएँ"
   },
   "audioPanel": {
     "title": "ऑडियो सेटिंग्स",
