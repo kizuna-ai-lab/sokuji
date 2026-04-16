@@ -46,6 +46,24 @@ body:
     validations:
       required: true
 
+  - type: input
+    id: provider
+    attributes:
+      label: AI Provider
+      description: Which translation provider were you using when the bug occurred? (e.g. OpenAI, Gemini, Palabra.ai, Kizuna AI, OpenAI Compatible, Local Inference)
+      placeholder: "e.g. OpenAI"
+    validations:
+      required: true
+
+  - type: input
+    id: model
+    attributes:
+      label: Model
+      description: Which model were you using? For Local Inference, please specify the translation model you selected (e.g. Opus-MT en→zh).
+      placeholder: "e.g. gpt-4o-mini, gemini-2.5-flash, qwen2.5-7b, Opus-MT en→zh"
+    validations:
+      required: false
+
   - type: textarea
     id: bug-description
     attributes:
