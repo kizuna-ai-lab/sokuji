@@ -140,8 +140,9 @@ Applied inside the existing `filteredItems` computation in `MainPanel.tsx`, afte
   - In `filteredItems`: apply `shouldShowItem` after the `uiMode` filter.
   - Replace `renderConversationItem` output with `<ConversationRow item={item} prevItem={…} sourceLanguage={…} targetLanguage={…} />`. Keep the error-row branch using the existing minimal style.
 - `src/components/MainPanel/MainPanel.scss`:
-  - Add `.conversation-row`, `.row-header`, `.row-avatar`, `.row-body`, `.row-line`, `.lang-badge.src`, `.lang-badge.tr`, `.display-mode-btn`.
-  - Remove the `.message-bubble` rules that implemented right/left alignment (`&.user`, `&.assistant`, `&.participant-source`) — they are superseded by the new row layout. Keep any shared utility rules (playing-state glow, font-size variable) and re-apply them to `.row-body`.
+  - **No edits required** in this file. The new row/button styles live in their own co-located partials (`ConversationRow.scss`, `DisplayModeButton.scss`) imported by those components.
+  - The existing `.message-bubble` rules (`&.user`, `&.assistant`, `&.system`, `&.participant-source`, `.error`) are intentionally **kept**: although the text-message branch no longer renders them, the error branch and the advanced-mode branches (audio-only indicator, tool calls, tool outputs) still use the same classes via `renderConversationItem`. Deleting them would break advanced-mode alignment and tool-call styling.
+  - A later pass can unify advanced-mode rendering onto the new grammar; that is out of scope here.
 - `src/stores/settingsStore.ts`:
   - Add the two fields to `CommonSettings` and their setters.
   - Add loader wiring in the initializer block that currently populates `conversationFontSize` and `textOnly`.
