@@ -24,7 +24,7 @@ const DisplayModeButton: React.FC<DisplayModeButtonProps> = ({ scope, value, onC
 
   const scopeLabel = t(
     scope === 'speaker' ? 'mainPanel.displayMode.speaker' : 'mainPanel.displayMode.participant',
-    scope === 'speaker' ? 'Me' : 'Them'
+    scope === 'speaker' ? 'Speaker' : 'Participant'
   );
   const modeLabel = useMemo(() => {
     if (value === 'both') return t('mainPanel.displayMode.both', 'Both');

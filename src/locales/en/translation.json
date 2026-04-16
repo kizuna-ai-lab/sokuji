@@ -527,8 +527,8 @@
     "decreaseFontSize": "Decrease font size",
     "increaseFontSize": "Increase font size",
     "displayMode": {
-      "speaker": "Me",
-      "participant": "Them",
+      "speaker": "Speaker",
+      "participant": "Participant",
       "both": "Both",
       "source": "Src",
       "translation": "Trans",
