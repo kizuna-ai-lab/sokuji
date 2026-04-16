@@ -1,0 +1,24 @@
+.display-mode-btn {
+  background: none;
+  border: none;
+  color: #555;
+  cursor: pointer;
+  padding: 4px 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  border-radius: 4px;
+  font-size: 0.72rem;
+  line-height: 1;
+  transition: color 0.15s, background-color 0.15s;
+
+  &:hover {
+    color: #ccc;
+    background: rgba(255, 255, 255, 0.1);
+  }
+}
+
+.display-mode-label {
+  font-size: 0.72rem;
+}
