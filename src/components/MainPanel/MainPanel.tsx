@@ -2536,9 +2536,8 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   const currentSettings = getCurrentProviderSettings();
 
   // Active source/target languages for badge labels (provider-agnostic).
-  const providerSettings = useSettingsStore((s) => s.getCurrentProviderSettings());
-  const sourceLanguage = (providerSettings as { sourceLanguage?: string }).sourceLanguage ?? 'EN';
-  const targetLanguage = (providerSettings as { targetLanguage?: string }).targetLanguage ?? 'EN';
+  const sourceLanguage = currentSettings.sourceLanguage ?? 'EN';
+  const targetLanguage = currentSettings.targetLanguage ?? 'EN';
 
   // Helper: render a single conversation item as a bubble
   const renderConversationItem = (item: ConversationItem & { source?: string }, index: number) => {
@@ -2574,18 +2573,33 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     // Text / transcript bubble (common for both modes)
     if (text) {
       const prevItem = index > 0 ? filteredItems[index - 1] : null;
-      const isItemPlayingLocal = playingItemId === item.id;
+
+      const showInlinePlay =
+        isDevelopment() &&
+        uiMode === 'advanced' &&
+        ((item as any).status === 'completed' || (item as any).status === 'incomplete') &&
+        ((item.formatted?.audio as any)?.length ?? 0) > 0;
 
       return (
-        <ConversationRow
-          key={item.id || index}
-          item={item}
-          prevItem={prevItem as (ConversationItem & { source?: 'speaker' | 'participant' }) | null}
-          sourceLanguage={sourceLanguage}
-          targetLanguage={targetLanguage}
-          isPlaying={isItemPlayingLocal}
-          highlightedChars={highlightedChars}
-        />
+        <React.Fragment key={item.id || index}>
+          <ConversationRow
+            item={item}
+            prevItem={prevItem as (ConversationItem & { source?: 'speaker' | 'participant' }) | null}
+            sourceLanguage={sourceLanguage}
+            targetLanguage={targetLanguage}
+            isPlaying={isItemPlaying}
+            highlightedChars={highlightedChars}
+          />
+          {showInlinePlay && (
+            <button
+              className={`inline-play-button ${isItemPlaying ? 'playing' : ''}`}
+              onClick={() => handlePlayAudio(item)}
+              disabled={playingItemId !== null}
+            >
+              <Play size={10} />
+            </button>
+          )}
+        </React.Fragment>
       );
     }
 
