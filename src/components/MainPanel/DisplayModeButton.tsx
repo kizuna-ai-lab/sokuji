@@ -1,6 +1,6 @@
 import React, { useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { User, UserPlus } from 'lucide-react';
+import { User, Users } from 'lucide-react';
 import Tooltip from '../Tooltip/Tooltip';
 import type { DisplayMode } from '../../stores/settingsStore';
 import './DisplayModeButton.scss';
@@ -47,7 +47,7 @@ const DisplayModeButton: React.FC<DisplayModeButtonProps> = ({ scope, value, onC
     onChange(CYCLE[value]);
   }, [onChange, value]);
 
-  const Icon = scope === 'speaker' ? User : UserPlus;
+  const Icon = scope === 'speaker' ? User : Users;
 
   return (
     <Tooltip content={tooltip} icon="none" position="bottom">

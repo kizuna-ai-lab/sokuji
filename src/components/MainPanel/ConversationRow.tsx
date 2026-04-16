@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Play } from 'lucide-react';
+import { Play, User, Users } from 'lucide-react';
 import type { ConversationItem } from '../../services/interfaces/IClient';
 import './ConversationRow.scss';
 
@@ -84,7 +84,9 @@ const ConversationRow: React.FC<ConversationRowProps> = ({
     <div className={`conversation-row source-${source} ${showHeader ? 'with-header' : 'grouped'}`}>
       {showHeader && (
         <div className="row-header">
-          <div className={`row-avatar avatar-${source}`}>{scopeName.slice(0, 2)}</div>
+          <div className={`row-avatar avatar-${source}`}>
+            {source === 'speaker' ? <User size={12} /> : <Users size={12} />}
+          </div>
           <div className="row-name">
             <span className="row-name-text">{scopeName}</span>
             <span className="row-time">{formatTime(item.createdAt)}</span>
