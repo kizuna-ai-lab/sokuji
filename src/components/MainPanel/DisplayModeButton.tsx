@@ -34,7 +34,7 @@ const DisplayModeButton: React.FC<DisplayModeButtonProps> = ({ scope, value, onC
 
   const tooltip = t(
     'mainPanel.displayMode.tooltip',
-    '{{scope}} display — click to cycle\nCurrently: {{mode}}\n• Src: only transcription\n• Trans: only translation\n• Both: both',
+    '{{scope}} — click to change\nNow showing: {{mode}}\n• Src: only the original speech\n• Trans: only the translation\n• Both: both lines',
     { scope: scopeLabel, mode: modeLabel },
   );
   const ariaLabel = t(

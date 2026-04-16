@@ -532,7 +532,7 @@
       "both": "Both",
       "source": "Src",
       "translation": "Trans",
-      "tooltip": "{{scope}} display — click to cycle\nCurrently: {{mode}}\n• Src: only transcription\n• Trans: only translation\n• Both: both",
+      "tooltip": "{{scope}} — click to change\nNow showing: {{mode}}\n• Src: only the original speech\n• Trans: only the translation\n• Both: both lines",
       "ariaLabel": "{{scope}}: {{mode}} — click to change"
     },
     "playItemAudio": "Play this item's audio"
