@@ -36,6 +36,7 @@ export interface CommonSettings {
   participantSystemInstructions: string;
   textOnly: boolean;
   conversationFontSize: number;
+  conversationCompactMode: boolean;
   speakerDisplayMode: DisplayMode;
   participantDisplayMode: DisplayMode;
 }
@@ -151,6 +152,7 @@ const defaultCommonSettings: CommonSettings = {
   uiMode: 'basic',
   textOnly: false,
   conversationFontSize: 14,
+  conversationCompactMode: false,
   systemInstructions:
     "# ROLE & OBJECTIVE\n" +
     "You are a simultaneous interpreter.\n" +
@@ -347,6 +349,9 @@ interface SettingsStore {
   // Conversation font size
   conversationFontSize: number;
 
+  // Conversation compact mode — hide chat chrome (avatars, names, timestamps, badges, play button) in the conversation panel
+  conversationCompactMode: boolean;
+
   // Conversation display mode filters
   speakerDisplayMode: DisplayMode;
   participantDisplayMode: DisplayMode;
@@ -358,6 +363,7 @@ interface SettingsStore {
   setUIMode: (mode: 'basic' | 'advanced') => void;
   setTextOnly: (textOnly: boolean) => void;
   setConversationFontSize: (size: number) => void;
+  setConversationCompactMode: (compact: boolean) => Promise<void>;
   setSpeakerDisplayMode: (mode: DisplayMode) => Promise<void>;
   setParticipantDisplayMode: (mode: DisplayMode) => Promise<void>;
   setSystemInstructions: (instructions: string) => void;
@@ -721,6 +727,18 @@ const useSettingsStore = create<SettingsStore>()(
       } catch (error) {
         console.error('[SettingsStore] Error persisting conversationFontSize setting:', error);
         set({conversationFontSize: previous});
+      }
+    },
+
+    setConversationCompactMode: async (conversationCompactMode) => {
+      const previous = get().conversationCompactMode;
+      set({conversationCompactMode});
+      try {
+        const service = ServiceFactory.getSettingsService();
+        await service.setSetting('settings.common.conversationCompactMode', conversationCompactMode);
+      } catch (error) {
+        console.error('[SettingsStore] Error persisting conversationCompactMode setting:', error);
+        set({conversationCompactMode: previous});
       }
     },
 
@@ -1201,6 +1219,7 @@ const useSettingsStore = create<SettingsStore>()(
         const participantSystemInstructions = await service.getSetting('settings.common.participantSystemInstructions', defaultCommonSettings.participantSystemInstructions);
         const textOnly = await service.getSetting('settings.common.textOnly', defaultCommonSettings.textOnly);
         const conversationFontSize = await service.getSetting('settings.common.conversationFontSize', defaultCommonSettings.conversationFontSize);
+        const conversationCompactMode = await service.getSetting('settings.common.conversationCompactMode', defaultCommonSettings.conversationCompactMode);
         const speakerDisplayMode = await service.getSetting<DisplayMode>('settings.common.speakerDisplayMode', defaultCommonSettings.speakerDisplayMode);
         const participantDisplayMode = await service.getSetting<DisplayMode>('settings.common.participantDisplayMode', defaultCommonSettings.participantDisplayMode);
 
@@ -1237,6 +1256,7 @@ const useSettingsStore = create<SettingsStore>()(
           participantSystemInstructions,
           textOnly,
           conversationFontSize,
+          conversationCompactMode,
           speakerDisplayMode,
           participantDisplayMode,
           openai,
@@ -1377,6 +1397,7 @@ export const useProvider = () => useSettingsStore((state) => state.provider);
 export const useUILanguage = () => useSettingsStore((state) => state.uiLanguage);
 export const useUIMode = () => useSettingsStore((state) => state.uiMode);
 export const useConversationFontSize = () => useSettingsStore((state) => state.conversationFontSize);
+export const useConversationCompactMode = () => useSettingsStore((state) => state.conversationCompactMode);
 export const useSpeakerDisplayMode = () => useSettingsStore((state) => state.speakerDisplayMode);
 export const useParticipantDisplayMode = () => useSettingsStore((state) => state.participantDisplayMode);
 export const useSystemInstructions = () => useSettingsStore((state) => state.systemInstructions);
@@ -1424,6 +1445,7 @@ export const useSetUILanguage = () => useSettingsStore((state) => state.setUILan
 export const useSetUIMode = () => useSettingsStore((state) => state.setUIMode);
 export const useSetTextOnly = () => useSettingsStore((state) => state.setTextOnly);
 export const useSetConversationFontSize = () => useSettingsStore((state) => state.setConversationFontSize);
+export const useSetConversationCompactMode = () => useSettingsStore((state) => state.setConversationCompactMode);
 export const useSetSpeakerDisplayMode = () => useSettingsStore((state) => state.setSpeakerDisplayMode);
 export const useSetParticipantDisplayMode = () => useSettingsStore((state) => state.setParticipantDisplayMode);
 export const useSetSystemInstructions = () => useSettingsStore((state) => state.setSystemInstructions);
