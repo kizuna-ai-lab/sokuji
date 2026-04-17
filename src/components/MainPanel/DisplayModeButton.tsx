@@ -1,7 +1,6 @@
 import React, { useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { User, Users } from 'lucide-react';
-import Tooltip from '../Tooltip/Tooltip';
 import type { DisplayMode } from '../../stores/settingsStore';
 import './DisplayModeButton.scss';
 
@@ -32,7 +31,7 @@ const DisplayModeButton: React.FC<DisplayModeButtonProps> = ({ scope, value, onC
     return t('mainPanel.displayMode.translation', 'Trans');
   }, [value, t]);
 
-  const tooltip = t(
+  const title = t(
     'mainPanel.displayMode.tooltip',
     '{{scope}} — click to change\nNow showing: {{mode}}\n• Src: only the original speech\n• Trans: only the translation\n• Both: both lines',
     { scope: scopeLabel, mode: modeLabel },
@@ -50,17 +49,16 @@ const DisplayModeButton: React.FC<DisplayModeButtonProps> = ({ scope, value, onC
   const Icon = scope === 'speaker' ? User : Users;
 
   return (
-    <Tooltip content={tooltip} icon="none" position="bottom">
-      <button
-        type="button"
-        className="display-mode-btn"
-        onClick={handleClick}
-        aria-label={ariaLabel}
-      >
-        <Icon size={14} />
-        <span className="display-mode-label">{modeLabel}</span>
-      </button>
-    </Tooltip>
+    <button
+      type="button"
+      className="display-mode-btn"
+      onClick={handleClick}
+      title={title}
+      aria-label={ariaLabel}
+    >
+      <Icon size={14} />
+      <span className="display-mode-label">{modeLabel}</span>
+    </button>
   );
 };
 
