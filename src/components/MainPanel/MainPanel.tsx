@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
-import {X, Zap, Mic, MicOff, Loader, Play, Volume2, VolumeX, Wrench, Send, AlertCircle, MessageSquare, Trash2, AArrowDown, AArrowUp} from 'lucide-react';
+import {X, Zap, Mic, MicOff, Loader, Play, Volume2, VolumeX, Wrench, Send, AlertCircle, MessageSquare, Trash2, AArrowDown, AArrowUp, ChevronsDownUp, ChevronsUpDown} from 'lucide-react';
 import './MainPanel.scss';
 import {
   useProvider,
@@ -22,6 +22,8 @@ import {
   useNavigateToSettings,
   useConversationFontSize,
   useSetConversationFontSize,
+  useConversationCompactMode,
+  useSetConversationCompactMode,
   useSpeakerDisplayMode,
   useParticipantDisplayMode,
   useSetSpeakerDisplayMode,
@@ -107,6 +109,8 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   const uiMode = useUIMode();
   const conversationFontSize = useConversationFontSize();
   const setConversationFontSize = useSetConversationFontSize();
+  const conversationCompactMode = useConversationCompactMode();
+  const setConversationCompactMode = useSetConversationCompactMode();
   const speakerDisplayMode = useSpeakerDisplayMode();
   const participantDisplayMode = useParticipantDisplayMode();
   const setSpeakerDisplayMode = useSetSpeakerDisplayMode();
@@ -2607,6 +2611,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           canPlay={canPlay}
           onPlay={() => handlePlayAudio(item)}
           playDisabled={playingItemId !== null && !isItemPlaying}
+          compact={conversationCompactMode}
         />
       );
     }
@@ -2722,6 +2727,24 @@ const MainPanel: React.FC<MainPanelProps> = () => {
               type="button"
             >
               <AArrowUp size={14} />
+            </button>
+            {/* NEW: compact/expanded toggle */}
+            <button
+              className="font-size-btn"
+              onClick={() => setConversationCompactMode(!conversationCompactMode)}
+              title={
+                conversationCompactMode
+                  ? t('mainPanel.expandedView', 'Expanded view')
+                  : t('mainPanel.compactView', 'Compact view')
+              }
+              aria-label={
+                conversationCompactMode
+                  ? t('mainPanel.expandedView', 'Expanded view')
+                  : t('mainPanel.compactView', 'Compact view')
+              }
+              type="button"
+            >
+              {conversationCompactMode ? <ChevronsUpDown size={14} /> : <ChevronsDownUp size={14} />}
             </button>
             <button
               className="clear-conversation-btn"
