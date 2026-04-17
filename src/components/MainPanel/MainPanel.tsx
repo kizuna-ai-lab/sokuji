@@ -2731,6 +2731,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
             <button
               className="font-size-btn"
               onClick={() => setConversationCompactMode(!conversationCompactMode)}
+              aria-pressed={conversationCompactMode}
               title={
                 conversationCompactMode
                   ? t('mainPanel.expandedView', 'Expanded view')

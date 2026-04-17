@@ -178,9 +178,4 @@
     position: relative;
     padding-left: 16px;
   }
-
-  // Compact disables the grouped indent that normally aligns text under the header.
-  &.grouped .row-body {
-    padding-left: 16px;
-  }
 }

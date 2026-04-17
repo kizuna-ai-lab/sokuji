@@ -170,6 +170,20 @@ describe('ConversationRow — compact mode', () => {
     expect(dot?.classList.contains('source-speaker')).toBe(true);
   });
 
+  it('exposes the role dot to screen readers via role + aria-label', () => {
+    const { container } = render(
+      <ConversationRow
+        {...baseProps}
+        item={makeItem({ source: 'speaker' })}
+        prevItem={null}
+        compact
+      />,
+    );
+    const dot = container.querySelector('.row-role-dot');
+    expect(dot?.getAttribute('role')).toBe('img');
+    expect(dot?.getAttribute('aria-label')).toBe('Speaker');
+  });
+
   it('renders a participant-colored role dot on the first row of a participant run', () => {
     const { container } = render(
       <ConversationRow

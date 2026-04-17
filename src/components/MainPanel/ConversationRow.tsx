@@ -99,7 +99,11 @@ const ConversationRow: React.FC<ConversationRowProps> = ({
       )}
       <div className={`row-body ${isPlaying ? 'playing' : ''}`}>
         {compact && showHeader && (
-          <span className={`row-role-dot source-${source}`} aria-hidden="true" />
+          <span
+            className={`row-role-dot source-${source}`}
+            role="img"
+            aria-label={scopeName}
+          />
         )}
         {!compact && (
           <span className={`lang-badge ${isTranslation ? 'tr' : 'src'} source-${source}`}>
