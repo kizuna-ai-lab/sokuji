@@ -60,9 +60,9 @@ Up to two click-to-cycle buttons prepended to `.conversation-toolbar`, matching 
 
 ### Conditional rendering of the participant button
 
-The participant button is rendered only when participant audio is active in the current configuration — i.e. when `useSelectedSystemAudioSource()` from `audioStore` returns a non-null device. Rationale: the filter is meaningless when no participant items will ever arrive, and hiding the button keeps the toolbar uncluttered for sessions that don't capture system audio. The speaker button is always rendered when the toolbar itself is rendered (i.e. when there are any items to filter).
+The participant button is rendered only when actual participant content exists in the current conversation — i.e. when `systemAudioItems.length > 0` inside `MainPanel`. Rationale: the filter is meaningless when no participant item will ever be displayed, and gating on content (rather than on whether a device is configured) keeps the toolbar in sync with what the user actually sees. The speaker button is always rendered when the toolbar itself is rendered.
 
-When a user toggles participant audio on mid-session, the button appears on the next render; when they turn it off, it disappears but the persisted `participantDisplayMode` value is retained for the next time it's enabled.
+Side effect worth testing in QA: after the user de-selects the system audio device, any historical participant items already captured remain in `systemAudioItems` (they are not cleared on device change), so the participant button stays visible and the persisted `participantDisplayMode` keeps applying to those rows. The button only disappears once the conversation is cleared.
 
 Users cycle a scope independently; there is no global "reset" button in v1. Combined filters such as "Me: Source, Them: Translation" are legal and useful for hybrid reading modes.
 
@@ -111,8 +111,12 @@ export function shouldShowItem(
   speakerMode: DisplayMode,
   participantMode: DisplayMode,
 ): boolean {
-  if (item.type === 'error' || item.type === 'system') return true;
-  const mode = item.source === 'speaker' ? speakerMode : participantMode;
+  if (item.type === 'error' || item.role === 'system') return true;
+  // Non-message rows (function_call, function_call_output, etc.) aren't
+  // source-vs-translation pairs, so they bypass the per-scope filter.
+  if (item.type !== 'message') return true;
+  const source = item.source ?? 'speaker';
+  const mode = source === 'speaker' ? speakerMode : participantMode;
   if (mode === 'both') return true;
   if (mode === 'source')      return item.role === 'user';
   if (mode === 'translation') return item.role === 'assistant';
@@ -135,10 +139,9 @@ Applied inside the existing `filteredItems` computation in `MainPanel.tsx`, afte
 
 - `src/components/MainPanel/MainPanel.tsx`:
   - Pull `speakerDisplayMode`, `participantDisplayMode` via the new hooks.
-  - Pull `selectedSystemAudioSource` via `useSelectedSystemAudioSource()` — used as the visibility gate for the participant button.
-  - Render the speaker `DisplayModeButton` inside `.conversation-toolbar` before the font-size buttons. Render the participant `DisplayModeButton` next to it only when `selectedSystemAudioSource !== null`.
+  - Render the speaker `DisplayModeButton` inside `.conversation-toolbar` before the font-size buttons. Render the participant `DisplayModeButton` next to it only when `systemAudioItems.length > 0` (content-based gate — the button appears when there's actual participant content to filter).
   - In `filteredItems`: apply `shouldShowItem` after the `uiMode` filter.
-  - Replace `renderConversationItem` output with `<ConversationRow item={item} prevItem={…} sourceLanguage={…} targetLanguage={…} />`. Keep the error-row branch using the existing minimal style.
+  - Replace `renderConversationItem` output with `<ConversationRow item={item} prevItem={…} sourceLanguage={…} targetLanguage={…} />`. `prevItem` must walk backward to the last previously-rendered-as-row item so grouping isn't broken by interleaved tool-call / audio-only rows in advanced mode. Keep the error-row branch using the existing minimal style.
 - `src/components/MainPanel/MainPanel.scss`:
   - **No edits required** in this file. The new row/button styles live in their own co-located partials (`ConversationRow.scss`, `DisplayModeButton.scss`) imported by those components.
   - The existing `.message-bubble` rules (`&.user`, `&.assistant`, `&.system`, `&.participant-source`, `.error`) are intentionally **kept**: although the text-message branch no longer renders them, the error branch and the advanced-mode branches (audio-only indicator, tool calls, tool outputs) still use the same classes via `renderConversationItem`. Deleting them would break advanced-mode alignment and tool-call styling.
