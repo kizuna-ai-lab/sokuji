@@ -2728,7 +2728,6 @@ const MainPanel: React.FC<MainPanelProps> = () => {
             >
               <AArrowUp size={14} />
             </button>
-            {/* NEW: compact/expanded toggle */}
             <button
               className="font-size-btn"
               onClick={() => setConversationCompactMode(!conversationCompactMode)}
