@@ -14,6 +14,7 @@ interface ConversationRowProps {
   canPlay?: boolean;
   onPlay?: () => void;
   playDisabled?: boolean;
+  compact?: boolean;
 }
 
 function languageForItem(
@@ -50,6 +51,7 @@ const ConversationRow: React.FC<ConversationRowProps> = ({
   canPlay = false,
   onPlay,
   playDisabled = false,
+  compact = false,
 }) => {
   const { t } = useTranslation();
   const source: 'speaker' | 'participant' = item.source ?? 'speaker';
@@ -81,8 +83,10 @@ const ConversationRow: React.FC<ConversationRowProps> = ({
   };
 
   return (
-    <div className={`conversation-row source-${source} ${showHeader ? 'with-header' : 'grouped'}`}>
-      {showHeader && (
+    <div
+      className={`conversation-row source-${source} ${showHeader ? 'with-header' : 'grouped'} ${compact ? 'compact' : 'expanded'}`}
+    >
+      {!compact && showHeader && (
         <div className="row-header">
           <div className={`row-avatar avatar-${source}`}>
             {source === 'speaker' ? <User size={12} /> : <Users size={12} />}
@@ -94,9 +98,20 @@ const ConversationRow: React.FC<ConversationRowProps> = ({
         </div>
       )}
       <div className={`row-body ${isPlaying ? 'playing' : ''}`}>
-        <span className={`lang-badge ${isTranslation ? 'tr' : 'src'}`}>{lang.toUpperCase()}</span>
+        {compact && showHeader && (
+          <span
+            className={`row-role-dot source-${source}`}
+            role="img"
+            aria-label={scopeName}
+          />
+        )}
+        {!compact && (
+          <span className={`lang-badge ${isTranslation ? 'tr' : 'src'} source-${source}`}>
+            {lang.toUpperCase()}
+          </span>
+        )}
         <span className={`row-text ${isTranslation ? 'tr' : 'src'}`}>{renderText()}</span>
-        {canPlay && onPlay && (
+        {!compact && canPlay && onPlay && (
           <button
             type="button"
             className={`row-play-btn ${isPlaying ? 'playing' : ''}`}

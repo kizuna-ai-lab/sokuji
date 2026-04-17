@@ -93,9 +93,17 @@
   }
 
   &.tr {
-    background: rgba(16, 163, 127, 0.2);
-    color: #10a37f;
-    border: 1px solid rgba(16, 163, 127, 0.4);
+    &.source-speaker {
+      background: rgba(16, 163, 127, 0.2);
+      color: #10a37f;
+      border: 1px solid rgba(16, 163, 127, 0.4);
+    }
+
+    &.source-participant {
+      background: rgba(243, 156, 18, 0.2);
+      color: #f39c12;
+      border: 1px solid rgba(243, 156, 18, 0.4);
+    }
   }
 }
 
@@ -145,5 +153,29 @@
   &:disabled {
     opacity: 0.4;
     cursor: not-allowed;
+  }
+}
+
+.row-role-dot {
+  position: absolute;
+  left: 2px;
+  top: 8px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+
+  &.source-speaker {
+    background: #10a37f;
+  }
+
+  &.source-participant {
+    background: #f39c12;
+  }
+}
+
+.conversation-row.compact {
+  .row-body {
+    position: relative;
+    padding-left: 16px;
   }
 }

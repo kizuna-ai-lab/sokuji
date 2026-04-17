@@ -526,6 +526,8 @@
     "clearConversation": "Clear conversation",
     "decreaseFontSize": "Decrease font size",
     "increaseFontSize": "Increase font size",
+    "compactView": "Compact view",
+    "expandedView": "Expanded view",
     "displayMode": {
       "speaker": "Speaker",
       "participant": "Participant",
