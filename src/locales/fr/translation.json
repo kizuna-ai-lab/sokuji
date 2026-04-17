@@ -336,8 +336,8 @@
       "participant": "Participant",
       "both": "Les deux",
       "source": "Source",
-      "translation": "Trad.",
-      "tooltip": "{{scope}} — cliquez pour changer\nAffiché : {{mode}}\n• Source : discours original seulement\n• Trad. : traduction seulement\n• Les deux : les deux lignes",
+      "translation": "Traduction",
+      "tooltip": "{{scope}} — cliquez pour changer\nAffiché : {{mode}}\n• Source : discours original seulement\n• Traduction : traduction seulement\n• Les deux : les deux lignes",
       "ariaLabel": "{{scope}} : {{mode}} — cliquez pour changer"
     },
     "playItemAudio": "Lire l'audio de cet élément"

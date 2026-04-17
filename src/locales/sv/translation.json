@@ -265,8 +265,8 @@
       "participant": "Deltagare",
       "both": "Båda",
       "source": "Källa",
-      "translation": "Översätt.",
-      "tooltip": "{{scope}} — klicka för att ändra\nVisar nu: {{mode}}\n• Källa: endast ursprungligt tal\n• Översätt.: endast översättning\n• Båda: båda raderna",
+      "translation": "Översättning",
+      "tooltip": "{{scope}} — klicka för att ändra\nVisar nu: {{mode}}\n• Källa: endast ursprungligt tal\n• Översättning: endast översättning\n• Båda: båda raderna",
       "ariaLabel": "{{scope}}: {{mode}} — klicka för att ändra"
     },
     "playItemAudio": "Spela upp ljudet för detta objekt"

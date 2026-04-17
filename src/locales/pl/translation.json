@@ -335,8 +335,8 @@
       "participant": "Uczestnik",
       "both": "Oba",
       "source": "Oryginał",
-      "translation": "Tłum.",
-      "tooltip": "{{scope}} — kliknij, aby zmienić\nWyświetlane: {{mode}}\n• Oryginał: tylko oryginalna mowa\n• Tłum.: tylko tłumaczenie\n• Oba: oba wiersze",
+      "translation": "Tłumaczenie",
+      "tooltip": "{{scope}} — kliknij, aby zmienić\nWyświetlane: {{mode}}\n• Oryginał: tylko oryginalna mowa\n• Tłumaczenie: tylko tłumaczenie\n• Oba: oba wiersze",
       "ariaLabel": "{{scope}}: {{mode}} — kliknij, aby zmienić"
     },
     "playItemAudio": "Odtwórz dźwięk tego elementu"

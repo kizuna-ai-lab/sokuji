@@ -336,8 +336,8 @@
       "participant": "Deelnemer",
       "both": "Beide",
       "source": "Origineel",
-      "translation": "Vert.",
-      "tooltip": "{{scope}} — klik om te wijzigen\nWordt getoond: {{mode}}\n• Origineel: alleen originele spraak\n• Vert.: alleen vertaling\n• Beide: beide regels",
+      "translation": "Vertaling",
+      "tooltip": "{{scope}} — klik om te wijzigen\nWordt getoond: {{mode}}\n• Origineel: alleen originele spraak\n• Vertaling: alleen vertaling\n• Beide: beide regels",
       "ariaLabel": "{{scope}}: {{mode}} — klik om te wijzigen"
     },
     "playItemAudio": "Audio van dit item afspelen"

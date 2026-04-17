@@ -336,8 +336,8 @@
       "participant": "Participante",
       "both": "Ambos",
       "source": "Origen",
-      "translation": "Trad.",
-      "tooltip": "{{scope}} — haz clic para cambiar\nMostrando: {{mode}}\n• Origen: solo el habla original\n• Trad.: solo la traducción\n• Ambos: ambas líneas",
+      "translation": "Traducción",
+      "tooltip": "{{scope}} — haz clic para cambiar\nMostrando: {{mode}}\n• Origen: solo el habla original\n• Traducción: solo la traducción\n• Ambos: ambas líneas",
       "ariaLabel": "{{scope}}: {{mode}} — haz clic para cambiar"
     },
     "playItemAudio": "Reproducir el audio de este elemento"
