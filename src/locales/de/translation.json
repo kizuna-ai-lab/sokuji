@@ -330,7 +330,17 @@
     "insufficientBalance": "Unzureichendes Token-Guthaben: {{balance}} Token",
     "walletFrozen": "Wallet ist eingefroren. Bitte kontaktieren Sie den Support.",
     "localModelsRequired": "Bitte laden Sie die erforderlichen Modelle in den Einstellungen herunter, um zu starten.",
-    "clearConversation": "Unterhaltung löschen"
+    "clearConversation": "Unterhaltung löschen",
+    "displayMode": {
+      "speaker": "Sprecher",
+      "participant": "Teilnehmer",
+      "both": "Beides",
+      "source": "Original",
+      "translation": "Übersetzung",
+      "tooltip": "{{scope}} — zum Ändern klicken\nAngezeigt: {{mode}}\n• Original: nur Originalsprache\n• Übersetzung: nur Übersetzung\n• Beides: beide Zeilen",
+      "ariaLabel": "{{scope}}: {{mode}} — zum Ändern klicken"
+    },
+    "playItemAudio": "Audio dieses Elements abspielen"
   },
   "errors": {
     "microphoneAccess": "Mikrofonzugriff verweigert",

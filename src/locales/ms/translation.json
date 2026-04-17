@@ -478,7 +478,17 @@
     "insufficientBalance": "Baki token tidak mencukupi: {{balance}} token",
     "walletFrozen": "Dompet dibekukan. Sila hubungi sokongan.",
     "localModelsRequired": "Sila muat turun model yang diperlukan dalam Tetapan untuk bermula.",
-    "clearConversation": "Padam perbualan"
+    "clearConversation": "Padam perbualan",
+    "displayMode": {
+      "speaker": "Penceramah",
+      "participant": "Peserta",
+      "both": "Kedua-duanya",
+      "source": "Asal",
+      "translation": "Terjemahan",
+      "tooltip": "{{scope}} — klik untuk menukar\nSedang memaparkan: {{mode}}\n• Asal: ucapan asal sahaja\n• Terjemahan: terjemahan sahaja\n• Kedua-duanya: kedua-dua baris",
+      "ariaLabel": "{{scope}}: {{mode}} — klik untuk menukar"
+    },
+    "playItemAudio": "Main audio item ini"
   },
   "errors": {
     "microphoneAccess": "Akses mikrofon ditolak",

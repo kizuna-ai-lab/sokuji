@@ -415,7 +415,17 @@
     "insufficientBalance": "Hindi sapat ang token balance: {{balance}} token",
     "walletFrozen": "Naka-freeze ang wallet. Mangyaring makipag-ugnayan sa support.",
     "localModelsRequired": "Mangyaring i-download ang mga kinakailangang modelo sa Mga Setting para makapagsimula.",
-    "clearConversation": "Burahin ang usapan"
+    "clearConversation": "Burahin ang usapan",
+    "displayMode": {
+      "speaker": "Tagapagsalita",
+      "participant": "Kalahok",
+      "both": "Parehas",
+      "source": "Orihinal",
+      "translation": "Salin",
+      "tooltip": "{{scope}} — i-click para baguhin\nIpinapakita: {{mode}}\n• Orihinal: orihinal na pananalita lamang\n• Salin: salin lamang\n• Parehas: parehong linya",
+      "ariaLabel": "{{scope}}: {{mode}} — i-click para baguhin"
+    },
+    "playItemAudio": "I-play ang audio ng item na ito"
   },
   "audioPanel": {
     "title": "Mga Setting ng Audio",

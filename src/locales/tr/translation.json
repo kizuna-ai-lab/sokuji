@@ -266,7 +266,17 @@
     "insufficientBalance": "Yetersiz token bakiyesi: {{balance}} token",
     "walletFrozen": "Cüzdan donduruldu. Lütfen destek ile iletişime geçin.",
     "localModelsRequired": "Başlamak için lütfen Ayarlar'dan gerekli modelleri indirin.",
-    "clearConversation": "Sohbeti temizle"
+    "clearConversation": "Sohbeti temizle",
+    "displayMode": {
+      "speaker": "Konuşmacı",
+      "participant": "Katılımcı",
+      "both": "Her ikisi",
+      "source": "Orijinal",
+      "translation": "Çeviri",
+      "tooltip": "{{scope}} — değiştirmek için tıklayın\nGösterilen: {{mode}}\n• Orijinal: yalnızca orijinal konuşma\n• Çeviri: yalnızca çeviri\n• Her ikisi: iki satır da",
+      "ariaLabel": "{{scope}}: {{mode}} — değiştirmek için tıklayın"
+    },
+    "playItemAudio": "Bu öğenin sesini oynat"
   },
   "audioPanel": {
     "title": "Ses Ayarları",

@@ -1,0 +1,149 @@
+.conversation-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 2px 0;
+
+  &.grouped {
+    padding-top: 0;
+    margin-top: -2px;
+  }
+
+  &.with-header {
+    margin-top: 2px;
+  }
+}
+
+.row-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 2px;
+}
+
+.row-avatar {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &.avatar-speaker {
+    background: #10a37f;
+    color: #fff;
+  }
+
+  &.avatar-participant {
+    background: #f39c12;
+    color: #1a1a1a;
+  }
+}
+
+.row-name {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 0.7rem;
+  color: #9aa0a6;
+}
+
+.row-name-text {
+  font-weight: 500;
+}
+
+.row-time {
+  font-size: 0.65rem;
+  opacity: 0.7;
+}
+
+.row-body {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 2px 0 2px 30px; // indent so the line aligns under the name, avatar reserves space
+  line-height: 1.4;
+  font-size: var(--conversation-font-size, 14px);
+  transition: background-color 0.3s ease;
+
+  .conversation-row.grouped & {
+    padding-left: 30px;
+  }
+
+  &.playing {
+    background: rgba(16, 163, 127, 0.1);
+    border-radius: 4px;
+  }
+}
+
+.lang-badge {
+  flex-shrink: 0;
+  font-size: 0.55rem;
+  padding: 1px 5px;
+  border-radius: 3px;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+  text-transform: uppercase;
+
+  &.src {
+    background: #2a2a2a;
+    color: #9aa0a6;
+    border: 1px solid #3a3a3a;
+  }
+
+  &.tr {
+    background: rgba(16, 163, 127, 0.2);
+    color: #10a37f;
+    border: 1px solid rgba(16, 163, 127, 0.4);
+  }
+}
+
+.row-text {
+  overflow-wrap: anywhere;
+
+  &.src {
+    color: #9aa0a6;
+    font-style: italic;
+  }
+
+  &.tr {
+    color: #e8e8e8;
+  }
+}
+
+.row-text-played {
+  color: #10a37f;
+}
+
+.row-play-btn {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  margin-left: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  border: none;
+  border-radius: 3px;
+  color: #c8c8c8;
+  cursor: pointer;
+  transition: background-color 0.15s, color 0.15s;
+
+  &:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.18);
+    color: #fff;
+  }
+
+  &.playing {
+    background: rgba(16, 163, 127, 0.45);
+    color: #fff;
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+}

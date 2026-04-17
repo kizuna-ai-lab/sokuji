@@ -415,7 +415,17 @@
     "insufficientBalance": "Riittämätön token-saldo: {{balance}} tokenia",
     "walletFrozen": "Lompakko on jäädytetty. Ota yhteyttä tukeen.",
     "localModelsRequired": "Lataa tarvittavat mallit Asetuksista aloittaaksesi.",
-    "clearConversation": "Tyhjennä keskustelu"
+    "clearConversation": "Tyhjennä keskustelu",
+    "displayMode": {
+      "speaker": "Puhuja",
+      "participant": "Osallistuja",
+      "both": "Molemmat",
+      "source": "Lähde",
+      "translation": "Käännös",
+      "tooltip": "{{scope}} — vaihda napsauttamalla\nNäytetään: {{mode}}\n• Lähde: vain alkuperäinen puhe\n• Käännös: vain käännös\n• Molemmat: molemmat rivit",
+      "ariaLabel": "{{scope}}: {{mode}} — vaihda napsauttamalla"
+    },
+    "playItemAudio": "Toista tämän kohteen ääni"
   },
   "audioPanel": {
     "title": "Ääniasetukset",

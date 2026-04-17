@@ -482,7 +482,17 @@
     "insufficientBalance": "Saldo de tokens insuficiente: {{balance}} tokens",
     "walletFrozen": "Carteira congelada. Contacte o suporte.",
     "localModelsRequired": "Por favor, descarregue os modelos necessários em Definições para começar.",
-    "clearConversation": "Limpar conversa"
+    "clearConversation": "Limpar conversa",
+    "displayMode": {
+      "speaker": "Orador",
+      "participant": "Participante",
+      "both": "Ambos",
+      "source": "Original",
+      "translation": "Tradução",
+      "tooltip": "{{scope}} — clique para alterar\nA mostrar: {{mode}}\n• Original: apenas a fala original\n• Tradução: apenas a tradução\n• Ambos: ambas as linhas",
+      "ariaLabel": "{{scope}}: {{mode}} — clique para alterar"
+    },
+    "playItemAudio": "Reproduzir o áudio deste item"
   },
   "errors": {
     "microphoneAccess": "Acesso ao microfone negado",

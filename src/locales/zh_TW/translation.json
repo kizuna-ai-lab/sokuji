@@ -448,7 +448,17 @@
     "insufficientBalance": "代幣餘額不足：{{balance}} 個代幣",
     "walletFrozen": "錢包已凍結。請聯繫客服。",
     "localModelsRequired": "請先在設定中下載所需的模型才能開始使用。",
-    "clearConversation": "清除對話"
+    "clearConversation": "清除對話",
+    "displayMode": {
+      "speaker": "講者",
+      "participant": "參與者",
+      "both": "兩者",
+      "source": "原文",
+      "translation": "譯文",
+      "tooltip": "{{scope}} — 點擊切換\n目前：{{mode}}\n• 原文：僅原始語音\n• 譯文：僅翻譯\n• 兩者：兩行都顯示",
+      "ariaLabel": "{{scope}}：{{mode}} — 點擊切換"
+    },
+    "playItemAudio": "播放此項目的音訊"
   },
   "errors": {
     "microphoneAccess": "麥克風存取被拒絕",

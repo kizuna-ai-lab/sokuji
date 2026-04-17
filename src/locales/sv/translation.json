@@ -259,7 +259,17 @@
     "insufficientBalance": "Otillräckligt tokensaldo: {{balance}} tokens",
     "walletFrozen": "Plånboken är frusen. Kontakta supporten.",
     "localModelsRequired": "Ladda ner de nödvändiga modellerna i Inställningar för att börja.",
-    "clearConversation": "Rensa konversation"
+    "clearConversation": "Rensa konversation",
+    "displayMode": {
+      "speaker": "Talare",
+      "participant": "Deltagare",
+      "both": "Båda",
+      "source": "Källa",
+      "translation": "Översättning",
+      "tooltip": "{{scope}} — klicka för att ändra\nVisar nu: {{mode}}\n• Källa: endast ursprungligt tal\n• Översättning: endast översättning\n• Båda: båda raderna",
+      "ariaLabel": "{{scope}}: {{mode}} — klicka för att ändra"
+    },
+    "playItemAudio": "Spela upp ljudet för detta objekt"
   },
   "audioPanel": {
     "title": "Ljudinställningar",

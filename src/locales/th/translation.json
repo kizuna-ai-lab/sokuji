@@ -379,7 +379,17 @@
     "insufficientBalance": "ยอดโทเค็นไม่เพียงพอ: {{balance}} โทเค็น",
     "walletFrozen": "กระเป๋าเงินถูกระงับ กรุณาติดต่อฝ่ายสนับสนุน",
     "localModelsRequired": "กรุณาดาวน์โหลดโมเดลที่จำเป็นในการตั้งค่าเพื่อเริ่มต้นใช้งาน",
-    "clearConversation": "ล้างการสนทนา"
+    "clearConversation": "ล้างการสนทนา",
+    "displayMode": {
+      "speaker": "ผู้พูด",
+      "participant": "ผู้เข้าร่วม",
+      "both": "ทั้งคู่",
+      "source": "ต้นฉบับ",
+      "translation": "คำแปล",
+      "tooltip": "{{scope}} — คลิกเพื่อเปลี่ยน\nกำลังแสดง: {{mode}}\n• ต้นฉบับ: เฉพาะคำพูดต้นฉบับ\n• คำแปล: เฉพาะคำแปล\n• ทั้งคู่: ทั้งสองบรรทัด",
+      "ariaLabel": "{{scope}}: {{mode}} — คลิกเพื่อเปลี่ยน"
+    },
+    "playItemAudio": "เล่นเสียงของรายการนี้"
   },
   "audioPanel": {
     "title": "การตั้งค่าเสียง",
