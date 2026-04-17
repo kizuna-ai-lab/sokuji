@@ -94,6 +94,46 @@ used by the conversation list.
 - Clear conversation button works as today.
 - Session-level playback (start/stop, the green Zap button) is not affected.
 
+## Translation Badge Color by Role (expanded mode)
+
+Independent of the compact toggle, the translation-side language badge
+(`.lang-badge.tr`) gets a role-aware color so speaker and participant
+translations are visually distinguishable at a glance. This matches the
+color language already used by avatars and (in compact mode) by the role dot.
+
+| Badge | Today | After |
+|---|---|---|
+| Source badge (`.src`) | Gray (unchanged) | Gray (unchanged) |
+| Speaker translation (`.tr` on speaker row) | Green (`#10a37f`) | Green (`#10a37f`) — unchanged |
+| Participant translation (`.tr` on participant row) | Green (`#10a37f`) | **Orange (`#f39c12`)** |
+
+Implementation:
+
+- `ConversationRow.tsx` already renders `<span class="lang-badge tr">` /
+  `<span class="lang-badge src">`. Extend the class list to also include
+  `source-speaker` or `source-participant` (same `source-<role>` convention
+  used by the role dot).
+- `ConversationRow.scss` splits the `.lang-badge.tr` rule into two role-scoped
+  variants:
+  ```scss
+  .lang-badge.tr {
+    &.source-speaker {
+      background: rgba(16, 163, 127, 0.2);
+      color: #10a37f;
+      border: 1px solid rgba(16, 163, 127, 0.4);
+    }
+    &.source-participant {
+      background: rgba(243, 156, 18, 0.2);
+      color: #f39c12;
+      border: 1px solid rgba(243, 156, 18, 0.4);
+    }
+  }
+  ```
+- `.lang-badge.src` is unchanged.
+- The badge is hidden in compact mode, so this change is only visible when
+  compact is off. The role dot provides equivalent color coding when compact
+  is on.
+
 ## State & Persistence
 
 Add one field to `CommonSettings` in `src/stores/settingsStore.ts`, mirroring
@@ -141,9 +181,12 @@ conversationCompactMode: boolean;   // default: false
    - When `showHeader` is true (first row of a same-role run), render a
      `<span class="row-role-dot source-<source>" />` as the first child of
      `.row-body`. No dot when `showHeader` is false.
-3. Add `compact` to the root `div`'s class list for SCSS hooks
+3. Regardless of `compact`, extend the `.lang-badge` class list to include
+   `source-<source>` so SCSS can color the translation badge by role
+   (see "Translation Badge Color by Role" section).
+4. Add `compact` to the root `div`'s class list for SCSS hooks
    (`conversation-row compact` / `conversation-row expanded`).
-4. `renderText()` behavior (playback highlight, italic for source text) is
+5. `renderText()` behavior (playback highlight, italic for source text) is
    unchanged.
 
 ### `ConversationRow.scss` / `MainPanel.scss`
@@ -190,6 +233,8 @@ Only `en` needs to be authored; other locales fall back until translated.
   - Compact hides header, language badge, and play button regardless of input.
   - Non-compact preserves existing behavior (no dot; header / badge / play
     button appear per existing rules).
+  - Translation badge carries `source-speaker` or `source-participant` class
+    in both compact and expanded rendering (so the SCSS color rules apply).
 
 ## Risks & Open Questions
 
