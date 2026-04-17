@@ -50,27 +50,42 @@ When compact mode is on, `ConversationRow` hides or changes the following,
 **in addition to** whatever the existing `speakerDisplayMode` /
 `participantDisplayMode` filters already do:
 
-| Element                                | Expanded (current) | Compact        |
-|----------------------------------------|--------------------|----------------|
-| Row header (avatar + scope name + time)| Shown when role changes | Never shown |
-| Language badge (`ZH` / `EN`)           | Shown              | Hidden         |
-| Row-level play button (▶)              | Shown when available | Hidden       |
-| Translation italic + light green color | Shown              | **Unchanged** (still shown) |
-| Indent under header (`padding-left: 28px` on `row-body`) | Yes | No (flush left) |
+| Element | Expanded (current) | Compact |
+|---|---|---|
+| Row header (avatar + scope name + time) | Shown when role changes | Never shown |
+| Language badge (`ZH` / `EN`) | Shown | Hidden |
+| Row-level play button (▶) | Shown when available | Hidden |
+| Source italic + gray color | Shown | **Unchanged** (still shown) |
+| Translation near-white color | Shown | **Unchanged** (still shown) |
+| Indent under header (`padding-left: 30px` on `row-body`) | Yes | Reduced (see dot below) |
 
-### Role Switch Divider (new)
+### Role Dot (new)
 
-In compact mode, when two consecutive visible rows have different `source`
-(`speaker` ↔ `participant`), a thin horizontal rule is rendered between them.
+In compact mode, the first row of each same-role run gets a single 6px
+colored dot positioned before the text. Subsequent rows in the same run have
+no dot (but keep the same horizontal text start so alignment is consistent).
 
-- Appearance: `1px` solid line, color `#2a2a2a` (matches existing toolbar divider).
-- Spacing: `6px` margin top and bottom.
-- Full width of the conversation list column.
-- First row in the list has no divider above it.
-- No divider within a same-role run, regardless of how many rows.
+- "First of run" = the existing `showHeader` condition in `ConversationRow`:
+  `!prevItem || (prevItem.source ?? 'speaker') !== source`. The same boolean
+  that gates the header in expanded mode now gates the dot in compact mode.
+- Appearance: `6px × 6px` solid circle.
+- Colors (reuse of existing avatar colors):
+  - Speaker: `#10a37f`
+  - Participant: `#f39c12`
+- Position: absolute-positioned inside the row, at `left: 2px; top: 8px`
+  relative to the row body.
+- Row left padding in compact mode: `16px` (enough for the 6px dot + 8px gap).
+  Rows that are not first-of-run still use the same `16px` padding so text
+  edges line up with the first row's text.
 
-This is the **only** visual cue for speaker attribution in compact mode. No
-color stripe, no role label, no avatar.
+No divider line, no color stripe, no role label, no avatar. The dot is the
+sole visual cue for speaker attribution in compact mode.
+
+### Divider Behavior
+
+No horizontal role-switch divider is rendered in compact mode. Rows sit
+directly adjacent to one another, separated only by the existing `gap: 2px`
+used by the conversation list.
 
 ### Interactions That Still Apply in Compact Mode
 
@@ -108,14 +123,13 @@ conversationCompactMode: boolean;   // default: false
 3. In the toolbar JSX (around the existing font-size / clear buttons), insert
    a new `<button>` between the font-size group and the trash button. Icon is
    chosen by current state; `onClick` toggles the store value.
-4. Pass `compact` down to the row renderer (see below).
-5. When rendering the conversation list, compute `showDivider` for each row as
-   `compact && index > 0 && prevVisibleItem.source !== currentItem.source`.
-   Render a `<div class="role-divider" />` before the row when true.
+4. Pass `compact` down to each `<ConversationRow>` instance. The existing
+   `prevItem` argument passed to the row is sufficient for the row to compute
+   its own "first of run" status — no extra wiring needed from MainPanel.
 
-   The "previous visible item" must be computed from `filteredItems` (the list
-   already respecting display-mode filters), not `combinedItems`, so the divider
-   reflects what the user actually sees.
+   Note: `prevItem` must continue to come from `filteredItems` (the list
+   already respecting display-mode filters), not `combinedItems`, so the role
+   dot reflects what the user actually sees.
 
 ### `ConversationRow.tsx`
 
@@ -124,27 +138,37 @@ conversationCompactMode: boolean;   // default: false
    - Do not render `<div class="row-header">`, regardless of `showHeader`.
    - Do not render the `<span class="lang-badge">`.
    - Do not render the row-level play button, regardless of `canPlay`.
+   - When `showHeader` is true (first row of a same-role run), render a
+     `<span class="row-role-dot source-<source>" />` as the first child of
+     `.row-body`. No dot when `showHeader` is false.
 3. Add `compact` to the root `div`'s class list for SCSS hooks
    (`conversation-row compact` / `conversation-row expanded`).
-4. `renderText()` behavior (playback highlight, italic for translation) is
+4. `renderText()` behavior (playback highlight, italic for source text) is
    unchanged.
 
 ### `ConversationRow.scss` / `MainPanel.scss`
 
 1. In `ConversationRow.scss`, add a `.conversation-row.compact .row-body`
-   rule that removes the left padding previously supplied by the header
-   indent (if any).
-2. Add `.role-divider` rules in `MainPanel.scss`:
+   rule that sets `padding-left: 16px` (replacing the `30px` indent used in
+   expanded mode) and `position: relative` so the dot can be absolutely
+   positioned.
+2. Add `.row-role-dot` rules:
    ```scss
-   .role-divider {
-     height: 1px;
-     background: #2a2a2a;
-     margin: 6px 0;
+   .row-role-dot {
+     position: absolute;
+     left: 2px;
+     top: 8px;
+     width: 6px;
+     height: 6px;
+     border-radius: 50%;
+
+     &.source-speaker     { background: #10a37f; }
+     &.source-participant { background: #f39c12; }
    }
    ```
-3. Add `.font-size-btn`-equivalent styling for the new compact toggle (reuse
-   the existing toolbar button class if one exists; otherwise follow the same
-   pattern).
+3. Add styling for the new compact toggle. Reuse `.font-size-btn` class if
+   that works visually; otherwise follow the same pattern with a new
+   class name.
 
 ## i18n
 
@@ -160,31 +184,33 @@ Only `en` needs to be authored; other locales fall back until translated.
 - `conversationFilter.test.ts` is unaffected; compact mode does not filter items.
 - Add a `ConversationRow.compact.test.tsx` (or extend existing colocated tests
   if any) that asserts:
-  - Compact prop hides header, badge, and play button.
-  - Non-compact preserves existing behavior.
-- Add a `MainPanel.roleDivider.test.tsx` that asserts, given a filtered list
-  with alternating `source` values, a divider element appears between role
-  transitions and not within same-role runs. Use `@testing-library/react` +
-  the existing `jsdom` setup.
+  - Compact + first-of-run → renders `.row-role-dot` with the correct
+    `source-speaker` / `source-participant` class.
+  - Compact + not first-of-run → no `.row-role-dot` rendered.
+  - Compact hides header, language badge, and play button regardless of input.
+  - Non-compact preserves existing behavior (no dot; header / badge / play
+    button appear per existing rules).
 
 ## Risks & Open Questions
 
 - **Play button removal**: power users who rely on per-line replay may prefer
   compact mode to keep ▶. We can revisit if feedback comes in; the toggle is
   one click away either way, so the cost is low.
-- **Divider visibility with existing display-mode filters**: if a user sets
-  `participantDisplayMode = 'off'` (hiding participant entirely), role
-  transitions disappear naturally and no divider is drawn — correct behavior.
-- **Accessibility**: the divider is purely visual. Screen readers should
+- **Role attribution with display-mode filters**: if a user sets
+  `participantDisplayMode = 'off'` (hiding participant entirely), no
+  participant rows are rendered, so no orange dots appear — correct behavior.
+  First-of-run detection uses `prevItem` from `filteredItems`, so it always
+  matches what the user sees.
+- **Accessibility**: the role dot is purely visual. Screen readers should
   continue to rely on per-row content (speaker/role information is lost in
   compact mode, same as any subtitle UI). Acceptable given the feature's goal.
 
 ## Files Touched
 
 - `src/stores/settingsStore.ts` — add field, default, action, hook, init load, persist.
-- `src/components/MainPanel/MainPanel.tsx` — toolbar button, divider insertion, prop wiring.
-- `src/components/MainPanel/MainPanel.scss` — `.role-divider` + new button style.
-- `src/components/MainPanel/ConversationRow.tsx` — `compact` prop, conditional rendering.
-- `src/components/MainPanel/ConversationRow.scss` — compact layout tweaks.
+- `src/components/MainPanel/MainPanel.tsx` — toolbar button, `compact` prop wiring.
+- `src/components/MainPanel/MainPanel.scss` — new toolbar button style (if needed).
+- `src/components/MainPanel/ConversationRow.tsx` — `compact` prop, role dot rendering, conditional hides.
+- `src/components/MainPanel/ConversationRow.scss` — `.row-role-dot` + compact layout tweaks.
 - `src/locales/en/translation.json` — two new strings under the `mainPanel` block.
 - New test file(s) as listed above.
