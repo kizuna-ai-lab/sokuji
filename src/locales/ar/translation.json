@@ -435,7 +435,17 @@
     "insufficientBalance": "رصيد الرموز غير كافٍ: {{balance}} رمز",
     "walletFrozen": "المحفظة مجمدة. يرجى الاتصال بالدعم.",
     "localModelsRequired": "يرجى تنزيل النماذج المطلوبة من الإعدادات للبدء.",
-    "clearConversation": "مسح المحادثة"
+    "clearConversation": "مسح المحادثة",
+    "displayMode": {
+      "speaker": "المتحدث",
+      "participant": "المشارك",
+      "both": "الكل",
+      "source": "الأصل",
+      "translation": "الترجمة",
+      "tooltip": "{{scope}} — انقر للتغيير\nيظهر حاليًا: {{mode}}\n• الأصل: الكلام الأصلي فقط\n• الترجمة: الترجمة فقط\n• الكل: السطران",
+      "ariaLabel": "{{scope}}: {{mode}} — انقر للتغيير"
+    },
+    "playItemAudio": "تشغيل صوت هذا العنصر"
   },
   "simplePanel": {
     "translationActive": "الترجمة نشطة",

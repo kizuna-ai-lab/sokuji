@@ -330,7 +330,17 @@
     "insufficientBalance": "토큰 잔액 부족: {{balance}} 토큰",
     "walletFrozen": "지갑이 동결되었습니다. 고객 지원에 문의하세요.",
     "localModelsRequired": "시작하려면 설정에서 필요한 모델을 다운로드하세요.",
-    "clearConversation": "대화 지우기"
+    "clearConversation": "대화 지우기",
+    "displayMode": {
+      "speaker": "발화자",
+      "participant": "참가자",
+      "both": "모두",
+      "source": "원문",
+      "translation": "번역",
+      "tooltip": "{{scope}} — 클릭하여 변경\n현재 표시: {{mode}}\n• 원문: 원본 음성만\n• 번역: 번역만\n• 모두: 두 줄 모두",
+      "ariaLabel": "{{scope}}: {{mode}} — 클릭하여 변경"
+    },
+    "playItemAudio": "이 항목의 오디오 재생"
   },
   "errors": {
     "microphoneAccess": "마이크 접근이 거부되었습니다",

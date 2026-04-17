@@ -330,7 +330,17 @@
     "insufficientBalance": "Saldo de tokens insuficiente: {{balance}} tokens",
     "walletFrozen": "Carteira congelada. Entre em contato com o suporte.",
     "localModelsRequired": "Por favor, baixe os modelos necessários em Configurações para começar.",
-    "clearConversation": "Limpar conversa"
+    "clearConversation": "Limpar conversa",
+    "displayMode": {
+      "speaker": "Locutor",
+      "participant": "Participante",
+      "both": "Ambos",
+      "source": "Original",
+      "translation": "Tradução",
+      "tooltip": "{{scope}} — clique para alterar\nMostrando: {{mode}}\n• Original: apenas a fala original\n• Tradução: apenas a tradução\n• Ambos: ambas as linhas",
+      "ariaLabel": "{{scope}}: {{mode}} — clique para alterar"
+    },
+    "playItemAudio": "Reproduzir o áudio deste item"
   },
   "errors": {
     "microphoneAccess": "Acesso ao microfone negado",

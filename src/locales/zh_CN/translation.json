@@ -480,7 +480,17 @@
     "insufficientBalance": "代币余额不足：{{balance}} 个代币",
     "walletFrozen": "钱包已冻结。请联系客服。",
     "localModelsRequired": "请先在设置中下载所需的模型才能开始使用。",
-    "clearConversation": "清除对话"
+    "clearConversation": "清除对话",
+    "displayMode": {
+      "speaker": "讲者",
+      "participant": "参与者",
+      "both": "两者",
+      "source": "原文",
+      "translation": "译文",
+      "tooltip": "{{scope}} — 点击切换\n当前：{{mode}}\n• 原文：仅原始语音\n• 译文：仅翻译\n• 两者：两行都显示",
+      "ariaLabel": "{{scope}}：{{mode}} — 点击切换"
+    },
+    "playItemAudio": "播放此条音频"
   },
   "errors": {
     "microphoneAccess": "麦克风访问被拒绝",

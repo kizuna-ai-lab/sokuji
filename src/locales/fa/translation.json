@@ -441,7 +441,17 @@
     "insufficientBalance": "موجودی توکن ناکافی: {{balance}} توکن",
     "walletFrozen": "کیف پول مسدود شده است. لطفاً با پشتیبانی تماس بگیرید.",
     "localModelsRequired": "لطفاً برای شروع مدل‌های مورد نیاز را از تنظیمات دانلود کنید.",
-    "clearConversation": "پاک کردن مکالمه"
+    "clearConversation": "پاک کردن مکالمه",
+    "displayMode": {
+      "speaker": "گوینده",
+      "participant": "شرکت‌کننده",
+      "both": "هر دو",
+      "source": "اصلی",
+      "translation": "ترجمه",
+      "tooltip": "{{scope}} — برای تغییر کلیک کنید\nاکنون نمایش: {{mode}}\n• اصلی: فقط گفتار اصلی\n• ترجمه: فقط ترجمه\n• هر دو: هر دو خط",
+      "ariaLabel": "{{scope}}: {{mode}} — برای تغییر کلیک کنید"
+    },
+    "playItemAudio": "پخش صوت این مورد"
   },
   "simplePanel": {
     "translationActive": "ترجمه فعال",

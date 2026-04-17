@@ -259,7 +259,17 @@
     "insufficientBalance": "Số dư token không đủ: {{balance}} token",
     "walletFrozen": "Ví đã bị đóng băng. Vui lòng liên hệ hỗ trợ.",
     "localModelsRequired": "Vui lòng tải xuống các mô hình cần thiết trong Cài đặt để bắt đầu.",
-    "clearConversation": "Xóa hội thoại"
+    "clearConversation": "Xóa hội thoại",
+    "displayMode": {
+      "speaker": "Người nói",
+      "participant": "Người tham gia",
+      "both": "Cả hai",
+      "source": "Gốc",
+      "translation": "Dịch",
+      "tooltip": "{{scope}} — nhấp để đổi\nĐang hiện: {{mode}}\n• Gốc: chỉ giọng gốc\n• Dịch: chỉ bản dịch\n• Cả hai: cả hai dòng",
+      "ariaLabel": "{{scope}}: {{mode}} — nhấp để đổi"
+    },
+    "playItemAudio": "Phát âm thanh của mục này"
   },
   "audioPanel": {
     "title": "Cài đặt âm thanh",

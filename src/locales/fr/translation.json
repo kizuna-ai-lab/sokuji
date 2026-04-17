@@ -330,7 +330,17 @@
     "insufficientBalance": "Solde de jetons insuffisant : {{balance}} jetons",
     "walletFrozen": "Portefeuille gelé. Veuillez contacter le support.",
     "localModelsRequired": "Veuillez télécharger les modèles requis dans les Paramètres pour commencer.",
-    "clearConversation": "Effacer la conversation"
+    "clearConversation": "Effacer la conversation",
+    "displayMode": {
+      "speaker": "Orateur",
+      "participant": "Participant",
+      "both": "Les deux",
+      "source": "Source",
+      "translation": "Traduction",
+      "tooltip": "{{scope}} — cliquez pour changer\nAffiché : {{mode}}\n• Source : discours original seulement\n• Traduction : traduction seulement\n• Les deux : les deux lignes",
+      "ariaLabel": "{{scope}} : {{mode}} — cliquez pour changer"
+    },
+    "playItemAudio": "Lire l'audio de cet élément"
   },
   "errors": {
     "microphoneAccess": "Accès au microphone refusé",

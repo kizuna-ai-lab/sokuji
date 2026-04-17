@@ -335,7 +335,17 @@
     "insufficientBalance": "トークン残高不足: {{balance}} トークン",
     "walletFrozen": "ウォレットが凍結されています。サポートにお問い合わせください。",
     "localModelsRequired": "開始するには設定で必要なモデルをダウンロードしてください。",
-    "clearConversation": "会話をクリア"
+    "clearConversation": "会話をクリア",
+    "displayMode": {
+      "speaker": "話者",
+      "participant": "参加者",
+      "both": "両方",
+      "source": "原文",
+      "translation": "訳文",
+      "tooltip": "{{scope}} — クリックで切替\n現在の表示: {{mode}}\n• 原文: 元の発話のみ\n• 訳文: 翻訳のみ\n• 両方: 両方の行",
+      "ariaLabel": "{{scope}}: {{mode}} — クリックで切替"
+    },
+    "playItemAudio": "この項目の音声を再生"
   },
   "errors": {
     "microphoneAccess": "マイクへのアクセスが拒否されました",

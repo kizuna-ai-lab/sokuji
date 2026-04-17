@@ -441,7 +441,17 @@
     "insufficientBalance": "অপর্যাপ্ত টোকেন ব্যালেন্স: {{balance}} টোকেন",
     "walletFrozen": "ওয়ালেট ফ্রিজ করা হয়েছে। অনুগ্রহ করে সহায়তায় যোগাযোগ করুন।",
     "localModelsRequired": "শুরু করতে অনুগ্রহ করে সেটিংসে প্রয়োজনীয় মডেলগুলি ডাউনলোড করুন।",
-    "clearConversation": "কথোপকথন মুছুন"
+    "clearConversation": "কথোপকথন মুছুন",
+    "displayMode": {
+      "speaker": "বক্তা",
+      "participant": "অংশগ্রহণকারী",
+      "both": "উভয়",
+      "source": "মূল",
+      "translation": "অনুবাদ",
+      "tooltip": "{{scope}} — পরিবর্তন করতে ক্লিক করুন\nএখন দেখাচ্ছে: {{mode}}\n• মূল: শুধু মূল বক্তব্য\n• অনুবাদ: শুধু অনুবাদ\n• উভয়: উভয় লাইন",
+      "ariaLabel": "{{scope}}: {{mode}} — পরিবর্তন করতে ক্লিক করুন"
+    },
+    "playItemAudio": "এই আইটেমের অডিও চালান"
   },
   "simplePanel": {
     "translationActive": "অনুবাদ সক্রিয়",

@@ -329,7 +329,17 @@
     "insufficientBalance": "Niewystarczające saldo tokenów: {{balance}} tokenów",
     "walletFrozen": "Portfel zamrożony. Skontaktuj się z pomocą techniczną.",
     "localModelsRequired": "Pobierz wymagane modele w Ustawieniach, aby rozpocząć.",
-    "clearConversation": "Wyczyść rozmowę"
+    "clearConversation": "Wyczyść rozmowę",
+    "displayMode": {
+      "speaker": "Mówca",
+      "participant": "Uczestnik",
+      "both": "Oba",
+      "source": "Oryginał",
+      "translation": "Tłumaczenie",
+      "tooltip": "{{scope}} — kliknij, aby zmienić\nWyświetlane: {{mode}}\n• Oryginał: tylko oryginalna mowa\n• Tłumaczenie: tylko tłumaczenie\n• Oba: oba wiersze",
+      "ariaLabel": "{{scope}}: {{mode}} — kliknij, aby zmienić"
+    },
+    "playItemAudio": "Odtwórz dźwięk tego elementu"
   },
   "errors": {
     "microphoneAccess": "Dostęp do mikrofonu został odrzucony",

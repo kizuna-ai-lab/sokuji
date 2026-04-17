@@ -97,3 +97,5 @@ public/wasm/*
 !public/wasm/vad/
 !public/wasm/piper-plus/
 !public/wasm/gtcrn/
+
+.superpowers/

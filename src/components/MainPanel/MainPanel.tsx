@@ -21,7 +21,11 @@ import {
   useTransportType,
   useNavigateToSettings,
   useConversationFontSize,
-  useSetConversationFontSize
+  useSetConversationFontSize,
+  useSpeakerDisplayMode,
+  useParticipantDisplayMode,
+  useSetSpeakerDisplayMode,
+  useSetParticipantDisplayMode
 } from '../../stores/settingsStore';
 import useSettingsStore, { createParticipantLocalInferenceConfig } from '../../stores/settingsStore';
 import useSessionStore, { useSession, useIsReconnecting, useSetIsReconnecting } from '../../stores/sessionStore';
@@ -46,6 +50,9 @@ import { isExtension, getEnvironment } from '../../utils/environment';
 import UpdateBanner from '../UpdateBanner/UpdateBanner';
 import UpdateDialog from '../UpdateDialog/UpdateDialog';
 import { useInitUpdateListeners, useCleanupUpdateListeners } from '../../stores/updateStore';
+import DisplayModeButton from './DisplayModeButton';
+import ConversationRow from './ConversationRow';
+import { shouldShowItem } from './conversationFilter';
 
 
 /**
@@ -100,6 +107,10 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   const uiMode = useUIMode();
   const conversationFontSize = useConversationFontSize();
   const setConversationFontSize = useSetConversationFontSize();
+  const speakerDisplayMode = useSpeakerDisplayMode();
+  const participantDisplayMode = useParticipantDisplayMode();
+  const setSpeakerDisplayMode = useSetSpeakerDisplayMode();
+  const setParticipantDisplayMode = useSetParticipantDisplayMode();
   const openAISettings = useOpenAISettings();
   const openAICompatibleSettings = useOpenAICompatibleSettings();
   const geminiSettings = useGeminiSettings();
@@ -537,17 +548,25 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     });
   }, [items, systemAudioItems]);
 
-  // Filter items based on UI mode
+  // Filter items based on UI mode and display mode
   const filteredItems = useMemo(() => {
     return combinedItems.filter(item => {
       const hasText = item.formatted?.transcript || item.formatted?.text;
-      const isBasic = (item.type === 'error' || item.role === 'user' || item.role === 'assistant') && hasText;
-      if (uiMode === 'basic') return isBasic;
-      // Advanced: also show tool calls, audio-only, system messages
-      return isBasic || item.formatted?.tool || item.formatted?.output ||
-        (item.formatted?.audio && !item.formatted?.transcript && !item.formatted?.text);
+      const audioSize =
+        (item.formatted?.audio as any)?.length ?? (item.formatted?.audio as any)?.byteLength ?? 0;
+      const isBasic =
+        (item.type === 'error' ||
+         item.role === 'user' ||
+         item.role === 'assistant' ||
+         item.role === 'system') && hasText;
+      const passesUiMode = uiMode === 'basic'
+        ? isBasic
+        : (isBasic || item.formatted?.tool || item.formatted?.output ||
+           (audioSize > 0 && !item.formatted?.transcript && !item.formatted?.text));
+      if (!passesUiMode) return false;
+      return shouldShowItem(item, speakerDisplayMode, participantDisplayMode);
     });
-  }, [combinedItems, uiMode]);
+  }, [combinedItems, uiMode, speakerDisplayMode, participantDisplayMode]);
 
   // Session duration timer
   useEffect(() => {
@@ -2522,6 +2541,10 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   // Get current provider settings for language pair display
   const currentSettings = getCurrentProviderSettings();
 
+  // Active source/target languages for badge labels (provider-agnostic).
+  const sourceLanguage = currentSettings.sourceLanguage ?? 'EN';
+  const targetLanguage = currentSettings.targetLanguage ?? 'EN';
+
   // Helper: render a single conversation item as a bubble
   const renderConversationItem = (item: ConversationItem & { source?: string }, index: number) => {
     const isItemPlaying = playingItemId === item.id;
@@ -2541,7 +2564,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     // Error bubble
     if (item.type === 'error') {
       return (
-        <div key={item.id || index} className="message-bubble error">
+        <div key={`${(item as any).source || 'speaker'}_${item.id || index}`} className="message-bubble error">
           <div className="message-header">
             <AlertCircle size={12} />
             {t('mainPanel.error', 'Error')}
@@ -2555,40 +2578,47 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
     // Text / transcript bubble (common for both modes)
     if (text) {
+      // prevItem must be the previous *rendered-as-row* item (other
+      // types — tool calls, audio-only, errors — would incorrectly
+      // collapse the header because they default source='speaker').
+      let prevItem: (ConversationItem & { source?: string }) | null = null;
+      for (let i = index - 1; i >= 0; i -= 1) {
+        const cand = filteredItems[i] as ConversationItem & { source?: string };
+        if (cand.type !== 'message') continue;
+        const candText = cand.formatted?.transcript || cand.formatted?.text;
+        if (candText) { prevItem = cand; break; }
+      }
+
+      const audio = item.formatted?.audio as any;
+      const audioSize = audio?.length ?? audio?.byteLength ?? 0;
+      const canPlay =
+        ((item as any).status === 'completed' || (item as any).status === 'incomplete') &&
+        audioSize > 0;
+
       return (
-        <div
-          key={item.id || index}
-          className={`message-bubble ${item.role} ${isParticipant ? 'participant-source' : 'speaker-source'} ${isItemPlaying ? 'playing' : ''}`}
-        >
-          <div className={`message-content ${isItemPlaying ? 'karaoke-active' : ''}`}>
-            {isItemPlaying ? (
-              <>
-                <span className="karaoke-played">{text.slice(0, highlightedChars)}</span>
-                <span className="karaoke-unplayed">{text.slice(highlightedChars)}</span>
-              </>
-            ) : (
-              text
-            )}
-            {isDevelopment() && uiMode === 'advanced' && ((item as any).status === 'completed' || (item as any).status === 'incomplete') && item.formatted?.audio?.length > 0 && (
-              <button
-                className={`inline-play-button ${isItemPlaying ? 'playing' : ''}`}
-                onClick={() => handlePlayAudio(item)}
-                disabled={playingItemId !== null}
-              >
-                <Play size={10} />
-              </button>
-            )}
-          </div>
-        </div>
+        <ConversationRow
+          key={`${(item as any).source || 'speaker'}_${item.id || index}`}
+          item={item}
+          prevItem={prevItem as (ConversationItem & { source?: 'speaker' | 'participant' }) | null}
+          sourceLanguage={sourceLanguage}
+          targetLanguage={targetLanguage}
+          isPlaying={isItemPlaying}
+          highlightedChars={highlightedChars}
+          canPlay={canPlay}
+          onPlay={() => handlePlayAudio(item)}
+          playDisabled={playingItemId !== null && !isItemPlaying}
+        />
       );
     }
 
     // Advanced-only content types
     if (uiMode === 'advanced') {
       // Audio-only indicator
-      if (item.formatted?.audio?.length > 0) {
+      const audio = item.formatted?.audio as any;
+      const audioSize = audio?.length ?? audio?.byteLength ?? 0;
+      if (audioSize > 0) {
         return (
-          <div key={item.id || index} className={`message-bubble ${item.role} ${isParticipant ? 'participant-source' : 'speaker-source'} audio-only`}>
+          <div key={`${(item as any).source || 'speaker'}_${item.id || index}`} className={`message-bubble ${item.role} ${isParticipant ? 'participant-source' : 'speaker-source'} audio-only`}>
             <div className="message-content">
               <div className="content-item audio">
                 <div className="audio-indicator">
@@ -2619,7 +2649,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         } catch (e) { /* keep original */ }
 
         return (
-          <div key={item.id || index} className={`message-bubble system`}>
+          <div key={`${(item as any).source || 'speaker'}_${item.id || index}`} className={`message-bubble system`}>
             <div className="message-content">
               <div className="content-item tool-call">
                 <div className="tool-name">{t('mainPanel.function')}: {item.formatted.tool.name}</div>
@@ -2638,7 +2668,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         } catch (e) { /* keep original */ }
 
         return (
-          <div key={item.id || index} className={`message-bubble system`}>
+          <div key={`${(item as any).source || 'speaker'}_${item.id || index}`} className={`message-bubble system`}>
             <div className="message-content">
               <div className="content-item tool-output">
                 <div className="output-content"><pre>{formattedOutput}</pre></div>
@@ -2659,8 +2689,20 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       <UpdateDialog />
       <div className="main-panel">
         {/* Conversation toolbar */}
-        {filteredItems.length > 0 && (
+        {combinedItems.length > 0 && (
           <div className="conversation-toolbar">
+            <DisplayModeButton
+              scope="speaker"
+              value={speakerDisplayMode}
+              onChange={setSpeakerDisplayMode}
+            />
+            {systemAudioItems.length > 0 && (
+              <DisplayModeButton
+                scope="participant"
+                value={participantDisplayMode}
+                onChange={setParticipantDisplayMode}
+              />
+            )}
             <button
               className="font-size-btn"
               onClick={() => setConversationFontSize(Math.max(12, conversationFontSize - 2))}
@@ -2698,7 +2740,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           ref={conversationContainerRef}
           style={{ '--conversation-font-size': `${conversationFontSize}px` } as React.CSSProperties}
         >
-          {filteredItems.length === 0 ? (
+          {combinedItems.length === 0 ? (
             <div className="empty-state">
               <MessageSquare size={32} />
               <p>{t('simplePanel.startToBegin', 'Click Start to begin real-time translation')}</p>
