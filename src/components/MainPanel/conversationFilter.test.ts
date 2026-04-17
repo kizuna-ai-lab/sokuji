@@ -72,4 +72,18 @@ describe('shouldShowItem', () => {
     const item = baseItem({ role: 'system', source: 'speaker' });
     expect(shouldShowItem(item, 'source', 'source')).toBe(true);
   });
+
+  it('always shows function_call items regardless of filter', () => {
+    // Tool calls arrive with role='assistant' but type='function_call'; they
+    // must NOT be filtered out when the user picks source-only or translation-only.
+    const item = baseItem({ type: 'function_call', role: 'assistant', source: 'speaker' });
+    expect(shouldShowItem(item, 'source', 'source')).toBe(true);
+    expect(shouldShowItem(item, 'translation', 'translation')).toBe(true);
+  });
+
+  it('always shows function_call_output items regardless of filter', () => {
+    const item = baseItem({ type: 'function_call_output', role: 'assistant', source: 'speaker' });
+    expect(shouldShowItem(item, 'source', 'source')).toBe(true);
+    expect(shouldShowItem(item, 'translation', 'translation')).toBe(true);
+  });
 });

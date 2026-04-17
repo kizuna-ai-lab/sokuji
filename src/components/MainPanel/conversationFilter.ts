@@ -11,6 +11,9 @@ export function shouldShowItem(
   participantMode: DisplayMode,
 ): boolean {
   if (item.type === 'error' || item.role === 'system') return true;
+  // Non-message rows (function_call, function_call_output, etc.) aren't
+  // source-vs-translation pairs, so they bypass the per-scope filter.
+  if (item.type !== 'message') return true;
 
   const source = item.source ?? 'speaker';
   const mode = source === 'speaker' ? speakerMode : participantMode;

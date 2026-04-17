@@ -100,7 +100,7 @@
 }
 
 .row-text {
-  word-break: break-word;
+  overflow-wrap: anywhere;
 
   &.src {
     color: #9aa0a6;

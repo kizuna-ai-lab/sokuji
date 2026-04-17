@@ -552,11 +552,17 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   const filteredItems = useMemo(() => {
     return combinedItems.filter(item => {
       const hasText = item.formatted?.transcript || item.formatted?.text;
-      const isBasic = (item.type === 'error' || item.role === 'user' || item.role === 'assistant') && hasText;
+      const audioSize =
+        (item.formatted?.audio as any)?.length ?? (item.formatted?.audio as any)?.byteLength ?? 0;
+      const isBasic =
+        (item.type === 'error' ||
+         item.role === 'user' ||
+         item.role === 'assistant' ||
+         item.role === 'system') && hasText;
       const passesUiMode = uiMode === 'basic'
         ? isBasic
         : (isBasic || item.formatted?.tool || item.formatted?.output ||
-           (item.formatted?.audio && !item.formatted?.transcript && !item.formatted?.text));
+           (audioSize > 0 && !item.formatted?.transcript && !item.formatted?.text));
       if (!passesUiMode) return false;
       return shouldShowItem(item, speakerDisplayMode, participantDisplayMode);
     });
@@ -2572,11 +2578,22 @@ const MainPanel: React.FC<MainPanelProps> = () => {
 
     // Text / transcript bubble (common for both modes)
     if (text) {
-      const prevItem = index > 0 ? filteredItems[index - 1] : null;
+      // prevItem must be the previous *rendered-as-row* item (other
+      // types — tool calls, audio-only, errors — would incorrectly
+      // collapse the header because they default source='speaker').
+      let prevItem: (ConversationItem & { source?: string }) | null = null;
+      for (let i = index - 1; i >= 0; i -= 1) {
+        const cand = filteredItems[i] as ConversationItem & { source?: string };
+        if (cand.type !== 'message') continue;
+        const candText = cand.formatted?.transcript || cand.formatted?.text;
+        if (candText) { prevItem = cand; break; }
+      }
 
+      const audio = item.formatted?.audio as any;
+      const audioSize = audio?.length ?? audio?.byteLength ?? 0;
       const canPlay =
         ((item as any).status === 'completed' || (item as any).status === 'incomplete') &&
-        ((item.formatted?.audio as any)?.length ?? 0) > 0;
+        audioSize > 0;
 
       return (
         <ConversationRow
@@ -2597,7 +2614,9 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     // Advanced-only content types
     if (uiMode === 'advanced') {
       // Audio-only indicator
-      if (item.formatted?.audio?.length > 0) {
+      const audio = item.formatted?.audio as any;
+      const audioSize = audio?.length ?? audio?.byteLength ?? 0;
+      if (audioSize > 0) {
         return (
           <div key={`${(item as any).source || 'speaker'}_${item.id || index}`} className={`message-bubble ${item.role} ${isParticipant ? 'participant-source' : 'speaker-source'} audio-only`}>
             <div className="message-content">
@@ -2721,7 +2740,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           ref={conversationContainerRef}
           style={{ '--conversation-font-size': `${conversationFontSize}px` } as React.CSSProperties}
         >
-          {filteredItems.length === 0 ? (
+          {combinedItems.length === 0 ? (
             <div className="empty-state">
               <MessageSquare size={32} />
               <p>{t('simplePanel.startToBegin', 'Click Start to begin real-time translation')}</p>
