@@ -1282,20 +1282,6 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
         <div className="settings-section">
           <h2>{t('settings.volcengineAST2CustomVocabulary', 'Custom Vocabulary (自学习平台)')}</h2>
 
-          <div className="setting-item">
-            <div className="volcengine-st-info-notice" style={{
-              padding: '12px',
-              backgroundColor: 'rgba(16, 163, 127, 0.1)',
-              border: '1px solid rgba(16, 163, 127, 0.3)',
-              borderRadius: '8px',
-              fontSize: '13px',
-              color: '#aaa'
-            }}>
-              <Info size={14} style={{ marginRight: '8px', verticalAlign: 'middle', color: '#10a37f' }} />
-              {t('settings.volcengineAST2CustomVocabularyInfo', 'Invalid or empty library IDs are silently ignored — the session runs as if the field weren\'t set. Library changes made in the Volcengine console can take a few minutes to take effect.')}
-            </div>
-          </div>
-
           {/* Hot Words */}
           <div className="setting-item">
             <div className="setting-label">
@@ -1387,7 +1373,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
           </div>
 
           <div className="setting-item" style={{ fontSize: '12px', color: '#888' }}>
-            {t('settings.volcengineAST2CustomVocabularyFooter', 'Leave any field empty to disable it.')}
+            {t('settings.volcengineAST2CustomVocabularyFooter', 'Invalid or empty library IDs are silently ignored — the session runs as if the field weren\'t set. Library changes made in the Volcengine console can take a few minutes to take effect.')}
           </div>
         </div>
 
