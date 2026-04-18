@@ -180,27 +180,41 @@ between current lines 1269 and 1271).
 ### Layout
 
 One section titled "Custom Vocabulary (自学习平台)" containing three
-`setting-item` rows — one per library type — each with a label and a text
-input. A short info notice at the bottom of the section links to the
-Volcengine console.
+`setting-item` rows — one per library type. Each row has a label (with a
+per-type "Manage ↗" link to that library's specific console page), a text
+input, and its own short hint. The three library types live on separate
+pages in the Volcengine console, so each row needs its own link — a single
+shared link at the bottom would be wrong.
 
 ```
 ┌─ Custom Vocabulary (自学习平台) ──────────────────┐
 │                                                   │
-│  Hot Words Library ID                             │
+│  Hot Words Library ID        [Manage hot words ↗] │
 │  [                                             ]  │
+│  ⓘ Boost recognition of specific terms.           │
 │                                                   │
-│  Replacement Library ID                           │
+│  Replacement Library ID    [Manage replacement ↗] │
 │  [                                             ]  │
+│  ⓘ Post-transcription text substitution.          │
 │                                                   │
-│  Glossary Library ID                              │
+│  Glossary Library ID         [Manage glossary ↗]  │
 │  [                                             ]  │
+│  ⓘ Source→target bilingual term pairs.            │
 │                                                   │
-│  ⓘ Leave any field empty to disable. Manage       │
-│    libraries in the Volcengine console.           │
-│    [Open Volcengine console ↗]                    │
+│  Leave any field empty to disable it.             │
 └───────────────────────────────────────────────────┘
 ```
+
+Per-field console URLs (placeholders — exact deep-links to be confirmed
+during implementation by logging into the console and copying the address
+bar URL; fall back to `https://console.volcengine.com/speech/app` for any
+that can't be deep-linked):
+
+- **Hot Words** (热词 / 热词管理) — console path under 自学习平台 → 热词管理
+- **Replacement** (替换词) — console path under 自学习平台 → 替换词
+- **Glossary** (术语词) — console path under 自学习平台 → 术语词
+
+All three links open in a new tab (`target="_blank" rel="noopener noreferrer"`).
 
 ### Behavior
 
@@ -214,9 +228,9 @@ Volcengine console.
   other AST2 input in the same file (mid-session mutation is not
   supported — changing vocab requires reconnection, same as source/target
   language).
-- The console link target: `https://console.volcengine.com/speech/app`
-  (confirm exact deep-link to 自学习平台 during implementation; the generic
-  `/speech/app` URL is a safe fallback).
+- Each row has its own "Manage ↗" link to the corresponding console page
+  (three distinct URLs — see the Layout section above for the per-type
+  mapping). Exact URLs confirmed during implementation.
 - No real-time validation, no loading states, no badges. Empty is valid;
   non-empty is passed through.
 
@@ -227,13 +241,18 @@ the `t()` call sites (existing pattern in this file — see
 `settings.volcengineAST2Info` at line 1272):
 
 | Key | English default |
-|---|---|
+| --- | --- |
 | `settings.volcengineAST2CustomVocabulary` | `Custom Vocabulary (自学习平台)` |
 | `settings.volcengineAST2HotWordLibraryId` | `Hot Words Library ID` |
+| `settings.volcengineAST2HotWordLibraryHint` | `Boost recognition of specific terms.` |
+| `settings.volcengineAST2HotWordManage` | `Manage hot words` |
 | `settings.volcengineAST2ReplacementLibraryId` | `Replacement Library ID` |
+| `settings.volcengineAST2ReplacementLibraryHint` | `Post-transcription text substitution.` |
+| `settings.volcengineAST2ReplacementManage` | `Manage replacement` |
 | `settings.volcengineAST2GlossaryLibraryId` | `Glossary Library ID` |
-| `settings.volcengineAST2CustomVocabularyHint` | `Leave any field empty to disable. Manage libraries in the Volcengine console.` |
-| `settings.volcengineAST2OpenConsole` | `Open Volcengine console` |
+| `settings.volcengineAST2GlossaryLibraryHint` | `Source→target bilingual term pairs.` |
+| `settings.volcengineAST2GlossaryManage` | `Manage glossary` |
+| `settings.volcengineAST2CustomVocabularyFooter` | `Leave any field empty to disable it.` |
 
 Only English defaults ship in the first pass; `i18next` fallback handles
 the 35+ other locales until someone translates them. This matches how
@@ -321,9 +340,12 @@ Single PR. No feature flag. Backward-compatible because:
    the server either accepts the referenced library or returns a specific
    error naming the field. If either mapping is wrong, adjust the three
    lines in `sendStartSession` accordingly; no other code changes needed.
-2. **Console deep-link URL** — `https://console.volcengine.com/speech/app`
-   is a safe landing page, but a direct link to 自学习平台 would be better.
-   Locate during implementation by logging into the console.
+2. **Three console deep-link URLs** — one per library type (hot words,
+   replacement, glossary). Each library type has its own page in the
+   Volcengine console. Locate all three during implementation by logging
+   into the console, opening each page, and copying the address bar URL.
+   Safe fallback for any that can't be deep-linked:
+   `https://console.volcengine.com/speech/app`.
 3. **Empty-string vs. absent semantics on the wire** — the design above
    sends the field absent when empty. If Volcengine actually requires an
    empty string for "disable previous value" (unusual but possible), a
