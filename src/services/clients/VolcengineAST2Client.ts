@@ -51,6 +51,34 @@ const INPUT_SAMPLE_RATE = 16000;  // Server expects 16kHz input PCM
 const OUTPUT_SAMPLE_RATE = 24000;
 const DOWNSAMPLE_RATIO = 24000 / INPUT_SAMPLE_RATE; // 1.5 (pipeline sends 24kHz)
 
+/**
+ * Build the `Corpus` payload attached to `ReqParams.corpus` in the
+ * StartSession request. Returns `undefined` when the user has not set
+ * any library IDs, so the caller can omit the `corpus` key entirely.
+ *
+ * Volcengine self-learning platform → AST 2.0 API field mapping
+ * (per https://www.volcengine.com/docs/6561/1756902):
+ *   Hot Words   → boosting_table_id       (wire) / boostingTableId     (JS)
+ *   Replacement → regex_correct_table_id         / regexCorrectTableId
+ *   Glossary    → glossary_table_id              / glossaryTableId
+ *
+ * We emit the **camelCase** JS property names because protobuf.js encodes
+ * from the generated binding's property names (see ast2-proto.d.ts); the
+ * snake_case names in the API doc are only the on-wire JSON form.
+ */
+export function buildCorpusFromConfig(
+  config: VolcengineAST2SessionConfig
+): Record<string, string> | undefined {
+  const corpus: Record<string, string> = {};
+  const hotId = config.hotWordTableId?.trim();
+  const replaceId = config.replacementTableId?.trim();
+  const glossaryId = config.glossaryTableId?.trim();
+  if (hotId) corpus.boostingTableId = hotId;
+  if (replaceId) corpus.regexCorrectTableId = replaceId;
+  if (glossaryId) corpus.glossaryTableId = glossaryId;
+  return Object.keys(corpus).length > 0 ? corpus : undefined;
+}
+
 export class VolcengineAST2Client implements IClient {
   private appId: string;
   private accessToken: string;
@@ -341,6 +369,12 @@ export class VolcengineAST2Client implements IClient {
       },
     };
 
+    // Attach custom-vocabulary library IDs when the user has set any.
+    const corpus = buildCorpusFromConfig(this.currentConfig);
+    if (corpus) {
+      requestPayload.request.corpus = corpus;
+    }
+
     // Only include targetAudio in s2s mode
     if (!isTextOnly) {
       requestPayload.targetAudio = {
@@ -362,6 +396,7 @@ export class VolcengineAST2Client implements IClient {
           sourceLanguage: this.currentConfig.sourceLanguage,
           targetLanguage: this.currentConfig.targetLanguage,
           mode: isTextOnly ? 's2t' : 's2s',
+          corpus: corpus ?? null,
         }
       }
     });
