@@ -51,6 +51,29 @@ const INPUT_SAMPLE_RATE = 16000;  // Server expects 16kHz input PCM
 const OUTPUT_SAMPLE_RATE = 24000;
 const DOWNSAMPLE_RATIO = 24000 / INPUT_SAMPLE_RATE; // 1.5 (pipeline sends 24kHz)
 
+/**
+ * Build the `Corpus` payload attached to `ReqParams.corpus` in the
+ * StartSession request. Returns `undefined` when the user has not set
+ * any library IDs, so the caller can omit the `corpus` key entirely.
+ *
+ * Volcengine 自学习平台 → proto field mapping:
+ *   热词   (hot words)   → boosting_table_id
+ *   替换词 (replacement) → correct_table_id
+ *   术语词 (glossary)    → glossary_table_id
+ */
+export function buildCorpusFromConfig(
+  config: VolcengineAST2SessionConfig
+): Record<string, string> | undefined {
+  const corpus: Record<string, string> = {};
+  const hotId = config.hotWordTableId?.trim();
+  const replaceId = config.replacementTableId?.trim();
+  const glossaryId = config.glossaryTableId?.trim();
+  if (hotId) corpus.boosting_table_id = hotId;
+  if (replaceId) corpus.correct_table_id = replaceId;
+  if (glossaryId) corpus.glossary_table_id = glossaryId;
+  return Object.keys(corpus).length > 0 ? corpus : undefined;
+}
+
 export class VolcengineAST2Client implements IClient {
   private appId: string;
   private accessToken: string;
