@@ -1293,7 +1293,10 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
                 <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '8px' }} />
               </Tooltip>
               <div className="tutorial-link" style={{ margin: 0, marginLeft: 'auto' }}>
-                <a onClick={() => openExternalUrl('https://console.volcengine.com/speech/hotword')}>
+                <a
+                  href="https://console.volcengine.com/speech/hotword"
+                  onClick={(e) => { e.preventDefault(); openExternalUrl('https://console.volcengine.com/speech/hotword'); }}
+                >
                   <ExternalLink size={12} />
                   {t('settings.volcengineAST2HotWordManage', 'Manage hot words')}
                 </a>
@@ -1320,7 +1323,10 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
                 <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '8px' }} />
               </Tooltip>
               <div className="tutorial-link" style={{ margin: 0, marginLeft: 'auto' }}>
-                <a onClick={() => openExternalUrl('https://console.volcengine.com/speech/correctword')}>
+                <a
+                  href="https://console.volcengine.com/speech/correctword"
+                  onClick={(e) => { e.preventDefault(); openExternalUrl('https://console.volcengine.com/speech/correctword'); }}
+                >
                   <ExternalLink size={12} />
                   {t('settings.volcengineAST2ReplacementManage', 'Manage replacement')}
                 </a>
@@ -1347,7 +1353,10 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
                 <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '8px' }} />
               </Tooltip>
               <div className="tutorial-link" style={{ margin: 0, marginLeft: 'auto' }}>
-                <a onClick={() => openExternalUrl('https://console.volcengine.com/speech/glossary')}>
+                <a
+                  href="https://console.volcengine.com/speech/glossary"
+                  onClick={(e) => { e.preventDefault(); openExternalUrl('https://console.volcengine.com/speech/glossary'); }}
+                >
                   <ExternalLink size={12} />
                   {t('settings.volcengineAST2GlossaryManage', 'Manage glossary')}
                 </a>
