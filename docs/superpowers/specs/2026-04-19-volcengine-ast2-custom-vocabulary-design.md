@@ -180,30 +180,42 @@ between current lines 1269 and 1271).
 ### Layout
 
 One section titled "Custom Vocabulary (自学习平台)" containing three
-`setting-item` rows — one per library type. Each row has a label (with a
-per-type "Manage ↗" link to that library's specific console page), a text
-input, and its own short hint. The three library types live on separate
-pages in the Volcengine console, so each row needs its own link — a single
-shared link at the bottom would be wrong.
+`setting-item` rows — one per library type. Each row has:
+
+- A **label** consisting of the field title, an inline `ⓘ` help icon
+  (hover tooltip explaining what the library does), and a "Manage ↗" link
+  to that library's specific console page.
+- A **text input** on the next line bound to the corresponding settings
+  field.
+
+The three library types live on separate pages in the Volcengine console,
+so each row needs its own console link — a single shared link at the
+bottom would be wrong.
 
 ```
 ┌─ Custom Vocabulary (自学习平台) ──────────────────┐
 │                                                   │
-│  Hot Words Library ID        [Manage hot words ↗] │
+│  Hot Words Library ID  ⓘ     [Manage hot words ↗] │
 │  [                                             ]  │
-│  ⓘ Boost recognition of specific terms.           │
 │                                                   │
-│  Replacement Library ID    [Manage replacement ↗] │
+│  Replacement Library ID  ⓘ  [Manage replacement ↗]│
 │  [                                             ]  │
-│  ⓘ Post-transcription text substitution.          │
 │                                                   │
-│  Glossary Library ID         [Manage glossary ↗]  │
+│  Glossary Library ID  ⓘ      [Manage glossary ↗]  │
 │  [                                             ]  │
-│  ⓘ Source→target bilingual term pairs.            │
 │                                                   │
 │  Leave any field empty to disable it.             │
 └───────────────────────────────────────────────────┘
 ```
+
+The `ⓘ` icon follows the existing pattern in this file (see the
+"Automatic Turn Detection" section at `ProviderSpecificSettings.tsx:1242–1250`):
+a `<CircleHelp size={14}>` from `lucide-react` wrapped in `<Tooltip
+content={...} position="top">`. Hover contents per field:
+
+- **Hot Words** — "Boost recognition of specific terms."
+- **Replacement** — "Post-transcription text substitution."
+- **Glossary** — "Source→target bilingual term pairs."
 
 Per-field console URLs (placeholders — exact deep-links to be confirmed
 during implementation by logging into the console and copying the address
@@ -244,13 +256,13 @@ the `t()` call sites (existing pattern in this file — see
 | --- | --- |
 | `settings.volcengineAST2CustomVocabulary` | `Custom Vocabulary (自学习平台)` |
 | `settings.volcengineAST2HotWordLibraryId` | `Hot Words Library ID` |
-| `settings.volcengineAST2HotWordLibraryHint` | `Boost recognition of specific terms.` |
+| `settings.volcengineAST2HotWordLibraryTooltip` | `Boost recognition of specific terms.` |
 | `settings.volcengineAST2HotWordManage` | `Manage hot words` |
 | `settings.volcengineAST2ReplacementLibraryId` | `Replacement Library ID` |
-| `settings.volcengineAST2ReplacementLibraryHint` | `Post-transcription text substitution.` |
+| `settings.volcengineAST2ReplacementLibraryTooltip` | `Post-transcription text substitution.` |
 | `settings.volcengineAST2ReplacementManage` | `Manage replacement` |
 | `settings.volcengineAST2GlossaryLibraryId` | `Glossary Library ID` |
-| `settings.volcengineAST2GlossaryLibraryHint` | `Source→target bilingual term pairs.` |
+| `settings.volcengineAST2GlossaryLibraryTooltip` | `Source→target bilingual term pairs.` |
 | `settings.volcengineAST2GlossaryManage` | `Manage glossary` |
 | `settings.volcengineAST2CustomVocabularyFooter` | `Leave any field empty to disable it.` |
 
