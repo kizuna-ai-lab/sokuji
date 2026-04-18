@@ -33,7 +33,7 @@ import {
 } from '../../../stores/settingsStore';
 import { ClientFactory } from '../../../services/clients';
 import { useTranslation } from 'react-i18next';
-import { ChevronDown, ChevronRight, RotateCw, Info, CircleHelp } from 'lucide-react';
+import { ChevronDown, ChevronRight, RotateCw, Info, CircleHelp, ExternalLink } from 'lucide-react';
 import Tooltip from '../../Tooltip/Tooltip';
 import { FilteredModel } from '../../../services/interfaces/IClient';
 import { Provider, isOpenAICompatible } from '../../../types/Provider';
@@ -1292,13 +1292,12 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
               >
                 <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '8px' }} />
               </Tooltip>
-              <a
-                className="help-link"
-                onClick={() => openExternalUrl('https://console.volcengine.com/speech/app')}
-                style={{ marginLeft: 'auto', fontSize: '12px' }}
-              >
-                {t('settings.volcengineAST2HotWordManage', 'Manage hot words')} ↗
-              </a>
+              <div className="tutorial-link" style={{ margin: 0, marginLeft: 'auto' }}>
+                <a onClick={() => openExternalUrl('https://console.volcengine.com/speech/hotword')}>
+                  <ExternalLink size={12} />
+                  {t('settings.volcengineAST2HotWordManage', 'Manage hot words')}
+                </a>
+              </div>
             </div>
             <input
               type="text"
@@ -1320,13 +1319,12 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
               >
                 <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '8px' }} />
               </Tooltip>
-              <a
-                className="help-link"
-                onClick={() => openExternalUrl('https://console.volcengine.com/speech/app')}
-                style={{ marginLeft: 'auto', fontSize: '12px' }}
-              >
-                {t('settings.volcengineAST2ReplacementManage', 'Manage replacement')} ↗
-              </a>
+              <div className="tutorial-link" style={{ margin: 0, marginLeft: 'auto' }}>
+                <a onClick={() => openExternalUrl('https://console.volcengine.com/speech/correctword')}>
+                  <ExternalLink size={12} />
+                  {t('settings.volcengineAST2ReplacementManage', 'Manage replacement')}
+                </a>
+              </div>
             </div>
             <input
               type="text"
@@ -1348,13 +1346,12 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
               >
                 <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '8px' }} />
               </Tooltip>
-              <a
-                className="help-link"
-                onClick={() => openExternalUrl('https://console.volcengine.com/speech/app')}
-                style={{ marginLeft: 'auto', fontSize: '12px' }}
-              >
-                {t('settings.volcengineAST2GlossaryManage', 'Manage glossary')} ↗
-              </a>
+              <div className="tutorial-link" style={{ margin: 0, marginLeft: 'auto' }}>
+                <a onClick={() => openExternalUrl('https://console.volcengine.com/speech/glossary')}>
+                  <ExternalLink size={12} />
+                  {t('settings.volcengineAST2GlossaryManage', 'Manage glossary')}
+                </a>
+              </div>
             </div>
             <input
               type="text"
