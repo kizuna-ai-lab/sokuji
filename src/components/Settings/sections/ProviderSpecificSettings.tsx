@@ -1280,7 +1280,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
         </div>
 
         <div className="settings-section">
-          <h2>{t('settings.volcengineAST2CustomVocabulary', 'Custom Vocabulary (自学习平台)')}</h2>
+          <h2>{t('settings.volcengineAST2CustomVocabulary', 'Custom Vocabulary')}</h2>
 
           {/* Hot Words */}
           <div className="setting-item">
@@ -1317,7 +1317,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
             <div className="setting-label">
               <span>{t('settings.volcengineAST2ReplacementLibraryId', 'Replacement Library ID')}</span>
               <Tooltip
-                content={t('settings.volcengineAST2ReplacementLibraryTooltip', 'Post-transcription text substitution.')}
+                content={t('settings.volcengineAST2ReplacementLibraryTooltip', 'Post-transcription regex text substitution. The referenced library must be a regex word list, not a standard replacement list.')}
                 position="top"
               >
                 <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '8px' }} />
