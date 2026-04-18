@@ -33,13 +33,14 @@ import {
 } from '../../../stores/settingsStore';
 import { ClientFactory } from '../../../services/clients';
 import { useTranslation } from 'react-i18next';
-import { ChevronDown, ChevronRight, RotateCw, Info, CircleHelp } from 'lucide-react';
+import { ChevronDown, ChevronRight, RotateCw, Info, CircleHelp, ExternalLink } from 'lucide-react';
 import Tooltip from '../../Tooltip/Tooltip';
 import { FilteredModel } from '../../../services/interfaces/IClient';
 import { Provider, isOpenAICompatible } from '../../../types/Provider';
 import { getManifestByType, getManifestEntry, isTranslationModelCompatible, isAstCompatible, pickBestModel } from '../../../lib/local-inference/modelManifest';
 import { useModelStatuses } from '../../../stores/modelStore';
 import useLogStore from '../../../stores/logStore';
+import { isElectron } from '../../../utils/environment';
 import { ModelManagementSection } from './ModelManagementSection';
 import { useAnalytics } from '../../../lib/analytics';
 import { useAuth } from '../../../lib/auth/hooks';
@@ -1182,6 +1183,17 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
     const sourceLanguages = VolcengineAST2ProviderConfig.getSourceLanguages();
     const targetLanguages = VolcengineAST2ProviderConfig.getTargetLanguages();
 
+    // Electron: delegate to main-process shell.openExternal (launches system browser).
+    // Extension/web: window.open opens a new tab; noopener/noreferrer prevents
+    // reverse-tabnabbing on the new tab.
+    const openExternalUrl = (url: string) => {
+      if (isElectron() && (window as any).electron?.invoke) {
+        (window as any).electron.invoke('open-external', url);
+      } else {
+        window.open(url, '_blank', 'noopener,noreferrer');
+      }
+    };
+
     return (
       <>
         <div className="settings-section">
@@ -1265,6 +1277,104 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
                 {t('settings.pushToTalk')}
               </button>
             </div>
+          </div>
+        </div>
+
+        <div className="settings-section">
+          <h2>{t('settings.volcengineAST2CustomVocabulary', 'Custom Vocabulary')}</h2>
+
+          {/* Hot Words */}
+          <div className="setting-item">
+            <div className="setting-label">
+              <span>{t('settings.volcengineAST2HotWordLibraryId', 'Hot Words Library ID')}</span>
+              <Tooltip
+                content={t('settings.volcengineAST2HotWordLibraryTooltip', 'Boost recognition of specific terms.')}
+                position="top"
+              >
+                <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '8px' }} />
+              </Tooltip>
+              <div className="tutorial-link" style={{ margin: 0, marginLeft: 'auto' }}>
+                <a
+                  href="https://console.volcengine.com/speech/hotword"
+                  onClick={(e) => { e.preventDefault(); openExternalUrl('https://console.volcengine.com/speech/hotword'); }}
+                >
+                  <ExternalLink size={12} />
+                  {t('settings.volcengineAST2HotWordManage', 'Manage hot words')}
+                </a>
+              </div>
+            </div>
+            <input
+              type="text"
+              className="text-input"
+              value={volcengineAST2Settings.hotWordTableId}
+              onChange={(e) => updateVolcengineAST2Settings({ hotWordTableId: e.target.value })}
+              disabled={isSessionActive}
+              placeholder=""
+            />
+          </div>
+
+          {/* Replacement */}
+          <div className="setting-item">
+            <div className="setting-label">
+              <span>{t('settings.volcengineAST2ReplacementLibraryId', 'Replacement Library ID')}</span>
+              <Tooltip
+                content={t('settings.volcengineAST2ReplacementLibraryTooltip', 'Post-transcription regex text substitution. The referenced library must be a regex word list, not a standard replacement list.')}
+                position="top"
+              >
+                <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '8px' }} />
+              </Tooltip>
+              <div className="tutorial-link" style={{ margin: 0, marginLeft: 'auto' }}>
+                <a
+                  href="https://console.volcengine.com/speech/correctword"
+                  onClick={(e) => { e.preventDefault(); openExternalUrl('https://console.volcengine.com/speech/correctword'); }}
+                >
+                  <ExternalLink size={12} />
+                  {t('settings.volcengineAST2ReplacementManage', 'Manage replacement')}
+                </a>
+              </div>
+            </div>
+            <input
+              type="text"
+              className="text-input"
+              value={volcengineAST2Settings.replacementTableId}
+              onChange={(e) => updateVolcengineAST2Settings({ replacementTableId: e.target.value })}
+              disabled={isSessionActive}
+              placeholder=""
+            />
+          </div>
+
+          {/* Glossary */}
+          <div className="setting-item">
+            <div className="setting-label">
+              <span>{t('settings.volcengineAST2GlossaryLibraryId', 'Glossary Library ID')}</span>
+              <Tooltip
+                content={t('settings.volcengineAST2GlossaryLibraryTooltip', 'Source→target bilingual term pairs.')}
+                position="top"
+              >
+                <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '8px' }} />
+              </Tooltip>
+              <div className="tutorial-link" style={{ margin: 0, marginLeft: 'auto' }}>
+                <a
+                  href="https://console.volcengine.com/speech/glossary"
+                  onClick={(e) => { e.preventDefault(); openExternalUrl('https://console.volcengine.com/speech/glossary'); }}
+                >
+                  <ExternalLink size={12} />
+                  {t('settings.volcengineAST2GlossaryManage', 'Manage glossary')}
+                </a>
+              </div>
+            </div>
+            <input
+              type="text"
+              className="text-input"
+              value={volcengineAST2Settings.glossaryTableId}
+              onChange={(e) => updateVolcengineAST2Settings({ glossaryTableId: e.target.value })}
+              disabled={isSessionActive}
+              placeholder=""
+            />
+          </div>
+
+          <div className="setting-item" style={{ fontSize: '12px', color: '#888' }}>
+            {t('settings.volcengineAST2CustomVocabularyFooter', 'Invalid or empty library IDs are silently ignored — the session runs as if the field weren\'t set. Library changes made in the Volcengine console can take a few minutes to take effect.')}
           </div>
         </div>
 
