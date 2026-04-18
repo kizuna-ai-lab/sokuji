@@ -40,6 +40,7 @@ import { Provider, isOpenAICompatible } from '../../../types/Provider';
 import { getManifestByType, getManifestEntry, isTranslationModelCompatible, isAstCompatible, pickBestModel } from '../../../lib/local-inference/modelManifest';
 import { useModelStatuses } from '../../../stores/modelStore';
 import useLogStore from '../../../stores/logStore';
+import { isElectron } from '../../../utils/environment';
 import { ModelManagementSection } from './ModelManagementSection';
 import { useAnalytics } from '../../../lib/analytics';
 import { useAuth } from '../../../lib/auth/hooks';
@@ -1182,6 +1183,16 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
     const sourceLanguages = VolcengineAST2ProviderConfig.getSourceLanguages();
     const targetLanguages = VolcengineAST2ProviderConfig.getTargetLanguages();
 
+    // Electron: delegate to main-process shell.openExternal (launches system browser).
+    // Extension/web: window.open opens a new tab in the current browser.
+    const openExternalUrl = (url: string) => {
+      if (isElectron() && (window as any).electron?.invoke) {
+        (window as any).electron.invoke('open-external', url);
+      } else {
+        window.open(url, '_blank');
+      }
+    };
+
     return (
       <>
         <div className="settings-section">
@@ -1282,9 +1293,8 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
                 <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '8px' }} />
               </Tooltip>
               <a
-                href="https://console.volcengine.com/speech/app"
-                target="_blank"
-                rel="noopener noreferrer"
+                className="help-link"
+                onClick={() => openExternalUrl('https://console.volcengine.com/speech/app')}
                 style={{ marginLeft: 'auto', fontSize: '12px' }}
               >
                 {t('settings.volcengineAST2HotWordManage', 'Manage hot words')} ↗
@@ -1311,9 +1321,8 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
                 <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '8px' }} />
               </Tooltip>
               <a
-                href="https://console.volcengine.com/speech/app"
-                target="_blank"
-                rel="noopener noreferrer"
+                className="help-link"
+                onClick={() => openExternalUrl('https://console.volcengine.com/speech/app')}
                 style={{ marginLeft: 'auto', fontSize: '12px' }}
               >
                 {t('settings.volcengineAST2ReplacementManage', 'Manage replacement')} ↗
@@ -1340,9 +1349,8 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
                 <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '8px' }} />
               </Tooltip>
               <a
-                href="https://console.volcengine.com/speech/app"
-                target="_blank"
-                rel="noopener noreferrer"
+                className="help-link"
+                onClick={() => openExternalUrl('https://console.volcengine.com/speech/app')}
                 style={{ marginLeft: 'auto', fontSize: '12px' }}
               >
                 {t('settings.volcengineAST2GlossaryManage', 'Manage glossary')} ↗
