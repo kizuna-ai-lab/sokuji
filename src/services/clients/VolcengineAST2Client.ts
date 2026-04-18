@@ -364,6 +364,12 @@ export class VolcengineAST2Client implements IClient {
       },
     };
 
+    // Attach custom-vocabulary library IDs when the user has set any.
+    const corpus = buildCorpusFromConfig(this.currentConfig);
+    if (corpus) {
+      requestPayload.request.corpus = corpus;
+    }
+
     // Only include targetAudio in s2s mode
     if (!isTextOnly) {
       requestPayload.targetAudio = {
@@ -385,6 +391,7 @@ export class VolcengineAST2Client implements IClient {
           sourceLanguage: this.currentConfig.sourceLanguage,
           targetLanguage: this.currentConfig.targetLanguage,
           mode: isTextOnly ? 's2t' : 's2s',
+          corpus: corpus ?? null,
         }
       }
     });
