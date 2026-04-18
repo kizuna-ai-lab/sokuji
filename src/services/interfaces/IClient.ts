@@ -114,6 +114,12 @@ export interface VolcengineAST2SessionConfig extends BaseSessionConfig {
   sourceLanguage: string;
   targetLanguage: string;
   turnDetectionMode?: 'Auto' | 'Push-to-Talk';
+  /** Boost recognition of specific terms (Volcengine 自学习平台 → 热词). Library ID only; empty string or undefined = not set. */
+  hotWordTableId?: string;
+  /** Post-transcription text substitution (Volcengine 自学习平台 → 替换词). Library ID only; empty string or undefined = not set. */
+  replacementTableId?: string;
+  /** Source→target bilingual term pairs (Volcengine 自学习平台 → 术语词). Library ID only; empty string or undefined = not set. */
+  glossaryTableId?: string;
 }
 
 /**
