@@ -59,7 +59,7 @@ describe('buildCorpusFromConfig', () => {
       glossaryTableId: 'gloss-3',
     })).toEqual({
       boosting_table_id: 'hot-1',
-      correct_table_id: 'rep-2',
+      regex_correct_table_id: 'rep-2',
       glossary_table_id: 'gloss-3',
     });
   });
@@ -72,7 +72,7 @@ describe('buildCorpusFromConfig', () => {
       glossaryTableId: ' gloss-3 ',
     })).toEqual({
       boosting_table_id: 'hot-1',
-      correct_table_id: 'rep-2',
+      regex_correct_table_id: 'rep-2',
       glossary_table_id: 'gloss-3',
     });
   });

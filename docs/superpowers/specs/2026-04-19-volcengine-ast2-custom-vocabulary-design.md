@@ -25,8 +25,10 @@ and references them per session.
 - No library browser / picker UI. Three plain text inputs.
 - No library-name inputs (`*_table_name`). IDs are unambiguous; names would
   be redundant.
-- No regex-correction field (`regex_correct_table_id`). Skipped for YAGNI;
-  trivially additive later if needed.
+- No plain-correction field (`correct_table_id`, proto tag 6). The
+  AST 2.0 API docs only reference `regex_correct_table_id` under the
+  自学习平台 → 替换词 concept, so that's what we use. `correct_table_id`
+  exists in the proto but isn't documented for this endpoint.
 - No corresponding feature for Volcengine ST (separate provider, separate
   WebSocket protocol, separate hot-word shape — ST already has
   `HotWordList: Array<{Word, Scale}>` wired client-side but unused; that is a
@@ -38,20 +40,22 @@ The mapping below drives every layer of the implementation. Proto source of
 truth: `src/services/clients/volcengine-ast2/protos/products/understanding/base/au_base.proto`
 lines 179–200 (`message Corpus`).
 
-| Volcengine console tab | Purpose | Proto field | Tag | Format of library contents |
-|---|---|---|---|---|
-| 热词 (hot words) | ASR recognition bias — boost likelihood of specific terms being transcribed correctly | `boosting_table_id` | 2 | TXT |
-| 替换词 (replacement) | Post-transcription text substitution (standard replacement list) | `correct_table_id` | 6 | TXT |
-| 术语词 (glossary) | Translation enforcement — source→target bilingual term pairs | `glossary_table_id` | 14 | JSON |
+| Volcengine console tab | Purpose | AST 2.0 API field | Proto tag |
+|---|---|---|---|
+| 热词 (hot words) | ASR recognition bias — boost likelihood of specific terms being transcribed correctly | `boosting_table_id` | 2 |
+| 替换词 (replacement) | Post-transcription text substitution (regex replacement list) | `regex_correct_table_id` | 12 |
+| 术语词 (glossary) | Translation enforcement — source→target bilingual term pairs | `glossary_table_id` | 14 |
 
 All three are `string` proto fields; empty string = "not set".
 
-**Confidence note:** Proto field names come directly from Volcengine's
-published `.proto` definitions and follow their standard naming. The
-tab→field mapping is consistent with Volcengine's documented library types
-but was not end-to-end confirmed against a rendered docs page (docs site is
-a JS SPA that neither `curl` nor `WebFetch` could fully render). Any
-mismatch surfaces as a server error at `StartSession`. See Open Questions.
+**Source:** Confirmed end-to-end against the AST 2.0 API spec at
+<https://www.volcengine.com/docs/6561/1756902> (rendered via Playwright —
+the page is a JS SPA that `curl` / `WebFetch` can't fully load). The
+doc's `corpus` sample payload uses exactly these three field names for
+the table-reference variants. Note the proto file has both
+`correct_table_id` (tag 6) and `regex_correct_table_id` (tag 12) as
+separate fields; only the latter is documented for AST 2.0, so that's
+what we send.
 
 ## Data model
 
@@ -66,9 +70,9 @@ export interface VolcengineAST2Settings {
   sourceLanguage: string;
   targetLanguage: string;
   turnDetectionMode: 'Auto' | 'Push-to-Talk';
-  hotWordTableId: string;      // NEW — boosting_table_id; '' = disabled
-  replacementTableId: string;  // NEW — correct_table_id;   '' = disabled
-  glossaryTableId: string;     // NEW — glossary_table_id;  '' = disabled
+  hotWordTableId: string;      // NEW — boosting_table_id;     '' = disabled
+  replacementTableId: string;  // NEW — regex_correct_table_id; '' = disabled
+  glossaryTableId: string;     // NEW — glossary_table_id;      '' = disabled
 }
 ```
 
@@ -144,7 +148,7 @@ const hotId = this.currentConfig.hotWordTableId?.trim();
 const replaceId = this.currentConfig.replacementTableId?.trim();
 const glossaryId = this.currentConfig.glossaryTableId?.trim();
 if (hotId) corpus.boosting_table_id = hotId;
-if (replaceId) corpus.correct_table_id = replaceId;
+if (replaceId) corpus.regex_correct_table_id = replaceId;
 if (glossaryId) corpus.glossary_table_id = glossaryId;
 if (Object.keys(corpus).length > 0) {
   requestPayload.request.corpus = corpus;
@@ -310,7 +314,7 @@ credentials panel and match that). No new SCSS.
   capture the `Uint8Array`, decode with `TranslateRequest.decode`):
   - no IDs → decoded request has no `request.corpus`
   - all three IDs → decoded request has `request.corpus` with
-    `boosting_table_id`, `correct_table_id`, `glossary_table_id` set to
+    `boosting_table_id`, `regex_correct_table_id`, `glossary_table_id` set to
     the exact values passed
   - only glossary ID → decoded request has `request.corpus` with only
     `glossary_table_id`; other fields are empty-string defaults (protobuf
@@ -345,19 +349,16 @@ Single PR. No feature flag. Backward-compatible because:
 
 ## Open Questions
 
-1. **Field-name mapping** for 热词→`boosting_table_id` and
-   替换词→`correct_table_id` needs end-to-end confirmation during
-   implementation. Verification plan: create one library of each type in
-   the Volcengine console, reference each by ID in a session, and confirm
-   the server either accepts the referenced library or returns a specific
-   error naming the field. If either mapping is wrong, adjust the three
-   lines in `sendStartSession` accordingly; no other code changes needed.
-2. **Three console deep-link URLs** — one per library type (hot words,
-   replacement, glossary). Each library type has its own page in the
-   Volcengine console. Locate all three during implementation by logging
-   into the console, opening each page, and copying the address bar URL.
-   Safe fallback for any that can't be deep-linked:
-   `https://console.volcengine.com/speech/app`.
+1. ~~**Field-name mapping** needs end-to-end confirmation.~~ **RESOLVED.**
+   Confirmed against the AST 2.0 API spec page (1756902) rendered via
+   Playwright: the documented `corpus` sample uses
+   `boosting_table_id` / `regex_correct_table_id` / `glossary_table_id`.
+   Fixed the replacement mapping from `correct_table_id` → `regex_correct_table_id`.
+2. ~~**Three console deep-link URLs.**~~ **RESOLVED.**
+   Confirmed:
+   - 热词 → `https://console.volcengine.com/speech/hotword`
+   - 替换词 → `https://console.volcengine.com/speech/correctword`
+   - 术语词 → `https://console.volcengine.com/speech/glossary`
 3. **Empty-string vs. absent semantics on the wire** — the design above
    sends the field absent when empty. If Volcengine actually requires an
    empty string for "disable previous value" (unusual but possible), a
