@@ -140,6 +140,85 @@ describe('settingsStore', () => {
       expect(state.isApiKeyValid).toBeNull();
     });
   });
+
+  describe('Volcengine AST 2.0 custom vocabulary', () => {
+    const volcBase = {
+      appId: 'app-id',
+      accessToken: 'token',
+      sourceLanguage: 'zh' as const,
+      targetLanguage: 'en' as const,
+      turnDetectionMode: 'Auto' as const,
+    };
+
+    it('omits all three corpus fields when values are empty strings', () => {
+      useSettingsStore.setState({
+        provider: Provider.VOLCENGINE_AST2,
+        volcengineAST2: {
+          ...volcBase,
+          hotWordTableId: '',
+          replacementTableId: '',
+          glossaryTableId: '',
+        },
+      } as any);
+
+      const config = useSettingsStore.getState().createSessionConfig('sys');
+      expect(config.provider).toBe('volcengine_ast2');
+      expect((config as any).hotWordTableId).toBeUndefined();
+      expect((config as any).replacementTableId).toBeUndefined();
+      expect((config as any).glossaryTableId).toBeUndefined();
+    });
+
+    it('omits fields that contain only whitespace', () => {
+      useSettingsStore.setState({
+        provider: Provider.VOLCENGINE_AST2,
+        volcengineAST2: {
+          ...volcBase,
+          hotWordTableId: '   ',
+          replacementTableId: '\t\n',
+          glossaryTableId: ' ',
+        },
+      } as any);
+
+      const config = useSettingsStore.getState().createSessionConfig('sys');
+      expect((config as any).hotWordTableId).toBeUndefined();
+      expect((config as any).replacementTableId).toBeUndefined();
+      expect((config as any).glossaryTableId).toBeUndefined();
+    });
+
+    it('trims and passes through set IDs; leaves others undefined', () => {
+      useSettingsStore.setState({
+        provider: Provider.VOLCENGINE_AST2,
+        volcengineAST2: {
+          ...volcBase,
+          hotWordTableId: '  hot-abc  ',
+          replacementTableId: '',
+          glossaryTableId: 'gloss-1',
+        },
+      } as any);
+
+      const config = useSettingsStore.getState().createSessionConfig('sys');
+      expect((config as any).hotWordTableId).toBe('hot-abc');
+      expect((config as any).replacementTableId).toBeUndefined();
+      expect((config as any).glossaryTableId).toBe('gloss-1');
+    });
+
+    it('trims all three when all are set', () => {
+      useSettingsStore.setState({
+        provider: Provider.VOLCENGINE_AST2,
+        volcengineAST2: {
+          ...volcBase,
+          hotWordTableId: '\thot-1\t',
+          replacementTableId: ' rep-2 ',
+          glossaryTableId: 'gloss-3',
+        },
+      } as any);
+
+      const config = useSettingsStore.getState().createSessionConfig('sys');
+      expect((config as any).hotWordTableId).toBe('hot-1');
+      expect((config as any).replacementTableId).toBe('rep-2');
+      expect((config as any).glossaryTableId).toBe('gloss-3');
+    });
+  });
 });
 
 describe('createParticipantLocalInferenceConfig', () => {
@@ -268,84 +347,5 @@ describe('createParticipantLocalInferenceConfig', () => {
     localStorage.removeItem('debug:vram-budget');
     mockEstimateMemory.mockReturnValue({ vramMb: 0, ramMb: 0 });
     vi.restoreAllMocks();
-  });
-
-  describe('Volcengine AST 2.0 custom vocabulary', () => {
-    const volcBase = {
-      appId: 'app-id',
-      accessToken: 'token',
-      sourceLanguage: 'zh' as const,
-      targetLanguage: 'en' as const,
-      turnDetectionMode: 'Auto' as const,
-    };
-
-    it('omits all three corpus fields when values are empty strings', () => {
-      useSettingsStore.setState({
-        provider: Provider.VOLCENGINE_AST2,
-        volcengineAST2: {
-          ...volcBase,
-          hotWordTableId: '',
-          replacementTableId: '',
-          glossaryTableId: '',
-        },
-      } as any);
-
-      const config = useSettingsStore.getState().createSessionConfig('sys');
-      expect(config.provider).toBe('volcengine_ast2');
-      expect((config as any).hotWordTableId).toBeUndefined();
-      expect((config as any).replacementTableId).toBeUndefined();
-      expect((config as any).glossaryTableId).toBeUndefined();
-    });
-
-    it('omits fields that contain only whitespace', () => {
-      useSettingsStore.setState({
-        provider: Provider.VOLCENGINE_AST2,
-        volcengineAST2: {
-          ...volcBase,
-          hotWordTableId: '   ',
-          replacementTableId: '\t\n',
-          glossaryTableId: ' ',
-        },
-      } as any);
-
-      const config = useSettingsStore.getState().createSessionConfig('sys');
-      expect((config as any).hotWordTableId).toBeUndefined();
-      expect((config as any).replacementTableId).toBeUndefined();
-      expect((config as any).glossaryTableId).toBeUndefined();
-    });
-
-    it('trims and passes through set IDs; leaves others undefined', () => {
-      useSettingsStore.setState({
-        provider: Provider.VOLCENGINE_AST2,
-        volcengineAST2: {
-          ...volcBase,
-          hotWordTableId: '  hot-abc  ',
-          replacementTableId: '',
-          glossaryTableId: 'gloss-1',
-        },
-      } as any);
-
-      const config = useSettingsStore.getState().createSessionConfig('sys');
-      expect((config as any).hotWordTableId).toBe('hot-abc');
-      expect((config as any).replacementTableId).toBeUndefined();
-      expect((config as any).glossaryTableId).toBe('gloss-1');
-    });
-
-    it('trims all three when all are set', () => {
-      useSettingsStore.setState({
-        provider: Provider.VOLCENGINE_AST2,
-        volcengineAST2: {
-          ...volcBase,
-          hotWordTableId: '\thot-1\t',
-          replacementTableId: ' rep-2 ',
-          glossaryTableId: 'gloss-3',
-        },
-      } as any);
-
-      const config = useSettingsStore.getState().createSessionConfig('sys');
-      expect((config as any).hotWordTableId).toBe('hot-1');
-      expect((config as any).replacementTableId).toBe('rep-2');
-      expect((config as any).glossaryTableId).toBe('gloss-3');
-    });
   });
 });

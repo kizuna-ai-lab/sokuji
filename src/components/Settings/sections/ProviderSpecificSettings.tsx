@@ -1184,12 +1184,13 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
     const targetLanguages = VolcengineAST2ProviderConfig.getTargetLanguages();
 
     // Electron: delegate to main-process shell.openExternal (launches system browser).
-    // Extension/web: window.open opens a new tab in the current browser.
+    // Extension/web: window.open opens a new tab; noopener/noreferrer prevents
+    // reverse-tabnabbing on the new tab.
     const openExternalUrl = (url: string) => {
       if (isElectron() && (window as any).electron?.invoke) {
         (window as any).electron.invoke('open-external', url);
       } else {
-        window.open(url, '_blank');
+        window.open(url, '_blank', 'noopener,noreferrer');
       }
     };
 

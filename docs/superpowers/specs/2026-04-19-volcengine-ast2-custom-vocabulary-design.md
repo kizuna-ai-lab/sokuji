@@ -147,13 +147,19 @@ const corpus: Record<string, string> = {};
 const hotId = this.currentConfig.hotWordTableId?.trim();
 const replaceId = this.currentConfig.replacementTableId?.trim();
 const glossaryId = this.currentConfig.glossaryTableId?.trim();
-if (hotId) corpus.boosting_table_id = hotId;
-if (replaceId) corpus.regex_correct_table_id = replaceId;
-if (glossaryId) corpus.glossary_table_id = glossaryId;
+if (hotId) corpus.boostingTableId = hotId;
+if (replaceId) corpus.regexCorrectTableId = replaceId;
+if (glossaryId) corpus.glossaryTableId = glossaryId;
 if (Object.keys(corpus).length > 0) {
   requestPayload.request.corpus = corpus;
 }
 ```
+
+Property names are **camelCase** because protobuf.js encodes from the
+generated binding's JS property names (see `ast2-proto.d.ts`: `boostingTableId`,
+`regexCorrectTableId`, `glossaryTableId`). The snake_case names in the
+Volcengine API doc are the on-wire JSON form; protobuf.js performs the
+conversion during encoding.
 
 Two behaviors this enforces:
 
@@ -314,10 +320,10 @@ credentials panel and match that). No new SCSS.
   capture the `Uint8Array`, decode with `TranslateRequest.decode`):
   - no IDs → decoded request has no `request.corpus`
   - all three IDs → decoded request has `request.corpus` with
-    `boosting_table_id`, `regex_correct_table_id`, `glossary_table_id` set to
+    `boostingTableId`, `regexCorrectTableId`, `glossaryTableId` set to
     the exact values passed
   - only glossary ID → decoded request has `request.corpus` with only
-    `glossary_table_id`; other fields are empty-string defaults (protobuf
+    `glossaryTableId`; other fields are empty-string defaults (protobuf
     3 default for unset `string`)
 
 Existing tests for Volcengine AST2 are minimal; if a client test file
@@ -362,5 +368,5 @@ Single PR. No feature flag. Backward-compatible because:
 3. **Empty-string vs. absent semantics on the wire** — the design above
    sends the field absent when empty. If Volcengine actually requires an
    empty string for "disable previous value" (unusual but possible), a
-   later follow-up can switch to `corpus.boosting_table_id = hotId || ''`.
+   later follow-up can switch to `corpus.boostingTableId = hotId || ''`.
    No evidence this is needed today; start with "absent when empty".

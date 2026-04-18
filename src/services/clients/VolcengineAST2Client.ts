@@ -56,11 +56,11 @@ const DOWNSAMPLE_RATIO = 24000 / INPUT_SAMPLE_RATE; // 1.5 (pipeline sends 24kHz
  * StartSession request. Returns `undefined` when the user has not set
  * any library IDs, so the caller can omit the `corpus` key entirely.
  *
- * Volcengine 自学习平台 → AST 2.0 API field mapping
+ * Volcengine self-learning platform → AST 2.0 API field mapping
  * (per https://www.volcengine.com/docs/6561/1756902):
- *   热词   (hot words)   → boosting_table_id   (wire) / boostingTableId     (JS)
- *   替换词 (replacement) → regex_correct_table_id        / regexCorrectTableId
- *   术语词 (glossary)    → glossary_table_id             / glossaryTableId
+ *   Hot Words   → boosting_table_id       (wire) / boostingTableId     (JS)
+ *   Replacement → regex_correct_table_id         / regexCorrectTableId
+ *   Glossary    → glossary_table_id              / glossaryTableId
  *
  * We emit the **camelCase** JS property names because protobuf.js encodes
  * from the generated binding's property names (see ast2-proto.d.ts); the

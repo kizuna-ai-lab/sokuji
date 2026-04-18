@@ -119,11 +119,11 @@ export interface VolcengineAST2Settings {
   sourceLanguage: string;
   targetLanguage: string;
   turnDetectionMode: 'Auto' | 'Push-to-Talk';
-  /** Library ID for 自学习平台 → 热词. Empty = disabled. */
+  /** Library ID for Volcengine self-learning platform Hot Words. Empty = disabled. */
   hotWordTableId: string;
-  /** Library ID for 自学习平台 → 替换词. Empty = disabled. */
+  /** Library ID for Volcengine self-learning platform Replacement. Empty = disabled. */
   replacementTableId: string;
-  /** Library ID for 自学习平台 → 术语词. Empty = disabled. */
+  /** Library ID for Volcengine self-learning platform Glossary. Empty = disabled. */
   glossaryTableId: string;
 }
 

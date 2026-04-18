@@ -14,13 +14,23 @@
 
 ## Proto field mapping (fixed — use exactly these names)
 
-| Console tab | Settings field | Proto field (`Corpus.*`) |
-| --- | --- | --- |
-| 热词 (Hot Words) | `hotWordTableId` | `boosting_table_id` |
-| 替换词 (Replacement) | `replacementTableId` | `correct_table_id` |
-| 术语词 (Glossary) | `glossaryTableId` | `glossary_table_id` |
+| Console tab | Settings field | JS property (what we emit) | Wire field |
+| --- | --- | --- | --- |
+| 热词 (Hot Words) | `hotWordTableId` | `boostingTableId` | `boosting_table_id` |
+| 替换词 (Replacement) | `replacementTableId` | `regexCorrectTableId` | `regex_correct_table_id` |
+| 术语词 (Glossary) | `glossaryTableId` | `glossaryTableId` | `glossary_table_id` |
 
 All three are `string`. Empty string = "not set" → omit from wire payload.
+
+> **Post-hoc corrections** — two fixes landed after this plan was written:
+> (a) the Replacement mapping was changed from `correct_table_id` to
+> `regex_correct_table_id` after verifying against the AST 2.0 API doc at
+> <https://www.volcengine.com/docs/6561/1756902>; (b) the `buildCorpusFromConfig`
+> helper emits **camelCase** JS property names because `TranslateRequest.encode()`
+> reads properties from the generated binding (`ast2-proto.d.ts`), which is
+> camelCase — snake_case keys were silently dropped in the original draft. The
+> Task 3 snippets below still show snake_case; treat them as historical and use
+> the camelCase JS property names from the table above when writing code.
 
 ---
 
