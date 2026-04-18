@@ -1269,6 +1269,101 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
         </div>
 
         <div className="settings-section">
+          <h2>{t('settings.volcengineAST2CustomVocabulary', 'Custom Vocabulary (自学习平台)')}</h2>
+
+          {/* Hot Words */}
+          <div className="setting-item">
+            <div className="setting-label">
+              <span>{t('settings.volcengineAST2HotWordLibraryId', 'Hot Words Library ID')}</span>
+              <Tooltip
+                content={t('settings.volcengineAST2HotWordLibraryTooltip', 'Boost recognition of specific terms.')}
+                position="top"
+              >
+                <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '8px' }} />
+              </Tooltip>
+              <a
+                href="https://console.volcengine.com/speech/app"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ marginLeft: 'auto', fontSize: '12px' }}
+              >
+                {t('settings.volcengineAST2HotWordManage', 'Manage hot words')} ↗
+              </a>
+            </div>
+            <input
+              type="text"
+              className="text-input"
+              value={volcengineAST2Settings.hotWordTableId}
+              onChange={(e) => updateVolcengineAST2Settings({ hotWordTableId: e.target.value })}
+              disabled={isSessionActive}
+              placeholder=""
+            />
+          </div>
+
+          {/* Replacement */}
+          <div className="setting-item">
+            <div className="setting-label">
+              <span>{t('settings.volcengineAST2ReplacementLibraryId', 'Replacement Library ID')}</span>
+              <Tooltip
+                content={t('settings.volcengineAST2ReplacementLibraryTooltip', 'Post-transcription text substitution.')}
+                position="top"
+              >
+                <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '8px' }} />
+              </Tooltip>
+              <a
+                href="https://console.volcengine.com/speech/app"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ marginLeft: 'auto', fontSize: '12px' }}
+              >
+                {t('settings.volcengineAST2ReplacementManage', 'Manage replacement')} ↗
+              </a>
+            </div>
+            <input
+              type="text"
+              className="text-input"
+              value={volcengineAST2Settings.replacementTableId}
+              onChange={(e) => updateVolcengineAST2Settings({ replacementTableId: e.target.value })}
+              disabled={isSessionActive}
+              placeholder=""
+            />
+          </div>
+
+          {/* Glossary */}
+          <div className="setting-item">
+            <div className="setting-label">
+              <span>{t('settings.volcengineAST2GlossaryLibraryId', 'Glossary Library ID')}</span>
+              <Tooltip
+                content={t('settings.volcengineAST2GlossaryLibraryTooltip', 'Source→target bilingual term pairs.')}
+                position="top"
+              >
+                <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '8px' }} />
+              </Tooltip>
+              <a
+                href="https://console.volcengine.com/speech/app"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ marginLeft: 'auto', fontSize: '12px' }}
+              >
+                {t('settings.volcengineAST2GlossaryManage', 'Manage glossary')} ↗
+              </a>
+            </div>
+            <input
+              type="text"
+              className="text-input"
+              value={volcengineAST2Settings.glossaryTableId}
+              onChange={(e) => updateVolcengineAST2Settings({ glossaryTableId: e.target.value })}
+              disabled={isSessionActive}
+              placeholder=""
+            />
+          </div>
+
+          <div className="setting-item" style={{ fontSize: '12px', color: '#888' }}>
+            {t('settings.volcengineAST2CustomVocabularyFooter', 'Leave any field empty to disable it.')}
+          </div>
+        </div>
+
+        <div className="settings-section">
           <h2>{t('settings.volcengineAST2Info', 'Doubao AST 2.0 Info')}</h2>
           <div className="setting-item">
             <div className="volcengine-st-info-notice" style={{
