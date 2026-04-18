@@ -58,9 +58,13 @@ const DOWNSAMPLE_RATIO = 24000 / INPUT_SAMPLE_RATE; // 1.5 (pipeline sends 24kHz
  *
  * Volcengine 自学习平台 → AST 2.0 API field mapping
  * (per https://www.volcengine.com/docs/6561/1756902):
- *   热词   (hot words)   → boosting_table_id
- *   替换词 (replacement) → regex_correct_table_id
- *   术语词 (glossary)    → glossary_table_id
+ *   热词   (hot words)   → boosting_table_id   (wire) / boostingTableId     (JS)
+ *   替换词 (replacement) → regex_correct_table_id        / regexCorrectTableId
+ *   术语词 (glossary)    → glossary_table_id             / glossaryTableId
+ *
+ * We emit the **camelCase** JS property names because protobuf.js encodes
+ * from the generated binding's property names (see ast2-proto.d.ts); the
+ * snake_case names in the API doc are only the on-wire JSON form.
  */
 export function buildCorpusFromConfig(
   config: VolcengineAST2SessionConfig
@@ -69,9 +73,9 @@ export function buildCorpusFromConfig(
   const hotId = config.hotWordTableId?.trim();
   const replaceId = config.replacementTableId?.trim();
   const glossaryId = config.glossaryTableId?.trim();
-  if (hotId) corpus.boosting_table_id = hotId;
-  if (replaceId) corpus.regex_correct_table_id = replaceId;
-  if (glossaryId) corpus.glossary_table_id = glossaryId;
+  if (hotId) corpus.boostingTableId = hotId;
+  if (replaceId) corpus.regexCorrectTableId = replaceId;
+  if (glossaryId) corpus.glossaryTableId = glossaryId;
   return Object.keys(corpus).length > 0 ? corpus : undefined;
 }
 

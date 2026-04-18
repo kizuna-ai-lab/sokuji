@@ -46,8 +46,8 @@ describe('buildCorpusFromConfig', () => {
       replacementTableId: '',
       glossaryTableId: 'gloss-3',
     })).toEqual({
-      boosting_table_id: 'hot-1',
-      glossary_table_id: 'gloss-3',
+      boostingTableId: 'hot-1',
+      glossaryTableId: 'gloss-3',
     });
   });
 
@@ -58,9 +58,9 @@ describe('buildCorpusFromConfig', () => {
       replacementTableId: 'rep-2',
       glossaryTableId: 'gloss-3',
     })).toEqual({
-      boosting_table_id: 'hot-1',
-      regex_correct_table_id: 'rep-2',
-      glossary_table_id: 'gloss-3',
+      boostingTableId: 'hot-1',
+      regexCorrectTableId: 'rep-2',
+      glossaryTableId: 'gloss-3',
     });
   });
 
@@ -71,9 +71,9 @@ describe('buildCorpusFromConfig', () => {
       replacementTableId: '\trep-2\t',
       glossaryTableId: ' gloss-3 ',
     })).toEqual({
-      boosting_table_id: 'hot-1',
-      regex_correct_table_id: 'rep-2',
-      glossary_table_id: 'gloss-3',
+      boostingTableId: 'hot-1',
+      regexCorrectTableId: 'rep-2',
+      glossaryTableId: 'gloss-3',
     });
   });
 });
