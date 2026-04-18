@@ -119,6 +119,12 @@ export interface VolcengineAST2Settings {
   sourceLanguage: string;
   targetLanguage: string;
   turnDetectionMode: 'Auto' | 'Push-to-Talk';
+  /** Library ID for 自学习平台 → 热词. Empty = disabled. */
+  hotWordTableId: string;
+  /** Library ID for 自学习平台 → 替换词. Empty = disabled. */
+  replacementTableId: string;
+  /** Library ID for 自学习平台 → 术语词. Empty = disabled. */
+  glossaryTableId: string;
 }
 
 // Local Inference Settings
@@ -283,6 +289,9 @@ const defaultVolcengineAST2Settings: VolcengineAST2Settings = {
   sourceLanguage: 'zh',
   targetLanguage: 'en',
   turnDetectionMode: 'Auto',
+  hotWordTableId: '',
+  replacementTableId: '',
+  glossaryTableId: '',
 };
 
 const defaultLocalInferenceSettings: LocalInferenceSettings = {
@@ -491,6 +500,10 @@ function createVolcengineAST2SessionConfig(
   settings: VolcengineAST2Settings,
   systemInstructions: string
 ): VolcengineAST2SessionConfig {
+  const hotWordTableId = settings.hotWordTableId?.trim() || undefined;
+  const replacementTableId = settings.replacementTableId?.trim() || undefined;
+  const glossaryTableId = settings.glossaryTableId?.trim() || undefined;
+
   return {
     provider: 'volcengine_ast2',
     model: 'ast-v2-s2s',
@@ -498,6 +511,9 @@ function createVolcengineAST2SessionConfig(
     sourceLanguage: settings.sourceLanguage,
     targetLanguage: settings.targetLanguage,
     turnDetectionMode: settings.turnDetectionMode,
+    hotWordTableId,
+    replacementTableId,
+    glossaryTableId,
   };
 }
 
