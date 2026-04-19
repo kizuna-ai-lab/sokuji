@@ -473,12 +473,28 @@ export class LocalInferenceClient implements IClient {
 
       if (this.translationEngine) {
         // Full pipeline: translate then display
-        this.emitEvent('local.translation.start', 'client', { sourceText: job.text, modelId: this.config?.translationModelId });
-        const translationResult = await this.translationEngine.translate(job.text);
+        const resolvedPrompt = this.config?.instructions || '';
+        const wrapTranscript = this.config?.wrapTranscript ?? true;
+        this.emitEvent('local.translation.start', 'client', {
+          sourceText: job.text,
+          modelId: this.config?.translationModelId,
+          systemPrompt: resolvedPrompt,
+          wrapTranscript,
+        });
+        const translationResult = await this.translationEngine.translate(
+          job.text,
+          resolvedPrompt,
+          wrapTranscript,
+        );
         if (this.disposed) return;
 
         const translatedText = translationResult.translatedText;
-        console.debug('[LocalInference] Translation:', job.text, '→', translatedText, `(${translationResult.inferenceTimeMs}ms)`);
+        console.debug(
+          '[LocalInference] Translation:', job.text, '→', translatedText,
+          `(${translationResult.inferenceTimeMs}ms)`,
+          '\n  systemPrompt:', translationResult.systemPrompt,
+          '\n  wrapTranscript:', wrapTranscript,
+        );
 
         if (!translatedText) {
           console.debug('[LocalInference] Translation empty — skipping:', job.text);
@@ -490,6 +506,7 @@ export class LocalInferenceClient implements IClient {
           translatedText,
           inferenceTimeMs: translationResult.inferenceTimeMs,
           systemPrompt: translationResult.systemPrompt,
+          wrapTranscript,
           modelId: this.config?.translationModelId,
         });
         displayText = translatedText;

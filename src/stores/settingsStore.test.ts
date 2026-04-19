@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { Provider } from '../types/Provider';
+import { buildDefaultLocalPrompt } from '../lib/local-inference/prompts';
 
 // Mock ServiceFactory first
 const mockSetSetting = vi.fn().mockResolvedValue(undefined);
@@ -347,5 +348,96 @@ describe('createParticipantLocalInferenceConfig', () => {
     localStorage.removeItem('debug:vram-budget');
     mockEstimateMemory.mockReturnValue({ vramMb: 0, ramMb: 0 });
     vi.restoreAllMocks();
+  });
+});
+
+describe('getProcessedLocalPrompt', () => {
+  beforeEach(() => {
+    useSettingsStore.setState({
+      provider: Provider.LOCAL_INFERENCE,
+      localInference: {
+        ...useSettingsStore.getState().localInference,
+        sourceLanguage: 'ja',
+        targetLanguage: 'en',
+        useTemplateMode: true,
+        systemPrompt: '',
+        participantSystemPrompt: '',
+      },
+    });
+  });
+
+  it('Simple mode: returns the dynamic default for speaker direction', () => {
+    const result = useSettingsStore.getState().getProcessedLocalPrompt(false);
+    expect(result).toBe(buildDefaultLocalPrompt('ja', 'en'));
+  });
+
+  it('Simple mode: swaps languages for participant direction', () => {
+    const result = useSettingsStore.getState().getProcessedLocalPrompt(true);
+    expect(result).toBe(buildDefaultLocalPrompt('en', 'ja'));
+  });
+
+  it('Advanced mode: returns the user speaker prompt verbatim', () => {
+    useSettingsStore.setState({
+      localInference: {
+        ...useSettingsStore.getState().localInference,
+        useTemplateMode: false,
+        systemPrompt: 'My custom speaker prompt',
+      },
+    });
+    const result = useSettingsStore.getState().getProcessedLocalPrompt(false);
+    expect(result).toBe('My custom speaker prompt');
+  });
+
+  it('Advanced mode: empty speaker falls back to default', () => {
+    useSettingsStore.setState({
+      localInference: {
+        ...useSettingsStore.getState().localInference,
+        useTemplateMode: false,
+        systemPrompt: '',
+      },
+    });
+    const result = useSettingsStore.getState().getProcessedLocalPrompt(false);
+    expect(result).toBe(buildDefaultLocalPrompt('ja', 'en'));
+  });
+
+  it('Advanced mode: empty participant falls back to resolved speaker', () => {
+    useSettingsStore.setState({
+      localInference: {
+        ...useSettingsStore.getState().localInference,
+        useTemplateMode: false,
+        systemPrompt: 'Speaker says hi',
+        participantSystemPrompt: '',
+      },
+    });
+    const result = useSettingsStore.getState().getProcessedLocalPrompt(true);
+    expect(result).toBe('Speaker says hi');
+  });
+
+  it('Advanced mode: participant filled returns participant text', () => {
+    useSettingsStore.setState({
+      localInference: {
+        ...useSettingsStore.getState().localInference,
+        useTemplateMode: false,
+        systemPrompt: 'Speaker',
+        participantSystemPrompt: 'Participant',
+      },
+    });
+    const result = useSettingsStore.getState().getProcessedLocalPrompt(true);
+    expect(result).toBe('Participant');
+  });
+
+  it('Advanced mode: empty speaker AND empty participant both fall back to default', () => {
+    useSettingsStore.setState({
+      localInference: {
+        ...useSettingsStore.getState().localInference,
+        useTemplateMode: false,
+        systemPrompt: '',
+        participantSystemPrompt: '',
+      },
+    });
+    const speaker = useSettingsStore.getState().getProcessedLocalPrompt(false);
+    const participant = useSettingsStore.getState().getProcessedLocalPrompt(true);
+    expect(speaker).toBe(buildDefaultLocalPrompt('ja', 'en'));
+    expect(participant).toBe(buildDefaultLocalPrompt('en', 'ja'));
   });
 });

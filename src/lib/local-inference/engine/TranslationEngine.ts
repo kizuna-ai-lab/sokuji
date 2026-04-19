@@ -167,8 +167,12 @@ export class TranslationEngine {
 
   /**
    * Translate text. Returns a Promise with the result.
+   *
+   * @param text              The source text to translate.
+   * @param systemPrompt      Resolved system prompt. Ignored by non-LLM workers (opus-mt, translategemma).
+   * @param wrapTranscript    If true, wrap user message in <transcript> tags. Ignored by non-LLM workers.
    */
-  async translate(text: string): Promise<TranslationResult> {
+  async translate(text: string, systemPrompt: string, wrapTranscript: boolean): Promise<TranslationResult> {
     if (!this.worker || !this.isReady) {
       throw new Error('TranslationEngine not initialized. Call init() first.');
     }
@@ -178,8 +182,13 @@ export class TranslationEngine {
     return new Promise((resolve, reject) => {
       this.pendingRequests.set(id, { resolve, reject });
       this.worker!.postMessage({
-        type: 'translate', id, text,
-        sourceLang: this.sourceLang, targetLang: this.targetLang,
+        type: 'translate',
+        id,
+        text,
+        sourceLang: this.sourceLang,
+        targetLang: this.targetLang,
+        systemPrompt,
+        wrapTranscript,
       });
     });
   }

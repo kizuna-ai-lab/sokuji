@@ -12,40 +12,13 @@ import {
   TextStreamer,
   env,
 } from '@huggingface/transformers';
+import { buildDefaultLocalPrompt } from '../prompts';
 
 // Disable WASM proxy (we're already in a worker).
 // wasmPaths is set in the init handler from the main thread's resolved URL.
 if (env.backends?.onnx?.wasm) {
   env.backends.onnx.wasm.proxy = false;
 }
-
-// ─── Language name map for prompts ─────────────────────────────────────────
-
-const LANG_NAMES: Record<string, string> = {
-  ja: 'Japanese', zh: 'Chinese', en: 'English', ko: 'Korean',
-  de: 'German', fr: 'French', es: 'Spanish', ru: 'Russian',
-  ar: 'Arabic', pt: 'Portuguese', th: 'Thai', vi: 'Vietnamese',
-  id: 'Indonesian', tr: 'Turkish', nl: 'Dutch', pl: 'Polish',
-  it: 'Italian', hi: 'Hindi', sv: 'Swedish', da: 'Danish',
-  fi: 'Finnish', hu: 'Hungarian', ro: 'Romanian', no: 'Norwegian',
-  uk: 'Ukrainian', cs: 'Czech', et: 'Estonian', af: 'Afrikaans',
-};
-
-// Native language names to reinforce target language for small models
-const NATIVE_NAMES: Record<string, string> = {
-  ja: '日本語', zh: '中文', en: 'English', ko: '한국어',
-  de: 'Deutsch', fr: 'Français', es: 'Español', ru: 'Русский',
-  ar: 'العربية', pt: 'Português', th: 'ไทย', vi: 'Tiếng Việt',
-};
-
-// Language-specific filler words (only included when language is source or target
-// to avoid confusing small models with unrelated scripts)
-const LANG_FILLERS: Record<string, string[]> = {
-  en: ['um', 'uh', 'well', 'like'],
-  ja: ['えーと', 'あのー', 'まあ'],
-  zh: ['那个', '嗯', '就是'],
-  ko: ['음', '그', '저기'],
-};
 
 // ─── Message types ─────────────────────────────────────────────────────────
 
@@ -65,6 +38,8 @@ interface TranslateMessage {
   text: string;
   sourceLang: string;
   targetLang: string;
+  systemPrompt: string;
+  wrapTranscript: boolean;
 }
 
 interface DisposeMessage {
@@ -163,28 +138,20 @@ async function handleTranslate(msg: TranslateMessage) {
   try {
     const startTime = performance.now();
 
-    const srcName = LANG_NAMES[msg.sourceLang] || msg.sourceLang;
-    const tgtName = LANG_NAMES[msg.targetLang] || msg.targetLang;
+    const resolvedPrompt = msg.systemPrompt && msg.systemPrompt.trim()
+      ? msg.systemPrompt
+      : buildDefaultLocalPrompt(msg.sourceLang, msg.targetLang);
+    // Qwen3.5 supports /no_think (it's a Qwen3 family model)
+    const systemPrompt = `${resolvedPrompt} /no_think`;
 
-    // Build filler list from only source/target languages to avoid confusing small models
-    const langs = new Set([msg.sourceLang, msg.targetLang]);
-    const fillers = Array.from(langs).flatMap(l => LANG_FILLERS[l] || []);
-    if (!fillers.length) fillers.push('um', 'uh');
-    const fillerList = fillers.join(', ');
-
-    // Use native name (e.g. "中文 (Chinese)") to reinforce target language
-    const nativeTgt = NATIVE_NAMES[msg.targetLang];
-    const tgtLabel = nativeTgt ? `${nativeTgt} (${tgtName})` : tgtName;
-
-    const systemPrompt =
-      `You are a translator. Translate the speech transcript inside <transcript> tags from ${srcName} to ${tgtLabel}.\n` +
-      `Drop fillers (${fillerList}). Fix stuttering and repetitions.\n` +
-      `Output ONLY the ${tgtLabel} translation. No explanation, no refusal.`;
+    const userContent = msg.wrapTranscript
+      ? `<transcript>${msg.text}</transcript>`
+      : msg.text;
 
     // Text-only messages (no image content)
     const messages = [
       { role: 'system', content: systemPrompt },
-      { role: 'user', content: `<transcript>${msg.text}</transcript>` },
+      { role: 'user', content: userContent },
     ];
 
     // Apply chat template with thinking disabled

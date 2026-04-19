@@ -17,6 +17,7 @@ import {
   useLoadingModels,
   useGetCurrentProviderSettings,
   useGetProcessedSystemInstructions,
+  useGetProcessedLocalPrompt,
   useCreateSessionConfig,
   useTransportType,
   useNavigateToSettings,
@@ -129,6 +130,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   const loadingModels = useLoadingModels();
   const getCurrentProviderSettings = useGetCurrentProviderSettings();
   const getProcessedSystemInstructions = useGetProcessedSystemInstructions();
+  const getProcessedLocalPrompt = useGetProcessedLocalPrompt();
   const createSessionConfig = useCreateSessionConfig();
   const navigateToSettings = useNavigateToSettings();
 
@@ -225,11 +227,13 @@ const MainPanel: React.FC<MainPanelProps> = () => {
    */
   const getSessionConfig = useCallback((): SessionConfig => {
     // Get processed system instructions from the context
-    const systemInstructions = getProcessedSystemInstructions();
-    
+    const systemInstructions = provider === Provider.LOCAL_INFERENCE
+      ? getProcessedLocalPrompt(false)
+      : getProcessedSystemInstructions();
+
     // Use the type-safe createSessionConfig from SettingsContext
     return createSessionConfig(systemInstructions);
-  }, [getProcessedSystemInstructions, createSessionConfig]);
+  }, [provider, getProcessedLocalPrompt, getProcessedSystemInstructions, createSessionConfig]);
 
   /**
    * Helper to create AI client with appropriate parameters based on provider
@@ -331,7 +335,9 @@ const MainPanel: React.FC<MainPanelProps> = () => {
    * Helper to create session config for participant mode (swapped languages, text-only, semantic VAD)
    */
   const createParticipantSessionConfig = useCallback((): SessionConfig | null => {
-    const swappedSystemInstructions = getProcessedSystemInstructions(true);
+    const swappedSystemInstructions = provider === Provider.LOCAL_INFERENCE
+      ? getProcessedLocalPrompt(true)
+      : getProcessedSystemInstructions(true);
     const baseConfig = createSessionConfig(swappedSystemInstructions);
     const config = {
       ...baseConfig,
@@ -389,7 +395,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     }
 
     return config;
-  }, [getProcessedSystemInstructions, createSessionConfig, addRealtimeEvent]);
+  }, [provider, getProcessedLocalPrompt, getProcessedSystemInstructions, createSessionConfig, addRealtimeEvent]);
 
   // Initialize auto-update listeners
   const initUpdateListeners = useInitUpdateListeners();
