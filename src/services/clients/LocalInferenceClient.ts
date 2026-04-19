@@ -475,7 +475,7 @@ export class LocalInferenceClient implements IClient {
         // Full pipeline: translate then display
         this.emitEvent('local.translation.start', 'client', { sourceText: job.text, modelId: this.config?.translationModelId });
         const resolvedPrompt = this.config?.instructions || '';
-        const wrapTranscript = (this.config as LocalInferenceSessionConfig | undefined)?.wrapTranscript ?? true;
+        const wrapTranscript = this.config?.wrapTranscript ?? true;
         const translationResult = await this.translationEngine.translate(
           job.text,
           resolvedPrompt,
