@@ -29,7 +29,12 @@ import {
   useUpdateVolcengineAST2,
   useUpdateLocalInference,
   useGetCurrentProviderSettings,
-  TransportType
+  TransportType,
+  useLocalSystemPrompt,
+  useLocalParticipantSystemPrompt,
+  useLocalUseTemplateMode,
+  useGetProcessedLocalPrompt,
+  resolveTranslationWorkerType,
 } from '../../../stores/settingsStore';
 import { ClientFactory } from '../../../services/clients';
 import { useTranslation } from 'react-i18next';
@@ -99,6 +104,11 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
   const updateVolcengineAST2Settings = useUpdateVolcengineAST2();
   const updateLocalInferenceSettings = useUpdateLocalInference();
   const getCurrentProviderSettings = useGetCurrentProviderSettings();
+  const localSystemPrompt = useLocalSystemPrompt();
+  const localParticipantSystemPrompt = useLocalParticipantSystemPrompt();
+  const localUseTemplateMode = useLocalUseTemplateMode();
+  const getProcessedLocalPrompt = useGetProcessedLocalPrompt();
+  const [isLocalPromptPreviewExpanded, setIsLocalPromptPreviewExpanded] = useState(true);
   const { t } = useTranslation();
   const { trackEvent } = useAnalytics();
 
@@ -193,6 +203,12 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
     () => filterVoicesByLanguage(edgeTtsVoices, localInferenceSettings.targetLanguage),
     [edgeTtsVoices, localInferenceSettings.targetLanguage],
   );
+
+  const resolvedWorkerType = useMemo(
+    () => resolveTranslationWorkerType(localInferenceSettings),
+    [localInferenceSettings.translationModel, localInferenceSettings.sourceLanguage, localInferenceSettings.targetLanguage],
+  );
+  const localPromptSupported = resolvedWorkerType === 'qwen' || resolvedWorkerType === 'qwen35';
 
   // Auto-select first voice when target language changes or no voice selected
   useEffect(() => {
@@ -1602,6 +1618,106 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
               </button>
             </div>
           </div>
+        </div>
+
+        <div
+          className={`settings-section system-instructions-section ${!localPromptSupported ? 'disabled' : ''}`}
+          id="local-translation-prompt-section"
+        >
+          <h2>
+            {t('settings.localTranslationPrompt', 'Translation Prompt')}
+            <Tooltip
+              content={t('settings.localTranslationPromptTooltip', 'Customize how the local translation model is instructed. Only applies to Qwen-family models.')}
+              position="top"
+            >
+              <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '8px' }} />
+            </Tooltip>
+          </h2>
+
+          {!localPromptSupported && (
+            <div className="setting-item">
+              <span className="setting-description">
+                {t('settings.localPromptUnsupported', 'Current translation model does not support custom prompts. Switch to a Qwen-family model in Model Management to enable.')}
+              </span>
+            </div>
+          )}
+
+          <div className="setting-item">
+            <div className="turn-detection-options">
+              <button
+                className={`option-button ${localUseTemplateMode ? 'active' : ''}`}
+                onClick={() => updateLocalInferenceSettings({ useTemplateMode: true })}
+                disabled={isSessionActive || !localPromptSupported}
+              >
+                {t('settings.simple')}
+              </button>
+              <button
+                className={`option-button ${!localUseTemplateMode ? 'active' : ''}`}
+                onClick={() => updateLocalInferenceSettings({ useTemplateMode: false })}
+                disabled={isSessionActive || !localPromptSupported}
+              >
+                {t('settings.advanced')}
+              </button>
+            </div>
+          </div>
+
+          {localUseTemplateMode ? (
+            <div className="setting-item">
+              <div className="setting-label">
+                <span>{t('settings.preview')}</span>
+                <div
+                  className="preview-toggle"
+                  onClick={() => setIsLocalPromptPreviewExpanded(!isLocalPromptPreviewExpanded)}
+                >
+                  {isLocalPromptPreviewExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                </div>
+              </div>
+              {isLocalPromptPreviewExpanded && (
+                <div className="system-instructions-preview">
+                  <div className="preview-content">
+                    {getProcessedLocalPrompt(false)}
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <>
+              <div className="setting-item">
+                <textarea
+                  className="system-instructions"
+                  placeholder={t('settings.enterCustomInstructions')}
+                  value={localSystemPrompt}
+                  onChange={(e) => updateLocalInferenceSettings({ systemPrompt: e.target.value })}
+                  disabled={isSessionActive || !localPromptSupported}
+                />
+              </div>
+              <div className="setting-item">
+                <div className="setting-label">
+                  <span>
+                    {t('settings.participantInstructions', 'Participant Instructions')}
+                    <Tooltip
+                      content={t('settings.participantInstructionsTooltip', 'System instructions for participant audio translation. Leave empty to use main instructions.')}
+                      position="top"
+                    >
+                      <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '4px', display: 'inline-block', verticalAlign: 'middle' }} />
+                    </Tooltip>
+                  </span>
+                </div>
+                <textarea
+                  className="system-instructions"
+                  placeholder={t('settings.participantInstructionsTooltip', 'Leave empty to use main instructions...')}
+                  value={localParticipantSystemPrompt}
+                  onChange={(e) => updateLocalInferenceSettings({ participantSystemPrompt: e.target.value })}
+                  disabled={isSessionActive || !localPromptSupported}
+                />
+              </div>
+              <div className="setting-item">
+                <span className="setting-description">
+                  {t('settings.localPromptNoThinkHint', 'For Qwen3 models, ` /no_think` will be automatically appended.')}
+                </span>
+              </div>
+            </>
+          )}
         </div>
 
         {/* Show VAD settings for all models except sherpa-onnx streaming (which uses endpoint detection, not VAD) */}

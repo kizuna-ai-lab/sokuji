@@ -126,6 +126,15 @@
     border-radius: vars.$radius-lg;
   }
 
+  &.disabled {
+    opacity: 0.5;
+    pointer-events: none;
+
+    .setting-description {
+      color: var(--color-text-muted, #888);
+    }
+  }
+
   h3, h2 {
     display: flex;
     align-items: center;
