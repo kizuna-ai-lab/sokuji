@@ -204,11 +204,14 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
     [edgeTtsVoices, localInferenceSettings.targetLanguage],
   );
 
-  const resolvedWorkerType = useMemo(
-    () => resolveTranslationWorkerType(localInferenceSettings),
-    [localInferenceSettings.translationModel, localInferenceSettings.sourceLanguage, localInferenceSettings.targetLanguage],
-  );
-  const localPromptSupported = resolvedWorkerType === 'qwen' || resolvedWorkerType === 'qwen35';
+  // Enable the custom-prompt UI if EITHER direction uses a Qwen-family worker
+  // (speaker and participant can use different models — e.g. TranslateGemma for
+  // src→tgt but Qwen auto-selected for the reversed participant direction).
+  const localPromptSupported = useMemo(() => {
+    const isQwenFamily = (t: string) => t === 'qwen' || t === 'qwen35';
+    return isQwenFamily(resolveTranslationWorkerType(localInferenceSettings, false))
+      || isQwenFamily(resolveTranslationWorkerType(localInferenceSettings, true));
+  }, [localInferenceSettings.translationModel, localInferenceSettings.sourceLanguage, localInferenceSettings.targetLanguage]);
 
   // Auto-select first voice when target language changes or no voice selected
   useEffect(() => {
