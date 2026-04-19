@@ -15,12 +15,17 @@ export const LANG_NAMES: Record<string, string> = {
   uk: 'Ukrainian', cs: 'Czech', et: 'Estonian', af: 'Afrikaans',
 };
 
+// Native language names reinforce the target language for small models that
+// otherwise drift to English output even when asked to translate to other languages.
 export const NATIVE_NAMES: Record<string, string> = {
   ja: '日本語', zh: '中文', en: 'English', ko: '한국어',
   de: 'Deutsch', fr: 'Français', es: 'Español', ru: 'Русский',
   ar: 'العربية', pt: 'Português', th: 'ไทย', vi: 'Tiếng Việt',
 };
 
+// Filler lists are only included when a language appears on the source or
+// target side; putting unrelated scripts (e.g. Japanese fillers for a zh→en
+// pair) in the prompt can steer small models toward the wrong language.
 export const LANG_FILLERS: Record<string, string[]> = {
   en: ['um', 'uh', 'well', 'like'],
   ja: ['えーと', 'あのー', 'まあ'],
