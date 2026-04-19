@@ -565,26 +565,29 @@ function createLocalInferenceSessionConfig(
 }
 
 /**
- * Resolve the effective translation worker type for the current local-inference settings.
- * Considers auto-select fallback (empty translationModel → getTranslationModel lookup).
- * Returns 'opus-mt' when nothing matches.
+ * Resolve the worker type for a specific translation model id.
+ * Returns 'opus-mt' when the id is missing or not in the manifest.
  */
-export function resolveTranslationWorkerType(
-  settings: LocalInferenceSettings,
-  forParticipant = false,
-): string {
-  const [srcLang, tgtLang] = forParticipant
-    ? [settings.targetLanguage, settings.sourceLanguage]
-    : [settings.sourceLanguage, settings.targetLanguage];
-  // In participant direction we can't honor the user's chosen translationModel
-  // (it's for src→tgt, not tgt→src). Always auto-select for participant.
-  const modelId = forParticipant
-    ? getTranslationModel(srcLang, tgtLang)?.id
-    : settings.translationModel || getTranslationModel(srcLang, tgtLang)?.id;
+export function resolveTranslationWorkerTypeForModelId(modelId: string | null | undefined): string {
   if (!modelId) return 'opus-mt';
   const entry = getManifestEntry(modelId);
   if (!entry) return 'opus-mt';
   return entry.translationWorkerType || (entry.multilingual ? 'qwen' : 'opus-mt');
+}
+
+/**
+ * Resolve the effective translation worker type for the speaker direction of
+ * the current local-inference settings. Considers auto-select fallback (empty
+ * translationModel → getTranslationModel lookup).
+ *
+ * Note: this only looks at speaker direction. For participant direction, use
+ * `useModelStore.getState().getParticipantModelStatus(...)` — that path already
+ * consults the modelPreferences recall system for the reversed language pair.
+ */
+export function resolveTranslationWorkerType(settings: LocalInferenceSettings): string {
+  const modelId = settings.translationModel
+    || getTranslationModel(settings.sourceLanguage, settings.targetLanguage)?.id;
+  return resolveTranslationWorkerTypeForModelId(modelId);
 }
 
 /** Fraction of navigator.deviceMemory used as the system RAM model budget. */

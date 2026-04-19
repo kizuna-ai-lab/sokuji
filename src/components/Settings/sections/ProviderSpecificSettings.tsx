@@ -35,6 +35,7 @@ import {
   useLocalUseTemplateMode,
   useGetProcessedLocalPrompt,
   resolveTranslationWorkerType,
+  resolveTranslationWorkerTypeForModelId,
 } from '../../../stores/settingsStore';
 import { ClientFactory } from '../../../services/clients';
 import { useTranslation } from 'react-i18next';
@@ -43,7 +44,7 @@ import Tooltip from '../../Tooltip/Tooltip';
 import { FilteredModel } from '../../../services/interfaces/IClient';
 import { Provider, isOpenAICompatible } from '../../../types/Provider';
 import { getManifestByType, getManifestEntry, isTranslationModelCompatible, isAstCompatible, pickBestModel } from '../../../lib/local-inference/modelManifest';
-import { useModelStatuses } from '../../../stores/modelStore';
+import { useModelStatuses, useModelStore } from '../../../stores/modelStore';
 import useLogStore from '../../../stores/logStore';
 import { isElectron } from '../../../utils/environment';
 import { ModelManagementSection } from './ModelManagementSection';
@@ -204,14 +205,33 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
     [edgeTtsVoices, localInferenceSettings.targetLanguage],
   );
 
-  // Enable the custom-prompt UI if EITHER direction uses a Qwen-family worker
-  // (speaker and participant can use different models — e.g. TranslateGemma for
-  // src→tgt but Qwen auto-selected for the reversed participant direction).
-  const localPromptSupported = useMemo(() => {
-    const isQwenFamily = (t: string) => t === 'qwen' || t === 'qwen35';
-    return isQwenFamily(resolveTranslationWorkerType(localInferenceSettings, false))
-      || isQwenFamily(resolveTranslationWorkerType(localInferenceSettings, true));
-  }, [localInferenceSettings.translationModel, localInferenceSettings.sourceLanguage, localInferenceSettings.targetLanguage]);
+  // Custom prompt is supported when EITHER the speaker's or the participant's
+  // translation worker is Qwen-family. Participant's worker type is derived via
+  // modelStore.getParticipantModelStatus, which consults modelPreferences recall
+  // for the reversed language pair (so user's prior choice for tgt→src is honored).
+  const speakerWorkerType = useMemo(
+    () => resolveTranslationWorkerType(localInferenceSettings),
+    [localInferenceSettings.translationModel, localInferenceSettings.sourceLanguage, localInferenceSettings.targetLanguage],
+  );
+  const participantWorkerType = useMemo(() => {
+    const status = useModelStore.getState().getParticipantModelStatus(
+      localInferenceSettings.sourceLanguage,
+      localInferenceSettings.targetLanguage,
+      localInferenceSettings.asrModel,
+      localInferenceSettings.translationModel || undefined,
+    );
+    return resolveTranslationWorkerTypeForModelId(status.translationModelId);
+    // modelStatuses is included so recall-availability changes (download/delete)
+    // re-trigger this check.
+  }, [
+    localInferenceSettings.sourceLanguage,
+    localInferenceSettings.targetLanguage,
+    localInferenceSettings.asrModel,
+    localInferenceSettings.translationModel,
+    modelStatuses,
+  ]);
+  const isQwenFamily = (t: string) => t === 'qwen' || t === 'qwen35';
+  const localPromptSupported = isQwenFamily(speakerWorkerType) || isQwenFamily(participantWorkerType);
 
   // Auto-select first voice when target language changes or no voice selected
   useEffect(() => {
