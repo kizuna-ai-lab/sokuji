@@ -14,6 +14,7 @@ import {
   LocalInferenceSessionConfig
 } from '../services/interfaces/IClient';
 import { getTtsModelsForLanguage, getManifestEntry, getTranslationModel, estimateModelMemoryByDevice } from '../lib/local-inference/modelManifest';
+import { buildDefaultLocalPrompt } from '../lib/local-inference/prompts';
 import { useModelStore, type ParticipantModelStatus } from './modelStore';
 import {ApiKeyValidationResult} from '../services/interfaces/ISettingsService';
 import {Provider, ProviderType} from '../types/Provider';
@@ -141,6 +142,9 @@ export interface LocalInferenceSettings {
   vadThreshold: number;         // 0.0-1.0, default 0.3 (matching vad-web)
   vadMinSilenceDuration: number; // seconds, default 1.4 (redemptionMs in vad-web)
   vadMinSpeechDuration: number;  // seconds, default 0.4 (matching vad-web)
+  useTemplateMode: boolean;            // true = Simple (default), false = Advanced
+  systemPrompt: string;                // Advanced-mode speaker prompt (default '')
+  participantSystemPrompt: string;     // Advanced-mode participant prompt (default '', empty = fall back to speaker)
 }
 
 // Cache Entry
@@ -307,6 +311,9 @@ const defaultLocalInferenceSettings: LocalInferenceSettings = {
   vadThreshold: 0.3,
   vadMinSilenceDuration: 1.4,
   vadMinSpeechDuration: 0.4,
+  useTemplateMode: true,
+  systemPrompt: '',
+  participantSystemPrompt: '',
 };
 
 // ==================== Store Definition ====================
@@ -401,6 +408,7 @@ interface SettingsStore {
   getCurrentProviderSettings: () => OpenAISettings | GeminiSettings | OpenAICompatibleSettings | PalabraAISettings | KizunaAISettings | VolcengineSTSettings | VolcengineAST2Settings | LocalInferenceSettings;
   getCurrentProviderConfig: () => ProviderConfig;
   getProcessedSystemInstructions: (forParticipant?: boolean) => string;
+  getProcessedLocalPrompt: (forParticipant?: boolean) => string;
   createSessionConfig: (systemInstructions: string) => SessionConfig;
   navigateToSettings: (target: string | null) => void;
 }
@@ -526,6 +534,16 @@ function createLocalInferenceSessionConfig(
   const isTtsCompatible = currentTtsEntry && (currentTtsEntry.multilingual || currentTtsEntry.languages.includes(settings.targetLanguage));
   const ttsModelId = isTtsCompatible ? settings.ttsModel : (getTtsModelsForLanguage(settings.targetLanguage)[0]?.id);
 
+  // wrapTranscript must match the instructions actually in use. The default prompt
+  // (buildDefaultLocalPrompt) references "<transcript> tags", so if the instructions
+  // came from it, the user message MUST be wrapped. This catches the Advanced-mode
+  // empty-field fallback case where the selector quietly returns the default prompt
+  // but settings.useTemplateMode is still false.
+  const defaultFwd = buildDefaultLocalPrompt(settings.sourceLanguage, settings.targetLanguage);
+  const defaultRev = buildDefaultLocalPrompt(settings.targetLanguage, settings.sourceLanguage);
+  const instructionsAreDefault = systemInstructions === defaultFwd || systemInstructions === defaultRev;
+  const wrapTranscript = settings.useTemplateMode || instructionsAreDefault;
+
   return {
     provider: 'local_inference',
     model: 'local-asr-translate',
@@ -542,7 +560,34 @@ function createLocalInferenceSessionConfig(
     vadMinSilenceDuration: settings.vadMinSilenceDuration,
     vadMinSpeechDuration: settings.vadMinSpeechDuration,
     turnDetectionMode: settings.turnDetectionMode,
+    wrapTranscript,
   };
+}
+
+/**
+ * Resolve the worker type for a specific translation model id.
+ * Returns 'opus-mt' when the id is missing or not in the manifest.
+ */
+export function resolveTranslationWorkerTypeForModelId(modelId: string | null | undefined): string {
+  if (!modelId) return 'opus-mt';
+  const entry = getManifestEntry(modelId);
+  if (!entry) return 'opus-mt';
+  return entry.translationWorkerType || (entry.multilingual ? 'qwen' : 'opus-mt');
+}
+
+/**
+ * Resolve the effective translation worker type for the speaker direction of
+ * the current local-inference settings. Considers auto-select fallback (empty
+ * translationModel → getTranslationModel lookup).
+ *
+ * Note: this only looks at speaker direction. For participant direction, use
+ * `useModelStore.getState().getParticipantModelStatus(...)` — that path already
+ * consults the modelPreferences recall system for the reversed language pair.
+ */
+export function resolveTranslationWorkerType(settings: LocalInferenceSettings): string {
+  const modelId = settings.translationModel
+    || getTranslationModel(settings.sourceLanguage, settings.targetLanguage)?.id;
+  return resolveTranslationWorkerTypeForModelId(modelId);
 }
 
 /** Fraction of navigator.deviceMemory used as the system RAM model budget. */
@@ -1365,6 +1410,23 @@ const useSettingsStore = create<SettingsStore>()(
       }
     },
 
+    getProcessedLocalPrompt: (forParticipant = false) => {
+      const s = get().localInference;
+      const [srcLang, tgtLang] = forParticipant
+        ? [s.targetLanguage, s.sourceLanguage]
+        : [s.sourceLanguage, s.targetLanguage];
+
+      if (s.useTemplateMode) {
+        return buildDefaultLocalPrompt(srcLang, tgtLang);
+      }
+      // Advanced mode: speaker falls back to default if empty
+      const speakerResolved = s.systemPrompt.trim() || buildDefaultLocalPrompt(srcLang, tgtLang);
+      if (!forParticipant) return speakerResolved;
+      // Participant falls back to resolved speaker if empty
+      const participant = s.participantSystemPrompt.trim();
+      return participant || speakerResolved;
+    },
+
     createSessionConfig: (systemInstructions) => {
       const state = get();
       let config: SessionConfig;
@@ -1487,7 +1549,13 @@ export const useClearCache = () => useSettingsStore((state) => state.clearCache)
 export const useGetCurrentProviderSettings = () => useSettingsStore((state) => state.getCurrentProviderSettings);
 export const useGetCurrentProviderConfig = () => useSettingsStore((state) => state.getCurrentProviderConfig);
 export const useGetProcessedSystemInstructions = () => useSettingsStore((state) => state.getProcessedSystemInstructions);
+export const useGetProcessedLocalPrompt = () => useSettingsStore((state) => state.getProcessedLocalPrompt);
 export const useCreateSessionConfig = () => useSettingsStore((state) => state.createSessionConfig);
 export const useNavigateToSettings = () => useSettingsStore((state) => state.navigateToSettings);
+
+// Local inference prompt hooks
+export const useLocalSystemPrompt = () => useSettingsStore((state) => state.localInference.systemPrompt);
+export const useLocalParticipantSystemPrompt = () => useSettingsStore((state) => state.localInference.participantSystemPrompt);
+export const useLocalUseTemplateMode = () => useSettingsStore((state) => state.localInference.useTemplateMode);
 
 export default useSettingsStore;

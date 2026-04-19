@@ -139,6 +139,14 @@ export interface LocalInferenceSessionConfig extends BaseSessionConfig {
   vadMinSilenceDuration?: number;
   vadMinSpeechDuration?: number;
   turnDetectionMode?: 'Auto' | 'Push-to-Talk';
+  /**
+   * Whether the active system prompt expects `<transcript>` wrapping around
+   * the user message. Tracks the actual prompt, not the mode flag: true when
+   * the resolved instructions equal a buildDefaultLocalPrompt output (Simple
+   * mode OR Advanced-mode fallback when the user's textarea is empty); false
+   * when the user provided a custom prompt in Advanced mode.
+   */
+  wrapTranscript?: boolean;
 }
 
 /**
