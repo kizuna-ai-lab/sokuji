@@ -550,6 +550,7 @@ function createLocalInferenceSessionConfig(
     vadMinSilenceDuration: settings.vadMinSilenceDuration,
     vadMinSpeechDuration: settings.vadMinSpeechDuration,
     turnDetectionMode: settings.turnDetectionMode,
+    wrapTranscript: settings.useTemplateMode,  // Simple=true (wrap), Advanced=false (bare)
   };
 }
 

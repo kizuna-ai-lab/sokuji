@@ -139,6 +139,8 @@ export interface LocalInferenceSessionConfig extends BaseSessionConfig {
   vadMinSilenceDuration?: number;
   vadMinSpeechDuration?: number;
   turnDetectionMode?: 'Auto' | 'Push-to-Talk';
+  /** Wrap user message in <transcript> tags. True in Simple mode, false in Advanced (user-controlled). */
+  wrapTranscript?: boolean;
 }
 
 /**
