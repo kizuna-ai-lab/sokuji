@@ -129,10 +129,14 @@
   &.disabled {
     opacity: 0.5;
     pointer-events: none;
+  }
 
-    .setting-description {
-      color: var(--color-text-muted, #888);
-    }
+  .setting-description {
+    display: block;
+    font-size: vars.$font-caption;
+    color: vars.$text-secondary;
+    line-height: 1.5;
+    margin-top: 6px;
   }
 
   h3, h2 {
