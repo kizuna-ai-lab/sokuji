@@ -553,6 +553,20 @@ function createLocalInferenceSessionConfig(
   };
 }
 
+/**
+ * Resolve the effective translation worker type for the current local-inference settings.
+ * Considers auto-select fallback (empty translationModel → getTranslationModel lookup).
+ * Returns 'opus-mt' when nothing matches.
+ */
+export function resolveTranslationWorkerType(settings: LocalInferenceSettings): string {
+  const modelId = settings.translationModel
+    || getTranslationModel(settings.sourceLanguage, settings.targetLanguage)?.id;
+  if (!modelId) return 'opus-mt';
+  const entry = getManifestEntry(modelId);
+  if (!entry) return 'opus-mt';
+  return entry.translationWorkerType || (entry.multilingual ? 'qwen' : 'opus-mt');
+}
+
 /** Fraction of navigator.deviceMemory used as the system RAM model budget. */
 const RAM_BUDGET_RATIO = 0.75;
 /** Conservative fallback when navigator.deviceMemory is unavailable (GB). */
@@ -1515,5 +1529,10 @@ export const useGetProcessedSystemInstructions = () => useSettingsStore((state) 
 export const useGetProcessedLocalPrompt = () => useSettingsStore((state) => state.getProcessedLocalPrompt);
 export const useCreateSessionConfig = () => useSettingsStore((state) => state.createSessionConfig);
 export const useNavigateToSettings = () => useSettingsStore((state) => state.navigateToSettings);
+
+// Local inference prompt hooks
+export const useLocalSystemPrompt = () => useSettingsStore((state) => state.localInference.systemPrompt);
+export const useLocalParticipantSystemPrompt = () => useSettingsStore((state) => state.localInference.participantSystemPrompt);
+export const useLocalUseTemplateMode = () => useSettingsStore((state) => state.localInference.useTemplateMode);
 
 export default useSettingsStore;
