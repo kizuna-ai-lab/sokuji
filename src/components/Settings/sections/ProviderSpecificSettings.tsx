@@ -109,7 +109,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
   const localParticipantSystemPrompt = useLocalParticipantSystemPrompt();
   const localUseTemplateMode = useLocalUseTemplateMode();
   const getProcessedLocalPrompt = useGetProcessedLocalPrompt();
-  const [isLocalPromptPreviewExpanded, setIsLocalPromptPreviewExpanded] = useState(true);
+  const [isLocalPromptPreviewExpanded, setIsLocalPromptPreviewExpanded] = useState(false);
   const { t } = useTranslation();
   const { trackEvent } = useAnalytics();
 
