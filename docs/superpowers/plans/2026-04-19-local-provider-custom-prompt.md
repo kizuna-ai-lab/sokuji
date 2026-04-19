@@ -606,12 +606,21 @@ export interface LocalInferenceSessionConfig {
 In `createLocalInferenceSessionConfig` (`src/stores/settingsStore.ts`, around line 520), add `wrapTranscript` to the returned object:
 
 ```typescript
+// wrapTranscript tracks whether the resolved instructions expect
+// <transcript> wrapping. True in Simple mode, AND true in Advanced mode
+// when the empty-textarea fallback resolves to a default-built prompt.
+// Only false when the user actually wrote a custom prompt in Advanced mode.
+const defaultFwd = buildDefaultLocalPrompt(settings.sourceLanguage, settings.targetLanguage);
+const defaultRev = buildDefaultLocalPrompt(settings.targetLanguage, settings.sourceLanguage);
+const instructionsAreDefault =
+  systemInstructions === defaultFwd || systemInstructions === defaultRev;
+
 return {
   provider: 'local_inference',
   model: 'local-asr-translate',
   instructions: systemInstructions,
   // ... other existing fields ...
-  wrapTranscript: settings.useTemplateMode,  // Simple=wrap, Advanced=bare
+  wrapTranscript: settings.useTemplateMode || instructionsAreDefault,
 };
 ```
 
@@ -830,15 +839,22 @@ Locate `renderLocalInferenceSettings()` (search the file for it). Inside, betwee
     <div className="setting-item">
       <div className="setting-label">
         <span>{t('settings.preview')}</span>
-        <div
+        <button
+          type="button"
           className="preview-toggle"
+          aria-expanded={isLocalPromptPreviewExpanded}
+          aria-controls="local-prompt-preview-content"
           onClick={() => setIsLocalPromptPreviewExpanded(!isLocalPromptPreviewExpanded)}
+          disabled={isSessionActive}
         >
           {isLocalPromptPreviewExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-        </div>
+        </button>
       </div>
       {isLocalPromptPreviewExpanded && (
-        <div className="system-instructions-preview">
+        <div
+          id="local-prompt-preview-content"
+          className="system-instructions-preview"
+        >
           <div className="preview-content">
             {getProcessedLocalPrompt(false)}
           </div>

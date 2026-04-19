@@ -60,7 +60,7 @@ Persistence: same localStorage path as other `localInference.*` fields.
 
 ### Why no `templateSystemPrompt` field
 
-Cloud stores `templateSystemInstructions` because its template is a static string with `{{SOURCE_LANGUAGE}}` placeholders. Local's Simple-mode "template" is a dynamic function of `(srcLang, tgtLang, modelId-is-Qwen3)` that pulls from `LANG_FILLERS` / `NATIVE_NAMES` / `LANG_NAMES` tables. Storing a frozen string would diverge from actual worker behavior whenever we tweak those tables. Keep the Simple-mode prompt as pure code.
+Cloud stores `templateSystemInstructions` because its template is a static string with `{{SOURCE_LANGUAGE}}` placeholders. Local's Simple-mode "template" is a dynamic function of `(srcLang, tgtLang)` that pulls from `LANG_FILLERS` / `NATIVE_NAMES` / `LANG_NAMES` tables — the Qwen3 `/no_think` suffix is a separate runtime concern appended by the worker, not part of the prompt builder. Storing a frozen string would diverge from actual worker behavior whenever we tweak those tables. Keep the Simple-mode prompt as pure code.
 
 ## Prompt Builder
 
@@ -176,17 +176,20 @@ The engine passes them into the worker message verbatim.
 
 ### Call sites (MainPanel speaker/participant translate pipelines)
 
-```typescript
-const isAdvanced = !localInference.useTemplateMode;
-const speakerPrompt = getProcessedLocalPrompt(false);
-const participantPrompt = getProcessedLocalPrompt(true);
+MainPanel routes the resolved prompt through `createSessionConfig`; the wrap flag is set inside `createLocalInferenceSessionConfig` based on whether the resolved instructions equal a `buildDefaultLocalPrompt` output:
 
-speakerEngine.translate(text, speakerPrompt, !isAdvanced);
-participantEngine.translate(text, participantPrompt, !isAdvanced);
+```typescript
+// In createLocalInferenceSessionConfig:
+const defaultFwd = buildDefaultLocalPrompt(settings.sourceLanguage, settings.targetLanguage);
+const defaultRev = buildDefaultLocalPrompt(settings.targetLanguage, settings.sourceLanguage);
+const instructionsAreDefault =
+  systemInstructions === defaultFwd || systemInstructions === defaultRev;
+wrapTranscript: settings.useTemplateMode || instructionsAreDefault,
 ```
 
-- `wrapTranscript = !isAdvanced`: Simple mode wraps (its default prompt refers to `<transcript>` tags); Advanced mode sends bare text (user's prompt may or may not mention the tag — don't assume).
-- Speaker and participant each use their own `TranslationEngine` instance (existing participant architecture from `createParticipantLocalInferenceConfig`). Each receives its own prompt.
+- `wrapTranscript` tracks the **prompt**, not the mode. `true` when the resolved prompt is the default-built one (Simple mode always, plus Advanced-mode with an empty speaker/participant textarea that falls back to default). `false` only when the user actively wrote a custom Advanced prompt.
+- This avoids a subtle mismatch: if Advanced mode fell back to the default prompt (which references `<transcript>` tags) but `wrapTranscript` stayed `false`, the model would see instructions to find tags that aren't there — causing hallucinated output (observed with Qwen 0.6B on `我想问一些问题` returning `What's your name?`).
+- Speaker and participant each use their own `TranslationEngine` instance (existing participant architecture from `createParticipantLocalInferenceConfig`). Each receives its own resolved prompt and its own matching wrap flag.
 
 ## UI
 
@@ -204,7 +207,7 @@ participantEngine.translate(text, participantPrompt, !isAdvanced);
 
 ### Structure (mirrors cloud `system-instructions-section`)
 
-```
+```text
 ┌─ Translation Prompt  [?] ──────────────────────────────┐
 │                                                         │
 │  [ Simple ][ Advanced ]                                 │
@@ -222,7 +225,7 @@ participantEngine.translate(text, participantPrompt, !isAdvanced);
 │  <textarea participantSystemPrompt>                     │
 │  (placeholder: "Leave empty to use main instructions")  │
 │                                                         │
-│  For Qwen3 models, ` /no_think` is appended            │
+│  For Qwen3 models, `/no_think` is appended              │
 │  automatically.                                         │
 └─────────────────────────────────────────────────────────┘
 ```
@@ -287,9 +290,11 @@ No proactive truncation. Generator's `max_new_tokens: 256` caps output. If user 
 ### Unit tests
 
 **`src/lib/local-inference/prompts.test.ts`** (new)
-- `buildDefaultLocalPrompt('ja', 'en')` contains `Japanese`, `English`, `日本語`, filler words from both languages
+- `buildDefaultLocalPrompt('ja', 'en')` contains `Japanese`, `English`, and fillers from both languages (`um`, `えーと`); native-name decoration only applies to the target, so `日本語` appears in `buildDefaultLocalPrompt('en', 'zh')`-style pairs, not this one
+- `buildDefaultLocalPrompt('en', 'zh')` contains `中文 (Chinese)` native decoration
 - Unknown language codes (`'xx'`, `'yy'`) use fallback fillers (`um, uh`) and raw codes
 - Same-language pair (`'en', 'en'`) doesn't crash; fillers deduplicated
+- Builder never includes `/no_think` (that's a worker-side Qwen3 switch)
 
 **`src/stores/settingsStore.test.ts`** (extend)
 - Simple mode: `getProcessedLocalPrompt()` equals `buildDefaultLocalPrompt(src, tgt)`
