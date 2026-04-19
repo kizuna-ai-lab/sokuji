@@ -213,6 +213,11 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
     () => resolveTranslationWorkerType(localInferenceSettings),
     [localInferenceSettings.translationModel, localInferenceSettings.sourceLanguage, localInferenceSettings.targetLanguage],
   );
+  // Subscribe via selectors so the memo recomputes when the user changes their
+  // remembered model preferences (e.g. after picking a model for the reversed
+  // language pair via the temporary-swap workflow) or after WebGPU availability
+  // flips.
+  const modelPreferences = useModelStore(s => s.modelPreferences);
   const participantWorkerType = useMemo(() => {
     const status = useModelStore.getState().getParticipantModelStatus(
       localInferenceSettings.sourceLanguage,
@@ -221,14 +226,13 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
       localInferenceSettings.translationModel || undefined,
     );
     return resolveTranslationWorkerTypeForModelId(status.translationModelId);
-    // modelStatuses is included so recall-availability changes (download/delete)
-    // re-trigger this check.
   }, [
     localInferenceSettings.sourceLanguage,
     localInferenceSettings.targetLanguage,
     localInferenceSettings.asrModel,
     localInferenceSettings.translationModel,
     modelStatuses,
+    modelPreferences,
   ]);
   const isQwenFamily = (t: string) => t === 'qwen' || t === 'qwen35';
   const localPromptSupported = isQwenFamily(speakerWorkerType) || isQwenFamily(participantWorkerType);
@@ -1646,6 +1650,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
         <div
           className={`settings-section system-instructions-section ${!localPromptSupported ? 'disabled' : ''}`}
           id="local-translation-prompt-section"
+          aria-disabled={!localPromptSupported}
         >
           <h2>
             {t('settings.localTranslationPrompt', 'Translation Prompt')}
@@ -1688,18 +1693,22 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
             <div className="setting-item">
               <div className="setting-label">
                 <span>{t('settings.preview')}</span>
-                <div
+                <button
+                  type="button"
                   className="preview-toggle"
-                  onClick={() => {
-                    if (isSessionActive) return;
-                    setIsLocalPromptPreviewExpanded(!isLocalPromptPreviewExpanded);
-                  }}
+                  aria-expanded={isLocalPromptPreviewExpanded}
+                  aria-controls="local-prompt-preview-content"
+                  onClick={() => setIsLocalPromptPreviewExpanded(!isLocalPromptPreviewExpanded)}
+                  disabled={isSessionActive}
                 >
                   {isLocalPromptPreviewExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-                </div>
+                </button>
               </div>
               {isLocalPromptPreviewExpanded && (
-                <div className="system-instructions-preview">
+                <div
+                  id="local-prompt-preview-content"
+                  className="system-instructions-preview"
+                >
                   <div className="preview-content">
                     {getProcessedLocalPrompt(false)}
                   </div>
