@@ -534,6 +534,16 @@ function createLocalInferenceSessionConfig(
   const isTtsCompatible = currentTtsEntry && (currentTtsEntry.multilingual || currentTtsEntry.languages.includes(settings.targetLanguage));
   const ttsModelId = isTtsCompatible ? settings.ttsModel : (getTtsModelsForLanguage(settings.targetLanguage)[0]?.id);
 
+  // wrapTranscript must match the instructions actually in use. The default prompt
+  // (buildDefaultLocalPrompt) references "<transcript> tags", so if the instructions
+  // came from it, the user message MUST be wrapped. This catches the Advanced-mode
+  // empty-field fallback case where the selector quietly returns the default prompt
+  // but settings.useTemplateMode is still false.
+  const defaultFwd = buildDefaultLocalPrompt(settings.sourceLanguage, settings.targetLanguage);
+  const defaultRev = buildDefaultLocalPrompt(settings.targetLanguage, settings.sourceLanguage);
+  const instructionsAreDefault = systemInstructions === defaultFwd || systemInstructions === defaultRev;
+  const wrapTranscript = settings.useTemplateMode || instructionsAreDefault;
+
   return {
     provider: 'local_inference',
     model: 'local-asr-translate',
@@ -550,7 +560,7 @@ function createLocalInferenceSessionConfig(
     vadMinSilenceDuration: settings.vadMinSilenceDuration,
     vadMinSpeechDuration: settings.vadMinSpeechDuration,
     turnDetectionMode: settings.turnDetectionMode,
-    wrapTranscript: settings.useTemplateMode,  // Simple=true (wrap), Advanced=false (bare)
+    wrapTranscript,
   };
 }
 

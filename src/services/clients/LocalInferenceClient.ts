@@ -506,6 +506,7 @@ export class LocalInferenceClient implements IClient {
           translatedText,
           inferenceTimeMs: translationResult.inferenceTimeMs,
           systemPrompt: translationResult.systemPrompt,
+          wrapTranscript,
           modelId: this.config?.translationModelId,
         });
         displayText = translatedText;
