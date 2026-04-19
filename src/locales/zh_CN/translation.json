@@ -172,6 +172,7 @@
     "localTranslationPromptTooltip": "自定义本地翻译模型收到的系统指令。仅对 Qwen 系列模型生效。",
     "localPromptUnsupported": "当前翻译模型不支持自定义 prompt。在「模型管理」中切换到 Qwen 系列模型后可用。",
     "localPromptNoThinkHint": "Qwen3 模型会自动追加 ` /no_think`。",
+    "participantInstructionsPlaceholder": "留空则使用上方的主指令",
     "webgpuNotSupported": "当前环境不可用",
     "langMismatch": "语言不匹配",
     "localInferenceTurnDetectionTooltip": "自动模式使用语音活动检测自动识别语音。按住说话模式可通过按住空格键或麦克风按钮手动控制音频发送。",

@@ -1667,7 +1667,10 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
                 <span>{t('settings.preview')}</span>
                 <div
                   className="preview-toggle"
-                  onClick={() => setIsLocalPromptPreviewExpanded(!isLocalPromptPreviewExpanded)}
+                  onClick={() => {
+                    if (isSessionActive) return;
+                    setIsLocalPromptPreviewExpanded(!isLocalPromptPreviewExpanded);
+                  }}
                 >
                   {isLocalPromptPreviewExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                 </div>
@@ -1705,7 +1708,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
                 </div>
                 <textarea
                   className="system-instructions"
-                  placeholder={t('settings.participantInstructionsTooltip', 'Leave empty to use main instructions...')}
+                  placeholder={t('settings.participantInstructionsPlaceholder', 'Leave empty to use main instructions')}
                   value={localParticipantSystemPrompt}
                   onChange={(e) => updateLocalInferenceSettings({ participantSystemPrompt: e.target.value })}
                   disabled={isSessionActive || !localPromptSupported}
