@@ -479,7 +479,7 @@
       "description": "Free Speech Recognition (ASR) + Translation + Speech Synthesis (TTS)",
       "noKeyRequired": "No API key required",
       "modelAsr": "ASR",
-      "modelTranslation": "Translation",
+      "modelTranslation": "MT",
       "modelTts": "TTS",
       "participant": "Participant",
       "fallback": "auto-selected",

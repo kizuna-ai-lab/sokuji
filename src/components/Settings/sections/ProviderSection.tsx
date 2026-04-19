@@ -430,7 +430,7 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
                 const translationReady = id && modelStatuses[id] === 'downloaded';
                 return (
                   <button type="button" className="model-chip" onClick={() => { setUIMode('advanced'); setTimeout(() => navigateToSettings('model-translation'), 100); }}>
-                    <span className="model-chip-label">{t('providers.local_inference.modelTranslation', 'Translation')}</span>
+                    <span className="model-chip-label">{t('providers.local_inference.modelTranslation', 'MT')}</span>
                     <span className={`model-chip-value ${translationReady ? 'model-ok' : 'model-warn'}`}>
                       {translationReady ? id : t('common.none', 'None')}
                     </span>
@@ -476,7 +476,7 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
                     )}
                   </button>
                   <button type="button" className="model-chip" onClick={() => { setUIMode('advanced'); setTimeout(() => navigateToSettings('model-translation'), 100); }}>
-                    <span className="model-chip-label">{t('providers.local_inference.modelTranslation', 'Translation')}</span>
+                    <span className="model-chip-label">{t('providers.local_inference.modelTranslation', 'MT')}</span>
                     {participantModelStatus.translationAvailable ? (
                       <span className="model-chip-value model-ok">{participantModelStatus.translationModelId}</span>
                     ) : (
