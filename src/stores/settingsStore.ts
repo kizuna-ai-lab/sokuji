@@ -14,6 +14,7 @@ import {
   LocalInferenceSessionConfig
 } from '../services/interfaces/IClient';
 import { getTtsModelsForLanguage, getManifestEntry, getTranslationModel, estimateModelMemoryByDevice } from '../lib/local-inference/modelManifest';
+import { buildDefaultLocalPrompt } from '../lib/local-inference/prompts';
 import { useModelStore, type ParticipantModelStatus } from './modelStore';
 import {ApiKeyValidationResult} from '../services/interfaces/ISettingsService';
 import {Provider, ProviderType} from '../types/Provider';
@@ -141,6 +142,9 @@ export interface LocalInferenceSettings {
   vadThreshold: number;         // 0.0-1.0, default 0.3 (matching vad-web)
   vadMinSilenceDuration: number; // seconds, default 1.4 (redemptionMs in vad-web)
   vadMinSpeechDuration: number;  // seconds, default 0.4 (matching vad-web)
+  useTemplateMode: boolean;            // true = Simple (default), false = Advanced
+  systemPrompt: string;                // Advanced-mode speaker prompt (default '')
+  participantSystemPrompt: string;     // Advanced-mode participant prompt (default '', empty = fall back to speaker)
 }
 
 // Cache Entry
@@ -307,6 +311,9 @@ const defaultLocalInferenceSettings: LocalInferenceSettings = {
   vadThreshold: 0.3,
   vadMinSilenceDuration: 1.4,
   vadMinSpeechDuration: 0.4,
+  useTemplateMode: true,
+  systemPrompt: '',
+  participantSystemPrompt: '',
 };
 
 // ==================== Store Definition ====================
@@ -401,6 +408,7 @@ interface SettingsStore {
   getCurrentProviderSettings: () => OpenAISettings | GeminiSettings | OpenAICompatibleSettings | PalabraAISettings | KizunaAISettings | VolcengineSTSettings | VolcengineAST2Settings | LocalInferenceSettings;
   getCurrentProviderConfig: () => ProviderConfig;
   getProcessedSystemInstructions: (forParticipant?: boolean) => string;
+  getProcessedLocalPrompt: (forParticipant?: boolean) => string;
   createSessionConfig: (systemInstructions: string) => SessionConfig;
   navigateToSettings: (target: string | null) => void;
 }
@@ -1365,6 +1373,23 @@ const useSettingsStore = create<SettingsStore>()(
       }
     },
 
+    getProcessedLocalPrompt: (forParticipant = false) => {
+      const s = get().localInference;
+      const [srcLang, tgtLang] = forParticipant
+        ? [s.targetLanguage, s.sourceLanguage]
+        : [s.sourceLanguage, s.targetLanguage];
+
+      if (s.useTemplateMode) {
+        return buildDefaultLocalPrompt(srcLang, tgtLang);
+      }
+      // Advanced mode: speaker falls back to default if empty
+      const speakerResolved = s.systemPrompt.trim() || buildDefaultLocalPrompt(srcLang, tgtLang);
+      if (!forParticipant) return speakerResolved;
+      // Participant falls back to resolved speaker if empty
+      const participant = s.participantSystemPrompt.trim();
+      return participant || speakerResolved;
+    },
+
     createSessionConfig: (systemInstructions) => {
       const state = get();
       let config: SessionConfig;
@@ -1487,6 +1512,7 @@ export const useClearCache = () => useSettingsStore((state) => state.clearCache)
 export const useGetCurrentProviderSettings = () => useSettingsStore((state) => state.getCurrentProviderSettings);
 export const useGetCurrentProviderConfig = () => useSettingsStore((state) => state.getCurrentProviderConfig);
 export const useGetProcessedSystemInstructions = () => useSettingsStore((state) => state.getProcessedSystemInstructions);
+export const useGetProcessedLocalPrompt = () => useSettingsStore((state) => state.getProcessedLocalPrompt);
 export const useCreateSessionConfig = () => useSettingsStore((state) => state.createSessionConfig);
 export const useNavigateToSettings = () => useSettingsStore((state) => state.navigateToSettings);
 
