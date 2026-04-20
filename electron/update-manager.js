@@ -17,6 +17,13 @@ class UpdateManager {
     // Include release notes for all versions between current and latest
     autoUpdater.fullChangelog = true;
 
+    this.isAppImage = process.platform === 'linux' && !!process.env.APPIMAGE;
+
+    // Log once at startup for easier debugging
+    if (process.platform === 'linux') {
+      console.log(`[Sokuji] [UpdateManager] Linux runtime: isAppImage=${this.isAppImage}, APPIMAGE=${process.env.APPIMAGE || '<unset>'}`);
+    }
+
     // Configure GitHub provider
     autoUpdater.setFeedURL({
       provider: 'github',
@@ -73,9 +80,22 @@ class UpdateManager {
         releaseNotes,
       };
 
-      // On Linux, include download URL instead of auto-download
       if (process.platform === 'linux') {
-        payload.downloadUrl = `https://github.com/kizuna-ai-lab/sokuji/releases/tag/v${info.version}`;
+        const version = info.version;
+        // electron-builder names AppImage artifacts with `x86_64` (not `x64`) for
+        // x64 Linux builds, and `arm64` for arm64. Translate Node's process.arch.
+        const appImageArch = process.arch === 'x64' ? 'x86_64' : 'arm64';
+        const debArch = process.arch === 'x64' ? 'amd64' : 'arm64';
+        const base = `https://github.com/kizuna-ai-lab/sokuji/releases/download/v${version}`;
+
+        payload.supportsAutoUpdate = this.isAppImage;
+        payload.appImageUrl = `${base}/Sokuji-${version}-${appImageArch}.AppImage`;
+        payload.debUrl = `${base}/sokuji_${version}_${debArch}.deb`;
+        payload.releasePageUrl = `https://github.com/kizuna-ai-lab/sokuji/releases/tag/v${version}`;
+        // Legacy field kept for Windows / backward compat callers of updateStore:
+        if (!this.isAppImage) {
+          payload.downloadUrl = payload.releasePageUrl;
+        }
       }
 
       this._updateInfo = info;
