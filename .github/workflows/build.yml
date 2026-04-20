@@ -103,7 +103,11 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CI: false
-          USE_SYSTEM_FPM: ${{ matrix.arch == 'arm64' && 'true' || '' }}
+          # Must be literal 'false' (not empty string) on x64 — electron-builder
+          # reads this via `(USE_SYSTEM_FPM ?? "false") !== "false"`, and an
+          # empty string passes that check (truthy) which skips the bundled-fpm
+          # download and then fails on missing system `fpm`.
+          USE_SYSTEM_FPM: ${{ matrix.arch == 'arm64' && 'true' || 'false' }}
           VITE_BACKEND_URL: ${{ secrets.VITE_BACKEND_URL_PROD || 'https://sokuji-api.kizuna.ai' }}
           VITE_ENVIRONMENT: production
           VITE_POSTHOG_KEY: ${{ secrets.VITE_POSTHOG_KEY }}
