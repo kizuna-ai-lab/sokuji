@@ -63,7 +63,11 @@
     "deb": {
       "artifactName": "${name}_${version}_${arch}.${ext}"
     },
-    "publish": null,
+    "publish": {
+      "provider": "github",
+      "owner": "kizuna-ai-lab",
+      "repo": "sokuji"
+    },
     "afterPack": "./scripts/electron-builder-fuses.js"
   },
   "dependencies": {
