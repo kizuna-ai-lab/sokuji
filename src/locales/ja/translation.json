@@ -785,6 +785,11 @@
     "error": "アップデートの確認に失敗しました",
     "errorWithMessage": "アップデートエラー: {{message}}",
     "currentVersion": "現在のバージョン: v{{version}}",
-    "newVersion": "新しいバージョン: v{{version}}"
+    "newVersion": "新しいバージョン: v{{version}}",
+    "autoUpdateNote": "AppImage は自動更新に対応しています。新しい AppImage をインストールすると現在のバージョンをその場で置き換えます — 個別にアンインストールする必要はありません。",
+    "downloadAppImage": "AppImage をダウンロード（推奨）",
+    "downloadDeb": ".deb をダウンロード",
+    "linuxMigrateTitle": "新しいバージョン v{{version}} が利用できます",
+    "linuxMigrateBody": "AppImage 形式なら自動更新を利用できます。v{{version}} をダウンロードする形式を選択してください。"
   }
 }

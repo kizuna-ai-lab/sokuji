@@ -782,7 +782,12 @@
     "error": "检查更新失败",
     "errorWithMessage": "更新错误：{{message}}",
     "currentVersion": "当前版本：v{{version}}",
-    "newVersion": "新版本：v{{version}}"
+    "newVersion": "新版本：v{{version}}",
+    "autoUpdateNote": "AppImage 支持自动更新。安装新版 AppImage 会直接替换当前版本 — 无需先卸载。",
+    "downloadAppImage": "下载 AppImage（推荐）",
+    "downloadDeb": "下载 .deb",
+    "linuxMigrateTitle": "有新版本 v{{version}}",
+    "linuxMigrateBody": "AppImage 格式支持自动更新。选择一种格式下载 v{{version}}。"
   },
   "connectionStatus": {
     "reconnecting": "重新连接中..."
