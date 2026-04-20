@@ -136,20 +136,22 @@ class UpdateManager {
       // Linux AppImage: use electron-updater's native AppImageUpdater flow
       if (process.platform === 'linux' && this.isAppImage) {
         if (this._downloadPromise) return this._downloadPromise;
-        this._downloadPromise = (async () => {
-          try {
-            this._sendStatus({ status: 'downloading' });
-            // Hook download-progress events from autoUpdater to IPC
-            const onProgress = (p) => this._sendProgress({
-              percent: p.percent || 0,
-              bytesPerSecond: p.bytesPerSecond || 0,
-              transferred: p.transferred || 0,
-              total: p.total || 0,
-            });
-            const onDownloaded = () => this._sendStatus({ status: 'downloaded' });
-            autoUpdater.on('download-progress', onProgress);
-            autoUpdater.once('update-downloaded', onDownloaded);
 
+        // Hook download-progress events from autoUpdater to IPC
+        const onProgress = (p) => this._sendProgress({
+          percent: p.percent || 0,
+          bytesPerSecond: p.bytesPerSecond || 0,
+          transferred: p.transferred || 0,
+          total: p.total || 0,
+        });
+        const onDownloaded = () => this._sendStatus({ status: 'downloaded' });
+
+        this._downloadPromise = (async () => {
+          this._sendStatus({ status: 'downloading' });
+          autoUpdater.on('download-progress', onProgress);
+          autoUpdater.once('update-downloaded', onDownloaded);
+
+          try {
             await autoUpdater.downloadUpdate();
             // `update-downloaded` event is what flips status to 'downloaded';
             // it also populates this.downloadPath implicitly via electron-updater.
@@ -159,6 +161,9 @@ class UpdateManager {
             this._sendStatus({ status: 'error', message: err.message || String(err) });
             return { success: false, error: err.message };
           } finally {
+            autoUpdater.removeListener('download-progress', onProgress);
+            // removeListener on a `.once` registration is a no-op if it already fired
+            autoUpdater.removeListener('update-downloaded', onDownloaded);
             this._downloadPromise = null;
           }
         })();
