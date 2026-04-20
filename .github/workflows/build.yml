@@ -314,10 +314,12 @@ jobs:
         run: |
           mkdir -p release-assets
           find linux-x64-artifacts -name "*.deb" -exec cp {} release-assets/ \;
-          find linux-x64-artifacts -name "*.zip" -exec cp {} release-assets/ \;
+          find linux-x64-artifacts -name "*.AppImage" -exec cp {} release-assets/ \;
+          find linux-x64-artifacts -name "latest-linux.yml" -exec cp {} release-assets/ \;
           find linux-x64-artifacts -name "sokuji-extension-*.zip" -exec cp {} release-assets/ \;
           find linux-arm64-artifacts -name "*.deb" -exec cp {} release-assets/ \;
-          find linux-arm64-artifacts -name "*.zip" -exec cp {} release-assets/ \;
+          find linux-arm64-artifacts -name "*.AppImage" -exec cp {} release-assets/ \;
+          find linux-arm64-artifacts -name "latest-linux-arm64.yml" -exec cp {} release-assets/ \;
           find windows-signed -name "*.exe" -exec cp {} release-assets/ \;
           find windows-nupkg -name "*.nupkg" -exec cp {} release-assets/ \;
           find macos-arm64-artifacts -name "*.pkg" -exec cp {} release-assets/ \;
