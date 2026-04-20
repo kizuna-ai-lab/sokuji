@@ -480,7 +480,9 @@ Replace with:
 ```js
 if (process.platform === 'linux') {
   const version = info.version;
-  const appImageArch = process.arch; // 'x64' or 'arm64'
+  // electron-builder names AppImage artifacts with `x86_64` (not `x64`) for
+  // x64 Linux builds, and `arm64` for arm64. Translate Node's process.arch.
+  const appImageArch = process.arch === 'x64' ? 'x86_64' : 'arm64';
   const debArch = process.arch === 'x64' ? 'amd64' : 'arm64';
   const base = `https://github.com/kizuna-ai-lab/sokuji/releases/download/v${version}`;
 
