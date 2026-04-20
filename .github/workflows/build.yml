@@ -23,7 +23,7 @@ jobs:
           - os: ubuntu-latest
             artifact_name: linux-x64
             name: linux-x64
-          - os: ubuntu-latest
+          - os: ubuntu-24.04-arm
             artifact_name: linux-arm64
             name: linux-arm64
             arch: arm64
@@ -73,13 +73,26 @@ jobs:
           VITE_EXTENSION_ID: ${{ startsWith(github.ref, 'refs/tags/v') && secrets.VITE_EXTENSION_ID_PROD || '' }}
 
       - name: Build Electron app with Forge
-        if: runner.os != 'macOS'
+        if: runner.os == 'Windows'
         run: npx electron-forge make --arch=${{ matrix.arch || 'x64' }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CI: false
           # Prevent actual publishing during CI builds
           CSC_IDENTITY_AUTO_DISCOVERY: ${{ !startsWith(github.ref, 'refs/tags/v') && 'false' || '' }}
+          VITE_BACKEND_URL: ${{ secrets.VITE_BACKEND_URL_PROD || 'https://sokuji-api.kizuna.ai' }}
+          VITE_ENVIRONMENT: production
+          VITE_POSTHOG_KEY: ${{ secrets.VITE_POSTHOG_KEY }}
+          VITE_ENABLE_VOLCENGINE_ST: ${{ secrets.VITE_ENABLE_VOLCENGINE_ST }}
+          VITE_ENABLE_VOLCENGINE_AST2: ${{ secrets.VITE_ENABLE_VOLCENGINE_AST2 }}
+          VITE_ENABLE_PALABRA_AI: ${{ secrets.VITE_ENABLE_PALABRA_AI }}
+
+      - name: Build Linux packages (electron-builder)
+        if: runner.os == 'Linux'
+        run: npx electron-builder --linux AppImage deb --${{ matrix.arch || 'x64' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CI: false
           VITE_BACKEND_URL: ${{ secrets.VITE_BACKEND_URL_PROD || 'https://sokuji-api.kizuna.ai' }}
           VITE_ENVIRONMENT: production
           VITE_POSTHOG_KEY: ${{ secrets.VITE_POSTHOG_KEY }}
