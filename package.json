@@ -32,11 +32,26 @@
       "build/wasm/piper-plus/**",
       "build/wasm/gtcrn/**"
     ],
-    "extraResources": ["assets", "resources"],
+    "extraResources": [
+      "assets",
+      "resources"
+    ],
     "linux": {
       "target": [
-        { "target": "AppImage", "arch": ["x64", "arm64"] },
-        { "target": "deb",      "arch": ["x64", "arm64"] }
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        },
+        {
+          "target": "deb",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
       ],
       "category": "AudioVideo",
       "icon": "assets/icon.png",
@@ -101,13 +116,11 @@
   },
   "devDependencies": {
     "@electron-forge/cli": "^7.11.1",
-    "@electron-forge/maker-deb": "^7.11.1",
     "@electron-forge/maker-dmg": "^7.11.1",
     "@electron-forge/maker-flatpak": "^7.11.1",
     "@electron-forge/maker-pkg": "^7.11.1",
     "@electron-forge/maker-snap": "^7.11.1",
     "@electron-forge/maker-squirrel": "^7.11.1",
-    "@electron-forge/maker-zip": "^7.11.1",
     "@electron-forge/plugin-auto-unpack-natives": "^7.11.1",
     "@electron-forge/plugin-fuses": "^7.11.1",
     "@electron/fuses": "^2.0.0",
