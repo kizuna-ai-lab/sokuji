@@ -22,18 +22,24 @@ describe('updateStore', () => {
     });
   });
 
-  it('defaults supportsAutoUpdate to true (matches Windows behavior)', () => {
+  // NOTE: These tests do not verify the store's *initial* defaults (the
+  // singleton makes that awkward without `vi.resetModules()` + re-import).
+  // beforeEach above sets the fields explicitly to the documented baseline,
+  // so these tests serve as a schema-level guard — they fail if a field is
+  // removed or its type drifts.
+
+  it('retains supportsAutoUpdate=true after baseline reset (Windows-like default)', () => {
     expect(useUpdateStore.getState().supportsAutoUpdate).toBe(true);
   });
 
-  it('exposes appImageUrl, debUrl, releasePageUrl as null by default', () => {
+  it('retains appImageUrl, debUrl, releasePageUrl as null after baseline reset', () => {
     const s = useUpdateStore.getState();
     expect(s.appImageUrl).toBeNull();
     expect(s.debUrl).toBeNull();
     expect(s.releasePageUrl).toBeNull();
   });
 
-  it('allows setting the new fields', () => {
+  it('accepts setState writes to the new fields', () => {
     useUpdateStore.setState({
       supportsAutoUpdate: false,
       appImageUrl: 'https://example.com/app.AppImage',

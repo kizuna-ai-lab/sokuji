@@ -105,7 +105,11 @@ This change fixes that as a side effect: once CI produces `latest-linux.yml` and
     "deb": {
       "artifactName": "${name}_${version}_${arch}.${ext}"
     },
-    "publish": null,
+    "publish": {
+      "provider": "github",
+      "owner": "kizuna-ai-lab",
+      "repo": "sokuji"
+    },
     "afterPack": "./scripts/electron-builder-fuses.js"
   }
 }
@@ -115,9 +119,9 @@ Notes:
 - `files` is the glob equivalent of Forge's function-based `ignore`. Exclude `build/wasm/**` then re-include runtime dirs explicitly (same semantics as current whitelist).
 - `extraResources` preserves `assets/` and `resources/` in the app resource dir.
 - Artifact names:
-  - **AppImage**: `Sokuji-${version}-${arch}.AppImage` where `${arch}` is `x64` / `arm64` (electron-builder's internal arch names for AppImage).
-  - **deb**: `sokuji_${version}_${arch}.deb` where `${arch}` is auto-mapped by electron-builder's deb target to Debian conventions (`x64` → `amd64`, `arm64` → `arm64`). UpdateManager must use the Debian-mapped value when constructing `debUrl`.
-- `publish: null` — we don't use electron-builder's publisher; GitHub Release upload stays in the existing CI workflow.
+  - **AppImage**: `Sokuji-${version}-${arch}.AppImage` where `${arch}` resolves to `x86_64` (for x64 builds) / `arm64` — electron-builder uses `x86_64` in Linux AppImage filenames, not the config's `x64`. `package.json` `linux.target.arch` still lists `x64` (the config name); the substitution in `artifactName` is what flips to `x86_64`.
+  - **deb**: `sokuji_${version}_${arch}.deb` where `${arch}` is auto-mapped by electron-builder's deb target to Debian conventions (config `x64` → filename `amd64`, `arm64` → `arm64`). UpdateManager must use the Debian-mapped value when constructing `debUrl`.
+- `publish` is configured with the GitHub provider **for manifest generation only** — without a publisher configured, electron-builder does not emit `latest-linux*.yml`, which `electron-updater` needs to detect updates. The CI invokes `npx electron-builder --publish never` so no actual upload happens; the existing `release` job continues to upload artifacts via `softprops/action-gh-release`.
 
 ### 2. Fuses parity (`scripts/electron-builder-fuses.js`)
 
@@ -156,12 +160,14 @@ const isAppImage = process.platform === 'linux' && !!process.env.APPIMAGE;
 // In 'update-available' handler:
 if (process.platform === 'linux') {
   const version = info.version;
-  const arch = process.arch; // 'x64' or 'arm64'
-  const debArch = arch === 'x64' ? 'amd64' : 'arm64';
+  // electron-builder names AppImage artifacts with `x86_64` (not `x64`) for
+  // x64 Linux builds, and `arm64` for arm64. Translate Node's process.arch.
+  const appImageArch = process.arch === 'x64' ? 'x86_64' : 'arm64';
+  const debArch = process.arch === 'x64' ? 'amd64' : 'arm64';
   const base = `https://github.com/kizuna-ai-lab/sokuji/releases/download/v${version}`;
 
   payload.supportsAutoUpdate = isAppImage;
-  payload.appImageUrl = `${base}/Sokuji-${version}-${arch}.AppImage`;
+  payload.appImageUrl = `${base}/Sokuji-${version}-${appImageArch}.AppImage`;
   payload.debUrl = `${base}/sokuji_${version}_${debArch}.deb`;
   payload.releasePageUrl = `https://github.com/kizuna-ai-lab/sokuji/releases/tag/v${version}`;
 }
@@ -341,7 +347,7 @@ AppImage runs unsandboxed with the host's `$PATH` and sockets accessible, so the
 - **FUSE missing**: AppImage needs FUSE 2 to mount itself. Every major desktop distro ships it; minimal/container environments may not. Error message from AppImage is self-explanatory. Document in release notes: `./Sokuji.AppImage --appimage-extract-and-run` as fallback. No code change.
 - **Executable bit after update**: `electron-updater`'s `AppImageUpdater` sets `chmod +x` on the replacement binary automatically.
 - **`--no-sandbox`**: some exotic distros require this flag for Chromium sandbox compatibility. Our app currently doesn't set it in Forge builds; if AppImage users hit sandbox errors in QA, add `--no-sandbox` to the AppRun command (electron-builder config: `linux.executableArgs`). Not pre-emptively added.
-- **Filename collisions**: With the pinned `artifactName` patterns, AppImage uses `x64`/`arm64` and `.deb` uses `amd64`/`arm64` (auto-mapped by electron-builder's deb target). Extensions differ anyway; no ambiguity in the release assets.
+- **Filename collisions**: With the pinned `artifactName` patterns, AppImage uses `x86_64`/`arm64` (electron-builder's Linux AppImage arch naming) and `.deb` uses `amd64`/`arm64` (auto-mapped by electron-builder's deb target from the config `x64` arch). Extensions differ anyway; no ambiguity in the release assets.
 - **Existing users on `.zip`**: the `.zip` format is dropped. Users who discovered it will see it disappear from releases; the update banner will point them at AppImage. Impact expected to be near-zero (AppImage is strictly more useful than a directory ZIP).
 
 ## Out of Scope / Future Work

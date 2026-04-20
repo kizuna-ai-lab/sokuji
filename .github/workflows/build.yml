@@ -99,7 +99,14 @@ jobs:
 
       - name: Build Linux packages (electron-builder)
         if: runner.os == 'Linux'
-        run: npx electron-builder --linux AppImage deb --${{ matrix.arch || 'x64' }}
+        # --publish never: the CI's `release` job uploads artifacts via
+        # softprops/action-gh-release. electron-builder auto-publishes on tag
+        # builds when GH_TOKEN is set (default policy onTagOrDraft + GitHub
+        # provider configured in package.json), which would race with the
+        # release job and create duplicate releases. Keep publishing in one
+        # place. package.json's `build.publish` is retained because it is
+        # still required for `latest-linux*.yml` generation during the build.
+        run: npx electron-builder --linux AppImage deb --${{ matrix.arch || 'x64' }} --publish never
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CI: false

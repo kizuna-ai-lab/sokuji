@@ -219,7 +219,7 @@ Expected: `build/` dir populated with `index.html`, JS bundles, and `build/wasm/
 
 Run: `npx electron-builder --linux AppImage deb --x64`
 Expected: `out/make-linux/` contains:
-- `Sokuji-<version>-x64.AppImage`
+- `Sokuji-<version>-x86_64.AppImage` (electron-builder uses `x86_64` for x64 Linux AppImage filenames)
 - `sokuji_<version>_amd64.deb`
 - `latest-linux.yml`
 
@@ -232,17 +232,17 @@ Expected content looks like:
 ```yaml
 version: <current-version>
 files:
-  - url: Sokuji-<version>-x64.AppImage
+  - url: Sokuji-<version>-x86_64.AppImage
     sha512: <base64-hash>
     size: <bytes>
-path: Sokuji-<version>-x64.AppImage
+path: Sokuji-<version>-x86_64.AppImage
 sha512: <base64-hash>
 releaseDate: '<iso-timestamp>'
 ```
 
 - [ ] **Step 4: Smoke-test the AppImage**
 
-Run: `chmod +x out/make-linux/Sokuji-*-x64.AppImage && out/make-linux/Sokuji-*-x64.AppImage`
+Run: `chmod +x out/make-linux/Sokuji-*-x86_64.AppImage && out/make-linux/Sokuji-*-x86_64.AppImage`
 Expected: app window opens. In the main-process console, look for `Initializing Better Auth adapter` and `electron-audio-loopback initialized for linux`. No crashes within first 5 seconds.
 
 - [ ] **Step 5: Smoke-test the deb (only if on a Debian-based dev host)**
@@ -1132,13 +1132,13 @@ git tag -a v0.20.0-rc1 -m "Release v0.20.0-rc1 (AppImage auto-update test)"
 git push origin v0.20.0-rc1
 ```
 
-Expected: CI builds kick off; after build + sign-windows + release jobs succeed, a draft release is created with `Sokuji-0.20.0-rc1-x64.AppImage`, `Sokuji-0.20.0-rc1-arm64.AppImage`, two `.deb` files, `latest-linux.yml`, `latest-linux-arm64.yml`, and the existing Windows `.exe` + `latest.yml` + macOS `.pkg` assets.
+Expected: CI builds kick off; after build + sign-windows + release jobs succeed, a draft release is created with `Sokuji-0.20.0-rc1-x86_64.AppImage`, `Sokuji-0.20.0-rc1-arm64.AppImage`, two `.deb` files, `latest-linux.yml`, `latest-linux-arm64.yml`, and the existing Windows `.exe` + `latest.yml` + macOS `.pkg` assets.
 
 - [ ] **Step 2: Publish the draft release (required for electron-updater to see it)**
 
 On GitHub, find the draft release, edit it, un-check "Set as a pre-release" if needed, and click "Publish release". electron-updater only reads from published (non-draft) releases.
 
-- [ ] **Step 3: Install `Sokuji-0.20.0-rc1-x64.AppImage` on a Linux host, verify it runs**
+- [ ] **Step 3: Install `Sokuji-0.20.0-rc1-x86_64.AppImage` on a Linux host, verify it runs**
 
 Download the AppImage from the release, `chmod +x`, run. Confirm basic function (audio, translation).
 
@@ -1166,7 +1166,7 @@ With rc1 still running, click "Check for Updates" in the app (or wait for startu
 
 - [ ] **Step 6: Confirm the old AppImage binary was replaced in place**
 
-Check that the AppImage file you originally downloaded now has the rc2 version string inside it (e.g., `strings Sokuji-0.20.0-rc1-x64.AppImage | grep -o '0\.20\.0-rc[12]'` should show `0.20.0-rc2`). This confirms AppImageUpdater did in-place replacement.
+Check that the AppImage file you originally downloaded now has the rc2 version string inside it (e.g., `strings Sokuji-0.20.0-rc1-x86_64.AppImage | grep -o '0\.20\.0-rc[12]'` should show `0.20.0-rc2`). This confirms AppImageUpdater did in-place replacement.
 
 - [ ] **Step 7: Commit the rc2 version bump if it's still dangling**
 
