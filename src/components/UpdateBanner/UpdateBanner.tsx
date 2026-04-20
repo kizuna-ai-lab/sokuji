@@ -10,6 +10,7 @@ import {
   useDismissBanner,
   useOpenUpdateDialog,
   useInstallUpdate,
+  useUpdateSupportsAutoUpdate,
 } from '../../stores/updateStore';
 import './UpdateBanner.scss';
 
@@ -23,6 +24,7 @@ const UpdateBanner: React.FC = () => {
   const dismissBanner = useDismissBanner();
   const openDialog = useOpenUpdateDialog();
   const installUpdate = useInstallUpdate();
+  const supportsAutoUpdate = useUpdateSupportsAutoUpdate();
 
   if (status === 'idle' || status === 'checking' || status === 'not-available') {
     return null;
@@ -67,7 +69,11 @@ const UpdateBanner: React.FC = () => {
         {status === 'available' && (
           <>
             <Download size={14} />
-            <span>{t('update.available', { version: newVersion })}</span>
+            <span>
+              {supportsAutoUpdate
+                ? t('update.available', { version: newVersion })
+                : t('update.linuxMigrateTitle', { version: newVersion })}
+            </span>
           </>
         )}
 

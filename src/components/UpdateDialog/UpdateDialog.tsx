@@ -14,6 +14,9 @@ import {
   useCloseUpdateDialog,
   useDownloadUpdate,
   useInstallUpdate,
+  useUpdateSupportsAutoUpdate,
+  useUpdateAppImageUrl,
+  useUpdateDebUrl,
 } from '../../stores/updateStore';
 import './UpdateDialog.scss';
 
@@ -30,6 +33,9 @@ const UpdateDialog: React.FC = () => {
   const closeDialog = useCloseUpdateDialog();
   const downloadUpdate = useDownloadUpdate();
   const installUpdate = useInstallUpdate();
+  const supportsAutoUpdate = useUpdateSupportsAutoUpdate();
+  const appImageUrl = useUpdateAppImageUrl();
+  const debUrl = useUpdateDebUrl();
 
   const [currentVersion, setCurrentVersion] = React.useState('?');
 
@@ -95,6 +101,12 @@ const UpdateDialog: React.FC = () => {
             </div>
           )}
 
+          {status === 'available' && !supportsAutoUpdate && (
+            <div className="auto-update-note">
+              {t('update.autoUpdateNote')}
+            </div>
+          )}
+
           {changelog && (status === 'available' || status === 'downloading' || status === 'downloaded') && (
             <div
               className="changelog"
@@ -124,28 +136,74 @@ const UpdateDialog: React.FC = () => {
         <div className="update-dialog-footer">
           {status === 'available' && (
             <>
-              {downloadUrl ? (
-                <button
-                  className="primary-button"
-                  onClick={() => {
-                    if (isElectron() && (window as any).electron?.invoke) {
-                      (window as any).electron.invoke('open-external', downloadUrl);
-                    } else {
-                      window.open(downloadUrl, '_blank');
-                    }
-                    closeDialog();
-                  }}
-                >
-                  {t('update.goToDownload')}
-                </button>
+              {!supportsAutoUpdate && (appImageUrl || debUrl) ? (
+                // Non-AppImage Linux: offer two download paths
+                <>
+                  {appImageUrl && (
+                    <button
+                      className="primary-button"
+                      onClick={() => {
+                        if (isElectron() && (window as any).electron?.invoke) {
+                          (window as any).electron.invoke('open-external', appImageUrl);
+                        } else {
+                          window.open(appImageUrl, '_blank');
+                        }
+                        closeDialog();
+                      }}
+                    >
+                      {t('update.downloadAppImage')}
+                    </button>
+                  )}
+                  {debUrl && (
+                    <button
+                      className="tertiary-button"
+                      onClick={() => {
+                        if (isElectron() && (window as any).electron?.invoke) {
+                          (window as any).electron.invoke('open-external', debUrl);
+                        } else {
+                          window.open(debUrl, '_blank');
+                        }
+                        closeDialog();
+                      }}
+                    >
+                      {t('update.downloadDeb')}
+                    </button>
+                  )}
+                  <button className="secondary-button" onClick={closeDialog}>
+                    {t('update.later')}
+                  </button>
+                </>
+              ) : downloadUrl ? (
+                // Legacy (any platform passing a generic downloadUrl, e.g. old callers)
+                <>
+                  <button
+                    className="primary-button"
+                    onClick={() => {
+                      if (isElectron() && (window as any).electron?.invoke) {
+                        (window as any).electron.invoke('open-external', downloadUrl);
+                      } else {
+                        window.open(downloadUrl, '_blank');
+                      }
+                      closeDialog();
+                    }}
+                  >
+                    {t('update.goToDownload')}
+                  </button>
+                  <button className="secondary-button" onClick={closeDialog}>
+                    {t('update.later')}
+                  </button>
+                </>
               ) : (
-                <button className="primary-button" onClick={downloadUpdate}>
-                  {t('update.downloadNow')}
-                </button>
+                // Windows / AppImage Linux: full auto-update flow
+                <>
+                  <button className="primary-button" onClick={downloadUpdate}>
+                    {t('update.downloadNow')}
+                  </button>
+                  <button className="secondary-button" onClick={closeDialog}>
+                    {t('update.later')}
+                  </button>
+                </>
               )}
-              <button className="secondary-button" onClick={closeDialog}>
-                {t('update.later')}
-              </button>
             </>
           )}
 

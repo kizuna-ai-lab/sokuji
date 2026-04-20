@@ -163,6 +163,16 @@
       color: #999;
       font-size: 13px;
     }
+
+    .auto-update-note {
+      margin: 12px 0;
+      padding: 12px;
+      border-radius: 6px;
+      background: rgba(16, 163, 127, 0.08);
+      color: #b8d4c9;
+      font-size: 0.9em;
+      line-height: 1.5;
+    }
   }
 
   .update-dialog-footer {
@@ -198,6 +208,20 @@
       &:hover {
         color: #fff;
         border-color: #666;
+      }
+    }
+
+    .tertiary-button {
+      background: transparent;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: #ccc;
+      border-radius: 4px;
+      padding: 8px 16px;
+      font-size: 13px;
+      cursor: pointer;
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.05);
       }
     }
   }

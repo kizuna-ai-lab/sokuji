@@ -688,6 +688,11 @@
     "error": "అప్‌డేట్‌లు తనిఖీ చేయడం విఫలమైంది",
     "errorWithMessage": "అప్‌డేట్ లోపం: {{message}}",
     "currentVersion": "ప్రస్తుత వెర్షన్: v{{version}}",
-    "newVersion": "కొత్త వెర్షన్: v{{version}}"
+    "newVersion": "కొత్త వెర్షన్: v{{version}}",
+    "autoUpdateNote": "AppImage supports automatic updates. Installing the AppImage replaces your current installation — no separate uninstall needed.",
+    "downloadAppImage": "Download AppImage (recommended)",
+    "downloadDeb": "Download .deb",
+    "linuxMigrateTitle": "New version v{{version}} available",
+    "linuxMigrateBody": "Auto-updates are available on AppImage. Pick a format to download v{{version}}."
   }
 }

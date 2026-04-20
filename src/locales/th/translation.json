@@ -695,6 +695,11 @@
     "error": "ตรวจสอบอัปเดตล้มเหลว",
     "errorWithMessage": "ข้อผิดพลาดในการอัปเดต: {{message}}",
     "currentVersion": "เวอร์ชันปัจจุบัน: v{{version}}",
-    "newVersion": "เวอร์ชันใหม่: v{{version}}"
+    "newVersion": "เวอร์ชันใหม่: v{{version}}",
+    "autoUpdateNote": "AppImage supports automatic updates. Installing the AppImage replaces your current installation — no separate uninstall needed.",
+    "downloadAppImage": "Download AppImage (recommended)",
+    "downloadDeb": "Download .deb",
+    "linuxMigrateTitle": "New version v{{version}} available",
+    "linuxMigrateBody": "Auto-updates are available on AppImage. Pick a format to download v{{version}}."
   }
 }

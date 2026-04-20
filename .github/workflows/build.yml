@@ -23,7 +23,7 @@ jobs:
           - os: ubuntu-latest
             artifact_name: linux-x64
             name: linux-x64
-          - os: ubuntu-latest
+          - os: ubuntu-24.04-arm
             artifact_name: linux-arm64
             name: linux-arm64
             arch: arm64
@@ -73,13 +73,48 @@ jobs:
           VITE_EXTENSION_ID: ${{ startsWith(github.ref, 'refs/tags/v') && secrets.VITE_EXTENSION_ID_PROD || '' }}
 
       - name: Build Electron app with Forge
-        if: runner.os != 'macOS'
+        if: runner.os == 'Windows'
         run: npx electron-forge make --arch=${{ matrix.arch || 'x64' }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CI: false
           # Prevent actual publishing during CI builds
           CSC_IDENTITY_AUTO_DISCOVERY: ${{ !startsWith(github.ref, 'refs/tags/v') && 'false' || '' }}
+          VITE_BACKEND_URL: ${{ secrets.VITE_BACKEND_URL_PROD || 'https://sokuji-api.kizuna.ai' }}
+          VITE_ENVIRONMENT: production
+          VITE_POSTHOG_KEY: ${{ secrets.VITE_POSTHOG_KEY }}
+          VITE_ENABLE_VOLCENGINE_ST: ${{ secrets.VITE_ENABLE_VOLCENGINE_ST }}
+          VITE_ENABLE_VOLCENGINE_AST2: ${{ secrets.VITE_ENABLE_VOLCENGINE_AST2 }}
+          VITE_ENABLE_PALABRA_AI: ${{ secrets.VITE_ENABLE_PALABRA_AI }}
+
+      # electron-builder bundles an x86_64-only `fpm` for building .deb packages.
+      # On the arm64 runner, install `fpm` via Ruby gem and tell electron-builder
+      # to use it via USE_SYSTEM_FPM.
+      - name: Install system fpm (arm64 only)
+        if: runner.os == 'Linux' && matrix.arch == 'arm64'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends ruby-dev build-essential
+          sudo gem install --no-document fpm
+
+      - name: Build Linux packages (electron-builder)
+        if: runner.os == 'Linux'
+        # --publish never: the CI's `release` job uploads artifacts via
+        # softprops/action-gh-release. electron-builder auto-publishes on tag
+        # builds when GH_TOKEN is set (default policy onTagOrDraft + GitHub
+        # provider configured in package.json), which would race with the
+        # release job and create duplicate releases. Keep publishing in one
+        # place. package.json's `build.publish` is retained because it is
+        # still required for `latest-linux*.yml` generation during the build.
+        run: npx electron-builder --linux AppImage deb --${{ matrix.arch || 'x64' }} --publish never
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CI: false
+          # Must be literal 'false' (not empty string) on x64 — electron-builder
+          # reads this via `(USE_SYSTEM_FPM ?? "false") !== "false"`, and an
+          # empty string passes that check (truthy) which skips the bundled-fpm
+          # download and then fails on missing system `fpm`.
+          USE_SYSTEM_FPM: ${{ matrix.arch == 'arm64' && 'true' || 'false' }}
           VITE_BACKEND_URL: ${{ secrets.VITE_BACKEND_URL_PROD || 'https://sokuji-api.kizuna.ai' }}
           VITE_ENVIRONMENT: production
           VITE_POSTHOG_KEY: ${{ secrets.VITE_POSTHOG_KEY }}
@@ -152,8 +187,9 @@ jobs:
         with:
           name: linux-x64-artifacts
           path: |
-            out/make/**/*.deb
-            out/make/**/*.zip
+            out/make-linux/*.AppImage
+            out/make-linux/*.deb
+            out/make-linux/latest-linux.yml
             extension/sokuji-extension-*.zip
             CHANGELOG.md
 
@@ -163,8 +199,9 @@ jobs:
         with:
           name: linux-arm64-artifacts
           path: |
-            out/make/**/*.deb
-            out/make/**/*.zip
+            out/make-linux/*.AppImage
+            out/make-linux/*.deb
+            out/make-linux/latest-linux-arm64.yml
 
       - name: Upload unsigned Windows installer for signing
         if: startsWith(github.ref, 'refs/tags/v') && matrix.os == 'windows-latest'
@@ -299,10 +336,12 @@ jobs:
         run: |
           mkdir -p release-assets
           find linux-x64-artifacts -name "*.deb" -exec cp {} release-assets/ \;
-          find linux-x64-artifacts -name "*.zip" -exec cp {} release-assets/ \;
+          find linux-x64-artifacts -name "*.AppImage" -exec cp {} release-assets/ \;
+          find linux-x64-artifacts -name "latest-linux.yml" -exec cp {} release-assets/ \;
           find linux-x64-artifacts -name "sokuji-extension-*.zip" -exec cp {} release-assets/ \;
           find linux-arm64-artifacts -name "*.deb" -exec cp {} release-assets/ \;
-          find linux-arm64-artifacts -name "*.zip" -exec cp {} release-assets/ \;
+          find linux-arm64-artifacts -name "*.AppImage" -exec cp {} release-assets/ \;
+          find linux-arm64-artifacts -name "latest-linux-arm64.yml" -exec cp {} release-assets/ \;
           find windows-signed -name "*.exe" -exec cp {} release-assets/ \;
           find windows-nupkg -name "*.nupkg" -exec cp {} release-assets/ \;
           find macos-arm64-artifacts -name "*.pkg" -exec cp {} release-assets/ \;

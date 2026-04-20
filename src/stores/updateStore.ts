@@ -14,6 +14,11 @@ interface UpdateState {
   downloadTotal: number;
   errorMessage: string | null;
   downloadUrl: string | null;
+  // NEW fields for Linux AppImage/deb split:
+  supportsAutoUpdate: boolean;
+  appImageUrl: string | null;
+  debUrl: string | null;
+  releasePageUrl: string | null;
   bannerDismissed: boolean;
   dialogOpen: boolean;
 }
@@ -47,6 +52,10 @@ const useUpdateStore = create<UpdateStore>()(
     downloadTotal: 0,
     errorMessage: null,
     downloadUrl: null,
+    supportsAutoUpdate: true,
+    appImageUrl: null,
+    debUrl: null,
+    releasePageUrl: null,
     bannerDismissed: false,
     dialogOpen: false,
 
@@ -115,6 +124,10 @@ const useUpdateStore = create<UpdateStore>()(
         }
         if (data.message) update.errorMessage = data.message;
         if (data.downloadUrl) update.downloadUrl = data.downloadUrl;
+        if (typeof data.supportsAutoUpdate === 'boolean') update.supportsAutoUpdate = data.supportsAutoUpdate;
+        if (data.appImageUrl !== undefined) update.appImageUrl = data.appImageUrl;
+        if (data.debUrl !== undefined) update.debUrl = data.debUrl;
+        if (data.releasePageUrl !== undefined) update.releasePageUrl = data.releasePageUrl;
 
         // Reset banner dismissed when new update is available
         if (data.status === 'available') {
@@ -181,6 +194,10 @@ export const useUpdateProgressTransferred = () => useUpdateStore(state => state.
 export const useUpdateProgressTotal = () => useUpdateStore(state => state.downloadTotal);
 export const useUpdateError = () => useUpdateStore(state => state.errorMessage);
 export const useUpdateDownloadUrl = () => useUpdateStore(state => state.downloadUrl);
+export const useUpdateSupportsAutoUpdate = () => useUpdateStore(state => state.supportsAutoUpdate);
+export const useUpdateAppImageUrl = () => useUpdateStore(state => state.appImageUrl);
+export const useUpdateDebUrl = () => useUpdateStore(state => state.debUrl);
+export const useUpdateReleasePageUrl = () => useUpdateStore(state => state.releasePageUrl);
 export const useUpdateBannerDismissed = () => useUpdateStore(state => state.bannerDismissed);
 export const useUpdateDialogOpen = () => useUpdateStore(state => state.dialogOpen);
 

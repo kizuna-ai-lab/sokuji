@@ -772,6 +772,11 @@
     "error": "Nie udało się sprawdzić aktualizacji",
     "errorWithMessage": "Błąd aktualizacji: {{message}}",
     "currentVersion": "Aktualna wersja: v{{version}}",
-    "newVersion": "Nowa wersja: v{{version}}"
+    "newVersion": "Nowa wersja: v{{version}}",
+    "autoUpdateNote": "AppImage supports automatic updates. Installing the AppImage replaces your current installation — no separate uninstall needed.",
+    "downloadAppImage": "Download AppImage (recommended)",
+    "downloadDeb": "Download .deb",
+    "linuxMigrateTitle": "New version v{{version}} available",
+    "linuxMigrateBody": "Auto-updates are available on AppImage. Pick a format to download v{{version}}."
   }
 }

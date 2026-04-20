@@ -772,6 +772,11 @@
     "error": "Gagal menyemak kemas kini",
     "errorWithMessage": "Ralat kemas kini: {{message}}",
     "currentVersion": "Versi semasa: v{{version}}",
-    "newVersion": "Versi baharu: v{{version}}"
+    "newVersion": "Versi baharu: v{{version}}",
+    "autoUpdateNote": "AppImage supports automatic updates. Installing the AppImage replaces your current installation — no separate uninstall needed.",
+    "downloadAppImage": "Download AppImage (recommended)",
+    "downloadDeb": "Download .deb",
+    "linuxMigrateTitle": "New version v{{version}} available",
+    "linuxMigrateBody": "Auto-updates are available on AppImage. Pick a format to download v{{version}}."
   }
 }

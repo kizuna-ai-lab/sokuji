@@ -706,6 +706,11 @@
     "error": "புதுப்பிப்புகளைச் சரிபார்க்க இயலவில்லை",
     "errorWithMessage": "புதுப்பிப்புப் பிழை: {{message}}",
     "currentVersion": "தற்போதைய பதிப்பு: v{{version}}",
-    "newVersion": "புதிய பதிப்பு: v{{version}}"
+    "newVersion": "புதிய பதிப்பு: v{{version}}",
+    "autoUpdateNote": "AppImage supports automatic updates. Installing the AppImage replaces your current installation — no separate uninstall needed.",
+    "downloadAppImage": "Download AppImage (recommended)",
+    "downloadDeb": "Download .deb",
+    "linuxMigrateTitle": "New version v{{version}} available",
+    "linuxMigrateBody": "Auto-updates are available on AppImage. Pick a format to download v{{version}}."
   }
 }

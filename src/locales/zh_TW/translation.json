@@ -743,6 +743,11 @@
     "error": "檢查更新失敗",
     "errorWithMessage": "更新錯誤：{{message}}",
     "currentVersion": "目前版本：v{{version}}",
-    "newVersion": "新版本：v{{version}}"
+    "newVersion": "新版本：v{{version}}",
+    "autoUpdateNote": "AppImage 支援自動更新。安裝新版 AppImage 會直接取代目前版本 — 無需先解除安裝。",
+    "downloadAppImage": "下載 AppImage（推薦）",
+    "downloadDeb": "下載 .deb",
+    "linuxMigrateTitle": "有新版本 v{{version}}",
+    "linuxMigrateBody": "AppImage 格式支援自動更新。選擇一種格式下載 v{{version}}。"
   }
 }

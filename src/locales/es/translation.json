@@ -774,6 +774,11 @@
     "error": "Error al buscar actualizaciones",
     "errorWithMessage": "Error de actualización: {{message}}",
     "currentVersion": "Versión actual: v{{version}}",
-    "newVersion": "Nueva versión: v{{version}}"
+    "newVersion": "Nueva versión: v{{version}}",
+    "autoUpdateNote": "AppImage admite actualizaciones automáticas. Instalar el AppImage reemplaza tu instalación actual directamente — no es necesario desinstalar por separado.",
+    "downloadAppImage": "Descargar AppImage (recomendado)",
+    "downloadDeb": "Descargar .deb",
+    "linuxMigrateTitle": "Nueva versión v{{version}} disponible",
+    "linuxMigrateBody": "Las actualizaciones automáticas están disponibles con AppImage. Elige un formato para descargar v{{version}}."
   }
 }

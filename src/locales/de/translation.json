@@ -774,6 +774,11 @@
     "error": "Fehler beim Suchen nach Updates",
     "errorWithMessage": "Update-Fehler: {{message}}",
     "currentVersion": "Aktuelle Version: v{{version}}",
-    "newVersion": "Neue Version: v{{version}}"
+    "newVersion": "Neue Version: v{{version}}",
+    "autoUpdateNote": "AppImage unterstützt automatische Updates. Die Installation des AppImage ersetzt deine aktuelle Installation direkt – kein separates Deinstallieren erforderlich.",
+    "downloadAppImage": "AppImage herunterladen (empfohlen)",
+    "downloadDeb": ".deb herunterladen",
+    "linuxMigrateTitle": "Neue Version v{{version}} verfügbar",
+    "linuxMigrateBody": "Automatische Updates sind mit AppImage verfügbar. Wähle ein Format, um v{{version}} herunterzuladen."
   }
 }

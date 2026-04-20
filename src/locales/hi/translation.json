@@ -725,6 +725,11 @@
     "error": "अपडेट की जाँच विफल",
     "errorWithMessage": "अपडेट त्रुटि: {{message}}",
     "currentVersion": "वर्तमान संस्करण: v{{version}}",
-    "newVersion": "नया संस्करण: v{{version}}"
+    "newVersion": "नया संस्करण: v{{version}}",
+    "autoUpdateNote": "AppImage supports automatic updates. Installing the AppImage replaces your current installation — no separate uninstall needed.",
+    "downloadAppImage": "Download AppImage (recommended)",
+    "downloadDeb": "Download .deb",
+    "linuxMigrateTitle": "New version v{{version}} available",
+    "linuxMigrateBody": "Auto-updates are available on AppImage. Pick a format to download v{{version}}."
   }
 }

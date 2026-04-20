@@ -773,6 +773,11 @@
     "error": "업데이트 확인 실패",
     "errorWithMessage": "업데이트 오류: {{message}}",
     "currentVersion": "현재 버전: v{{version}}",
-    "newVersion": "새 버전: v{{version}}"
+    "newVersion": "새 버전: v{{version}}",
+    "autoUpdateNote": "AppImage 는 자동 업데이트를 지원합니다. 새 AppImage 를 설치하면 현재 설치본이 그대로 교체됩니다 — 별도 제거가 필요 없습니다.",
+    "downloadAppImage": "AppImage 다운로드 (권장)",
+    "downloadDeb": ".deb 다운로드",
+    "linuxMigrateTitle": "새 버전 v{{version}} 사용 가능",
+    "linuxMigrateBody": "AppImage 형식에서 자동 업데이트가 지원됩니다. v{{version}} 다운로드 형식을 선택하세요."
   }
 }

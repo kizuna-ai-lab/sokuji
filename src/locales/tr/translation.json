@@ -731,6 +731,11 @@
     "error": "Güncellemeler kontrol edilemedi",
     "errorWithMessage": "Güncelleme hatası: {{message}}",
     "currentVersion": "Mevcut sürüm: v{{version}}",
-    "newVersion": "Yeni sürüm: v{{version}}"
+    "newVersion": "Yeni sürüm: v{{version}}",
+    "autoUpdateNote": "AppImage supports automatic updates. Installing the AppImage replaces your current installation — no separate uninstall needed.",
+    "downloadAppImage": "Download AppImage (recommended)",
+    "downloadDeb": "Download .deb",
+    "linuxMigrateTitle": "New version v{{version}} available",
+    "linuxMigrateBody": "Auto-updates are available on AppImage. Pick a format to download v{{version}}."
   }
 }

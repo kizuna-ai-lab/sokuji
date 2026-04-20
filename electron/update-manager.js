@@ -17,6 +17,13 @@ class UpdateManager {
     // Include release notes for all versions between current and latest
     autoUpdater.fullChangelog = true;
 
+    this.isAppImage = process.platform === 'linux' && !!process.env.APPIMAGE;
+
+    // Log once at startup for easier debugging
+    if (process.platform === 'linux') {
+      console.log(`[Sokuji] [UpdateManager] Linux runtime: isAppImage=${this.isAppImage}, APPIMAGE=${process.env.APPIMAGE || '<unset>'}`);
+    }
+
     // Configure GitHub provider
     autoUpdater.setFeedURL({
       provider: 'github',
@@ -73,9 +80,22 @@ class UpdateManager {
         releaseNotes,
       };
 
-      // On Linux, include download URL instead of auto-download
       if (process.platform === 'linux') {
-        payload.downloadUrl = `https://github.com/kizuna-ai-lab/sokuji/releases/tag/v${info.version}`;
+        const version = info.version;
+        // electron-builder names AppImage artifacts with `x86_64` (not `x64`) for
+        // x64 Linux builds, and `arm64` for arm64. Translate Node's process.arch.
+        const appImageArch = process.arch === 'x64' ? 'x86_64' : 'arm64';
+        const debArch = process.arch === 'x64' ? 'amd64' : 'arm64';
+        const base = `https://github.com/kizuna-ai-lab/sokuji/releases/download/v${version}`;
+
+        payload.supportsAutoUpdate = this.isAppImage;
+        payload.appImageUrl = `${base}/Sokuji-${version}-${appImageArch}.AppImage`;
+        payload.debUrl = `${base}/sokuji_${version}_${debArch}.deb`;
+        payload.releasePageUrl = `https://github.com/kizuna-ai-lab/sokuji/releases/tag/v${version}`;
+        // Legacy field kept for Windows / backward compat callers of updateStore:
+        if (!this.isAppImage) {
+          payload.downloadUrl = payload.releasePageUrl;
+        }
       }
 
       this._updateInfo = info;
@@ -112,10 +132,51 @@ class UpdateManager {
         this._sendStatus({ status: 'error', message: 'No update available to download' });
         return { success: false, error: 'No update available' };
       }
-      // If a download is already in progress, return the existing promise
-      if (this._downloadPromise) {
+
+      // Linux AppImage: use electron-updater's native AppImageUpdater flow
+      if (process.platform === 'linux' && this.isAppImage) {
+        if (this._downloadPromise) return this._downloadPromise;
+
+        // Hook download-progress events from autoUpdater to IPC
+        const onProgress = (p) => this._sendProgress({
+          percent: p.percent || 0,
+          bytesPerSecond: p.bytesPerSecond || 0,
+          transferred: p.transferred || 0,
+          total: p.total || 0,
+        });
+        const onDownloaded = () => this._sendStatus({ status: 'downloaded' });
+
+        this._downloadPromise = (async () => {
+          this._sendStatus({ status: 'downloading' });
+          autoUpdater.on('download-progress', onProgress);
+          autoUpdater.once('update-downloaded', onDownloaded);
+
+          try {
+            await autoUpdater.downloadUpdate();
+            // `update-downloaded` event is what flips status to 'downloaded';
+            // it also populates this.downloadPath implicitly via electron-updater.
+            this.downloadPath = '__appimage__'; // sentinel so install handler proceeds
+            return { success: true };
+          } catch (err) {
+            this._sendStatus({ status: 'error', message: err.message || String(err) });
+            return { success: false, error: err.message };
+          } finally {
+            autoUpdater.removeListener('download-progress', onProgress);
+            // removeListener on a `.once` registration is a no-op if it already fired
+            autoUpdater.removeListener('update-downloaded', onDownloaded);
+            this._downloadPromise = null;
+          }
+        })();
         return this._downloadPromise;
       }
+
+      // Non-AppImage Linux: no auto-download; renderer opens links manually
+      if (process.platform === 'linux' && !this.isAppImage) {
+        return { success: false, error: 'auto-update-not-supported' };
+      }
+
+      // Windows (existing Squirrel-compatible manual download) — unchanged
+      if (this._downloadPromise) return this._downloadPromise;
       this._downloadPromise = (async () => {
         try {
           await this._downloadUpdate();
@@ -133,12 +194,23 @@ class UpdateManager {
 
     ipcMain.handle('update-install', async () => {
       if (!this.downloadPath) {
-        // #6: Notify renderer on invalid state
         this._sendStatus({ status: 'error', message: 'No downloaded update to install' });
         return { success: false, error: 'No downloaded update' };
       }
+
+      // Linux AppImage: native quitAndInstall replaces the AppImage in place
+      if (process.platform === 'linux' && this.isAppImage) {
+        try {
+          autoUpdater.quitAndInstall();
+          return { success: true };
+        } catch (err) {
+          this._sendStatus({ status: 'error', message: err.message || String(err) });
+          return { success: false, error: err.message };
+        }
+      }
+
+      // Windows (existing Squirrel launch path) — unchanged
       try {
-        // #7: await installer launch before quitting
         await this._installUpdate();
         return { success: true };
       } catch (err) {

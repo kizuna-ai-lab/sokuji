@@ -78,22 +78,6 @@ module.exports = {
       }
     },
     {
-      name: '@electron-forge/maker-zip',
-      platforms: ['linux'],
-    },
-    {
-      name: '@electron-forge/maker-deb',
-      config: {
-        options: {
-          categories: ['Audio'],
-          icon: 'assets/icon.png',
-          name: 'sokuji',
-          productName: 'Sokuji',
-          bin: 'sokuji'
-        }
-      },
-    },
-    {
       name: '@electron-forge/maker-dmg',
       config: {
         name: 'Sokuji',

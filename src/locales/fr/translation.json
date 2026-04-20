@@ -774,6 +774,11 @@
     "error": "Échec de la vérification des mises à jour",
     "errorWithMessage": "Erreur de mise à jour : {{message}}",
     "currentVersion": "Version actuelle : v{{version}}",
-    "newVersion": "Nouvelle version : v{{version}}"
+    "newVersion": "Nouvelle version : v{{version}}",
+    "autoUpdateNote": "AppImage prend en charge les mises à jour automatiques. L'installation du nouvel AppImage remplace directement l'installation actuelle — aucune désinstallation séparée n'est nécessaire.",
+    "downloadAppImage": "Télécharger AppImage (recommandé)",
+    "downloadDeb": "Télécharger .deb",
+    "linuxMigrateTitle": "Nouvelle version v{{version}} disponible",
+    "linuxMigrateBody": "Les mises à jour automatiques sont disponibles avec AppImage. Choisissez un format pour télécharger v{{version}}."
   }
 }
