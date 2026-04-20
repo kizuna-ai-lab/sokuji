@@ -781,6 +781,11 @@
     "error": "আপডেট পরীক্ষা করতে ব্যর্থ",
     "errorWithMessage": "আপডেট ত্রুটি: {{message}}",
     "currentVersion": "বর্তমান সংস্করণ: v{{version}}",
-    "newVersion": "নতুন সংস্করণ: v{{version}}"
+    "newVersion": "নতুন সংস্করণ: v{{version}}",
+    "autoUpdateNote": "AppImage supports automatic updates. Installing the AppImage replaces your current installation — no separate uninstall needed.",
+    "downloadAppImage": "Download AppImage (recommended)",
+    "downloadDeb": "Download .deb",
+    "linuxMigrateTitle": "New version v{{version}} available",
+    "linuxMigrateBody": "Auto-updates are available on AppImage. Pick a format to download v{{version}}."
   }
 }

@@ -780,6 +780,11 @@
     "error": "Не удалось проверить обновления",
     "errorWithMessage": "Ошибка обновления: {{message}}",
     "currentVersion": "Текущая версия: v{{version}}",
-    "newVersion": "Новая версия: v{{version}}"
+    "newVersion": "Новая версия: v{{version}}",
+    "autoUpdateNote": "AppImage поддерживает автоматические обновления. Установка нового AppImage напрямую заменяет текущую версию — отдельное удаление не требуется.",
+    "downloadAppImage": "Скачать AppImage (рекомендуется)",
+    "downloadDeb": "Скачать .deb",
+    "linuxMigrateTitle": "Доступна новая версия v{{version}}",
+    "linuxMigrateBody": "Автоматические обновления доступны в формате AppImage. Выберите формат для скачивания v{{version}}."
   }
 }

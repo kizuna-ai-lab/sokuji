@@ -731,6 +731,11 @@
     "error": "Päivitysten tarkistus epäonnistui",
     "errorWithMessage": "Päivitysvirhe: {{message}}",
     "currentVersion": "Nykyinen versio: v{{version}}",
-    "newVersion": "Uusi versio: v{{version}}"
+    "newVersion": "Uusi versio: v{{version}}",
+    "autoUpdateNote": "AppImage supports automatic updates. Installing the AppImage replaces your current installation — no separate uninstall needed.",
+    "downloadAppImage": "Download AppImage (recommended)",
+    "downloadDeb": "Download .deb",
+    "linuxMigrateTitle": "New version v{{version}} available",
+    "linuxMigrateBody": "Auto-updates are available on AppImage. Pick a format to download v{{version}}."
   }
 }

@@ -724,6 +724,11 @@
     "error": "Không thể kiểm tra cập nhật",
     "errorWithMessage": "Lỗi cập nhật: {{message}}",
     "currentVersion": "Phiên bản hiện tại: v{{version}}",
-    "newVersion": "Phiên bản mới: v{{version}}"
+    "newVersion": "Phiên bản mới: v{{version}}",
+    "autoUpdateNote": "AppImage supports automatic updates. Installing the AppImage replaces your current installation — no separate uninstall needed.",
+    "downloadAppImage": "Download AppImage (recommended)",
+    "downloadDeb": "Download .deb",
+    "linuxMigrateTitle": "New version v{{version}} available",
+    "linuxMigrateBody": "Auto-updates are available on AppImage. Pick a format to download v{{version}}."
   }
 }

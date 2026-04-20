@@ -729,6 +729,11 @@
     "error": "Kunde inte söka efter uppdateringar",
     "errorWithMessage": "Uppdateringsfel: {{message}}",
     "currentVersion": "Nuvarande version: v{{version}}",
-    "newVersion": "Ny version: v{{version}}"
+    "newVersion": "Ny version: v{{version}}",
+    "autoUpdateNote": "AppImage supports automatic updates. Installing the AppImage replaces your current installation — no separate uninstall needed.",
+    "downloadAppImage": "Download AppImage (recommended)",
+    "downloadDeb": "Download .deb",
+    "linuxMigrateTitle": "New version v{{version}} available",
+    "linuxMigrateBody": "Auto-updates are available on AppImage. Pick a format to download v{{version}}."
   }
 }
