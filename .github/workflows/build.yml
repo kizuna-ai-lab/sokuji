@@ -87,12 +87,23 @@ jobs:
           VITE_ENABLE_VOLCENGINE_AST2: ${{ secrets.VITE_ENABLE_VOLCENGINE_AST2 }}
           VITE_ENABLE_PALABRA_AI: ${{ secrets.VITE_ENABLE_PALABRA_AI }}
 
+      # electron-builder bundles an x86_64-only `fpm` for building .deb packages.
+      # On the arm64 runner, install `fpm` via Ruby gem and tell electron-builder
+      # to use it via USE_SYSTEM_FPM.
+      - name: Install system fpm (arm64 only)
+        if: runner.os == 'Linux' && matrix.arch == 'arm64'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends ruby-dev build-essential
+          sudo gem install --no-document fpm
+
       - name: Build Linux packages (electron-builder)
         if: runner.os == 'Linux'
         run: npx electron-builder --linux AppImage deb --${{ matrix.arch || 'x64' }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CI: false
+          USE_SYSTEM_FPM: ${{ matrix.arch == 'arm64' && 'true' || '' }}
           VITE_BACKEND_URL: ${{ secrets.VITE_BACKEND_URL_PROD || 'https://sokuji-api.kizuna.ai' }}
           VITE_ENVIRONMENT: production
           VITE_POSTHOG_KEY: ${{ secrets.VITE_POSTHOG_KEY }}
