@@ -112,7 +112,7 @@ export interface ModelManifestEntry {
   sourceLang?: string;
   targetLang?: string;
   /** Which translation worker to use. Defaults to 'opus-mt' if omitted. */
-  translationWorkerType?: 'opus-mt' | 'qwen' | 'qwen35' | 'translategemma';
+  translationWorkerType?: 'opus-mt' | 'qwen' | 'qwen35' | 'translategemma' | 'bing';
 }
 
 // ─── Variant Selection ──────────────────────────────────────────────────────
@@ -2836,6 +2836,20 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
       },
     },
     translationWorkerType: 'qwen35',
+  },
+
+  // ── Bing Translator (Online) ───────────────────────────────────────────
+  {
+    id: 'bing-translator',
+    type: 'translation',
+    name: 'Bing Translator (Online)',
+    languages: [],           // handled via multilingual flag + languageMap
+    multilingual: true,
+    recommended: true,
+    translationWorkerType: 'bing',
+    isCloudModel: true,
+    sortOrder: 2,            // same tier as Qwen 3.5 0.8B
+    variants: {},            // no files to download
   },
 
   // ── TranslateGemma ───────────────────────────────────────────────────
