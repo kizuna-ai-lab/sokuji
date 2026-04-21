@@ -2,6 +2,8 @@
 // Scrapes the /translator HTML for an anti-abuse token, then POSTs to /ttranslatev3.
 // Token TTL is 1 hour; we refresh proactively 5 minutes before expiry.
 
+import { mapToBingCode, isSupportedByBing } from './languageMap';
+
 export interface ParsedTranslatorPage {
   ig: string;
   iid: string;
@@ -81,8 +83,6 @@ export class CookieJar {
     return parts.join('; ');
   }
 }
-
-import { mapToBingCode, isSupportedByBing } from './languageMap';
 
 export interface BingTranslateResult {
   translatedText: string;
@@ -172,10 +172,13 @@ export class BingTranslatorClient {
       throw new BingTokenFetchError(`translator page request failed: ${res.status}`);
     }
     const setCookies = readSetCookies(res);
-    this.cookies.ingest(setCookies);
-
     const html = await res.text();
+
+    // Parse first: on malformed HTML we throw without mutating any state
+    // (token fields and cookie jar both stay at their previous values).
     const parsed = parseTranslatorPage(html);
+
+    this.cookies.ingest(setCookies);
     this.ig = parsed.ig;
     this.iid = parsed.iid;
     this.key = parsed.key;
@@ -257,9 +260,15 @@ export class BingTranslatorClient {
 }
 
 function readSetCookies(res: Response): string[] {
-  // Headers.getSetCookie() is standard in Node >=18 and modern browsers; fall back to get().
+  // Target environments (Chromium 116+, Node 18+) always expose getSetCookie(),
+  // which returns one entry per Set-Cookie header. The .get('set-cookie') fallback
+  // folds them per HTTP into a single comma-joined string, which cannot be reliably
+  // split (cookie values legitimately contain commas), so we log a warning and
+  // ingest nothing rather than half-parse.
   const h = res.headers as Headers & { getSetCookie?: () => string[] };
   if (typeof h.getSetCookie === 'function') return h.getSetCookie();
-  const raw = res.headers.get('set-cookie');
-  return raw ? [raw] : [];
+  if (res.headers.get('set-cookie')) {
+    console.warn('[bing-translator] Headers.getSetCookie unavailable; cookies from response dropped');
+  }
+  return [];
 }
