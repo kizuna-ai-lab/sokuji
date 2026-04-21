@@ -694,8 +694,10 @@ export class LocalInferenceClient implements IClient {
       if (this.disposed) return;
 
       console.error('[LocalInference] Pipeline error:', error);
+      const userMessage = humanizeTranslationError(error);
       this.emitEvent('local.pipeline.error', 'server', {
         error: error instanceof Error ? error.message : String(error),
+        userMessage,
       });
 
       // Create error item with message already set
@@ -705,10 +707,37 @@ export class LocalInferenceClient implements IClient {
         type: 'error',
         status: 'completed',
         createdAt: Date.now(),
-        formatted: { transcript: `Translation error: ${error instanceof Error ? error.message : 'Unknown error'}` },
+        formatted: { transcript: `Translation error: ${userMessage}` },
       };
       this.conversationItems.push(errorItem);
       this.handlers.onConversationUpdated?.({ item: errorItem });
     }
   }
+}
+
+/**
+ * Maps a translation-worker error to a user-facing string.
+ *
+ * The Bing worker prefixes its error messages with a tag like `[bing:token]`
+ * or `[bing:network]` (see src/lib/local-inference/workers/bing-translation.worker.ts).
+ * This helper peels the tag off and picks a friendly sentence. Errors without
+ * the tag fall through to the original message.
+ */
+const BING_ERROR_MESSAGES: Record<string, string> = {
+  token: 'Bing Translator could not connect. Check your network and try again.',
+  unsupported: 'Bing Translator does not support this language pair.',
+  network: 'Bing Translator is temporarily unavailable.',
+};
+
+function humanizeTranslationError(err: unknown): string {
+  const raw = err instanceof Error ? err.message : String(err ?? '');
+  if (!raw) return 'Translation failed.';
+
+  const match = raw.match(/^\[bing:(token|unsupported|network|unknown)\]\s*/);
+  if (match) {
+    const tag = match[1];
+    return BING_ERROR_MESSAGES[tag] ?? 'Bing Translator failed.';
+  }
+
+  return raw;
 }
