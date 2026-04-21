@@ -199,3 +199,75 @@ describe('BingTranslatorClient', () => {
     expect(mock.calls).toHaveLength(0);
   });
 });
+
+describe('BingTranslatorClient error paths', () => {
+  it('retries with a fresh token once on a 401 error', async () => {
+    const mock = makeMockFetch();
+    mock.queueResponse(htmlResponse(VALID_TRANSLATOR_HTML));
+    mock.queueResponse(new Response('', { status: 401 }));
+    // retry path: fresh token + successful translate
+    mock.queueResponse(htmlResponse(VALID_TRANSLATOR_HTML));
+    mock.queueResponse(jsonResponse([{ translations: [{ text: 'retry-ok', to: 'ja' }] }]));
+
+    const client = new BingTranslatorClient({ fetchFn: mock.fetch });
+    const result = await client.translate('hi', 'en', 'ja');
+
+    expect(result.translatedText).toBe('retry-ok');
+    expect(mock.calls).toHaveLength(4);
+    // 0: initial GET /translator
+    // 1: POST /ttranslatev3 (401)
+    // 2: refresh GET /translator
+    // 3: POST /ttranslatev3 (success)
+    expect(mock.calls[2].url).toBe('https://www.bing.com/translator');
+    expect(mock.calls[3].url).toContain('ttranslatev3');
+  });
+
+  it('does not retry twice — a second 401 bubbles as BingTranslateError', async () => {
+    const mock = makeMockFetch();
+    mock.queueResponse(htmlResponse(VALID_TRANSLATOR_HTML));
+    mock.queueResponse(new Response('', { status: 401 }));
+    mock.queueResponse(htmlResponse(VALID_TRANSLATOR_HTML));
+    mock.queueResponse(new Response('', { status: 401 }));
+
+    const client = new BingTranslatorClient({ fetchFn: mock.fetch });
+    await expect(client.translate('hi', 'en', 'ja')).rejects.toMatchObject({
+      name: 'BingTranslateError',
+      errorType: 'network',
+    });
+    expect(mock.calls).toHaveLength(4);
+  });
+
+  it('surfaces errorMessage field as BingTranslateError', async () => {
+    const mock = makeMockFetch();
+    mock.queueResponse(htmlResponse(VALID_TRANSLATOR_HTML));
+    mock.queueResponse(jsonResponse([{ errorMessage: 'something bad' }]));
+
+    const client = new BingTranslatorClient({ fetchFn: mock.fetch });
+    await expect(client.translate('hi', 'en', 'ja')).rejects.toMatchObject({
+      name: 'BingTranslateError',
+      message: 'something bad',
+    });
+  });
+
+  it('throws BingTranslateError on empty translations array', async () => {
+    const mock = makeMockFetch();
+    mock.queueResponse(htmlResponse(VALID_TRANSLATOR_HTML));
+    mock.queueResponse(jsonResponse([{ translations: [] }]));
+
+    const client = new BingTranslatorClient({ fetchFn: mock.fetch });
+    await expect(client.translate('hi', 'en', 'ja')).rejects.toMatchObject({
+      name: 'BingTranslateError',
+    });
+  });
+
+  it('throws BingTokenFetchError on non-OK /translator response', async () => {
+    const mock = makeMockFetch();
+    mock.queueResponse(new Response('', { status: 503 }));
+
+    const client = new BingTranslatorClient({ fetchFn: mock.fetch });
+    await expect(client.translate('hi', 'en', 'ja')).rejects.toMatchObject({
+      name: 'BingTokenFetchError',
+      errorType: 'token',
+    });
+  });
+});
