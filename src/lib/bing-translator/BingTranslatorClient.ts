@@ -49,3 +49,35 @@ export class BingTranslateError extends Error {
     this.name = 'BingTranslateError';
   }
 }
+
+/**
+ * Minimal cookie jar for the Bing flow. Stores only name=value; all other
+ * attributes (path, domain, expires, HttpOnly, etc.) are discarded.
+ * Enough for the subset of behavior Bing's endpoint requires.
+ */
+export class CookieJar {
+  private readonly entries = new Map<string, string>();
+
+  ingest(setCookieHeaders: readonly string[]): void {
+    for (const raw of setCookieHeaders) {
+      if (!raw) continue;
+      const firstPair = raw.split(';', 1)[0]?.trim();
+      if (!firstPair) continue;
+      const eqIdx = firstPair.indexOf('=');
+      if (eqIdx <= 0) continue;
+      const name = firstPair.slice(0, eqIdx).trim();
+      const value = firstPair.slice(eqIdx + 1).trim();
+      if (!name) continue;
+      this.entries.set(name, value);
+    }
+  }
+
+  toHeader(): string {
+    if (this.entries.size === 0) return '';
+    const parts: string[] = [];
+    for (const [name, value] of this.entries) {
+      parts.push(`${name}=${value}`);
+    }
+    return parts.join('; ');
+  }
+}
