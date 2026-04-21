@@ -23,7 +23,7 @@ A standalone Node.js proto (`/tmp/bing-proto/proto.mjs`, not committed) confirme
   - `data-iid="([^"]+)"` — interaction ID (e.g. `translator.5025`)
   - `params_AbusePreventionHelper = [key, token, expiry_ms]` — anti-abuse credentials
 - Token TTL is **3,600,000 ms (1 hour)**, not 10 minutes.
-- `POST https://www.bing.com/ttranslatev3?isVertical=1&IG={ig}&IID={iid}` with body `fromLang`, `text`, `to`, `token`, `key` returns JSON `[{translations: [{text, to, transliteration?}], detectedLanguage: {language, score}, usedLLM: boolean}]`.
+- `POST https://www.bing.com/ttranslatev3?isVertical=1&IG={ig}&IID={iid}` with body `fromLang`, `text`, `to`, `token`, `key` returns JSON `[{translations: [{text, to}], detectedLanguage: {language, score}, usedLLM: boolean}]`.
 - Required request headers: browser-like `User-Agent`, `Referer: https://www.bing.com/translator`, `Origin: https://www.bing.com`, and all cookies from the first `GET` (9 cookies including `MUID`, `_EDGE_S`, `SRCHD`, etc.).
 - Response sets an additional `btstkn` cookie that should be folded back into the cookie jar for subsequent requests.
 - CORS is restricted to `https://www.bing.com` — browser contexts without header injection cannot call this directly.
@@ -75,7 +75,6 @@ A class that encapsulates the full Bing flow. Runs inside the worker (not in the
 export interface BingTranslateResult {
   translatedText: string;
   detectedLanguage?: { language: string; score: number };
-  transliteration?: { text: string; script: string };  // reserved; not surfaced in UI yet
   usedLLM?: boolean;                                    // logged for diagnostics
   inferenceTimeMs: number;
 }
@@ -270,16 +269,74 @@ No new settings fields. The user configures Bing purely by choosing `LocalInfere
 
 All failures throw; no fallback to other engines (per design decision).
 
-| Error class                      | Trigger                                                                    | Behavior                                           |
-| -------------------------------- | -------------------------------------------------------------------------- | -------------------------------------------------- |
-| `BingTokenFetchError`            | `GET /translator` fails, or HTML is missing `IG` / `IID` / `AbusePrev...`  | Worker sends `{ type: 'error', errorType: 'token' }` |
-| `BingUnsupportedLanguageError`   | Source or target not in `BING_SUPPORTED_LANGUAGES`                         | Thrown before network call; errorType `unsupported` |
-| `BingTranslateError`             | `POST /ttranslatev3` non-200, or response shape invalid, or empty translations | errorType `network`                                 |
-| Timeout                          | fetch exceeds 12s                                                          | errorType `network`                                 |
+### Error classes
 
-Errors bubble up through `TranslationEngine.translate()`'s rejected Promise to `LocalInferenceClient`'s existing translation-error handler, which logs to `logStore` and emits a user-visible error state for the affected conversation item. The session continues — subsequent utterances can still be translated once the transient condition clears.
+| Error class                      | Trigger                                                                    | Worker `errorType` |
+| -------------------------------- | -------------------------------------------------------------------------- | ------------------ |
+| `BingTokenFetchError`            | `GET /translator` fails, or HTML is missing `IG` / `IID` / `AbusePrev...`  | `token`            |
+| `BingUnsupportedLanguageError`   | Source or target not in `BING_SUPPORTED_LANGUAGES`                         | `unsupported`      |
+| `BingTranslateError`             | `POST /ttranslatev3` non-200, or response shape invalid, or empty translations | `network`      |
+| Timeout                          | fetch exceeds 12s                                                          | `network`          |
 
-**One internal retry**: token refresh + retry on `token invalid` style failures is handled entirely inside `BingTranslatorClient`, not surfaced as a retry at the engine or client level.
+**One internal retry**: token refresh + retry on `token invalid` style failures (401 / 403 / `errorMessage` in response) is handled entirely inside `BingTranslatorClient`, not surfaced upward. No other retries. No fallback to any other translation engine.
+
+### User-visible error surfacing (two tiers)
+
+The user requirement is that translation failures must be impossible to miss — logging to `LogsPanel` alone is insufficient. Error surfacing is tiered:
+
+**Tier 1 — per-utterance conversation bubble (existing mechanism, no new code):**
+
+When `TranslationEngine.translate()` rejects, the rejection flows to `LocalInferenceClient`'s existing `onError` handler and then to `MainPanel.tsx:693 onError` callback. That handler already does two things:
+
+- appends to `realtimeEvents` (visible in `LogsPanel`)
+- inserts a `{ role: 'system', type: 'error', formatted: { text } }` item into the conversation stream, rendered as a visually distinct error bubble inline with the conversation
+
+This gives per-utterance visibility automatically. Error message format should follow `"Translation failed: <human-readable reason>"` — reason is derived from `errorType`:
+
+| `errorType`   | User-facing reason                                                                   |
+| ------------- | ------------------------------------------------------------------------------------ |
+| `token`       | `"Bing Translator could not connect. Check your network and try again."`             |
+| `unsupported` | `"Bing Translator does not support this language pair."`                             |
+| `network`     | `"Bing Translator is temporarily unavailable."`                                      |
+
+**Tier 2 — persistent top banner (new component):**
+
+A new component, `TranslationErrorBanner`, modeled directly on the existing `UpdateBanner` (`src/components/UpdateBanner/UpdateBanner.tsx`). Placed at the top of `MainPanel` alongside `UpdateBanner`. Driven by a new piece of state in the session store (or a small dedicated `translationHealthStore`).
+
+State shape:
+
+```typescript
+interface TranslationHealth {
+  consecutiveFailures: number;
+  lastError: { message: string; errorType: string; at: number } | null;
+  bannerDismissed: boolean;  // user-dismissed; re-enabled on next failure after success
+}
+```
+
+Update rules:
+
+- **On translation success**: `consecutiveFailures = 0`, `lastError = null`, `bannerDismissed = false`. Banner auto-hides.
+- **On translation failure**: increment `consecutiveFailures`, set `lastError`.
+- **Banner visible when**: `consecutiveFailures >= 2 && !bannerDismissed` (the first failure shows only the conversation bubble; repeated failure promotes to the banner).
+
+Banner content:
+
+```
+⚠️  Translation unavailable — Bing Translator is failing repeatedly.
+    [Switch engine]  [View logs]  [×]
+```
+
+- **Switch engine**: opens Settings → translation model section, scrolled to translation engine dropdown.
+- **View logs**: opens `LogsPanel` (if closed).
+- **× (dismiss)**: sets `bannerDismissed = true`. Banner hides for this outage. `consecutiveFailures` keeps incrementing but the banner does not re-appear. A successful translation resets both `consecutiveFailures = 0` and `bannerDismissed = false`, so the next time failures accumulate to ≥ 2 the banner re-appears for the new outage.
+
+The banner styling should match `UpdateBanner.error` (red/orange, prominent). Z-index must ensure it sits above conversation content.
+
+**Why two tiers and not just toast or just banner:**
+
+- First transient failure is common with unofficial endpoints (token just expired, one flaky response). A full banner on a single failure would be too noisy. The conversation bubble is sufficient and already free.
+- Sustained failure (≥ 2) is a real problem the user needs to act on — switch engine, check network, etc. The banner persists until the next success, so the user cannot miss it even if they look away.
+- No toast system currently exists in the project. Reusing the established banner pattern is lower-risk than introducing a new notification primitive.
 
 ## Testing
 
@@ -320,14 +377,17 @@ This is the primary pre-merge integration check. It runs in the actual Electron/
 
 **New files**
 
-| Path                                                  | Purpose                                      |
-| ----------------------------------------------------- | -------------------------------------------- |
-| `src/lib/bing-translator/BingTranslatorClient.ts`     | Auth + translate API + cookie jar + retry    |
-| `src/lib/bing-translator/languageMap.ts`              | ISO → Bing language code mapping             |
-| `src/lib/bing-translator/index.ts`                    | Barrel export                                |
-| `src/lib/bing-translator/BingTranslatorClient.test.ts`| Unit tests                                   |
-| `src/lib/bing-translator/languageMap.test.ts`         | Unit tests                                   |
-| `public/workers/bing-translation.worker.js`           | Worker wrapper around `BingTranslatorClient` |
+| Path                                                          | Purpose                                                 |
+| ------------------------------------------------------------- | ------------------------------------------------------- |
+| `src/lib/bing-translator/BingTranslatorClient.ts`             | Auth + translate API + cookie jar + retry               |
+| `src/lib/bing-translator/languageMap.ts`                      | ISO → Bing language code mapping                        |
+| `src/lib/bing-translator/index.ts`                            | Barrel export                                           |
+| `src/lib/bing-translator/BingTranslatorClient.test.ts`        | Unit tests                                              |
+| `src/lib/bing-translator/languageMap.test.ts`                 | Unit tests                                              |
+| `public/workers/bing-translation.worker.js`                   | Worker wrapper around `BingTranslatorClient`            |
+| `src/components/TranslationErrorBanner/TranslationErrorBanner.tsx` | Persistent top banner for sustained translation failure (modeled on `UpdateBanner`) |
+| `src/components/TranslationErrorBanner/TranslationErrorBanner.scss` | Styling (reuse/adapt `UpdateBanner.error` look)       |
+| `src/stores/translationHealthStore.ts` *(or additions to `sessionStore`)* | `consecutiveFailures`, `lastError`, `bannerDismissed` state + selectors |
 
 **Modified files**
 
@@ -336,6 +396,8 @@ This is the primary pre-merge integration check. It runs in the actual Electron/
 | `src/lib/local-inference/modelManifest.ts`                       | Add `bing-translator` entry; extend `engine` union with `'bing'`   |
 | `src/lib/local-inference/engine/TranslationEngine.ts`            | Branch on `engine === 'bing'` before `hfModelId` check             |
 | `src/components/Settings/sections/ModelManagementSection.tsx`    | Ensure `isCloudModel` rendering path covers translation models     |
+| `src/components/MainPanel/MainPanel.tsx`                         | Mount `<TranslationErrorBanner/>` alongside `<UpdateBanner/>`; map translation `errorType` to user-facing message in the existing `onError` path |
+| `src/services/clients/LocalInferenceClient.ts`                   | On translation success / failure, update `translationHealthStore` counters |
 | Electron main process (file TBD — locate via Edge TTS header code) | Extend `onBeforeSendHeaders` filter to include `www.bing.com/translator` and `www.bing.com/ttranslatev3` |
 | Extension `declarativeNetRequest` rules (file TBD)               | Add Bing URL patterns with same header overrides                   |
 | `extension/manifest.json`                                        | Ensure `host_permissions` includes `https://*.bing.com/*`          |
@@ -355,6 +417,7 @@ These are expected to be resolved during implementation research, not at spec ti
 
 - **Fallback to other translation services** (e.g. Google) when Bing fails. Explicitly excluded per product decision.
 - **Web-platform support.** `LOCAL_INFERENCE` is an Electron/Extension feature in practice; no web-specific gating is added.
-- **Transliteration surfacing in UI.** The response field is parsed and stored but not displayed; may be reused later.
+- **Transliteration.** The `transliteration` field in Bing's response is ignored entirely — not parsed, not stored, not surfaced.
 - **Custom system prompts / context** like Qwen/TranslateGemma. Bing uses its own internal context.
 - **Making Bing the default translation engine.** It is offered with equal prominence to Qwen 3.5 but does not change `DEFAULT_TRANSLATION_MODEL`.
+- **Toast / transient notifications.** Sustained-failure visibility is via the persistent banner, not a new toast system.
