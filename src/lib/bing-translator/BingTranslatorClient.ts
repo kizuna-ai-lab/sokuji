@@ -10,7 +10,7 @@ export interface ParsedTranslatorPage {
 }
 
 export function parseTranslatorPage(html: string): ParsedTranslatorPage {
-  const ig = html.match(/IG:"([0-9A-F]+)"/)?.[1];
+  const ig = html.match(/IG:"([0-9A-Fa-f]+)"/)?.[1];
   if (!ig) throw new BingTokenFetchError('could not find IG in translator page');
 
   const iid = html.match(/data-iid="([^"]+)"/)?.[1];
