@@ -280,18 +280,16 @@ All failures throw; no fallback to other engines (per design decision).
 
 **One internal retry**: token refresh + retry on `token invalid` style failures (401 / 403 / `errorMessage` in response) is handled entirely inside `BingTranslatorClient`, not surfaced upward. No other retries. No fallback to any other translation engine.
 
-### User-visible error surfacing (two tiers)
+### User-visible error surfacing
 
-The user requirement is that translation failures must be impossible to miss — logging to `LogsPanel` alone is insufficient. Error surfacing is tiered:
-
-**Tier 1 — per-utterance conversation bubble (existing mechanism, no new code):**
-
-When `TranslationEngine.translate()` rejects, the rejection flows to `LocalInferenceClient`'s existing `onError` handler and then to `MainPanel.tsx:693 onError` callback. That handler already does two things:
+When `TranslationEngine.translate()` rejects, the rejection flows to `LocalInferenceClient`'s existing `onError` handler and then to `MainPanel.tsx:693`'s `onError` callback. That handler already does two things:
 
 - appends to `realtimeEvents` (visible in `LogsPanel`)
 - inserts a `{ role: 'system', type: 'error', formatted: { text } }` item into the conversation stream, rendered as a visually distinct error bubble inline with the conversation
 
-This gives per-utterance visibility automatically. Error message format should follow `"Translation failed: <human-readable reason>"` — reason is derived from `errorType`:
+This inline error bubble is the single visibility mechanism; no additional banner or toast is introduced. Users scanning the conversation will see the error next to the utterance that failed.
+
+The error message surfaced to the user must be human-readable — not a raw exception string. The Bing worker posts `{ type: 'error', errorType, message }`; the conversation-level error text is derived from `errorType`:
 
 | `errorType`   | User-facing reason                                                                   |
 | ------------- | ------------------------------------------------------------------------------------ |
@@ -299,44 +297,7 @@ This gives per-utterance visibility automatically. Error message format should f
 | `unsupported` | `"Bing Translator does not support this language pair."`                             |
 | `network`     | `"Bing Translator is temporarily unavailable."`                                      |
 
-**Tier 2 — persistent top banner (new component):**
-
-A new component, `TranslationErrorBanner`, modeled directly on the existing `UpdateBanner` (`src/components/UpdateBanner/UpdateBanner.tsx`). Placed at the top of `MainPanel` alongside `UpdateBanner`. Driven by a new piece of state in the session store (or a small dedicated `translationHealthStore`).
-
-State shape:
-
-```typescript
-interface TranslationHealth {
-  consecutiveFailures: number;
-  lastError: { message: string; errorType: string; at: number } | null;
-  bannerDismissed: boolean;  // user-dismissed; re-enabled on next failure after success
-}
-```
-
-Update rules:
-
-- **On translation success**: `consecutiveFailures = 0`, `lastError = null`, `bannerDismissed = false`. Banner auto-hides.
-- **On translation failure**: increment `consecutiveFailures`, set `lastError`.
-- **Banner visible when**: `consecutiveFailures >= 2 && !bannerDismissed` (the first failure shows only the conversation bubble; repeated failure promotes to the banner).
-
-Banner content:
-
-```
-⚠️  Translation unavailable — Bing Translator is failing repeatedly.
-    [Switch engine]  [View logs]  [×]
-```
-
-- **Switch engine**: opens Settings → translation model section, scrolled to translation engine dropdown.
-- **View logs**: opens `LogsPanel` (if closed).
-- **× (dismiss)**: sets `bannerDismissed = true`. Banner hides for this outage. `consecutiveFailures` keeps incrementing but the banner does not re-appear. A successful translation resets both `consecutiveFailures = 0` and `bannerDismissed = false`, so the next time failures accumulate to ≥ 2 the banner re-appears for the new outage.
-
-The banner styling should match `UpdateBanner.error` (red/orange, prominent). Z-index must ensure it sits above conversation content.
-
-**Why two tiers and not just toast or just banner:**
-
-- First transient failure is common with unofficial endpoints (token just expired, one flaky response). A full banner on a single failure would be too noisy. The conversation bubble is sufficient and already free.
-- Sustained failure (≥ 2) is a real problem the user needs to act on — switch engine, check network, etc. The banner persists until the next success, so the user cannot miss it even if they look away.
-- No toast system currently exists in the project. Reusing the established banner pattern is lower-risk than introducing a new notification primitive.
+The mapping lives in `LocalInferenceClient` (or a shared helper) so raw `errorType` strings never leak to the conversation.
 
 ## Testing
 
@@ -385,9 +346,6 @@ This is the primary pre-merge integration check. It runs in the actual Electron/
 | `src/lib/bing-translator/BingTranslatorClient.test.ts`        | Unit tests                                              |
 | `src/lib/bing-translator/languageMap.test.ts`                 | Unit tests                                              |
 | `public/workers/bing-translation.worker.js`                   | Worker wrapper around `BingTranslatorClient`            |
-| `src/components/TranslationErrorBanner/TranslationErrorBanner.tsx` | Persistent top banner for sustained translation failure (modeled on `UpdateBanner`) |
-| `src/components/TranslationErrorBanner/TranslationErrorBanner.scss` | Styling (reuse/adapt `UpdateBanner.error` look)       |
-| `src/stores/translationHealthStore.ts` *(or additions to `sessionStore`)* | `consecutiveFailures`, `lastError`, `bannerDismissed` state + selectors |
 
 **Modified files**
 
@@ -395,9 +353,8 @@ This is the primary pre-merge integration check. It runs in the actual Electron/
 | ---------------------------------------------------------------- | ------------------------------------------------------------------ |
 | `src/lib/local-inference/modelManifest.ts`                       | Add `bing-translator` entry; extend `engine` union with `'bing'`   |
 | `src/lib/local-inference/engine/TranslationEngine.ts`            | Branch on `engine === 'bing'` before `hfModelId` check             |
+| `src/services/clients/LocalInferenceClient.ts`                   | Map translation worker `errorType` to user-facing message before emitting `onError` |
 | `src/components/Settings/sections/ModelManagementSection.tsx`    | Ensure `isCloudModel` rendering path covers translation models     |
-| `src/components/MainPanel/MainPanel.tsx`                         | Mount `<TranslationErrorBanner/>` alongside `<UpdateBanner/>`; map translation `errorType` to user-facing message in the existing `onError` path |
-| `src/services/clients/LocalInferenceClient.ts`                   | On translation success / failure, update `translationHealthStore` counters |
 | Electron main process (file TBD — locate via Edge TTS header code) | Extend `onBeforeSendHeaders` filter to include `www.bing.com/translator` and `www.bing.com/ttranslatev3` |
 | Extension `declarativeNetRequest` rules (file TBD)               | Add Bing URL patterns with same header overrides                   |
 | `extension/manifest.json`                                        | Ensure `host_permissions` includes `https://*.bing.com/*`          |
@@ -420,4 +377,4 @@ These are expected to be resolved during implementation research, not at spec ti
 - **Transliteration.** The `transliteration` field in Bing's response is ignored entirely — not parsed, not stored, not surfaced.
 - **Custom system prompts / context** like Qwen/TranslateGemma. Bing uses its own internal context.
 - **Making Bing the default translation engine.** It is offered with equal prominence to Qwen 3.5 but does not change `DEFAULT_TRANSLATION_MODEL`.
-- **Toast / transient notifications.** Sustained-failure visibility is via the persistent banner, not a new toast system.
+- **Persistent failure banner / toast notifications.** The inline conversation error bubble is the only user-visible surfacing; no top banner, no toast, no health counter.
