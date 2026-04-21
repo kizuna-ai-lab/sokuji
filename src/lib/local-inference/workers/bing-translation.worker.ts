@@ -3,7 +3,12 @@
 // used by the other translation workers in this directory, with extra fields
 // for Bing-specific diagnostics (detectedLanguage, usedLLM).
 
-import { BingTranslatorClient } from '../../bing-translator';
+import {
+  BingTranslatorClient,
+  BingTokenFetchError,
+  BingUnsupportedLanguageError,
+  BingTranslateError,
+} from '../../bing-translator';
 
 type InMessage =
   | { type: 'init'; sourceLang: string; targetLang: string }
@@ -74,10 +79,17 @@ ctx.onmessage = async (event: MessageEvent<InMessage>) => {
           usedLLM: result.usedLLM,
         });
       } catch (err) {
+        // Prefix the error message with a bracket-tag so the main thread can
+        // classify the failure without extending the worker-protocol shape.
+        // Task 10 (LocalInferenceClient) reads the prefix to pick a user-facing
+        // message; other translation workers emit untagged messages and fall
+        // through to the raw text.
+        const errorType = classifyError(err);
+        const raw = err instanceof Error ? err.message : String(err);
         post({
           type: 'error',
           id: msg.id,
-          error: err instanceof Error ? err.message : String(err),
+          error: `[bing:${errorType}] ${raw}`,
         });
       }
       break;
@@ -90,4 +102,11 @@ ctx.onmessage = async (event: MessageEvent<InMessage>) => {
     }
   }
 };
+
+function classifyError(err: unknown): 'token' | 'unsupported' | 'network' | 'unknown' {
+  if (err instanceof BingTokenFetchError) return 'token';
+  if (err instanceof BingUnsupportedLanguageError) return 'unsupported';
+  if (err instanceof BingTranslateError) return 'network';
+  return 'unknown';
+}
 
