@@ -2839,17 +2839,21 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
   },
 
   // ── Bing Translator (Online) ───────────────────────────────────────────
+  // User-selection-only: `languages: []` means getTranslationModel() skips it,
+  // so new sessions do not auto-pick Bing. `recommended: true` + sortOrder: 2
+  // only control where it appears in the UI list (alongside Qwen 3.5 0.8B).
+  // Language-pair validation happens at translate() time via languageMap.
   {
     id: 'bing-translator',
     type: 'translation',
     name: 'Bing Translator (Online)',
-    languages: [],           // handled via multilingual flag + languageMap
+    languages: [],
     multilingual: true,
     recommended: true,
     translationWorkerType: 'bing',
     isCloudModel: true,
-    sortOrder: 2,            // same tier as Qwen 3.5 0.8B
-    variants: {},            // no files to download
+    sortOrder: 2,
+    variants: {},
   },
 
   // ── TranslateGemma ───────────────────────────────────────────────────

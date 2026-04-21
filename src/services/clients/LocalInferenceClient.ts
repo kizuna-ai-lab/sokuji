@@ -733,10 +733,16 @@ function humanizeTranslationError(err: unknown): string {
   const raw = err instanceof Error ? err.message : String(err ?? '');
   if (!raw) return 'Translation failed.';
 
-  const match = raw.match(/^\[bing:(token|unsupported|network|unknown)\]\s*/);
+  const match = raw.match(/^\[bing:(token|unsupported|network|unknown)\]\s*(.*)$/);
   if (match) {
     const tag = match[1];
-    return BING_ERROR_MESSAGES[tag] ?? 'Bing Translator failed.';
+    const detail = match[2];
+    const known = BING_ERROR_MESSAGES[tag];
+    if (known) return known;
+    // For 'unknown' or unexpected tags, keep the original detail text so
+    // diagnostic information isn't lost — still prefixed so it's obviously
+    // a Bing failure, not a pipeline error.
+    return detail ? `Bing Translator failed: ${detail}` : 'Bing Translator failed.';
   }
 
   return raw;

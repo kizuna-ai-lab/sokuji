@@ -28,6 +28,7 @@ export class TranslationEngine {
     reject: (error: Error) => void;
   }>();
   private requestCounter = 0;
+  private bingDnrActive = false;
 
   onError: ErrorCallback | null = null;
 
@@ -91,6 +92,7 @@ export class TranslationEngine {
           // header-rewriting DNR rules before any fetch to www.bing.com lands.
           // A no-op outside extensions (chrome.runtime is absent).
           setBingTranslatorDNR(true);
+          this.bingDnrActive = true;
           this.worker = new Worker(
             new URL('../workers/bing-translation.worker.ts', import.meta.url),
             { type: 'module' }
@@ -248,9 +250,10 @@ export class TranslationEngine {
       this.worker.terminate();
       this.worker = null;
     }
-    // Clear Bing DNR rules if they were registered for this engine's worker.
-    // Safe to call even when they were never registered.
-    setBingTranslatorDNR(false);
+    if (this.bingDnrActive) {
+      setBingTranslatorDNR(false);
+      this.bingDnrActive = false;
+    }
     this.isReady = false;
     this.currentModelId = null;
     this.sourceLang = '';
