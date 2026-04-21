@@ -371,12 +371,12 @@ export function ModelManagementSection({
     const currentTrans = !isAstValid && translationModel ? getManifestByType('translation').find(m => m.id === translationModel) : null;
     const transOk = isAstValid || (currentTrans
       && isTranslationModelCompatible(currentTrans, sourceLanguage, targetLanguage)
-      && statuses[translationModel] === 'downloaded'
+      && (currentTrans.isCloudModel || statuses[translationModel] === 'downloaded')
       && !(currentTrans.requiredDevice === 'webgpu' && !webgpuAvailable));
     if (!transOk) {
       const match = pickBestModel(getManifestByType('translation').filter(m =>
         isTranslationModelCompatible(m, sourceLanguage, targetLanguage)
-        && statuses[m.id] === 'downloaded'
+        && (m.isCloudModel || statuses[m.id] === 'downloaded')
         && !(m.requiredDevice === 'webgpu' && !webgpuAvailable)
       ));
       const newId = match?.id || '';
