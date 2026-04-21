@@ -36,7 +36,8 @@
     "https://sokuji.kizuna.ai/*",
     "wss://openspeech.bytedance.com/*",
     "https://speech.platform.bing.com/*",
-    "wss://speech.platform.bing.com/*"
+    "wss://speech.platform.bing.com/*",
+    "https://www.bing.com/*"
   ],
   "background": {
     "service_worker": "background.js",
