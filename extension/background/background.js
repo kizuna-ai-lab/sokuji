@@ -520,6 +520,27 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;
   }
 
+  // Handle Bing Translator DNR header injection
+  if (message.type === 'BING_TRANSLATOR_SET_HEADERS') {
+    bingTranslatorSetDNRHeaders()
+      .then(() => sendResponse({ success: true }))
+      .catch((error) => {
+        console.error('[Sokuji] [Background] Failed to set Bing Translator DNR headers:', error);
+        sendResponse({ success: false, error: error.message });
+      });
+    return true;
+  }
+
+  if (message.type === 'BING_TRANSLATOR_CLEAR_HEADERS') {
+    bingTranslatorClearDNRHeaders()
+      .then(() => sendResponse({ success: true }))
+      .catch((error) => {
+        console.error('[Sokuji] [Background] Failed to clear Bing Translator DNR headers:', error);
+        sendResponse({ success: false, error: error.message });
+      });
+    return true;
+  }
+
   // Handle START_TAB_CAPTURE message from side panel
   if (message.type === 'START_TAB_CAPTURE') {
     handleStartTabCapture(message.tabId || sender.tab?.id).then(sendResponse);

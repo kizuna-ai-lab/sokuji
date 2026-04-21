@@ -87,6 +87,10 @@ export class TranslationEngine {
 
       switch (workerType) {
         case 'bing':
+          // In the browser-extension context, ask the service worker to register
+          // header-rewriting DNR rules before any fetch to www.bing.com lands.
+          // A no-op outside extensions (chrome.runtime is absent).
+          setBingTranslatorDNR(true);
           this.worker = new Worker(
             new URL('../workers/bing-translation.worker.ts', import.meta.url),
             { type: 'module' }
@@ -244,6 +248,9 @@ export class TranslationEngine {
       this.worker.terminate();
       this.worker = null;
     }
+    // Clear Bing DNR rules if they were registered for this engine's worker.
+    // Safe to call even when they were never registered.
+    setBingTranslatorDNR(false);
     this.isReady = false;
     this.currentModelId = null;
     this.sourceLang = '';
@@ -254,5 +261,22 @@ export class TranslationEngine {
       pending.reject(new Error('TranslationEngine disposed'));
     }
     this.pendingRequests.clear();
+  }
+}
+
+/**
+ * Ask the browser-extension service worker to register (or clear) DNR rules
+ * that inject browser-like Origin/Referer/User-Agent for www.bing.com fetches.
+ * No-op in Electron and web contexts where chrome.runtime is absent.
+ */
+function setBingTranslatorDNR(enable: boolean): void {
+  const runtime = (globalThis as { chrome?: { runtime?: { sendMessage?: (msg: unknown) => void } } }).chrome?.runtime;
+  if (!runtime || typeof runtime.sendMessage !== 'function') return;
+  try {
+    runtime.sendMessage({
+      type: enable ? 'BING_TRANSLATOR_SET_HEADERS' : 'BING_TRANSLATOR_CLEAR_HEADERS',
+    });
+  } catch {
+    // Fire-and-forget; ignore failures (e.g., receiver missing during teardown)
   }
 }
