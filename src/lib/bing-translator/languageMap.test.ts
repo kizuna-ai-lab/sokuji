@@ -29,6 +29,11 @@ describe('languageMap', () => {
     it('throws for unsupported codes', () => {
       expect(() => mapToBingCode('xx')).toThrow(/unsupported/i);
     });
+
+    it('maps app alias "no" to Bing canonical "nb" (Norwegian Bokmål)', () => {
+      expect(mapToBingCode('no')).toBe('nb');
+      expect(isSupportedByBing('no')).toBe(true);
+    });
   });
 
   describe('isSupportedByBing', () => {

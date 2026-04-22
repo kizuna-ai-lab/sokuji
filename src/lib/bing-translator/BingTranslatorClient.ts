@@ -139,7 +139,7 @@ export class BingTranslatorClient {
         Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
         'Accept-Language': 'en-US,en;q=0.9',
       },
-    });
+    }, (m) => new BingTokenFetchError(m));
 
     if (!res.ok) {
       throw new BingTokenFetchError(`translator page request failed: ${res.status}`);
@@ -217,11 +217,29 @@ export class BingTranslatorClient {
     };
   }
 
-  private async fetchWithTimeout(url: string, init: RequestInit): Promise<Response> {
+  /**
+   * Wrap fetch with a timeout and normalize AbortError/network failures into
+   * a caller-supplied typed Bing error, so timeouts don't escape the pipeline
+   * as "[bing:unknown] <raw>" and instead reach the user as the intended
+   * human-readable message.
+   */
+  private async fetchWithTimeout(
+    url: string,
+    init: RequestInit,
+    makeError: (message: string) => Error = (m) => new BingTranslateError(m),
+  ): Promise<Response> {
     const controller = new AbortController();
     const t = setTimeout(() => controller.abort(), this.fetchTimeoutMs);
     try {
       return await this.fetchFn(url, { ...init, signal: controller.signal });
+    } catch (err) {
+      const message =
+        err instanceof Error && err.name === 'AbortError'
+          ? `request timed out after ${this.fetchTimeoutMs}ms`
+          : err instanceof Error
+            ? err.message
+            : String(err);
+      throw makeError(message);
     } finally {
       clearTimeout(t);
     }

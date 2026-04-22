@@ -2,6 +2,7 @@
 // Most codes pass through unchanged; the overrides below capture the known exceptions.
 
 const BING_LANGUAGE_OVERRIDES: Record<string, string> = {
+  'no': 'nb',        // App uses 'no' for Norwegian (see Opus-MT entries); Bing wants 'nb' (Bokmål)
   'zh': 'zh-Hans',
   'zh-cn': 'zh-Hans',
   'zh-tw': 'zh-Hant',
@@ -15,7 +16,7 @@ export const BING_SUPPORTED_LANGUAGES: readonly string[] = [
   'el', 'en', 'es', 'et', 'fa', 'fi', 'fil', 'fj', 'fr', 'ga',
   'he', 'hi', 'hr', 'ht', 'hu', 'id', 'is', 'it', 'ja', 'kk',
   'km', 'ko', 'lt', 'lv', 'mg', 'ml', 'mr', 'ms', 'mt', 'mww',
-  'my', 'nb', 'nl', 'or', 'otq', 'pa', 'pl', 'pt', 'ro', 'ru',
+  'my', 'nb', 'no', 'nl', 'or', 'otq', 'pa', 'pl', 'pt', 'ro', 'ru',
   'sk', 'sl', 'sm', 'sr', 'sv', 'sw', 'ta', 'te', 'th', 'tlh',
   'to', 'tr', 'ty', 'uk', 'ur', 'vi', 'yua', 'yue',
   'zh', 'zh-cn', 'zh-tw', 'zh-hk',
