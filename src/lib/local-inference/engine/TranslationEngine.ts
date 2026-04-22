@@ -7,6 +7,7 @@
 
 import { getTranslationModel, getManifestEntry, getManifestByType } from '../modelManifest';
 import { ModelManager } from '../ModelManager';
+import { isExtension } from '../../../utils/environment';
 
 export interface TranslationResult {
   sourceText: string;
@@ -28,6 +29,7 @@ export class TranslationEngine {
     reject: (error: Error) => void;
   }>();
   private requestCounter = 0;
+  private bingDnrActive = false;
 
   onError: ErrorCallback | null = null;
 
@@ -42,18 +44,22 @@ export class TranslationEngine {
    */
   async init(sourceLang: string, targetLang: string, modelId?: string): Promise<{ loadTimeMs: number; device: string }> {
     const entry = modelId ? getManifestEntry(modelId) : getTranslationModel(sourceLang, targetLang);
-    if (!entry?.hfModelId) {
+    if (!entry) {
       const available = getManifestByType('translation').map(m =>
         m.multilingual ? `${m.id} (multilingual)` : `${m.sourceLang}-${m.targetLang}`
       ).join(', ');
       throw new Error(`No translation model available for language pair: ${sourceLang}-${targetLang}. Available: ${available}`);
     }
-    const hfModelId = entry.hfModelId;
+    if (!entry.isCloudModel && !entry.hfModelId) {
+      throw new Error(`Translation model "${entry.id}" has no hfModelId and is not a cloud model.`);
+    }
+    // Use hfModelId as the cache key for local models, entry.id for cloud models.
+    const modelCacheKey = entry.hfModelId ?? entry.id;
 
     // If already loaded with same model and same language pair, skip
-    if (this.isReady && this.currentModelId === hfModelId
+    if (this.isReady && this.currentModelId === modelCacheKey
       && this.sourceLang === sourceLang && this.targetLang === targetLang) {
-      return { loadTimeMs: 0, device: entry.requiredDevice || 'wasm' };
+      return { loadTimeMs: 0, device: entry.isCloudModel ? 'cloud' : (entry.requiredDevice || 'wasm') };
     }
 
     // Dispose previous worker if switching models
@@ -64,20 +70,40 @@ export class TranslationEngine {
     this.sourceLang = sourceLang;
     this.targetLang = targetLang;
 
-    // Load model file blob URLs from IndexedDB
+    // Load model file blob URLs from IndexedDB (skipped for cloud models)
     const manager = ModelManager.getInstance();
-    if (!await manager.isModelReady(entry.id)) {
-      throw new Error(`Translation model "${entry.id}" is not downloaded. Download it first via Model Management.`);
+    let dtype: string | Record<string, string> | undefined;
+    let fileUrls: Record<string, string> = {};
+    if (!entry.isCloudModel) {
+      if (!await manager.isModelReady(entry.id)) {
+        throw new Error(`Translation model "${entry.id}" is not downloaded. Download it first via Model Management.`);
+      }
+      ({ dtype } = await manager.getModelVariantInfo(entry.id));
+      fileUrls = await manager.getModelBlobUrls(entry.id);
     }
-    const { dtype } = await manager.getModelVariantInfo(entry.id);
-    const fileUrls = await manager.getModelBlobUrls(entry.id);
+
+    const workerType = entry.translationWorkerType
+      || (entry.multilingual ? 'qwen' : 'opus-mt');
+
+    // For Bing, wait until the extension background registers DNR header-rewriting
+    // rules before we create the worker — otherwise the worker's first
+    // GET https://www.bing.com/translator could race the rule installation and
+    // come back as a bot-challenged HTML page (no IG/IID markers), which would
+    // surface as BingTokenFetchError on the very first translation.
+    // No-op outside extensions.
+    if (workerType === 'bing') {
+      await setBingTranslatorDNR(true);
+      this.bingDnrActive = true;
+    }
 
     return new Promise((resolve, reject) => {
-      // Create the Web Worker — select based on worker type
-      const workerType = entry.translationWorkerType
-        || (entry.multilingual ? 'qwen' : 'opus-mt');
-
       switch (workerType) {
+        case 'bing':
+          this.worker = new Worker(
+            new URL('../workers/bing-translation.worker.ts', import.meta.url),
+            { type: 'module' }
+          );
+          break;
         case 'qwen35':
           this.worker = new Worker(
             new URL('../workers/qwen35-translation.worker.ts', import.meta.url),
@@ -109,8 +135,8 @@ export class TranslationEngine {
         switch (msg.type) {
           case 'ready':
             this.isReady = true;
-            this.currentModelId = hfModelId;
-            // Revoke blob URLs after worker has loaded (frees memory)
+            this.currentModelId = modelCacheKey;
+            // Revoke blob URLs after worker has loaded (frees memory; no-op for cloud models)
             manager.revokeBlobUrls(fileUrls);
             resolve({ loadTimeMs: msg.loadTimeMs, device: msg.device || 'wasm' });
             break;
@@ -160,8 +186,9 @@ export class TranslationEngine {
         }
       };
 
-      // Send init message with blob URLs + language info + dtype from variant
-      this.worker.postMessage({ type: 'init', hfModelId, fileUrls, sourceLang, targetLang, dtype, ortWasmBaseUrl: new URL('./wasm/ort/', window.location.href).href });
+      // Send init message with blob URLs + language info + dtype from variant.
+      // hfModelId / fileUrls / dtype are empty/undefined for cloud models (e.g. bing); those workers only read sourceLang/targetLang.
+      this.worker.postMessage({ type: 'init', hfModelId: entry.hfModelId, fileUrls, sourceLang, targetLang, dtype, ortWasmBaseUrl: new URL('./wasm/ort/', window.location.href).href });
     });
   }
 
@@ -229,6 +256,10 @@ export class TranslationEngine {
       this.worker.terminate();
       this.worker = null;
     }
+    if (this.bingDnrActive) {
+      setBingTranslatorDNR(false);
+      this.bingDnrActive = false;
+    }
     this.isReady = false;
     this.currentModelId = null;
     this.sourceLang = '';
@@ -240,4 +271,37 @@ export class TranslationEngine {
     }
     this.pendingRequests.clear();
   }
+}
+
+/**
+ * Ask the browser-extension service worker to register (or clear) DNR rules
+ * that inject browser-like Origin/Referer/User-Agent for www.bing.com fetches.
+ *
+ * Returns a Promise that resolves when the background handler has finished
+ * updating the dynamic rules (best-effort — chrome.runtime.lastError is
+ * ignored). Callers should await before issuing the first fetch to Bing.
+ *
+ * No-op in Electron and web contexts — only the extension environment has the
+ * chrome.runtime message bus that talks to background/background.js.
+ */
+function setBingTranslatorDNR(enable: boolean): Promise<void> {
+  if (!isExtension()) return Promise.resolve();
+  const runtime = (globalThis as {
+    chrome?: {
+      runtime?: {
+        sendMessage?: (msg: unknown, cb?: (response: unknown) => void) => void;
+      };
+    };
+  }).chrome?.runtime;
+  if (!runtime || typeof runtime.sendMessage !== 'function') return Promise.resolve();
+  return new Promise<void>((resolve) => {
+    try {
+      runtime.sendMessage!(
+        { type: enable ? 'BING_TRANSLATOR_SET_HEADERS' : 'BING_TRANSLATOR_CLEAR_HEADERS' },
+        () => resolve(),
+      );
+    } catch {
+      resolve();
+    }
+  });
 }

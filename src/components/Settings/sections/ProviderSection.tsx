@@ -427,12 +427,13 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
               {(() => {
                 const id = localInferenceSettings.translationModel
                   || getTranslationModel(localInferenceSettings.sourceLanguage, localInferenceSettings.targetLanguage)?.id;
-                const translationReady = id && modelStatuses[id] === 'downloaded';
+                const translationEntry = id ? getManifestEntry(id) : undefined;
+                const translationReady = id && (translationEntry?.isCloudModel || modelStatuses[id] === 'downloaded');
                 return (
                   <button type="button" className="model-chip" onClick={() => { setUIMode('advanced'); setTimeout(() => navigateToSettings('model-translation'), 100); }}>
                     <span className="model-chip-label">{t('providers.local_inference.modelTranslation', 'MT')}</span>
                     <span className={`model-chip-value ${translationReady ? 'model-ok' : 'model-warn'}`}>
-                      {translationReady ? id : t('common.none', 'None')}
+                      {translationReady ? (translationEntry?.name || id) : t('common.none', 'None')}
                     </span>
                   </button>
                 );

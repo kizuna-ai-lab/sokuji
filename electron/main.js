@@ -755,6 +755,25 @@ function initWebSocketHeaderInjection() {
         }
       }
 
+      // Bing Translator (HTTP): inject browser-like identity so the unofficial
+      // www.bing.com/translator and /ttranslatev3 endpoints accept requests from
+      // Electron. Must be applied unconditionally — the Bing client runs inside
+      // a Web Worker and fetch() from there cannot set Origin/Referer itself.
+      if (
+        details.resourceType !== 'webSocket'
+        && typeof details.url === 'string'
+        && (
+          details.url.startsWith('https://www.bing.com/translator')
+          || details.url.startsWith('https://www.bing.com/ttranslatev3')
+        )
+      ) {
+        requestHeaders['User-Agent'] =
+          'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
+        requestHeaders['Origin'] = 'https://www.bing.com';
+        requestHeaders['Referer'] = 'https://www.bing.com/translator';
+        requestHeaders['Accept-Language'] = 'en-US,en;q=0.9';
+      }
+
       callback({ requestHeaders });
     }
   );

@@ -112,7 +112,7 @@ export interface ModelManifestEntry {
   sourceLang?: string;
   targetLang?: string;
   /** Which translation worker to use. Defaults to 'opus-mt' if omitted. */
-  translationWorkerType?: 'opus-mt' | 'qwen' | 'qwen35' | 'translategemma';
+  translationWorkerType?: 'opus-mt' | 'qwen' | 'qwen35' | 'translategemma' | 'bing';
 }
 
 // ─── Variant Selection ──────────────────────────────────────────────────────
@@ -2838,6 +2838,27 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     translationWorkerType: 'qwen35',
   },
 
+  // ── Bing Translator (Online) ───────────────────────────────────────────
+  // Behaves like Edge TTS: auto-selectable by autoSelectModels when no local
+  // translation model is ready, picked via pickBestModel (recommended + sortOrder).
+  // `languages: []` is intentional — per-language support is validated at
+  // translate() time via isTranslationModelCompatible's Bing branch, which
+  // delegates to isSupportedByBing from the languageMap module. Users on
+  // unsupported pairs will see isTranslationModelCompatible return false and
+  // a different model will be picked (or no match if none available).
+  {
+    id: 'bing-translator',
+    type: 'translation',
+    name: 'Bing Translator (Online)',
+    languages: [],
+    multilingual: true,
+    recommended: true,
+    translationWorkerType: 'bing',
+    isCloudModel: true,
+    sortOrder: 2,
+    variants: {},
+  },
+
   // ── TranslateGemma ───────────────────────────────────────────────────
   // Google's purpose-built translation model. Uses structured content format
   // with source/target language codes (not system prompts).
@@ -2876,6 +2897,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
 
 import { getLanguageOption, LANGUAGE_OPTIONS, sortLanguageOptions } from '../../utils/languages';
 import type { LanguageOption } from '../../services/providers/ProviderConfig';
+import { isSupportedByBing } from '../bing-translator';
 
 /** Check if a model is truly universal (languages: ['multilingual']) vs bounded multilingual */
 function isUniversalMultilingual(m: ModelManifestEntry): boolean {
@@ -2955,6 +2977,12 @@ export function isTranslationModelCompatible(
 ): boolean {
   if (entry.type !== 'translation') return false;
   if (isUniversalMultilingual(entry)) return true;
+  // Bing Translator uses its own curated supported-language list
+  // (it does not populate entry.languages, so the generic multilingual
+  // check below would always fail for it).
+  if (entry.translationWorkerType === 'bing') {
+    return isSupportedByBing(sourceLang) && isSupportedByBing(targetLang);
+  }
   if (entry.multilingual) {
     return entry.languages.includes(sourceLang) && entry.languages.includes(targetLang);
   }

@@ -301,14 +301,14 @@ export const useModelStore = create<ModelStoreState>()(
         const asrEntry = getManifestEntry(selectedAsrModel);
         if (!asrEntry || !isAstCompatible(asrEntry, sourceLang, targetLang)) return false;
       } else if (selectedTranslationModel) {
-        if (modelStatuses[selectedTranslationModel] !== 'downloaded') return false;
         const entry = getManifestEntry(selectedTranslationModel);
+        if (!entry?.isCloudModel && modelStatuses[selectedTranslationModel] !== 'downloaded') return false;
         if (entry?.requiredDevice === 'webgpu' && !webgpuAvailable) return false;
         if (entry && !isTranslationModelCompatible(entry, sourceLang, targetLang)) return false;
       } else {
         const translationEntry = getTranslationModel(sourceLang, targetLang);
         if (!translationEntry) return false;
-        if (modelStatuses[translationEntry.id] !== 'downloaded') return false;
+        if (!translationEntry.isCloudModel && modelStatuses[translationEntry.id] !== 'downloaded') return false;
         if (translationEntry.requiredDevice === 'webgpu' && !webgpuAvailable) return false;
       }
 
@@ -390,9 +390,10 @@ export const useModelStore = create<ModelStoreState>()(
 
       // Helper: check if a model is valid as translation (standard or AST)
       const isValidTranslation = (modelId: string, forAsrId: string | null) => {
-        if (!modelId || modelStatuses[modelId] !== 'downloaded') return false;
+        if (!modelId) return false;
         const entry = getManifestEntry(modelId);
         if (!entry) return false;
+        if (!entry.isCloudModel && modelStatuses[modelId] !== 'downloaded') return false;
         if (entry.requiredDevice === 'webgpu' && !webgpuAvailable) return false;
         // AST: translation model === ASR model with AST support
         if (modelId === forAsrId && isAstCompatible(entry, participantSourceLang, participantTargetLang)) return true;
@@ -414,7 +415,7 @@ export const useModelStore = create<ModelStoreState>()(
       if (!translationModelId) {
         const match = getManifestByType('translation').find(m =>
           isTranslationModelCompatible(m, participantSourceLang, participantTargetLang)
-          && modelStatuses[m.id] === 'downloaded'
+          && (m.isCloudModel || modelStatuses[m.id] === 'downloaded')
           && !(m.requiredDevice === 'webgpu' && !webgpuAvailable)
         );
         if (match) {
@@ -480,12 +481,12 @@ export const useModelStore = create<ModelStoreState>()(
       const currentTrans = !isAstValid && currentTranslationModel ? getManifestByType('translation').find(m => m.id === currentTranslationModel) : null;
       const transOk = isAstValid || (currentTrans
         && isTranslationModelCompatible(currentTrans, sourceLang, targetLang)
-        && modelStatuses[currentTranslationModel] === 'downloaded'
+        && (currentTrans.isCloudModel || modelStatuses[currentTranslationModel] === 'downloaded')
         && !(currentTrans.requiredDevice === 'webgpu' && !webgpuAvailable));
       if (!transOk) {
         const match = pickBestModel(getManifestByType('translation').filter(m =>
           isTranslationModelCompatible(m, sourceLang, targetLang)
-          && modelStatuses[m.id] === 'downloaded'
+          && (m.isCloudModel || modelStatuses[m.id] === 'downloaded')
           && !(m.requiredDevice === 'webgpu' && !webgpuAvailable)
         ));
         const newId = match?.id || '';
@@ -538,10 +539,11 @@ export const useModelStore = create<ModelStoreState>()(
       const pref = modelPreferences[key];
       if (!pref) return null;
 
-      // Check downloaded + device compatibility
+      // Check downloaded + device compatibility (cloud models skip the download check)
       const isUsable = (id: string) => {
-        if (!id || modelStatuses[id] !== 'downloaded') return false;
+        if (!id) return false;
         const entry = getManifestEntry(id);
+        if (!entry?.isCloudModel && modelStatuses[id] !== 'downloaded') return false;
         if (entry?.requiredDevice === 'webgpu' && !webgpuAvailable) return false;
         return true;
       };
