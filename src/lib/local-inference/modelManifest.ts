@@ -2894,6 +2894,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
 
 import { getLanguageOption, LANGUAGE_OPTIONS, sortLanguageOptions } from '../../utils/languages';
 import type { LanguageOption } from '../../services/providers/ProviderConfig';
+import { isSupportedByBing } from '../bing-translator';
 
 /** Check if a model is truly universal (languages: ['multilingual']) vs bounded multilingual */
 function isUniversalMultilingual(m: ModelManifestEntry): boolean {
@@ -2973,6 +2974,12 @@ export function isTranslationModelCompatible(
 ): boolean {
   if (entry.type !== 'translation') return false;
   if (isUniversalMultilingual(entry)) return true;
+  // Bing Translator uses its own curated supported-language list
+  // (it does not populate entry.languages, so the generic multilingual
+  // check below would always fail for it).
+  if (entry.translationWorkerType === 'bing') {
+    return isSupportedByBing(sourceLang) && isSupportedByBing(targetLang);
+  }
   if (entry.multilingual) {
     return entry.languages.includes(sourceLang) && entry.languages.includes(targetLang);
   }
