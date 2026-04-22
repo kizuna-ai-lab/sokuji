@@ -2839,10 +2839,13 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
   },
 
   // ── Bing Translator (Online) ───────────────────────────────────────────
-  // User-selection-only: `languages: []` means getTranslationModel() skips it,
-  // so new sessions do not auto-pick Bing. `recommended: true` + sortOrder: 2
-  // only control where it appears in the UI list (alongside Qwen 3.5 0.8B).
-  // Language-pair validation happens at translate() time via languageMap.
+  // Behaves like Edge TTS: auto-selectable by autoSelectModels when no local
+  // translation model is ready, picked via pickBestModel (recommended + sortOrder).
+  // `languages: []` is intentional — per-language support is validated at
+  // translate() time via isTranslationModelCompatible's Bing branch, which
+  // delegates to isSupportedByBing from the languageMap module. Users on
+  // unsupported pairs will see isTranslationModelCompatible return false and
+  // a different model will be picked (or no match if none available).
   {
     id: 'bing-translator',
     type: 'translation',
