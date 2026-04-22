@@ -46,7 +46,7 @@ No existing Translation proto panel exists; smoke testing is manual end-to-end.
 | `src/services/clients/LocalInferenceClient.ts` | In the pipeline `catch`, map `errorType` on Bing-origin errors to a human-readable message before pushing the `type: 'error'` conversation item. |
 | `src/components/Settings/sections/ModelManagementSection.tsx` | Verify the `isCloudModel` render path works for `type: 'translation'`. (Already generic per exploration; no change expected — this is a verification step.) |
 | `electron/main.js` | Add an HTTP branch in the existing `onBeforeSendHeaders` handler: for `www.bing.com/translator` and `www.bing.com/ttranslatev3`, set browser-like User-Agent, Origin, Referer, Accept-Language. |
-| `extension/background/background.js` | Add a second DNR rule (distinct ID) targeting `||www.bing.com` with `resourceTypes: ['xmlhttprequest']` and the same header overrides. |
+| `extension/background/background.js` | Add a second DNR rule (distinct ID) targeting host `www.bing.com` (DNR urlFilter syntax `\|\|www.bing.com`) with `resourceTypes: ['xmlhttprequest']` and the same header overrides. |
 | `extension/manifest.json` | Add `https://www.bing.com/*` to `host_permissions`. |
 
 ---
@@ -1282,7 +1282,7 @@ git commit -m "feat(bing-translator): TranslationEngine cloud short-circuit + 'b
 
 Run: `sed -n '680,715p' src/services/clients/LocalInferenceClient.ts`
 
-Confirm the current catch builds an error item with `formatted: { transcript: `Translation error: ${error instanceof Error ? error.message : 'Unknown error'}` }`.
+Confirm the current catch builds an error item whose `formatted.transcript` contains `Translation error:` followed by the raw `error.message` (or `'Unknown error'`).
 
 - [ ] **Step 2: Add a helper that extracts errorType and produces a user-facing string**
 
