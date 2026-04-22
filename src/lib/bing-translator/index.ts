@@ -3,7 +3,6 @@ export {
   BingTokenFetchError,
   BingUnsupportedLanguageError,
   BingTranslateError,
-  CookieJar,
   parseTranslatorPage,
 } from './BingTranslatorClient';
 export type { BingTranslateResult, BingTranslatorClientOptions, ParsedTranslatorPage } from './BingTranslatorClient';

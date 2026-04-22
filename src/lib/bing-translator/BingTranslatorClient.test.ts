@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { parseTranslatorPage, CookieJar, BingTranslatorClient } from './BingTranslatorClient';
+import { parseTranslatorPage, BingTranslatorClient } from './BingTranslatorClient';
 import { VALID_TRANSLATOR_HTML, HTML_MISSING_IG, HTML_MISSING_IID, HTML_MISSING_TOKEN } from './fixtures';
 
 describe('parseTranslatorPage', () => {
@@ -21,44 +21,6 @@ describe('parseTranslatorPage', () => {
 
   it('throws when AbusePreventionHelper is missing', () => {
     expect(() => parseTranslatorPage(HTML_MISSING_TOKEN)).toThrow(/token/i);
-  });
-});
-
-describe('CookieJar', () => {
-  it('starts empty and emits no Cookie header', () => {
-    const jar = new CookieJar();
-    expect(jar.toHeader()).toBe('');
-  });
-
-  it('parses a single Set-Cookie and emits it', () => {
-    const jar = new CookieJar();
-    jar.ingest(['MUID=ABC123; path=/; domain=.bing.com']);
-    expect(jar.toHeader()).toBe('MUID=ABC123');
-  });
-
-  it('merges multiple Set-Cookie headers', () => {
-    const jar = new CookieJar();
-    jar.ingest([
-      'MUID=ABC; path=/',
-      '_EDGE_S=F=1&SID=XYZ; HttpOnly',
-    ]);
-    const header = jar.toHeader();
-    expect(header).toContain('MUID=ABC');
-    expect(header).toContain('_EDGE_S=F=1&SID=XYZ');
-    expect(header.split('; ').length).toBe(2);
-  });
-
-  it('overwrites an existing cookie on re-ingest', () => {
-    const jar = new CookieJar();
-    jar.ingest(['MUID=OLD; path=/']);
-    jar.ingest(['MUID=NEW; path=/']);
-    expect(jar.toHeader()).toBe('MUID=NEW');
-  });
-
-  it('ignores attribute-only segments (path, domain, etc.)', () => {
-    const jar = new CookieJar();
-    jar.ingest(['btstkn=XYZ; Path=/; Domain=.bing.com; Secure; HttpOnly']);
-    expect(jar.toHeader()).toBe('btstkn=XYZ');
   });
 });
 
@@ -98,22 +60,21 @@ function makeMockFetch() {
   };
 }
 
-function htmlResponse(body: string, setCookies: string[] = []): Response {
-  const headers = new Headers({ 'content-type': 'text/html' });
-  for (const c of setCookies) headers.append('set-cookie', c);
-  return new Response(body, { status: 200, headers });
+function htmlResponse(body: string): Response {
+  return new Response(body, { status: 200, headers: { 'content-type': 'text/html' } });
 }
 
-function jsonResponse(data: unknown, setCookies: string[] = []): Response {
-  const headers = new Headers({ 'content-type': 'application/json' });
-  for (const c of setCookies) headers.append('set-cookie', c);
-  return new Response(JSON.stringify(data), { status: 200, headers });
+function jsonResponse(data: unknown): Response {
+  return new Response(JSON.stringify(data), {
+    status: 200,
+    headers: { 'content-type': 'application/json' },
+  });
 }
 
 describe('BingTranslatorClient', () => {
   it('fetches translator page, parses token, then translates', async () => {
     const mock = makeMockFetch();
-    mock.queueResponse(htmlResponse(VALID_TRANSLATOR_HTML, ['MUID=ABC; path=/']));
+    mock.queueResponse(htmlResponse(VALID_TRANSLATOR_HTML));
     mock.queueResponse(jsonResponse([{
       translations: [{ text: 'こんにちは', to: 'ja' }],
       detectedLanguage: { language: 'en', score: 1 },
@@ -135,7 +96,6 @@ describe('BingTranslatorClient', () => {
     expect(mock.calls[1].body).toContain('to=ja');
     expect(mock.calls[1].body).toContain('token=LskUa0jCLiMZEc9SdrRoytKgT-3RyAkf');
     expect(mock.calls[1].body).toContain('key=1776797443746');
-    expect(mock.calls[1].headers['Cookie']).toContain('MUID=ABC');
     expect(mock.calls[1].headers['Referer']).toBe('https://www.bing.com/translator');
     expect(mock.calls[1].headers['Origin']).toBe('https://www.bing.com');
   });

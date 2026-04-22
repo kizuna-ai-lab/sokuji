@@ -52,38 +52,6 @@ export class BingTranslateError extends Error {
   }
 }
 
-/**
- * Minimal cookie jar for the Bing flow. Stores only name=value; all other
- * attributes (path, domain, expires, HttpOnly, etc.) are discarded.
- * Enough for the subset of behavior Bing's endpoint requires.
- */
-export class CookieJar {
-  private readonly entries = new Map<string, string>();
-
-  ingest(setCookieHeaders: readonly string[]): void {
-    for (const raw of setCookieHeaders) {
-      if (!raw) continue;
-      const firstPair = raw.split(';', 1)[0]?.trim();
-      if (!firstPair) continue;
-      const eqIdx = firstPair.indexOf('=');
-      if (eqIdx <= 0) continue;
-      const name = firstPair.slice(0, eqIdx).trim();
-      const value = firstPair.slice(eqIdx + 1).trim();
-      if (!name) continue;
-      this.entries.set(name, value);
-    }
-  }
-
-  toHeader(): string {
-    if (this.entries.size === 0) return '';
-    const parts: string[] = [];
-    for (const [name, value] of this.entries) {
-      parts.push(`${name}=${value}`);
-    }
-    return parts.join('; ');
-  }
-}
-
 export interface BingTranslateResult {
   translatedText: string;
   detectedLanguage?: { language: string; score: number };
@@ -114,7 +82,6 @@ export class BingTranslatorClient {
   private key: string | null = null;
   private token: string | null = null;
   private tokenFetchedAt = 0;
-  private readonly cookies = new CookieJar();
 
   constructor(options: BingTranslatorClientOptions = {}) {
     // `fetch` must run with WorkerGlobalScope (or window) as its `this` — storing
@@ -166,6 +133,7 @@ export class BingTranslatorClient {
     const url = 'https://www.bing.com/translator';
     const res = await this.fetchWithTimeout(url, {
       method: 'GET',
+      credentials: 'include',
       headers: {
         'User-Agent': this.userAgent,
         Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
@@ -176,14 +144,11 @@ export class BingTranslatorClient {
     if (!res.ok) {
       throw new BingTokenFetchError(`translator page request failed: ${res.status}`);
     }
-    const setCookies = readSetCookies(res);
     const html = await res.text();
 
-    // Parse first: on malformed HTML we throw without mutating any state
-    // (token fields and cookie jar both stay at their previous values).
+    // Parse first: on malformed HTML we throw without mutating any state.
     const parsed = parseTranslatorPage(html);
 
-    this.cookies.ingest(setCookies);
     this.ig = parsed.ig;
     this.iid = parsed.iid;
     this.key = parsed.key;
@@ -212,6 +177,7 @@ export class BingTranslatorClient {
 
     const res = await this.fetchWithTimeout(url, {
       method: 'POST',
+      credentials: 'include',
       headers: {
         'User-Agent': this.userAgent,
         'Content-Type': 'application/x-www-form-urlencoded',
@@ -219,11 +185,9 @@ export class BingTranslatorClient {
         'Accept-Language': 'en-US,en;q=0.9',
         Referer: 'https://www.bing.com/translator',
         Origin: 'https://www.bing.com',
-        Cookie: this.cookies.toHeader(),
       },
       body: body.toString(),
     });
-    this.cookies.ingest(readSetCookies(res));
 
     if (!res.ok) {
       throw new BingTranslateError(`translate request failed: HTTP ${res.status}`);
@@ -262,18 +226,4 @@ export class BingTranslatorClient {
       clearTimeout(t);
     }
   }
-}
-
-function readSetCookies(res: Response): string[] {
-  // Target environments (Chromium 116+, Node 18+) always expose getSetCookie(),
-  // which returns one entry per Set-Cookie header. The .get('set-cookie') fallback
-  // folds them per HTTP into a single comma-joined string, which cannot be reliably
-  // split (cookie values legitimately contain commas), so we log a warning and
-  // ingest nothing rather than half-parse.
-  const h = res.headers as Headers & { getSetCookie?: () => string[] };
-  if (typeof h.getSetCookie === 'function') return h.getSetCookie();
-  if (res.headers.get('set-cookie')) {
-    console.warn('[bing-translator] Headers.getSetCookie unavailable; cookies from response dropped');
-  }
-  return [];
 }
