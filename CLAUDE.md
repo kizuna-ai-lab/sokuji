@@ -46,12 +46,28 @@ npm run make
 ```
 
 ### Version Update Process
-1. Update version in root `package.json`
-2. Update version in `extension/package.json`  
-3. Update version in `extension/manifest.json`
-4. Commit version changes with conventional commit format (e.g., `chore(release): v0.1.0`)
-5. Create annotated tag with the same version (e.g., `git tag -a v0.1.0 -m "Release v0.1.0"`)
-6. Push changes and tags to remote repository
+
+**All five version sites must land in a single `chore(release): vX.Y.Z` commit BEFORE the tag is created.** Earlier releases split root and extension version bumps into two separate commits with the tag on the root-only commit; the tag checkout then built the extension with the previous version. The release workflow checks out the tag verbatim, so every version-affecting file must be at the new version at the tagged commit.
+
+1. Update all five files in one go:
+   - `package.json`
+   - `extension/package.json`
+   - `extension/manifest.json`
+   - `package-lock.json` (run `npm install` at the root to regenerate)
+   - `extension/package-lock.json` (run `npm install` inside `extension/` to regenerate)
+2. Commit all five together: `git commit -m "chore(release): vX.Y.Z"`
+3. Create annotated tag on that commit: `git tag -a vX.Y.Z -m "Release vX.Y.Z"`
+4. Push: `git push origin main --follow-tags`
+
+**Sanity check before pushing the tag:**
+
+```bash
+git show vX.Y.Z:package.json          | grep '"version"'
+git show vX.Y.Z:extension/package.json | grep '"version"'
+git show vX.Y.Z:extension/manifest.json | grep '"version"'
+```
+
+All three must print the same new version. If they don't, `git tag -d vX.Y.Z` and re-tag on the correct commit before pushing.
 
 ## Architecture Overview
 
