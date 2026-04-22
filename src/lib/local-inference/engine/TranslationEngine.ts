@@ -82,18 +82,23 @@ export class TranslationEngine {
       fileUrls = await manager.getModelBlobUrls(entry.id);
     }
 
-    return new Promise((resolve, reject) => {
-      // Create the Web Worker — select based on worker type
-      const workerType = entry.translationWorkerType
-        || (entry.multilingual ? 'qwen' : 'opus-mt');
+    const workerType = entry.translationWorkerType
+      || (entry.multilingual ? 'qwen' : 'opus-mt');
 
+    // For Bing, wait until the extension background registers DNR header-rewriting
+    // rules before we create the worker — otherwise the worker's first
+    // GET https://www.bing.com/translator could race the rule installation and
+    // come back as a bot-challenged HTML page (no IG/IID markers), which would
+    // surface as BingTokenFetchError on the very first translation.
+    // No-op outside extensions.
+    if (workerType === 'bing') {
+      await setBingTranslatorDNR(true);
+      this.bingDnrActive = true;
+    }
+
+    return new Promise((resolve, reject) => {
       switch (workerType) {
         case 'bing':
-          // In the browser-extension context, ask the service worker to register
-          // header-rewriting DNR rules before any fetch to www.bing.com lands.
-          // A no-op outside extensions (chrome.runtime is absent).
-          setBingTranslatorDNR(true);
-          this.bingDnrActive = true;
           this.worker = new Worker(
             new URL('../workers/bing-translation.worker.ts', import.meta.url),
             { type: 'module' }
@@ -271,18 +276,32 @@ export class TranslationEngine {
 /**
  * Ask the browser-extension service worker to register (or clear) DNR rules
  * that inject browser-like Origin/Referer/User-Agent for www.bing.com fetches.
+ *
+ * Returns a Promise that resolves when the background handler has finished
+ * updating the dynamic rules (best-effort — chrome.runtime.lastError is
+ * ignored). Callers should await before issuing the first fetch to Bing.
+ *
  * No-op in Electron and web contexts — only the extension environment has the
  * chrome.runtime message bus that talks to background/background.js.
  */
-function setBingTranslatorDNR(enable: boolean): void {
-  if (!isExtension()) return;
-  const runtime = (globalThis as { chrome?: { runtime?: { sendMessage?: (msg: unknown) => void } } }).chrome?.runtime;
-  if (!runtime || typeof runtime.sendMessage !== 'function') return;
-  try {
-    runtime.sendMessage({
-      type: enable ? 'BING_TRANSLATOR_SET_HEADERS' : 'BING_TRANSLATOR_CLEAR_HEADERS',
-    });
-  } catch {
-    // Fire-and-forget; ignore failures (e.g., receiver missing during teardown)
-  }
+function setBingTranslatorDNR(enable: boolean): Promise<void> {
+  if (!isExtension()) return Promise.resolve();
+  const runtime = (globalThis as {
+    chrome?: {
+      runtime?: {
+        sendMessage?: (msg: unknown, cb?: (response: unknown) => void) => void;
+      };
+    };
+  }).chrome?.runtime;
+  if (!runtime || typeof runtime.sendMessage !== 'function') return Promise.resolve();
+  return new Promise<void>((resolve) => {
+    try {
+      runtime.sendMessage!(
+        { type: enable ? 'BING_TRANSLATOR_SET_HEADERS' : 'BING_TRANSLATOR_CLEAR_HEADERS' },
+        () => resolve(),
+      );
+    } catch {
+      resolve();
+    }
+  });
 }
