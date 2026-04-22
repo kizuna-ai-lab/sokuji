@@ -1,14 +1,23 @@
 import { describe, it, expect, vi } from 'vitest';
 import { parseTranslatorPage, BingTranslatorClient } from './BingTranslatorClient';
-import { VALID_TRANSLATOR_HTML, HTML_MISSING_IG, HTML_MISSING_IID, HTML_MISSING_TOKEN } from './fixtures';
+import {
+  VALID_TRANSLATOR_HTML,
+  HTML_MISSING_IG,
+  HTML_MISSING_IID,
+  HTML_MISSING_TOKEN,
+  FIXTURE_IG,
+  FIXTURE_IID,
+  FIXTURE_KEY,
+  FIXTURE_TOKEN,
+} from './fixtures';
 
 describe('parseTranslatorPage', () => {
   it('extracts IG, IID, key, token from valid HTML', () => {
     const parsed = parseTranslatorPage(VALID_TRANSLATOR_HTML);
-    expect(parsed.ig).toBe('00A32DCAFD524DB683556A03ECA7B5B5');
-    expect(parsed.iid).toBe('translator.5025');
-    expect(parsed.key).toBe('1776797443746');
-    expect(parsed.token).toBe('LskUa0jCLiMZEc9SdrRoytKgT-3RyAkf');
+    expect(parsed.ig).toBe(FIXTURE_IG);
+    expect(parsed.iid).toBe(FIXTURE_IID);
+    expect(parsed.key).toBe(FIXTURE_KEY);
+    expect(parsed.token).toBe(FIXTURE_TOKEN);
   });
 
   it('throws when IG is missing', () => {
@@ -90,12 +99,12 @@ describe('BingTranslatorClient', () => {
 
     expect(mock.calls).toHaveLength(2);
     expect(mock.calls[0].url).toBe('https://www.bing.com/translator');
-    expect(mock.calls[1].url).toContain('/ttranslatev3?isVertical=1&IG=00A32DCAFD524DB683556A03ECA7B5B5&IID=translator.5025');
+    expect(mock.calls[1].url).toContain(`/ttranslatev3?isVertical=1&IG=${FIXTURE_IG}&IID=${FIXTURE_IID}`);
     expect(mock.calls[1].method).toBe('POST');
     expect(mock.calls[1].body).toContain('fromLang=en');
     expect(mock.calls[1].body).toContain('to=ja');
-    expect(mock.calls[1].body).toContain('token=LskUa0jCLiMZEc9SdrRoytKgT-3RyAkf');
-    expect(mock.calls[1].body).toContain('key=1776797443746');
+    expect(mock.calls[1].body).toContain(`token=${FIXTURE_TOKEN}`);
+    expect(mock.calls[1].body).toContain(`key=${FIXTURE_KEY}`);
     expect(mock.calls[1].headers['Referer']).toBe('https://www.bing.com/translator');
     expect(mock.calls[1].headers['Origin']).toBe('https://www.bing.com');
   });

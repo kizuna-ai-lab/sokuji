@@ -218,8 +218,8 @@ export const VALID_TRANSLATOR_HTML = `
   <div data-iid="translator.5025"></div>
   <script>
     var somethingElse = 1;
-    var _G = {IG:"00A32DCAFD524DB683556A03ECA7B5B5"};
-    var params_AbusePreventionHelper = [ 1776797443746, "LskUa0jCLiMZEc9SdrRoytKgT-3RyAkf", 3600000 ];
+    var _G = {IG:"00000000000000000000000000000000"};
+    var params_AbusePreventionHelper = [ 1000000000000, "TEST_TOKEN_DO_NOT_USE", 3600000 ];
   </script>
 </body></html>
 `.trim();
@@ -241,10 +241,10 @@ import { VALID_TRANSLATOR_HTML, HTML_MISSING_IG, HTML_MISSING_IID, HTML_MISSING_
 describe('parseTranslatorPage', () => {
   it('extracts IG, IID, key, token from valid HTML', () => {
     const parsed = parseTranslatorPage(VALID_TRANSLATOR_HTML);
-    expect(parsed.ig).toBe('00A32DCAFD524DB683556A03ECA7B5B5');
+    expect(parsed.ig).toBe('00000000000000000000000000000000');
     expect(parsed.iid).toBe('translator.5025');
-    expect(parsed.key).toBe('1776797443746');
-    expect(parsed.token).toBe('LskUa0jCLiMZEc9SdrRoytKgT-3RyAkf');
+    expect(parsed.key).toBe('1000000000000');
+    expect(parsed.token).toBe('TEST_TOKEN_DO_NOT_USE');
   });
 
   it('throws when IG is missing', () => {
@@ -531,12 +531,12 @@ describe('BingTranslatorClient', () => {
 
     expect(mock.calls).toHaveLength(2);
     expect(mock.calls[0].url).toBe('https://www.bing.com/translator');
-    expect(mock.calls[1].url).toContain('/ttranslatev3?isVertical=1&IG=00A32DCAFD524DB683556A03ECA7B5B5&IID=translator.5025');
+    expect(mock.calls[1].url).toContain('/ttranslatev3?isVertical=1&IG=00000000000000000000000000000000&IID=translator.5025');
     expect(mock.calls[1].method).toBe('POST');
     expect(mock.calls[1].body).toContain('fromLang=en');
     expect(mock.calls[1].body).toContain('to=ja');
-    expect(mock.calls[1].body).toContain('token=LskUa0jCLiMZEc9SdrRoytKgT-3RyAkf');
-    expect(mock.calls[1].body).toContain('key=1776797443746');
+    expect(mock.calls[1].body).toContain('token=TEST_TOKEN_DO_NOT_USE');
+    expect(mock.calls[1].body).toContain('key=1000000000000');
     expect(mock.calls[1].headers['Cookie']).toContain('MUID=ABC');
     expect(mock.calls[1].headers['Referer']).toBe('https://www.bing.com/translator');
     expect(mock.calls[1].headers['Origin']).toBe('https://www.bing.com');

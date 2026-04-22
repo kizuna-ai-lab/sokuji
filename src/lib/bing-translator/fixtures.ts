@@ -1,15 +1,21 @@
 // Minimal HTML snippets used by BingTranslatorClient tests.
-// Based on the shape observed in the proto run against live www.bing.com/translator.
+// Placeholder values only — the live token format is hex + opaque base64-ish.
+// Do not paste real values into this file; secret scanners may flag them.
+
+export const FIXTURE_IG = '00000000000000000000000000000000';
+export const FIXTURE_IID = 'translator.0000';
+export const FIXTURE_KEY = '1000000000000';
+export const FIXTURE_TOKEN = 'TEST_TOKEN_DO_NOT_USE';
 
 export const VALID_TRANSLATOR_HTML = `
 <!DOCTYPE html>
 <html><head><title>Bing Translator</title></head>
 <body>
-  <div data-iid="translator.5025"></div>
+  <div data-iid="${FIXTURE_IID}"></div>
   <script>
     var somethingElse = 1;
-    var _G = {IG:"00A32DCAFD524DB683556A03ECA7B5B5"};
-    var params_AbusePreventionHelper = [ 1776797443746, "LskUa0jCLiMZEc9SdrRoytKgT-3RyAkf", 3600000 ];
+    var _G = {IG:"${FIXTURE_IG}"};
+    var params_AbusePreventionHelper = [ ${FIXTURE_KEY}, "${FIXTURE_TOKEN}", 3600000 ];
   </script>
 </body></html>
 `.trim();
