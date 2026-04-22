@@ -328,6 +328,12 @@ const EDGE_TTS_WS_HOST = 'speech.platform.bing.com';
 const EDGE_TTS_CHROMIUM_VERSION = '143.0.3650.75';
 const EDGE_TTS_CHROMIUM_MAJOR = EDGE_TTS_CHROMIUM_VERSION.split('.')[0];
 
+const BING_TRANSLATOR_DNR_RULE_ID = 9301;
+const BING_TRANSLATOR_HOST = 'www.bing.com';
+const BING_TRANSLATOR_UA =
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/'
+  + `${EDGE_TTS_CHROMIUM_MAJOR}.0.0.0 Safari/537.36 Edg/${EDGE_TTS_CHROMIUM_MAJOR}.0.0.0`;
+
 async function edgeTtsSetDNRHeaders() {
   // Bing TTS WebSocket requires an Edge browser User-Agent to accept the
   // connection (Chrome UA returns 403). Browser WebSocket API cannot set
@@ -377,6 +383,60 @@ async function edgeTtsClearDNRHeaders() {
       removeRuleIds: existingRuleIds,
     });
     console.debug('[Sokuji] [Background] Edge TTS DNR rules cleared');
+  }
+}
+
+// ─── Bing Translator declarativeNetRequest header injection ───────────────────
+// Bing Translator's /ttranslatev3 endpoint requires browser-like headers or it
+// returns 403/empty responses. We inject them via declarativeNetRequest so the
+// extension's fetch requests from Workers are treated as legitimate browser traffic.
+async function bingTranslatorSetDNRHeaders() {
+  const rules = [
+    {
+      id: BING_TRANSLATOR_DNR_RULE_ID,
+      priority: 1,
+      action: {
+        type: 'modifyHeaders',
+        requestHeaders: [
+          { header: 'User-Agent', operation: 'set', value: BING_TRANSLATOR_UA },
+          { header: 'Origin', operation: 'set', value: 'https://www.bing.com' },
+          { header: 'Referer', operation: 'set', value: 'https://www.bing.com/translator' },
+          { header: 'Accept-Language', operation: 'set', value: 'en-US,en;q=0.9' },
+        ],
+      },
+      condition: {
+        urlFilter: `||${BING_TRANSLATOR_HOST}`,
+        resourceTypes: ['xmlhttprequest'],
+        // Only rewrite requests the extension itself issues (the Bing worker
+        // runs in an extension-page context). Prevents interference with the
+        // user's own bing.com tabs, which also issue xmlhttprequest.
+        initiatorDomains: [chrome.runtime.id],
+      },
+    },
+  ];
+
+  const existingRuleIds = (await chrome.declarativeNetRequest.getDynamicRules())
+    .filter(r => r.id === BING_TRANSLATOR_DNR_RULE_ID)
+    .map(r => r.id);
+
+  await chrome.declarativeNetRequest.updateDynamicRules({
+    removeRuleIds: existingRuleIds,
+    addRules: rules,
+  });
+
+  console.debug('[Sokuji] [Background] Bing Translator DNR rules registered');
+}
+
+async function bingTranslatorClearDNRHeaders() {
+  const existingRuleIds = (await chrome.declarativeNetRequest.getDynamicRules())
+    .filter(r => r.id === BING_TRANSLATOR_DNR_RULE_ID)
+    .map(r => r.id);
+
+  if (existingRuleIds.length > 0) {
+    await chrome.declarativeNetRequest.updateDynamicRules({
+      removeRuleIds: existingRuleIds,
+    });
+    console.debug('[Sokuji] [Background] Bing Translator DNR rules cleared');
   }
 }
 
@@ -459,6 +519,27 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       .then(() => sendResponse({ success: true }))
       .catch((error) => {
         console.error('[Sokuji] [Background] Failed to clear Edge TTS DNR headers:', error);
+        sendResponse({ success: false, error: error.message });
+      });
+    return true;
+  }
+
+  // Handle Bing Translator DNR header injection
+  if (message.type === 'BING_TRANSLATOR_SET_HEADERS') {
+    bingTranslatorSetDNRHeaders()
+      .then(() => sendResponse({ success: true }))
+      .catch((error) => {
+        console.error('[Sokuji] [Background] Failed to set Bing Translator DNR headers:', error);
+        sendResponse({ success: false, error: error.message });
+      });
+    return true;
+  }
+
+  if (message.type === 'BING_TRANSLATOR_CLEAR_HEADERS') {
+    bingTranslatorClearDNRHeaders()
+      .then(() => sendResponse({ success: true }))
+      .catch((error) => {
+        console.error('[Sokuji] [Background] Failed to clear Bing Translator DNR headers:', error);
         sendResponse({ success: false, error: error.message });
       });
     return true;
