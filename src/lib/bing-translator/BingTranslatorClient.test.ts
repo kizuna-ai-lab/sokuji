@@ -270,4 +270,36 @@ describe('BingTranslatorClient error paths', () => {
       errorType: 'token',
     });
   });
+
+  // Regression: calling `fetch` as a method on a non-global receiver throws
+  // "Illegal invocation" in real browsers / workers. The default path must
+  // preserve WorkerGlobalScope binding.
+  it('default fetchFn is bound to globalThis (no "Illegal invocation")', async () => {
+    const stub = vi.fn(async function (this: unknown) {
+      // If `this` is not WorkerGlobalScope-like, a real browser throws here.
+      // We simulate that with an explicit sanity check.
+      if (this !== undefined && this !== globalThis) {
+        throw new TypeError("Failed to execute 'fetch' on 'WorkerGlobalScope': Illegal invocation");
+      }
+      return htmlResponse(VALID_TRANSLATOR_HTML);
+    });
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = stub as unknown as typeof fetch;
+    try {
+      const client = new BingTranslatorClient();
+      // Queue a second call so translate() can return (we only need refresh + translate).
+      const original = stub.getMockImplementation()!;
+      let callCount = 0;
+      stub.mockImplementation(async function (this: unknown, ...args: unknown[]) {
+        callCount += 1;
+        const first = await original.apply(this, args as []);
+        if (callCount === 1) return first;
+        return jsonResponse([{ translations: [{ text: 'ok', to: 'ja' }] }]);
+      });
+      await client.translate('hi', 'en', 'ja');
+      expect(stub).toHaveBeenCalled();
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
 });

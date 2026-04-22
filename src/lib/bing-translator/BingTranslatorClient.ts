@@ -117,7 +117,12 @@ export class BingTranslatorClient {
   private readonly cookies = new CookieJar();
 
   constructor(options: BingTranslatorClientOptions = {}) {
-    this.fetchFn = options.fetchFn ?? fetch;
+    // `fetch` must run with WorkerGlobalScope (or window) as its `this` — storing
+    // it as a bare method reference on the client loses that binding and yields
+    // "Illegal invocation" at call time. Bind to globalThis here so the default
+    // path works from a Worker; caller-provided stubs are left untouched.
+    const rawFetch = options.fetchFn ?? fetch.bind(globalThis);
+    this.fetchFn = rawFetch;
     this.now = options.now ?? (() => Date.now());
     this.userAgent = options.userAgent ?? DEFAULT_UA;
     this.fetchTimeoutMs = options.fetchTimeoutMs ?? DEFAULT_TIMEOUT;
