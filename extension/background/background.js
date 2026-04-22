@@ -407,6 +407,10 @@ async function bingTranslatorSetDNRHeaders() {
       condition: {
         urlFilter: `||${BING_TRANSLATOR_HOST}`,
         resourceTypes: ['xmlhttprequest'],
+        // Only rewrite requests the extension itself issues (the Bing worker
+        // runs in an extension-page context). Prevents interference with the
+        // user's own bing.com tabs, which also issue xmlhttprequest.
+        initiatorDomains: [chrome.runtime.id],
       },
     },
   ];

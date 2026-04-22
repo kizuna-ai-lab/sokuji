@@ -7,6 +7,7 @@
 
 import { getTranslationModel, getManifestEntry, getManifestByType } from '../modelManifest';
 import { ModelManager } from '../ModelManager';
+import { isExtension } from '../../../utils/environment';
 
 export interface TranslationResult {
   sourceText: string;
@@ -270,9 +271,11 @@ export class TranslationEngine {
 /**
  * Ask the browser-extension service worker to register (or clear) DNR rules
  * that inject browser-like Origin/Referer/User-Agent for www.bing.com fetches.
- * No-op in Electron and web contexts where chrome.runtime is absent.
+ * No-op in Electron and web contexts — only the extension environment has the
+ * chrome.runtime message bus that talks to background/background.js.
  */
 function setBingTranslatorDNR(enable: boolean): void {
+  if (!isExtension()) return;
   const runtime = (globalThis as { chrome?: { runtime?: { sendMessage?: (msg: unknown) => void } } }).chrome?.runtime;
   if (!runtime || typeof runtime.sendMessage !== 'function') return;
   try {
