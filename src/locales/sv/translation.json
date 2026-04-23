@@ -285,7 +285,27 @@
       "tooltip": "{{scope}} — klicka för att ändra\nVisar nu: {{mode}}\n• Källa: endast ursprungligt tal\n• Översättning: endast översättning\n• Båda: båda raderna",
       "ariaLabel": "{{scope}}: {{mode}} — klicka för att ändra"
     },
-    "playItemAudio": "Spela upp ljudet för detta objekt"
+    "playItemAudio": "Spela upp ljudet för detta objekt",
+    "toolbar": {
+      "export": "Exportera konversation"
+    },
+    "export": {
+      "copyToClipboard": "Kopiera till urklipp",
+      "downloadTxt": "Ladda ner som .txt",
+      "downloadJson": "Ladda ner som .json",
+      "copySuccess": "Konversation kopierad till urklipp",
+      "copyFailed": "Kopiering misslyckades. Kontrollera webbläsarens behörigheter.",
+      "speakerYou": "Du",
+      "speakerOther": "Annan",
+      "translationSuffix": "(övers.)",
+      "headerTitle": "Sokuji konversationsexport",
+      "headerGenerated": "Genererad",
+      "headerProvider": "Leverantör",
+      "headerModels": "Modeller",
+      "headerSource": "Källa",
+      "headerTarget": "Mål",
+      "headerNote": "Obs: inställningarna speglar det aktuella tillståndet vid export, inte ändringar under sessionen."
+    }
   },
   "audioPanel": {
     "title": "Ljudinställningar",

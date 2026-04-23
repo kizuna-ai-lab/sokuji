@@ -356,7 +356,27 @@
       "tooltip": "{{scope}} — 클릭하여 변경\n현재 표시: {{mode}}\n• 원문: 원본 음성만\n• 번역: 번역만\n• 모두: 두 줄 모두",
       "ariaLabel": "{{scope}}: {{mode}} — 클릭하여 변경"
     },
-    "playItemAudio": "이 항목의 오디오 재생"
+    "playItemAudio": "이 항목의 오디오 재생",
+    "toolbar": {
+      "export": "대화 내보내기"
+    },
+    "export": {
+      "copyToClipboard": "클립보드에 복사",
+      "downloadTxt": ".txt로 다운로드",
+      "downloadJson": ".json으로 다운로드",
+      "copySuccess": "대화가 클립보드에 복사되었습니다",
+      "copyFailed": "복사 실패. 브라우저 권한을 확인하세요.",
+      "speakerYou": "나",
+      "speakerOther": "상대방",
+      "translationSuffix": "(번역)",
+      "headerTitle": "Sokuji 대화 내보내기",
+      "headerGenerated": "생성됨",
+      "headerProvider": "제공자",
+      "headerModels": "모델",
+      "headerSource": "소스",
+      "headerTarget": "대상",
+      "headerNote": "참고: 설정은 내보내기 시점의 현재 상태를 반영하며, 세션 중 변경 사항은 포함되지 않습니다."
+    }
   },
   "errors": {
     "microphoneAccess": "마이크 접근이 거부되었습니다",

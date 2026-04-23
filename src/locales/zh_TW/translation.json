@@ -474,7 +474,27 @@
       "tooltip": "{{scope}} — 點擊切換\n目前：{{mode}}\n• 原文：僅原始語音\n• 譯文：僅翻譯\n• 兩者：兩行都顯示",
       "ariaLabel": "{{scope}}：{{mode}} — 點擊切換"
     },
-    "playItemAudio": "播放此項目的音訊"
+    "playItemAudio": "播放此項目的音訊",
+    "toolbar": {
+      "export": "匯出對話"
+    },
+    "export": {
+      "copyToClipboard": "複製到剪貼簿",
+      "downloadTxt": "下載為 .txt",
+      "downloadJson": "下載為 .json",
+      "copySuccess": "對話已複製到剪貼簿",
+      "copyFailed": "複製失敗。請檢查瀏覽器權限。",
+      "speakerYou": "你",
+      "speakerOther": "對方",
+      "translationSuffix": "(譯)",
+      "headerTitle": "Sokuji 對話匯出",
+      "headerGenerated": "生成時間",
+      "headerProvider": "服務商",
+      "headerModels": "模型",
+      "headerSource": "來源語言",
+      "headerTarget": "目標語言",
+      "headerNote": "注意：設定反映匯出時的當前狀態，不含會話中途的更改。"
+    }
   },
   "errors": {
     "microphoneAccess": "麥克風存取被拒絕",

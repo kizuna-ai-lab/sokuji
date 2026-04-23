@@ -363,7 +363,27 @@
       "tooltip": "{{scope}} — нажмите, чтобы изменить\nПоказано: {{mode}}\n• Оригинал: только исходная речь\n• Перевод: только перевод\n• Оба: обе строки",
       "ariaLabel": "{{scope}}: {{mode}} — нажмите, чтобы изменить"
     },
-    "playItemAudio": "Воспроизвести аудио этого элемента"
+    "playItemAudio": "Воспроизвести аудио этого элемента",
+    "toolbar": {
+      "export": "Экспорт разговора"
+    },
+    "export": {
+      "copyToClipboard": "Копировать в буфер обмена",
+      "downloadTxt": "Скачать как .txt",
+      "downloadJson": "Скачать как .json",
+      "copySuccess": "Разговор скопирован в буфер обмена",
+      "copyFailed": "Не удалось скопировать. Проверьте разрешения браузера.",
+      "speakerYou": "Вы",
+      "speakerOther": "Другой",
+      "translationSuffix": "(пер.)",
+      "headerTitle": "Экспорт разговора Sokuji",
+      "headerGenerated": "Создано",
+      "headerProvider": "Провайдер",
+      "headerModels": "Модели",
+      "headerSource": "Источник",
+      "headerTarget": "Цель",
+      "headerNote": "Примечание: настройки отражают текущее состояние на момент экспорта, а не изменения в ходе сессии."
+    }
   },
   "errors": {
     "microphoneAccess": "Доступ к микрофону запрещен",

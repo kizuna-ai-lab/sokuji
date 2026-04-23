@@ -356,7 +356,27 @@
       "tooltip": "{{scope}} — klik om te wijzigen\nWordt getoond: {{mode}}\n• Origineel: alleen originele spraak\n• Vertaling: alleen vertaling\n• Beide: beide regels",
       "ariaLabel": "{{scope}}: {{mode}} — klik om te wijzigen"
     },
-    "playItemAudio": "Audio van dit item afspelen"
+    "playItemAudio": "Audio van dit item afspelen",
+    "toolbar": {
+      "export": "Gesprek exporteren"
+    },
+    "export": {
+      "copyToClipboard": "Kopiëren naar klembord",
+      "downloadTxt": "Downloaden als .txt",
+      "downloadJson": "Downloaden als .json",
+      "copySuccess": "Gesprek gekopieerd naar klembord",
+      "copyFailed": "Kopiëren mislukt. Controleer de browsermachtigingen.",
+      "speakerYou": "Jij",
+      "speakerOther": "Ander",
+      "translationSuffix": "(vert.)",
+      "headerTitle": "Sokuji gespreksexport",
+      "headerGenerated": "Gegenereerd",
+      "headerProvider": "Aanbieder",
+      "headerModels": "Modellen",
+      "headerSource": "Bron",
+      "headerTarget": "Doel",
+      "headerNote": "Opmerking: instellingen weerspiegelen de huidige staat bij export, niet wijzigingen tijdens de sessie."
+    }
   },
   "errors": {
     "microphoneAccess": "Microfoon toegang geweigerd",

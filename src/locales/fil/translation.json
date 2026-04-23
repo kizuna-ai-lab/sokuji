@@ -441,7 +441,27 @@
       "tooltip": "{{scope}} — i-click para baguhin\nIpinapakita: {{mode}}\n• Orihinal: orihinal na pananalita lamang\n• Salin: salin lamang\n• Parehas: parehong linya",
       "ariaLabel": "{{scope}}: {{mode}} — i-click para baguhin"
     },
-    "playItemAudio": "I-play ang audio ng item na ito"
+    "playItemAudio": "I-play ang audio ng item na ito",
+    "toolbar": {
+      "export": "I-export ang usapan"
+    },
+    "export": {
+      "copyToClipboard": "Kopyahin sa clipboard",
+      "downloadTxt": "I-download bilang .txt",
+      "downloadJson": "I-download bilang .json",
+      "copySuccess": "Nakopya ang usapan sa clipboard",
+      "copyFailed": "Nabigo ang pagkopya. Suriin ang mga pahintulot ng browser.",
+      "speakerYou": "Ikaw",
+      "speakerOther": "Iba",
+      "translationSuffix": "(salin)",
+      "headerTitle": "Sokuji na pag-export ng usapan",
+      "headerGenerated": "Nabuo",
+      "headerProvider": "Provider",
+      "headerModels": "Mga modelo",
+      "headerSource": "Pinagmulan",
+      "headerTarget": "Target",
+      "headerNote": "Tandaan: ang mga setting ay sumasalamin sa kasalukuyang estado sa pag-export, hindi sa mga pagbabago sa kalagitnaan ng session."
+    }
   },
   "audioPanel": {
     "title": "Mga Setting ng Audio",

@@ -511,7 +511,27 @@
       "tooltip": "{{scope}} — לחץ כדי לשנות\nמוצג כעת: {{mode}}\n• מקור: רק הדיבור המקורי\n• תרגום: רק התרגום\n• שניהם: שתי השורות",
       "ariaLabel": "{{scope}}: {{mode}} — לחץ כדי לשנות"
     },
-    "playItemAudio": "הפעל את השמע של פריט זה"
+    "playItemAudio": "הפעל את השמע של פריט זה",
+    "toolbar": {
+      "export": "ייצא שיחה"
+    },
+    "export": {
+      "copyToClipboard": "העתק ללוח",
+      "downloadTxt": "הורד כ-.txt",
+      "downloadJson": "הורד כ-.json",
+      "copySuccess": "השיחה הועתקה ללוח",
+      "copyFailed": "ההעתקה נכשלה. בדוק הרשאות דפדפן.",
+      "speakerYou": "אתה",
+      "speakerOther": "אחר",
+      "translationSuffix": "(תרג.)",
+      "headerTitle": "ייצוא שיחת Sokuji",
+      "headerGenerated": "נוצר",
+      "headerProvider": "ספק",
+      "headerModels": "מודלים",
+      "headerSource": "מקור",
+      "headerTarget": "יעד",
+      "headerNote": "הערה: ההגדרות משקפות את המצב הנוכחי בעת הייצוא, לא שינויים שבוצעו במהלך הסשן."
+    }
   },
   "errors": {
     "microphoneAccess": "גישה למיקרופון נדחתה",
