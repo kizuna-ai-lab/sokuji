@@ -9,11 +9,12 @@ export interface NormalizedMessage {
   id: string;
   /** ms since epoch */
   createdAt: number;
+  /** Who originated the speech this message relates to. */
   source: 'speaker' | 'participant';
-  /** From `formatted.transcript`. `null` when missing or empty. */
-  originalText: string | null;
-  /** From `formatted.text`. `null` when missing or empty. */
-  translatedText: string | null;
+  /** Whether this message is the original spoken text or its translation. */
+  kind: 'original' | 'translation';
+  /** The displayable text content (from `formatted.transcript` or `formatted.text`, whichever is populated). */
+  text: string;
 }
 
 /** Snapshot of session-level metadata captured at export time. */
@@ -34,6 +35,8 @@ export interface SessionMetadata {
 export interface TxtI18n {
   speakerYou: string;
   speakerOther: string;
+  /** Suffix appended to a speaker label when the row is a translation, e.g. "(trans)". */
+  translationSuffix: string;
   headerTitle: string;
   headerGenerated: string;
   headerProvider: string;
@@ -41,8 +44,6 @@ export interface TxtI18n {
   headerSource: string;
   headerTarget: string;
   headerNote: string;
-  noTranscript: string;
-  noTranslation: string;
 }
 
 const SPEAKER_COLUMN_WIDTH = 8; // includes trailing colon: "You:    " / "Other:  "
@@ -99,18 +100,22 @@ export function normalizeMessages(
     if (item.type !== 'message') continue;
     if (item.role === 'system') continue;
 
-    const transcript = item.formatted?.transcript?.trim() || '';
-    const text = item.formatted?.text?.trim() || '';
-    if (!transcript && !text) continue;
+    // Each item carries the message content in either `transcript` (typical
+    // for ASR + local-inference) or `text` (typical for cloud assistants).
+    // Pick whichever is non-empty.
+    const text = (item.formatted?.transcript || item.formatted?.text || '').trim();
+    if (!text) continue;
 
     const source = item.source === 'participant' ? 'participant' : 'speaker';
+    const kind: 'original' | 'translation' =
+      item.role === 'assistant' ? 'translation' : 'original';
 
     out.push({
       id: item.id,
       createdAt: item.createdAt ?? 0,
       source,
-      originalText: transcript || null,
-      translatedText: text || null,
+      kind,
+      text,
     });
   }
   return out;
@@ -213,21 +218,23 @@ export function formatAsTxt(
     lines.push('');
   }
 
-  // Speaker label column width: max of the two labels + 1 for the colon, but
-  // never less than the spec's recommended 8. Computed dynamically so longer
-  // localized labels still align.
-  const colWidth = Math.max(
-    SPEAKER_COLUMN_WIDTH,
-    i18n.speakerYou.length + 1 + 1, // label + ":" + at-least-one-space
-    i18n.speakerOther.length + 1 + 1
-  );
+  // Compute the column width based on the actual localized label set so all
+  // four possible labels align consistently.
+  const allLabels = [
+    `${i18n.speakerYou}:`,
+    `${i18n.speakerOther}:`,
+    `${i18n.speakerYou} ${i18n.translationSuffix}:`,
+    `${i18n.speakerOther} ${i18n.translationSuffix}:`,
+  ];
+  const maxLabelLen = Math.max(...allLabels.map(s => s.length));
+  // +1 ensures at least one trailing space after the colon for all rows.
+  const colWidth = Math.max(SPEAKER_COLUMN_WIDTH, maxLabelLen + 1);
 
   for (const msg of messages) {
-    const label = msg.source === 'speaker' ? i18n.speakerYou : i18n.speakerOther;
-    const speakerField = `${label}:`.padEnd(colWidth, ' ');
-    const original = msg.originalText ?? i18n.noTranscript;
-    const translated = msg.translatedText ?? i18n.noTranslation;
-    lines.push(`[${formatLocalTime(msg.createdAt)}] ${speakerField}${original}  ${ARROW}  ${translated}`);
+    const base = msg.source === 'speaker' ? i18n.speakerYou : i18n.speakerOther;
+    const fullLabel = msg.kind === 'translation' ? `${base} ${i18n.translationSuffix}` : base;
+    const speakerField = `${fullLabel}:`.padEnd(colWidth, ' ');
+    lines.push(`[${formatLocalTime(msg.createdAt)}] ${speakerField}${msg.text}`);
   }
 
   return lines.join('\n') + '\n';
@@ -255,9 +262,9 @@ export function formatAsJson(
     messages: messages.map(m => ({
       id: m.id,
       timestamp: new Date(m.createdAt).toISOString(),
-      speaker: m.source === 'speaker' ? 'you' : 'other',
-      originalText: m.originalText,
-      translatedText: m.translatedText,
+      source: m.source === 'speaker' ? 'you' : 'other',
+      kind: m.kind,
+      text: m.text,
     })),
   };
   return JSON.stringify(payload, null, 2) + '\n';

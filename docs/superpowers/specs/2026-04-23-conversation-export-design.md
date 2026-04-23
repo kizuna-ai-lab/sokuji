@@ -151,8 +151,7 @@ systemAudioItems (participant) ┘
 - Drop items where `type !== 'message'` (excludes `function_call`,
   `function_call_output`, `error`).
 - Drop items where `role === 'system'` (excludes session lifecycle events).
-- Drop items where **both** `formatted.transcript` and `formatted.text` are
-  missing or empty (no displayable content).
+- Drop items where the chosen text (`formatted.transcript || formatted.text`) is empty.
 
 **Sort:** ascending by `createdAt`. JavaScript's `Array.prototype.sort` is
 stable; ties (same millisecond) preserve concatenation order, which matches
@@ -165,10 +164,18 @@ type NormalizedMessage = {
   id: string;
   createdAt: number;             // ms since epoch
   source: 'speaker' | 'participant';
-  originalText: string | null;   // from formatted.transcript
-  translatedText: string | null; // from formatted.text
+  kind: 'original' | 'translation';   // 'user' role → 'original'; 'assistant' role → 'translation'
+  text: string;                  // from formatted.transcript || formatted.text (whichever is populated)
 };
 ```
+
+**One displayable text per item, not per pair:** Each `ConversationItem`
+populates exactly one of `formatted.transcript` or `formatted.text`. Originals
+and translations arrive as separate items (`role: 'user'` and `role: 'assistant'`
+respectively). They are NOT paired into a single output row — each item becomes
+its own `NormalizedMessage`, distinguished by `kind`. Attempting to pair by
+adjacency would be unreliable (throttling, ordering quirks, missing
+counterparts) and could mislead the reader.
 
 **Audio data is dropped:** `formatted.audio` (Int16Array) and
 `formatted.audioSegments` (TTS internal timing) are never included in any
@@ -224,9 +231,10 @@ Models: translation=gpt-realtime-mini, transcription=gpt-4o-mini-transcribe
 Source: zh → Target: en
 Note: settings reflect current state at export, not mid-session changes.
 
-[14:32:05] You:    今天天气不错  →  The weather is nice today
-[14:32:10] Other:  Yes, perfect for a walk  →  是的，适合散步
-[14:32:24] You:    我们去公园吧  →  Let's go to the park
+[14:32:05] You:           今天天气不错
+[14:32:06] You (trans):   The weather is nice today
+[14:32:10] Other:         Yes, perfect for a walk
+[14:32:11] Other (trans): 是的，适合散步
 ```
 
 **Header rules:**
@@ -244,20 +252,19 @@ Note: settings reflect current state at export, not mid-session changes.
 
 **Message line rules:**
 
-- Format: `[HH:MM:SS] <Speaker>:<padding><originalText>  →  <translatedText>`
-- Speaker label is i18n'd: `You` for `source === 'speaker'`, `Other` for
-  `source === 'participant'`. After the colon, pad with spaces so the original
-  text always starts at the same column. Recommended: pad the
-  `<Speaker>:<padding>` field to **8 characters total** (`padEnd(8, ' ')`),
-  giving `"You:    "` (4 trailing spaces) and `"Other:  "` (2 trailing
-  spaces). This produces the alignment shown in the example above.
-- The 8-char column width assumes labels stay short (≤7 chars). If a future
-  locale provides a longer translation, the function should still call
-  `padEnd(N)` with `N = max(8, longestLabelLength + 1)` so alignment doesn't
-  break — either compute `N` dynamically per export, or document a hard cap.
-- Direction arrow is U+2192 (`→`), padded by two spaces on each side.
-- If `originalText` is missing: `(no transcript)`.
-- If `translatedText` is missing: `(no translation)`.
+- Format: `[HH:MM:SS] <Label>:<padding><text>` — one item per line.
+- `<Label>` is one of four values, depending on `source` × `kind`:
+  - `source=speaker, kind=original` → `You`
+  - `source=speaker, kind=translation` → `You (trans)`
+  - `source=participant, kind=original` → `Other`
+  - `source=participant, kind=translation` → `Other (trans)`
+- The label words `You`, `Other`, and the suffix `(trans)` are all i18n'd
+  (keys `mainPanel.export.speakerYou`, `mainPanel.export.speakerOther`,
+  `mainPanel.export.translationSuffix`).
+- Pad `<Label>:` to a column width that fits the longest of the four
+  localized labels + 1 trailing space. Implementation computes `colWidth =
+  max(8, longestLabelLength + 1)` per export, so alignment doesn't break in
+  any locale.
 - One message per line; no blank lines between messages.
 
 **File extension:** `.txt`. **MIME:** `text/plain;charset=utf-8`.
@@ -281,11 +288,18 @@ Note: settings reflect current state at export, not mid-session changes.
   "messageCount": 42,
   "messages": [
     {
-      "id": "item_abc123",
+      "id": "item_user_abc",
       "timestamp": "2026-04-23T14:32:05.123Z",
-      "speaker": "you",
-      "originalText": "今天天气不错",
-      "translatedText": "The weather is nice today"
+      "source": "you",
+      "kind": "original",
+      "text": "今天天气不错"
+    },
+    {
+      "id": "item_asst_def",
+      "timestamp": "2026-04-23T14:32:06.234Z",
+      "source": "you",
+      "kind": "translation",
+      "text": "The weather is nice today"
     }
   ]
 }
@@ -299,11 +313,9 @@ Note: settings reflect current state at export, not mid-session changes.
 - `models` keys vary per provider as described above; empty values omitted.
 - `messageCount` is `messages.length`, included for convenience of consumers
   that want to validate without iterating.
-- `speaker` is `"you"` or `"other"` (lowercase, machine-readable; **not**
-  i18n'd).
-- `originalText` and `translatedText` are explicit `null` when missing
-  (distinguishes "no value" from "empty string"). At least one of the two is
-  guaranteed non-null (the filter rule above ensures this).
+- `source` is `"you"` or `"other"` — who originated the spoken content. Lowercase, machine-readable, **not** i18n'd.
+- `kind` is `"original"` (transcribed user/participant input) or `"translation"` (AI's translation output).
+- `text` is the displayable string content. Always non-empty (the filter rule above ensures this).
 
 **File extension:** `.json`. **MIME:** `application/json`.
 
@@ -316,8 +328,10 @@ blank line that follows it. The clipboard is for pasting into chats/documents,
 where the header is noise.
 
 ```
-[14:32:05] You:    今天天气不错  →  The weather is nice today
-[14:32:10] Other:  Yes, perfect for a walk  →  是的，适合散步
+[14:32:05] You:           今天天气不错
+[14:32:06] You (trans):   The weather is nice today
+[14:32:10] Other:         Yes, perfect for a walk
+[14:32:11] Other (trans): 是的，适合散步
 ```
 
 ## File Naming
@@ -444,7 +458,7 @@ export function formatAsTxt(
   messages: NormalizedMessage[],
   metadata: SessionMetadata,
   opts: { includeHeader: boolean },
-  i18n: { speakerYou: string; speakerOther: string; headerNote: string; noTranscript: string; noTranslation: string },
+  i18n: TxtI18n,
 ): string;
 
 export function formatAsJson(
@@ -484,8 +498,7 @@ mainPanel.export.headerModels = "Models"
 mainPanel.export.headerSource = "Source"
 mainPanel.export.headerTarget = "Target"
 mainPanel.export.headerNote = "settings reflect current state at export, not mid-session changes"
-mainPanel.export.noTranscript = "(no transcript)"
-mainPanel.export.noTranslation = "(no translation)"
+mainPanel.export.translationSuffix = "(trans)"
 ```
 
 The `.json` output uses **literal English** for `note`, `speaker`, etc.,
@@ -500,9 +513,10 @@ more important than UI consistency.
 | Only `speaker` items, no system audio | `systemAudioItems` is empty array; concat is a no-op; works |
 | Only `participant` items | Symmetric; works |
 | Two messages with identical `createdAt` ms | Stable sort preserves concat order (speaker first, then participant) |
-| `formatted.transcript` empty but `formatted.text` present | `.txt` shows `(no transcript)  →  <translation>`; `.json` has `originalText: null` |
-| `formatted.text` empty but `formatted.transcript` present | Symmetric: `.txt` shows `<original>  →  (no translation)`; `.json` has `translatedText: null` |
-| Both empty | Filtered out; never reaches output |
+| Item has only `formatted.transcript` (typical for user input / local inference) | Used as `text`; `kind` derived from `role` |
+| Item has only `formatted.text` (typical for cloud assistant output) | Used as `text`; `kind` derived from `role` |
+| Item has both (rare but possible) | `transcript` wins via `transcript || text` precedence |
+| Item has neither | Filtered out; never reaches output |
 | Local-inference user has not selected a TTS model | `models.tts` omitted; `models.asr` and `models.translation` still present |
 | `appVersion` constant not injected by build | `.json` has `appVersion: null`; `.txt` header omits an "App version" line (we don't include one anyway) |
 | User clicks Clear during a download | Download already has a content snapshot (passed by value); not affected |

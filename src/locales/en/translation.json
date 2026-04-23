@@ -565,15 +565,14 @@
       "copyFailed": "Failed to copy. Check browser permissions.",
       "speakerYou": "You",
       "speakerOther": "Other",
+      "translationSuffix": "(trans)",
       "headerTitle": "Sokuji conversation export",
       "headerGenerated": "Generated",
       "headerProvider": "Provider",
       "headerModels": "Models",
       "headerSource": "Source",
       "headerTarget": "Target",
-      "headerNote": "settings reflect current state at export, not mid-session changes",
-      "noTranscript": "(no transcript)",
-      "noTranslation": "(no translation)"
+      "headerNote": "settings reflect current state at export, not mid-session changes"
     }
   },
   "simplePanel": {
