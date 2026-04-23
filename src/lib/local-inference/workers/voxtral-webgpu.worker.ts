@@ -463,7 +463,7 @@ async function handleInit(msg: VoxtralAsrInitMessage): Promise<void> {
     voxtralModel = await VoxtralRealtimeForConditionalGeneration.from_pretrained(
       msg.hfModelId,
       {
-        dtype,
+        dtype: dtype as any,
         device: 'webgpu',
         progress_callback: (info: ProgressInfo) => {
           if (info.status === 'progress' && info.file.endsWith('.onnx_data') && info.total > 0) {
