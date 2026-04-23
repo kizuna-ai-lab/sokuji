@@ -7,6 +7,7 @@ const BING_LANGUAGE_OVERRIDES: Record<string, string> = {
   'zh-cn': 'zh-Hans',
   'zh-tw': 'zh-Hant',
   'zh-hk': 'zh-Hant',
+  'cantonese': 'yue', // App uses 'cantonese' as a distinct target language; Bing's Cantonese code is 'yue'
 };
 
 // Curated list of Bing-supported language ISO codes (the codes we accept as *input*,
@@ -19,7 +20,7 @@ export const BING_SUPPORTED_LANGUAGES: readonly string[] = [
   'my', 'nb', 'no', 'nl', 'or', 'otq', 'pa', 'pl', 'pt', 'ro', 'ru',
   'sk', 'sl', 'sm', 'sr', 'sv', 'sw', 'ta', 'te', 'th', 'tlh',
   'to', 'tr', 'ty', 'uk', 'ur', 'vi', 'yua', 'yue',
-  'zh', 'zh-cn', 'zh-tw', 'zh-hk',
+  'zh', 'zh-cn', 'zh-tw', 'zh-hk', 'cantonese',
 ];
 
 const SUPPORTED_SET = new Set(BING_SUPPORTED_LANGUAGES.map(c => c.toLowerCase()));
