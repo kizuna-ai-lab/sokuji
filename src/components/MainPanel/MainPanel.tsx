@@ -56,6 +56,7 @@ import { useInitUpdateListeners, useCleanupUpdateListeners } from '../../stores/
 import DisplayModeButton from './DisplayModeButton';
 import ConversationRow from './ConversationRow';
 import { shouldShowItem } from './conversationFilter';
+import ExportButton from './ExportButton';
 
 
 /**
@@ -2752,6 +2753,15 @@ const MainPanel: React.FC<MainPanelProps> = () => {
             >
               {conversationCompactMode ? <ChevronsUpDown size={14} /> : <ChevronsDownUp size={14} />}
             </button>
+            {/* Export */}
+            <ExportButton
+              combinedItems={combinedItems}
+              provider={provider}
+              currentProviderSettings={currentSettings}
+              localInferenceSettings={localInferenceSettings}
+              sourceLanguage={sourceLanguage}
+              targetLanguage={targetLanguage}
+            />
             <button
               className="clear-conversation-btn"
               onClick={clearConversation}

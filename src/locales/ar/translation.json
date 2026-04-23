@@ -461,7 +461,27 @@
       "tooltip": "{{scope}} — انقر للتغيير\nيظهر حاليًا: {{mode}}\n• الأصل: الكلام الأصلي فقط\n• الترجمة: الترجمة فقط\n• الكل: السطران",
       "ariaLabel": "{{scope}}: {{mode}} — انقر للتغيير"
     },
-    "playItemAudio": "تشغيل صوت هذا العنصر"
+    "playItemAudio": "تشغيل صوت هذا العنصر",
+    "toolbar": {
+      "export": "تصدير المحادثة"
+    },
+    "export": {
+      "copyToClipboard": "نسخ إلى الحافظة",
+      "downloadTxt": "تنزيل بصيغة .txt",
+      "downloadJson": "تنزيل بصيغة .json",
+      "copySuccess": "تم نسخ المحادثة إلى الحافظة",
+      "copyFailed": "فشل النسخ. تحقق من أذونات المتصفح.",
+      "speakerYou": "أنت",
+      "speakerOther": "آخر",
+      "translationSuffix": "(ترجمة)",
+      "headerTitle": "تصدير محادثة Sokuji",
+      "headerGenerated": "تم الإنشاء",
+      "headerProvider": "المزود",
+      "headerModels": "النماذج",
+      "headerSource": "المصدر",
+      "headerTarget": "الهدف",
+      "headerNote": "ملاحظة: تعكس الإعدادات الحالة عند التصدير، وليس التغييرات التي حدثت خلال الجلسة."
+    }
   },
   "simplePanel": {
     "translationActive": "الترجمة نشطة",

@@ -356,7 +356,27 @@
       "tooltip": "{{scope}} — zum Ändern klicken\nAngezeigt: {{mode}}\n• Original: nur Originalsprache\n• Übersetzung: nur Übersetzung\n• Beides: beide Zeilen",
       "ariaLabel": "{{scope}}: {{mode}} — zum Ändern klicken"
     },
-    "playItemAudio": "Audio dieses Elements abspielen"
+    "playItemAudio": "Audio dieses Elements abspielen",
+    "toolbar": {
+      "export": "Unterhaltung exportieren"
+    },
+    "export": {
+      "copyToClipboard": "In Zwischenablage kopieren",
+      "downloadTxt": "Als .txt herunterladen",
+      "downloadJson": "Als .json herunterladen",
+      "copySuccess": "Unterhaltung in Zwischenablage kopiert",
+      "copyFailed": "Kopieren fehlgeschlagen. Browserberechtigungen prüfen.",
+      "speakerYou": "Sie",
+      "speakerOther": "Andere",
+      "translationSuffix": "(Übers.)",
+      "headerTitle": "Sokuji-Unterhaltungsexport",
+      "headerGenerated": "Erstellt",
+      "headerProvider": "Anbieter",
+      "headerModels": "Modelle",
+      "headerSource": "Quelle",
+      "headerTarget": "Ziel",
+      "headerNote": "Hinweis: Die Einstellungen spiegeln den aktuellen Stand beim Export wider, nicht Änderungen während der Sitzung."
+    }
   },
   "errors": {
     "microphoneAccess": "Mikrofonzugriff verweigert",

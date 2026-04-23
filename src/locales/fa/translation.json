@@ -467,7 +467,27 @@
       "tooltip": "{{scope}} — برای تغییر کلیک کنید\nاکنون نمایش: {{mode}}\n• اصلی: فقط گفتار اصلی\n• ترجمه: فقط ترجمه\n• هر دو: هر دو خط",
       "ariaLabel": "{{scope}}: {{mode}} — برای تغییر کلیک کنید"
     },
-    "playItemAudio": "پخش صوت این مورد"
+    "playItemAudio": "پخش صوت این مورد",
+    "toolbar": {
+      "export": "خروجی گفتگو"
+    },
+    "export": {
+      "copyToClipboard": "کپی در کلیپ‌بورد",
+      "downloadTxt": "دانلود به صورت .txt",
+      "downloadJson": "دانلود به صورت .json",
+      "copySuccess": "گفتگو در کلیپ‌بورد کپی شد",
+      "copyFailed": "کپی ناموفق بود. مجوزهای مرورگر را بررسی کنید.",
+      "speakerYou": "شما",
+      "speakerOther": "دیگری",
+      "translationSuffix": "(ترج.)",
+      "headerTitle": "خروجی گفتگوی Sokuji",
+      "headerGenerated": "تولید شده",
+      "headerProvider": "ارائه‌دهنده",
+      "headerModels": "مدل‌ها",
+      "headerSource": "مبدأ",
+      "headerTarget": "مقصد",
+      "headerNote": "توجه: تنظیمات وضعیت فعلی هنگام خروجی را نشان می‌دهند، نه تغییرات میانی جلسه."
+    }
   },
   "simplePanel": {
     "translationActive": "ترجمه فعال",

@@ -405,7 +405,27 @@
       "tooltip": "{{scope}} — คลิกเพื่อเปลี่ยน\nกำลังแสดง: {{mode}}\n• ต้นฉบับ: เฉพาะคำพูดต้นฉบับ\n• คำแปล: เฉพาะคำแปล\n• ทั้งคู่: ทั้งสองบรรทัด",
       "ariaLabel": "{{scope}}: {{mode}} — คลิกเพื่อเปลี่ยน"
     },
-    "playItemAudio": "เล่นเสียงของรายการนี้"
+    "playItemAudio": "เล่นเสียงของรายการนี้",
+    "toolbar": {
+      "export": "ส่งออกการสนทนา"
+    },
+    "export": {
+      "copyToClipboard": "คัดลอกไปยังคลิปบอร์ด",
+      "downloadTxt": "ดาวน์โหลดเป็น .txt",
+      "downloadJson": "ดาวน์โหลดเป็น .json",
+      "copySuccess": "คัดลอกการสนทนาไปยังคลิปบอร์ดแล้ว",
+      "copyFailed": "คัดลอกไม่สำเร็จ โปรดตรวจสอบสิทธิ์ของเบราว์เซอร์",
+      "speakerYou": "คุณ",
+      "speakerOther": "อื่นๆ",
+      "translationSuffix": "(แปล)",
+      "headerTitle": "ส่งออกการสนทนา Sokuji",
+      "headerGenerated": "สร้างเมื่อ",
+      "headerProvider": "ผู้ให้บริการ",
+      "headerModels": "โมเดล",
+      "headerSource": "ต้นทาง",
+      "headerTarget": "ปลายทาง",
+      "headerNote": "หมายเหตุ: การตั้งค่าสะท้อนถึงสถานะปัจจุบัน ณ เวลาที่ส่งออก ไม่ใช่การเปลี่ยนแปลงระหว่างเซสชัน"
+    }
   },
   "audioPanel": {
     "title": "การตั้งค่าเสียง",

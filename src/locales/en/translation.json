@@ -553,7 +553,27 @@
       "tooltip": "{{scope}} — click to change\nNow showing: {{mode}}\n• Src: only the original speech\n• Trans: only the translation\n• Both: both lines",
       "ariaLabel": "{{scope}}: {{mode}} — click to change"
     },
-    "playItemAudio": "Play this item's audio"
+    "playItemAudio": "Play this item's audio",
+    "toolbar": {
+      "export": "Export conversation"
+    },
+    "export": {
+      "copyToClipboard": "Copy to clipboard",
+      "downloadTxt": "Download as .txt",
+      "downloadJson": "Download as .json",
+      "copySuccess": "Conversation copied to clipboard",
+      "copyFailed": "Failed to copy. Check browser permissions.",
+      "speakerYou": "You",
+      "speakerOther": "Other",
+      "translationSuffix": "(trans)",
+      "headerTitle": "Sokuji conversation export",
+      "headerGenerated": "Generated",
+      "headerProvider": "Provider",
+      "headerModels": "Models",
+      "headerSource": "Source",
+      "headerTarget": "Target",
+      "headerNote": "Note: settings reflect current state at export, not mid-session changes."
+    }
   },
   "simplePanel": {
     "clickToConfigLanguages": "Click to configure languages",
