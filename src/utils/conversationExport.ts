@@ -184,3 +184,51 @@ export function buildSessionMetadata(args: {
     targetLanguage: args.targetLanguage,
   };
 }
+
+/**
+ * Format messages as the plain-text representation defined in the spec.
+ *
+ * Header (5 or 6 lines depending on whether models is empty), blank line, then
+ * one line per message. The clipboard payload uses `includeHeader: false` to
+ * skip the header + blank line.
+ */
+export function formatAsTxt(
+  messages: NormalizedMessage[],
+  metadata: SessionMetadata,
+  i18n: TxtI18n,
+  opts: { includeHeader: boolean }
+): string {
+  const lines: string[] = [];
+
+  if (opts.includeHeader) {
+    lines.push(i18n.headerTitle);
+    lines.push(`${i18n.headerGenerated}: ${formatLocalDateTime(Date.parse(metadata.exportedAt))}`);
+    lines.push(`${i18n.headerProvider}: ${metadata.provider}`);
+    const modelsLine = formatModelsLine(metadata.models);
+    if (modelsLine.length > 0) {
+      lines.push(`${i18n.headerModels}: ${modelsLine}`);
+    }
+    lines.push(`${i18n.headerSource}: ${metadata.sourceLanguage} ${ARROW} ${i18n.headerTarget}: ${metadata.targetLanguage}`);
+    lines.push(`Note: ${i18n.headerNote}.`);
+    lines.push('');
+  }
+
+  // Speaker label column width: max of the two labels + 1 for the colon, but
+  // never less than the spec's recommended 8. Computed dynamically so longer
+  // localized labels still align.
+  const colWidth = Math.max(
+    SPEAKER_COLUMN_WIDTH,
+    i18n.speakerYou.length + 1 + 1, // label + ":" + at-least-one-space
+    i18n.speakerOther.length + 1 + 1
+  );
+
+  for (const msg of messages) {
+    const label = msg.source === 'speaker' ? i18n.speakerYou : i18n.speakerOther;
+    const speakerField = `${label}:`.padEnd(colWidth, ' ');
+    const original = msg.originalText ?? i18n.noTranscript;
+    const translated = msg.translatedText ?? i18n.noTranslation;
+    lines.push(`[${formatLocalTime(msg.createdAt)}] ${speakerField}${original}  ${ARROW}  ${translated}`);
+  }
+
+  return lines.join('\n') + '\n';
+}
