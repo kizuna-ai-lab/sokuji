@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Download, ChevronDown, Copy, FileText, FileJson } from 'lucide-react';
 import {
@@ -59,11 +59,21 @@ const ExportButton: React.FC<ExportButtonProps> = ({
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const listRef = React.useRef<Array<HTMLElement | null>>([]);
 
-  // Snapshot: how many completed messages we have right now. If zero, disable.
-  const hasContent = useMemo(
-    () => normalizeMessages(combinedItems).length > 0,
+  // Roving tabindex: when the menu opens, make the first item tabbable so
+  // keyboard focus (managed by FloatingFocusManager) lands on something.
+  useEffect(() => {
+    if (isOpen) {
+      setActiveIndex(0);
+    }
+  }, [isOpen]);
+
+  // Normalize once per combinedItems change; reused for both the disabled
+  // state and the export payload build at click time.
+  const normalizedMessages = useMemo(
+    () => normalizeMessages(combinedItems),
     [combinedItems]
   );
+  const hasContent = normalizedMessages.length > 0;
 
   const { refs, floatingStyles, context } = useFloating({
     open: isOpen,
@@ -98,12 +108,11 @@ const ExportButton: React.FC<ExportButtonProps> = ({
     headerModels: t('mainPanel.export.headerModels', 'Models'),
     headerSource: t('mainPanel.export.headerSource', 'Source'),
     headerTarget: t('mainPanel.export.headerTarget', 'Target'),
-    headerNote: t('mainPanel.export.headerNote', 'settings reflect current state at export, not mid-session changes'),
+    headerNote: t('mainPanel.export.headerNote', 'Note: settings reflect current state at export, not mid-session changes.'),
   }), [t]);
 
   /** Compute a fresh export payload at click time. */
   const buildPayload = useCallback(() => {
-    const messages = normalizeMessages(combinedItems);
     const models = getActiveModelInfo(provider, currentProviderSettings, localInferenceSettings);
     const metadata = buildSessionMetadata({
       provider,
@@ -111,8 +120,8 @@ const ExportButton: React.FC<ExportButtonProps> = ({
       sourceLanguage,
       targetLanguage,
     });
-    return { messages, metadata };
-  }, [combinedItems, provider, currentProviderSettings, localInferenceSettings, sourceLanguage, targetLanguage]);
+    return { messages: normalizedMessages, metadata };
+  }, [normalizedMessages, provider, currentProviderSettings, localInferenceSettings, sourceLanguage, targetLanguage]);
 
   const handleCopy = useCallback(async () => {
     setIsOpen(false);

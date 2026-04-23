@@ -212,10 +212,14 @@ type SessionMetadata = {
 | `volcengine` | `translation` (value is provider-fixed) |
 | `local-inference` | `asr`, `translation`, `tts` |
 
-A small helper `getActiveModelInfo(state, provider)` lives in
-`conversationExport.ts` and dispatches per provider, reading from
-`state.openai.model`, `state.openai.transcriptModel`, etc. (See
-`settingsStore.ts:51,78,224,254,447` for the existing field names.) Empty /
+A small helper `getActiveModelInfo(provider, currentSettings, localInferenceSettings)`
+lives in `conversationExport.ts` and dispatches per provider. It takes
+already-resolved settings objects (not the raw store state) so the utility
+module stays React/store-free — the caller reads from `useGetCurrentProviderSettings()`
+and `useLocalInferenceSettings()` and passes the results in. The function
+reads `currentSettings.model`, `currentSettings.transcriptModel`,
+`localInferenceSettings.{asr,translation,tts}Model`, etc. (see
+`settingsStore.ts:51,78,224,254,447` for the existing field names). Empty /
 unselected model fields are **omitted** from the `models` object — never
 serialized as empty string or `null` (cleaner schema, easier consumer parsing).
 
@@ -437,28 +441,33 @@ src/
         └── Toast.scss
 ```
 
-**`src/utils/conversationExport.ts`** exports six pure functions:
+**`src/utils/conversationExport.ts`** exports seven pure functions:
 
 ```ts
 // Data layer
 export function normalizeMessages(
-  items: ConversationItem[],
-  systemAudioItems: ConversationItem[],
+  combinedItems: Array<ConversationItem & { source?: string }>,
 ): NormalizedMessage[];
 
 export function getActiveModelInfo(
-  state: SettingsState,
-  provider: Provider,
+  provider: string,
+  currentSettings: any,
+  localInferenceSettings: any,
 ): Record<string, string>;
 
-export function buildSessionMetadata(state: SettingsState): SessionMetadata;
+export function buildSessionMetadata(args: {
+  provider: string;
+  models: Record<string, string>;
+  sourceLanguage: string;
+  targetLanguage: string;
+}): SessionMetadata;
 
 // Format layer
 export function formatAsTxt(
   messages: NormalizedMessage[],
   metadata: SessionMetadata,
-  opts: { includeHeader: boolean },
   i18n: TxtI18n,
+  opts: { includeHeader: boolean },
 ): string;
 
 export function formatAsJson(
@@ -497,7 +506,7 @@ mainPanel.export.headerProvider = "Provider"
 mainPanel.export.headerModels = "Models"
 mainPanel.export.headerSource = "Source"
 mainPanel.export.headerTarget = "Target"
-mainPanel.export.headerNote = "settings reflect current state at export, not mid-session changes"
+mainPanel.export.headerNote = "Note: settings reflect current state at export, not mid-session changes."
 mainPanel.export.translationSuffix = "(trans)"
 ```
 

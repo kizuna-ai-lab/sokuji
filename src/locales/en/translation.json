@@ -572,7 +572,7 @@
       "headerModels": "Models",
       "headerSource": "Source",
       "headerTarget": "Target",
-      "headerNote": "settings reflect current state at export, not mid-session changes"
+      "headerNote": "Note: settings reflect current state at export, not mid-session changes."
     }
   },
   "simplePanel": {

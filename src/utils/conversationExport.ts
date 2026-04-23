@@ -112,7 +112,10 @@ export function normalizeMessages(
 
     out.push({
       id: item.id,
-      createdAt: item.createdAt ?? 0,
+      // Fallback to export-time for items missing createdAt (shouldn't happen
+      // for completed items in practice, but producing a 1970-01-01 timestamp
+      // would silently make the export look wrong).
+      createdAt: item.createdAt ?? Date.now(),
       source,
       kind,
       text,
@@ -214,7 +217,7 @@ export function formatAsTxt(
       lines.push(`${i18n.headerModels}: ${modelsLine}`);
     }
     lines.push(`${i18n.headerSource}: ${metadata.sourceLanguage} ${ARROW} ${i18n.headerTarget}: ${metadata.targetLanguage}`);
-    lines.push(`Note: ${i18n.headerNote}.`);
+    lines.push(i18n.headerNote);
     lines.push('');
   }
 

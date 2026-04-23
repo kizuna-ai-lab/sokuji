@@ -2757,10 +2757,10 @@ const MainPanel: React.FC<MainPanelProps> = () => {
             <ExportButton
               combinedItems={combinedItems}
               provider={provider}
-              currentProviderSettings={getCurrentProviderSettings()}
+              currentProviderSettings={currentSettings}
               localInferenceSettings={localInferenceSettings}
-              sourceLanguage={(getCurrentProviderSettings() as any)?.sourceLanguage ?? ''}
-              targetLanguage={(getCurrentProviderSettings() as any)?.targetLanguage ?? ''}
+              sourceLanguage={sourceLanguage}
+              targetLanguage={targetLanguage}
             />
             <button
               className="clear-conversation-btn"
