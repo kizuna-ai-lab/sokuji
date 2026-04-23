@@ -164,3 +164,23 @@ export function getActiveModelInfo(
 
   return result;
 }
+
+/**
+ * Snapshot the session-level metadata at export time.
+ * Caller passes pre-resolved values to keep this module free of store deps.
+ */
+export function buildSessionMetadata(args: {
+  provider: string;
+  models: Record<string, string>;
+  sourceLanguage: string;
+  targetLanguage: string;
+}): SessionMetadata {
+  return {
+    exportedAt: new Date().toISOString(),
+    appVersion: getAppVersion(),
+    provider: args.provider,
+    models: args.models,
+    sourceLanguage: args.sourceLanguage,
+    targetLanguage: args.targetLanguage,
+  };
+}
