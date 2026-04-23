@@ -505,7 +505,27 @@
       "tooltip": "{{scope}} — klik untuk mengubah\nMenampilkan: {{mode}}\n• Asli: hanya ucapan asli\n• Terjemahan: hanya terjemahan\n• Keduanya: kedua baris",
       "ariaLabel": "{{scope}}: {{mode}} — klik untuk mengubah"
     },
-    "playItemAudio": "Putar audio item ini"
+    "playItemAudio": "Putar audio item ini",
+    "toolbar": {
+      "export": "Ekspor percakapan"
+    },
+    "export": {
+      "copyToClipboard": "Salin ke clipboard",
+      "downloadTxt": "Unduh sebagai .txt",
+      "downloadJson": "Unduh sebagai .json",
+      "copySuccess": "Percakapan disalin ke clipboard",
+      "copyFailed": "Gagal menyalin. Periksa izin browser.",
+      "speakerYou": "Anda",
+      "speakerOther": "Lain",
+      "translationSuffix": "(terj.)",
+      "headerTitle": "Ekspor percakapan Sokuji",
+      "headerGenerated": "Dibuat",
+      "headerProvider": "Penyedia",
+      "headerModels": "Model",
+      "headerSource": "Sumber",
+      "headerTarget": "Target",
+      "headerNote": "Catatan: pengaturan mencerminkan kondisi saat ekspor, bukan perubahan selama sesi berlangsung."
+    }
   },
   "errors": {
     "microphoneAccess": "Akses mikrofon ditolak",

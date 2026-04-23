@@ -506,7 +506,27 @@
       "tooltip": "{{scope}} — 点击切换\n当前：{{mode}}\n• 原文：仅原始语音\n• 译文：仅翻译\n• 两者：两行都显示",
       "ariaLabel": "{{scope}}：{{mode}} — 点击切换"
     },
-    "playItemAudio": "播放此条音频"
+    "playItemAudio": "播放此条音频",
+    "toolbar": {
+      "export": "导出对话"
+    },
+    "export": {
+      "copyToClipboard": "复制到剪贴板",
+      "downloadTxt": "下载为 .txt",
+      "downloadJson": "下载为 .json",
+      "copySuccess": "对话已复制到剪贴板",
+      "copyFailed": "复制失败。请检查浏览器权限。",
+      "speakerYou": "你",
+      "speakerOther": "对方",
+      "translationSuffix": "(译)",
+      "headerTitle": "Sokuji 对话导出",
+      "headerGenerated": "生成时间",
+      "headerProvider": "服务商",
+      "headerModels": "模型",
+      "headerSource": "源语言",
+      "headerTarget": "目标语言",
+      "headerNote": "注意：设置反映导出时的当前状态，不包含会话中途的更改。"
+    }
   },
   "errors": {
     "microphoneAccess": "麦克风访问被拒绝",

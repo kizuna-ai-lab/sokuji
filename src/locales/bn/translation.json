@@ -467,7 +467,27 @@
       "tooltip": "{{scope}} — পরিবর্তন করতে ক্লিক করুন\nএখন দেখাচ্ছে: {{mode}}\n• মূল: শুধু মূল বক্তব্য\n• অনুবাদ: শুধু অনুবাদ\n• উভয়: উভয় লাইন",
       "ariaLabel": "{{scope}}: {{mode}} — পরিবর্তন করতে ক্লিক করুন"
     },
-    "playItemAudio": "এই আইটেমের অডিও চালান"
+    "playItemAudio": "এই আইটেমের অডিও চালান",
+    "toolbar": {
+      "export": "কথোপকথন রপ্তানি করুন"
+    },
+    "export": {
+      "copyToClipboard": "ক্লিপবোর্ডে কপি করুন",
+      "downloadTxt": ".txt হিসেবে ডাউনলোড করুন",
+      "downloadJson": ".json হিসেবে ডাউনলোড করুন",
+      "copySuccess": "কথোপকথন ক্লিপবোর্ডে কপি হয়েছে",
+      "copyFailed": "কপি করা ব্যর্থ হয়েছে। ব্রাউজারের অনুমতি পরীক্ষা করুন।",
+      "speakerYou": "আপনি",
+      "speakerOther": "অন্য",
+      "translationSuffix": "(অনু.)",
+      "headerTitle": "Sokuji কথোপকথন রপ্তানি",
+      "headerGenerated": "তৈরি হয়েছে",
+      "headerProvider": "প্রদানকারী",
+      "headerModels": "মডেল",
+      "headerSource": "উৎস",
+      "headerTarget": "লক্ষ্য",
+      "headerNote": "দ্রষ্টব্য: সেটিংস রপ্তানির সময়ের বর্তমান অবস্থা প্রতিফলিত করে, মাঝ-সেশনের পরিবর্তন নয়।"
+    }
   },
   "simplePanel": {
     "translationActive": "অনুবাদ সক্রিয়",

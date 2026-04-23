@@ -285,7 +285,27 @@
       "tooltip": "{{scope}} — nhấp để đổi\nĐang hiện: {{mode}}\n• Gốc: chỉ giọng gốc\n• Dịch: chỉ bản dịch\n• Cả hai: cả hai dòng",
       "ariaLabel": "{{scope}}: {{mode}} — nhấp để đổi"
     },
-    "playItemAudio": "Phát âm thanh của mục này"
+    "playItemAudio": "Phát âm thanh của mục này",
+    "toolbar": {
+      "export": "Xuất hội thoại"
+    },
+    "export": {
+      "copyToClipboard": "Sao chép vào clipboard",
+      "downloadTxt": "Tải xuống dạng .txt",
+      "downloadJson": "Tải xuống dạng .json",
+      "copySuccess": "Đã sao chép hội thoại vào clipboard",
+      "copyFailed": "Sao chép thất bại. Kiểm tra quyền trình duyệt.",
+      "speakerYou": "Bạn",
+      "speakerOther": "Người khác",
+      "translationSuffix": "(dịch)",
+      "headerTitle": "Xuất hội thoại Sokuji",
+      "headerGenerated": "Đã tạo",
+      "headerProvider": "Nhà cung cấp",
+      "headerModels": "Mô hình",
+      "headerSource": "Nguồn",
+      "headerTarget": "Đích",
+      "headerNote": "Lưu ý: cài đặt phản ánh trạng thái hiện tại tại thời điểm xuất, không phải các thay đổi trong phiên."
+    }
   },
   "audioPanel": {
     "title": "Cài đặt âm thanh",

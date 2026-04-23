@@ -435,7 +435,27 @@
       "tooltip": "{{scope}} — बदलने के लिए क्लिक करें\nअभी दिख रहा: {{mode}}\n• मूल: केवल मूल भाषण\n• अनुवाद: केवल अनुवाद\n• दोनों: दोनों पंक्तियाँ",
       "ariaLabel": "{{scope}}: {{mode}} — बदलने के लिए क्लिक करें"
     },
-    "playItemAudio": "इस आइटम का ऑडियो चलाएँ"
+    "playItemAudio": "इस आइटम का ऑडियो चलाएँ",
+    "toolbar": {
+      "export": "वार्तालाप निर्यात करें"
+    },
+    "export": {
+      "copyToClipboard": "क्लिपबोर्ड में कॉपी करें",
+      "downloadTxt": ".txt के रूप में डाउनलोड करें",
+      "downloadJson": ".json के रूप में डाउनलोड करें",
+      "copySuccess": "वार्तालाप क्लिपबोर्ड में कॉपी हो गई",
+      "copyFailed": "कॉपी विफल। ब्राउज़र की अनुमतियाँ जाँचें।",
+      "speakerYou": "आप",
+      "speakerOther": "अन्य",
+      "translationSuffix": "(अनु.)",
+      "headerTitle": "Sokuji वार्तालाप निर्यात",
+      "headerGenerated": "उत्पन्न",
+      "headerProvider": "प्रदाता",
+      "headerModels": "मॉडल",
+      "headerSource": "स्रोत",
+      "headerTarget": "लक्ष्य",
+      "headerNote": "नोट: सेटिंग्स निर्यात के समय की वर्तमान स्थिति दर्शाती हैं, सत्र के दौरान के बदलाव नहीं।"
+    }
   },
   "audioPanel": {
     "title": "ऑडियो सेटिंग्स",

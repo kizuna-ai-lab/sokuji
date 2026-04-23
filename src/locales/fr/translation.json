@@ -356,7 +356,27 @@
       "tooltip": "{{scope}} — cliquez pour changer\nAffiché : {{mode}}\n• Source : discours original seulement\n• Traduction : traduction seulement\n• Les deux : les deux lignes",
       "ariaLabel": "{{scope}} : {{mode}} — cliquez pour changer"
     },
-    "playItemAudio": "Lire l'audio de cet élément"
+    "playItemAudio": "Lire l'audio de cet élément",
+    "toolbar": {
+      "export": "Exporter la conversation"
+    },
+    "export": {
+      "copyToClipboard": "Copier dans le presse-papiers",
+      "downloadTxt": "Télécharger en .txt",
+      "downloadJson": "Télécharger en .json",
+      "copySuccess": "Conversation copiée dans le presse-papiers",
+      "copyFailed": "Échec de la copie. Vérifiez les permissions du navigateur.",
+      "speakerYou": "Vous",
+      "speakerOther": "Autre",
+      "translationSuffix": "(trad.)",
+      "headerTitle": "Export de conversation Sokuji",
+      "headerGenerated": "Généré",
+      "headerProvider": "Fournisseur",
+      "headerModels": "Modèles",
+      "headerSource": "Source",
+      "headerTarget": "Cible",
+      "headerNote": "Remarque : les paramètres reflètent l'état actuel au moment de l'export, pas les modifications en cours de session."
+    }
   },
   "errors": {
     "microphoneAccess": "Accès au microphone refusé",

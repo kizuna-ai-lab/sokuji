@@ -292,7 +292,27 @@
       "tooltip": "{{scope}} — değiştirmek için tıklayın\nGösterilen: {{mode}}\n• Orijinal: yalnızca orijinal konuşma\n• Çeviri: yalnızca çeviri\n• Her ikisi: iki satır da",
       "ariaLabel": "{{scope}}: {{mode}} — değiştirmek için tıklayın"
     },
-    "playItemAudio": "Bu öğenin sesini oynat"
+    "playItemAudio": "Bu öğenin sesini oynat",
+    "toolbar": {
+      "export": "Sohbeti dışa aktar"
+    },
+    "export": {
+      "copyToClipboard": "Panoya kopyala",
+      "downloadTxt": ".txt olarak indir",
+      "downloadJson": ".json olarak indir",
+      "copySuccess": "Sohbet panoya kopyalandı",
+      "copyFailed": "Kopyalama başarısız. Tarayıcı izinlerini kontrol edin.",
+      "speakerYou": "Siz",
+      "speakerOther": "Diğer",
+      "translationSuffix": "(çev.)",
+      "headerTitle": "Sokuji sohbet dışa aktarma",
+      "headerGenerated": "Oluşturuldu",
+      "headerProvider": "Sağlayıcı",
+      "headerModels": "Modeller",
+      "headerSource": "Kaynak",
+      "headerTarget": "Hedef",
+      "headerNote": "Not: ayarlar dışa aktarma anındaki mevcut durumu yansıtır, oturum sırasındaki değişiklikleri değil."
+    }
   },
   "audioPanel": {
     "title": "Ses Ayarları",

@@ -441,7 +441,27 @@
       "tooltip": "{{scope}} — vaihda napsauttamalla\nNäytetään: {{mode}}\n• Lähde: vain alkuperäinen puhe\n• Käännös: vain käännös\n• Molemmat: molemmat rivit",
       "ariaLabel": "{{scope}}: {{mode}} — vaihda napsauttamalla"
     },
-    "playItemAudio": "Toista tämän kohteen ääni"
+    "playItemAudio": "Toista tämän kohteen ääni",
+    "toolbar": {
+      "export": "Vie keskustelu"
+    },
+    "export": {
+      "copyToClipboard": "Kopioi leikepöydälle",
+      "downloadTxt": "Lataa .txt-tiedostona",
+      "downloadJson": "Lataa .json-tiedostona",
+      "copySuccess": "Keskustelu kopioitu leikepöydälle",
+      "copyFailed": "Kopiointi epäonnistui. Tarkista selaimen käyttöoikeudet.",
+      "speakerYou": "Sinä",
+      "speakerOther": "Muu",
+      "translationSuffix": "(kään.)",
+      "headerTitle": "Sokuji-keskustelun vienti",
+      "headerGenerated": "Luotu",
+      "headerProvider": "Palveluntarjoaja",
+      "headerModels": "Mallit",
+      "headerSource": "Lähde",
+      "headerTarget": "Kohde",
+      "headerNote": "Huom: asetukset heijastavat tilaa viennin hetkellä, eivät istunnon aikaisia muutoksia."
+    }
   },
   "audioPanel": {
     "title": "Ääniasetukset",

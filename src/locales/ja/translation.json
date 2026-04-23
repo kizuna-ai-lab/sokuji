@@ -361,7 +361,27 @@
       "tooltip": "{{scope}} — クリックで切替\n現在の表示: {{mode}}\n• 原文: 元の発話のみ\n• 訳文: 翻訳のみ\n• 両方: 両方の行",
       "ariaLabel": "{{scope}}: {{mode}} — クリックで切替"
     },
-    "playItemAudio": "この項目の音声を再生"
+    "playItemAudio": "この項目の音声を再生",
+    "toolbar": {
+      "export": "会話をエクスポート"
+    },
+    "export": {
+      "copyToClipboard": "クリップボードにコピー",
+      "downloadTxt": ".txt でダウンロード",
+      "downloadJson": ".json でダウンロード",
+      "copySuccess": "会話をクリップボードにコピーしました",
+      "copyFailed": "コピーに失敗しました。ブラウザの権限を確認してください。",
+      "speakerYou": "あなた",
+      "speakerOther": "相手",
+      "translationSuffix": "(訳)",
+      "headerTitle": "Sokuji 会話エクスポート",
+      "headerGenerated": "生成日時",
+      "headerProvider": "プロバイダー",
+      "headerModels": "モデル",
+      "headerSource": "ソース言語",
+      "headerTarget": "ターゲット言語",
+      "headerNote": "注意: 設定はエクスポート時点の状態を反映しており、セッション中の変更は含まれません。"
+    }
   },
   "errors": {
     "microphoneAccess": "マイクへのアクセスが拒否されました",
