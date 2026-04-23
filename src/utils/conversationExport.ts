@@ -84,3 +84,83 @@ export function getAppVersion(): string | null {
     return null;
   }
 }
+
+/**
+ * Filter and project a combined items array into NormalizedMessage[].
+ * Input is the already-merged-and-sorted `combinedItems` from MainPanel
+ * (each item carries a `source: 'speaker' | 'participant'` tag).
+ */
+export function normalizeMessages(
+  combinedItems: Array<ConversationItem & { source?: string }>
+): NormalizedMessage[] {
+  const out: NormalizedMessage[] = [];
+  for (const item of combinedItems) {
+    if (item.status !== 'completed') continue;
+    if (item.type !== 'message') continue;
+    if (item.role === 'system') continue;
+
+    const transcript = item.formatted?.transcript?.trim() || '';
+    const text = item.formatted?.text?.trim() || '';
+    if (!transcript && !text) continue;
+
+    const source = item.source === 'participant' ? 'participant' : 'speaker';
+
+    out.push({
+      id: item.id,
+      createdAt: item.createdAt ?? 0,
+      source,
+      originalText: transcript || null,
+      translatedText: text || null,
+    });
+  }
+  return out;
+}
+
+/**
+ * Extract per-provider model identifiers as a flat object.
+ * Empty / unselected fields are omitted (never serialized as "" or null).
+ * Caller passes in the already-resolved current-provider settings object
+ * (whatever `getCurrentProviderSettings()` returns), plus the provider id,
+ * plus the local-inference settings (needed for the LOCAL_INFERENCE branch
+ * because its model fields are not in the "current provider settings"
+ * returned by the dispatcher — they're separate sub-objects on the store).
+ */
+export function getActiveModelInfo(
+  provider: string,
+  currentSettings: any,
+  localInferenceSettings: any
+): Record<string, string> {
+  const result: Record<string, string> = {};
+
+  const put = (key: string, value: any) => {
+    if (typeof value === 'string' && value.length > 0) result[key] = value;
+  };
+
+  switch (provider) {
+    case Provider.OPENAI:
+    case Provider.KIZUNA_AI:
+    case Provider.OPENAI_COMPATIBLE:
+      put('translation', currentSettings?.model);
+      put('transcription', currentSettings?.transcriptModel);
+      break;
+    case Provider.GEMINI:
+      put('translation', currentSettings?.model);
+      break;
+    case Provider.PALABRA_AI:
+    case Provider.VOLCENGINE_ST:
+    case Provider.VOLCENGINE_AST2:
+      // These providers don't expose a user-selectable model on settings;
+      // their model name is fixed inside the client code. Leave models empty.
+      break;
+    case Provider.LOCAL_INFERENCE:
+      put('asr', localInferenceSettings?.asrModel);
+      put('translation', localInferenceSettings?.translationModel);
+      put('tts', localInferenceSettings?.ttsModel);
+      break;
+    default:
+      // Unknown provider — leave models empty rather than guess
+      break;
+  }
+
+  return result;
+}
