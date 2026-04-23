@@ -232,3 +232,33 @@ export function formatAsTxt(
 
   return lines.join('\n') + '\n';
 }
+
+/**
+ * Format messages as the JSON representation defined in the spec.
+ * Output is pretty-printed with 2-space indent and a trailing newline.
+ */
+export function formatAsJson(
+  messages: NormalizedMessage[],
+  metadata: SessionMetadata
+): string {
+  const payload = {
+    exportedAt: metadata.exportedAt,
+    appVersion: metadata.appVersion,
+    session: {
+      provider: metadata.provider,
+      models: metadata.models,
+      sourceLanguage: metadata.sourceLanguage,
+      targetLanguage: metadata.targetLanguage,
+      note: 'settings reflect current state at export, not mid-session changes',
+    },
+    messageCount: messages.length,
+    messages: messages.map(m => ({
+      id: m.id,
+      timestamp: new Date(m.createdAt).toISOString(),
+      speaker: m.source === 'speaker' ? 'you' : 'other',
+      originalText: m.originalText,
+      translatedText: m.translatedText,
+    })),
+  };
+  return JSON.stringify(payload, null, 2) + '\n';
+}
