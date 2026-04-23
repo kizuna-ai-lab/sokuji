@@ -1,0 +1,49 @@
+.export-btn {
+  // Inherits the existing .conversation-toolbar button look (background,
+  // border, color, hover) by sitting inside that container.
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+}
+
+.export-btn-chevron {
+  margin-top: 1px;
+  opacity: 0.7;
+}
+
+.export-menu {
+  display: flex;
+  flex-direction: column;
+  min-width: 200px;
+  padding: 4px;
+  background: #2a2a2a;
+  border: 1px solid #444;
+  border-radius: 6px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+}
+
+.export-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: transparent;
+  border: none;
+  color: #ddd;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 4px;
+
+  &:hover,
+  &:focus {
+    background: #3a3a3a;
+    color: #fff;
+    outline: none;
+  }
+}
