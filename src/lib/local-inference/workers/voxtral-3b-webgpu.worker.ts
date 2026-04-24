@@ -314,7 +314,12 @@ async function feedAudio(samples: Int16Array, sampleRate: number): Promise<void>
 
           case Message.SpeechEnd:
             speechFramesSinceStart = 0;
-            await runVoxtral3B(ev.audio);
+            // Fire-and-forget: decodes take seconds on 3B. If we awaited here,
+            // `processingVad` would stay true for the full decode duration and
+            // incoming audio messages would be dropped by the guard at the top
+            // of this function. `runVoxtral3B` self-serializes via
+            // `currentDecodePromise` so overlapping calls queue correctly.
+            void runVoxtral3B(ev.audio);
             break;
 
           case Message.VADMisfire:
@@ -331,7 +336,8 @@ async function feedAudio(samples: Int16Array, sampleRate: number): Promise<void>
           frameProcessor.endSegment((ev) => endEvents.push(ev));
           for (const ev of endEvents) {
             if (ev.msg === Message.SpeechEnd) {
-              await runVoxtral3B(ev.audio);
+              // See SpeechEnd comment above: fire-and-forget to avoid dropping audio.
+              void runVoxtral3B(ev.audio);
             }
           }
           speechFramesSinceStart = 0;
@@ -434,13 +440,16 @@ async function handleInit(msg: Voxtral3BAsrInitMessage): Promise<void> {
 // ─── Flush & Dispose ────────────────────────────────────────────────────────
 
 async function handleFlush(): Promise<void> {
-  // Force-finalize any pending speech via FrameProcessor (PTT release path)
+  // Force-finalize any pending speech via FrameProcessor (PTT release path).
+  // Fire-and-forget because `runVoxtral3B` assigns `currentDecodePromise`
+  // before returning; the `await currentDecodePromise` below will pick up
+  // whatever decode we just kicked off.
   if (frameProcessor?.speaking) {
     const endEvents: FrameProcessorEvent[] = [];
     frameProcessor.endSegment((ev) => endEvents.push(ev));
     for (const ev of endEvents) {
       if (ev.msg === Message.SpeechEnd) {
-        await runVoxtral3B(ev.audio);
+        void runVoxtral3B(ev.audio);
       }
     }
   }
@@ -451,13 +460,14 @@ async function handleFlush(): Promise<void> {
 }
 
 async function handleDispose(): Promise<void> {
-  // Flush remaining speech
+  // Flush remaining speech. Fire-and-forget; the `await currentDecodePromise`
+  // below picks up the just-kicked decode before we dispose the model.
   if (frameProcessor?.speaking) {
     const endEvents: FrameProcessorEvent[] = [];
     frameProcessor.endSegment((ev) => endEvents.push(ev));
     for (const ev of endEvents) {
       if (ev.msg === Message.SpeechEnd) {
-        await runVoxtral3B(ev.audio);
+        void runVoxtral3B(ev.audio);
       }
     }
   }
