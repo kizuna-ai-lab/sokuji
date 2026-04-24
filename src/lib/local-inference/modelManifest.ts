@@ -841,7 +841,11 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     type: 'asr',
     name: 'Voxtral Mini 3B 2507 (WebGPU)',
     languages: ['en', 'es', 'fr', 'pt', 'hi', 'de', 'nl', 'it'],
-    multilingual: true,
+    // Do NOT set `multilingual: true`: in this codebase that flag bypasses the
+    // `languages` filter entirely (treated as "universal", reserved for models
+    // with languages: ['multilingual']). Voxtral 3B only supports 8 languages,
+    // so leave the flag unset to get per-language filtering — matching the
+    // 4B entry's pattern.
     hfModelId: 'onnx-community/Voxtral-Mini-3B-2507-ONNX',
     requiredDevice: 'webgpu',
     asrEngine: 'voxtral-3b',
