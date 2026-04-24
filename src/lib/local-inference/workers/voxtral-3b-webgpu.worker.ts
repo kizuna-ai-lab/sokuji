@@ -399,6 +399,28 @@ async function handleInit(msg: Voxtral3BAsrInitMessage): Promise<void> {
       post({ type: 'status', message: `Voxtral 3B: source language '${currentLanguage}' not in supported set; using auto-detect` });
     }
 
+    // 6. WebGPU warmup — compile shaders with a tiny dummy inference so the
+    //    first real utterance doesn't pay the compilation cost. Matches the
+    //    Cohere worker's pattern (cohere-transcribe-webgpu.worker.ts:344-354).
+    post({ type: 'status', message: 'Warming up WebGPU shaders...' });
+    try {
+      const warmupAudio = new Float32Array(VAD_SAMPLE_RATE); // 1s of silence
+      const warmupConversation = [
+        {
+          role: 'user',
+          content: [
+            { type: 'audio' },
+            { type: 'text', text: '[TRANSCRIBE]' },
+          ],
+        },
+      ];
+      const warmupPrompt = processor.apply_chat_template(warmupConversation, { tokenize: false });
+      const warmupInputs = await processor(warmupPrompt, warmupAudio);
+      await model.generate({ ...warmupInputs, max_new_tokens: 1 });
+    } catch {
+      // Warmup failures are non-fatal — first real utterance may be slightly slower
+    }
+
     // Reset buffers
     vadAudioBuffer = new Float32Array(0);
 
