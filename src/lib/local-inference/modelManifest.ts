@@ -31,11 +31,12 @@ export type AsrEngineType =
   | 'sensevoice' | 'whisper' | 'transducer' | 'nemo-transducer'
   | 'paraformer' | 'telespeech' | 'moonshine' | 'moonshine-v2'
   | 'dolphin' | 'zipformer-ctc' | 'nemo-ctc' | 'canary'
-  | 'wenet-ctc' | 'omnilingual' | 'granite-speech';
+  | 'wenet-ctc' | 'omnilingual' | 'granite-speech'
+  | 'cohere-transcribe' | 'voxtral-3b';
 
 /** Streaming ASR engine types — for future use when streaming gets explicit config. */
 export type StreamAsrEngineType =
-  | 'stream-transducer' | 'stream-nemo-ctc' | 'voxtral' | 'cohere-transcribe';
+  | 'stream-transducer' | 'stream-nemo-ctc' | 'voxtral';
 
 /** Engine-specific config fields for TTS models (matcha, kokoro, vits special). */
 export interface TtsModelConfig {
@@ -87,7 +88,7 @@ export interface ModelManifestEntry {
   /** ASR engine type — determines which config builder the worker uses */
   asrEngine?: AsrEngineType | StreamAsrEngineType;
   /** Which ASR worker to use. Defaults to 'sherpa-onnx' if omitted. */
-  asrWorkerType?: 'sherpa-onnx' | 'whisper-webgpu' | 'voxtral-webgpu' | 'cohere-transcribe-webgpu' | 'granite-speech-webgpu';
+  asrWorkerType?: 'sherpa-onnx' | 'whisper-webgpu' | 'voxtral-webgpu' | 'voxtral-3b-webgpu' | 'cohere-transcribe-webgpu' | 'granite-speech-webgpu';
   /** AST (speech translation) language support. When present, model appears as a translation option when selected as ASR. */
   astLanguages?: {
     /** Languages the model can transcribe */
