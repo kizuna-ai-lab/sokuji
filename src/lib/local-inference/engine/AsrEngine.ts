@@ -113,8 +113,8 @@ export class AsrEngine {
           break;
       }
 
-      // Cohere worker emits StreamingAsrWorkerOutMessage (includes 'partial'),
-      // other workers emit AsrWorkerOutMessage. Handle the union.
+      // Cohere and Voxtral 3B workers emit StreamingAsrWorkerOutMessage
+      // (includes 'partial'); other workers emit AsrWorkerOutMessage. Handle the union.
       this.worker.onmessage = (event: MessageEvent<AsrWorkerOutMessage | StreamingAsrWorkerOutMessage>) => {
         const msg = event.data;
         switch (msg.type) {
