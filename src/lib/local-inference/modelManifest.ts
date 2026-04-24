@@ -830,6 +830,73 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     sortOrder: 2,
   },
 
+  // ── Voxtral Mini 3B 2507 WebGPU ASR ────────────────────────────────────────
+  // Downloaded from onnx-community repo on HuggingFace Hub. Uses hfModelId.
+  // Voxtral Mini 3B (2507) — offline/batch model with explicit language hint
+  // via chat template ("lang:XX [TRANSCRIBE]"). 8 supported languages.
+  // Note: 3B repo has no embed_tokens_q4f16; q4f16 variant mixes q4 embeddings
+  // with q4f16 audio encoder + decoder.
+  {
+    id: 'voxtral-mini-3b-webgpu',
+    type: 'asr',
+    name: 'Voxtral Mini 3B 2507 (WebGPU)',
+    languages: ['en', 'es', 'fr', 'pt', 'hi', 'de', 'nl', 'it'],
+    multilingual: true,
+    hfModelId: 'onnx-community/Voxtral-Mini-3B-2507-ONNX',
+    requiredDevice: 'webgpu',
+    asrEngine: 'voxtral-3b',
+    asrWorkerType: 'voxtral-3b-webgpu',
+    variants: {
+      'q4f16': {
+        // 3B has no embed_tokens_q4f16 → use q4 for embeddings
+        dtype: { audio_encoder: 'q4f16', embed_tokens: 'q4', decoder_model_merged: 'q4f16' },
+        files: [
+          // Config & tokenizer (shared across variants)
+          { filename: 'config.json', sizeBytes: 2_161 },
+          { filename: 'generation_config.json', sizeBytes: 107 },
+          { filename: 'preprocessor_config.json', sizeBytes: 357 },
+          { filename: 'special_tokens_map.json', sizeBytes: 414 },
+          { filename: 'chat_template.jinja', sizeBytes: 989 },
+          { filename: 'tokenizer.json', sizeBytes: 12_603_078 },
+          { filename: 'tokenizer_config.json', sizeBytes: 178_296 },
+          { filename: 'tekken.json', sizeBytes: 14_894_206 },
+          // ONNX model files (q4f16 audio+decoder, q4 embed)
+          { filename: 'onnx/audio_encoder_q4f16.onnx', sizeBytes: 403_958 },
+          { filename: 'onnx/audio_encoder_q4f16.onnx_data', sizeBytes: 383_696_896 },
+          { filename: 'onnx/decoder_model_merged_q4f16.onnx', sizeBytes: 308_330 },
+          { filename: 'onnx/decoder_model_merged_q4f16.onnx_data', sizeBytes: 2_065_283_072 },
+          { filename: 'onnx/embed_tokens_q4.onnx', sizeBytes: 542 },
+          { filename: 'onnx/embed_tokens_q4.onnx_data', sizeBytes: 251_658_240 },
+        ],
+        requiredFeatures: ['shader-f16'],
+      },
+      'q4': {
+        dtype: { audio_encoder: 'q4', embed_tokens: 'q4', decoder_model_merged: 'q4' },
+        files: [
+          // Config & tokenizer (shared across variants)
+          { filename: 'config.json', sizeBytes: 2_161 },
+          { filename: 'generation_config.json', sizeBytes: 107 },
+          { filename: 'preprocessor_config.json', sizeBytes: 357 },
+          { filename: 'special_tokens_map.json', sizeBytes: 414 },
+          { filename: 'chat_template.jinja', sizeBytes: 989 },
+          { filename: 'tokenizer.json', sizeBytes: 12_603_078 },
+          { filename: 'tokenizer_config.json', sizeBytes: 178_296 },
+          { filename: 'tekken.json', sizeBytes: 14_894_206 },
+          // ONNX model files (q4)
+          { filename: 'onnx/audio_encoder_q4.onnx', sizeBytes: 401_545 },
+          { filename: 'onnx/audio_encoder_q4.onnx_data', sizeBytes: 440_238_080 },
+          { filename: 'onnx/decoder_model_merged_q4.onnx', sizeBytes: 306_657 },
+          { filename: 'onnx/decoder_model_merged_q4.onnx_data', sizeBytes: 2_073_260_032 },
+          { filename: 'onnx/decoder_model_merged_q4.onnx_data_1', sizeBytes: 251_658_240 },
+          { filename: 'onnx/embed_tokens_q4.onnx', sizeBytes: 542 },
+          { filename: 'onnx/embed_tokens_q4.onnx_data', sizeBytes: 251_658_240 },
+        ],
+      },
+    },
+    recommended: true,
+    sortOrder: 3,
+  },
+
   // ── Cohere Transcribe WebGPU ASR ───────────────────────────────────────────
   // Downloaded from onnx-community repo on HuggingFace Hub. Uses hfModelId.
   // Cohere Transcribe (2B Conformer) via @huggingface/transformers pipeline API.
