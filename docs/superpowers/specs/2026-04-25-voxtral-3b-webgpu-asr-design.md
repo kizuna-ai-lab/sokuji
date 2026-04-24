@@ -41,7 +41,7 @@ The issue's Task 3 says "Register new `asrEngine` type and wire up in `Streaming
 
 | Variant | Audio encoder | Embed tokens | Decoder merged | Requirement |
 |---------|---------------|--------------|----------------|-------------|
-| q4f16 | q4f16 | q4f16 | q4f16 | `shader-f16` GPU feature |
+| q4f16 | q4f16 | q4 (repo has no `embed_tokens_q4f16`) | q4f16 | `shader-f16` GPU feature |
 | q4 | q4 | q4 | q4 | Universal fallback |
 
 Exact per-file byte sizes are read from `https://huggingface.co/api/models/onnx-community/Voxtral-Mini-3B-2507-ONNX` at implementation time and populated into the manifest `variants[*].files[*].sizeBytes`. Both variants are shipped so q4 can serve as a fallback on GPUs without `shader-f16` (mirrors the existing 4B and Cohere entries).
@@ -251,24 +251,28 @@ Standard `AsrWorkerOutMessage` shapes reused unchanged from Cohere/Whisper:
   type: 'asr',
   name: 'Voxtral Mini 3B 2507 (WebGPU)',
   languages: ['en', 'es', 'fr', 'pt', 'hi', 'de', 'nl', 'it'],
-  multilingual: true,
+  // Do NOT set `multilingual: true`: in this codebase that flag bypasses the
+  // `languages` filter entirely (reserved for truly-universal models paired
+  // with `languages: ['multilingual']`). Voxtral 3B supports only 8 languages,
+  // so leave the flag unset — matching the Voxtral 4B entry's pattern.
   hfModelId: 'onnx-community/Voxtral-Mini-3B-2507-ONNX',
   requiredDevice: 'webgpu',
   asrEngine: 'voxtral-3b',
   asrWorkerType: 'voxtral-3b-webgpu',
   variants: {
     'q4f16': {
+      // 3B repo has no `embed_tokens_q4f16.onnx`; use q4 for embeddings.
       dtype: {
         audio_encoder: 'q4f16',
-        embed_tokens: 'q4f16',
+        embed_tokens: 'q4',
         decoder_model_merged: 'q4f16',
       },
       files: [
         // { filename, sizeBytes } for config.json, generation_config.json,
-        // preprocessor_config.json, processor_config.json, tokenizer.json,
-        // tokenizer_config.json, tekken.json, special_tokens_map.json,
-        // onnx/audio_encoder_q4f16.onnx, onnx/embed_tokens_q4f16.onnx,
-        // onnx/decoder_model_merged_q4f16.onnx (+ _data files if present)
+        // preprocessor_config.json, tokenizer.json, tokenizer_config.json,
+        // tekken.json, special_tokens_map.json, chat_template.jinja,
+        // onnx/audio_encoder_q4f16.onnx + _data, onnx/embed_tokens_q4.onnx + _data,
+        // onnx/decoder_model_merged_q4f16.onnx + _data
       ],
       requiredFeatures: ['shader-f16'],
     },
@@ -279,7 +283,8 @@ Standard `AsrWorkerOutMessage` shapes reused unchanged from Cohere/Whisper:
         decoder_model_merged: 'q4',
       },
       files: [
-        // Same layout as q4f16 with `_q4.onnx` suffixes.
+        // Same shared-config layout as q4f16 with `_q4.onnx` suffixes for the
+        // audio_encoder and decoder_model_merged ONNX files.
       ],
     },
   },
