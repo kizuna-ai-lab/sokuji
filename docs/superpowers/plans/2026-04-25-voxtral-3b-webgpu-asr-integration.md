@@ -58,9 +58,11 @@ to:
 export type AsrWorkerInMessage = AsrInitMessage | WhisperAsrInitMessage | VoxtralAsrInitMessage | Voxtral3BAsrInitMessage | CohereTranscribeAsrInitMessage | GraniteSpeechInitMessage | AsrAudioMessage | AsrDisposeMessage;
 ```
 
-- [ ] **Step 3: Add `'voxtral-3b'` to `AsrEngineType` in `modelManifest.ts`**
+- [ ] **Step 3: Add `'voxtral-3b'` to `AsrEngineType` and move `'cohere-transcribe'` there too**
 
-At lines 30-34, change:
+This step both adds the new identifier **and** fixes an existing misclassification that PR #168 (commit `f3297e46`) left behind: when Cohere was moved from `type: 'asr-stream'` → `type: 'asr'`, its `asrEngine` identifier `'cohere-transcribe'` was not moved from `StreamAsrEngineType` → `AsrEngineType`. That's an oversight (confirmed by the PR's scope and commit message, which state Cohere is "not a streaming model"). Fixing it now prevents the Voxtral 3B addition from perpetuating the same mismatch.
+
+In `src/lib/local-inference/modelManifest.ts`, at lines 30-34 change:
 
 ```typescript
 export type AsrEngineType =
@@ -77,12 +79,29 @@ export type AsrEngineType =
   | 'sensevoice' | 'whisper' | 'transducer' | 'nemo-transducer'
   | 'paraformer' | 'telespeech' | 'moonshine' | 'moonshine-v2'
   | 'dolphin' | 'zipformer-ctc' | 'nemo-ctc' | 'canary'
-  | 'wenet-ctc' | 'omnilingual' | 'granite-speech' | 'voxtral-3b';
+  | 'wenet-ctc' | 'omnilingual' | 'granite-speech'
+  | 'cohere-transcribe' | 'voxtral-3b';
 ```
 
-Note: This is the offline `AsrEngineType`, not `StreamAsrEngineType`. The 3B model is batch-decoded.
+- [ ] **Step 4: Remove `'cohere-transcribe'` from `StreamAsrEngineType` (completes the move)**
 
-- [ ] **Step 4: Add `'voxtral-3b-webgpu'` to the `asrWorkerType` union in `modelManifest.ts`**
+At lines 37-38, change:
+
+```typescript
+export type StreamAsrEngineType =
+  | 'stream-transducer' | 'stream-nemo-ctc' | 'voxtral' | 'cohere-transcribe';
+```
+
+to:
+
+```typescript
+export type StreamAsrEngineType =
+  | 'stream-transducer' | 'stream-nemo-ctc' | 'voxtral';
+```
+
+This is a pure type-level move. The `asrEngine` field on `ModelManifestEntry` is declared as `AsrEngineType | StreamAsrEngineType`, so an identifier works the same whether it's in either union — no runtime effect, no manifest-entry change.
+
+- [ ] **Step 5: Add `'voxtral-3b-webgpu'` to the `asrWorkerType` union in `modelManifest.ts`**
 
 At line 90, change:
 
@@ -96,21 +115,28 @@ to:
   asrWorkerType?: 'sherpa-onnx' | 'whisper-webgpu' | 'voxtral-webgpu' | 'voxtral-3b-webgpu' | 'cohere-transcribe-webgpu' | 'granite-speech-webgpu';
 ```
 
-- [ ] **Step 5: Verify TypeScript compiles**
+- [ ] **Step 6: Verify TypeScript compiles**
 
 Run: `npx tsc --noEmit --pretty 2>&1 | head -30`
-Expected: No errors. (There are no references to the new types yet, so only the union additions exist.)
+Expected: No errors. (There are no references to the new types yet, so only the union additions exist. Moving `'cohere-transcribe'` between the unions should not surface any errors — the existing Cohere manifest entry still type-checks because `asrEngine` accepts the combined union.)
 
-- [ ] **Step 6: Commit**
+- [ ] **Step 7: Commit**
 
 ```bash
 git add src/lib/local-inference/types.ts src/lib/local-inference/modelManifest.ts
 git commit -m "$(cat <<'EOF'
-feat(local-inference): add Voxtral 3B type and worker-type identifiers
+feat(local-inference): add Voxtral 3B type identifiers; reclassify Cohere
 
 Prepares type plumbing for the Voxtral Mini 3B 2507 WebGPU ASR worker
-(issue #169). Adds Voxtral3BAsrInitMessage, extends AsrWorkerInMessage,
-AsrEngineType, and the asrWorkerType union. No runtime behavior change yet.
+(issue #169): adds Voxtral3BAsrInitMessage, extends AsrWorkerInMessage,
+adds 'voxtral-3b' to AsrEngineType, and adds 'voxtral-3b-webgpu' to the
+asrWorkerType union.
+
+Also moves 'cohere-transcribe' from StreamAsrEngineType to AsrEngineType.
+This completes the reclassification started in f3297e46 (PR #168), which
+changed Cohere's manifest `type` from 'asr-stream' to 'asr' but left the
+matching `asrEngine` identifier in the streaming union by oversight. Pure
+type-level move — no runtime behavior change.
 EOF
 )"
 ```
