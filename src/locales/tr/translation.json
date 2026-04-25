@@ -505,8 +505,8 @@
     "speaker": "Hoparlör",
     "speakerDesc": "Çevrilmiş çıktıyı izlemek için bir hoparlör seçin. Bu, çevirinin nasıl geldiğini duymanızı sağlar. İzleme gerekmiyorsa kapatabilirsiniz. Açık veya kapalı olsun, çevrilmiş ses her zaman sanal mikrofona gönderilir ve diğer katılımcılar duyar.",
     "systemAudio": "Katılımcı Sesi",
-    "systemAudioDesc": "Diğer toplantı katılımcılarından gelen sesi yakalayın ve çevirin. Konuşmalarını çevirmek için hangi ses çıkış cihazının yakalanacağını seçin.",
-    "systemAudioDescExtension": "Geçerli sekmeden sesi yakalayın ve metne dönüştürün. Metne dönüştürürken toplantı sesini duymak için bir çıkış cihazı seçin.",
+    "systemAudioDesc": "Diğer toplantı katılımcılarından gelen sesi yakalayın ve çevirin. Konuşmalarını çevirmek için hangi ses çıkış cihazının yakalanacağını seçin. Not: Hoparlör ve Katılımcı Sesi aynı anda etkinleştirilemez — Katılımcı Sesini etkinleştirmek için önce Hoparlörü kapatın.",
+    "systemAudioDescExtension": "Geçerli sekmeden sesi yakalayın ve metne dönüştürün. Metne dönüştürürken toplantı sesini duymak için bir çıkış cihazı seçin. Not: Hoparlör ve Katılımcı Sesi aynı anda etkinleştirilemez — Katılımcı Sesini etkinleştirmek için önce Hoparlörü kapatın.",
     "swapLanguages": "Dilleri değiştir",
     "textOnly": "Yalnızca metin",
     "textOnlyDesc": "Yalnızca metin olarak çevir — sesli çıkış yok"

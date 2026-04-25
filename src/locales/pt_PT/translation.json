@@ -313,8 +313,8 @@
     "speaker": "Altifalante",
     "speakerDesc": "Seleccione um altifalante para monitorizar a saída traduzida. Isto permite-lhe ouvir como soa a tradução. Pode desligá-lo se a monitorização não for necessária. Esteja ligado ou desligado, o áudio traduzido é sempre enviado para o microfone virtual para outros participantes ouvirem.",
     "systemAudio": "Áudio de Participantes",
-    "systemAudioDesc": "Capture e traduza o áudio de outros participantes da reunião. Seleccione qual dispositivo de saída de áudio capturar para traduzir a fala deles.",
-    "systemAudioDescExtension": "Capture e transcreva o áudio do separador actual. Seleccione um dispositivo de saída para ouvir o áudio da reunião durante a transcrição.",
+    "systemAudioDesc": "Capture e traduza o áudio de outros participantes da reunião. Seleccione qual dispositivo de saída de áudio capturar para traduzir a fala deles. Nota: O altifalante e o áudio de participantes não podem ser activados em simultâneo — desligue primeiro o altifalante para activar o áudio de participantes.",
+    "systemAudioDescExtension": "Capture e transcreva o áudio do separador actual. Seleccione um dispositivo de saída para ouvir o áudio da reunião durante a transcrição. Nota: O altifalante e o áudio de participantes não podem ser activados em simultâneo — desligue primeiro o altifalante para activar o áudio de participantes.",
     "swapLanguages": "Trocar idiomas",
     "textOnly": "Apenas texto",
     "textOnlyDesc": "Traduzir apenas para texto — sem saída de voz"

@@ -546,8 +546,8 @@
     "speaker": "Głośnik",
     "speakerDesc": "Wybierz głośnik do monitorowania przetłumaczonego wyjścia. Pozwala to słyszeć jak brzmi tłumaczenie. Możesz to wyłączyć jeśli monitorowanie nie jest potrzebne. Niezależnie od tego czy jest włączone czy wyłączone, przetłumaczone audio jest zawsze wysyłane do wirtualnego mikrofonu aby inni uczestnicy mogli je słyszeć.",
     "systemAudio": "Dźwięk uczestnika",
-    "systemAudioDesc": "Przechwytuj i tłumacz dźwięk od innych uczestników spotkania. Wybierz urządzenie wyjściowe audio do przechwytywania ich mowy do tłumaczenia.",
-    "systemAudioDescExtension": "Przechwytuj i transkrybuj dźwięk z bieżącej karty. Wybierz urządzenie wyjściowe, aby słyszeć dźwięk spotkania podczas transkrypcji.",
+    "systemAudioDesc": "Przechwytuj i tłumacz dźwięk od innych uczestników spotkania. Wybierz urządzenie wyjściowe audio do przechwytywania ich mowy do tłumaczenia. Uwaga: Głośnik i Dźwięk uczestnika nie mogą być włączone jednocześnie — najpierw wyłącz Głośnik, aby włączyć Dźwięk uczestnika.",
+    "systemAudioDescExtension": "Przechwytuj i transkrybuj dźwięk z bieżącej karty. Wybierz urządzenie wyjściowe, aby słyszeć dźwięk spotkania podczas transkrypcji. Uwaga: Głośnik i Dźwięk uczestnika nie mogą być włączone jednocześnie — najpierw wyłącz Głośnik, aby włączyć Dźwięk uczestnika.",
     "swapLanguages": "Zamień języki",
     "textOnly": "Tylko tekst",
     "textOnlyDesc": "Tłumacz tylko na tekst — bez wyjścia głosowego"

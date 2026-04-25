@@ -547,8 +547,8 @@
     "speaker": "Luidspreker",
     "speakerDesc": "Selecteer een luidspreker om de vertaalde uitvoer te monitoren. Hiermee kunt u horen hoe de vertaling klinkt. U kunt het uitschakelen als monitoring niet nodig is. Of het nu aan of uit staat, de vertaalde audio wordt altijd naar de virtuele microfoon gestuurd zodat andere deelnemers het kunnen horen.",
     "systemAudio": "Deelnemer Audio",
-    "systemAudioDesc": "Leg audio vast en vertaal deze van andere deelnemers aan de vergadering. Selecteer welk audio-uitvoerapparaat moet worden vastgelegd om hun spraak te vertalen.",
-    "systemAudioDescExtension": "Leg audio vast en transcribeer van het huidige tabblad. Selecteer een uitvoerapparaat om de vergaderaudio te horen tijdens het transcriberen.",
+    "systemAudioDesc": "Leg audio vast en vertaal deze van andere deelnemers aan de vergadering. Selecteer welk audio-uitvoerapparaat moet worden vastgelegd om hun spraak te vertalen. Opmerking: Luidspreker en Deelnemer Audio kunnen niet tegelijkertijd worden ingeschakeld — schakel eerst de Luidspreker uit om Deelnemer Audio in te schakelen.",
+    "systemAudioDescExtension": "Leg audio vast en transcribeer van het huidige tabblad. Selecteer een uitvoerapparaat om de vergaderaudio te horen tijdens het transcriberen. Opmerking: Luidspreker en Deelnemer Audio kunnen niet tegelijkertijd worden ingeschakeld — schakel eerst de Luidspreker uit om Deelnemer Audio in te schakelen.",
     "swapLanguages": "Talen wisselen",
     "textOnly": "Alleen tekst",
     "textOnlyDesc": "Vertaal alleen naar tekst — geen spraakuitvoer"

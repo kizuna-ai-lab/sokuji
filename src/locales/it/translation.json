@@ -547,8 +547,8 @@
     "speaker": "Altoparlante",
     "speakerDesc": "Seleziona un altoparlante per monitorare l'output tradotto. Questo ti permette di sentire come suona la traduzione. Puoi spegnerlo se il monitoraggio non è necessario. Che sia acceso o spento, l'audio tradotto viene sempre inviato al microfono virtuale perché altri partecipanti possano sentirlo.",
     "systemAudio": "Audio dei Partecipanti",
-    "systemAudioDesc": "Cattura e traduci l'audio degli altri partecipanti alla riunione. Seleziona quale dispositivo di uscita audio catturare per tradurre il loro discorso.",
-    "systemAudioDescExtension": "Cattura e trascrivi l'audio della scheda corrente. Seleziona un dispositivo di output per ascoltare l'audio della riunione durante la trascrizione.",
+    "systemAudioDesc": "Cattura e traduci l'audio degli altri partecipanti alla riunione. Seleziona quale dispositivo di uscita audio catturare per tradurre il loro discorso. Nota: L'altoparlante e l'audio dei partecipanti non possono essere abilitati contemporaneamente — disattiva prima l'altoparlante per abilitare l'audio dei partecipanti.",
+    "systemAudioDescExtension": "Cattura e trascrivi l'audio della scheda corrente. Seleziona un dispositivo di output per ascoltare l'audio della riunione durante la trascrizione. Nota: L'altoparlante e l'audio dei partecipanti non possono essere abilitati contemporaneamente — disattiva prima l'altoparlante per abilitare l'audio dei partecipanti.",
     "swapLanguages": "Scambia lingue",
     "textOnly": "Solo testo",
     "textOnlyDesc": "Traduci solo in testo — nessuna uscita vocale"
