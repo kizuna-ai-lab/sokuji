@@ -309,8 +309,8 @@
     "speaker": "Speaker",
     "speakerDesc": "Piliin ang speaker para ma-monitor ang translated na output. Pinapahintulutan ninyo nitong marinig kung paano tumutunog ang translation. Pwede ninyong i-off ito kung hindi kailangan ang monitoring. Naka-on man o naka-off, laging napapadala ang translated na audio sa virtual microphone para marinig ng ibang participants.",
     "systemAudio": "Audio ng Kalahok",
-    "systemAudioDesc": "I-capture at i-translate ang audio mula sa ibang kalahok sa meeting. Piliin kung aling audio output device ang i-capture para isalin ang kanilang pagsasalita.",
-    "systemAudioDescExtension": "Kuhanin at i-transcribe ang audio mula sa kasalukuyang tab. Pumili ng output device para marinig ang audio ng meeting habang nag-transcribe.",
+    "systemAudioDesc": "I-capture at i-translate ang audio mula sa ibang kalahok sa meeting. Piliin kung aling audio output device ang i-capture para isalin ang kanilang pagsasalita. Tandaan: Hindi maaaring sabay na i-enable ang Speaker at Audio ng Kalahok — i-off muna ang Speaker upang i-enable ang Audio ng Kalahok.",
+    "systemAudioDescExtension": "Kuhanin at i-transcribe ang audio mula sa kasalukuyang tab. Pumili ng output device para marinig ang audio ng meeting habang nag-transcribe. Tandaan: Hindi maaaring sabay na i-enable ang Speaker at Audio ng Kalahok — i-off muna ang Speaker upang i-enable ang Audio ng Kalahok.",
     "swapLanguages": "Palitan ang mga wika",
     "textOnly": "Teksto lamang",
     "textOnlyDesc": "Isalin sa teksto lamang — walang boses na output"
