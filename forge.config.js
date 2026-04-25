@@ -6,7 +6,7 @@ module.exports = {
     asar: true,
     extraResource: ['assets', 'resources'],
     icon: process.platform === 'win32' ? 'assets/icon.ico' : 'assets/icon',
-    appId: 'com.kizunaai.sokuji',
+    appId: 'ai.kizunaai.sokuji',
     executableName: 'sokuji',
     name: 'Sokuji',
     // Whitelist-based ignore: only include package.json, dist-electron/,
