@@ -6,6 +6,8 @@
  * - sherpa-onnx (classic Worker): VAD + OfflineRecognizer via Emscripten/WASM
  * - whisper-webgpu (module Worker): VAD + Whisper via Transformers.js/WebGPU
  * - cohere-transcribe-webgpu (module Worker): VAD + Cohere Transcribe via Transformers.js/WebGPU
+ * - voxtral-3b-webgpu (module Worker): VAD + Voxtral 3B (with lang hint) via Transformers.js/WebGPU
+ * - granite-speech-webgpu (module Worker): VAD + Granite Speech via Transformers.js/WebGPU
  */
 
 import type { AsrWorkerOutMessage, StreamingAsrWorkerOutMessage, VadWebConfig } from '../types';
@@ -94,6 +96,12 @@ export class AsrEngine {
             { type: 'module' },
           );
           break;
+        case 'voxtral-3b-webgpu':
+          this.worker = new Worker(
+            new URL('../workers/voxtral-3b-webgpu.worker.ts', import.meta.url),
+            { type: 'module' },
+          );
+          break;
         case 'granite-speech-webgpu':
           this.worker = new Worker(
             new URL('../workers/granite-speech-webgpu.worker.ts', import.meta.url),
@@ -105,8 +113,8 @@ export class AsrEngine {
           break;
       }
 
-      // Cohere worker emits StreamingAsrWorkerOutMessage (includes 'partial'),
-      // other workers emit AsrWorkerOutMessage. Handle the union.
+      // Cohere and Voxtral 3B workers emit StreamingAsrWorkerOutMessage
+      // (includes 'partial'); other workers emit AsrWorkerOutMessage. Handle the union.
       this.worker.onmessage = (event: MessageEvent<AsrWorkerOutMessage | StreamingAsrWorkerOutMessage>) => {
         const msg = event.data;
         switch (msg.type) {
@@ -162,7 +170,7 @@ export class AsrEngine {
       };
 
       // Send init message — format depends on worker type
-      if (workerType === 'whisper-webgpu' || workerType === 'cohere-transcribe-webgpu') {
+      if (workerType === 'whisper-webgpu' || workerType === 'cohere-transcribe-webgpu' || workerType === 'voxtral-3b-webgpu') {
         this.worker.postMessage({
           type: 'init',
           fileUrls,
