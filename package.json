@@ -57,6 +57,27 @@
       "icon": "assets/icon.png",
       "executableName": "sokuji"
     },
+    "mac": {
+      "target": [
+        {
+          "target": "pkg",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
+      ],
+      "category": "public.app-category.utilities",
+      "icon": "assets/icon.icns",
+      "identity": null
+    },
+    "pkg": {
+      "scripts": "../pkg-scripts",
+      "installLocation": "/Applications",
+      "isRelocatable": false,
+      "isVersionChecked": false,
+      "artifactName": "${productName}-${version}-${arch}.${ext}"
+    },
     "appImage": {
       "artifactName": "${productName}-${version}-${arch}.${ext}"
     },

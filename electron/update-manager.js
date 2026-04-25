@@ -96,6 +96,21 @@ class UpdateManager {
         if (!this.isAppImage) {
           payload.downloadUrl = payload.releasePageUrl;
         }
+      } else if (process.platform === 'darwin') {
+        // macOS builds are unsigned (no Apple Developer ID), so electron-updater
+        // cannot apply the update — Squirrel.Mac requires the new bundle to share
+        // a valid Developer ID signature with the running one. We surface the
+        // notification, then send the user to the GitHub release to download
+        // the PKG manually. See update-download handler below for the matching
+        // refusal path.
+        const version = info.version;
+        const arch = process.arch === 'arm64' ? 'arm64' : 'x64';
+        const base = `https://github.com/kizuna-ai-lab/sokuji/releases/download/v${version}`;
+
+        payload.supportsAutoUpdate = false;
+        payload.pkgUrl = `${base}/Sokuji-${version}-${arch}.pkg`;
+        payload.releasePageUrl = `https://github.com/kizuna-ai-lab/sokuji/releases/tag/v${version}`;
+        payload.downloadUrl = payload.pkgUrl;
       }
 
       this._updateInfo = info;
@@ -172,6 +187,11 @@ class UpdateManager {
 
       // Non-AppImage Linux: no auto-download; renderer opens links manually
       if (process.platform === 'linux' && !this.isAppImage) {
+        return { success: false, error: 'auto-update-not-supported' };
+      }
+
+      // macOS: same notify-only path as non-AppImage Linux.
+      if (process.platform === 'darwin') {
         return { success: false, error: 'auto-update-not-supported' };
       }
 
