@@ -11,7 +11,7 @@
     "email": "contact@kizuna.ai"
   },
   "build": {
-    "appId": "com.kizunaai.sokuji",
+    "appId": "ai.kizunaai.sokuji",
     "productName": "Sokuji",
     "asar": true,
     "directories": {
@@ -182,7 +182,7 @@
     "electron:start": "electron .",
     "package": "npm run build && electron-forge package",
     "make": "npm run build && electron-forge make",
-    "make:pkg": "./build-pkg.sh",
+    "make:pkg": "npm run build && electron-builder --mac pkg --publish never -c.directories.output=out/make-mac",
     "postinstall": "electron-rebuild && bash scripts/copy-ort-wasm.sh",
     "eval": "tsx evals/runner/index.ts",
     "eval:validate": "tsx evals/runner/index.ts validate",
