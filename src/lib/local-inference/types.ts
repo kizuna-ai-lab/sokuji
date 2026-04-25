@@ -84,7 +84,7 @@ export interface WhisperAsrInitMessage {
   vadModelUrl?: string;
 }
 
-export type AsrWorkerInMessage = AsrInitMessage | WhisperAsrInitMessage | VoxtralAsrInitMessage | CohereTranscribeAsrInitMessage | GraniteSpeechInitMessage | AsrAudioMessage | AsrDisposeMessage;
+export type AsrWorkerInMessage = AsrInitMessage | WhisperAsrInitMessage | VoxtralAsrInitMessage | Voxtral3BAsrInitMessage | CohereTranscribeAsrInitMessage | GraniteSpeechInitMessage | AsrAudioMessage | AsrDisposeMessage;
 
 // ─── ASR Worker Messages (Worker → Main) ─────────────────────────────────────
 
@@ -171,6 +171,24 @@ export interface CohereTranscribeAsrInitMessage {
   /** Source language code (e.g. 'ja', 'en') — required, no auto-detect */
   language?: string;
   /** ONNX dtype config — 'q4f16' or 'q4', or per-component mapping */
+  dtype: string | Record<string, string>;
+  /** VAD configuration overrides from user settings */
+  vadConfig?: VadWebConfig;
+  /** Resolved absolute URL for bundled VAD model */
+  vadModelUrl: string;
+  /** Resolved absolute URL for bundled ORT WASM files */
+  ortWasmBaseUrl?: string;
+}
+
+export interface Voxtral3BAsrInitMessage {
+  type: 'init';
+  /** Map of filename → blob URL for model files from IndexedDB */
+  fileUrls: Record<string, string>;
+  /** HuggingFace model ID for Transformers.js from_pretrained */
+  hfModelId: string;
+  /** Source language hint (e.g. 'ja', 'en-US'). Normalized to ISO 639-1 inside the worker. */
+  language?: string;
+  /** ONNX dtype config — per-component mapping (audio_encoder, embed_tokens, decoder_model_merged) */
   dtype: string | Record<string, string>;
   /** VAD configuration overrides from user settings */
   vadConfig?: VadWebConfig;

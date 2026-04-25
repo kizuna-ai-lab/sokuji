@@ -1802,13 +1802,13 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
                   <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '4px', display: 'inline-block', verticalAlign: 'middle' }} />
                 </Tooltip>
               </span>
-              <span className="setting-value">{localInferenceSettings.vadMinSilenceDuration.toFixed(1)}s</span>
+              <span className="setting-value">{localInferenceSettings.vadMinSilenceDuration.toFixed(2)}s</span>
             </div>
             <input
               type="range"
-              min="0.1"
+              min="0.05"
               max="2.0"
-              step="0.1"
+              step="0.05"
               value={localInferenceSettings.vadMinSilenceDuration}
               onChange={(e) => updateLocalInferenceSettings({ vadMinSilenceDuration: parseFloat(e.target.value) })}
               className="slider"
