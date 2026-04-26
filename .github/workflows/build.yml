@@ -229,7 +229,6 @@ jobs:
           name: ${{ matrix.artifact_name }}-artifacts
           path: |
             out/make-mac/*.pkg
-            out/make-mac/latest-mac.yml
 
   sign-windows:
     name: Sign Windows artifacts
@@ -353,10 +352,6 @@ jobs:
           find windows-nupkg -name "*.nupkg" -exec cp {} release-assets/ \;
           find macos-arm64-artifacts -name "*.pkg" -exec cp {} release-assets/ \;
           find macos-x64-artifacts -name "*.pkg" -exec cp {} release-assets/ \;
-          # Stash the per-arch latest-mac.yml files under arch-specific names so
-          # the merge step below can find both. They get cleaned up after merge.
-          [ -f macos-arm64-artifacts/latest-mac.yml ] && cp macos-arm64-artifacts/latest-mac.yml release-assets/latest-mac-arm64.yml || true
-          [ -f macos-x64-artifacts/latest-mac.yml ]   && cp macos-x64-artifacts/latest-mac.yml   release-assets/latest-mac-x64.yml   || true
           # Squirrel generates filenames with spaces (e.g. "Sokuji-0.15.12 Setup.exe").
           # Rename to use dots so asset names are consistent and latest.yml URLs match.
           cd release-assets
@@ -397,52 +392,53 @@ jobs:
           echo "=== latest.yml ==="
           cat release-assets/latest.yml
 
-      - name: Merge per-arch latest-mac.yml
-        # electron-updater on macOS always fetches a single `latest-mac.yml`
-        # (no arch suffix; see node_modules/electron-updater/.../Provider.js
-        # getChannelFilePrefix), so we have to combine the per-arch files
-        # produced by each macOS build job into one. PyYAML is preinstalled
-        # on ubuntu-latest.
-        # Notify-only context: update-manager.js never calls downloadUpdate
-        # on darwin, so this YAML is only used to drive the version-check
-        # event. See electron/update-manager.js darwin branch.
+      - name: Generate latest-mac.yml for auto-updater
+        # electron-builder's PKG target does not emit latest-mac.yml on its own
+        # (only zip/dmg targets set isWriteUpdateInfo=true), so generate it the
+        # same way Windows latest.yml is built above. Notify-only context:
+        # update-manager.js darwin branch only reads `version` and constructs
+        # its own pkgUrl, so files[] just enumerates the per-arch PKGs.
+        # electron-updater on macOS always fetches a single latest-mac.yml
+        # (no arch suffix), hence one combined file with both arches in files[].
         run: |
-          python3 << 'PYEOF'
-          import os, sys, yaml
+          PKGS=()
+          while IFS= read -r p; do PKGS+=("$p"); done < <(find release-assets -name "Sokuji-*-*.pkg" | sort)
+          if [ ${#PKGS[@]} -eq 0 ]; then
+            echo "Warning: No .pkg found, skipping latest-mac.yml generation"
+            exit 0
+          fi
 
-          per_arch = {
-              'arm64': 'release-assets/latest-mac-arm64.yml',
-              'x64':   'release-assets/latest-mac-x64.yml',
-          }
-          loaded = {}
-          for arch, p in per_arch.items():
-              if os.path.exists(p):
-                  with open(p) as f:
-                      loaded[arch] = yaml.safe_load(f)
+          VERSION=${GITHUB_REF_NAME#v}
+          DATE=$(date -u +"%Y-%m-%dT%H:%M:%S.000Z")
 
-          if not loaded:
-              print('No macOS latest-mac.yml inputs found, skipping merge')
-              sys.exit(0)
+          # Prefer arm64 for the legacy top-level path/sha512 fields, matching
+          # the previous PyYAML merge behavior.
+          PRIMARY=""
+          for PKG in "${PKGS[@]}"; do
+            case "$PKG" in *-arm64.pkg) PRIMARY="$PKG"; break ;; esac
+          done
+          [ -z "$PRIMARY" ] && PRIMARY="${PKGS[0]}"
+          PRIMARY_NAME=$(basename "$PRIMARY")
+          PRIMARY_SHA=$(openssl dgst -sha512 -binary "$PRIMARY" | openssl base64 -A)
 
-          # Prefer arm64 as the base (its `path`/`sha512` become the legacy
-          # top-level fields). Fall back to whatever's available.
-          base_arch = 'arm64' if 'arm64' in loaded else next(iter(loaded))
-          merged = loaded[base_arch]
-          for arch, info in loaded.items():
-              if arch == base_arch:
-                  continue
-              merged.setdefault('files', []).extend(info.get('files', []))
-
-          with open('release-assets/latest-mac.yml', 'w') as f:
-              yaml.safe_dump(merged, f, default_flow_style=False, sort_keys=False)
-
-          for p in per_arch.values():
-              if os.path.exists(p):
-                  os.remove(p)
-          PYEOF
+          {
+            echo "version: ${VERSION}"
+            echo "files:"
+            for PKG in "${PKGS[@]}"; do
+              NAME=$(basename "$PKG")
+              SHA=$(openssl dgst -sha512 -binary "$PKG" | openssl base64 -A)
+              SIZE=$(stat -c%s "$PKG")
+              echo "  - url: ${NAME}"
+              echo "    sha512: ${SHA}"
+              echo "    size: ${SIZE}"
+            done
+            echo "path: ${PRIMARY_NAME}"
+            echo "sha512: ${PRIMARY_SHA}"
+            echo "releaseDate: '${DATE}'"
+          } > release-assets/latest-mac.yml
 
           echo "=== latest-mac.yml ==="
-          cat release-assets/latest-mac.yml || echo "(no macOS yml produced)"
+          cat release-assets/latest-mac.yml
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
