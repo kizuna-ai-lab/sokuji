@@ -198,6 +198,15 @@ npm run electron:build      # 生产构建
 
 [AGPL-3.0](../LICENSE)
 
+## 赞助
+
+<table>
+  <tr>
+    <td><a href="https://signpath.org/"><img src="https://avatars.githubusercontent.com/u/34448643?s=64" alt="SignPath" width="48" height="48" /></a></td>
+    <td>Windows 代码签名由 <a href="https://about.signpath.io/">SignPath.io</a> 免费提供，证书由 <a href="https://signpath.org/">SignPath Foundation</a> 颁发。</td>
+  </tr>
+</table>
+
 ## 支持
 
 - [Issues](https://github.com/kizuna-ai-lab/sokuji/issues) — Bug 报告
