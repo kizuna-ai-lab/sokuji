@@ -198,6 +198,15 @@ We welcome contributions! Please read our [Contributing Guidelines](.github/CONT
 
 [AGPL-3.0](LICENSE)
 
+## Sponsors
+
+<table>
+  <tr>
+    <td><a href="https://signpath.org/"><img src="https://avatars.githubusercontent.com/u/34448643?s=64" alt="SignPath" width="48" height="48" /></a></td>
+    <td>Free code signing on Windows provided by <a href="https://about.signpath.io/">SignPath.io</a>, certificate by <a href="https://signpath.org/">SignPath Foundation</a>.</td>
+  </tr>
+</table>
+
 ## Support
 
 - [Issues](https://github.com/kizuna-ai-lab/sokuji/issues) — Bug reports
