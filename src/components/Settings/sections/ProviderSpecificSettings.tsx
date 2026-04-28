@@ -64,6 +64,15 @@ interface ProviderSpecificSettingsProps {
   fetchAvailableModels: (getAuthToken?: () => Promise<string | null>) => Promise<void>;
 }
 
+/**
+ * OpenAI's internal `'Disabled'` mode is surfaced in the UI as "Push-to-Talk"
+ * (matches the equivalent button on other providers). For analytics we want
+ * the same normalization so cross-provider mode stats are consistent.
+ */
+function normalizeSpeechModeForAnalytics(mode: string): string {
+  return mode === 'Disabled' ? 'Push-to-Talk' : mode;
+}
+
 const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
   config,
   isSessionActive,
@@ -378,8 +387,8 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
                     if (fromMode !== toMode) {
                       trackEvent('speech_mode_changed', {
                         provider: provider,
-                        from_mode: fromMode,
-                        to_mode: toMode,
+                        from_mode: normalizeSpeechModeForAnalytics(fromMode),
+                        to_mode: normalizeSpeechModeForAnalytics(toMode),
                       });
                       updateOpenAICompatibleSettingsHelper({ turnDetectionMode: toMode });
                     }
@@ -406,7 +415,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
                 if (fromMode !== 'Push-to-Translate') {
                   trackEvent('speech_mode_changed', {
                     provider: provider,
-                    from_mode: fromMode,
+                    from_mode: normalizeSpeechModeForAnalytics(fromMode),
                     to_mode: 'Push-to-Translate',
                   });
                   updateOpenAICompatibleSettingsHelper({ turnDetectionMode: 'Push-to-Translate' });
