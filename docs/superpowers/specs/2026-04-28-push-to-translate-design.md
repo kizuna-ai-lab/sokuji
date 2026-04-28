@@ -33,7 +33,7 @@ In noisy environments, ambient noise (breathing, chair movement, background soun
 
 ### Eager AI session
 
-Same as current PTT — provider connection is established when entering the mode, not on first key press. No new lifecycle work required.
+Same as current PTT — provider connection is established when entering the mode, not on first key press. No new *connection* lifecycle work is required, but Push-to-Translate does need new *recorder* lifecycle work: the recorder must run continuously (started at session start, not on key hold) with chunk-level gating on `data.isPassthrough` — see "Recorder lifecycle — three patterns" below.
 
 ## UI changes
 
